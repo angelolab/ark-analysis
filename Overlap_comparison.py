@@ -1,5 +1,3 @@
-# Let's get things started
-
 import numpy as np
 import pandas as pd
 import copy
@@ -7,63 +5,57 @@ import skimage.measure
 import matplotlib.pyplot as plt
 import scipy
 
+# first attempt to evaluate accuracy of different networks by comparing to gold standard contoured data
 
-# using matploblib to read in TIF data
-
-image_direc = '/Users/noahgreenwald/Documents/Grad School/Lab/Segmentation/SegmentationSamir/'
-
-deep_data = plt.imread(image_direc + "patient2deepCellSegmentationInterior.tif")
-ilastic_data = plt.imread(image_direc + "point2IlastikSegmentationInterior.tif")
+# read in TIFs containing ground truth contoured data, along with predicted segmentation
+image_direc = '/Users/noahgreenwald/Documents/Grad School/Lab/Segmentation/Contours/SegmentationSamir/'
+predicted_data = plt.imread(image_direc + "patient2deepCellSegmentationInterior.tif")
 contour_data = plt.imread(image_direc + "patient2interior.tif")
 
-
-# number each of the labels, then get size of each
-deep_L, deep_idx = skimage.measure.label(deep_data,return_num=True, connectivity=1)
-deep_props = skimage.measure.regionprops(deep_L)
+# generates labels (L) for each distinct object in the image, along with their indices
+predicted_L, predicted_idx = skimage.measure.label(predicted_data, return_num=True, connectivity=1)
+predicted_props = skimage.measure.regionprops(predicted_L)
 
 contour_L, contour_idx = skimage.measure.label(contour_data,return_num=True, connectivity=1)
 contour_props = skimage.measure.regionprops(contour_L)
 
-ilastic_L, ilastic_idx = skimage.measure.label(ilastic_data, return_num=True, connectivity=1)
-ilastic_props = skimage.measure.regionprops(ilastic_L)
+#  determine how well the contoured data was recapitulated by the predicted segmentaiton data
+cell_frame = pd.DataFrame(columns=["contour_cell", "contour_cell_size", "precicted_cell", "predicted_cell_size", "merged", "split", ], dtype="float")
 
 
-cell_frame = pd.DataFrame(columns=["base_cell", "base_cell_size", "mapped_cell", "mapped_cell_size", "ratio"], dtype="float")
+for contour_cell in range(1, contour_idx + 1):
+    # generate a mask for the contoured cell, get all predicted cells that overlap the mask
+    mask = contour_L == contour_cell
+    overlap_id, overlap_count = np.unique(predicted_L[mask], return_counts=True)
+    overlap_id, overlap_count = np.array(overlap_id), np.array(overlap_count)
 
-# iterate through each cell, get cells that it overlaps, and add to db
-tar_idx = deep_idx
-tar_L = deep_L
-tar_props = deep_props
+    # remove cells that aren't at least 5% of current cell
+    contour_cell_size = sum(sum(mask))
+    idx = overlap_count > 0.05 * contour_cell_size
+    overlap_id, overlap_count = overlap_id[idx], overlap_count[idx]
 
-base_idx = contour_idx
-base_L = contour_L
-base_props = contour_props
-for base_cell in range(1, base_idx + 1):
-    # generate a mask for the location of current cell, get all cells that overlap the mask in target cell
-    #if base_props[base_cell - 1].area == 1:
-    #    pass
-    #else:
-        mask = base_L == base_cell
-        overlap_id, overlap_count = np.unique(tar_L[mask], return_counts=True)
-        overlap_id, overlap_count = np.array(overlap_id), np.array(overlap_count)
+    # sort the overlap counts in decreasing order
+    sort_idx = np.argsort(-overlap_count)
+    overlap_id, overlap_count = overlap_id[sort_idx], overlap_count[sort_idx]
 
-        # remove cells that aren't at least 5% of current cell
-        idx = overlap_count > 0.05*sum(overlap_count)
-        overlap_id, overlap_count = overlap_id[idx], overlap_count[idx]
-
-        for pos, ele in enumerate(overlap_id):
-            # if overlaps with 0 (background), include only if that's the only overlap
-            if ele == 0:
-                if len(overlap_id) == 1:
-                    cell_frame = cell_frame.append(
-                        {"base_cell": base_cell, "base_cell_size": base_props[base_cell - 1].area,
-                         "mapped_cell": ele, "mapped_cell_size": 0}, ignore_index=True)
-            else:
-                cell_frame = cell_frame.append({"base_cell":base_cell, "base_cell_size":base_props[base_cell - 1].area,
-                                            "mapped_cell":ele, "mapped_cell_size":tar_props[ele - 1].area}, ignore_index=True)
+    for pos, ele in enumerate(overlap_id):
+        # if overlaps with 0 (background), include only if that's the only overlap
+        if ele == 0:
+            if len(overlap_id) == 1:
+                cell_frame = cell_frame.append(
+                    {"base_cell": base_cell, "base_cell_size": base_props[base_cell - 1].area,
+                     "mapped_cell": ele, "mapped_cell_size": 0}, ignore_index=True)
+        else:
+            cell_frame = cell_frame.append({"base_cell":base_cell, "base_cell_size":base_props[base_cell - 1].area,
+                                        "mapped_cell":ele, "mapped_cell_size":tar_props[ele - 1].area}, ignore_index=True)
 
 
 
+
+list1, list2 = (list(x) for x in zip(*sorted(zip(list1, list2))))
+
+x = zip(list1, list2)
+print(list(x))
 # plot values for the different classes of cells
 
 # create matrix to keep track of number of neighbors each cell has
