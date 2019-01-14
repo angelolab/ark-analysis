@@ -45,16 +45,16 @@ outliers = outliers + ["p53.tif"]
 
 channels = [x for x in channels if x not in outliers]
 
-# create cropped version of tifs
-for pos, point in enumerate(directory_old):
-    for image in os.listdir(directory[0]):
-        if '.tif' in image:
-            img = plt.imread(point + "/" + image)
-            crop = crop_dim[pos]
-            img = img[crop[0]:crop[1], crop[2]:crop[3]]
-            name = image.strip('.tif') + '_cropped.tif'
-            raw_vals = Image.fromarray(img)
-            raw_vals.save(point + "/" + name)
+# # create cropped version of tifs
+# for pos, point in enumerate(directory_old):
+#     for image in os.listdir(directory[0]):
+#         if '.tif' in image:
+#             img = plt.imread(point + "/" + image)
+#             crop = crop_dim[pos]
+#             img = img[crop[0]:crop[1], crop[2]:crop[3]]
+#             name = image.strip('.tif') + '_cropped.tif'
+#             raw_vals = Image.fromarray(img)
+#             raw_vals.save(point + "/" + name)
 
 
 # old code for comparing intensity across the entire image
@@ -214,11 +214,11 @@ r_values = pd.DataFrame(columns=["channel", "point", "intensity", "correlation",
 for point in range(len(directory_old)):
     for chan in channels:
 
-        #old_val = values_grid.loc[np.logical_and(values_grid.index == chan, values_grid["point"] == point), "old_value"]
-        #new_val = values_grid.loc[np.logical_and(values_grid.index == chan, values_grid["point"] == point), "new_value"]
+        old_val = values_grid.loc[np.logical_and(values_grid.index == chan, values_grid["point"] == point), "old_value"]
+        new_val = values_grid.loc[np.logical_and(values_grid.index == chan, values_grid["point"] == point), "new_value"]
 
-        old_val = values_grid.loc[(values_grid.index == chan), "old_value"]
-        new_val = values_grid.loc[(values_grid.index == chan), "new_value"]
+        #old_val = values_grid.loc[(values_grid.index == chan), "old_value"]
+        #new_val = values_grid.loc[(values_grid.index == chan), "new_value"]
 
         r_val = stats.pearsonr(old_val, new_val)[0]
 
@@ -252,21 +252,22 @@ plt.close()
 r_values_plot.to_csv("r2_values.csv")
 
 stats.pearsonr([math.log10(x) for x in r_values_plot["intensity"]], r_values_plot["correlation"])
+stats.pearsonr(r_values_plot["intensity"], r_values_plot["correlation"])
 
 
 # highlight scatter pre vs post for specific channels
 
-old_scatter = values_grid.loc[np.logical_and(values_grid.index == "CD45.tif", values_grid["point"] == 0.0), "old_value"]
-new_scatter = values_grid.loc[np.logical_and(values_grid.index == "CD45.tif", values_grid["point"] == 0.0), "new_value"]
+old_scatter = values_grid.loc[np.logical_and(values_grid.index == "CD20.tif", values_grid["point"] == 0.0), "old_value"]
+new_scatter = values_grid.loc[np.logical_and(values_grid.index == "CD20.tif", values_grid["point"] == 0.0), "new_value"]
 
-old_scatter = values_grid.loc[(values_grid.index == "CD45.tif"), "old_value"]
-new_scatter = values_grid.loc[(values_grid.index == "CD45.tif"), "new_value"]
+old_scatter.to_csv("original_CD20_counts.csv")
+new_scatter.to_csv("rescan_CD20_counts.csv")
 
 f = plt.figure()
 plt.scatter(old_scatter, new_scatter)
 plt.xlabel("Original Scan")
 plt.ylabel("Rescan")
-f.savefig("CD45_Merged_Example.pdf")
+f.savefig("CD20_Point_0.pdf")
 plt.close()
 stats.pearsonr(old_scatter, new_scatter)
 
