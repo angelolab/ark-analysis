@@ -38,6 +38,7 @@ contour_L, contour_idx = skimage.measure.label(contour_data,return_num=True, con
 contour_props = skimage.measure.regionprops(contour_L)
 
 
+
 # remove labels from contour data that appear in padded region
 # set padding
 # pad = 0
