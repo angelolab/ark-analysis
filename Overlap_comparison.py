@@ -8,256 +8,265 @@ import matplotlib as mpl
 import scipy
 import scipy.stats as stats
 from PIL import Image
+import skimage.io as io
 
-
-os.chdir("/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation/Contours/First_Run/Figs/")
 
 # first attempt to evaluate accuracy of different networks by comparing to gold standard contoured data
 
 # read in TIFs containing ground truth contoured data, along with predicted segmentation
-image_direc = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation/Contours/First_Run/Point23/'
-deep_direc = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation/Contours/First_Run/cnn_output/'
-# predicted_data = plt.imread(image_direc + "Deep_Segmentation_Interior.tif")
-# predicted_data = plt.imread(image_direc + "Deep_Segmentation_Border.tif")
-predicted_data = plt.imread(image_direc + "2019-01-14_point12nucinterior_nucborder_cellborder_segmentation.tif")
+image_direc = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/Contours/First_Run/Point23/'
 
-contour_data = plt.imread(image_direc + "Nuclear_Interior_Mask_Padded.tif")
-contour_data.setflags(write=1)
+deep_direc = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/Contours/First_Run/cnn_data/Deepcell_docker/output/Point1_12_18_23_3X/'
+plot_direc = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/Contours/First_Run/Figs/'
 
+files = ["interior_2", "interior_5", "interior_border_2", "interior_border_5",
+         "interior_border_border_2", "interior_border_border_5"]
 
-# generates labels (L) for each distinct object in the image, along with their indices
-# For some reason, the regionprops output is 0 indexed, such that the 1st cell appears at index 0.
-# However, the labeling of these cells is 1-indexed, so that the 1st cell is given the label of 1
-# It's hard to describe how dumb and confusing this is.
-# Cell 452, for example, can have its regionprops data output by accessing the 451st index
+for i in range(len(files)):
+    file_base = files[i]
+    # file_base = 'interior_border_border_5'
+    predicted_data = plt.imread(deep_direc + 'mask_' + file_base + '.tiff')
 
-predicted_L, predicted_idx = skimage.measure.label(predicted_data, return_num=True, connectivity=1)
-predicted_props = skimage.measure.regionprops(predicted_L)
-
-contour_L, contour_idx = skimage.measure.label(contour_data,return_num=True, connectivity=1)
-contour_props = skimage.measure.regionprops(contour_L)
+    contour_data = plt.imread(image_direc + "Nuclear_Interior_Mask_Padded.tif")
+    contour_data.setflags(write=1)
 
 
+    # generates labels (L) for each distinct object in the image, along with their indices
+    # For some reason, the regionprops output is 0 indexed, such that the 1st cell appears at index 0.
+    # However, the labeling of these cells is 1-indexed, so that the 1st cell is given the label of 1
+    # It's hard to describe how dumb and confusing this is.
+    # Cell 452, for example, can have its regionprops data output by accessing the 451st index
 
-# remove labels from contour data that appear in padded region
-# set padding
-# pad = 0
-# row = 0
-# while pad == 0:
-#     if np.sum(predicted_data[row, :] > 0):
-#         pad = row
-#     else:
-#         row += 1
-#
-# pad_mask = np.zeros((1024, 1024), dtype="bool")
-# pad_mask[0:30, :] = True
-# pad_mask[:, 0:30] = True
-# pad_mask[:, -30:-1] = True
-# pad_mask[-30:-1, :] = True
-# remove_ids = np.unique(contour_L[pad_mask])
-# remove_idx = np.isin(contour_L, remove_ids)
-# contour_data[contour_L == 0] = 0
-# contour_data[pad_mask] = 0
-#
-# padded_contour = Image.fromarray(contour_data)
-# padded_contour.save(image_direc + '/Nuclear_Interior_Mask_padded.tif')
-#
-#
-# # regenerate object IDs after removing regions that overlap with padding
-# contour_L, contour_idx = skimage.measure.label(contour_data,return_num=True, connectivity=1)
-# contour_props = skimage.measure.regionprops(contour_L)
+    predicted_L, predicted_idx = skimage.measure.label(predicted_data, return_num=True, connectivity=1)
+    predicted_props = skimage.measure.regionprops(predicted_L)
+
+    contour_L, contour_idx = skimage.measure.label(contour_data, return_num=True, connectivity=1)
+    contour_props = skimage.measure.regionprops(contour_L)
 
 
-#  determine how well the contoured data was recapitulated by the predicted segmentaiton data
-cell_frame = pd.DataFrame(columns=["contour_cell", "contour_cell_size", "predicted_cell", "predicted_cell_size",
-                                   "percent_overlap", "merged", "split", "missing"], dtype="float")
 
-for contour_cell in range(1, contour_idx + 1):
+    # remove labels from contour data that appear in padded region. Deepcell 1.0 doesn't do border regions
 
-    # generate a mask for the contoured cell, get all predicted cells that overlap the mask
-    mask = contour_L == contour_cell
-    overlap_id, overlap_count = np.unique(predicted_L[mask], return_counts=True)
-    overlap_id, overlap_count = np.array(overlap_id), np.array(overlap_count)
-
-    # remove cells that aren't at least 5% of current cell
-    contour_cell_size = sum(sum(mask))
-    idx = overlap_count > 0.05 * contour_cell_size
-    overlap_id, overlap_count = overlap_id[idx], overlap_count[idx]
-
-    # sort the overlap counts in decreasing order
-    sort_idx = np.argsort(-overlap_count)
-    overlap_id, overlap_count = overlap_id[sort_idx], overlap_count[sort_idx]
-
-    # go through logic to determine relationship between overlapping cells
-
-    if overlap_count[0] / contour_cell_size > 0.9:
-
-        # if greater than 90% of pixels contained in first overlap, assign to that cell
-        pred_cell = overlap_id[0]
-        pred_cell_size = predicted_props[pred_cell - 1].area
-        split = False
-        percnt = overlap_count[0] / contour_cell_size
-        # TODO determine if this cell was merged with other contoured cells into larger predicted cell
-
-        cell_frame = cell_frame.append({"contour_cell": contour_cell, "contour_cell_size": contour_cell_size,
-                                        "predicted_cell": pred_cell, "predicted_cell_size": pred_cell_size,
-                                        "percent_overlap": percnt, "merged": False, "split": False,
-                                        "missing": False}, ignore_index=True)
-    else:
-
-        # Determine whether any other predicted cells contribute primarily to this contoured cell
-
-        # Identify number of cells needed to get to 80% of total volume of cell
-        cum_size = overlap_count[0]
-        idx = 0
-        while (cum_size / contour_cell_size) < 0.8:
-            idx += 1
-            cum_size += overlap_count[idx]
-
-            if idx > 20:
-                raise Exception("Something failed in the while loop")
-
-        # Figure out which of these cells have at least 80% of their volume contained in original cell
-        split_flag = False
-        for cell in range(1, idx + 1):
-            pred_cell_size = predicted_props[overlap_id[cell] - 1].area
-            percnt = overlap_count[cell] / contour_cell_size
-            if overlap_count[cell] / pred_cell_size > 0.7 and overlap_id[cell] != 0:
-
-                split_flag = True
-                cell_frame = cell_frame.append({"contour_cell": contour_cell, "contour_cell_size": contour_cell_size,
-                                                "predicted_cell": overlap_id[cell], "predicted_cell_size": pred_cell_size,
-                                                "percent_overlap": percnt, "merged": False, "split": True,
-                                                "missing": False}, ignore_index=True)
-            else:
-                # this cell hasn't been split, just poorly assigned
-                pass
-
-        # assign first cell, based on whether or not subsequent cells indicate split
-        cell_frame = cell_frame.append({"contour_cell": contour_cell, "contour_cell_size": contour_cell_size,
-                                        "predicted_cell": overlap_id[0], "predicted_cell_size": overlap_count[0],
-                                        "percent_overlap": overlap_count[0] / contour_cell_size, "merged": False,
-                                        "split": split_flag, "missing": False}, ignore_index=True)
+    # set padding
+    # pad = 0
+    # row = 0
+    # while pad == 0:
+    #     if np.sum(predicted_data[row, :] > 0):
+    #         pad = row
+    #     else:
+    #         row += 1
+    #
+    # pad_mask = np.zeros((1024, 1024), dtype="bool")
+    # pad_mask[0:30, :] = True
+    # pad_mask[:, 0:30] = True
+    # pad_mask[:, -30:-1] = True
+    # pad_mask[-30:-1, :] = True
+    # remove_ids = np.unique(contour_L[pad_mask])
+    # remove_idx = np.isin(contour_L, remove_ids)
+    # contour_data[contour_L == 0] = 0
+    # contour_data[pad_mask] = 0
+    #
+    # padded_contour = Image.fromarray(contour_data)
+    # padded_contour.save(image_direc + '/Nuclear_Interior_Mask_padded.tif')
+    #
+    #
+    # # regenerate object IDs after removing regions that overlap with padding
+    # contour_L, contour_idx = skimage.measure.label(contour_data,return_num=True, connectivity=1)
+    # contour_props = skimage.measure.regionprops(contour_L)
 
 
-def outline_objects(L_matrix, list_of_lists):
-    """takes in an L matrix generated by skimage.label, along with a list of lists, and returns a mask that has the
-    pixels for all cells from each list represented as different decimal number for easy plotting"""
+    #  determine how well the contoured data was recapitulated by the predicted segmentaiton data
+    cell_frame = pd.DataFrame(columns=["contour_cell", "contour_cell_size", "predicted_cell", "predicted_cell_size",
+                                       "percent_overlap", "merged", "split", "missing"], dtype="float")
 
-    L_plot = copy.deepcopy(L_matrix).astype(float)
+    for contour_cell in range(1, contour_idx + 1):
 
-    for idx, list in enumerate(list_of_lists):
-        mask = np.isin(L_plot, list)
-        L_plot[mask] = idx + 1.99
+        # generate a mask for the contoured cell, get all predicted cells that overlap the mask
+        mask = contour_L == contour_cell
+        overlap_id, overlap_count = np.unique(predicted_L[mask], return_counts=True)
+        overlap_id, overlap_count = np.array(overlap_id), np.array(overlap_count)
 
-    L_plot[L_plot > idx + 2] = 1
+        # remove cells that aren't at least 5% of current cell
+        contour_cell_size = sum(sum(mask))
+        idx = overlap_count > 0.05 * contour_cell_size
+        overlap_id, overlap_count = overlap_id[idx], overlap_count[idx]
 
-    return(L_plot)
+        # sort the overlap counts in decreasing order
+        sort_idx = np.argsort(-overlap_count)
+        overlap_id, overlap_count = overlap_id[sort_idx], overlap_count[sort_idx]
+
+        # go through logic to determine relationship between overlapping cells
+
+        if overlap_count[0] / contour_cell_size > 0.9:
+
+            # if greater than 90% of pixels contained in first overlap, assign to that cell
+            pred_cell = overlap_id[0]
+            pred_cell_size = predicted_props[pred_cell - 1].area
+            split = False
+            percnt = overlap_count[0] / contour_cell_size
+            # TODO determine if this cell was merged with other contoured cells into larger predicted cell
+
+            cell_frame = cell_frame.append({"contour_cell": contour_cell, "contour_cell_size": contour_cell_size,
+                                            "predicted_cell": pred_cell, "predicted_cell_size": pred_cell_size,
+                                            "percent_overlap": percnt, "merged": False, "split": False,
+                                            "missing": False}, ignore_index=True)
+        else:
+
+            # Determine whether any other predicted cells contribute primarily to this contoured cell
+
+            # Identify number of cells needed to get to 80% of total volume of cell
+            cum_size = overlap_count[0]
+            idx = 0
+            while (cum_size / contour_cell_size) < 0.8:
+                idx += 1
+                cum_size += overlap_count[idx]
+
+                if idx > 20:
+                    raise Exception("Something failed in the while loop")
+
+            # Figure out which of these cells have at least 80% of their volume contained in original cell
+            split_flag = False
+            for cell in range(1, idx + 1):
+                pred_cell_size = predicted_props[overlap_id[cell] - 1].area
+                percnt = overlap_count[cell] / contour_cell_size
+                if overlap_count[cell] / pred_cell_size > 0.7 and overlap_id[cell] != 0:
+
+                    split_flag = True
+                    cell_frame = cell_frame.append({"contour_cell": contour_cell, "contour_cell_size": contour_cell_size,
+                                                    "predicted_cell": overlap_id[cell], "predicted_cell_size": pred_cell_size,
+                                                    "percent_overlap": percnt, "merged": False, "split": True,
+                                                    "missing": False}, ignore_index=True)
+                else:
+                    # this cell hasn't been split, just poorly assigned
+                    pass
+
+            # assign first cell, based on whether or not subsequent cells indicate split
+            cell_frame = cell_frame.append({"contour_cell": contour_cell, "contour_cell_size": contour_cell_size,
+                                            "predicted_cell": overlap_id[0], "predicted_cell_size": overlap_count[0],
+                                            "percent_overlap": overlap_count[0] / contour_cell_size, "merged": False,
+                                            "split": split_flag, "missing": False}, ignore_index=True)
 
 
-# identify categories of poorly classified cells
-cell_frame = cell_frame[cell_frame["contour_cell_size"] > 10]
-cell_frame = cell_frame[cell_frame["predicted_cell_size"] > 10]
-missing_idx = cell_frame["predicted_cell"] == 0.
+    def outline_objects(L_matrix, list_of_lists):
+        """takes in an L matrix generated by skimage.label, along with a list of lists, and returns a mask that has the
+        pixels for all cells from each list represented as different decimal number for easy plotting"""
 
-# ignore those cells mapping to 0 (background), as these weren't actually merged into one cell
-merge_idx = np.logical_and(cell_frame["predicted_cell"].duplicated(), ~missing_idx)
-split_idx = cell_frame["split"] == 1
+        L_plot = copy.deepcopy(L_matrix).astype(float)
 
-bad_idx = np.logical_or(cell_frame["contour_cell_size"] / cell_frame["predicted_cell_size"] > 1.3,
-                        cell_frame["contour_cell_size"] / cell_frame["predicted_cell_size"] < 0.7)
+        for idx, list in enumerate(list_of_lists):
+            mask = np.isin(L_plot, list)
+            L_plot[mask] = idx + 1.99
 
-cell_frame.loc[merge_idx, "merged"] = True
-cell_frame.loc[missing_idx, "missing"] = True
-split_cells = cell_frame.loc[split_idx, "predicted_cell"]
-split_cells = [x for x in split_cells if x != 0]
-merged_cells = cell_frame.loc[merge_idx, "predicted_cell"]
-merged_cells = [x for x in merged_cells if x != 0]
-bad_cells = cell_frame.loc[bad_idx, "predicted_cell"]
-bad_cells = [x for x in bad_cells if x != 0]
-bad_cells = [x for x in bad_cells if ~np.isin(x, split_cells + merged_cells)]
+        L_plot[L_plot > idx + 2] = 1
+
+        return(L_plot)
 
 
-classify_outline = outline_objects(predicted_L, [split_cells, merged_cells, bad_cells])
+    # identify categories of poorly classified cells
+    cell_frame = cell_frame[cell_frame["contour_cell_size"] > 10]
+    cell_frame = cell_frame[cell_frame["predicted_cell_size"] > 10]
+    missing_idx = cell_frame["predicted_cell"] == 0.
 
-fig, ax = plt.subplots()
+    # ignore those cells mapping to 0 (background), as these weren't actually merged into one cell
+    merge_idx = np.logical_and(cell_frame["predicted_cell"].duplicated(), ~missing_idx)
+    split_idx = cell_frame["split"] == 1
 
-cmap = mpl.colors.ListedColormap(['Black', 'Grey', 'Blue', 'Red', 'Yellow'])
+    bad_idx = np.logical_or(cell_frame["contour_cell_size"] / cell_frame["predicted_cell_size"] > 1.3,
+                            cell_frame["contour_cell_size"] / cell_frame["predicted_cell_size"] < 0.7)
 
-# set limits .5 outside true range
-mat = ax.imshow(classify_outline, cmap=cmap, vmin=np.min(classify_outline)-.5, vmax=np.max(classify_outline)+.5)
+    cell_frame.loc[merge_idx, "merged"] = True
+    cell_frame.loc[missing_idx, "missing"] = True
+    split_cells = cell_frame.loc[split_idx, "predicted_cell"]
+    split_cells = [x for x in split_cells if x != 0]
+    merged_cells = cell_frame.loc[merge_idx, "predicted_cell"]
+    merged_cells = [x for x in merged_cells if x != 0]
+    bad_cells = cell_frame.loc[bad_idx, "predicted_cell"]
+    bad_cells = [x for x in bad_cells if x != 0]
+    bad_cells = [x for x in bad_cells if ~np.isin(x, split_cells + merged_cells)]
 
-# tell the colorbar to tick at integers
-cbar = fig.colorbar(mat, ticks=np.arange(np.min(classify_outline), np.max(classify_outline)+1))
-cbar.ax.set_yticklabels(['Background', 'Normal', 'Split', 'Merged', 'Low Quality'])
 
-fig.savefig("Cellborder_nucborder_Nuc_Interior_Summary_Map.tif", dpi=200)
+    classify_outline = outline_objects(predicted_L, [split_cells, merged_cells, bad_cells])
 
-# make subplots for two simple plots
-fig, ax = plt.subplots(2, 1, figsize=(10,10))
+    fig, ax = plt.subplots()
 
-ax[0].scatter(cell_frame["contour_cell_size"], cell_frame["predicted_cell_size"])
-ax[0].set_xlabel("Contoured Cell")
-ax[0].set_ylabel("Predicted Cell")
+    cmap = mpl.colors.ListedColormap(['Black', 'Grey', 'Blue', 'Red', 'Yellow'])
 
-# compute percentage of different error types
-errors = np.array([len(set(merged_cells)), len(set(split_cells)), len(set(bad_cells))]) / len(set(cell_frame["predicted_cell"]))
-position = range(len(errors))
-categories = ["Merged", "Split", "Bad"]
-ax[1].bar(position, errors)
+    # set limits .5 outside true range
+    mat = ax.imshow(classify_outline, cmap=cmap, vmin=np.min(classify_outline)-.5, vmax=np.max(classify_outline)+.5)
 
-ax[1].set_xticks(position)
-ax[1].set_xticklabels(categories)
-ax[1].set_title("Percentage of cells misclassified")
+    # tell the colorbar to tick at integers
+    cbar = fig.colorbar(mat, ticks=np.arange(np.min(classify_outline), np.max(classify_outline)+1))
+    cbar.ax.set_yticklabels(['Background', 'Normal', 'Split', 'Merged', 'Low Quality'])
 
-fig.savefig("Cellborder_nucborder_Nuc_Interior_Summary_Plots.tif", dpi=200)
+    fig.savefig(plot_direc + file_base + '_color_map.tiff', dpi=200)
+
+    # make subplots for two simple plots
+    fig, ax = plt.subplots(2, 1, figsize=(10,10))
+
+    ax[0].scatter(cell_frame["contour_cell_size"], cell_frame["predicted_cell_size"])
+    ax[0].set_xlabel("Contoured Cell")
+    ax[0].set_ylabel("Predicted Cell")
+
+    # compute percentage of different error types
+    errors = np.array([len(set(merged_cells)), len(set(split_cells)), len(set(bad_cells))]) / len(set(cell_frame["predicted_cell"]))
+    position = range(len(errors))
+    categories = ["Merged", "Split", "Bad"]
+    ax[1].bar(position, errors)
+
+    ax[1].set_xticks(position)
+    ax[1].set_xticklabels(categories)
+    ax[1].set_title("Percentage of cells misclassified")
+
+    fig.savefig(plot_direc + file_base + '_stats.tiff', dpi=200)
+
+    prob_data = Image.open(deep_direc + file_base + '.tiff')
+    prob_data = np.array(prob_data)
+    hist_data = prob_data.reshape(-1, 1).squeeze()
+    hist_data = [x for x in hist_data if x > 0.05]
+    fig, ax = plt.subplots()
+    ax.hist(hist_data)
+    ax.set_ylim(0, 200000)
+    fig.savefig(plot_direc + file_base + "_hist.tiff")
 
 # combine all three plots above into one
-fig3 = plt.figure(figsize=(15,9))
-gs = mpl.gridspec.GridSpec(2,2)
-f3_ax1 = fig3.add_subplot(gs[0, 0])
-f3_ax1.scatter(cell_frame["contour_cell_size"], cell_frame["predicted_cell_size"])
-f3_ax1.set_xlabel("Contoured Cell")
-f3_ax1.set_ylabel("Predicted Cell")
+# fig3 = plt.figure(figsize=(15,9))
+# gs = mpl.gridspec.GridSpec(2,2)
+# f3_ax1 = fig3.add_subplot(gs[0, 0])
+# f3_ax1.scatter(cell_frame["contour_cell_size"], cell_frame["predicted_cell_size"])
+# f3_ax1.set_xlabel("Contoured Cell")
+# f3_ax1.set_ylabel("Predicted Cell")
+#
+#
+# f3_ax2 = fig3.add_subplot(gs[1, 0])
+# f3_ax2.set_title('gs[1, :-1]')
+# f3_ax2.bar(position, errors)
+# f3_ax2.set_xticks(position)
+# f3_ax2.set_xticklabels(categories)
+# f3_ax2.set_title("Percentage of cells misclassified")
+#
+# cmap = mpl.colors.ListedColormap(['Black', 'Grey', 'Blue', 'Red', 'Yellow'])
+# f3_ax3 = fig3.add_subplot(gs[:, 1])
+# f3_ax3.imshow(classify_outline, cmap=cmap, vmin=np.min(classify_outline)-.5, vmax=np.max(classify_outline)+.5)
+#
+# # set limits .5 outside true range
+# mat = f3_ax3.imshow(classify_outline, cmap=cmap, vmin=np.min(classify_outline)-.5, vmax=np.max(classify_outline)+.5)
+#
+# # tell the colorbar to tick at integers
+# cbar = fig3.colorbar(mat, ticks=np.arange(np.min(classify_outline), np.max(classify_outline)+1))
+# cbar.ax.set_yticklabels(['Background', 'Accurate', 'Split', 'Merged', 'Low Accuracy'])
 
-
-f3_ax2 = fig3.add_subplot(gs[1, 0])
-f3_ax2.set_title('gs[1, :-1]')
-f3_ax2.bar(position, errors)
-f3_ax2.set_xticks(position)
-f3_ax2.set_xticklabels(categories)
-f3_ax2.set_title("Percentage of cells misclassified")
-
-cmap = mpl.colors.ListedColormap(['Black', 'Grey', 'Blue', 'Red', 'Yellow'])
-f3_ax3 = fig3.add_subplot(gs[:, 1])
-f3_ax3.imshow(classify_outline, cmap=cmap, vmin=np.min(classify_outline)-.5, vmax=np.max(classify_outline)+.5)
-
-# set limits .5 outside true range
-mat = f3_ax3.imshow(classify_outline, cmap=cmap, vmin=np.min(classify_outline)-.5, vmax=np.max(classify_outline)+.5)
-
-# tell the colorbar to tick at integers
-cbar = fig3.colorbar(mat, ticks=np.arange(np.min(classify_outline), np.max(classify_outline)+1))
-cbar.ax.set_yticklabels(['Background', 'Accurate', 'Split', 'Merged', 'Low Accuracy'])
-
-fig3.savefig("Deep_Segmentation_Border.tif")
+# fig3.savefig("Deep_Segmentation_Border.tif")
 
 # histogram of probabilities
 
-prob_data = Image.open(deep_direc + "nucinterior/Point23/feature_0_frame_0.tif")
-prob_data = Image.open(deep_direc + "nucinterior_cellborder/Point23/feature_0_frame_0.tif")
-prob_data = Image.open(deep_direc + "2019-01-14_point12nucinterior_nucborder_cellborder/Point23/feature_0_frame_0.tif")
-prob_data = Image.open('/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation/Contours/Erin_Granuloma/cnn_output/' + "membrane/Point14/feature_0_frame_0.tif")
-prob_data = Image.open('/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation/Contours/Erin_Granuloma/cnn_output/' + "nuclear/Point14/feature_0_frame_0.tif")
-prob_data = np.array(prob_data)
-hist_data = prob_data.reshape(-1, 1).squeeze()
-hist_data = [x for x in hist_data if x > 0.05]
-fig, ax = plt.subplots()
-ax.hist(hist_data)
-ax.set_ylim(0,110000)
-fig.savefig("Histogram_Granuloma_Cell_Border_Nuclear_Interior.tif")
 
 
 
+
+
+
+
+# other code
 
 # plot values for the different classes of cells
 

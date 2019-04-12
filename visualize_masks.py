@@ -4,14 +4,16 @@ import numpy as np
 import os
 import matplotlib.pyplot as plt
 import skimage.io as io
+import copy
 
 image_dir = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/Contours/First_Run/cnn_data/Deepcell_docker/output/Point1_12_18_23_3X'
+# image_dir = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/Contours/First_Run/cnn_data/Deepcell_gcloud/Point1_12_18_23_3X/'
 plot_dir = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/Contours/First_Run/Figs/'
-data = np.zeros((8,4,1024,1024,4) , dtype='float32')
+data = np.zeros((9,4,1024,1024,4) , dtype='float32')
 
 files = os.listdir(image_dir)
-files.sort()
-files = files[1:len(files)]
+
+files = [file for file in files if 'npy' in file]
 
 # axes on data: training run, image, x_dim, y_dim, output_mask
 for i in range(len(files)):
@@ -22,8 +24,16 @@ for i in range(len(files)):
 names = files
 names = [x.replace('Point1_12_18_3X_', '').replace('_epoch_metrics.npy', '') for x in names]
 for i in range(len(files)):
-    io.imsave(os.path.join(plot_dir, names[i] + '.tiff'), data[i, 3, :, :, 1])
+    io.imsave(os.path.join(image_dir, names[i] + '_nucleus.tiff'), data[i, 3, :, :, 2])
+    io.imsave(os.path.join(image_dir, names[i] + '_border.tiff'), data[i, 3, :, :, 1])
+
+io.imshow(data[5, 3, :, :, 1])
+io.imsave(plot_dir + 'test_image.tiff', x)
+
+temp = copy.copy(data[5, 3, :, :, 1])
+io.imshow(temp)
+temp[temp < 0.4] = 0
+io.imshow(temp)
 
 
-skimage.io.imshow(data[5, 3, :, :, 1])
-skimage.io.imsave(plot_dir + 'test_image.tiff', x)
+io.imshow(data[4, 3, :, :, 1] - data[5, 3, :, :, 1])
