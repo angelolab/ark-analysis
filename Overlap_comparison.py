@@ -16,7 +16,8 @@ import skimage.io as io
 # read in TIFs containing ground truth contoured data, along with predicted segmentation
 image_direc = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/Contours/First_Run/Point23/'
 
-deep_direc = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/Contours/First_Run/cnn_data/Deepcell_docker/output/Point1_12_18_23_3X/'
+# deep_direc = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/Contours/First_Run/cnn_data/Deepcell_docker/output/Point1_12_18_23_3X/'
+deep_direc = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/Contours/First_Run/cnn_data/Deepcell_gcloud/Point1_12_18_23_3X/'
 plot_direc = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/Contours/First_Run/Figs/'
 
 files = ["interior_2", "interior_5", "interior_border_2", "interior_border_5",
@@ -24,9 +25,7 @@ files = ["interior_2", "interior_5", "interior_border_2", "interior_border_5",
 
 for i in range(len(files)):
     file_base = files[i]
-    # file_base = 'interior_border_border_5'
     predicted_data = plt.imread(deep_direc + 'mask_' + file_base + '.tiff')
-
     contour_data = plt.imread(image_direc + "Nuclear_Interior_Mask_Padded.tif")
     contour_data.setflags(write=1)
 
@@ -219,13 +218,15 @@ for i in range(len(files)):
 
     fig.savefig(plot_direc + file_base + '_stats.tiff', dpi=200)
 
-    prob_data = Image.open(deep_direc + file_base + '.tiff')
+    #prob_data = Image.open(deep_direc + file_base + '_border' + '.tiff')
+    prob_data = Image.open(deep_direc + file_base + '/feature_0_frame_0.tif')
     prob_data = np.array(prob_data)
     hist_data = prob_data.reshape(-1, 1).squeeze()
     hist_data = [x for x in hist_data if x > 0.05]
     fig, ax = plt.subplots()
-    ax.hist(hist_data)
+    ax.hist(hist_data, bins=np.arange(0,1.1, .1))
     ax.set_ylim(0, 200000)
+    plt.xticks(np.arange(0, 1.1, 0.1))
     fig.savefig(plot_direc + file_base + "_hist.tiff")
 
 # combine all three plots above into one
