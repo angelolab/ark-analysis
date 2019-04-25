@@ -107,8 +107,19 @@ for i in range(len(files)):
             sort_idx = np.argsort(-overlap_count)
             overlap_id, overlap_count = overlap_id[sort_idx], overlap_count[sort_idx]
 
-            # go through logic to determine relationship between overlapping cells
+            # check and see if maps primarily to background
+            if overlap_id[0] == 0:
+                cell_frame = cell_frame.append({"contour_cell": contour_cell, "contour_cell_size": contour_cell_size,
+                                                "predicted_cell": pred_cell, "predicted_cell_size": pred_cell_size,
+                                                "percent_overlap": overlap_count / contour_cell_size, "merged": False,
+                                                "split": False, "missing": True}, ignore_index=True)
+            else:
+                # remove background as target cell and change cell size to for calculation
+                keep_idx = overlap_id != 0
+                contour_cell_size -= overlap_count[~keep_idx]
+                overlap_id, overlap_count = overlap_id[keep_idx], overlap_count[keep_idx]
 
+            # go through logic to determine relationship between overlapping cells
             if overlap_count[0] / contour_cell_size > 0.9:
 
                 # if greater than 90% of pixels contained in first overlap, assign to that cell
@@ -116,7 +127,6 @@ for i in range(len(files)):
                 pred_cell_size = predicted_props[pred_cell - 1].area
                 split = False
                 percnt = overlap_count[0] / contour_cell_size
-                # TODO determine if this cell was merged with other contoured cells into larger predicted cell
 
                 cell_frame = cell_frame.append({"contour_cell": contour_cell, "contour_cell_size": contour_cell_size,
                                                 "predicted_cell": pred_cell, "predicted_cell_size": pred_cell_size,
@@ -152,7 +162,7 @@ for i in range(len(files)):
                         # this cell hasn't been split, just poorly assigned
                         pass
 
-                # assign first cell, based on whether or not subsequent cells indicate split
+                # assign the first cell, based on whether or not subsequent cells indicate split
                 cell_frame = cell_frame.append({"contour_cell": contour_cell, "contour_cell_size": contour_cell_size,
                                                 "predicted_cell": overlap_id[0], "predicted_cell_size": overlap_count[0],
                                                 "percent_overlap": overlap_count[0] / contour_cell_size, "merged": False,
@@ -177,7 +187,7 @@ for i in range(len(files)):
         # identify categories of poorly classified cells
         cell_frame = cell_frame[cell_frame["contour_cell_size"] > 10]
         cell_frame = cell_frame[cell_frame["predicted_cell_size"] > 10]
-        missing_idx = cell_frame["predicted_cell"] == 0.
+        missing_idx = cell_frame["missing"] == True
 
         # ignore those cells mapping to 0 (background), as these weren't actually merged into one cell
         merge_idx = np.logical_and(cell_frame["predicted_cell"].duplicated(), ~missing_idx)
@@ -195,7 +205,7 @@ for i in range(len(files)):
         bad_cells = cell_frame.loc[bad_idx, "predicted_cell"]
         bad_cells = [x for x in bad_cells if x != 0]
         bad_cells = [x for x in bad_cells if ~np.isin(x, split_cells + merged_cells)]
-
+        # TODO add missing and created cell categories
 
         classify_outline = outline_objects(predicted_L, [split_cells, merged_cells, bad_cells])
 
@@ -270,12 +280,27 @@ for i in range(len(files)):
 
 # fig3.savefig("Deep_Segmentation_Border.tif")
 
-# histogram of probabilities
+
+# histogram plotting
+prob_maps = np.zeros((1024, 1024, 5))
+prob_maps[:, :, 0] = io.imread(deep_direc + 'interior_2' + '_border' + '.tiff')
+prob_maps[:, :, 1] = io.imread(deep_direc + 'interior_5' + '_border' + '.tiff')
+prob_maps[:, :, 2] = io.imread(deep_direc + 'interior_border_border_5' + '_border' + '.tiff')
+prob_maps[:, :, 3] = io.imread(deep_direc + 'interior_border_border_20' + '_border' + '.tiff')
+
+original_values = prob_maps[:, :, 1].flatten()
+delta_values = (prob_maps[:, :, 3] - prob_maps[:, :, 1]).flatten()
+# delta_values = prob_maps[:, :, 3].flatten()
 
 
-
-
-
+heatmap, xedges, yedges = np.histogram2d(original_values, delta_values, bins=100, range=[[0, 1], [-1, 1]])
+np.quantile(heatmap, [.85, .90, .95, .98, .99])
+heatmap[heatmap > 500] = 500
+heatmap_log = np.log(heatmap + 0.1)
+extent = [xedges[0], xedges[-1], yedges[0], yedges[-1]]
+xs = np.linspace(0, 1, 100)
+plt.imshow(heatmap.T, origin='lower', extent=extent)
+plt.plot(xs, xs, '-r')
 
 
 
