@@ -27,7 +27,7 @@ for i in range(len(files)):
     io.imsave(os.path.join(image_dir, names[i] + '_nucleus.tiff'), data[i, 3, :, :, 2])
     io.imsave(os.path.join(image_dir, names[i] + '_border.tiff'), data[i, 3, :, :, 1])
 
-io.imshow(data[5, 3, :, :, 1])
+io.imshow(data[8, 3, :, :, 1])
 io.imsave(plot_dir + 'test_image.tiff', x)
 
 temp = copy.copy(data[5, 3, :, :, 1])
@@ -35,5 +35,7 @@ io.imshow(temp)
 temp[temp < 0.4] = 0
 io.imshow(temp)
 
+# io.imsave(plot_dir + "interior_border_border_20_minus_5.tiff", data[6, 3, :, :, 1] - data[8, 3, :, :, 1])
+io.imshow(data[6, 3, :, :, 1] - data[8, 3, :, :, 1])
 
 io.imshow(data[4, 3, :, :, 1] - data[5, 3, :, :, 1])
