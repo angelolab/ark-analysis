@@ -28,7 +28,7 @@ files = ["interior_border_5", "interior_border_border_20"]
 suffixs = ["_7threshold_1cutoff", "_7threshold_2cutoff"]
 
 
-files = ["python_watershed"]
+files = ["python_watershed_15"]
 
 suffixs = [""]
 for i in range(len(files)):
@@ -38,10 +38,12 @@ for i in range(len(files)):
         predicted_data = io.imread(deep_direc + 'mask_' + file_base + file_suf + '.tiff')
         predicted_data[predicted_data > 1] = 1
         contour_data = io.imread(image_direc + "Nuclear_Interior_Mask.tif")
-        contour_data[contour_data > 1] = 1
+        contour_data[contour_data > 1] = 2
 
         overlap = predicted_data + contour_data
-        io.imshow(overlap)
+        # mask_nuc_cap = copy.copy(mask_nuc)
+        # mask_nuc_cap[mask_nuc_cap > 0.15] = 1
+        # io.imshow(mask_nuc_cap + contour_data)
 
 
         # generates labels (L) for each distinct object in the image, along with their indices
@@ -196,19 +198,42 @@ for i in range(len(files)):
         bad_cells = [x for x in bad_cells if x != 0]
         bad_cells = [x for x in bad_cells if ~np.isin(x, split_cells + merged_cells)]
 
+        def randomize_labels(label_map):
+            """Takes in a labeled matrix and swaps the integers around so that color gradient has better contrast
+
+            Inputs:
+            label_map(2D numpy array): labeled TIF with each object assigned a unique value
+
+            Outputs:
+            swapped_map(2D numpy array): labeled TIF with object labels permuted"""
+
+            max_val = np.max(label_map)
+            for iteration in range(max_val // 2):
+                swap_1 = np.random.randint(1, max_val)
+                swap_2 = np.random.randint(1, max_val)
+                swap_1_mask = label_map == swap_1
+                swap_2_mask = label_map == swap_2
+                label_map[swap_1_mask] = swap_2
+                label_map[swap_2_mask] = swap_1
+
+            return label_map
+
+        swapped = randomize_labels(copy.copy(contour_L))
 
         classify_outline = outline_objects(predicted_L, [split_cells, merged_cells, bad_cells])
 
-        fig, ax = plt.subplots()
+        fig, ax = plt.subplots(nrows=1, ncols=2)
 
         cmap = mpl.colors.ListedColormap(['Black', 'Grey', 'Blue', 'Red', 'Yellow'])
 
         # set limits .5 outside true range
-        mat = ax.imshow(classify_outline, cmap=cmap, vmin=np.min(classify_outline)-.5, vmax=np.max(classify_outline)+.5)
+        mat = ax[0].imshow(classify_outline, cmap=cmap, vmin=np.min(classify_outline)-.5, vmax=np.max(classify_outline)+.5)
+        ax[1].imshow(swapped)
 
         # tell the colorbar to tick at integers
         cbar = fig.colorbar(mat, ticks=np.arange(np.min(classify_outline), np.max(classify_outline)+1))
         cbar.ax.set_yticklabels(['Background', 'Normal', 'Split', 'Merged', 'Low Quality'])
+        fig.tight_layout()
 
         fig.savefig(plot_direc + file_base + file_suf + '_color_map.tiff', dpi=200)
 

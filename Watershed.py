@@ -36,10 +36,9 @@ fig.tight_layout()
 
 # identify maxs for watershed
 maxs = peak_local_max(mask[:, :, 4], indices=False, min_distance=3)
-io.imshow(maxs)
 markers = skimage.measure.label(mask[:, :, 4] > 0, connectivity=1)
-labels = watershed(-mask_nuc, markers, mask=mask_nuc > 0.05, watershed_line=True)
-io.imsave(image_dir + 'mask_python_watershed.tiff', labels)
+labels = watershed(-mask_nuc, markers, mask=mask_nuc > 0.15, watershed_line=1)
+io.imsave(image_dir + 'mask_python_watershed_15.tiff', labels)
 
 fig, axes = plt.subplots(ncols=3, figsize=(9, 3), sharex=True, sharey=True)
 ax = axes.ravel()
