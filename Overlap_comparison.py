@@ -14,18 +14,20 @@ import skimage.io as io
 # first attempt to evaluate accuracy of different networks by comparing to gold standard contoured data
 
 # read in TIFs containing ground truth contoured data, along with predicted segmentation
-image_direc = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/Contours/First_Run/Point23/'
+base_dir = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/Contours/First_Run/'
+image_direc = base_dir + 'Point23/'
 
-deep_direc = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/Contours/First_Run/cnn_data/Deepcell_docker/output/Point1_12_18_23_3X/'
-#deep_direc = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/Contours/First_Run/cnn_data/Deepcell_gcloud/Point1_12_18_23_3X/'
-plot_direc = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/Contours/First_Run/Figs/'
+deep_direc = base_dir + 'cnn_data/Deepcell_docker/output/190428_epoch_test/'
+#deep_direc = base_dir + 'cnn_data/Deepcell_gcloud/Point1_12_18_23_3X/'
+plot_direc = deep_direc + 'figs/'
 
-files = ["interior_2", "interior_5", "interior_border_2", "interior_border_5",
-         "interior_border_border_2", "interior_border_border_5", "interior_border_border_20"]
+# files = ["interior_2", "interior_5", "interior_border_2", "interior_border_5",
+#          "interior_border_border_2", "interior_border_border_5", "interior_border_border_20"]
 
-files = ["interior_border_5", "interior_border_border_20"]
+files = ["interior_10", "interior_20", "interior_30", "interior_border_10", "interior_border_20", "interior_border_30",
+         "interior_border_border_10", "interior_border_border_20", "interior_border_border_30"]
 
-suffixs = ["_7threshold_1cutoff", "_7threshold_2cutoff"]
+suffixs = ["_7threshold_2cutoff"]
 
 
 files = ["python_watershed_15"]
@@ -208,8 +210,8 @@ for i in range(len(files)):
             swapped_map(2D numpy array): labeled TIF with object labels permuted"""
 
             max_val = np.max(label_map)
-            for iteration in range(max_val // 2):
-                swap_1 = np.random.randint(1, max_val)
+            for cell_target in range(1, max_val):
+                swap_1 = cell_target
                 swap_2 = np.random.randint(1, max_val)
                 swap_1_mask = label_map == swap_1
                 swap_2_mask = label_map == swap_2
@@ -231,8 +233,8 @@ for i in range(len(files)):
         ax[1].imshow(swapped)
 
         # tell the colorbar to tick at integers
-        cbar = fig.colorbar(mat, ticks=np.arange(np.min(classify_outline), np.max(classify_outline)+1))
-        cbar.ax.set_yticklabels(['Background', 'Normal', 'Split', 'Merged', 'Low Quality'])
+        #cbar = fig.colorbar(mat, ticks=np.arange(np.min(classify_outline), np.max(classify_outline)+1))
+        #cbar.ax.set_yticklabels(['Background', 'Normal', 'Split', 'Merged', 'Low Quality'])
         fig.tight_layout()
 
         fig.savefig(plot_direc + file_base + file_suf + '_color_map.tiff', dpi=200)
