@@ -94,7 +94,7 @@ for i in range(len(files)):
 
         #  determine how well the contoured data was recapitulated by the predicted segmentaiton data
         cell_frame = pd.DataFrame(columns=["contour_cell", "contour_cell_size", "predicted_cell", "predicted_cell_size",
-                                           "percent_overlap", "merged", "split", "missing"], dtype="float")
+                                           "percent_overlap", "merged", "split", "missing", "bad"], dtype="float")
 
         for contour_cell in range(1, contour_idx + 1):
 
@@ -112,8 +112,20 @@ for i in range(len(files)):
             sort_idx = np.argsort(-overlap_count)
             overlap_id, overlap_count = overlap_id[sort_idx], overlap_count[sort_idx]
 
-            # go through logic to determine relationship between overlapping cells
+            # check and see if maps primarily to background
+            if overlap_id[0] == 0:
+                cell_frame = cell_frame.append({"contour_cell": contour_cell, "contour_cell_size": contour_cell_size,
+                                                "predicted_cell": pred_cell, "predicted_cell_size": pred_cell_size,
+                                                "percent_overlap": overlap_count / contour_cell_size, "merged": False,
+                                                "split": False, "missing": True, "bad": False}, ignore_index=True)
+            else:
+                # remove background as target cell and change cell size to for calculation
+                if 0 in overlap_id:
+                    keep_idx = overlap_id != 0
+                    contour_cell_size -= overlap_count[~keep_idx][0]
+                    overlap_id, overlap_count = overlap_id[keep_idx], overlap_count[keep_idx]
 
+            # go through logic to determine relationship between overlapping cells
             if overlap_count[0] / contour_cell_size > 0.9:
 
                 # if greater than 90% of pixels contained in first overlap, assign to that cell
@@ -121,20 +133,23 @@ for i in range(len(files)):
                 pred_cell_size = predicted_props[pred_cell - 1].area
                 split = False
                 percnt = overlap_count[0] / contour_cell_size
-                # TODO determine if this cell was merged with other contoured cells into larger predicted cell
 
                 cell_frame = cell_frame.append({"contour_cell": contour_cell, "contour_cell_size": contour_cell_size,
                                                 "predicted_cell": pred_cell, "predicted_cell_size": pred_cell_size,
                                                 "percent_overlap": percnt, "merged": False, "split": False,
-                                                "missing": False}, ignore_index=True)
+                                                "missing": False, "bad": False}, ignore_index=True)
             else:
 
                 # Determine whether any other predicted cells contribute primarily to this contoured cell
 
-                # Identify number of cells needed to get to 80% of total volume of cell
+                # Identify number of cells needed to get to 90% of total volume of cell
                 cum_size = overlap_count[0]
                 idx = 0
-                while (cum_size / contour_cell_size) < 0.8:
+
+                # because we removed some of the cells, need to get to 90% of remaining volume of cell
+                max_fraction = np.sum(overlap_count) / contour_cell_size
+                # TODO iterate through all cells isntead
+                while (cum_size / contour_cell_size) < 0.9 * max_fraction:
                     idx += 1
                     cum_size += overlap_count[idx]
 
@@ -143,6 +158,8 @@ for i in range(len(files)):
 
                 # Figure out which of these cells have at least 80% of their volume contained in original cell
                 split_flag = False
+                # TODO check if first cell also has at least 80% of volume contained in contour cell
+                # TODO can keep a counter of number of cells that meet this criteria, if >2 then split?
                 for cell in range(1, idx + 1):
                     pred_cell_size = predicted_props[overlap_id[cell] - 1].area
                     percnt = overlap_count[cell] / contour_cell_size
@@ -152,16 +169,20 @@ for i in range(len(files)):
                         cell_frame = cell_frame.append({"contour_cell": contour_cell, "contour_cell_size": contour_cell_size,
                                                         "predicted_cell": overlap_id[cell], "predicted_cell_size": pred_cell_size,
                                                         "percent_overlap": percnt, "merged": False, "split": True,
-                                                        "missing": False}, ignore_index=True)
+                                                        "missing": False, "bad": False}, ignore_index=True)
                     else:
                         # this cell hasn't been split, just poorly assigned
-                        pass
+                        cell_frame = cell_frame.append(
+                            {"contour_cell": contour_cell, "contour_cell_size": contour_cell_size,
+                             "predicted_cell": overlap_id[cell], "predicted_cell_size": pred_cell_size,
+                             "percent_overlap": percnt, "merged": False, "split": True,
+                             "missing": False, "bad": True}, ignore_index=True)
 
-                # assign first cell, based on whether or not subsequent cells indicate split
+                # assign the first cell, based on whether or not subsequent cells indicate split
                 cell_frame = cell_frame.append({"contour_cell": contour_cell, "contour_cell_size": contour_cell_size,
                                                 "predicted_cell": overlap_id[0], "predicted_cell_size": overlap_count[0],
                                                 "percent_overlap": overlap_count[0] / contour_cell_size, "merged": False,
-                                                "split": split_flag, "missing": False}, ignore_index=True)
+                                                "split": split_flag, "missing": False, "bad": False}, ignore_index=True)
 
 
         def outline_objects(L_matrix, list_of_lists):
@@ -198,14 +219,15 @@ for i in range(len(files)):
         # identify categories of poorly classified cells
         cell_frame = cell_frame[cell_frame["contour_cell_size"] > 10]
         cell_frame = cell_frame[cell_frame["predicted_cell_size"] > 10]
-        missing_idx = cell_frame["predicted_cell"] == 0.
+        missing_idx = cell_frame["missing"] == True
 
         # ignore those cells mapping to 0 (background), as these weren't actually merged into one cell
         merge_idx = np.logical_and(cell_frame["predicted_cell"].duplicated(), ~missing_idx)
         split_idx = cell_frame["split"] == 1
 
-        bad_idx = np.logical_or(cell_frame["contour_cell_size"] / cell_frame["predicted_cell_size"] > 1.3,
-                                cell_frame["contour_cell_size"] / cell_frame["predicted_cell_size"] < 0.7)
+        # bad_idx = np.logical_or(np.logical_or(cell_frame["contour_cell_size"] / cell_frame["predicted_cell_size"] > 1.3,
+        #                         cell_frame["contour_cell_size"] / cell_frame["predicted_cell_size"] < 0.7),
+        #                         cell_frame["bad"] == 1)
 
         cell_frame.loc[merge_idx, "merged"] = True
         cell_frame.loc[missing_idx, "missing"] = True
@@ -213,10 +235,12 @@ for i in range(len(files)):
         split_cells = [x for x in split_cells if x != 0]
         merged_cells = cell_frame.loc[merge_idx, "predicted_cell"]
         merged_cells = [x for x in merged_cells if x != 0]
-        bad_cells = cell_frame.loc[bad_idx, "predicted_cell"]
+        #bad_cells = cell_frame.loc[bad_idx, "predicted_cell"]
+        bad_cells = cell_frame.loc[cell_frame["bad"] == 1, "predicted_cell"]
         bad_cells = [x for x in bad_cells if x != 0]
         bad_cells = [x for x in bad_cells if ~np.isin(x, split_cells + merged_cells)]
 
+        # TODO add missing and created cell categories
         def randomize_labels(label_map):
             """Takes in a labeled matrix and swaps the integers around so that color gradient has better contrast
 
@@ -253,7 +277,9 @@ for i in range(len(files)):
 
         # tell the colorbar to tick at integers
         #cbar = fig.colorbar(mat, ticks=np.arange(np.min(classify_outline), np.max(classify_outline)+1))
-        #cbar.ax.set_yticklabels(['Background', 'Normal', 'Split', 'Merged', 'Low Quality'])
+
+        # cbar.ax.set_yticklabels(['Background', 'Normal', 'Split', 'Merged', 'Low Quality'])
+        too_good
         fig.tight_layout()
 
         fig.savefig(plot_direc + file_base + file_suf + '_color_map.tiff', dpi=200)
@@ -319,12 +345,29 @@ for i in range(len(files)):
 
 # fig3.savefig("Deep_Segmentation_Border.tif")
 
-# histogram of probabilities
+
+# histogram plotting
+prob_maps = np.zeros((1024, 1024, 5))
+prob_maps[:, :, 0] = io.imread(deep_direc + 'interior_10' + '_border' + '.tiff')
+prob_maps[:, :, 1] = io.imread(deep_direc + 'interior_30' + '_border' + '.tiff')
+prob_maps[:, :, 2] = io.imread(deep_direc + 'interior_border_10' + '_border' + '.tiff')
+prob_maps[:, :, 3] = io.imread(deep_direc + 'interior_border_30' + '_border' + '.tiff')
+
+original_values = prob_maps[:, :, 1].flatten()
+delta_values = (prob_maps[:, :, 3] - prob_maps[:, :, 1]).flatten()
+delta_values = prob_maps[:, :, 3].flatten()
 
 
-
-
-
+heatmap, xedges, yedges = np.histogram2d(original_values, delta_values, bins=100, range=[[0, 1], [0, 1]])
+np.quantile(heatmap, [.85, .90, .95, .98, .99])
+heatmap[heatmap > 500] = 500
+heatmap_log = np.log(heatmap + 0.1)
+extent = [xedges[0], xedges[-1], yedges[0], yedges[-1]]
+xs = np.linspace(0, 1, 100)
+xs2 = np.repeat(0, 100)
+plt.imshow(heatmap.T, origin='lower', extent=extent)
+plt.plot(xs, xs, '-r')
+plt.savefig(deep_direc + '/figs/interior_border_30vsinterior30_hist.tiff')
 
 
 
