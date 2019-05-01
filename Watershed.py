@@ -11,9 +11,9 @@ import skimage.io as io
 import copy
 
 # read in relavant files
-image_dir = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/Contours/First_Run/cnn_data/Deepcell_docker/output/Point1_12_18_23_3X/'
-mask_nuc = io.imread(image_dir + 'interior_border_border_5_nucleus.tiff')
-mask_border = io.imread(image_dir + 'interior_border_border_5_border.tiff')
+image_dir = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/Contours/First_Run/cnn_data/Deepcell_docker/output/190430_watershed_test/'
+mask_nuc = io.imread(image_dir + 'interior_border_30_nucleus.tiff')
+mask_border = io.imread(image_dir + 'interior_border_30_border.tiff')
 mask_truth = io.imread('/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/Contours/First_Run/Point23/Nuclear_Interior_Mask_Label.tif')
 
 # create array to hold thresholded probabilities at different values to determine optimal cutoff
@@ -85,3 +85,11 @@ for a in ax:
 
 fig.tight_layout()
 plt.show()
+
+# blurring prior to watershed: only works on integer arrays, will transform from decimal
+import skimage.filters.rank as rank
+fig, ax = plt.subplots(nrows=1, ncols=2)
+temp = rank.mean(mask_nuc, np.ones((5, 5)))
+ax[0].imshow(mask_nuc)
+ax[1].imshow(temp)
+fig.tight_layout()
