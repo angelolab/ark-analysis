@@ -17,21 +17,23 @@ import skimage.io as io
 base_dir = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/Contours/First_Run/'
 image_direc = base_dir + 'Point23/'
 
-deep_direc = base_dir + 'cnn_data/Deepcell_docker/output/190430_watershed_test/'
+deep_direc = base_dir + 'analyses/190429_watershed_network/'
 plot_direc = deep_direc + 'figs/'
 
 # files = ["interior_2", "interior_5", "interior_border_2", "interior_border_5",
 #          "interior_border_border_2", "interior_border_border_5", "interior_border_border_20"]
 
-files = ["interior_10", "interior_20", "interior_30", "interior_border_10", "interior_border_20", "interior_border_30",
-         "interior_border_border_10", "interior_border_border_20", "interior_border_border_30"]
+files = ["interior_10", "interior_20",  "interior_border_10", "interior_border_20",
+         "interior_border_border_10", "interior_border_border_20"]
+        # "interior_30", "interior_border_30", "interior_border_border_30"
 
-suffixs = ["_7threshold_2cutoff"]
+suffixs = ["_0threshold_0.9cutoff"]
 
 # for looking specifically at current batch
-file_base = "interior_border_30"
-file_suf = "_7threshold_1cutoff"
+file_base = "interior_border_border_20"
+file_suf = "_0threshold_0.9cutoff"
 
+gcloud_old = False
 
 suffixs = [""]
 for i in range(len(files)):
@@ -40,14 +42,15 @@ for i in range(len(files)):
         file_suf = suffixs[j]
         predicted_data = io.imread(deep_direc + 'mask_' + file_base + file_suf + '.tiff')
         predicted_data[predicted_data > 1] = 1
-        contour_data = io.imread(image_direc + "Nuclear_Interior_Mask.tif")
+
+        if gcloud_old:
+            contour_data = io.imread(image_direc + "Nuclear_Interior_Mask_padded.tif")
+        else:
+            contour_data = io.imread(image_direc + "Nuclear_Interior_Mask.tif")
+
         contour_data[contour_data > 1] = 2
 
         overlap = predicted_data + contour_data
-        # mask_nuc_cap = copy.copy(mask_nuc)
-        # mask_nuc_cap[mask_nuc_cap > 0.15] = 1
-        # io.imshow(mask_nuc_cap + contour_data)
-
 
         # generates labels (L) for each distinct object in the image, along with their indices
         # For some reason, the regionprops output is 0 indexed, such that the 1st cell appears at index 0.
@@ -60,37 +63,6 @@ for i in range(len(files)):
 
         contour_L, contour_idx = skimage.measure.label(contour_data, return_num=True, connectivity=1)
         contour_props = skimage.measure.regionprops(contour_L)
-
-
-
-        # remove labels from contour data that appear in padded region. Deepcell 1.0 doesn't do border regions
-        # set padding
-        # pad = 0
-        # row = 0
-        # while pad == 0:
-        #     if np.sum(predicted_data[row, :] > 0):
-        #         pad = row
-        #     else:
-        #         row += 1
-        #
-        # pad_mask = np.zeros((1024, 1024), dtype="bool")
-        # pad_mask[0:30, :] = True
-        # pad_mask[:, 0:30] = True
-        # pad_mask[:, -30:-1] = True
-        # pad_mask[-30:-1, :] = True
-        # remove_ids = np.unique(contour_L[pad_mask])
-        # remove_idx = np.isin(contour_L, remove_ids)
-        # contour_data[contour_L == 0] = 0
-        # contour_data[pad_mask] = 0
-        #
-        # padded_contour = Image.fromarray(contour_data)
-        # padded_contour.save(image_direc + '/Nuclear_Interior_Mask_padded.tif')
-        #
-        #
-        # # regenerate object IDs after removing regions that overlap with padding
-        # contour_L, contour_idx = skimage.measure.label(contour_data,return_num=True, connectivity=1)
-        # contour_props = skimage.measure.regionprops(contour_L)
-
 
         #  determine how well the contoured data was recapitulated by the predicted segmentaiton data
         cell_frame = pd.DataFrame(columns=["contour_cell", "contour_cell_size", "predicted_cell", "predicted_cell_size",
@@ -115,7 +87,7 @@ for i in range(len(files)):
             # check and see if maps primarily to background
             if overlap_id[0] == 0:
                 cell_frame = cell_frame.append({"contour_cell": contour_cell, "contour_cell_size": contour_cell_size,
-                                                "predicted_cell": pred_cell, "predicted_cell_size": pred_cell_size,
+                                                "predicted_cell": 0, "predicted_cell_size": 0,
                                                 "percent_overlap": overlap_count / contour_cell_size, "merged": False,
                                                 "split": False, "missing": True, "bad": False}, ignore_index=True)
             else:
@@ -131,7 +103,6 @@ for i in range(len(files)):
                 # if greater than 90% of pixels contained in first overlap, assign to that cell
                 pred_cell = overlap_id[0]
                 pred_cell_size = predicted_props[pred_cell - 1].area
-                split = False
                 percnt = overlap_count[0] / contour_cell_size
 
                 cell_frame = cell_frame.append({"contour_cell": contour_cell, "contour_cell_size": contour_cell_size,
@@ -141,30 +112,29 @@ for i in range(len(files)):
             else:
 
                 # Determine whether any other predicted cells contribute primarily to this contoured cell
-
                 # Identify number of cells needed to get to 90% of total volume of cell
-                cum_size = overlap_count[0]
-                idx = 0
-
-                # because we removed some of the cells, need to get to 90% of remaining volume of cell
-                max_fraction = np.sum(overlap_count) / contour_cell_size
-                # TODO iterate through all cells isntead
-                while (cum_size / contour_cell_size) < 0.9 * max_fraction:
-                    idx += 1
-                    cum_size += overlap_count[idx]
-
-                    if idx > 20:
-                        raise Exception("Something failed in the while loop")
+                # cum_size = overlap_count[0]
+                # idx = 0
+                #
+                # # because we removed some of the cells, need to get to 90% of remaining volume of cell
+                # max_fraction = np.sum(overlap_count) / contour_cell_size
+                # # TODO iterate through all cells isntead
+                # while (cum_size / contour_cell_size) < 0.9 * max_fraction:
+                #     idx += 1
+                #     cum_size += overlap_count[idx]
+                #
+                #     if idx > 20:
+                #         raise Exception("Something failed in the while loop")
 
                 # Figure out which of these cells have at least 80% of their volume contained in original cell
                 split_flag = False
-                # TODO check if first cell also has at least 80% of volume contained in contour cell
+                # TODO check if first cell also has at least 80% of volume contained in contour cell?
                 # TODO can keep a counter of number of cells that meet this criteria, if >2 then split?
-                for cell in range(1, idx + 1):
+                for cell in range(1, len(overlap_id)):
                     pred_cell_size = predicted_props[overlap_id[cell] - 1].area
                     percnt = overlap_count[cell] / contour_cell_size
-                    if overlap_count[cell] / pred_cell_size > 0.7 and overlap_id[cell] != 0:
-
+                    if overlap_count[cell] / pred_cell_size > 0.7:
+                        # multiple predicted cells were assigned to single target cell, hence split
                         split_flag = True
                         cell_frame = cell_frame.append({"contour_cell": contour_cell, "contour_cell_size": contour_cell_size,
                                                         "predicted_cell": overlap_id[cell], "predicted_cell_size": pred_cell_size,
@@ -175,7 +145,7 @@ for i in range(len(files)):
                         cell_frame = cell_frame.append(
                             {"contour_cell": contour_cell, "contour_cell_size": contour_cell_size,
                              "predicted_cell": overlap_id[cell], "predicted_cell_size": pred_cell_size,
-                             "percent_overlap": percnt, "merged": False, "split": True,
+                             "percent_overlap": percnt, "merged": False, "split": False,
                              "missing": False, "bad": True}, ignore_index=True)
 
                 # assign the first cell, based on whether or not subsequent cells indicate split
@@ -198,22 +168,9 @@ for i in range(len(files)):
                 L_plot[mask] = idx + 1.99
 
             L_plot[L_plot > idx + 2] = 1
-
             L_plot = np.around(L_plot)
             L_plot = L_plot.astype('int16')
-
-            # reassign values to have more separation for visualization
-            # new_vals = np.unique(L_plot)
-            # if new_vals[0] != 0 or new_vals[1] != 1:
-            #     raise ValueError("something went wrong, 0 or 1 is missing")
-            #
-            # label = 10
-            # for val in range(2, len(new_vals)):
-            #     mask = L_plot == val
-            #     L_plot[mask] = label
-            #     label += 5
-
-            return(L_plot)
+            return L_plot
 
 
         # identify categories of poorly classified cells
@@ -238,7 +195,8 @@ for i in range(len(files)):
         #bad_cells = cell_frame.loc[bad_idx, "predicted_cell"]
         bad_cells = cell_frame.loc[cell_frame["bad"] == 1, "predicted_cell"]
         bad_cells = [x for x in bad_cells if x != 0]
-        bad_cells = [x for x in bad_cells if ~np.isin(x, split_cells + merged_cells)]
+        bad_cells = [x for x in bad_cells if ~np.isin(x, split_cells)]
+        merged_cells = [x for x in merged_cells if ~np.isin(x, bad_cells)]
 
         # TODO add missing and created cell categories
         def randomize_labels(label_map):
@@ -278,8 +236,7 @@ for i in range(len(files)):
         # tell the colorbar to tick at integers
         #cbar = fig.colorbar(mat, ticks=np.arange(np.min(classify_outline), np.max(classify_outline)+1))
 
-        # cbar.ax.set_yticklabels(['Background', 'Normal', 'Split', 'Merged', 'Low Quality'])
-        too_good
+        #cbar.ax.set_yticklabels(['Background', 'Normal', 'Split', 'Merged', 'Low Quality'])
         fig.tight_layout()
 
         fig.savefig(plot_direc + file_base + file_suf + '_color_map.tiff', dpi=200)
