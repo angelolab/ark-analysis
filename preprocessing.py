@@ -7,21 +7,26 @@ import copy
 from skimage.measure import label
 from skimage.morphology import watershed
 from skimage.feature import peak_local_max
+import skimage.filters.rank as rank
+
 
 # get directory where images are located
 base_dir = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/Contours/First_Run/'
-image_dir = base_dir + 'analyses/190429_watershed_network/'
+image_dir = base_dir + 'analyses/20190505_deepcell_old/'
 plot_dir = image_dir + '/Figs/'
 
 # get names of each, clean up for subsequent saving
 files = os.listdir(image_dir)
 files = [file for file in files if 'npy' in file]
+files.sort()
 prefix = files[0].split("interior")[0]
 names = files
 names = [x.replace(prefix, '').replace('_metrics.npy', '') for x in names]
 
+# load single point to get dimensions
+temp = np.load(image_dir + files[0])
 # load all data into a single numpy array
-data = np.zeros((len(files), 4, 1024, 1024, 4), dtype='float32')
+data = np.zeros(((len(files), ) + temp.shape), dtype='float32')
 # axes on data: training run, image, x_dim, y_dim, output_mask
 for i in range(len(files)):
     data[i, :, :, :, :] = np.load(os.path.join(image_dir, files[i]))
@@ -29,15 +34,26 @@ for i in range(len(files)):
 
 # save images back to folder for viewing from regular network
 for i in range(len(files)):
-    io.imsave(os.path.join(image_dir, names[i] + '_nucleus.tiff'), data[i, 3, :, :, 2])
-    io.imsave(os.path.join(image_dir, names[i] + '_border.tiff'), data[i, 3, :, :, 1])
+    if data.shape[-1] == 3:
+        # three category network
+        border_idx = 0
+        nuc_idx = 1
+        io.imsave(os.path.join(image_dir, names[i] + '_nucleus.tiff'), data[i, 3, :, :, nuc_idx])
+        io.imsave(os.path.join(image_dir, names[i] + '_border.tiff'), data[i, 3, :, :, border_idx])
+    else:
+        # 4 category network
+        border_idx = [0, 1]
+        nuc_idx = 2
+        io.imsave(os.path.join(image_dir, names[i] + '_nucleus.tiff'), data[i, 3, :, :, nuc_idx])
+        io.imsave(os.path.join(image_dir, names[i] + '_border.tiff'),
+                  data[i, 3, :, :, border_idx[0]] + data[i, 3, :, :, border_idx[1]])
 
 
-# save watershed transform and nuclear probabilities back to disk for watershed network output
+# save watershed energy levels back to disk for watershed transform input
 for j in range(data.shape[0]):
     print("j = {}".format(j))
     # save all FOVs processed by jth network into test_images
-    test_images = data[j, ...]
+    test_images = data[j, ..., 0:4]
 
     # find max value of different masks for each FOV
     argmax_images = []
@@ -46,38 +62,17 @@ for j in range(data.shape[0]):
     argmax_images = np.array(argmax_images)
     argmax_images = np.expand_dims(argmax_images, axis=-1)
 
-    # already did during evaluation on docker
-    # threshold = 0.9
-    # fg_thresh = test_images_fgbg[..., 1] > threshold
-    # fg_thresh = np.expand_dims(fg_thresh, axis=-1)
+    threshold = 0.6
+    test_images_fgbg = data[j, ..., 4:6]
+    fg_thresh = test_images_fgbg[..., 1] > threshold
+    fg_thresh = np.expand_dims(fg_thresh, axis=-1)
 
-    argmax_images_post_fgbg = argmax_images
-    fg_thresh = argmax_images_post_fgbg[..., 0] > 0
-    watershed_images = []
+    argmax_images_post_fgbg = argmax_images * fg_thresh
+    smoothed_argmax = rank.median(argmax_images_post_fgbg[3, :, :, 0], np.ones((5, 5)))
 
-    # only evaluate on last image in stack
-    # for i in range(argmax_images_post_fgbg.shape[0]):
-    for k in [3]:
-        image = fg_thresh[k, ...]
-        distance = argmax_images_post_fgbg[k, ..., 0]
-
-        local_maxi = peak_local_max(test_images[k, ..., -1],
-                                    min_distance=5,
-                                    exclude_border=False,
-                                    indices=False,
-                                    labels=image)
-
-        markers = label(local_maxi)
-        segments = watershed(-distance, markers, mask=image, watershed_line=True)
-        watershed_images.append(segments)
-
-    watershed_images = np.array(watershed_images)
-    watershed_images = np.expand_dims(watershed_images, axis=-1)
-    io.imsave(os.path.join(image_dir, names[j] + '_nucleus.tiff'), argmax_images_post_fgbg[3, :, :, 0].astype('int16'))
-    io.imsave(os.path.join(image_dir, 'mask_python_' + names[j] + '.tiff'), watershed_images[0, :, :, 0])
-
-
-
+    # save relevant tifs
+    io.imsave(os.path.join(image_dir, names[j] + '_smoothed_probs.tiff'), smoothed_argmax.astype('int16'))
+    io.imsave(os.path.join(image_dir, names[j] + '_nucleus.tiff'), fg_thresh[0, :, :, 0].astype('int16'))
 
 
 # # remove labels from border regions of mask that correspond to empy areas in deepcell 1.0

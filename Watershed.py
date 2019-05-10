@@ -19,10 +19,10 @@ mask_truth = io.imread('/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentat
 # create array to hold thresholded probabilities at different values to determine optimal cutoff
 mask = np.zeros((1024,1024,5))
 temp_mask = np.zeros((1024,1024,1))
-temp_mask[:, :, 0] = mask_nuc
+temp_mask[:, :, 0] = data[2, 3, :, :, 1]
 mask[:, :, :] = copy.copy(temp_mask)
 
-io.imshow(mask[:, :, 0])
+io.imshow(mask[:, :, 1])
 mask[mask[:, :, 0] < 0.8, 1] = 0
 mask[np.logical_or(mask[:, :, 0] < 0.7, mask[:, :, 0] > 0.8), 2] = 0
 mask[np.logical_or(mask[:, :, 0] < 0.6, mask[:, :, 0] > 0.7), 3] = 0
@@ -51,45 +51,20 @@ ax[2].imshow(maxs, cmap=plt.cm.nipy_spectral, interpolation='nearest')
 ax[2].set_title('Separated objects')
 
 
+# watershed network transform
 
+watershed_images = []
+fg_thresh = io.imread('path_to_threshold')
+smoothed_probs = io.imread('path_to_smoothed_probs')
 
-# Generate an initial image with two overlapping circles
-x, y = np.indices((80, 80))
-x1, y1, x2, y2 = 28, 28, 44, 52
-r1, r2 = 16, 20
-mask_circle1 = (x - x1)**2 + (y - y1)**2 < r1**2
-mask_circle2 = (x - x2)**2 + (y - y2)**2 < r2**2
-image = np.logical_or(mask_circle1, mask_circle2)
+image = fg_thresh
+distance = smoothed_probs
+local_maxi = peak_local_max(smoothed_probs, min_distance=15, exclude_border=False, indices=False, labels=image)
+local_maxi_easy = smoothed_probs > 2
+local_maxi_mat = io.imread('matlab_local_maxima')
+markers = label(local_maxi)
+segments = watershed(-distance, markers, mask=image, watershed_line=True)
+watershed_images.append(segments)
 
-# Now we want to separate the two objects in image
-# Generate the markers as local maxima of the distance to the background
-distance = ndi.distance_transform_edt(image)
-local_maxi = peak_local_max(distance, indices=False, footprint=np.ones((3, 3)),
-                            labels=image)
-
-markers = ndi.label(local_maxi)[0]
-labels = watershed(-distance, markers, mask=image)
-
-fig, axes = plt.subplots(ncols=3, figsize=(9, 3), sharex=True, sharey=True)
-ax = axes.ravel()
-
-ax[0].imshow(image, cmap=plt.cm.gray, interpolation='nearest')
-ax[0].set_title('Overlapping objects')
-ax[1].imshow(-distance, cmap=plt.cm.gray, interpolation='nearest')
-ax[1].set_title('Distances')
-ax[2].imshow(labels, cmap=plt.cm.nipy_spectral, interpolation='nearest')
-ax[2].set_title('Separated objects')
-
-for a in ax:
-    a.set_axis_off()
-
-fig.tight_layout()
-plt.show()
-
-# blurring prior to watershed: only works on integer arrays, will transform from decimal
-import skimage.filters.rank as rank
-fig, ax = plt.subplots(nrows=1, ncols=2)
-temp = rank.mean(mask_nuc, np.ones((5, 5)))
-ax[0].imshow(mask_nuc)
-ax[1].imshow(temp)
-fig.tight_layout()
+watershed_images = np.array(watershed_images)
+watershed_images = np.expand_dims(watershed_images, axis=-1)

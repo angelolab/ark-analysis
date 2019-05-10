@@ -17,21 +17,21 @@ import skimage.io as io
 base_dir = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/Contours/First_Run/'
 image_direc = base_dir + 'Point23/'
 
-deep_direc = base_dir + 'analyses/190429_watershed_network/'
+deep_direc = base_dir + 'analyses/20190505_deepcell_old/'
 plot_direc = deep_direc + 'figs/'
 
 # files = ["interior_2", "interior_5", "interior_border_2", "interior_border_5",
 #          "interior_border_border_2", "interior_border_border_5", "interior_border_border_20"]
 
-files = ["interior_10", "interior_20",  "interior_border_10", "interior_border_20",
-         "interior_border_border_10", "interior_border_border_20"]
+files = ["interior_border_border_watershed_"]
         # "interior_30", "interior_border_30", "interior_border_border_30"
 
-suffixs = ["_0threshold_0.9cutoff"]
+suffixs = ["epoch_20", "epoch_30", "epoch_40"]
 
-# for looking specifically at current batch
-file_base = "interior_border_border_20"
-file_suf = "_0threshold_0.9cutoff"
+# # for looking specifically at current batch
+file_base = "mask_python_smoothed_interior_border_border_watershed_epoch_40"
+file_base = "mask_interior_border_border_deepcell_old_epoch_30_7threshold_2cutoff"
+file_suf = ""
 
 gcloud_old = False
 
@@ -40,7 +40,7 @@ for i in range(len(files)):
     file_base = files[i]
     for j in range(len(suffixs)):
         file_suf = suffixs[j]
-        predicted_data = io.imread(deep_direc + 'mask_' + file_base + file_suf + '.tiff')
+        predicted_data = io.imread(deep_direc + '' + file_base + file_suf + '.tiff')
         predicted_data[predicted_data > 1] = 1
 
         if gcloud_old:
@@ -86,10 +86,21 @@ for i in range(len(files)):
 
             # check and see if maps primarily to background
             if overlap_id[0] == 0:
-                cell_frame = cell_frame.append({"contour_cell": contour_cell, "contour_cell_size": contour_cell_size,
-                                                "predicted_cell": 0, "predicted_cell_size": 0,
-                                                "percent_overlap": overlap_count / contour_cell_size, "merged": False,
-                                                "split": False, "missing": True, "bad": False}, ignore_index=True)
+                if overlap_count[0] / contour_cell_size > 0.8:
+                    # more than 70% of cell is overlapping with background, classify it as missing
+                    cell_frame = cell_frame.append({"contour_cell": contour_cell, "contour_cell_size": contour_cell_size,
+                                                    "predicted_cell": 0, "predicted_cell_size": 0,
+                                                    "percent_overlap": overlap_count / contour_cell_size, "merged": False,
+                                                    "split": False, "missing": True, "bad": False}, ignore_index=True)
+                    continue
+                else:
+                    # not missing, just bad segmentation
+                    cell_frame = cell_frame.append(
+                        {"contour_cell": contour_cell, "contour_cell_size": contour_cell_size,
+                         "predicted_cell": overlap_id[1], "predicted_cell_size": predicted_props[overlap_id[1] - 1].area,
+                         "percent_overlap": overlap_count / contour_cell_size, "merged": False,
+                         "split": False, "missing": False, "bad": True}, ignore_index=True)
+                    continue
             else:
                 # remove background as target cell and change cell size to for calculation
                 if 0 in overlap_id:
@@ -192,7 +203,7 @@ for i in range(len(files)):
         split_cells = [x for x in split_cells if x != 0]
         merged_cells = cell_frame.loc[merge_idx, "predicted_cell"]
         merged_cells = [x for x in merged_cells if x != 0]
-        #bad_cells = cell_frame.loc[bad_idx, "predicted_cell"]
+        # bad_cells = cell_frame.loc[bad_idx, "predicted_cell"]
         bad_cells = cell_frame.loc[cell_frame["bad"] == 1, "predicted_cell"]
         bad_cells = [x for x in bad_cells if x != 0]
         bad_cells = [x for x in bad_cells if ~np.isin(x, split_cells)]
@@ -263,15 +274,15 @@ for i in range(len(files)):
 
         fig.savefig(plot_direc + file_base + file_suf + '_stats.tiff', dpi=200)
 
-        prob_data = Image.open(deep_direc + file_base + '_border' + '.tiff')
-        prob_data = np.array(prob_data)
-        hist_data = prob_data.reshape(-1, 1).squeeze()
-        hist_data = [x for x in hist_data if x > 0.05]
-        fig, ax = plt.subplots()
-        ax.hist(hist_data, bins=np.arange(0,1.1, .1))
-        ax.set_ylim(0, 200000)
-        plt.xticks(np.arange(0, 1.1, 0.1))
-        fig.savefig(plot_direc + file_base + "_hist.tiff")
+        # prob_data = Image.open(deep_direc + file_base + '_border' + '.tiff')
+        # prob_data = np.array(prob_data)
+        # hist_data = prob_data.reshape(-1, 1).squeeze()
+        # hist_data = [x for x in hist_data if x > 0.05]
+        # fig, ax = plt.subplots()
+        # ax.hist(hist_data, bins=np.arange(0,1.1, .1))
+        # ax.set_ylim(0, 200000)
+        # plt.xticks(np.arange(0, 1.1, 0.1))
+        # fig.savefig(plot_direc + file_base + "_hist.tiff")
 
 # combine all three plots above into one
 # fig3 = plt.figure(figsize=(15,9))
