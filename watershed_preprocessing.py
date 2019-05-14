@@ -12,7 +12,7 @@ import skimage.filters.rank as rank
 
 # get directory where images are located
 base_dir = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/Contours/First_Run/'
-image_dir = base_dir + 'analyses/20190505_deepcell_old/'
+image_dir = base_dir + 'analyses/20190505_watershed_retrain/'
 plot_dir = image_dir + '/Figs/'
 
 # get names of each, clean up for subsequent saving
@@ -73,6 +73,10 @@ for j in range(data.shape[0]):
     # save relevant tifs
     io.imsave(os.path.join(image_dir, names[j] + '_smoothed_probs.tiff'), smoothed_argmax.astype('int16'))
     io.imsave(os.path.join(image_dir, names[j] + '_nucleus.tiff'), fg_thresh[0, :, :, 0].astype('int16'))
+
+
+
+
 
 
 # # remove labels from border regions of mask that correspond to empy areas in deepcell 1.0
