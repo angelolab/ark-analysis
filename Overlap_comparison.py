@@ -17,7 +17,7 @@ import skimage.io as io
 base_dir = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/Contours/First_Run/'
 image_direc = base_dir + 'Point23/'
 
-deep_direc = base_dir + 'analyses/20190505_deepcell_old/'
+deep_direc = base_dir + 'analyses/20190522_combined_deepcell_transform/'
 plot_direc = deep_direc + 'figs/'
 
 # files = ["interior_2", "interior_5", "interior_border_2", "interior_border_5",
@@ -29,8 +29,7 @@ files = ["interior_border_border_watershed_"]
 suffixs = ["epoch_20", "epoch_30", "epoch_40"]
 
 # # for looking specifically at current batch
-file_base = "mask_python_smoothed_interior_border_border_watershed_epoch_40"
-file_base = "mask_interior_border_border_deepcell_old_epoch_30_7threshold_2cutoff"
+file_base = "mask__0threshold_01cutoff_01floor"
 file_suf = ""
 
 gcloud_old = False
@@ -47,10 +46,6 @@ for i in range(len(files)):
             contour_data = io.imread(image_direc + "Nuclear_Interior_Mask_padded.tif")
         else:
             contour_data = io.imread(image_direc + "Nuclear_Interior_Mask.tif")
-
-        contour_data[contour_data > 1] = 2
-
-        overlap = predicted_data + contour_data
 
         # generates labels (L) for each distinct object in the image, along with their indices
         # For some reason, the regionprops output is 0 indexed, such that the 1st cell appears at index 0.
@@ -139,6 +134,7 @@ for i in range(len(files)):
 
                 # Figure out which of these cells have at least 80% of their volume contained in original cell
                 split_flag = False
+                bad_flag = False
                 # TODO check if first cell also has at least 80% of volume contained in contour cell?
                 # TODO can keep a counter of number of cells that meet this criteria, if >2 then split?
                 for cell in range(1, len(overlap_id)):
@@ -153,17 +149,20 @@ for i in range(len(files)):
                                                         "missing": False, "bad": False}, ignore_index=True)
                     else:
                         # this cell hasn't been split, just poorly assigned
+                        bad_flag = True
                         cell_frame = cell_frame.append(
                             {"contour_cell": contour_cell, "contour_cell_size": contour_cell_size,
                              "predicted_cell": overlap_id[cell], "predicted_cell_size": pred_cell_size,
                              "percent_overlap": percnt, "merged": False, "split": False,
                              "missing": False, "bad": True}, ignore_index=True)
 
-                # assign the first cell, based on whether or not subsequent cells indicate split
+                # assign the first cell, based on whether or not subsequent cells indicate split or bad
+                if bad_flag and split_flag:
+                    bad_flag = False
                 cell_frame = cell_frame.append({"contour_cell": contour_cell, "contour_cell_size": contour_cell_size,
                                                 "predicted_cell": overlap_id[0], "predicted_cell_size": overlap_count[0],
                                                 "percent_overlap": overlap_count[0] / contour_cell_size, "merged": False,
-                                                "split": split_flag, "missing": False, "bad": False}, ignore_index=True)
+                                                "split": split_flag, "missing": False, "bad": bad_flag}, ignore_index=True)
 
 
         def outline_objects(L_matrix, list_of_lists):

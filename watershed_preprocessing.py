@@ -8,6 +8,8 @@ from skimage.measure import label
 from skimage.morphology import watershed
 from skimage.feature import peak_local_max
 import skimage.filters.rank as rank
+from skimage.morphology import binary_erosion, binary_dilation, disk
+
 
 
 # get directory where images are located
@@ -23,6 +25,7 @@ prefix = files[0].split("interior")[0]
 names = files
 names = [x.replace(prefix, '').replace('_metrics.npy', '') for x in names]
 
+
 # load single point to get dimensions
 temp = np.load(image_dir + files[0])
 # load all data into a single numpy array
@@ -32,7 +35,7 @@ for i in range(len(files)):
     data[i, :, :, :, :] = np.load(os.path.join(image_dir, files[i]))
 
 
-# save images back to folder for viewing from regular network
+# save images back to folder for viewing if deepcell transform network
 for i in range(len(files)):
     if data.shape[-1] == 3:
         # three category network
@@ -42,18 +45,21 @@ for i in range(len(files)):
         io.imsave(os.path.join(image_dir, names[i] + '_border.tiff'), data[i, 3, :, :, border_idx])
     else:
         # 4 category network
-        border_idx = [0, 1]
+        int_border_idx = 0
+        bg_border_idx = 1
         nuc_idx = 2
         io.imsave(os.path.join(image_dir, names[i] + '_nucleus.tiff'), data[i, 3, :, :, nuc_idx])
-        io.imsave(os.path.join(image_dir, names[i] + '_border.tiff'),
-                  data[i, 3, :, :, border_idx[0]] + data[i, 3, :, :, border_idx[1]])
+        io.imsave(os.path.join(image_dir, names[i] + '_bg_border.tiff'), data[i, 3, :, :, bg_border_idx])
+        io.imsave(os.path.join(image_dir, names[i] + '_int_border.tiff'), data[i, 3, :, :, int_border_idx])
+        io.imsave(os.path.join(image_dir, names[i] + '_combined_border.tiff'),
+                  data[i, 3, :, :, int_border_idx] + data[i, 3, :, :, bg_border_idx])
 
 
-# save watershed energy levels back to disk for watershed transform input
+# save watershed energy levels back to disk for watershed transform network
 for j in range(data.shape[0]):
     print("j = {}".format(j))
     # save all FOVs processed by jth network into test_images
-    test_images = data[j, ..., 0:4]
+    test_images = data[j, ..., 0:5]
 
     # find max value of different masks for each FOV
     argmax_images = []
@@ -63,7 +69,7 @@ for j in range(data.shape[0]):
     argmax_images = np.expand_dims(argmax_images, axis=-1)
 
     threshold = 0.6
-    test_images_fgbg = data[j, ..., 4:6]
+    test_images_fgbg = data[j, ..., 5:7]
     fg_thresh = test_images_fgbg[..., 1] > threshold
     fg_thresh = np.expand_dims(fg_thresh, axis=-1)
 
@@ -75,34 +81,29 @@ for j in range(data.shape[0]):
     io.imsave(os.path.join(image_dir, names[j] + '_nucleus.tiff'), fg_thresh[0, :, :, 0].astype('int16'))
 
 
+# incorporate information from both 4-class and 3-class prediction
+nuclear_mask_3_class = io.imread('/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/Contours/First_Run/analyses/20190522_combined_deepcell_transform/interior_border_border_deepcell_old_epoch_30_nucleus.tiff')
 
+border_mask_4_class = io.imread('/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/Contours/First_Run/analyses/20190522_combined_deepcell_transform/interior_border_border_deepcell_fixed_epoch_30_int_border.tiff')
+nuclear_mask_4_class = io.imread('/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/Contours/First_Run/analyses/20190522_combined_deepcell_transform/interior_border_border_deepcell_fixed_epoch_30_nucleus.tiff')
 
+border_mask_thresh = copy.copy(border_mask_4_class)
+border_mask_thresh[border_mask_thresh < 0.75] = 0
+io.imshow(border_mask_thresh)
 
+border_mask_mask = border_mask_4_class > 0.7
+border_mask_mask = binary_erosion(border_mask_mask, disk(1))
 
-# # remove labels from border regions of mask that correspond to empy areas in deepcell 1.0
-# # set padding
-# pad = 0
-# row = 0
-# while pad == 0:
-#     if np.sum(predicted_data[row, :] > 0):
-#         pad = row
-#     else:
-#         row += 1
-#
-# pad_mask = np.zeros((1024, 1024), dtype="bool")
-# pad_mask[0:30, :] = True
-# pad_mask[:, 0:30] = True
-# pad_mask[:, -30:-1] = True
-# pad_mask[-30:-1, :] = True
-# remove_ids = np.unique(contour_L[pad_mask])
-# remove_idx = np.isin(contour_L, remove_ids)
-# contour_data[contour_L == 0] = 0
-# contour_data[pad_mask] = 0
-#
-# padded_contour = Image.fromarray(contour_data)
-# padded_contour.save(image_direc + '/Nuclear_Interior_Mask_padded.tif')
-#
-#
-# # regenerate object IDs after removing regions that overlap with padding
-# contour_L, contour_idx = skimage.measure.label(contour_data,return_num=True, connectivity=1)
-# contour_props = skimage.measure.regionprops(contour_L)
+nuc_mask_3_4 = copy.copy(nuclear_mask_3_class)
+nuc_mask_3_4[border_mask_mask] = 0.1
+
+io.imshow(nuc_mask_3_4)
+
+from skimage.filters.rank import mean
+x_int = nuc_mask_3_4 * 256
+x_int = x_int.astype('int')
+y = mean(x_int, np.ones((4,4)))
+io.imshow(y)
+y = y.astype('float32')
+y = y/256
+io.imsave('/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/Contours/First_Run/analyses/20190522_combined_deepcell_transform/smoothed_4x4_threshold_7_nuclear_0.1floor.tiff', y)
