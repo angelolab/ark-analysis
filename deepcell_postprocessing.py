@@ -4,24 +4,26 @@ import numpy as np
 import os
 import skimage.io as io
 import copy
-from skimage.measure import label
-from skimage.morphology import watershed
-from skimage.feature import peak_local_max
 import skimage.filters.rank as rank
-from skimage.morphology import binary_erosion, binary_dilation, disk
-
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+import scipy.ndimage as nd
 
 
 # get directory where images are located
 base_dir = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/Contours/First_Run/'
-image_dir = base_dir + 'analyses/20190505_watershed_retrain/'
+image_dir = base_dir + 'analyses/20190621_postprocessing/'
 plot_dir = image_dir + '/Figs/'
 
 # get names of each, clean up for subsequent saving
 files = os.listdir(image_dir)
 files = [file for file in files if 'npy' in file]
+files = [file for file in files if 'and_watershed_epoch' in file]
+#files = [file for file in files if 'interior_border_border_watershed_epoch' in file]
 files.sort()
-prefix = files[0].split("interior")[0]
+#prefix = files[0].split("interior_border_border")[0]
+prefix = 'Point1_12_18_3X_interior_border_border_'
+prefix = 'Point1_12_18_20190606_output_'
 names = files
 names = [x.replace(prefix, '').replace('_metrics.npy', '') for x in names]
 
@@ -41,25 +43,39 @@ for i in range(len(files)):
         # three category network
         border_idx = 0
         nuc_idx = 1
+        smoothed = nd.gaussian_filter(data[i, 3, :, :, nuc_idx], 5)
+
         io.imsave(os.path.join(image_dir, names[i] + '_nucleus.tiff'), data[i, 3, :, :, nuc_idx])
+        io.imsave(os.path.join(image_dir, names[i] + '_nucleus_smoothed.tiff'), smoothed)
         io.imsave(os.path.join(image_dir, names[i] + '_border.tiff'), data[i, 3, :, :, border_idx])
+
     else:
         # 4 category network
         int_border_idx = 0
         bg_border_idx = 1
         nuc_idx = 2
+        smoothed = nd.gaussian_filter(data[i, 3, :, :, nuc_idx], 5)
+
         io.imsave(os.path.join(image_dir, names[i] + '_nucleus.tiff'), data[i, 3, :, :, nuc_idx])
+        io.imsave(os.path.join(image_dir, names[i] + '_nucleus_smoothed.tiff'), smoothed)
         io.imsave(os.path.join(image_dir, names[i] + '_bg_border.tiff'), data[i, 3, :, :, bg_border_idx])
         io.imsave(os.path.join(image_dir, names[i] + '_int_border.tiff'), data[i, 3, :, :, int_border_idx])
         io.imsave(os.path.join(image_dir, names[i] + '_combined_border.tiff'),
                   data[i, 3, :, :, int_border_idx] + data[i, 3, :, :, bg_border_idx])
 
 
+plot_diff = data[1, 3, :, :, 1] - data[0, 3, :, :, 1]
+fig, ax = plt.subplots()
+mat = ax.imshow(plot_diff, cmap=plt.get_cmap('GnBu'))
+fig.colorbar(mat)
+fig.savefig(os.path.join(image_dir, 'interior_border_border_4_class_240k_max_class_examples_unbalanced_' + 'epoch_40vs30_nucleus.tiff'),
+            dpi=300)
+
 # save watershed energy levels back to disk for watershed transform network
 for j in range(data.shape[0]):
     print("j = {}".format(j))
     # save all FOVs processed by jth network into test_images
-    test_images = data[j, ..., 0:5]
+    test_images = data[j, ..., 0:4]
 
     # find max value of different masks for each FOV
     argmax_images = []
@@ -69,8 +85,10 @@ for j in range(data.shape[0]):
     argmax_images = np.expand_dims(argmax_images, axis=-1)
 
     threshold = 0.6
-    test_images_fgbg = data[j, ..., 5:7]
-    fg_thresh = test_images_fgbg[..., 1] > threshold
+    #test_images_fgbg = data[j, ..., 4:6]
+    #fg_thresh = test_images_fgbg[..., 1] > threshold
+    test_images_fgbg = data[j, ..., 0]
+    fg_thresh = test_images_fgbg < 0.4
     fg_thresh = np.expand_dims(fg_thresh, axis=-1)
 
     argmax_images_post_fgbg = argmax_images * fg_thresh
@@ -78,32 +96,4 @@ for j in range(data.shape[0]):
 
     # save relevant tifs
     io.imsave(os.path.join(image_dir, names[j] + '_smoothed_probs.tiff'), smoothed_argmax.astype('int16'))
-    io.imsave(os.path.join(image_dir, names[j] + '_nucleus.tiff'), fg_thresh[0, :, :, 0].astype('int16'))
-
-
-# incorporate information from both 4-class and 3-class prediction
-nuclear_mask_3_class = io.imread('/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/Contours/First_Run/analyses/20190522_combined_deepcell_transform/interior_border_border_deepcell_old_epoch_30_nucleus.tiff')
-
-border_mask_4_class = io.imread('/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/Contours/First_Run/analyses/20190522_combined_deepcell_transform/interior_border_border_deepcell_fixed_epoch_30_int_border.tiff')
-nuclear_mask_4_class = io.imread('/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/Contours/First_Run/analyses/20190522_combined_deepcell_transform/interior_border_border_deepcell_fixed_epoch_30_nucleus.tiff')
-
-border_mask_thresh = copy.copy(border_mask_4_class)
-border_mask_thresh[border_mask_thresh < 0.75] = 0
-io.imshow(border_mask_thresh)
-
-border_mask_mask = border_mask_4_class > 0.7
-border_mask_mask = binary_erosion(border_mask_mask, disk(1))
-
-nuc_mask_3_4 = copy.copy(nuclear_mask_3_class)
-nuc_mask_3_4[border_mask_mask] = 0.1
-
-io.imshow(nuc_mask_3_4)
-
-from skimage.filters.rank import mean
-x_int = nuc_mask_3_4 * 256
-x_int = x_int.astype('int')
-y = mean(x_int, np.ones((4,4)))
-io.imshow(y)
-y = y.astype('float32')
-y = y/256
-io.imsave('/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/Contours/First_Run/analyses/20190522_combined_deepcell_transform/smoothed_4x4_threshold_7_nuclear_0.1floor.tiff', y)
+    io.imsave(os.path.join(image_dir, names[j] + '_nucleus.tiff'), fg_thresh[3, :, :, 0].astype('int16'))

@@ -1,84 +1,71 @@
 import numpy as np
-import os
 import pandas as pd
 import copy
-import skimage.measure
 import matplotlib.pyplot as plt
 import matplotlib as mpl
-import scipy
-import scipy.stats as stats
-from PIL import Image
 import skimage.io as io
 import helper_functions
 import importlib
-
 importlib.reload(helper_functions)
 
 
-# first attempt to evaluate accuracy of different networks by comparing to gold standard contoured data
+# code to evaluate accuracy of different segmentation contours
 
 # read in TIFs containing ground truth contoured data, along with predicted segmentation
 base_dir = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/Contours/First_Run/'
-image_direc = base_dir + 'Point23/'
-
-deep_direc = base_dir + 'analyses/20190621_postprocessing/'
+deep_direc = base_dir + 'analyses/20190606_params/'
 plot_direc = deep_direc + 'figs/'
 
-# files = ["interior_2", "interior_5", "interior_border_2", "interior_border_5",
-#          "interior_border_border_2", "interior_border_border_5", "interior_border_border_20"]
+file_name = "mask_3_class_64_filters_256_densefilters_epoch_30_nucleus.tiff"
 
-files = ["interior_border_border_watershed_"]
-        # "interior_30", "interior_border_30", "interior_border_border_30"
-
-suffixs = ["epoch_20", "epoch_30", "epoch_40"]
-
-# # for looking specifically at current batch
-file_base = "mask_3_class_w_interior_and_watershed_watershed_epoch_20"
-file_base = "mask_3_class_w_interior_and_watershed_epoch_20_nucleus_smoothed_6_disk0.1_cutoff"
-file_suf = ""
-
-gcloud_old = False
-
-suffixs = [""]
-
-predicted_data = io.imread(deep_direc + '' + file_base + file_suf + '.tiff')
-
-if gcloud_old:
-    contour_data = io.imread(image_direc + "Nuclear_Interior_Mask_padded.tif")
-else:
-    contour_data = io.imread(image_direc + "Nuclear_Interior_Mask.tif")
+predicted_data = io.imread(deep_direc + file_name)
+contour_data = io.imread(base_dir + "Point23/Nuclear_Interior_Mask.tif")
+contour_data = io.imread('/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/Contours/First_Run/input_data/Point1_12_18_23_3X/Point23/annotated/Nuclear_Interior_Border_Mask_Label.tif')
 
 cell_frame, predicted_label, contour_label = helper_functions.compare_contours(predicted_data, contour_data)
 
-# identify categories of poorly classified cells
+# remove small objects, but not zero sized, as these are missing errors
 cell_frame = cell_frame[cell_frame["contour_cell_size"] > 10]
-cell_frame = cell_frame[cell_frame["predicted_cell_size"] > 10]
-missing_idx = cell_frame["missing"] == True
+cell_frame = cell_frame[np.logical_or(cell_frame["predicted_cell_size"] > 10, cell_frame["predicted_cell_size"] == 0)]
 
-# ignore those cells mapping to 0 (background), as these weren't actually merged into one cell
-merge_idx = np.logical_and(cell_frame["predicted_cell"].duplicated(), ~missing_idx)
-split_idx = cell_frame["split"] == 1
+# find predicted cells which have been associated with multiple distinct ground truth cells, excluding background
+merge_idx = np.logical_and(cell_frame["predicted_cell"].duplicated(), np.logical_not(cell_frame["missing"]))
+merge_ids = cell_frame["predicted_cell"][merge_idx]
 
-# bad_idx = np.logical_or(np.logical_or(cell_frame["contour_cell_size"] / cell_frame["predicted_cell_size"] > 1.3,
-#                         cell_frame["contour_cell_size"] / cell_frame["predicted_cell_size"] < 0.7),
-#                         cell_frame["bad"] == 1)
+# make sure both copies of predicted cell are marked as merged
+merge_idx_complete = np.isin(cell_frame["predicted_cell"], merge_ids)
+cell_frame.loc[merge_idx_complete, "merged"] = True
 
-cell_frame.loc[merge_idx, "merged"] = True
-cell_frame.loc[missing_idx, "missing"] = True
-split_cells = cell_frame.loc[split_idx, "predicted_cell"]
-split_cells = [x for x in split_cells if x != 0]
-merged_cells = cell_frame.loc[merge_idx, "predicted_cell"]
-merged_cells = [x for x in merged_cells if x != 0]
-# bad_cells = cell_frame.loc[bad_idx, "predicted_cell"]
-bad_cells = cell_frame.loc[cell_frame["bad"] == 1, "predicted_cell"]
-bad_cells = [x for x in bad_cells if x != 0]
-bad_cells = [x for x in bad_cells if ~np.isin(x, split_cells)]
-merged_cells = [x for x in merged_cells if ~np.isin(x, bad_cells)]
 
-# TODO add missing and created cell categories
+# figure out which cells are labeled as both low_quality and merged
+# because merge classification comes only from see duplicates of predicted ID, low_quality is more accurate call
+# as it was determined by actual overlap pattern
+unmerge_ids = cell_frame.loc[np.logical_and(cell_frame["merged"], cell_frame["low_quality"]), "predicted_cell"]
+unmerge_idx = np.isin(cell_frame["predicted_cell"], unmerge_ids)
+cell_frame.loc[unmerge_idx, "merged"] = False
+
+# figure out which cells are labeled as both split and merged, meaning messy segmentation which is low quality
+double_merge = cell_frame.loc[np.logical_and(cell_frame["merged"], cell_frame["split"]), "predicted_cell"]
+double_split = cell_frame.loc[np.logical_and(cell_frame["merged"], cell_frame["split"]), "contour_cell"]
+double_merge_idx = np.isin(cell_frame["predicted_cell"], double_merge)
+double_split_idx = np.isin(cell_frame["contour_cell"], double_split)
+cell_frame.loc[np.logical_or(double_merge_idx, double_split_idx), ["merged", "split", "low_quality"]] = [False, False, True]
+
+# check to make sure no double counting
+np.sum(np.logical_and(cell_frame["merged"], cell_frame["split"]))
+np.sum(np.logical_and(cell_frame["merged"], cell_frame["low_quality"]))
+np.sum(np.logical_and(cell_frame["low_quality"], cell_frame["split"]))
+
+split_cells = cell_frame.loc[cell_frame["split"], "predicted_cell"]
+merged_cells = cell_frame.loc[cell_frame["merged"], "predicted_cell"]
+bad_cells = cell_frame.loc[cell_frame["low_quality"], "predicted_cell"]
+missing_cells = cell_frame.loc[cell_frame["missing"], "contour_cell"]
+created_cells = cell_frame.loc[cell_frame["created"], "predicted_cell"]
+
+print(len(missing_cells))
+print(len(created_cells))
 
 swapped = helper_functions.randomize_labels(copy.copy(contour_label))
-
 classify_outline = helper_functions.outline_objects(predicted_label, [split_cells, merged_cells, bad_cells])
 
 fig, ax = plt.subplots(nrows=1, ncols=2)
@@ -90,7 +77,7 @@ mat = ax[0].imshow(classify_outline, cmap=cmap, vmin=np.min(classify_outline)-.5
 ax[1].imshow(swapped)
 
 # tell the colorbar to tick at integers
-#cbar = fig.colorbar(mat, ticks=np.arange(np.min(classify_outline), np.max(classify_outline)+1))
+cbar = fig.colorbar(mat, ticks=np.arange(np.min(classify_outline), np.max(classify_outline)+1))
 
 #cbar.ax.set_yticklabels(['Background', 'Normal', 'Split', 'Merged', 'Low Quality'])
 fig.tight_layout()
@@ -119,15 +106,47 @@ ax[1].set_title("Fraction of cells misclassified")
 
 fig.savefig(plot_direc + file_base + file_suf + '_stats.tiff', dpi=200)
 
-        # prob_data = Image.open(deep_direc + file_base + '_border' + '.tiff')
-        # prob_data = np.array(prob_data)
-        # hist_data = prob_data.reshape(-1, 1).squeeze()
-        # hist_data = [x for x in hist_data if x > 0.05]
-        # fig, ax = plt.subplots()
-        # ax.hist(hist_data, bins=np.arange(0,1.1, .1))
-        # ax.set_ylim(0, 200000)
-        # plt.xticks(np.arange(0, 1.1, 0.1))
-        # fig.savefig(plot_direc + file_base + "_hist.tiff")
+
+
+# mean average precision
+new_iou = helper_functions.calc_iou_matrix(contour_label, predicted_label)
+
+iou_thresholds = np.arange(0.5, 1, 0.05)
+scores, false_negatives, false_positives = helper_functions.calc_modified_average_precision(new_iou, iou_thresholds)
+np.mean(scores)
+
+bad_boiz = np.where(false_negatives[0, :])
+bad_boiz = [x + 1 for x in bad_boiz]
+
+# plot false negatives
+classify_outline = helper_functions.outline_objects(contour_label, [bad_boiz])
+
+fig, ax = plt.subplots(nrows=1, ncols=2)
+
+cmap = mpl.colors.ListedColormap(['Black', 'Grey', 'Blue'])
+
+# set limits .5 outside true range
+mat = ax[0].imshow(classify_outline, cmap=cmap, vmin=np.min(classify_outline)-.5, vmax=np.max(classify_outline)+.5)
+ax[1].imshow(swapped)
+
+# tell the colorbar to tick at integers
+#cbar = fig.colorbar(mat, ticks=np.arange(np.min(classify_outline), np.max(classify_outline)+1))
+
+#cbar.ax.set_yticklabels(['Background', 'Normal', 'Split', 'Merged', 'Low Quality'])
+fig.tight_layout()
+
+
+
+#old plotting
+# prob_data = Image.open(deep_direc + file_base + '_border' + '.tiff')
+# prob_data = np.array(prob_data)
+# hist_data = prob_data.reshape(-1, 1).squeeze()
+# hist_data = [x for x in hist_data if x > 0.05]
+# fig, ax = plt.subplots()
+# ax.hist(hist_data, bins=np.arange(0,1.1, .1))
+# ax.set_ylim(0, 200000)
+# plt.xticks(np.arange(0, 1.1, 0.1))
+# fig.savefig(plot_direc + file_base + "_hist.tiff")
 
 # combine all three plots above into one
 # fig3 = plt.figure(figsize=(15,9))

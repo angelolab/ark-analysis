@@ -6,16 +6,17 @@ import copy
 import skimage.morphology as morph
 import skimage.measure
 import pandas as pd
+import xarray as xr
 
 
 # data loading
 
-
-def load_tifs_from_points_dir(point_dir, tifs):
+def load_tifs_from_points_dir(point_dir, tif_folder, tifs=None):
     """Takes a set of TIFs from a directory structure organised by points, and loads them into a numpy array.
 
         Args:
             point_dir: string to directory of points
+            tif_folder: name of tif_folder within each point
             tifs: optional list of TIFs to load, otherwise loads all TIFs
 
         Returns:
@@ -25,8 +26,42 @@ def load_tifs_from_points_dir(point_dir, tifs):
     if not os.path.isdir(point_dir):
         raise ValueError("Directory does not exist")
 
+    # get all point folders
+    points = os.listdir(point_dir)
+    points = [point for point in points if 'Point' in point]
+
+    if len(points) == 0:
+        raise ValueError("No points found in directory")
+
+    if not os.path.isdir(os.path.join(point_dir, points[0], tif_folder)):
+        raise ValueError("Invalid tif folder name")
+
+    # get tifs from first point directory if no tif names supplied
     if tifs is None:
-        tifs = os.listdir()
+        tifs = os.listdir(os.path.join(point_dir, points[0], tif_folder))
+        tifs = [tif for tif in tifs if '.tif' in tif]
+
+    if len(tifs) == 0:
+        raise ValueError("No tifs found in designated folder")
+
+    for tif in tifs:
+        if not os.path.isfile(os.path.join(point_dir, points[0], tif_folder, tif)):
+            print(os.path.join(point_dir, points[0], tif_folder, tif))
+            raise ValueError("Could not find {} in supplied directory".format(tif))
+
+    test_img = io.imread(os.path.join(point_dir, points[0], tif_folder, tifs[0]))
+    img_data = np.zeros((len(points), len(tifs), test_img.shape[0], test_img.shape[1]))
+
+    for point in range(len(points)):
+        for tif in range(len(tifs)):
+            img_data[point, tif, :, :] = io.imread(os.path.join(point_dir, points[point], tif_folder, tifs[tif]))
+
+    img_xr = xr.DataArray(img_data, coords=[points, tifs, range(test_img.shape[0]), range(test_img.shape[0])],
+                          dims=["point_folder", "channel", "x_axis", "y_axis"])
+
+    return img_xr
+
+
 
 
 # plotting functions
@@ -64,13 +99,14 @@ def outline_objects(L_matrix, list_of_lists):
     for idx, val in enumerate(list_of_lists):
         mask = np.isin(L_plot, val)
 
-        # use a decimal so that it doesn't tag any of the actual cell IDs when reassigning
-        L_plot[mask] = idx + 1.99
+        # use a negative value to not interfere with cell labels
+        L_plot[mask] = -(idx + 2)
 
-    L_plot[L_plot > idx + 2] = 1
-    L_plot = np.around(L_plot)
+    L_plot[L_plot > 1] = 1
+    L_plot = np.absolute(L_plot)
     L_plot = L_plot.astype('int16')
     return L_plot
+
 
 # training data generation
 def process_training_data(interior_contour, interior_border_contour):
@@ -93,16 +129,16 @@ def process_training_data(interior_contour, interior_border_contour):
     if np.sum(interior_contour) > np.sum(interior_border_contour):
         raise ValueError("Arguments are likely switched, interior_contour is larger than interior_border_contour")
 
-    # erode contour so that pixels adjacent to one another don't cause objects to become linked
-    interior_contour = morph.binary_erosion(interior_contour, morph.disk(1))
-    interior_contour = skimage.measure.label(interior_contour)
+    # label cells
+    interior_contour = skimage.measure.label(interior_contour, connectivity=1)
 
-    # for each individual cell, expand to slightly larger than original size
-    new_masks = np.zeros(interior_contour.shape)
-    for cell_label in np.unique(interior_contour):
-        img = interior_contour == cell_label
-        img = morph.binary_dilation(img, morph.disk(3))
-        new_masks[img] = cell_label
+    # for each individual cell, expand to slightly larger than original size one pixel at a time
+    new_masks = copy.copy(interior_contour)
+    for idx in range(2):
+        for cell_label in np.unique(new_masks)[1:]:
+            img = new_masks == cell_label
+            img = morph.binary_dilation(img, morph.disk(1))
+            new_masks[img] = cell_label
 
     # set pixels to 0 anywhere outside bounds of original shape
     label_contour = randomize_labels(new_masks.astype("int"))
@@ -113,6 +149,8 @@ def process_training_data(interior_contour, interior_border_contour):
           "that are no longer marked out of {}".format(missed_pixels, interior_contour.shape[0] ** 2))
 
     return label_contour
+
+# accuracy evaluation
 
 
 def compare_contours(predicted_label, contour_label):
@@ -135,7 +173,7 @@ def compare_contours(predicted_label, contour_label):
 
     # get region props of predicted cells and initialize datastructure for storing values
     cell_frame = pd.DataFrame(columns=["contour_cell", "contour_cell_size", "predicted_cell", "predicted_cell_size",
-                                       "percent_overlap", "merged", "split", "missing", "bad"], dtype="float")
+                                       "percent_overlap", "merged", "split", "missing", "low_quality", "created"])
 
     # loop through each contoured cell, and compute accuracy metrics for overlapping predicting cells
     for contour_cell in range(1, np.max(contour_label) + 1):
@@ -160,7 +198,8 @@ def compare_contours(predicted_label, contour_label):
                 cell_frame = cell_frame.append({"contour_cell": contour_cell, "contour_cell_size": contour_cell_size,
                                                 "predicted_cell": 0, "predicted_cell_size": 0,
                                                 "percent_overlap": overlap_count[0] / contour_cell_size, "merged": False,
-                                                "split": False, "missing": True, "bad": False}, ignore_index=True)
+                                                "split": False, "missing": True, "low_quality": False,
+                                                "created": False}, ignore_index=True)
                 continue
             else:
                 # not missing, just bad segmentation. Classify predicted cell as bad
@@ -169,7 +208,7 @@ def compare_contours(predicted_label, contour_label):
                     {"contour_cell": contour_cell, "contour_cell_size": contour_cell_size,
                      "predicted_cell": overlap_id[1], "predicted_cell_size": np.sum(predicted_label == overlap_id[1]),
                      "percent_overlap": overlap_count[0] / contour_cell_size, "merged": False,
-                     "split": False, "missing": False, "bad": True}, ignore_index=True)
+                     "split": False, "missing": False, "low_quality": True, "created": False}, ignore_index=True)
                 continue
         else:
             # remove background as target cell and change cell size to for calculation
@@ -189,7 +228,7 @@ def compare_contours(predicted_label, contour_label):
             cell_frame = cell_frame.append({"contour_cell": contour_cell, "contour_cell_size": contour_cell_size,
                                             "predicted_cell": pred_cell, "predicted_cell_size": pred_cell_size,
                                             "percent_overlap": percnt, "merged": False, "split": False,
-                                            "missing": False, "bad": False}, ignore_index=True)
+                                            "missing": False, "low_quality": False, "created": False}, ignore_index=True)
         else:
             # No single predicted cell occupies more than 90% of contour cell size, figure out the type of error made
             split_flag = False
@@ -206,7 +245,7 @@ def compare_contours(predicted_label, contour_label):
                         {"contour_cell": contour_cell, "contour_cell_size": contour_cell_size,
                          "predicted_cell": overlap_id[cell], "predicted_cell_size": pred_cell_size,
                          "percent_overlap": percnt, "merged": False, "split": True,
-                         "missing": False, "bad": False}, ignore_index=True)
+                         "missing": False, "low_quality": False, "created": False}, ignore_index=True)
                 else:
                     # this cell hasn't been split, just poorly assigned
                     bad_flag = True
@@ -214,7 +253,7 @@ def compare_contours(predicted_label, contour_label):
                         {"contour_cell": contour_cell, "contour_cell_size": contour_cell_size,
                          "predicted_cell": overlap_id[cell], "predicted_cell_size": pred_cell_size,
                          "percent_overlap": percnt, "merged": False, "split": False,
-                         "missing": False, "bad": True}, ignore_index=True)
+                         "missing": False, "low_quality": True, "created": False}, ignore_index=True)
 
             # assign the first cell, based on whether or not subsequent cells indicate split or bad
             if bad_flag and split_flag:
@@ -222,7 +261,102 @@ def compare_contours(predicted_label, contour_label):
             cell_frame = cell_frame.append({"contour_cell": contour_cell, "contour_cell_size": contour_cell_size,
                                             "predicted_cell": overlap_id[0], "predicted_cell_size": overlap_count[0],
                                             "percent_overlap": overlap_count[0] / contour_cell_size, "merged": False,
-                                            "split": split_flag, "missing": False, "bad": bad_flag}, ignore_index=True)
+                                            "split": split_flag, "missing": False, "low_quality": bad_flag,
+                                            "created": False}, ignore_index=True)
+
+    # check and see if any new cells were created in predicted_label that don't exist in contour_label
+    for predicted_cell in range(1, np.max(predicted_label) + 1):
+        if not np.isin(predicted_cell, cell_frame["predicted_cell"]):
+            cell_frame = cell_frame.append({"contour_cell": 0, "contour_cell_size": 0, "predicted_cell": predicted_cell,
+                                            "predicted_cell_size": np.sum(predicted_label == predicted_cell),
+                                            "percent_overlap": 0, "merged": False, "split": split_flag,
+                                            "missing": False, "low_quality": False, "created": True}, ignore_index=True)
 
     return cell_frame, predicted_label, contour_label
 
+# DSB-score adapated from https://www.biorxiv.org/content/10.1101/580605v1.full
+# object IoU matrix adapted from code written by Morgan Schwartz
+
+def calc_iou_matrix(ground_truth_label, predicted_label):
+    """Calculates pairwise ious between all cells from two masks
+
+    Args:
+        ground_truth_label: 2D label array representing ground truth contours
+        predicted_label: 2D labeled array representing predicted contours
+
+    Returns:
+        iou_matrix: matrix of ground_truth x predicted cells with iou value for each
+    """
+
+    if len(np.unique(ground_truth_label)) < 3:
+        raise ValueError("Ground truth array was not pre-labeled")
+
+    if len(np.unique(predicted_label)) < 3:
+        raise ValueError("Predicted array was not pre-labeled")
+
+    iou_matrix = np.zeros((np.max(ground_truth_label), np.max(predicted_label)))
+
+    for i in range(1, iou_matrix.shape[0] + 1):
+        gt_img = ground_truth_label == i
+        overlaps = np.unique(predicted_label[gt_img])
+        for j in overlaps:
+            pd_img = predicted_label == j
+            intersect = np.sum(np.logical_and(gt_img, pd_img))
+            union = np.sum(np.logical_or(gt_img, pd_img))
+            # adjust index by one to account for not including background
+            iou_matrix[i - 1, j - 1] = intersect / union
+    return iou_matrix
+
+
+def calc_modified_average_precision(iou_matrix, thresholds):
+    """Calculates the average precision between two masks across a range of iou thresholds
+
+    Args:
+        iou_matrix: intersection over union matrix
+        thresholds: list used to threshold iou values in matrix
+
+    Returns:
+        scores: list of modified average precision values for each threshold
+        false_neg_idx: array of booleans indicating whether cell was flagged as false positive at each threshold
+        false_pos_idx: array of booleans indicating whether cell was flagged as false negative at each threshold"""
+
+    if np.max(iou_matrix) > 1:
+        raise ValueError("Improperly formatted iou_matrix, contains values greater than 1")
+
+    if len(thresholds) == 0:
+        raise ValueError("Must supply at least one threshold value")
+
+    if np.any(np.logical_or(thresholds > 1, thresholds < 0)):
+        raise ValueError("Thresholds must be between 0 and 1")
+
+    scores = []
+    false_neg_idx = np.zeros((len(thresholds), iou_matrix.shape[0]))
+    false_pos_idx = np.zeros((len(thresholds), iou_matrix.shape[1]))
+
+    for i in range(len(thresholds)):
+
+        # threshold iou_matrix as designated value
+        iou_matrix_thresh = iou_matrix > thresholds[i]
+
+        # Calculate values based on projecting along prediction axis
+        pred_proj = iou_matrix_thresh.sum(axis=1)
+
+        # Zeros (aka absence of hits) correspond to true cells missed by prediction
+        false_neg = pred_proj == 0
+        false_neg_idx[i, :] = false_neg
+        false_neg = np.sum(false_neg)
+
+        # Calculate values based on projecting along truth axis
+        truth_proj = iou_matrix_thresh.sum(axis=0)
+
+        # Empty hits indicate predicted cells that do not exist in true cells
+        false_pos = truth_proj == 0
+        false_pos_idx[i, :] = false_pos
+        false_pos = np.sum(false_pos)
+
+        # Ones are true positives
+        true_pos = np.sum(pred_proj == 1)
+
+        score = true_pos / (true_pos + false_pos + false_neg)
+        scores.append(score)
+    return scores, false_neg_idx, false_pos_idx

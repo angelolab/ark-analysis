@@ -7,9 +7,11 @@ from scipy import ndimage as ndi
 
 from skimage.morphology import watershed
 from skimage.feature import peak_local_max
+from skimage.measure import label
 import skimage.io as io
 import copy
 
+# watershed generation from deepcell transformed data
 # read in relavant files
 image_dir = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/Contours/First_Run/cnn_data/Deepcell_docker/output/190430_watershed_test/'
 mask_nuc = io.imread(image_dir + 'interior_border_30_nucleus.tiff')
@@ -21,6 +23,7 @@ mask = np.zeros((1024,1024,5))
 temp_mask = np.zeros((1024,1024,1))
 temp_mask[:, :, 0] = data[2, 3, :, :, 1]
 mask[:, :, :] = copy.copy(temp_mask)
+
 
 io.imshow(mask[:, :, 1])
 mask[mask[:, :, 0] < 0.8, 1] = 0
@@ -52,19 +55,22 @@ ax[2].set_title('Separated objects')
 
 
 # watershed network transform
-
+base_dir = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/Contours/First_Run/analyses/'
 watershed_images = []
-fg_thresh = io.imread('path_to_threshold')
-smoothed_probs = io.imread('path_to_smoothed_probs')
+fg_thresh = io.imread(base_dir + '20190505_watershed_retrain/' + 'watershed_epoch_30_nucleus.tiff')
+smoothed_probs = io.imread(base_dir + '20190621_postprocessing/' + '3_class_w_interior_and_watershed_watershed_epoch_20_smoothed_probs.tiff')
+prob_map = io.imread(base_dir + '20190621_postprocessing/' + '3_class_w_interior_and_watershed_epoch_20_nucleus.tiff')
 
-image = fg_thresh
-distance = smoothed_probs
-local_maxi = peak_local_max(smoothed_probs, min_distance=15, exclude_border=False, indices=False, labels=image)
+image = prob_map > 0.2
+distance = prob_map
 local_maxi_easy = smoothed_probs > 2
-local_maxi_mat = io.imread('matlab_local_maxima')
-markers = label(local_maxi)
+markers = label(local_maxi_easy)
 segments = watershed(-distance, markers, mask=image, watershed_line=True)
 watershed_images.append(segments)
 
 watershed_images = np.array(watershed_images)
 watershed_images = np.expand_dims(watershed_images, axis=-1)
+
+io.imshow(watershed_images[0, :, :, 0])
+
+io.imsave(base_dir + '20190621_postprocessing/' + 'mask_3_class_w_interior_and_watershed_watershed_epoch_20.tiff', watershed_images[0, :, :, 0])
