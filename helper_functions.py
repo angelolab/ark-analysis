@@ -359,4 +359,6 @@ def calc_modified_average_precision(iou_matrix, thresholds):
 
         score = true_pos / (true_pos + false_pos + false_neg)
         scores.append(score)
+
     return scores, false_neg_idx, false_pos_idx
+

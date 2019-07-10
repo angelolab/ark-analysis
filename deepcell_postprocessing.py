@@ -18,7 +18,7 @@ plot_dir = image_dir + '/Figs/'
 # get names of each, clean up for subsequent saving
 files = os.listdir(image_dir)
 files = [file for file in files if 'npy' in file]
-files = [file for file in files if 'and_watershed_epoch' in file]
+files = [file for file in files if '3_class_w_watershed' in file]
 #files = [file for file in files if 'interior_border_border_watershed_epoch' in file]
 files.sort()
 #prefix = files[0].split("interior_border_border")[0]
