@@ -7,6 +7,9 @@ import skimage.morphology as morph
 import skimage.measure
 import pandas as pd
 import xarray as xr
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+import math
 
 
 # data loading
@@ -108,6 +111,84 @@ def outline_objects(L_matrix, list_of_lists):
     return L_plot
 
 
+def plot_color_map(outline_matrix, names=None, ground_truth=None, save_path=None):
+    """Plot label map with cells of specified category colored the same
+
+        Args
+            outline_matrix: output of outline_objects function which assigns same value to cells of same class
+            names: list of names for each category to use for plotting
+            ground truth: optional argument to supply label map of true segmentation to be plotted alongside
+            save_path: optional argument to save plot as TIF
+
+        Returns
+            Displays plot in window"""
+
+    plotting_colors = ['Black', 'Grey', 'Blue', 'Red', 'Yellow', 'Green', 'Purple']
+    num_categories = np.max(outline_matrix)
+    plotting_colors = plotting_colors[:num_categories + 1]
+    cmap = mpl.colors.ListedColormap(plotting_colors)
+
+    if ground_truth is not None:
+        fig, ax = plt.subplots(nrows=1, ncols=2)
+        mat = ax[0].imshow(outline_matrix, cmap=cmap, vmin=np.min(outline_matrix) - .5,
+                           vmax=np.max(outline_matrix) + .5)
+        swapped = helper_functions.randomize_labels(ground_truth)
+        ax[1].imshow(swapped)
+    else:
+        fig, ax = plt.subplots(nrows=1, ncols=1)
+        mat = ax.imshow(outline_matrix, cmap=cmap, vmin=np.min(outline_matrix) - .5,
+                           vmax=np.max(outline_matrix) + .5)
+
+
+    # tell the colorbar to tick at integers
+    cbar = fig.colorbar(mat, ticks=np.arange(np.min(outline_matrix), np.max(outline_matrix) + 1))
+
+    if names is not None:
+        cbar.ax.set_yticklabels(names)
+    else:
+        cbar.ax.set_yticklabels(['Background', 'Normal', 'Split', 'Merged', 'Low Quality'][:num_categories + 1])
+    fig.tight_layout()
+    if save_path is not None:
+        fig.savefig(save_path, dpi=200)
+
+
+def plot_barchart_errors(pd_array, cell_category=["split", "merged", "low_quality"], save_path=None):
+    """Plot different error types in a barchart, along with cell-size correlation in a scatter plot
+        Args
+            pd_array: pandas cell array representing error types for each class of cell
+            cell_category: list of error types to extract from array
+            save_path: optional file path to save generated TIF
+
+        Returns
+            Display plot on viewer"""
+
+    # make sure all supplied categories are column names
+    if np.any(~np.isin(cell_category, pd_array.columns)):
+        raise ValueError("Invalid column name")
+
+    fig, ax = plt.subplots(2, 1, figsize=(10, 10))
+
+    ax[0].scatter(pd_array["contour_cell_size"], pd_array["predicted_cell_size"])
+    ax[0].set_xlabel("Contoured Cell")
+    ax[0].set_ylabel("Predicted Cell")
+
+    # compute percentage of different error types
+    errors = np.zeros(len(cell_category))
+    for i in range(len(errors)):
+        errors[i] = len(set(pd_array.loc[pd_array[cell_category[i]], "predicted_cell"]))
+
+    errors = errors / len(set(pd_array["predicted_cell"]))
+    position = range(len(errors))
+    ax[1].bar(position, errors)
+
+    ax[1].set_xticks(position)
+    ax[1].set_xticklabels(cell_category)
+    ax[1].set_title("Fraction of cells misclassified")
+
+    if save_path is not None:
+        fig.savefig(save_path, dpi=200)
+
+
 # training data generation
 def process_training_data(interior_contour, interior_border_contour):
     """Take in a contoured map of the border of each cell as well as entire cell, and generate annotated label map
@@ -137,7 +218,7 @@ def process_training_data(interior_contour, interior_border_contour):
     for idx in range(2):
         for cell_label in np.unique(new_masks)[1:]:
             img = new_masks == cell_label
-            img = morph.binary_dilation(img, morph.disk(1))
+            img = morph.binary_dilation(img, morph.square(3))
             new_masks[img] = cell_label
 
     # set pixels to 0 anywhere outside bounds of original shape
@@ -145,7 +226,7 @@ def process_training_data(interior_contour, interior_border_contour):
     label_contour[interior_border_contour == 0] = 0
 
     missed_pixels = np.sum(np.logical_and(interior_border_contour > 0, label_contour < 1))
-    print("Erosion and dilating resulted in a total of {} pixels "
+    print("New Erosion and dilating resulted in a total of {} pixels "
           "that are no longer marked out of {}".format(missed_pixels, interior_contour.shape[0] ** 2))
 
     return label_contour
@@ -274,7 +355,7 @@ def compare_contours(predicted_label, contour_label):
 
     return cell_frame, predicted_label, contour_label
 
-# DSB-score adapated from https://www.biorxiv.org/content/10.1101/580605v1.full
+# DSB-score adapted from https://www.biorxiv.org/content/10.1101/580605v1.full
 # object IoU matrix adapted from code written by Morgan Schwartz
 
 def calc_iou_matrix(ground_truth_label, predicted_label):
@@ -361,4 +442,81 @@ def calc_modified_average_precision(iou_matrix, thresholds):
         scores.append(score)
 
     return scores, false_neg_idx, false_pos_idx
+
+
+def calc_adjacency_matrix(label_map, border_dist=0):
+    """Generate matrix describing which cells are within the specified distance from one another
+
+    Args
+        label map: numpy array with each distinct cell labeled with a different pixel value
+        border_dist: number of pixels separating borders of adjacent cells in order to be classified as neighbors
+
+    Returns
+        adjacency_matrix: numpy array of num_cells x num_cells with a 1 for neighbors and 0 otherwise"""
+
+    if len(np.unique(label_map)) < 3:
+        raise ValueError("array must be provided in labeled format")
+
+    if not isinstance(border_dist, int):
+        raise ValueError("Border distance must be an integer")
+
+    adjacency_matrix = np.zeros((np.max(label_map) + 1, np.max(label_map) + 1), dtype='int')
+
+    # We need to expand enough pixels such that cells which are within the specified border distance will overlap.
+    # To find cells that are 0 pixels away, we expand 1 pixel in each direction to find overlaps
+    # To check for cells that are 1 pixel away, we expand 2 pixels in either direction
+    # we also need to factor in a center pixel which adds a constant of one
+    morph_dist = border_dist * 2 + 3
+
+    for cell in range(1, np.max(label_map) + 1):
+        mask = label_map == cell
+        mask = morph.dilation(mask, morph.square(morph_dist))
+        overlaps = np.unique(label_map[mask])
+        adjacency_matrix[cell, overlaps] = 1
+
+    # reset background distance to 0
+    adjacency_matrix[0, :] = 0
+    adjacency_matrix[:, 0] = 0
+
+    return adjacency_matrix
+
+def euc_dist(coords_1, coords_2):
+    """Calculate the euclidian distance between two y,x tuples
+
+        Args
+            coords_1: tuple of row, col values
+            coords_2: tuple of row, col values
+
+        Returns
+            dist: distance between two points"""
+
+    y = coords_1[0] - coords_2[0]
+    x = coords_1[1] - coords_2[1]
+    dist = math.sqrt(x**2 + y**2)
+    return dist
+
+def calc_dist_matrix(label_map):
+    """Generate matrix of distances between center of pairs of cells
+
+        Args
+            label_map: numpy array with unique cells given unique pixel labels
+
+        Returns
+            dist_matrix: cells x cells matrix with the euclidian distance between centers of corresponding cells"""
+
+    if len(np.unique(label_map)) < 3:
+        raise ValueError("Array must be provided in labeled format")
+
+    cell_num = np.max(label_map)
+    dist_matrix = np.zeros((cell_num + 1, cell_num + 1))
+    props = skimage.measure.regionprops(label_map)
+
+    for cell in range(1, cell_num + 1):
+        cell_coords = props[cell - 1].centroid
+        for tar_cell in range(1, cell_num + 1):
+            tar_coords = props[tar_cell - 1].centroid
+            dist = euc_dist(cell_coords, tar_coords)
+            dist_matrix[cell, tar_cell] = dist
+
+    return dist_matrix
 
