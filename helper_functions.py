@@ -10,16 +10,18 @@ import xarray as xr
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import math
+import skimage.io as io
 
 
 # data loading
 
-def load_tifs_from_points_dir(point_dir, tif_folder, tifs=None):
+def load_tifs_from_points_dir(point_dir, tif_folder, points=None, tifs=None):
     """Takes a set of TIFs from a directory structure organised by points, and loads them into a numpy array.
 
         Args:
             point_dir: string to directory of points
             tif_folder: name of tif_folder within each point
+            points: optiona list of point_dirs to load, otherwise loads all folders with Point in name
             tifs: optional list of TIFs to load, otherwise loads all TIFs
 
         Returns:
@@ -29,9 +31,15 @@ def load_tifs_from_points_dir(point_dir, tif_folder, tifs=None):
     if not os.path.isdir(point_dir):
         raise ValueError("Directory does not exist")
 
-    # get all point folders
-    points = os.listdir(point_dir)
-    points = [point for point in points if 'Point' in point]
+    if points is None:
+        # get all point folders
+        points = os.listdir(point_dir)
+        points = [point for point in points if 'Point' in point]
+        points = [point for point in points if os.path.isdir(os.path.join(point_dir, point))]
+    else:
+        for point in points:
+            if not os.path.isdir(os.path.join(point_dir, point)):
+                raise ValueError("Could not find point folder {}".format(point))
 
     if len(points) == 0:
         raise ValueError("No points found in directory")
@@ -49,8 +57,7 @@ def load_tifs_from_points_dir(point_dir, tif_folder, tifs=None):
 
     for tif in tifs:
         if not os.path.isfile(os.path.join(point_dir, points[0], tif_folder, tif)):
-            print(os.path.join(point_dir, points[0], tif_folder, tif))
-            raise ValueError("Could not find {} in supplied directory".format(tif))
+            raise ValueError("Could not find {} in supplied directory {}".format(tif, os.path.join(point_dir, points[0], tif_folder, tif)))
 
     test_img = io.imread(os.path.join(point_dir, points[0], tif_folder, tifs[0]))
     img_data = np.zeros((len(points), len(tifs), test_img.shape[0], test_img.shape[1]))
@@ -60,7 +67,7 @@ def load_tifs_from_points_dir(point_dir, tif_folder, tifs=None):
             img_data[point, tif, :, :] = io.imread(os.path.join(point_dir, points[point], tif_folder, tifs[tif]))
 
     img_xr = xr.DataArray(img_data, coords=[points, tifs, range(test_img.shape[0]), range(test_img.shape[0])],
-                          dims=["point_folder", "channel", "x_axis", "y_axis"])
+                          dims=["point", "channel", "x_axis", "y_axis"])
 
     return img_xr
 

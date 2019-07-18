@@ -22,6 +22,7 @@ np.save(base_dir + 'Nuclear_Channel_Input', data)
 
 # run deepcell
 
+# TODO fix deepcell running scripts so that array is saved as we go and only written once
 data_deep = np.zeros((51, 1024, 1024, 3), dtype='float32')
 data_deep[0:10, ...] = np.load(base_dir + 'segmentation_masks/' + '190505_model_output_0.10.npy')
 data_deep[10:20, ...] = np.load(base_dir + 'segmentation_masks/' + '190505_model_output_10.20.npy')
