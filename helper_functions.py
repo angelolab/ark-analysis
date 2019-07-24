@@ -72,6 +72,36 @@ def load_tifs_from_points_dir(point_dir, tif_folder, points=None, tifs=None):
     return img_xr
 
 
+def DNA_count(ground_truth, predicted_contour):
+    """extracts DNA count for each cell in image
+        inputs: [2D np arrays from read-in TIFs] ground_truth, predicted_contour
+        outputs: table with total DNA count from DNA image in each cell"""
+
+    if type(ground_truth) is not np.ndarray:
+        raise ValueError("Incorrect data type for ground_truth, expecting 2D np array.")
+    if type(predicted_contour) is not np.ndarray:
+        raise ValueError("Incorrect data type for predicted_contour, expecting 2D np array.")
+
+    if ground_truth.shape != predicted_contour.shape:
+        raise ValueError("ground_truth and predicted_contour array dimensions not equal.")
+
+    # assign label to each unique object in mask
+    cell_label, cell_id = label(predicted_contour >= 1, return_num=True, connectivity=1)
+
+    # create pd dataframe listing DNA count for each cell in the mask
+    DNA_count_table = pd.DataFrame(columns=["cell_id", "DNA_count"], dtype="float")
+
+    for cell in range(1, cell_id + 1):
+        # calculate cell size and append to pd dataframe
+        cell_props = regionprops(cell_label)
+        cell_size = cell_props[cell - 1].area
+
+        mask = cell_label == cell
+        # calculate the total count of DNA contained in each mask in DNA image and append count to pd dataframe
+        DNA_count = np.sum(ground_truth[mask])
+        DNA_count_table = DNA_count_table.append({"cell_id": cell, "DNA_count": DNA_count, "cell_size": cell_size}, ignore_index=True)
+
+    return DNA_count_table
 
 
 # plotting functions
