@@ -67,41 +67,49 @@ def load_tifs_from_points_dir(point_dir, tif_folder, points=None, tifs=None):
             img_data[point, tif, :, :] = io.imread(os.path.join(point_dir, points[point], tif_folder, tifs[tif]))
 
     img_xr = xr.DataArray(img_data, coords=[points, tifs, range(test_img.shape[0]), range(test_img.shape[0])],
-                          dims=["point", "channel", "x_axis", "y_axis"])
+                          dims=["point", "channel", "rows", "cols"])
 
     return img_xr
 
 
-def DNA_count(ground_truth, predicted_contour):
-    """extracts DNA count for each cell in image
-        inputs: [2D np arrays from read-in TIFs] ground_truth, predicted_contour
-        outputs: table with total DNA count from DNA image in each cell"""
+def segment_images(input_images, segmentation_masks):
+    """Extract single cell protein expression data from channel TIFs
 
-    if type(ground_truth) is not np.ndarray:
-        raise ValueError("Incorrect data type for ground_truth, expecting 2D np array.")
-    if type(predicted_contour) is not np.ndarray:
-        raise ValueError("Incorrect data type for predicted_contour, expecting 2D np array.")
+        Args:
+            input_images (xarray): Channels x TIFs matrix of imaging data
+            segmentation_masks (numpy array): mask_type x mask matrix of segmentation data"""
 
-    if ground_truth.shape != predicted_contour.shape:
-        raise ValueError("ground_truth and predicted_contour array dimensions not equal.")
+    if type(input_images) is not xr.DataArray:
+        raise ValueError("Incorrect data type for ground_truth, expecting xarray")
 
-    # assign label to each unique object in mask
-    cell_label, cell_id = label(predicted_contour >= 1, return_num=True, connectivity=1)
+    if type(segmentation_masks) is not xr.DataArray:
+        raise ValueError("Incorrect data type for masks, expecting xarray")
 
-    # create pd dataframe listing DNA count for each cell in the mask
-    DNA_count_table = pd.DataFrame(columns=["cell_id", "DNA_count"], dtype="float")
+    if input_images.shape[1:] != segmentation_masks.shape[1:]:
+        raise ValueError("Image data and segmentation masks have different dimensions")
 
-    for cell in range(1, cell_id + 1):
-        # calculate cell size and append to pd dataframe
-        cell_props = regionprops(cell_label)
-        cell_size = cell_props[cell - 1].area
+    max_cell_num = np.max(segmentation_masks[0, :, :].values).astype('int')
 
-        mask = cell_label == cell
-        # calculate the total count of DNA contained in each mask in DNA image and append count to pd dataframe
-        DNA_count = np.sum(ground_truth[mask])
-        DNA_count_table = DNA_count_table.append({"cell_id": cell, "DNA_count": DNA_count, "cell_size": cell_size}, ignore_index=True)
+    # create np.array to hold subcellular_loc x channel x cell info
+    cell_counts = np.zeros((segmentation_masks.shape[0], max_cell_num + 1, len(input_images.channel) + 1))
 
-    return DNA_count_table
+    # loop through each segmentation mask, and for each mask each point, to get total counts of all markers
+    for subcell_loc in range(segmentation_masks.shape[0]):
+        for cell in range(1, max_cell_num + 1):
+
+            # get mask corresponding to current cell
+            cell_mask = segmentation_masks[subcell_loc, :, :] == cell
+            cell_size = np.sum(cell_mask)
+
+            # calculate the total signal intensity within that cell mask across all channels, and save to numpy
+            channel_counts = np.sum(input_images.values[:, cell_mask], axis=1)
+            cell_counts[subcell_loc, cell, 1:] = channel_counts
+
+            cell_counts[subcell_loc, cell, 0] = cell_size
+    col_names = np.concatenate((np.array('cell_size'), input_images.channel), axis=None)
+    xr_counts = xr.DataArray(cell_counts, coords=[segmentation_masks.subcell_loc, range(max_cell_num + 1), col_names],
+                             dims=['subcell_loc', 'cell_id', 'cell_data'])
+    return xr_counts
 
 
 # plotting functions
