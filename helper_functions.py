@@ -233,6 +233,17 @@ def plot_barchart_errors(pd_array, cell_category=["split", "merged", "low_qualit
     if save_path is not None:
         fig.savefig(save_path, dpi=200)
 
+def plot_barchart(values, labels, title, save_path=None):
+    fig, ax = plt.subplots(1, 1, figsize=(10, 10))
+    position = range(len(values))
+    ax.bar(position, values)
+    ax.set_xticks(position)
+    ax.set_xticklabels(labels)
+    ax.set_title(title)
+
+    if save_path is not None:
+        fig.savefig(save_path, dpi=200)
+
 
 # training data generation
 def process_training_data(interior_contour, interior_border_contour):

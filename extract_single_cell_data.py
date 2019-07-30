@@ -37,6 +37,12 @@ for point in image_data.point.values:
 
     nuc_mask = nuc_seg_data.loc[point, 'Nuclear_Mask_Label.tif', :, :].values.astype('int')
 
+    # binarize to get nuclear vs non nuclear regions
+    nuc_mask = nuc_mask > 0
+
+    # TODO: remove once we have actual subcellular localization data
+    nuc_mask = morph.erosion(nuc_mask, morph.square(5))
+
     # duplicate whole cell data, then subtract nucleus for cytoplasm
     cyto_labels = copy.copy(cell_labels)
     cyto_labels[nuc_mask] = 0
@@ -56,37 +62,20 @@ for point in image_data.point.values:
     # segment images based on supplied masks
     cell_data = helper_functions.segment_images(image_data.loc[point, :, :, :], segmentation_masks)
 
-    # TODO data normalization and scaling
+    # create version of data normalized by cell size
+    cell_data_norm = copy.copy(cell_data)
+    cell_size = cell_data.values[:, 1:, 0:1]
+
+    # exclude first row (background cell) and first column (cell size) from area normalization
+    cell_data_norm.values[:, 1:, 1:] = np.divide(cell_data_norm.values[:, 1:, 1:], cell_size, where=cell_size > 0)
+
+    # arcsinh transformation
+    cell_data_norm_trans = copy.copy(cell_data_norm)
+    cell_data_norm_trans.values[:, 1:, 1:] = np.arcsinh(cell_data_norm_trans[:, 1:, 1:])
 
     if not os.path.exists(os.path.join(save_dir, point)):
         os.makedirs(os.path.join(save_dir, point))
     cell_data.to_netcdf(os.path.join(save_dir, point, 'segmented_data.nc'))
+    cell_data_norm.to_netcdf(os.path.join(save_dir, point, 'segmented_data_normalized.nc'))
+    cell_data_norm_trans.to_netcdf(os.path.join(save_dir, point, 'segmented_data_normalized_transformed.nc'))
 
-
-
-
-
-fake_masks = np.zeros((3, 20, 20))
-fake_masks[0, 0:8, 0:8] = 1
-fake_masks[1, 3:6, 3:6] = 1
-fake_masks[2, :, :] = fake_masks[0, :, :] - fake_masks[1, :, :]
-
-fake_masks[:, 10:17, 10:17] = fake_masks[:, 0:7, 0:7] * 2
-
-
-fake_data = np.ones((4, 20, 20))
-fake_data[2, ...] = fake_data[2, ...] * 3
-fake_data[3, ...] = fake_data[3, ...] * 6
-fake_data[1, ...] = fake_data[1, ...] * 2
-
-
-fake_data_xr = xr.DataArray(fake_data, coords=[['Channel_1', 'Channel_2', 'Channel3', 'Channel4'],
-                                               range(fake_data.shape[1]), range(fake_data.shape[1])],
-                            dims=['channel', 'x_axis', 'y_axis'])
-
-fake_masks_xr = xr.DataArray(fake_masks, coords=[['cell_mask', 'nuc_mask', 'cyto_mask'], range(20), range(20)],
-                                      dims=['subcell_loc', 'rows', 'cols'])
-
-x = segment_images(fake_data_xr, fake_masks_xr)
-
-io.imshow(fake_data[0, :, :])
