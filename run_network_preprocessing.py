@@ -1,6 +1,7 @@
 import os
 import numpy as np
 import skimage.io as io
+import xarray as xr
 import scipy.ndimage as nd
 
 
@@ -10,13 +11,16 @@ base_dir = '/Users/noahgreenwald/Documents/MIBI_DATA/JP/'
 # get names of each, clean up for subsequent saving
 folders = os.listdir(base_dir + 'NoBgNoNoise')
 folders = [folder for folder in folders if 'Point' in folder]
-folders.sort()
 
 # load all data into a single numpy array
-data = np.zeros((len(folders), 1024, 1024), dtype='float16')
+data = np.zeros((len(folders), 1, 1024, 1024), dtype='float16')
 # axes on data: training run, image, x_dim, y_dim, output_mask
+# TODO: change to xarray so that we keep folder names
 for i in range(len(folders)):
-    data[i, :, :] = io.imread(os.path.join(base_dir, 'NoBgNoNoise', folders[i], 'TIFs/HH3.tif'))
+    data[i, 0, :, :] = io.imread(os.path.join(base_dir, 'NoBgNoNoise', folders[i], 'TIFs/HH3.tif'))
+
+data_xr = xr.DataArray(data, coords=[folders, ['HH3'], range(1024), range(1024)],
+                       dims=['point', 'channels', 'rows', 'cols'])
 
 np.save(base_dir + 'Nuclear_Channel_Input', data)
 
@@ -24,16 +28,6 @@ np.save(base_dir + 'Nuclear_Channel_Input', data)
 data_deep = np.load(base_dir + '05Jul19_Vestro/' + 'model_output.npy')
 
 # save back to same folder structure
-# save images back to folder for viewing from regular network
-
-for i in range(len(folders)):
-    if data_deep.shape[-1] == 3:
-        # 3-class network
-        border_idx = 0
-        nuc_idx = 1
-        smoothed = nd.gaussian_filter(data_deep[i, :, :, nuc_idx], 5)
-        io.imsave(os.path.join(base_dir, 'segmentation_masks', folders[i] + 'nuc_interior.tiff'), data_deep[i, :, :, nuc_idx])
-        io.imsave(os.path.join(base_dir, 'segmentation_masks', folders[i] + 'nuc_border.tiff'), data_deep[i, :, :, border_idx])
-        io.imsave(os.path.join(base_dir, 'segmentation_masks', folders[i] + 'nuc_interior_smoothed.tiff'), smoothed)
+helper_functions.save_deepcell_tifs(data_deep, folders, base_dir + '/segmentation_output', cohort=True, watershed=False)
 
 

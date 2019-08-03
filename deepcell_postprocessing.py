@@ -12,13 +12,13 @@ import scipy.ndimage as nd
 
 # get directory where images are located
 base_dir = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/Contours/analyses'
-image_dir = base_dir + '/20190731_decidua_object_test/'
+image_dir = base_dir + '/20190525_class_balance/'
 plot_dir = image_dir + '/figs/'
 
 # get names of each, clean up for subsequent saving
 files = os.listdir(image_dir)
 files = [file for file in files if 'npy' in file]
-files = [file for file in files if '512' not in file]
+files = [file for file in files if 'watershed' in file]
 #files = [file for file in files if 'interior_border_border_watershed_epoch' in file]
 files.sort()
 #prefix = files[0].split("interior_border_border")[0]
@@ -35,36 +35,14 @@ temp = np.load(image_dir + files[1])
 data = np.zeros(((len(files), ) + temp.shape), dtype='float32')
 
 # axes on data: training run, image, x_dim, y_dim, output_mask
-for i in range(1, len(files)):
+for i in range(len(files)):
     data[i, :, :, :, :] = np.load(os.path.join(image_dir, files[i]))
 
 
 # save images back to folder for viewing if deepcell transform network
-for i in range(len(files)):
-    if data.shape[-1] == 3:
-        # three category network
-        border_idx = 0
-        nuc_idx = 1
-        plot_idx = 0
-        smoothed = nd.gaussian_filter(data[i, plot_idx, :, :, nuc_idx], 5)
+helper_functions.save_deepcell_tifs(data, names, image_dir, cohort=False, watershed=True)
 
-        io.imsave(os.path.join(image_dir, names[i] + '_nucleus.tiff'), data[i, plot_idx, :, :, nuc_idx])
-        io.imsave(os.path.join(image_dir, names[i] + '_nucleus_smoothed.tiff'), smoothed)
-        io.imsave(os.path.join(image_dir, names[i] + '_border.tiff'), data[i, plot_idx, :, :, border_idx])
 
-    else:
-        # 4 category network
-        int_border_idx = 0
-        bg_border_idx = 1
-        nuc_idx = 2
-        smoothed = nd.gaussian_filter(data[i, 3, :, :, nuc_idx], 5)
-
-        io.imsave(os.path.join(image_dir, names[i] + '_nucleus.tiff'), data[i, 3, :, :, nuc_idx])
-        io.imsave(os.path.join(image_dir, names[i] + '_nucleus_smoothed.tiff'), smoothed)
-        io.imsave(os.path.join(image_dir, names[i] + '_bg_border.tiff'), data[i, 3, :, :, bg_border_idx])
-        io.imsave(os.path.join(image_dir, names[i] + '_int_border.tiff'), data[i, 3, :, :, int_border_idx])
-        io.imsave(os.path.join(image_dir, names[i] + '_combined_border.tiff'),
-                  data[i, 3, :, :, int_border_idx] + data[i, 3, :, :, bg_border_idx])
 
 # average ensemble models together
 avg_border = np.mean(data[:, 3, :, :, border_idx], axis=0)
@@ -82,30 +60,3 @@ mat = ax.imshow(plot_diff, cmap=plt.get_cmap('GnBu'))
 fig.colorbar(mat)
 fig.savefig(os.path.join(image_dir, 'interior_border_border_4_class_240k_max_class_examples_unbalanced_' + 'epoch_40vs30_nucleus.tiff'),
             dpi=300)
-
-# save watershed energy levels back to disk for watershed transform network
-for j in range(data.shape[0]):
-    print("j = {}".format(j))
-    # save all FOVs processed by jth network into test_images
-    test_images = data[j, ..., 0:4]
-
-    # find max value of different masks for each FOV
-    argmax_images = []
-    for i in range(test_images.shape[0]):
-        argmax_images.append(np.argmax(test_images[i], axis=-1))
-    argmax_images = np.array(argmax_images)
-    argmax_images = np.expand_dims(argmax_images, axis=-1)
-
-    threshold = 0.6
-    #test_images_fgbg = data[j, ..., 4:6]
-    #fg_thresh = test_images_fgbg[..., 1] > threshold
-    test_images_fgbg = data[j, ..., 0]
-    fg_thresh = test_images_fgbg < 0.4
-    fg_thresh = np.expand_dims(fg_thresh, axis=-1)
-
-    argmax_images_post_fgbg = argmax_images * fg_thresh
-    smoothed_argmax = rank.median(argmax_images_post_fgbg[3, :, :, 0], np.ones((5, 5)))
-
-    # save relevant tifs
-    io.imsave(os.path.join(image_dir, names[j] + '_smoothed_probs.tiff'), smoothed_argmax.astype('int16'))
-    io.imsave(os.path.join(image_dir, names[j] + '_nucleus.tiff'), fg_thresh[3, :, :, 0].astype('int16'))

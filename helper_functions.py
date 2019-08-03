@@ -15,6 +15,108 @@ import skimage.io as io
 
 # data loading
 
+def save_deepcell_tifs(model_output, file_names, save_path, cohort=False, watershed=False):
+    """Extract relevant tifs from a numpy array and save to a given directory
+
+        Args
+            model_output: numpy array of tifs output by deepcell
+            """
+
+    for i in range(len(file_names)):
+        if cohort:
+            # a single model run on many points
+            assert len(model_output.shape) == 4, "cohort flag set to True, but 4 dimensional data not provided"
+            if watershed:
+                assert model_output.shape[-1] == 4, "Watershed flag set to true, but 4-level output not provided"
+
+                # find the max value across different energy levels within each point
+                argmax_images = []
+                for j in range(model_output.shape[0]):
+                    argmax_images.append(np.argmax(model_output[j, ...], axis=-1))
+                argmax_images = np.array(argmax_images)
+                argmax_images = np.expand_dims(argmax_images, axis=-1)
+
+                threshold = 0.6
+                test_images_fgbg = model_output[..., 0]
+                fg_thresh = test_images_fgbg < threshold
+                fg_thresh = np.expand_dims(fg_thresh, axis=-1)
+
+                argmax_images_post_fgbg = argmax_images * fg_thresh
+                smoothed_argmax = rank.median(argmax_images_post_fgbg[i, :, :, 0], np.ones((5, 5)))
+
+                # save relevant tifs
+                if not os.path.exists(os.path.join(save_path, file_names[i])):
+                    os.makedirs(os.path.join(save_path, file_names[i]))
+
+                io.imsave(os.path.join(save_path, file_names[i], '_smoothed_probs.tiff'), smoothed_argmax.astype('int16'))
+                io.imsave(os.path.join(save_path, file_names[i], '_nucleus.tiff'), fg_thresh[i, :, :, 0].astype('int16'))
+
+            else:
+                assert model_output.shape[-1] == 3, "Watershed flag set to false, but 3-level output not provided"
+                # initialize indexing parameters
+                border_idx = 0
+                int_idx = 1
+                smoothed = nd.gaussian_filter(model_output[i, :, :, int_idx], 5)
+
+                # save files
+                if not os.path.exists(os.path.join(save_path, file_names[i])):
+                    os.makedirs(os.path.join(save_path, file_names[i]))
+
+                io.imsave(os.path.join(save_path, file_names[i], 'segmentation_interior.tiff'), model_output[i, :, :, int_idx])
+                io.imsave(os.path.join(save_path, file_names[i], 'segmentation_interior_smoothed.tiff'), smoothed)
+                io.imsave(os.path.join(save_path, file_names[i], 'segmentation_border.tiff'), model_output[i, :, :, border_idx])
+
+        else:
+            # multiple distinct models are evaluated, not a single cohort
+            print(model_output.shape)
+            assert len(model_output.shape) == 5, "cohort flag set to False, but multiple models not provided"
+
+            if watershed:
+                assert model_output.shape[-1] == 4, "Watershed flag set to true, but 4-level output not provided"
+
+                plot_idx = 0
+                model_output_current = model_output[i, ...]
+                # find the max value across different energy levels within each point
+                argmax_images = []
+                for j in range(model_output_current.shape[0]):
+                    argmax_images.append(np.argmax(model_output_current[j, ...], axis=-1))
+                argmax_images = np.array(argmax_images)
+                argmax_images = np.expand_dims(argmax_images, axis=-1)
+
+                threshold = 0.6
+                test_images_fgbg = model_output_current[..., 0]
+                fg_thresh = test_images_fgbg < threshold
+                fg_thresh = np.expand_dims(fg_thresh, axis=-1)
+
+                argmax_images_post_fgbg = argmax_images * fg_thresh
+                smoothed_argmax = rank.median(argmax_images_post_fgbg[plot_idx, :, :, 0], np.ones((5, 5)))
+
+                # save relevant tifs
+                if not os.path.exists(os.path.join(save_path, file_names[i])):
+                    os.makedirs(os.path.join(save_path, file_names[i]))
+
+                io.imsave(os.path.join(save_path, file_names[i] + '_smoothed_probs.tiff'),
+                          smoothed_argmax.astype('int16'))
+                io.imsave(os.path.join(save_path, file_names[i] + '_nucleus.tiff'),
+                          fg_thresh[plot_idx, :, :, 0].astype('int16'))
+                io.imsave(os.path.join(save_path, file_names[i] + '_probs.tiff'),
+                          argmax_images_post_fgbg[plot_idx, :, :, 0].astype('int16'))
+
+            else:
+                assert model_output.shape[-1] == 3, "Watershed flag set to false, but 3-level output not provided"
+
+                # initialize indexing parameters
+                border_idx = 0
+                int_idx = 1
+                plot_idx = 0
+                smoothed = nd.gaussian_filter(model_output[i, plot_idx, :, :, int_idx], 5)
+
+                # save files
+                io.imsave(os.path.join(save_path, file_names[i] + '_interior.tiff'), model_output[i, plot_idx, :, :, int_idx])
+                io.imsave(os.path.join(save_path, file_names[i] + '_interior_smoothed.tiff'), smoothed)
+                io.imsave(os.path.join(save_path, file_names[i] + '_border.tiff'), model_output[i, plot_idx, :, :, border_idx])
+
+
 def load_tifs_from_points_dir(point_dir, tif_folder, points=None, tifs=None):
     """Takes a set of TIFs from a directory structure organised by points, and loads them into a numpy array.
 
@@ -113,6 +215,8 @@ def segment_images(input_images, segmentation_masks):
 
 
 # plotting functions
+
+
 
 
 def randomize_labels(label_map):
