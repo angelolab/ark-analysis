@@ -13,7 +13,7 @@ import copy
 
 # watershed generation from deepcell transformed data
 # read in relavant files
-image_dir = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/Contours/First_Run/analyses/20190703_watershed_comparison/'
+image_dir = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/Contours/analyses/20190731_decidua_object_test/'
 mask_nuc_smoothed = io.imread(image_dir + '3_class_64_filters_256_densefilters_epoch_30_nucleus_smoothed_5.tiff')
 mask_nuc = io.imread(image_dir + '3_class_64_filters_256_densefilters_epoch_30_nucleus.tiff')
 mask_border = io.imread(image_dir + '3_class_w_interior_and_watershed_epoch_20_border.tiff')

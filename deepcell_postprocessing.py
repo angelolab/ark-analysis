@@ -11,29 +11,31 @@ import scipy.ndimage as nd
 
 
 # get directory where images are located
-base_dir = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/Contours/First_Run/'
-image_dir = base_dir + 'analyses/20190621_postprocessing/'
-plot_dir = image_dir + '/Figs/'
+base_dir = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/Contours/analyses'
+image_dir = base_dir + '/20190731_decidua_object_test/'
+plot_dir = image_dir + '/figs/'
 
 # get names of each, clean up for subsequent saving
 files = os.listdir(image_dir)
 files = [file for file in files if 'npy' in file]
-files = [file for file in files if '3_class_w_watershed' in file]
+files = [file for file in files if '512' not in file]
 #files = [file for file in files if 'interior_border_border_watershed_epoch' in file]
 files.sort()
 #prefix = files[0].split("interior_border_border")[0]
 prefix = 'Point1_12_18_3X_interior_border_border_'
 prefix = 'Point1_12_18_20190606_output_'
+prefix = 'Object_Train_Initial_'
 names = files
 names = [x.replace(prefix, '').replace('_metrics.npy', '') for x in names]
 
 
 # load single point to get dimensions
-temp = np.load(image_dir + files[0])
+temp = np.load(image_dir + files[1])
 # load all data into a single numpy array
 data = np.zeros(((len(files), ) + temp.shape), dtype='float32')
+
 # axes on data: training run, image, x_dim, y_dim, output_mask
-for i in range(len(files)):
+for i in range(1, len(files)):
     data[i, :, :, :, :] = np.load(os.path.join(image_dir, files[i]))
 
 
@@ -43,11 +45,12 @@ for i in range(len(files)):
         # three category network
         border_idx = 0
         nuc_idx = 1
-        smoothed = nd.gaussian_filter(data[i, 3, :, :, nuc_idx], 5)
+        plot_idx = 0
+        smoothed = nd.gaussian_filter(data[i, plot_idx, :, :, nuc_idx], 5)
 
-        io.imsave(os.path.join(image_dir, names[i] + '_nucleus.tiff'), data[i, 3, :, :, nuc_idx])
+        io.imsave(os.path.join(image_dir, names[i] + '_nucleus.tiff'), data[i, plot_idx, :, :, nuc_idx])
         io.imsave(os.path.join(image_dir, names[i] + '_nucleus_smoothed.tiff'), smoothed)
-        io.imsave(os.path.join(image_dir, names[i] + '_border.tiff'), data[i, 3, :, :, border_idx])
+        io.imsave(os.path.join(image_dir, names[i] + '_border.tiff'), data[i, plot_idx, :, :, border_idx])
 
     else:
         # 4 category network
@@ -62,6 +65,15 @@ for i in range(len(files)):
         io.imsave(os.path.join(image_dir, names[i] + '_int_border.tiff'), data[i, 3, :, :, int_border_idx])
         io.imsave(os.path.join(image_dir, names[i] + '_combined_border.tiff'),
                   data[i, 3, :, :, int_border_idx] + data[i, 3, :, :, bg_border_idx])
+
+# average ensemble models together
+avg_border = np.mean(data[:, 3, :, :, border_idx], axis=0)
+avg_nuc = np.mean(data[:, 3, :, :, nuc_idx], axis=0)
+io.imshow(avg_border)
+avg_smoothed = nd.gaussian_filter(avg_nuc, 5)
+io.imsave(os.path.join(image_dir, 'average_nucleus.tiff'), avg_nuc)
+io.imsave(os.path.join(image_dir, 'average_nucleus_smoothed.tiff'), avg_smoothed)
+io.imsave(os.path.join(image_dir, 'average_border.tiff'), avg_border)
 
 
 plot_diff = data[1, 3, :, :, 1] - data[0, 3, :, :, 1]

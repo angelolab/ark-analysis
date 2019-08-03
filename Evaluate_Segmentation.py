@@ -15,7 +15,7 @@ importlib.reload(helper_functions)
 base_dir = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/Contours/First_Run/'
 #base_dir = '/Users/noahgreenwald/Google Drive/Grad School/Lab/Segmentation_Contours/Practice_Run_Zips/'
 
-deep_direc = base_dir + 'analyses/20190703_watershed_comparison/'
+deep_direc = base_dir + 'analyses/20190721_ensembles/'
 plot_direc = deep_direc + 'figs/'
 
 files = os.listdir(deep_direc)
@@ -87,18 +87,21 @@ for file in files:
     swapped = helper_functions.randomize_labels(copy.copy(contour_label))
     classify_outline = helper_functions.outline_objects(predicted_label, [split_cells, merged_cells, bad_cells])
 
-    helper_functions.plot_color_map(classify_outline, ground_truth=None, save_path=None)
+    helper_functions.plot_color_map(classify_outline, ground_truth=None, save_path=os.path.join(plot_direc, file_name + '_color_map.tiff'))
 
     # make subplots for two simple plots
 
-    helper_functions.plot_barchart_errors(cell_frame)
+    helper_functions.plot_barchart_errors(cell_frame, save_path=os.path.join(plot_direc, file_name + '_stats.tiff'))
 
-# mean average precision
-new_iou = helper_functions.calc_iou_matrix(contour_label, predicted_label)
+    # mean average precision
+    iou_matrix = helper_functions.calc_iou_matrix(contour_label, predicted_label)
 
-iou_thresholds = np.arange(0.5, 1, 0.05)
-scores, false_negatives, false_positives = helper_functions.calc_modified_average_precision(new_iou, iou_thresholds)
-np.mean(scores)
+    iou_thresholds = np.arange(0.5, 1, 0.05)
+    scores, false_negatives, false_positives = helper_functions.calc_modified_average_precision(iou_matrix, iou_thresholds)
+    scores = scores + [np.mean(scores)]
+    helper_functions.plot_barchart(scores, np.concatenate(((iou_thresholds * 100).astype('int').astype('str'), ['average'])),
+                                   'IOU Errors', save_path=os.path.join(plot_direc, file_name + '_iou.tiff'))
+
 
 # get cell_ids for cells which don't pass iou_threshold
 mAP_errors = np.where(false_positives[7, :])[0]
