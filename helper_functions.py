@@ -73,7 +73,7 @@ def save_deepcell_tifs(model_output, file_names, save_path, cohort=False, waters
         mask_labels = ["background_mask", "watershed_probs", "smoothed_watershed_probs"]
         deepcell_outputs_xr = xr.DataArray(deepcell_outputs, coords=[file_names, range(1024), range(1024), mask_labels],
                                             dims=["points", "rows", "cols", "masks"])
-        deepcell_outputs_xr.to_netcdf(save_path + '/watershed_network_output.nc')
+        deepcell_outputs_xr.to_netcdf(save_path + '/' + file_names[0] + '_watershed_network_output.nc')
 
     else:
         if model_output.shape[-1] != 3:
@@ -112,7 +112,7 @@ def save_deepcell_tifs(model_output, file_names, save_path, cohort=False, waters
         deepcell_outputs_xr = xr.DataArray(deepcell_outputs,
                                             coords=[file_names, range(1024), range(1024), mask_labels],
                                             dims=["points", "rows", "cols", "masks"])
-        deepcell_outputs_xr.to_netcdf(save_path + '/deepcell_network_output.nc')
+        deepcell_outputs_xr.to_netcdf(save_path + '/' + file_names[0] + '_deepcell_network_output.nc')
 
 def load_tifs_from_points_dir(point_dir, tif_folder, points=None, tifs=None):
     """Takes a set of TIFs from a directory structure organised by points, and loads them into a numpy array.
@@ -417,6 +417,10 @@ def compare_contours(predicted_label, contour_label):
     for contour_cell in range(1, np.max(contour_label) + 1):
         # generate a mask for the contoured cell, get all predicted cells that overlap the mask
         mask = contour_label == contour_cell
+        if np.sum(mask) < 15:
+            print("found another small cell {}".format(contour_cell))
+            continue
+
         overlap_id, overlap_count = np.unique(predicted_label[mask], return_counts=True)
         overlap_id, overlap_count = np.array(overlap_id), np.array(overlap_count)
 

@@ -6,7 +6,7 @@ import helper_functions
 
 
 # load TIFs from GUI-based directory structure
-base_dir = '/Users/noahgreenwald/Documents/MIBI_DATA/JP/'
+base_dir = '/Users/noahgreenwald/Documents/MIBI_DATA/JP/05Jul19_Vestro/'
 data_folder = 'NoBgNoNoise'
 
 # get names of each, clean up for subsequent saving

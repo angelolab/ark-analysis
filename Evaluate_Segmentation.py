@@ -6,22 +6,25 @@ import skimage.io as io
 import helper_functions
 import importlib
 import os
+import xarray as xr
 importlib.reload(helper_functions)
 
 
 # code to evaluate accuracy of different segmentation contours
 
 # read in TIFs containing ground truth contoured data, along with predicted segmentation
-base_dir = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/Contours/First_Run/'
-#base_dir = '/Users/noahgreenwald/Google Drive/Grad School/Lab/Segmentation_Contours/Practice_Run_Zips/'
+base_dir = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/Contours/'
 
-deep_direc = base_dir + 'analyses/20190721_ensembles/'
+deep_direc = base_dir + 'analyses/20190731_decidua_object_test/'
 plot_direc = deep_direc + 'figs/'
 
 files = os.listdir(deep_direc)
-files = [file for file in files if 'mask' in file]
+files = [file for file in files if '101' in file]
 
 file_name = "3_class_64_filters_256_densefilters_epoch_30_mask_python_max_python.tiff"
+
+predicted_data = label_masks[0]
+file_name = "centroid_seeds"
 
 
 for file in files:
@@ -29,8 +32,7 @@ for file in files:
 
     predicted_data = io.imread(deep_direc + file_name)
 
-    #contour_data = io.imread(base_dir + "Point23/Nuclear_Interior_Mask.tif")
-    contour_data = io.imread(base_dir + "Point23/Nuclear_Mask_Label.tif")
+    contour_data = io.imread(base_dir + "20190615_Decidua/Zips/Point12_Objects_Mask_Label.tif")
 
     cell_frame, predicted_label, contour_label = helper_functions.compare_contours(predicted_data, contour_data)
 
