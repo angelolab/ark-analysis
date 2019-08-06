@@ -213,6 +213,81 @@ def segment_images(input_images, segmentation_masks):
 
 # plotting functions
 
+def plot_overlay(ground_truth, predicted_contour, predicted_contour_2 = None, path = None):
+    """
+    function takes in ground truth and predicted contour imported TIFs, creates outline of masks and plots over ground truth
+
+    inputs:
+    [2D np arrays from read-in TIFs] ground_truth, predicted_contour, [optional] predicted_contour_2
+    [optional] file path
+
+    outputs:
+    plots TIF with outline(s) of mask(s) overlaid over ground truth
+        predicted_contour_mask in red
+        predicted_contour_mask_2 in white
+    [optional] saves as TIF in file path if specified
+    """
+
+    if type(ground_truth) is not np.ndarray:
+        raise ValueError("Incorrect data type for ground_truth, expecting np array.")
+    if type(predicted_contour) is not np.ndarray:
+        raise ValueError("Incorrect data type for predicted_contour, expecting np array.")
+
+    if ground_truth.ndim != 2:
+        raise ValueError("Incorrect array dimensions for ground_truth, expecting 2D array")
+    if predicted_contour.ndim != 2:
+        raise ValueError("Incorrect array dimensions for predicted_contour, expecting 2D array")
+
+    if ground_truth.shape != predicted_contour.shape:
+        raise ValueError("ground_truth and predicted_contour array dimensions not equal.")
+
+    if path is not None:
+        if os.path.exists(path) is False:
+            raise ValueError("File path does not exist.")
+
+    # define borders of cells in mask
+    predicted_contour_mask = find_boundaries(predicted_contour, connectivity=1, mode='inner').astype(np.uint8)
+
+    # creates transparent mask for easier visualization of ground truth DNA
+    rgb_mask = np.ma.masked_where(predicted_contour_mask < 0.001, predicted_contour_mask)
+
+    if predicted_contour_2 is not None:
+
+        if type(predicted_contour_2) is not np.ndarray:
+            raise ValueError("Incorrect data type for predicted_contour_2, expecting np array.")
+
+        if predicted_contour_2.ndim != 2:
+            raise ValueError("Incorrect array dimensions for predicted_contour_2, expecting 2D array")
+
+        if ground_truth.shape != predicted_contour_2.shape:
+            raise ValueError("ground_truth and predicted_contour_2 array dimensions not equal.")
+
+        if predicted_contour.shape != predicted_contour_2.shape:
+            raise ValueError("predicted_contour and predicted_contour_2 array dimensions not equal.")
+
+        # define borders of cell in mask
+        predicted_contour_mask_2 = find_boundaries(predicted_contour_2, connectivity=1, mode='inner').astype(np.uint8)
+
+        # creates transparent mask for easier visualization of ground truth DNA
+        rgb_mask_2 = np.ma.masked_where(predicted_contour_mask_2 < 0.001, predicted_contour_mask)
+
+        # creates plots overlaying ground truth and predicted contour masks
+        overlay = plt.figure()
+        plt.imshow(ground_truth, clim=(0, 15))
+        plt.imshow(rgb_mask_2, cmap="Greys", interpolation='none')
+        plt.imshow(rgb_mask, cmap='autumn', interpolation='none')
+
+        if path is not None:
+            overlay.savefig(os.path.join(path, "overlay_2_masks.tiff"), dpi=800)
+
+    else: #if only one mask provided
+        overlay = plt.figure()
+        plt.imshow(ground_truth, clim=(0, 15))
+        plt.imshow(rgb_mask, cmap='autumn', interpolation='none')
+
+        if path is not None:
+            overlay.savefig(os.path.join(path, "overlay_1_mask.tiff"), dpi=800)
+
 
 
 
