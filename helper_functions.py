@@ -13,13 +13,13 @@ import math
 import skimage.io as io
 import skimage.filters.rank as rank
 import scipy.ndimage as nd
+from skimage.segmentation import find_boundaries
 
 
 # data loading
-
 def save_deepcell_tifs(model_output, file_names, save_path, cohort=False, watershed=False):
     """Extract relevant tifs from a numpy array and save to a given directory
-
+        # TODO add here
         Args
             model_output: numpy array of tifs output by deepcell
             """
@@ -70,10 +70,10 @@ def save_deepcell_tifs(model_output, file_names, save_path, cohort=False, waters
                 io.imsave(os.path.join(save_path, file_names[i] + '_watershed_probs.tiff'), deepcell_outputs[i, :, :, 1].astype('int16'))
                 io.imsave(os.path.join(save_path, file_names[i] + '_watershed_smoothed_probs.tiff'), deepcell_outputs[i, :, :, 2].astype('int16'))
 
-        mask_labels = ["background_mask", "watershed_probs", "smoothed_watershed_probs"]
-        deepcell_outputs_xr = xr.DataArray(deepcell_outputs, coords=[file_names, range(1024), range(1024), mask_labels],
-                                            dims=["points", "rows", "cols", "masks"])
-        deepcell_outputs_xr.to_netcdf(save_path + '/' + file_names[0] + '_watershed_network_output.nc')
+        # mask_labels = ["background_mask", "watershed_probs", "smoothed_watershed_probs"]
+        # deepcell_outputs_xr = xr.DataArray(deepcell_outputs, coords=[file_names, range(1024), range(1024), mask_labels],
+        #                                     dims=["points", "rows", "cols", "masks"])
+        # deepcell_outputs_xr.to_netcdf(save_path + '/' + file_names[0] + '_watershed_network_output.nc')
 
     else:
         if model_output.shape[-1] != 3:
@@ -108,11 +108,12 @@ def save_deepcell_tifs(model_output, file_names, save_path, cohort=False, waters
                 io.imsave(os.path.join(save_path, file_names[i] + '_interior_smoothed.tiff'),
                           deepcell_outputs[i, :, :, 2].astype('float32'))
 
-        mask_labels = ["border_mask", "interior_mask", "smoothed_interior_mask"]
-        deepcell_outputs_xr = xr.DataArray(deepcell_outputs,
-                                            coords=[file_names, range(1024), range(1024), mask_labels],
-                                            dims=["points", "rows", "cols", "masks"])
-        deepcell_outputs_xr.to_netcdf(save_path + '/' + file_names[0] + '_deepcell_network_output.nc')
+        # mask_labels = ["border_mask", "interior_mask", "smoothed_interior_mask"]
+        # deepcell_outputs_xr = xr.DataArray(deepcell_outputs,
+        #                                     coords=[file_names, range(1024), range(1024), mask_labels],
+        #                                     dims=["points", "rows", "cols", "masks"])
+        # deepcell_outputs_xr.to_netcdf(save_path + '/' + file_names[0] + '_deepcell_network_output.nc')
+
 
 def load_tifs_from_points_dir(point_dir, tif_folder, points=None, tifs=None):
     """Takes a set of TIFs from a directory structure organised by points, and loads them into a numpy array.
@@ -213,33 +214,27 @@ def segment_images(input_images, segmentation_masks):
 
 # plotting functions
 
-def plot_overlay(ground_truth, predicted_contour, predicted_contour_2 = None, path = None):
-    """
-    function takes in ground truth and predicted contour imported TIFs, creates outline of masks and plots over ground truth
+def plot_overlay(predicted_contour, plotting_tif=None, alternate_contour=None, path=None):
+    """Take in labeled contour data, along with optional mibi tif and second contour, and overlay them for comparison"
 
-    inputs:
-    [2D np arrays from read-in TIFs] ground_truth, predicted_contour, [optional] predicted_contour_2
-    [optional] file path
+    Args:
+        predicted_contour: 2D numpy array of labeled cell objects
+        plotting_tif: 2D numpy array of imaging signal
+        alternate_contour: 2D numpy array of labeled cell objects
+        path: path to save the resulting image
 
     outputs:
-    plots TIF with outline(s) of mask(s) overlaid over ground truth
-        predicted_contour_mask in red
-        predicted_contour_mask_2 in white
-    [optional] saves as TIF in file path if specified
+        plot viewer: plots the outline(s) of the mask(s) as well as intensity from plotting tif
+            predicted_contour in red
+            alternate_contour in white
+        overlay: saves as TIF in file path if specified
     """
 
-    if type(ground_truth) is not np.ndarray:
-        raise ValueError("Incorrect data type for ground_truth, expecting np array.")
-    if type(predicted_contour) is not np.ndarray:
-        raise ValueError("Incorrect data type for predicted_contour, expecting np array.")
+    if plotting_tif.shape != predicted_contour.shape:
+        raise ValueError("plotting_tif and predicted_contour array dimensions not equal.")
 
-    if ground_truth.ndim != 2:
-        raise ValueError("Incorrect array dimensions for ground_truth, expecting 2D array")
-    if predicted_contour.ndim != 2:
-        raise ValueError("Incorrect array dimensions for predicted_contour, expecting 2D array")
-
-    if ground_truth.shape != predicted_contour.shape:
-        raise ValueError("ground_truth and predicted_contour array dimensions not equal.")
+    if len(np.unique(predicted_contour)) < 2:
+        raise ValueError("predicted contour is not labeled")
 
     if path is not None:
         if os.path.exists(path) is False:
@@ -248,47 +243,37 @@ def plot_overlay(ground_truth, predicted_contour, predicted_contour_2 = None, pa
     # define borders of cells in mask
     predicted_contour_mask = find_boundaries(predicted_contour, connectivity=1, mode='inner').astype(np.uint8)
 
-    # creates transparent mask for easier visualization of ground truth DNA
-    rgb_mask = np.ma.masked_where(predicted_contour_mask < 0.001, predicted_contour_mask)
+    # creates transparent mask for easier visualization of TIF data
+    rgb_mask = np.ma.masked_where(predicted_contour_mask == 0, predicted_contour_mask)
 
-    if predicted_contour_2 is not None:
+    if alternate_contour is not None:
 
-        if type(predicted_contour_2) is not np.ndarray:
-            raise ValueError("Incorrect data type for predicted_contour_2, expecting np array.")
-
-        if predicted_contour_2.ndim != 2:
-            raise ValueError("Incorrect array dimensions for predicted_contour_2, expecting 2D array")
-
-        if ground_truth.shape != predicted_contour_2.shape:
-            raise ValueError("ground_truth and predicted_contour_2 array dimensions not equal.")
-
-        if predicted_contour.shape != predicted_contour_2.shape:
-            raise ValueError("predicted_contour and predicted_contour_2 array dimensions not equal.")
+        if predicted_contour.shape != alternate_contour.shape:
+            raise ValueError("predicted_contour and alternate_contour array dimensions not equal.")
 
         # define borders of cell in mask
-        predicted_contour_mask_2 = find_boundaries(predicted_contour_2, connectivity=1, mode='inner').astype(np.uint8)
+        alternate_contour_mask = find_boundaries(alternate_contour, connectivity=1, mode='inner').astype(np.uint8)
 
-        # creates transparent mask for easier visualization of ground truth DNA
-        rgb_mask_2 = np.ma.masked_where(predicted_contour_mask_2 < 0.001, predicted_contour_mask)
+        # creates transparent mask for easier visualization of TIF data
+        rgb_mask_2 = np.ma.masked_where(alternate_contour_mask == 0, predicted_contour_mask)
 
         # creates plots overlaying ground truth and predicted contour masks
         overlay = plt.figure()
-        plt.imshow(ground_truth, clim=(0, 15))
+        plt.imshow(plotting_tif, clim=(0, 15))
         plt.imshow(rgb_mask_2, cmap="Greys", interpolation='none')
         plt.imshow(rgb_mask, cmap='autumn', interpolation='none')
 
         if path is not None:
             overlay.savefig(os.path.join(path, "overlay_2_masks.tiff"), dpi=800)
 
-    else: #if only one mask provided
+    else:
+        # if only one mask provided
         overlay = plt.figure()
-        plt.imshow(ground_truth, clim=(0, 15))
+        plt.imshow(plotting_tif, clim=(0, 15))
         plt.imshow(rgb_mask, cmap='autumn', interpolation='none')
 
         if path is not None:
-            overlay.savefig(os.path.join(path, "overlay_1_mask.tiff"), dpi=800)
-
-
+            overlay.savefig(os.path.join(path), dpi=800)
 
 
 def randomize_labels(label_map):
@@ -359,7 +344,6 @@ def plot_color_map(outline_matrix, names=None, ground_truth=None, save_path=None
         fig, ax = plt.subplots(nrows=1, ncols=1)
         mat = ax.imshow(outline_matrix, cmap=cmap, vmin=np.min(outline_matrix) - .5,
                            vmax=np.max(outline_matrix) + .5)
-
 
     # tell the colorbar to tick at integers
     cbar = fig.colorbar(mat, ticks=np.arange(np.min(outline_matrix), np.max(outline_matrix) + 1))

@@ -6,8 +6,8 @@ import helper_functions
 
 
 # load TIFs from GUI-based directory structure
-base_dir = '/Users/noahgreenwald/Documents/MIBI_DATA/JP/05Jul19_Vestro/'
-data_folder = 'NoBgNoNoise'
+base_dir = '/Users/noahgreenwald/Documents/MIBI_DATA/tyler/190808_DCISCOHORT/'
+data_folder = ''
 
 # get names of each, clean up for subsequent saving
 folders = os.listdir(base_dir + data_folder)
@@ -31,5 +31,7 @@ data_deep = np.load(base_dir + 'model_output.npy')
 data_xr = xr.open_dataarray(base_dir + 'Nuclear_Channel_Input.nc')
 folders = data_xr.coords['point'].values.tolist()
 
+folders = np.load(base_dir + 'folder_names.npy')
+folders = [x for x in folders]
 # extract individual TIFs and save segmentation results back into matlab-compatible folder structure
 helper_functions.save_deepcell_tifs(data_deep, folders, base_dir + '/segmentation_output', cohort=True, watershed=False)

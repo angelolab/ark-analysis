@@ -4,9 +4,10 @@ import copy
 import matplotlib.pyplot as plt
 import skimage.io as io
 import helper_functions
-import importlib
 import os
 import xarray as xr
+
+import importlib
 importlib.reload(helper_functions)
 
 
@@ -21,11 +22,7 @@ plot_direc = deep_direc + 'figs/'
 files = os.listdir(deep_direc)
 files = [file for file in files if '101' in file]
 
-file_name = "3_class_64_filters_256_densefilters_epoch_30_mask_python_max_python.tiff"
-
-predicted_data = label_masks[0]
-file_name = "centroid_seeds"
-
+file_name = "Decidua_101_rf_512_dense_128_conv_epoch_09_label_mask_centroids.tiff"
 
 for file in files:
     file_name = file
@@ -91,6 +88,7 @@ for file in files:
 
     helper_functions.plot_color_map(classify_outline, ground_truth=None, save_path=os.path.join(plot_direc, file_name + '_color_map.tiff'))
 
+    io.imsave(os.path.join(plot_direc, file_name + 'color_map_raw.tiff'), classify_outline)
     # make subplots for two simple plots
 
     helper_functions.plot_barchart_errors(cell_frame, save_path=os.path.join(plot_direc, file_name + '_stats.tiff'))

@@ -18,7 +18,7 @@ plot_dir = image_dir + '/figs/'
 # get names of each, clean up for subsequent saving
 files = os.listdir(image_dir)
 files = [file for file in files if 'npy' in file]
-files = [file for file in files if '101' in file]
+files = [file for file in files if '101_rf_512' in file]
 #files = [file for file in files if 'interior_border_border_watershed_epoch' in file]
 files.sort()
 
@@ -40,7 +40,7 @@ for i in range(len(files)):
     data[i, :, :, :, :] = np.load(os.path.join(image_dir, files[i]))
 
 # save images back to folder for viewing if deepcell transform network
-helper_functions.save_deepcell_tifs(data, names, image_dir, cohort=False, watershed=True)
+helper_functions.save_deepcell_tifs(data, names, image_dir, cohort=False, watershed=False)
 
 
 # average ensemble models together
