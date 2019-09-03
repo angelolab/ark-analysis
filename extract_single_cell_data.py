@@ -12,17 +12,17 @@ importlib.reload(helper_functions)
 
 
 # load segmentation masks
-seg_dir = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/Contours/First_Run/'
+seg_dir = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/Contours/analyses/20190822_training_freeze_1/'
 seg_folder = ''
-cell_seg_data = helper_functions.load_tifs_from_points_dir(seg_dir, seg_folder, ['Point23'], ['Nuclear_Mask_Label.tif'])
-nuc_seg_data = helper_functions.load_tifs_from_points_dir(seg_dir, seg_folder, ['Point23'], ['Nuclear_Mask_Label.tif'])
+cell_seg_data = helper_functions.load_tifs_from_points_dir(seg_dir, seg_folder, [''], ['Training_Freeze_1_81_rf_512_dense_128_conv_epoch_42_label_mask.tiff'])
+nuc_seg_data = helper_functions.load_tifs_from_points_dir(seg_dir, seg_folder, [''], ['Training_Freeze_1_Nuc_fgbg_256_dense_64_conv_epoch_07_fgbg.tiff'])
 
 # load TIFs
-tif_dir = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/Contours/First_Run/'
-tif_folder = 'TIFsNoNoise'
-image_data = helper_functions.load_tifs_from_points_dir(tif_dir, tif_folder, ['Point23'], ['dsDNA.tif', 'LaminAC.tif'])
+tif_dir = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/Contours/20190813_combined_data/'
+tif_folder = ''
+image_data = helper_functions.load_tifs_from_points_dir(tif_dir, tif_folder, ['Point1'], ['HH3.tif', 'LaminAC.tif', 'BetaTubulin.tif'])
 
-save_dir = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/Contours/First_Run/segmented_data'
+save_dir = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/Contours/analyses/20190822_training_freeze_1/segmented_data'
 
 if not os.path.exists(save_dir):
     os.makedirs(save_dir)
@@ -30,18 +30,15 @@ if not os.path.exists(save_dir):
 for point in image_data.point.values:
 
     # get segmentation masks
-    cell_labels = cell_seg_data.loc[point, 'Nuclear_Mask_Label.tif', :, :].values.astype('int')
+    cell_labels = cell_seg_data.loc[:, 'Training_Freeze_1_81_rf_512_dense_128_conv_epoch_42_label_mask.tiff', :, :].values.astype('int')
 
     # merge small cells?
     cell_props = skimage.measure.regionprops(cell_labels)
 
-    nuc_mask = nuc_seg_data.loc[point, 'Nuclear_Mask_Label.tif', :, :].values.astype('int')
+    nuc_mask = nuc_seg_data.loc[:, 'Training_Freeze_1_Nuc_fgbg_256_dense_64_conv_epoch_07_fgbg.tiff', :, :].values.astype('int')
 
     # binarize to get nuclear vs non nuclear regions
     nuc_mask = nuc_mask > 0
-
-    # TODO: remove once we have actual subcellular localization data
-    nuc_mask = morph.erosion(nuc_mask, morph.square(5))
 
     # duplicate whole cell data, then subtract nucleus for cytoplasm
     cyto_labels = copy.copy(cell_labels)

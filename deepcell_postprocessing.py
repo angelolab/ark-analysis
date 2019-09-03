@@ -12,20 +12,18 @@ importlib.reload(helper_functions)
 
 # get directory where images are located
 base_dir = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/Contours/analyses'
-image_dir = base_dir + '/20190731_decidua_object_test/'
+image_dir = base_dir + '/20190822_training_freeze_1/'
 plot_dir = image_dir + '/figs/'
 
 # get names of each, clean up for subsequent saving
 files = os.listdir(image_dir)
 files = [file for file in files if 'npy' in file]
-files = [file for file in files if '101_rf_512' in file]
+files = [file for file in files if 'Nuc_watershed' in file]
 #files = [file for file in files if 'interior_border_border_watershed_epoch' in file]
 files.sort()
 
 #prefix = files[0].split("interior_border_border")[0]
-prefix = 'Point1_12_18_3X_interior_border_border_'
-prefix = 'Point1_12_18_20190606_output_'
-prefix = 'Object_Train_Initial_'
+prefix = ''
 names = files
 names = [x.replace(prefix, '').replace('_metrics.npy', '') for x in names]
 
@@ -40,7 +38,7 @@ for i in range(len(files)):
     data[i, :, :, :, :] = np.load(os.path.join(image_dir, files[i]))
 
 # save images back to folder for viewing if deepcell transform network
-helper_functions.save_deepcell_tifs(data, names, image_dir, cohort=False, watershed=False)
+helper_functions.save_deepcell_tifs(data, names, image_dir, cohort=False, transform='watershed')
 
 
 # average ensemble models together

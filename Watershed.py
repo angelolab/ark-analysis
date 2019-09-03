@@ -10,6 +10,13 @@ import skimage.filters.rank as rank
 import skimage.morphology as morph
 import copy
 
+# watershed generation from deepcell transformed data
+# read in relavant files
+mask_dir = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/Contours/analyses/20190822_training_freeze_1/'
+deepcell_name = 'Training_Freeze_1_81_rf_512_dense_128_conv_epoch_42'
+watershed_name = 'Training_Freeze_1_Nuc_watershed_81_rf_256_dense_64_conv_epoch_24_watershed'
+fgbg_name = "Training_Freeze_1_81_rf_fgbg_256_dense_64_conv_epoch_10"
+
 
 seeds = io.imread('/Users/noahgreenwald/Google Drive/Grad School/Lab/Segmentation_Contours/Decidua/Zips/Point12_Objects_Mask_Label.tif')
 seed_props = skimage.measure.regionprops(seeds)
@@ -22,21 +29,15 @@ for i in range(len(seed_props)):
 maxs = seed_array > 1
 
 
-# watershed generation from deepcell transformed data
-# read in relavant files
-mask_dir = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/Contours/analyses/20190731_decidua_object_test/'
-deepcell_name = 'Decidua_101_rf_512_dense_128_conv_epoch_09_'
-watershed_name = 'Decidua_watershed_101_rf_64_conv_256_dense_epoch_09_watershed'
 
-border_mask = io.imread(mask_dir + deepcell_name + 'border.tiff')
-interior_mask = io.imread(mask_dir + deepcell_name + 'interior.tiff')
+border_mask = io.imread(mask_dir + deepcell_name + '_border.tiff')
+interior_mask = io.imread(mask_dir + deepcell_name + '_interior.tiff')
 watershed_probs = io.imread(mask_dir + watershed_name + '_smoothed_probs.tiff')
-background_mask = io.imread(mask_dir + watershed_name + '_background.tiff')
+fgbg_probs = io.imread(mask_dir + fgbg_name + '_fgbg.tiff')
 
 maxs = watershed_probs > 2
 
-cell_mask = background_mask < 0.93
-cell_mask = rank.median(cell_mask, np.ones((5,5)))
+fgbg_mask = fgbg_probs > 0.7
 
 # # calculate maxs from smoothed nuclear mask
 # maxs = peak_local_max(mask_nuc_smoothed, indices=False, min_distance=5)
@@ -49,9 +50,13 @@ cell_mask = rank.median(cell_mask, np.ones((5,5)))
 markers = skimage.measure.label(maxs, connectivity=1)
 
 # watershed over border mask vs negative interior mask?
-labels = np.array(watershed(-interior_mask, markers, mask=cell_mask, watershed_line=1))
+labels = np.array(watershed(border_mask, markers, mask=fgbg_mask, watershed_line=1))
 
-io.imsave(mask_dir + deepcell_name + 'label_mask_centroids.tiff', labels)
+io.imsave(mask_dir + deepcell_name + '_label_mask.tiff', labels)
+
+# pixel expansion
+expanded = morph.dilation(labels, selem=morph.square(11))
+io.imsave(mask_dir + 'Training_Freeze_1_Nuc_81_rf_512_dense_128_conv_epoch_24_pixel_expansion_label_mask.tiff', expanded)
 
 
 # for pipeline

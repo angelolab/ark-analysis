@@ -16,20 +16,20 @@ importlib.reload(helper_functions)
 # read in TIFs containing ground truth contoured data, along with predicted segmentation
 base_dir = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/Contours/'
 
-deep_direc = base_dir + 'analyses/20190731_decidua_object_test/'
+deep_direc = base_dir + 'analyses/20190822_training_freeze_1/'
 plot_direc = deep_direc + 'figs/'
 
 files = os.listdir(deep_direc)
 files = [file for file in files if '101' in file]
 
-file_name = "Decidua_101_rf_512_dense_128_conv_epoch_09_label_mask_centroids.tiff"
+file_name = "Training_Freeze_1_Nuc_81_rf_512_dense_128_conv_epoch_24_pixel_expansion_label_mask.tiff"
 
 for file in files:
     file_name = file
 
     predicted_data = io.imread(deep_direc + file_name)
 
-    contour_data = io.imread(base_dir + "20190615_Decidua/Zips/Point12_Objects_Mask_Label.tif")
+    contour_data = io.imread(base_dir + "20190813_combined_data/Zips/Point1_Cell_Mask_Label.tif")
 
     cell_frame, predicted_label, contour_label = helper_functions.compare_contours(predicted_data, contour_data)
 

@@ -17,12 +17,13 @@ from skimage.segmentation import find_boundaries
 
 
 # data loading
-def save_deepcell_tifs(model_output, file_names, save_path, cohort=False, watershed=False):
+def save_deepcell_tifs(model_output, file_names, save_path, cohort=False, transform='pixel'):
     """Extract relevant tifs from a numpy array and save to a given directory
         # TODO add here
         Args
             model_output: numpy array of tifs output by deepcell
             """
+    # the position of the point to look at during model testing
     plot_idx = 0
 
     if cohort:
@@ -35,7 +36,7 @@ def save_deepcell_tifs(model_output, file_names, save_path, cohort=False, waters
         # pick only the plotting point to be evaluated for each model
         model_output = model_output[:, plot_idx, :, :, :]
 
-    if watershed:
+    if transform == 'watershed':
         if model_output.shape[-1] != 4:
             raise ValueError("Watershed flag set to true, but 4-level output not provided")
 
@@ -75,7 +76,7 @@ def save_deepcell_tifs(model_output, file_names, save_path, cohort=False, waters
         #                                     dims=["points", "rows", "cols", "masks"])
         # deepcell_outputs_xr.to_netcdf(save_path + '/' + file_names[0] + '_watershed_network_output.nc')
 
-    else:
+    elif transform == 'pixel':
         if model_output.shape[-1] != 3:
             raise ValueError("Watershed flag set to false, but 3-level output not provided")
 
@@ -113,6 +114,31 @@ def save_deepcell_tifs(model_output, file_names, save_path, cohort=False, waters
         #                                     coords=[file_names, range(1024), range(1024), mask_labels],
         #                                     dims=["points", "rows", "cols", "masks"])
         # deepcell_outputs_xr.to_netcdf(save_path + '/' + file_names[0] + '_deepcell_network_output.nc')
+
+    elif transform == 'fgbg':
+        if model_output.shape[-1] != 2:
+            raise ValueError("fgbg flag set to false, but 2-level output not provided")
+
+        deepcell_outputs = np.zeros(model_output.shape[:-1] + (1, ))
+
+        for i in range(model_output.shape[0]):
+            # smooth fgbg probability after thresholding
+            thresholded_prob = model_output[i, :, :, 1] > 0.7
+            deepcell_outputs[i, :, :, 0] = thresholded_prob
+
+            if cohort:
+                # save files in different folders
+                if not os.path.exists(os.path.join(save_path, file_names[i])):
+                    os.makedirs(os.path.join(save_path, file_names[i]))
+
+                io.imsave(os.path.join(save_path, file_names[i], 'segmentation_border.tiff'),
+                          deepcell_outputs[i, :, :, 0].astype('float32'))
+
+
+            else:
+                # save files in same folder
+                io.imsave(os.path.join(save_path, file_names[i] + '_fgbg.tiff'),
+                          deepcell_outputs[i, :, :, 0].astype('float32'))
 
 
 def load_tifs_from_points_dir(point_dir, tif_folder, points=None, tifs=None):
