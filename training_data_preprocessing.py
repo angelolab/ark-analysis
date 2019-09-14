@@ -8,13 +8,13 @@ importlib.reload(helper_functions)
 # preprocess label masks from hand contoured cells to generate training data
 
 # base_dir = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/Contours/First_Run/Point23/'
-base_dir = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/Contours/20190813_combined_data/Zips/'
+base_dir = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/Contours/20190823_TA489_Redo/zips/'
 
 files = os.listdir(base_dir)
 files = [file for file in files if 'Point5' in file]
 files.sort()
-total_cell = [file for file in files if 'Cell_Border_Interior' in file]
-interior_cell = [file for file in files if 'Cell_Interior' in file]
+total_cell = [file for file in files if 'Nuc_Border_Interior' in file]
+interior_cell = [file for file in files if 'Nuc_Interior' in file]
 
 for i in range(len(total_cell)):
     total_cell_img = io.imread(os.path.join(base_dir, total_cell[i]))

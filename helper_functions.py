@@ -52,7 +52,7 @@ def save_deepcell_tifs(model_output, file_names, save_path, cohort=False, transf
         deepcell_outputs[:, :, :, 1] = argmax_images
 
         for i in range(model_output.shape[0]):
-            smoothed_argmax = rank.median(argmax_images[i, ...], np.ones((5, 5)))
+            smoothed_argmax = rank.median(argmax_images[i, ...], np.ones((3, 3)))
             deepcell_outputs[i, :, :, 2] = smoothed_argmax
 
             # save relevant tifs
@@ -122,16 +122,17 @@ def save_deepcell_tifs(model_output, file_names, save_path, cohort=False, transf
         deepcell_outputs = np.zeros(model_output.shape[:-1] + (1, ))
 
         for i in range(model_output.shape[0]):
-            # smooth fgbg probability after thresholding
-            thresholded_prob = model_output[i, :, :, 1] > 0.7
-            deepcell_outputs[i, :, :, 0] = thresholded_prob
+            # smooth fgbg probability then threshold thresholding
+            # thresholded_prob = model_output[i, :, :, 1] > 0.7
+            # deepcell_outputs[i, :, :, 0] = thresholded_prob
+            deepcell_outputs[i, :, :, 0] = model_output[i, :, :, 1]
 
             if cohort:
                 # save files in different folders
                 if not os.path.exists(os.path.join(save_path, file_names[i])):
                     os.makedirs(os.path.join(save_path, file_names[i]))
 
-                io.imsave(os.path.join(save_path, file_names[i], 'segmentation_border.tiff'),
+                io.imsave(os.path.join(save_path, file_names[i], '_fgbg.tiff'),
                           deepcell_outputs[i, :, :, 0].astype('float32'))
 
 
@@ -262,9 +263,9 @@ def plot_overlay(predicted_contour, plotting_tif=None, alternate_contour=None, p
     if len(np.unique(predicted_contour)) < 2:
         raise ValueError("predicted contour is not labeled")
 
-    if path is not None:
-        if os.path.exists(path) is False:
-            raise ValueError("File path does not exist.")
+    # if path is not None:
+    #     if os.path.exists(path) is False:
+    #         raise ValueError("File path does not exist.")
 
     # define borders of cells in mask
     predicted_contour_mask = find_boundaries(predicted_contour, connectivity=1, mode='inner').astype(np.uint8)
@@ -290,7 +291,7 @@ def plot_overlay(predicted_contour, plotting_tif=None, alternate_contour=None, p
         plt.imshow(rgb_mask, cmap='autumn', interpolation='none')
 
         if path is not None:
-            overlay.savefig(os.path.join(path, "overlay_2_masks.tiff"), dpi=800)
+            overlay.savefig(os.path.join(path), dpi=800)
 
     else:
         # if only one mask provided
@@ -355,7 +356,8 @@ def plot_color_map(outline_matrix, names=None, ground_truth=None, save_path=None
         Returns
             Displays plot in window"""
 
-    plotting_colors = ['Black', 'Grey', 'Blue', 'Red', 'Yellow', 'Green', 'Purple']
+    #plotting_colors = ['Black', 'Grey', 'Blue', 'Red', 'Yellow', 'Green', 'Purple']
+    plotting_colors = ['Black', 'Grey', 'Blue', 'Green', 'moccasin', 'tan', 'sienna', 'firebrick']
     num_categories = np.max(outline_matrix)
     plotting_colors = plotting_colors[:num_categories + 1]
     cmap = mpl.colors.ListedColormap(plotting_colors)

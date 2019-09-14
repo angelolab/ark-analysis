@@ -12,13 +12,13 @@ importlib.reload(helper_functions)
 
 # get directory where images are located
 base_dir = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/Contours/analyses'
-image_dir = base_dir + '/20190822_training_freeze_1/'
+image_dir = base_dir + '/20190903_subsampling/'
 plot_dir = image_dir + '/figs/'
 
 # get names of each, clean up for subsequent saving
 files = os.listdir(image_dir)
 files = [file for file in files if 'npy' in file]
-files = [file for file in files if 'Nuc_watershed' in file]
+files = [file for file in files if 'erosion' in file]
 #files = [file for file in files if 'interior_border_border_watershed_epoch' in file]
 files.sort()
 
@@ -29,7 +29,7 @@ names = [x.replace(prefix, '').replace('_metrics.npy', '') for x in names]
 
 
 # load single point to get dimensions
-temp = np.load(image_dir + files[1])
+temp = np.load(image_dir + files[0])
 # load all data into a single numpy array
 data = np.zeros(((len(files), ) + temp.shape), dtype='float32')
 
