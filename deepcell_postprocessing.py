@@ -37,7 +37,7 @@ data = np.zeros(((len(files), ) + temp.shape), dtype='float32')
 for i in range(len(files)):
     data[i, :, :, :, :] = np.load(os.path.join(image_dir, files[i]))
 
-# save images back to folder for viewing if deepcell transform network
+# save images back to folder for viewing
 helper_functions.save_deepcell_tifs(data, names, image_dir, cohort=False, transform='watershed')
 
 

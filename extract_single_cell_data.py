@@ -10,7 +10,7 @@ import xarray as xr
 import os
 importlib.reload(helper_functions)
 
-
+# TODO: rework for segmentation testing only vs pipeline?
 # load segmentation masks
 seg_dir = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/Contours/analyses/20190822_training_freeze_1/'
 seg_folder = ''

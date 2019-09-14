@@ -31,6 +31,7 @@ data_deep = np.load(base_dir + 'model_output.npy')
 data_xr = xr.open_dataarray(base_dir + 'Nuclear_Channel_Input.nc')
 folders = data_xr.coords['point'].values.tolist()
 
+# TODO: modify deepcell so that it can read in xarray data
 folders = np.load(base_dir + 'folder_names.npy')
 folders = [x for x in folders]
 # extract individual TIFs and save segmentation results back into matlab-compatible folder structure

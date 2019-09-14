@@ -39,6 +39,7 @@ for file in files:
 
     cell_frame, predicted_label, contour_label = helper_functions.compare_contours(predicted_data, contour_data)
 
+    # read in ground truth annotations to create overlays
     HH3 = io.imread('/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/Contours/20190823_TA489_Redo/Point8/TIFs/HH3.tif')
     border = io.imread(deep_direc + 'Training_Freeze_1_81_rf_512_dense_128_conv_epoch_27Point8.npy_border.tiff')
     interior = io.imread(deep_direc + 'Training_Freeze_1_Nuc_81_rf_512_dense_128_conv_epoch_27Point8.npy_interior.tiff')
@@ -59,8 +60,9 @@ for file in files:
 
 
     # figure out which cells are labeled as both low_quality and merged
-    # because merge classification comes only from see duplicates of predicted ID, low_quality is more accurate call
-    # as it was determined by actual overlap pattern
+    # The merge classification comes only from seen duplicates of predicted ID. Therefore, if the ID is duplicated
+    # because it got flagged during low quality logic, low_quality is the more accurate classification
+
     unmerge_ids = cell_frame.loc[np.logical_and(cell_frame["merged"], cell_frame["low_quality"]), "predicted_cell"]
     unmerge_idx = np.isin(cell_frame["predicted_cell"], unmerge_ids)
     cell_frame.loc[unmerge_idx, "merged"] = False
@@ -73,17 +75,18 @@ for file in files:
     cell_frame.loc[np.logical_or(double_merge_idx, double_split_idx), ["merged", "split", "low_quality"]] = [False, False, True]
 
     # check to make sure no double counting
-    np.sum(np.logical_and(cell_frame["merged"], cell_frame["split"]))
-    np.sum(np.logical_and(cell_frame["merged"], cell_frame["low_quality"]))
-    np.sum(np.logical_and(cell_frame["low_quality"], cell_frame["split"]))
+    print("there are {} total cells counted as merged and split".format(np.sum(np.logical_and(cell_frame["merged"], cell_frame["split"]))))
+    print("there are {} cells counted as merged and lq".format(np.sum(np.logical_and(cell_frame["merged"], cell_frame["low_quality"]))))
+    print("there are {} cells counted as lq and split".format(np.sum(np.logical_and(cell_frame["low_quality"], cell_frame["split"]))))
 
     split_cells = cell_frame.loc[cell_frame["split"], "predicted_cell"]
     merged_cells = cell_frame.loc[cell_frame["merged"], "predicted_cell"]
     bad_cells = cell_frame.loc[cell_frame["low_quality"], "predicted_cell"]
     missing_cells = cell_frame.loc[cell_frame["missing"], "contour_cell"]
     created_cells = cell_frame.loc[cell_frame["created"], "predicted_cell"]
-    print(len(missing_cells))
-    print(len(created_cells))
+
+    print("there are {} total cells counted as missing".format(len(missing_cells)))
+    print("ther are {} total cells counted as created ".format(len(created_cells)))
 
 
     # create gradations of low quality cells
@@ -91,7 +94,7 @@ for file in files:
     bad_cells_70 = cell_frame.loc[np.logical_and(cell_frame["percent_overlap"] > .7, cell_frame["percent_overlap"] < 0.8), "predicted_cell"]
     bad_cells_60 = cell_frame.loc[np.logical_and(cell_frame["percent_overlap"] > .6, cell_frame["percent_overlap"] < 0.7), "predicted_cell"]
 
-    # TODO: add in missing cells
+    # TODO: add in missing cells and created cells to labeling and error counting
     bad_cells_80 = [cell for cell in bad_cells_80 if cell in bad_cells and cell != 0]
     bad_cells_70 = [cell for cell in bad_cells_70 if cell in bad_cells]
     bad_cells_60 = [cell for cell in bad_cells_60 if cell in bad_cells]

@@ -1,4 +1,5 @@
 # swap the labels for cell objects from whole-cell to nucleus for a subset of the cells
+# useful for changing messy annotations of whole cells to simpler annotations of just nucleus
 import numpy as np
 import copy
 from skimage.segmentation import find_boundaries
@@ -21,6 +22,7 @@ for point in points_list:
 
     switch_list = []
 
+    # for each cell, if more than x% of pixels are positive for maker known to affect bad cells, swap it
     for cell in np.unique(all_labels):
         cell_mask = all_labels == cell
         vim_pos = np.sum(vimentin[cell_mask] > 0)
@@ -34,8 +36,8 @@ for point in points_list:
         else:
             switch_list.append(cell)
 
+    # figure out which cells were flagged and remove their existing label
     flagged_cells = np.isin(all_labels, switch_list)
-
     modified_labels = copy.copy(all_labels)
     modified_labels[~flagged_cells] = 0
     io.imshow(modified_labels)
@@ -46,6 +48,7 @@ for point in points_list:
 
     small_labels = copy.copy(all_labels)
 
+    # figure out which nuclear label overlaps most with bad cell label, and replace with that one
     for cell in switch_list:
         cell_mask = all_labels == cell
         overlap_id, overlap_count = np.array(np.unique(nuc_labels[cell_mask], return_counts=True))
