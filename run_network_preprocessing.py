@@ -6,7 +6,7 @@ import helper_functions
 
 
 # load TIFs from GUI-based directory structure
-base_dir = '/Users/noahgreenwald/Documents/MIBI_DATA/tyler/190808_DCISCOHORT/'
+base_dir = '/Users/noahgreenwald/Documents/MIBI_Data/selena/20190524_GBM_test/no_noise'
 data_folder = ''
 
 # get names of each, clean up for subsequent saving
@@ -14,13 +14,14 @@ folders = os.listdir(base_dir + data_folder)
 folders = [folder for folder in folders if 'Point' in folder]
 
 # load all data into a single numpy array
-data = np.zeros((len(folders), 1, 1024, 1024), dtype='float16')
+data = np.zeros((len(folders), 2, 1024, 1024), dtype='float16')
 
 # axes on data: training run, image, x_dim, y_dim, output_mask
 for i in range(len(folders)):
-    data[i, 0, :, :] = io.imread(os.path.join(base_dir, data_folder, folders[i], 'TIFs/HH3.tif'))
+    data[i, 0, :, :] = io.imread(os.path.join(base_dir, data_folder, folders[i], 'TIFsNoBg/H3.tif'))
+    data[i, 1, :, :] = io.imread(os.path.join(base_dir, data_folder, folders[i], 'TIFsNoBg/FoxP3.tif'))
 
-data_xr = xr.DataArray(data, coords=[folders, ['HH3'], range(1024), range(1024)],
+data_xr = xr.DataArray(data, coords=[folders, ['HH3', 'FoxP3'], range(1024), range(1024)],
                        dims=['point', 'channels', 'rows', 'cols'])
 
 data_xr.to_netcdf(base_dir + 'Nuclear_Channel_Input.nc')

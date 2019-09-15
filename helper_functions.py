@@ -17,124 +17,106 @@ from skimage.segmentation import find_boundaries
 
 
 # data loading
-# TODO: redo so that extraction happens from xarray with appropraite labels
-# TODO: and doesn't require loading from postprocessing script
-# TODO: remove cohort flag and instead have each model saved as distinct xarray object, with all or one point extracted
-def save_deepcell_tifs(model_output, file_names, save_path, cohort=False, transform='pixel'):
+def save_deepcell_tifs(model_output_xr, save_path, transform='pixel', points=None, watershed_smooth=3, pixel_smooth=5):
     """Extract and save tifs from deepcell output and save in directory format
 
         Args
-            model_output: numpy array of tifs output by deepcell that have been read in by our script
-            file_names: names to prefix onto tifs during saving
+            model_output: xarray of tifs output by deepcell
             save_path: folder to save tifs
-            cohort: boolean that determines whether this is multiple models or multiple points
             transform: one of pixel, fgbg, watershed, which determines how to process/save image
+            points: optional list of points to extract. If none extracts all
+            watershed_smooth: side length for square selem used for median smoothing
+            pixel_smooth: variance used for gaussian filter smoothing
             """
-    # the position of the point to look at during model testing
-    # TODO: move to argument
-    # plot_idx = 0
 
-    if cohort:
-        if len(model_output.shape) != 4:
-            raise ValueError("cohort flag set to True, but 4 dimensional data not provided")
+    if len(model_output_xr.shape) != 4:
+        raise ValueError("xarray data has the wrong dimensions, expecting 4")
+
+    if points is None:
+        points = model_output_xr.coords['points']
     else:
-        if len(model_output.shape) != 5:
-            raise ValueError("cohort flag set to False, but 5 dimensional data not provided")
+        if np.any(~np.isin(points, model_output_xr.coords['points'])):
+            raise ValueError("Incorrect list of points given, not all are present in data structure")
 
-        # pick only the plotting point to be evaluated for each model
-        model_output = model_output[:, plot_idx, :, :, :]
+    # keep only the selected points
+    if len(points) == 1:
+        # don't subset, will change dimensions
+        pass
+    else:
+        model_output_xr = model_output_xr.loc[points, :, :, :]
 
     if transform == 'watershed':
-        if model_output.shape[-1] != 4:
-            raise ValueError("Watershed flag set to true, but 4-level output not provided")
+        if model_output_xr.shape[-1] != 4:
+            raise ValueError("Watershed transform selected, but last dimension is not 4")
+        if model_output_xr.coords['masks'].values[0] != 'level_0':
+            raise ValueError("Watershed transform selected, but first channel is not Level_0")
 
         # find the max value across different energy levels within each point
         argmax_images = []
-        for j in range(model_output.shape[0]):
-            argmax_images.append(np.argmax(model_output[j, ...], axis=-1))
+        for j in range(model_output_xr.shape[0]):
+            argmax_images.append(np.argmax(model_output_xr[j, ...].values, axis=-1))
         argmax_images = np.array(argmax_images)
 
-        # TODO: remove background probability
-        # create array to hold background probability mask, maxima mask, and smoothed maxima mask
-        deepcell_outputs = np.zeros(argmax_images.shape + (3, ))
-        deepcell_outputs[:, :, :, 0] = model_output[..., 0]
-        deepcell_outputs[:, :, :, 1] = argmax_images
+        # create array to hold argmax and smoothed argmax mask
+        watershed_processed = np.zeros(argmax_images.shape + (2, ))
+        watershed_processed[:, :, :, 0] = argmax_images
 
-        for i in range(model_output.shape[0]):
-            smoothed_argmax = rank.median(argmax_images[i, ...], np.ones((3, 3)))
-            deepcell_outputs[i, :, :, 2] = smoothed_argmax
+        for i in range(model_output_xr.shape[0]):
+            smoothed_argmax = rank.median(argmax_images[i, ...], np.ones((watershed_smooth, watershed_smooth)))
+            watershed_processed[i, :, :, 1] = smoothed_argmax
 
-            # save relevant tifs
-            if cohort:
-                if not os.path.exists(os.path.join(save_path, file_names[i])):
-                    os.makedirs(os.path.join(save_path, file_names[i]))
+            io.imsave(os.path.join(save_path, model_output_xr.name + '_' + model_output_xr.coords['points'].values[i] +
+                                   '_watershed.tiff'), watershed_processed[i, :, :, 0].astype('int16'))
 
-                io.imsave(os.path.join(save_path, file_names[i], 'watershed_background.tiff'),
-                          deepcell_outputs[i, :, :, 0].astype('float32'))
-                io.imsave(os.path.join(save_path, file_names[i], 'watershed_probs.tiff'),
-                          deepcell_outputs[i, :, :, 1].astype('int16'))
-                io.imsave(os.path.join(save_path, file_names[i], 'watershed_smoothed_probs.tiff'),
-                          deepcell_outputs[i, :, :, 2].astype('int16'))
-            else:
-                io.imsave(os.path.join(save_path, file_names[i] + '_watershed_background.tiff'), deepcell_outputs[i, :, :, 0].astype('float32'))
-                io.imsave(os.path.join(save_path, file_names[i] + '_watershed_probs.tiff'), deepcell_outputs[i, :, :, 1].astype('int16'))
-                io.imsave(os.path.join(save_path, file_names[i] + '_watershed_smoothed_probs.tiff'), deepcell_outputs[i, :, :, 2].astype('int16'))
+            io.imsave(os.path.join(save_path, model_output_xr.name + '_' + model_output_xr.coords['points'].values[i] +
+                                   '_watershed_smoothed.tiff'), watershed_processed[i, :, :, 1].astype('int16'))
 
-        # mask_labels = ["background_mask", "watershed_probs", "smoothed_watershed_probs"]
-        # deepcell_outputs_xr = xr.DataArray(deepcell_outputs, coords=[file_names, range(1024), range(1024), mask_labels],
-        #                                     dims=["points", "rows", "cols", "masks"])
-        # deepcell_outputs_xr.to_netcdf(save_path + '/' + file_names[0] + '_watershed_network_output.nc')
+        mask = ["watershed", "watershed_smoothed"]
+        watershed_processed_xr = xr.DataArray(watershed_processed, name=model_output_xr.name + '_processed',
+                                           coords=[model_output_xr.coords['points'].values, range(1024), range(1024), mask],
+                                           dims=["points", "rows", "cols", "masks"])
+        watershed_processed_xr.to_netcdf(save_path + '/' + watershed_processed_xr.name + '.nc')
 
     elif transform == 'pixel':
-        if model_output.shape[-1] != 3:
-            raise ValueError("Watershed flag set to false, but 3-level output not provided")
+        if model_output_xr.shape[-1] != 3:
+            raise ValueError("pixel transform selected, but last dimension is not three")
+        if model_output_xr.coords['masks'].values[0] != 'border':
+            raise ValueError("pixel transform selected, but mask names don't match")
 
-        deepcell_outputs = np.zeros(model_output.shape[:-1] + (3, ))
-        deepcell_outputs[:, :, :, 0:2] = model_output[:, :, :, 0:2]
+        pixel_processed = np.zeros(model_output_xr.shape[:-1] + (3, ))
+        pixel_processed[:, :, :, 0:2] = model_output_xr.loc[:, :, :, ['border', 'interior']].values
 
-        for i in range(model_output.shape[0]):
+        for i in range(model_output_xr.shape[0]):
             # smooth interior probability for each point
-            smoothed_int = nd.gaussian_filter(model_output[i, :, :, 1], 5)
-            deepcell_outputs[i, :, :, 2] = smoothed_int
+            smoothed_int = nd.gaussian_filter(model_output_xr[i, :, :, 1], pixel_smooth)
+            pixel_processed[i, :, :, 2] = smoothed_int
 
-            if cohort:
-                # save files in different folders
-                if not os.path.exists(os.path.join(save_path, file_names[i])):
-                    os.makedirs(os.path.join(save_path, file_names[i]))
+            # save tifs
+            io.imsave(os.path.join(save_path, model_output_xr.name + '_' + model_output_xr.coords['points'].values[i] +
+                                   '_pixel_border.tiff'), pixel_processed[i, :, :, 0].astype('float32'))
+            io.imsave(os.path.join(save_path, model_output_xr.name + '_' + model_output_xr.coords['points'].values[i] +
+                                   '_pixel_interior.tiff'), pixel_processed[i, :, :, 1].astype('float32'))
+            io.imsave(os.path.join(save_path, model_output_xr.name + '_' + model_output_xr.coords['points'].values[i] +
+                                   '_pixel_interior_smoothed.tiff'), pixel_processed[i, :, :, 2].astype('float32'))
 
-                io.imsave(os.path.join(save_path, file_names[i], 'segmentation_border.tiff'),
-                          deepcell_outputs[i, :, :, 0].astype('float32'))
-                io.imsave(os.path.join(save_path, file_names[i], 'segmentation_interior.tiff'),
-                          deepcell_outputs[i, :, :, 1].astype('float32'))
-                io.imsave(os.path.join(save_path, file_names[i], 'segmentation_interior_smoothed.tiff'),
-                          deepcell_outputs[i, :, :, 2].astype('float32'))
-
-            else:
-                # save files in same folder
-                io.imsave(os.path.join(save_path, file_names[i] + '_border.tiff'),
-                          deepcell_outputs[i, :, :, 0].astype('float32'))
-                io.imsave(os.path.join(save_path, file_names[i] + '_interior.tiff'),
-                          deepcell_outputs[i, :, :, 1].astype('float32'))
-                io.imsave(os.path.join(save_path, file_names[i] + '_interior_smoothed.tiff'),
-                          deepcell_outputs[i, :, :, 2].astype('float32'))
-
-        # mask_labels = ["border_mask", "interior_mask", "smoothed_interior_mask"]
-        # deepcell_outputs_xr = xr.DataArray(deepcell_outputs,
-        #                                     coords=[file_names, range(1024), range(1024), mask_labels],
-        #                                     dims=["points", "rows", "cols", "masks"])
-        # deepcell_outputs_xr.to_netcdf(save_path + '/' + file_names[0] + '_deepcell_network_output.nc')
+        # save output
+        mask_labels = ["border", "interior", "smoothed_interior"]
+        pixel_processed_xr = xr.DataArray(pixel_processed, name=model_output_xr.name + '_processed',
+                                            coords=[model_output_xr.coords['points'], range(1024), range(1024), mask_labels],
+                                            dims=["points", "rows", "cols", "masks"])
+        pixel_processed_xr.to_netcdf(save_path + '/' + pixel_processed_xr.name + '.nc')
 
     elif transform == 'fgbg':
-        if model_output.shape[-1] != 2:
+        if model_output_xr.shape[-1] != 2:
             raise ValueError("fgbg flag set to false, but 2-level output not provided")
 
-        deepcell_outputs = np.zeros(model_output.shape[:-1] + (1, ))
+        deepcell_outputs = np.zeros(model_output_xr.shape[:-1] + (1, ))
 
-        for i in range(model_output.shape[0]):
+        for i in range(model_output_xr.shape[0]):
             # smooth fgbg probability then threshold thresholding
-            # thresholded_prob = model_output[i, :, :, 1] > 0.7
+            # thresholded_prob = model_output_xr[i, :, :, 1] > 0.7
             # deepcell_outputs[i, :, :, 0] = thresholded_prob
-            deepcell_outputs[i, :, :, 0] = model_output[i, :, :, 1]
+            deepcell_outputs[i, :, :, 0] = model_output_xr[i, :, :, 1]
 
             if cohort:
                 # save files in different folders
