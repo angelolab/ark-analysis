@@ -19,7 +19,9 @@ plot_direc = deep_direc + 'figs/'
 files = os.listdir(deep_direc)
 files = [file for file in files if 'Point8' in file]
 
-nuc_seg = True
+file_name = "Training_Freeze_1_Nuc_81_rf_512_dense_128_conv_epoch_24_processedpixel_expansion_7.tiff"
+
+nuc_seg = False
 
 if nuc_seg:
     file_name = "Training_Freeze_1_Nuc_81_rf_512_dense_128_conv_epoch_24_processed_label_mask.tiff"
@@ -139,7 +141,9 @@ for file in files:
     io.imsave(os.path.join(plot_direc, file_name + 'color_map_raw.tiff'), classify_outline)
     # make subplots for two simple plots
 
-    helper_functions.plot_barchart_errors(cell_frame, save_path=os.path.join(plot_direc, file_name + '_stats.tiff'))
+    helper_functions.plot_barchart_errors(cell_frame, contour_errors=['split', 'merged', 'low_quality'],
+                                          predicted_errors=['missing'],
+                                          save_path=os.path.join(plot_direc, file_name + '_stats.tiff'))
 
     # mean average precision
     iou_matrix = helper_functions.calc_iou_matrix(contour_label, predicted_label)

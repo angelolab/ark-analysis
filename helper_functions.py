@@ -385,7 +385,7 @@ def plot_color_map(outline_matrix, names,
         fig.savefig(save_path, dpi=200)
 
 
-def plot_barchart_errors(pd_array, cell_category=["split", "merged", "low_quality"], save_path=None):
+def plot_barchart_errors(pd_array, contour_errors, predicted_errors, save_path=None):
 
     """Plot different error types in a barchart, along with cell-size correlation in a scatter plot
         Args
@@ -397,7 +397,7 @@ def plot_barchart_errors(pd_array, cell_category=["split", "merged", "low_qualit
             Display plot on viewer"""
 
     # make sure all supplied categories are column names
-    if np.any(~np.isin(cell_category, pd_array.columns)):
+    if np.any(~np.isin(contour_errors + predicted_errors, pd_array.columns)):
         raise ValueError("Invalid column name")
 
     fig, ax = plt.subplots(2, 1, figsize=(10, 10))
@@ -407,16 +407,19 @@ def plot_barchart_errors(pd_array, cell_category=["split", "merged", "low_qualit
     ax[0].set_ylabel("Predicted Cell")
 
     # compute percentage of different error types
-    errors = np.zeros(len(cell_category))
-    for i in range(len(errors)):
-        errors[i] = len(set(pd_array.loc[pd_array[cell_category[i]], "predicted_cell"]))
+    errors = np.zeros(len(predicted_errors) + len(contour_errors))
+    for i in range(len(contour_errors)):
+        errors[i] = len(set(pd_array.loc[pd_array[contour_errors[i]], "contour_cell"]))
+
+    for i in range(len(predicted_errors)):
+        errors[i + len(contour_errors)] = len(set(pd_array.loc[pd_array[predicted_errors[i]], "predicted_cell"]))
 
     errors = errors / len(set(pd_array["predicted_cell"]))
     position = range(len(errors))
     ax[1].bar(position, errors)
 
     ax[1].set_xticks(position)
-    ax[1].set_xticklabels(cell_category)
+    ax[1].set_xticklabels(predicted_errors + contour_errors)
     ax[1].set_title("Fraction of cells misclassified")
 
     if save_path is not None:
