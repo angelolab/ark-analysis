@@ -100,7 +100,7 @@ def save_deepcell_tifs(model_output_xr, save_path, transform='pixel', points=Non
                                    '_pixel_interior_smoothed.tiff'), pixel_processed[i, :, :, 2].astype('float32'))
 
         # save output
-        mask_labels = ["border", "interior", "smoothed_interior"]
+        mask_labels = ["pixel_border", "pixel_interior", "pixel_interior_smoothed"]
         pixel_processed_xr = xr.DataArray(pixel_processed, name=model_output_xr.name + '_processed',
                                             coords=[model_output_xr.coords['points'], range(1024), range(1024), mask_labels],
                                             dims=["points", "rows", "cols", "masks"])
@@ -343,7 +343,9 @@ def outline_objects(L_matrix, list_of_lists):
     return L_plot
 
 
-def plot_color_map(outline_matrix, names=None, ground_truth=None, save_path=None):
+def plot_color_map(outline_matrix, names,
+                   plotting_colors=['Black', 'Grey', 'Blue', 'Green', 'Pink', 'moccasin', 'tan', 'sienna', 'firebrick'],
+                   ground_truth=None, save_path=None):
     """Plot label map with cells of specified category colored the same
 
         Args
@@ -356,9 +358,7 @@ def plot_color_map(outline_matrix, names=None, ground_truth=None, save_path=None
             Displays plot in window"""
 
     # TODO: add option to supply color palette
-    # set plotting defaults based on supplied colors
-    #plotting_colors = ['Black', 'Grey', 'Blue', 'Red', 'Yellow', 'Green', 'Purple']
-    plotting_colors = ['Black', 'Grey', 'Blue', 'Green', 'moccasin', 'tan', 'sienna', 'firebrick']
+
     num_categories = np.max(outline_matrix)
     plotting_colors = plotting_colors[:num_categories + 1]
     cmap = mpl.colors.ListedColormap(plotting_colors)
@@ -377,10 +377,8 @@ def plot_color_map(outline_matrix, names=None, ground_truth=None, save_path=None
     # tell the colorbar to tick at integers
     cbar = fig.colorbar(mat, ticks=np.arange(np.min(outline_matrix), np.max(outline_matrix) + 1))
 
-    if names is not None:
-        cbar.ax.set_yticklabels(names)
-    else:
-        cbar.ax.set_yticklabels(['Background', 'Normal', 'Split', 'Merged', 'Low Quality'][:num_categories + 1])
+    cbar.ax.set_yticklabels(names)
+
 
     fig.tight_layout()
     if save_path is not None:
@@ -567,6 +565,10 @@ def compare_contours(predicted_label, contour_label):
             bad_flag = False
             # TODO check if first cell also has at least 80% of volume contained in contour cell?
             # TODO can keep a counter of number of cells that meet this criteria, if >2 then split?
+
+            # keep only cells that overlap at least 20% with target cell
+            idx = overlap_count > 0.2 * contour_cell_size
+            overlap_id, overlap_count = overlap_id[idx], overlap_count[idx]
             for cell in range(1, len(overlap_id)):
                 pred_cell_size = np.sum(predicted_label == overlap_id[cell])
                 percnt = overlap_count[cell] / contour_cell_size

@@ -1,8 +1,6 @@
 import numpy as np
 import os
 import skimage.io as io
-import copy
-import matplotlib as mpl
 import matplotlib.pyplot as plt
 import scipy.ndimage as nd
 import importlib
@@ -17,13 +15,13 @@ plot_dir = image_dir + '/figs/'
 
 # get names of each, clean up for subsequent saving
 files = os.listdir(image_dir)
-files = [file for file in files if '.nc' in file]
-files = [file for file in files if 'example' in file]
+files = [file for file in files if 'output.nc' in file]
+files = [file for file in files if 'Training_Freeze_1_Nuc_HH3' in file]
 
 # loop through saved point data and reformat to TIFs
 for file in files:
-    xr_data = xr.open_dataarray(image_dir + 'watershed_model_output.nc')
-    helper_functions.save_deepcell_tifs(xr_data, save_path=image_dir,  transform='watershed')
+    xr_data = xr.open_dataarray(image_dir + file)
+    helper_functions.save_deepcell_tifs(xr_data, save_path=image_dir,  transform='pixel')
 
 
 # average ensemble models together

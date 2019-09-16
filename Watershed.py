@@ -1,15 +1,10 @@
-# generates a watershed transform of probability masks
-
 import numpy as np
 import skimage.measure
 from skimage.morphology import watershed
 from skimage.feature import peak_local_max
 import skimage.io as io
 import xarray as xr
-import skimage.filters.rank as rank
 import skimage.morphology as morph
-import copy
-import scipy.ndimage as nd
 
 
 # Perform watershed transformation over processed output files from deepcell
@@ -17,8 +12,11 @@ import scipy.ndimage as nd
 # read in relavant files
 mask_dir = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/Contours/analyses/20190914_tuning/'
 
-pixel_xr = xr.open_dataarray(mask_dir + 'test_loading_pixel_processed.nc')
-watershed_xr = xr.open_dataarray(mask_dir + 'test_loading_watershed_processed.nc')
+pixel_xr = xr.open_dataarray(mask_dir + 'Training_Freeze_1_81_rf_512_dense_128_conv_epoch_18_processed.nc')
+
+pixel_xr = xr.open_dataarray(mask_dir + 'Training_Freeze_1_Nuc_81_rf_512_dense_128_conv_epoch_24_processed.nc')
+
+watershed_xr = xr.open_dataarray(mask_dir + 'Training_Freeze_1_Nuc_watershed_81_rf_256_dense_64_conv_2erosion_epoch_03_processed.nc')
 
 points = pixel_xr.coords['points']
 point = points.values[0]
@@ -41,7 +39,7 @@ for point in points:
     # maxs = seed_array > 1
 
     maxs = watershed_smoothed > 2
-    interior_mask = pixel_interior_smoothed > 0.15
+    interior_mask = pixel_interior_smoothed > 0.25
 
     # # calculate maxs from smoothed nuclear mask
     # maxs = peak_local_max(pixel_interior_smoothed, indices=False, min_distance=5)
@@ -60,10 +58,10 @@ for point in points:
             markers[mask] = 0
 
     # watershed over border mask vs negative interior mask?
-    labels = np.array(watershed(pixel_border, markers, mask=interior_mask, watershed_line=1))
+    labels = np.array(watershed(-pixel_interior_smoothed, markers, mask=interior_mask, watershed_line=1))
 
-    io.imsave(mask_dir + deepcell_name + '_label_mask_0.15_interior_threshold_2erosion.tiff', labels)
+    io.imsave(mask_dir + pixel_xr.name + '_label_mask.tiff', labels)
 
     # pixel expansion
-    expanded = morph.dilation(labels, selem=morph.square(7))
-    io.imsave(mask_dir + deepcell_name + "pixel_expansion_7.tiff", expanded)
+    expanded = morph.dilation(labels, selem=morph.square(5))
+    io.imsave(mask_dir + pixel_xr.name + "pixel_expansion_7.tiff", expanded)

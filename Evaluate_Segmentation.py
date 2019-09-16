@@ -1,11 +1,8 @@
 import numpy as np
-import pandas as pd
-import copy
-import matplotlib.pyplot as plt
 import skimage.io as io
 import helper_functions
 import os
-import xarray as xr
+import copy
 
 import importlib
 importlib.reload(helper_functions)
@@ -16,39 +13,49 @@ importlib.reload(helper_functions)
 # read in TIFs containing ground truth contoured data, along with predicted segmentation
 base_dir = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/Contours/'
 
-deep_direc = base_dir + 'analyses/20190903_subsampling/'
+deep_direc = base_dir + 'analyses/20190914_tuning/'
 plot_direc = deep_direc + 'figs/'
 
 files = os.listdir(deep_direc)
 files = [file for file in files if 'Point8' in file]
 
-file_name = "Training_Freeze_1_Nuc_81_rf_512_dense_128_conv_epoch_27Point8.npy_label_mask_0.3_threshold.tiff"
-file_name = "Training_Freeze_1_81_rf_512_dense_128_conv_epoch_27Point8.npy_label_mask_0.5_threshold.tiff"
-file_name = "Training_Freeze_1_Nuc_HH3_81_rf_512_dense_128_conv_epoch_18_point8metrics.npy_label_mask_0.3_threshold.tiff"
-file_name = "Training_Freeze_1_81_rf_512_dense_128_conv_epoch_27Point8.npy_label_mask_0.3_threshold.tiff"
-file_name = "Training_Freeze_1_Nuc_HH3_81_rf_512_dense_128_conv_epoch_18_point8metrics.npypixel_expansion_7.tiff"
-file_name = "Training_Freeze_1_Nuc_81_rf_512_dense_128_conv_epoch_27Point8.npy_label_mask_0.15_interior_threshold.tiff"
-file_name = "Training_Freeze_1_Nuc_81_rf_512_dense_128_conv_epoch_27Point8.npy_label_mask_0.15_interior_threshold_2erosion.tiff"
+nuc_seg = True
+
+if nuc_seg:
+    file_name = "Training_Freeze_1_Nuc_81_rf_512_dense_128_conv_epoch_24_processed_label_mask.tiff"
+else:
+    file_name = "Training_Freeze_1_81_rf_512_dense_128_conv_epoch_18_processed_label_mask.tiff"
 
 for file in files:
     file_name = file
 
     predicted_data = io.imread(deep_direc + file_name)
 
-    contour_data = io.imread(base_dir + "20190823_TA489_Redo/zips/Point8_Nuc_Mask_Label.tif")
+    if nuc_seg:
+        contour_data = io.imread(base_dir + "20190823_TA489_Redo/zips/Point8_Nuc_Mask_Label.tif")
+    else:
+        contour_data = io.imread(base_dir + "20190823_TA489_Redo/zips/Point8_Cell_Mask_Label.tif")
 
     cell_frame, predicted_label, contour_label = helper_functions.compare_contours(predicted_data, contour_data)
 
     # read in ground truth annotations to create overlays
     HH3 = io.imread('/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/Contours/20190823_TA489_Redo/Point8/TIFs/HH3.tif')
-    border = io.imread(deep_direc + 'Training_Freeze_1_81_rf_512_dense_128_conv_epoch_27Point8.npy_border.tiff')
-    interior = io.imread(deep_direc + 'Training_Freeze_1_Nuc_81_rf_512_dense_128_conv_epoch_27Point8.npy_interior.tiff')
-    helper_functions.plot_overlay(predicted_data, interior*10, contour_data, os.path.join(plot_direc, file_name + '_interior_overlay_border.tiff'))
+    interior = io.imread(deep_direc + 'Training_Freeze_1_Nuc_81_rf_512_dense_128_conv_epoch_24_point8_pixel_interior_smoothed.tiff')
+
+    if nuc_seg:
+        border = io.imread(deep_direc + 'Training_Freeze_1_81_rf_512_dense_128_conv_epoch_18_point8_pixel_border.tiff')
+    else:
+        border = io.imread(deep_direc + 'Training_Freeze_1_81_rf_512_dense_128_conv_epoch_18_point8_pixel_border.tiff')
+
+    helper_functions.plot_overlay(predicted_data, border*10, contour_data,
+                                  os.path.join(plot_direc, file_name + '_overlay_border.tiff'))
 
 
-    # remove small objects, but not zero sized, as these are missing errors
-    cell_frame = cell_frame[cell_frame["contour_cell_size"] > 10]
-    cell_frame = cell_frame[np.logical_or(cell_frame["predicted_cell_size"] > 10, cell_frame["predicted_cell_size"] == 0)]
+    # remove all small ground truth objects
+    cell_frame = cell_frame[cell_frame["contour_cell_size"] > 5]
+
+    # remove small predicted objects, but keep those equal to 0, since these are misses
+    cell_frame = cell_frame[np.logical_or(cell_frame["predicted_cell_size"] > 5, cell_frame["predicted_cell_size"] == 0)]
 
     # find predicted cells which have been associated with multiple distinct ground truth cells, excluding background
     merge_idx = np.logical_and(cell_frame["predicted_cell"].duplicated(), np.logical_not(cell_frame["missing"]))
@@ -106,6 +113,14 @@ for file in files:
     accurate_idx = np.isin(accurate_cells, error_cells)
     accurate_cells = accurate_cells[~accurate_idx]
 
+    plotting_label = copy.copy(predicted_label)
+    cell_num = np.max(predicted_label) + 1
+    missing_cells_new = list(range(cell_num, cell_num + len(missing_cells) + 1))
+    for i in range(len(missing_cells)):
+        cell_mask = contour_label == missing_cells.values[i]
+        plotting_label[cell_mask] = cell_num
+        cell_num += 1
+
     # plot error analysis
     swapped = helper_functions.randomize_labels(copy.copy(contour_label))
     classify_outline = helper_functions.outline_objects(predicted_label, [split_cells, merged_cells, bad_cells])
@@ -113,10 +128,12 @@ for file in files:
                                     save_path=os.path.join(plot_direc, file_name + '_color_map.tiff'))
 
 
-    classify_outline = helper_functions.outline_objects(predicted_label, [split_cells, merged_cells, bad_cells_80,
+    classify_outline = helper_functions.outline_objects(plotting_label, [split_cells, merged_cells, missing_cells_new,
+                                                                          bad_cells_80,
                                                                           bad_cells_70, bad_cells_60, bad_cells_50])
 
-    helper_functions.plot_color_map(classify_outline, ground_truth=None, names=['Bg', 'Norm', 'split', 'merg', '80', '70', '60', 'rest'],
+    helper_functions.plot_color_map(classify_outline, ground_truth=None,
+                                    names=['Bg', 'Norm', 'split', 'merg', 'missing', '80', '70', '60', 'rest'],
                                     save_path=os.path.join(plot_direc, file_name + '_color_map.tiff'))
 
     io.imsave(os.path.join(plot_direc, file_name + 'color_map_raw.tiff'), classify_outline)
