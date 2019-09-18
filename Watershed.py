@@ -13,10 +13,21 @@ import skimage.morphology as morph
 mask_dir = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/Contours/analyses/20190914_tuning/'
 
 pixel_xr = xr.open_dataarray(mask_dir + 'Training_Freeze_1_81_rf_512_dense_128_conv_epoch_18_processed.nc')
-
 pixel_xr = xr.open_dataarray(mask_dir + 'Training_Freeze_1_Nuc_81_rf_512_dense_128_conv_epoch_24_processed.nc')
-
 watershed_xr = xr.open_dataarray(mask_dir + 'Training_Freeze_1_Nuc_watershed_81_rf_256_dense_64_conv_2erosion_epoch_03_processed.nc')
+
+# point 1 melanoma
+pixel_xr = xr.open_dataarray(mask_dir + 'Training_Freeze_1_Nuc_81_rf_512_dense_128_conv_epoch_24_processed.nc')
+watershed_xr = xr.open_dataarray(mask_dir + 'Training_Freeze_1_Nuc_watershed_81_rf_256_dense_64_conv_2erosion_epoch_03_processed.nc')
+
+# point 1 melanoma HH3
+pixel_xr = xr.open_dataarray(mask_dir + 'Training_Freeze_1_Nuc_HH3_81_rf_512_dense_128_conv_epoch_18_processed.nc')
+watershed_xr = xr.open_dataarray(mask_dir + 'Training_Freeze_1_Nuc_HH3_watershed_81_rf_256_dense_64_conv_2erosion_epoch_04_processed.nc')
+
+# point 1 melanoma
+pixel_xr = xr.open_dataarray(mask_dir + 'Training_Freeze_1_Nuc_81_rf_512_dense_128_conv_epoch_24_3marker_processed.nc')
+watershed_xr = xr.open_dataarray(mask_dir + 'Training_Freeze_1_Nuc_watershed_81_rf_256_dense_64_conv_2erosion_epoch_03_3marker_processed.nc')
+
 
 points = pixel_xr.coords['points']
 point = points.values[0]
@@ -25,7 +36,7 @@ point = points.values[0]
 for point in points:
     pixel_border = pixel_xr.loc[point, :, :, 'pixel_border'].values
     pixel_interior_smoothed = pixel_xr.loc[point, :, :, 'pixel_interior_smoothed'].values
-    watershed_smoothed = watershed_xr.loc[point, :, :, 'watershed_smoothed']
+    watershed_smoothed = watershed_xr.loc["point8", :, :, 'watershed_smoothed']
 
     # # use true masks to generate watershed seeds to check border/bg accuracy
     # seeds = io.imread('/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/Contours/20190823_TA489_Redo/zips/Point8_Cell_Mask_Label.tif')
@@ -60,7 +71,7 @@ for point in points:
     # watershed over border mask vs negative interior mask?
     labels = np.array(watershed(-pixel_interior_smoothed, markers, mask=interior_mask, watershed_line=1))
 
-    io.imsave(mask_dir + pixel_xr.name + '_label_mask.tiff', labels)
+    io.imsave(mask_dir + pixel_xr.name + 'point1_3marker_watershed_label_mask.tiff', labels)
 
     # pixel expansion
     expanded = morph.dilation(labels, selem=morph.square(5))

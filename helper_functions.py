@@ -187,7 +187,7 @@ def load_tifs_from_points_dir(point_dir, tif_folder, points=None, tifs=None):
             img_data[point, tif, :, :] = io.imread(os.path.join(point_dir, points[point], tif_folder, tifs[tif]))
 
     img_xr = xr.DataArray(img_data, coords=[points, tifs, range(test_img.shape[0]), range(test_img.shape[0])],
-                          dims=["point", "channel", "rows", "cols"])
+                          dims=["points", "channels", "rows", "cols"])
 
     return img_xr
 
@@ -351,13 +351,12 @@ def plot_color_map(outline_matrix, names,
         Args
             outline_matrix: output of outline_objects function which assigns same value to cells of same class
             names: list of names for each category to use for plotting
+            plotting_colors: list of colors to use for plotting cell categories
             ground truth: optional argument to supply label map of true segmentation to be plotted alongside
             save_path: optional argument to save plot as TIF
 
         Returns
             Displays plot in window"""
-
-    # TODO: add option to supply color palette
 
     num_categories = np.max(outline_matrix)
     plotting_colors = plotting_colors[:num_categories + 1]
@@ -419,7 +418,7 @@ def plot_barchart_errors(pd_array, contour_errors, predicted_errors, save_path=N
     ax[1].bar(position, errors)
 
     ax[1].set_xticks(position)
-    ax[1].set_xticklabels(predicted_errors + contour_errors)
+    ax[1].set_xticklabels(contour_errors + predicted_errors)
     ax[1].set_title("Fraction of cells misclassified")
 
     if save_path is not None:

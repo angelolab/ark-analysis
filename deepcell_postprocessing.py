@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import scipy.ndimage as nd
 import importlib
 import helper_functions
+import xarray as xr
 importlib.reload(helper_functions)
 
 
@@ -16,7 +17,8 @@ plot_dir = image_dir + '/figs/'
 # get names of each, clean up for subsequent saving
 files = os.listdir(image_dir)
 files = [file for file in files if 'output.nc' in file]
-files = [file for file in files if 'Training_Freeze_1_Nuc_HH3' in file]
+files = [file for file in files if 'point1' in file and 'watershed' not in file]
+files = [file for file in files if 'marker' not in file]
 
 # loop through saved point data and reformat to TIFs
 for file in files:
