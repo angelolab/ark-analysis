@@ -1,44 +1,29 @@
 import numpy as np
 import os
 import skimage.io as io
-import copy
-import matplotlib as mpl
 import matplotlib.pyplot as plt
 import scipy.ndimage as nd
 import importlib
 import helper_functions
+import xarray as xr
 importlib.reload(helper_functions)
 
 
 # get directory where images are located
 base_dir = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/Contours/analyses'
-image_dir = base_dir + '/20190903_subsampling/'
+image_dir = base_dir + '/20190914_tuning/'
 plot_dir = image_dir + '/figs/'
 
 # get names of each, clean up for subsequent saving
 files = os.listdir(image_dir)
-files = [file for file in files if 'npy' in file]
-files = [file for file in files if 'erosion' in file]
-#files = [file for file in files if 'interior_border_border_watershed_epoch' in file]
-files.sort()
+files = [file for file in files if 'output.nc' in file]
+files = [file for file in files if 'point1' in file and 'watershed' not in file]
+files = [file for file in files if 'marker' not in file]
 
-#prefix = files[0].split("interior_border_border")[0]
-prefix = ''
-names = files
-names = [x.replace(prefix, '').replace('_metrics.npy', '') for x in names]
-
-
-# load single point to get dimensions
-temp = np.load(image_dir + files[0])
-# load all data into a single numpy array
-data = np.zeros(((len(files), ) + temp.shape), dtype='float32')
-
-# axes on data: training run, image, x_dim, y_dim, output_mask
-for i in range(len(files)):
-    data[i, :, :, :, :] = np.load(os.path.join(image_dir, files[i]))
-
-# save images back to folder for viewing if deepcell transform network
-helper_functions.save_deepcell_tifs(data, names, image_dir, cohort=False, transform='watershed')
+# loop through saved point data and reformat to TIFs
+for file in files:
+    xr_data = xr.open_dataarray(image_dir + file)
+    helper_functions.save_deepcell_tifs(xr_data, save_path=image_dir,  transform='pixel')
 
 
 # average ensemble models together

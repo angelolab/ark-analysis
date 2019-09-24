@@ -1,11 +1,8 @@
 import numpy as np
-import pandas as pd
-import copy
-import matplotlib.pyplot as plt
 import skimage.io as io
 import helper_functions
 import os
-import xarray as xr
+import copy
 
 import importlib
 importlib.reload(helper_functions)
@@ -16,38 +13,69 @@ importlib.reload(helper_functions)
 # read in TIFs containing ground truth contoured data, along with predicted segmentation
 base_dir = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/Contours/'
 
-deep_direc = base_dir + 'analyses/20190903_subsampling/'
+deep_direc = base_dir + 'analyses/20190914_tuning/'
 plot_direc = deep_direc + 'figs/'
 
 files = os.listdir(deep_direc)
 files = [file for file in files if 'Point8' in file]
 
-file_name = "Training_Freeze_1_Nuc_81_rf_512_dense_128_conv_epoch_27Point8.npy_label_mask_0.3_threshold.tiff"
-file_name = "Training_Freeze_1_81_rf_512_dense_128_conv_epoch_27Point8.npy_label_mask_0.5_threshold.tiff"
-file_name = "Training_Freeze_1_Nuc_HH3_81_rf_512_dense_128_conv_epoch_18_point8metrics.npy_label_mask_0.3_threshold.tiff"
-file_name = "Training_Freeze_1_81_rf_512_dense_128_conv_epoch_27Point8.npy_label_mask_0.3_threshold.tiff"
-file_name = "Training_Freeze_1_Nuc_HH3_81_rf_512_dense_128_conv_epoch_18_point8metrics.npypixel_expansion_7.tiff"
-file_name = "Training_Freeze_1_Nuc_81_rf_512_dense_128_conv_epoch_27Point8.npy_label_mask_0.15_interior_threshold.tiff"
-file_name = "Training_Freeze_1_Nuc_81_rf_512_dense_128_conv_epoch_27Point8.npy_label_mask_0.15_interior_threshold_2erosion.tiff"
+file_name = "Training_Freeze_1_Nuc_81_rf_512_dense_128_conv_epoch_24_processedpixel_expansion_7.tiff"
+file_name = "Training_Freeze_1_Nuc_81_rf_512_dense_128_conv_epoch_24_processedpoint1_5marker_watershed_label_mask.tiff"
+file_name = "Training_Freeze_1_Nuc_81_rf_512_dense_128_conv_epoch_24_3marker_processedpoint1_3marker_watershed_label_mask.tiff"
+file_name = "Training_Freeze_1_Nuc_HH3_81_rf_512_dense_128_conv_epoch_18_processedpoint1_HH3_watershed_label_mask.tiff"
+
+nuc_seg = True
+melanoma_val = True
+
+if nuc_seg:
+    file_name = "Training_Freeze_1_Nuc_81_rf_512_dense_128_conv_epoch_24_processed_label_mask.tiff"
+else:
+    file_name = "Training_Freeze_1_81_rf_512_dense_128_conv_epoch_18_processed_label_mask.tiff"
 
 for file in files:
     file_name = file
 
     predicted_data = io.imread(deep_direc + file_name)
 
-    contour_data = io.imread(base_dir + "20190823_TA489_Redo/zips/Point8_Nuc_Mask_Label.tif")
+    if nuc_seg:
+        if melanoma_val:
+            contour_data = io.imread(base_dir + "20190813_combined_data/Zips/Point1_Nuc_Mask_Label.tif")
+        else:
+            contour_data = io.imread(base_dir + "20190823_TA489_Redo/zips/Point8_Nuc_Mask_Label.tif")
+    else:
+        if melanoma_val:
+            contour_data = io.imread(base_dir + "20190813_combined_data/Zips/Point1_Cell_Mask_Label.tif")
+        else:
+            contour_data = io.imread(base_dir + "20190823_TA489_Redo/zips/Point8_Cell_Mask_Label.tif")
 
     cell_frame, predicted_label, contour_label = helper_functions.compare_contours(predicted_data, contour_data)
 
+    # read in ground truth annotations to create overlays
+    # TODO: read in _processed.nc file to pull from
     HH3 = io.imread('/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/Contours/20190823_TA489_Redo/Point8/TIFs/HH3.tif')
-    border = io.imread(deep_direc + 'Training_Freeze_1_81_rf_512_dense_128_conv_epoch_27Point8.npy_border.tiff')
-    interior = io.imread(deep_direc + 'Training_Freeze_1_Nuc_81_rf_512_dense_128_conv_epoch_27Point8.npy_interior.tiff')
-    helper_functions.plot_overlay(predicted_data, interior*10, contour_data, os.path.join(plot_direc, file_name + '_interior_overlay_border.tiff'))
+    HH3 = io.imread('/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/Contours/20190813_combined_data/Point1/HH3.tif')
+    interior = io.imread(deep_direc + 'Training_Freeze_1_Nuc_81_rf_512_dense_128_conv_epoch_24_point8_pixel_interior_smoothed.tiff')
+    #
+    # if melanoma_val:
+    #     if nuc_seg:
+    #         border = io.imread(deep_direc + 'Training_Freeze_1_81_rf_512_dense_128_conv_epoch_18_point8_pixel_border.tiff')
+    #     else:
+    #         border = io.imread(deep_direc + 'Training_Freeze_1_81_rf_512_dense_128_conv_epoch_18_point8_pixel_border.tiff')
+    # else:
+    #     if nuc_seg:
+    #         border = io.imread(deep_direc + 'Training_Freeze_1_81_rf_512_dense_128_conv_epoch_18_point8_pixel_border.tiff')
+    #     else:
+    #         border = io.imread(deep_direc + 'Training_Freeze_1_81_rf_512_dense_128_conv_epoch_18_point8_pixel_border.tiff')
+
+    helper_functions.plot_overlay(predicted_data, HH3, contour_data,
+                                  os.path.join(plot_direc, file_name + '_overlay_border.tiff'))
 
 
-    # remove small objects, but not zero sized, as these are missing errors
-    cell_frame = cell_frame[cell_frame["contour_cell_size"] > 10]
-    cell_frame = cell_frame[np.logical_or(cell_frame["predicted_cell_size"] > 10, cell_frame["predicted_cell_size"] == 0)]
+    # remove all small ground truth objects
+    cell_frame = cell_frame[cell_frame["contour_cell_size"] > 5]
+
+    # remove small predicted objects, but keep those equal to 0, since these are misses
+    cell_frame = cell_frame[np.logical_or(cell_frame["predicted_cell_size"] > 5, cell_frame["predicted_cell_size"] == 0)]
 
     # find predicted cells which have been associated with multiple distinct ground truth cells, excluding background
     merge_idx = np.logical_and(cell_frame["predicted_cell"].duplicated(), np.logical_not(cell_frame["missing"]))
@@ -59,8 +87,9 @@ for file in files:
 
 
     # figure out which cells are labeled as both low_quality and merged
-    # because merge classification comes only from see duplicates of predicted ID, low_quality is more accurate call
-    # as it was determined by actual overlap pattern
+    # The merge classification comes only from seen duplicates of predicted ID. Therefore, if the ID is duplicated
+    # because it got flagged during low quality logic, low_quality is the more accurate classification
+
     unmerge_ids = cell_frame.loc[np.logical_and(cell_frame["merged"], cell_frame["low_quality"]), "predicted_cell"]
     unmerge_idx = np.isin(cell_frame["predicted_cell"], unmerge_ids)
     cell_frame.loc[unmerge_idx, "merged"] = False
@@ -73,17 +102,18 @@ for file in files:
     cell_frame.loc[np.logical_or(double_merge_idx, double_split_idx), ["merged", "split", "low_quality"]] = [False, False, True]
 
     # check to make sure no double counting
-    np.sum(np.logical_and(cell_frame["merged"], cell_frame["split"]))
-    np.sum(np.logical_and(cell_frame["merged"], cell_frame["low_quality"]))
-    np.sum(np.logical_and(cell_frame["low_quality"], cell_frame["split"]))
+    print("there are {} total cells counted as merged and split".format(np.sum(np.logical_and(cell_frame["merged"], cell_frame["split"]))))
+    print("there are {} cells counted as merged and lq".format(np.sum(np.logical_and(cell_frame["merged"], cell_frame["low_quality"]))))
+    print("there are {} cells counted as lq and split".format(np.sum(np.logical_and(cell_frame["low_quality"], cell_frame["split"]))))
 
     split_cells = cell_frame.loc[cell_frame["split"], "predicted_cell"]
     merged_cells = cell_frame.loc[cell_frame["merged"], "predicted_cell"]
     bad_cells = cell_frame.loc[cell_frame["low_quality"], "predicted_cell"]
     missing_cells = cell_frame.loc[cell_frame["missing"], "contour_cell"]
     created_cells = cell_frame.loc[cell_frame["created"], "predicted_cell"]
-    print(len(missing_cells))
-    print(len(created_cells))
+
+    print("there are {} total cells counted as missing".format(len(missing_cells)))
+    print("ther are {} total cells counted as created ".format(len(created_cells)))
 
 
     # create gradations of low quality cells
@@ -91,7 +121,6 @@ for file in files:
     bad_cells_70 = cell_frame.loc[np.logical_and(cell_frame["percent_overlap"] > .7, cell_frame["percent_overlap"] < 0.8), "predicted_cell"]
     bad_cells_60 = cell_frame.loc[np.logical_and(cell_frame["percent_overlap"] > .6, cell_frame["percent_overlap"] < 0.7), "predicted_cell"]
 
-    # TODO: add in missing cells
     bad_cells_80 = [cell for cell in bad_cells_80 if cell in bad_cells and cell != 0]
     bad_cells_70 = [cell for cell in bad_cells_70 if cell in bad_cells]
     bad_cells_60 = [cell for cell in bad_cells_60 if cell in bad_cells]
@@ -103,6 +132,14 @@ for file in files:
     accurate_idx = np.isin(accurate_cells, error_cells)
     accurate_cells = accurate_cells[~accurate_idx]
 
+    plotting_label = copy.copy(predicted_label)
+    cell_num = np.max(predicted_label) + 1
+    missing_cells_new = list(range(cell_num, cell_num + len(missing_cells) + 1))
+    for i in range(len(missing_cells)):
+        cell_mask = contour_label == missing_cells.values[i]
+        plotting_label[cell_mask] = cell_num
+        cell_num += 1
+
     # plot error analysis
     swapped = helper_functions.randomize_labels(copy.copy(contour_label))
     classify_outline = helper_functions.outline_objects(predicted_label, [split_cells, merged_cells, bad_cells])
@@ -110,16 +147,20 @@ for file in files:
                                     save_path=os.path.join(plot_direc, file_name + '_color_map.tiff'))
 
 
-    classify_outline = helper_functions.outline_objects(predicted_label, [split_cells, merged_cells, bad_cells_80,
+    classify_outline = helper_functions.outline_objects(plotting_label, [split_cells, merged_cells, missing_cells_new,
+                                                                          bad_cells_80,
                                                                           bad_cells_70, bad_cells_60, bad_cells_50])
 
-    helper_functions.plot_color_map(classify_outline, ground_truth=None, names=['Bg', 'Norm', 'split', 'merg', '80', '70', '60', 'rest'],
+    helper_functions.plot_color_map(classify_outline, ground_truth=None,
+                                    names=['Bg', 'Norm', 'split', 'merg', 'missing', '80', '70', '60', 'rest'],
                                     save_path=os.path.join(plot_direc, file_name + '_color_map.tiff'))
 
     io.imsave(os.path.join(plot_direc, file_name + 'color_map_raw.tiff'), classify_outline)
     # make subplots for two simple plots
 
-    helper_functions.plot_barchart_errors(cell_frame, save_path=os.path.join(plot_direc, file_name + '_stats.tiff'))
+    helper_functions.plot_barchart_errors(cell_frame, predicted_errors=['split', 'merged', 'low_quality'],
+                                          contour_errors=["missing"],
+                                          save_path=os.path.join(plot_direc, file_name + '_stats.tiff'))
 
     # mean average precision
     iou_matrix = helper_functions.calc_iou_matrix(contour_label, predicted_label)
@@ -129,6 +170,10 @@ for file in files:
     scores = scores + [np.mean(scores)]
     helper_functions.plot_barchart(scores, np.concatenate(((iou_thresholds * 100).astype('int').astype('str'), ['average'])),
                                    'IOU Errors', save_path=os.path.join(plot_direc, file_name + '_iou.tiff'))
+
+# deepcell metrics evaluation
+sys.path.append(os.path.abspath('../deepcell-tf'))
+from deepcell import metrics
 
 
 # get cell_ids for cells which don't pass iou_threshold

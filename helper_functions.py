@@ -17,115 +17,106 @@ from skimage.segmentation import find_boundaries
 
 
 # data loading
-def save_deepcell_tifs(model_output, file_names, save_path, cohort=False, transform='pixel'):
-    """Extract relevant tifs from a numpy array and save to a given directory
-        # TODO add here
+def save_deepcell_tifs(model_output_xr, save_path, transform='pixel', points=None, watershed_smooth=3, pixel_smooth=5):
+    """Extract and save tifs from deepcell output and save in directory format
+
         Args
-            model_output: numpy array of tifs output by deepcell
+            model_output: xarray of tifs output by deepcell
+            save_path: folder to save tifs
+            transform: one of pixel, fgbg, watershed, which determines how to process/save image
+            points: optional list of points to extract. If none extracts all
+            watershed_smooth: side length for square selem used for median smoothing
+            pixel_smooth: variance used for gaussian filter smoothing
             """
-    # the position of the point to look at during model testing
-    plot_idx = 0
 
-    if cohort:
-        if len(model_output.shape) != 4:
-            raise ValueError("cohort flag set to True, but 4 dimensional data not provided")
+    if len(model_output_xr.shape) != 4:
+        raise ValueError("xarray data has the wrong dimensions, expecting 4")
+
+    if points is None:
+        points = model_output_xr.coords['points']
     else:
-        if len(model_output.shape) != 5:
-            raise ValueError("cohort flag set to False, but 5 dimensional data not provided")
+        if np.any(~np.isin(points, model_output_xr.coords['points'])):
+            raise ValueError("Incorrect list of points given, not all are present in data structure")
 
-        # pick only the plotting point to be evaluated for each model
-        model_output = model_output[:, plot_idx, :, :, :]
+    # keep only the selected points
+    if len(points) == 1:
+        # don't subset, will change dimensions
+        pass
+    else:
+        model_output_xr = model_output_xr.loc[points, :, :, :]
 
     if transform == 'watershed':
-        if model_output.shape[-1] != 4:
-            raise ValueError("Watershed flag set to true, but 4-level output not provided")
+        if model_output_xr.shape[-1] != 4:
+            raise ValueError("Watershed transform selected, but last dimension is not 4")
+        if model_output_xr.coords['masks'].values[0] != 'level_0':
+            raise ValueError("Watershed transform selected, but first channel is not Level_0")
 
         # find the max value across different energy levels within each point
         argmax_images = []
-        for j in range(model_output.shape[0]):
-            argmax_images.append(np.argmax(model_output[j, ...], axis=-1))
+        for j in range(model_output_xr.shape[0]):
+            argmax_images.append(np.argmax(model_output_xr[j, ...].values, axis=-1))
         argmax_images = np.array(argmax_images)
 
-        # create array to hold background probability mask, maxima mask, and smoothed maxima mask
-        deepcell_outputs = np.zeros(argmax_images.shape + (3, ))
-        deepcell_outputs[:, :, :, 0] = model_output[..., 0]
-        deepcell_outputs[:, :, :, 1] = argmax_images
+        # create array to hold argmax and smoothed argmax mask
+        watershed_processed = np.zeros(argmax_images.shape + (2, ))
+        watershed_processed[:, :, :, 0] = argmax_images
 
-        for i in range(model_output.shape[0]):
-            smoothed_argmax = rank.median(argmax_images[i, ...], np.ones((3, 3)))
-            deepcell_outputs[i, :, :, 2] = smoothed_argmax
+        for i in range(model_output_xr.shape[0]):
+            smoothed_argmax = rank.median(argmax_images[i, ...], np.ones((watershed_smooth, watershed_smooth)))
+            watershed_processed[i, :, :, 1] = smoothed_argmax
 
-            # save relevant tifs
-            if cohort:
-                if not os.path.exists(os.path.join(save_path, file_names[i])):
-                    os.makedirs(os.path.join(save_path, file_names[i]))
+            io.imsave(os.path.join(save_path, model_output_xr.name + '_' + model_output_xr.coords['points'].values[i] +
+                                   '_watershed.tiff'), watershed_processed[i, :, :, 0].astype('int16'))
 
-                io.imsave(os.path.join(save_path, file_names[i], 'watershed_background.tiff'),
-                          deepcell_outputs[i, :, :, 0].astype('float32'))
-                io.imsave(os.path.join(save_path, file_names[i], 'watershed_probs.tiff'),
-                          deepcell_outputs[i, :, :, 1].astype('int16'))
-                io.imsave(os.path.join(save_path, file_names[i], 'watershed_smoothed_probs.tiff'),
-                          deepcell_outputs[i, :, :, 2].astype('int16'))
-            else:
-                io.imsave(os.path.join(save_path, file_names[i] + '_watershed_background.tiff'), deepcell_outputs[i, :, :, 0].astype('float32'))
-                io.imsave(os.path.join(save_path, file_names[i] + '_watershed_probs.tiff'), deepcell_outputs[i, :, :, 1].astype('int16'))
-                io.imsave(os.path.join(save_path, file_names[i] + '_watershed_smoothed_probs.tiff'), deepcell_outputs[i, :, :, 2].astype('int16'))
+            io.imsave(os.path.join(save_path, model_output_xr.name + '_' + model_output_xr.coords['points'].values[i] +
+                                   '_watershed_smoothed.tiff'), watershed_processed[i, :, :, 1].astype('int16'))
 
-        # mask_labels = ["background_mask", "watershed_probs", "smoothed_watershed_probs"]
-        # deepcell_outputs_xr = xr.DataArray(deepcell_outputs, coords=[file_names, range(1024), range(1024), mask_labels],
-        #                                     dims=["points", "rows", "cols", "masks"])
-        # deepcell_outputs_xr.to_netcdf(save_path + '/' + file_names[0] + '_watershed_network_output.nc')
+        mask = ["watershed", "watershed_smoothed"]
+        watershed_processed_xr = xr.DataArray(watershed_processed, name=model_output_xr.name + '_processed',
+                                           coords=[model_output_xr.coords['points'].values, range(1024), range(1024), mask],
+                                           dims=["points", "rows", "cols", "masks"])
+        watershed_processed_xr.to_netcdf(save_path + '/' + watershed_processed_xr.name + '.nc')
 
     elif transform == 'pixel':
-        if model_output.shape[-1] != 3:
-            raise ValueError("Watershed flag set to false, but 3-level output not provided")
+        if model_output_xr.shape[-1] != 3:
+            raise ValueError("pixel transform selected, but last dimension is not three")
+        if model_output_xr.coords['masks'].values[0] != 'border':
+            raise ValueError("pixel transform selected, but mask names don't match")
 
-        deepcell_outputs = np.zeros(model_output.shape[:-1] + (3, ))
-        deepcell_outputs[:, :, :, 0:2] = model_output[:, :, :, 0:2]
+        pixel_processed = np.zeros(model_output_xr.shape[:-1] + (3, ))
+        pixel_processed[:, :, :, 0:2] = model_output_xr.loc[:, :, :, ['border', 'interior']].values
 
-        for i in range(model_output.shape[0]):
+        for i in range(model_output_xr.shape[0]):
             # smooth interior probability for each point
-            smoothed_int = nd.gaussian_filter(model_output[i, :, :, 1], 5)
-            deepcell_outputs[i, :, :, 2] = smoothed_int
+            smoothed_int = nd.gaussian_filter(model_output_xr[i, :, :, 1], pixel_smooth)
+            pixel_processed[i, :, :, 2] = smoothed_int
 
-            if cohort:
-                # save files in different folders
-                if not os.path.exists(os.path.join(save_path, file_names[i])):
-                    os.makedirs(os.path.join(save_path, file_names[i]))
+            # save tifs
+            io.imsave(os.path.join(save_path, model_output_xr.name + '_' + model_output_xr.coords['points'].values[i] +
+                                   '_pixel_border.tiff'), pixel_processed[i, :, :, 0].astype('float32'))
+            io.imsave(os.path.join(save_path, model_output_xr.name + '_' + model_output_xr.coords['points'].values[i] +
+                                   '_pixel_interior.tiff'), pixel_processed[i, :, :, 1].astype('float32'))
+            io.imsave(os.path.join(save_path, model_output_xr.name + '_' + model_output_xr.coords['points'].values[i] +
+                                   '_pixel_interior_smoothed.tiff'), pixel_processed[i, :, :, 2].astype('float32'))
 
-                io.imsave(os.path.join(save_path, file_names[i], 'segmentation_border.tiff'),
-                          deepcell_outputs[i, :, :, 0].astype('float32'))
-                io.imsave(os.path.join(save_path, file_names[i], 'segmentation_interior.tiff'),
-                          deepcell_outputs[i, :, :, 1].astype('float32'))
-                io.imsave(os.path.join(save_path, file_names[i], 'segmentation_interior_smoothed.tiff'),
-                          deepcell_outputs[i, :, :, 2].astype('float32'))
-
-            else:
-                # save files in same folder
-                io.imsave(os.path.join(save_path, file_names[i] + '_border.tiff'),
-                          deepcell_outputs[i, :, :, 0].astype('float32'))
-                io.imsave(os.path.join(save_path, file_names[i] + '_interior.tiff'),
-                          deepcell_outputs[i, :, :, 1].astype('float32'))
-                io.imsave(os.path.join(save_path, file_names[i] + '_interior_smoothed.tiff'),
-                          deepcell_outputs[i, :, :, 2].astype('float32'))
-
-        # mask_labels = ["border_mask", "interior_mask", "smoothed_interior_mask"]
-        # deepcell_outputs_xr = xr.DataArray(deepcell_outputs,
-        #                                     coords=[file_names, range(1024), range(1024), mask_labels],
-        #                                     dims=["points", "rows", "cols", "masks"])
-        # deepcell_outputs_xr.to_netcdf(save_path + '/' + file_names[0] + '_deepcell_network_output.nc')
+        # save output
+        mask_labels = ["pixel_border", "pixel_interior", "pixel_interior_smoothed"]
+        pixel_processed_xr = xr.DataArray(pixel_processed, name=model_output_xr.name + '_processed',
+                                            coords=[model_output_xr.coords['points'], range(1024), range(1024), mask_labels],
+                                            dims=["points", "rows", "cols", "masks"])
+        pixel_processed_xr.to_netcdf(save_path + '/' + pixel_processed_xr.name + '.nc')
 
     elif transform == 'fgbg':
-        if model_output.shape[-1] != 2:
+        if model_output_xr.shape[-1] != 2:
             raise ValueError("fgbg flag set to false, but 2-level output not provided")
 
-        deepcell_outputs = np.zeros(model_output.shape[:-1] + (1, ))
+        deepcell_outputs = np.zeros(model_output_xr.shape[:-1] + (1, ))
 
-        for i in range(model_output.shape[0]):
+        for i in range(model_output_xr.shape[0]):
             # smooth fgbg probability then threshold thresholding
-            # thresholded_prob = model_output[i, :, :, 1] > 0.7
+            # thresholded_prob = model_output_xr[i, :, :, 1] > 0.7
             # deepcell_outputs[i, :, :, 0] = thresholded_prob
-            deepcell_outputs[i, :, :, 0] = model_output[i, :, :, 1]
+            deepcell_outputs[i, :, :, 0] = model_output_xr[i, :, :, 1]
 
             if cohort:
                 # save files in different folders
@@ -146,13 +137,13 @@ def load_tifs_from_points_dir(point_dir, tif_folder, points=None, tifs=None):
     """Takes a set of TIFs from a directory structure organised by points, and loads them into a numpy array.
 
         Args:
-            point_dir: string to directory of points
+            point_dir: directory path to points
             tif_folder: name of tif_folder within each point
-            points: optiona list of point_dirs to load, otherwise loads all folders with Point in name
+            points: optional list of point_dirs to load, otherwise loads all folders with Point in name
             tifs: optional list of TIFs to load, otherwise loads all TIFs
 
         Returns:
-            Numpy array with shape [num_dir, num_tifs, x_dim, y_dim]
+            Numpy array with shape [points, tifs, x_dim, y_dim]
     """
 
     if not os.path.isdir(point_dir):
@@ -164,6 +155,7 @@ def load_tifs_from_points_dir(point_dir, tif_folder, points=None, tifs=None):
         points = [point for point in points if 'Point' in point]
         points = [point for point in points if os.path.isdir(os.path.join(point_dir, point))]
     else:
+        # use supplied list, but check to make sure they all exist
         for point in points:
             if not os.path.isdir(os.path.join(point_dir, point)):
                 raise ValueError("Could not find point folder {}".format(point))
@@ -182,6 +174,7 @@ def load_tifs_from_points_dir(point_dir, tif_folder, points=None, tifs=None):
     if len(tifs) == 0:
         raise ValueError("No tifs found in designated folder")
 
+    # check to make sure supplied tifs exist
     for tif in tifs:
         if not os.path.isfile(os.path.join(point_dir, points[0], tif_folder, tif)):
             raise ValueError("Could not find {} in supplied directory {}".format(tif, os.path.join(point_dir, points[0], tif_folder, tif)))
@@ -194,17 +187,20 @@ def load_tifs_from_points_dir(point_dir, tif_folder, points=None, tifs=None):
             img_data[point, tif, :, :] = io.imread(os.path.join(point_dir, points[point], tif_folder, tifs[tif]))
 
     img_xr = xr.DataArray(img_data, coords=[points, tifs, range(test_img.shape[0]), range(test_img.shape[0])],
-                          dims=["point", "channel", "rows", "cols"])
+                          dims=["points", "channels", "rows", "cols"])
 
     return img_xr
 
 
 def segment_images(input_images, segmentation_masks):
-    """Extract single cell protein expression data from channel TIFs
+    """Extract single cell protein expression data from channel TIFs for a single point
 
         Args:
             input_images (xarray): Channels x TIFs matrix of imaging data
-            segmentation_masks (numpy array): mask_type x mask matrix of segmentation data"""
+            segmentation_masks (numpy array): mask_type x mask matrix of segmentation data
+
+        Returns:
+            xr_counts: xarray containing segmented data of cells x markers"""
 
     if type(input_images) is not xr.DataArray:
         raise ValueError("Incorrect data type for ground_truth, expecting xarray")
@@ -220,8 +216,9 @@ def segment_images(input_images, segmentation_masks):
     # create np.array to hold subcellular_loc x channel x cell info
     cell_counts = np.zeros((segmentation_masks.shape[0], max_cell_num + 1, len(input_images.channel) + 1))
 
-    # loop through each segmentation mask, and for each mask each point, to get total counts of all markers
+    # loop through each segmentation mask
     for subcell_loc in range(segmentation_masks.shape[0]):
+        # for each mask, loop through each cell to figure out marker count
         for cell in range(1, max_cell_num + 1):
 
             # get mask corresponding to current cell
@@ -233,6 +230,8 @@ def segment_images(input_images, segmentation_masks):
             cell_counts[subcell_loc, cell, 1:] = channel_counts
 
             cell_counts[subcell_loc, cell, 0] = cell_size
+
+    # create xarray  to hold resulting data
     col_names = np.concatenate((np.array('cell_size'), input_images.channel), axis=None)
     xr_counts = xr.DataArray(cell_counts, coords=[segmentation_masks.subcell_loc, range(max_cell_num + 1), col_names],
                              dims=['subcell_loc', 'cell_id', 'cell_data'])
@@ -263,9 +262,9 @@ def plot_overlay(predicted_contour, plotting_tif=None, alternate_contour=None, p
     if len(np.unique(predicted_contour)) < 2:
         raise ValueError("predicted contour is not labeled")
 
-    # if path is not None:
-    #     if os.path.exists(path) is False:
-    #         raise ValueError("File path does not exist.")
+    if path is not None:
+        if os.path.exists(os.path.split(path)[0]) is False:
+            raise ValueError("File path does not exist.")
 
     # define borders of cells in mask
     predicted_contour_mask = find_boundaries(predicted_contour, connectivity=1, mode='inner').astype(np.uint8)
@@ -344,20 +343,21 @@ def outline_objects(L_matrix, list_of_lists):
     return L_plot
 
 
-def plot_color_map(outline_matrix, names=None, ground_truth=None, save_path=None):
+def plot_color_map(outline_matrix, names,
+                   plotting_colors=['Black', 'Grey', 'Blue', 'Green', 'Pink', 'moccasin', 'tan', 'sienna', 'firebrick'],
+                   ground_truth=None, save_path=None):
     """Plot label map with cells of specified category colored the same
 
         Args
             outline_matrix: output of outline_objects function which assigns same value to cells of same class
             names: list of names for each category to use for plotting
+            plotting_colors: list of colors to use for plotting cell categories
             ground truth: optional argument to supply label map of true segmentation to be plotted alongside
             save_path: optional argument to save plot as TIF
 
         Returns
             Displays plot in window"""
 
-    #plotting_colors = ['Black', 'Grey', 'Blue', 'Red', 'Yellow', 'Green', 'Purple']
-    plotting_colors = ['Black', 'Grey', 'Blue', 'Green', 'moccasin', 'tan', 'sienna', 'firebrick']
     num_categories = np.max(outline_matrix)
     plotting_colors = plotting_colors[:num_categories + 1]
     cmap = mpl.colors.ListedColormap(plotting_colors)
@@ -376,16 +376,16 @@ def plot_color_map(outline_matrix, names=None, ground_truth=None, save_path=None
     # tell the colorbar to tick at integers
     cbar = fig.colorbar(mat, ticks=np.arange(np.min(outline_matrix), np.max(outline_matrix) + 1))
 
-    if names is not None:
-        cbar.ax.set_yticklabels(names)
-    else:
-        cbar.ax.set_yticklabels(['Background', 'Normal', 'Split', 'Merged', 'Low Quality'][:num_categories + 1])
+    cbar.ax.set_yticklabels(names)
+
+
     fig.tight_layout()
     if save_path is not None:
         fig.savefig(save_path, dpi=200)
 
 
-def plot_barchart_errors(pd_array, cell_category=["split", "merged", "low_quality"], save_path=None):
+def plot_barchart_errors(pd_array, contour_errors, predicted_errors, save_path=None):
+
     """Plot different error types in a barchart, along with cell-size correlation in a scatter plot
         Args
             pd_array: pandas cell array representing error types for each class of cell
@@ -396,7 +396,7 @@ def plot_barchart_errors(pd_array, cell_category=["split", "merged", "low_qualit
             Display plot on viewer"""
 
     # make sure all supplied categories are column names
-    if np.any(~np.isin(cell_category, pd_array.columns)):
+    if np.any(~np.isin(contour_errors + predicted_errors, pd_array.columns)):
         raise ValueError("Invalid column name")
 
     fig, ax = plt.subplots(2, 1, figsize=(10, 10))
@@ -406,16 +406,19 @@ def plot_barchart_errors(pd_array, cell_category=["split", "merged", "low_qualit
     ax[0].set_ylabel("Predicted Cell")
 
     # compute percentage of different error types
-    errors = np.zeros(len(cell_category))
-    for i in range(len(errors)):
-        errors[i] = len(set(pd_array.loc[pd_array[cell_category[i]], "predicted_cell"]))
+    errors = np.zeros(len(predicted_errors) + len(contour_errors))
+    for i in range(len(contour_errors)):
+        errors[i] = len(set(pd_array.loc[pd_array[contour_errors[i]], "contour_cell"]))
+
+    for i in range(len(predicted_errors)):
+        errors[i + len(contour_errors)] = len(set(pd_array.loc[pd_array[predicted_errors[i]], "predicted_cell"]))
 
     errors = errors / len(set(pd_array["predicted_cell"]))
     position = range(len(errors))
     ax[1].bar(position, errors)
 
     ax[1].set_xticks(position)
-    ax[1].set_xticklabels(cell_category)
+    ax[1].set_xticklabels(contour_errors + predicted_errors)
     ax[1].set_title("Fraction of cells misclassified")
 
     if save_path is not None:
@@ -475,9 +478,8 @@ def process_training_data(interior_contour, interior_border_contour):
 
     return label_contour
 
+
 # accuracy evaluation
-
-
 def compare_contours(predicted_label, contour_label):
 
     """Compares two distinct segmentation outputs
@@ -547,6 +549,7 @@ def compare_contours(predicted_label, contour_label):
                 overlap_id, overlap_count = overlap_id[keep_idx], overlap_count[keep_idx]
 
         # go through logic to determine relationship between overlapping cells
+        # TODO: change logic to include a too small category for when cell is completely contained within but is smaller
         if overlap_count[0] / contour_cell_size > 0.9:
 
             # if greater than 90% of pixels contained in first overlap, assign to that cell
@@ -564,6 +567,10 @@ def compare_contours(predicted_label, contour_label):
             bad_flag = False
             # TODO check if first cell also has at least 80% of volume contained in contour cell?
             # TODO can keep a counter of number of cells that meet this criteria, if >2 then split?
+
+            # keep only cells that overlap at least 20% with target cell
+            idx = overlap_count > 0.2 * contour_cell_size
+            overlap_id, overlap_count = overlap_id[idx], overlap_count[idx]
             for cell in range(1, len(overlap_id)):
                 pred_cell_size = np.sum(predicted_label == overlap_id[cell])
                 percnt = overlap_count[cell] / contour_cell_size
@@ -604,7 +611,7 @@ def compare_contours(predicted_label, contour_label):
     return cell_frame, predicted_label, contour_label
 
 # DSB-score adapted from https://www.biorxiv.org/content/10.1101/580605v1.full
-# object IoU matrix adapted from code written by Morgan Schwartz
+# object IoU matrix adapted from code written by Morgan Schwartz in deepcell-tf/metrics
 
 def calc_iou_matrix(ground_truth_label, predicted_label):
     """Calculates pairwise ious between all cells from two masks
@@ -632,6 +639,7 @@ def calc_iou_matrix(ground_truth_label, predicted_label):
             pd_img = predicted_label == j
             intersect = np.sum(np.logical_and(gt_img, pd_img))
             union = np.sum(np.logical_or(gt_img, pd_img))
+
             # adjust index by one to account for not including background
             iou_matrix[i - 1, j - 1] = intersect / union
     return iou_matrix
@@ -641,7 +649,7 @@ def calc_modified_average_precision(iou_matrix, thresholds):
     """Calculates the average precision between two masks across a range of iou thresholds
 
     Args:
-        iou_matrix: intersection over union matrix
+        iou_matrix: intersection over union matrix created by calc_iou_matrix function
         thresholds: list used to threshold iou values in matrix
 
     Returns:
