@@ -171,6 +171,9 @@ for file in files:
     helper_functions.plot_barchart(scores, np.concatenate(((iou_thresholds * 100).astype('int').astype('str'), ['average'])),
                                    'IOU Errors', save_path=os.path.join(plot_direc, file_name + '_iou.tiff'))
 
+    # optionally save accuracy metrics pandas array for future loading
+    cell_frame.to_pickle(plot_direc + "dataframe.pkl")
+
 # deepcell metrics evaluation
 sys.path.append(os.path.abspath('../deepcell-tf'))
 from deepcell import metrics
