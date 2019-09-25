@@ -214,7 +214,7 @@ def segment_images(input_images, segmentation_masks):
     max_cell_num = np.max(segmentation_masks[0, :, :].values).astype('int')
 
     # create np.array to hold subcellular_loc x channel x cell info
-    cell_counts = np.zeros((segmentation_masks.shape[0], max_cell_num + 1, len(input_images.channel) + 1))
+    cell_counts = np.zeros((segmentation_masks.shape[0], max_cell_num + 1, len(input_images.channels) + 1))
 
     # loop through each segmentation mask
     for subcell_loc in range(segmentation_masks.shape[0]):
@@ -232,7 +232,7 @@ def segment_images(input_images, segmentation_masks):
             cell_counts[subcell_loc, cell, 0] = cell_size
 
     # create xarray  to hold resulting data
-    col_names = np.concatenate((np.array('cell_size'), input_images.channel), axis=None)
+    col_names = np.concatenate((np.array('cell_size'), input_images.channels), axis=None)
     xr_counts = xr.DataArray(cell_counts, coords=[segmentation_masks.subcell_loc, range(max_cell_num + 1), col_names],
                              dims=['subcell_loc', 'cell_id', 'cell_data'])
     return xr_counts
