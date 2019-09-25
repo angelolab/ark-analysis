@@ -1,6 +1,4 @@
 # take segmentation masks and TIFs and generate single cell data
-import skimage.io as io
-import skimage.morphology as morph
 import skimage
 import helper_functions
 import importlib
@@ -10,35 +8,28 @@ import xarray as xr
 import os
 importlib.reload(helper_functions)
 
-# TODO: rework for segmentation testing only vs pipeline?
 # load segmentation masks
-seg_dir = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/Contours/analyses/20190822_training_freeze_1/'
-seg_folder = ''
-cell_seg_data = helper_functions.load_tifs_from_points_dir(seg_dir, seg_folder, [''], ['Training_Freeze_1_81_rf_512_dense_128_conv_epoch_42_label_mask.tiff'])
-nuc_seg_data = helper_functions.load_tifs_from_points_dir(seg_dir, seg_folder, [''], ['Training_Freeze_1_Nuc_fgbg_256_dense_64_conv_epoch_07_fgbg.tiff'])
+seg_dir = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/Contours/analyses/20190917_naming/'
+cell_labels = io.imread(os.path.join(seg_dir, 'Training_Freeze_1_81_rf_512_dense_128_conv_epoch_18_processedpoint8_watershed_5_marker_label_mask.tiff'))
+nuc_probs = io.imread(os.path.join(seg_dir, 'Training_Freeze_1_Nuc_81_rf_512_dense_128_conv_epoch_24_point8_pixel_interior_smoothed.tiff'))
 
 # load TIFs
-tif_dir = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/Contours/20190813_combined_data/'
-tif_folder = ''
-image_data = helper_functions.load_tifs_from_points_dir(tif_dir, tif_folder, ['Point1'], ['HH3.tif', 'LaminAC.tif', 'BetaTubulin.tif'])
+tif_dir = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/Contours/20190823_TA489_Redo/'
+tif_folder = 'TIFs'
+image_data = helper_functions.load_tifs_from_points_dir(tif_dir, tif_folder, ['Point8'])
 
-save_dir = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/Contours/analyses/20190822_training_freeze_1/segmented_data'
+save_dir = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/Contours/analyses/20190917_naming/segmented_data'
 
 if not os.path.exists(save_dir):
     os.makedirs(save_dir)
 
-for point in image_data.point.values:
-
-    # get segmentation masks
-    cell_labels = cell_seg_data.loc[:, 'Training_Freeze_1_81_rf_512_dense_128_conv_epoch_42_label_mask.tiff', :, :].values.astype('int')
+for point in image_data.points.values:
 
     # merge small cells?
     cell_props = skimage.measure.regionprops(cell_labels)
 
-    nuc_mask = nuc_seg_data.loc[:, 'Training_Freeze_1_Nuc_fgbg_256_dense_64_conv_epoch_07_fgbg.tiff', :, :].values.astype('int')
-
     # binarize to get nuclear vs non nuclear regions
-    nuc_mask = nuc_mask > 0
+    nuc_mask = nuc_probs > 0.3
 
     # duplicate whole cell data, then subtract nucleus for cytoplasm
     cyto_labels = copy.copy(cell_labels)

@@ -10,7 +10,7 @@ import skimage.morphology as morph
 # Perform watershed transformation over processed output files from deepcell
 
 # read in relavant files
-mask_dir = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/Contours/analyses/20190914_tuning/'
+mask_dir = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/Contours/analyses/20190917_naming/'
 
 pixel_xr = xr.open_dataarray(mask_dir + 'Training_Freeze_1_81_rf_512_dense_128_conv_epoch_18_processed.nc')
 pixel_xr = xr.open_dataarray(mask_dir + 'Training_Freeze_1_Nuc_81_rf_512_dense_128_conv_epoch_24_processed.nc')
@@ -71,7 +71,7 @@ for point in points:
     # watershed over border mask vs negative interior mask?
     labels = np.array(watershed(-pixel_interior_smoothed, markers, mask=interior_mask, watershed_line=1))
 
-    io.imsave(mask_dir + pixel_xr.name + 'point1_3marker_watershed_label_mask.tiff', labels)
+    io.imsave(mask_dir + pixel_xr.name + 'point8_watershed_5_marker_label_mask.tiff', labels)
 
     # pixel expansion
     expanded = morph.dilation(labels, selem=morph.square(5))

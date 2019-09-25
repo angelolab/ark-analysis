@@ -11,19 +11,19 @@ importlib.reload(helper_functions)
 
 # get directory where images are located
 base_dir = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/Contours/analyses'
-image_dir = base_dir + '/20190914_tuning/'
+image_dir = base_dir + '/20190917_naming/'
 plot_dir = image_dir + '/figs/'
 
 # get names of each, clean up for subsequent saving
 files = os.listdir(image_dir)
 files = [file for file in files if 'output.nc' in file]
-files = [file for file in files if 'point1' in file and 'watershed' not in file]
+files = [file for file in files if 'watershed' in file]
 files = [file for file in files if 'marker' not in file]
 
 # loop through saved point data and reformat to TIFs
 for file in files:
     xr_data = xr.open_dataarray(image_dir + file)
-    helper_functions.save_deepcell_tifs(xr_data, save_path=image_dir,  transform='pixel')
+    helper_functions.save_deepcell_tifs(xr_data, save_path=image_dir,  transform='watershed')
 
 
 # average ensemble models together
