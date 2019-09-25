@@ -10,10 +10,10 @@ importlib.reload(helper_functions)
 
 # load segmentation masks
 seg_dir = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/Contours/analyses/20190917_naming/'
-cell_labels = io.imread(os.path.join(seg_dir, 'Training_Freeze_1_81_rf_512_dense_128_conv_epoch_18_processedpoint8_watershed_5_marker_label_mask.tiff'))
+cell_labels = io.imread(os.path.join(seg_dir, 'Training_Freeze_1_81_rf_512_dense_128_conv_epoch_18_processedpoint8_watershed_5_marker_label_mask_noline.tiff'))
 nuc_probs = io.imread(os.path.join(seg_dir, 'Training_Freeze_1_Nuc_81_rf_512_dense_128_conv_epoch_24_point8_pixel_interior_smoothed.tiff'))
 
-# load TIFs
+# load TIFse
 tif_dir = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/Contours/20190823_TA489_Redo/'
 tif_folder = 'TIFs'
 image_data = helper_functions.load_tifs_from_points_dir(tif_dir, tif_folder, ['Point8'])
@@ -39,12 +39,17 @@ for point in image_data.points.values:
     nuc_labels = copy.copy(cell_labels)
     nuc_labels[~nuc_mask] = 0
 
+    # signal assigned to bg
+    bg_labels = np.zeros(cell_labels.shape)
+    bg_labels[cell_labels == 0] = 1
+
     # save different masks to single object
-    masks = np.zeros((3, 1024, 1024))
+    masks = np.zeros((4, 1024, 1024))
     masks[0, :, :] = cell_labels
     masks[1, :, :] = nuc_labels
     masks[2, :, :] = cyto_labels
-    segmentation_masks = xr.DataArray(masks, coords=[['cell_mask', 'nuc_mask', 'cyto_mask'], range(1024), range(1024)],
+    masks[3, :, :] = bg_labels
+    segmentation_masks = xr.DataArray(masks, coords=[['cell_mask', 'nuc_mask', 'cyto_mask', 'bg_mask'], range(1024), range(1024)],
                                       dims=['subcell_loc', 'rows', 'cols'])
 
     # segment images based on supplied masks

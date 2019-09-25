@@ -211,7 +211,7 @@ def segment_images(input_images, segmentation_masks):
     if input_images.shape[1:] != segmentation_masks.shape[1:]:
         raise ValueError("Image data and segmentation masks have different dimensions")
 
-    max_cell_num = np.max(segmentation_masks[0, :, :].values).astype('int')
+    max_cell_num = np.max(segmentation_masks.loc["cell_mask", :, :].values).astype('int')
 
     # create np.array to hold subcellular_loc x channel x cell info
     cell_counts = np.zeros((segmentation_masks.shape[0], max_cell_num + 1, len(input_images.channels) + 1))

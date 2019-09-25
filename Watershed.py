@@ -69,9 +69,9 @@ for point in points:
             markers[mask] = 0
 
     # watershed over border mask vs negative interior mask?
-    labels = np.array(watershed(-pixel_interior_smoothed, markers, mask=interior_mask, watershed_line=1))
+    labels = np.array(watershed(-pixel_interior_smoothed, markers, mask=interior_mask, watershed_line=0))
 
-    io.imsave(mask_dir + pixel_xr.name + 'point8_watershed_5_marker_label_mask.tiff', labels)
+    io.imsave(mask_dir + pixel_xr.name + 'point8_watershed_5_marker_label_mask_noline.tiff', labels)
 
     # pixel expansion
     expanded = morph.dilation(labels, selem=morph.square(5))
