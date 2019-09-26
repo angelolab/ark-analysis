@@ -47,3 +47,13 @@ for i in range(error_xr.shape[1]):
     fig.savefig(save_dir + current_error + ".tiff")
 
 
+file_paths = [base_dir + '20190917_naming/figs/iou_dataframe.pkl', base_dir + '20190917_naming/figs/iou_dataframe.pkl']
+names = ["example1", "example2"]
+
+data = pd.read_pickle(file_paths[0])
+data1 = pd.read_pickle(file_paths[1])
+
+fig, ax = plt.subplots(1, 1)
+ax.plot('thresholds', 'scores', data=data, marker='o', label=names[0])
+ax.plot('thresholds', 'scores', data=data, marker='o', label=names[1])
+ax.legend()
