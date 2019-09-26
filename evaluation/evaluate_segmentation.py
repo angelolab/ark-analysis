@@ -67,7 +67,7 @@ for file in files:
     #     else:
     #         border = io.imread(deep_direc + 'Training_Freeze_1_81_rf_512_dense_128_conv_epoch_18_point8_pixel_border.tiff')
 
-    helper_functions.plot_overlay(predicted_data, HH3, contour_data,
+    helper_functions.plot_overlay(predicted_data, HH3, contour_data)
                                   os.path.join(plot_direc, file_name + '_overlay_border.tiff'))
 
 
