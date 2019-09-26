@@ -11,9 +11,9 @@ importlib.reload(helper_functions)
 # code to evaluate accuracy of different segmentation contours
 
 # read in TIFs containing ground truth contoured data, along with predicted segmentation
-base_dir = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/Contours/'
+base_dir = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/'
 
-deep_direc = base_dir + 'analyses/20190914_tuning/'
+deep_direc = base_dir + 'analyses/20190917_naming/'
 plot_direc = deep_direc + 'figs/'
 
 files = os.listdir(deep_direc)
@@ -170,6 +170,10 @@ for file in files:
     scores = scores + [np.mean(scores)]
     helper_functions.plot_barchart(scores, np.concatenate(((iou_thresholds * 100).astype('int').astype('str'), ['average'])),
                                    'IOU Errors', save_path=os.path.join(plot_direc, file_name + '_iou.tiff'))
+
+    # save pd dataframe for later loading of
+    iou_df = pd.DataFrame({'scores': scores, 'thresholds': iou_thresholds})
+    iou_df.to_pickle(plot_direc + 'iou_dataframe.pkl')
 
     # optionally save accuracy metrics pandas array for future loading
     cell_frame.to_pickle(plot_direc + "dataframe.pkl")
