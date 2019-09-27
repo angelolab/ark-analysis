@@ -180,14 +180,14 @@ def load_tifs_from_points_dir(point_dir, tif_folder, points=None, tifs=None):
             raise ValueError("Could not find {} in supplied directory {}".format(tif, os.path.join(point_dir, points[0], tif_folder, tif)))
 
     test_img = io.imread(os.path.join(point_dir, points[0], tif_folder, tifs[0]))
-    img_data = np.zeros((len(points), len(tifs), test_img.shape[0], test_img.shape[1]))
+    img_data = np.zeros((len(points), test_img.shape[0], test_img.shape[1]), len(tifs))
 
     for point in range(len(points)):
         for tif in range(len(tifs)):
-            img_data[point, tif, :, :] = io.imread(os.path.join(point_dir, points[point], tif_folder, tifs[tif]))
+            img_data[point, :, :, tif] = io.imread(os.path.join(point_dir, points[point], tif_folder, tifs[tif]))
 
-    img_xr = xr.DataArray(img_data, coords=[points, tifs, range(test_img.shape[0]), range(test_img.shape[0])],
-                          dims=["points", "channels", "rows", "cols"])
+    img_xr = xr.DataArray(img_data, coords=[points, range(test_img.shape[0]), range(test_img.shape[0]), tifs],
+                          dims=["points", "rows", "cols", "channels"])
 
     return img_xr
 
@@ -231,7 +231,7 @@ def segment_images(input_images, segmentation_masks):
 
             cell_counts[subcell_loc, cell, 0] = cell_size
 
-    # create xarray  to hold resulting data
+    # create xarray to hold resulting data
     col_names = np.concatenate((np.array('cell_size'), input_images.channels), axis=None)
     xr_counts = xr.DataArray(cell_counts, coords=[segmentation_masks.subcell_loc, range(max_cell_num + 1), col_names],
                              dims=['subcell_loc', 'cell_id', 'cell_data'])
