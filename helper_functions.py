@@ -133,12 +133,12 @@ def save_deepcell_tifs(model_output_xr, save_path, transform='pixel', points=Non
                           deepcell_outputs[i, :, :, 0].astype('float32'))
 
 
-def load_tifs_from_points_dir(point_dir, tif_folder, points=None, tifs=None):
+def load_tifs_from_points_dir(point_dir, tif_folder=None, points=None, tifs=None):
     """Takes a set of TIFs from a directory structure organised by points, and loads them into a numpy array.
 
         Args:
             point_dir: directory path to points
-            tif_folder: name of tif_folder within each point
+            tif_folder: optional name of tif_folder within each point, otherwise assumes tifs are in Point folder
             points: optional list of point_dirs to load, otherwise loads all folders with Point in name
             tifs: optional list of TIFs to load, otherwise loads all TIFs
 
@@ -163,8 +163,13 @@ def load_tifs_from_points_dir(point_dir, tif_folder, points=None, tifs=None):
     if len(points) == 0:
         raise ValueError("No points found in directory")
 
-    if not os.path.isdir(os.path.join(point_dir, points[0], tif_folder)):
-        raise ValueError("Invalid tif folder name")
+    # check to make sure tif subfolder name within point directory is correct
+    if tif_folder is not None:
+        if not os.path.isdir(os.path.join(point_dir, points[0], tif_folder)):
+            raise ValueError("Invalid tif folder name")
+    else:
+        # no tif folder, change to empty string to read directly from base folder
+        tif_folder = ""
 
     # get tifs from first point directory if no tif names supplied
     if tifs is None:
@@ -180,7 +185,7 @@ def load_tifs_from_points_dir(point_dir, tif_folder, points=None, tifs=None):
             raise ValueError("Could not find {} in supplied directory {}".format(tif, os.path.join(point_dir, points[0], tif_folder, tif)))
 
     test_img = io.imread(os.path.join(point_dir, points[0], tif_folder, tifs[0]))
-    img_data = np.zeros((len(points), test_img.shape[0], test_img.shape[1]), len(tifs))
+    img_data = np.zeros((len(points), test_img.shape[0], test_img.shape[1], len(tifs)))
 
     for point in range(len(points)):
         for tif in range(len(tifs)):
