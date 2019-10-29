@@ -201,8 +201,8 @@ def segment_images(input_images, segmentation_masks):
     """Extract single cell protein expression data from channel TIFs for a single point
 
         Args:
-            input_images (xarray): Channels x TIFs matrix of imaging data
-            segmentation_masks (numpy array): mask_type x mask matrix of segmentation data
+            input_images (xarray): rows x columns x channels matrix of imaging data
+            segmentation_masks (numpy array): rows x columns x mask_type matrix of segmentation data
 
         Returns:
             xr_counts: xarray containing segmented data of cells x markers"""
@@ -213,8 +213,8 @@ def segment_images(input_images, segmentation_masks):
     if type(segmentation_masks) is not xr.DataArray:
         raise ValueError("Incorrect data type for masks, expecting xarray")
 
-    # if input_images.shape[1:] != segmentation_masks.shape[1:]:
-    #     raise ValueError("Image data and segmentation masks have different dimensions")
+    if input_images.shape[:-1] != segmentation_masks.shape[:-1]:
+        raise ValueError("Image data and segmentation masks have different dimensions")
 
     max_cell_num = np.max(segmentation_masks.values).astype('int')
 
@@ -231,14 +231,13 @@ def segment_images(input_images, segmentation_masks):
         for cell in range(1, max_cell_num + 1):
 
             # get mask corresponding to current cell
-            cell_mask = segmentation_masks.loc[subcell_loc, :, :] == cell
+            cell_mask = segmentation_masks.loc[:, :, subcell_loc] == cell
             cell_size = np.sum(cell_mask)
 
             # calculate the total signal intensity within that cell mask across all channels, and save to numpy
             channel_counts = np.sum(input_images.values[cell_mask, :], axis=0)
             xr_counts.loc[subcell_loc, cell, xr_counts.features[1]:] = channel_counts
             xr_counts.loc[subcell_loc, cell, xr_counts.features[0]] = cell_size
-
 
     return xr_counts
 
