@@ -216,29 +216,30 @@ def segment_images(input_images, segmentation_masks):
     # if input_images.shape[1:] != segmentation_masks.shape[1:]:
     #     raise ValueError("Image data and segmentation masks have different dimensions")
 
-    max_cell_num = np.max(segmentation_masks.loc["cell_mask", :, :].values).astype('int')
+    max_cell_num = np.max(segmentation_masks.values).astype('int')
 
     # create np.array to hold subcellular_loc x channel x cell info
-    cell_counts = np.zeros((segmentation_masks.shape[0], max_cell_num + 1, len(input_images.channels) + 1))
+    cell_counts = np.zeros((len(segmentation_masks.subcell_loc), max_cell_num + 1, len(input_images.channels) + 1))
+
+    col_names = np.concatenate((np.array('cell_size'), input_images.channels), axis=None)
+    xr_counts = xr.DataArray(copy.copy(cell_counts), coords=[segmentation_masks.subcell_loc, range(max_cell_num + 1), col_names],
+                             dims=['subcell_loc', 'cell_id', 'features'])
 
     # loop through each segmentation mask
-    for subcell_loc in range(segmentation_masks.shape[0]):
+    for subcell_loc in segmentation_masks.subcell_loc:
         # for each mask, loop through each cell to figure out marker count
         for cell in range(1, max_cell_num + 1):
 
             # get mask corresponding to current cell
-            cell_mask = segmentation_masks[subcell_loc, :, :] == cell
+            cell_mask = segmentation_masks.loc[subcell_loc, :, :] == cell
             cell_size = np.sum(cell_mask)
 
             # calculate the total signal intensity within that cell mask across all channels, and save to numpy
             channel_counts = np.sum(input_images.values[cell_mask, :], axis=0)
-            cell_counts[subcell_loc, cell, 1:] = channel_counts
-            cell_counts[subcell_loc, cell, 0] = cell_size
+            xr_counts.loc[subcell_loc, cell, xr_counts.features[1]:] = channel_counts
+            xr_counts.loc[subcell_loc, cell, xr_counts.features[0]] = cell_size
 
-    # create xarray to hold resulting data
-    col_names = np.concatenate((np.array('cell_size'), input_images.channels), axis=None)
-    xr_counts = xr.DataArray(cell_counts, coords=[segmentation_masks.subcell_loc, range(max_cell_num + 1), col_names],
-                             dims=['subcell_loc', 'cell_id', 'cell_data'])
+
     return xr_counts
 
 
