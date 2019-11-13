@@ -65,10 +65,10 @@ def save_deepcell_tifs(model_output_xr, save_path, transform='pixel', points=Non
             smoothed_argmax = rank.median(argmax_images[i, ...], np.ones((watershed_smooth, watershed_smooth)))
             watershed_processed[i, :, :, 1] = smoothed_argmax
 
-            io.imsave(os.path.join(save_path, model_output_xr.name + '_' + model_output_xr.coords['points'].values[i] +
+            io.imsave(os.path.join(save_path, model_output_xr.coords['points'].values[i] +
                                    '_watershed.tiff'), watershed_processed[i, :, :, 0].astype('int16'))
 
-            io.imsave(os.path.join(save_path, model_output_xr.name + '_' + model_output_xr.coords['points'].values[i] +
+            io.imsave(os.path.join(save_path, model_output_xr.coords['points'].values[i] +
                                    '_watershed_smoothed.tiff'), watershed_processed[i, :, :, 1].astype('int16'))
 
         mask = ["watershed", "watershed_smoothed"]
