@@ -73,7 +73,8 @@ def save_deepcell_tifs(model_output_xr, save_path, transform='pixel', points=Non
 
         mask = ["watershed", "watershed_smoothed"]
         watershed_processed_xr = xr.DataArray(watershed_processed, name=model_output_xr.name + '_processed',
-                                           coords=[model_output_xr.coords['points'].values, range(1024), range(1024), mask],
+                                           coords=[model_output_xr.coords['points'], range(model_output_xr.shape[1]),
+                                                   range(model_output_xr.shape[2]), mask],
                                            dims=["points", "rows", "cols", "masks"])
         watershed_processed_xr.to_netcdf(save_path + '/' + watershed_processed_xr.name + '.nc')
 
@@ -92,17 +93,18 @@ def save_deepcell_tifs(model_output_xr, save_path, transform='pixel', points=Non
             pixel_processed[i, :, :, 2] = smoothed_int
 
             # save tifs
-            io.imsave(os.path.join(save_path, model_output_xr.name + '_' + model_output_xr.coords['points'].values[i] +
+            io.imsave(os.path.join(save_path, model_output_xr.coords['points'].values[i] +
                                    '_pixel_border.tiff'), pixel_processed[i, :, :, 0].astype('float32'))
-            io.imsave(os.path.join(save_path, model_output_xr.name + '_' + model_output_xr.coords['points'].values[i] +
+            io.imsave(os.path.join(save_path, model_output_xr.coords['points'].values[i] +
                                    '_pixel_interior.tiff'), pixel_processed[i, :, :, 1].astype('float32'))
-            io.imsave(os.path.join(save_path, model_output_xr.name + '_' + model_output_xr.coords['points'].values[i] +
+            io.imsave(os.path.join(save_path, model_output_xr.coords['points'].values[i] +
                                    '_pixel_interior_smoothed.tiff'), pixel_processed[i, :, :, 2].astype('float32'))
 
         # save output
         mask_labels = ["pixel_border", "pixel_interior", "pixel_interior_smoothed"]
         pixel_processed_xr = xr.DataArray(pixel_processed, name=model_output_xr.name + '_processed',
-                                            coords=[model_output_xr.coords['points'], range(1024), range(1024), mask_labels],
+                                            coords=[model_output_xr.coords['points'], range(model_output_xr.shape[1]),
+                                                    range(model_output_xr.shape[2]), mask_labels],
                                             dims=["points", "rows", "cols", "masks"])
         pixel_processed_xr.to_netcdf(save_path + '/' + pixel_processed_xr.name + '.nc')
 
@@ -234,10 +236,14 @@ def segment_images(input_images, segmentation_masks):
             cell_mask = segmentation_masks.loc[:, :, subcell_loc] == cell
             cell_size = np.sum(cell_mask)
 
-            # calculate the total signal intensity within that cell mask across all channels, and save to numpy
-            channel_counts = np.sum(input_images.values[cell_mask, :], axis=0)
-            xr_counts.loc[subcell_loc, cell, xr_counts.features[1]:] = channel_counts
-            xr_counts.loc[subcell_loc, cell, xr_counts.features[0]] = cell_size
+            # not all sequential cell_ids are included due to removal of small seeds
+            if cell_size == 0:
+                continue
+            else:
+                # calculate the total signal intensity within that cell mask across all channels, and save to numpy
+                channel_counts = np.sum(input_images.values[cell_mask, :], axis=0)
+                xr_counts.loc[subcell_loc, cell, xr_counts.features[1]:] = channel_counts
+                xr_counts.loc[subcell_loc, cell, xr_counts.features[0]] = cell_size
 
     return xr_counts
 
