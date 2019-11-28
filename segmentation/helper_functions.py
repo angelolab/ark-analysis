@@ -72,11 +72,11 @@ def save_deepcell_tifs(model_output_xr, save_path, transform='pixel', points=Non
                                    '_watershed_smoothed.tiff'), watershed_processed[i, :, :, 1].astype('int16'))
 
         mask = ["watershed", "watershed_smoothed"]
-        watershed_processed_xr = xr.DataArray(watershed_processed, name=model_output_xr.name + '_processed',
+        watershed_processed_xr = xr.DataArray(watershed_processed,
                                            coords=[model_output_xr.coords['points'], range(model_output_xr.shape[1]),
                                                    range(model_output_xr.shape[2]), mask],
                                            dims=["points", "rows", "cols", "masks"])
-        watershed_processed_xr.to_netcdf(save_path + '/' + watershed_processed_xr.name + '.nc')
+        watershed_processed_xr.to_netcdf(save_path + '/watershed_processed.nc')
 
     elif transform == 'pixel':
         if model_output_xr.shape[-1] != 3:
@@ -102,11 +102,11 @@ def save_deepcell_tifs(model_output_xr, save_path, transform='pixel', points=Non
 
         # save output
         mask_labels = ["pixel_border", "pixel_interior", "pixel_interior_smoothed"]
-        pixel_processed_xr = xr.DataArray(pixel_processed, name=model_output_xr.name + '_processed',
+        pixel_processed_xr = xr.DataArray(pixel_processed,
                                             coords=[model_output_xr.coords['points'], range(model_output_xr.shape[1]),
                                                     range(model_output_xr.shape[2]), mask_labels],
                                             dims=["points", "rows", "cols", "masks"])
-        pixel_processed_xr.to_netcdf(save_path + '/' + pixel_processed_xr.name + '.nc')
+        pixel_processed_xr.to_netcdf(save_path + '/pixel_processed.nc')
 
     elif transform == 'fgbg':
         if model_output_xr.shape[-1] != 2:
@@ -193,10 +193,89 @@ def load_tifs_from_points_dir(point_dir, tif_folder=None, points=None, tifs=None
         for tif in range(len(tifs)):
             img_data[point, :, :, tif] = io.imread(os.path.join(point_dir, points[point], tif_folder, tifs[tif]))
 
-    img_xr = xr.DataArray(img_data, coords=[points, range(test_img.shape[0]), range(test_img.shape[0]), tifs],
+    # remove .tif or .tiff from image name
+    tif_names = [os.path.splitext(tif)[0] for tif in tifs]
+
+    img_xr = xr.DataArray(img_data, coords=[points, range(test_img.shape[0]), range(test_img.shape[1]), tif_names],
                           dims=["points", "rows", "cols", "channels"])
 
     return img_xr
+
+
+def crop_helper(image_stack, crop_size):
+    """"Helper function to take an image, and return crops of size crop_size
+
+    Inputs:
+        image_stack (np.array): A 4D numpy array of shape(points, rows, columns, channels)
+        crop_size (int): Size of the crop to take from the image. Assumes square crops
+
+    Outputs:
+        cropped_images (np.array): A 4D numpy array of shape (crops, rows, columns, channels)"""
+
+    if len(image_stack.shape) != 4:
+        raise ValueError("Incorrect dimensions of input image. Expecting 3D, got {}".format(img.shape))
+
+    # First determine number of crops across the image. Includes last full crop only
+    crop_num_row = math.floor(image_stack.shape[1] / crop_size)
+    # print("crop_num_row {}".format(crop_num_row))
+    crop_num_col = math.floor(image_stack.shape[2] / crop_size)
+    # print("crop_num_col {}".format((crop_num_col)))
+    cropped_images = np.zeros((crop_num_row * crop_num_col * image_stack.shape[0], crop_size, crop_size,
+                               image_stack.shape[3]), dtype="int32")
+
+    # iterate through the image row by row, cropping based on identified threshold
+    img_idx = 0
+    for point in range(image_stack.shape[0]):
+        for row in range(crop_num_row):
+            for col in range(crop_num_col):
+                cropped_images[img_idx, :, :, :] = image_stack[point, (row * crop_size):((row + 1) * crop_size),
+                                                       (col * crop_size):((col + 1) * crop_size), :]
+                img_idx += 1
+
+    return cropped_images
+
+
+def crop_image_stack(image_stack, crop_size, stride_fraction):
+    """Function to generate a series of tiled crops across an image. The tiled crops can overlap each other, with the
+       overlap between tiles determined by the stride fraction. A stride fraction of 0.333 will move the window over
+       1/3 of the crop_size in x and y at each step, whereas a stride fraction of 1 will move the window the entire crop
+       size at each iteration.
+
+    Inputs:
+        image_stack (np.array): A 4D numpy array of shape(points, rows, columns, channels)
+        crop_size (int): size of the crop to take from the image. Assumes square crops
+        stride_fraction (float): the relative size of the stride for overlapping crops as a function of
+        the crop size.
+    Outputs:
+        cropped_images (np.array): A 4D numpy array of shape(crops, rows, cols, channels)"""
+
+    if len(image_stack.shape) != 4:
+        raise ValueError("Incorrect dimensions of input image. Expecting 3D, got {}".format(img.shape))
+
+    if crop_size > image_stack.shape[1]:
+        raise ValueError("Invalid crop size: img shape is {} and crop size is {}".format(img.shape, crop_size))
+
+    if stride_fraction > 1:
+        raise ValueError("Invalid stride fraction. Must be less than 1, passed a value of {}".format(stride_fraction))
+
+    # Determine how many distinct grids will be generated across the image
+    stride_step = math.floor(crop_size * stride_fraction)
+    num_strides = math.floor(1 / stride_fraction)
+
+    for row_shift in range(num_strides):
+        for col_shift in range(num_strides):
+
+            if row_shift == 0 and col_shift == 0:
+                # declare data holder
+                cropped_images = crop_helper(image_stack, crop_size)
+            else:
+                # crop the image by the shift prior to generating grid of crops
+                img_shift = image_stack[:, (row_shift * stride_step):, (col_shift * stride_step):, :]
+                # print("shape of the input image is {}".format(img_shift.shape))
+                temp_images = crop_helper(img_shift, crop_size)
+                cropped_images = np.append(cropped_images, temp_images, axis=0)
+
+    return cropped_images
 
 
 def segment_images(input_images, segmentation_masks):
@@ -218,19 +297,20 @@ def segment_images(input_images, segmentation_masks):
     if input_images.shape[:-1] != segmentation_masks.shape[:-1]:
         raise ValueError("Image data and segmentation masks have different dimensions")
 
-    max_cell_num = np.max(segmentation_masks.values).astype('int')
+    unique_cell_num = len(np.unique(segmentation_masks.values).astype('int'))
 
     # create np.array to hold subcellular_loc x channel x cell info
-    cell_counts = np.zeros((len(segmentation_masks.subcell_loc), max_cell_num + 1, len(input_images.channels) + 1))
+    cell_counts = np.zeros((len(segmentation_masks.subcell_loc), unique_cell_num, len(input_images.channels) + 1))
 
     col_names = np.concatenate((np.array('cell_size'), input_images.channels), axis=None)
-    xr_counts = xr.DataArray(copy.copy(cell_counts), coords=[segmentation_masks.subcell_loc, range(max_cell_num + 1), col_names],
+    xr_counts = xr.DataArray(copy.copy(cell_counts), coords=[segmentation_masks.subcell_loc,
+                                                             np.unique(segmentation_masks.values).astype('int'), col_names],
                              dims=['subcell_loc', 'cell_id', 'features'])
 
     # loop through each segmentation mask
     for subcell_loc in segmentation_masks.subcell_loc:
         # for each mask, loop through each cell to figure out marker count
-        for cell in range(1, max_cell_num + 1):
+        for cell in np.unique(segmentation_masks.values.astype('int')):
 
             # get mask corresponding to current cell
             cell_mask = segmentation_masks.loc[:, :, subcell_loc] == cell
@@ -301,6 +381,7 @@ def plot_overlay(predicted_contour, plotting_tif=None, alternate_contour=None, p
 
         if path is not None:
             overlay.savefig(os.path.join(path), dpi=800)
+            plt.close(overlay)
 
     else:
         # if only one mask provided
@@ -310,6 +391,7 @@ def plot_overlay(predicted_contour, plotting_tif=None, alternate_contour=None, p
 
         if path is not None:
             overlay.savefig(os.path.join(path), dpi=800)
+            plt.close(overlay)
 
 
 def randomize_labels(label_map):
