@@ -46,23 +46,17 @@ def save_deepcell_tifs(model_output_xr, save_path, transform='pixel', points=Non
         model_output_xr = model_output_xr.loc[points, :, :, :]
 
     if transform == 'watershed':
-        if model_output_xr.shape[-1] != 4:
+        if model_output_xr.shape[-1] != 1:
             raise ValueError("Watershed transform selected, but last dimension is not 4")
-        if model_output_xr.coords['masks'].values[0] != 'level_0':
+        if model_output_xr.coords['masks'].values[0] != 'watershed_argmax':
             raise ValueError("Watershed transform selected, but first channel is not Level_0")
 
-        # find the max value across different energy levels within each point
-        argmax_images = []
-        for j in range(model_output_xr.shape[0]):
-            argmax_images.append(np.argmax(model_output_xr[j, ...].values, axis=-1))
-        argmax_images = np.array(argmax_images)
-
         # create array to hold argmax and smoothed argmax mask
-        watershed_processed = np.zeros(argmax_images.shape + (2, ))
-        watershed_processed[:, :, :, 0] = argmax_images
+        watershed_processed = np.zeros(model_output_xr.shape[:-1] + (2, ))
+        watershed_processed[:, :, :, 0] = model_output_xr.values[:, :, :, 0]
 
         for i in range(model_output_xr.shape[0]):
-            smoothed_argmax = rank.median(argmax_images[i, ...], np.ones((watershed_smooth, watershed_smooth)))
+            smoothed_argmax = rank.median(model_output_xr[i, :, :, 0], np.ones((watershed_smooth, watershed_smooth)))
             watershed_processed[i, :, :, 1] = smoothed_argmax
 
             io.imsave(os.path.join(save_path, model_output_xr.coords['points'].values[i] +
