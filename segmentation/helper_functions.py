@@ -66,11 +66,11 @@ def save_deepcell_tifs(model_output_xr, save_path, transform='pixel', points=Non
                                    '_watershed_smoothed.tiff'), watershed_processed[i, :, :, 1].astype('int16'))
 
         mask = ["watershed", "watershed_smoothed"]
-        watershed_processed_xr = xr.DataArray(watershed_processed,
+        watershed_processed_xr = xr.DataArray(watershed_processed, name=model_output_xr.name + "_processed",
                                            coords=[model_output_xr.coords['points'], range(model_output_xr.shape[1]),
                                                    range(model_output_xr.shape[2]), mask],
                                            dims=["points", "rows", "cols", "masks"])
-        watershed_processed_xr.to_netcdf(save_path + '/watershed_processed.nc')
+        watershed_processed_xr.to_netcdf(save_path + watershed_processed_xr.name + '.nc')
 
     elif transform == 'pixel':
         if model_output_xr.shape[-1] != 3:
@@ -96,11 +96,11 @@ def save_deepcell_tifs(model_output_xr, save_path, transform='pixel', points=Non
 
         # save output
         mask_labels = ["pixel_border", "pixel_interior", "pixel_interior_smoothed"]
-        pixel_processed_xr = xr.DataArray(pixel_processed,
+        pixel_processed_xr = xr.DataArray(pixel_processed, name=model_output_xr.name + "_processed",
                                             coords=[model_output_xr.coords['points'], range(model_output_xr.shape[1]),
                                                     range(model_output_xr.shape[2]), mask_labels],
                                             dims=["points", "rows", "cols", "masks"])
-        pixel_processed_xr.to_netcdf(save_path + '/pixel_processed.nc')
+        pixel_processed_xr.to_netcdf(save_path + pixel_processed_xr.name + '.nc')
 
     elif transform == 'fgbg':
         if model_output_xr.shape[-1] != 2:
