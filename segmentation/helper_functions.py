@@ -323,6 +323,106 @@ def crop_image_stack(image_stack, crop_size, stride_fraction):
     return cropped_images
 
 
+def watershed_transform(pixel_xr, watershed_xr, channel_xr, overlay_channels, output_dir, pixel_background=True, nuclear_expansion=None,
+                        randomize_cell_labels=False, small_seed_cutoff=5):
+
+    """Runs the watershed transform over a set of probability masks output by deepcell network
+    Inputs:
+        pixel_xr: xarray containing the pixel 3-class probabilities
+        watershed_xr: xarray containgin the watershed network argmax probabilities
+        channel_xr: xarray containing the input channels used to generate the network probabilities
+        output_dir: path to directory where the output will be saved
+        pixel_background: if true, will use the interior_mask of the pixel network as the space to watershed over.
+            if false, will use the output of the watershed network
+        nuclear_expansion: optional pixel value by which to expand cells if doing nuclear segmentation
+        randomize_labels: if true, will randomize the order of the labels put out by watershed for easier visualization
+        small_seed_cutoff: area threshold for cell seeds, smaller values will be discarded
+    Outputs:
+        Saves xarray to output directory"""
+
+    # error checking
+    if pixel_xr.shape[0] != watershed_xr.shape[0]:
+        raise ValueError("The pixel and watershed xarrays have a different number of points")
+
+    if np.sum(~np.isin(pixel_xr.points.values, channel_xr.points.values)) > 0:
+        raise ValueError("Not all of the points in the deepcell output were found in the channel xr")
+
+    overlay_in_xr = np.isin(overlay_channels, channel_xr.channels)
+    if len(overlay_in_xr) != np.sum(overlay_in_xr):
+        bad_chan = overlay_channels[np.where(~overlay_in_xr)[0][0]]
+        raise ValueError("{} was listed as an overlay channel, but it is not in the channel xarray".format(bad_chan))
+
+    if not os.path.isdir(output_dir):
+        raise ValueError("output directory does not exist")
+
+    segmentation_labels_xr = xr.DataArray(np.zeros((pixel_xr.shape[:-1] + (1,)), dtype="int16"),
+                                          coords=[pixel_xr.points, range(pixel_xr.shape[1]), range(pixel_xr.shape[2]),
+                                                  ['segmentation_label']], dims=['points', 'rows', 'cols', 'channels'])
+
+    for point in pixel_xr.points.values:
+        print("analyzing point {}".format(point))
+
+        # get relevant network outputs for performing watershed
+        pixel_interior_smoothed = pixel_xr.loc[point, :, :, 'pixel_interior_smoothed']
+        watershed_smoothed = watershed_xr.loc[point, :, :, 'watershed_smoothed']
+
+        # get local maxima from watershed network
+        maxs = watershed_smoothed > 2
+
+        if pixel_background:
+            # use interior probability from pixel network as space to watershed over
+            max = np.max(pixel_interior_smoothed.values)
+            interior_mask = pixel_interior_smoothed > (0.25 * max)
+            contour_mask = -pixel_interior_smoothed
+        else:
+            # use watershed network output as space to watershed over
+            interior_mask = watershed_smoothed > 0
+            contour_mask = -watershed_smoothed
+
+        # use maxs to generate seeds for watershed
+        markers = skimage.measure.label(maxs, connectivity=1)
+
+        # remove any maxs that are 4 pixels or smaller
+        if small_seed_cutoff is not None:
+
+            # get size of all seeds
+            seed_props = skimage.measure.regionprops(markers, cache=False)
+            seed_area = np.array([r.area for r in seed_props])
+
+            # for all seeds less than cutoff, set corresponding pixels to 0
+            remove_ids = np.where(seed_area < small_seed_cutoff)
+
+            for id in remove_ids[0]:
+                # increment by 1 since regionprops starts counting at 0
+                markers[markers == id + 1] = 0
+
+        # watershed over negative interior mask
+        labels = np.array(morph.watershed(contour_mask, markers, mask=interior_mask, watershed_line=0))
+
+        # optional pixel expansion following nuclear segmentation
+        if nuclear_expansion is not None:
+            expanded = morph.dilation(labels, selem=morph.square(nuclear_expansion))
+        else:
+            expanded = labels
+
+        if randomize_cell_labels:
+            random_map = randomize_labels(expanded)
+        else:
+            random_map = expanded
+
+        io.imsave(output_dir + point + "_segmentation_labels.tiff", random_map)
+        segmentation_labels_xr.loc[point, :, :, 'segmentation_label'] = random_map
+
+        # plot list of supplied markers overlaid by segmentation mask to assess accuracy
+        for channel in overlay_channels:
+            chan_marker = channel_xr.loc[point, :, :, channel]
+            plot_overlay(random_map, plotting_tif=chan_marker,
+                                          path=output_dir + point + "_{}_overlay.tiff".format(channel))
+
+    segmentation_labels_xr.name = pixel_xr.name + "_segmentation_labels"
+    segmentation_labels_xr.to_netcdf(output_dir + segmentation_labels_xr.name + ".nc", format='NETCDF3_64BIT')
+
+
 def segment_images(input_images, segmentation_masks):
     """Extract single cell protein expression data from channel TIFs for a single point
 
