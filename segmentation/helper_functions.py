@@ -49,10 +49,10 @@ def save_deepcell_tifs(model_output_xr, save_path, transform='pixel', points=Non
         if model_output_xr.shape[-1] != 1:
             raise ValueError("Watershed transform selected, but last dimension is not 4")
         if model_output_xr.coords['masks'].values[0] != 'watershed_argmax':
-            raise ValueError("Watershed transform selected, but first channel is not Level_0")
+            raise ValueError("Watershed transform selected, but first channel is not watershed_argmax")
 
         # create array to hold argmax and smoothed argmax mask
-        watershed_processed = np.zeros(model_output_xr.shape[:-1] + (2, ))
+        watershed_processed = np.zeros(model_output_xr.shape[:-1] + (2, ), dtype='int8')
         watershed_processed[:, :, :, 0] = model_output_xr.values[:, :, :, 0]
 
         for i in range(model_output_xr.shape[0]):
@@ -60,10 +60,10 @@ def save_deepcell_tifs(model_output_xr, save_path, transform='pixel', points=Non
             watershed_processed[i, :, :, 1] = smoothed_argmax
 
             io.imsave(os.path.join(save_path, model_output_xr.coords['points'].values[i] +
-                                   '_watershed.tiff'), watershed_processed[i, :, :, 0].astype('int16'))
+                                   '_watershed.tiff'), watershed_processed[i, :, :, 0].astype('int8'))
 
             io.imsave(os.path.join(save_path, model_output_xr.coords['points'].values[i] +
-                                   '_watershed_smoothed.tiff'), watershed_processed[i, :, :, 1].astype('int16'))
+                                   '_watershed_smoothed.tiff'), watershed_processed[i, :, :, 1].astype('int8'))
 
         mask = ["watershed", "watershed_smoothed"]
         watershed_processed_xr = xr.DataArray(watershed_processed, name=model_output_xr.name + "_processed",
@@ -78,7 +78,7 @@ def save_deepcell_tifs(model_output_xr, save_path, transform='pixel', points=Non
         if model_output_xr.coords['masks'].values[0] != 'border':
             raise ValueError("pixel transform selected, but mask names don't match")
 
-        pixel_processed = np.zeros(model_output_xr.shape[:-1] + (3, ))
+        pixel_processed = np.zeros(model_output_xr.shape[:-1] + (3, ), dtype='int8')
         pixel_processed[:, :, :, 0:2] = model_output_xr.loc[:, :, :, ['border', 'interior']].values
 
         for i in range(model_output_xr.shape[0]):
@@ -88,11 +88,11 @@ def save_deepcell_tifs(model_output_xr, save_path, transform='pixel', points=Non
 
             # save tifs
             io.imsave(os.path.join(save_path, model_output_xr.coords['points'].values[i] +
-                                   '_pixel_border.tiff'), pixel_processed[i, :, :, 0].astype('float32'))
+                                   '_pixel_border.tiff'), pixel_processed[i, :, :, 0].astype('int8'))
             io.imsave(os.path.join(save_path, model_output_xr.coords['points'].values[i] +
-                                   '_pixel_interior.tiff'), pixel_processed[i, :, :, 1].astype('float32'))
+                                   '_pixel_interior.tiff'), pixel_processed[i, :, :, 1].astype('int8'))
             io.imsave(os.path.join(save_path, model_output_xr.coords['points'].values[i] +
-                                   '_pixel_interior_smoothed.tiff'), pixel_processed[i, :, :, 2].astype('float32'))
+                                   '_pixel_interior_smoothed.tiff'), pixel_processed[i, :, :, 2].astype('int8'))
 
         # save output
         mask_labels = ["pixel_border", "pixel_interior", "pixel_interior_smoothed"]
@@ -129,7 +129,7 @@ def save_deepcell_tifs(model_output_xr, save_path, transform='pixel', points=Non
                           deepcell_outputs[i, :, :, 0].astype('float32'))
 
 
-def load_tifs_from_points_dir(point_dir, tif_folder=None, points=None, tifs=None):
+def load_tifs_from_points_dir(point_dir, tif_folder=None, points=None, tifs=None, dtype="int64"):
     """Takes a set of TIFs from a directory structure organised by points, and loads them into a numpy array.
 
         Args:
@@ -137,6 +137,7 @@ def load_tifs_from_points_dir(point_dir, tif_folder=None, points=None, tifs=None
             tif_folder: optional name of tif_folder within each point, otherwise assumes tifs are in Point folder
             points: optional list of point_dirs to load, otherwise loads all folders with Point in name
             tifs: optional list of TIFs to load, otherwise loads all TIFs
+            dtype: dtype of array which will be used to store values
 
         Returns:
             Numpy array with shape [points, tifs, x_dim, y_dim]
@@ -181,7 +182,7 @@ def load_tifs_from_points_dir(point_dir, tif_folder=None, points=None, tifs=None
             raise ValueError("Could not find {} in supplied directory {}".format(tif, os.path.join(point_dir, points[0], tif_folder, tif)))
 
     test_img = io.imread(os.path.join(point_dir, points[0], tif_folder, tifs[0]))
-    img_data = np.zeros((len(points), test_img.shape[0], test_img.shape[1], len(tifs)))
+    img_data = np.zeros((len(points), test_img.shape[0], test_img.shape[1], len(tifs)), dtype=dtype)
 
     for point in range(len(points)):
         for tif in range(len(tifs)):
@@ -194,6 +195,56 @@ def load_tifs_from_points_dir(point_dir, tif_folder=None, points=None, tifs=None
                           dims=["points", "rows", "cols", "channels"])
 
     return img_xr
+
+
+def reorder_xarray_channels(channel_order, channel_xr, non_blank_channels=None):
+
+    """Adds blank channels or changes the order of existing channels to match the ordering given by channel_order list
+    Inputs:
+        channel_order: list of channel names, which dictates final order of output xarray
+        channel_xr: xarray containing the channel data for the available channels
+        non_blank_channels: optional list of channels which aren't missing, and hence won't be replaced with blank tif:
+            if not supplied, will default to assuming all channels in channel_order
+
+    Outputs:
+        xarray with the supplied channels in channel order"""
+
+    if non_blank_channels is None:
+        non_blank_channels = channel_order
+
+    # error checking
+    channels_in_xr = np.isin(non_blank_channels, channel_xr.channels)
+    if len(channels_in_xr) != np.sum(channels_in_xr):
+        bad_chan = non_blank_channels[np.where(~channels_in_xr)[0][0]]
+        raise ValueError("{} was listed as a non-blank channel, but it is not in the channel xarray".format(bad_chan))
+
+    channels_in_order = np.isin(non_blank_channels, channel_order)
+    if len(channels_in_order) != np.sum(channels_in_order):
+        bad_chan = non_blank_channels[np.where(~channels_in_order)[0][0]]
+        raise ValueError("{} was listed as a non-blank channel, but it is not in the channel order".format(bad_chan))
+
+    vals, counts = np.unique(channel_order, return_counts=True)
+    duplicated = np.where(counts > 1)
+    if len(duplicated[0] > 0):
+        print("The following channels are duplicated: {}".format(vals[duplicated[0]]))
+
+
+    blank = io.imread("/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/data/New_Blank.tif")
+
+    # create array to hold all channels, including blank ones
+    full_array = np.zeros((channel_xr.shape[:3] + (len(channel_order),)), dtype='int8')
+
+    for i in range(len(channel_order)):
+        if channel_order[i] in non_blank_channels:
+            full_array[:, :, :, i] = channel_xr.loc[:, :, :, channel_order[i]].values
+        else:
+            full_array[:, :, :, i] = blank
+
+    channel_xr_blanked = xr.DataArray(full_array, coords=[channel_xr.points, range(channel_xr.shape[1]),
+                                                          range(channel_xr.shape[2]), channel_order],
+                                   dims=["points", "rows", "cols", "channels"])
+
+    return channel_xr_blanked
 
 
 def crop_helper(image_stack, crop_size):
