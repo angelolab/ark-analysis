@@ -129,7 +129,7 @@ def save_deepcell_tifs(model_output_xr, save_path, transform='pixel', points=Non
                           deepcell_outputs[i, :, :, 0].astype('float32'))
 
 
-def load_tifs_from_points_dir(point_dir, tif_folder=None, points=None, tifs=None, dtype="int64"):
+def load_tifs_from_points_dir(point_dir, tif_folder=None, points=None, tifs=None, dtype="int16"):
     """Takes a set of TIFs from a directory structure organised by points, and loads them into a numpy array.
 
         Args:
@@ -266,7 +266,7 @@ def crop_helper(image_stack, crop_size):
     crop_num_col = math.floor(image_stack.shape[2] / crop_size)
     # print("crop_num_col {}".format((crop_num_col)))
     cropped_images = np.zeros((crop_num_row * crop_num_col * image_stack.shape[0], crop_size, crop_size,
-                               image_stack.shape[3]), dtype="int32")
+                               image_stack.shape[3]), dtype="int16")
 
     # iterate through the image row by row, cropping based on identified threshold
     img_idx = 0
@@ -454,21 +454,19 @@ def segment_images(input_images, segmentation_masks):
 
     # loop through each segmentation mask
     for subcell_loc in segmentation_masks.subcell_loc:
-        # for each mask, loop through each cell to figure out marker count
-        for cell in np.unique(segmentation_masks.values.astype('int')):
+        # get regionprops for each mask
+        cell_props = skimage.measure.regionprops(segmentation_masks.loc[:, :, subcell_loc].values)
 
-            # get mask corresponding to current cell
-            cell_mask = segmentation_masks.loc[:, :, subcell_loc] == cell
-            cell_size = np.sum(cell_mask)
+        # loop through each cell in mask
+        for cell in cell_props:
+            # get coords corresponding to current cell
+            cell_coords = cell.coords.T
 
-            # not all sequential cell_ids are included due to removal of small seeds
-            if cell_size == 0:
-                continue
-            else:
-                # calculate the total signal intensity within that cell mask across all channels, and save to numpy
-                channel_counts = np.sum(input_images.values[cell_mask, :], axis=0)
-                xr_counts.loc[subcell_loc, cell, xr_counts.features[1]:] = channel_counts
-                xr_counts.loc[subcell_loc, cell, xr_counts.features[0]] = cell_size
+            # calculate the total signal intensity within that cell mask across all channels, and save to numpy
+            channel_index = input_images.values[tuple(cell_coords)]
+            channel_counts = np.sum(channel_index, axis=0)
+            xr_counts.loc[subcell_loc, cell.label, xr_counts.features[1]:] = channel_counts
+            xr_counts.loc[subcell_loc, cell.label, xr_counts.features[0]] = cell.area
 
     return xr_counts
 
