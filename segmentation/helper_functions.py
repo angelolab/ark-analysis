@@ -70,7 +70,7 @@ def save_deepcell_tifs(model_output_xr, save_path, transform='pixel', points=Non
                                            coords=[model_output_xr.coords['points'], range(model_output_xr.shape[1]),
                                                    range(model_output_xr.shape[2]), mask],
                                            dims=["points", "rows", "cols", "masks"])
-        watershed_processed_xr.to_netcdf(save_path + watershed_processed_xr.name + '.nc')
+        watershed_processed_xr.to_netcdf(os.path.join(save_path, watershed_processed_xr.name + '.nc'))
 
     elif transform == 'pixel':
         if model_output_xr.shape[-1] != 3:
@@ -100,7 +100,7 @@ def save_deepcell_tifs(model_output_xr, save_path, transform='pixel', points=Non
                                             coords=[model_output_xr.coords['points'], range(model_output_xr.shape[1]),
                                                     range(model_output_xr.shape[2]), mask_labels],
                                             dims=["points", "rows", "cols", "masks"])
-        pixel_processed_xr.to_netcdf(save_path + pixel_processed_xr.name + '.nc')
+        pixel_processed_xr.to_netcdf(os.path.join(save_path, pixel_processed_xr.name + '.nc'))
 
     elif transform == 'fgbg':
         if model_output_xr.shape[-1] != 2:
@@ -245,6 +245,51 @@ def reorder_xarray_channels(channel_order, channel_xr, non_blank_channels=None):
                                    dims=["points", "rows", "cols", "channels"])
 
     return channel_xr_blanked
+
+
+def combine_xarrays(xarrays, axis):
+    """Combines a number of xarrays together
+
+    Inputs:
+        xarrays: a tuple of xarrays
+        axis: either 0, if the xarrays will combined over different points, or -1, if they will be combined over channels
+
+    Outputs:
+        combined_xr: an xarray that is the combination of all inputs"""
+
+    first_xr = xarrays[0]
+    np_arr = first_xr.values
+
+    if axis == 0:
+        iterator = first_xr.points.values
+        shape_slice = slice(1,4)
+    else:
+        iterator = first_xr.channels.values
+        shape_slice = slice(0, 3)
+
+    for cur_xr in xarrays[1:]:
+        cur_arr = cur_xr.values
+
+        if cur_arr.shape[shape_slice] != first_xr.shape[shape_slice]:
+            raise ValueError("xarrays have conflicting sizes")
+
+        np_arr = np.concatenate((np_arr, cur_arr), axis=axis)
+        if axis == 0:
+            iterator = np.append(iterator, cur_xr.points.values)
+        else:
+            iterator = np.append(iterator, cur_xr.channels.values)
+
+    if axis == 0:
+        points = iterator
+        channels = first_xr.channels.values
+    else:
+        points = first_xr.points
+        channels = iterator
+
+    combined_xr = xr.DataArray(np_arr, coords=[points, range(first_xr.shape[1]), range(first_xr.shape[2]), channels],
+                               dims=["points", "rows", "cols", "channels"])
+
+    return combined_xr
 
 
 def crop_helper(image_stack, crop_size):
@@ -469,6 +514,106 @@ def segment_images(input_images, segmentation_masks):
             xr_counts.loc[subcell_loc, cell.label, xr_counts.features[0]] = cell.area
 
     return xr_counts
+
+
+def extract_single_cell_data(segmentation_labels, image_data, save_dir, nuc_probs=None):
+
+    """Extract single cell data from a set of images with provided segmentation mask
+    Input:
+        segmentation_labels: xarray containing a segmentation mask for each point
+        image_data: xarray containing the imaging data for each point
+        save_dir: path to where the data  will be saved
+        nuc_probs: xarray of deepcell_pixel nuclear probabilities for subcellular segmentation
+    Output:
+        saves output to save_dir"""
+
+    for point in segmentation_labels.points.values:
+        print("extracting data from {}".format(point))
+
+        segmentation_label = segmentation_labels.loc[point, :, :, "segmentation_label"]
+
+        if nuc_probs is not None:
+            # generate nuclear-specific mask for subcellular segmentation
+            nuc_prob = nuc_probs.loc[point, :, :, "nuclear_interior_smoothed"]
+            nuc_mask = nuc_prob > 0.3
+
+            # duplicate whole cell data, then subtract nucleus for cytoplasm
+            cyto_label = copy.deepcopy(segmentation_label)
+            cyto_label[nuc_mask] = 0
+
+            # nuclear data
+            nuc_label = copy.deepcopy(segmentation_label)
+            nuc_label[~nuc_mask] = 0
+
+            # signal assigned to bg
+            bg_label = np.zeros(segmentation_label.shape)
+            bg_label[segmentation_label == 0] = 1
+
+            # save different masks to single object
+            masks = np.zeros((segmentation_label.shape[0], segmentation_label.shape[1], 4), dtype="int16")
+            masks[:, :, 0] = segmentation_label
+            masks[:, :, 1] = nuc_label
+            masks[:, :, 2] = cyto_label
+            masks[:, :, 3] = bg_label
+
+            segmentation_masks = xr.DataArray(copy.copy(masks), coords=[range(segmentation_labels.shape[1]),
+                                                                        range(segmentation_labels.shape[2]),
+                                                                        ['cell_mask', 'nuc_mask', 'cyto_mask', 'bg_mask']],
+                                              dims=['rows', 'cols', 'subcell_loc'])
+        else:
+            masks = np.expand_dims(segmentation_label.values, axis=-1)
+            masks = masks.astype('int16')
+            segmentation_masks = xr.DataArray(masks, coords=[range(segmentation_label.shape[0]),
+                                                             range(segmentation_label.shape[1]), ['cell_mask']],
+                                              dims=['rows', 'cols', 'subcell_loc'])
+
+        # segment images based on supplied masks
+        cell_data = segment_images(image_data.loc[point, :, :, :], segmentation_masks)
+        cell_data = cell_data[:, 1:, :]
+
+        cell_props = skimage.measure.regionprops_table(segmentation_masks[:, :, 0].values.astype('int16'),
+                                                       properties=["label", "area", "eccentricity", "major_axis_length",
+                                                                   "minor_axis_length", "perimeter"])
+        cell_props = pd.DataFrame(cell_props)
+
+
+        # create version of data normalized by cell size
+        cell_data_norm = copy.deepcopy(cell_data)
+        cell_size = cell_data.values[:, :, 0:1]
+
+        # generate cell_size array that is broadcast to have the same shape as the data
+        cell_size_large = np.repeat(cell_size, cell_data.shape[2] - 1, axis=2)
+
+        # exclude first column (cell size) from area normalization. Only calculate where cell_size > 0
+        cell_data_norm.values[:, :, 1:] = np.divide(cell_data_norm.values[:, :, 1:], cell_size_large, where=cell_size_large > 0)
+
+        cell_data_norm_linscale = copy.deepcopy(cell_data_norm)
+        cell_data_norm_linscale.values[:, :, 1:] = cell_data_norm_linscale.values[:, :, 1:] * 100
+
+        # arcsinh transformation
+        cell_data_norm_trans = copy.deepcopy(cell_data_norm_linscale)
+        cell_data_norm_trans.values[:, :, 1:] = np.arcsinh(cell_data_norm_trans[:, :, 1:])
+
+
+        #cell_data.to_netcdf(os.path.join(save_dir, point, 'segmented_data.nc'))
+        #cell_data_norm.to_netcdf(os.path.join(save_dir, point, 'segmented_data_normalized.nc'))
+        #cell_data_norm_trans.to_netcdf(os.path.join(save_dir, point, 'segmented_data_normalized_transformed.nc'))
+
+
+        # FCS_format = fk.Sample(cell_data_norm_trans.values[0, :, :], subsample_count=None,
+        #                        channel_labels=cell_data_norm.features.values)
+        #
+        # FCS_format.export_fcs(source='raw', filename=point + ".fcs", directory=save_dir)
+
+        csv_format = pd.DataFrame(data=cell_data_norm_trans.values[0, :, :], columns=cell_data.features)
+        combined = pd.concat([csv_format, cell_props], axis=1)
+        combined.to_csv(os.path.join(save_dir, point + "_normalized_transformed.csv"), index=False)
+
+        csv_format = pd.DataFrame(data=cell_data_norm.values[0, :, :], columns=cell_data.features)
+        combined = pd.concat([csv_format, cell_props], axis=1)
+        combined.to_csv(os.path.join(save_dir, point + "_normalized.csv"), index=False)
+
+
 
 
 # plotting functions

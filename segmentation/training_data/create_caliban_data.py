@@ -7,6 +7,7 @@ import os
 import importlib
 importlib.reload(helper_functions)
 
+base_dir = "/Users/noahgreenwald/Documents/MIBI_Data/selena/20190925_PAH_project/PAHTrainingData/"
 base_dir = "/Users/noahgreenwald/Documents/MIBI_Data/shirley/test_points/big_test/second_version/"
 save_dir = base_dir + "caliban_v2"
 
@@ -17,7 +18,7 @@ if not os.path.isdir(save_dir):
 segmentation_xr = xr.open_dataarray(base_dir + "/segmentation_output/20191214_Decidua_Caliban_V1_no6week_deepcell_output_pixel_processed_segmentation_labels.nc")
 
 # specify what subset of points and channels will be used for segmentation
-points = ["16_31762_16_21"]
+points = ["18_31783_14_11"]
 
 save_dir = os.path.join(save_dir, points[0])
 
@@ -25,19 +26,27 @@ if not os.path.isdir(save_dir):
     os.makedirs(save_dir)
 
 # load point data from previously created xarray
-channel_xr = xr.open_dataarray(base_dir + "../denoised/Deepcell_Input_myeloid_int8.nc")
+channel_xr = xr.open_dataarray(base_dir + "../no_noise/Deepcell_Input_myeloid_int8.nc")
+
+
+# selena specific code
+channel_xr1 = helper_functions.load_tifs_from_points_dir(base_dir + "no_noise", tif_folder="TIFs", tifs=["H3.tif", "Na.tif"], points=points)
+channel_xr2 = helper_functions.load_tifs_from_points_dir(base_dir + "Na_no_noise", tif_folder="", tifs=["Na_rescaled.tif"], points=points)
+channel_xr = helper_functions.combine_xarrays((channel_xr1, channel_xr2), -1)
+
 
 # subset segmentation and channels xr to only include desired points
 channel_xr = channel_xr.loc[points, :, :, :]
 segmentation_xr = segmentation_xr.loc[points, :, :, :]
 
 # optionally subset data to include only a crop of the point, save modified coordinates for easy loading letter
-channel_xr = channel_xr[:, :-1, -1, :]
-segmentation_xr = segmentation_xr[:, -1, -1, :]
+channel_xr = channel_xr[:, :1024, 1024:, :]
+segmentation_xr = segmentation_xr[:, :1024, 1024:, :]
 channel_xr.to_netcdf(os.path.join(save_dir, "channel_input.nc"))
+segmentation_xr.to_netcdf(os.path.join(save_dir, "label_input.nc"))
 
 # optionally add duplicates of the same channel for easier flipping between adjacent channels
-channel_order = ["CD14", "H3", "CD56", "H3", "CD3", "H3", "VIM", "HLAG", "H3"]
+channel_order = ["CD14", "H3", "CD56", "H3", "CD3", "H3", "VIM", "H3"]
 channel_xr = helper_functions.reorder_xarray_channels(channel_order=channel_order, channel_xr=channel_xr)
 
 
@@ -66,3 +75,4 @@ for channel in overlay_channels:
     chan_marker = channels.loc[channels.points.values[0], :, :, channel]
     helper_functions.plot_overlay(mask, plotting_tif=chan_marker,
                                   path=os.path.join(save_dir , "{}_overlay.tiff".format(channel)))
+
