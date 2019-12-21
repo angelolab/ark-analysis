@@ -14,10 +14,11 @@ import skimage.io as io
 import skimage.filters.rank as rank
 import scipy.ndimage as nd
 from skimage.segmentation import find_boundaries
+from skimage.feature import peak_local_max
 
 
 # data loading
-def save_deepcell_tifs(model_output_xr, save_path, transform='pixel', points=None, watershed_smooth=3, pixel_smooth=5):
+def save_deepcell_tifs(model_output_xr, save_path, transform='pixel', points=None, watershed_smooth=3, pixel_smooth=[5]):
     """Extract and save tifs from deepcell output and save in directory format
 
         Args
@@ -37,6 +38,14 @@ def save_deepcell_tifs(model_output_xr, save_path, transform='pixel', points=Non
     else:
         if np.any(~np.isin(points, model_output_xr.coords['points'])):
             raise ValueError("Incorrect list of points given, not all are present in data structure")
+
+    if type(pixel_smooth) is int:
+        pixel_smooth = [pixel_smooth]
+    elif type(pixel_smooth) is list:
+        # this is good
+        pass
+    else:
+        raise ValueError("pixel smooth is not a list or an integer")
 
     # keep only the selected points
     if len(points) == 1:
@@ -77,29 +86,34 @@ def save_deepcell_tifs(model_output_xr, save_path, transform='pixel', points=Non
             raise ValueError("pixel transform selected, but last dimension is not three")
         if model_output_xr.coords['masks'].values[0] != 'border':
             raise ValueError("pixel transform selected, but mask names don't match")
-
-        pixel_processed = np.zeros(model_output_xr.shape[:-1] + (3, ), dtype='int8')
+        pixel_proccesed_dim = 1 + len(pixel_smooth) + 1
+        pixel_processed = np.zeros(model_output_xr.shape[:-1] + (pixel_proccesed_dim, ), dtype='int8')
         pixel_processed[:, :, :, 0:2] = model_output_xr.loc[:, :, :, ['border', 'interior']].values
 
         for i in range(model_output_xr.shape[0]):
             # smooth interior probability for each point
-            smoothed_int = nd.gaussian_filter(model_output_xr[i, :, :, 1], pixel_smooth)
-            pixel_processed[i, :, :, 2] = smoothed_int
+            for smooth in range(len(pixel_smooth)):
+                # smooth output according to smooth value, save sequentially in xarray
+                smoothed_int = nd.gaussian_filter(model_output_xr[i, :, :, 1], pixel_smooth[smooth])
+                pixel_processed[i, :, :, 2 + smooth] = smoothed_int
 
-            # save tifs
-            io.imsave(os.path.join(save_path, model_output_xr.coords['points'].values[i] +
-                                   '_pixel_border.tiff'), pixel_processed[i, :, :, 0].astype('int8'))
-            io.imsave(os.path.join(save_path, model_output_xr.coords['points'].values[i] +
-                                   '_pixel_interior.tiff'), pixel_processed[i, :, :, 1].astype('int8'))
-            io.imsave(os.path.join(save_path, model_output_xr.coords['points'].values[i] +
-                                   '_pixel_interior_smoothed.tiff'), pixel_processed[i, :, :, 2].astype('int8'))
+        # save output to xarray
+        mask_labels = ["pixel_border", "pixel_interior"]
+        for smooth in pixel_smooth:
+            mask_labels.append("pixel_interior_smoothed_{}".format(smooth))
 
-        # save output
-        mask_labels = ["pixel_border", "pixel_interior", "pixel_interior_smoothed"]
         pixel_processed_xr = xr.DataArray(pixel_processed, name=model_output_xr.name + "_processed",
                                             coords=[model_output_xr.coords['points'], range(model_output_xr.shape[1]),
                                                     range(model_output_xr.shape[2]), mask_labels],
                                             dims=["points", "rows", "cols", "masks"])
+
+        # save processed masks for viewing
+        for point in range(pixel_processed_xr.shape[0]):
+            for mask in range(pixel_processed_xr.shape[-1]):
+                io.imsave(os.path.join(save_path, "{}_{}.tiff".format(pixel_processed_xr.points[point].values,
+                                                                 pixel_processed_xr.masks[mask].values)),
+                            pixel_processed_xr[point, :, :, mask].values)
+
         pixel_processed_xr.to_netcdf(os.path.join(save_path, pixel_processed_xr.name + '.nc'))
 
     elif transform == 'fgbg':
@@ -368,17 +382,21 @@ def crop_image_stack(image_stack, crop_size, stride_fraction):
     return cropped_images
 
 
-def watershed_transform(pixel_xr, watershed_xr, channel_xr, overlay_channels, output_dir, pixel_background=True, nuclear_expansion=None,
-                        randomize_cell_labels=False, small_seed_cutoff=5):
+def watershed_transform(pixel_xr, watershed_xr, channel_xr, overlay_channels, output_dir, watershed_maxs=True,
+                        watershed_smooth=None, pixel_background=True, pixel_smooth=None,
+                        nuclear_expansion=None, randomize_cell_labels=True, small_seed_cutoff=5):
 
     """Runs the watershed transform over a set of probability masks output by deepcell network
     Inputs:
         pixel_xr: xarray containing the pixel 3-class probabilities
         watershed_xr: xarray containgin the watershed network argmax probabilities
-        channel_xr: xarray containing the input channels used to generate the network probabilities
+        channel_xr: xarray containing the TIFs of segmentation data
         output_dir: path to directory where the output will be saved
+        watershed_maxs: if true, uses the output of watershed network as seeds, otherwise finds local maxs from pixel
+        watershed_smooth: Name of smooth mask to use. If unspecified, uses last mask in watershed xr
         pixel_background: if true, will use the interior_mask of the pixel network as the space to watershed over.
             if false, will use the output of the watershed network
+        pixel_smooth: Name of smooth mask to use. If unspecicied, uses last mask in pixel xr
         nuclear_expansion: optional pixel value by which to expand cells if doing nuclear segmentation
         randomize_labels: if true, will randomize the order of the labels put out by watershed for easier visualization
         small_seed_cutoff: area threshold for cell seeds, smaller values will be discarded
@@ -404,31 +422,50 @@ def watershed_transform(pixel_xr, watershed_xr, channel_xr, overlay_channels, ou
                                           coords=[pixel_xr.points, range(pixel_xr.shape[1]), range(pixel_xr.shape[2]),
                                                   ['segmentation_label']], dims=['points', 'rows', 'cols', 'channels'])
 
+    if watershed_smooth is None:
+        watershed_smooth = watershed_xr.masks.values[-1]
+    else:
+        if watershed_smooth not in watershed_xr.masks.values:
+            raise ValueError("Invalid watershed smooth name: {} not found in xr".format(watershed_smooth))
+
+
+    if pixel_smooth is None:
+        pixel_smooth = pixel_xr.masks.values[-1]
+    else:
+        if pixel_smooth not in pixel_xr.masks.values:
+            raise ValueError("Invalid pixel smooth name: {} not found in xr".format(pixel_smooth))
+
+
     for point in pixel_xr.points.values:
         print("analyzing point {}".format(point))
 
-        # get relevant network outputs for performing watershed
-        pixel_interior_smoothed = pixel_xr.loc[point, :, :, 'pixel_interior_smoothed']
-        watershed_smoothed = watershed_xr.loc[point, :, :, 'watershed_smoothed']
+        # generate maxs from watershed or pixel
+        if watershed_maxs:
+            # get local maxima from watershed network
+            watershed_smoothed = watershed_xr.loc[point, :, :, watershed_smooth]
+            maxs = watershed_smoothed > 2
+        else:
+            # get local maxima from pixel network
+            maxs = peak_local_max(pixel_xr.loc[point, :, :, pixel_smooth].values, indices=False, min_distance=5)
 
-        # get local maxima from watershed network
-        maxs = watershed_smoothed > 2
-
+        # generate background mask from watershed or pixel
         if pixel_background:
             # use interior probability from pixel network as space to watershed over
-            max = np.max(pixel_interior_smoothed.values)
-            interior_mask = pixel_interior_smoothed > (0.25 * max)
-            contour_mask = -pixel_interior_smoothed
+            pixel_smoothed = pixel_xr.loc[point, :, :, pixel_smooth]
+            max = np.max(pixel_smoothed.values)
+            interior_mask = pixel_smoothed > (0.25 * max)
+            contour_mask = -pixel_smoothed
         else:
             # use watershed network output as space to watershed over
+            watershed_smoothed = watershed_xr.loc[point, :, :, watershed_smooth]
             interior_mask = watershed_smoothed > 0
             contour_mask = -watershed_smoothed
 
         # use maxs to generate seeds for watershed
         markers = skimage.measure.label(maxs, connectivity=1)
 
-        # remove any maxs that are 4 pixels or smaller
-        if small_seed_cutoff is not None:
+        # remove any maxs that are 4 pixels or smaller, if maxs are generated from watershed network
+        if small_seed_cutoff is not None and watershed_maxs:
 
             # get size of all seeds
             seed_props = skimage.measure.regionprops(markers, cache=False)
