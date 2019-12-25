@@ -1,5 +1,6 @@
 import xarray as xr
 import matplotlib.pyplot as plt
+import numpy as np
 
 # scripts for assessing accuracy of subcellular localization
 base_dir = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/Contours/analyses/20190917_naming/'
