@@ -2,16 +2,18 @@ import os
 import numpy as np
 import skimage.io as io
 import xarray as xr
-from segmentation import helper_functions
+
 import importlib
-importlib.reload(helper_functions)
+from segmentation.utils import data_utils
+importlib.reload(data_utils)
 
 
 # load TIFs from GUI-based directory structure
-base_dir = '/Users/noahgreenwald/Documents/MIBI_Data/selena/20190925_PAH_project/PAHTrainingData/no_noise/'
+base_dir = '/Users/noahgreenwald/Documents/MIBI_Data/selena/20190925_PAH_project/PAHTrainingData/Na_no_background/'
 base_dir = "/Users/noahgreenwald/Documents/MIBI_Data/shirley/test_points/big_test/denoised/"
 base_dir = "/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/data/20191112_lab_combined/lab_combined_train"
-base_dir = '/Users/noahgreenwald/Documents/MIBI_Data/selena/20191215_GBM_Cohort/TA_551_test/no_noise/'
+base_dir = '/Users/noahgreenwald/Documents/MIBI_Data/selena/20191215_GBM_Cohort/TA_551_test/'
+base_dir = '/Volumes/Noah/BrainData/TMA/PD/no_fftnoise_3X/'
 
 # optionally, specify a set of channels to be summed for analysis
 test_points = os.listdir(base_dir)
@@ -26,12 +28,12 @@ test_points = ['10_31739_6_13', '10_31739_6_14', '10_31740_6_11', '10_31740_6_12
 test_points = ["Point8_TA489_run", "Point1_first_run"]
 test_points = ["Point12_first_run"]
 
-sum_channels_xr = helper_functions.load_tifs_from_points_dir(base_dir, tif_folder="TIFs", points=test_points,
+sum_channels_xr = data_utils.load_tifs_from_points_dir(base_dir, tif_folder="TIFs", points=test_points,
                                                              tifs=["CD45.tif", "CD3.tif", "CD4.tif", "CD8.tif",
                                                                    "CD14.tif", "CD206.tif", "CD163.tif", "DCSIGN.tif",
                                                                    "CD56.tif", "HLADR.tif"])
 
-sum_channels_xr = helper_functions.load_tifs_from_points_dir(base_dir, tif_folder="TIFs", points=test_points,
+sum_channels_xr = data_utils.load_tifs_from_points_dir(base_dir, tif_folder="TIFs", points=test_points,
                                                              tifs=["CD3.tif", "CD206.tif", "CD163.tif", "CD56.tif"])
 
 
@@ -52,8 +54,8 @@ points = os.listdir(base_dir)
 points.sort()
 points = points[:-2]
 # load channels to be included in deepcell data
-data_xr = helper_functions.load_tifs_from_points_dir(base_dir, tif_folder='TIFs',
-                                                    tifs=['HH3.tif'], dtype='int8')
+data_xr = data_utils.load_tifs_from_points_dir(base_dir, tif_folder='TIFs',
+                                                    tifs=['Na.tif'])
                                                      #tifs=['H3.tif', "VIM.tif", "HLAG.tif", "CD14.tif", "CD56.tif", "CD3.tif"])
 
 
@@ -64,11 +66,11 @@ channel_order = ["HH3", "NaKATPase", "LaminAC"]
 
 non_blank_channels = ["HH3"]
 
-data_xr = helper_functions.reorder_xarray_channels(channel_order=channel_order, channel_xr=data_xr,
+data_xr = data_utils.reorder_xarray_channels(channel_order=channel_order, channel_xr=data_xr,
                                                    non_blank_channels=non_blank_channels)
 
 # save xarray
-data_xr.to_netcdf(base_dir + 'Deepcell_Input.nc', format="NETCDF3_64BIT")
+data_xr.to_netcdf(base_dir + 'Deepcell_Input_More_Points.nc', format="NETCDF3_64BIT")
 
 
 # subset the array for saving if too large

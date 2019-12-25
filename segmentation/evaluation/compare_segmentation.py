@@ -2,6 +2,7 @@ import xarray as xr
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+
 # compare segmentation from different models
 base_dir ='/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/analyses/'
 save_dir = ''

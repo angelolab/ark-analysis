@@ -1,11 +1,13 @@
 import numpy as np
 import skimage.io as io
-import helper_functions
 import os
 import copy
 
+import pandas as pd
 import importlib
-importlib.reload(helper_functions)
+from segmentation.utils import segmentation_utils, plot_utils
+
+importlib.reload(plot_utils)
 
 
 # code to evaluate accuracy of different segmentation contours
@@ -48,7 +50,7 @@ for file in files:
         else:
             contour_data = io.imread(base_dir + "20190823_TA489_Redo/zips/Point8_Cell_Mask_Label.tif")
 
-    cell_frame, predicted_label, contour_label = helper_functions.compare_contours(predicted_data, contour_data)
+    cell_frame, predicted_label, contour_label = segmentation_utils.compare_contours(predicted_data, contour_data)
 
     # read in ground truth annotations to create overlays
     # TODO: read in _processed.nc file to pull from
@@ -68,7 +70,7 @@ for file in files:
     #         border = io.imread(deep_direc + 'Training_Freeze_1_81_rf_512_dense_128_conv_epoch_18_point8_pixel_border.tiff')
 
     helper_functions.plot_overlay(predicted_data, HH3, contour_data)
-                                  os.path.join(plot_direc, file_name + '_overlay_border.tiff'))
+                                  #os.path.join(plot_direc, file_name + '_overlay_border.tiff'))
 
 
     # remove all small ground truth objects
@@ -141,34 +143,34 @@ for file in files:
         cell_num += 1
 
     # plot error analysis
-    swapped = helper_functions.randomize_labels(copy.copy(contour_label))
-    classify_outline = helper_functions.outline_objects(predicted_label, [split_cells, merged_cells, bad_cells])
-    helper_functions.plot_color_map(classify_outline, ground_truth=None,
+    swapped = plot_utils.randomize_labels(copy.copy(contour_label))
+    classify_outline = plot_utils.outline_objects(predicted_label, [split_cells, merged_cells, bad_cells])
+    plot_utils.plot_color_map(classify_outline, ground_truth=None,
                                     save_path=os.path.join(plot_direc, file_name + '_color_map.tiff'))
 
 
-    classify_outline = helper_functions.outline_objects(plotting_label, [split_cells, merged_cells, missing_cells_new,
+    classify_outline = plot_utils.outline_objects(plotting_label, [split_cells, merged_cells, missing_cells_new,
                                                                           bad_cells_80,
                                                                           bad_cells_70, bad_cells_60, bad_cells_50])
 
-    helper_functions.plot_color_map(classify_outline, ground_truth=None,
+    plot_utils.plot_color_map(classify_outline, ground_truth=None,
                                     names=['Bg', 'Norm', 'split', 'merg', 'missing', '80', '70', '60', 'rest'],
                                     save_path=os.path.join(plot_direc, file_name + '_color_map.tiff'))
 
     io.imsave(os.path.join(plot_direc, file_name + 'color_map_raw.tiff'), classify_outline)
     # make subplots for two simple plots
 
-    helper_functions.plot_barchart_errors(cell_frame, predicted_errors=['split', 'merged', 'low_quality'],
+    plot_utils.plot_barchart_errors(cell_frame, predicted_errors=['split', 'merged', 'low_quality'],
                                           contour_errors=["missing"],
                                           save_path=os.path.join(plot_direc, file_name + '_stats.tiff'))
 
     # mean average precision
-    iou_matrix = helper_functions.calc_iou_matrix(contour_label, predicted_label)
+    iou_matrix = segmentation_utils.calc_iou_matrix(contour_label, predicted_label)
 
     iou_thresholds = np.arange(0.5, 1, 0.05)
-    scores, false_negatives, false_positives = helper_functions.calc_modified_average_precision(iou_matrix, iou_thresholds)
+    scores, false_negatives, false_positives = segmentation_utils.calc_modified_average_precision(iou_matrix, iou_thresholds)
     scores = scores + [np.mean(scores)]
-    helper_functions.plot_barchart(scores, np.concatenate(((iou_thresholds * 100).astype('int').astype('str'), ['average'])),
+    plot_utils.plot_barchart(scores, np.concatenate(((iou_thresholds * 100).astype('int').astype('str'), ['average'])),
                                    'IOU Errors', save_path=os.path.join(plot_direc, file_name + '_iou.tiff'))
 
     # save pd dataframe for later loading of
@@ -179,8 +181,8 @@ for file in files:
     cell_frame.to_pickle(plot_direc + "dataframe.pkl")
 
 # deepcell metrics evaluation
-sys.path.append(os.path.abspath('../deepcell-tf'))
-from deepcell import metrics
+# sys.path.append(os.path.abspath('../deepcell-tf'))
+# from deepcell import metrics
 
 
 # get cell_ids for cells which don't pass iou_threshold
@@ -191,15 +193,15 @@ mAP_errors = np.arange(1, 2) + mAP_errors
 mAP_errors = mAP_errors[np.isin(mAP_errors, accurate_cells)]
 
 # plot errors
-classify_outline = helper_functions.outline_objects(predicted_label, [mAP_errors, error_cells])
+classify_outline = plot_utils.outline_objects(predicted_label, [mAP_errors, error_cells])
 
-helper_functions.plot_color_map(classify_outline, names=['Background', 'Normal Cell', 'mAP Errors', 'Segmentation Errors'])
+plot_utils.plot_color_map(classify_outline, names=['Background', 'Normal Cell', 'mAP Errors', 'Segmentation Errors'])
 
-plot_overlay(base_dir, np.zeros((1024, 1024)), predicted_label, contour_label)
+plot_utils.plot_overlay(base_dir, np.zeros((1024, 1024)), predicted_label, contour_label)
 
 
 # plot values for cells with more than 1 neighbor vs those without
-adj_mtrx = helper_functions.calc_adjacency_matrix(predicted_label)
+adj_mtrx = segmentation_utils.calc_adjacency_matrix(predicted_label)
 neighbor_num = np.sum(adj_mtrx, axis=0)
 many_neighbors = np.where(neighbor_num > 2)
 
@@ -209,14 +211,14 @@ merged_cells = np.asarray(merged_cells)
 bad_cells = np.asarray(bad_cells)
 
 
-classify_outline = helper_functions.outline_objects(predicted_label, [split_cells[np.isin(split_cells, many_neighbors)],
+classify_outline = plot_utils.outline_objects(predicted_label, [split_cells[np.isin(split_cells, many_neighbors)],
                                                                       merged_cells[np.isin(merged_cells, many_neighbors)],
                                                                       bad_cells[np.isin(bad_cells, many_neighbors)]])
-helper_functions.plot_color_map(classify_outline, ground_truth=None, save_path=None)
+plot_utils.plot_color_map(classify_outline, ground_truth=None, save_path=None)
 
 
 
-classify_outline = helper_functions.outline_objects(predicted_label, [split_cells[~np.isin(split_cells, many_neighbors)],
+classify_outline = plot_utils.outline_objects(predicted_label, [split_cells[~np.isin(split_cells, many_neighbors)],
                                                                       merged_cells[~np.isin(merged_cells, many_neighbors)],
                                                                       bad_cells[~np.isin(bad_cells, many_neighbors)]])
-helper_functions.plot_color_map(classify_outline, ground_truth=None, save_path=None)
+plot_utils.plot_color_map(classify_outline, ground_truth=None, save_path=None)
