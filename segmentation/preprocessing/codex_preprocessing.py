@@ -2,7 +2,8 @@ import numpy as np
 import skimage.io as io
 import os
 import pandas as pd
-from segmentation import helper_functions
+
+from segmentation.utils import data_utils
 from skimage.transform import resize
 import skimage
 from skimage.measure import label
@@ -63,14 +64,14 @@ for i in range(len(masks)):
 
 # upsample and crop data
 
-codex_data = helper_functions.load_tifs_from_points_dir(base_dir + "Points", tif_folder="",
+codex_data = data_utils.load_tifs_from_points_dir(base_dir + "Points", tif_folder="",
                                                         tifs=["CD45_cyc1.tiff", "Nuc_cyc16.tiff"])
 
 codex_data_resized = resize(codex_data,
                             [codex_data.shape[0], codex_data.shape[1] * 2, codex_data.shape[2] * 2, codex_data.shape[3]]
                             , order=3)
 
-segmentation_masks = helper_functions.load_tifs_from_points_dir(base_dir + "Points", tif_folder="",
+segmentation_masks = data_utils.load_tifs_from_points_dir(base_dir + "Points", tif_folder="",
                                                                 tifs=["Segmentation_Mask.tiff"])
 
 segmentation_masks_resized = resize(segmentation_masks[:, :, :, :],
@@ -82,7 +83,7 @@ training_data[..., :-1] = codex_data_resized
 training_data[..., -1:] = segmentation_masks_resized
 training_data = training_data[:, :-2, :-144, :]
 
-training_data_cropped = helper_functions.crop_image_stack(training_data[:, :, :, :], 241, 1)
+training_data_cropped = data_utils.crop_image_stack(training_data[:, :, :, :], 241, 1)
 os.makedirs(base_dir + "Input_Data/Point123_Crop_Small")
 for i in range(training_data_cropped.shape[0]):
     save_direc = base_dir + "/Input_Data/Point123_Crop_Small/Point" + str(i + 1)
