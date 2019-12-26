@@ -1,8 +1,9 @@
 import numpy as np
 import os
 import copy
+import math
 
-
+import skimage.io as io
 from skimage.segmentation import find_boundaries
 import matplotlib.pyplot as plt
 import matplotlib as mpl
@@ -10,7 +11,7 @@ import matplotlib as mpl
 
 # plotting functions
 
-def plot_overlay(predicted_contour, plotting_tif=None, alternate_contour=None, path=None):
+def plot_overlay(predicted_contour, plotting_tif, alternate_contour=None, path=None):
     """Take in labeled contour data, along with optional mibi tif and second contour, and overlay them for comparison"
 
     Args:
@@ -39,9 +40,17 @@ def plot_overlay(predicted_contour, plotting_tif=None, alternate_contour=None, p
     # define borders of cells in mask
     predicted_contour_mask = find_boundaries(predicted_contour, connectivity=1, mode='inner').astype(np.uint8)
 
-    # creates transparent mask for easier visualization of TIF data
-    rgb_mask = np.ma.masked_where(predicted_contour_mask == 0, predicted_contour_mask)
+    # rescale channel data for easier visualization
+    overlay_tif = np.zeros((predicted_contour_mask.shape[0], predicted_contour_mask.shape[1], 3), dtype="uint8")
+    overlay_tif[:] = np.expand_dims(plotting_tif, axis=-1)
+    med = np.median(overlay_tif[overlay_tif > 0])
+    rescale_factor = math.floor(128 / med)
+    overlay_tif = overlay_tif * rescale_factor
 
+    # overlay first contour on all three RGB, to have it show up as white border
+    overlay_tif[predicted_contour_mask > 0, :] = 255
+
+    # overlay second contour as red outline if present
     if alternate_contour is not None:
 
         if predicted_contour.shape != alternate_contour.shape:
@@ -49,29 +58,14 @@ def plot_overlay(predicted_contour, plotting_tif=None, alternate_contour=None, p
 
         # define borders of cell in mask
         alternate_contour_mask = find_boundaries(alternate_contour, connectivity=1, mode='inner').astype(np.uint8)
+        overlay_tif[alternate_contour_mask > 0, 0] = 255
+        overlay_tif[alternate_contour_mask> 0, 1:] = 0
 
-        # creates transparent mask for easier visualization of TIF data
-        rgb_mask_2 = np.ma.masked_where(alternate_contour_mask == 0, predicted_contour_mask)
-
-        # creates plots overlaying ground truth and predicted contour masks
-        overlay = plt.figure()
-        plt.imshow(plotting_tif, clim=(0, 15))
-        plt.imshow(rgb_mask_2, cmap="Greys", interpolation='none')
-        plt.imshow(rgb_mask, cmap='autumn', interpolation='none')
-
-        if path is not None:
-            overlay.savefig(os.path.join(path), dpi=800)
-            plt.close(overlay)
-
+    # save as TIF if path supplied, otherwise display on screen
+    if path is not None:
+        io.imsave(path, overlay_tif, dpi=800)
     else:
-        # if only one mask provided
-        overlay = plt.figure()
-        plt.imshow(plotting_tif, clim=(0, 15))
-        plt.imshow(rgb_mask, cmap='autumn', interpolation='none')
-
-        if path is not None:
-            overlay.savefig(os.path.join(path), dpi=800)
-            plt.close(overlay)
+        io.imshow(overlay_tif)
 
 
 def randomize_labels(label_map):
@@ -83,10 +77,13 @@ def randomize_labels(label_map):
     Outputs:
     swapped_map(2D numpy array): labeled TIF with object labels permuted"""
 
-    max_val = np.max(label_map)
-    for cell_target in range(1, max_val):
-        swap_1 = cell_target
-        swap_2 = np.random.randint(1, max_val)
+    unique_vals = np.unique(label_map)[1:]
+    pos_1 = np.random.choice(unique_vals, size=len(unique_vals))
+    pos_2 = np.random.choice(unique_vals, size=len(unique_vals))
+
+    for i in range(len(pos_1)):
+        swap_1 = pos_1[i]
+        swap_2 = pos_2[i]
         swap_1_mask = label_map == swap_1
         swap_2_mask = label_map == swap_2
         label_map[swap_1_mask] = swap_2
@@ -195,6 +192,7 @@ def plot_barchart_errors(pd_array, contour_errors, predicted_errors, save_path=N
 
     if save_path is not None:
         fig.savefig(save_path, dpi=200)
+
 
 def plot_barchart(values, labels, title, save_path=None):
     fig, ax = plt.subplots(1, 1, figsize=(10, 10))

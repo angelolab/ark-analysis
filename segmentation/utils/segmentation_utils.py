@@ -200,6 +200,7 @@ def extract_single_cell_data(segmentation_labels, image_data, save_dir, nuc_prob
 
         segmentation_label = segmentation_labels.loc[point, :, :, "segmentation_label"]
 
+        # if nuclear probabilities supplied, perform subcellular segmentation
         if nuc_probs is not None:
             # generate nuclear-specific mask for subcellular segmentation
             nuc_prob = nuc_probs.loc[point, :, :, "nuclear_interior_smoothed"]
@@ -228,6 +229,8 @@ def extract_single_cell_data(segmentation_labels, image_data, save_dir, nuc_prob
                                                                         range(segmentation_labels.shape[2]),
                                                                         ['cell_mask', 'nuc_mask', 'cyto_mask', 'bg_mask']],
                                               dims=['rows', 'cols', 'subcell_loc'])
+
+        # otherwise, just extract a single sum for each unique cell in the image
         else:
             masks = np.expand_dims(segmentation_label.values, axis=-1)
             masks = masks.astype('int16')
