@@ -137,6 +137,7 @@ def compare_contours(predicted_label, contour_label):
 # DSB-score adapted from https://www.biorxiv.org/content/10.1101/580605v1.full
 # object IoU matrix adapted from code written by Morgan Schwartz in deepcell-tf/metrics
 
+
 def calc_iou_matrix(ground_truth_label, predicted_label):
     """Calculates pairwise ious between all cells from two masks
 
