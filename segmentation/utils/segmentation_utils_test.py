@@ -3,6 +3,7 @@ import xarray as xr
 
 from segmentation.utils import segmentation_utils
 
+
 def test_watershed_transform():
     # load data
     base_dir = "segmentation/tests/test_output_files/segmentation_output/"
@@ -13,7 +14,12 @@ def test_watershed_transform():
     segmentation_utils.watershed_transform(pixel_xr=pixel, watershed_xr=watershed, channel_xr=input,
                                            overlay_channels=["Na"], output_dir=base_dir, watershed_maxs=True,
                                            )
-    # TODO: clean up output files
+    # clean up output files
+    temp_files = os.listdir(base_dir)
+    temp_files = [file for file in temp_files if "test_input" not in file]
+
+    for file in temp_files:
+        os.remove(base_dir + file)
 
 
 # testing for segmentation utils
@@ -77,7 +83,7 @@ def test_segment_images():
 
 
 def test_extract_single_cell_data():
-    base_dir = "segmentation/tests/test_output_files/"
+    base_dir = "segmentation/tests/test_output_files/single_cell_data/"
 
     # create input data
     cell_mask = np.zeros((40, 40), dtype='int16')
@@ -121,4 +127,12 @@ def test_extract_single_cell_data():
                                         ["chan0", "chan1", "chan2", "chan3", "chan4"]],
                                 dims=["points", "rows", "cols", "channels"])
 
-    segmentation_utils.extract_single_cell_data(segmentation_masks, channel_data, base_dir + "single_cell_data")
+    segmentation_utils.extract_single_cell_data(segmentation_masks, channel_data, base_dir)
+
+    temp_files = os.listdir(base_dir)
+    temp_files = [file for file in temp_files if "Point" in file]
+
+    for file in temp_files:
+        os.remove(base_dir + file)
+
+

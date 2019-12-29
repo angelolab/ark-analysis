@@ -3,6 +3,7 @@ import xarray as xr
 import numpy as np
 import os
 import math
+import pytest
 
 import importlib
 importlib.reload(data_utils)
@@ -20,7 +21,7 @@ def test_save_deepcell_tifs():
 
     assert processed_pixel.shape == (2, 1024, 1024, 4)
 
-    # test pixel processing
+    # test watershed processing
     base_dir = "segmentation/tests/test_output_files/deepcell_output/"
     watershed_xr = xr.open_dataarray(base_dir + "test_input_deepcell_output_watershed.nc")
     watershed_xr.name = "test_output_watershed_deepcell"
@@ -30,11 +31,15 @@ def test_save_deepcell_tifs():
 
     assert processed_watershed.shape == (2, 1024, 1024, 2)
 
+    # check that error is raised if mismatch between transform and data
+    with pytest.raises(ValueError):
+        data_utils.save_deepcell_tifs(watershed_xr, base_dir, transform="pixel")
 
-    # TODO: check that proper error is raised when incorrect pixel/watershed delivered
+    temp_files = os.listdir(base_dir)
+    temp_files = [file for file in temp_files if "test_input" not in file]
 
-    # TODO: clean up old files
-
+    for file in temp_files:
+        os.remove(base_dir + file)
 
 
 def test_load_tifs_from_points_dir():
@@ -145,6 +150,7 @@ def test_crop_helper():
     cropped = data_utils.crop_helper(crop_input, crop_size)
     num_crops = crop_input.shape[0] * math.ceil(crop_input.shape[1] / crop_size) * math.ceil(crop_input.shape[2] / crop_size)
     assert np.array_equal(cropped.shape, (num_crops, crop_size, crop_size, crop_input.shape[3]))
+
 
 def test_crop_image_stack():
     # test without overlap (stride_fraction = 1)
