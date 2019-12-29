@@ -11,12 +11,13 @@ import matplotlib as mpl
 
 # plotting functions
 
-def plot_overlay(predicted_contour, plotting_tif, alternate_contour=None, path=None):
+def plot_overlay(predicted_contour, plotting_tif, multiplier=1, alternate_contour=None, path=None):
     """Take in labeled contour data, along with optional mibi tif and second contour, and overlay them for comparison"
 
     Args:
         predicted_contour: 2D numpy array of labeled cell objects
         plotting_tif: 2D numpy array of imaging signal
+        multiplier: int that determines scaling of image
         alternate_contour: 2D numpy array of labeled cell objects
         path: path to save the resulting image
 
@@ -43,9 +44,15 @@ def plot_overlay(predicted_contour, plotting_tif, alternate_contour=None, path=N
     # rescale channel data for easier visualization
     overlay_tif = np.zeros((predicted_contour_mask.shape[0], predicted_contour_mask.shape[1], 3), dtype="uint8")
     overlay_tif[:] = np.expand_dims(plotting_tif, axis=-1)
-    med = np.median(overlay_tif[overlay_tif > 0])
-    rescale_factor = math.floor(128 / med)
-    overlay_tif = overlay_tif * rescale_factor
+    # med = np.median(overlay_tif[overlay_tif > 0])
+    max = np.max(overlay_tif)
+    rescale_factor = math.floor(255 / max)
+    rescaled = overlay_tif * rescale_factor / multiplier
+
+    # figure out which values need to be capped due to overflow
+    cap_mask = rescaled > 255
+    overlay_tif = np.floor(rescaled).astype('uint8')
+    overlay_tif[cap_mask] = 250
 
     # overlay first contour on all three RGB, to have it show up as white border
     overlay_tif[predicted_contour_mask > 0, :] = 255
@@ -63,7 +70,7 @@ def plot_overlay(predicted_contour, plotting_tif, alternate_contour=None, path=N
 
     # save as TIF if path supplied, otherwise display on screen
     if path is not None:
-        io.imsave(path, overlay_tif, dpi=800)
+        io.imsave(path, overlay_tif)
     else:
         io.imshow(overlay_tif)
 

@@ -8,6 +8,35 @@ import importlib
 importlib.reload(data_utils)
 
 
+def test_save_deepcell_tifs():
+
+    # test pixel processing
+    base_dir = "segmentation/tests/test_output_files/deepcell_output/"
+    pixel_xr = xr.open_dataarray(base_dir + "test_input_deepcell_output_pixel.nc")
+    pixel_xr.name = "test_output_pixel_deepcell"
+    data_utils.save_deepcell_tifs(pixel_xr, base_dir, transform="pixel", pixel_smooth=[1, 2])
+
+    processed_pixel = xr.open_dataarray(base_dir + "test_output_pixel_deepcell_processed.nc")
+
+    assert processed_pixel.shape == (2, 1024, 1024, 4)
+
+    # test pixel processing
+    base_dir = "segmentation/tests/test_output_files/deepcell_output/"
+    watershed_xr = xr.open_dataarray(base_dir + "test_input_deepcell_output_watershed.nc")
+    watershed_xr.name = "test_output_watershed_deepcell"
+    data_utils.save_deepcell_tifs(watershed_xr, base_dir, transform="watershed")
+
+    processed_watershed = xr.open_dataarray(base_dir + "test_output_watershed_deepcell_processed.nc")
+
+    assert processed_watershed.shape == (2, 1024, 1024, 2)
+
+
+    # TODO: check that proper error is raised when incorrect pixel/watershed delivered
+
+    # TODO: clean up old files
+
+
+
 def test_load_tifs_from_points_dir():
 
     # check default loading of all files
