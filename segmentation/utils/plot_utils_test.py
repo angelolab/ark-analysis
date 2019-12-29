@@ -19,6 +19,7 @@ def test_randomize_labels():
         coords = labels == val
         assert len(np.unique(randomized[coords])) == 1
 
+
 def test_outline_objects():
     labels = io.imread("segmentation/tests/test_output_files/segmentation_labels.tiff")
     unique_vals = np.unique(labels)[1:]
