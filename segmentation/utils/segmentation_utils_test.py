@@ -85,8 +85,10 @@ def test_segment_images():
 
 def test_extract_single_cell_data():
     base_dir = "segmentation/tests/test_output_files/single_cell_data/"
-    print("hello")
-    print("does directory exist? : {}".format(os.path.isdir(base_dir)))
+
+    if not os.path.isdir(base_dir):
+        os.makedirs(base_dir)
+
     # create input data
     cell_mask = np.zeros((40, 40), dtype='int16')
     cell_mask[4:10, 4:8] = 1
@@ -137,4 +139,5 @@ def test_extract_single_cell_data():
     for file in temp_files:
         os.remove(base_dir + file)
 
+    os.rmdir(base_dir)
 
