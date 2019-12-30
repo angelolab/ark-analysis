@@ -68,7 +68,7 @@ def watershed_transform(pixel_xr, watershed_xr, channel_xr, overlay_channels, ou
             raise ValueError("Invalid pixel smooth name: {} not found in xr".format(pixel_smooth))
 
 
-    for point in pixel_xr.points.values:
+    for point in pixel_xr.point.values:
         print("analyzing point {}".format(point))
 
         # generate maxs from watershed or pixel
