@@ -1,5 +1,6 @@
 import numpy as np
 import xarray as xr
+import os
 
 from segmentation.utils import segmentation_utils
 

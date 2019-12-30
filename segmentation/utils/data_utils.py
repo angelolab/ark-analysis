@@ -1,5 +1,6 @@
 import os
 import math
+import warnings
 
 import skimage.io as io
 import numpy as np
@@ -60,11 +61,14 @@ def save_deepcell_tifs(model_output_xr, save_path, transform='pixel', points=Non
             smoothed_argmax = rank.median(model_output_xr[i, :, :, 0], np.ones((watershed_smooth, watershed_smooth)))
             watershed_processed[i, :, :, 1] = smoothed_argmax
 
-            io.imsave(os.path.join(save_path, model_output_xr.coords['points'].values[i] +
-                                   '_watershed.tiff'), watershed_processed[i, :, :, 0].astype('int8'))
+            # ignore low-contrast image warnings
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                io.imsave(os.path.join(save_path, model_output_xr.coords['points'].values[i] +
+                                       '_watershed.tiff'), watershed_processed[i, :, :, 0].astype('int8'))
 
-            io.imsave(os.path.join(save_path, model_output_xr.coords['points'].values[i] +
-                                   '_watershed_smoothed.tiff'), watershed_processed[i, :, :, 1].astype('int8'))
+                io.imsave(os.path.join(save_path, model_output_xr.coords['points'].values[i] +
+                                       '_watershed_smoothed.tiff'), watershed_processed[i, :, :, 1].astype('int8'))
 
         mask = ["watershed", "watershed_smoothed"]
         watershed_processed_xr = xr.DataArray(watershed_processed, name=model_output_xr.name + "_processed",
@@ -86,7 +90,12 @@ def save_deepcell_tifs(model_output_xr, save_path, transform='pixel', points=Non
             # smooth interior probability for each point
             for smooth in range(len(pixel_smooth)):
                 # smooth output according to smooth value, save sequentially in xarray
-                smoothed_int = nd.gaussian_filter(model_output_xr[i, :, :, 1], pixel_smooth[smooth])
+
+                # ignore low-contrast image warnings
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore")
+                    smoothed_int = nd.gaussian_filter(model_output_xr[i, :, :, 1], pixel_smooth[smooth])
+
                 pixel_processed[i, :, :, 2 + smooth] = smoothed_int
 
         # save output to xarray

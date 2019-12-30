@@ -1,6 +1,7 @@
 import os
 import skimage.measure
 import copy
+import warnings
 
 
 import numpy as np
@@ -123,7 +124,11 @@ def watershed_transform(pixel_xr, watershed_xr, channel_xr, overlay_channels, ou
         else:
             random_map = expanded
 
-        io.imsave(output_dir + point + "_segmentation_labels.tiff", random_map)
+        # ignore low-contrast image warnings
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            io.imsave(output_dir + point + "_segmentation_labels.tiff", random_map)
+
         segmentation_labels_xr.loc[point, :, :, 'segmentation_label'] = random_map
 
         # plot list of supplied markers overlaid by segmentation mask to assess accuracy
