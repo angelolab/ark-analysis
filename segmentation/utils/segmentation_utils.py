@@ -16,7 +16,7 @@ from segmentation.utils import plot_utils
 
 def watershed_transform(pixel_xr, watershed_xr, channel_xr, overlay_channels, output_dir, watershed_maxs=True,
                         watershed_smooth=None, pixel_background=True, pixel_smooth=None,
-                        nuclear_expansion=None, randomize_cell_labels=True, small_seed_cutoff=5, multiplier=2):
+                        nuclear_expansion=None, randomize_cell_labels=True, small_seed_cutoff=5, rescale_factor=1):
 
     """Runs the watershed transform over a set of probability masks output by deepcell network
     Inputs:
@@ -133,8 +133,8 @@ def watershed_transform(pixel_xr, watershed_xr, channel_xr, overlay_channels, ou
 
         # plot list of supplied markers overlaid by segmentation mask to assess accuracy
         for channel in overlay_channels:
-            chan_marker = channel_xr.loc[point, :, :, channel]
-            plot_utils.plot_overlay(random_map, plotting_tif=chan_marker, multiplier=multiplier,
+            chan_marker = channel_xr.loc[point, :, :, channel].values
+            plot_utils.plot_overlay(random_map, plotting_tif=chan_marker, rescale_factor=rescale_factor,
                                     path=output_dir + point + "_{}_overlay.tiff".format(channel))
 
     segmentation_labels_xr.name = pixel_xr.name + "_segmentation_labels"
