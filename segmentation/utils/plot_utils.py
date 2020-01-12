@@ -75,7 +75,7 @@ def plot_overlay(predicted_contour, plotting_tif, rescale_factor=1, alternate_co
     # save as TIF if path supplied, otherwise display on screen
     if path is not None:
         io.imsave(path, overlay_tif)
-        io.imsave(os.path.splitext(path)[0] + "_border.tif", predicted_contour_mask)
+        # io.imsave(os.path.splitext(path)[0] + "_border.tif", predicted_contour_mask)
     else:
         io.imshow(overlay_tif)
 
