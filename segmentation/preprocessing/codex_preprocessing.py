@@ -8,6 +8,23 @@ from skimage.transform import resize
 import skimage
 from skimage.measure import label
 
+# Travis CODEX data
+base_dir = "/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/data/20191224_Test_IF/CODEX_Travis/"
+Membrane1 = io.imread(base_dir + "Membrane1_rescaled.tif")
+Membrane1[Membrane1 < 5000] = 0
+Membrane2 = io.imread(base_dir + "Membrane2_rescaled.tif")
+
+Membrane_combined = Membrane1 + Membrane2
+io.imsave(base_dir + "Membrane_combined.tif", Membrane_combined)
+
+Membrane_new = resize(Membrane, [Membrane.shape[0] / 2, Membrane.shape[1] / 2], order=3, preserve_range=True)
+Membrane_new = Membrane_new.astype('int32')
+
+io.imsave(base_dir + "DNA_resized.tif", DNA_new)
+io.imsave(base_dir + "Membrane_resized.tif", Membrane_new)
+
+
+# original CODEX paper
 base_dir = "/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/data/20191121_Codex_Download/"
 
 channels = pd.read_csv(base_dir + "/raw/channel_names.csv", header=None)
@@ -114,8 +131,6 @@ for point in points:
     unique = skimage.measure.label(objects)
 
     io.imsave(base_dir + "Input_Data/Ilastik_Labels/" + point + "/annotated/segmentation_labels.tiff", unique.astype('int32'))
-
-
 
 
 

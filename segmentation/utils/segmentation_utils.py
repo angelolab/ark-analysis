@@ -16,7 +16,7 @@ from segmentation.utils import plot_utils
 
 def watershed_transform(pixel_xr, watershed_xr, channel_xr, overlay_channels, output_dir, watershed_maxs=True,
                         watershed_smooth=None, pixel_background=True, pixel_smooth=None,
-                        nuclear_expansion=None, randomize_cell_labels=True, small_seed_cutoff=5, multiplier=2):
+                        nuclear_expansion=None, randomize_cell_labels=True, small_seed_cutoff=5, rescale_factor=1):
 
     """Runs the watershed transform over a set of probability masks output by deepcell network
     Inputs:
@@ -85,7 +85,7 @@ def watershed_transform(pixel_xr, watershed_xr, channel_xr, overlay_channels, ou
             # use interior probability from pixel network as space to watershed over
             pixel_smoothed = pixel_xr.loc[point, :, :, pixel_smooth]
             max = np.max(pixel_smoothed.values)
-            interior_mask = pixel_smoothed > (0.15 * max)
+            interior_mask = pixel_smoothed > (0.25 * max)
             contour_mask = -pixel_smoothed
         else:
             # use watershed network output as space to watershed over
@@ -133,8 +133,8 @@ def watershed_transform(pixel_xr, watershed_xr, channel_xr, overlay_channels, ou
 
         # plot list of supplied markers overlaid by segmentation mask to assess accuracy
         for channel in overlay_channels:
-            chan_marker = channel_xr.loc[point, :, :, channel]
-            plot_utils.plot_overlay(random_map, plotting_tif=chan_marker, multiplier=multiplier,
+            chan_marker = channel_xr.loc[point, :, :, channel].values
+            plot_utils.plot_overlay(random_map, plotting_tif=chan_marker, rescale_factor=rescale_factor,
                                     path=output_dir + point + "_{}_overlay.tiff".format(channel))
 
     segmentation_labels_xr.name = pixel_xr.name + "_segmentation_labels"
@@ -289,3 +289,34 @@ def extract_single_cell_data(segmentation_labels, image_data, save_dir, nuc_prob
         combined = pd.concat([csv_format, cell_props], axis=1)
         combined.to_csv(os.path.join(save_dir, point + "_normalized.csv"), index=False)
 
+
+def concatenate_csv(base_dir, csv_files, column_name="point", column_values=None):
+    """Take a list of CSV paths and concatenates them together, adding in the idenfitifier in column_values
+    
+    Inputs:
+        base_dir: directory to read and write csv_files into
+        csv_files: a list csv files
+        column_name: optional column name, defaults to point
+        column_values: optional values to use for each CSV, defaults to csv name
+    
+    Outputs: saved combined csv into same folder"""
+
+    if column_values is None:
+        column_values = copy.copy(csv_files)
+        column_values = [val.split(".")[0] for val in column_values]
+
+    if len(column_values) != len(csv_files):
+        raise ValueError("csv_files and column_values have different lengths: csv {}, column_values {}".format(len(csv_files), len(column_values)))
+
+    for idx, file in enumerate(csv_files):
+        if idx == 0:
+            # first one, create master array
+            temp_data = pd.read_csv(base_dir + file, header=0, sep=",")
+            temp_data[column_name] = column_values[idx]
+            combined_data = temp_data
+        else:
+            temp_data = pd.read_csv(base_dir + file, header=0, sep=",")
+            temp_data[column_name] = column_values[idx]
+            combined_data = pd.concat((combined_data, temp_data), axis=0, ignore_index=True)
+
+    combined_data.to_csv(base_dir + "combined_data.csv")

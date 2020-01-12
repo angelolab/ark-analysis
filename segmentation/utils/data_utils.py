@@ -177,6 +177,10 @@ def load_tifs_from_points_dir(point_dir, tif_folder=None, points=None, tifs=None
         for tif in range(len(tifs)):
             img_data[point, :, :, tif] = io.imread(os.path.join(point_dir, points[point], tif_folder, tifs[tif]))
 
+    # check to make sure that dtype wasn't too small for range of data
+    if np.min(img_data) < 0:
+        raise ValueError("Integer overflow from loading TIF image, try a larger dtype")
+
     # remove .tif or .tiff from image name
     tif_names = [os.path.splitext(tif)[0] for tif in tifs]
 
