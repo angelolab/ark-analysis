@@ -10,7 +10,11 @@ total_tiff = io.imread(base_dir + "C07.tiff")
 
 total_tiff_resize = resize(total_tiff, [total_tiff.shape[0], total_tiff.shape[1] * 2, total_tiff.shape[2] * 2],
                            order=3)
+DNA = total_tiff_resize[23, :, :]
+DNA[DNA < 12] = 0
+io.imsave(base_dir + "DNA.tiff", DNA)
 
-io.imsave(base_dir + "DNA.tiff", total_tiff_resize[23, :, :])
-io.imsave(base_dir + "Membrane.tiff", total_tiff_resize[21, :, :])
+Membrane = total_tiff_resize[21, :, :]
+Membrane[Membrane < 4] = 0
+io.imsave(base_dir + "Membrane.tiff", Membrane)
 
