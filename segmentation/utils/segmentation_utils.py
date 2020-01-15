@@ -14,8 +14,9 @@ import pandas as pd
 from segmentation.utils import plot_utils
 
 
-def watershed_transform(pixel_xr, watershed_xr, channel_xr, overlay_channels, output_dir, watershed_maxs=True,
-                        watershed_smooth=None, pixel_background=True, pixel_smooth=None,
+def watershed_transform(pixel_xr, channel_xr, overlay_channels, output_dir, background_threshold=0.25,
+                        watershed_xr=None, watershed_maxs=False, watershed_smooth=None, pixel_background=True,
+                        pixel_smooth=None,
                         nuclear_expansion=None, randomize_cell_labels=True, small_seed_cutoff=5, rescale_factor=1):
 
     """Runs the watershed transform over a set of probability masks output by deepcell network
@@ -36,8 +37,15 @@ def watershed_transform(pixel_xr, watershed_xr, channel_xr, overlay_channels, ou
         Saves xarray to output directory"""
 
     # error checking
-    if pixel_xr.shape[0] != watershed_xr.shape[0]:
-        raise ValueError("The pixel and watershed xarrays have a different number of points")
+    if watershed_xr is not None:
+        if pixel_xr.shape[0] != watershed_xr.shape[0]:
+            raise ValueError("The pixel and watershed xarrays have a different number of points")
+
+        if watershed_smooth is None:
+            watershed_smooth = watershed_xr.masks.values[-1]
+        else:
+            if watershed_smooth not in watershed_xr.masks.values:
+                raise ValueError("Invalid watershed smooth name: {} not found in xr".format(watershed_smooth))
 
     if np.sum(~np.isin(pixel_xr.points.values, channel_xr.points.values)) > 0:
         raise ValueError("Not all of the points in the deepcell output were found in the channel xr")
@@ -54,19 +62,11 @@ def watershed_transform(pixel_xr, watershed_xr, channel_xr, overlay_channels, ou
                                           coords=[pixel_xr.points, range(pixel_xr.shape[1]), range(pixel_xr.shape[2]),
                                                   ['segmentation_label']], dims=['points', 'rows', 'cols', 'channels'])
 
-    if watershed_smooth is None:
-        watershed_smooth = watershed_xr.masks.values[-1]
-    else:
-        if watershed_smooth not in watershed_xr.masks.values:
-            raise ValueError("Invalid watershed smooth name: {} not found in xr".format(watershed_smooth))
-
-
     if pixel_smooth is None:
         pixel_smooth = pixel_xr.masks.values[-1]
     else:
         if pixel_smooth not in pixel_xr.masks.values:
             raise ValueError("Invalid pixel smooth name: {} not found in xr".format(pixel_smooth))
-
 
     for point in pixel_xr.points.values:
         print("analyzing point {}".format(point))
@@ -85,7 +85,7 @@ def watershed_transform(pixel_xr, watershed_xr, channel_xr, overlay_channels, ou
             # use interior probability from pixel network as space to watershed over
             pixel_smoothed = pixel_xr.loc[point, :, :, pixel_smooth]
             max = np.max(pixel_smoothed.values)
-            interior_mask = pixel_smoothed > (0.25 * max)
+            interior_mask = pixel_smoothed > (background_threshold * max)
             contour_mask = -pixel_smoothed
         else:
             # use watershed network output as space to watershed over
