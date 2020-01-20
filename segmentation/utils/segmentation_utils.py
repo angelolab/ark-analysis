@@ -189,7 +189,7 @@ def segment_images(input_images, segmentation_masks):
     return xr_counts
 
 
-def extract_single_cell_data(segmentation_labels, image_data, save_dir, nuc_probs=None):
+def extract_single_cell_data(segmentation_labels, image_data, save_dir, nuc_probs=None, save_FCS=False):
 
     """Extract single cell data from a set of images with provided segmentation mask
     Input:
@@ -273,13 +273,7 @@ def extract_single_cell_data(segmentation_labels, image_data, save_dir, nuc_prob
 
         #cell_data.to_netcdf(os.path.join(save_dir, point, 'segmented_data.nc'))
         #cell_data_norm.to_netcdf(os.path.join(save_dir, point, 'segmented_data_normalized.nc'))
-        #cell_data_norm_trans.to_netcdf(os.path.join(save_dir, point, 'segmented_data_normalized_transformed.nc'))
-
-
-        # FCS_format = fk.Sample(cell_data_norm_trans.values[0, :, :], subsample_count=None,
-        #                        channel_labels=cell_data_norm.features.values)
-        #
-        # FCS_format.export_fcs(source='raw', filename=point + ".fcs", directory=save_dir)
+        #cell_data_norm_trans.to_netcdf(os.path.join(save_dir, point + '_segmented_data_normalized_transformed.nc'))
 
         csv_format = pd.DataFrame(data=cell_data_norm_trans.values[0, :, :], columns=cell_data.features)
         combined = pd.concat([csv_format, cell_props], axis=1)
@@ -291,7 +285,7 @@ def extract_single_cell_data(segmentation_labels, image_data, save_dir, nuc_prob
 
 
 def concatenate_csv(base_dir, csv_files, column_name="point", column_values=None):
-    """Take a list of CSV paths and concatenates them together, adding in the idenfitifier in column_values
+    """Take a list of CSV paths and concatenates them together, adding in the identifier in column_values
     
     Inputs:
         base_dir: directory to read and write csv_files into
