@@ -208,7 +208,7 @@ def create_blank_channel(img_size, grid_size):
         for col in range(grid_size):
             row_rand = np.random.randint(0, grid_size - 1)
             col_rand = np.random.randint(0, grid_size - 1)
-            blank[row * row_step + row_rand, col * col_step + col_rand] = np.random.randint(15)
+            blank[row * row_step + row_rand, col * col_step + col_rand] = np.random.randint(1, 15)
 
     return blank
 
