@@ -5,9 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from skimage.transform import resize
 import skimage.io as io
-
 import shutil
-
 
 base_dir = "/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/data/20200114_cHL/data/"
 fname = 'cHL-MIF-Noah.20200114.h5'
@@ -162,7 +160,4 @@ for tif in composite_tifs:
     io.imsave(os.path.join(save_path, "EGFR.tiff"), composite[39, :, :].astype('float32'))
     io.imsave(os.path.join(save_path, "PanCK.tiff"), composite[45, :, :].astype('float32'))
     shutil.move(os.path.join(base_dir, tif), os.path.join(save_path, tif))
-
-
-
 
