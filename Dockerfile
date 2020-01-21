@@ -7,7 +7,6 @@ WORKDIR /scripts
 
 # copy over the requirements.txt and install dependencies
 COPY requirements.txt .
-COPY test_python_script.py .
 
 RUN pip install --no-cache-dir -r requirements.txt
 
