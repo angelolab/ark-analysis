@@ -6,6 +6,8 @@ import matplotlib.pyplot as plt
 from skimage.transform import resize
 import skimage.io as io
 
+import shutil
+
 
 base_dir = "/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/data/20200114_cHL/data/"
 fname = 'cHL-MIF-Noah.20200114.h5'
@@ -135,3 +137,32 @@ io.imsave(base_dir + "Membrane_pancreas.tif", Membrane_panc[6, :, :])
 Nucleus_panc = io.imread(base_dir + "Nucleus_C6_8_Pancreas.tif")
 Nucleus_panc[Nucleus_panc < 1.2] = 0
 io.imsave(base_dir + "Nucleus_pancreas.tif", Nucleus_panc[5, :, :])
+
+
+# 2020 IMC paper
+base_dir = "/Users/noahgreenwald/Downloads/ome/"
+composite_tifs = os.listdir(base_dir)
+composite_tifs = [tif for tif in composite_tifs if ".tif" in tif]
+
+
+for tif in composite_tifs:
+    dir_name = os.path.splitext(tif)[0]
+    save_path = os.path.join(base_dir, dir_name)
+    if not os.path.isdir(save_path):
+        os.makedirs(save_path)
+
+    composite = io.imread(base_dir + tif)
+    io.imsave(os.path.join(save_path, "Histone.tiff"), composite[8, :, :].astype('float32'))
+    io.imsave(os.path.join(save_path, "HER2.tiff"), composite[22, :, :].astype('float32'))
+    io.imsave(os.path.join(save_path, "ER.tiff"), composite[27, :, :].astype('float32'))
+    io.imsave(os.path.join(save_path, "PR.tiff"), composite[28, :, :].astype('float32'))
+    io.imsave(os.path.join(save_path, "CD44.tiff"), composite[30, :, :].astype('float32'))
+    io.imsave(os.path.join(save_path, "CD45.tiff"), composite[32, :, :].astype('float32'))
+    io.imsave(os.path.join(save_path, "ECAD.tiff"), composite[37, :, :].astype('float32'))
+    io.imsave(os.path.join(save_path, "EGFR.tiff"), composite[39, :, :].astype('float32'))
+    io.imsave(os.path.join(save_path, "PanCK.tiff"), composite[45, :, :].astype('float32'))
+    shutil.move(os.path.join(base_dir, tif), os.path.join(save_path, tif))
+
+
+
+
