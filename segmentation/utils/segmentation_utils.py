@@ -127,7 +127,7 @@ def watershed_transform(pixel_xr, channel_xr, overlay_channels, output_dir, back
         # ignore low-contrast image warnings
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            io.imsave(output_dir + point + "_segmentation_labels.tiff", random_map)
+            io.imsave(os.path.join(output_dir, point + "_segmentation_labels.tiff"), random_map)
 
         segmentation_labels_xr.loc[point, :, :, 'segmentation_label'] = random_map
 
@@ -135,10 +135,10 @@ def watershed_transform(pixel_xr, channel_xr, overlay_channels, output_dir, back
         for channel in overlay_channels:
             chan_marker = channel_xr.loc[point, :, :, channel].values
             plot_utils.plot_overlay(random_map, plotting_tif=chan_marker, rescale_factor=rescale_factor,
-                                    path=output_dir + point + "_{}_overlay.tiff".format(channel))
+                                    path=os.path.join(output_dir, point + "_{}_overlay.tiff".format(channel)))
 
     segmentation_labels_xr.name = pixel_xr.name + "_segmentation_labels"
-    segmentation_labels_xr.to_netcdf(output_dir + segmentation_labels_xr.name + ".nc", format='NETCDF3_64BIT')
+    segmentation_labels_xr.to_netcdf(os.path.join(output_dir, segmentation_labels_xr.name + ".nc"), format='NETCDF3_64BIT')
 
 
 def segment_images(input_images, segmentation_masks):

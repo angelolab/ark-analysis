@@ -58,7 +58,8 @@ def save_deepcell_tifs(model_output_xr, save_path, transform='pixel', points=Non
         watershed_processed[:, :, :, 0] = model_output_xr.values[:, :, :, 0]
 
         for i in range(model_output_xr.shape[0]):
-            smoothed_argmax = rank.median(model_output_xr[i, :, :, 0], np.ones((watershed_smooth, watershed_smooth)))
+            smoothed_argmax = rank.median(model_output_xr[i, :, :, 0].values.astype('uint8'),
+                                          np.ones((watershed_smooth, watershed_smooth)))
             watershed_processed[i, :, :, 1] = smoothed_argmax
 
             # ignore low-contrast image warnings
