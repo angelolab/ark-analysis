@@ -85,13 +85,18 @@ def watershed_transform(pixel_xr, channel_xr, overlay_channels, output_dir, back
             # use interior probability from pixel network as space to watershed over
             pixel_smoothed = pixel_xr.loc[point, :, :, pixel_smooth]
             max = np.max(pixel_smoothed.values)
-            interior_mask = pixel_smoothed > (background_threshold * max)
             contour_mask = -pixel_smoothed
+            interior_mask = pixel_smoothed > (background_threshold * max)
+
         else:
             # use watershed network output as space to watershed over
             watershed_smoothed = watershed_xr.loc[point, :, :, watershed_smooth]
-            interior_mask = watershed_smoothed > 0
             contour_mask = -watershed_smoothed
+            interior_mask = watershed_smoothed > 0
+
+        # determine if background is based on network output or an expansion
+        if nuclear_expansion is not None:
+            interior_mask = morph.dilation(interior_mask, selem=morph.square(nuclear_expansion * 2 + 1))
 
         # use maxs to generate seeds for watershed
         markers = skimage.measure.label(maxs, connectivity=1)
@@ -113,21 +118,15 @@ def watershed_transform(pixel_xr, channel_xr, overlay_channels, output_dir, back
         # watershed over negative interior mask
         labels = np.array(morph.watershed(contour_mask, markers, mask=interior_mask, watershed_line=0))
 
-        # optional pixel expansion following nuclear segmentation
-        if nuclear_expansion is not None:
-            expanded = morph.dilation(labels, selem=morph.square(nuclear_expansion))
-        else:
-            expanded = labels
-
         if randomize_cell_labels:
-            random_map = plot_utils.randomize_labels(expanded)
+            random_map = plot_utils.randomize_labels(labels)
         else:
-            random_map = expanded
+            random_map = labels
 
         # ignore low-contrast image warnings
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            io.imsave(output_dir + point + "_segmentation_labels.tiff", random_map)
+            io.imsave(os.path.join(output_dir, point + "_segmentation_labels.tiff"), random_map)
 
         segmentation_labels_xr.loc[point, :, :, 'segmentation_label'] = random_map
 
@@ -135,10 +134,66 @@ def watershed_transform(pixel_xr, channel_xr, overlay_channels, output_dir, back
         for channel in overlay_channels:
             chan_marker = channel_xr.loc[point, :, :, channel].values
             plot_utils.plot_overlay(random_map, plotting_tif=chan_marker, rescale_factor=rescale_factor,
-                                    path=output_dir + point + "_{}_overlay.tiff".format(channel))
+                                    path=os.path.join(output_dir, point + "_{}_overlay.tiff".format(channel)))
 
     segmentation_labels_xr.name = pixel_xr.name + "_segmentation_labels"
-    segmentation_labels_xr.to_netcdf(output_dir + segmentation_labels_xr.name + ".nc", format='NETCDF3_64BIT')
+    segmentation_labels_xr.to_netcdf(os.path.join(output_dir, segmentation_labels_xr.name + ".nc"), format='NETCDF3_64BIT')
+
+
+def combine_segmentation_masks(big_mask_xr, small_mask_xr, size_threshold, output_dir, input_xr, overlay_channels):
+    """Takes two xarrays of masks, generated using different parameters, and combines them together to produce
+        a single unified mask
+
+    Inputs
+        big_mask_xr: xarray optimized for large cells
+        small_mask_xr: xarray optimized for small cells
+        size_threshold: pixel cutoff for large mask, under which cells will be removed
+        output_dir: name of directory to save results
+        input_xr: xarray containing channels for overlay
+        overlay_channels: channels to overlay segmentation output over"""
+
+    # loop through all masks in large xarray
+    for point in range(big_mask_xr.shape[0]):
+        labels = big_mask_xr[point, :, :, 0].values
+
+        # for each cell, determine if small than threshold
+        for cell in np.unique(labels):
+            if np.sum(labels == cell) < size_threshold:
+                labels[labels == cell] = 0
+        big_mask_xr[point, :, :, 0] = labels
+
+    # loop through all masks in small xarray
+    for point in range(small_mask_xr.shape[0]):
+        labels = small_mask_xr[point, :, :, 0].values
+        big_labels = big_mask_xr[point, :, :, 0].values
+
+        cell_id_offset = np.max(big_labels)
+        # loop through all cells in small mask
+        for idx, value in enumerate(np.unique(labels)[1:]):
+
+            # if the cell overlaps only with background in big mask, transfer it over
+            if len(np.unique(big_labels[labels == value])) == 1:
+                if np.unique(big_labels[labels == value]) == 0:
+                    big_labels[labels == value] = cell_id_offset + idx
+
+        big_mask_xr[point, :, :, 0] = big_labels
+
+    if not os.path.isdir(output_dir):
+        os.makedirs(output_dir)
+
+    # loop through modified combined mask
+    for point in big_mask_xr.points.values:
+
+        # save segmentation labels
+        io.imsave(os.path.join(output_dir, point + "_labels.tiff"), big_mask_xr.loc[point, :, :, "segmentation_label"])
+
+        # save overlay plots
+        for channel in overlay_channels:
+            plot_utils.plot_overlay(big_mask_xr.loc[point, :, :, "segmentation_label"].values,
+                                    input_xr.loc[point, :, :, channel].values,
+                                    path=os.path.join(output_dir, "{}_{}_overlay.tiff".format(point, channel)))
+
+    big_mask_xr.to_netcdf(os.path.join(output_dir, "deepcell_output_pixel_processed_segmentation_labels.nc"))
 
 
 def segment_images(input_images, segmentation_masks):
