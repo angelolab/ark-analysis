@@ -360,12 +360,12 @@ def concatenate_csv(base_dir, csv_files, column_name="point", column_values=None
     for idx, file in enumerate(csv_files):
         if idx == 0:
             # first one, create master array
-            temp_data = pd.read_csv(base_dir + file, header=0, sep=",")
+            temp_data = pd.read_csv(os.path.join(base_dir, file), header=0, sep=",")
             temp_data[column_name] = column_values[idx]
             combined_data = temp_data
         else:
-            temp_data = pd.read_csv(base_dir + file, header=0, sep=",")
+            temp_data = pd.read_csv(os.path.join(base_dir, file), header=0, sep=",")
             temp_data[column_name] = column_values[idx]
             combined_data = pd.concat((combined_data, temp_data), axis=0, ignore_index=True)
 
-    combined_data.to_csv(base_dir + "combined_data.csv")
+    combined_data.to_csv(os.path.join(base_dir, "combined_data.csv"))

@@ -58,6 +58,7 @@ def save_deepcell_tifs(model_output_xr, save_path, transform='pixel', points=Non
         watershed_processed[:, :, :, 0] = model_output_xr.values[:, :, :, 0]
 
         for i in range(model_output_xr.shape[0]):
+            print("processing point {}".format(model_output_xr.points.values[i]))
             smoothed_argmax = rank.median(model_output_xr[i, :, :, 0].values.astype('uint8'),
                                           np.ones((watershed_smooth, watershed_smooth)))
             watershed_processed[i, :, :, 1] = smoothed_argmax
@@ -88,6 +89,8 @@ def save_deepcell_tifs(model_output_xr, save_path, transform='pixel', points=Non
         pixel_processed[:, :, :, 0:2] = model_output_xr.loc[:, :, :, ['border', 'interior']].values
 
         for i in range(model_output_xr.shape[0]):
+            print("processing point {}".format(model_output_xr.points.values[i]))
+
             # smooth interior probability for each point
             for smooth in range(len(pixel_smooth)):
                 # smooth output according to smooth value, save sequentially in xarray
@@ -207,8 +210,8 @@ def create_blank_channel(img_size, grid_size):
 
     for row in range(grid_size):
         for col in range(grid_size):
-            row_rand = np.random.randint(0, grid_size - 1)
-            col_rand = np.random.randint(0, grid_size - 1)
+            row_rand = np.random.randint(0, row_step - 1)
+            col_rand = np.random.randint(0, col_step - 1)
             blank[row * row_step + row_rand, col * col_step + col_rand] = np.random.randint(1, 15)
 
     return blank
