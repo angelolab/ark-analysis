@@ -77,7 +77,8 @@ def save_deepcell_tifs(model_output_xr, save_path, transform='pixel', points=Non
                                            coords=[model_output_xr.coords['points'], range(model_output_xr.shape[1]),
                                                    range(model_output_xr.shape[2]), mask],
                                            dims=["points", "rows", "cols", "masks"])
-        watershed_processed_xr.to_netcdf(os.path.join(save_path, watershed_processed_xr.name + '.nc'))
+        watershed_processed_xr.to_netcdf(os.path.join(save_path, watershed_processed_xr.name + '.nc'),
+                                         format="NETCDF4")
 
     elif transform == 'pixel':
         if model_output_xr.shape[-1] != 3:
@@ -119,7 +120,8 @@ def save_deepcell_tifs(model_output_xr, save_path, transform='pixel', points=Non
                                                                  pixel_processed_xr.masks[mask].values)),
                             pixel_processed_xr[point, :, :, mask].values)
 
-        pixel_processed_xr.to_netcdf(os.path.join(save_path, pixel_processed_xr.name + '.nc'))
+        pixel_processed_xr.to_netcdf(os.path.join(save_path, pixel_processed_xr.name + '.nc'),
+                                     format="NETCDF4")
 
 
 def load_tifs_from_points_dir(point_dir, tif_folder=None, points=None, tifs=None, dtype="int16"):
