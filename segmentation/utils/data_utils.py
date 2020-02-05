@@ -196,17 +196,18 @@ def load_tifs_from_points_dir(point_dir, tif_folder=None, points=None, tifs=None
     return img_xr
 
 
-def create_blank_channel(img_size, grid_size):
+def create_blank_channel(img_size, grid_size, dtype):
     """Creates a blank TIF of a given size that has a small number of positive pixels to avoid divide by zero errors
     Inputs:
         img_size: tuple specifying the size of the image to create
         grid_size: int that determines how many pieces to randomize within
+        dtype: dtype for image
 
     Outputs:
         blank_arr: a (mostly) blank array with positive pixels in random values
     """
 
-    blank = np.zeros(img_size, dtype="int16")
+    blank = np.zeros(img_size, dtype=dtype)
     row_step = math.floor(blank.shape[0] / grid_size)
     col_step = math.floor(blank.shape[1] / grid_size)
 
@@ -251,14 +252,14 @@ def reorder_xarray_channels(channel_order, channel_xr, non_blank_channels=None):
         print("The following channels are duplicated: {}".format(vals[duplicated[0]]))
 
     # create array to hold all channels, including blank ones
-    full_array = np.zeros((channel_xr.shape[:3] + (len(channel_order),)), dtype='int8')
+    full_array = np.zeros((channel_xr.shape[:3] + (len(channel_order),)), dtype=channel_xr.dtype)
 
     for i in range(len(channel_order)):
         if channel_order[i] in non_blank_channels:
             full_array[:, :, :, i] = channel_xr.loc[:, :, :, channel_order[i]].values
         else:
             im_crops = channel_xr.shape[1] // 32
-            blank = create_blank_channel(channel_xr.shape[1:3], im_crops)
+            blank = create_blank_channel(channel_xr.shape[1:3], im_crops, dtype=channel_xr.dtype)
             full_array[:, :, :, i] = blank
 
     channel_xr_blanked = xr.DataArray(full_array, coords=[channel_xr.points, range(channel_xr.shape[1]),
@@ -340,13 +341,13 @@ def crop_helper(image_stack, crop_size):
     crop_num_row = math.ceil(image_stack.shape[1] / crop_size)
     crop_num_col = math.ceil(image_stack.shape[2] / crop_size)
     cropped_images = np.zeros((crop_num_row * crop_num_col * image_stack.shape[0], crop_size, crop_size,
-                               image_stack.shape[3]), dtype="int16")
+                               image_stack.shape[3]), dtype=image_stack.dtype)
 
     # Determine if image will need to be padded with zeros due to uneven division by crop
     if image_stack.shape[1] % crop_size != 0 or image_stack.shape[2] % crop_size != 0:
         # create new array that is padded by one crop size on image dimensions
         new_shape = image_stack.shape[0], image_stack.shape[1] + crop_size, image_stack.shape[2] + crop_size, image_stack.shape[3]
-        new_stack = np.zeros(new_shape, dtype="int16")
+        new_stack = np.zeros(new_shape, dtype=image_stack.dtype)
         new_stack[:, :image_stack.shape[1], :image_stack.shape[2], :] = image_stack
         image_stack = new_stack
 
