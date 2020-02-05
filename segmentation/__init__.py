@@ -1,1 +1,1 @@
-from segmentation import utils
+import .utils
