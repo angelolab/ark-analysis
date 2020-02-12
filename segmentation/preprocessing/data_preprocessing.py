@@ -161,3 +161,12 @@ for tif in composite_tifs:
     io.imsave(os.path.join(save_path, "PanCK.tiff"), composite[45, :, :].astype('float32'))
     shutil.move(os.path.join(base_dir, tif), os.path.join(save_path, tif))
 
+# 2019 CyCIF paper
+
+base_dir = "/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/data/20200209_CyCIF_SciRep/Tonsil-1/"
+
+composite = io.imread(base_dir + "TONSIL-1_40X.ome.tif")
+
+for chan in range(composite.shape[0]):
+    io.imsave(base_dir + "Channel_{}.tif".format(chan + 1), composite[chan, :, :])
+
