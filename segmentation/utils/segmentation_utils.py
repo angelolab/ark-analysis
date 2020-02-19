@@ -126,9 +126,13 @@ def watershed_transform(pixel_xr, channel_xr, overlay_channels, output_dir, back
         # ignore low-contrast image warnings
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
+
+            # save segmentation label map
             io.imsave(os.path.join(output_dir, point + "_segmentation_labels.tiff"), random_map)
 
-        segmentation_labels_xr.loc[point, :, :, 'segmentation_label'] = random_map
+            # save borders of segmentation map
+            plot_utils.plot_overlay(random_map, plotting_tif=None, rescale_factor=rescale_factor,
+                                    path=os.path.join(output_dir, point + "_segmentation_borders.tiff"))
 
         # plot list of supplied markers overlaid by segmentation mask to assess accuracy
         for channel in overlay_channels:
@@ -136,10 +140,9 @@ def watershed_transform(pixel_xr, channel_xr, overlay_channels, output_dir, back
             plot_utils.plot_overlay(random_map, plotting_tif=chan_marker, rescale_factor=rescale_factor,
                                     path=os.path.join(output_dir, point + "_{}_overlay.tiff".format(channel)))
 
-        # plot just the segmentation mask
-        plot_utils.plot_overlay(random_map, plotting_tif=None, rescale_factor=rescale_factor,
-                                path=os.path.join(output_dir, point + "_segmentation_borders.tiff"))
+        segmentation_labels_xr.loc[point, :, :, 'segmentation_label'] = random_map
 
+    # save whole xarray
     segmentation_labels_xr.name = pixel_xr.name + "_segmentation_labels"
     segmentation_labels_xr.to_netcdf(os.path.join(output_dir, segmentation_labels_xr.name + ".nc"), format='NETCDF4')
 
