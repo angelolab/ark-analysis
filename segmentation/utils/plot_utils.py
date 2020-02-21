@@ -34,15 +34,13 @@ def plot_overlay(predicted_contour, plotting_tif, rescale_factor=1, alternate_co
         if plotting_tif.shape != predicted_contour.shape:
             raise ValueError("plotting_tif and predicted_contour array dimensions not equal.")
 
-    if len(np.unique(predicted_contour)) < 2:
-        raise ValueError("predicted contour is not labeled")
-
     if path is not None:
         if os.path.exists(os.path.split(path)[0]) is False:
             raise ValueError("File path does not exist.")
 
     # define borders of cells in mask
     predicted_contour_mask = find_boundaries(predicted_contour, connectivity=1, mode='inner').astype(np.uint8)
+    predicted_contour_mask[predicted_contour_mask > 0] = 255
 
     if plotting_tif is None:
         # will just save the contour mask
