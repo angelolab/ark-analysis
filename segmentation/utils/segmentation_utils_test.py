@@ -8,9 +8,9 @@ from segmentation.utils import segmentation_utils
 def test_watershed_transform():
     # load data
     base_dir = "segmentation/tests/test_output_files/segmentation_output/"
-    pixel = xr.open_dataarray(base_dir + "test_input_pixel_processed.nc")
-    watershed = xr.open_dataarray(base_dir + "test_input_watershed_processed.nc")
-    input = xr.open_dataarray(base_dir + "test_input_channel.nc")
+    pixel = xr.open_dataarray(base_dir + "test_input_pixel_processed.xr")
+    watershed = xr.open_dataarray(base_dir + "test_input_watershed_processed.xr")
+    input = xr.open_dataarray(base_dir + "test_input_channel.xr")
 
     segmentation_utils.watershed_transform(pixel_xr=pixel, watershed_xr=watershed, channel_xr=input,
                                            overlay_channels=["Na"], output_dir=base_dir, watershed_maxs=True,
