@@ -186,6 +186,13 @@ def load_tifs_from_points_dir(point_dir, tif_folder=None, points=None, tifs=None
             raise ValueError("Could not find {} in supplied directory {}".format(tif, os.path.join(point_dir, points[0], tif_folder, tif)))
 
     test_img = io.imread(os.path.join(point_dir, points[0], tif_folder, tifs[0]))
+
+    # check to make sure that float dtype was supplied if image data is float
+    data_dtype = test_img.dtype
+    if np.issubdtype(data_dtype, np.floating):
+        if not np.issubdtype(dtype, np.floating):
+            raise ValueError("supplied dtype is not a float, but the images loaded are floats")
+
     img_data = np.zeros((len(points), test_img.shape[0], test_img.shape[1], len(tifs)), dtype=dtype)
 
     for point in range(len(points)):
