@@ -13,7 +13,7 @@ def test_watershed_transform():
     input = xr.load_dataarray(base_dir + "test_input_channel.xr")
 
     segmentation_utils.watershed_transform(pixel_xr=pixel, watershed_xr=watershed, channel_xr=input,
-                                           overlay_channels=["Na"], output_dir=base_dir, watershed_maxs=True,
+                                           overlay_channels=[["Na"]], output_dir=base_dir, watershed_maxs=True,
                                            )
     # clean up output files
     temp_files = os.listdir(base_dir)
