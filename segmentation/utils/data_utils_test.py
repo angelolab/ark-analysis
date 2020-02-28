@@ -13,21 +13,21 @@ def test_save_deepcell_tifs():
 
     # test pixel processing
     base_dir = "segmentation/tests/test_output_files/deepcell_output/"
-    pixel_xr = xr.open_dataarray(base_dir + "test_input_deepcell_output_pixel.xr")
+    pixel_xr = xr.load_dataarray(base_dir + "test_input_deepcell_output_pixel.xr")
     pixel_xr.name = "test_output_pixel_deepcell"
     data_utils.save_deepcell_tifs(pixel_xr, base_dir, transform="pixel", pixel_smooth=[1, 2])
 
-    processed_pixel = xr.open_dataarray(base_dir + "test_output_pixel_deepcell_processed.xr")
+    processed_pixel = xr.load_dataarray(base_dir + "test_output_pixel_deepcell_processed.xr")
 
     assert processed_pixel.shape == (2, 1024, 1024, 4)
 
     # test watershed processing
     base_dir = "segmentation/tests/test_output_files/deepcell_output/"
-    watershed_xr = xr.open_dataarray(base_dir + "test_input_deepcell_output_watershed.xr")
+    watershed_xr = xr.load_dataarray(base_dir + "test_input_deepcell_output_watershed.xr")
     watershed_xr.name = "test_output_watershed_deepcell"
     data_utils.save_deepcell_tifs(watershed_xr, base_dir, transform="watershed")
 
-    processed_watershed = xr.open_dataarray(base_dir + "test_output_watershed_deepcell_processed.xr")
+    processed_watershed = xr.load_dataarray(base_dir + "test_output_watershed_deepcell_processed.xr")
 
     assert processed_watershed.shape == (2, 1024, 1024, 2)
 
