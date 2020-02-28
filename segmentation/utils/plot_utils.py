@@ -16,7 +16,7 @@ def plot_overlay(predicted_contour, plotting_tif, rescale_factor=1, alternate_co
 
     Args:
         predicted_contour: 2D numpy array of labeled cell objects
-        plotting_tif: 2D numpy array of imaging signal
+        plotting_tif: 2D or 3D numpy array of imaging signal
         rescale_factor: increase brightness of image by rescaling upwards
         alternate_contour: 2D numpy array of labeled cell objects
         path: path to save the resulting image
@@ -31,8 +31,17 @@ def plot_overlay(predicted_contour, plotting_tif, rescale_factor=1, alternate_co
         # will just plot the outlines
         pass
     else:
-        if plotting_tif.shape != predicted_contour.shape:
-            raise ValueError("plotting_tif and predicted_contour array dimensions not equal.")
+        if len(plotting_tif.shape) == 2:
+            if plotting_tif.shape != predicted_contour.shape:
+                raise ValueError("plotting_tif and predicted_contour array dimensions not equal.")
+            else:
+                # convert RGB image with same data across all three channels
+                plotting_tif = np.stack((plotting_tif, plotting_tif, plotting_tif), axis=2)
+        elif len(plotting_tif.shape) == 3:
+            if plotting_tif.shape[2] != 3:
+                raise ValueError("only 3 channels of overlay supported, got {}".format(plotting_tif.shape))
+        else:
+            raise ValueError("plotting tif must be 2D or 3D array, got {}".format(plotting_tif.shape))
 
     if path is not None:
         if os.path.exists(os.path.split(path)[0]) is False:
@@ -46,9 +55,12 @@ def plot_overlay(predicted_contour, plotting_tif, rescale_factor=1, alternate_co
         # will just save the contour mask
         io.imsave(path, predicted_contour_mask)
     else:
-        # rescale channel data to fit in uint8 for easier visualization
-        plotting_tif = plotting_tif / np.max(plotting_tif)
-        plotting_tif = plotting_tif * 255
+        # rescale each channel to go from 0 to 255
+        plotting_tif = plotting_tif.astype("float32")
+        for idx in range(plotting_tif.shape[2]):
+            plotting_tif[:, :, idx] = plotting_tif[:, :, idx] / (np.max(plotting_tif[:, :, idx]) + 0.001)
+            plotting_tif[:, :, idx] = plotting_tif[:, :, idx] * 255
+
         plotting_tif = plotting_tif.astype('int16')
 
         # rescale based on ommand line argument
@@ -59,12 +71,8 @@ def plot_overlay(predicted_contour, plotting_tif, rescale_factor=1, alternate_co
         rescaled = np.floor(rescaled).astype('uint8')
         rescaled[cap_mask] = 250
 
-        # generate array to hold overlay and channel data
-        overlay_tif = np.zeros((predicted_contour_mask.shape[0], predicted_contour_mask.shape[1], 3), dtype="uint8")
-        overlay_tif[:] = np.expand_dims(rescaled, axis=-1)
-
         # overlay first contour on all three RGB, to have it show up as white border
-        overlay_tif[predicted_contour_mask > 0, :] = 255
+        rescaled[predicted_contour_mask > 0, :] = 255
 
         # overlay second contour as red outline if present
         if alternate_contour is not None:
@@ -74,14 +82,14 @@ def plot_overlay(predicted_contour, plotting_tif, rescale_factor=1, alternate_co
 
             # define borders of cell in mask
             alternate_contour_mask = find_boundaries(alternate_contour, connectivity=1, mode='inner').astype(np.uint8)
-            overlay_tif[alternate_contour_mask > 0, 0] = 255
-            overlay_tif[alternate_contour_mask> 0, 1:] = 0
+            rescaled[alternate_contour_mask > 0, 0] = 255
+            rescaled[alternate_contour_mask > 0, 1:] = 0
 
         # save as TIF if path supplied, otherwise display on screen
         if path is not None:
-            io.imsave(path, overlay_tif)
+            io.imsave(path, rescaled)
         else:
-            io.imshow(overlay_tif)
+            io.imshow(rescaled)
 
 
 def randomize_labels(label_map):

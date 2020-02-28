@@ -50,9 +50,11 @@ def watershed_transform(pixel_xr, channel_xr, overlay_channels, output_dir, back
     if np.sum(~np.isin(pixel_xr.points.values, channel_xr.points.values)) > 0:
         raise ValueError("Not all of the points in the deepcell output were found in the channel xr")
 
-    overlay_in_xr = np.isin(overlay_channels, channel_xr.channels)
+    # flatten overlay list of lists into single list
+    flat_channels = [item for sublist in overlay_channels for item in sublist]
+    overlay_in_xr = np.isin(flat_channels, channel_xr.channels)
     if len(overlay_in_xr) != np.sum(overlay_in_xr):
-        bad_chan = overlay_channels[np.where(~overlay_in_xr)[0][0]]
+        bad_chan = flat_channels[np.where(~overlay_in_xr)[0][0]]
         raise ValueError("{} was listed as an overlay channel, but it is not in the channel xarray".format(bad_chan))
 
     if not os.path.isdir(output_dir):
@@ -135,10 +137,32 @@ def watershed_transform(pixel_xr, channel_xr, overlay_channels, output_dir, back
                                     path=os.path.join(output_dir, point + "_segmentation_borders.tiff"))
 
         # plot list of supplied markers overlaid by segmentation mask to assess accuracy
-        for channel in overlay_channels:
-            chan_marker = channel_xr.loc[point, :, :, channel].values
-            plot_utils.plot_overlay(random_map, plotting_tif=chan_marker, rescale_factor=rescale_factor,
-                                    path=os.path.join(output_dir, point + "_{}_overlay.tiff".format(channel)))
+        for chan_list in overlay_channels:
+            if len(chan_list) == 1:
+                # if only one entry in list, make single channel overlay
+                channel = chan_list[0]
+                chan_marker = channel_xr.loc[point, :, :, channel].values
+                plot_utils.plot_overlay(random_map, plotting_tif=chan_marker, rescale_factor=rescale_factor,
+                                        path=os.path.join(output_dir, point + "_{}_overlay.tiff".format(channel)))
+
+            elif len(chan_list) == 2:
+                # if two entries, make 2-color stack, skipping 0th index which is red
+                input_data = np.zeros((channel_xr.shape[1], channel_xr.shape[2], 3))
+                input_data[:, :, 1] = channel_xr.loc[point, :, :, chan_list[0]].values
+                input_data[:, :, 2] = channel_xr.loc[point, :, :, chan_list[1]].values
+                plot_utils.plot_overlay(random_map, plotting_tif=input_data, rescale_factor=rescale_factor,
+                                        path=os.path.join(output_dir, point + "_{}_{}_overlay.tiff".format(chan_list[0],
+                                                                                                   chan_list[1])))
+            elif len(chan_list) == 3:
+                # if three entries, make a 3 color stack, with third channel in first index (red)
+                input_data = np.zeros((channel_xr.shape[1], channel_xr.shape[2], 3))
+                input_data[:, :, 1] = channel_xr.loc[point, :, :, chan_list[0]].values
+                input_data[:, :, 2] = channel_xr.loc[point, :, :, chan_list[1]].values
+                input_data[:, :, 0] = channel_xr.loc[point, :, :, chan_list[2]].values
+                plot_utils.plot_overlay(random_map, plotting_tif=input_data, rescale_factor=rescale_factor,
+                                        path=os.path.join(output_dir, point +
+                                                          "_{}_{}_overlay.tiff".format(chan_list[0], chan_list[1],
+                                                                                       chan_list[2])))
 
         segmentation_labels_xr.loc[point, :, :, 'segmentation_label'] = random_map
 
