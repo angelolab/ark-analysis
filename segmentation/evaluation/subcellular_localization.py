@@ -5,7 +5,7 @@ import numpy as np
 # scripts for assessing accuracy of subcellular localization
 base_dir = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/Contours/analyses/20190917_naming/'
 # read in data
-seg_data = xr.open_dataarray(base_dir + 'segmented_data/Point8/segmented_data.nc')
+seg_data = xr.load_dataarray(base_dir + 'segmented_data/Point8/segmented_data.nc')
 
 
 # create stacked barplots for subcellular localization of imaging signal
