@@ -1,8 +1,12 @@
 language: python
-
 install:
-  - pip install -r requirements.txt
-
-# command to run tests
+- pip install -r requirements.txt
 script:
-  - pytest
+- pytest
+deploy:
+  provider: pypi
+  user: "__token__"
+  password:
+    secure: s8odL/ZSh4PZIs5LUC8EJFV/+G76kYo/4qnPx8hzXEHMeh4EbVXKyOngwHJsgM0UJ+jo87waRfAOhohKDXRtDRB7RaJaABwr751ghhT8ofyQ1JMB0SAV/NiFSqbirC2OWk2rEfrLD6irpuO9XNqT/pytEhLhB/5Paq4p58QLCjFYbZps4XhYMVpCEfHbML/ZkmQpvqW0XGFHRNH6k9ZE4OTSCN7QnT2OnsyCxJ/6ZVUaJ6kGg34f5HUAMAgTHWNRZUcyFudor502e7kY9c0hturmAUxPmsAP1MHhynT6nONomdSuLEhad97fxdj+hiIZI0vui0egSczgds3JzmlObaimwAMeJcz6bM7wPrkdYQyLgJnrvg0JU25AG5180peWPbR2hueLf38ZColOhXyQhEdTrqrFiTUqe3eX4pdiO6DoFLRKp+n8TxLqvtjQ7d78/Sm4LXKXwayIGUi5IVOsBVpjCncq9Q9Bo8iWweGcWgDCJG1yf3NwE6ztbXWm3lXi4D1TElG3i9gewprvsXi2NQ/DwPuvh7/jbVuxpF4BB56JzP9jIMjXw/dt7anLni3/xNYlWgZpjMZZzjTraOIXjMhuNNDCzLEqjA8JCrGHHUuJcmYimwUd0HEmnEEqxIx22kZAk3FrRq01uzepYZsLkckD9QhyvIVCCCfgapzUWlc=
+  on:
+    tags: true
