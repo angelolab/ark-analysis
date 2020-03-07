@@ -10,14 +10,16 @@ from skimage.feature import peak_local_max
 import skimage.morphology as morph
 import skimage.io as io
 import pandas as pd
+import scipy.ndimage as nd
+
 
 from segmentation.utils import plot_utils
 
 
-def watershed_transform(pixel_xr, channel_xr, overlay_channels, output_dir, background_threshold=0.25,
-                        watershed_xr=None, watershed_maxs=False, watershed_smooth=None, pixel_background=True,
-                        pixel_smooth=None,
-                        nuclear_expansion=None, randomize_cell_labels=True, small_seed_cutoff=5, rescale_factor=1):
+def segment_images(model_output, channel_xr, overlay_channels, output_dir, points=None,
+                   mask_background_args={"model": "pixelwise_interior", "threshold": 0.25, "smooth": 3},
+                   mask_maxima_args={"model": "pixelwise_interior", "smooth": 3}, nuclear_expansion=None,
+                   randomize_cell_labels=True, save_tifs=True, rescale_factor=1):
 
     """Runs the watershed transform over a set of probability masks output by deepcell network
     Inputs:
@@ -37,18 +39,20 @@ def watershed_transform(pixel_xr, channel_xr, overlay_channels, output_dir, back
         Saves xarray to output directory"""
 
     # error checking
-    if watershed_xr is not None:
-        if pixel_xr.shape[0] != watershed_xr.shape[0]:
-            raise ValueError("The pixel and watershed xarrays have a different number of points")
+    if points is None:
+        points = model_output.coords['points']
+    else:
+        if np.any(~np.isin(points, model_output.coords['points'])):
+            raise ValueError("Incorrect list of points given, not all are present in data structure")
 
-        if watershed_smooth is None:
-            watershed_smooth = watershed_xr.masks.values[-1]
-        else:
-            if watershed_smooth not in watershed_xr.masks.values:
-                raise ValueError("Invalid watershed smooth name: {} not found in xr".format(watershed_smooth))
+    if len(points) == 1:
+        # don't subset, will change dimensions
+        pass
+    else:
+        model_output = model_output.loc[points, :, :, :]
 
-    if np.sum(~np.isin(pixel_xr.points.values, channel_xr.points.values)) > 0:
-        raise ValueError("Not all of the points in the deepcell output were found in the channel xr")
+    if np.any(~np.isin(model_output.points.values, channel_xr.points.values)):
+        raise ValueError("Not all of the points in the model output were found in the channel xr")
 
     # flatten overlay list of lists into single list
     flat_channels = [item for sublist in overlay_channels for item in sublist]
@@ -60,41 +64,40 @@ def watershed_transform(pixel_xr, channel_xr, overlay_channels, output_dir, back
     if not os.path.isdir(output_dir):
         raise ValueError("output directory does not exist")
 
-    segmentation_labels_xr = xr.DataArray(np.zeros((pixel_xr.shape[:-1] + (1,)), dtype="int16"),
-                                          coords=[pixel_xr.points, range(pixel_xr.shape[1]), range(pixel_xr.shape[2]),
-                                                  ['segmentation_label']], dims=['points', 'rows', 'cols', 'channels'])
+    segmentation_labels_xr = xr.DataArray(np.zeros((model_output.shape[:-1] + (1,)), dtype="int16"),
+                                          coords=[model_output.points, range(model_output.shape[1]),
+                                                  range(model_output.shape[2]),
+                                                  ['segmentation_label']],
+                                          dims=['points', 'rows', 'cols', 'channels'])
 
-    if pixel_smooth is None:
-        pixel_smooth = pixel_xr.masks.values[-1]
-    else:
-        if pixel_smooth not in pixel_xr.masks.values:
-            raise ValueError("Invalid pixel smooth name: {} not found in xr".format(pixel_smooth))
+    # error check model selected for local maxima finding in the image
+    maxima_model = mask_maxima_args["model"]
+    model_list = ["pixelwise_interior", "watershed_inner", "watershed_outer", "watershed_argmax"]
 
-    for point in pixel_xr.points.values:
+    if maxima_model not in model_list:
+        raise ValueError("Invalid local maxima model name supplied: {}, must be one of {}".format(maxima_model,
+                                                                                                  model_list))
+    if maxima_model not in model_output.models:
+        raise ValueError("Model for local maxima {} not found in model output".format(maxima_model))
+
+    # error check model selected for background delineation in the image
+    bg_model = mask_maxima_args["model"]
+
+    if bg_model not in model_list:
+        raise ValueError("Invalid background model name supplied: {}, must be one of {}".format(bg_model,
+                                                                                                  model_list))
+    if bg_model not in model_output.models:
+        raise ValueError("Model for background {} not found in model output".format(bg_model))
+
+    # loop through all points and segment
+    for point in model_output.points.values:
         print("analyzing point {}".format(point))
 
-        # generate maxs from watershed or pixel
-        if watershed_maxs:
-            # get local maxima from watershed network
-            watershed_smoothed = watershed_xr.loc[point, :, :, watershed_smooth]
-            maxs = watershed_smoothed > 2
-        else:
-            # get local maxima from pixel network
-            maxs = peak_local_max(pixel_xr.loc[point, :, :, pixel_smooth].values, indices=False, min_distance=5)
+        maxima_smoothed = nd.gaussian_filter(model_output.loc[point, :, :, maxima_model], mask_maxima_args["smooth"])
+        maxs = peak_local_max(maxima_smoothed, indices=False, min_distance=5)
 
-        # generate background mask from watershed or pixel
-        if pixel_background:
-            # use interior probability from pixel network as space to watershed over
-            pixel_smoothed = pixel_xr.loc[point, :, :, pixel_smooth]
-            max = np.max(pixel_smoothed.values)
-            contour_mask = -pixel_smoothed
-            interior_mask = pixel_smoothed > (background_threshold * max)
-
-        else:
-            # use watershed network output as space to watershed over
-            watershed_smoothed = watershed_xr.loc[point, :, :, watershed_smooth]
-            contour_mask = -watershed_smoothed
-            interior_mask = watershed_smoothed > 0
+        bg_smoothed = nd.gaussian_filter(model_output.loc[point, :, :, bg_model].values, mask_background_args["smooth"])
+        interior_mask = bg_smoothed * mask_background_args["threshold"]
 
         # determine if background is based on network output or an expansion
         if nuclear_expansion is not None:
@@ -103,22 +106,8 @@ def watershed_transform(pixel_xr, channel_xr, overlay_channels, output_dir, back
         # use maxs to generate seeds for watershed
         markers = skimage.measure.label(maxs, connectivity=1)
 
-        # remove any maxs that are 4 pixels or smaller, if maxs are generated from watershed network
-        if small_seed_cutoff is not None and watershed_maxs:
-
-            # get size of all seeds
-            seed_props = skimage.measure.regionprops(markers, cache=False)
-            seed_area = np.array([r.area for r in seed_props])
-
-            # for all seeds less than cutoff, set corresponding pixels to 0
-            remove_ids = np.where(seed_area < small_seed_cutoff)
-
-            for id in remove_ids[0]:
-                # increment by 1 since regionprops starts counting at 0
-                markers[markers == id + 1] = 0
-
         # watershed over negative interior mask
-        labels = np.array(morph.watershed(contour_mask, markers, mask=interior_mask, watershed_line=0))
+        labels = np.array(morph.watershed(-bg_smoothed, markers, mask=interior_mask, watershed_line=0))
 
         if randomize_cell_labels:
             random_map = plot_utils.randomize_labels(labels)
@@ -135,6 +124,13 @@ def watershed_transform(pixel_xr, channel_xr, overlay_channels, output_dir, back
             # save borders of segmentation map
             plot_utils.plot_overlay(random_map, plotting_tif=None, rescale_factor=rescale_factor,
                                     path=os.path.join(output_dir, point + "_segmentation_borders.tiff"))
+
+            if save_tifs:
+                io.imsave(os.path.join(output_dir, point + "_bg_smoothed.tiff"),
+                          bg_smoothed.astype("float32"))
+
+                io.imsave(os.path.join(output_dir, point + "_maxs_smoothed.tiff"),
+                          maxima_smoothed.astype("float32"))
 
         # plot list of supplied markers overlaid by segmentation mask to assess accuracy
         for chan_list in overlay_channels:
@@ -161,15 +157,12 @@ def watershed_transform(pixel_xr, channel_xr, overlay_channels, output_dir, back
                 input_data[:, :, 0] = channel_xr.loc[point, :, :, chan_list[2]].values
                 plot_utils.plot_overlay(random_map, plotting_tif=input_data, rescale_factor=rescale_factor,
                                         path=os.path.join(output_dir, point +
-                                                          "_{}_{}_overlay.tiff".format(chan_list[0], chan_list[1],
+                                                          "_{}_{}_{}_overlay.tiff".format(chan_list[0], chan_list[1],
                                                                                        chan_list[2])))
 
         segmentation_labels_xr.loc[point, :, :, 'segmentation_label'] = random_map
 
-    # save whole xarray
-    segmentation_labels_xr.name = pixel_xr.name + "_segmentation_labels"
-
-    save_name = os.path.join(output_dir, segmentation_labels_xr.name + ".xr")
+    save_name = os.path.join(output_dir, 'segmentation_labels.xr')
     if os.path.exists(save_name):
         print("overwriting previously generated processed output file")
         os.remove(save_name)
