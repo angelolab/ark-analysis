@@ -7,14 +7,12 @@ from segmentation.utils import segmentation_utils
 
 def test_watershed_transform():
     # load data
-    base_dir = "segmentation/tests/test_output_files/segmentation_output/"
-    pixel = xr.load_dataarray(base_dir + "test_input_pixel_processed.xr")
-    watershed = xr.load_dataarray(base_dir + "test_input_watershed_processed.xr")
+    base_dir = "segmentation/tests/test_output_files/deepcell_output/"
+    model_output = xr.load_dataarray(base_dir + "test_input_deepcell_output.xr")
     input = xr.load_dataarray(base_dir + "test_input_channel.xr")
 
-    segmentation_utils.watershed_transform(pixel_xr=pixel, watershed_xr=watershed, channel_xr=input,
-                                           overlay_channels=[["Na"]], output_dir=base_dir, watershed_maxs=True,
-                                           )
+    segmentation_utils.watershed_images(model_output=model_output, channel_xr=input, output_dir=base_dir,
+                                      overlay_channels=[["H3", "VIM"]])
     # clean up output files
     temp_files = os.listdir(base_dir)
     temp_files = [file for file in temp_files if "test_input" not in file]

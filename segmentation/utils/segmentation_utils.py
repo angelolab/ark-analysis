@@ -16,7 +16,7 @@ import scipy.ndimage as nd
 from segmentation.utils import plot_utils
 
 
-def segment_images(model_output, channel_xr, overlay_channels, output_dir, points=None,
+def watershed_images(model_output, channel_xr, overlay_channels, output_dir, points=None,
                    mask_background_args={"model": "pixelwise_interior", "threshold": 0.25, "smooth": 3},
                    mask_maxima_args={"model": "pixelwise_interior", "smooth": 3}, nuclear_expansion=None,
                    randomize_cell_labels=True, save_tifs=True, rescale_factor=1):
