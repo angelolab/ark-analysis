@@ -85,13 +85,50 @@ def save_deepcell_tifs(model_output_xr, save_path, transform='pixel', points=Non
 
         watershed_processed_xr.to_netcdf(save_name, format="NETCDF4")
 
+    elif transform == "deep_watershed":
+        if model_output_xr.shape[-1] != 1:
+            raise ValueError("deep watershed transform selected, but last dimension is not 4")
+        if model_output_xr.coords['masks'].values[0] != 'watershed_argmax':
+            raise ValueError("Watershed transform selected, but first channel is not watershed_argmax")
+
+        # create array to hold argmax and smoothed argmax mask
+        deep_watershed_processed = np.zeros(model_output_xr.shape[:-1] + (2,), dtype='float32')
+        deep_watershed_processed[:, :, :, 0] = model_output_xr.values[:, :, :, 0]
+
+        for i in range(model_output_xr.shape[0]):
+            print("processing point {}".format(model_output_xr.points.values[i]))
+            deep_smooth = nd.gaussian_filter(model_output_xr[i, :, :, 0], watershed_smooth)
+
+            deep_watershed_processed[i, :, :, 1] = deep_smooth
+
+            # ignore low-contrast image warnings
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                io.imsave(os.path.join(save_path, model_output_xr.coords['points'].values[i] +
+                                       '_watershed.tiff'), deep_watershed_processed[i, :, :, 0])
+
+                io.imsave(os.path.join(save_path, model_output_xr.coords['points'].values[i] +
+                                       '_watershed_smoothed.tiff'), deep_watershed_processed[i, :, :, 1])
+
+        mask = ["watershed", "watershed_smoothed"]
+        watershed_processed_xr = xr.DataArray(deep_watershed_processed, name=model_output_xr.name + "_processed",
+                                              coords=[model_output_xr.coords['points'], range(model_output_xr.shape[1]),
+                                                      range(model_output_xr.shape[2]), mask],
+                                              dims=["points", "rows", "cols", "masks"])
+
+        save_name = os.path.join(save_path, watershed_processed_xr.name + '.xr')
+        if os.path.exists(save_name):
+            print("overwriting previously generated processed output file")
+            os.remove(save_name)
+
+        watershed_processed_xr.to_netcdf(save_name, format="NETCDF4")
     elif transform == 'pixel':
         if model_output_xr.shape[-1] != 3:
             raise ValueError("pixel transform selected, but last dimension is not three")
         if model_output_xr.coords['masks'].values[0] != 'border':
             raise ValueError("pixel transform selected, but mask names don't match")
         pixel_proccesed_dim = 1 + len(pixel_smooth) + 1
-        pixel_processed = np.zeros(model_output_xr.shape[:-1] + (pixel_proccesed_dim, ), dtype='int8')
+        pixel_processed = np.zeros(model_output_xr.shape[:-1] + (pixel_proccesed_dim, ), dtype='float32')
         pixel_processed[:, :, :, 0:2] = model_output_xr.loc[:, :, :, ['border', 'interior']].values
 
         for i in range(model_output_xr.shape[0]):
