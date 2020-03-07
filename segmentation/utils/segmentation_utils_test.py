@@ -11,7 +11,7 @@ def test_watershed_transform():
     model_output = xr.load_dataarray(base_dir + "test_input_deepcell_output.xr")
     input = xr.load_dataarray(base_dir + "test_input_channel.xr")
 
-    segmentation_utils.watershed_images(model_output=model_output, channel_xr=input, output_dir=base_dir,
+    segmentation_utils.watershed_transform(model_output=model_output, channel_xr=input, output_dir=base_dir,
                                       overlay_channels=[["H3", "VIM"]])
     # clean up output files
     temp_files = os.listdir(base_dir)
