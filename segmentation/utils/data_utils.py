@@ -298,3 +298,29 @@ def crop_image_stack(image_stack, crop_size, stride_fraction):
 
     return cropped_images
 
+
+def combine_point_directories(dir_path):
+    """Combines a folder containing multiple imaging runs into a single folder
+
+    Inputs
+        dir_path: path to directory containing the sub directories
+
+    Outputs
+        None"""
+
+    if not os.path.exists(dir_path):
+        raise ValueError("Directory does not exist")
+
+    # gets all sub folders
+    folders = os.listdir(dir_path)
+    folders = [folder for folder in folders if os.path.isdir(os.path.join(dir_path, folder))]
+
+    os.makedirs(os.path.join(dir_path, "combined_folder"))
+
+    # loop through sub folders, get all contents, and transfer to new folder
+    for folder in folders:
+        points = os.listdir(os.path.join(dir_path, folder))
+        print(points)
+        for point in points:
+            os.rename(os.path.join(dir_path, folder, point), os.path.join(dir_path, "combined_folder", folder + "_" + point))
+

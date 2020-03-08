@@ -155,7 +155,8 @@ def watershed_transform(model_output, channel_xr, overlay_channels, output_dir, 
                 plot_utils.plot_overlay(random_map, plotting_tif=input_data, rescale_factor=rescale_factor,
                                         path=os.path.join(output_dir, point +
                                                           "_{}_{}_{}_overlay.tiff".format(chan_list[0], chan_list[1],
-                                                                                       chan_list[2])))
+                                                                                          chan_list[2])))
+
 
         segmentation_labels_xr.loc[point, :, :, 'segmentation_label'] = random_map
 
