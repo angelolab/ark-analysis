@@ -9,38 +9,44 @@ import importlib
 importlib.reload(data_utils)
 
 
-def test_load_tifs_from_points_dir():
+def test_load_imgs_from_dir():
 
     # check default loading of all files
     test_path = "segmentation/tests/test_points_dir"
-    test_loaded_xr = data_utils.load_tifs_from_points_dir(test_path, tif_folder="TIFs", dtype="int16")
+    test_loaded_xr = data_utils.load_imgs_from_dir(test_path, img_sub_folder="TIFs", dtype="int16")
 
-    all_points = os.listdir(test_path)
-    all_points = [point for point in all_points if "Point" in point]
+    all_fovs = os.listdir(test_path)
+    all_fovs = [fov for fov in all_fovs if "Point" in fov]
 
-    all_tifs = os.listdir(os.path.join(test_path, "Point1", "TIFs"))
-    all_tifs = [tif for tif in all_tifs if ".tif" in tif]
-    all_chans = [chan.split(".tif")[0] for chan in all_tifs]
+    all_imgs = os.listdir(os.path.join(test_path, "Point1", "TIFs"))
+    all_imgs = [img for img in all_imgs if ".tif" in img]
+    all_chans = [chan.split(".tif")[0] for chan in all_imgs]
 
     # make sure all folders loaded
-    assert np.array_equal(test_loaded_xr.points, all_points)
+    assert np.array_equal(test_loaded_xr.fovs, all_fovs)
 
     # make sure all channels loaded
     assert np.array_equal(test_loaded_xr.channels, all_chans)
 
     # check loading of specific files
-    some_points = all_points[:2]
-    some_tifs = all_tifs[:2]
-    some_chans = [chan.split(".tif")[0] for chan in some_tifs]
+    some_fovs = all_fovs[:2]
+    some_imgs = all_imgs[:2]
+    some_chans = [chan.split(".tif")[0] for chan in some_imgs]
 
-    test_subset_xr = data_utils.load_tifs_from_points_dir(test_path, tif_folder="TIFs", dtype="int16",
-                                                          points=some_points, tifs=some_tifs)
+    test_subset_xr = data_utils.load_imgs_from_dir(test_path, img_sub_folder="TIFs", dtype="int16",
+                                                          folder_names=some_fovs, imgs=some_imgs)
 
     # make sure specified folders loaded
-    assert np.array_equal(test_subset_xr.points, some_points)
+    assert np.array_equal(test_subset_xr.fovs, some_fovs)
 
     # make sure specified channels loaded
     assert np.array_equal(test_subset_xr.channels, some_chans)
+
+
+    # make sure that load axis can be specified
+    test_loaded_xr = data_utils.load_imgs_from_dir(test_path, img_sub_folder="TIFs", dtype="int16",
+                                                   load_axis="stacks")
+    assert(test_loaded_xr.dims[0] == "stacks")
 
 
 def test_combine_xarrays():
@@ -99,6 +105,24 @@ def test_reorder_xarray_channels():
     assert np.array_equal(channel_order, new_xr.channels)
     assert np.sum(new_xr.loc[:, :, :, "chan666"]) / (new_xr.shape[1] * new_xr.shape[2]) < 0.05
 
+
+def test_pad_xr_dims():
+    test_input = np.zeros((2, 10, 10, 3))
+    test_xr = xr.DataArray(test_input,
+                           coords=[["Point1", "Point2"], range(test_input.shape[1]), range(test_input.shape[2]), ["chan0", "chan1", "chan2"]],
+                           dims=["points", "rows", "cols", "channels"])
+
+    padded_dims = ["points", "rows", "rows2", "cols", "cols2", "channels"]
+
+    padded_xr = data_utils.pad_xr_dims(test_xr, padded_dims)
+
+    assert list(padded_xr.dims) == padded_dims
+
+    # check that error raised when wrong dimensions
+    padded_wrong_order_dims = ["rows", "points", "rows2", "cols", "cols2", "channels"]
+
+    with pytest.raises(ValueError):
+        data_utils.pad_xr_dims(test_xr, padded_wrong_order_dims)
 
 def test_crop_helper():
     # test crops that divide evenly
