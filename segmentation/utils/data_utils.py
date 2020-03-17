@@ -10,59 +10,62 @@ import skimage.filters.rank as rank
 import scipy.ndimage as nd
 
 
-def load_tifs_from_points_dir(point_dir, tif_folder=None, points=None, tifs=None, dtype="int16"):
-    """Takes a set of TIFs from a directory structure organised by points, and loads them into a numpy array.
+def load_imgs_from_dir(data_dir, img_sub_folder=None, folder_names=None, imgs=None, load_axis="fovs", dtype="int16"):
+    """Takes a set of imgs from a directory structure and loads them into a numpy array.
 
         Args:
-            point_dir: directory path to points
-            tif_folder: optional name of tif_folder within each point, otherwise assumes tifs are in Point folder
-            points: optional list of point_dirs to load, otherwise loads all folders with Point in name
-            tifs: optional list of TIFs to load, otherwise loads all TIFs
+            data_dir: directory containing folders of images
+            img_sub_folder: optional name of sub-folder containing the images within each identifier folder
+            folder_names: optional list of folder_names to load imgs from, otherwise loads from all folders
+            imgs: optional list of imgs to load, otherwise loads all .tif, .tiff, .jpg, or .png files
+            load_axis: axis that images will get loaded onto. Must be one of ["fovs", "stacks"]
             dtype: dtype of array which will be used to store values
 
         Returns:
-            Numpy array with shape [points, tifs, x_dim, y_dim]
+            Numpy array with shape [fovs, tifs, x_dim, y_dim]
     """
 
-    if not os.path.isdir(point_dir):
+    if not os.path.isdir(data_dir):
         raise ValueError("Directory does not exist")
 
-    if points is None:
+    if not np.isin(load_axis, ["fovs", "stacks"]):
+        raise ValueError("Invalid value for load_axis, must be one of [fovs, stacks]")
+
+    if folder_names is None:
         # get all point folders
-        points = os.listdir(point_dir)
-        points = [point for point in points if 'Point' in point]
-        points = [point for point in points if os.path.isdir(os.path.join(point_dir, point))]
+        folder_names = os.listdir(data_dir)
+        folder_names = [folder for folder in folder_names if os.path.isdir(os.path.join(data_dir, folder))]
     else:
         # use supplied list, but check to make sure they all exist
-        for point in points:
-            if not os.path.isdir(os.path.join(point_dir, point)):
-                raise ValueError("Could not find point folder {}".format(point))
+        for folder in folder_names:
+            if not os.path.isdir(os.path.join(data_dir, folder)):
+                raise ValueError("Could not find img folder {}".format(folder))
 
-    if len(points) == 0:
+    if len(folder_names) == 0:
         raise ValueError("No points found in directory")
 
-    # check to make sure tif subfolder name within point directory is correct
-    if tif_folder is not None:
-        if not os.path.isdir(os.path.join(point_dir, points[0], tif_folder)):
-            raise ValueError("Invalid tif folder name")
+    # check to make sure img subfolder name within point directory is correct
+    if img_sub_folder is not None:
+        if not os.path.isdir(os.path.join(data_dir, folder_names[0], img_sub_folder)):
+            raise ValueError("Invalid img_sub_folder name")
     else:
-        # no tif folder, change to empty string to read directly from base folder
-        tif_folder = ""
+        # no img_sub_folder, change to empty string to read directly from base folder
+        img_sub_folder = ""
 
-    # get tifs from first point directory if no tif names supplied
-    if tifs is None:
-        tifs = os.listdir(os.path.join(point_dir, points[0], tif_folder))
-        tifs = [tif for tif in tifs if '.tif' in tif]
+    # get imgs from first point directory if no img names supplied
+    if imgs is None:
+        imgs = os.listdir(os.path.join(data_dir, folder_names[0], img_sub_folder))
+        imgs = [img for img in imgs if np.isin(img.split(".")[-1], ["tif", "tiff", "jpg", "png"])]
 
-    if len(tifs) == 0:
-        raise ValueError("No tifs found in designated folder")
+    if len(imgs) == 0:
+        raise ValueError("No imgs found in designated folder")
 
-    # check to make sure supplied tifs exist
-    for tif in tifs:
-        if not os.path.isfile(os.path.join(point_dir, points[0], tif_folder, tif)):
-            raise ValueError("Could not find {} in supplied directory {}".format(tif, os.path.join(point_dir, points[0], tif_folder, tif)))
+    # check to make sure supplied imgs exist
+    for img in imgs:
+        if not os.path.isfile(os.path.join(data_dir, folder_names[0], img_sub_folder, img)):
+            raise ValueError("Could not find {} in supplied directory {}".format(img, os.path.join(data_dir, folder_names[0], img_sub_folder, img)))
 
-    test_img = io.imread(os.path.join(point_dir, points[0], tif_folder, tifs[0]))
+    test_img = io.imread(os.path.join(data_dir, folder_names[0], img_sub_folder, imgs[0]))
 
     # check to make sure that float dtype was supplied if image data is float
     data_dtype = test_img.dtype
@@ -70,21 +73,22 @@ def load_tifs_from_points_dir(point_dir, tif_folder=None, points=None, tifs=None
         if not np.issubdtype(dtype, np.floating):
             raise ValueError("supplied dtype is not a float, but the images loaded are floats")
 
-    img_data = np.zeros((len(points), test_img.shape[0], test_img.shape[1], len(tifs)), dtype=dtype)
+    img_data = np.zeros((len(folder_names), test_img.shape[0], test_img.shape[1], len(imgs)), dtype=dtype)
 
-    for point in range(len(points)):
-        for tif in range(len(tifs)):
-            img_data[point, :, :, tif] = io.imread(os.path.join(point_dir, points[point], tif_folder, tifs[tif]))
+    for folder in range(len(folder_names)):
+        for img in range(len(imgs)):
+            img_data[folder, :, :, img] = io.imread(os.path.join(data_dir, folder_names[folder],
+                                                                 img_sub_folder, imgs[img]))
 
     # check to make sure that dtype wasn't too small for range of data
     if np.min(img_data) < 0:
         raise ValueError("Integer overflow from loading TIF image, try a larger dtype")
 
     # remove .tif or .tiff from image name
-    tif_names = [os.path.splitext(tif)[0] for tif in tifs]
+    img_names = [os.path.splitext(img)[0] for img in imgs]
 
-    img_xr = xr.DataArray(img_data, coords=[points, range(test_img.shape[0]), range(test_img.shape[1]), tif_names],
-                          dims=["points", "rows", "cols", "channels"])
+    img_xr = xr.DataArray(img_data, coords=[folder_names, range(test_img.shape[0]), range(test_img.shape[1]), img_names],
+                          dims=[load_axis, "rows", "cols", "channels"])
 
     return img_xr
 
@@ -169,6 +173,7 @@ def reorder_xarray_channels(channel_order, channel_xr, non_blank_channels=None):
 
     return channel_xr_blanked
 
+
 def combine_xarrays(xarrays, axis):
     """Combines a number of xarrays together
 
@@ -222,6 +227,40 @@ def combine_xarrays(xarrays, axis):
                                dims=["points", "rows", "cols", "channels"])
 
     return combined_xr
+
+
+def pad_xr_dims(input_xr, padded_dims):
+    """Takes an xarray and pads it with dimensions of size 1 according to the supplied dims list
+
+    Inputs
+        input_xr: xarray to padd
+        padded_dims: list of dims to be included in output xarray
+
+    Outputs
+        padded_xr: xarray that has had additional dims added of size 1"""
+
+    # make sure that dimensions which are present in both lists are in same order
+    old_dims = [dim for dim in padded_dims if dim in input_xr.dims]
+
+    if not old_dims == list(input_xr.dims):
+        raise ValueError("existing dimensions must be in same order in input_dims list")
+
+    # create new output data
+    output_vals = input_xr.values
+    output_coords = []
+
+    for idx, dim in enumerate(padded_dims):
+
+        if dim in input_xr.dims:
+            # dimension already exists, using existing values and coords
+            output_coords.append(input_xr[dim])
+        else:
+            output_vals = np.expand_dims(output_vals, axis=idx)
+            output_coords.append(range(1))
+
+    padded_xr = xr.DataArray(output_vals, coords=output_coords, dims=padded_dims)
+
+    return padded_xr
 
 
 def crop_helper(image_stack, crop_size):
