@@ -114,7 +114,6 @@ def create_blank_channel(img_size, grid_size, dtype):
 
 
 def reorder_xarray_channels(channel_order, channel_xr, non_blank_channels=None):
-
     """Adds blank channels or changes the order of existing channels to match the ordering given by channel_order list
     Inputs:
         channel_order: list of channel names, which dictates final order of output xarray
@@ -142,14 +141,23 @@ def reorder_xarray_channels(channel_order, channel_xr, non_blank_channels=None):
     vals, counts = np.unique(channel_order, return_counts=True)
     duplicated = np.where(counts > 1)
     if len(duplicated[0] > 0):
-        print("The following channels are duplicated: {}".format(vals[duplicated[0]]))
+        raise ValueError("The following channels are duplicated in the channel order: {}".format(vals[duplicated[0]]))
+
+    vals, counts = np.unique(channel_xr.channels.values, return_counts=True)
+    duplicated = np.where(counts > 1)
+    if len(duplicated[0] > 0):
+        raise ValueError("The following channels are duplicated in the xarray: {}".format(vals[duplicated[0]]))
 
     # create array to hold all channels, including blank ones
     full_array = np.zeros((channel_xr.shape[:3] + (len(channel_order),)), dtype=channel_xr.dtype)
+    print(full_array.shape)
 
     for i in range(len(channel_order)):
         if channel_order[i] in non_blank_channels:
-            full_array[:, :, :, i] = channel_xr.loc[:, :, :, channel_order[i]].values
+            current_channel = channel_xr.loc[:, :, :, channel_order[i]].values
+            print(current_channel.shape)
+            print(channel_order[i])
+            full_array[:, :, :, i] = current_channel
         else:
             im_crops = channel_xr.shape[1] // 32
             blank = create_blank_channel(channel_xr.shape[1:3], im_crops, dtype=channel_xr.dtype)
@@ -157,10 +165,9 @@ def reorder_xarray_channels(channel_order, channel_xr, non_blank_channels=None):
 
     channel_xr_blanked = xr.DataArray(full_array, coords=[channel_xr.points, range(channel_xr.shape[1]),
                                                           range(channel_xr.shape[2]), channel_order],
-                                   dims=["points", "rows", "cols", "channels"])
+                                      dims=["points", "rows", "cols", "channels"])
 
     return channel_xr_blanked
-
 
 def combine_xarrays(xarrays, axis):
     """Combines a number of xarrays together
