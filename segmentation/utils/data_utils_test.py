@@ -17,6 +17,7 @@ def test_load_imgs_from_dir():
 
     all_fovs = os.listdir(test_path)
     all_fovs = [fov for fov in all_fovs if "Point" in fov]
+    all_fovs.sort()
 
     all_imgs = os.listdir(os.path.join(test_path, "Point1", "TIFs"))
     all_imgs = [img for img in all_imgs if ".tif" in img]
