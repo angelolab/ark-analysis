@@ -10,7 +10,11 @@ def _exec_notebook(path):
         subprocess.check_call(args)
 
 
-def test():
+def test_preprocessing():
     _exec_notebook('scripts/Deepcell_Preprocessing.ipynb')
+
+
+def test_postprocessing():
     _exec_notebook('scripts/Deepcell_Postprocessing.ipynb')
+
 

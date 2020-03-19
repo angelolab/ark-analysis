@@ -54,11 +54,11 @@ def test_combine_xarrays():
     # test combining along points axis
     xr1 = xr.DataArray(np.random.randint(10, size=(3, 30, 30, 3)),
                        coords=[["Point1", "Point2", "Point3"], range(30), range(30), ["chan1", "chan2", "chan3"]],
-                       dims=["points", "rows", "cols", "channels"])
+                       dims=["fovs", "rows", "cols", "channels"])
 
     xr2 = xr.DataArray(np.random.randint(10, size=(2, 30, 30, 3)),
                        coords=[["Point4", "Point5"], range(30), range(30), ["chan1", "chan2", "chan3"]],
-                       dims=["points", "rows", "cols", "channels"])
+                       dims=["fovs", "rows", "cols", "channels"])
 
     xr_combined = data_utils.combine_xarrays((xr1, xr2), axis=0)
     assert xr_combined.shape == (5, 30, 30, 3)
@@ -66,11 +66,11 @@ def test_combine_xarrays():
     # test combining along channels axis
     xr1 = xr.DataArray(np.random.randint(10, size=(3, 30, 30, 3)),
                        coords=[["Point1", "Point2", "Point3"], range(30), range(30), ["chan1", "chan2", "chan3"]],
-                       dims=["points", "rows", "cols", "channels"])
+                       dims=["fovs", "rows", "cols", "channels"])
 
     xr2 = xr.DataArray(np.random.randint(10, size=(3, 30, 30, 2)),
                        coords=[["Point1", "Point2", "Point3"], range(30), range(30), ["chan3", "chan4"]],
-                       dims=["points", "rows", "cols", "channels"])
+                       dims=["fovs", "rows", "cols", "channels"])
 
     xr_combined = data_utils.combine_xarrays((xr1, xr2), axis=-1)
     assert xr_combined.shape == (3, 30, 30, 5)
@@ -88,7 +88,7 @@ def test_reorder_xarray_channels():
     test_xr = xr.DataArray(test_input,
                            coords=[["Point1", "Point2"], range(test_input.shape[1]), range(test_input.shape[2]),
                                    ["chan0", "chan1", "chan2"]],
-                           dims=["points", "rows", "cols", "channels"])
+                           dims=["fovs", "rows", "cols", "channels"])
 
     channel_order = ["chan2", "chan1", "chan0"]
     new_xr = data_utils.reorder_xarray_channels(channel_order, test_xr, non_blank_channels=test_xr.channels)
@@ -111,16 +111,16 @@ def test_pad_xr_dims():
     test_input = np.zeros((2, 10, 10, 3))
     test_xr = xr.DataArray(test_input,
                            coords=[["Point1", "Point2"], range(test_input.shape[1]), range(test_input.shape[2]), ["chan0", "chan1", "chan2"]],
-                           dims=["points", "rows", "cols", "channels"])
+                           dims=["fovs", "rows", "cols", "channels"])
 
-    padded_dims = ["points", "rows", "rows2", "cols", "cols2", "channels"]
+    padded_dims = ["fovs", "rows", "rows2", "cols", "cols2", "channels"]
 
     padded_xr = data_utils.pad_xr_dims(test_xr, padded_dims)
 
     assert list(padded_xr.dims) == padded_dims
 
     # check that error raised when wrong dimensions
-    padded_wrong_order_dims = ["rows", "points", "rows2", "cols", "cols2", "channels"]
+    padded_wrong_order_dims = ["rows", "fovs", "rows2", "cols", "cols2", "channels"]
 
     with pytest.raises(ValueError):
         data_utils.pad_xr_dims(test_xr, padded_wrong_order_dims)

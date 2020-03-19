@@ -168,9 +168,9 @@ def reorder_xarray_channels(channel_order, channel_xr, non_blank_channels=None):
             blank = create_blank_channel(channel_xr.shape[1:3], im_crops, dtype=channel_xr.dtype)
             full_array[:, :, :, i] = blank
 
-    channel_xr_blanked = xr.DataArray(full_array, coords=[channel_xr.points, range(channel_xr.shape[1]),
+    channel_xr_blanked = xr.DataArray(full_array, coords=[channel_xr.fovs, range(channel_xr.shape[1]),
                                                           range(channel_xr.shape[2]), channel_order],
-                                      dims=["points", "rows", "cols", "channels"])
+                                      dims=["fovs", "rows", "cols", "channels"])
 
     return channel_xr_blanked
 
@@ -190,7 +190,7 @@ def combine_xarrays(xarrays, axis):
 
     # define iterator to hold coord values of dimension that is being stacked
     if axis == 0:
-        iterator = first_xr.points.values
+        iterator = first_xr.fovs.values
         shape_slice = slice(1, 4)
     else:
         iterator = first_xr.channels.values
@@ -207,25 +207,25 @@ def combine_xarrays(xarrays, axis):
             if not np.array_equal(cur_xr.channels, first_xr.channels):
                 raise ValueError("xarrays have different channel names")
         else:
-            if not np.array_equal(cur_xr.points, first_xr.points):
+            if not np.array_equal(cur_xr.fovs, first_xr.fovs):
                 raise ValueError("xarrays have different point names")
 
         np_arr = np.concatenate((np_arr, cur_arr), axis=axis)
         if axis == 0:
-            iterator = np.append(iterator, cur_xr.points.values)
+            iterator = np.append(iterator, cur_xr.fovs.values)
         else:
             iterator = np.append(iterator, cur_xr.channels.values)
 
     # assign iterator to appropriate coord label
     if axis == 0:
-        points = iterator
+        fovs = iterator
         channels = first_xr.channels.values
     else:
-        points = first_xr.points
+        fovs = first_xr.fovs.values
         channels = iterator
 
-    combined_xr = xr.DataArray(np_arr, coords=[points, range(first_xr.shape[1]), range(first_xr.shape[2]), channels],
-                               dims=["points", "rows", "cols", "channels"])
+    combined_xr = xr.DataArray(np_arr, coords=[fovs, range(first_xr.shape[1]), range(first_xr.shape[2]), channels],
+                               dims=["fovs", "rows", "cols", "channels"])
 
     return combined_xr
 
