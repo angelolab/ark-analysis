@@ -12,4 +12,5 @@ def _exec_notebook(path):
 
 def test():
     _exec_notebook('scripts/Deepcell_Preprocessing.ipynb')
+    _exec_notebook('scripts/Deepcell_Postprocessing.ipynb')
 

@@ -35,6 +35,7 @@ def load_imgs_from_dir(data_dir, img_sub_folder=None, folder_names=None, imgs=No
         # get all point folders
         folder_names = os.listdir(data_dir)
         folder_names = [folder for folder in folder_names if os.path.isdir(os.path.join(data_dir, folder))]
+        folder_names.sort()
     else:
         # use supplied list, but check to make sure they all exist
         for folder in folder_names:
