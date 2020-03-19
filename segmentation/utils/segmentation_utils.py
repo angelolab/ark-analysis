@@ -40,9 +40,9 @@ def watershed_transform(model_output, channel_xr, overlay_channels, output_dir, 
 
     # error checking
     if points is None:
-        points = model_output.coords['points']
+        points = model_output.coords['fovs']
     else:
-        if np.any(~np.isin(points, model_output.coords['points'])):
+        if np.any(~np.isin(points, model_output.coords['fovs'])):
             raise ValueError("Incorrect list of points given, not all are present in data structure")
 
     if len(points) == 1:
@@ -51,7 +51,7 @@ def watershed_transform(model_output, channel_xr, overlay_channels, output_dir, 
     else:
         model_output = model_output.loc[points, :, :, :]
 
-    if np.any(~np.isin(model_output.points.values, channel_xr.points.values)):
+    if np.any(~np.isin(model_output.fovs.values, channel_xr.fovs.values)):
         raise ValueError("Not all of the points in the model output were found in the channel xr")
 
     # flatten overlay list of lists into single list
@@ -65,10 +65,10 @@ def watershed_transform(model_output, channel_xr, overlay_channels, output_dir, 
         raise ValueError("output directory does not exist")
 
     segmentation_labels_xr = xr.DataArray(np.zeros((model_output.shape[:-1] + (1,)), dtype="int16"),
-                                          coords=[model_output.points, range(model_output.shape[1]),
+                                          coords=[model_output.fovs, range(model_output.shape[1]),
                                                   range(model_output.shape[2]),
                                                   ['segmentation_label']],
-                                          dims=['points', 'rows', 'cols', 'channels'])
+                                          dims=['fovs', 'rows', 'cols', 'channels'])
 
     # error check model selected for local maxima finding in the image
     model_list = ["pixelwise_interior", "watershed_inner", "watershed_outer", "watershed_argmax"]
@@ -87,7 +87,7 @@ def watershed_transform(model_output, channel_xr, overlay_channels, output_dir, 
         raise ValueError("Model for interior {} not found in model output".format(bg_model))
 
     # loop through all points and segment
-    for point in model_output.points.values:
+    for point in model_output.fovs.values:
         print("analyzing point {}".format(point))
 
         maxima_smoothed = nd.gaussian_filter(model_output.loc[point, :, :, maxima_model], maxima_smooth)
@@ -284,7 +284,7 @@ def extract_single_cell_data(segmentation_labels, image_data, save_dir, nuc_prob
     Output:
         saves output to save_dir"""
 
-    for point in segmentation_labels.points.values:
+    for point in segmentation_labels.fovs.values:
         print("extracting data from {}".format(point))
 
         segmentation_label = segmentation_labels.loc[point, :, :, "segmentation_label"]

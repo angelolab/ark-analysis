@@ -111,7 +111,7 @@ def test_extract_single_cell_data():
     cell2 = cell_mask == 2
     channel_data[cell2, 4] = 10
 
-    # generate data for two points offset
+    # generate data for two fovs offset
     cell_masks = np.zeros((2, 40, 40, 1), dtype="int16")
     cell_masks[0, :, :, 0] = cell_mask
     cell_masks[1, 5:, 5:, 0] = cell_mask[:-5, :-5]
@@ -122,12 +122,12 @@ def test_extract_single_cell_data():
 
     segmentation_masks = xr.DataArray(cell_masks,
                                       coords=[["Point1", "Point2"], range(40), range(40), ["segmentation_label"]],
-                                      dims=["points", "rows", "cols", "channels"])
+                                      dims=["fovs", "rows", "cols", "channels"])
 
     channel_data = xr.DataArray(channel_datas,
                                 coords=[["Point1", "Point2"], range(40), range(40),
                                         ["chan0", "chan1", "chan2", "chan3", "chan4"]],
-                                dims=["points", "rows", "cols", "channels"])
+                                dims=["fovs", "rows", "cols", "channels"])
 
     segmentation_utils.extract_single_cell_data(segmentation_masks, channel_data, base_dir)
 
