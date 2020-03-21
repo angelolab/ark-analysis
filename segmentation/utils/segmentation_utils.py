@@ -19,7 +19,7 @@ from segmentation.utils import plot_utils
 def watershed_transform(model_output, channel_xr, overlay_channels, output_dir, points=None,
                    interior_model="pixelwise_interior", interior_threshold=0.25, interior_smooth=3,
                    maxima_model="pixelwise_interior", maxima_smooth=3, nuclear_expansion=None,
-                   randomize_cell_labels=True, save_tifs=True, rescale_factor=1):
+                   randomize_cell_labels=True, save_tifs=False, rescale_factor=1):
 
     """Runs the watershed transform over a set of probability masks output by deepcell network
     Inputs:
@@ -71,7 +71,8 @@ def watershed_transform(model_output, channel_xr, overlay_channels, output_dir, 
                                           dims=['fovs', 'rows', 'cols', 'channels'])
 
     # error check model selected for local maxima finding in the image
-    model_list = ["pixelwise_interior", "watershed_inner", "watershed_outer", "watershed_argmax"]
+    model_list = ["pixelwise_interior", "watershed_inner", "watershed_outer", "watershed_argmax", "fgbg_foreground",
+                  "pixelwise_sum"]
 
     if maxima_model not in model_list:
         raise ValueError("Invalid local maxima model name supplied: {}, must be one of {}".format(maxima_model,
@@ -90,9 +91,11 @@ def watershed_transform(model_output, channel_xr, overlay_channels, output_dir, 
     for point in model_output.fovs.values:
         print("analyzing point {}".format(point))
 
+        # generate maxima predictions
         maxima_smoothed = nd.gaussian_filter(model_output.loc[point, :, :, maxima_model], maxima_smooth)
         maxs = peak_local_max(maxima_smoothed, indices=False, min_distance=5)
 
+        # generate interior predictions
         interior_smoothed = nd.gaussian_filter(model_output.loc[point, :, :, interior_model].values, interior_smooth)
         interior_mask = interior_smoothed > interior_threshold
 
@@ -123,11 +126,15 @@ def watershed_transform(model_output, channel_xr, overlay_channels, output_dir, 
                                     path=os.path.join(output_dir, point + "_segmentation_borders.tiff"))
 
             if save_tifs:
-                io.imsave(os.path.join(output_dir, point + "_bg_smoothed.tiff"),
+                io.imsave(os.path.join(output_dir, point + "_interior_smoothed.tiff"),
                           interior_smoothed.astype("float32"))
 
                 io.imsave(os.path.join(output_dir, point + "_maxs_smoothed.tiff"),
                           maxima_smoothed.astype("float32"))
+
+                for chan in channel_xr.channels.values:
+                    io.imsave(os.path.join(output_dir, point + "_{}.tiff".format(chan)),
+                              channel_xr.loc[point, :, :, chan])
 
         # plot list of supplied markers overlaid by segmentation mask to assess accuracy
         for chan_list in overlay_channels:
