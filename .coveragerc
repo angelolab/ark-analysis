@@ -1,0 +1,19 @@
+# .coveragerc to control coverage.py
+[report]
+# Regexes for lines to exclude from consideration
+exclude_lines =
+    except ImportError
+
+    # Don't complain if tests don't hit defensive assertion code:
+    raise AssertionError
+    raise NotImplementedError
+
+ignore_errors = True
+fail_under = 45
+
+# show which lines are missing
+show_missing = False
+
+omit = 
+    segmentation/scratch.py
+    **/*_test.py
