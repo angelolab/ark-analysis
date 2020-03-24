@@ -2,7 +2,11 @@ language: python
 
 install:
   - pip install -r requirements.txt
+  - pip install pytest==5.2.0 pytest-cov==2.5.1 pytest-pep8 coveralls
 
 # command to run tests
 script:
-  - pytest
+  - python -m pytest --cov=segmentation segmentation
+
+after_success:
+  - coveralls

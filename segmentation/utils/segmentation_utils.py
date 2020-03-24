@@ -19,22 +19,21 @@ from segmentation.utils import plot_utils
 def watershed_transform(model_output, channel_xr, overlay_channels, output_dir, points=None,
                    interior_model="pixelwise_interior", interior_threshold=0.25, interior_smooth=3,
                    maxima_model="pixelwise_interior", maxima_smooth=3, nuclear_expansion=None,
-                   randomize_cell_labels=True, save_tifs=False, rescale_factor=1):
+                   randomize_cell_labels=True, save_tifs=False):
 
     """Runs the watershed transform over a set of probability masks output by deepcell network
     Inputs:
-        pixel_xr: xarray containing the pixel 3-class probabilities
-        watershed_xr: xarray containgin the watershed network argmax probabilities
-        channel_xr: xarray containing the TIFs of segmentation data
+        model_output: xarray containing the different branch outputs from deepcell
+        channel_xr: xarray containing TIFs
         output_dir: path to directory where the output will be saved
-        watershed_maxs: if true, uses the output of watershed network as seeds, otherwise finds local maxs from pixel
-        watershed_smooth: Name of smooth mask to use. If unspecified, uses last mask in watershed xr
-        pixel_background: if true, will use the interior_mask of the pixel network as the space to watershed over.
-            if false, will use the output of the watershed network
-        pixel_smooth: Name of smooth mask to use. If unspecicied, uses last mask in pixel xr
+        interior_model: Name of model to use to identify maxs in the image
+        interior_threshold: threshold to cut off interior predictions
+        interior_smooth: value to smooth the interior predictions
+        maxima_model: Name of the model to use to predict maxes in the image
+        maxima_smooth: value to smooth the maxima predictions
         nuclear_expansion: optional pixel value by which to expand cells if doing nuclear segmentation
         randomize_labels: if true, will randomize the order of the labels put out by watershed for easier visualization
-        small_seed_cutoff: area threshold for cell seeds, smaller values will be discarded
+        save_tifs: whether to save intermediate TIFs
     Outputs:
         Saves xarray to output directory"""
 
@@ -122,7 +121,7 @@ def watershed_transform(model_output, channel_xr, overlay_channels, output_dir, 
             io.imsave(os.path.join(output_dir, point + "_segmentation_labels.tiff"), random_map)
 
             # save borders of segmentation map
-            plot_utils.plot_overlay(random_map, plotting_tif=None, rescale_factor=rescale_factor,
+            plot_utils.plot_overlay(random_map, plotting_tif=None,
                                     path=os.path.join(output_dir, point + "_segmentation_borders.tiff"))
 
             if save_tifs:
@@ -142,7 +141,7 @@ def watershed_transform(model_output, channel_xr, overlay_channels, output_dir, 
                 # if only one entry in list, make single channel overlay
                 channel = chan_list[0]
                 chan_marker = channel_xr.loc[point, :, :, channel].values
-                plot_utils.plot_overlay(random_map, plotting_tif=chan_marker, rescale_factor=rescale_factor,
+                plot_utils.plot_overlay(random_map, plotting_tif=chan_marker,
                                         path=os.path.join(output_dir, point + "_{}_overlay.tiff".format(channel)))
 
             elif len(chan_list) == 2:
@@ -150,7 +149,7 @@ def watershed_transform(model_output, channel_xr, overlay_channels, output_dir, 
                 input_data = np.zeros((channel_xr.shape[1], channel_xr.shape[2], 3))
                 input_data[:, :, 1] = channel_xr.loc[point, :, :, chan_list[0]].values
                 input_data[:, :, 2] = channel_xr.loc[point, :, :, chan_list[1]].values
-                plot_utils.plot_overlay(random_map, plotting_tif=input_data, rescale_factor=rescale_factor,
+                plot_utils.plot_overlay(random_map, plotting_tif=input_data,
                                         path=os.path.join(output_dir, point + "_{}_{}_overlay.tiff".format(chan_list[0],
                                                                                                    chan_list[1])))
             elif len(chan_list) == 3:
@@ -159,7 +158,7 @@ def watershed_transform(model_output, channel_xr, overlay_channels, output_dir, 
                 input_data[:, :, 1] = channel_xr.loc[point, :, :, chan_list[0]].values
                 input_data[:, :, 2] = channel_xr.loc[point, :, :, chan_list[1]].values
                 input_data[:, :, 0] = channel_xr.loc[point, :, :, chan_list[2]].values
-                plot_utils.plot_overlay(random_map, plotting_tif=input_data, rescale_factor=rescale_factor,
+                plot_utils.plot_overlay(random_map, plotting_tif=input_data,
                                         path=os.path.join(output_dir, point +
                                                           "_{}_{}_{}_overlay.tiff".format(chan_list[0], chan_list[1],
                                                                                           chan_list[2])))
@@ -291,15 +290,15 @@ def extract_single_cell_data(segmentation_labels, image_data, save_dir, nuc_prob
     Output:
         saves output to save_dir"""
 
-    for point in segmentation_labels.fovs.values:
-        print("extracting data from {}".format(point))
+    for fov in segmentation_labels.fovs.values:
+        print("extracting data from {}".format(fov))
 
-        segmentation_label = segmentation_labels.loc[point, :, :, "segmentation_label"]
+        segmentation_label = segmentation_labels.loc[fov, :, :, "segmentation_label"]
 
         # if nuclear probabilities supplied, perform subcellular segmentation
         if nuc_probs is not None:
             # generate nuclear-specific mask for subcellular segmentation
-            nuc_prob = nuc_probs.loc[point, :, :, "nuclear_interior_smoothed"]
+            nuc_prob = nuc_probs.loc[fov, :, :, "nuclear_interior_smoothed"]
             nuc_mask = nuc_prob > 0.3
 
             # duplicate whole cell data, then subtract nucleus for cytoplasm
@@ -335,7 +334,7 @@ def extract_single_cell_data(segmentation_labels, image_data, save_dir, nuc_prob
                                               dims=['rows', 'cols', 'subcell_loc'])
 
         # segment images based on supplied masks
-        cell_data = segment_images(image_data.loc[point, :, :, :], segmentation_masks)
+        cell_data = segment_images(image_data.loc[fov, :, :, :], segmentation_masks)
         cell_data = cell_data[:, 1:, :]
 
         cell_props = skimage.measure.regionprops_table(segmentation_masks[:, :, 0].values.astype('int16'),
@@ -368,11 +367,11 @@ def extract_single_cell_data(segmentation_labels, image_data, save_dir, nuc_prob
 
         csv_format = pd.DataFrame(data=cell_data_norm_trans.values[0, :, :], columns=cell_data.features)
         combined = pd.concat([csv_format, cell_props], axis=1)
-        combined.to_csv(os.path.join(save_dir, point + "_normalized_transformed.csv"), index=False)
+        combined.to_csv(os.path.join(save_dir, fov + "_normalized_transformed.csv"), index=False)
 
         csv_format = pd.DataFrame(data=cell_data_norm.values[0, :, :], columns=cell_data.features)
         combined = pd.concat([csv_format, cell_props], axis=1)
-        combined.to_csv(os.path.join(save_dir, point + "_normalized.csv"), index=False)
+        combined.to_csv(os.path.join(save_dir, fov + "_normalized.csv"), index=False)
 
 
 def concatenate_csv(base_dir, csv_files, column_name="point", column_values=None):
