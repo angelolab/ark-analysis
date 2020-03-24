@@ -7,17 +7,17 @@ import skimage.io as io
 from skimage.segmentation import find_boundaries
 import matplotlib.pyplot as plt
 import matplotlib as mpl
+from skimage.exposure import rescale_intensity
 
 
 # plotting functions
 
-def plot_overlay(predicted_contour, plotting_tif, rescale_factor=1, alternate_contour=None, path=None):
+def plot_overlay(predicted_contour, plotting_tif, alternate_contour=None, path=None):
     """Take in labeled contour data, along with optional mibi tif and second contour, and overlay them for comparison"
 
     Args:
         predicted_contour: 2D numpy array of labeled cell objects
         plotting_tif: 2D or 3D numpy array of imaging signal
-        rescale_factor: increase brightness of image by rescaling upwards
         alternate_contour: 2D numpy array of labeled cell objects
         path: path to save the resulting image
 
@@ -27,6 +27,7 @@ def plot_overlay(predicted_contour, plotting_tif, rescale_factor=1, alternate_co
             alternate_contour in white
         overlay: saves as TIF in file path if specified
     """
+
     if plotting_tif is None:
         # will just plot the outlines
         pass
@@ -56,20 +57,17 @@ def plot_overlay(predicted_contour, plotting_tif, rescale_factor=1, alternate_co
         io.imsave(path, predicted_contour_mask)
     else:
         # rescale each channel to go from 0 to 255
-        plotting_tif = plotting_tif.astype("float32")
+        rescaled = np.zeros(plotting_tif.shape, dtype='uint8')
+
         for idx in range(plotting_tif.shape[2]):
-            plotting_tif[:, :, idx] = plotting_tif[:, :, idx] / (np.max(plotting_tif[:, :, idx]) + 0.001)
-            plotting_tif[:, :, idx] = plotting_tif[:, :, idx] * 255
-
-        plotting_tif = plotting_tif.astype('int16')
-
-        # rescale based on ommand line argument
-        rescaled = plotting_tif * rescale_factor
-
-        # figure out which values need to be capped due to overflow
-        cap_mask = rescaled > 255
-        rescaled = np.floor(rescaled).astype('uint8')
-        rescaled[cap_mask] = 250
+            if np.max(plotting_tif[:, :, idx]) == 0:
+                # don't need to rescale this channel
+                pass
+            else:
+                percentiles = np.percentile(plotting_tif[:, :, idx][plotting_tif[:, :, idx] > 0], [5, 95])
+                rescaled_intensity = rescale_intensity(plotting_tif[:, :, idx], in_range=(percentiles[0], percentiles[1]),
+                                                        out_range='uint8')
+                rescaled[:, :, idx] = rescaled_intensity
 
         # overlay first contour on all three RGB, to have it show up as white border
         rescaled[predicted_contour_mask > 0, :] = 255

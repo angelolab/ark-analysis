@@ -10,13 +10,13 @@ import skimage.filters.rank as rank
 import scipy.ndimage as nd
 
 
-def load_imgs_from_dir(data_dir, img_sub_folder=None, folder_names=None, imgs=None, load_axis="fovs", dtype="int16"):
+def load_imgs_from_dir(data_dir, img_sub_folder=None, fovs=None, imgs=None, load_axis="fovs", dtype="int16"):
     """Takes a set of imgs from a directory structure and loads them into a numpy array.
 
         Args:
             data_dir: directory containing folders of images
             img_sub_folder: optional name of sub-folder containing the images within each identifier folder
-            folder_names: optional list of folder_names to load imgs from, otherwise loads from all folders
+            fovs: optional list of folders to load imgs from, otherwise loads from all folders
             imgs: optional list of imgs to load, otherwise loads all .tif, .tiff, .jpg, or .png files
             load_axis: axis that images will get loaded onto. Must be one of ["fovs", "stacks"]
             dtype: dtype of array which will be used to store values
@@ -31,31 +31,31 @@ def load_imgs_from_dir(data_dir, img_sub_folder=None, folder_names=None, imgs=No
     if not np.isin(load_axis, ["fovs", "stacks"]):
         raise ValueError("Invalid value for load_axis, must be one of [fovs, stacks]")
 
-    if folder_names is None:
-        # get all point folders
-        folder_names = os.listdir(data_dir)
-        folder_names = [folder for folder in folder_names if os.path.isdir(os.path.join(data_dir, folder))]
-        folder_names.sort()
+    if fovs is None:
+        # get all fovs
+        fovs = os.listdir(data_dir)
+        fovs = [fov for fov in fovs if os.path.isdir(os.path.join(data_dir, fov))]
+        fovs.sort()
     else:
         # use supplied list, but check to make sure they all exist
-        for folder in folder_names:
-            if not os.path.isdir(os.path.join(data_dir, folder)):
-                raise ValueError("Could not find img folder {}".format(folder))
+        for fov in fovs:
+            if not os.path.isdir(os.path.join(data_dir, fov)):
+                raise ValueError("Could not find img fov {}".format(fov))
 
-    if len(folder_names) == 0:
-        raise ValueError("No points found in directory")
+    if len(fovs) == 0:
+        raise ValueError("No fovs found in directory")
 
-    # check to make sure img subfolder name within point directory is correct
+    # check to make sure img subfolder name within fov is correct
     if img_sub_folder is not None:
-        if not os.path.isdir(os.path.join(data_dir, folder_names[0], img_sub_folder)):
+        if not os.path.isdir(os.path.join(data_dir, fovs[0], img_sub_folder)):
             raise ValueError("Invalid img_sub_folder name")
     else:
         # no img_sub_folder, change to empty string to read directly from base folder
         img_sub_folder = ""
 
-    # get imgs from first point directory if no img names supplied
+    # get imgs from first fov if no img names supplied
     if imgs is None:
-        imgs = os.listdir(os.path.join(data_dir, folder_names[0], img_sub_folder))
+        imgs = os.listdir(os.path.join(data_dir, fovs[0], img_sub_folder))
         imgs = [img for img in imgs if np.isin(img.split(".")[-1], ["tif", "tiff", "jpg", "png"])]
 
     if len(imgs) == 0:
@@ -63,10 +63,12 @@ def load_imgs_from_dir(data_dir, img_sub_folder=None, folder_names=None, imgs=No
 
     # check to make sure supplied imgs exist
     for img in imgs:
-        if not os.path.isfile(os.path.join(data_dir, folder_names[0], img_sub_folder, img)):
-            raise ValueError("Could not find {} in supplied directory {}".format(img, os.path.join(data_dir, folder_names[0], img_sub_folder, img)))
+        if not os.path.isfile(os.path.join(data_dir, fovs[0], img_sub_folder, img)):
+            raise ValueError("Could not find {} in supplied directory {}".format(img, os.path.join(data_dir, fovs[0], img_sub_folder, img)))
 
-    test_img = io.imread(os.path.join(data_dir, folder_names[0], img_sub_folder, imgs[0]))
+    imgs.sort()
+
+    test_img = io.imread(os.path.join(data_dir, fovs[0], img_sub_folder, imgs[0]))
 
     # check to make sure that float dtype was supplied if image data is float
     data_dtype = test_img.dtype
@@ -74,11 +76,11 @@ def load_imgs_from_dir(data_dir, img_sub_folder=None, folder_names=None, imgs=No
         if not np.issubdtype(dtype, np.floating):
             raise ValueError("supplied dtype is not a float, but the images loaded are floats")
 
-    img_data = np.zeros((len(folder_names), test_img.shape[0], test_img.shape[1], len(imgs)), dtype=dtype)
+    img_data = np.zeros((len(fovs), test_img.shape[0], test_img.shape[1], len(imgs)), dtype=dtype)
 
-    for folder in range(len(folder_names)):
+    for fov in range(len(fovs)):
         for img in range(len(imgs)):
-            img_data[folder, :, :, img] = io.imread(os.path.join(data_dir, folder_names[folder],
+            img_data[fov, :, :, img] = io.imread(os.path.join(data_dir, fovs[fov],
                                                                  img_sub_folder, imgs[img]))
 
     # check to make sure that dtype wasn't too small for range of data
@@ -88,22 +90,26 @@ def load_imgs_from_dir(data_dir, img_sub_folder=None, folder_names=None, imgs=No
     # remove .tif or .tiff from image name
     img_names = [os.path.splitext(img)[0] for img in imgs]
 
-    img_xr = xr.DataArray(img_data, coords=[folder_names, range(test_img.shape[0]), range(test_img.shape[1]), img_names],
+    img_xr = xr.DataArray(img_data, coords=[fovs, range(test_img.shape[0]), range(test_img.shape[1]), img_names],
                           dims=[load_axis, "rows", "cols", "channels"])
 
     return img_xr
 
 
-def create_blank_channel(img_size, grid_size, dtype):
+def create_blank_channel(img_size, grid_size=None, dtype="int16", full_blank=False):
     """Creates a blank TIF of a given size that has a small number of positive pixels to avoid divide by zero errors
     Inputs:
         img_size: tuple specifying the size of the image to create
         grid_size: int that determines how many pieces to randomize within
         dtype: dtype for image
+        full_blank: boolean to set whether image has few sparse pixels, or is completely blank
 
     Outputs:
         blank_arr: a (mostly) blank array with positive pixels in random values
     """
+
+    if grid_size is None:
+        grid_size = int(math.sqrt(img_size[0]))
 
     blank = np.zeros(img_size, dtype=dtype)
     row_step = math.floor(blank.shape[0] / grid_size)
@@ -113,12 +119,13 @@ def create_blank_channel(img_size, grid_size, dtype):
         for col in range(grid_size):
             row_rand = np.random.randint(0, row_step - 1)
             col_rand = np.random.randint(0, col_step - 1)
-            blank[row * row_step + row_rand, col * col_step + col_rand] = np.random.randint(1, 15)
+            if not full_blank:
+                blank[row * row_step + row_rand, col * col_step + col_rand] = np.random.randint(1, 15)
 
     return blank
 
 
-def reorder_xarray_channels(channel_order, channel_xr, non_blank_channels=None):
+def reorder_xarray_channels(channel_order, channel_xr, non_blank_channels=None, full_blank=False):
     """Adds blank channels or changes the order of existing channels to match the ordering given by channel_order list
     Inputs:
         channel_order: list of channel names, which dictates final order of output xarray
@@ -155,17 +162,14 @@ def reorder_xarray_channels(channel_order, channel_xr, non_blank_channels=None):
 
     # create array to hold all channels, including blank ones
     full_array = np.zeros((channel_xr.shape[:3] + (len(channel_order),)), dtype=channel_xr.dtype)
-    print(full_array.shape)
 
     for i in range(len(channel_order)):
         if channel_order[i] in non_blank_channels:
             current_channel = channel_xr.loc[:, :, :, channel_order[i]].values
-            print(current_channel.shape)
-            print(channel_order[i])
             full_array[:, :, :, i] = current_channel
         else:
             im_crops = channel_xr.shape[1] // 32
-            blank = create_blank_channel(channel_xr.shape[1:3], im_crops, dtype=channel_xr.dtype)
+            blank = create_blank_channel(channel_xr.shape[1:3], im_crops, dtype=channel_xr.dtype, full_blank=full_blank)
             full_array[:, :, :, i] = blank
 
     channel_xr_blanked = xr.DataArray(full_array, coords=[channel_xr.fovs, range(channel_xr.shape[1]),
@@ -180,7 +184,7 @@ def combine_xarrays(xarrays, axis):
 
     Inputs:
         xarrays: a tuple of xarrays
-        axis: either 0, if the xarrays will combined over different points, or -1, if they will be combined over channels
+        axis: either 0, if the xarrays will combined over different fovs, or -1, if they will be combined over channels
 
     Outputs:
         combined_xr: an xarray that is the combination of all inputs"""
@@ -205,10 +209,10 @@ def combine_xarrays(xarrays, axis):
 
         if axis == 0:
             if not np.array_equal(cur_xr.channels, first_xr.channels):
-                raise ValueError("xarrays have different channel names")
+                raise ValueError("xarrays have different channels")
         else:
             if not np.array_equal(cur_xr.fovs, first_xr.fovs):
-                raise ValueError("xarrays have different point names")
+                raise ValueError("xarrays have different fovs")
 
         np_arr = np.concatenate((np_arr, cur_arr), axis=axis)
         if axis == 0:
