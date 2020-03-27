@@ -77,7 +77,7 @@ io.imsave(base_dir + "DNA_cropped.tif", DNA_cropped)
 io.imsave(base_dir + "Membrane_cropped.tif", Membrane_cropped)
 
 
-# Colon data preprocessing
+# Eliot data preprocessing
 base_dir = "/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/data/20191219_Eliot/Great/"
 
 points = os.listdir(base_dir)
@@ -170,3 +170,34 @@ composite = io.imread(base_dir + "TONSIL-1_40X.ome.tif")
 for chan in range(composite.shape[0]):
     io.imsave(base_dir + "Channel_{}.tif".format(chan + 1), composite[chan, :, :])
 
+
+# Eliot test data preprocessing
+base_dir = "/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/data/20191219_Eliot/Test/"
+
+stacks = os.listdir(base_dir)
+stacks = [stack for stack in stacks if "stack" in stack]
+
+for stack_name in stacks:
+    stack = io.imread(os.path.join(base_dir, stack_name))
+    DNA = stack[0, :, :]
+    Membrane = stack[18, :, :]
+
+    Membrane_resized = resize(Membrane, [Membrane.shape[0] * 2, Membrane.shape[1] * 2], order=3, preserve_range=True)
+    DNA_resized = resize(DNA, [DNA.shape[0] * 2, DNA.shape[1] * 2], order=3, preserve_range=True)
+
+    dir_name = os.path.join(base_dir, os.path.splitext(stack_name)[0])
+    os.makedirs(dir_name)
+    io.imsave(os.path.join(dir_name, "DNA_Upsampled.tiff"), DNA_resized.astype('int16'))
+    io.imsave(os.path.join(dir_name, "Membrane_Upsampled.tiff"), Membrane_resized.astype('int16'))
+
+
+# upsample labels
+labels = os.listdir(base_dir)
+labels = [label for label in labels if "Seg" in label]
+
+for label_name in labels:
+    label = io.imread(os.path.join(base_dir, label_name))
+
+    label_resized = resize(label, [label.shape[0] * 2, label.shape[1] * 2], order=0, preserve_range=True)
+
+    io.imsave(os.path.join(base_dir, label_name + "_Upsampled.tiff"), label_resized.astype('int16'))
