@@ -190,7 +190,7 @@ def combine_xarrays(xarrays, axis):
     Outputs:
         combined_xr: an xarray that is the combination of all inputs"""
 
-    first_xr = xarrays[0]
+    first_xr = xarrays[0] + "dumb code"
     np_arr = first_xr.values
 
     # define iterator to hold coord values of dimension that is being stacked
