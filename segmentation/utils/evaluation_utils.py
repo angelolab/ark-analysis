@@ -25,10 +25,12 @@ def compare_contours(predicted_label, contour_label):
         contour_label = skimage.measure.label(contour_label, connectivity=1)
 
     # get region props of predicted cells and initialize datastructure for storing values
-    cell_frame = pd.DataFrame(columns=["contour_cell", "contour_cell_size", "predicted_cell", "predicted_cell_size",
-                                       "percent_overlap", "merged", "split", "missing", "low_quality", "created"])
+    cell_frame = pd.DataFrame(columns=["contour_cell", "contour_cell_size",
+                                       "predicted_cell", "predicted_cell_size",
+                                       "percent_overlap", "merged", "split",
+                                       "missing", "low_quality", "created"])
 
-    # loop through each contoured cell, and compute accuracy metrics for overlapping predicting cells
+    # loop through each contoured cell, and compute accuracy metrics for overlapping cells
     for contour_cell in range(1, np.max(contour_label) + 1):
         # generate a mask for the contoured cell, get all predicted cells that overlap the mask
         mask = contour_label == contour_cell
@@ -51,21 +53,28 @@ def compare_contours(predicted_label, contour_label):
         # check and see if maps primarily to background
         if overlap_id[0] == 0:
             if overlap_count[0] / contour_cell_size > 0.8:
-                # more than 80% of cell is overlapping with background, classify predicted cell as missing
-                cell_frame = cell_frame.append({"contour_cell": contour_cell, "contour_cell_size": contour_cell_size,
-                                                "predicted_cell": 0, "predicted_cell_size": 0,
-                                                "percent_overlap": overlap_count[0] / contour_cell_size, "merged": False,
-                                                "split": False, "missing": True, "low_quality": False,
-                                                "created": False}, ignore_index=True)
+                # more than 80% of cell is overlapping with background,
+                # classify predicted cell as missing
+                cell_frame = \
+                    cell_frame.append({"contour_cell": contour_cell,
+                                       "contour_cell_size": contour_cell_size,
+                                       "predicted_cell": 0, "predicted_cell_size": 0,
+                                       "percent_overlap": overlap_count[0] / contour_cell_size,
+                                       "merged": False,
+                                       "split": False, "missing": True, "low_quality": False,
+                                       "created": False}, ignore_index=True)
                 continue
             else:
                 # not missing, just bad segmentation. Classify predicted cell as bad
-                # TODO: figure out how often this condition is true, what do we do with remaining overlap targets
+                # TODO: figure out how often this condition is true,
+                # what do we do with remaining overlap targets
                 cell_frame = cell_frame.append(
                     {"contour_cell": contour_cell, "contour_cell_size": contour_cell_size,
-                     "predicted_cell": overlap_id[1], "predicted_cell_size": np.sum(predicted_label == overlap_id[1]),
+                     "predicted_cell": overlap_id[1],
+                     "predicted_cell_size": np.sum(predicted_label == overlap_id[1]),
                      "percent_overlap": overlap_count[0] / contour_cell_size, "merged": False,
-                     "split": False, "missing": False, "low_quality": True, "created": False}, ignore_index=True)
+                     "split": False, "missing": False, "low_quality": True, "created": False},
+                    ignore_index=True)
                 continue
         else:
             # remove background as target cell and change cell size to for calculation
@@ -75,7 +84,8 @@ def compare_contours(predicted_label, contour_label):
                 overlap_id, overlap_count = overlap_id[keep_idx], overlap_count[keep_idx]
 
         # go through logic to determine relationship between overlapping cells
-        # TODO: change logic to include a too small category for when cell is completely contained within but is smaller
+        # TODO: change logic to include a too small category
+        # for when cell is completely contained within but is smaller
         if overlap_count[0] / contour_cell_size > 0.9:
 
             # if greater than 90% of pixels contained in first overlap, assign to that cell
@@ -83,12 +93,16 @@ def compare_contours(predicted_label, contour_label):
             pred_cell_size = np.sum(predicted_label == pred_cell)
             percnt = overlap_count[0] / contour_cell_size
 
-            cell_frame = cell_frame.append({"contour_cell": contour_cell, "contour_cell_size": contour_cell_size,
-                                            "predicted_cell": pred_cell, "predicted_cell_size": pred_cell_size,
-                                            "percent_overlap": percnt, "merged": False, "split": False,
-                                            "missing": False, "low_quality": False, "created": False}, ignore_index=True)
+            cell_frame = cell_frame.append({"contour_cell": contour_cell,
+                                            "contour_cell_size": contour_cell_size,
+                                            "predicted_cell": pred_cell,
+                                            "predicted_cell_size": pred_cell_size,
+                                            "percent_overlap": percnt, "merged": False,
+                                            "split": False, "missing": False, "low_quality": False,
+                                            "created": False}, ignore_index=True)
         else:
-            # No single predicted cell occupies more than 90% of contour cell size, figure out the type of error made
+            # No single predicted cell occupies more than 90% of contour cell size,
+            # figure out the type of error made
             split_flag = False
             bad_flag = False
             # TODO check if first cell also has at least 80% of volume contained in contour cell?
@@ -107,7 +121,8 @@ def compare_contours(predicted_label, contour_label):
                         {"contour_cell": contour_cell, "contour_cell_size": contour_cell_size,
                          "predicted_cell": overlap_id[cell], "predicted_cell_size": pred_cell_size,
                          "percent_overlap": percnt, "merged": False, "split": True,
-                         "missing": False, "low_quality": False, "created": False}, ignore_index=True)
+                         "missing": False, "low_quality": False, "created": False},
+                        ignore_index=True)
                 else:
                     # this cell hasn't been split, just poorly assigned
                     bad_flag = True
@@ -115,24 +130,32 @@ def compare_contours(predicted_label, contour_label):
                         {"contour_cell": contour_cell, "contour_cell_size": contour_cell_size,
                          "predicted_cell": overlap_id[cell], "predicted_cell_size": pred_cell_size,
                          "percent_overlap": percnt, "merged": False, "split": False,
-                         "missing": False, "low_quality": True, "created": False}, ignore_index=True)
+                         "missing": False, "low_quality": True, "created": False},
+                        ignore_index=True)
 
             # assign the first cell, based on whether or not subsequent cells indicate split or bad
             if bad_flag and split_flag:
                 bad_flag = False
-            cell_frame = cell_frame.append({"contour_cell": contour_cell, "contour_cell_size": contour_cell_size,
-                                            "predicted_cell": overlap_id[0], "predicted_cell_size": overlap_count[0],
-                                            "percent_overlap": overlap_count[0] / contour_cell_size, "merged": False,
-                                            "split": split_flag, "missing": False, "low_quality": bad_flag,
+            cell_frame = cell_frame.append({"contour_cell": contour_cell,
+                                            "contour_cell_size": contour_cell_size,
+                                            "predicted_cell": overlap_id[0],
+                                            "predicted_cell_size": overlap_count[0],
+                                            "percent_overlap": overlap_count[0] / contour_cell_size,
+                                            "merged": False, "split": split_flag, "missing": False,
+                                            "low_quality": bad_flag,
                                             "created": False}, ignore_index=True)
 
-    # check and see if any new cells were created in predicted_label that don't exist in contour_label
+    # check to see if any new cells were created in predicted_label
+    # that don't exist in contour_label
     for predicted_cell in range(1, np.max(predicted_label) + 1):
         if not np.isin(predicted_cell, cell_frame["predicted_cell"]):
-            cell_frame = cell_frame.append({"contour_cell": 0, "contour_cell_size": 0, "predicted_cell": predicted_cell,
-                                            "predicted_cell_size": np.sum(predicted_label == predicted_cell),
-                                            "percent_overlap": 0, "merged": False, "split": split_flag,
-                                            "missing": False, "low_quality": False, "created": True}, ignore_index=True)
+            cell_frame = \
+                cell_frame.append({"contour_cell": 0, "contour_cell_size": 0,
+                                   "predicted_cell": predicted_cell,
+                                   "predicted_cell_size": np.sum(predicted_label == predicted_cell),
+                                   "percent_overlap": 0, "merged": False, "split": split_flag,
+                                   "missing": False, "low_quality": False,
+                                   "created": True}, ignore_index=True)
 
     return cell_frame, predicted_label, contour_label
 
@@ -176,8 +199,10 @@ def calc_modified_average_precision(iou_matrix, thresholds):
 
     Returns:
         scores: list of modified average precision values for each threshold
-        false_neg_idx: array of booleans indicating whether cell was flagged as false positive at each threshold
-        false_pos_idx: array of booleans indicating whether cell was flagged as false negative at each threshold"""
+        false_neg_idx: array of booleans indicating whether cell was
+            flagged as false positive at each threshold
+        false_pos_idx: array of booleans indicating whether cell was
+            flagged as false negative at each threshold"""
 
     if np.any(np.logical_or(thresholds > 1, thresholds < 0)):
         raise ValueError("Thresholds must be between 0 and 1")
