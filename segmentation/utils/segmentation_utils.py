@@ -16,9 +16,9 @@ import scipy.ndimage as nd
 from segmentation.utils import plot_utils
 
 
-def watershed_transform(model_output, channel_xr, overlay_channels, output_dir, points=None,
+def watershed_transform(model_output, channel_xr, overlay_channels, output_dir, fovs=None,
                    interior_model="pixelwise_interior", interior_threshold=0.25, interior_smooth=3,
-                   maxima_model="pixelwise_interior", maxima_smooth=3, nuclear_expansion=None,
+                   maxima_model="pixelwise_interior", maxima_smooth=3, maxima_threshold=0.05, nuclear_expansion=None,
                    randomize_cell_labels=True, save_tifs=False):
 
     """Runs the watershed transform over a set of probability masks output by deepcell network
@@ -31,6 +31,7 @@ def watershed_transform(model_output, channel_xr, overlay_channels, output_dir, 
         interior_smooth: value to smooth the interior predictions
         maxima_model: Name of the model to use to predict maxes in the image
         maxima_smooth: value to smooth the maxima predictions
+        maxima_threshold: threshold to cut off maxima predictions
         nuclear_expansion: optional pixel value by which to expand cells if doing nuclear segmentation
         randomize_labels: if true, will randomize the order of the labels put out by watershed for easier visualization
         save_tifs: whether to save intermediate TIFs
@@ -38,20 +39,20 @@ def watershed_transform(model_output, channel_xr, overlay_channels, output_dir, 
         Saves xarray to output directory"""
 
     # error checking
-    if points is None:
-        points = model_output.coords['fovs']
+    if fovs is None:
+        fovs = model_output.fovs
     else:
-        if np.any(~np.isin(points, model_output.coords['fovs'])):
+        if np.any(~np.isin(fovs, model_output.coords['fovs'])):
             raise ValueError("Incorrect list of points given, not all are present in data structure")
 
-    if len(points) == 1:
+    if len(fovs) == 1:
         # don't subset, will change dimensions
         pass
     else:
-        model_output = model_output.loc[points, :, :, :]
+        model_output = model_output.loc[fovs, :, :, :]
 
     if np.any(~np.isin(model_output.fovs.values, channel_xr.fovs.values)):
-        raise ValueError("Not all of the points in the model output were found in the channel xr")
+        raise ValueError("Not all of the fovs in the model output were found in the channel xr")
 
     # flatten overlay list of lists into single list
     flat_channels = [item for sublist in overlay_channels for item in sublist]
@@ -84,18 +85,20 @@ def watershed_transform(model_output, channel_xr, overlay_channels, output_dir, 
         raise ValueError("Invalid interior model name supplied: {}, must be one of {}".format(interior_model,
                                                                                                   model_list))
     if interior_model not in model_output.models:
-        raise ValueError("Model for interior {} not found in model output".format(bg_model))
+        raise ValueError("Model for interior {} not found in model output".format(interior_model))
 
-    # loop through all points and segment
-    for point in model_output.fovs.values:
-        print("analyzing point {}".format(point))
+    # loop through all fovs and segment
+    for fov in model_output.fovs.values:
+        print("analyzing fov {}".format(fov))
 
         # generate maxima predictions
-        maxima_smoothed = nd.gaussian_filter(model_output.loc[point, :, :, maxima_model], maxima_smooth)
-        maxs = peak_local_max(maxima_smoothed, indices=False, min_distance=5)
+        maxima_smoothed = nd.gaussian_filter(model_output.loc[fov, :, :, maxima_model], maxima_smooth)
+        maxima_thresholded = maxima_smoothed
+        maxima_thresholded[maxima_thresholded < maxima_threshold] = 0
+        maxs = peak_local_max(maxima_thresholded, indices=False, min_distance=5)
 
         # generate interior predictions
-        interior_smoothed = nd.gaussian_filter(model_output.loc[point, :, :, interior_model].values, interior_smooth)
+        interior_smoothed = nd.gaussian_filter(model_output.loc[fov, :, :, interior_model].values, interior_smooth)
         interior_mask = interior_smoothed > interior_threshold
 
         # determine if background is based on network output or an expansion
@@ -118,53 +121,52 @@ def watershed_transform(model_output, channel_xr, overlay_channels, output_dir, 
             warnings.simplefilter("ignore")
 
             # save segmentation label map
-            io.imsave(os.path.join(output_dir, point + "_segmentation_labels.tiff"), random_map)
+            io.imsave(os.path.join(output_dir, fov + "_segmentation_labels.tiff"), random_map)
 
             # save borders of segmentation map
             plot_utils.plot_overlay(random_map, plotting_tif=None,
-                                    path=os.path.join(output_dir, point + "_segmentation_borders.tiff"))
+                                    path=os.path.join(output_dir, fov + "_segmentation_borders.tiff"))
 
             if save_tifs:
-                io.imsave(os.path.join(output_dir, point + "_interior_smoothed.tiff"),
+                io.imsave(os.path.join(output_dir, fov + "_interior_smoothed.tiff"),
                           interior_smoothed.astype("float32"))
 
-                io.imsave(os.path.join(output_dir, point + "_maxs_smoothed.tiff"),
-                          maxima_smoothed.astype("float32"))
+                io.imsave(os.path.join(output_dir, fov + "_maxs_smoothed_thresholded.tiff"),
+                          maxima_thresholded.astype("float32"))
 
                 for chan in channel_xr.channels.values:
-                    io.imsave(os.path.join(output_dir, point + "_{}.tiff".format(chan)),
-                              channel_xr.loc[point, :, :, chan])
+                    io.imsave(os.path.join(output_dir, fov + "_{}.tiff".format(chan)),
+                              channel_xr.loc[fov, :, :, chan])
 
         # plot list of supplied markers overlaid by segmentation mask to assess accuracy
         for chan_list in overlay_channels:
             if len(chan_list) == 1:
                 # if only one entry in list, make single channel overlay
                 channel = chan_list[0]
-                chan_marker = channel_xr.loc[point, :, :, channel].values
+                chan_marker = channel_xr.loc[fov, :, :, channel].values
                 plot_utils.plot_overlay(random_map, plotting_tif=chan_marker,
-                                        path=os.path.join(output_dir, point + "_{}_overlay.tiff".format(channel)))
+                                        path=os.path.join(output_dir, fov + "_{}_overlay.tiff".format(channel)))
 
             elif len(chan_list) == 2:
                 # if two entries, make 2-color stack, skipping 0th index which is red
                 input_data = np.zeros((channel_xr.shape[1], channel_xr.shape[2], 3))
-                input_data[:, :, 1] = channel_xr.loc[point, :, :, chan_list[0]].values
-                input_data[:, :, 2] = channel_xr.loc[point, :, :, chan_list[1]].values
+                input_data[:, :, 1] = channel_xr.loc[fov, :, :, chan_list[0]].values
+                input_data[:, :, 2] = channel_xr.loc[fov, :, :, chan_list[1]].values
                 plot_utils.plot_overlay(random_map, plotting_tif=input_data,
-                                        path=os.path.join(output_dir, point + "_{}_{}_overlay.tiff".format(chan_list[0],
+                                        path=os.path.join(output_dir, fov + "_{}_{}_overlay.tiff".format(chan_list[0],
                                                                                                    chan_list[1])))
             elif len(chan_list) == 3:
                 # if three entries, make a 3 color stack, with third channel in first index (red)
                 input_data = np.zeros((channel_xr.shape[1], channel_xr.shape[2], 3))
-                input_data[:, :, 1] = channel_xr.loc[point, :, :, chan_list[0]].values
-                input_data[:, :, 2] = channel_xr.loc[point, :, :, chan_list[1]].values
-                input_data[:, :, 0] = channel_xr.loc[point, :, :, chan_list[2]].values
+                input_data[:, :, 1] = channel_xr.loc[fov, :, :, chan_list[0]].values
+                input_data[:, :, 2] = channel_xr.loc[fov, :, :, chan_list[1]].values
+                input_data[:, :, 0] = channel_xr.loc[fov, :, :, chan_list[2]].values
                 plot_utils.plot_overlay(random_map, plotting_tif=input_data,
-                                        path=os.path.join(output_dir, point +
+                                        path=os.path.join(output_dir, fov +
                                                           "_{}_{}_{}_overlay.tiff".format(chan_list[0], chan_list[1],
                                                                                           chan_list[2])))
 
-
-        segmentation_labels_xr.loc[point, :, :, 'segmentation_label'] = random_map
+        segmentation_labels_xr.loc[fov, :, :, 'segmentation_label'] = random_map
 
     save_name = os.path.join(output_dir, 'segmentation_labels.xr')
     if os.path.exists(save_name):

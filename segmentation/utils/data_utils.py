@@ -58,6 +58,9 @@ def load_imgs_from_dir(data_dir, img_sub_folder=None, fovs=None, imgs=None, load
         imgs = os.listdir(os.path.join(data_dir, fovs[0], img_sub_folder))
         imgs = [img for img in imgs if np.isin(img.split(".")[-1], ["tif", "tiff", "jpg", "png"])]
 
+        # if taking all imgs from directory, sort them alphabetically
+        imgs.sort()
+
     if len(imgs) == 0:
         raise ValueError("No imgs found in designated folder")
 
@@ -65,8 +68,6 @@ def load_imgs_from_dir(data_dir, img_sub_folder=None, fovs=None, imgs=None, load
     for img in imgs:
         if not os.path.isfile(os.path.join(data_dir, fovs[0], img_sub_folder, img)):
             raise ValueError("Could not find {} in supplied directory {}".format(img, os.path.join(data_dir, fovs[0], img_sub_folder, img)))
-
-    imgs.sort()
 
     test_img = io.imread(os.path.join(data_dir, fovs[0], img_sub_folder, imgs[0]))
 
