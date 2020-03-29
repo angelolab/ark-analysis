@@ -17,9 +17,10 @@ from segmentation.utils import plot_utils
 
 
 def watershed_transform(model_output, channel_xr, overlay_channels, output_dir, fovs=None,
-                   interior_model="pixelwise_interior", interior_threshold=0.25, interior_smooth=3,
-                   maxima_model="pixelwise_interior", maxima_smooth=3, maxima_threshold=0.05, nuclear_expansion=None,
-                   randomize_cell_labels=True, save_tifs=False):
+                        interior_model="pixelwise_interior", interior_threshold=0.25,
+                        interior_smooth=3, maxima_model="pixelwise_interior", maxima_smooth=3,
+                        maxima_threshold=0.05, nuclear_expansion=None, randomize_cell_labels=True,
+                        save_tifs=False):
 
     """Runs the watershed transform over a set of probability masks output by deepcell network
     Inputs:
@@ -32,8 +33,10 @@ def watershed_transform(model_output, channel_xr, overlay_channels, output_dir, 
         maxima_model: Name of the model to use to predict maxes in the image
         maxima_smooth: value to smooth the maxima predictions
         maxima_threshold: threshold to cut off maxima predictions
-        nuclear_expansion: optional pixel value by which to expand cells if doing nuclear segmentation
-        randomize_labels: if true, will randomize the order of the labels put out by watershed for easier visualization
+        nuclear_expansion: optional pixel value by which to expand cells if
+            doing nuclear segmentation
+        randomize_labels: if true, will randomize the order of the labels put out
+            by watershed for easier visualization
         save_tifs: whether to save intermediate TIFs
     Outputs:
         Saves xarray to output directory"""
@@ -43,7 +46,8 @@ def watershed_transform(model_output, channel_xr, overlay_channels, output_dir, 
         fovs = model_output.fovs
     else:
         if np.any(~np.isin(fovs, model_output.coords['fovs'])):
-            raise ValueError("Incorrect list of points given, not all are present in data structure")
+            raise ValueError("Incorrect list of points given, "
+                             "not all are present in data structure")
 
     if len(fovs) == 1:
         # don't subset, will change dimensions
@@ -59,7 +63,8 @@ def watershed_transform(model_output, channel_xr, overlay_channels, output_dir, 
     overlay_in_xr = np.isin(flat_channels, channel_xr.channels)
     if len(overlay_in_xr) != np.sum(overlay_in_xr):
         bad_chan = flat_channels[np.where(~overlay_in_xr)[0][0]]
-        raise ValueError("{} was listed as an overlay channel, but it is not in the channel xarray".format(bad_chan))
+        raise ValueError("{} was listed as an overlay channel, "
+                         "but it is not in the channel xarray".format(bad_chan))
 
     if not os.path.isdir(output_dir):
         raise ValueError("output directory does not exist")
@@ -71,19 +76,19 @@ def watershed_transform(model_output, channel_xr, overlay_channels, output_dir, 
                                           dims=['fovs', 'rows', 'cols', 'channels'])
 
     # error check model selected for local maxima finding in the image
-    model_list = ["pixelwise_interior", "watershed_inner", "watershed_outer", "watershed_argmax", "fgbg_foreground",
-                  "pixelwise_sum"]
+    model_list = ["pixelwise_interior", "watershed_inner", "watershed_outer",
+                  "watershed_argmax", "fgbg_foreground", "pixelwise_sum"]
 
     if maxima_model not in model_list:
-        raise ValueError("Invalid local maxima model name supplied: {}, must be one of {}".format(maxima_model,
-                                                                                                  model_list))
+        raise ValueError("Invalid local maxima model name supplied: {}, "
+                         "must be one of {}".format(maxima_model, model_list))
     if maxima_model not in model_output.models:
         raise ValueError("Model for local maxima {} not found in model output".format(maxima_model))
 
     # error check model selected for background delineation in the image
     if interior_model not in model_list:
-        raise ValueError("Invalid interior model name supplied: {}, must be one of {}".format(interior_model,
-                                                                                                  model_list))
+        raise ValueError("Invalid interior model name supplied: {}, "
+                         "must be one of {}".format(interior_model, model_list))
     if interior_model not in model_output.models:
         raise ValueError("Model for interior {} not found in model output".format(interior_model))
 
@@ -92,24 +97,28 @@ def watershed_transform(model_output, channel_xr, overlay_channels, output_dir, 
         print("analyzing fov {}".format(fov))
 
         # generate maxima predictions
-        maxima_smoothed = nd.gaussian_filter(model_output.loc[fov, :, :, maxima_model], maxima_smooth)
+        maxima_smoothed = nd.gaussian_filter(model_output.loc[fov, :, :, maxima_model],
+                                             maxima_smooth)
         maxima_thresholded = maxima_smoothed
         maxima_thresholded[maxima_thresholded < maxima_threshold] = 0
         maxs = peak_local_max(maxima_thresholded, indices=False, min_distance=5)
 
         # generate interior predictions
-        interior_smoothed = nd.gaussian_filter(model_output.loc[fov, :, :, interior_model].values, interior_smooth)
+        interior_smoothed = nd.gaussian_filter(model_output.loc[fov, :, :, interior_model].values,
+                                               interior_smooth)
         interior_mask = interior_smoothed > interior_threshold
 
         # determine if background is based on network output or an expansion
         if nuclear_expansion is not None:
-            interior_mask = morph.dilation(interior_mask, selem=morph.square(nuclear_expansion * 2 + 1))
+            interior_mask = morph.dilation(interior_mask,
+                                           selem=morph.square(nuclear_expansion * 2 + 1))
 
         # use maxs to generate seeds for watershed
         markers = skimage.measure.label(maxs, connectivity=1)
 
         # watershed over negative interior mask
-        labels = np.array(morph.watershed(-interior_smoothed, markers, mask=interior_mask, watershed_line=0))
+        labels = np.array(morph.watershed(-interior_smoothed, markers,
+                                          mask=interior_mask, watershed_line=0))
 
         if randomize_cell_labels:
             random_map = plot_utils.randomize_labels(labels)
@@ -125,7 +134,8 @@ def watershed_transform(model_output, channel_xr, overlay_channels, output_dir, 
 
             # save borders of segmentation map
             plot_utils.plot_overlay(random_map, plotting_tif=None,
-                                    path=os.path.join(output_dir, fov + "_segmentation_borders.tiff"))
+                                    path=os.path.join(output_dir,
+                                                      fov + "_segmentation_borders.tiff"))
 
             if save_tifs:
                 io.imsave(os.path.join(output_dir, fov + "_interior_smoothed.tiff"),
@@ -145,16 +155,18 @@ def watershed_transform(model_output, channel_xr, overlay_channels, output_dir, 
                 channel = chan_list[0]
                 chan_marker = channel_xr.loc[fov, :, :, channel].values
                 plot_utils.plot_overlay(random_map, plotting_tif=chan_marker,
-                                        path=os.path.join(output_dir, fov + "_{}_overlay.tiff".format(channel)))
+                                        path=os.path.join(output_dir,
+                                                          fov + "_{}_overlay.tiff".format(channel)))
 
             elif len(chan_list) == 2:
                 # if two entries, make 2-color stack, skipping 0th index which is red
                 input_data = np.zeros((channel_xr.shape[1], channel_xr.shape[2], 3))
                 input_data[:, :, 1] = channel_xr.loc[fov, :, :, chan_list[0]].values
                 input_data[:, :, 2] = channel_xr.loc[fov, :, :, chan_list[1]].values
-                plot_utils.plot_overlay(random_map, plotting_tif=input_data,
-                                        path=os.path.join(output_dir, fov + "_{}_{}_overlay.tiff".format(chan_list[0],
-                                                                                                   chan_list[1])))
+                plot_utils.plot_overlay(
+                    random_map, plotting_tif=input_data,
+                    path=os.path.join(
+                        output_dir, fov + "_{}_{}_overlay.tiff".format(chan_list[0], chan_list[1])))
             elif len(chan_list) == 3:
                 # if three entries, make a 3 color stack, with third channel in first index (red)
                 input_data = np.zeros((channel_xr.shape[1], channel_xr.shape[2], 3))
@@ -163,8 +175,10 @@ def watershed_transform(model_output, channel_xr, overlay_channels, output_dir, 
                 input_data[:, :, 0] = channel_xr.loc[fov, :, :, chan_list[2]].values
                 plot_utils.plot_overlay(random_map, plotting_tif=input_data,
                                         path=os.path.join(output_dir, fov +
-                                                          "_{}_{}_{}_overlay.tiff".format(chan_list[0], chan_list[1],
-                                                                                          chan_list[2])))
+                                                          "_{}_{}_{}_overlay.tiff".
+                                                          format(chan_list[0],
+                                                                 chan_list[1],
+                                                                 chan_list[2])))
 
         segmentation_labels_xr.loc[fov, :, :, 'segmentation_label'] = random_map
 
@@ -176,9 +190,10 @@ def watershed_transform(model_output, channel_xr, overlay_channels, output_dir, 
     segmentation_labels_xr.to_netcdf(save_name, format='NETCDF4')
 
 
-def combine_segmentation_masks(big_mask_xr, small_mask_xr, size_threshold, output_dir, input_xr, overlay_channels):
-    """Takes two xarrays of masks, generated using different parameters, and combines them together to produce
-        a single unified mask
+def combine_segmentation_masks(big_mask_xr, small_mask_xr, size_threshold,
+                               output_dir, input_xr, overlay_channels):
+    """Takes two xarrays of masks, generated using different parameters,
+    and combines them together to produce a single unified mask
 
     Inputs
         big_mask_xr: xarray optimized for large cells
@@ -221,16 +236,19 @@ def combine_segmentation_masks(big_mask_xr, small_mask_xr, size_threshold, outpu
     for point in big_mask_xr.points.values:
 
         # save segmentation labels
-        io.imsave(os.path.join(output_dir, point + "_labels.tiff"), big_mask_xr.loc[point, :, :, "segmentation_label"])
+        io.imsave(os.path.join(output_dir, point + "_labels.tiff"),
+                  big_mask_xr.loc[point, :, :, "segmentation_label"])
 
         # save overlay plots
         for channel in overlay_channels:
             plot_utils.plot_overlay(big_mask_xr.loc[point, :, :, "segmentation_label"].values,
                                     input_xr.loc[point, :, :, channel].values,
-                                    path=os.path.join(output_dir, "{}_{}_overlay.tiff".format(point, channel)))
+                                    path=os.path.join(output_dir,
+                                                      "{}_{}_overlay.tiff".format(point, channel)))
 
-    big_mask_xr.to_netcdf(os.path.join(output_dir, "deepcell_output_pixel_processed_segmentation_labels.xr"),
-                          format="NETCDF4")
+    big_mask_xr.to_netcdf(
+        os.path.join(output_dir, "deepcell_output_pixel_processed_segmentation_labels.xr"),
+        format="NETCDF4")
 
 
 def segment_images(input_images, segmentation_masks):
@@ -255,11 +273,13 @@ def segment_images(input_images, segmentation_masks):
     unique_cell_num = len(np.unique(segmentation_masks.values).astype('int'))
 
     # create np.array to hold subcellular_loc x channel x cell info
-    cell_counts = np.zeros((len(segmentation_masks.subcell_loc), unique_cell_num, len(input_images.channels) + 1))
+    cell_counts = np.zeros((len(segmentation_masks.subcell_loc), unique_cell_num,
+                            len(input_images.channels) + 1))
 
     col_names = np.concatenate((np.array('cell_size'), input_images.channels), axis=None)
-    xr_counts = xr.DataArray(copy.copy(cell_counts), coords=[segmentation_masks.subcell_loc,
-                                                             np.unique(segmentation_masks.values).astype('int'), col_names],
+    xr_counts = xr.DataArray(copy.copy(cell_counts),
+                             coords=[segmentation_masks.subcell_loc,
+                                     np.unique(segmentation_masks.values).astype('int'), col_names],
                              dims=['subcell_loc', 'cell_id', 'features'])
 
     # loop through each segmentation mask
@@ -272,7 +292,8 @@ def segment_images(input_images, segmentation_masks):
             # get coords corresponding to current cell
             cell_coords = cell.coords.T
 
-            # calculate the total signal intensity within that cell mask across all channels, and save to numpy
+            # calculate the total signal intensity within that cell
+            # mask across all channels, and save to numpy
             channel_index = input_images.values[tuple(cell_coords)]
             channel_counts = np.sum(channel_index, axis=0)
             xr_counts.loc[subcell_loc, cell.label, xr_counts.features[1]:] = channel_counts
@@ -281,7 +302,8 @@ def segment_images(input_images, segmentation_masks):
     return xr_counts
 
 
-def extract_single_cell_data(segmentation_labels, image_data, save_dir, nuc_probs=None, save_FCS=False):
+def extract_single_cell_data(segmentation_labels, image_data,
+                             save_dir, nuc_probs=None, save_FCS=False):
 
     """Extract single cell data from a set of images with provided segmentation mask
     Input:
@@ -316,15 +338,18 @@ def extract_single_cell_data(segmentation_labels, image_data, save_dir, nuc_prob
             bg_label[segmentation_label == 0] = 1
 
             # save different masks to single object
-            masks = np.zeros((segmentation_label.shape[0], segmentation_label.shape[1], 4), dtype="int16")
+            masks = np.zeros((segmentation_label.shape[0],
+                              segmentation_label.shape[1], 4), dtype="int16")
             masks[:, :, 0] = segmentation_label
             masks[:, :, 1] = nuc_label
             masks[:, :, 2] = cyto_label
             masks[:, :, 3] = bg_label
 
-            segmentation_masks = xr.DataArray(copy.copy(masks), coords=[range(segmentation_labels.shape[1]),
-                                                                        range(segmentation_labels.shape[2]),
-                                                                        ['cell_mask', 'nuc_mask', 'cyto_mask', 'bg_mask']],
+            segmentation_masks = xr.DataArray(copy.copy(masks),
+                                              coords=[range(segmentation_labels.shape[1]),
+                                                      range(segmentation_labels.shape[2]),
+                                                      ['cell_mask', 'nuc_mask',
+                                                       'cyto_mask', 'bg_mask']],
                                               dims=['rows', 'cols', 'subcell_loc'])
 
         # otherwise, just extract a single sum for each unique cell in the image
@@ -332,18 +357,19 @@ def extract_single_cell_data(segmentation_labels, image_data, save_dir, nuc_prob
             masks = np.expand_dims(segmentation_label.values, axis=-1)
             masks = masks.astype('int16')
             segmentation_masks = xr.DataArray(masks, coords=[range(segmentation_label.shape[0]),
-                                                             range(segmentation_label.shape[1]), ['cell_mask']],
+                                                             range(segmentation_label.shape[1]),
+                                                             ['cell_mask']],
                                               dims=['rows', 'cols', 'subcell_loc'])
 
         # segment images based on supplied masks
         cell_data = segment_images(image_data.loc[fov, :, :, :], segmentation_masks)
         cell_data = cell_data[:, 1:, :]
 
-        cell_props = skimage.measure.regionprops_table(segmentation_masks[:, :, 0].values.astype('int16'),
-                                                       properties=["label", "area", "eccentricity", "major_axis_length",
-                                                                   "minor_axis_length", "perimeter"])
+        cell_props = skimage.measure.regionprops_table(
+            segmentation_masks[:, :, 0].values.astype('int16'),
+            properties=["label", "area", "eccentricity", "major_axis_length",
+                        "minor_axis_length", "perimeter"])
         cell_props = pd.DataFrame(cell_props)
-
 
         # create version of data normalized by cell size
         cell_data_norm = copy.deepcopy(cell_data)
@@ -352,8 +378,10 @@ def extract_single_cell_data(segmentation_labels, image_data, save_dir, nuc_prob
         # generate cell_size array that is broadcast to have the same shape as the data
         cell_size_large = np.repeat(cell_size, cell_data.shape[2] - 1, axis=2)
 
-        # exclude first column (cell size) from area normalization. Only calculate where cell_size > 0
-        cell_data_norm.values[:, :, 1:] = np.divide(cell_data_norm.values[:, :, 1:], cell_size_large, where=cell_size_large > 0)
+        # exclude first column (cell size) from area normalization.
+        # Only calculate where cell_size > 0
+        cell_data_norm.values[:, :, 1:] = np.divide(cell_data_norm.values[:, :, 1:],
+                                                    cell_size_large, where=cell_size_large > 0)
 
         cell_data_norm_linscale = copy.deepcopy(cell_data_norm)
         cell_data_norm_linscale.values[:, :, 1:] = cell_data_norm_linscale.values[:, :, 1:] * 100
@@ -362,12 +390,13 @@ def extract_single_cell_data(segmentation_labels, image_data, save_dir, nuc_prob
         cell_data_norm_trans = copy.deepcopy(cell_data_norm_linscale)
         cell_data_norm_trans.values[:, :, 1:] = np.arcsinh(cell_data_norm_trans[:, :, 1:])
 
+        # cell_data.to_netcdf(os.path.join(save_dir, point, 'segmented_data.nc'))
+        # cell_data_norm.to_netcdf(os.path.join(save_dir, point, 'segmented_data_normalized.nc'))
+        # cell_data_norm_trans.to_netcdf(os.path.join(save_dir, point + '_segmented_data_normalized_
+        # transformed.nc'))
 
-        #cell_data.to_netcdf(os.path.join(save_dir, point, 'segmented_data.nc'))
-        #cell_data_norm.to_netcdf(os.path.join(save_dir, point, 'segmented_data_normalized.nc'))
-        #cell_data_norm_trans.to_netcdf(os.path.join(save_dir, point + '_segmented_data_normalized_transformed.nc'))
-
-        csv_format = pd.DataFrame(data=cell_data_norm_trans.values[0, :, :], columns=cell_data.features)
+        csv_format = pd.DataFrame(data=cell_data_norm_trans.values[0, :, :],
+                                  columns=cell_data.features)
         combined = pd.concat([csv_format, cell_props], axis=1)
         combined.to_csv(os.path.join(save_dir, fov + "_normalized_transformed.csv"), index=False)
 
@@ -377,7 +406,8 @@ def extract_single_cell_data(segmentation_labels, image_data, save_dir, nuc_prob
 
 
 def concatenate_csv(base_dir, csv_files, column_name="point", column_values=None):
-    """Take a list of CSV paths and concatenates them together, adding in the identifier in column_values
+    """Take a list of CSV paths and concatenates them together,
+    adding in the identifier in column_values
     
     Inputs:
         base_dir: directory to read and write csv_files into
@@ -392,7 +422,8 @@ def concatenate_csv(base_dir, csv_files, column_name="point", column_values=None
         column_values = [val.split(".")[0] for val in column_values]
 
     if len(column_values) != len(csv_files):
-        raise ValueError("csv_files and column_values have different lengths: csv {}, column_values {}".format(len(csv_files), len(column_values)))
+        raise ValueError("csv_files and column_values have different lengths: "
+                         "csv {}, column_values {}".format(len(csv_files), len(column_values)))
 
     for idx, file in enumerate(csv_files):
         if idx == 0:
