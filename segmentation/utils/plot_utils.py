@@ -39,7 +39,17 @@ def plot_overlay(predicted_contour, plotting_tif, alternate_contour=None, path=N
                 # convert RGB image with same data across all three channels
                 plotting_tif = np.stack((plotting_tif, plotting_tif, plotting_tif), axis=2)
         elif len(plotting_tif.shape) == 3:
-            if plotting_tif.shape[2] != 3:
+            blank_channel = np.zeros(plotting_tif.shape[:2] + (1,), dtype=plotting_tif.dtype)
+            if plotting_tif.shape[2] == 1:
+                # pad two empty channels
+                plotting_tif = np.concatenate((plotting_tif, blank_channel, blank_channel), axis=2)
+            elif plotting_tif.shape[2] == 2:
+                # pad one empty channel
+                plotting_tif = np.concatenate((plotting_tif, blank_channel), axis=2)
+            elif plotting_tif.shape[2] == 3:
+                # don't need to do anything
+                pass
+            else:
                 raise ValueError("only 3 channels of overlay supported, got {}".format(plotting_tif.shape))
         else:
             raise ValueError("plotting tif must be 2D or 3D array, got {}".format(plotting_tif.shape))
@@ -58,6 +68,7 @@ def plot_overlay(predicted_contour, plotting_tif, alternate_contour=None, path=N
     else:
         # rescale each channel to go from 0 to 255
         rescaled = np.zeros(plotting_tif.shape, dtype='uint8')
+        print("rescaled: {}".format(rescaled.shape))
 
         for idx in range(plotting_tif.shape[2]):
             if np.max(plotting_tif[:, :, idx]) == 0:
