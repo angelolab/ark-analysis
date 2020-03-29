@@ -11,7 +11,8 @@ importlib.reload(segmentation_utils)
 
 def _generate_deepcell_ouput(fov_num=2):
     fovs = ["fov" + str(i) for i in range(fov_num)]
-    models = ["pixelwise_interior", "watershed_inner", "watershed_outer", "fgbg_foreground", "pixelwise_sum"]
+    models = ["pixelwise_interior", "watershed_inner", "watershed_outer",
+              "fgbg_foreground", "pixelwise_sum"]
     output = np.random.rand(len(fovs) * 1024 * 1024 * len(models))
     output = output.reshape((len(fovs), 1024, 1024, len(models)))
 
@@ -38,24 +39,29 @@ def test_watershed_transform():
     with tempfile.TemporaryDirectory() as temp_dir:
         # test default settings
         overlay_channels = input.channels.values[:2]
-        segmentation_utils.watershed_transform(model_output=model_output, channel_xr=input, output_dir=temp_dir,
+        segmentation_utils.watershed_transform(model_output=model_output, channel_xr=input,
+                                               output_dir=temp_dir,
                                                overlay_channels=[overlay_channels])
 
     with tempfile.TemporaryDirectory() as temp_dir:
         # test different networks settings
-        segmentation_utils.watershed_transform(model_output=model_output, channel_xr=input, output_dir=temp_dir,
+        segmentation_utils.watershed_transform(model_output=model_output, channel_xr=input,
+                                               output_dir=temp_dir,
                                                overlay_channels=[overlay_channels],
-                                               maxima_model="watershed_inner", interior_model="watershed_outer")
+                                               maxima_model="watershed_inner",
+                                               interior_model="watershed_outer")
 
     with tempfile.TemporaryDirectory() as temp_dir:
         # test save_tifs
-        segmentation_utils.watershed_transform(model_output=model_output, channel_xr=input, output_dir=temp_dir,
+        segmentation_utils.watershed_transform(model_output=model_output, channel_xr=input,
+                                               output_dir=temp_dir,
                                                overlay_channels=[overlay_channels], save_tifs=True)
 
     with tempfile.TemporaryDirectory() as temp_dir:
         # test multiple different overlay_channels
         overlay_channels = [overlay_channels[3:4], overlay_channels[2:4], overlay_channels[2:5]]
-        segmentation_utils.watershed_transform(model_output=model_output, channel_xr=input, output_dir=temp_dir,
+        segmentation_utils.watershed_transform(model_output=model_output, channel_xr=input,
+                                               output_dir=temp_dir,
                                                overlay_channels=overlay_channels)
 
 
@@ -84,11 +90,13 @@ def test_segment_images():
     cell2 = cell_mask == 2
     channel_data[cell2, 4] = 10
 
-    cell_xr = xr.DataArray(np.expand_dims(cell_mask, axis=-1), coords=[range(40), range(40), ["cell_mask"]],
+    cell_xr = xr.DataArray(np.expand_dims(cell_mask, axis=-1),
+                           coords=[range(40), range(40), ["cell_mask"]],
                            dims=["rows", "cols", "subcell_loc"])
 
-    channel_xr = xr.DataArray(channel_data, coords=[range(40), range(40), ["chan0", "chan1", "chan2", "chan3", "chan4"]],
-                                                    dims=["rows", "cols", "channels"])
+    channel_xr = xr.DataArray(channel_data, coords=[range(40), range(40),
+                                                    ["chan0", "chan1", "chan2", "chan3", "chan4"]],
+                              dims=["rows", "cols", "channels"])
 
     segmentation_output = segmentation_utils.segment_images(channel_xr, cell_xr)
 
@@ -114,7 +122,8 @@ def test_segment_images():
     assert np.all(segmentation_output.loc["cell_mask", :, "chan4"][3:] == 0)
 
     # check that cell sizes are correct
-    sizes = np.sum(cell_mask == -1), np.sum(cell_mask == 1), np.sum(cell_mask == 2), np.sum(cell_mask == 3)
+    sizes = np.sum(cell_mask == -1), np.sum(cell_mask == 1), np.sum(cell_mask == 2), \
+            np.sum(cell_mask == 3)
     assert np.array_equal(sizes, segmentation_output.loc["cell_mask", :3, "cell_size"])
 
 
@@ -155,7 +164,8 @@ def test_extract_single_cell_data():
         channel_datas[1, 5:, 5:, :] = channel_data[:-5, :-5]
 
         segmentation_masks = xr.DataArray(cell_masks,
-                                          coords=[["Point1", "Point2"], range(40), range(40), ["segmentation_label"]],
+                                          coords=[["Point1", "Point2"], range(40), range(40),
+                                                  ["segmentation_label"]],
                                           dims=["fovs", "rows", "cols", "channels"])
 
         channel_data = xr.DataArray(channel_datas,

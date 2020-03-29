@@ -10,14 +10,15 @@ import skimage.filters.rank as rank
 import scipy.ndimage as nd
 
 
-def load_imgs_from_dir(data_dir, img_sub_folder=None, fovs=None, imgs=None, load_axis="fovs", dtype="int16"):
+def load_imgs_from_dir(data_dir, img_sub_folder=None, fovs=None, imgs=None,
+                       load_axis="fovs", dtype="int16"):
     """Takes a set of imgs from a directory structure and loads them into a numpy array.
 
         Args:
             data_dir: directory containing folders of images
-            img_sub_folder: optional name of sub-folder containing the images within each identifier folder
+            img_sub_folder: optional name of image sub-folder within each fov
             fovs: optional list of folders to load imgs from, otherwise loads from all folders
-            imgs: optional list of imgs to load, otherwise loads all .tif, .tiff, .jpg, or .png files
+            imgs: optional list of imgs to load, otherwise loads all imgs
             load_axis: axis that images will get loaded onto. Must be one of ["fovs", "stacks"]
             dtype: dtype of array which will be used to store values
 
@@ -67,7 +68,8 @@ def load_imgs_from_dir(data_dir, img_sub_folder=None, fovs=None, imgs=None, load
     # check to make sure supplied imgs exist
     for img in imgs:
         if not os.path.isfile(os.path.join(data_dir, fovs[0], img_sub_folder, img)):
-            raise ValueError("Could not find {} in supplied directory {}".format(img, os.path.join(data_dir, fovs[0], img_sub_folder, img)))
+            raise ValueError("Could not find {} in supplied directory {}".format(
+                img, os.path.join(data_dir, fovs[0], img_sub_folder, img)))
 
     test_img = io.imread(os.path.join(data_dir, fovs[0], img_sub_folder, imgs[0]))
 
@@ -91,14 +93,15 @@ def load_imgs_from_dir(data_dir, img_sub_folder=None, fovs=None, imgs=None, load
     # remove .tif or .tiff from image name
     img_names = [os.path.splitext(img)[0] for img in imgs]
 
-    img_xr = xr.DataArray(img_data, coords=[fovs, range(test_img.shape[0]), range(test_img.shape[1]), img_names],
+    img_xr = xr.DataArray(img_data, coords=[fovs, range(test_img.shape[0]),
+                                            range(test_img.shape[1]), img_names],
                           dims=[load_axis, "rows", "cols", "channels"])
 
     return img_xr
 
 
 def create_blank_channel(img_size, grid_size=None, dtype="int16", full_blank=False):
-    """Creates a blank TIF of a given size that has a small number of positive pixels to avoid divide by zero errors
+    """Creates a mostly blank TIF with a few positive pixels to avoid divide by zero errors
     Inputs:
         img_size: tuple specifying the size of the image to create
         grid_size: int that determines how many pieces to randomize within
@@ -121,18 +124,19 @@ def create_blank_channel(img_size, grid_size=None, dtype="int16", full_blank=Fal
             row_rand = np.random.randint(0, row_step - 1)
             col_rand = np.random.randint(0, col_step - 1)
             if not full_blank:
-                blank[row * row_step + row_rand, col * col_step + col_rand] = np.random.randint(1, 15)
+                blank[row * row_step + row_rand, col * col_step + col_rand] = \
+                    np.random.randint(1, 15)
 
     return blank
 
 
 def reorder_xarray_channels(channel_order, channel_xr, non_blank_channels=None, full_blank=False):
-    """Adds blank channels or changes the order of existing channels to match the ordering given by channel_order list
+    """Adds blank channels or changes the order of existing channels to match specified ordering
     Inputs:
         channel_order: list of channel names, which dictates final order of output xarray
         channel_xr: xarray containing the channel data for the available channels
-        non_blank_channels: optional list of channels which aren't missing, and hence won't be replaced with blank tif:
-            if not supplied, will default to assuming all channels in channel_order
+        non_blank_channels: optional list of channels which aren't missing,
+            and hence won't be replaced with blank tif. Default to all channels in channel_order
 
     Outputs:
         xarray with the supplied channels in channel order"""
@@ -144,22 +148,26 @@ def reorder_xarray_channels(channel_order, channel_xr, non_blank_channels=None, 
     channels_in_xr = np.isin(non_blank_channels, channel_xr.channels)
     if len(channels_in_xr) != np.sum(channels_in_xr):
         bad_chan = non_blank_channels[np.where(~channels_in_xr)[0][0]]
-        raise ValueError("{} was listed as a non-blank channel, but it is not in the channel xarray".format(bad_chan))
+        raise ValueError("{} was listed as a non-blank channel, "
+                         "but it is not in the channel xarray".format(bad_chan))
 
     channels_in_order = np.isin(non_blank_channels, channel_order)
     if len(channels_in_order) != np.sum(channels_in_order):
         bad_chan = non_blank_channels[np.where(~channels_in_order)[0][0]]
-        raise ValueError("{} was listed as a non-blank channel, but it is not in the channel order".format(bad_chan))
+        raise ValueError("{} was listed as a non-blank channel, "
+                         "but it is not in the channel order".format(bad_chan))
 
     vals, counts = np.unique(channel_order, return_counts=True)
     duplicated = np.where(counts > 1)
     if len(duplicated[0] > 0):
-        raise ValueError("The following channels are duplicated in the channel order: {}".format(vals[duplicated[0]]))
+        raise ValueError("The following channels are duplicated "
+                         "in the channel order: {}".format(vals[duplicated[0]]))
 
     vals, counts = np.unique(channel_xr.channels.values, return_counts=True)
     duplicated = np.where(counts > 1)
     if len(duplicated[0] > 0):
-        raise ValueError("The following channels are duplicated in the xarray: {}".format(vals[duplicated[0]]))
+        raise ValueError("The following channels are duplicated "
+                         "in the xarray: {}".format(vals[duplicated[0]]))
 
     # create array to hold all channels, including blank ones
     full_array = np.zeros((channel_xr.shape[:3] + (len(channel_order),)), dtype=channel_xr.dtype)
@@ -170,11 +178,13 @@ def reorder_xarray_channels(channel_order, channel_xr, non_blank_channels=None, 
             full_array[:, :, :, i] = current_channel
         else:
             im_crops = channel_xr.shape[1] // 32
-            blank = create_blank_channel(channel_xr.shape[1:3], im_crops, dtype=channel_xr.dtype, full_blank=full_blank)
+            blank = create_blank_channel(channel_xr.shape[1:3], im_crops,
+                                         dtype=channel_xr.dtype, full_blank=full_blank)
             full_array[:, :, :, i] = blank
 
-    channel_xr_blanked = xr.DataArray(full_array, coords=[channel_xr.fovs, range(channel_xr.shape[1]),
-                                                          range(channel_xr.shape[2]), channel_order],
+    channel_xr_blanked = xr.DataArray(full_array,
+                                      coords=[channel_xr.fovs, range(channel_xr.shape[1]),
+                                              range(channel_xr.shape[2]), channel_order],
                                       dims=["fovs", "rows", "cols", "channels"])
 
     return channel_xr_blanked
@@ -185,7 +195,8 @@ def combine_xarrays(xarrays, axis):
 
     Inputs:
         xarrays: a tuple of xarrays
-        axis: either 0, if the xarrays will combined over different fovs, or -1, if they will be combined over channels
+        axis: either 0, if the xarrays will combined over different fovs,
+        or -1 if they will be combined over channels
 
     Outputs:
         combined_xr: an xarray that is the combination of all inputs"""
@@ -229,7 +240,8 @@ def combine_xarrays(xarrays, axis):
         fovs = first_xr.fovs.values
         channels = iterator
 
-    combined_xr = xr.DataArray(np_arr, coords=[fovs, range(first_xr.shape[1]), range(first_xr.shape[2]), channels],
+    combined_xr = xr.DataArray(np_arr, coords=[fovs, range(first_xr.shape[1]),
+                                               range(first_xr.shape[2]), channels],
                                dims=["fovs", "rows", "cols", "channels"])
 
     return combined_xr
@@ -280,18 +292,20 @@ def crop_helper(image_stack, crop_size):
         cropped_images (np.array): A 4D numpy array of shape (crops, rows, columns, channels)"""
 
     if len(image_stack.shape) != 4:
-        raise ValueError("Incorrect dimensions of input image. Expecting 3D, got {}".format(image_stack.shape))
+        raise ValueError("Incorrect dimensions of input image. "
+                         "Expecting 3D, got {}".format(image_stack.shape))
 
     # figure out number of crops for final image
     crop_num_row = math.ceil(image_stack.shape[1] / crop_size)
     crop_num_col = math.ceil(image_stack.shape[2] / crop_size)
-    cropped_images = np.zeros((crop_num_row * crop_num_col * image_stack.shape[0], crop_size, crop_size,
-                               image_stack.shape[3]), dtype=image_stack.dtype)
+    cropped_images = np.zeros((crop_num_row * crop_num_col * image_stack.shape[0],
+                               crop_size, crop_size, image_stack.shape[3]), dtype=image_stack.dtype)
 
     # Determine if image will need to be padded with zeros due to uneven division by crop
     if image_stack.shape[1] % crop_size != 0 or image_stack.shape[2] % crop_size != 0:
         # create new array that is padded by one crop size on image dimensions
-        new_shape = image_stack.shape[0], image_stack.shape[1] + crop_size, image_stack.shape[2] + crop_size, image_stack.shape[3]
+        new_shape = image_stack.shape[0], image_stack.shape[1] + crop_size, \
+                    image_stack.shape[2] + crop_size, image_stack.shape[3]
         new_stack = np.zeros(new_shape, dtype=image_stack.dtype)
         new_stack[:, :image_stack.shape[1], :image_stack.shape[2], :] = image_stack
         image_stack = new_stack
@@ -301,35 +315,41 @@ def crop_helper(image_stack, crop_size):
     for point in range(image_stack.shape[0]):
         for row in range(crop_num_row):
             for col in range(crop_num_col):
-                cropped_images[img_idx, :, :, :] = image_stack[point, (row * crop_size):((row + 1) * crop_size),
-                                                       (col * crop_size):((col + 1) * crop_size), :]
+                cropped_images[img_idx, :, :, :] = \
+                    image_stack[point, (row * crop_size):((row + 1) * crop_size),
+                                (col * crop_size):((col + 1) * crop_size), :]
                 img_idx += 1
 
     return cropped_images
 
 
 def crop_image_stack(image_stack, crop_size, stride_fraction):
-    """Function to generate a series of tiled crops across an image. The tiled crops can overlap each other, with the
-       overlap between tiles determined by the stride fraction. A stride fraction of 0.333 will move the window over
-       1/3 of the crop_size in x and y at each step, whereas a stride fraction of 1 will move the window the entire crop
-       size at each iteration.
+    """Function to generate a series of tiled crops across an image.
+
+    The tiled crops can overlap each other, with the overlap between tiles determined by
+    the stride fraction. A stride fraction of 0.333 will move the window over 1/3 of
+    the crop_size in x and y at each step, whereas a stride fraction of 1 will move
+    the window the entire crop size at each iteration.
 
     Inputs:
         image_stack (np.array): A 4D numpy array of shape(points, rows, columns, channels)
         crop_size (int): size of the crop to take from the image. Assumes square crops
-        stride_fraction (float): the relative size of the stride for overlapping crops as a function of
-        the crop size.
+        stride_fraction (float): the relative size of the stride for overlapping
+            crops as a function of the crop size.
     Outputs:
         cropped_images (np.array): A 4D numpy array of shape(crops, rows, cols, channels)"""
 
     if len(image_stack.shape) != 4:
-        raise ValueError("Incorrect dimensions of input image. Expecting 3D, got {}".format(image_stack.shape))
+        raise ValueError("Incorrect dimensions of input image. "
+                         "Expecting 3D, got {}".format(image_stack.shape))
 
     if crop_size > image_stack.shape[1]:
-        raise ValueError("Invalid crop size: img shape is {} and crop size is {}".format(image_stack.shape, crop_size))
+        raise ValueError("Invalid crop size: img shape is {} "
+                         "and crop size is {}".format(image_stack.shape, crop_size))
 
     if stride_fraction > 1:
-        raise ValueError("Invalid stride fraction. Must be less than 1, passed a value of {}".format(stride_fraction))
+        raise ValueError("Invalid stride fraction. Must be less than 1, "
+                         "passed a value of {}".format(stride_fraction))
 
     # Determine how many distinct grids will be generated across the image
     stride_step = math.floor(crop_size * stride_fraction)
@@ -343,7 +363,8 @@ def crop_image_stack(image_stack, crop_size, stride_fraction):
                 cropped_images = crop_helper(image_stack, crop_size)
             else:
                 # crop the image by the shift prior to generating grid of crops
-                img_shift = image_stack[:, (row_shift * stride_step):, (col_shift * stride_step):, :]
+                img_shift = image_stack[:, (row_shift * stride_step):,
+                            (col_shift * stride_step):, :]
                 # print("shape of the input image is {}".format(img_shift.shape))
                 temp_images = crop_helper(img_shift, crop_size)
                 cropped_images = np.append(cropped_images, temp_images, axis=0)
@@ -374,5 +395,6 @@ def combine_point_directories(dir_path):
         points = os.listdir(os.path.join(dir_path, folder))
         print(points)
         for point in points:
-            os.rename(os.path.join(dir_path, folder, point), os.path.join(dir_path, "combined_folder", folder + "_" + point))
+            os.rename(os.path.join(dir_path, folder, point),
+                      os.path.join(dir_path, "combined_folder", folder + "_" + point))
 

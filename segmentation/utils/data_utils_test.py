@@ -30,7 +30,8 @@ def test_load_imgs_from_dir():
         _create_img_dir(temp_dir, fovs, imgs)
 
         # check default loading of all files
-        test_loaded_xr = data_utils.load_imgs_from_dir(temp_dir, img_sub_folder="TIFs", dtype="int16")
+        test_loaded_xr = \
+            data_utils.load_imgs_from_dir(temp_dir, img_sub_folder="TIFs", dtype="int16")
 
         # make sure all folders loaded
         assert np.array_equal(test_loaded_xr.fovs, fovs)
@@ -43,8 +44,9 @@ def test_load_imgs_from_dir():
         some_imgs = imgs[:2]
         some_chans = chans[:2]
 
-        test_subset_xr = data_utils.load_imgs_from_dir(temp_dir, img_sub_folder="TIFs", dtype="int16",
-                                                       fovs=some_fovs, imgs=some_imgs)
+        test_subset_xr = \
+            data_utils.load_imgs_from_dir(temp_dir, img_sub_folder="TIFs", dtype="int16",
+                                          fovs=some_fovs, imgs=some_imgs)
 
         # make sure specified folders loaded
         assert np.array_equal(test_subset_xr.fovs, some_fovs)
@@ -53,19 +55,21 @@ def test_load_imgs_from_dir():
         assert np.array_equal(test_subset_xr.channels, some_chans)
 
         # make sure that load axis can be specified
-        test_loaded_xr = data_utils.load_imgs_from_dir(temp_dir, img_sub_folder="TIFs", dtype="int16",
-                                                       load_axis="stacks")
+        test_loaded_xr = data_utils.load_imgs_from_dir(
+            temp_dir, img_sub_folder="TIFs", dtype="int16", load_axis="stacks")
         assert(test_loaded_xr.dims[0] == "stacks")
 
 
 def test_create_blank_channel():
 
-    semi_blank = data_utils.create_blank_channel(img_size=(1024, 1024), grid_size=64, dtype="int16", full_blank=False)
+    semi_blank = data_utils.create_blank_channel(img_size=(1024, 1024),
+                                                 grid_size=64, dtype="int16", full_blank=False)
 
     assert semi_blank.shape == (1024, 1024)
     assert np.sum(semi_blank) > 0
 
-    full_blank = data_utils.create_blank_channel(img_size=(1024, 1024), grid_size=64, dtype="int16", full_blank=True)
+    full_blank = data_utils.create_blank_channel(img_size=(1024, 1024),
+                                                 grid_size=64, dtype="int16", full_blank=True)
     assert np.sum(full_blank) == 0
 
 
@@ -79,8 +83,8 @@ def test_reorder_xarray_channels():
     test_input[:, :, :, 2] //= 3
 
     test_xr = xr.DataArray(test_input,
-                           coords=[["Point1", "Point2"], range(test_input.shape[1]), range(test_input.shape[2]),
-                                   ["chan0", "chan1", "chan2"]],
+                           coords=[["Point1", "Point2"], range(test_input.shape[1]),
+                                   range(test_input.shape[2]), ["chan0", "chan1", "chan2"]],
                            dims=["fovs", "rows", "cols", "channels"])
 
     channel_order = ["chan2", "chan1", "chan0"]
@@ -93,7 +97,8 @@ def test_reorder_xarray_channels():
 
     # test switching with blank channels
     channel_order = ["chan1", "chan2", "chan666"]
-    new_xr = data_utils.reorder_xarray_channels(channel_order, test_xr, non_blank_channels=["chan1", "chan2"])
+    new_xr = data_utils.reorder_xarray_channels(channel_order,
+                                                test_xr, non_blank_channels=["chan1", "chan2"])
 
     # make sure order was switched, and that blank channel is mostly empty
     assert np.array_equal(channel_order, new_xr.channels)
@@ -102,7 +107,8 @@ def test_reorder_xarray_channels():
     assert np.sum(new_xr.loc[:, :, :, "chan666"]) / (new_xr.shape[1] * new_xr.shape[2]) < 0.05
 
     # make sure full_blank channel is actually blank
-    blank_xr = data_utils.reorder_xarray_channels(channel_order, test_xr, non_blank_channels=["chan1", "chan2"],
+    blank_xr = data_utils.reorder_xarray_channels(channel_order, test_xr,
+                                                  non_blank_channels=["chan1", "chan2"],
                                                   full_blank=True)
     assert np.sum(blank_xr.loc[:, :, :, "chan666"]) == 0
 
@@ -110,11 +116,13 @@ def test_reorder_xarray_channels():
 def test_combine_xarrays():
     # test combining along points axis
     xr1 = xr.DataArray(np.random.randint(10, size=(3, 30, 30, 3)),
-                       coords=[["Point1", "Point2", "Point3"], range(30), range(30), ["chan1", "chan2", "chan3"]],
+                       coords=[["Point1", "Point2", "Point3"], range(30), range(30),
+                               ["chan1", "chan2", "chan3"]],
                        dims=["fovs", "rows", "cols", "channels"])
 
     xr2 = xr.DataArray(np.random.randint(10, size=(2, 30, 30, 3)),
-                       coords=[["Point4", "Point5"], range(30), range(30), ["chan1", "chan2", "chan3"]],
+                       coords=[["Point4", "Point5"], range(30), range(30),
+                               ["chan1", "chan2", "chan3"]],
                        dims=["fovs", "rows", "cols", "channels"])
 
     xr_combined = data_utils.combine_xarrays((xr1, xr2), axis=0)
@@ -124,11 +132,13 @@ def test_combine_xarrays():
 
     # test combining along channels axis
     xr1 = xr.DataArray(np.random.randint(10, size=(3, 30, 30, 3)),
-                       coords=[["Point1", "Point2", "Point3"], range(30), range(30), ["chan1", "chan2", "chan3"]],
+                       coords=[["Point1", "Point2", "Point3"], range(30), range(30),
+                               ["chan1", "chan2", "chan3"]],
                        dims=["fovs", "rows", "cols", "channels"])
 
     xr2 = xr.DataArray(np.random.randint(10, size=(3, 30, 30, 2)),
-                       coords=[["Point1", "Point2", "Point3"], range(30), range(30), ["chan3", "chan4"]],
+                       coords=[["Point1", "Point2", "Point3"], range(30), range(30),
+                               ["chan3", "chan4"]],
                        dims=["fovs", "rows", "cols", "channels"])
 
     xr_combined = data_utils.combine_xarrays((xr1, xr2), axis=-1)
@@ -140,7 +150,8 @@ def test_combine_xarrays():
 def test_pad_xr_dims():
     test_input = np.zeros((2, 10, 10, 3))
     test_xr = xr.DataArray(test_input,
-                           coords=[["Point1", "Point2"], range(test_input.shape[1]), range(test_input.shape[2]),
+                           coords=[["Point1", "Point2"], range(test_input.shape[1]),
+                                   range(test_input.shape[2]),
                                    ["chan0", "chan1", "chan2"]],
                            dims=["fovs", "rows", "cols", "channels"])
 
@@ -162,7 +173,8 @@ def test_crop_helper():
     crop_size = 128
 
     cropped = data_utils.crop_helper(crop_input, crop_size)
-    num_crops = crop_input.shape[0] * (crop_input.shape[1] / crop_size) * (crop_input.shape[2] / crop_size)
+    num_crops = crop_input.shape[0] * \
+                (crop_input.shape[1] / crop_size) * (crop_input.shape[2] / crop_size)
     assert np.array_equal(cropped.shape, (num_crops, crop_size, crop_size, crop_input.shape[3]))
 
     # test crops that don't divide evenly
@@ -170,7 +182,8 @@ def test_crop_helper():
     crop_size = 100
 
     cropped = data_utils.crop_helper(crop_input, crop_size)
-    num_crops = crop_input.shape[0] * math.ceil(crop_input.shape[1] / crop_size) * math.ceil(crop_input.shape[2] / crop_size)
+    num_crops = crop_input.shape[0] * math.ceil(crop_input.shape[1] / crop_size) *\
+                math.ceil(crop_input.shape[2] / crop_size)
     assert np.array_equal(cropped.shape, (num_crops, crop_size, crop_size, crop_input.shape[3]))
 
 
@@ -181,7 +194,8 @@ def test_crop_image_stack():
     stride_fraction = 1
 
     cropped = data_utils.crop_image_stack(crop_input, crop_size, stride_fraction)
-    num_crops = crop_input.shape[0] * math.floor(crop_input.shape[1] / crop_size) * math.floor(crop_input.shape[2] / crop_size) * (1 / stride_fraction)
+    num_crops = crop_input.shape[0] * math.floor(crop_input.shape[1] / crop_size) * \
+                math.floor(crop_input.shape[2] / crop_size) * (1 / stride_fraction)
 
     assert np.array_equal(cropped.shape, (num_crops, crop_size, crop_size, crop_input.shape[3]))
 
