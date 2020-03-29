@@ -74,4 +74,3 @@ def test_calc_modified_average_precision():
 
     assert np.all(false_negatives[2] == [2, 3, 4, 5])
     assert np.all(false_positives[2] == [2, 3, 4, 5])
-
