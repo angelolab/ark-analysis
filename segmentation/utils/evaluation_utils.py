@@ -1,8 +1,8 @@
 import numpy as np
 import skimage.measure
 import pandas as pd
-
-# TODO: decide where sequential relabeling happens so that it doesn't have to be repeated
+import os
+import xarray as xr
 
 
 # accuracy evaluation
@@ -174,6 +174,9 @@ def calc_iou_matrix(ground_truth_label, predicted_label):
         iou_matrix: matrix of ground_truth x predicted cells with iou value for each
     """
 
+    if len(ground_truth_label.shape) != 2 or len(predicted_label.shape) != 2:
+        raise ValueError('input arrays must be two dimensional')
+
     iou_matrix = np.zeros((np.max(ground_truth_label), np.max(predicted_label)))
 
     for i in range(1, iou_matrix.shape[0] + 1):
@@ -241,3 +244,23 @@ def calc_modified_average_precision(iou_matrix, thresholds):
         scores.append(score)
 
     return scores, false_positives, false_negatives
+
+
+def compare_mAP(data_dict):
+    """Compare mAP across different directories with specified metric
+    """
+
+    y_true, y_pred = data_dict['y_true'], data_dict['y_pred']
+    mAP_array = []
+
+    for i in range(len(y_true)):
+        iou_matrix = calc_iou_matrix(y_true[i], y_pred[i])
+        scores, false_positives, false_negatives = calc_modified_average_precision(iou_matrix,
+                                                                                   np.arange(0.5, 1, .1))
+        mAP_array.append({'scores': scores, 'false_pos': false_positives,
+                          'false_neg': false_negatives})
+
+    return mAP_array
+
+
+
