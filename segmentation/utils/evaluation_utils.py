@@ -88,8 +88,8 @@ def calc_modified_average_precision(iou_matrix, thresholds):
     return scores, false_positives, false_negatives
 
 
-def compare_mAP(data_dict):
-    """Compare mAP across different directories with specified metric
+def compare_mAP(data_dict, thresholds):
+    """Compare mAP across different paired true and predicted labels
     """
 
     y_true, y_pred = data_dict['y_true'], data_dict['y_pred']
@@ -104,6 +104,4 @@ def compare_mAP(data_dict):
 
     return mAP_array
 
-
-# TODO: add plotting functions form compare_segmentation.py as helper
 

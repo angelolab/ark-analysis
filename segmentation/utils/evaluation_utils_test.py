@@ -96,6 +96,6 @@ def test_compare_segmentation():
 
     data_dict = {'y_true': [y_true1, y_true2], 'y_pred': [y_pred1, y_pred2]}
 
-    eval_dict = evaluation_utils.compare_mAP(data_dict)
+    eval_dict = evaluation_utils.compare_mAP(data_dict, np.arange(0.5, 1, 0.1))
 
     # TODO: accuracy tests

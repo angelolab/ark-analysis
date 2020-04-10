@@ -1,12 +1,14 @@
-import numpy as np
 import os
 import copy
 import math
 
+import numpy as np
+import pandas as pd
 import skimage.io as io
-from skimage.segmentation import find_boundaries
 import matplotlib.pyplot as plt
 import matplotlib as mpl
+
+from skimage.segmentation import find_boundaries
 from skimage.exposure import rescale_intensity
 
 
@@ -242,13 +244,43 @@ def plot_barchart_errors(pd_array, contour_errors, predicted_errors, save_path=N
         fig.savefig(save_path, dpi=200)
 
 
-def plot_barchart(values, labels, title, save_path=None):
-    fig, ax = plt.subplots(1, 1, figsize=(10, 10))
-    position = range(len(values))
-    ax.bar(position, values)
-    ax.set_xticks(position)
+def plot_mAPs(mAP_array, thresholds, labels):
+    df = pd.DataFrame({'iou': thresholds})
+
+    for idx, label in enumerate(labels):
+        df[label] = mAP_array[idx]['scores']
+
+    fig, ax = plt.subplots()
+    for label in labels:
+        ax.plot('iou', label, data=df, linestyle='-', marker='o')
+
+    ax.set_xlabel('IOU Threshold')
+    ax.set_ylabel('mAP')
+    ax.legend()
+    fig.show()
+
+
+def plot_error_types(errors, labels, error_plotting):
+    data_dict = pd.DataFrame(pd.Series(errors[0])).transpose()
+
+    for i in range(1, len(labels)):
+        data_dict = data_dict.append(errors[i], ignore_index=True)
+
+    data_dict['algos'] = labels
+
+    fig, axes = plt.subplots(len(error_plotting))
+    for i in range(len(error_plotting)):
+        barchart_helper(ax=axes[i], values=data_dict[error_plotting[i]], labels=labels,
+                        title='{} Errors'.format(error_plotting[i]))
+
+    fig.show()
+    fig.tight_layout()
+
+
+def barchart_helper(ax, values, labels, title):
+    positions = range(len(values))
+    ax.bar(positions, values)
+    ax.set_xticks(positions)
     ax.set_xticklabels(labels)
     ax.set_title(title)
 
-    if save_path is not None:
-        fig.savefig(save_path, dpi=200)
