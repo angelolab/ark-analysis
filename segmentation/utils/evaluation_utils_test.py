@@ -63,7 +63,7 @@ def test_calc_iou_matrix():
     assert iou[0, 1] == intersect2 / union2
 
 
-def test_calc_modified_average_precision():
+def test_calc_mod_ap():
     test_iou = np.zeros((5, 5))
     test_iou[0, 0] = 0.9
     test_iou[1, 3] = 0.7
@@ -75,7 +75,7 @@ def test_calc_modified_average_precision():
     thresholds = np.array((0.5, 0.6, 0.7, 0.8, 0.9))
 
     scores, false_positives, false_negatives = \
-        evaluation_utils.calc_modified_average_precision(test_iou, thresholds)
+        evaluation_utils.calc_mod_ap(test_iou, thresholds)
 
     assert scores[0] == (3 / (3 + 2 + 2))
     assert scores[1] == (2 / (2 + 3 + 3))
@@ -96,6 +96,6 @@ def test_compare_segmentation():
 
     data_dict = {'y_true': [y_true1, y_true2], 'y_pred': [y_pred1, y_pred2]}
 
-    eval_dict = evaluation_utils.compare_mAP(data_dict, np.arange(0.5, 1, 0.1))
+    eval_dict = evaluation_utils.compare_mod_ap(data_dict, np.arange(0.5, 1, 0.1))
 
     # TODO: accuracy tests
