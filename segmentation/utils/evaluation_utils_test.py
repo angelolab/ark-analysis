@@ -1,9 +1,23 @@
 import numpy as np
 
 from segmentation.utils import evaluation_utils
+from skimage.draw import random_shapes
+from skimage.segmentation import relabel_sequential
 
 import importlib
 importlib.reload(evaluation_utils)
+
+
+def _create_label_data():
+    y_true, _ = random_shapes(image_shape=(200, 200), min_shapes=20, max_shapes=30,
+                              min_size=10, multichannel=False)
+    y_true[y_true == 255] = 0
+    y_true, _, _ = relabel_sequential(y_true)
+
+    y_pred = np.zeros_like(y_true)
+    y_pred[3:, 3:] = y_true[:-3, :-3]
+
+    return y_true, y_pred
 
 
 def test_calc_iou_matrix():
@@ -49,7 +63,7 @@ def test_calc_iou_matrix():
     assert iou[0, 1] == intersect2 / union2
 
 
-def test_calc_modified_average_precision():
+def test_calc_mod_ap():
     test_iou = np.zeros((5, 5))
     test_iou[0, 0] = 0.9
     test_iou[1, 3] = 0.7
@@ -61,7 +75,7 @@ def test_calc_modified_average_precision():
     thresholds = np.array((0.5, 0.6, 0.7, 0.8, 0.9))
 
     scores, false_positives, false_negatives = \
-        evaluation_utils.calc_modified_average_precision(test_iou, thresholds)
+        evaluation_utils.calc_mod_ap(test_iou, thresholds)
 
     assert scores[0] == (3 / (3 + 2 + 2))
     assert scores[1] == (2 / (2 + 3 + 3))
@@ -74,3 +88,14 @@ def test_calc_modified_average_precision():
 
     assert np.all(false_negatives[2] == [2, 3, 4, 5])
     assert np.all(false_positives[2] == [2, 3, 4, 5])
+
+
+def test_compare_segmentation():
+    y_true1, y_pred1 = _create_label_data()
+    y_true2, y_pred2 = _create_label_data()
+
+    data_dict = {'y_true': [y_true1, y_true2], 'y_pred': [y_pred1, y_pred2]}
+
+    eval_dict = evaluation_utils.compare_mod_ap(data_dict, np.arange(0.5, 1, 0.1))
+
+    # TODO: accuracy tests
