@@ -1,5 +1,6 @@
 import os
 import math
+import copy
 import warnings
 
 import skimage.io as io
@@ -400,14 +401,5 @@ def combine_point_directories(dir_path):
                       os.path.join(dir_path, "combined_folder", folder + "_" + point))
 
 
-def create_nuclear_labels(nuc_img, labels, percentile):
-    nuc_smoothed = nd.gaussian_filter(nuc_img, 5)
-
-    threshold = np.percentile(nuc_smoothed[nuc_smoothed > 0], [percentile])
-    nuc_mask = nuc_smoothed < threshold
-    nuc_labels = copy.copy(labels)
-    nuc_labels[nuc_mask] = 0
-
-    return nuc_labels
 
 

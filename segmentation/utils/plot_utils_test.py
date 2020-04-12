@@ -89,4 +89,50 @@ def test_outline_objects():
     assert len(np.unique(outlined[mask3])) == 1
 
 
+def test_plot_mod_ap():
+    labels = ['alg1', 'alg2', 'alg3']
+    thresholds = np.arange(0.5, 1, 0.1)
+    mAP_array = [{'scores': [0.9, 0.8, 0.7, 0.4, 0.2]}, {'scores': [0.8, 0.7, 0.6, 0.3, 0.1]},
+                 {'scores': [0.95, 0.85, 0.75, 0.45, 0.25]}]
+
+    plot_utils.plot_mod_ap(mAP_array, thresholds, labels)
+
+
+def test_plot_error_types():
+    stats_dict = {
+        'n_pred': 200,
+        'n_true': 200,
+        'correct_detections': 140,
+        'missed_detections': 40,
+        'gained_detections': 30,
+        'merge': 20,
+        'split': 10,
+        'catastrophe': 20
+    }
+
+    stats_dict1 = {
+        'n_pred': 210,
+        'n_true': 210,
+        'correct_detections': 120,
+        'missed_detections': 30,
+        'gained_detections': 50,
+        'merge': 50,
+        'split': 30,
+        'catastrophe': 50
+    }
+
+    stats_dict2 = {
+        'n_pred': 10,
+        'n_true': 20,
+        'correct_detections': 10,
+        'missed_detections': 70,
+        'gained_detections': 50,
+        'merge': 5,
+        'split': 3,
+        'catastrophe': 5
+    }
+
+    plot_utils.plot_error_types([stats_dict, stats_dict1, stats_dict2], ['alg1', 'alg2', 'alg3'],
+                                ['missed_detections', 'gained_detections', 'merge', 'split', 'catastrophe'])
+
 
