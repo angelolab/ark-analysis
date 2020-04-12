@@ -35,7 +35,7 @@ def calc_iou_matrix(ground_truth_label, predicted_label):
     return iou_matrix
 
 
-def calc_modified_average_precision(iou_matrix, thresholds):
+def calc_mod_ap(iou_matrix, thresholds):
     """Calculates the average precision between two masks across a range of iou thresholds
 
     Args:
@@ -88,20 +88,19 @@ def calc_modified_average_precision(iou_matrix, thresholds):
     return scores, false_positives, false_negatives
 
 
-def compare_mAP(data_dict, thresholds):
+def compare_mod_ap(data_dict, thresholds):
     """Compare mAP across different paired true and predicted labels
     """
 
     y_true, y_pred = data_dict['y_true'], data_dict['y_pred']
-    mAP_array = []
+    mod_ap_list = []
 
     for i in range(len(y_true)):
         iou_matrix = calc_iou_matrix(y_true[i], y_pred[i])
-        scores, false_positives, false_negatives = calc_modified_average_precision(iou_matrix,
-                                                                                   np.arange(0.5, 1, .1))
-        mAP_array.append({'scores': scores, 'false_pos': false_positives,
+        scores, false_positives, false_negatives = calc_mod_ap(iou_matrix, thresholds)
+        mod_ap_list.append({'scores': scores, 'false_pos': false_positives,
                           'false_neg': false_negatives})
 
-    return mAP_array
+    return mod_ap_list
 
 

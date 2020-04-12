@@ -5,8 +5,8 @@ import math
 import numpy as np
 import pandas as pd
 import skimage.io as io
-import matplotlib.pyplot as plt
 import matplotlib as mpl
+import matplotlib.pyplot as plt
 
 from skimage.segmentation import find_boundaries
 from skimage.exposure import rescale_intensity
@@ -244,11 +244,11 @@ def plot_barchart_errors(pd_array, contour_errors, predicted_errors, save_path=N
         fig.savefig(save_path, dpi=200)
 
 
-def plot_mAPs(mAP_array, thresholds, labels):
+def plot_mod_ap(mod_ap_list, thresholds, labels):
     df = pd.DataFrame({'iou': thresholds})
 
     for idx, label in enumerate(labels):
-        df[label] = mAP_array[idx]['scores']
+        df[label] = mod_ap_list[idx]['scores']
 
     fig, ax = plt.subplots()
     for label in labels:
