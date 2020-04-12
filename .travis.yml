@@ -4,6 +4,9 @@ install:
   - pip install -r requirements.txt
   - pip install pytest==5.2.0 pytest-cov==2.5.1 pytest-pep8 coveralls
 
+
+env:
+  - MPLBACKEND=Agg
 # command to run tests
 script:
   - python -m pytest --cov=segmentation segmentation
