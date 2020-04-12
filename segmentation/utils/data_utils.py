@@ -12,7 +12,7 @@ import scipy.ndimage as nd
 
 
 def load_imgs_from_dir(data_dir, img_sub_folder=None, fovs=None, imgs=None,
-                       load_axis="fovs", dtype="int16"):
+                       load_axis="fovs", dtype="int16", variable_sizes=False):
     """Takes a set of imgs from a directory structure and loads them into a numpy array.
 
         Args:
@@ -22,6 +22,7 @@ def load_imgs_from_dir(data_dir, img_sub_folder=None, fovs=None, imgs=None,
             imgs: optional list of imgs to load, otherwise loads all imgs
             load_axis: axis that images will get loaded onto. Must be one of ["fovs", "stacks"]
             dtype: dtype of array which will be used to store values
+            variable_sizes: if true, will pad loaded images with zeros to fit into array
 
         Returns:
             Numpy array with shape [fovs, tifs, x_dim, y_dim]
@@ -80,12 +81,20 @@ def load_imgs_from_dir(data_dir, img_sub_folder=None, fovs=None, imgs=None,
         if not np.issubdtype(dtype, np.floating):
             raise ValueError("supplied dtype is not a float, but the images loaded are floats")
 
-    img_data = np.zeros((len(fovs), test_img.shape[0], test_img.shape[1], len(imgs)), dtype=dtype)
+    if variable_sizes:
+        img_data = np.zeros((len(fovs), 1024, 1024, len(imgs)), dtype=dtype)
+    else:
+        img_data = np.zeros((len(fovs), test_img.shape[0], test_img.shape[1], len(imgs)),
+                            dtype=dtype)
 
     for fov in range(len(fovs)):
         for img in range(len(imgs)):
-            img_data[fov, :, :, img] = io.imread(os.path.join(data_dir, fovs[fov],
-                                                                 img_sub_folder, imgs[img]))
+            if variable_sizes:
+                temp_img = io.imread(os.path.join(data_dir, fovs[fov], img_sub_folder, imgs[img]))
+                img_data[fov, :temp_img.shape[0], :temp_img.shape[1], img] = temp_img
+            else:
+                img_data[fov, :, :, img] = io.imread(os.path.join(data_dir, fovs[fov],
+                                                                  img_sub_folder, imgs[img]))
 
     # check to make sure that dtype wasn't too small for range of data
     if np.min(img_data) < 0:
@@ -411,3 +420,37 @@ def create_nuclear_labels(nuc_img, labels, percentile):
     return nuc_labels
 
 
+def stitch_images(data_xr, num_cols):
+    num_imgs = data_xr.shape[0]
+    num_rows = math.ceil(num_imgs / num_cols)
+    row_len = data_xr.shape[1]
+    col_len = data_xr.shape[2]
+
+    total_row_len = num_rows * row_len
+    total_col_len = num_cols * col_len
+
+    stitched_data = np.zeros((1, total_row_len, total_col_len, data_xr.shape[3]),
+                             dtype=data_xr.dtype)
+
+    img_idx = 0
+    for row in num_rows:
+        for col in num_cols:
+            stitched_data[0, row * row_len:(row + 1) * row_len,
+            col * col_len:(col + 1) * col_len, :] = data_xr[img_idx, ...]
+            img_idx += 1
+
+    # tODO convert to xarray. Separate save function?
+
+
+def split_img_stack(img_dir, img_list, indices, names, channels_first=True):
+    for img in img_list:
+        img_stack = io.imread(os.path.join(img_dir, img))
+        img_dir = os.path.join(img_dir, os.path.splitext(img)[0])
+        os.makedirs(img_dir)
+
+        for i in range(len(indices)):
+            if channels_first:
+                channel = img_stack[indices[i], ...]
+            else:
+                channel = img_stack[..., indices[i]]
+            io.imsave(os.path.join(os.path.join(img_dir, names[i])), channel.astype('float16'))
