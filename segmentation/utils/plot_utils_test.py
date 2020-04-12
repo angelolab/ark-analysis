@@ -89,13 +89,13 @@ def test_outline_objects():
     assert len(np.unique(outlined[mask3])) == 1
 
 
-def test_plot_mAPs():
+def test_plot_mod_ap():
     labels = ['alg1', 'alg2', 'alg3']
     thresholds = np.arange(0.5, 1, 0.1)
     mAP_array = [{'scores': [0.9, 0.8, 0.7, 0.4, 0.2]}, {'scores': [0.8, 0.7, 0.6, 0.3, 0.1]},
                  {'scores': [0.95, 0.85, 0.75, 0.45, 0.25]}]
 
-    plot_utils.plot_mAPs(mAP_array, thresholds, labels)
+    plot_utils.plot_mod_ap(mAP_array, thresholds, labels)
 
 
 def test_plot_error_types():
