@@ -11,3 +11,4 @@ netCDF4==1.5.3
 h5py==2.10.0
 tables==3.6.1
 jupyter>=1.0.0,<2
+git+git://github.com/ionpath/mibitracker-client@v1.2.6
