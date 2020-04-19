@@ -130,22 +130,23 @@ def watershed_transform(model_output, channel_xr, overlay_channels, output_dir, 
             warnings.simplefilter("ignore")
 
             # save segmentation label map
-            io.imsave(os.path.join(output_dir, fov + "_segmentation_labels.tiff"), random_map)
+            io.imsave(os.path.join(output_dir, "{}_segmentation_labels.tiff".format(fov)),
+                      random_map)
 
             # save borders of segmentation map
             plot_utils.plot_overlay(random_map, plotting_tif=None,
                                     path=os.path.join(output_dir,
-                                                      fov + "_segmentation_borders.tiff"))
+                                                      "{}_segmentation_borders.tiff".format(fov)))
 
             if save_tifs:
-                io.imsave(os.path.join(output_dir, fov + "_interior_smoothed.tiff"),
+                io.imsave(os.path.join(output_dir, "{}_interior_smoothed.tiff".format(fov)),
                           interior_smoothed.astype("float32"))
 
-                io.imsave(os.path.join(output_dir, fov + "_maxs_smoothed_thresholded.tiff"),
+                io.imsave(os.path.join(output_dir, "{}_maxs_smoothed_thresholded.tiff".format(fov)),
                           maxima_thresholded.astype("float32"))
 
                 for chan in channel_xr.channels.values:
-                    io.imsave(os.path.join(output_dir, fov + "_{}.tiff".format(chan)),
+                    io.imsave(os.path.join(output_dir, "{}_{}.tiff".format(fov, chan)),
                               channel_xr.loc[fov, :, :, chan])
 
         # plot list of supplied markers overlaid by segmentation mask to assess accuracy
@@ -156,7 +157,7 @@ def watershed_transform(model_output, channel_xr, overlay_channels, output_dir, 
                 chan_marker = channel_xr.loc[fov, :, :, channel].values
                 plot_utils.plot_overlay(random_map, plotting_tif=chan_marker,
                                         path=os.path.join(output_dir,
-                                                          fov + "_{}_overlay.tiff".format(channel)))
+                                                          "{}_{}_overlay.tiff".format(fov, channel)))
 
             elif len(chan_list) == 2:
                 # if two entries, make 2-color stack, skipping 0th index which is red
@@ -166,7 +167,7 @@ def watershed_transform(model_output, channel_xr, overlay_channels, output_dir, 
                 plot_utils.plot_overlay(
                     random_map, plotting_tif=input_data,
                     path=os.path.join(
-                        output_dir, fov + "_{}_{}_overlay.tiff".format(chan_list[0], chan_list[1])))
+                        output_dir, "{}_{}_{}_overlay.tiff".format(fov, chan_list[0], chan_list[1])))
             elif len(chan_list) == 3:
                 # if three entries, make a 3 color stack, with third channel in first index (red)
                 input_data = np.zeros((channel_xr.shape[1], channel_xr.shape[2], 3))
@@ -174,9 +175,10 @@ def watershed_transform(model_output, channel_xr, overlay_channels, output_dir, 
                 input_data[:, :, 2] = channel_xr.loc[fov, :, :, chan_list[1]].values
                 input_data[:, :, 0] = channel_xr.loc[fov, :, :, chan_list[2]].values
                 plot_utils.plot_overlay(random_map, plotting_tif=input_data,
-                                        path=os.path.join(output_dir, fov +
-                                                          "_{}_{}_{}_overlay.tiff".
-                                                          format(chan_list[0],
+                                        path=os.path.join(output_dir,
+                                                          "{}_{}_{}_{}_overlay.tiff".
+                                                          format(fov,
+                                                                 chan_list[0],
                                                                  chan_list[1],
                                                                  chan_list[2])))
 

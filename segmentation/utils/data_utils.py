@@ -104,8 +104,12 @@ def load_imgs_from_dir(data_dir, img_sub_folder=None, fovs=None, imgs=None,
     # remove .tif or .tiff from image name
     img_names = [os.path.splitext(img)[0] for img in imgs]
 
-    img_xr = xr.DataArray(img_data, coords=[fovs, range(test_img.shape[0]),
-                                            range(test_img.shape[1]), img_names],
+    if variable_sizes:
+        row_coords, col_coords = range(1024), range(1024)
+    else:
+        row_coords, col_coords = range(test_img.shape[0]), range(test_img.shape[1])
+
+    img_xr = xr.DataArray(img_data, coords=[fovs, row_coords, col_coords, img_names],
                           dims=[load_axis, "rows", "cols", "channels"])
 
     return img_xr
@@ -410,8 +414,6 @@ def combine_point_directories(dir_path):
                       os.path.join(dir_path, "combined_folder", folder + "_" + point))
 
 
-
-
 def stitch_images(data_xr, num_cols):
     num_imgs = data_xr.shape[0]
     num_rows = math.ceil(num_imgs / num_cols)
@@ -425,19 +427,24 @@ def stitch_images(data_xr, num_cols):
                              dtype=data_xr.dtype)
 
     img_idx = 0
-    for row in num_rows:
-        for col in num_cols:
+    for row in range(num_rows):
+        for col in range(num_cols):
             stitched_data[0, row * row_len:(row + 1) * row_len,
             col * col_len:(col + 1) * col_len, :] = data_xr[img_idx, ...]
             img_idx += 1
+            if img_idx == num_imgs:
+                break
 
-    # tODO convert to xarray. Separate save function?
+    stitched_xr = xr.DataArray(stitched_data, coords=[['stitched_image'], range(total_row_len),
+                                                      range(total_col_len), data_xr.channels],
+                               dims=['points', 'rows', 'cols', 'channels'])
+    return stitched_xr
 
 
-def split_img_stack(img_dir, img_list, indices, names, channels_first=True):
-    for img in img_list:
-        img_stack = io.imread(os.path.join(img_dir, img))
-        img_dir = os.path.join(img_dir, os.path.splitext(img)[0])
+def split_img_stack(stack_dir, output_dir, stack_list, indices, names, channels_first=True):
+    for stack_name in stack_list:
+        img_stack = io.imread(os.path.join(stack_dir, stack_name))
+        img_dir = os.path.join(output_dir, os.path.splitext(stack_name)[0])
         os.makedirs(img_dir)
 
         for i in range(len(indices)):
@@ -445,4 +452,4 @@ def split_img_stack(img_dir, img_list, indices, names, channels_first=True):
                 channel = img_stack[indices[i], ...]
             else:
                 channel = img_stack[..., indices[i]]
-            io.imsave(os.path.join(os.path.join(img_dir, names[i])), channel.astype('float16'))
+            io.imsave(os.path.join(os.path.join(img_dir, names[i])), channel)
