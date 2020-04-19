@@ -1,33 +1,33 @@
-## cHL data from DFCI
-import h5py, re, os
-import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from skimage.transform import resize
 import skimage.io as io
 import shutil
 
+from segmentation.utils import data_utils
+
+# extract cHL data
+import h5py, re, os
+import pandas as pd
+
+
 base_dir = "/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/data/20200114_cHL/data/"
 fname = 'cHL-MIF-Noah.20200114.h5'
-f = h5py.File(base_dir + fname,'r')
-print([x for x in f])
+f = h5py.File(base_dir + fname, 'r')
 
-deidentified = pd.read_hdf(base_dir + fname,'key')
-print(deidentified.shape)
-deidentified.head()
-
+deidentified = pd.read_hdf(base_dir + fname, 'key')
 deidentified[['label']].drop_duplicates()
 
 
 def get_image(fname,image_id):
     return h5py.File(fname,'r')['images/'+image_id]
 
-# extract TIFs
 
-for i,r in deidentified.iloc[:, :].iterrows():
+# extract TIFs
+for i, r in deidentified.iloc[:, :].iterrows():
     img = np.array(get_image(base_dir + fname,r['image_id']))
 
-    if r['label']  in ["CD3 (Opal 540)", "DAPI", "CD8 (Opal 540)", "CD4 (Opal 620)"]:
+    if r['label'] in ["CD3 (Opal 540)", "DAPI", "CD8 (Opal 540)", "CD4 (Opal 620)"]:
         if not os.path.isdir(base_dir + r['frame_id']):
             os.makedirs(base_dir + r['frame_id'])
 
@@ -46,149 +46,321 @@ for i in good_dir:
         io.imsave(base_dir + i + "/Membrane.tiff", combined)
 
 
+base_dir = "/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/data/datasets/20200114_cHL/Great/"
 
-# Travis CODEX data
-base_dir = "/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/data/20191224_Test_IF/CODEX_Travis/"
-Membrane1 = io.imread(base_dir + "Membrane1_rescaled.tif")
-Membrane1[Membrane1 < 5000] = 0
-Membrane2 = io.imread(base_dir + "Membrane2_rescaled.tif")
+fovs = os.listdir(base_dir + 'fovs')
 
-Membrane_combined = Membrane1 + Membrane2
-io.imsave(base_dir + "Membrane_combined.tif", Membrane_combined)
+for fov in fovs:
+    imgs = os.listdir(os.path.join(base_dir, 'fovs', fov))
+    if 'Membrane.tiff' in imgs:
+        membrane_name = 'Membrane.tiff'
+    else:
+        membrane_name = 'CD3 (Opal 540).tiff'
 
-Membrane_new = resize(Membrane, [Membrane.shape[0] / 2, Membrane.shape[1] / 2], order=3, preserve_range=True)
-Membrane_new = Membrane_new.astype('int32')
+    data = data_utils.load_imgs_from_dir(data_dir=os.path.join(base_dir, 'fovs'),
+                                         fovs=[fov], dtype='float32',
+                                         imgs=['DAPI.tiff', membrane_name])
 
-io.imsave(base_dir + "DNA_resized.tif", DNA_new)
-io.imsave(base_dir + "Membrane_resized.tif", Membrane_new)
-
+    cropped_data = data_utils.crop_image_stack(data.values, 512, 1)
+    for crop in range(cropped_data.shape[0]):
+        folder = os.path.join(base_dir, 'cropped/{}_crop_{}'.format(fov, crop))
+        os.makedirs(folder)
+        io.imsave(os.path.join(folder, 'DNA.tiff'), cropped_data[crop, :, :, 0])
+        io.imsave(os.path.join(folder, 'Membrane.tiff'), cropped_data[crop, :, :, 1])
 
 
 # Tyler BRCA IF data
+base_dir = "/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/data/datasets/20191213_Tyler_BRCA/clean/"
 
-base_dir = "/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/data/20191213_Tyler_BRCA/"
+fovs = os.listdir(base_dir + 'trim_borders')
+fovs = [fov for fov in fovs if 'Point' in fov]
 
-DNA = io.imread(base_dir + "Nucleus.tif")
-Membrane = io.imread(base_dir + "Membrane.tif")
+for fov in fovs:
+    data = data_utils.load_imgs_from_dir(data_dir=os.path.join(base_dir, 'trim_borders'),
+                                         fovs=[fov], dtype='int32',
+                                         imgs=['DAPI.tif', 'Membrane.tif'])
 
-DNA_cropped = DNA[4200:5324, 2400:3424]
-Membrane_cropped = Membrane[4200:5324, 2400:3424]
-io.imsave(base_dir + "DNA_cropped.tif", DNA_cropped)
-io.imsave(base_dir + "Membrane_cropped.tif", Membrane_cropped)
+    cropped_data = data_utils.crop_image_stack(data.values, 512, 1)
+    for crop in range(cropped_data.shape[0]):
+        folder = os.path.join(base_dir, 'cropped/{}_crop_{}'.format(fov, crop))
+        os.makedirs(folder)
+        io.imsave(os.path.join(folder, 'DNA.tiff'), cropped_data[crop, :, :, 0])
+        io.imsave(os.path.join(folder, 'Membrane.tiff'), cropped_data[crop, :, :, 1])
 
 
 # Eliot data preprocessing
-base_dir = "/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/data/20191219_Eliot/Great/"
+base_dir = "/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/data/datasets/20191219_Eliot/Good/"
 
-points = os.listdir(base_dir)
-points = [point for point in points if "Point" in point]
+fovs = os.listdir(base_dir + 'fovs')
+fovs = [fov for fov in fovs if 'Point' in fov]
 
-for point in points:
-    DNA = io.imread(base_dir + point + "/DAPI.tif")
-    Membrane = io.imread(base_dir + point + "/Membrane.tif")
+for fov in fovs:
+    data = data_utils.load_imgs_from_dir(data_dir=os.path.join(base_dir, 'trim_borders'),
+                                         fovs=[fov], dtype='int32',
+                                         imgs=['DAPI.tif', 'Membrane.tif'])
 
-    Membrane_resized = resize(Membrane, [Membrane.shape[0] * 2, Membrane.shape[1] * 2], order=3, preserve_range=True)
-    DNA_resized = resize(DNA, [DNA.shape[0] * 2, DNA.shape[1] * 2], order=3, preserve_range=True)
-
-    io.imsave(base_dir + point + "/DNA_Upsampled.tiff", DNA_resized.astype('int16'))
-    io.imsave(base_dir + point + "/Membrane_Upsampled.tiff", Membrane_resized.astype('int16'))
-
-
-
-# IMC preprocessing
-
-base_dir = "/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/data/20191211_IMC_PMC5791659/Great/raw/"
-
-points = os.listdir(base_dir)
-points = [point for point in points if "Point" in point]
-
-for point in points:
-    multi_tiff = io.imread(base_dir + point + "/{}.tiff".format(point.split("Point")[1]))
-    multi_tiff = multi_tiff[20:]
-    multi_tiff_smooth = nd.gaussian_filter(multi_tiff, 0.5)
-    multi_tiff_resized = resize(multi_tiff, [multi_tiff.shape[0], multi_tiff.shape[1] * 3, multi_tiff.shape[2] * 3],
-                                order=3, preserve_range=True)
-
-    multi_tiff_resized = multi_tiff_resized.astype('int16')
-    io.imsave(base_dir + point + "/DNA_Smoothed_Upsampled.tiff", multi_tiff_resized[3, :, :])
-    io.imsave(base_dir + point + "/Membrane_Smoothed_Upsampled.tiff", multi_tiff_resized[0, :, :])
-
-    io.imsave(base_dir + point + "/DNA.tiff", multi_tiff[3, :, :])
-    io.imsave(base_dir + point + "/Membrane.tiff", multi_tiff[0, :, :])
-
-# Vectra preprocessing
-base_dir = "/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/data/20191224_Test_IF/Vectra_Travis/"
-
-Membrane_ED = io.imread(base_dir + "Membrane_C7_8_ED.tif")
-Membrane_ED[Membrane_ED < 1.5] = 0
-io.imsave(base_dir + "Membrane_ED.tif", Membrane_ED[6, :, :])
-
-Nucleus_ED = io.imread(base_dir + "Nucleus_C6_8_ED.tif")
-Nucleus_ED[Nucleus_ED < 1.5] = 0
-io.imsave(base_dir + "Nucleus_ED.tif", Nucleus_ED[5, :, :])
+    cropped_data = data_utils.crop_image_stack(data.values, 512, 1)
+    for crop in range(cropped_data.shape[0]):
+        folder = os.path.join(base_dir, 'cropped/{}_crop_{}'.format(fov, crop))
+        os.makedirs(folder)
+        io.imsave(os.path.join(folder, 'DNA.tiff'), cropped_data[crop, :, :, 0])
+        io.imsave(os.path.join(folder, 'Membrane.tiff'), cropped_data[crop, :, :, 1])
 
 
-Membrane_panc = io.imread(base_dir + "Membrane_C7_8_Pancreas.tif")
-Membrane_panc[Membrane_panc < 5] = 0
-io.imsave(base_dir + "Membrane_pancreas.tif", Membrane_panc[6, :, :])
+# DCIS processing
+base_dir = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/data/datasets/20200116_DCIS/'
+fovs = os.listdir(os.path.join(base_dir, 'Great_Membrane/selected_fovs'))
+fovs = [fov for fov in fovs if 'Point' in fov]
 
-Nucleus_panc = io.imread(base_dir + "Nucleus_C6_8_Pancreas.tif")
-Nucleus_panc[Nucleus_panc < 1.2] = 0
-io.imsave(base_dir + "Nucleus_pancreas.tif", Nucleus_panc[5, :, :])
+# copy files from no_bg folder to selected_no_bg folder so these can be used for training
+for fov in fovs:
+    original_folder = os.path.join(base_dir, 'Great_Membrane/selected_fovs', fov)
+    new_folder = os.path.join(base_dir, 'Great_Membrane/no_bg_fovs', fov)
+    os.makedirs(new_folder)
+    imgs = os.listdir(original_folder)
+    imgs = [img for img in imgs if '.tif' in img]
+
+    for img in imgs:
+        shutil.copy(os.path.join(base_dir, 'no_background', fov, 'TIFs', img), new_folder)
+
+# load HH3 and whatever membrane marker is in each folder, crop to 512, save with consistent name
+base_dir = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/data/datasets/20200116_DCIS/Great_Membrane/'
+fovs = os.listdir(base_dir + 'no_bg_fovs')
+fovs = [fov for fov in fovs if 'Point' in fov]
+
+for fov in fovs:
+    imgs = os.listdir(os.path.join(base_dir, 'no_bg_fovs', fov))
+    imgs = [img for img in imgs if 'tif' in img]
+
+    # remove DNA, remaining channel is membrane
+    imgs.pop(np.where(np.isin(imgs, 'HH3.tif'))[0][0])
+    membrane_channel = imgs[0]
+
+    data = data_utils.load_imgs_from_dir(data_dir=os.path.join(base_dir, 'no_bg_fovs'),
+                                         fovs=[fov], imgs=['HH3.tif', membrane_channel])
+
+    cropped_data = data_utils.crop_image_stack(data.values, 512, 1)
+    for crop in range(cropped_data.shape[0]):
+        folder = os.path.join(base_dir, 'cropped/{}_crop_{}'.format(fov, crop))
+        os.makedirs(folder)
+        io.imsave(os.path.join(folder, 'DNA.tiff'), cropped_data[crop, :, :, 0])
+        io.imsave(os.path.join(folder, 'Membrane.tiff'), cropped_data[crop, :, :, 1])
 
 
-# 2020 IMC paper
-base_dir = "/Users/noahgreenwald/Downloads/ome/"
-composite_tifs = os.listdir(base_dir)
-composite_tifs = [tif for tif in composite_tifs if ".tif" in tif]
+# IMC 20191211 preprocessing
+base_dir = "/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/data/datasets/20191211_IMC/Great/"
+
+fovs = os.listdir(base_dir + 'fovs')
+fovs = [point for point in fovs if "Point" in point]
+
+for fov in fovs:
+    data = data_utils.load_imgs_from_dir(data_dir=os.path.join(base_dir, 'fovs'), dtype='float32',
+                                         fovs=[fov], imgs=['DNA.tiff', 'Membrane.tiff'])
+
+    # only one crop per image since images are quite small: we'll center 512 in the FOV
+    row_len = data.shape[1]
+    col_len = data.shape[2]
+    row_crop_start = math.floor((row_len - 512) / 2)
+    col_crop_start = math.floor((col_len - 512) / 2)
+
+    cropped_data = data.values[:, row_crop_start:(row_crop_start + 512),
+                   col_crop_start:(col_crop_start + 512), :]
+
+    folder = os.path.join(base_dir, 'cropped/{}_crop_0'.format(fov))
+    os.makedirs(folder)
+    io.imsave(os.path.join(folder, 'DNA.tiff'), cropped_data[0, :, :, 0])
+    io.imsave(os.path.join(folder, 'Membrane.tiff'), cropped_data[0, :, :, 1])
 
 
-for tif in composite_tifs:
-    dir_name = os.path.splitext(tif)[0]
-    save_path = os.path.join(base_dir, dir_name)
-    if not os.path.isdir(save_path):
-        os.makedirs(save_path)
+# IMC 20200120 preprocessing
+base_dir = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/data/datasets/20200120_IMC/great/'
+fovs = os.listdir(base_dir + 'fovs')
+fovs = [fov for fov in fovs if os.path.isdir(base_dir + 'fovs/' + fov)]
 
-    composite = io.imread(base_dir + tif)
-    io.imsave(os.path.join(save_path, "Histone.tiff"), composite[8, :, :].astype('float32'))
-    io.imsave(os.path.join(save_path, "HER2.tiff"), composite[22, :, :].astype('float32'))
-    io.imsave(os.path.join(save_path, "ER.tiff"), composite[27, :, :].astype('float32'))
-    io.imsave(os.path.join(save_path, "PR.tiff"), composite[28, :, :].astype('float32'))
-    io.imsave(os.path.join(save_path, "CD44.tiff"), composite[30, :, :].astype('float32'))
-    io.imsave(os.path.join(save_path, "CD45.tiff"), composite[32, :, :].astype('float32'))
-    io.imsave(os.path.join(save_path, "ECAD.tiff"), composite[37, :, :].astype('float32'))
-    io.imsave(os.path.join(save_path, "EGFR.tiff"), composite[39, :, :].astype('float32'))
-    io.imsave(os.path.join(save_path, "PanCK.tiff"), composite[45, :, :].astype('float32'))
-    shutil.move(os.path.join(base_dir, tif), os.path.join(save_path, tif))
+for fov in fovs:
+    imgs = os.listdir(os.path.join(base_dir, 'fovs', fov))
+    imgs = [img for img in imgs if 'tif' in img]
+
+    # remove DNA, remaining channel is membrane
+    imgs.pop(np.where(np.isin(imgs, 'Histone.tiff'))[0][0])
+    membrane_channel = imgs[0]
+
+    data = data_utils.load_imgs_from_dir(data_dir=os.path.join(base_dir, 'fovs'), dtype='float32',
+                                         fovs=[fov], imgs=['Histone.tiff', membrane_channel])
+
+    # some images are small than 512, others are only marginally bigger
+    row_len, col_len = data.shape[1:3]
+    new_data = np.zeros((1, max(512, row_len), max(512, col_len), 2), dtype='float32')
+
+    # if either dimension is less than 512, we'll expand to 512
+    new_data[:, :row_len, :col_len, :] = data.values
+
+    # for dimensions that are only marginally larger than 512, we'll use center 512 crop
+    if 512 < row_len < 768:
+        row_crop_start = math.floor((row_len - 512) / 2)
+        new_data = new_data[:, row_crop_start:(row_crop_start + 512), :, :]
+
+    if 512 < col_len < 768:
+        col_crop_start = math.floor((col_len - 512) / 2)
+        new_data = new_data[:, :, col_crop_start:(col_crop_start + 512), :]
+
+    cropped_data = data_utils.crop_image_stack(new_data, 512, 1)
+    for crop in range(cropped_data.shape[0]):
+        folder = os.path.join(base_dir, 'cropped/{}_crop_{}'.format(fov, crop))
+        os.makedirs(folder)
+        io.imsave(os.path.join(folder, 'DNA.tiff'), cropped_data[crop, :, :, 0])
+        io.imsave(os.path.join(folder, 'Membrane.tiff'), cropped_data[crop, :, :, 1])
+
 
 # 2019 CyCIF paper
-
+# extract channels
 base_dir = "/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/data/20200209_CyCIF_SciRep/Tonsil-1/"
-
 composite = io.imread(base_dir + "TONSIL-1_40X.ome.tif")
 
 for chan in range(composite.shape[0]):
     io.imsave(base_dir + "Channel_{}.tif".format(chan + 1), composite[chan, :, :])
 
+# generate crops
+base_dir = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/data/datasets/20200209_CyCIF_SciRep/Great/'
+fovs = os.listdir(base_dir + 'renamed_channels')
+fovs = [fov for fov in fovs if os.path.isdir(os.path.join(base_dir, 'renamed_channels', fov))]
 
-# Eliot test data preprocessing
-base_dir = "/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/data/20191219_Eliot/Test/"
+for fov in fovs:
+    data = data_utils.load_imgs_from_dir(data_dir=os.path.join(base_dir, 'renamed_channels'),
+                                         fovs=[fov], dtype='int32',
+                                         imgs=['DNA.tif', 'Membrane.tif'])
 
-stacks = os.listdir(base_dir)
-stacks = [stack for stack in stacks if "stack" in stack]
+    cropped_data = data_utils.crop_image_stack(data.values, 512, 1)
+    for crop in range(cropped_data.shape[0]):
+        folder = os.path.join(base_dir, 'cropped/{}_crop_{}'.format(fov, crop))
+        os.makedirs(folder)
+        io.imsave(os.path.join(folder, 'DNA.tiff'), cropped_data[crop, :, :, 0])
+        io.imsave(os.path.join(folder, 'Membrane.tiff'), cropped_data[crop, :, :, 1])
 
-for stack_name in stacks:
-    stack = io.imread(os.path.join(base_dir, stack_name))
-    DNA = stack[0, :, :]
-    Membrane = stack[18, :, :]
 
-    Membrane_resized = resize(Membrane, [Membrane.shape[0] * 2, Membrane.shape[1] * 2], order=3, preserve_range=True)
-    DNA_resized = resize(DNA, [DNA.shape[0] * 2, DNA.shape[1] * 2], order=3, preserve_range=True)
+# Roshan processing
+base_dir = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/data/datasets/20200219_Roshan/'
+fovs = os.listdir(base_dir + 'fovs')
+fovs = [fov for fov in fovs if os.path.isdir(os.path.join(base_dir, 'fovs', fov))]
 
-    dir_name = os.path.join(base_dir, os.path.splitext(stack_name)[0])
-    os.makedirs(dir_name)
-    io.imsave(os.path.join(dir_name, "DNA_Upsampled.tiff"), DNA_resized.astype('int16'))
-    io.imsave(os.path.join(dir_name, "Membrane_Upsampled.tiff"), Membrane_resized.astype('int16'))
+for fov in fovs:
+    data = data_utils.load_imgs_from_dir(data_dir=os.path.join(base_dir, 'fovs'),
+                                         fovs=[fov],
+                                         imgs=['HH3.tif', 'CD138.tif'])
+
+    cropped_data = data_utils.crop_image_stack(data.values, 512, 1)
+    for crop in range(cropped_data.shape[0]):
+        folder = os.path.join(base_dir, 'cropped/{}_crop_{}'.format(fov, crop))
+        os.makedirs(folder)
+        io.imsave(os.path.join(folder, 'DNA.tiff'), cropped_data[crop, :, :, 0])
+        io.imsave(os.path.join(folder, 'Membrane.tiff'), cropped_data[crop, :, :, 1])
+
+
+# melanoma preprocessing
+base_dir = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/data/datasets/20200226_Melanoma/Great_Membrane/'
+fovs = os.listdir(base_dir + 'fovs')
+fovs = [fov for fov in fovs if os.path.isdir(os.path.join(base_dir, 'fovs', fov))]
+
+for fov in fovs:
+    data = data_utils.load_imgs_from_dir(data_dir=os.path.join(base_dir, 'fovs'),
+                                         fovs=[fov],
+                                         imgs=['HH3.tif', 'NAKATPASE.tif'])
+
+    cropped_data = data_utils.crop_image_stack(data.values, 512, 1)
+    for crop in range(cropped_data.shape[0]):
+        folder = os.path.join(base_dir, 'cropped/{}_crop_{}'.format(fov, crop))
+        os.makedirs(folder)
+        io.imsave(os.path.join(folder, 'DNA.tiff'), cropped_data[crop, :, :, 0])
+        io.imsave(os.path.join(folder, 'Membrane.tiff'), cropped_data[crop, :, :, 1])
+
+
+# IMC 20200411 preprocessing
+base_dir = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/data/datasets/20200411_IMC_METABRIC/'
+stacks = os.listdir(base_dir + 'full_stacks')
+stacks = [stack for stack in stacks if '.tiff' in stack]
+data_utils.split_img_stack(stack_dir=os.path.join(base_dir, 'full_stacks'),
+                           output_dir=os.path.join(base_dir, 'fovs'),
+                           stack_list=stacks,
+                           indices=[0, 7, 17, 25, 32, 40],
+                           names=['HH3.tiff', 'CK5.tiff', 'HER2.tiff', 'CD44.tiff',
+                                  'ECAD.tiff', 'PanCK.tiff'])
+
+# copy files into folders of 50 images each
+all_fovs = os.listdir(base_dir + 'fovs')
+all_fovs = [fov for fov in all_fovs if os.path.isdir(os.path.join(base_dir, 'fovs', fov))]
+for folder_idx in range(math.ceil(len(all_fovs) / 50)):
+    folder_path = os.path.join(base_dir, 'fovs/sub_folder_{}'.format(folder_idx))
+    os.makedirs(folder_path)
+    for fov in range(50):
+        current_fov = all_fovs[folder_idx * 50 + fov]
+        shutil.move(os.path.join(base_dir, 'fovs', current_fov),
+                    os.path.join(base_dir, 'fovs', folder_path, current_fov))
+
+# create stitched overlays of each to determine which markers will be included
+folders = os.listdir(base_dir + 'fovs')
+folders = [folder for folder in folders if 'sub' in folder]
+
+for folder in folders:
+    image_stack = data_utils.load_imgs_from_dir(base_dir + '/fovs/' + folder, variable_sizes=True,
+                                                dtype='float32')
+    stitched = data_utils.stitch_images(image_stack, 10)
+    for img in range(stitched.shape[-1]):
+        current_img = stitched[0, :, :, img].values
+        io.imsave(os.path.join(base_dir, 'fovs', folder, stitched.channels.values[img] + '.tiff'),
+                  current_img)
+
+# after manual inspection, move selected FOVs in each channel sub-folder to same overall folder
+base_dir = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/data/datasets/20200411_IMC_METABRIC/fovs/'
+fovs = os.listdir(base_dir + 'HER2')
+fovs = [fov for fov in fovs if 'MB' in fov]
+
+for fov in fovs:
+    new_dir = os.path.join(base_dir, 'combined', fov)
+    old_dir = os.path.join(base_dir, 'HER2', fov)
+    if not os.path.isdir(new_dir):
+        os.makedirs(new_dir)
+    shutil.copy(old_dir + '/HER2.tiff', new_dir + '/HER2.tiff')
+    shutil.copy(old_dir + '/HH3.tiff', new_dir + '/HH312.tiff')
+
+
+# after manual inspection to select best channel for each FOV, generate standard crops
+base_dir = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/data/datasets/20200411_IMC_METABRIC/'
+fovs = os.listdir(base_dir + 'fovs')
+fovs = [fov for fov in fovs if os.path.isdir(base_dir + 'fovs/' + fov)]
+
+for fov in fovs:
+    imgs = os.listdir(os.path.join(base_dir, 'fovs', fov))
+    imgs = [img for img in imgs if 'tif' in img]
+
+    # remove DNA, remaining channel is membrane
+    imgs.pop(np.where(np.isin(imgs, 'HH3.tiff'))[0][0])
+    membrane_channel = imgs[0]
+
+    data = data_utils.load_imgs_from_dir(data_dir=os.path.join(base_dir, 'fovs'), dtype='float32',
+                                         fovs=[fov], imgs=['HH3.tiff', membrane_channel])
+
+    # some images are small than 512, others are only marginally bigger
+    row_len, col_len = data.shape[1:3]
+    new_data = np.zeros((1, max(512, row_len), max(512, col_len), 2), dtype='float32')
+
+    # if either dimension is less than 512, we'll expand to 512
+    new_data[:, :row_len, :col_len, :] = data.values
+
+    # for dimensions that are only marginally larger than 512, we'll use center 512 crop
+    if 512 < row_len < 768:
+        row_crop_start = math.floor((row_len - 512) / 2)
+        new_data = new_data[:, row_crop_start:(row_crop_start + 512), :, :]
+
+    if 512 < col_len < 768:
+        col_crop_start = math.floor((col_len - 512) / 2)
+        new_data = new_data[:, :, col_crop_start:(col_crop_start + 512), :]
+
+    cropped_data = data_utils.crop_image_stack(new_data, 512, 1)
+    for crop in range(cropped_data.shape[0]):
+        folder = os.path.join(base_dir, 'cropped/{}_crop_{}'.format(fov, crop))
+        os.makedirs(folder)
+        io.imsave(os.path.join(folder, 'DNA.tiff'), cropped_data[crop, :, :, 0])
+        io.imsave(os.path.join(folder, 'Membrane.tiff'), cropped_data[crop, :, :, 1])
 
 
 # upsample labels
