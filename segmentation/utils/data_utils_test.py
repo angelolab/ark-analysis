@@ -24,7 +24,8 @@ def _create_img_dir(temp_dir, fovs, imgs, img_sub_folder="TIFs"):
 
 
 def test_load_imgs_from_mibitiff():
-    mibitiff_files = [os.path.join("..", "data", "example_dataset",
+    mibitiff_files = [os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                                   "..", "..", "data", "example_dataset",
                                    "input_data", "input_data_TIFF",
                                    "Point8_RowNumber0_Depth_Profile0-MassCorrected-Filtered.tiff")]
     channels = ["HH3", "Membrane"]
