@@ -37,7 +37,8 @@ def load_imgs_from_mibitiff(mibitiff_paths, channels=None, load_axis="fovs"):
 
     # if no channels specified, get them from first MIBItiff file
     if channels is None:
-        channels = img_data[0].channels
+        channel_tuples = tiff.read(mibitiff_paths[0]).channels
+        channels = [channel_tuple[1] for channel_tuple in channel_tuples]
 
     # extract point name from file name
     fovs = [mibitiff_path.split(os.sep)[-1].split('_')[0] for mibitiff_path

@@ -39,6 +39,26 @@ def test_load_imgs_from_mibitiff():
                                   (tiff.read(mibitiff_files[0]))[channels].data)
 
 
+def test_load_imgs_from_mibitiff_all_channels():
+    mibitiff_files = [os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                                   "..", "..", "data", "example_dataset",
+                                   "input_data", "input_data_TIFF",
+                                   "Point8_RowNumber0_Depth_Profile0-MassCorrected-Filtered.tiff")]
+    data_xr = data_utils.load_imgs_from_mibitiff(mibitiff_files, channels=None)
+    assert(data_xr.dims == ("fovs", "rows", "cols", "channels"))
+    assert(data_xr.fovs == "Point8")
+    assert(data_xr.rows == range(1024)).all()
+    assert(data_xr.cols == range(1024)).all()
+    exected_channels = ["Background", "BetaCatenin", "BetaTubulin", "CD20",
+                        "CD3", "CD4", "CD45", "CD8", "CD9", "ECadherin", "ER",
+                        "GLUT1", "HER2", "HH3", "HLA_Class_1", "Ki67",
+                        "LaminAC", "Membrane", "NaK ATPase", "PanKeratin",
+                        "SMA", "Vimentin"]
+    assert(data_xr.channels == exected_channels).all()
+    np.testing.assert_array_equal(data_xr.values[0],
+                                  (tiff.read(mibitiff_files[0])).data)
+
+
 def test_load_imgs_from_dir():
     with tempfile.TemporaryDirectory() as temp_dir:
         fovs = ["fov1", "fov2", "fov3"]
