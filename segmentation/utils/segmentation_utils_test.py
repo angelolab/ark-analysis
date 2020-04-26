@@ -6,6 +6,7 @@ import tempfile
 from segmentation.utils import segmentation_utils, plot_utils
 
 import importlib
+
 importlib.reload(segmentation_utils)
 
 
@@ -102,7 +103,7 @@ def test_segment_images():
 
     # check that channel 0 counts are same as cell size
     assert np.array_equal(segmentation_output.loc["cell_mask", :, "cell_size"].values,
-                        segmentation_output.loc["cell_mask", :, "chan0"].values)
+                          segmentation_output.loc["cell_mask", :, "chan0"].values)
 
     # check that channel 1 counts are 5x cell size
     assert np.array_equal(segmentation_output.loc["cell_mask", :, "cell_size"].values * 5,
@@ -123,13 +124,12 @@ def test_segment_images():
 
     # check that cell sizes are correct
     sizes = np.sum(cell_mask == -1), np.sum(cell_mask == 1), np.sum(cell_mask == 2), \
-            np.sum(cell_mask == 3)
+        np.sum(cell_mask == 3)
     assert np.array_equal(sizes, segmentation_output.loc["cell_mask", :3, "cell_size"])
 
 
 def test_extract_single_cell_data():
     with tempfile.TemporaryDirectory() as temp_dir:
-
         # create input data
         cell_mask = np.zeros((40, 40), dtype='int16')
         cell_mask[4:10, 4:8] = 1
@@ -174,5 +174,3 @@ def test_extract_single_cell_data():
                                     dims=["fovs", "rows", "cols", "channels"])
 
         segmentation_utils.extract_single_cell_data(segmentation_masks, channel_data, temp_dir)
-
-

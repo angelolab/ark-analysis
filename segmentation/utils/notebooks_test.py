@@ -16,5 +16,3 @@ def test_preprocessing():
 
 def test_postprocessing():
     _exec_notebook('scripts/Deepcell_Postprocessing.ipynb')
-
-

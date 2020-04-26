@@ -9,11 +9,12 @@ from segmentation.utils import data_utils
 import skimage.io as io
 
 import importlib
+
 importlib.reload(data_utils)
 
 
 def _create_img_dir(temp_dir, fovs, imgs, img_sub_folder="TIFs"):
-    tif = np.random.randint(0, 100, 1024**2).reshape((1024, 1024)).astype('int8')
+    tif = np.random.randint(0, 100, 1024 ** 2).reshape((1024, 1024)).astype('int8')
 
     for fov in fovs:
         fov_path = os.path.join(temp_dir, fov, img_sub_folder)
@@ -57,7 +58,7 @@ def test_load_imgs_from_dir():
         # make sure that load axis can be specified
         test_loaded_xr = data_utils.load_imgs_from_dir(
             temp_dir, img_sub_folder="TIFs", dtype="int16", load_axis="stacks")
-        assert(test_loaded_xr.dims[0] == "stacks")
+        assert (test_loaded_xr.dims[0] == "stacks")
 
 
 def test_combine_xarrays():
@@ -90,7 +91,8 @@ def test_combine_xarrays():
 
     xr_combined = data_utils.combine_xarrays((xr1, xr2), axis=-1)
     assert xr_combined.shape == (3, 30, 30, 5)
-    assert np.all(xr_combined.channels == np.concatenate((xr1.channels.values, xr2.channels.values)))
+    assert np.all(
+        xr_combined.channels == np.concatenate((xr1.channels.values, xr2.channels.values)))
     assert np.all(xr_combined.fovs == xr1.fovs)
 
 
@@ -101,7 +103,7 @@ def test_crop_helper():
 
     cropped = data_utils.crop_helper(crop_input, crop_size)
     num_crops = crop_input.shape[0] * \
-                (crop_input.shape[1] / crop_size) * (crop_input.shape[2] / crop_size)
+        (crop_input.shape[1] / crop_size) * (crop_input.shape[2] / crop_size)
     assert np.array_equal(cropped.shape, (num_crops, crop_size, crop_size, crop_input.shape[3]))
 
     # test crops that don't divide evenly
@@ -109,8 +111,8 @@ def test_crop_helper():
     crop_size = 100
 
     cropped = data_utils.crop_helper(crop_input, crop_size)
-    num_crops = crop_input.shape[0] * math.ceil(crop_input.shape[1] / crop_size) *\
-                math.ceil(crop_input.shape[2] / crop_size)
+    num_crops = crop_input.shape[0] * math.ceil(crop_input.shape[1] / crop_size) * \
+        math.ceil(crop_input.shape[2] / crop_size)
     assert np.array_equal(cropped.shape, (num_crops, crop_size, crop_size, crop_input.shape[3]))
 
 
@@ -122,7 +124,7 @@ def test_crop_image_stack():
 
     cropped = data_utils.crop_image_stack(crop_input, crop_size, stride_fraction)
     num_crops = crop_input.shape[0] * math.floor(crop_input.shape[1] / crop_size) * \
-                math.floor(crop_input.shape[2] / crop_size) * (1 / stride_fraction)
+        math.floor(crop_input.shape[2] / crop_size) * (1 / stride_fraction)
 
     assert np.array_equal(cropped.shape, (num_crops, crop_size, crop_size, crop_input.shape[3]))
 
@@ -136,5 +138,3 @@ def test_crop_image_stack():
         crop_input.shape[2] / crop_size) * (1 / stride_fraction) * (1 / stride_fraction)
 
     assert np.array_equal(cropped.shape, (num_crops, crop_size, crop_size, crop_input.shape[3]))
-
-

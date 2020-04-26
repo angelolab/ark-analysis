@@ -7,9 +7,10 @@ install:
 
 env:
   - MPLBACKEND=Agg
+
 # command to run tests
 script:
-  - python -m pytest --cov=segmentation segmentation
+  - python -m pytest --cov=segmentation --pep8 segmentation
 
 after_success:
   - coveralls

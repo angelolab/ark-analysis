@@ -174,7 +174,7 @@ def plot_color_map(outline_matrix, names, plotting_colors=None, ground_truth=Non
 
     if plotting_colors is None:
         plotting_colors = ['Black', 'Grey', 'Blue', 'Green',
-                                    'Pink', 'moccasin', 'tan', 'sienna', 'firebrick']
+                           'Pink', 'moccasin', 'tan', 'sienna', 'firebrick']
 
     num_categories = np.max(outline_matrix)
     plotting_colors = plotting_colors[:num_categories + 1]
@@ -196,14 +196,12 @@ def plot_color_map(outline_matrix, names, plotting_colors=None, ground_truth=Non
 
     cbar.ax.set_yticklabels(names)
 
-
     fig.tight_layout()
     if save_path is not None:
         fig.savefig(save_path, dpi=200)
 
 
 def plot_barchart_errors(pd_array, contour_errors, predicted_errors, save_path=None):
-
     """Plot different error types in a barchart, along with cell-size correlation in a scatter plot
         Args
             pd_array: pandas cell array representing error types for each class of cell
@@ -283,4 +281,3 @@ def barchart_helper(ax, values, labels, title):
     ax.set_xticks(positions)
     ax.set_xticklabels(labels)
     ax.set_title(title)
-

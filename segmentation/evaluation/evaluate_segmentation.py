@@ -12,7 +12,6 @@ from segmentation.utils import plot_utils, evaluation_utils
 
 importlib.reload(evaluation_utils)
 
-
 # code to evaluate accuracy of different segmentation contours
 
 # read in TIFs containing ground truth contoured data, along with predicted segmentation
@@ -32,6 +31,6 @@ for folder in pred_folders:
 y_true = y_true * len(y_pred)
 
 # mean average precision
-m_ap_array = evaluation_utils.compare_mAP({'y_true': y_true, 'y_pred': y_pred}, np.arange(0.5, 1, 0.1))
+m_ap_array = evaluation_utils.compare_mAP({'y_true': y_true, 'y_pred': y_pred},
+                                          np.arange(0.5, 1, 0.1))
 plot_utils.plot_mAPs(m_ap_array, np.arange(0.5, 1, 0.1), pred_folders)
-
