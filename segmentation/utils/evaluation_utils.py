@@ -57,7 +57,6 @@ def calc_mod_ap(iou_matrix, thresholds):
     false_positives = []
 
     for i in range(len(thresholds)):
-
         # threshold iou_matrix as designated value
         iou_matrix_thresh = iou_matrix > thresholds[i]
 
@@ -99,8 +98,6 @@ def compare_mod_ap(data_dict, thresholds):
         iou_matrix = calc_iou_matrix(y_true[i], y_pred[i])
         scores, false_positives, false_negatives = calc_mod_ap(iou_matrix, thresholds)
         mod_ap_list.append({'scores': scores, 'false_pos': false_positives,
-                          'false_neg': false_negatives})
+                            'false_neg': false_negatives})
 
     return mod_ap_list
-
-
