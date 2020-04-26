@@ -115,96 +115,6 @@ def load_imgs_from_dir(data_dir, img_sub_folder=None, fovs=None, imgs=None,
     return img_xr
 
 
-def create_blank_channel(img_size, grid_size=None, dtype="int16", full_blank=False):
-    """Creates a mostly blank TIF with a few positive pixels to avoid divide by zero errors
-    Inputs:
-        img_size: tuple specifying the size of the image to create
-        grid_size: int that determines how many pieces to randomize within
-        dtype: dtype for image
-        full_blank: boolean to set whether image has few sparse pixels, or is completely blank
-
-    Outputs:
-        blank_arr: a (mostly) blank array with positive pixels in random values
-    """
-
-    if grid_size is None:
-        grid_size = int(math.sqrt(img_size[0]))
-
-    blank = np.zeros(img_size, dtype=dtype)
-    row_step = math.floor(blank.shape[0] / grid_size)
-    col_step = math.floor(blank.shape[1] / grid_size)
-
-    for row in range(grid_size):
-        for col in range(grid_size):
-            row_rand = np.random.randint(0, row_step - 1)
-            col_rand = np.random.randint(0, col_step - 1)
-            if not full_blank:
-                blank[row * row_step + row_rand, col * col_step + col_rand] = \
-                    np.random.randint(1, 15)
-
-    return blank
-
-
-def reorder_xarray_channels(channel_order, channel_xr, non_blank_channels=None, full_blank=False):
-    """Adds blank channels or changes the order of existing channels to match specified ordering
-    Inputs:
-        channel_order: list of channel names, which dictates final order of output xarray
-        channel_xr: xarray containing the channel data for the available channels
-        non_blank_channels: optional list of channels which aren't missing,
-            and hence won't be replaced with blank tif. Default to all channels in channel_order
-
-    Outputs:
-        xarray with the supplied channels in channel order"""
-
-    if non_blank_channels is None:
-        non_blank_channels = channel_order
-
-    # error checking
-    channels_in_xr = np.isin(non_blank_channels, channel_xr.channels)
-    if len(channels_in_xr) != np.sum(channels_in_xr):
-        bad_chan = non_blank_channels[np.where(~channels_in_xr)[0][0]]
-        raise ValueError("{} was listed as a non-blank channel, "
-                         "but it is not in the channel xarray".format(bad_chan))
-
-    channels_in_order = np.isin(non_blank_channels, channel_order)
-    if len(channels_in_order) != np.sum(channels_in_order):
-        bad_chan = non_blank_channels[np.where(~channels_in_order)[0][0]]
-        raise ValueError("{} was listed as a non-blank channel, "
-                         "but it is not in the channel order".format(bad_chan))
-
-    vals, counts = np.unique(channel_order, return_counts=True)
-    duplicated = np.where(counts > 1)
-    if len(duplicated[0] > 0):
-        raise ValueError("The following channels are duplicated "
-                         "in the channel order: {}".format(vals[duplicated[0]]))
-
-    vals, counts = np.unique(channel_xr.channels.values, return_counts=True)
-    duplicated = np.where(counts > 1)
-    if len(duplicated[0] > 0):
-        raise ValueError("The following channels are duplicated "
-                         "in the xarray: {}".format(vals[duplicated[0]]))
-
-    # create array to hold all channels, including blank ones
-    full_array = np.zeros((channel_xr.shape[:3] + (len(channel_order),)), dtype=channel_xr.dtype)
-
-    for i in range(len(channel_order)):
-        if channel_order[i] in non_blank_channels:
-            current_channel = channel_xr.loc[:, :, :, channel_order[i]].values
-            full_array[:, :, :, i] = current_channel
-        else:
-            im_crops = channel_xr.shape[1] // 32
-            blank = create_blank_channel(channel_xr.shape[1:3], im_crops,
-                                         dtype=channel_xr.dtype, full_blank=full_blank)
-            full_array[:, :, :, i] = blank
-
-    channel_xr_blanked = xr.DataArray(full_array,
-                                      coords=[channel_xr.fovs, range(channel_xr.shape[1]),
-                                              range(channel_xr.shape[2]), channel_order],
-                                      dims=["fovs", "rows", "cols", "channels"])
-
-    return channel_xr_blanked
-
-
 def combine_xarrays(xarrays, axis):
     """Combines a number of xarrays together
 
@@ -260,40 +170,6 @@ def combine_xarrays(xarrays, axis):
                                dims=["fovs", "rows", "cols", "channels"])
 
     return combined_xr
-
-
-def pad_xr_dims(input_xr, padded_dims):
-    """Takes an xarray and pads it with dimensions of size 1 according to the supplied dims list
-
-    Inputs
-        input_xr: xarray to padd
-        padded_dims: list of dims to be included in output xarray
-
-    Outputs
-        padded_xr: xarray that has had additional dims added of size 1"""
-
-    # make sure that dimensions which are present in both lists are in same order
-    old_dims = [dim for dim in padded_dims if dim in input_xr.dims]
-
-    if not old_dims == list(input_xr.dims):
-        raise ValueError("existing dimensions must be in same order in input_dims list")
-
-    # create new output data
-    output_vals = input_xr.values
-    output_coords = []
-
-    for idx, dim in enumerate(padded_dims):
-
-        if dim in input_xr.dims:
-            # dimension already exists, using existing values and coords
-            output_coords.append(input_xr[dim])
-        else:
-            output_vals = np.expand_dims(output_vals, axis=idx)
-            output_coords.append(range(1))
-
-    padded_xr = xr.DataArray(output_vals, coords=output_coords, dims=padded_dims)
-
-    return padded_xr
 
 
 def crop_helper(image_stack, crop_size):

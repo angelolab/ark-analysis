@@ -60,59 +60,6 @@ def test_load_imgs_from_dir():
         assert(test_loaded_xr.dims[0] == "stacks")
 
 
-def test_create_blank_channel():
-
-    semi_blank = data_utils.create_blank_channel(img_size=(1024, 1024),
-                                                 grid_size=64, dtype="int16", full_blank=False)
-
-    assert semi_blank.shape == (1024, 1024)
-    assert np.sum(semi_blank) > 0
-
-    full_blank = data_utils.create_blank_channel(img_size=(1024, 1024),
-                                                 grid_size=64, dtype="int16", full_blank=True)
-    assert np.sum(full_blank) == 0
-
-
-def test_reorder_xarray_channels():
-
-    # test switching without blank channels
-    test_input = np.random.randint(5, size=(2, 128, 128, 3))
-
-    # channel 0 is 3x bigger, channel 2 is 3x smaller
-    test_input[:, :, :, 0] *= 3
-    test_input[:, :, :, 2] //= 3
-
-    test_xr = xr.DataArray(test_input,
-                           coords=[["Point1", "Point2"], range(test_input.shape[1]),
-                                   range(test_input.shape[2]), ["chan0", "chan1", "chan2"]],
-                           dims=["fovs", "rows", "cols", "channels"])
-
-    channel_order = ["chan2", "chan1", "chan0"]
-    new_xr = data_utils.reorder_xarray_channels(channel_order=channel_order, channel_xr=test_xr,
-                                                non_blank_channels=test_xr.channels)
-
-    # confirm that labels are in correct order, and that values were switched as well
-    assert np.array_equal(channel_order, new_xr.channels)
-    assert np.sum(new_xr.loc[:, :, :, "chan0"]) > np.sum(new_xr.loc[:, :, :, "chan2"])
-
-    # test switching with blank channels
-    channel_order = ["chan1", "chan2", "chan666"]
-    new_xr = data_utils.reorder_xarray_channels(channel_order,
-                                                test_xr, non_blank_channels=["chan1", "chan2"])
-
-    # make sure order was switched, and that blank channel is mostly empty
-    assert np.array_equal(channel_order, new_xr.channels)
-
-    # make sure "blank" channel is mostly empty
-    assert np.sum(new_xr.loc[:, :, :, "chan666"]) / (new_xr.shape[1] * new_xr.shape[2]) < 0.05
-
-    # make sure full_blank channel is actually blank
-    blank_xr = data_utils.reorder_xarray_channels(channel_order, test_xr,
-                                                  non_blank_channels=["chan1", "chan2"],
-                                                  full_blank=True)
-    assert np.sum(blank_xr.loc[:, :, :, "chan666"]) == 0
-
-
 def test_combine_xarrays():
     # test combining along points axis
     xr1 = xr.DataArray(np.random.randint(10, size=(3, 30, 30, 3)),
@@ -146,26 +93,6 @@ def test_combine_xarrays():
     assert np.all(xr_combined.channels == np.concatenate((xr1.channels.values, xr2.channels.values)))
     assert np.all(xr_combined.fovs == xr1.fovs)
 
-
-def test_pad_xr_dims():
-    test_input = np.zeros((2, 10, 10, 3))
-    test_xr = xr.DataArray(test_input,
-                           coords=[["Point1", "Point2"], range(test_input.shape[1]),
-                                   range(test_input.shape[2]),
-                                   ["chan0", "chan1", "chan2"]],
-                           dims=["fovs", "rows", "cols", "channels"])
-
-    padded_dims = ["fovs", "rows", "rows2", "cols", "cols2", "channels"]
-
-    padded_xr = data_utils.pad_xr_dims(test_xr, padded_dims)
-
-    assert list(padded_xr.dims) == padded_dims
-
-    # check that error raised when wrong dimensions
-    padded_wrong_order_dims = ["rows", "fovs", "rows2", "cols", "cols2", "channels"]
-
-    with pytest.raises(ValueError):
-        data_utils.pad_xr_dims(test_xr, padded_wrong_order_dims)
 
 def test_crop_helper():
     # test crops that divide evenly
