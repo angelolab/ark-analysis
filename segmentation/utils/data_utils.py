@@ -1,15 +1,10 @@
 import os
 import math
-import copy
-import warnings
+
 
 import skimage.io as io
 import numpy as np
 import xarray as xr
-import scipy.ndimage as nd
-
-import skimage.filters.rank as rank
-import scipy.ndimage as nd
 
 
 def load_imgs_from_dir(data_dir, img_sub_folder=None, fovs=None, imgs=None,
@@ -195,8 +190,8 @@ def crop_helper(image_stack, crop_size):
     # Determine if image will need to be padded with zeros due to uneven division by crop
     if image_stack.shape[1] % crop_size != 0 or image_stack.shape[2] % crop_size != 0:
         # create new array that is padded by one crop size on image dimensions
-        new_shape = image_stack.shape[0], image_stack.shape[1] + crop_size, \
-                    image_stack.shape[2] + crop_size, image_stack.shape[3]
+        new_shape = (image_stack.shape[0], image_stack.shape[1] + crop_size,
+                     image_stack.shape[2] + crop_size, image_stack.shape[3])
         new_stack = np.zeros(new_shape, dtype=image_stack.dtype)
         new_stack[:, :image_stack.shape[1], :image_stack.shape[2], :] = image_stack
         image_stack = new_stack
@@ -255,7 +250,7 @@ def crop_image_stack(image_stack, crop_size, stride_fraction):
             else:
                 # crop the image by the shift prior to generating grid of crops
                 img_shift = image_stack[:, (row_shift * stride_step):,
-                            (col_shift * stride_step):, :]
+                                        (col_shift * stride_step):, :]
                 # print("shape of the input image is {}".format(img_shift.shape))
                 temp_images = crop_helper(img_shift, crop_size)
                 cropped_images = np.append(cropped_images, temp_images, axis=0)
@@ -306,7 +301,7 @@ def stitch_images(data_xr, num_cols):
     for row in range(num_rows):
         for col in range(num_cols):
             stitched_data[0, row * row_len:(row + 1) * row_len,
-            col * col_len:(col + 1) * col_len, :] = data_xr[img_idx, ...]
+                          col * col_len:(col + 1) * col_len, :] = data_xr[img_idx, ...]
             img_idx += 1
             if img_idx == num_imgs:
                 break

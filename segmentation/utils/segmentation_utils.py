@@ -3,7 +3,6 @@ import skimage.measure
 import copy
 import warnings
 
-
 import numpy as np
 import xarray as xr
 from skimage.feature import peak_local_max
@@ -11,7 +10,6 @@ import skimage.morphology as morph
 import skimage.io as io
 import pandas as pd
 import scipy.ndimage as nd
-
 
 from segmentation.utils import plot_utils
 
@@ -21,7 +19,6 @@ def watershed_transform(model_output, channel_xr, overlay_channels, output_dir, 
                         interior_smooth=3, maxima_model="pixelwise_interior", maxima_smooth=3,
                         maxima_threshold=0.05, nuclear_expansion=None, randomize_cell_labels=True,
                         save_tifs=False):
-
     """Runs the watershed transform over a set of probability masks output by deepcell network
     Inputs:
         model_output: xarray containing the different branch outputs from deepcell
@@ -157,7 +154,8 @@ def watershed_transform(model_output, channel_xr, overlay_channels, output_dir, 
                 chan_marker = channel_xr.loc[fov, :, :, channel].values
                 plot_utils.plot_overlay(random_map, plotting_tif=chan_marker,
                                         path=os.path.join(output_dir,
-                                                          "{}_{}_overlay.tiff".format(fov, channel)))
+                                                          "{}_{}_overlay.tiff".format(fov,
+                                                                                      channel)))
 
             elif len(chan_list) == 2:
                 # if two entries, make 2-color stack, skipping 0th index which is red
@@ -167,7 +165,8 @@ def watershed_transform(model_output, channel_xr, overlay_channels, output_dir, 
                 plot_utils.plot_overlay(
                     random_map, plotting_tif=input_data,
                     path=os.path.join(
-                        output_dir, "{}_{}_{}_overlay.tiff".format(fov, chan_list[0], chan_list[1])))
+                        output_dir,
+                        "{}_{}_{}_overlay.tiff".format(fov, chan_list[0], chan_list[1])))
             elif len(chan_list) == 3:
                 # if three entries, make a 3 color stack, with third channel in first index (red)
                 input_data = np.zeros((channel_xr.shape[1], channel_xr.shape[2], 3))
@@ -306,7 +305,6 @@ def segment_images(input_images, segmentation_masks):
 
 def extract_single_cell_data(segmentation_labels, image_data,
                              save_dir, nuc_probs=None, save_FCS=False):
-
     """Extract single cell data from a set of images with provided segmentation mask
     Input:
         segmentation_labels: xarray containing a segmentation mask for each point
@@ -410,13 +408,13 @@ def extract_single_cell_data(segmentation_labels, image_data,
 def concatenate_csv(base_dir, csv_files, column_name="point", column_values=None):
     """Take a list of CSV paths and concatenates them together,
     adding in the identifier in column_values
-    
+
     Inputs:
         base_dir: directory to read and write csv_files into
         csv_files: a list csv files
         column_name: optional column name, defaults to point
         column_values: optional values to use for each CSV, defaults to csv name
-    
+
     Outputs: saved combined csv into same folder"""
 
     if column_values is None:

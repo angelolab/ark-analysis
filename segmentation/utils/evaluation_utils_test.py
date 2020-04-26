@@ -5,6 +5,7 @@ from skimage.draw import random_shapes
 from skimage.segmentation import relabel_sequential
 
 import importlib
+
 importlib.reload(evaluation_utils)
 
 
