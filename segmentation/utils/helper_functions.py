@@ -51,7 +51,6 @@ def process_training_data(interior_contour, interior_border_contour):
     return label_contour
 
 
-
 def calc_adjacency_matrix(label_map, border_dist=0):
     """Generate matrix describing which cells are within the specified distance from one another
 
@@ -91,6 +90,7 @@ def calc_adjacency_matrix(label_map, border_dist=0):
 
     return adjacency_matrix
 
+
 def euc_dist(coords_1, coords_2):
     """Calculate the euclidian distance between two y,x tuples
 
@@ -103,8 +103,9 @@ def euc_dist(coords_1, coords_2):
 
     y = coords_1[0] - coords_2[0]
     x = coords_1[1] - coords_2[1]
-    dist = math.sqrt(x**2 + y**2)
+    dist = math.sqrt(x ** 2 + y ** 2)
     return dist
+
 
 def calc_dist_matrix(label_map):
     """Generate matrix of distances between center of pairs of cells
@@ -131,4 +132,3 @@ def calc_dist_matrix(label_map):
             dist_matrix[cell, tar_cell] = dist
 
     return dist_matrix
-

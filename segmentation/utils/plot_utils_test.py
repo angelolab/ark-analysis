@@ -27,11 +27,7 @@ def _generate_image_data(img_dims):
     if len(img_dims) != 3:
         raise ValueError("must be image data of [rows, cols, channels]")
 
-    mostly_blank = data_utils.create_blank_channel(img_dims[:2])
-    mostly_blank_stack = np.repeat(mostly_blank, img_dims[-1])
-    mostly_blank_stack = mostly_blank_stack.reshape(img_dims)
-
-    return mostly_blank_stack
+    return np.random.randint(low=0, high=100, size=img_dims)
 
 
 def test_plot_overlay():
@@ -39,7 +35,6 @@ def test_plot_overlay():
     example_images = _generate_image_data((1024, 1024, 3))
 
     with tempfile.TemporaryDirectory() as temp_dir:
-
         # save with both tif and labels
         plot_utils.plot_overlay(predicted_contour=example_labels, plotting_tif=example_images,
                                 alternate_contour=None,
@@ -133,6 +128,5 @@ def test_plot_error_types():
     }
 
     plot_utils.plot_error_types([stats_dict, stats_dict1, stats_dict2], ['alg1', 'alg2', 'alg3'],
-                                ['missed_detections', 'gained_detections', 'merge', 'split', 'catastrophe'])
-
-
+                                ['missed_detections', 'gained_detections', 'merge', 'split',
+                                 'catastrophe'])
