@@ -1,15 +1,61 @@
 import os
 import math
 
-
 import skimage.io as io
 import numpy as np
 import xarray as xr
+from mibidata import tiff
+
+
+def load_imgs_from_mibitiff(mibitiff_paths, channels=None, load_axis="fovs"):
+    """Load images from a series of MIBItiff files.
+
+    This function takes a set of MIBItiff files and load the images into an
+    xarray. The type used to store the images will be the same as that of the
+    MIBIimages stored in the MIBItiff files.
+
+    Args:
+        mibitiff_paths: list of MIBItiff files to load.
+        channels: optional list of channels to load. Defaults to `None`, in
+            which case, all channels in the first MIBItiff are used.
+        load_axis: axis that images will get loaded onto. Must be one of
+            ["fovs", "stacks"].
+
+    Returns:
+        img_xr: xarray with shape [fovs, tifs, x_dim, y_dim]
+    """
+
+    # sanity check
+    if not np.isin(load_axis, ["fovs", "stacks"]):
+        raise ValueError("Invalid value for load_axis, must be one of [fovs, stacks]")
+
+    # if no channels specified, get them from first MIBItiff file
+    if channels is None:
+        channel_tuples = tiff.read(mibitiff_paths[0]).channels
+        channels = [channel_tuple[1] for channel_tuple in channel_tuples]
+
+    # extract point name from file name
+    fovs = [mibitiff_path.split(os.sep)[-1].split('_')[0] for mibitiff_path
+            in mibitiff_paths]
+
+    # extract images from MIBItiff file
+    img_data = []
+    for mibitiff_path in mibitiff_paths:
+        img_data.append(tiff.read(mibitiff_path)[channels])
+    img_data = np.stack(img_data, axis=0)
+
+    # create xarray with image data
+    img_xr = xr.DataArray(img_data,
+                          coords=[fovs, range(img_data[0].data.shape[0]),
+                                  range(img_data[0].data.shape[1]), channels],
+                          dims=[load_axis, "rows", "cols", "channels"])
+
+    return img_xr
 
 
 def load_imgs_from_dir(data_dir, img_sub_folder=None, fovs=None, imgs=None,
                        load_axis="fovs", dtype="int16", variable_sizes=False):
-    """Takes a set of imgs from a directory structure and loads them into a numpy array.
+    """Takes a set of imgs from a directory structure and loads them into an xarray.
 
         Args:
             data_dir: directory containing folders of images
@@ -21,7 +67,7 @@ def load_imgs_from_dir(data_dir, img_sub_folder=None, fovs=None, imgs=None,
             variable_sizes: if true, will pad loaded images with zeros to fit into array
 
         Returns:
-            Numpy array with shape [fovs, tifs, x_dim, y_dim]
+            img_xr: xarray with shape [fovs, tifs, x_dim, y_dim]
     """
 
     if not os.path.isdir(data_dir):
