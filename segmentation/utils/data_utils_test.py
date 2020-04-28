@@ -4,6 +4,7 @@ import os
 import math
 import pytest
 import tempfile
+from mibidata import tiff
 
 from segmentation.utils import data_utils
 import skimage.io as io
@@ -14,13 +15,49 @@ importlib.reload(data_utils)
 
 
 def _create_img_dir(temp_dir, fovs, imgs, img_sub_folder="TIFs"):
-    tif = np.random.randint(0, 100, 1024 ** 2).reshape((1024, 1024)).astype('int8')
+    tif = np.random.randint(0, 100, 1024 ** 2).reshape((1024, 1024)).astype("int8")
 
     for fov in fovs:
         fov_path = os.path.join(temp_dir, fov, img_sub_folder)
         os.makedirs(fov_path)
         for img in imgs:
             io.imsave(os.path.join(fov_path, img), tif)
+
+
+def test_load_imgs_from_mibitiff():
+    mibitiff_files = [os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                                   "..", "..", "data", "example_dataset",
+                                   "input_data", "input_data_TIFF",
+                                   "Point8_RowNumber0_Depth_Profile0-MassCorrected-Filtered.tiff")]
+    channels = ["HH3", "Membrane"]
+    data_xr = data_utils.load_imgs_from_mibitiff(mibitiff_files, channels)
+    assert(data_xr.dims == ("fovs", "rows", "cols", "channels"))
+    assert(data_xr.fovs == "Point8")
+    assert(data_xr.rows == range(1024)).all()
+    assert(data_xr.cols == range(1024)).all()
+    assert(data_xr.channels == channels).all()
+    np.testing.assert_array_equal(data_xr.values[0],
+                                  (tiff.read(mibitiff_files[0]))[channels].data)
+
+
+def test_load_imgs_from_mibitiff_all_channels():
+    mibitiff_files = [os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                                   "..", "..", "data", "example_dataset",
+                                   "input_data", "input_data_TIFF",
+                                   "Point8_RowNumber0_Depth_Profile0-MassCorrected-Filtered.tiff")]
+    data_xr = data_utils.load_imgs_from_mibitiff(mibitiff_files, channels=None)
+    assert(data_xr.dims == ("fovs", "rows", "cols", "channels"))
+    assert(data_xr.fovs == "Point8")
+    assert(data_xr.rows == range(1024)).all()
+    assert(data_xr.cols == range(1024)).all()
+    exected_channels = ["Background", "BetaCatenin", "BetaTubulin", "CD20",
+                        "CD3", "CD4", "CD45", "CD8", "CD9", "ECadherin", "ER",
+                        "GLUT1", "HER2", "HH3", "HLA_Class_1", "Ki67",
+                        "LaminAC", "Membrane", "NaK ATPase", "PanKeratin",
+                        "SMA", "Vimentin"]
+    assert(data_xr.channels == exected_channels).all()
+    np.testing.assert_array_equal(data_xr.values[0],
+                                  (tiff.read(mibitiff_files[0])).data)
 
 
 def test_load_imgs_from_dir():
