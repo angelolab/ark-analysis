@@ -43,8 +43,7 @@ def watershed_transform(model_output, channel_xr, overlay_channels, output_dir, 
         fovs = model_output.fovs
     else:
         if np.any(~np.isin(fovs, model_output.coords['fovs'])):
-            raise ValueError("Incorrect list of points given, "
-                             "not all are present in data structure")
+            raise ValueError("Invalid FOVs supplied, not all were found in the model output")
 
     if len(fovs) == 1:
         # don't subset, will change dimensions
@@ -53,7 +52,7 @@ def watershed_transform(model_output, channel_xr, overlay_channels, output_dir, 
         model_output = model_output.loc[fovs, :, :, :]
 
     if np.any(~np.isin(model_output.fovs.values, channel_xr.fovs.values)):
-        raise ValueError("Not all of the fovs in the model output were found in the channel xr")
+        raise ValueError("Not all of the FOVs in the model output were found in the channel data")
 
     # flatten overlay list of lists into single list
     flat_channels = [item for sublist in overlay_channels for item in sublist]
@@ -61,7 +60,7 @@ def watershed_transform(model_output, channel_xr, overlay_channels, output_dir, 
     if len(overlay_in_xr) != np.sum(overlay_in_xr):
         bad_chan = flat_channels[np.where(~overlay_in_xr)[0][0]]
         raise ValueError("{} was listed as an overlay channel, "
-                         "but it is not in the channel xarray".format(bad_chan))
+                         "but it is not in the channel data".format(bad_chan))
 
     if not os.path.isdir(output_dir):
         raise ValueError("output directory does not exist")
@@ -77,17 +76,19 @@ def watershed_transform(model_output, channel_xr, overlay_channels, output_dir, 
                   "watershed_argmax", "fgbg_foreground", "pixelwise_sum"]
 
     if maxima_model not in model_list:
-        raise ValueError("Invalid local maxima model name supplied: {}, "
+        raise ValueError("Invalid maxima model supplied: {}, "
                          "must be one of {}".format(maxima_model, model_list))
     if maxima_model not in model_output.models:
-        raise ValueError("Model for local maxima {} not found in model output".format(maxima_model))
+        raise ValueError("The selected maxima model was not found "
+                         "in the model output: {}".format(maxima_model))
 
     # error check model selected for background delineation in the image
     if interior_model not in model_list:
-        raise ValueError("Invalid interior model name supplied: {}, "
+        raise ValueError("Invalid interior model supplied: {}, "
                          "must be one of {}".format(interior_model, model_list))
     if interior_model not in model_output.models:
-        raise ValueError("Model for interior {} not found in model output".format(interior_model))
+        raise ValueError("The selected interior model was not found "
+                         "in the model output: {} ".format(interior_model))
 
     # loop through all fovs and segment
     for fov in model_output.fovs.values:

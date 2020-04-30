@@ -1,6 +1,7 @@
 import numpy as np
 import xarray as xr
 import os
+import pytest
 import tempfile
 
 from segmentation.utils import segmentation_utils, plot_utils
@@ -14,10 +15,10 @@ def _generate_deepcell_ouput(fov_num=2):
     fovs = ["fov" + str(i) for i in range(fov_num)]
     models = ["pixelwise_interior", "watershed_inner", "watershed_outer",
               "fgbg_foreground", "pixelwise_sum"]
-    output = np.random.rand(len(fovs) * 1024 * 1024 * len(models))
-    output = output.reshape((len(fovs), 1024, 1024, len(models)))
+    output = np.random.rand(len(fovs) * 50 * 50 * len(models))
+    output = output.reshape((len(fovs), 50, 50, len(models)))
 
-    output_xr = xr.DataArray(output, coords=[fovs, range(1024), range(1024), models],
+    output_xr = xr.DataArray(output, coords=[fovs, range(50), range(50), models],
                              dims=["fovs", "rows", "cols", "models"])
     return output_xr
 
@@ -25,45 +26,114 @@ def _generate_deepcell_ouput(fov_num=2):
 def _generate_channel_xr(fov_num=2, chan_num=5):
     fovs = ["fov" + str(i) for i in range(fov_num)]
     channels = ["channel" + str(i) for i in range(chan_num)]
-    output = np.random.randint(0, 20, len(fovs) * 1024 * 1024 * len(channels))
-    output = output.reshape((len(fovs), 1024, 1024, len(channels)))
+    output = np.random.randint(0, 20, len(fovs) * 50 * 50 * len(channels))
+    output = output.reshape((len(fovs), 50, 50, len(channels)))
 
-    output_xr = xr.DataArray(output, coords=[fovs, range(1024), range(1024), channels],
+    output_xr = xr.DataArray(output, coords=[fovs, range(50), range(50), channels],
                              dims=["fovs", "rows", "cols", "channels"])
+
     return output_xr
 
 
 def test_watershed_transform():
     model_output = _generate_deepcell_ouput()
-    input = _generate_channel_xr()
+    channel_data = _generate_channel_xr()
+
+    overlay_channels = [channel_data.channels.values[:2]]
 
     with tempfile.TemporaryDirectory() as temp_dir:
         # test default settings
-        overlay_channels = input.channels.values[:2]
-        segmentation_utils.watershed_transform(model_output=model_output, channel_xr=input,
+        segmentation_utils.watershed_transform(model_output=model_output, channel_xr=channel_data,
                                                output_dir=temp_dir,
-                                               overlay_channels=[overlay_channels])
+                                               overlay_channels=overlay_channels)
 
     with tempfile.TemporaryDirectory() as temp_dir:
         # test different networks settings
-        segmentation_utils.watershed_transform(model_output=model_output, channel_xr=input,
+        segmentation_utils.watershed_transform(model_output=model_output, channel_xr=channel_data,
                                                output_dir=temp_dir,
-                                               overlay_channels=[overlay_channels],
+                                               overlay_channels=overlay_channels,
                                                maxima_model="watershed_inner",
                                                interior_model="watershed_outer")
 
     with tempfile.TemporaryDirectory() as temp_dir:
         # test save_tifs
-        segmentation_utils.watershed_transform(model_output=model_output, channel_xr=input,
+        segmentation_utils.watershed_transform(model_output=model_output, channel_xr=channel_data,
                                                output_dir=temp_dir,
-                                               overlay_channels=[overlay_channels], save_tifs=True)
+                                               overlay_channels=overlay_channels, save_tifs=True)
 
     with tempfile.TemporaryDirectory() as temp_dir:
         # test multiple different overlay_channels
-        overlay_channels = [overlay_channels[3:4], overlay_channels[2:4], overlay_channels[2:5]]
-        segmentation_utils.watershed_transform(model_output=model_output, channel_xr=input,
+        overlay_channels = [channel_data.channels.values[3:4], channel_data.channels.values[1:4]]
+        segmentation_utils.watershed_transform(model_output=model_output, channel_xr=channel_data,
                                                output_dir=temp_dir,
                                                overlay_channels=overlay_channels)
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        # bad arguments
+
+        with pytest.raises(ValueError):
+            # bad fov names
+            fovs = [model_output.fovs.values[0], 'bad_name']
+            segmentation_utils.watershed_transform(model_output=model_output,
+                                                   channel_xr=channel_data,
+                                                   output_dir=temp_dir,
+                                                   overlay_channels=overlay_channels,
+                                                   fovs=fovs)
+
+        with pytest.raises(ValueError):
+            # incomplete channel data
+            segmentation_utils.watershed_transform(model_output=model_output,
+                                                   channel_xr=channel_data[1:, ...],
+                                                   output_dir=temp_dir,
+                                                   overlay_channels=overlay_channels)
+
+        with pytest.raises(ValueError):
+            # bad overlay channels
+            bad_overlay_channels = [[channel_data.channels.values[0], 'bad_channel']]
+            segmentation_utils.watershed_transform(model_output=model_output,
+                                                   channel_xr=channel_data,
+                                                   output_dir=temp_dir,
+                                                   overlay_channels=bad_overlay_channels)
+
+        with pytest.raises(ValueError):
+            # bad directory name
+            segmentation_utils.watershed_transform(model_output=model_output,
+                                                   channel_xr=channel_data,
+                                                   output_dir='bad_output_dir',
+                                                   overlay_channels=overlay_channels)
+
+        with pytest.raises(ValueError):
+            # bad maxima model name
+            segmentation_utils.watershed_transform(model_output=model_output,
+                                                   channel_xr=channel_data,
+                                                   output_dir=temp_dir,
+                                                   overlay_channels=overlay_channels,
+                                                   maxima_model='bad_maxima_model')
+
+        with pytest.raises(ValueError):
+            # maxima model not included
+            missing_pixel_model = model_output[..., 2:]
+            segmentation_utils.watershed_transform(model_output=missing_pixel_model,
+                                                   channel_xr=channel_data,
+                                                   output_dir=temp_dir,
+                                                   overlay_channels=overlay_channels)
+
+        with pytest.raises(ValueError):
+            # bad interior model name
+            segmentation_utils.watershed_transform(model_output=model_output,
+                                                   channel_xr=channel_data,
+                                                   output_dir=temp_dir,
+                                                   overlay_channels=overlay_channels,
+                                                   interior_model='bad_interior_model')
+
+        with pytest.raises(ValueError):
+            # maxima model not included
+            missing_interior_model = model_output[..., 1:]
+            segmentation_utils.watershed_transform(model_output=missing_interior_model,
+                                                   maxima_model='watershed_inner',
+                                                   channel_xr=channel_data,
+                                                   output_dir=temp_dir,
+                                                   overlay_channels=overlay_channels)
 
 
 def test_segment_images():
