@@ -6,10 +6,6 @@ import tempfile
 
 from segmentation.utils import segmentation_utils, plot_utils
 
-import importlib
-
-importlib.reload(segmentation_utils)
-
 
 def _generate_deepcell_ouput(fov_num=2):
     fovs = ["fov" + str(i) for i in range(fov_num)]
@@ -35,6 +31,7 @@ def _generate_channel_xr(fov_num=2, chan_num=5):
     return output_xr
 
 
+# TODO: add better test data for the actual local maxima/thresholding functionality
 def test_watershed_transform():
     model_output = _generate_deepcell_ouput()
     channel_data = _generate_channel_xr()
@@ -45,7 +42,16 @@ def test_watershed_transform():
         # test default settings
         segmentation_utils.watershed_transform(model_output=model_output, channel_xr=channel_data,
                                                output_dir=temp_dir,
-                                               overlay_channels=overlay_channels)
+                                               overlay_channels=overlay_channels,
+                                               interior_threshold=0.5)
+
+        saved_output = xr.load_dataarray(os.path.join(temp_dir, 'segmentation_labels.xr'))
+
+        # ensure sequential labeling
+        for fov in range(saved_output.shape[0]):
+            cell_num = len(np.unique(saved_output[fov, :, :, 0]))
+            max_val = np.max(saved_output[fov, :, :, 0].values)
+            assert cell_num == max_val + 1  # background counts towards unique cells
 
     with tempfile.TemporaryDirectory() as temp_dir:
         # test different networks settings
@@ -199,48 +205,48 @@ def test_segment_images():
 
 
 def test_extract_single_cell_data():
-    with tempfile.TemporaryDirectory() as temp_dir:
-        # create input data
-        cell_mask = np.zeros((40, 40), dtype='int16')
-        cell_mask[4:10, 4:8] = 1
-        cell_mask[15:25, 20:30] = 2
-        cell_mask[30:32, 3:28] = 3
-        cell_mask[35:40, 15:18] = 4
+    # create input data
+    cell_mask = np.zeros((40, 40), dtype='int16')
+    cell_mask[4:10, 4:8] = 1
+    cell_mask[15:25, 20:30] = 2
+    cell_mask[30:32, 3:28] = 3
+    cell_mask[35:40, 15:18] = 4
 
-        # then create channels data
+    # then create channels data
 
-        channel_data = np.zeros((40, 40, 5), dtype="int16")
-        channel_data[:, :, 0] = 1
-        channel_data[:, :, 1] = 5
-        channel_data[:, :, 2] = 5
-        channel_data[:, :, 3] = 10
-        channel_data[:, :, 4] = 0
+    channel_data = np.zeros((40, 40, 5), dtype="int16")
+    channel_data[:, :, 0] = 1
+    channel_data[:, :, 1] = 5
+    channel_data[:, :, 2] = 5
+    channel_data[:, :, 3] = 10
+    channel_data[:, :, 4] = 0
 
-        # cell1 is the only cell negative for channel 3
-        cell1 = cell_mask == 1
-        channel_data[cell1, 3] = 0
+    # cell1 is the only cell negative for channel 3
+    cell1 = cell_mask == 1
+    channel_data[cell1, 3] = 0
 
-        # cell2 is the only cell positive for channel 4
-        cell2 = cell_mask == 2
-        channel_data[cell2, 4] = 10
+    # cell2 is the only cell positive for channel 4
+    cell2 = cell_mask == 2
+    channel_data[cell2, 4] = 10
 
-        # generate data for two fovs offset
-        cell_masks = np.zeros((2, 40, 40, 1), dtype="int16")
-        cell_masks[0, :, :, 0] = cell_mask
-        cell_masks[1, 5:, 5:, 0] = cell_mask[:-5, :-5]
+    # generate data for two fovs offset
+    cell_masks = np.zeros((2, 40, 40, 1), dtype="int16")
+    cell_masks[0, :, :, 0] = cell_mask
+    cell_masks[1, 5:, 5:, 0] = cell_mask[:-5, :-5]
 
-        channel_datas = np.zeros((2, 40, 40, 5), dtype="int16")
-        channel_datas[0, :, :, :] = channel_data
-        channel_datas[1, 5:, 5:, :] = channel_data[:-5, :-5]
+    channel_datas = np.zeros((2, 40, 40, 5), dtype="int16")
+    channel_datas[0, :, :, :] = channel_data
+    channel_datas[1, 5:, 5:, :] = channel_data[:-5, :-5]
 
-        segmentation_masks = xr.DataArray(cell_masks,
-                                          coords=[["Point1", "Point2"], range(40), range(40),
-                                                  ["segmentation_label"]],
-                                          dims=["fovs", "rows", "cols", "channels"])
+    segmentation_masks = xr.DataArray(cell_masks,
+                                      coords=[["Point1", "Point2"], range(40), range(40),
+                                              ["segmentation_label"]],
+                                      dims=["fovs", "rows", "cols", "channels"])
 
-        channel_data = xr.DataArray(channel_datas,
-                                    coords=[["Point1", "Point2"], range(40), range(40),
-                                            ["chan0", "chan1", "chan2", "chan3", "chan4"]],
-                                    dims=["fovs", "rows", "cols", "channels"])
+    channel_data = xr.DataArray(channel_datas,
+                                coords=[["Point1", "Point2"], range(40), range(40),
+                                        ["chan0", "chan1", "chan2", "chan3", "chan4"]],
+                                dims=["fovs", "rows", "cols", "channels"])
 
-        segmentation_utils.extract_single_cell_data(segmentation_masks, channel_data, temp_dir)
+    normalized, transformed = segmentation_utils.extract_single_cell_data(segmentation_masks,
+                                                                          channel_data)

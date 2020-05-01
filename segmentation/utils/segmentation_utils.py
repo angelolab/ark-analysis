@@ -7,9 +7,11 @@ import numpy as np
 import xarray as xr
 from skimage.feature import peak_local_max
 import skimage.morphology as morph
+from skimage.segmentation import relabel_sequential
 import skimage.io as io
 import pandas as pd
 import scipy.ndimage as nd
+
 
 from segmentation.utils import plot_utils
 
@@ -118,6 +120,8 @@ def watershed_transform(model_output, channel_xr, overlay_channels, output_dir, 
         labels = np.array(morph.watershed(-interior_smoothed, markers,
                                           mask=interior_mask, watershed_line=0))
 
+        labels, _, _ = relabel_sequential(labels)
+
         if randomize_cell_labels:
             random_map = plot_utils.randomize_labels(labels)
         else:
@@ -145,7 +149,7 @@ def watershed_transform(model_output, channel_xr, overlay_channels, output_dir, 
 
                 for chan in channel_xr.channels.values:
                     io.imsave(os.path.join(output_dir, "{}_{}.tiff".format(fov, chan)),
-                              channel_xr.loc[fov, :, :, chan])
+                              channel_xr.loc[fov, :, :, chan].astype('float32'))
 
         # plot list of supplied markers overlaid by segmentation mask to assess accuracy
         for chan_list in overlay_channels:
@@ -305,7 +309,7 @@ def segment_images(input_images, segmentation_masks):
 
 
 def extract_single_cell_data(segmentation_labels, image_data,
-                             save_dir, nuc_probs=None, save_FCS=False):
+                             nuc_probs=None):
     """Extract single cell data from a set of images with provided segmentation mask
     Input:
         segmentation_labels: xarray containing a segmentation mask for each point
@@ -314,6 +318,9 @@ def extract_single_cell_data(segmentation_labels, image_data,
         nuc_probs: xarray of deepcell_pixel nuclear probabilities for subcellular segmentation
     Output:
         saves output to save_dir"""
+
+    normalized_data = pd.DataFrame()
+    transformed_data = pd.DataFrame()
 
     for fov in segmentation_labels.fovs.values:
         print("extracting data from {}".format(fov))
@@ -391,19 +398,18 @@ def extract_single_cell_data(segmentation_labels, image_data,
         cell_data_norm_trans = copy.deepcopy(cell_data_norm_linscale)
         cell_data_norm_trans.values[:, :, 1:] = np.arcsinh(cell_data_norm_trans[:, :, 1:])
 
-        # cell_data.to_netcdf(os.path.join(save_dir, point, 'segmented_data.nc'))
-        # cell_data_norm.to_netcdf(os.path.join(save_dir, point, 'segmented_data_normalized.nc'))
-        # cell_data_norm_trans.to_netcdf(os.path.join(save_dir, point + '_segmented_data_normalized_
-        # transformed.nc'))
-
-        csv_format = pd.DataFrame(data=cell_data_norm_trans.values[0, :, :],
+        transformed = pd.DataFrame(data=cell_data_norm_trans.values[0, :, :],
                                   columns=cell_data.features)
-        combined = pd.concat([csv_format, cell_props], axis=1)
-        combined.to_csv(os.path.join(save_dir, fov + "_normalized_transformed.csv"), index=False)
+        transformed = pd.concat([transformed, cell_props], axis=1)
+        transformed['fov'] = fov
+        transformed_data = transformed_data.append(transformed)
 
-        csv_format = pd.DataFrame(data=cell_data_norm.values[0, :, :], columns=cell_data.features)
-        combined = pd.concat([csv_format, cell_props], axis=1)
-        combined.to_csv(os.path.join(save_dir, fov + "_normalized.csv"), index=False)
+        normalized = pd.DataFrame(data=cell_data_norm.values[0, :, :], columns=cell_data.features)
+        normalized = pd.concat([normalized, cell_props], axis=1)
+        normalized['fov'] = fov
+        normalized_data = normalized_data.append(normalized)
+
+        return normalized_data, transformed_data
 
 
 def concatenate_csv(base_dir, csv_files, column_name="point", column_values=None):
@@ -437,4 +443,4 @@ def concatenate_csv(base_dir, csv_files, column_name="point", column_values=None
             temp_data[column_name] = column_values[idx]
             combined_data = pd.concat((combined_data, temp_data), axis=0, ignore_index=True)
 
-    combined_data.to_csv(os.path.join(base_dir, "combined_data.csv"))
+    combined_data.to_csv(os.path.join(base_dir, "combined_data.csv"), index=False)
