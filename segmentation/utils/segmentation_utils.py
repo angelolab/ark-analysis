@@ -399,7 +399,7 @@ def extract_single_cell_data(segmentation_labels, image_data,
         cell_data_norm_trans.values[:, :, 1:] = np.arcsinh(cell_data_norm_trans[:, :, 1:])
 
         transformed = pd.DataFrame(data=cell_data_norm_trans.values[0, :, :],
-                                  columns=cell_data.features)
+                                   columns=cell_data.features)
         transformed = pd.concat([transformed, cell_props], axis=1)
         transformed['fov'] = fov
         transformed_data = transformed_data.append(transformed)
