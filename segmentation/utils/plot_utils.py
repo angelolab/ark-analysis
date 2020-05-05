@@ -74,7 +74,6 @@ def plot_overlay(predicted_contour, plotting_tif, alternate_contour=None, path=N
     else:
         # rescale each channel to go from 0 to 255
         rescaled = np.zeros(plotting_tif.shape, dtype='uint8')
-        print("rescaled: {}".format(rescaled.shape))
 
         for idx in range(plotting_tif.shape[2]):
             if np.max(plotting_tif[:, :, idx]) == 0:
