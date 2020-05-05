@@ -143,7 +143,8 @@ def watershed_transform(model_output, channel_xr, overlay_channels, output_dir, 
                 io.imsave(os.path.join(output_dir, "{}_maxs_smoothed_thresholded.tiff".format(fov)),
                           maxima_thresholded.astype("float32"))
 
-                io.imsave(os.path.join(output_dir, "{}_maxs.tiff".format(fov)), maxs)
+                io.imsave(os.path.join(output_dir, "{}_maxs.tiff".format(fov)),
+                          maxs.astype('uint8'))
 
                 for chan in channel_xr.channels.values:
                     io.imsave(os.path.join(output_dir, "{}_{}.tiff".format(fov, chan)),
