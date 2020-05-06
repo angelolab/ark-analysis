@@ -101,7 +101,8 @@ def watershed_transform(model_output, channel_xr, overlay_channels, output_dir, 
                                              maxima_smooth)
         maxima_thresholded = maxima_smoothed
         maxima_thresholded[maxima_thresholded < maxima_threshold] = 0
-        maxs = peak_local_max(maxima_thresholded, indices=False, min_distance=5)
+        maxs = peak_local_max(maxima_thresholded, indices=False, min_distance=5,
+                              exclude_border=False)
 
         # generate interior predictions
         interior_smoothed = nd.gaussian_filter(model_output.loc[fov, :, :, interior_model].values,
@@ -146,6 +147,9 @@ def watershed_transform(model_output, channel_xr, overlay_channels, output_dir, 
 
                 io.imsave(os.path.join(output_dir, "{}_maxs_smoothed_thresholded.tiff".format(fov)),
                           maxima_thresholded.astype("float32"))
+
+                io.imsave(os.path.join(output_dir, "{}_maxs.tiff".format(fov)),
+                          maxs.astype('uint8'))
 
                 for chan in channel_xr.channels.values:
                     io.imsave(os.path.join(output_dir, "{}_{}.tiff".format(fov, chan)),
