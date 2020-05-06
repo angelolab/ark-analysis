@@ -12,13 +12,10 @@ def calc_dist_matrix(label_map):
             dist_matrix: cells x cells matrix with the euclidian
             distance between centers of corresponding cells"""
 
-    if len(np.unique(label_map)) < 3:
-        raise ValueError("Array must be provided in labeled format")
-
     props = skimage.measure.regionprops(label_map)
-    a = [None] * len(props)
+    a = []
     for i in range(len(props)):
-        a[i] = props[i].centroid
+        a.append(props[i].centroid)
     centroids = np.array(a)
     dist_matrix = cdist(centroids, centroids)
     return dist_matrix
