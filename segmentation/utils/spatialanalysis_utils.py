@@ -19,3 +19,4 @@ def calc_dist_matrix(label_map):
     centroids = np.array(a)
     dist_matrix = cdist(centroids, centroids)
     return dist_matrix
+
