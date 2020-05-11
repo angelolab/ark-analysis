@@ -14,6 +14,8 @@ def test_calc_dist_matrix():
     assert np.array_equal(dist_matrix, real_mat)
 
 
-def test_load_function():
-    testcsv = pd.read_csv("/Users/jaiveersingh/Documents/MATLAB/SpatialAnalysis/adj_p.csv")
-    testtiff = skimage.io.imread("/Users/jaiveersingh/Documents/MATLAB/SpatialAnalysis/newLmod.tiff")
+def test_distmat():
+    testtiff = io.imread("/Users/jaiveersingh/Documents/MATLAB/SpatialAnalysis/newLmod.tiff")
+    distMat = np.asarray(pd.read_csv("/Users/jaiveersingh/Documents/MATLAB/distancesMat5.csv", header = None))
+    testMat = spatialanalysis_utils.calc_dist_matrix(testtiff)
+    assert np.allclose(distMat, testMat)
