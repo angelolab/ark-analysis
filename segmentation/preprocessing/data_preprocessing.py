@@ -2,11 +2,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 from skimage.transform import resize
 import skimage.io as io
+import h5py
 import shutil
 
-from segmentation.utils import data_utils
+from segmentation.utils import data_utils, evaluation_utils
 
 # extract cHL data
+import math
 import h5py, re, os
 import pandas as pd
 
