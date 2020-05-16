@@ -1,15 +1,23 @@
 import pandas as pd
 import numpy as np
-from skimage import io
-from segmentation.utils import spatialanalysis_utils
+import scipy
+import statsmodels
+from statsmodels.stats.multitest import multipletests
 
+#Erin's Data Inputs
 cell_array = pd.read_csv("/Users/jaiveersingh/Downloads/SpatialEnrichment/granA_cellpheno_CS-asinh-norm_revised.csv")
 marker_thresholds = pd.read_csv("/Users/jaiveersingh/Downloads/SpatialEnrichment/markerThresholds.csv")
 dist_matrix = np.asarray(pd.read_csv("/Users/jaiveersingh/Documents/MATLAB/distancesMat5.csv", header = None))
 
-test_cellarray = pd.read_csv("/Users/jaiveersingh/Desktop/tests/celllabels.csv")
-test_thresholds = pd.read_csv("/Users/jaiveersingh/Desktop/tests/thresholds.csv")
-test_distmat = np.asarray(pd.read_csv("/Users/jaiveersingh/Desktop/tests/distmat.csv", header = None))
+#pv_cellarray = pd.read_csv("/Users/jaiveersingh/Desktop/tests/pvcelllabel.csv")
+#pv_distmat = np.asarray(pd.read_csv("/Users/jaiveersingh/Desktop/tests/pvdistmat.csv", header = None))
+
+#pv_cellarrayN = pd.read_csv("/Users/jaiveersingh/Desktop/tests/pvcellarrayN.csv")
+#pv_distmatN = np.asarray(pd.read_csv("/Users/jaiveersingh/Desktop/tests/pvdistmatN.csv", header = None))
+
+#randMat = np.random.randint(0,200,size=(60,60))
+#np.fill_diagonal(randMat, 0)
+#pv_cellarrayR = pd.read_csv("/Users/jaiveersingh/Desktop/tests/pvcellarrayR.csv")
 
 def spatial_analysis(dist_matrix, marker_thresholds, cell_array):
     ###Setup input and parameters
@@ -20,7 +28,7 @@ def spatial_analysis(dist_matrix, marker_thresholds, cell_array):
     markerTitles = dataAll.columns[markerInds]
     markerNum = len(markerTitles)
 
-    bootstrapNum = 3
+    bootstrapNum = 100
     distLim = 100
 
     closeNum = np.zeros((markerNum, markerNum), dtype = 'int')
@@ -51,7 +59,6 @@ def spatial_analysis(dist_matrix, marker_thresholds, cell_array):
             marker2PosLabels = patientData.loc[marker2PosInds, patientData.columns[cellLabelIdx]]
             marker2Num = len(marker2PosLabels)
             truncDistMat = dist_mat[np.ix_(np.asarray(marker1PosLabels-1), np.asarray(marker2PosLabels-1))]
-            #truncDistMat = dist_mat[marker1PosLabels-1, marker2PosLabels-1] ?
 
             truncDistMatBin = np.zeros(truncDistMat.shape, dtype = 'int')
             truncDistMatBin[truncDistMat < distLim] = 1
@@ -61,35 +68,34 @@ def spatial_analysis(dist_matrix, marker_thresholds, cell_array):
                 marker1LabelsRand = patientData[patientData.columns[cellLabelIdx]].sample(n = marker1Num, replace = True)
                 marker2LabelsRand = patientData[patientData.columns[cellLabelIdx]].sample(n = marker2Num, replace = True)
                 randTruncDistMat = dist_mat[np.ix_(np.asarray(marker1LabelsRand - 1), np.asarray(marker2LabelsRand - 1))]
-                #randTruncDistMat = dist_mat[marker1LabelsRand-1, marker2LabelsRand-1]  ?
-                randTruncDistMatBin = np.zeros(randTruncDistMat.shape)
+                randTruncDistMatBin = np.zeros(randTruncDistMat.shape, dtype = 'int')
                 randTruncDistMatBin[randTruncDistMat < distLim] = 1
 
                 closeNumRand[j,k,r] = np.sum(np.sum(randTruncDistMatBin))
-    return closeNum
-#z score, pval, and adj pval
 
+    #z score, pval, and adj pval
+    z = np.zeros((markerNum, markerNum))
+    muhat = np.zeros((markerNum, markerNum))
+    sigmahat = np.zeros((markerNum, markerNum))
 
-def test_spatial_analysis():
-    #_closeNum = np.asarray(pd.read_csv("/Users/jaiveersingh/Documents/MATLAB/true_closeNum.csv", header = None))
-    # closeNum = spatial_analysis()
-    test_closeNum = spatial_analysis(test_distmat, test_thresholds, test_cellarray)
-    assert test_closeNum[0, 0] == 16
-    assert test_closeNum[0, 1] == 16
-    assert test_closeNum[1, 0] == 16
-    assert test_closeNum[1, 1] == 16
-    assert test_closeNum[2, 2] == 25
-    assert test_closeNum[2, 3] == 25
-    assert test_closeNum[3, 2] == 25
-    assert test_closeNum[3, 3] == 25
-    assert test_closeNum[4, 4] == 1
-    assert test_closeNum[5, 4] == 1
-    assert test_closeNum[4, 5] == 1
-    assert test_closeNum[5, 5] == 1
+    p = np.zeros((markerNum, markerNum, 2))
 
-    #Now test with Erin's output
-    closeNum = spatial_analysis(dist_matrix, marker_thresholds, cell_array)
-    real_closeNum = np.asarray(pd.read_csv("/Users/jaiveersingh/Documents/MATLAB/SpatialAnalysis/closeNum.csv"))
-    assert np.array_equal(closeNum, real_closeNum)
+    for j in range(0, markerNum):
+        for k in range(0, markerNum):
+            tmp = np.reshape(closeNumRand[j, k, :], (bootstrapNum, 1))
+            (muhat[j, k], sigmahat[j, k]) = scipy.stats.norm.fit(tmp)
+            z[j, k] = (closeNum[j, k] - muhat[j, k]) / sigmahat[j, k]
+            p[j, k, 0] = (1 + (np.sum(tmp >= closeNum[j, k]))) / (bootstrapNum + 1)
+            p[j, k, 1] = (1 + (np.sum(tmp <= closeNum[j, k]))) / (bootstrapNum + 1)
 
-test_spatial_analysis()
+    p_summary = p[:, :, 0]
+    for j in range(0, markerNum):
+        for k in range(0, markerNum):
+            if z[j,k] > 0:
+                p_summary[j, k] = p[j, k, 0]
+            else:
+                p_summary[j, k] = p[j, k, 1]
+    (h, adj_p, aS, aB) = statsmodels.stats.multitest.multipletests(p_summary, alpha = .05)
+
+    return closeNum, closeNumRand, z, muhat, sigmahat, p, h, adj_p, markerTitles
+    #end
