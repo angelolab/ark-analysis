@@ -27,7 +27,7 @@ def make_distance_matrix(typeOfEnfrichment):
         np.fill_diagonal(randMat, 0)
         return randMat
     elif(typeOfEnfrichment == "positive"):
-        distMatP = np.zeros((80,80))
+        distMatP = np.zeros((80, 80))
         distMatP[10:20, :10] = 50
         distMatP[:10, 10:20] = 50
         distMatP[20:40, :20] = 200
