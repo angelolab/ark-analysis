@@ -68,7 +68,7 @@ def spatial_analysis(dist_matrix, marker_thresholds, cell_array):
     # Setup input and parameters
     point = 6
     data_all = cell_array
-    marker_inds = [7, 8] + list(range(10, 44))
+    marker_inds = [7, 8]  # + list(range(10, 44))
     data_markers = data_all.loc[:, data_all.columns[marker_inds]]
     marker_titles = data_all.columns[marker_inds]
     marker_num = len(marker_titles)
