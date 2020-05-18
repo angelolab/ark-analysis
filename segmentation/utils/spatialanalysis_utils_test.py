@@ -1,8 +1,9 @@
 import numpy as np
 import pandas as pd
-from skimage import io
 from segmentation.utils import spatialanalysis_utils
 from segmentation.utils import spatialorgmarkerexpression_utils
+import importlib
+importlib.reload(spatialorgmarkerexpression_utils)
 
 
 def test_calc_dist_matrix():
@@ -124,21 +125,21 @@ def test_spatial_analysis():
     # positive enrichment
     cellarrayp = make_expression_matrix("positive")
     distmatp = make_distance_matrix("positive")
-    closenum, closenumrand, zp, muhat, sigmahat, pp, h, adj_p, markertitles = \
+    closenum, closenumrand, z, muhat, sigmahat, p, h, adj_p, markertitles = \
         spatialorgmarkerexpression_utils.spatial_analysis(
             distmatp, marker_thresholds, cellarrayp)
-    assert pp[0, 1, 0] < .05
-    assert pp[0, 1, 1] > .05
-    assert zp[0, 1] > 0
+    assert p[0, 1, 0] < .05
+    assert p[0, 1, 1] > .05
+    assert z[0, 1] > 0
     # negative enrichment
     cellarrayn = make_expression_matrix("negative")
     distmatn = make_distance_matrix("negative")
-    closenum, closenumrand, zn, muhatn, sigmahatn, pn, h, adj_p, markertitles = \
+    closenum, closenumrand, z, muhatn, sigmahatn, p, h, adj_p, markertitles = \
         spatialorgmarkerexpression_utils.spatial_analysis(
             distmatn, marker_thresholds, cellarrayn)
-    assert pn[0, 1, 1] < .05
-    assert pn[0, 1, 0] > .05
-    assert zn[0, 1] < 0
+    assert p[0, 1, 1] < .05
+    assert p[0, 1, 0] > .05
+    assert z[0, 1] < 0
     # no enrichment
     cellarray = make_expression_matrix("none")
     distmat = make_distance_matrix("none")
@@ -146,5 +147,5 @@ def test_spatial_analysis():
         spatialorgmarkerexpression_utils.spatial_analysis(
             distmat, marker_thresholds, cellarray)
     assert p[0, 1, 0] > .05
-    assert p[0, 1, 1] < .05
+    assert p[0, 1, 1] > .05
     assert abs(z[0, 1]) < 1

@@ -5,7 +5,7 @@ import statsmodels
 from statsmodels.stats.multitest import multipletests
 
 # Erin's Data Inputs
-
+"""
 cell_array = pd.read_csv("/Users/jaiveersingh/Downloads/SpatialEn"
                          "richment/granA_cellpheno_CS-asinh-norm_revised.csv")
 marker_thresholds = pd.read_csv("/Users/jaiveersingh/Downloads/Sp"
@@ -13,7 +13,7 @@ marker_thresholds = pd.read_csv("/Users/jaiveersingh/Downloads/Sp"
 dist_matrix = np.asarray(pd.read_csv("/Users/jaiveersingh/Documen"
                                      "ts/MATLAB/distancesMat5.csv",
                                      header=None))
-
+"""
 
 # Test array inputs
 """
@@ -156,7 +156,7 @@ def spatial_analysis(dist_matrix, marker_thresholds, cell_array):
                 np.sum(tmp <= close_num[j, k]))) / (bootstrap_num + 1)
             # print(p[j, k, 1])
 
-    p_summary = p[:, :, 0]
+    p_summary = np.zeros_like(p[:, :, 0])
     for j in range(0, marker_num):
         for k in range(0, marker_num):
             if z[j, k] > 0:
