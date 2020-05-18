@@ -109,8 +109,8 @@ def spatial_analysis(dist_matrix, marker_thresholds, cell_array):
                 marker2posinds, patient_data.columns[cell_label_idx]]
             marker2_num = len(marker2poslabels)
             trunc_dist_mat = dist_mat[np.ix_(
-                np.asarray(marker1poslabels-1), np.asarray(
-                    marker2poslabels-1))]
+                np.asarray(marker1poslabels - 1), np.asarray(
+                    marker2poslabels - 1))]
 
             trunc_dist_mat_bin = np.zeros(trunc_dist_mat.shape, dtype='int')
             trunc_dist_mat_bin[trunc_dist_mat < dist_lim] = 1
