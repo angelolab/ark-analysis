@@ -98,7 +98,7 @@ def test_spatial_analysis():
     test_distmat = np.asarray(pd.read_csv(
         "/Users/jaiveersingh/Desktop/tests/distmat.csv", header=None))
     test_closeNum, closeNumRand, z, muhat, sigmahat, p, h, adj_p, \
-        markerTitles = spatialorgmarkerexpression_utils.spatial_analysis(
+        markerTitles = spatialorgmarkerexpression_utils.calculate_channel_spatial_enrichment(
             test_distmat, test_thresholds, test_cellarray)
     assert (test_closeNum[:2, :2] == 16).all()
     assert (test_closeNum[2:4, 2:4] == 25).all()
@@ -113,7 +113,7 @@ def test_spatial_analysis():
     dist_matrix = np.asarray(pd.read_csv(
         "/Users/jaiveersingh/Documents/MATLAB/distancesMat5.csv", header=None))
     closenum, closenumRand, z, muhat, sigmahat, p, h, adj_p, markertitles = \
-        spatialorgmarkerexpression_utils.spatial_analysis(
+        spatialorgmarkerexpression_utils.calculate_channel_spatial_enrichment(
             dist_matrix, marker_thresholds, cell_array)
     real_closenum = np.asarray(pd.read_csv(
         "/Users/jaiveersingh/Documents/MATLAB/SpatialAnalysis/closeNum.csv"))
@@ -126,7 +126,7 @@ def test_spatial_analysis():
     cellarrayp = make_expression_matrix("positive")
     distmatp = make_distance_matrix("positive")
     closenum, closenumrand, z, muhat, sigmahat, p, h, adj_p, markertitles = \
-        spatialorgmarkerexpression_utils.spatial_analysis(
+        spatialorgmarkerexpression_utils.calculate_channel_spatial_enrichment(
             distmatp, marker_thresholds, cellarrayp)
     assert p[0, 1, 0] < .05
     assert p[0, 1, 1] > .05
@@ -135,7 +135,7 @@ def test_spatial_analysis():
     cellarrayn = make_expression_matrix("negative")
     distmatn = make_distance_matrix("negative")
     closenum, closenumrand, z, muhatn, sigmahatn, p, h, adj_p, markertitles = \
-        spatialorgmarkerexpression_utils.spatial_analysis(
+        spatialorgmarkerexpression_utils.calculate_channel_spatial_enrichment(
             distmatn, marker_thresholds, cellarrayn)
     assert p[0, 1, 1] < .05
     assert p[0, 1, 0] > .05
@@ -144,7 +144,7 @@ def test_spatial_analysis():
     cellarray = make_expression_matrix("none")
     distmat = make_distance_matrix("none")
     closenum, closenumrand, z, muhat, sigmahat, p, h, adj_p, markertitles = \
-        spatialorgmarkerexpression_utils.spatial_analysis(
+        spatialorgmarkerexpression_utils.calculate_channel_spatial_enrichment(
             distmat, marker_thresholds, cellarray)
     assert p[0, 1, 0] > .05
     assert p[0, 1, 1] > .05
