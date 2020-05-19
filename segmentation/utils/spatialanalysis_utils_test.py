@@ -233,4 +233,3 @@ def test_spatial_analysis():
     assert p[0, 1, 0] > .05
     assert p[0, 1, 1] > .05
     assert abs(z[0, 1]) < 1
-
