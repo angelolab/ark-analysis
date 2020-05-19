@@ -5,49 +5,44 @@ import statsmodels
 from statsmodels.stats.multitest import multipletests
 
 # Erin's Data Inputs
-"""
-cell_array = pd.read_csv("/Users/jaiveersingh/Downloads/SpatialEn"
-                         "richment/granA_cellpheno_CS-asinh-norm_revised.csv")
-marker_thresholds = pd.read_csv("/Users/jaiveersingh/Downloads/Sp"
-                                "atialEnrichment/markerThresholds.csv")
-dist_matrix = np.asarray(pd.read_csv("/Users/jaiveersingh/Documen"
-                                     "ts/MATLAB/distancesMat5.csv",
-                                     header=None))
-"""
+
+# cell_array = pd.read_csv("/Users/jaiveersingh/Downloads/SpatialEn"
+#                          "richment/granA_cellpheno_CS-asinh-norm_revised.csv")
+# marker_thresholds = pd.read_csv("/Users/jaiveersingh/Downloads/Sp"
+#                                 "atialEnrichment/markerThresholds.csv")
+# dist_matrix = np.asarray(pd.read_csv("/Users/jaiveersingh/Documen"
+#                                      "ts/MATLAB/distancesMat5.csv",
+#                                      header=None))
+
 
 # Test array inputs
-"""
-pv_cellarray = pd.read_csv("/Users/jaiveersingh/De
-sktop/tests/pvcelllabel.csv")
 
-pv_distmat = np.asarray(pd.read_csv("/Users/jaiveersingh/
-Desktop/tests/pvdistmat.csv", header = None))
+# pv_cellarray = pd.read_csv("/Users/jaiveersingh/De
+# sktop/tests/pvcelllabel.csv")
+#
+# pv_distmat = np.asarray(pd.read_csv("/Users/jaiveersingh/
+# Desktop/tests/pvdistmat.csv", header = None))
+#
+# pv_cellarrayn = pd.read_csv("/Users/jaiv
+# eersingh/Desktop/tests/pvcellarrayN.csv")
+#
+# pv_distmatn = np.asarray(pd.read_csv("/Users/jaiveers
+# ingh/Desktop/tests/pvdistmatN.csv", header = None))
+#
+# randMat = np.random.randint(0,200,size=(60,60))
+# np.fill_diagonal(randMat, 0)
+#
+# pv_cellarrayr = pd.read_csv("/Users/jaiveers"
+# ingh/Desktop/tests/pvcellarrayR.csv")
 
-pv_cellarrayn = pd.read_csv("/Users/jaiv
-eersingh/Desktop/tests/pvcellarrayN.csv")
 
-pv_distmatn = np.asarray(pd.read_csv("/Users/jaiveers
-ingh/Desktop/tests/pvdistmatN.csv", header = None))
+def helper_function_closenum(patient_data, patient_data_markers, thresh_vec, dist_mat, marker_num):
 
-randMat = np.random.randint(0,200,size=(60,60))
-np.fill_diagonal(randMat, 0)
-
-pv_cellarrayr = pd.read_csv("/Users/jaiveers"
-ingh/Desktop/tests/pvcellarrayR.csv")
-"""
-
-
-def helper_function(
-        patient_data, patient_data_markers, thresh_vec, dist_mat, marker_num):
-
-    bootstrap_num = 100
     dist_lim = 100
-
     close_num = np.zeros((marker_num, marker_num), dtype='int')
-    close_num_rand = np.zeros((
-        marker_num, marker_num, bootstrap_num), dtype='int')
-
     cell_label_idx = 1
+    marker1_num = 0
+    marker2_num = 0
 
     # later implement outside for loop for dif points
     for j in range(0, marker_num):
@@ -72,13 +67,26 @@ def helper_function(
             trunc_dist_mat_bin[trunc_dist_mat < dist_lim] = 1
 
             close_num[j, k] = np.sum(np.sum(trunc_dist_mat_bin))
+    return close_num, marker1_num, marker2_num
+
+
+def helper_function_closenumrand(marker1_num, marker2_num, patient_data, dist_mat, marker_num):
+
+    bootstrap_num = 100
+    dist_lim = 100
+    close_num_rand = np.zeros((
+        marker_num, marker_num, bootstrap_num), dtype='int')
+    cell_label_idx = 1
+
+    for j in range(0, marker_num):
+        for k in range(0, marker_num):
             for r in range(0, bootstrap_num):
                 marker1labelsrand = patient_data[
                     patient_data.columns[cell_label_idx]].sample(
-                    n=marker1_num, replace=True)
+                        n=marker1_num, replace=True)
                 marker2labelsrand = patient_data[
                     patient_data.columns[cell_label_idx]].sample(
-                    n=marker2_num, replace=True)
+                        n=marker2_num, replace=True)
                 rand_trunc_dist_mat = dist_mat[np.ix_(
                     np.asarray(marker1labelsrand - 1), np.asarray(
                         marker2labelsrand - 1))]
@@ -88,7 +96,7 @@ def helper_function(
 
                 close_num_rand[j, k, r] = \
                     np.sum(np.sum(rand_trunc_dist_mat_bin))
-    return close_num, close_num_rand
+    return close_num_rand
 
 
 def calculate_enrichment_stats(close_num, close_num_rand):
@@ -125,8 +133,7 @@ def calculate_enrichment_stats(close_num, close_num_rand):
     return z, muhat, sigmahat, p, h, adj_p
 
 
-def calculate_channel_spatial_enrichment(
-        dist_matrix, marker_thresholds, cell_array):
+def calculate_channel_spatial_enrichment(dist_matrix, marker_thresholds, cell_array):
     """Spatial enrichment analysis to find significant interactions between cells
         expressing different markers.
         Uses bootstrapping to permute cell labels randomly.
@@ -172,8 +179,9 @@ def calculate_channel_spatial_enrichment(
     patient_data = data_all[patient_ids]
     patient_data_markers = data_markers[patient_ids]
 
-    close_num, close_num_rand = helper_function(
+    close_num, marker1_num, marker2_num = helper_function_closenum(
         patient_data, patient_data_markers, thresh_vec, dist_mat, marker_num)
+    close_num_rand = helper_function_closenumrand(marker1_num, marker2_num, patient_data, dist_mat, marker_num)
 
     z, muhat, sigmahat, p, h, adj_p = calculate_enrichment_stats(close_num, close_num_rand)
 

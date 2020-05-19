@@ -16,15 +16,15 @@ def test_calc_dist_matrix():
     assert np.array_equal(dist_matrix, real_mat)
 
 
-"""
-def test_distmat():
-    testtiff = io.imread(
-        "/Users/jaiveersingh/Documents/MATLAB/SpatialAnalysis/newLmod.tiff")
-    distmat = np.asarray(pd.read_csv(
-        "/Users/jaiveersingh/Documents/MATLAB/distancesMat5.csv", header=None))
-    testmat = spatialanalysis_utils.calc_dist_matrix(testtiff)
-    assert np.allclose(distmat, testmat)
-"""
+
+# def test_distmat():
+#     testtiff = io.imread(
+#         "/Users/jaiveersingh/Documents/MATLAB/SpatialAnalysis/newLmod.tiff")
+#     distmat = np.asarray(pd.read_csv(
+#         "/Users/jaiveersingh/Documents/MATLAB/distancesMat5.csv", header=None))
+#     testmat = spatialanalysis_utils.calc_dist_matrix(testtiff)
+#     assert np.allclose(distmat, testmat)
+
 
 
 def make_distance_matrix(typeofenfrichment):
@@ -86,39 +86,75 @@ def make_threshold_mat():
     thresh.iloc[:, 1] = .5
     return thresh
 
+def make_test_closenum():
+    cellarray = pd.DataFrame(np.zeros((10, 53)))
+    cellarray[0] = 6
+    cellarray[1] = np.arange(len(cellarray[1])) + 1
+    cellarray.iloc[0:4, 7] = 1
+    cellarray.iloc[0:4, 8] = 1
+    cellarray.iloc[4:9, 10] = 1
+    cellarray.iloc[4:9, 11] = 1
+    cellarray.iloc[9, 12] = 1
+    cellarray.iloc[9, 13] = 1
+
+    distmat = np.zeros((10, 10))
+    np.fill_diagonal(distmat, 0)
+    distmat[1:4, 0] = 50
+    distmat[0, 1:4] = 50
+    distmat[4:9, 0] = 200
+    distmat[0, 4:9] = 200
+    distmat[9, 0] = 500
+    distmat[0, 9] = 500
+    distmat[2:4, 1] = 50
+    distmat[1, 2:4] = 50
+    distmat[4:9, 1] = 150
+    distmat[1, 4:9] = 150
+    distmat[9, 1:9] = 200
+    distmat[1:9, 9] = 200
+    distmat[3, 2] = 50
+    distmat[2, 3] = 50
+    distmat[4:9, 2] = 150
+    distmat[2, 4:9] = 150
+    distmat[4:9, 3] = 150
+    distmat[3, 4:9] = 150
+    distmat[5:9, 4] = 50
+    distmat[4, 5:9] = 50
+    distmat[6:9, 5] = 50
+    distmat[5, 6:9] = 50
+    distmat[7:9, 6] = 50
+    distmat[6, 7:9] = 50
+    distmat[8, 7] = 50
+    distmat[7, 8] = 50
+
+    return cellarray, distmat
 
 def test_spatial_analysis():
 
-    """
     # test the closenum function
-    test_cellarray = pd.read_csv(
-        "/Users/jaiveersingh/Desktop/tests/celllabels.csv")
-    test_thresholds = pd.read_csv(
-        "/Users/jaiveersingh/Desktop/tests/thresholds.csv")
-    test_distmat = np.asarray(pd.read_csv(
-        "/Users/jaiveersingh/Desktop/tests/distmat.csv", header=None))
-    test_closeNum, closeNumRand, z, muhat, sigmahat, p, h, adj_p, \
-        markerTitles = spatialorgmarkerexpression_utils.calculate_channel_spatial_enrichment(
+    test_cellarray, test_distmat = make_test_closenum()
+    test_thresholds = make_threshold_mat()
+    test_closenum, test_closenumrand, z, muhat, sigmahat, p, h, adj_p, \
+        markertitles = spatialorgmarkerexpression_utils.calculate_channel_spatial_enrichment(
             test_distmat, test_thresholds, test_cellarray)
-    assert (test_closeNum[:2, :2] == 16).all()
-    assert (test_closeNum[2:4, 2:4] == 25).all()
-    assert (test_closeNum[4:6, 4:6] == 1).all()
+    assert (test_closenum[:2, :2] == 16).all()
+    # assert (test_closenum[2:4, 2:4] == 25).all()
+    # assert (test_closenum[4:6, 4:6] == 1).all()
+    assert test_closenumrand.shape == (2, 2, 100)
 
     # Now test with Erin's output
-    cell_array = pd.read_csv(
-        "/Users/jaiveersingh/Downloads/SpatialEnrichm"
-        "ent/granA_cellpheno_CS-asinh-norm_revised.csv")
-    marker_thresholds = pd.read_csv(
-        "/Users/jaiveersingh/Downloads/SpatialEnrichment/markerThresholds.csv")
-    dist_matrix = np.asarray(pd.read_csv(
-        "/Users/jaiveersingh/Documents/MATLAB/distancesMat5.csv", header=None))
-    closenum, closenumRand, z, muhat, sigmahat, p, h, adj_p, markertitles = \
-        spatialorgmarkerexpression_utils.calculate_channel_spatial_enrichment(
-            dist_matrix, marker_thresholds, cell_array)
-    real_closenum = np.asarray(pd.read_csv(
-        "/Users/jaiveersingh/Documents/MATLAB/SpatialAnalysis/closeNum.csv"))
-    assert np.array_equal(closenum, real_closenum)
-    """
+    # cell_array = pd.read_csv(
+    #     "/Users/jaiveersingh/Downloads/SpatialEnrichm"
+    #     "ent/granA_cellpheno_CS-asinh-norm_revised.csv")
+    # marker_thresholds = pd.read_csv(
+    #     "/Users/jaiveersingh/Downloads/SpatialEnrichment/markerThresholds.csv")
+    # dist_matrix = np.asarray(pd.read_csv(
+    #     "/Users/jaiveersingh/Documents/MATLAB/distancesMat5.csv", header=None))
+    # closenum, closenumRand, z, muhat, sigmahat, p, h, adj_p, markertitles = \
+    #     spatialorgmarkerexpression_utils.calculate_channel_spatial_enrichment(
+    #         dist_matrix, marker_thresholds, cell_array)
+    # real_closenum = np.asarray(pd.read_csv(
+    #     "/Users/jaiveersingh/Documents/MATLAB/SpatialAnalysis/closeNum.csv"))
+    # assert np.array_equal(closenum, real_closenum)
 
     # test z and p values
     marker_thresholds = make_threshold_mat()
