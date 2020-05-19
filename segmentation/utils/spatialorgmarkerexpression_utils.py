@@ -36,29 +36,39 @@ from statsmodels.stats.multitest import multipletests
 # ingh/Desktop/tests/pvcellarrayR.csv")
 
 
-def helper_function_closenum(patient_data, patient_data_markers, thresh_vec, dist_mat, marker_num):
-
-    dist_lim = 100
+def helper_function_closenum(patient_data, patient_data_markers, thresh_vec, dist_mat, marker_num, dist_lim):
+    """Finds positive cell labels and creates matrix with
+        counts for cells positive for corresponding markers.
+            Args
+                patient_data: cell expression data for the specific point
+                patient_data_markers: cell expression data of markers
+                    for the specific point
+                thresh_vec: matrix of thresholds column for markers
+                dist_mat: cells x cells matrix with the euclidian
+                    distance between centers of corresponding cells
+                marker_num: number of markers in expresion data
+                dist_lim: threshold for spatial enrichment distance proximity
+            Returns
+                close_num: marker x marker matrix with counts for cells
+                    positive for corresponding markers
+                marker1_num: list of number of cell labels for marker 1
+                marker2_num: list of number of cell labels for marker 2"""
     close_num = np.zeros((marker_num, marker_num), dtype='int')
     cell_label_idx = 1
-    marker1_num = 0
-    marker2_num = 0
+    marker1_num = []
+    marker2_num = []
 
     # later implement outside for loop for dif points
     for j in range(0, marker_num):
         marker1_thresh = thresh_vec.iloc[j]
-        marker1posinds = patient_data_markers[patient_data_markers.columns[
-            j]] > marker1_thresh
-        marker1poslabels = patient_data.loc[
-            marker1posinds, patient_data.columns[cell_label_idx]]
-        marker1_num = len(marker1poslabels)
+        marker1posinds = patient_data_markers[patient_data_markers.columns[j]] > marker1_thresh
+        marker1poslabels = patient_data.loc[marker1posinds, patient_data.columns[cell_label_idx]]
+        marker1_num.append(len(marker1poslabels))
         for k in range(0, marker_num):
             marker2_thresh = thresh_vec.iloc[k]
-            marker2posinds = patient_data_markers[patient_data_markers.columns[
-                k]] > marker2_thresh
-            marker2poslabels = patient_data.loc[
-                marker2posinds, patient_data.columns[cell_label_idx]]
-            marker2_num = len(marker2poslabels)
+            marker2posinds = patient_data_markers[patient_data_markers.columns[k]] > marker2_thresh
+            marker2poslabels = patient_data.loc[marker2posinds, patient_data.columns[cell_label_idx]]
+            marker2_num.append(len(marker2poslabels))
             trunc_dist_mat = dist_mat[np.ix_(
                 np.asarray(marker1poslabels - 1), np.asarray(
                     marker2poslabels - 1))]
@@ -70,10 +80,22 @@ def helper_function_closenum(patient_data, patient_data_markers, thresh_vec, dis
     return close_num, marker1_num, marker2_num
 
 
-def helper_function_closenumrand(marker1_num, marker2_num, patient_data, dist_mat, marker_num):
+def helper_function_closenumrand(marker1_num, marker2_num, patient_data, dist_mat, marker_num, dist_lim):
+    """Uses bootstrapping to permute cell labels randomly.
+
+        Args
+            marker1_num: list of number of cell labels for marker 1
+            marker2_num: list of number of cell labels for marker 2
+            patient_data: cell expression data for the specific point
+            dist_mat: cells x cells matrix with the euclidian
+                distance between centers of corresponding cells
+            marker_num: number of markers in expresion data
+            dist_lim: threshold for spatial enrichment distance proximity
+        Returns
+            close_num_rand: random positive marker counts
+                for every permutation in the bootstrap"""
 
     bootstrap_num = 100
-    dist_lim = 100
     close_num_rand = np.zeros((
         marker_num, marker_num, bootstrap_num), dtype='int')
     cell_label_idx = 1
@@ -83,23 +105,40 @@ def helper_function_closenumrand(marker1_num, marker2_num, patient_data, dist_ma
             for r in range(0, bootstrap_num):
                 marker1labelsrand = patient_data[
                     patient_data.columns[cell_label_idx]].sample(
-                        n=marker1_num, replace=True)
+                        n=marker1_num[j], replace=True)
                 marker2labelsrand = patient_data[
                     patient_data.columns[cell_label_idx]].sample(
-                        n=marker2_num, replace=True)
+                        n=marker2_num[k], replace=True)
                 rand_trunc_dist_mat = dist_mat[np.ix_(
                     np.asarray(marker1labelsrand - 1), np.asarray(
                         marker2labelsrand - 1))]
-                rand_trunc_dist_mat_bin = np.zeros(
-                    rand_trunc_dist_mat.shape, dtype='int')
+                rand_trunc_dist_mat_bin = np.zeros(rand_trunc_dist_mat.shape, dtype='int')
                 rand_trunc_dist_mat_bin[rand_trunc_dist_mat < dist_lim] = 1
 
-                close_num_rand[j, k, r] = \
-                    np.sum(np.sum(rand_trunc_dist_mat_bin))
+                close_num_rand[j, k, r] = np.sum(np.sum(rand_trunc_dist_mat_bin))
     return close_num_rand
 
 
 def calculate_enrichment_stats(close_num, close_num_rand):
+    """Calculates z score and p values from spatial enrichment analysis.
+
+        Args
+            close_num: marker x marker matrix with counts for cells
+                positive for corresponding markers
+            close_num_rand: random positive marker counts
+                for every permutation in the bootstrap
+        Returns
+            z: z scores for corresponding markers
+            muhat: predicted mean values
+                of close_num_rand random distribution
+            sigmahat: predicted standard deviation values of close_num_rand
+                random distribution
+            p: p values for corresponding markers, for both positive
+                and negative enrichment
+            h: matrix indicating whether
+                corresponding marker interactions are significant
+            adj_p: fdh_br adjusted p values"""
+
     marker_num = close_num.shape[0]
     bootstrap_num = close_num_rand.shape[2]
 
@@ -115,10 +154,8 @@ def calculate_enrichment_stats(close_num, close_num_rand):
             tmp = np.reshape(close_num_rand[j, k, :], (bootstrap_num, 1))
             (muhat[j, k], sigmahat[j, k]) = scipy.stats.norm.fit(tmp)
             z[j, k] = (close_num[j, k] - muhat[j, k]) / sigmahat[j, k]
-            p[j, k, 0] = (1 + (
-                np.sum(tmp >= close_num[j, k]))) / (bootstrap_num + 1)
-            p[j, k, 1] = (1 + (
-                np.sum(tmp <= close_num[j, k]))) / (bootstrap_num + 1)
+            p[j, k, 0] = (1 + (np.sum(tmp >= close_num[j, k]))) / (bootstrap_num + 1)
+            p[j, k, 1] = (1 + (np.sum(tmp <= close_num[j, k]))) / (bootstrap_num + 1)
 
     p_summary = np.zeros_like(p[:, :, 0])
     for j in range(0, marker_num):
@@ -170,6 +207,7 @@ def calculate_channel_spatial_enrichment(dist_matrix, marker_thresholds, cell_ar
     marker_num = len(marker_titles)
 
     patient_idx = 0
+    dist_lim = 100
 
     marker_thresh = marker_thresholds
     thresh_vec = marker_thresh.iloc[1:38, 1]
@@ -180,10 +218,10 @@ def calculate_channel_spatial_enrichment(dist_matrix, marker_thresholds, cell_ar
     patient_data_markers = data_markers[patient_ids]
 
     close_num, marker1_num, marker2_num = helper_function_closenum(
-        patient_data, patient_data_markers, thresh_vec, dist_mat, marker_num)
-    close_num_rand = helper_function_closenumrand(marker1_num, marker2_num, patient_data, dist_mat, marker_num)
+        patient_data, patient_data_markers, thresh_vec, dist_mat, marker_num, dist_lim)
+    close_num_rand = helper_function_closenumrand(
+        marker1_num, marker2_num, patient_data, dist_mat, marker_num, dist_lim)
 
     z, muhat, sigmahat, p, h, adj_p = calculate_enrichment_stats(close_num, close_num_rand)
 
-    return close_num, close_num_rand, z, \
-        muhat, sigmahat, p, h, adj_p, marker_titles
+    return close_num, close_num_rand, z, muhat, sigmahat, p, h, adj_p, marker_titles

@@ -128,18 +128,34 @@ def make_test_closenum():
     return cellarray, distmat
 
 
-def test_spatial_analysis():
-
+def test_closenum():
     # test the closenum function
     test_cellarray, test_distmat = make_test_closenum()
     test_thresholds = make_threshold_mat()
-    test_closenum, test_closenumrand, z, muhat, sigmahat, p, h, adj_p, \
-        markertitles = spatialorgmarkerexpression_utils.calculate_channel_spatial_enrichment(
-            test_distmat, test_thresholds, test_cellarray)
+
+    point = 6
+    data_all = test_cellarray
+    marker_inds = [7, 8]  # + list(range(10, 44))
+    data_markers = data_all.loc[:, data_all.columns[marker_inds]]
+    marker_titles = data_all.columns[marker_inds]
+    marker_num = len(marker_titles)
+
+    patient_idx = 0
+    dist_lim = 100
+
+    marker_thresh = test_thresholds
+    thresh_vec = marker_thresh.iloc[1:38, 1]
+
+    dist_mat = test_distmat
+    patient_ids = data_all.iloc[:, patient_idx] == point
+    patient_data = data_all[patient_ids]
+    patient_data_markers = data_markers[patient_ids]
+
+    test_closenum, marker1_num, marker2_num = spatialorgmarkerexpression_utils.helper_function_closenum(
+        patient_data, patient_data_markers, thresh_vec, dist_mat, marker_num, dist_lim)
     assert (test_closenum[:2, :2] == 16).all()
     # assert (test_closenum[2:4, 2:4] == 25).all()
     # assert (test_closenum[4:6, 4:6] == 1).all()
-    assert test_closenumrand.shape == (2, 2, 100)
 
     # Now test with Erin's output
     # cell_array = pd.read_csv(
@@ -156,6 +172,38 @@ def test_spatial_analysis():
     #     "/Users/jaiveersingh/Documents/MATLAB/SpatialAnalysis/closeNum.csv"))
     # assert np.array_equal(closenum, real_closenum)
 
+
+def test_closenumrand():
+    test_cellarray, test_distmat = make_test_closenum()
+    test_thresholds = make_threshold_mat()
+
+    point = 6
+    data_all = test_cellarray
+    marker_inds = [7, 8]  # + list(range(10, 44))
+    data_markers = data_all.loc[:, data_all.columns[marker_inds]]
+    marker_titles = data_all.columns[marker_inds]
+    marker_num = len(marker_titles)
+
+    patient_idx = 0
+    dist_lim = 100
+
+    marker_thresh = test_thresholds
+    thresh_vec = marker_thresh.iloc[1:38, 1]
+
+    dist_mat = test_distmat
+    patient_ids = data_all.iloc[:, patient_idx] == point
+    patient_data = data_all[patient_ids]
+    patient_data_markers = data_markers[patient_ids]
+
+    close_num, marker1_num, marker2_num = spatialorgmarkerexpression_utils.helper_function_closenum(
+        patient_data, patient_data_markers, thresh_vec, dist_mat, marker_num, dist_lim)
+
+    test_closenumrand = spatialorgmarkerexpression_utils.helper_function_closenumrand(
+        marker1_num, marker2_num, patient_data, dist_mat, marker_num, dist_lim)
+    assert test_closenumrand.shape == (2, 2, 100)
+
+
+def test_spatial_analysis():
     # test z and p values
     marker_thresholds = make_threshold_mat()
     # positive enrichment
@@ -185,3 +233,4 @@ def test_spatial_analysis():
     assert p[0, 1, 0] > .05
     assert p[0, 1, 1] > .05
     assert abs(z[0, 1]) < 1
+
