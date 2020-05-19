@@ -16,7 +16,6 @@ def test_calc_dist_matrix():
     assert np.array_equal(dist_matrix, real_mat)
 
 
-
 # def test_distmat():
 #     testtiff = io.imread(
 #         "/Users/jaiveersingh/Documents/MATLAB/SpatialAnalysis/newLmod.tiff")
@@ -24,7 +23,6 @@ def test_calc_dist_matrix():
 #         "/Users/jaiveersingh/Documents/MATLAB/distancesMat5.csv", header=None))
 #     testmat = spatialanalysis_utils.calc_dist_matrix(testtiff)
 #     assert np.allclose(distmat, testmat)
-
 
 
 def make_distance_matrix(typeofenfrichment):
@@ -86,6 +84,7 @@ def make_threshold_mat():
     thresh.iloc[:, 1] = .5
     return thresh
 
+
 def make_test_closenum():
     cellarray = pd.DataFrame(np.zeros((10, 53)))
     cellarray[0] = 6
@@ -127,6 +126,7 @@ def make_test_closenum():
     distmat[7, 8] = 50
 
     return cellarray, distmat
+
 
 def test_spatial_analysis():
 
