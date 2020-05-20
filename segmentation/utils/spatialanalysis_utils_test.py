@@ -143,16 +143,14 @@ def test_closenum():
     patient_idx = 0
     dist_lim = 100
 
-    marker_thresh = test_thresholds
-    thresh_vec = marker_thresh.iloc[1:38, 1]
+    thresh_vec = test_thresholds.iloc[1:38, 1]
 
-    dist_mat = test_distmat
     patient_ids = data_all.iloc[:, patient_idx] == point
     patient_data = data_all[patient_ids]
     patient_data_markers = data_markers[patient_ids]
 
     test_closenum, marker1_num, marker2_num = spatialorgmarkerexpression_utils.helper_function_closenum(
-        patient_data, patient_data_markers, thresh_vec, dist_mat, marker_num, dist_lim)
+        patient_data, patient_data_markers, thresh_vec, test_distmat, marker_num, dist_lim)
     assert (test_closenum[:2, :2] == 16).all()
     # assert (test_closenum[2:4, 2:4] == 25).all()
     # assert (test_closenum[4:6, 4:6] == 1).all()
@@ -178,6 +176,7 @@ def test_closenumrand():
     test_thresholds = make_threshold_mat()
 
     point = 6
+
     data_all = test_cellarray
     marker_inds = [7, 8]  # + list(range(10, 44))
     data_markers = data_all.loc[:, data_all.columns[marker_inds]]
@@ -187,19 +186,17 @@ def test_closenumrand():
     patient_idx = 0
     dist_lim = 100
 
-    marker_thresh = test_thresholds
-    thresh_vec = marker_thresh.iloc[1:38, 1]
+    thresh_vec = test_thresholds.iloc[1:38, 1]
 
-    dist_mat = test_distmat
     patient_ids = data_all.iloc[:, patient_idx] == point
     patient_data = data_all[patient_ids]
     patient_data_markers = data_markers[patient_ids]
 
     close_num, marker1_num, marker2_num = spatialorgmarkerexpression_utils.helper_function_closenum(
-        patient_data, patient_data_markers, thresh_vec, dist_mat, marker_num, dist_lim)
+        patient_data, patient_data_markers, thresh_vec, test_distmat, marker_num, dist_lim)
 
     test_closenumrand = spatialorgmarkerexpression_utils.helper_function_closenumrand(
-        marker1_num, marker2_num, patient_data, dist_mat, marker_num, dist_lim)
+        marker1_num, marker2_num, patient_data, test_distmat, marker_num, dist_lim)
     assert test_closenumrand.shape == (2, 2, 100)
 
 
