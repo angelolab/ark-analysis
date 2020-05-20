@@ -52,49 +52,62 @@ def make_distance_matrix(typeofenfrichment):
 
 def make_expression_matrix(typeofencrichment):
     if(typeofencrichment == "none"):
-        cellarray = pd.DataFrame(np.zeros((60, 53)))
-        cellarray[0] = 6
-        cellarray[1] = np.arange(len(cellarray[1])) + 1
-        cellarray.iloc[0:20, 7] = 1
-        cellarray.iloc[20:40, 8] = 1
+        cellarray = pd.DataFrame(np.zeros((60, 31)))
+        cellarray[30] = "Point8"
+        cellarray[24] = np.arange(len(cellarray[1])) + 1
+        cellarray.iloc[0:20, 2] = 1
+        cellarray.iloc[20:40, 3] = 1
+        cellarray = cellarray.rename({0: 'cell_size', 1: 'Background', 14: "HH3",
+                                        23: "summed_channel", 24: "label", 25: "area", 26: "eccentricity",
+                                        27: "major_axis_length", 28: "minor_axis_length", 29: "perimeter",
+                                        30: "fov"}, axis=1)
         return cellarray
     elif(typeofencrichment == "positive"):
-        cellarrayp = pd.DataFrame(np.zeros((80, 53)))
-        cellarrayp[0] = 6
-        cellarrayp[1] = np.arange(len(cellarrayp[1])) + 1
-        cellarrayp.iloc[0:8, 7] = 1
-        cellarrayp.iloc[28:30, 7] = 1
-        cellarrayp.iloc[38:40, 7] = 1
-        cellarrayp.iloc[10:18, 8] = 1
-        cellarrayp.iloc[27, 8] = 1
-        cellarrayp.iloc[30, 8] = 1
-        cellarrayp.iloc[36:38, 8] = 1
+        cellarrayp = pd.DataFrame(np.zeros((80, 31)))
+        cellarrayp[30] = "Point8"
+        cellarrayp[24] = np.arange(len(cellarrayp[1])) + 1
+        cellarrayp.iloc[0:8, 2] = 1
+        cellarrayp.iloc[28:30, 2] = 1
+        cellarrayp.iloc[38:40, 2] = 1
+        cellarrayp.iloc[10:18, 3] = 1
+        cellarrayp.iloc[27, 3] = 1
+        cellarrayp.iloc[30, 3] = 1
+        cellarrayp.iloc[36:38, 3] = 1
+        cellarrayp = cellarrayp.rename({0: 'cell_size', 1: 'Background', 14: "HH3",
+                                        23: "summed_channel", 24: "label", 25: "area", 26: "eccentricity",
+                                        27: "major_axis_length", 28: "minor_axis_length", 29: "perimeter",
+                                        30: "fov"}, axis=1)
         return cellarrayp
     elif(typeofencrichment == "negative"):
-        cellarrayn = pd.DataFrame(np.zeros((60, 53)))
-        cellarrayn[0] = 6
-        cellarrayn[1] = np.arange(len(cellarrayn[1])) + 1
-        cellarrayn.iloc[0:20, 7] = 1
-        cellarrayn.iloc[20:40, 8] = 1
+        cellarrayn = pd.DataFrame(np.zeros((60, 31)))
+        cellarrayn[30] = "Point8"
+        cellarrayn[24] = np.arange(len(cellarrayn[1])) + 1
+        cellarrayn.iloc[0:20, 2] = 1
+        cellarrayn.iloc[20:40, 3] = 1
+        cellarrayn = cellarrayn.rename({0: 'cell_size', 1: 'Background', 14: "HH3",
+                                        23: "summed_channel", 24: "label", 25: "area", 26: "eccentricity",
+                                        27: "major_axis_length", 28: "minor_axis_length", 29: "perimeter",
+                                        30: "fov"}, axis=1)
         return cellarrayn
 
 
 def make_threshold_mat():
-    thresh = pd.DataFrame(np.zeros((37, 2)))
+    #thresh = pd.DataFrame(np.zeros((37, 2)))
+    thresh = pd.DataFrame(np.zeros((20, 2)))
     thresh.iloc[:, 1] = .5
     return thresh
 
 
 def make_test_closenum():
-    cellarray = pd.DataFrame(np.zeros((10, 53)))
-    cellarray[0] = 6
-    cellarray[1] = np.arange(len(cellarray[1])) + 1
-    cellarray.iloc[0:4, 7] = 1
-    cellarray.iloc[0:4, 8] = 1
-    cellarray.iloc[4:9, 10] = 1
-    cellarray.iloc[4:9, 11] = 1
-    cellarray.iloc[9, 12] = 1
-    cellarray.iloc[9, 13] = 1
+    cellarray = pd.DataFrame(np.zeros((10, 31)))
+    cellarray[30] = "Point8"
+    cellarray[24] = np.arange(len(cellarray[1])) + 1
+    cellarray.iloc[0:4, 2] = 1
+    cellarray.iloc[0:4, 3] = 1
+    cellarray.iloc[4:9, 5] = 1
+    cellarray.iloc[4:9, 6] = 1
+    cellarray.iloc[9, 7] = 1
+    cellarray.iloc[9, 8] = 1
 
     distmat = np.zeros((10, 10))
     np.fill_diagonal(distmat, 0)
@@ -133,20 +146,26 @@ def test_closenum():
     test_cellarray, test_distmat = make_test_closenum()
     test_thresholds = make_threshold_mat()
 
-    point = 6
-    data_all = test_cellarray
-    marker_inds = [7, 8]  # + list(range(10, 44))
-    data_markers = data_all.loc[:, data_all.columns[marker_inds]]
-    marker_titles = data_all.columns[marker_inds]
-    marker_num = len(marker_titles)
-
-    patient_idx = 0
+    point = "Point8"
     dist_lim = 100
 
-    thresh_vec = test_thresholds.iloc[1:38, 1]
+    # subsetting expression matrix
+    data_all = test_cellarray
+    # identifies columns with markers
+    # subsets the expression matrix to only have marker columns
+    data_markers = data_all.drop(data_all.columns[[0, 1, 14, 23, 24, 25, 26, 27, 28, 29, 30]], axis=1)
+    # list of all markers
+    marker_titles = data_markers.columns
+    # length of marker list
+    marker_num = len(marker_titles)
 
-    patient_ids = data_all.iloc[:, patient_idx] == point
+    # subsetting threshold matrix to only include column with threshold values
+    thresh_vec = test_thresholds.iloc[0:20, 1]
+
+    # subsetting expression matrix to only include patients with correct label
+    patient_ids = data_all.iloc[:, 30] == point
     patient_data = data_all[patient_ids]
+    # patients with correct label, and only columns of markers
     patient_data_markers = data_markers[patient_ids]
 
     test_closenum, marker1_num, marker2_num = spatialorgmarkerexpression_utils.helper_function_closenum(
@@ -175,21 +194,26 @@ def test_closenumrand():
     test_cellarray, test_distmat = make_test_closenum()
     test_thresholds = make_threshold_mat()
 
-    point = 6
-
-    data_all = test_cellarray
-    marker_inds = [7, 8]  # + list(range(10, 44))
-    data_markers = data_all.loc[:, data_all.columns[marker_inds]]
-    marker_titles = data_all.columns[marker_inds]
-    marker_num = len(marker_titles)
-
-    patient_idx = 0
+    point = "Point8"
     dist_lim = 100
 
-    thresh_vec = test_thresholds.iloc[1:38, 1]
+    # subsetting expression matrix
+    data_all = test_cellarray
+    # identifies columns with markers
+    # subsets the expression matrix to only have marker columns
+    data_markers = data_all.drop(data_all.columns[[0, 1, 14, 23, 24, 25, 26, 27, 28, 29, 30]], axis=1)
+    # list of all markers
+    marker_titles = data_markers.columns
+    # length of marker list
+    marker_num = len(marker_titles)
 
-    patient_ids = data_all.iloc[:, patient_idx] == point
+    # subsetting threshold matrix to only include column with threshold values
+    thresh_vec = test_thresholds.iloc[0:20, 1]
+
+    # subsetting expression matrix to only include patients with correct label
+    patient_ids = data_all.iloc[:, 30] == point
     patient_data = data_all[patient_ids]
+    # patients with correct label, and only columns of markers
     patient_data_markers = data_markers[patient_ids]
 
     close_num, marker1_num, marker2_num = spatialorgmarkerexpression_utils.helper_function_closenum(
@@ -197,7 +221,7 @@ def test_closenumrand():
 
     test_closenumrand = spatialorgmarkerexpression_utils.helper_function_closenumrand(
         marker1_num, marker2_num, patient_data, test_distmat, marker_num, dist_lim)
-    assert test_closenumrand.shape == (2, 2, 100)
+    assert test_closenumrand.shape == (20, 20, 100)
 
 
 def test_spatial_analysis():
