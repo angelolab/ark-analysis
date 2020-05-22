@@ -58,9 +58,9 @@ def make_expression_matrix(typeofencrichment):
         cellarray.iloc[0:20, 2] = 1
         cellarray.iloc[20:40, 3] = 1
         cellarray = cellarray.rename({0: 'cell_size', 1: 'Background', 14: "HH3",
-                                        23: "summed_channel", 24: "label", 25: "area", 26: "eccentricity",
-                                        27: "major_axis_length", 28: "minor_axis_length", 29: "perimeter",
-                                        30: "fov"}, axis=1)
+                                      23: "summed_channel", 24: "label", 25: "area", 26: "eccentricity",
+                                      27: "major_axis_length", 28: "minor_axis_length", 29: "perimeter",
+                                      30: "fov"}, axis=1)
         return cellarray
     elif(typeofencrichment == "positive"):
         cellarrayp = pd.DataFrame(np.zeros((80, 31)))
@@ -92,7 +92,7 @@ def make_expression_matrix(typeofencrichment):
 
 
 def make_threshold_mat():
-    #thresh = pd.DataFrame(np.zeros((37, 2)))
+    # thresh = pd.DataFrame(np.zeros((37, 2)))
     thresh = pd.DataFrame(np.zeros((20, 2)))
     thresh.iloc[:, 1] = .5
     return thresh
@@ -169,10 +169,10 @@ def test_closenum():
     patient_data_markers = data_markers[patient_ids]
 
     test_closenum, marker1_num, marker2_num = spatialorgmarkerexpression_utils.helper_function_closenum(
-        patient_data, patient_data_markers, thresh_vec, test_distmat, marker_num, dist_lim)
+        patient_data, patient_data_markers, thresh_vec, test_distmat, marker_num, dist_lim, cell_label_idx=24)
     assert (test_closenum[:2, :2] == 16).all()
-    # assert (test_closenum[2:4, 2:4] == 25).all()
-    # assert (test_closenum[4:6, 4:6] == 1).all()
+    assert (test_closenum[3:5, 3:5] == 25).all()
+    assert (test_closenum[5:7, 5:7] == 1).all()
 
     # Now test with Erin's output
     # cell_array = pd.read_csv(
@@ -217,10 +217,11 @@ def test_closenumrand():
     patient_data_markers = data_markers[patient_ids]
 
     close_num, marker1_num, marker2_num = spatialorgmarkerexpression_utils.helper_function_closenum(
-        patient_data, patient_data_markers, thresh_vec, test_distmat, marker_num, dist_lim)
+        patient_data, patient_data_markers, thresh_vec, test_distmat, marker_num, dist_lim, cell_label_idx=24)
 
     test_closenumrand = spatialorgmarkerexpression_utils.helper_function_closenumrand(
-        marker1_num, marker2_num, patient_data, test_distmat, marker_num, dist_lim)
+        marker1_num, marker2_num, patient_data, test_distmat, marker_num, dist_lim,
+        cell_label_idx=24, bootstrap_num=100)
     assert test_closenumrand.shape == (20, 20, 100)
 
 
@@ -251,10 +252,11 @@ def test_calculate_enrichment_stats():
     patient_data_markers = data_markers[patient_ids]
 
     close_num, marker1_num, marker2_num = spatialorgmarkerexpression_utils.helper_function_closenum(
-        patient_data, patient_data_markers, thresh_vec, test_distmat, marker_num, dist_lim)
+        patient_data, patient_data_markers, thresh_vec, test_distmat, marker_num, dist_lim, cell_label_idx=24)
 
     test_closenumrand = spatialorgmarkerexpression_utils.helper_function_closenumrand(
-        marker1_num, marker2_num, patient_data, test_distmat, marker_num, dist_lim)
+        marker1_num, marker2_num, patient_data, test_distmat, marker_num, dist_lim,
+        cell_label_idx=24, bootstrap_num=100)
 
     test_z, muhat, sigmahat, test_p, h, adj_p = spatialorgmarkerexpression_utils.calculate_enrichment_stats(
         close_num, test_closenumrand)
@@ -269,27 +271,27 @@ def test_spatial_analysis():
     # positive enrichment
     cellarrayp = make_expression_matrix("positive")
     distmatp = make_distance_matrix("positive")
-    closenum, closenumrand, z, muhat, sigmahat, p, h, adj_p, markertitles = \
+    values, stats = \
         spatialorgmarkerexpression_utils.calculate_channel_spatial_enrichment(
             distmatp, marker_thresholds, cellarrayp)
-    assert p[0, 1, 0] < .05
-    assert p[0, 1, 1] > .05
-    assert z[0, 1] > 0
+    assert stats[0][3][0, 1, 0] < .05
+    assert stats[0][3][0, 1, 1] > .05
+    assert stats[0][0][0, 1] > 0
     # negative enrichment
     cellarrayn = make_expression_matrix("negative")
     distmatn = make_distance_matrix("negative")
-    closenum, closenumrand, z, muhatn, sigmahatn, p, h, adj_p, markertitles = \
+    values, stats = \
         spatialorgmarkerexpression_utils.calculate_channel_spatial_enrichment(
             distmatn, marker_thresholds, cellarrayn)
-    assert p[0, 1, 1] < .05
-    assert p[0, 1, 0] > .05
-    assert z[0, 1] < 0
+    assert stats[0][3][0, 1, 1] < .05
+    assert stats[0][3][0, 1, 0] > .05
+    assert stats[0][0][0, 1] < 0
     # no enrichment
     cellarray = make_expression_matrix("none")
     distmat = make_distance_matrix("none")
-    closenum, closenumrand, z, muhat, sigmahat, p, h, adj_p, markertitles = \
+    values, stats = \
         spatialorgmarkerexpression_utils.calculate_channel_spatial_enrichment(
             distmat, marker_thresholds, cellarray)
-    assert p[0, 1, 0] > .05
-    assert p[0, 1, 1] > .05
-    assert abs(z[0, 1]) < 1
+    assert stats[0][3][0, 1, 0] > .05
+    assert stats[0][3][0, 1, 1] > .05
+    assert abs(stats[0][0][0, 1]) < 1

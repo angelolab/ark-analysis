@@ -38,22 +38,23 @@ from statsmodels.stats.multitest import multipletests
 
 def helper_function_closenum(patient_data, patient_data_markers, thresh_vec,
                              dist_mat, marker_num, dist_lim, cell_label_idx):
-    """Finds positive cell labels and creates matrix with
-        counts for cells positive for corresponding markers.
-            Args
-                patient_data: cell expression data for the specific point
-                patient_data_markers: cell expression data of markers
-                    for the specific point
-                thresh_vec: matrix of thresholds column for markers
-                dist_mat: cells x cells matrix with the euclidian
-                    distance between centers of corresponding cells
-                marker_num: number of markers in expresion data
-                dist_lim: threshold for spatial enrichment distance proximity
-            Returns
-                close_num: marker x marker matrix with counts for cells
-                    positive for corresponding markers
-                marker1_num: list of number of cell labels for marker 1
-                marker2_num: list of number of cell labels for marker 2"""
+    """Finds positive cell labels and creates matrix with counts for cells positive for corresponding markers.
+
+    Args:
+        patient_data: cell expression data for the specific point
+        patient_data_markers: cell expression data of markers
+            for the specific point
+        thresh_vec: matrix of thresholds column for markers
+        dist_mat: cells x cells matrix with the euclidian
+            distance between centers of corresponding cells
+        marker_num: number of markers in expresion data
+        dist_lim: threshold for spatial enrichment distance proximity
+
+    Returns:
+        close_num: marker x marker matrix with counts for cells
+            positive for corresponding markers
+        marker1_num: list of number of cell labels for marker 1
+        marker2_num: list of number of cell labels for marker 2"""
     # identifies column in expression matrix with cell labels
     # cell_label_idx = 24
 
@@ -91,18 +92,19 @@ def helper_function_closenumrand(marker1_num, marker2_num, patient_data,
                                  dist_mat, marker_num, dist_lim, cell_label_idx, bootstrap_num):
     """Uses bootstrapping to permute cell labels randomly.
 
-        Args
-            marker1_num: list of number of cell labels for marker 1
-            marker2_num: list of number of cell labels for marker 2
-            patient_data: cell expression data for the specific point
-            dist_mat: cells x cells matrix with the euclidian
-                distance between centers of corresponding cells
-            marker_num: number of markers in expresion data
-            dist_lim: threshold for spatial enrichment distance proximity
-            bootstrap_num: number of permutations
-        Returns
-            close_num_rand: random positive marker counts
-                for every permutation in the bootstrap"""
+    Args
+        marker1_num: list of number of cell labels for marker 1
+        marker2_num: list of number of cell labels for marker 2
+        patient_data: cell expression data for the specific point
+        dist_mat: cells x cells matrix with the euclidian
+            distance between centers of corresponding cells
+        marker_num: number of markers in expresion data
+        dist_lim: threshold for spatial enrichment distance proximity
+        bootstrap_num: number of permutations
+
+    Returns
+        close_num_rand: random positive marker counts
+            for every permutation in the bootstrap"""
 
     # column in cell expression matrix with cell labels
     # cell_label_idx = 1
@@ -136,22 +138,22 @@ def helper_function_closenumrand(marker1_num, marker2_num, patient_data,
 def calculate_enrichment_stats(close_num, close_num_rand):
     """Calculates z score and p values from spatial enrichment analysis.
 
-        Args
-            close_num: marker x marker matrix with counts for cells
-                positive for corresponding markers
-            close_num_rand: random positive marker counts
-                for every permutation in the bootstrap
-        Returns
-            z: z scores for corresponding markers
-            muhat: predicted mean values
-                of close_num_rand random distribution
-            sigmahat: predicted standard deviation values of close_num_rand
-                random distribution
-            p: p values for corresponding markers, for both positive
-                and negative enrichment
-            h: matrix indicating whether
-                corresponding marker interactions are significant
-            adj_p: fdh_br adjusted p values"""
+    Args:
+        close_num: marker x marker matrix with counts for cells
+            positive for corresponding markers
+        close_num_rand: random positive marker counts
+            for every permutation in the bootstrap
+
+    Returns:
+        z: z scores for corresponding markers
+        muhat: predicted mean values of close_num_rand random distribution
+        sigmahat: predicted standard deviation values of close_num_rand
+            random distribution
+        p: p values for corresponding markers, for both positive
+            and negative enrichment
+        h: matrix indicating whether
+            corresponding marker interactions are significant
+        adj_p: fdh_br adjusted p values"""
     # get the number of markers and number of permutations
     marker_num = close_num.shape[0]
     bootstrap_num = close_num_rand.shape[2]
@@ -190,73 +192,74 @@ def calculate_enrichment_stats(close_num, close_num_rand):
 
 
 def calculate_channel_spatial_enrichment(dist_matrix, marker_thresholds, cell_array,
-                                         excluded_colnames=None, 
+                                         excluded_colnames=None, points=None,
                                          patient_idx=30, dist_lim=100, cell_label_idx=24, bootstrap_num=100):
-    """Spatial enrichment analysis to find significant interactions between cells
-        expressing different markers.
-        Uses bootstrapping to permute cell labels randomly.
-                Args
-                    dist_matrix: cells x cells matrix with the euclidian
-                        distance between centers of corresponding cells
-                    marker_thresholds: threshold
-                        values for positive marker expression
-                    cell_array: data including points, cell labels, and
-                        cell expression matrix for all markers
-                Returns
-                    close_num: marker x marker matrix with counts for cells
-                        positive for corresponding markers
-                    close_num_rand: random positive marker counts
-                        for every permutation in the bootstrap
-                    z: z scores for corresponding markers
-                    muhat: predicted mean values
-                        of close_num_rand random distribution
-                    sigmahat: predicted standard deviation values of close_num_rand
-                        random distribution
-                    p: p values for corresponding markers, for both positive
-                        and negative enrichment
-                    h: matrix indicating whether
-                        corresponding marker interactions are significant
-                    adj_p: fdh_br adjusted p values
-                    marker_titles: list of markers"""
+    """Spatial enrichment analysis to find significant interactions between cells expressing different markers.
+    Uses bootstrapping to permute cell labels randomly.
+
+    Args:
+        dist_matrix: cells x cells matrix with the euclidian
+            distance between centers of corresponding cells
+        marker_thresholds: threshold values for positive marker expression
+        cell_array: data including points, cell labels, and
+            cell expression matrix for all markers
+        excluded_colnames: all column names that are not markers
+        points: patient labels to include in analysis
+        patient_idx: columns with patient labels
+        dist_lim: cell proximity threshold
+        cell_label_idx: column with cell labels
+        bootstrap_num: number of permutations for bootstrap
+
+    Returns:
+        values: a list with each element consisting of a tuple of
+            closenum and closenumrand for each point included in the analysis
+        stats: a list with each element consisting of a tuple of
+            z, muhat, sigmahat, p, h, adj_p, and marker_titles for each point in the analysis"""
 
     # Setup input and parameters
-    point = 6
-    # point = "Point8"
+    if points is None:
+        points = list(set(cell_array.iloc[:, patient_idx]))
+    values = []
+    stats = []
+
     if excluded_colnames is None:
         excluded_colnames = ["cell_size", "Background", "HH3",
                              "summed_channel", "label", "area",
                              "eccentricity", "major_axis_length", "minor_axis_length",
                              "perimeter", "fov"]
-    # column in expression matrix with patient labels
-    # patient_idx = 0
 
-    # identifies columns with markers
-    # marker_inds = [7, 8]  # + list(range(10, 44))
+    # Error Checking
+    if not np.isin(excluded_colnames, cell_array.columns).all():
+        print("Column names were not found in Expression Matrix")
+
+    if not np.isin(points, cell_array.iloc[:, patient_idx]).all():
+        print("Points were not found in Expression Matrix")
+
     # subsets the expression matrix to only have marker columns
-    # data_markers = data_all.loc[:, data_all.columns[marker_inds]]
     data_markers = cell_array.drop(excluded_colnames, axis=1)
     # list of all markers
-    # marker_titles = data_all.columns[marker_inds]
     marker_titles = data_markers.columns
     # length of marker list
     marker_num = len(marker_titles)
 
     # subsetting threshold matrix to only include column with threshold values
-    # thresh_vec = marker_thresholds.iloc[1:38, 1]
     thresh_vec = marker_thresholds.iloc[:, 1]
 
-    # subsetting expression matrix to only include patients with correct label
-    patient_ids = cell_array.iloc[:, patient_idx] == point
-    patient_data = cell_array[patient_ids]
-    # patients with correct label, and only columns of markers
-    patient_data_markers = data_markers[patient_ids]
+    for i in points:
+        # subsetting expression matrix to only include patients with correct label
+        patient_ids = cell_array.iloc[:, patient_idx] == i
+        patient_data = cell_array[patient_ids]
+        # patients with correct label, and only columns of markers
+        patient_data_markers = data_markers[patient_ids]
 
-    # get close_num and close_num_rand
-    close_num, marker1_num, marker2_num = helper_function_closenum(
-        patient_data, patient_data_markers, thresh_vec, dist_matrix, marker_num, dist_lim, cell_label_idx)
-    close_num_rand = helper_function_closenumrand(
-        marker1_num, marker2_num, patient_data, dist_matrix, marker_num, dist_lim, cell_label_idx, bootstrap_num)
-    # get z, p, adj_p, muhat, sigmahat, and h
-    z, muhat, sigmahat, p, h, adj_p = calculate_enrichment_stats(close_num, close_num_rand)
+        # get close_num and close_num_rand
+        close_num, marker1_num, marker2_num = helper_function_closenum(
+            patient_data, patient_data_markers, thresh_vec, dist_matrix, marker_num, dist_lim, cell_label_idx)
+        close_num_rand = helper_function_closenumrand(
+            marker1_num, marker2_num, patient_data, dist_matrix, marker_num, dist_lim, cell_label_idx, bootstrap_num)
+        values.append((close_num, close_num_rand))
+        # get z, p, adj_p, muhat, sigmahat, and h
+        z, muhat, sigmahat, p, h, adj_p = calculate_enrichment_stats(close_num, close_num_rand)
+        stats.append((z, muhat, sigmahat, p, h, adj_p, marker_titles))
 
-    return close_num, close_num_rand, z, muhat, sigmahat, p, h, adj_p, marker_titles
+    return values, stats
