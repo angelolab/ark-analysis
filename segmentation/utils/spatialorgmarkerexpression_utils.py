@@ -36,7 +36,8 @@ from statsmodels.stats.multitest import multipletests
 # ingh/Desktop/tests/pvcellarrayR.csv")
 
 
-def helper_function_closenum(patient_data, patient_data_markers, thresh_vec, dist_mat, marker_num, dist_lim):
+def helper_function_closenum(patient_data, patient_data_markers, thresh_vec,
+                             dist_mat, marker_num, dist_lim, cell_label_idx):
     """Finds positive cell labels and creates matrix with
         counts for cells positive for corresponding markers.
             Args
@@ -54,7 +55,7 @@ def helper_function_closenum(patient_data, patient_data_markers, thresh_vec, dis
                 marker1_num: list of number of cell labels for marker 1
                 marker2_num: list of number of cell labels for marker 2"""
     # identifies column in expression matrix with cell labels
-    cell_label_idx = 24
+    # cell_label_idx = 24
 
     # create close_num, marker1_num, and marker2_num
     close_num = np.zeros((marker_num, marker_num), dtype='int')
@@ -87,7 +88,7 @@ def helper_function_closenum(patient_data, patient_data_markers, thresh_vec, dis
 
 
 def helper_function_closenumrand(marker1_num, marker2_num, patient_data,
-                                 dist_mat, marker_num, dist_lim, bootstrap_num=100):
+                                 dist_mat, marker_num, dist_lim, cell_label_idx, bootstrap_num):
     """Uses bootstrapping to permute cell labels randomly.
 
         Args
@@ -105,7 +106,6 @@ def helper_function_closenumrand(marker1_num, marker2_num, patient_data,
 
     # column in cell expression matrix with cell labels
     # cell_label_idx = 1
-    cell_label_idx = 24
     # create close_num_rand
     close_num_rand = np.zeros((
         marker_num, marker_num, bootstrap_num), dtype='int')
@@ -190,11 +190,8 @@ def calculate_enrichment_stats(close_num, close_num_rand):
 
 
 def calculate_channel_spatial_enrichment(dist_matrix, marker_thresholds, cell_array,
-                                         excluded_colnames=["cell_size", "Background", "HH3",
-                                                            "summed_channel", "label", "area",
-                                                            "eccentricity", "major_axis_length", "minor_axis_length",
-                                                            "perimeter", "fov"],
-                                         patient_idx=30):
+                                         excluded_colnames=None, 
+                                         patient_idx=30, dist_lim=100, cell_label_idx=24, bootstrap_num=100):
     """Spatial enrichment analysis to find significant interactions between cells
         expressing different markers.
         Uses bootstrapping to permute cell labels randomly.
@@ -223,19 +220,21 @@ def calculate_channel_spatial_enrichment(dist_matrix, marker_thresholds, cell_ar
                     marker_titles: list of markers"""
 
     # Setup input and parameters
-    #point = 6
-    point = "Point8"
-    dist_lim = 100
+    point = 6
+    # point = "Point8"
+    if excluded_colnames is None:
+        excluded_colnames = ["cell_size", "Background", "HH3",
+                             "summed_channel", "label", "area",
+                             "eccentricity", "major_axis_length", "minor_axis_length",
+                             "perimeter", "fov"]
     # column in expression matrix with patient labels
     # patient_idx = 0
 
-    # subsetting expression matrix
-    data_all = cell_array
     # identifies columns with markers
     # marker_inds = [7, 8]  # + list(range(10, 44))
     # subsets the expression matrix to only have marker columns
     # data_markers = data_all.loc[:, data_all.columns[marker_inds]]
-    data_markers = data_all.drop(excluded_colnames, axis=1)
+    data_markers = cell_array.drop(excluded_colnames, axis=1)
     # list of all markers
     # marker_titles = data_all.columns[marker_inds]
     marker_titles = data_markers.columns
@@ -244,19 +243,19 @@ def calculate_channel_spatial_enrichment(dist_matrix, marker_thresholds, cell_ar
 
     # subsetting threshold matrix to only include column with threshold values
     # thresh_vec = marker_thresholds.iloc[1:38, 1]
-    thresh_vec = marker_thresholds.iloc[0:20, 1]
+    thresh_vec = marker_thresholds.iloc[:, 1]
 
     # subsetting expression matrix to only include patients with correct label
-    patient_ids = data_all.iloc[:, patient_idx] == point
-    patient_data = data_all[patient_ids]
+    patient_ids = cell_array.iloc[:, patient_idx] == point
+    patient_data = cell_array[patient_ids]
     # patients with correct label, and only columns of markers
     patient_data_markers = data_markers[patient_ids]
 
     # get close_num and close_num_rand
     close_num, marker1_num, marker2_num = helper_function_closenum(
-        patient_data, patient_data_markers, thresh_vec, dist_matrix, marker_num, dist_lim)
+        patient_data, patient_data_markers, thresh_vec, dist_matrix, marker_num, dist_lim, cell_label_idx)
     close_num_rand = helper_function_closenumrand(
-        marker1_num, marker2_num, patient_data, dist_matrix, marker_num, dist_lim)
+        marker1_num, marker2_num, patient_data, dist_matrix, marker_num, dist_lim, cell_label_idx, bootstrap_num)
     # get z, p, adj_p, muhat, sigmahat, and h
     z, muhat, sigmahat, p, h, adj_p = calculate_enrichment_stats(close_num, close_num_rand)
 

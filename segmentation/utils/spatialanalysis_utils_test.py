@@ -224,6 +224,45 @@ def test_closenumrand():
     assert test_closenumrand.shape == (20, 20, 100)
 
 
+def test_calculate_enrichment_stats():
+    test_cellarray, test_distmat = make_test_closenum()
+    test_thresholds = make_threshold_mat()
+
+    point = "Point8"
+    dist_lim = 100
+
+    # subsetting expression matrix
+    data_all = test_cellarray
+    # identifies columns with markers
+    # subsets the expression matrix to only have marker columns
+    data_markers = data_all.drop(data_all.columns[[0, 1, 14, 23, 24, 25, 26, 27, 28, 29, 30]], axis=1)
+    # list of all markers
+    marker_titles = data_markers.columns
+    # length of marker list
+    marker_num = len(marker_titles)
+
+    # subsetting threshold matrix to only include column with threshold values
+    thresh_vec = test_thresholds.iloc[0:20, 1]
+
+    # subsetting expression matrix to only include patients with correct label
+    patient_ids = data_all.iloc[:, 30] == point
+    patient_data = data_all[patient_ids]
+    # patients with correct label, and only columns of markers
+    patient_data_markers = data_markers[patient_ids]
+
+    close_num, marker1_num, marker2_num = spatialorgmarkerexpression_utils.helper_function_closenum(
+        patient_data, patient_data_markers, thresh_vec, test_distmat, marker_num, dist_lim)
+
+    test_closenumrand = spatialorgmarkerexpression_utils.helper_function_closenumrand(
+        marker1_num, marker2_num, patient_data, test_distmat, marker_num, dist_lim)
+
+    test_z, muhat, sigmahat, test_p, h, adj_p = spatialorgmarkerexpression_utils.calculate_enrichment_stats(
+        close_num, test_closenumrand)
+
+    assert test_z[0, 0] > 0
+    assert test_p[0, 0, 0] < .05
+
+
 def test_spatial_analysis():
     # test z and p values
     marker_thresholds = make_threshold_mat()
