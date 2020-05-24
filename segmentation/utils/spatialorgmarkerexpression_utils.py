@@ -15,29 +15,8 @@ from statsmodels.stats.multitest import multipletests
 #                                      header=None))
 
 
-# Test array inputs
-
-# pv_cellarray = pd.read_csv("/Users/jaiveersingh/De
-# sktop/tests/pvcelllabel.csv")
-#
-# pv_distmat = np.asarray(pd.read_csv("/Users/jaiveersingh/
-# Desktop/tests/pvdistmat.csv", header = None))
-#
-# pv_cellarrayn = pd.read_csv("/Users/jaiv
-# eersingh/Desktop/tests/pvcellarrayN.csv")
-#
-# pv_distmatn = np.asarray(pd.read_csv("/Users/jaiveers
-# ingh/Desktop/tests/pvdistmatN.csv", header = None))
-#
-# randMat = np.random.randint(0,200,size=(60,60))
-# np.fill_diagonal(randMat, 0)
-#
-# pv_cellarrayr = pd.read_csv("/Users/jaiveers"
-# ingh/Desktop/tests/pvcellarrayR.csv")
-
-
-def helper_function_closenum(patient_data, patient_data_markers, thresh_vec,
-                             dist_mat, marker_num, dist_lim, cell_label_idx):
+def compute_close_cell_num(patient_data, patient_data_markers, thresh_vec,
+                           dist_mat, marker_num, dist_lim, cell_label_idx):
     """Finds positive cell labels and creates matrix with counts for cells positive for corresponding markers.
 
     Args:
@@ -87,8 +66,8 @@ def helper_function_closenum(patient_data, patient_data_markers, thresh_vec,
     return close_num, marker1_num, marker2_num
 
 
-def helper_function_closenumrand(marker1_num, marker2_num, patient_data,
-                                 dist_mat, marker_num, dist_lim, cell_label_idx, bootstrap_num):
+def compute_close_cell_num_random(marker1_num, marker2_num, patient_data,
+                                  dist_mat, marker_num, dist_lim, cell_label_idx, bootstrap_num):
     """Uses bootstrapping to permute cell labels randomly.
 
     Args
@@ -189,7 +168,7 @@ def calculate_enrichment_stats(close_num, close_num_rand):
     return z, muhat, sigmahat, p, h, adj_p
 
 
-def calculate_channel_spatial_enrichment(dist_matrix, marker_thresholds, cell_array,
+def calculate_channel_spatial_enrichment(dist_matrix, marker_thresholds, all_patient_data,
                                          excluded_colnames=None, points=None,
                                          patient_idx=30, dist_lim=100, cell_label_idx=24, bootstrap_num=100):
     """Spatial enrichment analysis to find significant interactions between cells expressing different markers.
@@ -199,7 +178,7 @@ def calculate_channel_spatial_enrichment(dist_matrix, marker_thresholds, cell_ar
         dist_matrix: cells x cells matrix with the euclidian
             distance between centers of corresponding cells
         marker_thresholds: threshold values for positive marker expression
-        cell_array: data including points, cell labels, and
+        all_patient_data: data including points, cell labels, and
             cell expression matrix for all markers
         excluded_colnames: all column names that are not markers. If argument is none, default is
             ["cell_size", "Background", "HH3",
@@ -220,7 +199,7 @@ def calculate_channel_spatial_enrichment(dist_matrix, marker_thresholds, cell_ar
 
     # Setup input and parameters
     if points is None:
-        points = list(set(cell_array.iloc[:, patient_idx]))
+        points = list(set(all_patient_data.iloc[:, patient_idx]))
     values = []
     stats = []
 
@@ -231,14 +210,14 @@ def calculate_channel_spatial_enrichment(dist_matrix, marker_thresholds, cell_ar
                              "perimeter", "fov"]
 
     # Error Checking
-    if not np.isin(excluded_colnames, cell_array.columns).all():
+    if not np.isin(excluded_colnames, all_patient_data.columns).all():
         raise ValueError("Column names were not found in Expression Matrix")
 
-    if not np.isin(points, cell_array.iloc[:, patient_idx]).all():
+    if not np.isin(points, all_patient_data.iloc[:, patient_idx]).all():
         raise ValueError("Points were not found in Expression Matrix")
 
     # subsets the expression matrix to only have marker columns
-    data_markers = cell_array.drop(excluded_colnames, axis=1)
+    data_markers = all_patient_data.drop(excluded_colnames, axis=1)
     # list of all markers
     marker_titles = data_markers.columns
     # length of marker list
@@ -249,15 +228,15 @@ def calculate_channel_spatial_enrichment(dist_matrix, marker_thresholds, cell_ar
 
     for i in points:
         # subsetting expression matrix to only include patients with correct label
-        patient_ids = cell_array.iloc[:, patient_idx] == i
-        patient_data = cell_array[patient_ids]
+        patient_ids = all_patient_data.iloc[:, patient_idx] == i
+        patient_data = all_patient_data[patient_ids]
         # patients with correct label, and only columns of markers
         patient_data_markers = data_markers[patient_ids]
 
         # get close_num and close_num_rand
-        close_num, marker1_num, marker2_num = helper_function_closenum(
+        close_num, marker1_num, marker2_num = compute_close_cell_num(
             patient_data, patient_data_markers, thresh_vec, dist_matrix, marker_num, dist_lim, cell_label_idx)
-        close_num_rand = helper_function_closenumrand(
+        close_num_rand = compute_close_cell_num_random(
             marker1_num, marker2_num, patient_data, dist_matrix, marker_num, dist_lim, cell_label_idx, bootstrap_num)
         values.append((close_num, close_num_rand))
         # get z, p, adj_p, muhat, sigmahat, and h
