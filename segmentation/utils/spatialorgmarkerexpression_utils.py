@@ -49,14 +49,13 @@ def helper_function_closenum(patient_data, patient_data_markers, thresh_vec,
             distance between centers of corresponding cells
         marker_num: number of markers in expresion data
         dist_lim: threshold for spatial enrichment distance proximity
+        cell_label_idx: column with cell labels
 
     Returns:
         close_num: marker x marker matrix with counts for cells
             positive for corresponding markers
         marker1_num: list of number of cell labels for marker 1
         marker2_num: list of number of cell labels for marker 2"""
-    # identifies column in expression matrix with cell labels
-    # cell_label_idx = 24
 
     # create close_num, marker1_num, and marker2_num
     close_num = np.zeros((marker_num, marker_num), dtype='int')
@@ -100,14 +99,13 @@ def helper_function_closenumrand(marker1_num, marker2_num, patient_data,
             distance between centers of corresponding cells
         marker_num: number of markers in expresion data
         dist_lim: threshold for spatial enrichment distance proximity
+        cell_label_idx: column with cell labels
         bootstrap_num: number of permutations
 
     Returns
         close_num_rand: random positive marker counts
             for every permutation in the bootstrap"""
 
-    # column in cell expression matrix with cell labels
-    # cell_label_idx = 1
     # create close_num_rand
     close_num_rand = np.zeros((
         marker_num, marker_num, bootstrap_num), dtype='int')
@@ -203,12 +201,16 @@ def calculate_channel_spatial_enrichment(dist_matrix, marker_thresholds, cell_ar
         marker_thresholds: threshold values for positive marker expression
         cell_array: data including points, cell labels, and
             cell expression matrix for all markers
-        excluded_colnames: all column names that are not markers
-        points: patient labels to include in analysis
-        patient_idx: columns with patient labels
-        dist_lim: cell proximity threshold
-        cell_label_idx: column with cell labels
-        bootstrap_num: number of permutations for bootstrap
+        excluded_colnames: all column names that are not markers. If argument is none, default is
+            ["cell_size", "Background", "HH3",
+            "summed_channel", "label", "area",
+            "eccentricity", "major_axis_length", "minor_axis_length",
+            "perimeter", "fov"]
+        points: patient labels to include in analysis. If argument is none, default is all labels used.
+        patient_idx: columns with patient labels. Default is 30.
+        dist_lim: cell proximity threshold. Default is 100.
+        cell_label_idx: column with cell labels. Default is 24.
+        bootstrap_num: number of permutations for bootstrap. Default is 100.
 
     Returns:
         values: a list with each element consisting of a tuple of
@@ -230,10 +232,10 @@ def calculate_channel_spatial_enrichment(dist_matrix, marker_thresholds, cell_ar
 
     # Error Checking
     if not np.isin(excluded_colnames, cell_array.columns).all():
-        print("Column names were not found in Expression Matrix")
+        raise ValueError("Column names were not found in Expression Matrix")
 
     if not np.isin(points, cell_array.iloc[:, patient_idx]).all():
-        print("Points were not found in Expression Matrix")
+        raise ValueError("Points were not found in Expression Matrix")
 
     # subsets the expression matrix to only have marker columns
     data_markers = cell_array.drop(excluded_colnames, axis=1)
