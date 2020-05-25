@@ -36,32 +36,31 @@ def compute_close_cell_num(patient_data, patient_data_markers, thresh_vec,
         marker1_num: list of number of cell labels for marker 1
         marker2_num: list of number of cell labels for marker 2"""
 
-    # create close_num, marker1_num, and marker2_num
+    # Create close_num, marker1_num, and marker2_num
     close_num = np.zeros((marker_num, marker_num), dtype='int')
     marker1_num = []
     marker2_num = []
 
-    # later implement outside for loop for dif points
     for j in range(0, marker_num):
-        # identify cell labels that are positive for respective markers
+        # Identify cell labels that are positive for respective markers
         marker1_thresh = thresh_vec.iloc[j]
         marker1posinds = patient_data_markers[patient_data_markers.columns[j]] > marker1_thresh
         marker1poslabels = patient_data.loc[marker1posinds, patient_data.columns[cell_label_idx]]
         marker1_num.append(len(marker1poslabels))
         for k in range(0, marker_num):
-            # identify cell labels that are positive for above marker and all other markers
+            # Identify cell labels that are positive for above marker and all other markers
             marker2_thresh = thresh_vec.iloc[k]
             marker2posinds = patient_data_markers[patient_data_markers.columns[k]] > marker2_thresh
             marker2poslabels = patient_data.loc[marker2posinds, patient_data.columns[cell_label_idx]]
             marker2_num.append(len(marker2poslabels))
-            # subset the distance matrix to only include positive cell labels
+            # Subset the distance matrix to only include positive cell labels
             trunc_dist_mat = dist_mat[np.ix_(
                 np.asarray(marker1poslabels - 1), np.asarray(
                     marker2poslabels - 1))]
-            # binarize the truncated distance matrix to only include cells within distance limit
+            # Binarize the truncated distance matrix to only include cells within distance limit
             trunc_dist_mat_bin = np.zeros(trunc_dist_mat.shape, dtype='int')
             trunc_dist_mat_bin[trunc_dist_mat < dist_lim] = 1
-            # record the number of interactions and store in close_num in index corresponding to both markers
+            # Record the number of interactions and store in close_num in index corresponding to both markers
             close_num[j, k] = np.sum(np.sum(trunc_dist_mat_bin))
     return close_num, marker1_num, marker2_num
 
@@ -85,28 +84,28 @@ def compute_close_cell_num_random(marker1_num, marker2_num, patient_data,
         close_num_rand: random positive marker counts
             for every permutation in the bootstrap"""
 
-    # create close_num_rand
+    # Create close_num_rand
     close_num_rand = np.zeros((
         marker_num, marker_num, bootstrap_num), dtype='int')
 
     for j in range(0, marker_num):
         for k in range(0, marker_num):
             for r in range(0, bootstrap_num):
-                # select same amount of random cell labels as positive ones in same marker in close_num
+                # Select same amount of random cell labels as positive ones in same marker in close_num
                 marker1labelsrand = patient_data[
                     patient_data.columns[cell_label_idx]].sample(
                         n=marker1_num[j], replace=True)
                 marker2labelsrand = patient_data[
                     patient_data.columns[cell_label_idx]].sample(
                         n=marker2_num[k], replace=True)
-                # subset the distance matrix to only include positive randomly selected cell labels
+                # Subset the distance matrix to only include positive randomly selected cell labels
                 rand_trunc_dist_mat = dist_mat[np.ix_(
                     np.asarray(marker1labelsrand - 1), np.asarray(
                         marker2labelsrand - 1))]
-                # binarize the truncated distance matrix to only include cells within distance limit
+                # Binarize the truncated distance matrix to only include cells within distance limit
                 rand_trunc_dist_mat_bin = np.zeros(rand_trunc_dist_mat.shape, dtype='int')
                 rand_trunc_dist_mat_bin[rand_trunc_dist_mat < dist_lim] = 1
-                # record the number of interactions and store in close_num_rand in index \
+                # Record the number of interactions and store in close_num_rand in the index
                 # corresponding to both markers, for every permutation
                 close_num_rand[j, k, r] = np.sum(np.sum(rand_trunc_dist_mat_bin))
     return close_num_rand
@@ -131,11 +130,11 @@ def calculate_enrichment_stats(close_num, close_num_rand):
         h: matrix indicating whether
             corresponding marker interactions are significant
         adj_p: fdh_br adjusted p values"""
-    # get the number of markers and number of permutations
+    # Get the number of markers and number of permutations
     marker_num = close_num.shape[0]
     bootstrap_num = close_num_rand.shape[2]
 
-    # create z, muhat, sigmahat, and p
+    # Create z, muhat, sigmahat, and p
     z = np.zeros((marker_num, marker_num))
     muhat = np.zeros((marker_num, marker_num))
     sigmahat = np.zeros((marker_num, marker_num))
@@ -143,21 +142,21 @@ def calculate_enrichment_stats(close_num, close_num_rand):
 
     for j in range(0, marker_num):
         for k in range(0, marker_num):
-            # get close_num_rand value for every marker combination and reshape to use as input for norm fit
+            # Get close_num_rand value for every marker combination and reshape to use as input for norm fit
             tmp = np.reshape(close_num_rand[j, k, :], (bootstrap_num, 1))
-            # get muhat and sigmahat values for distribution from 100 permutations
+            # Get muhat and sigmahat values for distribution from 100 permutations
             (muhat[j, k], sigmahat[j, k]) = scipy.stats.norm.fit(tmp)
-            # calculate z score based on distribution
+            # Calculate z score based on distribution
             z[j, k] = (close_num[j, k] - muhat[j, k]) / sigmahat[j, k]
-            # calculate both positive and negative enrichment p values
+            # Calculate both positive and negative enrichment p values
             p[j, k, 0] = (1 + (np.sum(tmp >= close_num[j, k]))) / (bootstrap_num + 1)
             p[j, k, 1] = (1 + (np.sum(tmp <= close_num[j, k]))) / (bootstrap_num + 1)
 
-    # get fdh_br adjusted p values
+    # Get fdh_br adjusted p values
     p_summary = np.zeros_like(p[:, :, 0])
     for j in range(0, marker_num):
         for k in range(0, marker_num):
-            # use negative enrichment p values if the z score is negative, and vice versa
+            # Use negative enrichment p values if the z score is negative, and vice versa
             if z[j, k] > 0:
                 p_summary[j, k] = p[j, k, 0]
             else:
@@ -216,30 +215,30 @@ def calculate_channel_spatial_enrichment(dist_matrix, marker_thresholds, all_pat
     if not np.isin(points, all_patient_data.iloc[:, patient_idx]).all():
         raise ValueError("Points were not found in Expression Matrix")
 
-    # subsets the expression matrix to only have marker columns
+    # Subsets the expression matrix to only have marker columns
     data_markers = all_patient_data.drop(excluded_colnames, axis=1)
-    # list of all markers
+    # List of all markers
     marker_titles = data_markers.columns
-    # length of marker list
+    # Length of marker list
     marker_num = len(marker_titles)
 
-    # subsetting threshold matrix to only include column with threshold values
+    # Subsetting threshold matrix to only include column with threshold values
     thresh_vec = marker_thresholds.iloc[:, 1]
 
     for i in points:
-        # subsetting expression matrix to only include patients with correct label
+        # Subsetting expression matrix to only include patients with correct label
         patient_ids = all_patient_data.iloc[:, patient_idx] == i
         patient_data = all_patient_data[patient_ids]
-        # patients with correct label, and only columns of markers
+        # Patients with correct label, and only columns of markers
         patient_data_markers = data_markers[patient_ids]
 
-        # get close_num and close_num_rand
+        # Get close_num and close_num_rand
         close_num, marker1_num, marker2_num = compute_close_cell_num(
             patient_data, patient_data_markers, thresh_vec, dist_matrix, marker_num, dist_lim, cell_label_idx)
         close_num_rand = compute_close_cell_num_random(
             marker1_num, marker2_num, patient_data, dist_matrix, marker_num, dist_lim, cell_label_idx, bootstrap_num)
         values.append((close_num, close_num_rand))
-        # get z, p, adj_p, muhat, sigmahat, and h
+        # Get z, p, adj_p, muhat, sigmahat, and h
         z, muhat, sigmahat, p, h, adj_p = calculate_enrichment_stats(close_num, close_num_rand)
         stats.append((z, muhat, sigmahat, p, h, adj_p, marker_titles))
 
