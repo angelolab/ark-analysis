@@ -190,8 +190,8 @@ def test_compute_close_cell_num():
     thresh_vec = example_thresholds.iloc[0:20, 1]
 
     example_closenum, marker1_num, marker2_num = spatial_analysis.compute_close_cell_num(
-        example_all_patient_data, data_markers, thresh_vec, example_dist_mat, marker_num,
-        dist_lim=100, cell_label_idx=24)
+        data_markers, thresh_vec, example_dist_mat, marker_num,
+        dist_lim=100)
     assert (example_closenum[:2, :2] == 16).all()
     assert (example_closenum[3:5, 3:5] == 25).all()
     assert (example_closenum[5:7, 5:7] == 1).all()
@@ -221,8 +221,8 @@ def test_compute_close_cell_num_random():
     marker_num = 20
 
     example_closenumrand = spatial_analysis.compute_close_cell_num_random(
-        marker1_num, marker2_num, example_all_patient_data, example_distmat, marker_num, dist_lim=100,
-        cell_label_idx=24, bootstrap_num=100)
+        marker1_num, marker2_num, example_distmat, marker_num, dist_lim=100,
+        bootstrap_num=100)
 
     assert example_closenumrand.shape == (20, 20, 100)
 

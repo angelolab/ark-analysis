@@ -16,8 +16,8 @@ from statsmodels.stats.multitest import multipletests
 #                                      header=None))
 
 
-def compute_close_cell_num(patient_data, patient_data_markers, thresh_vec,
-                           dist_mat, marker_num, dist_lim, cell_label_idx):
+def compute_close_cell_num(patient_data_markers, thresh_vec,
+                           dist_mat, marker_num, dist_lim):
     """Finds positive cell labels and creates matrix with counts for cells positive for corresponding markers.
 
     This function loops through all the included markers in the patient data and identifies cell labels positive for
@@ -27,7 +27,6 @@ def compute_close_cell_num(patient_data, patient_data_markers, thresh_vec,
     index [0, 1]).
 
     Args:
-        patient_data: cell expression data for the specific point
         patient_data_markers: cell expression data of markers
             for the specific point
         thresh_vec: matrix of thresholds column for markers
@@ -35,7 +34,6 @@ def compute_close_cell_num(patient_data, patient_data_markers, thresh_vec,
             distance between centers of corresponding cells
         marker_num: number of markers in expresion data
         dist_lim: threshold for spatial enrichment distance proximity
-        cell_label_idx: column with cell labels
 
     Returns:
         close_num: marker x marker matrix with counts for cells
@@ -52,18 +50,14 @@ def compute_close_cell_num(patient_data, patient_data_markers, thresh_vec,
         # Identify cell labels that are positive for respective markers
         marker1_thresh = thresh_vec.iloc[j]
         marker1posinds = patient_data_markers[patient_data_markers.columns[j]] > marker1_thresh
-        marker1poslabels = patient_data.loc[marker1posinds, patient_data.columns[cell_label_idx]]
-        marker1_num.append(len(marker1poslabels))
+        marker1_num.append(sum(marker1posinds))
         for k in range(0, marker_num):
             # Identify cell labels that are positive for the kth marker
             marker2_thresh = thresh_vec.iloc[k]
             marker2posinds = patient_data_markers[patient_data_markers.columns[k]] > marker2_thresh
-            marker2poslabels = patient_data.loc[marker2posinds, patient_data.columns[cell_label_idx]]
-            marker2_num.append(len(marker2poslabels))
+            marker2_num.append(sum(marker2posinds))
             # Subset the distance matrix to only include cells positive for both markers j and k
-            trunc_dist_mat = dist_mat[np.ix_(
-                np.asarray(marker1poslabels - 1), np.asarray(
-                    marker2poslabels - 1))]
+            trunc_dist_mat = dist_mat[np.ix_(np.asarray(marker1posinds), np.asarray(marker2posinds))]
             # Binarize the truncated distance matrix to only include cells within distance limit
             trunc_dist_mat_bin = np.zeros(trunc_dist_mat.shape, dtype='int')
             trunc_dist_mat_bin[trunc_dist_mat < dist_lim] = 1
@@ -72,20 +66,18 @@ def compute_close_cell_num(patient_data, patient_data_markers, thresh_vec,
     return close_num, marker1_num, marker2_num
 
 
-def compute_close_cell_num_random(marker1_num, marker2_num, patient_data,
-                                  dist_mat, marker_num, dist_lim, cell_label_idx, bootstrap_num):
+def compute_close_cell_num_random(marker1_num, marker2_num,
+                                  dist_mat, marker_num, dist_lim, bootstrap_num):
     """Uses bootstrapping to permute cell labels randomly and records the number of close cells (within the dit_lim)
     in that random setup.
 
     Args
         marker1_num: list of number of cell labels for marker 1
         marker2_num: list of number of cell labels for marker 2
-        patient_data: cell expression data for the specific point
         dist_mat: cells x cells matrix with the euclidian
             distance between centers of corresponding cells
         marker_num: number of markers in expresion data
         dist_lim: threshold for spatial enrichment distance proximity
-        cell_label_idx: column with cell labels
         bootstrap_num: number of permutations
 
     Returns
@@ -100,16 +92,11 @@ def compute_close_cell_num_random(marker1_num, marker2_num, patient_data,
         for k in range(0, marker_num):
             for r in range(0, bootstrap_num):
                 # Select same amount of random cell labels as positive ones in same marker in close_num
-                marker1labelsrand = patient_data[
-                    patient_data.columns[cell_label_idx]].sample(
-                        n=marker1_num[j], replace=True)
-                marker2labelsrand = patient_data[
-                    patient_data.columns[cell_label_idx]].sample(
-                        n=marker2_num[k], replace=True)
+                marker1_labels_rand = np.random.choice(a=range(dist_mat.shape[0]), size=marker1_num[j], replace=True)
+                marker2_labels_rand = np.random.choice(a=range(dist_mat.shape[0]), size=marker2_num[k], replace=True)
                 # Subset the distance matrix to only include positive randomly selected cell labels
-                rand_trunc_dist_mat = dist_mat[np.ix_(
-                    np.asarray(marker1labelsrand - 1), np.asarray(
-                        marker2labelsrand - 1))]
+                rand_trunc_dist_mat = dist_mat[np.ix_(np.asarray(
+                    marker1_labels_rand), np.asarray(marker2_labels_rand))]
                 # Binarize the truncated distance matrix to only include cells within distance limit
                 rand_trunc_dist_mat_bin = np.zeros(rand_trunc_dist_mat.shape, dtype='int')
                 rand_trunc_dist_mat_bin[rand_trunc_dist_mat < dist_lim] = 1
@@ -185,7 +172,7 @@ def calculate_enrichment_stats(close_num, close_num_rand):
 
 def calculate_channel_spatial_enrichment(dist_matrix, marker_thresholds, all_patient_data,
                                          excluded_colnames=None, points=None,
-                                         patient_idx=30, dist_lim=100, cell_label_idx=24, bootstrap_num=1000):
+                                         patient_idx=30, dist_lim=100, bootstrap_num=1000):
     """Spatial enrichment analysis to find significant interactions between cells expressing different markers.
     Uses bootstrapping to permute cell labels randomly.
 
@@ -260,9 +247,9 @@ def calculate_channel_spatial_enrichment(dist_matrix, marker_thresholds, all_pat
 
         # Get close_num and close_num_rand
         close_num, marker1_num, marker2_num = compute_close_cell_num(
-            patient_data, patient_data_markers, thresh_vec, dist_matrix, marker_num, dist_lim, cell_label_idx)
+            patient_data_markers, thresh_vec, dist_matrix, marker_num, dist_lim)
         close_num_rand = compute_close_cell_num_random(
-            marker1_num, marker2_num, patient_data, dist_matrix, marker_num, dist_lim, cell_label_idx, bootstrap_num)
+            marker1_num, marker2_num, dist_matrix, marker_num, dist_lim, bootstrap_num)
         values.append((close_num, close_num_rand))
         # Get z, p, adj_p, muhat, sigmahat, and h
         # z, muhat, sigmahat, p, h, adj_p = calculate_enrichment_stats(close_num, close_num_rand)
