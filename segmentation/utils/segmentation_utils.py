@@ -13,7 +13,7 @@ import pandas as pd
 import scipy.ndimage as nd
 
 
-from segmentation.utils import plot_utils
+from segmentation.utils import plot_utils, signal_extraction_utils
 
 
 def watershed_transform(model_output, channel_xr, overlay_channels, output_dir, fovs=None,
@@ -302,10 +302,8 @@ def segment_images(input_images, segmentation_masks):
             # get coords corresponding to current cell
             cell_coords = cell.coords.T
 
-            # calculate the total signal intensity within that cell
-            # mask across all channels, and save to numpy
-            channel_index = input_images.values[tuple(cell_coords)]
-            channel_counts = np.sum(channel_index, axis=0)
+            # calculate the total signal intensity within cell
+            channel_counts = signal_extraction_utils.default_extraction(cell_coords, input_images)
             xr_counts.loc[subcell_loc, cell.label, xr_counts.features[1]:] = channel_counts
             xr_counts.loc[subcell_loc, cell.label, xr_counts.features[0]] = cell.area
 

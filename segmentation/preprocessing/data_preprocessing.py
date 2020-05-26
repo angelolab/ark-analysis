@@ -258,7 +258,7 @@ for fov in fovs:
 
 
 # melanoma preprocessing
-base_dir = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/data/datasets/20200226_Melanoma/Great_Membrane/'
+base_dir = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/data/datasets/20200226_Melanoma/Okay_Membrane/'
 fovs = os.listdir(base_dir + 'fovs')
 fovs = [fov for fov in fovs if os.path.isdir(os.path.join(base_dir, 'fovs', fov))]
 
@@ -274,6 +274,13 @@ for fov in fovs:
         io.imsave(os.path.join(folder, 'DNA.tiff'), cropped_data[crop, :, :, 0])
         io.imsave(os.path.join(folder, 'Membrane.tiff'), cropped_data[crop, :, :, 1])
 
+# generate stitched images for viewing
+all_data = data_utils.load_imgs_from_dir(base_dir + 'fovs', img_sub_folder='TIFs')
+stitched_imgs = data_utils.stitch_images(all_data, 10)
+
+for chan in range(stitched_imgs.shape[-1]):
+    img = stitched_imgs[0, :, :, chan]
+    io.imsave(os.path.join(base_dir, 'fovs/stitched', stitched_imgs.channels.values[chan] + '_stitched.tiff'), img.astype('int8'))
 
 # IMC 20200411 preprocessing
 base_dir = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/data/datasets/20200411_IMC_METABRIC/'
@@ -363,6 +370,32 @@ for fov in fovs:
         io.imsave(os.path.join(folder, 'DNA.tiff'), cropped_data[crop, :, :, 0])
         io.imsave(os.path.join(folder, 'Membrane.tiff'), cropped_data[crop, :, :, 1])
 
+
+
+# Leeat TNBC data processing
+base_dir = "/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/data/datasets/20200328_TNBC/"
+files = os.listdir(base_dir + 'fovs')
+
+files = [file for file in files if ".tiff" in file]
+
+for file in files:
+    m_tiff = tiff.read(os.path.join(base_dir, file))
+    folder_name = os.path.splitext(file)[0]
+    tiff.write(os.path.join(base_dir, folder_name), m_tiff, multichannel=False)
+
+
+all_data = data_utils.load_imgs_from_dir(base_dir + '/fovs',
+                                         imgs=['CD3.tiff', 'CD4.tiff', 'CD8.tiff', 'CD20.tiff',
+                                               'CD56.tiff'])
+
+all_data_stitched = data_utils.stitch_images(all_data, 10)
+for idx in range(all_data_stitched.shape[-1]):
+    img_path = os.path.join(base_dir, all_data_stitched.channels.values[idx] + '_stitched.tiff')
+    io.imsave(img_path, all_data_stitched.values[0, :, :, idx])
+
+# upsample labels
+labels = os.listdir(base_dir)
+labels = [label for label in labels if "Seg" in label]
 
 # NUH_DLBCL
 base_dir = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/data/datasets/20200416_NUH_DLBCL/'
@@ -524,5 +557,42 @@ labeled_data = np.zeros_like(label_data_cropped)
 for crop in range(labeled_data.shape[0]):
     labeled = label(label_data_cropped[crop, :, :, 0])
     labeled_data[crop, :, :, 0] = labeled
-
 np.savez(combined_dir + '20200512_Travis_data.npz', X=channel_data_cropped, y=labeled_data)
+
+
+# make labeled version at 512x512 resolution
+labeled_data = np.zeros_like(label_data)
+for crop in range(labeled_data.shape[0]):
+    labeled = label(label_data[crop, :, :, 0])
+    labeled_data[crop, :, :, 0] = labeled
+
+new_labeled = np.zeros((24, 512, 512, 1))
+new_labeled[:, :400, :400, :] = labeled_data
+
+new_channel = np.zeros((24, 512, 512, 2))
+new_channel[:, :400, :400, :] = channel_data
+np.savez(combined_dir + '20200512_Travis_512x512.npz', X=new_channel, y=new_labeled)
+
+
+# Magda processing
+base_dir = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/data/datasets/20200407_Magda/Bg_removed/'
+all_imgs = data_utils.load_imgs_from_dir(data_dir=base_dir, img_sub_folder='TIFs',
+                                         imgs=['CD3.tif', 'CD20.tif', 'CD45.tif', 'CD68.tif',
+                                               'HH3.tif', 'PanCK.tif', 'CD4.tif'])
+
+stitched_imgs = data_utils.stitch_images(all_imgs, 10)
+
+for chan in range(stitched_imgs.shape[-1]):
+    img = stitched_imgs[0, :, :, chan]
+    io.imsave(os.path.join(base_dir, stitched_imgs.channels.values[chan] + '_stitched.tiff'), img)
+
+
+# HIV preprocessing
+base_dir = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/data/datasets/20200520_HIV'
+all_imgs = data_utils.load_imgs_from_dir(data_dir=base_dir)
+
+stitched_imgs = data_utils.stitch_images(all_imgs, 5)
+
+for chan in range(stitched_imgs.shape[-1]):
+    img = stitched_imgs[0, :, :, chan]
+    io.imsave(os.path.join(base_dir, stitched_imgs.channels.values[chan] + '_stitched.tiff'), img)
