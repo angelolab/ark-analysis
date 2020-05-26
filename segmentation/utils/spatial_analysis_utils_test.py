@@ -5,17 +5,18 @@ from segmentation.utils import spatial_analysis_utils
 from segmentation.utils import spatial_analysis
 import importlib
 importlib.reload(spatial_analysis)
+importlib.reload(spatial_analysis_utils)
 
 
 def test_calc_dist_matrix():
-    test_mat = np.zeros((512, 512), dtype="int")
+    test_mat = np.zeros((1, 512, 512), dtype="int")
     # Create pythagorean triple to test euclidian distance
-    test_mat[0, 20] = 1
-    test_mat[4, 17] = 2
+    test_mat[0, 0, 20] = 1
+    test_mat[0, 4, 17] = 2
 
-    dist_matrix = spatial_analysis_utils.calc_dist_matrix(test_mat)
+    dist_matrix_xr = spatial_analysis_utils.calc_dist_matrix(test_mat)
     real_mat = np.array([[0, 5], [5, 0]])
-    assert np.array_equal(dist_matrix, real_mat)
+    assert np.array_equal(dist_matrix_xr[0, :, :], real_mat)
 
 
 # def test_distmat():
@@ -27,15 +28,15 @@ def test_calc_dist_matrix():
 #     assert np.allclose(distmat, testmat)
 
 
-def make_distance_matrix(typeofenfrichment):
+def make_distance_matrix(enrichment_type):
     # Make a distance matrix for no enrichment, positive enrichment, and negative enrichment
 
-    if typeofenfrichment == "none":
+    if enrichment_type == "none":
         # Create a 60 x 60 euclidian distance matrix of random values for no enrichment
         rand_mat = np.random.randint(0, 200, size=(60, 60))
         np.fill_diagonal(rand_mat, 0)
         return rand_mat
-    elif typeofenfrichment == "positive":
+    elif enrichment_type == "positive":
         # Create positive enrichment distance matrix where 10 cells mostly positive for marker 1
         # are located close in proximity to 10 cells mostly positive for marker 2.
         # Other included cells are not significantly positive for either marker and are located
@@ -48,7 +49,7 @@ def make_distance_matrix(typeofenfrichment):
         dist_mat_pos[40:80, :40] = 300
         dist_mat_pos[:40, 40:80] = 300
         return dist_mat_pos
-    elif typeofenfrichment == "negative":
+    elif enrichment_type == "negative":
         # This creates a distance matrix where there are two groups of cells significant for 2 different
         # markers that are not located near each other (not within the dist_lim).
         dist_mat_neg = np.zeros((60, 60))
@@ -61,11 +62,17 @@ def make_distance_matrix(typeofenfrichment):
         return dist_mat_neg
 
 
-def make_expression_matrix(typeofencrichment):
+def make_expression_matrix(enrichment_type):
     # Create the expression matrix with cell labels and patient labels for no enrichment,
     # positive enrichment, and negative enrichment.
 
-    if typeofencrichment == "none":
+    # Column names for columns that are not markers (columns to be excluded)
+    excluded_colnames = {0: 'cell_size', 1: 'Background', 14: "HH3",
+                         23: "summed_channel", 24: "label", 25: "area", 26: "eccentricity",
+                         27: "major_axis_length", 28: "minor_axis_length", 29: "perimeter",
+                         30: "fov"}
+
+    if enrichment_type == "none":
         all_patient_data = pd.DataFrame(np.zeros((60, 31)))
         # Assigning values to the patient label and cell label columns
         all_patient_data[30] = "Point8"
@@ -74,12 +81,9 @@ def make_expression_matrix(typeofencrichment):
         all_patient_data.iloc[0:20, 2] = 1
         all_patient_data.iloc[20:40, 3] = 1
         # Assign column names to columns not for markers (columns to be excluded)
-        all_patient_data = all_patient_data.rename({0: 'cell_size', 1: 'Background', 14: "HH3",
-                                                    23: "summed_channel", 24: "label", 25: "area", 26: "eccentricity",
-                                                    27: "major_axis_length", 28: "minor_axis_length", 29: "perimeter",
-                                                    30: "fov"}, axis=1)
+        all_patient_data = all_patient_data.rename(excluded_colnames, axis=1)
         return all_patient_data
-    elif typeofencrichment == "positive":
+    elif enrichment_type == "positive":
         all_patient_data_pos = pd.DataFrame(np.zeros((80, 31)))
         # Assigning values to the patient label and cell label columns
         all_patient_data_pos[30] = "Point8"
@@ -93,13 +97,9 @@ def make_expression_matrix(typeofencrichment):
         all_patient_data_pos.iloc[28:32, 2] = 1
         all_patient_data_pos.iloc[32:36, 3] = 1
         # Assign column names to columns not for markers (columns to be excluded)
-        all_patient_data_pos = all_patient_data_pos.rename({0: 'cell_size', 1: 'Background', 14: "HH3",
-                                                            23: "summed_channel", 24: "label", 25: "area",
-                                                            26: "eccentricity", 27: "major_axis_length",
-                                                            28: "minor_axis_length", 29: "perimeter",
-                                                            30: "fov"}, axis=1)
+        all_patient_data_pos = all_patient_data_pos.rename(excluded_colnames, axis=1)
         return all_patient_data_pos
-    elif typeofencrichment == "negative":
+    elif enrichment_type == "negative":
         all_patient_data_neg = pd.DataFrame(np.zeros((60, 31)))
         # Assigning values to the patient label and cell label columns
         all_patient_data_neg[30] = "Point8"
@@ -110,11 +110,7 @@ def make_expression_matrix(typeofencrichment):
         all_patient_data_neg.iloc[0:20, 2] = 1
         all_patient_data_neg.iloc[20:40, 3] = 1
         # Assign column names to columns not for markers (columns to be excluded)
-        all_patient_data_neg = all_patient_data_neg.rename({0: 'cell_size', 1: 'Background', 14: "HH3",
-                                                            23: "summed_channel", 24: "label", 25: "area",
-                                                            26: "eccentricity", 27: "major_axis_length",
-                                                            28: "minor_axis_length", 29: "perimeter",
-                                                            30: "fov"}, axis=1)
+        all_patient_data_neg = all_patient_data_neg.rename(excluded_colnames, axis=1)
         return all_patient_data_neg
 
 
@@ -124,9 +120,10 @@ def make_threshold_mat():
     return thresh
 
 
-def make_test_closenum():
-    # Create the cell expression matrix to test the closenum function
+def make_example_data_closenum():
+    # Creates example data for the creation of the closenum matrix in the below test function
 
+    # Create example all_patient_data cell expression matrix
     all_patient_data = pd.DataFrame(np.zeros((10, 31)))
     # Assigning values to the patient label and cell label columns
     all_patient_data[30] = "Point8"
@@ -178,7 +175,7 @@ def make_test_closenum():
 
 def test_compute_close_cell_num():
     # Test the closenum function
-    example_all_patient_data, example_dist_mat = make_test_closenum()
+    example_all_patient_data, example_dist_mat = make_example_data_closenum()
     example_thresholds = make_threshold_mat()
 
     # Subsets the expression matrix to only have marker columns
@@ -216,7 +213,7 @@ def test_compute_close_cell_num():
 
 
 def test_compute_close_cell_num_random():
-    example_all_patient_data, example_distmat = make_test_closenum()
+    example_all_patient_data, example_distmat = make_example_data_closenum()
 
     # Generate random inputs to test shape
     marker1_num = [random.randrange(0, 10) for i in range(20)]
@@ -240,11 +237,10 @@ def test_calculate_enrichment_stats():
     # Generate random closenumrand matrix, ensuring significant positive enrichment
     stats_cnrp = np.random.randint(1, 40, (20, 20, 100))
 
-    example_z, muhat, sigmahat, example_p, h, adj_p = spatial_analysis.calculate_enrichment_stats(
-        stats_cnp, stats_cnrp)
+    stats_xr_pos = spatial_analysis.calculate_enrichment_stats(stats_cnp, stats_cnrp)
 
-    assert example_z[0, 0] > 0
-    assert example_p[0, 0, 0] < .05
+    assert stats_xr_pos.loc["z", 0, 0] > 0
+    assert stats_xr_pos.loc["p_pos", 0, 0] < .05
 
     # Negative enrichment
 
@@ -254,11 +250,10 @@ def test_calculate_enrichment_stats():
     # Generate random closenumrand matrix, ensuring significant negative enrichment
     stats_cnrn = np.random.randint(40, 80, (20, 20, 100))
 
-    example_z, muhat, sigmahat, example_p, h, adj_p = spatial_analysis.calculate_enrichment_stats(
-        stats_cnn, stats_cnrn)
+    stats_xr_neg = spatial_analysis.calculate_enrichment_stats(stats_cnn, stats_cnrn)
 
-    assert example_z[0, 0] < 0
-    assert example_p[0, 0, 1] < .05
+    assert stats_xr_neg.loc["z", 0, 0] < 0
+    assert stats_xr_neg.loc["p_neg", 0, 0] < .05
 
     # No enrichment
 
@@ -269,12 +264,11 @@ def test_calculate_enrichment_stats():
     # Generate random closenumrand matrix, ensuring no enrichment
     stats_cnr = np.random.randint(78, 82, (20, 20, 100))
 
-    example_z, muhat, sigmahat, example_p, h, adj_p = spatial_analysis.calculate_enrichment_stats(
-        stats_cn, stats_cnr)
+    stats_xr = spatial_analysis.calculate_enrichment_stats(stats_cn, stats_cnr)
 
-    assert abs(example_z[0, 0]) < 1
-    assert example_p[0, 0, 1] > .05
-    assert example_p[0, 0, 0] > .05
+    assert abs(stats_xr.loc["z", 0, 0]) < 1
+    assert stats_xr.loc["p_neg", 0, 0] > .05
+    assert stats_xr.loc["p_pos", 0, 0] > .05
 
 
 def test_calculate_channel_spatial_enrichment():
@@ -287,28 +281,28 @@ def test_calculate_channel_spatial_enrichment():
     dist_mat_pos = make_distance_matrix("positive")
     values, stats = \
         spatial_analysis.calculate_channel_spatial_enrichment(
-            dist_mat_pos, marker_thresholds, all_patient_data_pos)
-    z, muhat, sigmahat, p, h, adj_p, marker_titles = stats[0]
-    assert p[0, 1, 0] < .05
-    assert p[0, 1, 1] > .05
-    assert z[0, 1] > 0
+            dist_mat_pos, marker_thresholds, all_patient_data_pos, bootstrap_num=100)
+    # z, muhat, sigmahat, p, h, adj_p, marker_titles = stats[0]
+    assert stats.loc["Point8", "p_pos", 2, 3] < .05
+    assert stats.loc["Point8", "p_neg", 2, 3] > .05
+    assert stats.loc["Point8", "z", 2, 3] > 0
     # Negative enrichment
     all_patient_data_neg = make_expression_matrix("negative")
     dist_mat_neg = make_distance_matrix("negative")
     values, stats = \
         spatial_analysis.calculate_channel_spatial_enrichment(
-            dist_mat_neg, marker_thresholds, all_patient_data_neg)
-    z, muhat, sigmahat, p, h, adj_p, marker_titles = stats[0]
-    assert p[0, 1, 1] < .05
-    assert p[0, 1, 0] > .05
-    assert z[0, 1] < 0
+            dist_mat_neg, marker_thresholds, all_patient_data_neg, bootstrap_num=100)
+    # z, muhat, sigmahat, p, h, adj_p, marker_titles = stats[0]
+    assert stats.loc["Point8", "p_neg", 2, 3] < .05
+    assert stats.loc["Point8", "p_pos", 2, 3] > .05
+    assert stats.loc["Point8", "z", 2, 3] < 0
     # No enrichment
     all_patient_data = make_expression_matrix("none")
     dist_mat = make_distance_matrix("none")
     values, stats = \
         spatial_analysis.calculate_channel_spatial_enrichment(
-            dist_mat, marker_thresholds, all_patient_data)
-    z, muhat, sigmahat, p, h, adj_p, marker_titles = stats[0]
-    assert p[0, 1, 0] > .05
-    assert p[0, 1, 1] > .05
-    assert abs(z[0, 1]) < 2
+            dist_mat, marker_thresholds, all_patient_data, bootstrap_num=100)
+    # z, muhat, sigmahat, p, h, adj_p, marker_titles = stats[0]
+    assert stats.loc["Point8", "p_pos", 2, 3] > .05
+    assert stats.loc["Point8", "p_pos", 2, 3] > .05
+    assert abs(stats.loc["Point8", "z", 2, 3]) < 2

@@ -1,4 +1,5 @@
 import pandas as pd
+import xarray as xr
 import numpy as np
 import scipy
 import statsmodels
@@ -18,6 +19,12 @@ from statsmodels.stats.multitest import multipletests
 def compute_close_cell_num(patient_data, patient_data_markers, thresh_vec,
                            dist_mat, marker_num, dist_lim, cell_label_idx):
     """Finds positive cell labels and creates matrix with counts for cells positive for corresponding markers.
+
+    This function loops through all the included markers in the patient data and identifies cell labels positive for
+    corresponding markers. It then subsets the distance matrix to only include these positive cells and records
+    interactions based on whether cells are close to each other (within the dist_lim). It then stores the number of
+    interactions in the index of close_num corresponding to both markers (for instance markers 1 and 2 would be in
+    index [0, 1]).
 
     Args:
         patient_data: cell expression data for the specific point
@@ -48,12 +55,12 @@ def compute_close_cell_num(patient_data, patient_data_markers, thresh_vec,
         marker1poslabels = patient_data.loc[marker1posinds, patient_data.columns[cell_label_idx]]
         marker1_num.append(len(marker1poslabels))
         for k in range(0, marker_num):
-            # Identify cell labels that are positive for above marker and all other markers
+            # Identify cell labels that are positive for the kth marker
             marker2_thresh = thresh_vec.iloc[k]
             marker2posinds = patient_data_markers[patient_data_markers.columns[k]] > marker2_thresh
             marker2poslabels = patient_data.loc[marker2posinds, patient_data.columns[cell_label_idx]]
             marker2_num.append(len(marker2poslabels))
-            # Subset the distance matrix to only include positive cell labels
+            # Subset the distance matrix to only include cells positive for both markers j and k
             trunc_dist_mat = dist_mat[np.ix_(
                 np.asarray(marker1poslabels - 1), np.asarray(
                     marker2poslabels - 1))]
@@ -67,7 +74,8 @@ def compute_close_cell_num(patient_data, patient_data_markers, thresh_vec,
 
 def compute_close_cell_num_random(marker1_num, marker2_num, patient_data,
                                   dist_mat, marker_num, dist_lim, cell_label_idx, bootstrap_num):
-    """Uses bootstrapping to permute cell labels randomly.
+    """Uses bootstrapping to permute cell labels randomly and records the number of close cells (within the dit_lim)
+    in that random setup.
 
     Args
         marker1_num: list of number of cell labels for marker 1
@@ -138,7 +146,8 @@ def calculate_enrichment_stats(close_num, close_num_rand):
     z = np.zeros((marker_num, marker_num))
     muhat = np.zeros((marker_num, marker_num))
     sigmahat = np.zeros((marker_num, marker_num))
-    p = np.zeros((marker_num, marker_num, 2))
+    p_pos = np.zeros((marker_num, marker_num))
+    p_neg = np.zeros((marker_num, marker_num))
 
     for j in range(0, marker_num):
         for k in range(0, marker_num):
@@ -149,27 +158,34 @@ def calculate_enrichment_stats(close_num, close_num_rand):
             # Calculate z score based on distribution
             z[j, k] = (close_num[j, k] - muhat[j, k]) / sigmahat[j, k]
             # Calculate both positive and negative enrichment p values
-            p[j, k, 0] = (1 + (np.sum(tmp >= close_num[j, k]))) / (bootstrap_num + 1)
-            p[j, k, 1] = (1 + (np.sum(tmp <= close_num[j, k]))) / (bootstrap_num + 1)
+            p_pos[j, k] = (1 + (np.sum(tmp >= close_num[j, k]))) / (bootstrap_num + 1)
+            p_neg[j, k] = (1 + (np.sum(tmp <= close_num[j, k]))) / (bootstrap_num + 1)
 
     # Get fdh_br adjusted p values
-    p_summary = np.zeros_like(p[:, :, 0])
+    p_summary = np.zeros_like(p_pos[:, :])
     for j in range(0, marker_num):
         for k in range(0, marker_num):
             # Use negative enrichment p values if the z score is negative, and vice versa
             if z[j, k] > 0:
-                p_summary[j, k] = p[j, k, 0]
+                p_summary[j, k] = p_pos[j, k]
             else:
-                p_summary[j, k] = p[j, k, 1]
+                p_summary[j, k] = p_neg[j, k]
     (h, adj_p, aS, aB) = statsmodels.stats.multitest.multipletests(
         p_summary, alpha=.05)
 
-    return z, muhat, sigmahat, p, h, adj_p
+    # Create an Xarray with the dimensions (stats variables, number of markers, number of markers)
+    stats_data = np.stack((z, muhat, sigmahat, p_pos, p_neg, h, adj_p), axis=0)
+    coords = [["z", "muhat", "sigmahat", "p_pos", "p_neg", "h", "p_adj"],
+              range(stats_data[0].data.shape[0]), range(stats_data[0].data.shape[1])]
+    dims = ["stats", "rows", "cols"]
+    stats_xr = xr.DataArray(stats_data, coords=coords, dims=dims)
+    # return z, muhat, sigmahat, p_pos, p_neg, h, adj_p
+    return stats_xr
 
 
 def calculate_channel_spatial_enrichment(dist_matrix, marker_thresholds, all_patient_data,
                                          excluded_colnames=None, points=None,
-                                         patient_idx=30, dist_lim=100, cell_label_idx=24, bootstrap_num=100):
+                                         patient_idx=30, dist_lim=100, cell_label_idx=24, bootstrap_num=1000):
     """Spatial enrichment analysis to find significant interactions between cells expressing different markers.
     Uses bootstrapping to permute cell labels randomly.
 
@@ -188,19 +204,22 @@ def calculate_channel_spatial_enrichment(dist_matrix, marker_thresholds, all_pat
         patient_idx: columns with patient labels. Default is 30.
         dist_lim: cell proximity threshold. Default is 100.
         cell_label_idx: column with cell labels. Default is 24.
-        bootstrap_num: number of permutations for bootstrap. Default is 100.
+        bootstrap_num: number of permutations for bootstrap. Default is 1000.
 
     Returns:
         values: a list with each element consisting of a tuple of
             closenum and closenumrand for each point included in the analysis
-        stats: a list with each element consisting of a tuple of
+        stats: an Xarray with dimensions (points, stats, number of markers, number of markers) The included stats
+            variables are:
             z, muhat, sigmahat, p, h, adj_p, and marker_titles for each point in the analysis"""
 
     # Setup input and parameters
+    num_points = 0
     if points is None:
         points = list(set(all_patient_data.iloc[:, patient_idx]))
+        num_points = len(points)
     values = []
-    stats = []
+    # stats = []
 
     if excluded_colnames is None:
         excluded_colnames = ["cell_size", "Background", "HH3",
@@ -222,12 +241,19 @@ def calculate_channel_spatial_enrichment(dist_matrix, marker_thresholds, all_pat
     # Length of marker list
     marker_num = len(marker_titles)
 
+    # Create stats Xarray with the dimensions (points, stats variables, number of markers, number of markers)
+    stats_raw_data = np.zeros((num_points, 7, marker_num, marker_num))
+    coords = [points, ["z", "muhat", "sigmahat", "p_pos", "p_neg", "h", "p_adj"], marker_titles,
+              marker_titles]
+    dims = ["points", "stats", "marker1", "marker2"]
+    stats = xr.DataArray(stats_raw_data, coords=coords, dims=dims)
+
     # Subsetting threshold matrix to only include column with threshold values
     thresh_vec = marker_thresholds.iloc[:, 1]
 
-    for i in points:
+    for point in points:
         # Subsetting expression matrix to only include patients with correct label
-        patient_ids = all_patient_data.iloc[:, patient_idx] == i
+        patient_ids = all_patient_data.iloc[:, patient_idx] == point
         patient_data = all_patient_data[patient_ids]
         # Patients with correct label, and only columns of markers
         patient_data_markers = data_markers[patient_ids]
@@ -239,7 +265,8 @@ def calculate_channel_spatial_enrichment(dist_matrix, marker_thresholds, all_pat
             marker1_num, marker2_num, patient_data, dist_matrix, marker_num, dist_lim, cell_label_idx, bootstrap_num)
         values.append((close_num, close_num_rand))
         # Get z, p, adj_p, muhat, sigmahat, and h
-        z, muhat, sigmahat, p, h, adj_p = calculate_enrichment_stats(close_num, close_num_rand)
-        stats.append((z, muhat, sigmahat, p, h, adj_p, marker_titles))
-
+        # z, muhat, sigmahat, p, h, adj_p = calculate_enrichment_stats(close_num, close_num_rand)
+        stats_xr = calculate_enrichment_stats(close_num, close_num_rand)
+        # stats.append((z, muhat, sigmahat, p, h, adj_p, marker_titles))
+        stats.loc[point, :, :] = stats_xr.values
     return values, stats
