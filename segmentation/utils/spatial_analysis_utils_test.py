@@ -48,7 +48,6 @@ def make_example_data_closenum():
     all_patient_data.iloc[4:9, 6] = 1
     all_patient_data.iloc[9, 7] = 1
     all_patient_data.iloc[9, 8] = 1
-    
     # Only include the columns of markers
     data_markers = all_patient_data.drop(all_patient_data.columns[[
         0, 1, 14, 23, 24, 25, 26, 27, 28, 29, 30]], axis=1)
