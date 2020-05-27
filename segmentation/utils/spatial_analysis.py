@@ -84,7 +84,7 @@ def calculate_channel_spatial_enrichment(dist_matrix, marker_thresholds, all_pat
     stats = xr.DataArray(stats_raw_data, coords=coords, dims=dims)
 
     # Subsetting threshold matrix to only include column with threshold values
-    thresh_vec = marker_thresholds.iloc[:, cell_label_idx]
+    thresh_vec = marker_thresholds.iloc[:, 1]
 
     for point in points:
         # Subsetting expression matrix to only include patients with correct label
