@@ -33,7 +33,7 @@ def calc_dist_matrix(label_map):
     return dist_mats_xr
 
 
-def compute_close_cell_num(patient_data_markers, thresh_vec,
+def compute_close_cell_num(patient_data_markers, label_idx, thresh_vec,
                            dist_mat, marker_num, dist_lim):
     """Finds positive cell labels and creates matrix with counts for cells positive for corresponding markers.
 
@@ -46,6 +46,7 @@ def compute_close_cell_num(patient_data_markers, thresh_vec,
     Args:
         patient_data_markers: cell expression data of markers
             for the specific point
+        label_idx: column of cell labels
         thresh_vec: matrix of thresholds column for markers
         dist_mat: cells x cells matrix with the euclidian
             distance between centers of corresponding cells
@@ -67,14 +68,16 @@ def compute_close_cell_num(patient_data_markers, thresh_vec,
         # Identify cell labels that are positive for respective markers
         marker1_thresh = thresh_vec.iloc[j]
         marker1posinds = patient_data_markers[patient_data_markers.columns[j]] > marker1_thresh
+        marker1poslabels = label_idx[marker1posinds]
         marker1_num.append(sum(marker1posinds))
         for k in range(0, marker_num):
             # Identify cell labels that are positive for the kth marker
             marker2_thresh = thresh_vec.iloc[k]
             marker2posinds = patient_data_markers[patient_data_markers.columns[k]] > marker2_thresh
+            marker2poslabels = label_idx[marker2posinds]
             marker2_num.append(sum(marker2posinds))
             # Subset the distance matrix to only include cells positive for both markers j and k
-            trunc_dist_mat = dist_mat[np.ix_(np.asarray(marker1posinds), np.asarray(marker2posinds))]
+            trunc_dist_mat = dist_mat[np.ix_(np.asarray(marker1poslabels - 1), np.asarray(marker2poslabels - 1))]
             # Binarize the truncated distance matrix to only include cells within distance limit
             trunc_dist_mat_bin = np.zeros(trunc_dist_mat.shape, dtype='int')
             trunc_dist_mat_bin[trunc_dist_mat < dist_lim] = 1

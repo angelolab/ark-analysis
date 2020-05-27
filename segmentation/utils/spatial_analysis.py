@@ -18,7 +18,7 @@ importlib.reload(spatial_analysis_utils)
 
 def calculate_channel_spatial_enrichment(dist_matrix, marker_thresholds, all_patient_data,
                                          excluded_colnames=None, points=None,
-                                         patient_idx=30, dist_lim=100, bootstrap_num=1000):
+                                         patient_idx=30, cell_label_idx=24, dist_lim=100, bootstrap_num=1000):
     """Spatial enrichment analysis to find significant interactions between cells expressing different markers.
     Uses bootstrapping to permute cell labels randomly.
 
@@ -35,8 +35,8 @@ def calculate_channel_spatial_enrichment(dist_matrix, marker_thresholds, all_pat
             "perimeter", "fov"]
         points: patient labels to include in analysis. If argument is none, default is all labels used.
         patient_idx: columns with patient labels. Default is 30.
-        dist_lim: cell proximity threshold. Default is 100.
         cell_label_idx: column with cell labels. Default is 24.
+        dist_lim: cell proximity threshold. Default is 100.
         bootstrap_num: number of permutations for bootstrap. Default is 1000.
 
     Returns:
@@ -50,6 +50,8 @@ def calculate_channel_spatial_enrichment(dist_matrix, marker_thresholds, all_pat
     num_points = 0
     if points is None:
         points = list(set(all_patient_data.iloc[:, patient_idx]))
+        num_points = len(points)
+    else:
         num_points = len(points)
     values = []
     # stats = []
@@ -82,7 +84,7 @@ def calculate_channel_spatial_enrichment(dist_matrix, marker_thresholds, all_pat
     stats = xr.DataArray(stats_raw_data, coords=coords, dims=dims)
 
     # Subsetting threshold matrix to only include column with threshold values
-    thresh_vec = marker_thresholds.iloc[:, 1]
+    thresh_vec = marker_thresholds.iloc[:, cell_label_idx]
 
     for point in points:
         # Subsetting expression matrix to only include patients with correct label
@@ -90,10 +92,12 @@ def calculate_channel_spatial_enrichment(dist_matrix, marker_thresholds, all_pat
         patient_data = all_patient_data[patient_ids]
         # Patients with correct label, and only columns of markers
         patient_data_markers = data_markers[patient_ids]
+        # Subsetting the column with the cell labels
+        label_idx = patient_data.iloc[:, cell_label_idx]
 
         # Get close_num and close_num_rand
         close_num, marker1_num, marker2_num = spatial_analysis_utils.compute_close_cell_num(
-            patient_data_markers, thresh_vec, dist_matrix, marker_num, dist_lim)
+            patient_data_markers, label_idx, thresh_vec, dist_matrix, marker_num, dist_lim)
         close_num_rand = spatial_analysis_utils.compute_close_cell_num_random(
             marker1_num, marker2_num, dist_matrix, marker_num, dist_lim, bootstrap_num)
         values.append((close_num, close_num_rand))

@@ -9,14 +9,17 @@ importlib.reload(spatial_analysis_utils)
 
 
 def test_calc_dist_matrix():
-    test_mat = np.zeros((1, 512, 512), dtype="int")
+    test_mat = np.zeros((2, 512, 512), dtype="int")
     # Create pythagorean triple to test euclidian distance
     test_mat[0, 0, 20] = 1
     test_mat[0, 4, 17] = 2
+    test_mat[1, 5, 25] = 1
+    test_mat[1, 9, 22] = 2
 
     dist_matrix_xr = spatial_analysis_utils.calc_dist_matrix(test_mat)
     real_mat = np.array([[0, 5], [5, 0]])
     assert np.array_equal(dist_matrix_xr[0, :, :], real_mat)
+    assert np.array_equal(dist_matrix_xr[1, :, :], real_mat)
 
 
 # def test_distmat():
@@ -39,6 +42,9 @@ def make_example_data_closenum():
 
     # Create example all_patient_data cell expression matrix
     all_patient_data = pd.DataFrame(np.zeros((10, 31)))
+    # Assigning values to the patient label and cell label columns
+    all_patient_data[30] = "Point8"
+    all_patient_data[24] = np.arange(len(all_patient_data[1])) + 1
 
     # Create 4 cells positive for marker 1 and 2, 5 cells positive for markers 3 and 4,
     # and 1 cell positive for marker 5
@@ -48,9 +54,6 @@ def make_example_data_closenum():
     all_patient_data.iloc[4:9, 6] = 1
     all_patient_data.iloc[9, 7] = 1
     all_patient_data.iloc[9, 8] = 1
-    # Only include the columns of markers
-    data_markers = all_patient_data.drop(all_patient_data.columns[[
-        0, 1, 14, 23, 24, 25, 26, 27, 28, 29, 30]], axis=1)
 
     # Create the distance matrix to test the closenum function
     dist_mat = np.zeros((10, 10))
@@ -85,24 +88,30 @@ def make_example_data_closenum():
     dist_mat[8, 7] = 50
     dist_mat[7, 8] = 50
 
-    return data_markers, dist_mat
+    return all_patient_data, dist_mat
 
 
 def test_compute_close_cell_num():
     # Test the closenum function
-    data_markers, example_dist_mat = make_example_data_closenum()
+    all_patient_data, example_dist_mat = make_example_data_closenum()
     example_thresholds = make_threshold_mat()
+
+    # Only include the columns of markers
+    data_markers = all_patient_data.drop(all_patient_data.columns[[
+        0, 1, 14, 23, 24, 25, 26, 27, 28, 29, 30]], axis=1)
 
     # List of all markers
     marker_titles = data_markers.columns
     # Length of marker list
     marker_num = len(marker_titles)
 
+    label_idx = all_patient_data.iloc[:, 24]
+
     # Subsetting threshold matrix to only include column with threshold values
     thresh_vec = example_thresholds.iloc[0:20, 1]
 
     example_closenum, marker1_num, marker2_num = spatial_analysis_utils.compute_close_cell_num(
-        data_markers, thresh_vec, example_dist_mat, marker_num, dist_lim=100)
+        data_markers, label_idx, thresh_vec, example_dist_mat, marker_num, dist_lim=100)
     assert (example_closenum[:2, :2] == 16).all()
     assert (example_closenum[3:5, 3:5] == 25).all()
     assert (example_closenum[5:7, 5:7] == 1).all()
