@@ -3,8 +3,9 @@ import matplotlib.pyplot as plt
 from skimage.transform import resize
 import skimage.io as io
 import shutil
+from skimage.measure import label
 
-from segmentation.utils import data_utils
+from segmentation.utils import data_utils, io_utils
 
 # extract cHL data
 import h5py, re, os
@@ -257,7 +258,7 @@ for fov in fovs:
 
 
 # melanoma preprocessing
-base_dir = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/data/datasets/20200226_Melanoma/Great_Membrane/'
+base_dir = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/data/datasets/20200226_Melanoma/Okay_Membrane/'
 fovs = os.listdir(base_dir + 'fovs')
 fovs = [fov for fov in fovs if os.path.isdir(os.path.join(base_dir, 'fovs', fov))]
 
@@ -273,6 +274,13 @@ for fov in fovs:
         io.imsave(os.path.join(folder, 'DNA.tiff'), cropped_data[crop, :, :, 0])
         io.imsave(os.path.join(folder, 'Membrane.tiff'), cropped_data[crop, :, :, 1])
 
+# generate stitched images for viewing
+all_data = data_utils.load_imgs_from_dir(base_dir + 'fovs', img_sub_folder='TIFs')
+stitched_imgs = data_utils.stitch_images(all_data, 10)
+
+for chan in range(stitched_imgs.shape[-1]):
+    img = stitched_imgs[0, :, :, chan]
+    io.imsave(os.path.join(base_dir, 'fovs/stitched', stitched_imgs.channels.values[chan] + '_stitched.tiff'), img.astype('int8'))
 
 # IMC 20200411 preprocessing
 base_dir = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/data/datasets/20200411_IMC_METABRIC/'
@@ -363,13 +371,228 @@ for fov in fovs:
         io.imsave(os.path.join(folder, 'Membrane.tiff'), cropped_data[crop, :, :, 1])
 
 
+
+# Leeat TNBC data processing
+base_dir = "/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/data/datasets/20200328_TNBC/"
+files = os.listdir(base_dir + 'fovs')
+
+files = [file for file in files if ".tiff" in file]
+
+for file in files:
+    m_tiff = tiff.read(os.path.join(base_dir, file))
+    folder_name = os.path.splitext(file)[0]
+    tiff.write(os.path.join(base_dir, folder_name), m_tiff, multichannel=False)
+
+
+all_data = data_utils.load_imgs_from_dir(base_dir + '/fovs',
+                                         imgs=['CD3.tiff', 'CD4.tiff', 'CD8.tiff', 'CD20.tiff',
+                                               'CD56.tiff'])
+
+all_data_stitched = data_utils.stitch_images(all_data, 10)
+for idx in range(all_data_stitched.shape[-1]):
+    img_path = os.path.join(base_dir, all_data_stitched.channels.values[idx] + '_stitched.tiff')
+    io.imsave(img_path, all_data_stitched.values[0, :, :, idx])
+
 # upsample labels
 labels = os.listdir(base_dir)
 labels = [label for label in labels if "Seg" in label]
 
-for label_name in labels:
-    label = io.imread(os.path.join(base_dir, label_name))
+# NUH_DLBCL
+base_dir = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/data/datasets/20200416_NUH_DLBCL/'
 
-    label_resized = resize(label, [label.shape[0] * 2, label.shape[1] * 2], order=0, preserve_range=True)
+folders = os.listdir(base_dir + '20200411 Unmixing Algorithm for CD20')
+folders = [folder for folder in folders if '.jpg' in folder]
 
-    io.imsave(os.path.join(base_dir, label_name + "_Upsampled.tiff"), label_resized.astype('int16'))
+for folder in folders:
+    folder_path = os.path.join(base_dir, 'FOVs', folder.split('.jpg')[0])
+    os.makedirs(folder_path)
+    jpg = io.imread(os.path.join(base_dir, '20200411 Unmixing Algorithm for CD20', folder))
+    io.imsave(os.path.join(folder_path, 'Membrane.tiff'), jpg[:, :, 0].astype('float32'))
+
+    jpg = io.imread(os.path.join(base_dir, '20200411 Unmixing Algorithm for DAPI', folder))
+    io.imsave(os.path.join(folder_path, 'DNA.tiff'), jpg[:, :, 0].astype('float32'))
+
+
+crop_dir = base_dir + 'Great/crops/'
+fov_dir = base_dir + 'Great/FOVs/'
+fovs = io_utils.list_folders(fov_dir)
+
+for fov in fovs:
+    data = data_utils.load_imgs_from_dir(fov_dir, fovs=[fov], dtype='float32',
+                                         imgs=['DNA.tiff', 'Membrane.tiff'])
+
+    cropped_data = data_utils.crop_image_stack(data, 512, 1)
+    for crop in range(cropped_data.shape[0]):
+        folder = os.path.join(crop_dir, '{}_crop_{}'.format(fov, crop))
+        os.makedirs(folder)
+        io.imsave(os.path.join(folder, 'DNA.tiff'), cropped_data[crop, :, :, 0])
+        io.imsave(os.path.join(folder, 'Membrane.tiff'), cropped_data[crop, :, :, 1])
+
+
+# La Jolla Institute for Immunology Tonsil
+base_dir = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/data/datasets/20200509_LJI_Tonsil/Great'
+stacks = os.listdir(base_dir)
+stacks = [stack for stack in stacks if 'tif' in stack]
+data_utils.split_img_stack(base_dir, base_dir, stacks,  [0,2], ['DAPI.tif', 'CD4.tif'],
+                           channels_first=False)
+
+folder = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/data/datasets/20200509_LJI_Tonsil/Very_Dense/FOVs/Tile_14/'
+DNA = io.imread(folder + 'DAPI.tif')
+DNA = DNA[:, :2560]
+io.imsave(folder + 'DAPI_cropped.tiff', DNA.astype('int32'))
+
+Membrane = io.imread(folder + 'CD4.tif')
+Membrane = Membrane[:, :2560]
+io.imsave(folder + 'CD4_cropped.tiff', Membrane.astype('int32'))
+
+crop_dir = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/data/datasets/20200509_LJI_Tonsil/Very_Dense/crops/'
+fov_dir = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/data/datasets/20200509_LJI_Tonsil/Very_Dense/FOVs/'
+fovs = os.listdir(fov_dir)
+fovs = [fov for fov in fovs if 'Tile' in fov]
+
+for fov in fovs:
+    data = data_utils.load_imgs_from_dir(fov_dir, fovs=[fov], dtype='int32',
+                                         imgs=['DAPI_cropped.tiff', 'CD4_cropped.tiff'])
+
+    cropped_data = data_utils.crop_image_stack(data, 512, 1)
+    for crop in range(cropped_data.shape[0]):
+        folder = os.path.join(crop_dir, '{}_crop_{}'.format(fov, crop))
+        os.makedirs(folder)
+        io.imsave(os.path.join(folder, 'DNA.tiff'), cropped_data[crop, :, :, 0])
+        io.imsave(os.path.join(folder, 'Membrane.tiff'), cropped_data[crop, :, :, 1])
+
+
+# COH CRC processing
+base_dir = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/data/datasets/20200507_COH_CRC/'
+
+fovs = io_utils.list_folders(base_dir + 'FOVs')
+
+for idx, fov in enumerate(fovs):
+    files = os.listdir(os.path.join(base_dir, 'FOVs', fov))
+    files = [file for file in files if '.tif' in file]
+    files.pop(np.where(np.isin(files, 'DAPI.tif'))[0][0])
+    data = data_utils.load_imgs_from_dir(base_dir + 'FOVs', fovs=[fov], dtype='float32',
+                                         imgs=['DAPI.tif', files[0]])
+
+    cropped_data = data_utils.crop_image_stack(data, 512, 1)
+    for crop in range(cropped_data.shape[0]):
+        folder = os.path.join(base_dir, 'crops/img_{}_crop_{}'.format(idx, crop))
+        os.makedirs(folder)
+        io.imsave(os.path.join(folder, 'DNA.tiff'), cropped_data[crop, :, :, 0])
+        io.imsave(os.path.join(folder, 'Membrane.tiff'), cropped_data[crop, :, :, 1])
+
+
+# COH LN processing
+base_dir = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/data/datasets/20200508_COH_LN/'
+
+fovs = io_utils.list_folders(base_dir + 'FOVs')
+
+for idx, fov in enumerate(fovs):
+    data = data_utils.load_imgs_from_dir(base_dir + 'FOVs', fovs=[fov], dtype='float32',
+                                         imgs=['DAPI.tif', 'CD3.tif'])
+
+    cropped_data = data_utils.crop_image_stack(data, 512, 1)
+    for crop in range(cropped_data.shape[0]):
+        folder = os.path.join(base_dir, 'crops/img_{}_crop_{}'.format(idx, crop))
+        os.makedirs(folder)
+        io.imsave(os.path.join(folder, 'DNA.tiff'), cropped_data[crop, :, :, 0])
+        io.imsave(os.path.join(folder, 'Membrane.tiff'), cropped_data[crop, :, :, 1])
+
+# Travis labeled data processing
+
+# fix idiotic google drive zip file architecture
+base_dir = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/data/datasets/20200512_Travis_PDAC/'
+
+zip_folders = io_utils.list_folders(base_dir)
+
+os.makedirs(os.path.join(base_dir, 'combined'))
+
+for zip in zip_folders:
+    image_folders = io_utils.list_folders(os.path.join(base_dir, zip))
+
+    for image_folder in image_folders:
+        image_folder_path = os.path.join(base_dir, 'combined', image_folder)
+        if not os.path.isdir(image_folder_path):
+            os.makedirs(image_folder_path)
+
+        # check and see if original image and mask are in this version
+        image_mask = os.path.join(base_dir, zip, image_folder, image_folder + '-Crop_Cell_Mask_Png.png')
+        image_crop = os.path.join(base_dir, zip, image_folder, image_folder + '-Crop_Tif.tif')
+
+        if os.path.exists(image_mask):
+            shutil.copy(image_mask, os.path.join(image_folder_path, 'segmentation_label.png'))
+
+        if os.path.exists(image_crop):
+            shutil.copy(image_crop, os.path.join(image_folder_path, 'image_crop.tiff'))
+
+# sum membrane channels together
+
+combined_dir = os.path.join(base_dir, 'combined')
+folders = io_utils.list_folders(combined_dir)
+
+for folder in folders:
+    total_tiff = io.imread(os.path.join(combined_dir, folder, 'image_crop.tiff'))
+    DNA = total_tiff[5, :, :].astype('float32')
+    Membrane =  np.sum(total_tiff[[1, 2, 4, 6], :, :], axis=0).astype('float32')
+    io.imsave(os.path.join(combined_dir, folder, 'Membrane.tiff'), Membrane)
+    io.imsave(os.path.join(combined_dir, folder, 'DNA.tiff'), DNA)
+
+# load DNA and Membrane data
+channel_data = data_utils.load_imgs_from_dir(data_dir=combined_dir,
+                                             imgs=['DNA.tiff', 'Membrane.tiff'], dtype='float32')
+
+label_data = data_utils.load_imgs_from_dir(data_dir=combined_dir, imgs=['segmentation_label.png'])
+
+channel_data_resized = resize(channel_data.values, [24, 800, 800, 2], order=1)
+label_data_resized = resize(label_data.values, [24, 800, 800, 1], order=0, preserve_range=True)
+
+channel_data_resized = channel_data_resized[:, :768, :768, :]
+label_data_resized = label_data_resized[:, :768, :768, :]
+
+channel_data_cropped = data_utils.crop_image_stack(channel_data_resized, 256, 0.5)
+label_data_cropped = data_utils.crop_image_stack(label_data_resized, 256, 0.5)
+
+labeled_data = np.zeros_like(label_data_cropped)
+
+for crop in range(labeled_data.shape[0]):
+    labeled = label(label_data_cropped[crop, :, :, 0])
+    labeled_data[crop, :, :, 0] = labeled
+np.savez(combined_dir + '20200512_Travis_data.npz', X=channel_data_cropped, y=labeled_data)
+
+
+# make labeled version at 512x512 resolution
+labeled_data = np.zeros_like(label_data)
+for crop in range(labeled_data.shape[0]):
+    labeled = label(label_data[crop, :, :, 0])
+    labeled_data[crop, :, :, 0] = labeled
+
+new_labeled = np.zeros((24, 512, 512, 1))
+new_labeled[:, :400, :400, :] = labeled_data
+
+new_channel = np.zeros((24, 512, 512, 2))
+new_channel[:, :400, :400, :] = channel_data
+np.savez(combined_dir + '20200512_Travis_512x512.npz', X=new_channel, y=new_labeled)
+
+
+# Magda processing
+base_dir = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/data/datasets/20200407_Magda/Bg_removed/'
+all_imgs = data_utils.load_imgs_from_dir(data_dir=base_dir, img_sub_folder='TIFs',
+                                         imgs=['CD3.tif', 'CD20.tif', 'CD45.tif', 'CD68.tif',
+                                               'HH3.tif', 'PanCK.tif', 'CD4.tif'])
+
+stitched_imgs = data_utils.stitch_images(all_imgs, 10)
+
+for chan in range(stitched_imgs.shape[-1]):
+    img = stitched_imgs[0, :, :, chan]
+    io.imsave(os.path.join(base_dir, stitched_imgs.channels.values[chan] + '_stitched.tiff'), img)
+
+
+# HIV preprocessing
+base_dir = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/data/datasets/20200520_HIV'
+all_imgs = data_utils.load_imgs_from_dir(data_dir=base_dir)
+
+stitched_imgs = data_utils.stitch_images(all_imgs, 5)
+
+for chan in range(stitched_imgs.shape[-1]):
+    img = stitched_imgs[0, :, :, chan]
+    io.imsave(os.path.join(base_dir, stitched_imgs.channels.values[chan] + '_stitched.tiff'), img)
