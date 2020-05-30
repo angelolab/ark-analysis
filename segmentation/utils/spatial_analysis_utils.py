@@ -33,8 +33,9 @@ def calc_dist_matrix(label_map):
     return dist_mats_xr
 
 
-def compute_close_cell_num(patient_data_markers, label_idx, thresh_vec,
-                           dist_mat, marker_num, dist_lim):
+def compute_close_cell_num(dist_mat, dist_lim, num, analysis_type, cell_label_idx=None,
+                         patient_data=None, cell_pheno_idx=None, pheno_codes=None, patient_data_markers=None,
+                         label_idx=None, thresh_vec=None):
     """Finds positive cell labels and creates matrix with counts for cells positive for corresponding markers.
 
     This function loops through all the included markers in the patient data and identifies cell labels positive for
@@ -58,32 +59,41 @@ def compute_close_cell_num(patient_data_markers, label_idx, thresh_vec,
             positive for corresponding markers
         marker1_num: list of number of cell labels for marker 1
         marker2_num: list of number of cell labels for marker 2"""
-
     # Create close_num, marker1_num, and marker2_num
-    close_num = np.zeros((marker_num, marker_num), dtype='int')
-    marker1_num = []
-    marker2_num = []
+    close_num = np.zeros((num, num), dtype='int')
+    mark1_num = []
+    mark2_num = []
 
-    for j in range(0, marker_num):
-        # Identify cell labels that are positive for respective markers
-        marker1_thresh = thresh_vec.iloc[j]
-        marker1posinds = patient_data_markers[patient_data_markers.columns[j]] > marker1_thresh
-        marker1poslabels = label_idx[marker1posinds]
-        marker1_num.append(sum(marker1posinds))
-        for k in range(0, marker_num):
-            # Identify cell labels that are positive for the kth marker
-            marker2_thresh = thresh_vec.iloc[k]
-            marker2posinds = patient_data_markers[patient_data_markers.columns[k]] > marker2_thresh
-            marker2poslabels = label_idx[marker2posinds]
-            marker2_num.append(sum(marker2posinds))
+    for j in range(0, num):
+        # Identify cell labels that are positive for respective markers, based on type of analysis
+        mark1poslabels = None
+        if analysis_type == "Cell Label":
+            pheno1 = pheno_codes.iloc[j]
+            pheno1posinds = patient_data.iloc[:, cell_pheno_idx] == pheno1
+            mark1poslabels = patient_data.iloc[:, cell_label_idx][pheno1posinds]
+        else:
+            marker1_thresh = thresh_vec.iloc[j]
+            marker1posinds = patient_data_markers[patient_data_markers.columns[j]] > marker1_thresh
+            mark1poslabels = label_idx[marker1posinds]
+        mark1_num.append(len(mark1poslabels))
+        for k in range(0, num):
+            mark2poslabels = None
+            if analysis_type == "Cell Label":
+                pheno2 = pheno_codes.iloc[k]
+                pheno2posinds = patient_data.iloc[:, cell_pheno_idx] == pheno2
+                mark2poslabels = patient_data.iloc[:, cell_label_idx][pheno2posinds]
+            else:
+                marker2_thresh = thresh_vec.iloc[k]
+                marker2posinds = patient_data_markers[patient_data_markers.columns[k]] > marker2_thresh
+                mark2poslabels = label_idx[marker2posinds]
+            mark2_num.append(len(mark2poslabels))
             # Subset the distance matrix to only include cells positive for both markers j and k
-            trunc_dist_mat = dist_mat[np.ix_(np.asarray(marker1poslabels - 1), np.asarray(marker2poslabels - 1))]
+            trunc_dist_mat = dist_mat[np.ix_(np.asarray(mark1poslabels - 1), np.asarray(mark2poslabels - 1))]
             # Binarize the truncated distance matrix to only include cells within distance limit
             trunc_dist_mat_bin = np.zeros(trunc_dist_mat.shape, dtype='int')
             trunc_dist_mat_bin[trunc_dist_mat < dist_lim] = 1
-            # Record the number of interactions and store in close_num in index corresponding to both markers
             close_num[j, k] = np.sum(np.sum(trunc_dist_mat_bin))
-    return close_num, marker1_num, marker2_num
+    return close_num, mark1_num, mark2_num
 
 
 def compute_close_cell_num_random(marker1_num, marker2_num,

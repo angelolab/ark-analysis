@@ -110,8 +110,9 @@ def test_compute_close_cell_num():
     # Subsetting threshold matrix to only include column with threshold values
     thresh_vec = example_thresholds.iloc[0:20, 1]
 
-    example_closenum, marker1_num, marker2_num = spatial_analysis_utils.compute_close_cell_num(
-        data_markers, label_idx, thresh_vec, example_dist_mat, marker_num, dist_lim=100)
+    example_closenum, m1, m2 = spatial_analysis_utils.compute_close_cell_num(
+        dist_mat=example_dist_mat, dist_lim=100, num=marker_num, analysis_type="Threshold",
+        patient_data_markers=data_markers, label_idx=label_idx, thresh_vec=thresh_vec)
     assert (example_closenum[:2, :2] == 16).all()
     assert (example_closenum[3:5, 3:5] == 25).all()
     assert (example_closenum[5:7, 5:7] == 1).all()

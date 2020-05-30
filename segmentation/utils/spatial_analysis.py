@@ -97,7 +97,8 @@ def calculate_channel_spatial_enrichment(dist_matrix, marker_thresholds, all_pat
 
         # Get close_num and close_num_rand
         close_num, marker1_num, marker2_num = spatial_analysis_utils.compute_close_cell_num(
-            patient_data_markers, label_idx, thresh_vec, dist_matrix, marker_num, dist_lim)
+            dist_mat=dist_matrix, dist_lim=100, num=marker_num, analysis_type="Threshold",
+            patient_data_markers=patient_data_markers, label_idx=label_idx, thresh_vec=thresh_vec)
         close_num_rand = spatial_analysis_utils.compute_close_cell_num_random(
             marker1_num, marker2_num, dist_matrix, marker_num, dist_lim, bootstrap_num)
         values.append((close_num, close_num_rand))
