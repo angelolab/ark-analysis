@@ -57,18 +57,21 @@ def make_expression_matrix(enrichment_type):
                          30: "fov"}
 
     if enrichment_type == "none":
-        all_patient_data = pd.DataFrame(np.zeros((60, 31)))
+        all_patient_data = pd.DataFrame(np.zeros((60, 32)))
         # Assigning values to the patient label and cell label columns
         all_patient_data[30] = "Point8"
         all_patient_data[24] = np.arange(len(all_patient_data[1])) + 1
         # We create two populations of 20 cells each, each positive for a different marker (column index 2 and 3)
         all_patient_data.iloc[0:20, 2] = 1
         all_patient_data.iloc[20:40, 3] = 1
+        # We assign the two populations of cells 2 different cell phenotypes
+        all_patient_data.iloc[0:20, 31] = 1
+        all_patient_data.iloc[20:40, 31] = 2
         # Assign column names to columns not for markers (columns to be excluded)
         all_patient_data = all_patient_data.rename(excluded_colnames, axis=1)
         return all_patient_data
     elif enrichment_type == "positive":
-        all_patient_data_pos = pd.DataFrame(np.zeros((80, 31)))
+        all_patient_data_pos = pd.DataFrame(np.zeros((80, 32)))
         # Assigning values to the patient label and cell label columns
         all_patient_data_pos[30] = "Point8"
         all_patient_data_pos[24] = np.arange(len(all_patient_data_pos[1])) + 1
@@ -76,15 +79,21 @@ def make_expression_matrix(enrichment_type):
         # These are within the dist_lim in dist_mat_pos (positive enrichment distance matrix).
         all_patient_data_pos.iloc[0:8, 2] = 1
         all_patient_data_pos.iloc[10:18, 3] = 1
+        # We assign the two populations of cells 2 different cell phenotypes
+        all_patient_data_pos.iloc[0:8, 31] = 1
+        all_patient_data_pos.iloc[10:18, 31] = 2
         # We create 4 cells in column index 2 and column index 3 that are also positive
         # for their respective markers.
         all_patient_data_pos.iloc[28:32, 2] = 1
         all_patient_data_pos.iloc[32:36, 3] = 1
+        # We assign the two populations of cells 2 different cell phenotypes
+        all_patient_data_pos.iloc[28:32, 31] = 1
+        all_patient_data_pos.iloc[32:36, 31] = 2
         # Assign column names to columns not for markers (columns to be excluded)
         all_patient_data_pos = all_patient_data_pos.rename(excluded_colnames, axis=1)
         return all_patient_data_pos
     elif enrichment_type == "negative":
-        all_patient_data_neg = pd.DataFrame(np.zeros((60, 31)))
+        all_patient_data_neg = pd.DataFrame(np.zeros((60, 32)))
         # Assigning values to the patient label and cell label columns
         all_patient_data_neg[30] = "Point8"
         all_patient_data_neg[24] = np.arange(len(all_patient_data_neg[1])) + 1
@@ -93,6 +102,9 @@ def make_expression_matrix(enrichment_type):
         # The two populations are not within the dist_lim in dist_mat_neg (negative enrichment distance matrix)
         all_patient_data_neg.iloc[0:20, 2] = 1
         all_patient_data_neg.iloc[20:40, 3] = 1
+        # We assign the two populations of cells 2 different cell phenotypes
+        all_patient_data_neg.iloc[0:20, 31] = 1
+        all_patient_data_neg.iloc[20:40, 31] = 2
         # Assign column names to columns not for markers (columns to be excluded)
         all_patient_data_neg = all_patient_data_neg.rename(excluded_colnames, axis=1)
         return all_patient_data_neg

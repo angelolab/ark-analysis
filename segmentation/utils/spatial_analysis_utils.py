@@ -34,9 +34,10 @@ def calc_dist_matrix(label_map):
 
 
 def compute_close_cell_num(dist_mat, dist_lim, num, analysis_type, cell_label_idx=None,
-                         patient_data=None, cell_pheno_idx=None, pheno_codes=None, patient_data_markers=None,
-                         label_idx=None, thresh_vec=None):
+                           patient_data=None, cell_pheno_idx=None, pheno_codes=None, patient_data_markers=None,
+                           label_idx=None, thresh_vec=None):
     """Finds positive cell labels and creates matrix with counts for cells positive for corresponding markers.
+    Computes close_num matrix for both Cell Label and Threshold spatial analyses.
 
     This function loops through all the included markers in the patient data and identifies cell labels positive for
     corresponding markers. It then subsets the distance matrix to only include these positive cells and records
@@ -45,14 +46,19 @@ def compute_close_cell_num(dist_mat, dist_lim, num, analysis_type, cell_label_id
     index [0, 1]).
 
     Args:
+        dist_mat: cells x cells matrix with the euclidian
+            distance between centers of corresponding cells
+        dist_lim: threshold for spatial enrichment distance proximity
+        num: number of markers or cell phenotypes, based on analysis
+        analysis_type: type of analysis, either Cell Label or Threshold
+        cell_label_idx: column of cell labels in Cell Label Analysis
+        patient_data: data for specific patient in Cell Label Analysis
+        cell_pheno_idx: column of cell phenotype id's in Cell Label Analysis
+        pheno_codes: list all the cell phenotypes in Cell Label Analysis
         patient_data_markers: cell expression data of markers
             for the specific point
         label_idx: column of cell labels
         thresh_vec: matrix of thresholds column for markers
-        dist_mat: cells x cells matrix with the euclidian
-            distance between centers of corresponding cells
-        marker_num: number of markers in expresion data
-        dist_lim: threshold for spatial enrichment distance proximity
 
     Returns:
         close_num: marker x marker matrix with counts for cells
@@ -68,20 +74,28 @@ def compute_close_cell_num(dist_mat, dist_lim, num, analysis_type, cell_label_id
         # Identify cell labels that are positive for respective markers, based on type of analysis
         mark1poslabels = None
         if analysis_type == "Cell Label":
+            # Get phenotype
             pheno1 = pheno_codes.iloc[j]
+            # Subset only cells that are of the same phenotype
             pheno1posinds = patient_data.iloc[:, cell_pheno_idx] == pheno1
-            mark1poslabels = patient_data.iloc[:, cell_label_idx][pheno1posinds]
+            # Get the cell labels of the cells of the phenotype
+            mark1poslabels = patient_data.iloc[:, 1][pheno1posinds]
         else:
+            # Get threshold
             marker1_thresh = thresh_vec.iloc[j]
+            # Subset only cells that are positive for the given marker
             marker1posinds = patient_data_markers[patient_data_markers.columns[j]] > marker1_thresh
+            # Get the cell labels of the positive cells
             mark1poslabels = label_idx[marker1posinds]
+        # Length of the number of positive cell labels
         mark1_num.append(len(mark1poslabels))
         for k in range(0, num):
+            # Repeats what was done above for the same marker and all other markers in the analysis
             mark2poslabels = None
             if analysis_type == "Cell Label":
                 pheno2 = pheno_codes.iloc[k]
                 pheno2posinds = patient_data.iloc[:, cell_pheno_idx] == pheno2
-                mark2poslabels = patient_data.iloc[:, cell_label_idx][pheno2posinds]
+                mark2poslabels = patient_data.iloc[:, 1][pheno2posinds]
             else:
                 marker2_thresh = thresh_vec.iloc[k]
                 marker2posinds = patient_data_markers[patient_data_markers.columns[k]] > marker2_thresh
