@@ -54,7 +54,7 @@ def make_expression_matrix(enrichment_type):
     excluded_colnames = {0: 'cell_size', 1: 'Background', 14: "HH3",
                          23: "summed_channel", 24: "label", 25: "area", 26: "eccentricity",
                          27: "major_axis_length", 28: "minor_axis_length", 29: "perimeter",
-                         30: "fov"}
+                         30: "fov", 31: "Pheno"}
 
     if enrichment_type == "none":
         all_patient_data = pd.DataFrame(np.zeros((60, 32)))
@@ -111,6 +111,12 @@ def make_expression_matrix(enrichment_type):
 
 
 def test_calculate_channel_spatial_enrichment():
+
+    excluded_colnames = ["cell_size", "Background", "HH3",
+                         "summed_channel", "label", "area",
+                         "eccentricity", "major_axis_length", "minor_axis_length",
+                         "perimeter", "fov", "Pheno"]
+
     # Test z and p values
 
     marker_thresholds = make_threshold_mat()
@@ -120,7 +126,8 @@ def test_calculate_channel_spatial_enrichment():
     dist_mat_pos = make_distance_matrix("positive")
     values, stats = \
         spatial_analysis.calculate_channel_spatial_enrichment(
-            dist_mat_pos, marker_thresholds, all_patient_data_pos, bootstrap_num=100)
+            dist_mat_pos, marker_thresholds, all_patient_data_pos,
+            excluded_colnames=excluded_colnames, bootstrap_num=100)
     # z, muhat, sigmahat, p, h, adj_p, marker_titles = stats[0]
     assert stats.loc["Point8", "p_pos", 2, 3] < .05
     assert stats.loc["Point8", "p_neg", 2, 3] > .05
@@ -130,7 +137,8 @@ def test_calculate_channel_spatial_enrichment():
     dist_mat_neg = make_distance_matrix("negative")
     values, stats = \
         spatial_analysis.calculate_channel_spatial_enrichment(
-            dist_mat_neg, marker_thresholds, all_patient_data_neg, bootstrap_num=100)
+            dist_mat_neg, marker_thresholds, all_patient_data_neg,
+            excluded_colnames=excluded_colnames, bootstrap_num=100)
     # z, muhat, sigmahat, p, h, adj_p, marker_titles = stats[0]
     assert stats.loc["Point8", "p_neg", 2, 3] < .05
     assert stats.loc["Point8", "p_pos", 2, 3] > .05
@@ -140,7 +148,8 @@ def test_calculate_channel_spatial_enrichment():
     dist_mat = make_distance_matrix("none")
     values, stats = \
         spatial_analysis.calculate_channel_spatial_enrichment(
-            dist_mat, marker_thresholds, all_patient_data, bootstrap_num=100)
+            dist_mat, marker_thresholds, all_patient_data,
+            excluded_colnames=excluded_colnames, bootstrap_num=100)
     # z, muhat, sigmahat, p, h, adj_p, marker_titles = stats[0]
     assert stats.loc["Point8", "p_pos", 2, 3] > .05
     assert stats.loc["Point8", "p_pos", 2, 3] > .05

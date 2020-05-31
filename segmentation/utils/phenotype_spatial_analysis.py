@@ -19,7 +19,6 @@ def visualize_z_scores(z, pheno_titles):
     Args:
         z: array of z scores of shape (pheno_num x pheno_num)
         pheno_titles: list of all the names of the phenotypes"""
-    
     # visualize
     zplot = np.array(z)
     # Replace the NA's and inf values with 0s
