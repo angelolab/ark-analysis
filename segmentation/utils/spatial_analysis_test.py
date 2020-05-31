@@ -102,7 +102,7 @@ def make_expression_matrix(enrichment_type):
         # The two populations are not within the dist_lim in dist_mat_neg (negative enrichment distance matrix)
         all_patient_data_neg.iloc[0:20, 2] = 1
         all_patient_data_neg.iloc[20:40, 3] = 1
-        # We assign the two populations of cells 2 different cell phenotypes
+        # We assign the two populations of cells different cell phenotypes
         all_patient_data_neg.iloc[0:20, 31] = 1
         all_patient_data_neg.iloc[20:40, 31] = 2
         # Assign column names to columns not for markers (columns to be excluded)
@@ -128,7 +128,6 @@ def test_calculate_channel_spatial_enrichment():
         spatial_analysis.calculate_channel_spatial_enrichment(
             dist_mat_pos, marker_thresholds, all_patient_data_pos,
             excluded_colnames=excluded_colnames, bootstrap_num=100)
-    # z, muhat, sigmahat, p, h, adj_p, marker_titles = stats[0]
     assert stats.loc["Point8", "p_pos", 2, 3] < .05
     assert stats.loc["Point8", "p_neg", 2, 3] > .05
     assert stats.loc["Point8", "z", 2, 3] > 0
@@ -139,7 +138,6 @@ def test_calculate_channel_spatial_enrichment():
         spatial_analysis.calculate_channel_spatial_enrichment(
             dist_mat_neg, marker_thresholds, all_patient_data_neg,
             excluded_colnames=excluded_colnames, bootstrap_num=100)
-    # z, muhat, sigmahat, p, h, adj_p, marker_titles = stats[0]
     assert stats.loc["Point8", "p_neg", 2, 3] < .05
     assert stats.loc["Point8", "p_pos", 2, 3] > .05
     assert stats.loc["Point8", "z", 2, 3] < 0
@@ -150,7 +148,6 @@ def test_calculate_channel_spatial_enrichment():
         spatial_analysis.calculate_channel_spatial_enrichment(
             dist_mat, marker_thresholds, all_patient_data,
             excluded_colnames=excluded_colnames, bootstrap_num=100)
-    # z, muhat, sigmahat, p, h, adj_p, marker_titles = stats[0]
     assert stats.loc["Point8", "p_pos", 2, 3] > .05
     assert stats.loc["Point8", "p_pos", 2, 3] > .05
     assert abs(stats.loc["Point8", "z", 2, 3]) < 2

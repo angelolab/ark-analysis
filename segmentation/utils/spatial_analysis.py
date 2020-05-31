@@ -54,7 +54,6 @@ def calculate_channel_spatial_enrichment(dist_matrix, marker_thresholds, all_pat
     else:
         num_points = len(points)
     values = []
-    # stats = []
 
     if excluded_colnames is None:
         excluded_colnames = ["cell_size", "Background", "HH3",
