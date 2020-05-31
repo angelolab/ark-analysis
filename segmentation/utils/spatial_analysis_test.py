@@ -64,7 +64,7 @@ def make_expression_matrix(enrichment_type):
         # We create two populations of 20 cells each, each positive for a different marker (column index 2 and 3)
         all_patient_data.iloc[0:20, 2] = 1
         all_patient_data.iloc[20:40, 3] = 1
-        # We assign the two populations of cells 2 different cell phenotypes
+        # We assign the two populations of cells different cell phenotypes
         all_patient_data.iloc[0:20, 31] = 1
         all_patient_data.iloc[20:40, 31] = 2
         # Assign column names to columns not for markers (columns to be excluded)
@@ -79,14 +79,14 @@ def make_expression_matrix(enrichment_type):
         # These are within the dist_lim in dist_mat_pos (positive enrichment distance matrix).
         all_patient_data_pos.iloc[0:8, 2] = 1
         all_patient_data_pos.iloc[10:18, 3] = 1
-        # We assign the two populations of cells 2 different cell phenotypes
+        # We assign the two populations of cells different cell phenotypes
         all_patient_data_pos.iloc[0:8, 31] = 1
         all_patient_data_pos.iloc[10:18, 31] = 2
         # We create 4 cells in column index 2 and column index 3 that are also positive
         # for their respective markers.
         all_patient_data_pos.iloc[28:32, 2] = 1
         all_patient_data_pos.iloc[32:36, 3] = 1
-        # We assign the two populations of cells 2 different cell phenotypes
+        # We assign the two populations of cells different cell phenotypes
         all_patient_data_pos.iloc[28:32, 31] = 1
         all_patient_data_pos.iloc[32:36, 31] = 2
         # Assign column names to columns not for markers (columns to be excluded)

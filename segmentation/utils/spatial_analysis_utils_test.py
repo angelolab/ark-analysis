@@ -92,7 +92,7 @@ def make_example_data_closenum():
 
 
 def test_compute_close_cell_num():
-    # Test the closenum function
+    # Test the closenum functiond
     all_patient_data, example_dist_mat = make_example_data_closenum()
     example_thresholds = make_threshold_mat()
 
@@ -114,6 +114,26 @@ def test_compute_close_cell_num():
         dist_mat=example_dist_mat, dist_lim=100, num=marker_num, analysis_type="Threshold",
         patient_data_markers=data_markers, label_idx=label_idx, thresh_vec=thresh_vec)
     assert (example_closenum[:2, :2] == 16).all()
+    assert (example_closenum[3:5, 3:5] == 25).all()
+    assert (example_closenum[5:7, 5:7] == 1).all()
+
+    # Now test indexing with cell labels by removing a cell label from the expression matrix but not the
+    # distance matrix
+    all_patient_data = all_patient_data.drop(3, axis=0)
+    # Only include the columns of markers
+    data_markers = all_patient_data.drop(all_patient_data.columns[[
+        0, 1, 14, 23, 24, 25, 26, 27, 28, 29, 30]], axis=1)
+    # List of all markers
+    marker_titles = data_markers.columns
+    # Length of marker list
+    marker_num = len(marker_titles)
+    label_idx = all_patient_data.iloc[:, 24]
+    # Subsetting threshold matrix to only include column with threshold values
+    thresh_vec = example_thresholds.iloc[0:20, 1]
+    example_closenum, m1, m2 = spatial_analysis_utils.compute_close_cell_num(
+        dist_mat=example_dist_mat, dist_lim=100, num=marker_num, analysis_type="Threshold",
+        patient_data_markers=data_markers, label_idx=label_idx, thresh_vec=thresh_vec)
+    assert (example_closenum[:2, :2] == 9).all()
     assert (example_closenum[3:5, 3:5] == 25).all()
     assert (example_closenum[5:7, 5:7] == 1).all()
 

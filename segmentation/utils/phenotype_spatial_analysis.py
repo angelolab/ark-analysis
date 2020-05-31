@@ -25,8 +25,9 @@ def visualize_z_scores(z, pheno_titles):
     sns.clustermap(zplot, figsize=(8, 8), cmap="vlag")
 
 
-def cell_label_spatial_enrichment(all_patient_data, pheno, dist_mat, points=None,
-                                  patient_idx=0, cell_label_idx=1, flowsom_idx=52, bootstrap_num=1000, dist_lim=100):
+def calculate_phenotype_spatial_enrichment(all_patient_data, pheno, dist_mat, points=None,
+                                           patient_idx=0, cell_label_idx=1, flowsom_idx=52,
+                                           bootstrap_num=1000, dist_lim=100):
     # Setup input and parameters
     num_points = 0
     if points is None:
@@ -35,12 +36,12 @@ def cell_label_spatial_enrichment(all_patient_data, pheno, dist_mat, points=None
     else:
         num_points = len(points)
 
+    cell_pheno_idx = 2
+    values = []
+
     # Error Checking
     if not np.isin(points, all_patient_data.iloc[:, patient_idx]).all():
         raise ValueError("Points were not found in Expression Matrix")
-
-    cell_pheno_idx = 2
-    values = []
 
     # Subset matrix to only include the columns with the patient label, cell label, and cell phenotype
     all_patient_data = all_patient_data[all_patient_data.columns[[patient_idx, cell_label_idx, flowsom_idx]]]
@@ -53,8 +54,7 @@ def cell_label_spatial_enrichment(all_patient_data, pheno, dist_mat, points=None
 
     # Create stats Xarray with the dimensions (points, stats variables, number of markers, number of markers)
     stats_raw_data = np.zeros((num_points, 7, pheno_num, pheno_num))
-    coords = [points, ["z", "muhat", "sigmahat", "p_pos", "p_neg", "h", "p_adj"], pheno_titles,
-              pheno_titles]
+    coords = [points, ["z", "muhat", "sigmahat", "p_pos", "p_neg", "h", "p_adj"], pheno_titles, pheno_titles]
     dims = ["points", "stats", "pheno1", "pheno2"]
     stats = xr.DataArray(stats_raw_data, coords=coords, dims=dims)
 
