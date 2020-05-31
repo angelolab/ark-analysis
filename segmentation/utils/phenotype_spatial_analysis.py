@@ -28,6 +28,29 @@ def visualize_z_scores(z, pheno_titles):
 def calculate_phenotype_spatial_enrichment(all_patient_data, pheno, dist_mat, points=None,
                                            patient_idx=0, cell_label_idx=1, flowsom_idx=52,
                                            bootstrap_num=1000, dist_lim=100):
+    """Spatial enrichment analysis based on cell phenotypes to find significant interactions between different
+    cell types, looking for both positive and negative enrichment. Uses bootstrapping to permute cell labels randomly.
+
+    Args:
+        all_patient_data: data including points, cell labels, and
+            cell expression matrix for all markers
+        pheno: array containing the cell phenotypes in the population and their corresponding IDs
+        dist_mat: cells x cells matrix with the euclidian
+            distance between centers of corresponding cells
+        points: patient labels to include in analysis. If argument is none, default is all labels used
+        patient_idx: columns with patient labels. Default is 0
+        cell_label_idx: column with cell labels. Default is 1
+        flowsom_idx: column with the phenotype IDs. Default is 52
+        bootstrap_num: number of permutations for bootstrap. Default is 1000
+        dist_lim: cell proximity threshold. Default is 100
+
+    Returns:
+        values: a list with each element consisting of a tuple of
+            closenum and closenumrand for each point included in the analysis
+        stats: an Xarray with dimensions (points, stats, number of markers, number of markers) The included stats
+            variables are:
+            z, muhat, sigmahat, p, h, adj_p, and marker_titles for each point in the analysis"""
+
     # Setup input and parameters
     num_points = 0
     if points is None:
