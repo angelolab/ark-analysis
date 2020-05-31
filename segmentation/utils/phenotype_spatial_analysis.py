@@ -14,6 +14,12 @@ importlib.reload(spatial_analysis_utils)
 
 
 def visualize_z_scores(z, pheno_titles):
+    """Plots the z scores between all phenotypes as a clustermap.
+
+    Args:
+        z: array of z scores of shape (pheno_num x pheno_num)
+        pheno_titles: list of all the names of the phenotypes"""
+    
     # visualize
     zplot = np.array(z)
     # Replace the NA's and inf values with 0s
