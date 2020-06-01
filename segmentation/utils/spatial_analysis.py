@@ -38,7 +38,7 @@ def calculate_channel_spatial_enrichment(dist_matrix, marker_thresholds, all_pat
             "summed_channel", "label", "area",
             "eccentricity", "major_axis_length", "minor_axis_length",
             "perimeter", "fov"]
-        points: patient labels to include in analysis. If argument is none, default is all labels used.
+        points: patient labels to include in analysis. If argument is none, default is all labels used.ﬁ
         dist_lim: cell proximity threshold. Default is 100.
         bootstrap_num: number of permutations for bootstrap. Default is 1000.
 
@@ -49,11 +49,12 @@ def calculate_channel_spatial_enrichment(dist_matrix, marker_thresholds, all_pat
             variables are:
             z, muhat, sigmahat, p, h, adj_p, and marker_titles for each point in the analysis"""
 
-    patient_idx = "SampleID"
+    patient_col = "SampleID"
+    cell_label_col = "cellLabelInImage"
 
     # Setup input and parameters
     if points is None:
-        points = list(set(all_patient_data[patient_idx]))
+        points = list(set(all_patient_data[patient_col]))
         num_points = len(points)
     else:
         num_points = len(points)
@@ -69,7 +70,7 @@ def calculate_channel_spatial_enrichment(dist_matrix, marker_thresholds, all_pat
     if not np.isin(excluded_colnames, all_patient_data.columns).all():
         raise ValueError("Column names were not found in Expression Matrix")
 
-    if not np.isin(points, all_patient_data[patient_idx]).all():
+    if not np.isin(points, all_patient_data[patient_col]).all():
         raise ValueError("Points were not found in Expression Matrix")
 
     # Subsets the expression matrix to only have marker columns
@@ -91,17 +92,17 @@ def calculate_channel_spatial_enrichment(dist_matrix, marker_thresholds, all_pat
 
     for point in points:
         # Subsetting expression matrix to only include patients with correct label
-        # patient_ids = all_patient_data.iloc[:, patient_idx] == point
-        # patient_data = all_patient_data[patient_ids]
+        patient_ids = all_patient_data[patient_col] == point
+        patient_data = all_patient_data[patient_ids]
         # Patients with correct label, and only columns of markers
-        # patient_data_markers = data_markers[patient_ids]
+        patient_data_markers = data_markers[patient_ids]
         # Subsetting the column with the cell labels
-        # label_idx = patient_data.iloc[:, cell_label_idx]
+        # label_idx = patient_data[cell_label_col]
 
         # Get close_num and close_num_rand
         close_num, marker1_num, marker2_num = spatial_analysis_utils.compute_close_cell_num(
-            dist_mat=dist_matrix, dist_lim=100, num=marker_num, analysis_type="Threshold", point=point,
-            all_patient_data=all_patient_data, data_markers=data_markers, thresh_vec=thresh_vec)
+            dist_mat=dist_matrix, dist_lim=100, num=marker_num, analysis_type="Threshold",
+            patient_data=patient_data, patient_data_markers=patient_data_markers, thresh_vec=thresh_vec)
         close_num_rand = spatial_analysis_utils.compute_close_cell_num_random(
             marker1_num, marker2_num, dist_matrix, marker_num, dist_lim, bootstrap_num)
         values.append((close_num, close_num_rand))
@@ -134,13 +135,14 @@ def calculate_phenotype_spatial_enrichment(all_patient_data, dist_mat, points=No
             variables are:
             z, muhat, sigmahat, p, h, adj_p, and marker_titles for each point in the analysis"""
 
-    patient_idx = "SampleID"
-    cell_type_idx = "cell_type"
-    flowsom_idx = "FlowSOM_ID"
+    patient_col = "SampleID"
+    cell_type_col = "cell_type"
+    flowsom_col = "FlowSOM_ID"
+    cell_label_col = "cellLabelInImage"
 
     # Setup input and parameters
     if points is None:
-        points = list(set(all_patient_data[patient_idx]))
+        points = list(set(all_patient_data[patient_col]))
         num_points = len(points)
     else:
         num_points = len(points)
@@ -148,21 +150,18 @@ def calculate_phenotype_spatial_enrichment(all_patient_data, dist_mat, points=No
     values = []
 
     # Error Checking
-    if not np.isin(points, all_patient_data[patient_idx]).all():
+    if not np.isin(points, all_patient_data[patient_col]).all():
         raise ValueError("Points were not found in Expression Matrix")
 
-    pheno = all_patient_data[[cell_type_idx, flowsom_idx]].drop_duplicates()
-    if np.isin(0, pheno.iloc[:, 0]):
-        pheno = pheno[(pheno.iloc[:, 0] != 0)]
     # Extract the names of the cell phenotypes
-    pheno_titles = pheno.iloc[:, 0]
+    pheno_titles = all_patient_data[cell_type_col].drop_duplicates()
     # Extract the columns with the cell phenotype codes
-    pheno_codes = pheno.iloc[:, 1]
+    pheno_codes = all_patient_data[flowsom_col].drop_duplicates()
     # Get the total number of phenotypes
     pheno_num = len(pheno_codes)
 
     # Subset matrix to only include the columns with the patient label, cell label, and cell phenotype
-    # all_patient_data = all_patient_data[all_patient_data.columns[[patient_idx, cell_label_idx, flowsom_idx]]]
+    all_patient_data_pheno = all_patient_data[[patient_col, cell_label_col, flowsom_col]]
 
     # Create stats Xarray with the dimensions (points, stats variables, number of markers, number of markers)
     stats_raw_data = np.zeros((num_points, 7, pheno_num, pheno_num))
@@ -172,13 +171,13 @@ def calculate_phenotype_spatial_enrichment(all_patient_data, dist_mat, points=No
 
     for point in points:
         # Subsetting expression matrix to only include patients with correct label
-        # patient_ids = all_patient_data.iloc[:, 0] == point
-        # patient_data = all_patient_data[patient_ids]
+        patient_ids = all_patient_data_pheno.iloc[:, 0] == point
+        patient_data = all_patient_data_pheno[patient_ids]
 
         # Get close_num and close_num_rand
         close_num, pheno1_num, pheno2_num = spatial_analysis_utils.compute_close_cell_num(
-            dist_mat=dist_mat, dist_lim=dist_lim, num=pheno_num, analysis_type="Cell Label", point=point,
-            all_patient_data=all_patient_data, pheno_codes=pheno_codes)
+            dist_mat=dist_mat, dist_lim=dist_lim, num=pheno_num, analysis_type="Cell Label",
+            patient_data=patient_data, pheno_codes=pheno_codes)
         close_num_rand = spatial_analysis_utils.compute_close_cell_num_random(
             pheno1_num, pheno2_num, dist_mat, pheno_num, dist_lim, bootstrap_num)
         values.append((close_num, close_num_rand))
