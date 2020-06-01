@@ -130,12 +130,12 @@ def test_compute_close_cell_num():
     marker_titles = data_markers.columns
     # Length of marker list
     marker_num = len(marker_titles)
-    label_idx = all_patient_data.iloc[:, 24]
+    # label_idx = all_patient_data.iloc[:, 24]
     # Subsetting threshold matrix to only include column with threshold values
     thresh_vec = example_thresholds.iloc[0:20, 1]
     example_closenum, m1, m2 = spatial_analysis_utils.compute_close_cell_num(
-        dist_mat=example_dist_mat, dist_lim=100, num=marker_num, analysis_type="Threshold",
-        all_patient_data_markers=data_markers, label_idx=label_idx, thresh_vec=thresh_vec)
+        dist_mat=example_dist_mat, dist_lim=100, num=marker_num, analysis_type="Threshold", point="Point8",
+        all_patient_data=all_patient_data, data_markers=data_markers, thresh_vec=thresh_vec)
     assert (example_closenum[:2, :2] == 9).all()
     assert (example_closenum[3:5, 3:5] == 25).all()
     assert (example_closenum[5:7, 5:7] == 1).all()
