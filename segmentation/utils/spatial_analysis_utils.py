@@ -44,7 +44,7 @@ def get_cell_labels(analysis_type, pheno=None, patient_data=None,
         patient_data: data for the current patient
         thresh: current threshold for marker
         patient_data_markers: expression data for column markers for current patient
-        label_idx: the column of cell labels for current patient
+        cell_labels: the column of cell labels for current patient
         col: the current marker
     Returns:
         mark1poslabels: a list of all the positive labels"""
@@ -58,7 +58,7 @@ def get_cell_labels(analysis_type, pheno=None, patient_data=None,
         # Subset only cells that are positive for the given marker
         marker1posinds = patient_data_markers[col] > thresh
         # Get the cell labels of the positive cells
-        mark1poslabels = label_idx[marker1posinds]
+        mark1poslabels = cell_labels[marker1posinds]
     return mark1poslabels
 
 
