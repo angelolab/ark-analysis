@@ -1,8 +1,6 @@
 import pandas as pd
 import numpy as np
 import xarray as xr
-import matplotlib
-import seaborn as sns
 from segmentation.utils import spatial_analysis_utils
 import importlib
 importlib.reload(spatial_analysis_utils)
@@ -11,23 +9,6 @@ importlib.reload(spatial_analysis_utils)
 # all_patient_data = pd.read_csv("/Users/jaiveersingh/Desktop/granA_cellpheno_CS-asinh-norm_matlab_revised.csv")
 # pheno = pd.read_csv("/Users/jaiveersingh/Downloads/CellType_GlobalSpatialEnrichment/cellpheno_numkey.csv")
 # dist_mat = np.asarray(pd.read_csv("/Users/jaiveersingh/Documents/MATLAB/distancesMat5.csv", header=None))
-
-
-def visualize_z_scores(z, pheno_titles):
-    """Plots the z scores between all phenotypes as a clustermap.
-
-    Args:
-        z: array of z scores of shape (pheno_num x pheno_num)
-        pheno_titles: list of all the names of the phenotypes"""
-    # visualize
-    zplot = np.array(z)
-    # Replace the NA's and inf values with 0s
-    zplot[np.isnan(zplot)] = 0
-    zplot[np.isinf(zplot)] = 0
-    # Assign numpy values respective phenotype labels
-    zplot = pd.DataFrame(zplot, columns=pheno_titles, index=pheno_titles)
-    sns.set(font_scale=.7)
-    sns.clustermap(zplot, figsize=(8, 8), cmap="vlag")
 
 
 def calculate_phenotype_spatial_enrichment(all_patient_data, pheno, dist_mat, points=None,
@@ -57,7 +38,6 @@ def calculate_phenotype_spatial_enrichment(all_patient_data, pheno, dist_mat, po
             z, muhat, sigmahat, p, h, adj_p, and marker_titles for each point in the analysis"""
 
     # Setup input and parameters
-    num_points = 0
     if points is None:
         points = list(set(all_patient_data.iloc[:, patient_idx]))
         num_points = len(points)

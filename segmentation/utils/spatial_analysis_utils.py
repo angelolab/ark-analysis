@@ -33,9 +33,38 @@ def calc_dist_matrix(label_map):
     return dist_mats_xr
 
 
-def compute_close_cell_num(dist_mat, dist_lim, num, analysis_type, cell_label_idx=None,
-                           patient_data=None, cell_pheno_idx=None, pheno_codes=None, patient_data_markers=None,
-                           label_idx=None, thresh_vec=None):
+def get_cell_labels(analysis_type, pheno=None, patient_data=None,
+                    thresh=None, patient_data_markers=None, label_idx=None, col=None):
+    """Based on the type of the analysis, finds positive labels that the current match phenotype or identifies cells
+    with expression values for the current maker greater than the marker threshold.
+
+    Args:
+        analysis_type: type of analysis, either Cell Label or Threshold
+        pheno: the current cell phenotype
+        patient_data: data for the current patient
+        thresh: current threshold for marker
+        patient_data_markers: expression data for column markers for current patient
+        label_idx: the column of cell labels for current patient
+        col: the current marker
+    Returns:
+        mark1poslabels: a list of all the positive labels"""
+
+    if analysis_type == "Cell Label":
+        # Subset only cells that are of the same phenotype
+        pheno1posinds = patient_data["FlowSOM_ID"] == pheno
+        # Get the cell labels of the cells of the phenotype
+        mark1poslabels = patient_data.iloc[:, 1][pheno1posinds]
+    else:
+        # Subset only cells that are positive for the given marker
+        marker1posinds = patient_data_markers[col] > thresh
+        # Get the cell labels of the positive cells
+        mark1poslabels = label_idx[marker1posinds]
+    return mark1poslabels
+
+
+def compute_close_cell_num(dist_mat, dist_lim, num, analysis_type, point,
+                           all_patient_data=None, data_markers=None, pheno_codes=None,
+                           thresh_vec=None):
     """Finds positive cell labels and creates matrix with counts for cells positive for corresponding markers.
     Computes close_num matrix for both Cell Label and Threshold spatial analyses.
 
@@ -51,13 +80,10 @@ def compute_close_cell_num(dist_mat, dist_lim, num, analysis_type, cell_label_id
         dist_lim: threshold for spatial enrichment distance proximity
         num: number of markers or cell phenotypes, based on analysis
         analysis_type: type of analysis, either Cell Label or Threshold
-        cell_label_idx: column of cell labels in Cell Label Analysis
-        patient_data: data for specific patient in Cell Label Analysis
-        cell_pheno_idx: column of cell phenotype id's in Cell Label Analysis
+        point: current point doing analysis on
+        all_patient_data: data for all patients in expression matrix
+        data_markers: data of only column markers for Channel Analysis
         pheno_codes: list all the cell phenotypes in Cell Label Analysis
-        patient_data_markers: cell expression data of markers
-            for the specific point
-        label_idx: column of cell labels
         thresh_vec: matrix of thresholds column for markers
 
     Returns:
@@ -65,41 +91,54 @@ def compute_close_cell_num(dist_mat, dist_lim, num, analysis_type, cell_label_id
             positive for corresponding markers
         marker1_num: list of number of cell labels for marker 1
         marker2_num: list of number of cell labels for marker 2"""
+    # Initialize variables
+    label_idx = []
+    patient_data_markers = pd.DataFrame()
+
+    # Assign column names for subsetting (patient IDs, cell labels, cell phenotypes)
+    patient_idx = "SampleID"
+    cell_label_idx = "cellLabelInImage"
+    flowsom_idx = "FlowSOM_ID"
+
+    # Subset data based on analysis type
+    if analysis_type == "Cell Label":
+        # Subset matrix to only include the columns with the patient label, cell label, and cell phenotype
+        all_patient_data_pheno = all_patient_data[[patient_idx, cell_label_idx, flowsom_idx]]
+        # Subsetting expression matrix to only include patients with correct label
+        patient_ids = all_patient_data_pheno.iloc[:, 0] == point
+        patient_data = all_patient_data_pheno[patient_ids]
+    else:
+        # Subsetting expression matrix to only include patients with correct label
+        patient_ids = all_patient_data[patient_idx] == point
+        patient_data = all_patient_data[patient_ids]
+        # Patients with correct label, and only columns of markers
+        patient_data_markers = data_markers[patient_ids]
+        # Subsetting the column with the cell labels
+        label_idx = patient_data[cell_label_idx]
+
     # Create close_num, marker1_num, and marker2_num
     close_num = np.zeros((num, num), dtype='int')
     mark1_num = []
     mark2_num = []
 
     for j in range(0, num):
-        # Identify cell labels that are positive for respective markers, based on type of analysis
-        mark1poslabels = None
+        # Identify cell labels that are positive for respective markers or phenotypes, based on type of analysis
         if analysis_type == "Cell Label":
-            # Get phenotype
-            pheno1 = pheno_codes.iloc[j]
-            # Subset only cells that are of the same phenotype
-            pheno1posinds = patient_data.iloc[:, cell_pheno_idx] == pheno1
-            # Get the cell labels of the cells of the phenotype
-            mark1poslabels = patient_data.iloc[:, 1][pheno1posinds]
+            mark1poslabels = get_cell_labels(analysis_type, pheno_codes.iloc[j], patient_data)
         else:
-            # Get threshold
-            marker1_thresh = thresh_vec.iloc[j]
-            # Subset only cells that are positive for the given marker
-            marker1posinds = patient_data_markers[patient_data_markers.columns[j]] > marker1_thresh
-            # Get the cell labels of the positive cells
-            mark1poslabels = label_idx[marker1posinds]
+            mark1poslabels = get_cell_labels(analysis_type, thresh=thresh_vec.iloc[j],
+                                             patient_data_markers=patient_data_markers, label_idx=label_idx,
+                                             col=patient_data_markers.columns[j])
         # Length of the number of positive cell labels
         mark1_num.append(len(mark1poslabels))
         for k in range(0, num):
             # Repeats what was done above for the same marker and all other markers in the analysis
-            mark2poslabels = None
             if analysis_type == "Cell Label":
-                pheno2 = pheno_codes.iloc[k]
-                pheno2posinds = patient_data.iloc[:, cell_pheno_idx] == pheno2
-                mark2poslabels = patient_data.iloc[:, 1][pheno2posinds]
+                mark2poslabels = get_cell_labels(analysis_type, pheno_codes.iloc[k], patient_data)
             else:
-                marker2_thresh = thresh_vec.iloc[k]
-                marker2posinds = patient_data_markers[patient_data_markers.columns[k]] > marker2_thresh
-                mark2poslabels = label_idx[marker2posinds]
+                mark2poslabels = get_cell_labels(analysis_type, thresh=thresh_vec.iloc[k],
+                                                 patient_data_markers=patient_data_markers, label_idx=label_idx,
+                                                 col=patient_data_markers.columns[k])
             mark2_num.append(len(mark2poslabels))
             # Subset the distance matrix to only include cells positive for both markers j and k
             trunc_dist_mat = dist_mat[np.ix_(np.asarray(mark1poslabels - 1), np.asarray(mark2poslabels - 1))]

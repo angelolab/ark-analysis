@@ -52,12 +52,12 @@ def make_expression_matrix(enrichment_type):
 
     # Column names for columns that are not markers (columns to be excluded)
     excluded_colnames = {0: 'cell_size', 1: 'Background', 14: "HH3",
-                         23: "summed_channel", 24: "label", 25: "area", 26: "eccentricity",
+                         23: "summed_channel", 24: "cellLabelInImage", 25: "area", 26: "eccentricity",
                          27: "major_axis_length", 28: "minor_axis_length", 29: "perimeter",
-                         30: "fov", 31: "Pheno"}
+                         30: "SampleID", 31: "FlowSOM_ID", 32: "cell_type"}
 
     if enrichment_type == "none":
-        all_patient_data = pd.DataFrame(np.zeros((60, 32)))
+        all_patient_data = pd.DataFrame(np.zeros((60, 33)))
         # Assigning values to the patient label and cell label columns
         all_patient_data[30] = "Point8"
         all_patient_data[24] = np.arange(len(all_patient_data[1])) + 1
@@ -66,12 +66,14 @@ def make_expression_matrix(enrichment_type):
         all_patient_data.iloc[20:40, 3] = 1
         # We assign the two populations of cells different cell phenotypes
         all_patient_data.iloc[0:20, 31] = 1
+        all_patient_data.iloc[0:20, 32] = "Pheno1"
         all_patient_data.iloc[20:40, 31] = 2
+        all_patient_data.iloc[20:40, 32] = "Pheno2"
         # Assign column names to columns not for markers (columns to be excluded)
         all_patient_data = all_patient_data.rename(excluded_colnames, axis=1)
         return all_patient_data
     elif enrichment_type == "positive":
-        all_patient_data_pos = pd.DataFrame(np.zeros((80, 32)))
+        all_patient_data_pos = pd.DataFrame(np.zeros((80, 33)))
         # Assigning values to the patient label and cell label columns
         all_patient_data_pos[30] = "Point8"
         all_patient_data_pos[24] = np.arange(len(all_patient_data_pos[1])) + 1
@@ -81,19 +83,23 @@ def make_expression_matrix(enrichment_type):
         all_patient_data_pos.iloc[10:18, 3] = 1
         # We assign the two populations of cells different cell phenotypes
         all_patient_data_pos.iloc[0:8, 31] = 1
+        all_patient_data_pos.iloc[0:8, 32] = "Pheno1"
         all_patient_data_pos.iloc[10:18, 31] = 2
+        all_patient_data_pos.iloc[10:18, 32] = "Pheno2"
         # We create 4 cells in column index 2 and column index 3 that are also positive
         # for their respective markers.
         all_patient_data_pos.iloc[28:32, 2] = 1
         all_patient_data_pos.iloc[32:36, 3] = 1
         # We assign the two populations of cells different cell phenotypes
         all_patient_data_pos.iloc[28:32, 31] = 1
+        all_patient_data_pos.iloc[28:32, 32] = "Pheno1"
         all_patient_data_pos.iloc[32:36, 31] = 2
+        all_patient_data_pos.iloc[32:36, 32] = "Pheno2"
         # Assign column names to columns not for markers (columns to be excluded)
         all_patient_data_pos = all_patient_data_pos.rename(excluded_colnames, axis=1)
         return all_patient_data_pos
     elif enrichment_type == "negative":
-        all_patient_data_neg = pd.DataFrame(np.zeros((60, 32)))
+        all_patient_data_neg = pd.DataFrame(np.zeros((60, 33)))
         # Assigning values to the patient label and cell label columns
         all_patient_data_neg[30] = "Point8"
         all_patient_data_neg[24] = np.arange(len(all_patient_data_neg[1])) + 1
@@ -104,7 +110,9 @@ def make_expression_matrix(enrichment_type):
         all_patient_data_neg.iloc[20:40, 3] = 1
         # We assign the two populations of cells different cell phenotypes
         all_patient_data_neg.iloc[0:20, 31] = 1
+        all_patient_data_neg.iloc[0:20, 32] = "Pheno1"
         all_patient_data_neg.iloc[20:40, 31] = 2
+        all_patient_data_neg.iloc[20:40, 32] = "Pheno2"
         # Assign column names to columns not for markers (columns to be excluded)
         all_patient_data_neg = all_patient_data_neg.rename(excluded_colnames, axis=1)
         return all_patient_data_neg
@@ -113,9 +121,9 @@ def make_expression_matrix(enrichment_type):
 def test_calculate_channel_spatial_enrichment():
 
     excluded_colnames = ["cell_size", "Background", "HH3",
-                         "summed_channel", "label", "area",
+                         "summed_channel", "cellLabelInImage", "area",
                          "eccentricity", "major_axis_length", "minor_axis_length",
-                         "perimeter", "fov", "Pheno"]
+                         "perimeter", "SampleID", "FlowSOM_ID", "cell_type"]
 
     # Test z and p values
 
@@ -151,3 +159,38 @@ def test_calculate_channel_spatial_enrichment():
     assert stats.loc["Point8", "p_pos", 2, 3] > .05
     assert stats.loc["Point8", "p_pos", 2, 3] > .05
     assert abs(stats.loc["Point8", "z", 2, 3]) < 2
+
+
+def test_calculate_phenotype_spatial_enrichment():
+    # Test z and p values
+
+    # Positive enrichment
+    all_patient_data_pos = make_expression_matrix("positive")
+    dist_mat_pos = make_distance_matrix("positive")
+    values, stats = \
+        spatial_analysis.calculate_phenotype_spatial_enrichment(
+            all_patient_data_pos, dist_mat_pos,
+            bootstrap_num=100, dist_lim=100)
+    assert stats.loc["Point8", "p_pos", "Pheno1", "Pheno2"] < .05
+    assert stats.loc["Point8", "p_neg", "Pheno1", "Pheno2"] > .05
+    assert stats.loc["Point8", "z", "Pheno1", "Pheno2"] > 0
+    # Negative enrichment
+    all_patient_data_neg = make_expression_matrix("negative")
+    dist_mat_neg = make_distance_matrix("negative")
+    values, stats = \
+        spatial_analysis.calculate_phenotype_spatial_enrichment(
+            all_patient_data_neg, dist_mat_neg,
+            bootstrap_num=100, dist_lim=100)
+    assert stats.loc["Point8", "p_neg", "Pheno1", "Pheno2"] < .05
+    assert stats.loc["Point8", "p_pos", "Pheno1", "Pheno2"] > .05
+    assert stats.loc["Point8", "z", "Pheno1", "Pheno2"] < 0
+    # No enrichment
+    all_patient_data = make_expression_matrix("none")
+    dist_mat = make_distance_matrix("none")
+    values, stats = \
+        spatial_analysis.calculate_phenotype_spatial_enrichment(
+            all_patient_data, dist_mat,
+            bootstrap_num=100, dist_lim=100)
+    assert stats.loc["Point8", "p_pos", "Pheno1", "Pheno2"] > .05
+    assert stats.loc["Point8", "p_pos", "Pheno1", "Pheno2"] > .05
+    assert abs(stats.loc["Point8", "z", "Pheno1", "Pheno2"]) < 2

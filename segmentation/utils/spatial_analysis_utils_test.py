@@ -46,6 +46,9 @@ def make_example_data_closenum():
     all_patient_data[30] = "Point8"
     all_patient_data[24] = np.arange(len(all_patient_data[1])) + 1
 
+    colnames = {24: "cellLabelInImage", 30: "SampleID", 31: "FlowSOM_ID", 32: "cell_type"}
+    all_patient_data = all_patient_data.rename(colnames, axis=1)
+
     # Create 4 cells positive for marker 1 and 2, 5 cells positive for markers 3 and 4,
     # and 1 cell positive for marker 5
     all_patient_data.iloc[0:4, 2] = 1
@@ -105,14 +108,14 @@ def test_compute_close_cell_num():
     # Length of marker list
     marker_num = len(marker_titles)
 
-    label_idx = all_patient_data.iloc[:, 24]
+    # label_idx = all_patient_data.iloc[:, 24]
 
     # Subsetting threshold matrix to only include column with threshold values
     thresh_vec = example_thresholds.iloc[0:20, 1]
 
     example_closenum, m1, m2 = spatial_analysis_utils.compute_close_cell_num(
-        dist_mat=example_dist_mat, dist_lim=100, num=marker_num, analysis_type="Threshold",
-        patient_data_markers=data_markers, label_idx=label_idx, thresh_vec=thresh_vec)
+        dist_mat=example_dist_mat, dist_lim=100, num=marker_num, analysis_type="Threshold", point="Point8",
+        all_patient_data=all_patient_data, data_markers=data_markers, thresh_vec=thresh_vec)
     assert (example_closenum[:2, :2] == 16).all()
     assert (example_closenum[3:5, 3:5] == 25).all()
     assert (example_closenum[5:7, 5:7] == 1).all()
@@ -132,7 +135,7 @@ def test_compute_close_cell_num():
     thresh_vec = example_thresholds.iloc[0:20, 1]
     example_closenum, m1, m2 = spatial_analysis_utils.compute_close_cell_num(
         dist_mat=example_dist_mat, dist_lim=100, num=marker_num, analysis_type="Threshold",
-        patient_data_markers=data_markers, label_idx=label_idx, thresh_vec=thresh_vec)
+        all_patient_data_markers=data_markers, label_idx=label_idx, thresh_vec=thresh_vec)
     assert (example_closenum[:2, :2] == 9).all()
     assert (example_closenum[3:5, 3:5] == 25).all()
     assert (example_closenum[5:7, 5:7] == 1).all()
