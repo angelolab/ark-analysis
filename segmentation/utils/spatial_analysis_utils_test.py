@@ -16,10 +16,13 @@ def test_calc_dist_matrix():
     test_mat[1, 5, 25] = 1
     test_mat[1, 9, 22] = 2
 
-    dist_matrix_xr = spatial_analysis_utils.calc_dist_matrix(test_mat)
+    dist_matrix = spatial_analysis_utils.calc_dist_matrix(test_mat)
+
+    dist_mat_list = list(dist_matrix.keys())
+
     real_mat = np.array([[0, 5], [5, 0]])
-    assert np.array_equal(dist_matrix_xr[0, :, :], real_mat)
-    assert np.array_equal(dist_matrix_xr[1, :, :], real_mat)
+    assert np.array_equal(dist_matrix[dist_mat_list[0]].value, real_mat)
+    assert np.array_equal(dist_matrix[dist_mat_list[1]].value, real_mat)
 
 
 # def test_distmat():

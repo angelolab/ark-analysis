@@ -57,7 +57,9 @@ def calculate_channel_spatial_enrichment(dist_matrices, marker_thresholds, all_d
         num_fovs = len(fovs)
     else:
         num_fovs = len(fovs)
+
     values = []
+    dist_mat_list = list(dist_matrices.keys())
 
     if excluded_colnames is None:
         excluded_colnames = ["cell_size", "Background", "HH3",
@@ -97,7 +99,9 @@ def calculate_channel_spatial_enrichment(dist_matrices, marker_thresholds, all_d
         fov_channel_data = data_markers[patient_ids]
 
         # Subset the distance matrix array to only include the distance matrix for the correct point
-        dist_matrix = dist_matrices[i, :, :].values
+        # dist_matrix = dist_matrices[i, :, :].values
+        dist_matrix = dist_matrices[dist_mat_list[i]].value
+        dist_matrix = dist_matrix.reshape(dist_matrix.shape[1], dist_matrix.shape[2])
 
         # Get close_num and close_num_rand
         close_num, marker1_num, marker2_num = spatial_analysis_utils.compute_close_cell_num(
@@ -146,6 +150,7 @@ def calculate_cluster_spatial_enrichment(all_data, dist_mats, fovs=None,
         num_fovs = len(fovs)
 
     values = []
+    dist_mat_list = list(dist_mats.keys())
 
     # Error Checking
     if not np.isin(fovs, all_data[fov_col]).all():
@@ -173,7 +178,9 @@ def calculate_cluster_spatial_enrichment(all_data, dist_mats, fovs=None,
         fov_data = fov_cluster_data[patient_ids]
 
         # Subset the distance matrix array to only include the distance matrix for the correct point
-        dist_mat = dist_mats[i, :, :].values
+        # dist_mat = dist_mats[i, :, :].values
+        dist_mat = dist_mats[dist_mat_list[i]].value
+        dist_mat = dist_mat.reshape(dist_mat.shape[1], dist_mat.shape[2])
 
         # Get close_num and close_num_rand
         close_num, pheno1_num, pheno2_num = spatial_analysis_utils.compute_close_cell_num(

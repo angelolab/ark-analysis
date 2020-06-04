@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 import random
+import h5py
 from segmentation.utils import spatial_analysis
 import importlib
 importlib.reload(spatial_analysis)
@@ -20,10 +21,15 @@ def make_distance_matrix(enrichment_type):
         # Create a 60 x 60 euclidian distance matrix of random values for no enrichment
         rand_mat = np.random.randint(0, 200, size=(1, 60, 60))
         np.fill_diagonal(rand_mat[0, :, :], 0)
-        coords = [range(rand_mat.shape[0]), range(rand_mat[0].data.shape[0]), range(rand_mat[0].data.shape[1])]
-        dims = ["points", "rows", "cols"]
-        rand_mat = xr.DataArray(rand_mat, coords=coords, dims=dims)
-        return rand_mat
+
+        # coords = [range(rand_mat.shape[0]), range(rand_mat[0].data.shape[0]), range(rand_mat[0].data.shape[1])]
+        # dims = ["points", "rows", "cols"]
+        # rand_mat = xr.DataArray(rand_mat, coords=coords, dims=dims)
+
+        rand_matrix = h5py.File("randmat3.hdf5", "a")
+        rmat = rand_matrix.create_dataset('distmat3', data=rand_mat, dtype='uint16')
+
+        return rand_matrix
     elif enrichment_type == "positive":
         # Create positive enrichment distance matrix where 10 cells mostly positive for marker 1
         # are located close in proximity to 10 cells mostly positive for marker 2.
@@ -36,10 +42,15 @@ def make_distance_matrix(enrichment_type):
         dist_mat_pos[0, :20, 20:40] = 200
         dist_mat_pos[0, 40:80, :40] = 300
         dist_mat_pos[0, :40, 40:80] = 300
-        coords = [range(dist_mat_pos.shape[0]), range(dist_mat_pos[0].data.shape[0]), range(dist_mat_pos[0].data.shape[1])]
-        dims = ["points", "rows", "cols"]
-        dist_mat_pos = xr.DataArray(dist_mat_pos, coords=coords, dims=dims)
-        return dist_mat_pos
+        # coords = [range(dist_mat_pos.shape[0]), range(dist_mat_pos[0].data.shape[0]),
+        # range(dist_mat_pos[0].data.shape[1])]
+        # dims = ["points", "rows", "cols"]
+        # dist_mat_pos = xr.DataArray(dist_mat_pos, coords=coords, dims=dims)
+
+        pos_matrix = h5py.File("posmat3.hdf5", "a")
+        pmat = pos_matrix.create_dataset('distmat_pos3', data=dist_mat_pos, dtype='uint16')
+
+        return pos_matrix
     elif enrichment_type == "negative":
         # This creates a distance matrix where there are two groups of cells significant for 2 different
         # markers that are not located near each other (not within the dist_lim).
@@ -50,10 +61,15 @@ def make_distance_matrix(enrichment_type):
         dist_mat_neg[0, :40, 40:50] = 50
         dist_mat_neg[0, 50:60, :50] = 200
         dist_mat_neg[0, :50, 50:60] = 200
-        coords = [range(dist_mat_neg.shape[0]), range(dist_mat_neg[0].data.shape[0]), range(dist_mat_neg[0].data.shape[1])]
-        dims = ["points", "rows", "cols"]
-        dist_mat_neg = xr.DataArray(dist_mat_neg, coords=coords, dims=dims)
-        return dist_mat_neg
+        # coords = [range(dist_mat_neg.shape[0]), range(dist_mat_neg[0].data.shape[0]),
+        # range(dist_mat_neg[0].data.shape[1])]
+        # dims = ["points", "rows", "cols"]
+        # dist_mat_neg = xr.DataArray(dist_mat_neg, coords=coords, dims=dims)
+
+        neg_matrix = h5py.File("negmat3.hdf5", "a")
+        nmat = neg_matrix.create_dataset('distmat_neg3', data=dist_mat_neg, dtype='uint16')
+
+        return neg_matrix
 
 
 def make_expression_matrix(enrichment_type):

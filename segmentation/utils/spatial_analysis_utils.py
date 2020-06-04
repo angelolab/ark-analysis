@@ -4,6 +4,7 @@ import pandas as pd
 import skimage.measure
 import scipy
 import statsmodels
+import h5py
 from statsmodels.stats.multitest import multipletests
 from scipy.spatial.distance import cdist
 
@@ -25,12 +26,18 @@ def calc_dist_matrix(label_map):
         centroids = np.array(a)
         dist_matrix = cdist(centroids, centroids)
         dist_mats_list.append(dist_matrix)
-    dist_mats = np.stack(dist_mats_list, axis=0)
+    # dist_mats = np.stack(dist_mats_list, axis=0)
     # label_map.coords["fovs"]
-    coords = [range(len(dist_mats)), range(dist_mats[0].data.shape[0]), range(dist_mats[0].data.shape[1])]
-    dims = ["points", "rows", "cols"]
-    dist_mats_xr = xr.DataArray(dist_mats, coords=coords, dims=dims)
-    return dist_mats_xr
+    # coords = [range(len(dist_mats)), range(dist_mats[0].data.shape[0]), range(dist_mats[0].data.shape[1])]
+    # dims = ["points", "rows", "cols"]
+    # dist_mats_xr = xr.DataArray(dist_mats, coords=coords, dims=dims)
+
+    dist_mats = h5py.File("dmats.hdf5", "a")
+    for i in range(0, len(dist_mats_list)):
+        key = 'dmats' + str(i)
+        dmat = dist_mats.create_dataset(key, data=dist_mats_list[i], dtype='uint16')
+
+    return dist_mats
 
 
 def get_pos_cell_labels(analysis_type, pheno=None, fov_data=None,
