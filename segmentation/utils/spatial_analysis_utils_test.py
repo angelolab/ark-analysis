@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import h5py
 import random
 from segmentation.utils import spatial_analysis_utils
 from segmentation.utils import spatial_analysis
@@ -16,13 +17,16 @@ def test_calc_dist_matrix():
     test_mat[1, 5, 25] = 1
     test_mat[1, 9, 22] = 2
 
-    dist_matrix = spatial_analysis_utils.calc_dist_matrix(test_mat)
+    # dist_matrix = spatial_analysis_utils.calc_dist_matrix(test_mat)
+    spatial_analysis_utils.calc_dist_matrix(test_mat)
+    dist_matrix = h5py.File("distance_mat.hdf5", "r")
 
     dist_mat_list = list(dist_matrix.keys())
 
     real_mat = np.array([[0, 5], [5, 0]])
     assert np.array_equal(dist_matrix[dist_mat_list[0]].value, real_mat)
     assert np.array_equal(dist_matrix[dist_mat_list[1]].value, real_mat)
+    dist_matrix.close()
 
 
 # def test_distmat():

@@ -35,7 +35,8 @@ label_map_six = label_map_six.reshape(1, label_map_six.shape[0], label_map_six.s
 label_map_seven = label_map_seven.reshape(1, label_map_seven.shape[0], label_map_seven.shape[1])
 label_maps = np.stack((label_map_six, label_map_seven), axis=0)
 # Get an H5py object with the respective distance matrices for the points
-dist_mats = spatial_analysis_utils.calc_dist_matrix(label_maps)
+spatial_analysis_utils.calc_dist_matrix(label_maps)
+dist_mats = h5py.File("distance_mat.hdf5", "r")
 
 # Now with the distance matrix run the distance matrix, threshold values, and the expression matrix through
 # channel spatial enrichment

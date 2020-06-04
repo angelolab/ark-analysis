@@ -26,10 +26,10 @@ def make_distance_matrix(enrichment_type):
         # dims = ["points", "rows", "cols"]
         # rand_mat = xr.DataArray(rand_mat, coords=coords, dims=dims)
 
-        rand_matrix = h5py.File("randmat3.hdf5", "a")
-        rmat = rand_matrix.create_dataset('distmat3', data=rand_mat, dtype='uint16')
+        with h5py.File("randmat4.hdf5", "w") as rand_matrix:
+            rmat = rand_matrix.create_dataset('distmat4', data=rand_mat, dtype='uint16')
 
-        return rand_matrix
+        # return rand_matrix
     elif enrichment_type == "positive":
         # Create positive enrichment distance matrix where 10 cells mostly positive for marker 1
         # are located close in proximity to 10 cells mostly positive for marker 2.
@@ -47,10 +47,10 @@ def make_distance_matrix(enrichment_type):
         # dims = ["points", "rows", "cols"]
         # dist_mat_pos = xr.DataArray(dist_mat_pos, coords=coords, dims=dims)
 
-        pos_matrix = h5py.File("posmat3.hdf5", "a")
-        pmat = pos_matrix.create_dataset('distmat_pos3', data=dist_mat_pos, dtype='uint16')
+        with h5py.File("posmat4.hdf5", "w") as pos_matrix:
+            pmat = pos_matrix.create_dataset('distmat_pos4', data=dist_mat_pos, dtype='uint16')
 
-        return pos_matrix
+        # return pos_matrix
     elif enrichment_type == "negative":
         # This creates a distance matrix where there are two groups of cells significant for 2 different
         # markers that are not located near each other (not within the dist_lim).
@@ -66,10 +66,10 @@ def make_distance_matrix(enrichment_type):
         # dims = ["points", "rows", "cols"]
         # dist_mat_neg = xr.DataArray(dist_mat_neg, coords=coords, dims=dims)
 
-        neg_matrix = h5py.File("negmat3.hdf5", "a")
-        nmat = neg_matrix.create_dataset('distmat_neg3', data=dist_mat_neg, dtype='uint16')
+        with h5py.File("negmat4.hdf5", "w") as neg_matrix:
+            nmat = neg_matrix.create_dataset('distmat_neg4', data=dist_mat_neg, dtype='uint16')
 
-        return neg_matrix
+        # return neg_matrix
 
 
 def make_expression_matrix(enrichment_type):
@@ -157,7 +157,9 @@ def test_calculate_channel_spatial_enrichment():
 
     # Positive enrichment
     all_data_pos = make_expression_matrix("positive")
-    dist_mat_pos = make_distance_matrix("positive")
+    # dist_mat_pos = make_distance_matrix("positive")
+    make_distance_matrix("positive")
+    dist_mat_pos = h5py.File("posmat4.hdf5", "r")
     values, stats = \
         spatial_analysis.calculate_channel_spatial_enrichment(
             dist_mat_pos, marker_thresholds, all_data_pos,
@@ -165,9 +167,12 @@ def test_calculate_channel_spatial_enrichment():
     assert stats.loc["Point8", "p_pos", 2, 3] < .05
     assert stats.loc["Point8", "p_neg", 2, 3] > .05
     assert stats.loc["Point8", "z", 2, 3] > 0
+    dist_mat_pos.close()
     # Negative enrichment
     all_data_neg = make_expression_matrix("negative")
-    dist_mat_neg = make_distance_matrix("negative")
+    # dist_mat_neg = make_distance_matrix("negative")
+    make_distance_matrix("negative")
+    dist_mat_neg = h5py.File("negmat4.hdf5", "r")
     values, stats = \
         spatial_analysis.calculate_channel_spatial_enrichment(
             dist_mat_neg, marker_thresholds, all_data_neg,
@@ -175,9 +180,12 @@ def test_calculate_channel_spatial_enrichment():
     assert stats.loc["Point8", "p_neg", 2, 3] < .05
     assert stats.loc["Point8", "p_pos", 2, 3] > .05
     assert stats.loc["Point8", "z", 2, 3] < 0
+    dist_mat_neg.close()
     # No enrichment
     all_data = make_expression_matrix("none")
-    dist_mat = make_distance_matrix("none")
+    # dist_mat = make_distance_matrix("none")
+    make_distance_matrix("none")
+    dist_mat = h5py.File("randmat4.hdf5", "r")
     values, stats = \
         spatial_analysis.calculate_channel_spatial_enrichment(
             dist_mat, marker_thresholds, all_data,
@@ -185,6 +193,7 @@ def test_calculate_channel_spatial_enrichment():
     assert stats.loc["Point8", "p_pos", 2, 3] > .05
     assert stats.loc["Point8", "p_pos", 2, 3] > .05
     assert abs(stats.loc["Point8", "z", 2, 3]) < 2
+    dist_mat.close()
 
 
 def test_calculate_cluster_spatial_enrichment():
@@ -192,7 +201,9 @@ def test_calculate_cluster_spatial_enrichment():
 
     # Positive enrichment
     all_data_pos = make_expression_matrix("positive")
-    dist_mat_pos = make_distance_matrix("positive")
+    # dist_mat_pos = make_distance_matrix("positive")
+    make_distance_matrix("positive")
+    dist_mat_pos = h5py.File("posmat4.hdf5", "r")
     values, stats = \
         spatial_analysis.calculate_cluster_spatial_enrichment(
             all_data_pos, dist_mat_pos,
@@ -200,9 +211,12 @@ def test_calculate_cluster_spatial_enrichment():
     assert stats.loc["Point8", "p_pos", "Pheno1", "Pheno2"] < .05
     assert stats.loc["Point8", "p_neg", "Pheno1", "Pheno2"] > .05
     assert stats.loc["Point8", "z", "Pheno1", "Pheno2"] > 0
+    dist_mat_pos.close()
     # Negative enrichment
     all_data_neg = make_expression_matrix("negative")
-    dist_mat_neg = make_distance_matrix("negative")
+    # dist_mat_neg = make_distance_matrix("negative")
+    make_distance_matrix("negative")
+    dist_mat_neg = h5py.File("negmat4.hdf5", "r")
     values, stats = \
         spatial_analysis.calculate_cluster_spatial_enrichment(
             all_data_neg, dist_mat_neg,
@@ -210,9 +224,12 @@ def test_calculate_cluster_spatial_enrichment():
     assert stats.loc["Point8", "p_neg", "Pheno1", "Pheno2"] < .05
     assert stats.loc["Point8", "p_pos", "Pheno1", "Pheno2"] > .05
     assert stats.loc["Point8", "z", "Pheno1", "Pheno2"] < 0
+    dist_mat_neg.close()
     # No enrichment
     all_data = make_expression_matrix("none")
-    dist_mat = make_distance_matrix("none")
+    # dist_mat = make_distance_matrix("none")
+    make_distance_matrix("none")
+    dist_mat = h5py.File("randmat4.hdf5", "r")
     values, stats = \
         spatial_analysis.calculate_cluster_spatial_enrichment(
             all_data, dist_mat,
@@ -220,3 +237,4 @@ def test_calculate_cluster_spatial_enrichment():
     assert stats.loc["Point8", "p_pos", "Pheno1", "Pheno2"] > .05
     assert stats.loc["Point8", "p_pos", "Pheno1", "Pheno2"] > .05
     assert abs(stats.loc["Point8", "z", "Pheno1", "Pheno2"]) < 2
+    dist_mat.close()

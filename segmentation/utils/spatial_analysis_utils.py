@@ -32,12 +32,12 @@ def calc_dist_matrix(label_map):
     # dims = ["points", "rows", "cols"]
     # dist_mats_xr = xr.DataArray(dist_mats, coords=coords, dims=dims)
 
-    dist_mats = h5py.File("dmats.hdf5", "a")
-    for i in range(0, len(dist_mats_list)):
-        key = 'dmats' + str(i)
-        dmat = dist_mats.create_dataset(key, data=dist_mats_list[i], dtype='uint16')
-
-    return dist_mats
+    with h5py.File("distance_mat.hdf5", "w") as f:
+        for i in range(0, len(dist_mats_list)):
+            key = 'dmat' + str(i)
+            dmat = f.create_dataset(key, data=dist_mats_list[i], dtype='uint16')
+    # dist_mats.close()
+    # return dist_mats
 
 
 def get_pos_cell_labels(analysis_type, pheno=None, fov_data=None,
