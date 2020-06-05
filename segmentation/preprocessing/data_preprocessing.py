@@ -596,3 +596,21 @@ stitched_imgs = data_utils.stitch_images(all_imgs, 5)
 for chan in range(stitched_imgs.shape[-1]):
     img = stitched_imgs[0, :, :, chan]
     io.imsave(os.path.join(base_dir, stitched_imgs.channels.values[chan] + '_stitched.tiff'), img)
+
+# after manually sorting into good and bad
+base_dir = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/data/datasets/20200520_HIV/Good_Membrane/'
+
+
+fovs = os.listdir(base_dir + 'fovs')
+fovs = [fov for fov in fovs if 'Point' in fov]
+
+for fov in fovs:
+    data = data_utils.load_imgs_from_dir(data_dir=os.path.join(base_dir, 'fovs'),
+                                         fovs=[fov], imgs=['HH3.tif', 'CD45.tif'])
+
+    cropped_data = data_utils.crop_image_stack(data.values, 512, 1)
+    for crop in range(cropped_data.shape[0]):
+        folder = os.path.join(base_dir, 'cropped/{}_crop_{}'.format(fov, crop))
+        os.makedirs(folder)
+        io.imsave(os.path.join(folder, 'DNA.tiff'), cropped_data[crop, :, :, 0])
+        io.imsave(os.path.join(folder, 'Membrane.tiff'), cropped_data[crop, :, :, 1])
