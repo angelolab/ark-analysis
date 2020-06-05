@@ -197,7 +197,8 @@ def watershed_transform(model_output, channel_xr, overlay_channels, output_dir, 
         print("overwriting previously generated processed output file")
         os.remove(save_name)
 
-    segmentation_labels_xr.to_netcdf(save_name, format='NETCDF4')
+    # segmentation_labels_xr.to_netcdf(save_name, format='NETCDF4')
+    segmentation_labels_xr.to_netcdf(save_name, format="NETCDF3_64BIT")
 
 
 def combine_segmentation_masks(big_mask_xr, small_mask_xr, size_threshold,
@@ -256,9 +257,12 @@ def combine_segmentation_masks(big_mask_xr, small_mask_xr, size_threshold,
                                     path=os.path.join(output_dir,
                                                       "{}_{}_overlay.tiff".format(point, channel)))
 
+    # big_mask_xr.to_netcdf(
+        # os.path.join(output_dir, "deepcell_output_pixel_processed_segmentation_labels.xr"),
+        # format="NETCDF4")
     big_mask_xr.to_netcdf(
         os.path.join(output_dir, "deepcell_output_pixel_processed_segmentation_labels.xr"),
-        format="NETCDF4")
+        format="NETCDF3_64BIT")
 
 
 def segment_images(input_images, segmentation_masks):
