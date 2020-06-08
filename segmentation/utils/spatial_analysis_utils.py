@@ -9,17 +9,19 @@ from statsmodels.stats.multitest import multipletests
 from scipy.spatial.distance import cdist
 
 
-def calc_dist_matrix(label_map):
+def calc_dist_matrix(label_map, ret=False):
     """Generate matrix of distances between center of pairs of cells
 
     Args:
         label_map: numpy array with unique cells given unique pixel labels
+        ret: A boolean value indicating whether or not to return the Hdf5 file directly. Default is False.
     Returns:
-        dist_matrix: cells x cells matrix with the euclidian
-        distance between centers of corresponding cells"""
+        dist_matrix: An hdf5 file that contains a cells x cells matrix with the euclidian
+            distance between centers of corresponding cells for every fov"""
     dist_mats_list = []
+    fovs = list(label_map.coords['fovs'].values)
     for i in range(0, label_map.shape[0]):
-        props = skimage.measure.regionprops(label_map[i, :, :])
+        props = skimage.measure.regionprops(label_map.loc[fovs[i], :, :, "segmentation_label"].values)
         a = []
         for j in range(len(props)):
             a.append(props[j].centroid)
@@ -31,11 +33,15 @@ def calc_dist_matrix(label_map):
     # coords = [range(len(dist_mats)), range(dist_mats[0].data.shape[0]), range(dist_mats[0].data.shape[1])]
     # dims = ["points", "rows", "cols"]
     # dist_mats_xr = xr.DataArray(dist_mats, coords=coords, dims=dims)
-
-    with h5py.File("distance_mat.hdf5", "w") as f:
+    if ret:
+        dmatrices = h5py.File("distance_mat.hdf5", "w")
         for i in range(0, len(dist_mats_list)):
-            key = 'dmat' + str(i)
-            dmat = f.create_dataset(key, data=dist_mats_list[i], dtype='uint16')
+            dmat = dmatrices.create_dataset(str(fovs[i]), data=dist_mats_list[i], dtype='uint16')
+        return dmatrices
+    else:
+        with h5py.File("distance_mat.hdf5", "w") as f:
+            for i in range(0, len(dist_mats_list)):
+                dmat = f.create_dataset(str(fovs[i]), data=dist_mats_list[i], dtype='uint16')
     # dist_mats.close()
     # return dist_mats
 
@@ -46,7 +52,7 @@ def get_pos_cell_labels(analysis_type, pheno=None, fov_data=None,
     with expression values for the current maker greater than the marker threshold.
 
     Args:
-        analysis_type: type of analysis, either Cell Label or Threshold
+        analysis_type: type of analysis, either Cluster or Channel
         pheno: the current cell phenotype
         fov_data: data for the current patient
         thresh: current threshold for marker
@@ -57,11 +63,15 @@ def get_pos_cell_labels(analysis_type, pheno=None, fov_data=None,
         mark1poslabels: a list of all the positive labels"""
 
     if analysis_type == "Cluster":
+        if pheno is None or fov_data is None:
+            raise ValueError("Incorrect arguments passed for analysis type")
         # Subset only cells that are of the same phenotype
         pheno1posinds = fov_data["FlowSOM_ID"] == pheno
         # Get the cell labels of the cells of the phenotype
         mark1poslabels = fov_data.iloc[:, 1][pheno1posinds]
     else:
+        if thresh is None or fov_channel_data is None or cell_labels is None or col is None:
+            raise ValueError("Incorrect arguments passed for analysis type")
         # Subset only cells that are positive for the given marker
         marker1posinds = fov_channel_data[col] > thresh
         # Get the cell labels of the positive cells
@@ -133,7 +143,8 @@ def compute_close_cell_num(dist_mat, dist_lim, num, analysis_type,
                                                      col=fov_channel_data.columns[k])
             mark2_num.append(len(mark2poslabels))
             # Subset the distance matrix to only include cells positive for both markers j and k
-            trunc_dist_mat = dist_mat[np.ix_(np.asarray(mark1poslabels - 1), np.asarray(mark2poslabels - 1))]
+            trunc_dist_mat = dist_mat[np.ix_(np.asarray(mark1poslabels - 1, dtype='int'),
+                                             np.asarray(mark2poslabels - 1, dtype='int'))]
             # Binarize the truncated distance matrix to only include cells within distance limit
             trunc_dist_mat_bin = np.zeros(trunc_dist_mat.shape, dtype='int')
             trunc_dist_mat_bin[trunc_dist_mat < dist_lim] = 1
@@ -171,7 +182,7 @@ def compute_close_cell_num_random(marker1_num, marker2_num,
                 marker2_labels_rand = np.random.choice(a=range(dist_mat.shape[0]), size=marker2_num[k], replace=True)
                 # Subset the distance matrix to only include positive randomly selected cell labels
                 rand_trunc_dist_mat = dist_mat[np.ix_(np.asarray(
-                    marker1_labels_rand), np.asarray(marker2_labels_rand))]
+                    marker1_labels_rand, dtype='int'), np.asarray(marker2_labels_rand, dtype='int'))]
                 # Binarize the truncated distance matrix to only include cells within distance limit
                 rand_trunc_dist_mat_bin = np.zeros(rand_trunc_dist_mat.shape, dtype='int')
                 rand_trunc_dist_mat_bin[rand_trunc_dist_mat < dist_lim] = 1

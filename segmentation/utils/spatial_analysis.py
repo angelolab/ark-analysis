@@ -28,8 +28,8 @@ def calculate_channel_spatial_enrichment(dist_matrices, marker_thresholds, all_d
     Uses bootstrapping to permute cell labels randomly.
 
     Args:
-        dist_matrices: cells x cells matrix with the euclidian
-            distance between centers of corresponding cells
+        dist_matrices: An hdf5 file that contains a cells x cells matrix with the euclidian
+            distance between centers of corresponding cells for every fov
         marker_thresholds: threshold values for positive marker expression
         all_data: data including points, cell labels, and
             cell expression matrix for all markers
@@ -38,7 +38,7 @@ def calculate_channel_spatial_enrichment(dist_matrices, marker_thresholds, all_d
             "summed_channel", "label", "area",
             "eccentricity", "major_axis_length", "minor_axis_length",
             "perimeter", "fov"]
-        fovs: patient labels to include in analysis. If argument is none, default is all labels used.ﬁ
+        fovs: patient labels to include in analysis. If argument is none, default is all labels used.
         dist_lim: cell proximity threshold. Default is 100.
         bootstrap_num: number of permutations for bootstrap. Default is 1000.
 
@@ -75,7 +75,7 @@ def calculate_channel_spatial_enrichment(dist_matrices, marker_thresholds, all_d
         raise ValueError("Points were not found in Expression Matrix")
 
     # Subsets the expression matrix to only have marker columns
-    data_markers = all_data.drop(excluded_colnames, axis=1)
+    data_markers = [all_data.drop(excluded_colnames, axis=1)]
     # List of all markers
     marker_titles = data_markers.columns
     # Length of marker list
@@ -100,8 +100,11 @@ def calculate_channel_spatial_enrichment(dist_matrices, marker_thresholds, all_d
 
         # Subset the distance matrix array to only include the distance matrix for the correct point
         # dist_matrix = dist_matrices[i, :, :].values
-        dist_matrix = dist_matrices[dist_mat_list[i]].value
-        dist_matrix = dist_matrix.reshape(dist_matrix.shape[1], dist_matrix.shape[2])
+        # distmat_fov_id = dist_mat_list == str(fovs[i])
+        # distmat_fov = [x for x in dist_mat_list if str(fovs[i]) in x][0]
+
+        dist_matrix = dist_matrices[str(fovs[i])].value
+        # dist_matrix = dist_matrix.reshape(dist_matrix.shape[1], dist_matrix.shape[2])
 
         # Get close_num and close_num_rand
         close_num, marker1_num, marker2_num = spatial_analysis_utils.compute_close_cell_num(
@@ -124,7 +127,7 @@ def calculate_cluster_spatial_enrichment(all_data, dist_mats, fovs=None,
     Args:
         all_data: data including points, cell labels, and
             cell expression matrix for all markers
-        dist_mats: cells x cells matrix with the euclidian
+        dist_mats: An hdf5 file that contains a cells x cells matrix with the euclidian
             distance between centers of corresponding cells for every fov
         fovs: patient labels to include in analysis. If argument is none, default is all labels used
         bootstrap_num: number of permutations for bootstrap. Default is 1000
@@ -179,8 +182,11 @@ def calculate_cluster_spatial_enrichment(all_data, dist_mats, fovs=None,
 
         # Subset the distance matrix array to only include the distance matrix for the correct point
         # dist_mat = dist_mats[i, :, :].values
-        dist_mat = dist_mats[dist_mat_list[i]].value
-        dist_mat = dist_mat.reshape(dist_mat.shape[1], dist_mat.shape[2])
+        # distmat_fov_id = dist_mat_list == fovs[i]
+        # distmat_fov = [x for x in dist_mat_list if str(fovs[i]) in x][0]
+
+        dist_mat = dist_mats[str(fovs[i])].value
+        # dist_mat = dist_mat.reshape(dist_mat.shape[1], dist_mat.shape[2])
 
         # Get close_num and close_num_rand
         close_num, pheno1_num, pheno2_num = spatial_analysis_utils.compute_close_cell_num(

@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import xarray as xr
 import h5py
 from segmentation.utils import spatial_analysis
 from segmentation.utils import visualize
@@ -31,9 +32,15 @@ label_map_six = io.imread("/Users/jaiveersingh/Documents/MATLAB/SpatialAnalysis/
 label_map_seven = io.imread("/Users/jaiveersingh/Documents/MATLAB/SpatialAnalysis/newLmodPoint7.tiff")
 
 # Reshape the label maps and stack them to use as inputs to compute their distance matrices
-label_map_six = label_map_six.reshape(1, label_map_six.shape[0], label_map_six.shape[1])
-label_map_seven = label_map_seven.reshape(1, label_map_seven.shape[0], label_map_seven.shape[1])
-label_maps = np.stack((label_map_six, label_map_seven), axis=0)
+# label_map_six = label_map_six.reshape(1, label_map_six.shape[0], label_map_six.shape[1])
+# label_map_seven = label_map_seven.reshape(1, label_map_seven.shape[0], label_map_seven.shape[1])
+label_maps_data = np.stack((label_map_six, label_map_seven), axis=0)
+label_maps_data = label_maps_data.reshape((
+    label_maps_data.shape[0], label_maps_data.shape[1], label_maps_data.shape[2], 1))
+coords = [[6, 7], range(label_maps_data[0].data.shape[0]),
+          range(label_maps_data[0].data.shape[1]), ["segmentation_label"]]
+dims = ["fovs", "rows", "cols", "channels"]
+label_maps = xr.DataArray(label_maps_data, coords=coords, dims=dims)
 # Get an H5py object with the respective distance matrices for the points
 spatial_analysis_utils.calc_dist_matrix(label_maps)
 dist_mats = h5py.File("distance_mat.hdf5", "r")
@@ -58,6 +65,9 @@ values_cluster, stats_cluster = spatial_analysis.calculate_cluster_spatial_enric
 
 # To then visualize the z scores, a clustermap can be produced
 
-# First, find all the cell phenotypes in the data to use as an input for the clustergram
+# For cluster spatial analysis, first find all the cell phenotypes in the data to use as an input for the clustergram
 pheno_titles = all_data["cell_type"].drop_duplicates()
 visualize.visualize_z_scores(stats_cluster.loc[6, "z", :, :].values, pheno_titles)
+# For channel spatial analysis, first find all the marker titles to use as input for the clustergram
+marker_titles = all_data.drop(excluded_colnames, axis=1).columns
+visualize.visualize_z_scores(stats_channel.loc[6, "z", :, :].values, pheno_titles)

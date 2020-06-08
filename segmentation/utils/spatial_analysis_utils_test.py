@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import xarray as xr
 import h5py
 import random
 from segmentation.utils import spatial_analysis_utils
@@ -10,12 +11,17 @@ importlib.reload(spatial_analysis_utils)
 
 
 def test_calc_dist_matrix():
-    test_mat = np.zeros((2, 512, 512), dtype="int")
+    test_mat_data = np.zeros((2, 512, 512, 1), dtype="int")
     # Create pythagorean triple to test euclidian distance
-    test_mat[0, 0, 20] = 1
-    test_mat[0, 4, 17] = 2
-    test_mat[1, 5, 25] = 1
-    test_mat[1, 9, 22] = 2
+    test_mat_data[0, 0, 20] = 1
+    test_mat_data[0, 4, 17] = 2
+    test_mat_data[1, 5, 25] = 1
+    test_mat_data[1, 9, 22] = 2
+
+    coords = [["1", "2"], range(test_mat_data[0].data.shape[0]),
+              range(test_mat_data[0].data.shape[1]), ["segmentation_label"]]
+    dims = ["fovs", "rows", "cols", "channels"]
+    test_mat = xr.DataArray(test_mat_data, coords=coords, dims=dims)
 
     # dist_matrix = spatial_analysis_utils.calc_dist_matrix(test_mat)
     spatial_analysis_utils.calc_dist_matrix(test_mat)

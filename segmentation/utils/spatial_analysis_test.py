@@ -19,15 +19,16 @@ def make_distance_matrix(enrichment_type):
 
     if enrichment_type == "none":
         # Create a 60 x 60 euclidian distance matrix of random values for no enrichment
-        rand_mat = np.random.randint(0, 200, size=(1, 60, 60))
-        np.fill_diagonal(rand_mat[0, :, :], 0)
+        rand_mat = np.random.randint(0, 200, size=(60, 60))
+        np.fill_diagonal(rand_mat[:, :], 0)
 
         # coords = [range(rand_mat.shape[0]), range(rand_mat[0].data.shape[0]), range(rand_mat[0].data.shape[1])]
         # dims = ["points", "rows", "cols"]
         # rand_mat = xr.DataArray(rand_mat, coords=coords, dims=dims)
 
         with h5py.File("randmat4.hdf5", "w") as rand_matrix:
-            rmat = rand_matrix.create_dataset('distmat4', data=rand_mat, dtype='uint16')
+            rmat8 = rand_matrix.create_dataset('Point8', data=rand_mat, dtype='uint16')
+            rmat9 = rand_matrix.create_dataset('Point9', data=rand_mat, dtype='uint16')
 
         # return rand_matrix
     elif enrichment_type == "positive":
@@ -35,39 +36,41 @@ def make_distance_matrix(enrichment_type):
         # are located close in proximity to 10 cells mostly positive for marker 2.
         # Other included cells are not significantly positive for either marker and are located
         # far from the two positive populations.
-        dist_mat_pos = np.zeros((1, 80, 80))
-        dist_mat_pos[0, 10:20, :10] = 50
-        dist_mat_pos[0, :10, 10:20] = 50
-        dist_mat_pos[0, 20:40, :20] = 200
-        dist_mat_pos[0, :20, 20:40] = 200
-        dist_mat_pos[0, 40:80, :40] = 300
-        dist_mat_pos[0, :40, 40:80] = 300
+        dist_mat_pos = np.zeros((80, 80))
+        dist_mat_pos[10:20, :10] = 50
+        dist_mat_pos[:10, 10:20] = 50
+        dist_mat_pos[20:40, :20] = 200
+        dist_mat_pos[:20, 20:40] = 200
+        dist_mat_pos[40:80, :40] = 300
+        dist_mat_pos[:40, 40:80] = 300
         # coords = [range(dist_mat_pos.shape[0]), range(dist_mat_pos[0].data.shape[0]),
         # range(dist_mat_pos[0].data.shape[1])]
         # dims = ["points", "rows", "cols"]
         # dist_mat_pos = xr.DataArray(dist_mat_pos, coords=coords, dims=dims)
 
         with h5py.File("posmat4.hdf5", "w") as pos_matrix:
-            pmat = pos_matrix.create_dataset('distmat_pos4', data=dist_mat_pos, dtype='uint16')
+            pmat8 = pos_matrix.create_dataset('Point8', data=dist_mat_pos, dtype='uint16')
+            pmat9 = pos_matrix.create_dataset('Point9', data=dist_mat_pos, dtype='uint16')
 
         # return pos_matrix
     elif enrichment_type == "negative":
         # This creates a distance matrix where there are two groups of cells significant for 2 different
         # markers that are not located near each other (not within the dist_lim).
-        dist_mat_neg = np.zeros((1, 60, 60))
-        dist_mat_neg[0, 20:40, :20] = 300
-        dist_mat_neg[0, :20, 20:40] = 300
-        dist_mat_neg[0, 40:50, :40] = 50
-        dist_mat_neg[0, :40, 40:50] = 50
-        dist_mat_neg[0, 50:60, :50] = 200
-        dist_mat_neg[0, :50, 50:60] = 200
+        dist_mat_neg = np.zeros((60, 60))
+        dist_mat_neg[20:40, :20] = 300
+        dist_mat_neg[:20, 20:40] = 300
+        dist_mat_neg[40:50, :40] = 50
+        dist_mat_neg[:40, 40:50] = 50
+        dist_mat_neg[50:60, :50] = 200
+        dist_mat_neg[:50, 50:60] = 200
         # coords = [range(dist_mat_neg.shape[0]), range(dist_mat_neg[0].data.shape[0]),
         # range(dist_mat_neg[0].data.shape[1])]
         # dims = ["points", "rows", "cols"]
         # dist_mat_neg = xr.DataArray(dist_mat_neg, coords=coords, dims=dims)
 
         with h5py.File("negmat4.hdf5", "w") as neg_matrix:
-            nmat = neg_matrix.create_dataset('distmat_neg4', data=dist_mat_neg, dtype='uint16')
+            nmat8 = neg_matrix.create_dataset('Point8', data=dist_mat_neg, dtype='uint16')
+            nmat9 = neg_matrix.create_dataset('Point9', data=dist_mat_neg, dtype='uint16')
 
         # return neg_matrix
 
@@ -83,62 +86,101 @@ def make_expression_matrix(enrichment_type):
                          30: "SampleID", 31: "FlowSOM_ID", 32: "cell_type"}
 
     if enrichment_type == "none":
-        all_data = pd.DataFrame(np.zeros((60, 33)))
+        all_data = pd.DataFrame(np.zeros((120, 33)))
         # Assigning values to the patient label and cell label columns
-        all_data[30] = "Point8"
-        all_data[24] = np.arange(len(all_data[1])) + 1
+        # We create data for two fovs, with the second fov being the same as the first but the cell expression
+        # data for marker 1 and marker 2 are inverted. cells 0-59 are Point8 and cells 60-119 are Point9
+        all_data.loc[0:59, 30] = "Point8"
+        all_data.loc[60:, 30] = "Point9"
+        all_data.loc[0:59, 24] = np.arange(60) + 1
+        all_data.loc[60:, 24] = np.arange(60) + 1
         # We create two populations of 20 cells each, each positive for a different marker (column index 2 and 3)
         all_data.iloc[0:20, 2] = 1
         all_data.iloc[20:40, 3] = 1
+
+        all_data.iloc[60:80, 3] = 1
+        all_data.iloc[80:100, 2] = 1
         # We assign the two populations of cells different cell phenotypes
         all_data.iloc[0:20, 31] = 1
         all_data.iloc[0:20, 32] = "Pheno1"
+        all_data.iloc[60:80, 31] = 2
+        all_data.iloc[60:80, 32] = "Pheno2"
+
         all_data.iloc[20:40, 31] = 2
         all_data.iloc[20:40, 32] = "Pheno2"
+        all_data.iloc[80:100, 31] = 1
+        all_data.iloc[80:100, 32] = "Pheno1"
         # Assign column names to columns not for markers (columns to be excluded)
         all_patient_data = all_data.rename(excluded_colnames, axis=1)
         return all_patient_data
     elif enrichment_type == "positive":
-        all_data_pos = pd.DataFrame(np.zeros((80, 33)))
+        all_data_pos = pd.DataFrame(np.zeros((160, 33)))
         # Assigning values to the patient label and cell label columns
-        all_data_pos[30] = "Point8"
-        all_data_pos[24] = np.arange(len(all_data_pos[1])) + 1
+        all_data_pos.loc[0:79, 30] = "Point8"
+        all_data_pos.loc[80:, 30] = "Point9"
+        all_data_pos.loc[0:79, 24] = np.arange(80) + 1
+        all_data_pos.loc[80:, 24] = np.arange(80) + 1
         # We create 8 cells positive for column index 2, and 8 cells positive for column index 3.
         # These are within the dist_lim in dist_mat_pos (positive enrichment distance matrix).
         all_data_pos.iloc[0:8, 2] = 1
         all_data_pos.iloc[10:18, 3] = 1
+
+        all_data_pos.iloc[80:88, 3] = 1
+        all_data_pos.iloc[90:98, 2] = 1
         # We assign the two populations of cells different cell phenotypes
         all_data_pos.iloc[0:8, 31] = 1
         all_data_pos.iloc[0:8, 32] = "Pheno1"
+        all_data_pos.iloc[80:88, 31] = 2
+        all_data_pos.iloc[80:88, 32] = "Pheno2"
+
         all_data_pos.iloc[10:18, 31] = 2
         all_data_pos.iloc[10:18, 32] = "Pheno2"
+        all_data_pos.iloc[90:98, 31] = 1
+        all_data_pos.iloc[90:98, 32] = "Pheno1"
         # We create 4 cells in column index 2 and column index 3 that are also positive
         # for their respective markers.
         all_data_pos.iloc[28:32, 2] = 1
         all_data_pos.iloc[32:36, 3] = 1
+        all_data_pos.iloc[108:112, 3] = 1
+        all_data_pos.iloc[112:116, 2] = 1
         # We assign the two populations of cells different cell phenotypes
         all_data_pos.iloc[28:32, 31] = 1
         all_data_pos.iloc[28:32, 32] = "Pheno1"
+        all_data_pos.iloc[108:112, 31] = 2
+        all_data_pos.iloc[108:112, 32] = "Pheno2"
+
         all_data_pos.iloc[32:36, 31] = 2
         all_data_pos.iloc[32:36, 32] = "Pheno2"
+        all_data_pos.iloc[112:116, 31] = 1
+        all_data_pos.iloc[112:116, 32] = "Pheno1"
         # Assign column names to columns not for markers (columns to be excluded)
         all_patient_data_pos = all_data_pos.rename(excluded_colnames, axis=1)
         return all_patient_data_pos
     elif enrichment_type == "negative":
-        all_data_neg = pd.DataFrame(np.zeros((60, 33)))
+        all_data_neg = pd.DataFrame(np.zeros((120, 33)))
         # Assigning values to the patient label and cell label columns
-        all_data_neg[30] = "Point8"
-        all_data_neg[24] = np.arange(len(all_data_neg[1])) + 1
+        all_data_neg.loc[0:59, 30] = "Point8"
+        all_data_neg.loc[60:, 30] = "Point9"
+        all_data_neg.loc[0:59, 24] = np.arange(60) + 1
+        all_data_neg.loc[60:, 24] = np.arange(60) + 1
         # We create two groups of 20 cells positive for marker 1 (in column index 2)
         # and marker 2 (in column index 3) respectively.
         # The two populations are not within the dist_lim in dist_mat_neg (negative enrichment distance matrix)
         all_data_neg.iloc[0:20, 2] = 1
         all_data_neg.iloc[20:40, 3] = 1
+
+        all_data_neg.iloc[60:80, 3] = 1
+        all_data_neg.iloc[80:100, 2] = 1
         # We assign the two populations of cells different cell phenotypes
         all_data_neg.iloc[0:20, 31] = 1
         all_data_neg.iloc[0:20, 32] = "Pheno1"
+        all_data_neg.iloc[60:80, 31] = 2
+        all_data_neg.iloc[60:80, 32] = "Pheno2"
+
         all_data_neg.iloc[20:40, 31] = 2
         all_data_neg.iloc[20:40, 32] = "Pheno2"
+        all_data_neg.iloc[80:100, 31] = 1
+        all_data_neg.iloc[80:100, 32] = "Pheno1"
         # Assign column names to columns not for markers (columns to be excluded)
         all_patient_data_neg = all_data_neg.rename(excluded_colnames, axis=1)
         return all_patient_data_neg
@@ -164,9 +206,14 @@ def test_calculate_channel_spatial_enrichment():
         spatial_analysis.calculate_channel_spatial_enrichment(
             dist_mat_pos, marker_thresholds, all_data_pos,
             excluded_colnames=excluded_colnames, bootstrap_num=100)
+    # Test both Point8 and Point9
     assert stats.loc["Point8", "p_pos", 2, 3] < .05
     assert stats.loc["Point8", "p_neg", 2, 3] > .05
     assert stats.loc["Point8", "z", 2, 3] > 0
+
+    assert stats.loc["Point9", "p_pos", 3, 2] < .05
+    assert stats.loc["Point9", "p_neg", 3, 2] > .05
+    assert stats.loc["Point9", "z", 3, 2] > 0
     dist_mat_pos.close()
     # Negative enrichment
     all_data_neg = make_expression_matrix("negative")
@@ -177,9 +224,14 @@ def test_calculate_channel_spatial_enrichment():
         spatial_analysis.calculate_channel_spatial_enrichment(
             dist_mat_neg, marker_thresholds, all_data_neg,
             excluded_colnames=excluded_colnames, bootstrap_num=100)
+    # Test both Point8 and Point9
     assert stats.loc["Point8", "p_neg", 2, 3] < .05
     assert stats.loc["Point8", "p_pos", 2, 3] > .05
     assert stats.loc["Point8", "z", 2, 3] < 0
+
+    assert stats.loc["Point9", "p_neg", 3, 2] < .05
+    assert stats.loc["Point9", "p_pos", 3, 2] > .05
+    assert stats.loc["Point9", "z", 3, 2] < 0
     dist_mat_neg.close()
     # No enrichment
     all_data = make_expression_matrix("none")
@@ -190,9 +242,14 @@ def test_calculate_channel_spatial_enrichment():
         spatial_analysis.calculate_channel_spatial_enrichment(
             dist_mat, marker_thresholds, all_data,
             excluded_colnames=excluded_colnames, bootstrap_num=100)
+    # Test both Point8 and Point9
     assert stats.loc["Point8", "p_pos", 2, 3] > .05
     assert stats.loc["Point8", "p_pos", 2, 3] > .05
     assert abs(stats.loc["Point8", "z", 2, 3]) < 2
+
+    assert stats.loc["Point9", "p_pos", 3, 2] > .05
+    assert stats.loc["Point9", "p_pos", 3, 2] > .05
+    assert abs(stats.loc["Point9", "z", 3, 2]) < 2
     dist_mat.close()
 
 
@@ -208,9 +265,14 @@ def test_calculate_cluster_spatial_enrichment():
         spatial_analysis.calculate_cluster_spatial_enrichment(
             all_data_pos, dist_mat_pos,
             bootstrap_num=100, dist_lim=100)
+    # Test both Point8 and Point9
     assert stats.loc["Point8", "p_pos", "Pheno1", "Pheno2"] < .05
     assert stats.loc["Point8", "p_neg", "Pheno1", "Pheno2"] > .05
     assert stats.loc["Point8", "z", "Pheno1", "Pheno2"] > 0
+
+    assert stats.loc["Point9", "p_pos", "Pheno2", "Pheno1"] < .05
+    assert stats.loc["Point9", "p_neg", "Pheno2", "Pheno1"] > .05
+    assert stats.loc["Point9", "z", "Pheno2", "Pheno1"] > 0
     dist_mat_pos.close()
     # Negative enrichment
     all_data_neg = make_expression_matrix("negative")
@@ -221,9 +283,14 @@ def test_calculate_cluster_spatial_enrichment():
         spatial_analysis.calculate_cluster_spatial_enrichment(
             all_data_neg, dist_mat_neg,
             bootstrap_num=100, dist_lim=100)
+    # Test both Point8 and Point9
     assert stats.loc["Point8", "p_neg", "Pheno1", "Pheno2"] < .05
     assert stats.loc["Point8", "p_pos", "Pheno1", "Pheno2"] > .05
     assert stats.loc["Point8", "z", "Pheno1", "Pheno2"] < 0
+
+    assert stats.loc["Point9", "p_neg", "Pheno2", "Pheno1"] < .05
+    assert stats.loc["Point9", "p_pos", "Pheno2", "Pheno1"] > .05
+    assert stats.loc["Point9", "z", "Pheno2", "Pheno1"] < 0
     dist_mat_neg.close()
     # No enrichment
     all_data = make_expression_matrix("none")
@@ -234,7 +301,12 @@ def test_calculate_cluster_spatial_enrichment():
         spatial_analysis.calculate_cluster_spatial_enrichment(
             all_data, dist_mat,
             bootstrap_num=100, dist_lim=100)
+    # Test both Point8 and Point9
     assert stats.loc["Point8", "p_pos", "Pheno1", "Pheno2"] > .05
     assert stats.loc["Point8", "p_pos", "Pheno1", "Pheno2"] > .05
     assert abs(stats.loc["Point8", "z", "Pheno1", "Pheno2"]) < 2
+
+    assert stats.loc["Point8", "p_pos", "Pheno2", "Pheno1"] > .05
+    assert stats.loc["Point8", "p_pos", "Pheno2", "Pheno1"] > .05
+    assert abs(stats.loc["Point8", "z", "Pheno2", "Pheno1"]) < 2
     dist_mat.close()
