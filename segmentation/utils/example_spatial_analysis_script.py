@@ -23,13 +23,16 @@ importlib.reload(spatial_analysis_utils)
 # Import data
 # This is the cell expression matrix including data for fovs 6 and 7, their cell labels, marker expression,
 # cell phenotypes, and cell phenotype IDs.
-all_data = pd.read_csv("/Users/jaiveersingh/Desktop/tests/example_expression_matrix.csv")
+all_data = pd.read_csv("/Users/jaiveersingh/Desktop/AngeloLab/"
+                       "segmentation/data/example_dataset/spatial_enrichment_input_data/example_expression_matrix.csv")
 # This is the threshold matrix with all marker thresholds - for channel cpatial enrichment
 marker_thresholds = pd.read_csv("/Users/jaiveersingh/Downloads/SpatialEnrichment/markerThresholds.csv")
 marker_thresholds = marker_thresholds.drop(0, axis=0)
 # This is the label maps from which the distance matrix will be computed
-label_map_six = io.imread("/Users/jaiveersingh/Documents/MATLAB/SpatialAnalysis/newLmod.tiff")
-label_map_seven = io.imread("/Users/jaiveersingh/Documents/MATLAB/SpatialAnalysis/newLmodPoint7.tiff")
+label_map_six = io.imread("/Users/jaiveersingh/Desktop/AngeloLab/segmentation/data/"
+                          "example_dataset/spatial_enrichment_input_data/newLmod.tiff ")
+label_map_seven = io.imread("/Users/jaiveersingh/Desktop/AngeloLab/segmentation/data/example_dataset/"
+                            "spatial_enrichment_input_data/newLmodPoint7.tiff")
 
 # Reshape the label maps and stack them to use as inputs to compute their distance matrices
 # label_map_six = label_map_six.reshape(1, label_map_six.shape[0], label_map_six.shape[1])
