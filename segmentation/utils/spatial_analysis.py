@@ -75,7 +75,7 @@ def calculate_channel_spatial_enrichment(dist_matrices, marker_thresholds, all_d
         raise ValueError("Points were not found in Expression Matrix")
 
     # Subsets the expression matrix to only have marker columns
-    data_markers = [all_data.drop(excluded_colnames, axis=1)]
+    data_markers = all_data.drop(excluded_colnames, axis=1)
     # List of all markers
     marker_titles = data_markers.columns
     # Length of marker list
