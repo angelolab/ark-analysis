@@ -80,6 +80,9 @@ def calculate_channel_spatial_enrichment(dist_matrices, marker_thresholds, all_d
     # Length of marker list
     marker_num = len(marker_titles)
 
+    if not (list(marker_thresholds.iloc[:, 0]) == marker_titles).any():
+        raise ValueError("Threshold Markers do not match markers in Expression Matrix")
+
     # Create stats Xarray with the dimensions (points, stats variables, number of markers, number of markers)
     stats_raw_data = np.zeros((num_fovs, 7, marker_num, marker_num))
     coords = [fovs, ["z", "muhat", "sigmahat", "p_pos", "p_neg", "h", "p_adj"], marker_titles,

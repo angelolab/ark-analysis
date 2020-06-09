@@ -11,6 +11,7 @@ importlib.reload(spatial_analysis)
 def make_threshold_mat():
     thresh = pd.DataFrame(np.zeros((20, 2)))
     thresh.iloc[:, 1] = .5
+    thresh.iloc[:, 0] = np.arange(20) + 2
     return thresh
 
 
