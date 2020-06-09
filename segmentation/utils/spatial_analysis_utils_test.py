@@ -23,7 +23,6 @@ def test_calc_dist_matrix():
     dims = ["fovs", "rows", "cols", "channels"]
     test_mat = xr.DataArray(test_mat_data, coords=coords, dims=dims)
 
-    # dist_matrix = spatial_analysis_utils.calc_dist_matrix(test_mat)
     distance_mat = spatial_analysis_utils.calc_dist_matrix(test_mat)
     real_mat = np.array([[0, 5], [5, 0]])
 

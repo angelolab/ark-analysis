@@ -37,9 +37,7 @@ marker_thresholds = marker_thresholds.drop(0, axis=0)
 label_map_six = io.imread(os.path.join(spatial_analysis_dir, "newLmod.tiff"))
 label_map_seven = io.imread(os.path.join(spatial_analysis_dir, "newLmodPoint7.tiff"))
 
-# Reshape the label maps and stack them to use as inputs to compute their distance matrices
-# label_map_six = label_map_six.reshape(1, label_map_six.shape[0], label_map_six.shape[1])
-# label_map_seven = label_map_seven.reshape(1, label_map_seven.shape[0], label_map_seven.shape[1])
+# Stack the label maps to use as inputs to compute their distance matrices
 label_maps_data = np.stack((label_map_six, label_map_seven), axis=0)
 label_maps_data = label_maps_data.reshape((
     label_maps_data.shape[0], label_maps_data.shape[1], label_maps_data.shape[2], 1))

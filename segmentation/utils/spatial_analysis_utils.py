@@ -29,12 +29,9 @@ def calc_dist_matrix(label_map, ret=True, path=None):
         centroids = np.array(a)
         dist_matrix = cdist(centroids, centroids)
         dist_mats_list.append(dist_matrix)
-    # dist_mats = np.stack(dist_mats_list, axis=0)
-    # label_map.coords["fovs"]
-    # coords = [range(len(dist_mats)), range(dist_mats[0].data.shape[0]), range(dist_mats[0].data.shape[1])]
-    # dims = ["points", "rows", "cols"]
-    # dist_mats_xr = xr.DataArray(dist_mats, coords=coords, dims=dims)
+    # Create dictionary to store distance matrices per fov
     dist_matrices = dict(zip([str(i) for i in fovs], dist_mats_list))
+    # If ret is true, function will directly return the dictionary, else it will save it as a file
     if ret:
         return dist_matrices
     else:

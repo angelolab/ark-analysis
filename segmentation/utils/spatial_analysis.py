@@ -80,6 +80,7 @@ def calculate_channel_spatial_enrichment(dist_matrices, marker_thresholds, all_d
     # Length of marker list
     marker_num = len(marker_titles)
 
+    # Check to see if order of marker thresholds is same as in expression matrix
     if not (list(marker_thresholds.iloc[:, 0]) == marker_titles).any():
         raise ValueError("Threshold Markers do not match markers in Expression Matrix")
 
