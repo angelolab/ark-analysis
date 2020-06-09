@@ -26,11 +26,11 @@ def make_distance_matrix(enrichment_type):
         # dims = ["points", "rows", "cols"]
         # rand_mat = xr.DataArray(rand_mat, coords=coords, dims=dims)
 
-        with h5py.File("randmat4.hdf5", "w") as rand_matrix:
-            rmat8 = rand_matrix.create_dataset('Point8', data=rand_mat, dtype='uint16')
-            rmat9 = rand_matrix.create_dataset('Point9', data=rand_mat, dtype='uint16')
+        fovs = ["Point8", "Point9"]
+        mats = [rand_mat, rand_mat]
+        rand_matrix = dict(zip(fovs, mats))
 
-        # return rand_matrix
+        return rand_matrix
     elif enrichment_type == "positive":
         # Create positive enrichment distance matrix where 10 cells mostly positive for marker 1
         # are located close in proximity to 10 cells mostly positive for marker 2.
@@ -48,11 +48,11 @@ def make_distance_matrix(enrichment_type):
         # dims = ["points", "rows", "cols"]
         # dist_mat_pos = xr.DataArray(dist_mat_pos, coords=coords, dims=dims)
 
-        with h5py.File("posmat4.hdf5", "w") as pos_matrix:
-            pmat8 = pos_matrix.create_dataset('Point8', data=dist_mat_pos, dtype='uint16')
-            pmat9 = pos_matrix.create_dataset('Point9', data=dist_mat_pos, dtype='uint16')
+        fovs = ["Point8", "Point9"]
+        mats = [dist_mat_pos, dist_mat_pos]
+        dist_mat_pos = dict(zip(fovs, mats))
 
-        # return pos_matrix
+        return dist_mat_pos
     elif enrichment_type == "negative":
         # This creates a distance matrix where there are two groups of cells significant for 2 different
         # markers that are not located near each other (not within the dist_lim).
@@ -68,11 +68,11 @@ def make_distance_matrix(enrichment_type):
         # dims = ["points", "rows", "cols"]
         # dist_mat_neg = xr.DataArray(dist_mat_neg, coords=coords, dims=dims)
 
-        with h5py.File("negmat4.hdf5", "w") as neg_matrix:
-            nmat8 = neg_matrix.create_dataset('Point8', data=dist_mat_neg, dtype='uint16')
-            nmat9 = neg_matrix.create_dataset('Point9', data=dist_mat_neg, dtype='uint16')
+        fovs = ["Point8", "Point9"]
+        mats = [dist_mat_neg, dist_mat_neg]
+        dist_mat_neg = dict(zip(fovs, mats))
 
-        # return neg_matrix
+        return dist_mat_neg
 
 
 def make_expression_matrix(enrichment_type):
@@ -199,14 +199,12 @@ def test_calculate_channel_spatial_enrichment():
 
     # Positive enrichment
     all_data_pos = make_expression_matrix("positive")
-    # dist_mat_pos = make_distance_matrix("positive")
-    make_distance_matrix("positive")
-    dist_mat_pos = h5py.File("posmat4.hdf5", "r")
+    dist_mat_pos = make_distance_matrix("positive")
+
     values, stats = \
         spatial_analysis.calculate_channel_spatial_enrichment(
             dist_mat_pos, marker_thresholds, all_data_pos,
             excluded_colnames=excluded_colnames, bootstrap_num=100)
-    dist_mat_pos.close()
     # Test both Point8 and Point9
     assert stats.loc["Point8", "p_pos", 2, 3] < .05
     assert stats.loc["Point8", "p_neg", 2, 3] > .05
@@ -217,14 +215,12 @@ def test_calculate_channel_spatial_enrichment():
     assert stats.loc["Point9", "z", 3, 2] > 0
     # Negative enrichment
     all_data_neg = make_expression_matrix("negative")
-    # dist_mat_neg = make_distance_matrix("negative")
-    make_distance_matrix("negative")
-    dist_mat_neg = h5py.File("negmat4.hdf5", "r")
+    dist_mat_neg = make_distance_matrix("negative")
+
     values, stats = \
         spatial_analysis.calculate_channel_spatial_enrichment(
             dist_mat_neg, marker_thresholds, all_data_neg,
             excluded_colnames=excluded_colnames, bootstrap_num=100)
-    dist_mat_neg.close()
     # Test both Point8 and Point9
     assert stats.loc["Point8", "p_neg", 2, 3] < .05
     assert stats.loc["Point8", "p_pos", 2, 3] > .05
@@ -235,14 +231,12 @@ def test_calculate_channel_spatial_enrichment():
     assert stats.loc["Point9", "z", 3, 2] < 0
     # No enrichment
     all_data = make_expression_matrix("none")
-    # dist_mat = make_distance_matrix("none")
-    make_distance_matrix("none")
-    dist_mat = h5py.File("randmat4.hdf5", "r")
+    dist_mat = make_distance_matrix("none")
+
     values, stats = \
         spatial_analysis.calculate_channel_spatial_enrichment(
             dist_mat, marker_thresholds, all_data,
             excluded_colnames=excluded_colnames, bootstrap_num=100)
-    dist_mat.close()
     # Test both Point8 and Point9
     assert stats.loc["Point8", "p_pos", 2, 3] > .05
     assert stats.loc["Point8", "p_pos", 2, 3] > .05
@@ -258,14 +252,12 @@ def test_calculate_cluster_spatial_enrichment():
 
     # Positive enrichment
     all_data_pos = make_expression_matrix("positive")
-    # dist_mat_pos = make_distance_matrix("positive")
-    make_distance_matrix("positive")
-    dist_mat_pos = h5py.File("posmat4.hdf5", "r")
+    dist_mat_pos = make_distance_matrix("positive")
+
     values, stats = \
         spatial_analysis.calculate_cluster_spatial_enrichment(
             all_data_pos, dist_mat_pos,
             bootstrap_num=100, dist_lim=100)
-    dist_mat_pos.close()
     # Test both Point8 and Point9
     assert stats.loc["Point8", "p_pos", "Pheno1", "Pheno2"] < .05
     assert stats.loc["Point8", "p_neg", "Pheno1", "Pheno2"] > .05
@@ -276,14 +268,12 @@ def test_calculate_cluster_spatial_enrichment():
     assert stats.loc["Point9", "z", "Pheno2", "Pheno1"] > 0
     # Negative enrichment
     all_data_neg = make_expression_matrix("negative")
-    # dist_mat_neg = make_distance_matrix("negative")
-    make_distance_matrix("negative")
-    dist_mat_neg = h5py.File("negmat4.hdf5", "r")
+    dist_mat_neg = make_distance_matrix("negative")
+
     values, stats = \
         spatial_analysis.calculate_cluster_spatial_enrichment(
             all_data_neg, dist_mat_neg,
             bootstrap_num=100, dist_lim=100)
-    dist_mat_neg.close()
     # Test both Point8 and Point9
     assert stats.loc["Point8", "p_neg", "Pheno1", "Pheno2"] < .05
     assert stats.loc["Point8", "p_pos", "Pheno1", "Pheno2"] > .05
@@ -294,14 +284,12 @@ def test_calculate_cluster_spatial_enrichment():
     assert stats.loc["Point9", "z", "Pheno2", "Pheno1"] < 0
     # No enrichment
     all_data = make_expression_matrix("none")
-    # dist_mat = make_distance_matrix("none")
-    make_distance_matrix("none")
-    dist_mat = h5py.File("randmat4.hdf5", "r")
+    dist_mat = make_distance_matrix("none")
+
     values, stats = \
         spatial_analysis.calculate_cluster_spatial_enrichment(
             all_data, dist_mat,
             bootstrap_num=100, dist_lim=100)
-    dist_mat.close()
     # Test both Point8 and Point9
     assert stats.loc["Point8", "p_pos", "Pheno1", "Pheno2"] > .05
     assert stats.loc["Point8", "p_pos", "Pheno1", "Pheno2"] > .05

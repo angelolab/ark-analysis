@@ -28,7 +28,7 @@ def calculate_channel_spatial_enrichment(dist_matrices, marker_thresholds, all_d
     Uses bootstrapping to permute cell labels randomly.
 
     Args:
-        dist_matrices: An hdf5 file that contains a cells x cells matrix with the euclidian
+        dist_matrices: A dictionary that contains a cells x cells matrix with the euclidian
             distance between centers of corresponding cells for every fov
         marker_thresholds: threshold values for positive marker expression
         all_data: data including points, cell labels, and
@@ -59,7 +59,6 @@ def calculate_channel_spatial_enrichment(dist_matrices, marker_thresholds, all_d
         num_fovs = len(fovs)
 
     values = []
-    dist_mat_list = list(dist_matrices.keys())
 
     if excluded_colnames is None:
         excluded_colnames = ["cell_size", "Background", "HH3",
@@ -103,7 +102,7 @@ def calculate_channel_spatial_enrichment(dist_matrices, marker_thresholds, all_d
         # distmat_fov_id = dist_mat_list == str(fovs[i])
         # distmat_fov = [x for x in dist_mat_list if str(fovs[i]) in x][0]
 
-        dist_matrix = dist_matrices[str(fovs[i])].value
+        dist_matrix = dist_matrices[str(fovs[i])]
         # dist_matrix = dist_matrix.reshape(dist_matrix.shape[1], dist_matrix.shape[2])
 
         # Get close_num and close_num_rand
@@ -127,7 +126,7 @@ def calculate_cluster_spatial_enrichment(all_data, dist_mats, fovs=None,
     Args:
         all_data: data including points, cell labels, and
             cell expression matrix for all markers
-        dist_mats: An hdf5 file that contains a cells x cells matrix with the euclidian
+        dist_mats: A dictionary that contains a cells x cells matrix with the euclidian
             distance between centers of corresponding cells for every fov
         fovs: patient labels to include in analysis. If argument is none, default is all labels used
         bootstrap_num: number of permutations for bootstrap. Default is 1000
@@ -153,7 +152,6 @@ def calculate_cluster_spatial_enrichment(all_data, dist_mats, fovs=None,
         num_fovs = len(fovs)
 
     values = []
-    dist_mat_list = list(dist_mats.keys())
 
     # Error Checking
     if not np.isin(fovs, all_data[fov_col]).all():
@@ -185,7 +183,7 @@ def calculate_cluster_spatial_enrichment(all_data, dist_mats, fovs=None,
         # distmat_fov_id = dist_mat_list == fovs[i]
         # distmat_fov = [x for x in dist_mat_list if str(fovs[i]) in x][0]
 
-        dist_mat = dist_mats[str(fovs[i])].value
+        dist_mat = dist_mats[str(fovs[i])]
         # dist_mat = dist_mat.reshape(dist_mat.shape[1], dist_mat.shape[2])
 
         # Get close_num and close_num_rand

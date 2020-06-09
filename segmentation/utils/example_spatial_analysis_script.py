@@ -47,9 +47,8 @@ coords = [[6, 7], range(label_maps_data[0].data.shape[0]),
           range(label_maps_data[0].data.shape[1]), ["segmentation_label"]]
 dims = ["fovs", "rows", "cols", "channels"]
 label_maps = xr.DataArray(label_maps_data, coords=coords, dims=dims)
-# Get an H5py object with the respective distance matrices for the points
-spatial_analysis_utils.calc_dist_matrix(label_maps)
-dist_mats = h5py.File("distance_mat.hdf5", "r")
+# Get dictionary object with the respective distance matrices for the points
+dist_mats = spatial_analysis_utils.calc_dist_matrix(label_maps)
 
 # Now with the distance matrix run the distance matrix, threshold values, and the expression matrix through
 # channel spatial enrichment

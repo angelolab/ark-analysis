@@ -9,14 +9,15 @@ from statsmodels.stats.multitest import multipletests
 from scipy.spatial.distance import cdist
 
 
-def calc_dist_matrix(label_map, ret=False):
+def calc_dist_matrix(label_map, ret=True, path=None):
     """Generate matrix of distances between center of pairs of cells
 
     Args:
         label_map: numpy array with unique cells given unique pixel labels
-        ret: A boolean value indicating whether or not to return the Hdf5 file directly. Default is False.
+        ret: A boolean value indicating whether or not to return the dictionary file directly. Default is True.
+        path: path to save file
     Returns:
-        dist_matrix: An hdf5 file that contains a cells x cells matrix with the euclidian
+        dist_matrix: A dictionary that contains a cells x cells matrix with the euclidian
             distance between centers of corresponding cells for every fov"""
     dist_mats_list = []
     fovs = list(label_map.coords['fovs'].values)
@@ -33,17 +34,11 @@ def calc_dist_matrix(label_map, ret=False):
     # coords = [range(len(dist_mats)), range(dist_mats[0].data.shape[0]), range(dist_mats[0].data.shape[1])]
     # dims = ["points", "rows", "cols"]
     # dist_mats_xr = xr.DataArray(dist_mats, coords=coords, dims=dims)
+    dist_matrices = dict(zip(str(fovs), dist_mats_list))
     if ret:
-        dmatrices = h5py.File("distance_mat.hdf5", "w")
-        for i in range(0, len(dist_mats_list)):
-            dmat = dmatrices.create_dataset(str(fovs[i]), data=dist_mats_list[i], dtype='uint16')
-        return dmatrices
+        return dist_matrices
     else:
-        with h5py.File("distance_mat.hdf5", "w") as f:
-            for i in range(0, len(dist_mats_list)):
-                dmat = f.create_dataset(str(fovs[i]), data=dist_mats_list[i], dtype='uint16')
-    # dist_mats.close()
-    # return dist_mats
+        np.savez(path + "dist_matrices.npz", **dist_matrices)
 
 
 def get_pos_cell_labels(analysis_type, pheno=None, fov_data=None,

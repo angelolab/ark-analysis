@@ -24,15 +24,11 @@ def test_calc_dist_matrix():
     test_mat = xr.DataArray(test_mat_data, coords=coords, dims=dims)
 
     # dist_matrix = spatial_analysis_utils.calc_dist_matrix(test_mat)
-    spatial_analysis_utils.calc_dist_matrix(test_mat)
-    dist_matrix = h5py.File("distance_mat.hdf5", "r")
-
-    dist_mat_list = list(dist_matrix.keys())
-
+    distance_mat = spatial_analysis_utils.calc_dist_matrix(test_mat)
     real_mat = np.array([[0, 5], [5, 0]])
-    assert np.array_equal(dist_matrix[dist_mat_list[0]].value, real_mat)
-    assert np.array_equal(dist_matrix[dist_mat_list[1]].value, real_mat)
-    dist_matrix.close()
+
+    assert np.array_equal(distance_mat["1"], real_mat)
+    assert np.array_equal(distance_mat["2"], real_mat)
 
 
 # def test_distmat():
