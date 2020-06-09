@@ -34,7 +34,7 @@ def calc_dist_matrix(label_map, ret=True, path=None):
     # coords = [range(len(dist_mats)), range(dist_mats[0].data.shape[0]), range(dist_mats[0].data.shape[1])]
     # dims = ["points", "rows", "cols"]
     # dist_mats_xr = xr.DataArray(dist_mats, coords=coords, dims=dims)
-    dist_matrices = dict(zip(str(fovs), dist_mats_list))
+    dist_matrices = dict(zip([str(i) for i in fovs], dist_mats_list))
     if ret:
         return dist_matrices
     else:
