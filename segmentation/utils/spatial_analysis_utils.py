@@ -23,8 +23,8 @@ def calc_dist_matrix(label_map, ret=True, path=None):
     if not ret:
         if not os.path.exists(path):
             raise ValueError("File path not valid")
-    
     dist_mats_list = []
+    # Extract list of fovs
     fovs = list(label_map.coords['fovs'].values)
     for i in range(0, label_map.shape[0]):
         props = skimage.measure.regionprops(label_map.loc[fovs[i], :, :, "segmentation_label"].values)
