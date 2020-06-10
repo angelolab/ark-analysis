@@ -1,7 +1,6 @@
 import numpy as np
 import pandas as pd
 import xarray as xr
-import h5py
 import sys
 import os
 from segmentation.utils import spatial_analysis
@@ -33,18 +32,9 @@ all_data = pd.read_csv(os.path.join(spatial_analysis_dir, "example_expression_ma
 # This is the threshold matrix with all marker thresholds - for channel cpatial enrichment
 marker_thresholds = pd.read_csv(os.path.join(spatial_analysis_dir, "markerThresholds.csv"))
 marker_thresholds = marker_thresholds.drop(0, axis=0)
-# This is the label maps from which the distance matrix will be computed
-label_map_six = io.imread(os.path.join(spatial_analysis_dir, "newLmod.tiff"))
-label_map_seven = io.imread(os.path.join(spatial_analysis_dir, "newLmodPoint7.tiff"))
+# This is the Xarray of label maps for multiple fovs from which the distance matrix will be computed
+label_maps = xr.load_dataarray(os.path.join(spatial_analysis_dir, "segmentation_labels.xr"))
 
-# Stack the label maps to use as inputs to compute their distance matrices
-label_maps_data = np.stack((label_map_six, label_map_seven), axis=0)
-label_maps_data = label_maps_data.reshape((
-    label_maps_data.shape[0], label_maps_data.shape[1], label_maps_data.shape[2], 1))
-coords = [[6, 7], range(label_maps_data[0].data.shape[0]),
-          range(label_maps_data[0].data.shape[1]), ["segmentation_label"]]
-dims = ["fovs", "rows", "cols", "channels"]
-label_maps = xr.DataArray(label_maps_data, coords=coords, dims=dims)
 # Get dictionary object with the respective distance matrices for the points
 dist_mats = spatial_analysis_utils.calc_dist_matrix(label_maps)
 
@@ -74,3 +64,4 @@ visualize.visualize_z_scores(stats_cluster.loc[6, "z", :, :].values, pheno_title
 # For channel spatial analysis, first find all the marker titles to use as input for the clustergram
 marker_titles = all_data.drop(excluded_colnames, axis=1).columns
 visualize.visualize_z_scores(stats_channel.loc[6, "z", :, :].values, pheno_titles)
+# segmentation_labels_xr.to_netcdf(save_name, format="NETCDF3_64BIT")

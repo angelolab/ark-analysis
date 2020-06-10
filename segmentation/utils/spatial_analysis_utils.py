@@ -4,9 +4,9 @@ import pandas as pd
 import skimage.measure
 import scipy
 import statsmodels
-import h5py
 from statsmodels.stats.multitest import multipletests
 from scipy.spatial.distance import cdist
+import os
 
 
 def calc_dist_matrix(label_map, ret=True, path=None):
@@ -19,6 +19,11 @@ def calc_dist_matrix(label_map, ret=True, path=None):
     Returns:
         dist_matrix: A dictionary that contains a cells x cells matrix with the euclidian
             distance between centers of corresponding cells for every fov"""
+    # Check that file path exists, if return is false
+    if not ret:
+        if not os.path.exists(path):
+            raise ValueError("File path not valid")
+    
     dist_mats_list = []
     fovs = list(label_map.coords['fovs'].values)
     for i in range(0, label_map.shape[0]):

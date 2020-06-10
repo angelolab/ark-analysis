@@ -101,13 +101,8 @@ def calculate_channel_spatial_enrichment(dist_matrices, marker_thresholds, all_d
         # Patients with correct label, and only columns of markers
         fov_channel_data = data_markers[patient_ids]
 
-        # Subset the distance matrix array to only include the distance matrix for the correct point
-        # dist_matrix = dist_matrices[i, :, :].values
-        # distmat_fov_id = dist_mat_list == str(fovs[i])
-        # distmat_fov = [x for x in dist_mat_list if str(fovs[i]) in x][0]
-
+        # Subset the distance matrix dictionary to only include the distance matrix for the correct point
         dist_matrix = dist_matrices[str(fovs[i])]
-        # dist_matrix = dist_matrix.reshape(dist_matrix.shape[1], dist_matrix.shape[2])
 
         # Get close_num and close_num_rand
         close_num, marker1_num, marker2_num = spatial_analysis_utils.compute_close_cell_num(
@@ -182,13 +177,8 @@ def calculate_cluster_spatial_enrichment(all_data, dist_mats, fovs=None,
         patient_ids = fov_cluster_data.iloc[:, 0] == fovs[i]
         fov_data = fov_cluster_data[patient_ids]
 
-        # Subset the distance matrix array to only include the distance matrix for the correct point
-        # dist_mat = dist_mats[i, :, :].values
-        # distmat_fov_id = dist_mat_list == fovs[i]
-        # distmat_fov = [x for x in dist_mat_list if str(fovs[i]) in x][0]
-
+        # Subset the distance matrix dictionary to only include the distance matrix for the correct point
         dist_mat = dist_mats[str(fovs[i])]
-        # dist_mat = dist_mat.reshape(dist_mat.shape[1], dist_mat.shape[2])
 
         # Get close_num and close_num_rand
         close_num, pheno1_num, pheno2_num = spatial_analysis_utils.compute_close_cell_num(

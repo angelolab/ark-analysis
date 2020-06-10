@@ -2,7 +2,6 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 import random
-import h5py
 from segmentation.utils import spatial_analysis
 import importlib
 importlib.reload(spatial_analysis)
@@ -23,10 +22,6 @@ def make_distance_matrix(enrichment_type):
         rand_mat = np.random.randint(0, 200, size=(60, 60))
         np.fill_diagonal(rand_mat[:, :], 0)
 
-        # coords = [range(rand_mat.shape[0]), range(rand_mat[0].data.shape[0]), range(rand_mat[0].data.shape[1])]
-        # dims = ["points", "rows", "cols"]
-        # rand_mat = xr.DataArray(rand_mat, coords=coords, dims=dims)
-
         fovs = ["Point8", "Point9"]
         mats = [rand_mat, rand_mat]
         rand_matrix = dict(zip(fovs, mats))
@@ -44,10 +39,6 @@ def make_distance_matrix(enrichment_type):
         dist_mat_pos[:20, 20:40] = 200
         dist_mat_pos[40:80, :40] = 300
         dist_mat_pos[:40, 40:80] = 300
-        # coords = [range(dist_mat_pos.shape[0]), range(dist_mat_pos[0].data.shape[0]),
-        # range(dist_mat_pos[0].data.shape[1])]
-        # dims = ["points", "rows", "cols"]
-        # dist_mat_pos = xr.DataArray(dist_mat_pos, coords=coords, dims=dims)
 
         fovs = ["Point8", "Point9"]
         mats = [dist_mat_pos, dist_mat_pos]
@@ -64,10 +55,6 @@ def make_distance_matrix(enrichment_type):
         dist_mat_neg[:40, 40:50] = 50
         dist_mat_neg[50:60, :50] = 200
         dist_mat_neg[:50, 50:60] = 200
-        # coords = [range(dist_mat_neg.shape[0]), range(dist_mat_neg[0].data.shape[0]),
-        # range(dist_mat_neg[0].data.shape[1])]
-        # dims = ["points", "rows", "cols"]
-        # dist_mat_neg = xr.DataArray(dist_mat_neg, coords=coords, dims=dims)
 
         fovs = ["Point8", "Point9"]
         mats = [dist_mat_neg, dist_mat_neg]

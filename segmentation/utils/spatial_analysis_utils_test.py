@@ -1,7 +1,6 @@
 import numpy as np
 import pandas as pd
 import xarray as xr
-import h5py
 import random
 from segmentation.utils import spatial_analysis_utils
 from segmentation.utils import spatial_analysis
@@ -28,15 +27,6 @@ def test_calc_dist_matrix():
 
     assert np.array_equal(distance_mat["1"], real_mat)
     assert np.array_equal(distance_mat["2"], real_mat)
-
-
-# def test_distmat():
-#     testtiff = io.imread(
-#         "/Users/jaiveersingh/Documents/MATLAB/SpatialAnalysis/newLmod.tiff")
-#     distmat = np.asarray(pd.read_csv(
-#         "/Users/jaiveersingh/Documents/MATLAB/distancesMat5.csv", header=None))
-#     testmat = spatialanalysis_utils.calc_dist_matrix(testtiff)
-#     assert np.allclose(distmat, testmat)
 
 
 def make_threshold_mat():
@@ -116,8 +106,6 @@ def test_compute_close_cell_num():
     # Length of marker list
     marker_num = len(marker_titles)
 
-    # label_idx = all_patient_data.iloc[:, 24]
-
     # Subsetting threshold matrix to only include column with threshold values
     thresh_vec = example_thresholds.iloc[0:20, 1]
 
@@ -138,7 +126,6 @@ def test_compute_close_cell_num():
     marker_titles = fov_channel_data.columns
     # Length of marker list
     marker_num = len(marker_titles)
-    # label_idx = all_patient_data.iloc[:, 24]
     # Subsetting threshold matrix to only include column with threshold values
     thresh_vec = example_thresholds.iloc[0:20, 1]
     example_closenum, m1, m2 = spatial_analysis_utils.compute_close_cell_num(
