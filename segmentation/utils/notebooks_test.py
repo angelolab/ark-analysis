@@ -23,3 +23,7 @@ def test_preprocessing_MIBItiff():
 
 def test_postprocessing():
     _exec_notebook('Deepcell_Postprocessing.ipynb')
+
+
+def test_postprocessing():
+    _exec_notebook('example_spatial_analysis_script.ipynb')
