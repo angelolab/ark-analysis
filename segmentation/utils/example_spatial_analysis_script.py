@@ -1,13 +1,14 @@
 # %%
 # Import all the necessary packages
 import numpy as np
-import pandas as pd
-import xarray as xr
-import sys
 import os
-from segmentation.utils import spatial_analysis
-from segmentation.utils import visualize
-from segmentation.utils import spatial_analysis_utils
+import sys
+import pandas as pd
+
+sys.path.append("../")
+
+from segmentation.utils import spatial_analysis, visualize, spatial_analysis_utils  # noqa: E402
+import xarray as xr  # noqa: E402
 
 # %%
 # This script takes a cell expression matrix, label maps for the fovs to be included in the analysis, and, depending
@@ -21,7 +22,6 @@ from segmentation.utils import spatial_analysis_utils
 
 # %%
 # Set up file paths and import data
-sys.path.append("../")
 base_dir = "../data/example_dataset/"
 spatial_analysis_dir = os.path.join(base_dir, "spatial_analysis_input_data")
 
