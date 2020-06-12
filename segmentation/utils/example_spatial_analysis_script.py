@@ -23,7 +23,7 @@ import xarray as xr  # noqa: E402
 # %%
 # Set up file paths and import data
 base_dir = "../data/example_dataset/"
-spatial_analysis_dir = os.path.join(base_dir, "spatial_analysis_input_data")
+spatial_analysis_dir = os.path.join(base_dir, "spatial_enrichment_input_data")
 
 # %%
 # Import the necessary data
