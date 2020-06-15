@@ -250,3 +250,5 @@ def test_extract_single_cell_data():
 
     normalized, transformed = segmentation_utils.extract_single_cell_data(segmentation_masks,
                                                                           channel_data)
+
+    assert normalized.shape[0] == 7
