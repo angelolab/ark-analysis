@@ -414,7 +414,7 @@ def extract_single_cell_data(segmentation_labels, image_data,
         normalized['fov'] = fov
         normalized_data = normalized_data.append(normalized)
 
-        return normalized_data, transformed_data
+    return normalized_data, transformed_data
 
 
 def concatenate_csv(base_dir, csv_files, column_name="point", column_values=None):
