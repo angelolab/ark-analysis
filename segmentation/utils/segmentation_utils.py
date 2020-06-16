@@ -19,7 +19,7 @@ def watershed_transform(model_output, channel_xr, overlay_channels, output_dir, 
                         interior_model="pixelwise_interior", interior_threshold=0.25,
                         interior_smooth=3, maxima_model="pixelwise_interior", maxima_smooth=3,
                         maxima_threshold=0.05, nuclear_expansion=None, randomize_cell_labels=True,
-                        save_tifs=False):
+                        save_tifs='overlays'):
     """Runs the watershed transform over a set of probability masks output by deepcell network
     Inputs:
         model_output: xarray containing the different branch outputs from deepcell
@@ -35,7 +35,10 @@ def watershed_transform(model_output, channel_xr, overlay_channels, output_dir, 
             doing nuclear segmentation
         randomize_labels: if true, will randomize the order of the labels put out
             by watershed for easier visualization
-        save_tifs: whether to save intermediate TIFs
+        save_tifs: flag to control what level of output to save. Must be one of:
+            all - saves all tifs
+            overlays - saves color overlays and segmentation masks
+            none - does not save any tifs
     Outputs:
         Saves xarray to output directory"""
 
@@ -91,6 +94,9 @@ def watershed_transform(model_output, channel_xr, overlay_channels, output_dir, 
         raise ValueError("The selected interior model was not found "
                          "in the model output: {} ".format(interior_model))
 
+    if save_tifs not in ['all', 'overlays', 'none']:
+        raise ValueError('Invalid save_tif options, but be either "all", "overlays", or "none"')
+
     # loop through all fovs and segment
     for fov in model_output.fovs.values:
         print("analyzing fov {}".format(fov))
@@ -131,16 +137,18 @@ def watershed_transform(model_output, channel_xr, overlay_channels, output_dir, 
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
 
-            # save segmentation label map
-            io.imsave(os.path.join(output_dir, "{}_segmentation_labels.tiff".format(fov)),
-                      random_map)
+            if save_tifs != 'none':
+                # save segmentation label map
+                io.imsave(os.path.join(output_dir, "{}_segmentation_labels.tiff".format(fov)),
+                          random_map)
 
-            # save borders of segmentation map
-            plot_utils.plot_overlay(random_map, plotting_tif=None,
-                                    path=os.path.join(output_dir,
-                                                      "{}_segmentation_borders.tiff".format(fov)))
+            if save_tifs == 'all':
+                # save borders of segmentation map
+                plot_utils.plot_overlay(random_map, plotting_tif=None,
+                                        path=os.path.join(output_dir,
+                                                          "{}_segmentation_borders.tiff".format(
+                                                              fov)))
 
-            if save_tifs:
                 io.imsave(os.path.join(output_dir, "{}_interior_smoothed.tiff".format(fov)),
                           interior_smoothed.astype("float32"))
 
@@ -155,39 +163,40 @@ def watershed_transform(model_output, channel_xr, overlay_channels, output_dir, 
                               channel_xr.loc[fov, :, :, chan].astype('float32'))
 
         # plot list of supplied markers overlaid by segmentation mask to assess accuracy
-        for chan_list in overlay_channels:
-            if len(chan_list) == 1:
-                # if only one entry in list, make single channel overlay
-                channel = chan_list[0]
-                chan_marker = channel_xr.loc[fov, :, :, channel].values
-                plot_utils.plot_overlay(random_map, plotting_tif=chan_marker,
-                                        path=os.path.join(output_dir,
-                                                          "{}_{}_overlay.tiff".format(fov,
-                                                                                      channel)))
+        if save_tifs != 'none':
+            for chan_list in overlay_channels:
+                if len(chan_list) == 1:
+                    # if only one entry in list, make single channel overlay
+                    channel = chan_list[0]
+                    chan_marker = channel_xr.loc[fov, :, :, channel].values
+                    plot_utils.plot_overlay(random_map, plotting_tif=chan_marker,
+                                            path=os.path.join(output_dir,
+                                                              "{}_{}_overlay.tiff".format(fov,
+                                                                                          channel)))
 
-            elif len(chan_list) == 2:
-                # if two entries, make 2-color stack, skipping 0th index which is red
-                input_data = np.zeros((channel_xr.shape[1], channel_xr.shape[2], 3))
-                input_data[:, :, 1] = channel_xr.loc[fov, :, :, chan_list[0]].values
-                input_data[:, :, 2] = channel_xr.loc[fov, :, :, chan_list[1]].values
-                plot_utils.plot_overlay(
-                    random_map, plotting_tif=input_data,
-                    path=os.path.join(
-                        output_dir,
-                        "{}_{}_{}_overlay.tiff".format(fov, chan_list[0], chan_list[1])))
-            elif len(chan_list) == 3:
-                # if three entries, make a 3 color stack, with third channel in first index (red)
-                input_data = np.zeros((channel_xr.shape[1], channel_xr.shape[2], 3))
-                input_data[:, :, 1] = channel_xr.loc[fov, :, :, chan_list[0]].values
-                input_data[:, :, 2] = channel_xr.loc[fov, :, :, chan_list[1]].values
-                input_data[:, :, 0] = channel_xr.loc[fov, :, :, chan_list[2]].values
-                plot_utils.plot_overlay(random_map, plotting_tif=input_data,
-                                        path=os.path.join(output_dir,
-                                                          "{}_{}_{}_{}_overlay.tiff".
-                                                          format(fov,
-                                                                 chan_list[0],
-                                                                 chan_list[1],
-                                                                 chan_list[2])))
+                elif len(chan_list) == 2:
+                    # if two entries, make 2-color stack, skipping 0th index which is red
+                    input_data = np.zeros((channel_xr.shape[1], channel_xr.shape[2], 3))
+                    input_data[:, :, 1] = channel_xr.loc[fov, :, :, chan_list[0]].values
+                    input_data[:, :, 2] = channel_xr.loc[fov, :, :, chan_list[1]].values
+                    plot_utils.plot_overlay(
+                        random_map, plotting_tif=input_data,
+                        path=os.path.join(
+                            output_dir,
+                            "{}_{}_{}_overlay.tiff".format(fov, chan_list[0], chan_list[1])))
+                elif len(chan_list) == 3:
+                    # if three entries, make a 3 color stack, with third channel in first index (red)
+                    input_data = np.zeros((channel_xr.shape[1], channel_xr.shape[2], 3))
+                    input_data[:, :, 1] = channel_xr.loc[fov, :, :, chan_list[0]].values
+                    input_data[:, :, 2] = channel_xr.loc[fov, :, :, chan_list[1]].values
+                    input_data[:, :, 0] = channel_xr.loc[fov, :, :, chan_list[2]].values
+                    plot_utils.plot_overlay(random_map, plotting_tif=input_data,
+                                            path=os.path.join(output_dir,
+                                                              "{}_{}_{}_{}_overlay.tiff".
+                                                              format(fov,
+                                                                     chan_list[0],
+                                                                     chan_list[1],
+                                                                     chan_list[2])))
 
         segmentation_labels_xr.loc[fov, :, :, 'segmentation_label'] = random_map
 
