@@ -66,4 +66,4 @@ pheno_titles = all_data["cell_type"].drop_duplicates()
 visualize.visualize_z_scores(stats_cluster.loc[6, "z", :, :].values, pheno_titles)
 # For channel spatial analysis, first find all the marker titles to use as input for the clustergram
 marker_titles = all_data.drop(excluded_colnames, axis=1).columns
-visualize.visualize_z_scores(stats_channel.loc[6, "z", :, :].values, pheno_titles)
+visualize.visualize_z_scores(stats_channel.loc[6, "z", :, :].values, marker_titles)
