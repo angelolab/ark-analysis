@@ -14,6 +14,7 @@ import scipy.ndimage as nd
 
 from segmentation.utils import plot_utils, signal_extraction_utils
 
+
 def watershed_transform(model_output, channel_xr, overlay_channels, output_dir, fovs=None,
                         interior_model="pixelwise_interior", interior_threshold=0.25,
                         interior_smooth=3, maxima_model="pixelwise_interior", maxima_smooth=3,
