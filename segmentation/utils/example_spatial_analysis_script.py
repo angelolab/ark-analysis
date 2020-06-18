@@ -49,14 +49,14 @@ excluded_colnames = ["SampleID", "cellLabelInImage", "cellSize", "C", "Na", "Si"
                      "cell_lin", "lintype_num", "FlowSOM_ID"]
 
 values_channel, stats_channel = spatial_analysis.calculate_channel_spatial_enrichment(
-    dist_mats, marker_thresholds, all_data, excluded_colnames, bootstrap_num=100)
+    dist_mats, marker_thresholds, all_data, excluded_colnames, bootstrap_num=5)
 
 # %%
 # Now with the same parameters, cluster spatial analysis (based on cell types rather than positive marker expression
 # by thresholds) will be done
 
 values_cluster, stats_cluster = spatial_analysis.calculate_cluster_spatial_enrichment(
-    all_data, dist_mats, bootstrap_num=100)
+    all_data, dist_mats, bootstrap_num=5)
 
 # %%
 # To then visualize the z scores, a clustermap can be produced
