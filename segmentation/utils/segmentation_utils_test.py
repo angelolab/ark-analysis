@@ -62,10 +62,20 @@ def test_watershed_transform():
                                                interior_model="watershed_outer")
 
     with tempfile.TemporaryDirectory() as temp_dir:
-        # test save_tifs
+        # test save_all tifs
         segmentation_utils.watershed_transform(model_output=model_output, channel_xr=channel_data,
                                                output_dir=temp_dir,
-                                               overlay_channels=overlay_channels, save_tifs=True)
+                                               overlay_channels=overlay_channels,
+                                               save_tifs='all')
+        assert os.path.exists(os.path.join(temp_dir, 'fov1_interior_smoothed.tiff'))
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        # only a subset
+        segmentation_utils.watershed_transform(model_output=model_output, channel_xr=channel_data,
+                                               output_dir=temp_dir,
+                                               overlay_channels=overlay_channels,
+                                               save_tifs='overlays')
+        assert not os.path.exists(os.path.join(temp_dir, 'fov1_interior_smoothed.tiff'))
 
     with tempfile.TemporaryDirectory() as temp_dir:
         # test multiple different overlay_channels
@@ -250,3 +260,5 @@ def test_extract_single_cell_data():
 
     normalized, transformed = segmentation_utils.extract_single_cell_data(segmentation_masks,
                                                                           channel_data)
+
+    assert normalized.shape[0] == 7
