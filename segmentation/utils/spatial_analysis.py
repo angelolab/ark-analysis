@@ -46,6 +46,7 @@ def generate_channel_spatial_enrichment_data(dist_matrices, data_markers, marker
             cell expression matrix for all markers.
         thresh_vec: a subset of the threshold matrix including only the
             column with the desired threshold values.
+        stats_raw_data: a 
         fovs: patient labels to include in analysis. Default None
         fov_col: the list of column names we wish to extract from fovs. Default SampleID.
         dist_lim: cell proximity threshold. Default 100.
@@ -53,6 +54,12 @@ def generate_channel_spatial_enrichment_data(dist_matrices, data_markers, marker
     """
 
     values = []
+
+    # Create stats Xarray with the dimensions (points, stats variables, number of markers, number of markers)
+    stats_raw_data = np.zeros((num_fovs, 7, marker_num, marker_num))
+    coords = [fovs, COORDS_MARKERS, marker_titles, marker_titles]
+    dims = DIMS_MARKERS
+    
     stats = xr.DataArray(stats_raw_data, coords=coords, dims=dims)
 
     for i in range(0, len(fovs)):
@@ -136,14 +143,10 @@ def calculate_channel_spatial_enrichment(dist_matrices, marker_thresholds, all_d
     if not (list(marker_thresholds.iloc[:, 0]) == marker_titles).any():
         raise ValueError("Threshold Markers do not match markers in Expression Matrix")
 
-    # Create stats Xarray with the dimensions (points, stats variables, number of markers, number of markers)
-    stats_raw_data = np.zeros((num_fovs, 7, marker_num, marker_num))
-    coords = [fovs, COORDS_MARKERS, marker_titles, marker_titles]
-    dims = DIMS_MARKERS
-
     # Subsetting threshold matrix to only include column with threshold values
     thresh_vec = marker_thresholds.iloc[:, 1]
 
+    # generate the values list and the stats Xarray
     values, stats = generate_channel_spatial_enrichment_data(
         dist_matrices, data_markers, marker_num, all_data, thresh_vec, 
         fovs, fov_col, dist_lim, bootstrap_num)
