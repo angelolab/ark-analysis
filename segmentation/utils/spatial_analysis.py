@@ -5,6 +5,16 @@ from segmentation.utils import spatial_analysis_utils
 import importlib
 importlib.reload(spatial_analysis_utils)
 
+EX_COLNAMES = ["cell_size", "Background", "HH3",
+               "summed_channel", "label", "area",
+               "eccentricity", "major_axis_length", "minor_axis_length",
+               "perimeter", "fov"]
+
+COORDS_MARKERS = ["z", "muhat", "sigmahat", "p_pos", "p_neg", "h", "p_adj"]
+
+DIMS_MARKERS = DIMS_MARKERS
+
+
 # Erin's Data Inputs-Threshold
 
 # cell_array = pd.read_csv("/Users/jaiveersingh/Downloads/SpatialEn"
@@ -19,6 +29,53 @@ importlib.reload(spatial_analysis_utils)
 # all_patient_data = pd.read_csv("/Users/jaiveersingh/Desktop/granA_cellpheno_CS-asinh-norm_matlab_revised.csv")
 # pheno = pd.read_csv("/Users/jaiveersingh/Downloads/CellType_GlobalSpatialEnrichment/cellpheno_numkey.csv")
 # dist_mat = np.asarray(pd.read_csv("/Users/jaiveersingh/Documents/MATLAB/distancesMat5.csv", header=None))
+
+def generate_channel_spatial_enrichment_data(dist_matrices, data_markers, marker_num,
+                                             all_data, thresh_vec, fovs=None,
+                                             fov_col="SampleID", dist_lim=100, bootstrap_num=1000):
+    
+    """Generate the values array and stats matrix used by calculate_channel_spatial_enrichment
+
+    Args:
+        dist_matrices: A dictionary that contains a cells x cells matrix with the euclidian
+            distance between centers of corresponding cells for every fov.
+        data_markers: data including points, cell labels, and 
+            cell expression matrix for all markers including only desired columns.
+        marker_num: length of the marker list.
+        all_data: data including points, cell labels, and
+            cell expression matrix for all markers.
+        thresh_vec: a subset of the threshold matrix including only the
+            column with the desired threshold values.
+        fovs: patient labels to include in analysis. Default None
+        fov_col: the list of column names we wish to extract from fovs. Default SampleID.
+        dist_lim: cell proximity threshold. Default 100.
+        bootstrap_num: number of permutations for bootstrap. Default 1000.
+    """
+
+    values = []
+    stats = xr.DataArray(stats_raw_data, coords=coords, dims=dims)
+
+    for i in range(0, len(fovs)):
+        # Subsetting expression matrix to only include patients with correct label
+        patient_ids = all_data[fov_col] == fovs[i]
+        fov_data = all_data[patient_ids]
+        # Patients with correct label, and only columns of markers
+        fov_channel_data = data_markers[patient_ids]
+
+        # Subset the distance matrix dictionary to only include the distance matrix for the correct point
+        dist_matrix = dist_matrices[str(fovs[i])]
+
+        # Get close_num and close_num_rand
+        close_num, marker1_num, marker2_num = spatial_analysis_utils.compute_close_cell_num(
+            dist_mat=dist_matrix, dist_lim=100, num=marker_num, analysis_type="Channel",
+            fov_data=fov_data, fov_channel_data=fov_channel_data, thresh_vec=thresh_vec)
+        close_num_rand = spatial_analysis_utils.compute_close_cell_num_random(
+            marker1_num, marker2_num, dist_matrix, marker_num, dist_lim, bootstrap_num)
+        values.append((close_num, close_num_rand))
+        # Get z, p, adj_p, muhat, sigmahat, and h
+        stats_xr = spatial_analysis_utils.calculate_enrichment_stats(close_num, close_num_rand)
+        stats.loc[fovs[i], :, :] = stats_xr.values
+    return values, stats
 
 
 def calculate_channel_spatial_enrichment(dist_matrices, marker_thresholds, all_data,
@@ -58,13 +115,8 @@ def calculate_channel_spatial_enrichment(dist_matrices, marker_thresholds, all_d
     else:
         num_fovs = len(fovs)
 
-    values = []
-
     if excluded_colnames is None:
-        excluded_colnames = ["cell_size", "Background", "HH3",
-                             "summed_channel", "label", "area",
-                             "eccentricity", "major_axis_length", "minor_axis_length",
-                             "perimeter", "fov"]
+        excluded_colnames = EX_COLNAMES
 
     # Error Checking
     if not np.isin(excluded_colnames, all_data.columns).all():
@@ -86,36 +138,17 @@ def calculate_channel_spatial_enrichment(dist_matrices, marker_thresholds, all_d
 
     # Create stats Xarray with the dimensions (points, stats variables, number of markers, number of markers)
     stats_raw_data = np.zeros((num_fovs, 7, marker_num, marker_num))
-    coords = [fovs, ["z", "muhat", "sigmahat", "p_pos", "p_neg", "h", "p_adj"], marker_titles,
-              marker_titles]
-    dims = ["points", "stats", "marker1", "marker2"]
-    stats = xr.DataArray(stats_raw_data, coords=coords, dims=dims)
+    coords = [fovs, COORDS_MARKERS, marker_titles, marker_titles]
+    dims = DIMS_MARKERS
 
     # Subsetting threshold matrix to only include column with threshold values
     thresh_vec = marker_thresholds.iloc[:, 1]
 
-    for i in range(0, len(fovs)):
-        # Subsetting expression matrix to only include patients with correct label
-        patient_ids = all_data[fov_col] == fovs[i]
-        fov_data = all_data[patient_ids]
-        # Patients with correct label, and only columns of markers
-        fov_channel_data = data_markers[patient_ids]
+    values, stats = generate_channel_spatial_enrichment_data(
+        dist_matrices, data_markers, marker_num, all_data, thresh_vec, 
+        fovs, fov_col, dist_lim, bootstrap_num)
 
-        # Subset the distance matrix dictionary to only include the distance matrix for the correct point
-        dist_matrix = dist_matrices[str(fovs[i])]
-
-        # Get close_num and close_num_rand
-        close_num, marker1_num, marker2_num = spatial_analysis_utils.compute_close_cell_num(
-            dist_mat=dist_matrix, dist_lim=100, num=marker_num, analysis_type="Channel",
-            fov_data=fov_data, fov_channel_data=fov_channel_data, thresh_vec=thresh_vec)
-        close_num_rand = spatial_analysis_utils.compute_close_cell_num_random(
-            marker1_num, marker2_num, dist_matrix, marker_num, dist_lim, bootstrap_num)
-        values.append((close_num, close_num_rand))
-        # Get z, p, adj_p, muhat, sigmahat, and h
-        stats_xr = spatial_analysis_utils.calculate_enrichment_stats(close_num, close_num_rand)
-        stats.loc[fovs[i], :, :] = stats_xr.values
     return values, stats
-
 
 def calculate_cluster_spatial_enrichment(all_data, dist_mats, fovs=None,
                                          bootstrap_num=1000, dist_lim=100):
@@ -168,8 +201,8 @@ def calculate_cluster_spatial_enrichment(all_data, dist_mats, fovs=None,
 
     # Create stats Xarray with the dimensions (points, stats variables, number of markers, number of markers)
     stats_raw_data = np.zeros((num_fovs, 7, pheno_num, pheno_num))
-    coords = [fovs, ["z", "muhat", "sigmahat", "p_pos", "p_neg", "h", "p_adj"], pheno_titles, pheno_titles]
-    dims = ["points", "stats", "pheno1", "pheno2"]
+    coords = [fovs, COORDS_MARKERS, pheno_titles, pheno_titles]
+    dims = DIMS_MARKERS
     stats = xr.DataArray(stats_raw_data, coords=coords, dims=dims)
 
     for i in range(0, len(fovs)):
