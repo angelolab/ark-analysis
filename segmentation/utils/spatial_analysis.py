@@ -12,7 +12,7 @@ EX_COLNAMES = ["cell_size", "Background", "HH3",
 
 COORDS_MARKERS = ["z", "muhat", "sigmahat", "p_pos", "p_neg", "h", "p_adj"]
 
-DIMS_MARKERS = DIMS_MARKERS
+DIMS_MARKERS = ["points", "stats", "marker1", "marker2"]
 
 
 # Erin's Data Inputs-Threshold
