@@ -150,10 +150,13 @@ def calculate_channel_spatial_enrichment(dist_matrices, marker_thresholds, all_d
 
     # generate the values list and the stats Xarray
     values, stats = generate_channel_spatial_enrichment_data(
-        dist_matrices, data_markers, marker_num, all_data, thresh_vec, 
-        fovs, fov_col, dist_lim, bootstrap_num)
+        dist_matrices, data_markers, marker_num, marker_titles, all_data, 
+        thresh_vec, num_fovs, fovs, fov_col, dist_lim, bootstrap_num)
 
     return values, stats
+
+# def generate_cluster_spatial_enrichment_data():
+
 
 def calculate_cluster_spatial_enrichment(all_data, dist_mats, fovs=None,
                                          bootstrap_num=1000, dist_lim=100):
