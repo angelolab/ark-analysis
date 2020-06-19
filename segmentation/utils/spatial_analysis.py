@@ -49,12 +49,14 @@ def generate_channel_spatial_enrichment_data(dist_matrices, data_markers, marker
         thresh_vec: a subset of the threshold matrix including only the
             column with the desired threshold values.
         num_fovs: the number of fovs to iterate over.
-        fovs: patient labels to include in analysis. Default None
+        fovs: patient labels to include in analysis. Default all labels used as computed
+            in calculate_channel_spatial_enrichment.
         fov_col: the list of column names we wish to extract from fovs. Default SampleID.
         dist_lim: cell proximity threshold. Default 100.
         bootstrap_num: number of permutations for bootstrap. Default 1000.
     """
 
+    # Initialize the values list
     values = []
 
     # Create stats Xarray with the dimensions (points, stats variables, number of markers, number of markers)
@@ -84,6 +86,7 @@ def generate_channel_spatial_enrichment_data(dist_matrices, data_markers, marker
         # Get z, p, adj_p, muhat, sigmahat, and h
         stats_xr = spatial_analysis_utils.calculate_enrichment_stats(close_num, close_num_rand)
         stats.loc[fovs[i], :, :] = stats_xr.values
+        
     return values, stats
 
 
@@ -155,8 +158,55 @@ def calculate_channel_spatial_enrichment(dist_matrices, marker_thresholds, all_d
 
     return values, stats
 
-# def generate_cluster_spatial_enrichment_data():
+def generate_cluster_spatial_enrichment_data(dist_mats, pheno_titles, pheno_num,
+                                             pheno_codes, fov_cluster_data, num_fovs,
+                                             fovs=None, bootstrap_num=1000, dist_lim=100):
+    """Generate the values array and stats matrix used by calculate_cluster_spatial_enrichment
 
+    Args:
+        dist_mats: A dictionary that contains a cells x cells matrix with the euclidian
+            distance between centers of corresponding cells for every fov.
+        pheno_titles: the names of the cell phenotypes.
+        pheno_codes: the codes corresponding to the columns of cell phenotype data.
+        fov_cluster_data: a subset matrix of all_data from calculate_cluster_spatial_enrichment
+            that includes only the desired columns.
+        num_fovs: the number of fovs to iterate over.
+        fovs: patient labels to include in analysis. Default all labels used as computed
+            in calculate_cluster_spatial_enrichment.
+        bootstrap_num: number of permutations for bootstrap. Default 1000.
+        dist_lim: cell proximity threshold. Default 100.
+    """
+
+    # Initialize the values list
+    values = []
+
+    # Create stats Xarray with the dimensions (points, stats variables, number of markers, number of markers)
+    stats_raw_data = np.zeros((num_fovs, 7, pheno_num, pheno_num))
+    coords = [fovs, COORDS_MARKERS, pheno_titles, pheno_titles]
+    dims = DIMS_MARKERS
+    stats = xr.DataArray(stats_raw_data, coords=coords, dims=dims)
+
+    for i in range(0, len(fovs)):
+        # Subsetting expression matrix to only include patients with correct label
+        patient_ids = fov_cluster_data.iloc[:, 0] == fovs[i]
+        fov_data = fov_cluster_data[patient_ids]
+
+        # Subset the distance matrix dictionary to only include the distance matrix for the correct point
+        dist_mat = dist_mats[str(fovs[i])]
+
+        # Get close_num and close_num_rand
+        close_num, pheno1_num, pheno2_num = spatial_analysis_utils.compute_close_cell_num(
+            dist_mat=dist_mat, dist_lim=dist_lim, num=pheno_num, analysis_type="Cluster",
+            fov_data=fov_data, pheno_codes=pheno_codes)
+        close_num_rand = spatial_analysis_utils.compute_close_cell_num_random(
+            pheno1_num, pheno2_num, dist_mat, pheno_num, dist_lim, bootstrap_num)
+        values.append((close_num, close_num_rand))
+
+        # Get z, p, adj_p, muhat, sigmahat, and h
+        stats_xr = spatial_analysis_utils.calculate_enrichment_stats(close_num, close_num_rand)
+        stats.loc[fovs[i], :, :] = stats_xr.values
+    
+    return values, stats
 
 def calculate_cluster_spatial_enrichment(all_data, dist_mats, fovs=None,
                                          bootstrap_num=1000, dist_lim=100):
@@ -191,8 +241,6 @@ def calculate_cluster_spatial_enrichment(all_data, dist_mats, fovs=None,
     else:
         num_fovs = len(fovs)
 
-    values = []
-
     # Error Checking
     if not np.isin(fovs, all_data[fov_col]).all():
         raise ValueError("Points were not found in Expression Matrix")
@@ -207,29 +255,8 @@ def calculate_cluster_spatial_enrichment(all_data, dist_mats, fovs=None,
     # Subset matrix to only include the columns with the patient label, cell label, and cell phenotype
     fov_cluster_data = all_data[[fov_col, cell_label_col, flowsom_col]]
 
-    # Create stats Xarray with the dimensions (points, stats variables, number of markers, number of markers)
-    stats_raw_data = np.zeros((num_fovs, 7, pheno_num, pheno_num))
-    coords = [fovs, COORDS_MARKERS, pheno_titles, pheno_titles]
-    dims = DIMS_MARKERS
-    stats = xr.DataArray(stats_raw_data, coords=coords, dims=dims)
+    values, stats = generate_cluster_spatial_enrichment_data(
+        dist_mats, pheno_titles, pheno_num, pheno_codes, fov_cluster_data, num_fovs,
+        fovs, bootstrap_num, dist_lim)
 
-    for i in range(0, len(fovs)):
-        # Subsetting expression matrix to only include patients with correct label
-        patient_ids = fov_cluster_data.iloc[:, 0] == fovs[i]
-        fov_data = fov_cluster_data[patient_ids]
-
-        # Subset the distance matrix dictionary to only include the distance matrix for the correct point
-        dist_mat = dist_mats[str(fovs[i])]
-
-        # Get close_num and close_num_rand
-        close_num, pheno1_num, pheno2_num = spatial_analysis_utils.compute_close_cell_num(
-            dist_mat=dist_mat, dist_lim=dist_lim, num=pheno_num, analysis_type="Cluster",
-            fov_data=fov_data, pheno_codes=pheno_codes)
-        close_num_rand = spatial_analysis_utils.compute_close_cell_num_random(
-            pheno1_num, pheno2_num, dist_mat, pheno_num, dist_lim, bootstrap_num)
-        values.append((close_num, close_num_rand))
-
-        # Get z, p, adj_p, muhat, sigmahat, and h
-        stats_xr = spatial_analysis_utils.calculate_enrichment_stats(close_num, close_num_rand)
-        stats.loc[fovs[i], :, :] = stats_xr.values
     return values, stats
