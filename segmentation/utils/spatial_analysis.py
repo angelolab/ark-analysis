@@ -34,13 +34,13 @@ def generate_channel_spatial_enrichment_data(dist_matrices, data_markers, marker
                                              marker_titles, all_data, thresh_vec,
                                              num_fovs, fovs=None, fov_col="SampleID",
                                              dist_lim=100, bootstrap_num=1000):
-    
+
     """Generate the values array and stats matrix used by calculate_channel_spatial_enrichment
 
     Args:
         dist_matrices: A dictionary that contains a cells x cells matrix with the euclidian
             distance between centers of corresponding cells for every fov.
-        data_markers: data including points, cell labels, and 
+        data_markers: data including points, cell labels, and
             cell expression matrix for all markers including only desired columns.
         marker_num: length of the marker list.
         marker_titles: a list of all the markers.
@@ -63,7 +63,7 @@ def generate_channel_spatial_enrichment_data(dist_matrices, data_markers, marker
     stats_raw_data = np.zeros((num_fovs, 7, marker_num, marker_num))
     coords = [fovs, COORDS_MARKERS, marker_titles, marker_titles]
     dims = DIMS_MARKERS
-    
+
     stats = xr.DataArray(stats_raw_data, coords=coords, dims=dims)
 
     for i in range(0, len(fovs)):
@@ -86,7 +86,7 @@ def generate_channel_spatial_enrichment_data(dist_matrices, data_markers, marker
         # Get z, p, adj_p, muhat, sigmahat, and h
         stats_xr = spatial_analysis_utils.calculate_enrichment_stats(close_num, close_num_rand)
         stats.loc[fovs[i], :, :] = stats_xr.values
-        
+
     return values, stats
 
 
@@ -153,10 +153,11 @@ def calculate_channel_spatial_enrichment(dist_matrices, marker_thresholds, all_d
 
     # generate the values list and the stats Xarray
     values, stats = generate_channel_spatial_enrichment_data(
-        dist_matrices, data_markers, marker_num, marker_titles, all_data, 
+        dist_matrices, data_markers, marker_num, marker_titles, all_data,
         thresh_vec, num_fovs, fovs, fov_col, dist_lim, bootstrap_num)
 
     return values, stats
+
 
 def generate_cluster_spatial_enrichment_data(dist_mats, pheno_titles, pheno_num,
                                              pheno_codes, fov_cluster_data, num_fovs,
@@ -207,6 +208,7 @@ def generate_cluster_spatial_enrichment_data(dist_mats, pheno_titles, pheno_num,
         stats.loc[fovs[i], :, :] = stats_xr.values
     
     return values, stats
+
 
 def calculate_cluster_spatial_enrichment(all_data, dist_mats, fovs=None,
                                          bootstrap_num=1000, dist_lim=100):
