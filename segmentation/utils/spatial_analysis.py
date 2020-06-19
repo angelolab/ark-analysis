@@ -31,8 +31,9 @@ DIMS_MARKERS = ["points", "stats", "marker1", "marker2"]
 # dist_mat = np.asarray(pd.read_csv("/Users/jaiveersingh/Documents/MATLAB/distancesMat5.csv", header=None))
 
 def generate_channel_spatial_enrichment_data(dist_matrices, data_markers, marker_num,
-                                             all_data, thresh_vec, fovs=None,
-                                             fov_col="SampleID", dist_lim=100, bootstrap_num=1000):
+                                             marker_titles, all_data, thresh_vec,
+                                             num_fovs, fovs=None, fov_col="SampleID",
+                                             dist_lim=100, bootstrap_num=1000):
     
     """Generate the values array and stats matrix used by calculate_channel_spatial_enrichment
 
@@ -42,11 +43,12 @@ def generate_channel_spatial_enrichment_data(dist_matrices, data_markers, marker
         data_markers: data including points, cell labels, and 
             cell expression matrix for all markers including only desired columns.
         marker_num: length of the marker list.
+        marker_titles: a list of all the markers.
         all_data: data including points, cell labels, and
             cell expression matrix for all markers.
         thresh_vec: a subset of the threshold matrix including only the
             column with the desired threshold values.
-        stats_raw_data: a 
+        num_fovs: the number of fovs to iterate over.
         fovs: patient labels to include in analysis. Default None
         fov_col: the list of column names we wish to extract from fovs. Default SampleID.
         dist_lim: cell proximity threshold. Default 100.
