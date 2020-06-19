@@ -206,7 +206,7 @@ def generate_cluster_spatial_enrichment_data(dist_mats, pheno_titles, pheno_num,
         # Get z, p, adj_p, muhat, sigmahat, and h
         stats_xr = spatial_analysis_utils.calculate_enrichment_stats(close_num, close_num_rand)
         stats.loc[fovs[i], :, :] = stats_xr.values
-    
+
     return values, stats
 
 
