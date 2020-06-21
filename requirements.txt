@@ -14,3 +14,4 @@ jupyter>=1.0.0,<2
 jupyter_contrib_nbextensions==0.5.1
 git+git://github.com/ionpath/mibitracker-client@v1.2.6
 statsmodels==0.11.1
+seaborn==0.10.1
