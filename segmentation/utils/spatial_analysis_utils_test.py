@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import xarray as xr
 import random
 from segmentation.utils import spatial_analysis_utils
 from segmentation.utils import spatial_analysis
@@ -9,26 +10,23 @@ importlib.reload(spatial_analysis_utils)
 
 
 def test_calc_dist_matrix():
-    test_mat = np.zeros((2, 512, 512), dtype="int")
+    test_mat_data = np.zeros((2, 512, 512, 1), dtype="int")
     # Create pythagorean triple to test euclidian distance
-    test_mat[0, 0, 20] = 1
-    test_mat[0, 4, 17] = 2
-    test_mat[1, 5, 25] = 1
-    test_mat[1, 9, 22] = 2
+    test_mat_data[0, 0, 20] = 1
+    test_mat_data[0, 4, 17] = 2
+    test_mat_data[1, 5, 25] = 1
+    test_mat_data[1, 9, 22] = 2
 
-    dist_matrix_xr = spatial_analysis_utils.calc_dist_matrix(test_mat)
+    coords = [["1", "2"], range(test_mat_data[0].data.shape[0]),
+              range(test_mat_data[0].data.shape[1]), ["segmentation_label"]]
+    dims = ["fovs", "rows", "cols", "channels"]
+    test_mat = xr.DataArray(test_mat_data, coords=coords, dims=dims)
+
+    distance_mat = spatial_analysis_utils.calc_dist_matrix(test_mat)
     real_mat = np.array([[0, 5], [5, 0]])
-    assert np.array_equal(dist_matrix_xr[0, :, :], real_mat)
-    assert np.array_equal(dist_matrix_xr[1, :, :], real_mat)
 
-
-# def test_distmat():
-#     testtiff = io.imread(
-#         "/Users/jaiveersingh/Documents/MATLAB/SpatialAnalysis/newLmod.tiff")
-#     distmat = np.asarray(pd.read_csv(
-#         "/Users/jaiveersingh/Documents/MATLAB/distancesMat5.csv", header=None))
-#     testmat = spatialanalysis_utils.calc_dist_matrix(testtiff)
-#     assert np.allclose(distmat, testmat)
+    assert np.array_equal(distance_mat["1"], real_mat)
+    assert np.array_equal(distance_mat["2"], real_mat)
 
 
 def make_threshold_mat():
@@ -41,19 +39,22 @@ def make_example_data_closenum():
     # Creates example data for the creation of the closenum matrix in the below test function
 
     # Create example all_patient_data cell expression matrix
-    all_patient_data = pd.DataFrame(np.zeros((10, 31)))
+    all_data = pd.DataFrame(np.zeros((10, 31)))
     # Assigning values to the patient label and cell label columns
-    all_patient_data[30] = "Point8"
-    all_patient_data[24] = np.arange(len(all_patient_data[1])) + 1
+    all_data[30] = "Point8"
+    all_data[24] = np.arange(len(all_data[1])) + 1
+
+    colnames = {24: "cellLabelInImage", 30: "SampleID", 31: "FlowSOM_ID", 32: "cell_type"}
+    all_data = all_data.rename(colnames, axis=1)
 
     # Create 4 cells positive for marker 1 and 2, 5 cells positive for markers 3 and 4,
     # and 1 cell positive for marker 5
-    all_patient_data.iloc[0:4, 2] = 1
-    all_patient_data.iloc[0:4, 3] = 1
-    all_patient_data.iloc[4:9, 5] = 1
-    all_patient_data.iloc[4:9, 6] = 1
-    all_patient_data.iloc[9, 7] = 1
-    all_patient_data.iloc[9, 8] = 1
+    all_data.iloc[0:4, 2] = 1
+    all_data.iloc[0:4, 3] = 1
+    all_data.iloc[4:9, 5] = 1
+    all_data.iloc[4:9, 6] = 1
+    all_data.iloc[9, 7] = 1
+    all_data.iloc[9, 8] = 1
 
     # Create the distance matrix to test the closenum function
     dist_mat = np.zeros((10, 10))
@@ -88,31 +89,49 @@ def make_example_data_closenum():
     dist_mat[8, 7] = 50
     dist_mat[7, 8] = 50
 
-    return all_patient_data, dist_mat
+    return all_data, dist_mat
 
 
 def test_compute_close_cell_num():
     # Test the closenum function
-    all_patient_data, example_dist_mat = make_example_data_closenum()
+    all_data, example_dist_mat = make_example_data_closenum()
     example_thresholds = make_threshold_mat()
 
     # Only include the columns of markers
-    data_markers = all_patient_data.drop(all_patient_data.columns[[
+    fov_channel_data = all_data.drop(all_data.columns[[
         0, 1, 14, 23, 24, 25, 26, 27, 28, 29, 30]], axis=1)
 
     # List of all markers
-    marker_titles = data_markers.columns
+    marker_titles = fov_channel_data.columns
     # Length of marker list
     marker_num = len(marker_titles)
-
-    label_idx = all_patient_data.iloc[:, 24]
 
     # Subsetting threshold matrix to only include column with threshold values
     thresh_vec = example_thresholds.iloc[0:20, 1]
 
-    example_closenum, marker1_num, marker2_num = spatial_analysis_utils.compute_close_cell_num(
-        data_markers, label_idx, thresh_vec, example_dist_mat, marker_num, dist_lim=100)
+    example_closenum, m1, m2 = spatial_analysis_utils.compute_close_cell_num(
+        dist_mat=example_dist_mat, dist_lim=100, num=marker_num, analysis_type="Channel",
+        fov_data=all_data, fov_channel_data=fov_channel_data, thresh_vec=thresh_vec)
     assert (example_closenum[:2, :2] == 16).all()
+    assert (example_closenum[3:5, 3:5] == 25).all()
+    assert (example_closenum[5:7, 5:7] == 1).all()
+
+    # Now test indexing with cell labels by removing a cell label from the expression matrix but not the
+    # distance matrix
+    all_data = all_data.drop(3, axis=0)
+    # Only include the columns of markers
+    fov_channel_data = all_data.drop(all_data.columns[[
+        0, 1, 14, 23, 24, 25, 26, 27, 28, 29, 30]], axis=1)
+    # List of all markers
+    marker_titles = fov_channel_data.columns
+    # Length of marker list
+    marker_num = len(marker_titles)
+    # Subsetting threshold matrix to only include column with threshold values
+    thresh_vec = example_thresholds.iloc[0:20, 1]
+    example_closenum, m1, m2 = spatial_analysis_utils.compute_close_cell_num(
+        dist_mat=example_dist_mat, dist_lim=100, num=marker_num, analysis_type="Channel",
+        fov_data=all_data, fov_channel_data=fov_channel_data, thresh_vec=thresh_vec)
+    assert (example_closenum[:2, :2] == 9).all()
     assert (example_closenum[3:5, 3:5] == 25).all()
     assert (example_closenum[5:7, 5:7] == 1).all()
 
