@@ -192,7 +192,7 @@ def test_calculate_channel_spatial_enrichment():
     values, stats = \
         spatial_analysis.calculate_channel_spatial_enrichment(
             dist_mat_pos, marker_thresholds, all_data_pos,
-            excluded_colnames=excluded_colnames, bootstrap_num=100)
+            excluded_colnames=excluded_colnames, bootstrap_num=5)
     # Test both Point8 and Point9
     assert stats.loc["Point8", "p_pos", 2, 3] < .05
     assert stats.loc["Point8", "p_neg", 2, 3] > .05
@@ -208,7 +208,7 @@ def test_calculate_channel_spatial_enrichment():
     values, stats = \
         spatial_analysis.calculate_channel_spatial_enrichment(
             dist_mat_neg, marker_thresholds, all_data_neg,
-            excluded_colnames=excluded_colnames, bootstrap_num=100)
+            excluded_colnames=excluded_colnames, bootstrap_num=5)
     # Test both Point8 and Point9
     assert stats.loc["Point8", "p_neg", 2, 3] < .05
     assert stats.loc["Point8", "p_pos", 2, 3] > .05
@@ -245,7 +245,7 @@ def test_calculate_cluster_spatial_enrichment():
     values, stats = \
         spatial_analysis.calculate_cluster_spatial_enrichment(
             all_data_pos, dist_mat_pos,
-            bootstrap_num=100, dist_lim=100)
+            bootstrap_num=5, dist_lim=100)
     # Test both Point8 and Point9
     assert stats.loc["Point8", "p_pos", "Pheno1", "Pheno2"] < .05
     assert stats.loc["Point8", "p_neg", "Pheno1", "Pheno2"] > .05
@@ -261,7 +261,7 @@ def test_calculate_cluster_spatial_enrichment():
     values, stats = \
         spatial_analysis.calculate_cluster_spatial_enrichment(
             all_data_neg, dist_mat_neg,
-            bootstrap_num=100, dist_lim=100)
+            bootstrap_num=5, dist_lim=100)
     # Test both Point8 and Point9
     assert stats.loc["Point8", "p_neg", "Pheno1", "Pheno2"] < .05
     assert stats.loc["Point8", "p_pos", "Pheno1", "Pheno2"] > .05
@@ -277,7 +277,7 @@ def test_calculate_cluster_spatial_enrichment():
     values, stats = \
         spatial_analysis.calculate_cluster_spatial_enrichment(
             all_data, dist_mat,
-            bootstrap_num=100, dist_lim=100)
+            bootstrap_num=5, dist_lim=100)
     # Test both Point8 and Point9
     assert stats.loc["Point8", "p_pos", "Pheno1", "Pheno2"] > .05
     assert stats.loc["Point8", "p_pos", "Pheno1", "Pheno2"] > .05
