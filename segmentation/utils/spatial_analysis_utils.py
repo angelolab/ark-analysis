@@ -230,7 +230,7 @@ def calculate_enrichment_stats(close_num, close_num_rand):
             # Calculate both positive and negative enrichment p values
             p_pos[j, k] = (1 + (np.sum(tmp >= close_num[j, k]))) / (bootstrap_num + 1)
             p_neg[j, k] = (1 + (np.sum(tmp <= close_num[j, k]))) / (bootstrap_num + 1)
-
+            
     # Get fdh_br adjusted p values
     p_summary = np.zeros_like(p_pos[:, :])
     for j in range(0, marker_num):

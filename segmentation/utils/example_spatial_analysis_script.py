@@ -5,7 +5,7 @@ import os
 import sys
 import pandas as pd
 
-sys.path.append("../")
+sys.path.append("..") # eliminate one parent directory on final commit
 
 from segmentation.utils import spatial_analysis, visualize, spatial_analysis_utils  # noqa: E402
 import xarray as xr  # noqa: E402
@@ -22,7 +22,7 @@ import xarray as xr  # noqa: E402
 
 # %%
 # Set up file paths and import data
-base_dir = "../data/example_dataset/"
+base_dir = os.path.join("..", "data", "example_dataset") # eliminate one parent directory on final commit
 spatial_analysis_dir = os.path.join(base_dir, "spatial_enrichment_input_data")
 
 # %%
