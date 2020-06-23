@@ -224,7 +224,7 @@ def test_calculate_channel_spatial_enrichment():
     values, stats = \
         spatial_analysis.calculate_channel_spatial_enrichment(
             dist_mat, marker_thresholds, all_data,
-            excluded_colnames=excluded_colnames, bootstrap_num=100)
+            excluded_colnames=excluded_colnames, bootstrap_num=5)
     # Test both Point8 and Point9
     assert stats.loc["Point8", "p_pos", 2, 3] > .05
     assert stats.loc["Point8", "p_pos", 2, 3] > .05
