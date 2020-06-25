@@ -168,25 +168,34 @@ def compute_close_cell_num_random(marker1_num, marker2_num,
             for every permutation in the bootstrap"""
 
     # Create close_num_rand
+    
     close_num_rand = np.zeros((
         marker_num, marker_num, bootstrap_num), dtype='int')
 
-    for j in range(0, marker_num):
-        for k in range(0, marker_num):
-            for r in range(0, bootstrap_num):
-                # Select same amount of random cell labels as positive ones in same marker in close_num
-                marker1_labels_rand = np.random.choice(a=range(dist_mat.shape[0]), size=marker1_num[j], replace=True)
-                marker2_labels_rand = np.random.choice(a=range(dist_mat.shape[0]), size=marker2_num[k], replace=True)
-                # Subset the distance matrix to only include positive randomly selected cell labels
-                rand_trunc_dist_mat = dist_mat[np.ix_(np.asarray(
-                    marker1_labels_rand, dtype='int'), np.asarray(marker2_labels_rand, dtype='int'))]
-                # Binarize the truncated distance matrix to only include cells within distance limit
-                rand_trunc_dist_mat_bin = np.zeros(rand_trunc_dist_mat.shape, dtype='int')
-                rand_trunc_dist_mat_bin[rand_trunc_dist_mat < dist_lim] = 1
-                # Record the number of interactions and store in close_num_rand in the index
-                # corresponding to both markers, for every permutation
-                close_num_rand[j, k, r] = np.sum(np.sum(rand_trunc_dist_mat_bin))
-    return close_num_rand
+    dist_bin = np.zeros(dist_mat.size)
+    dist_bin[dist_mat < dist_lim] = 1
+
+    for j, m1n in enumerate(marker1_num):
+        for k, m2n in enumerate(marker2_num):
+            close_num_rand[j, k, :] = np.sum(np.random.choice(dist_bin, (m1n*m2n, bootstrap_num), True), 0)
+
+
+    # for j in range(0, marker_num):
+    #     for k in range(0, marker_num):
+    #         for r in range(0, bootstrap_num):
+    #             # Select same amount of random cell labels as positive ones in same marker in close_num
+    #             marker1_labels_rand = np.random.choice(a=range(dist_mat.shape[0]), size=marker1_num[j], replace=True)
+    #             marker2_labels_rand = np.random.choice(a=range(dist_mat.shape[0]), size=marker2_num[k], replace=True)
+    #             # Subset the distance matrix to only include positive randomly selected cell labels
+    #             rand_trunc_dist_mat = dist_mat[np.ix_(np.asarray(
+    #                 marker1_labels_rand, dtype='int'), np.asarray(marker2_labels_rand, dtype='int'))]
+    #             # Binarize the truncated distance matrix to only include cells within distance limit
+    #             rand_trunc_dist_mat_bin = np.zeros(rand_trunc_dist_mat.shape, dtype='int')
+    #             rand_trunc_dist_mat_bin[rand_trunc_dist_mat < dist_lim] = 1
+    #             # Record the number of interactions and store in close_num_rand in the index
+    #             # corresponding to both markers, for every permutation
+    #             close_num_rand[j, k, r] = np.sum(np.sum(rand_trunc_dist_mat_bin))
+    # return close_num_rand
 
 
 def calculate_enrichment_stats(close_num, close_num_rand):
