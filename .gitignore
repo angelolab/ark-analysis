@@ -4,6 +4,7 @@ env
 .pytest_cache
 *cache*
 
+*/.DS_Store
 
 /build
 /dist
