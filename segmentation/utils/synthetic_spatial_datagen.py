@@ -6,6 +6,21 @@ import scipy
 import os
 
 
+AB_DIST_MEAN = 100
+AB_DIST_VAR = 1
+
+AC_DIST_MEAN = 10
+AC_DIST_VAR = 1
+
+A_CENTROID_FACTOR = 0.5
+B_CENTROID_FACTOR = 0.6
+C_CENTROID_FACTOR = 0.1
+
+A_CENTROID_COV = [[1, 0], [0, 1]]
+B_CENTROID_COV = [[1, 0], [0, 1]]
+C_CENTROID_COV = [[1, 0], [0, 1]]
+
+
 def generate_labels(num_A=100, num_B=100, num_C=100):
 	"""
 	This function will generate a set of associated labels for each cell centroid.
@@ -79,15 +94,15 @@ def get_random_dist_matrix(num_A=100, num_B=100, num_C=100, distr_AB=None, distr
 
 	# set the mean and variance of the Gaussian distributions of both AB and AC distances
 	if distr_AB = None:
-		mean_ab = 100
-		var_ab = 1
+		mean_ab = AB_DIST_MEAN
+		var_ab = AB_DIST_VAR
 	else:
 		mean_ab = distr_AB['mean']
 		var_ab = distr_AB['var']
 
 	if distr_AC = None:
-		mean_ac = 10
-		var_ac = 1
+		mean_ac = AC_DIST_MEAN
+		var_ac = AC_DIST_VAR
 	else:
 		mean_ac = distr_AC['mean']
 		var_ac = distr_AC['var']
@@ -111,3 +126,54 @@ def get_random_dist_matrix(num_A=100, num_B=100, num_C=100, distr_AB=None, distr
 
 	# we don't care about a-a, b-b, c-c, or b-c distances, so we just return the matrix along with the labels
 	return sample_dist_mat, dict_labels
+
+def get_random_centroid_centers(size_img=(1024, 1024), num_A=100, num_B=100, num_C=100, distr_A=None, distr_B=None, distr_C=None):
+	"""
+	This function generates random centroid centers such that those of type A will have centers
+	closer on average to those of type B than those of type C
+
+	We will use a multivariate Gaussian distribution for A, B, and C type cells to generate their respective centers.
+
+	Returns the set of points associated with the centroids of cells of types A, B, and C.
+
+	Args:
+		size_mat: the size of the image. Default 1024 x 1024
+		num_A: the number of A centroids to generate. Default 100.
+		num_B: the number of B centroids to generate. Default 100.
+		num_C: the number of C centroids to generate. Default 100.
+
+		distr_A: a dict indicating the parameters of the multivariate normal distribution to generate A cell centroid.
+			If None, use predefined parameters.
+		distr_B: similar to distr_A
+		distr_C: similar to distr_C
+	"""
+
+	height = size_img[0]
+	width = size_img[1]
+
+	if distr_A = None:
+		a_mean = (height * A_CENTROID_FACTOR, width * A_CENTROID_FACTOR)
+		a_cov = A_CENTROID_COV
+	else:
+		mean_a = distr_A['mean']
+		var_a = distr_A['cov']
+
+	if distr_B = None:
+		b_mean = (height * B_CENTROID_FACTOR, width * B_CENTROID_FACTOR)
+		b_cov = B_CENTROID_COV
+	else:
+		mean_b = distr_B['mean']
+		var_b = distr_B['cov']
+
+	if distr_C = None:
+		b_mean = (height * C_CENTROID_FACTOR, width * C_CENTROID_FACTOR)
+		b_cov = C_CENTROID_COV
+	else:
+		mean_ac = distr_C['mean']
+		var_ac = distr_C['var']
+
+	a_points = np.random.multivariate_normal(a_mean, a_cov, num_A)
+	b_points = np.random.multivariate_normal(b_mean, b_cov, num_B)
+	c_points = np.random.multivariate_normal(c_mean, c_cov, num_C)
+
+	return a_points, b_points, c_points
