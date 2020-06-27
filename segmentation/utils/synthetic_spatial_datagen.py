@@ -27,7 +27,7 @@ def generate_labels(num_A=100, num_B=100, num_C=100):
 
     A helper function to get_random_dist_matrix.
 
-    Return value will be a list of values associated with AB and AC, as well as 
+    Return value will be a list of values associated with AB and AC, as well as
     a dictionary of mappings of the type cell_num: cell_label.
 
     Cell label will be either 'AB' or 'AC'
@@ -69,7 +69,6 @@ def get_random_dist_matrix(num_A=100, num_B=100, num_C=100, distr_AB=None, distr
     of types A and B are overall larger than the distance between cells of types A and C
 
     Each row and column representing a cell.
-    Rows represetnt 
     We generate the points using Gaussian distributions
     Ideally, the parameters for A to B distances will be set such that they produce a lower range of values
     than A to C distances.
