@@ -20,6 +20,11 @@ importlib.reload(spatial_analysis_utils)
 # pheno = pd.read_csv("/Users/jaiveersingh/Downloads/CellType_GlobalSpatialEnrichment/cellpheno_numkey.csv")
 # dist_mat = np.asarray(pd.read_csv("/Users/jaiveersingh/Documents/MATLAB/distancesMat5.csv", header=None))
 
+# Erin's Data Inputs-Neighborhood
+# dist_matrix = np.asarray(pd.read_csv("/Users/jaiveersingh/Documents/MATLAB/distancesMat5.csv", header=None))
+# all_data = pd.read_csv("/Users/jaiveersingh/Desktop/granA_cellpheno_CS-asinh-norm_matlab_revised.csv")
+# pheno_key = pd.read_csv("/Users/jaiveersingh/Downloads/CreateNeighborMatrix/cellpheno_numkey.csv")
+
 
 def calculate_channel_spatial_enrichment(dist_matrices, marker_thresholds, all_data,
                                          excluded_colnames=None, fovs=None,
@@ -192,3 +197,59 @@ def calculate_cluster_spatial_enrichment(all_data, dist_mats, fovs=None,
         stats_xr = spatial_analysis_utils.calculate_enrichment_stats(close_num, close_num_rand)
         stats.loc[fovs[i], :, :] = stats_xr.values
     return values, stats
+
+
+def create_neighborhood_matrix(all_data, dist_matrices, fovs=None, distlim=50):
+    """Calculates the number of neighbor phenotypes for each cell
+
+        Args:
+            all_data: data for the all fov
+            dist_matrices: A dictionary that contains a cells x cells matrix with the euclidian
+                distance between centers of corresponding cells for every fov
+            fovs: patient labels to include in analysis. If argument is none, default is all labels used.
+            distlim: cell proximity threshold. Default is 50.
+        Returns:
+            cell_neighbor_counts: matrix with phenotype counts per cell
+            cell_neighbor_freqs: matrix with phenotype frequencies of
+                counts per phenotype/total phenotypes for each cell
+            cell_count: current cell in analysis"""
+
+    # Setup input and parameters
+    fov_col = "SampleID"
+    cell_type_col = "cell_type"
+    flowsom_col = "FlowSOM_ID"
+    cell_label_col = "cellLabelInImage"
+    cell_count = 0
+    if fovs is None:
+        fovs = list(set(all_data[fov_col]))
+
+    # Error Checking
+    if not np.isin(fovs, all_data[fov_col]).all():
+        raise ValueError("Points were not found in Expression Matrix")
+
+    # subset just the sampleID, cellLabelInImage, and FlowSOMID
+    all_data = all_data[[fov_col, cell_label_col, flowsom_col]]
+    # Extract the columns with the cell phenotype codes
+    pheno_codes = all_data[flowsom_col].drop_duplicates()
+    # Get the total number of phenotypes
+    pheno_num = len(pheno_codes)
+
+    # initiate empty matrices for cell neighborhood data
+    cell_neighbor_counts = np.zeros((all_data.shape[0], pheno_num + 2))
+    cell_neighbor_freqs = np.zeros((all_data.shape[0], pheno_num + 2))
+    cell_neighbor_counts[:, 0:2] = all_data[[fov_col, cell_label_col]]
+    cell_neighbor_freqs[:, 0:2] = all_data[[fov_col, cell_label_col]]
+
+    for i in range(len(fovs)):
+        # Subsetting expression matrix to only include patients with correct label
+        patient_ids = all_data.iloc[:, 0] == fovs[i]
+        fov_data = all_data[patient_ids]
+
+        # Subset the distance matrix dictionary to only include the distance matrix for the correct point
+        dist_matrix = dist_matrices[str(fovs[i])]
+
+        # Get cell_neighbor_counts and cell_neighbor_freqs for points
+        cell_neighbor_counts, cell_neighbor_freqs, cell_count = spatial_analysis_utils.compute_neighbor_counts(
+            fov_data, dist_matrix, distlim, pheno_num, cell_neighbor_counts, cell_neighbor_freqs, cell_count)
+
+    return cell_neighbor_counts, cell_neighbor_freqs

@@ -39,7 +39,7 @@ def make_example_data_closenum():
     # Creates example data for the creation of the closenum matrix in the below test function
 
     # Create example all_patient_data cell expression matrix
-    all_data = pd.DataFrame(np.zeros((10, 31)))
+    all_data = pd.DataFrame(np.zeros((10, 33)))
     # Assigning values to the patient label and cell label columns
     all_data[30] = "Point8"
     all_data[24] = np.arange(len(all_data[1])) + 1
@@ -55,6 +55,12 @@ def make_example_data_closenum():
     all_data.iloc[4:9, 6] = 1
     all_data.iloc[9, 7] = 1
     all_data.iloc[9, 8] = 1
+
+    # 4 cells assigned one phenotype, 5 cells assigned another phenotype,
+    # and the last cell assigned a different phenotype
+    all_data.iloc[0:4, 31] = 1
+    all_data.iloc[4:9, 31] = 2
+    all_data.iloc[9, 31] = 3
 
     # Create the distance matrix to test the closenum function
     dist_mat = np.zeros((10, 10))
@@ -208,3 +214,28 @@ def test_calculate_enrichment_stats():
     assert abs(stats_xr.loc["z", 0, 0]) < 1
     assert stats_xr.loc["p_neg", 0, 0] > .05
     assert stats_xr.loc["p_pos", 0, 0] > .05
+
+
+def test_compute_neighbor_count():
+    fov_col = "SampleID"
+    flowsom_col = "FlowSOM_ID"
+    cell_label_col = "cellLabelInImage"
+    cell_count = 0
+    distlim = 50
+
+    fov_data, dist_matrix = make_example_data_closenum()
+    fov_data.iloc[:, 30] = 8
+    fov_data = fov_data[[fov_col, cell_label_col, flowsom_col]]
+    pheno_num = len(fov_data[flowsom_col].drop_duplicates())
+
+    cell_neighbor_counts = np.zeros((fov_data.shape[0], pheno_num + 2))
+    cell_neighbor_freqs = np.zeros((fov_data.shape[0], pheno_num + 2))
+    cell_neighbor_counts[:, 0:2] = fov_data[[fov_col, cell_label_col]]
+    cell_neighbor_freqs[:, 0:2] = fov_data[[fov_col, cell_label_col]]
+
+    counts, freqs, cell_count = spatial_analysis_utils.compute_neighbor_counts(
+       fov_data, dist_matrix, distlim, pheno_num, cell_neighbor_counts, cell_neighbor_freqs, cell_count)
+
+    assert (counts[:4, 2] == 1).all()
+    assert (counts[4:9, 3] == 1).all()
+    assert (counts[9, 4] == 0).all()
