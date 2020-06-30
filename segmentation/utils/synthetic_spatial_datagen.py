@@ -4,14 +4,18 @@ import pandas as pd
 import skimage.measure
 import scipy
 import os
+from scipy.spatial.distance import cdist
 
 
+# Constants for random distance matrix generation
 AB_DIST_MEAN = 100
 AB_DIST_VAR = 1
 
 AC_DIST_MEAN = 10
 AC_DIST_VAR = 1
 
+
+# Constants for random centroid matrix generation
 A_CENTROID_FACTOR = 0.5
 B_CENTROID_FACTOR = 0.6
 C_CENTROID_FACTOR = 0.1
@@ -63,7 +67,7 @@ def generate_labels(num_A=100, num_B=100, num_C=100):
     return a_indices, b_indices, c_indices, label_dict
 
 
-def get_random_dist_matrix(num_A=100, num_B=100, num_C=100, distr_AB=None, distr_AC=None):
+def direct_init_dist_matrix(num_A=100, num_B=100, num_C=100, distr_AB=None, distr_AC=None):
     """
     This function will return a random dist matrix such that the distance between cells
     of types A and B are overall larger than the distance between cells of types A and C
@@ -137,7 +141,7 @@ def get_random_centroid_centers(size_img=(1024, 1024), num_A=100, num_B=100, num
     Returns the set of points associated with the centroids of cells of types A, B, and C.
 
     Args:
-        size_mat: the size of the image. Default 1024 x 1024
+        size_img: a tuple indicating the size of the image. Default 1024 x 1024
         num_A: the number of A centroids to generate. Default 100.
         num_B: the number of B centroids to generate. Default 100.
         num_C: the number of C centroids to generate. Default 100.
@@ -177,3 +181,46 @@ def get_random_centroid_centers(size_img=(1024, 1024), num_A=100, num_B=100, num
     c_points = np.random.multivariate_normal(c_mean, c_cov, num_C)
 
     return a_points, b_points, c_points
+
+def point_init_dist_matrix(size_img=(1024, 1024), num_A=100, num_B=100, num_C=100, distr_A=None, distr_B=None, distr_C=None):
+    """
+    This function generates random points using the get_random_centroid_centers function and from that
+    generates a distance matrix.
+
+    Each row and column of the matrix represents a specific cell, and the elements represent the distance
+    from the respective cell centroids.
+
+    Args:
+        size_img: a tuple indicating the size of the image. Default 1024 x 1024.
+        num_A: the number of A centroids to generate. Used by the get_random_centroid_centers function. Default 100.
+        num_B: similar to num_A
+        num_C: similar to num_C
+        distr_A: a dict indicating the mean and covariance matrix of the multivariate distribution we pull A centroids from.
+            Used by get_random_centroid_centers. Default None, and will use predefined parameters.
+        distr_B: dimilar to distr_A
+        distr_C: similar to distr_C
+    """
+
+    # generate points for cell types A, B, and C
+    a_points, b_points, c_points = get_random_centroid_centers(size_img, num_A, num_B, num_C, distr_A, distr_B, distr_C)
+
+    a_thresh = a_points.size
+    b_thresh = b_points.size
+    c_thresh = c_points.size
+
+    a_a_dist = cdist(a_points, a_points)
+    a_b_dist = cdist(a_points, b_points)
+    a_c_dist = cdist(a_points, c_points)
+
+    b_b_dist = cdist(b_points, b_points)
+    b_c_dist = cdist(b_points, c_points)
+
+    c_c_dist = cdist(c_points, c_points)
+
+    first_row = np.concatenate((a_a_dist, a_b_dist, a_c_dist), axis=1)
+    second_row = np.concatenate((a_b_dist.T, b_b_dist, b_c_dist), axis=1)
+    third_row = np.concatenate((a_c_dist.T, b_c_dist.T, c_c_dist), axis=1)
+
+    complete_mat = np.concatenate(first_row, second_row, third_row, axis=0)
+
+    return complete_mat
