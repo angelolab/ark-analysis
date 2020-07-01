@@ -24,49 +24,6 @@ A_CENTROID_COV = [[1, 0], [0, 1]]
 B_CENTROID_COV = [[1, 0], [0, 1]]
 C_CENTROID_COV = [[1, 0], [0, 1]]
 
-# Leaving this function here in case we want random label generation for cells
-
-# def generate_labels(num_A=100, num_B=100, num_C=100):
-#     """
-#     This function will generate a set of associated labels for each cell centroid.
-
-#     A helper function to get_random_dist_matrix.
-
-#     Return value will be a list of values associated with AB and AC, as well as
-#     a dictionary of mappings of the type cell_num: cell_label.
-
-#     Cell label will be either 'AB' or 'AC'
-
-#     Args:
-#         num_A: the number of A cells we wish to generate. Default 100.
-#         num_B: the number of B cells we wish to generate. Default 100.
-#         num_C: the number of C cells we wish to generate. Default 100.
-#     """
-
-#     # Generate a range of numbers the same length as the total of A, B, and C labels desired
-#     # And select a random set of indices to identify as A cells
-#     num_range = np.arange(num_A + num_B + num_C)
-#     a_indices = np.random.choice(num_range.size, num_A, replace=False)
-
-#     # Get a indices
-#     a_values = num_range[a_indices]
-
-#     # From remaining B and C cells, select a random set of indices for B cells
-#     non_a_indices = num_range[~a_indices]
-#     b_indices = np.random.choice(non_a_indices, num_B, replace=False)
-
-#     # Get b indices, set the remainder as c indices
-#     b_indices = non_a_indices[b_indices]
-#     c_indices = non_a_indices[c_indices]
-
-#     a_dict = dict([(a, 'A') for a in a_values])
-#     b_dict = dict([(b, 'B') for b in b_values])
-#     c_dict = dict([(c, 'C') for c in c_values])
-
-#     label_dict = {**a_dict, **b_dict, **c_dict}
-
-#     return a_indices, b_indices, c_indices, label_dict
-
 
 def direct_init_dist_matrix(num_A=100, num_B=100, num_C=100, distr_AB=None, distr_AC=None, seed=None):
     """
@@ -243,8 +200,5 @@ def point_init_dist_matrix(size_img=(1024, 1024), num_A=100, num_B=100, num_C=10
 
     # and then the entire matrix
     dist_mat = np.concatenate((first_row, second_row, third_row), axis=0)
-
-    # assert that the created submatrix is symmetric
-    assert np.allclose(dist_mat, dist_mat.T, rtol=1e-05, atol=1e-08)
 
     return dist_mat
