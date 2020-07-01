@@ -11,7 +11,7 @@ from scipy.spatial.distance import cdist
 AB_DIST_MEAN = 100
 AB_DIST_VAR = 1
 
-AC_DIST_MEAN = 10
+AC_DIST_MEAN = 20
 AC_DIST_VAR = 1
 
 
@@ -111,6 +111,10 @@ def direct_init_dist_matrix(num_A=100, num_B=100, num_C=100, distr_AB=None, dist
     if seed:
         np.random.seed(seed)
 
+    # we initialize the random distances across different types of points
+    # note that we don't really care about aa, bb, bc, or cc, so we
+    # initialize those to garbage. We do need them for a proper
+    # distance matrix format, however.
     random_aa = np.random.normal(0, 1, (num_A, num_A))
     random_ab = np.random.normal(mean_ab, var_ab, (num_A, num_B))
     random_ac = np.random.normal(mean_ac, var_ac, (num_A, num_C))
@@ -119,6 +123,7 @@ def direct_init_dist_matrix(num_A=100, num_B=100, num_C=100, distr_AB=None, dist
     random_cc = np.random.normal(0, 1, (num_C, num_C))
 
     # create each row one-by-one first
+    # we need to correct each aa, bb, and cc matrix to ensure symmetry
     first_row = np.concatenate(((random_aa + random_aa.T) / 2, random_ab, random_ac), axis=1)
     second_row = np.concatenate((random_ab.T, (random_bb + random_bb.T) / 2, random_bc), axis=1)
     third_row = np.concatenate((random_ac.T, random_bc.T, (random_cc + random_cc.T) / 2), axis=1)
@@ -226,13 +231,12 @@ def point_init_dist_matrix(size_img=(1024, 1024), num_A=100, num_B=100, num_C=10
     a_a_dist = cdist(a_points, a_points)
     a_b_dist = cdist(a_points, b_points)
     a_c_dist = cdist(a_points, c_points)
-
     b_b_dist = cdist(b_points, b_points)
     b_c_dist = cdist(b_points, c_points)
-
     c_c_dist = cdist(c_points, c_points)
 
     # create each matrix row
+    # we need to correct aa, bb, and cc to ensure symmetry
     first_row = np.concatenate(((a_a_dist + a_a_dist.T) / 2, a_b_dist, a_c_dist), axis=1)
     second_row = np.concatenate((a_b_dist.T, (b_b_dist + b_b_dist.T) / 2, b_c_dist), axis=1)
     third_row = np.concatenate((a_c_dist.T, b_c_dist.T, (c_c_dist + c_c_dist) / 2), axis=1)
