@@ -102,7 +102,7 @@ def test_load_imgs_from_dir():
     with tempfile.TemporaryDirectory() as temp_dir:
         imgs = ["fov1_img1.tiff", "fov2_img2.tiff", "fov3_img3.tiff"]
         fovs = [img.split("_")[0] for img in imgs]
-        _create_img_dir(temp_dir, imgs)
+        _create_img_dir(temp_dir, [""], imgs, img_sub_folder="")
 
         # check default loading
         test_loaded_xr = \
