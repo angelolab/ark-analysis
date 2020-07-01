@@ -1,4 +1,8 @@
 import sys
+
+sys.path.append('..')
+from segmentation.utils import synthetic_spatial_datagen
+
 import numpy as np
 import xarray as xr
 import pandas as pd
@@ -6,9 +10,6 @@ import skimage.measure
 import scipy
 import os
 from scipy.spatial.distance import cdist
-
-sys.path.append('..')
-from segmentation.utils import synthetic_spatial_datagen
 
 
 # random seed
@@ -27,7 +28,7 @@ def test_direct_init_dist_matrix():
     # than the average of the distance between A and C.
     # this may not eliminate the possibility that the null is proved true
     # but it's definitely a great check that can ensure greater success
-    assert sample_dist_matrix[:100, 100:200].mean() > sample_dist_matrix[:100, 200:]
+    assert sample_dist_mat[:100, 100:200].mean() > sample_dist_mat[:100, 200:].mean()
 
 
 def test_point_init_dist_matrix():
@@ -42,4 +43,4 @@ def test_point_init_dist_matrix():
     # than the average of the distance between A and C.
     # this may not eliminate the possibility that the null is proved true
     # but it's definitely a great check that can ensure greater success
-    assert sample_dist_matrix[:100, 100:200].mean() > sample_dist_matrix[:100, 200:]
+    assert sample_dist_mat[:100, 100:200].mean() > sample_dist_mat[:100, 200:].mean()
