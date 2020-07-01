@@ -13,7 +13,45 @@ import pandas as pd
 import scipy.ndimage as nd
 
 
-from segmentation.utils import plot_utils, signal_extraction_utils
+from segmentation.utils import plot_utils, signal_extraction_utils, data_utils
+
+
+def tiffs_to_xr_labels(tiff_dir, output_dir, fovs=None, imgs=None):
+    """Converts and condenses segmentation labels from a folder of tiff files
+    into an xarray.  Tiff files must have the format:
+    FOVNAME_*.tif(f)
+
+    Inputs:
+        tiff_dir: path to directory containing segmentation labels as TIFs
+        output_dir: path to directory where the output will be saved
+        fovs: ~
+        imgs: ~
+    Outputs:
+        Saves xarray to output directory
+    """
+    im_xr = data_utils.load_imgs_from_dir(data_dir=tiff_dir,
+                                          img_sub_folder=None,
+                                          fovs=fovs,
+                                          imgs=imgs)
+
+    # two scenarios
+    # 1 - label masks are in separate fov folders (best) <- assume this one
+    # 2 - label masks for different fovs are in the same folder (worse)
+    # 2 requires fov name detection in filenames o.O
+
+    # assuming 1 this will work
+    # however, this 'misses' the case in 2 where there is one fov and one tif
+    # but idk if this would even have an impact
+    if len(im_xr.coords['channels']) == 1:
+        im_xr.rename({im_xr.coords['channels'][0]: 'segmentation_labels'})
+
+    save_name = os.path.join(output_dir, 'segmentation_labels.xr')
+    if os.path.exists(save_name):
+        print("overwriting previously generated processed output file")
+        os.remove(save_name)
+
+    # segmentation_labels_xr.to_netcdf(save_name, format='NETCDF4')
+    im_xr.to_netcdf(save_name, format="NETCDF3_64BIT")
 
 
 def watershed_transform(model_output, channel_xr, overlay_channels, output_dir, fovs=None,
@@ -70,7 +108,7 @@ def watershed_transform(model_output, channel_xr, overlay_channels, output_dir, 
     if not os.path.isdir(output_dir):
         raise ValueError("output directory does not exist")
 
-    segmentation_labels_xr = xr.DataArray(np.zeros((model_output.shape[:-1] + (1,)), dtype="int16"),
+    segmentation_labels_xr = xr.DataArray(np.zeros((model_output.shape[:-1]+(1,)), dtype="int16"),
                                           coords=[model_output.fovs, range(model_output.shape[1]),
                                                   range(model_output.shape[2]),
                                                   ['segmentation_label']],

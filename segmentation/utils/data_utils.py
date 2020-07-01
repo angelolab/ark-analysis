@@ -54,7 +54,8 @@ def load_imgs_from_mibitiff(mibitiff_paths, channels=None, load_axis="fovs"):
 
 
 def load_imgs_from_dir(data_dir, img_sub_folder=None, fovs=None, imgs=None,
-                       load_axis="fovs", dtype="int16", variable_sizes=False):
+                       load_axis="fovs", dtype="int16", variable_sizes=False,
+                       use_filenames=False, delimiter='_'):
     """Takes a set of imgs from a directory structure and loads them into an xarray.
 
         Args:
@@ -65,6 +66,8 @@ def load_imgs_from_dir(data_dir, img_sub_folder=None, fovs=None, imgs=None,
             load_axis: axis that images will get loaded onto. Must be one of ["fovs", "stacks"]
             dtype: dtype of array which will be used to store values
             variable_sizes: if true, will pad loaded images with zeros to fit into array
+            use_filenames: if true, fov axis will be constructed from file prefixes, not fovs
+            delimiter: charcter used to determine the file prefix if use_filenames is true
 
         Returns:
             img_xr: xarray with shape [fovs, tifs, x_dim, y_dim]
@@ -76,11 +79,13 @@ def load_imgs_from_dir(data_dir, img_sub_folder=None, fovs=None, imgs=None,
     if not np.isin(load_axis, ["fovs", "stacks"]):
         raise ValueError("Invalid value for load_axis, must be one of [fovs, stacks]")
 
-    if fovs is None:
+    if fovs is None and not use_filenames:
         # get all fovs
         fovs = os.listdir(data_dir)
         fovs = [fov for fov in fovs if os.path.isdir(os.path.join(data_dir, fov))]
         fovs.sort()
+    elif use_filenames:
+        fovs = [""]
     else:
         # use supplied list, but check to make sure they all exist
         for fov in fovs:
@@ -91,7 +96,7 @@ def load_imgs_from_dir(data_dir, img_sub_folder=None, fovs=None, imgs=None,
         raise ValueError("No fovs found in directory")
 
     # check to make sure img subfolder name within fov is correct
-    if img_sub_folder is not None:
+    if img_sub_folder is not None and not use_filenames:
         if not os.path.isdir(os.path.join(data_dir, fovs[0], img_sub_folder)):
             raise ValueError("Invalid img_sub_folder name")
     else:
@@ -109,6 +114,9 @@ def load_imgs_from_dir(data_dir, img_sub_folder=None, fovs=None, imgs=None,
     if len(imgs) == 0:
         raise ValueError("No imgs found in designated folder")
 
+    # remove .tif or .tiff from image name
+    img_names = [os.path.splitext(img)[0] for img in imgs]
+
     # check to make sure supplied imgs exist
     for img in imgs:
         if not os.path.isfile(os.path.join(data_dir, fovs[0], img_sub_folder, img)):
@@ -122,6 +130,11 @@ def load_imgs_from_dir(data_dir, img_sub_folder=None, fovs=None, imgs=None,
     if np.issubdtype(data_dtype, np.floating):
         if not np.issubdtype(dtype, np.floating):
             raise ValueError("supplied dtype is not a float, but the images loaded are floats")
+
+    # stop path at fov level
+    if use_filenames:
+        fovs = imgs.copy()
+        imgs = [""]
 
     if variable_sizes:
         img_data = np.zeros((len(fovs), 1024, 1024, len(imgs)), dtype=dtype)
@@ -142,13 +155,13 @@ def load_imgs_from_dir(data_dir, img_sub_folder=None, fovs=None, imgs=None,
     if np.min(img_data) < 0:
         raise ValueError("Integer overflow from loading TIF image, try a larger dtype")
 
-    # remove .tif or .tiff from image name
-    img_names = [os.path.splitext(img)[0] for img in imgs]
-
     if variable_sizes:
         row_coords, col_coords = range(1024), range(1024)
     else:
         row_coords, col_coords = range(test_img.shape[0]), range(test_img.shape[1])
+
+    if use_filenames:
+        fovs = [fov.split(delimiter)[0] for fov in fovs]
 
     img_xr = xr.DataArray(img_data, coords=[fovs, row_coords, col_coords, img_names],
                           dims=[load_axis, "rows", "cols", "channels"])
