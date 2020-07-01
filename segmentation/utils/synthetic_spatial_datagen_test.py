@@ -34,7 +34,7 @@ def test_direct_init_dist_matrix():
 def test_point_init_dist_matrix():
     # we'll be using the default parameters provided in the functions
     # except for the random seed, which we specify
-    sample_dist_mat = synthetic_spatial_datagen.test_point_init_dist_matrix(seed=RSEED)
+    sample_dist_mat = synthetic_spatial_datagen.point_init_dist_matrix(seed=RSEED)
 
     # assert matrix symmetry
     assert np.allclose(sample_dist_mat, sample_dist_mat.T, rtol=1e-05, atol=1e-08)
