@@ -61,6 +61,7 @@ def test_load_imgs_from_mibitiff_all_channels():
 
 
 def test_load_imgs_from_dir():
+    # test loading from within fov directories
     with tempfile.TemporaryDirectory() as temp_dir:
         fovs = ["fov1", "fov2", "fov3"]
         imgs = ["img1.tiff", "img2.tiff", "img3.tiff"]
@@ -96,6 +97,29 @@ def test_load_imgs_from_dir():
         test_loaded_xr = data_utils.load_imgs_from_dir(
             temp_dir, img_sub_folder="TIFs", dtype="int16", load_axis="stacks")
         assert (test_loaded_xr.dims[0] == "stacks")
+
+    # test loading from 'free' directory
+    with tempfile.TemporaryDirectory() as temp_dir:
+        imgs = ["fov1_img1.tiff", "fov2_img2.tiff", "fov3_img3.tiff"]
+        fovs = [img.split("_")[0] for img in imgs]
+        _create_img_dir(temp_dir, imgs)
+
+        # check default loading
+        test_loaded_xr = \
+            data_utils.load_imgs_from_dir(temp_dir, use_filenames=True, delimiter='_')
+
+        # make sure grouping by file prefix was effective
+        assert np.array_equal(test_loaded_xr.fovs, fovs)
+
+        # check loading of specific images
+        some_imgs = imgs[:2]
+
+        test_subset_xr = \
+            data_utils.load_imgs_from_dir(temp_dir, imgs=some_imgs, use_filenames=True,
+                                          delimiter='_')
+
+        # make sure only subset was loaded
+        assert np.array_equal(test_subset_xr.fovs, fovs[:2])
 
 
 def test_combine_xarrays():
