@@ -129,7 +129,7 @@ def direct_init_dist_matrix(num_A=100, num_B=100, num_C=100, distr_AB=None, dist
     # assert that the created submatrix is symmetric
     assert np.allclose(dist_mat, dist_mat.T, rtol=1e-05, atol=1e-08)
 
-    return dist_mat# , dict_labels
+    return dist_mat
 
 
 def get_random_centroid_centers(size_img=(1024, 1024), num_A=100, num_B=100, num_C=100, distr_A=None, distr_B=None, distr_C=None, seed=None):
@@ -151,6 +151,8 @@ def get_random_centroid_centers(size_img=(1024, 1024), num_A=100, num_B=100, num
             If None, use predefined parameters.
         distr_B: similar to distr_A
         distr_C: similar to distr_C
+        seed: whether to fix the random seed or not. Useful for testing.
+            Should be a specified integer value. Default None.
     """
 
     # extract the height and width
@@ -173,8 +175,8 @@ def get_random_centroid_centers(size_img=(1024, 1024), num_A=100, num_B=100, num
         var_b = distr_B['cov']
 
     if distr_C == None:
-        b_mean = (height * C_CENTROID_FACTOR, width * C_CENTROID_FACTOR)
-        b_cov = C_CENTROID_COV
+        c_mean = (height * C_CENTROID_FACTOR, width * C_CENTROID_FACTOR)
+        c_cov = C_CENTROID_COV
     else:
         mean_ac = distr_C['mean']
         var_ac = distr_C['var']
@@ -190,7 +192,8 @@ def get_random_centroid_centers(size_img=(1024, 1024), num_A=100, num_B=100, num
 
     return a_points, b_points, c_points
 
-def point_init_dist_matrix(size_img=(1024, 1024), num_A=100, num_B=100, num_C=100, distr_A=None, distr_B=None, distr_C=None):
+
+def point_init_dist_matrix(size_img=(1024, 1024), num_A=100, num_B=100, num_C=100, distr_A=None, distr_B=None, distr_C=None, seed=None):
     """
     This function generates random points using the get_random_centroid_centers function and from that
     generates a distance matrix.
@@ -212,12 +215,12 @@ def point_init_dist_matrix(size_img=(1024, 1024), num_A=100, num_B=100, num_C=10
             Used by get_random_centroid_centers. Default None, and will use predefined parameters.
         distr_B: dimilar to distr_A
         distr_C: similar to distr_C
-        seed: whether to fix the random seed or not. Useful for testing.
+        seed: whether to fix the random seed or not. Used by get_random_centroid_centers. Useful for testing.
             Should be a specified integer value. Default None.
     """
 
     # generate points for cell types A, B, and C
-    a_points, b_points, c_points = get_random_centroid_centers(size_img, num_A, num_B, num_C, distr_A, distr_B, distr_C)
+    a_points, b_points, c_points = get_random_centroid_centers(size_img, num_A, num_B, num_C, distr_A, distr_B, distr_C, seed)
 
     # compute the distances between each point pair
     a_a_dist = cdist(a_points, a_points)
@@ -230,14 +233,14 @@ def point_init_dist_matrix(size_img=(1024, 1024), num_A=100, num_B=100, num_C=10
     c_c_dist = cdist(c_points, c_points)
 
     # create each matrix row
-    first_row = np.concatenate((a_a_dist, a_b_dist, a_c_dist), axis=1)
-    second_row = np.concatenate((a_b_dist.T, b_b_dist, b_c_dist), axis=1)
-    third_row = np.concatenate((a_c_dist.T, b_c_dist.T, c_c_dist), axis=1)
+    first_row = np.concatenate(((a_a_dist+a_a_dist.T)/2, a_b_dist, a_c_dist), axis=1)
+    second_row = np.concatenate((a_b_dist.T, (b_b_dist+b_b_dist.T)/2, b_c_dist), axis=1)
+    third_row = np.concatenate((a_c_dist.T, b_c_dist.T, (c_c_dist+c_c_dist)/2), axis=1)
 
     # and then the entire matrix
-    dist_mat = np.concatenate(first_row, second_row, third_row, axis=0)
+    dist_mat = np.concatenate((first_row, second_row, third_row), axis=0)
 
     # assert that the created submatrix is symmetric
     assert np.allclose(dist_mat, dist_mat.T, rtol=1e-05, atol=1e-08)
 
-    return complete_mat
+    return dist_mat
