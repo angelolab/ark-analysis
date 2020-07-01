@@ -24,7 +24,7 @@ A_CENTROID_COV = [[1, 0], [0, 1]]
 B_CENTROID_COV = [[1, 0], [0, 1]]
 C_CENTROID_COV = [[1, 0], [0, 1]]
 
-### Leaving this function here in case we want random label generation for cells
+# Leaving this function here in case we want random label generation for cells
 
 # def generate_labels(num_A=100, num_B=100, num_C=100):
 #     """
@@ -93,14 +93,14 @@ def direct_init_dist_matrix(num_A=100, num_B=100, num_C=100, distr_AB=None, dist
     """
 
     # set the mean and variance of the Gaussian distributions of both AB and AC distances
-    if distr_AB == None:
+    if not distr_AB:
         mean_ab = AB_DIST_MEAN
         var_ab = AB_DIST_VAR
     else:
         mean_ab = distr_AB['mean']
         var_ab = distr_AB['var']
 
-    if distr_AC == None:
+    if not distr_AC:
         mean_ac = AC_DIST_MEAN
         var_ac = AC_DIST_VAR
     else:
@@ -119,9 +119,9 @@ def direct_init_dist_matrix(num_A=100, num_B=100, num_C=100, distr_AB=None, dist
     random_cc = np.random.normal(0, 1, (num_C, num_C))
 
     # create each row one-by-one first
-    first_row = np.concatenate(((random_aa+random_aa.T)/2, random_ab, random_ac), axis=1)
-    second_row = np.concatenate((random_ab.T, (random_bb+random_bb.T)/2, random_bc), axis=1)
-    third_row = np.concatenate((random_ac.T, random_bc.T, (random_cc+random_cc.T)/2), axis=1)
+    first_row = np.concatenate(((random_aa + random_aa.T) / 2, random_ab, random_ac), axis=1)
+    second_row = np.concatenate((random_ab.T, (random_bb + random_bb.T) / 2, random_bc), axis=1)
+    third_row = np.concatenate((random_ac.T, random_bc.T, (random_cc + random_cc.T) / 2), axis=1)
 
     # then concatenate them together
     dist_mat = np.concatenate((first_row, second_row, third_row), axis=0)
@@ -160,21 +160,21 @@ def get_random_centroid_centers(size_img=(1024, 1024), num_A=100, num_B=100, num
     width = size_img[1]
 
     # set the distribution parameters, use the mean scaling factor and default covariance if not specified
-    if distr_A == None:
+    if not distr_A:
         a_mean = (height * A_CENTROID_FACTOR, width * A_CENTROID_FACTOR)
         a_cov = A_CENTROID_COV
     else:
         mean_a = distr_A['mean']
         var_a = distr_A['cov']
 
-    if distr_B == None:
+    if not distr_B:
         b_mean = (height * B_CENTROID_FACTOR, width * B_CENTROID_FACTOR)
         b_cov = B_CENTROID_COV
     else:
         mean_b = distr_B['mean']
         var_b = distr_B['cov']
 
-    if distr_C == None:
+    if not distr_C:
         c_mean = (height * C_CENTROID_FACTOR, width * C_CENTROID_FACTOR)
         c_cov = C_CENTROID_COV
     else:
@@ -233,9 +233,9 @@ def point_init_dist_matrix(size_img=(1024, 1024), num_A=100, num_B=100, num_C=10
     c_c_dist = cdist(c_points, c_points)
 
     # create each matrix row
-    first_row = np.concatenate(((a_a_dist+a_a_dist.T)/2, a_b_dist, a_c_dist), axis=1)
-    second_row = np.concatenate((a_b_dist.T, (b_b_dist+b_b_dist.T)/2, b_c_dist), axis=1)
-    third_row = np.concatenate((a_c_dist.T, b_c_dist.T, (c_c_dist+c_c_dist)/2), axis=1)
+    first_row = np.concatenate(((a_a_dist + a_a_dist.T) / 2, a_b_dist, a_c_dist), axis=1)
+    second_row = np.concatenate((a_b_dist.T, (b_b_dist + b_b_dist.T) / 2, b_c_dist), axis=1)
+    third_row = np.concatenate((a_c_dist.T, b_c_dist.T, (c_c_dist + c_c_dist) / 2), axis=1)
 
     # and then the entire matrix
     dist_mat = np.concatenate((first_row, second_row, third_row), axis=0)
