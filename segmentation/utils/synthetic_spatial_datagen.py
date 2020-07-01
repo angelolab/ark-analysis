@@ -90,10 +90,11 @@ def direct_init_dist_matrix(num_A=100, num_B=100, num_C=100, distr_AB=None, dist
     """
 
     # generate a list of A, B, and C cells
-    labels_a, labels_b, labels_c, dict_labels = generate_labels(num_A, num_B, num_C)
+
+    # labels_a, labels_b, labels_c, dict_labels = generate_labels(num_A, num_B, num_C)
 
     # initialize the distance matrix
-    sample_dist_mat = np.zeros((num_A + num_B + num_C, num_A + num_B + num_C))
+    # sample_dist_mat = np.zeros((num_A + num_B + num_C, num_A + num_B + num_C))
 
     # set the mean and variance of the Gaussian distributions of both AB and AC distances
     if distr_AB = None:
@@ -112,23 +113,43 @@ def direct_init_dist_matrix(num_A=100, num_B=100, num_C=100, distr_AB=None, dist
 
     # generate a random numpy matrix of Gaussian values from specified distribution
     # and assign to corresponding labels_a, labels_b values
-    random_ab = np.random.normal(mean_ab, var_ab, (num_A, num_B))
+    # random_ab = np.random.normal(mean_ab, var_ab, (num_A, num_B))
     # random_ab = (random_ab + random_ab.T) / 2
-    sample_dist_mat[labels_a, labels_b] = random_ab
-    sample_dist_mat[labels_b, labels_a] = random_ab.T
+    # sample_dist_mat[labels_a, labels_b] = random_ab
+    # sample_dist_mat[labels_b, labels_a] = random_ab.T
+
+    # assert that the created submatrix is symmetric
+    # assert np.alclose(sample_dist_mat[labels_a, labels_b], sample_dist_mat[labels_a, labels_b].T, rtol=1e-05, atol=1e-08)
+
+    # follow the same steps for labels_a and labels_c
+    # random_ac = np.random.normal(mean_ac, var_ac, (num_A, num_C))
+    # random_ac = (random_ac + random_ac.T) / 2
+    # sample_dist_mat[labels_a, labels_c] = random_ac
+
+    # assert np.alclose(sample_dist_mat[labels_a, labels_c], sample_dist_mat[labels_a, labels_c].T, rtol=1e-05, atol=1e-08)
+
+    # generate a random matrix for each distance partition
+    # we only really care about ab and ac (and by extension, ba and ca)
+    # so we can just randomly generate the values in aa, bb, bc/cb, and cc
+    random_aa = np.random.normal(np.random.normal(0, 1, 1)[0], np.random.normal(0, 1, 1)[0], (num_A, num_A))
+    random_ab = np.random.normal(mean_ab, var_ab, (num_A, num_B))
+    random_ac = np.random.normal(mean_ac, var_ac, (num_A, num_C))
+    random_bb = np.random.normal(np.random.normal(0, 1, 1)[0], np.random.normal(0, 1, 1)[0], (num_B, num_B))
+    random_bc = np.random.normal(np.random.normal(0, 1, 1)[0], np.random.normal(0, 1, 1)[0], (num_B, num_C))
+    random_cc = np.random.normal(np.random.normal(0, 1, 1)[0], np.random.normal(0, 1, 1)[0], (num_C, num_C))
+
+    # create each row one-by-one first
+    first_row = np.concatenate((random_aa, random_ab, random_ac), axis=1)
+    second_row = np.concatenate((random_ab.T, random_bb, random_bc), axis=1)
+    third_row = np.concatenate((random_ac.T, random_bc.T, random_cc), axis=1)
+
+    # then concatenate them together
+    dist_mat = np.concatenate((first_row, second_row, third_row), axis=0)
 
     # assert that the created submatrix is symmetric
     assert np.alclose(sample_dist_mat[labels_a, labels_b], sample_dist_mat[labels_a, labels_b].T, rtol=1e-05, atol=1e-08)
 
-    # follow the same steps for labels_a and labels_c
-    random_ac = np.random.normal(mean_ac, var_ac, (num_A, num_C))
-    random_ac = (random_ac + random_ac.T) / 2
-    sample_dist_mat[labels_a, labels_c] = random_ac
-
-    assert np.alclose(sample_dist_mat[labels_a, labels_c], sample_dist_mat[labels_a, labels_c].T, rtol=1e-05, atol=1e-08)
-
-    # we don't care about a-a, b-b, c-c, or b-c distances, so we just return the matrix along with the labels
-    return sample_dist_mat, dict_labels
+    return dist_mat# , dict_labels
 
 
 def get_random_centroid_centers(size_img=(1024, 1024), num_A=100, num_B=100, num_C=100, distr_A=None, distr_B=None, distr_C=None):
@@ -152,9 +173,11 @@ def get_random_centroid_centers(size_img=(1024, 1024), num_A=100, num_B=100, num
         distr_C: similar to distr_C
     """
 
+    # extract the height and width
     height = size_img[0]
     width = size_img[1]
 
+    # set the distribution parameters, use the mean scaling factor and default covariance if not specified
     if distr_A = None:
         a_mean = (height * A_CENTROID_FACTOR, width * A_CENTROID_FACTOR)
         a_cov = A_CENTROID_COV
@@ -176,6 +199,7 @@ def get_random_centroid_centers(size_img=(1024, 1024), num_A=100, num_B=100, num
         mean_ac = distr_C['mean']
         var_ac = distr_C['var']
 
+    # use the multivariate_normal distribution to generate the points
     a_points = np.random.multivariate_normal(a_mean, a_cov, num_A)
     b_points = np.random.multivariate_normal(b_mean, b_cov, num_B)
     c_points = np.random.multivariate_normal(c_mean, c_cov, num_C)
@@ -189,6 +213,11 @@ def point_init_dist_matrix(size_img=(1024, 1024), num_A=100, num_B=100, num_C=10
 
     Each row and column of the matrix represents a specific cell, and the elements represent the distance
     from the respective cell centroids.
+
+    The format of the matrix in terms of distances would look like:
+        A-A   A-B   A-C
+        B-A   B-B   B-C
+        C-A   C-B   C-C
 
     Args:
         size_img: a tuple indicating the size of the image. Default 1024 x 1024.
@@ -204,10 +233,7 @@ def point_init_dist_matrix(size_img=(1024, 1024), num_A=100, num_B=100, num_C=10
     # generate points for cell types A, B, and C
     a_points, b_points, c_points = get_random_centroid_centers(size_img, num_A, num_B, num_C, distr_A, distr_B, distr_C)
 
-    a_thresh = a_points.size
-    b_thresh = b_points.size
-    c_thresh = c_points.size
-
+    # compute the distances between each point pair
     a_a_dist = cdist(a_points, a_points)
     a_b_dist = cdist(a_points, b_points)
     a_c_dist = cdist(a_points, c_points)
@@ -217,10 +243,16 @@ def point_init_dist_matrix(size_img=(1024, 1024), num_A=100, num_B=100, num_C=10
 
     c_c_dist = cdist(c_points, c_points)
 
+    # create each matrix row
     first_row = np.concatenate((a_a_dist, a_b_dist, a_c_dist), axis=1)
     second_row = np.concatenate((a_b_dist.T, b_b_dist, b_c_dist), axis=1)
     third_row = np.concatenate((a_c_dist.T, b_c_dist.T, c_c_dist), axis=1)
 
+    # and then the entire matrix
     complete_mat = np.concatenate(first_row, second_row, third_row, axis=0)
+
+    # assert that the created submatrix is symmetric
+    assert np.alclose(sample_dist_mat[labels_a, labels_b], sample_dist_mat[labels_a, labels_b].T, rtol=1e-05, atol=1e-08)
+
 
     return complete_mat
