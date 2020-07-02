@@ -1,4 +1,5 @@
 import numpy as np
+import random
 from segmentation.utils import visualize
 import importlib
 importlib.reload(visualize)
