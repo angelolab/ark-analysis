@@ -55,7 +55,7 @@ def load_imgs_from_mibitiff(mibitiff_paths, channels=None, load_axis="fovs"):
 
 def load_imgs_from_dir(data_dir, img_sub_folder=None, fovs=None, imgs=None,
                        load_axis="fovs", dtype="int16", variable_sizes=False,
-                       use_filenames=False, delimiter='_'):
+                       use_filenames=False, image_name='img_data', delimiter='_'):
     """Takes a set of imgs from a directory structure and loads them into an xarray.
 
         Args:
@@ -67,6 +67,7 @@ def load_imgs_from_dir(data_dir, img_sub_folder=None, fovs=None, imgs=None,
             dtype: dtype of array which will be used to store values
             variable_sizes: if true, will pad loaded images with zeros to fit into array
             use_filenames: if true, fov axis will be constructed from file prefixes, not fovs
+            image_name: if use_filenames is true, this sets the name of the 'channel' coordinate
             delimiter: charcter used to determine the file prefix if use_filenames is true
 
         Returns:
@@ -162,7 +163,7 @@ def load_imgs_from_dir(data_dir, img_sub_folder=None, fovs=None, imgs=None,
 
     if use_filenames:
         fovs = [fov.split(delimiter)[0] for fov in fovs]
-        img_names = ['img_data']
+        img_names = [image_name]
 
     img_xr = xr.DataArray(img_data, coords=[fovs, row_coords, col_coords, img_names],
                           dims=[load_axis, "rows", "cols", "channels"])
@@ -180,24 +181,26 @@ def tiffs_to_xr_labels(tiff_dir, output_dir, delimiter='_'):
 
     Inputs:
         tiff_dir: path to directory containing segmentation labels as TIFs
-        output_dir: path to directory where the output will be saved
+        output_dir: path to directory where the output will be saved. If None, no xr is saved
         delimiter: character which separates fov-id prefix from the rest of the filename
     Outputs:
-        Saves xarray to output directory
+        Returns xarray and optionally saves it to output directory
     """
     im_xr = \
         load_imgs_from_dir(data_dir=tiff_dir,
-                           use_filenames=True, delimiter=delimiter)
+                           use_filenames=True,
+                           image_name='segmentation_label',
+                           delimiter=delimiter)
 
-    if len(im_xr.coords['channels']) == 1:
-        im_xr.rename({im_xr.coords['channels'][0]: 'segmentation_labels'})
+    if output_dir is not None:
+        save_name = os.path.join(output_dir, 'segmentation_labels.xr')
+        if os.path.exists(save_name):
+            print("overwriting previously generated processed output file")
+            os.remove(save_name)
 
-    save_name = os.path.join(output_dir, 'segmentation_labels.xr')
-    if os.path.exists(save_name):
-        print("overwriting previously generated processed output file")
-        os.remove(save_name)
+        im_xr.to_netcdf(save_name, format="NETCDF3_64BIT")
 
-    im_xr.to_netcdf(save_name, format="NETCDF3_64BIT")
+    return im_xr
 
 
 def combine_xarrays(xarrays, axis):
