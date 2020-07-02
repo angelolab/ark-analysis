@@ -1,8 +1,8 @@
 import pandas as pd
 import numpy as np
-import matplotlib
+import matplotlib as plt
 import seaborn as sns
-
+import random
 
 def visualize_z_scores(z, pheno_titles):
     """Plots the z scores between all phenotypes as a clustermap.
