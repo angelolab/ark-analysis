@@ -17,8 +17,8 @@ AC_DIST_VAR = 1
 
 # Constants for random centroid matrix generation
 A_CENTROID_FACTOR = 0.5
-B_CENTROID_FACTOR = 0.6
-C_CENTROID_FACTOR = 0.1
+B_CENTROID_FACTOR = 0.9
+C_CENTROID_FACTOR = 0.4
 
 A_CENTROID_COV = [[1, 0], [0, 1]]
 B_CENTROID_COV = [[1, 0], [0, 1]]
