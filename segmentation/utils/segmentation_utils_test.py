@@ -262,3 +262,5 @@ def test_extract_single_cell_data():
                                                                           channel_data)
 
     assert normalized.shape[0] == 7
+
+# TODO: add more testing functions to this suite
