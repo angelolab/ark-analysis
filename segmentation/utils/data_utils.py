@@ -162,6 +162,7 @@ def load_imgs_from_dir(data_dir, img_sub_folder=None, fovs=None, imgs=None,
 
     if use_filenames:
         fovs = [fov.split(delimiter)[0] for fov in fovs]
+        img_names = ['img_data']
 
     img_xr = xr.DataArray(img_data, coords=[fovs, row_coords, col_coords, img_names],
                           dims=[load_axis, "rows", "cols", "channels"])

@@ -19,7 +19,8 @@ def _create_img_dir(temp_dir, fovs, imgs, img_sub_folder="TIFs"):
 
     for fov in fovs:
         fov_path = os.path.join(temp_dir, fov, img_sub_folder)
-        os.makedirs(fov_path)
+        if not os.path.exists(fov_path):
+            os.makedirs(fov_path)
         for img in imgs:
             io.imsave(os.path.join(fov_path, img), tif)
 
@@ -62,7 +63,7 @@ def test_load_imgs_from_mibitiff_all_channels():
 
 def test_load_imgs_from_dir():
     # test loading from within fov directories
-    with tempfile.TemporaryDirectory() as temp_dir:
+    with tempfile.TemporaryDirectory(prefix='fovs') as temp_dir:
         fovs = ["fov1", "fov2", "fov3"]
         imgs = ["img1.tiff", "img2.tiff", "img3.tiff"]
         chans = [chan.split(".tiff")[0] for chan in imgs]
@@ -99,10 +100,10 @@ def test_load_imgs_from_dir():
         assert (test_loaded_xr.dims[0] == "stacks")
 
     # test loading from 'free' directory
-    with tempfile.TemporaryDirectory() as temp_dir:
+    with tempfile.TemporaryDirectory(prefix='one_file') as temp_dir:
         imgs = ["fov1_img1.tiff", "fov2_img2.tiff", "fov3_img3.tiff"]
         fovs = [img.split("_")[0] for img in imgs]
-        _create_img_dir(temp_dir, [""], imgs, img_sub_folder="")
+        _create_img_dir(temp_dir, fovs=[""], imgs=imgs, img_sub_folder="")
 
         # check default loading
         test_loaded_xr = \
@@ -179,7 +180,7 @@ def test_crop_helper():
 
 def test_crop_image_stack():
     # test without overlap (stride_fraction = 1)
-    crop_input = np.zeros((4, 1024, 1024, 4))
+    crop_input = np.zeros((4, 1024, 1024, 4), dtype="int16")
     crop_size = 128
     stride_fraction = 1
 
@@ -190,7 +191,7 @@ def test_crop_image_stack():
     assert np.array_equal(cropped.shape, (num_crops, crop_size, crop_size, crop_input.shape[3]))
 
     # test with overlap
-    crop_input = np.zeros((4, 1024, 1024, 4))
+    crop_input = np.zeros((4, 1024, 1024, 4), dtype="int16")
     crop_size = 128
     stride_fraction = 0.25
 
