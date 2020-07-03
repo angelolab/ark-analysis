@@ -61,7 +61,7 @@ def test_load_imgs_from_mibitiff_all_channels():
                                   (tiff.read(mibitiff_files[0])).data)
 
 
-def test_load_imgs_from_dir():
+def test_load_imgs_from_tree():
     # test loading from within fov directories
     with tempfile.TemporaryDirectory(prefix='fovs') as temp_dir:
         fovs = ["fov1", "fov2", "fov3"]
@@ -86,7 +86,7 @@ def test_load_imgs_from_dir():
 
         test_subset_xr = \
             data_utils.load_imgs_from_tree(temp_dir, img_sub_folder="TIFs", dtype="int16",
-                                          fovs=some_fovs, imgs=some_imgs)
+                                           fovs=some_fovs, imgs=some_imgs)
 
         # make sure specified folders loaded
         assert np.array_equal(test_subset_xr.fovs, some_fovs)
@@ -94,11 +94,8 @@ def test_load_imgs_from_dir():
         # make sure specified channels loaded
         assert np.array_equal(test_subset_xr.channels, some_chans)
 
-        # make sure that load axis can be specified
-        test_loaded_xr = data_utils.load_imgs_from_tree(
-            temp_dir, img_sub_folder="TIFs", dtype="int16", load_axis="stacks")
-        assert (test_loaded_xr.dims[0] == "stacks")
 
+def test_load_imgs_from_dir():
     # test loading from 'free' directory
     with tempfile.TemporaryDirectory(prefix='one_file') as temp_dir:
         imgs = ["fov1_img1.tiff", "fov2_img2.tiff", "fov3_img3.tiff"]
