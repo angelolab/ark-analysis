@@ -71,7 +71,7 @@ def test_load_imgs_from_dir():
 
         # check default loading of all files
         test_loaded_xr = \
-            data_utils.load_imgs_from_dir(temp_dir, img_sub_folder="TIFs", dtype="int16")
+            data_utils.load_imgs_from_tree(temp_dir, img_sub_folder="TIFs", dtype="int16")
 
         # make sure all folders loaded
         assert np.array_equal(test_loaded_xr.fovs, fovs)
@@ -85,7 +85,7 @@ def test_load_imgs_from_dir():
         some_chans = chans[:2]
 
         test_subset_xr = \
-            data_utils.load_imgs_from_dir(temp_dir, img_sub_folder="TIFs", dtype="int16",
+            data_utils.load_imgs_from_tree(temp_dir, img_sub_folder="TIFs", dtype="int16",
                                           fovs=some_fovs, imgs=some_imgs)
 
         # make sure specified folders loaded
@@ -95,7 +95,7 @@ def test_load_imgs_from_dir():
         assert np.array_equal(test_subset_xr.channels, some_chans)
 
         # make sure that load axis can be specified
-        test_loaded_xr = data_utils.load_imgs_from_dir(
+        test_loaded_xr = data_utils.load_imgs_from_tree(
             temp_dir, img_sub_folder="TIFs", dtype="int16", load_axis="stacks")
         assert (test_loaded_xr.dims[0] == "stacks")
 
@@ -107,20 +107,10 @@ def test_load_imgs_from_dir():
 
         # check default loading
         test_loaded_xr = \
-            data_utils.load_imgs_from_dir(temp_dir, use_filenames=True, delimiter='_')
+            data_utils.load_imgs_from_dir(temp_dir, delimiter='_')
 
         # make sure grouping by file prefix was effective
         assert np.array_equal(test_loaded_xr.fovs, fovs)
-
-        # check loading of specific images
-        some_imgs = imgs[:2]
-
-        test_subset_xr = \
-            data_utils.load_imgs_from_dir(temp_dir, imgs=some_imgs, use_filenames=True,
-                                          delimiter='_')
-
-        # make sure only subset was loaded
-        assert np.array_equal(test_subset_xr.fovs, fovs[:2])
 
 
 def test_combine_xarrays():

@@ -1,4 +1,5 @@
 import os
+import pathlib
 import math
 
 import skimage.io as io
@@ -7,7 +8,26 @@ import xarray as xr
 from mibidata import tiff
 
 
-def load_imgs_from_mibitiff(mibitiff_paths, channels=None, load_axis="fovs"):
+def validate_directories(dirs):
+    """Verifys that folders exist and don't leave Docker's scope
+
+    Args:
+        dirs: array of directories to verify
+
+    Output:
+        Raises errors if directory is out of scope or non-existent
+    """
+    root = pathlib.Path('../')
+
+    for path in dirs:
+        if root not in pathlib.Path(path).parents:
+            raise ValueError(f'The file/folder path, {path}, is outside of Dockers scope./n'
+                             f'Please use relative paths which go no higher in scope than {root}')
+        elif not os.path.isdir(path):
+            raise ValueError(f"The file/folder path {path}, does not exist...")
+
+
+def load_imgs_from_mibitiff(mibitiff_paths, channels=None):
     """Load images from a series of MIBItiff files.
 
     This function takes a set of MIBItiff files and load the images into an
@@ -18,16 +38,12 @@ def load_imgs_from_mibitiff(mibitiff_paths, channels=None, load_axis="fovs"):
         mibitiff_paths: list of MIBItiff files to load.
         channels: optional list of channels to load. Defaults to `None`, in
             which case, all channels in the first MIBItiff are used.
-        load_axis: axis that images will get loaded onto. Must be one of
-            ["fovs", "stacks"].
 
     Returns:
         img_xr: xarray with shape [fovs, tifs, x_dim, y_dim]
     """
 
-    # sanity check
-    if not np.isin(load_axis, ["fovs", "stacks"]):
-        raise ValueError("Invalid value for load_axis, must be one of [fovs, stacks]")
+    validate_directories(mibitiff_paths)
 
     # if no channels specified, get them from first MIBItiff file
     if channels is None:
@@ -48,14 +64,30 @@ def load_imgs_from_mibitiff(mibitiff_paths, channels=None, load_axis="fovs"):
     img_xr = xr.DataArray(img_data,
                           coords=[fovs, range(img_data[0].data.shape[0]),
                                   range(img_data[0].data.shape[1]), channels],
-                          dims=[load_axis, "rows", "cols", "channels"])
+                          dims=["fovs", "rows", "cols", "channels"])
 
     return img_xr
 
 
-def load_imgs_from_dir(data_dir, img_sub_folder=None, fovs=None, imgs=None,
-                       load_axis="fovs", dtype="int16", variable_sizes=False,
-                       use_filenames=False, image_name='img_data', delimiter='_'):
+def load_imgs_from_dir(data_dir, image_name='img_data', delimiter='_'):
+    """Takes a set of images from a directory and loads them into an xarray based on filename
+    prefixes.
+
+        Args:
+            data_dir: directory containing images
+            image_name: sets name of the 'channel' coordinate in the output xarray
+            delimiter: character used to determine the file-prefix containging the fov name
+
+        Returns:
+            img_xr: xarray with shape [fovs, x_dim, y_dim, 1]
+
+    """
+
+
+
+
+def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, imgs=None,
+                        dtype="int16", variable_sizes=False):
     """Takes a set of imgs from a directory structure and loads them into an xarray.
 
         Args:
@@ -63,43 +95,30 @@ def load_imgs_from_dir(data_dir, img_sub_folder=None, fovs=None, imgs=None,
             img_sub_folder: optional name of image sub-folder within each fov
             fovs: optional list of folders to load imgs from, otherwise loads from all folders
             imgs: optional list of imgs to load, otherwise loads all imgs
-            load_axis: axis that images will get loaded onto. Must be one of ["fovs", "stacks"]
             dtype: dtype of array which will be used to store values
             variable_sizes: if true, will pad loaded images with zeros to fit into array
-            use_filenames: if true, fov axis will be constructed from file prefixes, not fovs
-            image_name: if use_filenames is true, this sets the name of the 'channel' coordinate
-            delimiter: charcter used to determine the file prefix if use_filenames is true
 
         Returns:
-            img_xr: xarray with shape [fovs, tifs, x_dim, y_dim]
+            img_xr: xarray with shape [fovs, x_dim, y_dim, tifs]
     """
 
-    if not os.path.isdir(data_dir):
-        raise ValueError("Directory does not exist")
+    validate_directories([data_dir])
 
-    if not np.isin(load_axis, ["fovs", "stacks"]):
-        raise ValueError("Invalid value for load_axis, must be one of [fovs, stacks]")
-
-    if fovs is None and not use_filenames:
+    if fovs is None:
         # get all fovs
         fovs = os.listdir(data_dir)
         fovs = [fov for fov in fovs if os.path.isdir(os.path.join(data_dir, fov))]
         fovs.sort()
-    elif use_filenames:
-        fovs = [""]
     else:
         # use supplied list, but check to make sure they all exist
-        for fov in fovs:
-            if not os.path.isdir(os.path.join(data_dir, fov)):
-                raise ValueError("Could not find img fov {}".format(fov))
+        validate_directories([os.path.join(data_dir, fov) for fov in fovs])
 
     if len(fovs) == 0:
         raise ValueError("No fovs found in directory")
 
     # check to make sure img subfolder name within fov is correct
-    if img_sub_folder is not None and not use_filenames:
-        if not os.path.isdir(os.path.join(data_dir, fovs[0], img_sub_folder)):
-            raise ValueError("Invalid img_sub_folder name")
+    if img_sub_folder is not None:
+        validate_directories(os.path.join(data_dir, fovs[0], img_sub_folder))
     else:
         # no img_sub_folder, change to empty string to read directly from base folder
         img_sub_folder = ""
@@ -115,9 +134,6 @@ def load_imgs_from_dir(data_dir, img_sub_folder=None, fovs=None, imgs=None,
     if len(imgs) == 0:
         raise ValueError("No imgs found in designated folder")
 
-    # remove .tif or .tiff from image name
-    img_names = [os.path.splitext(img)[0] for img in imgs]
-
     # check to make sure supplied imgs exist
     for img in imgs:
         if not os.path.isfile(os.path.join(data_dir, fovs[0], img_sub_folder, img)):
@@ -131,11 +147,6 @@ def load_imgs_from_dir(data_dir, img_sub_folder=None, fovs=None, imgs=None,
     if np.issubdtype(data_dtype, np.floating):
         if not np.issubdtype(dtype, np.floating):
             raise ValueError("supplied dtype is not a float, but the images loaded are floats")
-
-    # stop path at fov level
-    if use_filenames:
-        fovs = imgs.copy()
-        imgs = [""]
 
     if variable_sizes:
         img_data = np.zeros((len(fovs), 1024, 1024, len(imgs)), dtype=dtype)
@@ -161,18 +172,17 @@ def load_imgs_from_dir(data_dir, img_sub_folder=None, fovs=None, imgs=None,
     else:
         row_coords, col_coords = range(test_img.shape[0]), range(test_img.shape[1])
 
-    if use_filenames:
-        fovs = [fov.split(delimiter)[0] for fov in fovs]
-        img_names = [image_name]
+    # remove .tif or .tiff from image name
+    img_names = [os.path.splitext(img)[0] for img in imgs]
 
     img_xr = xr.DataArray(img_data, coords=[fovs, row_coords, col_coords, img_names],
-                          dims=[load_axis, "rows", "cols", "channels"])
+                          dims=["fovs", "rows", "cols", "channels"])
 
     return img_xr
 
 
 # TODO: add test function
-def tiffs_to_xr_labels(tiff_dir, output_dir, delimiter='_'):
+def tiffs_to_xr_labels(tiff_dir, output_dir=None, delimiter='_'):
     """Converts and condenses segmentation labels from a folder of tiff files
     into an xarray.  Tiff files are assumed to be prefixed with their respective fov
     names:
@@ -188,7 +198,6 @@ def tiffs_to_xr_labels(tiff_dir, output_dir, delimiter='_'):
     """
     im_xr = \
         load_imgs_from_dir(data_dir=tiff_dir,
-                           use_filenames=True,
                            image_name='segmentation_label',
                            delimiter=delimiter)
 

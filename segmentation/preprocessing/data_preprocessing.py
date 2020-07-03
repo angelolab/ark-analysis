@@ -58,7 +58,7 @@ for fov in fovs:
     else:
         membrane_name = 'CD3 (Opal 540).tiff'
 
-    data = data_utils.load_imgs_from_dir(data_dir=os.path.join(base_dir, 'fovs'),
+    data = data_utils.load_imgs_from_tree(data_dir=os.path.join(base_dir, 'fovs'),
                                          fovs=[fov], dtype='float32',
                                          imgs=['DAPI.tiff', membrane_name])
 
@@ -77,7 +77,7 @@ fovs = os.listdir(base_dir + 'trim_borders')
 fovs = [fov for fov in fovs if 'Point' in fov]
 
 for fov in fovs:
-    data = data_utils.load_imgs_from_dir(data_dir=os.path.join(base_dir, 'trim_borders'),
+    data = data_utils.load_imgs_from_tree(data_dir=os.path.join(base_dir, 'trim_borders'),
                                          fovs=[fov], dtype='int32',
                                          imgs=['DAPI.tif', 'Membrane.tif'])
 
@@ -96,7 +96,7 @@ fovs = os.listdir(base_dir + 'fovs')
 fovs = [fov for fov in fovs if 'Point' in fov]
 
 for fov in fovs:
-    data = data_utils.load_imgs_from_dir(data_dir=os.path.join(base_dir, 'trim_borders'),
+    data = data_utils.load_imgs_from_tree(data_dir=os.path.join(base_dir, 'trim_borders'),
                                          fovs=[fov], dtype='int32',
                                          imgs=['DAPI.tif', 'Membrane.tif'])
 
@@ -137,7 +137,7 @@ for fov in fovs:
     imgs.pop(np.where(np.isin(imgs, 'HH3.tif'))[0][0])
     membrane_channel = imgs[0]
 
-    data = data_utils.load_imgs_from_dir(data_dir=os.path.join(base_dir, 'no_bg_fovs'),
+    data = data_utils.load_imgs_from_tree(data_dir=os.path.join(base_dir, 'no_bg_fovs'),
                                          fovs=[fov], imgs=['HH3.tif', membrane_channel])
 
     cropped_data = data_utils.crop_image_stack(data.values, 512, 1)
@@ -155,7 +155,7 @@ fovs = os.listdir(base_dir + 'fovs')
 fovs = [point for point in fovs if "Point" in point]
 
 for fov in fovs:
-    data = data_utils.load_imgs_from_dir(data_dir=os.path.join(base_dir, 'fovs'), dtype='float32',
+    data = data_utils.load_imgs_from_tree(data_dir=os.path.join(base_dir, 'fovs'), dtype='float32',
                                          fovs=[fov], imgs=['DNA.tiff', 'Membrane.tiff'])
 
     # only one crop per image since images are quite small: we'll center 512 in the FOV
@@ -186,7 +186,7 @@ for fov in fovs:
     imgs.pop(np.where(np.isin(imgs, 'Histone.tiff'))[0][0])
     membrane_channel = imgs[0]
 
-    data = data_utils.load_imgs_from_dir(data_dir=os.path.join(base_dir, 'fovs'), dtype='float32',
+    data = data_utils.load_imgs_from_tree(data_dir=os.path.join(base_dir, 'fovs'), dtype='float32',
                                          fovs=[fov], imgs=['Histone.tiff', membrane_channel])
 
     # some images are small than 512, others are only marginally bigger
@@ -227,7 +227,7 @@ fovs = os.listdir(base_dir + 'renamed_channels')
 fovs = [fov for fov in fovs if os.path.isdir(os.path.join(base_dir, 'renamed_channels', fov))]
 
 for fov in fovs:
-    data = data_utils.load_imgs_from_dir(data_dir=os.path.join(base_dir, 'renamed_channels'),
+    data = data_utils.load_imgs_from_tree(data_dir=os.path.join(base_dir, 'renamed_channels'),
                                          fovs=[fov], dtype='int32',
                                          imgs=['DNA.tif', 'Membrane.tif'])
 
@@ -245,7 +245,7 @@ fovs = os.listdir(base_dir + 'fovs')
 fovs = [fov for fov in fovs if os.path.isdir(os.path.join(base_dir, 'fovs', fov))]
 
 for fov in fovs:
-    data = data_utils.load_imgs_from_dir(data_dir=os.path.join(base_dir, 'fovs'),
+    data = data_utils.load_imgs_from_tree(data_dir=os.path.join(base_dir, 'fovs'),
                                          fovs=[fov],
                                          imgs=['HH3.tif', 'CD138.tif'])
 
@@ -263,7 +263,7 @@ fovs = os.listdir(base_dir + 'fovs')
 fovs = [fov for fov in fovs if os.path.isdir(os.path.join(base_dir, 'fovs', fov))]
 
 for fov in fovs:
-    data = data_utils.load_imgs_from_dir(data_dir=os.path.join(base_dir, 'fovs'),
+    data = data_utils.load_imgs_from_tree(data_dir=os.path.join(base_dir, 'fovs'),
                                          fovs=[fov],
                                          imgs=['HH3.tif', 'NAKATPASE.tif'])
 
@@ -275,7 +275,7 @@ for fov in fovs:
         io.imsave(os.path.join(folder, 'Membrane.tiff'), cropped_data[crop, :, :, 1])
 
 # generate stitched images for viewing
-all_data = data_utils.load_imgs_from_dir(base_dir + 'fovs', img_sub_folder='TIFs')
+all_data = data_utils.load_imgs_from_tree(base_dir + 'fovs', img_sub_folder='TIFs')
 stitched_imgs = data_utils.stitch_images(all_data, 10)
 
 for chan in range(stitched_imgs.shape[-1]):
@@ -309,7 +309,7 @@ folders = os.listdir(base_dir + 'fovs')
 folders = [folder for folder in folders if 'sub' in folder]
 
 for folder in folders:
-    image_stack = data_utils.load_imgs_from_dir(base_dir + '/fovs/' + folder, variable_sizes=True,
+    image_stack = data_utils.load_imgs_from_tree(base_dir + '/fovs/' + folder, variable_sizes=True,
                                                 dtype='float32')
     stitched = data_utils.stitch_images(image_stack, 10)
     for img in range(stitched.shape[-1]):
@@ -344,7 +344,7 @@ for fov in fovs:
     imgs.pop(np.where(np.isin(imgs, 'HH3.tiff'))[0][0])
     membrane_channel = imgs[0]
 
-    data = data_utils.load_imgs_from_dir(data_dir=os.path.join(base_dir, 'fovs'), dtype='float32',
+    data = data_utils.load_imgs_from_tree(data_dir=os.path.join(base_dir, 'fovs'), dtype='float32',
                                          fovs=[fov], imgs=['HH3.tiff', membrane_channel])
 
     # some images are small than 512, others are only marginally bigger
@@ -384,7 +384,7 @@ for file in files:
     tiff.write(os.path.join(base_dir, folder_name), m_tiff, multichannel=False)
 
 
-all_data = data_utils.load_imgs_from_dir(base_dir + '/fovs',
+all_data = data_utils.load_imgs_from_tree(base_dir + '/fovs',
                                          imgs=['CD3.tiff', 'CD4.tiff', 'CD8.tiff', 'CD20.tiff',
                                                'CD56.tiff'])
 
@@ -418,7 +418,7 @@ fov_dir = base_dir + 'Great/FOVs/'
 fovs = io_utils.list_folders(fov_dir)
 
 for fov in fovs:
-    data = data_utils.load_imgs_from_dir(fov_dir, fovs=[fov], dtype='float32',
+    data = data_utils.load_imgs_from_tree(fov_dir, fovs=[fov], dtype='float32',
                                          imgs=['DNA.tiff', 'Membrane.tiff'])
 
     cropped_data = data_utils.crop_image_stack(data, 512, 1)
@@ -451,7 +451,7 @@ fovs = os.listdir(fov_dir)
 fovs = [fov for fov in fovs if 'Tile' in fov]
 
 for fov in fovs:
-    data = data_utils.load_imgs_from_dir(fov_dir, fovs=[fov], dtype='int32',
+    data = data_utils.load_imgs_from_tree(fov_dir, fovs=[fov], dtype='int32',
                                          imgs=['DAPI_cropped.tiff', 'CD4_cropped.tiff'])
 
     cropped_data = data_utils.crop_image_stack(data, 512, 1)
@@ -471,7 +471,7 @@ for idx, fov in enumerate(fovs):
     files = os.listdir(os.path.join(base_dir, 'FOVs', fov))
     files = [file for file in files if '.tif' in file]
     files.pop(np.where(np.isin(files, 'DAPI.tif'))[0][0])
-    data = data_utils.load_imgs_from_dir(base_dir + 'FOVs', fovs=[fov], dtype='float32',
+    data = data_utils.load_imgs_from_tree(base_dir + 'FOVs', fovs=[fov], dtype='float32',
                                          imgs=['DAPI.tif', files[0]])
 
     cropped_data = data_utils.crop_image_stack(data, 512, 1)
@@ -488,7 +488,7 @@ base_dir = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/
 fovs = io_utils.list_folders(base_dir + 'FOVs')
 
 for idx, fov in enumerate(fovs):
-    data = data_utils.load_imgs_from_dir(base_dir + 'FOVs', fovs=[fov], dtype='float32',
+    data = data_utils.load_imgs_from_tree(base_dir + 'FOVs', fovs=[fov], dtype='float32',
                                          imgs=['DAPI.tif', 'CD3.tif'])
 
     cropped_data = data_utils.crop_image_stack(data, 512, 1)
@@ -538,10 +538,10 @@ for folder in folders:
     io.imsave(os.path.join(combined_dir, folder, 'DNA.tiff'), DNA)
 
 # load DNA and Membrane data
-channel_data = data_utils.load_imgs_from_dir(data_dir=combined_dir,
+channel_data = data_utils.load_imgs_from_tree(data_dir=combined_dir,
                                              imgs=['DNA.tiff', 'Membrane.tiff'], dtype='float32')
 
-label_data = data_utils.load_imgs_from_dir(data_dir=combined_dir, imgs=['segmentation_label.png'])
+label_data = data_utils.load_imgs_from_tree(data_dir=combined_dir, imgs=['segmentation_label.png'])
 
 channel_data_resized = resize(channel_data.values, [24, 800, 800, 2], order=1)
 label_data_resized = resize(label_data.values, [24, 800, 800, 1], order=0, preserve_range=True)
@@ -576,7 +576,7 @@ np.savez(combined_dir + '20200512_Travis_512x512.npz', X=new_channel, y=new_labe
 
 # Magda processing
 base_dir = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/data/datasets/20200407_Magda/Bg_removed/'
-all_imgs = data_utils.load_imgs_from_dir(data_dir=base_dir, img_sub_folder='TIFs',
+all_imgs = data_utils.load_imgs_from_tree(data_dir=base_dir, img_sub_folder='TIFs',
                                          imgs=['CD3.tif', 'CD20.tif', 'CD45.tif', 'CD68.tif',
                                                'HH3.tif', 'PanCK.tif', 'CD4.tif'])
 
@@ -589,7 +589,7 @@ for chan in range(stitched_imgs.shape[-1]):
 
 # HIV preprocessing
 base_dir = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/data/datasets/20200520_HIV'
-all_imgs = data_utils.load_imgs_from_dir(data_dir=base_dir)
+all_imgs = data_utils.load_imgs_from_tree(data_dir=base_dir)
 
 stitched_imgs = data_utils.stitch_images(all_imgs, 5)
 
@@ -605,7 +605,7 @@ fovs = os.listdir(base_dir + 'fovs')
 fovs = [fov for fov in fovs if 'Point' in fov]
 
 for fov in fovs:
-    data = data_utils.load_imgs_from_dir(data_dir=os.path.join(base_dir, 'fovs'),
+    data = data_utils.load_imgs_from_tree(data_dir=os.path.join(base_dir, 'fovs'),
                                          fovs=[fov], imgs=['HH3.tif', 'CD45.tif'])
 
     cropped_data = data_utils.crop_image_stack(data.values, 512, 1)
