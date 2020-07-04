@@ -127,7 +127,7 @@ def test_compute_close_cell_num():
     all_data = all_data.drop(3, axis=0)
     # Only include the columns of markers
     fov_channel_data = all_data.drop(all_data.columns[[
-        0, 1, 14, 23, 24, 25, 26, 27, 28, 29, 30]], axis=1)
+        0, 1, 14, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32]], axis=1)
     # List of all markers
     marker_titles = fov_channel_data.columns
     # Length of marker list
