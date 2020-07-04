@@ -294,10 +294,10 @@ def test_create_neighborhood_matrix():
     dist_mat_pos = make_distance_matrix("positive")
 
     counts, freqs = spatial_analysis.create_neighborhood_matrix(all_data_pos, dist_mat_pos, distlim=50)
-    assert (counts.loc[:9, 2] == 8).all()
-    assert (counts.loc[10:19, 3] == 8).all()
+    assert (counts.loc[:9, 3] == 8).all()
+    assert (counts.loc[10:19, 2] == 8).all()
     assert ((counts.loc[20:39, 2:3] == 4).all()).all()
 
-    assert (counts.loc[80:89, 3] == 8).all()
-    assert (counts.loc[90:99, 2] == 8).all()
+    assert (counts.loc[80:89, 2] == 8).all()
+    assert (counts.loc[90:99, 3] == 8).all()
     assert ((counts.loc[100:119, 2:3] == 4).all()).all()
