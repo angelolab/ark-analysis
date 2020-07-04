@@ -10,3 +10,4 @@ def test_visualize_z_scores():
     # Assign random phenotype titles
     pheno_titles = [chr(i) for i in range(ord('a'), ord('z') + 1)]
     plot = visualize.visualize_z_scores(z, pheno_titles)
+
