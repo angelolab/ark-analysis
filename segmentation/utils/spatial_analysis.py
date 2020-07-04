@@ -220,7 +220,7 @@ def create_neighborhood_matrix(all_data, dist_matrices, fovs=None, distlim=50):
     cell_label_col = "cellLabelInImage"
     cell_count = 0
     if fovs is None:
-        fovs = list(set(all_data[fov_col]))
+        fovs = sorted(list(set(all_data[fov_col])))
 
     # Error Checking
     if not np.isin(fovs, all_data[fov_col]).all():
