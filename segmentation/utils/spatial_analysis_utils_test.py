@@ -236,7 +236,7 @@ def test_compute_neighbor_count():
     cell_neighbor_freqs[1] = fov_data[cell_label_col]
 
     counts, freqs, cell_count = spatial_analysis_utils.compute_neighbor_counts(
-       fov_data, dist_matrix, distlim, pheno_num, cell_neighbor_counts, cell_neighbor_freqs, cell_count)
+        fov_data, dist_matrix, distlim, pheno_num, cell_neighbor_counts, cell_neighbor_freqs, cell_count)
 
     assert (counts.loc[:3, 2] == 1).all()
     assert (counts.loc[4:8, 3] == 1).all()
