@@ -216,7 +216,6 @@ def create_neighborhood_matrix(all_data, dist_matrices, fovs=None, distlim=50):
 
     # Setup input and parameters
     fov_col = "SampleID"
-    cell_type_col = "cell_type"
     flowsom_col = "FlowSOM_ID"
     cell_label_col = "cellLabelInImage"
     cell_count = 0
@@ -227,7 +226,7 @@ def create_neighborhood_matrix(all_data, dist_matrices, fovs=None, distlim=50):
     if not np.isin(fovs, all_data[fov_col]).all():
         raise ValueError("Points were not found in Expression Matrix")
 
-    # subset just the sampleID, cellLabelInImage, and FlowSOMID
+    # Subset just the sampleID, cellLabelInImage, and FlowSOMID
     all_data = all_data[[fov_col, cell_label_col, flowsom_col]]
     # Extract the columns with the cell phenotype codes
     pheno_codes = all_data[flowsom_col].drop_duplicates()
@@ -235,10 +234,14 @@ def create_neighborhood_matrix(all_data, dist_matrices, fovs=None, distlim=50):
     pheno_num = len(pheno_codes)
 
     # initiate empty matrices for cell neighborhood data
-    cell_neighbor_counts = np.zeros((all_data.shape[0], pheno_num + 2))
-    cell_neighbor_freqs = np.zeros((all_data.shape[0], pheno_num + 2))
-    cell_neighbor_counts[:, 0:2] = all_data[[fov_col, cell_label_col]]
-    cell_neighbor_freqs[:, 0:2] = all_data[[fov_col, cell_label_col]]
+    cell_neighbor_counts = pd.DataFrame(np.zeros((all_data.shape[0], pheno_num + 2)))
+    cell_neighbor_freqs = pd.DataFrame(np.zeros((all_data.shape[0], pheno_num + 2)))
+
+    # Replace the first and second columns of cell_neighbor_counts with the fovs and cell labels respectively
+    cell_neighbor_counts[0] = all_data[fov_col]
+    cell_neighbor_counts[1] = all_data[cell_label_col]
+    cell_neighbor_freqs[0] = all_data[fov_col]
+    cell_neighbor_freqs[1] = all_data[cell_label_col]
 
     for i in range(len(fovs)):
         # Subsetting expression matrix to only include patients with correct label

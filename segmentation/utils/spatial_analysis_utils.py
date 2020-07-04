@@ -280,6 +280,7 @@ def compute_neighbor_counts(fov_data, dist_matrix, distlim, pheno_num,
         # get all cell neighbors within threshold distance
         cell_dist_mat = dist_matrix[int(cell - 1), :]
         cell_dist_mat_bin = np.zeros(cell_dist_mat.shape)
+        # Binarize the cell_dist_mat, making all those within the distlim equal to 1
         cell_dist_mat_bin[cell_dist_mat < distlim] = 1
 
         # get indices (labels) of close cells
@@ -289,13 +290,15 @@ def compute_neighbor_counts(fov_data, dist_matrix, distlim, pheno_num,
 
         # count phenotypes in cell neighbors
         count_vec = np.zeros((1, pheno_num))
+        # Only include the neighbor labels that are cell labels
         neighbor_inds = np.isin(fov_data[cell_label_col], neighbor_labels_cells)
+        # Get the phenotypes of the neighbor labels by index
         pheno_vec = fov_data.iloc[neighbor_inds, 2]
         for k in range(1, pheno_num):
             count_vec[0, k - 1] = sum(pheno_vec == k)
         # add to neighborhood matrices
-        cell_neighbor_counts[cell_count, 2:] = count_vec[0, :]
-        cell_neighbor_freqs[cell_count, 2:] = count_vec[0, :] / len(neighbor_labels_cells)
+        cell_neighbor_counts.loc[cell_count, 2:] = count_vec[0, :]
+        cell_neighbor_freqs.loc[cell_count, 2:] = (count_vec[0, :] / len(neighbor_labels_cells))
         # update cell counts
         cell_count += 1
     return cell_neighbor_counts, cell_neighbor_freqs, cell_count

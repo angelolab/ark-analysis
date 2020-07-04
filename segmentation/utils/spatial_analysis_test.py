@@ -14,7 +14,7 @@ def make_threshold_mat():
     return thresh
 
 
-def make_distance_matrix(enrichment_type):
+def make_distance_matrix(enrichment_type, analysis_type="spatial"):
     # Make a distance matrix for no enrichment, positive enrichment, and negative enrichment
 
     if enrichment_type == "none":
@@ -63,7 +63,7 @@ def make_distance_matrix(enrichment_type):
         return dist_mat_neg
 
 
-def make_expression_matrix(enrichment_type):
+def make_expression_matrix(enrichment_type, analysis_type="spatial"):
     # Create the expression matrix with cell labels and patient labels for no enrichment,
     # positive enrichment, and negative enrichment.
 
@@ -292,16 +292,11 @@ def test_create_neighborhood_matrix():
     all_data_pos = make_expression_matrix("positive")
     dist_mat_pos = make_distance_matrix("positive")
 
-    all_data_pos.iloc[0:80, 30] = 8
-    all_data_pos.iloc[80:, 30] = 9
-    dist_mat_pos["8"] = dist_mat_pos.pop('Point8')
-    dist_mat_pos["9"] = dist_mat_pos.pop('Point9')
-
     counts, freqs = spatial_analysis.create_neighborhood_matrix(all_data_pos, dist_mat_pos, distlim=50)
-    assert (counts[:10, 2] == 8).all()
-    assert (counts[10:20, 3] == 8).all()
-    assert (counts[20:40, 2:4] == 4).all()
+    assert (counts.loc[:9, 2] == 8).all()
+    assert (counts.loc[10:19, 3] == 8).all()
+    assert ((counts.loc[20:39, 2:3] == 4).all()).all()
 
-    assert (counts[80:90, 3] == 8).all()
-    assert (counts[90:100, 2] == 8).all()
-    assert (counts[100:120, 2:4] == 4).all()
+    assert (counts.loc[80:89, 3] == 8).all()
+    assert (counts.loc[90:99, 2] == 8).all()
+    assert ((counts.loc[100:119, 2:3] == 4).all()).all()
