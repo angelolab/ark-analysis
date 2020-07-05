@@ -6,7 +6,7 @@ install:
   - mkdir /opt/segmentation
   - cp setup.py /opt/segmentation/.
   - cp -r segmentation /opt/segmentation/segmentation
-
+  - pip install /opt/segmentation
 
 env:
   - MPLBACKEND=Agg
