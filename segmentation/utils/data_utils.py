@@ -261,10 +261,8 @@ def tiffs_to_xr_labels(tiff_dir, output_dir=None, delimiter='_'):
     Outputs:
         Returns xarray and optionally saves it to output directory
     """
-    im_xr = \
-        load_imgs_from_dir(data_dir=tiff_dir,
-                           image_name='segmentation_label',
-                           delimiter=delimiter)
+    im_xr = load_imgs_from_dir(data_dir=tiff_dir, image_name='segmentation_label',
+                               delimiter=delimiter)
 
     if output_dir is not None:
         save_name = os.path.join(output_dir, 'segmentation_labels.xr')
@@ -351,8 +349,10 @@ def crop_helper(image_stack, crop_size):
     # figure out number of crops for final image
     crop_num_row = math.ceil(image_stack.shape[1] / crop_size)
     crop_num_col = math.ceil(image_stack.shape[2] / crop_size)
-    cropped_images = np.zeros((crop_num_row * crop_num_col * image_stack.shape[0],
-                               crop_size, crop_size, image_stack.shape[3]), dtype=image_stack.dtype)
+    cropped_images = np.zeros(
+        (crop_num_row * crop_num_col * image_stack.shape[0],
+            crop_size, crop_size, image_stack.shape[3]),
+        dtype=image_stack.dtype)
 
     # Determine if image will need to be padded with zeros due to uneven division by crop
     if image_stack.shape[1] % crop_size != 0 or image_stack.shape[2] % crop_size != 0:
