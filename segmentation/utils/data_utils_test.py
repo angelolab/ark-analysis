@@ -1,6 +1,7 @@
 import xarray as xr
 import numpy as np
 import os
+import pathlib
 import math
 import pytest
 import tempfile
@@ -23,6 +24,30 @@ def _create_img_dir(temp_dir, fovs, imgs, img_sub_folder="TIFs"):
             os.makedirs(fov_path)
         for img in imgs:
             io.imsave(os.path.join(fov_path, img), tif)
+
+
+def test_validate_paths():
+    valid_path = '.'
+
+    valid_parts = [p for p in pathlib.Path(valid_path).resolve().parts]
+    valid_parts[1] = 'not_a_real_directory'
+
+    starts_out_of_scope = os.path.join(*valid_parts)
+
+    entirely_out_of_scope = '/not_a_real_directory/somewhere_else_not_here'
+
+    nonexistant = './not_a_real_directory'
+
+    data_utils.validate_paths(valid_path)
+
+    with pytest.raises(ValueError, match=r".*starts*"):
+        data_utils.validate_paths(starts_out_of_scope)
+
+    with pytest.raises(ValueError, match=r".*Move*"):
+        data_utils.validate_paths(entirely_out_of_scope)
+
+    with pytest.raises(ValueError, match=r".*exist*"):
+        data_utils.validate_paths(nonexistant)
 
 
 def test_load_imgs_from_mibitiff():

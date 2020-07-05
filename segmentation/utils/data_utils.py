@@ -8,7 +8,6 @@ import xarray as xr
 from mibidata import tiff
 
 
-# TODO: Write test function for path validation
 def validate_paths(paths):
     """Verifys that paths exist and don't leave Docker's scope
 
@@ -19,18 +18,32 @@ def validate_paths(paths):
         Raises errors if any directory is out of scope or non-existent
     """
 
-    root = pathlib.Path('../../').resolve()
+    cwd_parts = pathlib.Path.cwd().parts
 
     if not isinstance(paths, list):
         paths = [paths]
 
     for path in paths:
-        if root not in [p.resolve() for p in pathlib.Path(path).parents]:
-            raise ValueError(
-                f'The path, {pathlib.Path(path).resolve()}, is outside of Docker\'s scope, '
-                f'{root}.\n'
-                f'Use relative paths which go no higher in scope than the segmentation folder')
-        elif not os.path.exists(path):
+        if not os.path.exists(path):
+            for part in cwd_parts:
+                if part == 'segmentation':
+                    break
+                if part not in pathlib.Path(path).parts:
+                    if 'segmentation' in pathlib.Path(path).parts:
+                        raise ValueError(
+                            f'The path, {pathlib.Path(path).resolve()},'
+                            f'starts outside of Docker\'s scope.\n'
+                            f'Use relative paths which go no higher in scope '
+                            f'than the segmentation folder')
+                    else:
+                        raise ValueError(
+                            f'The path, {pathlib.Path(path).resolve()}, '
+                            f'exists outside of Docker\'s scope.\n'
+                            f'Move data, files, etc from {pathlib.Path(path).resolve()} '
+                            f'into the segmentation folder.\n'
+                            f'Reference moved data using relative paths, '
+                            f'which go no higher in scope than the segmentation folder')
+
             raise ValueError(f"The folder path {pathlib.Path(path).resolve()}, does not exist...")
 
 
