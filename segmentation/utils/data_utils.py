@@ -8,8 +8,9 @@ import xarray as xr
 from mibidata import tiff
 
 
+# TODO: Write test function for path validation
 def validate_paths(paths):
-    """Verifys that folders exist and don't leave Docker's scope
+    """Verifys that paths exist and don't leave Docker's scope
 
     Args:
         paths: paths to verify.
@@ -17,6 +18,7 @@ def validate_paths(paths):
     Output:
         Raises errors if any directory is out of scope or non-existent
     """
+
     root = pathlib.Path('../../').resolve()
 
     if not isinstance(paths, list):
@@ -25,7 +27,8 @@ def validate_paths(paths):
     for path in paths:
         if root not in [p.resolve() for p in pathlib.Path(path).parents]:
             raise ValueError(
-                f'The path, {pathlib.Path(path).resolve()}, is outside of Dockers scope.\n'
+                f'The path, {pathlib.Path(path).resolve()}, is outside of Docker\'s scope, '
+                f'{root}.\n'
                 f'Use relative paths which go no higher in scope than the segmentation folder')
         elif not os.path.exists(path):
             raise ValueError(f"The folder path {pathlib.Path(path).resolve()}, does not exist...")

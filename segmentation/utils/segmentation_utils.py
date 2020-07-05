@@ -330,10 +330,9 @@ def extract_single_cell_data(segmentation_labels, image_data,
     Input:
         segmentation_labels: xarray containing a segmentation mask for each point
         image_data: xarray containing the imaging data for each point
-        save_dir: path to where the data  will be saved
         nuc_probs: xarray of deepcell_pixel nuclear probabilities for subcellular segmentation
     Output:
-        saves output to save_dir"""
+        returns both normalized and transformed data as pandas dataframes"""
 
     normalized_data = pd.DataFrame()
     transformed_data = pd.DataFrame()
