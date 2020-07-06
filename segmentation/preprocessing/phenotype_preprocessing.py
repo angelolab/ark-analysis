@@ -7,7 +7,7 @@ from segmentation.utils import data_utils, io_utils
 base_dir = '/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/data/datasets/'
 
 tnbc_dir = base_dir + '20200328_TNBC/fovs/new_good/'
-fovs = data_utils.load_imgs_from_dir(tnbc_dir, imgs=['Beta catenin.tiff', 'Pan-Keratin.tiff',
+fovs = data_utils.load_imgs_from_tree(tnbc_dir, imgs=['Beta catenin.tiff', 'Pan-Keratin.tiff',
                                                      'dsDNA.tiff', 'CD8.tiff', 'CD20.tiff',
                                                      'CD45.tiff', 'CD56.tiff'])
 
@@ -33,7 +33,7 @@ for fov in fov_names:
     shutil.copy(os.path.join(base_dir, 'no_noise', fov, 'TIFs/CD45.tif'),
                 os.path.join(base_dir, 'phenotyping_okay', fov, 'TIFs/CD45_denoised.tif'))
 
-phenotype_data = data_utils.load_imgs_from_dir(base_dir + 'phenotyping_okay', img_sub_folder='TIFs',
+phenotype_data = data_utils.load_imgs_from_tree(base_dir + 'phenotyping_okay', img_sub_folder='TIFs',
                                                imgs=['CD45_denoised.tif', 'HH3.tif', 'PanKRT.tif',
                                                      'SMA.tif', 'ECAD.tif', 'CD44.tif'])
 stitched_data = data_utils.stitch_images(phenotype_data, 5)
