@@ -11,9 +11,9 @@ import xarray as xr
 
 
 def direct_init_dist_matrix(num_A=100, num_B=100, num_C=100,
-    ab_dist_mean=100, ab_dist_var=1, ac_dist_mean=20, ac_dist_var=1,
-    distr_AB={'mean': 100, 'var': 1}, distr_AC={'mean': 20, 'var': 1},
-    seed=None):
+                            ab_dist_mean=100, ab_dist_var=1, ac_dist_mean=20, ac_dist_var=1,
+                            distr_AB={'mean': 100, 'var': 1}, distr_AC={'mean': 20, 'var': 1},
+                            seed=None):
     """
     This function will return a random dist matrix such that the distance between cells
     of types A and B are overall larger than the distance between cells of types A and C
@@ -76,10 +76,10 @@ def direct_init_dist_matrix(num_A=100, num_B=100, num_C=100,
 
 
 def point_init_dist_matrix(size_img=(1024, 1024), num_A=100, num_B=100, num_C=100,
-    distr_A={'centroid_factor': (0.5, 0.5), 'cov': [[200, 0], [0, 200]]},
-    distr_B={'centroid_factor': (0.9, 0.9), 'cov': [[200, 0], [0, 200]]},
-    distr_C={'centroid_factor': (0.4, 0.4), 'cov': [[200, 0], [0, 200]]},
-    seed=None):
+                           distr_A={'centroid_factor': (0.5, 0.5), 'cov': [[200, 0], [0, 200]]},
+                           distr_B={'centroid_factor': (0.9, 0.9), 'cov': [[200, 0], [0, 200]]},
+                           distr_C={'centroid_factor': (0.4, 0.4), 'cov': [[200, 0], [0, 200]]},
+                           seed=None):
     """
     This function generates random centroid centers in the form of a label map
     such that those of type A will have centers closer on average to those of type B
