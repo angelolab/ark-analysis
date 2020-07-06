@@ -4,15 +4,9 @@ import pandas as pd
 import skimage.measure
 import scipy
 import os
+from segmentation.utils import spatial_analysis_utils as sau
 from scipy.spatial.distance import cdist
-
-
-# Constants for random distance matrix generation
-AB_DIST_MEAN = 100
-AB_DIST_VAR = 1
-
-AC_DIST_MEAN = 20
-AC_DIST_VAR = 1
+from skimage.measure import label
 
 
 # Constants for random centroid matrix generation
@@ -25,7 +19,10 @@ B_CENTROID_COV = [[1, 0], [0, 1]]
 C_CENTROID_COV = [[1, 0], [0, 1]]
 
 
-def direct_init_dist_matrix(num_A=100, num_B=100, num_C=100, distr_AB=None, distr_AC=None, seed=None):
+def direct_init_dist_matrix(num_A=100, num_B=100, num_C=100,
+    ab_dist_mean=100, ab_dist_var=1, ac_dist_mean=20, ac_dist_var=1,
+    distr_AB={'mean': 100, 'var': 1}, distr_AC={'mean': 20, 'var': 1},
+    seed=None):
     """
     This function will return a random dist matrix such that the distance between cells
     of types A and B are overall larger than the distance between cells of types A and C
@@ -43,26 +40,19 @@ def direct_init_dist_matrix(num_A=100, num_B=100, num_C=100, distr_AB=None, dist
         num_B: the number of B cells we wish to generate. Default 100
         num_C: the number of C cells we wish to generate. Default 100
         distr_AB: if specified, will be a dict listing the mean and variance of the Gaussian distribution
-            we wish to generate numbers from. If None, use the default values.
-        distr_AC: similar to dist_AB. Default will have a higher mean value.
+            we wish to generate numbers from. Default mean=100 and var=1
+        distr_AC: similar to dist_AB. Default mean=20 and var=1
         seed: whether to fix the random seed or not. Useful for testing.
-            Should be a specified integer value. Default None.
+            Should be a specified integer value. Default 42.
     """
 
     # set the mean and variance of the Gaussian distributions of both AB and AC distances
-    if not distr_AB:
-        mean_ab = AB_DIST_MEAN
-        var_ab = AB_DIST_VAR
-    else:
-        mean_ab = distr_AB['mean']
-        var_ab = distr_AB['var']
 
-    if not distr_AC:
-        mean_ac = AC_DIST_MEAN
-        var_ac = AC_DIST_VAR
-    else:
-        mean_ac = distr_AC['mean']
-        var_ac = distr_AC['var']
+    mean_ab = distr_AB['mean']
+    var_ab = distr_AB['var']
+
+    mean_ac = ac_dist_mean
+    var_ac = ac_dist_var
 
     # set random seed if set
     if seed:
@@ -94,10 +84,15 @@ def direct_init_dist_matrix(num_A=100, num_B=100, num_C=100, distr_AB=None, dist
     return dist_mat
 
 
-def get_random_centroid_centers(size_img=(1024, 1024), num_A=100, num_B=100, num_C=100, distr_A=None, distr_B=None, distr_C=None, seed=None):
+def get_random_centroid_centers(size_img=(1024, 1024), num_A=100, num_B=100, num_C=100,
+    distr_A={'centroid_factor': (0.5, 0.5), 'cov': [[1, 0], [0, 1]]},
+    distr_B={'centroid_factor': (0.9, 0.9), 'cov': [[1, 0], [0, 1]]},
+    distr_C={'centroid_factor': (0.4, 0.4), 'cov': [[1, 0], [0, 1]]},
+    seed=None):
     """
-    This function generates random centroid centers such that those of type A will have centers
-    closer on average to those of type B than those of type C
+    This function generates random centroid centers in the form of a label map
+    such that those of type A will have centers closer on average to those of type B
+    than those of type C
 
     We will use a multivariate Gaussian distribution for A, B, and C type cells to generate their respective centers.
 
@@ -109,8 +104,11 @@ def get_random_centroid_centers(size_img=(1024, 1024), num_A=100, num_B=100, num
         num_B: the number of B centroids to generate. Default 100.
         num_C: the number of C centroids to generate. Default 100.
 
-        distr_A: a dict indicating the parameters of the multivariate normal distribution to generate A cell centroid.
-            If None, use predefined parameters.
+        distr_A: a dict indicating the parameters of the multivariate normal distribution to generate A cell centroids.
+            Params:
+                centroid_factor: a tuple to determine which number to multiply the height and width by
+                    to indicate the center (mean) of the distribution
+                cov: in the format [[varXX, varXY], [varYX, varYY]]
         distr_B: similar to distr_A
         distr_C: similar to distr_C
         seed: whether to fix the random seed or not. Useful for testing.
@@ -121,38 +119,55 @@ def get_random_centroid_centers(size_img=(1024, 1024), num_A=100, num_B=100, num
     height = size_img[0]
     width = size_img[1]
 
-    # set the distribution parameters, use the mean scaling factor and default covariance if not specified
-    if not distr_A:
-        a_mean = (height * A_CENTROID_FACTOR, width * A_CENTROID_FACTOR)
-        a_cov = A_CENTROID_COV
-    else:
-        mean_a = distr_A['mean']
-        var_a = distr_A['cov']
+    a_mean = (height * distr_A['centroid_factor'][0], width * distr_A['centroid_factor'][1])
+    a_cov = distr_A['cov']
 
-    if not distr_B:
-        b_mean = (height * B_CENTROID_FACTOR, width * B_CENTROID_FACTOR)
-        b_cov = B_CENTROID_COV
-    else:
-        mean_b = distr_B['mean']
-        var_b = distr_B['cov']
+    b_mean = (height * distr_B['centroid_factor'][0], width * distr_B['centroid_factor'][1])
+    b_cov = distr_B['cov']
 
-    if not distr_C:
-        c_mean = (height * C_CENTROID_FACTOR, width * C_CENTROID_FACTOR)
-        c_cov = C_CENTROID_COV
-    else:
-        mean_ac = distr_C['mean']
-        var_ac = distr_C['var']
+    c_mean = (height * distr_C['centroid_factor'][0], width * distr_C['centroid_factor'][1])
+    c_cov = distr_C['cov']
+
+    b_mean = (height * B_CENTROID_FACTOR, width * B_CENTROID_FACTOR)
+    b_cov = B_CENTROID_COV
 
     # if specified, set the random seed
     if seed:
         np.random.seed(seed)
 
     # use the multivariate_normal distribution to generate the points
-    a_points = np.random.multivariate_normal(a_mean, a_cov, num_A)
-    b_points = np.random.multivariate_normal(b_mean, b_cov, num_B)
-    c_points = np.random.multivariate_normal(c_mean, c_cov, num_C)
+    # because we're passing these into skimage.measure.label, it is important
+    # that we convert these to integers beforehand
+    # since label only takes a binary matrix
+    a_points = np.random.multivariate_normal(a_mean, a_cov, num_A).astype(np.int16)
+    b_points = np.random.multivariate_normal(b_mean, b_cov, num_B).astype(np.int16)
+    c_points = np.random.multivariate_normal(c_mean, c_cov, num_C).astype(np.int16)
 
-    return a_points, b_points, c_points
+    # because we have converted to int, it is more likely that points may overap, especially between a and b
+    # this check is just to remove any duplicate labelled points to prevent confusion
+    intersect_points = np.concatenate(
+        np.intersect1d(a_points, b_points), np.intersect1d(a_points, c_points), np.intersect1d(b_points, c_points))
+
+    # for simplicity, we just remove duplicate coordinates from all of a_points, b_points, and c_points
+    a_points = a_points[~a_points.isin(intersect_points)]
+    b_points = b_points[~b_points.isin(intersect_points)]
+    c_points = c_points[~c_points.isin(intersect_points)]
+
+    # get the x and y coords to index binary mat for assigning the matrix
+    a_rows, a_cols = zip(*a_points)
+    b_rows, b_cols = zip(*b_points)
+    c_rows, c_cols = zip(*c_points)
+
+    # generate the binary matrix to pass into label_map
+    binary_mat = np.zeros(size_img)
+    binary_mat[a_rows, a_cols] = True
+    binary_mat[b_rows, b_cols] = True
+    binary_mat[c_rows, c_cols] = True
+
+    # generate the label matrix for the image now
+    label_mat = label(binary_mat)
+
+    return label_mat
 
 
 def point_init_dist_matrix(size_img=(1024, 1024), num_A=100, num_B=100, num_C=100, distr_A=None, distr_B=None, distr_C=None, seed=None):
