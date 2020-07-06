@@ -4,10 +4,12 @@ import pandas as pd
 import skimage.measure
 import scipy
 import os
-# from segmentation.utils import spatial_analysis_utils as sau
+import xarray as xr
+import copy
+
+from segmentation.utils import spatial_analysis_utils as sau
 from scipy.spatial.distance import cdist
 from skimage.measure import label
-import xarray as xr
 
 
 def direct_init_dist_matrix(num_A=100, num_B=100, num_C=100,
@@ -150,8 +152,16 @@ def point_init_dist_matrix(size_img=(1024, 1024), num_A=100, num_B=100, num_C=10
     # generate the label matrix for the image now
     label_mat = label(binary_mat)
 
-    # TODO: is it necessary to convert label_mat into an xarray,
-    # because if we're passing this into Jay's calc_dist_matrix,
-    # it needs to be of xarray type meaning I also need to set
-    # the fovs and the segmentation_labels.
-    return label_mat
+    # TODO: check and see if we need to return just the label matrix or if we need to convert it to a distance matrix first
+    # now we're going to transform the data into a format that is compatible with calc_dist_matrix
+    sample_img = np.zeros((1, size_img[0], size_img[1], 1)).astype(np.int16)
+    sample_img[0, :, :, 0] = copy.deepcopy(label_mat)
+    sample_img_xr = xr.DataArray(sample_img,
+                                 coords=[[1], range(size_img[0]), range(size_img[1]), ['segmentation_label']],
+                                 dims=['fovs', 'rows', 'cols', 'channels'])
+
+    # then run the dist matrix calculation
+    dist_mat = sau.calc_dist_matrix(sample_img_xr)
+
+    # and return the actual distance matrix
+    return dist_mat[0]
