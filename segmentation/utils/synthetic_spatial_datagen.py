@@ -13,7 +13,6 @@ from skimage.measure import label
 
 
 def direct_init_dist_matrix(num_A=100, num_B=100, num_C=100,
-                            ab_dist_mean=100, ab_dist_var=1, ac_dist_mean=20, ac_dist_var=1,
                             distr_AB={'mean': 100, 'var': 1}, distr_AC={'mean': 20, 'var': 1},
                             seed=None):
     """
@@ -37,10 +36,14 @@ def direct_init_dist_matrix(num_A=100, num_B=100, num_C=100,
         distr_AC: similar to dist_AB. Default mean=20 and var=1
         seed: whether to fix the random seed or not. Useful for testing.
             Should be a specified integer value. Default 42.
+
+    Returns:
+        dist_mat: the randomized distance matrix we generate directly from predefined distributions
+            where the average distances between cell types of a and b > average distances between
+            cell types of b and c
     """
 
     # set the mean and variance of the Gaussian distributions of both AB and AC distances
-
     mean_ab = distr_AB['mean']
     var_ab = distr_AB['var']
 
@@ -62,14 +65,14 @@ def direct_init_dist_matrix(num_A=100, num_B=100, num_C=100,
     random_bc = np.random.normal(0, 1, (num_B, num_C))
     random_cc = np.random.normal(0, 1, (num_C, num_C))
 
-    # create each row one-by-one first
+    # create each partition one-by-one first
     # we need to correct each aa, bb, and cc matrix to ensure symmetry
-    first_row = np.concatenate(((random_aa + random_aa.T) / 2, random_ab, random_ac), axis=1)
-    second_row = np.concatenate((random_ab.T, (random_bb + random_bb.T) / 2, random_bc), axis=1)
-    third_row = np.concatenate((random_ac.T, random_bc.T, (random_cc + random_cc.T) / 2), axis=1)
+    a_partition = np.concatenate(((random_aa + random_aa.T) / 2, random_ab, random_ac), axis=1)
+    b_partition = np.concatenate((random_ab.T, (random_bb + random_bb.T) / 2, random_bc), axis=1)
+    c_partition = np.concatenate((random_ac.T, random_bc.T, (random_cc + random_cc.T) / 2), axis=1)
 
     # then concatenate them together
-    dist_mat = np.concatenate((first_row, second_row, third_row), axis=0)
+    dist_mat = np.concatenate((a_partition, b_partition, c_partition), axis=0)
 
     return dist_mat
 
@@ -103,6 +106,13 @@ def point_init_dist_matrix(size_img=(1024, 1024), num_A=100, num_B=100, num_C=10
         distr_C: similar to distr_C
         seed: whether to fix the random seed or not. Useful for testing.
             Should be a specified integer value. Default None.
+
+    Returns:
+        sample_img_xr: the data in xarray format containing the randomized label matrix
+            based on the randomized centroid centers we generated. The label mat portion
+            of sample_img_xr is generated from a randomly initialized set of cell centroids
+            where those of type a are on average closer to those of type b than they
+            are to those of type c.
     """
 
     # extract the height and width
@@ -149,16 +159,14 @@ def point_init_dist_matrix(size_img=(1024, 1024), num_A=100, num_B=100, num_C=10
     # generate the label matrix for the image now
     label_mat = label(binary_mat)
 
-    # TODO: check and see if we need to return just the label matrix or if we need to convert it to a distance matrix first
-    # now we're going to transform the data into a format that is compatible with calc_dist_matrix
+    # and create the output to be able to run through calc_dist_matrix
+    # for now, I'm assuming that the array returned will have just one fov
+    # and we don't know anything about the segmentation labels
     sample_img = np.zeros((1, size_img[0], size_img[1], 1)).astype(np.int16)
     sample_img[0, :, :, 0] = copy.deepcopy(label_mat)
     sample_img_xr = xr.DataArray(sample_img,
                                  coords=[[1], range(size_img[0]), range(size_img[1]), ['segmentation_label']],
                                  dims=['fovs', 'rows', 'cols', 'channels'])
 
-    # then run the dist matrix calculation
-    dist_mat = sau.calc_dist_matrix(sample_img_xr)
-
-    # and return the actual distance matrix
-    return dist_mat[0]
+    # and return the xarray to pass into calc_dist_matrix
+    return sample_img_xr
