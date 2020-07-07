@@ -1,16 +1,19 @@
 import os
-import skimage.measure
 import copy
 import warnings
 
+import scipy.ndimage as nd
 import numpy as np
+import pandas as pd
+
 import xarray as xr
+
 from skimage.feature import peak_local_max
+from skimage.measure import label, regionprops, regionprops_table
+
 import skimage.morphology as morph
 from skimage.segmentation import relabel_sequential
 import skimage.io as io
-import pandas as pd
-import scipy.ndimage as nd
 
 
 from segmentation.utils import plot_utils, signal_extraction_utils
@@ -74,8 +77,8 @@ def watershed_transform(model_output, channel_xr, overlay_channels, output_dir, 
         xr.DataArray(np.zeros((model_output.shape[:-1] + (1,)), dtype="int16"),
                      coords=[model_output.fovs, range(model_output.shape[1]),
                              range(model_output.shape[2]),
-                             ['segmentation_label']],
-                     dims=['fovs', 'rows', 'cols', 'channels'])
+                             ['whole_cell']],
+                     dims=['fovs', 'rows', 'cols', 'compartments'])
 
     # error check model selected for local maxima finding in the image
     model_list = ["pixelwise_interior", "watershed_inner", "watershed_outer",
@@ -122,7 +125,7 @@ def watershed_transform(model_output, channel_xr, overlay_channels, output_dir, 
                                            selem=morph.square(nuclear_expansion * 2 + 1))
 
         # use maxs to generate seeds for watershed
-        markers = skimage.measure.label(maxs, connectivity=1)
+        markers = label(maxs, connectivity=1)
 
         # watershed over negative interior mask
         labels = np.array(morph.watershed(-interior_smoothed, markers,
@@ -200,7 +203,7 @@ def watershed_transform(model_output, channel_xr, overlay_channels, output_dir, 
                                                                      chan_list[1],
                                                                      chan_list[2])))
 
-        segmentation_labels_xr.loc[fov, :, :, 'segmentation_label'] = random_map
+        segmentation_labels_xr.loc[fov, :, :, 'whole_cell'] = random_map
 
     save_name = os.path.join(output_dir, 'segmentation_labels.xr')
     if os.path.exists(save_name):
@@ -275,12 +278,13 @@ def combine_segmentation_masks(big_mask_xr, small_mask_xr, size_threshold,
         format="NETCDF3_64BIT")
 
 
-def segment_images(input_images, segmentation_masks):
+def compute_marker_counts(input_images, segmentation_masks, nuclear_counts=False):
     """Extract single cell protein expression data from channel TIFs for a single point
 
         Args:
             input_images (xarray): rows x columns x channels matrix of imaging data
-            segmentation_masks (numpy array): rows x columns x mask_type matrix of segmentation data
+            segmentation_masks (numpy array): rows x columns x compartment matrix of masks
+            nuclear_counts: boolean flag to determine whether nuclear counts are returned
 
         Returns:
             xr_counts: xarray containing segmented data of cells x markers"""
@@ -297,103 +301,92 @@ def segment_images(input_images, segmentation_masks):
     unique_cell_num = len(np.unique(segmentation_masks.values).astype('int'))
 
     # create np.array to hold subcellular_loc x channel x cell info
-    cell_counts = np.zeros((len(segmentation_masks.subcell_loc), unique_cell_num,
+    cell_counts = np.zeros((len(segmentation_masks.compartments), unique_cell_num,
                             len(input_images.channels) + 1))
 
     col_names = np.concatenate((np.array('cell_size'), input_images.channels), axis=None)
     xr_counts = xr.DataArray(copy.copy(cell_counts),
-                             coords=[segmentation_masks.subcell_loc,
+                             coords=[segmentation_masks.compartments,
                                      np.unique(segmentation_masks.values).astype('int'), col_names],
-                             dims=['subcell_loc', 'cell_id', 'features'])
+                             dims=['compartments', 'cell_id', 'features'])
 
-    # loop through each segmentation mask
-    for subcell_loc in segmentation_masks.subcell_loc:
-        # get regionprops for each mask
-        cell_props = skimage.measure.regionprops(segmentation_masks.loc[:, :, subcell_loc].values)
+    # get regionprops for each cell
+    cell_props = regionprops(segmentation_masks.loc[:, :, 'whole_cell'].values)
 
-        # loop through each cell in mask
-        for cell in cell_props:
-            # get coords corresponding to current cell
-            cell_coords = cell.coords.T
+    # loop through each cell in mask
+    for cell in cell_props:
+        # get coords corresponding to current cell.
+        # TODO: This is faster than mask-based indexing, but leads to confusing code. Is there
+        # TODO a better way to use mask-based indexing to extract counts?
+        cell_coords = cell.coords.T
 
-            # calculate the total signal intensity within cell
-            channel_counts = signal_extraction_utils.default_extraction(cell_coords, input_images)
-            xr_counts.loc[subcell_loc, cell.label, xr_counts.features[1]:] = channel_counts
-            xr_counts.loc[subcell_loc, cell.label, xr_counts.features[0]] = cell.area
+        # calculate the total signal intensity within cell
+        cell_counts = signal_extraction_utils.default_extraction(cell_coords, input_images)
+        xr_counts.loc['whole_cell', cell.label, xr_counts.features[1]:] = cell_counts
+        xr_counts.loc['whole_cell', cell.label, xr_counts.features[0]] = cell.area
+
+        if nuclear_counts:
+            # only include cell_coords that overlap with a nuclear label
+            nuc_coords = []
+            nuc_mask = segmentation_masks.loc[:, :, 'nuclear']
+            for idx in range(cell_coords.shape[1]):
+                if nuc_mask[cell_coords[0, idx], cell_coords[1, idx]] > 0:
+                    nuc_coords.append(cell_coords[:, idx])
+
+            # extract data from nuclear coords
+            nuc_coords = np.stack(nuc_coords, axis=-1)
+            nuc_counts = signal_extraction_utils.default_extraction(nuc_coords, input_images)
+            xr_counts.loc['nuclear', cell.label, xr_counts.features[1]:] = nuc_counts
+            xr_counts.loc['nuclear', cell.label, xr_counts.features[0]] = nuc_coords.shape[1]
 
     return xr_counts
 
 
-def extract_single_cell_data(segmentation_labels, image_data,
-                             nuc_probs=None):
-    """Extract single cell data from a set of images with provided segmentation mask
-    Input:
-        segmentation_labels: xarray containing a segmentation mask for each point
-        image_data: xarray containing the imaging data for each point
-        nuc_probs: xarray of deepcell_pixel nuclear probabilities for subcellular segmentation
-    Output:
-        returns both normalized and transformed data as pandas dataframes"""
+def generate_expression_matrix(segmentation_labels, image_data, nuclear_counts=False):
+    """Create a matrix of cells by channels with the total counts of each marker in each cell.
 
+    Args:
+        segmentation_labels: xarray of shape [fovs, rows, cols, compartment] containing
+            segmentation masks for each FOV, potentially across multiple cell compartments
+        image_data: xarray containing all of the channel data across all FOVs
+        nuclear_counts: boolean flag to determine whether nuclear counts are returned
+
+    Returns:
+        pd.DataFrame: marker counts per cell normalized by cell size
+        pd.DataFrame: marker counts per cell normalized by cell size and arcsinh transformed
+    """
+
+    # initialize data frames
     normalized_data = pd.DataFrame()
     transformed_data = pd.DataFrame()
 
+    if nuclear_counts:
+        if 'nuclear' not in segmentation_labels.compartments:
+            raise ValueError("Nuclear counts set to True, but not nuclear mask provided")
+
+    # loop over each FOV in the dataset
     for fov in segmentation_labels.fovs.values:
         print("extracting data from {}".format(fov))
 
-        segmentation_label = segmentation_labels.loc[fov, :, :, "segmentation_label"]
+        # current mask
+        segmentation_label = segmentation_labels.loc[fov, :, :, :]
 
-        # if nuclear probabilities supplied, perform subcellular segmentation
-        if nuc_probs is not None:
-            # generate nuclear-specific mask for subcellular segmentation
-            nuc_prob = nuc_probs.loc[fov, :, :, "nuclear_interior_smoothed"]
-            nuc_mask = nuc_prob > 0.3
+        # extract the counts per cell for each marker
+        cell_data = compute_marker_counts(image_data.loc[fov, :, :, :], segmentation_label,
+                                          nuclear_counts=nuclear_counts)
 
-            # duplicate whole cell data, then subtract nucleus for cytoplasm
-            cyto_label = copy.deepcopy(segmentation_label)
-            cyto_label[nuc_mask] = 0
-
-            # nuclear data
-            nuc_label = copy.deepcopy(segmentation_label)
-            nuc_label[~nuc_mask] = 0
-
-            # signal assigned to bg
-            bg_label = np.zeros(segmentation_label.shape)
-            bg_label[segmentation_label == 0] = 1
-
-            # save different masks to single object
-            masks = np.zeros((segmentation_label.shape[0],
-                              segmentation_label.shape[1], 4), dtype="int16")
-            masks[:, :, 0] = segmentation_label
-            masks[:, :, 1] = nuc_label
-            masks[:, :, 2] = cyto_label
-            masks[:, :, 3] = bg_label
-
-            segmentation_masks = xr.DataArray(copy.copy(masks),
-                                              coords=[range(segmentation_labels.shape[1]),
-                                                      range(segmentation_labels.shape[2]),
-                                                      ['cell_mask', 'nuc_mask',
-                                                       'cyto_mask', 'bg_mask']],
-                                              dims=['rows', 'cols', 'subcell_loc'])
-
-        # otherwise, just extract a single sum for each unique cell in the image
-        else:
-            masks = np.expand_dims(segmentation_label.values, axis=-1)
-            masks = masks.astype('int16')
-            segmentation_masks = xr.DataArray(masks, coords=[range(segmentation_label.shape[0]),
-                                                             range(segmentation_label.shape[1]),
-                                                             ['cell_mask']],
-                                              dims=['rows', 'cols', 'subcell_loc'])
-
-        # segment images based on supplied masks
-        cell_data = segment_images(image_data.loc[fov, :, :, :], segmentation_masks)
+        # remove the cell corresponding to background
         cell_data = cell_data[:, 1:, :]
 
-        cell_props = skimage.measure.regionprops_table(
-            segmentation_masks[:, :, 0].values.astype('int16'),
-            properties=["label", "area", "eccentricity", "major_axis_length",
-                        "minor_axis_length", "perimeter"])
+        # get morphology information
+        # TODO: generate nuclear morphology information in addition to cell
+        cell_props = regionprops_table(segmentation_label[:, :, 0].values.astype('int16'),
+                                       properties=["label", "area", "eccentricity",
+                                                   "major_axis_length",
+                                                   "minor_axis_length", "perimeter"])
         cell_props = pd.DataFrame(cell_props)
 
+        # TODO: Refactor this into separate normalization functions
         # create version of data normalized by cell size
         cell_data_norm = copy.deepcopy(cell_data)
         cell_size = cell_data.values[:, :, 0:1]
