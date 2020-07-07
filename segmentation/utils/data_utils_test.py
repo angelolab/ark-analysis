@@ -1,6 +1,7 @@
 import xarray as xr
 import numpy as np
 import os
+import pathlib
 import math
 import pytest
 import tempfile
@@ -19,9 +20,34 @@ def _create_img_dir(temp_dir, fovs, imgs, img_sub_folder="TIFs"):
 
     for fov in fovs:
         fov_path = os.path.join(temp_dir, fov, img_sub_folder)
-        os.makedirs(fov_path)
+        if not os.path.exists(fov_path):
+            os.makedirs(fov_path)
         for img in imgs:
             io.imsave(os.path.join(fov_path, img), tif)
+
+
+def test_validate_paths():
+    valid_path = '.'
+
+    valid_parts = [p for p in pathlib.Path(valid_path).resolve().parts]
+    valid_parts[1] = 'not_a_real_directory'
+
+    starts_out_of_scope = os.path.join(*valid_parts)
+
+    entirely_out_of_scope = '/not_a_real_directory/somewhere_else_not_here'
+
+    nonexistant = './not_a_real_directory'
+
+    data_utils.validate_paths(valid_path)
+
+    with pytest.raises(ValueError, match=r".*starts*"):
+        data_utils.validate_paths(starts_out_of_scope)
+
+    with pytest.raises(ValueError, match=r".*Move*"):
+        data_utils.validate_paths(entirely_out_of_scope)
+
+    with pytest.raises(ValueError, match=r".*exist*"):
+        data_utils.validate_paths(nonexistant)
 
 
 def test_load_imgs_from_mibitiff():
@@ -60,8 +86,9 @@ def test_load_imgs_from_mibitiff_all_channels():
                                   (tiff.read(mibitiff_files[0])).data)
 
 
-def test_load_imgs_from_dir():
-    with tempfile.TemporaryDirectory() as temp_dir:
+def test_load_imgs_from_tree():
+    # test loading from within fov directories
+    with tempfile.TemporaryDirectory(prefix='fovs') as temp_dir:
         fovs = ["fov1", "fov2", "fov3"]
         imgs = ["img1.tiff", "img2.tiff", "img3.tiff"]
         chans = [chan.split(".tiff")[0] for chan in imgs]
@@ -69,7 +96,7 @@ def test_load_imgs_from_dir():
 
         # check default loading of all files
         test_loaded_xr = \
-            data_utils.load_imgs_from_dir(temp_dir, img_sub_folder="TIFs", dtype="int16")
+            data_utils.load_imgs_from_tree(temp_dir, img_sub_folder="TIFs", dtype="int16")
 
         # make sure all folders loaded
         assert np.array_equal(test_loaded_xr.fovs, fovs)
@@ -83,8 +110,8 @@ def test_load_imgs_from_dir():
         some_chans = chans[:2]
 
         test_subset_xr = \
-            data_utils.load_imgs_from_dir(temp_dir, img_sub_folder="TIFs", dtype="int16",
-                                          fovs=some_fovs, imgs=some_imgs)
+            data_utils.load_imgs_from_tree(temp_dir, img_sub_folder="TIFs", dtype="int16",
+                                           fovs=some_fovs, imgs=some_imgs)
 
         # make sure specified folders loaded
         assert np.array_equal(test_subset_xr.fovs, some_fovs)
@@ -92,10 +119,20 @@ def test_load_imgs_from_dir():
         # make sure specified channels loaded
         assert np.array_equal(test_subset_xr.channels, some_chans)
 
-        # make sure that load axis can be specified
-        test_loaded_xr = data_utils.load_imgs_from_dir(
-            temp_dir, img_sub_folder="TIFs", dtype="int16", load_axis="stacks")
-        assert (test_loaded_xr.dims[0] == "stacks")
+
+def test_load_imgs_from_dir():
+    # test loading from 'free' directory
+    with tempfile.TemporaryDirectory(prefix='one_file') as temp_dir:
+        imgs = ["fov1_img1.tiff", "fov2_img2.tiff", "fov3_img3.tiff"]
+        fovs = [img.split("_")[0] for img in imgs]
+        _create_img_dir(temp_dir, fovs=[""], imgs=imgs, img_sub_folder="")
+
+        # check default loading
+        test_loaded_xr = \
+            data_utils.load_imgs_from_dir(temp_dir, delimiter='_')
+
+        # make sure grouping by file prefix was effective
+        assert np.array_equal(test_loaded_xr.fovs, fovs)
 
 
 def test_combine_xarrays():
@@ -155,7 +192,7 @@ def test_crop_helper():
 
 def test_crop_image_stack():
     # test without overlap (stride_fraction = 1)
-    crop_input = np.zeros((4, 1024, 1024, 4))
+    crop_input = np.zeros((4, 1024, 1024, 4), dtype="int16")
     crop_size = 128
     stride_fraction = 1
 
@@ -166,7 +203,7 @@ def test_crop_image_stack():
     assert np.array_equal(cropped.shape, (num_crops, crop_size, crop_size, crop_input.shape[3]))
 
     # test with overlap
-    crop_input = np.zeros((4, 1024, 1024, 4))
+    crop_input = np.zeros((4, 1024, 1024, 4), dtype="int16")
     crop_size = 128
     stride_fraction = 0.25
 
