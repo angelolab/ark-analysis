@@ -4,7 +4,7 @@ import os
 import pytest
 import tempfile
 
-from segmentation.utils import segmentation_utils, plot_utils
+from segmentation.utils import segmentation_utils
 
 
 def _generate_deepcell_ouput(fov_num=2):
@@ -152,7 +152,7 @@ def test_watershed_transform():
                                                    overlay_channels=overlay_channels)
 
 
-def test_segment_images():
+def test_compute_marker_counts():
     # first create cell masks
     cell_mask = np.zeros((40, 40), dtype='int16')
     cell_mask[4:10, 4:8] = 1
@@ -177,41 +177,59 @@ def test_segment_images():
     cell2 = cell_mask == 2
     channel_data[cell2, 4] = 10
 
-    cell_xr = xr.DataArray(np.expand_dims(cell_mask, axis=-1),
-                           coords=[range(40), range(40), ["cell_mask"]],
-                           dims=["rows", "cols", "subcell_loc"])
+    # create xarray containing segmentation mask
+    coords = [range(40), range(40), ['whole_cell']]
+    dims = ['rows', 'cols', 'compartments']
+    segmentation_masks = xr.DataArray(np.expand_dims(cell_mask, axis=-1), coords=coords, dims=dims)
 
-    channel_xr = xr.DataArray(channel_data, coords=[range(40), range(40),
-                                                    ["chan0", "chan1", "chan2", "chan3", "chan4"]],
-                              dims=["rows", "cols", "channels"])
+    # create xarray with channel data
+    coords = [range(40), range(40), ['chan0', 'chan1', 'chan2', 'chan3', 'chan4']]
+    dims = ['rows', 'cols', 'channels']
+    input_images = xr.DataArray(channel_data, coords=coords, dims=dims)
 
-    segmentation_output = segmentation_utils.segment_images(channel_xr, cell_xr)
+    segmentation_output = \
+        segmentation_utils.compute_marker_counts(input_images=input_images,
+                                                 segmentation_masks=segmentation_masks)
 
     # check that channel 0 counts are same as cell size
-    assert np.array_equal(segmentation_output.loc["cell_mask", :, "cell_size"].values,
-                          segmentation_output.loc["cell_mask", :, "chan0"].values)
+    assert np.array_equal(segmentation_output.loc['whole_cell', :, 'cell_size'].values,
+                          segmentation_output.loc['whole_cell', :, 'chan0'].values)
 
     # check that channel 1 counts are 5x cell size
-    assert np.array_equal(segmentation_output.loc["cell_mask", :, "cell_size"].values * 5,
-                          segmentation_output.loc["cell_mask", :, "chan1"].values)
+    assert np.array_equal(segmentation_output.loc['whole_cell', :, 'cell_size'].values * 5,
+                          segmentation_output.loc['whole_cell', :, 'chan1'].values)
 
     # check that channel 2 counts are the same as channel 1
-    assert np.array_equal(segmentation_output.loc["cell_mask", :, "chan2"].values,
-                          segmentation_output.loc["cell_mask", :, "chan1"].values)
+    assert np.array_equal(segmentation_output.loc['whole_cell', :, 'chan2'].values,
+                          segmentation_output.loc['whole_cell', :, 'chan1'].values)
 
     # check that only cell1 is negative for channel 3
-    assert segmentation_output.loc["cell_mask", :, "chan3"][1] == 0
-    assert np.all(segmentation_output.loc["cell_mask", :, "chan3"][2:] > 0)
+    assert segmentation_output.loc['whole_cell', :, 'chan3'][1] == 0
+    assert np.all(segmentation_output.loc['whole_cell', :, 'chan3'][2:] > 0)
 
     # check that only cell2 is positive for channel 4
-    assert segmentation_output.loc["cell_mask", :, "chan4"][2] > 0
-    assert np.all(segmentation_output.loc["cell_mask", :, "chan4"][:2] == 0)
-    assert np.all(segmentation_output.loc["cell_mask", :, "chan4"][3:] == 0)
+    assert segmentation_output.loc['whole_cell', :, 'chan4'][2] > 0
+    assert np.all(segmentation_output.loc['whole_cell', :, 'chan4'][:2] == 0)
+    assert np.all(segmentation_output.loc['whole_cell', :, 'chan4'][3:] == 0)
 
     # check that cell sizes are correct
     sizes = np.sum(cell_mask == -1), np.sum(cell_mask == 1), np.sum(cell_mask == 2), \
         np.sum(cell_mask == 3)
-    assert np.array_equal(sizes, segmentation_output.loc["cell_mask", :3, "cell_size"])
+    assert np.array_equal(sizes, segmentation_output.loc['whole_cell', :3, 'cell_size'])
+
+    # test whole_cell and nuclear compartments with same data
+    equal_masks = np.stack((cell_mask, cell_mask), axis=-1)
+    # create xarray containing segmentation mask
+    coords = [range(40), range(40), ['whole_cell', 'nuclear']]
+    dims = ['rows', 'cols', 'compartments']
+    segmentation_masks_equal = xr.DataArray(equal_masks, coords=coords, dims=dims)
+
+    segmentation_output_combined = \
+        segmentation_utils.compute_marker_counts(input_images=input_images,
+                                                 segmentation_masks=segmentation_masks_equal,
+                                                 nuclear_counts=True)
+
+    assert np.all(segmentation_output_combined[0].values == segmentation_output_combined[1].values)
 
 
 def test_extract_single_cell_data():
