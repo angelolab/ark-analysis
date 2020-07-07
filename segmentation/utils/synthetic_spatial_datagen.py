@@ -24,9 +24,6 @@ def direct_init_dist_matrix(num_A=100, num_B=100, num_C=100,
     Ideally, the parameters for A to B distances will be set such that they produce a lower range of values
     than A to C distances.
 
-    Will return a random distance matrix as well as the dictionary of associated cell: label IDs
-    The above is generated from the generate_labels function
-
     Args:
         num_A: the number of A cells we wish to generate. Default 100
         num_B: the number of B cells we wish to generate. Default 100
