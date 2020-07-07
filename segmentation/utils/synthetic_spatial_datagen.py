@@ -71,9 +71,6 @@ def direct_init_dist_matrix(num_A=100, num_B=100, num_C=100,
     # then concatenate them together
     dist_mat = np.concatenate((first_row, second_row, third_row), axis=0)
 
-    # assert that the created submatrix is symmetric
-    assert np.allclose(dist_mat, dist_mat.T, rtol=1e-05, atol=1e-08)
-
     return dist_mat
 
 
