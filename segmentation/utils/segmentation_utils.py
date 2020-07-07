@@ -335,18 +335,19 @@ def compute_marker_counts(input_images, segmentation_masks, nuclear_counts=False
             nuc_coords = np.stack(nuc_coords, axis=-1)
             nuc_counts = signal_extraction_utils.default_extraction(nuc_coords, input_images)
             xr_counts.loc['nuclear', cell.label, xr_counts.features[1]:] = nuc_counts
-            xr_counts.loc['nuclear', cell.label, xr_counts.features[0]] = cell.area
+            xr_counts.loc['nuclear', cell.label, xr_counts.features[0]] = nuc_coords.shape[1]
 
     return xr_counts
 
 
-def generate_expression_matrix(segmentation_labels, image_data, compartme):
+def generate_expression_matrix(segmentation_labels, image_data, nuclear_counts=False):
     """Create a matrix of cells by channels with the total counts of each marker in each cell.
 
     Args:
         segmentation_labels: xarray of shape [fovs, rows, cols, compartment] containing
             segmentation masks for each FOV, potentially across multiple cell compartments
         image_data: xarray containing all of the channel data across all FOVs
+        nuclear_counts: boolean flag to determine whether nuclear counts are returned
 
     Returns:
         pd.DataFrame: marker counts per cell normalized by cell size
@@ -357,6 +358,10 @@ def generate_expression_matrix(segmentation_labels, image_data, compartme):
     normalized_data = pd.DataFrame()
     transformed_data = pd.DataFrame()
 
+    if nuclear_counts:
+        if 'nuclear' not in segmentation_labels.compartments:
+            raise ValueError("Nuclear counts set to True, but not nuclear mask provided")
+
     # loop over each FOV in the dataset
     for fov in segmentation_labels.fovs.values:
         print("extracting data from {}".format(fov))
@@ -365,13 +370,15 @@ def generate_expression_matrix(segmentation_labels, image_data, compartme):
         segmentation_label = segmentation_labels.loc[fov, :, :, :]
 
         # extract the counts per cell for each marker
-        cell_data = segment_images(image_data.loc[fov, :, :, :], segmentation_label)
+        cell_data = compute_marker_counts(image_data.loc[fov, :, :, :], segmentation_label,
+                                          nuclear_counts=nuclear_counts)
 
         # remove the cell corresponding to background
         cell_data = cell_data[:, 1:, :]
 
         # get morphology information
-        cell_props = regionprops_table(segmentation_label.values.astype('int16'),
+        # TODO: generate nuclear morphology information in addition to cell
+        cell_props = regionprops_table(segmentation_label[:, :, 0].values.astype('int16'),
                                        properties=["label", "area", "eccentricity",
                                                    "major_axis_length",
                                                    "minor_axis_length", "perimeter"])
