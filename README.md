@@ -14,7 +14,7 @@ Once it's sucessfully installed, make sure it is running by looking in toolbar f
 
 ```
 $ cd segmentation
-$ docker build -t $USER/segmentation .
+$ docker build -t segmentation .
 ``` 
 
 You've now installed the code base. Whenever you want to run the scripts, enter the following command into terminal from the same directory you ran the above commands:
