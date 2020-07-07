@@ -77,8 +77,8 @@ def watershed_transform(model_output, channel_xr, overlay_channels, output_dir, 
         xr.DataArray(np.zeros((model_output.shape[:-1] + (1,)), dtype="int16"),
                      coords=[model_output.fovs, range(model_output.shape[1]),
                              range(model_output.shape[2]),
-                             ['segmentation_label']],
-                     dims=['fovs', 'rows', 'cols', 'channels'])
+                             ['whole_cell']],
+                     dims=['fovs', 'rows', 'cols', 'compartments'])
 
     # error check model selected for local maxima finding in the image
     model_list = ["pixelwise_interior", "watershed_inner", "watershed_outer",
@@ -203,7 +203,7 @@ def watershed_transform(model_output, channel_xr, overlay_channels, output_dir, 
                                                                      chan_list[1],
                                                                      chan_list[2])))
 
-        segmentation_labels_xr.loc[fov, :, :, 'segmentation_label'] = random_map
+        segmentation_labels_xr.loc[fov, :, :, 'whole_cell'] = random_map
 
     save_name = os.path.join(output_dir, 'segmentation_labels.xr')
     if os.path.exists(save_name):
