@@ -47,8 +47,8 @@ def direct_init_dist_matrix(num_A=100, num_B=100, num_C=100,
     mean_ab = distr_AB['mean']
     var_ab = distr_AB['var']
 
-    mean_ac = ac_dist_mean
-    var_ac = ac_dist_var
+    mean_ac = distr_AC['mean']
+    var_ac = distr_AC['var']
 
     # set random seed if set
     if seed:
