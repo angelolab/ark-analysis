@@ -150,11 +150,11 @@ def point_init_dist_matrix(size_img=(1024, 1024), num_A=100, num_B=100, num_C=10
     if len(non_dup_points) == 0:
         raise ValueError("Bad run: no unique points generated. Try again, will work next time.")
 
-    rows, cols = zip(*non_dup_points)
+    point_x_coords, point_y_coords = zip(*non_dup_points)
 
     # generate the binary matrix to pass into label_map
     binary_mat = np.zeros(size_img)
-    binary_mat[rows, cols] = True
+    binary_mat[point_x_coords, point_y_coords] = True
 
     # generate the label matrix for the image now
     label_mat = label(binary_mat)
