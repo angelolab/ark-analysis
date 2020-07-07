@@ -315,7 +315,9 @@ def compute_marker_counts(input_images, segmentation_masks, nuclear_counts=False
 
     # loop through each cell in mask
     for cell in cell_props:
-        # get coords corresponding to current cell. This is much faster than mask-based indexing
+        # get coords corresponding to current cell.
+        # TODO: This is faster than mask-based indexing, but leads to confusing code. Is there
+        # TODO a better way to use mask-based indexing to extract counts?
         cell_coords = cell.coords.T
 
         # calculate the total signal intensity within cell
@@ -384,6 +386,7 @@ def generate_expression_matrix(segmentation_labels, image_data, nuclear_counts=F
                                                    "minor_axis_length", "perimeter"])
         cell_props = pd.DataFrame(cell_props)
 
+        # TODO: Refactor this into separate normalization functions
         # create version of data normalized by cell size
         cell_data_norm = copy.deepcopy(cell_data)
         cell_size = cell_data.values[:, :, 0:1]

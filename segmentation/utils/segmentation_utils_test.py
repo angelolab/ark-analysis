@@ -221,9 +221,8 @@ def test_compute_marker_counts():
     assert np.all(segmentation_output.loc['whole_cell', :, 'chan4'][3:] == 0)
 
     # check that cell sizes are correct
-    sizes = np.sum(cell_mask == -1), np.sum(cell_mask == 1), np.sum(cell_mask == 2), \
-        np.sum(cell_mask == 3)
-    assert np.array_equal(sizes, segmentation_output.loc['whole_cell', :3, 'cell_size'])
+    sizes = [np.sum(cell_mask == cell_id) for cell_id in [1, 2, 3, 4]]
+    assert np.array_equal(sizes, segmentation_output.loc['whole_cell', 1:, 'cell_size'])
 
     # test whole_cell and nuclear compartments with same data
     equal_masks = np.stack((cell_mask, cell_mask), axis=-1)
@@ -254,7 +253,6 @@ def test_compute_marker_counts():
                                                  segmentation_masks=segmentation_masks_unequal,
                                                  nuclear_counts=True)
 
-
     # TODO: Right now these tests are copied from above, can think about refactoring
     # check that channel 0 counts are same as cell size
     assert np.array_equal(segmentation_output_unequal.loc['nuclear', :, 'cell_size'].values,
@@ -278,9 +276,8 @@ def test_compute_marker_counts():
     assert np.all(segmentation_output_unequal.loc['nuclear', :, 'chan4'][3:] == 0)
 
     # check that cell sizes are correct
-    sizes = np.sum(nuc_mask == -1), np.sum(nuc_mask == 1), np.sum(nuc_mask == 2), \
-            np.sum(nuc_mask == 3)
-    assert np.array_equal(sizes, segmentation_output_unequal.loc['nuclear', :3, 'cell_size'])
+    sizes = [np.sum(nuc_mask == cell_id) for cell_id in [1, 2, 3, 4]]
+    assert np.array_equal(sizes, segmentation_output_unequal.loc['nuclear', 1:, 'cell_size'])
 
 
 def test_generate_expression_matrix():
@@ -331,3 +328,7 @@ def test_generate_expression_matrix():
                                                                             channel_data)
 
     assert normalized.shape[0] == 7
+
+    assert np.all(normalized['chan0'] == np.repeat(1, len(normalized)))
+    assert np.all(normalized['chan1'] == np.repeat(5, len(normalized)))
+    assert np.all(normalized['chan2'] == normalized['chan2'])
