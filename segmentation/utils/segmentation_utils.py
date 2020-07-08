@@ -329,8 +329,8 @@ def transform_expression_matrix(cell_data, transform, transform_kwargs={}):
     # get start and end indices of channel data. We skip the 0th entry, which is cell size
     channel_start = 1
 
-    # we include columns up to 'area', which is the first morphology metric
-    channel_end = np.where(cell_data.features == 'area')[0][0]
+    # we include columns up to 'label', which is the first non-channel column
+    channel_end = np.where(cell_data.features == 'label')[0][0]
 
     if transform == 'size_norm':
 
@@ -505,7 +505,7 @@ def generate_expression_matrix(segmentation_labels, image_data, nuclear_counts=F
 
         if nuclear_counts:
             # append nuclear counts pandas array with modified column name
-            nuc_column_names = [feature + '_nuclear' for feature in marker_counts.features]
+            nuc_column_names = [feature + '_nuclear' for feature in marker_counts.features.values]
 
             # add nuclear counts to size normalized data
             normalized_nuc = pd.DataFrame(data=marker_counts_norm.loc['nuclear', :, :].values,

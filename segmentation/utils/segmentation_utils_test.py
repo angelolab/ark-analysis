@@ -222,15 +222,13 @@ def test_find_nuclear_mask_id():
         assert predicted_nuc == true_nuc_ids[idx]
 
 
-# TODO: add tests for multiple compartments, tests with some cells = 0
+# TODO: refactor to avoid code reuse
 def test_transform_expression_matrix():
     # create expression matrix
-    cell_data = np.array([[5, 5, 10, 15, 7, 7, 7],
-                          [6, 6, 12, 18, 8, 8, 8],
-                          [7, 14, 7, 21, 10, 10, 10]], dtype='float16')
-    cell_data = np.expand_dims(cell_data, axis=0)
+    cell_data = np.random.choice([0, 1, 2, 3, 4], 70, replace=True)
+    cell_data = cell_data.reshape((1, 10, 7)).astype('float')
 
-    coords = [['whole_cell'], [1, 2, 3],
+    coords = [['whole_cell'], list(range(10)),
               ['cell_size', 'chan1', 'chan2', 'chan3', 'area', 'morph_1', 'morph_2']]
     dims = ['compartments', 'cell_id', 'features']
 
@@ -248,9 +246,55 @@ def test_transform_expression_matrix():
 
     # TODO: In general it's bad practice for tests to call the same function as code under test
     for cell in cell_data.cell_id:
-        normalized_vals = np.divide(cell_data.loc[:, cell, modified_cols].values,
-                                    cell_data.loc[:, cell, 'cell_size'].values)
-        assert np.array_equal(normalized_data.loc[:, cell, modified_cols].values, normalized_vals)
+        if cell_data.loc['whole_cell', cell, 'cell_size'] != 0:
+            normalized_vals = np.divide(cell_data.loc['whole_cell', cell, modified_cols].values,
+                                        cell_data.loc['whole_cell', cell, 'cell_size'].values)
+            assert np.array_equal(normalized_data.loc['whole_cell', cell, modified_cols].values,
+                                  normalized_vals)
+
+    # test arcsinh transform
+    transform_kwargs = {'linear_factor': 1}
+    arcsinh_data = segmentation_utils.transform_expression_matrix(cell_data,
+                                                                  transform='arcsinh',
+                                                                  transform_kwargs=transform_kwargs)
+
+    assert np.array_equal(arcsinh_data.loc[:, :, unchanged_cols].values,
+                          cell_data.loc[:, :, unchanged_cols].values)
+
+    # TODO: In general it's bad practice for tests to call the same function as code under test
+    for cell in cell_data.cell_id:
+        arcsinh_vals = np.arcsinh(cell_data.loc[:, cell, modified_cols].values)
+        assert np.array_equal(arcsinh_data.loc[:, cell, modified_cols].values, arcsinh_vals)
+
+
+def test_transform_expression_matrix_multiple_compartments():
+    # create expression matrix
+    cell_data = np.random.choice([0, 1, 2, 3, 4], 140, replace=True)
+    cell_data = cell_data.reshape((2, 10, 7)).astype('float')
+
+    coords = [['whole_cell', 'nuclear'], list(range(10)),
+              ['cell_size', 'chan1', 'chan2', 'chan3', 'area', 'morph_1', 'morph_2']]
+    dims = ['compartments', 'cell_id', 'features']
+
+    cell_data = xr.DataArray(cell_data, coords=coords, dims=dims)
+
+    unchanged_cols = ['cell_size', 'area', 'morph_1', 'morph_2']
+    modified_cols = ['chan1', 'chan2', 'chan3']
+
+    # test size_norm
+    normalized_data = segmentation_utils.transform_expression_matrix(cell_data,
+                                                                     transform='size_norm')
+
+    assert np.array_equal(normalized_data.loc[:, :, unchanged_cols].values,
+                          cell_data.loc[:, :, unchanged_cols].values)
+
+    # TODO: In general it's bad practice for tests to call the same function as code under test
+    for cell in cell_data.cell_id:
+        if cell_data.loc['whole_cell', cell, 'cell_size'] != 0:
+            normalized_vals = np.divide(cell_data.loc['whole_cell', cell, modified_cols].values,
+                                        cell_data.loc['whole_cell', cell, 'cell_size'].values)
+            assert np.array_equal(normalized_data.loc['whole_cell', cell, modified_cols].values,
+                                  normalized_vals)
 
     # test arcsinh transform
     transform_kwargs = {'linear_factor': 1}
@@ -376,6 +420,7 @@ def test_compute_marker_counts():
                           segmentation_output_unequal.loc['nuclear', 1:, 'area'])
 
 
+# TODO: refactor these tests to share code
 def test_generate_expression_matrix():
     cell_mask, channel_data = _create_test_extraction_data()
 
@@ -406,3 +451,49 @@ def test_generate_expression_matrix():
     assert np.all(normalized['chan0'] == np.repeat(1, len(normalized)))
     assert np.all(normalized['chan1'] == np.repeat(5, len(normalized)))
     assert np.all(normalized['chan2'] == normalized['chan2'])
+
+
+def test_generate_expression_matrix_multiple_compartments():
+    cell_mask, channel_data = _create_test_extraction_data()
+
+    # generate data for two fovs offset
+    cell_masks = np.zeros((2, 40, 40, 1), dtype="int16")
+    cell_masks[0, :, :, 0] = cell_mask
+    cell_masks[1, 5:, 5:, 0] = cell_mask[:-5, :-5]
+
+    channel_datas = np.zeros((2, 40, 40, 5), dtype="int16")
+    channel_datas[0, :, :, :] = channel_data
+    channel_datas[1, 5:, 5:, :] = channel_data[:-5, :-5]
+
+    # generate a second set of nuclear masks that are smaller than cell masks
+    nuc_masks = np.zeros_like(cell_masks)
+    nuc_masks[0, :, :, 0] = erosion(cell_masks[0, :, :, 0], selem=morph.disk(1))
+    nuc_masks[1, :, :, 0] = erosion(cell_masks[1, :, :, 0], selem=morph.disk(1))
+
+    # cell 2 in fov0 has no nucleus
+    nuc_masks[0, nuc_masks[0, :, :, 0] == 2, 0] = 0
+
+    unequal_masks = np.concatenate((cell_masks, nuc_masks), axis=-1)
+    coords = [["Point0", "Point1"], range(40), range(40), ['whole_cell', 'nuclear']]
+    dims = ['fovs', 'rows', 'cols', 'compartments']
+    segmentation_masks_unequal = xr.DataArray(unequal_masks, coords=coords, dims=dims)
+
+
+    channel_data = xr.DataArray(channel_datas,
+                                coords=[["Point0", "Point1"], range(40), range(40),
+                                        ["chan0", "chan1", "chan2", "chan3", "chan4"]],
+                                dims=["fovs", "rows", "cols", "channels"])
+
+    normalized, arcsinh = segmentation_utils.generate_expression_matrix(segmentation_masks_unequal,
+                                                                        channel_data,
+                                                                        nuclear_counts=True)
+
+    assert normalized.shape[0] == 7
+
+    assert np.all(normalized['chan0'] == np.repeat(1, len(normalized)))
+    assert np.all(normalized['chan1'] == np.repeat(5, len(normalized)))
+    assert np.all(normalized['chan2'] == normalized['chan2'])
+
+    # check that missing nucleus has size 0
+    index = np.logical_and(normalized['label'] == 2, normalized['fov'] == 'Point0')
+    assert normalized.loc[index, 'cell_size_nuclear'].values == 0
