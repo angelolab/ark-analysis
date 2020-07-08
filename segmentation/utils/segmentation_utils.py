@@ -16,7 +16,7 @@ from skimage.segmentation import relabel_sequential
 import skimage.io as io
 
 
-from segmentation.utils import plot_utils, signal_extraction_utils
+from segmentation.utils import plot_utils, signal_extraction
 
 
 def watershed_transform(model_output, channel_xr, overlay_channels, output_dir, fovs=None,
@@ -290,7 +290,7 @@ def find_nuclear_mask_id(nuc_segmentation_mask, cell_coords):
             returns None.
     """
 
-    ids, counts = np.unique(nuc_segmentation_mask[cell_coords], return_counts=True)
+    ids, counts = np.unique(nuc_segmentation_mask[tuple(cell_coords.T)], return_counts=True)
 
     max_id = ids[np.argmax(counts)]
 
@@ -317,7 +317,8 @@ def compute_marker_counts(input_images, segmentation_masks, nuclear_counts=False
             nuclear_counts: boolean flag to determine whether nuclear counts are returned
 
         Returns:
-            xr_counts: xarray containing segmented data of cells x markers"""
+            xr_counts: xarray containing segmented data of cells x markers
+    """
 
     if type(input_images) is not xr.DataArray:
         raise ValueError("Incorrect data type for ground_truth, expecting xarray")
@@ -330,18 +331,22 @@ def compute_marker_counts(input_images, segmentation_masks, nuclear_counts=False
 
     unique_cell_num = len(np.unique(segmentation_masks.values).astype('int'))
 
+    # define morphology properties to be extracted from regionprops
     object_properties = ["label", "area", "eccentricity", "major_axis_length",
                          "minor_axis_length", "perimeter", 'coords']
 
+    # create labels for array holding channel counts and morphology metrics
+    feature_names = np.concatenate((np.array('cell_size'), input_images.channels,
+                                    object_properties[:-1]), axis=None)
+
     # create np.array to hold compartment x cell x feature info
     marker_counts_array = np.zeros((len(segmentation_masks.compartments), unique_cell_num,
-                                    len(input_images.channels) + 1))
+                                    len(feature_names)))
 
-    col_names = np.concatenate((np.array('cell_size'), input_images.channels), axis=None)
     marker_counts = xr.DataArray(copy.copy(marker_counts_array),
                                  coords=[segmentation_masks.compartments,
                                          np.unique(segmentation_masks.values).astype('int'),
-                                         col_names],
+                                         feature_names],
                                  dims=['compartments', 'cell_id', 'features'])
 
     # get regionprops for each cell
@@ -355,15 +360,19 @@ def compute_marker_counts(input_images, segmentation_masks, nuclear_counts=False
     # loop through each cell in mask
     for cell_id in cell_props['label']:
         # get coords corresponding to current cell.
-        # TODO: This is faster than mask-based indexing, but leads to confusing code. Is there
-        # TODO a better way to use mask-based indexing to extract counts?
         cell_coords = cell_props.loc[cell_props['label'] == cell_id, 'coords'].values[0]
 
         # calculate the total signal intensity within cell
-        cell_counts = signal_extraction_utils.default_extraction(cell_coords, input_images)
+        cell_counts = signal_extraction.default_extraction(cell_coords, input_images)
+
+        # get morphology metrics
+        current_cell_props = cell_props.loc[cell_props['label'] == cell_id, object_properties[:-1]]
+
+        # combine marker counts and morphology metrics together
+        cell_features = np.concatenate((cell_counts, current_cell_props), axis=None)
 
         # add counts of each marker to appropriate column
-        marker_counts.loc['whole_cell', cell_id, marker_counts.features[1]:] = cell_counts
+        marker_counts.loc['whole_cell', cell_id, marker_counts.features[1]:] = cell_features
 
         # add cell size to first column
         marker_counts.loc['whole_cell', cell_id, marker_counts.features[0]] = cell_coords.shape[0]
@@ -372,18 +381,29 @@ def compute_marker_counts(input_images, segmentation_masks, nuclear_counts=False
             # get id of corresponding nucleus
             nuc_id = find_nuclear_mask_id(nuc_segmentation_mask=nuc_mask, cell_coords=cell_coords)
 
-            # only include cell_coords that overlap with a nuclear label
-            nuc_coords = []
-            nuc_mask = segmentation_masks.loc[:, :, 'nuclear']
-            for idx in range(cell_coords.shape[1]):
-                if nuc_mask[cell_coords[0, idx], cell_coords[1, idx]] > 0:
-                    nuc_coords.append(cell_coords[:, idx])
+            if nuc_id is None:
+                # no nucleus found within this cell
+                pass
+            else:
+                # get coordinates of corresponding nucleus
+                nuc_coords = nuc_props.loc[nuc_props['label'] == nuc_id, 'coords'].values[0]
 
-            # extract data from nuclear coords
-            nuc_coords = np.stack(nuc_coords, axis=-1)
-            nuc_counts = signal_extraction_utils.default_extraction(nuc_coords, input_images)
-            marker_counts.loc['nuclear', cell.label, marker_counts.features[1]:] = nuc_counts
-            marker_counts.loc['nuclear', cell.label, marker_counts.features[0]] = nuc_coords.shape[0]
+                # extract nuclear signal
+                nuc_counts = signal_extraction.default_extraction(nuc_coords, input_images)
+
+                # get morphology metrics
+                current_nuc_props = nuc_props.loc[
+                    nuc_props['label'] == nuc_id, object_properties[:-1]]
+
+                # combine marker counts and morphology metrics together
+                nuc_features = np.concatenate((nuc_counts, current_nuc_props), axis=None)
+
+                # add counts of each marker to appropriate column
+                marker_counts.loc['nuclear', nuc_id, marker_counts.features[1]:] = nuc_features
+
+                # add cell size to first column
+                marker_counts.loc['nuclear', nuc_id, marker_counts.features[0]] = \
+                    nuc_coords.shape[0]
 
     return marker_counts
 
@@ -409,6 +429,9 @@ def generate_expression_matrix(segmentation_labels, image_data, nuclear_counts=F
     if nuclear_counts:
         if 'nuclear' not in segmentation_labels.compartments:
             raise ValueError("Nuclear counts set to True, but not nuclear mask provided")
+
+    if not np.all(set(segmentation_labels.fovs) == set(image_data.fovs)):
+        raise ValueError("The same FOVs must be present in the segmentation labels and images")
 
     # loop over each FOV in the dataset
     for fov in segmentation_labels.fovs.values:

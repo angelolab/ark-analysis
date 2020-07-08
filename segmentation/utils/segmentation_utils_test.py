@@ -185,9 +185,9 @@ def test_watershed_transform():
 
 def test_find_nuclear_mask_id():
     # create cell labels with 5 distinct cells
-    cell_labels = np.zeros((60, 60), dtype='int')
+    cell_labels = np.zeros((60, 10), dtype='int')
     for i in range(6):
-        cell_labels[(i * 10):(i * 10 + 8), (i * 10):(i * 10 + 8)] = i + 1
+        cell_labels[(i * 10):(i * 10 + 8), :8] = i + 1
 
     # create nuc labels with varying degrees of overlap
     nuc_labels = np.zeros((60, 60), dtype='int')
@@ -196,20 +196,20 @@ def test_find_nuclear_mask_id():
     nuc_labels[:8, :8] = 1
 
     # greater than majority overlap
-    nuc_labels[10:16, 10:16] = 2
+    nuc_labels[10:16, :6] = 2
 
     # only partial overlap
-    nuc_labels[20:23, 20:23] = 3
+    nuc_labels[20:23, :3] = 3
 
     # no overlap for cell 4
 
     # two cells overlapping, larger cell_id correct
-    nuc_labels[40:48, 40:42] = 5
-    nuc_labels[40:48, 42:48] = 20
+    nuc_labels[40:48, :2] = 5
+    nuc_labels[40:48, 2:8] = 20
 
     # two cells overlapping, background is highest
-    nuc_labels[50:58, 50:51] = 21
-    nuc_labels[50:58, 51:53] = 6
+    nuc_labels[50:58, :1] = 21
+    nuc_labels[50:58, 1:3] = 6
 
     true_nuc_ids = [1, 2, 3, None, 20, 6]
 
@@ -217,9 +217,8 @@ def test_find_nuclear_mask_id():
 
     # check that predicted nuclear id is correct for all cells in image
     for idx, prop in enumerate(cell_props):
-        cell_coords = prop.coords.T
         predicted_nuc = segmentation_utils.find_nuclear_mask_id(nuc_segmentation_mask=nuc_labels,
-                                                                cell_coords=cell_coords)
+                                                                cell_coords=prop.coords)
 
         assert predicted_nuc == true_nuc_ids[idx]
 

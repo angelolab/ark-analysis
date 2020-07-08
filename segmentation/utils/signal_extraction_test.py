@@ -16,7 +16,7 @@ def test_default_extraction():
                        [2, 2],
                        [3, 3]])
 
-    channel_counts = signal_extraction_utils.default_extraction(cell_coords=coords,
-                                                                image_data=combined_channels)
+    channel_counts = signal_extraction.default_extraction(cell_coords=coords,
+                                                          image_data=combined_channels)
 
     assert np.all(channel_counts == [4, 8, 20])
