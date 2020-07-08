@@ -222,11 +222,12 @@ def test_find_nuclear_mask_id():
         assert predicted_nuc == true_nuc_ids[idx]
 
 
-def test_normalize_expression_matrix():
+# TODO: add tests for multiple compartments, tests with some cells = 0
+def test_transform_expression_matrix():
     # create expression matrix
     cell_data = np.array([[5, 5, 10, 15, 7, 7, 7],
                           [6, 6, 12, 18, 8, 8, 8],
-                          [7, 14, 7, 21, 10, 10, 10]])
+                          [7, 14, 7, 21, 10, 10, 10]], dtype='float16')
     cell_data = np.expand_dims(cell_data, axis=0)
 
     coords = [['whole_cell'], [1, 2, 3],
@@ -235,21 +236,36 @@ def test_normalize_expression_matrix():
 
     cell_data = xr.DataArray(cell_data, coords=coords, dims=dims)
 
-    normalized_data = segmentation_utils.normalize_expression_matrix(cell_data)
-
     unchanged_cols = ['cell_size', 'area', 'morph_1', 'morph_2']
-    normalized_cols = ['chan1', 'chan2', 'chan3']
+    modified_cols = ['chan1', 'chan2', 'chan3']
+
+    # test size_norm
+    normalized_data = segmentation_utils.transform_expression_matrix(cell_data,
+                                                                     transform='size_norm')
+
     assert np.array_equal(normalized_data.loc[:, :, unchanged_cols].values,
                           cell_data.loc[:, :, unchanged_cols].values)
 
+    # TODO: In general it's bad practice for tests to call the same function as code under test
     for cell in cell_data.cell_id:
-        normalized_vals = np.divide(cell_data.loc[:, cell, normalized_cols].values,
+        normalized_vals = np.divide(cell_data.loc[:, cell, modified_cols].values,
                                     cell_data.loc[:, cell, 'cell_size'].values)
-        assert np.array_equal(normalized_data.loc[:, cell, normalized_cols].values,
-                              normalized_vals)
+        assert np.array_equal(normalized_data.loc[:, cell, modified_cols].values, normalized_vals)
 
-    # TODO: test for multiple compartents
-    
+    # test arcsinh transform
+    transform_kwargs = {'linear_factor': 1}
+    arcsinh_data = segmentation_utils.transform_expression_matrix(cell_data,
+                                                                  transform='arcsinh',
+                                                                  transform_kwargs=transform_kwargs)
+
+    assert np.array_equal(arcsinh_data.loc[:, :, unchanged_cols].values,
+                          cell_data.loc[:, :, unchanged_cols].values)
+
+    # TODO: In general it's bad practice for tests to call the same function as code under test
+    for cell in cell_data.cell_id:
+        arcsinh_vals = np.arcsinh(cell_data.loc[:, cell, modified_cols].values)
+        assert np.array_equal(arcsinh_data.loc[:, cell, modified_cols].values, arcsinh_vals)
+
 
 # TODO: The testing for this function can be improved. Repeated code, and lots of manual checks
 def test_compute_marker_counts():
@@ -382,8 +398,8 @@ def test_generate_expression_matrix():
                                         ["chan0", "chan1", "chan2", "chan3", "chan4"]],
                                 dims=["fovs", "rows", "cols", "channels"])
 
-    normalized, transformed = segmentation_utils.generate_expression_matrix(segmentation_masks,
-                                                                            channel_data)
+    normalized, arcsinh = segmentation_utils.generate_expression_matrix(segmentation_masks,
+                                                                        channel_data)
 
     assert normalized.shape[0] == 7
 

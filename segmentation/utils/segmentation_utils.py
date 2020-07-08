@@ -308,20 +308,23 @@ def find_nuclear_mask_id(nuc_segmentation_mask, cell_coords):
     return nuclear_mask_id
 
 
-def normalize_expression_matrix(cell_data):
-    """Size normalize an xarray of marker counts
+def transform_expression_matrix(cell_data, transform, transform_kwargs={}):
+    """Transform an xarray of marker counts with supplied transformation
 
     Args:
         cell_data: xarray containing marker expression values
+        transform: the type of transform to apply. Must be one of ['size_norm', 'arcsinh']
 
     Returns:
         cell_data_norm: counts per marker normalized by cell size
     """
+    valid_transforms = ['size_norm', 'arcsinh']
 
-    cell_data_norm = copy.deepcopy(cell_data)
+    if transform not in valid_transforms:
+        raise ValueError('Invalid transform supplied')
 
-    # get the size of each cell
-    cell_size = cell_data.values[:, :, 0:1]
+    # generate array to hold transformed data
+    cell_data_transformed = copy.deepcopy(cell_data)
 
     # get start and end indices of channel data. We skip the 0th entry, which is cell size
     channel_start = 1
@@ -329,15 +332,30 @@ def normalize_expression_matrix(cell_data):
     # we include columns up to 'area', which is the first morphology metric
     channel_end = np.where(cell_data.features == 'area')[0][0]
 
-    # generate cell_size array that is broadcast to have the same shape as the channels
-    cell_size_large = np.repeat(cell_size, channel_end - channel_start, axis=2)
+    if transform == 'size_norm':
 
-    # Only calculate where cell_size > 0
-    cell_data_norm.values[:, :, channel_start:channel_end] = \
-        np.divide(cell_data_norm.values[:, :, channel_start:channel_end],
-                  cell_size_large, where=cell_size_large > 0)
+        # get the size of each cell
+        cell_size = cell_data.values[:, :, 0:1]
 
-    return cell_data_norm
+        # generate cell_size array that is broadcast to have the same shape as the channels
+        cell_size_large = np.repeat(cell_size, channel_end - channel_start, axis=2)
+
+        # Only calculate where cell_size > 0
+        cell_data_transformed.values[:, :, channel_start:channel_end] = \
+            np.divide(cell_data_transformed.values[:, :, channel_start:channel_end],
+                      cell_size_large, where=cell_size_large > 0)
+
+    elif transform == 'arcsinh':
+        linear_factor = transform_kwargs.get('linear_factor', 100)
+
+        # first linearly scale the data
+        cell_data_transformed.values[:, :, channel_start:channel_end] *= linear_factor
+
+        # arcsinh transformation
+        cell_data_transformed.values[:, :, channel_start:channel_end] = \
+            np.arcsinh(cell_data_transformed[:, :, channel_start:channel_end].values)
+
+    return cell_data_transformed
 
 
 def compute_marker_counts(input_images, segmentation_masks, nuclear_counts=False):
@@ -448,13 +466,13 @@ def generate_expression_matrix(segmentation_labels, image_data, nuclear_counts=F
 
     # initialize data frames
     normalized_data = pd.DataFrame()
-    transformed_data = pd.DataFrame()
+    arcsinh_data = pd.DataFrame()
 
     if nuclear_counts:
         if 'nuclear' not in segmentation_labels.compartments:
             raise ValueError("Nuclear counts set to True, but not nuclear mask provided")
 
-    if not np.all(set(segmentation_labels.fovs) == set(image_data.fovs)):
+    if not np.all(set(segmentation_labels.fovs.values) == set(image_data.fovs.values)):
         raise ValueError("The same FOVs must be present in the segmentation labels and images")
 
     # loop over each FOV in the dataset
@@ -465,36 +483,48 @@ def generate_expression_matrix(segmentation_labels, image_data, nuclear_counts=F
         segmentation_label = segmentation_labels.loc[fov, :, :, :]
 
         # extract the counts per cell for each marker
-        cell_data = compute_marker_counts(image_data.loc[fov, :, :, :], segmentation_label,
-                                          nuclear_counts=nuclear_counts)
+        marker_counts = compute_marker_counts(image_data.loc[fov, :, :, :], segmentation_label,
+                                              nuclear_counts=nuclear_counts)
 
         # remove the cell corresponding to background
-        cell_data = cell_data[:, 1:, :]
+        marker_counts = marker_counts[:, 1:, :]
 
         # normalize counts by cell size
-        cell_data_norm = normalize_expression_matrix(cell_data)
+        marker_counts_norm = transform_expression_matrix(marker_counts, transform='size_norm')
 
         # arcsinh transform the data
+        marker_counts_arcsinh = transform_expression_matrix(marker_counts_norm,
+                                                            transform='arcsinh')
 
-        cell_data_norm_linscale = copy.deepcopy(cell_data_norm)
-        cell_data_norm_linscale.values[:, :, 1:] = cell_data_norm_linscale.values[:, :, 1:] * 100
+        # add data from each FOV to array
+        normalized = pd.DataFrame(data=marker_counts_norm.loc['whole_cell', :, :].values,
+                                  columns=marker_counts_norm.features)
 
-        # arcsinh transformation
-        cell_data_norm_trans = copy.deepcopy(cell_data_norm_linscale)
-        cell_data_norm_trans.values[:, :, 1:] = np.arcsinh(cell_data_norm_trans[:, :, 1:])
+        arcsinh = pd.DataFrame(data=marker_counts_arcsinh.values[0, :, :],
+                               columns=marker_counts_arcsinh.features)
 
-        transformed = pd.DataFrame(data=cell_data_norm_trans.values[0, :, :],
-                                   columns=cell_data.features)
-        transformed = pd.concat([transformed, cell_props], axis=1)
-        transformed['fov'] = fov
-        transformed_data = transformed_data.append(transformed)
+        if nuclear_counts:
+            # append nuclear counts pandas array with modified column name
+            nuc_column_names = [feature + '_nuclear' for feature in marker_counts.features]
 
-        normalized = pd.DataFrame(data=cell_data_norm.values[0, :, :], columns=cell_data.features)
-        normalized = pd.concat([normalized, cell_props], axis=1)
+            # add nuclear counts to size normalized data
+            normalized_nuc = pd.DataFrame(data=marker_counts_norm.loc['nuclear', :, :].values,
+                                          columns=nuc_column_names)
+            normalized = pd.concat((normalized, normalized_nuc), axis=1)
+
+            # add nuclear counts to arcsinh transformed data
+            arcsinh_nuc = pd.DataFrame(data=marker_counts_arcsinh.loc['nuclear', :, :].values,
+                                       columns=nuc_column_names)
+            arcsinh = pd.concat((arcsinh, arcsinh_nuc), axis=1)
+
+        # add column for current FOV
         normalized['fov'] = fov
         normalized_data = normalized_data.append(normalized)
 
-    return normalized_data, transformed_data
+        arcsinh['fov'] = fov
+        arcsinh_data = arcsinh_data.append(arcsinh)
+
+    return normalized_data, arcsinh_data
 
 
 def concatenate_csv(base_dir, csv_files, column_name="point", column_values=None):
