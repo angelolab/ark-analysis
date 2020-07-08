@@ -308,6 +308,38 @@ def find_nuclear_mask_id(nuc_segmentation_mask, cell_coords):
     return nuclear_mask_id
 
 
+def normalize_expression_matrix(cell_data):
+    """Size normalize an xarray of marker counts
+
+    Args:
+        cell_data: xarray containing marker expression values
+
+    Returns:
+        cell_data_norm: counts per marker normalized by cell size
+    """
+
+    cell_data_norm = copy.deepcopy(cell_data)
+
+    # get the size of each cell
+    cell_size = cell_data.values[:, :, 0:1]
+
+    # get start and end indices of channel data. We skip the 0th entry, which is cell size
+    channel_start = 1
+
+    # we include columns up to 'area', which is the first morphology metric
+    channel_end = np.where(cell_data.features == 'area')[0][0]
+
+    # generate cell_size array that is broadcast to have the same shape as the channels
+    cell_size_large = np.repeat(cell_size, channel_end - channel_start, axis=2)
+
+    # Only calculate where cell_size > 0
+    cell_data_norm.values[:, :, channel_start:channel_end] = \
+        np.divide(cell_data_norm.values[:, :, channel_start:channel_end],
+                  cell_size_large, where=cell_size_large > 0)
+
+    return cell_data_norm
+
+
 def compute_marker_counts(input_images, segmentation_masks, nuclear_counts=False):
     """Extract single cell protein expression data from channel TIFs for a single point
 
@@ -319,15 +351,6 @@ def compute_marker_counts(input_images, segmentation_masks, nuclear_counts=False
         Returns:
             xr_counts: xarray containing segmented data of cells x markers
     """
-
-    if type(input_images) is not xr.DataArray:
-        raise ValueError("Incorrect data type for ground_truth, expecting xarray")
-
-    if type(segmentation_masks) is not xr.DataArray:
-        raise ValueError("Incorrect data type for masks, expecting xarray")
-
-    if input_images.shape[:-1] != segmentation_masks.shape[:-1]:
-        raise ValueError("Image data and segmentation masks have different dimensions")
 
     unique_cell_num = len(np.unique(segmentation_masks.values).astype('int'))
 
@@ -357,6 +380,7 @@ def compute_marker_counts(input_images, segmentation_masks, nuclear_counts=False
         nuc_mask = segmentation_masks.loc[:, :, 'nuclear'].values
         nuc_props = pd.DataFrame(regionprops_table(nuc_mask, properties=object_properties))
 
+    # TODO: There's some repeated code here, maybe worth refactoring? Maybe not
     # loop through each cell in mask
     for cell_id in cell_props['label']:
         # get coords corresponding to current cell.
@@ -447,26 +471,10 @@ def generate_expression_matrix(segmentation_labels, image_data, nuclear_counts=F
         # remove the cell corresponding to background
         cell_data = cell_data[:, 1:, :]
 
-        # get morphology information
-        # TODO: generate nuclear morphology information in addition to cell
-        cell_props = regionprops_table(segmentation_label[:, :, 0].values.astype('int16'),
-                                       properties=["label", "area", "eccentricity",
-                                                   "major_axis_length",
-                                                   "minor_axis_length", "perimeter"])
-        cell_props = pd.DataFrame(cell_props)
+        # normalize counts by cell size
+        cell_data_norm = normalize_expression_matrix(cell_data)
 
-        # TODO: Refactor this into separate normalization functions
-        # create version of data normalized by cell size
-        cell_data_norm = copy.deepcopy(cell_data)
-        cell_size = cell_data.values[:, :, 0:1]
-
-        # generate cell_size array that is broadcast to have the same shape as the data
-        cell_size_large = np.repeat(cell_size, cell_data.shape[2] - 1, axis=2)
-
-        # exclude first column (cell size) from area normalization.
-        # Only calculate where cell_size > 0
-        cell_data_norm.values[:, :, 1:] = np.divide(cell_data_norm.values[:, :, 1:],
-                                                    cell_size_large, where=cell_size_large > 0)
+        # arcsinh transform the data
 
         cell_data_norm_linscale = copy.deepcopy(cell_data_norm)
         cell_data_norm_linscale.values[:, :, 1:] = cell_data_norm_linscale.values[:, :, 1:] * 100

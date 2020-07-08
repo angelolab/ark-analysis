@@ -62,7 +62,6 @@ def _create_test_extraction_data():
     return cell_mask, channel_data
 
 
-# TODO: add better test data for the actual local maxima/thresholding functionality
 def test_watershed_transform():
     model_output = _generate_deepcell_ouput()
     channel_data = _generate_channel_xr()
@@ -223,6 +222,36 @@ def test_find_nuclear_mask_id():
         assert predicted_nuc == true_nuc_ids[idx]
 
 
+def test_normalize_expression_matrix():
+    # create expression matrix
+    cell_data = np.array([[5, 5, 10, 15, 7, 7, 7],
+                          [6, 6, 12, 18, 8, 8, 8],
+                          [7, 14, 7, 21, 10, 10, 10]])
+    cell_data = np.expand_dims(cell_data, axis=0)
+
+    coords = [['whole_cell'], [1, 2, 3],
+              ['cell_size', 'chan1', 'chan2', 'chan3', 'area', 'morph_1', 'morph_2']]
+    dims = ['compartments', 'cell_id', 'features']
+
+    cell_data = xr.DataArray(cell_data, coords=coords, dims=dims)
+
+    normalized_data = segmentation_utils.normalize_expression_matrix(cell_data)
+
+    unchanged_cols = ['cell_size', 'area', 'morph_1', 'morph_2']
+    normalized_cols = ['chan1', 'chan2', 'chan3']
+    assert np.array_equal(normalized_data.loc[:, :, unchanged_cols].values,
+                          cell_data.loc[:, :, unchanged_cols].values)
+
+    for cell in cell_data.cell_id:
+        normalized_vals = np.divide(cell_data.loc[:, cell, normalized_cols].values,
+                                    cell_data.loc[:, cell, 'cell_size'].values)
+        assert np.array_equal(normalized_data.loc[:, cell, normalized_cols].values,
+                              normalized_vals)
+
+    # TODO: test for multiple compartents
+    
+
+# TODO: The testing for this function can be improved. Repeated code, and lots of manual checks
 def test_compute_marker_counts():
     cell_mask, channel_data = _create_test_extraction_data()
 
@@ -265,6 +294,10 @@ def test_compute_marker_counts():
     sizes = [np.sum(cell_mask == cell_id) for cell_id in [1, 2, 3, 4]]
     assert np.array_equal(sizes, segmentation_output.loc['whole_cell', 1:, 'cell_size'])
 
+    # check that regionprops size matches with cell size
+    assert np.array_equal(segmentation_output.loc['whole_cell', 1:, 'cell_size'],
+                          segmentation_output.loc['whole_cell', 1:, 'area'])
+
     # test whole_cell and nuclear compartments with same data
     equal_masks = np.stack((cell_mask, cell_mask), axis=-1)
     # create xarray containing segmentation mask
@@ -294,7 +327,10 @@ def test_compute_marker_counts():
                                                  segmentation_masks=segmentation_masks_unequal,
                                                  nuclear_counts=True)
 
-    # TODO: Right now these tests are copied from above, can think about refactoring
+    # make sure nuclear segmentations are smaller
+    assert np.all(segmentation_output_unequal.loc['nuclear', 1:, 'cell_size'].values <
+                  segmentation_output_unequal.loc['whole_cell', 1:, 'cell_size'].values)
+
     # check that channel 0 counts are same as cell size
     assert np.array_equal(segmentation_output_unequal.loc['nuclear', :, 'cell_size'].values,
                           segmentation_output_unequal.loc['nuclear', :, 'chan0'].values)
@@ -319,6 +355,9 @@ def test_compute_marker_counts():
     # check that cell sizes are correct
     sizes = [np.sum(nuc_mask == cell_id) for cell_id in [1, 2, 3, 4]]
     assert np.array_equal(sizes, segmentation_output_unequal.loc['nuclear', 1:, 'cell_size'])
+
+    assert np.array_equal(segmentation_output_unequal.loc['nuclear', 1:, 'cell_size'],
+                          segmentation_output_unequal.loc['nuclear', 1:, 'area'])
 
 
 def test_generate_expression_matrix():
