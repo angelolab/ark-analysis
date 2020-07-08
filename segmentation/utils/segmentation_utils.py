@@ -295,10 +295,10 @@ def find_nuclear_mask_id(nuc_segmentation_mask, cell_coords):
     max_id = ids[np.argmax(counts)]
 
     if max_id == 0:
-        if len(ids) == 0:
+        if len(ids) == 1:
             nuclear_mask_id = None
         else:
-            non_zero_idx = counts > 0
+            non_zero_idx = ids > 0
             ids, counts = ids[non_zero_idx], counts[non_zero_idx]
 
             nuclear_mask_id = ids[np.argmax(counts)]

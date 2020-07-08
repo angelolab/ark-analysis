@@ -6,6 +6,7 @@ import tempfile
 
 import skimage.morphology as morph
 from skimage.morphology import erosion
+from skimage.measure import regionprops
 
 from segmentation.utils import segmentation_utils
 
@@ -180,6 +181,47 @@ def test_watershed_transform():
                                                    channel_xr=channel_data,
                                                    output_dir=temp_dir,
                                                    overlay_channels=overlay_channels)
+
+
+def test_find_nuclear_mask_id():
+    # create cell labels with 5 distinct cells
+    cell_labels = np.zeros((60, 60), dtype='int')
+    for i in range(6):
+        cell_labels[(i * 10):(i * 10 + 8), (i * 10):(i * 10 + 8)] = i + 1
+
+    # create nuc labels with varying degrees of overlap
+    nuc_labels = np.zeros((60, 60), dtype='int')
+
+    # perfect overlap
+    nuc_labels[:8, :8] = 1
+
+    # greater than majority overlap
+    nuc_labels[10:16, 10:16] = 2
+
+    # only partial overlap
+    nuc_labels[20:23, 20:23] = 3
+
+    # no overlap for cell 4
+
+    # two cells overlapping, larger cell_id correct
+    nuc_labels[40:48, 40:42] = 5
+    nuc_labels[40:48, 42:48] = 20
+
+    # two cells overlapping, background is highest
+    nuc_labels[50:58, 50:51] = 21
+    nuc_labels[50:58, 51:53] = 6
+
+    true_nuc_ids = [1, 2, 3, None, 20, 6]
+
+    cell_props = regionprops(cell_labels)
+
+    # check that predicted nuclear id is correct for all cells in image
+    for idx, prop in enumerate(cell_props):
+        cell_coords = prop.coords.T
+        predicted_nuc = segmentation_utils.find_nuclear_mask_id(nuc_segmentation_mask=nuc_labels,
+                                                                cell_coords=cell_coords)
+
+        assert predicted_nuc == true_nuc_ids[idx]
 
 
 def test_compute_marker_counts():
