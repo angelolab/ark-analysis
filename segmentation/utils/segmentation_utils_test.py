@@ -281,29 +281,7 @@ def test_compute_marker_counts():
 
 
 def test_generate_expression_matrix():
-    # create input data
-    cell_mask = np.zeros((40, 40), dtype='int16')
-    cell_mask[4:10, 4:8] = 1
-    cell_mask[15:25, 20:30] = 2
-    cell_mask[30:32, 3:28] = 3
-    cell_mask[35:40, 15:18] = 4
-
-    # then create channels data
-
-    channel_data = np.zeros((40, 40, 5), dtype="int16")
-    channel_data[:, :, 0] = 1
-    channel_data[:, :, 1] = 5
-    channel_data[:, :, 2] = 5
-    channel_data[:, :, 3] = 10
-    channel_data[:, :, 4] = 0
-
-    # cell1 is the only cell negative for channel 3
-    cell1 = cell_mask == 1
-    channel_data[cell1, 3] = 0
-
-    # cell2 is the only cell positive for channel 4
-    cell2 = cell_mask == 2
-    channel_data[cell2, 4] = 10
+    cell_mask, channel_data = _create_test_extraction_data()
 
     # generate data for two fovs offset
     cell_masks = np.zeros((2, 40, 40, 1), dtype="int16")

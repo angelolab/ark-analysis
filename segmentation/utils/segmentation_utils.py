@@ -278,6 +278,36 @@ def combine_segmentation_masks(big_mask_xr, small_mask_xr, size_threshold,
         format="NETCDF3_64BIT")
 
 
+def find_nuclear_mask_id(nuc_segmentation_mask, cell_coords):
+    """Get the ID of the nuclear mask which has the greatest amount of overlap with a given cell
+
+    Args:
+        nuc_segmentation_mask: label mask of nuclear segmentations
+        cell_coords: list of coords specifying pixels that belong to a cell
+
+    Returns:
+        nuclear_mask_id: ID of the nuclear mask that overlaps most with cell. If not matches found,
+            returns None.
+    """
+
+    ids, counts = np.unique(nuc_segmentation_mask[cell_coords], return_counts=True)
+
+    max_id = ids[np.argmax(counts)]
+
+    if max_id == 0:
+        if len(ids) == 0:
+            nuclear_mask_id = None
+        else:
+            non_zero_idx = counts > 0
+            ids, counts = ids[non_zero_idx], counts[non_zero_idx]
+
+            nuclear_mask_id = ids[np.argmax(counts)]
+    else:
+        nuclear_mask_id = max_id
+
+    return nuclear_mask_id
+
+
 def compute_marker_counts(input_images, segmentation_masks, nuclear_counts=False):
     """Extract single cell protein expression data from channel TIFs for a single point
 
@@ -300,7 +330,10 @@ def compute_marker_counts(input_images, segmentation_masks, nuclear_counts=False
 
     unique_cell_num = len(np.unique(segmentation_masks.values).astype('int'))
 
-    # create np.array to hold subcellular_loc x channel x cell info
+    object_properties = ["label", "area", "eccentricity", "major_axis_length",
+                         "minor_axis_length", "perimeter", 'coords']
+
+    # create np.array to hold compartment x cell x feature info
     cell_counts = np.zeros((len(segmentation_masks.compartments), unique_cell_num,
                             len(input_images.channels) + 1))
 
@@ -311,19 +344,28 @@ def compute_marker_counts(input_images, segmentation_masks, nuclear_counts=False
                              dims=['compartments', 'cell_id', 'features'])
 
     # get regionprops for each cell
-    cell_props = regionprops(segmentation_masks.loc[:, :, 'whole_cell'].values)
+    cell_props = pd.DataFrame(regionprops_table(segmentation_masks.loc[:, :, 'whole_cell'].values,
+                                                properties=object_properties))
+
+    if nuclear_counts:
+        nuc_props = pd.DataFrame(regionprops_table(segmentation_masks.loc[:, :, 'nuclear'].values,
+                                                   properties=object_properties))
 
     # loop through each cell in mask
-    for cell in cell_props:
+    for cell_id in cell_props['label']:
         # get coords corresponding to current cell.
         # TODO: This is faster than mask-based indexing, but leads to confusing code. Is there
         # TODO a better way to use mask-based indexing to extract counts?
-        cell_coords = cell.coords.T
+        cell_coords = cell_props.iloc[cell_props['label'] == cell_id, 'coords']
 
         # calculate the total signal intensity within cell
         cell_counts = signal_extraction_utils.default_extraction(cell_coords, input_images)
-        xr_counts.loc['whole_cell', cell.label, xr_counts.features[1]:] = cell_counts
-        xr_counts.loc['whole_cell', cell.label, xr_counts.features[0]] = cell.area
+
+        # add counts of each marker to appropriate column
+        xr_counts.loc['whole_cell', cell_id, xr_counts.features[1]:] = cell_counts
+
+        # add cell size to first column
+        xr_counts.loc['whole_cell', cell_id, xr_counts.features[0]] = cell_coords.shape[1]
 
         if nuclear_counts:
             # only include cell_coords that overlap with a nuclear label
