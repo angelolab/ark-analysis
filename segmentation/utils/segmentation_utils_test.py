@@ -229,12 +229,12 @@ def test_transform_expression_matrix():
     cell_data = cell_data.reshape((1, 10, 7)).astype('float')
 
     coords = [['whole_cell'], list(range(10)),
-              ['cell_size', 'chan1', 'chan2', 'chan3', 'area', 'morph_1', 'morph_2']]
+              ['cell_size', 'chan1', 'chan2', 'chan3', 'label', 'morph_1', 'morph_2']]
     dims = ['compartments', 'cell_id', 'features']
 
     cell_data = xr.DataArray(cell_data, coords=coords, dims=dims)
 
-    unchanged_cols = ['cell_size', 'area', 'morph_1', 'morph_2']
+    unchanged_cols = ['cell_size', 'label', 'morph_1', 'morph_2']
     modified_cols = ['chan1', 'chan2', 'chan3']
 
     # test size_norm
@@ -273,12 +273,12 @@ def test_transform_expression_matrix_multiple_compartments():
     cell_data = cell_data.reshape((2, 10, 7)).astype('float')
 
     coords = [['whole_cell', 'nuclear'], list(range(10)),
-              ['cell_size', 'chan1', 'chan2', 'chan3', 'area', 'morph_1', 'morph_2']]
+              ['cell_size', 'chan1', 'chan2', 'chan3', 'label', 'morph_1', 'morph_2']]
     dims = ['compartments', 'cell_id', 'features']
 
     cell_data = xr.DataArray(cell_data, coords=coords, dims=dims)
 
-    unchanged_cols = ['cell_size', 'area', 'morph_1', 'morph_2']
+    unchanged_cols = ['cell_size', 'label', 'morph_1', 'morph_2']
     modified_cols = ['chan1', 'chan2', 'chan3']
 
     # test size_norm
@@ -477,7 +477,6 @@ def test_generate_expression_matrix_multiple_compartments():
     coords = [["Point0", "Point1"], range(40), range(40), ['whole_cell', 'nuclear']]
     dims = ['fovs', 'rows', 'cols', 'compartments']
     segmentation_masks_unequal = xr.DataArray(unequal_masks, coords=coords, dims=dims)
-
 
     channel_data = xr.DataArray(channel_datas,
                                 coords=[["Point0", "Point1"], range(40), range(40),
