@@ -334,40 +334,44 @@ def compute_marker_counts(input_images, segmentation_masks, nuclear_counts=False
                          "minor_axis_length", "perimeter", 'coords']
 
     # create np.array to hold compartment x cell x feature info
-    cell_counts = np.zeros((len(segmentation_masks.compartments), unique_cell_num,
-                            len(input_images.channels) + 1))
+    marker_counts_array = np.zeros((len(segmentation_masks.compartments), unique_cell_num,
+                                    len(input_images.channels) + 1))
 
     col_names = np.concatenate((np.array('cell_size'), input_images.channels), axis=None)
-    xr_counts = xr.DataArray(copy.copy(cell_counts),
-                             coords=[segmentation_masks.compartments,
-                                     np.unique(segmentation_masks.values).astype('int'), col_names],
-                             dims=['compartments', 'cell_id', 'features'])
+    marker_counts = xr.DataArray(copy.copy(marker_counts_array),
+                                 coords=[segmentation_masks.compartments,
+                                         np.unique(segmentation_masks.values).astype('int'),
+                                         col_names],
+                                 dims=['compartments', 'cell_id', 'features'])
 
     # get regionprops for each cell
     cell_props = pd.DataFrame(regionprops_table(segmentation_masks.loc[:, :, 'whole_cell'].values,
                                                 properties=object_properties))
 
     if nuclear_counts:
-        nuc_props = pd.DataFrame(regionprops_table(segmentation_masks.loc[:, :, 'nuclear'].values,
-                                                   properties=object_properties))
+        nuc_mask = segmentation_masks.loc[:, :, 'nuclear'].values
+        nuc_props = pd.DataFrame(regionprops_table(nuc_mask, properties=object_properties))
 
     # loop through each cell in mask
     for cell_id in cell_props['label']:
         # get coords corresponding to current cell.
         # TODO: This is faster than mask-based indexing, but leads to confusing code. Is there
         # TODO a better way to use mask-based indexing to extract counts?
-        cell_coords = cell_props.iloc[cell_props['label'] == cell_id, 'coords']
+        cell_coords = cell_props.loc[cell_props['label'] == cell_id, 'coords'].values[0]
 
         # calculate the total signal intensity within cell
         cell_counts = signal_extraction_utils.default_extraction(cell_coords, input_images)
 
         # add counts of each marker to appropriate column
-        xr_counts.loc['whole_cell', cell_id, xr_counts.features[1]:] = cell_counts
+        marker_counts.loc['whole_cell', cell_id, marker_counts.features[1]:] = cell_counts
 
         # add cell size to first column
-        xr_counts.loc['whole_cell', cell_id, xr_counts.features[0]] = cell_coords.shape[1]
+        marker_counts.loc['whole_cell', cell_id, marker_counts.features[0]] = cell_coords.shape[0]
 
         if nuclear_counts:
+            # get id of corresponding nucleus
+            nuc_id = find_nuclear_mask_id(nuc_segmentation_mask=nuc_mask, cell_coords=cell_coords)
+
             # only include cell_coords that overlap with a nuclear label
             nuc_coords = []
             nuc_mask = segmentation_masks.loc[:, :, 'nuclear']
@@ -378,10 +382,10 @@ def compute_marker_counts(input_images, segmentation_masks, nuclear_counts=False
             # extract data from nuclear coords
             nuc_coords = np.stack(nuc_coords, axis=-1)
             nuc_counts = signal_extraction_utils.default_extraction(nuc_coords, input_images)
-            xr_counts.loc['nuclear', cell.label, xr_counts.features[1]:] = nuc_counts
-            xr_counts.loc['nuclear', cell.label, xr_counts.features[0]] = nuc_coords.shape[1]
+            marker_counts.loc['nuclear', cell.label, marker_counts.features[1]:] = nuc_counts
+            marker_counts.loc['nuclear', cell.label, marker_counts.features[0]] = nuc_coords.shape[0]
 
-    return xr_counts
+    return marker_counts
 
 
 def generate_expression_matrix(segmentation_labels, image_data, nuclear_counts=False):
