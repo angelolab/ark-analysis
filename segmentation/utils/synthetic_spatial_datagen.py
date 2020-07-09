@@ -7,7 +7,10 @@ import os
 import xarray as xr
 import copy
 
+from random import seed
+from random import random
 from segmentation.utils import spatial_analysis_utils as sau
+from segmentation.utils import visualize as viz
 from scipy.spatial.distance import cdist
 from skimage.measure import label
 
@@ -75,10 +78,10 @@ def direct_init_dist_matrix(num_A=100, num_B=100, num_C=100,
 
 
 def generate_random_centroids(size_img=(1024, 1024), num_A=100, num_B=100, num_C=100,
-                           distr_A={'centroid_factor': (0.5, 0.5), 'cov': [[200, 0], [0, 200]]},
-                           distr_B={'centroid_factor': (0.9, 0.9), 'cov': [[200, 0], [0, 200]]},
-                           distr_C={'centroid_factor': (0.4, 0.4), 'cov': [[200, 0], [0, 200]]},
-                           seed=None):
+                              distr_A={'centroid_factor': (0.5, 0.5), 'cov': [[200, 0], [0, 200]]},
+                              distr_B={'centroid_factor': (0.9, 0.9), 'cov': [[200, 0], [0, 200]]},
+                              distr_C={'centroid_factor': (0.4, 0.4), 'cov': [[200, 0], [0, 200]]},
+                              float_type=False, seed=None):
     """
     Generate a set of random centroids given distribution parameters.
     Used as a helper function by point_init_dist_matrix and generate_random_cell_shapes.
@@ -96,12 +99,18 @@ def generate_random_centroids(size_img=(1024, 1024), num_A=100, num_B=100, num_C
                 cov: in the format [[varXX, varXY], [varYX, varYY]]
         distr_B: similar to distr_A
         distr_C: similar to distr_C
+        float_type: whether we want the type returned to be of type float or int. Default False, indicating int.
         seed: whether to fix the random seed or not. Useful for testing.
             Should be a specified integer value. Default None.
 
     Returns:
         non_dup_points: a list of non-duplicated cell centroids.
     """
+
+    if float_type:
+        numpy_type = np.float64
+    else:
+        numpy_type = np.int16
 
     # extract the height and width
     height = size_img[0]
@@ -126,9 +135,9 @@ def generate_random_centroids(size_img=(1024, 1024), num_A=100, num_B=100, num_C
     # since label only takes a binary matrix
     # we pass the result through the unique function to eliminate any possibility of duplicate points
     # appearing within any of these arrays
-    a_points = np.unique(np.random.multivariate_normal(a_mean, a_cov, num_A).astype(np.int16), axis=0)
-    b_points = np.unique(np.random.multivariate_normal(b_mean, b_cov, num_B).astype(np.int16), axis=0)
-    c_points = np.unique(np.random.multivariate_normal(c_mean, c_cov, num_C).astype(np.int16), axis=0)
+    a_points = np.unique(np.random.multivariate_normal(a_mean, a_cov, num_A).astype(numpy_type), axis=0)
+    b_points = np.unique(np.random.multivariate_normal(b_mean, b_cov, num_B).astype(numpy_type), axis=0)
+    c_points = np.unique(np.random.multivariate_normal(c_mean, c_cov, num_C).astype(numpy_type), axis=0)
 
     # this ensures that we only keep the points that are not duplicate across different cell types
     points, counts = np.unique(np.concatenate((a_points, b_points, c_points), axis=0), axis=0, return_counts=True)
@@ -178,8 +187,10 @@ def point_init_dist_matrix(size_img=(1024, 1024), num_A=100, num_B=100, num_C=10
     """
 
     # generate the list of centroids and zip them into x and y coords
-    non_dup_points = generate_random_centroids(size_img, num_A, num_B, num_C, distr_A, distr_B, distr_C, seed)
-    point_x_coords, point_y_coords = zip(*non_dup_points)
+    centroids = generate_random_centroids(size_img=size_img, num_A=num_A, num_B=num_B,
+                                          num_C=num_C, distr_A=distr_A, distr_B=distr_B,
+                                          distr_C=distr_C, float_type=False, seed=seed)
+    point_x_coords, point_y_coords = zip(*centroids)
 
     # generate the binary matrix to pass into label_map
     binary_mat = np.zeros(size_img)
@@ -200,13 +211,55 @@ def point_init_dist_matrix(size_img=(1024, 1024), num_A=100, num_B=100, num_C=10
     # and return the xarray to pass into calc_dist_matrix
     return sample_img_xr
 
+
 def generate_random_cell_shapes(size_img=(1024, 1024), num_A=100, num_B=100, num_C=100,
                                 distr_A={'centroid_factor': (0.5, 0.5), 'cov': [[200, 0], [0, 200]]},
                                 distr_B={'centroid_factor': (0.9, 0.9), 'cov': [[200, 0], [0, 200]]},
                                 distr_C={'centroid_factor': (0.4, 0.4), 'cov': [[200, 0], [0, 200]]},
-                                seed=None):
+                                width_factor=0.5, height_factor=0.5, rotation_factor=180, seed=None):
     """
     Generate properties of each cell oval using the point_init_dist_matrix as helper
+
+    Args:
+        size_img: a tuple indicating the size of the image. Default 1024 x 1024
+        num_A: the number of A centroids to generate. Default 100.
+        num_B: the number of B centroids to generate. Default 100.
+        num_C: the number of C centroids to generate. Default 100.
+
+        distr_A: a dict indicating the parameters of the multivariate normal distribution to generate A cell centroids.
+            Params:
+                centroid_factor: a tuple to determine which number to multiply the height and width by
+                    to indicate the center (mean) of the distribution
+                cov: in the format [[varXX, varXY], [varYX, varYY]]
+        distr_B: similar to distr_A
+        distr_C: similar to distr_C
+        width_factor: the upper bound of the random width we wish to generate for each ellipse.
+        height_factor: similar to width_factor but for height.
+        rotation_factor: similar to width_factor but for rotation.
+        seed: whether to fix the random seed or not. Useful for testing.
+            Should be a specified integer value. Default None.
+
+    Returns:
+        centroid_info: a list of tuples, each one with this format:
+            (center, width, height, angle)
+        This is done to make it compatible with matplotlib.patches.Ellipse when plotting.
     """
 
-    pass
+    centroids = generate_random_centroids(size_img=size_img, num_A=num_A, num_B=num_B,
+                                          num_C=num_C, distr_A=distr_A, distr_B=distr_B,
+                                          distr_C=distr_C, float_type=False, seed=seed)
+
+    # if seed is set, make it the same for the random width, height, and rotation generation as well
+    if seed:
+        seed(seed)
+
+    # generate the random centroid information
+    centroid_info = [(c, random() * width_factor, random() * height_factor, random(rotation_factor)) for c in centroids]
+
+    # draw the ellipsoids so we can see if anything went wrong
+    viz.draw_ellipsoids(centroid_info)
+
+    # eventually, this function is going to check for, among other things, intersecting ellipses
+    # so we don't have intersecting cells.
+
+    return centroid_info
