@@ -308,12 +308,13 @@ def find_nuclear_mask_id(nuc_segmentation_mask, cell_coords):
     return nuclear_mask_id
 
 
-def transform_expression_matrix(cell_data, transform, transform_kwargs={}):
+def transform_expression_matrix(cell_data, transform, transform_kwargs=None):
     """Transform an xarray of marker counts with supplied transformation
 
     Args:
         cell_data: xarray containing marker expression values
         transform: the type of transform to apply. Must be one of ['size_norm', 'arcsinh']
+        transform_kwargs: optional dictionary with additional settings for the transforms
 
     Returns:
         cell_data_norm: counts per marker normalized by cell size
@@ -322,6 +323,9 @@ def transform_expression_matrix(cell_data, transform, transform_kwargs={}):
 
     if transform not in valid_transforms:
         raise ValueError('Invalid transform supplied')
+
+    if transform_kwargs is None:
+        transform_kwargs = {}
 
     # generate array to hold transformed data
     cell_data_transformed = copy.deepcopy(cell_data)
@@ -367,7 +371,7 @@ def compute_marker_counts(input_images, segmentation_masks, nuclear_counts=False
             nuclear_counts: boolean flag to determine whether nuclear counts are returned
 
         Returns:
-            xr_counts: xarray containing segmented data of cells x markers
+            marker_counts: xarray containing segmented data of cells x markers
     """
 
     unique_cell_num = len(np.unique(segmentation_masks.values).astype('int'))
