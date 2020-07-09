@@ -21,12 +21,9 @@ def test_visualize_cells():
     for x in range(0, 1000):
         rand_type.append(chr(random.randint(0, 25) + 97))
         ids.append(random.randint(1, 5))
-    print(rand_type, ids)
     rand_dict = {"PatientID": ids, "cell_type": rand_type}
     df = pd.DataFrame.from_dict(rand_dict)
-    print(df)
+
     visualize.visualize_cell_distribution_in_all_patients(df, "cell_type")
     visualize.visualize_distribution_of_cell_count(df, "PatientID", "cell_type")
     visualize.visualize_proportion_of_cell_count(df, "PatientID", "cell_type")
-
-test_visualize_cells()

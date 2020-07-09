@@ -21,15 +21,11 @@ def visualize_z_scores(z, pheno_titles):
 
 
 def newDict(names):
-    result = {}
-    for name in names:
-        result[name] = [0]
+    result = {name: [0] for name in names}
     return result
-
 
 def visualize_distribution_of_cell_count(df, id_col_name, cell_col_name):
     ids = set(df[id_col_name])
-    print(ids)
     cell_names = df[cell_col_name].value_counts().index.tolist()
 
     unique_ids = []
@@ -38,8 +34,6 @@ def visualize_distribution_of_cell_count(df, id_col_name, cell_col_name):
             unique_ids.append(item)
 
     unique_ids = [x for x in unique_ids if x == x]
-
-    print(unique_ids)
 
     df_stacked = pd.DataFrame(newDict(cell_names))
 
