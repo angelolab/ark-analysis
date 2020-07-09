@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import matplotlib as plt
 import seaborn as sns
-import random
+
 
 def visualize_z_scores(z, pheno_titles):
     """Plots the z scores between all phenotypes as a clustermap.
@@ -18,18 +18,19 @@ def visualize_z_scores(z, pheno_titles):
     zplot = pd.DataFrame(z, columns=pheno_titles, index=pheno_titles)
     sns.set(font_scale=.7)
     sns.clustermap(zplot, figsize=(8, 8), cmap="vlag")
-    
+
+
 def newDict(names):
     result = {}
     for name in names:
         result[name] = [0]
     return result
 
+
 def visualize_distribution_of_cell_count(df, id_col_name, cell_col_name):
     ids = set(df[id_col_name])
     print(ids)
-    cell_names = df[cell_col_name].value_counts().index
-    cell_names = cell_names.tolist()  
+    cell_names = df[cell_col_name].value_counts().index.tolist()
 
     unique_ids = []
     for item in ids:
@@ -52,7 +53,8 @@ def visualize_distribution_of_cell_count(df, id_col_name, cell_col_name):
             df_stacked = pd.DataFrame([row_cell_types.values], columns=row_cell_types.index)
             first = False
         else:
-            df_stacked = pd.concat([df_stacked, (pd.DataFrame([row_cell_types.values], columns=row_cell_types.index))], axis=0, ignore_index=True)
+            df_stacked = pd.concat([df_stacked, (pd.DataFrame([row_cell_types.values], columns=row_cell_types.index))],
+                                   axis=0, ignore_index=True)
 
     df_stacked.plot.bar(stacked=True)
     plt.legend(loc='center left', bbox_to_anchor=(1.0, 0.5))
@@ -60,10 +62,11 @@ def visualize_distribution_of_cell_count(df, id_col_name, cell_col_name):
     plt.ylabel("Cell Count")
     plt.title("Distribution of Cell Count in Patients")
 
+
 def visualize_proportion_of_cell_count(df, id_col_name, cell_col_name):
     ids = set(df[id_col_name])
     cell_names = df[cell_col_name].value_counts().index
-    cell_names = cell_names.tolist()  
+    cell_names = cell_names.tolist()
     unique_ids = []
 
     for item in ids:
@@ -78,19 +81,22 @@ def visualize_proportion_of_cell_count(df, id_col_name, cell_col_name):
     for id in unique_ids:
 
         df_rows = df.loc[df["PatientID"] == id]
-        row_cell_types = df_rows["cell_type"].value_counts(normalize=True)*100
+        row_cell_types = df_rows["cell_type"].value_counts(normalize=True) * 100
 
         if first:
-             df_stacked = pd.DataFrame([row_cell_types.values], columns=row_cell_types.index)
+            df_stacked = pd.DataFrame([row_cell_types.values], columns=row_cell_types.index)
             first = False
         else:
-            df_stacked = pd.concat([df_stacked, (pd.DataFrame([row_cell_types.values], columns=row_cell_types.index))], axis=0, ignore_index=True)
+            df_stacked = pd.concat([df_stacked, (pd.DataFrame([row_cell_types.values], columns=row_cell_types.index))],
+                               axis=0, ignore_index=True)
 
-    df_stacked.plot.bar(stacked=True, legend = False)
+
+    df_stacked.plot.bar(stacked=True, legend=False)
     plt.legend(loc='center left', bbox_to_anchor=(1.0, 0.5))
     plt.xlabel("Patient ID")
     plt.ylabel("Cell Proportion")
     plt.title("Distribution of Cell Count Proportion in Patients")
+
 
 def visualize_cell_distribution_in_all_patients(df, cell_col_name):
     cell_types = df[cell_col_name].value_counts()
