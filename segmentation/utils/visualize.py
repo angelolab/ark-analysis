@@ -21,6 +21,7 @@ def visualize_z_scores(z, pheno_titles):
     sns.set(font_scale=.7)
     sns.clustermap(zplot, figsize=(8, 8), cmap="vlag")
 
+
 def draw_ellipsoids(centroid_info):
     """
     Visualize ellipses as defined by a list of information such as the center.
