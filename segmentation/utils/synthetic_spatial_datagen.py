@@ -216,7 +216,7 @@ def generate_random_cell_shapes(size_img=(1024, 1024), num_A=100, num_B=100, num
                                 distr_A={'centroid_factor': (0.5, 0.5), 'cov': [[200, 0], [0, 200]]},
                                 distr_B={'centroid_factor': (0.9, 0.9), 'cov': [[200, 0], [0, 200]]},
                                 distr_C={'centroid_factor': (0.4, 0.4), 'cov': [[200, 0], [0, 200]]},
-                                width_factor=0.5, height_factor=0.5, rotation_factor=180, seed=None):
+                                width_factor=5, height_factor=5, rotation_factor=180, seed=None):
     """
     Generate properties of each cell oval using the point_init_dist_matrix as helper
 
@@ -254,10 +254,10 @@ def generate_random_cell_shapes(size_img=(1024, 1024), num_A=100, num_B=100, num
         seed(seed)
 
     # generate the random centroid information
-    centroid_info = [(c, random() * width_factor, random() * height_factor, random(rotation_factor)) for c in centroids]
+    centroid_info = [(c, random() * width_factor, random() * height_factor, random() * rotation_factor) for c in centroids]
 
     # draw the ellipsoids so we can see if anything went wrong
-    viz.draw_ellipsoids(centroid_info)
+    viz.draw_ellipsoids(size_img, centroid_info)
 
     # eventually, this function is going to check for, among other things, intersecting ellipses
     # so we don't have intersecting cells.
