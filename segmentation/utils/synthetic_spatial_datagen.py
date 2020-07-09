@@ -74,19 +74,14 @@ def direct_init_dist_matrix(num_A=100, num_B=100, num_C=100,
     return dist_mat
 
 
-def point_init_dist_matrix(size_img=(1024, 1024), num_A=100, num_B=100, num_C=100,
+def generate_random_centroids(size_img=(1024, 1024), num_A=100, num_B=100, num_C=100,
                            distr_A={'centroid_factor': (0.5, 0.5), 'cov': [[200, 0], [0, 200]]},
                            distr_B={'centroid_factor': (0.9, 0.9), 'cov': [[200, 0], [0, 200]]},
                            distr_C={'centroid_factor': (0.4, 0.4), 'cov': [[200, 0], [0, 200]]},
                            seed=None):
     """
-    This function generates random centroid centers in the form of a label map
-    such that those of type A will have centers closer on average to those of type B
-    than those of type C
-
-    We will use a multivariate Gaussian distribution for A, B, and C type cells to generate their respective centers.
-
-    Returns the set of points associated with the centroids of cells of types A, B, and C.
+    Generate a set of random centroids given distribution parameters.
+    Used as a helper function by point_init_dist_matrix and generate_random_cell_shapes.
 
     Args:
         size_img: a tuple indicating the size of the image. Default 1024 x 1024
@@ -105,11 +100,7 @@ def point_init_dist_matrix(size_img=(1024, 1024), num_A=100, num_B=100, num_C=10
             Should be a specified integer value. Default None.
 
     Returns:
-        sample_img_xr: the data in xarray format containing the randomized label matrix
-            based on the randomized centroid centers we generated. The label mat portion
-            of sample_img_xr is generated from a randomly initialized set of cell centroids
-            where those of type a are on average closer to those of type b than they
-            are to those of type c.
+        non_dup_points: a list of non-duplicated cell centroids.
     """
 
     # extract the height and width
@@ -147,6 +138,47 @@ def point_init_dist_matrix(size_img=(1024, 1024), num_A=100, num_B=100, num_C=10
     if len(non_dup_points) == 0:
         raise ValueError("Bad run: no unique points generated. Try again, will work next time.")
 
+    return non_dup_points
+
+
+def point_init_dist_matrix(size_img=(1024, 1024), num_A=100, num_B=100, num_C=100,
+                           distr_A={'centroid_factor': (0.5, 0.5), 'cov': [[200, 0], [0, 200]]},
+                           distr_B={'centroid_factor': (0.9, 0.9), 'cov': [[200, 0], [0, 200]]},
+                           distr_C={'centroid_factor': (0.4, 0.4), 'cov': [[200, 0], [0, 200]]},
+                           seed=None):
+    """
+    This function generates random centroid centers in the form of a label map
+    such that those of type A will have centers closer on average to those of type B
+    than those of type C
+
+    We will use a multivariate Gaussian distribution for A, B, and C type cells to generate their respective centers.
+
+    Args:
+        size_img: a tuple indicating the size of the image. Default 1024 x 1024
+        num_A: the number of A centroids to generate. Default 100.
+        num_B: the number of B centroids to generate. Default 100.
+        num_C: the number of C centroids to generate. Default 100.
+
+        distr_A: a dict indicating the parameters of the multivariate normal distribution to generate A cell centroids.
+            Params:
+                centroid_factor: a tuple to determine which number to multiply the height and width by
+                    to indicate the center (mean) of the distribution
+                cov: in the format [[varXX, varXY], [varYX, varYY]]
+        distr_B: similar to distr_A
+        distr_C: similar to distr_C
+        seed: whether to fix the random seed or not. Useful for testing.
+            Should be a specified integer value. Default None.
+
+    Returns:
+        sample_img_xr: the data in xarray format containing the randomized label matrix
+            based on the randomized centroid centers we generated. The label mat portion
+            of sample_img_xr is generated from a randomly initialized set of cell centroids
+            where those of type a are on average closer to those of type b than they
+            are to those of type c.
+    """
+
+    # generate the list of centroids and zip them into x and y coords
+    non_dup_points = generate_random_centroids(size_img, num_A, num_B, num_C, distr_A, distr_B, distr_C, seed)
     point_x_coords, point_y_coords = zip(*non_dup_points)
 
     # generate the binary matrix to pass into label_map
@@ -167,3 +199,14 @@ def point_init_dist_matrix(size_img=(1024, 1024), num_A=100, num_B=100, num_C=10
 
     # and return the xarray to pass into calc_dist_matrix
     return sample_img_xr
+
+def generate_random_cell_shapes(size_img=(1024, 1024), num_A=100, num_B=100, num_C=100,
+                                distr_A={'centroid_factor': (0.5, 0.5), 'cov': [[200, 0], [0, 200]]},
+                                distr_B={'centroid_factor': (0.9, 0.9), 'cov': [[200, 0], [0, 200]]},
+                                distr_C={'centroid_factor': (0.4, 0.4), 'cov': [[200, 0], [0, 200]]},
+                                seed=None):
+    """
+    Generate properties of each cell oval using the point_init_dist_matrix as helper
+    """
+
+    pass
