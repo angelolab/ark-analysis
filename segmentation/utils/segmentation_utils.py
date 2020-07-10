@@ -292,18 +292,11 @@ def find_nuclear_mask_id(nuc_segmentation_mask, cell_coords):
 
     ids, counts = np.unique(nuc_segmentation_mask[tuple(cell_coords.T)], return_counts=True)
 
-    max_id = ids[np.argmax(counts)]
-
-    if max_id == 0:
-        if len(ids) == 1:
-            nuclear_mask_id = None
-        else:
-            non_zero_idx = ids > 0
-            ids, counts = ids[non_zero_idx], counts[non_zero_idx]
-
-            nuclear_mask_id = ids[np.argmax(counts)]
+    # Return nuclear ID with greatest overlap. If only 0, return None
+    if ids[ids != 0].size == 0:
+        nuclear_mask_id = None
     else:
-        nuclear_mask_id = max_id
+        nuclear_mask_id = ids[ids != 0][np.argmax(counts[ids != 0])]
 
     return nuclear_mask_id
 
