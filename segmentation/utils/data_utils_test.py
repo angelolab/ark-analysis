@@ -1,3 +1,4 @@
+import sys
 import xarray as xr
 import numpy as np
 import os
@@ -27,27 +28,30 @@ def _create_img_dir(temp_dir, fovs, imgs, img_sub_folder="TIFs"):
 
 
 def test_validate_paths():
-    valid_path = '.'
 
-    valid_parts = [p for p in pathlib.Path(valid_path).resolve().parts]
-    valid_parts[1] = 'not_a_real_directory'
+    valid_path = 'data/example_dataset/label_data'
+
+    valid_parts = [p for p in pathlib.Path(valid_path).parts]
+    valid_parts[0] = 'not_a_real_directory'
 
     starts_out_of_scope = os.path.join(*valid_parts)
 
-    entirely_out_of_scope = '/not_a_real_directory/somewhere_else_not_here'
+    valid_parts[0] = 'data'
+    valid_parts[1] = 'not_a_real_subdirectory'
+    wrong_subdir = os.path.join(*valid_parts)
 
-    nonexistant = './not_a_real_directory'
+    wrong_file = os.path.join(valid_path, 'not_a_real_file.tiff')
 
     data_utils.validate_paths(valid_path)
 
-    with pytest.raises(ValueError, match=r".*starts*"):
+    with pytest.raises(ValueError, match=r".*prefixed*"):
         data_utils.validate_paths(starts_out_of_scope)
 
-    with pytest.raises(ValueError, match=r".*Move*"):
-        data_utils.validate_paths(entirely_out_of_scope)
+    with pytest.raises(ValueError, match=r".*subdirectory*"):
+        data_utils.validate_paths(wrong_subdir)
 
-    with pytest.raises(ValueError, match=r".*exist*"):
-        data_utils.validate_paths(nonexistant)
+    with pytest.raises(ValueError, match=r".*tiff*"):
+        data_utils.validate_paths(wrong_file)
 
 
 def test_load_imgs_from_mibitiff():
