@@ -460,10 +460,11 @@ def generate_expression_matrix(segmentation_labels, image_data, nuclear_counts=F
         pd.DataFrame: marker counts per cell normalized by cell size
         pd.DataFrame: marker counts per cell normalized by cell size and arcsinh transformed
     """
+    if type(segmentation_labels) is not xr.DataArray:
+        raise ValueError("Incorrect data type for segmentation_labels, expecting xarray")
 
-    # initialize data frames
-    normalized_data = pd.DataFrame()
-    arcsinh_data = pd.DataFrame()
+    if type(image_data) is not xr.DataArray:
+        raise ValueError("Incorrect data type for image_data, expecting xarray")
 
     if nuclear_counts:
         if 'nuclear' not in segmentation_labels.compartments:
@@ -471,6 +472,10 @@ def generate_expression_matrix(segmentation_labels, image_data, nuclear_counts=F
 
     if not np.all(set(segmentation_labels.fovs.values) == set(image_data.fovs.values)):
         raise ValueError("The same FOVs must be present in the segmentation labels and images")
+
+    # initialize data frames
+    normalized_data = pd.DataFrame()
+    arcsinh_data = pd.DataFrame()
 
     # loop over each FOV in the dataset
     for fov in segmentation_labels.fovs.values:
