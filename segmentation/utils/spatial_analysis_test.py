@@ -13,7 +13,7 @@ def make_threshold_mat():
     thresh.iloc[:, 0] = np.arange(20) + 2
     return thresh
 
-
+# TODO: integrate spatial analysis code with testing functions
 def make_distance_matrix(enrichment_type):
     # Make a distance matrix for no enrichment, positive enrichment, and negative enrichment
 
