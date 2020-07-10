@@ -122,7 +122,7 @@ def generate_random_centroids(size_img=(1024, 1024), num_A=100, num_B=100, num_C
     a_mean = (height * distr_A[0][0], width * distr_A[0][1])
     a_cov = distr_A[1]
 
-    b_mean = (height * distr_B[-][0], width * distr_B[0][1])
+    b_mean = (height * distr_B[0][0], width * distr_B[0][1])
     b_cov = distr_B[1]
 
     c_mean = (height * distr_C['centroid_factor'][0], width * distr_C['centroid_factor'][1])
