@@ -16,7 +16,7 @@ from skimage.measure import label
 
 
 def direct_init_dist_matrix(num_A=100, num_B=100, num_C=100,
-                            distr_AB={'mean': 100, 'var': 1}, distr_AC={'mean': 20, 'var': 1},
+                            distr_AB=(100, 1), distr_AC=(100, 1),
                             seed=None):
     """
     This function will return a random dist matrix such that the distance between cells
@@ -31,7 +31,7 @@ def direct_init_dist_matrix(num_A=100, num_B=100, num_C=100,
         num_A: the number of A cells we wish to generate. Default 100
         num_B: the number of B cells we wish to generate. Default 100
         num_C: the number of C cells we wish to generate. Default 100
-        distr_AB: if specified, will be a dict listing the mean and variance of the Gaussian distribution
+        distr_AB: if specified, will be a tuple listing the mean and variance of the Gaussian distribution
             we wish to generate numbers from. Default mean=100 and var=1
         distr_AC: similar to dist_AB. Default mean=20 and var=1
         seed: whether to fix the random seed or not. Useful for testing.
@@ -44,11 +44,11 @@ def direct_init_dist_matrix(num_A=100, num_B=100, num_C=100,
     """
 
     # set the mean and variance of the Gaussian distributions of both AB and AC distances
-    mean_ab = distr_AB['mean']
-    var_ab = distr_AB['var']
+    mean_ab = distr_AB[0]
+    var_ab = distr_AB[1]
 
-    mean_ac = distr_AC['mean']
-    var_ac = distr_AC['var']
+    mean_ac = distr_AC[0]
+    var_ac = distr_AC[1]
 
     # set random seed if set
     if seed:
@@ -81,9 +81,9 @@ def direct_init_dist_matrix(num_A=100, num_B=100, num_C=100,
 
 
 def generate_random_centroids(size_img=(1024, 1024), num_A=100, num_B=100, num_C=100,
-                              distr_A={'centroid_factor': (0.5, 0.5), 'cov': [[200, 0], [0, 200]]},
-                              distr_B={'centroid_factor': (0.9, 0.9), 'cov': [[200, 0], [0, 200]]},
-                              distr_C={'centroid_factor': (0.4, 0.4), 'cov': [[200, 0], [0, 200]]},
+                              distr_A=((0.5, 0.5), [[200, 0], [0, 200]]),
+                              distr_B=((0.9, 0.9), [[200, 0], [0, 200]]),
+                              distr_C=((0.4, 0.4), [[200, 0], [0, 200]]),
                               float_type=False, seed=None):
     """
     Generate a set of random centroids given distribution parameters.
@@ -119,14 +119,14 @@ def generate_random_centroids(size_img=(1024, 1024), num_A=100, num_B=100, num_C
     height = size_img[0]
     width = size_img[1]
 
-    a_mean = (height * distr_A['centroid_factor'][0], width * distr_A['centroid_factor'][1])
-    a_cov = distr_A['cov']
+    a_mean = (height * distr_A[0][0], width * distr_A[0][1])
+    a_cov = distr_A[1]
 
-    b_mean = (height * distr_B['centroid_factor'][0], width * distr_B['centroid_factor'][1])
-    b_cov = distr_B['cov']
+    b_mean = (height * distr_B[-][0], width * distr_B[0][1])
+    b_cov = distr_B[1]
 
     c_mean = (height * distr_C['centroid_factor'][0], width * distr_C['centroid_factor'][1])
-    c_cov = distr_C['cov']
+    c_cov = distr_C[1]
 
     # if specified, set the random seed
     if seed:
@@ -154,9 +154,9 @@ def generate_random_centroids(size_img=(1024, 1024), num_A=100, num_B=100, num_C
 
 
 def point_init_dist_matrix(size_img=(1024, 1024), num_A=100, num_B=100, num_C=100,
-                           distr_A={'centroid_factor': (0.5, 0.5), 'cov': [[200, 0], [0, 200]]},
-                           distr_B={'centroid_factor': (0.9, 0.9), 'cov': [[200, 0], [0, 200]]},
-                           distr_C={'centroid_factor': (0.4, 0.4), 'cov': [[200, 0], [0, 200]]},
+                           distr_A=((0.5, 0.5), [[200, 0], [0, 200]]),
+                           distr_B=((0.9, 0.9), [[200, 0], [0, 200]]),
+                           distr_C=((0.4, 0.4), [[200, 0], [0, 200]]),
                            seed=None):
     """
     This function generates random centroid centers in the form of a label map
@@ -216,9 +216,9 @@ def point_init_dist_matrix(size_img=(1024, 1024), num_A=100, num_B=100, num_C=10
 
 
 def generate_random_cell_shapes(size_img=(1024, 1024), num_A=100, num_B=100, num_C=100,
-                                distr_A={'centroid_factor': (0.5, 0.5), 'cov': [[200, 0], [0, 200]]},
-                                distr_B={'centroid_factor': (0.9, 0.9), 'cov': [[200, 0], [0, 200]]},
-                                distr_C={'centroid_factor': (0.4, 0.4), 'cov': [[200, 0], [0, 200]]},
+                                distr_A=((0.5, 0.5), [[200, 0], [0, 200]]),
+                                distr_B=((0.9, 0.9), [[200, 0], [0, 200]]),
+                                distr_C=((0.4, 0.4), [[200, 0], [0, 200]]),
                                 width_factor=5, height_factor=5, rotation_factor=180, seed=None):
     """
     Generate properties of each cell oval using the point_init_dist_matrix as helper
