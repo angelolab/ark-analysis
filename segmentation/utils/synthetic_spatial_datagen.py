@@ -74,6 +74,9 @@ def direct_init_dist_matrix(num_A=100, num_B=100, num_C=100,
     # then concatenate them together
     dist_mat = np.concatenate((a_partition, b_partition, c_partition), axis=0)
 
+    # finally, fill the diagonals with 0 to ensure a proper distance matrix
+    np.fill_diagonal(dist_mat, 0)
+
     return dist_mat
 
 
