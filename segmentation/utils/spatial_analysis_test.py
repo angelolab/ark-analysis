@@ -36,13 +36,17 @@ def make_distance_matrix(enrichment_type):
         # far from the two positive populations.
 
         dist_mat_pos = synthetic_spatial_datagen.direct_init_dist_matrix(num_A=10, num_B=10, num_C=60, seed=42)
-        # dist_mat_pos = np.zeros((80, 80))
-        # dist_mat_pos[10:20, :10] = 50
-        # dist_mat_pos[:10, 10:20] = 50
-        # dist_mat_pos[20:40, :20] = 200
-        # dist_mat_pos[:20, 20:40] = 200
-        # dist_mat_pos[40:80, :40] = 300
-        # dist_mat_pos[:40, 40:80] = 300
+        print(dist_mat_pos)
+        
+        dist_mat_pos = np.zeros((80, 80))
+        dist_mat_pos[10:20, :10] = 50
+        dist_mat_pos[:10, 10:20] = 50
+        dist_mat_pos[20:40, :20] = 200
+        dist_mat_pos[:20, 20:40] = 200
+        dist_mat_pos[40:80, :40] = 300
+        dist_mat_pos[:40, 40:80] = 300
+
+        print(dist_mat_pos)
 
         fovs = ["Point8", "Point9"]
         mats = [dist_mat_pos, dist_mat_pos]
@@ -53,15 +57,19 @@ def make_distance_matrix(enrichment_type):
         # This creates a distance matrix where there are two groups of cells significant for 2 different
         # markers that are not located near each other (not within the dist_lim).
         
-        dist_mat_neg = synthetic_spatial_datagen.direct_init_dist_matrix(num_A=10, num_B=10, num_C=60, 
+        dist_mat_neg = synthetic_spatial_datagen.direct_init_dist_matrix(num_A=10, num_B=10, num_C=40,
                                                                          distr_AB=(100, 1), distr_AC=(100, 1),
                                                                          seed=42)
-        # dist_mat_neg[20:40, :20] = 300
-        # dist_mat_neg[:20, 20:40] = 300
-        # dist_mat_neg[40:50, :40] = 50
-        # dist_mat_neg[:40, 40:50] = 50
-        # dist_mat_neg[50:60, :50] = 200
-        # dist_mat_neg[:50, 50:60] = 200
+
+        print(dist_mat_neg)
+        
+        dist_mat_neg = np.zeros((60, 60))
+        dist_mat_neg[20:40, :20] = 300
+        dist_mat_neg[:20, 20:40] = 300
+        dist_mat_neg[40:50, :40] = 50
+        dist_mat_neg[:40, 40:50] = 50
+        dist_mat_neg[50:60, :50] = 200
+        dist_mat_neg[:50, 50:60] = 200
 
         fovs = ["Point8", "Point9"]
         mats = [dist_mat_neg, dist_mat_neg]

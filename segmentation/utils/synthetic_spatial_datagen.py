@@ -58,12 +58,12 @@ def direct_init_dist_matrix(num_A=100, num_B=100, num_C=100,
     # note that we don't really care about aa, bb, bc, or cc, so we
     # initialize those to garbage. We do need them for a proper
     # distance matrix format, however.
-    random_aa = np.random.normal(0, 1, (num_A, num_A))
-    random_ab = np.random.normal(mean_ab, var_ab, (num_A, num_B))
-    random_ac = np.random.normal(mean_ac, var_ac, (num_A, num_C))
-    random_bb = np.random.normal(0, 1, (num_B, num_B))
-    random_bc = np.random.normal(0, 1, (num_B, num_C))
-    random_cc = np.random.normal(0, 1, (num_C, num_C))
+    random_aa = np.abs(np.random.normal(0, 1, (num_A, num_A)))
+    random_ab = np.abs(np.random.normal(mean_ab, var_ab, (num_A, num_B)))
+    random_ac = np.abs(np.random.normal(mean_ac, var_ac, (num_A, num_C)))
+    random_bb = np.abs(np.random.normal(0, 1, (num_B, num_B)))
+    random_bc = np.abs(np.random.normal(0, 1, (num_B, num_C)))
+    random_cc = np.abs(np.random.normal(0, 1, (num_C, num_C)))
 
     # create each partition one-by-one first
     # we need to correct each aa, bb, and cc matrix to ensure symmetry
