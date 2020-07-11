@@ -52,8 +52,8 @@ def generate_channel_spatial_enrichment_data(dist_matrices, data_markers, marker
 
     # Create stats Xarray with the dimensions (points, stats variables, number of markers, number of markers)
     stats_raw_data = np.zeros((num_fovs, 7, marker_num, marker_num))
-    coords = [fovs, COORDS_MARKERS, marker_titles, marker_titles]
-    dims = DIMS_MARKERS
+    coords = [fovs, ["z", "muhat", "sigmahat", "p_pos", "p_neg", "h", "p_adj"], marker_titles, marker_titles]
+    dims = ["points", "stats", "marker1", "marker2"]
 
     stats = xr.DataArray(stats_raw_data, coords=coords, dims=dims)
 
