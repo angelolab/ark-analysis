@@ -1,4 +1,3 @@
-import sys
 import xarray as xr
 import numpy as np
 import os
@@ -29,29 +28,36 @@ def _create_img_dir(temp_dir, fovs, imgs, img_sub_folder="TIFs"):
 
 def test_validate_paths():
 
-    valid_path = 'data/example_dataset/label_data'
+    with tempfile.TemporaryDirectory(dir='data') as valid_path:
 
-    valid_parts = [p for p in pathlib.Path(valid_path).parts]
-    valid_parts[0] = 'not_a_real_directory'
+        valid_parts = [p for p in pathlib.Path(valid_path).parts]
+        valid_parts[0] = 'not_a_real_directory'
 
-    starts_out_of_scope = os.path.join(*valid_parts)
+        starts_out_of_scope = os.path.join(*valid_parts)
 
-    valid_parts[0] = 'data'
-    valid_parts[1] = 'not_a_real_subdirectory'
-    wrong_subdir = os.path.join(*valid_parts)
+        valid_parts[0] = 'data'
+        valid_parts[1] = 'not_a_real_subdirectory'
+        wrong_subdir = os.path.join(*valid_parts)
 
-    wrong_file = os.path.join(valid_path, 'not_a_real_file.tiff')
+        wrong_file = os.path.join(valid_path, 'not_a_real_file.tiff')
 
-    data_utils.validate_paths(valid_path)
+        # test one valid path
+        data_utils.validate_paths(valid_path)
 
-    with pytest.raises(ValueError, match=r".*prefixed*"):
-        data_utils.validate_paths(starts_out_of_scope)
+        # test multiple valid paths
+        data_utils.validate_paths([valid_path, 'data'])
 
-    with pytest.raises(ValueError, match=r".*subdirectory*"):
-        data_utils.validate_paths(wrong_subdir)
+        # test out-of-scope
+        with pytest.raises(ValueError, match=r".*not_a_real_directory*"):
+            data_utils.validate_paths(starts_out_of_scope)
 
-    with pytest.raises(ValueError, match=r".*tiff*"):
-        data_utils.validate_paths(wrong_file)
+        # test mid-directory existence
+        with pytest.raises(ValueError, match=r".*not_a_real_subdirectory*"):
+            data_utils.validate_paths(wrong_subdir)
+
+        # test file existence
+        with pytest.raises(ValueError, match=r".*not_a_real_file*"):
+            data_utils.validate_paths(wrong_file)
 
 
 def test_load_imgs_from_mibitiff():

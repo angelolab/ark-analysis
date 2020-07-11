@@ -28,9 +28,9 @@ def validate_paths(paths):
                 for parent in pathlib.Path(path).parents:
                     if not os.path.exists(parent):
                         raise ValueError(
-                            f'The folder, {parent}, was not found...')
+                            f'The folder, {parent.name}, was not found...')
                 raise ValueError(
-                    f'The file/path, {path} was not found...')
+                    f'The file/path, {pathlib.Path(path).name} was not found...')
             else:
                 raise ValueError(
                     f'The path, {path}, is not prefixed with \'data\'.\n'
