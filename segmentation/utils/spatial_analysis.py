@@ -5,15 +5,6 @@ from segmentation.utils import spatial_analysis_utils
 import importlib
 importlib.reload(spatial_analysis_utils)
 
-EX_COLNAMES = ["cell_size", "Background", "HH3",
-               "summed_channel", "label", "area",
-               "eccentricity", "major_axis_length", "minor_axis_length",
-               "perimeter", "fov"]
-
-COORDS_MARKERS = ["z", "muhat", "sigmahat", "p_pos", "p_neg", "h", "p_adj"]
-
-DIMS_MARKERS = ["points", "stats", "marker1", "marker2"]
-
 
 # Erin's Data Inputs-Threshold
 
@@ -128,7 +119,10 @@ def calculate_channel_spatial_enrichment(dist_matrices, marker_thresholds, all_d
         num_fovs = len(fovs)
 
     if excluded_colnames is None:
-        excluded_colnames = EX_COLNAMES
+        excluded_colnames = ["cell_size", "Background", "HH3",
+                             "summed_channel", "label", "area",
+                             "eccentricity", "major_axis_length", "minor_axis_length",
+                             "perimeter", "fov"]
 
     # Error Checking
     if not np.isin(excluded_colnames, all_data.columns).all():
@@ -183,8 +177,8 @@ def generate_cluster_spatial_enrichment_data(dist_mats, pheno_titles, pheno_num,
 
     # Create stats Xarray with the dimensions (points, stats variables, number of markers, number of markers)
     stats_raw_data = np.zeros((num_fovs, 7, pheno_num, pheno_num))
-    coords = [fovs, COORDS_MARKERS, pheno_titles, pheno_titles]
-    dims = DIMS_MARKERS
+    coords = [fovs, ["z", "muhat", "sigmahat", "p_pos", "p_neg", "h", "p_adj"], pheno_titles, pheno_titles]
+    dims = ["points", "stats", "marker1", "marker2"]
     stats = xr.DataArray(stats_raw_data, coords=coords, dims=dims)
 
     for i in range(0, len(fovs)):
