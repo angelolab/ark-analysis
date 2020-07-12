@@ -199,15 +199,20 @@ def calculate_cluster_spatial_enrichment(all_data, dist_mats, fovs=None,
     return values, stats
 
 
-def create_neighborhood_matrix(all_data, dist_matrices, fovs=None, distlim=50):
+def create_neighborhood_matrix(all_data, dist_matrices, fovs=None, distlim=50, fov_col="SampleID",
+                               flowsom_col="FlowSOM_ID", cell_label_col="cellLabelInImage"):
     """Calculates the number of neighbor phenotypes for each cell
 
         Args:
-            all_data: data for the all fov
+            all_data: data for the all fovs in the form of a pandas DF, including the columns of SampleID (fovs),
+                cellLabelInImage (the cell label), and FlowSOM_ID (the cell phenotype id).
             dist_matrices: A dictionary that contains a cells x cells matrix with the euclidian
                 distance between centers of corresponding cells for every fov
             fovs: patient labels to include in analysis. If argument is none, default is all labels used.
             distlim: cell proximity threshold. Default is 50.
+            fov_col: column with the cell fovs (Default is SampleID)
+            flowsom_col: column with the cell phenotype IDs (Default is FlowSOM_ID)
+            cell_label_col: column with the cell labels (Default is cellLabelInImage)
         Returns:
             cell_neighbor_counts: matrix with phenotype counts per cell
             cell_neighbor_freqs: matrix with phenotype frequencies of
@@ -215,10 +220,8 @@ def create_neighborhood_matrix(all_data, dist_matrices, fovs=None, distlim=50):
             cell_count: current cell in analysis"""
 
     # Setup input and parameters
-    fov_col = "SampleID"
-    flowsom_col = "FlowSOM_ID"
-    cell_label_col = "cellLabelInImage"
     cell_count = 0
+
     if fovs is None:
         fovs = sorted(list(set(all_data[fov_col])))
 
@@ -235,13 +238,11 @@ def create_neighborhood_matrix(all_data, dist_matrices, fovs=None, distlim=50):
 
     # initiate empty matrices for cell neighborhood data
     cell_neighbor_counts = pd.DataFrame(np.zeros((all_data.shape[0], pheno_num + 2)))
-    cell_neighbor_freqs = pd.DataFrame(np.zeros((all_data.shape[0], pheno_num + 2)))
+    cell_neighbor_freqs = cell_neighbor_counts.copy(deep=True)
 
     # Replace the first and second columns of cell_neighbor_counts with the fovs and cell labels respectively
-    cell_neighbor_counts[0] = all_data[fov_col]
-    cell_neighbor_counts[1] = all_data[cell_label_col]
-    cell_neighbor_freqs[0] = all_data[fov_col]
-    cell_neighbor_freqs[1] = all_data[cell_label_col]
+    cell_neighbor_counts[[0, 1]] = all_data[[fov_col, cell_label_col]]
+    cell_neighbor_freqs[[0, 1]] = all_data[[fov_col, cell_label_col]]
 
     for i in range(len(fovs)):
         # Subsetting expression matrix to only include patients with correct label
@@ -252,7 +253,7 @@ def create_neighborhood_matrix(all_data, dist_matrices, fovs=None, distlim=50):
         dist_matrix = dist_matrices[str(fovs[i])]
 
         # Get cell_neighbor_counts and cell_neighbor_freqs for points
-        cell_neighbor_counts, cell_neighbor_freqs, cell_count = spatial_analysis_utils.compute_neighbor_counts(
+        cell_count = spatial_analysis_utils.compute_neighbor_counts(
             fov_data, dist_matrix, distlim, pheno_num, cell_neighbor_counts, cell_neighbor_freqs, cell_count)
 
     return cell_neighbor_counts, cell_neighbor_freqs

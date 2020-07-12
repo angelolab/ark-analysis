@@ -14,7 +14,7 @@ def make_threshold_mat():
     return thresh
 
 
-def make_distance_matrix(enrichment_type, analysis_type="spatial"):
+def make_distance_matrix(enrichment_type):
     # Make a distance matrix for no enrichment, positive enrichment, and negative enrichment
 
     if enrichment_type == "none":
@@ -63,7 +63,7 @@ def make_distance_matrix(enrichment_type, analysis_type="spatial"):
         return dist_mat_neg
 
 
-def make_expression_matrix(enrichment_type, analysis_type="spatial"):
+def make_expression_matrix(enrichment_type):
     # Create the expression matrix with cell labels and patient labels for no enrichment,
     # positive enrichment, and negative enrichment.
 

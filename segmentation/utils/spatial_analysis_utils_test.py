@@ -224,20 +224,18 @@ def test_compute_neighbor_count():
     distlim = 50
 
     fov_data, dist_matrix = make_example_data_closenum()
-    fov_data.iloc[:, 30] = 8
+    # fov_data.iloc[:, 30] = 8
     fov_data = fov_data[[fov_col, cell_label_col, flowsom_col]]
     pheno_num = len(fov_data[flowsom_col].drop_duplicates())
 
     cell_neighbor_counts = pd.DataFrame(np.zeros((fov_data.shape[0], pheno_num + 2)))
-    cell_neighbor_freqs = pd.DataFrame(np.zeros((fov_data.shape[0], pheno_num + 2)))
-    cell_neighbor_counts[0] = fov_data[fov_col]
-    cell_neighbor_counts[1] = fov_data[cell_label_col]
-    cell_neighbor_freqs[0] = fov_data[fov_col]
-    cell_neighbor_freqs[1] = fov_data[cell_label_col]
+    cell_neighbor_freqs = cell_neighbor_counts.copy(deep=True)
+    cell_neighbor_counts[[0, 1]] = fov_data[[fov_col, cell_label_col]]
+    cell_neighbor_freqs[[0, 1]] = fov_data[[fov_col, cell_label_col]]
 
-    counts, freqs, cell_count = spatial_analysis_utils.compute_neighbor_counts(
+    cell_count = spatial_analysis_utils.compute_neighbor_counts(
         fov_data, dist_matrix, distlim, pheno_num, cell_neighbor_counts, cell_neighbor_freqs, cell_count)
 
-    assert (counts.loc[:3, 2] == 1).all()
-    assert (counts.loc[4:8, 3] == 1).all()
-    assert (counts.loc[9, 4] == 0).all()
+    assert (cell_neighbor_counts.loc[:3, 2] == 1).all()
+    assert (cell_neighbor_counts.loc[4:8, 3] == 1).all()
+    assert (cell_neighbor_counts.loc[9, 4] == 0).all()
