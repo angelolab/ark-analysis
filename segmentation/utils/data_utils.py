@@ -25,7 +25,7 @@ def validate_paths(paths):
     for path in paths:
         if not os.path.exists(path):
             if str(path).startswith('data'):
-                for parent in pathlib.Path(path).parents:
+                for parent in reversed(pathlib.Path(path).parents):
                     if not os.path.exists(parent):
                         raise ValueError(
                             f'The folder, {parent.name}, was not found...')
