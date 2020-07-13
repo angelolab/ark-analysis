@@ -321,7 +321,7 @@ def compute_neighbor_counts(fov_data, dist_matrix, distlim, pheno_num,
     num_neighbors = np.sum(cell_dist_mat_bin, axis=0)
 
     # create the 'phenotype has cell?' matrix, excluding non cell-label rows (should match up w/ dist_matrix)
-    pheno_has_cell = pd.get_dummies(fov_data.iloc[fov_data[cell_label_col]-1, 2]).to_numpy().T
+    pheno_has_cell = pd.get_dummies(fov_data.iloc[fov_data[cell_label_col] - 1, 2]).to_numpy().T
 
     # dot binarized 'is neighbor?' matrix with pheno_has_cell to get counts
     counts = pheno_has_cell.dot(cell_dist_mat_bin).T
