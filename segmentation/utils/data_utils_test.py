@@ -50,7 +50,7 @@ def test_validate_paths():
         data_utils.validate_paths(valid_path)
 
         # test multiple valid paths
-        data_utils.validate_paths([valid_path, 'data', valid_path+'/real_subdirectory'])
+        data_utils.validate_paths([valid_path, 'data', valid_path + '/real_subdirectory'])
 
         # test out-of-scope
         with pytest.raises(ValueError, match=r".*not_a_real_directory*"):
