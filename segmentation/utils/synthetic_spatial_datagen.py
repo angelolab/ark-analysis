@@ -16,7 +16,7 @@ from skimage.measure import label
 
 
 def direct_init_dist_matrix(num_A=100, num_B=100, num_C=100,
-                            distr_AB=(10, 1), distr_AC=(100, 1),
+                            distr_AB=(100, 1), distr_AC=(10, 1),
                             seed=None):
     """
     This function will return a random dist matrix such that the distance between cells

@@ -23,7 +23,7 @@ importlib.reload(spatial_analysis_utils)
 
 def calculate_channel_spatial_enrichment(dist_matrices, marker_thresholds, all_data,
                                          excluded_colnames=None, fovs=None,
-                                         dist_lim=100, bootstrap_num=1000):
+                                         dist_lim=100, bootstrap_num=1000, seed=None):
     """Spatial enrichment analysis to find significant interactions between cells expressing different markers.
     Uses bootstrapping to permute cell labels randomly.
 
@@ -41,6 +41,7 @@ def calculate_channel_spatial_enrichment(dist_matrices, marker_thresholds, all_d
         fovs: patient labels to include in analysis. If argument is none, default is all labels used.
         dist_lim: cell proximity threshold. Default is 100.
         bootstrap_num: number of permutations for bootstrap. Default is 1000.
+        seed: the value to set for randomized seed. Useful for testing. Default None.
 
     Returns:
         values: a list with each element consisting of a tuple of
@@ -107,9 +108,10 @@ def calculate_channel_spatial_enrichment(dist_matrices, marker_thresholds, all_d
         # Get close_num and close_num_rand
         close_num, marker1_num, marker2_num = spatial_analysis_utils.compute_close_cell_num(
             dist_mat=dist_matrix, dist_lim=100, num=marker_num, analysis_type="Channel",
-            fov_data=fov_data, fov_channel_data=fov_channel_data, thresh_vec=thresh_vec)
+            fov_data=fov_data, fov_channel_data=fov_channel_data, thresh_vec=thresh_vec,
+            seed=seed)
         close_num_rand = spatial_analysis_utils.compute_close_cell_num_random(
-            marker1_num, marker2_num, dist_matrix, marker_num, dist_lim, bootstrap_num)
+            marker1_num, marker2_num, dist_matrix, marker_num, dist_lim, bootstrap_num, seed)
         values.append((close_num, close_num_rand))
         # Get z, p, adj_p, muhat, sigmahat, and h
         stats_xr = spatial_analysis_utils.calculate_enrichment_stats(close_num, close_num_rand)
@@ -118,7 +120,7 @@ def calculate_channel_spatial_enrichment(dist_matrices, marker_thresholds, all_d
 
 
 def calculate_cluster_spatial_enrichment(all_data, dist_mats, fovs=None,
-                                         bootstrap_num=1000, dist_lim=100):
+                                         bootstrap_num=1000, dist_lim=100, seed=None):
     """Spatial enrichment analysis based on cell phenotypes to find significant interactions between different
     cell types, looking for both positive and negative enrichment. Uses bootstrapping to permute cell labels randomly.
 
@@ -183,9 +185,9 @@ def calculate_cluster_spatial_enrichment(all_data, dist_mats, fovs=None,
         # Get close_num and close_num_rand
         close_num, pheno1_num, pheno2_num = spatial_analysis_utils.compute_close_cell_num(
             dist_mat=dist_mat, dist_lim=dist_lim, num=pheno_num, analysis_type="Cluster",
-            fov_data=fov_data, pheno_codes=pheno_codes)
+            fov_data=fov_data, pheno_codes=pheno_codes, seed=seed)
         close_num_rand = spatial_analysis_utils.compute_close_cell_num_random(
-            pheno1_num, pheno2_num, dist_mat, pheno_num, dist_lim, bootstrap_num)
+            pheno1_num, pheno2_num, dist_mat, pheno_num, dist_lim, bootstrap_num, seed)
         values.append((close_num, close_num_rand))
 
         # Get z, p, adj_p, muhat, sigmahat, and h

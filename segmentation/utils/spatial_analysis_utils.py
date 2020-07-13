@@ -78,7 +78,7 @@ def get_pos_cell_labels(analysis_type, pheno=None, fov_data=None,
 
 def compute_close_cell_num(dist_mat, dist_lim, num, analysis_type,
                            fov_data=None, fov_channel_data=None, pheno_codes=None,
-                           thresh_vec=None):
+                           thresh_vec=None, seed=None):
     """Finds positive cell labels and creates matrix with counts for cells positive for corresponding markers.
     Computes close_num matrix for both Cell Label and Threshold spatial analyses.
 
@@ -98,6 +98,7 @@ def compute_close_cell_num(dist_mat, dist_lim, num, analysis_type,
         fov_channel_data: data of only column markers for Channel Analysis
         pheno_codes: list all the cell phenotypes in Cluster Analysis
         thresh_vec: matrix of thresholds column for markers
+        seed: the seed to set for randomized operations, useful for testing
 
     Returns:
         close_num: marker x marker matrix with counts for cells
@@ -105,6 +106,10 @@ def compute_close_cell_num(dist_mat, dist_lim, num, analysis_type,
         marker1_num: list of number of cell labels for marker 1
         marker2_num: list of number of cell labels for marker 2"""
     # Initialize variables
+
+    if seed:
+        np.random.seed(seed)
+
     cell_labels = []
 
     # Assign column names for subsetting (cell labels)
@@ -150,7 +155,7 @@ def compute_close_cell_num(dist_mat, dist_lim, num, analysis_type,
 
 
 def compute_close_cell_num_random(marker1_num, marker2_num,
-                                  dist_mat, marker_num, dist_lim, bootstrap_num):
+                                  dist_mat, marker_num, dist_lim, bootstrap_num, seed):
     """Uses bootstrapping to permute cell labels randomly and records the number of close cells (within the dit_lim)
     in that random setup.
 
@@ -162,12 +167,17 @@ def compute_close_cell_num_random(marker1_num, marker2_num,
         marker_num: number of markers in expresion data
         dist_lim: threshold for spatial enrichment distance proximity
         bootstrap_num: number of permutations
+        seed: the seed to set for randomized operations, useful for testing
 
     Returns
         close_num_rand: random positive marker counts
             for every permutation in the bootstrap"""
 
     # Create close_num_rand
+
+    if seed:
+        np.random.seed(42)
+
     close_num_rand = np.zeros((
         marker_num, marker_num, bootstrap_num), dtype='int')
 
