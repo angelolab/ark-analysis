@@ -220,7 +220,7 @@ def create_neighborhood_matrix(all_data, dist_matrices, fovs=None, distlim=50, f
             cell_count: current cell in analysis"""
 
     # Setup input and parameters
-    cell_count = 0
+    # cell_count = 0
 
     if fovs is None:
         fovs = sorted(list(set(all_data[fov_col])))
@@ -253,7 +253,9 @@ def create_neighborhood_matrix(all_data, dist_matrices, fovs=None, distlim=50, f
         dist_matrix = dist_matrices[str(fovs[i])]
 
         # Get cell_neighbor_counts and cell_neighbor_freqs for points
-        cell_count = spatial_analysis_utils.compute_neighbor_counts(
-            fov_data, dist_matrix, distlim, pheno_num, cell_neighbor_counts, cell_neighbor_freqs, cell_count)
+        # cell_count = spatial_analysis_utils.compute_neighbor_counts(
+        #     fov_data, dist_matrix, distlim, pheno_num, cell_neighbor_counts, cell_neighbor_freqs, cell_count)
+        spatial_analysis_utils.compute_neighbor_counts(
+            fov_data, dist_matrix, distlim, pheno_num, cell_neighbor_counts, cell_neighbor_freqs)
 
     return cell_neighbor_counts, cell_neighbor_freqs

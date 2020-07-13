@@ -220,11 +220,10 @@ def test_compute_neighbor_count():
     fov_col = "SampleID"
     flowsom_col = "FlowSOM_ID"
     cell_label_col = "cellLabelInImage"
-    cell_count = 0
-    distlim = 50
+    # cell_count = 0
+    distlim = 100
 
     fov_data, dist_matrix = make_example_data_closenum()
-    # fov_data.iloc[:, 30] = 8
     fov_data = fov_data[[fov_col, cell_label_col, flowsom_col]]
     pheno_num = len(fov_data[flowsom_col].drop_duplicates())
 
@@ -233,9 +232,9 @@ def test_compute_neighbor_count():
     cell_neighbor_counts[[0, 1]] = fov_data[[fov_col, cell_label_col]]
     cell_neighbor_freqs[[0, 1]] = fov_data[[fov_col, cell_label_col]]
 
-    cell_count = spatial_analysis_utils.compute_neighbor_counts(
-        fov_data, dist_matrix, distlim, pheno_num, cell_neighbor_counts, cell_neighbor_freqs, cell_count)
+    spatial_analysis_utils.compute_neighbor_counts(
+        fov_data, dist_matrix, distlim, pheno_num, cell_neighbor_counts, cell_neighbor_freqs)
 
-    assert (cell_neighbor_counts.loc[:3, 2] == 1).all()
-    assert (cell_neighbor_counts.loc[4:8, 3] == 1).all()
+    assert (cell_neighbor_counts.loc[:3, 2] == 3).all()
+    assert (cell_neighbor_counts.loc[4:8, 3] == 4).all()
     assert (cell_neighbor_counts.loc[9, 4] == 0).all()

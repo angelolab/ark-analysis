@@ -253,7 +253,7 @@ def calculate_enrichment_stats(close_num, close_num_rand):
 
 
 def compute_neighbor_counts(fov_data, dist_matrix, distlim, pheno_num,
-                            cell_neighbor_counts, cell_neighbor_freqs, cell_count,
+                            cell_neighbor_counts, cell_neighbor_freqs,
                             cell_label_col="cellLabelInImage", flowsom_col="FlowSOM_ID"):
     """Calculates the number of neighbor phenotypes for each cell
 
@@ -275,35 +275,60 @@ def compute_neighbor_counts(fov_data, dist_matrix, distlim, pheno_num,
             counts per phenotype/total phenotypes for each cell
         cell_count: current cell in analysis"""
 
-    for j in list(fov_data.index):
-        # get specific cell
-        cell = fov_data.loc[j, cell_label_col]
+    # for j in list(fov_data.index):
+    #     # get specific cell
+    #     cell = fov_data.loc[j, cell_label_col]
+    #
+    #     # Error checking to make sure correct cell labels are given (not negative)
+    #     if not cell > 0:
+    #         raise ValueError("Incorrect Cell Labels given as Input")
+    #
+    #     # get all cell neighbors within threshold distance
+    #     cell_dist_mat = dist_matrix[int(cell - 1), :]
+    #     cell_dist_mat_bin = np.zeros(cell_dist_mat.shape)
+    #     # Binarize the cell_dist_mat, making all those within the distlim equal to 1
+    #     cell_dist_mat_bin[cell_dist_mat < distlim] = 1
+    #     cell_dist_mat_bin[cell_dist_mat == 0] = 0
+    #
+    #     # get indices (labels) of close cells
+    #     neighbor_labels = np.argwhere(cell_dist_mat_bin > 0) + 1
+    #     # filter out non-cellular objects (with no corresponding label in fov data)
+    #     neighbor_labels_cells = np.intersect1d(neighbor_labels, fov_data[cell_label_col])
+    #
+    #     # count phenotypes in cell neighbors
+    #     count_vec = np.zeros((1, pheno_num))
+    #     # Only include the neighbor labels that are cell labels
+    #     neighbor_inds = np.isin(fov_data[cell_label_col], neighbor_labels_cells)
+    #     # Get the phenotypes of the neighbor labels by index
+    #     pheno_vec = fov_data.loc[neighbor_inds, flowsom_col]
+    #     count_vec[0, 0:(pheno_num - 1)] = [sum(pheno_vec == k) for k in range(1, pheno_num)]
+    #     # add to neighborhood matrices
+    #     cell_neighbor_counts.loc[cell_count, 2:] = count_vec[0, :]
+    #     cell_neighbor_freqs.loc[cell_count, 2:] = (count_vec[0, :] / len(neighbor_labels_cells))
+    #     # update cell counts
+    #     cell_count += 1
+    # return cell_count
+    # remove non-cell2cell distances
+    cell_dist_mat = np.take(dist_matrix, fov_data[cell_label_col] - 1, 0)
+    cell_dist_mat = np.take(cell_dist_mat, fov_data[cell_label_col] - 1, 1)
 
-        # Error checking to make sure correct cell labels are given (not negative)
-        if not cell > 0:
-            raise ValueError("Incorrect Cell Labels given as Input")
+    # binarize distance matrix
+    cell_dist_mat_bin = np.zeros(cell_dist_mat.shape)
+    cell_dist_mat_bin[cell_dist_mat < distlim] = 1
+    cell_dist_mat_bin[cell_dist_mat == 0] = 0
 
-        # get all cell neighbors within threshold distance
-        cell_dist_mat = dist_matrix[int(cell - 1), :]
-        cell_dist_mat_bin = np.zeros(cell_dist_mat.shape)
-        # Binarize the cell_dist_mat, making all those within the distlim equal to 1
-        cell_dist_mat_bin[cell_dist_mat < distlim] = 1
+    # get num_neighbors for freqs
+    num_neighbors = np.sum(cell_dist_mat_bin, axis=0)
 
-        # get indices (labels) of close cells
-        neighbor_labels = np.argwhere(cell_dist_mat_bin > 0) + 1
-        # filter out non-cellular objects (with no corresponding label in fov data)
-        neighbor_labels_cells = np.intersect1d(neighbor_labels, fov_data[cell_label_col])
+    # create the 'phenotype has cell?' matrix, excluding non cell-label rows (should match up w/ dist_matrix)
+    pheno_has_cell = pd.get_dummies(fov_data.iloc[fov_data[cell_label_col]-1, 2]).to_numpy().T
 
-        # count phenotypes in cell neighbors
-        count_vec = np.zeros((1, pheno_num))
-        # Only include the neighbor labels that are cell labels
-        neighbor_inds = np.isin(fov_data[cell_label_col], neighbor_labels_cells)
-        # Get the phenotypes of the neighbor labels by index
-        pheno_vec = fov_data.loc[neighbor_inds, flowsom_col]
-        count_vec[0, 0:(pheno_num - 1)] = [sum(pheno_vec == k) for k in range(1, pheno_num)]
-        # add to neighborhood matrices
-        cell_neighbor_counts.loc[cell_count, 2:] = count_vec[0, :]
-        cell_neighbor_freqs.loc[cell_count, 2:] = (count_vec[0, :] / len(neighbor_labels_cells))
-        # update cell counts
-        cell_count += 1
-    return cell_count
+    # dot binarized 'is neighbor?' matrix with pheno_has_cell to get counts
+    counts = pheno_has_cell.dot(cell_dist_mat_bin).T
+
+    # compute freqs with num_neighbors
+    freqs = counts.T / num_neighbors
+
+    # add to neighbor counts + freqs
+    cell_neighbor_counts.loc[fov_data.index, 2:] = counts
+    cell_neighbor_freqs.loc[fov_data.index, 2:] = freqs.T
