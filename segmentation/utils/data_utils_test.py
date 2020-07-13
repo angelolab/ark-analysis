@@ -30,6 +30,8 @@ def test_validate_paths():
 
     with tempfile.TemporaryDirectory(dir='data') as valid_path:
 
+        os.mkdir(valid_path + '/real_subdirectory')
+
         valid_parts = [p for p in pathlib.Path(valid_path).parts]
         valid_parts[0] = 'not_a_real_directory'
 
@@ -37,15 +39,18 @@ def test_validate_paths():
 
         valid_parts[0] = 'data'
         valid_parts[1] = 'not_a_real_subdirectory'
-        wrong_subdir = os.path.join(*valid_parts)
+        valid_parts.append('not_real_but_parent_is_problem')
+        bad_middle_path = os.path.join(*valid_parts)
 
+        valid_parts.pop()
+        valid_parts[1] = 'real_subdirectory'
         wrong_file = os.path.join(valid_path, 'not_a_real_file.tiff')
 
         # test one valid path
         data_utils.validate_paths(valid_path)
 
         # test multiple valid paths
-        data_utils.validate_paths([valid_path, 'data'])
+        data_utils.validate_paths([valid_path, 'data', valid_path+'/real_subdirectory'])
 
         # test out-of-scope
         with pytest.raises(ValueError, match=r".*not_a_real_directory*"):
@@ -53,7 +58,7 @@ def test_validate_paths():
 
         # test mid-directory existence
         with pytest.raises(ValueError, match=r".*not_a_real_subdirectory*"):
-            data_utils.validate_paths(wrong_subdir)
+            data_utils.validate_paths(bad_middle_path)
 
         # test file existence
         with pytest.raises(ValueError, match=r".*not_a_real_file*"):
