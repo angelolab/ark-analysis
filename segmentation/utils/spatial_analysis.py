@@ -110,9 +110,11 @@ def calculate_channel_spatial_enrichment(dist_matrices, marker_thresholds, all_d
             dist_mat=dist_matrix, dist_lim=100, num=marker_num, analysis_type="Channel",
             fov_data=fov_data, fov_channel_data=fov_channel_data, thresh_vec=thresh_vec,
             seed=seed)
+
         close_num_rand = spatial_analysis_utils.compute_close_cell_num_random(
             marker1_num, marker2_num, dist_matrix, marker_num, dist_lim, bootstrap_num, seed)
         values.append((close_num, close_num_rand))
+
         # Get z, p, adj_p, muhat, sigmahat, and h
         stats_xr = spatial_analysis_utils.calculate_enrichment_stats(close_num, close_num_rand)
         stats.loc[fovs[i], :, :] = stats_xr.values

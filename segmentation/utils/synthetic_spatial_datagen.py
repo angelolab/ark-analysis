@@ -16,11 +16,11 @@ from skimage.measure import label
 
 
 def direct_init_dist_matrix(num_A=100, num_B=100, num_C=100,
-                            distr_AB=(100, 1), distr_AC=(10, 1),
+                            distr_AB=(10, 1), distr_AC=(100, 1),
                             seed=None):
     """
     This function will return a random dist matrix such that the distance between cells
-    of types A and B are overall larger than the distance between cells of types A and C
+    of types A and B are overall shorter than the distance between cells of types A and C
 
     Each row and column representing a cell.
     We generate the points using Gaussian distributions
@@ -58,12 +58,12 @@ def direct_init_dist_matrix(num_A=100, num_B=100, num_C=100,
     # note that we don't really care about aa, bb, bc, or cc, so we
     # initialize those to garbage. We do need them for a proper
     # distance matrix format, however.
-    random_aa = np.abs(np.random.normal(0, 1, (num_A, num_A)))
+    random_aa = np.abs(np.random.normal(1000, 1, (num_A, num_A)))
     random_ab = np.abs(np.random.normal(mean_ab, var_ab, (num_A, num_B)))
     random_ac = np.abs(np.random.normal(mean_ac, var_ac, (num_A, num_C)))
-    random_bb = np.abs(np.random.normal(0, 1, (num_B, num_B)))
-    random_bc = np.abs(np.random.normal(0, 1, (num_B, num_C)))
-    random_cc = np.abs(np.random.normal(0, 1, (num_C, num_C)))
+    random_bb = np.abs(np.random.normal(1000, 1, (num_B, num_B)))
+    random_bc = np.abs(np.random.normal(1000, 1, (num_B, num_C)))
+    random_cc = np.abs(np.random.normal(1000, 1, (num_C, num_C)))
 
     # create each partition one-by-one first
     # we need to correct each aa, bb, and cc matrix to ensure symmetry
@@ -82,8 +82,8 @@ def direct_init_dist_matrix(num_A=100, num_B=100, num_C=100,
 
 def generate_random_centroids(size_img=(1024, 1024), num_A=100, num_B=100, num_C=100,
                               distr_A=((0.5, 0.5), [[200, 0], [0, 200]]),
-                              distr_B=((0.9, 0.9), [[200, 0], [0, 200]]),
-                              distr_C=((0.4, 0.4), [[200, 0], [0, 200]]),
+                              distr_B=((0.6, 0.6), [[200, 0], [0, 200]]),
+                              distr_C=((0.1, 0.1), [[200, 0], [0, 200]]),
                               float_type=False, seed=None):
     """
     Generate a set of random centroids given distribution parameters.
@@ -155,8 +155,8 @@ def generate_random_centroids(size_img=(1024, 1024), num_A=100, num_B=100, num_C
 
 def point_init_dist_matrix(size_img=(1024, 1024), num_A=100, num_B=100, num_C=100,
                            distr_A=((0.5, 0.5), [[200, 0], [0, 200]]),
-                           distr_B=((0.9, 0.9), [[200, 0], [0, 200]]),
-                           distr_C=((0.4, 0.4), [[200, 0], [0, 200]]),
+                           distr_B=((0.6, 0.6), [[200, 0], [0, 200]]),
+                           distr_C=((0.1, 0.1), [[200, 0], [0, 200]]),
                            seed=None):
     """
     This function generates random centroid centers in the form of a label map
@@ -217,8 +217,8 @@ def point_init_dist_matrix(size_img=(1024, 1024), num_A=100, num_B=100, num_C=10
 
 def generate_random_cell_shapes(size_img=(1024, 1024), num_A=100, num_B=100, num_C=100,
                                 distr_A=((0.5, 0.5), [[200, 0], [0, 200]]),
-                                distr_B=((0.9, 0.9), [[200, 0], [0, 200]]),
-                                distr_C=((0.4, 0.4), [[200, 0], [0, 200]]),
+                                distr_B=((0.6, 0.6), [[200, 0], [0, 200]]),
+                                distr_C=((0.1, 0.1), [[200, 0], [0, 200]]),
                                 width_factor=5, height_factor=5, rotation_factor=180, seed=None):
     """
     Generate properties of each cell oval using the point_init_dist_matrix as helper

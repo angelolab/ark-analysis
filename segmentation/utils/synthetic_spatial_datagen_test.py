@@ -26,8 +26,8 @@ def test_direct_init_dist_matrix():
     # assert matrix symmetry
     assert np.allclose(sample_dist_mat, sample_dist_mat.T, rtol=1e-05, atol=1e-08)
 
-    # assert the average of the distance between A and B is greater
+    # assert the average of the distance between A and B is smaller
     # than the average of the distance between A and C.
     # this may not eliminate the possibility that the null is proved true
     # but it's definitely a great check that can ensure greater success
-    assert sample_dist_mat[:100, 100:200].mean() > sample_dist_mat[:100, 200:].mean()
+    assert sample_dist_mat[:100, 100:200].mean() < sample_dist_mat[:100, 200:].mean()
