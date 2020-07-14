@@ -28,9 +28,7 @@ def calc_dist_matrix(label_map, ret=True, path=None):
     fovs = list(label_map.coords['fovs'].values)
     for i in range(0, label_map.shape[0]):
         props = skimage.measure.regionprops(label_map.loc[fovs[i], :, :, "segmentation_label"].values)
-        a = []
-        for j in range(len(props)):
-            a.append(props[j].centroid)
+        a = [props[j].centroid for j in range(len(props))]
         centroids = np.array(a)
         dist_matrix = cdist(centroids, centroids)
         dist_mats_list.append(dist_matrix)

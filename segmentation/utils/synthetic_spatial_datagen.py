@@ -16,7 +16,7 @@ from skimage.measure import label
 
 
 def direct_init_dist_matrix(num_A=100, num_B=100, num_C=100,
-                            distr_AB=(10, 1), distr_AC=(100, 1),
+                            distr_AB=(10, 1), distr_random=(200, 1),
                             seed=None):
     """
     This function will return a random dist matrix such that the distance between cells
@@ -32,8 +32,9 @@ def direct_init_dist_matrix(num_A=100, num_B=100, num_C=100,
         num_B: the number of B cells we wish to generate. Default 100
         num_C: the number of C cells we wish to generate. Default 100
         distr_AB: if specified, will be a tuple listing the mean and variance of the Gaussian distribution
-            we wish to generate numbers from. Default mean=100 and var=1
-        distr_AC: similar to dist_AB. Default mean=20 and var=1
+            we wish to generate numbers from. Default mean=10 and var=1
+        distr_random: similar to dist_AB, except it's what we set the distribution of
+            all other distances to be. Default mean=100 and var=1
         seed: whether to fix the random seed or not. Useful for testing.
             Should be a specified integer value. Default 42.
 
@@ -47,8 +48,8 @@ def direct_init_dist_matrix(num_A=100, num_B=100, num_C=100,
     mean_ab = distr_AB[0]
     var_ab = distr_AB[1]
 
-    mean_ac = distr_AC[0]
-    var_ac = distr_AC[1]
+    mean_random = distr_random[0]
+    var_random = distr_random[1]
 
     # set random seed if set
     if seed:
@@ -58,12 +59,12 @@ def direct_init_dist_matrix(num_A=100, num_B=100, num_C=100,
     # note that we don't really care about aa, bb, bc, or cc, so we
     # initialize those to garbage. We do need them for a proper
     # distance matrix format, however.
-    random_aa = np.abs(np.random.normal(1000, 1, (num_A, num_A)))
+    random_aa = np.abs(np.random.normal(mean_random, var_random, (num_A, num_A)))
     random_ab = np.abs(np.random.normal(mean_ab, var_ab, (num_A, num_B)))
-    random_ac = np.abs(np.random.normal(mean_ac, var_ac, (num_A, num_C)))
-    random_bb = np.abs(np.random.normal(1000, 1, (num_B, num_B)))
-    random_bc = np.abs(np.random.normal(1000, 1, (num_B, num_C)))
-    random_cc = np.abs(np.random.normal(1000, 1, (num_C, num_C)))
+    random_ac = np.abs(np.random.normal(mean_random, var_random, (num_A, num_C)))
+    random_bb = np.abs(np.random.normal(mean_random, var_random, (num_B, num_B)))
+    random_bc = np.abs(np.random.normal(mean_random, var_random, (num_B, num_C)))
+    random_cc = np.abs(np.random.normal(mean_random, var_random, (num_C, num_C)))
 
     # create each partition one-by-one first
     # we need to correct each aa, bb, and cc matrix to ensure symmetry
@@ -125,7 +126,7 @@ def generate_random_centroids(size_img=(1024, 1024), num_A=100, num_B=100, num_C
     b_mean = (height * distr_B[0][0], width * distr_B[0][1])
     b_cov = distr_B[1]
 
-    c_mean = (height * distr_C['centroid_factor'][0], width * distr_C['centroid_factor'][1])
+    c_mean = (height * distr_C[0][0], width * distr_C[0][1])
     c_cov = distr_C[1]
 
     # if specified, set the random seed
@@ -138,19 +139,34 @@ def generate_random_centroids(size_img=(1024, 1024), num_A=100, num_B=100, num_C
     # since label only takes a binary matrix
     # we pass the result through the unique function to eliminate any possibility of duplicate points
     # appearing within any of these arrays
-    a_points = np.unique(np.random.multivariate_normal(a_mean, a_cov, num_A).astype(numpy_type), axis=0)
-    b_points = np.unique(np.random.multivariate_normal(b_mean, b_cov, num_B).astype(numpy_type), axis=0)
-    c_points = np.unique(np.random.multivariate_normal(c_mean, c_cov, num_C).astype(numpy_type), axis=0)
+    # because of the small possiblity of generating a list of points that are duplicate, we use a while loop
+    # to regenerate a new set of points for a, b, and c in case of failure
+    non_dup_array = False
 
-    # this ensures that we only keep the points that are not duplicate across different cell types
-    points, counts = np.unique(np.concatenate((a_points, b_points, c_points), axis=0), axis=0, return_counts=True)
-    non_dup_points = points[counts == 1]
+    while not non_dup_array:
+        a_points = np.abs(np.unique(np.random.multivariate_normal(a_mean, a_cov, num_A).astype(numpy_type), axis=0))
+        b_points = np.abs(np.unique(np.random.multivariate_normal(b_mean, b_cov, num_B).astype(numpy_type), axis=0))
+        c_points = np.abs(np.unique(np.random.multivariate_normal(c_mean, c_cov, num_C).astype(numpy_type), axis=0))
 
-    # an astronomically unlikely error, would occur if for some reason all of the points were labelled as duplicate
-    if len(non_dup_points) == 0:
-        raise ValueError("Bad run: no unique points generated. Try again, will work next time.")
+        total_points = np.concatenate((a_points, b_points, c_points), axis=0)
 
-    return non_dup_points
+        # this ensures that we only keep the points that are not duplicate across different cell types
+        points, counts = np.unique(total_points, axis=0, return_counts=True)
+        dup_points = points[counts > 1]
+
+        # check that there are no duplicate points and that the ranges of the random points generated fall
+        # within range, otherwise we're regenerating the set of points with a new random seed
+        if len(dup_points) == 0 and len(total_points[:, 0][total_points[:, 0] > size_img[0]]) == 0 and \
+            len(total_points[:, 0][total_points[:, 0] > size_img[0]]) == 0 and \
+            len(total_points[:, 0][total_points[:, 0] < 0]) == 0 and \
+            len(total_points[:, 1][total_points[:, 1] > size_img[1]]) == 0 and \
+            len(total_points[:, 1][total_points[:, 1] < 0]) == 0:
+
+            non_dup_array = True
+        else:
+            np.random.seed(seed + 1)
+
+    return a_points, b_points, c_points
 
 
 def point_init_dist_matrix(size_img=(1024, 1024), num_A=100, num_B=100, num_C=100,
@@ -190,21 +206,32 @@ def point_init_dist_matrix(size_img=(1024, 1024), num_A=100, num_B=100, num_C=10
     """
 
     # generate the list of centroids and zip them into x and y coords
-    centroids = generate_random_centroids(size_img=size_img, num_A=num_A, num_B=num_B,
-                                          num_C=num_C, distr_A=distr_A, distr_B=distr_B,
-                                          distr_C=distr_C, float_type=False, seed=seed)
-    point_x_coords, point_y_coords = zip(*centroids)
+    a_centroids, b_centroids, c_centroids = \
+        generate_random_centroids(size_img=size_img, num_A=num_A, num_B=num_B,
+                                  num_C=num_C, distr_A=distr_A, distr_B=distr_B,
+                              distr_C=distr_C, float_type=False, seed=seed)
 
-    # generate the binary matrix to pass into label_map
-    binary_mat = np.zeros(size_img)
-    binary_mat[point_x_coords, point_y_coords] = True
-
-    # generate the label matrix for the image now
-    label_mat = label(binary_mat)
-
-    # and create the output to be able to run through calc_dist_matrix
+    # and create the output to be able to run through calc_dist_matrix if sample_img_xr is True
     # for now, I'm assuming that the array returned will have just one fov
     # and we don't know anything about the segmentation labels
+    # the reason we're doing this is because calc_dist_matrix in spatial_analysis_utils
+    # doesn't order the centroids in the way that is needed for testing purposes
+    all_centroids = np.concatenate((a_centroids, b_centroids, c_centroids), axis=0)
+    point_x_coords, point_y_coords = zip(*all_centroids)
+
+    # to compute the indices of the original centroid locations, needed to adjust the distance matrix
+    # back to what it was because calc_dist_matrix automatically sorts the centrodis by ascending order
+    centroid_indices = np.lexsort(all_centroids[:, ::-1].T)
+
+    # generate the label matrix for the image
+    # doing it this way because using the label function in skimage does so based on
+    # connected components and that messes up the regionprops call in calc_dist_matrix
+    # we don't want to assume that we won't get points of distance 1 away from each other
+    # so we can just use the labels generated from centroid_indices to assign this
+    label_mat = np.zeros(size_img)
+    label_mat[point_x_coords, point_y_coords] = centroid_indices + 1
+
+    # now generate the sample xarray
     sample_img = np.zeros((1, size_img[0], size_img[1], 1)).astype(np.int16)
     sample_img[0, :, :, 0] = copy.deepcopy(label_mat)
     sample_img_xr = xr.DataArray(sample_img,
@@ -212,7 +239,7 @@ def point_init_dist_matrix(size_img=(1024, 1024), num_A=100, num_B=100, num_C=10
                                  dims=['fovs', 'rows', 'cols', 'channels'])
 
     # and return the xarray to pass into calc_dist_matrix
-    return sample_img_xr
+    return sample_img_xr, centroid_indices
 
 
 def generate_random_cell_shapes(size_img=(1024, 1024), num_A=100, num_B=100, num_C=100,
