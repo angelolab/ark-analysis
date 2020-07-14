@@ -31,7 +31,7 @@ def validate_paths(paths):
                             f'A bad path, {path}, was provided.\n'
                             f'The folder, {parent.name}, could not be found...')
                 raise ValueError(
-                    f'The file/path, {pathlib.Path(path).name} could not be found...')
+                    f'The file/path, {pathlib.Path(path).name}, could not be found...')
             else:
                 raise ValueError(
                     f'The path, {path}, is not prefixed with \'../data\'.\n'
