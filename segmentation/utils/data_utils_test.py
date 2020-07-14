@@ -27,27 +27,53 @@ def _create_img_dir(temp_dir, fovs, imgs, img_sub_folder="TIFs"):
 
 
 def test_validate_paths():
-    valid_path = '.'
 
-    valid_parts = [p for p in pathlib.Path(valid_path).resolve().parts]
-    valid_parts[1] = 'not_a_real_directory'
+    # change cwd to /scripts for more accurate testing
+    os.chdir('scripts')
 
-    starts_out_of_scope = os.path.join(*valid_parts)
+    # make a tempdir for testing
+    with tempfile.TemporaryDirectory(dir='../data') as valid_path:
 
-    entirely_out_of_scope = '/not_a_real_directory/somewhere_else_not_here'
+        # make valid subdirectory
+        os.mkdir(valid_path + '/real_subdirectory')
 
-    nonexistant = './not_a_real_directory'
+        # extract parts of valid path to alter for test cases
+        valid_parts = [p for p in pathlib.Path(valid_path).parts]
+        valid_parts[0] = 'not_a_real_directory'
 
-    data_utils.validate_paths(valid_path)
+        # test no '../data' prefix
+        starts_out_of_scope = os.path.join(*valid_parts)
 
-    with pytest.raises(ValueError, match=r".*starts*"):
-        data_utils.validate_paths(starts_out_of_scope)
+        # construct test for bad middle folder path
+        valid_parts[0] = '..'
+        valid_parts[1] = 'data'
+        valid_parts[2] = 'not_a_real_subdirectory'
+        valid_parts.append('not_real_but_parent_is_problem')
+        bad_middle_path = os.path.join(*valid_parts)
 
-    with pytest.raises(ValueError, match=r".*Move*"):
-        data_utils.validate_paths(entirely_out_of_scope)
+        # construct test for real path until file
+        wrong_file = os.path.join(valid_path + '/real_subdirectory', 'not_a_real_file.tiff')
 
-    with pytest.raises(ValueError, match=r".*exist*"):
-        data_utils.validate_paths(nonexistant)
+        # test one valid path
+        data_utils.validate_paths(valid_path)
+
+        # test multiple valid paths
+        data_utils.validate_paths([valid_path, '../data', valid_path + '/real_subdirectory'])
+
+        # test out-of-scope
+        with pytest.raises(ValueError, match=r".*not_a_real_directory.*prefixed.*"):
+            data_utils.validate_paths(starts_out_of_scope)
+
+        # test mid-directory existence
+        with pytest.raises(ValueError, match=r".*bad path.*not_a_real_subdirectory.*"):
+            data_utils.validate_paths(bad_middle_path)
+
+        # test file existence
+        with pytest.raises(ValueError, match=r".*The file/path.*not_a_real_file.*"):
+            data_utils.validate_paths(wrong_file)
+
+    # reset cwd after testing
+    os.chdir('../')
 
 
 def test_load_imgs_from_mibitiff():
