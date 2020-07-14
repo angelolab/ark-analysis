@@ -24,18 +24,19 @@ def validate_paths(paths):
 
     for path in paths:
         if not os.path.exists(path):
-            if str(path).startswith('data'):
+            if str(path).startswith('../data'):
                 for parent in reversed(pathlib.Path(path).parents):
                     if not os.path.exists(parent):
                         raise ValueError(
-                            f'The folder, {parent.name}, was not found...')
+                            f'A bad path, {path}, was provided.\n'
+                            f'The folder, {parent.name}, could not be found...')
                 raise ValueError(
-                    f'The file/path, {pathlib.Path(path).name} was not found...')
+                    f'The file/path, {pathlib.Path(path).name} could not be found...')
             else:
                 raise ValueError(
-                    f'The path, {path}, is not prefixed with \'data\'.\n'
+                    f'The path, {path}, is not prefixed with \'../data\'.\n'
                     f'Be sure to add all images/files/data to the \'data\' folder, '
-                    f'and to reference as \'data/path_to_data/myfile.tif\'')
+                    f'and to reference as \'../data/path_to_data/myfile.tif\'')
 
 
 def load_imgs_from_mibitiff(mibitiff_paths, channels=None):
