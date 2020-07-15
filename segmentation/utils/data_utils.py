@@ -18,33 +18,25 @@ def validate_paths(paths):
         Raises errors if any directory is out of scope or non-existent
     """
 
-    cwd_parts = pathlib.Path.cwd().parts
-
+    # if given a single path, convert to list
     if not isinstance(paths, list):
         paths = [paths]
 
     for path in paths:
         if not os.path.exists(path):
-            for part in cwd_parts:
-                if part == 'segmentation':
-                    break
-                if part not in pathlib.Path(path).parts:
-                    if 'segmentation' in pathlib.Path(path).parts:
+            if str(path).startswith('../data'):
+                for parent in reversed(pathlib.Path(path).parents):
+                    if not os.path.exists(parent):
                         raise ValueError(
-                            f'The path, {pathlib.Path(path).resolve()},'
-                            f'starts outside of Docker\'s scope.\n'
-                            f'Use relative paths which go no higher in scope '
-                            f'than the segmentation folder')
-                    else:
-                        raise ValueError(
-                            f'The path, {pathlib.Path(path).resolve()}, '
-                            f'exists outside of Docker\'s scope.\n'
-                            f'Move data, files, etc from {pathlib.Path(path).resolve()} '
-                            f'into the segmentation folder.\n'
-                            f'Reference moved data using relative paths, '
-                            f'which go no higher in scope than the segmentation folder')
-
-            raise ValueError(f"The folder path {pathlib.Path(path).resolve()}, does not exist...")
+                            f'A bad path, {path}, was provided.\n'
+                            f'The folder, {parent.name}, could not be found...')
+                raise ValueError(
+                    f'The file/path, {pathlib.Path(path).name}, could not be found...')
+            else:
+                raise ValueError(
+                    f'The path, {path}, is not prefixed with \'../data\'.\n'
+                    f'Be sure to add all images/files/data to the \'data\' folder, '
+                    f'and to reference as \'../data/path_to_data/myfile.tif\'')
 
 
 def load_imgs_from_mibitiff(mibitiff_paths, channels=None):
