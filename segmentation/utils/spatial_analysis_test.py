@@ -236,7 +236,6 @@ def test_calculate_channel_spatial_enrichment():
     assert stats.loc["Point9", "p_neg", 3, 2] > .05
     assert stats.loc["Point9", "z", 3, 2] > 0
 
-
     # Positive enrichment with point matrix initialization
     values, stats = \
         spatial_analysis.calculate_channel_spatial_enrichment(
@@ -251,7 +250,6 @@ def test_calculate_channel_spatial_enrichment():
     assert stats.loc["Point9", "p_pos", 3, 2] < .05
     assert stats.loc["Point9", "p_neg", 3, 2] > .05
     assert stats.loc["Point9", "z", 3, 2] > 0
-
 
     # Negative enrichment with direct matrix initialization
     all_data_neg = make_expression_matrix("negative")
@@ -272,7 +270,6 @@ def test_calculate_channel_spatial_enrichment():
     assert stats.loc["Point9", "p_pos", 3, 2] > .05
     assert stats.loc["Point9", "z", 3, 2] < 0
 
-
     # Negative enrichment with point matrix initialization
     values, stats = \
         spatial_analysis.calculate_channel_spatial_enrichment(
@@ -287,7 +284,6 @@ def test_calculate_channel_spatial_enrichment():
     assert stats.loc["Point9", "p_neg", 3, 2] < .05
     assert stats.loc["Point9", "p_pos", 3, 2] > .05
     assert stats.loc["Point9", "z", 3, 2] < 0
-
 
     # No enrichment
     all_data = make_expression_matrix("none")
