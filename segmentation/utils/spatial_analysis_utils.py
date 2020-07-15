@@ -254,7 +254,7 @@ def calculate_enrichment_stats(close_num, close_num_rand):
 
 def compute_neighbor_counts(fov_data, dist_matrix, distlim, pheno_num,
                             cell_neighbor_counts, cell_neighbor_freqs,
-                            cell_label_col="cellLabelInImage", flowsom_col="FlowSOM_ID"):
+                            cell_label_col="cellLabelInImage", flowsom_col="FlowSOM_ID", cell_type_col="cell_type"):
     """Calculates the number of neighbor phenotypes for each cell
 
     Args:
@@ -308,6 +308,9 @@ def compute_neighbor_counts(fov_data, dist_matrix, distlim, pheno_num,
     #     # update cell counts
     #     cell_count += 1
     # return cell_count
+
+    pheno_titles = fov_data[cell_type_col].drop_duplicates()
+
     # remove non-cell2cell distances
     cell_dist_mat = np.take(dist_matrix, fov_data[cell_label_col] - 1, 0)
     cell_dist_mat = np.take(cell_dist_mat, fov_data[cell_label_col] - 1, 1)
@@ -315,13 +318,14 @@ def compute_neighbor_counts(fov_data, dist_matrix, distlim, pheno_num,
     # binarize distance matrix
     cell_dist_mat_bin = np.zeros(cell_dist_mat.shape)
     cell_dist_mat_bin[cell_dist_mat < distlim] = 1
-    cell_dist_mat_bin[cell_dist_mat == 0] = 0
+    # cell_dist_mat_bin[cell_dist_mat == 0] = 0
 
     # get num_neighbors for freqs
     num_neighbors = np.sum(cell_dist_mat_bin, axis=0)
 
     # create the 'phenotype has cell?' matrix, excluding non cell-label rows (should match up w/ dist_matrix)
-    pheno_has_cell = pd.get_dummies(fov_data.iloc[fov_data[cell_label_col] - 1, 2]).to_numpy().T
+    # pheno_has_cell = pd.get_dummies(fov_data.iloc[fov_data[cell_label_col] - 1, 2]).to_numpy().T
+    pheno_has_cell = pd.get_dummies(fov_data.iloc[:, 2]).to_numpy().T
 
     # dot binarized 'is neighbor?' matrix with pheno_has_cell to get counts
     counts = pheno_has_cell.dot(cell_dist_mat_bin).T
@@ -329,6 +333,10 @@ def compute_neighbor_counts(fov_data, dist_matrix, distlim, pheno_num,
     # compute freqs with num_neighbors
     freqs = counts.T / num_neighbors
 
-    # add to neighbor counts + freqs
-    cell_neighbor_counts.loc[fov_data.index, 2:] = counts
-    cell_neighbor_freqs.loc[fov_data.index, 2:] = freqs.T
+    # convert to pandas df and assign columns to phenos
+    countsdf = pd.DataFrame(counts, columns=pheno_titles)
+    freqsdf = pd.DataFrame(freqs.T, columns=pheno_titles)
+
+    # add to neighbor counts + freqs for only the matching phenotypes between the fov and the whole dataset
+    cell_neighbor_counts.loc[fov_data.index, countsdf.columns] = counts
+    cell_neighbor_freqs.loc[fov_data.index, freqsdf.columns] = freqs.T

@@ -98,8 +98,11 @@ def make_expression_matrix(enrichment_type):
         all_data.iloc[20:40, 32] = "Pheno2"
         all_data.iloc[80:100, 31] = 1
         all_data.iloc[80:100, 32] = "Pheno1"
+
         # Assign column names to columns not for markers (columns to be excluded)
         all_patient_data = all_data.rename(excluded_colnames, axis=1)
+
+        all_patient_data.loc[all_patient_data.iloc[:, 31] == 0, "cell_type"] = "Pheno3"
         return all_patient_data
     elif enrichment_type == "positive":
         all_data_pos = pd.DataFrame(np.zeros((160, 33)))
@@ -141,8 +144,11 @@ def make_expression_matrix(enrichment_type):
         all_data_pos.iloc[32:36, 32] = "Pheno2"
         all_data_pos.iloc[112:116, 31] = 1
         all_data_pos.iloc[112:116, 32] = "Pheno1"
+
         # Assign column names to columns not for markers (columns to be excluded)
         all_patient_data_pos = all_data_pos.rename(excluded_colnames, axis=1)
+
+        all_patient_data_pos.loc[all_patient_data_pos.iloc[:, 31] == 0, "cell_type"] = "Pheno3"
         return all_patient_data_pos
     elif enrichment_type == "negative":
         all_data_neg = pd.DataFrame(np.zeros((120, 33)))
@@ -169,8 +175,11 @@ def make_expression_matrix(enrichment_type):
         all_data_neg.iloc[20:40, 32] = "Pheno2"
         all_data_neg.iloc[80:100, 31] = 1
         all_data_neg.iloc[80:100, 32] = "Pheno1"
+
         # Assign column names to columns not for markers (columns to be excluded)
         all_patient_data_neg = all_data_neg.rename(excluded_colnames, axis=1)
+
+        all_patient_data_neg.loc[all_patient_data_neg.iloc[:, 31] == 0, "cell_type"] = "Pheno3"
         return all_patient_data_neg
 
 
@@ -296,10 +305,8 @@ def test_create_neighborhood_matrix():
     counts, freqs = spatial_analysis.create_neighborhood_matrix(all_data_pos, dist_mat_pos, distlim=51)
 
     # Test the counts values for both fovs
-    assert (counts.loc[:9, 4] == 8).all()
-    assert (counts.loc[10:19, 3] == 8).all()
-    assert (counts.loc[:19, 2] == 2).all()
+    assert (counts.loc[:19, "Pheno3":"Pheno2"] == 8).all().all()
+    assert (counts.loc[:19, "Pheno1"] == 4).all()
 
-    assert (counts.loc[80:89, 3] == 8).all()
-    assert (counts.loc[90:99, 4] == 8).all()
-    assert (counts.loc[80:99, 2] == 2).all()
+    assert (counts.loc[80:99, "Pheno1":"Pheno3"] == 8).all().all()
+    assert (counts.loc[80:99, "Pheno2"] == 4).all()

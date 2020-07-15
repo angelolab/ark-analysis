@@ -200,7 +200,7 @@ def calculate_cluster_spatial_enrichment(all_data, dist_mats, fovs=None,
 
 
 def create_neighborhood_matrix(all_data, dist_matrices, fovs=None, distlim=50, fov_col="SampleID",
-                               flowsom_col="FlowSOM_ID", cell_label_col="cellLabelInImage"):
+                               flowsom_col="FlowSOM_ID", cell_label_col="cellLabelInImage", cell_type_col="cell_type"):
     """Calculates the number of neighbor phenotypes for each cell
 
         Args:
@@ -213,6 +213,7 @@ def create_neighborhood_matrix(all_data, dist_matrices, fovs=None, distlim=50, f
             fov_col: column with the cell fovs (Default is SampleID)
             flowsom_col: column with the cell phenotype IDs (Default is FlowSOM_ID)
             cell_label_col: column with the cell labels (Default is cellLabelInImage)
+            cell_type_col: column with the cell types (Default is cell_type)
         Returns:
             cell_neighbor_counts: matrix with phenotype counts per cell
             cell_neighbor_freqs: matrix with phenotype frequencies of
@@ -229,8 +230,11 @@ def create_neighborhood_matrix(all_data, dist_matrices, fovs=None, distlim=50, f
     if not np.isin(fovs, all_data[fov_col]).all():
         raise ValueError("Points were not found in Expression Matrix")
 
+    # Get the phenotypes
+    pheno_titles = all_data[cell_type_col].drop_duplicates()
+
     # Subset just the sampleID, cellLabelInImage, and FlowSOMID
-    all_data = all_data[[fov_col, cell_label_col, flowsom_col]]
+    all_data = all_data[[fov_col, cell_label_col, flowsom_col, cell_type_col]]
     # Extract the columns with the cell phenotype codes
     pheno_codes = all_data[flowsom_col].drop_duplicates()
     # Get the total number of phenotypes
@@ -243,6 +247,11 @@ def create_neighborhood_matrix(all_data, dist_matrices, fovs=None, distlim=50, f
     # Replace the first and second columns of cell_neighbor_counts with the fovs and cell labels respectively
     cell_neighbor_counts[[0, 1]] = all_data[[fov_col, cell_label_col]]
     cell_neighbor_freqs[[0, 1]] = all_data[[fov_col, cell_label_col]]
+
+    # Rename the columns to match cell phenotypes
+    cols = [fov_col, cell_label_col] + list(pheno_titles)
+    cell_neighbor_counts.columns = cols
+    cell_neighbor_freqs.columns = cols
 
     for i in range(len(fovs)):
         # Subsetting expression matrix to only include patients with correct label
