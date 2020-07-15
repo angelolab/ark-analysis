@@ -16,13 +16,11 @@ def make_threshold_mat():
     return thresh
 
 
-def make_distance_matrix(enrichment_type, init_type, seed):
+def make_distance_matrix(enrichment_type):
     # Make a distance matrix for no enrichment, positive enrichment, and negative enrichment
 
     if enrichment_type == "none":
         # Create a 60 x 60 euclidian distance matrix of random values for no enrichment
-        if seed:
-            np.random.seed(seed)
 
         rand_mat = np.random.randint(0, 200, size=(60, 60))
         np.fill_diagonal(rand_mat[:, :], 0)
@@ -38,29 +36,7 @@ def make_distance_matrix(enrichment_type, init_type, seed):
         # Other included cells are not significantly positive for either marker and are located
         # far from the two positive populations.
 
-        if init_type == "direct":
-            dist_mat_pos = synthetic_spatial_datagen.direct_init_dist_matrix(num_A=10, num_B=10, num_C=60,
-                                                                             seed=seed)
-        elif init_type == "point":
-            # generate a label map and indices to reorder according to label marker
-            # we need these indices to make sure the distance matrix is formatted so
-            # marker A cells are first, then marker B, then finally marker C
-            label_map_pos, centroid_indices_pos = synthetic_spatial_datagen.point_init_dist_matrix(
-                num_A=10, num_B=10, num_C=60,
-                distr_A=((0.5, 0.5), [[100, 0], [0, 100]]),
-                distr_B=((0.51, 0.51), [[100, 0], [0, 100]]),
-                distr_C=((0.1, 0.1), [[10000, 0], [0, 10000]]),
-                seed=seed)
-
-            # use calc_dist_matrix to generate the distance matrix
-            # we need to index by '1' because that is the default fov I set in point_init_dist_matrix
-            # and calc_dist_matrix returns a dictionary of distance matrices per fox
-            dist_mat_pos = spatial_analysis_utils.calc_dist_matrix(label_map_pos)['1']
-
-            # finally use the corrected indices to correct the matrix to reflect aforementioned
-            # marker positions so it will pass the tests
-            dist_mat_pos[range(dist_mat_pos.shape[0]), :] = dist_mat_pos[list(centroid_indices_pos), :]
-            dist_mat_pos[:, range(dist_mat_pos.shape[0])] = dist_mat_pos[:, list(centroid_indices_pos)]
+        dist_mat_pos = synthetic_spatial_datagen.direct_init_dist_matrix(num_A=10, num_B=10, num_C=60)
 
         fovs = ["Point8", "Point9"]
         mats = [dist_mat_pos, dist_mat_pos]
@@ -71,23 +47,8 @@ def make_distance_matrix(enrichment_type, init_type, seed):
         # This creates a distance matrix where there are two groups of cells significant for 2 different
         # markers that are not located near each other (not within the dist_lim).
 
-        if init_type == "direct":
-            dist_mat_neg = synthetic_spatial_datagen.direct_init_dist_matrix(num_A=20, num_B=20, num_C=20,
-                                                                             distr_AB=(200, 1), distr_random=(200, 1),
-                                                                             seed=seed)
-
-        elif init_type == "point":
-            # similar to point-wise matrix initialization but for negative matrix
-            label_map_neg, centroid_indices_neg = \
-                synthetic_spatial_datagen.point_init_dist_matrix(num_A=20, num_B=20, num_C=20,
-                                                                 distr_B=((0.9, 0.9), [[200, 0], [0, 200]]),
-                                                                 distr_C=((0.1, 0.1), [[10000, 0], [0, 10000]]),
-                                                                 seed=seed)
-
-            dist_mat_neg = spatial_analysis_utils.calc_dist_matrix(label_map_neg)['1']
-
-            dist_mat_neg[range(dist_mat_neg.shape[0]), :] = dist_mat_neg[list(centroid_indices_neg), :]
-            dist_mat_neg[:, range(dist_mat_neg.shape[0])] = dist_mat_neg[:, list(centroid_indices_neg)]
+        dist_mat_neg = synthetic_spatial_datagen.direct_init_dist_matrix(num_A=20, num_B=20, num_C=20,
+                                                                         distr_AB=(200, 1), distr_random=(200, 1))
 
         fovs = ["Point8", "Point9"]
         mats = [dist_mat_neg, dist_mat_neg]
@@ -219,28 +180,13 @@ def test_calculate_channel_spatial_enrichment():
 
     # Positive enrichment with direct matrix initialization
     all_data_pos = make_expression_matrix(enrichment_type="positive")
-    dist_mat_pos_direct = make_distance_matrix(enrichment_type="positive", init_type="direct", seed=42)
-    dist_mat_pos_point = make_distance_matrix(enrichment_type="positive", init_type="point", seed=42)
+    dist_mat_pos_direct = make_distance_matrix(enrichment_type="positive")
+    dist_mat_pos_point = make_distance_matrix(enrichment_type="positive")
 
     values, stats = \
         spatial_analysis.calculate_channel_spatial_enrichment(
             dist_mat_pos_direct, marker_thresholds, all_data_pos,
-            excluded_colnames=excluded_colnames, bootstrap_num=100, seed=42)
-
-    # Test both Point8 and Point9
-    assert stats.loc["Point8", "p_pos", 2, 3] < .05
-    assert stats.loc["Point8", "p_neg", 2, 3] > .05
-    assert stats.loc["Point8", "z", 2, 3] > 0
-
-    assert stats.loc["Point9", "p_pos", 3, 2] < .05
-    assert stats.loc["Point9", "p_neg", 3, 2] > .05
-    assert stats.loc["Point9", "z", 3, 2] > 0
-
-    # Positive enrichment with point matrix initialization
-    values, stats = \
-        spatial_analysis.calculate_channel_spatial_enrichment(
-            dist_mat_pos_point, marker_thresholds, all_data_pos,
-            excluded_colnames=excluded_colnames, bootstrap_num=100, seed=42)
+            excluded_colnames=excluded_colnames, bootstrap_num=100)
 
     # Test both Point8 and Point9
     assert stats.loc["Point8", "p_pos", 2, 3] < .05
@@ -253,28 +199,13 @@ def test_calculate_channel_spatial_enrichment():
 
     # Negative enrichment with direct matrix initialization
     all_data_neg = make_expression_matrix("negative")
-    dist_mat_neg_direct = make_distance_matrix("negative", init_type="direct", seed=42)
-    dist_mat_neg_point = make_distance_matrix("negative", init_type="point", seed=42)
+    dist_mat_neg_direct = make_distance_matrix("negative")
+    dist_mat_neg_point = make_distance_matrix("negative")
 
     values, stats = \
         spatial_analysis.calculate_channel_spatial_enrichment(
             dist_mat_neg_direct, marker_thresholds, all_data_neg,
-            excluded_colnames=excluded_colnames, bootstrap_num=100, seed=42)
-
-    # Test both Point8 and Point9
-    assert stats.loc["Point8", "p_neg", 2, 3] < .05
-    assert stats.loc["Point8", "p_pos", 2, 3] > .05
-    assert stats.loc["Point8", "z", 2, 3] < 0
-
-    assert stats.loc["Point9", "p_neg", 3, 2] < .05
-    assert stats.loc["Point9", "p_pos", 3, 2] > .05
-    assert stats.loc["Point9", "z", 3, 2] < 0
-
-    # Negative enrichment with point matrix initialization
-    values, stats = \
-        spatial_analysis.calculate_channel_spatial_enrichment(
-            dist_mat_neg_point, marker_thresholds, all_data_neg,
-            excluded_colnames=excluded_colnames, bootstrap_num=100, seed=42)
+            excluded_colnames=excluded_colnames, bootstrap_num=100)
 
     # Test both Point8 and Point9
     assert stats.loc["Point8", "p_neg", 2, 3] < .05
@@ -287,12 +218,12 @@ def test_calculate_channel_spatial_enrichment():
 
     # No enrichment
     all_data = make_expression_matrix("none")
-    dist_mat = make_distance_matrix("none", init_type="direct", seed=42)
+    dist_mat = make_distance_matrix("none")
 
     values, stats = \
         spatial_analysis.calculate_channel_spatial_enrichment(
             dist_mat, marker_thresholds, all_data,
-            excluded_colnames=excluded_colnames, bootstrap_num=100, seed=42)
+            excluded_colnames=excluded_colnames, bootstrap_num=100)
     # Test both Point8 and Point9
     assert stats.loc["Point8", "p_pos", 2, 3] > .05
     assert stats.loc["Point8", "p_pos", 2, 3] > .05
@@ -308,12 +239,12 @@ def test_calculate_cluster_spatial_enrichment():
 
     # Positive enrichment
     all_data_pos = make_expression_matrix("positive")
-    dist_mat_pos = make_distance_matrix("positive", init_type="direct", seed=42)
+    dist_mat_pos = make_distance_matrix("positive")
 
     values, stats = \
         spatial_analysis.calculate_cluster_spatial_enrichment(
             all_data_pos, dist_mat_pos,
-            bootstrap_num=100, dist_lim=100, seed=42)
+            bootstrap_num=100, dist_lim=100)
     # Test both Point8 and Point9
     assert stats.loc["Point8", "p_pos", "Pheno1", "Pheno2"] < .05
     assert stats.loc["Point8", "p_neg", "Pheno1", "Pheno2"] > .05
@@ -324,12 +255,12 @@ def test_calculate_cluster_spatial_enrichment():
     assert stats.loc["Point9", "z", "Pheno2", "Pheno1"] > 0
     # Negative enrichment
     all_data_neg = make_expression_matrix("negative")
-    dist_mat_neg = make_distance_matrix("negative", init_type="direct", seed=42)
+    dist_mat_neg = make_distance_matrix("negative")
 
     values, stats = \
         spatial_analysis.calculate_cluster_spatial_enrichment(
             all_data_neg, dist_mat_neg,
-            bootstrap_num=100, dist_lim=100, seed=42)
+            bootstrap_num=100, dist_lim=100)
     # Test both Point8 and Point9
     assert stats.loc["Point8", "p_neg", "Pheno1", "Pheno2"] < .05
     assert stats.loc["Point8", "p_pos", "Pheno1", "Pheno2"] > .05
@@ -340,12 +271,12 @@ def test_calculate_cluster_spatial_enrichment():
     assert stats.loc["Point9", "z", "Pheno2", "Pheno1"] < 0
     # No enrichment
     all_data = make_expression_matrix("none")
-    dist_mat = make_distance_matrix("none", init_type="direct", seed=42)
+    dist_mat = make_distance_matrix("none")
 
     values, stats = \
         spatial_analysis.calculate_cluster_spatial_enrichment(
             all_data, dist_mat,
-            bootstrap_num=100, dist_lim=100, seed=42)
+            bootstrap_num=100, dist_lim=100)
     # Test both Point8 and Point9
     assert stats.loc["Point8", "p_pos", "Pheno1", "Pheno2"] > .05
     assert stats.loc["Point8", "p_pos", "Pheno1", "Pheno2"] > .05
