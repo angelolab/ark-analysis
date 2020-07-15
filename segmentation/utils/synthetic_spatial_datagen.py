@@ -8,7 +8,7 @@ import xarray as xr
 import copy
 
 from random import seed
-from random import random
+from random import randint
 from segmentation.utils import spatial_analysis_utils as sau
 from segmentation.utils import visualize as viz
 from scipy.spatial.distance import cdist
@@ -164,7 +164,8 @@ def generate_random_centroids(size_img=(1024, 1024), num_A=100, num_B=100, num_C
 
             non_dup_array = True
         else:
-            np.random.seed(seed + 1)
+            if seed:
+                np.random.seed(seed + 1)
 
     return a_points, b_points, c_points
 
