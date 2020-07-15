@@ -157,10 +157,10 @@ def generate_random_centroids(size_img=(1024, 1024), num_A=100, num_B=100, num_C
         # check that there are no duplicate points and that the ranges of the random points generated fall
         # within range, otherwise we're regenerating the set of points with a new random seed
         if len(dup_points) == 0 and len(total_points[:, 0][total_points[:, 0] > size_img[0]]) == 0 and \
-            len(total_points[:, 0][total_points[:, 0] > size_img[0]]) == 0 and \
-            len(total_points[:, 0][total_points[:, 0] < 0]) == 0 and \
-            len(total_points[:, 1][total_points[:, 1] > size_img[1]]) == 0 and \
-            len(total_points[:, 1][total_points[:, 1] < 0]) == 0:
+           len(total_points[:, 0][total_points[:, 0] > size_img[0]]) == 0 and \
+           len(total_points[:, 0][total_points[:, 0] < 0]) == 0 and \
+           len(total_points[:, 1][total_points[:, 1] > size_img[1]]) == 0 and \
+           len(total_points[:, 1][total_points[:, 1] < 0]) == 0:
 
             non_dup_array = True
         else:
@@ -209,7 +209,7 @@ def point_init_dist_matrix(size_img=(1024, 1024), num_A=100, num_B=100, num_C=10
     a_centroids, b_centroids, c_centroids = \
         generate_random_centroids(size_img=size_img, num_A=num_A, num_B=num_B,
                                   num_C=num_C, distr_A=distr_A, distr_B=distr_B,
-                              distr_C=distr_C, float_type=False, seed=seed)
+                                  distr_C=distr_C, float_type=False, seed=seed)
 
     # and create the output to be able to run through calc_dist_matrix if sample_img_xr is True
     # for now, I'm assuming that the array returned will have just one fov

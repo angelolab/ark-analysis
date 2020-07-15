@@ -45,8 +45,8 @@ def make_distance_matrix(enrichment_type, init_type, seed):
             # generate a label map and indices to reorder according to label marker
             # we need these indices to make sure the distance matrix is formatted so
             # marker A cells are first, then marker B, then finally marker C
-            label_map_pos, centroid_indices_pos = synthetic_spatial_datagen.point_init_dist_matrix( \
-                num_A=10, num_B=10, num_C=60, 
+            label_map_pos, centroid_indices_pos = synthetic_spatial_datagen.point_init_dist_matrix(
+                num_A=10, num_B=10, num_C=60,
                 distr_A=((0.5, 0.5), [[100, 0], [0, 100]]),
                 distr_B=((0.51, 0.51), [[100, 0], [0, 100]]),
                 distr_C=((0.1, 0.1), [[10000, 0], [0, 10000]]),
@@ -215,7 +215,6 @@ def test_calculate_channel_spatial_enrichment():
                          "perimeter", "SampleID", "FlowSOM_ID", "cell_type"]
 
     # Test z and p values
-
     marker_thresholds = make_threshold_mat()
 
     # Positive enrichment with direct matrix initialization
@@ -238,7 +237,6 @@ def test_calculate_channel_spatial_enrichment():
     assert stats.loc["Point9", "z", 3, 2] > 0
 
 
-
     # Positive enrichment with point matrix initialization
     values, stats = \
         spatial_analysis.calculate_channel_spatial_enrichment(
@@ -253,7 +251,6 @@ def test_calculate_channel_spatial_enrichment():
     assert stats.loc["Point9", "p_pos", 3, 2] < .05
     assert stats.loc["Point9", "p_neg", 3, 2] > .05
     assert stats.loc["Point9", "z", 3, 2] > 0
-
 
 
     # Negative enrichment with direct matrix initialization
@@ -290,7 +287,6 @@ def test_calculate_channel_spatial_enrichment():
     assert stats.loc["Point9", "p_neg", 3, 2] < .05
     assert stats.loc["Point9", "p_pos", 3, 2] > .05
     assert stats.loc["Point9", "z", 3, 2] < 0
-
 
 
     # No enrichment
