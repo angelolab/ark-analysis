@@ -15,9 +15,9 @@ from scipy.spatial.distance import cdist
 from skimage.measure import label
 
 
-def direct_init_dist_matrix(num_A=100, num_B=100, num_C=100,
-                            distr_AB=(10, 1), distr_random=(200, 1),
-                            seed=None):
+def generate_test_dist_matrix(num_A=100, num_B=100, num_C=100,
+                              distr_AB=(10, 1), distr_random=(200, 1),
+                              seed=None):
     """
     This function will return a random dist matrix specifying the distance between cells of
     types A and B and between cells of all other groups (type C).
@@ -154,9 +154,9 @@ def generate_random_centroids(size_img=(1024, 1024), num_A=100, num_B=100, num_C
     return total_points
 
 
-def point_init_dist_matrix(size_img=(1024, 1024), num_A=100, num_B=100, num_C=100,
-                           mean_A_factor=None, cov_A=None, mean_B_factor=None, cov_B=None,
-                           mean_C_factor=None, cov_C=None, seed=None):
+def generate_test_label_map(size_img=(1024, 1024), num_A=100, num_B=100, num_C=100,
+                            mean_A_factor=None, cov_A=None, mean_B_factor=None, cov_B=None,
+                            mean_C_factor=None, cov_C=None, seed=None):
     """
     This function generates random centroid centers in the form of a label map
     such that those of type A will have centers closer on average to those of type B
@@ -220,5 +220,5 @@ def point_init_dist_matrix(size_img=(1024, 1024), num_A=100, num_B=100, num_C=10
                                  coords=[[1], range(size_img[0]), range(size_img[1]), ['segmentation_label']],
                                  dims=['fovs', 'rows', 'cols', 'channels'])
 
-    # and return the xarray to pass into calc_dist_matrix
+    # and return the xarray to pass into calc_dist_matrix, plus the centroid_indices to readjust it
     return sample_img_xr, centroid_indices

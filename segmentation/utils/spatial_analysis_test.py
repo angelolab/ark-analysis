@@ -35,9 +35,9 @@ def make_distance_matrix(enrichment_type, dist_lim):
         # Other included cells are not significantly positive for either marker and are located
         # far from the two positive populations.
 
-        dist_mat_pos = synthetic_spatial_datagen.direct_init_dist_matrix(num_A=10, num_B=10, num_C=60,
-                                                                         distr_AB=(int(dist_lim / 5), 1),
-                                                                         distr_random=(int(dist_lim * 5), 1))
+        dist_mat_pos = synthetic_spatial_datagen.generate_test_dist_matrix(num_A=10, num_B=10, num_C=60,
+                                                                           distr_AB=(int(dist_lim / 5), 1),
+                                                                           distr_random=(int(dist_lim * 5), 1))
 
         fovs = ["Point8", "Point9"]
         mats = [dist_mat_pos, dist_mat_pos]
@@ -48,9 +48,9 @@ def make_distance_matrix(enrichment_type, dist_lim):
         # This creates a distance matrix where there are two groups of cells significant for 2 different
         # markers that are not located near each other (not within the dist_lim).
 
-        dist_mat_neg = synthetic_spatial_datagen.direct_init_dist_matrix(num_A=20, num_B=20, num_C=20,
-                                                                         distr_AB=(int(dist_lim * 5), 1),
-                                                                         distr_random=(int(dist_lim / 5), 1))
+        dist_mat_neg = synthetic_spatial_datagen.generate_test_dist_matrix(num_A=20, num_B=20, num_C=20,
+                                                                           distr_AB=(int(dist_lim * 5), 1),
+                                                                           distr_random=(int(dist_lim / 5), 1))
 
         fovs = ["Point8", "Point9"]
         mats = [dist_mat_neg, dist_mat_neg]
