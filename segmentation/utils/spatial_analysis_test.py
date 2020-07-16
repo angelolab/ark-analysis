@@ -222,7 +222,7 @@ def test_calculate_channel_spatial_enrichment():
 
     # No enrichment
     all_data_no_enrich = make_expression_matrix("none")
-    dist_mat_no_enrich = make_distance_matrix("none")
+    dist_mat_no_enrich = make_distance_matrix("none", dist_lim=dist_lim)
 
     values_no_enrich, stats_no_enrich = \
         spatial_analysis.calculate_channel_spatial_enrichment(
