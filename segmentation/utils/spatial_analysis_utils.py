@@ -76,7 +76,7 @@ def get_pos_cell_labels(analysis_type, pheno=None, fov_data=None,
 
 def compute_close_cell_num(dist_mat, dist_lim, num, analysis_type,
                            fov_data=None, fov_channel_data=None, pheno_codes=None,
-                           thresh_vec=None, seed=None):
+                           thresh_vec=None):
     """Finds positive cell labels and creates matrix with counts for cells positive for corresponding markers.
     Computes close_num matrix for both Cell Label and Threshold spatial analyses.
 
@@ -104,9 +104,6 @@ def compute_close_cell_num(dist_mat, dist_lim, num, analysis_type,
         marker1_num: list of number of cell labels for marker 1
         marker2_num: list of number of cell labels for marker 2"""
     # Initialize variables
-
-    if seed:
-        np.random.seed(seed)
 
     cell_labels = []
 
@@ -153,7 +150,7 @@ def compute_close_cell_num(dist_mat, dist_lim, num, analysis_type,
 
 
 def compute_close_cell_num_random(marker1_num, marker2_num,
-                                  dist_mat, marker_num, dist_lim, bootstrap_num, seed):
+                                  dist_mat, marker_num, dist_lim, bootstrap_num):
     """Uses bootstrapping to permute cell labels randomly and records the number of close cells (within the dit_lim)
     in that random setup.
 
@@ -172,10 +169,6 @@ def compute_close_cell_num_random(marker1_num, marker2_num,
             for every permutation in the bootstrap"""
 
     # Create close_num_rand
-
-    if seed:
-        np.random.seed(42)
-
     close_num_rand = np.zeros((
         marker_num, marker_num, bootstrap_num), dtype='int')
 
