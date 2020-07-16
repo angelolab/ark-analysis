@@ -16,7 +16,7 @@ def make_threshold_mat():
     return thresh
 
 
-def make_distance_matrix(enrichment_type):
+def make_distance_matrix(enrichment_type, dist_lim):
     # Make a distance matrix for no enrichment, positive enrichment, and negative enrichment
 
     if enrichment_type == "none":
@@ -35,7 +35,9 @@ def make_distance_matrix(enrichment_type):
         # Other included cells are not significantly positive for either marker and are located
         # far from the two positive populations.
 
-        dist_mat_pos = synthetic_spatial_datagen.direct_init_dist_matrix(num_A=10, num_B=10, num_C=60)
+        dist_mat_pos = synthetic_spatial_datagen.direct_init_dist_matrix(num_A=10, num_B=10, num_C=60,
+                                                                         distr_AB=(int(dist_lim / 5), 1),
+                                                                         distr_random=(int(dist_lim * 5), 1))
 
         fovs = ["Point8", "Point9"]
         mats = [dist_mat_pos, dist_mat_pos]
@@ -47,7 +49,8 @@ def make_distance_matrix(enrichment_type):
         # markers that are not located near each other (not within the dist_lim).
 
         dist_mat_neg = synthetic_spatial_datagen.direct_init_dist_matrix(num_A=20, num_B=20, num_C=20,
-                                                                         distr_AB=(200, 1), distr_random=(200, 1))
+                                                                         distr_AB=(int(dist_lim * 5), 1),
+                                                                         distr_random=(int(dist_lim / 5), 1))
 
         fovs = ["Point8", "Point9"]
         mats = [dist_mat_neg, dist_mat_neg]
@@ -169,6 +172,8 @@ def make_expression_matrix(enrichment_type):
 
 def test_calculate_channel_spatial_enrichment():
 
+    dist_lim = 100
+
     excluded_colnames = ["cell_size", "Background", "HH3",
                          "summed_channel", "cellLabelInImage", "area",
                          "eccentricity", "major_axis_length", "minor_axis_length",
@@ -178,13 +183,14 @@ def test_calculate_channel_spatial_enrichment():
     marker_thresholds = make_threshold_mat()
 
     # Positive enrichment with direct matrix initialization
-    all_data_pos = make_expression_matrix(enrichment_type="positive")
-    dist_mat_pos_direct = make_distance_matrix(enrichment_type="positive")
+    all_data_pos = make_expression_matrix(enrichment_type="positive", dist_lim=dist_lim)
+    dist_mat_pos_direct = make_distance_matrix(enrichment_type="positive", dist_lim=dist_lim)
 
     values, stats = \
         spatial_analysis.calculate_channel_spatial_enrichment(
             dist_mat_pos_direct, marker_thresholds, all_data_pos,
-            excluded_colnames=excluded_colnames, bootstrap_num=100)
+            excluded_colnames=excluded_colnames, bootstrap_num=100,
+            dist_lim=dist_lim)
 
     # Test both Point8 and Point9
     assert stats.loc["Point8", "p_pos", 2, 3] < .05
@@ -202,7 +208,8 @@ def test_calculate_channel_spatial_enrichment():
     values, stats = \
         spatial_analysis.calculate_channel_spatial_enrichment(
             dist_mat_neg_direct, marker_thresholds, all_data_neg,
-            excluded_colnames=excluded_colnames, bootstrap_num=100)
+            excluded_colnames=excluded_colnames, bootstrap_num=100,
+            dist_lim=dist_lim)
 
     # Test both Point8 and Point9
     assert stats.loc["Point8", "p_neg", 2, 3] < .05
@@ -220,7 +227,8 @@ def test_calculate_channel_spatial_enrichment():
     values, stats = \
         spatial_analysis.calculate_channel_spatial_enrichment(
             dist_mat, marker_thresholds, all_data,
-            excluded_colnames=excluded_colnames, bootstrap_num=100)
+            excluded_colnames=excluded_colnames, bootstrap_num=100,
+            dist_lim=dist_lim)
     # Test both Point8 and Point9
     assert stats.loc["Point8", "p_pos", 2, 3] > .05
     assert stats.loc["Point8", "p_pos", 2, 3] > .05
@@ -233,6 +241,16 @@ def test_calculate_channel_spatial_enrichment():
 
 def test_calculate_cluster_spatial_enrichment():
     # Test z and p values
+    dist_lim = 100
+
+    excluded_colnames = ["cell_size", "Background", "HH3",
+                         "summed_channel", "cellLabelInImage", "area",
+                         "eccentricity", "major_axis_length", "minor_axis_length",
+                         "perimeter", "SampleID", "FlowSOM_ID", "cell_type"]
+
+    # Positive enrichment with direct matrix initialization
+    all_data_pos = make_expression_matrix(enrichment_type="positive")
+    dist_mat_pos_direct = make_distance_matrix(enrichment_type="positive", dist_lim=dist_lim)
 
     # Positive enrichment
     all_data_pos = make_expression_matrix("positive")
@@ -252,7 +270,7 @@ def test_calculate_cluster_spatial_enrichment():
     assert stats.loc["Point9", "z", "Pheno2", "Pheno1"] > 0
     # Negative enrichment
     all_data_neg = make_expression_matrix("negative")
-    dist_mat_neg = make_distance_matrix("negative")
+    dist_mat_neg_direct = make_distance_matrix(enrichment_type="negative", dist_lim=dist_lim)
 
     values, stats = \
         spatial_analysis.calculate_cluster_spatial_enrichment(
@@ -268,7 +286,7 @@ def test_calculate_cluster_spatial_enrichment():
     assert stats.loc["Point9", "z", "Pheno2", "Pheno1"] < 0
     # No enrichment
     all_data = make_expression_matrix("none")
-    dist_mat = make_distance_matrix("none")
+    dist_mat = make_distance_matrix("none", dist_lim=dist_lim)
 
     values, stats = \
         spatial_analysis.calculate_cluster_spatial_enrichment(
