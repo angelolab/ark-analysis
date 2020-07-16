@@ -19,8 +19,8 @@ def direct_init_dist_matrix(num_A=100, num_B=100, num_C=100,
                             distr_AB=(10, 1), distr_random=(200, 1),
                             seed=None):
     """
-    This function will return a random dist matrix such that the distance between cells
-    of types A and B are overall shorter than the distance between cells of types A and C
+    This function will return a random dist matrix specifying the distance between cells of
+    types A and B and between cells of all other groups (type C)
 
     Each row and column representing a cell.
     We generate the points using Gaussian distributions
@@ -34,7 +34,7 @@ def direct_init_dist_matrix(num_A=100, num_B=100, num_C=100,
         distr_AB: if specified, will be a tuple listing the mean and variance of the Gaussian distribution
             we wish to generate numbers from. Default mean=10 and var=1
         distr_random: similar to dist_AB, except it's what we set the distribution of
-            all other distances to be. Default mean=100 and var=1
+            all other distances to be. Default mean=200 and var=1
         seed: whether to fix the random seed or not. Useful for testing.
             Should be a specified integer value. Default 42.
 
@@ -220,57 +220,3 @@ def point_init_dist_matrix(size_img=(1024, 1024), num_A=100, num_B=100, num_C=10
 
     # and return the xarray to pass into calc_dist_matrix
     return sample_img_xr, centroid_indices
-
-
-def generate_random_cell_shapes(size_img=(1024, 1024), num_A=100, num_B=100, num_C=100,
-                                mean_A_factor=None, cov_A=None, mean_B_factor=None, cov_B=None,
-                                mean_C_factor=None, cov_C=None, seed=None,
-                                width_factor=5, height_factor=5, rotation_factor=180):
-    """
-    Generate properties of each cell oval using the point_init_dist_matrix as helper
-
-    Args:
-        size_img: a tuple indicating the size of the image. Default 1024 x 1024
-        num_A: the number of A centroids to generate. Default 100.
-        num_B: the number of B centroids to generate. Default 100.
-        num_C: the number of C centroids to generate. Default 100.
-
-        distr_A: a dict indicating the parameters of the multivariate normal distribution to generate A cell centroids.
-            Params:
-                centroid_factor: a tuple to determine which number to multiply the height and width by
-                    to indicate the center (mean) of the distribution
-                cov: in the format [[varXX, varXY], [varYX, varYY]]
-        distr_B: similar to distr_A
-        distr_C: similar to distr_C
-        width_factor: the upper bound of the random width we wish to generate for each ellipse.
-        height_factor: similar to width_factor but for height.
-        rotation_factor: similar to width_factor but for rotation.
-        seed: whether to fix the random seed or not. Useful for testing.
-            Should be a specified integer value. Default None.
-
-    Returns:
-        centroid_info: a list of tuples, each one with this format:
-            (center, width, height, angle)
-        This is done to make it compatible with matplotlib.patches.Ellipse when plotting.
-    """
-
-    centroids = generate_random_centroids(size_img=size_img, num_A=num_A, num_B=num_B, num_C=num_C,
-                                          mean_A_factor=mean_A_factor, cov_A=cov_A,
-                                          mean_B_factor=mean_B_factor, cov_B=cov_B,
-                                          mean_C_factor=mean_C_factor, cov_C=cov_C,
-                                          seed=seed)
-
-    # if seed is set, make it the same for the random width, height, and rotation generation as well
-    if seed:
-        seed(seed)
-
-    # generate the random centroid information
-    centroid_info = [(c, random() * width_factor, random() * height_factor, random() * rotation_factor) for c in centroids]
-
-    # draw the ellipsoids so we can see if anything went wrong
-    viz.draw_ellipsoids(size_img, centroid_info)
-
-    # eventually, this function is going to check for, among other things, intersecting ellipses
-    # so we don't have intersecting cells.
-
-    return centroid_info

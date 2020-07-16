@@ -180,7 +180,6 @@ def test_calculate_channel_spatial_enrichment():
     # Positive enrichment with direct matrix initialization
     all_data_pos = make_expression_matrix(enrichment_type="positive")
     dist_mat_pos_direct = make_distance_matrix(enrichment_type="positive")
-    dist_mat_pos_point = make_distance_matrix(enrichment_type="positive")
 
     values, stats = \
         spatial_analysis.calculate_channel_spatial_enrichment(
@@ -199,7 +198,6 @@ def test_calculate_channel_spatial_enrichment():
     # Negative enrichment with direct matrix initialization
     all_data_neg = make_expression_matrix("negative")
     dist_mat_neg_direct = make_distance_matrix("negative")
-    dist_mat_neg_point = make_distance_matrix("negative")
 
     values, stats = \
         spatial_analysis.calculate_channel_spatial_enrichment(
