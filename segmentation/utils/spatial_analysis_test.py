@@ -186,57 +186,57 @@ def test_calculate_channel_spatial_enrichment():
     all_data_pos = make_expression_matrix(enrichment_type="positive")
     dist_mat_pos_direct = make_distance_matrix(enrichment_type="positive", dist_lim=dist_lim)
 
-    values, stats = \
+    values_pos, stats_pos = \
         spatial_analysis.calculate_channel_spatial_enrichment(
             dist_mat_pos_direct, marker_thresholds, all_data_pos,
             excluded_colnames=excluded_colnames, bootstrap_num=100,
             dist_lim=dist_lim)
 
     # Test both Point8 and Point9
-    assert stats.loc["Point8", "p_pos", 2, 3] < .05
-    assert stats.loc["Point8", "p_neg", 2, 3] > .05
-    assert stats.loc["Point8", "z", 2, 3] > 0
+    assert stats_pos.loc["Point8", "p_pos", 2, 3] < .05
+    assert stats_pos.loc["Point8", "p_neg", 2, 3] > .05
+    assert stats_pos.loc["Point8", "z", 2, 3] > 0
 
-    assert stats.loc["Point9", "p_pos", 3, 2] < .05
-    assert stats.loc["Point9", "p_neg", 3, 2] > .05
-    assert stats.loc["Point9", "z", 3, 2] > 0
+    assert stats_pos.loc["Point9", "p_pos", 3, 2] < .05
+    assert stats_pos.loc["Point9", "p_neg", 3, 2] > .05
+    assert stats_pos.loc["Point9", "z", 3, 2] > 0
 
     # Negative enrichment with direct matrix initialization
     all_data_neg = make_expression_matrix("negative")
-    dist_mat_neg_direct = make_distance_matrix("negative")
+    dist_mat_neg_direct = make_distance_matrix("negative", dist_lim=dist_lim)
 
-    values, stats = \
+    values_neg, stats_neg = \
         spatial_analysis.calculate_channel_spatial_enrichment(
             dist_mat_neg_direct, marker_thresholds, all_data_neg,
             excluded_colnames=excluded_colnames, bootstrap_num=100,
             dist_lim=dist_lim)
 
     # Test both Point8 and Point9
-    assert stats.loc["Point8", "p_neg", 2, 3] < .05
-    assert stats.loc["Point8", "p_pos", 2, 3] > .05
-    assert stats.loc["Point8", "z", 2, 3] < 0
+    assert stats_neg.loc["Point8", "p_neg", 2, 3] < .05
+    assert stats_neg.loc["Point8", "p_pos", 2, 3] > .05
+    assert stats_neg.loc["Point8", "z", 2, 3] < 0
 
-    assert stats.loc["Point9", "p_neg", 3, 2] < .05
-    assert stats.loc["Point9", "p_pos", 3, 2] > .05
-    assert stats.loc["Point9", "z", 3, 2] < 0
+    assert stats_neg.loc["Point9", "p_neg", 3, 2] < .05
+    assert stats_neg.loc["Point9", "p_pos", 3, 2] > .05
+    assert stats_neg.loc["Point9", "z", 3, 2] < 0
 
     # No enrichment
-    all_data = make_expression_matrix("none")
-    dist_mat = make_distance_matrix("none")
+    all_data_no_enrich = make_expression_matrix("none")
+    dist_mat_no_enrich = make_distance_matrix("none")
 
-    values, stats = \
+    values_no_enrich, stats_no_enrich = \
         spatial_analysis.calculate_channel_spatial_enrichment(
-            dist_mat, marker_thresholds, all_data,
+            dist_mat_no_enrich, marker_thresholds, all_data_no_enrich,
             excluded_colnames=excluded_colnames, bootstrap_num=100,
             dist_lim=dist_lim)
     # Test both Point8 and Point9
-    assert stats.loc["Point8", "p_pos", 2, 3] > .05
-    assert stats.loc["Point8", "p_pos", 2, 3] > .05
-    assert abs(stats.loc["Point8", "z", 2, 3]) < 2
+    assert stats_no_enrich.loc["Point8", "p_pos", 2, 3] > .05
+    assert stats_no_enrich.loc["Point8", "p_pos", 2, 3] > .05
+    assert abs(stats_no_enrich.loc["Point8", "z", 2, 3]) < 2
 
-    assert stats.loc["Point9", "p_pos", 3, 2] > .05
-    assert stats.loc["Point9", "p_pos", 3, 2] > .05
-    assert abs(stats.loc["Point9", "z", 3, 2]) < 2
+    assert stats_no_enrich.loc["Point9", "p_pos", 3, 2] > .05
+    assert stats_no_enrich.loc["Point9", "p_pos", 3, 2] > .05
+    assert abs(stats_no_enrich.loc["Point9", "z", 3, 2]) < 2
 
 
 def test_calculate_cluster_spatial_enrichment():
@@ -252,49 +252,49 @@ def test_calculate_cluster_spatial_enrichment():
     all_data_pos = make_expression_matrix(enrichment_type="positive")
     dist_mat_pos_direct = make_distance_matrix(enrichment_type="positive", dist_lim=dist_lim)
 
-    values, stats = \
+    values_pos, stats_pos = \
         spatial_analysis.calculate_cluster_spatial_enrichment(
-            all_data_pos, dist_mat_pos,
+            all_data_pos, dist_mat_pos_direct,
             bootstrap_num=100, dist_lim=100)
     # Test both Point8 and Point9
-    assert stats.loc["Point8", "p_pos", "Pheno1", "Pheno2"] < .05
-    assert stats.loc["Point8", "p_neg", "Pheno1", "Pheno2"] > .05
-    assert stats.loc["Point8", "z", "Pheno1", "Pheno2"] > 0
+    assert stats_pos.loc["Point8", "p_pos", "Pheno1", "Pheno2"] < .05
+    assert stats_pos.loc["Point8", "p_neg", "Pheno1", "Pheno2"] > .05
+    assert stats_pos.loc["Point8", "z", "Pheno1", "Pheno2"] > 0
 
-    assert stats.loc["Point9", "p_pos", "Pheno2", "Pheno1"] < .05
-    assert stats.loc["Point9", "p_neg", "Pheno2", "Pheno1"] > .05
-    assert stats.loc["Point9", "z", "Pheno2", "Pheno1"] > 0
+    assert stats_pos.loc["Point9", "p_pos", "Pheno2", "Pheno1"] < .05
+    assert stats_pos.loc["Point9", "p_neg", "Pheno2", "Pheno1"] > .05
+    assert stats_pos.loc["Point9", "z", "Pheno2", "Pheno1"] > 0
 
     # Negative enrichment with direct matrix initialization
     all_data_neg = make_expression_matrix("negative")
     dist_mat_neg_direct = make_distance_matrix(enrichment_type="negative", dist_lim=dist_lim)
 
-    values, stats = \
+    values_neg, stats_neg = \
         spatial_analysis.calculate_cluster_spatial_enrichment(
-            all_data_neg, dist_mat_neg,
+            all_data_neg, dist_mat_neg_direct,
             bootstrap_num=100, dist_lim=100)
     # Test both Point8 and Point9
-    assert stats.loc["Point8", "p_neg", "Pheno1", "Pheno2"] < .05
-    assert stats.loc["Point8", "p_pos", "Pheno1", "Pheno2"] > .05
-    assert stats.loc["Point8", "z", "Pheno1", "Pheno2"] < 0
+    assert stats_neg.loc["Point8", "p_neg", "Pheno1", "Pheno2"] < .05
+    assert stats_neg.loc["Point8", "p_pos", "Pheno1", "Pheno2"] > .05
+    assert stats_neg.loc["Point8", "z", "Pheno1", "Pheno2"] < 0
 
-    assert stats.loc["Point9", "p_neg", "Pheno2", "Pheno1"] < .05
-    assert stats.loc["Point9", "p_pos", "Pheno2", "Pheno1"] > .05
-    assert stats.loc["Point9", "z", "Pheno2", "Pheno1"] < 0
+    assert stats_neg.loc["Point9", "p_neg", "Pheno2", "Pheno1"] < .05
+    assert stats_neg.loc["Point9", "p_pos", "Pheno2", "Pheno1"] > .05
+    assert stats_neg.loc["Point9", "z", "Pheno2", "Pheno1"] < 0
 
     # No enrichment
-    all_data = make_expression_matrix("none")
-    dist_mat = make_distance_matrix("none", dist_lim=dist_lim)
+    all_data_no_enrich = make_expression_matrix("none")
+    dist_mat_no_enrich = make_distance_matrix("none", dist_lim=dist_lim)
 
-    values, stats = \
+    values_no_enrich, stats_no_enrich = \
         spatial_analysis.calculate_cluster_spatial_enrichment(
-            all_data, dist_mat,
+            all_data_no_enrich, dist_mat_no_enrich,
             bootstrap_num=100, dist_lim=100)
     # Test both Point8 and Point9
-    assert stats.loc["Point8", "p_pos", "Pheno1", "Pheno2"] > .05
-    assert stats.loc["Point8", "p_pos", "Pheno1", "Pheno2"] > .05
-    assert abs(stats.loc["Point8", "z", "Pheno1", "Pheno2"]) < 2
+    assert stats_no_enrich.loc["Point8", "p_pos", "Pheno1", "Pheno2"] > .05
+    assert stats_no_enrich.loc["Point8", "p_pos", "Pheno1", "Pheno2"] > .05
+    assert abs(stats_no_enrich.loc["Point8", "z", "Pheno1", "Pheno2"]) < 2
 
-    assert stats.loc["Point8", "p_pos", "Pheno2", "Pheno1"] > .05
-    assert stats.loc["Point8", "p_pos", "Pheno2", "Pheno1"] > .05
-    assert abs(stats.loc["Point8", "z", "Pheno2", "Pheno1"]) < 2
+    assert stats_no_enrich.loc["Point8", "p_pos", "Pheno2", "Pheno1"] > .05
+    assert stats_no_enrich.loc["Point8", "p_pos", "Pheno2", "Pheno1"] > .05
+    assert abs(stats_no_enrich.loc["Point8", "z", "Pheno2", "Pheno1"]) < 2
