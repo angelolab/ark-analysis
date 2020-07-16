@@ -20,12 +20,14 @@ def direct_init_dist_matrix(num_A=100, num_B=100, num_C=100,
                             seed=None):
     """
     This function will return a random dist matrix specifying the distance between cells of
-    types A and B and between cells of all other groups (type C)
+    types A and B and between cells of all other groups (type C).
 
     Each row and column representing a cell.
     We generate the points using Gaussian distributions
     Ideally, the parameters for A to B distances will be set such that they produce a lower range of values
     than A to C distances.
+
+    Note that these distance matrices created are non-Euclidean.
 
     Args:
         num_A: the number of A cells we wish to generate. Default 100
