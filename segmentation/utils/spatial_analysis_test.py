@@ -183,7 +183,7 @@ def test_calculate_channel_spatial_enrichment():
     marker_thresholds = make_threshold_mat()
 
     # Positive enrichment with direct matrix initialization
-    all_data_pos = make_expression_matrix(enrichment_type="positive", dist_lim=dist_lim)
+    all_data_pos = make_expression_matrix(enrichment_type="positive")
     dist_mat_pos_direct = make_distance_matrix(enrichment_type="positive", dist_lim=dist_lim)
 
     values, stats = \
@@ -252,10 +252,6 @@ def test_calculate_cluster_spatial_enrichment():
     all_data_pos = make_expression_matrix(enrichment_type="positive")
     dist_mat_pos_direct = make_distance_matrix(enrichment_type="positive", dist_lim=dist_lim)
 
-    # Positive enrichment
-    all_data_pos = make_expression_matrix("positive")
-    dist_mat_pos = make_distance_matrix("positive")
-
     values, stats = \
         spatial_analysis.calculate_cluster_spatial_enrichment(
             all_data_pos, dist_mat_pos,
@@ -268,7 +264,8 @@ def test_calculate_cluster_spatial_enrichment():
     assert stats.loc["Point9", "p_pos", "Pheno2", "Pheno1"] < .05
     assert stats.loc["Point9", "p_neg", "Pheno2", "Pheno1"] > .05
     assert stats.loc["Point9", "z", "Pheno2", "Pheno1"] > 0
-    # Negative enrichment
+
+    # Negative enrichment with direct matrix initialization
     all_data_neg = make_expression_matrix("negative")
     dist_mat_neg_direct = make_distance_matrix(enrichment_type="negative", dist_lim=dist_lim)
 
@@ -284,6 +281,7 @@ def test_calculate_cluster_spatial_enrichment():
     assert stats.loc["Point9", "p_neg", "Pheno2", "Pheno1"] < .05
     assert stats.loc["Point9", "p_pos", "Pheno2", "Pheno1"] > .05
     assert stats.loc["Point9", "z", "Pheno2", "Pheno1"] < 0
+
     # No enrichment
     all_data = make_expression_matrix("none")
     dist_mat = make_distance_matrix("none", dist_lim=dist_lim)
