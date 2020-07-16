@@ -255,7 +255,7 @@ def test_calculate_cluster_spatial_enrichment():
     values_pos, stats_pos = \
         spatial_analysis.calculate_cluster_spatial_enrichment(
             all_data_pos, dist_mat_pos_direct,
-            bootstrap_num=100, dist_lim=100)
+            bootstrap_num=100, dist_lim=dist_lim)
     # Test both Point8 and Point9
     assert stats_pos.loc["Point8", "p_pos", "Pheno1", "Pheno2"] < .05
     assert stats_pos.loc["Point8", "p_neg", "Pheno1", "Pheno2"] > .05
@@ -272,7 +272,7 @@ def test_calculate_cluster_spatial_enrichment():
     values_neg, stats_neg = \
         spatial_analysis.calculate_cluster_spatial_enrichment(
             all_data_neg, dist_mat_neg_direct,
-            bootstrap_num=100, dist_lim=100)
+            bootstrap_num=100, dist_lim=dist_lim)
     # Test both Point8 and Point9
     assert stats_neg.loc["Point8", "p_neg", "Pheno1", "Pheno2"] < .05
     assert stats_neg.loc["Point8", "p_pos", "Pheno1", "Pheno2"] > .05
@@ -289,7 +289,7 @@ def test_calculate_cluster_spatial_enrichment():
     values_no_enrich, stats_no_enrich = \
         spatial_analysis.calculate_cluster_spatial_enrichment(
             all_data_no_enrich, dist_mat_no_enrich,
-            bootstrap_num=100, dist_lim=100)
+            bootstrap_num=100, dist_lim=dist_lim)
     # Test both Point8 and Point9
     assert stats_no_enrich.loc["Point8", "p_pos", "Pheno1", "Pheno2"] > .05
     assert stats_no_enrich.loc["Point8", "p_pos", "Pheno1", "Pheno2"] > .05
