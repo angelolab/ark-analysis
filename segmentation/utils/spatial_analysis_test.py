@@ -186,7 +186,7 @@ def test_calculate_channel_spatial_enrichment():
     all_data_pos = make_expression_matrix(enrichment_type="positive")
     dist_mat_pos_direct = make_distance_matrix(enrichment_type="positive", dist_lim=dist_lim)
 
-    values_pos, stats_pos = \
+    _, stats_pos = \
         spatial_analysis.calculate_channel_spatial_enrichment(
             dist_mat_pos_direct, marker_thresholds, all_data_pos,
             excluded_colnames=excluded_colnames, bootstrap_num=100,
@@ -205,7 +205,7 @@ def test_calculate_channel_spatial_enrichment():
     all_data_neg = make_expression_matrix("negative")
     dist_mat_neg_direct = make_distance_matrix("negative", dist_lim=dist_lim)
 
-    values_neg, stats_neg = \
+    _, stats_neg = \
         spatial_analysis.calculate_channel_spatial_enrichment(
             dist_mat_neg_direct, marker_thresholds, all_data_neg,
             excluded_colnames=excluded_colnames, bootstrap_num=100,
@@ -224,7 +224,7 @@ def test_calculate_channel_spatial_enrichment():
     all_data_no_enrich = make_expression_matrix("none")
     dist_mat_no_enrich = make_distance_matrix("none", dist_lim=dist_lim)
 
-    values_no_enrich, stats_no_enrich = \
+    _, stats_no_enrich = \
         spatial_analysis.calculate_channel_spatial_enrichment(
             dist_mat_no_enrich, marker_thresholds, all_data_no_enrich,
             excluded_colnames=excluded_colnames, bootstrap_num=100,
@@ -252,7 +252,7 @@ def test_calculate_cluster_spatial_enrichment():
     all_data_pos = make_expression_matrix(enrichment_type="positive")
     dist_mat_pos_direct = make_distance_matrix(enrichment_type="positive", dist_lim=dist_lim)
 
-    values_pos, stats_pos = \
+    _, stats_pos = \
         spatial_analysis.calculate_cluster_spatial_enrichment(
             all_data_pos, dist_mat_pos_direct,
             bootstrap_num=100, dist_lim=dist_lim)
@@ -269,7 +269,7 @@ def test_calculate_cluster_spatial_enrichment():
     all_data_neg = make_expression_matrix("negative")
     dist_mat_neg_direct = make_distance_matrix(enrichment_type="negative", dist_lim=dist_lim)
 
-    values_neg, stats_neg = \
+    _, stats_neg = \
         spatial_analysis.calculate_cluster_spatial_enrichment(
             all_data_neg, dist_mat_neg_direct,
             bootstrap_num=100, dist_lim=dist_lim)
@@ -286,7 +286,7 @@ def test_calculate_cluster_spatial_enrichment():
     all_data_no_enrich = make_expression_matrix("none")
     dist_mat_no_enrich = make_distance_matrix("none", dist_lim=dist_lim)
 
-    values_no_enrich, stats_no_enrich = \
+    _, stats_no_enrich = \
         spatial_analysis.calculate_cluster_spatial_enrichment(
             all_data_no_enrich, dist_mat_no_enrich,
             bootstrap_num=100, dist_lim=dist_lim)
