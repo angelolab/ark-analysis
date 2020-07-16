@@ -36,7 +36,7 @@ def direct_init_dist_matrix(num_A=100, num_B=100, num_C=100,
         distr_random: similar to dist_AB, except it's what we set the distribution of
             all other distances to be. Default mean=200 and var=1
         seed: whether to fix the random seed or not. Useful for testing.
-            Should be a specified integer value. Default 42.
+            Should be a specified integer value. Default None.
 
     Returns:
         dist_mat: the randomized distance matrix we generate directly from predefined distributions
