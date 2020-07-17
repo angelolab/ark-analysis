@@ -88,7 +88,7 @@ def generate_random_centroids(size_img=(1024, 1024), num_A=100, num_B=100, num_C
                               mean_C_factor=None, cov_C=None, seed=None):
     """
     Generate a set of random centroids given distribution parameters.
-    Used as a helper function by point_init_dist_matrix and generate_random_cell_shapes.
+    Used as a helper function by generate_test_label_map.
 
     Args:
         size_img: a tuple indicating the size of the image. Default 1024 x 1024
@@ -201,8 +201,15 @@ def generate_test_label_map(size_img=(1024, 1024), num_A=100, num_B=100, num_C=1
 
     point_x_coords, point_y_coords = zip(*all_centroids)
 
-    # to compute the indices of the original centroid locations, needed to adjust the distance matrix
-    # back to what it was because calc_dist_matrix automatically sorts the centrodis by ascending order
+    # all_centroids is ordered specifically to reflect a-labeled centroids first, then b, lastly c
+    # unfortunately, when we pass the final label map into calc_dist_matrix of spatial_analysis_utils
+    # we lose this desired ordering because of a call to regionprops, which automatically orders
+    # the centroids by ascending x-coordinate (in the case of ties, ascending y-coordinate)
+    # this messes up the ordering of the distance matrix which screws up, for example, the tests
+    # if a user wants to generate a distance matrix from randomly generated centroid points
+    # fortunately, lexsort allows us to compute the indices needed to reorder the sorted centroid
+    # list back to where they were originally, thus they can also be used to reorder the
+    # distance matrix back to the desired partitioning of first a-labeled rows/columns, then b, finally c
     centroid_indices = np.lexsort(all_centroids[:, ::-1].T)
 
     # generate the label matrix for the image
