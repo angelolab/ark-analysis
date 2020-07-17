@@ -1,4 +1,5 @@
 import os
+import pathlib
 import math
 
 import skimage.io as io
@@ -7,7 +8,38 @@ import xarray as xr
 from mibidata import tiff
 
 
-def load_imgs_from_mibitiff(mibitiff_paths, channels=None, load_axis="fovs"):
+def validate_paths(paths):
+    """Verifys that paths exist and don't leave Docker's scope
+
+    Args:
+        paths: paths to verify.
+
+    Output:
+        Raises errors if any directory is out of scope or non-existent
+    """
+
+    # if given a single path, convert to list
+    if not isinstance(paths, list):
+        paths = [paths]
+
+    for path in paths:
+        if not os.path.exists(path):
+            if str(path).startswith('../data'):
+                for parent in reversed(pathlib.Path(path).parents):
+                    if not os.path.exists(parent):
+                        raise ValueError(
+                            f'A bad path, {path}, was provided.\n'
+                            f'The folder, {parent.name}, could not be found...')
+                raise ValueError(
+                    f'The file/path, {pathlib.Path(path).name}, could not be found...')
+            else:
+                raise ValueError(
+                    f'The path, {path}, is not prefixed with \'../data\'.\n'
+                    f'Be sure to add all images/files/data to the \'data\' folder, '
+                    f'and to reference as \'../data/path_to_data/myfile.tif\'')
+
+
+def load_imgs_from_mibitiff(mibitiff_paths, channels=None):
     """Load images from a series of MIBItiff files.
 
     This function takes a set of MIBItiff files and load the images into an
@@ -18,16 +50,12 @@ def load_imgs_from_mibitiff(mibitiff_paths, channels=None, load_axis="fovs"):
         mibitiff_paths: list of MIBItiff files to load.
         channels: optional list of channels to load. Defaults to `None`, in
             which case, all channels in the first MIBItiff are used.
-        load_axis: axis that images will get loaded onto. Must be one of
-            ["fovs", "stacks"].
 
     Returns:
         img_xr: xarray with shape [fovs, tifs, x_dim, y_dim]
     """
 
-    # sanity check
-    if not np.isin(load_axis, ["fovs", "stacks"]):
-        raise ValueError("Invalid value for load_axis, must be one of [fovs, stacks]")
+    validate_paths(mibitiff_paths)
 
     # if no channels specified, get them from first MIBItiff file
     if channels is None:
@@ -48,13 +76,13 @@ def load_imgs_from_mibitiff(mibitiff_paths, channels=None, load_axis="fovs"):
     img_xr = xr.DataArray(img_data,
                           coords=[fovs, range(img_data[0].data.shape[0]),
                                   range(img_data[0].data.shape[1]), channels],
-                          dims=[load_axis, "rows", "cols", "channels"])
+                          dims=["fovs", "rows", "cols", "channels"])
 
     return img_xr
 
 
-def load_imgs_from_dir(data_dir, img_sub_folder=None, fovs=None, imgs=None,
-                       load_axis="fovs", dtype="int16", variable_sizes=False):
+def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, imgs=None,
+                        dtype="int16", variable_sizes=False):
     """Takes a set of imgs from a directory structure and loads them into an xarray.
 
         Args:
@@ -62,19 +90,14 @@ def load_imgs_from_dir(data_dir, img_sub_folder=None, fovs=None, imgs=None,
             img_sub_folder: optional name of image sub-folder within each fov
             fovs: optional list of folders to load imgs from, otherwise loads from all folders
             imgs: optional list of imgs to load, otherwise loads all imgs
-            load_axis: axis that images will get loaded onto. Must be one of ["fovs", "stacks"]
             dtype: dtype of array which will be used to store values
             variable_sizes: if true, will pad loaded images with zeros to fit into array
 
         Returns:
-            img_xr: xarray with shape [fovs, tifs, x_dim, y_dim]
+            img_xr: xarray with shape [fovs, x_dim, y_dim, tifs]
     """
 
-    if not os.path.isdir(data_dir):
-        raise ValueError("Directory does not exist")
-
-    if not np.isin(load_axis, ["fovs", "stacks"]):
-        raise ValueError("Invalid value for load_axis, must be one of [fovs, stacks]")
+    validate_paths(data_dir)
 
     if fovs is None:
         # get all fovs
@@ -83,17 +106,14 @@ def load_imgs_from_dir(data_dir, img_sub_folder=None, fovs=None, imgs=None,
         fovs.sort()
     else:
         # use supplied list, but check to make sure they all exist
-        for fov in fovs:
-            if not os.path.isdir(os.path.join(data_dir, fov)):
-                raise ValueError("Could not find img fov {}".format(fov))
+        validate_paths([os.path.join(data_dir, fov) for fov in fovs])
 
     if len(fovs) == 0:
         raise ValueError("No fovs found in directory")
 
     # check to make sure img subfolder name within fov is correct
     if img_sub_folder is not None:
-        if not os.path.isdir(os.path.join(data_dir, fovs[0], img_sub_folder)):
-            raise ValueError("Invalid img_sub_folder name")
+        validate_paths(os.path.join(data_dir, fovs[0], img_sub_folder))
     else:
         # no img_sub_folder, change to empty string to read directly from base folder
         img_sub_folder = ""
@@ -142,18 +162,109 @@ def load_imgs_from_dir(data_dir, img_sub_folder=None, fovs=None, imgs=None,
     if np.min(img_data) < 0:
         raise ValueError("Integer overflow from loading TIF image, try a larger dtype")
 
+    if variable_sizes:
+        row_coords, col_coords = range(1024), range(1024)
+    else:
+        row_coords, col_coords = range(test_img.shape[0]), range(test_img.shape[1])
+
     # remove .tif or .tiff from image name
     img_names = [os.path.splitext(img)[0] for img in imgs]
+
+    img_xr = xr.DataArray(img_data, coords=[fovs, row_coords, col_coords, img_names],
+                          dims=["fovs", "rows", "cols", "channels"])
+
+    return img_xr
+
+
+def load_imgs_from_dir(data_dir, image_name='img_data', delimiter='_',
+                       dtype="int16", variable_sizes=False):
+    """Takes a set of images from a directory and loads them into an xarray based on filename
+    prefixes.
+
+        Args:
+            data_dir: directory containing images
+            image_name: sets name of the 'channel' coordinate in the output xarray
+            delimiter: character used to determine the file-prefix containging the fov name
+
+        Returns:
+            img_xr: xarray with shape [fovs, x_dim, y_dim, 1]
+
+    """
+    validate_paths(data_dir)
+
+    imgs = os.listdir(data_dir)
+    imgs = [img for img in imgs if np.isin(img.split(".")[-1], ["tif", "tiff", "jpg", "png"])]
+    imgs.sort()
+
+    if len(imgs) == 0:
+        raise ValueError(f"No images found in directory, {data_dir}")
+
+    test_img = io.imread(os.path.join(data_dir, imgs[0]))
+
+    # check to make sure that float dtype was supplied if image data is float
+    data_dtype = test_img.dtype
+    if np.issubdtype(data_dtype, np.floating):
+        if not np.issubdtype(dtype, np.floating):
+            raise ValueError("supplied dtype is not a float, but the images loaded are floats")
+
+    if variable_sizes:
+        img_data = np.zeros((len(imgs), 1024, 1024, 1), dtype=dtype)
+    else:
+        img_data = np.zeros((len(imgs), test_img.shape[0], test_img.shape[1], 1),
+                            dtype=dtype)
+
+    for img in range(len(imgs)):
+        if variable_sizes:
+            temp_img = io.imread(os.path.join(data_dir, imgs[img]))
+            img_data[img, :temp_img.shape[0], :temp_img.shape[1], 0] = temp_img
+        else:
+            img_data[img, :, :, 0] = io.imread(os.path.join(data_dir, imgs[img]))
+
+    # check to make sure that dtype wasn't too small for range of data
+    if np.min(img_data) < 0:
+        raise ValueError("Integer overflow from loading TIF image, try a larger dtype")
 
     if variable_sizes:
         row_coords, col_coords = range(1024), range(1024)
     else:
         row_coords, col_coords = range(test_img.shape[0]), range(test_img.shape[1])
 
-    img_xr = xr.DataArray(img_data, coords=[fovs, row_coords, col_coords, img_names],
-                          dims=[load_axis, "rows", "cols", "channels"])
+    # get fov name from imgs
+    fovs = [img.split(delimiter)[0] for img in imgs]
+
+    img_xr = xr.DataArray(img_data, coords=[fovs, row_coords, col_coords, [image_name]],
+                          dims=["fovs", "rows", "cols", "channels"])
 
     return img_xr
+
+
+# TODO: add test function
+def tiffs_to_xr_labels(tiff_dir, output_dir=None, delimiter='_'):
+    """Converts and condenses segmentation labels from a folder of tiff files
+    into an xarray.  Tiff files are assumed to be prefixed with their respective fov
+    names:
+
+    Point1234_moreinfo.tiff
+
+    Inputs:
+        tiff_dir: path to directory containing segmentation labels as TIFs
+        output_dir: path to directory where the output will be saved. If None, no xr is saved
+        delimiter: character which separates fov-id prefix from the rest of the filename
+    Outputs:
+        Returns xarray and optionally saves it to output directory
+    """
+    im_xr = load_imgs_from_dir(data_dir=tiff_dir, image_name='segmentation_label',
+                               delimiter=delimiter)
+
+    if output_dir is not None:
+        save_name = os.path.join(output_dir, 'segmentation_labels.xr')
+        if os.path.exists(save_name):
+            print("overwriting previously generated processed output file")
+            os.remove(save_name)
+
+        im_xr.to_netcdf(save_name, format="NETCDF3_64BIT")
+
+    return im_xr
 
 
 def combine_xarrays(xarrays, axis):
@@ -230,8 +341,10 @@ def crop_helper(image_stack, crop_size):
     # figure out number of crops for final image
     crop_num_row = math.ceil(image_stack.shape[1] / crop_size)
     crop_num_col = math.ceil(image_stack.shape[2] / crop_size)
-    cropped_images = np.zeros((crop_num_row * crop_num_col * image_stack.shape[0],
-                               crop_size, crop_size, image_stack.shape[3]), dtype=image_stack.dtype)
+    cropped_images = np.zeros(
+        (crop_num_row * crop_num_col * image_stack.shape[0],
+            crop_size, crop_size, image_stack.shape[3]),
+        dtype=image_stack.dtype)
 
     # Determine if image will need to be padded with zeros due to uneven division by crop
     if image_stack.shape[1] % crop_size != 0 or image_stack.shape[2] % crop_size != 0:
