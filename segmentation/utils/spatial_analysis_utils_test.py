@@ -224,7 +224,6 @@ def test_compute_neighbor_count():
     flowsom_col = "FlowSOM_ID"
     cell_label_col = "cellLabelInImage"
     cell_type_col = "cell_type"
-    # cell_count = 0
     distlim = 100
 
     fov_data, dist_matrix = make_example_data_closenum()
@@ -245,7 +244,7 @@ def test_compute_neighbor_count():
     cell_neighbor_freqs.columns = cols
 
     spatial_analysis_utils.compute_neighbor_counts(
-        fov_data, dist_matrix, distlim, pheno_num, cell_neighbor_counts, cell_neighbor_freqs)
+        fov_data, dist_matrix, distlim, cell_neighbor_counts, cell_neighbor_freqs)
 
     assert (cell_neighbor_counts.loc[:3, "Pheno1"] == 4).all()
     assert (cell_neighbor_counts.loc[4:8, "Pheno2"] == 5).all()
