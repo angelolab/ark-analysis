@@ -71,6 +71,7 @@ def test_generate_random_centroids():
     x_coords = centroid_list[:, 0]
     y_coords = centroid_list[:, 1]
 
+    # assert the x and y coordinates are in range
     assert len(x_coords[(x_coords < 0) & (x_coords >= size_img[0])]) == 0
     assert len(y_coords[(y_coords < 0) & (y_coords >= size_img[0])]) == 0
 
