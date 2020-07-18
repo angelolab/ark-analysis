@@ -92,7 +92,8 @@ def test_generate_test_label_map():
     label_map_flat = label_map_flat[label_map_flat > 0]
 
     # need to assert that we're labeling all centroids with a unique id
-    _, label_map_id_counts = np.unique(label_map, return_counts=True)
+    _, label_map_id_counts = np.unique(label_map_flat, return_counts=True)
+
     assert len(label_map_flat[label_map_id_counts > 1]) == 0
 
     # also need to assert that each of our labels is being assigned to a centroid
