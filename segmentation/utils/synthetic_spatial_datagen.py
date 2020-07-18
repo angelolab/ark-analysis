@@ -142,10 +142,10 @@ def generate_random_centroids(size_img=(1024, 1024), num_A=100, num_B=100, num_C
     total_points = np.concatenate((a_points, b_points, c_points), axis=0)
 
     # remove points with negative values since they're out of range
-    total_points = total_points[np.logical_and(sample_arr[:, 0] >= 0, sample_arr[:, 1] >= 0), :]
+    total_points = total_points[np.logical_and(total_points[:, 0] >= 0, total_points[:, 1] >= 0), :]
 
     # remove points with values greater than the size_img dimensions since they're out of range
-    total_points = total_points[np.logical_and(sample_arr[:, 0] < size_img[0], sample_arr[:, 1] < size_img[1]), :]
+    total_points = total_points[np.logical_and(total_points[:, 0] < size_img[0], total_points[:, 1] < size_img[1]), :]
 
     # this ensures that we only keep the points that are not duplicate across different cell types
     non_dup_points, non_dup_counts = np.unique(total_points, axis=0, return_counts=True)

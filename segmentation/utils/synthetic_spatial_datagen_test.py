@@ -47,9 +47,9 @@ def test_generate_random_centroids():
     num_B = 100
     num_C = 100
 
-    mean_A_factor = (0.5, 0.5)
-    mean_B_factor = (0.7, 0.7)
-    mean_C_factor = (0.3, 0.3)
+    mean_A_factor = 0.5
+    mean_B_factor = 0.7
+    mean_C_factor = 0.3
 
     cov_A = [[100, 0], [0, 100]]
     cov_B = [[100, 0], [0, 100]]
