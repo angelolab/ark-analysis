@@ -87,7 +87,7 @@ def test_generate_test_label_map():
 
     # all we're looking at is the label map
     # we flatten and remove all non-centroids for testing purposes
-    label_map = sample_img_xr[0, :, :, 0]
+    label_map = np.stack(sample_img_xr[0, :, :, 0])
     label_map_flat = label_map.flatten()
     label_map_flat = label_map_flat[label_map_flat > 0]
 
