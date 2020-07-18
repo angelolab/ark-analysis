@@ -32,6 +32,7 @@ def test_generate_test_dist_matrix():
     # but it's definitely a great check that can ensure greater success
     assert sample_dist_mat[:100, 100:200].mean() < sample_dist_mat[:100, 200:].mean()
 
+
 def test_generate_random_centroids():
     # this function tests the functionality of a random initialization of centroids
     # the tests are fairly basic for now but will be expanded on
@@ -54,10 +55,10 @@ def test_generate_random_centroids():
     cov_B = [[100, 0], [0, 100]]
     cov_c = [[100, 0], [0, 100]]
 
-    centroid_list = generate_random_centroids(size_img=size_img, num_A=num_A, num_B=num_B, num_C=num_C,
-                                              mean_A_factor=mean_A_factor, cov_A=cov_A,
-                                              mean_B_factor=mean_B_factor, cov_B=cov_B,
-                                              mean_C_factor=mean_C_factor, cov_C=cov_c)
+    centroid_list = synthetic_spatial_datagen.generate_random_centroids(size_img=size_img, num_A=num_A, num_B=num_B, num_C=num_C,
+                                                                        mean_A_factor=mean_A_factor, cov_A=cov_A,
+                                                                        mean_B_factor=mean_B_factor, cov_B=cov_B,
+                                                                        mean_C_factor=mean_C_factor, cov_C=cov_c)
 
     # try to extract non-duplicate centroids in the list
     _, centroid_counts = np.unique(centroid_list, axis=0, return_counts=True)
@@ -73,6 +74,7 @@ def test_generate_random_centroids():
     assert len(x_coords[(x_coords < 0) & (x_coords >= size_img[0])]) == 0
     assert len(y_coords[(y_coords < 0) & (y_coords >= size_img[0])]) == 0
 
+
 def test_generate_test_label_map():
     # this function tests the general nature of the random label map generated
     # the crux of which are the centroids generated from test_generate_random_centroids
@@ -81,7 +83,7 @@ def test_generate_test_label_map():
     # we also check and see that each label appears in the label_map
 
     # generate test data
-    sample_img_xr, centroid_indices = generate_test_label_map()
+    sample_img_xr, centroid_indices = synthetic_spatial_datagen.generate_test_label_map()
 
     # all we're looking at is the label map
     # we flatten and remove all non-centroids for testing purposes

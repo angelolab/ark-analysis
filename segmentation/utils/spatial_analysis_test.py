@@ -193,13 +193,30 @@ def test_calculate_channel_spatial_enrichment():
             dist_lim=dist_lim)
 
     # Test both Point8 and Point9
+    # Extract the p-values and z-scores of the distance of marker 1 vs marker 2
+    # as tested against a random set of distances between centroids
+
+    # print("Point8 stats")
+    # print(stats_pos.loc["Point8", "p_pos", 2, 3])
+    # print(stats_pos.loc["Point8", "p_neg", 2, 3])
+    # print(stats_pos.loc["Point8", "z", 2, 3])
+    # print(stats_pos.loc["Point8", "p_pos", 3, 2])
+    # print(stats_pos.loc["Point8", "p_neg", 3, 2])
+    # print(stats_pos.loc["Point8", "z", 3, 2])
+
     assert stats_pos.loc["Point8", "p_pos", 2, 3] < .05
     assert stats_pos.loc["Point8", "p_neg", 2, 3] > .05
     assert stats_pos.loc["Point8", "z", 2, 3] > 0
+    assert stats_pos.loc["Point8", "p_pos", 3, 2] < .05
+    assert stats_pos.loc["Point8", "p_neg", 3, 2] > .05
+    assert stats_pos.loc["Point8", "z", 3, 2] > 0
 
     assert stats_pos.loc["Point9", "p_pos", 3, 2] < .05
     assert stats_pos.loc["Point9", "p_neg", 3, 2] > .05
     assert stats_pos.loc["Point9", "z", 3, 2] > 0
+    assert stats_pos.loc["Point9", "p_pos", 2, 3] < .05
+    assert stats_pos.loc["Point9", "p_neg", 2, 3] > .05
+    assert stats_pos.loc["Point9", "z", 2, 3] > 0
 
     # Negative enrichment with direct matrix initialization
     all_data_neg = make_expression_matrix("negative")

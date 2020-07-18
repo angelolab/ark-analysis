@@ -139,9 +139,11 @@ def compute_close_cell_num(dist_mat, dist_lim, num, analysis_type,
                                                      fov_channel_data=fov_channel_data, cell_labels=cell_labels,
                                                      col=fov_channel_data.columns[k])
             mark2_num.append(len(mark2poslabels))
+
             # Subset the distance matrix to only include cells positive for both markers j and k
             trunc_dist_mat = dist_mat[np.ix_(np.asarray(mark1poslabels - 1, dtype='int'),
                                              np.asarray(mark2poslabels - 1, dtype='int'))]
+
             # Binarize the truncated distance matrix to only include cells within distance limit
             trunc_dist_mat_bin = np.zeros(trunc_dist_mat.shape, dtype='int')
             trunc_dist_mat_bin[trunc_dist_mat < dist_lim] = 1
