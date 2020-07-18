@@ -100,4 +100,4 @@ def test_generate_test_label_map():
     # need to add 1 to centroid_indices because those values are 1-less due to
     # needing to index arrays, we couldn't 0-index the label values in label_map
     # because values of 0 in a label map are ignored by regionprops
-    assert np.sort(label_map_flat) == np.sort(centroid_indices) + 1
+    assert (np.sort(label_map_flat) == np.sort(centroid_indices) + 1).all()
