@@ -15,27 +15,30 @@ from scipy.spatial.distance import cdist
 from skimage.measure import label
 
 
-def direct_init_dist_matrix(num_A=100, num_B=100, num_C=100,
-                            distr_AB={'mean': 100, 'var': 1}, distr_AC={'mean': 20, 'var': 1},
-                            seed=None):
+def generate_test_dist_matrix(num_A=100, num_B=100, num_C=100,
+                              distr_AB=(10, 1), distr_random=(200, 1),
+                              seed=None):
     """
-    This function will return a random dist matrix such that the distance between cells
-    of types A and B are overall larger than the distance between cells of types A and C
+    This function will return a random dist matrix specifying the distance between cells of
+    types A and B and between cells of all other groups (type C).
 
     Each row and column representing a cell.
     We generate the points using Gaussian distributions
     Ideally, the parameters for A to B distances will be set such that they produce a lower range of values
     than A to C distances.
 
+    Note that these distance matrices created are non-Euclidean.
+
     Args:
         num_A: the number of A cells we wish to generate. Default 100
         num_B: the number of B cells we wish to generate. Default 100
         num_C: the number of C cells we wish to generate. Default 100
-        distr_AB: if specified, will be a dict listing the mean and variance of the Gaussian distribution
-            we wish to generate numbers from. Default mean=100 and var=1
-        distr_AC: similar to dist_AB. Default mean=20 and var=1
+        distr_AB: if specified, will be a tuple listing the mean and variance of the Gaussian distribution
+            we wish to generate numbers from. Default mean=10 and var=1
+        distr_random: similar to dist_AB, except it's what we set the distribution of
+            all other distances to be. Default mean=200 and var=1
         seed: whether to fix the random seed or not. Useful for testing.
-            Should be a specified integer value. Default 42.
+            Should be a specified integer value. Default None.
 
     Returns:
         dist_mat: the randomized distance matrix we generate directly from predefined distributions
@@ -44,11 +47,11 @@ def direct_init_dist_matrix(num_A=100, num_B=100, num_C=100,
     """
 
     # set the mean and variance of the Gaussian distributions of both AB and AC distances
-    mean_ab = distr_AB['mean']
-    var_ab = distr_AB['var']
+    mean_ab = distr_AB[0]
+    var_ab = distr_AB[1]
 
-    mean_ac = distr_AC['mean']
-    var_ac = distr_AC['var']
+    mean_random = distr_random[0]
+    var_random = distr_random[1]
 
     # set random seed if set
     if seed:
@@ -58,12 +61,12 @@ def direct_init_dist_matrix(num_A=100, num_B=100, num_C=100,
     # note that we don't really care about aa, bb, bc, or cc, so we
     # initialize those to garbage. We do need them for a proper
     # distance matrix format, however.
-    random_aa = np.random.normal(0, 1, (num_A, num_A))
-    random_ab = np.random.normal(mean_ab, var_ab, (num_A, num_B))
-    random_ac = np.random.normal(mean_ac, var_ac, (num_A, num_C))
-    random_bb = np.random.normal(0, 1, (num_B, num_B))
-    random_bc = np.random.normal(0, 1, (num_B, num_C))
-    random_cc = np.random.normal(0, 1, (num_C, num_C))
+    random_aa = np.abs(np.random.normal(mean_random, var_random, (num_A, num_A)))
+    random_ab = np.abs(np.random.normal(mean_ab, var_ab, (num_A, num_B)))
+    random_ac = np.abs(np.random.normal(mean_random, var_random, (num_A, num_C)))
+    random_bb = np.abs(np.random.normal(mean_random, var_random, (num_B, num_B)))
+    random_bc = np.abs(np.random.normal(mean_random, var_random, (num_B, num_C)))
+    random_cc = np.abs(np.random.normal(mean_random, var_random, (num_C, num_C)))
 
     # create each partition one-by-one first
     # we need to correct each aa, bb, and cc matrix to ensure symmetry
@@ -74,17 +77,18 @@ def direct_init_dist_matrix(num_A=100, num_B=100, num_C=100,
     # then concatenate them together
     dist_mat = np.concatenate((a_partition, b_partition, c_partition), axis=0)
 
+    # finally, fill the diagonals with 0 to ensure a proper distance matrix
+    np.fill_diagonal(dist_mat, 0)
+
     return dist_mat
 
 
 def generate_random_centroids(size_img=(1024, 1024), num_A=100, num_B=100, num_C=100,
-                              distr_A={'centroid_factor': (0.5, 0.5), 'cov': [[200, 0], [0, 200]]},
-                              distr_B={'centroid_factor': (0.9, 0.9), 'cov': [[200, 0], [0, 200]]},
-                              distr_C={'centroid_factor': (0.4, 0.4), 'cov': [[200, 0], [0, 200]]},
-                              float_type=False, seed=None):
+                              mean_A_factor=None, cov_A=None, mean_B_factor=None, cov_B=None,
+                              mean_C_factor=None, cov_C=None, seed=None):
     """
     Generate a set of random centroids given distribution parameters.
-    Used as a helper function by point_init_dist_matrix and generate_random_cell_shapes.
+    Used as a helper function by generate_test_label_map.
 
     Args:
         size_img: a tuple indicating the size of the image. Default 1024 x 1024
@@ -92,19 +96,20 @@ def generate_random_centroids(size_img=(1024, 1024), num_A=100, num_B=100, num_C
         num_B: the number of B centroids to generate. Default 100.
         num_C: the number of C centroids to generate. Default 100.
 
-        distr_A: a dict indicating the parameters of the multivariate normal distribution to generate A cell centroids.
-            Params:
-                centroid_factor: a tuple to determine which number to multiply the height and width by
-                    to indicate the center (mean) of the distribution
-                cov: in the format [[varXX, varXY], [varYX, varYY]]
-        distr_B: similar to distr_A
-        distr_C: similar to distr_C
-        float_type: whether we want the type returned to be of type float or int. Default False, indicating int.
+        mean_A_factor: a tuple to determine which number to multiply the height and width by
+            to indicate the center (mean) of the distribution to generate A points.
+            Will be randomly set to a predefined value if None.
+        cov_A: the covariance used to generate A poins in the format [[varXX, varXY], [varYX, varYY]].
+            Will be randomly set to a predefined value if None.
+        mean_B_factor: similar to mean_A_factor
+        cov_B: similar to cov_A
+        mean_C_factor: similar to mean_A_factor
+        cov_C: similar to cov_A
         seed: whether to fix the random seed or not. Useful for testing.
             Should be a specified integer value. Default None.
 
     Returns:
-        non_dup_points: a list of non-duplicated cell centroids.
+        total_points: a list of non-duplicated cell centroids.
     """
 
     if float_type:
@@ -116,14 +121,14 @@ def generate_random_centroids(size_img=(1024, 1024), num_A=100, num_B=100, num_C
     height = size_img[0]
     width = size_img[1]
 
-    a_mean = (height * distr_A['centroid_factor'][0], width * distr_A['centroid_factor'][1])
-    a_cov = distr_A['cov']
+    a_mean = (height * mean_A_factor, width * mean_A_factor) if mean_A_factor else (0.5, 0.5)
+    a_cov = cov_A if cov_A else [[200, 0], [0, 200]]
 
-    b_mean = (height * distr_B['centroid_factor'][0], width * distr_B['centroid_factor'][1])
-    b_cov = distr_B['cov']
+    b_mean = (height * mean_B_factor, width * mean_B_factor) if mean_B_factor else (0.6, 0.6)
+    b_cov = cov_B if cov_B else [[200, 0], [0, 200]]
 
-    c_mean = (height * distr_C['centroid_factor'][0], width * distr_C['centroid_factor'][1])
-    c_cov = distr_C['cov']
+    c_mean = (height * mean_C_factor, width * mean_C_factor) if mean_C_factor else (0.1, 0.1)
+    c_cov = cov_C if cov_C else [[200, 0], [0, 200]]
 
     # if specified, set the random seed
     if seed:
@@ -133,28 +138,29 @@ def generate_random_centroids(size_img=(1024, 1024), num_A=100, num_B=100, num_C
     # because we're passing these into skimage.measure.label, it is important
     # that we convert these to integers beforehand
     # since label only takes a binary matrix
-    # we pass the result through the unique function to eliminate any possibility of duplicate points
-    # appearing within any of these arrays
-    a_points = np.unique(np.random.multivariate_normal(a_mean, a_cov, num_A).astype(numpy_type), axis=0)
-    b_points = np.unique(np.random.multivariate_normal(b_mean, b_cov, num_B).astype(numpy_type), axis=0)
-    c_points = np.unique(np.random.multivariate_normal(c_mean, c_cov, num_C).astype(numpy_type), axis=0)
+    a_points = np.random.multivariate_normal(a_mean, a_cov, num_A).astype(np.int16)
+    b_points = np.random.multivariate_normal(b_mean, b_cov, num_B).astype(np.int16)
+    c_points = np.random.multivariate_normal(c_mean, c_cov, num_C).astype(np.int16)
+
+    # combine the points together into one list
+    total_points = np.concatenate((a_points, b_points, c_points), axis=0)
+
+    # remove points with negative values since they're out of range
+    total_points = total_points[np.logical_and(total_points[:, 0] >= 0, total_points[:, 1] >= 0), :]
+
+    # remove points with values greater than the size_img dimensions since they're out of range
+    total_points = total_points[np.logical_and(total_points[:, 0] < size_img[0], total_points[:, 1] < size_img[1]), :]
 
     # this ensures that we only keep the points that are not duplicate across different cell types
-    points, counts = np.unique(np.concatenate((a_points, b_points, c_points), axis=0), axis=0, return_counts=True)
-    non_dup_points = points[counts == 1]
+    non_dup_points, non_dup_counts = np.unique(total_points, axis=0, return_counts=True)
+    total_points = non_dup_points[non_dup_counts == 1]
 
-    # an astronomically unlikely error, would occur if for some reason all of the points were labelled as duplicate
-    if len(non_dup_points) == 0:
-        raise ValueError("Bad run: no unique points generated. Try again, will work next time.")
-
-    return non_dup_points
+    return total_points
 
 
-def point_init_dist_matrix(size_img=(1024, 1024), num_A=100, num_B=100, num_C=100,
-                           distr_A={'centroid_factor': (0.5, 0.5), 'cov': [[200, 0], [0, 200]]},
-                           distr_B={'centroid_factor': (0.9, 0.9), 'cov': [[200, 0], [0, 200]]},
-                           distr_C={'centroid_factor': (0.4, 0.4), 'cov': [[200, 0], [0, 200]]},
-                           seed=None):
+def generate_test_label_map(size_img=(1024, 1024), num_A=100, num_B=100, num_C=100,
+                            mean_A_factor=None, cov_A=None, mean_B_factor=None, cov_B=None,
+                            mean_C_factor=None, cov_C=None, seed=None):
     """
     This function generates random centroid centers in the form of a label map
     such that those of type A will have centers closer on average to those of type B
@@ -167,14 +173,15 @@ def point_init_dist_matrix(size_img=(1024, 1024), num_A=100, num_B=100, num_C=10
         num_A: the number of A centroids to generate. Default 100.
         num_B: the number of B centroids to generate. Default 100.
         num_C: the number of C centroids to generate. Default 100.
-
-        distr_A: a dict indicating the parameters of the multivariate normal distribution to generate A cell centroids.
-            Params:
-                centroid_factor: a tuple to determine which number to multiply the height and width by
-                    to indicate the center (mean) of the distribution
-                cov: in the format [[varXX, varXY], [varYX, varYY]]
-        distr_B: similar to distr_A
-        distr_C: similar to distr_C
+        mean_A_factor: a tuple to determine which number to multiply the height and width by
+            to indicate the center (mean) of the distribution to generate A points.
+            Will be randomly set to a predefined value if None.
+        cov_A: the covariance used to generate A poins in the format [[varXX, varXY], [varYX, varYY]].
+            Will be randomly set to a predefined value if None.
+        mean_B_factor: similar to mean_A_factor
+        cov_B: similar to cov_A
+        mean_C_factor: similar to mean_A_factor
+        cov_C: similar to cov_A
         seed: whether to fix the random seed or not. Useful for testing.
             Should be a specified integer value. Default None.
 
@@ -187,79 +194,40 @@ def point_init_dist_matrix(size_img=(1024, 1024), num_A=100, num_B=100, num_C=10
     """
 
     # generate the list of centroids and zip them into x and y coords
-    centroids = generate_random_centroids(size_img=size_img, num_A=num_A, num_B=num_B,
-                                          num_C=num_C, distr_A=distr_A, distr_B=distr_B,
-                                          distr_C=distr_C, float_type=False, seed=seed)
-    point_x_coords, point_y_coords = zip(*centroids)
+    all_centroids = \
+        generate_random_centroids(size_img=size_img, num_A=num_A, num_B=num_B, num_C=num_C,
+                                  mean_A_factor=mean_A_factor, cov_A=cov_A,
+                                  mean_B_factor=mean_B_factor, cov_B=cov_B,
+                                  mean_C_factor=mean_C_factor, cov_C=cov_C,
+                                  seed=seed)
 
-    # generate the binary matrix to pass into label_map
-    binary_mat = np.zeros(size_img)
-    binary_mat[point_x_coords, point_y_coords] = True
+    point_x_coords, point_y_coords = zip(*all_centroids)
 
-    # generate the label matrix for the image now
-    label_mat = label(binary_mat)
+    # all_centroids is ordered specifically to reflect a-labeled centroids first, then b, lastly c
+    # unfortunately, when we pass the final label map into calc_dist_matrix of spatial_analysis_utils
+    # we lose this desired ordering because of a call to regionprops, which automatically orders
+    # the centroids by ascending x-coordinate (in the case of ties, ascending y-coordinate)
+    # this messes up the ordering of the distance matrix which screws up, for example, the tests
+    # if a user wants to generate a distance matrix from randomly generated centroid points
+    # fortunately, lexsort allows us to compute the indices needed to reorder the sorted centroid
+    # list back to where they were originally, thus they can also be used to reorder the
+    # distance matrix back to the desired partitioning of first a-labeled rows/columns, then b, finally c
+    centroid_indices = np.lexsort(all_centroids[:, ::-1].T)
 
-    # and create the output to be able to run through calc_dist_matrix
-    # for now, I'm assuming that the array returned will have just one fov
-    # and we don't know anything about the segmentation labels
+    # generate the label matrix for the image
+    # doing it this way because using the label function in skimage does so based on
+    # connected components and that messes up the regionprops call in calc_dist_matrix
+    # we don't want to assume that we won't get points of distance 1 away from each other
+    # so we can just use the labels generated from centroid_indices to assign this
+    label_mat = np.zeros(size_img)
+    label_mat[point_x_coords, point_y_coords] = centroid_indices + 1
+
+    # now generate the sample xarray
     sample_img = np.zeros((1, size_img[0], size_img[1], 1)).astype(np.int16)
     sample_img[0, :, :, 0] = copy.deepcopy(label_mat)
     sample_img_xr = xr.DataArray(sample_img,
                                  coords=[[1], range(size_img[0]), range(size_img[1]), ['segmentation_label']],
                                  dims=['fovs', 'rows', 'cols', 'channels'])
 
-    # and return the xarray to pass into calc_dist_matrix
-    return sample_img_xr
-
-
-def generate_random_cell_shapes(size_img=(1024, 1024), num_A=100, num_B=100, num_C=100,
-                                distr_A={'centroid_factor': (0.5, 0.5), 'cov': [[200, 0], [0, 200]]},
-                                distr_B={'centroid_factor': (0.9, 0.9), 'cov': [[200, 0], [0, 200]]},
-                                distr_C={'centroid_factor': (0.4, 0.4), 'cov': [[200, 0], [0, 200]]},
-                                width_factor=5, height_factor=5, rotation_factor=180, seed=None):
-    """
-    Generate properties of each cell oval using the point_init_dist_matrix as helper
-
-    Args:
-        size_img: a tuple indicating the size of the image. Default 1024 x 1024
-        num_A: the number of A centroids to generate. Default 100.
-        num_B: the number of B centroids to generate. Default 100.
-        num_C: the number of C centroids to generate. Default 100.
-
-        distr_A: a dict indicating the parameters of the multivariate normal distribution to generate A cell centroids.
-            Params:
-                centroid_factor: a tuple to determine which number to multiply the height and width by
-                    to indicate the center (mean) of the distribution
-                cov: in the format [[varXX, varXY], [varYX, varYY]]
-        distr_B: similar to distr_A
-        distr_C: similar to distr_C
-        width_factor: the upper bound of the random width we wish to generate for each ellipse.
-        height_factor: similar to width_factor but for height.
-        rotation_factor: similar to width_factor but for rotation.
-        seed: whether to fix the random seed or not. Useful for testing.
-            Should be a specified integer value. Default None.
-
-    Returns:
-        centroid_info: a list of tuples, each one with this format:
-            (center, width, height, angle)
-        This is done to make it compatible with matplotlib.patches.Ellipse when plotting.
-    """
-
-    centroids = generate_random_centroids(size_img=size_img, num_A=num_A, num_B=num_B,
-                                          num_C=num_C, distr_A=distr_A, distr_B=distr_B,
-                                          distr_C=distr_C, float_type=False, seed=seed)
-
-    # if seed is set, make it the same for the random width, height, and rotation generation as well
-    if seed:
-        seed(seed)
-
-    # generate the random centroid information
-    centroid_info = [(c, random() * width_factor, random() * height_factor, random() * rotation_factor) for c in centroids]
-
-    # draw the ellipsoids so we can see if anything went wrong
-    viz.draw_ellipsoids(size_img, centroid_info)
-
-    # eventually, this function is going to check for, among other things, intersecting ellipses
-    # so we don't have intersecting cells.
-
-    return centroid_info
+    # and return the xarray to pass into calc_dist_matrix, plus the centroid_indices to readjust it
+    return sample_img_xr, centroid_indices
