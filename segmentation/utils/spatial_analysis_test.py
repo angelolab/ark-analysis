@@ -3,6 +3,8 @@ import pandas as pd
 import xarray as xr
 import random
 from segmentation.utils import spatial_analysis
+from segmentation.utils import spatial_analysis_utils
+from segmentation.utils import synthetic_spatial_datagen
 import importlib
 importlib.reload(spatial_analysis)
 
@@ -14,12 +16,11 @@ def make_threshold_mat():
     return thresh
 
 
-def make_distance_matrix(enrichment_type):
+def make_distance_matrix(enrichment_type, dist_lim):
     # Make a distance matrix for no enrichment, positive enrichment, and negative enrichment
 
     if enrichment_type == "none":
         # Create a 60 x 60 euclidian distance matrix of random values for no enrichment
-        np.random.seed(0)
         rand_mat = np.random.randint(0, 200, size=(60, 60))
         np.fill_diagonal(rand_mat[:, :], 0)
 
@@ -33,13 +34,10 @@ def make_distance_matrix(enrichment_type):
         # are located close in proximity to 10 cells mostly positive for marker 2.
         # Other included cells are not significantly positive for either marker and are located
         # far from the two positive populations.
-        dist_mat_pos = np.zeros((80, 80))
-        dist_mat_pos[10:20, :10] = 50
-        dist_mat_pos[:10, 10:20] = 50
-        dist_mat_pos[20:40, :20] = 200
-        dist_mat_pos[:20, 20:40] = 200
-        dist_mat_pos[40:80, :40] = 300
-        dist_mat_pos[:40, 40:80] = 300
+
+        dist_mat_pos = synthetic_spatial_datagen.generate_test_dist_matrix(num_A=10, num_B=10, num_C=60,
+                                                                           distr_AB=(int(dist_lim / 5), 1),
+                                                                           distr_random=(int(dist_lim * 5), 1))
 
         fovs = ["Point8", "Point9"]
         mats = [dist_mat_pos, dist_mat_pos]
@@ -49,13 +47,10 @@ def make_distance_matrix(enrichment_type):
     elif enrichment_type == "negative":
         # This creates a distance matrix where there are two groups of cells significant for 2 different
         # markers that are not located near each other (not within the dist_lim).
-        dist_mat_neg = np.zeros((60, 60))
-        dist_mat_neg[20:40, :20] = 300
-        dist_mat_neg[:20, 20:40] = 300
-        dist_mat_neg[40:50, :40] = 50
-        dist_mat_neg[:40, 40:50] = 50
-        dist_mat_neg[50:60, :50] = 200
-        dist_mat_neg[:50, 50:60] = 200
+
+        dist_mat_neg = synthetic_spatial_datagen.generate_test_dist_matrix(num_A=20, num_B=20, num_C=20,
+                                                                           distr_AB=(int(dist_lim * 5), 1),
+                                                                           distr_random=(int(dist_lim / 5), 1))
 
         fovs = ["Point8", "Point9"]
         mats = [dist_mat_neg, dist_mat_neg]
@@ -177,113 +172,141 @@ def make_expression_matrix(enrichment_type):
 
 def test_calculate_channel_spatial_enrichment():
 
+    dist_lim = 100
+
     excluded_colnames = ["cell_size", "Background", "HH3",
                          "summed_channel", "cellLabelInImage", "area",
                          "eccentricity", "major_axis_length", "minor_axis_length",
                          "perimeter", "SampleID", "FlowSOM_ID", "cell_type"]
 
     # Test z and p values
-
     marker_thresholds = make_threshold_mat()
 
-    # Positive enrichment
-    all_data_pos = make_expression_matrix("positive")
-    dist_mat_pos = make_distance_matrix("positive")
+    # Positive enrichment with direct matrix initialization
+    all_data_pos = make_expression_matrix(enrichment_type="positive")
+    dist_mat_pos_direct = make_distance_matrix(enrichment_type="positive", dist_lim=dist_lim)
 
-    values, stats = \
+    _, stats_pos = \
         spatial_analysis.calculate_channel_spatial_enrichment(
-            dist_mat_pos, marker_thresholds, all_data_pos,
-            excluded_colnames=excluded_colnames, bootstrap_num=100)
-    # Test both Point8 and Point9
-    assert stats.loc["Point8", "p_pos", 2, 3] < .05
-    assert stats.loc["Point8", "p_neg", 2, 3] > .05
-    assert stats.loc["Point8", "z", 2, 3] > 0
+            dist_mat_pos_direct, marker_thresholds, all_data_pos,
+            excluded_colnames=excluded_colnames, bootstrap_num=100,
+            dist_lim=dist_lim)
 
-    assert stats.loc["Point9", "p_pos", 3, 2] < .05
-    assert stats.loc["Point9", "p_neg", 3, 2] > .05
-    assert stats.loc["Point9", "z", 3, 2] > 0
-    # Negative enrichment
+    # Test both Point8 and Point9
+    # Extract the p-values and z-scores of the distance of marker 1 vs marker 2 for positive enrichment
+    # as tested against a random set of distances between centroids
+    assert stats_pos.loc["Point8", "p_pos", 2, 3] < .05
+    assert stats_pos.loc["Point8", "p_neg", 2, 3] > .05
+    assert stats_pos.loc["Point8", "z", 2, 3] > 0
+
+    assert stats_pos.loc["Point9", "p_pos", 3, 2] < .05
+    assert stats_pos.loc["Point9", "p_neg", 3, 2] > .05
+    assert stats_pos.loc["Point9", "z", 3, 2] > 0
+
+    # Negative enrichment with direct matrix initialization
     all_data_neg = make_expression_matrix("negative")
-    dist_mat_neg = make_distance_matrix("negative")
+    dist_mat_neg_direct = make_distance_matrix("negative", dist_lim=dist_lim)
 
-    values, stats = \
+    _, stats_neg = \
         spatial_analysis.calculate_channel_spatial_enrichment(
-            dist_mat_neg, marker_thresholds, all_data_neg,
-            excluded_colnames=excluded_colnames, bootstrap_num=100)
-    # Test both Point8 and Point9
-    assert stats.loc["Point8", "p_neg", 2, 3] < .05
-    assert stats.loc["Point8", "p_pos", 2, 3] > .05
-    assert stats.loc["Point8", "z", 2, 3] < 0
+            dist_mat_neg_direct, marker_thresholds, all_data_neg,
+            excluded_colnames=excluded_colnames, bootstrap_num=100,
+            dist_lim=dist_lim)
 
-    assert stats.loc["Point9", "p_neg", 3, 2] < .05
-    assert stats.loc["Point9", "p_pos", 3, 2] > .05
-    assert stats.loc["Point9", "z", 3, 2] < 0
+    # Test both Point8 and Point9
+    # Extract the p-values and z-scores of the distance of marker 1 vs marker 2 for negative enrichment
+    # as tested against a random set of distances between centroids
+    assert stats_neg.loc["Point8", "p_neg", 2, 3] < .05
+    assert stats_neg.loc["Point8", "p_pos", 2, 3] > .05
+    assert stats_neg.loc["Point8", "z", 2, 3] < 0
+
+    assert stats_neg.loc["Point9", "p_neg", 3, 2] < .05
+    assert stats_neg.loc["Point9", "p_pos", 3, 2] > .05
+    assert stats_neg.loc["Point9", "z", 3, 2] < 0
+
     # No enrichment
-    all_data = make_expression_matrix("none")
-    dist_mat = make_distance_matrix("none")
+    all_data_no_enrich = make_expression_matrix("none")
+    dist_mat_no_enrich = make_distance_matrix("none", dist_lim=dist_lim)
 
-    values, stats = \
+    _, stats_no_enrich = \
         spatial_analysis.calculate_channel_spatial_enrichment(
-            dist_mat, marker_thresholds, all_data,
-            excluded_colnames=excluded_colnames, bootstrap_num=100)
+            dist_mat_no_enrich, marker_thresholds, all_data_no_enrich,
+            excluded_colnames=excluded_colnames, bootstrap_num=100,
+            dist_lim=dist_lim)
     # Test both Point8 and Point9
-    assert stats.loc["Point8", "p_pos", 2, 3] > .05
-    assert stats.loc["Point8", "p_pos", 2, 3] > .05
-    assert abs(stats.loc["Point8", "z", 2, 3]) < 2
+    # Extract the p-values and z-scores of the distance of marker 1 vs marker 2 for no enrichment
+    # as tested against a random set of distances between centroids
+    assert stats_no_enrich.loc["Point8", "p_pos", 2, 3] > .05
+    assert stats_no_enrich.loc["Point8", "p_pos", 2, 3] > .05
+    assert abs(stats_no_enrich.loc["Point8", "z", 2, 3]) < 2
 
-    assert stats.loc["Point9", "p_pos", 3, 2] > .05
-    assert stats.loc["Point9", "p_pos", 3, 2] > .05
-    assert abs(stats.loc["Point9", "z", 3, 2]) < 2
+    assert stats_no_enrich.loc["Point9", "p_pos", 3, 2] > .05
+    assert stats_no_enrich.loc["Point9", "p_pos", 3, 2] > .05
+    assert abs(stats_no_enrich.loc["Point9", "z", 3, 2]) < 2
 
 
 def test_calculate_cluster_spatial_enrichment():
     # Test z and p values
+    dist_lim = 100
 
-    # Positive enrichment
-    all_data_pos = make_expression_matrix("positive")
-    dist_mat_pos = make_distance_matrix("positive")
+    excluded_colnames = ["cell_size", "Background", "HH3",
+                         "summed_channel", "cellLabelInImage", "area",
+                         "eccentricity", "major_axis_length", "minor_axis_length",
+                         "perimeter", "SampleID", "FlowSOM_ID", "cell_type"]
 
-    values, stats = \
+    # Positive enrichment with direct matrix initialization
+    all_data_pos = make_expression_matrix(enrichment_type="positive")
+    dist_mat_pos_direct = make_distance_matrix(enrichment_type="positive", dist_lim=dist_lim)
+
+    _, stats_pos = \
         spatial_analysis.calculate_cluster_spatial_enrichment(
-            all_data_pos, dist_mat_pos,
-            bootstrap_num=100, dist_lim=100)
+            all_data_pos, dist_mat_pos_direct,
+            bootstrap_num=100, dist_lim=dist_lim)
     # Test both Point8 and Point9
-    assert stats.loc["Point8", "p_pos", "Pheno1", "Pheno2"] < .05
-    assert stats.loc["Point8", "p_neg", "Pheno1", "Pheno2"] > .05
-    assert stats.loc["Point8", "z", "Pheno1", "Pheno2"] > 0
+    # Extract the p-values and z-scores of the distance of marker 1 vs marker 2 for positive enrichment
+    # as tested against a random set of distances between centroids
+    assert stats_pos.loc["Point8", "p_pos", "Pheno1", "Pheno2"] < .05
+    assert stats_pos.loc["Point8", "p_neg", "Pheno1", "Pheno2"] > .05
+    assert stats_pos.loc["Point8", "z", "Pheno1", "Pheno2"] > 0
 
-    assert stats.loc["Point9", "p_pos", "Pheno2", "Pheno1"] < .05
-    assert stats.loc["Point9", "p_neg", "Pheno2", "Pheno1"] > .05
-    assert stats.loc["Point9", "z", "Pheno2", "Pheno1"] > 0
-    # Negative enrichment
+    assert stats_pos.loc["Point9", "p_pos", "Pheno2", "Pheno1"] < .05
+    assert stats_pos.loc["Point9", "p_neg", "Pheno2", "Pheno1"] > .05
+    assert stats_pos.loc["Point9", "z", "Pheno2", "Pheno1"] > 0
+
+    # Negative enrichment with direct matrix initialization
     all_data_neg = make_expression_matrix("negative")
-    dist_mat_neg = make_distance_matrix("negative")
+    dist_mat_neg_direct = make_distance_matrix(enrichment_type="negative", dist_lim=dist_lim)
 
-    values, stats = \
+    _, stats_neg = \
         spatial_analysis.calculate_cluster_spatial_enrichment(
-            all_data_neg, dist_mat_neg,
-            bootstrap_num=100, dist_lim=100)
+            all_data_neg, dist_mat_neg_direct,
+            bootstrap_num=100, dist_lim=dist_lim)
     # Test both Point8 and Point9
-    assert stats.loc["Point8", "p_neg", "Pheno1", "Pheno2"] < .05
-    assert stats.loc["Point8", "p_pos", "Pheno1", "Pheno2"] > .05
-    assert stats.loc["Point8", "z", "Pheno1", "Pheno2"] < 0
+    # Extract the p-values and z-scores of the distance of marker 1 vs marker 2 for negative enrichment
+    # as tested against a random set of distances between centroids
+    assert stats_neg.loc["Point8", "p_neg", "Pheno1", "Pheno2"] < .05
+    assert stats_neg.loc["Point8", "p_pos", "Pheno1", "Pheno2"] > .05
+    assert stats_neg.loc["Point8", "z", "Pheno1", "Pheno2"] < 0
 
-    assert stats.loc["Point9", "p_neg", "Pheno2", "Pheno1"] < .05
-    assert stats.loc["Point9", "p_pos", "Pheno2", "Pheno1"] > .05
-    assert stats.loc["Point9", "z", "Pheno2", "Pheno1"] < 0
+    assert stats_neg.loc["Point9", "p_neg", "Pheno2", "Pheno1"] < .05
+    assert stats_neg.loc["Point9", "p_pos", "Pheno2", "Pheno1"] > .05
+    assert stats_neg.loc["Point9", "z", "Pheno2", "Pheno1"] < 0
+
     # No enrichment
-    all_data = make_expression_matrix("none")
-    dist_mat = make_distance_matrix("none")
+    all_data_no_enrich = make_expression_matrix("none")
+    dist_mat_no_enrich = make_distance_matrix("none", dist_lim=dist_lim)
 
-    values, stats = \
+    _, stats_no_enrich = \
         spatial_analysis.calculate_cluster_spatial_enrichment(
-            all_data, dist_mat,
-            bootstrap_num=100, dist_lim=100)
+            all_data_no_enrich, dist_mat_no_enrich,
+            bootstrap_num=100, dist_lim=dist_lim)
     # Test both Point8 and Point9
-    assert stats.loc["Point8", "p_pos", "Pheno1", "Pheno2"] > .05
-    assert stats.loc["Point8", "p_pos", "Pheno1", "Pheno2"] > .05
-    assert abs(stats.loc["Point8", "z", "Pheno1", "Pheno2"]) < 2
+    # Extract the p-values and z-scores of the distance of marker 1 vs marker 2 for no enrichment
+    # as tested against a random set of distances between centroids
+    assert stats_no_enrich.loc["Point8", "p_pos", "Pheno1", "Pheno2"] > .05
+    assert stats_no_enrich.loc["Point8", "p_pos", "Pheno1", "Pheno2"] > .05
+    assert abs(stats_no_enrich.loc["Point8", "z", "Pheno1", "Pheno2"]) < 2
 
-    assert stats.loc["Point8", "p_pos", "Pheno2", "Pheno1"] > .05
-    assert stats.loc["Point8", "p_pos", "Pheno2", "Pheno1"] > .05
-    assert abs(stats.loc["Point8", "z", "Pheno2", "Pheno1"]) < 2
+    assert stats_no_enrich.loc["Point8", "p_pos", "Pheno2", "Pheno1"] > .05
+    assert stats_no_enrich.loc["Point8", "p_pos", "Pheno2", "Pheno1"] > .05
+    assert abs(stats_no_enrich.loc["Point8", "z", "Pheno2", "Pheno1"]) < 2
