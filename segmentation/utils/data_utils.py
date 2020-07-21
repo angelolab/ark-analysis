@@ -125,6 +125,13 @@ def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, imgs=None,
 
         # if taking all imgs from directory, sort them alphabetically
         imgs.sort()
+    # otherwise, fill channel names with correct file extension
+    elif not all([img.endswith(["tif", "tiff", "jpg", "png"]) for img in imgs]):
+        fullnames = os.listdir(os.path.join(data_dir, fovs[0], img_sub_folder))
+        for fn in fullnames:
+            if any([img in fn for img in imgs]):
+                imgs = [img + fn.split(".")[-1] for img in imgs]
+                break
 
     if len(imgs) == 0:
         raise ValueError("No imgs found in designated folder")
