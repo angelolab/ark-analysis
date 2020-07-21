@@ -126,6 +126,7 @@ def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, imgs=None,
         # if taking all imgs from directory, sort them alphabetically
         imgs.sort()
     # otherwise, fill channel names with correct file extension
+    # TODO: test file-extension agnostic functionality
     elif not all([img.endswith(["tif", "tiff", "jpg", "png"]) for img in imgs]):
         fullnames = os.listdir(os.path.join(data_dir, fovs[0], img_sub_folder))
         for fn in fullnames:
