@@ -249,8 +249,9 @@ def load_imgs_from_dir(data_dir, image_name='img_data', delimiter='_',
 # TODO: add test function
 def tiffs_to_xr_labels(tiff_dir, output_dir=None, delimiter='_'):
     """Converts and condenses segmentation labels from a folder of tiff files
-    into an xarray.  Tiff files are assumed to be prefixed with their respective fov
-    names:
+    into an xarray.
+
+    Tiff files are assumed to be prefixed with their respective fov names:
 
     Point1234_moreinfo.tiff
 
@@ -273,6 +274,30 @@ def tiffs_to_xr_labels(tiff_dir, output_dir=None, delimiter='_'):
         im_xr.to_netcdf(save_name, format="NETCDF3_64BIT")
 
     return im_xr
+
+
+# TODO: Add metadata for channel name (eliminates need for fixed-order channels)
+def generate_deepcell_input(data_xr, data_dir, nuc_channels, mem_channels):
+    """Saves nuclear and membrane channels into deepcell input format.
+
+    Inputs:
+        data_xr: xarray containing nuclear and membrane channels over many fov's
+        data_dir: location to save deepcell input tifs
+        nuc_channels: nuclear channels to be summed over
+        mem_channels: membrane channels to be summed over
+    Outputs:
+        Saves summed channels as multitiffs
+
+    """
+    for fov in data_xr.fovs.values:
+        out = np.zeros((data_xr.shape[1], data_xr.shape[2], 2), dtype="uint8")
+
+        # sum over channels and add to output
+        out[:, :, 0] = np.sum(data_xr.loc[fov, :, :, nuc_channels].values.astype("uint8"))
+        out[:, :, 1] = np.sum(data_xr.loc[fov, :, :, mem_channels].values.astype("uint8"))
+
+        save_path = os.path.join(data_dir, f'{fov}_deepcell_input.tif')
+        io.imsave(save_path, out, plugin='tifffile')
 
 
 def combine_xarrays(xarrays, axis):
