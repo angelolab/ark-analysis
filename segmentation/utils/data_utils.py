@@ -127,11 +127,11 @@ def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, imgs=None,
         imgs.sort()
     # otherwise, fill channel names with correct file extension
     # TODO: test file-extension agnostic functionality
-    elif not all([img.endswith(["tif", "tiff", "jpg", "png"]) for img in imgs]):
+    elif not all([img.endswith(("tif", "tiff", "jpg", "png")) for img in imgs]):
         fullnames = os.listdir(os.path.join(data_dir, fovs[0], img_sub_folder))
         for fn in fullnames:
             if any([img in fn for img in imgs]):
-                imgs = [img + fn.split(".")[-1] for img in imgs]
+                imgs = [img + '.' + fn.split(".")[-1] for img in imgs]
                 break
 
     if len(imgs) == 0:
@@ -293,8 +293,12 @@ def generate_deepcell_input(data_xr, data_dir, nuc_channels, mem_channels):
         out = np.zeros((data_xr.shape[1], data_xr.shape[2], 2), dtype="uint8")
 
         # sum over channels and add to output
-        out[:, :, 0] = np.sum(data_xr.loc[fov, :, :, nuc_channels].values.astype("uint8"))
-        out[:, :, 1] = np.sum(data_xr.loc[fov, :, :, mem_channels].values.astype("uint8"))
+        if nuc_channels:
+            out[:, :, 0] = np.sum(data_xr.loc[fov, :, :, nuc_channels].values.astype("uint8"),
+                                  axis=2)
+        if mem_channels:
+            out[:, :, 1] = np.sum(data_xr.loc[fov, :, :, mem_channels].values.astype("uint8"),
+                                  axis=2)
 
         save_path = os.path.join(data_dir, f'{fov}_deepcell_input.tif')
         io.imsave(save_path, out, plugin='tifffile')

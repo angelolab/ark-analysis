@@ -145,6 +145,17 @@ def test_load_imgs_from_tree():
         # make sure specified channels loaded
         assert np.array_equal(test_subset_xr.channels, some_chans)
 
+        # check loading w/o file extension
+        test_noext_xr = \
+            data_utils.load_imgs_from_tree(temp_dir, img_sub_folder="TIFs", dtype="int16",
+                                           imgs=some_chans)
+
+        # make sure all folders loaded
+        assert np.array_equal(test_noext_xr.fovs, fovs)
+
+        # make sure specified channels loaded
+        assert np.array_equal(test_noext_xr.channels, some_chans)
+
 
 def test_load_imgs_from_dir():
     # test loading from 'free' directory
@@ -159,6 +170,81 @@ def test_load_imgs_from_dir():
 
         # make sure grouping by file prefix was effective
         assert np.array_equal(test_loaded_xr.fovs, fovs)
+
+
+def test_generate_deepcell_input():
+    with tempfile.TemporaryDirectory() as temp_dir:
+        fovs = ['fov1', 'fov2']
+        chans = ['nuc1', 'nuc2', 'mem1', 'mem2']
+
+        fov1path = os.path.join(temp_dir, 'fov1_deepcell_input.tif')
+        fov2path = os.path.join(temp_dir, 'fov2_deepcell_input.tif')
+
+        img_data = np.ones((2, 1024, 1024, 4), dtype="int16")
+        img_data[0, :, :, 1] += 1
+        img_data[0, :, :, 3] += 2
+
+        data_xr = xr.DataArray(img_data, coords=[fovs, range(1024), range(1024), chans],
+                               dims=["fovs", "rows", "cols", "channels"])
+
+        # test 1 nuc, 1 mem (no summing)
+        nucs = ['nuc2']
+        mems = ['mem2']
+
+        data_utils.generate_deepcell_input(data_xr, temp_dir, nucs, mems)
+        fov1 = io.imread(fov1path)
+        fov2 = io.imread(fov2path)
+
+        # check shape
+        assert fov1.shape == (1024, 1024, 2)
+        assert fov2.shape == (1024, 1024, 2)
+
+        assert np.all(fov1[:, :, 0] == 2)
+        assert np.all(fov1[:, :, 1] == 3)
+        assert np.all(fov2[:, :, 0] == 1)
+        assert np.all(fov2[:, :, 1] == 1)
+
+        # test 2 nuc, 2 mem (summing)
+        nucs = ['nuc1', 'nuc2']
+        mems = ['mem1', 'mem2']
+
+        data_utils.generate_deepcell_input(data_xr, temp_dir, nucs, mems)
+        fov1 = io.imread(fov1path)
+        fov2 = io.imread(fov2path)
+
+        assert np.all(fov1[:, :, 0] == 3)
+        assert np.all(fov1[:, :, 1] == 4)
+        assert np.all(fov2[:, :, 0] == 2)
+        assert np.all(fov2[:, :, 1] == 2)
+
+        # test nuc None
+        nucs = None
+
+        data_utils.generate_deepcell_input(data_xr, temp_dir, nucs, mems)
+        fov1 = io.imread(fov1path)
+        fov2 = io.imread(fov2path)
+
+        # check shape (important for a None case)
+        assert fov1.shape == (1024, 1024, 2)
+        assert fov2.shape == (1024, 1024, 2)
+
+        assert np.all(fov1[:, :, 0] == 0)
+        assert np.all(fov1[:, :, 1] == 4)
+        assert np.all(fov2[:, :, 0] == 0)
+        assert np.all(fov2[:, :, 1] == 2)
+
+        # test mem None
+        nucs = ['nuc2']
+        mems = None
+
+        data_utils.generate_deepcell_input(data_xr, temp_dir, nucs, mems)
+        fov1 = io.imread(fov1path)
+        fov2 = io.imread(fov2path)
+
+        assert np.all(fov1[:, :, 0] == 2)
+        assert np.all(fov1[:, :, 1] == 0)
+        assert np.all(fov2[:, :, 0] == 1)
+        assert np.all(fov2[:, :, 1] == 0)
 
 
 def test_combine_xarrays():
