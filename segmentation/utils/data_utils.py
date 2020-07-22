@@ -126,12 +126,14 @@ def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, imgs=None,
         # if taking all imgs from directory, sort them alphabetically
         imgs.sort()
     # otherwise, fill channel names with correct file extension
-    # TODO: test file-extension agnostic functionality
     elif not all([img.endswith(("tif", "tiff", "jpg", "png")) for img in imgs]):
         fullnames = os.listdir(os.path.join(data_dir, fovs[0], img_sub_folder))
         for fn in fullnames:
             if any([img in fn for img in imgs]):
-                imgs = [img + '.' + fn.split(".")[-1] for img in imgs]
+                imgs = [img + '.' + fn.split(".")[-1]
+                        if img.split(".")[-1] != fn.split(".")[-1]
+                        else img
+                        for img in imgs]
                 break
 
     if len(imgs) == 0:
@@ -184,15 +186,18 @@ def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, imgs=None,
     return img_xr
 
 
-def load_imgs_from_dir(data_dir, image_name='img_data', delimiter='_',
+def load_imgs_from_dir(data_dir, imgdim_name='components', image_name='img_data', delimiter='_',
                        dtype="int16", variable_sizes=False):
     """Takes a set of images from a directory and loads them into an xarray based on filename
     prefixes.
 
         Args:
             data_dir: directory containing images
-            image_name: sets name of the 'channel' coordinate in the output xarray
+            imgdim_name: sets the name of the last dimension of the output xarray
+            image_name: sets name of the last coordinate in the output xarray
             delimiter: character used to determine the file-prefix containging the fov name
+            dtype: data type to load/store
+            variable_sizes: Dynamically determine image sizes and pad smaller imgs with zeros
 
         Returns:
             img_xr: xarray with shape [fovs, x_dim, y_dim, 1]
@@ -241,7 +246,7 @@ def load_imgs_from_dir(data_dir, image_name='img_data', delimiter='_',
     fovs = [img.split(delimiter)[0] for img in imgs]
 
     img_xr = xr.DataArray(img_data, coords=[fovs, row_coords, col_coords, [image_name]],
-                          dims=["fovs", "rows", "cols", "compartments"])
+                          dims=["fovs", "rows", "cols", imgdim_name])
 
     return img_xr
 
@@ -290,15 +295,17 @@ def generate_deepcell_input(data_xr, data_dir, nuc_channels, mem_channels):
 
     """
     for fov in data_xr.fovs.values:
-        out = np.zeros((data_xr.shape[1], data_xr.shape[2], 2), dtype="uint8")
+        out = np.zeros((data_xr.shape[1], data_xr.shape[2], 2), dtype=data_xr.dtype)
 
         # sum over channels and add to output
         if nuc_channels:
-            out[:, :, 0] = np.sum(data_xr.loc[fov, :, :, nuc_channels].values.astype("uint8"),
-                                  axis=2)
+            out[:, :, 0] = \
+                np.sum(data_xr.loc[fov, :, :, nuc_channels].values.astype(data_xr.dtype),
+                       axis=2)
         if mem_channels:
-            out[:, :, 1] = np.sum(data_xr.loc[fov, :, :, mem_channels].values.astype("uint8"),
-                                  axis=2)
+            out[:, :, 1] = \
+                np.sum(data_xr.loc[fov, :, :, mem_channels].values.astype(data_xr.dtype),
+                       axis=2)
 
         save_path = os.path.join(data_dir, f'{fov}_deepcell_input.tif')
         io.imsave(save_path, out, plugin='tifffile')

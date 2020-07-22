@@ -143,7 +143,7 @@ def test_load_imgs_from_tree():
         assert np.array_equal(test_subset_xr.fovs, some_fovs)
 
         # make sure specified channels loaded
-        assert np.array_equal(test_subset_xr.channels, some_chans)
+        assert np.array_equal(test_subset_xr.channels.values, some_chans)
 
         # check loading w/o file extension
         test_noext_xr = \
@@ -154,7 +154,18 @@ def test_load_imgs_from_tree():
         assert np.array_equal(test_noext_xr.fovs, fovs)
 
         # make sure specified channels loaded
-        assert np.array_equal(test_noext_xr.channels, some_chans)
+        assert np.array_equal(test_noext_xr.channels.values, some_chans)
+
+        # check mixed extension presence
+        test_someext_xr = \
+            data_utils.load_imgs_from_tree(temp_dir, img_sub_folder="TIFs", dtype="int16",
+                                           imgs=[chans[i] if i % 2 else imgs[i] for i in range(3)])
+
+        # make sure all folders loaded
+        assert np.array_equal(test_someext_xr.fovs, fovs)
+
+        # makes sure all channels loaded
+        assert np.array_equal(test_someext_xr.channels.values, chans)
 
 
 def test_load_imgs_from_dir():
@@ -170,6 +181,10 @@ def test_load_imgs_from_dir():
 
         # make sure grouping by file prefix was effective
         assert np.array_equal(test_loaded_xr.fovs, fovs)
+
+        # make sure dim and coord were named w/ defaults
+        assert np.all(test_loaded_xr.loc["fov1", :, :, "img_data"] >= 0)
+        assert test_loaded_xr.dims[-1] == 'components'
 
 
 def test_generate_deepcell_input():
