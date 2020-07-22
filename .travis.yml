@@ -3,8 +3,10 @@ language: python
 install:
   - pip install -r requirements.txt
   - pip install pytest==5.2.0 pytest-cov==2.5.1 pytest-pep8 coveralls
-  - python setup.py build_ext --inplace 
-
+  - mkdir /opt/segmentation
+  - cp setup.py /opt/segmentation/.
+  - cp -r segmentation /opt/segmentation/segmentation
+  - pip install /opt/segmentation
 
 env:
   - MPLBACKEND=Agg
