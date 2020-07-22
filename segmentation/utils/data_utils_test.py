@@ -184,7 +184,7 @@ def test_load_imgs_from_dir():
 
         # make sure dim and coord were named w/ defaults
         assert np.all(test_loaded_xr.loc["fov1", :, :, "img_data"] >= 0)
-        assert test_loaded_xr.dims[-1] == 'components'
+        assert test_loaded_xr.dims[-1] == 'compartments'
 
 
 def test_generate_deepcell_input():

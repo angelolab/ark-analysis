@@ -81,6 +81,51 @@ def load_imgs_from_mibitiff(mibitiff_paths, channels=None):
     return img_xr
 
 
+def load_imgs_from_multitiff(multitiff_paths, channels=None):
+    """Load images from a series of multi-channel tiff files.
+
+    This function takes a set of multi-channel tiff files and loads the images
+    into an xarray.  The type used to store the images will be the same as
+    that of the images stored in the multi-channel tiff files.
+
+    This function differs from `load_imgs_from_mibitiff` in that proprietary
+    metadata is unneeded, which is usefull loading in more general multi-channel
+    tiff files.
+    images.
+
+    Args:
+        multitiff_paths: list of multi-channel tiff files to load
+        channels: optional list of channels to load.  Unlike MIBItiff, this must
+            be given as a numeric list of indices, since there is no metadata
+            containing channel names.
+
+    Returns:
+        img_xr: xarray with shape [fovs, x_dim, y_dim, channels]
+    """
+
+    # extract data
+    img_data = []
+    for multitiff_path in multitiff_paths:
+        img_data.append(io.imread(multitiff_path, plugin='tifffile'))
+    img_data = np.stack(img_data, axis=0)
+
+    if channels:
+        img_data = img_data[:, :, :, channels]
+
+    # extract point name from file name
+    fovs = [multitiff_path.split(os.sep)[-1].split('_')[0] for multitiff_path
+            in multitiff_paths]
+
+    # create xarray with image data
+    img_xr = xr.DataArray(img_data,
+                          coords=[fovs, range(img_data.shape[1]),
+                                  range(img_data.shape[2]),
+                                  channels if channels else range(img_data.shape[3])],
+                          dims=["fovs", "rows", "cols", "channels"])
+
+    return img_xr
+
+
 def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, imgs=None,
                         dtype="int16", variable_sizes=False):
     """Takes a set of imgs from a directory structure and loads them into an xarray.
@@ -186,7 +231,7 @@ def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, imgs=None,
     return img_xr
 
 
-def load_imgs_from_dir(data_dir, imgdim_name='components', image_name='img_data', delimiter='_',
+def load_imgs_from_dir(data_dir, imgdim_name='compartments', image_name='img_data', delimiter='_',
                        dtype="int16", variable_sizes=False):
     """Takes a set of images from a directory and loads them into an xarray based on filename
     prefixes.
@@ -207,6 +252,7 @@ def load_imgs_from_dir(data_dir, imgdim_name='components', image_name='img_data'
 
     imgs = os.listdir(data_dir)
     imgs = [img for img in imgs if np.isin(img.split(".")[-1], ["tif", "tiff", "jpg", "png"])]
+    imgs = [img for img in imgs if delimiter in img]
     imgs.sort()
 
     if len(imgs) == 0:
