@@ -241,7 +241,7 @@ def load_imgs_from_dir(data_dir, image_name='img_data', delimiter='_',
     fovs = [img.split(delimiter)[0] for img in imgs]
 
     img_xr = xr.DataArray(img_data, coords=[fovs, row_coords, col_coords, [image_name]],
-                          dims=["fovs", "rows", "cols", "channels"])
+                          dims=["fovs", "rows", "cols", "compartments"])
 
     return img_xr
 
@@ -262,7 +262,7 @@ def tiffs_to_xr_labels(tiff_dir, output_dir=None, delimiter='_'):
     Outputs:
         Returns xarray and optionally saves it to output directory
     """
-    im_xr = load_imgs_from_dir(data_dir=tiff_dir, image_name='segmentation_label',
+    im_xr = load_imgs_from_dir(data_dir=tiff_dir, image_name='whole_cell',
                                delimiter=delimiter)
 
     if output_dir is not None:
