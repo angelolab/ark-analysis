@@ -317,36 +317,6 @@ def load_imgs_from_dir(data_dir, imgdim_name='compartments', image_name='img_dat
     return img_xr
 
 
-# TODO: add test function
-def tiffs_to_xr_labels(tiff_dir, output_dir=None, delimiter='_'):
-    """Converts and condenses segmentation labels from a folder of tiff files
-    into an xarray.
-
-    Tiff files are assumed to be prefixed with their respective fov names:
-
-    Point1234_moreinfo.tiff
-
-    Inputs:
-        tiff_dir: path to directory containing segmentation labels as TIFs
-        output_dir: path to directory where the output will be saved. If None, no xr is saved
-        delimiter: character which separates fov-id prefix from the rest of the filename
-    Outputs:
-        Returns xarray and optionally saves it to output directory
-    """
-    im_xr = load_imgs_from_dir(data_dir=tiff_dir, image_name='whole_cell',
-                               delimiter=delimiter)
-
-    if output_dir is not None:
-        save_name = os.path.join(output_dir, 'segmentation_labels.xr')
-        if os.path.exists(save_name):
-            print("overwriting previously generated processed output file")
-            os.remove(save_name)
-
-        im_xr.to_netcdf(save_name, format="NETCDF3_64BIT")
-
-    return im_xr
-
-
 # TODO: Add metadata for channel name (eliminates need for fixed-order channels)
 def generate_deepcell_input(data_xr, data_dir, nuc_channels, mem_channels):
     """Saves nuclear and membrane channels into deepcell input format.
