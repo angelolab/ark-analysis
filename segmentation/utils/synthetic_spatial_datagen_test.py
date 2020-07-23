@@ -102,3 +102,8 @@ def test_generate_test_label_map():
     # needing to index arrays, we couldn't 0-index the label values in label_map
     # because values of 0 in a label map are ignored by regionprops
     assert (np.sort(label_map_flat) == np.sort(centroid_indices) + 1).all()
+
+def test_generate_test_segmentation_mask():
+    # this function tests that we're generating proper segmentation masks
+    # for phase 2 of testing
+    pass

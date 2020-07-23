@@ -5,14 +5,13 @@ import skimage.measure
 import scipy
 import os
 import xarray as xr
-import copy
 
 from random import seed
 from random import random
-from segmentation.utils import spatial_analysis_utils as sau
-from segmentation.utils import visualize as viz
 from scipy.spatial.distance import cdist
 from skimage.measure import label
+from copy import deepcopy
+from skimage.draw import disk
 
 
 def generate_test_dist_matrix(num_A=100, num_B=100, num_C=100,
@@ -231,3 +230,77 @@ def generate_test_label_map(size_img=(1024, 1024), num_A=100, num_B=100, num_C=1
 
     # and return the xarray to pass into calc_dist_matrix, plus the centroid_indices to readjust it
     return sample_img_xr, centroid_indices
+
+def generate_test_segmentation_mask(size_img=(1024, 1024), num_cells=2, radius=10):
+    """
+    This function generates a random segmentation mask with the assumption that cells are disks.
+    For the time being, we just iterate through the image and place random disks next to each other.
+    The key is that the cells have to be bordering each other.
+
+    Args:
+        size_img: a tuple specifying the height and width of the image. Default (1024, 1024)
+        num_cells: the number of cells to generate. Note that the radius parameter
+            may override this if there's not enough space. Default 2.
+        radius: the radius of the disks we desire to draw. Default 10.
+
+    Returns:
+        sample_mask: a test segmentation mask the dimensions of size_img, each cell labeled
+            with a specfic marker label.
+    """
+
+    # the mask we'll be returning
+    sample_mask = np.zeros(size_img, dtype=np.int8)
+
+    # obviously, you have to have num_cells be at least 2 so we have 2 markers to compare
+    if num_cells < 2
+        raise ValueError("The parameter num_cells has to be at least 2")
+
+    # and the radius set cannot be larger than half of the image
+    if radius > size_img[0] / 2 or radius > size_img[1] / 2:
+        raise ValueError("Radius value is too large for image")
+
+    # we'll start drawing cells in the upper-left of the image
+    center_row = radius
+    center_col = radius
+
+    # keep a cells_covered counter to learn when 
+    cells_covered = deepcopy(num_cells)
+
+    # we'll start by assigning marker_num = 1
+    marker_num = 1
+
+    # keep iterating until we're done drawing all the cells or we can no longer fit any more cells
+    while cells_covered > 0 and center_row < size_img[0]:
+        # generate the x and y coords of the disk, and set the respective values to the marker_num
+        x_coords, y_coords = disk((center_x, center_y), radius)
+        sample_mask[x_coords, y_coords] = marker_num
+
+        # for now, we just alternate marker_nums per cell
+        marker_num = 1 if marker_num == 2 else 2
+
+        # decrease cells_covered by 1
+        cells_covered -= 1
+
+        # move the next disk to the right by amount radius * 2 aka diameter
+        center_col += radius * 2
+
+        # however, if that puts center_col out of range, restart on the next row on the far left
+        if center_col >= size_img[1]:
+            center_row += radius * 2
+            center_col = radius
+
+    return sample_mask
+
+
+def generate_test_channel_data(seg_mask, nuclear_labels):
+    """
+    This function generates test channel data based on a segmentation mask provided
+    and whether the data is nuclear or membrane in nature.
+
+    Args:
+        seg_mask: a segmentation mask with labeled cells
+    """
+
+    
+
+    pass
