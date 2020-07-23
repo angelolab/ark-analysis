@@ -77,27 +77,43 @@ def test_validate_paths():
 
 
 def test_load_imgs_from_mibitiff():
-    mibitiff_files = [os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                   "..", "..", "data", "example_dataset",
-                                   "input_data", "mibitiff_inputs",
-                                   "Point8_RowNumber0_Depth_Profile0-MassCorrected-Filtered.tiff")]
+    # check unspecified point loading
+    data_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                            "..", "..", "data", "example_dataset",
+                            "input_data", "mibitiff_inputs")
     channels = ["HH3", "Membrane"]
-    data_xr = data_utils.load_imgs_from_mibitiff(mibitiff_files, channels)
+    data_xr = data_utils.load_imgs_from_mibitiff(data_dir,
+                                                 channels=channels)
     assert(data_xr.dims == ("fovs", "rows", "cols", "channels"))
     assert(data_xr.fovs == "Point8")
     assert(data_xr.rows == range(1024)).all()
     assert(data_xr.cols == range(1024)).all()
     assert(data_xr.channels == channels).all()
-    np.testing.assert_array_equal(data_xr.values[0],
-                                  (tiff.read(mibitiff_files[0]))[channels].data)
+
+    # check specified point loading
+    mibitiff_files = ["Point8_RowNumber0_Depth_Profile0-MassCorrected-Filtered.tiff"]
+    data_xr = data_utils.load_imgs_from_mibitiff(data_dir,
+                                                 mibitiff_files=mibitiff_files,
+                                                 channels=channels)
+    assert(data_xr.dims == ("fovs", "rows", "cols", "channels"))
+    assert(data_xr.fovs == "Point8")
+    assert(data_xr.rows == range(1024)).all()
+    assert(data_xr.cols == range(1024)).all()
+    assert(data_xr.channels == channels).all()
+    np.testing.assert_array_equal(
+        data_xr.values[0],
+        (tiff.read(os.path.join(data_dir, mibitiff_files[0])))[channels].data)
 
 
 def test_load_imgs_from_mibitiff_all_channels():
-    mibitiff_files = [os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                   "..", "..", "data", "example_dataset",
-                                   "input_data", "mibitiff_inputs",
-                                   "Point8_RowNumber0_Depth_Profile0-MassCorrected-Filtered.tiff")]
-    data_xr = data_utils.load_imgs_from_mibitiff(mibitiff_files, channels=None)
+    data_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                            "..", "..", "data", "example_dataset",
+                            "input_data", "mibitiff_inputs")
+    mibitiff_files = ["Point8_RowNumber0_Depth_Profile0-MassCorrected-Filtered.tiff"]
+
+    data_xr = data_utils.load_imgs_from_mibitiff(data_dir,
+                                                 mibitiff_files=mibitiff_files,
+                                                 channels=None)
     assert(data_xr.dims == ("fovs", "rows", "cols", "channels"))
     assert(data_xr.fovs == "Point8")
     assert(data_xr.rows == range(1024)).all()
@@ -108,15 +124,20 @@ def test_load_imgs_from_mibitiff_all_channels():
                         "LaminAC", "Membrane", "NaK ATPase", "PanKeratin",
                         "SMA", "Vimentin"]
     assert(data_xr.channels == exected_channels).all()
-    np.testing.assert_array_equal(data_xr.values[0],
-                                  (tiff.read(mibitiff_files[0])).data)
+    np.testing.assert_array_equal(
+        data_xr.values[0],
+        (tiff.read(os.path.join(data_dir, mibitiff_files[0]))).data)
 
 
 def test_load_imgs_from_multitiff():
-    multitiff_files = [os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                    "..", "..", "data", "example_dataset",
-                                    "input_data", "Point8_deepcell_input.tif")]
-    data_xr = data_utils.load_imgs_from_multitiff(multitiff_files, channels=None)
+    # test all channels load w/ specified files
+    data_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                            "..", "..", "data", "example_dataset",
+                            "input_data")
+    multitiff_files = ["Point8_deepcell_input.tif"]
+    data_xr = data_utils.load_imgs_from_multitiff(data_dir,
+                                                  multitiff_files=multitiff_files,
+                                                  channels=None)
     assert(data_xr.dims == ("fovs", "rows", "cols", "channels"))
     assert(data_xr.fovs == "Point8")
     assert(data_xr.rows == range(1024)).all()
@@ -124,12 +145,24 @@ def test_load_imgs_from_multitiff():
     assert(data_xr.channels == range(2)).all()
 
     # test single channel load
-    data_xr = data_utils.load_imgs_from_multitiff(multitiff_files, channels=[0])
+    data_xr = data_utils.load_imgs_from_multitiff(data_dir,
+                                                  multitiff_files=multitiff_files,
+                                                  channels=[0])
     assert(data_xr.dims == ("fovs", "rows", "cols", "channels"))
     assert(data_xr.fovs == "Point8")
     assert(data_xr.rows == range(1024)).all()
     assert(data_xr.cols == range(1024)).all()
     assert(data_xr.channels == [0]).all()
+
+    # test all channels w/ unspecified files
+    data_xr = data_utils.load_imgs_from_multitiff(data_dir,
+                                                  multitiff_files=None,
+                                                  channels=None)
+    assert(data_xr.dims == ("fovs", "rows", "cols", "channels"))
+    assert(data_xr.fovs == "Point8")
+    assert(data_xr.rows == range(1024)).all()
+    assert(data_xr.cols == range(1024)).all()
+    assert(data_xr.channels == range(2)).all()
 
 
 def test_load_imgs_from_tree():
