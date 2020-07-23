@@ -79,7 +79,7 @@ def test_validate_paths():
 def test_load_imgs_from_mibitiff():
     mibitiff_files = [os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                    "..", "..", "data", "example_dataset",
-                                   "input_data", "input_data_TIFF",
+                                   "input_data", "mibitiff_inputs",
                                    "Point8_RowNumber0_Depth_Profile0-MassCorrected-Filtered.tiff")]
     channels = ["HH3", "Membrane"]
     data_xr = data_utils.load_imgs_from_mibitiff(mibitiff_files, channels)
@@ -95,7 +95,7 @@ def test_load_imgs_from_mibitiff():
 def test_load_imgs_from_mibitiff_all_channels():
     mibitiff_files = [os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                    "..", "..", "data", "example_dataset",
-                                   "input_data", "input_data_TIFF",
+                                   "input_data", "mibitiff_inputs",
                                    "Point8_RowNumber0_Depth_Profile0-MassCorrected-Filtered.tiff")]
     data_xr = data_utils.load_imgs_from_mibitiff(mibitiff_files, channels=None)
     assert(data_xr.dims == ("fovs", "rows", "cols", "channels"))

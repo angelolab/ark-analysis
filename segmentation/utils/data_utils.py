@@ -154,7 +154,7 @@ def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, imgs=None,
         validate_paths([os.path.join(data_dir, fov) for fov in fovs])
 
     if len(fovs) == 0:
-        raise ValueError("No fovs found in directory")
+        raise ValueError(f"No fovs found in directory, {data_dir}")
 
     # check to make sure img subfolder name within fov is correct
     if img_sub_folder is not None:
