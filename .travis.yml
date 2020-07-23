@@ -6,6 +6,9 @@ install:
   - echo $PATH
   - export PATH=$PATH:$PWD
   - echo $PATH
+  - echo $JUPYTER_PATH
+  - export JUPYTER_PATH=$JUPYTER_PATH:$PWD
+  - echo $JUPYTER_PATH
 
 env:
   - MPLBACKEND=Agg
