@@ -112,6 +112,26 @@ def test_load_imgs_from_mibitiff_all_channels():
                                   (tiff.read(mibitiff_files[0])).data)
 
 
+def test_load_imgs_from_multitiff():
+    multitiff_files = [os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                                    "..", "..", "data", "example_dataset",
+                                    "input_data", "Point8_deepcell_input.tif")]
+    data_xr = data_utils.load_imgs_from_multitiff(multitiff_files, channels=None)
+    assert(data_xr.dims == ("fovs", "rows", "cols", "channels"))
+    assert(data_xr.fovs == "Point8")
+    assert(data_xr.rows == range(1024)).all()
+    assert(data_xr.cols == range(1024)).all()
+    assert(data_xr.channels == range(2)).all()
+
+    # test single channel load
+    data_xr = data_utils.load_imgs_from_multitiff(multitiff_files, channels=[0])
+    assert(data_xr.dims == ("fovs", "rows", "cols", "channels"))
+    assert(data_xr.fovs == "Point8")
+    assert(data_xr.rows == range(1024)).all()
+    assert(data_xr.cols == range(1024)).all()
+    assert(data_xr.channels == [0]).all()
+
+
 def test_load_imgs_from_tree():
     # test loading from within fov directories
     with tempfile.TemporaryDirectory(prefix='fovs') as temp_dir:
