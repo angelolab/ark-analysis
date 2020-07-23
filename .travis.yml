@@ -3,12 +3,8 @@ language: python
 install:
   - pip install -r requirements.txt
   - pip install pytest==5.2.0 pytest-cov==2.5.1 pytest-pep8 coveralls
-  - echo $PATH
-  - export PATH=$PATH:$PWD
-  - echo $PATH
-  - echo $JUPYTER_PATH
-  - export JUPYTER_PATH=$PWD
-  - echo $JUPYTER_PATH
+  - export PYTHONPATH=$PWD
+  - echo $PYTHONPATH
 
 env:
   - MPLBACKEND=Agg
