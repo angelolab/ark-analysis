@@ -39,7 +39,7 @@ def validate_paths(paths):
                     f'and to reference as \'../data/path_to_data/myfile.tif\'')
 
 
-def load_imgs_from_mibitiff(mibitiff_paths, channels=None):
+def load_imgs_from_mibitiff(data_dir, mibitiff_files=None, channels=None):
     """Load images from a series of MIBItiff files.
 
     This function takes a set of MIBItiff files and load the images into an
@@ -47,7 +47,9 @@ def load_imgs_from_mibitiff(mibitiff_paths, channels=None):
     MIBIimages stored in the MIBItiff files.
 
     Args:
-        mibitiff_paths: list of MIBItiff files to load.
+        data_dir: directory containing MIBItiffs
+        mibitiff_files: list of MIBItiff files to load. If None,
+            all MIBItiff files in data_dir are loaded.
         channels: optional list of channels to load. Defaults to `None`, in
             which case, all channels in the first MIBItiff are used.
 
@@ -55,21 +57,28 @@ def load_imgs_from_mibitiff(mibitiff_paths, channels=None):
         img_xr: xarray with shape [fovs, tifs, x_dim, y_dim]
     """
 
-    validate_paths(mibitiff_paths)
+    if not mibitiff_files:
+        mibitiff_files = os.listdir(data_dir)
+        mibitiff_files = [mt_file
+                          for mt_file in mibitiff_files
+                          if mt_file.split('.')[-1] in ['tif', 'tiff']]
+
+    mibitiff_files = [os.path.join(data_dir, mt_file)
+                      for mt_file in mibitiff_files]
 
     # if no channels specified, get them from first MIBItiff file
     if channels is None:
-        channel_tuples = tiff.read(mibitiff_paths[0]).channels
+        channel_tuples = tiff.read(mibitiff_files[0]).channels
         channels = [channel_tuple[1] for channel_tuple in channel_tuples]
 
     # extract point name from file name
-    fovs = [mibitiff_path.split(os.sep)[-1].split('_')[0] for mibitiff_path
-            in mibitiff_paths]
+    fovs = [mibitiff_file.split(os.sep)[-1].split('_')[0] for mibitiff_file
+            in mibitiff_files]
 
     # extract images from MIBItiff file
     img_data = []
-    for mibitiff_path in mibitiff_paths:
-        img_data.append(tiff.read(mibitiff_path)[channels])
+    for mibitiff_file in mibitiff_files:
+        img_data.append(tiff.read(mibitiff_file)[channels])
     img_data = np.stack(img_data, axis=0)
 
     # create xarray with image data
@@ -81,7 +90,7 @@ def load_imgs_from_mibitiff(mibitiff_paths, channels=None):
     return img_xr
 
 
-def load_imgs_from_multitiff(multitiff_paths, channels=None):
+def load_imgs_from_multitiff(data_dir, multitiff_files=None, channels=None):
     """Load images from a series of multi-channel tiff files.
 
     This function takes a set of multi-channel tiff files and loads the images
@@ -94,7 +103,9 @@ def load_imgs_from_multitiff(multitiff_paths, channels=None):
     images.
 
     Args:
-        multitiff_paths: list of multi-channel tiff files to load
+        data_dir: directory containing multitiffs
+        multitiff_files: list of multi-channel tiff files to load.  If None,
+            all multitiff files in data_dir are loaded.
         channels: optional list of channels to load.  Unlike MIBItiff, this must
             be given as a numeric list of indices, since there is no metadata
             containing channel names.
@@ -103,18 +114,27 @@ def load_imgs_from_multitiff(multitiff_paths, channels=None):
         img_xr: xarray with shape [fovs, x_dim, y_dim, channels]
     """
 
+    if not multitiff_files:
+        multitiff_files = os.listdir(data_dir)
+        multitiff_files = [mt_file
+                           for mt_file in multitiff_files
+                           if mt_file.split('.')[-1] in ['tif', 'tiff']]
+
+    multitiff_files = [os.path.join(data_dir, mt_file)
+                       for mt_file in multitiff_files]
+
     # extract data
     img_data = []
-    for multitiff_path in multitiff_paths:
-        img_data.append(io.imread(multitiff_path, plugin='tifffile'))
+    for multitiff_file in multitiff_files:
+        img_data.append(io.imread(multitiff_file, plugin='tifffile'))
     img_data = np.stack(img_data, axis=0)
 
     if channels:
         img_data = img_data[:, :, :, channels]
 
     # extract point name from file name
-    fovs = [multitiff_path.split(os.sep)[-1].split('_')[0] for multitiff_path
-            in multitiff_paths]
+    fovs = [multitiff_file.split(os.sep)[-1].split('_')[0] for multitiff_file
+            in multitiff_files]
 
     # create xarray with image data
     img_xr = xr.DataArray(img_data,
