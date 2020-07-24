@@ -39,7 +39,7 @@ def validate_paths(paths):
                     f'and to reference as \'../data/path_to_data/myfile.tif\'')
 
 
-def load_imgs_from_mibitiff(mibitiff_paths, channels=None):
+def load_imgs_from_mibitiff(data_dir, mibitiff_files=None, channels=None):
     """Load images from a series of MIBItiff files.
 
     This function takes a set of MIBItiff files and load the images into an
@@ -47,7 +47,9 @@ def load_imgs_from_mibitiff(mibitiff_paths, channels=None):
     MIBIimages stored in the MIBItiff files.
 
     Args:
-        mibitiff_paths: list of MIBItiff files to load.
+        data_dir: directory containing MIBItiffs
+        mibitiff_files: list of MIBItiff files to load. If None,
+            all MIBItiff files in data_dir are loaded.
         channels: optional list of channels to load. Defaults to `None`, in
             which case, all channels in the first MIBItiff are used.
 
@@ -55,27 +57,90 @@ def load_imgs_from_mibitiff(mibitiff_paths, channels=None):
         img_xr: xarray with shape [fovs, tifs, x_dim, y_dim]
     """
 
-    validate_paths(mibitiff_paths)
+    if not mibitiff_files:
+        mibitiff_files = os.listdir(data_dir)
+        mibitiff_files = [mt_file
+                          for mt_file in mibitiff_files
+                          if mt_file.split('.')[-1] in ['tif', 'tiff']]
+
+    mibitiff_files = [os.path.join(data_dir, mt_file)
+                      for mt_file in mibitiff_files]
 
     # if no channels specified, get them from first MIBItiff file
     if channels is None:
-        channel_tuples = tiff.read(mibitiff_paths[0]).channels
+        channel_tuples = tiff.read(mibitiff_files[0]).channels
         channels = [channel_tuple[1] for channel_tuple in channel_tuples]
 
     # extract point name from file name
-    fovs = [mibitiff_path.split(os.sep)[-1].split('_')[0] for mibitiff_path
-            in mibitiff_paths]
+    fovs = [mibitiff_file.split(os.sep)[-1].split('_')[0] for mibitiff_file
+            in mibitiff_files]
 
     # extract images from MIBItiff file
     img_data = []
-    for mibitiff_path in mibitiff_paths:
-        img_data.append(tiff.read(mibitiff_path)[channels])
+    for mibitiff_file in mibitiff_files:
+        img_data.append(tiff.read(mibitiff_file)[channels])
     img_data = np.stack(img_data, axis=0)
 
     # create xarray with image data
     img_xr = xr.DataArray(img_data,
                           coords=[fovs, range(img_data[0].data.shape[0]),
                                   range(img_data[0].data.shape[1]), channels],
+                          dims=["fovs", "rows", "cols", "channels"])
+
+    return img_xr
+
+
+def load_imgs_from_multitiff(data_dir, multitiff_files=None, channels=None):
+    """Load images from a series of multi-channel tiff files.
+
+    This function takes a set of multi-channel tiff files and loads the images
+    into an xarray.  The type used to store the images will be the same as
+    that of the images stored in the multi-channel tiff files.
+
+    This function differs from `load_imgs_from_mibitiff` in that proprietary
+    metadata is unneeded, which is usefull loading in more general multi-channel
+    tiff files.
+    images.
+
+    Args:
+        data_dir: directory containing multitiffs
+        multitiff_files: list of multi-channel tiff files to load.  If None,
+            all multitiff files in data_dir are loaded.
+        channels: optional list of channels to load.  Unlike MIBItiff, this must
+            be given as a numeric list of indices, since there is no metadata
+            containing channel names.
+
+    Returns:
+        img_xr: xarray with shape [fovs, x_dim, y_dim, channels]
+    """
+
+    if not multitiff_files:
+        multitiff_files = os.listdir(data_dir)
+        multitiff_files = [mt_file
+                           for mt_file in multitiff_files
+                           if mt_file.split('.')[-1] in ['tif', 'tiff']]
+
+    multitiff_files = [os.path.join(data_dir, mt_file)
+                       for mt_file in multitiff_files]
+
+    # extract data
+    img_data = []
+    for multitiff_file in multitiff_files:
+        img_data.append(io.imread(multitiff_file, plugin='tifffile'))
+    img_data = np.stack(img_data, axis=0)
+
+    if channels:
+        img_data = img_data[:, :, :, channels]
+
+    # extract point name from file name
+    fovs = [multitiff_file.split(os.sep)[-1].split('_')[0] for multitiff_file
+            in multitiff_files]
+
+    # create xarray with image data
+    img_xr = xr.DataArray(img_data,
+                          coords=[fovs, range(img_data.shape[1]),
+                                  range(img_data.shape[2]),
+                                  channels if channels else range(img_data.shape[3])],
                           dims=["fovs", "rows", "cols", "channels"])
 
     return img_xr
@@ -109,7 +174,7 @@ def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, imgs=None,
         validate_paths([os.path.join(data_dir, fov) for fov in fovs])
 
     if len(fovs) == 0:
-        raise ValueError("No fovs found in directory")
+        raise ValueError(f"No fovs found in directory, {data_dir}")
 
     # check to make sure img subfolder name within fov is correct
     if img_sub_folder is not None:
@@ -125,6 +190,16 @@ def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, imgs=None,
 
         # if taking all imgs from directory, sort them alphabetically
         imgs.sort()
+    # otherwise, fill channel names with correct file extension
+    elif not all([img.endswith(("tif", "tiff", "jpg", "png")) for img in imgs]):
+        fullnames = os.listdir(os.path.join(data_dir, fovs[0], img_sub_folder))
+        for fn in fullnames:
+            if any([img in fn for img in imgs]):
+                imgs = [img + '.' + fn.split(".")[-1]
+                        if img.split(".")[-1] != fn.split(".")[-1]
+                        else img
+                        for img in imgs]
+                break
 
     if len(imgs) == 0:
         raise ValueError("No imgs found in designated folder")
@@ -176,15 +251,18 @@ def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, imgs=None,
     return img_xr
 
 
-def load_imgs_from_dir(data_dir, image_name='img_data', delimiter='_',
+def load_imgs_from_dir(data_dir, imgdim_name='compartments', image_name='img_data', delimiter='_',
                        dtype="int16", variable_sizes=False):
     """Takes a set of images from a directory and loads them into an xarray based on filename
     prefixes.
 
         Args:
             data_dir: directory containing images
-            image_name: sets name of the 'channel' coordinate in the output xarray
+            imgdim_name: sets the name of the last dimension of the output xarray
+            image_name: sets name of the last coordinate in the output xarray
             delimiter: character used to determine the file-prefix containging the fov name
+            dtype: data type to load/store
+            variable_sizes: Dynamically determine image sizes and pad smaller imgs with zeros
 
         Returns:
             img_xr: xarray with shape [fovs, x_dim, y_dim, 1]
@@ -194,6 +272,7 @@ def load_imgs_from_dir(data_dir, image_name='img_data', delimiter='_',
 
     imgs = os.listdir(data_dir)
     imgs = [img for img in imgs if np.isin(img.split(".")[-1], ["tif", "tiff", "jpg", "png"])]
+    imgs = [img for img in imgs if delimiter in img]
     imgs.sort()
 
     if len(imgs) == 0:
@@ -233,38 +312,39 @@ def load_imgs_from_dir(data_dir, image_name='img_data', delimiter='_',
     fovs = [img.split(delimiter)[0] for img in imgs]
 
     img_xr = xr.DataArray(img_data, coords=[fovs, row_coords, col_coords, [image_name]],
-                          dims=["fovs", "rows", "cols", "channels"])
+                          dims=["fovs", "rows", "cols", imgdim_name])
 
     return img_xr
 
 
-# TODO: add test function
-def tiffs_to_xr_labels(tiff_dir, output_dir=None, delimiter='_'):
-    """Converts and condenses segmentation labels from a folder of tiff files
-    into an xarray.  Tiff files are assumed to be prefixed with their respective fov
-    names:
-
-    Point1234_moreinfo.tiff
+# TODO: Add metadata for channel name (eliminates need for fixed-order channels)
+def generate_deepcell_input(data_xr, data_dir, nuc_channels, mem_channels):
+    """Saves nuclear and membrane channels into deepcell input format.
 
     Inputs:
-        tiff_dir: path to directory containing segmentation labels as TIFs
-        output_dir: path to directory where the output will be saved. If None, no xr is saved
-        delimiter: character which separates fov-id prefix from the rest of the filename
+        data_xr: xarray containing nuclear and membrane channels over many fov's
+        data_dir: location to save deepcell input tifs
+        nuc_channels: nuclear channels to be summed over
+        mem_channels: membrane channels to be summed over
     Outputs:
-        Returns xarray and optionally saves it to output directory
+        Saves summed channels as multitiffs
+
     """
-    im_xr = load_imgs_from_dir(data_dir=tiff_dir, image_name='segmentation_label',
-                               delimiter=delimiter)
+    for fov in data_xr.fovs.values:
+        out = np.zeros((data_xr.shape[1], data_xr.shape[2], 2), dtype=data_xr.dtype)
 
-    if output_dir is not None:
-        save_name = os.path.join(output_dir, 'segmentation_labels.xr')
-        if os.path.exists(save_name):
-            print("overwriting previously generated processed output file")
-            os.remove(save_name)
+        # sum over channels and add to output
+        if nuc_channels:
+            out[:, :, 0] = \
+                np.sum(data_xr.loc[fov, :, :, nuc_channels].values.astype(data_xr.dtype),
+                       axis=2)
+        if mem_channels:
+            out[:, :, 1] = \
+                np.sum(data_xr.loc[fov, :, :, mem_channels].values.astype(data_xr.dtype),
+                       axis=2)
 
-        im_xr.to_netcdf(save_name, format="NETCDF3_64BIT")
-
-    return im_xr
+        save_path = os.path.join(data_dir, f'{fov}_deepcell_input.tif')
+        io.imsave(save_path, out, plugin='tifffile')
 
 
 def combine_xarrays(xarrays, axis):
