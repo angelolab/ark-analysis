@@ -13,6 +13,8 @@ from skimage.measure import label
 from copy import deepcopy
 from skimage.draw import disk
 
+from segmentation.utils import signal_analysis
+
 
 def generate_test_dist_matrix(num_A=100, num_B=100, num_C=100,
                               distr_AB=(10, 1), distr_random=(200, 1),
@@ -231,7 +233,55 @@ def generate_test_label_map(size_img=(1024, 1024), num_A=100, num_B=100, num_C=1
     # and return the xarray to pass into calc_dist_matrix, plus the centroid_indices to readjust it
     return sample_img_xr, centroid_indices
 
-def generate_test_segmentation_mask(size_img=(1024, 1024), num_cells=2, radius=10):
+
+def generate_two_cell_segmentation_mask(size_img=(1024, 1024), radius=10, expressions=None):
+    """
+    This function is a very basic implementation of generate_test_segmentation_mask
+    as defined for 2 cells.
+
+    Args:
+        size_img: a tuple specifying the height and width of the image. Default (1024, 1024)
+        radius: the radius of the disks we desire to draw. Default 10.
+        expressions: whether each cell should be expresssed as nuclear or membrane. 
+            Should be a NumPy array determining whether we use nuclear expression or not
+            (1 if nuclear, 0 if membrane). Default None which means we'll generate it ourselves.
+            Note that the length of expressions should be the same as num_cells.
+
+    Returns:
+        sample_mask: a test segmentation mask the dimensions of size_img, each cell labeled
+            with a specfic marker label.
+    """
+
+    if radius > size_img[0] and radius > size_img[1]:
+        raise ValueError("Radius specified is larger than one of the image dimensions")
+
+    if expressions and expressions.size != 2:
+        raise ValueError("Expressions list is not of length two")
+
+    # the mask we'll be returning
+    sample_mask = np.zeros(size_img, dtype=np.int8)
+
+    # generate the two cells at the top left of the image
+    center_1 = (radius, radius)
+    center_2 = (radius + radius * 2, radius + radius * 2)
+
+    # draw the coordnates covered for the two cell
+    x_coords_cell_1, y_coords_cell_1 = disk(center)
+    x_coords_cell_2, y_coords_cell_2 = disk(center)
+
+    for 
+
+    # set the markers of the two cells
+    sample_mask[x_coords_cell_1, y_coords_cell_1] = 1
+    sample_mask[x_coords_cell_2, y_coords_cell_2] = 2
+
+    centers = [center_1, center_2]
+
+    return sample_mask
+
+
+def generate_test_segmentation_mask(size_img=(1024, 1024), num_cells=2, radius=10,
+                                    expressions=None):
     """
     This function generates a random segmentation mask with the assumption that cells are disks.
     For the time being, we just iterate through the image and place random disks next to each other.
@@ -242,6 +292,10 @@ def generate_test_segmentation_mask(size_img=(1024, 1024), num_cells=2, radius=1
         num_cells: the number of cells to generate. Note that the radius parameter
             may override this if there's not enough space. Default 2.
         radius: the radius of the disks we desire to draw. Default 10.
+        expressions: whether each cell should be expresssed as nuclear or membrane. 
+            Should be a NumPy array determining whether we use nuclear expression or not
+            (1 if nuclear, 0 if membrane). Default None which means we'll generate it ourselves.
+            Note that the length of expressions should be the same as num_cells.
 
     Returns:
         sample_mask: a test segmentation mask the dimensions of size_img, each cell labeled
@@ -255,9 +309,17 @@ def generate_test_segmentation_mask(size_img=(1024, 1024), num_cells=2, radius=1
     if num_cells < 2
         raise ValueError("The parameter num_cells has to be at least 2")
 
+    # if the expressions parameter is specified, we need to assert that the length is the same as num_cells...
+    if expressions and expressions.size != num_cells:
+        raise ValueError("The expressions list should be the same length as num_cells specified")
+
     # and the radius set cannot be larger than half of the image
     if radius > size_img[0] / 2 or radius > size_img[1] / 2:
         raise ValueError("Radius value is too large for image")
+
+    # if expressions parameter is not specified, we generate our own list of expressions
+    if not expressions:
+        expressions = np.random.randint(size=num_cells)
 
     # we'll start drawing cells in the upper-left of the image
     center_row = radius
@@ -299,8 +361,8 @@ def generate_test_channel_data(seg_mask, nuclear_labels):
 
     Args:
         seg_mask: a segmentation mask with labeled cells
+
+    Returns:
+        channel_data: an array with the channel-based data we're looking at
     """
-
-    
-
     pass
