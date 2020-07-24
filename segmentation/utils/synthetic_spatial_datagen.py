@@ -249,7 +249,9 @@ def generate_two_cell_segmentation_mask(size_img=(1024, 1024), radius=10, expres
 
     Returns:
         sample_mask: a test segmentation mask the dimensions of size_img, each cell labeled
-            with a specfic marker label.
+            with a specfic marker label. In addition, we'll be labeling the areas designated
+            nuclear or membrane, depending on which analysis we're doing. This is the third
+            dimension returned.
     """
 
     if radius > size_img[0] and radius > size_img[1]:
@@ -258,8 +260,8 @@ def generate_two_cell_segmentation_mask(size_img=(1024, 1024), radius=10, expres
     if expressions and expressions.size != 2:
         raise ValueError("Expressions list is not of length two")
 
-    # the mask we'll be returning
-    sample_mask = np.zeros(size_img, dtype=np.int8)
+    # the mask we'll be returning, will contain both the cells and the respective nuclear/membrane markers
+    sample_mask = np.zeros((size_img[0], size_img[1], 2), dtype=np.int8)
 
     # generate the two cells at the top left of the image
     center_1 = (radius, radius)
@@ -269,13 +271,37 @@ def generate_two_cell_segmentation_mask(size_img=(1024, 1024), radius=10, expres
     x_coords_cell_1, y_coords_cell_1 = disk(center)
     x_coords_cell_2, y_coords_cell_2 = disk(center)
 
-    for 
-
     # set the markers of the two cells
-    sample_mask[x_coords_cell_1, y_coords_cell_1] = 1
-    sample_mask[x_coords_cell_2, y_coords_cell_2] = 2
+    sample_mask[x_coords_cell_1, y_coords_cell_1, 0] = 1
+    sample_mask[x_coords_cell_2, y_coords_cell_2, 0] = 2
 
+    # group centers in a list
     centers = [center_1, center_2]
+
+    # iterate over centers and expressions list
+    for i in range(len(expressions)):
+        # membrane-level cell analysis
+        if expressions[i] == 0:
+            # generate an inner disk of a smaller radius size, call everything outside of this disk
+            # but still within the cell in question the membrane
+            x_coords_non_memb, y_coords_non_memb = disk(centers[i], int(radius / 2))
+
+            # in the future, we'll probably store these x_coords and y_coords in an array
+            # to access rather than have to regenerate again
+            x_coords_orig, y_coords_orig = disk(centers[i], int(radius / 2))
+            overlay_mask = np.zeros(size_img, dtype=np.int8)
+
+            # set the respective values of the membrane portion of the cell to 1
+            overlay_mask[x_coords_orig, y_coords_orig] = 1
+            overlay_mask[x_coords_non_memb, y_coords_non_memb] = 0
+
+            # add this mask created to the third dimension of sample_mask to update accordingly
+            sample_mask[:, :, 1] += overlay_mask
+        # nuclear-level cell analysis
+        else:
+            # generate an inner disk of a smaller radius size, call this the nucleus
+            x_coord_nuc, y_coords_nuc = disk(centers[i], int(radius / 5))
+            sample_mask[x_coords_nuc, y_coords_nuc, 1] = 1
 
     return sample_mask
 
