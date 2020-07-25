@@ -144,21 +144,6 @@ def test_compute_close_cell_num():
     assert (example_closenum[3:5, 3:5] == 25).all()
     assert (example_closenum[5:7, 5:7] == 1).all()
 
-    # Now test with Erin's output
-    # cell_array = pd.read_csv(
-    #     "/Users/jaiveersingh/Downloads/SpatialEnrichm"
-    #     "ent/granA_cellpheno_CS-asinh-norm_revised.csv")
-    # marker_thresholds = pd.read_csv(
-    #     "/Users/jaiveersingh/Downloads/SpatialEnrichment/markerThresholds.csv")
-    # dist_matrix = np.asarray(pd.read_csv(
-    #     "/Users/jaiveersingh/Documents/MATLAB/distancesMat5.csv", header=None))
-    # closenum, closenumRand, z, muhat, sigmahat, p, h, adj_p, markertitles = \
-    #     spatialorgmarkerexpression_utils.calculate_channel_spatial_enrichment(
-    #         dist_matrix, marker_thresholds, cell_array)
-    # real_closenum = np.asarray(pd.read_csv(
-    #     "/Users/jaiveersingh/Documents/MATLAB/SpatialAnalysis/closeNum.csv"))
-    # assert np.array_equal(closenum, real_closenum)
-
 
 def test_compute_close_cell_num_random():
     data_markers, example_distmat = make_example_data_closenum()
@@ -233,18 +218,21 @@ def test_compute_neighbor_count():
     pheno_num = len(fov_data[flowsom_col].drop_duplicates())
 
     cell_neighbor_counts = pd.DataFrame(np.zeros((fov_data.shape[0], pheno_num + 2)))
-    cell_neighbor_freqs = cell_neighbor_counts.copy(deep=True)
 
     cell_neighbor_counts[[0, 1]] = fov_data[[fov_col, cell_label_col]]
-    cell_neighbor_freqs[[0, 1]] = fov_data[[fov_col, cell_label_col]]
 
     # Rename the columns to match cell phenotypes
     cols = [fov_col, cell_label_col] + list(pheno_titles)
     cell_neighbor_counts.columns = cols
-    cell_neighbor_freqs.columns = cols
 
-    spatial_analysis_utils.compute_neighbor_counts(
-        fov_data, dist_matrix, distlim, cell_neighbor_counts, cell_neighbor_freqs)
+    cell_neighbor_freqs = cell_neighbor_counts.copy(deep=True)
+
+    counts, freqs = spatial_analysis_utils.compute_neighbor_counts(
+                    fov_data, dist_matrix, distlim)
+
+    # add to neighbor counts + freqs for only the matching phenotypes between the fov and the whole dataset
+    cell_neighbor_counts.loc[fov_data.index, pheno_titles] = counts
+    cell_neighbor_freqs.loc[fov_data.index, pheno_titles] = freqs.T
 
     assert (cell_neighbor_counts.loc[:3, "Pheno1"] == 4).all()
     assert (cell_neighbor_counts.loc[4:8, "Pheno2"] == 5).all()

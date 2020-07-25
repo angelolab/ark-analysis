@@ -5,26 +5,6 @@ from segmentation.utils import spatial_analysis_utils
 import importlib
 importlib.reload(spatial_analysis_utils)
 
-# Erin's Data Inputs-Threshold
-
-# cell_array = pd.read_csv("/Users/jaiveersingh/Downloads/SpatialEn"
-#                          "richment/granA_cellpheno_CS-asinh-norm_revised.csv")
-# marker_thresholds = pd.read_csv("/Users/jaiveersingh/Downloads/Sp"
-#                                 "atialEnrichment/markerThresholds.csv")
-# dist_matrix = np.asarray(pd.read_csv("/Users/jaiveersingh/Documen"
-#                                      "ts/MATLAB/distancesMat5.csv",
-#                                      header=None))
-
-# Erin's Data Inputs-Phenotype
-# all_patient_data = pd.read_csv("/Users/jaiveersingh/Desktop/granA_cellpheno_CS-asinh-norm_matlab_revised.csv")
-# pheno = pd.read_csv("/Users/jaiveersingh/Downloads/CellType_GlobalSpatialEnrichment/cellpheno_numkey.csv")
-# dist_mat = np.asarray(pd.read_csv("/Users/jaiveersingh/Documents/MATLAB/distancesMat5.csv", header=None))
-
-# Erin's Data Inputs-Neighborhood
-# dist_matrix = np.asarray(pd.read_csv("/Users/jaiveersingh/Documents/MATLAB/distancesMat5.csv", header=None))
-# all_data = pd.read_csv("/Users/jaiveersingh/Desktop/granA_cellpheno_CS-asinh-norm_matlab_revised.csv")
-# pheno_key = pd.read_csv("/Users/jaiveersingh/Downloads/CreateNeighborMatrix/cellpheno_numkey.csv")
-
 
 def calculate_channel_spatial_enrichment(dist_matrices, marker_thresholds, all_data,
                                          excluded_colnames=None, fovs=None,
@@ -199,17 +179,17 @@ def calculate_cluster_spatial_enrichment(all_data, dist_mats, fovs=None,
     return values, stats
 
 
-def create_neighborhood_matrix(all_data, dist_matrices, fovs=None, distlim=50, fov_col="SampleID",
+def create_neighborhood_matrix(all_data, dist_matrices, fov_list=None, distlim=50, fov_col="SampleID",
                                flowsom_col="FlowSOM_ID", cell_label_col="cellLabelInImage", cell_type_col="cell_type"):
-    """Calculates the number of neighbor phenotypes for each cell. The function counts itself as a neighbor
-    in this implementation.
+    """Calculates the number of neighbor phenotypes for each cell. The function counts each cell as one of its own
+    neighbors in this implementation.
 
         Args:
             all_data: data for the all fovs in the form of a pandas DF, including the columns of SampleID (fovs),
                 cellLabelInImage (the cell label), and FlowSOM_ID (the cell phenotype id).
             dist_matrices: A dictionary that contains a cells x cells matrix with the euclidian
                 distance between centers of corresponding cells for every fov
-            fovs: patient labels to include in analysis. If argument is none, default is all labels used.
+            fov_list: patient labels to include in analysis. If argument is none, default is all labels used.
             distlim: cell proximity threshold. Default is 50.
             fov_col: column with the cell fovs (Default is SampleID)
             flowsom_col: column with the cell phenotype IDs (Default is FlowSOM_ID)
@@ -223,11 +203,11 @@ def create_neighborhood_matrix(all_data, dist_matrices, fovs=None, distlim=50, f
 
     # Setup input and parameters
 
-    if fovs is None:
-        fovs = sorted(list(set(all_data[fov_col])))
+    if fov_list is None:
+        fov_list = sorted(list(set(all_data[fov_col])))
 
     # Error Checking
-    if not np.isin(fovs, all_data[fov_col]).all():
+    if not np.isin(fov_list, all_data[fov_col]).all():
         raise ValueError("Points were not found in Expression Matrix")
 
     # Get the phenotypes
@@ -242,27 +222,33 @@ def create_neighborhood_matrix(all_data, dist_matrices, fovs=None, distlim=50, f
 
     # initiate empty matrices for cell neighborhood data
     cell_neighbor_counts = pd.DataFrame(np.zeros((all_data.shape[0], pheno_num + 2)))
-    cell_neighbor_freqs = cell_neighbor_counts.copy(deep=True)
 
     # Replace the first and second columns of cell_neighbor_counts with the fovs and cell labels respectively
     cell_neighbor_counts[[0, 1]] = all_data[[fov_col, cell_label_col]]
-    cell_neighbor_freqs[[0, 1]] = all_data[[fov_col, cell_label_col]]
 
     # Rename the columns to match cell phenotypes
     cols = [fov_col, cell_label_col] + list(pheno_titles)
     cell_neighbor_counts.columns = cols
-    cell_neighbor_freqs.columns = cols
 
-    for i in range(len(fovs)):
+    cell_neighbor_freqs = cell_neighbor_counts.copy(deep=True)
+
+    for i in range(len(fov_list)):
         # Subsetting expression matrix to only include patients with correct label
-        patient_ids = all_data.iloc[:, 0] == fovs[i]
-        fov_data = all_data[patient_ids]
+        patient_idx = all_data.iloc[:, 0] == fov_list[i]
+        fov_data = all_data[patient_idx]
+
+        # Get the subset of phenotypes included in the current fov
+        fov_pheno_titles = fov_data[cell_type_col].drop_duplicates()
 
         # Subset the distance matrix dictionary to only include the distance matrix for the correct point
-        dist_matrix = dist_matrices[str(fovs[i])]
+        dist_matrix = dist_matrices[str(fov_list[i])]
 
         # Get cell_neighbor_counts and cell_neighbor_freqs for points
-        spatial_analysis_utils.compute_neighbor_counts(
-            fov_data, dist_matrix, distlim, cell_neighbor_counts, cell_neighbor_freqs)
+        counts, freqs = spatial_analysis_utils.compute_neighbor_counts(
+                        fov_data, dist_matrix, distlim)
+
+        # add to neighbor counts + freqs for only the matching phenotypes between the fov and the whole dataset
+        cell_neighbor_counts.loc[fov_data.index, fov_pheno_titles] = counts
+        cell_neighbor_freqs.loc[fov_data.index, fov_pheno_titles] = freqs.T
 
     return cell_neighbor_counts, cell_neighbor_freqs

@@ -253,28 +253,20 @@ def calculate_enrichment_stats(close_num, close_num_rand):
 
 
 def compute_neighbor_counts(fov_data, dist_matrix, distlim,
-                            cell_neighbor_counts, cell_neighbor_freqs,
-                            cell_label_col="cellLabelInImage", cell_type_col="cell_type"):
+                            cell_label_col="cellLabelInImage"):
     """Calculates the number of neighbor phenotypes for each cell. The cell counts itself as a neighbor.
 
     Args:
-        fov_data: data for the current fov
+        fov_data: data for the current fov, including the cell labels, cell phenotypes, and cell phenotype ID
         dist_matrix: cells x cells matrix with the euclidian
             distance between centers of corresponding cells
         distlim: threshold for spatial enrichment distance proximity
-        cell_neighbor_counts: matrix with phenotype counts per cell
-        cell_neighbor_freqs: matrix with phenotype frequencies of
-            counts per phenotype/total phenotypes for each cell
         cell_label_col: Column name with the cell labels
-        cell_type_col: column name with the cell phenotypes
     Returns:
-        cell_neighbor_counts: matrix with phenotype counts per cell
-        cell_neighbor_freqs: matrix with phenotype frequencies of
+        counts: data array with phenotype counts per cell
+        freqs: data array with phenotype frequencies of
             counts per phenotype/total phenotypes for each cell
         cell_count: current cell in analysis"""
-
-    # Get the phenotypes included in the current fov
-    pheno_titles = fov_data[cell_type_col].drop_duplicates()
 
     # remove non-cell2cell distances
     cell_dist_mat = np.take(dist_matrix, fov_data[cell_label_col] - 1, 0)
@@ -283,7 +275,9 @@ def compute_neighbor_counts(fov_data, dist_matrix, distlim,
     # binarize distance matrix
     cell_dist_mat_bin = np.zeros(cell_dist_mat.shape)
     cell_dist_mat_bin[cell_dist_mat < distlim] = 1
-    # cell_dist_mat_bin[cell_dist_mat == 0] = 0 <- cell counts itself as neighbor if this line is not included
+
+    # cell counts itself as neighbor if this line is not included
+    # cell_dist_mat_bin[cell_dist_mat == 0] = 0
 
     # get num_neighbors for freqs
     num_neighbors = np.sum(cell_dist_mat_bin, axis=0)
@@ -297,10 +291,4 @@ def compute_neighbor_counts(fov_data, dist_matrix, distlim,
     # compute freqs with num_neighbors
     freqs = counts.T / num_neighbors
 
-    # convert to pandas df and assign columns to phenos
-    countsdf = pd.DataFrame(counts, columns=pheno_titles)
-    freqsdf = pd.DataFrame(freqs.T, columns=pheno_titles)
-
-    # add to neighbor counts + freqs for only the matching phenotypes between the fov and the whole dataset
-    cell_neighbor_counts.loc[fov_data.index, countsdf.columns] = counts
-    cell_neighbor_freqs.loc[fov_data.index, freqsdf.columns] = freqs.T
+    return counts, freqs
