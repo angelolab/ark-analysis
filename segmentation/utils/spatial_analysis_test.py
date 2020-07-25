@@ -328,8 +328,8 @@ def test_create_neighborhood_matrix():
     counts, freqs = spatial_analysis.create_neighborhood_matrix(all_data_pos, dist_mat_pos, distlim=51)
 
     # Test the counts values for both fovs
-    assert (counts.loc[:19, "Pheno3":"Pheno2"] == 8).all().all()
-    assert (counts.loc[:19, "Pheno1"] == 4).all()
+    assert (counts.loc[:9, "Pheno2"] == 8).all()
+    assert (counts.loc[10:19, "Pheno3"] == 8).all()
 
-    assert (counts.loc[80:99, "Pheno1":"Pheno3"] == 8).all().all()
-    assert (counts.loc[80:99, "Pheno2"] == 4).all()
+    assert (counts.loc[80:89, "Pheno3"] == 8).all()
+    assert (counts.loc[90:99, "Pheno1"] == 8).all()
