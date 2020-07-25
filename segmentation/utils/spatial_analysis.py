@@ -245,7 +245,7 @@ def create_neighborhood_matrix(all_data, dist_matrices, fov_list=None, distlim=5
 
         # Get cell_neighbor_counts and cell_neighbor_freqs for points
         counts, freqs = spatial_analysis_utils.compute_neighbor_counts(
-                        fov_data, dist_matrix, distlim)
+            fov_data, dist_matrix, distlim)
 
         # add to neighbor counts + freqs for only the matching phenotypes between the fov and the whole dataset
         cell_neighbor_counts.loc[fov_data.index, fov_pheno_titles] = counts

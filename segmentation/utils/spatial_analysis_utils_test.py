@@ -228,7 +228,7 @@ def test_compute_neighbor_count():
     cell_neighbor_freqs = cell_neighbor_counts.copy(deep=True)
 
     counts, freqs = spatial_analysis_utils.compute_neighbor_counts(
-                    fov_data, dist_matrix, distlim)
+        fov_data, dist_matrix, distlim)
 
     # add to neighbor counts + freqs for only the matching phenotypes between the fov and the whole dataset
     cell_neighbor_counts.loc[fov_data.index, pheno_titles] = counts
