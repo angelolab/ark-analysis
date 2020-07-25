@@ -301,7 +301,7 @@ def test_calculate_cluster_spatial_enrichment():
 def test_create_neighborhood_matrix():
     # get positive expression and distance matrices
     all_data_pos = make_expression_matrix("positive")
-    dist_mat_pos = make_distance_matrix("positive")
+    dist_mat_pos = make_distance_matrix("positive", dist_lim=51)
 
     counts, freqs = spatial_analysis.create_neighborhood_matrix(all_data_pos, dist_mat_pos, distlim=51)
 
