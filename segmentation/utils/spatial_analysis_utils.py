@@ -28,9 +28,7 @@ def calc_dist_matrix(label_map, ret=True, path=None):
     fovs = list(label_map.coords['fovs'].values)
     for i in range(0, label_map.shape[0]):
         props = skimage.measure.regionprops(label_map.loc[fovs[i], :, :, "segmentation_label"].values)
-        a = []
-        for j in range(len(props)):
-            a.append(props[j].centroid)
+        a = [props[j].centroid for j in range(len(props))]
         centroids = np.array(a)
         dist_matrix = cdist(centroids, centroids)
         dist_mats_list.append(dist_matrix)
@@ -98,6 +96,7 @@ def compute_close_cell_num(dist_mat, dist_lim, num, analysis_type,
         fov_channel_data: data of only column markers for Channel Analysis
         pheno_codes: list all the cell phenotypes in Cluster Analysis
         thresh_vec: matrix of thresholds column for markers
+        seed: the seed to set for randomized operations, useful for testing
 
     Returns:
         close_num: marker x marker matrix with counts for cells
@@ -105,6 +104,7 @@ def compute_close_cell_num(dist_mat, dist_lim, num, analysis_type,
         marker1_num: list of number of cell labels for marker 1
         marker2_num: list of number of cell labels for marker 2"""
     # Initialize variables
+
     cell_labels = []
 
     # Assign column names for subsetting (cell labels)
@@ -139,9 +139,11 @@ def compute_close_cell_num(dist_mat, dist_lim, num, analysis_type,
                                                      fov_channel_data=fov_channel_data, cell_labels=cell_labels,
                                                      col=fov_channel_data.columns[k])
             mark2_num.append(len(mark2poslabels))
+
             # Subset the distance matrix to only include cells positive for both markers j and k
             trunc_dist_mat = dist_mat[np.ix_(np.asarray(mark1poslabels - 1, dtype='int'),
                                              np.asarray(mark2poslabels - 1, dtype='int'))]
+
             # Binarize the truncated distance matrix to only include cells within distance limit
             trunc_dist_mat_bin = np.zeros(trunc_dist_mat.shape, dtype='int')
             trunc_dist_mat_bin[trunc_dist_mat < dist_lim] = 1
@@ -162,6 +164,7 @@ def compute_close_cell_num_random(marker1_num, marker2_num,
         marker_num: number of markers in expresion data
         dist_lim: threshold for spatial enrichment distance proximity
         bootstrap_num: number of permutations
+        seed: the seed to set for randomized operations, useful for testing
 
     Returns
         close_num_rand: random positive marker counts
@@ -229,7 +232,7 @@ def calculate_enrichment_stats(close_num, close_num_rand):
             z[j, k] = (close_num[j, k] - muhat[j, k]) / sigmahat[j, k]
             # Calculate both positive and negative enrichment p values
             p_pos[j, k] = (1 + (np.sum(tmp >= close_num[j, k]))) / (bootstrap_num + 1)
-            p_neg[j, k] = (1 + (np.sum(tmp <= close_num[j, k]))) / (bootstrap_num + 1)
+            p_neg[j, k] = (1 + (np.sum(tmp < close_num[j, k]))) / (bootstrap_num + 1)
 
     # Get fdh_br adjusted p values
     p_summary = np.zeros_like(p_pos[:, :])
