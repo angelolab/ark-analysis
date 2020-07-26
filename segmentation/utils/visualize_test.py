@@ -7,7 +7,6 @@ import string
 
 importlib.reload(visualize)
 
-
 def test_visualize_z_scores():
     # Create random Z score
     z = np.random.uniform(low=-5, high=5, size=(26, 26))
@@ -22,4 +21,3 @@ def test_visualize_cells():
     rand_dict = {"PatientID": ids, "cell_type": rand_type}
     df = pd.DataFrame.from_dict(rand_dict)
     visualize.visualize_patient_population_distribution(df, "PatientID", "cell_type")
-

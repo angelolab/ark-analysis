@@ -1,8 +1,7 @@
 import pandas as pd
 import numpy as np
-import matplotlib as plt
+import matplotlib.pyplot as plt
 import seaborn as sns
-
 
 def visualize_z_scores(z, pheno_titles):
     """Plots the z scores between all phenotypes as a clustermap.
@@ -26,7 +25,6 @@ def visualize_patient_population_distribution(df, patient_col_name, population_c
                   id_col_name: Name of column containing categorical Patient data
                   cell_col_name: Name of column in dataframe containing categorical Population data
                   color_map: Name of MatPlotLib ColorMap used, default is jet"""
-
     ids = set(df[patient_col_name])
     names = df[population_col_name].value_counts().index.tolist()
 
@@ -109,4 +107,3 @@ def visualize_patient_population_distribution(df, patient_col_name, population_c
     plt.xlabel("Patient ID")
     plt.ylabel("Population Proportion")
     plt.title("Distribution of Population Count Proportion in Patients")
-
