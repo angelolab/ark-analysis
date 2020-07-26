@@ -15,16 +15,10 @@ def test_visualize_z_scores():
     plot = visualize.visualize_z_scores(z, pheno_titles)
 
 def test_visualize_cells():
+    rand_type = random.choices(string.ascii_lowercase, k=100)
+    ids = random.choices(range(1,3), k=100)
 
-    rand_type = []
-    ids = []
-    for x in range(1000):
-        rand_type.append(chr(random.randint(0, 25) + 97))
-        ids.append(random.randint(1, 5))
     rand_dict = {"PatientID": ids, "cell_type": rand_type}
     df = pd.DataFrame.from_dict(rand_dict)
-
-    visualize.visualize_cell_distribution_in_all_patients(df, "cell_type")
-    visualize.visualize_distribution_of_cell_count(df, "PatientID", "cell_type")
-    visualize.visualize_proportion_of_cell_count(df, "PatientID", "cell_type")
+    visualize_patient_population_distribution(df, "PatientID", "cell_type")
 
