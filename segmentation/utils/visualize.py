@@ -19,84 +19,94 @@ def visualize_z_scores(z, pheno_titles):
     sns.set(font_scale=.7)
     sns.clustermap(zplot, figsize=(8, 8), cmap="vlag")
 
+def visualize_patient_population_distribution(df, patient_col_name, population_col_name, color_map="jet"):
+    """Plots the distribution of the population given by total count, direct count, and proportion
+              Args:
+                  df: Pandas Dataframe containing columns with Patient ID and Cell Name
+                  id_col_name: Name of column containing categorical Patient data
+                  cell_col_name: Name of column in dataframe containing categorical Population data
+                  color_map: Name of MatPlotLib ColorMap used, default is jet"""
 
-def visualize_distribution_of_cell_count(df, id_col_name, cell_col_name):
-    """Plots the distribution of cells as a stacked barplot.
-            Args:
-                df: Pandas Dataframe containing columns with Patient ID and Cell Name
-                id_col_name: Name of column containing ID
-                cell_col_name: Name of column in dataframe containing """
-    ids = set(df[id_col_name])
-    cell_names = df[cell_col_name].value_counts().index.tolist()
+    ids = set(df[patient_col_name])
+    names = df[population_col_name].value_counts().index.tolist()
 
+    # Gets unique IDs, accounting for NaNs
     unique_ids = []
     for item in ids:
         if type(item) is float or type(item) is int:
             unique_ids.append(item)
 
     unique_ids = [x for x in unique_ids if x == x]
-    print(unique_ids)  # REMOVE WHEN DONE DEBUGGING
 
-    df_stacked = pd.DataFrame()
+    def getSortedDf(isNormalized=False):
+        # Flipping the data so it's easily graphable
+        df_stacked = pd.DataFrame()
+        for id in unique_ids:
+            df_rows = df.loc[df[patient_col_name] == id]
+            row_pop_types = None
 
-    first = True
-    for id in unique_ids:
-        df_rows = df.loc[df["PatientID"] == id]
-        row_cell_types = df_rows["cell_type"].value_counts()
+            # Normalize it if asking for proportion, otherwise don't
+            if (isNormalized):
+                row_pop_types = df_rows[population_col_name].value_counts(normalize=True) * 100
+            else:
+                row_pop_types = df_rows[population_col_name].value_counts()
 
-        df_stacked = pd.concat([df_stacked, (pd.DataFrame([row_cell_types.values], columns=row_cell_types.index))],
-                               axis=0, ignore_index=True)
+            df_stacked = pd.concat([df_stacked, (pd.DataFrame([row_pop_types.values], columns=row_pop_types.index))],
+                                   axis=0, ignore_index=True)
 
-    df_stacked.plot.bar(stacked=True)
+        # Gathering sums to sort dataframe by population count
+        sums = []
+        for index, row in df_stacked.iterrows():
+            sum = 0
+            for name in names:
+                val = row[name]
+                if (val == val):
+                    sum += val
+            sums.append(sum)
+
+        # Sort rows by total population count
+        df_stacked.insert(0, "Total Population Count", sums, True)
+        df_stacked = df_stacked.sort_values(by="Total Population Count", ascending=False)
+        df_stacked = df_stacked.drop(columns=["Total Population Count"])
+
+        # Sort columns by total count
+        unsorted_pop_names = df_stacked.columns.tolist()
+        pop_sums = df_stacked.sum().sort_values(ascending=False)
+
+        def swap_columns(df, c1, c2):
+            df['temp'] = df[c1]
+            df[c1] = df[c2]
+            df[c2] = df['temp']
+            df.drop(columns=['temp'], inplace=True)
+            return df
+
+        x = 0
+        for pop in pop_sums.index.tolist():
+            col_name = unsorted_pop_names[x]
+            if (col_name != pop):
+                df_stacked = swap_columns(df_stacked, col_name, pop)
+
+        df_stacked = df_stacked[pop_sums.index.tolist()]
+        return df_stacked
+
+    # Plot by total count
+    population_values = df[population_col_name].value_counts()
+    population_values.plot.bar(colormap=color_map)
+    plt.title("Distribution of Population in all patients")
+    plt.xlabel("Population Type")
+    plt.ylabel("Population Count")
+
+    # Plot by count
+    getSortedDf().plot.bar(stacked=True, colormap=color_map)
     plt.legend(loc='center left', bbox_to_anchor=(1.0, 0.5))
     plt.xlabel("Patient ID")
     plt.ylabel("Cell Count")
-    plt.title("Distribution of Cell Count in Patients")
+    plt.title("Distribution of Population Count in Patients")
 
-
-def visualize_proportion_of_cell_count(df, id_col_name, cell_col_name):
-    """Plots the distribution of the proportions of cells as a stacked barplot.
-            Args:
-                df: Pandas Dataframe containing columns with Patient ID and Cell Name
-                id_col_name: Name of column containing ID
-                cell_col_name: Name of column in dataframe containing """
-    ids = set(df[id_col_name])
-    cell_names = df[cell_col_name].value_counts().index
-    cell_names = cell_names.tolist()
-    unique_ids = []
-
-    for item in ids:
-        if type(item) is float or type(item) is int:
-            unique_ids.append(item)
-
-    unique_ids = [x for x in unique_ids if x == x]
-
-    df_stacked = pd.DataFrame()
-
-    first = True
-    for id in unique_ids:
-        df_rows = df.loc[df["PatientID"] == id]
-        row_cell_types = df_rows["cell_type"].value_counts(normalize=True) * 100
-
-        df_stacked = pd.concat([df_stacked, (pd.DataFrame([row_cell_types.values], columns=row_cell_types.index))],
-                               axis=0, ignore_index=True)
-
-    df_stacked.plot.bar(stacked=True, legend=False)
+    # Plot by Proportion
+    getSortedDf(isNormalized=True).plot.bar(stacked=True, legend=False, colormap=color_map)
     plt.legend(loc='center left', bbox_to_anchor=(1.0, 0.5))
     plt.xlabel("Patient ID")
-    plt.ylabel("Cell Proportion")
-    plt.title("Distribution of Cell Count Proportion in Patients")
+    plt.ylabel("Population Proportion")
+    plt.title("Distribution of Population Count Proportion in Patients")
 
-
-def visualize_cell_distribution_in_all_patients(df, cell_col_name):
-    """Plots the distribution of cells as a stacked barplot.
-            Args:
-                df: Pandas Dataframe containing columns with Patient ID and Cell Name
-                id_col_name: Name of column containing ID
-                cell_col_name: Name of column in dataframe containing """
-    cell_types = df[cell_col_name].value_counts()
-
-    cell_types.plot.bar()
-    plt.title("Distribution of Cells in all patients")
-    plt.xlabel("Cell Type")
-    plt.ylabel("Cell Count")
