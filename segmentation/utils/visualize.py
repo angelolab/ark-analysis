@@ -3,9 +3,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 
+
 def visualize_z_scores(z, pheno_titles):
     """Plots the z scores between all phenotypes as a clustermap.
-
     Args:
         z: array of z scores of shape (pheno_num x pheno_num)
         pheno_titles: list of all the names of the phenotypes"""
