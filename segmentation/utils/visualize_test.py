@@ -18,7 +18,6 @@ def test_visualize_z_scores():
 
 def test_visualize_cells():
 
-
     rand_type = random.choices(string.ascii_lowercase, k=100)
     ids = random.choices(range(1, 3), k=100)
     rand_dict = {"PatientID": ids, "cell_type": rand_type}
