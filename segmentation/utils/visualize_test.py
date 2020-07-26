@@ -20,5 +20,5 @@ def test_visualize_cells():
 
     rand_dict = {"PatientID": ids, "cell_type": rand_type}
     df = pd.DataFrame.from_dict(rand_dict)
-    visualize_patient_population_distribution(df, "PatientID", "cell_type")
+    visualize.visualize_patient_population_distribution(df, "PatientID", "cell_type")
 
