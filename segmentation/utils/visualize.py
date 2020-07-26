@@ -11,7 +11,6 @@ def visualize_z_scores(z, pheno_titles):
         pheno_titles: list of all the names of the phenotypes"""
 
 
-    # visualize
     # Replace the NA's and inf values with 0s
     z[np.isnan(z)] = 0
     z[np.isinf(z)] = 0
@@ -28,8 +27,6 @@ def visualize_patient_population_distribution(df, patient_col_name, population_c
                   id_col_name: Name of column containing categorical Patient data
                   cell_col_name: Name of column in dataframe containing categorical Population data
                   color_map: Name of MatPlotLib ColorMap used, default is jet"""
-
-
     ids = set(df[patient_col_name])
     names = df[population_col_name].value_counts().index.tolist()
 
