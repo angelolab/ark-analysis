@@ -3,6 +3,7 @@ import random
 from segmentation.utils import visualize
 import importlib
 import pandas as pd
+import string
 
 importlib.reload(visualize)
 
