@@ -17,13 +17,9 @@ def test_preprocessing():
     _exec_notebook('Deepcell_Preprocessing.ipynb')
 
 
-def test_preprocessing_MIBItiff():
-    _exec_notebook('Deepcell_Preprocessing_MIBItiff.ipynb')
-
-
 def test_postprocessing():
     _exec_notebook('Deepcell_Postprocessing.ipynb')
 
 
-def test_postprocessing():
+def test_example_spatial_analysis():
     _exec_notebook('example_spatial_analysis_script.ipynb')

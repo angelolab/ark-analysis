@@ -4,6 +4,11 @@ env
 .pytest_cache
 *cache*
 
+*/.DS_Store
+
+.devcontainer/
+.scripts/
+.vscode/
 
 /build
 /dist
