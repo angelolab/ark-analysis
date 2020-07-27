@@ -243,7 +243,7 @@ def generate_two_cell_segmentation_mask(size_img=(1024, 1024), radius=10, expres
         size_img: a tuple specifying the height and width of the image. Default (1024, 1024)
         radius: the radius of the disks we desire to draw. Default 10.
         expressions: whether each cell should be expresssed as nuclear or membrane. 
-            Should be a NumPy array determining whether we use nuclear expression or not
+            Should be an array type determining whether we use nuclear expression or not
             (1 if nuclear, 0 if membrane). Default None which means we'll generate it ourselves.
             Note that the length of expressions should be the same as num_cells.
 
@@ -260,16 +260,19 @@ def generate_two_cell_segmentation_mask(size_img=(1024, 1024), radius=10, expres
     if expressions and expressions.size != 2:
         raise ValueError("Expressions list is not of length two")
 
+    if not expressions:
+        expressions = [1, 0]
+
     # the mask we'll be returning, will contain both the cells and the respective nuclear/membrane markers
     sample_mask = np.zeros((size_img[0], size_img[1], 2), dtype=np.int8)
 
     # generate the two cells at the top left of the image
     center_1 = (radius, radius)
-    center_2 = (radius + radius * 2, radius + radius * 2)
+    center_2 = (radius * 3 + 2, radius * 3 + 2)
 
     # draw the coordnates covered for the two cell
-    x_coords_cell_1, y_coords_cell_1 = disk(center)
-    x_coords_cell_2, y_coords_cell_2 = disk(center)
+    x_coords_cell_1, y_coords_cell_1 = disk(center, radius + 1)
+    x_coords_cell_2, y_coords_cell_2 = disk(center, radius + 1)
 
     # set the markers of the two cells
     sample_mask[x_coords_cell_1, y_coords_cell_1, 0] = 1
@@ -279,6 +282,8 @@ def generate_two_cell_segmentation_mask(size_img=(1024, 1024), radius=10, expres
     centers = [center_1, center_2]
 
     # iterate over centers and expressions list
+    # doing so this way as an initial pass to
+    # handle more centroids
     for i in range(len(expressions)):
         # membrane-level cell analysis
         if expressions[i] == 0:

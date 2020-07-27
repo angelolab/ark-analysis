@@ -103,6 +103,51 @@ def test_generate_test_label_map():
     # because values of 0 in a label map are ignored by regionprops
     assert (np.sort(label_map_flat) == np.sort(centroid_indices) + 1).all()
 
+
+def test_generate_two_cell_segmentation_mask():
+    # this function tests if we have generated two cells with two different marker labels
+    # that border each other, as well as if their nuclear/membrane hotspots were correctly labeled
+
+    size_img = (1024, 1024)
+    radius = 10
+    expressions = [1, 0]
+
+    # generate test data
+    sample_mask = generate_two_cell_segmentation_mask(size_img=size_img, radius=radius, expressions=expressions)
+
+    # separate the cell and the hot spots aka th nuclar/membrane portion we wish to analyze further
+    sample_mask_cell_label = sample_mask[:, :, 0]
+    sample_mask_hot_spots = sample_mask[:, :, 1]
+
+    # assert that we have two labels for cells in the array: 1 and 2
+    unique_cell_labels = np.sort(np.unique(sample_mask.flatten()[sample_mask.flatten() > 0]))
+    assert (unique_cell_labels == np.array([1, 2])).all()
+
+    # assert that the cells border each other
+    border_1 = (radius * 2, radius * 2)
+    border_2 = (radius * 2 + 1, radius * 2 + 1)
+
+    assert sample_mask_cell_label[border_1[0], border_1[1]] == 1
+    assert sample_mask_cell_label[border_2[0], border_2[1]] == 2
+
+    # assert that we have correct nuclear and membrane representation
+    center_1 = (radius, radius)
+    center_2 = (radius * 3 + 2, radius * 3 + 2)
+
+    # start with nuclear representation
+    # test that the center is marked and that the border is set properly
+    assert sample_cell_hot_spots[center_1[0], center_1[1]] == 1
+    assert sample_cell_hot_spots[center_1[0] - (int(radius / 5) + 1), center_1[1]] == 1
+    assert sample_cell_hot_spots[center_1[0] - int(radius / 5), center_1[1]] == 0
+
+    # move on to membrane representation
+    # test that the border is marked and that the inner edge of the cell is set properly
+    assert sample_cell_hot_spots[border_2[0], border_2[1]] == 1
+    assert sample_cell_hot_spots[border_2[0] - 1, border_2[1]] == 0
+    assert sample_cell_hot_spots[center_2[0] - int(radius / 2) - 1, center_2[1]] == 1
+    assert sample_cell_hot_spots[center_2[0] - int(radius / 2), center_2[1]] == 0
+
+
 def test_generate_test_segmentation_mask():
     # this function tests that we're generating proper segmentation masks
     # for phase 2 of testing
