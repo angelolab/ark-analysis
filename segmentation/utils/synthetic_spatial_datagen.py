@@ -291,7 +291,7 @@ def generate_two_cell_segmentation_mask(size_img=(1024, 1024), radius=10, expres
 
             # in the future, we'll probably store these x_coords and y_coords in an array
             # to access rather than have to regenerate again
-            x_coords_orig, y_coords_orig = circle(centers[i][0], centers[i][1] int(radius / 2))
+            x_coords_orig, y_coords_orig = circle(centers[i][0], centers[i][1], int(radius / 2))
             overlay_mask = np.zeros(size_img, dtype=np.int8)
 
             # set the respective values of the membrane portion of the cell to 1
