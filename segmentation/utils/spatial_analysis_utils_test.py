@@ -232,7 +232,7 @@ def test_compute_neighbor_count():
 
     # add to neighbor counts + freqs for only the matching phenotypes between the fov and the whole dataset
     cell_neighbor_counts.loc[fov_data.index, pheno_titles] = counts
-    cell_neighbor_freqs.loc[fov_data.index, pheno_titles] = freqs.T
+    cell_neighbor_freqs.loc[fov_data.index, pheno_titles] = freqs
 
     assert (cell_neighbor_counts.loc[:3, "Pheno1"] == 4).all()
     assert (cell_neighbor_counts.loc[4:8, "Pheno2"] == 5).all()
