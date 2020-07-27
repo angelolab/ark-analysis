@@ -303,7 +303,7 @@ def generate_two_cell_segmentation_mask(size_img=(1024, 1024), radius=10, expres
         # nuclear-level cell analysis
         else:
             # generate an inner disk of a smaller radius size, call this the nucleus
-            x_coord_nuc, y_coords_nuc = circle(centers[i][0], centers[i][1], int(radius / 5))
+            x_coords_nuc, y_coords_nuc = circle(centers[i][0], centers[i][1], int(radius / 5))
             sample_mask[x_coords_nuc, y_coords_nuc, 1] = 1
 
     return sample_mask
