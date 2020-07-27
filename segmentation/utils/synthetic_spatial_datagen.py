@@ -13,7 +13,10 @@ from skimage.measure import label
 from copy import deepcopy
 from skimage.draw import circle
 
-from segmentation.utils import signal_analysis
+from segmentation.utils import signal_extraction
+
+import importlib
+importlib.reload(signal_extraction)
 
 
 def generate_test_dist_matrix(num_A=100, num_B=100, num_C=100,
