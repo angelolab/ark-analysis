@@ -1,8 +1,24 @@
 import numpy as np
 
 
+def simple_weighted_extraction(cell_coords, image_data):
+    """
+    Define a weighted extraction technique based on how close the coordinate is to the center
+
+    Args:
+        cell_coords: tuples of values representing pixels within one cell
+        image_data: array containing channel counts
+
+    Returns:
+        np.array: sum of counts for each channel
+    """
+
+    pass
+
+
 def default_extraction(cell_coords, image_data):
-    """Extract channel counts for an individual cell
+    """
+    Extract channel counts for an individual cell via basic summation for each channel
 
     Args:
         cell_coords: tuples of values representing pixels within one cell
