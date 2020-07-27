@@ -11,7 +11,7 @@ from random import random
 from scipy.spatial.distance import cdist
 from skimage.measure import label
 from copy import deepcopy
-from skimage.draw import disk
+from skimage.draw import circle
 
 from segmentation.utils import signal_analysis
 
@@ -271,8 +271,8 @@ def generate_two_cell_segmentation_mask(size_img=(1024, 1024), radius=10, expres
     center_2 = (radius * 3 + 2, radius * 3 + 2)
 
     # draw the coordnates covered for the two cell
-    x_coords_cell_1, y_coords_cell_1 = disk(center, radius + 1)
-    x_coords_cell_2, y_coords_cell_2 = disk(center, radius + 1)
+    x_coords_cell_1, y_coords_cell_1 = circle(center, radius + 1)
+    x_coords_cell_2, y_coords_cell_2 = circle(center, radius + 1)
 
     # set the markers of the two cells
     sample_mask[x_coords_cell_1, y_coords_cell_1, 0] = 1
@@ -289,11 +289,11 @@ def generate_two_cell_segmentation_mask(size_img=(1024, 1024), radius=10, expres
         if expressions[i] == 0:
             # generate an inner disk of a smaller radius size, call everything outside of this disk
             # but still within the cell in question the membrane
-            x_coords_non_memb, y_coords_non_memb = disk(centers[i], int(radius / 2))
+            x_coords_non_memb, y_coords_non_memb = circle(centers[i], int(radius / 2))
 
             # in the future, we'll probably store these x_coords and y_coords in an array
             # to access rather than have to regenerate again
-            x_coords_orig, y_coords_orig = disk(centers[i], int(radius / 2))
+            x_coords_orig, y_coords_orig = circle(centers[i], int(radius / 2))
             overlay_mask = np.zeros(size_img, dtype=np.int8)
 
             # set the respective values of the membrane portion of the cell to 1
@@ -305,7 +305,7 @@ def generate_two_cell_segmentation_mask(size_img=(1024, 1024), radius=10, expres
         # nuclear-level cell analysis
         else:
             # generate an inner disk of a smaller radius size, call this the nucleus
-            x_coord_nuc, y_coords_nuc = disk(centers[i], int(radius / 5))
+            x_coord_nuc, y_coords_nuc = circle(centers[i], int(radius / 5))
             sample_mask[x_coords_nuc, y_coords_nuc, 1] = 1
 
     return sample_mask
@@ -365,7 +365,7 @@ def generate_test_segmentation_mask(size_img=(1024, 1024), num_cells=2, radius=1
     # keep iterating until we're done drawing all the cells or we can no longer fit any more cells
     while cells_covered > 0 and center_row < size_img[0]:
         # generate the x and y coords of the disk, and set the respective values to the marker_num
-        x_coords, y_coords = disk((center_x, center_y), radius)
+        x_coords, y_coords = circle((center_x, center_y), radius)
         sample_mask[x_coords, y_coords] = marker_num
 
         # for now, we just alternate marker_nums per cell
