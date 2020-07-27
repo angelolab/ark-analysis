@@ -223,7 +223,7 @@ def generate_test_label_map(size_img=(1024, 1024), num_A=100, num_B=100, num_C=1
 
     # now generate the sample xarray
     sample_img = np.zeros((1, size_img[0], size_img[1], 1)).astype(np.int16)
-    sample_img[0, :, :, 0] = copy.deepcopy(label_mat)
+    sample_img[0, :, :, 0] = deepcopy(label_mat)
     sample_img_xr = xr.DataArray(sample_img,
                                  coords=[[1], range(size_img[0]), range(size_img[1]), ['segmentation_label']],
                                  dims=['fovs', 'rows', 'cols', 'channels'])
@@ -255,7 +255,7 @@ def generate_two_cell_segmentation_mask(size_img=(1024, 1024), radius=10, expres
     if radius > size_img[0] and radius > size_img[1]:
         raise ValueError("Radius specified is larger than one of the image dimensions")
 
-    if expressions and expressions.size != 2:
+    if expressions and len(expressions) != 2:
         raise ValueError("Expressions list is not of length two")
 
     if not expressions:
