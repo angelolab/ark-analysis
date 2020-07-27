@@ -205,7 +205,6 @@ def create_neighborhood_matrix(all_data, dist_matrices, fov_list=None, distlim=5
             cell_count: current cell in analysis"""
 
     # Setup input and parameters
-
     if fov_list is None:
         fov_list = sorted(list(set(all_data[fov_col])))
 
@@ -252,6 +251,6 @@ def create_neighborhood_matrix(all_data, dist_matrices, fov_list=None, distlim=5
 
         # add to neighbor counts + freqs for only the matching phenotypes between the fov and the whole dataset
         cell_neighbor_counts.loc[fov_data.index, fov_pheno_titles] = counts
-        cell_neighbor_freqs.loc[fov_data.index, fov_pheno_titles] = freqs.T
+        cell_neighbor_freqs.loc[fov_data.index, fov_pheno_titles] = freqs
 
     return cell_neighbor_counts, cell_neighbor_freqs

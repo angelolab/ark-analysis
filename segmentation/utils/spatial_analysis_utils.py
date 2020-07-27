@@ -255,7 +255,7 @@ def calculate_enrichment_stats(close_num, close_num_rand):
     return stats_xr
 
 
-def compute_neighbor_counts(fov_data, dist_matrix, distlim,
+def compute_neighbor_counts(fov_data, dist_matrix, distlim, self_neighbor=True,
                             cell_label_col="cellLabelInImage"):
     """Calculates the number of neighbor phenotypes for each cell. The cell counts itself as a neighbor.
 
@@ -264,6 +264,7 @@ def compute_neighbor_counts(fov_data, dist_matrix, distlim,
         dist_matrix: cells x cells matrix with the euclidian
             distance between centers of corresponding cells
         distlim: threshold for spatial enrichment distance proximity
+        self_neighbor: If true, cell counts itself as a neighbor in the analysis.
         cell_label_col: Column name with the cell labels
     Returns:
         counts: data array with phenotype counts per cell
@@ -279,8 +280,9 @@ def compute_neighbor_counts(fov_data, dist_matrix, distlim,
     cell_dist_mat_bin = np.zeros(cell_dist_mat.shape)
     cell_dist_mat_bin[cell_dist_mat < distlim] = 1
 
-    # cell counts itself as neighbor if this line is not included
-    # cell_dist_mat_bin[cell_dist_mat == 0] = 0
+    # default is that cell counts itself as a matrix
+    if not self_neighbor:
+        cell_dist_mat_bin[cell_dist_mat == 0] = 0
 
     # get num_neighbors for freqs
     num_neighbors = np.sum(cell_dist_mat_bin, axis=0)
@@ -294,4 +296,4 @@ def compute_neighbor_counts(fov_data, dist_matrix, distlim,
     # compute freqs with num_neighbors
     freqs = counts.T / num_neighbors
 
-    return counts, freqs
+    return counts, freqs.T
