@@ -116,11 +116,6 @@ def generate_random_centroids(size_img=(1024, 1024), num_A=100, num_B=100, num_C
         total_points: a list of non-duplicated cell centroids.
     """
 
-    if float_type:
-        numpy_type = np.float64
-    else:
-        numpy_type = np.int16
-
     # extract the height and width
     height = size_img[0]
     width = size_img[1]
@@ -245,7 +240,7 @@ def generate_two_cell_segmentation_mask(size_img=(1024, 1024), radius=10, expres
     Args:
         size_img: a tuple specifying the height and width of the image. Default (1024, 1024)
         radius: the radius of the disks we desire to draw. Default 10.
-        expressions: whether each cell should be expresssed as nuclear or membrane. 
+        expressions: whether each cell should be expresssed as nuclear or membrane.
             Should be an array type determining whether we use nuclear expression or not
             (1 if nuclear, 0 if membrane). Default None which means we'll generate it ourselves.
             Note that the length of expressions should be the same as num_cells.
@@ -326,7 +321,7 @@ def generate_test_segmentation_mask(size_img=(1024, 1024), num_cells=2, radius=1
         num_cells: the number of cells to generate. Note that the radius parameter
             may override this if there's not enough space. Default 2.
         radius: the radius of the disks we desire to draw. Default 10.
-        expressions: whether each cell should be expresssed as nuclear or membrane. 
+        expressions: whether each cell should be expresssed as nuclear or membrane.
             Should be a NumPy array determining whether we use nuclear expression or not
             (1 if nuclear, 0 if membrane). Default None which means we'll generate it ourselves.
             Note that the length of expressions should be the same as num_cells.
@@ -359,7 +354,7 @@ def generate_test_segmentation_mask(size_img=(1024, 1024), num_cells=2, radius=1
     center_row = radius
     center_col = radius
 
-    # keep a cells_covered counter to learn when 
+    # keep a cells_covered counter to cap when to stop generating disks
     cells_covered = deepcopy(num_cells)
 
     # we'll start by assigning marker_num = 1

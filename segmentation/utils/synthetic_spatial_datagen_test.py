@@ -6,6 +6,7 @@ import scipy
 import os
 from scipy.spatial.distance import cdist
 from segmentation.utils import synthetic_spatial_datagen
+
 import importlib
 importlib.reload(synthetic_spatial_datagen)
 
@@ -113,7 +114,8 @@ def test_generate_two_cell_segmentation_mask():
     expressions = [1, 0]
 
     # generate test data
-    sample_mask = generate_two_cell_segmentation_mask(size_img=size_img, radius=radius, expressions=expressions)
+    sample_mask = synthetic_spatial_datagen.generate_two_cell_segmentation_mask(
+        size_img=size_img, radius=radius, expressions=expressions)
 
     # separate the cell and the hot spots aka th nuclar/membrane portion we wish to analyze further
     sample_mask_cell_label = sample_mask[:, :, 0]
