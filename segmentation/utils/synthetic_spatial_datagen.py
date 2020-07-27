@@ -337,7 +337,7 @@ def generate_test_segmentation_mask(size_img=(1024, 1024), num_cells=2, radius=1
     sample_mask = np.zeros(size_img, dtype=np.int8)
 
     # obviously, you have to have num_cells be at least 2 so we have 2 markers to compare
-    if num_cells < 2
+    if num_cells < 2:
         raise ValueError("The parameter num_cells has to be at least 2")
 
     # if the expressions parameter is specified, we need to assert that the length is the same as num_cells...
