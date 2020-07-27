@@ -269,8 +269,8 @@ def generate_two_cell_segmentation_mask(size_img=(1024, 1024), radius=10, expres
     center_2 = (radius * 3 + 2, radius * 3 + 2)
 
     # draw the coordnates covered for the two cell
-    x_coords_cell_1, y_coords_cell_1 = circle(center, radius + 1)
-    x_coords_cell_2, y_coords_cell_2 = circle(center, radius + 1)
+    x_coords_cell_1, y_coords_cell_1 = circle(center_1, radius + 1)
+    x_coords_cell_2, y_coords_cell_2 = circle(center_2, radius + 1)
 
     # set the markers of the two cells
     sample_mask[x_coords_cell_1, y_coords_cell_1, 0] = 1
