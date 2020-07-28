@@ -126,28 +126,28 @@ def test_generate_two_cell_segmentation_mask():
     assert (unique_cell_labels == np.array([1, 2])).all()
 
     # assert that the cells border each other
-    border_1 = (radius * 2, radius * 2)
-    border_2 = (radius * 2 + 1, radius * 2 + 1)
+    border_1 = (radius, radius * 2)
+    border_2 = (radius, radius * 2 + 1)
 
     assert sample_mask_cell_label[border_1[0], border_1[1]] == 1
     assert sample_mask_cell_label[border_2[0], border_2[1]] == 2
 
     # assert that we have correct nuclear and membrane representation
     center_1 = (radius, radius)
-    center_2 = (radius * 3 + 2, radius * 3 + 2)
+    center_2 = (radius, radius * 3 + 1)
 
     # start with nuclear representation
     # test that the center is marked and that the border is set properly
-    assert sample_cell_hot_spots[center_1[0], center_1[1]] == 1
-    assert sample_cell_hot_spots[center_1[0] - (int(radius / 5) + 1), center_1[1]] == 1
-    assert sample_cell_hot_spots[center_1[0] - int(radius / 5), center_1[1]] == 0
+    assert sample_mask_hot_spots[center_1[0], center_1[1]] == 1
+    assert sample_mask_hot_spots[center_1[0] - int(radius / 5), center_1[1]] == 1
+    assert sample_mask_hot_spots[center_1[0] - int(radius / 5) - 1, center_1[1]] == 0
 
     # move on to membrane representation
     # test that the border is marked and that the inner edge of the cell is set properly
-    assert sample_cell_hot_spots[border_2[0], border_2[1]] == 1
-    assert sample_cell_hot_spots[border_2[0] - 1, border_2[1]] == 0
-    assert sample_cell_hot_spots[center_2[0] - int(radius / 2) - 1, center_2[1]] == 1
-    assert sample_cell_hot_spots[center_2[0] - int(radius / 2), center_2[1]] == 0
+    assert sample_mask_hot_spots[border_2[0], border_2[1]] == 1
+    assert sample_mask_hot_spots[border_2[0] - 1, border_2[1]] == 0
+    assert sample_mask_hot_spots[center_2[0] - int(radius / 2) - 1, center_2[1]] == 1
+    assert sample_mask_hot_spots[center_2[0] - int(radius / 2), center_2[1]] == 0
 
 
 def test_generate_test_segmentation_mask():

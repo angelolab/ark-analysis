@@ -266,7 +266,7 @@ def generate_two_cell_segmentation_mask(size_img=(1024, 1024), radius=10, expres
 
     # generate the two cells at the top left of the image
     center_1 = (radius, radius)
-    center_2 = (radius * 3 + 2, radius * 3 + 2)
+    center_2 = (radius, radius * 3 + 1)
 
     # draw the coordnates covered for the two cell
     x_coords_cell_1, y_coords_cell_1 = circle(center_1[0], center_1[1], radius + 1)
@@ -287,11 +287,11 @@ def generate_two_cell_segmentation_mask(size_img=(1024, 1024), radius=10, expres
         if expressions[i] == 0:
             # generate an inner disk of a smaller radius size, call everything outside of this disk
             # but still within the cell in question the membrane
-            x_coords_non_memb, y_coords_non_memb = circle(centers[i][0], centers[i][1], int(radius / 2))
+            x_coords_non_memb, y_coords_non_memb = circle(centers[i][0], centers[i][1], int(radius / 2) + 1)
 
             # in the future, we'll probably store these x_coords and y_coords in an array
             # to access rather than have to regenerate again
-            x_coords_orig, y_coords_orig = circle(centers[i][0], centers[i][1], int(radius / 2))
+            x_coords_orig, y_coords_orig = circle(centers[i][0], centers[i][1], int(radius / 2) + 1)
             overlay_mask = np.zeros(size_img, dtype=np.int8)
 
             # set the respective values of the membrane portion of the cell to 1
@@ -303,7 +303,7 @@ def generate_two_cell_segmentation_mask(size_img=(1024, 1024), radius=10, expres
         # nuclear-level cell analysis
         else:
             # generate an inner disk of a smaller radius size, call this the nucleus
-            x_coords_nuc, y_coords_nuc = circle(centers[i][0], centers[i][1], int(radius / 5))
+            x_coords_nuc, y_coords_nuc = circle(centers[i][0], centers[i][1], int(radius / 5) + 1)
             sample_mask[x_coords_nuc, y_coords_nuc, 1] = 1
 
     return sample_mask
