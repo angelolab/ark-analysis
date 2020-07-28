@@ -343,7 +343,7 @@ def generate_deepcell_input(data_xr, data_dir, nuc_channels, mem_channels):
                 np.sum(data_xr.loc[fov, :, :, mem_channels].values.astype(data_xr.dtype),
                        axis=2)
 
-        save_path = os.path.join(data_dir, f'{fov}_deepcell_input.tif')
+        save_path = os.path.join(data_dir, f'{fov}.tif')
         io.imsave(save_path, out, plugin='tifffile')
 
 
