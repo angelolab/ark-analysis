@@ -118,8 +118,8 @@ def test_generate_two_cell_segmentation_mask():
         size_img=size_img, radius=radius, expressions=expressions)
 
     # separate the cell and the hot spots aka th nuclar/membrane portion we wish to analyze further
-    sample_mask_cell_label = sample_mask[:, :, 0]
-    sample_mask_hot_spots = sample_mask[:, :, 1]
+    sample_mask_cell_label = sample_mask[0, :, :]
+    sample_mask_hot_spots = sample_mask[1, :, :]
 
     # assert that we have two labels for cells in the array: 1 and 2
     unique_cell_labels = np.sort(np.unique(sample_mask.flatten()[sample_mask.flatten() > 0]))

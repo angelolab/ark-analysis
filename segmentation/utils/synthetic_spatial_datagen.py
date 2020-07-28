@@ -262,7 +262,7 @@ def generate_two_cell_segmentation_mask(size_img=(1024, 1024), radius=10, expres
         expressions = [1, 0]
 
     # the mask we'll be returning, will contain both the cells and the respective nuclear/membrane markers
-    sample_mask = np.zeros((size_img[0], size_img[1], 2), dtype=np.int8)
+    sample_mask = np.zeros((2, size_img[0], size_img[1]), dtype=np.int8)
 
     # generate the two cells at the top left of the image
     center_1 = (radius, radius)
@@ -273,8 +273,8 @@ def generate_two_cell_segmentation_mask(size_img=(1024, 1024), radius=10, expres
     x_coords_cell_2, y_coords_cell_2 = circle(center_2[0], center_2[1], radius + 1)
 
     # set the markers of the two cells
-    sample_mask[x_coords_cell_1, y_coords_cell_1, 0] = 1
-    sample_mask[x_coords_cell_2, y_coords_cell_2, 0] = 2
+    sample_mask[0, x_coords_cell_1, y_coords_cell_1] = 1
+    sample_mask[0, x_coords_cell_2, y_coords_cell_2] = 2
 
     # group centers in a list
     centers = [center_1, center_2]
@@ -299,12 +299,12 @@ def generate_two_cell_segmentation_mask(size_img=(1024, 1024), radius=10, expres
             overlay_mask[x_coords_non_memb, y_coords_non_memb] = 0
 
             # add this mask created to the third dimension of sample_mask to update accordingly
-            sample_mask[:, :, 1] += overlay_mask
+            sample_mask[1, :, :] += overlay_mask
         # nuclear-level cell analysis
         else:
             # generate an inner disk of a smaller radius size, call this the nucleus
             x_coords_nuc, y_coords_nuc = circle(centers[i][0], centers[i][1], int(radius / 5) + 1)
-            sample_mask[x_coords_nuc, y_coords_nuc, 1] = 1
+            sample_mask[1, x_coords_nuc, y_coords_nuc] = 1
 
     return sample_mask
 
@@ -389,9 +389,9 @@ def generate_test_channel_data(seg_mask, nuclear_labels):
     and whether the data is nuclear or membrane in nature.
 
     Args:
-        seg_mask: a segmentation mask with labeled cells
+        seg_mask: a segmentation mask with the 3rd dimension being :
+            1. labeled cell regions
+            2. labeled cells as well as labels of nuclear or membrane
 
-    Returns:
-        channel_data: an array with the channel-based data we're looking at
     """
     pass
