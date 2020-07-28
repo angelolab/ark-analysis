@@ -145,9 +145,9 @@ def test_generate_two_cell_segmentation_mask():
     # move on to membrane representation
     # test that the border is marked and that the inner edge of the cell is set properly
     assert sample_mask_hot_spots[border_2[0], border_2[1]] == 1
-    assert sample_mask_hot_spots[border_2[0] - 1, border_2[1]] == 0
-    assert sample_mask_hot_spots[center_2[0] - int(radius / 2) - 1, center_2[1]] == 1
-    assert sample_mask_hot_spots[center_2[0] - int(radius / 2), center_2[1]] == 0
+    assert sample_mask_hot_spots[border_2[0], border_2[1] - 1] == 0
+    assert sample_mask_hot_spots[center_2[0], center_2[1] - int(radius / 2) - 1] == 1
+    assert sample_mask_hot_spots[center_2[0], center_2[1] - int(radius / 2)] == 0
 
 
 def test_generate_test_segmentation_mask():
