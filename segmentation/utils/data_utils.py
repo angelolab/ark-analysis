@@ -40,7 +40,8 @@ def validate_paths(paths):
                     f'and to reference as \'../data/path_to_data/myfile.tif\'')
 
 
-def load_imgs_from_mibitiff(data_dir, mibitiff_files=None, channels=None, delimiter='_'):
+def load_imgs_from_mibitiff(data_dir, mibitiff_files=None, channels=None, delimiter='_',
+                            dtype='int16'):
     """Load images from a series of MIBItiff files.
 
     This function takes a set of MIBItiff files and load the images into an
@@ -55,6 +56,8 @@ def load_imgs_from_mibitiff(data_dir, mibitiff_files=None, channels=None, delimi
             which case, all channels in the first MIBItiff are used.
         delimiter: optional delimiter-character/string which separate fov names
             from the rest of the file name
+        dtype: optional specifier of image type.  Overwritten with warning for
+            float images
 
     Returns:
         img_xr: xarray with shape [fovs, x_dim, y_dim, channels]
@@ -68,6 +71,16 @@ def load_imgs_from_mibitiff(data_dir, mibitiff_files=None, channels=None, delimi
 
     mibitiff_files = [os.path.join(data_dir, mt_file)
                       for mt_file in mibitiff_files]
+
+    test_img = io.imread(mibitiff_files[0], plugin='tifffile')
+
+    # check to make sure that float dtype was supplied if image data is float
+    data_dtype = test_img.dtype
+    if np.issubdtype(data_dtype, np.floating):
+        if not np.issubdtype(dtype, np.floating):
+            warnings.warn(f"The supplied non-float dtype {dtype} was overwritten to {data_dtype}, "
+                          f"because the loaded images are floats")
+            dtype = data_dtype
 
     # if no channels specified, get them from first MIBItiff file
     if channels is None:
@@ -83,6 +96,7 @@ def load_imgs_from_mibitiff(data_dir, mibitiff_files=None, channels=None, delimi
     for mibitiff_file in mibitiff_files:
         img_data.append(tiff.read(mibitiff_file)[channels])
     img_data = np.stack(img_data, axis=0)
+    img_data = img_data.astype(dtype)
 
     # create xarray with image data
     img_xr = xr.DataArray(img_data,
@@ -93,7 +107,8 @@ def load_imgs_from_mibitiff(data_dir, mibitiff_files=None, channels=None, delimi
     return img_xr
 
 
-def load_imgs_from_multitiff(data_dir, multitiff_files=None, channels=None, delimiter='_'):
+def load_imgs_from_multitiff(data_dir, multitiff_files=None, channels=None, delimiter='_',
+                             dtype='int16'):
     """Load images from a series of multi-channel tiff files.
 
     This function takes a set of multi-channel tiff files and loads the images
@@ -114,6 +129,8 @@ def load_imgs_from_multitiff(data_dir, multitiff_files=None, channels=None, deli
             containing channel names.
         delimiter: optional delimiter-character/string which separate fov names
             from the rest of the file name
+        dtype: optional specifier of image type.  Overwritten with warning for
+            float images
 
     Returns:
         img_xr: xarray with shape [fovs, x_dim, y_dim, channels]
@@ -128,11 +145,22 @@ def load_imgs_from_multitiff(data_dir, multitiff_files=None, channels=None, deli
     multitiff_files = [os.path.join(data_dir, mt_file)
                        for mt_file in multitiff_files]
 
+    test_img = io.imread(multitiff_files[0], plugin='tifffile')
+
+    # check to make sure that float dtype was supplied if image data is float
+    data_dtype = test_img.dtype
+    if np.issubdtype(data_dtype, np.floating):
+        if not np.issubdtype(dtype, np.floating):
+            warnings.warn(f"The supplied non-float dtype {dtype} was overwritten to {data_dtype}, "
+                          f"because the loaded images are floats")
+            dtype = data_dtype
+
     # extract data
     img_data = []
     for multitiff_file in multitiff_files:
         img_data.append(io.imread(multitiff_file, plugin='tifffile'))
     img_data = np.stack(img_data, axis=0)
+    img_data = img_data.astype(dtype)
 
     if channels:
         img_data = img_data[:, :, :, channels]
