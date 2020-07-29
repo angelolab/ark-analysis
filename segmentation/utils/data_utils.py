@@ -71,9 +71,13 @@ def load_imgs_from_mibitiff(data_dir, mibitiff_files=None, channels=None):
         channel_tuples = tiff.read(mibitiff_files[0]).channels
         channels = [channel_tuple[1] for channel_tuple in channel_tuples]
 
-    # extract point name from file name
-    fovs = [mibitiff_file.split(os.sep)[-1].split('_')[0] for mibitiff_file
-            in mibitiff_files]
+    # detect '_' delimiting and extract fov names
+    if mibitiff_files[0].split(os.sep)[-1] in mibitiff_files[0].split(os.sep)[-1].split('_'):
+        fovs = [mibitiff_file.split(os.sep)[-1].split('.')[0]
+                for mibitiff_file in mibitiff_files]
+    else:
+        fovs = [mibitiff_file.split(os.sep)[-1].split('_')[0]
+                for mibitiff_file in mibitiff_files]
 
     # extract images from MIBItiff file
     img_data = []
@@ -132,9 +136,13 @@ def load_imgs_from_multitiff(data_dir, multitiff_files=None, channels=None):
     if channels:
         img_data = img_data[:, :, :, channels]
 
-    # extract point name from file name
-    fovs = [multitiff_file.split(os.sep)[-1].split('_')[0] for multitiff_file
-            in multitiff_files]
+    # detect '_' delimiting and extract fov names
+    if multitiff_files[0].split(os.sep)[-1] in multitiff_files[0].split(os.sep)[-1].split('_'):
+        fovs = [multitiff_file.split(os.sep)[-1].split('.')[0]
+                for multitiff_file in multitiff_files]
+    else:
+        fovs = [multitiff_file.split(os.sep)[-1].split('_')[0]
+                for multitiff_file in multitiff_files]
 
     # create xarray with image data
     img_xr = xr.DataArray(img_data,

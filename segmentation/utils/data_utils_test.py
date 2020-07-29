@@ -129,12 +129,13 @@ def test_load_imgs_from_mibitiff_all_channels():
         (tiff.read(os.path.join(data_dir, mibitiff_files[0]))).data)
 
 
+# TODO: test '_' delimiter autodecode
 def test_load_imgs_from_multitiff():
     # test all channels load w/ specified files
     data_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                             "..", "..", "data", "example_dataset",
-                            "input_data")
-    multitiff_files = ["Point8_deepcell_input.tif"]
+                            "input_data", "deepcell_input")
+    multitiff_files = ["Point8.tif"]
     data_xr = data_utils.load_imgs_from_multitiff(data_dir,
                                                   multitiff_files=multitiff_files,
                                                   channels=None)
@@ -245,8 +246,8 @@ def test_generate_deepcell_input():
         fovs = ['fov1', 'fov2']
         chans = ['nuc1', 'nuc2', 'mem1', 'mem2']
 
-        fov1path = os.path.join(temp_dir, 'fov1_deepcell_input.tif')
-        fov2path = os.path.join(temp_dir, 'fov2_deepcell_input.tif')
+        fov1path = os.path.join(temp_dir, 'fov1.tif')
+        fov2path = os.path.join(temp_dir, 'fov2.tif')
 
         img_data = np.ones((2, 1024, 1024, 4), dtype="int16")
         img_data[0, :, :, 1] += 1
