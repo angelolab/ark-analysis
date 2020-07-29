@@ -166,6 +166,7 @@ def test_load_imgs_from_multitiff():
     assert(data_xr.channels == range(2)).all()
 
 
+# TODO: Add testing for float-image dtype overwriting
 def test_load_imgs_from_tree():
     # test loading from within fov directories
     with tempfile.TemporaryDirectory(prefix='fovs') as temp_dir:
@@ -222,6 +223,7 @@ def test_load_imgs_from_tree():
         assert np.array_equal(test_someext_xr.channels.values, chans)
 
 
+# TODO: Add testing for float-image dtype overwriting
 def test_load_imgs_from_dir():
     # test loading from 'free' directory
     with tempfile.TemporaryDirectory(prefix='one_file') as temp_dir:

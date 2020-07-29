@@ -1,6 +1,7 @@
 import os
 import pathlib
 import math
+import warnings
 
 import skimage.io as io
 import numpy as np
@@ -224,7 +225,9 @@ def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, imgs=None,
     data_dtype = test_img.dtype
     if np.issubdtype(data_dtype, np.floating):
         if not np.issubdtype(dtype, np.floating):
-            raise ValueError("supplied dtype is not a float, but the images loaded are floats")
+            warnings.warn(f"The supplied non-float dtype {dtype} was overwritten to {data_dtype}, "
+                          f"because the loaded images are floats")
+            dtype = data_dtype
 
     if variable_sizes:
         img_data = np.zeros((len(fovs), 1024, 1024, len(imgs)), dtype=dtype)
@@ -292,7 +295,9 @@ def load_imgs_from_dir(data_dir, imgdim_name='compartments', image_name='img_dat
     data_dtype = test_img.dtype
     if np.issubdtype(data_dtype, np.floating):
         if not np.issubdtype(dtype, np.floating):
-            raise ValueError("supplied dtype is not a float, but the images loaded are floats")
+            warnings.warn(f"The supplied non-float dtype {dtype} was overwritten to {data_dtype}, "
+                          f"because the loaded images are floats")
+            dtype = data_dtype
 
     if variable_sizes:
         img_data = np.zeros((len(imgs), 1024, 1024, 1), dtype=dtype)
