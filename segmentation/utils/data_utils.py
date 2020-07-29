@@ -40,7 +40,7 @@ def validate_paths(paths):
                     f'and to reference as \'../data/path_to_data/myfile.tif\'')
 
 
-def load_imgs_from_mibitiff(data_dir, mibitiff_files=None, channels=None):
+def load_imgs_from_mibitiff(data_dir, mibitiff_files=None, channels=None, delimiter='_'):
     """Load images from a series of MIBItiff files.
 
     This function takes a set of MIBItiff files and load the images into an
@@ -53,9 +53,11 @@ def load_imgs_from_mibitiff(data_dir, mibitiff_files=None, channels=None):
             all MIBItiff files in data_dir are loaded.
         channels: optional list of channels to load. Defaults to `None`, in
             which case, all channels in the first MIBItiff are used.
+        delimiter: optional delimiter-character/string which separate fov names
+            from the rest of the file name
 
     Returns:
-        img_xr: xarray with shape [fovs, tifs, x_dim, y_dim]
+        img_xr: xarray with shape [fovs, x_dim, y_dim, channels]
     """
 
     if not mibitiff_files:
@@ -72,13 +74,9 @@ def load_imgs_from_mibitiff(data_dir, mibitiff_files=None, channels=None):
         channel_tuples = tiff.read(mibitiff_files[0]).channels
         channels = [channel_tuple[1] for channel_tuple in channel_tuples]
 
-    # detect '_' delimiting and extract fov names
-    if mibitiff_files[0].split(os.sep)[-1] in mibitiff_files[0].split(os.sep)[-1].split('_'):
-        fovs = [mibitiff_file.split(os.sep)[-1].split('.')[0]
-                for mibitiff_file in mibitiff_files]
-    else:
-        fovs = [mibitiff_file.split(os.sep)[-1].split('_')[0]
-                for mibitiff_file in mibitiff_files]
+    # extract fov names w/ delimiter agnosticism
+    fovs = [mibitiff_file.split(os.sep)[-1].split('.')[0].split(delimiter)[0]
+            for mibitiff_file in mibitiff_files]
 
     # extract images from MIBItiff file
     img_data = []
@@ -95,7 +93,7 @@ def load_imgs_from_mibitiff(data_dir, mibitiff_files=None, channels=None):
     return img_xr
 
 
-def load_imgs_from_multitiff(data_dir, multitiff_files=None, channels=None):
+def load_imgs_from_multitiff(data_dir, multitiff_files=None, channels=None, delimiter='_'):
     """Load images from a series of multi-channel tiff files.
 
     This function takes a set of multi-channel tiff files and loads the images
@@ -114,6 +112,8 @@ def load_imgs_from_multitiff(data_dir, multitiff_files=None, channels=None):
         channels: optional list of channels to load.  Unlike MIBItiff, this must
             be given as a numeric list of indices, since there is no metadata
             containing channel names.
+        delimiter: optional delimiter-character/string which separate fov names
+            from the rest of the file name
 
     Returns:
         img_xr: xarray with shape [fovs, x_dim, y_dim, channels]
@@ -137,13 +137,9 @@ def load_imgs_from_multitiff(data_dir, multitiff_files=None, channels=None):
     if channels:
         img_data = img_data[:, :, :, channels]
 
-    # detect '_' delimiting and extract fov names
-    if multitiff_files[0].split(os.sep)[-1] in multitiff_files[0].split(os.sep)[-1].split('_'):
-        fovs = [multitiff_file.split(os.sep)[-1].split('.')[0]
-                for multitiff_file in multitiff_files]
-    else:
-        fovs = [multitiff_file.split(os.sep)[-1].split('_')[0]
-                for multitiff_file in multitiff_files]
+    # extract fov names w/ delimiter agnosticism
+    fovs = [multitiff_file.split(os.sep)[-1].split('.')[0].split(delimiter)[0]
+            for multitiff_file in multitiff_files]
 
     # create xarray with image data
     img_xr = xr.DataArray(img_data,
@@ -170,8 +166,6 @@ def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, imgs=None,
         Returns:
             img_xr: xarray with shape [fovs, x_dim, y_dim, tifs]
     """
-
-    validate_paths(data_dir)
 
     if fovs is None:
         # get all fovs
@@ -214,10 +208,7 @@ def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, imgs=None,
         raise ValueError("No imgs found in designated folder")
 
     # check to make sure supplied imgs exist
-    for img in imgs:
-        if not os.path.isfile(os.path.join(data_dir, fovs[0], img_sub_folder, img)):
-            raise ValueError("Could not find {} in supplied directory {}".format(
-                img, os.path.join(data_dir, fovs[0], img_sub_folder, img)))
+    validate_paths([os.path.join(data_dir, fovs[0], img_sub_folder, img) for img in imgs])
 
     test_img = io.imread(os.path.join(data_dir, fovs[0], img_sub_folder, imgs[0]))
 
@@ -279,7 +270,6 @@ def load_imgs_from_dir(data_dir, imgdim_name='compartments', image_name='img_dat
             img_xr: xarray with shape [fovs, x_dim, y_dim, 1]
 
     """
-    validate_paths(data_dir)
 
     imgs = os.listdir(data_dir)
     imgs = [img for img in imgs if np.isin(img.split(".")[-1], ["tif", "tiff", "jpg", "png"])]
