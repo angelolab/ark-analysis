@@ -5,8 +5,8 @@ import pathlib
 import math
 import pytest
 import tempfile
-from mibidata import mibi_image as mi, tiff
 
+from mibidata import mibi_image as mi, tiff
 
 from segmentation.utils import data_utils
 import skimage.io as io
@@ -120,48 +120,41 @@ def test_load_imgs_from_mibitiff():
         data_xr.values[0],
         (tiff.read(os.path.join(data_dir, mibitiff_files[0])))[channels].data)
 
-    # this is looped to make sure temp_file doesn't have '_' in its name
-    # (sadly there's no excluded characters option for tempfile)
-    while True:
-        with tempfile.NamedTemporaryFile(suffix=".tif", dir=data_dir) as temp_file:
-            if '_' in temp_file.name.split(os.sep)[-1]:
-                continue
-            tif = mi.MibiImage(np.random.rand(1024, 1024, 2).astype(np.float32),
-                               ((1, channels[0]), (2, channels[1])),
-                               **METADATA)
-            tiff.write(temp_file, tif, dtype=np.float32)
-            tempname = temp_file.name.split(os.sep)[-1]
+    with tempfile.TemporaryDirectory(dir=data_dir) as temp_dir:
+        tif = mi.MibiImage(np.random.rand(1024, 1024, 2).astype(np.float32),
+                           ((1, channels[0]), (2, channels[1])),
+                           **METADATA)
+        tiff.write(os.path.join(temp_dir, 'Point9.tiff'), tif, dtype=np.float32)
+        tiff.write(os.path.join(temp_dir, 'Point8_junktext.tiff'), tif, dtype=np.float32)
 
-            mibitiff_files.append(tempname)
+        mibitiff_files = ['Point8_junktext.tiff', 'Point9.tiff']
 
-            # test delimiter agnosticism
-            data_xr = data_utils.load_imgs_from_mibitiff(data_dir,
-                                                         mibitiff_files=None,
+        # test delimiter agnosticism
+        data_xr = data_utils.load_imgs_from_mibitiff(temp_dir,
+                                                     mibitiff_files=mibitiff_files,
+                                                     channels=channels,
+                                                     dtype=np.float32)
+
+        assert(data_xr.dims == ("fovs", "rows", "cols", "channels"))
+        assert(set(data_xr.fovs.values) == set(["Point8", "Point9"]))
+        assert(data_xr.rows == range(1024)).all()
+        assert(data_xr.cols == range(1024)).all()
+        assert(data_xr.channels == channels).all()
+        assert(np.issubdtype(data_xr.dtype, np.floating))
+
+        # test float overwrite
+        with pytest.warns(UserWarning):
+            data_xr = data_utils.load_imgs_from_mibitiff(temp_dir,
+                                                         mibitiff_files=[mibitiff_files[-1]],
                                                          channels=channels,
-                                                         dtype=np.float32)
+                                                         dtype='int16')
 
             assert(data_xr.dims == ("fovs", "rows", "cols", "channels"))
-            assert(set(["Point8", tempname.split('.')[0]]) == set(data_xr.fovs.values))
+            assert(data_xr.fovs == "Point9")
             assert(data_xr.rows == range(1024)).all()
             assert(data_xr.cols == range(1024)).all()
             assert(data_xr.channels == channels).all()
             assert(np.issubdtype(data_xr.dtype, np.floating))
-
-            # test float overwrite
-            with pytest.warns(UserWarning):
-                data_xr = data_utils.load_imgs_from_mibitiff(data_dir,
-                                                             mibitiff_files=[tempname],
-                                                             channels=channels,
-                                                             dtype='int16')
-
-                assert(data_xr.dims == ("fovs", "rows", "cols", "channels"))
-                assert(data_xr.fovs == tempname.split('.')[0])
-                assert(data_xr.rows == range(1024)).all()
-                assert(data_xr.cols == range(1024)).all()
-                assert(data_xr.channels == channels).all()
-                assert(np.issubdtype(data_xr.dtype, np.floating))
-
-        break
 
 
 def test_load_imgs_from_mibitiff_all_channels():
@@ -223,15 +216,19 @@ def test_load_imgs_from_multitiff():
     assert(data_xr.cols == range(1024)).all()
     assert(data_xr.channels == range(2)).all()
 
-    with tempfile.NamedTemporaryFile(prefix="Point9_", suffix=".tif", dir=data_dir) as temp_file:
+    with tempfile.TemporaryDirectory(dir=data_dir) as temp_dir:
         tif = np.random.rand(1024, 1024, 2).astype('float')
-        io.imsave(temp_file, tif, plugin='tifffile')
-        tempname = temp_file.name.split(os.sep)[-1]
-        multitiff_files = ["Point8.tif", tempname]
+
+        io.imsave(os.path.join(temp_dir, 'Point8.tif'),
+                  tif,
+                  plugin='tifffile')
+        io.imsave(os.path.join(temp_dir, 'Point9_junktext.tif'),
+                  tif,
+                  plugin='tifffile')
 
         # test delimiter agnosticism
-        data_xr = data_utils.load_imgs_from_multitiff(data_dir,
-                                                      multitiff_files=multitiff_files,
+        data_xr = data_utils.load_imgs_from_multitiff(temp_dir,
+                                                      multitiff_files=None,
                                                       channels=None,
                                                       dtype='float')
 
@@ -244,8 +241,8 @@ def test_load_imgs_from_multitiff():
 
         # test float overwrite
         with pytest.warns(UserWarning):
-            data_xr = data_utils.load_imgs_from_multitiff(data_dir,
-                                                          multitiff_files=[tempname],
+            data_xr = data_utils.load_imgs_from_multitiff(temp_dir,
+                                                          multitiff_files=['Point9_junktext.tif'],
                                                           channels=None,
                                                           dtype='int16')
 
