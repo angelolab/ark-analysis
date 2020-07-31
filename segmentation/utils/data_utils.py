@@ -1,6 +1,7 @@
 import os
 import pathlib
 import math
+import warnings
 
 import skimage.io as io
 import numpy as np
@@ -39,7 +40,8 @@ def validate_paths(paths):
                     f'and to reference as \'../data/path_to_data/myfile.tif\'')
 
 
-def load_imgs_from_mibitiff(data_dir, mibitiff_files=None, channels=None):
+def load_imgs_from_mibitiff(data_dir, mibitiff_files=None, channels=None, delimiter='_',
+                            dtype='int16'):
     """Load images from a series of MIBItiff files.
 
     This function takes a set of MIBItiff files and load the images into an
@@ -52,9 +54,13 @@ def load_imgs_from_mibitiff(data_dir, mibitiff_files=None, channels=None):
             all MIBItiff files in data_dir are loaded.
         channels: optional list of channels to load. Defaults to `None`, in
             which case, all channels in the first MIBItiff are used.
+        delimiter: optional delimiter-character/string which separate fov names
+            from the rest of the file name
+        dtype: optional specifier of image type.  Overwritten with warning for
+            float images
 
     Returns:
-        img_xr: xarray with shape [fovs, tifs, x_dim, y_dim]
+        img_xr: xarray with shape [fovs, x_dim, y_dim, channels]
     """
 
     if not mibitiff_files:
@@ -66,20 +72,31 @@ def load_imgs_from_mibitiff(data_dir, mibitiff_files=None, channels=None):
     mibitiff_files = [os.path.join(data_dir, mt_file)
                       for mt_file in mibitiff_files]
 
+    test_img = io.imread(mibitiff_files[0], plugin='tifffile')
+
+    # check to make sure that float dtype was supplied if image data is float
+    data_dtype = test_img.dtype
+    if np.issubdtype(data_dtype, np.floating):
+        if not np.issubdtype(dtype, np.floating):
+            warnings.warn(f"The supplied non-float dtype {dtype} was overwritten to {data_dtype}, "
+                          f"because the loaded images are floats")
+            dtype = data_dtype
+
     # if no channels specified, get them from first MIBItiff file
     if channels is None:
         channel_tuples = tiff.read(mibitiff_files[0]).channels
         channels = [channel_tuple[1] for channel_tuple in channel_tuples]
 
-    # extract point name from file name
-    fovs = [mibitiff_file.split(os.sep)[-1].split('_')[0] for mibitiff_file
-            in mibitiff_files]
+    # extract fov names w/ delimiter agnosticism
+    fovs = [mibitiff_file.split(os.sep)[-1].split('.')[0].split(delimiter)[0]
+            for mibitiff_file in mibitiff_files]
 
     # extract images from MIBItiff file
     img_data = []
     for mibitiff_file in mibitiff_files:
         img_data.append(tiff.read(mibitiff_file)[channels])
     img_data = np.stack(img_data, axis=0)
+    img_data = img_data.astype(dtype)
 
     # create xarray with image data
     img_xr = xr.DataArray(img_data,
@@ -90,7 +107,8 @@ def load_imgs_from_mibitiff(data_dir, mibitiff_files=None, channels=None):
     return img_xr
 
 
-def load_imgs_from_multitiff(data_dir, multitiff_files=None, channels=None):
+def load_imgs_from_multitiff(data_dir, multitiff_files=None, channels=None, delimiter='_',
+                             dtype='int16'):
     """Load images from a series of multi-channel tiff files.
 
     This function takes a set of multi-channel tiff files and loads the images
@@ -109,6 +127,10 @@ def load_imgs_from_multitiff(data_dir, multitiff_files=None, channels=None):
         channels: optional list of channels to load.  Unlike MIBItiff, this must
             be given as a numeric list of indices, since there is no metadata
             containing channel names.
+        delimiter: optional delimiter-character/string which separate fov names
+            from the rest of the file name
+        dtype: optional specifier of image type.  Overwritten with warning for
+            float images
 
     Returns:
         img_xr: xarray with shape [fovs, x_dim, y_dim, channels]
@@ -123,18 +145,29 @@ def load_imgs_from_multitiff(data_dir, multitiff_files=None, channels=None):
     multitiff_files = [os.path.join(data_dir, mt_file)
                        for mt_file in multitiff_files]
 
+    test_img = io.imread(multitiff_files[0], plugin='tifffile')
+
+    # check to make sure that float dtype was supplied if image data is float
+    data_dtype = test_img.dtype
+    if np.issubdtype(data_dtype, np.floating):
+        if not np.issubdtype(dtype, np.floating):
+            warnings.warn(f"The supplied non-float dtype {dtype} was overwritten to {data_dtype}, "
+                          f"because the loaded images are floats")
+            dtype = data_dtype
+
     # extract data
     img_data = []
     for multitiff_file in multitiff_files:
         img_data.append(io.imread(multitiff_file, plugin='tifffile'))
     img_data = np.stack(img_data, axis=0)
+    img_data = img_data.astype(dtype)
 
     if channels:
         img_data = img_data[:, :, :, channels]
 
-    # extract point name from file name
-    fovs = [multitiff_file.split(os.sep)[-1].split('_')[0] for multitiff_file
-            in multitiff_files]
+    # extract fov names w/ delimiter agnosticism
+    fovs = [multitiff_file.split(os.sep)[-1].split('.')[0].split(delimiter)[0]
+            for multitiff_file in multitiff_files]
 
     # create xarray with image data
     img_xr = xr.DataArray(img_data,
@@ -161,8 +194,6 @@ def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, imgs=None,
         Returns:
             img_xr: xarray with shape [fovs, x_dim, y_dim, tifs]
     """
-
-    validate_paths(data_dir)
 
     if fovs is None:
         # get all fovs
@@ -205,10 +236,7 @@ def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, imgs=None,
         raise ValueError("No imgs found in designated folder")
 
     # check to make sure supplied imgs exist
-    for img in imgs:
-        if not os.path.isfile(os.path.join(data_dir, fovs[0], img_sub_folder, img)):
-            raise ValueError("Could not find {} in supplied directory {}".format(
-                img, os.path.join(data_dir, fovs[0], img_sub_folder, img)))
+    validate_paths([os.path.join(data_dir, fovs[0], img_sub_folder, img) for img in imgs])
 
     test_img = io.imread(os.path.join(data_dir, fovs[0], img_sub_folder, imgs[0]))
 
@@ -216,7 +244,9 @@ def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, imgs=None,
     data_dtype = test_img.dtype
     if np.issubdtype(data_dtype, np.floating):
         if not np.issubdtype(dtype, np.floating):
-            raise ValueError("supplied dtype is not a float, but the images loaded are floats")
+            warnings.warn(f"The supplied non-float dtype {dtype} was overwritten to {data_dtype}, "
+                          f"because the loaded images are floats")
+            dtype = data_dtype
 
     if variable_sizes:
         img_data = np.zeros((len(fovs), 1024, 1024, len(imgs)), dtype=dtype)
@@ -268,7 +298,6 @@ def load_imgs_from_dir(data_dir, imgdim_name='compartments', image_name='img_dat
             img_xr: xarray with shape [fovs, x_dim, y_dim, 1]
 
     """
-    validate_paths(data_dir)
 
     imgs = os.listdir(data_dir)
     imgs = [img for img in imgs if np.isin(img.split(".")[-1], ["tif", "tiff", "jpg", "png"])]
@@ -284,7 +313,9 @@ def load_imgs_from_dir(data_dir, imgdim_name='compartments', image_name='img_dat
     data_dtype = test_img.dtype
     if np.issubdtype(data_dtype, np.floating):
         if not np.issubdtype(dtype, np.floating):
-            raise ValueError("supplied dtype is not a float, but the images loaded are floats")
+            warnings.warn(f"The supplied non-float dtype {dtype} was overwritten to {data_dtype}, "
+                          f"because the loaded images are floats")
+            dtype = data_dtype
 
     if variable_sizes:
         img_data = np.zeros((len(imgs), 1024, 1024, 1), dtype=dtype)
@@ -343,7 +374,7 @@ def generate_deepcell_input(data_xr, data_dir, nuc_channels, mem_channels):
                 np.sum(data_xr.loc[fov, :, :, mem_channels].values.astype(data_xr.dtype),
                        axis=2)
 
-        save_path = os.path.join(data_dir, f'{fov}_deepcell_input.tif')
+        save_path = os.path.join(data_dir, f'{fov}.tif')
         io.imsave(save_path, out, plugin='tifffile')
 
 

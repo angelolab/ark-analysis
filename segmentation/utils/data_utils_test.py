@@ -5,7 +5,8 @@ import pathlib
 import math
 import pytest
 import tempfile
-from mibidata import tiff
+
+from mibidata import mibi_image as mi, tiff
 
 from segmentation.utils import data_utils
 import skimage.io as io
@@ -14,9 +15,23 @@ import importlib
 
 importlib.reload(data_utils)
 
+# required metadata for mibitiff writing (barf)
+METADATA = {
+    'run': '20180703_1234_test', 'date': '2017-09-16T15:26:00',
+    'coordinates': (12345, -67890), 'size': 500., 'slide': '857',
+    'fov_id': 'Point1', 'fov_name': 'R1C3_Tonsil',
+    'folder': 'Point1/RowNumber0/Depth_Profile0',
+    'dwell': 4, 'scans': '0,5', 'aperture': 'B',
+    'instrument': 'MIBIscope1', 'tissue': 'Tonsil',
+    'panel': '20170916_1x', 'mass_offset': 0.1, 'mass_gain': 0.2,
+    'time_resolution': 0.5, 'miscalibrated': False, 'check_reg': False,
+    'filename': '20180703_1234_test', 'description': 'test image',
+    'version': 'alpha',
+}
 
-def _create_img_dir(temp_dir, fovs, imgs, img_sub_folder="TIFs"):
-    tif = np.random.randint(0, 100, 1024 ** 2).reshape((1024, 1024)).astype("int8")
+
+def _create_img_dir(temp_dir, fovs, imgs, img_sub_folder="TIFs", dtype="int8"):
+    tif = np.random.randint(0, 100, 1024 ** 2).reshape((1024, 1024)).astype(dtype)
 
     for fov in fovs:
         fov_path = os.path.join(temp_dir, fov, img_sub_folder)
@@ -76,6 +91,7 @@ def test_validate_paths():
     os.chdir('../')
 
 
+# TODO: test '_' delimiter autodecode + dtype overload+warning
 def test_load_imgs_from_mibitiff():
     # check unspecified point loading
     data_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)),
@@ -103,6 +119,42 @@ def test_load_imgs_from_mibitiff():
     np.testing.assert_array_equal(
         data_xr.values[0],
         (tiff.read(os.path.join(data_dir, mibitiff_files[0])))[channels].data)
+
+    with tempfile.TemporaryDirectory(dir=data_dir) as temp_dir:
+        tif = mi.MibiImage(np.random.rand(1024, 1024, 2).astype(np.float32),
+                           ((1, channels[0]), (2, channels[1])),
+                           **METADATA)
+        tiff.write(os.path.join(temp_dir, 'Point9.tiff'), tif, dtype=np.float32)
+        tiff.write(os.path.join(temp_dir, 'Point8_junktext.tiff'), tif, dtype=np.float32)
+
+        mibitiff_files = ['Point8_junktext.tiff', 'Point9.tiff']
+
+        # test delimiter agnosticism
+        data_xr = data_utils.load_imgs_from_mibitiff(temp_dir,
+                                                     mibitiff_files=mibitiff_files,
+                                                     channels=channels,
+                                                     dtype=np.float32)
+
+        assert(data_xr.dims == ("fovs", "rows", "cols", "channels"))
+        assert(set(data_xr.fovs.values) == set(["Point8", "Point9"]))
+        assert(data_xr.rows == range(1024)).all()
+        assert(data_xr.cols == range(1024)).all()
+        assert(data_xr.channels == channels).all()
+        assert(np.issubdtype(data_xr.dtype, np.floating))
+
+        # test float overwrite
+        with pytest.warns(UserWarning):
+            data_xr = data_utils.load_imgs_from_mibitiff(temp_dir,
+                                                         mibitiff_files=[mibitiff_files[-1]],
+                                                         channels=channels,
+                                                         dtype='int16')
+
+            assert(data_xr.dims == ("fovs", "rows", "cols", "channels"))
+            assert(data_xr.fovs == "Point9")
+            assert(data_xr.rows == range(1024)).all()
+            assert(data_xr.cols == range(1024)).all()
+            assert(data_xr.channels == channels).all()
+            assert(np.issubdtype(data_xr.dtype, np.floating))
 
 
 def test_load_imgs_from_mibitiff_all_channels():
@@ -133,8 +185,8 @@ def test_load_imgs_from_multitiff():
     # test all channels load w/ specified files
     data_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                             "..", "..", "data", "example_dataset",
-                            "input_data")
-    multitiff_files = ["Point8_deepcell_input.tif"]
+                            "input_data", "deepcell_input")
+    multitiff_files = ["Point8.tif"]
     data_xr = data_utils.load_imgs_from_multitiff(data_dir,
                                                   multitiff_files=multitiff_files,
                                                   channels=None)
@@ -163,6 +215,43 @@ def test_load_imgs_from_multitiff():
     assert(data_xr.rows == range(1024)).all()
     assert(data_xr.cols == range(1024)).all()
     assert(data_xr.channels == range(2)).all()
+
+    with tempfile.TemporaryDirectory(dir=data_dir) as temp_dir:
+        tif = np.random.rand(1024, 1024, 2).astype('float')
+
+        io.imsave(os.path.join(temp_dir, 'Point8.tif'),
+                  tif,
+                  plugin='tifffile')
+        io.imsave(os.path.join(temp_dir, 'Point9_junktext.tif'),
+                  tif,
+                  plugin='tifffile')
+
+        # test delimiter agnosticism
+        data_xr = data_utils.load_imgs_from_multitiff(temp_dir,
+                                                      multitiff_files=None,
+                                                      channels=None,
+                                                      dtype='float')
+
+        assert(data_xr.dims == ("fovs", "rows", "cols", "channels"))
+        assert(set(data_xr.fovs.values) == set(["Point8", "Point9"]))
+        assert(data_xr.rows == range(1024)).all()
+        assert(data_xr.cols == range(1024)).all()
+        assert(data_xr.channels == range(2)).all()
+        assert(np.issubdtype(data_xr.dtype, np.floating))
+
+        # test float overwrite
+        with pytest.warns(UserWarning):
+            data_xr = data_utils.load_imgs_from_multitiff(temp_dir,
+                                                          multitiff_files=['Point9_junktext.tif'],
+                                                          channels=None,
+                                                          dtype='int16')
+
+            assert(data_xr.dims == ("fovs", "rows", "cols", "channels"))
+            assert(data_xr.fovs == "Point9")
+            assert(data_xr.rows == range(1024)).all()
+            assert(data_xr.cols == range(1024)).all()
+            assert(data_xr.channels == range(2)).all()
+            assert(np.issubdtype(data_xr.dtype, np.floating))
 
 
 def test_load_imgs_from_tree():
@@ -220,17 +309,29 @@ def test_load_imgs_from_tree():
         # makes sure all channels loaded
         assert np.array_equal(test_someext_xr.channels.values, chans)
 
+        # resave img3 as floats and test for float warning
+        tif = np.random.rand(1024, 1024).astype("float")
+        io.imsave(os.path.join(temp_dir, fovs[-1], "TIFs", imgs[-1]), tif)
+
+        with pytest.warns(UserWarning):
+            test_warning_xr = \
+                data_utils.load_imgs_from_tree(temp_dir, img_sub_folder="TIFs", dtype="int16",
+                                               fovs=[fovs[-1]], imgs=[imgs[-1]])
+
+            # test swap int16 -> float
+            assert np.issubdtype(test_warning_xr.dtype, np.floating)
+
 
 def test_load_imgs_from_dir():
     # test loading from 'free' directory
     with tempfile.TemporaryDirectory(prefix='one_file') as temp_dir:
         imgs = ["fov1_img1.tiff", "fov2_img2.tiff", "fov3_img3.tiff"]
         fovs = [img.split("_")[0] for img in imgs]
-        _create_img_dir(temp_dir, fovs=[""], imgs=imgs, img_sub_folder="")
+        _create_img_dir(temp_dir, fovs=[""], imgs=imgs, img_sub_folder="", dtype="float")
 
         # check default loading
         test_loaded_xr = \
-            data_utils.load_imgs_from_dir(temp_dir, delimiter='_')
+            data_utils.load_imgs_from_dir(temp_dir, delimiter='_', dtype="float")
 
         # make sure grouping by file prefix was effective
         assert np.array_equal(test_loaded_xr.fovs, fovs)
@@ -239,14 +340,21 @@ def test_load_imgs_from_dir():
         assert np.all(test_loaded_xr.loc["fov1", :, :, "img_data"] >= 0)
         assert test_loaded_xr.dims[-1] == 'compartments'
 
+        with pytest.warns(UserWarning):
+            test_warning_xr = \
+                data_utils.load_imgs_from_dir(temp_dir, delimiter='_', dtype="int16")
+
+            # test swap int16 -> float
+            assert np.issubdtype(test_warning_xr.dtype, np.floating)
+
 
 def test_generate_deepcell_input():
     with tempfile.TemporaryDirectory() as temp_dir:
         fovs = ['fov1', 'fov2']
         chans = ['nuc1', 'nuc2', 'mem1', 'mem2']
 
-        fov1path = os.path.join(temp_dir, 'fov1_deepcell_input.tif')
-        fov2path = os.path.join(temp_dir, 'fov2_deepcell_input.tif')
+        fov1path = os.path.join(temp_dir, 'fov1.tif')
+        fov2path = os.path.join(temp_dir, 'fov2.tif')
 
         img_data = np.ones((2, 1024, 1024, 4), dtype="int16")
         img_data[0, :, :, 1] += 1
