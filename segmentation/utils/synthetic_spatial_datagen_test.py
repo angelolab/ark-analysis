@@ -133,8 +133,6 @@ def test_generate_two_cell_test_regions():
 
 def test_generate_two_cell_test_signal_data():
     # this function tests if we're genering our signal data correctly
-    # because we don't return the actual cell regions in this function,
-    # we'll leave the border tests in test_generate_two_cell_test_signal_data
     # for now, all we do is check if we're generating only positive values
 
     size_img = (1024, 1024)
@@ -162,7 +160,7 @@ def test_generate_two_cell_test_signal_data():
 
     sample_signal_data = synthetic_spatial_datagen.generate_two_cell_test_signal_data(
         size_img=size_img, radius=radius, expression=expression, pattern=pattern,
-        cell_region=cell_regions[1], cell_centers=cell_centers[1])
+        cell_region=cell_regions[1], cell_center=cell_centers[1])
 
     # assert that we only have positive values or 0 values in the array for nuclear expression
     assert (sample_signal_data >= 0).all()
@@ -173,7 +171,7 @@ def test_generate_two_cell_test_signal_data():
 
     sample_signal_data = synthetic_spatial_datagen.generate_two_cell_test_signal_data(
         size_img=size_img, radius=radius, expression=expression, pattern=pattern,
-        cell_region=cell_regions[1], cell_centers=cell_centers[1])
+        cell_region=cell_regions[1], cell_center=cell_centers[1])
 
     assert (sample_signal_data >= 0).all()
 
@@ -186,7 +184,7 @@ def test_generate_two_cell_test_channel_data():
     size_img = (1024, 1024)
     radius = 10
 
-    sample_channel_data = synthetic_spatial_datagen.generate_two_cell_test_channel_data(
+    sample_channel_data, _, _ = synthetic_spatial_datagen.generate_two_cell_test_channel_data(
         size_img=size_img, radius=radius)
 
     nuclear_channel_data = sample_channel_data[0, :, :]
@@ -194,6 +192,8 @@ def test_generate_two_cell_test_channel_data():
 
     # assert that the cells border each other
     # this we will do by checking whether the values at the border are both greater than 0
+    # note that because we know how the centers are being generated we can just use radius
+    # to help us calculate the borders and by extnsion the centers
     border_1 = (radius, radius * 2)
     border_2 = (radius, radius * 2 + 1)
 
