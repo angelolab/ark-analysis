@@ -19,11 +19,11 @@ def visualize_z_scores(z, pheno_titles):
 
 
 def swap_columns(df, c1, c2):
-  df['temp'] = df[c1]
-  df[c1] = df[c2]
-  df[c2] = df['temp']
-  df.drop(columns=['temp'], inplace=True)
-  return df
+    df['temp'] = df[c1]
+    df[c1] = df[c2]
+    df[c2] = df['temp']
+    df.drop(columns=['temp'], inplace=True)
+    return df
 
 
 def getSortedDf(df, patient_col_name, population_col_name, isNormalized=False):
@@ -31,11 +31,11 @@ def getSortedDf(df, patient_col_name, population_col_name, isNormalized=False):
     names = df[population_col_name].value_counts().index.tolist()
     unique_ids = df[patient_col_name].unique()
 
-    df_stacked=pd.DataFrame()
+    df_stacked = pd.DataFrame()
     if isNormalized:
-      df_stacked = pd.crosstab(df[patient_col_name], df[population_col_name], normalize='index')
+        df_stacked = pd.crosstab(df[patient_col_name], df[population_col_name], normalize='index')
     else:
-      df_stacked = pd.crosstab(df[patient_col_name], df[population_col_name])
+        df_stacked = pd.crosstab(df[patient_col_name], df[population_col_name])
 
     # Sorts by Kagel Method
     id_order = df.groupby(patient_col_name).count().sort_values(by=population_col_name, ascending=False).index.values
@@ -70,9 +70,9 @@ def visualize_patient_population_distribution(df, patient_col_name, population_c
     plt.title("Distribution of Population Count in Patients")
 
     # Plot by Proportion
-    getSortedDf(df, patient_col_name, population_col_name,isNormalized=True).plot.bar(stacked=True, legend=False, colormap=color_map)
+    getSortedDf(df, patient_col_name, population_col_name, isNormalized=True).plot.bar(stacked=True, legend=False,
+                                                                                       colormap=color_map)
     plt.legend(loc='center left', bbox_to_anchor=(1.0, 0.5))
     plt.xlabel("Patient ID")
     plt.ylabel("Population Proportion")
     plt.title("Distribution of Population Count Proportion in Patients")
-    
