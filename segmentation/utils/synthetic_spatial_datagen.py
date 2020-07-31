@@ -9,6 +9,7 @@ import xarray as xr
 from random import seed
 from random import random
 from scipy.spatial.distance import cdist
+from scipy.stats import norm
 from skimage.measure import label
 from copy import deepcopy
 from skimage.draw import circle
@@ -232,37 +233,85 @@ def generate_test_label_map(size_img=(1024, 1024), num_A=100, num_B=100, num_C=1
     return sample_img_xr, centroid_indices
 
 
-def generate_two_cell_segmentation_mask(size_img=(1024, 1024), radius=10, expressions=None):
+def generate_two_cell_test_signal_data(size_img, radius, expression, 
+                                       pattern, cell_region, cell_center):
     """
-    This function is a very basic implementation of generate_test_segmentation_mask
-    as defined for 2 cells.
+    This function generates the signal-level test data for a specified channel (nuclear and membrane)
+    based on a given pattern and the marker num we wish to generate data for.
 
     Args:
-        size_img: a tuple specifying the height and width of the image. Default (1024, 1024)
-        radius: the radius of the disks we desire to draw. Default 10.
-        expressions: whether each cell should be expresssed as nuclear or membrane.
-            Should be an array type determining whether we use nuclear expression or not
-            (1 if nuclear, 0 if membrane). Default None which means we'll generate it ourselves.
-            Note that the length of expressions should be the same as num_cells.
+        size_img: the dimensions of the image
+        radius: the radius of the cell
+        marker_num: the marker num of the cell we're looking at
+        expression: whether the channel we're looking at is nuclear or membrane
+        pattern: the specific pattern we wish to generate signal by, for now we'll just assume it's equal
+            to expression (nuclear or membrane)
+        cell_region: the region covered by the cell we're processing
+        cell_center: the center of the cell we're processing
+    
+    Returns:
+        channel_signal: a NumPy array with the generated signal according to the parameters provided
+    """
+    cell_center_x = cell_center[0]
+    cell_center_y = cell_center[1]
+
+    # create the signal data array
+    signal_data = np.zeros(size_img)
+
+    # create a probability mask, which will become a set of random values based on a normal distribution
+    # either centered at a peak for nuclear, or around the edge for membrane
+    prob_mask = np.zeros(size_img)
+
+    # get the coordinates of every point in the array
+    prob_mask_rows, prob_mask_cols = np.ogrid[:size_img[0], :size_img[1]]
+
+    # generate an array of numbers valued depending on how close or far away the coordinate is
+    # from the center or the membrane
+    # note that we multiply by -random() for the membrane case because the values
+    # will initially be negative and it will help to make the values consistent
+    if expression == "nuclear":
+        prob_mask = size_img[0] + size_img[1] - np.maximum(
+            np.abs(prob_mask_rows - cell_center_x),
+            np.abs(prob_mask_cols - cell_center_y)) * random()
+    else:
+        prob_mask = np.maximum(np.abs(prob_mask_rows - cell_center_x),
+            np.abs(prob_mask_cols - cell_center_y)) - (size_img[0] + size_img[1]) * -random()
+
+    # get the center value, we'll need this to center the mean around this value
+    # to guarantee this gets the highest chance of being set as the highest
+    # as well as the values on the edge being set to the lowest
+    center_value = prob_mask[cell_center_x, cell_center_y]
+    prob_mask = norm.pdf(prob_mask, center_value)
+
+    # extract only the coordinates defined by the cell region and set the prob mask accordingly
+    signal_data[cell_region[0], cell_region[1]] = prob_mask[cell_region[0], cell_region[1]]
+
+    return signal_data
+
+
+def generate_two_cell_test_regions(size_img, radius):
+    """
+    This function generates the region locations of each cell in our test segmentation channel mask.
+    We will assume we'll be generating circles as cells.
+
+    We will assume we have only two cells for the time being, one cell gets assigned marker 1 and the other
+    marker 2
+
+    Args:
+        size_img: the dimensions of the image
+        radius: the radius of each cell
 
     Returns:
-        sample_mask: a test segmentation mask the dimensions of size_img, each cell labeled
-            with a specfic marker label. In addition, we'll be labeling the areas designated
-            nuclear or membrane, depending on which analysis we're doing. This is the third
-            dimension returned.
+        region_coverage: a dictionary mapping each cell marker to its respective coordinates
+            which will be used to cover said marker (a tuple in the format (x_coords, y_coords))
+        region_centers: a dictionary mapping each cell marker to its respective center (also a tuple format)
     """
 
-    if radius > size_img[0] and radius > size_img[1]:
+    # test that the radius specified is within the boundaries
+    # to prevent any overflow, we ask that the radius be no larger than
+    # half of any dimension passed
+    if radius > size_img[0] / 2 or radius > size_img[1] / 2:
         raise ValueError("Radius specified is larger than one of the image dimensions")
-
-    if expressions and len(expressions) != 2:
-        raise ValueError("Expressions list is not of length two")
-
-    if not expressions:
-        expressions = [1, 0]
-
-    # the mask we'll be returning, will contain both the cells and the respective nuclear/membrane markers
-    sample_mask = np.zeros((2, size_img[0], size_img[1]), dtype=np.int8)
 
     # generate the two cells at the top left of the image
     center_1 = (radius, radius)
@@ -272,126 +321,46 @@ def generate_two_cell_segmentation_mask(size_img=(1024, 1024), radius=10, expres
     x_coords_cell_1, y_coords_cell_1 = circle(center_1[0], center_1[1], radius + 1)
     x_coords_cell_2, y_coords_cell_2 = circle(center_2[0], center_2[1], radius + 1)
 
-    # set the markers of the two cells
-    sample_mask[0, x_coords_cell_1, y_coords_cell_1] = 1
-    sample_mask[0, x_coords_cell_2, y_coords_cell_2] = 2
+    # now store the regions generated by skimage.draw.circle into a dict with the key
+    # identifying the marker
+    cell_regions = {1: (x_coords_cell_1, y_coords_cell_1),
+                    2: (x_coords_cell_2, y_coords_cell_2)}
 
-    # group centers in a list
-    centers = [center_1, center_2]
+    # now store the centers of each marker in a cell
+    # we're not storing the radius because that parameter is passed into generate_test_channel_data
+    # which calls this function, meaning it is already known
+    cell_centers = {1: center_1, 2: center_2}
 
-    # iterate over centers and expressions list
-    # doing so this way as an initial pass to
-    # handle more centroids
-    for i in range(len(expressions)):
-        # membrane-level cell analysis
-        if expressions[i] == 0:
-            # generate an inner disk of a smaller radius size, call everything outside of this disk
-            # but still within the cell in question the membrane
-            x_coords_non_memb, y_coords_non_memb = circle(centers[i][0], centers[i][1], int(radius / 2) + 1)
-
-            # in the future, we'll probably store these x_coords and y_coords in an array
-            # to access rather than have to regenerate again
-            x_coords_orig, y_coords_orig = circle(centers[i][0], centers[i][1], radius + 1)
-            overlay_mask = np.zeros(size_img, dtype=np.int8)
-
-            # set the respective values of the membrane portion of the cell to 1
-            overlay_mask[x_coords_orig, y_coords_orig] = 1
-            overlay_mask[x_coords_non_memb, y_coords_non_memb] = 0
-
-            # add this mask created to the third dimension of sample_mask to update accordingly
-            sample_mask[1, :, :] += overlay_mask
-        # nuclear-level cell analysis
-        else:
-            # generate an inner disk of a smaller radius size, call this the nucleus
-            x_coords_nuc, y_coords_nuc = circle(centers[i][0], centers[i][1], int(radius / 5) + 1)
-            sample_mask[1, x_coords_nuc, y_coords_nuc] = 1
-
-    return sample_mask
+    return cell_regions, cell_centers
 
 
-def generate_test_segmentation_mask(size_img=(1024, 1024), num_cells=2, radius=10,
-                                    expressions=None):
+def generate_two_cell_test_channel_data(size_img=(1024, 1024), radius=10):
     """
-    This function generates a random segmentation mask with the assumption that cells are disks.
-    For the time being, we just iterate through the image and place random disks next to each other.
-    The key is that the cells have to be bordering each other.
+    This function generates test channel data assuming we're just generating two cells.
 
     Args:
-        size_img: a tuple specifying the height and width of the image. Default (1024, 1024)
-        num_cells: the number of cells to generate. Note that the radius parameter
-            may override this if there's not enough space. Default 2.
-        radius: the radius of the disks we desire to draw. Default 10.
-        expressions: whether each cell should be expresssed as nuclear or membrane.
-            Should be a NumPy array determining whether we use nuclear expression or not
-            (1 if nuclear, 0 if membrane). Default None which means we'll generate it ourselves.
-            Note that the length of expressions should be the same as num_cells.
+        size_img: the dimensions of the image we wish to generate
+        radius: the radius of the cells we wish to generate
 
     Returns:
-        sample_mask: a test segmentation mask the dimensions of size_img, each cell labeled
-            with a specfic marker label.
+        sample_channel: a m x n x p array where m is the number of channels and (n x p)
+            is the same as size_img. We'll have 2 channels: nuclear and membrane.
     """
 
-    # the mask we'll be returning
-    sample_mask = np.zeros(size_img, dtype=np.int8)
+    cell_regions, cell_centers = generate_two_cell_test_regions(size_img=size_img, radius=radius)
 
-    # obviously, you have to have num_cells be at least 2 so we have 2 markers to compare
-    if num_cells < 2:
-        raise ValueError("The parameter num_cells has to be at least 2")
+    # create the NumPy array we'll store the channel data in
+    sample_channel_data = np.zeros((2, size_img[0], size_img[1]))
 
-    # if the expressions parameter is specified, we need to assert that the length is the same as num_cells...
-    if expressions and expressions.size != num_cells:
-        raise ValueError("The expressions list should be the same length as num_cells specified")
+    # generate the nuclear- and membrane-level channel signal for each cell
+    for i in range(2):
+        sample_channel_data[0, :, :] += generate_two_cell_signal_data(size_img=size_img, radius=radius,
+                                                                      expression='nuclear', pattern='nuclear', 
+                                                                      cell_region=cell_regions[i + 1], cell_center=cell_centers[i + 1])
 
-    # and the radius set cannot be larger than half of the image
-    if radius > size_img[0] / 2 or radius > size_img[1] / 2:
-        raise ValueError("Radius value is too large for image")
+        sample_channel_data[1, :, :] += generate_two_cell_signal_data(size_img=size_img, radius=radius,
+                                                                      expression='membrane', pattern='membrane',
+                                                                      cell_region=cell_regions[i + 1], cell_center=cell_centers[i + 1])
 
-    # if expressions parameter is not specified, we generate our own list of expressions
-    if not expressions:
-        expressions = np.random.randint(size=num_cells)
-
-    # we'll start drawing cells in the upper-left of the image
-    center_row = radius
-    center_col = radius
-
-    # keep a cells_covered counter to cap when to stop generating disks
-    cells_covered = deepcopy(num_cells)
-
-    # we'll start by assigning marker_num = 1
-    marker_num = 1
-
-    # keep iterating until we're done drawing all the cells or we can no longer fit any more cells
-    while cells_covered > 0 and center_row < size_img[0]:
-        # generate the x and y coords of the disk, and set the respective values to the marker_num
-        x_coords, y_coords = circle(center_row, center_col, radius)
-        sample_mask[x_coords, y_coords] = marker_num
-
-        # for now, we just alternate marker_nums per cell
-        marker_num = 1 if marker_num == 2 else 2
-
-        # decrease cells_covered by 1
-        cells_covered -= 1
-
-        # move the next disk to the right by amount radius * 2 aka diameter
-        center_col += radius * 2
-
-        # however, if that puts center_col out of range, restart on the next row on the far left
-        if center_col >= size_img[1]:
-            center_row += radius * 2
-            center_col = radius
-
-    return sample_mask
-
-
-def generate_test_channel_data(seg_mask, nuclear_labels):
-    """
-    This function generates test channel data based on a segmentation mask provided
-    and whether the data is nuclear or membrane in nature.
-
-    Args:
-        seg_mask: a segmentation mask with the 3rd dimension being :
-            1. labeled cell regions
-            2. labeled cells as well as labels of nuclear or membrane
-
-    """
-    pass
+    # for reference, we'll return all of the generated data from this function
+    return sample_channel_data, cell_regions, cell_centers
