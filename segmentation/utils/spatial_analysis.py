@@ -184,8 +184,7 @@ def calculate_cluster_spatial_enrichment(all_data, dist_mats, fovs=None,
 
 def create_neighborhood_matrix(all_data, dist_matrices, fov_list=None, distlim=50, fov_col="SampleID",
                                flowsom_col="FlowSOM_ID", cell_label_col="cellLabelInImage", cell_type_col="cell_type"):
-    """Calculates the number of neighbor phenotypes for each cell. The function counts each cell as one of its own
-    neighbors in this implementation.
+    """Calculates the number of neighbor phenotypes for each cell.
 
         Args:
             all_data: data for the all fovs in the form of a pandas DF, including the columns of SampleID (fovs),
@@ -236,8 +235,8 @@ def create_neighborhood_matrix(all_data, dist_matrices, fov_list=None, distlim=5
 
     for i in range(len(fov_list)):
         # Subsetting expression matrix to only include patients with correct label
-        patient_idx = all_data.iloc[:, 0] == fov_list[i]
-        fov_data = all_data[patient_idx]
+        fov_idx = all_data.iloc[:, 0] == fov_list[i]
+        fov_data = all_data[fov_idx]
 
         # Get the subset of phenotypes included in the current fov
         fov_pheno_titles = fov_data[cell_type_col].drop_duplicates()
