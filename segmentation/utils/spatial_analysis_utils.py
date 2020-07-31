@@ -273,16 +273,16 @@ def compute_neighbor_counts(fov_data, dist_matrix, distlim, self_neighbor=True,
         cell_count: current cell in analysis"""
 
     # remove non-cell2cell distances
-    cell_dist_mat = np.take(dist_matrix, fov_data[cell_label_col] - 1, 0)
-    cell_dist_mat = np.take(cell_dist_mat, fov_data[cell_label_col] - 1, 1)
+    # cell_dist_mat = np.take(dist_matrix, fov_data[cell_label_col] - 1, 0)
+    # cell_dist_mat = np.take(cell_dist_mat, fov_data[cell_label_col] - 1, 1)
 
     # binarize distance matrix
-    cell_dist_mat_bin = np.zeros(cell_dist_mat.shape)
-    cell_dist_mat_bin[cell_dist_mat < distlim] = 1
+    cell_dist_mat_bin = np.zeros(dist_matrix.shape)
+    cell_dist_mat_bin[dist_matrix < distlim] = 1
 
     # default is that cell counts itself as a matrix
     if not self_neighbor:
-        cell_dist_mat_bin[cell_dist_mat == 0] = 0
+        cell_dist_mat_bin[dist_matrix == 0] = 0
 
     # get num_neighbors for freqs
     num_neighbors = np.sum(cell_dist_mat_bin, axis=0)
