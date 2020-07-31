@@ -17,12 +17,14 @@ def visualize_z_scores(z, pheno_titles):
     sns.set(font_scale=.7)
     sns.clustermap(zplot, figsize=(8, 8), cmap="vlag")
 
+
 def swap_columns(df, c1, c2):
   df['temp'] = df[c1]
   df[c1] = df[c2]
   df[c2] = df['temp']
   df.drop(columns=['temp'], inplace=True)
   return df
+
 
 def getSortedDf(df, patient_col_name, population_col_name, isNormalized=False):
     ids = df[patient_col_name]
@@ -42,6 +44,7 @@ def getSortedDf(df, patient_col_name, population_col_name, isNormalized=False):
     df_stacked = df_stacked.reindex(pop_order, axis='columns')
 
     return df_stacked
+
 
 def visualize_patient_population_distribution(df, patient_col_name, population_col_name, color_map="jet"):
     """Plots the distribution of the population given by total count, direct count, and proportion
@@ -72,5 +75,4 @@ def visualize_patient_population_distribution(df, patient_col_name, population_c
     plt.xlabel("Patient ID")
     plt.ylabel("Population Proportion")
     plt.title("Distribution of Population Count Proportion in Patients")
-
-
+    
