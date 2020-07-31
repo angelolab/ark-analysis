@@ -94,8 +94,11 @@ def make_expression_matrix(enrichment_type):
         all_data.iloc[20:40, 32] = "Pheno2"
         all_data.iloc[80:100, 31] = 1
         all_data.iloc[80:100, 32] = "Pheno1"
+
         # Assign column names to columns not for markers (columns to be excluded)
         all_patient_data = all_data.rename(excluded_colnames, axis=1)
+
+        all_patient_data.loc[all_patient_data.iloc[:, 31] == 0, "cell_type"] = "Pheno3"
         return all_patient_data
     elif enrichment_type == "positive":
         all_data_pos = pd.DataFrame(np.zeros((160, 33)))
@@ -137,8 +140,11 @@ def make_expression_matrix(enrichment_type):
         all_data_pos.iloc[32:36, 32] = "Pheno2"
         all_data_pos.iloc[112:116, 31] = 1
         all_data_pos.iloc[112:116, 32] = "Pheno1"
+
         # Assign column names to columns not for markers (columns to be excluded)
         all_patient_data_pos = all_data_pos.rename(excluded_colnames, axis=1)
+
+        all_patient_data_pos.loc[all_patient_data_pos.iloc[:, 31] == 0, "cell_type"] = "Pheno3"
         return all_patient_data_pos
     elif enrichment_type == "negative":
         all_data_neg = pd.DataFrame(np.zeros((120, 33)))
@@ -165,8 +171,11 @@ def make_expression_matrix(enrichment_type):
         all_data_neg.iloc[20:40, 32] = "Pheno2"
         all_data_neg.iloc[80:100, 31] = 1
         all_data_neg.iloc[80:100, 32] = "Pheno1"
+
         # Assign column names to columns not for markers (columns to be excluded)
         all_patient_data_neg = all_data_neg.rename(excluded_colnames, axis=1)
+
+        all_patient_data_neg.loc[all_patient_data_neg.iloc[:, 31] == 0, "cell_type"] = "Pheno3"
         return all_patient_data_neg
 
 
@@ -300,7 +309,6 @@ def test_calculate_cluster_spatial_enrichment():
         spatial_analysis.calculate_cluster_spatial_enrichment(
             all_data_no_enrich, dist_mat_no_enrich,
             bootstrap_num=100, dist_lim=dist_lim)
-    # Test both Point8 and Point9
     # Extract the p-values and z-scores of the distance of marker 1 vs marker 2 for no enrichment
     # as tested against a random set of distances between centroids
     assert stats_no_enrich.loc["Point8", "p_pos", "Pheno1", "Pheno2"] > .05
@@ -310,3 +318,18 @@ def test_calculate_cluster_spatial_enrichment():
     assert stats_no_enrich.loc["Point8", "p_pos", "Pheno2", "Pheno1"] > .05
     assert stats_no_enrich.loc["Point8", "p_pos", "Pheno2", "Pheno1"] > .05
     assert abs(stats_no_enrich.loc["Point8", "z", "Pheno2", "Pheno1"]) < 2
+
+
+def test_create_neighborhood_matrix():
+    # get positive expression and distance matrices
+    all_data_pos = make_expression_matrix("positive")
+    dist_mat_pos = make_distance_matrix("positive", dist_lim=51)
+
+    counts, freqs = spatial_analysis.create_neighborhood_matrix(all_data_pos, dist_mat_pos, distlim=51)
+
+    # Test the counts values for both fovs
+    assert (counts.loc[:9, "Pheno2"] == 8).all()
+    assert (counts.loc[10:19, "Pheno3"] == 8).all()
+
+    assert (counts.loc[80:89, "Pheno3"] == 8).all()
+    assert (counts.loc[90:99, "Pheno1"] == 8).all()
