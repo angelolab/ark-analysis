@@ -200,8 +200,7 @@ def create_neighborhood_matrix(all_data, dist_matrices, fov_list=None, distlim=5
         Returns:
             cell_neighbor_counts: matrix with phenotype counts per cell
             cell_neighbor_freqs: matrix with phenotype frequencies of
-                counts per phenotype/total phenotypes for each cell
-            cell_count: current cell in analysis"""
+                counts per phenotype/total phenotypes for each cell"""
 
     # Setup input and parameters
     if fov_list is None:

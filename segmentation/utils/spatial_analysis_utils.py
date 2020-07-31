@@ -269,11 +269,11 @@ def compute_neighbor_counts(fov_data, dist_matrix, distlim, self_neighbor=True,
     Returns:
         counts: data array with phenotype counts per cell
         freqs: data array with phenotype frequencies of
-            counts per phenotype/total phenotypes for each cell
-        cell_count: current cell in analysis"""
+            counts per phenotype/total phenotypes for each cell"""
 
-    # TODO remove non-cell2cell lines after our own inputs for functions are created
-    # remove non-cell2cell distances
+    # TODO remove non-cell2cell lines (indices on the distance matrix not corresponding to cell labels)
+    #  after our own inputs for functions are created
+    # refine distance matrix to only cover cell labels in fov_data
     cell_dist_mat = np.take(dist_matrix, fov_data[cell_label_col] - 1, 0)
     cell_dist_mat = np.take(cell_dist_mat, fov_data[cell_label_col] - 1, 1)
 
