@@ -4,7 +4,10 @@ import pandas as pd
 import skimage.measure
 import scipy
 import os
+
 from scipy.spatial.distance import cdist
+from skimage.draw import circle
+
 from segmentation.utils import synthetic_spatial_datagen
 
 import importlib
@@ -114,7 +117,7 @@ def test_generate_two_cell_test_regions():
     size_img = (1024, 1024)
     radius = 10
 
-    sample_cell_regions, sample_cell_centers = synthetic_spatial_datagen.generate_test_two_test_cell_regions(
+    sample_cell_regions, sample_cell_centers = synthetic_spatial_datagen.generate_two_cell_test_regions(
         size_img=size_img, radius=radius)
     labels_regions = list(sample_cell_regions.keys())
     labels_centers = list(sample_cell_centers.keys())
@@ -162,7 +165,7 @@ def test_generate_two_cell_test_signal_data():
         cell_region=cell_regions[1], cell_centers=cell_centers[1])
 
     # assert that we only have positive values or 0 values in the array for nuclear expression
-    assert (sample_signal_data >= 0).all() == True
+    assert (sample_signal_data >= 0).all()
 
     # ditto for membrane expression/pattern
     expression = 'membrane'
@@ -172,7 +175,7 @@ def test_generate_two_cell_test_signal_data():
         size_img=size_img, radius=radius, expression=expression, pattern=pattern,
         cell_region=cell_regions[1], cell_centers=cell_centers[1])
 
-    assert (sample_signal_data >= 0).all() == True
+    assert (sample_signal_data >= 0).all()
 
 
 def test_generate_two_cell_test_channel_data():
@@ -183,7 +186,7 @@ def test_generate_two_cell_test_channel_data():
     size_img = (1024, 1024)
     radius = 10
 
-    sample_channel_data = synthetic_spatial_datagen.test_generate_two_cell_test_channel_data(
+    sample_channel_data = synthetic_spatial_datagen.generate_two_cell_test_channel_data(
         size_img=size_img, radius=radius)
 
     nuclear_channel_data = sample_channel_data[0, :, :]

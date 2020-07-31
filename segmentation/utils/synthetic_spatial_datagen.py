@@ -14,11 +14,6 @@ from skimage.measure import label
 from copy import deepcopy
 from skimage.draw import circle
 
-from segmentation.utils import signal_extraction
-
-import importlib
-importlib.reload(signal_extraction)
-
 
 def generate_test_dist_matrix(num_A=100, num_B=100, num_C=100,
                               distr_AB=(10, 1), distr_random=(200, 1),
@@ -233,7 +228,7 @@ def generate_test_label_map(size_img=(1024, 1024), num_A=100, num_B=100, num_C=1
     return sample_img_xr, centroid_indices
 
 
-def generate_two_cell_test_signal_data(size_img, radius, expression, 
+def generate_two_cell_test_signal_data(size_img, radius, expression,
                                        pattern, cell_region, cell_center):
     """
     This function generates the signal-level test data for a specified channel (nuclear and membrane)
@@ -248,7 +243,7 @@ def generate_two_cell_test_signal_data(size_img, radius, expression,
             to expression (nuclear or membrane)
         cell_region: the region covered by the cell we're processing
         cell_center: the center of the cell we're processing
-    
+
     Returns:
         channel_signal: a NumPy array with the generated signal according to the parameters provided
     """
@@ -270,12 +265,11 @@ def generate_two_cell_test_signal_data(size_img, radius, expression,
     # note that we multiply by -random() for the membrane case because the values
     # will initially be negative and it will help to make the values consistent
     if expression == "nuclear":
-        prob_mask = size_img[0] + size_img[1] - np.maximum(
-            np.abs(prob_mask_rows - cell_center_x),
-            np.abs(prob_mask_cols - cell_center_y)) * random()
+        prob_mask = size_img[0] + size_img[1] - np.maximum(np.abs(prob_mask_rows - cell_center_x),
+                                                           np.abs(prob_mask_cols - cell_center_y)) * random()
     else:
         prob_mask = np.maximum(np.abs(prob_mask_rows - cell_center_x),
-            np.abs(prob_mask_cols - cell_center_y)) - (size_img[0] + size_img[1]) * -random()
+                               np.abs(prob_mask_cols - cell_center_y)) - (size_img[0] + size_img[1]) * -random()
 
     # get the center value, we'll need this to center the mean around this value
     # to guarantee this gets the highest chance of being set as the highest
@@ -354,13 +348,13 @@ def generate_two_cell_test_channel_data(size_img=(1024, 1024), radius=10):
 
     # generate the nuclear- and membrane-level channel signal for each cell
     for i in range(2):
-        sample_channel_data[0, :, :] += generate_two_cell_signal_data(size_img=size_img, radius=radius,
-                                                                      expression='nuclear', pattern='nuclear', 
-                                                                      cell_region=cell_regions[i + 1], cell_center=cell_centers[i + 1])
+        sample_channel_data[0, :, :] += generate_two_cell_test_signal_data(size_img=size_img, radius=radius,
+                                                                           expression='nuclear', pattern='nuclear',
+                                                                           cell_region=cell_regions[i + 1], cell_center=cell_centers[i + 1])
 
-        sample_channel_data[1, :, :] += generate_two_cell_signal_data(size_img=size_img, radius=radius,
-                                                                      expression='membrane', pattern='membrane',
-                                                                      cell_region=cell_regions[i + 1], cell_center=cell_centers[i + 1])
+        sample_channel_data[1, :, :] += generate_two_cell_test_signal_data(size_img=size_img, radius=radius,
+                                                                           expression='membrane', pattern='membrane',
+                                                                           cell_region=cell_regions[i + 1], cell_center=cell_centers[i + 1])
 
     # for reference, we'll return all of the generated data from this function
     return sample_channel_data, cell_regions, cell_centers
