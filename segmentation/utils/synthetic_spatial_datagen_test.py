@@ -208,5 +208,10 @@ def test_generate_two_cell_test_channel_data():
     center_1 = (radius, radius)
     center_2 = (radius, radius * 3 + 1)
 
+    # print(nuclear_channel_data[:radius * 2 + 1, :radius * 2 + 1].round(decimals=2))
+    # print(membrane_channel_data[:radius * 2 + 1, :radius * 2 + 1].round(decimals=2))
+
     assert nuclear_channel_data[center_1[0], center_1[1]] > nuclear_channel_data[border_1[0], border_1[1]]
+    assert nuclear_channel_data[center_2[0], center_2[1]] > nuclear_channel_data[border_2[0], border_2[1]]
+    assert membrane_channel_data[center_1[0], center_1[1]] < membrane_channel_data[border_1[0], border_1[1]]
     assert membrane_channel_data[center_2[0], center_2[1]] < membrane_channel_data[border_2[0], border_2[1]]

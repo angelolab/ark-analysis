@@ -264,18 +264,18 @@ def generate_two_cell_test_signal_data(size_img, radius, expression,
     # from the center or the membrane
     # note that we multiply by -random() for the membrane case because the values
     # will initially be negative and it will help to make the values consistent
+    # also, we need to center the distribution around the center for nuclear
+    # but around an edge value for membrane
     if expression == "nuclear":
         prob_mask = size_img[0] + size_img[1] - np.maximum(np.abs(prob_mask_rows - cell_center_x),
                                                            np.abs(prob_mask_cols - cell_center_y)) * random()
+        center_value = prob_mask[cell_center_x, cell_center_y]
+        prob_mask = norm.pdf(prob_mask, center_value)
     else:
         prob_mask = np.maximum(np.abs(prob_mask_rows - cell_center_x),
                                np.abs(prob_mask_cols - cell_center_y)) - (size_img[0] + size_img[1]) * -random()
-
-    # get the center value, we'll need this to center the mean around this value
-    # to guarantee this gets the highest chance of being set as the highest
-    # as well as the values on the edge being set to the lowest
-    center_value = prob_mask[cell_center_x, cell_center_y]
-    prob_mask = norm.pdf(prob_mask, center_value)
+        edge_value = prob_mask[cell_center_x, cell_center_y - radius]
+        prob_mask = norm.pdf(prob_mask, edge_value)
 
     # extract only the coordinates defined by the cell region and set the prob mask accordingly
     signal_data[cell_region[0], cell_region[1]] = prob_mask[cell_region[0], cell_region[1]]
