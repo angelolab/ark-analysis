@@ -13,3 +13,5 @@ scripts/
 
 /build
 /dist
+
+!.templates/
