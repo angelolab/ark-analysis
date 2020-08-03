@@ -1,7 +1,7 @@
 #!/bin/bash
 if [ -d "$PWD/scripts" ]
 then
-  for f in "$PWD"/.templates/*.ipynb
+  for f in "$PWD"/templates/*.ipynb
   do
     name=$(basename "$f")
     DIFF=$(diff "$f" "$PWD/scripts/$name")
@@ -13,7 +13,7 @@ then
   done
 else
   mkdir "$PWD/scripts"
-  cp "$PWD"/.templates/*.ipynb "$PWD/scripts/."
+  cp "$PWD"/templates/*.ipynb "$PWD/scripts/."
 fi
 
 docker run -it \

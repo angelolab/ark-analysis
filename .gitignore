@@ -8,10 +8,9 @@ env
 
 .devcontainer/
 .scripts/
-scripts/
 .vscode/
+
+/scripts
 
 /build
 /dist
-
-!/.templates
