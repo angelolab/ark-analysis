@@ -4,7 +4,12 @@ then
   for f in "$PWD"/.templates/*.ipynb
   do
     name=$(basename "$f")
-    cp -- "$f" "$PWD/scripts/updated_$name"
+    DIFF=$(diff "$f" "$PWD/scripts/$name")
+    if [ "$DIFF" != "" ]
+    then
+      echo "Changes have been made to $name; adding updated version as updated_$name"
+      cp -- "$f" "$PWD/scripts/updated_$name"
+    fi
   done
 else
   mkdir "$PWD/scripts"
