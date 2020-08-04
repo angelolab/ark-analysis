@@ -11,7 +11,6 @@ RUN pip install -r /opt/segmentation/requirements.txt
 
 # copy the scripts over
 COPY segmentation /opt/segmentation/segmentation
-COPY scripts /scripts
 
 # Install the package via setup.py
 RUN pip install /opt/segmentation
