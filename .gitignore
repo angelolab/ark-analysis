@@ -10,5 +10,7 @@ env
 .scripts/
 .vscode/
 
+/scripts
+
 /build
 /dist
