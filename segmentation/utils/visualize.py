@@ -116,7 +116,7 @@ def visualize_dimensionality_reduction(cell_data, columns, category, color_map="
         plt.scatter(embedding[:, 0], embedding[:, 1], cmap='color_map',
                     c=sns.color_palette(color_map, n_colors=len(cell_data)))
         plt.gca().set_aspect('equal', 'datalim')
-        plt.title('UMAP projection of data', fontsize=24);
+        plt.title('UMAP projection of data', fontsize=24)
         plt.colorbar()
         plt.legend()
         plt.savefig(save_dir + "UmapVisualization.png")
