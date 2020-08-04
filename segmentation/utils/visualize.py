@@ -67,7 +67,7 @@ def visualize_patient_population_distribution(cell_data, patient_col_name, popul
         plt.title("Distribution of Population in all patients")
         plt.xlabel("Population Type")
         plt.ylabel("Population Count")
-        plt.savefig(save_dir+"TotalPopulationDistribution.png")
+        plt.savefig(save_dir + "TotalPopulationDistribution.png")
 
     # Plot by count
     if show_distribution:
@@ -76,7 +76,7 @@ def visualize_patient_population_distribution(cell_data, patient_col_name, popul
         plt.xlabel("Patient ID")
         plt.ylabel("Cell Count")
         plt.title("Distribution of Population Count in Patients")
-        plt.savefig(save_dir+"PopulationDistribution.png")
+        plt.savefig(save_dir + "PopulationDistribution.png")
 
     # Plot by Proportion
     if show_proportion:
@@ -87,4 +87,4 @@ def visualize_patient_population_distribution(cell_data, patient_col_name, popul
         plt.xlabel("Patient ID")
         plt.ylabel("Population Proportion")
         plt.title("Distribution of Population Count Proportion in Patients")
-        plt.savefig(save_dir+"PopulationProportion.png")
+        plt.savefig(save_dir + "PopulationProportion.png")
