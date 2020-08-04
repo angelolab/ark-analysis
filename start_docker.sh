@@ -5,7 +5,8 @@ then
   do
     name=$(basename "$f")
     DIFF=$(diff "$f" "$PWD/scripts/$name" 2>/dev/null)
-    if [ $? -ne 0 ]
+    DIFFEXIT=$?
+    if [ $DIFFEXIT -ne 0 ] && [ $DIFFEXIT -ne 1 ]
     then
       echo "$name was not found.  Creating new file $name in scripts"
       cp -- "$f" "$PWD/scripts/$name"
