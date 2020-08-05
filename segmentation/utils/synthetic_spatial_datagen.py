@@ -32,18 +32,18 @@ def generate_test_dist_matrix(num_A=100, num_B=100, num_C=100,
     Note that these distance matrices created are non-Euclidean.
 
     Args:
-        num_A: the number of A cells we wish to generate. Default 100
-        num_B: the number of B cells we wish to generate. Default 100
-        num_C: the number of C cells we wish to generate. Default 100
-        distr_AB: if specified, will be a tuple listing the mean and variance of the Gaussian distribution
+        num_A (int): the number of A cells we wish to generate. Default 100
+        num_B (int): the number of B cells we wish to generate. Default 100
+        num_C (int): the number of C cells we wish to generate. Default 100
+        distr_AB (tuple): if specified, will be a tuple listing the mean and variance of the Gaussian distribution
             we wish to generate numbers from. Default mean=10 and var=1
-        distr_random: similar to dist_AB, except it's what we set the distribution of
+        distr_random (tuple): similar to dist_AB, except it's what we set the distribution of
             all other distances to be. Default mean=200 and var=1
-        seed: whether to fix the random seed or not. Useful for testing.
+        seed (int): whether to fix the random seed or not. Useful for testing.
             Should be a specified integer value. Default None.
 
     Returns:
-        dist_mat: the randomized distance matrix we generate directly from predefined distributions
+        dist_mat (numpy): the randomized distance matrix we generate directly from predefined distributions
             where the average distances between cell types of a and b > average distances between
             cell types of b and c
     """
@@ -93,25 +93,25 @@ def generate_random_centroids(size_img=(1024, 1024), num_A=100, num_B=100, num_C
     Used as a helper function by generate_test_label_map.
 
     Args:
-        size_img: a tuple indicating the size of the image. Default 1024 x 1024
-        num_A: the number of A centroids to generate. Default 100.
-        num_B: the number of B centroids to generate. Default 100.
-        num_C: the number of C centroids to generate. Default 100.
+        size_img (tuple): a tuple indicating the size of the image. Default 1024 x 1024
+        num_A (int): the number of A centroids to generate. Default 100.
+        num_B (int): the number of B centroids to generate. Default 100.
+        num_C (int): the number of C centroids to generate. Default 100.
 
-        mean_A_factor: a tuple to determine which number to multiply the height and width by
+        mean_A_factor (tuple): a tuple to determine which number to multiply the height and width by
             to indicate the center (mean) of the distribution to generate A points.
             Will be randomly set to a predefined value if None.
-        cov_A: the covariance used to generate A poins in the format [[varXX, varXY], [varYX, varYY]].
+        cov_A (numpy): the covariance used to generate A poins in the format [[varXX, varXY], [varYX, varYY]].
             Will be randomly set to a predefined value if None.
-        mean_B_factor: similar to mean_A_factor
-        cov_B: similar to cov_A
-        mean_C_factor: similar to mean_A_factor
-        cov_C: similar to cov_A
-        seed: whether to fix the random seed or not. Useful for testing.
+        mean_B_factor (tuple): similar to mean_A_factor
+        cov_B (numpy): similar to cov_A
+        mean_C_factor (tuple): similar to mean_A_factor
+        cov_C (numpy): similar to cov_A
+        seed (int): whether to fix the random seed or not. Useful for testing.
             Should be a specified integer value. Default None.
 
     Returns:
-        total_points: a list of non-duplicated cell centroids.
+        total_points (list): a list of non-duplicated cell centroids.
     """
 
     # extract the height and width
@@ -166,24 +166,24 @@ def generate_test_label_map(size_img=(1024, 1024), num_A=100, num_B=100, num_C=1
     We will use a multivariate Gaussian distribution for A, B, and C type cells to generate their respective centers.
 
     Args:
-        size_img: a tuple indicating the size of the image. Default 1024 x 1024
-        num_A: the number of A centroids to generate. Default 100.
-        num_B: the number of B centroids to generate. Default 100.
-        num_C: the number of C centroids to generate. Default 100.
-        mean_A_factor: a tuple to determine which number to multiply the height and width by
+        size_img (tuple): a tuple indicating the size of the image. Default 1024 x 1024
+        num_A (int): the number of A centroids to generate. Default 100.
+        num_B (int): the number of B centroids to generate. Default 100.
+        num_C (int): the number of C centroids to generate. Default 100.
+        mean_A_factor (tuple): a tuple to determine which number to multiply the height and width by
             to indicate the center (mean) of the distribution to generate A points.
             Will be randomly set to a predefined value if None.
-        cov_A: the covariance used to generate A poins in the format [[varXX, varXY], [varYX, varYY]].
+        cov_A (numpy): the covariance used to generate A poins in the format [[varXX, varXY], [varYX, varYY]].
             Will be randomly set to a predefined value if None.
-        mean_B_factor: similar to mean_A_factor
-        cov_B: similar to cov_A
-        mean_C_factor: similar to mean_A_factor
-        cov_C: similar to cov_A
-        seed: whether to fix the random seed or not. Useful for testing.
+        mean_B_factor (tuple): similar to mean_A_factor
+        cov_B (numpy): similar to cov_A
+        mean_C_factor (tuple): similar to mean_A_factor
+        cov_C (numpy): similar to cov_A
+        seed (int): whether to fix the random seed or not. Useful for testing.
             Should be a specified integer value. Default None.
 
     Returns:
-        sample_img_xr: the data in xarray format containing the randomized label matrix
+        sample_img_xr (xarray): the data in xarray format containing the randomized label matrix
             based on the randomized centroid centers we generated. The label mat portion
             of sample_img_xr is generated from a randomly initialized set of cell centroids
             where those of type a are on average closer to those of type b than they
@@ -272,7 +272,7 @@ def generate_two_cell_ring_coords(size_img, center_1, center_2, outer_radius, in
 
 
 def generate_two_cell_ring_jitter_coords(size_img, ring_region_1, ring_region_2,
-                                         jitter_factor, jitter_multiplier):
+                                         jitter_factor, jitter_multiplier, seed):
     """
     This function generates the coordinates we need to set jittered signal for rings
     around the nucleus or membrane respectively
@@ -284,11 +284,15 @@ def generate_two_cell_ring_jitter_coords(size_img, ring_region_1, ring_region_2,
         jitter_factor (int): controls the amount of random noise we add to the cell
         jitter_multiplier (int): an additional jitter scatter to add more jitter the further away from
             the membrane or nucleus
+        seed (int): whether to set the random seed or not, useful for testing
 
     Returns:
         ring_region_1_jitter (tuple): a tuple with the x and y coordinates to assign jitter for the specified ring for cell 1
         ring_region_2_jitter (tuple): similar to ring_region_1_jitter for ring_region_2
     """
+
+    if seed:
+        np.random.seed(seed)
 
     # generate some jitter for each x and y coordinate
     # the way we do this is to generate random offset based on the jitter_factor multiplier
@@ -333,7 +337,7 @@ def generate_two_cell_ring_jitter_coords(size_img, ring_region_1, ring_region_2,
 
 def generate_two_cell_nuclear_test_signal_data(size_img, center_1, center_2, nuc_radius,
                                                cell_radius, jitter_factor, num_radii,
-                                               plot=False):
+                                               plot, seed):
     """
     This function generates sample nuclear-level channel signal data for two bordering cells.
 
@@ -347,6 +351,7 @@ def generate_two_cell_nuclear_test_signal_data(size_img, center_1, center_2, nuc
         num_radii (int): will define the number of ring partitions outside of the nucleus or membrane
             the further away the partition is from the nucleus or membrane the more noisy the signal is
         plot (bool): whether to show what was plotted in the function
+        seed (int): whether to set the random seed or not, useful for testing
 
     Returns:
         nuc_channel_data (numpy): a numpy array of dims size_img with the random nuclear-level channel signal data
@@ -379,7 +384,7 @@ def generate_two_cell_nuclear_test_signal_data(size_img, center_1, center_2, nuc
         ring_region_1_jitter, ring_region_2_jitter = \
             generate_two_cell_ring_jitter_coords(size_img=size_img, ring_region_1=ring_region_1,
                                                  ring_region_2=ring_region_2, jitter_factor=jitter_factor,
-                                                 jitter_multiplier=jitter_multiplier)
+                                                 jitter_multiplier=jitter_multiplier, seed=seed)
 
         # set each jitter region to 1
         nuc_channel_data[ring_region_1_jitter[0], ring_region_1_jitter[1]] = 1
@@ -398,7 +403,7 @@ def generate_two_cell_nuclear_test_signal_data(size_img, center_1, center_2, nuc
 
 def generate_two_cell_membrane_test_signal_data(size_img, center_1, center_2, memb_radius,
                                                 cell_radius, jitter_factor, num_radii,
-                                                plot=False):
+                                                plot, seed):
     """
     This function generates sample nuclear-level channel signal data for two bordering cells.
 
@@ -412,6 +417,7 @@ def generate_two_cell_membrane_test_signal_data(size_img, center_1, center_2, me
         num_radii (int): will define the number of ring partitions outside of the nucleus or membrane
             the further away the partition is from the nucleus or membrane the more noisy the signal is
         plot (bool): whether to show what was plotted in the function
+        seed (int): whether to set the random seed or not, useful for testing
 
     Returns:
         memb_channel_data (numpy): a numpy array of dims size_img with the random membrane-level channel signal data
@@ -433,7 +439,7 @@ def generate_two_cell_membrane_test_signal_data(size_img, center_1, center_2, me
     memb_ring_1_jitter, memb_ring_2_jitter = \
         generate_two_cell_ring_jitter_coords(size_img=size_img, ring_region_1=memb_ring_1,
                                              ring_region_2=memb_ring_2, jitter_factor=jitter_factor,
-                                             jitter_multiplier=1)
+                                             jitter_multiplier=1, seed=seed)
 
     # now set each jitter coordinate around the membrane to 1
     memb_channel_data[memb_ring_1_jitter[0], memb_ring_1_jitter[1]] = 1
@@ -455,7 +461,7 @@ def generate_two_cell_membrane_test_signal_data(size_img, center_1, center_2, me
         ring_region_1_jitter, ring_region_2_jitter = \
             generate_two_cell_ring_jitter_coords(size_img=size_img, ring_region_1=ring_region_1,
                                                  ring_region_2=ring_region_2, jitter_factor=jitter_factor,
-                                                 jitter_multiplier=jitter_multiplier)
+                                                 jitter_multiplier=jitter_multiplier, seed=seed)
 
         # set each jitter region to 1
         memb_channel_data[ring_region_1_jitter[0], ring_region_1_jitter[1]] = 1
@@ -473,7 +479,7 @@ def generate_two_cell_membrane_test_signal_data(size_img, center_1, center_2, me
 
 
 def generate_two_cell_test_signal_data(size_img=(1024, 1024), cell_radius=200, nuc_radius=35, memb_radius=20,
-                                       jitter_factor=5, num_radii=3):
+                                       jitter_factor=5, num_radii=3, seed=None):
     """
     This function generates test channel data assuming we're just generating two cells.
 
@@ -485,6 +491,8 @@ def generate_two_cell_test_signal_data(size_img=(1024, 1024), cell_radius=200, n
         jitter_factor (int): controls the amount of random noise we add to the cell
         num_radii (int): will define the number of ring partitions outside of the nucleus or membrane
             the further away the partition is from the nucleus or membrane the more noisy the signal is
+        seed (int): whether to fix the random seed or not, useful for testing
+
     Returns:
         sample_channel_data (numpy): a m x n x p array where m is the number of channels and (n x p)
             is the same as size_img. We'll have 2 channels: nuclear and membrane.
@@ -503,12 +511,12 @@ def generate_two_cell_test_signal_data(size_img=(1024, 1024), cell_radius=200, n
     sample_channel_data[0, :, :] = generate_two_cell_nuclear_test_signal_data(size_img=size_img, center_1=center_1,
                                                                               center_2=center_2, nuc_radius=nuc_radius,
                                                                               cell_radius=cell_radius, jitter_factor=jitter_factor,
-                                                                              num_radii=num_radii, plot=True)
+                                                                              num_radii=num_radii, plot=True, seed=seed)
 
     # generate the membrane-level channel data
     sample_channel_data[1, :, :] = generate_two_cell_membrane_test_signal_data(size_img=size_img, center_1=center_1,
                                                                                center_2=center_2, memb_radius=memb_radius,
                                                                                cell_radius=cell_radius, jitter_factor=jitter_factor,
-                                                                               num_radii=num_radii, plot=True)
+                                                                               num_radii=num_radii, plot=True, seed=seed)
 
     return sample_channel_data
