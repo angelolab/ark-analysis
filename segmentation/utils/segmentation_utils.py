@@ -16,7 +16,112 @@ from skimage.segmentation import relabel_sequential
 import skimage.io as io
 
 
-from segmentation.utils import plot_utils, signal_extraction
+from segmentation.utils import data_utils, plot_utils, signal_extraction
+
+
+def compute_complete_expression_matrices(segmentation_labels, base_dir=None, tiff_dir=None,
+                                         img_sub_folder="TIFs", is_mibitiff=False, mibitiff_suffix=None,
+                                         points=None, batch_size=5):
+    """
+    This function takes the segmented data and computes the expression matrices batch-wise
+    while also validating inputs
+
+    Inputs:
+        base_dir (str): the "master" directory, contains all of the data including the input
+        tiff_dir (str): the name of the directory which contains the single_channel_inputs,
+            technically can be accessed from base_dir but easier to make its own separate arg
+        img_sub_folder (str): the name of the folder where the TIF images are located
+        points (list): a list of points we wish to analyze, if None will default to all points
+        is_mibitiff (bool): a flag to indicate whether or not the base images are MIBItiffs
+        mibitiff_suffix (str): if is_mibitiff is true, then needs to be specified to select
+            which points to load from mibitiff
+        segmentation_labels (xarray): an xarray with the segmented data
+        batch_size (int): how large we want each of the batches of points to be when computing,
+            adjust as necessary for speed and memory considerations
+
+    Returns:
+        combined_normalized_data (pandas): a DataFrame containing the data with the size_norm transformation
+        combined_transformed_data (pandas): a DataFrame containing the data with the arcsinh transformation
+    """
+
+    if not base_dir:
+        raise ValueError("base_dir not specified")
+
+    if not tiff_dir:
+        raise ValueError("tiff_dir not specified")
+
+    # if no points are specified, then load all the points
+    if not points:
+        # if MIBItiff, only look at the points with the desired suffix...
+        if is_mibitiff:
+            # ...but of course, check if that suffix has been defined first
+            if not mibitiff_suffix:
+                raise ValueError("No mibitiff_suffix specified: please do so if loading from MIBItiff")
+
+            points = [point for point in points if point.endswith(MIBItiff_suffix)]
+        else:
+            # load channel data
+            all_points = os.listdir(tiff_dir)
+            all_points = [point for point in all_points if os.path.isdir(os.path.join(tiff_dir, point))]
+        points = all_points
+
+    # sort the points
+    points.sort()
+
+    # specify the path to the single_cell_output folder, and create it if it doesn't already exist
+    single_cell_dir = os.path.join(base_dir, "single_cell_output")
+    if not os.path.exists(single_cell_dir):
+        os.makedirs(single_cell_dir)
+
+    # defined some vars for batch processing
+    cohort_len = len(points)
+    num_batch = int(np.floor(cohort_len / batch_size))
+
+    # create the final dfs to store the processed data
+    combined_normalized_data = pd.DataFrame()
+    combined_transformed_data = pd.DataFrame()
+
+    # iterate over all the batches
+    for i in range(num_batch):
+        # extract only the points we need for the current batch
+        current_points = points[i * batch_size:(i + 1) * batch_size]
+
+        # assert that all the current_points specified appear as fovs in segmentation_labels
+        # we need this check because otherwise load_imgs_from_tree will fail when we try to
+        # validate the paths because they would not exist to start off with
+        if not np.all(np.in1d(np.array(current_points), segmentation_labels['fovs'].values)):
+            raise ValueError("Invalid point values specified: point and fov values do not match up")
+
+        # and extract the image data corresponding to each of those points
+        image_data = data_utils.load_imgs_from_tree(data_dir=tiff_dir, img_sub_folder=img_sub_folder, fovs=current_points)
+
+        # as well as the labels corresponding to each of them
+        current_labels = segmentation_labels.loc[current_points, :, :, :]
+
+        # segment the imaging data
+        normalized_data, transformed_data = generate_expression_matrix(segmentation_labels=current_labels, image_data=image_data)
+
+        # now append to the final dfs to return
+        combined_normalized_data = combined_normalized_data.append(normalized_data)
+        combined_transformed_data = combined_transformed_data.append(transformed_data)
+
+    # if batch did not divide evenly into total, process remainder
+    if cohort_len % batch_size != 0:
+        current_points = points[num_batch * batch_size:]
+
+        if not np.all(np.in1d(np.array(current_points), segmentation_labels['fovs'].values)):
+            raise ValueError("Invalid point values specified: point and fov values do not match up")
+
+        image_data = data_utils.load_imgs_from_tree(data_dir=tiff_dir, img_sub_folder=img_sub_folder, fovs=current_points)
+
+        current_labels = segmentation_labels.loc[current_points, :, :, :]
+
+        normalized_data, transformed_data = generate_expression_matrix(segmentation_labels=current_labels, image_data=image_data)
+
+        combined_normalized_data = combined_normalized_data.append(normalized_data)
+        combined_transformed_data = combined_transformed_data.append(transformed_data)
+
+    return combined_normalized_data, combined_transformed_data
 
 
 def watershed_transform(model_output, channel_xr, overlay_channels, output_dir, fovs=None,
@@ -26,20 +131,20 @@ def watershed_transform(model_output, channel_xr, overlay_channels, output_dir, 
                         save_tifs='overlays'):
     """Runs the watershed transform over a set of probability masks output by deepcell network
     Inputs:
-        model_output: xarray containing the different branch outputs from deepcell
-        channel_xr: xarray containing TIFs
-        output_dir: path to directory where the output will be saved
-        interior_model: Name of model to use to identify maxs in the image
-        interior_threshold: threshold to cut off interior predictions
-        interior_smooth: value to smooth the interior predictions
-        maxima_model: Name of the model to use to predict maxes in the image
-        maxima_smooth: value to smooth the maxima predictions
-        maxima_threshold: threshold to cut off maxima predictions
-        nuclear_expansion: optional pixel value by which to expand cells if
+        model_output (xarray): xarray containing the different branch outputs from deepcell
+        channel_xr (xarray): xarray containing TIFs
+        output_dir (str): path to directory where the output will be saved
+        interior_model (str): Name of model to use to identify maxs in the image
+        interior_threshold (float): threshold to cut off interior predictions
+        interior_smooth (int): value to smooth the interior predictions
+        maxima_model (str): Name of the model to use to predict maxes in the image
+        maxima_smooth (int): value to smooth the maxima predictions
+        maxima_threshold (float): threshold to cut off maxima predictions
+        nuclear_expansion (int): optional pixel value by which to expand cells if
             doing nuclear segmentation
-        randomize_labels: if true, will randomize the order of the labels put out
+        randomize_labels (bool): if true, will randomize the order of the labels put out
             by watershed for easier visualization
-        save_tifs: flag to control what level of output to save. Must be one of:
+        save_tifs (str): flag to control what level of output to save. Must be one of:
             all - saves all tifs
             overlays - saves color overlays and segmentation masks
             none - does not save any tifs
