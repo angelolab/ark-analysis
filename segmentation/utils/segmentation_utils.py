@@ -68,11 +68,6 @@ def compute_complete_expression_matrices(segmentation_labels, base_dir=None, tif
     # sort the points
     points.sort()
 
-    # specify the path to the single_cell_output folder, and create it if it doesn't already exist
-    single_cell_dir = os.path.join(base_dir, "single_cell_output")
-    if not os.path.exists(single_cell_dir):
-        os.makedirs(single_cell_dir)
-
     # defined some vars for batch processing
     cohort_len = len(points)
     num_batch = int(np.floor(cohort_len / batch_size))
