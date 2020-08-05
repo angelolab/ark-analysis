@@ -311,7 +311,6 @@ def generate_two_cell_ring_jitter_coords(size_img, ring_region_1, ring_region_2,
     ring_region_2_x_jitter_coords = ring_region_2_x_jitter[ring_region_2_jitter_indices]
     ring_region_2_y_jitter_coords = ring_region_2_y_jitter[ring_region_2_jitter_indices]
 
-
     # add an additional random point removal for clearer results
     # might be a bit overkill but it definitely did help
     # over trying to fine tune jitter factor and what not
