@@ -65,23 +65,23 @@ def _create_test_extraction_data():
 def test_compute_complete_expression_matrices():
     # tests that we throw an error if the base_dir is not specified
     with pytest.raises(ValueError):
-        segmentation_utils.test_compute_complete_expression_matrices(
+        segmentation_utils.compute_complete_expression_matrices(
             segmentation_labels=None, base_dir=None)
 
     # same with the tiff_dir...
     with pytest.raises(ValueError):
-        segmentation_utils.test_compute_complete_expression_matrices(
+        segmentation_utils.compute_complete_expression_matrices(
             segmentation_labels=None, base_dir="path/to/base/dir", tiff_dir=None)
 
     # ...and the img_sub_folder...
     with pytest.raises(ValueError):
-        segmentation_utils.test_compute_complete_expression_matrices(
+        segmentation_utils.compute_complete_expression_matrices(
             segmentation_labels=None, base_dir="path/to/base/dir", tiff_dir="path/to/tiff/dir",
             img_sub_folder=None)
 
     # if is_mibitiff is set, assert that an error is thrown if mibitiff_suffix is also not set
     with pytest.raises(ValueError):
-        segmentation_utils.test_compute_complete_expression_matrices(
+        segmentation_utils.compute_complete_expression_matrices(
             segmentation_labels=None, base_dir="path/to/base/dir", tiff_dir="path/to/tiff/dir",
             img_sub_folder="path/to/img/sub/folder", is_mibitiff=True, mibitiff_suffix=None)
 
@@ -96,7 +96,7 @@ def test_compute_complete_expression_matrices():
                                                   ["whole_cell"]],
                                           dims=["fovs", "rows", "cols", "compartments"])
 
-        segmentation_utils.test_compute_complete_expression_matrices(
+        segmentation_utils.compute_complete_expression_matrices(
             segmentation_labels=segmentation_masks, base_dir="path/to/base/dir", tiff_dir="path/to/tiff/dir",
             img_sub_folder="path/to/img/sub/folder", is_mibitiff=False, mibitiff_suffix=None,
             points=["Point1", "Point2"], batch_size=5)
