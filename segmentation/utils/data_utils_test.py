@@ -44,7 +44,7 @@ def _create_img_dir(temp_dir, fovs, imgs, img_sub_folder="TIFs", dtype="int8"):
 def test_validate_paths():
 
     # change cwd to /scripts for more accurate testing
-    os.chdir('scripts')
+    os.chdir('templates')
 
     # make a tempdir for testing
     with tempfile.TemporaryDirectory(dir='../data') as valid_path:
