@@ -5,7 +5,7 @@ import skimage.measure
 import scipy
 import os
 import xarray as xr
-import  matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 
 from random import seed
 from random import random
@@ -293,10 +293,10 @@ def generate_two_cell_ring_jitter_coords(size_img, ring_region_1, ring_region_2,
     # generate some jitter for each x and y coordinate
     # the way we do this is to generate random offset based on the jitter_factor multiplier
     # and sampling from a uniform distribution with an additional jitter_factor and jitter_multiplier multiplier
-    ring_region_1_x_jitter = (ring_region_1[0] + jitter_factor * np.around(np.random.uniform(-jitter_factor * jitter_multiplier, jitter_factor * jitter_multiplier, len(ring_region_1[0])))).astype(np.int16)
-    ring_region_1_y_jitter = (ring_region_1[1] + jitter_factor * np.around(np.random.uniform(-jitter_factor * jitter_multiplier, jitter_factor * jitter_multiplier, len(ring_region_1[1])))).astype(np.int16)
-    ring_region_2_x_jitter = (ring_region_2[0] + jitter_factor * np.around(np.random.uniform(-jitter_factor * jitter_multiplier, jitter_factor * jitter_multiplier, len(ring_region_2[0])))).astype(np.int16)
-    ring_region_2_y_jitter = (ring_region_2[1] + jitter_factor * np.around(np.random.uniform(-jitter_factor * jitter_multiplier, jitter_factor * jitter_multiplier, len(ring_region_2[1])))).astype(np.int16)
+    ring_region_1_x_jitter = (ring_region_1[0] + np.around(np.random.uniform(-jitter_factor * jitter_multiplier, jitter_factor * jitter_multiplier, len(ring_region_1[0])))).astype(np.int16)
+    ring_region_1_y_jitter = (ring_region_1[1] + np.around(np.random.uniform(-jitter_factor * jitter_multiplier, jitter_factor * jitter_multiplier, len(ring_region_1[1])))).astype(np.int16)
+    ring_region_2_x_jitter = (ring_region_2[0] + np.around(np.random.uniform(-jitter_factor * jitter_multiplier, jitter_factor * jitter_multiplier, len(ring_region_2[0])))).astype(np.int16)
+    ring_region_2_y_jitter = (ring_region_2[1] + np.around(np.random.uniform(-jitter_factor * jitter_multiplier, jitter_factor * jitter_multiplier, len(ring_region_2[1])))).astype(np.int16)
 
     # now ensure the jitter coordinates don't fall out of bounds
     # this we need to do because the offsets could fall out of bounds
@@ -311,6 +311,20 @@ def generate_two_cell_ring_jitter_coords(size_img, ring_region_1, ring_region_2,
     ring_region_2_x_jitter_coords = ring_region_2_x_jitter[ring_region_2_jitter_indices]
     ring_region_2_y_jitter_coords = ring_region_2_y_jitter[ring_region_2_jitter_indices]
 
+
+    # add an additional random point removal for clearer results
+    # might be a bit overkill but it definitely did help
+    # over trying to fine tune jitter factor and what not
+    # number of points to keep is inversely proportional to
+    # how far away the ring is from the nucleus or membrane respectively
+    ring_region_1_selection = np.random.choice(len(ring_region_1_x_jitter_coords), int(len(ring_region_1_x_jitter_coords) / jitter_multiplier))
+    ring_region_2_selection = np.random.choice(len(ring_region_2_x_jitter_coords), int(len(ring_region_2_x_jitter_coords) / jitter_multiplier))
+
+    ring_region_1_x_jitter_coords = ring_region_1_x_jitter_coords[ring_region_1_selection]
+    ring_region_1_y_jitter_coords = ring_region_1_y_jitter_coords[ring_region_1_selection]
+    ring_region_2_x_jitter_coords = ring_region_2_x_jitter_coords[ring_region_2_selection]
+    ring_region_2_y_jitter_coords = ring_region_2_y_jitter_coords[ring_region_2_selection]
+
     # create a tuple for the x and y coordinates for each cell ring
     ring_region_1_jitter = (ring_region_1_x_jitter_coords, ring_region_1_y_jitter_coords)
     ring_region_2_jitter = (ring_region_2_x_jitter_coords, ring_region_2_y_jitter_coords)
@@ -318,7 +332,7 @@ def generate_two_cell_ring_jitter_coords(size_img, ring_region_1, ring_region_2,
     return ring_region_1_jitter, ring_region_2_jitter
 
 
-def generate_two_cell_nuclear_test_signal_data(size_img, center_1, center_2, nuc_radius, 
+def generate_two_cell_nuclear_test_signal_data(size_img, center_1, center_2, nuc_radius,
                                                cell_radius, jitter_factor, num_radii,
                                                plot=False):
     """
@@ -436,11 +450,11 @@ def generate_two_cell_membrane_test_signal_data(size_img, center_1, center_2, me
         # generate each ring region based on the radii list
         ring_region_1, ring_region_2 = \
             generate_two_cell_ring_coords(size_img=size_img, center_1=center_1, center_2=center_2,
-                                          outer_radius=radii[r - 1], inner_radius = radii[r])
+                                          outer_radius=radii[r - 1], inner_radius=radii[r])
 
         # now add some jitter to each ring region
         ring_region_1_jitter, ring_region_2_jitter = \
-            generate_two_cell_ring_jitter_coords(size_img=size_img, ring_region_1=ring_region_1, 
+            generate_two_cell_ring_jitter_coords(size_img=size_img, ring_region_1=ring_region_1,
                                                  ring_region_2=ring_region_2, jitter_factor=jitter_factor,
                                                  jitter_multiplier=jitter_multiplier)
 
@@ -459,7 +473,7 @@ def generate_two_cell_membrane_test_signal_data(size_img, center_1, center_2, me
     return memb_channel_data
 
 
-def generate_two_cell_test_signal_data(size_img=(1024, 1024), cell_radius=20, nuc_radius=5, memb_radius=5,
+def generate_two_cell_test_signal_data(size_img=(1024, 1024), cell_radius=200, nuc_radius=35, memb_radius=20,
                                        jitter_factor=5, num_radii=3):
     """
     This function generates test channel data assuming we're just generating two cells.
@@ -483,19 +497,19 @@ def generate_two_cell_test_signal_data(size_img=(1024, 1024), cell_radius=20, nu
     # place the centers in the middle of the image
     # we don't have to worry about out-of-range coordinates because
     # the functions to draw the cells have built in protection
-    center_1 = (size_img[0] / 2, size_img[0] / 2)
-    center_2 = (size_img[0] / 2, size_img[0] / 2 + cell_radius * 2)
+    center_1 = (int(size_img[0] / 2), int(size_img[0] / 2))
+    center_2 = (int(size_img[0] / 2), int(size_img[0] / 2 + cell_radius * 2))
 
     # generate the nuclear-level channel data
     sample_channel_data[0, :, :] = generate_two_cell_nuclear_test_signal_data(size_img=size_img, center_1=center_1,
                                                                               center_2=center_2, nuc_radius=nuc_radius,
                                                                               cell_radius=cell_radius, jitter_factor=jitter_factor,
-                                                                              plot=True)
+                                                                              num_radii=num_radii, plot=True)
 
     # generate the membrane-level channel data
     sample_channel_data[1, :, :] = generate_two_cell_membrane_test_signal_data(size_img=size_img, center_1=center_1,
                                                                                center_2=center_2, memb_radius=memb_radius,
                                                                                cell_radius=cell_radius, jitter_factor=jitter_factor,
-                                                                               plot=True)
+                                                                               num_radii=num_radii, plot=True)
 
     return sample_channel_data
