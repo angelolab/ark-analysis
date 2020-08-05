@@ -323,12 +323,12 @@ def combine_segmentation_masks(big_mask_xr, small_mask_xr, size_threshold,
     and combines them together to produce a single unified mask
 
     Inputs
-        big_mask_xr: xarray optimized for large cells
-        small_mask_xr: xarray optimized for small cells
-        size_threshold: pixel cutoff for large mask, under which cells will be removed
-        output_dir: name of directory to save results
-        input_xr: xarray containing channels for overlay
-        overlay_channels: channels to overlay segmentation output over"""
+        big_mask_xr (xarray): xarray optimized for large cells
+        small_mask_xr (xarray): xarray optimized for small cells
+        size_threshold (int): pixel cutoff for large mask, under which cells will be removed
+        output_dir (str): name of directory to save results
+        input_xr (xarray): xarray containing channels for overlay
+        overlay_channels (list): channels to overlay segmentation output over"""
 
     # loop through all masks in large xarray
     for point in range(big_mask_xr.shape[0]):
@@ -385,11 +385,11 @@ def find_nuclear_mask_id(nuc_segmentation_mask, cell_coords):
     """Get the ID of the nuclear mask which has the greatest amount of overlap with a given cell
 
     Args:
-        nuc_segmentation_mask: label mask of nuclear segmentations
-        cell_coords: list of coords specifying pixels that belong to a cell
+        nuc_segmentation_mask (numpy): label mask of nuclear segmentations
+        cell_coords (list): list of coords specifying pixels that belong to a cell
 
     Returns:
-        nuclear_mask_id: ID of the nuclear mask that overlaps most with cell. If not matches found,
+        nuclear_mask_id (int): ID of the nuclear mask that overlaps most with cell. If not matches found,
             returns None.
     """
 
@@ -408,12 +408,12 @@ def transform_expression_matrix(cell_data, transform, transform_kwargs=None):
     """Transform an xarray of marker counts with supplied transformation
 
     Args:
-        cell_data: xarray containing marker expression values
-        transform: the type of transform to apply. Must be one of ['size_norm', 'arcsinh']
-        transform_kwargs: optional dictionary with additional settings for the transforms
+        cell_data (xarray): xarray containing marker expression values
+        transform (str): the type of transform to apply. Must be one of ['size_norm', 'arcsinh']
+        transform_kwargs (dict): optional dictionary with additional settings for the transforms
 
     Returns:
-        cell_data_norm: counts per marker normalized by cell size
+        cell_data_norm (xarray): counts per marker normalized by cell size
     """
     valid_transforms = ['size_norm', 'arcsinh']
 
@@ -464,10 +464,10 @@ def compute_marker_counts(input_images, segmentation_masks, nuclear_counts=False
         Args:
             input_images (xarray): rows x columns x channels matrix of imaging data
             segmentation_masks (numpy array): rows x columns x compartment matrix of masks
-            nuclear_counts: boolean flag to determine whether nuclear counts are returned
+            nuclear_counts (bool): boolean flag to determine whether nuclear counts are returned
 
         Returns:
-            marker_counts: xarray containing segmented data of cells x markers
+            marker_counts (xarray): xarray containing segmented data of cells x markers
     """
 
     unique_cell_num = len(np.unique(segmentation_masks.values).astype('int'))
@@ -554,14 +554,14 @@ def generate_expression_matrix(segmentation_labels, image_data, nuclear_counts=F
     """Create a matrix of cells by channels with the total counts of each marker in each cell.
 
     Args:
-        segmentation_labels: xarray of shape [fovs, rows, cols, compartment] containing
+        segmentation_labels (xarray): xarray of shape [fovs, rows, cols, compartment] containing
             segmentation masks for each FOV, potentially across multiple cell compartments
-        image_data: xarray containing all of the channel data across all FOVs
-        nuclear_counts: boolean flag to determine whether nuclear counts are returned
+        image_data (xarray): xarray containing all of the channel data across all FOVs
+        nuclear_counts (bool): boolean flag to determine whether nuclear counts are returned
 
     Returns:
-        pd.DataFrame: marker counts per cell normalized by cell size
-        pd.DataFrame: marker counts per cell normalized by cell size and arcsinh transformed
+        normalized_data (pandas): marker counts per cell normalized by cell size
+        arcsinh_data (pandas): marker counts per cell normalized by cell size and arcsinh transformed
     """
     if type(segmentation_labels) is not xr.DataArray:
         raise ValueError("Incorrect data type for segmentation_labels, expecting xarray")
@@ -637,10 +637,10 @@ def concatenate_csv(base_dir, csv_files, column_name="point", column_values=None
     adding in the identifier in column_values
 
     Inputs:
-        base_dir: directory to read and write csv_files into
-        csv_files: a list csv files
-        column_name: optional column name, defaults to point
-        column_values: optional values to use for each CSV, defaults to csv name
+        base_dir (str): directory to read and write csv_files into
+        csv_files (list): a list csv files
+        column_name (str): optional column name, defaults to point
+        column_values (list): optional values to use for each CSV, defaults to csv name
 
     Outputs: saved combined csv into same folder"""
 
