@@ -50,6 +50,9 @@ def compute_complete_expression_matrices(segmentation_labels, base_dir=None, tif
     if not tiff_dir:
         raise ValueError("tiff_dir not specified")
 
+    if not img_sub_folder:
+        raise ValueError("img_sub_folder not specified")
+
     # if no points are specified, then load all the points
     if not points:
         # if MIBItiff, only look at the points with the desired suffix...
