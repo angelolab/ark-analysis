@@ -20,7 +20,7 @@ def test_visualize_z_scores():
 
 def test_get_sort_data():
     rand_type = random.choices(string.ascii_lowercase, k=100)
-    ids = random.choices(range(1,10), k=100)
+    ids = random.choices(range(1, 10), k=100)
     random_data = pd.DataFrame.from_dict({"PatientID": ids, "cell_type": rand_type})
     print("Before sorting")
     print(random_data)
@@ -31,10 +31,8 @@ def test_get_sort_data():
 
 def test_visualize_cells():
     rand_type = random.choices(string.ascii_lowercase, k=100)
-    ids = random.choices(range(1,3), k=100)
-
-    rand_dict = {"PatientID": ids, "cell_type": rand_type}
-    df = pd.DataFrame.from_dict(rand_dict)
+    ids = random.choices(range(1, 3), k=100)
+    df = pd.DataFrame.from_dict({"PatientID": ids, "cell_type": rand_type})
     visualize.visualize_patient_population_distribution(df, "PatientID", "cell_type", save_dir="")
 
     # Check if correct plots are saved

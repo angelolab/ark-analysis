@@ -34,8 +34,10 @@ def get_sorted_data(cell_data, patient_col_name, population_col_name, is_normali
         cell_data_stacked = pd.crosstab(cell_data[patient_col_name], cell_data[population_col_name])
 
     # Sorts by Kagel Method
-    id_order = cell_data.groupby(patient_col_name).count().sort_values(by=population_col_name, ascending=False).index.values
-    pop_order = cell_data.groupby(population_col_name).count().sort_values(by=patient_col_name, ascending=False).index.values
+    id_order = cell_data.groupby(patient_col_name).count().sort_values(by=population_col_name,
+                                                                       ascending=False).index.values
+    pop_order = cell_data.groupby(population_col_name).count().sort_values(by=patient_col_name,
+                                                                           ascending=False).index.values
     cell_data_stacked = cell_data_stacked.reindex(id_order, axis='index')
     cell_data_stacked = cell_data_stacked.reindex(pop_order, axis='columns')
 
@@ -43,7 +45,8 @@ def get_sorted_data(cell_data, patient_col_name, population_col_name, is_normali
 
 
 def visualize_patient_population_distribution(cell_data, patient_col_name, population_col_name, color_map="jet",
-                                              show_total_count=True, show_distribution=True, show_proportion=True, save_dir=None):
+                                              show_total_count=True, show_distribution=True, show_proportion=True,
+                                              save_dir=None):
     """Plots the distribution of the population given by total count, direct count, and proportion
               Args:
                   cell_data (pd df): Dataframe containing columns with Patient ID and Cell Name
@@ -64,7 +67,7 @@ def visualize_patient_population_distribution(cell_data, patient_col_name, popul
         plt.xlabel("Population Type")
         plt.ylabel("Population Count")
         if save_dir is not None:
-          plt.savefig(save_dir+"TotalPopulationDistribution.png")
+            plt.savefig(save_dir + "TotalPopulationDistribution.png")
 
     # Plot by count
     if show_distribution:
@@ -74,7 +77,7 @@ def visualize_patient_population_distribution(cell_data, patient_col_name, popul
         plt.ylabel("Cell Count")
         plt.title("Distribution of Population Count in Patients")
         if save_dir is not None:
-          plt.savefig(save_dir+"PopulationDistribution.png")
+            plt.savefig(save_dir + "PopulationDistribution.png")
 
     # Plot by Proportion
     if show_proportion:
@@ -86,4 +89,4 @@ def visualize_patient_population_distribution(cell_data, patient_col_name, popul
         plt.ylabel("Population Proportion")
         plt.title("Distribution of Population Count Proportion in Patients")
         if save_dir is not None:
-          plt.savefig(save_dir+"PopulationProportion.png")
+            plt.savefig(save_dir + "PopulationProportion.png")
