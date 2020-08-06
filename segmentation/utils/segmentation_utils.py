@@ -60,7 +60,7 @@ def compute_complete_expression_matrices(segmentation_labels, base_dir, tiff_dir
         # that are covered by the set of points because the mibitiff function requires the file names
         # and the extensions may be either .tif or .tiff
         if is_mibitiff:
-            all_points = [mt_file for mt_file in os.listdir(tiff_dir) if mt_file.split(".")[1] in ["tif", "tiff"] and 
+            all_points = [mt_file for mt_file in os.listdir(tiff_dir) if mt_file.split(".")[1] in ["tif", "tiff"] and
                           mt_file.startswith(tuple(points))]
 
     # sort the points
