@@ -21,12 +21,12 @@ def visualize_z_scores(z, pheno_titles):
 def get_sorted_data(cell_data, patient_col_name, population_col_name, is_normalized=False):
     """Gets the cell data and generates a new Sorted DataFrame with each row representing a patient and column representing Population categories
                   Args:
-                      cell_data: Pandas Dataframe containing columns with Patient ID and Cell Name
-                      patient_col_name: Name of column containing categorical Patient data
-                      population_col_name: Name of column in dataframe containing categorical Population data
-                      is_normalized: Boolean specifying whether to normalize cell counts or not, default is False
+                      cell_data (pd df): Dataframe containing columns with Patient ID and Cell Name
+                      patient_col_name (str): Name of column containing categorical Patient data
+                      population_col_name (str): Name of column in dataframe containing categorical Population data
+                      is_normalized (bool): Boolean specifying whether to normalize cell counts or not, default is False
                   Outputs:
-                      cell_data_stacked: DataFrame with rows and columns sorted by population"""
+                      cell_data_stacked (pd df): DataFrame with rows and columns sorted by population"""
     cell_data_stacked = pd.DataFrame()
     if is_normalized:
         cell_data_stacked = pd.crosstab(cell_data[patient_col_name], cell_data[population_col_name], normalize='index')
@@ -46,14 +46,14 @@ def visualize_patient_population_distribution(cell_data, patient_col_name, popul
                                               show_total_count=True, show_distribution=True, show_proportion=True, save_dir=None):
     """Plots the distribution of the population given by total count, direct count, and proportion
               Args:
-                  cell_data: Pandas Dataframe containing columns with Patient ID and Cell Name
-                  patient_col_name: Name of column containing categorical Patient data
-                  population_col_name: Name of column in dataframe containing categorical Population data
-                  color_map: Name of MatPlotLib ColorMap used, default is jet
-                  show_total_count: Boolean specifying whether to show graph of total population count, default is true
-                  show_distribution: Boolean specifying whether to show graph of population distribution, default is true
-                  show_proportion: Boolean specifying whether to show graph of total count, default is true
-                  save_dir: Directory to save plots, default is blank"""
+                  cell_data (pd df): Dataframe containing columns with Patient ID and Cell Name
+                  patient_col_name (str): Name of column containing categorical Patient data
+                  population_col_name (str): Name of column in dataframe containing categorical Population data
+                  color_map (str): Name of MatPlotLib ColorMap used, default is jet
+                  show_total_count (bool): Boolean specifying whether to show graph of total population count, default is true
+                  show_distribution (bool): Boolean specifying whether to show graph of population distribution, default is true
+                  show_proportion (bool): Boolean specifying whether to show graph of total count, default is true
+                  save_dir (str): Directory to save plots, default is blank"""
     cell_data = cell_data.dropna()
 
     # Plot by total count
