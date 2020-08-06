@@ -49,8 +49,8 @@ def compute_complete_expression_matrices(segmentation_labels, base_dir, tiff_dir
         # defined for mibitiff loading, we'll assume uniqueness for now but in the future we can address
         # different mibitiff loading techniques
         if is_mibitiff:
-            all_points = [mt_file for mt_file in os.listdir(tiff_dir)if mt_file.split(".")[1] in ["tif", "tiff"]]
-            points = [point.split(".")[1] for point in all_points]
+            all_points = [mt_file for mt_file in os.listdir(tiff_dir) if mt_file.split(".")[1] in ["tif", "tiff"]]
+            points = [point.split(".")[0] for point in all_points]
         # otherwise assume the tree-like directory as defined for tree loading
         else:
             all_points = os.listdir(tiff_dir)
