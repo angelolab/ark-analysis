@@ -55,6 +55,13 @@ def compute_complete_expression_matrices(segmentation_labels, base_dir, tiff_dir
         else:
             all_points = os.listdir(tiff_dir)
             points = [point for point in all_points if os.path.isdir(os.path.join(tiff_dir, point))]
+    else:
+        # needed to handle mibitiff file processing, we'll need to extract the file names of all the points
+        # that are covered by the set of points because the mibitiff function requires the file names
+        # and the extensions may be either .tif or .tiff
+        if is_mibitiff:
+            all_points = [mt_file for mt_file in os.listdir(tiff_dir) if mt_file.split(".")[1] in ["tif", "tiff"] and 
+                          mt_file.startswith(tuple(points))]
 
     # sort the points
     points.sort()
@@ -106,7 +113,7 @@ def compute_complete_expression_matrices(segmentation_labels, base_dir, tiff_dir
         current_points = points[num_batch * batch_size:]
 
         if is_mibitiff:
-            mibitiff_files = [mt_file for mt_file in all_points if mt_file.split("_")[0] in current_points]
+            mibitiff_files = [mt_file for mt_file in all_points if mt_file.split(".")[0] in current_points]
             image_data = data_utils.load_imgs_from_mibitiff(data_dir=tiff_dir, mibitiff_files=mibitiff_files)
         else:
             image_data = data_utils.load_imgs_from_tree(data_dir=tiff_dir, img_sub_folder=img_sub_folder, fovs=current_points)
