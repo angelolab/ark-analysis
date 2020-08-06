@@ -16,7 +16,116 @@ from skimage.segmentation import relabel_sequential
 import skimage.io as io
 
 
-from segmentation.utils import plot_utils, signal_extraction
+from segmentation.utils import data_utils, plot_utils, signal_extraction
+
+
+def compute_complete_expression_matrices(segmentation_labels, base_dir, tiff_dir,
+                                         img_sub_folder, is_mibitiff=False, points=None, batch_size=5):
+    """
+    This function takes the segmented data and computes the expression matrices batch-wise
+    while also validating inputs
+
+    Inputs:
+        segmentation_labels (xarray): an xarray with the segmented data
+        base_dir (str): the "master" directory, contains all of the data including the input
+        tiff_dir (str): the name of the directory which contains the single_channel_inputs,
+            technically can be accessed from base_dir but easier to make its own separate arg
+        img_sub_folder (str): the name of the folder where the TIF images are located
+        points (list): a list of points we wish to analyze, if None will default to all points
+        is_mibitiff (bool): a flag to indicate whether or not the base images are MIBItiffs
+        mibitiff_suffix (str): if is_mibitiff is true, then needs to be specified to select
+            which points to load from mibitiff
+        batch_size (int): how large we want each of the batches of points to be when computing,
+            adjust as necessary for speed and memory considerations
+
+    Returns:
+        combined_normalized_data (pandas): a DataFrame containing the data with the size_norm transformation
+        combined_transformed_data (pandas): a DataFrame containing the data with the arcsinh transformation
+    """
+
+    # if no points are specified, then load all the points
+    if points is None:
+        # based on looking at the file name format of mibitiff files as well as the directory structure
+        # defined for mibitiff loading, we'll assume uniqueness for now but in the future we can address
+        # different mibitiff loading techniques
+        if is_mibitiff:
+            all_points = [mt_file for mt_file in os.listdir(tiff_dir) if mt_file.split(".")[1] in ["tif", "tiff"]]
+            points = [point.split(".")[0] for point in all_points]
+        # otherwise assume the tree-like directory as defined for tree loading
+        else:
+            all_points = os.listdir(tiff_dir)
+            points = [point for point in all_points if os.path.isdir(os.path.join(tiff_dir, point))]
+    else:
+        # needed to handle mibitiff file processing, we'll need to extract the file names of all the points
+        # that are covered by the set of points because the mibitiff function requires the file names
+        # and the extensions may be either .tif or .tiff
+        if is_mibitiff:
+            all_points = [mt_file for mt_file in os.listdir(tiff_dir) if mt_file.split(".")[1] in ["tif", "tiff"] and
+                          mt_file.startswith(tuple(points))]
+
+    # sort the points
+    points.sort()
+
+    # defined some vars for batch processing
+    cohort_len = len(points)
+    num_batch = int(np.floor(cohort_len / batch_size))
+
+    # create the final dfs to store the processed data
+    combined_normalized_data = pd.DataFrame()
+    combined_transformed_data = pd.DataFrame()
+
+    # assert that all the current_points specified appear as fovs in segmentation_labels
+    # we need this check because otherwise load_imgs_from_tree or load_imgs_from_mibitiff will fail
+    # when we try to validate the paths because they would not exist to start off with
+    points_in_labels_mask = np.in1d(np.array(points), segmentation_labels['fovs'].values)
+    if not np.all(points_in_labels_mask):
+        point_values = np.array(points)[~points_in_labels_mask]
+        raise ValueError("Invalid point values specified: points %s not found in segmentation_labels fovs" % ",".join(point_values.tolist()))
+
+    # iterate over all the batches
+    for i in range(num_batch):
+        # extract only the points we need for the current batch
+        current_points = points[i * batch_size:(i + 1) * batch_size]
+
+        # and extract the image data corresponding to each of those points
+        # make sure we handle the different cases for mibitiff or non-mibitiff
+        if is_mibitiff:
+            # because files can end with .tif or .tiff, we still need to use os.listdir to list all files
+            # we could consider extracting the extensions beforehand and then appending them
+            # but I think it's probably best we don't do that
+            mibitiff_files = [mt_file for mt_file in all_points if mt_file.split(".")[0] in current_points]
+            image_data = data_utils.load_imgs_from_mibitiff(data_dir=tiff_dir, mibitiff_files=mibitiff_files)
+        else:
+            image_data = data_utils.load_imgs_from_tree(data_dir=tiff_dir, img_sub_folder=img_sub_folder, fovs=current_points)
+
+        # as well as the labels corresponding to each of them
+        current_labels = segmentation_labels.loc[current_points, :, :, :]
+
+        # segment the imaging data
+        normalized_data, transformed_data = generate_expression_matrix(segmentation_labels=current_labels, image_data=image_data)
+
+        # now append to the final dfs to return
+        combined_normalized_data = combined_normalized_data.append(normalized_data)
+        combined_transformed_data = combined_transformed_data.append(transformed_data)
+
+    # if batch did not divide evenly into total, process remainder
+    if cohort_len % batch_size != 0:
+        current_points = points[num_batch * batch_size:]
+
+        if is_mibitiff:
+            mibitiff_files = [mt_file for mt_file in all_points if mt_file.split(".")[0] in current_points]
+            image_data = data_utils.load_imgs_from_mibitiff(data_dir=tiff_dir, mibitiff_files=mibitiff_files)
+        else:
+            image_data = data_utils.load_imgs_from_tree(data_dir=tiff_dir, img_sub_folder=img_sub_folder, fovs=current_points)
+
+        current_labels = segmentation_labels.loc[current_points, :, :, :]
+
+        normalized_data, transformed_data = generate_expression_matrix(segmentation_labels=current_labels, image_data=image_data)
+
+        combined_normalized_data = combined_normalized_data.append(normalized_data)
+        combined_transformed_data = combined_transformed_data.append(transformed_data)
+
+    return combined_normalized_data, combined_transformed_data
 
 
 def watershed_transform(model_output, channel_xr, overlay_channels, output_dir, fovs=None,
@@ -26,20 +135,20 @@ def watershed_transform(model_output, channel_xr, overlay_channels, output_dir, 
                         save_tifs='overlays'):
     """Runs the watershed transform over a set of probability masks output by deepcell network
     Inputs:
-        model_output: xarray containing the different branch outputs from deepcell
-        channel_xr: xarray containing TIFs
-        output_dir: path to directory where the output will be saved
-        interior_model: Name of model to use to identify maxs in the image
-        interior_threshold: threshold to cut off interior predictions
-        interior_smooth: value to smooth the interior predictions
-        maxima_model: Name of the model to use to predict maxes in the image
-        maxima_smooth: value to smooth the maxima predictions
-        maxima_threshold: threshold to cut off maxima predictions
-        nuclear_expansion: optional pixel value by which to expand cells if
+        model_output (xarray): xarray containing the different branch outputs from deepcell
+        channel_xr (xarray): xarray containing TIFs
+        output_dir (str): path to directory where the output will be saved
+        interior_model (str): Name of model to use to identify maxs in the image
+        interior_threshold (float): threshold to cut off interior predictions
+        interior_smooth (int): value to smooth the interior predictions
+        maxima_model (str): Name of the model to use to predict maxes in the image
+        maxima_smooth (int): value to smooth the maxima predictions
+        maxima_threshold (float): threshold to cut off maxima predictions
+        nuclear_expansion (int): optional pixel value by which to expand cells if
             doing nuclear segmentation
-        randomize_labels: if true, will randomize the order of the labels put out
+        randomize_labels (bool): if true, will randomize the order of the labels put out
             by watershed for easier visualization
-        save_tifs: flag to control what level of output to save. Must be one of:
+        save_tifs (str): flag to control what level of output to save. Must be one of:
             all - saves all tifs
             overlays - saves color overlays and segmentation masks
             none - does not save any tifs
@@ -220,12 +329,12 @@ def combine_segmentation_masks(big_mask_xr, small_mask_xr, size_threshold,
     and combines them together to produce a single unified mask
 
     Inputs
-        big_mask_xr: xarray optimized for large cells
-        small_mask_xr: xarray optimized for small cells
-        size_threshold: pixel cutoff for large mask, under which cells will be removed
-        output_dir: name of directory to save results
-        input_xr: xarray containing channels for overlay
-        overlay_channels: channels to overlay segmentation output over"""
+        big_mask_xr (xarray): xarray optimized for large cells
+        small_mask_xr (xarray): xarray optimized for small cells
+        size_threshold (int): pixel cutoff for large mask, under which cells will be removed
+        output_dir (str): name of directory to save results
+        input_xr (xarray): xarray containing channels for overlay
+        overlay_channels (list): channels to overlay segmentation output over"""
 
     # loop through all masks in large xarray
     for point in range(big_mask_xr.shape[0]):
@@ -282,11 +391,11 @@ def find_nuclear_mask_id(nuc_segmentation_mask, cell_coords):
     """Get the ID of the nuclear mask which has the greatest amount of overlap with a given cell
 
     Args:
-        nuc_segmentation_mask: label mask of nuclear segmentations
-        cell_coords: list of coords specifying pixels that belong to a cell
+        nuc_segmentation_mask (numpy): label mask of nuclear segmentations
+        cell_coords (list): list of coords specifying pixels that belong to a cell
 
     Returns:
-        nuclear_mask_id: ID of the nuclear mask that overlaps most with cell. If not matches found,
+        nuclear_mask_id (int): ID of the nuclear mask that overlaps most with cell. If not matches found,
             returns None.
     """
 
@@ -305,12 +414,12 @@ def transform_expression_matrix(cell_data, transform, transform_kwargs=None):
     """Transform an xarray of marker counts with supplied transformation
 
     Args:
-        cell_data: xarray containing marker expression values
-        transform: the type of transform to apply. Must be one of ['size_norm', 'arcsinh']
-        transform_kwargs: optional dictionary with additional settings for the transforms
+        cell_data (xarray): xarray containing marker expression values
+        transform (str): the type of transform to apply. Must be one of ['size_norm', 'arcsinh']
+        transform_kwargs (dict): optional dictionary with additional settings for the transforms
 
     Returns:
-        cell_data_norm: counts per marker normalized by cell size
+        cell_data_norm (xarray): counts per marker normalized by cell size
     """
     valid_transforms = ['size_norm', 'arcsinh']
 
@@ -361,10 +470,10 @@ def compute_marker_counts(input_images, segmentation_masks, nuclear_counts=False
         Args:
             input_images (xarray): rows x columns x channels matrix of imaging data
             segmentation_masks (numpy array): rows x columns x compartment matrix of masks
-            nuclear_counts: boolean flag to determine whether nuclear counts are returned
+            nuclear_counts (bool): boolean flag to determine whether nuclear counts are returned
 
         Returns:
-            marker_counts: xarray containing segmented data of cells x markers
+            marker_counts (xarray): xarray containing segmented data of cells x markers
     """
 
     unique_cell_num = len(np.unique(segmentation_masks.values).astype('int'))
@@ -451,14 +560,14 @@ def generate_expression_matrix(segmentation_labels, image_data, nuclear_counts=F
     """Create a matrix of cells by channels with the total counts of each marker in each cell.
 
     Args:
-        segmentation_labels: xarray of shape [fovs, rows, cols, compartment] containing
+        segmentation_labels (xarray): xarray of shape [fovs, rows, cols, compartment] containing
             segmentation masks for each FOV, potentially across multiple cell compartments
-        image_data: xarray containing all of the channel data across all FOVs
-        nuclear_counts: boolean flag to determine whether nuclear counts are returned
+        image_data (xarray): xarray containing all of the channel data across all FOVs
+        nuclear_counts (bool): boolean flag to determine whether nuclear counts are returned
 
     Returns:
-        pd.DataFrame: marker counts per cell normalized by cell size
-        pd.DataFrame: marker counts per cell normalized by cell size and arcsinh transformed
+        normalized_data (pandas): marker counts per cell normalized by cell size
+        arcsinh_data (pandas): marker counts per cell normalized by cell size and arcsinh transformed
     """
     if type(segmentation_labels) is not xr.DataArray:
         raise ValueError("Incorrect data type for segmentation_labels, expecting xarray")
@@ -534,10 +643,10 @@ def concatenate_csv(base_dir, csv_files, column_name="point", column_values=None
     adding in the identifier in column_values
 
     Inputs:
-        base_dir: directory to read and write csv_files into
-        csv_files: a list csv files
-        column_name: optional column name, defaults to point
-        column_values: optional values to use for each CSV, defaults to csv name
+        base_dir (str): directory to read and write csv_files into
+        csv_files (list): a list csv files
+        column_name (str): optional column name, defaults to point
+        column_values (list): optional values to use for each CSV, defaults to csv name
 
     Outputs: saved combined csv into same folder"""
 
