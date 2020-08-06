@@ -121,7 +121,8 @@ def test_compute_complete_expression_matrices():
         assert norm_data.shape[0] > 0 and norm_data.shape[1] > 0
         assert arcsinh_data.shape[0] > 0 and arcsinh_data.shape[1] > 0
 
-
+    # checks if the loading is being called correctly when is_mibitiff is True
+    # save the actual expression matrix and data loding tests for their respective test functions
     with tempfile.TemporaryDirectory() as temp_dir:
         # define 2 FOVs and 2 mibitiff_imgs
         fovs = ["Point1", "Point2"]
