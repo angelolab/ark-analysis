@@ -56,7 +56,7 @@ def visualize_patient_population_distribution(cell_data, patient_col_name, popul
                   show_total_count (bool): Boolean specifying whether to show graph of total population count, default is true
                   show_distribution (bool): Boolean specifying whether to show graph of population distribution, default is true
                   show_proportion (bool): Boolean specifying whether to show graph of total count, default is true
-                  save_dir (str): Directory to save plots, default is blank"""
+                  save_dir (str): Directory to save plots, default is None"""
     cell_data = cell_data.dropna()
 
     # Plot by total count
