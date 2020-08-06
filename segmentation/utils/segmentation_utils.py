@@ -66,7 +66,7 @@ def compute_complete_expression_matrices(segmentation_labels, base_dir=os.path.j
     # assert that all the current_points specified appear as fovs in segmentation_labels
     # we need this check because otherwise load_imgs_from_tree will fail when we try to
     # validate the paths because they would not exist to start off with
-    points_in_labels_mask = np.all(np.in1d(np.array(points), segmentation_labels['fovs'].values))
+    points_in_labels_mask = np.in1d(np.array(points), segmentation_labels['fovs'].values)
     if not np.all(points_in_labels_mask):
         point_values = np.array(points)[~points_in_labels_mask]
         raise ValueError("Invalid point values specified: points %s not found in segmentation_labels fovs" % ",".join(point_values.tolist()))
