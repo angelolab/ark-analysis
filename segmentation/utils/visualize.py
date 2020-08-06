@@ -18,7 +18,7 @@ def visualize_z_scores(z, pheno_titles):
     sns.clustermap(zplot, figsize=(8, 8), cmap="vlag")
 
 
-def getSortedData(cell_data, patient_col_name, population_col_name, is_normalized=False):
+def get_sorted_data(cell_data, patient_col_name, population_col_name, is_normalized=False):
     """Gets the cell data and generates a new Sorted DataFrame with each row representing a patient and column representing Population categories
                   Args:
                       cell_data: Pandas Dataframe containing columns with Patient ID and Cell Name
@@ -27,10 +27,6 @@ def getSortedData(cell_data, patient_col_name, population_col_name, is_normalize
                       is_normalized: Boolean specifying whether to normalize cell counts or not, default is False
                   Outputs:
                       cell_data_stacked: DataFrame with rows and columns sorted by population"""
-    ids = cell_data[patient_col_name]
-    names = cell_data[population_col_name].unique().tolist()
-    unique_ids = cell_data[patient_col_name].unique()
-
     cell_data_stacked = pd.DataFrame()
     if is_normalized:
         cell_data_stacked = pd.crosstab(cell_data[patient_col_name], cell_data[population_col_name], normalize='index')
@@ -47,7 +43,7 @@ def getSortedData(cell_data, patient_col_name, population_col_name, is_normalize
 
 
 def visualize_patient_population_distribution(cell_data, patient_col_name, population_col_name, color_map="jet",
-                                              show_total_count=True, show_distribution=True, show_proportion=True, save_dir=""):
+                                              show_total_count=True, show_distribution=True, show_proportion=True, save_dir=None):
     """Plots the distribution of the population given by total count, direct count, and proportion
               Args:
                   cell_data: Pandas Dataframe containing columns with Patient ID and Cell Name
@@ -67,24 +63,27 @@ def visualize_patient_population_distribution(cell_data, patient_col_name, popul
         plt.title("Distribution of Population in all patients")
         plt.xlabel("Population Type")
         plt.ylabel("Population Count")
-        plt.savefig(save_dir + "TotalPopulationDistribution.png")
+        if save_dir is not None:
+          plt.savefig(save_dir+"TotalPopulationDistribution.png")
 
     # Plot by count
     if show_distribution:
-        getSortedData(cell_data, patient_col_name, population_col_name).plot.bar(stacked=True, colormap=color_map)
+        get_sorted_data(cell_data, patient_col_name, population_col_name).plot.bar(stacked=True, colormap=color_map)
         plt.legend(loc='center left', bbox_to_anchor=(1.0, 0.5))
         plt.xlabel("Patient ID")
         plt.ylabel("Cell Count")
         plt.title("Distribution of Population Count in Patients")
-        plt.savefig(save_dir + "PopulationDistribution.png")
+        if save_dir is not None:
+          plt.savefig(save_dir+"PopulationDistribution.png")
 
     # Plot by Proportion
     if show_proportion:
-        getSortedData(cell_data, patient_col_name, population_col_name, is_normalized=True).plot.bar(stacked=True,
-                                                                                                     legend=False,
-                                                                                                     colormap=color_map)
+        get_sorted_data(cell_data, patient_col_name, population_col_name, is_normalized=True).plot.bar(stacked=True,
+                                                                                                       legend=False,
+                                                                                                       colormap=color_map)
         plt.legend(loc='center left', bbox_to_anchor=(1.0, 0.5))
         plt.xlabel("Patient ID")
         plt.ylabel("Population Proportion")
         plt.title("Distribution of Population Count Proportion in Patients")
-        plt.savefig(save_dir + "PopulationProportion.png")
+        if save_dir is not None:
+          plt.savefig(save_dir+"PopulationProportion.png")
