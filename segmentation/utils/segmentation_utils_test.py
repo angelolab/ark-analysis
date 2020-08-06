@@ -76,8 +76,7 @@ def test_compute_complete_expression_matrices():
 
         segmentation_utils.compute_complete_expression_matrices(
             segmentation_labels=segmentation_masks, base_dir="path/to/base/dir", tiff_dir="path/to/tiff/dir",
-            img_sub_folder="path/to/img/sub/folder", is_mibitiff=False, mibitiff_suffix=None,
-            points=["Point1", "Point2"], batch_size=5)
+            img_sub_folder="path/to/img/sub/folder", is_mibitiff=False, points=["Point1", "Point2"], batch_size=5)
 
 
 def test_watershed_transform():
