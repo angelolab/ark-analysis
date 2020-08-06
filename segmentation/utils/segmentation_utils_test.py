@@ -85,9 +85,12 @@ def test_compute_complete_expression_matrices():
     # checks if the tree loading is being called correctly when is_mibitiff is False
     # save the actual expression matrix and data loding tests for their respective test functions
     with tempfile.TemporaryDirectory() as temp_dir:
-        # define 2 FOVs and 2 imgs per FOV
-        fovs = ["Point1", "Point2"]
-        imgs = ["img1.tiff, img2.tiff"]
+        # define 3 FOVs and 3 imgs per FOV
+        fovs = ["Point1", "Point2", "Point3"]
+        imgs = ["img1.tiff", "img2.tiff", "img3.tiff"]
+
+        # define a subset of fovs
+        fovs_subset = fovs[:2]
 
         # since example_dataset exists, lets create a new directory called testing_dataset
         # the rest of the directory structure will be the same
@@ -104,18 +107,27 @@ def test_compute_complete_expression_matrices():
 
         # generate a sample segmentation_mask
         cell_mask, _ = _create_test_extraction_data()
-        cell_masks = np.zeros((2, 40, 40, 1), dtype="int16")
+        cell_masks = np.zeros((3, 40, 40, 1), dtype="int16")
         cell_masks[0, :, :, 0] = cell_mask
         cell_masks[1, 5:, 5:, 0] = cell_mask[:-5, :-5]
+        cell_masks[2, 10:, 10:, 0] = cell_mask[:-10, :-10]
         segmentation_masks = xr.DataArray(cell_masks,
                                           coords=[fovs, range(40), range(40),
                                                   ["whole_cell"]],
                                           dims=["fovs", "rows", "cols", "compartments"])
 
-        # generate sample norm and arcsinh data
+        # generate sample norm and arcsinh data for all points
         norm_data, arcsinh_data = segmentation_utils.compute_complete_expression_matrices(
             segmentation_labels=segmentation_masks, base_dir=base_dir, tiff_dir=tiff_dir,
-            img_sub_folder=img_sub_folder, is_mibitiff=False, points=fovs, batch_size=5)
+            img_sub_folder=img_sub_folder, is_mibitiff=False, points=None, batch_size=2)
+
+        assert norm_data.shape[0] > 0 and norm_data.shape[1] > 0
+        assert arcsinh_data.shape[0] > 0 and arcsinh_data.shape[1] > 0
+
+        # generate sample norm and arcsinh data for a subset of points
+        norm_data, arcsinh_data = segmentation_utils.compute_complete_expression_matrices(
+            segmentation_labels=segmentation_masks, base_dir=base_dir, tiff_dir=tiff_dir,
+            img_sub_folder=img_sub_folder, is_mibitiff=False, points=fovs_subset, batch_size=2)
 
         assert norm_data.shape[0] > 0 and norm_data.shape[1] > 0
         assert arcsinh_data.shape[0] > 0 and arcsinh_data.shape[1] > 0
@@ -124,8 +136,11 @@ def test_compute_complete_expression_matrices():
     # save the actual expression matrix and data loding tests for their respective test functions
     with tempfile.TemporaryDirectory() as temp_dir:
         # define 2 FOVs and 2 mibitiff_imgs
-        fovs = ["Point1", "Point2"]
-        mibitiff_imgs = ["Point1_example_mibitiff.tiff", "Point2_example_mibitiff.tiff"]
+        fovs = ["Point1", "Point2", "Point3"]
+        mibitiff_imgs = ["Point1.tif", "Point2.tiff", "Point3.tiff"]
+
+        # define a subset of fovs
+        fovs_subset = fovs[:2]
 
         # since example_dataset exists, lets create a new directory called testing_dataset
         # the rest of the directory structure will be the same
@@ -170,10 +185,18 @@ def test_compute_complete_expression_matrices():
                                                   ["whole_cell"]],
                                           dims=["fovs", "rows", "cols", "compartments"])
 
-        # generate sample norm and arcsinh data
+        # generate sample norm and arcsinh data for all points
         norm_data, arcsinh_data = segmentation_utils.compute_complete_expression_matrices(
             segmentation_labels=segmentation_masks, base_dir=base_dir, tiff_dir=tiff_dir,
-            img_sub_folder=img_sub_folder, is_mibitiff=True, points=fovs, batch_size=5)
+            img_sub_folder=img_sub_folder, is_mibitiff=True, points=None, batch_size=2)
+
+        assert norm_data.shape[0] > 0 and norm_data.shape[1] > 0
+        assert arcsinh_data.shape[0] > 0 and arcsinh_data.shape[1] > 0
+
+        # generate sample norm and arcsinh data for a subset of points
+        norm_data, arcsinh_data = segmentation_utils.compute_complete_expression_matrices(
+            segmentation_labels=segmentation_masks, base_dir=base_dir, tiff_dir=tiff_dir,
+            img_sub_folder=img_sub_folder, is_mibitiff=True, points=fovs_subset, batch_size=2)
 
         assert norm_data.shape[0] > 0 and norm_data.shape[1] > 0
         assert arcsinh_data.shape[0] > 0 and arcsinh_data.shape[1] > 0
