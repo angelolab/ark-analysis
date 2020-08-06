@@ -4,6 +4,8 @@ from segmentation.utils import visualize
 import importlib
 import pandas as pd
 import string
+import os.path
+from os import path
 
 importlib.reload(visualize)
 
@@ -25,12 +27,17 @@ def test_get_sort_data():
     print("----------------------------------")
     print("After sorting")
     print(visualize.get_sorted_data(random_data, "PatientID", "cell_type"))
-    
+
 
 def test_visualize_cells():
-
     rand_type = random.choices(string.ascii_lowercase, k=100)
-    ids = random.choices(range(1, 3), k=100)
+    ids = random.choices(range(1,3), k=100)
+
     rand_dict = {"PatientID": ids, "cell_type": rand_type}
     df = pd.DataFrame.from_dict(rand_dict)
-    visualize.visualize_patient_population_distribution(df, "PatientID", "cell_type")
+    visualize.visualize_patient_population_distribution(df, "PatientID", "cell_type", save_dir="")
+
+    # Check if correct plots are saved
+    assert path.exists("PopulationDistribution.png"), "Should be showing distribution"
+    assert path.exists("TotalPopulationDistribution.png"), "Should be showing total count"
+    assert path.exists("PopulationProportion.png"), "Should be showing proportion"
