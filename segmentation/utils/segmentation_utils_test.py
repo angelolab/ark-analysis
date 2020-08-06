@@ -177,7 +177,7 @@ def test_compute_complete_expression_matrices():
 
         # generate a sample segmentation_mask
         cell_mask, _ = _create_test_extraction_data()
-        cell_masks = np.zeros((2, 40, 40, 1), dtype="int16")
+        cell_masks = np.zeros((3, 40, 40, 1), dtype="int16")
         cell_masks[0, :, :, 0] = cell_mask
         cell_masks[1, 5:, 5:, 0] = cell_mask[:-5, :-5]
         segmentation_masks = xr.DataArray(cell_masks,
