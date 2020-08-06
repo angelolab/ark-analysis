@@ -19,9 +19,8 @@ import skimage.io as io
 from segmentation.utils import data_utils, plot_utils, signal_extraction
 
 
-def compute_complete_expression_matrices(segmentation_labels, base_dir=os.path.join("..", "data", "example_dataset"),
-                                         tiff_dir=os.path.join("..", "data", "example_dataset", "single_channel_inputs"),
-                                         img_sub_folder="TIFs", is_mibitiff=False, points=None, batch_size=5):
+def compute_complete_expression_matrices(segmentation_labels, base_dir, tiff_dir,
+                                         img_sub_folder, is_mibitiff=False, points=None, batch_size=5):
     """
     This function takes the segmented data and computes the expression matrices batch-wise
     while also validating inputs
@@ -48,9 +47,17 @@ def compute_complete_expression_matrices(segmentation_labels, base_dir=os.path.j
     # in the case of MIBItiffs, we can just assume that all the files in tiff_dir
     # have the correct suffix
     if points is None:
-        all_points = os.listdir(tiff_dir)
-        all_points = [point for point in all_points if os.path.isdir(os.path.join(tiff_dir, point))]
-        points = all_points
+        # based on looking at the file name format of mibitiff files as well as the directory structure
+        # defined for mibitiff loading, ensure set removal to prevent duplicate points from appearing
+        if is_mibitiff:
+            all_points = os.listdir(tiff_dir)
+            all_points = [point.split("_")[0] for point in all_points if os.path.splittext(point)[1] == ".tiff"]
+            points = list(set(all_points))
+        # otherwise assume the tree-like directory as defined for tree loading
+        else:
+            all_points = os.listdir(tiff_dir)
+            all_points = [point for point in all_points if os.path.isdir(os.path.join(tiff_dir, point))]
+            points = all_points
 
     # sort the points
     points.sort()
@@ -81,7 +88,9 @@ def compute_complete_expression_matrices(segmentation_labels, base_dir=os.path.j
         if not is_mibitiff:
             image_data = data_utils.load_imgs_from_tree(data_dir=tiff_dir, img_sub_folder=img_sub_folder, fovs=current_points)
         else:
-            image_data = data_utils.load_imgs_from_mibitiff(data_dir=tiff_dir, mibitiff_channels=channels)
+            # only look at the mibitiff files which correspond to the current points we're looking at
+            mibitiff_files = [mt_file for mt_file in os.listdir(tiff_dir) if mt_file.split("_")[0] in current_points]
+            image_data = data_utils.load_imgs_from_mibitiff(data_dir=tiff_dir, mibitiff_files=mibitiff_files)
 
         # as well as the labels corresponding to each of them
         current_labels = segmentation_labels.loc[current_points, :, :, :]
@@ -100,7 +109,8 @@ def compute_complete_expression_matrices(segmentation_labels, base_dir=os.path.j
         if not is_mibitiff:
             image_data = data_utils.load_imgs_from_tree(data_dir=tiff_dir, img_sub_folder=img_sub_folder, fovs=current_points)
         else:
-            image_data = data_utils.load_imgs_from_mibitiff(data_dir=tiff_dir, mibitiff_channels=channels)
+            mibitiff_files = [mt_file for mt_file in os.listdir(tiff_dir) if mt_file.split("_")[0] in current_points]
+            image_data = data_utils.load_imgs_from_mibitiff(data_dir=tiff_dir, mibitiff_files=mibitiff_files)
 
         current_labels = segmentation_labels.loc[current_points, :, :, :]
 

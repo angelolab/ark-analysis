@@ -5,10 +5,14 @@ import pytest
 import tempfile
 
 import skimage.morphology as morph
+import skimage.io as io
 from skimage.morphology import erosion
 from skimage.measure import regionprops
 
+from mibidata import mibi_image as mi, tiff
+
 from segmentation.utils import segmentation_utils
+from segmentation.utils import data_utils_test
 
 
 def _generate_deepcell_output(fov_num=2):
@@ -67,16 +71,112 @@ def test_compute_complete_expression_matrices():
     # in the original segmentation mask
     with pytest.raises(ValueError):
         # generate a segmentation array with 1 FOV
-        cell_masks = np.zeros((1, 40, 40, 1), dtype="int16")
+        cell_masks = np.zeros((1, 50, 50, 1), dtype="int16")
 
         segmentation_masks = xr.DataArray(cell_masks,
-                                          coords=[["Point1"], range(40), range(40),
+                                          coords=[["Point1"], range(50), range(50),
                                                   ["whole_cell"]],
                                           dims=["fovs", "rows", "cols", "compartments"])
 
         segmentation_utils.compute_complete_expression_matrices(
             segmentation_labels=segmentation_masks, base_dir="path/to/base/dir", tiff_dir="path/to/tiff/dir",
             img_sub_folder="path/to/img/sub/folder", is_mibitiff=False, points=["Point1", "Point2"], batch_size=5)
+
+
+    # checks if the tree loading is being called correctly when is_mibitiff is False
+    # save the actual expression matrix and data loding tests for their respective test functions
+    with tempfile.TemporaryDirectory() as temp_dir:
+        # define 2 FOVs and 2 imgs per FOV
+        fovs = ["Point1", "Point2"]
+        imgs = ["img1.tiff, img2.tiff"]
+
+        # since example_dataset exists, lets create a new directory called testing_dataset
+        # the rest of the directory structure will be the same
+        base_dir = os.path.join(temp_dir, "testing_dataset")
+        input_dir = os.path.join(base_dir, "input_data")
+        tiff_dir = os.path.join(input_dir, "single_channel_inputs")
+        img_sub_folder = "TIFs"
+
+        # create the directory structure, with a little help from _create_img_dir
+        os.mkdir(base_dir)
+        os.mkdir(input_dir)
+        os.mkdir(tiff_dir)
+        data_utils_test._create_img_dir(temp_dir=tiff_dir, fovs=fovs, imgs=imgs, img_sub_folder=img_sub_folder, dtype="int16")
+
+        # generate a sample segmentation_mask
+        cell_mask, _ = _create_test_extraction_data()
+        cell_masks = np.zeros((2, 40, 40, 1), dtype="int16")
+        cell_masks[0, :, :, 0] = cell_mask
+        cell_masks[1, 5:, 5:, 0] = cell_mask[:-5, :-5]
+        segmentation_masks = xr.DataArray(cell_masks,
+                                          coords=[fovs, range(40), range(40),
+                                                  ["whole_cell"]],
+                                          dims=["fovs", "rows", "cols", "compartments"])
+
+        # generate sample norm and arcsinh data
+        norm_data, arcsinh_data = segmentation_utils.compute_complete_expression_matrices(
+            segmentation_labels=segmentation_masks, base_dir=base_dir, tiff_dir=tiff_dir,
+            img_sub_folder=img_sub_folder, is_mibitiff=False, points=fovs, batch_size=5)
+
+        assert norm_data.shape[0] > 0 and norm_data.shape[1] > 0
+        assert arcsinh_data.shape[0] > 0 and arcsinh_data.shape[1] > 0
+
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        # define 2 FOVs and 2 mibitiff_imgs
+        fovs = ["Point1", "Point2"]
+        mibitiff_imgs = ["Point1_example_mibitiff.tiff", "Point2_example_mibitiff.tiff"]
+
+        # since example_dataset exists, lets create a new directory called testing_dataset
+        # the rest of the directory structure will be the same
+        base_dir = os.path.join(temp_dir, "testing_dataset")
+        input_dir = os.path.join(base_dir, "input_data")
+        tiff_dir = os.path.join(input_dir, "mibitiff_inputs")
+
+        # create the directory structure
+        os.mkdir(base_dir)
+        os.mkdir(input_dir)
+        os.mkdir(tiff_dir)
+
+        # create sample mibitiff images for each point
+        for f, m in zip(fovs, mibitiff_imgs):
+            # required metadata for mibitiff writing (double barf)
+            METADATA = {
+                'run': '20180703_1234_test', 'date': '2017-09-16T15:26:00',
+                'coordinates': (12345, -67890), 'size': 500., 'slide': '857',
+                'fov_id': f, 'fov_name': 'R1C3_Tonsil',
+                'folder': f + '/RowNumber0/Depth_Profile0',
+                'dwell': 4, 'scans': '0,5', 'aperture': 'B',
+                'instrument': 'MIBIscope1', 'tissue': 'Tonsil',
+                'panel': '20170916_1x', 'mass_offset': 0.1, 'mass_gain': 0.2,
+                'time_resolution': 0.5, 'miscalibrated': False, 'check_reg': False,
+                'filename': '20180703_1234_test', 'description': 'test image',
+                'version': 'alpha',
+            }
+
+            channels = ["HH3", "Membrane"]
+            sample_tif = mi.MibiImage(np.random.rand(1024, 1024, 2).astype(np.float32),
+                                      ((1, channels[0]), (2, channels[1])),
+                                      **METADATA)
+            tiff.write(os.path.join(tiff_dir, m), sample_tif, dtype=np.float32)
+
+        # generate a sample segmentation_mask
+        cell_mask, _ = _create_test_extraction_data()
+        cell_masks = np.zeros((2, 40, 40, 1), dtype="int16")
+        cell_masks[0, :, :, 0] = cell_mask
+        cell_masks[1, 5:, 5:, 0] = cell_mask[:-5, :-5]
+        segmentation_masks = xr.DataArray(cell_masks,
+                                          coords=[fovs, range(40), range(40),
+                                                  ["whole_cell"]],
+                                          dims=["fovs", "rows", "cols", "compartments"])
+
+        # generate sample norm and arcsinh data
+        norm_data, arcsinh_data = segmentation_utils.compute_complete_expression_matrices(
+            segmentation_labels=segmentation_masks, base_dir=base_dir, tiff_dir=tiff_dir,
+            img_sub_folder=img_sub_folder, is_mibitiff=True, points=fovs, batch_size=5)
+
+        assert norm_data.shape[0] > 0 and norm_data.shape[1] > 0
+        assert arcsinh_data.shape[0] > 0 and arcsinh_data.shape[1] > 0
 
 
 def test_watershed_transform():
