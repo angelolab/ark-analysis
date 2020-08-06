@@ -19,9 +19,9 @@ import skimage.io as io
 from segmentation.utils import data_utils, plot_utils, signal_extraction
 
 
-def compute_complete_expression_matrices(segmentation_labels, base_dir=None, tiff_dir=None,
-                                         img_sub_folder="TIFs", is_mibitiff=False, mibitiff_suffix=None,
-                                         points=None, batch_size=5):
+def compute_complete_expression_matrices(segmentation_labels, base_dir=os.path.join("..", "data", "example_dataset"),
+                                         tiff_dir=os.path.join("..", "data", "example_dataset", "single_channel_inputs"),
+                                         img_sub_folder="TIFs", is_mibitiff=False, points=None, batch_size=5):
     """
     This function takes the segmented data and computes the expression matrices batch-wise
     while also validating inputs
@@ -44,28 +44,12 @@ def compute_complete_expression_matrices(segmentation_labels, base_dir=None, tif
         combined_transformed_data (pandas): a DataFrame containing the data with the arcsinh transformation
     """
 
-    if not base_dir:
-        raise ValueError("base_dir not specified")
-
-    if not tiff_dir:
-        raise ValueError("tiff_dir not specified")
-
-    if not img_sub_folder:
-        raise ValueError("img_sub_folder not specified")
-
     # if no points are specified, then load all the points
-    if not points:
-        # if MIBItiff, only look at the points with the desired suffix...
-        if is_mibitiff:
-            # ...but of course, check if that suffix has been defined first
-            if not mibitiff_suffix:
-                raise ValueError("No mibitiff_suffix specified: please do so if loading from MIBItiff")
-
-            points = [point for point in points if point.endswith(MIBItiff_suffix)]
-        else:
-            # load channel data
-            all_points = os.listdir(tiff_dir)
-            all_points = [point for point in all_points if os.path.isdir(os.path.join(tiff_dir, point))]
+    # in the case of MIBItiffs, we can just assume that all the files in tiff_dir
+    # have the correct suffix
+    if points is None:
+        all_points = os.listdir(tiff_dir)
+        all_points = [point for point in all_points if os.path.isdir(os.path.join(tiff_dir, point))]
         points = all_points
 
     # sort the points
@@ -79,19 +63,25 @@ def compute_complete_expression_matrices(segmentation_labels, base_dir=None, tif
     combined_normalized_data = pd.DataFrame()
     combined_transformed_data = pd.DataFrame()
 
+    # assert that all the current_points specified appear as fovs in segmentation_labels
+    # we need this check because otherwise load_imgs_from_tree will fail when we try to
+    # validate the paths because they would not exist to start off with
+    points_in_labels_mask = np.all(np.in1d(np.array(points), segmentation_labels['fovs'].values))
+    if not np.all(points_in_labels_mask):
+        point_values = np.array(points)[~points_in_labels_mask]
+        raise ValueError("Invalid point values specified: points %s not found in segmentation_labels fovs" % ",".join(point_values.tolist()))
+
     # iterate over all the batches
     for i in range(num_batch):
         # extract only the points we need for the current batch
         current_points = points[i * batch_size:(i + 1) * batch_size]
 
-        # assert that all the current_points specified appear as fovs in segmentation_labels
-        # we need this check because otherwise load_imgs_from_tree will fail when we try to
-        # validate the paths because they would not exist to start off with
-        if not np.all(np.in1d(np.array(current_points), segmentation_labels['fovs'].values)):
-            raise ValueError("Invalid point values specified: point and fov values do not match up")
-
         # and extract the image data corresponding to each of those points
-        image_data = data_utils.load_imgs_from_tree(data_dir=tiff_dir, img_sub_folder=img_sub_folder, fovs=current_points)
+        # make sure we handle the different cases for mibitiff or non-mibitiff
+        if not is_mibitiff:
+            image_data = data_utils.load_imgs_from_tree(data_dir=tiff_dir, img_sub_folder=img_sub_folder, fovs=current_points)
+        else:
+            image_data = data_utils.load_imgs_from_mibitiff(data_dir=tiff_dir, mibitiff_channels=channels)
 
         # as well as the labels corresponding to each of them
         current_labels = segmentation_labels.loc[current_points, :, :, :]
@@ -107,10 +97,10 @@ def compute_complete_expression_matrices(segmentation_labels, base_dir=None, tif
     if cohort_len % batch_size != 0:
         current_points = points[num_batch * batch_size:]
 
-        if not np.all(np.in1d(np.array(current_points), segmentation_labels['fovs'].values)):
-            raise ValueError("Invalid point values specified: point and fov values do not match up")
-
-        image_data = data_utils.load_imgs_from_tree(data_dir=tiff_dir, img_sub_folder=img_sub_folder, fovs=current_points)
+        if not is_mibitiff:
+            image_data = data_utils.load_imgs_from_tree(data_dir=tiff_dir, img_sub_folder=img_sub_folder, fovs=current_points)
+        else:
+            image_data = data_utils.load_imgs_from_mibitiff(data_dir=tiff_dir, mibitiff_channels=channels)
 
         current_labels = segmentation_labels.loc[current_points, :, :, :]
 
