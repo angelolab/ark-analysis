@@ -180,6 +180,7 @@ def test_compute_complete_expression_matrices():
         cell_masks = np.zeros((3, 40, 40, 1), dtype="int16")
         cell_masks[0, :, :, 0] = cell_mask
         cell_masks[1, 5:, 5:, 0] = cell_mask[:-5, :-5]
+        cell_masks[2, 10:, 10:, 0] = cell_mask[:-10, :-10]
         segmentation_masks = xr.DataArray(cell_masks,
                                           coords=[fovs, range(40), range(40),
                                                   ["whole_cell"]],
