@@ -16,7 +16,7 @@ def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, 
         dist_matrices_dict (dict): Contains a cells x cells matrix with the euclidian
             distance between centers of corresponding cells for every fov
         marker_thresholds (np array): threshold values for positive marker expression
-        all_data (pandas df): data including points, cell labels, and
+        all_data (pandas df): data including fovs, cell labels, and
             cell expression matrix for all markers
         excluded_colnames (list): all column names that are not markers. If argument is none, default is
             ["cell_size", "Background", "HH3",
@@ -32,9 +32,9 @@ def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, 
     Returns:
         values (list): a list with each element consisting of a tuple of
             closenum and closenumrand for each point included in the analysis
-        stats (xarray): an Xarray with dimensions (points, stats, number of markers, number of markers) The included stats
+        stats (xarray): an Xarray with dimensions (fovs, stats, number of channels, number of channels) The included stats
             variables are:
-            z, muhat, sigmahat, p, h, adj_p, and marker_titles for each point in the analysis"""
+            z, muhat, sigmahat, p, h, adj_p, and cluster_names for each point in the analysis"""
 
     # Setup input and parameters
     if included_fovs is None:
@@ -113,7 +113,7 @@ def calculate_cluster_spatial_enrichment(all_data, dist_matrices_dict, included_
     cell types, looking for both positive and negative enrichment. Uses bootstrapping to permute cell labels randomly.
 
     Args:
-        all_data: data including points, cell labels, and
+        all_data: data including fovs, cell labels, and
             cell expression matrix for all markers
         dist_matrices_dict: A dictionary that contains a cells x cells matrix with the euclidian
             distance between centers of corresponding cells for every fov
@@ -127,9 +127,9 @@ def calculate_cluster_spatial_enrichment(all_data, dist_matrices_dict, included_
     Returns:
         values (list): a list with each element consisting of a tuple of
             closenum and closenumrand for each point included in the analysis
-        stats (xarray): an Xarray with dimensions (points, stats, number of markers, number of markers) The included stats
+        stats (xarray): an Xarray with dimensions (fovs, stats, number of channels, number of channels) The included stats
             variables are:
-            z, muhat, sigmahat, p, h, adj_p, and marker_titles for each point in the analysis"""
+            z, muhat, sigmahat, p, h, adj_p, and cluster_names for each point in the analysis"""
 
     # Setup input and parameters
     if included_fovs is None:
