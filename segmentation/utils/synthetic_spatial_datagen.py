@@ -236,7 +236,7 @@ def generate_two_cell_test_segmentation_mask(size_img=(1024, 1024), cell_radius=
 
     Args:
         size_img (tuple): the dimensions of the image we wish to generate
-        cell_radius (int): the radius of each cell 
+        cell_radius (int): the radius of each cell
 
     Returns:
         sample_segmentation_mask (numpy): an array of dimensions size_img with two separate labeled
