@@ -56,8 +56,8 @@ def get_pos_cell_labels(analysis_type, pheno=None, current_fov_data=None,
     Returns:
         mark1poslabels (list): all the positive labels"""
 
-    if analysis_type != "cluster" or analysis_type != "channel":
-        raise ValueError("Incorrect arguments passed for analysis type")
+    if not np.isin(analysis_type, ("cluster", "channel")).all():
+        raise ValueError("Incorrect analysis type")
 
     if analysis_type == "cluster":
         if pheno is None or current_fov_data is None:
@@ -77,7 +77,7 @@ def get_pos_cell_labels(analysis_type, pheno=None, current_fov_data=None,
 
 
 def compute_close_cell_num(dist_mat, dist_lim, num, analysis_type,
-                           current_fov_data=None, current_fov_channel_data=None, cluster_names=None,
+                           current_fov_data=None, current_fov_channel_data=None, cluster_ids=None,
                            thresh_vec=None):
     """Finds positive cell labels and creates matrix with counts for cells positive for corresponding markers.
     Computes close_num matrix for both Cell Label and Threshold spatial analyses.
@@ -96,7 +96,7 @@ def compute_close_cell_num(dist_mat, dist_lim, num, analysis_type,
         analysis_type (string): type of analysis, either cluster or channel
         current_fov_data (pandas df): data for specific patient in expression matrix
         current_fov_channel_data (pandas df): data of only column markers for Channel Analysis
-        cluster_names (pandas df): all the cell phenotypes in Cluster Analysis
+        cluster_ids (pandas df): all the cell phenotypes in Cluster Analysis
         thresh_vec (numpy df): matrix of thresholds column for markers
         seed: the seed to set for randomized operations, useful for testing
 
@@ -125,7 +125,7 @@ def compute_close_cell_num(dist_mat, dist_lim, num, analysis_type,
     for j in range(0, num):
         # Identify cell labels that are positive for respective markers or phenotypes, based on type of analysis
         if analysis_type == "cluster":
-            mark1poslabels = get_pos_cell_labels(analysis_type, cluster_names.iloc[j], current_fov_data)
+            mark1poslabels = get_pos_cell_labels(analysis_type, cluster_ids.iloc[j], current_fov_data)
         else:
             mark1poslabels = get_pos_cell_labels(analysis_type, thresh=thresh_vec.iloc[j],
                                                  current_fov_channel_data=current_fov_channel_data,
@@ -136,7 +136,7 @@ def compute_close_cell_num(dist_mat, dist_lim, num, analysis_type,
         for k in range(0, num):
             # Repeats what was done above for the same marker and all other markers in the analysis
             if analysis_type == "cluster":
-                mark2poslabels = get_pos_cell_labels(analysis_type, cluster_names.iloc[k], current_fov_data)
+                mark2poslabels = get_pos_cell_labels(analysis_type, cluster_ids.iloc[k], current_fov_data)
             else:
                 mark2poslabels = get_pos_cell_labels(analysis_type, thresh=thresh_vec.iloc[k],
                                                      current_fov_channel_data=current_fov_channel_data,

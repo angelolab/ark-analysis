@@ -152,7 +152,7 @@ def calculate_cluster_spatial_enrichment(all_data, dist_matrices_dict, included_
     cluster_num = len(cluster_ids)
 
     # Subset matrix to only include the columns with the patient label, cell label, and cell phenotype
-    all_cluster_data = all_data[[fov_col, cell_label_col, cluster_id_col]]
+    all_pheno_data = all_data[[fov_col, cell_label_col, cluster_id_col]]
 
     # Create stats Xarray with the dimensions (points, stats variables, number of markers, number of markers)
     stats_raw_data = np.zeros((num_fovs, 7, cluster_num, cluster_num))
@@ -162,8 +162,8 @@ def calculate_cluster_spatial_enrichment(all_data, dist_matrices_dict, included_
 
     for i in range(0, len(included_fovs)):
         # Subsetting expression matrix to only include patients with correct fov label
-        current_fov_idx = all_cluster_data.iloc[:, 0] == included_fovs[i]
-        current_fov_cluster_data = all_cluster_data[current_fov_idx]
+        current_fov_idx = all_pheno_data.iloc[:, 0] == included_fovs[i]
+        current_fov_pheno_data = all_pheno_data[current_fov_idx]
 
         # Subset the distance matrix dictionary to only include the distance matrix for the correct point
         dist_mat = dist_matrices_dict[str(included_fovs[i])]
@@ -171,7 +171,7 @@ def calculate_cluster_spatial_enrichment(all_data, dist_matrices_dict, included_
         # Get close_num and close_num_rand
         close_num, pheno1_num, pheno2_num = spatial_analysis_utils.compute_close_cell_num(
             dist_mat=dist_mat, dist_lim=dist_lim, num=cluster_num, analysis_type="cluster",
-            current_fov_data=current_fov_cluster_data, pheno_codes=cluster_ids)
+            current_fov_data=current_fov_pheno_data, cluster_ids=cluster_ids)
         close_num_rand = spatial_analysis_utils.compute_close_cell_num_random(
             pheno1_num, pheno2_num, dist_mat, cluster_num, dist_lim, bootstrap_num)
         values.append((close_num, close_num_rand))
