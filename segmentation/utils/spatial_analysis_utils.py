@@ -51,7 +51,7 @@ def get_pos_cell_labels(analysis_type, pheno=None, current_fov_data=None,
         pheno (string): the current cell phenotype
         current_fov_data (pandas df): data for the current patient
         thresh (int): current threshold for marker
-        specific_fov_channel_data (pandas df): expression data for column markers for current patient
+        current_fov_channel_data (pandas df): expression data for column markers for current patient
         cell_labels (pandas df): the column of cell labels for current patient
         specific_marker (string): the current marker
     Returns:
@@ -126,9 +126,9 @@ def compute_close_cell_num(dist_mat, dist_lim, num, analysis_type,
             mark1poslabels = get_pos_cell_labels(analysis_type, pheno_codes.iloc[j], current_fov_data)
         else:
             mark1poslabels = get_pos_cell_labels(analysis_type, thresh=thresh_vec.iloc[j],
-                                                 current_fov_data=current_fov_data,
+                                                 current_fov_channel_data=current_fov_channel_data,
                                                  cell_labels=cell_labels,
-                                                 specific_marker=current_fov_data.columns[j])
+                                                 specific_marker=current_fov_channel_data.columns[j])
         # Length of the number of positive cell labels
         mark1_num.append(len(mark1poslabels))
         for k in range(0, num):
@@ -137,7 +137,7 @@ def compute_close_cell_num(dist_mat, dist_lim, num, analysis_type,
                 mark2poslabels = get_pos_cell_labels(analysis_type, pheno_codes.iloc[k], current_fov_data)
             else:
                 mark2poslabels = get_pos_cell_labels(analysis_type, thresh=thresh_vec.iloc[k],
-                                                     current_fov_data=current_fov_data,
+                                                     current_fov_channel_data=current_fov_channel_data,
                                                      cell_labels=cell_labels,
                                                      specific_marker=current_fov_channel_data.columns[k])
             mark2_num.append(len(mark2poslabels))
