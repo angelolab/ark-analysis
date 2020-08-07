@@ -13,11 +13,11 @@ def calc_dist_matrix(label_map, ret=True, path=None):
     """Generate matrix of distances between center of pairs of cells
 
     Args:
-        label_map: numpy array with unique cells given unique pixel labels
-        ret: A boolean value indicating whether or not to return the dictionary file directly. Default is True.
-        path: path to save file
+        label_map (np array): array with unique cells given unique pixel labels
+        ret (boolean): value indicating whether or not to return the dictionary file directly. Default is True.
+        path (string): path to save file
     Returns:
-        dist_matrix: A dictionary that contains a cells x cells matrix with the euclidian
+        dist_matrix (dict): contains a cells x cells matrix with the euclidian
             distance between centers of corresponding cells for every fov"""
     # Check that file path exists, if return is false
     if not ret:
@@ -41,41 +41,41 @@ def calc_dist_matrix(label_map, ret=True, path=None):
         np.savez(path + "dist_matrices.npz", **dist_matrices)
 
 
-def get_pos_cell_labels(analysis_type, pheno=None, fov_data=None,
-                        thresh=None, fov_channel_data=None, cell_labels=None, col=None):
+def get_pos_cell_labels(analysis_type, pheno=None, current_fov_data=None,
+                        thresh=None, current_fov_channel_data=None, cell_labels=None, specific_marker=None):
     """Based on the type of the analysis, finds positive labels that the current match phenotype or identifies cells
     with expression values for the current maker greater than the marker threshold.
 
     Args:
-        analysis_type: type of analysis, either Cluster or Channel
-        pheno: the current cell phenotype
-        fov_data: data for the current patient
-        thresh: current threshold for marker
-        fov_channel_data: expression data for column markers for current patient
-        cell_labels: the column of cell labels for current patient
-        col: the current marker
+        analysis_type (string): type of analysis, either "Cluster" or "Channel"
+        pheno (string): the current cell phenotype
+        current_fov_data (pandas df): data for the current patient
+        thresh (int): current threshold for marker
+        specific_fov_channel_data (pandas df): expression data for column markers for current patient
+        cell_labels (pandas df): the column of cell labels for current patient
+        specific_marker (string): the current marker
     Returns:
-        mark1poslabels: a list of all the positive labels"""
+        mark1poslabels (list): all the positive labels"""
 
     if analysis_type == "Cluster":
-        if pheno is None or fov_data is None:
+        if pheno is None or current_fov_data is None:
             raise ValueError("Incorrect arguments passed for analysis type")
         # Subset only cells that are of the same phenotype
-        pheno1posinds = fov_data["FlowSOM_ID"] == pheno
+        pheno1posinds = current_fov_data["FlowSOM_ID"] == pheno
         # Get the cell labels of the cells of the phenotype
-        mark1poslabels = fov_data.iloc[:, 1][pheno1posinds]
+        mark1poslabels = current_fov_data.iloc[:, 1][pheno1posinds]
     else:
-        if thresh is None or fov_channel_data is None or cell_labels is None or col is None:
+        if thresh is None or current_fov_channel_data is None or cell_labels is None or specific_marker is None:
             raise ValueError("Incorrect arguments passed for analysis type")
         # Subset only cells that are positive for the given marker
-        marker1posinds = fov_channel_data[col] > thresh
+        marker1posinds = current_fov_channel_data[specific_marker] > thresh
         # Get the cell labels of the positive cells
         mark1poslabels = cell_labels[marker1posinds]
     return mark1poslabels
 
 
 def compute_close_cell_num(dist_mat, dist_lim, num, analysis_type,
-                           fov_data=None, fov_channel_data=None, pheno_codes=None,
+                           current_fov_data=None, current_fov_channel_data=None, pheno_codes=None,
                            thresh_vec=None):
     """Finds positive cell labels and creates matrix with counts for cells positive for corresponding markers.
     Computes close_num matrix for both Cell Label and Threshold spatial analyses.
@@ -87,22 +87,22 @@ def compute_close_cell_num(dist_mat, dist_lim, num, analysis_type,
     index [0, 1]).
 
     Args:
-        dist_mat: cells x cells matrix with the euclidian
+        dist_mat (np array): cells x cells matrix with the euclidian
             distance between centers of corresponding cells
-        dist_lim: threshold for spatial enrichment distance proximity
-        num: number of markers or cell phenotypes, based on analysis
-        analysis_type: type of analysis, either Cluster or Channel
-        fov_data: data for specific patient in expression matrix
-        fov_channel_data: data of only column markers for Channel Analysis
-        pheno_codes: list all the cell phenotypes in Cluster Analysis
-        thresh_vec: matrix of thresholds column for markers
+        dist_lim (int): threshold for spatial enrichment distance proximity
+        num (int): number of markers or cell phenotypes, based on analysis
+        analysis_type (string): type of analysis, either Cluster or Channel
+        current_fov_data (pandas df): data for specific patient in expression matrix
+        current_fov_channel_data (pandas df): data of only column markers for Channel Analysis
+        pheno_codes (pandas df): all the cell phenotypes in Cluster Analysis
+        thresh_vec (numpy df): matrix of thresholds column for markers
         seed: the seed to set for randomized operations, useful for testing
 
     Returns:
-        close_num: marker x marker matrix with counts for cells
+        close_num (np array): marker x marker matrix with counts for cells
             positive for corresponding markers
-        marker1_num: list of number of cell labels for marker 1
-        marker2_num: list of number of cell labels for marker 2"""
+        marker1_num (list): number of cell labels for marker 1
+        marker2_num (list): number of cell labels for marker 2"""
     # Initialize variables
 
     cell_labels = []
@@ -113,7 +113,7 @@ def compute_close_cell_num(dist_mat, dist_lim, num, analysis_type,
     # Subset data based on analysis type
     if analysis_type == "Channel":
         # Subsetting the column with the cell labels
-        cell_labels = fov_data[cell_label_col]
+        cell_labels = current_fov_data[cell_label_col]
 
     # Create close_num, marker1_num, and marker2_num
     close_num = np.zeros((num, num), dtype='int')
@@ -123,21 +123,23 @@ def compute_close_cell_num(dist_mat, dist_lim, num, analysis_type,
     for j in range(0, num):
         # Identify cell labels that are positive for respective markers or phenotypes, based on type of analysis
         if analysis_type == "Cluster":
-            mark1poslabels = get_pos_cell_labels(analysis_type, pheno_codes.iloc[j], fov_data)
+            mark1poslabels = get_pos_cell_labels(analysis_type, pheno_codes.iloc[j], current_fov_data)
         else:
             mark1poslabels = get_pos_cell_labels(analysis_type, thresh=thresh_vec.iloc[j],
-                                                 fov_channel_data=fov_channel_data, cell_labels=cell_labels,
-                                                 col=fov_channel_data.columns[j])
+                                                 current_fov_data=current_fov_data,
+                                                 cell_labels=cell_labels,
+                                                 specific_marker=current_fov_data.columns[j])
         # Length of the number of positive cell labels
         mark1_num.append(len(mark1poslabels))
         for k in range(0, num):
             # Repeats what was done above for the same marker and all other markers in the analysis
             if analysis_type == "Cluster":
-                mark2poslabels = get_pos_cell_labels(analysis_type, pheno_codes.iloc[k], fov_data)
+                mark2poslabels = get_pos_cell_labels(analysis_type, pheno_codes.iloc[k], current_fov_data)
             else:
                 mark2poslabels = get_pos_cell_labels(analysis_type, thresh=thresh_vec.iloc[k],
-                                                     fov_channel_data=fov_channel_data, cell_labels=cell_labels,
-                                                     col=fov_channel_data.columns[k])
+                                                     current_fov_data=current_fov_data,
+                                                     cell_labels=cell_labels,
+                                                     specific_marker=current_fov_channel_data.columns[k])
             mark2_num.append(len(mark2poslabels))
 
             # Subset the distance matrix to only include cells positive for both markers j and k
@@ -157,17 +159,17 @@ def compute_close_cell_num_random(marker1_num, marker2_num,
     in that random setup.
 
     Args
-        marker1_num: list of number of cell labels for marker 1
-        marker2_num: list of number of cell labels for marker 2
-        dist_mat: cells x cells matrix with the euclidian
+        marker1_num (list): number of cell labels for marker 1
+        marker2_num (list): list of number of cell labels for marker 2
+        dist_mat (np array): cells x cells matrix with the euclidian
             distance between centers of corresponding cells
-        marker_num: number of markers in expresion data
-        dist_lim: threshold for spatial enrichment distance proximity
-        bootstrap_num: number of permutations
+        marker_num (int): number of markers in expresion data
+        dist_lim (int): threshold for spatial enrichment distance proximity
+        bootstrap_num (int): number of permutations
         seed: the seed to set for randomized operations, useful for testing
 
     Returns
-        close_num_rand: random positive marker counts
+        close_num_rand (np array): random positive marker counts
             for every permutation in the bootstrap"""
 
     # Create close_num_rand
@@ -196,21 +198,21 @@ def calculate_enrichment_stats(close_num, close_num_rand):
     """Calculates z score and p values from spatial enrichment analysis.
 
     Args:
-        close_num: marker x marker matrix with counts for cells
+        close_num (np array): marker x marker matrix with counts for cells
             positive for corresponding markers
-        close_num_rand: random positive marker counts
+        close_num_rand (np array): random positive marker counts
             for every permutation in the bootstrap
 
     Returns:
-        z: z scores for corresponding markers
-        muhat: predicted mean values of close_num_rand random distribution
-        sigmahat: predicted standard deviation values of close_num_rand
+        z (np array): z scores for corresponding markers
+        muhat (np array): predicted mean values of close_num_rand random distribution
+        sigmahat (np array): predicted standard deviation values of close_num_rand
             random distribution
-        p: p values for corresponding markers, for both positive
+        p (np array): p values for corresponding markers, for both positive
             and negative enrichment
-        h: matrix indicating whether
+        h (np array): matrix indicating whether
             corresponding marker interactions are significant
-        adj_p: fdh_br adjusted p values"""
+        adj_p (np array): fdh_br adjusted p values"""
     # Get the number of markers and number of permutations
     marker_num = close_num.shape[0]
     bootstrap_num = close_num_rand.shape[2]
@@ -255,27 +257,27 @@ def calculate_enrichment_stats(close_num, close_num_rand):
     return stats_xr
 
 
-def compute_neighbor_counts(fov_data, dist_matrix, distlim, self_neighbor=True,
+def compute_neighbor_counts(specific_fov_data, dist_matrix, distlim, self_neighbor=True,
                             cell_label_col="cellLabelInImage"):
     """Calculates the number of neighbor phenotypes for each cell. The cell counts itself as a neighbor.
 
     Args:
-        fov_data: data for the current fov, including the cell labels, cell phenotypes, and cell phenotype ID
-        dist_matrix: cells x cells matrix with the euclidian
+        specific_fov_data (pandas df): data for the current fov, including the cell labels, cell phenotypes, and cell phenotype ID
+        dist_matrix (np array): cells x cells matrix with the euclidian
             distance between centers of corresponding cells
-        distlim: threshold for spatial enrichment distance proximity
-        self_neighbor: If true, cell counts itself as a neighbor in the analysis.
-        cell_label_col: Column name with the cell labels
+        distlim (int): threshold for spatial enrichment distance proximity
+        self_neighbor (boolean): If true, cell counts itself as a neighbor in the analysis.
+        cell_label_col (string): Column name with the cell labels
     Returns:
-        counts: data array with phenotype counts per cell
-        freqs: data array with phenotype frequencies of
+        counts (pandas df): data array with phenotype counts per cell
+        freqs (pandas df): data array with phenotype frequencies of
             counts per phenotype/total phenotypes for each cell"""
 
     # TODO remove non-cell2cell lines (indices on the distance matrix not corresponding to cell labels)
     #  after our own inputs for functions are created
     # refine distance matrix to only cover cell labels in fov_data
-    cell_dist_mat = np.take(dist_matrix, fov_data[cell_label_col] - 1, 0)
-    cell_dist_mat = np.take(cell_dist_mat, fov_data[cell_label_col] - 1, 1)
+    cell_dist_mat = np.take(dist_matrix, specific_fov_data[cell_label_col] - 1, 0)
+    cell_dist_mat = np.take(cell_dist_mat, specific_fov_data[cell_label_col] - 1, 1)
 
     # binarize distance matrix
     cell_dist_mat_bin = np.zeros(cell_dist_mat.shape)
@@ -289,7 +291,7 @@ def compute_neighbor_counts(fov_data, dist_matrix, distlim, self_neighbor=True,
     num_neighbors = np.sum(cell_dist_mat_bin, axis=0)
 
     # create the 'phenotype has cell?' matrix, excluding non cell-label rows
-    pheno_has_cell = pd.get_dummies(fov_data.iloc[:, 2]).to_numpy().T
+    pheno_has_cell = pd.get_dummies(specific_fov_data.iloc[:, 2]).to_numpy().T
 
     # dot binarized 'is neighbor?' matrix with pheno_has_cell to get counts
     counts = pheno_has_cell.dot(cell_dist_mat_bin).T
