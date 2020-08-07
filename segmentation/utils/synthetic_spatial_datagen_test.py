@@ -114,25 +114,24 @@ def test_generate_two_cell_ring_coords():
     pass
 
 
-def test_generate_two_cell_ring_jitter_coords():
-    # this function tests the functionality of generating jitter around
-    # pre-drawn rings as done by test_generate_two_cell_ring_coords
+def test_generate_two_cell_test_segmentation_mask():
+    # this function tests the functionality of generating the segmentation mask
     pass
 
 
-def test_generate_two_cell_nuclear_test_signal_data():
+def test_generate_two_cell_test_nuclear_signal():
     # this function tests the functionality of the nuclear-signal-generating portion of
     # the channel-level spatial analysis data
     pass
 
 
-def test_generate_two_cell_nuclear_test_signal_data():
+def test_generate_two_cell_test_membrane_signal():
     # this function tests the functionality of the membrane-signal-generating portion of
     # the channel-level spatial analysis data
     pass
 
 
-def test_generate_two_cell_test_signal_data():
+def test_generate_two_cell_test_channel_synthetic_data():
     # this function tests the functionality of the overall signal-data creation process
     # with both the nuclear- and membrane-level channels
     pass

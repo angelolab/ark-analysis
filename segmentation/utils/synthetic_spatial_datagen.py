@@ -230,293 +230,154 @@ def generate_test_label_map(size_img=(1024, 1024), num_A=100, num_B=100, num_C=1
     return sample_img_xr, centroid_indices
 
 
-def generate_two_cell_ring_coords(size_img, center_1, center_2, outer_radius, inner_radius):
+def generate_two_cell_test_segmentation_mask(size_img=(1024, 1024), cell_radius=10):
     """
-    This function generates the coordinates for a ring by generating circle perimeters in the desired range of radii
-
-    Arguments:
-        size_img (tuple): the dimensions of the image we wish to generate
-        center_1 (tuple): the center of the first cell
-        center_2 (tuple): the center of the second cell
-        outer_radius (int): the radius of the outer disk of the desired ring
-        inner_radius (int): the radius of the inner disk of the desired ring
-
-    Returns:
-        ring_region_1 (tuple): a tuple indicating the coordinates for the ring we wish to generate for cell 1
-        ring_region_2 (tuple): similar to ring_region_1 for cell 2
-    """
-
-    # create numpy arrays to hold the resulting coordinates
-    ring_region_1_x = np.array([]).astype(np.int16)
-    ring_region_1_y = np.array([]).astype(np.int16)
-    ring_region_2_x = np.array([]).astype(np.int16)
-    ring_region_2_y = np.array([]).astype(np.int16)
-
-    # for each radius in the range of the inner and outer radii
-    for rad in range(inner_radius, outer_radius + 1):
-        # generate circle perimeters for region 1 and 2
-        region_1_perim_x, region_1_perim_y = circle_perimeter(center_1[0], center_1[1], rad, shape=size_img)
-        region_2_perim_x, region_2_perim_y = circle_perimeter(center_2[0], center_2[1], rad, shape=size_img)
-
-        # now add the coordinates to the respective numpy array
-        ring_region_1_x = np.concatenate((ring_region_1_x, region_1_perim_x))
-        ring_region_1_y = np.concatenate((ring_region_1_y, region_1_perim_y))
-        ring_region_2_x = np.concatenate((ring_region_2_x, region_2_perim_x))
-        ring_region_2_y = np.concatenate((ring_region_2_y, region_2_perim_y))
-
-    # create a tuple for the x and y coordinates for each cell ring
-    ring_region_1 = (ring_region_1_x, ring_region_1_y)
-    ring_region_2 = (ring_region_2_x, ring_region_2_y)
-
-    return ring_region_1, ring_region_2
-
-
-def generate_two_cell_ring_jitter_coords(size_img, ring_region_1, ring_region_2,
-                                         jitter_factor, jitter_multiplier, seed):
-    """
-    This function generates the coordinates we need to set jittered signal for rings
-    around the nucleus or membrane respectively
-
-    Arguments:
-        size_img (tuple): the dimensions of the image we wish to generate
-        ring_region_1 (tuple): a tuple representing the x and y coodinates of the first cell's ring region in question
-        ring_region_2 (tuple): similar to ring_region_1 but for cell 2
-        jitter_factor (int): controls the amount of random noise we add to the cell
-        jitter_multiplier (int): an additional jitter scatter to add more jitter the further away from
-            the membrane or nucleus
-        seed (int): whether to set the random seed or not, useful for testing
-
-    Returns:
-        ring_region_1_jitter (tuple): a tuple with the x and y coordinates to assign jitter for the specified ring for cell 1
-        ring_region_2_jitter (tuple): similar to ring_region_1_jitter for ring_region_2
-    """
-
-    if seed:
-        np.random.seed(seed)
-
-    # generate some jitter for each x and y coordinate
-    # the way we do this is to generate random offset based on the jitter_factor multiplier
-    # and sampling from a uniform distribution with an additional jitter_factor and jitter_multiplier multiplier
-    ring_region_1_x_jitter = (ring_region_1[0] + np.around(np.random.uniform(-jitter_factor * jitter_multiplier, jitter_factor * jitter_multiplier, len(ring_region_1[0])))).astype(np.int16)
-    ring_region_1_y_jitter = (ring_region_1[1] + np.around(np.random.uniform(-jitter_factor * jitter_multiplier, jitter_factor * jitter_multiplier, len(ring_region_1[1])))).astype(np.int16)
-    ring_region_2_x_jitter = (ring_region_2[0] + np.around(np.random.uniform(-jitter_factor * jitter_multiplier, jitter_factor * jitter_multiplier, len(ring_region_2[0])))).astype(np.int16)
-    ring_region_2_y_jitter = (ring_region_2[1] + np.around(np.random.uniform(-jitter_factor * jitter_multiplier, jitter_factor * jitter_multiplier, len(ring_region_2[1])))).astype(np.int16)
-
-    # now ensure the jitter coordinates don't fall out of bounds
-    # this we need to do because the offsets could fall out of bounds
-    ring_region_1_jitter_indices = (ring_region_1_x_jitter >= 0) & (ring_region_1_x_jitter < size_img[0]) & \
-                                   (ring_region_1_y_jitter >= 0) & (ring_region_1_y_jitter < size_img[1])
-
-    ring_region_2_jitter_indices = (ring_region_2_x_jitter >= 0) & (ring_region_2_x_jitter < size_img[0]) & \
-                                   (ring_region_2_y_jitter >= 0) & (ring_region_2_y_jitter < size_img[1])
-
-    ring_region_1_x_jitter_coords = ring_region_1_x_jitter[ring_region_1_jitter_indices]
-    ring_region_1_y_jitter_coords = ring_region_1_y_jitter[ring_region_1_jitter_indices]
-    ring_region_2_x_jitter_coords = ring_region_2_x_jitter[ring_region_2_jitter_indices]
-    ring_region_2_y_jitter_coords = ring_region_2_y_jitter[ring_region_2_jitter_indices]
-
-    # add an additional random point removal for clearer results
-    # might be a bit overkill but it definitely did help
-    # over trying to fine tune jitter factor and what not
-    # number of points to keep is inversely proportional to
-    # how far away the ring is from the nucleus or membrane respectively
-    ring_region_1_selection = np.random.choice(len(ring_region_1_x_jitter_coords), int(len(ring_region_1_x_jitter_coords) / jitter_multiplier))
-    ring_region_2_selection = np.random.choice(len(ring_region_2_x_jitter_coords), int(len(ring_region_2_x_jitter_coords) / jitter_multiplier))
-
-    ring_region_1_x_jitter_coords = ring_region_1_x_jitter_coords[ring_region_1_selection]
-    ring_region_1_y_jitter_coords = ring_region_1_y_jitter_coords[ring_region_1_selection]
-    ring_region_2_x_jitter_coords = ring_region_2_x_jitter_coords[ring_region_2_selection]
-    ring_region_2_y_jitter_coords = ring_region_2_y_jitter_coords[ring_region_2_selection]
-
-    # create a tuple for the x and y coordinates for each cell ring
-    ring_region_1_jitter = (ring_region_1_x_jitter_coords, ring_region_1_y_jitter_coords)
-    ring_region_2_jitter = (ring_region_2_x_jitter_coords, ring_region_2_y_jitter_coords)
-
-    return ring_region_1_jitter, ring_region_2_jitter
-
-
-def generate_two_cell_nuclear_test_signal_data(size_img, center_1, center_2, nuc_radius,
-                                               cell_radius, jitter_factor, num_radii,
-                                               plot, seed):
-    """
-    This function generates sample nuclear-level channel signal data for two bordering cells.
-
-    Arguments:
-        size_img (tuple): the dimensions of the image we wish to generate
-        center_1 (tuple): the center of the first cell
-        center_2 (tuple): the center of the second cell
-        nuc_radius (int): the radius of the nucleus
-        cell_radius (int): the radius of the entire cell
-        jitter_factor (int): controls the amount of random noise we add to the cell
-        num_radii (int): will define the number of ring partitions outside of the nucleus or membrane
-            the further away the partition is from the nucleus or membrane the more noisy the signal is
-        plot (bool): whether to show what was plotted in the function
-        seed (int): whether to set the random seed or not, useful for testing
-
-    Returns:
-        nuc_channel_data (numpy): a numpy array of dims size_img with the random nuclear-level channel signal data
-    """
-
-    # generate the array to hold the nuclear-level channel-based data
-    nuc_channel_data = np.zeros(size_img)
-
-    # generate the coordinates of each nuclear disk
-    nuc_region_1_x, nuc_region_1_y = circle(center_1[0], center_1[1], nuc_radius, shape=size_img)
-    nuc_region_2_x, nuc_region_2_y = circle(center_2[0], center_2[1], nuc_radius, shape=size_img)
-
-    # set each nuclear region to 1
-    nuc_channel_data[nuc_region_1_x, nuc_region_1_y] = 1
-    nuc_channel_data[nuc_region_2_x, nuc_region_2_y] = 1
-
-    # generate the radii of the surrounding rings of the nucleus
-    radii = [int(nuc_radius + (cell_radius - nuc_radius) / num_radii * rad) for rad in range(num_radii + 1)]
-
-    # set a jitter multiplier to increase the base jitter_factor as we get further away from the nucleus
-    jitter_multiplier = 1
-
-    for r in range(1, len(radii)):
-        # generate each ring region based on the radii list
-        ring_region_1, ring_region_2 = \
-            generate_two_cell_ring_coords(size_img=size_img, center_1=center_1, center_2=center_2,
-                                          outer_radius=radii[r], inner_radius=radii[r - 1])
-
-        # now add some jitter to each ring region
-        ring_region_1_jitter, ring_region_2_jitter = \
-            generate_two_cell_ring_jitter_coords(size_img=size_img, ring_region_1=ring_region_1,
-                                                 ring_region_2=ring_region_2, jitter_factor=jitter_factor,
-                                                 jitter_multiplier=jitter_multiplier, seed=seed)
-
-        # set each jitter region to 1
-        nuc_channel_data[ring_region_1_jitter[0], ring_region_1_jitter[1]] = 1
-        nuc_channel_data[ring_region_2_jitter[0], ring_region_2_jitter[1]] = 1
-
-        # increase the jitter multiplier the further away from the nucleus we get
-        jitter_multiplier += 1
-
-    # plot the resulting channel data created
-    if plot:
-        plt.imshow(nuc_channel_data)
-        plt.show()
-
-    return nuc_channel_data
-
-
-def generate_two_cell_membrane_test_signal_data(size_img, center_1, center_2, memb_radius,
-                                                cell_radius, jitter_factor, num_radii,
-                                                plot, seed):
-    """
-    This function generates sample nuclear-level channel signal data for two bordering cells.
-
-    Arguments:
-        size_img (tuple): the dimensions of the image we wish to generate
-        center_1 (tuple): the center of the first cell
-        center_2 (tuple): the center of the second cell
-        memb_radius (int): the radius of the membrane
-        cell_radius (int): the radius of the entire cell
-        jitter_factor (int): controls the amount of random noise we add to the cell
-        num_radii (int): will define the number of ring partitions outside of the nucleus or membrane
-            the further away the partition is from the nucleus or membrane the more noisy the signal is
-        plot (bool): whether to show what was plotted in the function
-        seed (int): whether to set the random seed or not, useful for testing
-
-    Returns:
-        memb_channel_data (numpy): a numpy array of dims size_img with the random membrane-level channel signal data
-    """
-
-    # generate the array to hold the membrane-level channel-based data
-    memb_channel_data = np.zeros(size_img)
-
-    # generate the coordinates of each membrane ring
-    memb_ring_1, memb_ring_2 = \
-        generate_two_cell_ring_coords(size_img=size_img, center_1=center_1, center_2=center_2,
-                                      outer_radius=cell_radius, inner_radius=cell_radius - memb_radius)
-
-    # set each membrane region to 1
-    memb_channel_data[memb_ring_1[0], memb_ring_1[1]] = 1
-    memb_channel_data[memb_ring_2[0], memb_ring_2[1]] = 1
-
-    # generate some jitter around each membrane ring to handle uncertainty around the border
-    memb_ring_1_jitter, memb_ring_2_jitter = \
-        generate_two_cell_ring_jitter_coords(size_img=size_img, ring_region_1=memb_ring_1,
-                                             ring_region_2=memb_ring_2, jitter_factor=jitter_factor,
-                                             jitter_multiplier=1, seed=seed)
-
-    # now set each jitter coordinate around the membrane to 1
-    memb_channel_data[memb_ring_1_jitter[0], memb_ring_1_jitter[1]] = 1
-    memb_channel_data[memb_ring_2_jitter[0], memb_ring_2_jitter[1]] = 1
-
-    # generate the radii of the surrounding rings of the nucleus
-    radii = [int((cell_radius - memb_radius) - (cell_radius - memb_radius) / num_radii * rad) for rad in range(num_radii + 1)]
-
-    # set a jitter multiplier to increase the base jitter_factor as we get further away from the nucleus
-    jitter_multiplier = 1
-
-    for r in range(1, len(radii)):
-        # generate each ring region based on the radii list
-        ring_region_1, ring_region_2 = \
-            generate_two_cell_ring_coords(size_img=size_img, center_1=center_1, center_2=center_2,
-                                          outer_radius=radii[r - 1], inner_radius=radii[r])
-
-        # now add some jitter to each ring region
-        ring_region_1_jitter, ring_region_2_jitter = \
-            generate_two_cell_ring_jitter_coords(size_img=size_img, ring_region_1=ring_region_1,
-                                                 ring_region_2=ring_region_2, jitter_factor=jitter_factor,
-                                                 jitter_multiplier=jitter_multiplier, seed=seed)
-
-        # set each jitter region to 1
-        memb_channel_data[ring_region_1_jitter[0], ring_region_1_jitter[1]] = 1
-        memb_channel_data[ring_region_2_jitter[0], ring_region_2_jitter[1]] = 1
-
-        # increase the jitter multiplier the further away from the nucleus we get
-        jitter_multiplier += 1
-
-    # plot th resulting membrane data created
-    if plot:
-        plt.imshow(memb_channel_data)
-        plt.show()
-
-    return memb_channel_data
-
-
-def generate_two_cell_test_signal_data(size_img=(1024, 1024), cell_radius=200, nuc_radius=35, memb_radius=20,
-                                       jitter_factor=5, num_radii=3, seed=None):
-    """
-    This function generates test channel data assuming we're just generating two cells.
+    This function generates a test segmentation mask with each separate cell labeled separately.
 
     Args:
         size_img (tuple): the dimensions of the image we wish to generate
-        cell_radius (int): the radius of the entire cell
-        nuc_radius (int): the radius of the nucleus of each cell
-        memb_radius (int): the radius of the membrane of each cell
-        jitter_factor (int): controls the amount of random noise we add to the cell
-        num_radii (int): will define the number of ring partitions outside of the nucleus or membrane
-            the further away the partition is from the nucleus or membrane the more noisy the signal is
-        seed (int): whether to fix the random seed or not, useful for testing
+        cell_radius (int): the radius of each cell 
 
     Returns:
-        sample_channel_data (numpy): a m x n x p array where m is the number of channels and (n x p)
-            is the same as size_img. We'll have 2 channels: nuclear and membrane.
+        sample_segmentation_mask (numpy): an array of dimensions size_img with two separate labeled
+            cells that border each other
     """
 
-    # define the three-dimensional sample channel array
-    sample_channel_data = np.zeros((2, size_img[0], size_img[1]))
+    # define the segmentation mask
+    sample_segmentation_mask = np.zeros(size_img)
 
-    # place the centers in the middle of the image
-    # we don't have to worry about out-of-range coordinates because
-    # the functions to draw the cells have built in protection
     center_1 = (int(size_img[0] / 2), int(size_img[0] / 2))
-    center_2 = (int(size_img[0] / 2), int(size_img[0] / 2 + cell_radius * 2))
+    center_2 = (int(size_img[0]) / 2, int(size_img[0] / 2 + cell_radius * 2))
 
-    # generate the nuclear-level channel data
-    sample_channel_data[0, :, :] = generate_two_cell_nuclear_test_signal_data(size_img=size_img, center_1=center_1,
-                                                                              center_2=center_2, nuc_radius=nuc_radius,
-                                                                              cell_radius=cell_radius, jitter_factor=jitter_factor,
-                                                                              num_radii=num_radii, plot=True, seed=seed)
+    # generate the coordinates of each nuclear disk
+    cell_region_1_x, cell_region_1_y = circle(center_1[0], center_1[1], cell_radius, shape=size_img)
+    cell_region_2_x, cell_region_2_y = circle(center_2[0], center_2[1], cell_radius, shape=size_img)
 
-    # generate the membrane-level channel data
-    sample_channel_data[1, :, :] = generate_two_cell_membrane_test_signal_data(size_img=size_img, center_1=center_1,
-                                                                               center_2=center_2, memb_radius=memb_radius,
-                                                                               cell_radius=cell_radius, jitter_factor=jitter_factor,
-                                                                               num_radii=num_radii, plot=True, seed=seed)
+    # now assign the respective cells value according to their label
+    sample_segmentation_mask[cell_region_1_x, cell_region_1_y] = 1
+    sample_segmentation_mask[cell_region_2_x, cell_region_2_y] = 2
 
-    return sample_channel_data
+    # we should define this dictionary to make it easy to index into the centers of each cell
+    # once we have to generate nuclear and membrane-level signal
+    # may need to change this to a different, immutable datatype
+    cell_centers = {1: center_1, 2: center_2}
+
+    return sample_segmentation_mask, cell_centers
+
+
+def generate_two_cell_test_nuclear_signal(segmentation_mask, cell_centers, cell_ids=None,
+                                          size_img=(1024, 1024), nuc_radius=3):
+    """
+    This function generates nuclear signal for the provided cells
+
+    Args:
+        segmentation_mask (numpy): an array which contains the labeled cell regions
+        cell_centers (dict): a dictionary which contains the centers associated with each cell region
+        cell_ids (list): a list of cells we wish to generate nuclear signal for, if None assume just cell 1
+        size_img (tuple): the dimensions of the image we wish to generate
+        nuc_radius (int): the radius of the nucleus of each cell
+
+    Returns:
+        sample_nuclear_signal (numpy): an array of equal dimensions to segmentation_mask
+            which have nuclear signal generated for the provided cell ids
+    """
+
+    # define the nuclear signal array
+    sample_nuclear_signal = np.zeros(segmentation_mask.shape)
+
+    # default to cell 1 if cell_ids not set
+    if not cell_ids:
+        cell_ids = [1]
+
+    for cell in cell_ids:
+        center = cell_centers[cell]
+
+        # generate the nuclear region in the middle of the cell with the same cell center
+        # and set signal to a uniform value
+        nuc_region_x, nuc_region_y = circle(center[0], center[1], nuc_radius, shape=size_img)
+        sample_nuclear_signal[nuc_region_x, nuc_region_y] = 1
+
+        # let's keep things simple for now and not include jitter or anything
+        # that can easily be included in the next commit
+
+    return sample_nuclear_signal
+
+
+def generate_two_cell_test_membrane_signal(segmentation_mask, cell_centers, cell_ids=None,
+                                           size_img=(1024, 1024), cell_radius=10, memb_diameter=5):
+    """
+    This function generates membrane signal for the provided cells
+
+    Args:
+        segmentation_mask (numpy): an array which contains the labeled cell regions
+        cell_centers (dict): a dictionary which contains the centers associated with each cell region
+        cell_ids (list): a list of cells we wish to generate nuclear signal for, if None assume just cell 2
+        size_img (tuple): the dimensions of the image we wish to generate
+        cell_radius (int): the radius of the entire cell, needed to do proper circle subtraction
+            for a ring-shaped membrane
+        memb_diameter (int): the diameter of the membrane ring of each cell
+
+    Returns:
+        sample_membrane_signal (numpy): an array of equal dimensions to segmentation_mask
+            which have membrane signal generated for the provided cell ids
+    """
+
+    # define the nuclear signal array
+    sample_membrane_signal = np.zeros(segmentation_mask.shape)
+
+    # default to cell 2 if cell_ids not set
+    if not cell_ids:
+        cell_ids = [2]
+
+    for cell in cell_ids:
+        center = cell_centers[cell]
+
+        # generate both the coordinates of the cell region and non-membrane region
+        # for proper circle subtraction to generate membrane
+        cell_region_x, cell_region_y = circle(center[0], center[1], cell_radius, shape=size_img)
+        non_memb_region_x, non_memb_region_y = circle(center[0], center[1], cell_radius, shape=size_img)
+
+        # perform circle subtraction
+        sample_membrane_signal[cell_region_x, cell_region_y] = 1
+        sample_membrane_signal[non_memb_region_x, non_memb_region_y] = 1
+
+        # let's keep things simple for now and not include jitter or anything
+        # that can easily be included in the next commit
+
+    return sample_membrane_signal
+
+
+def generate_two_cell_test_channel_synthetic_data(size_img=(1024, 1024), cell_radius=10, nuc_radius=3, memb_diameter=5,
+                                                  nuc_cell_ids=None, memb_cell_ids=None):
+    """
+    This function generates the complete package of channel-level synthetic data we're looking for
+
+    Args:
+        size_img (tuple): the dimensions of the image we wish to generate
+        cell_radius (int): the radius of each cell
+        nuc_radius (int): the radius of each nucleus
+        memb_diameter (int): the diameter of each membrane
+        nuc_cell_ids (list): a list of which cells we wish to generate nuclear signal for, if None assume just cell 1
+        memb_cell_ids (list): a list of which cells we wish to generate membrane signal for, if None assume just cell 2
+
+    Returns:
+        sample_segmentation_mask (numpy): an array which contains the labeled cell regions
+        sample_nuclear_signal (TIF): defines the nuclear signal for the desired cells
+        sample_membrane_signal (TIF): defines the membrane signal for the desired cells
+    """
+
+    # default nuclear signal cell to 1 and membrane signal cell to 2 if not specified
+    if not nuc_cell_ids:
+        nuc_cell_ids = [1]
+
+    if not memb_cell_ids:
+        memb_cell_ids = [2]
+
+    # generate the segmentation mask
+    sample_segmentation_mask = generate_two_cell_test_segmentation_mask(size_img, cell_radius)
+
+    # generate the nuclear and membrane-level signal
+    sample_nuclear_signal = generate_two_cell_test_nuclear_signal(sample_segmentation_mask, nuc_radius, nuc_cell_ids)
+    sample_membrane_signal = generate_two_cell_test_membrane_signal(sample_segmentation_mask, memb_diameter, memb_cell_ids)
+
+    return sample_segmentation_mask, sample_nuclear_signal, sample_membrane_signal
