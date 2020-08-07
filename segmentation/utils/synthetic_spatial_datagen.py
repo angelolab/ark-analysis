@@ -265,7 +265,7 @@ def generate_two_cell_test_segmentation_mask(size_img=(1024, 1024), cell_radius=
     return sample_segmentation_mask, cell_centers
 
 
-def generate_two_cell_test_nuclear_signal(segmentation_mask, cell_centers, cell_ids=None,
+def generate_two_cell_test_nuclear_signal(segmentation_mask, cell_centers, cell_ids=[1],
                                           size_img=(1024, 1024), nuc_radius=3):
     """
     This function generates nuclear signal for the provided cells
@@ -285,10 +285,6 @@ def generate_two_cell_test_nuclear_signal(segmentation_mask, cell_centers, cell_
     # define the nuclear signal array
     sample_nuclear_signal = np.zeros(segmentation_mask.shape)
 
-    # default to cell 1 if cell_ids not set
-    if not cell_ids:
-        cell_ids = [1]
-
     for cell in cell_ids:
         center = cell_centers[cell]
 
@@ -303,7 +299,7 @@ def generate_two_cell_test_nuclear_signal(segmentation_mask, cell_centers, cell_
     return sample_nuclear_signal
 
 
-def generate_two_cell_test_membrane_signal(segmentation_mask, cell_centers, cell_ids=None,
+def generate_two_cell_test_membrane_signal(segmentation_mask, cell_centers, cell_ids=[2],
                                            size_img=(1024, 1024), cell_radius=10, memb_diameter=5):
     """
     This function generates membrane signal for the provided cells
@@ -325,10 +321,6 @@ def generate_two_cell_test_membrane_signal(segmentation_mask, cell_centers, cell
     # define the nuclear signal array
     sample_membrane_signal = np.zeros(segmentation_mask.shape)
 
-    # default to cell 2 if cell_ids not set
-    if not cell_ids:
-        cell_ids = [2]
-
     for cell in cell_ids:
         center = cell_centers[cell]
 
@@ -348,7 +340,7 @@ def generate_two_cell_test_membrane_signal(segmentation_mask, cell_centers, cell
 
 
 def generate_two_cell_test_channel_synthetic_data(size_img=(1024, 1024), cell_radius=10, nuc_radius=3, memb_diameter=5,
-                                                  nuc_cell_ids=None, memb_cell_ids=None):
+                                                  nuc_cell_ids=[1], memb_cell_ids=[2]):
     """
     This function generates the complete package of channel-level synthetic data we're looking for
 
@@ -380,4 +372,8 @@ def generate_two_cell_test_channel_synthetic_data(size_img=(1024, 1024), cell_ra
     sample_nuclear_signal = generate_two_cell_test_nuclear_signal(sample_segmentation_mask, nuc_radius, nuc_cell_ids)
     sample_membrane_signal = generate_two_cell_test_membrane_signal(sample_segmentation_mask, memb_diameter, memb_cell_ids)
 
-    return sample_segmentation_mask, sample_nuclear_signal, sample_membrane_signal
+    sample_channel_data = np.zeros((size_img[0], size_img[1], 2))
+    sample_channel_data[:, :, 0] = sample_nuclear_signal
+    sample_channel_data[:, :, 1] = sample_membrane_signal
+
+    return sample_segmentation_mask, sample_channel_data
