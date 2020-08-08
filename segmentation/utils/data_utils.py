@@ -66,7 +66,7 @@ def load_imgs_from_mibitiff(data_dir, mibitiff_files=None, channels=None, delimi
     """
 
     if not mibitiff_files:
-        mibitiff_files = iou.list_files(data_dir, substrs=['tif'])
+        mibitiff_files = iou.list_files(data_dir, substrs=['.tif'])
 
     mibitiff_files = [os.path.join(data_dir, mt_file)
                       for mt_file in mibitiff_files]
@@ -135,7 +135,7 @@ def load_imgs_from_multitiff(data_dir, multitiff_files=None, channels=None, deli
     """
 
     if not multitiff_files:
-        multitiff_files = iou.list_files(data_dir, substrs=['tif'])
+        multitiff_files = iou.list_files(data_dir, substrs=['.tif'])
 
     multitiff_files = [os.path.join(data_dir, mt_file)
                        for mt_file in multitiff_files]
@@ -210,7 +210,7 @@ def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, imgs=None,
     # get imgs from first fov if no img names supplied
     if imgs is None:
         imgs = iou.list_files(os.path.join(data_dir, fovs[0], img_sub_folder),
-                              substrs=['tif', 'jpg', 'png'])
+                              substrs=['.tif', '.jpg', '.png'])
 
         # if taking all imgs from directory, sort them alphabetically
         imgs.sort()
@@ -286,7 +286,7 @@ def load_imgs_from_dir(data_dir, imgdim_name='compartments', image_name='img_dat
 
     """
 
-    imgs = iou.list_files(data_dir, substrs=['tif', 'jpg', 'png'])
+    imgs = iou.list_files(data_dir, substrs=['.tif', '.jpg', '.png'])
     imgs = [img for img in imgs if delimiter in img]
     imgs.sort()
 
