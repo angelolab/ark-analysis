@@ -294,7 +294,7 @@ def generate_two_cell_test_nuclear_signal(segmentation_mask, cell_centers,
         # generate the nuclear region in the middle of the cell with the same cell center
         # and set signal to a uniform value
         nuc_region_x, nuc_region_y = circle(center[0], center[1], nuc_radius, shape=size_img)
-        sample_nuclear_signal[nuc_region_x, nuc_region_y] = 1
+        sample_nuclear_signal[nuc_region_x, nuc_region_y] = 10
 
         # let's keep things simple for now and not include jitter or anything
         # that can easily be included in the next commit
@@ -304,7 +304,7 @@ def generate_two_cell_test_nuclear_signal(segmentation_mask, cell_centers,
 
 def generate_two_cell_test_membrane_signal(segmentation_mask, cell_centers,
                                            size_img=(1024, 1024), cell_radius=10,
-                                           memb_cell_ids=[2], memb_diameter=5):
+                                           memb_cell_ids=[2], memb_thickness=5):
     """
     This function generates membrane signal for the provided cells
 
@@ -315,7 +315,7 @@ def generate_two_cell_test_membrane_signal(segmentation_mask, cell_centers,
         cell_radius (int): the radius of the entire cell, needed to do proper circle subtraction
             for a ring-shaped membrane
         memb_cell_ids (list): a list of cells we wish to generate nuclear signal for, if None assume just cell 2
-        memb_diameter (int): the diameter of the membrane ring of each cell
+        memb_thickness (int): the diameter of the membrane ring of each cell
 
     Returns:
         sample_membrane_signal (numpy): an array of equal dimensions to segmentation_mask
@@ -334,7 +334,7 @@ def generate_two_cell_test_membrane_signal(segmentation_mask, cell_centers,
         non_memb_region_x, non_memb_region_y = circle(center[0], center[1], cell_radius - memb_diameter, shape=size_img)
 
         # perform circle subtraction
-        sample_membrane_signal[cell_region_x, cell_region_y] = 1
+        sample_membrane_signal[cell_region_x, cell_region_y] = 10
         sample_membrane_signal[non_memb_region_x, non_memb_region_y] = 0
 
         # let's keep things simple for now and not include jitter or anything
@@ -376,7 +376,7 @@ def generate_two_cell_test_channel_synthetic_data(size_img=(1024, 1024), cell_ra
                                                                     size_img=size_img,
                                                                     cell_radius=cell_radius,
                                                                     memb_cell_ids=memb_cell_ids,
-                                                                    memb_diameter=memb_diameter)
+                                                                    memb_thickness=memb_diameter)
 
     # generate the channel data matrix
     sample_channel_data = np.zeros((size_img[0], size_img[1], 2))
