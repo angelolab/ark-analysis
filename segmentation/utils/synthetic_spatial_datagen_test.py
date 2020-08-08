@@ -115,8 +115,7 @@ def test_generate_two_cell_test_segmentation_mask():
     memb_thickness = 5
 
     sample_segmentation_mask, sample_cell_centers = \
-        synthetic_spatial_datagen.generate_two_cell_test_segmentation_mask(cell_radius=cell_radius, nuc_radius=nuc_radius,
-                                                                           memb_thickness=memb_thickness)
+        synthetic_spatial_datagen.generate_two_cell_test_segmentation_mask(cell_radius=cell_radius)
 
     # assert that our labels are just blank, 1, and 2
     assert set(sample_segmentation_mask) == set([0, 1, 2])
@@ -136,11 +135,9 @@ def test_generate_two_cell_test_nuclear_signal():
     # the channel-level spatial analysis data
     cell_radius = 10
     nuc_radius = 3
-    memb_thickness = 5
 
     sample_segmentation_mask, sample_cell_centers = \
-        synthetic_spatial_datagen.generate_two_cell_test_segmentation_mask(cell_radius=cell_radius, nuc_radius=nuc_radius,
-                                                                           memb_thickness=memb_thickness)
+        synthetic_spatial_datagen.generate_two_cell_test_segmentation_mask(cell_radius=cell_radius)
 
     sample_nuclear_signal = \
         synthetic_spatial_datagen.generate_two_cell_test_nuclear_signal(segmentation_mask=sample_segmentation_mask,
@@ -158,12 +155,10 @@ def test_generate_two_cell_test_membrane_signal():
     # this function tests the functionality of the membrane-signal-generating portion of
     # the channel-level spatial analysis data
     cell_radius = 10
-    nuc_radius = 3
     memb_thickness = 5
 
     sample_segmentation_mask, sample_cell_centers = \
-        synthetic_spatial_datagen.generate_two_cell_test_segmentation_mask(cell_radius=cell_radius, nuc_radius=nuc_radius,
-                                                                           memb_thickness=memb_thickness)
+        synthetic_spatial_datagen.generate_two_cell_test_segmentation_mask(cell_radius=cell_radius)
 
     sample_nuclear_signal = \
         synthetic_spatial_datagen.generate_two_cell_test_nuclear_signal(segmentation_mask=sample_segmentation_mask,
