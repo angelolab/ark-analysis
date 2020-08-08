@@ -180,7 +180,7 @@ def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, imgs=None,
         Args:
             data_dir (str): directory containing folders of images
             img_sub_folder (str): optional name of image sub-folder within each fov
-            fovs (list): optional list of folders to load imgs from, otherwise loads from all folders
+            fovs (list): optional list of folders to load imgs from. Default loads all folders
             imgs (list): optional list of imgs to load, otherwise loads all imgs
             dtype (str/type): dtype of array which will be used to store values
             variable_sizes (bool): if true, will pad loaded images with zeros to fit into array
@@ -279,7 +279,7 @@ def load_imgs_from_dir(data_dir, imgdim_name='compartments', image_name='img_dat
             image_name (str): sets name of the last coordinate in the output xarray
             delimiter (str): character used to determine the file-prefix containging the fov name
             dtype (str/type): data type to load/store
-            variable_sizes (bool): Dynamically determine image sizes and pad smaller imgs with zeros
+            variable_sizes (bool): Dynamically determine image sizes and pad smaller imgs w/ zeros
 
         Returns:
             img_xr (DataArray): xarray with shape [fovs, x_dim, y_dim, 1]
