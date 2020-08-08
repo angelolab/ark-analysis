@@ -1,5 +1,4 @@
 import os
-import pathlib
 import math
 import warnings
 
@@ -9,37 +8,6 @@ import xarray as xr
 from mibidata import tiff
 
 from segmentation.utils import io_utils as iou
-
-
-def validate_paths(paths):
-    """Verifys that paths exist and don't leave Docker's scope
-
-    Args:
-        paths (str or list): paths to verify.
-
-    Raises:
-        ValueError: Raised if any directory is out of scope or non-existent
-    """
-
-    # if given a single path, convert to list
-    if not isinstance(paths, list):
-        paths = [paths]
-
-    for path in paths:
-        if not os.path.exists(path):
-            if str(path).startswith('../data'):
-                for parent in reversed(pathlib.Path(path).parents):
-                    if not os.path.exists(parent):
-                        raise ValueError(
-                            f'A bad path, {path}, was provided.\n'
-                            f'The folder, {parent.name}, could not be found...')
-                raise ValueError(
-                    f'The file/path, {pathlib.Path(path).name}, could not be found...')
-            else:
-                raise ValueError(
-                    f'The path, {path}, is not prefixed with \'../data\'.\n'
-                    f'Be sure to add all images/files/data to the \'data\' folder, '
-                    f'and to reference as \'../data/path_to_data/myfile.tif\'')
 
 
 def load_imgs_from_mibitiff(data_dir, mibitiff_files=None, channels=None, delimiter='_',
@@ -193,17 +161,11 @@ def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, imgs=None,
         # get all fovs
         fovs = iou.list_folders(data_dir)
         fovs.sort()
-    else:
-        # use supplied list, but check to make sure they all exist
-        validate_paths([os.path.join(data_dir, fov) for fov in fovs])
 
     if len(fovs) == 0:
         raise ValueError(f"No fovs found in directory, {data_dir}")
 
-    # check to make sure img subfolder name within fov is correct
-    if img_sub_folder is not None:
-        validate_paths(os.path.join(data_dir, fovs[0], img_sub_folder))
-    else:
+    if img_sub_folder is None:
         # no img_sub_folder, change to empty string to read directly from base folder
         img_sub_folder = ""
 
@@ -221,9 +183,6 @@ def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, imgs=None,
 
     if len(imgs) == 0:
         raise ValueError("No imgs found in designated folder")
-
-    # check to make sure supplied imgs exist
-    validate_paths([os.path.join(data_dir, fovs[0], img_sub_folder, img) for img in imgs])
 
     test_img = io.imread(os.path.join(data_dir, fovs[0], img_sub_folder, imgs[0]))
 
