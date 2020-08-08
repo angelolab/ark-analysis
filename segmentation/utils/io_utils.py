@@ -36,7 +36,7 @@ def list_files(dir_name, substrs=None):
     return list(set(matches))
 
 
-def extract_delimited_names(files, delimiter='_', delimiter_optional=True):
+def extract_delimited_names(files, delimiter='_', delimiter_optional=True, remove_extension=True):
     """ Create a matched-index list of fov/point/etc names from a list of files/folders
 
     Extracts a delimited prefix for every file in a given list of files
@@ -45,11 +45,14 @@ def extract_delimited_names(files, delimiter='_', delimiter_optional=True):
         'Point2_restofthefilename.tiff' becomes 'Point2'
 
     Args:
-        files (list):               List of files to extract names from
+        files (list):               List of files to extract names from (if paths,
+                                    just uses the last file/folder)
         delimiter (str):            Character separator used to determine filename prefix.
                                     Defaults to '_'.
         delimiter_optional (bool):  If False, function will return None if any of the files
                                     don't contain the delimiter.  Defaults to True.
+        remove_extension (bool):    If False, non-delimited functions will retain their file
+                                    extension
 
     Returns:
         names (list):   List of extracted names. Indicies should match that of files
@@ -60,22 +63,29 @@ def extract_delimited_names(files, delimiter='_', delimiter_optional=True):
 
     """
 
+    names = [
+        os.path.split(name)[1]
+        for name in files
+    ]
+
     # check for bad files/folders
     if not delimiter_optional:
         no_delim = [
-            delimiter not in file
-            for file in files
+            delimiter not in name
+            for name in names
         ]
         if any(no_delim):
             warnings.warn(f"The following files do not have the mandatory delimiter, "
                           f"'{delimiter}'...\n"
-                          f"{[file for indx,file in enumerate(files) if no_delim[indx]]}")
+                          f"{[name for indx,name in enumerate(names) if no_delim[indx]]}")
             return None
 
     # do filtering
     names = [
         name.split(delimiter)[0]
-        for name in files
+        if not remove_extension
+        else name.split('.')[0].split(delimiter)[0]
+        for name in names
     ]
 
     return names

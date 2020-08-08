@@ -68,6 +68,9 @@ def load_imgs_from_mibitiff(data_dir, mibitiff_files=None, channels=None, delimi
     if not mibitiff_files:
         mibitiff_files = iou.list_files(data_dir, substrs=['.tif'])
 
+    # extract fov names w/ delimiter agnosticism
+    fovs = iou.extract_delimited_names(mibitiff_files, delimiter=delimiter)
+
     mibitiff_files = [os.path.join(data_dir, mt_file)
                       for mt_file in mibitiff_files]
 
@@ -85,9 +88,6 @@ def load_imgs_from_mibitiff(data_dir, mibitiff_files=None, channels=None, delimi
     if channels is None:
         channel_tuples = tiff.read(mibitiff_files[0]).channels
         channels = [channel_tuple[1] for channel_tuple in channel_tuples]
-
-    # extract fov names w/ delimiter agnosticism
-    fovs = iou.extract_delimited_names(mibitiff_files, delimiter=delimiter)
 
     # extract images from MIBItiff file
     img_data = []
@@ -137,6 +137,9 @@ def load_imgs_from_multitiff(data_dir, multitiff_files=None, channels=None, deli
     if not multitiff_files:
         multitiff_files = iou.list_files(data_dir, substrs=['.tif'])
 
+    # extract fov names w/ delimiter agnosticism
+    fovs = iou.extract_delimited_names(multitiff_files, delimiter=delimiter)
+
     multitiff_files = [os.path.join(data_dir, mt_file)
                        for mt_file in multitiff_files]
 
@@ -159,9 +162,6 @@ def load_imgs_from_multitiff(data_dir, multitiff_files=None, channels=None, deli
 
     if channels:
         img_data = img_data[:, :, :, channels]
-
-    # extract fov names w/ delimiter agnosticism
-    fovs = iou.extract_delimited_names(multitiff_files, delimiter=delimiter)
 
     # create xarray with image data
     img_xr = xr.DataArray(img_data,
