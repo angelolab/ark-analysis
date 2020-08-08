@@ -343,7 +343,7 @@ def generate_two_cell_test_membrane_signal(segmentation_mask, cell_centers,
     return sample_membrane_signal
 
 
-def generate_two_cell_test_channel_synthetic_data(size_img=(1024, 1024), cell_radius=10, nuc_radius=3, memb_diameter=5,
+def generate_two_cell_test_channel_synthetic_data(size_img=(1024, 1024), cell_radius=10, nuc_radius=3, memb_thickness=5,
                                                   nuc_cell_ids=[1], memb_cell_ids=[2]):
     """
     This function generates the complete package of channel-level synthetic data we're looking for
@@ -376,7 +376,7 @@ def generate_two_cell_test_channel_synthetic_data(size_img=(1024, 1024), cell_ra
                                                                     size_img=size_img,
                                                                     cell_radius=cell_radius,
                                                                     memb_cell_ids=memb_cell_ids,
-                                                                    memb_thickness=memb_diameter)
+                                                                    memb_thickness=memb_thickness)
 
     # generate the channel data matrix
     sample_channel_data = np.zeros((size_img[0], size_img[1], 2))

@@ -110,8 +110,13 @@ def test_generate_test_label_map():
 
 def test_generate_two_cell_test_segmentation_mask():
     # this function tests the functionality of generating the segmentation mask
+    cell_radius = 10
+    nuc_radius = 3
+    memb_thickness = 5
 
-    sample_segmentation_mask, sample_cell_centers = synthetic_spatial_datagen.generate_two_cell_test_segmentation_mask()
+    sample_segmentation_mask, sample_cell_centers = \
+        synthetic_spatial_datagen.generate_two_cell_test_segmentation_mask(cell_radius=cell_radius, nuc_radius=nuc_radius,
+                                                                           memb_thickness=memb_thickness)
 
     # assert that our labels are just blank, 1, and 2
     assert set(sample_segmentation_mask) == set([0, 1, 2])
@@ -129,11 +134,18 @@ def test_generate_two_cell_test_segmentation_mask():
 def test_generate_two_cell_test_nuclear_signal():
     # this function tests the functionality of the nuclear-signal-generating portion of
     # the channel-level spatial analysis data
+    cell_radius = 10
+    nuc_radius = 3
+    memb_thickness = 5
 
-    sample_segmentation_mask, sample_cell_centers = synthetic_spatial_datagen.generate_two_cell_test_segmentation_mask()
+    sample_segmentation_mask, sample_cell_centers = \
+        synthetic_spatial_datagen.generate_two_cell_test_segmentation_mask(cell_radius=cell_radius, nuc_radius=nuc_radius,
+                                                                           memb_thickness=memb_thickness)
 
-    sample_nuclear_signal = synthetic_spatial_datagen.generate_two_cell_test_nuclear_signal(sample_segmentation_mask,
-                                                                                            sample_cell_centers)
+    sample_nuclear_signal = \
+        synthetic_spatial_datagen.generate_two_cell_test_nuclear_signal(segmentation_mask=sample_segmentation_mask,
+                                                                        cell_centers=sample_cell_centers,
+                                                                        nuc_radius=nuc_radius)
 
     # assert that our nucleus center is labeled properly
     # we only care about cell 1 because that is the only nuclear-level expression cell by default
@@ -145,11 +157,19 @@ def test_generate_two_cell_test_nuclear_signal():
 def test_generate_two_cell_test_membrane_signal():
     # this function tests the functionality of the membrane-signal-generating portion of
     # the channel-level spatial analysis data
+    cell_radius = 10
+    nuc_radius = 3
+    memb_thickness = 5
 
-    sample_segmentation_mask, sample_cell_centers = synthetic_spatial_datagen.generate_two_cell_test_segmentation_mask()
+    sample_segmentation_mask, sample_cell_centers = \
+        synthetic_spatial_datagen.generate_two_cell_test_segmentation_mask(cell_radius=cell_radius, nuc_radius=nuc_radius,
+                                                                           memb_thickness=memb_thickness)
 
-    sample_membrane_signal = synthetic_spatial_datagen.generate_two_cell_test_membrane_signal(sample_segmentation_mask,
-                                                                                              sample_cell_centers)
+    sample_nuclear_signal = \
+        synthetic_spatial_datagen.generate_two_cell_test_nuclear_signal(segmentation_mask=sample_segmentation_mask,
+                                                                        cell_centers=sample_cell_centers,
+                                                                        cell_radius=cell_radius,
+                                                                        memb_thickness=memb_thickness)
 
     # assuming the default membrane diameter of 5, assert that our membrane inner edge is being labeled correctly
     # we only include the offset columnwise by choice: it could be done rowwise as well
