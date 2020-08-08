@@ -51,8 +51,6 @@ def extract_delimited_names(files, delimiter='_', delimiter_optional=True):
                                     Defaults to '_'.
         delimiter_optional (bool):  If False, function will return None if any of the files
                                     don't contain the delimiter.  Defaults to True.
-        remove_extension (bool):    If False, non-delimited functions will retain their file
-                                    extension
 
     Returns:
         names (list):   List of extracted names. Indicies should match that of files
