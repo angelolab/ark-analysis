@@ -353,11 +353,11 @@ def generate_deepcell_input(data_xr, data_dir, nuc_channels, mem_channels):
         # sum over channels and add to output
         if nuc_channels:
             out[:, :, 0] = \
-                np.sum(data_xr.loc[fov, :, :, nuc_channels].values.astype(data_xr.dtype),
+                np.sum(data_xr.loc[fov, :, :, nuc_channels].values,
                        axis=2)
         if mem_channels:
             out[:, :, 1] = \
-                np.sum(data_xr.loc[fov, :, :, mem_channels].values.astype(data_xr.dtype),
+                np.sum(data_xr.loc[fov, :, :, mem_channels].values,
                        axis=2)
 
         save_path = os.path.join(data_dir, f'{fov}.tif')
