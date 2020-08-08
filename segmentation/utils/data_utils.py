@@ -8,6 +8,8 @@ import numpy as np
 import xarray as xr
 from mibidata import tiff
 
+from segmentation.utils import io_utils as iou
+
 
 def validate_paths(paths):
     """Verifys that paths exist and don't leave Docker's scope
@@ -64,10 +66,7 @@ def load_imgs_from_mibitiff(data_dir, mibitiff_files=None, channels=None, delimi
     """
 
     if not mibitiff_files:
-        mibitiff_files = os.listdir(data_dir)
-        mibitiff_files = [mt_file
-                          for mt_file in mibitiff_files
-                          if mt_file.split('.')[-1] in ['tif', 'tiff']]
+        mibitiff_files = iou.list_files(data_dir, substrs=['tif'])
 
     mibitiff_files = [os.path.join(data_dir, mt_file)
                       for mt_file in mibitiff_files]
@@ -88,8 +87,7 @@ def load_imgs_from_mibitiff(data_dir, mibitiff_files=None, channels=None, delimi
         channels = [channel_tuple[1] for channel_tuple in channel_tuples]
 
     # extract fov names w/ delimiter agnosticism
-    fovs = [mibitiff_file.split(os.sep)[-1].split('.')[0].split(delimiter)[0]
-            for mibitiff_file in mibitiff_files]
+    fovs = iou.extract_delimited_names(mibitiff_files, delimiter=delimiter)
 
     # extract images from MIBItiff file
     img_data = []
@@ -137,10 +135,7 @@ def load_imgs_from_multitiff(data_dir, multitiff_files=None, channels=None, deli
     """
 
     if not multitiff_files:
-        multitiff_files = os.listdir(data_dir)
-        multitiff_files = [mt_file
-                           for mt_file in multitiff_files
-                           if mt_file.split('.')[-1] in ['tif', 'tiff']]
+        multitiff_files = iou.list_files(data_dir, substrs=['tif'])
 
     multitiff_files = [os.path.join(data_dir, mt_file)
                        for mt_file in multitiff_files]
@@ -166,8 +161,7 @@ def load_imgs_from_multitiff(data_dir, multitiff_files=None, channels=None, deli
         img_data = img_data[:, :, :, channels]
 
     # extract fov names w/ delimiter agnosticism
-    fovs = [multitiff_file.split(os.sep)[-1].split('.')[0].split(delimiter)[0]
-            for multitiff_file in multitiff_files]
+    fovs = iou.extract_delimited_names(multitiff_files, delimiter=delimiter)
 
     # create xarray with image data
     img_xr = xr.DataArray(img_data,
@@ -197,8 +191,7 @@ def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, imgs=None,
 
     if fovs is None:
         # get all fovs
-        fovs = os.listdir(data_dir)
-        fovs = [fov for fov in fovs if os.path.isdir(os.path.join(data_dir, fov))]
+        fovs = iou.list_folders(data_dir)
         fovs.sort()
     else:
         # use supplied list, but check to make sure they all exist
@@ -216,21 +209,15 @@ def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, imgs=None,
 
     # get imgs from first fov if no img names supplied
     if imgs is None:
-        imgs = os.listdir(os.path.join(data_dir, fovs[0], img_sub_folder))
-        imgs = [img for img in imgs if np.isin(img.split(".")[-1], ["tif", "tiff", "jpg", "png"])]
+        imgs = iou.list_files(os.path.join(data_dir, fovs[0], img_sub_folder),
+                              substrs=['tif', 'jpg', 'png'])
 
         # if taking all imgs from directory, sort them alphabetically
         imgs.sort()
     # otherwise, fill channel names with correct file extension
     elif not all([img.endswith(("tif", "tiff", "jpg", "png")) for img in imgs]):
-        fullnames = os.listdir(os.path.join(data_dir, fovs[0], img_sub_folder))
-        for fn in fullnames:
-            if any([img in fn for img in imgs]):
-                imgs = [img + '.' + fn.split(".")[-1]
-                        if img.split(".")[-1] != fn.split(".")[-1]
-                        else img
-                        for img in imgs]
-                break
+        fullnames = iou.list_files(os.path.join(data_dir, fovs[0], img_sub_folder), substrs=imgs)
+        imgs = fullnames
 
     if len(imgs) == 0:
         raise ValueError("No imgs found in designated folder")
@@ -299,8 +286,7 @@ def load_imgs_from_dir(data_dir, imgdim_name='compartments', image_name='img_dat
 
     """
 
-    imgs = os.listdir(data_dir)
-    imgs = [img for img in imgs if np.isin(img.split(".")[-1], ["tif", "tiff", "jpg", "png"])]
+    imgs = iou.list_files(data_dir, substrs=['tif', 'jpg', 'png'])
     imgs = [img for img in imgs if delimiter in img]
     imgs.sort()
 
@@ -340,7 +326,7 @@ def load_imgs_from_dir(data_dir, imgdim_name='compartments', image_name='img_dat
         row_coords, col_coords = range(test_img.shape[0]), range(test_img.shape[1])
 
     # get fov name from imgs
-    fovs = [img.split(delimiter)[0] for img in imgs]
+    fovs = iou.extract_delimited_names(imgs, delimiter=delimiter)
 
     img_xr = xr.DataArray(img_data, coords=[fovs, row_coords, col_coords, [image_name]],
                           dims=["fovs", "rows", "cols", imgdim_name])
