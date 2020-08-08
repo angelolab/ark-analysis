@@ -66,9 +66,10 @@ def test_list_files():
             'test.csv',
         ]
         for filename in filenames:
-            file = open(os.path.join(temp_dir, filename), 'w+')
-            file.write('test')
-            file.close()
+            pathlib.Path(os.path.join(temp_dir, filename)).touch()
+
+        # add extra folder (shouldn't be picked up)
+        os.mkdir(os.path.join(temp_dir, 'badfolder_test'))
 
         # test substrs is None (default)
         get_all = iou.list_files(temp_dir)
@@ -84,36 +85,31 @@ def test_list_files():
 
 
 def test_extract_delimited_names():
-    with tempfile.TemporaryDirectory() as temp_dir:
-        filenames = [
-            'Point1_restofname.txt',
-            'Point2.txt',
-        ]
-        for filename in filenames:
-            file = open(os.path.join(temp_dir, filename), 'w+')
-            file.write('test')
-            file.close()
+    filenames = [
+        'Point1_restofname.txt',
+        'Point2.txt',
+    ]
 
-        # test no files given (None/[])
-        assert iou.extract_delimited_names(None) is None
-        assert iou.extract_delimited_names([]) == []
+    # test no files given (None/[])
+    assert iou.extract_delimited_names(None) is None
+    assert iou.extract_delimited_names([]) == []
 
-        # non-optional delimiter warning
-        with pytest.warns(UserWarning):
-            iou.extract_delimited_names(['Point2.txt'], delimiter_optional=False)
+    # non-optional delimiter warning
+    with pytest.warns(UserWarning):
+        iou.extract_delimited_names(['Point2.txt'], delimiter_optional=False)
 
-        # test regular files list
-        assert ['Point1', 'Point2'] == iou.extract_delimited_names(filenames)
+    # test regular files list
+    assert ['Point1', 'Point2'] == iou.extract_delimited_names(filenames)
 
-        # test fullpath list
-        fullpaths = [
-            os.path.join(temp_dir, filename)
-            for filename in filenames
-        ]
-        assert ['Point1', 'Point2'] == iou.extract_delimited_names(fullpaths)
+    # test fullpath list
+    fullpaths = [
+        os.path.join('folder_with_delims', filename)
+        for filename in filenames
+    ]
+    assert ['Point1', 'Point2'] == iou.extract_delimited_names(fullpaths)
 
-        # test mixed
-        assert ['Point1', 'Point2'] == iou.extract_delimited_names([fullpaths[0], filenames[1]])
+    # test mixed
+    assert ['Point1', 'Point2'] == iou.extract_delimited_names([fullpaths[0], filenames[1]])
 
     return
 
@@ -129,6 +125,9 @@ def test_list_folders():
         ]
         for dirname in dirnames:
             os.mkdir(os.path.join(temp_dir, dirname))
+
+        # add extra file
+        pathlib.Path(os.path.join(temp_dir, 'test_badfile.txt')).touch()
 
         # test substrs is None (default)
         get_all = iou.list_folders(temp_dir)
