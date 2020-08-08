@@ -36,7 +36,7 @@ def list_files(dir_name, substrs=None):
     return list(set(matches))
 
 
-def extract_delimited_names(files, delimiter='_', delimiter_optional=True, remove_extension=True):
+def extract_delimited_names(files, delimiter='_', delimiter_optional=True):
     """ Create a matched-index list of fov/point/etc names from a list of files/folders
 
     Extracts a delimited prefix for every file in a given list of files
@@ -84,9 +84,7 @@ def extract_delimited_names(files, delimiter='_', delimiter_optional=True, remov
 
     # do filtering
     names = [
-        name.split(delimiter)[0]
-        if not remove_extension
-        else name.split('.')[0].split(delimiter)[0]
+        name.split('.')[0].split(delimiter)[0]
         for name in names
     ]
 

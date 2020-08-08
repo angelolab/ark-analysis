@@ -91,7 +91,6 @@ def test_validate_paths():
     os.chdir('../')
 
 
-# TODO: test '_' delimiter autodecode + dtype overload+warning
 def test_load_imgs_from_mibitiff():
     # check unspecified point loading
     data_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)),
