@@ -267,10 +267,10 @@ def test_load_imgs_from_tree():
             data_utils.load_imgs_from_tree(temp_dir, img_sub_folder="TIFs", dtype="int16")
 
         # make sure all folders loaded
-        assert np.array_equal(test_loaded_xr.fovs, fovs)
+        assert np.array_equal(test_loaded_xr.fovs.values.sort(), fovs.sort())
 
         # make sure all channels loaded
-        assert np.array_equal(test_loaded_xr.channels.values, chans)
+        assert np.array_equal(test_loaded_xr.channels.values.sort(), chans.sort())
 
         # check loading of specific files
         some_fovs = fovs[:2]
@@ -282,10 +282,10 @@ def test_load_imgs_from_tree():
                                            fovs=some_fovs, imgs=some_imgs)
 
         # make sure specified folders loaded
-        assert np.array_equal(test_subset_xr.fovs, some_fovs)
+        assert np.array_equal(test_subset_xr.fovs.values.sort(), some_fovs.sort())
 
         # make sure specified channels loaded
-        assert np.array_equal(test_subset_xr.channels.values, some_chans)
+        assert np.array_equal(test_subset_xr.channels.values.sort(), some_chans.sort())
 
         # check loading w/o file extension
         test_noext_xr = \
@@ -293,10 +293,10 @@ def test_load_imgs_from_tree():
                                            imgs=some_chans)
 
         # make sure all folders loaded
-        assert np.array_equal(test_noext_xr.fovs, fovs)
+        assert np.array_equal(test_noext_xr.fovs.values.sort(), fovs.sort())
 
         # make sure specified channels loaded
-        assert np.array_equal(test_noext_xr.channels.values, some_chans)
+        assert np.array_equal(test_noext_xr.channels.values.sort(), some_chans.sort())
 
         # check mixed extension presence
         test_someext_xr = \
@@ -304,10 +304,10 @@ def test_load_imgs_from_tree():
                                            imgs=[chans[i] if i % 2 else imgs[i] for i in range(3)])
 
         # make sure all folders loaded
-        assert np.array_equal(test_someext_xr.fovs, fovs)
+        assert np.array_equal(test_someext_xr.fovs.values.sort(), fovs.sort())
 
         # makes sure all channels loaded
-        assert np.array_equal(test_someext_xr.channels.values, chans)
+        assert np.array_equal(test_someext_xr.channels.values.sort(), chans.sort())
 
         # resave img3 as floats and test for float warning
         tif = np.random.rand(1024, 1024).astype("float")

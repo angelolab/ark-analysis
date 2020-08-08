@@ -50,7 +50,7 @@ def compute_complete_expression_matrices(segmentation_labels, base_dir, tiff_dir
         # different mibitiff loading techniques
         if is_mibitiff:
             all_points = io_utils.list_files(tiff_dir, substrs=['.tif'])
-            points = io_utils.extract_delimited_names(points, delimiter='.')
+            points = io_utils.extract_delimited_names(all_points, delimiter='.')
         # otherwise assume the tree-like directory as defined for tree loading
         else:
             points = io_utils.list_folders(tiff_dir)
