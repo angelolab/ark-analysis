@@ -10,7 +10,7 @@ from mibidata import tiff
 from segmentation.utils import io_utils as iou
 
 
-def load_imgs_from_mibitiff(data_dir, mibitiff_files=None, channels=None, delimiter='_',
+def load_imgs_from_mibitiff(data_dir, mibitiff_files=None, channels=None, delimiter=None,
                             dtype='int16'):
     """Load images from a series of MIBItiff files.
 
@@ -25,12 +25,12 @@ def load_imgs_from_mibitiff(data_dir, mibitiff_files=None, channels=None, delimi
         channels (list): optional list of channels to load. Defaults to `None`, in
             which case, all channels in the first MIBItiff are used.
         delimiter (str): optional delimiter-character/string which separate fov names
-            from the rest of the file name
+            from the rest of the file name. Defaults to None
         dtype (str/type): optional specifier of image type.  Overwritten with warning for
             float images
 
     Returns:
-        img_xr (DataArray): xarray with shape [fovs, x_dim, y_dim, channels]
+        img_xr (xr.DataArray): xarray with shape [fovs, x_dim, y_dim, channels]
     """
 
     if not mibitiff_files:
@@ -73,7 +73,7 @@ def load_imgs_from_mibitiff(data_dir, mibitiff_files=None, channels=None, delimi
     return img_xr
 
 
-def load_imgs_from_multitiff(data_dir, multitiff_files=None, channels=None, delimiter='_',
+def load_imgs_from_multitiff(data_dir, multitiff_files=None, channels=None, delimiter=None,
                              dtype='int16'):
     """Load images from a series of multi-channel tiff files.
 
@@ -94,12 +94,12 @@ def load_imgs_from_multitiff(data_dir, multitiff_files=None, channels=None, deli
             be given as a numeric list of indices, since there is no metadata
             containing channel names.
         delimiter (str): optional delimiter-character/string which separate fov names
-            from the rest of the file name
+            from the rest of the file name. Default is None.
         dtype (str/type): optional specifier of image type.  Overwritten with warning for
             float images
 
     Returns:
-        img_xr (DataArray): xarray with shape [fovs, x_dim, y_dim, channels]
+        img_xr (xr.DataArray): xarray with shape [fovs, x_dim, y_dim, channels]
     """
 
     if not multitiff_files:
@@ -154,7 +154,7 @@ def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, imgs=None,
             variable_sizes (bool): if true, will pad loaded images with zeros to fit into array
 
         Returns:
-            img_xr (DataArray): xarray with shape [fovs, x_dim, y_dim, tifs]
+            img_xr (xr.DataArray): xarray with shape [fovs, x_dim, y_dim, tifs]
     """
 
     if fovs is None:
@@ -227,7 +227,7 @@ def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, imgs=None,
     return img_xr
 
 
-def load_imgs_from_dir(data_dir, imgdim_name='compartments', image_name='img_data', delimiter='_',
+def load_imgs_from_dir(data_dir, imgdim_name='compartments', image_name='img_data', delimiter=None,
                        dtype="int16", variable_sizes=False):
     """Takes a set of images from a directory and loads them into an xarray based on filename
     prefixes.
@@ -236,17 +236,22 @@ def load_imgs_from_dir(data_dir, imgdim_name='compartments', image_name='img_dat
             data_dir (str): directory containing images
             imgdim_name (str): sets the name of the last dimension of the output xarray
             image_name (str): sets name of the last coordinate in the output xarray
-            delimiter (str): character used to determine the file-prefix containging the fov name
+            delimiter (str): character used to determine the file-prefix containging the fov name.
+                             Default is None.
             dtype (str/type): data type to load/store
             variable_sizes (bool): Dynamically determine image sizes and pad smaller imgs w/ zeros
 
         Returns:
-            img_xr (DataArray): xarray with shape [fovs, x_dim, y_dim, 1]
+            img_xr (xr.DataArray): xarray with shape [fovs, x_dim, y_dim, 1]
 
     """
 
     imgs = iou.list_files(data_dir, substrs=['.tif', '.jpg', '.png'])
-    imgs = [img for img in imgs if delimiter in img]
+
+    # filter by delimiter presence
+    if delimiter is not None:
+        imgs = [img for img in imgs if delimiter in img]
+
     imgs.sort()
 
     if len(imgs) == 0:
@@ -298,7 +303,7 @@ def generate_deepcell_input(data_xr, data_dir, nuc_channels, mem_channels):
     """Saves nuclear and membrane channels into deepcell input format.
 
     Args:
-        data_xr (DataArray): xarray containing nuclear and membrane channels over many fov's
+        data_xr (xr.DataArray): xarray containing nuclear and membrane channels over many fov's
         data_dir (str): location to save deepcell input tifs
         nuc_channels (list): nuclear channels to be summed over
         mem_channels (list): membrane channels to be summed over
@@ -332,7 +337,7 @@ def combine_xarrays(xarrays, axis):
         or -1 if they will be combined over channels
 
     Returns:
-        combined_xr (DataArray): an xarray that is the combination of all inputs"""
+        combined_xr (xr.DataArray): an xarray that is the combination of all inputs"""
 
     first_xr = xarrays[0]
     np_arr = first_xr.values

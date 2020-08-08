@@ -73,8 +73,9 @@ def extract_delimited_names(files, delimiter='_', delimiter_optional=True):
 
     Extracts a delimited prefix for every file in a given list of files
 
-    e.g.
+    e.g's.
         'Point2_restofthefilename.tiff' becomes 'Point2'
+        'Point1.tiff' becomes 'Point1'
 
     Args:
         files (list):               List of files to extract names from (if paths,
@@ -94,6 +95,9 @@ def extract_delimited_names(files, delimiter='_', delimiter_optional=True):
     """
     if files is None:
         return
+
+    if delimiter is None:
+        delimiter = ''
 
     names = [
         os.path.split(name)[1]
