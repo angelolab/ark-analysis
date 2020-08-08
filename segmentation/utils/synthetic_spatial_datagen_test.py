@@ -136,10 +136,11 @@ def test_generate_two_cell_test_nuclear_signal():
                                                                                             sample_cell_centers)
 
     # assert that our nucleus center is labeled properly
+    # we only care about cell 1 because that is the only nuclear-level expression cell by default
     assert sample_nuclear_signal[sample_cell_centers[1][0], sample_cell_centers[1][1]] == 1
-    assert sample_nuclear_signal[sample_cell_centers[2][0], sample_cell_centers[2][1]] == 1
 
     # because we'll be jittering the signal eventually, we won't test the status of the signal at the nucleus border
+
 
 def test_generate_two_cell_test_membrane_signal():
     # this function tests the functionality of the membrane-signal-generating portion of
@@ -152,8 +153,8 @@ def test_generate_two_cell_test_membrane_signal():
 
     # assuming the default membrane diameter of 5, assert that our membrane inner edge is being labeled correctly
     # we only include the offset columnwise by choice: it could be done rowwise as well
-    assert sample_membrane_signal[sample_cell_centers[1][0], sample_cell_centers[1][1] + 5] == 1
-    assert sample_membrane_signal[sample_cell_centers[2][1], sample_cell_centers[2][1] - 5] == 1
+    # we only care about cell 2 because that is the only membrane-level expression cell by default
+    assert sample_membrane_signal[sample_cell_centers[2][0], sample_cell_centers[2][1] - 5] == 1
 
     # because we'll be jittering the signal eventually, we won't test the status of the signal at the outer membrane border
 
@@ -164,10 +165,10 @@ def test_generate_two_cell_test_channel_synthetic_data():
     # however, because we already do the sample_segmentation_mask test in a different function
     # we'll limit ourselves to testing the final channel data creation here
 
-    sample_segmentation_mask, sample_channel_data = generate_two_cell_test_channel_synthetic_data()
+    sample_segmentation_mask, sample_channel_data = synthetic_spatial_datagen.generate_two_cell_test_channel_synthetic_data()
 
     # assert that we've created both a nuclear and membrane channels
-    assert sample_channel_data.shape[3] == 2
+    assert sample_channel_data.shape[2] == 2
 
     # assert that we've only labeled nuclear and membrane signal with 0 or 1
     assert set(np.unique(sample_channel_data[:, :, 0])) == set([0, 1])
