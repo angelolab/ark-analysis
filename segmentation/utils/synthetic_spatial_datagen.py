@@ -378,6 +378,7 @@ def generate_two_cell_test_channel_synthetic_data(size_img=(1024, 1024), cell_ra
                                                                     memb_cell_ids=memb_cell_ids,
                                                                     memb_diameter=memb_diameter)
 
+    # generate the channel data matrix
     sample_channel_data = np.zeros((size_img[0], size_img[1], 2))
     sample_channel_data[:, :, 0] = sample_nuclear_signal
     sample_channel_data[:, :, 1] = sample_membrane_signal
