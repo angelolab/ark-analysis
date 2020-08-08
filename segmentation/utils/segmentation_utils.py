@@ -16,7 +16,7 @@ from skimage.segmentation import relabel_sequential
 import skimage.io as io
 
 
-from segmentation.utils import data_utils, plot_utils, signal_extraction
+from segmentation.utils import data_utils, plot_utils, signal_extraction, io_utils
 
 
 def compute_complete_expression_matrices(segmentation_labels, base_dir, tiff_dir,
@@ -49,19 +49,17 @@ def compute_complete_expression_matrices(segmentation_labels, base_dir, tiff_dir
         # defined for mibitiff loading, we'll assume uniqueness for now but in the future we can address
         # different mibitiff loading techniques
         if is_mibitiff:
-            all_points = [mt_file for mt_file in os.listdir(tiff_dir) if mt_file.split(".")[1] in ["tif", "tiff"]]
-            points = [point.split(".")[0] for point in all_points]
+            all_points = io_utils.list_files(tiff_dir, substrs=['.tif'])
+            points = io_utils.extract_delimited_names(points, delimiter='.')
         # otherwise assume the tree-like directory as defined for tree loading
         else:
-            all_points = os.listdir(tiff_dir)
-            points = [point for point in all_points if os.path.isdir(os.path.join(tiff_dir, point))]
+            points = io_utils.list_folders(tiff_dir)
     else:
         # needed to handle mibitiff file processing, we'll need to extract the file names of all the points
         # that are covered by the set of points because the mibitiff function requires the file names
         # and the extensions may be either .tif or .tiff
         if is_mibitiff:
-            all_points = [mt_file for mt_file in os.listdir(tiff_dir) if mt_file.split(".")[1] in ["tif", "tiff"] and
-                          mt_file.startswith(tuple(points))]
+            all_points = io_utils.list_files(tiff_dir, substrs=points)
 
     # sort the points
     points.sort()
@@ -651,8 +649,7 @@ def concatenate_csv(base_dir, csv_files, column_name="point", column_values=None
     Outputs: saved combined csv into same folder"""
 
     if column_values is None:
-        column_values = copy.copy(csv_files)
-        column_values = [val.split(".")[0] for val in column_values]
+        column_values = io_utils.extract_delimited_names(csv_files, delimiter='.')
 
     if len(column_values) != len(csv_files):
         raise ValueError("csv_files and column_values have different lengths: "
