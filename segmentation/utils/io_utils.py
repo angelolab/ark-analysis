@@ -57,15 +57,14 @@ def list_files(dir_name, substrs=None):
     if type(substrs) is not list:
         substrs = [substrs]
 
-    matches = []
-    for substr in substrs:
-        matches.extend([
-            file
-            for file in files
-            if substr in file
-        ])
+    matches = [file
+               for file in files
+               if any([
+                   substr in file
+                   for substr in substrs
+               ])]
 
-    return list(set(matches))
+    return matches
 
 
 def extract_delimited_names(files, delimiter='_', delimiter_optional=True):
@@ -145,12 +144,11 @@ def list_folders(dir_name, substrs=None):
     if type(substrs) is not list:
         substrs = [substrs]
 
-    matches = []
-    for substr in substrs:
-        matches.extend([
-            folder
-            for folder in folders
-            if substr in folder
-        ])
+    matches = [folder
+               for folder in folders
+               if any([
+                   substr in folder
+                   for substr in substrs
+               ])]
 
-    return list(set(matches))
+    return matches
