@@ -232,7 +232,7 @@ def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, channels=None,
 
 
 def load_imgs_from_dir(data_dir, imgdim_name='compartments', image_name='img_data', delimiter=None,
-                       dtype="int16", variable_sizes=False):
+                       dtype="int16", variable_sizes=False, force_ints=False):
     """Takes a set of images from a directory and loads them into an xarray based on filename
     prefixes.
 
@@ -244,6 +244,8 @@ def load_imgs_from_dir(data_dir, imgdim_name='compartments', image_name='img_dat
                              Default is None.
             dtype (str/type): data type to load/store
             variable_sizes (bool): Dynamically determine image sizes and pad smaller imgs w/ zeros
+            force_ints (bool): If dtype is an integer, forcefully convert float imgs to ints.
+                               Default is False.
 
         Returns:
             img_xr (xr.DataArray): xarray with shape [fovs, x_dim, y_dim, 1]
@@ -265,7 +267,11 @@ def load_imgs_from_dir(data_dir, imgdim_name='compartments', image_name='img_dat
 
     # check to make sure that float dtype was supplied if image data is float
     data_dtype = test_img.dtype
-    if np.issubdtype(data_dtype, np.floating):
+    if force_ints and np.issubdtype(dtype, np.integer):
+        if not np.issubdtype(data_dtype, np.integer):
+            warnings.warn(f"The the loaded {data_dtype} images were forcefully "
+                          f"overwritten with the supplied integer dtype {dtype}")
+    elif np.issubdtype(data_dtype, np.floating):
         if not np.issubdtype(dtype, np.floating):
             warnings.warn(f"The supplied non-float dtype {dtype} was overwritten to {data_dtype}, "
                           f"because the loaded images are floats")
@@ -296,8 +302,10 @@ def load_imgs_from_dir(data_dir, imgdim_name='compartments', image_name='img_dat
     # get fov name from imgs
     fovs = iou.extract_delimited_names(imgs, delimiter=delimiter)
 
-    img_xr = xr.DataArray(img_data, coords=[fovs, row_coords, col_coords, [image_name]],
-                          dims=["fovs", "rows", "cols", imgdim_name])
+    img_xr = xr.DataArray(img_data.astype(dtype),
+                          coords=[fovs, row_coords, col_coords, [image_name]],
+                          dims=["fovs", "rows", "cols",
+                          imgdim_name])
 
     return img_xr
 
