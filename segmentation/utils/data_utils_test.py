@@ -47,7 +47,8 @@ def test_load_imgs_from_mibitiff():
                             "input_data", "mibitiff_inputs")
     channels = ["HH3", "Membrane"]
     data_xr = data_utils.load_imgs_from_mibitiff(data_dir,
-                                                 channels=channels)
+                                                 channels=channels,
+                                                 delimiter='_')
     assert(data_xr.dims == ("fovs", "rows", "cols", "channels"))
     assert(data_xr.fovs == "Point8")
     assert(data_xr.rows == range(1024)).all()
@@ -58,7 +59,8 @@ def test_load_imgs_from_mibitiff():
     mibitiff_files = ["Point8_RowNumber0_Depth_Profile0-MassCorrected-Filtered.tiff"]
     data_xr = data_utils.load_imgs_from_mibitiff(data_dir,
                                                  mibitiff_files=mibitiff_files,
-                                                 channels=channels)
+                                                 channels=channels,
+                                                 delimiter='_')
     assert(data_xr.dims == ("fovs", "rows", "cols", "channels"))
     assert(data_xr.fovs == "Point8")
     assert(data_xr.rows == range(1024)).all()
@@ -81,6 +83,7 @@ def test_load_imgs_from_mibitiff():
         data_xr = data_utils.load_imgs_from_mibitiff(temp_dir,
                                                      mibitiff_files=mibitiff_files,
                                                      channels=channels,
+                                                     delimiter='_',
                                                      dtype=np.float32)
 
         assert(data_xr.dims == ("fovs", "rows", "cols", "channels"))
@@ -95,6 +98,7 @@ def test_load_imgs_from_mibitiff():
             data_xr = data_utils.load_imgs_from_mibitiff(temp_dir,
                                                          mibitiff_files=[mibitiff_files[-1]],
                                                          channels=channels,
+                                                         delimiter='_',
                                                          dtype='int16')
 
             assert(data_xr.dims == ("fovs", "rows", "cols", "channels"))
@@ -113,7 +117,8 @@ def test_load_imgs_from_mibitiff_all_channels():
 
     data_xr = data_utils.load_imgs_from_mibitiff(data_dir,
                                                  mibitiff_files=mibitiff_files,
-                                                 channels=None)
+                                                 channels=None,
+                                                 delimiter='_')
     assert(data_xr.dims == ("fovs", "rows", "cols", "channels"))
     assert(data_xr.fovs == "Point8")
     assert(data_xr.rows == range(1024)).all()
@@ -137,7 +142,8 @@ def test_load_imgs_from_multitiff():
     multitiff_files = ["Point8.tif"]
     data_xr = data_utils.load_imgs_from_multitiff(data_dir,
                                                   multitiff_files=multitiff_files,
-                                                  channels=None)
+                                                  channels=None,
+                                                  delimiter='_')
     assert(data_xr.dims == ("fovs", "rows", "cols", "channels"))
     assert(data_xr.fovs == "Point8")
     assert(data_xr.rows == range(1024)).all()
@@ -147,7 +153,8 @@ def test_load_imgs_from_multitiff():
     # test single channel load
     data_xr = data_utils.load_imgs_from_multitiff(data_dir,
                                                   multitiff_files=multitiff_files,
-                                                  channels=[0])
+                                                  channels=[0],
+                                                  delimiter='_')
     assert(data_xr.dims == ("fovs", "rows", "cols", "channels"))
     assert(data_xr.fovs == "Point8")
     assert(data_xr.rows == range(1024)).all()
@@ -157,7 +164,8 @@ def test_load_imgs_from_multitiff():
     # test all channels w/ unspecified files
     data_xr = data_utils.load_imgs_from_multitiff(data_dir,
                                                   multitiff_files=None,
-                                                  channels=None)
+                                                  channels=None,
+                                                  delimiter='_')
     assert(data_xr.dims == ("fovs", "rows", "cols", "channels"))
     assert(data_xr.fovs == "Point8")
     assert(data_xr.rows == range(1024)).all()
@@ -178,6 +186,7 @@ def test_load_imgs_from_multitiff():
         data_xr = data_utils.load_imgs_from_multitiff(temp_dir,
                                                       multitiff_files=None,
                                                       channels=None,
+                                                      delimiter='_',
                                                       dtype='float')
 
         assert(data_xr.dims == ("fovs", "rows", "cols", "channels"))
@@ -192,6 +201,7 @@ def test_load_imgs_from_multitiff():
             data_xr = data_utils.load_imgs_from_multitiff(temp_dir,
                                                           multitiff_files=['Point9_junktext.tif'],
                                                           channels=None,
+                                                          delimiter='_',
                                                           dtype='int16')
 
             assert(data_xr.dims == ("fovs", "rows", "cols", "channels"))
@@ -227,7 +237,7 @@ def test_load_imgs_from_tree():
 
         test_subset_xr = \
             data_utils.load_imgs_from_tree(temp_dir, img_sub_folder="TIFs", dtype="int16",
-                                           fovs=some_fovs, imgs=some_imgs)
+                                           fovs=some_fovs, channels=some_imgs)
 
         # make sure specified folders loaded
         assert np.array_equal(test_subset_xr.fovs.values.sort(), some_fovs.sort())
@@ -238,7 +248,7 @@ def test_load_imgs_from_tree():
         # check loading w/o file extension
         test_noext_xr = \
             data_utils.load_imgs_from_tree(temp_dir, img_sub_folder="TIFs", dtype="int16",
-                                           imgs=some_chans)
+                                           channels=some_chans)
 
         # make sure all folders loaded
         assert np.array_equal(test_noext_xr.fovs.values.sort(), fovs.sort())
@@ -249,7 +259,7 @@ def test_load_imgs_from_tree():
         # check mixed extension presence
         test_someext_xr = \
             data_utils.load_imgs_from_tree(temp_dir, img_sub_folder="TIFs", dtype="int16",
-                                           imgs=[chans[i] if i % 2 else imgs[i] for i in range(3)])
+                                           channels=[chans[i] if i % 2 else imgs[i] for i in range(3)])
 
         # make sure all folders loaded
         assert np.array_equal(test_someext_xr.fovs.values.sort(), fovs.sort())
@@ -264,7 +274,7 @@ def test_load_imgs_from_tree():
         with pytest.warns(UserWarning):
             test_warning_xr = \
                 data_utils.load_imgs_from_tree(temp_dir, img_sub_folder="TIFs", dtype="int16",
-                                               fovs=[fovs[-1]], imgs=[imgs[-1]])
+                                               fovs=[fovs[-1]], channels=[imgs[-1]])
 
             # test swap int16 -> float
             assert np.issubdtype(test_warning_xr.dtype, np.floating)

@@ -280,9 +280,9 @@ def load_imgs_from_dir(data_dir, imgdim_name='compartments', image_name='img_dat
     for img in range(len(imgs)):
         if variable_sizes:
             temp_img = io.imread(os.path.join(data_dir, imgs[img]))
-            img_data[img, :temp_img.shape[0], :temp_img.shape[1], 0] = temp_img
+            img_data[img, :temp_img.shape[0], :temp_img.shape[1], 0] = temp_img.astype(dtype)
         else:
-            img_data[img, :, :, 0] = io.imread(os.path.join(data_dir, imgs[img]))
+            img_data[img, :, :, 0] = io.imread(os.path.join(data_dir, imgs[img])).astype(dtype)
 
     # check to make sure that dtype wasn't too small for range of data
     if np.min(img_data) < 0:
