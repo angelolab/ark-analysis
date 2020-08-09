@@ -160,7 +160,7 @@ def test_generate_two_cell_test_membrane_signal():
     sample_segmentation_mask, sample_cell_centers = \
         synthetic_spatial_datagen.generate_two_cell_test_segmentation_mask(cell_radius=cell_radius)
 
-    sample_nuclear_signal = \
+    sample_membrane_signal = \
         synthetic_spatial_datagen.generate_two_cell_test_membrane_signal(segmentation_mask=sample_segmentation_mask,
                                                                          cell_centers=sample_cell_centers,
                                                                          cell_radius=cell_radius,
@@ -185,6 +185,6 @@ def test_generate_two_cell_test_channel_synthetic_data():
     # assert that we've created both a nuclear and membrane channels
     assert sample_channel_data.shape[2] == 2
 
-    # assert that we've only labeled nuclear and membrane signal with 0 or 1
-    assert set(sample_channel_data[:, :, 0].flatten().tolist()) == set([0, 1])
-    assert set(sample_channel_data[:, :, 1].flatten().tolist()) == set([0, 1])
+    # assert that we've only labeled nuclear and membrane signal with 0 or 10
+    assert set(sample_channel_data[:, :, 0].flatten().tolist()) == set([0, 10])
+    assert set(sample_channel_data[:, :, 1].flatten().tolist()) == set([0, 10])
