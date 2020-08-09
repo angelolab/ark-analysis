@@ -3,6 +3,8 @@ import numpy as np
 import matplotlib
 import seaborn as sns
 
+from matplotlib.patches import Ellipse
+
 
 def visualize_z_scores(z, pheno_titles):
     """Plots the z scores between all phenotypes as a clustermap.
