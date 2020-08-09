@@ -67,20 +67,6 @@ def _create_test_extraction_data():
 
 
 def test_compute_complete_expression_matrices():
-    # checks that a ValueError is thrown when the user tries to specify points that are not
-    # in the original segmentation mask
-    with pytest.raises(ValueError):
-        # generate a segmentation array with 1 FOV
-        cell_masks = np.zeros((1, 50, 50, 1), dtype="int16")
-
-        segmentation_masks = xr.DataArray(cell_masks,
-                                          coords=[["Point1"], range(50), range(50),
-                                                  ["whole_cell"]],
-                                          dims=["fovs", "rows", "cols", "compartments"])
-
-        segmentation_utils.compute_complete_expression_matrices(
-            segmentation_labels=segmentation_masks, base_dir="path/to/base/dir", tiff_dir="path/to/tiff/dir",
-            img_sub_folder="path/to/img/sub/folder", is_mibitiff=False, points=["Point1", "Point2"], batch_size=5)
 
     # checks if the tree loading is being called correctly when is_mibitiff is False
     # save the actual expression matrix and data loding tests for their respective test functions
@@ -105,6 +91,20 @@ def test_compute_complete_expression_matrices():
         os.mkdir(tiff_dir)
         data_utils_test._create_img_dir(temp_dir=tiff_dir, fovs=fovs, imgs=imgs, img_sub_folder=img_sub_folder, dtype="int16")
 
+        # checks that a ValueError is thrown when the user tries to specify points that are not
+        # in the original segmentation mask
+        with pytest.raises(ValueError):
+            # generate a segmentation array with 1 FOV
+            cell_masks = np.zeros((1, 50, 50, 1), dtype="int16")
+            segmentation_masks = xr.DataArray(cell_masks,
+                                              coords=[["Point1"], range(50), range(50),
+                                                      ["whole_cell"]],
+                                              dims=["fovs", "rows", "cols", "compartments"])
+
+            segmentation_utils.compute_complete_expression_matrices(
+                segmentation_labels=segmentation_masks, tiff_dir=tiff_dir,
+                img_sub_folder=img_sub_folder, is_mibitiff=False, points=["Point1", "Point2"], batch_size=5)
+
         # generate a sample segmentation_mask
         cell_mask, _ = _create_test_extraction_data()
         cell_masks = np.zeros((3, 40, 40, 1), dtype="int16")
@@ -118,7 +118,7 @@ def test_compute_complete_expression_matrices():
 
         # generate sample norm and arcsinh data for all points
         norm_data, arcsinh_data = segmentation_utils.compute_complete_expression_matrices(
-            segmentation_labels=segmentation_masks, base_dir=base_dir, tiff_dir=tiff_dir,
+            segmentation_labels=segmentation_masks, tiff_dir=tiff_dir,
             img_sub_folder=img_sub_folder, is_mibitiff=False, points=None, batch_size=2)
 
         assert norm_data.shape[0] > 0 and norm_data.shape[1] > 0
@@ -126,7 +126,7 @@ def test_compute_complete_expression_matrices():
 
         # generate sample norm and arcsinh data for a subset of points
         norm_data, arcsinh_data = segmentation_utils.compute_complete_expression_matrices(
-            segmentation_labels=segmentation_masks, base_dir=base_dir, tiff_dir=tiff_dir,
+            segmentation_labels=segmentation_masks, tiff_dir=tiff_dir,
             img_sub_folder=img_sub_folder, is_mibitiff=False, points=fovs_subset, batch_size=2)
 
         assert norm_data.shape[0] > 0 and norm_data.shape[1] > 0
@@ -170,7 +170,7 @@ def test_compute_complete_expression_matrices():
             }
 
             channels = ["HH3", "Membrane"]
-            sample_tif = mi.MibiImage(np.random.rand(1024, 1024, 2).astype(np.float32),
+            sample_tif = mi.MibiImage(np.random.rand(40, 40, 2).astype(np.float32),
                                       ((1, channels[0]), (2, channels[1])),
                                       **METADATA)
             tiff.write(os.path.join(tiff_dir, m), sample_tif, dtype=np.float32)
@@ -188,7 +188,7 @@ def test_compute_complete_expression_matrices():
 
         # generate sample norm and arcsinh data for all points
         norm_data, arcsinh_data = segmentation_utils.compute_complete_expression_matrices(
-            segmentation_labels=segmentation_masks, base_dir=base_dir, tiff_dir=tiff_dir,
+            segmentation_labels=segmentation_masks, tiff_dir=tiff_dir,
             img_sub_folder=img_sub_folder, is_mibitiff=True, points=None, batch_size=2)
 
         assert norm_data.shape[0] > 0 and norm_data.shape[1] > 0
@@ -196,7 +196,7 @@ def test_compute_complete_expression_matrices():
 
         # generate sample norm and arcsinh data for a subset of points
         norm_data, arcsinh_data = segmentation_utils.compute_complete_expression_matrices(
-            segmentation_labels=segmentation_masks, base_dir=base_dir, tiff_dir=tiff_dir,
+            segmentation_labels=segmentation_masks, tiff_dir=tiff_dir,
             img_sub_folder=img_sub_folder, is_mibitiff=True, points=fovs_subset, batch_size=2)
 
         assert norm_data.shape[0] > 0 and norm_data.shape[1] > 0

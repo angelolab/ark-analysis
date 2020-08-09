@@ -9,7 +9,7 @@ import pandas as pd
 import xarray as xr
 
 from skimage.feature import peak_local_max
-from skimage.measure import label, regionprops, regionprops_table
+from skimage.measure import label, regionprops_table
 
 import skimage.morphology as morph
 from skimage.segmentation import relabel_sequential
@@ -19,17 +19,15 @@ import skimage.io as io
 from segmentation.utils import data_utils, plot_utils, signal_extraction, io_utils
 
 
-def compute_complete_expression_matrices(segmentation_labels, base_dir, tiff_dir,
-                                         img_sub_folder, is_mibitiff=False, points=None, batch_size=5):
+def compute_complete_expression_matrices(segmentation_labels, tiff_dir, img_sub_folder,
+                                         is_mibitiff=False, points=None, batch_size=5):
     """
     This function takes the segmented data and computes the expression matrices batch-wise
     while also validating inputs
 
     Inputs:
         segmentation_labels (xarray): an xarray with the segmented data
-        base_dir (str): the "master" directory, contains all of the data including the input
-        tiff_dir (str): the name of the directory which contains the single_channel_inputs,
-            technically can be accessed from base_dir but easier to make its own separate arg
+        tiff_dir (str): the name of the directory which contains the single_channel_inputs
         img_sub_folder (str): the name of the folder where the TIF images are located
         points (list): a list of points we wish to analyze, if None will default to all points
         is_mibitiff (bool): a flag to indicate whether or not the base images are MIBItiffs
@@ -45,81 +43,52 @@ def compute_complete_expression_matrices(segmentation_labels, base_dir, tiff_dir
 
     # if no points are specified, then load all the points
     if points is None:
-        # based on looking at the file name format of mibitiff files as well as the directory structure
-        # defined for mibitiff loading, we'll assume uniqueness for now but in the future we can address
-        # different mibitiff loading techniques
+        # handle mibitiffs with an assumed file structure
         if is_mibitiff:
-            all_points = io_utils.list_files(tiff_dir, substrs=['.tif'])
-            points = io_utils.extract_delimited_names(all_points, delimiter='.')
+            filenames = io_utils.list_files(tiff_dir, substrs=['.tif'])
+            points = io_utils.extract_delimited_names(filenames, delimiter=None)
         # otherwise assume the tree-like directory as defined for tree loading
         else:
-            points = io_utils.list_folders(tiff_dir)
-    else:
-        # needed to handle mibitiff file processing, we'll need to extract the file names of all the points
-        # that are covered by the set of points because the mibitiff function requires the file names
-        # and the extensions may be either .tif or .tiff
-        if is_mibitiff:
-            all_points = io_utils.list_files(tiff_dir, substrs=points)
+            filenames = io_utils.list_folders(tiff_dir)
+            points = filenames
+
+    # check segmentation_labels for given points (img loaders will fail otherwise)
+    point_values = [point for point in points if point not in segmentation_labels['fovs'].values]
+    if point_values:
+        raise ValueError("Invalid point values specified: points %s not found in segmentation_labels fovs" % ",".join(point_values))
+
+    # get full filenames from given points
+    filenames = io_utils.list_files(tiff_dir, substrs=points)
 
     # sort the points
     points.sort()
+    filenames.sort()
 
     # defined some vars for batch processing
     cohort_len = len(points)
-    num_batch = int(np.floor(cohort_len / batch_size))
 
     # create the final dfs to store the processed data
     combined_normalized_data = pd.DataFrame()
     combined_transformed_data = pd.DataFrame()
 
-    # assert that all the current_points specified appear as fovs in segmentation_labels
-    # we need this check because otherwise load_imgs_from_tree or load_imgs_from_mibitiff will fail
-    # when we try to validate the paths because they would not exist to start off with
-    points_in_labels_mask = np.in1d(np.array(points), segmentation_labels['fovs'].values)
-    if not np.all(points_in_labels_mask):
-        point_values = np.array(points)[~points_in_labels_mask]
-        raise ValueError("Invalid point values specified: points %s not found in segmentation_labels fovs" % ",".join(point_values.tolist()))
-
     # iterate over all the batches
-    for i in range(num_batch):
-        # extract only the points we need for the current batch
-        current_points = points[i * batch_size:(i + 1) * batch_size]
-
-        # and extract the image data corresponding to each of those points
-        # make sure we handle the different cases for mibitiff or non-mibitiff
+    for batch_names, batch_files in zip(
+        [points[i:i + batch_size] for i in range(0, cohort_len, batch_size)],
+        [filenames[i:i + batch_size] for i in range(0, cohort_len, batch_size)]
+    ):
+        # and extract the image data for each batch
         if is_mibitiff:
-            # because files can end with .tif or .tiff, we still need to use os.listdir to list all files
-            # we could consider extracting the extensions beforehand and then appending them
-            # but I think it's probably best we don't do that
-            mibitiff_files = [mt_file for mt_file in all_points if mt_file.split(".")[0] in current_points]
-            image_data = data_utils.load_imgs_from_mibitiff(data_dir=tiff_dir, mibitiff_files=mibitiff_files)
+            image_data = data_utils.load_imgs_from_mibitiff(data_dir=tiff_dir, mibitiff_files=batch_files)
         else:
-            image_data = data_utils.load_imgs_from_tree(data_dir=tiff_dir, img_sub_folder=img_sub_folder, fovs=current_points)
+            image_data = data_utils.load_imgs_from_tree(data_dir=tiff_dir, img_sub_folder=img_sub_folder, fovs=batch_names)
 
         # as well as the labels corresponding to each of them
-        current_labels = segmentation_labels.loc[current_points, :, :, :]
+        current_labels = segmentation_labels.loc[batch_names, :, :, :]
 
         # segment the imaging data
         normalized_data, transformed_data = generate_expression_matrix(segmentation_labels=current_labels, image_data=image_data)
 
         # now append to the final dfs to return
-        combined_normalized_data = combined_normalized_data.append(normalized_data)
-        combined_transformed_data = combined_transformed_data.append(transformed_data)
-
-    # if batch did not divide evenly into total, process remainder
-    if cohort_len % batch_size != 0:
-        current_points = points[num_batch * batch_size:]
-
-        if is_mibitiff:
-            mibitiff_files = [mt_file for mt_file in all_points if mt_file.split(".")[0] in current_points]
-            image_data = data_utils.load_imgs_from_mibitiff(data_dir=tiff_dir, mibitiff_files=mibitiff_files)
-        else:
-            image_data = data_utils.load_imgs_from_tree(data_dir=tiff_dir, img_sub_folder=img_sub_folder, fovs=current_points)
-
-        current_labels = segmentation_labels.loc[current_points, :, :, :]
-
-        normalized_data, transformed_data = generate_expression_matrix(segmentation_labels=current_labels, image_data=image_data)
-
         combined_normalized_data = combined_normalized_data.append(normalized_data)
         combined_transformed_data = combined_transformed_data.append(transformed_data)
 

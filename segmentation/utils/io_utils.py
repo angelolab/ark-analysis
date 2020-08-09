@@ -96,9 +96,6 @@ def extract_delimited_names(files, delimiter='_', delimiter_optional=True):
     if files is None:
         return
 
-    if delimiter is None:
-        delimiter = ''
-
     names = [
         os.path.split(name)[1]
         for name in files
