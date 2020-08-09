@@ -331,7 +331,7 @@ def generate_two_cell_test_membrane_signal(segmentation_mask, cell_centers,
         # generate both the coordinates of the cell region and non-membrane region
         # for proper circle subtraction to generate membrane
         cell_region_x, cell_region_y = circle(center[0], center[1], cell_radius, shape=size_img)
-        non_memb_region_x, non_memb_region_y = circle(center[0], center[1], cell_radius - memb_diameter, shape=size_img)
+        non_memb_region_x, non_memb_region_y = circle(center[0], center[1], cell_radius - memb_thickness, shape=size_img)
 
         # perform circle subtraction
         sample_membrane_signal[cell_region_x, cell_region_y] = 10

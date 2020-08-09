@@ -118,7 +118,7 @@ def test_generate_two_cell_test_segmentation_mask():
         synthetic_spatial_datagen.generate_two_cell_test_segmentation_mask(cell_radius=cell_radius)
 
     # assert that our labels are just blank, 1, and 2
-    assert set(sample_segmentation_mask) == set([0, 1, 2])
+    assert set(sample_segmentation_mask.flatten().tolist()) == set([0, 1, 2])
 
     # assert that our centers are being labeled correctly
     assert sample_segmentation_mask[sample_cell_centers[1][0], sample_cell_centers[1][0]] == 1
@@ -161,15 +161,15 @@ def test_generate_two_cell_test_membrane_signal():
         synthetic_spatial_datagen.generate_two_cell_test_segmentation_mask(cell_radius=cell_radius)
 
     sample_nuclear_signal = \
-        synthetic_spatial_datagen.generate_two_cell_test_nuclear_signal(segmentation_mask=sample_segmentation_mask,
-                                                                        cell_centers=sample_cell_centers,
-                                                                        cell_radius=cell_radius,
-                                                                        memb_thickness=memb_thickness)
+        synthetic_spatial_datagen.generate_two_cell_test_membrane_signal(segmentation_mask=sample_segmentation_mask,
+                                                                         cell_centers=sample_cell_centers,
+                                                                         cell_radius=cell_radius,
+                                                                         memb_thickness=memb_thickness)
 
     # assuming the default membrane diameter of 5, assert that our membrane inner edge is being labeled correctly
     # we only include the offset columnwise by choice: it could be done rowwise as well
     # we only care about cell 2 because that is the only membrane-level expression cell by default
-    assert sample_membrane_signal[sample_cell_centers[2][0], sample_cell_centers[2][1] - 5] == 10
+    assert sample_membrane_signal[sample_cell_centers[2][0], sample_cell_centers[2][1] - memb_thickness] == 10
 
     # because we'll be jittering the signal eventually, we won't test the status of the signal at the outer membrane border
 
@@ -186,5 +186,5 @@ def test_generate_two_cell_test_channel_synthetic_data():
     assert sample_channel_data.shape[2] == 2
 
     # assert that we've only labeled nuclear and membrane signal with 0 or 1
-    assert set(sample_channel_data[:, :, 0]) == set([0, 1])
-    assert set(sample_channel_data[:, :, 1]) == set([0, 1])
+    assert set(sample_channel_data[:, :, 0].flatten().tolist()) == set([0, 1])
+    assert set(sample_channel_data[:, :, 1].flatten().tolist()) == set([0, 1])
