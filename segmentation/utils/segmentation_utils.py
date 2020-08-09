@@ -9,27 +9,25 @@ import pandas as pd
 import xarray as xr
 
 from skimage.feature import peak_local_max
-from skimage.measure import label, regionprops, regionprops_table
+from skimage.measure import label, regionprops_table
 
 import skimage.morphology as morph
 from skimage.segmentation import relabel_sequential
 import skimage.io as io
 
 
-from segmentation.utils import data_utils, plot_utils, signal_extraction
+from segmentation.utils import data_utils, plot_utils, signal_extraction, io_utils
 
 
-def compute_complete_expression_matrices(segmentation_labels, base_dir, tiff_dir,
-                                         img_sub_folder, is_mibitiff=False, points=None, batch_size=5):
+def compute_complete_expression_matrices(segmentation_labels, tiff_dir, img_sub_folder,
+                                         is_mibitiff=False, points=None, batch_size=5):
     """
     This function takes the segmented data and computes the expression matrices batch-wise
     while also validating inputs
 
     Inputs:
         segmentation_labels (xarray): an xarray with the segmented data
-        base_dir (str): the "master" directory, contains all of the data including the input
-        tiff_dir (str): the name of the directory which contains the single_channel_inputs,
-            technically can be accessed from base_dir but easier to make its own separate arg
+        tiff_dir (str): the name of the directory which contains the single_channel_inputs
         img_sub_folder (str): the name of the folder where the TIF images are located
         points (list): a list of points we wish to analyze, if None will default to all points
         is_mibitiff (bool): a flag to indicate whether or not the base images are MIBItiffs
@@ -39,89 +37,65 @@ def compute_complete_expression_matrices(segmentation_labels, base_dir, tiff_dir
             adjust as necessary for speed and memory considerations
 
     Returns:
-        combined_normalized_data (pandas): a DataFrame containing the data with the size_norm transformation
-        combined_transformed_data (pandas): a DataFrame containing the data with the arcsinh transformation
+        combined_normalized_data (pandas): a DataFrame containing the size_norm transformed data
+        combined_transformed_data (pandas): a DataFrame containing the arcsinh transformed data
     """
 
     # if no points are specified, then load all the points
     if points is None:
-        # based on looking at the file name format of mibitiff files as well as the directory structure
-        # defined for mibitiff loading, we'll assume uniqueness for now but in the future we can address
-        # different mibitiff loading techniques
+        # handle mibitiffs with an assumed file structure
         if is_mibitiff:
-            all_points = [mt_file for mt_file in os.listdir(tiff_dir) if mt_file.split(".")[1] in ["tif", "tiff"]]
-            points = [point.split(".")[0] for point in all_points]
+            filenames = io_utils.list_files(tiff_dir, substrs=['.tif'])
+            points = io_utils.extract_delimited_names(filenames, delimiter=None)
         # otherwise assume the tree-like directory as defined for tree loading
         else:
-            all_points = os.listdir(tiff_dir)
-            points = [point for point in all_points if os.path.isdir(os.path.join(tiff_dir, point))]
-    else:
-        # needed to handle mibitiff file processing, we'll need to extract the file names of all the points
-        # that are covered by the set of points because the mibitiff function requires the file names
-        # and the extensions may be either .tif or .tiff
-        if is_mibitiff:
-            all_points = [mt_file for mt_file in os.listdir(tiff_dir) if mt_file.split(".")[1] in ["tif", "tiff"] and
-                          mt_file.startswith(tuple(points))]
+            filenames = io_utils.list_folders(tiff_dir)
+            points = filenames
+
+    # check segmentation_labels for given points (img loaders will fail otherwise)
+    point_values = [point for point in points if point not in segmentation_labels['fovs'].values]
+    if point_values:
+        raise ValueError(f"Invalid point values specified: "
+                         f"points {','.join(point_values)} not found in segmentation_labels fovs")
+
+    # get full filenames from given points
+    filenames = io_utils.list_files(tiff_dir, substrs=points)
 
     # sort the points
     points.sort()
+    filenames.sort()
 
     # defined some vars for batch processing
     cohort_len = len(points)
-    num_batch = int(np.floor(cohort_len / batch_size))
 
     # create the final dfs to store the processed data
     combined_normalized_data = pd.DataFrame()
     combined_transformed_data = pd.DataFrame()
 
-    # assert that all the current_points specified appear as fovs in segmentation_labels
-    # we need this check because otherwise load_imgs_from_tree or load_imgs_from_mibitiff will fail
-    # when we try to validate the paths because they would not exist to start off with
-    points_in_labels_mask = np.in1d(np.array(points), segmentation_labels['fovs'].values)
-    if not np.all(points_in_labels_mask):
-        point_values = np.array(points)[~points_in_labels_mask]
-        raise ValueError("Invalid point values specified: points %s not found in segmentation_labels fovs" % ",".join(point_values.tolist()))
-
     # iterate over all the batches
-    for i in range(num_batch):
-        # extract only the points we need for the current batch
-        current_points = points[i * batch_size:(i + 1) * batch_size]
-
-        # and extract the image data corresponding to each of those points
-        # make sure we handle the different cases for mibitiff or non-mibitiff
+    for batch_names, batch_files in zip(
+        [points[i:i + batch_size] for i in range(0, cohort_len, batch_size)],
+        [filenames[i:i + batch_size] for i in range(0, cohort_len, batch_size)]
+    ):
+        # and extract the image data for each batch
         if is_mibitiff:
-            # because files can end with .tif or .tiff, we still need to use os.listdir to list all files
-            # we could consider extracting the extensions beforehand and then appending them
-            # but I think it's probably best we don't do that
-            mibitiff_files = [mt_file for mt_file in all_points if mt_file.split(".")[0] in current_points]
-            image_data = data_utils.load_imgs_from_mibitiff(data_dir=tiff_dir, mibitiff_files=mibitiff_files)
+            image_data = data_utils.load_imgs_from_mibitiff(data_dir=tiff_dir,
+                                                            mibitiff_files=batch_files)
         else:
-            image_data = data_utils.load_imgs_from_tree(data_dir=tiff_dir, img_sub_folder=img_sub_folder, fovs=current_points)
+            image_data = data_utils.load_imgs_from_tree(data_dir=tiff_dir,
+                                                        img_sub_folder=img_sub_folder,
+                                                        fovs=batch_names)
 
         # as well as the labels corresponding to each of them
-        current_labels = segmentation_labels.loc[current_points, :, :, :]
+        current_labels = segmentation_labels.loc[batch_names, :, :, :]
 
         # segment the imaging data
-        normalized_data, transformed_data = generate_expression_matrix(segmentation_labels=current_labels, image_data=image_data)
+        normalized_data, transformed_data = generate_expression_matrix(
+            segmentation_labels=current_labels,
+            image_data=image_data
+        )
 
         # now append to the final dfs to return
-        combined_normalized_data = combined_normalized_data.append(normalized_data)
-        combined_transformed_data = combined_transformed_data.append(transformed_data)
-
-    # if batch did not divide evenly into total, process remainder
-    if cohort_len % batch_size != 0:
-        current_points = points[num_batch * batch_size:]
-
-        if is_mibitiff:
-            mibitiff_files = [mt_file for mt_file in all_points if mt_file.split(".")[0] in current_points]
-            image_data = data_utils.load_imgs_from_mibitiff(data_dir=tiff_dir, mibitiff_files=mibitiff_files)
-        else:
-            image_data = data_utils.load_imgs_from_tree(data_dir=tiff_dir, img_sub_folder=img_sub_folder, fovs=current_points)
-
-        current_labels = segmentation_labels.loc[current_points, :, :, :]
-
-        normalized_data, transformed_data = generate_expression_matrix(segmentation_labels=current_labels, image_data=image_data)
-
         combined_normalized_data = combined_normalized_data.append(normalized_data)
         combined_transformed_data = combined_transformed_data.append(transformed_data)
 
@@ -266,7 +240,8 @@ def watershed_transform(model_output, channel_xr, overlay_channels, output_dir, 
                 io.imsave(os.path.join(output_dir, "{}_interior_smoothed.tiff".format(fov)),
                           interior_smoothed.astype("float32"))
 
-                io.imsave(os.path.join(output_dir, "{}_maxs_smoothed_thresholded.tiff".format(fov)),
+                io.imsave(os.path.join(output_dir,
+                                       "{}_maxs_smoothed_thresholded.tiff".format(fov)),
                           maxima_thresholded.astype("float32"))
 
                 io.imsave(os.path.join(output_dir, "{}_maxs.tiff".format(fov)),
@@ -285,8 +260,7 @@ def watershed_transform(model_output, channel_xr, overlay_channels, output_dir, 
                     chan_marker = channel_xr.loc[fov, :, :, channel].values
                     plot_utils.plot_overlay(random_map, plotting_tif=chan_marker,
                                             path=os.path.join(output_dir,
-                                                              "{}_{}_overlay.tiff".format(fov,
-                                                                                          channel)))
+                                                              f"{fov}_{channel}_overlay.tiff"))
 
                 elif len(chan_list) == 2:
                     # if two entries, make 2-color stack, skipping 0th index which is red
@@ -299,7 +273,7 @@ def watershed_transform(model_output, channel_xr, overlay_channels, output_dir, 
                             output_dir,
                             "{}_{}_{}_overlay.tiff".format(fov, chan_list[0], chan_list[1])))
                 elif len(chan_list) == 3:
-                    # if three entries, make a 3 color stack, with third channel in first index (red)
+                    # if three entries, make 3 color stack, with third channel in first index (red)
                     input_data = np.zeros((channel_xr.shape[1], channel_xr.shape[2], 3))
                     input_data[:, :, 1] = channel_xr.loc[fov, :, :, chan_list[0]].values
                     input_data[:, :, 2] = channel_xr.loc[fov, :, :, chan_list[1]].values
@@ -395,8 +369,8 @@ def find_nuclear_mask_id(nuc_segmentation_mask, cell_coords):
         cell_coords (list): list of coords specifying pixels that belong to a cell
 
     Returns:
-        nuclear_mask_id (int): ID of the nuclear mask that overlaps most with cell. If not matches found,
-            returns None.
+        nuclear_mask_id (int): ID of the nuclear mask that overlaps most with cell.
+                               If no matches found, returns None.
     """
 
     ids, counts = np.unique(nuc_segmentation_mask[tuple(cell_coords.T)], return_counts=True)
@@ -567,7 +541,7 @@ def generate_expression_matrix(segmentation_labels, image_data, nuclear_counts=F
 
     Returns:
         normalized_data (pandas): marker counts per cell normalized by cell size
-        arcsinh_data (pandas): marker counts per cell normalized by cell size and arcsinh transformed
+        arcsinh_data (pandas): arcsinh transfomed marker counts per cell normalized by cell size
     """
     if type(segmentation_labels) is not xr.DataArray:
         raise ValueError("Incorrect data type for segmentation_labels, expecting xarray")
@@ -651,8 +625,7 @@ def concatenate_csv(base_dir, csv_files, column_name="point", column_values=None
     Outputs: saved combined csv into same folder"""
 
     if column_values is None:
-        column_values = copy.copy(csv_files)
-        column_values = [val.split(".")[0] for val in column_values]
+        column_values = io_utils.extract_delimited_names(csv_files, delimiter='.')
 
     if len(column_values) != len(csv_files):
         raise ValueError("csv_files and column_values have different lengths: "

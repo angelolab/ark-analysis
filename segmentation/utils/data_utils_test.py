@@ -1,7 +1,6 @@
 import xarray as xr
 import numpy as np
 import os
-import pathlib
 import math
 import pytest
 import tempfile
@@ -41,57 +40,6 @@ def _create_img_dir(temp_dir, fovs, imgs, img_sub_folder="TIFs", dtype="int8"):
             io.imsave(os.path.join(fov_path, img), tif)
 
 
-def test_validate_paths():
-
-    # change cwd to /scripts for more accurate testing
-    os.chdir('templates')
-
-    # make a tempdir for testing
-    with tempfile.TemporaryDirectory(dir='../data') as valid_path:
-
-        # make valid subdirectory
-        os.mkdir(valid_path + '/real_subdirectory')
-
-        # extract parts of valid path to alter for test cases
-        valid_parts = [p for p in pathlib.Path(valid_path).parts]
-        valid_parts[0] = 'not_a_real_directory'
-
-        # test no '../data' prefix
-        starts_out_of_scope = os.path.join(*valid_parts)
-
-        # construct test for bad middle folder path
-        valid_parts[0] = '..'
-        valid_parts[1] = 'data'
-        valid_parts[2] = 'not_a_real_subdirectory'
-        valid_parts.append('not_real_but_parent_is_problem')
-        bad_middle_path = os.path.join(*valid_parts)
-
-        # construct test for real path until file
-        wrong_file = os.path.join(valid_path + '/real_subdirectory', 'not_a_real_file.tiff')
-
-        # test one valid path
-        data_utils.validate_paths(valid_path)
-
-        # test multiple valid paths
-        data_utils.validate_paths([valid_path, '../data', valid_path + '/real_subdirectory'])
-
-        # test out-of-scope
-        with pytest.raises(ValueError, match=r".*not_a_real_directory.*prefixed.*"):
-            data_utils.validate_paths(starts_out_of_scope)
-
-        # test mid-directory existence
-        with pytest.raises(ValueError, match=r".*bad path.*not_a_real_subdirectory.*"):
-            data_utils.validate_paths(bad_middle_path)
-
-        # test file existence
-        with pytest.raises(ValueError, match=r".*The file/path.*not_a_real_file.*"):
-            data_utils.validate_paths(wrong_file)
-
-    # reset cwd after testing
-    os.chdir('../')
-
-
-# TODO: test '_' delimiter autodecode + dtype overload+warning
 def test_load_imgs_from_mibitiff():
     # check unspecified point loading
     data_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)),
@@ -99,7 +47,8 @@ def test_load_imgs_from_mibitiff():
                             "input_data", "mibitiff_inputs")
     channels = ["HH3", "Membrane"]
     data_xr = data_utils.load_imgs_from_mibitiff(data_dir,
-                                                 channels=channels)
+                                                 channels=channels,
+                                                 delimiter='_')
     assert(data_xr.dims == ("fovs", "rows", "cols", "channels"))
     assert(data_xr.fovs == "Point8")
     assert(data_xr.rows == range(1024)).all()
@@ -110,7 +59,8 @@ def test_load_imgs_from_mibitiff():
     mibitiff_files = ["Point8_RowNumber0_Depth_Profile0-MassCorrected-Filtered.tiff"]
     data_xr = data_utils.load_imgs_from_mibitiff(data_dir,
                                                  mibitiff_files=mibitiff_files,
-                                                 channels=channels)
+                                                 channels=channels,
+                                                 delimiter='_')
     assert(data_xr.dims == ("fovs", "rows", "cols", "channels"))
     assert(data_xr.fovs == "Point8")
     assert(data_xr.rows == range(1024)).all()
@@ -133,6 +83,7 @@ def test_load_imgs_from_mibitiff():
         data_xr = data_utils.load_imgs_from_mibitiff(temp_dir,
                                                      mibitiff_files=mibitiff_files,
                                                      channels=channels,
+                                                     delimiter='_',
                                                      dtype=np.float32)
 
         assert(data_xr.dims == ("fovs", "rows", "cols", "channels"))
@@ -147,6 +98,7 @@ def test_load_imgs_from_mibitiff():
             data_xr = data_utils.load_imgs_from_mibitiff(temp_dir,
                                                          mibitiff_files=[mibitiff_files[-1]],
                                                          channels=channels,
+                                                         delimiter='_',
                                                          dtype='int16')
 
             assert(data_xr.dims == ("fovs", "rows", "cols", "channels"))
@@ -165,7 +117,8 @@ def test_load_imgs_from_mibitiff_all_channels():
 
     data_xr = data_utils.load_imgs_from_mibitiff(data_dir,
                                                  mibitiff_files=mibitiff_files,
-                                                 channels=None)
+                                                 channels=None,
+                                                 delimiter='_')
     assert(data_xr.dims == ("fovs", "rows", "cols", "channels"))
     assert(data_xr.fovs == "Point8")
     assert(data_xr.rows == range(1024)).all()
@@ -189,7 +142,8 @@ def test_load_imgs_from_multitiff():
     multitiff_files = ["Point8.tif"]
     data_xr = data_utils.load_imgs_from_multitiff(data_dir,
                                                   multitiff_files=multitiff_files,
-                                                  channels=None)
+                                                  channels=None,
+                                                  delimiter='_')
     assert(data_xr.dims == ("fovs", "rows", "cols", "channels"))
     assert(data_xr.fovs == "Point8")
     assert(data_xr.rows == range(1024)).all()
@@ -199,7 +153,8 @@ def test_load_imgs_from_multitiff():
     # test single channel load
     data_xr = data_utils.load_imgs_from_multitiff(data_dir,
                                                   multitiff_files=multitiff_files,
-                                                  channels=[0])
+                                                  channels=[0],
+                                                  delimiter='_')
     assert(data_xr.dims == ("fovs", "rows", "cols", "channels"))
     assert(data_xr.fovs == "Point8")
     assert(data_xr.rows == range(1024)).all()
@@ -209,7 +164,8 @@ def test_load_imgs_from_multitiff():
     # test all channels w/ unspecified files
     data_xr = data_utils.load_imgs_from_multitiff(data_dir,
                                                   multitiff_files=None,
-                                                  channels=None)
+                                                  channels=None,
+                                                  delimiter='_')
     assert(data_xr.dims == ("fovs", "rows", "cols", "channels"))
     assert(data_xr.fovs == "Point8")
     assert(data_xr.rows == range(1024)).all()
@@ -230,6 +186,7 @@ def test_load_imgs_from_multitiff():
         data_xr = data_utils.load_imgs_from_multitiff(temp_dir,
                                                       multitiff_files=None,
                                                       channels=None,
+                                                      delimiter='_',
                                                       dtype='float')
 
         assert(data_xr.dims == ("fovs", "rows", "cols", "channels"))
@@ -244,6 +201,7 @@ def test_load_imgs_from_multitiff():
             data_xr = data_utils.load_imgs_from_multitiff(temp_dir,
                                                           multitiff_files=['Point9_junktext.tif'],
                                                           channels=None,
+                                                          delimiter='_',
                                                           dtype='int16')
 
             assert(data_xr.dims == ("fovs", "rows", "cols", "channels"))
@@ -267,10 +225,10 @@ def test_load_imgs_from_tree():
             data_utils.load_imgs_from_tree(temp_dir, img_sub_folder="TIFs", dtype="int16")
 
         # make sure all folders loaded
-        assert np.array_equal(test_loaded_xr.fovs, fovs)
+        assert np.array_equal(test_loaded_xr.fovs.values.sort(), fovs.sort())
 
         # make sure all channels loaded
-        assert np.array_equal(test_loaded_xr.channels.values, chans)
+        assert np.array_equal(test_loaded_xr.channels.values.sort(), chans.sort())
 
         # check loading of specific files
         some_fovs = fovs[:2]
@@ -279,35 +237,36 @@ def test_load_imgs_from_tree():
 
         test_subset_xr = \
             data_utils.load_imgs_from_tree(temp_dir, img_sub_folder="TIFs", dtype="int16",
-                                           fovs=some_fovs, imgs=some_imgs)
+                                           fovs=some_fovs, channels=some_imgs)
 
         # make sure specified folders loaded
-        assert np.array_equal(test_subset_xr.fovs, some_fovs)
+        assert np.array_equal(test_subset_xr.fovs.values.sort(), some_fovs.sort())
 
         # make sure specified channels loaded
-        assert np.array_equal(test_subset_xr.channels.values, some_chans)
+        assert np.array_equal(test_subset_xr.channels.values.sort(), some_chans.sort())
 
         # check loading w/o file extension
         test_noext_xr = \
             data_utils.load_imgs_from_tree(temp_dir, img_sub_folder="TIFs", dtype="int16",
-                                           imgs=some_chans)
+                                           channels=some_chans)
 
         # make sure all folders loaded
-        assert np.array_equal(test_noext_xr.fovs, fovs)
+        assert np.array_equal(test_noext_xr.fovs.values.sort(), fovs.sort())
 
         # make sure specified channels loaded
-        assert np.array_equal(test_noext_xr.channels.values, some_chans)
+        assert np.array_equal(test_noext_xr.channels.values.sort(), some_chans.sort())
 
         # check mixed extension presence
         test_someext_xr = \
             data_utils.load_imgs_from_tree(temp_dir, img_sub_folder="TIFs", dtype="int16",
-                                           imgs=[chans[i] if i % 2 else imgs[i] for i in range(3)])
+                                           channels=[chans[i] if i % 2 else imgs[i]
+                                                     for i in range(3)])
 
         # make sure all folders loaded
-        assert np.array_equal(test_someext_xr.fovs, fovs)
+        assert np.array_equal(test_someext_xr.fovs.values.sort(), fovs.sort())
 
         # makes sure all channels loaded
-        assert np.array_equal(test_someext_xr.channels.values, chans)
+        assert np.array_equal(test_someext_xr.channels.values.sort(), chans.sort())
 
         # resave img3 as floats and test for float warning
         tif = np.random.rand(1024, 1024).astype("float")
@@ -316,7 +275,7 @@ def test_load_imgs_from_tree():
         with pytest.warns(UserWarning):
             test_warning_xr = \
                 data_utils.load_imgs_from_tree(temp_dir, img_sub_folder="TIFs", dtype="int16",
-                                               fovs=[fovs[-1]], imgs=[imgs[-1]])
+                                               fovs=[fovs[-1]], channels=[imgs[-1]])
 
             # test swap int16 -> float
             assert np.issubdtype(test_warning_xr.dtype, np.floating)
