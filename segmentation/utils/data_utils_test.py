@@ -259,7 +259,8 @@ def test_load_imgs_from_tree():
         # check mixed extension presence
         test_someext_xr = \
             data_utils.load_imgs_from_tree(temp_dir, img_sub_folder="TIFs", dtype="int16",
-                                           channels=[chans[i] if i % 2 else imgs[i] for i in range(3)])
+                                           channels=[chans[i] if i % 2 else imgs[i]
+                                                     for i in range(3)])
 
         # make sure all folders loaded
         assert np.array_equal(test_someext_xr.fovs.values.sort(), fovs.sort())

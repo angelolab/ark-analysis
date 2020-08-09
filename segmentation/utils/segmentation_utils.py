@@ -37,8 +37,8 @@ def compute_complete_expression_matrices(segmentation_labels, tiff_dir, img_sub_
             adjust as necessary for speed and memory considerations
 
     Returns:
-        combined_normalized_data (pandas): a DataFrame containing the data with the size_norm transformation
-        combined_transformed_data (pandas): a DataFrame containing the data with the arcsinh transformation
+        combined_normalized_data (pandas): a DataFrame containing the size_norm transformed data
+        combined_transformed_data (pandas): a DataFrame containing the arcsinh transformed data
     """
 
     # if no points are specified, then load all the points
@@ -55,7 +55,8 @@ def compute_complete_expression_matrices(segmentation_labels, tiff_dir, img_sub_
     # check segmentation_labels for given points (img loaders will fail otherwise)
     point_values = [point for point in points if point not in segmentation_labels['fovs'].values]
     if point_values:
-        raise ValueError("Invalid point values specified: points %s not found in segmentation_labels fovs" % ",".join(point_values))
+        raise ValueError(f"Invalid point values specified: "
+                         f"points {','.join(point_values)} not found in segmentation_labels fovs")
 
     # get full filenames from given points
     filenames = io_utils.list_files(tiff_dir, substrs=points)
@@ -78,15 +79,21 @@ def compute_complete_expression_matrices(segmentation_labels, tiff_dir, img_sub_
     ):
         # and extract the image data for each batch
         if is_mibitiff:
-            image_data = data_utils.load_imgs_from_mibitiff(data_dir=tiff_dir, mibitiff_files=batch_files)
+            image_data = data_utils.load_imgs_from_mibitiff(data_dir=tiff_dir,
+                                                            mibitiff_files=batch_files)
         else:
-            image_data = data_utils.load_imgs_from_tree(data_dir=tiff_dir, img_sub_folder=img_sub_folder, fovs=batch_names)
+            image_data = data_utils.load_imgs_from_tree(data_dir=tiff_dir,
+                                                        img_sub_folder=img_sub_folder,
+                                                        fovs=batch_names)
 
         # as well as the labels corresponding to each of them
         current_labels = segmentation_labels.loc[batch_names, :, :, :]
 
         # segment the imaging data
-        normalized_data, transformed_data = generate_expression_matrix(segmentation_labels=current_labels, image_data=image_data)
+        normalized_data, transformed_data = generate_expression_matrix(
+            segmentation_labels=current_labels,
+            image_data=image_data
+        )
 
         # now append to the final dfs to return
         combined_normalized_data = combined_normalized_data.append(normalized_data)
@@ -233,7 +240,8 @@ def watershed_transform(model_output, channel_xr, overlay_channels, output_dir, 
                 io.imsave(os.path.join(output_dir, "{}_interior_smoothed.tiff".format(fov)),
                           interior_smoothed.astype("float32"))
 
-                io.imsave(os.path.join(output_dir, "{}_maxs_smoothed_thresholded.tiff".format(fov)),
+                io.imsave(os.path.join(output_dir,
+                                       "{}_maxs_smoothed_thresholded.tiff".format(fov)),
                           maxima_thresholded.astype("float32"))
 
                 io.imsave(os.path.join(output_dir, "{}_maxs.tiff".format(fov)),
@@ -252,8 +260,7 @@ def watershed_transform(model_output, channel_xr, overlay_channels, output_dir, 
                     chan_marker = channel_xr.loc[fov, :, :, channel].values
                     plot_utils.plot_overlay(random_map, plotting_tif=chan_marker,
                                             path=os.path.join(output_dir,
-                                                              "{}_{}_overlay.tiff".format(fov,
-                                                                                          channel)))
+                                                              f"{fov}_{channel}_overlay.tiff"))
 
                 elif len(chan_list) == 2:
                     # if two entries, make 2-color stack, skipping 0th index which is red
@@ -266,7 +273,7 @@ def watershed_transform(model_output, channel_xr, overlay_channels, output_dir, 
                             output_dir,
                             "{}_{}_{}_overlay.tiff".format(fov, chan_list[0], chan_list[1])))
                 elif len(chan_list) == 3:
-                    # if three entries, make a 3 color stack, with third channel in first index (red)
+                    # if three entries, make 3 color stack, with third channel in first index (red)
                     input_data = np.zeros((channel_xr.shape[1], channel_xr.shape[2], 3))
                     input_data[:, :, 1] = channel_xr.loc[fov, :, :, chan_list[0]].values
                     input_data[:, :, 2] = channel_xr.loc[fov, :, :, chan_list[1]].values
@@ -362,8 +369,8 @@ def find_nuclear_mask_id(nuc_segmentation_mask, cell_coords):
         cell_coords (list): list of coords specifying pixels that belong to a cell
 
     Returns:
-        nuclear_mask_id (int): ID of the nuclear mask that overlaps most with cell. If not matches found,
-            returns None.
+        nuclear_mask_id (int): ID of the nuclear mask that overlaps most with cell.
+                               If no matches found, returns None.
     """
 
     ids, counts = np.unique(nuc_segmentation_mask[tuple(cell_coords.T)], return_counts=True)
@@ -534,7 +541,7 @@ def generate_expression_matrix(segmentation_labels, image_data, nuclear_counts=F
 
     Returns:
         normalized_data (pandas): marker counts per cell normalized by cell size
-        arcsinh_data (pandas): marker counts per cell normalized by cell size and arcsinh transformed
+        arcsinh_data (pandas): arcsinh transfomed marker counts per cell normalized by cell size
     """
     if type(segmentation_labels) is not xr.DataArray:
         raise ValueError("Incorrect data type for segmentation_labels, expecting xarray")

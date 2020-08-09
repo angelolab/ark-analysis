@@ -5,7 +5,6 @@ import pytest
 import tempfile
 
 import skimage.morphology as morph
-import skimage.io as io
 from skimage.morphology import erosion
 from skimage.measure import regionprops
 
@@ -89,7 +88,11 @@ def test_compute_complete_expression_matrices():
         os.mkdir(base_dir)
         os.mkdir(input_dir)
         os.mkdir(tiff_dir)
-        data_utils_test._create_img_dir(temp_dir=tiff_dir, fovs=fovs, imgs=imgs, img_sub_folder=img_sub_folder, dtype="int16")
+        data_utils_test._create_img_dir(temp_dir=tiff_dir,
+                                        fovs=fovs,
+                                        imgs=imgs,
+                                        img_sub_folder=img_sub_folder,
+                                        dtype="int16")
 
         # checks that a ValueError is thrown when the user tries to specify points that are not
         # in the original segmentation mask
@@ -103,7 +106,8 @@ def test_compute_complete_expression_matrices():
 
             segmentation_utils.compute_complete_expression_matrices(
                 segmentation_labels=segmentation_masks, tiff_dir=tiff_dir,
-                img_sub_folder=img_sub_folder, is_mibitiff=False, points=["Point1", "Point2"], batch_size=5)
+                img_sub_folder=img_sub_folder, is_mibitiff=False, points=["Point1", "Point2"],
+                batch_size=5)
 
         # generate a sample segmentation_mask
         cell_mask, _ = _create_test_extraction_data()
@@ -395,9 +399,11 @@ def test_transform_expression_matrix():
 
     # test arcsinh transform
     transform_kwargs = {'linear_factor': 1}
-    arcsinh_data = segmentation_utils.transform_expression_matrix(cell_data,
-                                                                  transform='arcsinh',
-                                                                  transform_kwargs=transform_kwargs)
+    arcsinh_data = segmentation_utils.transform_expression_matrix(
+        cell_data,
+        transform='arcsinh',
+        transform_kwargs=transform_kwargs
+    )
 
     assert np.array_equal(arcsinh_data.loc[:, :, unchanged_cols].values,
                           cell_data.loc[:, :, unchanged_cols].values)
@@ -439,9 +445,11 @@ def test_transform_expression_matrix_multiple_compartments():
 
     # test arcsinh transform
     transform_kwargs = {'linear_factor': 1}
-    arcsinh_data = segmentation_utils.transform_expression_matrix(cell_data,
-                                                                  transform='arcsinh',
-                                                                  transform_kwargs=transform_kwargs)
+    arcsinh_data = segmentation_utils.transform_expression_matrix(
+        cell_data,
+        transform='arcsinh',
+        transform_kwargs=transform_kwargs
+    )
 
     assert np.array_equal(arcsinh_data.loc[:, :, unchanged_cols].values,
                           cell_data.loc[:, :, unchanged_cols].values)
