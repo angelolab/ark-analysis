@@ -8,8 +8,7 @@ import seaborn as sns
 import umap
 
 
-def visualize_dimensionality_reduction(cell_data, columns, category, color_map="Spectral", algorithm="UMAP",
-                                       save_dir=None):
+def visualize_dimensionality_reduction(cell_data, columns, category, color_map="Spectral", algorithm="UMAP", save_dir=None):
     """Plots the dimensionality reduction of specified population columns
                 Args:
                     cell_data (pd df): Dataframe containing columns for dimensionality reduction and category
@@ -21,7 +20,6 @@ def visualize_dimensionality_reduction(cell_data, columns, category, color_map="
     cell_data = cell_data.dropna()
 
     if algorithm == "UMAP":
-        # Instantiate UMAP
         reducer = umap.UMAP()
 
         column_data = cell_data[columns].values
@@ -31,34 +29,28 @@ def visualize_dimensionality_reduction(cell_data, columns, category, color_map="
         plt.scatter(embedding[:, 0], embedding[:, 1], cmap='color_map',
                     c=sns.color_palette(color_map, n_colors=len(cell_data)))
         plt.gca().set_aspect('equal', 'datalim')
-        plt.title('UMAP projection of data', fontsize=24)
+        plt.title('UMAP projection of data', fontsize=24);
         plt.colorbar()
         plt.legend()
         if save_dir is not None:
-            plt.savefig(save_dir + "UmapVisualization.png")
+          plt.savefig(save_dir + "UmapVisualization.png")
 
     elif algorithm == "PCA":
         pca = PCA()
         pca_result = pca.fit_transform(cell_data[columns].values)
 
-        cell_data['pca-one'] = pca_result[:, 0]
-        cell_data['pca-two'] = pca_result[:, 1]
-        sns.scatterplot(x="pca-one", y="pca-two", hue=cell_data[category], palette=color_map, data=cell_data,
-                        legend="full",
+        sns.scatterplot(x=pca_result[:, 0], y=pca_result[:, 1], hue=cell_data[category], palette=color_map, data=cell_data, legend="full",
                         alpha=0.3)
         plt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
         if save_dir is not None:
-            plt.savefig(save_dir + "PCAVisualization.png")
+          plt.savefig(save_dir + "PCAVisualization.png")
 
     elif algorithm == "tSNE":
         tsne = TSNE()
         tsne_results = tsne.fit_transform(cell_data[columns].values)
 
-        cell_data['tsne-2d-one'] = tsne_results[:, 0]
-        cell_data['tsne-2d-two'] = tsne_results[:, 1]
-
         sns.scatterplot(
-            x="tsne-2d-one", y="tsne-2d-two",
+            x=tsne_results[:, 0], y=tsne_results[:, 1],
             hue=cell_data[category],
             palette=color_map,
             data=cell_data,
@@ -67,4 +59,4 @@ def visualize_dimensionality_reduction(cell_data, columns, category, color_map="
         )
         plt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
         if save_dir is not None:
-            plt.savefig(save_dir + "tSNEVisualization.png")
+          plt.savefig(save_dir + "tSNEVisualization.png")
