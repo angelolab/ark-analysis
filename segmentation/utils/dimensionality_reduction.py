@@ -20,7 +20,7 @@ def visualize_dimensionality_reduction(cell_data, columns, category, color_map="
                     save_dir (str): Directory to save plots, default is None"""
     cell_data = cell_data.dropna()
 
-    assert (algorithm == "UMAP" or algorithm == "PCA" or algorithm == "tSNE")
+    assert(algorithm == "UMAP" or algorithm == "PCA" or algorithm == "tSNE")
 
     if algorithm == "UMAP":
         reducer = umap.UMAP()
@@ -34,8 +34,6 @@ def visualize_dimensionality_reduction(cell_data, columns, category, color_map="
                     c=sns.color_palette(color_map, n_colors=len(cell_data)))
         plt.gca().set_aspect('equal', 'datalim')
         plt.title('UMAP projection of data', fontsize=24)
-        plt.colorbar()
-        plt.legend()
         fig1.show()
         if save_dir is not None:
             plt.savefig(save_dir + "UmapVisualization.png")
