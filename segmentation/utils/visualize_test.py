@@ -22,11 +22,10 @@ def test_get_sort_data():
     rand_type = random.choices(string.ascii_lowercase, k=100)
     ids = random.choices(range(1, 10), k=100)
     random_data = pd.DataFrame.from_dict({"PatientID": ids, "cell_type": rand_type})
-    print("Before sorting")
-    print(random_data)
-    print("----------------------------------")
-    print("After sorting")
-    print(visualize.get_sorted_data(random_data, "PatientID", "cell_type"))
+    sorted_data = visualize.get_sorted_data(random_data, "PatientID", "cell_type")
+
+    row_sums = [row.sum() for index, row in sorted_data.iterrows()]
+    assert sorted(row_sums)
 
 
 def test_visualize_cells():
