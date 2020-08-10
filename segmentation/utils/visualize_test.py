@@ -36,6 +36,6 @@ def test_visualize_cells():
     visualize.visualize_patient_population_distribution(df, "PatientID", "cell_type", save_dir="")
 
     # Check if correct plots are saved
-    assert path.exists("PopulationDistribution.png"), "Should be showing distribution"
-    assert path.exists("TotalPopulationDistribution.png"), "Should be showing total count"
-    assert path.exists("PopulationProportion.png"), "Should be showing proportion"
+    assert path.exists("PopulationDistribution.png")
+    assert path.exists("TotalPopulationDistribution.png")
+    assert path.exists("PopulationProportion.png")
