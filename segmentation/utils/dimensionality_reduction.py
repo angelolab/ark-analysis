@@ -30,7 +30,7 @@ def visualize_dimensionality_reduction(cell_data, columns, category, color_map="
         embedding = reducer.fit_transform(scaled_column_data)
 
         fig1 = plt.figure(1)
-        plt.scatter(embedding[:, 0], embedding[:, 1], cmap='color_map',
+        plt.scatter(embedding[:, 0], embedding[:, 1], cmap=color_map,
                     c=sns.color_palette(color_map, n_colors=len(cell_data)))
         plt.gca().set_aspect('equal', 'datalim')
         plt.title('UMAP projection of data', fontsize=24)
