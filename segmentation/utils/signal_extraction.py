@@ -1,6 +1,6 @@
 import numpy as np
 
-
+# TODO: work on weighted extraction and implement other discussed techniques of extraction
 def simple_weighted_extraction(cell_coords, image_data):
     """
     Define a weighted extraction technique based on how close the coordinate is to the center
