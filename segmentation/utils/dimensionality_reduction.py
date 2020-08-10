@@ -20,6 +20,8 @@ def visualize_dimensionality_reduction(cell_data, columns, category, color_map="
                     save_dir (str): Directory to save plots, default is None"""
     cell_data = cell_data.dropna()
 
+    assert (algorithm == "UMAP" or algorithm == "PCA" or algorithm == "tSNE")
+
     if algorithm == "UMAP":
         reducer = umap.UMAP()
 
@@ -27,12 +29,14 @@ def visualize_dimensionality_reduction(cell_data, columns, category, color_map="
         scaled_column_data = StandardScaler().fit_transform(column_data)
         embedding = reducer.fit_transform(scaled_column_data)
 
+        fig1 = plt.figure(1)
         plt.scatter(embedding[:, 0], embedding[:, 1], cmap='color_map',
                     c=sns.color_palette(color_map, n_colors=len(cell_data)))
         plt.gca().set_aspect('equal', 'datalim')
         plt.title('UMAP projection of data', fontsize=24)
         plt.colorbar()
         plt.legend()
+        fig1.show()
         if save_dir is not None:
             plt.savefig(save_dir + "UmapVisualization.png")
 
@@ -40,10 +44,14 @@ def visualize_dimensionality_reduction(cell_data, columns, category, color_map="
         pca = PCA()
         pca_result = pca.fit_transform(cell_data[columns].values)
 
+        fig2 = plt.figure(2)
         sns.scatterplot(x=pca_result[:, 0], y=pca_result[:, 1], hue=cell_data[category], palette=color_map,
                         data=cell_data, legend="full",
                         alpha=0.3)
         plt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
+        plt.title('PCA projection of data', fontsize=24)
+        fig2.show()
+
         if save_dir is not None:
             plt.savefig(save_dir + "PCAVisualization.png")
 
@@ -51,6 +59,7 @@ def visualize_dimensionality_reduction(cell_data, columns, category, color_map="
         tsne = TSNE()
         tsne_results = tsne.fit_transform(cell_data[columns].values)
 
+        fig3 = plt.figure(3)
         sns.scatterplot(
             x=tsne_results[:, 0], y=tsne_results[:, 1],
             hue=cell_data[category],
@@ -60,5 +69,8 @@ def visualize_dimensionality_reduction(cell_data, columns, category, color_map="
             alpha=0.3
         )
         plt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
+        plt.title('tSNE projection of data', fontsize=24)
+        fig3.show()
+
         if save_dir is not None:
             plt.savefig(save_dir + "tSNEVisualization.png")
