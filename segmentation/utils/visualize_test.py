@@ -25,7 +25,7 @@ def test_get_sort_data():
     sorted_data = visualize.get_sorted_data(random_data, "PatientID", "cell_type")
 
     row_sums = [row.sum() for index, row in sorted_data.iterrows()]
-    assert sorted(row_sums)
+    assert list(reversed(row_sums)) == sorted(row_sums)
 
 
 def test_visualize_cells():
