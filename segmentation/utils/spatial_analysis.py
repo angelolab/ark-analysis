@@ -58,22 +58,22 @@ def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, 
     if not np.isin(included_fovs, all_data[fov_col]).all():
         raise ValueError("Fovs were not found in Expression Matrix")
 
-    # Subsets the expression matrix to only have channels columns
+    # Subsets the expression matrix to only have channel columns
     all_channel_data = all_data.drop(excluded_colnames, axis=1)
     # List of all channels
     channel_titles = all_channel_data.columns
-    # Length of channel marker list
-    marker_num = len(channel_titles)
+    # Length of channels list
+    channel_num = len(channel_titles)
 
     # Check to see if order of channel thresholds is same as in expression matrix
     if not (list(marker_thresholds.iloc[:, 0]) == channel_titles).any():
         raise ValueError("Threshold Markers do not match markers in Expression Matrix")
 
-    # Create stats Xarray with the dimensions (points, stats variables, number of markers, number of markers)
-    stats_raw_data = np.zeros((num_fovs, 7, marker_num, marker_num))
+    # Create stats Xarray with the dimensions (fovs, stats variables, number of channels, number of channels)
+    stats_raw_data = np.zeros((num_fovs, 7, channel_num, channel_num))
     coords = [included_fovs, ["z", "muhat", "sigmahat", "p_pos", "p_neg", "h", "p_adj"], channel_titles,
               channel_titles]
-    dims = ["points", "stats", "marker1", "marker2"]
+    dims = ["fovs", "stats", "marker1", "marker2"]
     stats = xr.DataArray(stats_raw_data, coords=coords, dims=dims)
 
     # Subsetting threshold matrix to only include column with threshold values
@@ -96,7 +96,7 @@ def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, 
             thresh_vec=thresh_vec)
 
         close_num_rand = spatial_analysis_utils.compute_close_cell_num_random(
-            marker1_num, marker2_num, dist_matrix, marker_num, dist_lim, bootstrap_num)
+            marker1_num, marker2_num, dist_matrix, channel_num, dist_lim, bootstrap_num)
         values.append((close_num, close_num_rand))
 
         # Get z, p, adj_p, muhat, sigmahat, and h
@@ -157,7 +157,7 @@ def calculate_cluster_spatial_enrichment(all_data, dist_matrices_dict, included_
     # Create stats Xarray with the dimensions (points, stats variables, number of markers, number of markers)
     stats_raw_data = np.zeros((num_fovs, 7, cluster_num, cluster_num))
     coords = [included_fovs, ["z", "muhat", "sigmahat", "p_pos", "p_neg", "h", "p_adj"], cluster_names, cluster_names]
-    dims = ["points", "stats", "pheno1", "pheno2"]
+    dims = ["fovs", "stats", "pheno1", "pheno2"]
     stats = xr.DataArray(stats_raw_data, coords=coords, dims=dims)
 
     for i in range(0, len(included_fovs)):
@@ -215,17 +215,17 @@ def create_neighborhood_matrix(all_data, dist_matrices_dict, included_fovs=None,
     cluster_names = all_data[cluster_name_col].drop_duplicates()
 
     # Subset just the sampleID, cellLabelInImage, and FlowSOMID, and cell phenotype
-    all_fov_neighborhood_data = all_data[[fov_col, cell_label_col, cluster_id_col, cluster_name_col]]
+    all_neighborhood_data = all_data[[fov_col, cell_label_col, cluster_id_col, cluster_name_col]]
     # Extract the columns with the cell phenotype codes
-    cluster_ids = all_fov_neighborhood_data[cluster_id_col].drop_duplicates()
+    cluster_ids = all_neighborhood_data[cluster_id_col].drop_duplicates()
     # Get the total number of phenotypes
     cluster_num = len(cluster_ids)
 
     # initiate empty matrices for cell neighborhood data
-    cell_neighbor_counts = pd.DataFrame(np.zeros((all_fov_neighborhood_data.shape[0], cluster_num + 2)))
+    cell_neighbor_counts = pd.DataFrame(np.zeros((all_neighborhood_data.shape[0], cluster_num + 2)))
 
     # Replace the first and second columns of cell_neighbor_counts with the fovs and cell labels respectively
-    cell_neighbor_counts[[0, 1]] = all_fov_neighborhood_data[[fov_col, cell_label_col]]
+    cell_neighbor_counts[[0, 1]] = all_neighborhood_data[[fov_col, cell_label_col]]
 
     # Rename the columns to match cell phenotypes
     cols = [fov_col, cell_label_col] + list(cluster_names)
@@ -235,8 +235,8 @@ def create_neighborhood_matrix(all_data, dist_matrices_dict, included_fovs=None,
 
     for i in range(len(included_fovs)):
         # Subsetting expression matrix to only include patients with correct fov label
-        current_fov_idx = all_fov_neighborhood_data.iloc[:, 0] == included_fovs[i]
-        current_fov_neighborhood_data = all_fov_neighborhood_data[current_fov_idx]
+        current_fov_idx = all_neighborhood_data.iloc[:, 0] == included_fovs[i]
+        current_fov_neighborhood_data = all_neighborhood_data[current_fov_idx]
 
         # Get the subset of phenotypes included in the current fov
         fov_cluster_names = current_fov_neighborhood_data[cluster_name_col].drop_duplicates()

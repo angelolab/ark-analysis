@@ -40,7 +40,7 @@ def calc_dist_matrix(label_map, path=None):
         np.savez(path + "dist_matrices.npz", **dist_matrices)
 
 
-def get_pos_cell_labels(analysis_type, pheno=None, current_fov_data=None,
+def get_pos_cell_labels(analysis_type, pheno=None, current_fov_neighborhood_data=None,
                         thresh=None, current_fov_channel_data=None, cell_labels=None, current_marker=None):
     """Based on the type of the analysis, the function finds positive labels that match the current phenotype or
     identifies cells with positive expression values for the current marker (greater than the marker threshold).
@@ -48,7 +48,7 @@ def get_pos_cell_labels(analysis_type, pheno=None, current_fov_data=None,
     Args:
         analysis_type (string): type of analysis, either "cluster" or "channel"
         pheno (string): the current cell phenotype
-        current_fov_data (pandas df): data for the current patient
+        current_fov_neighborhood_data (pandas df): data for the current patient
         thresh (int): current threshold for marker
         current_fov_channel_data (pandas df): expression data for column markers for current patient
         cell_labels (pandas df): the column of cell labels for current patient
@@ -60,12 +60,12 @@ def get_pos_cell_labels(analysis_type, pheno=None, current_fov_data=None,
         raise ValueError("Incorrect analysis type")
 
     if analysis_type == "cluster":
-        if pheno is None or current_fov_data is None:
+        if pheno is None or current_fov_neighborhood_data is None:
             raise ValueError("Incorrect arguments passed for analysis type")
         # Subset only cells that are of the same phenotype
-        pheno1posinds = current_fov_data["FlowSOM_ID"] == pheno
+        pheno1posinds = current_fov_neighborhood_data["FlowSOM_ID"] == pheno
         # Get the cell labels of the cells of the phenotype
-        mark1poslabels = current_fov_data.iloc[:, 1][pheno1posinds]
+        mark1poslabels = current_fov_neighborhood_data.iloc[:, 1][pheno1posinds]
     else:
         if thresh is None or current_fov_channel_data is None or cell_labels is None or current_marker is None:
             raise ValueError("Incorrect arguments passed for analysis type")
