@@ -261,12 +261,12 @@ def calculate_enrichment_stats(close_num, close_num_rand):
     return stats_xr
 
 
-def compute_neighbor_counts(current_fov_data, dist_matrix, distlim, self_neighbor=True,
+def compute_neighbor_counts(current_fov_neighborhood_data, dist_matrix, distlim, self_neighbor=True,
                             cell_label_col="cellLabelInImage"):
     """Calculates the number of neighbor phenotypes for each cell. The cell counts itself as a neighbor.
 
     Args:
-        current_fov_data (pandas df): data for the current fov, including the cell labels, cell phenotypes, and cell phenotype ID
+        current_fov_neighborhood_data (pandas df): data for the current fov, including the cell labels, cell phenotypes, and cell phenotype ID
         dist_matrix (np array): cells x cells matrix with the euclidian
             distance between centers of corresponding cells
         distlim (int): threshold for spatial enrichment distance proximity
@@ -280,8 +280,8 @@ def compute_neighbor_counts(current_fov_data, dist_matrix, distlim, self_neighbo
     # TODO remove non-cell2cell lines (indices on the distance matrix not corresponding to cell labels)
     #  after our own inputs for functions are created
     # refine distance matrix to only cover cell labels in fov_data
-    cell_dist_mat = np.take(dist_matrix, current_fov_data[cell_label_col] - 1, 0)
-    cell_dist_mat = np.take(cell_dist_mat, current_fov_data[cell_label_col] - 1, 1)
+    cell_dist_mat = np.take(dist_matrix, current_fov_neighborhood_data[cell_label_col] - 1, 0)
+    cell_dist_mat = np.take(cell_dist_mat, current_fov_neighborhood_data[cell_label_col] - 1, 1)
 
     # binarize distance matrix
     cell_dist_mat_bin = np.zeros(cell_dist_mat.shape)
@@ -295,7 +295,7 @@ def compute_neighbor_counts(current_fov_data, dist_matrix, distlim, self_neighbo
     num_neighbors = np.sum(cell_dist_mat_bin, axis=0)
 
     # create the 'phenotype has cell?' matrix, excluding non cell-label rows
-    pheno_has_cell = pd.get_dummies(current_fov_data.iloc[:, 2]).to_numpy().T
+    pheno_has_cell = pd.get_dummies(current_fov_neighborhood_data.iloc[:, 2]).to_numpy().T
 
     # dot binarized 'is neighbor?' matrix with pheno_has_cell to get counts
     counts = pheno_has_cell.dot(cell_dist_mat_bin).T
