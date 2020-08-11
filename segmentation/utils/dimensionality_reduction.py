@@ -6,6 +6,7 @@ from sklearn.manifold import TSNE
 import matplotlib.pyplot as plt
 import seaborn as sns
 import umap
+import os
 
 
 def visualize_dimensionality_reduction(cell_data, columns, category, color_map="Spectral", algorithm="UMAP",
@@ -20,7 +21,8 @@ def visualize_dimensionality_reduction(cell_data, columns, category, color_map="
                     save_dir (str): Directory to save plots, default is None"""
     cell_data = cell_data.dropna()
 
-    if algorithm not in ["UMAP", "PCA", "tSNE"]: raise ValueError("The algorithm specified is not a valid dimensionality reduction technique")
+    if algorithm not in ["UMAP", "PCA", "tSNE"]: raise ValueError(
+        "The algorithm specified is not a valid dimensionality reduction technique")
 
     if algorithm == "UMAP":
         reducer = umap.UMAP()
@@ -36,7 +38,7 @@ def visualize_dimensionality_reduction(cell_data, columns, category, color_map="
         plt.title('UMAP projection of data', fontsize=24)
         fig1.show()
         if save_dir is not None:
-            plt.savefig(save_dir + "UmapVisualization.png")
+            plt.savefig(os.path.join(save_dir, "UMAPVisualization.png"))
 
     elif algorithm == "PCA":
         pca = PCA()
@@ -51,7 +53,7 @@ def visualize_dimensionality_reduction(cell_data, columns, category, color_map="
         fig2.show()
 
         if save_dir is not None:
-            plt.savefig(save_dir + "PCAVisualization.png")
+            plt.savefig(os.path.join(save_dir, "PCAVisualization.png"))
 
     elif algorithm == "tSNE":
         tsne = TSNE()
@@ -71,4 +73,4 @@ def visualize_dimensionality_reduction(cell_data, columns, category, color_map="
         fig3.show()
 
         if save_dir is not None:
-            plt.savefig(save_dir + "tSNEVisualization.png")
+            plt.savefig(os.path.join(save_dir, "tSNEVisualization.png"))
