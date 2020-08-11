@@ -24,3 +24,7 @@ def test_dimensionality_reduction():
                 dimensionality_reduction.visualize_dimensionality_reduction(random_cell_data,
                                                                             ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'],
                                                                             "cell_type", algorithm=alg)
+        # Should have a Value Error
+        dimensionality_reduction.visualize_dimensionality_reduction(random_cell_data,
+                                                                    ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'],
+                                                                    "cell_type", algorithm="convolutional_neural_network")
