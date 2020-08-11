@@ -17,8 +17,10 @@ def test_dimensionality_reduction():
     with tempfile.TemporaryDirectory() as temp_dir:
         for alg in test_algorithms:
             if rand.random() > 0.50:
-                dimensionality_reduction.visualize_dimensionality_reduction(random_cell_data, ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'],
-                                                   "cell_type", algorithm=alg, save_dir="")
+                dimensionality_reduction.visualize_dimensionality_reduction(random_cell_data,
+                                                                            ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'],
+                                                                            "cell_type", algorithm=alg, save_dir="")
             else:
-                dimensionality_reduction.visualize_dimensionality_reduction(random_cell_data, ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'],
-                                                   "cell_type", algorithm=alg)
+                dimensionality_reduction.visualize_dimensionality_reduction(random_cell_data,
+                                                                            ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'],
+                                                                            "cell_type", algorithm=alg)

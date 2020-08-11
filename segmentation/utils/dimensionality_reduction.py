@@ -21,8 +21,8 @@ def visualize_dimensionality_reduction(cell_data, columns, category, color_map="
                     save_dir (str): Directory to save plots, default is None"""
     cell_data = cell_data.dropna()
 
-    if algorithm not in ["UMAP", "PCA", "tSNE"]: raise ValueError(
-        "The algorithm specified is not a valid dimensionality reduction technique")
+    if algorithm not in ["UMAP", "PCA", "tSNE"]:
+        raise ValueError("The algorithm specified is not a valid dimensionality reduction technique")
 
     if algorithm == "UMAP":
         reducer = umap.UMAP()
