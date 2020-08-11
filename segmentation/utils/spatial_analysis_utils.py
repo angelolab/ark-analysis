@@ -253,3 +253,48 @@ def calculate_enrichment_stats(close_num, close_num_rand):
     dims = ["stats", "rows", "cols"]
     stats_xr = xr.DataArray(stats_data, coords=coords, dims=dims)
     return stats_xr
+
+
+def compute_neighbor_counts(fov_data, dist_matrix, distlim, self_neighbor=True,
+                            cell_label_col="cellLabelInImage"):
+    """Calculates the number of neighbor phenotypes for each cell. The cell counts itself as a neighbor.
+
+    Args:
+        fov_data: data for the current fov, including the cell labels, cell phenotypes, and cell phenotype ID
+        dist_matrix: cells x cells matrix with the euclidian
+            distance between centers of corresponding cells
+        distlim: threshold for spatial enrichment distance proximity
+        self_neighbor: If true, cell counts itself as a neighbor in the analysis.
+        cell_label_col: Column name with the cell labels
+    Returns:
+        counts: data array with phenotype counts per cell
+        freqs: data array with phenotype frequencies of
+            counts per phenotype/total phenotypes for each cell"""
+
+    # TODO remove non-cell2cell lines (indices on the distance matrix not corresponding to cell labels)
+    #  after our own inputs for functions are created
+    # refine distance matrix to only cover cell labels in fov_data
+    cell_dist_mat = np.take(dist_matrix, fov_data[cell_label_col] - 1, 0)
+    cell_dist_mat = np.take(cell_dist_mat, fov_data[cell_label_col] - 1, 1)
+
+    # binarize distance matrix
+    cell_dist_mat_bin = np.zeros(cell_dist_mat.shape)
+    cell_dist_mat_bin[cell_dist_mat < distlim] = 1
+
+    # default is that cell counts itself as a matrix
+    if not self_neighbor:
+        cell_dist_mat_bin[dist_matrix == 0] = 0
+
+    # get num_neighbors for freqs
+    num_neighbors = np.sum(cell_dist_mat_bin, axis=0)
+
+    # create the 'phenotype has cell?' matrix, excluding non cell-label rows
+    pheno_has_cell = pd.get_dummies(fov_data.iloc[:, 2]).to_numpy().T
+
+    # dot binarized 'is neighbor?' matrix with pheno_has_cell to get counts
+    counts = pheno_has_cell.dot(cell_dist_mat_bin).T
+
+    # compute freqs with num_neighbors
+    freqs = counts.T / num_neighbors
+
+    return counts, freqs.T
