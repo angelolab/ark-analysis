@@ -1,20 +1,20 @@
 ---
-name: Feature request
-about: Suggest an idea for this project
+name: Somebody help me
+about: If you're having trouble with something in the repository
 title: ''
-labels: enhancement
+labels: question
 assignees: ''
 
 ---
 
-**Is your feature request related to a problem? Please describe.**
-A clear and concise description of what the problem is. Ex. I'm always frustrated when [...]
+**What are you trying to do?**
+A clear and concise description of what script or function you're using
 
-**Describe the solution you'd like**
-A clear and concise description of what you want to happen.
+**What is the problem?**
+A clear and concise description of what issue you're running into.
 
-**Describe alternatives you've considered**
-A clear and concise description of any alternative solutions or features you've considered.
+**What have you tried so far?**
+A clear and concise description of what steps you've taken to try and address the problem.
 
 **Additional context**
-Add any other context or screenshots about the feature request here.
+Add any other context or screenshots here.
