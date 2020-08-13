@@ -161,7 +161,7 @@ def test_generate_two_cell_test_nuclear_signal():
                                                                         nuc_signal_strength=nuc_signal_strength,
                                                                         nuc_uncertainty_length=nuc_uncertainty_length)
 
-    assert sample_membrane_signal[sample_cell_centers[1][0], sample_cell_centers[1][1]] == 10
+    assert sample_nuclear_signal[sample_cell_centers[1][0], sample_cell_centers[1][1]] == 10
 
     # because we'll be jittering the signal eventually, we won't test the status of the signal at the nucleus border
     # this kind of hurts the nuc_uncertainty_length test but we'll revisit that when the time comes
