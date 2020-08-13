@@ -135,6 +135,8 @@ def test_generate_two_cell_test_nuclear_signal():
     # the channel-level spatial analysis data
     cell_radius = 10
     nuc_radius = 3
+    nuc_signal_strength = 10
+    nuc_uncertainty_length = 0
 
     sample_segmentation_mask, sample_cell_centers = \
         synthetic_spatial_datagen.generate_two_cell_test_segmentation_mask(cell_radius=cell_radius)
@@ -142,13 +144,28 @@ def test_generate_two_cell_test_nuclear_signal():
     sample_nuclear_signal = \
         synthetic_spatial_datagen.generate_two_cell_test_nuclear_signal(segmentation_mask=sample_segmentation_mask,
                                                                         cell_centers=sample_cell_centers,
-                                                                        nuc_radius=nuc_radius)
+                                                                        nuc_radius=nuc_radius,
+                                                                        nuc_signal_strength=nuc_signal_strength,
+                                                                        nuc_uncertainty_length=nuc_uncertainty_length)
 
     # assert that our nucleus center is labeled properly
     # we only care about cell 1 because that is the only nuclear-level expression cell by default
     assert sample_nuclear_signal[sample_cell_centers[1][0], sample_cell_centers[1][1]] == 10
 
+    # now include a test where we add memb_uncertainty
+    nuc_uncertainty_length = 1
+    sample_nuclear_signal = \
+        synthetic_spatial_datagen.generate_two_cell_test_nuclear_signal(segmentation_mask=sample_segmentation_mask,
+                                                                         cell_centers=sample_cell_centers,
+                                                                         cell_radius=cell_radius,
+                                                                         nuc_radius=nuc_radius,
+                                                                         nuc_signal_strength=nuc_signal_strength,
+                                                                         nuc_uncertainty_length=nuc_uncertainty_length)
+
+    assert sample_membrane_signal[sample_cell_centers[1][0], sample_cell_centers[1][1]] == 10
+
     # because we'll be jittering the signal eventually, we won't test the status of the signal at the nucleus border
+    # this kind of hurts the nuc_uncertainty_length test but we'll revisit that when the time comes
 
 
 def test_generate_two_cell_test_membrane_signal():
@@ -156,6 +173,8 @@ def test_generate_two_cell_test_membrane_signal():
     # the channel-level spatial analysis data
     cell_radius = 10
     memb_thickness = 5
+    memb_signal_strength = 10
+    memb_uncertainty_length = 0
 
     sample_segmentation_mask, sample_cell_centers = \
         synthetic_spatial_datagen.generate_two_cell_test_segmentation_mask(cell_radius=cell_radius)
@@ -164,12 +183,26 @@ def test_generate_two_cell_test_membrane_signal():
         synthetic_spatial_datagen.generate_two_cell_test_membrane_signal(segmentation_mask=sample_segmentation_mask,
                                                                          cell_centers=sample_cell_centers,
                                                                          cell_radius=cell_radius,
-                                                                         memb_thickness=memb_thickness)
+                                                                         memb_thickness=memb_thickness,
+                                                                         memb_signal_strength=memb_signal_strength,
+                                                                         memb_uncertainty_length=memb_uncertainty_length)
 
     # assuming the default membrane diameter of 5, assert that our membrane inner edge is being labeled correctly
     # we only include the offset columnwise by choice: it could be done rowwise as well
     # we only care about cell 2 because that is the only membrane-level expression cell by default
     assert sample_membrane_signal[sample_cell_centers[2][0], sample_cell_centers[2][1] - memb_thickness] == 10
+
+    # now include a test where we add memb_uncertainty
+    memb_uncertainty_length = 1
+    sample_membrane_signal = \
+        synthetic_spatial_datagen.generate_two_cell_test_membrane_signal(segmentation_mask=sample_segmentation_mask,
+                                                                         cell_centers=sample_cell_centers,
+                                                                         cell_radius=cell_radius,
+                                                                         memb_thickness=memb_thickness,
+                                                                         memb_signal_strength=memb_signal_strength,
+                                                                         memb_uncertainty_length=memb_uncertainty_length)
+
+    assert sample_membrane_signal[sample_cell_centers[2][0], sample_cell_centers[2][1] - (memb_thickness + memb_uncertainty_length)] == 10
 
     # because we'll be jittering the signal eventually, we won't test the status of the signal at the outer membrane border
 
@@ -180,7 +213,8 @@ def test_generate_two_cell_test_channel_synthetic_data():
     # however, because we already do the sample_segmentation_mask test in a different function
     # we'll limit ourselves to testing the final channel data creation here
 
-    sample_segmentation_mask, sample_channel_data = synthetic_spatial_datagen.generate_two_cell_test_channel_synthetic_data()
+    _, sample_channel_data = \
+        synthetic_spatial_datagen.generate_two_cell_test_channel_synthetic_data()
 
     # assert that we've created both a nuclear and membrane channels
     assert sample_channel_data.shape[2] == 2
@@ -188,3 +222,11 @@ def test_generate_two_cell_test_channel_synthetic_data():
     # assert that we've only labeled nuclear and membrane signal with 0 or 10
     assert set(sample_channel_data[:, :, 0].flatten().tolist()) == set([0, 10])
     assert set(sample_channel_data[:, :, 1].flatten().tolist()) == set([0, 10])
+
+    # now include a test where we set the nuclear and membrane signal strengths differently
+    _, sample_channel_data = \
+        synthetic_spatial_datagen.generate_two_cell_test_channel_synthetic_data(nuc_signal_strength=10,
+                                                                                memb_signal_strength=100)
+
+    assert set(sample_channel_data[:, :, 0].flatten().tolist()) == set([0, 10])
+    assert set(sample_channel_data[:, :, 0].flatten().tolist()) == set([0, 100])

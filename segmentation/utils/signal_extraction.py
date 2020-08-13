@@ -1,8 +1,8 @@
 import numpy as np
-
+from skimage.measure import regionprops
 
 # TODO: work on weighted extraction and implement other discussed techniques of extraction
-def positive_pixels_extraction(cell_coords, image_data):
+def positive_pixels_extraction(cell_coords, image_data, threshold=0):
     """
     Extract channel counts by summing over the number of non-zero pixels in the cell,
     improves on default_extraction by not distinguishing between pixel expression values
@@ -15,12 +15,11 @@ def positive_pixels_extraction(cell_coords, image_data):
         channel_counts (numpy): sum of counts for each channel
     """
 
-    # transpose coords so they can be used to index an array
-    cell_coords = cell_coords.T
-    channel_values = image_data.values[tuple(cell_coords)]
+    # index indo image_data to get th channel values we're interested in
+    channel_values = image_data.values[tuple(cell_coords.T)]
 
-    # sum up based on a binary mask that is 1 if the expression value > 0 else 0
-    channel_counts = np.sum(channel_values > 0, axis=0)
+    # sum up based on a binary mask that is 1 if the expression value > threshold else 0
+    channel_counts = np.sum(channel_values > threshold, axis=0)
 
     return channel_counts
 
@@ -33,49 +32,39 @@ def center_weighting_extraction(cell_coords, image_data):
     Args:
         cell_coords (numpy): values representing pixels within one cell
         image_data (xarray): array containing channel counts
+        segmentation_mask (numpy): array containing segmentation labels for each cell
+        cell_label (int): the cell number we wish to extract for each cell, important to distinguish
+            which centroid we want in regionprops because this function only extracts signal
+            for one cell, though we may choose to change this in the future...
 
     Returns:
         channel_counts (numpy): sum of counts for each channel
     """
 
-    # create a weighting matrix, we will assign the highest value at the center
-    # and decrease by 1 each layer we move away from it
-    # I'm going to be assume we get square matrices in image_data
-    center = int(image_data.shape[0] / 2)
+    # we could use regionprops but it's probably better to use this method (ala A-Kag's)
+    # because it doesn't require you to know which cell_label to index into
+    centroid = np.sum(cell_coords, axis=0) / cell_coords.shape[0]
+    centroid = centroid.astype(np.int16)
 
     # this will ensure we never get zero or negative weighting values in our weight matrix
-    center_weight = center + 1
+    # I'm currently rounding but it's sort of arbitrary, may decide to truncate (aka round down)
+    # in case of decimal centroid values returned by regionprops
+    center_weight = max(round(centroid[0]), round(centroid[1])) + 1
 
-    # now build the weight matrix using ogrid
+    # TODO: this is still not a perfect way to do this for even image dimensions
+    # but I think Adam's suggested method might fix this
     image_row_index, image_col_index = np.ogrid[:image_data.shape[0], :image_data.shape[1]]
-    weight_matrix = center_weight - np.maximum(np.abs(image_row_index - center), np.abs(image_col_index - center))
+    weight_matrix = center_weight - np.maximum(np.abs(image_row_index - round(centroid[0])), np.abs(image_col_index - round(centroid[1])))
 
-    # TODO: the center of even-length arrays is not a single pixel which currently causes
-    # minor signal irregularities at different layers
-    # ex. in a 4 x 4 matrix the center should be:
-    # 0 0 0 0
-    # 0 X X 0
-    # 0 X X 0
-    # 0 0 0 0
-
-    # and not:
-    # 0 0 0 0
-    # 0 0 0 0
-    # 0 0 X 0
-    # 0 0 0 0
-    # as would be defined without the correction by the regular signal weighting algorithm
-    # the easy way to fix this is to use skimage.draw.rectangle
-
-    # center the weight matrix by center_weight
+    # now center the weight matrix around value 1
     weight_matrix = weight_matrix / center_weight
 
-    # transpose coords so they can be used to index an array
-    cell_coords = cell_coords.T
-    channel_values = image_data.values[tuple(cell_coords)]
-    weight_values = np.expand_dims(weight_matrix[tuple(cell_coords)], axis=0)
+    # index indo image_data to get th channel values we're interested in
+    channel_values = image_data.values[tuple(cell_coords.T)]
+    weight_values = np.expand_dims(weight_matrix[tuple(cell_coords.T)], axis=0)
 
     # multiply channel_values by weight_values and then sum across channels
-    channel_counts = np.sum(np.multiply(channel_values, weight_values.T), axis=0)
+    channel_counts = weight_values.dot(channel_values)
 
     return channel_counts
 
@@ -92,9 +81,8 @@ def default_extraction(cell_coords, image_data):
         channel_counts (numpy): sum of counts for each channel
     """
 
-    # transpose coords so they can be used to index an array
-    cell_coords = cell_coords.T
-    channel_values = image_data.values[tuple(cell_coords)]
+    # index indo image_data to get th channel values we're interested in
+    channel_values = image_data.values[tuple(cell_coords.T)]
 
     # collapse along channels dimension to get counts per channel
     channel_counts = np.sum(channel_values, axis=0)
