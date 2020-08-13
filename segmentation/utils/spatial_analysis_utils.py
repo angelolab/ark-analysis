@@ -138,7 +138,10 @@ def compute_close_cell_num(dist_mat, dist_lim, num, analysis_type,
             if k >= len(mark1_num):
                 break
             close_num[j, k] = np.sum(
-                dist_mat_bin[np.ix_(mark1poslabels[j] - 1, mark1poslabels[k] - 1)]
+                dist_mat_bin[np.ix_(
+                    np.asarray(mark1poslabels[j]-1, dtype='int'),
+                    np.asarray(mark1poslabels[k]-1, dtype='int')
+                )]
             )
             # symmetry :)
             close_num[k, j] = close_num[j, k]
