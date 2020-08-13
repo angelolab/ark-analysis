@@ -17,12 +17,15 @@ def test_dimensionality_reduction():
     test_algorithms = ['PCA', 'tSNE', 'UMAP']
     with tempfile.TemporaryDirectory() as temp_dir:
         for alg in test_algorithms:
-            if rand.random() > 0.50:
-                dimensionality_reduction.visualize_dimensionality_reduction(random_cell_data,
-                                                                            ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'],
-                                                                            "cell_type", algorithm=alg, save_dir=temp_dir)
-                assert os.path.exists(os.path.join(temp_dir, alg + 'Visualization.png'))
-            else:
-                dimensionality_reduction.visualize_dimensionality_reduction(random_cell_data,
-                                                                            ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'],
-                                                                            "cell_type", algorithm=alg)
+            dimensionality_reduction.visualize_dimensionality_reduction(random_cell_data,
+                                                                        ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'],
+                                                                        "cell_type",
+                                                                        algorithm=alg)
+            assert not os.path.exists(os.path.join(temp_dir, alg + 'Visualization.png'))
+
+        for alg in test_algorithms:
+            dimensionality_reduction.visualize_dimensionality_reduction(random_cell_data,
+                                                                        ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'],
+                                                                        "cell_type",
+                                                                        algorithm=alg, save_dir=temp_dir)
+            assert os.path.exists(os.path.join(temp_dir, alg + 'Visualization.png'))
