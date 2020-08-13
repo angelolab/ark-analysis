@@ -156,11 +156,10 @@ def test_generate_two_cell_test_nuclear_signal():
     nuc_uncertainty_length = 1
     sample_nuclear_signal = \
         synthetic_spatial_datagen.generate_two_cell_test_nuclear_signal(segmentation_mask=sample_segmentation_mask,
-                                                                         cell_centers=sample_cell_centers,
-                                                                         cell_radius=cell_radius,
-                                                                         nuc_radius=nuc_radius,
-                                                                         nuc_signal_strength=nuc_signal_strength,
-                                                                         nuc_uncertainty_length=nuc_uncertainty_length)
+                                                                        cell_centers=sample_cell_centers,
+                                                                        nuc_radius=nuc_radius,
+                                                                        nuc_signal_strength=nuc_signal_strength,
+                                                                        nuc_uncertainty_length=nuc_uncertainty_length)
 
     assert sample_membrane_signal[sample_cell_centers[1][0], sample_cell_centers[1][1]] == 10
 
@@ -229,4 +228,4 @@ def test_generate_two_cell_test_channel_synthetic_data():
                                                                                 memb_signal_strength=100)
 
     assert set(sample_channel_data[:, :, 0].flatten().tolist()) == set([0, 10])
-    assert set(sample_channel_data[:, :, 0].flatten().tolist()) == set([0, 100])
+    assert set(sample_channel_data[:, :, 1].flatten().tolist()) == set([0, 100])

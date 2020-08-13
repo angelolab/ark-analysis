@@ -92,7 +92,7 @@ def test_center_weighting_extraction():
 
     # a lot of this is pretty clunky right now, but essentially we're testing here that
     # weighted extraction indeed leads to less confidence beyond the border of the nucleus
-    # or membrane depending on whether 
+    # or membrane depending on whether
 
     # extract the cell regions for cells 1 and 2
     coords_1 = np.argwhere(sample_segmentation_mask == 1)

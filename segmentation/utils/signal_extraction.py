@@ -1,6 +1,7 @@
 import numpy as np
 from skimage.measure import regionprops
 
+
 # TODO: work on weighted extraction and implement other discussed techniques of extraction
 def positive_pixels_extraction(cell_coords, image_data, threshold=0):
     """
