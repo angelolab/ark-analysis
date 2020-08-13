@@ -5,6 +5,7 @@ import random as rand
 from segmentation.utils import dimensionality_reduction
 import importlib
 import tempfile
+import os
 
 importlib.reload(dimensionality_reduction)
 
@@ -20,6 +21,7 @@ def test_dimensionality_reduction():
                 dimensionality_reduction.visualize_dimensionality_reduction(random_cell_data,
                                                                             ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'],
                                                                             "cell_type", algorithm=alg, save_dir="")
+                assert os.path.exists(os.path.join(temp_dir, alg + 'Visualization.png'))
             else:
                 dimensionality_reduction.visualize_dimensionality_reduction(random_cell_data,
                                                                             ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'],
