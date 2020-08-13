@@ -5,7 +5,6 @@ from segmentation.utils import signal_extraction
 from segmentation.utils import synthetic_spatial_datagen
 
 from skimage.measure import regionprops
-from skimage.draw import circle_perimeter
 
 
 def test_positive_pixels_extraction():
@@ -90,27 +89,43 @@ def test_center_weighting_extraction():
                                                                                 nuc_uncertainty_length=nuc_uncertainty_length,
                                                                                 memb_uncertainty_length=memb_uncertainty_length)
 
-    # a lot of this is pretty clunky right now, but essentially we're testing here that
-    # weighted extraction indeed leads to less confidence beyond the border of the nucleus
-    # or membrane depending on whether
-
     # extract the cell regions for cells 1 and 2
     coords_1 = np.argwhere(sample_segmentation_mask == 1)
     coords_2 = np.argwhere(sample_segmentation_mask == 2)
 
-    channel_counts_1 = signal_extraction.center_weighting_extraction(cell_coords=coords_1,
-                                                                     image_data=xr.DataArray(sample_channel_data))
+    # generate region info using regionprops, used to extract the centroids and coords
+    region_info = regionprops(sample_segmentation_mask.astype(np.int16))
+    centroid_1 = region_info[0].centroid
+    centroid_2 = region_info[1].centroid
 
-    channel_counts_2 = signal_extraction.center_weighting_extraction(cell_coords=coords_2,
-                                                                     image_data=xr.DataArray(sample_channel_data))
+    # could use np.argwhere for this but might as well standardize the entire thing
+    coords_1 = region_info[0].coords
+    coords_2 = region_info[1].coords
 
-    # the reason we get weird values for channel counts 1 is because cell 2 has membrane-level expression
-    # with intentional uncertainty added to it, meaning some of its signal "bleeds" into cell 1's signal
+    channel_counts_1_center_weight = signal_extraction.center_weighting_extraction(cell_coords=coords_1,
+                                                                                   image_data=xr.DataArray(sample_channel_data),
+                                                                                   centroid=centroid_1)
 
-    # TODO: test if this function actually works as intended around the boundaries, aka
-    # the effect of wrong signal being added to a cell is reduced with a center weighting technique
-    assert np.all(channel_counts_1.astype(np.int16) == [448, 88])
-    assert np.all(channel_counts_2.astype(np.int16) == [0, 2329])
+    channel_counts_2_center_weight = signal_extraction.center_weighting_extraction(cell_coords=coords_2,
+                                                                                   image_data=xr.DataArray(sample_channel_data),
+                                                                                   centroid=centroid_2)
+
+    channel_counts_1_base_weight = signal_extraction.default_extraction(cell_coords=coords_1,
+                                                                        image_data=xr.DataArray(sample_channel_data))
+
+    channel_counts_2_base_weight = signal_extraction.default_extraction(cell_coords=coords_2,
+                                                                        image_data=xr.DataArray(sample_channel_data))
+
+    # assert that the nuclear signal for cell 1 is lower for weighted than for base
+    # same for membrane signal for cell 2
+    assert channel_counts_1_center_weight[0] < channel_counts_1_base_weight[0]
+    assert channel_counts_2_center_weight[1] < channel_counts_2_base_weight[1]
+
+    # we intentionally bled membrane signal from cell 2 into cell 1
+    # a weighted signal technique will ensure that this bleeding will be curbed
+    # thus the signal noise will be drastically reduced
+    # so there will not be as much membrane noise in cell 1 in this case
+    assert channel_counts_1_center_weight[1] < channel_counts_1_base_weight[1]
 
 
 def test_default_extraction():

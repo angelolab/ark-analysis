@@ -25,7 +25,7 @@ def positive_pixels_extraction(cell_coords, image_data, threshold=0):
     return channel_counts
 
 
-def center_weighting_extraction(cell_coords, image_data):
+def center_weighting_extraction(cell_coords, image_data, centroid):
     """
     Extract channel counts by summing over weighted expression values based on distance from center,
     improves upon default extraction by including a level of certainty/uncertainty
@@ -33,39 +33,28 @@ def center_weighting_extraction(cell_coords, image_data):
     Args:
         cell_coords (numpy): values representing pixels within one cell
         image_data (xarray): array containing channel counts
-        segmentation_mask (numpy): array containing segmentation labels for each cell
-        cell_label (int): the cell number we wish to extract for each cell, important to distinguish
-            which centroid we want in regionprops because this function only extracts signal
-            for one cell, though we may choose to change this in the future...
+        centroid (tuple): the centroid of the region in question
+
+        Note: cell_coords and centroid are computed from regionprops prior to calling the function
 
     Returns:
         channel_counts (numpy): sum of counts for each channel
     """
 
-    # we could use regionprops but it's probably better to use this method (ala A-Kag's)
-    # because it doesn't require you to know which cell_label to index into
-    centroid = np.sum(cell_coords, axis=0) / cell_coords.shape[0]
-    centroid = centroid.astype(np.int16)
+    # compute the distance box-level from the center outward
+    # this method is more space efficient than the alternative bounding box method
+    # even if we only compute that bounding box around the cell
+    # because there will still be irrelevant cells that bounding box covers
+    weights = np.linalg.norm(cell_coords - centroid, ord=np.inf, axis=1)
 
-    # this will ensure we never get zero or negative weighting values in our weight matrix
-    # I'm currently rounding but it's sort of arbitrary, may decide to truncate (aka round down)
-    # in case of decimal centroid values returned by regionprops
-    center_weight = max(round(centroid[0]), round(centroid[1])) + 1
+    # now center the weights around the middle value
+    weights = 1 - (weights / (np.max(weights) + 1))
 
-    # TODO: this is still not a perfect way to do this for even image dimensions
-    # but I think Adam's suggested method might fix this
-    image_row_index, image_col_index = np.ogrid[:image_data.shape[0], :image_data.shape[1]]
-    weight_matrix = center_weight - np.maximum(np.abs(image_row_index - round(centroid[0])), np.abs(image_col_index - round(centroid[1])))
-
-    # now center the weight matrix around value 1
-    weight_matrix = weight_matrix / center_weight
-
-    # index indo image_data to get th channel values we're interested in
+    # now retrieve the channel counts
+    # for now, I'll leave the indexing as is, I think it's a bit simpler to understand
+    # and we can change in the future if necessary
     channel_values = image_data.values[tuple(cell_coords.T)]
-    weight_values = np.expand_dims(weight_matrix[tuple(cell_coords.T)], axis=0)
-
-    # multiply channel_values by weight_values and then sum across channels
-    channel_counts = weight_values.dot(channel_values)
+    channel_counts = weights.dot(channel_values)
 
     return channel_counts
 
