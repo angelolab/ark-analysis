@@ -130,13 +130,11 @@ def compute_close_cell_num(dist_mat, dist_lim, num, analysis_type,
             mark1poslabels.append(get_pos_cell_labels(analysis_type, thresh=thresh_vec.iloc[j],
                                                       fov_channel_data=fov_channel_data, cell_labels=cell_labels,
                                                       col=fov_channel_data.columns[j]))
-        mark1_num.append(len(mark1poslabels))
+        mark1_num.append(len(mark1poslabels[j]))
 
     # iterating k from [j, end] cuts out 1/2 the steps (while symmetric)
     for j, m1n in enumerate(mark1_num):
-        for k, m2n in enumerate(mark1_num, j):
-            if k >= len(mark1_num):
-                break
+        for k, m2n in enumerate(mark1_num[j:], j):
             close_num[j, k] = np.sum(
                 dist_mat_bin[np.ix_(
                     np.asarray(mark1poslabels[j]-1, dtype='int'),
@@ -172,9 +170,7 @@ def compute_close_cell_num_random(marker_nums, dist_mat, dist_lim, bootstrap_num
     dist_bin[dist_mat < dist_lim] = 1
 
     for j, m1n in enumerate(marker_nums):
-        for k, m2n in enumerate(marker_nums, j):
-            if k >= len(marker_nums):
-                break
+        for k, m2n in enumerate(marker_nums[j:], j):
             close_num_rand[j, k, :] = np.sum(
                 np.random.choice(dist_bin.flatten(), (m1n*m2n, bootstrap_num), True),
                 axis=0
