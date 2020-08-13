@@ -169,11 +169,12 @@ def calculate_cluster_spatial_enrichment(all_data, dist_mats, fovs=None,
         dist_mat = dist_mats[str(fovs[i])]
 
         # Get close_num and close_num_rand
-        close_num, pheno1_num, pheno2_num = spatial_analysis_utils.compute_close_cell_num(
+        close_num, pheno_nums, pheno2_num = spatial_analysis_utils.compute_close_cell_num(
             dist_mat=dist_mat, dist_lim=dist_lim, num=pheno_num, analysis_type="Cluster",
             fov_data=fov_data, pheno_codes=pheno_codes)
         close_num_rand = spatial_analysis_utils.compute_close_cell_num_random(
-            pheno1_num, pheno2_num, dist_mat, pheno_num, dist_lim, bootstrap_num)
+            pheno_nums, dist_mat, dist_lim, bootstrap_num
+        )
         values.append((close_num, close_num_rand))
 
         # Get z, p, adj_p, muhat, sigmahat, and h

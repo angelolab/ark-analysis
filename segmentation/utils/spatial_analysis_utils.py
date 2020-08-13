@@ -151,34 +151,30 @@ def compute_close_cell_num(dist_mat, dist_lim, num, analysis_type,
     return close_num, mark1_num, mark2_num
 
 
-def compute_close_cell_num_random(marker1_num, marker2_num,
-                                  dist_mat, marker_num, dist_lim, bootstrap_num):
-    """Uses bootstrapping to permute cell labels randomly and records the number of close cells (within the dit_lim)
-    in that random setup.
+def compute_close_cell_num_random(marker_nums, dist_mat, dist_lim, bootstrap_num):
+    """Uses bootstrapping to permute cell labels randomly and records the number of close cells
+    (within the dit_lim) in that random setup.
 
     Args
-        marker1_num: list of number of cell labels for marker 1
-        marker2_num: list of number of cell labels for marker 2
-        dist_mat: cells x cells matrix with the euclidian
+        marker_nums (np.array): list of cell counts of each marker type
+        dist_mat (np.array): cells x cells matrix with the euclidian
             distance between centers of corresponding cells
-        marker_num: number of markers in expresion data
-        dist_lim: threshold for spatial enrichment distance proximity
-        bootstrap_num: number of permutations
-        seed: the seed to set for randomized operations, useful for testing
+        dist_lim (int): threshold for spatial enrichment distance proximity
+        bootstrap_num (int): number of permutations
 
     Returns
-        close_num_rand: random positive marker counts
+        close_num_rand (np.array): random positive marker counts
             for every permutation in the bootstrap"""
 
     # Create close_num_rand
     close_num_rand = np.zeros((
-        marker_num, marker_num, bootstrap_num), dtype='int')
+        len(marker_nums), len(marker_nums), bootstrap_num), dtype='int')
 
     dist_bin = np.zeros(dist_mat.shape)
     dist_bin[dist_mat < dist_lim] = 1
 
-    for j, m1n in enumerate(marker1_num[:marker_num]):
-        for k, m2n in enumerate(marker2_num[:marker_num]):
+    for j, m1n in enumerate(marker_nums):
+        for k, m2n in enumerate(marker_nums):
             close_num_rand[j, k, :] = np.sum(
                 np.random.choice(dist_bin.flatten(), (m1n*m2n, bootstrap_num), True),
                 axis=0
