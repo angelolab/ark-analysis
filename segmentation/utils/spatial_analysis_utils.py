@@ -137,8 +137,8 @@ def compute_close_cell_num(dist_mat, dist_lim, num, analysis_type,
         for k, m2n in enumerate(mark1_num[j:], j):
             close_num[j, k] = np.sum(
                 dist_mat_bin[np.ix_(
-                    np.asarray(mark1poslabels[j]-1, dtype='int'),
-                    np.asarray(mark1poslabels[k]-1, dtype='int')
+                    np.asarray(mark1poslabels[j] - 1, dtype='int'),
+                    np.asarray(mark1poslabels[k] - 1, dtype='int')
                 )]
             )
             # symmetry :)
@@ -172,7 +172,7 @@ def compute_close_cell_num_random(marker_nums, dist_mat, dist_lim, bootstrap_num
     for j, m1n in enumerate(marker_nums):
         for k, m2n in enumerate(marker_nums[j:], j):
             close_num_rand[j, k, :] = np.sum(
-                np.random.choice(dist_bin.flatten(), (m1n*m2n, bootstrap_num), True),
+                np.random.choice(dist_bin.flatten(), (m1n * m2n, bootstrap_num), True),
                 axis=0
             )
             # symmetry :)
