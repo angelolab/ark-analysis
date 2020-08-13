@@ -20,7 +20,7 @@ def test_dimensionality_reduction():
             if rand.random() > 0.50:
                 dimensionality_reduction.visualize_dimensionality_reduction(random_cell_data,
                                                                             ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'],
-                                                                            "cell_type", algorithm=alg, save_dir="")
+                                                                            "cell_type", algorithm=alg, save_dir=temp_dir)
                 assert os.path.exists(os.path.join(temp_dir, alg + 'Visualization.png'))
             else:
                 dimensionality_reduction.visualize_dimensionality_reduction(random_cell_data,
