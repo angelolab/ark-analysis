@@ -91,12 +91,12 @@ def calculate_channel_spatial_enrichment(dist_matrices, marker_thresholds, all_d
         dist_matrix = dist_matrices[str(fovs[i])]
 
         # Get close_num and close_num_rand
-        close_num, marker1_num, marker2_num = spatial_analysis_utils.compute_close_cell_num(
+        close_num, marker_nums = spatial_analysis_utils.compute_close_cell_num(
             dist_mat=dist_matrix, dist_lim=100, num=marker_num, analysis_type="Channel",
             fov_data=fov_data, fov_channel_data=fov_channel_data, thresh_vec=thresh_vec)
 
         close_num_rand = spatial_analysis_utils.compute_close_cell_num_random(
-            marker1_num, marker2_num, dist_matrix, marker_num, dist_lim, bootstrap_num)
+            marker_nums, dist_matrix, dist_lim, bootstrap_num)
         values.append((close_num, close_num_rand))
 
         # Get z, p, adj_p, muhat, sigmahat, and h
@@ -169,11 +169,12 @@ def calculate_cluster_spatial_enrichment(all_data, dist_mats, fovs=None,
         dist_mat = dist_mats[str(fovs[i])]
 
         # Get close_num and close_num_rand
-        close_num, pheno1_num, pheno2_num = spatial_analysis_utils.compute_close_cell_num(
+        close_num, pheno_nums = spatial_analysis_utils.compute_close_cell_num(
             dist_mat=dist_mat, dist_lim=dist_lim, num=pheno_num, analysis_type="Cluster",
             fov_data=fov_data, pheno_codes=pheno_codes)
         close_num_rand = spatial_analysis_utils.compute_close_cell_num_random(
-            pheno1_num, pheno2_num, dist_mat, pheno_num, dist_lim, bootstrap_num)
+            pheno_nums, dist_mat, dist_lim, bootstrap_num
+        )
         values.append((close_num, close_num_rand))
 
         # Get z, p, adj_p, muhat, sigmahat, and h
