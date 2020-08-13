@@ -105,6 +105,7 @@ def compute_close_cell_num(dist_mat, dist_lim, num, analysis_type,
             positive for corresponding markers
         marker1_poslabels_num (list): number of cell labels for marker 1
         marker2_poslabels_num (list): number of cell labels for marker 2"""
+
     # Initialize variables
 
     cell_labels = []
@@ -176,8 +177,20 @@ def compute_close_cell_num_random(marker1_poslabels_num, marker2_poslabels_num,
 
     # Create close_num_rand
     close_num_rand = np.zeros((
-        marker_num, marker_num, bootstrap_num), dtype='int')
+        len(marker_nums), len(marker_nums), bootstrap_num), dtype='int')
 
+    dist_bin = np.zeros(dist_mat.shape)
+    dist_bin[dist_mat < dist_lim] = 1
+
+    for j, m1n in enumerate(marker_nums):
+        for k, m2n in enumerate(marker_nums[j:], j):
+            close_num_rand[j, k, :] = np.sum(
+                np.random.choice(dist_bin.flatten(), (m1n * m2n, bootstrap_num), True),
+                axis=0
+            )
+            # symmetry :)
+            close_num_rand[k, j, :] = close_num_rand[j, k, :]
+            
     for j in range(0, marker_num):
         for k in range(0, marker_num):
             for r in range(0, bootstrap_num):
