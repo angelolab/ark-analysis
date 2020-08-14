@@ -1,3 +1,5 @@
+if: (type = commit AND NOT branch =  master)
+
 language: python
 
 install:
@@ -9,10 +11,6 @@ install:
 env:
   - MPLBACKEND=Agg
 
-# Don't rerun on master after the PR gets merged in
-branches:
-  except:
-  - master
 # command to run tests
 script:
   - python -m pytest --cov=ark --pep8 ark
