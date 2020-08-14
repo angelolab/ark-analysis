@@ -30,7 +30,7 @@ def test_compute_marker_counts():
 
     segmentation_output = \
         marker_quantification.compute_marker_counts(input_images=input_images,
-                                                 segmentation_masks=segmentation_masks)
+                                                    segmentation_masks=segmentation_masks)
 
     # check that channel 0 counts are same as cell size
     assert np.array_equal(segmentation_output.loc['whole_cell', :, 'cell_size'].values,
@@ -70,8 +70,8 @@ def test_compute_marker_counts():
 
     segmentation_output_equal = \
         marker_quantification.compute_marker_counts(input_images=input_images,
-                                                 segmentation_masks=segmentation_masks_equal,
-                                                 nuclear_counts=True)
+                                                    segmentation_masks=segmentation_masks_equal,
+                                                    nuclear_counts=True)
 
     assert np.all(segmentation_output_equal[0].values == segmentation_output_equal[1].values)
 
@@ -87,8 +87,8 @@ def test_compute_marker_counts():
 
     segmentation_output_unequal = \
         marker_quantification.compute_marker_counts(input_images=input_images,
-                                                 segmentation_masks=segmentation_masks_unequal,
-                                                 nuclear_counts=True)
+                                                    segmentation_masks=segmentation_masks_unequal,
+                                                    nuclear_counts=True)
 
     # make sure nuclear segmentations are smaller
     assert np.all(segmentation_output_unequal.loc['nuclear', 1:, 'cell_size'].values <

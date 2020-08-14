@@ -7,7 +7,7 @@ import xarray as xr
 
 from skimage.measure import regionprops_table
 
-from ark.utils import data_utils, io_utils
+from ark.utils import data_utils, io_utils, segmentation_utils
 from ark.segmentation import signal_extraction
 
 
@@ -74,7 +74,8 @@ def compute_marker_counts(input_images, segmentation_masks, nuclear_counts=False
 
         if nuclear_counts:
             # get id of corresponding nucleus
-            nuc_id = find_nuclear_mask_id(nuc_segmentation_mask=nuc_mask, cell_coords=cell_coords)
+            nuc_id = segmentation_utils.find_nuclear_mask_id(nuc_segmentation_mask=nuc_mask,
+                                                             cell_coords=cell_coords)
 
             if nuc_id is None:
                 # no nucleus found within this cell
@@ -148,11 +149,12 @@ def generate_expression_matrix(segmentation_labels, image_data, nuclear_counts=F
         marker_counts = marker_counts[:, 1:, :]
 
         # normalize counts by cell size
-        marker_counts_norm = transform_expression_matrix(marker_counts, transform='size_norm')
+        marker_counts_norm = segmentation_utils.transform_expression_matrix(marker_counts,
+                                                                            transform='size_norm')
 
         # arcsinh transform the data
-        marker_counts_arcsinh = transform_expression_matrix(marker_counts_norm,
-                                                            transform='arcsinh')
+        marker_counts_arcsinh = segmentation_utils.transform_expression_matrix(marker_counts_norm,
+                                                                               transform='arcsinh')
 
         # add data from each FOV to array
         normalized = pd.DataFrame(data=marker_counts_norm.loc['whole_cell', :, :].values,
