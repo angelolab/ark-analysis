@@ -19,6 +19,7 @@ def _make_distance_matrix(enrichment_type, dist_lim):
 
     if enrichment_type == "none":
         # Create a 60 x 60 euclidian distance matrix of random values for no enrichment
+        np.random.seed(42) # because the meaning of life ;-)
         rand_mat = np.random.randint(0, 200, size=(60, 60))
         np.fill_diagonal(rand_mat[:, :], 0)
 
@@ -244,11 +245,11 @@ def test_calculate_channel_spatial_enrichment():
     # Extract the p-values and z-scores of the distance of marker 1 vs marker 2 for no enrichment
     # as tested against a random set of distances between centroids
     assert stats_no_enrich.loc["Point8", "p_pos", 2, 3] > .05
-    assert stats_no_enrich.loc["Point8", "p_pos", 2, 3] > .05
+    assert stats_no_enrich.loc["Point8", "p_neg", 2, 3] > .05
     assert abs(stats_no_enrich.loc["Point8", "z", 2, 3]) < 2
 
     assert stats_no_enrich.loc["Point9", "p_pos", 3, 2] > .05
-    assert stats_no_enrich.loc["Point9", "p_pos", 3, 2] > .05
+    assert stats_no_enrich.loc["Point9", "p_neg", 3, 2] > .05
     assert abs(stats_no_enrich.loc["Point9", "z", 3, 2]) < 2
 
 
@@ -310,11 +311,11 @@ def test_calculate_cluster_spatial_enrichment():
     # Extract the p-values and z-scores of the distance of marker 1 vs marker 2 for no enrichment
     # as tested against a random set of distances between centroids
     assert stats_no_enrich.loc["Point8", "p_pos", "Pheno1", "Pheno2"] > .05
-    assert stats_no_enrich.loc["Point8", "p_pos", "Pheno1", "Pheno2"] > .05
+    assert stats_no_enrich.loc["Point8", "p_neg", "Pheno1", "Pheno2"] > .05
     assert abs(stats_no_enrich.loc["Point8", "z", "Pheno1", "Pheno2"]) < 2
 
     assert stats_no_enrich.loc["Point8", "p_pos", "Pheno2", "Pheno1"] > .05
-    assert stats_no_enrich.loc["Point8", "p_pos", "Pheno2", "Pheno1"] > .05
+    assert stats_no_enrich.loc["Point8", "p_neg", "Pheno2", "Pheno1"] > .05
     assert abs(stats_no_enrich.loc["Point8", "z", "Pheno2", "Pheno1"]) < 2
 
 
