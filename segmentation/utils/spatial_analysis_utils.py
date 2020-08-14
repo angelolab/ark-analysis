@@ -104,6 +104,7 @@ def compute_close_cell_num(dist_mat, dist_lim, num, analysis_type,
         close_num (np array): marker x marker matrix with counts for cells
             positive for corresponding markers
         marker1_num : number of cell labels for marker 1"""
+
     # Initialize variables
 
     cell_labels = []
@@ -180,7 +181,6 @@ def compute_close_cell_num_random(marker_nums,
             )
             # symmetry :)
             close_num_rand[k, j, :] = close_num_rand[j, k, :]
-
     return close_num_rand
 
 
