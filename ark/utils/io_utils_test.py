@@ -3,7 +3,7 @@ import tempfile
 import pathlib
 import pytest
 
-from segmentation.utils import io_utils as iou
+from ark.utils import io_utils as iou
 
 
 def test_validate_paths():

@@ -2,12 +2,11 @@ import pandas as pd
 import numpy as np
 import string
 import random as rand
-from segmentation.utils import dimensionality_reduction
-import importlib
 import tempfile
 import os
 
-importlib.reload(dimensionality_reduction)
+
+from ark.analysis import dimensionality_reduction
 
 
 def test_dimensionality_reduction():

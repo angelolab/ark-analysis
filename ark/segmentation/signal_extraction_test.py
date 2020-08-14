@@ -1,8 +1,8 @@
 import numpy as np
 import xarray as xr
 
-from segmentation.utils import signal_extraction
-from segmentation.utils import synthetic_spatial_datagen
+from ark.segmentation import signal_extraction
+from ark.utils import synthetic_spatial_datagen
 
 from skimage.measure import regionprops
 

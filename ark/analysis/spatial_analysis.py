@@ -1,9 +1,7 @@
 import pandas as pd
 import xarray as xr
 import numpy as np
-from segmentation.utils import spatial_analysis_utils
-import importlib
-importlib.reload(spatial_analysis_utils)
+from ark.utils import spatial_analysis_utils
 
 
 def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, all_data,
