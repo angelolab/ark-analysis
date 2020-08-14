@@ -11,7 +11,7 @@ env:
 
 # command to run tests
 script:
-  - python -m pytest --cov=segmentation --pep8 segmentation
+  - python -m pytest --cov=ark --pep8 ark
 
 after_success:
   - coveralls
