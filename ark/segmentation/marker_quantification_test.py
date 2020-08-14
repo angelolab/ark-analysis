@@ -146,13 +146,58 @@ def test_generate_expression_matrix():
                                 dims=["fovs", "rows", "cols", "channels"])
 
     normalized, arcsinh = marker_quantification.generate_expression_matrix(segmentation_masks,
-                                                                        channel_data)
+                                                                           channel_data)
 
     assert normalized.shape[0] == 7
 
     assert np.all(normalized['chan0'] == np.repeat(1, len(normalized)))
     assert np.all(normalized['chan1'] == np.repeat(5, len(normalized)))
     assert np.all(normalized['chan2'] == normalized['chan2'])
+
+
+def test_generate_expression_matrix_multiple_compartments():
+    cell_mask, channel_data = _create_test_extraction_data()
+
+    # generate data for two fovs offset
+    cell_masks = np.zeros((2, 40, 40, 1), dtype="int16")
+    cell_masks[0, :, :, 0] = cell_mask
+    cell_masks[1, 5:, 5:, 0] = cell_mask[:-5, :-5]
+
+    channel_datas = np.zeros((2, 40, 40, 5), dtype="int16")
+    channel_datas[0, :, :, :] = channel_data
+    channel_datas[1, 5:, 5:, :] = channel_data[:-5, :-5]
+
+    # generate a second set of nuclear masks that are smaller than cell masks
+    nuc_masks = np.zeros_like(cell_masks)
+    nuc_masks[0, :, :, 0] = erosion(cell_masks[0, :, :, 0], selem=morph.disk(1))
+    nuc_masks[1, :, :, 0] = erosion(cell_masks[1, :, :, 0], selem=morph.disk(1))
+
+    # cell 2 in fov0 has no nucleus
+    nuc_masks[0, nuc_masks[0, :, :, 0] == 2, 0] = 0
+
+    unequal_masks = np.concatenate((cell_masks, nuc_masks), axis=-1)
+    coords = [["Point0", "Point1"], range(40), range(40), ['whole_cell', 'nuclear']]
+    dims = ['fovs', 'rows', 'cols', 'compartments']
+    segmentation_masks_unequal = xr.DataArray(unequal_masks, coords=coords, dims=dims)
+
+    channel_data = xr.DataArray(channel_datas,
+                                coords=[["Point0", "Point1"], range(40), range(40),
+                                        ["chan0", "chan1", "chan2", "chan3", "chan4"]],
+                                dims=["fovs", "rows", "cols", "channels"])
+
+    normalized, arcsinh = marker_quantification.generate_expression_matrix(segmentation_masks_unequal,
+                                                                        channel_data,
+                                                                        nuclear_counts=True)
+
+    assert normalized.shape[0] == 7
+
+    assert np.all(normalized['chan0'] == np.repeat(1, len(normalized)))
+    assert np.all(normalized['chan1'] == np.repeat(5, len(normalized)))
+    assert np.all(normalized['chan2'] == normalized['chan2'])
+
+    # check that missing nucleus has size 0
+    index = np.logical_and(normalized['label'] == 2, normalized['fov'] == 'Point0')
+    assert normalized.loc[index, 'cell_size_nuclear'].values == 0
 
 
 def test_compute_complete_expression_matrices():
@@ -295,4 +340,3 @@ def test_compute_complete_expression_matrices():
 
         assert norm_data.shape[0] > 0 and norm_data.shape[1] > 0
         assert arcsinh_data.shape[0] > 0 and arcsinh_data.shape[1] > 0
-

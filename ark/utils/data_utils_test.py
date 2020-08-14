@@ -10,9 +10,6 @@ from mibidata import mibi_image as mi, tiff
 from ark.utils import data_utils
 import skimage.io as io
 
-import importlib
-
-importlib.reload(data_utils)
 
 # required metadata for mibitiff writing (barf)
 METADATA = {

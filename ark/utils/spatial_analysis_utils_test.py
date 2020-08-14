@@ -5,26 +5,6 @@ import random
 from ark.utils import spatial_analysis_utils
 
 
-def test_calc_dist_matrix():
-    test_mat_data = np.zeros((2, 512, 512, 1), dtype="int")
-    # Create pythagorean triple to test euclidian distance
-    test_mat_data[0, 0, 20] = 1
-    test_mat_data[0, 4, 17] = 2
-    test_mat_data[1, 5, 25] = 1
-    test_mat_data[1, 9, 22] = 2
-
-    coords = [["1", "2"], range(test_mat_data[0].data.shape[0]),
-              range(test_mat_data[0].data.shape[1]), ["segmentation_label"]]
-    dims = ["fovs", "rows", "cols", "channels"]
-    test_mat = xr.DataArray(test_mat_data, coords=coords, dims=dims)
-
-    distance_mat = spatial_analysis_utils.calc_dist_matrix(test_mat)
-    real_mat = np.array([[0, 5], [5, 0]])
-
-    assert np.array_equal(distance_mat["1"], real_mat)
-    assert np.array_equal(distance_mat["2"], real_mat)
-
-
 def make_threshold_mat():
     thresh = pd.DataFrame(np.zeros((20, 2)))
     thresh.iloc[:, 1] = .5
@@ -95,6 +75,26 @@ def make_example_data_closenum():
     dist_mat[7, 8] = 50
 
     return all_data, dist_mat
+
+
+def test_calc_dist_matrix():
+    test_mat_data = np.zeros((2, 512, 512, 1), dtype="int")
+    # Create pythagorean triple to test euclidian distance
+    test_mat_data[0, 0, 20] = 1
+    test_mat_data[0, 4, 17] = 2
+    test_mat_data[1, 5, 25] = 1
+    test_mat_data[1, 9, 22] = 2
+
+    coords = [["1", "2"], range(test_mat_data[0].data.shape[0]),
+              range(test_mat_data[0].data.shape[1]), ["segmentation_label"]]
+    dims = ["fovs", "rows", "cols", "channels"]
+    test_mat = xr.DataArray(test_mat_data, coords=coords, dims=dims)
+
+    distance_mat = spatial_analysis_utils.calc_dist_matrix(test_mat)
+    real_mat = np.array([[0, 5], [5, 0]])
+
+    assert np.array_equal(distance_mat["1"], real_mat)
+    assert np.array_equal(distance_mat["2"], real_mat)
 
 
 def test_compute_close_cell_num():
