@@ -111,16 +111,17 @@ def test_compute_close_cell_num():
         0, 1, 14, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32]], axis=1)
 
     # List of all markers
-    marker_titles = fov_channel_data.columns
+    channel_titles = fov_channel_data.columns
     # Length of marker list
-    marker_num = len(marker_titles)
+    chanel_num = len(channel_titles)
 
     # Subsetting threshold matrix to only include column with threshold values
     thresh_vec = example_thresholds.iloc[0:20, 1]
 
     example_closenum, m1 = spatial_analysis_utils.compute_close_cell_num(
-        dist_mat=example_dist_mat, dist_lim=100, num=marker_num, analysis_type="Channel",
-        fov_data=all_data, fov_channel_data=fov_channel_data, thresh_vec=thresh_vec)
+        dist_mat=example_dist_mat, dist_lim=100, num=chanel_num, analysis_type="channel",
+        current_fov_data=all_data, current_fov_channel_data=fov_channel_data, thresh_vec=thresh_vec)
+
     assert (example_closenum[:2, :2] == 16).all()
     assert (example_closenum[3:5, 3:5] == 25).all()
     assert (example_closenum[5:7, 5:7] == 1).all()
@@ -132,14 +133,16 @@ def test_compute_close_cell_num():
     fov_channel_data = all_data.drop(all_data.columns[[
         0, 1, 14, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32]], axis=1)
     # List of all markers
-    marker_titles = fov_channel_data.columns
+    channel_titles = fov_channel_data.columns
     # Length of marker list
-    marker_num = len(marker_titles)
+    channel_num = len(channel_titles)
     # Subsetting threshold matrix to only include column with threshold values
     thresh_vec = example_thresholds.iloc[0:20, 1]
+
     example_closenum, m1 = spatial_analysis_utils.compute_close_cell_num(
-        dist_mat=example_dist_mat, dist_lim=100, num=marker_num, analysis_type="Channel",
-        fov_data=all_data, fov_channel_data=fov_channel_data, thresh_vec=thresh_vec)
+        dist_mat=example_dist_mat, dist_lim=100, num=channel_num, analysis_type="channel",
+        current_fov_data=all_data, current_fov_channel_data=fov_channel_data, thresh_vec=thresh_vec)
+
     assert (example_closenum[:2, :2] == 9).all()
     assert (example_closenum[3:5, 3:5] == 25).all()
     assert (example_closenum[5:7, 5:7] == 1).all()
@@ -204,23 +207,23 @@ def test_calculate_enrichment_stats():
 
 def test_compute_neighbor_count():
     fov_col = "SampleID"
-    flowsom_col = "FlowSOM_ID"
+    cluster_id_col = "FlowSOM_ID"
     cell_label_col = "cellLabelInImage"
-    cell_type_col = "cell_type"
+    cluster_name_col = "cell_type"
     distlim = 100
 
     fov_data, dist_matrix = make_example_data_closenum()
 
-    pheno_titles = fov_data[cell_type_col].drop_duplicates()
-    fov_data = fov_data[[fov_col, cell_label_col, flowsom_col, cell_type_col]]
-    pheno_num = len(fov_data[flowsom_col].drop_duplicates())
+    cluster_names = fov_data[cluster_name_col].drop_duplicates()
+    fov_data = fov_data[[fov_col, cell_label_col, cluster_id_col, cluster_name_col]]
+    cluster_num = len(fov_data[cluster_id_col].drop_duplicates())
 
-    cell_neighbor_counts = pd.DataFrame(np.zeros((fov_data.shape[0], pheno_num + 2)))
+    cell_neighbor_counts = pd.DataFrame(np.zeros((fov_data.shape[0], cluster_num + 2)))
 
     cell_neighbor_counts[[0, 1]] = fov_data[[fov_col, cell_label_col]]
 
     # Rename the columns to match cell phenotypes
-    cols = [fov_col, cell_label_col] + list(pheno_titles)
+    cols = [fov_col, cell_label_col] + list(cluster_names)
     cell_neighbor_counts.columns = cols
 
     cell_neighbor_freqs = cell_neighbor_counts.copy(deep=True)
@@ -229,8 +232,8 @@ def test_compute_neighbor_count():
         fov_data, dist_matrix, distlim)
 
     # add to neighbor counts + freqs for only the matching phenotypes between the fov and the whole dataset
-    cell_neighbor_counts.loc[fov_data.index, pheno_titles] = counts
-    cell_neighbor_freqs.loc[fov_data.index, pheno_titles] = freqs
+    cell_neighbor_counts.loc[fov_data.index, cluster_names] = counts
+    cell_neighbor_freqs.loc[fov_data.index, cluster_names] = freqs
 
     assert (cell_neighbor_counts.loc[:3, "Pheno1"] == 4).all()
     assert (cell_neighbor_counts.loc[4:8, "Pheno2"] == 5).all()
