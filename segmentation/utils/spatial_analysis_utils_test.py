@@ -118,7 +118,7 @@ def test_compute_close_cell_num():
     # Subsetting threshold matrix to only include column with threshold values
     thresh_vec = example_thresholds.iloc[0:20, 1]
 
-    example_closenum, m1, m2 = spatial_analysis_utils.compute_close_cell_num(
+    example_closenum, ms = spatial_analysis_utils.compute_close_cell_num(
         dist_mat=example_dist_mat, dist_lim=100, num=chanel_num, analysis_type="channel",
         current_fov_data=all_data, current_fov_channel_data=fov_channel_data, thresh_vec=thresh_vec)
 
@@ -139,7 +139,7 @@ def test_compute_close_cell_num():
     # Subsetting threshold matrix to only include column with threshold values
     thresh_vec = example_thresholds.iloc[0:20, 1]
 
-    example_closenum, m1, m2 = spatial_analysis_utils.compute_close_cell_num(
+    example_closenum, ms = spatial_analysis_utils.compute_close_cell_num(
         dist_mat=example_dist_mat, dist_lim=100, num=chanel_num, analysis_type="channel",
         current_fov_data=all_data, current_fov_channel_data=fov_channel_data, thresh_vec=thresh_vec)
     assert (example_closenum[:2, :2] == 9).all()

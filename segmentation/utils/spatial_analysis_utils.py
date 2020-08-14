@@ -181,6 +181,7 @@ def compute_close_cell_num_random(marker_nums,
             )
             # symmetry :)
             close_num_rand[k, j, :] = close_num_rand[j, k, :]
+
     return close_num_rand
 
 
