@@ -2,25 +2,24 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 import random
-from segmentation.utils import spatial_analysis
-from segmentation.utils import spatial_analysis_utils
-from segmentation.utils import synthetic_spatial_datagen
-import importlib
-importlib.reload(spatial_analysis)
+
+from ark.analysis import spatial_analysis
+from ark.utils import synthetic_spatial_datagen
 
 
-def make_threshold_mat():
+def _make_threshold_mat():
     thresh = pd.DataFrame(np.zeros((20, 2)))
     thresh.iloc[:, 1] = .5
     thresh.iloc[:, 0] = np.arange(20) + 2
     return thresh
 
 
-def make_distance_matrix(enrichment_type, dist_lim):
+def _make_distance_matrix(enrichment_type, dist_lim):
     # Make a distance matrix for no enrichment, positive enrichment, and negative enrichment
 
     if enrichment_type == "none":
         # Create a 60 x 60 euclidian distance matrix of random values for no enrichment
+        np.random.seed(0)
         rand_mat = np.random.randint(0, 200, size=(60, 60))
         np.fill_diagonal(rand_mat[:, :], 0)
 
@@ -59,7 +58,7 @@ def make_distance_matrix(enrichment_type, dist_lim):
         return dist_mat_neg
 
 
-def make_expression_matrix(enrichment_type):
+def _make_expression_matrix(enrichment_type):
     # Create the expression matrix with cell labels and patient labels for no enrichment,
     # positive enrichment, and negative enrichment.
 
@@ -189,11 +188,11 @@ def test_calculate_channel_spatial_enrichment():
                          "perimeter", "SampleID", "FlowSOM_ID", "cell_type"]
 
     # Test z and p values
-    marker_thresholds = make_threshold_mat()
+    marker_thresholds = _make_threshold_mat()
 
     # Positive enrichment with direct matrix initialization
-    all_data_pos = make_expression_matrix(enrichment_type="positive")
-    dist_mat_pos_direct = make_distance_matrix(enrichment_type="positive", dist_lim=dist_lim)
+    all_data_pos = _make_expression_matrix(enrichment_type="positive")
+    dist_mat_pos_direct = _make_distance_matrix(enrichment_type="positive", dist_lim=dist_lim)
 
     _, stats_pos = \
         spatial_analysis.calculate_channel_spatial_enrichment(
@@ -213,8 +212,8 @@ def test_calculate_channel_spatial_enrichment():
     assert stats_pos.loc["Point9", "z", 3, 2] > 0
 
     # Negative enrichment with direct matrix initialization
-    all_data_neg = make_expression_matrix("negative")
-    dist_mat_neg_direct = make_distance_matrix("negative", dist_lim=dist_lim)
+    all_data_neg = _make_expression_matrix("negative")
+    dist_mat_neg_direct = _make_distance_matrix("negative", dist_lim=dist_lim)
 
     _, stats_neg = \
         spatial_analysis.calculate_channel_spatial_enrichment(
@@ -234,8 +233,8 @@ def test_calculate_channel_spatial_enrichment():
     assert stats_neg.loc["Point9", "z", 3, 2] < 0
 
     # No enrichment
-    all_data_no_enrich = make_expression_matrix("none")
-    dist_mat_no_enrich = make_distance_matrix("none", dist_lim=dist_lim)
+    all_data_no_enrich = _make_expression_matrix("none")
+    dist_mat_no_enrich = _make_distance_matrix("none", dist_lim=dist_lim)
 
     _, stats_no_enrich = \
         spatial_analysis.calculate_channel_spatial_enrichment(
@@ -246,11 +245,11 @@ def test_calculate_channel_spatial_enrichment():
     # Extract the p-values and z-scores of the distance of marker 1 vs marker 2 for no enrichment
     # as tested against a random set of distances between centroids
     assert stats_no_enrich.loc["Point8", "p_pos", 2, 3] > .05
-    assert stats_no_enrich.loc["Point8", "p_pos", 2, 3] > .05
+    assert stats_no_enrich.loc["Point8", "p_neg", 2, 3] > .05
     assert abs(stats_no_enrich.loc["Point8", "z", 2, 3]) < 2
 
     assert stats_no_enrich.loc["Point9", "p_pos", 3, 2] > .05
-    assert stats_no_enrich.loc["Point9", "p_pos", 3, 2] > .05
+    assert stats_no_enrich.loc["Point9", "p_neg", 3, 2] > .05
     assert abs(stats_no_enrich.loc["Point9", "z", 3, 2]) < 2
 
 
@@ -264,8 +263,8 @@ def test_calculate_cluster_spatial_enrichment():
                          "perimeter", "SampleID", "FlowSOM_ID", "cell_type"]
 
     # Positive enrichment with direct matrix initialization
-    all_data_pos = make_expression_matrix(enrichment_type="positive")
-    dist_mat_pos_direct = make_distance_matrix(enrichment_type="positive", dist_lim=dist_lim)
+    all_data_pos = _make_expression_matrix(enrichment_type="positive")
+    dist_mat_pos_direct = _make_distance_matrix(enrichment_type="positive", dist_lim=dist_lim)
 
     _, stats_pos = \
         spatial_analysis.calculate_cluster_spatial_enrichment(
@@ -283,8 +282,8 @@ def test_calculate_cluster_spatial_enrichment():
     assert stats_pos.loc["Point9", "z", "Pheno2", "Pheno1"] > 0
 
     # Negative enrichment with direct matrix initialization
-    all_data_neg = make_expression_matrix("negative")
-    dist_mat_neg_direct = make_distance_matrix(enrichment_type="negative", dist_lim=dist_lim)
+    all_data_neg = _make_expression_matrix("negative")
+    dist_mat_neg_direct = _make_distance_matrix(enrichment_type="negative", dist_lim=dist_lim)
 
     _, stats_neg = \
         spatial_analysis.calculate_cluster_spatial_enrichment(
@@ -302,8 +301,8 @@ def test_calculate_cluster_spatial_enrichment():
     assert stats_neg.loc["Point9", "z", "Pheno2", "Pheno1"] < 0
 
     # No enrichment
-    all_data_no_enrich = make_expression_matrix("none")
-    dist_mat_no_enrich = make_distance_matrix("none", dist_lim=dist_lim)
+    all_data_no_enrich = _make_expression_matrix("none")
+    dist_mat_no_enrich = _make_distance_matrix("none", dist_lim=dist_lim)
 
     _, stats_no_enrich = \
         spatial_analysis.calculate_cluster_spatial_enrichment(
@@ -312,18 +311,18 @@ def test_calculate_cluster_spatial_enrichment():
     # Extract the p-values and z-scores of the distance of marker 1 vs marker 2 for no enrichment
     # as tested against a random set of distances between centroids
     assert stats_no_enrich.loc["Point8", "p_pos", "Pheno1", "Pheno2"] > .05
-    assert stats_no_enrich.loc["Point8", "p_pos", "Pheno1", "Pheno2"] > .05
+    assert stats_no_enrich.loc["Point8", "p_neg", "Pheno1", "Pheno2"] > .05
     assert abs(stats_no_enrich.loc["Point8", "z", "Pheno1", "Pheno2"]) < 2
 
     assert stats_no_enrich.loc["Point8", "p_pos", "Pheno2", "Pheno1"] > .05
-    assert stats_no_enrich.loc["Point8", "p_pos", "Pheno2", "Pheno1"] > .05
+    assert stats_no_enrich.loc["Point8", "p_neg", "Pheno2", "Pheno1"] > .05
     assert abs(stats_no_enrich.loc["Point8", "z", "Pheno2", "Pheno1"]) < 2
 
 
 def test_create_neighborhood_matrix():
     # get positive expression and distance matrices
-    all_data_pos = make_expression_matrix("positive")
-    dist_mat_pos = make_distance_matrix("positive", dist_lim=51)
+    all_data_pos = _make_expression_matrix("positive")
+    dist_mat_pos = _make_distance_matrix("positive", dist_lim=51)
 
     counts, freqs = spatial_analysis.create_neighborhood_matrix(all_data_pos, dist_mat_pos, distlim=51)
 

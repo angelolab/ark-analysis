@@ -1,13 +1,11 @@
 import numpy as np
 import random
-from segmentation.utils import visualize
-import importlib
 import pandas as pd
 import string
 import os.path
 from os import path
 
-importlib.reload(visualize)
+from ark.analysis import visualize
 
 
 def test_visualize_z_scores():

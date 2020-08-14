@@ -1,20 +1,8 @@
 import numpy as np
 import xarray as xr
-import pandas as pd
-import skimage.measure
-import scipy
-import os
-import xarray as xr
-import matplotlib.pyplot as plt
 
-from random import seed
-from random import random
-from scipy.spatial.distance import cdist
-from scipy.stats import norm
-from skimage.measure import label
 from copy import deepcopy
 from skimage.draw import circle
-from skimage.draw import circle_perimeter
 
 
 def generate_test_dist_matrix(num_A=100, num_B=100, num_C=100,
@@ -269,7 +257,8 @@ def generate_two_cell_test_segmentation_mask(size_img=(1024, 1024), cell_radius=
 
 def generate_two_cell_test_nuclear_signal(segmentation_mask, cell_centers,
                                           size_img=(1024, 1024), nuc_cell_ids=[1],
-                                          nuc_radius=3):
+                                          nuc_radius=3, nuc_signal_strength=10,
+                                          nuc_uncertainty_length=0):
     """
     This function generates nuclear signal for the provided cells
 
@@ -279,6 +268,7 @@ def generate_two_cell_test_nuclear_signal(segmentation_mask, cell_centers,
         size_img (tuple): the dimensions of the image we wish to generate
         nuc_cell_ids (list): a list of cells we wish to generate nuclear signal for, if None assume just cell 1
         nuc_radius (int): the radius of the nucleus of each cell
+        nuc_uncertainty_length (int): will extend nuc_radius by the specified length
 
     Returns:
         sample_nuclear_signal (numpy): an array of equal dimensions to segmentation_mask
@@ -293,8 +283,9 @@ def generate_two_cell_test_nuclear_signal(segmentation_mask, cell_centers,
 
         # generate the nuclear region in the middle of the cell with the same cell center
         # and set signal to a uniform value
-        nuc_region_x, nuc_region_y = circle(center[0], center[1], nuc_radius, shape=size_img)
-        sample_nuclear_signal[nuc_region_x, nuc_region_y] = 10
+        nuc_region_x, nuc_region_y = circle(center[0], center[1], nuc_radius + nuc_uncertainty_length,
+                                            shape=size_img)
+        sample_nuclear_signal[nuc_region_x, nuc_region_y] = nuc_signal_strength
 
         # let's keep things simple for now and not include jitter or anything
         # that can easily be included in the next commit
@@ -304,7 +295,8 @@ def generate_two_cell_test_nuclear_signal(segmentation_mask, cell_centers,
 
 def generate_two_cell_test_membrane_signal(segmentation_mask, cell_centers,
                                            size_img=(1024, 1024), cell_radius=10,
-                                           memb_cell_ids=[2], memb_thickness=5):
+                                           memb_cell_ids=[2], memb_thickness=5,
+                                           memb_signal_strength=10, memb_uncertainty_length=0):
     """
     This function generates membrane signal for the provided cells
 
@@ -316,6 +308,7 @@ def generate_two_cell_test_membrane_signal(segmentation_mask, cell_centers,
             for a ring-shaped membrane
         memb_cell_ids (list): a list of cells we wish to generate nuclear signal for, if None assume just cell 2
         memb_thickness (int): the diameter of the membrane ring of each cell
+        memb_uncertainty_length (int): will extend memb_radius by the specified length
 
     Returns:
         sample_membrane_signal (numpy): an array of equal dimensions to segmentation_mask
@@ -330,11 +323,12 @@ def generate_two_cell_test_membrane_signal(segmentation_mask, cell_centers,
 
         # generate both the coordinates of the cell region and non-membrane region
         # for proper circle subtraction to generate membrane
-        cell_region_x, cell_region_y = circle(center[0], center[1], cell_radius, shape=size_img)
-        non_memb_region_x, non_memb_region_y = circle(center[0], center[1], cell_radius - memb_thickness, shape=size_img)
+        cell_region_x, cell_region_y = circle(center[0], center[1], cell_radius + memb_uncertainty_length, shape=size_img)
+        non_memb_region_x, non_memb_region_y = circle(center[0], center[1], cell_radius - memb_thickness,
+                                                      shape=size_img)
 
         # perform circle subtraction
-        sample_membrane_signal[cell_region_x, cell_region_y] = 10
+        sample_membrane_signal[cell_region_x, cell_region_y] = memb_signal_strength
         sample_membrane_signal[non_memb_region_x, non_memb_region_y] = 0
 
         # let's keep things simple for now and not include jitter or anything
@@ -344,7 +338,9 @@ def generate_two_cell_test_membrane_signal(segmentation_mask, cell_centers,
 
 
 def generate_two_cell_test_channel_synthetic_data(size_img=(1024, 1024), cell_radius=10, nuc_radius=3, memb_thickness=5,
-                                                  nuc_cell_ids=[1], memb_cell_ids=[2]):
+                                                  nuc_cell_ids=[1], memb_cell_ids=[2], nuc_signal_strength=10,
+                                                  memb_signal_strength=10, nuc_uncertainty_length=0,
+                                                  memb_uncertainty_length=0):
     """
     This function generates the complete package of channel-level synthetic data we're looking for
 
@@ -355,6 +351,10 @@ def generate_two_cell_test_channel_synthetic_data(size_img=(1024, 1024), cell_ra
         memb_diameter (int): the diameter of each membrane
         nuc_cell_ids (list): a list of which cells we wish to generate nuclear signal for, if None assume just cell 1
         memb_cell_ids (list): a list of which cells we wish to generate membrane signal for, if None assume just cell 2
+        nuc_signal_strength (int): defines the constant value we want to assign to nuclear signal
+        memb_signal_strength (int): defines the constant value we want to assign to membrane signal
+        nuc_uncertainty_length (int): will extend nuc_radius by specified length
+        memb_uncertainty_length (int) will extend memb_radius by specified length
 
     Returns:
         sample_segmentation_mask (numpy): an array which contains the labeled cell regions
@@ -370,13 +370,17 @@ def generate_two_cell_test_channel_synthetic_data(size_img=(1024, 1024), cell_ra
                                                                   cell_centers=sample_cell_centers,
                                                                   size_img=size_img,
                                                                   nuc_cell_ids=nuc_cell_ids,
-                                                                  nuc_radius=nuc_radius)
+                                                                  nuc_radius=nuc_radius,
+                                                                  nuc_signal_strength=nuc_signal_strength,
+                                                                  nuc_uncertainty_length=nuc_uncertainty_length)
     sample_membrane_signal = generate_two_cell_test_membrane_signal(segmentation_mask=sample_segmentation_mask,
                                                                     cell_centers=sample_cell_centers,
                                                                     size_img=size_img,
                                                                     cell_radius=cell_radius,
                                                                     memb_cell_ids=memb_cell_ids,
-                                                                    memb_thickness=memb_thickness)
+                                                                    memb_thickness=memb_thickness,
+                                                                    memb_signal_strength=memb_signal_strength,
+                                                                    memb_uncertainty_length=memb_uncertainty_length)
 
     # generate the channel data matrix
     sample_channel_data = np.zeros((size_img[0], size_img[1], 2))
