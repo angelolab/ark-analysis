@@ -1,4 +1,4 @@
-if: (type = commit AND NOT branch =  master)
+if: (type = commit AND NOT branch =  master) OR (type = pull_request)
 
 language: python
 
