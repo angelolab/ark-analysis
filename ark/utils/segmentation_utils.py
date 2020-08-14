@@ -1,364 +1,207 @@
 import os
 import copy
-import warnings
 
-import scipy.ndimage as nd
 import numpy as np
 import pandas as pd
-
-import xarray as xr
-
-from skimage.feature import peak_local_max
-from skimage.measure import label, regionprops_table
-
-import skimage.morphology as morph
-from skimage.segmentation import relabel_sequential
 import skimage.io as io
 
-
-from segmentation.utils import data_utils, plot_utils, signal_extraction, io_utils
-
-
-def compute_complete_expression_matrices(segmentation_labels, tiff_dir, img_sub_folder,
-                                         is_mibitiff=False, points=None, batch_size=5):
-    """
-    This function takes the segmented data and computes the expression matrices batch-wise
-    while also validating inputs
-
-    Inputs:
-        segmentation_labels (xarray): an xarray with the segmented data
-        tiff_dir (str): the name of the directory which contains the single_channel_inputs
-        img_sub_folder (str): the name of the folder where the TIF images are located
-        points (list): a list of points we wish to analyze, if None will default to all points
-        is_mibitiff (bool): a flag to indicate whether or not the base images are MIBItiffs
-        mibitiff_suffix (str): if is_mibitiff is true, then needs to be specified to select
-            which points to load from mibitiff
-        batch_size (int): how large we want each of the batches of points to be when computing,
-            adjust as necessary for speed and memory considerations
-
-    Returns:
-        combined_normalized_data (pandas): a DataFrame containing the size_norm transformed data
-        combined_transformed_data (pandas): a DataFrame containing the arcsinh transformed data
-    """
-
-    # if no points are specified, then load all the points
-    if points is None:
-        # handle mibitiffs with an assumed file structure
-        if is_mibitiff:
-            filenames = io_utils.list_files(tiff_dir, substrs=['.tif'])
-            points = io_utils.extract_delimited_names(filenames, delimiter=None)
-        # otherwise assume the tree-like directory as defined for tree loading
-        else:
-            filenames = io_utils.list_folders(tiff_dir)
-            points = filenames
-
-    # check segmentation_labels for given points (img loaders will fail otherwise)
-    point_values = [point for point in points if point not in segmentation_labels['fovs'].values]
-    if point_values:
-        raise ValueError(f"Invalid point values specified: "
-                         f"points {','.join(point_values)} not found in segmentation_labels fovs")
-
-    # get full filenames from given points
-    filenames = io_utils.list_files(tiff_dir, substrs=points)
-
-    # sort the points
-    points.sort()
-    filenames.sort()
-
-    # defined some vars for batch processing
-    cohort_len = len(points)
-
-    # create the final dfs to store the processed data
-    combined_normalized_data = pd.DataFrame()
-    combined_transformed_data = pd.DataFrame()
-
-    # iterate over all the batches
-    for batch_names, batch_files in zip(
-        [points[i:i + batch_size] for i in range(0, cohort_len, batch_size)],
-        [filenames[i:i + batch_size] for i in range(0, cohort_len, batch_size)]
-    ):
-        # and extract the image data for each batch
-        if is_mibitiff:
-            image_data = data_utils.load_imgs_from_mibitiff(data_dir=tiff_dir,
-                                                            mibitiff_files=batch_files)
-        else:
-            image_data = data_utils.load_imgs_from_tree(data_dir=tiff_dir,
-                                                        img_sub_folder=img_sub_folder,
-                                                        fovs=batch_names)
-
-        # as well as the labels corresponding to each of them
-        current_labels = segmentation_labels.loc[batch_names, :, :, :]
-
-        # segment the imaging data
-        normalized_data, transformed_data = generate_expression_matrix(
-            segmentation_labels=current_labels,
-            image_data=image_data
-        )
-
-        # now append to the final dfs to return
-        combined_normalized_data = combined_normalized_data.append(normalized_data)
-        combined_transformed_data = combined_transformed_data.append(transformed_data)
-
-    return combined_normalized_data, combined_transformed_data
+from ark.utils import plot_utils, io_utils
 
 
-def watershed_transform(model_output, channel_xr, overlay_channels, output_dir, fovs=None,
-                        interior_model="pixelwise_interior", interior_threshold=0.25,
-                        interior_smooth=3, maxima_model="pixelwise_interior", maxima_smooth=3,
-                        maxima_threshold=0.05, nuclear_expansion=None, randomize_cell_labels=True,
-                        save_tifs='overlays'):
-    """Runs the watershed transform over a set of probability masks output by deepcell network
-    Inputs:
-        model_output (xarray): xarray containing the different branch outputs from deepcell
-        channel_xr (xarray): xarray containing TIFs
-        output_dir (str): path to directory where the output will be saved
-        interior_model (str): Name of model to use to identify maxs in the image
-        interior_threshold (float): threshold to cut off interior predictions
-        interior_smooth (int): value to smooth the interior predictions
-        maxima_model (str): Name of the model to use to predict maxes in the image
-        maxima_smooth (int): value to smooth the maxima predictions
-        maxima_threshold (float): threshold to cut off maxima predictions
-        nuclear_expansion (int): optional pixel value by which to expand cells if
-            doing nuclear segmentation
-        randomize_labels (bool): if true, will randomize the order of the labels put out
-            by watershed for easier visualization
-        save_tifs (str): flag to control what level of output to save. Must be one of:
-            all - saves all tifs
-            overlays - saves color overlays and segmentation masks
-            none - does not save any tifs
-    Outputs:
-        Saves xarray to output directory"""
-
-    # error checking
-    if fovs is None:
-        fovs = model_output.fovs
-    else:
-        if np.any(~np.isin(fovs, model_output.coords['fovs'])):
-            raise ValueError("Invalid FOVs supplied, not all were found in the model output")
-
-    if len(fovs) == 1:
-        # don't subset, will change dimensions
-        pass
-    else:
-        model_output = model_output.loc[fovs, :, :, :]
-
-    if np.any(~np.isin(model_output.fovs.values, channel_xr.fovs.values)):
-        raise ValueError("Not all of the FOVs in the model output were found in the channel data")
-
-    # flatten overlay list of lists into single list
-    flat_channels = [item for sublist in overlay_channels for item in sublist]
-    overlay_in_xr = np.isin(flat_channels, channel_xr.channels)
-    if len(overlay_in_xr) != np.sum(overlay_in_xr):
-        bad_chan = flat_channels[np.where(~overlay_in_xr)[0][0]]
-        raise ValueError("{} was listed as an overlay channel, "
-                         "but it is not in the channel data".format(bad_chan))
-
-    if not os.path.isdir(output_dir):
-        raise ValueError("output directory does not exist")
-
-    segmentation_labels_xr = \
-        xr.DataArray(np.zeros((model_output.shape[:-1] + (1,)), dtype="int16"),
-                     coords=[model_output.fovs, range(model_output.shape[1]),
-                             range(model_output.shape[2]),
-                             ['whole_cell']],
-                     dims=['fovs', 'rows', 'cols', 'compartments'])
-
-    # error check model selected for local maxima finding in the image
-    model_list = ["pixelwise_interior", "watershed_inner", "watershed_outer",
-                  "watershed_argmax", "fgbg_foreground", "pixelwise_sum"]
-
-    if maxima_model not in model_list:
-        raise ValueError("Invalid maxima model supplied: {}, "
-                         "must be one of {}".format(maxima_model, model_list))
-    if maxima_model not in model_output.models:
-        raise ValueError("The selected maxima model was not found "
-                         "in the model output: {}".format(maxima_model))
-
-    # error check model selected for background delineation in the image
-    if interior_model not in model_list:
-        raise ValueError("Invalid interior model supplied: {}, "
-                         "must be one of {}".format(interior_model, model_list))
-    if interior_model not in model_output.models:
-        raise ValueError("The selected interior model was not found "
-                         "in the model output: {} ".format(interior_model))
-
-    if save_tifs not in ['all', 'overlays', 'none']:
-        raise ValueError('Invalid save_tif options, but be either "all", "overlays", or "none"')
-
-    # loop through all fovs and segment
-    for fov in model_output.fovs.values:
-        print("analyzing fov {}".format(fov))
-
-        # generate maxima predictions
-        maxima_smoothed = nd.gaussian_filter(model_output.loc[fov, :, :, maxima_model],
-                                             maxima_smooth)
-        maxima_thresholded = maxima_smoothed
-        maxima_thresholded[maxima_thresholded < maxima_threshold] = 0
-        maxs = peak_local_max(maxima_thresholded, indices=False, min_distance=5,
-                              exclude_border=False)
-
-        # generate interior predictions
-        interior_smoothed = nd.gaussian_filter(model_output.loc[fov, :, :, interior_model].values,
-                                               interior_smooth)
-        interior_mask = interior_smoothed > interior_threshold
-
-        # determine if background is based on network output or an expansion
-        if nuclear_expansion is not None:
-            interior_mask = morph.dilation(interior_mask,
-                                           selem=morph.square(nuclear_expansion * 2 + 1))
-
-        # use maxs to generate seeds for watershed
-        markers = label(maxs, connectivity=1)
-
-        # watershed over negative interior mask
-        labels = np.array(morph.watershed(-interior_smoothed, markers,
-                                          mask=interior_mask, watershed_line=0))
-
-        labels, _, _ = relabel_sequential(labels)
-
-        if randomize_cell_labels:
-            random_map = plot_utils.randomize_labels(labels)
-        else:
-            random_map = labels
-
-        # ignore low-contrast image warnings
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-
-            if save_tifs != 'none':
-                # save segmentation label map
-                io.imsave(os.path.join(output_dir, "{}_segmentation_labels.tiff".format(fov)),
-                          random_map)
-
-            if save_tifs == 'all':
-                # save borders of segmentation map
-                plot_utils.plot_overlay(random_map, plotting_tif=None,
-                                        path=os.path.join(output_dir,
-                                                          "{}_segmentation_borders.tiff".format(
-                                                              fov)))
-
-                io.imsave(os.path.join(output_dir, "{}_interior_smoothed.tiff".format(fov)),
-                          interior_smoothed.astype("float32"))
-
-                io.imsave(os.path.join(output_dir,
-                                       "{}_maxs_smoothed_thresholded.tiff".format(fov)),
-                          maxima_thresholded.astype("float32"))
-
-                io.imsave(os.path.join(output_dir, "{}_maxs.tiff".format(fov)),
-                          maxs.astype('uint8'))
-
-                for chan in channel_xr.channels.values:
-                    io.imsave(os.path.join(output_dir, "{}_{}.tiff".format(fov, chan)),
-                              channel_xr.loc[fov, :, :, chan].astype('float32'))
-
-        # plot list of supplied markers overlaid by segmentation mask to assess accuracy
-        if save_tifs != 'none':
-            for chan_list in overlay_channels:
-                if len(chan_list) == 1:
-                    # if only one entry in list, make single channel overlay
-                    channel = chan_list[0]
-                    chan_marker = channel_xr.loc[fov, :, :, channel].values
-                    plot_utils.plot_overlay(random_map, plotting_tif=chan_marker,
-                                            path=os.path.join(output_dir,
-                                                              f"{fov}_{channel}_overlay.tiff"))
-
-                elif len(chan_list) == 2:
-                    # if two entries, make 2-color stack, skipping 0th index which is red
-                    input_data = np.zeros((channel_xr.shape[1], channel_xr.shape[2], 3))
-                    input_data[:, :, 1] = channel_xr.loc[fov, :, :, chan_list[0]].values
-                    input_data[:, :, 2] = channel_xr.loc[fov, :, :, chan_list[1]].values
-                    plot_utils.plot_overlay(
-                        random_map, plotting_tif=input_data,
-                        path=os.path.join(
-                            output_dir,
-                            "{}_{}_{}_overlay.tiff".format(fov, chan_list[0], chan_list[1])))
-                elif len(chan_list) == 3:
-                    # if three entries, make 3 color stack, with third channel in first index (red)
-                    input_data = np.zeros((channel_xr.shape[1], channel_xr.shape[2], 3))
-                    input_data[:, :, 1] = channel_xr.loc[fov, :, :, chan_list[0]].values
-                    input_data[:, :, 2] = channel_xr.loc[fov, :, :, chan_list[1]].values
-                    input_data[:, :, 0] = channel_xr.loc[fov, :, :, chan_list[2]].values
-                    plot_utils.plot_overlay(random_map, plotting_tif=input_data,
-                                            path=os.path.join(output_dir,
-                                                              "{}_{}_{}_{}_overlay.tiff".
-                                                              format(fov,
-                                                                     chan_list[0],
-                                                                     chan_list[1],
-                                                                     chan_list[2])))
-
-        segmentation_labels_xr.loc[fov, :, :, 'whole_cell'] = random_map
-
-    save_name = os.path.join(output_dir, 'segmentation_labels.xr')
-    if os.path.exists(save_name):
-        print("overwriting previously generated processed output file")
-        os.remove(save_name)
-
-    # segmentation_labels_xr.to_netcdf(save_name, format='NETCDF4')
-    segmentation_labels_xr.to_netcdf(save_name, format="NETCDF3_64BIT")
-
-
-def combine_segmentation_masks(big_mask_xr, small_mask_xr, size_threshold,
-                               output_dir, input_xr, overlay_channels):
-    """Takes two xarrays of masks, generated using different parameters,
-    and combines them together to produce a single unified mask
-
-    Inputs
-        big_mask_xr (xarray): xarray optimized for large cells
-        small_mask_xr (xarray): xarray optimized for small cells
-        size_threshold (int): pixel cutoff for large mask, under which cells will be removed
-        output_dir (str): name of directory to save results
-        input_xr (xarray): xarray containing channels for overlay
-        overlay_channels (list): channels to overlay segmentation output over"""
-
-    # loop through all masks in large xarray
-    for point in range(big_mask_xr.shape[0]):
-        labels = big_mask_xr[point, :, :, 0].values
-
-        # for each cell, determine if small than threshold
-        for cell in np.unique(labels):
-            if np.sum(labels == cell) < size_threshold:
-                labels[labels == cell] = 0
-        big_mask_xr[point, :, :, 0] = labels
-
-    # loop through all masks in small xarray
-    for point in range(small_mask_xr.shape[0]):
-        labels = small_mask_xr[point, :, :, 0].values
-        big_labels = big_mask_xr[point, :, :, 0].values
-
-        cell_id_offset = np.max(big_labels)
-        # loop through all cells in small mask
-        for idx, value in enumerate(np.unique(labels)[1:]):
-
-            # if the cell overlaps only with background in big mask, transfer it over
-            if len(np.unique(big_labels[labels == value])) == 1:
-                if np.unique(big_labels[labels == value]) == 0:
-                    big_labels[labels == value] = cell_id_offset + idx
-
-        big_mask_xr[point, :, :, 0] = big_labels
-
-    if not os.path.isdir(output_dir):
-        os.makedirs(output_dir)
-
-    # loop through modified combined mask
-    for point in big_mask_xr.points.values:
-
-        # save segmentation labels
-        io.imsave(os.path.join(output_dir, point + "_labels.tiff"),
-                  big_mask_xr.loc[point, :, :, "segmentation_label"])
-
-        # save overlay plots
-        for channel in overlay_channels:
-            plot_utils.plot_overlay(big_mask_xr.loc[point, :, :, "segmentation_label"].values,
-                                    input_xr.loc[point, :, :, channel].values,
-                                    path=os.path.join(output_dir,
-                                                      "{}_{}_overlay.tiff".format(point, channel)))
-
-    # big_mask_xr.to_netcdf(
-        # os.path.join(output_dir, "deepcell_output_pixel_processed_segmentation_labels.xr"),
-        # format="NETCDF4")
-    big_mask_xr.to_netcdf(
-        os.path.join(output_dir, "deepcell_output_pixel_processed_segmentation_labels.xr"),
-        format="NETCDF3_64BIT")
+# def watershed_transform(model_output, channel_xr, overlay_channels, output_dir, fovs=None,
+#                         interior_model="pixelwise_interior", interior_threshold=0.25,
+#                         interior_smooth=3, maxima_model="pixelwise_interior", maxima_smooth=3,
+#                         maxima_threshold=0.05, nuclear_expansion=None, randomize_cell_labels=True,
+#                         save_tifs='overlays'):
+#     """Runs the watershed transform over a set of probability masks output by deepcell network
+#     Inputs:
+#         model_output (xarray): xarray containing the different branch outputs from deepcell
+#         channel_xr (xarray): xarray containing TIFs
+#         output_dir (str): path to directory where the output will be saved
+#         interior_model (str): Name of model to use to identify maxs in the image
+#         interior_threshold (float): threshold to cut off interior predictions
+#         interior_smooth (int): value to smooth the interior predictions
+#         maxima_model (str): Name of the model to use to predict maxes in the image
+#         maxima_smooth (int): value to smooth the maxima predictions
+#         maxima_threshold (float): threshold to cut off maxima predictions
+#         nuclear_expansion (int): optional pixel value by which to expand cells if
+#             doing nuclear segmentation
+#         randomize_labels (bool): if true, will randomize the order of the labels put out
+#             by watershed for easier visualization
+#         save_tifs (str): flag to control what level of output to save. Must be one of:
+#             all - saves all tifs
+#             overlays - saves color overlays and segmentation masks
+#             none - does not save any tifs
+#     Outputs:
+#         Saves xarray to output directory"""
+#
+#     # error checking
+#     if fovs is None:
+#         fovs = model_output.fovs
+#     else:
+#         if np.any(~np.isin(fovs, model_output.coords['fovs'])):
+#             raise ValueError("Invalid FOVs supplied, not all were found in the model output")
+#
+#     if len(fovs) == 1:
+#         # don't subset, will change dimensions
+#         pass
+#     else:
+#         model_output = model_output.loc[fovs, :, :, :]
+#
+#     if np.any(~np.isin(model_output.fovs.values, channel_xr.fovs.values)):
+#         raise ValueError("Not all of the FOVs in the model output were found in the channel data")
+#
+#     # flatten overlay list of lists into single list
+#     flat_channels = [item for sublist in overlay_channels for item in sublist]
+#     overlay_in_xr = np.isin(flat_channels, channel_xr.channels)
+#     if len(overlay_in_xr) != np.sum(overlay_in_xr):
+#         bad_chan = flat_channels[np.where(~overlay_in_xr)[0][0]]
+#         raise ValueError("{} was listed as an overlay channel, "
+#                          "but it is not in the channel data".format(bad_chan))
+#
+#     if not os.path.isdir(output_dir):
+#         raise ValueError("output directory does not exist")
+#
+#     segmentation_labels_xr = \
+#         xr.DataArray(np.zeros((model_output.shape[:-1] + (1,)), dtype="int16"),
+#                      coords=[model_output.fovs, range(model_output.shape[1]),
+#                              range(model_output.shape[2]),
+#                              ['whole_cell']],
+#                      dims=['fovs', 'rows', 'cols', 'compartments'])
+#
+#     # error check model selected for local maxima finding in the image
+#     model_list = ["pixelwise_interior", "watershed_inner", "watershed_outer",
+#                   "watershed_argmax", "fgbg_foreground", "pixelwise_sum"]
+#
+#     if maxima_model not in model_list:
+#         raise ValueError("Invalid maxima model supplied: {}, "
+#                          "must be one of {}".format(maxima_model, model_list))
+#     if maxima_model not in model_output.models:
+#         raise ValueError("The selected maxima model was not found "
+#                          "in the model output: {}".format(maxima_model))
+#
+#     # error check model selected for background delineation in the image
+#     if interior_model not in model_list:
+#         raise ValueError("Invalid interior model supplied: {}, "
+#                          "must be one of {}".format(interior_model, model_list))
+#     if interior_model not in model_output.models:
+#         raise ValueError("The selected interior model was not found "
+#                          "in the model output: {} ".format(interior_model))
+#
+#     if save_tifs not in ['all', 'overlays', 'none']:
+#         raise ValueError('Invalid save_tif options, but be either "all", "overlays", or "none"')
+#
+#     # loop through all fovs and segment
+#     for fov in model_output.fovs.values:
+#         print("analyzing fov {}".format(fov))
+#
+#         # generate maxima predictions
+#         maxima_smoothed = nd.gaussian_filter(model_output.loc[fov, :, :, maxima_model],
+#                                              maxima_smooth)
+#         maxima_thresholded = maxima_smoothed
+#         maxima_thresholded[maxima_thresholded < maxima_threshold] = 0
+#         maxs = peak_local_max(maxima_thresholded, indices=False, min_distance=5,
+#                               exclude_border=False)
+#
+#         # generate interior predictions
+#         interior_smoothed = nd.gaussian_filter(model_output.loc[fov, :, :, interior_model].values,
+#                                                interior_smooth)
+#         interior_mask = interior_smoothed > interior_threshold
+#
+#         # determine if background is based on network output or an expansion
+#         if nuclear_expansion is not None:
+#             interior_mask = morph.dilation(interior_mask,
+#                                            selem=morph.square(nuclear_expansion * 2 + 1))
+#
+#         # use maxs to generate seeds for watershed
+#         markers = label(maxs, connectivity=1)
+#
+#         # watershed over negative interior mask
+#         labels = np.array(morph.watershed(-interior_smoothed, markers,
+#                                           mask=interior_mask, watershed_line=0))
+#
+#         labels, _, _ = relabel_sequential(labels)
+#
+#         if randomize_cell_labels:
+#             random_map = plot_utils.randomize_labels(labels)
+#         else:
+#             random_map = labels
+#
+#         # ignore low-contrast image warnings
+#         with warnings.catch_warnings():
+#             warnings.simplefilter("ignore")
+#
+#             if save_tifs != 'none':
+#                 # save segmentation label map
+#                 io.imsave(os.path.join(output_dir, "{}_segmentation_labels.tiff".format(fov)),
+#                           random_map)
+#
+#             if save_tifs == 'all':
+#                 # save borders of segmentation map
+#                 plot_utils.plot_overlay(random_map, plotting_tif=None,
+#                                         path=os.path.join(output_dir,
+#                                                           "{}_segmentation_borders.tiff".format(
+#                                                               fov)))
+#
+#                 io.imsave(os.path.join(output_dir, "{}_interior_smoothed.tiff".format(fov)),
+#                           interior_smoothed.astype("float32"))
+#
+#                 io.imsave(os.path.join(output_dir,
+#                                        "{}_maxs_smoothed_thresholded.tiff".format(fov)),
+#                           maxima_thresholded.astype("float32"))
+#
+#                 io.imsave(os.path.join(output_dir, "{}_maxs.tiff".format(fov)),
+#                           maxs.astype('uint8'))
+#
+#                 for chan in channel_xr.channels.values:
+#                     io.imsave(os.path.join(output_dir, "{}_{}.tiff".format(fov, chan)),
+#                               channel_xr.loc[fov, :, :, chan].astype('float32'))
+#
+#         # plot list of supplied markers overlaid by segmentation mask to assess accuracy
+#         if save_tifs != 'none':
+#             for chan_list in overlay_channels:
+#                 if len(chan_list) == 1:
+#                     # if only one entry in list, make single channel overlay
+#                     channel = chan_list[0]
+#                     chan_marker = channel_xr.loc[fov, :, :, channel].values
+#                     plot_utils.plot_overlay(random_map, plotting_tif=chan_marker,
+#                                             path=os.path.join(output_dir,
+#                                                               f"{fov}_{channel}_overlay.tiff"))
+#
+#                 elif len(chan_list) == 2:
+#                     # if two entries, make 2-color stack, skipping 0th index which is red
+#                     input_data = np.zeros((channel_xr.shape[1], channel_xr.shape[2], 3))
+#                     input_data[:, :, 1] = channel_xr.loc[fov, :, :, chan_list[0]].values
+#                     input_data[:, :, 2] = channel_xr.loc[fov, :, :, chan_list[1]].values
+#                     plot_utils.plot_overlay(
+#                         random_map, plotting_tif=input_data,
+#                         path=os.path.join(
+#                             output_dir,
+#                             "{}_{}_{}_overlay.tiff".format(fov, chan_list[0], chan_list[1])))
+#                 elif len(chan_list) == 3:
+#                     # if three entries, make 3 color stack, with third channel in first index (red)
+#                     input_data = np.zeros((channel_xr.shape[1], channel_xr.shape[2], 3))
+#                     input_data[:, :, 1] = channel_xr.loc[fov, :, :, chan_list[0]].values
+#                     input_data[:, :, 2] = channel_xr.loc[fov, :, :, chan_list[1]].values
+#                     input_data[:, :, 0] = channel_xr.loc[fov, :, :, chan_list[2]].values
+#                     plot_utils.plot_overlay(random_map, plotting_tif=input_data,
+#                                             path=os.path.join(output_dir,
+#                                                               "{}_{}_{}_{}_overlay.tiff".
+#                                                               format(fov,
+#                                                                      chan_list[0],
+#                                                                      chan_list[1],
+#                                                                      chan_list[2])))
+#
+#         segmentation_labels_xr.loc[fov, :, :, 'whole_cell'] = random_map
+#
+#     save_name = os.path.join(output_dir, 'segmentation_labels.xr')
+#     if os.path.exists(save_name):
+#         print("overwriting previously generated processed output file")
+#         os.remove(save_name)
+#
+#     # segmentation_labels_xr.to_netcdf(save_name, format='NETCDF4')
+#     segmentation_labels_xr.to_netcdf(save_name, format="NETCDF3_64BIT")
+#
 
 
 def find_nuclear_mask_id(nuc_segmentation_mask, cell_coords):
@@ -436,180 +279,6 @@ def transform_expression_matrix(cell_data, transform, transform_kwargs=None):
             np.arcsinh(cell_data_transformed[:, :, channel_start:channel_end].values)
 
     return cell_data_transformed
-
-
-def compute_marker_counts(input_images, segmentation_masks, nuclear_counts=False):
-    """Extract single cell protein expression data from channel TIFs for a single point
-
-        Args:
-            input_images (xarray): rows x columns x channels matrix of imaging data
-            segmentation_masks (numpy array): rows x columns x compartment matrix of masks
-            nuclear_counts (bool): boolean flag to determine whether nuclear counts are returned
-
-        Returns:
-            marker_counts (xarray): xarray containing segmented data of cells x markers
-    """
-
-    unique_cell_num = len(np.unique(segmentation_masks.values).astype('int'))
-
-    # define morphology properties to be extracted from regionprops
-    object_properties = ["label", "area", "eccentricity", "major_axis_length",
-                         "minor_axis_length", "perimeter", 'coords']
-
-    # create labels for array holding channel counts and morphology metrics
-    feature_names = np.concatenate((np.array('cell_size'), input_images.channels,
-                                    object_properties[:-1]), axis=None)
-
-    # create np.array to hold compartment x cell x feature info
-    marker_counts_array = np.zeros((len(segmentation_masks.compartments), unique_cell_num,
-                                    len(feature_names)))
-
-    marker_counts = xr.DataArray(copy.copy(marker_counts_array),
-                                 coords=[segmentation_masks.compartments,
-                                         np.unique(segmentation_masks.values).astype('int'),
-                                         feature_names],
-                                 dims=['compartments', 'cell_id', 'features'])
-
-    # get regionprops for each cell
-    cell_props = pd.DataFrame(regionprops_table(segmentation_masks.loc[:, :, 'whole_cell'].values,
-                                                properties=object_properties))
-
-    if nuclear_counts:
-        nuc_mask = segmentation_masks.loc[:, :, 'nuclear'].values
-        nuc_props = pd.DataFrame(regionprops_table(nuc_mask, properties=object_properties))
-
-    # TODO: There's some repeated code here, maybe worth refactoring? Maybe not
-    # loop through each cell in mask
-    for cell_id in cell_props['label']:
-        # get coords corresponding to current cell.
-        cell_coords = cell_props.loc[cell_props['label'] == cell_id, 'coords'].values[0]
-
-        # calculate the total signal intensity within cell
-        cell_counts = signal_extraction.default_extraction(cell_coords, input_images)
-
-        # get morphology metrics
-        current_cell_props = cell_props.loc[cell_props['label'] == cell_id, object_properties[:-1]]
-
-        # combine marker counts and morphology metrics together
-        cell_features = np.concatenate((cell_counts, current_cell_props), axis=None)
-
-        # add counts of each marker to appropriate column
-        marker_counts.loc['whole_cell', cell_id, marker_counts.features[1]:] = cell_features
-
-        # add cell size to first column
-        marker_counts.loc['whole_cell', cell_id, marker_counts.features[0]] = cell_coords.shape[0]
-
-        if nuclear_counts:
-            # get id of corresponding nucleus
-            nuc_id = find_nuclear_mask_id(nuc_segmentation_mask=nuc_mask, cell_coords=cell_coords)
-
-            if nuc_id is None:
-                # no nucleus found within this cell
-                pass
-            else:
-                # get coordinates of corresponding nucleus
-                nuc_coords = nuc_props.loc[nuc_props['label'] == nuc_id, 'coords'].values[0]
-
-                # extract nuclear signal
-                nuc_counts = signal_extraction.default_extraction(nuc_coords, input_images)
-
-                # get morphology metrics
-                current_nuc_props = nuc_props.loc[
-                    nuc_props['label'] == nuc_id, object_properties[:-1]]
-
-                # combine marker counts and morphology metrics together
-                nuc_features = np.concatenate((nuc_counts, current_nuc_props), axis=None)
-
-                # add counts of each marker to appropriate column
-                marker_counts.loc['nuclear', nuc_id, marker_counts.features[1]:] = nuc_features
-
-                # add cell size to first column
-                marker_counts.loc['nuclear', nuc_id, marker_counts.features[0]] = \
-                    nuc_coords.shape[0]
-
-    return marker_counts
-
-
-def generate_expression_matrix(segmentation_labels, image_data, nuclear_counts=False):
-    """Create a matrix of cells by channels with the total counts of each marker in each cell.
-
-    Args:
-        segmentation_labels (xarray): xarray of shape [fovs, rows, cols, compartment] containing
-            segmentation masks for each FOV, potentially across multiple cell compartments
-        image_data (xarray): xarray containing all of the channel data across all FOVs
-        nuclear_counts (bool): boolean flag to determine whether nuclear counts are returned
-
-    Returns:
-        normalized_data (pandas): marker counts per cell normalized by cell size
-        arcsinh_data (pandas): arcsinh transfomed marker counts per cell normalized by cell size
-    """
-    if type(segmentation_labels) is not xr.DataArray:
-        raise ValueError("Incorrect data type for segmentation_labels, expecting xarray")
-
-    if type(image_data) is not xr.DataArray:
-        raise ValueError("Incorrect data type for image_data, expecting xarray")
-
-    if nuclear_counts:
-        if 'nuclear' not in segmentation_labels.compartments:
-            raise ValueError("Nuclear counts set to True, but not nuclear mask provided")
-
-    if not np.all(set(segmentation_labels.fovs.values) == set(image_data.fovs.values)):
-        raise ValueError("The same FOVs must be present in the segmentation labels and images")
-
-    # initialize data frames
-    normalized_data = pd.DataFrame()
-    arcsinh_data = pd.DataFrame()
-
-    # loop over each FOV in the dataset
-    for fov in segmentation_labels.fovs.values:
-        print("extracting data from {}".format(fov))
-
-        # current mask
-        segmentation_label = segmentation_labels.loc[fov, :, :, :]
-
-        # extract the counts per cell for each marker
-        marker_counts = compute_marker_counts(image_data.loc[fov, :, :, :], segmentation_label,
-                                              nuclear_counts=nuclear_counts)
-
-        # remove the cell corresponding to background
-        marker_counts = marker_counts[:, 1:, :]
-
-        # normalize counts by cell size
-        marker_counts_norm = transform_expression_matrix(marker_counts, transform='size_norm')
-
-        # arcsinh transform the data
-        marker_counts_arcsinh = transform_expression_matrix(marker_counts_norm,
-                                                            transform='arcsinh')
-
-        # add data from each FOV to array
-        normalized = pd.DataFrame(data=marker_counts_norm.loc['whole_cell', :, :].values,
-                                  columns=marker_counts_norm.features)
-
-        arcsinh = pd.DataFrame(data=marker_counts_arcsinh.values[0, :, :],
-                               columns=marker_counts_arcsinh.features)
-
-        if nuclear_counts:
-            # append nuclear counts pandas array with modified column name
-            nuc_column_names = [feature + '_nuclear' for feature in marker_counts.features.values]
-
-            # add nuclear counts to size normalized data
-            normalized_nuc = pd.DataFrame(data=marker_counts_norm.loc['nuclear', :, :].values,
-                                          columns=nuc_column_names)
-            normalized = pd.concat((normalized, normalized_nuc), axis=1)
-
-            # add nuclear counts to arcsinh transformed data
-            arcsinh_nuc = pd.DataFrame(data=marker_counts_arcsinh.loc['nuclear', :, :].values,
-                                       columns=nuc_column_names)
-            arcsinh = pd.concat((arcsinh, arcsinh_nuc), axis=1)
-
-        # add column for current FOV
-        normalized['fov'] = fov
-        normalized_data = normalized_data.append(normalized)
-
-        arcsinh['fov'] = fov
-        arcsinh_data = arcsinh_data.append(arcsinh)
-
-    return normalized_data, arcsinh_data
 
 
 def concatenate_csv(base_dir, csv_files, column_name="point", column_values=None):

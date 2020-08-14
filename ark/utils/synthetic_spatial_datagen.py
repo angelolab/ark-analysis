@@ -1,20 +1,8 @@
 import numpy as np
 import xarray as xr
-import pandas as pd
-import skimage.measure
-import scipy
-import os
-import xarray as xr
-import matplotlib.pyplot as plt
 
-from random import seed
-from random import random
-from scipy.spatial.distance import cdist
-from scipy.stats import norm
-from skimage.measure import label
 from copy import deepcopy
 from skimage.draw import circle
-from skimage.draw import circle_perimeter
 
 
 def generate_test_dist_matrix(num_A=100, num_B=100, num_C=100,

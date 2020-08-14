@@ -2,11 +2,7 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 import random
-from segmentation.utils import spatial_analysis_utils
-from segmentation.utils import spatial_analysis
-import importlib
-importlib.reload(spatial_analysis)
-importlib.reload(spatial_analysis_utils)
+from ark.utils import spatial_analysis_utils
 
 
 def test_calc_dist_matrix():

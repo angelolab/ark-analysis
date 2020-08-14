@@ -7,7 +7,7 @@ import tempfile
 
 from mibidata import mibi_image as mi, tiff
 
-from segmentation.utils import data_utils
+from ark.utils import data_utils
 import skimage.io as io
 
 import importlib

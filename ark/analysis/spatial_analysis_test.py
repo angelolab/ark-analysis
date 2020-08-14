@@ -2,11 +2,9 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 import random
-from segmentation.utils import spatial_analysis
-from segmentation.utils import spatial_analysis_utils
-from segmentation.utils import synthetic_spatial_datagen
-import importlib
-importlib.reload(spatial_analysis)
+
+from ark.analysis import spatial_analysis
+from ark.utils import synthetic_spatial_datagen
 
 
 def make_threshold_mat():

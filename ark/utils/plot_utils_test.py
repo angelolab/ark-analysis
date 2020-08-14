@@ -5,7 +5,7 @@ import os
 import numpy as np
 import skimage.io as io
 
-from segmentation.utils import plot_utils, data_utils
+from ark.utils import plot_utils, data_utils
 from skimage.draw import circle
 
 

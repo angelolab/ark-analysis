@@ -7,7 +7,7 @@ import numpy as np
 import xarray as xr
 from mibidata import tiff
 
-from segmentation.utils import io_utils as iou
+from ark.utils import io_utils as iou
 
 
 def load_imgs_from_mibitiff(data_dir, mibitiff_files=None, channels=None, delimiter=None,
