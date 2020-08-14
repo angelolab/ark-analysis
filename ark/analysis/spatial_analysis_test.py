@@ -19,7 +19,7 @@ def _make_distance_matrix(enrichment_type, dist_lim):
 
     if enrichment_type == "none":
         # Create a 60 x 60 euclidian distance matrix of random values for no enrichment
-        np.random.seed(42)
+        np.random.seed(0)
         rand_mat = np.random.randint(0, 200, size=(60, 60))
         np.fill_diagonal(rand_mat[:, :], 0)
 
