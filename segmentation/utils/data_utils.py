@@ -1,5 +1,4 @@
 import os
-import pathlib
 import math
 import warnings
 
@@ -8,39 +7,10 @@ import numpy as np
 import xarray as xr
 from mibidata import tiff
 
-
-def validate_paths(paths):
-    """Verifys that paths exist and don't leave Docker's scope
-
-    Args:
-        paths: paths to verify.
-
-    Output:
-        Raises errors if any directory is out of scope or non-existent
-    """
-
-    # if given a single path, convert to list
-    if not isinstance(paths, list):
-        paths = [paths]
-
-    for path in paths:
-        if not os.path.exists(path):
-            if str(path).startswith('../data'):
-                for parent in reversed(pathlib.Path(path).parents):
-                    if not os.path.exists(parent):
-                        raise ValueError(
-                            f'A bad path, {path}, was provided.\n'
-                            f'The folder, {parent.name}, could not be found...')
-                raise ValueError(
-                    f'The file/path, {pathlib.Path(path).name}, could not be found...')
-            else:
-                raise ValueError(
-                    f'The path, {path}, is not prefixed with \'../data\'.\n'
-                    f'Be sure to add all images/files/data to the \'data\' folder, '
-                    f'and to reference as \'../data/path_to_data/myfile.tif\'')
+from segmentation.utils import io_utils as iou
 
 
-def load_imgs_from_mibitiff(data_dir, mibitiff_files=None, channels=None, delimiter='_',
+def load_imgs_from_mibitiff(data_dir, mibitiff_files=None, channels=None, delimiter=None,
                             dtype='int16'):
     """Load images from a series of MIBItiff files.
 
@@ -49,25 +19,25 @@ def load_imgs_from_mibitiff(data_dir, mibitiff_files=None, channels=None, delimi
     MIBIimages stored in the MIBItiff files.
 
     Args:
-        data_dir: directory containing MIBItiffs
-        mibitiff_files: list of MIBItiff files to load. If None,
+        data_dir (str): directory containing MIBItiffs
+        mibitiff_files (list): list of MIBItiff files to load. If None,
             all MIBItiff files in data_dir are loaded.
-        channels: optional list of channels to load. Defaults to `None`, in
+        channels (list): optional list of channels to load. Defaults to `None`, in
             which case, all channels in the first MIBItiff are used.
-        delimiter: optional delimiter-character/string which separate fov names
-            from the rest of the file name
-        dtype: optional specifier of image type.  Overwritten with warning for
+        delimiter (str): optional delimiter-character/string which separate fov names
+            from the rest of the file name. Defaults to None
+        dtype (str/type): optional specifier of image type.  Overwritten with warning for
             float images
 
     Returns:
-        img_xr: xarray with shape [fovs, x_dim, y_dim, channels]
+        img_xr (xr.DataArray): xarray with shape [fovs, x_dim, y_dim, channels]
     """
 
     if not mibitiff_files:
-        mibitiff_files = os.listdir(data_dir)
-        mibitiff_files = [mt_file
-                          for mt_file in mibitiff_files
-                          if mt_file.split('.')[-1] in ['tif', 'tiff']]
+        mibitiff_files = iou.list_files(data_dir, substrs=['.tif'])
+
+    # extract fov names w/ delimiter agnosticism
+    fovs = iou.extract_delimited_names(mibitiff_files, delimiter=delimiter)
 
     mibitiff_files = [os.path.join(data_dir, mt_file)
                       for mt_file in mibitiff_files]
@@ -87,10 +57,6 @@ def load_imgs_from_mibitiff(data_dir, mibitiff_files=None, channels=None, delimi
         channel_tuples = tiff.read(mibitiff_files[0]).channels
         channels = [channel_tuple[1] for channel_tuple in channel_tuples]
 
-    # extract fov names w/ delimiter agnosticism
-    fovs = [mibitiff_file.split(os.sep)[-1].split('.')[0].split(delimiter)[0]
-            for mibitiff_file in mibitiff_files]
-
     # extract images from MIBItiff file
     img_data = []
     for mibitiff_file in mibitiff_files:
@@ -107,7 +73,7 @@ def load_imgs_from_mibitiff(data_dir, mibitiff_files=None, channels=None, delimi
     return img_xr
 
 
-def load_imgs_from_multitiff(data_dir, multitiff_files=None, channels=None, delimiter='_',
+def load_imgs_from_multitiff(data_dir, multitiff_files=None, channels=None, delimiter=None,
                              dtype='int16'):
     """Load images from a series of multi-channel tiff files.
 
@@ -121,26 +87,26 @@ def load_imgs_from_multitiff(data_dir, multitiff_files=None, channels=None, deli
     images.
 
     Args:
-        data_dir: directory containing multitiffs
-        multitiff_files: list of multi-channel tiff files to load.  If None,
+        data_dir (str): directory containing multitiffs
+        multitiff_files (list): list of multi-channel tiff files to load.  If None,
             all multitiff files in data_dir are loaded.
-        channels: optional list of channels to load.  Unlike MIBItiff, this must
+        channels (list): optional list of channels to load.  Unlike MIBItiff, this must
             be given as a numeric list of indices, since there is no metadata
             containing channel names.
-        delimiter: optional delimiter-character/string which separate fov names
-            from the rest of the file name
-        dtype: optional specifier of image type.  Overwritten with warning for
+        delimiter (str): optional delimiter-character/string which separate fov names
+            from the rest of the file name. Default is None.
+        dtype (str/type): optional specifier of image type.  Overwritten with warning for
             float images
 
     Returns:
-        img_xr: xarray with shape [fovs, x_dim, y_dim, channels]
+        img_xr (xr.DataArray): xarray with shape [fovs, x_dim, y_dim, channels]
     """
 
     if not multitiff_files:
-        multitiff_files = os.listdir(data_dir)
-        multitiff_files = [mt_file
-                           for mt_file in multitiff_files
-                           if mt_file.split('.')[-1] in ['tif', 'tiff']]
+        multitiff_files = iou.list_files(data_dir, substrs=['.tif'])
+
+    # extract fov names w/ delimiter agnosticism
+    fovs = iou.extract_delimited_names(multitiff_files, delimiter=delimiter)
 
     multitiff_files = [os.path.join(data_dir, mt_file)
                        for mt_file in multitiff_files]
@@ -165,10 +131,6 @@ def load_imgs_from_multitiff(data_dir, multitiff_files=None, channels=None, deli
     if channels:
         img_data = img_data[:, :, :, channels]
 
-    # extract fov names w/ delimiter agnosticism
-    fovs = [multitiff_file.split(os.sep)[-1].split('.')[0].split(delimiter)[0]
-            for multitiff_file in multitiff_files]
-
     # create xarray with image data
     img_xr = xr.DataArray(img_data,
                           coords=[fovs, range(img_data.shape[1]),
@@ -179,66 +141,52 @@ def load_imgs_from_multitiff(data_dir, multitiff_files=None, channels=None, deli
     return img_xr
 
 
-def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, imgs=None,
+def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, channels=None,
                         dtype="int16", variable_sizes=False):
     """Takes a set of imgs from a directory structure and loads them into an xarray.
 
         Args:
-            data_dir: directory containing folders of images
-            img_sub_folder: optional name of image sub-folder within each fov
-            fovs: optional list of folders to load imgs from, otherwise loads from all folders
-            imgs: optional list of imgs to load, otherwise loads all imgs
-            dtype: dtype of array which will be used to store values
-            variable_sizes: if true, will pad loaded images with zeros to fit into array
+            data_dir (str): directory containing folders of images
+            img_sub_folder (str): optional name of image sub-folder within each fov
+            fovs (list): optional list of folders to load imgs from. Default loads all folders
+            channels (list): optional list of imgs to load, otherwise loads all imgs
+            dtype (str/type): dtype of array which will be used to store values
+            variable_sizes (bool): if true, will pad loaded images with zeros to fit into array
 
         Returns:
-            img_xr: xarray with shape [fovs, x_dim, y_dim, tifs]
+            img_xr (xr.DataArray): xarray with shape [fovs, x_dim, y_dim, tifs]
     """
 
     if fovs is None:
         # get all fovs
-        fovs = os.listdir(data_dir)
-        fovs = [fov for fov in fovs if os.path.isdir(os.path.join(data_dir, fov))]
+        fovs = iou.list_folders(data_dir)
         fovs.sort()
-    else:
-        # use supplied list, but check to make sure they all exist
-        validate_paths([os.path.join(data_dir, fov) for fov in fovs])
 
     if len(fovs) == 0:
         raise ValueError(f"No fovs found in directory, {data_dir}")
 
-    # check to make sure img subfolder name within fov is correct
-    if img_sub_folder is not None:
-        validate_paths(os.path.join(data_dir, fovs[0], img_sub_folder))
-    else:
+    if img_sub_folder is None:
         # no img_sub_folder, change to empty string to read directly from base folder
         img_sub_folder = ""
 
     # get imgs from first fov if no img names supplied
-    if imgs is None:
-        imgs = os.listdir(os.path.join(data_dir, fovs[0], img_sub_folder))
-        imgs = [img for img in imgs if np.isin(img.split(".")[-1], ["tif", "tiff", "jpg", "png"])]
+    if channels is None:
+        channels = iou.list_files(os.path.join(data_dir, fovs[0], img_sub_folder),
+                                  substrs=['.tif', '.jpg', '.png'])
 
-        # if taking all imgs from directory, sort them alphabetically
-        imgs.sort()
+        # if taking all channels from directory, sort them alphabetically
+        channels.sort()
     # otherwise, fill channel names with correct file extension
-    elif not all([img.endswith(("tif", "tiff", "jpg", "png")) for img in imgs]):
-        fullnames = os.listdir(os.path.join(data_dir, fovs[0], img_sub_folder))
-        for fn in fullnames:
-            if any([img in fn for img in imgs]):
-                imgs = [img + '.' + fn.split(".")[-1]
-                        if img.split(".")[-1] != fn.split(".")[-1]
-                        else img
-                        for img in imgs]
-                break
+    elif not all([img.endswith(("tif", "tiff", "jpg", "png")) for img in channels]):
+        channels = iou.list_files(
+            os.path.join(data_dir, fovs[0], img_sub_folder),
+            substrs=channels
+        )
 
-    if len(imgs) == 0:
-        raise ValueError("No imgs found in designated folder")
+    if len(channels) == 0:
+        raise ValueError("No images found in designated folder")
 
-    # check to make sure supplied imgs exist
-    validate_paths([os.path.join(data_dir, fovs[0], img_sub_folder, img) for img in imgs])
-
-    test_img = io.imread(os.path.join(data_dir, fovs[0], img_sub_folder, imgs[0]))
+    test_img = io.imread(os.path.join(data_dir, fovs[0], img_sub_folder, channels[0]))
 
     # check to make sure that float dtype was supplied if image data is float
     data_dtype = test_img.dtype
@@ -249,19 +197,21 @@ def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, imgs=None,
             dtype = data_dtype
 
     if variable_sizes:
-        img_data = np.zeros((len(fovs), 1024, 1024, len(imgs)), dtype=dtype)
+        img_data = np.zeros((len(fovs), 1024, 1024, len(channels)), dtype=dtype)
     else:
-        img_data = np.zeros((len(fovs), test_img.shape[0], test_img.shape[1], len(imgs)),
+        img_data = np.zeros((len(fovs), test_img.shape[0], test_img.shape[1], len(channels)),
                             dtype=dtype)
 
     for fov in range(len(fovs)):
-        for img in range(len(imgs)):
+        for img in range(len(channels)):
             if variable_sizes:
-                temp_img = io.imread(os.path.join(data_dir, fovs[fov], img_sub_folder, imgs[img]))
+                temp_img = io.imread(
+                    os.path.join(data_dir, fovs[fov], img_sub_folder, channels[img])
+                )
                 img_data[fov, :temp_img.shape[0], :temp_img.shape[1], img] = temp_img
             else:
                 img_data[fov, :, :, img] = io.imread(os.path.join(data_dir, fovs[fov],
-                                                                  img_sub_folder, imgs[img]))
+                                                                  img_sub_folder, channels[img]))
 
     # check to make sure that dtype wasn't too small for range of data
     if np.min(img_data) < 0:
@@ -273,7 +223,7 @@ def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, imgs=None,
         row_coords, col_coords = range(test_img.shape[0]), range(test_img.shape[1])
 
     # remove .tif or .tiff from image name
-    img_names = [os.path.splitext(img)[0] for img in imgs]
+    img_names = [os.path.splitext(img)[0] for img in channels]
 
     img_xr = xr.DataArray(img_data, coords=[fovs, row_coords, col_coords, img_names],
                           dims=["fovs", "rows", "cols", "channels"])
@@ -281,27 +231,33 @@ def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, imgs=None,
     return img_xr
 
 
-def load_imgs_from_dir(data_dir, imgdim_name='compartments', image_name='img_data', delimiter='_',
-                       dtype="int16", variable_sizes=False):
+def load_imgs_from_dir(data_dir, imgdim_name='compartments', image_name='img_data', delimiter=None,
+                       dtype="int16", variable_sizes=False, force_ints=False):
     """Takes a set of images from a directory and loads them into an xarray based on filename
     prefixes.
 
         Args:
-            data_dir: directory containing images
-            imgdim_name: sets the name of the last dimension of the output xarray
-            image_name: sets name of the last coordinate in the output xarray
-            delimiter: character used to determine the file-prefix containging the fov name
-            dtype: data type to load/store
-            variable_sizes: Dynamically determine image sizes and pad smaller imgs with zeros
+            data_dir (str): directory containing images
+            imgdim_name (str): sets the name of the last dimension of the output xarray
+            image_name (str): sets name of the last coordinate in the output xarray
+            delimiter (str): character used to determine the file-prefix containging the fov name.
+                             Default is None.
+            dtype (str/type): data type to load/store
+            variable_sizes (bool): Dynamically determine image sizes and pad smaller imgs w/ zeros
+            force_ints (bool): If dtype is an integer, forcefully convert float imgs to ints.
+                               Default is False.
 
         Returns:
-            img_xr: xarray with shape [fovs, x_dim, y_dim, 1]
+            img_xr (xr.DataArray): xarray with shape [fovs, x_dim, y_dim, 1]
 
     """
 
-    imgs = os.listdir(data_dir)
-    imgs = [img for img in imgs if np.isin(img.split(".")[-1], ["tif", "tiff", "jpg", "png"])]
-    imgs = [img for img in imgs if delimiter in img]
+    imgs = iou.list_files(data_dir, substrs=['.tif', '.jpg', '.png'])
+
+    # filter by delimiter presence
+    if delimiter is not None:
+        imgs = [img for img in imgs if delimiter in img]
+
     imgs.sort()
 
     if len(imgs) == 0:
@@ -311,7 +267,11 @@ def load_imgs_from_dir(data_dir, imgdim_name='compartments', image_name='img_dat
 
     # check to make sure that float dtype was supplied if image data is float
     data_dtype = test_img.dtype
-    if np.issubdtype(data_dtype, np.floating):
+    if force_ints and np.issubdtype(dtype, np.integer):
+        if not np.issubdtype(data_dtype, np.integer):
+            warnings.warn(f"The the loaded {data_dtype} images were forcefully "
+                          f"overwritten with the supplied integer dtype {dtype}")
+    elif np.issubdtype(data_dtype, np.floating):
         if not np.issubdtype(dtype, np.floating):
             warnings.warn(f"The supplied non-float dtype {dtype} was overwritten to {data_dtype}, "
                           f"because the loaded images are floats")
@@ -326,9 +286,9 @@ def load_imgs_from_dir(data_dir, imgdim_name='compartments', image_name='img_dat
     for img in range(len(imgs)):
         if variable_sizes:
             temp_img = io.imread(os.path.join(data_dir, imgs[img]))
-            img_data[img, :temp_img.shape[0], :temp_img.shape[1], 0] = temp_img
+            img_data[img, :temp_img.shape[0], :temp_img.shape[1], 0] = temp_img.astype(dtype)
         else:
-            img_data[img, :, :, 0] = io.imread(os.path.join(data_dir, imgs[img]))
+            img_data[img, :, :, 0] = io.imread(os.path.join(data_dir, imgs[img])).astype(dtype)
 
     # check to make sure that dtype wasn't too small for range of data
     if np.min(img_data) < 0:
@@ -340,10 +300,12 @@ def load_imgs_from_dir(data_dir, imgdim_name='compartments', image_name='img_dat
         row_coords, col_coords = range(test_img.shape[0]), range(test_img.shape[1])
 
     # get fov name from imgs
-    fovs = [img.split(delimiter)[0] for img in imgs]
+    fovs = iou.extract_delimited_names(imgs, delimiter=delimiter)
 
-    img_xr = xr.DataArray(img_data, coords=[fovs, row_coords, col_coords, [image_name]],
-                          dims=["fovs", "rows", "cols", imgdim_name])
+    img_xr = xr.DataArray(img_data.astype(dtype),
+                          coords=[fovs, row_coords, col_coords, [image_name]],
+                          dims=["fovs", "rows", "cols",
+                          imgdim_name])
 
     return img_xr
 
@@ -352,13 +314,13 @@ def load_imgs_from_dir(data_dir, imgdim_name='compartments', image_name='img_dat
 def generate_deepcell_input(data_xr, data_dir, nuc_channels, mem_channels):
     """Saves nuclear and membrane channels into deepcell input format.
 
-    Inputs:
-        data_xr: xarray containing nuclear and membrane channels over many fov's
-        data_dir: location to save deepcell input tifs
-        nuc_channels: nuclear channels to be summed over
-        mem_channels: membrane channels to be summed over
-    Outputs:
-        Saves summed channels as multitiffs
+    Args:
+        data_xr (xr.DataArray): xarray containing nuclear and membrane channels over many fov's
+        data_dir (str): location to save deepcell input tifs
+        nuc_channels (list): nuclear channels to be summed over
+        mem_channels (list): membrane channels to be summed over
+    Output:
+        Writes summed channel images out as multitiffs
 
     """
     for fov in data_xr.fovs.values:
@@ -367,11 +329,11 @@ def generate_deepcell_input(data_xr, data_dir, nuc_channels, mem_channels):
         # sum over channels and add to output
         if nuc_channels:
             out[:, :, 0] = \
-                np.sum(data_xr.loc[fov, :, :, nuc_channels].values.astype(data_xr.dtype),
+                np.sum(data_xr.loc[fov, :, :, nuc_channels].values,
                        axis=2)
         if mem_channels:
             out[:, :, 1] = \
-                np.sum(data_xr.loc[fov, :, :, mem_channels].values.astype(data_xr.dtype),
+                np.sum(data_xr.loc[fov, :, :, mem_channels].values,
                        axis=2)
 
         save_path = os.path.join(data_dir, f'{fov}.tif')
@@ -381,13 +343,13 @@ def generate_deepcell_input(data_xr, data_dir, nuc_channels, mem_channels):
 def combine_xarrays(xarrays, axis):
     """Combines a number of xarrays together
 
-    Inputs:
-        xarrays: a tuple of xarrays
-        axis: either 0, if the xarrays will combined over different fovs,
+    Args:
+        xarrays (tuple): a tuple of xarrays
+        axis (int): either 0, if the xarrays will combined over different fovs,
         or -1 if they will be combined over channels
 
-    Outputs:
-        combined_xr: an xarray that is the combination of all inputs"""
+    Returns:
+        combined_xr (xr.DataArray): an xarray that is the combination of all inputs"""
 
     first_xr = xarrays[0]
     np_arr = first_xr.values
@@ -438,11 +400,11 @@ def combine_xarrays(xarrays, axis):
 def crop_helper(image_stack, crop_size):
     """"Helper function to take an image, and return crops of size crop_size
 
-    Inputs:
+    Args:
         image_stack (np.array): A 4D numpy array of shape(points, rows, columns, channels)
         crop_size (int): Size of the crop to take from the image. Assumes square crops
 
-    Outputs:
+    Returns:
         cropped_images (np.array): A 4D numpy array of shape (crops, rows, columns, channels)"""
 
     if len(image_stack.shape) != 4:
@@ -487,12 +449,12 @@ def crop_image_stack(image_stack, crop_size, stride_fraction):
     the crop_size in x and y at each step, whereas a stride fraction of 1 will move
     the window the entire crop size at each iteration.
 
-    Inputs:
+    Args:
         image_stack (np.array): A 4D numpy array of shape(points, rows, columns, channels)
         crop_size (int): size of the crop to take from the image. Assumes square crops
         stride_fraction (float): the relative size of the stride for overlapping
             crops as a function of the crop size.
-    Outputs:
+    Returns:
         cropped_images (np.array): A 4D numpy array of shape(crops, rows, cols, channels)"""
 
     if len(image_stack.shape) != 4:
@@ -531,10 +493,10 @@ def crop_image_stack(image_stack, crop_size, stride_fraction):
 def combine_point_directories(dir_path):
     """Combines a folder containing multiple imaging runs into a single folder
 
-    Inputs
-        dir_path: path to directory containing the sub directories
+    Args:
+        dir_path (str): path to directory containing the sub directories
 
-    Outputs
+    Returns:
         None"""
 
     if not os.path.exists(dir_path):

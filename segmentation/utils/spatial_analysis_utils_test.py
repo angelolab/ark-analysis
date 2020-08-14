@@ -118,9 +118,10 @@ def test_compute_close_cell_num():
     # Subsetting threshold matrix to only include column with threshold values
     thresh_vec = example_thresholds.iloc[0:20, 1]
 
-    example_closenum, m1, m2 = spatial_analysis_utils.compute_close_cell_num(
+    example_closenum, m1 = spatial_analysis_utils.compute_close_cell_num(
         dist_mat=example_dist_mat, dist_lim=100, num=chanel_num, analysis_type="channel",
         current_fov_data=all_data, current_fov_channel_data=fov_channel_data, thresh_vec=thresh_vec)
+
     assert (example_closenum[:2, :2] == 16).all()
     assert (example_closenum[3:5, 3:5] == 25).all()
     assert (example_closenum[5:7, 5:7] == 1).all()
@@ -134,12 +135,14 @@ def test_compute_close_cell_num():
     # List of all markers
     channel_titles = fov_channel_data.columns
     # Length of marker list
-    chanel_num = len(channel_titles)
+    channel_num = len(channel_titles)
     # Subsetting threshold matrix to only include column with threshold values
     thresh_vec = example_thresholds.iloc[0:20, 1]
-    example_closenum, m1, m2 = spatial_analysis_utils.compute_close_cell_num(
-        dist_mat=example_dist_mat, dist_lim=100, num=chanel_num, analysis_type="channel",
+
+    example_closenum, m1 = spatial_analysis_utils.compute_close_cell_num(
+        dist_mat=example_dist_mat, dist_lim=100, num=channel_num, analysis_type="channel",
         current_fov_data=all_data, current_fov_channel_data=fov_channel_data, thresh_vec=thresh_vec)
+
     assert (example_closenum[:2, :2] == 9).all()
     assert (example_closenum[3:5, 3:5] == 25).all()
     assert (example_closenum[5:7, 5:7] == 1).all()
@@ -149,13 +152,11 @@ def test_compute_close_cell_num_random():
     data_markers, example_distmat = make_example_data_closenum()
 
     # Generate random inputs to test shape
-    marker1_poslabels_num = [random.randrange(0, 10) for i in range(20)]
-    marker2_poslabels_num = [random.randrange(0, 5) for i in range(400)]
-    marker_num = 20
+    marker_nums = [random.randrange(0, 10) for i in range(20)]
 
     example_closenumrand = spatial_analysis_utils.compute_close_cell_num_random(
-        marker1_poslabels_num, marker2_poslabels_num, example_distmat, marker_num, dist_lim=100,
-        bootstrap_num=100)
+        marker_nums, example_distmat, dist_lim=100, bootstrap_num=100
+    )
 
     assert example_closenumrand.shape == (20, 20, 100)
 
