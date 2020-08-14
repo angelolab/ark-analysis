@@ -40,7 +40,7 @@ def calc_dist_matrix(label_map, path=None):
         np.savez(path + "dist_matrices.npz", **dist_matrices)
 
 
-def get_pos_cell_labels(analysis_type, pheno=None, current_fov_neighborhood_data=None,
+def get_pos_cell_labels(analysis_type, pheno=None, current_fov_data=None,
                         thresh=None, current_fov_channel_data=None, cell_labels=None, current_marker=None):
     """Based on the type of the analysis, the function finds positive labels that match the current phenotype or
     identifies cells with positive expression values for the current marker (greater than the marker threshold).
@@ -48,32 +48,32 @@ def get_pos_cell_labels(analysis_type, pheno=None, current_fov_neighborhood_data
     Args:
         analysis_type (string): type of analysis, either "cluster" or "channel"
         pheno (string): the current cell phenotype
-        current_fov_neighborhood_data (pandas df): data for the current patient
+        current_fov_data (pandas df): data for the current patient
         thresh (int): current threshold for marker
         current_fov_channel_data (pandas df): expression data for column markers for current patient
         cell_labels (pandas df): the column of cell labels for current patient
         current_marker (string): the current marker that the positive labels are being found for
     Returns:
-        mark1poslabels (list): all the positive labels"""
+        marker1_poslabels_num (list): all the positive labels"""
 
     if not np.isin(analysis_type, ("cluster", "channel")).all():
         raise ValueError("Incorrect analysis type")
 
     if analysis_type == "cluster":
-        if pheno is None or current_fov_neighborhood_data is None:
+        if pheno is None or current_fov_data is None:
             raise ValueError("Incorrect arguments passed for analysis type")
         # Subset only cells that are of the same phenotype
-        pheno1posinds = current_fov_neighborhood_data["FlowSOM_ID"] == pheno
+        pheno1posinds = current_fov_data["FlowSOM_ID"] == pheno
         # Get the cell labels of the cells of the phenotype
-        mark1poslabels = current_fov_neighborhood_data.iloc[:, 1][pheno1posinds]
+        marker1_poslabels_num = current_fov_data.iloc[:, 1][pheno1posinds]
     else:
         if thresh is None or current_fov_channel_data is None or cell_labels is None or current_marker is None:
             raise ValueError("Incorrect arguments passed for analysis type")
         # Subset only cells that are positive for the given marker
         marker1posinds = current_fov_channel_data[current_marker] > thresh
         # Get the cell labels of the positive cells
-        mark1poslabels = cell_labels[marker1posinds]
-    return mark1poslabels
+        marker1_poslabels_num = cell_labels[marker1posinds]
+    return marker1_poslabels_num
 
 
 def compute_close_cell_num(dist_mat, dist_lim, num, analysis_type,
@@ -103,8 +103,7 @@ def compute_close_cell_num(dist_mat, dist_lim, num, analysis_type,
     Returns:
         close_num (np array): marker x marker matrix with counts for cells
             positive for corresponding markers
-        marker1_poslabels_num (list): number of cell labels for marker 1
-        marker2_poslabels_num (list): number of cell labels for marker 2"""
+        marker1_num : number of cell labels for marker 1"""
     # Initialize variables
 
     cell_labels = []
@@ -119,53 +118,45 @@ def compute_close_cell_num(dist_mat, dist_lim, num, analysis_type,
 
     # Create close_num, marker1_num, and marker2_num
     close_num = np.zeros((num, num), dtype='int')
+    mark1_num = []
     marker1_poslabels_num = []
-    marker2_poslabels_num = []
+
+    dist_mat_bin = np.zeros(dist_mat.shape, dtype='int')
+    dist_mat_bin[dist_mat < dist_lim] = 1
 
     for j in range(0, num):
         # Identify cell labels that are positive for respective markers or phenotypes, based on type of analysis
         if analysis_type == "cluster":
-            mark1poslabels = get_pos_cell_labels(analysis_type, cluster_ids.iloc[j], current_fov_data)
+            marker1_poslabels_num.append(get_pos_cell_labels(analysis_type, cluster_ids.iloc[j], current_fov_data))
         else:
-            mark1poslabels = get_pos_cell_labels(analysis_type, thresh=thresh_vec.iloc[j],
-                                                 current_fov_channel_data=current_fov_channel_data,
-                                                 cell_labels=cell_labels,
-                                                 current_marker=current_fov_channel_data.columns[j])
-        # Length of the number of positive cell labels
-        marker1_poslabels_num.append(len(mark1poslabels))
-        for k in range(0, num):
-            # Repeats what was done above for the same marker and all other markers in the analysis
-            if analysis_type == "cluster":
-                mark2poslabels = get_pos_cell_labels(analysis_type, cluster_ids.iloc[k], current_fov_data)
-            else:
-                mark2poslabels = get_pos_cell_labels(analysis_type, thresh=thresh_vec.iloc[k],
-                                                     current_fov_channel_data=current_fov_channel_data,
-                                                     cell_labels=cell_labels,
-                                                     current_marker=current_fov_channel_data.columns[k])
-            marker2_poslabels_num.append(len(mark2poslabels))
+            marker1_poslabels_num.append(get_pos_cell_labels(
+                analysis_type, thresh=thresh_vec.iloc[j], current_fov_channel_data=current_fov_channel_data,
+                cell_labels=cell_labels, current_marker=current_fov_channel_data.columns[j]))
+            mark1_num.append(len(marker1_poslabels_num[j]))
 
-            # Subset the distance matrix to only include cells positive for both markers j and k
-            trunc_dist_mat = dist_mat[np.ix_(np.asarray(mark1poslabels - 1, dtype='int'),
-                                             np.asarray(mark2poslabels - 1, dtype='int'))]
-
-            # Binarize the truncated distance matrix to only include cells within distance limit
-            trunc_dist_mat_bin = np.zeros(trunc_dist_mat.shape, dtype='int')
-            trunc_dist_mat_bin[trunc_dist_mat < dist_lim] = 1
-            close_num[j, k] = np.sum(np.sum(trunc_dist_mat_bin))
-    return close_num, marker1_poslabels_num, marker2_poslabels_num
+            # iterating k from [j, end] cuts out 1/2 the steps (while symmetric)
+        for j, m1n in enumerate(mark1_num):
+            for k, m2n in enumerate(mark1_num[j:], j):
+                close_num[j, k] = np.sum(
+                    dist_mat_bin[np.ix_(
+                        np.asarray(marker1_poslabels_num[j] - 1, dtype='int'),
+                        np.asarray(marker1_poslabels_num[k] - 1, dtype='int')
+                    )]
+                )
+                # symmetry :)
+                close_num[k, j] = close_num[j, k]
+    return close_num, mark1_num
 
 
-def compute_close_cell_num_random(marker1_poslabels_num, marker2_poslabels_num,
-                                  dist_mat, marker_num, dist_lim, bootstrap_num):
+def compute_close_cell_num_random(marker_nums,
+                                  dist_mat, dist_lim, bootstrap_num):
     """Uses bootstrapping to permute cell labels randomly and records the number of close cells (within the dit_lim)
     in that random setup.
 
     Args
-        marker1_poslabels_num (list): number of cell labels for marker 1
-        marker2_poslabels_num (list): list of number of cell labels for marker 2
+        marker_nums (np.array): list of cell counts of each marker type
         dist_mat (np array): cells x cells matrix with the euclidian
             distance between centers of corresponding cells
-        marker_num (int): number of markers in expresion data
         dist_lim (int): threshold for spatial enrichment distance proximity
         bootstrap_num (int): number of permutations
         seed: the seed to set for randomized operations, useful for testing
@@ -176,25 +167,20 @@ def compute_close_cell_num_random(marker1_poslabels_num, marker2_poslabels_num,
 
     # Create close_num_rand
     close_num_rand = np.zeros((
-        marker_num, marker_num, bootstrap_num), dtype='int')
+        len(marker_nums), len(marker_nums), bootstrap_num), dtype='int')
 
-    for j in range(0, marker_num):
-        for k in range(0, marker_num):
-            for r in range(0, bootstrap_num):
-                # Select same amount of random cell labels as positive ones in same marker in close_num
-                marker1_labels_rand = np.random.choice(
-                    a=range(dist_mat.shape[0]), size=marker1_poslabels_num[j], replace=True)
-                marker2_labels_rand = np.random.choice(
-                    a=range(dist_mat.shape[0]), size=marker2_poslabels_num[k], replace=True)
-                # Subset the distance matrix to only include positive randomly selected cell labels
-                rand_trunc_dist_mat = dist_mat[np.ix_(np.asarray(
-                    marker1_labels_rand, dtype='int'), np.asarray(marker2_labels_rand, dtype='int'))]
-                # Binarize the truncated distance matrix to only include cells within distance limit
-                rand_trunc_dist_mat_bin = np.zeros(rand_trunc_dist_mat.shape, dtype='int')
-                rand_trunc_dist_mat_bin[rand_trunc_dist_mat < dist_lim] = 1
-                # Record the number of interactions and store in close_num_rand in the index
-                # corresponding to both markers, for every permutation
-                close_num_rand[j, k, r] = np.sum(np.sum(rand_trunc_dist_mat_bin))
+    dist_bin = np.zeros(dist_mat.shape)
+    dist_bin[dist_mat < dist_lim] = 1
+
+    for j, m1n in enumerate(marker_nums):
+        for k, m2n in enumerate(marker_nums[j:], j):
+            close_num_rand[j, k, :] = np.sum(
+                np.random.choice(dist_bin.flatten(), (m1n * m2n, bootstrap_num), True),
+                axis=0
+            )
+            # symmetry :)
+            close_num_rand[k, j, :] = close_num_rand[j, k, :]
+
     return close_num_rand
 
 

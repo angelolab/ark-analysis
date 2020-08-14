@@ -149,13 +149,11 @@ def test_compute_close_cell_num_random():
     data_markers, example_distmat = make_example_data_closenum()
 
     # Generate random inputs to test shape
-    marker1_poslabels_num = [random.randrange(0, 10) for i in range(20)]
-    marker2_poslabels_num = [random.randrange(0, 5) for i in range(400)]
-    marker_num = 20
+    marker_nums = [random.randrange(0, 10) for i in range(20)]
 
     example_closenumrand = spatial_analysis_utils.compute_close_cell_num_random(
-        marker1_poslabels_num, marker2_poslabels_num, example_distmat, marker_num, dist_lim=100,
-        bootstrap_num=100)
+        marker_nums, example_distmat, dist_lim=100, bootstrap_num=100
+    )
 
     assert example_closenumrand.shape == (20, 20, 100)
 
