@@ -1,17 +1,6 @@
 import numpy as np
-import xarray as xr
-import pandas as pd
-import skimage.measure
-import scipy
-import os
 
-from scipy.spatial.distance import cdist
-from skimage.draw import circle
-
-from segmentation.utils import synthetic_spatial_datagen
-
-import importlib
-importlib.reload(synthetic_spatial_datagen)
+from ark.utils import synthetic_spatial_datagen
 
 
 def test_generate_test_dist_matrix():
