@@ -57,7 +57,7 @@ def _make_distance_matrix(enrichment_type, dist_lim):
         return dist_mat_neg
 
 
-def __make_expression_matrix(enrichment_type):
+def _make_expression_matrix(enrichment_type):
     # Create the expression matrix with cell labels and patient labels for no enrichment,
     # positive enrichment, and negative enrichment.
 
@@ -190,7 +190,7 @@ def test_calculate_channel_spatial_enrichment():
     marker_thresholds = _make_threshold_mat()
 
     # Positive enrichment with direct matrix initialization
-    all_data_pos = _make_expression_matrix(enrichment_type="positive")
+    all_data_pos = _make (enrichment_type="positive")
     dist_mat_pos_direct = _make_distance_matrix(enrichment_type="positive", dist_lim=dist_lim)
 
     _, stats_pos = \

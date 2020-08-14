@@ -185,9 +185,10 @@ def test_generate_expression_matrix_multiple_compartments():
                                         ["chan0", "chan1", "chan2", "chan3", "chan4"]],
                                 dims=["fovs", "rows", "cols", "channels"])
 
-    normalized, arcsinh = marker_quantification.generate_expression_matrix(segmentation_masks_unequal,
-                                                                        channel_data,
-                                                                        nuclear_counts=True)
+    normalized, arcsinh = marker_quantification.generate_expression_matrix(
+        segmentation_masks_unequal,
+        channel_data,
+        nuclear_counts=True)
 
     assert normalized.shape[0] == 7
 
