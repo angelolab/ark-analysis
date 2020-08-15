@@ -1,10 +1,10 @@
 language: python
 
+# We add python path to enable testing jupyter notebooks
 install:
   - pip install -r requirements.txt
-  - pip install pytest==5.2.0 pytest-cov==2.5.1 pytest-pep8 coveralls
+  - pip install -r requirements-test.txt
   - export PYTHONPATH=$PWD
-  - echo $PYTHONPATH
 
 env:
   - MPLBACKEND=Agg
