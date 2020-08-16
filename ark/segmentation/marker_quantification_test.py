@@ -54,7 +54,7 @@ def test_compute_marker_counts():
     assert np.all(segmentation_output.loc['whole_cell', :, 'chan4'][3:] == 0)
 
     # check that cell sizes are correct
-    sizes = [np.sum(cell_mask == cell_id) for cell_id in [1, 2, 3, 4]]
+    sizes = [np.sum(cell_mask == cell_id) for cell_id in [1, 2, 3, 5]]
     assert np.array_equal(sizes, segmentation_output.loc['whole_cell', 1:, 'cell_size'])
 
     # check that regionprops size matches with cell size
@@ -116,7 +116,7 @@ def test_compute_marker_counts():
     assert np.all(segmentation_output_unequal.loc['nuclear', :, 'chan4'][3:] == 0)
 
     # check that cell sizes are correct
-    sizes = [np.sum(nuc_mask == cell_id) for cell_id in [1, 2, 3, 4]]
+    sizes = [np.sum(nuc_mask == cell_id) for cell_id in [1, 2, 3, 5]]
     assert np.array_equal(sizes, segmentation_output_unequal.loc['nuclear', 1:, 'cell_size'])
 
     assert np.array_equal(segmentation_output_unequal.loc['nuclear', 1:, 'cell_size'],
@@ -175,6 +175,9 @@ def test_generate_expression_matrix_multiple_compartments():
     # cell 2 in fov0 has no nucleus
     nuc_masks[0, nuc_masks[0, :, :, 0] == 2, 0] = 0
 
+    # all of the nuclei have a label that is 2x the label of the corresponding cell
+    nuc_masks *= 2
+
     unequal_masks = np.concatenate((cell_masks, nuc_masks), axis=-1)
     coords = [["Point0", "Point1"], range(40), range(40), ['whole_cell', 'nuclear']]
     dims = ['fovs', 'rows', 'cols', 'compartments']
@@ -190,15 +193,25 @@ def test_generate_expression_matrix_multiple_compartments():
         channel_data,
         nuclear_counts=True)
 
+    # 7 total cells
     assert normalized.shape[0] == 7
 
+    # channel 0 has a constant value of 1
     assert np.all(normalized['chan0'] == np.repeat(1, len(normalized)))
-    assert np.all(normalized['chan1'] == np.repeat(5, len(normalized)))
-    assert np.all(normalized['chan2'] == normalized['chan2'])
 
-    # check that missing nucleus has size 0
+    # channel 1 has a constant value of 5
+    assert np.all(normalized['chan1'] == np.repeat(5, len(normalized)))
+
+    # these two channels should be equal for all cells
+    assert np.all(normalized['chan1'] == normalized['chan2'])
+
+    # check that cell with missing nucleus has size 0
     index = np.logical_and(normalized['label'] == 2, normalized['fov'] == 'Point0')
     assert normalized.loc[index, 'cell_size_nuclear'].values == 0
+
+    # check that correct nuclear label is assigned to all cells
+    normalized_with_nuc = normalized.loc[normalized['label'] != 2, ['label', 'label_nuclear']]
+    assert np.all(normalized_with_nuc['label'] * 2 == normalized_with_nuc['label_nuclear'])
 
 
 def test_compute_complete_expression_matrices():
