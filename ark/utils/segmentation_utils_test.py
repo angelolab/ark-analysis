@@ -12,7 +12,7 @@ def _create_test_extraction_data():
     cell_mask[4:10, 4:10] = 1
     cell_mask[15:25, 20:30] = 2
     cell_mask[27:32, 3:28] = 3
-    cell_mask[35:40, 15:22] = 4
+    cell_mask[35:40, 15:22] = 5
 
     # then create channels data
     channel_data = np.zeros((40, 40, 5), dtype="int16")
