@@ -54,7 +54,7 @@ def test_compute_marker_counts():
     assert np.all(segmentation_output.loc['whole_cell', :, 'chan4'][3:] == 0)
 
     # check that cell sizes are correct
-    sizes = [np.sum(cell_mask == cell_id) for cell_id in [1, 2, 3, 4]]
+    sizes = [np.sum(cell_mask == cell_id) for cell_id in [1, 2, 3, 5]]
     assert np.array_equal(sizes, segmentation_output.loc['whole_cell', 1:, 'cell_size'])
 
     # check that regionprops size matches with cell size
@@ -116,7 +116,7 @@ def test_compute_marker_counts():
     assert np.all(segmentation_output_unequal.loc['nuclear', :, 'chan4'][3:] == 0)
 
     # check that cell sizes are correct
-    sizes = [np.sum(nuc_mask == cell_id) for cell_id in [1, 2, 3, 4]]
+    sizes = [np.sum(nuc_mask == cell_id) for cell_id in [1, 2, 3, 5]]
     assert np.array_equal(sizes, segmentation_output_unequal.loc['nuclear', 1:, 'cell_size'])
 
     assert np.array_equal(segmentation_output_unequal.loc['nuclear', 1:, 'cell_size'],
@@ -174,6 +174,9 @@ def test_generate_expression_matrix_multiple_compartments():
 
     # cell 2 in fov0 has no nucleus
     nuc_masks[0, nuc_masks[0, :, :, 0] == 2, 0] = 0
+
+    # all of the nuclei have a label that is 2x the label of the corresponding cell
+    nuc_masks *= 2
 
     unequal_masks = np.concatenate((cell_masks, nuc_masks), axis=-1)
     coords = [["Point0", "Point1"], range(40), range(40), ['whole_cell', 'nuclear']]
