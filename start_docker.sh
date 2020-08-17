@@ -14,14 +14,14 @@ then
         shift
         ;;
       *)
-        shift
         echo "$1 is not an accepted option..."
+        shift
         ;;
     esac
   done
 
   # perform update if requested
-  if [ $update -ne 0]
+  if [ $update -ne 0 ]
   then
     # check for each template's existance
     for f in "$PWD"/templates/*.ipynb
@@ -62,7 +62,6 @@ then
       fi
     done
   else
-  then
     # -n for no overwrite
     # this is to prevent the case of an empty scripts directory not being filled
     cp -n "$PWD"/templates/*.ipynb "$PWD/scripts/."
