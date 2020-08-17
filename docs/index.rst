@@ -1,19 +1,33 @@
-.. ark documentation master file, created by
-   sphinx-quickstart on Mon Aug 17 11:15:44 2020.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
-
-Welcome to ark's documentation!
+ARK documentation
 ===============================
 
+Welcome to the greatest show on planet earth.
+
+Table of Contents
+------------------
+
 .. toctree::
-   :maxdepth: 2
-   :caption: Contents:
+   :maxdepth: 1
 
+   markdown-sample
 
+Hello world
+------------------
+
+We're talkin' 'bout ARK code here.::
+
+    print('hello world')
+    >> hello world
+
+The table of contents has a sample file for you to look at. It should be parsed correctly with recommonmark configured in conf.py. Unfortunately, I could not include the example of an image :-(, but you probably already know how that works in Markdown.
+
+Main section
+------------------
+
+.. mdinclude:: markdown-sample.md
 
 Indices and tables
-==================
+-------------------
 
 * :ref:`genindex`
 * :ref:`modindex`
