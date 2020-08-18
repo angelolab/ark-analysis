@@ -501,42 +501,42 @@ def test_split_img_stack():
     with tempfile.TemporaryDirectory() as temp_dir:
         stack_dir = os.path.join(temp_dir, "stack_sample")
         output_dir = os.path.join(temp_dir, "output_sample")
-        stack_list = ["channel_data.tiff"]
+        stack_list = ["channel_data.tif"]
         indices = [0, 1]
-        names = ["chan1.tiff", "chan2.tiff"]
+        names = ["chan1.tif", "chan2.tif"]
 
         os.mkdir(os.path.join(temp_dir, "stack_sample"))
         os.mkdir(os.path.join(temp_dir, "output_sample"))
 
         # first test channel_first=False
-        junk_img_chan_last = np.zeros((1024, 1024, 3))
-        io.imsave(os.path.join(stack_dir, "channel_data.tiff"), junk_img_chan_last)
+        junk_img_chan_last = np.zeros((1024, 1024, 10))
+        io.imsave(os.path.join(stack_dir, "channel_data.tif"), junk_img_chan_last)
 
         data_utils.split_img_stack(stack_dir, output_dir, stack_list, indices, names, channels_first=False)
 
-        assert os.path.exists(os.path.join(output_dir, "channel_data", "chan1.tiff"))
-        assert os.path.exists(os.path.join(output_dir, "channel_data", "chan2.tiff"))
+        assert os.path.exists(os.path.join(output_dir, "channel_data", "chan1.tif"))
+        assert os.path.exists(os.path.join(output_dir, "channel_data", "chan2.tif"))
 
-        sample_chan_1 = io.imread(os.path.join(output_dir, "channel_data", "chan1.tiff"))
-        sample_chan_2 = io.imread(os.path.join(output_dir, "channel_data", "chan2.tiff"))
+        sample_chan_1 = io.imread(os.path.join(output_dir, "channel_data", "chan1.tif"))
+        sample_chan_2 = io.imread(os.path.join(output_dir, "channel_data", "chan2.tif"))
 
-        assert sample_chan_1.shape == (1024, 1024, 2)
-        assert sample_chan_2.shape == (1024, 1024, 2)
+        assert sample_chan_1.shape == (1024, 1024)
+        assert sample_chan_2.shape == (1024, 1024)
 
         # now overwrite old channel_data.jpg file and test channel_first=True
-        junk_img_chan_first = np.zeros((3, 1024, 1024))
-        io.imsave(os.path.join(stack_dir, "channel_data.tiff"), junk_img_chan_first)
+        junk_img_chan_first = np.zeros((10, 1024, 1024))
+        io.imsave(os.path.join(stack_dir, "channel_data.tif"), junk_img_chan_first)
 
         # clear the original channel_data directory so an error doesn't get thrown trying to recreate it
         rmtree(os.path.join(output_dir, "channel_data"))
 
-        data_utils.split_img_stack(stack_dir, output_dir, stack_list, indices, names)
+        data_utils.split_img_stack(stack_dir, output_dir, stack_list, indices, names, channels_first=True)
 
-        assert os.path.exists(os.path.join(output_dir, "channel_data", "chan1.tiff"))
-        assert os.path.exists(os.path.join(output_dir, "channel_data", "chan2.tiff"))
+        assert os.path.exists(os.path.join(output_dir, "channel_data", "chan1.tif"))
+        assert os.path.exists(os.path.join(output_dir, "channel_data", "chan2.tif"))
 
-        sample_chan_1 = io.imread(os.path.join(output_dir, "channel_data", "chan1.tiff"))
-        sample_chan_2 = io.imread(os.path.join(output_dir, "channel_data", "chan2.tiff"))
+        sample_chan_1 = io.imread(os.path.join(output_dir, "channel_data", "chan1.tif"))
+        sample_chan_2 = io.imread(os.path.join(output_dir, "channel_data", "chan2.tif"))
 
-        assert sample_chan_1.shape == (2, 1024, 1024)
-        assert sample_chan_2.shape == (2, 1024, 1024)
+        assert sample_chan_1.shape == (1024, 1024)
+        assert sample_chan_2.shape == (1024, 1024)
