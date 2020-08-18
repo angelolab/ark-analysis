@@ -4,6 +4,7 @@ import os
 import math
 import pytest
 import tempfile
+from shutil import rmtree
 
 from mibidata import mibi_image as mi, tiff
 
@@ -459,65 +460,76 @@ def test_crop_image_stack():
 
 
 def test_combine_point_directories():
+    # first test the case where the directory specified doesn't exist
+    with pytest.raises(ValueError):
+        data_utils.combine_point_directories(os.path.join("path", "to", "undefined", "folder"))
+
+    # now we do the "real" testing...
     with tempfile.TemporaryDirectory() as temp_dir:
         os.mkdir(os.path.join(temp_dir, "test"))
 
         os.mkdir(os.path.join(temp_dir, "test", "subdir1"))
         os.mkdir(os.path.join(temp_dir, "test", "subdir2"))
 
-        junk_img = np.zeros((1024, 1024))
+        os.mkdir(os.path.join(temp_dir, "test", "subdir1", "point1"))
+        os.mkdir(os.path.join(temp_dir, "test", "subdir2", "point2"))
 
-        io.imsave(os.path.join(temp_dir, "test", "subdir1", "point1"), junk_img)
-        io.imsave(os.path.join(temp_dir, "test", "subdir2", "point2"), junk_img)
+        # junk_img = np.zeros((1024, 1024, 3))
+
+        # io.imsave(os.path.join(temp_dir, "test", "subdir1", "point1"), junk_img)
+        # io.imsave(os.path.join(temp_dir, "test", "subdir2", "point2"), junk_img)
 
         data_utils.combine_point_directories(os.path.join(temp_dir, "test"))
 
         assert os.path.exists(os.path.join(temp_dir, "test", "combined_folder"))
-        assert os.path.exists(os.path.join(temp_dir, "test", "subdir1_point1"))
-        assert os.path.exists(os.path.join(temp_dir, "test", "subdir2_point2"))
+        assert os.path.exists(os.path.join(temp_dir, "test", "combined_folder", "subdir1_point1"))
+        assert os.path.exists(os.path.join(temp_dir, "test", "combined_folder", "subdir2_point2"))
 
 
 def test_stitch_images():
     fovs = ['fov1', 'fov2']
     chans = ['nuc1', 'nuc2', 'mem1', 'mem2']
 
-    img_data = np.ones((2, 1024, 1024, 4), dtype="int16")
+    img_data = np.ones((2, 10, 10, 4), dtype="int16")
     img_data[0, :, :, 1] += 1
     img_data[0, :, :, 3] += 2
 
-    data_xr = xr.DataArray(img_data, coords=[fovs, range(1024), range(1024), chans],
+    data_xr = xr.DataArray(img_data, coords=[fovs, range(10), range(10), chans],
                            dims=["fovs", "rows", "cols", "channels"])
 
     stitched_xr = data_utils.stitch_images(data_xr, data_xr.shape[2])
 
-    assert stitched_xr.shape[2] == 1024 * 1024
+    assert stitched_xr.shape[2] == 10 * 10
 
 
 def test_split_img_stack():
     with tempfile.TemporaryDirectory() as temp_dir:
-        stack_dir = "stack_sample"
-        output_dir = "output_sample"
-        stack_list = ["channel_data.jpg"]
+        stack_dir = os.path.join(temp_dir, "stack_sample")
+        output_dir = os.path.join(temp_dir, "output_sample")
+        stack_list = ["channel_data.tiff"]
         indices = [0, 1]
-        names = ["chan1.jpg", "chan2.jpg"]
+        names = ["chan1.tiff", "chan2.tiff"]
 
         os.mkdir(os.path.join(temp_dir, "stack_sample"))
         os.mkdir(os.path.join(temp_dir, "output_sample"))
 
         # first test channel_first=False
-        junk_img_chan_last = np.zeros((1, 1024, 1024, 5))
-        io.imsave(os.path.join(temp_dir, "stack_sample", "channel_data.jpg"), junk_img_chan_last)
+        junk_img_chan_last = np.zeros((1024, 1024, 3))
+        io.imsave(os.path.join(stack_dir, "channel_data.tiff"), junk_img_chan_last)
 
-        data_utils.split_img_stack(stack_dir, output_dir, stack_list, indices, names, channel_first=False)
+        data_utils.split_img_stack(stack_dir, output_dir, stack_list, indices, names, channels_first=False)
 
-        assert os.path.exists(os.path.join(temp_dir, output_sample, "channel_data", "chan1.jpg"))
-        assert os.path.exists(os.path.join(temp_dir, output_sample, "channel_data", "chan2.jpg"))
+        assert os.path.exists(os.path.join(output_dir, "channel_data", "chan1.tiff"))
+        assert os.path.exists(os.path.join(output_dir, "channel_data", "chan2.tiff"))
 
         # now overwrite old channel_data.jpg file and test channel_first=True
-        junk_img_chan_first = np.zeros((5, 1024, 1024, 1))
-        io.imsave(os.path.join(temp_dir, "stack_sample", "channel_data.jpg"), junk_img_chan_first)
+        junk_img_chan_first = np.zeros((3, 1024, 1024))
+        io.imsave(os.path.join(stack_dir, "channel_data.tiff"), junk_img_chan_first)
+
+        # clear the original channel_data directory so an error doesn't get thrown trying to recreate it
+        rmtree(os.path.join(output_dir, "channel_data"))
 
         data_utils.split_img_stack(stack_dir, output_dir, stack_list, indices, names)
 
-        assert os.path.exists(os.path.join(temp_dir, output_sample, "channel_data", "chan1.jpg"))
-        assert os.path.exists(os.path.join(temp_dir, output_sample, "channel_data", "chan2.jpg"))
+        assert os.path.exists(os.path.join(output_dir, "channel_data", "chan1.tiff"))
+        assert os.path.exists(os.path.join(output_dir, "channel_data", "chan2.tiff"))
