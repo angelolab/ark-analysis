@@ -482,19 +482,19 @@ def test_combine_point_directories():
 
 
 def test_stitch_images():
-    fovs = ['fov1', 'fov2']
+    fovs = ['fov' + str(i) for i in range(40)]
     chans = ['nuc1', 'nuc2', 'mem1', 'mem2']
 
-    img_data = np.ones((2, 10, 10, 4), dtype="int16")
+    img_data = np.ones((40, 10, 10, 4), dtype="int16")
     img_data[0, :, :, 1] += 1
     img_data[0, :, :, 3] += 2
 
     data_xr = xr.DataArray(img_data, coords=[fovs, range(10), range(10), chans],
                            dims=["fovs", "rows", "cols", "channels"])
 
-    stitched_xr = data_utils.stitch_images(data_xr, data_xr.shape[2])
+    stitched_xr = data_utils.stitch_images(data_xr, 5)
 
-    assert stitched_xr.shape[2] == 10 * 10
+    assert stitched_xr.shape == (1, 40 / 5 * 10, 40 / 8 * 10, 4)
 
 
 def test_split_img_stack():
