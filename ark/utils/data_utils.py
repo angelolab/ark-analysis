@@ -518,6 +518,16 @@ def combine_point_directories(dir_path):
 
 
 def stitch_images(data_xr, num_cols):
+    """
+    Combines the results of images from data_xr into one xarray
+
+    Args:
+        data_xr (xr.DataArray): xarray containing nuclear and membrane channels over many fovs
+        num_cols (int): number of columns in the data array
+
+    Returns:
+        stitched_xr (xr.DataArray): the result of stitching of data_xr
+    """
     num_imgs = data_xr.shape[0]
     num_rows = math.ceil(num_imgs / num_cols)
     row_len = data_xr.shape[1]
@@ -545,6 +555,21 @@ def stitch_images(data_xr, num_cols):
 
 
 def split_img_stack(stack_dir, output_dir, stack_list, indices, names, channels_first=True):
+    """
+    Splits the channels in a given directory of images into separate files
+
+    Args:
+        stack_dir (str): where we read the input files
+        output_dir (str): where we write the split channel data
+        stack_list: the names of the files we want to read from stack_dir
+        indices (list): the indices we want to pull data from
+        names (list): the corresponding names of the channels
+        channel_first (bool): whether we index at the beginning or end of the array
+
+    Returns:
+        Saved images in the output_dir
+    """
+
     for stack_name in stack_list:
         img_stack = io.imread(os.path.join(stack_dir, stack_name))
         img_dir = os.path.join(output_dir, os.path.splitext(stack_name)[0])
