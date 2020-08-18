@@ -517,6 +517,12 @@ def test_split_img_stack():
         assert os.path.exists(os.path.join(output_dir, "channel_data", "chan1.tiff"))
         assert os.path.exists(os.path.join(output_dir, "channel_data", "chan2.tiff"))
 
+        sample_chan_1 = io.imread(os.path.join(output_dir, "channel_data", "chan1.tiff"))
+        sample_chan_2 = io.imread(os.path.join(output_dir, "channel_data", "chan2.tiff"))
+
+        assert sample_chan_1.shape == (1024, 1024, 2)
+        assert sample_chan_2.shape == (1024, 1024, 2)
+
         # now overwrite old channel_data.jpg file and test channel_first=True
         junk_img_chan_first = np.zeros((3, 1024, 1024))
         io.imsave(os.path.join(stack_dir, "channel_data.tiff"), junk_img_chan_first)
@@ -528,3 +534,9 @@ def test_split_img_stack():
 
         assert os.path.exists(os.path.join(output_dir, "channel_data", "chan1.tiff"))
         assert os.path.exists(os.path.join(output_dir, "channel_data", "chan2.tiff"))
+
+        sample_chan_1 = io.imread(os.path.join(output_dir, "channel_data", "chan1.tiff"))
+        sample_chan_2 = io.imread(os.path.join(output_dir, "channel_data", "chan2.tiff"))
+
+        assert sample_chan_1.shape == (2, 1024, 1024)
+        assert sample_chan_2.shape == (2, 1024, 1024)
