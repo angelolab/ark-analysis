@@ -237,8 +237,8 @@ def compute_complete_expression_matrices(segmentation_labels, tiff_dir, img_sub_
     cohort_len = len(points)
 
     # create the final dfs to store the processed data
-    combined_normalized_data = pd.DataFrame()
-    combined_transformed_data = pd.DataFrame()
+    combined_cell_size_normalized_data = pd.DataFrame()
+    combined_arcsinh_transformed_data = pd.DataFrame()
 
     # iterate over all the batches
     for batch_names, batch_files in zip(
@@ -258,13 +258,13 @@ def compute_complete_expression_matrices(segmentation_labels, tiff_dir, img_sub_
         current_labels = segmentation_labels.loc[batch_names, :, :, :]
 
         # segment the imaging data
-        normalized_data, transformed_data = generate_expression_matrix(
+        cell_size_normalized_data, arcsinh_transformed_data = generate_expression_matrix(
             segmentation_labels=current_labels,
             image_data=image_data
         )
 
         # now append to the final dfs to return
-        combined_normalized_data = combined_normalized_data.append(normalized_data)
-        combined_transformed_data = combined_transformed_data.append(transformed_data)
+        combined_cell_size_normalized_data = combined_cell_size_normalized_data.append(cell_size_normalized_data)
+        combined_arcsinh_transformed_data = combined_arcsinh_transformed_data.append(arcsinh_transformed_data)
 
-    return combined_normalized_data, combined_transformed_data
+    return combined_cell_size_normalized_data, combined_arcsinh_transformed_data
