@@ -474,11 +474,6 @@ def test_combine_point_directories():
         os.mkdir(os.path.join(temp_dir, "test", "subdir1", "point1"))
         os.mkdir(os.path.join(temp_dir, "test", "subdir2", "point2"))
 
-        # junk_img = np.zeros((1024, 1024, 3))
-
-        # io.imsave(os.path.join(temp_dir, "test", "subdir1", "point1"), junk_img)
-        # io.imsave(os.path.join(temp_dir, "test", "subdir2", "point2"), junk_img)
-
         data_utils.combine_point_directories(os.path.join(temp_dir, "test"))
 
         assert os.path.exists(os.path.join(temp_dir, "test", "combined_folder"))
