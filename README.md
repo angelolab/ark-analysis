@@ -53,8 +53,28 @@ You can shut down the notebooks and close docker by entering control-c in the te
 
 ## Updates
 
-You can update your notebooks using the command:
+You can update the toolbox using the command:
 
 ```
 $ git pull
 ```
+
+After updating, run
+```
+bash start_docker.sh --update
+```
+or
+```
+bash start_docker.sh -u
+```
+
+to overwrite the old notebooks with the new updated versions.
+
+### WARNING
+
+If you have made changes to scripts that you would like to keep, rename them prior to running
+```
+bash start_docker.sh --update
+```
+
+Afterwards, you can simpy bring changes from the old, renamed notebooks into the new notebooks at your discretion
