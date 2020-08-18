@@ -518,6 +518,16 @@ def combine_point_directories(dir_path):
 
 
 def stitch_images(data_xr, num_cols):
+    """
+    Stitch together a stack of different channels from different FOVs into a single 2D image for each channel
+
+    Args:
+        data_xr (xr.DataArray): xarray containing image data from multiple fovs and channels
+        num_cols (int): number of images stitched together horizontally
+
+    Returns:
+        stitched_xr (xr.DataArray): the stitched image data
+    """
     num_imgs = data_xr.shape[0]
     num_rows = math.ceil(num_imgs / num_cols)
     row_len = data_xr.shape[1]
@@ -545,6 +555,21 @@ def stitch_images(data_xr, num_cols):
 
 
 def split_img_stack(stack_dir, output_dir, stack_list, indices, names, channels_first=True):
+    """
+    Splits the channels in a given directory of images into separate files
+
+    Args:
+        stack_dir (str): where we read the input files
+        output_dir (str): where we write the split channel data
+        stack_list (list): the names of the files we want to read from stack_dir
+        indices (list): the indices we want to pull data from
+        names (list): the corresponding names of the channels
+        channel_first (bool): whether we index at the beginning or end of the array
+
+    Returns:
+        None: images are saved in the output_dir
+    """
+
     for stack_name in stack_list:
         img_stack = io.imread(os.path.join(stack_dir, stack_name))
         img_dir = os.path.join(output_dir, os.path.splitext(stack_name)[0])
