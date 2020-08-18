@@ -4,6 +4,7 @@ import os
 import math
 import pytest
 import tempfile
+from shutil import rmtree
 
 from mibidata import mibi_image as mi, tiff
 
@@ -456,3 +457,86 @@ def test_crop_image_stack():
         crop_input.shape[2] / crop_size) * (1 / stride_fraction) * (1 / stride_fraction)
 
     assert np.array_equal(cropped.shape, (num_crops, crop_size, crop_size, crop_input.shape[3]))
+
+
+def test_combine_point_directories():
+    # first test the case where the directory specified doesn't exist
+    with pytest.raises(ValueError):
+        data_utils.combine_point_directories(os.path.join("path", "to", "undefined", "folder"))
+
+    # now we do the "real" testing...
+    with tempfile.TemporaryDirectory() as temp_dir:
+        os.mkdir(os.path.join(temp_dir, "test"))
+
+        os.mkdir(os.path.join(temp_dir, "test", "subdir1"))
+        os.mkdir(os.path.join(temp_dir, "test", "subdir2"))
+
+        os.mkdir(os.path.join(temp_dir, "test", "subdir1", "point1"))
+        os.mkdir(os.path.join(temp_dir, "test", "subdir2", "point2"))
+
+        data_utils.combine_point_directories(os.path.join(temp_dir, "test"))
+
+        assert os.path.exists(os.path.join(temp_dir, "test", "combined_folder"))
+        assert os.path.exists(os.path.join(temp_dir, "test", "combined_folder", "subdir1_point1"))
+        assert os.path.exists(os.path.join(temp_dir, "test", "combined_folder", "subdir2_point2"))
+
+
+def test_stitch_images():
+    fovs = ['fov' + str(i) for i in range(40)]
+    chans = ['nuc1', 'nuc2', 'mem1', 'mem2']
+
+    img_data = np.ones((40, 10, 10, 4), dtype="int16")
+    img_data[0, :, :, 1] += 1
+    img_data[0, :, :, 3] += 2
+
+    data_xr = xr.DataArray(img_data, coords=[fovs, range(10), range(10), chans],
+                           dims=["fovs", "rows", "cols", "channels"])
+
+    stitched_xr = data_utils.stitch_images(data_xr, 5)
+
+    assert stitched_xr.shape == (1, 40 / 5 * 10, 40 / 8 * 10, 4)
+
+
+def test_split_img_stack():
+    with tempfile.TemporaryDirectory() as temp_dir:
+        stack_dir = os.path.join(temp_dir, "stack_sample")
+        output_dir = os.path.join(temp_dir, "output_sample")
+        stack_list = ["channel_data.tif"]
+        indices = [0, 1]
+        names = ["chan1.tif", "chan2.tif"]
+
+        os.mkdir(os.path.join(temp_dir, "stack_sample"))
+        os.mkdir(os.path.join(temp_dir, "output_sample"))
+
+        # first test channel_first=False
+        junk_img_chan_last = np.zeros((1024, 1024, 10))
+        io.imsave(os.path.join(stack_dir, "channel_data.tif"), junk_img_chan_last)
+
+        data_utils.split_img_stack(stack_dir, output_dir, stack_list, indices, names, channels_first=False)
+
+        assert os.path.exists(os.path.join(output_dir, "channel_data", "chan1.tif"))
+        assert os.path.exists(os.path.join(output_dir, "channel_data", "chan2.tif"))
+
+        sample_chan_1 = io.imread(os.path.join(output_dir, "channel_data", "chan1.tif"))
+        sample_chan_2 = io.imread(os.path.join(output_dir, "channel_data", "chan2.tif"))
+
+        assert sample_chan_1.shape == (1024, 1024)
+        assert sample_chan_2.shape == (1024, 1024)
+
+        # now overwrite old channel_data.jpg file and test channel_first=True
+        junk_img_chan_first = np.zeros((10, 1024, 1024))
+        io.imsave(os.path.join(stack_dir, "channel_data.tif"), junk_img_chan_first)
+
+        # clear the original channel_data directory so an error doesn't get thrown trying to recreate it
+        rmtree(os.path.join(output_dir, "channel_data"))
+
+        data_utils.split_img_stack(stack_dir, output_dir, stack_list, indices, names, channels_first=True)
+
+        assert os.path.exists(os.path.join(output_dir, "channel_data", "chan1.tif"))
+        assert os.path.exists(os.path.join(output_dir, "channel_data", "chan2.tif"))
+
+        sample_chan_1 = io.imread(os.path.join(output_dir, "channel_data", "chan1.tif"))
+        sample_chan_2 = io.imread(os.path.join(output_dir, "channel_data", "chan2.tif"))
+
+        assert sample_chan_1.shape == (1024, 1024)
+        assert sample_chan_2.shape == (1024, 1024)
