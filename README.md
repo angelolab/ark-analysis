@@ -72,9 +72,16 @@ to overwrite the old notebooks with the new updated versions.
 
 ### WARNING
 
-If you have made changes to scripts that you would like to keep, rename them prior to running
+The notebooks within the `scripts` folder may be overwritten by the command above!
+
+If you have made changes to these notebooks that you would like to keep (specific file paths, settings, custom routines, etc), rename them before updating!
+
+Examples:
 ```
-bash start_docker.sh --update
+Deepcell_Postprocessing.ipynb -> old_postprocessing.ipynb
+                              or postprocessing_saved.ipynb
+                              or old_dcpostP.ipynb
+                              ...
 ```
 
-Afterwards, you can simpy bring changes from the old, renamed notebooks into the new notebooks at your discretion
+After updating, you can bring changes from the old, renamed notebooks into the new notebooks at your discretion
