@@ -115,3 +115,4 @@ def concatenate_csv(base_dir, csv_files, column_name="point", column_values=None
             combined_data = pd.concat((combined_data, temp_data), axis=0, ignore_index=True)
 
     combined_data.to_csv(os.path.join(base_dir, "combined_data.csv"), index=False)
+
