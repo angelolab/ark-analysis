@@ -115,3 +115,78 @@ def concatenate_csv(base_dir, csv_files, column_name="point", column_values=None
             combined_data = pd.concat((combined_data, temp_data), axis=0, ignore_index=True)
 
     combined_data.to_csv(os.path.join(base_dir, "combined_data.csv"), index=False)
+
+
+def visualize_watershed_transform(overaly_channels, channel_xr, random_map,fov,output_dir,save_tifs='overlays'):
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+
+        if save_tifs != 'none':
+            # save segmentation label map
+            io.imsave(os.path.join(output_dir, "{}_segmentation_labels.tiff".format(fov)),
+                      random_map)
+
+        if save_tifs == 'all':
+            # save borders of segmentation map
+            plot_utils.plot_overlay(random_map, plotting_tif=None,
+                                    path=os.path.join(output_dir,
+                                                      "{}_segmentation_borders.tiff".format(
+                                                          fov)))
+
+            io.imsave(os.path.join(output_dir, "{}_interior_smoothed.tiff".format(fov)),
+                      interior_smoothed.astype("float32"))
+
+            io.imsave(os.path.join(output_dir, "{}_maxs_smoothed_thresholded.tiff".format(fov)),
+                      maxima_thresholded.astype("float32"))
+
+            io.imsave(os.path.join(output_dir, "{}_maxs.tiff".format(fov)),
+                      maxs.astype('uint8'))
+
+            for chan in channel_xr.channels.values:
+                io.imsave(os.path.join(output_dir, "{}_{}.tiff".format(fov, chan)),
+                          channel_xr.loc[fov, :, :, chan].astype('float32'))
+
+    # plot list of supplied markers overlaid by segmentation mask to assess accuracy
+    if save_tifs != 'none':
+        for chan_list in overlay_channels:
+            if len(chan_list) == 1:
+                # if only one entry in list, make single channel overlay
+                channel = chan_list[0]
+                chan_marker = channel_xr.loc[fov, :, :, channel].values
+                plot_utils.plot_overlay(random_map, plotting_tif=chan_marker,
+                                        path=os.path.join(output_dir,
+                                                          "{}_{}_overlay.tiff".format(fov,
+                                                                                      channel)))
+
+            elif len(chan_list) == 2:
+                # if two entries, make 2-color stack, skipping 0th index which is red
+                input_data = np.zeros((channel_xr.shape[1], channel_xr.shape[2], 3))
+                input_data[:, :, 1] = channel_xr.loc[fov, :, :, chan_list[0]].values
+                input_data[:, :, 2] = channel_xr.loc[fov, :, :, chan_list[1]].values
+                plot_utils.plot_overlay(
+                    random_map, plotting_tif=input_data,
+                    path=os.path.join(
+                        output_dir,
+                        "{}_{}_{}_overlay.tiff".format(fov, chan_list[0], chan_list[1])))
+            elif len(chan_list) == 3:
+                # if three entries, make a 3 color stack, with third channel in first index (red)
+                input_data = np.zeros((channel_xr.shape[1], channel_xr.shape[2], 3))
+                input_data[:, :, 1] = channel_xr.loc[fov, :, :, chan_list[0]].values
+                input_data[:, :, 2] = channel_xr.loc[fov, :, :, chan_list[1]].values
+                input_data[:, :, 0] = channel_xr.loc[fov, :, :, chan_list[2]].values
+                plot_utils.plot_overlay(random_map, plotting_tif=input_data,
+                                        path=os.path.join(output_dir,
+                                                          "{}_{}_{}_{}_overlay.tiff".
+                                                          format(fov,
+                                                                  chan_list[0],
+                                                                  chan_list[1],
+                                                                  chan_list[2])))
+
+    segmentation_labels_xr.loc[fov, :, :, 'whole_cell'] = random_map
+
+    save_name = os.path.join(output_dir, 'segmentation_labels.xr')
+    if os.path.exists(save_name):
+      print("overwriting previously generated processed output file")
+      os.remove(save_name)
+    segmentation_labels_xr.to_netcdf(save_name, format='NETCDF4')
+    segmentation_labels_xr.to_netcdf(save_name, format="NETCDF3_64BIT")
