@@ -164,3 +164,6 @@ def test_transform_expression_matrix_multiple_compartments():
     for cell in cell_data.cell_id:
         arcsinh_vals = np.arcsinh(cell_data.loc[:, cell, modified_cols].values)
         assert np.array_equal(arcsinh_data.loc[:, cell, modified_cols].values, arcsinh_vals)
+
+
+def visualize_watershed_test():
