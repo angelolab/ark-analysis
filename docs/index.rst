@@ -21,19 +21,9 @@ Table of Contents
    :caption: Libraries
    :maxdepth: 3
 
-   ark.analysis
-   ark.segmentation
-   ark.utils
-
-.. ARK analysis
-.. ------------------
-
-.. We're talkin' 'bout ARK code here.::
-
-..     print('hello world')
-..     >> hello world
-
-.. The table of contents has a sample file for you to look at. It should be parsed correctly with recommonmark configured in conf.py. Unfortunately, I could not include the example of an image :-(, but you probably already know how that works in Markdown.
+   _markdown/ark.analysis
+   _markdown/ark.segmentation
+   _markdown/ark.utils
 
 .. Main section
 .. ------------------
