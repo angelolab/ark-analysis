@@ -53,13 +53,15 @@ You can shut down the notebooks and close docker by entering control-c in the te
 
 ## Updates
 
-You can update the toolbox using the command:
+This project is still in development, and we are making frequent updates and improvements. If you want to update the version on your computer to have the latest changes, perform the following steps
+
+First, copy the latest version of the code
 
 ```
 $ git pull
 ```
 
-After updating, run
+Then, run the command below to update the jupyter notebooks to the latest version
 ```
 bash start_docker.sh --update
 ```
@@ -68,11 +70,9 @@ or
 bash start_docker.sh -u
 ```
 
-to overwrite the old notebooks with the new updated versions.
-
 ### WARNING
 
-The notebooks within the `scripts` folder may be overwritten by the command above!
+If you didn't change the name of any of the notebooks within the `scripts` folder, they will be overwritten by the command above!
 
 If you have made changes to these notebooks that you would like to keep (specific file paths, settings, custom routines, etc), rename them before updating!
 
@@ -84,4 +84,4 @@ Deepcell_Postprocessing.ipynb -> old_postprocessing.ipynb
                               ...
 ```
 
-After updating, you can bring changes from the old, renamed notebooks into the new notebooks at your discretion
+After updating, you can bring changes from the old notebooks into the new notebooks at your discretion
