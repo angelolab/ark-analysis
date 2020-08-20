@@ -1,10 +1,22 @@
 import os
 import copy
+import warnings
 
+import scipy.ndimage as nd
 import numpy as np
 import pandas as pd
 
-from ark.utils import io_utils
+import xarray as xr
+
+from skimage.feature import peak_local_max
+from skimage.measure import label, regionprops, regionprops_table
+
+import skimage.morphology as morph
+from skimage.segmentation import relabel_sequential
+import skimage.io as io
+
+
+from ark.utils import plot_utils
 
 
 def find_nuclear_mask_id(nuc_segmentation_mask, cell_coords):
@@ -117,10 +129,40 @@ def concatenate_csv(base_dir, csv_files, column_name="point", column_values=None
     combined_data.to_csv(os.path.join(base_dir, "combined_data.csv"), index=False)
 
 
-def visualize_watershed_transform(overaly_channels, channel_xr, random_map,fov,output_dir,save_tifs='overlays'):
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
+def visualize_watershed_transform(model_output, channel_xr, overlay_channels, output_dir, fov, fovs=None,
+                        interior_model="pixelwise_interior", interior_threshold=0.25,
+                        interior_smooth=3, maxima_model="pixelwise_interior", maxima_smooth=3,
+                        maxima_threshold=0.05, nuclear_expansion=None, randomize_cell_labels=True,
+                        save_tifs='overlays'):
 
+    with warnings.catch_warnings():
+        segmentation_labels_xr = \
+            xr.DataArray(np.zeros((model_output.shape[:-1] + (1,)), dtype="int16"),
+                         coords=[model_output.fovs, range(model_output.shape[1]),
+                                 range(model_output.shape[2]),
+                                 ['whole_cell']],
+                         dims=['fovs', 'rows', 'cols', 'compartments'])
+        maxima_smoothed = nd.gaussian_filter(model_output.loc[fov, :, :, maxima_model],
+                                             maxima_smooth)
+        maxima_thresholded = maxima_smoothed
+        warnings.simplefilter("ignore")
+        maxs = peak_local_max(maxima_thresholded, indices=False, min_distance=5,
+                              exclude_border=False)
+
+        interior_smoothed = nd.gaussian_filter(model_output.loc[fov, :, :, interior_model].values,
+                                               interior_smooth)
+        interior_mask = interior_smoothed > interior_threshold
+
+        # determine if background is based on network output or an expansion
+        if nuclear_expansion is not None:
+            interior_mask = morph.dilation(interior_mask,
+                                           selem=morph.square(nuclear_expansion * 2 + 1))
+
+        markers = label(maxs, connectivity=1)
+        labels = np.array(morph.watershed(-interior_smoothed, markers,
+                                          mask=interior_mask, watershed_line=0))
+
+        random_map = plot_utils.randomize_labels(labels)
         if save_tifs != 'none':
             # save segmentation label map
             io.imsave(os.path.join(output_dir, "{}_segmentation_labels.tiff".format(fov)),
@@ -178,15 +220,15 @@ def visualize_watershed_transform(overaly_channels, channel_xr, random_map,fov,o
                                         path=os.path.join(output_dir,
                                                           "{}_{}_{}_{}_overlay.tiff".
                                                           format(fov,
-                                                                  chan_list[0],
-                                                                  chan_list[1],
-                                                                  chan_list[2])))
+                                                                 chan_list[0],
+                                                                 chan_list[1],
+                                                                 chan_list[2])))
 
     segmentation_labels_xr.loc[fov, :, :, 'whole_cell'] = random_map
 
     save_name = os.path.join(output_dir, 'segmentation_labels.xr')
     if os.path.exists(save_name):
-      print("overwriting previously generated processed output file")
-      os.remove(save_name)
+        print("overwriting previously generated processed output file")
+        os.remove(save_name)
     segmentation_labels_xr.to_netcdf(save_name, format='NETCDF4')
     segmentation_labels_xr.to_netcdf(save_name, format="NETCDF3_64BIT")
