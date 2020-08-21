@@ -201,6 +201,6 @@ def visualize_watershed_test():
         saved_output = xr.load_dataarray(os.path.join(temp_dir, 'segmentation_labels.xr'))
         for fov in range(saved_output.shape[0]):
             segmentation_utils.visualize_watershed_transform(model_output=model_output, channel_xr=channel_xr,
-                                                                          overlay_channels=overlay_channels,
-                                                                          output_dir="", fov=fov)
+                                                             overlay_channels=overlay_channels,
+                                                             output_dir="", fov=fov)
             assert path.exists("{}_segmentation_labels.tiff")
