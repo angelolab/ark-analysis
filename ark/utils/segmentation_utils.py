@@ -133,6 +133,26 @@ def visualize_watershed_transform(model_output, channel_xr, overlay_channels, ou
                                   interior_model="pixelwise_interior", interior_threshold=0.25,
                                   interior_smooth=3, maxima_model="pixelwise_interior", maxima_smooth=3,
                                   nuclear_expansion=None, save_tifs='overlays'):
+    """Runs the watershed transform over a set of probability masks output by deepcell network
+    Inputs:
+        model_output: xarray containing the different branch outputs from deepcell
+        channel_xr: xarray containing TIFs
+        overlay_channels: channels to overlay segmentation output over
+        output_dir: path to directory where the output will be saved
+        fov: field of view
+        interior_model: Name of model to use to identify maxs in the image
+        interior_threshold: threshold to cut off interior predictions
+        interior_smooth: value to smooth the interior predictions
+        maxima_model: Name of the model to use to predict maxes in the image
+        maxima_smooth: value to smooth the maxima predictions
+        nuclear_expansion: optional pixel value by which to expand cells if
+            doing nuclear segmentation
+        save_tifs: flag to control what level of output to save. Must be one of:
+            all - saves all tifs
+            overlays - saves color overlays and segmentation masks
+            none - does not save any tifs
+    Outputs:
+        Saves xarray to output directory"""
 
     with warnings.catch_warnings():
         segmentation_labels_xr = \
