@@ -129,11 +129,10 @@ def concatenate_csv(base_dir, csv_files, column_name="point", column_values=None
     combined_data.to_csv(os.path.join(base_dir, "combined_data.csv"), index=False)
 
 
-def visualize_watershed_transform(model_output, channel_xr, overlay_channels, output_dir, fov, fovs=None,
-                        interior_model="pixelwise_interior", interior_threshold=0.25,
-                        interior_smooth=3, maxima_model="pixelwise_interior", maxima_smooth=3,
-                        maxima_threshold=0.05, nuclear_expansion=None, randomize_cell_labels=True,
-                        save_tifs='overlays'):
+def visualize_watershed_transform(model_output, channel_xr, overlay_channels, output_dir, fov,
+                                  interior_model="pixelwise_interior", interior_threshold=0.25,
+                                  interior_smooth=3, maxima_model="pixelwise_interior", maxima_smooth=3,
+                                  nuclear_expansion=None, save_tifs='overlays'):
 
     with warnings.catch_warnings():
         segmentation_labels_xr = \
