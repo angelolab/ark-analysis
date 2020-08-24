@@ -22,22 +22,20 @@ def get_sorted_data(cell_data, patient_col_name, population_col_name, is_normali
     """Gets the cell data and generates a new Sorted DataFrame with each row representing a
     patient and column representing Population categories
 
-                  Args:
-                      cell_data             (pd df):    Dataframe containing columns with
-                                                        Patient ID and Cell Name
+    Args:
+        cell_data (pd df): Dataframe containing columns with Patient ID and Cell Name
 
-                      patient_col_name      (str):      Name of column containing categorical
-                                                        Patient data
+        patient_col_name (str): Name of column containing categorical Patient data
 
-                      population_col_name   (str):      Name of column in dataframe containing
-                                                        categorical Population data
+        population_col_name (str): Name of column in dataframe containing categorical Population
+                                   data
 
-                      is_normalized         (bool):     Boolean specifying whether to normalize
-                                                        cell counts or not, default is False
+        is_normalized (bool): Boolean specifying whether to normalize cell counts or not, default
+                              is False
 
-                  Outputs:
-                      cell_data_stacked     (pd df):    DataFrame with rows and columns sorted by
-                                                        population
+    Outputs:
+        cell_data_stacked (pd df): DataFrame with rows and columns sorted by
+                                          population
     """
 
     cell_data_stacked = pd.crosstab(
@@ -69,29 +67,25 @@ def visualize_patient_population_distribution(cell_data, patient_col_name, popul
                                               save_dir=None):
     """Plots the distribution of the population given by total count, direct count, and proportion
 
-              Args:
-                  cell_data             (pd df):    Dataframe containing columns with Patient ID
-                                                    and Cell Name
+    Args:
+        cell_data (pd df): Dataframe containing columns with Patient ID and Cell Name
 
-                  patient_col_name      (str):      Name of column containing categorical
-                                                    Patient data
+        patient_col_name (str): Name of column containing categorical Patient data
 
-                  population_col_name   (str):      Name of column in dataframe containing
-                                                    categorical Population data
+        population_col_name (str): Name of column in dataframe containing Population data
 
-                  color_map             (str):      Name of MatPlotLib ColorMap used.
-                                                    Default is jet
+        color_map (str): Name of MatPlotLib ColorMap used. Default is jet
 
-                  show_total_count      (bool):     Boolean specifying whether to show graph of
-                                                    total population count, default is true
+        show_total_count (bool): Boolean specifying whether to show graph of total population
+            count, default is true
 
-                  show_distribution     (bool):     Boolean specifying whether to show graph of
-                                                    population distribution, default is true
+        show_distribution (bool): Boolean specifying whether to show graph of population
+            distribution, default is true
 
-                  show_proportion       (bool):     Boolean specifying whether to show graph of
-                                                    total count, default is true
+        show_proportion (bool): Boolean specifying whether to show graph of total count, default
+            is true
 
-                  save_dir              (str):      Directory to save plots, default is None
+        save_dir (str): Directory to save plots, default is None
     """
     cell_data = cell_data.dropna()
 
