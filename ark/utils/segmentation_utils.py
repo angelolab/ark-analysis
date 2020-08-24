@@ -16,7 +16,7 @@ from skimage.segmentation import relabel_sequential
 import skimage.io as io
 
 
-from ark.utils import plot_utils
+from ark.utils import plot_utils, io_utils
 
 
 def find_nuclear_mask_id(nuc_segmentation_mask, cell_coords):
@@ -135,19 +135,19 @@ def visualize_watershed_transform(model_output, channel_xr, overlay_channels, ou
                                   nuclear_expansion=None, save_tifs='overlays'):
     """Runs the watershed transform over a set of probability masks output by deepcell network
     Inputs:
-        model_output: xarray containing the different branch outputs from deepcell
-        channel_xr: xarray containing TIFs
-        overlay_channels: channels to overlay segmentation output over
-        output_dir: path to directory where the output will be saved
-        fov: field of view
-        interior_model: Name of model to use to identify maxs in the image
-        interior_threshold: threshold to cut off interior predictions
-        interior_smooth: value to smooth the interior predictions
-        maxima_model: Name of the model to use to predict maxes in the image
-        maxima_smooth: value to smooth the maxima predictions
-        nuclear_expansion: optional pixel value by which to expand cells if
+        model_output (xarray): xarray containing the different branch outputs from deepcell
+        channel_xr (xarray): xarray containing TIFs
+        overlay_channels (Tuple): channels to overlay segmentation output over
+        output_dir (str): path to directory where the output will be saved
+        fov (int): field of view
+        interior_model (str): Name of model to use to identify maxs in the image
+        interior_threshold (float): threshold to cut off interior predictions
+        interior_smooth (int): value to smooth the interior predictions
+        maxima_model (str): Name of the model to use to predict maxes in the image
+        maxima_smooth (int): value to smooth the maxima predictions
+        nuclear_expansion (int): optional pixel value by which to expand cells if
             doing nuclear segmentation
-        save_tifs: flag to control what level of output to save. Must be one of:
+        save_tifs (str): flag to control what level of output to save. Must be one of:
             all - saves all tifs
             overlays - saves color overlays and segmentation masks
             none - does not save any tifs
@@ -251,3 +251,4 @@ def visualize_watershed_transform(model_output, channel_xr, overlay_channels, ou
         os.remove(save_name)
     segmentation_labels_xr.to_netcdf(save_name, format='NETCDF4')
     segmentation_labels_xr.to_netcdf(save_name, format="NETCDF3_64BIT")
+
