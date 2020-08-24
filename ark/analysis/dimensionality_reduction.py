@@ -10,13 +10,20 @@ import os
 def visualize_dimensionality_reduction(cell_data, columns, category, color_map="Spectral",
                                        algorithm="UMAP", save_dir=None):
     """Plots the dimensionality reduction of specified population columns
+
     Args:
-        cell_data (pd df): Dataframe containing columns for dimensionality reduction and category
-        columns (list): List of column names that are included for dimensionality reduction
-        category (str): Name of column in dataframe containing population or patient data
-        color_map (str): Name of MatPlotLib ColorMap used, default is Spectral
-        algorithm (str): Name of dimensionality reduction algorithm, default is UMAP
-        save_dir (str): Directory to save plots, default is None
+        cell_data (pd df):
+            Dataframe containing columns for dimensionality reduction and category
+        columns (list):
+            List of column names that are included for dimensionality reduction
+        category (str):
+            Name of column in dataframe containing population or patient data
+        color_map (str):
+            Name of MatPlotLib ColorMap used, default is Spectral
+        algorithm (str):
+            Name of dimensionality reduction algorithm, default is UMAP
+        save_dir (str):
+            Directory to save plots, default is None
     """
     cell_data = cell_data.dropna()
 

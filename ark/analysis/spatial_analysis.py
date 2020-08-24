@@ -11,39 +11,35 @@ def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, 
        different markers.  Uses bootstrapping to permute cell labels randomly.
 
     Args:
-        dist_matrices_dict (dict): Contains a cells x cells matrix with the euclidian distance
-                                   between centers of corresponding cells for every fov
-
-        marker_thresholds (np array): threshold values for positive marker expression
-
-        all_data (pandas df): data including fovs, cell labels, and cell expression
-                                            matrix for all markers
-
-        excluded_colnames (list): all column names that are not markers. If argument is none,
-                                  default is:
-                                        ["cell_size", "Background", "HH3",
-                                         "summed_channel", "label", "area",
-                                         "eccentricity", "major_axis_length",
-                                         "minor_axis_length", "perimeter", "fov"]
-
-        included_fovs (list): patient labels to include in analysis. If argument is
-                              none, default is all labels used.
-
-        dist_lim (int): cell proximity threshold. Default is 100.
-
-        bootstrap_num (int): number of permutations for bootstrap. Default is 1000.
-
-        fov_col (string): column with the cell fovs (Default is SampleID)
-
+        dist_matrices_dict (dict):
+            Contains a cells x cells matrix with the euclidian distance between centers of
+            corresponding cells for every fov
+        marker_thresholds (np array):
+            threshold values for positive marker expression
+        all_data (pandas df):
+            data including fovs, cell labels, and cell expression matrix for all markers
+        excluded_colnames (list):
+            all column names that are not markers. If argument is none, default is:
+                ["cell_size", "Background", "HH3",
+                 "summed_channel", "label", "area",
+                 "eccentricity", "major_axis_length",
+                 "minor_axis_length", "perimeter", "fov"]
+        included_fovs (list):
+            patient labels to include in analysis. If argument is none, default is all labels used.
+        dist_lim (int):
+            cell proximity threshold. Default is 100.
+        bootstrap_num (int):
+            number of permutations for bootstrap. Default is 1000.
+        fov_col (string):
+            column with the cell fovs (Default is SampleID)
 
     Returns:
-        values (list): a list with each element consisting of a tuple of closenum and closenumrand
-                       for each point included in the analysis
-
-        stats (xarray): an Xarray with dimensions:
-                            (fovs, stats, num_channels, num_channels)
-                        The included stats variables for each point are:
-                            z, muhat, sigmahat, p, h, adj_p, and cluster_names
+        values (list):
+            a list with each element consisting of a tuple of closenum and closenumrand for each
+            point included in the analysis
+        stats (xarray):
+            an Xarray with dimensions (fovs, stats, num_channels, num_channels). The included
+            stats variables for each point are z, muhat, sigmahat, p, h, adj_p, and cluster_names
     """
 
     # Setup input and parameters
@@ -126,36 +122,34 @@ def calculate_cluster_spatial_enrichment(all_data, dist_matrices_dict, included_
     bootstrapping to permute cell labels randomly.
 
     Args:
-        all_data (xarray): data including fovs, cell labels, and cell expression matrix for all
-                           markers
-
-        dist_matrices_dict (dict): A dictionary that contains a cells x cells matrix with the
-                                   euclidian distance between centers of corresponding cells for
-                                   every fov
-
-        included_fovs (list): patient labels to include in analysis. If argument is none, default
-                              is all labels used
-
-        bootstrap_num (int): number of permutations for bootstrap. Default is 1000
-
-        dist_lim (int): cell proximity threshold. Default is 100
-
-        fov_col (string): column with the cell fovs (Default is SampleID)
-
-        cluster_name_col (string): column with the cell types (Default is cell_type)
-
-        cluster_id_col (string): column with the cell phenotype IDs (Default is FlowSOM_ID)
-
-        cell_label_col (string): column with the cell labels (Default is cellLabelInImage)
+        all_data (xarray):
+            data including fovs, cell labels, and cell expression matrix for all markers
+        dist_matrices_dict (dict):
+            A dictionary that contains a cells x cells matrix with the euclidian distance between
+            centers of corresponding cells for every fov
+        included_fovs (list):
+            patient labels to include in analysis. If argument is none, default is all labels used
+        bootstrap_num (int):
+            number of permutations for bootstrap. Default is 1000
+        dist_lim (int):
+            cell proximity threshold. Default is 100
+        fov_col (string):
+            column with the cell fovs (Default is SampleID)
+        cluster_name_col (string):
+            column with the cell types (Default is cell_type)
+        cluster_id_col (string):
+            column with the cell phenotype IDs (Default is FlowSOM_ID)
+        cell_label_col (string):
+            column with the cell labels (Default is cellLabelInImage)
 
     Returns:
-        values (list): a list with each element consisting of a tuple of closenum and closenumrand
-                       for each point included in the analysis
-
-        stats (xarray): an Xarray with dimensions:
-                            (fovs, stats, number of channels, number of channels)
-                        The included stats variables for each point are:
-                            z, muhat, sigmahat, p, h, adj_p, and cluster_names
+        values (list):
+            a list with each element consisting of a tuple of closenum and closenumrand for each
+            point included in the analysis
+        stats (xarray):
+            an Xarray with dimensions (fovs, stats, number of channels, number of channels). The
+            included stats variables for each point are: z, muhat, sigmahat, p, h, adj_p, and
+            cluster_names
     """
 
     # Setup input and parameters
@@ -217,31 +211,29 @@ def create_neighborhood_matrix(all_data, dist_matrices_dict, included_fovs=None,
     """Calculates the number of neighbor phenotypes for each cell.
 
     Args:
-        all_data (pandas df): data for all fovs. Includes the columns SampleID (fovs),
-                              cellLabelInImage (the cell label), FlowSOM_ID (the cell
-                              phenotype id)
-
-        dist_matrices_dict (dict): Contains a cells x cells centroid-distance matrix for every
-                                   fov.  Keys are fov names
-
-        included_fovs (list): patient labels to include in analysis. If argument is none,
-                              default is all labels used.
-
-        distlim (int): cell proximity threshold. Default is 50.
-
-        fov_col (string): column with the cell fovs. Default is 'SampleID'
-
-        cluster_id_col (string): column with the cell phenotype IDs. Default is 'FlowSOM_ID'
-
-        cell_label_col (string): column with the cell labels. Default is 'cellLabelInImage'
-
-        cluster_name_col (string): column with the cell types. Default is 'cell_type'
+        all_data (pandas df):
+            data for all fovs. Includes the columns SampleID (fovs), cellLabelInImage (the cell
+            label), FlowSOM_ID (the cell phenotype id)
+        dist_matrices_dict (dict):
+            Contains a cells x cells centroid-distance matrix for every fov.  Keys are fov names
+        included_fovs (list):
+            patient labels to include in analysis. If argument is none, default is all labels used.
+        distlim (int):
+            cell proximity threshold. Default is 50.
+        fov_col (string):
+            column with the cell fovs. Default is 'SampleID'
+        cluster_id_col (string):
+            column with the cell phenotype IDs. Default is 'FlowSOM_ID'
+        cell_label_col (string):
+            column with the cell labels. Default is 'cellLabelInImage'
+        cluster_name_col (string):
+            column with the cell types. Default is 'cell_type'
 
     Returns:
-        cell_neighbor_counts (pandas df): matrix with phenotype counts per cell
-
-        cell_neighbor_freqs (pandas df): matrix with phenotype frequencies of counts
-                                                per phenotype/total phenotypes for each cell
+        cell_neighbor_counts (pandas df):
+            matrix with phenotype counts per cell
+        cell_neighbor_freqs (pandas df):
+            matrix w/ phenotype frequencies of counts per phenotype/total phenotypes for each cell
     """
 
     # Setup input and parameters
