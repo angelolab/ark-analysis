@@ -19,7 +19,7 @@ Table of Contents
 
 .. toctree::
    :caption: Libraries
-   :maxdepth: 3
+   :maxdepth: 4
 
    _markdown/ark.analysis
    _markdown/ark.segmentation

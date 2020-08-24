@@ -18,12 +18,3 @@ ark.segmentation.signal\_extraction
    :members:
    :undoc-members:
    :show-inheritance:
-
-
-Module contents
----------------
-
-.. automodule:: ark.segmentation
-   :members:
-   :undoc-members:
-   :show-inheritance:

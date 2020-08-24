@@ -26,11 +26,3 @@ ark.analysis.visualize
    :members:
    :undoc-members:
    :show-inheritance:
-
-Module contents
----------------
-
-.. automodule:: ark.analysis
-   :members:
-   :undoc-members:
-   :show-inheritance:
