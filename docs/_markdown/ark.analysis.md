@@ -1,7 +1,7 @@
 analysis
 ====================
 
-These libraries are like ground zero. They are the base libraries to use for analysis.
+These are the base libraries to use for post-segmentation analysis.
 
 ark.analysis.dimensionality\_reduction
 ---------------------------------------------
