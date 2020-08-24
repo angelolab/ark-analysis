@@ -5,8 +5,17 @@ from os import path
 from skimage.measure import regionprops
 import tempfile
 
-from ark.utils import segmentation_utils
+from ark.utils import segmentation_utils, data_utils
 
+def _generate_channel_data():
+    fovs = ['fov1', 'fov2']
+    chans = ['nuc1', 'nuc2', 'mem1', 'mem2']
+    img_data = np.ones((len(fovs), 1024, 1024, len(chans)), dtype="int16")
+    data_xr = xr.DataArray(
+        img_data,
+        coords=[fovs, range(1024), range(1024), chans],
+        dims=["fovs", "rows", "cols", "channels"])
+    return data_xr
 
 def _generate_channel_xr(fov_num=2, chan_num=5):
     fovs = ["fov" + str(i) for i in range(fov_num)]
@@ -192,11 +201,12 @@ def test_transform_expression_matrix_multiple_compartments():
         assert np.array_equal(arcsinh_data.loc[:, cell, modified_cols].values, arcsinh_vals)
 
 
-def visualize_watershed_test():
+def test_visualize_watershed():
     with tempfile.TemporaryDirectory() as temp_dir:
         model_output = _generate_deepcell_ouput()
         channel_xr = _generate_channel_xr()
-        cell_mask, channel_data = _create_test_extraction_data()
+        #cell_mask, channel_data = _create_test_extraction_data()
+        channel_data = _generate_channel_data()
         overlay_channels = [channel_data.channels.values[:2]],
         saved_output = xr.load_dataarray(os.path.join(temp_dir, 'segmentation_labels.xr'))
         for fov in range(saved_output.shape[0]):
