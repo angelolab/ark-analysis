@@ -136,7 +136,8 @@ html_static_path = ['_static']
 intersphinx_mapping = {
     'python': ('https://docs.python.org/3.6', None),
     'numpy': ('https://numpy.org/doc/stable', None),
-    'matplotlib': ('https://matplotlib.org/3.2.1', None)
+    'matplotlib': ('https://matplotlib.org/3.2.1', None),
+    'xarray': ('https://xarray.pydata.org/en/stable', None)
 }
 
 # set a maximum number of days to cache remote inventories
