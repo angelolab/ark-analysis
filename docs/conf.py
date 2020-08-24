@@ -12,6 +12,7 @@
 #
 import os
 import sys
+import mock # if we need to force mock import certain libraries autodoc_mock_imports fails ons
 
 # our project officially 'begins' in the parent aka root project directory
 # since we do not separate source from build we can simply go up one directory
@@ -41,9 +42,11 @@ if rtd_version not in ['stable', 'latest']:
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = ['sphinx.ext.autodoc', # allows you to generate documentation from docstrings (STAR)
+extensions = ['IPython.sphinxext.ipython_console_highlighting', # syntax-highligyting ipython interactive sessions
+              'sphinx.ext.autodoc', # allows you to generate documentation from docstrings (STAR)
               'sphinx.ext.autosectionlabel', # allows you to refer sections aka link to them (STAR)
               'sphinx.ext.coverage', # get coverage statistics (STAR)
+              'sphinx.ext.doctest', # provide a test code snippits
               'sphinx.ext.intersphinx', # link to other project's documentation, needed if a cross-reference has no matching target in current documentation
               'sphinx.ext.githubpages', # generates a .nojekyll file on generated HTML directory, allows publishing to GitHub pages
               'sphinx.ext.napoleon', # support for Google style docstrings (STAR)
@@ -61,9 +64,9 @@ napoleon_google_docstring = True
 # will ensure 'clean' imports of all the following libraries
 # I imagine mibidata will be a problem we'll have to address in the future...
 autodoc_mock_imports = ['h5py'
-                        'matplotlib',
                         'mibidata',
                         'numpy',
+                        'matplotlib',
                         'pandas',
                         'skimage',
                         'sklearn',
@@ -71,8 +74,10 @@ autodoc_mock_imports = ['h5py'
                         'seaborn',
                         'statsmodels',
                         'tables',
-                        'umap-learn',
+                        'umap',
                         'xarray']
+
+sys.modules['matplotlib.pyplot'] = mock.Mock()
 
 # prefix each section label with the name of the document it is in, followed by a colon
 # autosection_label_prefix_document = True
@@ -99,13 +104,13 @@ language = 'en'
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
 
+# don't allow nbsphinx to run notebooks
+nbsphinx_execute = 'never'
+
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
-
-# don't allow nbsphinx to run notebooks
-nbsphinx_execute = 'never'
+exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store', '**.ipynb_checkpoints']
 
 # custom 'stuff' we want to ignore in nitpicky mode
 # currently empty, I don't think we'll ever run in this
@@ -123,3 +128,16 @@ html_theme = 'sphinx_rtd_theme'
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
+
+# -- Options for Intersphinx config -------------------------------------------------
+
+# intersphinx mapping, for when there is a cross-reference that has no matching target
+# in the current documentation
+intersphinx_mapping = {
+    'python': ('https://docs.python.org/3.6', None),
+    'numpy': ('https://numpy.org/doc/stable', None),
+    'matplotlib': ('https://matplotlib.org/3.2.1', None)
+}
+
+# set a maximum number of days to cache remote inventories
+intersphinx_cache_limit = 0
