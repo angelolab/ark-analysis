@@ -82,19 +82,30 @@ def test_calc_dist_matrix():
     # Create pythagorean triple to test euclidian distance
     test_mat_data[0, 0, 20] = 1
     test_mat_data[0, 4, 17] = 2
+    test_mat_data[0, 0, 17] = 3
     test_mat_data[1, 5, 25] = 1
     test_mat_data[1, 9, 22] = 2
+    test_mat_data[1, 5, 22] = 3
 
     coords = [["1", "2"], range(test_mat_data[0].data.shape[0]),
               range(test_mat_data[0].data.shape[1]), ["segmentation_label"]]
     dims = ["fovs", "rows", "cols", "channels"]
     test_mat = xr.DataArray(test_mat_data, coords=coords, dims=dims)
 
-    distance_mat = spatial_analysis_utils.calc_dist_matrix(test_mat)
-    real_mat = np.array([[0, 5], [5, 0]])
+    # create two ranges, one for a standard distance matrix
+    # another for a distance matrix with non-standard indexing
+    range_1 = np.array([0, 1, 2])
+    range_2 = np.array([2, 0, 1])
 
-    assert np.array_equal(distance_mat["1"], real_mat)
-    assert np.array_equal(distance_mat["2"], real_mat)
+    distance_mat = spatial_analysis_utils.calc_dist_matrix(test_mat, np.stack((range_1, range_2)))
+
+    # while distance_mats 1 and 2 contain the same underlying array
+    # the coordinates are different
+    # the following sets of assertions access the same locations in
+    # the underlying array, using whichever coordinate assignment we set
+    assert distance_mat["1"].loc[0, 1] == distance_mat["2"].loc[2, 0] == 5
+    assert distance_mat["1"].loc[1, 2] == distance_mat["2"].loc[0, 1] == 4
+    assert distance_mat["1"].loc[2, 0] == distance_mat["2"].loc[1, 2] == 3
 
 
 def test_compute_close_cell_num():

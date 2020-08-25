@@ -140,6 +140,11 @@ def generate_random_centroids(size_img=(1024, 1024), num_A=100, num_B=100, num_C
     non_dup_points, non_dup_counts = np.unique(total_points, axis=0, return_counts=True)
     total_points = non_dup_points[non_dup_counts == 1]
 
+    # this we need because np.unique automatically sorts by ascending coordinate
+    # but we want more randomization, this is because this forms the basis of generate_test_label_map
+    # which will be passed into calc_dist_matrix which cannot assume a sequentially-labelled xarray
+    total_points = total_points[np.random.permutation(total_points.shape[0]), :]
+
     return total_points
 
 
