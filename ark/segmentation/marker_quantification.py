@@ -23,7 +23,7 @@ def compute_marker_counts(input_images, segmentation_masks, nuclear_counts=False
             marker_counts (xarray): xarray containing segmented data of cells x markers
     """
 
-    unique_cell_num = len(np.unique(segmentation_masks.values).astype('int'))
+    unique_cell_ids = np.unique(segmentation_masks[..., 0].values)
 
     # define morphology properties to be extracted from regionprops
     object_properties = ["label", "area", "eccentricity", "major_axis_length",
@@ -34,12 +34,12 @@ def compute_marker_counts(input_images, segmentation_masks, nuclear_counts=False
                                     object_properties[:-1]), axis=None)
 
     # create np.array to hold compartment x cell x feature info
-    marker_counts_array = np.zeros((len(segmentation_masks.compartments), unique_cell_num,
+    marker_counts_array = np.zeros((len(segmentation_masks.compartments), len(unique_cell_ids),
                                     len(feature_names)))
 
     marker_counts = xr.DataArray(copy.copy(marker_counts_array),
                                  coords=[segmentation_masks.compartments,
-                                         np.unique(segmentation_masks.values).astype('int'),
+                                         unique_cell_ids.astype('int'),
                                          feature_names],
                                  dims=['compartments', 'cell_id', 'features'])
 
@@ -95,10 +95,10 @@ def compute_marker_counts(input_images, segmentation_masks, nuclear_counts=False
                 nuc_features = np.concatenate((nuc_counts, current_nuc_props), axis=None)
 
                 # add counts of each marker to appropriate column
-                marker_counts.loc['nuclear', nuc_id, marker_counts.features[1]:] = nuc_features
+                marker_counts.loc['nuclear', cell_id, marker_counts.features[1]:] = nuc_features
 
                 # add cell size to first column
-                marker_counts.loc['nuclear', nuc_id, marker_counts.features[0]] = \
+                marker_counts.loc['nuclear', cell_id, marker_counts.features[0]] = \
                     nuc_coords.shape[0]
 
     return marker_counts
@@ -237,8 +237,8 @@ def compute_complete_expression_matrices(segmentation_labels, tiff_dir, img_sub_
     cohort_len = len(points)
 
     # create the final dfs to store the processed data
-    combined_normalized_data = pd.DataFrame()
-    combined_transformed_data = pd.DataFrame()
+    combined_cell_size_normalized_data = pd.DataFrame()
+    combined_arcsinh_transformed_data = pd.DataFrame()
 
     # iterate over all the batches
     for batch_names, batch_files in zip(
@@ -258,13 +258,13 @@ def compute_complete_expression_matrices(segmentation_labels, tiff_dir, img_sub_
         current_labels = segmentation_labels.loc[batch_names, :, :, :]
 
         # segment the imaging data
-        normalized_data, transformed_data = generate_expression_matrix(
+        cell_size_normalized_data, arcsinh_transformed_data = generate_expression_matrix(
             segmentation_labels=current_labels,
             image_data=image_data
         )
 
         # now append to the final dfs to return
-        combined_normalized_data = combined_normalized_data.append(normalized_data)
-        combined_transformed_data = combined_transformed_data.append(transformed_data)
+        combined_cell_size_normalized_data = combined_cell_size_normalized_data.append(cell_size_normalized_data)
+        combined_arcsinh_transformed_data = combined_arcsinh_transformed_data.append(arcsinh_transformed_data)
 
-    return combined_normalized_data, combined_transformed_data
+    return combined_cell_size_normalized_data, combined_arcsinh_transformed_data
