@@ -14,23 +14,26 @@ def load_imgs_from_mibitiff(data_dir, mibitiff_files=None, channels=None, delimi
                             dtype='int16'):
     """Load images from a series of MIBItiff files.
 
-    This function takes a set of MIBItiff files and load the images into an
-    xarray. The type used to store the images will be the same as that of the
-    MIBIimages stored in the MIBItiff files.
+    This function takes a set of MIBItiff files and load the images into an xarray. The type used
+    to store the images will be the same as that of the MIBIimages stored in the MIBItiff files.
 
     Args:
-        data_dir (str): directory containing MIBItiffs
-        mibitiff_files (list): list of MIBItiff files to load. If None,
-            all MIBItiff files in data_dir are loaded.
-        channels (list): optional list of channels to load. Defaults to `None`, in
-            which case, all channels in the first MIBItiff are used.
-        delimiter (str): optional delimiter-character/string which separate fov names
-            from the rest of the file name. Defaults to None
-        dtype (str/type): optional specifier of image type.  Overwritten with warning for
-            float images
+        data_dir (str):
+            directory containing MIBItiffs
+        mibitiff_files (list):
+            list of MIBItiff files to load. If None, all MIBItiff files in data_dir are loaded.
+        channels (list):
+            optional list of channels to load. Defaults to `None`, in which case, all channels in
+            the first MIBItiff are used.
+        delimiter (str):
+            optional delimiter-character/string which separate fov names from the rest of the file
+            name. Defaults to None
+        dtype (str/type):
+            optional specifier of image type.  Overwritten with warning for float images
 
     Returns:
-        img_xr (xr.DataArray): xarray with shape [fovs, x_dim, y_dim, channels]
+        img_xr (xr.DataArray):
+            xarray with shape [fovs, x_dim, y_dim, channels]
     """
 
     if not mibitiff_files:
@@ -77,29 +80,31 @@ def load_imgs_from_multitiff(data_dir, multitiff_files=None, channels=None, deli
                              dtype='int16'):
     """Load images from a series of multi-channel tiff files.
 
-    This function takes a set of multi-channel tiff files and loads the images
-    into an xarray.  The type used to store the images will be the same as
-    that of the images stored in the multi-channel tiff files.
+    This function takes a set of multi-channel tiff files and loads the images into an xarray.
+    The type used to store the images will be the same as that of the images stored in the
+    multi-channel tiff files.
 
-    This function differs from `load_imgs_from_mibitiff` in that proprietary
-    metadata is unneeded, which is usefull loading in more general multi-channel
-    tiff files.
-    images.
+    This function differs from `load_imgs_from_mibitiff` in that proprietary metadata is unneeded,
+    which is usefull loading in more general multi-channel tiff files.
 
     Args:
-        data_dir (str): directory containing multitiffs
-        multitiff_files (list): list of multi-channel tiff files to load.  If None,
-            all multitiff files in data_dir are loaded.
-        channels (list): optional list of channels to load.  Unlike MIBItiff, this must
-            be given as a numeric list of indices, since there is no metadata
-            containing channel names.
-        delimiter (str): optional delimiter-character/string which separate fov names
-            from the rest of the file name. Default is None.
-        dtype (str/type): optional specifier of image type.  Overwritten with warning for
-            float images
+        data_dir (str):
+            directory containing multitiffs
+        multitiff_files (list):
+            list of multi-channel tiff files to load.  If None, all multitiff files in data_dir
+            are loaded.
+        channels (list):
+            optional list of channels to load.  Unlike MIBItiff, this must be given as a numeric
+            list of indices, since there is no metadata containing channel names.
+        delimiter (str):
+            optional delimiter-character/string which separate fov names from the rest of the file
+            name. Default is None.
+        dtype (str/type):
+            optional specifier of image type.  Overwritten with warning for float images
 
     Returns:
-        img_xr (xr.DataArray): xarray with shape [fovs, x_dim, y_dim, channels]
+        img_xr (xr.DataArray):
+            xarray with shape [fovs, x_dim, y_dim, channels]
     """
 
     if not multitiff_files:
@@ -145,16 +150,23 @@ def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, channels=None,
                         dtype="int16", variable_sizes=False):
     """Takes a set of imgs from a directory structure and loads them into an xarray.
 
-        Args:
-            data_dir (str): directory containing folders of images
-            img_sub_folder (str): optional name of image sub-folder within each fov
-            fovs (list): optional list of folders to load imgs from. Default loads all folders
-            channels (list): optional list of imgs to load, otherwise loads all imgs
-            dtype (str/type): dtype of array which will be used to store values
-            variable_sizes (bool): if true, will pad loaded images with zeros to fit into array
+    Args:
+        data_dir (str):
+            directory containing folders of images
+        img_sub_folder (str):
+            optional name of image sub-folder within each fov
+        fovs (list):
+            optional list of folders to load imgs from. Default loads all folders
+        channels (list):
+            optional list of imgs to load, otherwise loads all imgs
+        dtype (str/type):
+            dtype of array which will be used to store values
+        variable_sizes (bool):
+            if true, will pad loaded images with zeros to fit into array
 
-        Returns:
-            img_xr (xr.DataArray): xarray with shape [fovs, x_dim, y_dim, tifs]
+    Returns:
+        img_xr (xr.DataArray):
+            xarray with shape [fovs, x_dim, y_dim, tifs]
     """
 
     if fovs is None:
@@ -236,19 +248,25 @@ def load_imgs_from_dir(data_dir, imgdim_name='compartments', image_name='img_dat
     """Takes a set of images from a directory and loads them into an xarray based on filename
     prefixes.
 
-        Args:
-            data_dir (str): directory containing images
-            imgdim_name (str): sets the name of the last dimension of the output xarray
-            image_name (str): sets name of the last coordinate in the output xarray
-            delimiter (str): character used to determine the file-prefix containging the fov name.
-                             Default is None.
-            dtype (str/type): data type to load/store
-            variable_sizes (bool): Dynamically determine image sizes and pad smaller imgs w/ zeros
-            force_ints (bool): If dtype is an integer, forcefully convert float imgs to ints.
-                               Default is False.
+    Args:
+        data_dir (str):
+            directory containing images
+        imgdim_name (str):
+            sets the name of the last dimension of the output xarray
+        image_name (str):
+            sets name of the last coordinate in the output xarray
+        delimiter (str):
+            character used to determine the file-prefix containging the fov name. Default is None.
+        dtype (str/type):
+            data type to load/store
+        variable_sizes (bool):
+            Dynamically determine image sizes and pad smaller imgs w/ zeros
+        force_ints (bool):
+            If dtype is an integer, forcefully convert float imgs to ints. Default is False.
 
-        Returns:
-            img_xr (xr.DataArray): xarray with shape [fovs, x_dim, y_dim, 1]
+    Returns:
+        img_xr (xr.DataArray):
+            xarray with shape [fovs, x_dim, y_dim, 1]
 
     """
 
@@ -315,12 +333,16 @@ def generate_deepcell_input(data_xr, data_dir, nuc_channels, mem_channels):
     """Saves nuclear and membrane channels into deepcell input format.
 
     Args:
-        data_xr (xr.DataArray): xarray containing nuclear and membrane channels over many fov's
-        data_dir (str): location to save deepcell input tifs
-        nuc_channels (list): nuclear channels to be summed over
-        mem_channels (list): membrane channels to be summed over
-    Output:
-        Writes summed channel images out as multitiffs
+        data_xr (xr.DataArray):
+            xarray containing nuclear and membrane channels over many fov's
+        data_dir (str):
+            location to save deepcell input tifs
+        nuc_channels (list):
+            nuclear channels to be summed over
+        mem_channels (list):
+            membrane channels to be summed over
+    Returns:
+        None. Writes summed channel images out as multitiffs
 
     """
     for fov in data_xr.fovs.values:
@@ -344,12 +366,15 @@ def combine_xarrays(xarrays, axis):
     """Combines a number of xarrays together
 
     Args:
-        xarrays (tuple): a tuple of xarrays
-        axis (int): either 0, if the xarrays will combined over different fovs,
-        or -1 if they will be combined over channels
+        xarrays (tuple):
+            a tuple of xarrays
+        axis (int):
+            either 0, if the xarrays will combined over different fovs, or -1 if they will be
+            combined over channels
 
     Returns:
-        combined_xr (xr.DataArray): an xarray that is the combination of all inputs"""
+        combined_xr (xr.DataArray):
+            an xarray that is the combination of all inputs"""
 
     first_xr = xarrays[0]
     np_arr = first_xr.values
@@ -401,11 +426,14 @@ def crop_helper(image_stack, crop_size):
     """"Helper function to take an image, and return crops of size crop_size
 
     Args:
-        image_stack (np.array): A 4D numpy array of shape(points, rows, columns, channels)
-        crop_size (int): Size of the crop to take from the image. Assumes square crops
+        image_stack (np.array):
+            A 4D numpy array of shape(points, rows, columns, channels)
+        crop_size (int):
+            Size of the crop to take from the image. Assumes square crops
 
     Returns:
-        cropped_images (np.array): A 4D numpy array of shape (crops, rows, columns, channels)"""
+        cropped_images (np.array):
+            A 4D numpy array of shape (crops, rows, columns, channels)"""
 
     if len(image_stack.shape) != 4:
         raise ValueError("Incorrect dimensions of input image. "
@@ -444,18 +472,21 @@ def crop_helper(image_stack, crop_size):
 def crop_image_stack(image_stack, crop_size, stride_fraction):
     """Function to generate a series of tiled crops across an image.
 
-    The tiled crops can overlap each other, with the overlap between tiles determined by
-    the stride fraction. A stride fraction of 0.333 will move the window over 1/3 of
-    the crop_size in x and y at each step, whereas a stride fraction of 1 will move
-    the window the entire crop size at each iteration.
+    The tiled crops can overlap each other, with the overlap between tiles determined by the
+    stride fraction. A stride fraction of 0.333 will move the window over 1/3 of the crop_size in
+    x and y at each step, whereas a stride fraction of 1 will move the window the entire crop size
+    at each iteration.
 
     Args:
-        image_stack (np.array): A 4D numpy array of shape(points, rows, columns, channels)
-        crop_size (int): size of the crop to take from the image. Assumes square crops
-        stride_fraction (float): the relative size of the stride for overlapping
-            crops as a function of the crop size.
+        image_stack (np.array):
+            A 4D numpy array of shape(points, rows, columns, channels)
+        crop_size (int):
+            size of the crop to take from the image. Assumes square crops
+        stride_fraction (float):
+            the relative size of the stride for overlapping crops as a function of the crop size.
     Returns:
-        cropped_images (np.array): A 4D numpy array of shape(crops, rows, cols, channels)"""
+        cropped_images (np.array):
+            A 4D numpy array of shape(crops, rows, cols, channels)"""
 
     if len(image_stack.shape) != 4:
         raise ValueError("Incorrect dimensions of input image. "
@@ -494,7 +525,8 @@ def combine_point_directories(dir_path):
     """Combines a folder containing multiple imaging runs into a single folder
 
     Args:
-        dir_path (str): path to directory containing the sub directories
+        dir_path (str):
+            path to directory containing the sub directories
 
     Returns:
         None"""
@@ -518,15 +550,18 @@ def combine_point_directories(dir_path):
 
 
 def stitch_images(data_xr, num_cols):
-    """
-    Stitch together a stack of different channels from different FOVs into a single 2D image for each channel
+    """Stitch together a stack of different channels from different FOVs into a single 2D image
+    for each channel
 
     Args:
-        data_xr (xr.DataArray): xarray containing image data from multiple fovs and channels
-        num_cols (int): number of images stitched together horizontally
+        data_xr (xr.DataArray):
+            xarray containing image data from multiple fovs and channels
+        num_cols (int):
+            number of images stitched together horizontally
 
     Returns:
-        stitched_xr (xr.DataArray): the stitched image data
+        stitched_xr (xr.DataArray):
+            the stitched image data
     """
     num_imgs = data_xr.shape[0]
     num_rows = math.ceil(num_imgs / num_cols)
@@ -559,15 +594,21 @@ def split_img_stack(stack_dir, output_dir, stack_list, indices, names, channels_
     Splits the channels in a given directory of images into separate files
 
     Args:
-        stack_dir (str): where we read the input files
-        output_dir (str): where we write the split channel data
-        stack_list (list): the names of the files we want to read from stack_dir
-        indices (list): the indices we want to pull data from
-        names (list): the corresponding names of the channels
-        channel_first (bool): whether we index at the beginning or end of the array
+        stack_dir (str):
+            where we read the input files
+        output_dir (str):
+            where we write the split channel data
+        stack_list (list):
+            the names of the files we want to read from stack_dir
+        indices (list):
+            the indices we want to pull data from
+        names (list):
+            the corresponding names of the channels
+        channel_first (bool):
+            whether we index at the beginning or end of the array
 
     Returns:
-        None: images are saved in the output_dir
+        None. Images are saved in the output_dir
     """
 
     for stack_name in stack_list:

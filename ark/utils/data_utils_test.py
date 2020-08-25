@@ -512,7 +512,14 @@ def test_split_img_stack():
         junk_img_chan_last = np.zeros((1024, 1024, 10))
         io.imsave(os.path.join(stack_dir, "channel_data.tif"), junk_img_chan_last)
 
-        data_utils.split_img_stack(stack_dir, output_dir, stack_list, indices, names, channels_first=False)
+        data_utils.split_img_stack(
+            stack_dir,
+            output_dir,
+            stack_list,
+            indices,
+            names,
+            channels_first=False
+        )
 
         assert os.path.exists(os.path.join(output_dir, "channel_data", "chan1.tif"))
         assert os.path.exists(os.path.join(output_dir, "channel_data", "chan2.tif"))
@@ -527,10 +534,17 @@ def test_split_img_stack():
         junk_img_chan_first = np.zeros((10, 1024, 1024))
         io.imsave(os.path.join(stack_dir, "channel_data.tif"), junk_img_chan_first)
 
-        # clear the original channel_data directory so an error doesn't get thrown trying to recreate it
+        # clear the original channel_data directory
         rmtree(os.path.join(output_dir, "channel_data"))
 
-        data_utils.split_img_stack(stack_dir, output_dir, stack_list, indices, names, channels_first=True)
+        data_utils.split_img_stack(
+            stack_dir,
+            output_dir,
+            stack_list,
+            indices,
+            names,
+            channels_first=True
+        )
 
         assert os.path.exists(os.path.join(output_dir, "channel_data", "chan1.tif"))
         assert os.path.exists(os.path.join(output_dir, "channel_data", "chan2.tif"))
