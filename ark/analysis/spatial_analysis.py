@@ -20,10 +20,10 @@ def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, 
             data including fovs, cell labels, and cell expression matrix for all markers
         excluded_colnames (list):
             all column names that are not markers. If argument is none, default is
-            `["cell_size", "Background", "HH3",
+            ["cell_size", "Background", "HH3",
              "summed_channel", "label", "area",
              "eccentricity", "major_axis_length",
-             "minor_axis_length", "perimeter", "fov"]`
+             "minor_axis_length", "perimeter", "fov"]
         included_fovs (list):
             patient labels to include in analysis. If argument is none, default is all labels used.
         dist_lim (int):
@@ -35,10 +35,10 @@ def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, 
 
     Returns:
         tuple: Two element tuple containing
-         - a list with each element consisting of a tuple of closenum and closenumrand for each\
-        point included in the analysis
-         - an Xarray with dimensions (fovs, stats, num_channels, num_channels). The included stats\
-        variables for each point are z, muhat, sigmahat, p, h, adj_p, and cluster_names
+        * a list with each element consisting of a tuple of closenum and closenumrand for each
+          point included in the analysis
+        * an Xarray with dimensions (fovs, stats, num_channels, num_channels). The included stats
+          variables for each point are z, muhat, sigmahat, p, h, adj_p, and cluster_names
     """
 
     # Setup input and parameters
@@ -143,11 +143,11 @@ def calculate_cluster_spatial_enrichment(all_data, dist_matrices_dict, included_
 
     Returns:
         tuple: Two element tuple containing
-         - a list with each element consisting of a tuple of closenum and closenumrand for each\
-        point included in the analysis
-         - an xarray with dimensions (fovs, stats, number of channels, number of channels). The\
-        included stats variables for each point are: z, muhat, sigmahat, p, h, adj_p, and\
-        cluster_names
+        * a list with each element consisting of a tuple of closenum and closenumrand for each
+          point included in the analysis
+        * an xarray with dimensions (fovs, stats, number of channels, number of channels). The
+          included stats variables for each point are: z, muhat, sigmahat, p, h, adj_p, and
+          cluster_names
     """
 
     # Setup input and parameters
