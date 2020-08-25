@@ -6,9 +6,11 @@ import seaborn as sns
 
 def visualize_z_scores(z, pheno_titles):
     """Plots the z scores between all phenotypes as a clustermap.
+
     Args:
-        z: array of z scores of shape (pheno_num x pheno_num)
-        pheno_titles: list of all the names of the phenotypes"""
+        z (numpy.ndarray): array of z scores of shape (pheno_num, pheno_num)
+        pheno_titles (list): list of all the names of the phenotypes
+    """
     # Replace the NA's and inf values with 0s
     z[np.isnan(z)] = 0
     z[np.isinf(z)] = 0
@@ -23,7 +25,7 @@ def get_sorted_data(cell_data, patient_col_name, population_col_name, is_normali
     patient and column representing Population categories
 
     Args:
-        cell_data (pd df):
+        cell_data (pandas.DataFrame):
             Dataframe containing columns with Patient ID and Cell Name
         patient_col_name (str):
             Name of column containing categorical Patient data
@@ -33,8 +35,7 @@ def get_sorted_data(cell_data, patient_col_name, population_col_name, is_normali
             Boolean specifying whether to normalize cell counts or not, default is False
 
     Returns:
-        cell_data_stacked (pd df):
-            DataFrame with rows and columns sorted by population
+        DataFrame with rows and columns sorted by population
     """
 
     cell_data_stacked = pd.crosstab(
@@ -67,7 +68,7 @@ def visualize_patient_population_distribution(cell_data, patient_col_name, popul
     """Plots the distribution of the population given by total count, direct count, and proportion
 
     Args:
-        cell_data (pd df):
+        cell_data (pandas.DataFrame):
             Dataframe containing columns with Patient ID and Cell Name
         patient_col_name (str):
             Name of column containing categorical Patient data

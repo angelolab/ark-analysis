@@ -12,7 +12,7 @@ def visualize_dimensionality_reduction(cell_data, columns, category, color_map="
     """Plots the dimensionality reduction of specified population columns
 
     Args:
-        cell_data (pd df):
+        cell_data (pandas.DataFrame):
             Dataframe containing columns for dimensionality reduction and category
         columns (list):
             List of column names that are included for dimensionality reduction
