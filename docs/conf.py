@@ -79,6 +79,9 @@ autodoc_mock_imports = ['h5py'
 
 sys.modules['matplotlib.pyplot'] = mock.Mock()
 
+# explicitly mock mibidata
+sys.modules['mibidata'] = mock.Mock()
+
 # prefix each section label with the name of the document it is in, followed by a colon
 # autosection_label_prefix_document = True
 autosectionlabel_prefix_document = True
