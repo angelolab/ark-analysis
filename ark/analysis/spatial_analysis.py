@@ -8,7 +8,7 @@ def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, 
                                          excluded_colnames=None, included_fovs=None,
                                          dist_lim=100, bootstrap_num=1000, fov_col="SampleID"):
     """Spatial enrichment analysis to find significant interactions between cells expressing
-       different markers.  Uses bootstrapping to permute cell labels randomly.
+    different markers.  Uses bootstrapping to permute cell labels randomly.
 
     Args:
         dist_matrices_dict (dict):
