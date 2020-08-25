@@ -20,10 +20,11 @@ def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, 
             data including fovs, cell labels, and cell expression matrix for all markers
         excluded_colnames (list):
             all column names that are not markers. If argument is none, default is\
-            .. code-block::
-                ["cell_size", "Background", "HH3",\
-                 "summed_channel", "label", "area",\
-                 "eccentricity", "major_axis_length",\
+            highlight:: python
+            code-block:: python
+                ["cell_size", "Background", "HH3",
+                 "summed_channel", "label", "area",
+                 "eccentricity", "major_axis_length",
                  "minor_axis_length", "perimeter", "fov"]
         included_fovs (list):
             patient labels to include in analysis. If argument is none, default is all labels used.
