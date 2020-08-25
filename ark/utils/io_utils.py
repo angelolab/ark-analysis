@@ -140,7 +140,6 @@ def list_folders(dir_name, substrs=None):
     Returns:
         list:
             List of folders containing at least one of the substrings
-
     """
 
     files = os.listdir(dir_name)

@@ -305,7 +305,6 @@ def compute_neighbor_counts(current_fov_neighborhood_data, dist_matrix, distlim,
             Column name with the cell labels
     Returns:
         tuple (pandas.DataFrame, pandas.DataFrame):
-            Two element tuple containing
             - phenotype counts per cell
             - phenotype frequencies of counts per total for each cell
     """

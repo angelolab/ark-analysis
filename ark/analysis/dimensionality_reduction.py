@@ -24,10 +24,6 @@ def visualize_dimensionality_reduction(cell_data, columns, category, color_map="
             Name of dimensionality reduction algorithm, default is UMAP
         save_dir (str):
             Directory to save plots, default is None
-
-    Returns:
-        None
-
     """
     cell_data = cell_data.dropna()
 

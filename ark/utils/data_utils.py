@@ -343,9 +343,6 @@ def generate_deepcell_input(data_xr, data_dir, nuc_channels, mem_channels):
             nuclear channels to be summed over
         mem_channels (list):
             membrane channels to be summed over
-    Returns:
-        None.
-
     """
     for fov in data_xr.fovs.values:
         out = np.zeros((data_xr.shape[1], data_xr.shape[2], 2), dtype=data_xr.dtype)
@@ -376,7 +373,8 @@ def combine_xarrays(xarrays, axis):
 
     Returns:
         xarray.DataArray:
-            an xarray that is the combination of all inputs"""
+            an xarray that is the combination of all inputs
+    """
 
     first_xr = xarrays[0]
     np_arr = first_xr.values
@@ -435,7 +433,8 @@ def crop_helper(image_stack, crop_size):
 
     Returns:
         numpy.ndarray:
-            A 4D numpy array of shape (crops, rows, columns, channels)"""
+            A 4D numpy array of shape (crops, rows, columns, channels)
+    """
 
     if len(image_stack.shape) != 4:
         raise ValueError("Incorrect dimensions of input image. "
@@ -530,9 +529,6 @@ def combine_point_directories(dir_path):
     Args:
         dir_path (str):
             path to directory containing the sub directories
-
-    Returns:
-        None
     """
 
     if not os.path.exists(dir_path):
@@ -611,9 +607,6 @@ def split_img_stack(stack_dir, output_dir, stack_list, indices, names, channels_
             the corresponding names of the channels
         channel_first (bool):
             whether we index at the beginning or end of the array
-
-    Returns:
-        None.
     """
 
     for stack_name in stack_list:

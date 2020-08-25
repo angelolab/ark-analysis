@@ -122,9 +122,8 @@ def generate_expression_matrix(segmentation_labels, image_data, nuclear_counts=F
 
     Returns:
         tuple (pandas.DataFrame, pandas.DataFrame):
-            Two element tuple containing
-             - marker counts per cell normalized by cell size
-             - arcsinh transformation of the above
+            - marker counts per cell normalized by cell size
+            - arcsinh transformation of the above
     """
     if type(segmentation_labels) is not xr.DataArray:
         raise ValueError("Incorrect data type for segmentation_labels, expecting xarray")
@@ -222,9 +221,8 @@ def compute_complete_expression_matrices(segmentation_labels, tiff_dir, img_sub_
 
     Returns:
         tuple (pandas.DataFrame, pandas.DataFrame):
-            Two element tuple containing
-             - size normalized data
-             - arcsinh transformed data
+            - size normalized data
+            - arcsinh transformed data
     """
 
     # if no points are specified, then load all the points

@@ -106,7 +106,6 @@ def concatenate_csv(base_dir, csv_files, column_name="point", column_values=None
             optional column name, defaults to point
         column_values (list):
             optional values to use for each CSV, defaults to csv name
-
     """
 
     if column_values is None:

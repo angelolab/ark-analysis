@@ -429,10 +429,9 @@ def generate_two_cell_test_channel_synthetic_data(size_img=(1024, 1024), cell_ra
 
     Returns:
         tuple (numpy.ndarray, numpy.ndarray, numpy.ndarray):
-            Three element tuple containing
-             - an array with the labeled cell regions
-             - an array defining the nuclear signal for the desired cells
-             - an array defining the membrane signal for the desired cells
+            - an array with the labeled cell regions
+            - an array defining the nuclear signal for the desired cells
+            - an array defining the membrane signal for the desired cells
     """
 
     # generate the segmentation mask
