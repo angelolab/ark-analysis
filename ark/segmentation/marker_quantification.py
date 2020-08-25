@@ -23,7 +23,8 @@ def compute_marker_counts(input_images, segmentation_masks, nuclear_counts=False
             boolean flag to determine whether nuclear counts are returned
 
     Returns:
-        xarray containing segmented data of cells x markers
+        xarray.DataArray:
+            xarray containing segmented data of cells x markers
     """
 
     unique_cell_ids = np.unique(segmentation_masks[..., 0].values)
@@ -120,8 +121,9 @@ def generate_expression_matrix(segmentation_labels, image_data, nuclear_counts=F
             boolean flag to determine whether nuclear counts are returned
 
     Returns:
-        Tuple of marker counts per cell normalized and arcsinh transfomed marker counts per cell
-        normalized by cell size, each a pandas.DataFrame
+        tuple:
+             - (pandas.DataFrame) marker counts per cell normalized by cell size
+             - (pandas.DataFrame) arcsinh transformation of the above
     """
     if type(segmentation_labels) is not xr.DataArray:
         raise ValueError("Incorrect data type for segmentation_labels, expecting xarray")
@@ -218,8 +220,9 @@ def compute_complete_expression_matrices(segmentation_labels, tiff_dir, img_sub_
             necessary for speed and memory considerations
 
     Returns:
-        Tuple of a DataFrame containing the size_norm transformed data and a DataFrame containing
-        the arcsinh transformed data.
+        tuple:
+             - (pandas.DataFrame) size normalized data
+             - (pandas.DataFrame) arcsinh transformed data
     """
 
     # if no points are specified, then load all the points

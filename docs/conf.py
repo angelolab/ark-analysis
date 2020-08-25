@@ -12,8 +12,7 @@
 #
 import os
 import sys
-import mock  # if we need to force mock import certain libraries autodoc_mock_imports fails ons
-import m2r2
+import mock # if we need to force mock import certain libraries autodoc_mock_imports fails ons
 
 # our project officially 'begins' in the parent aka root project directory
 # since we do not separate source from build we can simply go up one directory
@@ -94,20 +93,6 @@ source_parsers = {'.md': 'recommonmark.parser.CommonMarkParser'}
 # which types of file extensions we want to support
 # need .rst for index.rst, and also .md for Markdown
 source_suffix = ['.rst', '.md']
-
-
-# Convert md in docstrings to rst
-def docstring(app, what, name, obj, options, lines):
-    md = '\n'.join(lines)
-    rst = m2r2.convert(md)
-    lines.clear()
-    lines += rst.splitlines()
-
-
-# connect docstring processing to docstring function
-def setup(app):
-    app.connect('autodoc-process-docstring', docstring)
-
 
 # the path to the 'master' document, which in our case, is just index.rst
 # not really needed because this is the default value, but still useful to know

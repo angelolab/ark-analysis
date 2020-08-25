@@ -12,7 +12,8 @@ def positive_pixels_extraction(cell_coords, image_data, threshold=0):
         image_data (xarray.DataArray): array containing channel counts
 
     Returns:
-        Sums of counts for each channel as a numpy.ndarray
+        numpy.ndarray:
+            Sums of counts for each channel
     """
 
     # index indo image_data to get th channel values we're interested in
@@ -40,7 +41,8 @@ def center_weighting_extraction(cell_coords, image_data, centroid):
             the centroid of the region in question
 
     Returns:
-        Sums of counts for each channel as a numpy.ndarray
+        numpy.ndarray:
+            Sums of counts for each channel
     """
 
     # compute the distance box-level from the center outward
@@ -71,8 +73,8 @@ def default_extraction(cell_coords, image_data):
             array containing channel counts
 
     Returns:
-        channel_counts (numpy.ndarray):
-            sum of counts for each channel
+        numpy.ndarray:
+            Sum of counts for each channel
     """
 
     # index indo image_data to get th channel values we're interested in

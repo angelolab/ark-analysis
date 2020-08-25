@@ -10,6 +10,10 @@ def visualize_z_scores(z, pheno_titles):
     Args:
         z (numpy.ndarray): array of z scores of shape (pheno_num, pheno_num)
         pheno_titles (list): list of all the names of the phenotypes
+
+    Returns:
+        None
+
     """
     # Replace the NA's and inf values with 0s
     z[np.isnan(z)] = 0
@@ -35,7 +39,8 @@ def get_sorted_data(cell_data, patient_col_name, population_col_name, is_normali
             Boolean specifying whether to normalize cell counts or not, default is False
 
     Returns:
-        DataFrame with rows and columns sorted by population
+        pandas.DataFrame:
+            DataFrame with rows and columns sorted by population
     """
 
     cell_data_stacked = pd.crosstab(
@@ -84,6 +89,9 @@ def visualize_patient_population_distribution(cell_data, patient_col_name, popul
             Boolean specifying whether to show graph of total count, default is true
         save_dir (str):
             Directory to save plots, default is None
+
+    Returns:
+        None
     """
     cell_data = cell_data.dropna()
 
