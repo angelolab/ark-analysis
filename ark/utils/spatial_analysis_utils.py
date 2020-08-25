@@ -17,8 +17,9 @@ def calc_dist_matrix(label_map, path=None):
         path (str):
             path to save file. If None, then will directly return
     Returns:
-        Dictionary containg cells x cells matrices with the euclidian distance between centers of
-        corresponding cells for every fov
+        dict:
+            Dictionary containg cells x cells matrices with the euclidian distance between centers
+            of corresponding cells for every fov
     """
     # Check that file path exists, if given
     if path is not None:
@@ -68,7 +69,8 @@ def get_pos_cell_labels(analysis_type, pheno=None, current_fov_neighborhood_data
             the current marker that the positive labels are being found for
 
     Returns:
-        List of all the positive labels"""
+        list:
+            List of all the positive labels"""
 
     if not np.isin(analysis_type, ("cluster", "channel")).all():
         raise ValueError("Incorrect analysis type")
@@ -126,8 +128,9 @@ def compute_close_cell_num(dist_mat, dist_lim, num, analysis_type,
             matrix of thresholds column for markers
 
     Returns:
-        2D numpy array containing marker x marker matrix with counts for cells positive for
-        corresponding markers, as well as a list of number of cell labels for marker 1
+        numpy.ndarray:
+            2D array containing marker x marker matrix with counts for cells positive for
+            corresponding markers, as well as a list of number of cell labels for marker 1
     """
 
     # Initialize variables
@@ -196,7 +199,9 @@ def compute_close_cell_num_random(marker_nums, dist_mat, dist_lim, bootstrap_num
             number of permutations
 
     Returns:
-        Large matrix of random positive marker counts for every permutation in the bootstrap"""
+        numpy.ndarray:
+            Large matrix of random positive marker counts for every permutation in the bootstrap
+    """
 
     # Create close_num_rand
     close_num_rand = np.zeros((
@@ -227,13 +232,14 @@ def calculate_enrichment_stats(close_num, close_num_rand):
             random positive marker counts for every permutation in the bootstrap
 
     Returns:
-        xarray contining the following statistics for marker to marker enrichment
-            - z: z scores for corresponding markers
-            - muhat: predicted mean values of close_num_rand random distribution
-            - sigmahat: predicted standard deviation values of close_num_rand random distribution
-            - p: p values for corresponding markers, for both positive and negative enrichment
-            - h: matrix indicating whether corresponding marker interactions are significant
-            - adj_p: fdh_br adjusted p values
+        xarray.DataArray:
+            xarray contining the following statistics for marker to marker enrichment
+                - z: z scores for corresponding markers
+                - muhat: predicted mean values of close_num_rand random distribution
+                - sigmahat: predicted standard deviations of close_num_rand random distribution
+                - p: p values for corresponding markers, for both positive and negative enrichment
+                - h: matrix indicating whether corresponding marker interactions are significant
+                - adj_p: fdh_br adjusted p values
     """
     # Get the number of markers and number of permutations
     marker_num = close_num.shape[0]
@@ -298,8 +304,11 @@ def compute_neighbor_counts(current_fov_neighborhood_data, dist_matrix, distlim,
         cell_label_col (str):
             Column name with the cell labels
     Returns:
-        Two pandas DataFrames, one containing phenotype counts per cell, and the other containing
-        phenotype frequencies of counts per phenotype/total phenotypes for each cell"""
+        tuple (pandas.DataFrame, pandas.DataFrame):
+            Two element tuple containing
+            - phenotype counts per cell
+            - phenotype frequencies of counts per total for each cell
+    """
 
     # TODO remove non-cell2cell lines (indices of distance matrix do not correspond to cell labels)
     #  after our own inputs for functions are created

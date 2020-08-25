@@ -17,8 +17,9 @@ def find_nuclear_mask_id(nuc_segmentation_mask, cell_coords):
             list of coords specifying pixels that belong to a cell
 
     Returns:
-        Integer ID of the nuclear mask that overlaps most with cell.
-        If no matches found, returns None.
+        int or None:
+            Integer ID of the nuclear mask that overlaps most with cell.
+            If no matches found, returns None.
     """
 
     ids, counts = np.unique(nuc_segmentation_mask[tuple(cell_coords.T)], return_counts=True)

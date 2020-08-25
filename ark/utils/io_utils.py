@@ -46,7 +46,8 @@ def list_files(dir_name, substrs=None):
             Substring matching criteria, defaults to None (all files)
 
     Returns:
-        List of files containing at least one of the substrings
+        list:
+            List of files containing at least one of the substrings
 
     """
 
@@ -94,7 +95,8 @@ def extract_delimited_names(files, delimiter='_', delimiter_optional=True):
             Raised if delimiter_optional=False and no delimiter is present in any of the files
 
     Returns:
-        List of extracted names. Indicies should match that of files
+        list:
+            List of extracted names. Indicies should match that of files
 
     """
     if files is None:
@@ -136,7 +138,8 @@ def list_folders(dir_name, substrs=None):
             Substring matching criteria, defaults to None (all folders)
 
     Returns:
-        List of folders containing at least one of the substrings
+        list:
+            List of folders containing at least one of the substrings
 
     """
 

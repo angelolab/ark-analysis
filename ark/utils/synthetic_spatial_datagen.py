@@ -36,9 +36,10 @@ def generate_test_dist_matrix(num_A=100, num_B=100, num_C=100,
             integer value. Default None.
 
     Returns:
-        The randomized distance matrix we generate directly from predefined distributions
-        where the average distances between cell types of a and b > average distances between
-        cell types of b and c
+        numpy.ndarray:
+            The randomized distance matrix we generate directly from predefined distributions
+            where the average distances between cell types of a and b > average distances between
+            cell types of b and c
     """
 
     # set the mean and variance of the Gaussian distributions of both AB and AC distances
@@ -114,7 +115,8 @@ def generate_random_centroids(size_img=(1024, 1024), num_A=100, num_B=100, num_C
             integer value. Default None.
 
     Returns:
-        List of non-duplicated cell centroids.
+        list:
+            List of non-duplicated cell centroids.
     """
 
     # extract the height and width
@@ -199,10 +201,11 @@ def generate_test_label_map(size_img=(1024, 1024), num_A=100, num_B=100, num_C=1
             integer value. Default None.
 
     Returns:
-        Data in xarray format containing the randomized label matrix based on the randomized
-        centroid centers we generated. The label mat portion of sample_img_xr is generated from a
-        randomly initialized set of cell centroids where those of type a are on average closer to
-        those of type b than they are to those of type c.
+        xarray.DataArray:
+            Data in xarray format containing the randomized label matrix based on the randomized
+            centroid centers we generated. The label mat portion of sample_img_xr is generated
+            from a randomly initialized set of cell centroids where those of type a are on average
+            closer to those of type b than they are to those of type c.
     """
 
     # generate the list of centroids and zip them into x and y coords
@@ -259,7 +262,8 @@ def generate_two_cell_test_segmentation_mask(size_img=(1024, 1024), cell_radius=
             the radius of each cell
 
     Returns:
-        An array of dimensions size_img with two separate labeled cells that border each other
+        numpy.ndarray:
+            An array of dimensions size_img with two separate labeled cells that border each other
     """
 
     # define the segmentation mask
@@ -318,8 +322,9 @@ def generate_two_cell_test_nuclear_signal(segmentation_mask, cell_centers,
             will extend nuc_radius by the specified length
 
     Returns:
-        An array of equal dimensions to segmentation_mask which have nuclear signal generated for
-        the provided cell ids
+        numpy.ndarray:
+            An array of equal dimensions to segmentation_mask which have nuclear signal generated
+            for the provided cell ids
     """
 
     # define the nuclear signal array
@@ -369,8 +374,9 @@ def generate_two_cell_test_membrane_signal(segmentation_mask, cell_centers,
             will extend memb_radius by the specified length
 
     Returns:
-        An array of equal dimensions to segmentation_mask which have membrane signal generated for
-        the provided cell ids
+        numpy.ndarray:
+            An array of equal dimensions to segmentation_mask which have membrane signal generated
+            for the provided cell ids
     """
 
     # define the nuclear signal array
@@ -438,8 +444,9 @@ def generate_two_cell_test_channel_synthetic_data(size_img=(1024, 1024), cell_ra
             will extend memb_radius by specified length
 
     Returns:
-        Tuple containing
-             - an array which contains the labeled cell regions
+        tuple (numpy.ndarray, numpy.ndarray, numpy.ndarray):
+            Three element tuple containing
+             - an array with the labeled cell regions
              - an array defining the nuclear signal for the desired cells
              - an array defining the membrane signal for the desired cells
     """

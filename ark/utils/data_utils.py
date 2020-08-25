@@ -332,6 +332,8 @@ def load_imgs_from_dir(data_dir, imgdim_name='compartments', image_name='img_dat
 def generate_deepcell_input(data_xr, data_dir, nuc_channels, mem_channels):
     """Saves nuclear and membrane channels into deepcell input format.
 
+    Writes summed channel images out as multitiffs
+
     Args:
         data_xr (xr.DataArray):
             xarray containing nuclear and membrane channels over many fov's
@@ -342,7 +344,7 @@ def generate_deepcell_input(data_xr, data_dir, nuc_channels, mem_channels):
         mem_channels (list):
             membrane channels to be summed over
     Returns:
-        None. Writes summed channel images out as multitiffs
+        None.
 
     """
     for fov in data_xr.fovs.values:
@@ -530,7 +532,8 @@ def combine_point_directories(dir_path):
             path to directory containing the sub directories
 
     Returns:
-        None"""
+        None
+    """
 
     if not os.path.exists(dir_path):
         raise ValueError("Directory does not exist")
@@ -591,8 +594,9 @@ def stitch_images(data_xr, num_cols):
 
 
 def split_img_stack(stack_dir, output_dir, stack_list, indices, names, channels_first=True):
-    """
-    Splits the channels in a given directory of images into separate files
+    """Splits the channels in a given directory of images into separate files
+
+    Images are saved in the output_dir
 
     Args:
         stack_dir (str):
@@ -609,7 +613,7 @@ def split_img_stack(stack_dir, output_dir, stack_list, indices, names, channels_
             whether we index at the beginning or end of the array
 
     Returns:
-        None. Images are saved in the output_dir
+        None.
     """
 
     for stack_name in stack_list:

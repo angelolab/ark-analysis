@@ -119,7 +119,8 @@ def randomize_labels(label_map):
         label_map (numpy.ndarray): labeled TIF with each object assigned a unique value
 
     Returns:
-        2D numpy.ndarray corresponding to a labeled TIF with permuted object labels"""
+        numpy.ndarray:
+            2D array corresponding to a labeled TIF with permuted object labels"""
 
     unique_vals = np.unique(label_map)[1:]
     pos_1 = np.random.choice(unique_vals, size=len(unique_vals))
