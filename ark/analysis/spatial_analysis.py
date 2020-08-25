@@ -31,13 +31,15 @@ def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, 
         bootstrap_num (int):
             number of permutations for bootstrap. Default is 1000.
         fov_col (string):
-            column with the cell fovs (Default is SampleID)
+            column with the cell fovs. Default is 'SampleID'
 
     Returns:
-         - a list with each element consisting of a tuple of closenum and closenumrand for each
-         point included in the analysis
-         - an Xarray with dimensions (fovs, stats, num_channels, num_channels). The included stats
-         variables for each point are z, muhat, sigmahat, p, h, adj_p, and cluster_names
+        tuple: Two element tuple containing
+
+        - a list with each element consisting of a tuple of closenum and closenumrand for each\
+        point included in the analysis
+        - an Xarray with dimensions (fovs, stats, num_channels, num_channels). The included stats\
+        variables for each point are z, muhat, sigmahat, p, h, adj_p, and cluster_names
     """
 
     # Setup input and parameters
@@ -132,16 +134,16 @@ def calculate_cluster_spatial_enrichment(all_data, dist_matrices_dict, included_
         dist_lim (int):
             cell proximity threshold. Default is 100
         fov_col (str):
-            column with the cell fovs (Default is SampleID)
+            column with the cell fovs. Default is 'SampleID'
         cluster_name_col (str):
-            column with the cell types (Default is cell_type)
+            column with the cell types. Default is 'cell_type'
         cluster_id_col (str):
-            column with the cell phenotype IDs (Default is FlowSOM_ID)
+            column with the cell phenotype IDs. Default is 'FlowSOM_ID'
         cell_label_col (str):
-            column with the cell labels. Default is cellLabelInImage
+            column with the cell labels. Default is 'cellLabelInImage'
 
     Returns:
-        (tuple): 2-element tuple containing
+        tuple: Two element tuple containing
 
         - a list with each element consisting of a tuple of closenum and closenumrand for each\
         point included in the analysis
@@ -228,8 +230,9 @@ def create_neighborhood_matrix(all_data, dist_matrices_dict, included_fovs=None,
             column with the cell types. Default is 'cell_type'
 
     Returns:
-        DataFrame containing phenotype counts per cell tupled with DataFrame containing phenotype
-        frequencies of counts per phenotype/total phenotypes for each cell
+        pandas.DataFrame:
+            DataFrame containing phenotype counts per cell tupled with DataFrame containing
+            phenotype frequencies of counts per phenotype/total phenotypes for each cell
     """
 
     # Setup input and parameters
