@@ -45,7 +45,8 @@ def transform_expression_matrix(cell_data, transform, transform_kwargs=None):
             optional dictionary with additional settings for the transforms
 
     Returns:
-        xarray of counts per marker normalized by cell size
+        xarray.DataArray:
+            xarray of counts per marker normalized by cell size
     """
     valid_transforms = ['size_norm', 'arcsinh']
 
