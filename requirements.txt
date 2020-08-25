@@ -17,6 +17,9 @@ tables==3.6.1
 umap-learn==0.4.6
 xarray==0.12.3
 Twisted~=20.3.0
+certifi
+pyOpenSSL
+service_identity
 git+https://github.com/vanvalenlab/kiosk-client@master
 
 
