@@ -34,11 +34,12 @@ def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, 
             column with the cell fovs. Default is 'SampleID'
 
     Returns:
-        tuple: Two element tuple containing
+        tuple:
+            Two element tuple containing
             * a list with each element consisting of a tuple of closenum and closenumrand for each
               point included in the analysis
-            * an Xarray with dimensions (fovs, stats, num_channels, num_channels). The included stats
-              variables for each point are z, muhat, sigmahat, p, h, adj_p, and cluster_names
+            * an Xarray with dimensions (fovs, stats, num_channels, num_channels). The included
+              stats variables for each point are z, muhat, sigmahat, p, h, adj_p, and cluster_names
     """
 
     # Setup input and parameters
@@ -142,7 +143,8 @@ def calculate_cluster_spatial_enrichment(all_data, dist_matrices_dict, included_
             column with the cell labels. Default is 'cellLabelInImage'
 
     Returns:
-        tuple: Two element tuple containing
+        tuple:
+            Two element tuple containing
             * a list with each element consisting of a tuple of closenum and closenumrand for each
               point included in the analysis
             * an xarray with dimensions (fovs, stats, number of channels, number of channels). The
