@@ -10,7 +10,7 @@ def run_deepcell_task(input_filepath, output_dir, host='https://deepcell.org', j
         (https://github.com/vanvalenlab/kiosk-client)
 
         Args:
-            input_path: path to .tif image
+            input_path: path to .zip image
             output_path: location to save deepcell output (as .tif)
             host: Hostname and port for the kiosk-frontend API server
             job_type: Name of job workflow (multiplex, segmentation, tracking)
