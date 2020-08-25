@@ -275,18 +275,10 @@ def generate_two_cell_test_segmentation_mask(size_img=(1024, 1024), cell_radius=
     center_2 = (size_img[0] // 2, size_img[0] // 2 + cell_radius * 2 - 1)
 
     # generate the coordinates of each nuclear disk
-    cell_region_1_x, cell_region_1_y = circle(
-        center_1[0],
-        center_1[1],
-        cell_radius,
-        shape=size_img
-    )
-    cell_region_2_x, cell_region_2_y = circle(
-        center_2[0],
-        center_2[1],
-        cell_radius,
-        shape=size_img
-    )
+    cell_region_1_x, cell_region_1_y = circle(center_1[0], center_1[1], cell_radius,
+                                              shape=size_img)
+    cell_region_2_x, cell_region_2_y = circle(center_2[0], center_2[1], cell_radius,
+                                              shape=size_img)
 
     # now assign the respective cells value according to their label
     sample_segmentation_mask[cell_region_1_x, cell_region_1_y] = 1
@@ -335,12 +327,9 @@ def generate_two_cell_test_nuclear_signal(segmentation_mask, cell_centers,
 
         # generate the nuclear region in the middle of the cell with the same cell center
         # and set signal to a uniform value
-        nuc_region_x, nuc_region_y = circle(
-            center[0],
-            center[1],
-            nuc_radius + nuc_uncertainty_length,
-            shape=size_img
-        )
+        nuc_region_x, nuc_region_y = circle(center[0], center[1],
+                                            nuc_radius + nuc_uncertainty_length, shape=size_img)
+
         sample_nuclear_signal[nuc_region_x, nuc_region_y] = nuc_signal_strength
 
         # let's keep things simple for now and not include jitter or anything
@@ -387,18 +376,13 @@ def generate_two_cell_test_membrane_signal(segmentation_mask, cell_centers,
 
         # generate both the coordinates of the cell region and non-membrane region
         # for proper circle subtraction to generate membrane
-        cell_region_x, cell_region_y = circle(
-            center[0],
-            center[1],
-            cell_radius + memb_uncertainty_length,
-            shape=size_img
-        )
-        non_memb_region_x, non_memb_region_y = circle(
-            center[0],
-            center[1],
-            cell_radius - memb_thickness,
-            shape=size_img
-        )
+        cell_region_x, cell_region_y = circle(center[0], center[1],
+                                              cell_radius + memb_uncertainty_length,
+                                              shape=size_img)
+
+        non_memb_region_x, non_memb_region_y = circle(center[0], center[1],
+                                                      cell_radius - memb_thickness,
+                                                      shape=size_img)
 
         # perform circle subtraction
         sample_membrane_signal[cell_region_x, cell_region_y] = memb_signal_strength
