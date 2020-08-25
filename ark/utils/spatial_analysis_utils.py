@@ -185,7 +185,7 @@ def compute_close_cell_num_random(marker_nums, dist_mat, dist_lim, bootstrap_num
     """Uses bootstrapping to permute cell labels randomly and records the number of close cells
     (within the dit_lim) in that random setup.
 
-    Args
+    Args:
         marker_nums (numpy.ndarray):
             list of cell counts of each marker type
         dist_mat (numpy.ndarray):
@@ -195,7 +195,7 @@ def compute_close_cell_num_random(marker_nums, dist_mat, dist_lim, bootstrap_num
         bootstrap_num (int):
             number of permutations
 
-    Returns
+    Returns:
         Large matrix of random positive marker counts for every permutation in the bootstrap"""
 
     # Create close_num_rand

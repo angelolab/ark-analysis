@@ -11,7 +11,7 @@ def find_nuclear_mask_id(nuc_segmentation_mask, cell_coords):
     """Get the ID of the nuclear mask which has the greatest amount of overlap with a given cell
 
     Args:
-        nuc_segmentation_mask (numpy):
+        nuc_segmentation_mask (numpy.ndarray):
             label mask of nuclear segmentations
         cell_coords (list):
             list of coords specifying pixels that belong to a cell
@@ -36,7 +36,7 @@ def transform_expression_matrix(cell_data, transform, transform_kwargs=None):
     """Transform an xarray of marker counts with supplied transformation
 
     Args:
-        cell_data (xarray):
+        cell_data (xarray.DataArray):
             xarray containing marker expression values
         transform (str):
             the type of transform to apply. Must be one of ['size_norm', 'arcsinh']

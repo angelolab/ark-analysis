@@ -32,7 +32,7 @@ def load_imgs_from_mibitiff(data_dir, mibitiff_files=None, channels=None, delimi
             optional specifier of image type.  Overwritten with warning for float images
 
     Returns:
-        img_xr (xr.DataArray):
+        xarray.DataArray:
             xarray with shape [fovs, x_dim, y_dim, channels]
     """
 
@@ -103,7 +103,7 @@ def load_imgs_from_multitiff(data_dir, multitiff_files=None, channels=None, deli
             optional specifier of image type.  Overwritten with warning for float images
 
     Returns:
-        img_xr (xr.DataArray):
+        xarray.DataArray:
             xarray with shape [fovs, x_dim, y_dim, channels]
     """
 
@@ -165,7 +165,7 @@ def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, channels=None,
             if true, will pad loaded images with zeros to fit into array
 
     Returns:
-        img_xr (xr.DataArray):
+        xarray.DataArray:
             xarray with shape [fovs, x_dim, y_dim, tifs]
     """
 
@@ -265,7 +265,7 @@ def load_imgs_from_dir(data_dir, imgdim_name='compartments', image_name='img_dat
             If dtype is an integer, forcefully convert float imgs to ints. Default is False.
 
     Returns:
-        img_xr (xr.DataArray):
+        xarray.DataArray:
             xarray with shape [fovs, x_dim, y_dim, 1]
 
     """
@@ -373,7 +373,7 @@ def combine_xarrays(xarrays, axis):
             combined over channels
 
     Returns:
-        combined_xr (xr.DataArray):
+        xarray.DataArray:
             an xarray that is the combination of all inputs"""
 
     first_xr = xarrays[0]
@@ -432,7 +432,7 @@ def crop_helper(image_stack, crop_size):
             Size of the crop to take from the image. Assumes square crops
 
     Returns:
-        cropped_images (np.array):
+        numpy.ndarray:
             A 4D numpy array of shape (crops, rows, columns, channels)"""
 
     if len(image_stack.shape) != 4:
@@ -485,8 +485,9 @@ def crop_image_stack(image_stack, crop_size, stride_fraction):
         stride_fraction (float):
             the relative size of the stride for overlapping crops as a function of the crop size.
     Returns:
-        cropped_images (np.array):
-            A 4D numpy array of shape(crops, rows, cols, channels)"""
+        numpy.ndarray:
+            A 4D numpy array of shape(crops, rows, cols, channels)
+    """
 
     if len(image_stack.shape) != 4:
         raise ValueError("Incorrect dimensions of input image. "
@@ -554,13 +555,13 @@ def stitch_images(data_xr, num_cols):
     for each channel
 
     Args:
-        data_xr (xr.DataArray):
+        data_xr (xarray.DataArray):
             xarray containing image data from multiple fovs and channels
         num_cols (int):
             number of images stitched together horizontally
 
     Returns:
-        stitched_xr (xr.DataArray):
+        xarray.DataArray:
             the stitched image data
     """
     num_imgs = data_xr.shape[0]
