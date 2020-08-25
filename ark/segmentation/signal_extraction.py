@@ -8,11 +8,11 @@ def positive_pixels_extraction(cell_coords, image_data, threshold=0):
     Improves on default_extraction by not distinguishing between pixel expression values
 
     Args:
-        cell_coords (numpy): values representing pixels within one cell
-        image_data (xarray): array containing channel counts
+        cell_coords (numpy.ndarray): values representing pixels within one cell
+        image_data (xarray.DataArray): array containing channel counts
 
     Returns:
-        channel_counts (numpy): sum of counts for each channel
+        Sums of counts for each channel as a numpy.ndarray
     """
 
     # index indo image_data to get th channel values we're interested in
@@ -32,16 +32,15 @@ def center_weighting_extraction(cell_coords, image_data, centroid):
     Note: cell_coords and centroid are computed from regionprops prior to calling the function
 
     Args:
-        cell_coords (numpy):
+        cell_coords (numpy.ndarray):
             values representing pixels within one cell
-        image_data (xarray):
+        image_data (xarray.DataArray):
             array containing channel counts
         centroid (tuple):
             the centroid of the region in question
 
     Returns:
-        channel_counts (numpy):
-            sum of counts for each channel
+        Sums of counts for each channel as a numpy.ndarray
     """
 
     # compute the distance box-level from the center outward
@@ -66,13 +65,13 @@ def default_extraction(cell_coords, image_data):
     """ Extract channel counts for an individual cell via basic summation for each channel
 
     Args:
-        cell_coords (numpy):
+        cell_coords (numpy.ndarray):
             values representing pixels within one cell
-        image_data (xarray):
+        image_data (xarray.DataArray):
             array containing channel counts
 
     Returns:
-        channel_counts (numpy):
+        channel_counts (numpy.ndarray):
             sum of counts for each channel
     """
 

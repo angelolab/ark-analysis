@@ -15,16 +15,15 @@ def compute_marker_counts(input_images, segmentation_masks, nuclear_counts=False
     """Extract single cell protein expression data from channel TIFs for a single point
 
     Args:
-        input_images (xarray):
+        input_images (xarray.DataArray):
             rows x columns x channels matrix of imaging data
-        segmentation_masks (numpy array):
+        segmentation_masks (numpy.ndarray):
             rows x columns x compartment matrix of masks
         nuclear_counts (bool):
             boolean flag to determine whether nuclear counts are returned
 
     Returns:
-        marker_counts (xarray):
-            xarray containing segmented data of cells x markers
+        xarray containing segmented data of cells x markers
     """
 
     unique_cell_ids = np.unique(segmentation_masks[..., 0].values)
@@ -112,19 +111,17 @@ def generate_expression_matrix(segmentation_labels, image_data, nuclear_counts=F
     """Create a matrix of cells by channels with the total counts of each marker in each cell.
 
     Args:
-        segmentation_labels (xarray):
+        segmentation_labels (xarray.DataArray):
             xarray of shape [fovs, rows, cols, compartment] containing segmentation masks for each
             FOV, potentially across multiple cell compartments
-        image_data (xarray):
+        image_data (xarray.DataArray):
             xarray containing all of the channel data across all FOVs
         nuclear_counts (bool):
             boolean flag to determine whether nuclear counts are returned
 
     Returns:
-        normalized_data (pandas):
-            marker counts per cell normalized by cell size
-        arcsinh_data (pandas):
-            arcsinh transfomed marker counts per cell normalized by cell size
+        Tuple of marker counts per cell normalized and arcsinh transfomed marker counts per cell
+        normalized by cell size, each a pandas.DataFrame
     """
     if type(segmentation_labels) is not xr.DataArray:
         raise ValueError("Incorrect data type for segmentation_labels, expecting xarray")
@@ -203,7 +200,7 @@ def compute_complete_expression_matrices(segmentation_labels, tiff_dir, img_sub_
     while also validating inputs
 
     Args:
-        segmentation_labels (xarray):
+        segmentation_labels (xarray.DataArray):
             an xarray with the segmented data
         tiff_dir (str):
             the name of the directory which contains the single_channel_inputs
@@ -221,10 +218,8 @@ def compute_complete_expression_matrices(segmentation_labels, tiff_dir, img_sub_
             necessary for speed and memory considerations
 
     Returns:
-        combined_normalized_data (pandas):
-            a DataFrame containing the size_norm transformed data
-        combined_transformed_data (pandas):
-            a DataFrame containing the arcsinh transformed data
+        Tuple of a DataFrame containing the size_norm transformed data and a DataFrame containing
+        the arcsinh transformed data.
     """
 
     # if no points are specified, then load all the points
