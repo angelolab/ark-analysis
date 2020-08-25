@@ -3,7 +3,7 @@ import xarray as xr
 import pandas as pd
 import skimage.measure
 import scipy
-import statsmodels
+from statsmodels.stats.multitest import multipletests
 from scipy.spatial.distance import cdist
 import os
 
@@ -12,11 +12,14 @@ def calc_dist_matrix(label_map, path=None):
     """Generate matrix of distances between center of pairs of cells
 
     Args:
-        label_map (np array): array with unique cells given unique pixel labels
-        path (string): path to save file. If None, then will directly return
+        label_map (numpy.ndarray):
+            array with unique cells given unique pixel labels
+        path (str):
+            path to save file. If None, then will directly return
     Returns:
-        dist_matrix (dict): contains a cells x cells matrix with the euclidian
-            distance between centers of corresponding cells for every fov"""
+        Dictionary containg cells x cells matrices with the euclidian distance between centers of
+        corresponding cells for every fov
+    """
     # Check that file path exists, if given
     if path is not None:
         if not os.path.exists(path):
@@ -224,7 +227,7 @@ def calculate_enrichment_stats(close_num, close_num_rand):
             random positive marker counts for every permutation in the bootstrap
 
     Returns:
-        xarray contining the following statistics for marker to marker enrichment:
+        xarray contining the following statistics for marker to marker enrichment
             - z: z scores for corresponding markers
             - muhat: predicted mean values of close_num_rand random distribution
             - sigmahat: predicted standard deviation values of close_num_rand random distribution
@@ -264,8 +267,9 @@ def calculate_enrichment_stats(close_num, close_num_rand):
                 p_summary[j, k] = p_pos[j, k]
             else:
                 p_summary[j, k] = p_neg[j, k]
-    (h, adj_p, aS, aB) = statsmodels.stats.multitest.multipletests(
-        p_summary, alpha=.05)
+    (h, adj_p, aS, aB) = multipletests(
+        p_summary, alpha=.05
+    )
 
     # Create an Xarray with the dimensions (stats variables, number of markers, number of markers)
     stats_data = np.stack((z, muhat, sigmahat, p_pos, p_neg, h, adj_p), axis=0)
