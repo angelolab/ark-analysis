@@ -4,6 +4,8 @@
 # ark-analysis
 Toolbox for analyzing multiplexed imaging data
 
+Full documentation for the project can be found [here](https://ark-analysis.readthedocs.io/en/latest/)
+
 ## Info
 
 This project contains code and example scripts for analyzing multiplexed imaging data

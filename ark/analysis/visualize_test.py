@@ -2,7 +2,6 @@ import numpy as np
 import random
 import pandas as pd
 import string
-import os.path
 from os import path
 
 from ark.analysis import visualize
