@@ -11,7 +11,7 @@ env:
 
 # command to run tests
 script:
-  - python -m pytest --cov=ark --pep8 ark
+  - python -m pytest --cov=ark --pycodestyle ark
 
 after_success:
   - coveralls
