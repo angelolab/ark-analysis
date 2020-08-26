@@ -205,12 +205,12 @@ def test_visualize_watershed():
     with tempfile.TemporaryDirectory() as temp_dir:
         model_output = _generate_deepcell_ouput()
         channel_xr = _generate_channel_xr()
-        #cell_mask, channel_data = _create_test_extraction_data()
-        #channel_data = _generate_channel_data()
         overlay_channels = [channel_xr.channels.values[:2]],
-        #saved_output = xr.load_dataarray(os.path.join(temp_dir, 'segmentation_labels.xr'))
         for fov in range(model_output.shape[0]):
             segmentation_utils.visualize_watershed_transform(model_output=model_output, channel_xr=channel_xr,
                                                              overlay_channels=overlay_channels,
                                                              output_dir="", fov=fov)
             assert path.exists("{}_segmentation_labels.tiff")
+
+
+
