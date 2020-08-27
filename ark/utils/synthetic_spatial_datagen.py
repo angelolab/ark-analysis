@@ -31,7 +31,7 @@ def generate_test_dist_matrix(num_A=100, num_B=100, num_C=100,
             Should be a specified integer value. Default None.
 
     Returns:
-        dist_mat (numpy): the randomized distance matrix we generate directly from predefined distributions
+        dist_mat (xarray): the randomized distance matrix we generate directly from predefined distributions
             where the average distances between cell types of a and b > average distances between
             cell types of b and c
     """
@@ -69,6 +69,17 @@ def generate_test_dist_matrix(num_A=100, num_B=100, num_C=100,
 
     # finally, fill the diagonals with 0 to ensure a proper distance matrix
     np.fill_diagonal(dist_mat, 0)
+
+    # now we're going to add some random permutation to our distance matrix
+    # we have to do it this way because we cannot assume that our cells will
+    # be labeled in-order
+    coords_in_order = np.arange(dist_mat.shape[0])
+    coords_permuted = deepcopy(coords_in_order)
+    np.random.shuffle(coords_permuted)
+
+    # we have to 1-index coords because people will be labeling their cells 1-indexed
+    dist_mat = xr.DataArray(dist_mat[np.ix_(coords_permuted, coords_permuted)],
+                            coords=[coords_permuted + 1, coords_permuted + 1])
 
     return dist_mat
 

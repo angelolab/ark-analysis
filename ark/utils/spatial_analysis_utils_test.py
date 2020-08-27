@@ -74,10 +74,8 @@ def make_example_data_closenum():
     dist_mat[8, 7] = 50
     dist_mat[7, 8] = 50
 
-    dist_mat = xr.DataArray(dist_mat,
-                            coords=[np.arange(dist_mat.shape[0]) + 1,
-                                    np.arange(dist_mat.shape[1]) + 1]
-                           )
+    coords = np.random.shuffle(dist_mat.shape[0])
+    dist_mat = xr.DataArray(dist_mat, coords=[coords, coords])
 
     return all_data, dist_mat
 
@@ -102,7 +100,8 @@ def test_calc_dist_matrix():
     range_1 = [0, 1, 2]
     range_2 = [2, 0, 1]
 
-    distance_mat = spatial_analysis_utils.calc_dist_matrix(test_mat, np.stack([range_1, range_2]))
+    coords = {"1": range_1, "2": range_2}
+    distance_mat = spatial_analysis_utils.calc_dist_matrix(test_mat, coords)
 
     # while distance_mats 1 and 2 contain the same underlying array
     # the coordinates are different

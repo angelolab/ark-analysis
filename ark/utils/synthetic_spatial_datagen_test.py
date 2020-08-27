@@ -16,14 +16,21 @@ def test_generate_test_dist_matrix():
     # except for the random seed, which we specify
     sample_dist_mat = synthetic_spatial_datagen.generate_test_dist_matrix()
 
+    print(sample_dist_mat)
+    print(sample_dist_mat.shape)
+
+
     # assert matrix symmetry
-    assert np.allclose(sample_dist_mat, sample_dist_mat.T, rtol=1e-05, atol=1e-08)
+    assert np.allclose(sample_dist_mat.loc[np.arange(1, 301), np.arange(1, 301)].values,
+                       sample_dist_mat.T.loc[np.arange(1, 301), np.arange(1, 301)].values,
+                       rtol=1e-05, atol=1e-08)
 
     # assert the average of the distance between A and B is smaller
     # than the average of the distance between A and C.
     # this may not eliminate the possibility that the null is proved true
     # but it's definitely a great check that can ensure greater success
-    assert sample_dist_mat[:100, 100:200].mean() < sample_dist_mat[:100, 200:].mean()
+    assert sample_dist_mat.loc[np.arange(1, 101), np.arange(101, 201)].values.mean() < \
+        sample_dist_mat.loc[np.arange(1, 101), np.arange(201, 301)].values.mean()
 
 
 def test_generate_random_centroids():

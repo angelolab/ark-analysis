@@ -201,7 +201,7 @@ def compute_close_cell_num_random(marker_nums, dist_mat, dist_lim, bootstrap_num
     close_num_rand = np.zeros((
         len(marker_nums), len(marker_nums), bootstrap_num), dtype='int')
 
-        # dist_mat_bin = np.zeros(dist_mat.shape, dtype='int')
+    # dist_mat_bin = np.zeros(dist_mat.shape, dtype='int')
     dist_bin = np.zeros(dist_mat.shape, dtype='int')
     dist_bin[dist_mat.values < dist_lim] = 1
 
