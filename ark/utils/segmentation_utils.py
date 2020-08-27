@@ -222,40 +222,40 @@ def visualize_watershed_transform(segmentation_labels_xr, channel_data_xr, outpu
                 io.imsave(os.path.join(output_dir, "{}_interior_smoothed.tiff".format(fov)),
                           interior_smoothed.astype("float32"))
 
-    if save_tifs != 'none':
-        for chan_list in overlay_channels:
-            if len(chan_list) == 1:
-                # if only one entry in list, make single channel overlay
-                channel = chan_list[0]
-                chan_marker = channel_data_xr.loc[fov, :, :, channel].values
-                plot_utils.plot_overlay(random_map, plotting_tif=chan_marker,
-                                        path=os.path.join(output_dir,
-                                                          "{}_{}_overlay.tiff".format(fov,
-                                                                                      channel)))
+        if save_tifs != 'none':
+            for chan_list in overlay_channels:
+                if len(chan_list) == 1:
+                    # if only one entry in list, make single channel overlay
+                    channel = chan_list[0]
+                    chan_marker = channel_data_xr.loc[fov, :, :, channel].values
+                    plot_utils.plot_overlay(random_map, plotting_tif=chan_marker,
+                                            path=os.path.join(output_dir,
+                                                              "{}_{}_overlay.tiff".format(fov,
+                                                                                          channel)))
 
-            elif len(chan_list) == 2:
-                # if two entries, make 2-color stack, skipping 0th index which is red
-                input_data = np.zeros((channel_data_xr.shape[1], channel_data_xr.shape[2], 3))
-                input_data[:, :, 1] = channel_data_xr.loc[fov, :, :, chan_list[0]].values
-                input_data[:, :, 2] = channel_data_xr.loc[fov, :, :, chan_list[1]].values
-                plot_utils.plot_overlay(
-                    random_map, plotting_tif=input_data,
-                    path=os.path.join(
-                        output_dir,
-                        "{}_{}_{}_overlay.tiff".format(fov, chan_list[0], chan_list[1])))
-            elif len(chan_list) == 3:
-                # if three entries, make a 3 color stack, with third channel in first index (red)
-                input_data = np.zeros((channel_data_xr.shape[1], channel_data_xr.shape[2], 3))
-                input_data[:, :, 1] = channel_data_xr.loc[fov, :, :, chan_list[0]].values
-                input_data[:, :, 2] = channel_data_xr.loc[fov, :, :, chan_list[1]].values
-                input_data[:, :, 0] = channel_data_xr.loc[fov, :, :, chan_list[2]].values
-                plot_utils.plot_overlay(random_map, plotting_tif=input_data,
-                                        path=os.path.join(output_dir,
-                                                          "{}_{}_{}_{}_overlay.tiff".
-                                                          format(fov,
-                                                                 chan_list[0],
-                                                                 chan_list[1],
-                                                                 chan_list[2])))
+                elif len(chan_list) == 2:
+                    # if two entries, make 2-color stack, skipping 0th index which is red
+                    input_data = np.zeros((channel_data_xr.shape[1], channel_data_xr.shape[2], 3))
+                    input_data[:, :, 1] = channel_data_xr.loc[fov, :, :, chan_list[0]].values
+                    input_data[:, :, 2] = channel_data_xr.loc[fov, :, :, chan_list[1]].values
+                    plot_utils.plot_overlay(
+                        random_map, plotting_tif=input_data,
+                        path=os.path.join(
+                            output_dir,
+                            "{}_{}_{}_overlay.tiff".format(fov, chan_list[0], chan_list[1])))
+                elif len(chan_list) == 3:
+                    # if three entries, make a 3 color stack, with third channel in first index (red)
+                    input_data = np.zeros((channel_data_xr.shape[1], channel_data_xr.shape[2], 3))
+                    input_data[:, :, 1] = channel_data_xr.loc[fov, :, :, chan_list[0]].values
+                    input_data[:, :, 2] = channel_data_xr.loc[fov, :, :, chan_list[1]].values
+                    input_data[:, :, 0] = channel_data_xr.loc[fov, :, :, chan_list[2]].values
+                    plot_utils.plot_overlay(random_map, plotting_tif=input_data,
+                                            path=os.path.join(output_dir,
+                                                              "{}_{}_{}_{}_overlay.tiff".
+                                                              format(fov,
+                                                                     chan_list[0],
+                                                                     chan_list[1],
+                                                                     chan_list[2])))
 
     segmentation_labels_xr.loc[fov, :, :, 'whole_cell'] = random_map
 
