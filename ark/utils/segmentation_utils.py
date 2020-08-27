@@ -238,7 +238,8 @@ def visualize_watershed_transform(segmentation_labels_xr, channel_data_xr,
                                 output_dir,
                                 "{}_{}_{}_overlay.tiff".format(fov, chan_list[0], chan_list[1])))
                     elif len(chan_list) == 3:
-                        # if three entries, make a 3 color stack, with third channel in first index (red)
+                        # if three entries, make a 3 color stack,
+                        # with third channel in first index (red)
                         input_data = np.zeros(
                             (channel_data_xr.shape[1], channel_data_xr.shape[2], 3))
                         input_data[:, :, 1] = channel_data_xr.loc[fov, :, :, chan_list[0]].values
