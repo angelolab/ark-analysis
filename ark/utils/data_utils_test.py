@@ -8,34 +8,8 @@ from shutil import rmtree
 
 from mibidata import mibi_image as mi, tiff
 
-from ark.utils import data_utils
+from ark.utils import data_utils, test_utils
 import skimage.io as io
-
-
-# required metadata for mibitiff writing (barf)
-METADATA = {
-    'run': '20180703_1234_test', 'date': '2017-09-16T15:26:00',
-    'coordinates': (12345, -67890), 'size': 500., 'slide': '857',
-    'fov_id': 'Point1', 'fov_name': 'R1C3_Tonsil',
-    'folder': 'Point1/RowNumber0/Depth_Profile0',
-    'dwell': 4, 'scans': '0,5', 'aperture': 'B',
-    'instrument': 'MIBIscope1', 'tissue': 'Tonsil',
-    'panel': '20170916_1x', 'mass_offset': 0.1, 'mass_gain': 0.2,
-    'time_resolution': 0.5, 'miscalibrated': False, 'check_reg': False,
-    'filename': '20180703_1234_test', 'description': 'test image',
-    'version': 'alpha',
-}
-
-
-def _create_img_dir(temp_dir, fovs, imgs, img_sub_folder="TIFs", dtype="int8"):
-    tif = np.random.randint(0, 100, 1024 ** 2).reshape((1024, 1024)).astype(dtype)
-
-    for fov in fovs:
-        fov_path = os.path.join(temp_dir, fov, img_sub_folder)
-        if not os.path.exists(fov_path):
-            os.makedirs(fov_path)
-        for img in imgs:
-            io.imsave(os.path.join(fov_path, img), tif)
 
 
 def test_load_imgs_from_mibitiff():
@@ -71,7 +45,7 @@ def test_load_imgs_from_mibitiff():
     with tempfile.TemporaryDirectory(dir=data_dir) as temp_dir:
         tif = mi.MibiImage(np.random.rand(1024, 1024, 2).astype(np.float32),
                            ((1, channels[0]), (2, channels[1])),
-                           **METADATA)
+                           **test_utils.METADATA)
         tiff.write(os.path.join(temp_dir, 'Point9.tiff'), tif, dtype=np.float32)
         tiff.write(os.path.join(temp_dir, 'Point8_junktext.tiff'), tif, dtype=np.float32)
 
@@ -216,7 +190,7 @@ def test_load_imgs_from_tree():
         fovs = ["fov1", "fov2", "fov3"]
         imgs = ["img1.tiff", "img2.tiff", "img3.tiff"]
         chans = [chan.split(".tiff")[0] for chan in imgs]
-        _create_img_dir(temp_dir, fovs, imgs)
+        test_utils._create_img_dir(temp_dir, fovs, imgs)
 
         # check default loading of all files
         test_loaded_xr = \
@@ -284,7 +258,8 @@ def test_load_imgs_from_dir():
     with tempfile.TemporaryDirectory(prefix='one_file') as temp_dir:
         imgs = ["fov1_img1.tiff", "fov2_img2.tiff", "fov3_img3.tiff"]
         fovs = [img.split("_")[0] for img in imgs]
-        _create_img_dir(temp_dir, fovs=[""], imgs=imgs, img_sub_folder="", dtype="float")
+        test_utils._create_img_dir(temp_dir, fovs=[""], imgs=imgs, img_sub_folder="",
+                                   dtype="float")
 
         # check default loading
         test_loaded_xr = \
