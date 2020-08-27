@@ -105,8 +105,8 @@ def visualize_patient_population_distribution(cell_data, patient_col_name, popul
                                                       colormap=color_map)
 
         plt.legend(loc='center left', bbox_to_anchor=(1.0, 0.5))
-        plt.xlabel("Patient ID")
-        plt.ylabel("Cell Count")
+        plt.xlabel(patient_col_name)
+        plt.ylabel(population_col_name)
         plt.title("Distribution of Population Count in Patients")
         if save_dir is not None:
             plt.savefig(save_dir + "PopulationDistribution.png")
@@ -119,8 +119,8 @@ def visualize_patient_population_distribution(cell_data, patient_col_name, popul
                                                                           colormap=color_map)
 
         plt.legend(loc='center left', bbox_to_anchor=(1.0, 0.5))
-        plt.xlabel("Patient ID")
-        plt.ylabel("Population Proportion")
+        plt.xlabel(patient_col_name)
+        plt.ylabel(population_col_name)
         plt.title("Distribution of Population Count Proportion in Patients")
         if save_dir is not None:
             plt.savefig(save_dir + "PopulationProportion.png")
