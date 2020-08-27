@@ -15,7 +15,6 @@ import skimage.morphology as morph
 from skimage.segmentation import relabel_sequential
 import skimage.io as io
 
-
 from ark.utils import plot_utils, io_utils
 
 
@@ -141,8 +140,8 @@ def concatenate_csv(base_dir, csv_files, column_name="point", column_values=None
     combined_data.to_csv(os.path.join(base_dir, "combined_data.csv"), index=False)
 
 
-def visualize_watershed_transform(segmentation_labels_xr, channel_data_xr, output_dir, model_output, overlay_channels,
-                                  fovs=None,
+def visualize_watershed_transform(segmentation_labels_xr, channel_data_xr, output_dir, model_output,
+                                  overlay_channels, fovs=None,
                                   interior_model="pixelwise_interior", interior_threshold=0.25,
                                   interior_smooth=3, maxima_model="pixelwise_interior", maxima_smooth=3,
                                   maxima_threshold=0.05, nuclear_expansion=None, randomize_cell_labels=True,
