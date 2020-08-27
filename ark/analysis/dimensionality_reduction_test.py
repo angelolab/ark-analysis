@@ -13,16 +13,7 @@ def test_dimensionality_reduction():
     random_cell_data = pd.DataFrame(np.random.random(size=(300, 8)), columns=list('ABCDEFGH'))
     random_cell_data["cell_type"] = rand.choices(string.ascii_lowercase, k=300)
 
-    test_cols = [
-        'A',
-        'B',
-        'C',
-        'D',
-        'E',
-        'F',
-        'G',
-        'H',
-    ]
+    test_cols = list('ABCDEFGH')
 
     test_algorithms = ['PCA', 'tSNE', 'UMAP']
     with tempfile.TemporaryDirectory() as temp_dir:
