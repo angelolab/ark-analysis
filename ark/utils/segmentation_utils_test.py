@@ -7,6 +7,7 @@ import tempfile
 
 from ark.utils import segmentation_utils
 
+
 def _generate_channel_data():
     fovs = ['fov1', 'fov2']
     chans = ['nuc1', 'nuc2', 'mem1', 'mem2']
@@ -16,6 +17,7 @@ def _generate_channel_data():
         coords=[fovs, range(1024), range(1024), chans],
         dims=["fovs", "rows", "cols", "channels"])
     return data_xr
+
 
 def _generate_channel_xr(fov_num=2, chan_num=5):
     fovs = ["fov" + str(i) for i in range(fov_num)]
