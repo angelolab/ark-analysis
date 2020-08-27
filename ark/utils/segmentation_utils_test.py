@@ -221,6 +221,8 @@ def test_visualize_watershed():
                                                              model_output=model_output, channel_data_xr=channel_xr,
                                                              overlay_channels=overlay_channels,
                                                              output_dir=temp_dir)
-            print('Hi')
-            print(os.path.exists(os.path.join(temp_dir,"{}_segmentation_labels.tiff".format(fov))))
-            assert os.path.exists(os.path.join(temp_dir,"{}_segmentation_labels.tiff".format(fov)))
+            #print('Hi')
+            #print(os.path.exists(os.path.join(temp_dir,"{}_segmentation_labels.tiff".format(fov))))
+            for mod_output_fov in model_output.fovs:
+                assert os.path.exists(os.path.join(temp_dir,"{}_segmentation_labels.tiff".format(mod_output_fov)))
+                assert os.path.exists(os.path.join(temp_dir, "{}_segmentation_labels.tiff".format(mod_output_fov)))
