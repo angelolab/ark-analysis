@@ -142,6 +142,18 @@ def create_paired_xarray_fovs(base_dir, fov_names, channel_names, img_shape=(102
     return filelocs, data_xr
 
 
+def clear_directory(dirpath):
+    if not os.path.isdir(dirpath):
+        raise FileNotFoundError(f'{dirpath} is not a valid directory')
+        return
+
+    for subpath in os.listdir(dirpath):
+        if os.path.isfile(subpath):
+            os.remove(subpath)
+        if os.path.isdir(subpath):
+            os.rmdir(subpath)
+
+
 def _create_img_dir(temp_dir, fovs, imgs, img_sub_folder="TIFs", dtype="int8"):
     tif = np.random.randint(0, 100, 1024 ** 2).reshape((1024, 1024)).astype(dtype)
 
