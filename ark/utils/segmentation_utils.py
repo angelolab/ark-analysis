@@ -149,11 +149,12 @@ def visualize_watershed_transform(segmentation_labels_xr, channel_data_xr, outpu
                                   save_tifs='overlays'):
     """Runs the watershed transform over a set of probability masks output by deepcell network
     Inputs:
-        model_output (xarray): xarray containing the different branch outputs from deepcell
-        channel_xr (xarray): xarray containing TIFs
-        overlay_channels (Tuple): channels to overlay segmentation output over
+        segmentation_labels_xr (xarray): xarray containing segmentation labels
+        channel_data_xr (xarray): xarray containing TIFs
         output_dir (str): path to directory where the output will be saved
-        fov (int): field of view
+        model_output (xarray): xarray containing the different branch outputs from deepcell
+        overlay_channels (Tuple): channels to overlay segmentation output over
+        fovs (): field of view
         interior_model (str): Name of model to use to identify maxs in the image
         interior_threshold (float): threshold to cut off interior predictions
         interior_smooth (int): value to smooth the interior predictions
@@ -167,7 +168,6 @@ def visualize_watershed_transform(segmentation_labels_xr, channel_data_xr, outpu
             none - does not save any tifs
     Outputs:
         Saves xarray to output directory"""
-
 
     # error check model selected for local maxima finding in the image
 

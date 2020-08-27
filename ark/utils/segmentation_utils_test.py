@@ -205,24 +205,19 @@ def test_visualize_watershed():
     with tempfile.TemporaryDirectory() as temp_dir:
         model_output = _generate_deepcell_ouput()
         channel_xr = _generate_channel_xr()
-        # cell_mask, channel_data = _create_test_extraction_data()
-        # channel_data = _generate_channel_data()
         overlay_channels = [channel_xr.channels.values[:2]],
-        #saved_output = xr.load_dataarray(os.path.join(temp_dir, 'segmentation_labels.xr'))
         segmentation_labels_xr = \
-        xr.DataArray(np.zeros((model_output.shape[:-1] + (1,)), dtype="int16"),
-                     coords=[model_output.fovs, range(model_output.shape[1]),
-                             range(model_output.shape[2]),
-                             ['whole_cell']],
-                     dims=['fovs', 'rows', 'cols', 'compartments'])
+            xr.DataArray(np.zeros((model_output.shape[:-1] + (1,)), dtype="int16"),
+                         coords=[model_output.fovs, range(model_output.shape[1]),
+                                 range(model_output.shape[2]),
+                                 ['whole_cell']],
+                         dims=['fovs', 'rows', 'cols', 'compartments'])
 
         for fov in range(model_output.shape[0]):
             segmentation_utils.visualize_watershed_transform(segmentation_labels_xr=segmentation_labels_xr,
                                                              model_output=model_output, channel_data_xr=channel_xr,
                                                              overlay_channels=overlay_channels,
                                                              output_dir=temp_dir)
-            #print('Hi')
-            #print(os.path.exists(os.path.join(temp_dir,"{}_segmentation_labels.tiff".format(fov))))
             for mod_output_fov in model_output.fovs:
-                assert os.path.exists(os.path.join(temp_dir,"{}_segmentation_labels.tiff".format(mod_output_fov)))
+                assert os.path.exists(os.path.join(temp_dir, "{}_segmentation_labels.tiff".format(mod_output_fov)))
                 assert os.path.exists(os.path.join(temp_dir, "{}_segmentation_labels.tiff".format(mod_output_fov)))
