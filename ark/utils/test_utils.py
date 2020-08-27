@@ -26,7 +26,9 @@ def _gen_tif_data(fov_number, chan_number, img_shape, fills, dtype):
                                      fov_number * img_shape[0] * img_shape[1] * chan_number)
         tif_data = tif_data.reshpae((fov_number, *img_shape, chan_number)).astype(dtype)
     else:
-        tif_data = np.full((fov_number, *img_shape, chan_number), fills, dtype=dtype)
+        tif_data = np.full((*img_shape, fov_number, chan_number),
+                           list(fills.values()), dtype=dtype)
+        tif_data = np.moveaxis(tif_data, 2, 0)
 
     return tif_data
 
@@ -96,12 +98,29 @@ def create_paired_xarray_fovs(base_dir, fov_names, channel_names, img_shape=(102
         raise FileNotFoundError(f'{base_dir} is not a directory')
         return None
 
+    if fov_names is None or fov_names is []:
+        raise ValueError('No fov names were given...')
+        return None
+
     if channel_names is None or channel_names is []:
         raise ValueError('No image names were given...')
         return None
 
+    if not isinstance(fov_names, list):
+        fov_names = [fov_names]
+
     if not isinstance(channel_names, list):
         channel_names = [channel_names]
+
+    # verify fills structure -> dict(fov_name : list [num_channels])
+    if fills is not None:
+        if fills.keys() is not fov_names:
+            raise ValueError(f'fills keys, {fills.keys()}, must match fov_names, {fov_names}')
+            return None
+        for fill in fills.values():
+            if len(fill) != len(channel_names):
+                raise ValueError(f'Not all fills have length {len(channel_names)}')
+                return None
 
     if fills is not None and not isinstance(fills, list):
         fills = [fills]
