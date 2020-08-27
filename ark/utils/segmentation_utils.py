@@ -140,11 +140,14 @@ def concatenate_csv(base_dir, csv_files, column_name="point", column_values=None
     combined_data.to_csv(os.path.join(base_dir, "combined_data.csv"), index=False)
 
 
-def visualize_watershed_transform(segmentation_labels_xr, channel_data_xr, output_dir, model_output,
+def visualize_watershed_transform(segmentation_labels_xr, channel_data_xr,
+                                  output_dir, model_output,
                                   overlay_channels, fovs=None,
                                   interior_model="pixelwise_interior", interior_threshold=0.25,
-                                  interior_smooth=3, maxima_model="pixelwise_interior", maxima_smooth=3,
-                                  maxima_threshold=0.05, nuclear_expansion=None, randomize_cell_labels=True,
+                                  interior_smooth=3, maxima_model="pixelwise_interior",
+                                  maxima_smooth=3,
+                                  maxima_threshold=0.05, nuclear_expansion=None,
+                                  randomize_cell_labels=True,
                                   save_tifs='overlays'):
     """Runs the watershed transform over a set of probability masks output by deepcell network
     Inputs:
@@ -225,8 +228,8 @@ def visualize_watershed_transform(segmentation_labels_xr, channel_data_xr, outpu
                                                                                               channel)))
 
                     elif len(chan_list) == 2:
-                        # if two entries, make 2-color stack, skipping 0th index which is red
-                        input_data = np.zeros((channel_data_xr.shape[1], channel_data_xr.shape[2], 3))
+                        input_data = np.zeros(
+                            (channel_data_xr.shape[1], channel_data_xr.shape[2], 3))
                         input_data[:, :, 1] = channel_data_xr.loc[fov, :, :, chan_list[0]].values
                         input_data[:, :, 2] = channel_data_xr.loc[fov, :, :, chan_list[1]].values
                         plot_utils.plot_overlay(
@@ -236,7 +239,8 @@ def visualize_watershed_transform(segmentation_labels_xr, channel_data_xr, outpu
                                 "{}_{}_{}_overlay.tiff".format(fov, chan_list[0], chan_list[1])))
                     elif len(chan_list) == 3:
                         # if three entries, make a 3 color stack, with third channel in first index (red)
-                        input_data = np.zeros((channel_data_xr.shape[1], channel_data_xr.shape[2], 3))
+                        input_data = np.zeros(
+                            (channel_data_xr.shape[1], channel_data_xr.shape[2], 3))
                         input_data[:, :, 1] = channel_data_xr.loc[fov, :, :, chan_list[0]].values
                         input_data[:, :, 2] = channel_data_xr.loc[fov, :, :, chan_list[1]].values
                         input_data[:, :, 0] = channel_data_xr.loc[fov, :, :, chan_list[2]].values
