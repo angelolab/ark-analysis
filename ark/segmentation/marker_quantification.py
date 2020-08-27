@@ -14,13 +14,17 @@ from ark.segmentation import signal_extraction
 def compute_marker_counts(input_images, segmentation_masks, nuclear_counts=False):
     """Extract single cell protein expression data from channel TIFs for a single point
 
-        Args:
-            input_images (xarray): rows x columns x channels matrix of imaging data
-            segmentation_masks (numpy array): rows x columns x compartment matrix of masks
-            nuclear_counts (bool): boolean flag to determine whether nuclear counts are returned
+    Args:
+        input_images (xarray.DataArray):
+            rows x columns x channels matrix of imaging data
+        segmentation_masks (numpy.ndarray):
+            rows x columns x compartment matrix of masks
+        nuclear_counts (bool):
+            boolean flag to determine whether nuclear counts are returned
 
-        Returns:
-            marker_counts (xarray): xarray containing segmented data of cells x markers
+    Returns:
+        xarray.DataArray:
+            xarray containing segmented data of cells x markers
     """
 
     unique_cell_ids = np.unique(segmentation_masks[..., 0].values)
@@ -108,14 +112,18 @@ def generate_expression_matrix(segmentation_labels, image_data, nuclear_counts=F
     """Create a matrix of cells by channels with the total counts of each marker in each cell.
 
     Args:
-        segmentation_labels (xarray): xarray of shape [fovs, rows, cols, compartment] containing
-            segmentation masks for each FOV, potentially across multiple cell compartments
-        image_data (xarray): xarray containing all of the channel data across all FOVs
-        nuclear_counts (bool): boolean flag to determine whether nuclear counts are returned
+        segmentation_labels (xarray.DataArray):
+            xarray of shape [fovs, rows, cols, compartment] containing segmentation masks for each
+            FOV, potentially across multiple cell compartments
+        image_data (xarray.DataArray):
+            xarray containing all of the channel data across all FOVs
+        nuclear_counts (bool):
+            boolean flag to determine whether nuclear counts are returned
 
     Returns:
-        normalized_data (pandas): marker counts per cell normalized by cell size
-        arcsinh_data (pandas): arcsinh transfomed marker counts per cell normalized by cell size
+        tuple (pandas.DataFrame, pandas.DataFrame):
+            - marker counts per cell normalized by cell size
+            - arcsinh transformation of the above
     """
     if type(segmentation_labels) is not xr.DataArray:
         raise ValueError("Incorrect data type for segmentation_labels, expecting xarray")
@@ -193,20 +201,28 @@ def compute_complete_expression_matrices(segmentation_labels, tiff_dir, img_sub_
     This function takes the segmented data and computes the expression matrices batch-wise
     while also validating inputs
 
-    Inputs:
-        segmentation_labels (xarray): an xarray with the segmented data
-        tiff_dir (str): the name of the directory which contains the single_channel_inputs
-        img_sub_folder (str): the name of the folder where the TIF images are located
-        points (list): a list of points we wish to analyze, if None will default to all points
-        is_mibitiff (bool): a flag to indicate whether or not the base images are MIBItiffs
-        mibitiff_suffix (str): if is_mibitiff is true, then needs to be specified to select
-            which points to load from mibitiff
-        batch_size (int): how large we want each of the batches of points to be when computing,
-            adjust as necessary for speed and memory considerations
+    Args:
+        segmentation_labels (xarray.DataArray):
+            an xarray with the segmented data
+        tiff_dir (str):
+            the name of the directory which contains the single_channel_inputs
+        img_sub_folder (str):
+            the name of the folder where the TIF images are located
+        points (list):
+            a list of points we wish to analyze, if None will default to all points
+        is_mibitiff (bool):
+            a flag to indicate whether or not the base images are MIBItiffs
+        mibitiff_suffix (str):
+            if is_mibitiff is true, then needs to be specified to select which points to load from
+            mibitiff
+        batch_size (int):
+            how large we want each of the batches of points to be when computing, adjust as
+            necessary for speed and memory considerations
 
     Returns:
-        combined_normalized_data (pandas): a DataFrame containing the size_norm transformed data
-        combined_transformed_data (pandas): a DataFrame containing the arcsinh transformed data
+        tuple (pandas.DataFrame, pandas.DataFrame):
+            - size normalized data
+            - arcsinh transformed data
     """
 
     # if no points are specified, then load all the points
@@ -264,7 +280,11 @@ def compute_complete_expression_matrices(segmentation_labels, tiff_dir, img_sub_
         )
 
         # now append to the final dfs to return
-        combined_cell_size_normalized_data = combined_cell_size_normalized_data.append(cell_size_normalized_data)
-        combined_arcsinh_transformed_data = combined_arcsinh_transformed_data.append(arcsinh_transformed_data)
+        combined_cell_size_normalized_data = combined_cell_size_normalized_data.append(
+            cell_size_normalized_data
+        )
+        combined_arcsinh_transformed_data = combined_arcsinh_transformed_data.append(
+            arcsinh_transformed_data
+        )
 
     return combined_cell_size_normalized_data, combined_arcsinh_transformed_data
