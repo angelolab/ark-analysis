@@ -188,8 +188,8 @@ def compute_close_cell_num(dist_mat, dist_lim, num, analysis_type,
     for j, m1n in enumerate(mark1_num):
         for k, m2n in enumerate(mark1_num[j:], j):
             close_num[j, k] = np.sum(dist_mat_bin.loc[
-                list(mark1poslabels[j]),
-                list(mark1poslabels[k])
+                mark1poslabels[j].values,
+                mark1poslabels[k].values
             ].values)
 
             # symmetry :)
@@ -337,8 +337,8 @@ def compute_neighbor_counts(current_fov_neighborhood_data, dist_matrix, distlim,
     # refine distance matrix to only cover cell labels in fov_data
 
     cell_dist_mat = dist_matrix.loc[
-        list(current_fov_neighborhood_data[cell_label_col]),
-        list(current_fov_neighborhood_data[cell_label_col])
+        current_fov_neighborhood_data[cell_label_col].values,
+        current_fov_neighborhood_data[cell_label_col].values
     ].values
 
     # cell_dist_mat = np.take(dist_matrix, current_fov_neighborhood_data[cell_label_col] - 1, 0)
