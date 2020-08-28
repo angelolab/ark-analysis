@@ -31,7 +31,7 @@ def generate_test_dist_matrix(num_A=100, num_B=100, num_C=100,
             Should be a specified integer value. Default None.
 
     Returns:
-        dist_mat (xarray): the randomized distance matrix we generate directly from predefined distributions
+        dist_mat (xarray.DataArray): the randomized distance matrix we generate directly from predefined distributions
             where the average distances between cell types of a and b > average distances between
             cell types of b and c
     """

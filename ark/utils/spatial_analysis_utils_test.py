@@ -223,7 +223,7 @@ def test_calculate_enrichment_stats():
     assert stats_xr.loc["p_pos", 0, 0] > .05
 
 
-def test_compute_neighbor_count():
+def test_compute_neighbor_counts():
     fov_col = "SampleID"
     cluster_id_col = "FlowSOM_ID"
     cell_label_col = "cellLabelInImage"
