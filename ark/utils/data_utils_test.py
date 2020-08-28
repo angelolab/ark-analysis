@@ -6,9 +6,9 @@ import pytest
 import tempfile
 from shutil import rmtree
 
-from mibidata import mibi_image as mi, tiff
+from mibidata import tiff
 
-from ark.utils import data_utils, test_utils
+from ark.utils import data_utils, test_utils as tu
 import skimage.io as io
 
 
@@ -16,78 +16,52 @@ def test_load_imgs_from_mibitiff():
 
     with tempfile.TemporaryDirectory() as temp_dir:
 
-        # check unspecified point loading
-        fovs = ["Point8_otherinfo"]
-        channels = ["HH3", "Membrane"]
+        # config test environment
+        fovs = ["Point8_otherinfo", "Point9"]
+        channels = ["HH3", "Membrane", "Other"]
 
-        filelocs, data_xr = test_utils.create_paired_xarray_fovs(
+        filelocs, data_xr = tu.create_paired_xarray_fovs(
             temp_dir, fovs, channels, img_shape=(10, 10), mode='mibitiff', delimiter='_',
-            dtype=np.uint16
+            fills=True, dtype=np.float32
         )
 
+        # check unspecified point loading
         loaded_xr = data_utils.load_imgs_from_mibitiff(temp_dir,
                                                        channels=channels,
                                                        delimiter='_')
 
-        assert data_xr.equals(loaded_xr)
+        assert tu.xrs_eq(data_xr, loaded_xr)
 
-    data_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                            "..", "..", "data", "example_dataset",
-                            "input_data", "mibitiff_inputs")
-    channels = ["HH3", "Membrane"]
+        fovnames = [f'{fov}.tiff' for fov in fovs]
 
-    # check specified point loading
-    mibitiff_files = ["Point8_RowNumber0_Depth_Profile0-MassCorrected-Filtered.tiff"]
-    data_xr = data_utils.load_imgs_from_mibitiff(data_dir,
-                                                 mibitiff_files=mibitiff_files,
-                                                 channels=channels,
-                                                 delimiter='_')
-    assert(data_xr.dims == ("fovs", "rows", "cols", "channels"))
-    assert(data_xr.fovs == "Point8")
-    assert(data_xr.rows == range(1024)).all()
-    assert(data_xr.cols == range(1024)).all()
-    assert(data_xr.channels == channels).all()
-    np.testing.assert_array_equal(
-        data_xr.values[0],
-        (tiff.read(os.path.join(data_dir, mibitiff_files[0])))[channels].data)
+        # check specified point loading
+        loaded_xr = data_utils.load_imgs_from_mibitiff(temp_dir,
+                                                       mibitiff_files=[fovnames[-1]],
+                                                       channels=channels,
+                                                       delimiter='_')
 
-    with tempfile.TemporaryDirectory(dir=data_dir) as temp_dir:
-        tif = mi.MibiImage(np.random.rand(1024, 1024, 2).astype(np.float32),
-                           ((1, channels[0]), (2, channels[1])),
-                           **test_utils.MIBITIFF_METADATA)
-        tiff.write(os.path.join(temp_dir, 'Point9.tiff'), tif, dtype=np.float32)
-        tiff.write(os.path.join(temp_dir, 'Point8_junktext.tiff'), tif, dtype=np.float32)
-
-        mibitiff_files = ['Point8_junktext.tiff', 'Point9.tiff']
+        assert tu.xrs_eq(data_xr.loc[[fovs[-1]], :, :, :], loaded_xr)
 
         # test delimiter agnosticism
-        data_xr = data_utils.load_imgs_from_mibitiff(temp_dir,
-                                                     mibitiff_files=mibitiff_files,
-                                                     channels=channels,
-                                                     delimiter='_',
-                                                     dtype=np.float32)
+        loaded_xr = data_utils.load_imgs_from_mibitiff(temp_dir,
+                                                       mibitiff_files=fovnames,
+                                                       channels=channels,
+                                                       delimiter='_',
+                                                       dtype=np.float32)
 
-        assert(data_xr.dims == ("fovs", "rows", "cols", "channels"))
-        assert(set(data_xr.fovs.values) == set(["Point8", "Point9"]))
-        assert(data_xr.rows == range(1024)).all()
-        assert(data_xr.cols == range(1024)).all()
-        assert(data_xr.channels == channels).all()
-        assert(np.issubdtype(data_xr.dtype, np.floating))
+        assert tu.xrs_eq(data_xr, loaded_xr)
+        assert np.issubdtype(loaded_xr.dtype, np.floating)
 
         # test float overwrite
         with pytest.warns(UserWarning):
-            data_xr = data_utils.load_imgs_from_mibitiff(temp_dir,
-                                                         mibitiff_files=[mibitiff_files[-1]],
-                                                         channels=channels,
-                                                         delimiter='_',
-                                                         dtype='int16')
+            loaded_xr = data_utils.load_imgs_from_mibitiff(temp_dir,
+                                                           mibitiff_files=[fovnames[-1]],
+                                                           channels=channels,
+                                                           delimiter='_',
+                                                           dtype='int16')
 
-            assert(data_xr.dims == ("fovs", "rows", "cols", "channels"))
-            assert(data_xr.fovs == "Point9")
-            assert(data_xr.rows == range(1024)).all()
-            assert(data_xr.cols == range(1024)).all()
-            assert(data_xr.channels == channels).all()
-            assert(np.issubdtype(data_xr.dtype, np.floating))
+            assert tu.xrs_eq(data_xr.loc[[fovs[-1]], :, :, :], loaded_xr)
+            assert np.issubdtype(loaded_xr.dtype, np.floating)
 
 
 def test_load_imgs_from_mibitiff_all_channels():
@@ -199,7 +173,7 @@ def test_load_imgs_from_tree():
         fovs = ["fov1", "fov2", "fov3"]
         imgs = ["img1.tiff", "img2.tiff", "img3.tiff"]
         chans = [chan.split(".tiff")[0] for chan in imgs]
-        test_utils._create_img_dir(temp_dir, fovs, imgs)
+        tu._create_img_dir(temp_dir, fovs, imgs)
 
         # check default loading of all files
         test_loaded_xr = \
@@ -267,8 +241,8 @@ def test_load_imgs_from_dir():
     with tempfile.TemporaryDirectory(prefix='one_file') as temp_dir:
         imgs = ["fov1_img1.tiff", "fov2_img2.tiff", "fov3_img3.tiff"]
         fovs = [img.split("_")[0] for img in imgs]
-        test_utils._create_img_dir(temp_dir, fovs=[""], imgs=imgs, img_sub_folder="",
-                                   dtype="float")
+        tu._create_img_dir(temp_dir, fovs=[""], imgs=imgs, img_sub_folder="",
+                           dtype="float")
 
         # check default loading
         test_loaded_xr = \
