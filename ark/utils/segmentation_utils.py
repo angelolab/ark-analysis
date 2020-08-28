@@ -260,25 +260,15 @@ def visualize_watershed_transform(segmentation_labels_xr, channel_data_xr,
             if save_tifs == 'all':
                 # save borders of segmentation map
                 chan_marker = channel_data_xr.loc[fov, :, :, channel_data_xr].values
-                plot_utils.plot_overlay(random_map, plotting_tif=chan_marker,
+                plot_utils.plot_overlay(segmentation_labels_xr, plotting_tif=chan_marker,
                                         path=os.path.join(output_dir,
                                                           "{}_segmentation_borders.tiff".format(
                                                               fov)))
 
-                plot_utils.plot_overlay(random_map, plotting_tif=chan_marker,
+                plot_utils.plot_overlay(segmentation_labels_xr, plotting_tif=chan_marker,
                                         path=os.path.join(output_dir,
                                                           "{}_segmentation_labels.tiff".format(
                                                               fov)))
 
                 io.imsave(os.path.join(output_dir, "{}_interior_smoothed.tiff".format(fov)),
                           interior_smoothed.astype("float32"))
-
-    segmentation_labels_xr.loc[fov, :, :, 'whole_cell'] = random_map
-
-    save_name = os.path.join(output_dir, 'segmentation_labels.xr')
-    if os.path.exists(save_name):
-        print("overwriting previously generated processed output file")
-        os.remove(save_name)
-
-    # segmentation_labels_xr.to_netcdf(save_name, format='NETCDF4')
-    segmentation_labels_xr.to_netcdf(save_name, format="NETCDF3_64BIT")
