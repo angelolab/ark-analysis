@@ -18,7 +18,8 @@ def calc_dist_matrix(label_map, path=None):
             path to save file. If None, then will directly return
     Returns:
 
-        dist_matrix (dict): contains a cells x cells matrix with the euclidian
+        dict:
+            Contains a cells x cells matrix with the euclidian
             distance between centers of corresponding cells for every fov,
             note that each distance matrix is of type xarray"""
 
@@ -26,7 +27,7 @@ def calc_dist_matrix(label_map, path=None):
 
     if path is not None:
         if not os.path.exists(path):
-            raise ValueError("File path not valid")
+            raise FileNotFoundError("File path not valid")
 
     dist_mats_list = []
 
@@ -47,7 +48,7 @@ def calc_dist_matrix(label_map, path=None):
         dist_mats_list.append(dist_mat_xarr)
 
     # Create dictionary to store distance matrices per fov
-    dist_matrices = dict(zip([str(i) for i in fovs], dist_mats_list))
+    dist_matrices = dict(zip(fovs, dist_mats_list))
 
     # If ret is true, function will directly return the dictionary, else it will save it as a file
     if path is None:
