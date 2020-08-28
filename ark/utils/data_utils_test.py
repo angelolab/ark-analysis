@@ -31,8 +31,6 @@ def test_load_imgs_from_mibitiff():
 
         assert data_xr.equals(loaded_xr)
 
-        test_utils.clear_directory(temp_dir)
-
     data_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                             "..", "..", "data", "example_dataset",
                             "input_data", "mibitiff_inputs")
@@ -56,7 +54,7 @@ def test_load_imgs_from_mibitiff():
     with tempfile.TemporaryDirectory(dir=data_dir) as temp_dir:
         tif = mi.MibiImage(np.random.rand(1024, 1024, 2).astype(np.float32),
                            ((1, channels[0]), (2, channels[1])),
-                           **test_utils.METADATA)
+                           **test_utils.MIBITIFF_METADATA)
         tiff.write(os.path.join(temp_dir, 'Point9.tiff'), tif, dtype=np.float32)
         tiff.write(os.path.join(temp_dir, 'Point8_junktext.tiff'), tif, dtype=np.float32)
 

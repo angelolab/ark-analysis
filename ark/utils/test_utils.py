@@ -6,7 +6,7 @@ import skimage.io as io
 from mibidata import mibi_image as mi, tiff
 
 # required metadata for mibitiff writing (barf)
-METADATA = {
+MIBITIFF_METADATA = {
     'run': '20180703_1234_test', 'date': '2017-09-16T15:26:00',
     'coordinates': (12345, -67890), 'size': 500., 'slide': '857',
     'fov_id': 'Point1', 'fov_name': 'R1C3_Tonsil',
@@ -21,13 +21,15 @@ METADATA = {
 
 
 def _gen_tif_data(fov_number, chan_number, img_shape, fills, dtype):
-    if fills is None:
+    if not fills:
         tif_data = np.random.randint(0, 100,
-                                     fov_number * img_shape[0] * img_shape[1] * chan_number)
-        tif_data = tif_data.reshape((fov_number, *img_shape, chan_number)).astype(dtype)
+                                     size=(fov_number, *img_shape, chan_number)).astype(dtype)
     else:
-        tif_data = np.full((*img_shape, fov_number, chan_number),
-                           list(fills.values()), dtype=dtype)
+        tif_data = np.full(
+            (*img_shape, fov_number, chan_number),
+            (np.arange(fov_number * chan_number) % 256).reshape(fov_number, chan_number),
+            dtype=dtype
+        )
         tif_data = np.moveaxis(tif_data, 2, 0)
 
     return tif_data
@@ -75,7 +77,7 @@ def _create_mibitiff(base_dir, fov_names, channel_names, shape, sub_dir, fills, 
     for i, fov in enumerate(fov_names):
         tif_obj = mi.MibiImage(tif_data[i, :, :, :],
                                mass_map,
-                               **METADATA)
+                               **MIBITIFF_METADATA)
 
         tiffpath = os.path.join(base_dir, f'{fov}.tiff')
         tiff.write(tiffpath, tif_obj, dtype=dtype)
@@ -92,42 +94,23 @@ TIFFMAKERS = {
 
 
 def create_paired_xarray_fovs(base_dir, fov_names, channel_names, img_shape=(1024, 1024),
-                              mode='tiff', delimiter=None, sub_dir=None, fills=None, dtype="int8"):
+                              mode='tiff', delimiter=None, sub_dir=None, fills=False,
+                              dtype="int8"):
 
     if not os.path.isdir(base_dir):
         raise FileNotFoundError(f'{base_dir} is not a directory')
-        return None
 
     if fov_names is None or fov_names is []:
         raise ValueError('No fov names were given...')
-        return None
 
     if channel_names is None or channel_names is []:
         raise ValueError('No image names were given...')
-        return None
 
     if not isinstance(fov_names, list):
         fov_names = [fov_names]
 
     if not isinstance(channel_names, list):
         channel_names = [channel_names]
-
-    # verify fills structure -> dict(fov_name : list [num_channels])
-    if fills is not None:
-        if fills.keys() is not fov_names:
-            raise ValueError(f'fills keys, {fills.keys()}, must match fov_names, {fov_names}')
-            return None
-        for fill in fills.values():
-            if len(fill) != len(channel_names):
-                raise ValueError(f'Not all fills have length {len(channel_names)}')
-                return None
-
-    if fills is not None and not isinstance(fills, list):
-        fills = [fills]
-
-    if fills is not None and (len(fills) != len(channel_names)):
-        raise ValueError('channel_names and fills must be the same length')
-        return None
 
     filelocs, tif_data = TIFFMAKERS[mode](base_dir, fov_names, channel_names, img_shape, sub_dir,
                                           fills, dtype)
@@ -143,18 +126,6 @@ def create_paired_xarray_fovs(base_dir, fov_names, channel_names, img_shape=(102
                            dims=["fovs", "rows", "cols", "channels"])
 
     return filelocs, data_xr
-
-
-def clear_directory(dirpath):
-    if not os.path.isdir(dirpath):
-        raise FileNotFoundError(f'{dirpath} is not a valid directory')
-        return
-
-    for subpath in os.listdir(dirpath):
-        if os.path.isfile(subpath):
-            os.remove(subpath)
-        if os.path.isdir(subpath):
-            os.rmdir(subpath)
 
 
 def _create_img_dir(temp_dir, fovs, imgs, img_sub_folder="TIFs", dtype="int8"):
