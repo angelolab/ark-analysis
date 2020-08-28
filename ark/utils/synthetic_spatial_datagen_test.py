@@ -16,10 +16,6 @@ def test_generate_test_dist_matrix():
     # except for the random seed, which we specify
     sample_dist_mat = synthetic_spatial_datagen.generate_test_dist_matrix()
 
-    print(sample_dist_mat)
-    print(sample_dist_mat.shape)
-
-
     # assert matrix symmetry
     assert np.allclose(sample_dist_mat.loc[np.arange(1, 301), np.arange(1, 301)].values,
                        sample_dist_mat.T.loc[np.arange(1, 301), np.arange(1, 301)].values,

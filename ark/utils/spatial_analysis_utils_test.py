@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 import random
+from copy import deepcopy
 from ark.utils import spatial_analysis_utils
 
 
@@ -74,8 +75,14 @@ def make_example_data_closenum():
     dist_mat[8, 7] = 50
     dist_mat[7, 8] = 50
 
-    coords = np.random.shuffle(dist_mat.shape[0])
-    dist_mat = xr.DataArray(dist_mat, coords=[coords, coords])
+    # add some randomization to the ordering
+    coords_in_order = np.arange(dist_mat.shape[0])
+    coords_permuted = deepcopy(coords_in_order)
+    np.random.shuffle(coords_permuted)
+
+    # we have to 1-index coords because people will be labeling their cells 1-indexed
+    dist_mat = xr.DataArray(dist_mat[np.ix_(coords_permuted, coords_permuted)],
+                            coords=[coords_permuted + 1, coords_permuted + 1])
 
     return all_data, dist_mat
 
