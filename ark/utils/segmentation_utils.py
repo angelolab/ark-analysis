@@ -224,8 +224,7 @@ def visualize_watershed_transform(segmentation_labels_xr, channel_data_xr,
                         chan_marker = channel_data_xr.loc[fov, :, :, channel].values
                         plot_utils.plot_overlay(random_map, plotting_tif=chan_marker,
                                                 path=os.path.join(output_dir,
-                                                                  "{}_{}_overlay.tiff".format(fov,
-                                                                                              channel)))
+                                                                  "{}_{}_overlay.tiff".format(fov,channel)))
 
                     elif len(chan_list) == 2:
                         input_data = np.zeros(
