@@ -102,22 +102,12 @@ def test_calc_dist_matrix():
     dims = ["fovs", "rows", "cols", "channels"]
     test_mat = xr.DataArray(test_mat_data, coords=coords, dims=dims)
 
-    # create two ranges, one for a standard distance matrix
-    # another for a distance matrix with non-standard indexing
-    range_1 = [0, 1, 2]
-    range_2 = [2, 0, 1]
+    distance_mat = spatial_analysis_utils.calc_dist_matrix(test_mat)
 
-    coords = {"1": range_1, "2": range_2}
-    distance_mat = spatial_analysis_utils.calc_dist_matrix(test_mat, coords)
+    real_mat = np.array([[0, 5, 3], [5, 0, 4], [3, 4, 0]])
 
-    # while distance_mats 1 and 2 contain the same underlying array
-    # the coordinates are different
-    # the following sets of assertions access the same locations in
-    # the underlying array, using whichever coordinate assignment we set
-    assert distance_mat["1"].loc[0, 1] == distance_mat["2"].loc[2, 0] == 5
-    assert distance_mat["1"].loc[1, 2] == distance_mat["2"].loc[0, 1] == 4
-    assert distance_mat["1"].loc[2, 0] == distance_mat["2"].loc[1, 2] == 3
-
+    assert np.array_equal(distance_mat["1"].loc[range(1, 4), range(1, 4)], real_mat)
+    assert np.array_equal(distance_mat["2"].loc[range(1, 4), range(1, 4)], real_mat)
 
 def test_compute_close_cell_num():
     # Test the closenum function

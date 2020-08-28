@@ -9,15 +9,11 @@ from scipy.spatial.distance import cdist
 import os
 
 
-def calc_dist_matrix(label_map, centroid_labels=None, path=None):
+def calc_dist_matrix(label_map, path=None):
     """Generate matrix of distances between center of pairs of cells
 
     Args:
         label_map (np array): array with unique cells given unique pixel labels
-        centroid_labels (dict): the labels for each fov which are
-            needed to add correct coordinates to access distance matrix
-            needs to be of the same length and indexed corresponding to label_map.coords['fovs']
-            if None, then default assume that cell labels are in order for each fov
         path (string): path to save file. If None, then will directly return
     Returns:
         dist_matrix (dict): contains a cells x cells matrix with the euclidian
@@ -32,32 +28,23 @@ def calc_dist_matrix(label_map, centroid_labels=None, path=None):
     dist_mats_list = []
 
     # Extract list of fovs
-    fovs = [str(fov) for fov in label_map.coords['fovs'].values]
-
-    # generate centroid labels if None
-    if centroid_labels is None:
-        centroid_labels = {}
-
-        for fov_val in fovs:
-            fov_arr = label_map.loc[fov_val, :, :, 'segmentation_label'].values
-            fov_arr_labels = np.unique(fov_arr[fov_arr > 1]).tolist()
-            centroid_labels[fov_val] = fov_arr_labels
+    fovs = label_map.coords['fovs'].values
 
     for fov in fovs:
         # extract region properties of label map, then just get centroids
         props = skimage.measure.regionprops(label_map.loc[fov, :, :, 'segmentation_label'].values)
         centroids = [prop.centroid for prop in props]
-        # centroids = np.array([props[j].centroid for j in range(len(props))])
+        centroid_labels = [prop.label for prop in props]
 
         # generate the distance matrix, then assign centroid_labels as coords
         dist_matrix = cdist(centroids, centroids)
-        dist_mat_xarr = xr.DataArray(dist_matrix, coords=[centroid_labels[fov], centroid_labels[fov]])
+        dist_mat_xarr = xr.DataArray(dist_matrix, coords=[centroid_labels, centroid_labels])
 
         # append final result to dist_mats_list
         dist_mats_list.append(dist_mat_xarr)
 
     # Create dictionary to store distance matrices per fov
-    dist_matrices = dict(zip(fovs, dist_mats_list))
+    dist_matrices = dict(zip([str(i) for i in fovs], dist_mats_list))
 
     # If ret is true, function will directly return the dictionary, else it will save it as a file
     if path is None:

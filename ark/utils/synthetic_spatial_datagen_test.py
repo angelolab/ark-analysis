@@ -80,7 +80,7 @@ def test_generate_test_label_map():
     # we also check and see that each label appears in the label_map
 
     # generate test data
-    sample_img_xr, centroid_indices = synthetic_spatial_datagen.generate_test_label_map()
+    sample_img_xr = synthetic_spatial_datagen.generate_test_label_map()
 
     # all we're looking at is the label map
     # we flatten and remove all non-centroids for testing purposes
@@ -90,14 +90,7 @@ def test_generate_test_label_map():
 
     # need to assert that we're labeling all centroids with a unique id
     _, label_map_id_counts = np.unique(label_map_flat, return_counts=True)
-
     assert len(label_map_flat[label_map_id_counts > 1]) == 0
-
-    # also need to assert that each of our labels is being assigned to a centroid
-    # need to add 1 to centroid_indices because those values are 1-less due to
-    # needing to index arrays, we couldn't 0-index the label values in label_map
-    # because values of 0 in a label map are ignored by regionprops
-    assert (np.sort(label_map_flat) == np.sort(centroid_indices) + 1).all()
 
 
 def test_generate_two_cell_test_segmentation_mask():
