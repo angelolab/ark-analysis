@@ -84,7 +84,7 @@ def generate_test_dist_matrix(num_A=100, num_B=100, num_C=100,
     np.random.shuffle(coords_permuted)
     dist_mat = dist_mat[np.ix_(coords_permuted, coords_permuted)]
 
-    # we have to 1-index coords because people will be labeling their cells 1-indexed
+    # # we have to 1-index coords because people will be labeling their cells 1-indexed
     coords_dist_mat = [coords_permuted + 1, coords_permuted + 1]
     dist_mat = xr.DataArray(dist_mat, coords=coords_dist_mat)
 

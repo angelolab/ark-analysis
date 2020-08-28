@@ -13,7 +13,7 @@ def calc_dist_matrix(label_maps, path=None):
 
     Args:
         label_maps (xarray.DataArray):
-            array with unique cells given unique pixel labels
+            array with unique cells given unique pixel labels per fov
         path (str):
             path to save file. If None, then will directly return
     Returns:
@@ -193,6 +193,7 @@ def compute_close_cell_num(dist_mat, dist_lim, num, analysis_type,
                 mark1poslabels[k].values
             ].values
             count_close_num_hits = np.sum(dist_mat_bin_subset)
+
             close_num[j, k] = count_close_num_hits
             # symmetry :)
             close_num[k, j] = close_num[j, k]
@@ -223,12 +224,6 @@ def compute_close_cell_num_random(marker_nums, dist_mat, dist_lim, bootstrap_num
     close_num_rand = np.zeros((
         len(marker_nums), len(marker_nums), bootstrap_num), dtype='int')
 
-    # dist_bin = np.zeros(dist_mat.shape, dtype='int')
-    # dist_bin[dist_mat.values < dist_lim] = 1
-
-    # dist_bin = xr.DataArray(dist_bin,
-    #                         coords=[dist_mat.coords, dist_mat.coords])
-
     dist_mat_bin = xr.DataArray(
         (dist_mat.values < dist_lim).astype(np.int8),
         coords=dist_mat.coords
@@ -237,8 +232,10 @@ def compute_close_cell_num_random(marker_nums, dist_mat, dist_lim, bootstrap_num
     for j, m1n in enumerate(marker_nums):
         for k, m2n in enumerate(marker_nums[j:], j):
             samples_dim = (m1n * m2n, bootstrap_num)
+            dist_mat_bin_flattened = dist_mat_bin.values.flatten()
             count_close_num_rand_hits = np.sum(
-                np.random.choice(dist_mat_bin.values.flatten(), samples_dim, True)
+                np.random.choice(dist_mat_bin_flattened, samples_dim, True),
+                axis=0
             )
 
             close_num_rand[j, k, :] = count_close_num_rand_hits
