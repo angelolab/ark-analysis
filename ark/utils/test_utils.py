@@ -118,6 +118,9 @@ def create_paired_xarray_fovs(base_dir, fov_names, channel_names, img_shape=(102
     if delimiter is not None:
         fov_ids = [fov.split(delimiter)[0] for fov in fov_names]
 
+    if mode == 'multitiff':
+        channel_names = range(len(channel_names))
+
     data_xr = xr.DataArray(tif_data,
                            coords=[fov_ids,
                                    range(img_shape[0]),

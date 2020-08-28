@@ -70,81 +70,50 @@ def test_load_imgs_from_mibitiff():
 
 
 def test_load_imgs_from_multitiff():
-    # test all channels load w/ specified files
-    data_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                            "..", "..", "data", "example_dataset",
-                            "input_data", "deepcell_input")
-    multitiff_files = ["Point8.tif"]
-    data_xr = data_utils.load_imgs_from_multitiff(data_dir,
-                                                  multitiff_files=multitiff_files,
-                                                  channels=None,
-                                                  delimiter='_')
-    assert(data_xr.dims == ("fovs", "rows", "cols", "channels"))
-    assert(data_xr.fovs == "Point8")
-    assert(data_xr.rows == range(1024)).all()
-    assert(data_xr.cols == range(1024)).all()
-    assert(data_xr.channels == range(2)).all()
 
-    # test single channel load
-    data_xr = data_utils.load_imgs_from_multitiff(data_dir,
-                                                  multitiff_files=multitiff_files,
-                                                  channels=[0],
-                                                  delimiter='_')
-    assert(data_xr.dims == ("fovs", "rows", "cols", "channels"))
-    assert(data_xr.fovs == "Point8")
-    assert(data_xr.rows == range(1024)).all()
-    assert(data_xr.cols == range(1024)).all()
-    assert(data_xr.channels == [0]).all()
+    with tempfile.TemporaryDirectory() as temp_dir:
+        # config test environment
+        fovs = ["Point8_otherinfo", "Point9"]
+        channels = ["HH3", "Membrane", "Other"]
 
-    # test all channels w/ unspecified files
-    data_xr = data_utils.load_imgs_from_multitiff(data_dir,
-                                                  multitiff_files=None,
-                                                  channels=None,
-                                                  delimiter='_')
-    assert(data_xr.dims == ("fovs", "rows", "cols", "channels"))
-    assert(data_xr.fovs == "Point8")
-    assert(data_xr.rows == range(1024)).all()
-    assert(data_xr.cols == range(1024)).all()
-    assert(data_xr.channels == range(2)).all()
+        filelocs, data_xr = test_utils.create_paired_xarray_fovs(
+            temp_dir, fovs, channels, img_shape=(10, 10), mode='multitiff', delimiter='_',
+            fills=True, dtype=np.float32
+        )
 
-    with tempfile.TemporaryDirectory(dir=data_dir) as temp_dir:
-        tif = np.random.rand(1024, 1024, 2).astype('float')
+        fovnames = [f'{fov}.tiff' for fov in fovs]
 
-        io.imsave(os.path.join(temp_dir, 'Point8.tif'),
-                  tif,
-                  plugin='tifffile')
-        io.imsave(os.path.join(temp_dir, 'Point9_junktext.tif'),
-                  tif,
-                  plugin='tifffile')
+        # test all channels loading w/ specified file
+        loaded_xr = data_utils.load_imgs_from_multitiff(temp_dir,
+                                                        multitiff_files=[fovnames[-1]],
+                                                        delimiter='_')
 
-        # test delimiter agnosticism
-        data_xr = data_utils.load_imgs_from_multitiff(temp_dir,
-                                                      multitiff_files=None,
-                                                      channels=None,
-                                                      delimiter='_',
-                                                      dtype='float')
+        assert test_utils.xarrays_are_equal(data_xr.loc[[fovs[-1]], :, :, :], loaded_xr)
 
-        assert(data_xr.dims == ("fovs", "rows", "cols", "channels"))
-        assert(set(data_xr.fovs.values) == set(["Point8", "Point9"]))
-        assert(data_xr.rows == range(1024)).all()
-        assert(data_xr.cols == range(1024)).all()
-        assert(data_xr.channels == range(2)).all()
-        assert(np.issubdtype(data_xr.dtype, np.floating))
+        # test single channel load
+        loaded_xr = data_utils.load_imgs_from_multitiff(temp_dir,
+                                                        multitiff_files=fovnames,
+                                                        channels=[0],
+                                                        delimiter='_')
+
+        assert test_utils.xarrays_are_equal(data_xr.loc[:, :, :, [0]], loaded_xr)
+
+        # test all channels w/ unspecified files + delimiter agnosticism
+        loaded_xr = data_utils.load_imgs_from_multitiff(temp_dir,
+                                                        multitiff_files=None,
+                                                        channels=None,
+                                                        delimiter='_')
+
+        assert test_utils.xarrays_are_equal(data_xr, loaded_xr)
 
         # test float overwrite
         with pytest.warns(UserWarning):
-            data_xr = data_utils.load_imgs_from_multitiff(temp_dir,
-                                                          multitiff_files=['Point9_junktext.tif'],
-                                                          channels=None,
-                                                          delimiter='_',
-                                                          dtype='int16')
+            loaded_xr = data_utils.load_imgs_from_multitiff(temp_dir,
+                                                            delimiter='_',
+                                                            dtype='int16')
 
-            assert(data_xr.dims == ("fovs", "rows", "cols", "channels"))
-            assert(data_xr.fovs == "Point9")
-            assert(data_xr.rows == range(1024)).all()
-            assert(data_xr.cols == range(1024)).all()
-            assert(data_xr.channels == range(2)).all()
-            assert(np.issubdtype(data_xr.dtype, np.floating))
+            assert test_utils.xarrays_are_equal(data_xr, loaded_xr)
+            assert(np.issubdtype(loaded_xr.dtype, np.floating))
 
 
 def test_load_imgs_from_tree():
