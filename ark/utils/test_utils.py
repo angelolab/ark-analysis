@@ -128,7 +128,7 @@ def create_paired_xarray_fovs(base_dir, fov_names, channel_names, img_shape=(102
     return filelocs, data_xr
 
 
-def xrs_eq(a_xr, b_xr, sortdim="fovs"):
+def xarrays_are_equal(a_xr, b_xr, sortdim="fovs"):
     return b_xr.sortby(sortdim).equals(a_xr.sortby(sortdim))
 
 

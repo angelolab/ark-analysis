@@ -8,7 +8,7 @@ from shutil import rmtree
 
 from mibidata import tiff
 
-from ark.utils import data_utils, test_utils as tu
+from ark.utils import data_utils, test_utils
 import skimage.io as io
 
 
@@ -20,7 +20,7 @@ def test_load_imgs_from_mibitiff():
         fovs = ["Point8_otherinfo", "Point9"]
         channels = ["HH3", "Membrane", "Other"]
 
-        filelocs, data_xr = tu.create_paired_xarray_fovs(
+        filelocs, data_xr = test_utils.create_paired_xarray_fovs(
             temp_dir, fovs, channels, img_shape=(10, 10), mode='mibitiff', delimiter='_',
             fills=True, dtype=np.float32
         )
@@ -30,7 +30,7 @@ def test_load_imgs_from_mibitiff():
                                                        channels=channels,
                                                        delimiter='_')
 
-        assert tu.xrs_eq(data_xr, loaded_xr)
+        assert test_utils.xarrays_are_equal(data_xr, loaded_xr)
 
         fovnames = [f'{fov}.tiff' for fov in fovs]
 
@@ -40,7 +40,7 @@ def test_load_imgs_from_mibitiff():
                                                        channels=channels,
                                                        delimiter='_')
 
-        assert tu.xrs_eq(data_xr.loc[[fovs[-1]], :, :, :], loaded_xr)
+        assert test_utils.xarrays_are_equal(data_xr.loc[[fovs[-1]], :, :, :], loaded_xr)
 
         # test delimiter agnosticism
         loaded_xr = data_utils.load_imgs_from_mibitiff(temp_dir,
@@ -49,7 +49,7 @@ def test_load_imgs_from_mibitiff():
                                                        delimiter='_',
                                                        dtype=np.float32)
 
-        assert tu.xrs_eq(data_xr, loaded_xr)
+        assert test_utils.xarrays_are_equal(data_xr, loaded_xr)
         assert np.issubdtype(loaded_xr.dtype, np.floating)
 
         # test float overwrite
@@ -60,7 +60,7 @@ def test_load_imgs_from_mibitiff():
                                                            delimiter='_',
                                                            dtype='int16')
 
-            assert tu.xrs_eq(data_xr.loc[[fovs[-1]], :, :, :], loaded_xr)
+            assert test_utils.xarrays_are_equal(data_xr.loc[[fovs[-1]], :, :, :], loaded_xr)
             assert np.issubdtype(loaded_xr.dtype, np.floating)
 
 
@@ -173,7 +173,7 @@ def test_load_imgs_from_tree():
         fovs = ["fov1", "fov2", "fov3"]
         imgs = ["img1.tiff", "img2.tiff", "img3.tiff"]
         chans = [chan.split(".tiff")[0] for chan in imgs]
-        tu._create_img_dir(temp_dir, fovs, imgs)
+        test_utils._create_img_dir(temp_dir, fovs, imgs)
 
         # check default loading of all files
         test_loaded_xr = \
@@ -241,8 +241,8 @@ def test_load_imgs_from_dir():
     with tempfile.TemporaryDirectory(prefix='one_file') as temp_dir:
         imgs = ["fov1_img1.tiff", "fov2_img2.tiff", "fov3_img3.tiff"]
         fovs = [img.split("_")[0] for img in imgs]
-        tu._create_img_dir(temp_dir, fovs=[""], imgs=imgs, img_sub_folder="",
-                           dtype="float")
+        test_utils._create_img_dir(temp_dir, fovs=[""], imgs=imgs, img_sub_folder="",
+                                   dtype="float")
 
         # check default loading
         test_loaded_xr = \
