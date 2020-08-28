@@ -6,8 +6,6 @@ import pytest
 import tempfile
 from shutil import rmtree
 
-from mibidata import tiff
-
 from ark.utils import data_utils, test_utils
 import skimage.io as io
 
@@ -42,6 +40,13 @@ def test_load_imgs_from_mibitiff():
 
         assert test_utils.xarrays_are_equal(data_xr.loc[[fovs[-1]], :, :, :], loaded_xr)
 
+        # test automatic all channels loading
+        loaded_xr = data_utils.load_imgs_from_mibitiff(temp_dir,
+                                                       delimiter='_',
+                                                       dtype=np.float32)
+
+        assert test_utils.xarrays_are_equal(data_xr, loaded_xr)
+
         # test delimiter agnosticism
         loaded_xr = data_utils.load_imgs_from_mibitiff(temp_dir,
                                                        mibitiff_files=fovnames,
@@ -62,31 +67,6 @@ def test_load_imgs_from_mibitiff():
 
             assert test_utils.xarrays_are_equal(data_xr.loc[[fovs[-1]], :, :, :], loaded_xr)
             assert np.issubdtype(loaded_xr.dtype, np.floating)
-
-
-def test_load_imgs_from_mibitiff_all_channels():
-    data_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                            "..", "..", "data", "example_dataset",
-                            "input_data", "mibitiff_inputs")
-    mibitiff_files = ["Point8_RowNumber0_Depth_Profile0-MassCorrected-Filtered.tiff"]
-
-    data_xr = data_utils.load_imgs_from_mibitiff(data_dir,
-                                                 mibitiff_files=mibitiff_files,
-                                                 channels=None,
-                                                 delimiter='_')
-    assert(data_xr.dims == ("fovs", "rows", "cols", "channels"))
-    assert(data_xr.fovs == "Point8")
-    assert(data_xr.rows == range(1024)).all()
-    assert(data_xr.cols == range(1024)).all()
-    exected_channels = ["Background", "BetaCatenin", "BetaTubulin", "CD20",
-                        "CD3", "CD4", "CD45", "CD8", "CD9", "ECadherin", "ER",
-                        "GLUT1", "HER2", "HH3", "HLA_Class_1", "Ki67",
-                        "LaminAC", "Membrane", "NaK ATPase", "PanKeratin",
-                        "SMA", "Vimentin"]
-    assert(data_xr.channels == exected_channels).all()
-    np.testing.assert_array_equal(
-        data_xr.values[0],
-        (tiff.read(os.path.join(data_dir, mibitiff_files[0]))).data)
 
 
 def test_load_imgs_from_multitiff():
