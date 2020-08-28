@@ -8,20 +8,20 @@ from scipy.spatial.distance import cdist
 import os
 
 
-def calc_dist_matrix(label_map, path=None):
+def calc_dist_matrix(label_maps, path=None):
     """Generate matrix of distances between center of pairs of cells
 
     Args:
-        label_map (numpy.ndarray):
+        label_maps (xarray.DataArray):
             array with unique cells given unique pixel labels
         path (str):
             path to save file. If None, then will directly return
     Returns:
-
         dict:
             Contains a cells x cells matrix with the euclidian
             distance between centers of corresponding cells for every fov,
-            note that each distance matrix is of type xarray"""
+            note that each distance matrix is of type xarray
+    """
 
     # Check that file path exists, if given
 
@@ -32,11 +32,11 @@ def calc_dist_matrix(label_map, path=None):
     dist_mats_list = []
 
     # Extract list of fovs
-    fovs = label_map.coords['fovs'].values
+    fovs = label_maps.coords['fovs'].values
 
     for fov in fovs:
         # extract region properties of label map, then just get centroids
-        props = skimage.measure.regionprops(label_map.loc[fov, :, :, 'segmentation_label'].values)
+        props = skimage.measure.regionprops(label_maps.loc[fov, :, :, 'segmentation_label'].values)
         centroids = [prop.centroid for prop in props]
         centroid_labels = [prop.label for prop in props]
 
@@ -50,7 +50,8 @@ def calc_dist_matrix(label_map, path=None):
     # Create dictionary to store distance matrices per fov
     dist_matrices = dict(zip(fovs, dist_mats_list))
 
-    # If ret is true, function will directly return the dictionary, else it will save it as a file
+    # If path is None, function will directly return the dictionary
+    # else it will save it as a file with location specified by path
     if path is None:
         return dist_matrices
     else:
@@ -187,11 +188,12 @@ def compute_close_cell_num(dist_mat, dist_lim, num, analysis_type,
     # iterating k from [j, end] cuts out 1/2 the steps (while symmetric)
     for j, m1n in enumerate(mark1_num):
         for k, m2n in enumerate(mark1_num[j:], j):
-            close_num[j, k] = np.sum(dist_mat_bin.loc[
+            dist_mat_bin_subset = dist_mat_bin.loc[
                 mark1poslabels[j].values,
                 mark1poslabels[k].values
-            ].values)
-
+            ].values
+            count_close_num_hits = np.sum(dist_mat_bin_subset)
+            close_num[j, k] = count_close_num_hits
             # symmetry :)
             close_num[k, j] = close_num[j, k]
 
@@ -234,11 +236,12 @@ def compute_close_cell_num_random(marker_nums, dist_mat, dist_lim, bootstrap_num
 
     for j, m1n in enumerate(marker_nums):
         for k, m2n in enumerate(marker_nums[j:], j):
-            close_num_rand[j, k, :] = np.sum(
-                np.random.choice(dist_mat_bin.values.flatten(), (m1n * m2n, bootstrap_num), True),
-                axis=0
+            samples_dim = (m1n * m2n, bootstrap_num)
+            count_close_num_rand_hits = np.sum(
+                np.random.choice(dist_mat_bin.values.flatten(), samples_dim, True)
             )
 
+            close_num_rand[j, k, :] = count_close_num_rand_hits
             # symmetry :)
             close_num_rand[k, j, :] = close_num_rand[j, k, :]
 

@@ -79,10 +79,11 @@ def make_example_data_closenum():
     coords_in_order = np.arange(dist_mat.shape[0])
     coords_permuted = deepcopy(coords_in_order)
     np.random.shuffle(coords_permuted)
+    dist_mat = dist_mat[np.ix_(coords_permuted, coords_permuted)]
 
     # we have to 1-index coords because people will be labeling their cells 1-indexed
-    dist_mat = xr.DataArray(dist_mat[np.ix_(coords_permuted, coords_permuted)],
-                            coords=[coords_permuted + 1, coords_permuted + 1])
+    coords_dist_mat = [coords_permuted + 1, coords_permuted + 1]
+    dist_mat = xr.DataArray(dist_mat, coords=coords_dist_mat)
 
     return all_data, dist_mat
 
