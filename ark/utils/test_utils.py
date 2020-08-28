@@ -24,7 +24,7 @@ def _gen_tif_data(fov_number, chan_number, img_shape, fills, dtype):
     if fills is None:
         tif_data = np.random.randint(0, 100,
                                      fov_number * img_shape[0] * img_shape[1] * chan_number)
-        tif_data = tif_data.reshpae((fov_number, *img_shape, chan_number)).astype(dtype)
+        tif_data = tif_data.reshape((fov_number, *img_shape, chan_number)).astype(dtype)
     else:
         tif_data = np.full((*img_shape, fov_number, chan_number),
                            list(fills.values()), dtype=dtype)
@@ -92,7 +92,7 @@ TIFFMAKERS = {
 
 
 def create_paired_xarray_fovs(base_dir, fov_names, channel_names, img_shape=(1024, 1024),
-                              mode='tiff', sub_dir=None, fills=None, dtype="int8"):
+                              mode='tiff', delimiter=None, sub_dir=None, fills=None, dtype="int8"):
 
     if not os.path.isdir(base_dir):
         raise FileNotFoundError(f'{base_dir} is not a directory')
@@ -132,8 +132,11 @@ def create_paired_xarray_fovs(base_dir, fov_names, channel_names, img_shape=(102
     filelocs, tif_data = TIFFMAKERS[mode](base_dir, fov_names, channel_names, img_shape, sub_dir,
                                           fills, dtype)
 
+    if delimiter is not None:
+        fov_ids = [fov.split(delimiter)[0] for fov in fov_names]
+
     data_xr = xr.DataArray(tif_data,
-                           coords=[fov_names,
+                           coords=[fov_ids,
                                    range(img_shape[0]),
                                    range(img_shape[1]),
                                    channel_names],

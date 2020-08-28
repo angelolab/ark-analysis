@@ -13,19 +13,30 @@ import skimage.io as io
 
 
 def test_load_imgs_from_mibitiff():
-    # check unspecified point loading
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+
+        # check unspecified point loading
+        fovs = ["Point8_otherinfo"]
+        channels = ["HH3", "Membrane"]
+
+        filelocs, data_xr = test_utils.create_paired_xarray_fovs(
+            temp_dir, fovs, channels, img_shape=(10, 10), mode='mibitiff', delimiter='_',
+            dtype=np.uint16
+        )
+
+        loaded_xr = data_utils.load_imgs_from_mibitiff(temp_dir,
+                                                       channels=channels,
+                                                       delimiter='_')
+
+        assert data_xr.equals(loaded_xr)
+
+        test_utils.clear_directory(temp_dir)
+
     data_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                             "..", "..", "data", "example_dataset",
                             "input_data", "mibitiff_inputs")
     channels = ["HH3", "Membrane"]
-    data_xr = data_utils.load_imgs_from_mibitiff(data_dir,
-                                                 channels=channels,
-                                                 delimiter='_')
-    assert(data_xr.dims == ("fovs", "rows", "cols", "channels"))
-    assert(data_xr.fovs == "Point8")
-    assert(data_xr.rows == range(1024)).all()
-    assert(data_xr.cols == range(1024)).all()
-    assert(data_xr.channels == channels).all()
 
     # check specified point loading
     mibitiff_files = ["Point8_RowNumber0_Depth_Profile0-MassCorrected-Filtered.tiff"]
