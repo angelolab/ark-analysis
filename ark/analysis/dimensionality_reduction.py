@@ -1,28 +1,35 @@
-import pandas as pd
-import numpy as np
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 import matplotlib.pyplot as plt
 import seaborn as sns
-import umap
+import umap.umap_ as umap
 import os
 
 
-def visualize_dimensionality_reduction(cell_data, columns, category, color_map="Spectral", algorithm="UMAP",
-                                       save_dir=None):
+def visualize_dimensionality_reduction(cell_data, columns, category, color_map="Spectral",
+                                       algorithm="UMAP", save_dir=None):
     """Plots the dimensionality reduction of specified population columns
-                Args:
-                    cell_data (pd df): Dataframe containing columns for dimensionality reduction and category
-                    columns (list): List of column names that are included for dimensionality reduction
-                    category (str): Name of column in dataframe containing categorical Population or Patient data
-                    color_map (str): Name of MatPlotLib ColorMap used, default is Spectral
-                    algorithm (str): Name of dimensionality reduction algorithm, default is UMAP
-                    save_dir (str): Directory to save plots, default is None"""
+
+    Args:
+        cell_data (pandas.DataFrame):
+            Dataframe containing columns for dimensionality reduction and category
+        columns (list):
+            List of column names that are included for dimensionality reduction
+        category (str):
+            Name of column in dataframe containing population or patient data
+        color_map (str):
+            Name of MatPlotLib ColorMap used, default is Spectral
+        algorithm (str):
+            Name of dimensionality reduction algorithm, default is UMAP
+        save_dir (str):
+            Directory to save plots, default is None
+    """
     cell_data = cell_data.dropna()
 
     if algorithm not in ["UMAP", "PCA", "tSNE"]:
-        raise ValueError("The algorithm specified is not a valid dimensionality reduction technique")
+        raise ValueError(f"The algorithm specified must be one of the following: "
+                         f"{['UMAP', 'PCA', 'tSNE']}")
 
     if algorithm == "UMAP":
         reducer = umap.UMAP()
@@ -32,9 +39,8 @@ def visualize_dimensionality_reduction(cell_data, columns, category, color_map="
         embedding = reducer.fit_transform(scaled_column_data)
 
         fig1 = plt.figure(1)
-        sns.scatterplot(x=embedding[:, 0], y=embedding[:, 1], hue=cell_data[category], palette=color_map,
-                        data=cell_data, legend="full",
-                        alpha=0.3)
+        sns.scatterplot(x=embedding[:, 0], y=embedding[:, 1], hue=cell_data[category],
+                        palette=color_map, data=cell_data, legend="full", alpha=0.3)
         plt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
         plt.title('UMAP projection of data', fontsize=24)
         fig1.show()
@@ -46,9 +52,8 @@ def visualize_dimensionality_reduction(cell_data, columns, category, color_map="
         pca_result = pca.fit_transform(cell_data[columns].values)
 
         fig2 = plt.figure(2)
-        sns.scatterplot(x=pca_result[:, 0], y=pca_result[:, 1], hue=cell_data[category], palette=color_map,
-                        data=cell_data, legend="full",
-                        alpha=0.3)
+        sns.scatterplot(x=pca_result[:, 0], y=pca_result[:, 1], hue=cell_data[category],
+                        palette=color_map, data=cell_data, legend="full", alpha=0.3)
         plt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
         plt.title('PCA projection of data', fontsize=24)
         fig2.show()

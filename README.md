@@ -4,6 +4,8 @@
 # ark-analysis
 Toolbox for analyzing multiplexed imaging data
 
+Full documentation for the project can be found [here](https://ark-analysis.readthedocs.io/en/latest/)
+
 ## Info
 
 This project contains code and example scripts for analyzing multiplexed imaging data
@@ -53,8 +55,35 @@ You can shut down the notebooks and close docker by entering control-c in the te
 
 ## Updates
 
-You can update your notebooks using the command:
+This project is still in development, and we are making frequent updates and improvements. If you want to update the version on your computer to have the latest changes, perform the following steps
+
+First, copy the latest version of the code
 
 ```
 $ git pull
 ```
+
+Then, run the command below to update the jupyter notebooks to the latest version
+```
+bash start_docker.sh --update
+```
+or
+```
+bash start_docker.sh -u
+```
+
+### WARNING
+
+If you didn't change the name of any of the notebooks within the `scripts` folder, they will be overwritten by the command above!
+
+If you have made changes to these notebooks that you would like to keep (specific file paths, settings, custom routines, etc), rename them before updating!
+
+Examples:
+```
+Deepcell_Postprocessing.ipynb -> old_postprocessing.ipynb
+                              or postprocessing_saved.ipynb
+                              or old_dcpostP.ipynb
+                              ...
+```
+
+After updating, you can bring changes from the old notebooks into the new notebooks at your discretion

@@ -1,4 +1,4 @@
-pytest==5.2.0
+pytest==5.4.0
 pytest-cov==2.5.1
-pytest-pep8
+pytest-pycodestyle
 coveralls

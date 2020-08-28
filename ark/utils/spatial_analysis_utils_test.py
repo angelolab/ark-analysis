@@ -44,9 +44,9 @@ def make_example_data_closenum():
     # Create the distance matrix to test the closenum function
     dist_mat = np.zeros((10, 10))
     np.fill_diagonal(dist_mat, 0)
-    # Create distance matrix where cells positive for marker 1 and 2 are within the dist_lim of each other,
-    # but not the other groups. This is repeated for cells positive for marker 3 and 4, and for cells positive
-    # for marker 5.
+    # Create distance matrix where cells positive for marker 1 and 2 are within the dist_lim of
+    # each other, but not the other groups. This is repeated for cells positive for marker 3 and 4,
+    # and for cells positive for marker 5.
     dist_mat[1:4, 0] = 50
     dist_mat[0, 1:4] = 50
     dist_mat[4:9, 0] = 200
@@ -116,14 +116,15 @@ def test_compute_close_cell_num():
 
     example_closenum, m1 = spatial_analysis_utils.compute_close_cell_num(
         dist_mat=example_dist_mat, dist_lim=100, num=chanel_num, analysis_type="channel",
-        current_fov_data=all_data, current_fov_channel_data=fov_channel_data, thresh_vec=thresh_vec)
+        current_fov_data=all_data, current_fov_channel_data=fov_channel_data,
+        thresh_vec=thresh_vec)
 
     assert (example_closenum[:2, :2] == 16).all()
     assert (example_closenum[3:5, 3:5] == 25).all()
     assert (example_closenum[5:7, 5:7] == 1).all()
 
-    # Now test indexing with cell labels by removing a cell label from the expression matrix but not the
-    # distance matrix
+    # Now test indexing with cell labels by removing a cell label from the expression matrix but
+    # not the distance matrix
     all_data = all_data.drop(3, axis=0)
     # Only include the columns of markers
     fov_channel_data = all_data.drop(all_data.columns[[
@@ -137,7 +138,8 @@ def test_compute_close_cell_num():
 
     example_closenum, m1 = spatial_analysis_utils.compute_close_cell_num(
         dist_mat=example_dist_mat, dist_lim=100, num=channel_num, analysis_type="channel",
-        current_fov_data=all_data, current_fov_channel_data=fov_channel_data, thresh_vec=thresh_vec)
+        current_fov_data=all_data, current_fov_channel_data=fov_channel_data,
+        thresh_vec=thresh_vec)
 
     assert (example_closenum[:2, :2] == 9).all()
     assert (example_closenum[3:5, 3:5] == 25).all()
@@ -227,7 +229,7 @@ def test_compute_neighbor_count():
     counts, freqs = spatial_analysis_utils.compute_neighbor_counts(
         fov_data, dist_matrix, distlim)
 
-    # add to neighbor counts + freqs for only the matching phenotypes between the fov and the whole dataset
+    # add to neighbor counts/freqs for only matched phenos between the fov and the whole dataset
     cell_neighbor_counts.loc[fov_data.index, cluster_names] = counts
     cell_neighbor_freqs.loc[fov_data.index, cluster_names] = freqs
 
