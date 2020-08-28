@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import xarray as xr
 
 from ark.analysis import spatial_analysis
 from ark.utils import synthetic_spatial_datagen
@@ -22,7 +23,8 @@ def _make_distance_matrix(enrichment_type, dist_lim):
         np.fill_diagonal(rand_mat[:, :], 0)
 
         rand_mat = xr.DataArray(rand_mat,
-                                coords=[np.arange(rand_mat.shape[0]) + 1, np.arange(rand_mat.shape[1]) + 1])
+                                coords=[np.arange(rand_mat.shape[0]) + 1,
+                                np.arange(rand_mat.shape[1]) + 1])
 
         fovs = ["Point8", "Point9"]
         mats = [rand_mat, rand_mat]

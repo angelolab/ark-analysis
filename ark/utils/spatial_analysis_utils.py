@@ -19,8 +19,8 @@ def calc_dist_matrix(label_map, path=None):
     Returns:
 
         dist_matrix (dict): contains a cells x cells matrix with the euclidian
-            distance between centers of corresponding cells for every fov, note that each distance matrix
-            is of type xarray"""
+            distance between centers of corresponding cells for every fov, 
+            note that each distance matrix is of type xarray"""
 
     # Check that file path exists, if given
 
@@ -170,7 +170,8 @@ def compute_close_cell_num(dist_mat, dist_lim, num, analysis_type,
     for j in range(0, num):
         # Identify cell labels that are positive for markers/phenotypes, based on type of analysis
         if analysis_type == "cluster":
-            mark1poslabels.append(get_pos_cell_labels(analysis_type, cluster_ids.iloc[j],
+            mark1poslabels.append(get_pos_cell_labels(analysis_type,
+                                                      cluster_ids.iloc[j],
                                                       current_fov_data))
         else:
             mark1poslabels.append(get_pos_cell_labels(
