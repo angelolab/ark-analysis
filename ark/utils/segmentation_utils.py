@@ -187,25 +187,25 @@ def visualize_watershed_transform(model_output, channel_xr, overlay_channels, ou
             io.imsave(os.path.join(output_dir, "{}_segmentation_labels.tiff".format(fov)),
                       random_map)
 
-        if save_tifs == 'all':
-            # save borders of segmentation map
-            plot_utils.plot_overlay(random_map, plotting_tif=None,
-                                    path=os.path.join(output_dir,
-                                                      "{}_segmentation_borders.tiff".format(
-                                                          fov)))
-
-            io.imsave(os.path.join(output_dir, "{}_interior_smoothed.tiff".format(fov)),
-                      interior_smoothed.astype("float32"))
-
-            io.imsave(os.path.join(output_dir, "{}_maxs_smoothed_thresholded.tiff".format(fov)),
-                      maxima_thresholded.astype("float32"))
-
-            io.imsave(os.path.join(output_dir, "{}_maxs.tiff".format(fov)),
-                      maxs.astype('uint8'))
-
-            for chan in channel_xr.channels.values:
-                io.imsave(os.path.join(output_dir, "{}_{}.tiff".format(fov, chan)),
-                          channel_xr.loc[fov, :, :, chan].astype('float32'))
+        # if save_tifs == 'all':
+        #     # save borders of segmentation map
+        #     plot_utils.plot_overlay(random_map, plotting_tif=None,
+        #                             path=os.path.join(output_dir,
+        #                                               "{}_segmentation_borders.tiff".format(
+        #                                                   fov)))
+        #
+        #     io.imsave(os.path.join(output_dir, "{}_interior_smoothed.tiff".format(fov)),
+        #               interior_smoothed.astype("float32"))
+        #
+        #     io.imsave(os.path.join(output_dir, "{}_maxs_smoothed_thresholded.tiff".format(fov)),
+        #               maxima_thresholded.astype("float32"))
+        #
+        #     io.imsave(os.path.join(output_dir, "{}_maxs.tiff".format(fov)),
+        #               maxs.astype('uint8'))
+        #
+        #     for chan in channel_xr.channels.values:
+        #         io.imsave(os.path.join(output_dir, "{}_{}.tiff".format(fov, chan)),
+        #                   channel_xr.loc[fov, :, :, chan].astype('float32'))
 
     # plot list of supplied markers overlaid by segmentation mask to assess accuracy
     if save_tifs != 'none':
