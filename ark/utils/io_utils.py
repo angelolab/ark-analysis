@@ -7,10 +7,12 @@ def validate_paths(paths):
     """Verifys that paths exist and don't leave Docker's scope
 
     Args:
-        paths (str or list): paths to verify.
+        paths (str or list):
+            paths to verify.
 
     Raises:
-        ValueError: Raised if any directory is out of scope or non-existent
+        ValueError:
+            Raised if any directory is out of scope or non-existent
     """
 
     # if given a single path, convert to list
@@ -38,11 +40,14 @@ def list_files(dir_name, substrs=None):
     """ List all files in a directory containing at least one given substring
 
     Args:
-        dir_name (str):         Parent directory for files of interest
-        substrs (str or list):  Substring matching criteria, defaults to None (all files)
+        dir_name (str):
+            Parent directory for files of interest
+        substrs (str or list):
+            Substring matching criteria, defaults to None (all files)
 
     Returns:
-        matches (list):         List of files containing at least one of the substrings
+        list:
+            List of files containing at least one of the substrings
 
     """
 
@@ -68,28 +73,30 @@ def list_files(dir_name, substrs=None):
 
 
 def extract_delimited_names(files, delimiter='_', delimiter_optional=True):
-    """ Create a matched-index list of fov/point/etc names from a list of files/folders
+    """Create a matched-index list of fov/point/etc names from a list of files/folders
 
     Extracts a delimited prefix for every file in a given list of files
 
-    e.g's.
-        'Point2_restofthefilename.tiff' becomes 'Point2'
-        'Point1.tiff' becomes 'Point1'
+    Examples:
+         - 'Point2_restofthefilename.tiff' becomes 'Point2'
+         - 'Point1.tiff' becomes 'Point1'
 
     Args:
-        files (list):               List of files to extract names from (if paths,
-                                    just uses the last file/folder)
-        delimiter (str):            Character separator used to determine filename prefix.
-                                    Defaults to '_'.
-        delimiter_optional (bool):  If False, function will return None if any of the files
-                                    don't contain the delimiter.  Defaults to True.
-
-    Returns:
-        names (list):   List of extracted names. Indicies should match that of files
+        files (list):
+            List of files to extract names from (if paths, just uses the last file/folder)
+        delimiter (str):
+            Character separator used to determine filename prefix. Defaults to '_'.
+        delimiter_optional (bool):
+            If False, function will return None if any of the files don't contain the delimiter.
+            Defaults to True.
 
     Raises:
-        UserWarning:    Raised if delimiter_optional=False and no delimiter is present in any of
-                        the files
+        UserWarning:
+            Raised if delimiter_optional=False and no delimiter is present in any of the files
+
+    Returns:
+        list:
+            List of extracted names. Indicies should match that of files
 
     """
     if files is None:
@@ -125,12 +132,14 @@ def list_folders(dir_name, substrs=None):
     """ List all folders in a directory containing at least one given substring
 
     Args:
-        dir_name (str):         Parent directory for folders of interest
-        substrs (str or list):  Substring matching criteria, defaults to None (all folders)
+        dir_name (str):
+            Parent directory for folders of interest
+        substrs (str or list):
+            Substring matching criteria, defaults to None (all folders)
 
     Returns:
-        matches (list):         List of folders containing at least one of the substrings
-
+        list:
+            List of folders containing at least one of the substrings
     """
 
     files = os.listdir(dir_name)

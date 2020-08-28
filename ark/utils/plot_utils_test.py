@@ -1,11 +1,9 @@
-import importlib
 import tempfile
 import os
 
 import numpy as np
-import skimage.io as io
 
-from ark.utils import plot_utils, data_utils
+from ark.utils import plot_utils
 from skimage.draw import circle
 
 

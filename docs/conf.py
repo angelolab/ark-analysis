@@ -79,6 +79,9 @@ autodoc_mock_imports = ['h5py'
 
 sys.modules['matplotlib.pyplot'] = mock.Mock()
 
+# explicitly mock mibidata
+sys.modules['mibidata'] = mock.Mock()
+
 # prefix each section label with the name of the document it is in, followed by a colon
 # autosection_label_prefix_document = True
 autosectionlabel_prefix_document = True
@@ -137,7 +140,8 @@ intersphinx_mapping = {
     'python': ('https://docs.python.org/3.6', None),
     'numpy': ('https://numpy.org/doc/stable', None),
     'matplotlib': ('https://matplotlib.org/3.2.1', None),
-    'xarray': ('https://xarray.pydata.org/en/stable', None)
+    'xarray': ('https://xarray.pydata.org/en/stable', None),
+    'pandas': ('https://pandas.pydata.org/docs/', None)
 }
 
 # set a maximum number of days to cache remote inventories

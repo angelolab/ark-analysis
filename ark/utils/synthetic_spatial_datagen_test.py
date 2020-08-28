@@ -8,9 +8,9 @@ def test_generate_test_dist_matrix():
     # distance matrix directly.
     # the tests are fairly basic for now but will be expanded on.
     # for now, we just want to ensure two things:
-        # matrix symmetry: a property of distance matrices
-        # mean AB > mean AC: the mean distance between cells of types A and B
-        # is greater than that of types A and C
+    #   matrix symmetry: a property of distance matrices
+    #   mean AB > mean AC: the mean distance between cells of types A and B
+    #                      is greater than that of types A and C
 
     # we'll be using the default parameters provided in the functions
     # except for the random seed, which we specify
@@ -33,8 +33,8 @@ def test_generate_random_centroids():
     # this function tests the functionality of a random initialization of centroids
     # the tests are fairly basic for now but will be expanded on
     # for the time being, all we do are the following:
-        # test that there are no duplicates in centroid_list
-        # test that all the centroids generated are in range
+    #   test that there are no duplicates in centroid_list
+    #   test that all the centroids generated are in range
 
     # generate some sample stats to pass into generate_random_centroids to get our values
     size_img = (1024, 1024)
@@ -51,10 +51,18 @@ def test_generate_random_centroids():
     cov_B = [[100, 0], [0, 100]]
     cov_c = [[100, 0], [0, 100]]
 
-    centroid_list = synthetic_spatial_datagen.generate_random_centroids(size_img=size_img, num_A=num_A, num_B=num_B, num_C=num_C,
-                                                                        mean_A_factor=mean_A_factor, cov_A=cov_A,
-                                                                        mean_B_factor=mean_B_factor, cov_B=cov_B,
-                                                                        mean_C_factor=mean_C_factor, cov_C=cov_c)
+    centroid_list = synthetic_spatial_datagen.generate_random_centroids(
+        size_img=size_img,
+        num_A=num_A,
+        num_B=num_B,
+        num_C=num_C,
+        mean_A_factor=mean_A_factor,
+        cov_A=cov_A,
+        mean_B_factor=mean_B_factor,
+        cov_B=cov_B,
+        mean_C_factor=mean_C_factor,
+        cov_C=cov_c
+    )
 
     # try to extract non-duplicate centroids in the list
     _, centroid_counts = np.unique(centroid_list, axis=0, return_counts=True)
@@ -96,8 +104,6 @@ def test_generate_test_label_map():
 def test_generate_two_cell_test_segmentation_mask():
     # this function tests the functionality of generating the segmentation mask
     cell_radius = 10
-    nuc_radius = 3
-    memb_thickness = 5
 
     sample_segmentation_mask, sample_cell_centers = \
         synthetic_spatial_datagen.generate_two_cell_test_segmentation_mask(cell_radius=cell_radius)
@@ -109,8 +115,8 @@ def test_generate_two_cell_test_segmentation_mask():
     assert sample_segmentation_mask[sample_cell_centers[1][0], sample_cell_centers[1][0]] == 1
     assert sample_segmentation_mask[sample_cell_centers[2][0], sample_cell_centers[2][1]] == 2
 
-    # using the default cell radius of 10, assert that the cells are next to each other
-    # we only include the offset columnwise because that's how the cells are generated next to each other
+    # using the default cell radius of 10, assert that the cells are next to each other we only
+    # include the offset columnwise because that's how the cells are generated next to each other
     assert sample_segmentation_mask[sample_cell_centers[1][0], sample_cell_centers[1][1] + 10] == 2
     assert sample_segmentation_mask[sample_cell_centers[2][0], sample_cell_centers[2][1] - 10] == 1
 
@@ -127,11 +133,13 @@ def test_generate_two_cell_test_nuclear_signal():
         synthetic_spatial_datagen.generate_two_cell_test_segmentation_mask(cell_radius=cell_radius)
 
     sample_nuclear_signal = \
-        synthetic_spatial_datagen.generate_two_cell_test_nuclear_signal(segmentation_mask=sample_segmentation_mask,
-                                                                        cell_centers=sample_cell_centers,
-                                                                        nuc_radius=nuc_radius,
-                                                                        nuc_signal_strength=nuc_signal_strength,
-                                                                        nuc_uncertainty_length=nuc_uncertainty_length)
+        synthetic_spatial_datagen.generate_two_cell_test_nuclear_signal(
+            segmentation_mask=sample_segmentation_mask,
+            cell_centers=sample_cell_centers,
+            nuc_radius=nuc_radius,
+            nuc_signal_strength=nuc_signal_strength,
+            nuc_uncertainty_length=nuc_uncertainty_length
+        )
 
     # assert that our nucleus center is labeled properly
     # we only care about cell 1 because that is the only nuclear-level expression cell by default
@@ -140,16 +148,19 @@ def test_generate_two_cell_test_nuclear_signal():
     # now include a test where we add memb_uncertainty
     nuc_uncertainty_length = 1
     sample_nuclear_signal = \
-        synthetic_spatial_datagen.generate_two_cell_test_nuclear_signal(segmentation_mask=sample_segmentation_mask,
-                                                                        cell_centers=sample_cell_centers,
-                                                                        nuc_radius=nuc_radius,
-                                                                        nuc_signal_strength=nuc_signal_strength,
-                                                                        nuc_uncertainty_length=nuc_uncertainty_length)
+        synthetic_spatial_datagen.generate_two_cell_test_nuclear_signal(
+            segmentation_mask=sample_segmentation_mask,
+            cell_centers=sample_cell_centers,
+            nuc_radius=nuc_radius,
+            nuc_signal_strength=nuc_signal_strength,
+            nuc_uncertainty_length=nuc_uncertainty_length
+        )
 
     assert sample_nuclear_signal[sample_cell_centers[1][0], sample_cell_centers[1][1]] == 10
 
-    # because we'll be jittering the signal eventually, we won't test the status of the signal at the nucleus border
-    # this kind of hurts the nuc_uncertainty_length test but we'll revisit that when the time comes
+    # because we'll be jittering the signal eventually, we won't test the status of the signal at
+    # the nucleus border this kind of hurts the nuc_uncertainty_length test but we'll revisit that
+    # when the time comes
 
 
 def test_generate_two_cell_test_membrane_signal():
@@ -164,31 +175,43 @@ def test_generate_two_cell_test_membrane_signal():
         synthetic_spatial_datagen.generate_two_cell_test_segmentation_mask(cell_radius=cell_radius)
 
     sample_membrane_signal = \
-        synthetic_spatial_datagen.generate_two_cell_test_membrane_signal(segmentation_mask=sample_segmentation_mask,
-                                                                         cell_centers=sample_cell_centers,
-                                                                         cell_radius=cell_radius,
-                                                                         memb_thickness=memb_thickness,
-                                                                         memb_signal_strength=memb_signal_strength,
-                                                                         memb_uncertainty_length=memb_uncertainty_length)
+        synthetic_spatial_datagen.generate_two_cell_test_membrane_signal(
+            segmentation_mask=sample_segmentation_mask,
+            cell_centers=sample_cell_centers,
+            cell_radius=cell_radius,
+            memb_thickness=memb_thickness,
+            memb_signal_strength=memb_signal_strength,
+            memb_uncertainty_length=memb_uncertainty_length
+        )
 
-    # assuming the default membrane diameter of 5, assert that our membrane inner edge is being labeled correctly
-    # we only include the offset columnwise by choice: it could be done rowwise as well
-    # we only care about cell 2 because that is the only membrane-level expression cell by default
-    assert sample_membrane_signal[sample_cell_centers[2][0], sample_cell_centers[2][1] - memb_thickness] == 10
+    # assuming the default membrane diameter of 5, assert that our membrane inner edge is being
+    # labeled correctly we only include the offset columnwise by choice: it could be done rowwise
+    # as well we only care about cell 2 because that is the only membrane-level expression cell by
+    # default
+    assert sample_membrane_signal[
+        sample_cell_centers[2][0],
+        sample_cell_centers[2][1] - memb_thickness
+    ] == 10
 
     # now include a test where we add memb_uncertainty
     memb_uncertainty_length = 1
     sample_membrane_signal = \
-        synthetic_spatial_datagen.generate_two_cell_test_membrane_signal(segmentation_mask=sample_segmentation_mask,
-                                                                         cell_centers=sample_cell_centers,
-                                                                         cell_radius=cell_radius,
-                                                                         memb_thickness=memb_thickness,
-                                                                         memb_signal_strength=memb_signal_strength,
-                                                                         memb_uncertainty_length=memb_uncertainty_length)
+        synthetic_spatial_datagen.generate_two_cell_test_membrane_signal(
+            segmentation_mask=sample_segmentation_mask,
+            cell_centers=sample_cell_centers,
+            cell_radius=cell_radius,
+            memb_thickness=memb_thickness,
+            memb_signal_strength=memb_signal_strength,
+            memb_uncertainty_length=memb_uncertainty_length
+        )
 
-    assert sample_membrane_signal[sample_cell_centers[2][0], sample_cell_centers[2][1] - (memb_thickness + memb_uncertainty_length)] == 10
+    assert sample_membrane_signal[
+        sample_cell_centers[2][0],
+        sample_cell_centers[2][1] - (memb_thickness + memb_uncertainty_length)
+    ] == 10
 
-    # because we'll be jittering the signal eventually, we won't test the status of the signal at the outer membrane border
+    # because we'll be jittering the signal eventually, we won't test the status of the signal at
+    # the outer membrane border
 
 
 def test_generate_two_cell_test_channel_synthetic_data():
@@ -209,8 +232,10 @@ def test_generate_two_cell_test_channel_synthetic_data():
 
     # now include a test where we set the nuclear and membrane signal strengths differently
     _, sample_channel_data = \
-        synthetic_spatial_datagen.generate_two_cell_test_channel_synthetic_data(nuc_signal_strength=10,
-                                                                                memb_signal_strength=100)
+        synthetic_spatial_datagen.generate_two_cell_test_channel_synthetic_data(
+            nuc_signal_strength=10,
+            memb_signal_strength=100
+        )
 
     assert set(sample_channel_data[:, :, 0].flatten().tolist()) == set([0, 10])
     assert set(sample_channel_data[:, :, 1].flatten().tolist()) == set([0, 100])
