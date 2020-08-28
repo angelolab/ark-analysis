@@ -109,6 +109,7 @@ def test_calc_dist_matrix():
     assert np.array_equal(distance_mat["1"].loc[range(1, 4), range(1, 4)], real_mat)
     assert np.array_equal(distance_mat["2"].loc[range(1, 4), range(1, 4)], real_mat)
 
+
 def test_compute_close_cell_num():
     # Test the closenum function
     all_data, example_dist_mat = make_example_data_closenum()
