@@ -24,7 +24,7 @@ def _make_distance_matrix(enrichment_type, dist_lim):
 
         rand_mat = xr.DataArray(rand_mat,
                                 coords=[np.arange(rand_mat.shape[0]) + 1,
-                                np.arange(rand_mat.shape[1]) + 1])
+                                        np.arange(rand_mat.shape[1]) + 1])
 
         fovs = ["Point8", "Point9"]
         mats = [rand_mat, rand_mat]

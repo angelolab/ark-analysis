@@ -19,7 +19,7 @@ def calc_dist_matrix(label_map, path=None):
     Returns:
 
         dist_matrix (dict): contains a cells x cells matrix with the euclidian
-            distance between centers of corresponding cells for every fov, 
+            distance between centers of corresponding cells for every fov,
             note that each distance matrix is of type xarray"""
 
     # Check that file path exists, if given
