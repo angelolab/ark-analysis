@@ -189,27 +189,24 @@ def test_load_imgs_from_dir():
     # test loading from 'free' directory
     with tempfile.TemporaryDirectory() as temp_dir:
         imgs = ["fov1_img1.tiff", "fov2_img2.tiff", "fov3_img3.tiff"]
-        fovs = [img.split("_")[0] for img in imgs]
-        test_utils._create_img_dir(temp_dir, fovs=[""], imgs=imgs, img_sub_folder="",
-                                   dtype="float")
+        fovnames = [img.split(".")[0] for img in imgs]
+        filelocs, data_xr = test_utils.create_paired_xarray_fovs(temp_dir, fovnames, 'img_data',
+                                                                 img_shape=(10, 10), mode='labels',
+                                                                 delimiter='_', dtype=np.float32)
 
         # check default loading
-        test_loaded_xr = \
-            data_utils.load_imgs_from_dir(temp_dir, delimiter='_', dtype="float")
+        loaded_xr = \
+            data_utils.load_imgs_from_dir(temp_dir, delimiter='_', dtype=np.float32)
 
-        # make sure grouping by file prefix was effective
-        assert np.array_equal(test_loaded_xr.fovs, fovs)
+        assert test_utils.xarrays_are_equal(data_xr, loaded_xr)
 
-        # make sure dim and coord were named w/ defaults
-        assert np.all(test_loaded_xr.loc["fov1", :, :, "img_data"] >= 0)
-        assert test_loaded_xr.dims[-1] == 'compartments'
-
+        # test swap int16 -> float
         with pytest.warns(UserWarning):
-            test_warning_xr = \
+            loaded_xr = \
                 data_utils.load_imgs_from_dir(temp_dir, delimiter='_', dtype="int16")
 
-            # test swap int16 -> float
-            assert np.issubdtype(test_warning_xr.dtype, np.floating)
+            assert test_utils.xarrays_are_equal(data_xr, loaded_xr)
+            assert np.issubdtype(loaded_xr.dtype, np.floating)
 
 
 def test_generate_deepcell_input():

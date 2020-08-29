@@ -35,6 +35,29 @@ def _gen_tif_data(fov_number, chan_number, img_shape, fills, dtype):
     return tif_data
 
 
+def _gen_label_data(fov_number, comp_number, img_shape, dtype):
+    label_data = np.zeros((fov_number, *img_shape, comp_number), dtype=dtype)
+
+    right = (img_shape[1] - 1) // 2
+    left = (img_shape[1] + 2) // 2
+    up = (img_shape[0] - 1) // 2
+    down = (img_shape[0] + 2) // 2
+
+    counter = 1
+    for fov in range(fov_number):
+        for comp in range(comp_number):
+            label_data[fov, :up, :right, comp] = counter
+            counter = (counter % 255) + 1
+            label_data[fov, :up, left:, comp] = counter
+            counter = (counter % 255) + 1
+            label_data[fov, down:, :right, comp] = counter
+            counter = (counter % 255) + 1
+            label_data[fov, down:, left:, comp] = counter
+            counter = (counter % 255) + 1
+
+    return label_data
+
+
 def _create_tifs(base_dir, fov_names, img_names, shape, sub_dir, fills, dtype):
     tif_data = _gen_tif_data(len(fov_names), len(img_names), shape, fills, dtype)
 
@@ -86,10 +109,24 @@ def _create_mibitiff(base_dir, fov_names, channel_names, shape, sub_dir, fills, 
     return filelocs, tif_data
 
 
+def _create_labels(base_dir, fov_names, comp_names, shape, sub_dir, fills, dtype):
+    label_data = _gen_label_data(len(fov_names), len(comp_names), shape, dtype)
+
+    filelocs = {}
+
+    for i, fov in enumerate(fov_names):
+        tiffpath = os.path.join(base_dir, f'{fov}.tiff')
+        io.imsave(tiffpath, label_data[i, :, :, 0], plugin='tifffile')
+        filelocs[fov] = tiffpath
+
+    return filelocs, label_data
+
+
 TIFFMAKERS = {
     'tiff': _create_tifs,
     'multitiff': _create_multitiff,
     'mibitiff': _create_mibitiff,
+    'labels': _create_labels,
 }
 
 
@@ -121,18 +158,28 @@ def create_paired_xarray_fovs(base_dir, fov_names, channel_names, img_shape=(102
     if mode == 'multitiff':
         channel_names = range(len(channel_names))
 
-    data_xr = xr.DataArray(tif_data,
-                           coords=[fov_ids,
-                                   range(img_shape[0]),
-                                   range(img_shape[1]),
-                                   channel_names],
-                           dims=["fovs", "rows", "cols", "channels"])
+    if mode == 'labels':
+        data_xr = make_labels_xarray(tif_data, fov_ids, *img_shape, channel_names)
+    else:
+        data_xr = make_images_xarray(tif_data, fov_ids, *img_shape, channel_names)
 
     return filelocs, data_xr
 
 
 def xarrays_are_equal(a_xr, b_xr, sortdim="fovs"):
     return b_xr.sortby(sortdim).equals(a_xr.sortby(sortdim))
+
+
+def make_images_xarray(tif_data, fov_ids, row_size, col_size, channel_names):
+    coords = [fov_ids, range(row_size), range(col_size), channel_names]
+    dims = ["fovs", "rows", "cols", "channels"]
+    return xr.DataArray(tif_data, coords=coords, dims=dims)
+
+
+def make_labels_xarray(label_data, fov_ids, row_size, col_size, compartment_names):
+    coords = [fov_ids, range(row_size), range(col_size), compartment_names]
+    dims = ['fovs', 'rows', 'cols', 'compartments']
+    return xr.DataArray(label_data, coords=coords, dims=dims)
 
 
 def _create_img_dir(temp_dir, fovs, imgs, img_sub_folder="TIFs", dtype="int8"):
