@@ -19,6 +19,19 @@ from ark.utils import plot_utils, io_utils
 
 
 def modify_input_data(channel_data_xr, chan_list, fov):
+    """
+    Args:
+        channel_data_xr (xarray.DataArray):
+            xarray containing TIFs
+        chan_list (list):
+            list of channels
+        fov (int):
+            field of view
+
+    Returns:
+        input_data (numpy.ndarray):
+            ndarray containing data used for plotting
+    """
     input_data = np.zeros(
         (channel_data_xr.shape[1], channel_data_xr.shape[2], 3))
     input_data[:, :, 1] = channel_data_xr.loc[fov, :, :, chan_list[0]].values
