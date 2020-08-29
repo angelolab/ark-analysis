@@ -18,6 +18,13 @@ import skimage.io as io
 from ark.utils import plot_utils, io_utils
 
 
+def modify_input_data(channel_data_xr, chan_list, fov):
+    input_data = np.zeros(
+        (channel_data_xr.shape[1], channel_data_xr.shape[2], 3))
+    input_data[:, :, 1] = channel_data_xr.loc[fov, :, :, chan_list[0]].values
+    input_data[:, :, 2] = channel_data_xr.loc[fov, :, :, chan_list[1]].values
+    return input_data
+
 def find_nuclear_mask_id(nuc_segmentation_mask, cell_coords):
     """Get the ID of the nuclear mask which has the greatest amount of overlap with a given cell
 
@@ -179,10 +186,7 @@ def visualize_watershed_transform(segmentation_labels_xr, channel_data_xr,
                                                                                 channel)))
 
                     elif len(chan_list) == 2:
-                        input_data = np.zeros(
-                            (channel_data_xr.shape[1], channel_data_xr.shape[2], 3))
-                        input_data[:, :, 1] = channel_data_xr.loc[fov, :, :, chan_list[0]].values
-                        input_data[:, :, 2] = channel_data_xr.loc[fov, :, :, chan_list[1]].values
+                        input_data = modify_input_data(channel_data_xr, chan_list, fov)
                         plot_utils.plot_overlay(
                             segmentation_labels_xr.loc[fov, :, :, :].values, plotting_tif=input_data,
                             path=os.path.join(
@@ -191,11 +195,7 @@ def visualize_watershed_transform(segmentation_labels_xr, channel_data_xr,
                     elif len(chan_list) == 3:
                         # if three entries, make a 3 color stack,
                         # with third channel in first index (red)
-                        input_data = np.zeros(
-                            (channel_data_xr.shape[1], channel_data_xr.shape[2], 3))
-                        input_data[:, :, 1] = channel_data_xr.loc[fov, :, :, chan_list[0]].values
-                        input_data[:, :, 2] = channel_data_xr.loc[fov, :, :, chan_list[1]].values
-                        input_data[:, :, 0] = channel_data_xr.loc[fov, :, :, chan_list[2]].values
+                        input_data = modify_input_data(channel_data_xr, chan_list, fov)
                         plot_utils.plot_overlay(segmentation_labels_xr.loc[fov, :, :, 'whole_cell'].values, plotting_tif=input_data,
                                                 path=os.path.join(output_dir,
                                                                   "{}_{}_{}_{}_overlay.tiff".
