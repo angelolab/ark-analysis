@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 import random
+from copy import deepcopy
 from ark.utils import spatial_analysis_utils
 
 
@@ -74,6 +75,16 @@ def make_example_data_closenum():
     dist_mat[8, 7] = 50
     dist_mat[7, 8] = 50
 
+    # add some randomization to the ordering
+    coords_in_order = np.arange(dist_mat.shape[0])
+    coords_permuted = deepcopy(coords_in_order)
+    np.random.shuffle(coords_permuted)
+    dist_mat = dist_mat[np.ix_(coords_permuted, coords_permuted)]
+
+    # we have to 1-index coords because people will be labeling their cells 1-indexed
+    coords_dist_mat = [coords_permuted + 1, coords_permuted + 1]
+    dist_mat = xr.DataArray(dist_mat, coords=coords_dist_mat)
+
     return all_data, dist_mat
 
 
@@ -82,8 +93,10 @@ def test_calc_dist_matrix():
     # Create pythagorean triple to test euclidian distance
     test_mat_data[0, 0, 20] = 1
     test_mat_data[0, 4, 17] = 2
+    test_mat_data[0, 0, 17] = 3
     test_mat_data[1, 5, 25] = 1
     test_mat_data[1, 9, 22] = 2
+    test_mat_data[1, 5, 22] = 3
 
     coords = [["1", "2"], range(test_mat_data[0].data.shape[0]),
               range(test_mat_data[0].data.shape[1]), ["segmentation_label"]]
@@ -91,10 +104,11 @@ def test_calc_dist_matrix():
     test_mat = xr.DataArray(test_mat_data, coords=coords, dims=dims)
 
     distance_mat = spatial_analysis_utils.calc_dist_matrix(test_mat)
-    real_mat = np.array([[0, 5], [5, 0]])
 
-    assert np.array_equal(distance_mat["1"], real_mat)
-    assert np.array_equal(distance_mat["2"], real_mat)
+    real_mat = np.array([[0, 5, 3], [5, 0, 4], [3, 4, 0]])
+
+    assert np.array_equal(distance_mat["1"].loc[range(1, 4), range(1, 4)], real_mat)
+    assert np.array_equal(distance_mat["2"].loc[range(1, 4), range(1, 4)], real_mat)
 
 
 def test_compute_close_cell_num():
@@ -203,7 +217,7 @@ def test_calculate_enrichment_stats():
     assert stats_xr.loc["p_pos", 0, 0] > .05
 
 
-def test_compute_neighbor_count():
+def test_compute_neighbor_counts():
     fov_col = "SampleID"
     cluster_id_col = "FlowSOM_ID"
     cell_label_col = "cellLabelInImage"

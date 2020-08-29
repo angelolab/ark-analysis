@@ -36,7 +36,7 @@ def generate_test_dist_matrix(num_A=100, num_B=100, num_C=100,
             integer value. Default None.
 
     Returns:
-        numpy.ndarray:
+        xarray.DataArray:
             The randomized distance matrix we generate directly from predefined distributions
             where the average distances between cell types of a and b > average distances between
             cell types of b and c
@@ -75,6 +75,18 @@ def generate_test_dist_matrix(num_A=100, num_B=100, num_C=100,
 
     # finally, fill the diagonals with 0 to ensure a proper distance matrix
     np.fill_diagonal(dist_mat, 0)
+
+    # now we're going to add some random permutation to our distance matrix
+    # we have to do it this way because we cannot assume that our cells will
+    # be labeled in-order
+    coords_in_order = np.arange(dist_mat.shape[0])
+    coords_permuted = deepcopy(coords_in_order)
+    np.random.shuffle(coords_permuted)
+    dist_mat = dist_mat[np.ix_(coords_permuted, coords_permuted)]
+
+    # # we have to 1-index coords because people will be labeling their cells 1-indexed
+    coords_dist_mat = [coords_permuted + 1, coords_permuted + 1]
+    dist_mat = xr.DataArray(dist_mat, coords=coords_dist_mat)
 
     return dist_mat
 
@@ -159,6 +171,11 @@ def generate_random_centroids(size_img=(1024, 1024), num_A=100, num_B=100, num_C
     non_dup_points, non_dup_counts = np.unique(total_points, axis=0, return_counts=True)
     total_points = non_dup_points[non_dup_counts == 1]
 
+    # this we need because np.unique automatically sorts by ascending coordinate
+    # but we want more randomization because this forms the basis of generate_test_label_map
+    # which is passed into calc_dist_matrix which cannot assume a sequentially-labelled xarray
+    total_points = total_points[np.random.permutation(total_points.shape[0]), :]
+
     return total_points
 
 
@@ -218,23 +235,12 @@ def generate_test_label_map(size_img=(1024, 1024), num_A=100, num_B=100, num_C=1
 
     point_x_coords, point_y_coords = zip(*all_centroids)
 
-    # all_centroids is ordered specifically to reflect a-labeled centroids first, then b, lastly c
-    # unfortunately, when we pass the final label map into calc_dist_matrix of
-    # spatial_analysis_utils we lose this desired ordering because of a call to regionprops,
-    # which automatically orders the centroids by ascending x-coordinate (in the case of ties,
-    # ascending y-coordinate) this messes up the ordering of the distance matrix which screws up,
-    # for example, the tests if a user wants to generate a distance matrix from randomly generated
-    # centroid points fortunately, lexsort allows us to compute the indices needed to reorder the
-    # sorted centroid list back to where they were originally, thus they can also be used to
-    # reorder the distance matrix back to the desired partitioning of first a-labeled rows/columns,
-    # then b, finally c
-    centroid_indices = np.lexsort(all_centroids[:, ::-1].T)
-
     # generate the label matrix for the image
     # doing it this way because using the label function in skimage does so based on
     # connected components and that messes up the regionprops call in calc_dist_matrix
     # we don't want to assume that we won't get points of distance 1 away from each other
     # so we can just use the labels generated from centroid_indices to assign this
+    centroid_indices = np.arange(len(all_centroids))
     label_mat = np.zeros(size_img)
     label_mat[point_x_coords, point_y_coords] = centroid_indices + 1
 
@@ -248,7 +254,7 @@ def generate_test_label_map(size_img=(1024, 1024), num_A=100, num_B=100, num_C=1
     )
 
     # and return the xarray to pass into calc_dist_matrix, plus the centroid_indices to readjust it
-    return sample_img_xr, centroid_indices
+    return sample_img_xr
 
 
 def generate_two_cell_test_segmentation_mask(size_img=(1024, 1024), cell_radius=10):
