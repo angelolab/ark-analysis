@@ -118,76 +118,76 @@ def test_load_imgs_from_multitiff():
 
 def test_load_imgs_from_tree():
     # test loading from within fov directories
-    with tempfile.TemporaryDirectory(prefix='fovs') as temp_dir:
+    with tempfile.TemporaryDirectory() as temp_dir:
         fovs = ["fov1", "fov2", "fov3"]
         imgs = ["img1.tiff", "img2.tiff", "img3.tiff"]
         chans = [chan.split(".tiff")[0] for chan in imgs]
-        test_utils._create_img_dir(temp_dir, fovs, imgs)
+
+        filelocs, data_xr = test_utils.create_paired_xarray_fovs(
+            temp_dir, fovs, chans, img_shape=(10, 10), delimiter='_', fills=True, sub_dir="TIFs",
+            dtype="int16"
+        )
 
         # check default loading of all files
-        test_loaded_xr = \
+        loaded_xr = \
             data_utils.load_imgs_from_tree(temp_dir, img_sub_folder="TIFs", dtype="int16")
 
-        # make sure all folders loaded
-        assert np.array_equal(test_loaded_xr.fovs.values.sort(), fovs.sort())
-
-        # make sure all channels loaded
-        assert np.array_equal(test_loaded_xr.channels.values.sort(), chans.sort())
+        assert test_utils.xarrays_are_equal(data_xr, loaded_xr)
 
         # check loading of specific files
         some_fovs = fovs[:2]
         some_imgs = imgs[:2]
         some_chans = chans[:2]
 
-        test_subset_xr = \
+        loaded_xr = \
             data_utils.load_imgs_from_tree(temp_dir, img_sub_folder="TIFs", dtype="int16",
                                            fovs=some_fovs, channels=some_imgs)
 
-        # make sure specified folders loaded
-        assert np.array_equal(test_subset_xr.fovs.values.sort(), some_fovs.sort())
-
-        # make sure specified channels loaded
-        assert np.array_equal(test_subset_xr.channels.values.sort(), some_chans.sort())
+        assert test_utils.xarrays_are_equal(
+            data_xr[:2, :, :, :2], loaded_xr
+        )
 
         # check loading w/o file extension
-        test_noext_xr = \
+        loaded_xr = \
             data_utils.load_imgs_from_tree(temp_dir, img_sub_folder="TIFs", dtype="int16",
                                            channels=some_chans)
 
-        # make sure all folders loaded
-        assert np.array_equal(test_noext_xr.fovs.values.sort(), fovs.sort())
-
-        # make sure specified channels loaded
-        assert np.array_equal(test_noext_xr.channels.values.sort(), some_chans.sort())
+        assert test_utils.xarrays_are_equal(
+            data_xr[:, :, :, :2], loaded_xr
+        )
 
         # check mixed extension presence
-        test_someext_xr = \
+        loaded_xr = \
             data_utils.load_imgs_from_tree(temp_dir, img_sub_folder="TIFs", dtype="int16",
                                            channels=[chans[i] if i % 2 else imgs[i]
                                                      for i in range(3)])
 
-        # make sure all folders loaded
-        assert np.array_equal(test_someext_xr.fovs.values.sort(), fovs.sort())
+        assert test_utils.xarrays_are_equal(data_xr, loaded_xr)
 
-        # makes sure all channels loaded
-        assert np.array_equal(test_someext_xr.channels.values.sort(), chans.sort())
+    with tempfile.TemporaryDirectory() as temp_dir:
 
-        # resave img3 as floats and test for float warning
-        tif = np.random.rand(1024, 1024).astype("float")
-        io.imsave(os.path.join(temp_dir, fovs[-1], "TIFs", imgs[-1]), tif)
+        fovs = ["fov1"]
+        imgs = ["img1.tiff", "img2.tiff"]
+        chans = [chan.split(".tiff")[0] for chan in imgs]
+
+        filelocs, data_xr = test_utils.create_paired_xarray_fovs(
+            temp_dir, fovs, chans, img_shape=(10, 10), delimiter='_', fills=True, sub_dir="TIFs",
+            dtype=np.float32
+        )
 
         with pytest.warns(UserWarning):
-            test_warning_xr = \
-                data_utils.load_imgs_from_tree(temp_dir, img_sub_folder="TIFs", dtype="int16",
-                                               fovs=[fovs[-1]], channels=[imgs[-1]])
+            loaded_xr = \
+                data_utils.load_imgs_from_tree(temp_dir, img_sub_folder="TIFs", dtype="int16")
+
+            assert test_utils.xarrays_are_equal(data_xr, loaded_xr)
 
             # test swap int16 -> float
-            assert np.issubdtype(test_warning_xr.dtype, np.floating)
+            assert np.issubdtype(loaded_xr.dtype, np.floating)
 
 
 def test_load_imgs_from_dir():
     # test loading from 'free' directory
-    with tempfile.TemporaryDirectory(prefix='one_file') as temp_dir:
+    with tempfile.TemporaryDirectory() as temp_dir:
         imgs = ["fov1_img1.tiff", "fov2_img2.tiff", "fov3_img3.tiff"]
         fovs = [img.split("_")[0] for img in imgs]
         test_utils._create_img_dir(temp_dir, fovs=[""], imgs=imgs, img_sub_folder="",

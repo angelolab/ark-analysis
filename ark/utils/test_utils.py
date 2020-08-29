@@ -48,8 +48,8 @@ def _create_tifs(base_dir, fov_names, img_names, shape, sub_dir, fills, dtype):
         fov_path = os.path.join(base_dir, fov, sub_dir)
         os.makedirs(fov_path)
         for j, name in enumerate(img_names):
-            io.imsave(os.path.join(base_dir, name), tif_data[i, :, :, j])
-            filelocs[fov].append(os.path.join(base_dir, fov, sub_dir, name))
+            io.imsave(os.path.join(fov_path, f'{name}.tiff'), tif_data[i, :, :, j])
+            filelocs[fov].append(os.path.join(fov_path, name))
 
     return filelocs, tif_data
 
