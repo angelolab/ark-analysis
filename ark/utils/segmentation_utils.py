@@ -209,7 +209,8 @@ def visualize_watershed_transform(segmentation_labels_xr, channel_data_xr,
 
             if save_tifs == 'all':
                 # save borders of segmentation map
-                chan_marker = channel_data_xr.loc[fov, :, :, channel_data_xr].values
+                chan_marker = channel_data_xr.loc[fov, :, :, channel].values
+                #chan_marker = channel_data_xr.loc[fov, :, :, channel_data_xr].values
                 plot_utils.plot_overlay(segmentation_labels_xr.loc[fov, :, :, 'whole_cell'].values, plotting_tif=chan_marker,
                                         path=os.path.join(output_dir,
                                                           "{}_segmentation_borders.tiff".format(
