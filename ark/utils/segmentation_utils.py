@@ -143,11 +143,6 @@ def concatenate_csv(base_dir, csv_files, column_name="point", column_values=None
 def visualize_watershed_transform(segmentation_labels_xr, channel_data_xr,
                                   output_dir, model_output,
                                   overlay_channels, fovs=None,
-                                  interior_model="pixelwise_interior", interior_threshold=0.25,
-                                  interior_smooth=3, maxima_model="pixelwise_interior",
-                                  maxima_smooth=3,
-                                  maxima_threshold=0.05, nuclear_expansion=None,
-                                  randomize_cell_labels=True,
                                   save_tifs='overlays'):
     """Runs the watershed transform over a set of probability masks output by deepcell network
     Inputs:
@@ -157,19 +152,6 @@ def visualize_watershed_transform(segmentation_labels_xr, channel_data_xr,
         model_output (xarray): xarray containing the different branch outputs from deepcell
         overlay_channels (Tuple): channels to overlay segmentation output over
         fovs (int): field of view
-        interior_model (str): Name of model to use to identify maxs in the image
-        interior_threshold (float): threshold to cut off interior predictions
-        interior_smooth (int): value to smooth the interior predictions
-        maxima_model (str): Name of the model to use to predict maxes in the image
-        maxima_smooth (int): value to smooth the maxima predictions
-        maxima_threshold (float): the limit for how high maxima values can be
-        nuclear_expansion (int): optional pixel value by which to expand cells if
-            doing nuclear segmentation
-        randomize_cell_labels (boolean): determines whether labels should be randomized
-        save_tifs (str): flag to control what level of output to save. Must be one of:
-            all - saves all tifs
-            overlays - saves color overlays and segmentation masks
-            none - does not save any tifs
     Outputs:
         Saves xarray to output directory"""
 
