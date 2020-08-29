@@ -222,7 +222,7 @@ def visualize_watershed_transform(segmentation_labels_xr, channel_data_xr,
                         # if only one entry in list, make single channel overlay
                         channel = chan_list[0]
                         chan_marker = channel_data_xr.loc[fov, :, :, channel].values
-                        plot_utils.plot_overlay(random_map, plotting_tif=chan_marker,
+                        plot_utils.plot_overlay(segmentation_labels_xr, plotting_tif=chan_marker,
                                                 path=os.path.join(
                                                     output_dir,
                                                     "{}_{}_overlay.tiff".format(fov,

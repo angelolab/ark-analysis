@@ -206,8 +206,8 @@ def test_visualize_watershed():
 
         for fov in range(model_output.shape[0]):
             segmentation_utils.visualize_watershed_transform(
-                segmentation_labels_xr=segmentation_labels_xr,
-                model_output=model_output, channel_data_xr=channel_xr,
+                segmentation_labels_xr=segmentation_labels_xr, model_output=model_output,
+                fovs=model_output.fovs, channel_data_xr=channel_xr,
                 overlay_channels=overlay_channels,
                 output_dir=temp_dir)
             for mod_output_fov in model_output.fovs:
