@@ -8,37 +8,50 @@ from scipy.spatial.distance import cdist
 import os
 
 
-def calc_dist_matrix(label_map, path=None):
+def calc_dist_matrix(label_maps, path=None):
     """Generate matrix of distances between center of pairs of cells
 
     Args:
-        label_map (numpy.ndarray):
-            array with unique cells given unique pixel labels
+        label_maps (xarray.DataArray):
+            array with unique cells given unique pixel labels per fov
         path (str):
             path to save file. If None, then will directly return
     Returns:
         dict:
-            Dictionary containg cells x cells matrices with the euclidian distance between centers
-            of corresponding cells for every fov
+            Contains a cells x cells matrix with the euclidian
+            distance between centers of corresponding cells for every fov,
+            note that each distance matrix is of type xarray
     """
+
     # Check that file path exists, if given
+
     if path is not None:
         if not os.path.exists(path):
-            raise ValueError("File path not valid")
+            raise FileNotFoundError("File path not valid")
+
     dist_mats_list = []
+
     # Extract list of fovs
-    fovs = list(label_map.coords['fovs'].values)
-    for i in range(0, label_map.shape[0]):
-        props = skimage.measure.regionprops(
-            label_map.loc[fovs[i], :, :, "segmentation_label"].values
-        )
-        a = [props[j].centroid for j in range(len(props))]
-        centroids = np.array(a)
+    fovs = label_maps.coords['fovs'].values
+
+    for fov in fovs:
+        # extract region properties of label map, then just get centroids
+        props = skimage.measure.regionprops(label_maps.loc[fov, :, :, 'segmentation_label'].values)
+        centroids = [prop.centroid for prop in props]
+        centroid_labels = [prop.label for prop in props]
+
+        # generate the distance matrix, then assign centroid_labels as coords
         dist_matrix = cdist(centroids, centroids)
-        dist_mats_list.append(dist_matrix)
+        dist_mat_xarr = xr.DataArray(dist_matrix, coords=[centroid_labels, centroid_labels])
+
+        # append final result to dist_mats_list
+        dist_mats_list.append(dist_mat_xarr)
+
     # Create dictionary to store distance matrices per fov
-    dist_matrices = dict(zip([str(i) for i in fovs], dist_mats_list))
-    # If ret is true, function will directly return the dictionary, else it will save it as a file
+    dist_matrices = dict(zip(fovs, dist_mats_list))
+
+    # If path is None, function will directly return the dictionary
+    # else it will save it as a file with location specified by path
     if path is None:
         return dist_matrices
     else:
@@ -151,13 +164,16 @@ def compute_close_cell_num(dist_mat, dist_lim, num, analysis_type,
     mark1_num = []
     mark1poslabels = []
 
-    dist_mat_bin = np.zeros(dist_mat.shape, dtype='int')
-    dist_mat_bin[dist_mat < dist_lim] = 1
+    dist_mat_bin = xr.DataArray(
+        (dist_mat.values < dist_lim).astype(np.int8),
+        coords=dist_mat.coords
+    )
 
     for j in range(0, num):
         # Identify cell labels that are positive for markers/phenotypes, based on type of analysis
         if analysis_type == "cluster":
-            mark1poslabels.append(get_pos_cell_labels(analysis_type, cluster_ids.iloc[j],
+            mark1poslabels.append(get_pos_cell_labels(analysis_type,
+                                                      cluster_ids.iloc[j],
                                                       current_fov_data))
         else:
             mark1poslabels.append(get_pos_cell_labels(
@@ -172,12 +188,13 @@ def compute_close_cell_num(dist_mat, dist_lim, num, analysis_type,
     # iterating k from [j, end] cuts out 1/2 the steps (while symmetric)
     for j, m1n in enumerate(mark1_num):
         for k, m2n in enumerate(mark1_num[j:], j):
-            close_num[j, k] = np.sum(
-                dist_mat_bin[np.ix_(
-                    np.asarray(mark1poslabels[j] - 1, dtype='int'),
-                    np.asarray(mark1poslabels[k] - 1, dtype='int')
-                )]
-            )
+            dist_mat_bin_subset = dist_mat_bin.loc[
+                mark1poslabels[j].values,
+                mark1poslabels[k].values
+            ].values
+            count_close_num_hits = np.sum(dist_mat_bin_subset)
+
+            close_num[j, k] = count_close_num_hits
             # symmetry :)
             close_num[k, j] = close_num[j, k]
 
@@ -207,15 +224,21 @@ def compute_close_cell_num_random(marker_nums, dist_mat, dist_lim, bootstrap_num
     close_num_rand = np.zeros((
         len(marker_nums), len(marker_nums), bootstrap_num), dtype='int')
 
-    dist_bin = np.zeros(dist_mat.shape)
-    dist_bin[dist_mat < dist_lim] = 1
+    dist_mat_bin = xr.DataArray(
+        (dist_mat.values < dist_lim).astype(np.int8),
+        coords=dist_mat.coords
+    )
 
     for j, m1n in enumerate(marker_nums):
         for k, m2n in enumerate(marker_nums[j:], j):
-            close_num_rand[j, k, :] = np.sum(
-                np.random.choice(dist_bin.flatten(), (m1n * m2n, bootstrap_num), True),
+            samples_dim = (m1n * m2n, bootstrap_num)
+            dist_mat_bin_flattened = dist_mat_bin.values.flatten()
+            count_close_num_rand_hits = np.sum(
+                np.random.choice(dist_mat_bin_flattened, samples_dim, True),
                 axis=0
             )
+
+            close_num_rand[j, k, :] = count_close_num_rand_hits
             # symmetry :)
             close_num_rand[k, j, :] = close_num_rand[j, k, :]
 
@@ -312,8 +335,14 @@ def compute_neighbor_counts(current_fov_neighborhood_data, dist_matrix, distlim,
     # TODO remove non-cell2cell lines (indices of distance matrix do not correspond to cell labels)
     #  after our own inputs for functions are created
     # refine distance matrix to only cover cell labels in fov_data
-    cell_dist_mat = np.take(dist_matrix, current_fov_neighborhood_data[cell_label_col] - 1, 0)
-    cell_dist_mat = np.take(cell_dist_mat, current_fov_neighborhood_data[cell_label_col] - 1, 1)
+
+    cell_dist_mat = dist_matrix.loc[
+        current_fov_neighborhood_data[cell_label_col].values,
+        current_fov_neighborhood_data[cell_label_col].values
+    ].values
+
+    # cell_dist_mat = np.take(dist_matrix, current_fov_neighborhood_data[cell_label_col] - 1, 0)
+    # cell_dist_mat = np.take(cell_dist_mat, current_fov_neighborhood_data[cell_label_col] - 1, 1)
 
     # binarize distance matrix
     cell_dist_mat_bin = np.zeros(cell_dist_mat.shape)
