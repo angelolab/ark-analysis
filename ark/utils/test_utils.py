@@ -170,7 +170,10 @@ def xarrays_are_equal(a_xr, b_xr, sortdim="fovs"):
     return b_xr.sortby(sortdim).equals(a_xr.sortby(sortdim))
 
 
-def make_images_xarray(tif_data, fov_ids, row_size, col_size, channel_names):
+def make_images_xarray(tif_data, fov_ids, row_size, col_size, channel_names, dtype='int16'):
+    if tif_data is None:
+        tif_data = _gen_tif_data(len(fov_ids), len(channel_names), (row_size, col_size), False,
+                                 dtype)
     coords = [fov_ids, range(row_size), range(col_size), channel_names]
     dims = ["fovs", "rows", "cols", "channels"]
     return xr.DataArray(tif_data, coords=coords, dims=dims)

@@ -214,15 +214,12 @@ def test_generate_deepcell_input():
         fovs = ['fov1', 'fov2']
         chans = ['nuc1', 'nuc2', 'mem1', 'mem2']
 
+        data_xr = test_utils.make_images_xarray(
+            None, fovs, 10, 10, chans, dtype="int16"
+        )
+
         fov1path = os.path.join(temp_dir, 'fov1.tif')
         fov2path = os.path.join(temp_dir, 'fov2.tif')
-
-        img_data = np.ones((2, 1024, 1024, 4), dtype="int16")
-        img_data[0, :, :, 1] += 1
-        img_data[0, :, :, 3] += 2
-
-        data_xr = xr.DataArray(img_data, coords=[fovs, range(1024), range(1024), chans],
-                               dims=["fovs", "rows", "cols", "channels"])
 
         # test 1 nuc, 1 mem (no summing)
         nucs = ['nuc2']
@@ -232,14 +229,8 @@ def test_generate_deepcell_input():
         fov1 = io.imread(fov1path)
         fov2 = io.imread(fov2path)
 
-        # check shape
-        assert fov1.shape == (1024, 1024, 2)
-        assert fov2.shape == (1024, 1024, 2)
-
-        assert np.all(fov1[:, :, 0] == 2)
-        assert np.all(fov1[:, :, 1] == 3)
-        assert np.all(fov2[:, :, 0] == 1)
-        assert np.all(fov2[:, :, 1] == 1)
+        assert np.all(fov1 == data_xr.loc['fov1', :, :, ['nuc2', 'mem2']].values)
+        assert np.all(fov2 == data_xr.loc['fov2', :, :, ['nuc2', 'mem2']].values)
 
         # test 2 nuc, 2 mem (summing)
         nucs = ['nuc1', 'nuc2']
@@ -249,10 +240,10 @@ def test_generate_deepcell_input():
         fov1 = io.imread(fov1path)
         fov2 = io.imread(fov2path)
 
-        assert np.all(fov1[:, :, 0] == 3)
-        assert np.all(fov1[:, :, 1] == 4)
-        assert np.all(fov2[:, :, 0] == 2)
-        assert np.all(fov2[:, :, 1] == 2)
+        assert np.all(fov1[:, :, 0] == data_xr.loc['fov1', :, :, nucs].sum(dim='channels').values)
+        assert np.all(fov1[:, :, 1] == data_xr.loc['fov1', :, :, mems].sum(dim='channels').values)
+        assert np.all(fov2[:, :, 0] == data_xr.loc['fov2', :, :, nucs].sum(dim='channels').values)
+        assert np.all(fov2[:, :, 1] == data_xr.loc['fov2', :, :, mems].sum(dim='channels').values)
 
         # test nuc None
         nucs = None
@@ -261,14 +252,10 @@ def test_generate_deepcell_input():
         fov1 = io.imread(fov1path)
         fov2 = io.imread(fov2path)
 
-        # check shape (important for a None case)
-        assert fov1.shape == (1024, 1024, 2)
-        assert fov2.shape == (1024, 1024, 2)
-
         assert np.all(fov1[:, :, 0] == 0)
-        assert np.all(fov1[:, :, 1] == 4)
+        assert np.all(fov1[:, :, 1] == data_xr.loc['fov1', :, :, mems].sum(dim='channels').values)
         assert np.all(fov2[:, :, 0] == 0)
-        assert np.all(fov2[:, :, 1] == 2)
+        assert np.all(fov2[:, :, 1] == data_xr.loc['fov2', :, :, mems].sum(dim='channels').values)
 
         # test mem None
         nucs = ['nuc2']
@@ -278,10 +265,10 @@ def test_generate_deepcell_input():
         fov1 = io.imread(fov1path)
         fov2 = io.imread(fov2path)
 
-        assert np.all(fov1[:, :, 0] == 2)
         assert np.all(fov1[:, :, 1] == 0)
-        assert np.all(fov2[:, :, 0] == 1)
+        assert np.all(fov1[:, :, 0] == data_xr.loc['fov1', :, :, 'nuc2'].values)
         assert np.all(fov2[:, :, 1] == 0)
+        assert np.all(fov2[:, :, 0] == data_xr.loc['fov2', :, :, 'nuc2'].values)
 
 
 def test_combine_xarrays():
