@@ -273,37 +273,26 @@ def test_generate_deepcell_input():
 
 def test_combine_xarrays():
     # test combining along points axis
-    xr1 = xr.DataArray(np.random.randint(10, size=(3, 30, 30, 3)),
-                       coords=[["Point1", "Point2", "Point3"], range(30), range(30),
-                               ["chan1", "chan2", "chan3"]],
-                       dims=["fovs", "rows", "cols", "channels"])
+    fov_ids = [f'Point{i}' for i in range(5)]
+    chan_ids = [f'chan{i}' for i in range(3)]
 
-    xr2 = xr.DataArray(np.random.randint(10, size=(2, 30, 30, 3)),
-                       coords=[["Point4", "Point5"], range(30), range(30),
-                               ["chan1", "chan2", "chan3"]],
-                       dims=["fovs", "rows", "cols", "channels"])
+    base_xr = test_utils.make_images_xarray(
+        None, fov_ids, 30, 30, chan_ids
+    )
 
-    xr_combined = data_utils.combine_xarrays((xr1, xr2), axis=0)
-    assert xr_combined.shape == (5, 30, 30, 3)
-    assert np.all(xr_combined.channels.values == xr1.channels.values)
-    assert np.all(xr_combined.fovs == np.concatenate((xr1.fovs.values, xr2.fovs.values)))
+    test_xr = data_utils.combine_xarrays((base_xr[:3, :, :, :], base_xr[3:, :, :, :]), axis=0)
+    assert test_utils.xarrays_are_equal(base_xr, test_xr)
 
     # test combining along channels axis
-    xr1 = xr.DataArray(np.random.randint(10, size=(3, 30, 30, 3)),
-                       coords=[["Point1", "Point2", "Point3"], range(30), range(30),
-                               ["chan1", "chan2", "chan3"]],
-                       dims=["fovs", "rows", "cols", "channels"])
+    fov_ids = [f'Point{i}' for i in range(3)]
+    chan_ids = [f'chan{i}' for i in range(5)]
 
-    xr2 = xr.DataArray(np.random.randint(10, size=(3, 30, 30, 2)),
-                       coords=[["Point1", "Point2", "Point3"], range(30), range(30),
-                               ["chan3", "chan4"]],
-                       dims=["fovs", "rows", "cols", "channels"])
+    base_xr = test_utils.make_images_xarray(
+        None, fov_ids, 30, 30, chan_ids
+    )
 
-    xr_combined = data_utils.combine_xarrays((xr1, xr2), axis=-1)
-    assert xr_combined.shape == (3, 30, 30, 5)
-    assert np.all(
-        xr_combined.channels == np.concatenate((xr1.channels.values, xr2.channels.values)))
-    assert np.all(xr_combined.fovs == xr1.fovs)
+    test_xr = data_utils.combine_xarrays((base_xr[:, :, :, :3], base_xr[:, :, :, 3:]), axis=-1)
+    assert test_utils.xarrays_are_equal(base_xr, test_xr)
 
 
 def test_crop_helper():
