@@ -109,6 +109,21 @@ def _create_mibitiff(base_dir, fov_names, channel_names, shape, sub_dir, fills, 
     return filelocs, tif_data
 
 
+def _create_reverse_multitiff(base_dir, fov_names, channel_names, shape, sub_dir, fills, dtype):
+    tif_data = _gen_tif_data(len(channel_names), len(fov_names), shape, fills, dtype)
+
+    filelocs = {}
+
+    for i, fov in enumerate(fov_names):
+        tiffpath = os.path.join(base_dir, f'{fov}.tiff')
+        io.imsave(tiffpath, tif_data[:, :, :, i], plugin='tifffile')
+        filelocs[fov] = tiffpath
+
+    tif_data = np.swapaxes(tif_data, 0, -1)
+
+    return filelocs, tif_data
+
+
 def _create_labels(base_dir, fov_names, comp_names, shape, sub_dir, fills, dtype):
     label_data = _gen_label_data(len(fov_names), len(comp_names), shape, dtype)
 
@@ -125,6 +140,7 @@ def _create_labels(base_dir, fov_names, comp_names, shape, sub_dir, fills, dtype
 TIFFMAKERS = {
     'tiff': _create_tifs,
     'multitiff': _create_multitiff,
+    'reverse_multitiff': _create_reverse_multitiff,
     'mibitiff': _create_mibitiff,
     'labels': _create_labels,
 }
@@ -154,8 +170,10 @@ def create_paired_xarray_fovs(base_dir, fov_names, channel_names, img_shape=(102
 
     if delimiter is not None:
         fov_ids = [fov.split(delimiter)[0] for fov in fov_names]
+    else:
+        fov_ids = fov_names
 
-    if mode == 'multitiff':
+    if 'multitiff' in mode:
         channel_names = range(len(channel_names))
 
     if mode == 'labels':

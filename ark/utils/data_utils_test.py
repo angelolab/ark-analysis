@@ -1,4 +1,3 @@
-import xarray as xr
 import numpy as np
 import os
 import pytest
@@ -365,60 +364,61 @@ def test_stitch_images():
     fovs = ['fov' + str(i) for i in range(40)]
     chans = ['nuc1', 'nuc2', 'mem1', 'mem2']
 
-    img_data = np.ones((40, 10, 10, 4), dtype="int16")
-    img_data[0, :, :, 1] += 1
-    img_data[0, :, :, 3] += 2
-
-    data_xr = xr.DataArray(img_data, coords=[fovs, range(10), range(10), chans],
-                           dims=["fovs", "rows", "cols", "channels"])
+    data_xr = test_utils.make_images_xarray(None, fovs, 10, 10, chans, dtype='int16')
 
     stitched_xr = data_utils.stitch_images(data_xr, 5)
 
-    assert stitched_xr.shape == (1, 40 / 5 * 10, 40 / 8 * 10, 4)
+    assert stitched_xr.shape == (1, 80, 50, 4)
 
 
 def test_split_img_stack():
     with tempfile.TemporaryDirectory() as temp_dir:
-        stack_dir = os.path.join(temp_dir, "stack_sample")
-        output_dir = os.path.join(temp_dir, "output_sample")
-        stack_list = ["channel_data.tif"]
-        indices = [0, 1]
-        names = ["chan1.tif", "chan2.tif"]
 
-        os.mkdir(os.path.join(temp_dir, "stack_sample"))
-        os.mkdir(os.path.join(temp_dir, "output_sample"))
+        fovs = ['stack_sample']
+        chans = [f'chan{i}' for i in range(10)]
+        names = [f'{chan}.tiff' for chan in chans]
+
+        stack_list = ["stack_sample.tiff"]
+        stack_dir = os.path.join(temp_dir, fovs[0])
+        os.mkdir(stack_dir)
+
+        output_dir = os.path.join(temp_dir, "output_sample")
+        os.mkdir(output_dir)
+
+        filelocs, data_xr = test_utils.create_paired_xarray_fovs(stack_dir, fovs,
+                                                                 chans, img_shape=(128, 128),
+                                                                 mode='multitiff')
 
         # first test channel_first=False
-        junk_img_chan_last = np.zeros((256, 256, 10))
-        io.imsave(os.path.join(stack_dir, "channel_data.tif"), junk_img_chan_last)
-
-        data_utils.split_img_stack(stack_dir, output_dir, stack_list, indices, names,
+        data_utils.split_img_stack(stack_dir, output_dir, stack_list, [0, 1], names[0:2],
                                    channels_first=False)
 
-        assert os.path.exists(os.path.join(output_dir, "channel_data", "chan1.tif"))
-        assert os.path.exists(os.path.join(output_dir, "channel_data", "chan2.tif"))
+        # raise ValueError(f"{os.listdir(os.path.join(output_dir, 'stack_sample'))}")
 
-        sample_chan_1 = io.imread(os.path.join(output_dir, "channel_data", "chan1.tif"))
-        sample_chan_2 = io.imread(os.path.join(output_dir, "channel_data", "chan2.tif"))
+        assert os.path.exists(os.path.join(output_dir, "stack_sample", "chan0.tiff"))
+        assert os.path.exists(os.path.join(output_dir, "stack_sample", "chan1.tiff"))
 
-        assert sample_chan_1.shape == (256, 256)
-        assert sample_chan_2.shape == (256, 256)
+        sample_chan_1 = io.imread(os.path.join(output_dir, "stack_sample", "chan0.tiff"))
+        sample_chan_2 = io.imread(os.path.join(output_dir, "stack_sample", "chan1.tiff"))
 
-        # now overwrite old channel_data.jpg file and test channel_first=True
-        junk_img_chan_first = np.zeros((10, 256, 256))
-        io.imsave(os.path.join(stack_dir, "channel_data.tif"), junk_img_chan_first)
+        assert np.all(sample_chan_1 == data_xr[0, :, :, 0].values)
+        assert np.all(sample_chan_2 == data_xr[0, :, :, 1].values)
 
-        # clear the original channel_data directory
-        rmtree(os.path.join(output_dir, "channel_data"))
+        rmtree(os.path.join(output_dir, 'stack_sample'))
 
-        data_utils.split_img_stack(stack_dir, output_dir, stack_list, indices, names,
+        # now overwrite old stack_sample.jpg file and test channel_first=True
+        filelocs, data_xr = test_utils.create_paired_xarray_fovs(stack_dir, fovs,
+                                                                 chans, img_shape=(128, 128),
+                                                                 mode='reverse_multitiff')
+
+        data_utils.split_img_stack(stack_dir, output_dir, stack_list, [0, 1], names[0:2],
                                    channels_first=True)
 
-        assert os.path.exists(os.path.join(output_dir, "channel_data", "chan1.tif"))
-        assert os.path.exists(os.path.join(output_dir, "channel_data", "chan2.tif"))
+        assert os.path.exists(os.path.join(output_dir, "stack_sample", "chan0.tiff"))
+        assert os.path.exists(os.path.join(output_dir, "stack_sample", "chan1.tiff"))
 
-        sample_chan_1 = io.imread(os.path.join(output_dir, "channel_data", "chan1.tif"))
-        sample_chan_2 = io.imread(os.path.join(output_dir, "channel_data", "chan2.tif"))
+        sample_chan_1 = io.imread(os.path.join(output_dir, "stack_sample", "chan0.tiff"))
+        sample_chan_2 = io.imread(os.path.join(output_dir, "stack_sample", "chan1.tiff"))
 
-        assert sample_chan_1.shape == (256, 256)
-        assert sample_chan_2.shape == (256, 256)
+        assert np.all(sample_chan_1 == data_xr[0, :, :, 0].values)
+        assert np.all(sample_chan_2 == data_xr[0, :, :, 1].values)
