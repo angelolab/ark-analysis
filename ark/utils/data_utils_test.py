@@ -1,7 +1,6 @@
 import xarray as xr
 import numpy as np
 import os
-import math
 import pytest
 import tempfile
 from shutil import rmtree
@@ -297,44 +296,45 @@ def test_combine_xarrays():
 
 def test_crop_helper():
     # test crops that divide evenly
-    crop_input = np.zeros((4, 1024, 1024, 4))
-    crop_size = 128
+    crop_input = np.zeros((4, 256, 256, 4))
+    crop_size = 64
 
     cropped = data_utils.crop_helper(crop_input, crop_size)
     num_crops = crop_input.shape[0] * \
-        (crop_input.shape[1] / crop_size) * (crop_input.shape[2] / crop_size)
+        (crop_input.shape[1] // crop_size) * (crop_input.shape[2] // crop_size)
     assert np.array_equal(cropped.shape, (num_crops, crop_size, crop_size, crop_input.shape[3]))
 
     # test crops that don't divide evenly
-    crop_input = np.zeros((4, 1024, 1024, 4))
-    crop_size = 100
+    crop_input = np.zeros((4, 256, 256, 4))
+    crop_size = 56
 
     cropped = data_utils.crop_helper(crop_input, crop_size)
-    num_crops = crop_input.shape[0] * math.ceil(crop_input.shape[1] / crop_size) * \
-        math.ceil(crop_input.shape[2] / crop_size)
+    num_crops = crop_input.shape[0] * \
+        ((crop_input.shape[1] + crop_size) // crop_size) * \
+        ((crop_input.shape[2] + crop_size) // crop_size)
     assert np.array_equal(cropped.shape, (num_crops, crop_size, crop_size, crop_input.shape[3]))
 
 
 def test_crop_image_stack():
     # test without overlap (stride_fraction = 1)
-    crop_input = np.zeros((4, 1024, 1024, 4), dtype="int16")
-    crop_size = 128
+    crop_input = np.zeros((4, 256, 256, 4), dtype="int16")
+    crop_size = 64
     stride_fraction = 1
 
     cropped = data_utils.crop_image_stack(crop_input, crop_size, stride_fraction)
-    num_crops = crop_input.shape[0] * math.floor(crop_input.shape[1] / crop_size) * \
-        math.floor(crop_input.shape[2] / crop_size) * (1 / stride_fraction)
+    num_crops = crop_input.shape[0] * (crop_input.shape[1] // crop_size) * \
+        (crop_input.shape[2] // crop_size) * (1 / stride_fraction)
 
     assert np.array_equal(cropped.shape, (num_crops, crop_size, crop_size, crop_input.shape[3]))
 
     # test with overlap
-    crop_input = np.zeros((4, 1024, 1024, 4), dtype="int16")
-    crop_size = 128
+    crop_input = np.zeros((4, 256, 256, 4), dtype="int16")
+    crop_size = 64
     stride_fraction = 0.25
 
     cropped = data_utils.crop_image_stack(crop_input, crop_size, stride_fraction)
-    num_crops = crop_input.shape[0] * math.floor(crop_input.shape[1] / crop_size) * math.floor(
-        crop_input.shape[2] / crop_size) * (1 / stride_fraction) * (1 / stride_fraction)
+    num_crops = crop_input.shape[0] * (crop_input.shape[1] // crop_size) * \
+        (crop_input.shape[2] // crop_size) * (1 / stride_fraction) * (1 / stride_fraction)
 
     assert np.array_equal(cropped.shape, (num_crops, crop_size, crop_size, crop_input.shape[3]))
 
