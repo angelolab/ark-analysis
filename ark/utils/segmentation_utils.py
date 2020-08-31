@@ -10,7 +10,7 @@ from ark.utils import io_utils
 def find_nuclear_mask_id(nuc_segmentation_mask, cell_coords):
     """Get the ID of the nuclear mask which has the greatest amount of overlap with a given cell
 
-    Args:
+    Arguments:
         nuc_segmentation_mask (numpy.ndarray):
             label mask of nuclear segmentations
         cell_coords (list):
