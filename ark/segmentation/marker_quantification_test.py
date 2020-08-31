@@ -139,6 +139,9 @@ def test_compute_marker_counts():
 
 
 def test_generate_expression_matrix():
+    fovs = [f'Point{i}' for i in range(2)]
+    chans = [f'chan{i}' for i in range(5)]
+
     cell_mask, channel_data = test_utils.create_test_extraction_data()
 
     # generate data for two fovs offset
@@ -146,31 +149,39 @@ def test_generate_expression_matrix():
     cell_masks[0, :, :, 0] = cell_mask
     cell_masks[1, 5:, 5:, 0] = cell_mask[:-5, :-5]
 
-    channel_datas = np.zeros((2, 40, 40, 5), dtype="int16")
-    channel_datas[0, :, :, :] = channel_data
-    channel_datas[1, 5:, 5:, :] = channel_data[:-5, :-5]
+    tif_data = np.zeros((2, 40, 40, 5), dtype="int16")
+    tif_data[0, :, :, :] = channel_data
+    tif_data[1, 5:, 5:, :] = channel_data[:-5, :-5]
 
-    segmentation_masks = xr.DataArray(cell_masks,
-                                      coords=[["Point1", "Point2"], range(40), range(40),
-                                              ["whole_cell"]],
-                                      dims=["fovs", "rows", "cols", "compartments"])
+    segmentation_masks = test_utils.make_labels_xarray(
+        label_data=cell_masks,
+        fov_ids=fovs,
+        row_size=40,
+        col_size=40,
+        compartment_names=['whole_cell']
+    )
 
-    channel_data = xr.DataArray(channel_datas,
-                                coords=[["Point1", "Point2"], range(40), range(40),
-                                        ["chan0", "chan1", "chan2", "chan3", "chan4"]],
-                                dims=["fovs", "rows", "cols", "channels"])
+    channel_data = test_utils.make_images_xarray(
+        tif_data=tif_data,
+        fov_ids=fovs,
+        row_size=40,
+        col_size=40,
+        channel_names=chans
+    )
 
-    normalized, arcsinh = marker_quantification.generate_expression_matrix(segmentation_masks,
-                                                                           channel_data)
+    normalized, _ = marker_quantification.generate_expression_matrix(segmentation_masks,
+                                                                     channel_data)
 
     assert normalized.shape[0] == 7
 
-    assert np.all(normalized['chan0'] == np.repeat(1, len(normalized)))
-    assert np.all(normalized['chan1'] == np.repeat(5, len(normalized)))
-    assert np.all(normalized['chan2'] == normalized['chan2'])
+    assert np.array_equal(normalized['chan0'], np.repeat(1, len(normalized)))
+    assert np.array_equal(normalized['chan1'], np.repeat(5, len(normalized)))
 
 
 def test_generate_expression_matrix_multiple_compartments():
+    fovs = [f'Point{i}' for i in range(2)]
+    chans = [f'chan{i}' for i in range(5)]
+
     cell_mask, channel_data = test_utils.create_test_extraction_data()
 
     # generate data for two fovs offset
@@ -194,14 +205,22 @@ def test_generate_expression_matrix_multiple_compartments():
     nuc_masks *= 2
 
     unequal_masks = np.concatenate((cell_masks, nuc_masks), axis=-1)
-    coords = [["Point0", "Point1"], range(40), range(40), ['whole_cell', 'nuclear']]
-    dims = ['fovs', 'rows', 'cols', 'compartments']
-    segmentation_masks_unequal = xr.DataArray(unequal_masks, coords=coords, dims=dims)
 
-    channel_data = xr.DataArray(channel_datas,
-                                coords=[["Point0", "Point1"], range(40), range(40),
-                                        ["chan0", "chan1", "chan2", "chan3", "chan4"]],
-                                dims=["fovs", "rows", "cols", "channels"])
+    segmentation_masks_unequal = test_utils.make_labels_xarray(
+        label_data=unequal_masks,
+        fov_ids=fovs,
+        row_size=40,
+        col_size=40,
+        compartment_names=['whole_cell', 'nuclear']
+    )
+
+    channel_data = test_utils.make_images_xarray(
+        tif_data=channel_datas,
+        fov_ids=fovs,
+        row_size=40,
+        col_size=40,
+        channel_names=chans
+    )
 
     normalized, arcsinh = marker_quantification.generate_expression_matrix(
         segmentation_masks_unequal,
@@ -212,13 +231,13 @@ def test_generate_expression_matrix_multiple_compartments():
     assert normalized.shape[0] == 7
 
     # channel 0 has a constant value of 1
-    assert np.all(normalized['chan0'] == np.repeat(1, len(normalized)))
+    assert np.array_equal(normalized['chan0'], np.repeat(1, len(normalized)))
 
     # channel 1 has a constant value of 5
-    assert np.all(normalized['chan1'] == np.repeat(5, len(normalized)))
+    assert np.array_equal(normalized['chan1'], np.repeat(5, len(normalized)))
 
     # these two channels should be equal for all cells
-    assert np.all(normalized['chan1'] == normalized['chan2'])
+    assert np.array_equal(normalized['chan1'], normalized['chan2'])
 
     # check that cell with missing nucleus has size 0
     index = np.logical_and(normalized['label'] == 2, normalized['fov'] == 'Point0')
@@ -226,7 +245,7 @@ def test_generate_expression_matrix_multiple_compartments():
 
     # check that correct nuclear label is assigned to all cells
     normalized_with_nuc = normalized.loc[normalized['label'] != 2, ['label', 'label_nuclear']]
-    assert np.all(normalized_with_nuc['label'] * 2 == normalized_with_nuc['label_nuclear'])
+    assert np.array_equal(normalized_with_nuc['label'] * 2, normalized_with_nuc['label_nuclear'])
 
 
 def test_compute_complete_expression_matrices():
