@@ -253,9 +253,9 @@ def test_generate_deepcell_input():
         fov1 = io.imread(fov1path)
         fov2 = io.imread(fov2path)
 
-        assert np.array_equal(fov1[:, :, 0], 0)
+        assert np.all(fov1[:, :, 0] == 0)
         assert np.array_equal(fov1[:, :, 1], mem_sums[0, :, :])
-        assert np.array_equal(fov2[:, :, 0], 0)
+        assert np.all(fov2[:, :, 0] == 0)
         assert np.array_equal(fov2[:, :, 1], mem_sums[1, :, :])
 
         # test mem None
@@ -266,9 +266,9 @@ def test_generate_deepcell_input():
         fov1 = io.imread(fov1path)
         fov2 = io.imread(fov2path)
 
-        assert np.array_equal(fov1[:, :, 1], 0)
+        assert np.all(fov1[:, :, 1] == 0)
         assert np.array_equal(fov1[:, :, 0], data_xr.loc['fov1', :, :, 'nuc2'].values)
-        assert np.array_equal(fov2[:, :, 1], 0)
+        assert np.all(fov2[:, :, 1] == 0)
         assert np.array_equal(fov2[:, :, 0], data_xr.loc['fov2', :, :, 'nuc2'].values)
 
 
