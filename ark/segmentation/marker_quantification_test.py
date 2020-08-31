@@ -21,14 +21,25 @@ def test_compute_marker_counts():
     cell_mask = np.expand_dims(cell_mask, axis=0)
     channel_data = np.expand_dims(channel_data, axis=0)
 
-    segmentation_masks = test_utils.make_labels_xarray(np.expand_dims(cell_mask, axis=-1),
-                                                       fovs, 40, 40, ['whole_cell'])
+    segmentation_masks = test_utils.make_labels_xarray(
+        label_data=np.expand_dims(cell_mask, axis=-1),
+        fov_ids=fovs,
+        row_size=40,
+        col_size=40,
+        compartment_names=['whole_cell']
+    )[0]
 
-    input_images = test_utils.make_images_xarray(channel_data, ['fov1'], 40, 40, chans)
+    input_images = test_utils.make_images_xarray(
+        tif_data=channel_data,
+        fov_ids=fovs,
+        row_size=40,
+        col_size=40,
+        channel_names=chans
+    )[0]
 
     segmentation_output = \
-        marker_quantification.compute_marker_counts(input_images=input_images[0],
-                                                    segmentation_masks=segmentation_masks[0])
+        marker_quantification.compute_marker_counts(input_images=input_images,
+                                                    segmentation_masks=segmentation_masks)
 
     # check that channel 0 counts are same as cell size
     assert np.array_equal(segmentation_output.loc['whole_cell', :, 'cell_size'].values,
@@ -60,12 +71,16 @@ def test_compute_marker_counts():
                           segmentation_output.loc['whole_cell', 1:, 'area'])
 
     segmentation_masks_equal = test_utils.make_labels_xarray(
-        np.stack((cell_mask, cell_mask), axis=-1), fovs, 40, 40, ['whole_cell', 'nuclear']
-    )
+        label_data=np.stack((cell_mask, cell_mask), axis=-1),
+        fov_ids=fovs,
+        row_size=40,
+        col_size=40,
+        compartment_names=['whole_cell', 'nuclear']
+    )[0]
 
     segmentation_output_equal = \
-        marker_quantification.compute_marker_counts(input_images=input_images[0],
-                                                    segmentation_masks=segmentation_masks_equal[0],
+        marker_quantification.compute_marker_counts(input_images=input_images,
+                                                    segmentation_masks=segmentation_masks_equal,
                                                     nuclear_counts=True)
 
     assert np.all(segmentation_output_equal[0].values == segmentation_output_equal[1].values)
@@ -77,12 +92,17 @@ def test_compute_marker_counts():
         np.expand_dims(erosion(cell_mask[0, :, :], selem=morph.disk(1)), axis=0)
 
     unequal_masks = np.stack((cell_mask, nuc_mask), axis=-1)
-    segmentation_masks_unequal = test_utils.make_labels_xarray(unequal_masks, fovs, 40, 40,
-                                                               ['whole_cell', 'nuclear'])
+    segmentation_masks_unequal = test_utils.make_labels_xarray(
+        label_data=unequal_masks,
+        fov_ids=fovs,
+        row_size=40,
+        col_size=40,
+        compartment_names=['whole_cell', 'nuclear']
+    )[0]
 
     segmentation_output_unequal = \
-        marker_quantification.compute_marker_counts(input_images=input_images[0],
-                                                    segmentation_masks=segmentation_masks_unequal[0],
+        marker_quantification.compute_marker_counts(input_images=input_images,
+                                                    segmentation_masks=segmentation_masks_unequal,
                                                     nuclear_counts=True)
 
     # make sure nuclear segmentations are smaller
