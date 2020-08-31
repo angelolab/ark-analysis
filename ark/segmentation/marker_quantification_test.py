@@ -10,13 +10,11 @@ from skimage.morphology import erosion
 from mibidata import mibi_image as mi, tiff
 
 from ark.segmentation import marker_quantification
-from ark.utils import data_utils_test
-
-from ark.utils.segmentation_utils_test import _create_test_extraction_data
+from ark.utils import test_utils
 
 
 def test_compute_marker_counts():
-    cell_mask, channel_data = _create_test_extraction_data()
+    cell_mask, channel_data = test_utils._create_test_extraction_data()
 
     # create xarray containing segmentation mask
     coords = [range(40), range(40), ['whole_cell']]
@@ -124,7 +122,7 @@ def test_compute_marker_counts():
 
 
 def test_generate_expression_matrix():
-    cell_mask, channel_data = _create_test_extraction_data()
+    cell_mask, channel_data = test_utils._create_test_extraction_data()
 
     # generate data for two fovs offset
     cell_masks = np.zeros((2, 40, 40, 1), dtype="int16")
@@ -156,7 +154,7 @@ def test_generate_expression_matrix():
 
 
 def test_generate_expression_matrix_multiple_compartments():
-    cell_mask, channel_data = _create_test_extraction_data()
+    cell_mask, channel_data = test_utils._create_test_extraction_data()
 
     # generate data for two fovs offset
     cell_masks = np.zeros((2, 40, 40, 1), dtype="int16")
@@ -259,7 +257,7 @@ def test_compute_complete_expression_matrices():
                 batch_size=5)
 
         # generate a sample segmentation_mask
-        cell_mask, _ = _create_test_extraction_data()
+        cell_mask, _ = test_utils._create_test_extraction_data()
         cell_masks = np.zeros((3, 40, 40, 1), dtype="int16")
         cell_masks[0, :, :, 0] = cell_mask
         cell_masks[1, 5:, 5:, 0] = cell_mask[:-5, :-5]
@@ -329,7 +327,7 @@ def test_compute_complete_expression_matrices():
             tiff.write(os.path.join(tiff_dir, m), sample_tif, dtype=np.float32)
 
         # generate a sample segmentation_mask
-        cell_mask, _ = _create_test_extraction_data()
+        cell_mask, _ = test_utils._create_test_extraction_data()
         cell_masks = np.zeros((3, 40, 40, 1), dtype="int16")
         cell_masks[0, :, :, 0] = cell_mask
         cell_masks[1, 5:, 5:, 0] = cell_mask[:-5, :-5]

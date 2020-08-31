@@ -231,12 +231,26 @@ def make_segmented_csv(num_cells, extra_cols=None):
     return cell_data
 
 
-def _create_img_dir(temp_dir, fovs, imgs, img_sub_folder="TIFs", dtype="int8"):
-    tif = np.random.randint(0, 100, 1024 ** 2).reshape((1024, 1024)).astype(dtype)
+def _create_test_extraction_data():
+    # first create segmentation masks
+    cell_mask = np.zeros((40, 40), dtype='int16')
+    cell_mask[4:10, 4:10] = 1
+    cell_mask[15:25, 20:30] = 2
+    cell_mask[27:32, 3:28] = 3
+    cell_mask[35:40, 15:22] = 5
 
-    for fov in fovs:
-        fov_path = os.path.join(temp_dir, fov, img_sub_folder)
-        if not os.path.exists(fov_path):
-            os.makedirs(fov_path)
-        for img in imgs:
-            io.imsave(os.path.join(fov_path, img), tif)
+    # then create channels data
+    channel_data = np.zeros((40, 40, 5), dtype="int16")
+    channel_data[:, :, 0] = 1
+    channel_data[:, :, 1] = 5
+    channel_data[:, :, 2] = 5
+    channel_data[:, :, 3] = 10
+    channel_data[:, :, 4] = 0
+
+    # cell1 is the only cell negative for channel 3
+    channel_data[4:10, 4:10, 3] = 0
+
+    # cell2 is the only cell positive for channel 4
+    channel_data[15:25, 20:30, 4] = 10
+
+    return cell_mask, channel_data
