@@ -196,14 +196,15 @@ def test_load_imgs_from_dir():
         loaded_xr = \
             data_utils.load_imgs_from_dir(temp_dir, delimiter='_', dtype=np.float32)
 
-        assert test_utils.xarrays_are_equal(data_xr, loaded_xr)
+        assert test_utils.xarrays_are_equal(data_xr, loaded_xr, sortdims=("fovs", "compartments"))
 
         # test swap int16 -> float
         with pytest.warns(UserWarning):
             loaded_xr = \
                 data_utils.load_imgs_from_dir(temp_dir, delimiter='_', dtype="int16")
 
-            assert test_utils.xarrays_are_equal(data_xr, loaded_xr)
+            assert test_utils.xarrays_are_equal(data_xr, loaded_xr,
+                                                sortdims=("fovs", "compartments"))
             assert np.issubdtype(loaded_xr.dtype, np.floating)
 
 
