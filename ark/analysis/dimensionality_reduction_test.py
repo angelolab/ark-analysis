@@ -1,19 +1,13 @@
-import pandas as pd
-import numpy as np
-import string
-import random as rand
 import tempfile
 import os
 
-
 from ark.analysis import dimensionality_reduction
+from ark.utils import test_utils
 
 
 def test_dimensionality_reduction():
-    random_cell_data = pd.DataFrame(np.random.random(size=(300, 8)), columns=list('ABCDEFGH'))
-    random_cell_data["cell_type"] = rand.choices(string.ascii_lowercase, k=300)
-
-    test_cols = list('ABCDEFGH')
+    random_cell_data = test_utils.make_segmented_csv(300)
+    test_cols = test_utils.TEST_MARKERS
 
     test_algorithms = ['PCA', 'tSNE', 'UMAP']
     with tempfile.TemporaryDirectory() as temp_dir:

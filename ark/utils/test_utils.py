@@ -1,5 +1,8 @@
 import os
+from random import choices
+from string import ascii_lowercase
 import numpy as np
+import pandas as pd
 import xarray as xr
 import skimage.io as io
 
@@ -201,6 +204,20 @@ def make_labels_xarray(label_data, fov_ids, row_size, col_size, compartment_name
     coords = [fov_ids, range(row_size), range(col_size), compartment_names]
     dims = ['fovs', 'rows', 'cols', 'compartments']
     return xr.DataArray(label_data, coords=coords, dims=dims)
+
+
+TEST_MARKERS = list('ABCDEFG')
+
+
+def make_segmented_csv(num_cells, extra_cols=None):
+    cell_data = pd.DataFrame(
+        np.random.random(size=(num_cells, len(TEST_MARKERS))),
+        columns=TEST_MARKERS
+    )
+    cell_data["cell_type"] = choices(ascii_lowercase, k=num_cells)
+    cell_data["PatientID"] = choices(range(1, 10), k=num_cells)
+
+    return cell_data
 
 
 def _create_img_dir(temp_dir, fovs, imgs, img_sub_folder="TIFs", dtype="int8"):
