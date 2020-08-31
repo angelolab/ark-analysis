@@ -213,9 +213,8 @@ def test_generate_deepcell_input():
         fovs = ['fov1', 'fov2']
         chans = ['nuc1', 'nuc2', 'mem1', 'mem2']
 
-        data_xr = test_utils.make_images_xarray(
-            None, fovs, 10, 10, chans, dtype="int16"
-        )
+        data_xr = test_utils.make_images_xarray(tif_data=None, fov_ids=fovs, row_size=10,
+                                                col_size=10, channel_names=chans, dtype='int16')
 
         fov1path = os.path.join(temp_dir, 'fov1.tif')
         fov2path = os.path.join(temp_dir, 'fov2.tif')
@@ -228,8 +227,8 @@ def test_generate_deepcell_input():
         fov1 = io.imread(fov1path)
         fov2 = io.imread(fov2path)
 
-        assert np.all(fov1 == data_xr.loc['fov1', :, :, ['nuc2', 'mem2']].values)
-        assert np.all(fov2 == data_xr.loc['fov2', :, :, ['nuc2', 'mem2']].values)
+        assert np.array_equal(fov1, data_xr.loc['fov1', :, :, ['nuc2', 'mem2']].values)
+        assert np.array_equal(fov2, data_xr.loc['fov2', :, :, ['nuc2', 'mem2']].values)
 
         # test 2 nuc, 2 mem (summing)
         nucs = ['nuc1', 'nuc2']
@@ -239,10 +238,13 @@ def test_generate_deepcell_input():
         fov1 = io.imread(fov1path)
         fov2 = io.imread(fov2path)
 
-        assert np.all(fov1[:, :, 0] == data_xr.loc['fov1', :, :, nucs].sum(dim='channels').values)
-        assert np.all(fov1[:, :, 1] == data_xr.loc['fov1', :, :, mems].sum(dim='channels').values)
-        assert np.all(fov2[:, :, 0] == data_xr.loc['fov2', :, :, nucs].sum(dim='channels').values)
-        assert np.all(fov2[:, :, 1] == data_xr.loc['fov2', :, :, mems].sum(dim='channels').values)
+        nuc_sums = data_xr.loc[:, :, :, nucs].sum(dim='channels').values
+        mem_sums = data_xr.loc[:, :, :, mems].sum(dim='channels').values
+
+        assert np.array_equal(fov1[:, :, 0], nuc_sums[0, :, :])
+        assert np.array_equal(fov1[:, :, 1], mem_sums[0, :, :])
+        assert np.array_equal(fov2[:, :, 0], nuc_sums[1, :, :])
+        assert np.array_equal(fov2[:, :, 1], mem_sums[1, :, :])
 
         # test nuc None
         nucs = None
@@ -251,10 +253,10 @@ def test_generate_deepcell_input():
         fov1 = io.imread(fov1path)
         fov2 = io.imread(fov2path)
 
-        assert np.all(fov1[:, :, 0] == 0)
-        assert np.all(fov1[:, :, 1] == data_xr.loc['fov1', :, :, mems].sum(dim='channels').values)
-        assert np.all(fov2[:, :, 0] == 0)
-        assert np.all(fov2[:, :, 1] == data_xr.loc['fov2', :, :, mems].sum(dim='channels').values)
+        assert np.array_equal(fov1[:, :, 0], 0)
+        assert np.array_equal(fov1[:, :, 1], mem_sums[0, :, :])
+        assert np.array_equal(fov2[:, :, 0], 0)
+        assert np.array_equal(fov2[:, :, 1], mem_sums[1, :, :])
 
         # test mem None
         nucs = ['nuc2']
@@ -264,10 +266,10 @@ def test_generate_deepcell_input():
         fov1 = io.imread(fov1path)
         fov2 = io.imread(fov2path)
 
-        assert np.all(fov1[:, :, 1] == 0)
-        assert np.all(fov1[:, :, 0] == data_xr.loc['fov1', :, :, 'nuc2'].values)
-        assert np.all(fov2[:, :, 1] == 0)
-        assert np.all(fov2[:, :, 0] == data_xr.loc['fov2', :, :, 'nuc2'].values)
+        assert np.array_equal(fov1[:, :, 1], 0)
+        assert np.array_equal(fov1[:, :, 0], data_xr.loc['fov1', :, :, 'nuc2'].values)
+        assert np.array_equal(fov2[:, :, 1], 0)
+        assert np.array_equal(fov2[:, :, 0], data_xr.loc['fov2', :, :, 'nuc2'].values)
 
 
 def test_combine_xarrays():
@@ -275,9 +277,8 @@ def test_combine_xarrays():
     fov_ids = [f'Point{i}' for i in range(5)]
     chan_ids = [f'chan{i}' for i in range(3)]
 
-    base_xr = test_utils.make_images_xarray(
-        None, fov_ids, 30, 30, chan_ids
-    )
+    base_xr = test_utils.make_images_xarray(tif_data=None, fov_ids=fov_ids, row_size=30,
+                                            col_size=30, channel_names=chan_ids)
 
     test_xr = data_utils.combine_xarrays((base_xr[:3, :, :, :], base_xr[3:, :, :, :]), axis=0)
     assert test_utils.xarrays_are_equal(base_xr, test_xr)
@@ -402,8 +403,8 @@ def test_split_img_stack():
         sample_chan_1 = io.imread(os.path.join(output_dir, "stack_sample", "chan0.tiff"))
         sample_chan_2 = io.imread(os.path.join(output_dir, "stack_sample", "chan1.tiff"))
 
-        assert np.all(sample_chan_1 == data_xr[0, :, :, 0].values)
-        assert np.all(sample_chan_2 == data_xr[0, :, :, 1].values)
+        assert np.array_equal(sample_chan_1, data_xr[0, :, :, 0].values)
+        assert np.array_equal(sample_chan_2, data_xr[0, :, :, 1].values)
 
         rmtree(os.path.join(output_dir, 'stack_sample'))
 
@@ -421,5 +422,5 @@ def test_split_img_stack():
         sample_chan_1 = io.imread(os.path.join(output_dir, "stack_sample", "chan0.tiff"))
         sample_chan_2 = io.imread(os.path.join(output_dir, "stack_sample", "chan1.tiff"))
 
-        assert np.all(sample_chan_1 == data_xr[0, :, :, 0].values)
-        assert np.all(sample_chan_2 == data_xr[0, :, :, 1].values)
+        assert np.array_equal(sample_chan_1, data_xr[0, :, :, 0].values)
+        assert np.array_equal(sample_chan_2, data_xr[0, :, :, 1].values)
