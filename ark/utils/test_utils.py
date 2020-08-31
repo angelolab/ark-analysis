@@ -231,7 +231,7 @@ def make_segmented_csv(num_cells, extra_cols=None):
     return cell_data
 
 
-def _create_test_extraction_data():
+def create_test_extraction_data():
     # first create segmentation masks
     cell_mask = np.zeros((40, 40), dtype='int16')
     cell_mask[4:10, 4:10] = 1
