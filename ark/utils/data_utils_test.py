@@ -13,8 +13,7 @@ def test_load_imgs_from_mibitiff():
     with tempfile.TemporaryDirectory() as temp_dir:
 
         # config test environment
-        fovs = ["Point8_otherinfo", "Point9"]
-        channels = ["HH3", "Membrane", "Other"]
+        fovs, channels = test_utils.gen_fov_chan_names(2, 3, use_delimiter=True)
 
         filelocs, data_xr = test_utils.create_paired_xarray_fovs(
             temp_dir, fovs, channels, img_shape=(10, 10), mode='mibitiff', delimiter='_',
@@ -71,8 +70,7 @@ def test_load_imgs_from_multitiff():
 
     with tempfile.TemporaryDirectory() as temp_dir:
         # config test environment
-        fovs = ["Point8_otherinfo", "Point9"]
-        channels = ["HH3", "Membrane", "Other"]
+        fovs, channels = test_utils.gen_fov_chan_names(2, 3, use_delimiter=True)
 
         filelocs, data_xr = test_utils.create_paired_xarray_fovs(
             temp_dir, fovs, channels, img_shape=(10, 10), mode='multitiff', delimiter='_',
@@ -117,9 +115,7 @@ def test_load_imgs_from_multitiff():
 def test_load_imgs_from_tree():
     # test loading from within fov directories
     with tempfile.TemporaryDirectory() as temp_dir:
-        fovs = ["fov1", "fov2", "fov3"]
-        imgs = ["img1.tiff", "img2.tiff", "img3.tiff"]
-        chans = [chan.split(".tiff")[0] for chan in imgs]
+        fovs, chans, imgs = test_utils.gen_fov_chan_names(3, 3, return_imgs=True)
 
         filelocs, data_xr = test_utils.create_paired_xarray_fovs(
             temp_dir, fovs, chans, img_shape=(10, 10), delimiter='_', fills=True, sub_dir="TIFs",
@@ -163,10 +159,7 @@ def test_load_imgs_from_tree():
         assert test_utils.xarrays_are_equal(data_xr, loaded_xr)
 
     with tempfile.TemporaryDirectory() as temp_dir:
-
-        fovs = ["fov1"]
-        imgs = ["img1.tiff", "img2.tiff"]
-        chans = [chan.split(".tiff")[0] for chan in imgs]
+        fovs, chans, imgs = test_utils.gen_fov_chan_names(1, 2, return_imgs=True)
 
         filelocs, data_xr = test_utils.create_paired_xarray_fovs(
             temp_dir, fovs, chans, img_shape=(10, 10), delimiter='_', fills=True, sub_dir="TIFs",
@@ -186,9 +179,8 @@ def test_load_imgs_from_tree():
 def test_load_imgs_from_dir():
     # test loading from 'free' directory
     with tempfile.TemporaryDirectory() as temp_dir:
-        imgs = ["fov1_img1.tiff", "fov2_img2.tiff", "fov3_img3.tiff"]
-        fovnames = [img.split(".")[0] for img in imgs]
-        filelocs, data_xr = test_utils.create_paired_xarray_fovs(temp_dir, fovnames, 'img_data',
+        fovs, _ = test_utils.gen_fov_chan_names(3, 0)
+        filelocs, data_xr = test_utils.create_paired_xarray_fovs(temp_dir, fovs, 'img_data',
                                                                  img_shape=(10, 10), mode='labels',
                                                                  delimiter='_', dtype=np.float32)
 
@@ -274,8 +266,7 @@ def test_generate_deepcell_input():
 
 def test_combine_xarrays():
     # test combining along points axis
-    fov_ids = [f'Point{i}' for i in range(5)]
-    chan_ids = [f'chan{i}' for i in range(3)]
+    fov_ids, chan_ids = test_utils.gen_fov_chan_names(5, 3)
 
     base_xr = test_utils.make_images_xarray(tif_data=None, fov_ids=fov_ids, row_size=30,
                                             col_size=30, channel_names=chan_ids)
@@ -284,12 +275,10 @@ def test_combine_xarrays():
     assert test_utils.xarrays_are_equal(base_xr, test_xr)
 
     # test combining along channels axis
-    fov_ids = [f'Point{i}' for i in range(3)]
-    chan_ids = [f'chan{i}' for i in range(5)]
+    fov_ids, chan_ids = test_utils.gen_fov_chan_names(3, 5)
 
-    base_xr = test_utils.make_images_xarray(
-        None, fov_ids, 30, 30, chan_ids
-    )
+    base_xr = test_utils.make_images_xarray(tif_data=None, fov_ids=fov_ids, row_size=30,
+                                            col_size=30, channel_names=chan_ids)
 
     test_xr = data_utils.combine_xarrays((base_xr[:, :, :, :3], base_xr[:, :, :, 3:]), axis=-1)
     assert test_utils.xarrays_are_equal(base_xr, test_xr)
@@ -363,10 +352,10 @@ def test_combine_point_directories():
 
 
 def test_stitch_images():
-    fovs = ['fov' + str(i) for i in range(40)]
-    chans = ['nuc1', 'nuc2', 'mem1', 'mem2']
+    fovs, chans = test_utils.gen_fov_chan_names(40, 4)
 
-    data_xr = test_utils.make_images_xarray(None, fovs, 10, 10, chans, dtype='int16')
+    data_xr = test_utils.make_images_xarray(tif_data=None, fov_ids=fovs, row_size=10, col_size=10,
+                                            channel_names=chans, dtype='int16')
 
     stitched_xr = data_utils.stitch_images(data_xr, 5)
 
@@ -377,8 +366,7 @@ def test_split_img_stack():
     with tempfile.TemporaryDirectory() as temp_dir:
 
         fovs = ['stack_sample']
-        chans = [f'chan{i}' for i in range(10)]
-        names = [f'{chan}.tiff' for chan in chans]
+        _, chans, names = test_utils.gen_fov_chan_names(0, 10, return_imgs=True)
 
         stack_list = ["stack_sample.tiff"]
         stack_dir = os.path.join(temp_dir, fovs[0])

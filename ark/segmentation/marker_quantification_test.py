@@ -11,8 +11,7 @@ from ark.utils import test_utils
 
 
 def test_compute_marker_counts():
-    fovs = ['fov1']
-    chans = [f'chan{i}' for i in range(5)]
+    fovs, chans = test_utils.gen_fov_chan_names(1, 5)
 
     cell_mask, channel_data = test_utils.create_test_extraction_data()
     cell_mask = np.expand_dims(cell_mask, axis=0)
@@ -136,8 +135,7 @@ def test_compute_marker_counts():
 
 
 def test_generate_expression_matrix():
-    fovs = [f'Point{i}' for i in range(2)]
-    chans = [f'chan{i}' for i in range(5)]
+    fovs, chans = test_utils.gen_fov_chan_names(2, 5)
 
     cell_mask, channel_data = test_utils.create_test_extraction_data()
 
@@ -176,8 +174,7 @@ def test_generate_expression_matrix():
 
 
 def test_generate_expression_matrix_multiple_compartments():
-    fovs = [f'Point{i}' for i in range(2)]
-    chans = [f'chan{i}' for i in range(5)]
+    fovs, chans = test_utils.gen_fov_chan_names(2, 5)
 
     cell_mask, channel_data = test_utils.create_test_extraction_data()
 
@@ -251,8 +248,7 @@ def test_compute_complete_expression_matrices():
     # save the actual expression matrix and data loding tests for their respective test functions
     with tempfile.TemporaryDirectory() as temp_dir:
         # define 3 FOVs and 3 imgs per FOV
-        fovs = ["Point1", "Point2", "Point3"]
-        chans = ["chan1", "chan2", "chan3"]
+        fovs, chans = test_utils.gen_fov_chan_names(3, 3)
 
         tiff_dir = os.path.join(temp_dir, "single_channel_inputs")
         img_sub_folder = "TIFs"
@@ -316,8 +312,7 @@ def test_compute_complete_expression_matrices():
     # save the actual expression matrix and data loding tests for their respective test functions
     with tempfile.TemporaryDirectory() as temp_dir:
         # define 2 FOVs and 2 mibitiff_imgs
-        fovs = ["Point1", "Point2", "Point3"]
-        channels = ["HH3", "Membrane"]
+        fovs, channels = test_utils.gen_fov_chan_names(3, 2)
 
         # define a subset of fovs
         fovs_subset = fovs[:2]

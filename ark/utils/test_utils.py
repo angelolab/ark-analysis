@@ -8,6 +8,20 @@ import skimage.io as io
 
 from mibidata import mibi_image as mi, tiff
 
+
+def gen_fov_chan_names(num_fovs, num_chans, return_imgs=False, use_delimiter=False):
+    fovs = [f'Point{i}' for i in range(num_fovs)]
+    if use_delimiter:
+        fovs[0] = f'{fovs[0]}_otherinfo'
+    chans = [f'chan{i}' for i in range(num_chans)]
+
+    if return_imgs:
+        imgs = [f'{chan}.tiff' for chan in chans]
+        return fovs, chans, imgs
+    else:
+        return fovs, chans
+
+
 # required metadata for mibitiff writing (barf)
 MIBITIFF_METADATA = {
     'run': '20180703_1234_test', 'date': '2017-09-16T15:26:00',
