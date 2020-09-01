@@ -1,13 +1,10 @@
 import numpy as np
-import xarray as xr
 import os
 import pytest
 import tempfile
 
 import skimage.morphology as morph
 from skimage.morphology import erosion
-
-from mibidata import mibi_image as mi, tiff
 
 from ark.segmentation import marker_quantification
 from ark.utils import test_utils
@@ -255,53 +252,49 @@ def test_compute_complete_expression_matrices():
     with tempfile.TemporaryDirectory() as temp_dir:
         # define 3 FOVs and 3 imgs per FOV
         fovs = ["Point1", "Point2", "Point3"]
-        imgs = ["img1.tiff", "img2.tiff", "img3.tiff"]
+        chans = ["chan1", "chan2", "chan3"]
+
+        tiff_dir = os.path.join(temp_dir, "single_channel_inputs")
+        img_sub_folder = "TIFs"
+
+        os.mkdir(tiff_dir)
+        test_utils.create_paired_xarray_fovs(
+            base_dir=tiff_dir,
+            fov_names=fovs,
+            channel_names=chans,
+            img_shape=(40, 40),
+            sub_dir=img_sub_folder,
+            dtype="int16"
+        )
 
         # define a subset of fovs
         fovs_subset = fovs[:2]
 
-        # since example_dataset exists, lets create a new directory called testing_dataset
-        # the rest of the directory structure will be the same
-        base_dir = os.path.join(temp_dir, "testing_dataset")
-        input_dir = os.path.join(base_dir, "input_data")
-        tiff_dir = os.path.join(input_dir, "single_channel_inputs")
-        img_sub_folder = "TIFs"
+        # generate a sample segmentation_mask
+        cell_mask, _ = test_utils.create_test_extraction_data()
 
-        # create the directory structure, with a little help from _create_img_dir
-        os.mkdir(base_dir)
-        os.mkdir(input_dir)
-        os.mkdir(tiff_dir)
-        data_utils_test._create_img_dir(temp_dir=tiff_dir,
-                                        fovs=fovs,
-                                        imgs=imgs,
-                                        img_sub_folder=img_sub_folder,
-                                        dtype="int16")
+        cell_masks = np.zeros((3, 40, 40, 1), dtype="int16")
+        cell_masks[0, :, :, 0] = cell_mask
+        cell_masks[1, 5:, 5:, 0] = cell_mask[:-5, :-5]
+        cell_masks[2, 10:, 10:, 0] = cell_mask[:-10, :-10]
+
+        segmentation_masks = test_utils.make_labels_xarray(
+            label_data=cell_masks,
+            fov_ids=['Point1'],
+            row_size=40,
+            col_size=40,
+            compartment_names=['whole_cell']
+        )
 
         # checks that a ValueError is thrown when the user tries to specify points that are not
         # in the original segmentation mask
         with pytest.raises(ValueError):
             # generate a segmentation array with 1 FOV
-            cell_masks = np.zeros((1, 50, 50, 1), dtype="int16")
-            segmentation_masks = xr.DataArray(cell_masks,
-                                              coords=[["Point1"], range(50), range(50),
-                                                      ["whole_cell"]],
-                                              dims=["fovs", "rows", "cols", "compartments"])
 
             marker_quantification.compute_complete_expression_matrices(
-                segmentation_labels=segmentation_masks, tiff_dir=tiff_dir,
+                segmentation_labels=segmentation_masks.loc[["Point1"]], tiff_dir=tiff_dir,
                 img_sub_folder=img_sub_folder, is_mibitiff=False, points=["Point1", "Point2"],
                 batch_size=5)
-
-        # generate a sample segmentation_mask
-        cell_mask, _ = test_utils.create_test_extraction_data()
-        cell_masks = np.zeros((3, 40, 40, 1), dtype="int16")
-        cell_masks[0, :, :, 0] = cell_mask
-        cell_masks[1, 5:, 5:, 0] = cell_mask[:-5, :-5]
-        cell_masks[2, 10:, 10:, 0] = cell_mask[:-10, :-10]
-        segmentation_masks = xr.DataArray(cell_masks,
-                                          coords=[fovs, range(40), range(40),
-                                                  ["whole_cell"]],
-                                          dims=["fovs", "rows", "cols", "compartments"])
 
         # generate sample norm and arcsinh data for all points
         norm_data, arcsinh_data = marker_quantification.compute_complete_expression_matrices(
@@ -324,43 +317,24 @@ def test_compute_complete_expression_matrices():
     with tempfile.TemporaryDirectory() as temp_dir:
         # define 2 FOVs and 2 mibitiff_imgs
         fovs = ["Point1", "Point2", "Point3"]
-        mibitiff_imgs = ["Point1.tif", "Point2.tiff", "Point3.tiff"]
+        channels = ["HH3", "Membrane"]
 
         # define a subset of fovs
         fovs_subset = fovs[:2]
 
         # since example_dataset exists, lets create a new directory called testing_dataset
         # the rest of the directory structure will be the same
-        base_dir = os.path.join(temp_dir, "testing_dataset")
-        input_dir = os.path.join(base_dir, "input_data")
-        tiff_dir = os.path.join(input_dir, "mibitiff_inputs")
+        tiff_dir = os.path.join(temp_dir, "mibitiff_inputs")
 
-        # create the directory structure
-        os.mkdir(base_dir)
-        os.mkdir(input_dir)
         os.mkdir(tiff_dir)
-
-        # create sample mibitiff images for each point
-        for f, m in zip(fovs, mibitiff_imgs):
-            # required metadata for mibitiff writing (double barf)
-            METADATA = {
-                'run': '20180703_1234_test', 'date': '2017-09-16T15:26:00',
-                'coordinates': (12345, -67890), 'size': 500., 'slide': '857',
-                'fov_id': f, 'fov_name': 'R1C3_Tonsil',
-                'folder': f + '/RowNumber0/Depth_Profile0',
-                'dwell': 4, 'scans': '0,5', 'aperture': 'B',
-                'instrument': 'MIBIscope1', 'tissue': 'Tonsil',
-                'panel': '20170916_1x', 'mass_offset': 0.1, 'mass_gain': 0.2,
-                'time_resolution': 0.5, 'miscalibrated': False, 'check_reg': False,
-                'filename': '20180703_1234_test', 'description': 'test image',
-                'version': 'alpha',
-            }
-
-            channels = ["HH3", "Membrane"]
-            sample_tif = mi.MibiImage(np.random.rand(40, 40, 2).astype(np.float32),
-                                      ((1, channels[0]), (2, channels[1])),
-                                      **METADATA)
-            tiff.write(os.path.join(tiff_dir, m), sample_tif, dtype=np.float32)
+        test_utils.create_paired_xarray_fovs(
+            base_dir=tiff_dir,
+            fov_names=fovs,
+            channel_names=channels,
+            img_shape=(40, 40),
+            mode='mibitiff',
+            dtype='int16'
+        )
 
         # generate a sample segmentation_mask
         cell_mask, _ = test_utils.create_test_extraction_data()
@@ -368,10 +342,13 @@ def test_compute_complete_expression_matrices():
         cell_masks[0, :, :, 0] = cell_mask
         cell_masks[1, 5:, 5:, 0] = cell_mask[:-5, :-5]
         cell_masks[2, 10:, 10:, 0] = cell_mask[:-10, :-10]
-        segmentation_masks = xr.DataArray(cell_masks,
-                                          coords=[fovs, range(40), range(40),
-                                                  ["whole_cell"]],
-                                          dims=["fovs", "rows", "cols", "compartments"])
+        segmentation_masks = test_utils.make_labels_xarray(
+            label_data=cell_masks,
+            fov_ids=fovs,
+            row_size=40,
+            col_size=40,
+            compartment_names=['whole_cell']
+        )
 
         # generate sample norm and arcsinh data for all points
         norm_data, arcsinh_data = marker_quantification.compute_complete_expression_matrices(
