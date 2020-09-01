@@ -280,7 +280,7 @@ def test_compute_complete_expression_matrices():
 
         segmentation_masks = test_utils.make_labels_xarray(
             label_data=cell_masks,
-            fov_ids=['Point1'],
+            fov_ids=fovs,
             row_size=40,
             col_size=40,
             compartment_names=['whole_cell']
@@ -333,7 +333,7 @@ def test_compute_complete_expression_matrices():
             channel_names=channels,
             img_shape=(40, 40),
             mode='mibitiff',
-            dtype='int16'
+            dtype=np.float32
         )
 
         # generate a sample segmentation_mask
