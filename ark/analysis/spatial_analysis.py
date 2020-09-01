@@ -286,3 +286,6 @@ def create_neighborhood_matrix(all_data, dist_matrices_dict, included_fovs=None,
         cell_neighbor_freqs.loc[current_fov_neighborhood_data.index, fov_cluster_names] = freqs
 
     return cell_neighbor_counts, cell_neighbor_freqs
+
+def context_spatial(all_data, marker_inds, mass_ds, tumor_immune_groups_data, tcd3, bootstrap_num, dist_lim, points):
+    pass
