@@ -5,3 +5,8 @@ sphinx:
 
 sphinx:
   fail_on_warning: true
+
+python:
+  version: 3.6
+  install:
+    - requirements: docs/rtd-requirements.txt
