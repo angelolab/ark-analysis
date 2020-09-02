@@ -1,4 +1,2 @@
-version: 3
-
 sphinx:
  fail_on_warning: true
