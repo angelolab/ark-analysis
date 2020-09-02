@@ -21,13 +21,16 @@ def test_compute_marker_counts():
         label_data=np.expand_dims(cell_mask, axis=-1),
         fov_ids=fovs,
         compartment_names=['whole_cell']
-    )[0]
+    )
 
     input_images = test_utils.make_images_xarray(
         tif_data=channel_data,
         fov_ids=fovs,
         channel_names=chans
-    )[0]
+    )
+
+    # test utils output is 4D but tests require 3D
+    segmentation_masks, input_images = segmentation_masks[0], input_images[0]
 
     segmentation_output = \
         marker_quantification.compute_marker_counts(input_images=input_images,
@@ -66,7 +69,10 @@ def test_compute_marker_counts():
         label_data=np.stack((cell_mask, cell_mask), axis=-1),
         fov_ids=fovs,
         compartment_names=['whole_cell', 'nuclear']
-    )[0]
+    )
+
+    # test utils output is 4D but tests require 3D
+    segmentation_masks_equal = segmentation_masks_equal[0]
 
     segmentation_output_equal = \
         marker_quantification.compute_marker_counts(input_images=input_images,
@@ -86,7 +92,10 @@ def test_compute_marker_counts():
         label_data=unequal_masks,
         fov_ids=fovs,
         compartment_names=['whole_cell', 'nuclear']
-    )[0]
+    )
+
+    # test utils output is 4D but tests require 3D
+    segmentation_masks_unequal = segmentation_masks_unequal[0]
 
     segmentation_output_unequal = \
         marker_quantification.compute_marker_counts(input_images=input_images,
