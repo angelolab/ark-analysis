@@ -10,6 +10,27 @@ from mibidata import mibi_image as mi, tiff
 
 
 def gen_fov_chan_names(num_fovs, num_chans, return_imgs=False, use_delimiter=False):
+    """ Generate FOV and channel names
+
+    Names have the format 'Point0', 'Point1', ..., 'PointN' for FOVS and 'chan0', 'chan1', ...,
+    'chanM' for channels.
+
+    Args:
+        num_fovs (int):
+            Number of FOV names to create
+        num_chans (int):
+            Number of channel names to create
+        return_imgs (bool):
+            Return 'chanK.tiff' as well if True.  Default is False
+        use_delimiter (bool):
+            Appends '_otherinfo' to the first FOV.  Useful for testing FOV id extraction from
+            filenames.  Default is False
+
+    Returns:
+        tuple (list, list) or (list, list, list):
+            If return_imgs is False, only FOV and channel names are returned
+            If return_imgs is True, image names will also be returned
+    """
     fovs = [f'Point{i}' for i in range(num_fovs)]
     if use_delimiter:
         fovs[0] = f'{fovs[0]}_otherinfo'
@@ -22,7 +43,7 @@ def gen_fov_chan_names(num_fovs, num_chans, return_imgs=False, use_delimiter=Fal
         return fovs, chans
 
 
-# required metadata for mibitiff writing (barf)
+# required metadata for mibitiff writing
 MIBITIFF_METADATA = {
     'run': '20180703_1234_test', 'date': '2017-09-16T15:26:00',
     'coordinates': (12345, -67890), 'size': 500., 'slide': '857',
@@ -38,6 +59,27 @@ MIBITIFF_METADATA = {
 
 
 def _gen_tif_data(fov_number, chan_number, img_shape, fills, dtype):
+    """ Generates random or set-filled image data
+
+    Args:
+        fov_number (int):
+            Number of FOV's required
+        chan_number (int):
+            Number of channels required
+        img_shape (tuple):
+            Single image dimensions (x pixels, y pixels)
+        fills (bool):
+            If False, data is randomized.  If True, each single image will be filled with a value
+            one less than that of the next channel.  If said image is the last channel, then the
+            value is one less than that of the first channel in the next FOV.
+        dtype (type):
+            Data type for generated data
+
+    Returns:
+        numpy.ndarray:
+            Image data with shape (fov_number, img_shape[0], img_shape[1], chan_number)
+
+    """
     if not fills:
         tif_data = np.random.randint(0, 100,
                                      size=(fov_number, *img_shape, chan_number)).astype(dtype)
