@@ -25,7 +25,7 @@ def test_load_imgs_from_mibitiff():
                                                        channels=channels,
                                                        delimiter='_')
 
-        assert test_utils.xarrays_are_equal(data_xr, loaded_xr)
+        assert loaded_xr.equals(data_xr)
 
         fovnames = [f'{fov}.tiff' for fov in fovs]
 
@@ -35,14 +35,14 @@ def test_load_imgs_from_mibitiff():
                                                        channels=channels,
                                                        delimiter='_')
 
-        assert test_utils.xarrays_are_equal(data_xr.loc[[fovs[-1]], :, :, :], loaded_xr)
+        assert loaded_xr.equals(data_xr.loc[[fovs[-1]], :, :, :])
 
         # test automatic all channels loading
         loaded_xr = data_utils.load_imgs_from_mibitiff(temp_dir,
                                                        delimiter='_',
                                                        dtype=np.float32)
 
-        assert test_utils.xarrays_are_equal(data_xr, loaded_xr)
+        assert loaded_xr.equals(data_xr)
 
         # test delimiter agnosticism
         loaded_xr = data_utils.load_imgs_from_mibitiff(temp_dir,
@@ -51,7 +51,7 @@ def test_load_imgs_from_mibitiff():
                                                        delimiter='_',
                                                        dtype=np.float32)
 
-        assert test_utils.xarrays_are_equal(data_xr, loaded_xr)
+        assert loaded_xr.equals(data_xr)
         assert np.issubdtype(loaded_xr.dtype, np.floating)
 
         # test float overwrite
@@ -62,7 +62,7 @@ def test_load_imgs_from_mibitiff():
                                                            delimiter='_',
                                                            dtype='int16')
 
-            assert test_utils.xarrays_are_equal(data_xr.loc[[fovs[-1]], :, :, :], loaded_xr)
+            assert loaded_xr.equals(data_xr.loc[[fovs[-1]], :, :, :])
             assert np.issubdtype(loaded_xr.dtype, np.floating)
 
 
@@ -84,7 +84,7 @@ def test_load_imgs_from_multitiff():
                                                         multitiff_files=[fovnames[-1]],
                                                         delimiter='_')
 
-        assert test_utils.xarrays_are_equal(data_xr.loc[[fovs[-1]], :, :, :], loaded_xr)
+        assert loaded_xr.equals(data_xr.loc[[fovs[-1]], :, :, :])
 
         # test single channel load
         loaded_xr = data_utils.load_imgs_from_multitiff(temp_dir,
@@ -92,7 +92,7 @@ def test_load_imgs_from_multitiff():
                                                         channels=[0],
                                                         delimiter='_')
 
-        assert test_utils.xarrays_are_equal(data_xr.loc[:, :, :, [0]], loaded_xr)
+        assert loaded_xr.equals(data_xr.loc[:, :, :, [0]])
 
         # test all channels w/ unspecified files + delimiter agnosticism
         loaded_xr = data_utils.load_imgs_from_multitiff(temp_dir,
@@ -100,7 +100,7 @@ def test_load_imgs_from_multitiff():
                                                         channels=None,
                                                         delimiter='_')
 
-        assert test_utils.xarrays_are_equal(data_xr, loaded_xr)
+        assert loaded_xr.equals(data_xr)
 
         # test float overwrite
         with pytest.warns(UserWarning):
@@ -108,7 +108,7 @@ def test_load_imgs_from_multitiff():
                                                             delimiter='_',
                                                             dtype='int16')
 
-            assert test_utils.xarrays_are_equal(data_xr, loaded_xr)
+            assert loaded_xr.equals(data_xr)
             assert(np.issubdtype(loaded_xr.dtype, np.floating))
 
 
@@ -126,7 +126,7 @@ def test_load_imgs_from_tree():
         loaded_xr = \
             data_utils.load_imgs_from_tree(temp_dir, img_sub_folder="TIFs", dtype="int16")
 
-        assert test_utils.xarrays_are_equal(data_xr, loaded_xr)
+        assert loaded_xr.equals(data_xr)
 
         # check loading of specific files
         some_fovs = fovs[:2]
@@ -137,18 +137,14 @@ def test_load_imgs_from_tree():
             data_utils.load_imgs_from_tree(temp_dir, img_sub_folder="TIFs", dtype="int16",
                                            fovs=some_fovs, channels=some_imgs)
 
-        assert test_utils.xarrays_are_equal(
-            data_xr[:2, :, :, :2], loaded_xr
-        )
+        assert loaded_xr.equals(data_xr[:2, :, :, :2])
 
         # check loading w/o file extension
         loaded_xr = \
             data_utils.load_imgs_from_tree(temp_dir, img_sub_folder="TIFs", dtype="int16",
                                            channels=some_chans)
 
-        assert test_utils.xarrays_are_equal(
-            data_xr[:, :, :, :2], loaded_xr
-        )
+        assert loaded_xr.equals(data_xr[:, :, :, :2], )
 
         # check mixed extension presence
         loaded_xr = \
@@ -156,7 +152,7 @@ def test_load_imgs_from_tree():
                                            channels=[chans[i] if i % 2 else imgs[i]
                                                      for i in range(3)])
 
-        assert test_utils.xarrays_are_equal(data_xr, loaded_xr)
+        assert loaded_xr.equals(data_xr)
 
     with tempfile.TemporaryDirectory() as temp_dir:
         fovs, chans, imgs = test_utils.gen_fov_chan_names(1, 2, return_imgs=True)
@@ -170,7 +166,7 @@ def test_load_imgs_from_tree():
             loaded_xr = \
                 data_utils.load_imgs_from_tree(temp_dir, img_sub_folder="TIFs", dtype="int16")
 
-            assert test_utils.xarrays_are_equal(data_xr, loaded_xr)
+            assert loaded_xr.equals(data_xr)
 
             # test swap int16 -> float
             assert np.issubdtype(loaded_xr.dtype, np.floating)
@@ -188,15 +184,14 @@ def test_load_imgs_from_dir():
         loaded_xr = \
             data_utils.load_imgs_from_dir(temp_dir, delimiter='_', dtype=np.float32)
 
-        assert test_utils.xarrays_are_equal(data_xr, loaded_xr, sortdims=("fovs", "compartments"))
+        assert loaded_xr.equals(data_xr)
 
         # test swap int16 -> float
         with pytest.warns(UserWarning):
             loaded_xr = \
                 data_utils.load_imgs_from_dir(temp_dir, delimiter='_', dtype="int16")
 
-            assert test_utils.xarrays_are_equal(data_xr, loaded_xr,
-                                                sortdims=("fovs", "compartments"))
+            assert loaded_xr.equals(data_xr)
             assert np.issubdtype(loaded_xr.dtype, np.floating)
 
 
@@ -271,7 +266,7 @@ def test_combine_xarrays():
     base_xr = test_utils.make_images_xarray(tif_data=None, fov_ids=fov_ids, channel_names=chan_ids)
 
     test_xr = data_utils.combine_xarrays((base_xr[:3, :, :, :], base_xr[3:, :, :, :]), axis=0)
-    assert test_utils.xarrays_are_equal(base_xr, test_xr)
+    assert test_xr.equals(base_xr)
 
     # test combining along channels axis
     fov_ids, chan_ids = test_utils.gen_fov_chan_names(3, 5)
@@ -279,7 +274,7 @@ def test_combine_xarrays():
     base_xr = test_utils.make_images_xarray(tif_data=None, fov_ids=fov_ids, channel_names=chan_ids)
 
     test_xr = data_utils.combine_xarrays((base_xr[:, :, :, :3], base_xr[:, :, :, 3:]), axis=-1)
-    assert test_utils.xarrays_are_equal(base_xr, test_xr)
+    assert test_xr.equals(base_xr)
 
 
 def test_crop_helper():

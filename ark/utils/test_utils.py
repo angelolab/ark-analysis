@@ -243,21 +243,6 @@ def create_paired_xarray_fovs(base_dir, fov_names, channel_names, img_shape=(10,
     return filelocs, data_xr
 
 
-def xarrays_are_equal(a_xr, b_xr, sortdims=("fovs", "channels")):
-    try:
-        if len(sortdims) > 1:
-            return xarrays_are_equal(
-                a_xr.sortby(sortdims[0]),
-                b_xr.sortby(sortdims[0]),
-                sortdims[1:]
-            )
-        else:
-            return b_xr.sortby(sortdims[0]).equals(a_xr.sortby(sortdims[0]))
-    except TypeError:
-        raise TypeError(f'sortdims argument must be an iterable. '
-                        f'sortdims given was, {sortdims}, which is of type, {type(sortdims)}')
-
-
 def make_images_xarray(tif_data, fov_ids=None, channel_names=None, row_size=10, col_size=10,
                        dtype='int16'):
     if tif_data is None:
