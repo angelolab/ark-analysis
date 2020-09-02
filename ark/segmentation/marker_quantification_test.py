@@ -13,11 +13,9 @@ from ark.utils import test_utils
 def test_compute_marker_counts():
 
     cell_mask, channel_data = test_utils.create_test_extraction_data()
-    cell_mask = np.expand_dims(cell_mask, axis=0)
-    channel_data = np.expand_dims(channel_data, axis=0)
 
     segmentation_masks = test_utils.make_labels_xarray(
-        label_data=np.expand_dims(cell_mask, axis=-1),
+        label_data=cell_mask,
         compartment_names=['whole_cell']
     )
 
@@ -63,7 +61,7 @@ def test_compute_marker_counts():
 
     # test whole_cell and nuclear compartments with same data
     segmentation_masks_equal = test_utils.make_labels_xarray(
-        label_data=np.stack((cell_mask, cell_mask), axis=-1),
+        label_data=np.concatenate((cell_mask, cell_mask), axis=-1),
         compartment_names=['whole_cell', 'nuclear']
     )
 
@@ -81,9 +79,10 @@ def test_compute_marker_counts():
 
     # nuclear mask is smaller
     nuc_mask = \
-        np.expand_dims(erosion(cell_mask[0, :, :], selem=morph.disk(1)), axis=0)
+        np.expand_dims(erosion(cell_mask[0, :, :, 0], selem=morph.disk(1)), axis=0)
+    nuc_mask = np.expand_dims(nuc_mask, axis=-1)
 
-    unequal_masks = np.stack((cell_mask, nuc_mask), axis=-1)
+    unequal_masks = np.concatenate((cell_mask, nuc_mask), axis=-1)
     segmentation_masks_unequal = test_utils.make_labels_xarray(
         label_data=unequal_masks,
         compartment_names=['whole_cell', 'nuclear']
@@ -136,12 +135,12 @@ def test_generate_expression_matrix():
 
     # generate data for two fovs offset
     cell_masks = np.zeros((2, 40, 40, 1), dtype="int16")
-    cell_masks[0, :, :, 0] = cell_mask
-    cell_masks[1, 5:, 5:, 0] = cell_mask[:-5, :-5]
+    cell_masks[0, :, :, 0] = cell_mask[0, :, :, 0]
+    cell_masks[1, 5:, 5:, 0] = cell_mask[0, :-5, :-5, 0]
 
     tif_data = np.zeros((2, 40, 40, 5), dtype="int16")
-    tif_data[0, :, :, :] = channel_data
-    tif_data[1, 5:, 5:, :] = channel_data[:-5, :-5]
+    tif_data[0, :, :, :] = channel_data[0, :, :, :]
+    tif_data[1, 5:, 5:, :] = channel_data[0, :-5, :-5, :]
 
     segmentation_masks = test_utils.make_labels_xarray(
         label_data=cell_masks,
@@ -167,12 +166,12 @@ def test_generate_expression_matrix_multiple_compartments():
 
     # generate data for two fovs offset
     cell_masks = np.zeros((2, 40, 40, 1), dtype="int16")
-    cell_masks[0, :, :, 0] = cell_mask
-    cell_masks[1, 5:, 5:, 0] = cell_mask[:-5, :-5]
+    cell_masks[0, :, :, 0] = cell_mask[0, :, :, 0]
+    cell_masks[1, 5:, 5:, 0] = cell_mask[0, :-5, :-5, 0]
 
     channel_datas = np.zeros((2, 40, 40, 5), dtype="int16")
-    channel_datas[0, :, :, :] = channel_data
-    channel_datas[1, 5:, 5:, :] = channel_data[:-5, :-5]
+    channel_datas[0, :, :, :] = channel_data[0, :, :, :]
+    channel_datas[1, 5:, 5:, :] = channel_data[0, :-5, :-5, :]
 
     # generate a second set of nuclear masks that are smaller than cell masks
     nuc_masks = np.zeros_like(cell_masks)
@@ -250,9 +249,9 @@ def test_compute_complete_expression_matrices():
         cell_mask, _ = test_utils.create_test_extraction_data()
 
         cell_masks = np.zeros((3, 40, 40, 1), dtype="int16")
-        cell_masks[0, :, :, 0] = cell_mask
-        cell_masks[1, 5:, 5:, 0] = cell_mask[:-5, :-5]
-        cell_masks[2, 10:, 10:, 0] = cell_mask[:-10, :-10]
+        cell_masks[0, :, :, 0] = cell_mask[0, :, :, 0]
+        cell_masks[1, 5:, 5:, 0] = cell_mask[0, :-5, :-5, 0]
+        cell_masks[2, 10:, 10:, 0] = cell_mask[0, :-10, :-10, 0]
 
         segmentation_masks = test_utils.make_labels_xarray(
             label_data=cell_masks,
@@ -309,9 +308,9 @@ def test_compute_complete_expression_matrices():
         # generate a sample segmentation_mask
         cell_mask, _ = test_utils.create_test_extraction_data()
         cell_masks = np.zeros((3, 40, 40, 1), dtype="int16")
-        cell_masks[0, :, :, 0] = cell_mask
-        cell_masks[1, 5:, 5:, 0] = cell_mask[:-5, :-5]
-        cell_masks[2, 10:, 10:, 0] = cell_mask[:-10, :-10]
+        cell_masks[0, :, :, 0] = cell_mask[0, :, :, 0]
+        cell_masks[1, 5:, 5:, 0] = cell_mask[0, :-5, :-5, 0]
+        cell_masks[2, 10:, 10:, 0] = cell_mask[0, :-10, :-10, 0]
         segmentation_masks = test_utils.make_labels_xarray(
             label_data=cell_masks,
             compartment_names=['whole_cell']
