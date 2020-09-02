@@ -20,16 +20,12 @@ def test_compute_marker_counts():
     segmentation_masks = test_utils.make_labels_xarray(
         label_data=np.expand_dims(cell_mask, axis=-1),
         fov_ids=fovs,
-        row_size=40,
-        col_size=40,
         compartment_names=['whole_cell']
     )[0]
 
     input_images = test_utils.make_images_xarray(
         tif_data=channel_data,
         fov_ids=fovs,
-        row_size=40,
-        col_size=40,
         channel_names=chans
     )[0]
 
@@ -69,8 +65,6 @@ def test_compute_marker_counts():
     segmentation_masks_equal = test_utils.make_labels_xarray(
         label_data=np.stack((cell_mask, cell_mask), axis=-1),
         fov_ids=fovs,
-        row_size=40,
-        col_size=40,
         compartment_names=['whole_cell', 'nuclear']
     )[0]
 
@@ -91,8 +85,6 @@ def test_compute_marker_counts():
     segmentation_masks_unequal = test_utils.make_labels_xarray(
         label_data=unequal_masks,
         fov_ids=fovs,
-        row_size=40,
-        col_size=40,
         compartment_names=['whole_cell', 'nuclear']
     )[0]
 
@@ -151,16 +143,12 @@ def test_generate_expression_matrix():
     segmentation_masks = test_utils.make_labels_xarray(
         label_data=cell_masks,
         fov_ids=fovs,
-        row_size=40,
-        col_size=40,
         compartment_names=['whole_cell']
     )
 
     channel_data = test_utils.make_images_xarray(
         tif_data=tif_data,
         fov_ids=fovs,
-        row_size=40,
-        col_size=40,
         channel_names=chans
     )
 
@@ -203,16 +191,12 @@ def test_generate_expression_matrix_multiple_compartments():
     segmentation_masks_unequal = test_utils.make_labels_xarray(
         label_data=unequal_masks,
         fov_ids=fovs,
-        row_size=40,
-        col_size=40,
         compartment_names=['whole_cell', 'nuclear']
     )
 
     channel_data = test_utils.make_images_xarray(
         tif_data=channel_datas,
         fov_ids=fovs,
-        row_size=40,
-        col_size=40,
         channel_names=chans
     )
 
@@ -277,8 +261,6 @@ def test_compute_complete_expression_matrices():
         segmentation_masks = test_utils.make_labels_xarray(
             label_data=cell_masks,
             fov_ids=fovs,
-            row_size=40,
-            col_size=40,
             compartment_names=['whole_cell']
         )
 
@@ -340,8 +322,6 @@ def test_compute_complete_expression_matrices():
         segmentation_masks = test_utils.make_labels_xarray(
             label_data=cell_masks,
             fov_ids=fovs,
-            row_size=40,
-            col_size=40,
             compartment_names=['whole_cell']
         )
 

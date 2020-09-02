@@ -272,10 +272,6 @@ def load_imgs_from_dir(data_dir, imgdim_name='compartments', image_name='img_dat
 
     imgs = iou.list_files(data_dir, substrs=['.tif', '.jpg', '.png'])
 
-    # filter by delimiter presence
-    if delimiter is not None:
-        imgs = [img for img in imgs if delimiter in img]
-
     imgs.sort()
 
     if len(imgs) == 0:

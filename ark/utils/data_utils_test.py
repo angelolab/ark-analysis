@@ -179,8 +179,8 @@ def test_load_imgs_from_tree():
 def test_load_imgs_from_dir():
     # test loading from 'free' directory
     with tempfile.TemporaryDirectory() as temp_dir:
-        fovs, _ = test_utils.gen_fov_chan_names(3, 0)
-        filelocs, data_xr = test_utils.create_paired_xarray_fovs(temp_dir, fovs, 'img_data',
+        fovs, _ = test_utils.gen_fov_chan_names(3, 0, use_delimiter=True)
+        filelocs, data_xr = test_utils.create_paired_xarray_fovs(temp_dir, fovs, ['img_data'],
                                                                  img_shape=(10, 10), mode='labels',
                                                                  delimiter='_', dtype=np.float32)
 
@@ -205,8 +205,8 @@ def test_generate_deepcell_input():
         fovs = ['fov1', 'fov2']
         chans = ['nuc1', 'nuc2', 'mem1', 'mem2']
 
-        data_xr = test_utils.make_images_xarray(tif_data=None, fov_ids=fovs, row_size=10,
-                                                col_size=10, channel_names=chans, dtype='int16')
+        data_xr = test_utils.make_images_xarray(tif_data=None, fov_ids=fovs, channel_names=chans,
+                                                dtype='int16')
 
         fov1path = os.path.join(temp_dir, 'fov1.tif')
         fov2path = os.path.join(temp_dir, 'fov2.tif')
@@ -268,8 +268,7 @@ def test_combine_xarrays():
     # test combining along points axis
     fov_ids, chan_ids = test_utils.gen_fov_chan_names(5, 3)
 
-    base_xr = test_utils.make_images_xarray(tif_data=None, fov_ids=fov_ids, row_size=30,
-                                            col_size=30, channel_names=chan_ids)
+    base_xr = test_utils.make_images_xarray(tif_data=None, fov_ids=fov_ids, channel_names=chan_ids)
 
     test_xr = data_utils.combine_xarrays((base_xr[:3, :, :, :], base_xr[3:, :, :, :]), axis=0)
     assert test_utils.xarrays_are_equal(base_xr, test_xr)
@@ -277,8 +276,7 @@ def test_combine_xarrays():
     # test combining along channels axis
     fov_ids, chan_ids = test_utils.gen_fov_chan_names(3, 5)
 
-    base_xr = test_utils.make_images_xarray(tif_data=None, fov_ids=fov_ids, row_size=30,
-                                            col_size=30, channel_names=chan_ids)
+    base_xr = test_utils.make_images_xarray(tif_data=None, fov_ids=fov_ids, channel_names=chan_ids)
 
     test_xr = data_utils.combine_xarrays((base_xr[:, :, :, :3], base_xr[:, :, :, 3:]), axis=-1)
     assert test_utils.xarrays_are_equal(base_xr, test_xr)
@@ -354,8 +352,8 @@ def test_combine_point_directories():
 def test_stitch_images():
     fovs, chans = test_utils.gen_fov_chan_names(40, 4)
 
-    data_xr = test_utils.make_images_xarray(tif_data=None, fov_ids=fovs, row_size=10, col_size=10,
-                                            channel_names=chans, dtype='int16')
+    data_xr = test_utils.make_images_xarray(tif_data=None, fov_ids=fovs, channel_names=chans,
+                                            dtype='int16')
 
     stitched_xr = data_utils.stitch_images(data_xr, 5)
 

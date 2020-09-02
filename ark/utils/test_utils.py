@@ -236,9 +236,9 @@ def create_paired_xarray_fovs(base_dir, fov_names, channel_names, img_shape=(102
         channel_names = range(len(channel_names))
 
     if mode == 'labels':
-        data_xr = make_labels_xarray(tif_data, fov_ids, *img_shape, channel_names)
+        data_xr = make_labels_xarray(tif_data, fov_ids, channel_names, *img_shape)
     else:
-        data_xr = make_images_xarray(tif_data, fov_ids, *img_shape, channel_names)
+        data_xr = make_images_xarray(tif_data, fov_ids, channel_names, *img_shape)
 
     return filelocs, data_xr
 
@@ -258,16 +258,24 @@ def xarrays_are_equal(a_xr, b_xr, sortdims=("fovs", "channels")):
                         f'sortdims given was, {sortdims}, which is of type, {type(sortdims)}')
 
 
-def make_images_xarray(tif_data, fov_ids, row_size, col_size, channel_names, dtype='int16'):
+def make_images_xarray(tif_data, fov_ids, channel_names, row_size=10, col_size=10, dtype='int16'):
     if tif_data is None:
         tif_data = _gen_tif_data(len(fov_ids), len(channel_names), (row_size, col_size), False,
-                                 dtype)
+                                 dtype=dtype)
+    else:
+        row_size, col_size = tif_data.shape[1:3]
     coords = [fov_ids, range(row_size), range(col_size), channel_names]
     dims = ["fovs", "rows", "cols", "channels"]
     return xr.DataArray(tif_data, coords=coords, dims=dims)
 
 
-def make_labels_xarray(label_data, fov_ids, row_size, col_size, compartment_names):
+def make_labels_xarray(label_data, fov_ids, compartment_names, row_size=10, col_size=10,
+                       dtype='int16'):
+    if label_data is None:
+        label_data = _gen_label_data(len(fov_ids), len(compartment_names), (row_size, col_size),
+                                     dtype=dtype)
+    else:
+        row_size, col_size = label_data.shape[1:3]
     coords = [fov_ids, range(row_size), range(col_size), compartment_names]
     dims = ['fovs', 'rows', 'cols', 'compartments']
     return xr.DataArray(label_data, coords=coords, dims=dims)
