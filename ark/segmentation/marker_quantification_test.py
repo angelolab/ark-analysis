@@ -11,7 +11,6 @@ from ark.utils import test_utils
 
 
 def test_compute_marker_counts():
-    fovs, chans = test_utils.gen_fov_chan_names(1, 5)
 
     cell_mask, channel_data = test_utils.create_test_extraction_data()
     cell_mask = np.expand_dims(cell_mask, axis=0)
@@ -19,14 +18,11 @@ def test_compute_marker_counts():
 
     segmentation_masks = test_utils.make_labels_xarray(
         label_data=np.expand_dims(cell_mask, axis=-1),
-        fov_ids=fovs,
         compartment_names=['whole_cell']
     )
 
     input_images = test_utils.make_images_xarray(
         tif_data=channel_data,
-        fov_ids=fovs,
-        channel_names=chans
     )
 
     # test utils output is 4D but tests require 3D
@@ -65,9 +61,9 @@ def test_compute_marker_counts():
     assert np.array_equal(segmentation_output.loc['whole_cell', 1:, 'cell_size'],
                           segmentation_output.loc['whole_cell', 1:, 'area'])
 
+    # test whole_cell and nuclear compartments with same data
     segmentation_masks_equal = test_utils.make_labels_xarray(
         label_data=np.stack((cell_mask, cell_mask), axis=-1),
-        fov_ids=fovs,
         compartment_names=['whole_cell', 'nuclear']
     )
 
@@ -90,7 +86,6 @@ def test_compute_marker_counts():
     unequal_masks = np.stack((cell_mask, nuc_mask), axis=-1)
     segmentation_masks_unequal = test_utils.make_labels_xarray(
         label_data=unequal_masks,
-        fov_ids=fovs,
         compartment_names=['whole_cell', 'nuclear']
     )
 
@@ -136,7 +131,6 @@ def test_compute_marker_counts():
 
 
 def test_generate_expression_matrix():
-    fovs, chans = test_utils.gen_fov_chan_names(2, 5)
 
     cell_mask, channel_data = test_utils.create_test_extraction_data()
 
@@ -151,14 +145,11 @@ def test_generate_expression_matrix():
 
     segmentation_masks = test_utils.make_labels_xarray(
         label_data=cell_masks,
-        fov_ids=fovs,
         compartment_names=['whole_cell']
     )
 
     channel_data = test_utils.make_images_xarray(
-        tif_data=tif_data,
-        fov_ids=fovs,
-        channel_names=chans
+        tif_data=tif_data
     )
 
     normalized, _ = marker_quantification.generate_expression_matrix(segmentation_masks,
@@ -171,7 +162,6 @@ def test_generate_expression_matrix():
 
 
 def test_generate_expression_matrix_multiple_compartments():
-    fovs, chans = test_utils.gen_fov_chan_names(2, 5)
 
     cell_mask, channel_data = test_utils.create_test_extraction_data()
 
@@ -199,14 +189,11 @@ def test_generate_expression_matrix_multiple_compartments():
 
     segmentation_masks_unequal = test_utils.make_labels_xarray(
         label_data=unequal_masks,
-        fov_ids=fovs,
         compartment_names=['whole_cell', 'nuclear']
     )
 
     channel_data = test_utils.make_images_xarray(
         tif_data=channel_datas,
-        fov_ids=fovs,
-        channel_names=chans
     )
 
     normalized, arcsinh = marker_quantification.generate_expression_matrix(
@@ -269,7 +256,6 @@ def test_compute_complete_expression_matrices():
 
         segmentation_masks = test_utils.make_labels_xarray(
             label_data=cell_masks,
-            fov_ids=fovs,
             compartment_names=['whole_cell']
         )
 
@@ -302,14 +288,12 @@ def test_compute_complete_expression_matrices():
     # checks if the loading is being called correctly when is_mibitiff is True
     # save the actual expression matrix and data loding tests for their respective test functions
     with tempfile.TemporaryDirectory() as temp_dir:
-        # define 2 FOVs and 2 mibitiff_imgs
+        # define 3 FOVs and 2 mibitiff_imgs
         fovs, channels = test_utils.gen_fov_chan_names(3, 2)
 
         # define a subset of fovs
         fovs_subset = fovs[:2]
 
-        # since example_dataset exists, lets create a new directory called testing_dataset
-        # the rest of the directory structure will be the same
         tiff_dir = os.path.join(temp_dir, "mibitiff_inputs")
 
         os.mkdir(tiff_dir)
@@ -330,7 +314,6 @@ def test_compute_complete_expression_matrices():
         cell_masks[2, 10:, 10:, 0] = cell_mask[:-10, :-10]
         segmentation_masks = test_utils.make_labels_xarray(
             label_data=cell_masks,
-            fov_ids=fovs,
             compartment_names=['whole_cell']
         )
 

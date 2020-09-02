@@ -205,7 +205,7 @@ TIFFMAKERS = {
 }
 
 
-def create_paired_xarray_fovs(base_dir, fov_names, channel_names, img_shape=(1024, 1024),
+def create_paired_xarray_fovs(base_dir, fov_names, channel_names, img_shape=(10, 10),
                               mode='tiff', delimiter=None, sub_dir=None, fills=False,
                               dtype="int8"):
 
@@ -258,24 +258,37 @@ def xarrays_are_equal(a_xr, b_xr, sortdims=("fovs", "channels")):
                         f'sortdims given was, {sortdims}, which is of type, {type(sortdims)}')
 
 
-def make_images_xarray(tif_data, fov_ids, channel_names, row_size=10, col_size=10, dtype='int16'):
+def make_images_xarray(tif_data, fov_ids=None, channel_names=None, row_size=10, col_size=10,
+                       dtype='int16'):
     if tif_data is None:
         tif_data = _gen_tif_data(len(fov_ids), len(channel_names), (row_size, col_size), False,
                                  dtype=dtype)
     else:
         row_size, col_size = tif_data.shape[1:3]
+
+        buf_fov_ids, buf_chan_names = gen_fov_chan_names(tif_data.shape[0], tif_data.shape[-1])
+        if fov_ids is None:
+            fov_ids = buf_fov_ids
+        if channel_names is None:
+            channel_names = buf_chan_names
+
     coords = [fov_ids, range(row_size), range(col_size), channel_names]
     dims = ["fovs", "rows", "cols", "channels"]
     return xr.DataArray(tif_data, coords=coords, dims=dims)
 
 
-def make_labels_xarray(label_data, fov_ids, compartment_names, row_size=10, col_size=10,
+def make_labels_xarray(label_data, fov_ids=None, compartment_names=None, row_size=10, col_size=10,
                        dtype='int16'):
     if label_data is None:
         label_data = _gen_label_data(len(fov_ids), len(compartment_names), (row_size, col_size),
                                      dtype=dtype)
     else:
         row_size, col_size = label_data.shape[1:3]
+
+        buf_fov_ids, _ = gen_fov_chan_names(label_data.shape[0], 0)
+        if fov_ids is None:
+            fov_ids = buf_fov_ids
+
     coords = [fov_ids, range(row_size), range(col_size), compartment_names]
     dims = ['fovs', 'rows', 'cols', 'compartments']
     return xr.DataArray(label_data, coords=coords, dims=dims)
