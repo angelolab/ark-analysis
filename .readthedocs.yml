@@ -1,2 +1,7 @@
+version: 3
+
 sphinx:
- fail_on_warning: true
+  configuration: docs/conf.py
+
+sphinx:
+  fail_on_warning: true
