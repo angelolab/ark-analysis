@@ -10,8 +10,8 @@ def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, 
     """Spatial enrichment analysis to find significant interactions between cells expressing
     different markers. Uses bootstrapping to permute cell labels randomly.
 
-    Args: there shouldn't be anything here
-        dist_matrices_dict (dict): there also shouldn't be anything here
+    Args:
+        dist_matrices_dict (dict):
             Contains a cells x cells matrix with the euclidian distance between centers of
             corresponding cells for every fov
         marker_thresholds (numpy.ndarray):
@@ -33,13 +33,13 @@ def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, 
         fov_col (str):
             column with the cell fovs. Default is 'SampleID'
 
-    # Returns:
-    #     tuple (list, xarray.DataArray):
-    #         - a list with each element consisting of a tuple of closenum and closenumrand for each
-    #           point included in the analysis
-    #         - an xarray with dimensions (fovs, stats, num_channels, num_channels). The included
-    #           stats variables for each point are z, muhat, sigmahat, p, h, adj_p, and
-    #           cluster_names
+    Returns:
+        tuple (list, xarray.DataArray):
+            - a list with each element consisting of a tuple of closenum and closenumrand for each
+              point included in the analysis
+            - an xarray with dimensions (fovs, stats, num_channels, num_channels). The included
+              stats variables for each point are z, muhat, sigmahat, p, h, adj_p, and
+              cluster_names
     """
 
     # Setup input and parameters
