@@ -426,6 +426,29 @@ def create_paired_xarray_fovs(base_dir, fov_names, channel_names, img_shape=(10,
 
 def make_images_xarray(tif_data, fov_ids=None, channel_names=None, row_size=10, col_size=10,
                        dtype='int16'):
+    """Generate a correctly formatted image data xarray
+
+    Args:
+        tif_data (numpy.ndarray or None):
+            Image data to embed within the xarray.  If None, randomly generated image data is used,
+            but fov_ids and channel_names must not be None.
+        fov_ids (list or None):
+            List of FOV names.  If None, FOV id's will be generated based on the shape of tif_data
+            following the scheme 'Point0', 'Point1', ... , 'PointN'. Default is None.
+        channel_names (list or None):
+            List of channel names.  If None, channel names will be generated based on the shape of
+            tif_data following the scheme 'chan0', 'chan1', ... , 'chanM'.  Default is None.
+        row_size (int):
+            Horizontal size of individual image.  Default is 10.
+        col_size (int):
+            Vertical size of individual image. Default is 10.
+        dtype (type):
+            Data type for generated images.  Default is int16.
+
+    Returns:
+        xarray.DataArray:
+            Image data with standard formatting
+    """
     if tif_data is None:
         tif_data = _gen_tif_data(len(fov_ids), len(channel_names), (row_size, col_size), False,
                                  dtype=dtype)
@@ -445,6 +468,30 @@ def make_images_xarray(tif_data, fov_ids=None, channel_names=None, row_size=10, 
 
 def make_labels_xarray(label_data, fov_ids=None, compartment_names=None, row_size=10, col_size=10,
                        dtype='int16'):
+    """Generate a correctly formatted label data xarray
+
+    Args:
+        label_data (numpy.ndarray or None):
+            Label data to embed within the xarray.  If None, automatically generated label data is
+            used, but fov_ids and compartment_names must not be None.
+        fov_ids (list or None):
+            List of FOV names.  If None, FOV id's will be generated based on the shape of tif_data
+            following the scheme 'Point0', 'Point1', ... , 'PointN'. Default is None.
+        compartment_names (list or None):
+            List of compartment names.  If None, compartment names will be ['whole_cell'] or
+            ['whole_cell', 'nuclear'] if label_data.shape[-1] is 1 or 2 respecticely. Default is
+            None.
+        row_size (int):
+            Horizontal size of individual image.  Default is 10.
+        col_size (int):
+            Vertical size of individual image. Default is 10.
+        dtype (type):
+            Data type for generated labels.  Default is int16.
+
+    Returns:
+        xarray.DataArray:
+            Label data with standard formatting
+    """
     if label_data is None:
         label_data = _gen_label_data(len(fov_ids), len(compartment_names), (row_size, col_size),
                                      dtype=dtype)
@@ -454,6 +501,9 @@ def make_labels_xarray(label_data, fov_ids=None, compartment_names=None, row_siz
         buf_fov_ids, _ = gen_fov_chan_names(label_data.shape[0], 0)
         if fov_ids is None:
             fov_ids = buf_fov_ids
+        if compartment_names is None:
+            comp_dict = {1: ['whole_cell'], 2: ['whole_cell', 'nuclear']}
+            compartment_names = comp_dict[label_data.shape[-1]]
 
     coords = [fov_ids, range(row_size), range(col_size), compartment_names]
     dims = ['fovs', 'rows', 'cols', 'compartments']
@@ -464,6 +514,19 @@ TEST_MARKERS = list('ABCDEFG')
 
 
 def make_segmented_csv(num_cells, extra_cols=None):
+    """ Generate segmented 'csv' file
+
+    Args:
+        num_cells (int):
+            Number of rows (cells) in csv
+        extra_cols (dict):
+            Extra columns to add in the format `{'Column_Name' : data_1D, ...}`_
+
+    Returns:
+        pandas.DataFrame:
+            segmented csv data
+
+    """
     cell_data = pd.DataFrame(
         np.random.random(size=(num_cells, len(TEST_MARKERS))),
         columns=TEST_MARKERS
@@ -475,6 +538,9 @@ def make_segmented_csv(num_cells, extra_cols=None):
 
 
 def create_test_extraction_data():
+    """ Generate hardcoded extraction test data
+
+    """
     # first create segmentation masks
     cell_mask = np.zeros((1, 40, 40, 1), dtype='int16')
     cell_mask[:, 4:10, 4:10:, :] = 1
