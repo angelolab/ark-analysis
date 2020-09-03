@@ -14,14 +14,10 @@ def test_compute_marker_counts():
 
     cell_mask, channel_data = test_utils.create_test_extraction_data()
 
-    segmentation_masks = test_utils.make_labels_xarray(
-        label_data=cell_mask,
-        compartment_names=['whole_cell']
-    )
+    segmentation_masks = test_utils.make_labels_xarray(label_data=cell_mask,
+                                                       compartment_names=['whole_cell'])
 
-    input_images = test_utils.make_images_xarray(
-        tif_data=channel_data,
-    )
+    input_images = test_utils.make_images_xarray(channel_data)
 
     # test utils output is 4D but tests require 3D
     segmentation_masks, input_images = segmentation_masks[0], input_images[0]
@@ -147,9 +143,7 @@ def test_generate_expression_matrix():
         compartment_names=['whole_cell']
     )
 
-    channel_data = test_utils.make_images_xarray(
-        tif_data=tif_data
-    )
+    channel_data = test_utils.make_images_xarray(tif_data)
 
     normalized, _ = marker_quantification.generate_expression_matrix(segmentation_masks,
                                                                      channel_data)
@@ -191,14 +185,13 @@ def test_generate_expression_matrix_multiple_compartments():
         compartment_names=['whole_cell', 'nuclear']
     )
 
-    channel_data = test_utils.make_images_xarray(
-        tif_data=channel_datas,
-    )
+    channel_data = test_utils.make_images_xarray(channel_datas)
 
     normalized, arcsinh = marker_quantification.generate_expression_matrix(
         segmentation_masks_unequal,
         channel_data,
-        nuclear_counts=True)
+        nuclear_counts=True
+    )
 
     # 7 total cells
     assert normalized.shape[0] == 7

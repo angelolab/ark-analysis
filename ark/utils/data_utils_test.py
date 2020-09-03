@@ -13,7 +13,7 @@ def test_load_imgs_from_mibitiff():
     with tempfile.TemporaryDirectory() as temp_dir:
 
         # config test environment
-        fovs, channels = test_utils.gen_fov_chan_names(2, 3, use_delimiter=True)
+        fovs, channels = test_utils.gen_fov_chan_names(num_fovs=2, num_chans=3, use_delimiter=True)
 
         filelocs, data_xr = test_utils.create_paired_xarray_fovs(
             temp_dir, fovs, channels, img_shape=(10, 10), mode='mibitiff', delimiter='_',
@@ -70,7 +70,7 @@ def test_load_imgs_from_multitiff():
 
     with tempfile.TemporaryDirectory() as temp_dir:
         # config test environment
-        fovs, channels = test_utils.gen_fov_chan_names(2, 3, use_delimiter=True)
+        fovs, channels = test_utils.gen_fov_chan_names(num_fovs=2, num_chans=3, use_delimiter=True)
 
         filelocs, data_xr = test_utils.create_paired_xarray_fovs(
             temp_dir, fovs, channels, img_shape=(10, 10), mode='multitiff', delimiter='_',
@@ -115,7 +115,8 @@ def test_load_imgs_from_multitiff():
 def test_load_imgs_from_tree():
     # test loading from within fov directories
     with tempfile.TemporaryDirectory() as temp_dir:
-        fovs, chans, imgs = test_utils.gen_fov_chan_names(3, 3, return_imgs=True)
+        fovs, chans, imgs = test_utils.gen_fov_chan_names(num_fovs=3, num_chans=3,
+                                                          return_imgs=True)
 
         filelocs, data_xr = test_utils.create_paired_xarray_fovs(
             temp_dir, fovs, chans, img_shape=(10, 10), delimiter='_', fills=True, sub_dir="TIFs",
@@ -155,7 +156,8 @@ def test_load_imgs_from_tree():
         assert loaded_xr.equals(data_xr)
 
     with tempfile.TemporaryDirectory() as temp_dir:
-        fovs, chans, imgs = test_utils.gen_fov_chan_names(1, 2, return_imgs=True)
+        fovs, chans, imgs = test_utils.gen_fov_chan_names(num_fovs=1, num_chans=2,
+                                                          return_imgs=True)
 
         filelocs, data_xr = test_utils.create_paired_xarray_fovs(
             temp_dir, fovs, chans, img_shape=(10, 10), delimiter='_', fills=True, sub_dir="TIFs",
@@ -175,7 +177,7 @@ def test_load_imgs_from_tree():
 def test_load_imgs_from_dir():
     # test loading from 'free' directory
     with tempfile.TemporaryDirectory() as temp_dir:
-        fovs, _ = test_utils.gen_fov_chan_names(3, 0, use_delimiter=True)
+        fovs, _ = test_utils.gen_fov_chan_names(num_fovs=3, num_chans=0, use_delimiter=True)
         filelocs, data_xr = test_utils.create_paired_xarray_fovs(temp_dir, fovs, ['img_data'],
                                                                  img_shape=(10, 10), mode='labels',
                                                                  delimiter='_', dtype=np.float32)
@@ -261,7 +263,7 @@ def test_generate_deepcell_input():
 
 def test_combine_xarrays():
     # test combining along points axis
-    fov_ids, chan_ids = test_utils.gen_fov_chan_names(5, 3)
+    fov_ids, chan_ids = test_utils.gen_fov_chan_names(num_fovs=5, num_chans=3)
 
     base_xr = test_utils.make_images_xarray(tif_data=None, fov_ids=fov_ids, channel_names=chan_ids)
 
@@ -269,7 +271,7 @@ def test_combine_xarrays():
     assert test_xr.equals(base_xr)
 
     # test combining along channels axis
-    fov_ids, chan_ids = test_utils.gen_fov_chan_names(3, 5)
+    fov_ids, chan_ids = test_utils.gen_fov_chan_names(num_fovs=3, num_chans=5)
 
     base_xr = test_utils.make_images_xarray(tif_data=None, fov_ids=fov_ids, channel_names=chan_ids)
 
@@ -345,7 +347,7 @@ def test_combine_point_directories():
 
 
 def test_stitch_images():
-    fovs, chans = test_utils.gen_fov_chan_names(40, 4)
+    fovs, chans = test_utils.gen_fov_chan_names(num_fovs=40, num_chans=4)
 
     data_xr = test_utils.make_images_xarray(tif_data=None, fov_ids=fovs, channel_names=chans,
                                             dtype='int16')
@@ -359,7 +361,7 @@ def test_split_img_stack():
     with tempfile.TemporaryDirectory() as temp_dir:
 
         fovs = ['stack_sample']
-        _, chans, names = test_utils.gen_fov_chan_names(0, 10, return_imgs=True)
+        _, chans, names = test_utils.gen_fov_chan_names(num_fovs=0, num_chans=10, return_imgs=True)
 
         stack_list = ["stack_sample.tiff"]
         stack_dir = os.path.join(temp_dir, fovs[0])
