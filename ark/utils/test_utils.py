@@ -117,7 +117,7 @@ def _gen_label_data(fov_number, comp_number, img_shape, dtype):
     return label_data
 
 
-def _create_tifs(base_dir, fov_names, img_names, shape, sub_dir, fills, dtype):
+def _write_tifs(base_dir, fov_names, img_names, shape, sub_dir, fills, dtype):
     tif_data = _gen_tif_data(len(fov_names), len(img_names), shape, fills, dtype)
 
     if sub_dir is None:
@@ -136,7 +136,7 @@ def _create_tifs(base_dir, fov_names, img_names, shape, sub_dir, fills, dtype):
     return filelocs, tif_data
 
 
-def _create_multitiff(base_dir, fov_names, channel_names, shape, sub_dir, fills, dtype):
+def _write_multitiff(base_dir, fov_names, channel_names, shape, sub_dir, fills, dtype):
     tif_data = _gen_tif_data(len(fov_names), len(channel_names), shape, fills, dtype)
 
     filelocs = {}
@@ -149,7 +149,7 @@ def _create_multitiff(base_dir, fov_names, channel_names, shape, sub_dir, fills,
     return filelocs, tif_data
 
 
-def _create_mibitiff(base_dir, fov_names, channel_names, shape, sub_dir, fills, dtype):
+def _write_mibitiff(base_dir, fov_names, channel_names, shape, sub_dir, fills, dtype):
     tif_data = _gen_tif_data(len(fov_names), len(channel_names), shape, fills, dtype)
 
     filelocs = {}
@@ -168,7 +168,7 @@ def _create_mibitiff(base_dir, fov_names, channel_names, shape, sub_dir, fills, 
     return filelocs, tif_data
 
 
-def _create_reverse_multitiff(base_dir, fov_names, channel_names, shape, sub_dir, fills, dtype):
+def _write_reverse_multitiff(base_dir, fov_names, channel_names, shape, sub_dir, fills, dtype):
     tif_data = _gen_tif_data(len(channel_names), len(fov_names), shape, fills, dtype)
 
     filelocs = {}
@@ -183,7 +183,7 @@ def _create_reverse_multitiff(base_dir, fov_names, channel_names, shape, sub_dir
     return filelocs, tif_data
 
 
-def _create_labels(base_dir, fov_names, comp_names, shape, sub_dir, fills, dtype):
+def _write_labels(base_dir, fov_names, comp_names, shape, sub_dir, fills, dtype):
     label_data = _gen_label_data(len(fov_names), len(comp_names), shape, dtype)
 
     filelocs = {}
@@ -197,11 +197,11 @@ def _create_labels(base_dir, fov_names, comp_names, shape, sub_dir, fills, dtype
 
 
 TIFFMAKERS = {
-    'tiff': _create_tifs,
-    'multitiff': _create_multitiff,
-    'reverse_multitiff': _create_reverse_multitiff,
-    'mibitiff': _create_mibitiff,
-    'labels': _create_labels,
+    'tiff': _write_tifs,
+    'multitiff': _write_multitiff,
+    'reverse_multitiff': _write_reverse_multitiff,
+    'mibitiff': _write_mibitiff,
+    'labels': _write_labels,
 }
 
 
