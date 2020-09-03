@@ -38,6 +38,7 @@ def modify_input_data(channel_data_xr, chan_list, fov):
     input_data[:, :, 2] = channel_data_xr.loc[fov, :, :, chan_list[1]].values
     return input_data
 
+
 def find_nuclear_mask_id(nuc_segmentation_mask, cell_coords):
     """Get the ID of the nuclear mask which has the greatest amount of overlap with a given cell
 
@@ -192,16 +193,19 @@ def visualize_watershed_transform(segmentation_labels_xr, channel_data_xr,
                         # if only one entry in list, make single channel overlay
                         channel = chan_list[0]
                         chan_marker = channel_data_xr.loc[fov, :, :, channel].values
-                        plot_utils.plot_overlay(segmentation_labels_xr.loc[fov, :, :, 'whole_cell'].values, plotting_tif=chan_marker,
-                                                path=os.path.join(
-                                                    output_dir,
-                                                    "{}_{}_overlay.tiff".format(fov,
-                                                                                channel)))
+                        plot_utils.plot_overlay(
+                            segmentation_labels_xr.loc[fov, :, :, 'whole_cell'].values,
+                            plotting_tif=chan_marker,
+                            path=os.path.join(
+                                output_dir,
+                                "{}_{}_overlay.tiff".format(fov,
+                                                            channel)))
 
                     elif len(chan_list) == 2:
                         input_data = modify_input_data(channel_data_xr, chan_list, fov)
                         plot_utils.plot_overlay(
-                            segmentation_labels_xr.loc[fov, :, :, :].values, plotting_tif=input_data,
+                            segmentation_labels_xr.loc[fov, :, :, :].values,
+                            plotting_tif=input_data,
                             path=os.path.join(
                                 output_dir,
                                 "{}_{}_{}_overlay.tiff".format(fov, chan_list[0], chan_list[1])))
@@ -209,13 +213,15 @@ def visualize_watershed_transform(segmentation_labels_xr, channel_data_xr,
                         # if three entries, make a 3 color stack,
                         # with third channel in first index (red)
                         input_data = modify_input_data(channel_data_xr, chan_list, fov)
-                        plot_utils.plot_overlay(segmentation_labels_xr.loc[fov, :, :, 'whole_cell'].values, plotting_tif=input_data,
-                                                path=os.path.join(output_dir,
-                                                                  "{}_{}_{}_{}_overlay.tiff".
-                                                                  format(fov,
-                                                                         chan_list[0],
-                                                                         chan_list[1],
-                                                                         chan_list[2])))
+                        plot_utils.plot_overlay(
+                            segmentation_labels_xr.loc[fov, :, :, 'whole_cell'].values,
+                            plotting_tif=input_data,
+                            path=os.path.join(output_dir,
+                                              "{}_{}_{}_{}_overlay.tiff".
+                                              format(fov,
+                                                     chan_list[0],
+                                                     chan_list[1],
+                                                     chan_list[2])))
 
                 io.imsave(os.path.join(output_dir, "{}_segmentation_labels.tiff".format(fov)),
                           segmentation_labels_xr.loc[fov, :, :, 'whole_cell'].values)
@@ -223,16 +229,20 @@ def visualize_watershed_transform(segmentation_labels_xr, channel_data_xr,
             if save_tifs == 'all':
                 # save borders of segmentation map
                 chan_marker = channel_data_xr.loc[fov, :, :, channel].values
-                #chan_marker = channel_data_xr.loc[fov, :, :, channel_data_xr].values
-                plot_utils.plot_overlay(segmentation_labels_xr.loc[fov, :, :, 'whole_cell'].values, plotting_tif=chan_marker,
-                                        path=os.path.join(output_dir,
-                                                          "{}_segmentation_borders.tiff".format(
-                                                              fov)))
+                # chan_marker = channel_data_xr.loc[fov, :, :, channel_data_xr].values
+                plot_utils.plot_overlay(
+                    segmentation_labels_xr.loc[fov, :, :, 'whole_cell'].values,
+                    plotting_tif=chan_marker,
+                    path=os.path.join(output_dir,
+                                      "{}_segmentation_borders.tiff".format(
+                                          fov)))
 
-                plot_utils.plot_overlay(segmentation_labels_xr.loc[fov, :, :, 'whole_cell'].values, plotting_tif=chan_marker,
-                                        path=os.path.join(output_dir,
-                                                          "{}_segmentation_labels.tiff".format(
-                                                              fov)))
+                plot_utils.plot_overlay(
+                    segmentation_labels_xr.loc[fov, :, :, 'whole_cell'].values,
+                    plotting_tif=chan_marker,
+                    path=os.path.join(output_dir,
+                                      "{}_segmentation_labels.tiff".format(
+                                          fov)))
 
                 io.imsave(os.path.join(output_dir, "{}_interior_smoothed.tiff".format(fov)),
                           segmentation_labels_xr.loc[fov, :, :, 'whole_cell'].values)

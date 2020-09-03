@@ -35,7 +35,6 @@ def _generate_deepcell_ouput(fov_num=2):
     return output_xr
 
 
-
 def _create_test_extraction_data():
     # first create segmentation masks
     cell_mask = np.zeros((40, 40), dtype='int16')
@@ -208,8 +207,8 @@ def test_visualize_watershed():
                                  range(model_output.shape[2]),
                                  ['whole_cell']],
                          dims=['fovs', 'rows', 'cols', 'compartments'])
-        #label_map_tifs = np.zeros((50, 50, 50, 1))
-        #segmentation_labels_xr = xr.DataArray(model_output, ...)
+        # label_map_tifs = np.zeros((50, 50, 50, 1))
+        # segmentation_labels_xr = xr.DataArray(model_output, ...)
 
         segmentation_utils.visualize_watershed_transform(
             segmentation_labels_xr=segmentation_labels_xr, model_output=model_output,
