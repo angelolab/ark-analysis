@@ -93,7 +93,7 @@ def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, 
         current_fov_channel_data = all_channel_data[current_fov_idx]
 
         # Retrieve point specific distance matrix from distance matrix dictionary
-        dist_matrix = dist_matrices_dict[str(included_fovs[i])]
+        dist_matrix = dist_matrices_dict[included_fovs[i]]
 
         # Get close_num and close_num_rand
 
@@ -122,7 +122,7 @@ def calculate_cluster_spatial_enrichment(all_data, dist_matrices_dict, included_
     bootstrapping to permute cell labels randomly.
 
     Args:
-        all_data (xarray.DataArray):
+        all_data (pandas.DataFrame):
             data including fovs, cell labels, and cell expression matrix for all markers
         dist_matrices_dict (dict):
             A dictionary that contains a cells x cells matrix with the euclidian distance between
@@ -187,7 +187,7 @@ def calculate_cluster_spatial_enrichment(all_data, dist_matrices_dict, included_
         current_fov_pheno_data = all_pheno_data[current_fov_idx]
 
         # Retrieve point specific distance matrix from distance matrix dictionary
-        dist_mat = dist_matrices_dict[str(included_fovs[i])]
+        dist_mat = dist_matrices_dict[included_fovs[i]]
 
         # Get close_num and close_num_rand
         close_num, pheno_nums = spatial_analysis_utils.compute_close_cell_num(
@@ -275,7 +275,7 @@ def create_neighborhood_matrix(all_data, dist_matrices_dict, included_fovs=None,
         fov_cluster_names = current_fov_neighborhood_data[cluster_name_col].drop_duplicates()
 
         # Retrieve point specific distance matrix from distance matrix dictionary
-        dist_matrix = dist_matrices_dict[str(included_fovs[i])]
+        dist_matrix = dist_matrices_dict[included_fovs[i]]
 
         # Get cell_neighbor_counts and cell_neighbor_freqs for points
         counts, freqs = spatial_analysis_utils.compute_neighbor_counts(
