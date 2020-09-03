@@ -30,8 +30,12 @@ def _generate_deepcell_ouput(fov_num=2):
     output_xr = xr.DataArray(output, coords=[fovs, range(50), range(50), models],
                              dims=["fovs", "rows", "cols", "models"])
 
-    # label_map_tifs = np.zeros((fov_num, 50, 50, 1))
-    # return label_map_tifs
+    label_data = np.zeros((fov_num, 1024, 1024, 1))
+    label_xr = xr.DataArray(
+        label_data,
+        coords=[fovs, range(1024), range(1024), ['whole_cell']],
+        dims=("fovs", "rows", "cols", "compartments")
+    )
     return output_xr
 
 
