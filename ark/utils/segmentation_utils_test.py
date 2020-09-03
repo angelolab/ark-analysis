@@ -5,7 +5,8 @@ from os import path
 from skimage.measure import regionprops
 import tempfile
 
-from ark.utils import segmentation_utils
+from ark.utils import segmentation_utils, data_utils
+
 
 def _generate_channel_xr(fov_num=2, chan_num=5):
     fovs = ["fov" + str(i) for i in range(fov_num)]
@@ -28,7 +29,11 @@ def _generate_deepcell_ouput(fov_num=2):
 
     output_xr = xr.DataArray(output, coords=[fovs, range(50), range(50), models],
                              dims=["fovs", "rows", "cols", "models"])
+
+    # label_map_tifs = np.zeros((fov_num, 50, 50, 1))
+    # return label_map_tifs
     return output_xr
+
 
 
 def _create_test_extraction_data():
@@ -203,7 +208,8 @@ def test_visualize_watershed():
                                  range(model_output.shape[2]),
                                  ['whole_cell']],
                          dims=['fovs', 'rows', 'cols', 'compartments'])
-
+        #label_map_tifs = np.zeros((50, 50, 50, 1))
+        #segmentation_labels_xr = xr.DataArray(model_output, ...)
 
         segmentation_utils.visualize_watershed_transform(
             segmentation_labels_xr=segmentation_labels_xr, model_output=model_output,
