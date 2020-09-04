@@ -58,57 +58,6 @@ def calc_dist_matrix(label_maps, path=None):
         np.savez(path + "dist_matrices.npz", **dist_matrices)
 
 
-def get_pos_cell_labels(analysis_type, pheno=None, current_fov_neighborhood_data=None,
-                        thresh=None, current_fov_channel_data=None, cell_labels=None,
-                        current_marker=None):
-    """Based on the type of the analysis, the function finds positive labels that match the
-    current phenotype or identifies cells with positive expression values for the current marker
-    (greater than the marker threshold).
-
-    Args:
-        analysis_type (str):
-            type of analysis, either "cluster" or "channel"
-        pheno (str):
-            the current cell phenotype
-        current_fov_neighborhood_data (pandas.DataFrame):
-            data for the current patient
-        thresh (int):
-            current threshold for marker
-        current_fov_channel_data (pandas.DataFrame):
-            expression data for column markers for current patient
-        cell_labels (pandas.DataFrame):
-            the column of cell labels for current patient
-        current_marker (str):
-            the current marker that the positive labels are being found for
-
-    Returns:
-        list:
-            List of all the positive labels"""
-
-    if not np.isin(analysis_type, ("cluster", "channel")).all():
-        raise ValueError("Incorrect analysis type")
-
-    if analysis_type == "cluster":
-        if pheno is None or current_fov_neighborhood_data is None:
-            raise ValueError("Incorrect arguments passed for analysis type")
-        # Subset only cells that are of the same phenotype
-        pheno1posinds = current_fov_neighborhood_data["FlowSOM_ID"] == pheno
-        # Get the cell labels of the cells of the phenotype
-        mark1poslabels = current_fov_neighborhood_data.iloc[:, 1][pheno1posinds]
-    else:
-        if(
-            thresh is None
-            or current_fov_channel_data is None
-            or cell_labels is None or current_marker is None
-        ):
-            raise ValueError("Incorrect arguments passed for analysis type")
-        # Subset only cells that are positive for the given marker
-        marker1posinds = current_fov_channel_data[current_marker] > thresh
-        # Get the cell labels of the positive cells
-        mark1poslabels = cell_labels[marker1posinds]
-    return mark1poslabels
-
-
 def get_pos_cell_labels_channel(thresh, current_fov_channel_data, cell_labels, current_marker):
     """For channel enrichment, finds positive labels that match the current phenotype 
     or identifies cells with positive expression values for the current marker
