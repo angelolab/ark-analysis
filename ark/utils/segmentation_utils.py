@@ -162,25 +162,25 @@ def concatenate_csv(base_dir, csv_files, column_name="point", column_values=None
 
 
 def visualize_watershed_transform(segmentation_labels_xr, channel_data_xr,
-                                  output_dir, model_output,
+                                  output_dir,
                                   overlay_channels, fovs=None,
                                   save_tifs='overlays'):
     """Runs the watershed transform over a set of probability masks output by deepcell network
-    Inputs:
+    Saves xarray to output directory
+    Args:
         segmentation_labels_xr (xarray.DataArray): xarray containing segmentation labels
         channel_data_xr (xarray.DataArray): xarray containing TIFs
         output_dir (str): path to directory where the output will be saved
         model_output (xarray): xarray containing the different branch outputs from deepcell
-        overlay_channels (Tuple): channels to overlay segmentation output over
+        overlay_channels (tuple): channels to overlay segmentation output over
         fovs (int): field of view
-    Outputs:
-        Saves xarray to output directory"""
+    """
 
     # error check model selected for local maxima finding in the image
 
     # loop through all fovs and segment
     if fovs is None:
-        fovs = model_output.fovs
+        fovs = segmentation_labels_xr.fovs
     for fov in fovs:
         # ignore low-contrast image warnings
         with warnings.catch_warnings():
@@ -227,9 +227,7 @@ def visualize_watershed_transform(segmentation_labels_xr, channel_data_xr,
                           segmentation_labels_xr.loc[fov, :, :, 'whole_cell'].values)
 
             if save_tifs == 'all':
-                # save borders of segmentation map
                 chan_marker = channel_data_xr.loc[fov, :, :, channel].values
-                # chan_marker = channel_data_xr.loc[fov, :, :, channel_data_xr].values
                 plot_utils.plot_overlay(
                     segmentation_labels_xr.loc[fov, :, :, 'whole_cell'].values,
                     plotting_tif=chan_marker,
@@ -237,12 +235,5 @@ def visualize_watershed_transform(segmentation_labels_xr, channel_data_xr,
                                       "{}_segmentation_borders.tiff".format(
                                           fov)))
 
-                plot_utils.plot_overlay(
-                    segmentation_labels_xr.loc[fov, :, :, 'whole_cell'].values,
-                    plotting_tif=chan_marker,
-                    path=os.path.join(output_dir,
-                                      "{}_segmentation_labels.tiff".format(
-                                          fov)))
-
-                io.imsave(os.path.join(output_dir, "{}_interior_smoothed.tiff".format(fov)),
+                io.imsave(os.path.join(output_dir, "{}_segmentation_labels.tiff".format(fov)),
                           segmentation_labels_xr.loc[fov, :, :, 'whole_cell'].values)

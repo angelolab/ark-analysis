@@ -5,14 +5,13 @@ from os import path
 from skimage.measure import regionprops
 import tempfile
 
-from ark.utils import segmentation_utils, data_utils
+from ark.utils import segmentation_utils #data_utils
 
 
 def _generate_channel_xr(fov_num=2, chan_num=5):
     fovs = ["fov" + str(i) for i in range(fov_num)]
     channels = ["channel" + str(i) for i in range(chan_num)]
-    output = np.random.randint(0, 20, len(fovs) * 50 * 50 * len(channels))
-    output = output.reshape((len(fovs), 50, 50, len(channels)))
+    output = np.random.randint(0, 20, size=(len(fovs), 50, 50, len(channels)))
 
     output_xr = xr.DataArray(output, coords=[fovs, range(50), range(50), channels],
                              dims=["fovs", "rows", "cols", "channels"])
@@ -22,21 +21,13 @@ def _generate_channel_xr(fov_num=2, chan_num=5):
 
 def _generate_deepcell_ouput(fov_num=2):
     fovs = ["fov" + str(i) for i in range(fov_num)]
-    models = ["pixelwise_interior", "watershed_inner", "watershed_outer",
-              "fgbg_foreground", "pixelwise_sum"]
-    output = np.random.rand(len(fovs) * 50 * 50 * len(models))
-    output = output.reshape((len(fovs), 50, 50, len(models)))
-
-    output_xr = xr.DataArray(output, coords=[fovs, range(50), range(50), models],
-                             dims=["fovs", "rows", "cols", "models"])
-
-    label_data = np.zeros((fov_num, 1024, 1024, 1))
+    label_data = np.zeros((fov_num, 50, 50, 1))
     label_xr = xr.DataArray(
         label_data,
-        coords=[fovs, range(1024), range(1024), ['whole_cell']],
+        coords=[fovs, range(50), range(50), ['whole_cell']],
         dims=("fovs", "rows", "cols", "compartments")
     )
-    return output_xr
+    return label_xr
 
 
 def _create_test_extraction_data():
@@ -202,33 +193,25 @@ def test_transform_expression_matrix_multiple_compartments():
 
 def test_visualize_watershed():
     with tempfile.TemporaryDirectory() as temp_dir:
-        model_output = _generate_deepcell_ouput()
         channel_xr = _generate_channel_xr()
         overlay_channels = [channel_xr.channels.values[:2]],
-        segmentation_labels_xr = \
-            xr.DataArray(np.zeros((model_output.shape[:-1] + (1,)), dtype="int16"),
-                         coords=[model_output.fovs, range(model_output.shape[1]),
-                                 range(model_output.shape[2]),
-                                 ['whole_cell']],
-                         dims=['fovs', 'rows', 'cols', 'compartments'])
-        # label_map_tifs = np.zeros((50, 50, 50, 1))
-        # segmentation_labels_xr = xr.DataArray(model_output, ...)
+        segmentation_labels_xr = _generate_deepcell_ouput()
 
         segmentation_utils.visualize_watershed_transform(
-            segmentation_labels_xr=segmentation_labels_xr, model_output=model_output,
-            fovs=model_output.fovs, channel_data_xr=channel_xr,
+            segmentation_labels_xr=segmentation_labels_xr,
+            fovs=segmentation_labels_xr.fovs, channel_data_xr=channel_xr,
             overlay_channels=overlay_channels,
             output_dir=temp_dir)
-        for mod_output_fov in model_output.fovs:
+        for mod_output_fov in segmentation_labels_xr.fovs:
             assert os.path.exists(
                 os.path.join(temp_dir, "{}_segmentation_labels.tiff".format(mod_output_fov)))
 
         segmentation_utils.visualize_watershed_transform(
-            segmentation_labels_xr=segmentation_labels_xr, model_output=model_output,
-            fovs=model_output.fovs, channel_data_xr=channel_xr,
+            segmentation_labels_xr=segmentation_labels_xr,
+            fovs=segmentation_labels_xr.fovs, channel_data_xr=channel_xr,
             overlay_channels=overlay_channels,
             output_dir=temp_dir, save_tifs='all')
-        for mod_output_fov in model_output.fovs:
+        for mod_output_fov in segmentation_labels_xr.fovs:
             assert os.path.exists(
                 os.path.join(temp_dir, "{}_segmentation_borders.tiff".format(mod_output_fov)))
             assert os.path.exists(
