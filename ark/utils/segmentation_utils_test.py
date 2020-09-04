@@ -194,7 +194,7 @@ def test_transform_expression_matrix_multiple_compartments():
 def test_visualize_watershed():
     with tempfile.TemporaryDirectory() as temp_dir:
         channel_xr = _generate_channel_xr()
-        overlay_channels = [channel_xr.channels.values[:2]],
+        overlay_channels = channel_xr.channels.values[:2],
         segmentation_labels_xr = _generate_deepcell_ouput()
 
         segmentation_utils.visualize_watershed_transform(
