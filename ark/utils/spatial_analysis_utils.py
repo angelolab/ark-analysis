@@ -59,7 +59,7 @@ def calc_dist_matrix(label_maps, path=None):
 
 
 def get_pos_cell_labels_channel(thresh, current_fov_channel_data, cell_labels, current_marker):
-    """For channel enrichment, finds positive labels that match the current phenotype 
+    """For channel enrichment, finds positive labels that match the current phenotype
     or identifies cells with positive expression values for the current marker
     (greater than the marker threshold).
 
@@ -91,7 +91,7 @@ def get_pos_cell_labels_channel(thresh, current_fov_channel_data, cell_labels, c
 
 
 def get_pos_cell_labels_cluster(pheno, current_fov_neighborhood_data):
-    """For cluster enrichment, finds positive labels that match the current phenotype 
+    """For cluster enrichment, finds positive labels that match the current phenotype
     or identifies cells with positive expression values for the current marker
     (greater than the marker threshold).
 
