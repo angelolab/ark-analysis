@@ -1,9 +1,10 @@
-utils
+ark.utils package
 =================
 
-Helper functions for ARK.
+Submodules
+----------
 
-ark.utils.data\_utils
+ark.utils.data\_utils module
 ----------------------------
 
 .. automodule:: ark.utils.data_utils
@@ -11,7 +12,15 @@ ark.utils.data\_utils
    :undoc-members:
    :show-inheritance:
 
-ark.utils.io\_utils
+ark.utils.data\_utils\_test module
+----------------------------------
+
+.. automodule:: ark.utils.data_utils_test
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+ark.utils.io\_utils module
 --------------------------
 
 .. automodule:: ark.utils.io_utils
@@ -19,7 +28,31 @@ ark.utils.io\_utils
    :undoc-members:
    :show-inheritance:
 
-ark.utils.plot\_utils
+ark.utils.io\_utils\_test module
+--------------------------------
+
+.. automodule:: ark.utils.io_utils_test
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+ark.utils.notebook\_update\_test module
+---------------------------------------
+
+.. automodule:: ark.utils.notebook_update_test
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+ark.utils.notebooks\_test module
+--------------------------------
+
+.. automodule:: ark.utils.notebooks_test
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+ark.utils.plot\_utils module
 ----------------------------
 
 .. automodule:: ark.utils.plot_utils
@@ -27,7 +60,15 @@ ark.utils.plot\_utils
    :undoc-members:
    :show-inheritance:
 
-ark.utils.segmentation\_utils
+ark.utils.plot\_utils\_test module
+----------------------------------
+
+.. automodule:: ark.utils.plot_utils_test
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+ark.utils.segmentation\_utils module
 ------------------------------------
 
 .. automodule:: ark.utils.segmentation_utils
@@ -35,7 +76,15 @@ ark.utils.segmentation\_utils
    :undoc-members:
    :show-inheritance:
 
-ark.utils.spatial\_analysis\_utils
+ark.utils.segmentation\_utils\_test module
+------------------------------------------
+
+.. automodule:: ark.utils.segmentation_utils_test
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+ark.utils.spatial\_analysis\_utils module
 -----------------------------------------
 
 .. automodule:: ark.utils.spatial_analysis_utils
@@ -43,10 +92,35 @@ ark.utils.spatial\_analysis\_utils
    :undoc-members:
    :show-inheritance:
 
-ark.utils.synthetic\_spatial\_datagen
+ark.utils.spatial\_analysis\_utils\_test module
+-----------------------------------------------
+
+.. automodule:: ark.utils.spatial_analysis_utils_test
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+ark.utils.synthetic\_spatial\_datagen module
 --------------------------------------------
 
 .. automodule:: ark.utils.synthetic_spatial_datagen
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+ark.utils.synthetic\_spatial\_datagen\_test module
+--------------------------------------------------
+
+.. automodule:: ark.utils.synthetic_spatial_datagen_test
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+
+Module contents
+---------------
+
+.. automodule:: ark.utils
    :members:
    :undoc-members:
    :show-inheritance:
