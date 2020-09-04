@@ -76,12 +76,7 @@ def get_pos_cell_labels_channel(thresh, current_fov_channel_data, cell_labels, c
     Returns:
         list:
             List of all the positive labels"""
-    if(
-        thresh is None
-        or current_fov_channel_data is None
-        or cell_labels is None or current_marker is None
-    ):
-        raise ValueError("Incorrect arguments passed for analysis type")
+
     # Subset only cells that are positive for the given marker
     marker1posinds = current_fov_channel_data[current_marker] > thresh
     # Get the cell labels of the positive cells
@@ -105,9 +100,6 @@ def get_pos_cell_labels_cluster(pheno, current_fov_neighborhood_data):
         list:
             List of all the positive labels"""
 
-    if pheno is None or current_fov_neighborhood_data is None:
-        raise ValueError("Incorrect arguments passed for analysis type")
-
     # Subset only cells that are of the same phenotype
     pheno1posinds = current_fov_neighborhood_data["FlowSOM_ID"] == pheno
     # Get the cell labels of the cells of the phenotype
@@ -116,7 +108,7 @@ def get_pos_cell_labels_cluster(pheno, current_fov_neighborhood_data):
     return mark1poslabels
 
 
-def compute_close_cell_num(dist_mat, dist_lim, num, analysis_type,
+def compute_close_cell_num(dist_mat, dist_lim, analysis_type,
                            current_fov_data=None, current_fov_channel_data=None,
                            cluster_ids=None, cell_types_analyze=None, thresh_vec=None):
     """Finds positive cell labels and creates matrix with counts for cells positive for
@@ -134,8 +126,6 @@ def compute_close_cell_num(dist_mat, dist_lim, num, analysis_type,
             cells x cells matrix with the euclidian distance between centers of corresponding cells
         dist_lim (int):
             threshold for spatial enrichment distance proximity
-        num (int):
-            number of markers or cell phenotypes, based on analysis
         analysis_type (str):
             type of analysis, either cluster or channel
         current_fov_data (pandas.DataFrame):
@@ -171,6 +161,12 @@ def compute_close_cell_num(dist_mat, dist_lim, num, analysis_type,
         # Subsetting the column with the cell labels
         cell_labels = current_fov_data[cell_label_col]
 
+    # assign the dimension of close_num respective to type of analysis
+    if analysis_type == "channel":
+        num = len(thresh_vec)
+    else:
+        num = len(cluster_ids)
+
     # Create close_num, marker1_num, and marker2_num
     close_num = np.zeros((num, num), dtype='int')
 
@@ -182,7 +178,7 @@ def compute_close_cell_num(dist_mat, dist_lim, num, analysis_type,
         coords=dist_mat.coords
     )
 
-    for j in range(0, num):
+    for j in range(num):
         if analysis_type == "cluster":
             mark1poslabels.append(
                 get_pos_cell_labels_cluster(cluster_ids.iloc[j],
