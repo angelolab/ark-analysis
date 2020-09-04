@@ -4,7 +4,7 @@ SOURCEDIR     = .
 BUILDDIR      = _build
 
 SPHINXAPIDOC  = sphinx-apidoc
-MISCDOCFLAGS  = -f -E -T
+MISCDOCFLAGS  = -f -T
 DOCOUTPUT     = md
 SRCPROJECT    = ../ark
 OUTPUTDIR     = _markdown
