@@ -50,3 +50,11 @@ ark.utils.synthetic\_spatial\_datagen
    :members:
    :undoc-members:
    :show-inheritance:
+
+ark.utils.test\_utils
+--------------------------------------------
+
+.. automodule:: ark.utils.test_utils
+   :members:
+   :undoc-members:
+   :show-inheritance:
