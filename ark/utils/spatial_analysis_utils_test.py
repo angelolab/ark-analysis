@@ -186,7 +186,6 @@ def test_compute_close_cell_num():
     assert (example_closenum[3:5, 3:5] == 25).all()
     assert (example_closenum[5:7, 5:7] == 1).all()
 
-
     # now, test for cluster enrichment
     all_data, example_dist_mat = make_example_data_closenum()
     cluster_ids = all_data.iloc[:, 31].drop_duplicates()
