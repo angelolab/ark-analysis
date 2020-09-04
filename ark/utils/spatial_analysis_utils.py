@@ -85,7 +85,8 @@ def get_pos_cell_labels_channel(thresh, current_fov_channel_data, cell_labels, c
     return mark1poslabels
 
 
-def get_pos_cell_labels_cluster(pheno, current_fov_neighborhood_data):
+def get_pos_cell_labels_cluster(pheno, current_fov_neighborhood_data,
+                                cell_label_col, cell_type_col):
     """For cluster enrichment, finds positive labels that match the current phenotype
     or identifies cells with positive expression values for the current marker
     (greater than the marker threshold).
@@ -95,15 +96,19 @@ def get_pos_cell_labels_cluster(pheno, current_fov_neighborhood_data):
             the current cell phenotype
         current_fov_neighborhood_data (pandas.DataFrame):
             data for the current patient
+        cell_label_col (str):
+            the name of the column indicating the cell label
+        cell_type_col (str):
+            the name of the column indicating the cell type
 
     Returns:
         list:
             List of all the positive labels"""
 
     # Subset only cells that are of the same phenotype
-    pheno1posinds = current_fov_neighborhood_data["FlowSOM_ID"] == pheno
+    pheno1posinds = current_fov_neighborhood_data[cell_type_col] == pheno
     # Get the cell labels of the cells of the phenotype
-    mark1poslabels = current_fov_neighborhood_data.iloc[:, 1][pheno1posinds]
+    mark1poslabels = current_fov_neighborhood_data.loc[:, cell_label_col][pheno1posinds]
 
     return mark1poslabels
 
@@ -153,8 +158,9 @@ def compute_close_cell_num(dist_mat, dist_lim, analysis_type,
 
     cell_labels = []
 
-    # Assign column names for subsetting (cell labels)
+    # Assign column names for subsetting (cell labels and cell type ids)
     cell_label_col = "cellLabelInImage"
+    cell_type_col = "FlowSOM_ID"
 
     # Subset data based on analysis type
     if analysis_type == "channel":
@@ -181,8 +187,10 @@ def compute_close_cell_num(dist_mat, dist_lim, analysis_type,
     for j in range(num):
         if analysis_type == "cluster":
             mark1poslabels.append(
-                get_pos_cell_labels_cluster(cluster_ids.iloc[j],
-                                            current_fov_data))
+                get_pos_cell_labels_cluster(pheno=cluster_ids.iloc[j],
+                                            current_fov_neighborhood_data=current_fov_data,
+                                            cell_label_col=cell_label_col,
+                                            cell_type_col=cell_type_col))
         else:
             mark1poslabels.append(
                 get_pos_cell_labels_channel(thresh=thresh_vec.iloc[j],
