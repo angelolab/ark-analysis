@@ -41,6 +41,12 @@ Submodules
    :show-inheritance:
 
 
+.. automodule:: ark.utils.test_utils
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+
 Module contents
 ---------------
 
