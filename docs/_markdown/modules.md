@@ -1,9 +1,7 @@
-ark-analysis
-============
+ark
+===
 
 .. toctree::
    :maxdepth: 4
 
    ark
-   conftest
-   setup

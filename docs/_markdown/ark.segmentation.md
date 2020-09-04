@@ -4,34 +4,14 @@ ark.segmentation package
 Submodules
 ----------
 
-ark.segmentation.marker\_quantification module
-----------------------------------------------
 
 .. automodule:: ark.segmentation.marker_quantification
    :members:
    :undoc-members:
    :show-inheritance:
 
-ark.segmentation.marker\_quantification\_test module
-----------------------------------------------------
-
-.. automodule:: ark.segmentation.marker_quantification_test
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-ark.segmentation.signal\_extraction module
-------------------------------------------
 
 .. automodule:: ark.segmentation.signal_extraction
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-ark.segmentation.signal\_extraction\_test module
-------------------------------------------------
-
-.. automodule:: ark.segmentation.signal_extraction_test
    :members:
    :undoc-members:
    :show-inheritance:
