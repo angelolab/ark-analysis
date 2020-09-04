@@ -214,13 +214,13 @@ def compute_close_cell_num(dist_mat, dist_lim, num, analysis_type,
                                                               cell_labels=cell_labels,
                                                               current_marker=current_fov_channel_data.columns[j]))
         mark1_num.append(len(mark1poslabels[j]))
-        # TODO: we also need to extract the marker counts for each type of cell we wish to analyze
-        # this will require also setting a parameter that allows us to count the number of "else" cells
-        # best to store in a dictionary mapping marker counts to their respective cell type
 
-    mark1_num_per_id = None
+    # we'll need this because for cluster-based context-dependent randomization
+    # we need to facet our randomization of labels based on the cell_types and associated
+    # cell_ids the user specifies
+    mark1labels_per_id = None
     if analysis_type == "cluster":
-        mark1_num_per_id = dict(zip(cluster_ids, mark1_num))
+        mark1labels_per_id = dict(zip(cluster_ids, mark1poslabels))
 
     # iterating k from [j, end] cuts out 1/2 the steps (while symmetric)
     for j, m1n in enumerate(mark1_num):
@@ -235,7 +235,7 @@ def compute_close_cell_num(dist_mat, dist_lim, num, analysis_type,
             # symmetry :)
             close_num[k, j] = close_num[j, k]
 
-    return close_num, mark1_num, mark1_num_per_id
+    return close_num, mark1_num, mark1labels_per_id
 
 
 def compute_close_cell_num_random(marker_nums, dist_mat, dist_lim, bootstrap_num):
