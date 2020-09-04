@@ -213,7 +213,7 @@ def calculate_cluster_spatial_enrichment(all_data, dist_matrices_dict, included_
 
 def create_neighborhood_matrix(all_data, dist_matrices_dict, included_fovs=None, distlim=50,
                                fov_col="SampleID", cluster_id_col="FlowSOM_ID",
-                               cell_label_col="cellLabelInImage", cluster_name_col="cell_type",):
+                               cell_label_col="cellLabelInImage", cluster_name_col="cell_type"):
     """Calculates the number of neighbor phenotypes for each cell.
 
     Args:

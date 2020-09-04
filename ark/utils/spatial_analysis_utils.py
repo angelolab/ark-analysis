@@ -109,8 +109,24 @@ def get_pos_cell_labels(analysis_type, pheno=None, current_fov_neighborhood_data
     return mark1poslabels
 
 
-def get_pos_cell_labels_channel(thresh=None, current_fov_channel_data=None,
-                                cell_labels=None, current_marker=None):
+def get_pos_cell_labels_channel(thresh, current_fov_channel_data, cell_labels, current_marker):
+    """For channel enrichment, finds positive labels that match the current phenotype 
+    or identifies cells with positive expression values for the current marker
+    (greater than the marker threshold).
+
+    Args:
+        thresh (int):
+            current threshold for marker
+        current_fov_channel_data (pandas.DataFrame):
+            expression data for column markers for current patient
+        cell_labels (pandas.DataFrame):
+            the column of cell labels for current patient
+        current_marker (str):
+            the current marker that the positive labels are being found for
+
+    Returns:
+        list:
+            List of all the positive labels"""
     if(
         thresh is None
         or current_fov_channel_data is None
@@ -125,7 +141,21 @@ def get_pos_cell_labels_channel(thresh=None, current_fov_channel_data=None,
     return mark1poslabels
 
 
-def get_pos_cell_labels_cluster(pheno=None, current_fov_neighborhood_data=None):
+def get_pos_cell_labels_cluster(pheno, current_fov_neighborhood_data):
+    """For cluster enrichment, finds positive labels that match the current phenotype 
+    or identifies cells with positive expression values for the current marker
+    (greater than the marker threshold).
+
+    Args:
+        pheno (str):
+            the current cell phenotype
+        current_fov_neighborhood_data (pandas.DataFrame):
+            data for the current patient
+
+    Returns:
+        list:
+            List of all the positive labels"""
+
     if pheno is None or current_fov_neighborhood_data is None:
         raise ValueError("Incorrect arguments passed for analysis type")
 
