@@ -96,8 +96,7 @@ def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, 
         dist_matrix = dist_matrices_dict[included_fovs[i]]
 
         # Get close_num and close_num_rand
-
-        close_num, channel_nums = spatial_analysis_utils.compute_close_cell_num(
+        close_num, channel_nums, _ = spatial_analysis_utils.compute_close_cell_num(
             dist_mat=dist_matrix, dist_lim=100, num=channel_num, analysis_type="channel",
             current_fov_data=current_fov_data, current_fov_channel_data=current_fov_channel_data,
             thresh_vec=thresh_vec)
@@ -116,7 +115,8 @@ def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, 
 def calculate_cluster_spatial_enrichment(all_data, dist_matrices_dict, included_fovs=None,
                                          bootstrap_num=1000, dist_lim=100, fov_col="SampleID",
                                          cluster_name_col="cell_type", cluster_id_col="FlowSOM_ID",
-                                         cell_label_col="cellLabelInImage"):
+                                         cell_label_col="cellLabelInImage", context_labels=None,
+                                         compute_else_category=False):
     """Spatial enrichment analysis based on cell phenotypes to find significant interactions
     between different cell types, looking for both positive and negative enrichment. Uses
     bootstrapping to permute cell labels randomly.
@@ -141,6 +141,14 @@ def calculate_cluster_spatial_enrichment(all_data, dist_matrices_dict, included_
             column with the cell phenotype IDs. Default is 'FlowSOM_ID'
         cell_label_col (str):
             column with the cell labels. Default is 'cellLabelInImage'
+        cell_type_labels (dict):
+            A list that contains which specific types of cells we want to consider. If argument is none,
+            we use all the cell types.
+        cell_type_randomization (dict):
+            A dict that contains percentages per type of cell which indicates how we want
+            to split up the random sampling of each cell
+        compute_else_category (bool):
+            Whether to compute statistics for each cell type that does not reside in cell_type_labels
 
     Returns:
         tuple (list, xarray.DataArray):
@@ -190,23 +198,28 @@ def calculate_cluster_spatial_enrichment(all_data, dist_matrices_dict, included_
         dist_mat = dist_matrices_dict[included_fovs[i]]
 
         # Get close_num and close_num_rand
-        close_num, pheno_nums = spatial_analysis_utils.compute_close_cell_num(
+        close_num, pheno_nums, pheno_nums_per_id = spatial_analysis_utils.compute_close_cell_num(
             dist_mat=dist_mat, dist_lim=dist_lim, num=cluster_num, analysis_type="cluster",
             current_fov_data=current_fov_pheno_data, cluster_ids=cluster_ids)
+
         close_num_rand = spatial_analysis_utils.compute_close_cell_num_random(
             pheno_nums, dist_mat, dist_lim, bootstrap_num)
+
+        # close_num_rand_context = spatial_analysis_utils.compute_close_cell_num_random(
+        #     pheno_nums_per_id, dist_mat, dist_lim, bootstrap_num)
 
         values.append((close_num, close_num_rand))
 
         # Get z, p, adj_p, muhat, sigmahat, and h
         stats_xr = spatial_analysis_utils.calculate_enrichment_stats(close_num, close_num_rand)
         stats.loc[included_fovs[i], :, :] = stats_xr.values
+
     return values, stats
 
 
 def create_neighborhood_matrix(all_data, dist_matrices_dict, included_fovs=None, distlim=50,
                                fov_col="SampleID", cluster_id_col="FlowSOM_ID",
-                               cell_label_col="cellLabelInImage", cluster_name_col="cell_type"):
+                               cell_label_col="cellLabelInImage", cluster_name_col="cell_type",):
     """Calculates the number of neighbor phenotypes for each cell.
 
     Args:
@@ -287,5 +300,65 @@ def create_neighborhood_matrix(all_data, dist_matrices_dict, included_fovs=None,
 
     return cell_neighbor_counts, cell_neighbor_freqs
 
-def context_spatial(all_data, marker_inds, mass_ds, tumor_immune_groups_data, tcd3, bootstrap_num, dist_lim, points):
-    pass
+# def context_spatial(all_data, marker_inds, mass_ds, cell_type_col, cell_label_col, tumor_immune_groups_data, tcd3, bootstrap_num, dist_lim, dist_mat, points):
+#     data_markers = all_data[marker_inds].copy()
+
+#     t = 1
+#     close_num = np.zeros(len(marker_inds), len(marker_inds))
+#     close_num_rand = np.zeros(len(marker_inds), len(marker_inds))
+
+#     for i in range(len(included_fovs)):
+#         patient_data = all_data[all_data[1] == i]
+#         patient_data_markers = data_markers[all_data[1] == i]
+#         patient_tumor_inds = patient_data[cell_type_col].isin([5, 6]).values
+#         patient_tumor_labels = patient_data[patient_tumor_inds, cell_label_col].values
+#         patient_immune_inds = (patient_data[cell_type_col] == 2).values
+#         patient_immmune_labels = patient_data[patient_immune_inds, cell_label_col].values
+#         patient_else_labels = patient_data[cell_type_col].isin([0, 1, 3, 4]).values
+#         patient_else_labels = patient_data[patient_else_labels, cell_label_col].values
+
+#         for j in range(marker_num):
+#             marker_1_pos_inds = patient_data_markers[j] > t
+#             marker_1_pos_labels = patient_data[marker_1_pos_inds, cell_label_col]
+#             marker_1_num = len(marker_1_pos_labels)
+
+#             marker_1_tumor_num = np.sum(np.logical_and(marker_1_pos_inds.values, patient_tumor_inds))
+#             marker_1_immune_num = np.sum(np.logical_and(marker_1_pos_inds, patient_immune_inds))
+#             marker_1_else_num = marker_1_num - marker_1_tumor_num - marker_1_imune_num
+
+#             for k in range(j):
+#                 marker_2_pos_inds = patient_data_markers[k] > t
+#                 marker_2_pos_labels = patient_data[marker_2_pos_inds, cell_label_col]
+#                 marker_2_num = len(marker_2_pos_labels)
+
+#                 trunc_dist_mat = dist_mat.loc[marker_1_pos_inds, marker_2_pos_inds].values
+#                 trunc_dist_mat_bin = np.zeros(np.shape(trunc_dist_mat))
+#                 trunc_dist_mat_bin[trunc_dist_mat < dist_lim] = 1
+
+#                 close_num[j, k] = np.sum(trunc_dist_mat_bin)
+
+#                 marker_2_tumor_num = np.sum(np.logical_and(marker_2_pos_inds.values, patient_tumor_inds))
+#                 marker_2_immune_num = np.sum(np.logical_and(marker_2_pos_inds, patient_immune_inds))
+#                 marker_2_else_num = marker_2_num - marker_2_tumor_num - marker_2_imune_num
+
+#                 samples_dim = (marker_1_num * marker_2_num, bootstrap_num)
+
+#                 rand_labels_cell_1 = np.shape(marker_1_tumor_num + marker_1_immune_num + marker_1_else_num, bootstrap_num)
+#                 rand_labels_cell_2 = np.shape(marker_2_tumor_num + marker_2_immune_num + marker_1_else_num, bootstrap_num)
+
+#                 rand_labels_cell_1 = np.concatenate(np.random.choice(patient_tumor_labels, marker_1_tumor_num),
+#                                                     np.random.choice(patient_immune_labels, marker_1_immune_num),
+#                                                     np.random.choice(patient_rand_labels, marker_1_rand_num))
+
+
+#                 dist_mat_flattened = dist_mat.values.flatten()
+#                 dist_mat_flattened_sample = np.take(np.concatenate(np.random.choice(patient_tumor_labels, marker_1_tumor_num),
+#                                                                    np.random.choice(patient_immune_labels, marker_1_immune_num),
+#                                                                    np.random.choice(patient_else_labels, marker_1_else_num)))
+#                 np.random.choice(marker_1_labels_rand_tumor, marker_1_labels_rand_immune, )
+
+
+#                 for r in range(bootstrap_num):
+#                     marker_1_labels_rand_tumor = np.take()
+#     patient_inds = all_data[all_data[1] == ]
+#     pass
