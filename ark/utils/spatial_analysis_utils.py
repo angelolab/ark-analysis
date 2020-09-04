@@ -125,7 +125,6 @@ def get_pos_cell_labels_channel(thresh=None, current_fov_channel_data=None,
     return mark1poslabels
 
 
-
 def get_pos_cell_labels_cluster(pheno=None, current_fov_neighborhood_data=None):
     if pheno is None or current_fov_neighborhood_data is None:
         raise ValueError("Incorrect arguments passed for analysis type")
@@ -206,13 +205,15 @@ def compute_close_cell_num(dist_mat, dist_lim, num, analysis_type,
 
     for j in range(0, num):
         if analysis_type == "cluster":
-            mark1poslabels.append(get_pos_cell_labels_cluster(cluster_ids.iloc[j],
-                                                              current_fov_data))
+            mark1poslabels.append(
+                get_pos_cell_labels_cluster(cluster_ids.iloc[j],
+                                            current_fov_data))
         else:
-            mark1poslabels.append(get_pos_cell_labels_channel(thresh=thresh_vec.iloc[j],
-                                                              current_fov_channel_data=current_fov_channel_data,
-                                                              cell_labels=cell_labels,
-                                                              current_marker=current_fov_channel_data.columns[j]))
+            mark1poslabels.append(
+                get_pos_cell_labels_channel(thresh=thresh_vec.iloc[j],
+                                            current_fov_channel_data=current_fov_channel_data,
+                                            cell_labels=cell_labels,
+                                            current_marker=current_fov_channel_data.columns[j]))
         mark1_num.append(len(mark1poslabels[j]))
 
     # we'll need this because for cluster-based context-dependent randomization
