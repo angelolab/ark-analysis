@@ -81,8 +81,6 @@ autodoc_mock_imports = ['h5py'
                         'umap',
                         'xarray']
 
-sys.modules['matplotlib.pyplot'] = mock.Mock()
-
 # explicitly mock mibidata
 sys.modules['mibidata'] = mock.Mock()
 
@@ -151,6 +149,7 @@ intersphinx_mapping = {
 # set a maximum number of days to cache remote inventories
 intersphinx_cache_limit = 0
 
+
 # this we'll need to build the documentation from sphinx-apidoc ourselves
 # TODO: is the actually the best way to do it? Saves us a lot of trouble but the documentation
 # cannot be changed by us if we completely rely on the ReadTheDocs backend to run sphinx-apidoc for us
@@ -169,6 +168,7 @@ def run_apidoc(_):
         cmd_path = os.path.abspath(os.path.join(sys.prefix, 'bin', 'sphinx-apidoc'))
 
     subprocess.check_call([cmd_path, '-f', '-T', '-s', output_ext, '-o', output_path, module, ignore])
+
 
 def check_docstring_format(app, what, name, obj, options, lines):
     if what == 'function':
@@ -229,18 +229,29 @@ def check_docstring_format(app, what, name, obj, options, lines):
             if any(re.match(r':returns:', line) for line in lines):
                 if not any(re.match(r':rtype', line) for line in lines):
                     raise Exception('Return value was provided but no return type specified in %s' % name)
-
-
-            # if len(lines) == 0 and lines[0][0] == ':':
-            # if lines[0][0] == ':':
-            #     warnings.warn('Did not specify a description before args list')
-            if name == 'ark.analysis.spatial_analysis.calculate_channel_spatial_enrichment' or name == 'ark.analysis.spatial_analysis.create_neighborhood_matrix':
-                print(argnames)
-                print(lines)
-
         else:
-            pass
+            # every function needs a docstring, this currently is OK for now because only one function
+            # is like this: create_test_extraction_data in test_utils
+            if len(lines) == 0:
+                raise Exception('No docstring provided for function %s' % name)
+
+            # the first value of lines should always contain the start of the description
+            # if there is an extra space in front, that violates how a Google doctring should look
+            if lines[0][0].isspace():
+                raise Exception('Your description for %s should not have any preceding whitespace' % name)
+
+            param_args = [re.match(r':param (\S*):', line).group(1) for line in lines if re.match(r':param (\S*):', line)]
+
+            # do not allow the user to specify an args list for a function that doesn't take any arguments
+            if len(param_args) > 0:
+                raise Exception('You should not have an Args list specified for argument-less function %s' % name)
+
+            # this is like the returns check for if the function does specify arguments
+            if any(re.match(r':returns:', line) for line in lines):
+                if not any(re.match(r':rtype', line) for line in lines):
+                    raise Exception('Return value was provided but no return type specified in %s' % name)
+
 
 def setup(app):
-    app.connect('builder-inited', run_apidoc)
-    app.connect('autodoc-process-docstring', check_docstring_format)
+    app.connect('builder-inited', run_apidoc) # run sphinx-apidoc
+    app.connect('autodoc-process-docstring', check_docstring_format) # run a docstring-style check
