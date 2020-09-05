@@ -1,9 +1,10 @@
-segmentation
+ark.segmentation package
 ========================
 
-These libraries are helpers for segmentation and signal analysis.
+Submodules
+----------
 
-ark.segmentation.marker\_quantification
+ark.segmentation.marker\_quantification module
 ----------------------------------------------
 
 .. automodule:: ark.segmentation.marker_quantification
@@ -11,10 +12,19 @@ ark.segmentation.marker\_quantification
    :undoc-members:
    :show-inheritance:
 
-ark.segmentation.signal\_extraction
+ark.segmentation.signal\_extraction module
 ------------------------------------------
 
 .. automodule:: ark.segmentation.signal_extraction
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+
+Module contents
+---------------
+
+.. automodule:: ark.segmentation
    :members:
    :undoc-members:
    :show-inheritance:
