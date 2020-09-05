@@ -151,12 +151,6 @@ intersphinx_cache_limit = 0
 
 
 # this we'll need to build the documentation from sphinx-apidoc ourselves
-# TODO: is the actually the best way to do it? Saves us a lot of trouble but the documentation
-# cannot be changed by us if we completely rely on the ReadTheDocs backend to run sphinx-apidoc for us
-# seems like you have to make a trade off between whether or not we want to do little work
-# for uglier looking documentation or force others to do a lot of work themselves but also
-# get the benefit of nicer looking documentation. Perhaps a question for Will, however
-# Van Valen's documentation more or less looks similar to ours in style
 def run_apidoc(_):
     module = '../ark'
     output_ext = 'md'
@@ -192,8 +186,6 @@ def check_docstring_format(app, what, name, obj, options, lines):
             # if there is an extra space in front, that violates how a Google doctring should look
             if lines[0][0].isspace():
                 raise Exception('Your description for %s should not have any preceding whitespace' % name)
-
-            # TODO: need a check to define one and only one whitespace between description and first :param
 
             # handle the Args section, all args should have an associated :param and :type in the lines list
             param_args = [re.match(r':param (\S*):', line).group(1) for line in lines if re.match(r':param (\S*):', line)]
