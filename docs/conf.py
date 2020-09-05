@@ -150,15 +150,15 @@ intersphinx_cache_limit = 0
 
 def run_apidoc(_):
     module = '../ark'
-    cur_dir = os.path.abspath(os.path.dirname(__file__))
-    output_path = os.path.join(cur_dir, module, 'doc')
+    output_ext = 'md'
+    output_path = '_markdown'
     cmd_path = 'sphinx-apidoc'
     ignore = '../ark/*/*_test.utils'
 
     if hasattr(sys, 'real_prefix'):
         cmd_path = os.path.abspath(os.path.join(sys.prefix, 'bin', 'sphinx-apidoc'))
 
-    subprocess.check_call([cmd_path, '-f', '-T', '-s', 'md', '-o', output_path, module, ignore])
+    subprocess.check_call([cmd_path, '-f', '-T', '-s', output_ext, '-o', output_path, module, ignore])
 
 def setup(app):
     app.connect('builder-inited', run_apidoc)

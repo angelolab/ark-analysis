@@ -16,5 +16,3 @@ env
 /dist
 
 */_build
-*/_static
-*/_templates
