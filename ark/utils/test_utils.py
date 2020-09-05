@@ -520,7 +520,7 @@ def make_segmented_csv(num_cells, extra_cols=None):
         num_cells (int):
             Number of rows (cells) in csv
         extra_cols (dict):
-            Extra columns to add in the format `{'Column_Name' : data_1D, ...}`_
+            Extra columns to add in the format ``{'Column_Name' : data_1D, ...}``
 
     Returns:
         pandas.DataFrame:

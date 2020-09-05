@@ -28,7 +28,6 @@ ark.analysis.visualize module
    :undoc-members:
    :show-inheritance:
 
-
 Module contents
 ---------------
 

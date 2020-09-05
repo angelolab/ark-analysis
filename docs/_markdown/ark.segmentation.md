@@ -20,7 +20,6 @@ ark.segmentation.signal\_extraction module
    :undoc-members:
    :show-inheritance:
 
-
 Module contents
 ---------------
 
