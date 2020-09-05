@@ -153,7 +153,7 @@ def run_apidoc(_):
     output_ext = 'md'
     output_path = '_markdown'
     cmd_path = 'sphinx-apidoc'
-    ignore = '../ark/*/*_test.utils'
+    ignore = '../ark/*/*_test.py'
 
     if hasattr(sys, 'real_prefix'):
         cmd_path = os.path.abspath(os.path.join(sys.prefix, 'bin', 'sphinx-apidoc'))
