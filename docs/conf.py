@@ -13,6 +13,7 @@
 import os
 import sys
 import mock # if we need to force mock import certain libraries autodoc_mock_imports fails ons
+import subprocess # to initiate sphinx-apidoc to build .md files
 
 # our project officially 'begins' in the parent aka root project directory
 # since we do not separate source from build we can simply go up one directory
@@ -146,3 +147,18 @@ intersphinx_mapping = {
 
 # set a maximum number of days to cache remote inventories
 intersphinx_cache_limit = 0
+
+def run_apidoc(_):
+    module = '../ark'
+    cur_dir = os.path.abspath(os.path.dirname(__file__))
+    output_path = os.path.join(cur_dir, module, 'doc')
+    cmd_path = 'sphinx-apidoc'
+    ignore = '../ark/*/*_test.utils'
+
+    if hasattr(sys, 'real_prefix'):
+        cmd_path = os.path.abspath(os.path.join(sys.prefix, 'bin', 'sphinx-apidoc'))
+
+    subprocess.check_call([cmd_path, '-f', '-T', '-s', 'md', '-o', output_path, module, ignore])
+
+def setup(app):
+    app.connect('builder-inited', run_apidoc)
