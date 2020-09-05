@@ -58,20 +58,12 @@ def calc_dist_matrix(label_maps, path=None):
         np.savez(path + "dist_matrices.npz", **dist_matrices)
 
 
-def get_pos_cell_labels(analysis_type, pheno=None, current_fov_neighborhood_data=None,
-                        thresh=None, current_fov_channel_data=None, cell_labels=None,
-                        current_marker=None):
-    """Based on the type of the analysis, the function finds positive labels that match the
-    current phenotype or identifies cells with positive expression values for the current marker
+def get_pos_cell_labels_channel(thresh, current_fov_channel_data, cell_labels, current_marker):
+    """For channel enrichment, finds positive labels that match the current phenotype
+    or identifies cells with positive expression values for the current marker
     (greater than the marker threshold).
 
     Args:
-        analysis_type (str):
-            type of analysis, either "cluster" or "channel"
-        pheno (str):
-            the current cell phenotype
-        current_fov_neighborhood_data (pandas.DataFrame):
-            data for the current patient
         thresh (int):
             current threshold for marker
         current_fov_channel_data (pandas.DataFrame):
@@ -85,33 +77,45 @@ def get_pos_cell_labels(analysis_type, pheno=None, current_fov_neighborhood_data
         list:
             List of all the positive labels"""
 
-    if not np.isin(analysis_type, ("cluster", "channel")).all():
-        raise ValueError("Incorrect analysis type")
+    # Subset only cells that are positive for the given marker
+    marker1posinds = current_fov_channel_data[current_marker] > thresh
+    # Get the cell labels of the positive cells
+    mark1poslabels = cell_labels[marker1posinds]
 
-    if analysis_type == "cluster":
-        if pheno is None or current_fov_neighborhood_data is None:
-            raise ValueError("Incorrect arguments passed for analysis type")
-        # Subset only cells that are of the same phenotype
-        pheno1posinds = current_fov_neighborhood_data["FlowSOM_ID"] == pheno
-        # Get the cell labels of the cells of the phenotype
-        mark1poslabels = current_fov_neighborhood_data.iloc[:, 1][pheno1posinds]
-    else:
-        if(
-            thresh is None
-            or current_fov_channel_data is None
-            or cell_labels is None or current_marker is None
-        ):
-            raise ValueError("Incorrect arguments passed for analysis type")
-        # Subset only cells that are positive for the given marker
-        marker1posinds = current_fov_channel_data[current_marker] > thresh
-        # Get the cell labels of the positive cells
-        mark1poslabels = cell_labels[marker1posinds]
     return mark1poslabels
 
 
-def compute_close_cell_num(dist_mat, dist_lim, num, analysis_type,
-                           current_fov_data=None, current_fov_channel_data=None, cluster_ids=None,
-                           thresh_vec=None):
+def get_pos_cell_labels_cluster(pheno, current_fov_neighborhood_data,
+                                cell_label_col, cell_type_col):
+    """For cluster enrichment, finds positive labels that match the current phenotype
+    or identifies cells with positive expression values for the current marker
+    (greater than the marker threshold).
+
+    Args:
+        pheno (str):
+            the current cell phenotype
+        current_fov_neighborhood_data (pandas.DataFrame):
+            data for the current patient
+        cell_label_col (str):
+            the name of the column indicating the cell label
+        cell_type_col (str):
+            the name of the column indicating the cell type
+
+    Returns:
+        list:
+            List of all the positive labels"""
+
+    # Subset only cells that are of the same phenotype
+    pheno1posinds = current_fov_neighborhood_data[cell_type_col] == pheno
+    # Get the cell labels of the cells of the phenotype
+    mark1poslabels = current_fov_neighborhood_data.loc[:, cell_label_col][pheno1posinds]
+
+    return mark1poslabels
+
+
+def compute_close_cell_num(dist_mat, dist_lim, analysis_type,
+                           current_fov_data=None, current_fov_channel_data=None,
+                           cluster_ids=None, cell_types_analyze=None, thresh_vec=None):
     """Finds positive cell labels and creates matrix with counts for cells positive for
     corresponding markers. Computes close_num matrix for both Cell Label and Threshold spatial
     analyses.
@@ -127,8 +131,6 @@ def compute_close_cell_num(dist_mat, dist_lim, num, analysis_type,
             cells x cells matrix with the euclidian distance between centers of corresponding cells
         dist_lim (int):
             threshold for spatial enrichment distance proximity
-        num (int):
-            number of markers or cell phenotypes, based on analysis
         analysis_type (str):
             type of analysis, either cluster or channel
         current_fov_data (pandas.DataFrame):
@@ -137,6 +139,8 @@ def compute_close_cell_num(dist_mat, dist_lim, num, analysis_type,
             data of only column markers for Channel Analysis
         cluster_ids (pandas.DataFrame):
             all the cell phenotypes in Cluster Analysis
+        cell_types_analyze (list):
+            a list of the cell types we wish to analyze, if None we set it equal to all cell types
         thresh_vec (numpy.ndarray):
             matrix of thresholds column for markers
 
@@ -146,17 +150,28 @@ def compute_close_cell_num(dist_mat, dist_lim, num, analysis_type,
             corresponding markers, as well as a list of number of cell labels for marker 1
     """
 
+    # assert our analysis type is valid
+    if not np.isin(analysis_type, ("cluster", "channel")).all():
+        raise ValueError("Incorrect analysis type")
+
     # Initialize variables
 
     cell_labels = []
 
-    # Assign column names for subsetting (cell labels)
+    # Assign column names for subsetting (cell labels and cell type ids)
     cell_label_col = "cellLabelInImage"
+    cell_type_col = "FlowSOM_ID"
 
     # Subset data based on analysis type
     if analysis_type == "channel":
         # Subsetting the column with the cell labels
         cell_labels = current_fov_data[cell_label_col]
+
+    # assign the dimension of close_num respective to type of analysis
+    if analysis_type == "channel":
+        num = len(thresh_vec)
+    else:
+        num = len(cluster_ids)
 
     # Create close_num, marker1_num, and marker2_num
     close_num = np.zeros((num, num), dtype='int')
@@ -169,21 +184,27 @@ def compute_close_cell_num(dist_mat, dist_lim, num, analysis_type,
         coords=dist_mat.coords
     )
 
-    for j in range(0, num):
-        # Identify cell labels that are positive for markers/phenotypes, based on type of analysis
+    for j in range(num):
         if analysis_type == "cluster":
-            mark1poslabels.append(get_pos_cell_labels(analysis_type,
-                                                      cluster_ids.iloc[j],
-                                                      current_fov_data))
+            mark1poslabels.append(
+                get_pos_cell_labels_cluster(pheno=cluster_ids.iloc[j],
+                                            current_fov_neighborhood_data=current_fov_data,
+                                            cell_label_col=cell_label_col,
+                                            cell_type_col=cell_type_col))
         else:
-            mark1poslabels.append(get_pos_cell_labels(
-                analysis_type,
-                thresh=thresh_vec.iloc[j],
-                current_fov_channel_data=current_fov_channel_data,
-                cell_labels=cell_labels,
-                current_marker=current_fov_channel_data.columns[j])
-            )
+            mark1poslabels.append(
+                get_pos_cell_labels_channel(thresh=thresh_vec.iloc[j],
+                                            current_fov_channel_data=current_fov_channel_data,
+                                            cell_labels=cell_labels,
+                                            current_marker=current_fov_channel_data.columns[j]))
         mark1_num.append(len(mark1poslabels[j]))
+
+    # we'll need this because for cluster-based context-dependent randomization
+    # we need to facet our randomization of labels based on the cell_types and associated
+    # cell_ids the user specifies
+    mark1labels_per_id = None
+    if analysis_type == "cluster":
+        mark1labels_per_id = dict(zip(cluster_ids, mark1poslabels))
 
     # iterating k from [j, end] cuts out 1/2 the steps (while symmetric)
     for j, m1n in enumerate(mark1_num):
@@ -198,7 +219,7 @@ def compute_close_cell_num(dist_mat, dist_lim, num, analysis_type,
             # symmetry :)
             close_num[k, j] = close_num[j, k]
 
-    return close_num, mark1_num
+    return close_num, mark1_num, mark1labels_per_id
 
 
 def compute_close_cell_num_random(marker_nums, dist_mat, dist_lim, bootstrap_num):
