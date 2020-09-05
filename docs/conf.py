@@ -14,6 +14,9 @@ import os
 import sys
 import mock # if we need to force mock import certain libraries autodoc_mock_imports fails ons
 import subprocess # to initiate sphinx-apidoc to build .md files
+import inspect # to help us check the arguments we receive in our docstring check
+import warnings # to throw warnings (not errors) for malformed docstrings
+import re # for regex checking
 
 # our project officially 'begins' in the parent aka root project directory
 # since we do not separate source from build we can simply go up one directory
@@ -148,6 +151,13 @@ intersphinx_mapping = {
 # set a maximum number of days to cache remote inventories
 intersphinx_cache_limit = 0
 
+# this we'll need to build the documentation from sphinx-apidoc ourselves
+# TODO: is the actually the best way to do it? Saves us a lot of trouble but the documentation
+# cannot be changed by us if we completely rely on the ReadTheDocs backend to run sphinx-apidoc for us
+# seems like you have to make a trade off between whether or not we want to do little work
+# for uglier looking documentation or force others to do a lot of work themselves but also
+# get the benefit of nicer looking documentation. Perhaps a question for Will, however
+# Van Valen's documentation more or less looks similar to ours in style
 def run_apidoc(_):
     module = '../ark'
     output_ext = 'md'
@@ -160,5 +170,64 @@ def run_apidoc(_):
 
     subprocess.check_call([cmd_path, '-f', '-T', '-s', output_ext, '-o', output_path, module, ignore])
 
+def check_docstring_format(app, what, name, obj, options, lines):
+    if what == 'function':
+        # print(name)
+        argnames = inspect.getargspec(obj)[0]
+
+        if len(argnames) > 0:
+            # I'm leaving this one out for now since we're possibly waiting on some of these
+            # if len(lines) == 0:
+            #     raise Exception('No docstring provided for function %s' % name)
+
+            # all docstrings need a description, if we're getting into the args list immediately
+            # that is a bad, bad thing
+            if len(lines) > 0 and lines[0][0] == ':':
+                raise Exception('No description before args list given for %s' % name)
+
+            # the first value of lines should always contain the start of the description
+            # if there is an extra space in front, that violates how a Google doctring should look
+            if lines[0][0].isspace():
+                raise Exception('Your description should not have any preceding whitespace')
+
+            # TODO: need a check to define one and only one whitespace between description and first :param
+
+            # handle the Args section, all args should have an associated :param and :type in the lines list
+            param_args = [re.match(r':param (\S*):', line).group(1) for line in lines if re.match(r':param (\S*):', line)]
+            type_args = [re.match(r':type (\S*):', line).group(1) for line in lines if re.match(r':type (\S*):', line)]
+
+            # usually this happens when the user does not know how to tab properly
+            # and ReadTheDocs gets screwed over when processing so reads something
+            # in an argument description as an actual argument
+            if sorted(param_args) != sorted(type_args):
+                raise Exception('Parameter list: %s and type list: %s do not match in %s, a formatting error in your Args section likely caused this' % (','.join(param_args), ','.join(type_args), name))
+
+            # usually if the user forgets to specify an argument, occassionally a formatting issue as well
+            if len(param_args) < len(argnames):
+                missing_args = list(set(argnames).difference(set(param_args)))
+                raise Exception('Missing description for parameters %s in %s, check your Args list and your docstring formatting' % (','.join(missing_args), name))
+
+            # usually if the user adds an extra argument, occassionally a formatting issue as well
+            if len(param_args) > len(argnames):
+                extra_args = list(set(param_args).difference(set(argnames)))
+                raise Exception('Extraneous arguments specified: %s in %s, check your Args list and your docstring formatting' % (','.join(extra_args), name))
+
+            # added just in case the check above somehow missed something
+            # this might be the only one we really need but I think the others
+            # beforehand are a bit more descriptive
+            if sorted(param_args) != sorted(argnames):
+                raise Exception('Parameter list: %s does not match arglist: %s in %s, check your docstring formatting' % (','.join(param_args), ','.join(argnames), name))
+
+            # if len(lines) == 0 and lines[0][0] == ':':
+            # if lines[0][0] == ':':
+            #     warnings.warn('Did not specify a description before args list')
+            if name == 'ark.analysis.spatial_analysis.calculate_channel_spatial_enrichment':
+                print(argnames)
+                print(lines)
+
+        else:
+            pass
+
 def setup(app):
     app.connect('builder-inited', run_apidoc)
+    app.connect('autodoc-process-docstring', check_docstring_format)
