@@ -10,6 +10,7 @@ def positive_pixels_extraction(cell_coords, image_data, threshold=0):
     Args:
         cell_coords (numpy.ndarray): values representing pixels within one cell
         image_data (xarray.DataArray): array containing channel counts
+        threshold (int): where we want to set the cutoff for a positive pixel, default 0
 
     Returns:
         numpy.ndarray:

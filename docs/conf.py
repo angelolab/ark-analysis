@@ -177,8 +177,11 @@ def check_docstring_format(app, what, name, obj, options, lines):
 
         if len(argnames) > 0:
             # I'm leaving this one out for now since we're possibly waiting on some of these
-            # if len(lines) == 0:
-            #     raise Exception('No docstring provided for function %s' % name)
+            # normally, we should indeed be throwing an exception for this case
+            # because every function needs a docstring
+            if len(lines) == 0:
+                # raise Exception('No docstring provided for function %s' % name)
+                return
 
             # all docstrings need a description, if we're getting into the args list immediately
             # that is a bad, bad thing
@@ -196,7 +199,7 @@ def check_docstring_format(app, what, name, obj, options, lines):
             param_args = [re.match(r':param (\S*):', line).group(1) for line in lines if re.match(r':param (\S*):', line)]
             type_args = [re.match(r':type (\S*):', line).group(1) for line in lines if re.match(r':type (\S*):', line)]
 
-            # usually this happens when the user does not know how to tab properly
+            # usually this happens when the person writing the docs does not know how to tab properly
             # and ReadTheDocs gets screwed over when processing so reads something
             # in an argument description as an actual argument
             if sorted(param_args) != sorted(type_args):
@@ -221,9 +224,9 @@ def check_docstring_format(app, what, name, obj, options, lines):
             # if len(lines) == 0 and lines[0][0] == ':':
             # if lines[0][0] == ':':
             #     warnings.warn('Did not specify a description before args list')
-            if name == 'ark.analysis.spatial_analysis.calculate_channel_spatial_enrichment':
-                print(argnames)
-                print(lines)
+            # if name == 'ark.analysis.spatial_analysis.calculate_channel_spatial_enrichment':
+            #     print(argnames)
+            #     print(lines)
 
         else:
             pass

@@ -611,7 +611,7 @@ def split_img_stack(stack_dir, output_dir, stack_list, indices, names, channels_
             the indices we want to pull data from
         names (list):
             the corresponding names of the channels
-        channel_first (bool):
+        channels_first (bool):
             whether we index at the beginning or end of the array
     """
 
