@@ -1,9 +1,10 @@
-analysis
+ark.analysis package
 ====================
 
-These are the base libraries to use for post-segmentation analysis.
+Submodules
+----------
 
-ark.analysis.dimensionality\_reduction
+ark.analysis.dimensionality\_reduction module
 ---------------------------------------------
 
 .. automodule:: ark.analysis.dimensionality_reduction
@@ -11,7 +12,7 @@ ark.analysis.dimensionality\_reduction
    :undoc-members:
    :show-inheritance:
 
-ark.analysis.spatial\_analysis
+ark.analysis.spatial\_analysis module
 -------------------------------------
 
 .. automodule:: ark.analysis.spatial_analysis
@@ -19,10 +20,19 @@ ark.analysis.spatial\_analysis
    :undoc-members:
    :show-inheritance:
 
-ark.analysis.visualize
+ark.analysis.visualize module
 -----------------------------
 
 .. automodule:: ark.analysis.visualize
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+
+Module contents
+---------------
+
+.. automodule:: ark.analysis
    :members:
    :undoc-members:
    :show-inheritance:

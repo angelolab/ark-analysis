@@ -96,9 +96,8 @@ def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, 
         dist_matrix = dist_matrices_dict[included_fovs[i]]
 
         # Get close_num and close_num_rand
-
-        close_num, channel_nums = spatial_analysis_utils.compute_close_cell_num(
-            dist_mat=dist_matrix, dist_lim=100, num=channel_num, analysis_type="channel",
+        close_num, channel_nums, _ = spatial_analysis_utils.compute_close_cell_num(
+            dist_mat=dist_matrix, dist_lim=100, analysis_type="channel",
             current_fov_data=current_fov_data, current_fov_channel_data=current_fov_channel_data,
             thresh_vec=thresh_vec)
 
@@ -116,7 +115,7 @@ def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, 
 def calculate_cluster_spatial_enrichment(all_data, dist_matrices_dict, included_fovs=None,
                                          bootstrap_num=1000, dist_lim=100, fov_col="SampleID",
                                          cluster_name_col="cell_type", cluster_id_col="FlowSOM_ID",
-                                         cell_label_col="cellLabelInImage"):
+                                         cell_label_col="cellLabelInImage", context_labels=None):
     """Spatial enrichment analysis based on cell phenotypes to find significant interactions
     between different cell types, looking for both positive and negative enrichment. Uses
     bootstrapping to permute cell labels randomly.
@@ -141,6 +140,9 @@ def calculate_cluster_spatial_enrichment(all_data, dist_matrices_dict, included_
             column with the cell phenotype IDs. Default is 'FlowSOM_ID'
         cell_label_col (str):
             column with the cell labels. Default is 'cellLabelInImage'
+        context_labels (dict):
+            A dict that contains which specific types of cells we want to consider.
+            If argument is None, we will not run context-dependent spatial analysis
 
     Returns:
         tuple (list, xarray.DataArray):
@@ -190,17 +192,22 @@ def calculate_cluster_spatial_enrichment(all_data, dist_matrices_dict, included_
         dist_mat = dist_matrices_dict[included_fovs[i]]
 
         # Get close_num and close_num_rand
-        close_num, pheno_nums = spatial_analysis_utils.compute_close_cell_num(
-            dist_mat=dist_mat, dist_lim=dist_lim, num=cluster_num, analysis_type="cluster",
+        close_num, pheno_nums, pheno_nums_per_id = spatial_analysis_utils.compute_close_cell_num(
+            dist_mat=dist_mat, dist_lim=dist_lim, analysis_type="cluster",
             current_fov_data=current_fov_pheno_data, cluster_ids=cluster_ids)
+
         close_num_rand = spatial_analysis_utils.compute_close_cell_num_random(
             pheno_nums, dist_mat, dist_lim, bootstrap_num)
+
+        # close_num_rand_context = spatial_analysis_utils.compute_close_cell_num_random(
+        #     pheno_nums_per_id, dist_mat, dist_lim, bootstrap_num)
 
         values.append((close_num, close_num_rand))
 
         # Get z, p, adj_p, muhat, sigmahat, and h
         stats_xr = spatial_analysis_utils.calculate_enrichment_stats(close_num, close_num_rand)
         stats.loc[included_fovs[i], :, :] = stats_xr.values
+
     return values, stats
 
 
