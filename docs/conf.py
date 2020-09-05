@@ -191,7 +191,7 @@ def check_docstring_format(app, what, name, obj, options, lines):
             # the first value of lines should always contain the start of the description
             # if there is an extra space in front, that violates how a Google doctring should look
             if lines[0][0].isspace():
-                raise Exception('Your description should not have any preceding whitespace')
+                raise Exception('Your description for %s should not have any preceding whitespace' % name)
 
             # TODO: need a check to define one and only one whitespace between description and first :param
 
@@ -205,7 +205,7 @@ def check_docstring_format(app, what, name, obj, options, lines):
             if sorted(param_args) != sorted(type_args):
                 raise Exception('Parameter list: %s and type list: %s do not match in %s, a formatting error in your Args section likely caused this' % (','.join(param_args), ','.join(type_args), name))
 
-            # usually if the user forgets to specify an argument, occassionally a formatting issue as well
+            # usually if the user forgets to specify an argument, occassionally a formatting issue as well (ex. with Returns)
             if len(param_args) < len(argnames):
                 missing_args = list(set(argnames).difference(set(param_args)))
                 raise Exception('Missing description for parameters %s in %s, check your Args list and your docstring formatting' % (','.join(missing_args), name))
@@ -215,18 +215,28 @@ def check_docstring_format(app, what, name, obj, options, lines):
                 extra_args = list(set(param_args).difference(set(argnames)))
                 raise Exception('Extraneous arguments specified: %s in %s, check your Args list and your docstring formatting' % (','.join(extra_args), name))
 
-            # added just in case the check above somehow missed something
+            # added just in case the checks above somehow missed something
             # this might be the only one we really need but I think the others
             # beforehand are a bit more descriptive
             if sorted(param_args) != sorted(argnames):
                 raise Exception('Parameter list: %s does not match arglist: %s in %s, check your docstring formatting' % (','.join(param_args), ','.join(argnames), name))
 
+            # handle cases where return values are found
+            # currently, I can only check if in the case of a proper Return (:return) format (improper ones are usually handled by the above cases)
+            # it also contains a proper return type (:rtype)
+            # this one will be harder because for one, we cannot make the assumption that all functions return something
+            # second of all, the :returns and :rtype values may look OK in the list but still be formatted weird if the user screwed up tabs for example
+            if any(re.match(r':returns:', line) for line in lines):
+                if not any(re.match(r':rtype', line) for line in lines):
+                    raise Exception('Return value was provided but no return type specified in %s' % name)
+
+
             # if len(lines) == 0 and lines[0][0] == ':':
             # if lines[0][0] == ':':
             #     warnings.warn('Did not specify a description before args list')
-            # if name == 'ark.analysis.spatial_analysis.calculate_channel_spatial_enrichment':
-            #     print(argnames)
-            #     print(lines)
+            if name == 'ark.analysis.spatial_analysis.calculate_channel_spatial_enrichment' or name == 'ark.analysis.spatial_analysis.create_neighborhood_matrix':
+                print(argnames)
+                print(lines)
 
         else:
             pass
