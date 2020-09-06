@@ -197,19 +197,8 @@ def check_docstring_format(app, what, name, obj, options, lines):
             if sorted(param_args) != sorted(type_args):
                 raise Exception('Parameter list: %s and type list: %s do not match in %s, a formatting error in your Args section likely caused this' % (','.join(param_args), ','.join(type_args), name))
 
-            # usually if the user forgets to specify an argument, occassionally a formatting issue as well (ex. with Returns)
-            if len(param_args) < len(argnames):
-                missing_args = list(set(argnames).difference(set(param_args)))
-                raise Exception('Missing description for parameters %s in %s, check your Args list and your docstring formatting' % (','.join(missing_args), name))
-
-            # usually if the user adds an extra argument, occassionally a formatting issue as well
-            if len(param_args) > len(argnames):
-                extra_args = list(set(param_args).difference(set(argnames)))
-                raise Exception('Extraneous arguments specified: %s in %s, check your Args list and your docstring formatting' % (','.join(extra_args), name))
-
-            # added just in case the checks above somehow missed something
-            # this might be the only one we really need but I think the others
-            # beforehand are a bit more descriptive
+            # if your parameters are not the same as the arguments in the function
+            # that's bad because your docstring args section needs to match up exactly
             if sorted(param_args) != sorted(argnames):
                 raise Exception('Parameter list: %s does not match arglist: %s in %s, check your docstring formatting' % (','.join(param_args), ','.join(argnames), name))
 
