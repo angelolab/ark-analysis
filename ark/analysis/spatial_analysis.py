@@ -8,7 +8,7 @@ def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, 
                                          excluded_colnames=None, included_fovs=None,
                                          dist_lim=100, bootstrap_num=1000, fov_col="SampleID"):
     """Spatial enrichment analysis to find significant interactions between cells expressing
-    different markers.  Uses bootstrapping to permute cell labels randomly.
+    different markers. Uses bootstrapping to permute cell labels randomly.
 
     Args:
         dist_matrices_dict (dict):
@@ -21,9 +21,9 @@ def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, 
         excluded_colnames (list):
             all column names that are not markers. If argument is none, default is
             ["cell_size", "Background", "HH3",
-             "summed_channel", "label", "area",
-             "eccentricity", "major_axis_length",
-             "minor_axis_length", "perimeter", "fov"]
+            "summed_channel", "label", "area",
+            "eccentricity", "major_axis_length",
+            "minor_axis_length", "perimeter", "fov"]
         included_fovs (list):
             patient labels to include in analysis. If argument is none, default is all labels used.
         dist_lim (int):

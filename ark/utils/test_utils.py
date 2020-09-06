@@ -363,12 +363,13 @@ def create_paired_xarray_fovs(base_dir, fov_names, channel_names, img_shape=(10,
         img_shape (tuple):
             Single image shape (x pixels, y pixels)
         mode (str):
-            The type of data to generate.  Current options are:
-                - 'tiff'
-                - 'multitiff'
-                - 'reverse_multitiff'
-                - 'mibitiff'
-                - 'labels'
+            The type of data to generate. Current options are:
+
+            * 'tiff'
+            * 'multitiff'
+            * 'reverse_multitiff'
+            * 'mibitiff'
+            * 'labels'
         delimiter (str or None):
             Delimiting character or string separating fov_id from rest of file/folder name.
             Default is None.
@@ -520,7 +521,7 @@ def make_segmented_csv(num_cells, extra_cols=None):
         num_cells (int):
             Number of rows (cells) in csv
         extra_cols (dict):
-            Extra columns to add in the format `{'Column_Name' : data_1D, ...}`_
+            Extra columns to add in the format ``{'Column_Name' : data_1D, ...}``
 
     Returns:
         pandas.DataFrame:
@@ -538,7 +539,7 @@ def make_segmented_csv(num_cells, extra_cols=None):
 
 
 def create_test_extraction_data():
-    """ Generate hardcoded extraction test data
+    """Generate hardcoded extraction test data
 
     """
     # first create segmentation masks
