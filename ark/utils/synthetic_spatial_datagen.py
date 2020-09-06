@@ -316,6 +316,8 @@ def generate_two_cell_test_nuclear_signal(segmentation_mask, cell_centers,
             a list of cells we wish to generate nuclear signal for, if None assume just cell 1
         nuc_radius (int):
             the radius of the nucleus of each cell
+        nuc_signal_strength (int):
+            the value we want to assign for nuclear signal
         nuc_uncertainty_length (int):
             will extend nuc_radius by the specified length
 
@@ -365,6 +367,8 @@ def generate_two_cell_test_membrane_signal(segmentation_mask, cell_centers,
             a list of cells we wish to generate nuclear signal for, if None assume just cell 2
         memb_thickness (int):
             the diameter of the membrane ring of each cell
+        memb_signal_strength (int):
+            the value we want to assign to membrane signal
         memb_uncertainty_length (int):
             will extend memb_radius by the specified length
 
@@ -416,8 +420,8 @@ def generate_two_cell_test_channel_synthetic_data(size_img=(1024, 1024), cell_ra
             the radius of each cell
         nuc_radius (int):
             the radius of each nucleus
-        memb_diameter (int):
-            the diameter of each membrane
+        memb_thickness (int):
+            the thickness of each membrane
         nuc_cell_ids (list):
             a list of which cells we wish to generate nuclear signal for, if None assume just
             cell 1

@@ -212,9 +212,6 @@ def compute_complete_expression_matrices(segmentation_labels, tiff_dir, img_sub_
             a list of points we wish to analyze, if None will default to all points
         is_mibitiff (bool):
             a flag to indicate whether or not the base images are MIBItiffs
-        mibitiff_suffix (str):
-            if is_mibitiff is true, then needs to be specified to select which points to load from
-            mibitiff
         batch_size (int):
             how large we want each of the batches of points to be when computing, adjust as
             necessary for speed and memory considerations
