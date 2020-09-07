@@ -6,13 +6,6 @@ import scipy.ndimage as nd
 import numpy as np
 import pandas as pd
 
-import xarray as xr
-
-from skimage.feature import peak_local_max
-from skimage.measure import label, regionprops, regionprops_table
-
-import skimage.morphology as morph
-from skimage.segmentation import relabel_sequential
 import skimage.io as io
 
 from ark.utils import plot_utils, io_utils
