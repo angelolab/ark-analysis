@@ -8,6 +8,7 @@ import skimage.io as io
 
 from ark.utils import plot_utils, io_utils
 
+
 def find_nuclear_mask_id(nuc_segmentation_mask, cell_coords):
     """Get the ID of the nuclear mask which has the greatest amount of overlap with a given cell
 
@@ -140,7 +141,6 @@ def visualize_watershed_transform(segmentation_labels_xr, channel_data_xr,
         segmentation_labels_xr (xarray.DataArray): xarray containing segmentation labels
         channel_data_xr (xarray.DataArray): xarray containing TIFs
         output_dir (str): path to directory where the output will be saved
-        model_output (xarray): xarray containing the different branch outputs from deepcell
         overlay_channels (tuple): channels to overlay segmentation output over
         fovs (int): field of view
         save_tifs (str): flag to control what level of output to save. Must be one of:
