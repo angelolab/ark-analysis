@@ -192,49 +192,10 @@ def visualize_watershed_transform(segmentation_labels_xr, channel_data_xr,
             if save_tifs != 'none':
                 # save segmentation label map
                 for chan_list in overlay_channels:
-                #     if len(chan_list) == 1:
-                #         # if only one entry in list, make single channel overlay
-                #         channel = chan_list[0]
-                #         chan_marker = channel_data_xr.loc[fov, :, :, channel].values
-                #         plot_utils.plot_overlay(
-                #             segmentation_labels_xr.loc[fov, :, :, 'whole_cell'].values,
-                #             plotting_tif=chan_marker,
-                #             path=os.path.join(
-                #                 output_dir,
-                #                 "{}_{}_overlay.tiff".format(fov,
-                #                                             channel)))
-                #
-                #     elif len(chan_list) == 2:
-                #         input_data = modify_input_data(channel_data_xr, chan_list, fov)
-                #         plot_utils.plot_overlay(
-                #             segmentation_labels_xr.loc[fov, :, :, :].values,
-                #             plotting_tif=input_data,
-                #             path=os.path.join(
-                #                 output_dir,
-                #                 "{}_{}_{}_overlay.tiff".format(fov, chan_list[0], chan_list[1])))
-                #     elif len(chan_list) == 3:
-                #         # if three entries, make a 3 color stack,
-                #         # with third channel in first index (red)
-                #         input_data = modify_input_data(channel_data_xr, chan_list, fov)
-                #         plot_utils.plot_overlay(
-                #             segmentation_labels_xr.loc[fov, :, :, 'whole_cell'].values,
-                #             plotting_tif=input_data,
-                #             path=os.path.join(output_dir,
-                #                               "{}_{}_{}_{}_overlay.tiff".
-                #                               format(fov,
-                #                                      chan_list[0],
-                #                                      chan_list[1],
-                #                                      chan_list[2])))
-                #
-                # io.imsave(os.path.join(output_dir, "{}_segmentation_labels.tiff".format(fov)),
-                #           segmentation_labels_xr.loc[fov, :, :, 'whole_cell'].values)
-                    #raise ValueError(f'{fov}')
-                    #raise ValueError(f'{fov.values}')
-                    input_data = channel_data_xr.loc[fov, :, :, channel].values
+                    input_data = channel_data_xr.loc[fov, :, :, chan_list].values
                     save_path = '_'.join([f'{fov.values}', *chan_list, 'overlay.tiff'])
-                    #raise ValueError(f'{segmentation_labels_xr.loc[fov, :, :, :].values}')
                     plot_utils.plot_overlay(
-                        segmentation_labels_xr.loc[fov, :, :, :].values,
+                        segmentation_labels_xr.loc[fov, :, :, 'whole_cell'].values,
                         plotting_tif=input_data,
                         path=os.path.join(output_dir, save_path)
                     )

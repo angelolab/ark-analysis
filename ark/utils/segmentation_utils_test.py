@@ -5,7 +5,7 @@ from os import path
 from skimage.measure import regionprops
 import tempfile
 
-from ark.utils import segmentation_utils #data_utils
+from ark.utils import segmentation_utils  # data_utils
 
 
 def _generate_channel_xr(fov_num=2, chan_num=5):
@@ -203,8 +203,10 @@ def test_visualize_watershed():
             overlay_channels=overlay_channels,
             output_dir=temp_dir)
         for mod_output_fov in segmentation_labels_xr.fovs:
-            assert os.path.exists(
-                os.path.join(temp_dir, "{}_segmentation_labels.tiff".format(mod_output_fov)))
+            for chan_list in overlay_channels:
+                assert os.path.exists(
+                    os.path.join(temp_dir, '_'.join(
+                        [f'{mod_output_fov.values}', *chan_list, 'overlay.tiff'])))
 
         segmentation_utils.visualize_watershed_transform(
             segmentation_labels_xr=segmentation_labels_xr,
