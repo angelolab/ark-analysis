@@ -73,6 +73,8 @@ def load_imgs_from_mibitiff(data_dir, mibitiff_files=None, channels=None, delimi
                                   range(img_data[0].data.shape[1]), channels],
                           dims=["fovs", "rows", "cols", "channels"])
 
+    img_xr = img_xr.sortby('fovs').sortby('channels')
+
     return img_xr
 
 
@@ -142,6 +144,8 @@ def load_imgs_from_multitiff(data_dir, multitiff_files=None, channels=None, deli
                                   range(img_data.shape[2]),
                                   channels if channels else range(img_data.shape[3])],
                           dims=["fovs", "rows", "cols", "channels"])
+
+    img_xr = img_xr.sortby('fovs').sortby('channels')
 
     return img_xr
 
@@ -240,6 +244,9 @@ def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, channels=None,
     img_xr = xr.DataArray(img_data, coords=[fovs, row_coords, col_coords, img_names],
                           dims=["fovs", "rows", "cols", "channels"])
 
+    # sort by fovs and channels for deterministic result
+    img_xr = img_xr.sortby('fovs').sortby('channels')
+
     return img_xr
 
 
@@ -271,10 +278,6 @@ def load_imgs_from_dir(data_dir, imgdim_name='compartments', image_name='img_dat
     """
 
     imgs = iou.list_files(data_dir, substrs=['.tif', '.jpg', '.png'])
-
-    # filter by delimiter presence
-    if delimiter is not None:
-        imgs = [img for img in imgs if delimiter in img]
 
     imgs.sort()
 
@@ -324,6 +327,9 @@ def load_imgs_from_dir(data_dir, imgdim_name='compartments', image_name='img_dat
                           coords=[fovs, row_coords, col_coords, [image_name]],
                           dims=["fovs", "rows", "cols",
                           imgdim_name])
+
+    # sort for deterministic fov names
+    img_xr = img_xr.sortby('fovs')
 
     return img_xr
 
@@ -605,7 +611,7 @@ def split_img_stack(stack_dir, output_dir, stack_list, indices, names, channels_
             the indices we want to pull data from
         names (list):
             the corresponding names of the channels
-        channel_first (bool):
+        channels_first (bool):
             whether we index at the beginning or end of the array
     """
 

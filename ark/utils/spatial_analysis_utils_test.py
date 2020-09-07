@@ -111,6 +111,40 @@ def test_calc_dist_matrix():
     assert np.array_equal(distance_mat["2"].loc[range(1, 4), range(1, 4)], real_mat)
 
 
+def test_get_pos_cell_labels_channel():
+    all_data, _ = make_example_data_closenum()
+    example_thresholds = make_threshold_mat()
+
+    # Only include the columns of markers
+    fov_channel_data = all_data.drop(all_data.columns[[
+        0, 1, 14, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32]], axis=1)
+
+    thresh_vec = example_thresholds.iloc[0:20, 1]
+
+    cell_labels = all_data.iloc[:, 24]
+
+    pos_cell_labels = spatial_analysis_utils.get_pos_cell_labels_channel(
+        thresh_vec.iloc[0], fov_channel_data, cell_labels, fov_channel_data.columns[0])
+
+    assert len(pos_cell_labels) == 4
+
+
+def test_get_pos_cell_labels_cluster():
+    all_data, _ = make_example_data_closenum()
+    example_thresholds = make_threshold_mat()
+
+    # Only include the columns of markers
+    fov_channel_data = all_data.drop(all_data.columns[[
+        0, 1, 14, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32]], axis=1)
+
+    cluster_ids = all_data.iloc[:, 31].drop_duplicates()
+
+    pos_cell_labels = spatial_analysis_utils.get_pos_cell_labels_cluster(
+        cluster_ids.iloc[0], all_data, "cellLabelInImage", "FlowSOM_ID")
+
+    assert len(pos_cell_labels) == 4
+
+
 def test_compute_close_cell_num():
     # Test the closenum function
     all_data, example_dist_mat = make_example_data_closenum()
@@ -120,16 +154,12 @@ def test_compute_close_cell_num():
     fov_channel_data = all_data.drop(all_data.columns[[
         0, 1, 14, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32]], axis=1)
 
-    # List of all markers
-    channel_titles = fov_channel_data.columns
-    # Length of marker list
-    chanel_num = len(channel_titles)
-
     # Subsetting threshold matrix to only include column with threshold values
     thresh_vec = example_thresholds.iloc[0:20, 1]
 
-    example_closenum, m1 = spatial_analysis_utils.compute_close_cell_num(
-        dist_mat=example_dist_mat, dist_lim=100, num=chanel_num, analysis_type="channel",
+    # not taking into account mark1labels_per_id return value
+    example_closenum, m1, _ = spatial_analysis_utils.compute_close_cell_num(
+        dist_mat=example_dist_mat, dist_lim=100, analysis_type="channel",
         current_fov_data=all_data, current_fov_channel_data=fov_channel_data,
         thresh_vec=thresh_vec)
 
@@ -143,21 +173,30 @@ def test_compute_close_cell_num():
     # Only include the columns of markers
     fov_channel_data = all_data.drop(all_data.columns[[
         0, 1, 14, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32]], axis=1)
-    # List of all markers
-    channel_titles = fov_channel_data.columns
-    # Length of marker list
-    channel_num = len(channel_titles)
+
     # Subsetting threshold matrix to only include column with threshold values
     thresh_vec = example_thresholds.iloc[0:20, 1]
 
-    example_closenum, m1 = spatial_analysis_utils.compute_close_cell_num(
-        dist_mat=example_dist_mat, dist_lim=100, num=channel_num, analysis_type="channel",
+    example_closenum, m1, _ = spatial_analysis_utils.compute_close_cell_num(
+        dist_mat=example_dist_mat, dist_lim=100, analysis_type="channel",
         current_fov_data=all_data, current_fov_channel_data=fov_channel_data,
         thresh_vec=thresh_vec)
 
     assert (example_closenum[:2, :2] == 9).all()
     assert (example_closenum[3:5, 3:5] == 25).all()
     assert (example_closenum[5:7, 5:7] == 1).all()
+
+    # now, test for cluster enrichment
+    all_data, example_dist_mat = make_example_data_closenum()
+    cluster_ids = all_data.iloc[:, 31].drop_duplicates()
+
+    example_closenum, m1, _ = spatial_analysis_utils.compute_close_cell_num(
+        dist_mat=example_dist_mat, dist_lim=100, analysis_type="cluster",
+        current_fov_data=all_data, cluster_ids=cluster_ids)
+
+    assert example_closenum[0, 0] == 16
+    assert example_closenum[1, 1] == 25
+    assert example_closenum[2, 2] == 1
 
 
 def test_compute_close_cell_num_random():
