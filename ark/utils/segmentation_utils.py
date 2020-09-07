@@ -227,7 +227,7 @@ def visualize_watershed_transform(segmentation_labels_xr, channel_data_xr,
                 #           segmentation_labels_xr.loc[fov, :, :, 'whole_cell'].values)
                     #raise ValueError(f'{fov}')
                     #raise ValueError(f'{fov.values}')
-                    input_data = channel_data_xr.loc[fov, :, :, chan_list].values
+                    input_data = channel_data_xr.loc[fov, :, :, channel].values
                     save_path = '_'.join([f'{fov.values}', *chan_list, 'overlay.tiff'])
                     #raise ValueError(f'{segmentation_labels_xr.loc[fov, :, :, :].values}')
                     plot_utils.plot_overlay(
