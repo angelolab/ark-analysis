@@ -1,7 +1,6 @@
 import numpy as np
 import xarray as xr
 import os.path
-from os import path
 from skimage.measure import regionprops
 import tempfile
 
