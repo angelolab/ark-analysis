@@ -17,8 +17,6 @@ import skimage.io as io
 
 from ark.utils import plot_utils, io_utils
 
-
-
 def find_nuclear_mask_id(nuc_segmentation_mask, cell_coords):
     """Get the ID of the nuclear mask which has the greatest amount of overlap with a given cell
 

@@ -1,308 +1,200 @@
-import xarray as xr
 import numpy as np
 import os
-import math
 import pytest
 import tempfile
 from shutil import rmtree
 
-from mibidata import mibi_image as mi, tiff
-
-from ark.utils import data_utils
+from ark.utils import data_utils, test_utils
 import skimage.io as io
 
 
-# required metadata for mibitiff writing (barf)
-METADATA = {
-    'run': '20180703_1234_test', 'date': '2017-09-16T15:26:00',
-    'coordinates': (12345, -67890), 'size': 500., 'slide': '857',
-    'fov_id': 'Point1', 'fov_name': 'R1C3_Tonsil',
-    'folder': 'Point1/RowNumber0/Depth_Profile0',
-    'dwell': 4, 'scans': '0,5', 'aperture': 'B',
-    'instrument': 'MIBIscope1', 'tissue': 'Tonsil',
-    'panel': '20170916_1x', 'mass_offset': 0.1, 'mass_gain': 0.2,
-    'time_resolution': 0.5, 'miscalibrated': False, 'check_reg': False,
-    'filename': '20180703_1234_test', 'description': 'test image',
-    'version': 'alpha',
-}
-
-
-def _create_img_dir(temp_dir, fovs, imgs, img_sub_folder="TIFs", dtype="int8"):
-    tif = np.random.randint(0, 100, 1024 ** 2).reshape((1024, 1024)).astype(dtype)
-
-    for fov in fovs:
-        fov_path = os.path.join(temp_dir, fov, img_sub_folder)
-        if not os.path.exists(fov_path):
-            os.makedirs(fov_path)
-        for img in imgs:
-            io.imsave(os.path.join(fov_path, img), tif)
-
-
 def test_load_imgs_from_mibitiff():
-    # check unspecified point loading
-    data_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                            "..", "..", "data", "example_dataset",
-                            "input_data", "mibitiff_inputs")
-    channels = ["HH3", "Membrane"]
-    data_xr = data_utils.load_imgs_from_mibitiff(data_dir,
-                                                 channels=channels,
-                                                 delimiter='_')
-    assert(data_xr.dims == ("fovs", "rows", "cols", "channels"))
-    assert(data_xr.fovs == "Point8")
-    assert(data_xr.rows == range(1024)).all()
-    assert(data_xr.cols == range(1024)).all()
-    assert(data_xr.channels == channels).all()
 
-    # check specified point loading
-    mibitiff_files = ["Point8_RowNumber0_Depth_Profile0-MassCorrected-Filtered.tiff"]
-    data_xr = data_utils.load_imgs_from_mibitiff(data_dir,
-                                                 mibitiff_files=mibitiff_files,
-                                                 channels=channels,
-                                                 delimiter='_')
-    assert(data_xr.dims == ("fovs", "rows", "cols", "channels"))
-    assert(data_xr.fovs == "Point8")
-    assert(data_xr.rows == range(1024)).all()
-    assert(data_xr.cols == range(1024)).all()
-    assert(data_xr.channels == channels).all()
-    np.testing.assert_array_equal(
-        data_xr.values[0],
-        (tiff.read(os.path.join(data_dir, mibitiff_files[0])))[channels].data)
+    with tempfile.TemporaryDirectory() as temp_dir:
 
-    with tempfile.TemporaryDirectory(dir=data_dir) as temp_dir:
-        tif = mi.MibiImage(np.random.rand(1024, 1024, 2).astype(np.float32),
-                           ((1, channels[0]), (2, channels[1])),
-                           **METADATA)
-        tiff.write(os.path.join(temp_dir, 'Point9.tiff'), tif, dtype=np.float32)
-        tiff.write(os.path.join(temp_dir, 'Point8_junktext.tiff'), tif, dtype=np.float32)
+        # config test environment
+        fovs, channels = test_utils.gen_fov_chan_names(num_fovs=2, num_chans=3, use_delimiter=True)
 
-        mibitiff_files = ['Point8_junktext.tiff', 'Point9.tiff']
+        filelocs, data_xr = test_utils.create_paired_xarray_fovs(
+            temp_dir, fovs, channels, img_shape=(10, 10), mode='mibitiff', delimiter='_',
+            fills=True, dtype=np.float32
+        )
+
+        # check unspecified point loading
+        loaded_xr = data_utils.load_imgs_from_mibitiff(temp_dir,
+                                                       channels=channels,
+                                                       delimiter='_')
+
+        assert loaded_xr.equals(data_xr)
+
+        fovnames = [f'{fov}.tiff' for fov in fovs]
+
+        # check specified point loading
+        loaded_xr = data_utils.load_imgs_from_mibitiff(temp_dir,
+                                                       mibitiff_files=[fovnames[-1]],
+                                                       channels=channels,
+                                                       delimiter='_')
+
+        assert loaded_xr.equals(data_xr.loc[[fovs[-1]], :, :, :])
+
+        # test automatic all channels loading
+        loaded_xr = data_utils.load_imgs_from_mibitiff(temp_dir,
+                                                       delimiter='_',
+                                                       dtype=np.float32)
+
+        assert loaded_xr.equals(data_xr)
 
         # test delimiter agnosticism
-        data_xr = data_utils.load_imgs_from_mibitiff(temp_dir,
-                                                     mibitiff_files=mibitiff_files,
-                                                     channels=channels,
-                                                     delimiter='_',
-                                                     dtype=np.float32)
+        loaded_xr = data_utils.load_imgs_from_mibitiff(temp_dir,
+                                                       mibitiff_files=fovnames,
+                                                       channels=channels,
+                                                       delimiter='_',
+                                                       dtype=np.float32)
 
-        assert(data_xr.dims == ("fovs", "rows", "cols", "channels"))
-        assert(set(data_xr.fovs.values) == set(["Point8", "Point9"]))
-        assert(data_xr.rows == range(1024)).all()
-        assert(data_xr.cols == range(1024)).all()
-        assert(data_xr.channels == channels).all()
-        assert(np.issubdtype(data_xr.dtype, np.floating))
+        assert loaded_xr.equals(data_xr)
+        assert np.issubdtype(loaded_xr.dtype, np.floating)
 
         # test float overwrite
         with pytest.warns(UserWarning):
-            data_xr = data_utils.load_imgs_from_mibitiff(temp_dir,
-                                                         mibitiff_files=[mibitiff_files[-1]],
-                                                         channels=channels,
-                                                         delimiter='_',
-                                                         dtype='int16')
+            loaded_xr = data_utils.load_imgs_from_mibitiff(temp_dir,
+                                                           mibitiff_files=[fovnames[-1]],
+                                                           channels=channels,
+                                                           delimiter='_',
+                                                           dtype='int16')
 
-            assert(data_xr.dims == ("fovs", "rows", "cols", "channels"))
-            assert(data_xr.fovs == "Point9")
-            assert(data_xr.rows == range(1024)).all()
-            assert(data_xr.cols == range(1024)).all()
-            assert(data_xr.channels == channels).all()
-            assert(np.issubdtype(data_xr.dtype, np.floating))
-
-
-def test_load_imgs_from_mibitiff_all_channels():
-    data_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                            "..", "..", "data", "example_dataset",
-                            "input_data", "mibitiff_inputs")
-    mibitiff_files = ["Point8_RowNumber0_Depth_Profile0-MassCorrected-Filtered.tiff"]
-
-    data_xr = data_utils.load_imgs_from_mibitiff(data_dir,
-                                                 mibitiff_files=mibitiff_files,
-                                                 channels=None,
-                                                 delimiter='_')
-    assert(data_xr.dims == ("fovs", "rows", "cols", "channels"))
-    assert(data_xr.fovs == "Point8")
-    assert(data_xr.rows == range(1024)).all()
-    assert(data_xr.cols == range(1024)).all()
-    exected_channels = ["Background", "BetaCatenin", "BetaTubulin", "CD20",
-                        "CD3", "CD4", "CD45", "CD8", "CD9", "ECadherin", "ER",
-                        "GLUT1", "HER2", "HH3", "HLA_Class_1", "Ki67",
-                        "LaminAC", "Membrane", "NaK ATPase", "PanKeratin",
-                        "SMA", "Vimentin"]
-    assert(data_xr.channels == exected_channels).all()
-    np.testing.assert_array_equal(
-        data_xr.values[0],
-        (tiff.read(os.path.join(data_dir, mibitiff_files[0]))).data)
+            assert loaded_xr.equals(data_xr.loc[[fovs[-1]], :, :, :])
+            assert np.issubdtype(loaded_xr.dtype, np.floating)
 
 
 def test_load_imgs_from_multitiff():
-    # test all channels load w/ specified files
-    data_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                            "..", "..", "data", "example_dataset",
-                            "input_data", "deepcell_input")
-    multitiff_files = ["Point8.tif"]
-    data_xr = data_utils.load_imgs_from_multitiff(data_dir,
-                                                  multitiff_files=multitiff_files,
-                                                  channels=None,
-                                                  delimiter='_')
-    assert(data_xr.dims == ("fovs", "rows", "cols", "channels"))
-    assert(data_xr.fovs == "Point8")
-    assert(data_xr.rows == range(1024)).all()
-    assert(data_xr.cols == range(1024)).all()
-    assert(data_xr.channels == range(2)).all()
 
-    # test single channel load
-    data_xr = data_utils.load_imgs_from_multitiff(data_dir,
-                                                  multitiff_files=multitiff_files,
-                                                  channels=[0],
-                                                  delimiter='_')
-    assert(data_xr.dims == ("fovs", "rows", "cols", "channels"))
-    assert(data_xr.fovs == "Point8")
-    assert(data_xr.rows == range(1024)).all()
-    assert(data_xr.cols == range(1024)).all()
-    assert(data_xr.channels == [0]).all()
+    with tempfile.TemporaryDirectory() as temp_dir:
+        # config test environment
+        fovs, channels = test_utils.gen_fov_chan_names(num_fovs=2, num_chans=3, use_delimiter=True)
 
-    # test all channels w/ unspecified files
-    data_xr = data_utils.load_imgs_from_multitiff(data_dir,
-                                                  multitiff_files=None,
-                                                  channels=None,
-                                                  delimiter='_')
-    assert(data_xr.dims == ("fovs", "rows", "cols", "channels"))
-    assert(data_xr.fovs == "Point8")
-    assert(data_xr.rows == range(1024)).all()
-    assert(data_xr.cols == range(1024)).all()
-    assert(data_xr.channels == range(2)).all()
+        filelocs, data_xr = test_utils.create_paired_xarray_fovs(
+            temp_dir, fovs, channels, img_shape=(10, 10), mode='multitiff', delimiter='_',
+            fills=True, dtype=np.float32
+        )
 
-    with tempfile.TemporaryDirectory(dir=data_dir) as temp_dir:
-        tif = np.random.rand(1024, 1024, 2).astype('float')
+        fovnames = [f'{fov}.tiff' for fov in fovs]
 
-        io.imsave(os.path.join(temp_dir, 'Point8.tif'),
-                  tif,
-                  plugin='tifffile')
-        io.imsave(os.path.join(temp_dir, 'Point9_junktext.tif'),
-                  tif,
-                  plugin='tifffile')
+        # test all channels loading w/ specified file
+        loaded_xr = data_utils.load_imgs_from_multitiff(temp_dir,
+                                                        multitiff_files=[fovnames[-1]],
+                                                        delimiter='_')
 
-        # test delimiter agnosticism
-        data_xr = data_utils.load_imgs_from_multitiff(temp_dir,
-                                                      multitiff_files=None,
-                                                      channels=None,
-                                                      delimiter='_',
-                                                      dtype='float')
+        assert loaded_xr.equals(data_xr.loc[[fovs[-1]], :, :, :])
 
-        assert(data_xr.dims == ("fovs", "rows", "cols", "channels"))
-        assert(set(data_xr.fovs.values) == set(["Point8", "Point9"]))
-        assert(data_xr.rows == range(1024)).all()
-        assert(data_xr.cols == range(1024)).all()
-        assert(data_xr.channels == range(2)).all()
-        assert(np.issubdtype(data_xr.dtype, np.floating))
+        # test single channel load
+        loaded_xr = data_utils.load_imgs_from_multitiff(temp_dir,
+                                                        multitiff_files=fovnames,
+                                                        channels=[0],
+                                                        delimiter='_')
+
+        assert loaded_xr.equals(data_xr.loc[:, :, :, [0]])
+
+        # test all channels w/ unspecified files + delimiter agnosticism
+        loaded_xr = data_utils.load_imgs_from_multitiff(temp_dir,
+                                                        multitiff_files=None,
+                                                        channels=None,
+                                                        delimiter='_')
+
+        assert loaded_xr.equals(data_xr)
 
         # test float overwrite
         with pytest.warns(UserWarning):
-            data_xr = data_utils.load_imgs_from_multitiff(temp_dir,
-                                                          multitiff_files=['Point9_junktext.tif'],
-                                                          channels=None,
-                                                          delimiter='_',
-                                                          dtype='int16')
+            loaded_xr = data_utils.load_imgs_from_multitiff(temp_dir,
+                                                            delimiter='_',
+                                                            dtype='int16')
 
-            assert(data_xr.dims == ("fovs", "rows", "cols", "channels"))
-            assert(data_xr.fovs == "Point9")
-            assert(data_xr.rows == range(1024)).all()
-            assert(data_xr.cols == range(1024)).all()
-            assert(data_xr.channels == range(2)).all()
-            assert(np.issubdtype(data_xr.dtype, np.floating))
+            assert loaded_xr.equals(data_xr)
+            assert(np.issubdtype(loaded_xr.dtype, np.floating))
 
 
 def test_load_imgs_from_tree():
     # test loading from within fov directories
-    with tempfile.TemporaryDirectory(prefix='fovs') as temp_dir:
-        fovs = ["fov1", "fov2", "fov3"]
-        imgs = ["img1.tiff", "img2.tiff", "img3.tiff"]
-        chans = [chan.split(".tiff")[0] for chan in imgs]
-        _create_img_dir(temp_dir, fovs, imgs)
+    with tempfile.TemporaryDirectory() as temp_dir:
+        fovs, chans, imgs = test_utils.gen_fov_chan_names(num_fovs=3, num_chans=3,
+                                                          return_imgs=True)
+
+        filelocs, data_xr = test_utils.create_paired_xarray_fovs(
+            temp_dir, fovs, chans, img_shape=(10, 10), delimiter='_', fills=True, sub_dir="TIFs",
+            dtype="int16"
+        )
 
         # check default loading of all files
-        test_loaded_xr = \
+        loaded_xr = \
             data_utils.load_imgs_from_tree(temp_dir, img_sub_folder="TIFs", dtype="int16")
 
-        # make sure all folders loaded
-        assert np.array_equal(test_loaded_xr.fovs.values.sort(), fovs.sort())
-
-        # make sure all channels loaded
-        assert np.array_equal(test_loaded_xr.channels.values.sort(), chans.sort())
+        assert loaded_xr.equals(data_xr)
 
         # check loading of specific files
         some_fovs = fovs[:2]
         some_imgs = imgs[:2]
         some_chans = chans[:2]
 
-        test_subset_xr = \
+        loaded_xr = \
             data_utils.load_imgs_from_tree(temp_dir, img_sub_folder="TIFs", dtype="int16",
                                            fovs=some_fovs, channels=some_imgs)
 
-        # make sure specified folders loaded
-        assert np.array_equal(test_subset_xr.fovs.values.sort(), some_fovs.sort())
-
-        # make sure specified channels loaded
-        assert np.array_equal(test_subset_xr.channels.values.sort(), some_chans.sort())
+        assert loaded_xr.equals(data_xr[:2, :, :, :2])
 
         # check loading w/o file extension
-        test_noext_xr = \
+        loaded_xr = \
             data_utils.load_imgs_from_tree(temp_dir, img_sub_folder="TIFs", dtype="int16",
                                            channels=some_chans)
 
-        # make sure all folders loaded
-        assert np.array_equal(test_noext_xr.fovs.values.sort(), fovs.sort())
-
-        # make sure specified channels loaded
-        assert np.array_equal(test_noext_xr.channels.values.sort(), some_chans.sort())
+        assert loaded_xr.equals(data_xr[:, :, :, :2], )
 
         # check mixed extension presence
-        test_someext_xr = \
+        loaded_xr = \
             data_utils.load_imgs_from_tree(temp_dir, img_sub_folder="TIFs", dtype="int16",
                                            channels=[chans[i] if i % 2 else imgs[i]
                                                      for i in range(3)])
 
-        # make sure all folders loaded
-        assert np.array_equal(test_someext_xr.fovs.values.sort(), fovs.sort())
+        assert loaded_xr.equals(data_xr)
 
-        # makes sure all channels loaded
-        assert np.array_equal(test_someext_xr.channels.values.sort(), chans.sort())
+    with tempfile.TemporaryDirectory() as temp_dir:
+        fovs, chans, imgs = test_utils.gen_fov_chan_names(num_fovs=1, num_chans=2,
+                                                          return_imgs=True)
 
-        # resave img3 as floats and test for float warning
-        tif = np.random.rand(1024, 1024).astype("float")
-        io.imsave(os.path.join(temp_dir, fovs[-1], "TIFs", imgs[-1]), tif)
+        filelocs, data_xr = test_utils.create_paired_xarray_fovs(
+            temp_dir, fovs, chans, img_shape=(10, 10), delimiter='_', fills=True, sub_dir="TIFs",
+            dtype=np.float32
+        )
 
         with pytest.warns(UserWarning):
-            test_warning_xr = \
-                data_utils.load_imgs_from_tree(temp_dir, img_sub_folder="TIFs", dtype="int16",
-                                               fovs=[fovs[-1]], channels=[imgs[-1]])
+            loaded_xr = \
+                data_utils.load_imgs_from_tree(temp_dir, img_sub_folder="TIFs", dtype="int16")
+
+            assert loaded_xr.equals(data_xr)
 
             # test swap int16 -> float
-            assert np.issubdtype(test_warning_xr.dtype, np.floating)
+            assert np.issubdtype(loaded_xr.dtype, np.floating)
 
 
 def test_load_imgs_from_dir():
     # test loading from 'free' directory
-    with tempfile.TemporaryDirectory(prefix='one_file') as temp_dir:
-        imgs = ["fov1_img1.tiff", "fov2_img2.tiff", "fov3_img3.tiff"]
-        fovs = [img.split("_")[0] for img in imgs]
-        _create_img_dir(temp_dir, fovs=[""], imgs=imgs, img_sub_folder="", dtype="float")
+    with tempfile.TemporaryDirectory() as temp_dir:
+        fovs, _ = test_utils.gen_fov_chan_names(num_fovs=3, num_chans=0, use_delimiter=True)
+        filelocs, data_xr = test_utils.create_paired_xarray_fovs(temp_dir, fovs, ['img_data'],
+                                                                 img_shape=(10, 10), mode='labels',
+                                                                 delimiter='_', dtype=np.float32)
 
         # check default loading
-        test_loaded_xr = \
-            data_utils.load_imgs_from_dir(temp_dir, delimiter='_', dtype="float")
+        loaded_xr = \
+            data_utils.load_imgs_from_dir(temp_dir, delimiter='_', dtype=np.float32)
 
-        # make sure grouping by file prefix was effective
-        assert np.array_equal(test_loaded_xr.fovs, fovs)
+        assert loaded_xr.equals(data_xr)
 
-        # make sure dim and coord were named w/ defaults
-        assert np.all(test_loaded_xr.loc["fov1", :, :, "img_data"] >= 0)
-        assert test_loaded_xr.dims[-1] == 'compartments'
-
+        # test swap int16 -> float
         with pytest.warns(UserWarning):
-            test_warning_xr = \
+            loaded_xr = \
                 data_utils.load_imgs_from_dir(temp_dir, delimiter='_', dtype="int16")
 
-            # test swap int16 -> float
-            assert np.issubdtype(test_warning_xr.dtype, np.floating)
+            assert loaded_xr.equals(data_xr)
+            assert np.issubdtype(loaded_xr.dtype, np.floating)
 
 
 def test_generate_deepcell_input():
@@ -310,15 +202,11 @@ def test_generate_deepcell_input():
         fovs = ['fov1', 'fov2']
         chans = ['nuc1', 'nuc2', 'mem1', 'mem2']
 
+        data_xr = test_utils.make_images_xarray(tif_data=None, fov_ids=fovs, channel_names=chans,
+                                                dtype='int16')
+
         fov1path = os.path.join(temp_dir, 'fov1.tif')
         fov2path = os.path.join(temp_dir, 'fov2.tif')
-
-        img_data = np.ones((2, 1024, 1024, 4), dtype="int16")
-        img_data[0, :, :, 1] += 1
-        img_data[0, :, :, 3] += 2
-
-        data_xr = xr.DataArray(img_data, coords=[fovs, range(1024), range(1024), chans],
-                               dims=["fovs", "rows", "cols", "channels"])
 
         # test 1 nuc, 1 mem (no summing)
         nucs = ['nuc2']
@@ -328,14 +216,8 @@ def test_generate_deepcell_input():
         fov1 = io.imread(fov1path)
         fov2 = io.imread(fov2path)
 
-        # check shape
-        assert fov1.shape == (1024, 1024, 2)
-        assert fov2.shape == (1024, 1024, 2)
-
-        assert np.all(fov1[:, :, 0] == 2)
-        assert np.all(fov1[:, :, 1] == 3)
-        assert np.all(fov2[:, :, 0] == 1)
-        assert np.all(fov2[:, :, 1] == 1)
+        assert np.array_equal(fov1, data_xr.loc['fov1', :, :, ['nuc2', 'mem2']].values)
+        assert np.array_equal(fov2, data_xr.loc['fov2', :, :, ['nuc2', 'mem2']].values)
 
         # test 2 nuc, 2 mem (summing)
         nucs = ['nuc1', 'nuc2']
@@ -345,10 +227,13 @@ def test_generate_deepcell_input():
         fov1 = io.imread(fov1path)
         fov2 = io.imread(fov2path)
 
-        assert np.all(fov1[:, :, 0] == 3)
-        assert np.all(fov1[:, :, 1] == 4)
-        assert np.all(fov2[:, :, 0] == 2)
-        assert np.all(fov2[:, :, 1] == 2)
+        nuc_sums = data_xr.loc[:, :, :, nucs].sum(dim='channels').values
+        mem_sums = data_xr.loc[:, :, :, mems].sum(dim='channels').values
+
+        assert np.array_equal(fov1[:, :, 0], nuc_sums[0, :, :])
+        assert np.array_equal(fov1[:, :, 1], mem_sums[0, :, :])
+        assert np.array_equal(fov2[:, :, 0], nuc_sums[1, :, :])
+        assert np.array_equal(fov2[:, :, 1], mem_sums[1, :, :])
 
         # test nuc None
         nucs = None
@@ -357,14 +242,10 @@ def test_generate_deepcell_input():
         fov1 = io.imread(fov1path)
         fov2 = io.imread(fov2path)
 
-        # check shape (important for a None case)
-        assert fov1.shape == (1024, 1024, 2)
-        assert fov2.shape == (1024, 1024, 2)
-
         assert np.all(fov1[:, :, 0] == 0)
-        assert np.all(fov1[:, :, 1] == 4)
+        assert np.array_equal(fov1[:, :, 1], mem_sums[0, :, :])
         assert np.all(fov2[:, :, 0] == 0)
-        assert np.all(fov2[:, :, 1] == 2)
+        assert np.array_equal(fov2[:, :, 1], mem_sums[1, :, :])
 
         # test mem None
         nucs = ['nuc2']
@@ -374,87 +255,71 @@ def test_generate_deepcell_input():
         fov1 = io.imread(fov1path)
         fov2 = io.imread(fov2path)
 
-        assert np.all(fov1[:, :, 0] == 2)
         assert np.all(fov1[:, :, 1] == 0)
-        assert np.all(fov2[:, :, 0] == 1)
+        assert np.array_equal(fov1[:, :, 0], data_xr.loc['fov1', :, :, 'nuc2'].values)
         assert np.all(fov2[:, :, 1] == 0)
+        assert np.array_equal(fov2[:, :, 0], data_xr.loc['fov2', :, :, 'nuc2'].values)
 
 
 def test_combine_xarrays():
     # test combining along points axis
-    xr1 = xr.DataArray(np.random.randint(10, size=(3, 30, 30, 3)),
-                       coords=[["Point1", "Point2", "Point3"], range(30), range(30),
-                               ["chan1", "chan2", "chan3"]],
-                       dims=["fovs", "rows", "cols", "channels"])
+    fov_ids, chan_ids = test_utils.gen_fov_chan_names(num_fovs=5, num_chans=3)
 
-    xr2 = xr.DataArray(np.random.randint(10, size=(2, 30, 30, 3)),
-                       coords=[["Point4", "Point5"], range(30), range(30),
-                               ["chan1", "chan2", "chan3"]],
-                       dims=["fovs", "rows", "cols", "channels"])
+    base_xr = test_utils.make_images_xarray(tif_data=None, fov_ids=fov_ids, channel_names=chan_ids)
 
-    xr_combined = data_utils.combine_xarrays((xr1, xr2), axis=0)
-    assert xr_combined.shape == (5, 30, 30, 3)
-    assert np.all(xr_combined.channels.values == xr1.channels.values)
-    assert np.all(xr_combined.fovs == np.concatenate((xr1.fovs.values, xr2.fovs.values)))
+    test_xr = data_utils.combine_xarrays((base_xr[:3, :, :, :], base_xr[3:, :, :, :]), axis=0)
+    assert test_xr.equals(base_xr)
 
     # test combining along channels axis
-    xr1 = xr.DataArray(np.random.randint(10, size=(3, 30, 30, 3)),
-                       coords=[["Point1", "Point2", "Point3"], range(30), range(30),
-                               ["chan1", "chan2", "chan3"]],
-                       dims=["fovs", "rows", "cols", "channels"])
+    fov_ids, chan_ids = test_utils.gen_fov_chan_names(num_fovs=3, num_chans=5)
 
-    xr2 = xr.DataArray(np.random.randint(10, size=(3, 30, 30, 2)),
-                       coords=[["Point1", "Point2", "Point3"], range(30), range(30),
-                               ["chan3", "chan4"]],
-                       dims=["fovs", "rows", "cols", "channels"])
+    base_xr = test_utils.make_images_xarray(tif_data=None, fov_ids=fov_ids, channel_names=chan_ids)
 
-    xr_combined = data_utils.combine_xarrays((xr1, xr2), axis=-1)
-    assert xr_combined.shape == (3, 30, 30, 5)
-    assert np.all(
-        xr_combined.channels == np.concatenate((xr1.channels.values, xr2.channels.values)))
-    assert np.all(xr_combined.fovs == xr1.fovs)
+    test_xr = data_utils.combine_xarrays((base_xr[:, :, :, :3], base_xr[:, :, :, 3:]), axis=-1)
+    assert test_xr.equals(base_xr)
 
 
 def test_crop_helper():
     # test crops that divide evenly
-    crop_input = np.zeros((4, 1024, 1024, 4))
-    crop_size = 128
+    crop_input = np.zeros((4, 256, 256, 4))
+    crop_size = 64
 
     cropped = data_utils.crop_helper(crop_input, crop_size)
     num_crops = crop_input.shape[0] * \
-        (crop_input.shape[1] / crop_size) * (crop_input.shape[2] / crop_size)
+        (crop_input.shape[1] // crop_size) * (crop_input.shape[2] // crop_size)
     assert np.array_equal(cropped.shape, (num_crops, crop_size, crop_size, crop_input.shape[3]))
 
     # test crops that don't divide evenly
-    crop_input = np.zeros((4, 1024, 1024, 4))
-    crop_size = 100
+    crop_input = np.zeros((4, 256, 256, 4))
+    crop_size = 56
 
     cropped = data_utils.crop_helper(crop_input, crop_size)
-    num_crops = crop_input.shape[0] * math.ceil(crop_input.shape[1] / crop_size) * \
-        math.ceil(crop_input.shape[2] / crop_size)
+    num_crops = crop_input.shape[0] * \
+        ((crop_input.shape[1] + crop_size) // crop_size) * \
+        ((crop_input.shape[2] + crop_size) // crop_size)
     assert np.array_equal(cropped.shape, (num_crops, crop_size, crop_size, crop_input.shape[3]))
 
 
 def test_crop_image_stack():
     # test without overlap (stride_fraction = 1)
-    crop_input = np.zeros((4, 1024, 1024, 4), dtype="int16")
-    crop_size = 128
+    crop_input = np.zeros((4, 256, 256, 4), dtype="int16")
+    crop_size = 64
     stride_fraction = 1
 
     cropped = data_utils.crop_image_stack(crop_input, crop_size, stride_fraction)
-    num_crops = crop_input.shape[0] * math.floor(crop_input.shape[1] / crop_size) * \
-        math.floor(crop_input.shape[2] / crop_size) * (1 / stride_fraction)
+    num_crops = crop_input.shape[0] * (crop_input.shape[1] // crop_size) * \
+        (crop_input.shape[2] // crop_size) * (1 / stride_fraction)
 
     assert np.array_equal(cropped.shape, (num_crops, crop_size, crop_size, crop_input.shape[3]))
 
     # test with overlap
-    crop_input = np.zeros((4, 1024, 1024, 4), dtype="int16")
-    crop_size = 128
+    crop_input = np.zeros((4, 256, 256, 4), dtype="int16")
+    crop_size = 64
     stride_fraction = 0.25
 
     cropped = data_utils.crop_image_stack(crop_input, crop_size, stride_fraction)
-    num_crops = crop_input.shape[0] * math.floor(crop_input.shape[1] / crop_size) * math.floor(
-        crop_input.shape[2] / crop_size) * (1 / stride_fraction) * (1 / stride_fraction)
+    num_crops = crop_input.shape[0] * (crop_input.shape[1] // crop_size) * \
+        (crop_input.shape[2] // crop_size) * (1 / stride_fraction) * (1 / stride_fraction)
 
     assert np.array_equal(cropped.shape, (num_crops, crop_size, crop_size, crop_input.shape[3]))
 
@@ -482,63 +347,63 @@ def test_combine_point_directories():
 
 
 def test_stitch_images():
-    fovs = ['fov' + str(i) for i in range(40)]
-    chans = ['nuc1', 'nuc2', 'mem1', 'mem2']
+    fovs, chans = test_utils.gen_fov_chan_names(num_fovs=40, num_chans=4)
 
-    img_data = np.ones((40, 10, 10, 4), dtype="int16")
-    img_data[0, :, :, 1] += 1
-    img_data[0, :, :, 3] += 2
-
-    data_xr = xr.DataArray(img_data, coords=[fovs, range(10), range(10), chans],
-                           dims=["fovs", "rows", "cols", "channels"])
+    data_xr = test_utils.make_images_xarray(tif_data=None, fov_ids=fovs, channel_names=chans,
+                                            dtype='int16')
 
     stitched_xr = data_utils.stitch_images(data_xr, 5)
 
-    assert stitched_xr.shape == (1, 40 / 5 * 10, 40 / 8 * 10, 4)
+    assert stitched_xr.shape == (1, 80, 50, 4)
 
 
 def test_split_img_stack():
     with tempfile.TemporaryDirectory() as temp_dir:
-        stack_dir = os.path.join(temp_dir, "stack_sample")
-        output_dir = os.path.join(temp_dir, "output_sample")
-        stack_list = ["channel_data.tif"]
-        indices = [0, 1]
-        names = ["chan1.tif", "chan2.tif"]
 
-        os.mkdir(os.path.join(temp_dir, "stack_sample"))
-        os.mkdir(os.path.join(temp_dir, "output_sample"))
+        fovs = ['stack_sample']
+        _, chans, names = test_utils.gen_fov_chan_names(num_fovs=0, num_chans=10, return_imgs=True)
+
+        stack_list = ["stack_sample.tiff"]
+        stack_dir = os.path.join(temp_dir, fovs[0])
+        os.mkdir(stack_dir)
+
+        output_dir = os.path.join(temp_dir, "output_sample")
+        os.mkdir(output_dir)
+
+        filelocs, data_xr = test_utils.create_paired_xarray_fovs(stack_dir, fovs,
+                                                                 chans, img_shape=(128, 128),
+                                                                 mode='multitiff')
 
         # first test channel_first=False
-        junk_img_chan_last = np.zeros((1024, 1024, 10))
-        io.imsave(os.path.join(stack_dir, "channel_data.tif"), junk_img_chan_last)
-
-        data_utils.split_img_stack(stack_dir, output_dir, stack_list, indices, names,
+        data_utils.split_img_stack(stack_dir, output_dir, stack_list, [0, 1], names[0:2],
                                    channels_first=False)
 
-        assert os.path.exists(os.path.join(output_dir, "channel_data", "chan1.tif"))
-        assert os.path.exists(os.path.join(output_dir, "channel_data", "chan2.tif"))
+        # raise ValueError(f"{os.listdir(os.path.join(output_dir, 'stack_sample'))}")
 
-        sample_chan_1 = io.imread(os.path.join(output_dir, "channel_data", "chan1.tif"))
-        sample_chan_2 = io.imread(os.path.join(output_dir, "channel_data", "chan2.tif"))
+        assert os.path.exists(os.path.join(output_dir, "stack_sample", "chan0.tiff"))
+        assert os.path.exists(os.path.join(output_dir, "stack_sample", "chan1.tiff"))
 
-        assert sample_chan_1.shape == (1024, 1024)
-        assert sample_chan_2.shape == (1024, 1024)
+        sample_chan_1 = io.imread(os.path.join(output_dir, "stack_sample", "chan0.tiff"))
+        sample_chan_2 = io.imread(os.path.join(output_dir, "stack_sample", "chan1.tiff"))
 
-        # now overwrite old channel_data.jpg file and test channel_first=True
-        junk_img_chan_first = np.zeros((10, 1024, 1024))
-        io.imsave(os.path.join(stack_dir, "channel_data.tif"), junk_img_chan_first)
+        assert np.array_equal(sample_chan_1, data_xr[0, :, :, 0].values)
+        assert np.array_equal(sample_chan_2, data_xr[0, :, :, 1].values)
 
-        # clear the original channel_data directory
-        rmtree(os.path.join(output_dir, "channel_data"))
+        rmtree(os.path.join(output_dir, 'stack_sample'))
 
-        data_utils.split_img_stack(stack_dir, output_dir, stack_list, indices, names,
+        # now overwrite old stack_sample.jpg file and test channel_first=True
+        filelocs, data_xr = test_utils.create_paired_xarray_fovs(stack_dir, fovs,
+                                                                 chans, img_shape=(128, 128),
+                                                                 mode='reverse_multitiff')
+
+        data_utils.split_img_stack(stack_dir, output_dir, stack_list, [0, 1], names[0:2],
                                    channels_first=True)
 
-        assert os.path.exists(os.path.join(output_dir, "channel_data", "chan1.tif"))
-        assert os.path.exists(os.path.join(output_dir, "channel_data", "chan2.tif"))
+        assert os.path.exists(os.path.join(output_dir, "stack_sample", "chan0.tiff"))
+        assert os.path.exists(os.path.join(output_dir, "stack_sample", "chan1.tiff"))
 
-        sample_chan_1 = io.imread(os.path.join(output_dir, "channel_data", "chan1.tif"))
-        sample_chan_2 = io.imread(os.path.join(output_dir, "channel_data", "chan2.tif"))
+        sample_chan_1 = io.imread(os.path.join(output_dir, "stack_sample", "chan0.tiff"))
+        sample_chan_2 = io.imread(os.path.join(output_dir, "stack_sample", "chan1.tiff"))
 
-        assert sample_chan_1.shape == (1024, 1024)
-        assert sample_chan_2.shape == (1024, 1024)
+        assert np.array_equal(sample_chan_1, data_xr[0, :, :, 0].values)
+        assert np.array_equal(sample_chan_2, data_xr[0, :, :, 1].values)

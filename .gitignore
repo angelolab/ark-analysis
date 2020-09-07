@@ -16,3 +16,4 @@ env
 /dist
 
 */_build
+*/_markdown
