@@ -24,7 +24,7 @@ def modify_input_data(channel_data_xr, chan_list, fov):
         channel_data_xr (xarray.DataArray):
             xarray containing TIFs
         chan_list (list):
-            list of channels
+            list of channels used in overlay plots
         fov (int):
             field of view
 
@@ -174,6 +174,9 @@ def visualize_watershed_transform(segmentation_labels_xr, channel_data_xr,
         model_output (xarray): xarray containing the different branch outputs from deepcell
         overlay_channels (tuple): channels to overlay segmentation output over
         fovs (int): field of view
+        save_tifs (str): flag to control what level of output to save. Must be one of:
+            all - saves all tifs
+            overlays - saves color overlays and segmentation masks
     """
 
     # error check model selected for local maxima finding in the image
