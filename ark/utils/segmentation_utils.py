@@ -144,8 +144,8 @@ def visualize_watershed_transform(segmentation_labels_xr, channel_data_xr,
         overlay_channels (tuple): channels to overlay segmentation output over
         fovs (int): field of view
         save_tifs (str): flag to control what level of output to save. Must be one of:
-            all - saves all tifs
-            overlays - saves color overlays and segmentation masks
+        all - saves all tifs
+        overlays - saves color overlays and segmentation masks
     """
 
     # error check model selected for local maxima finding in the image
