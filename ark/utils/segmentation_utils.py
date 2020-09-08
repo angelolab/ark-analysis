@@ -131,12 +131,13 @@ def concatenate_csv(base_dir, csv_files, column_name="point", column_values=None
     combined_data.to_csv(os.path.join(base_dir, "combined_data.csv"), index=False)
 
 
-def visualize_watershed_transform(segmentation_labels_xr, channel_data_xr,
-                                  output_dir,
-                                  overlay_channels, fovs=None,
-                                  save_tifs='overlays'):
+def visualize_segmentation(segmentation_labels_xr, channel_data_xr,
+                           output_dir,
+                           overlay_channels, fovs=None,
+                           save_tifs='overlays'):
     """Runs the watershed transform over a set of probability masks output by deepcell network
     Saves xarray to output directory
+
     Args:
         segmentation_labels_xr (xarray.DataArray): xarray containing segmentation labels
         channel_data_xr (xarray.DataArray): xarray containing TIFs

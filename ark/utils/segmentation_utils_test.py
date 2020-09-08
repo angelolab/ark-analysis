@@ -163,13 +163,13 @@ def test_transform_expression_matrix_multiple_compartments():
         assert np.array_equal(arcsinh_data.loc[:, cell, modified_cols].values, arcsinh_vals)
 
 
-def test_visualize_watershed():
+def test_visualize_segmentation():
     with tempfile.TemporaryDirectory() as temp_dir:
         channel_xr = _generate_channel_xr()
         overlay_channels = channel_xr.channels.values[:2],
         segmentation_labels_xr = _generate_deepcell_ouput()
 
-        segmentation_utils.visualize_watershed_transform(
+        segmentation_utils.visualize_segmentation(
             segmentation_labels_xr=segmentation_labels_xr,
             fovs=segmentation_labels_xr.fovs, channel_data_xr=channel_xr,
             overlay_channels=overlay_channels,
@@ -179,8 +179,8 @@ def test_visualize_watershed():
                 assert os.path.exists(
                     os.path.join(temp_dir, '_'.join(
                         [f'{mod_output_fov.values}', *chan_list, 'overlay.tiff'])))
-
-        segmentation_utils.visualize_watershed_transform(
+    with tempfile.TemporaryDirectory() as temp_dir:
+        segmentation_utils.visualize_segmentation(
             segmentation_labels_xr=segmentation_labels_xr,
             fovs=segmentation_labels_xr.fovs, channel_data_xr=channel_xr,
             overlay_channels=overlay_channels,
