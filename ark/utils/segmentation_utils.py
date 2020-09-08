@@ -142,7 +142,7 @@ def visualize_watershed_transform(segmentation_labels_xr, channel_data_xr,
         channel_data_xr (xarray.DataArray): xarray containing TIFs
         output_dir (str): path to directory where the output will be saved
         overlay_channels (tuple): channels to overlay segmentation output over
-        fovs (int): field of view
+        fovs (list): field of view
         save_tifs (str): flag to control what level of output to save. Must be one of:
         all - saves all tifs
         overlays - saves color overlays and segmentation masks
