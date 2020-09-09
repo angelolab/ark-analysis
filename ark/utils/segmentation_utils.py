@@ -6,7 +6,7 @@ import pandas as pd
 
 import skimage.io as io
 
-from ark.utils import plot_utils, io_utils
+from ark.utils import plot_utils, io_utils #test_utils
 
 
 def find_nuclear_mask_id(nuc_segmentation_mask, cell_coords):
@@ -171,14 +171,15 @@ def visualize_segmentation(segmentation_labels_xr, channel_data_xr,
                     )
 
             if save_tifs == 'all':
-                channel = chan_list[0]
-                chan_marker = channel_data_xr.loc[fov, :, :, channel].values
-                plot_utils.plot_overlay(
-                    segmentation_labels_xr.loc[fov, :, :, 'whole_cell'].values,
-                    plotting_tif=chan_marker,
-                    path=os.path.join(output_dir,
-                                      "{}_segmentation_borders.tiff".format(
-                                          fov)))
+                for chan_list in overlay_channels:
+                    channel = chan_list[0]
+                    chan_marker = channel_data_xr.loc[fov, :, :, channel].values
+                    plot_utils.plot_overlay(
+                        segmentation_labels_xr.loc[fov, :, :, 'whole_cell'].values,
+                        plotting_tif=chan_marker,
+                        path=os.path.join(output_dir,
+                                          "{}_segmentation_borders.tiff".format(
+                                              fov)))
 
-                io.imsave(os.path.join(output_dir, "{}_segmentation_labels.tiff".format(fov)),
-                          segmentation_labels_xr.loc[fov, :, :, 'whole_cell'].values)
+                    io.imsave(os.path.join(output_dir, "{}_segmentation_labels.tiff".format(fov)),
+                              segmentation_labels_xr.loc[fov, :, :, 'whole_cell'].values)
