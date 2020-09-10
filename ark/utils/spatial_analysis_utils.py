@@ -197,13 +197,6 @@ def compute_close_cell_num(dist_mat, dist_lim, analysis_type,
                                             current_marker=current_fov_channel_data.columns[j]))
         mark1_num.append(len(mark1poslabels[j]))
 
-    # we'll need this because for cluster-based context-dependent randomization
-    # we need to facet our randomization of labels based on the cell_types and associated
-    # cell_ids the user specifies
-    mark1labels_per_id = None
-    if analysis_type == "channel":
-        mark1labels_per_id = dict(zip(cluster_ids, mark1poslabels))
-
     # iterating k from [j, end] cuts out 1/2 the steps (while symmetric)
     for j, m1n in enumerate(mark1_num):
         for k, m2n in enumerate(mark1_num[j:], j):
@@ -217,7 +210,7 @@ def compute_close_cell_num(dist_mat, dist_lim, analysis_type,
             # symmetry :)
             close_num[k, j] = close_num[j, k]
 
-    return close_num, mark1_num, mark1labels_per_id
+    return close_num, mark1_num
 
 
 def compute_close_cell_num_random(marker_nums, dist_mat, dist_lim, bootstrap_num):
@@ -264,7 +257,7 @@ def compute_close_cell_num_random(marker_nums, dist_mat, dist_lim, bootstrap_num
     return close_num_rand
 
 
-def compute_close_cell_num_random_context(marker_nums, marker_nums_per_id, cell_type_facets,
+def compute_close_cell_num_random_context(marker_nums, cell_type_facets,
                                           dist_mat, dist_lim, bootstrap_num, thresh_vec,
                                           current_fov_data, current_fov_channel_data,
                                           cell_type_col):
@@ -274,8 +267,6 @@ def compute_close_cell_num_random_context(marker_nums, marker_nums_per_id, cell_
     Args:
         marker_nums (numpy.ndarray):
             list of cell counts of each marker type
-        marker_nums_per_id (dict):
-            a dict of marker nums found per FlowSOM ID
         cell_type_facets (list):
             a list of the FlowSOM IDs we want to pick, note that FlowSOM ID's not specified
             are grouped into one big category called 'else'
