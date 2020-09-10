@@ -96,7 +96,7 @@ def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, 
         dist_matrix = dist_matrices_dict[included_fovs[i]]
 
         # Get close_num and close_num_rand
-        close_num, channel_nums, _ = spatial_analysis_utils.compute_close_cell_num(
+        close_num, channel_nums = spatial_analysis_utils.compute_close_cell_num(
             dist_mat=dist_matrix, dist_lim=100, analysis_type="channel",
             current_fov_data=current_fov_data, current_fov_channel_data=current_fov_channel_data,
             thresh_vec=thresh_vec)
@@ -192,7 +192,7 @@ def calculate_cluster_spatial_enrichment(all_data, dist_matrices_dict, included_
         dist_mat = dist_matrices_dict[included_fovs[i]]
 
         # Get close_num and close_num_rand
-        close_num, pheno_nums, pheno_nums_per_id = spatial_analysis_utils.compute_close_cell_num(
+        close_num, pheno_nums = spatial_analysis_utils.compute_close_cell_num(
             dist_mat=dist_mat, dist_lim=dist_lim, analysis_type="cluster",
             current_fov_data=current_fov_pheno_data, cluster_ids=cluster_ids)
 
