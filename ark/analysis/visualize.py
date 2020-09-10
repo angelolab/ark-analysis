@@ -33,7 +33,7 @@ def draw_boxplot(cell_data, col_name, col_split=None, split_vals=None, save_dir=
 
         # all the values in split_vals must exist in the col_name of cell_data
         if not all(val in cell_data[col_split].unique() for val in split_vals):
-            raise ValueError("Some values in split_vals do not exist in the col_split column of data")
+            raise ValueError("Some values in split_vals not found in col_split column of data")
 
     # don't modify cell_data in anyway
     data_to_viz = cell_data.copy(deep=True)

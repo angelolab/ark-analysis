@@ -16,7 +16,7 @@ def test_draw_boxplot():
     os.remove("sample_boxplot_viz.png")
 
     # next level up: data, a column name, and a split column
-    visualize.draw_boxplot(cell_data=random_data, col_name="A", 
+    visualize.draw_boxplot(cell_data=random_data, col_name="A",
                            col_split="PatientID", save_dir=".")
     assert os.path.exists("sample_boxplot_viz.png")
     os.remove("sample_boxplot_viz.png")
