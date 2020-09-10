@@ -39,21 +39,21 @@ def test_compute_marker_counts():
                           segmentation_output.loc['whole_cell', :, 'chan1'].values)
 
     # check that only cell1 is negative for channel 3
-    assert segmentation_output.loc['whole_cell', :, 'chan3'][1] == 0
-    assert np.all(segmentation_output.loc['whole_cell', :, 'chan3'][2:] > 0)
+    assert segmentation_output.loc['whole_cell', 1, 'chan3'] == 0
+    assert np.all(segmentation_output.loc['whole_cell', 2:, 'chan3'] > 0)
 
     # check that only cell2 is positive for channel 4
-    assert segmentation_output.loc['whole_cell', :, 'chan4'][2] > 0
-    assert np.all(segmentation_output.loc['whole_cell', :, 'chan4'][:2] == 0)
-    assert np.all(segmentation_output.loc['whole_cell', :, 'chan4'][3:] == 0)
+    assert segmentation_output.loc['whole_cell', 2, 'chan4'] > 0
+    assert np.all(segmentation_output.loc['whole_cell', :1, 'chan4'] == 0)
+    assert np.all(segmentation_output.loc['whole_cell', 3:, 'chan4'] == 0)
 
     # check that cell sizes are correct
     sizes = [np.sum(cell_mask == cell_id) for cell_id in [1, 2, 3, 5]]
-    assert np.array_equal(sizes, segmentation_output.loc['whole_cell', 1:, 'cell_size'])
+    assert np.array_equal(sizes, segmentation_output.loc['whole_cell', :, 'cell_size'])
 
     # check that regionprops size matches with cell size
-    assert np.array_equal(segmentation_output.loc['whole_cell', 1:, 'cell_size'],
-                          segmentation_output.loc['whole_cell', 1:, 'area'])
+    assert np.array_equal(segmentation_output.loc['whole_cell', :, 'cell_size'],
+                          segmentation_output.loc['whole_cell', :, 'area'])
 
     # test whole_cell and nuclear compartments with same data
     segmentation_masks_equal = test_utils.make_labels_xarray(
@@ -93,8 +93,8 @@ def test_compute_marker_counts():
                                                     nuclear_counts=True)
 
     # make sure nuclear segmentations are smaller
-    assert np.all(segmentation_output_unequal.loc['nuclear', 1:, 'cell_size'].values <
-                  segmentation_output_unequal.loc['whole_cell', 1:, 'cell_size'].values)
+    assert np.all(segmentation_output_unequal.loc['nuclear', :, 'cell_size'].values <
+                  segmentation_output_unequal.loc['whole_cell', :, 'cell_size'].values)
 
     # check that channel 0 counts are same as cell size
     assert np.array_equal(segmentation_output_unequal.loc['nuclear', :, 'cell_size'].values,
@@ -109,20 +109,33 @@ def test_compute_marker_counts():
                           segmentation_output_unequal.loc['nuclear', :, 'chan1'].values)
 
     # check that only cell1 is negative for channel 3
-    assert segmentation_output_unequal.loc['nuclear', :, 'chan3'][1] == 0
-    assert np.all(segmentation_output_unequal.loc['nuclear', :, 'chan3'][2:] > 0)
+    assert segmentation_output_unequal.loc['nuclear', 1, 'chan3'] == 0
+    assert np.all(segmentation_output_unequal.loc['nuclear', 2:, 'chan3'] > 0)
 
     # check that only cell2 is positive for channel 4
-    assert segmentation_output_unequal.loc['nuclear', :, 'chan4'][2] > 0
-    assert np.all(segmentation_output_unequal.loc['nuclear', :, 'chan4'][:2] == 0)
-    assert np.all(segmentation_output_unequal.loc['nuclear', :, 'chan4'][3:] == 0)
+    assert segmentation_output_unequal.loc['nuclear', 2, 'chan4'] > 0
+    assert np.all(segmentation_output_unequal.loc['nuclear', :1, 'chan4'] == 0)
+    assert np.all(segmentation_output_unequal.loc['nuclear', 3:, 'chan4'] == 0)
 
     # check that cell sizes are correct
     sizes = [np.sum(nuc_mask == cell_id) for cell_id in [1, 2, 3, 5]]
-    assert np.array_equal(sizes, segmentation_output_unequal.loc['nuclear', 1:, 'cell_size'])
+    assert np.array_equal(sizes, segmentation_output_unequal.loc['nuclear', :, 'cell_size'])
 
-    assert np.array_equal(segmentation_output_unequal.loc['nuclear', 1:, 'cell_size'],
-                          segmentation_output_unequal.loc['nuclear', 1:, 'area'])
+    assert np.array_equal(segmentation_output_unequal.loc['nuclear', :, 'cell_size'],
+                          segmentation_output_unequal.loc['nuclear', :, 'area'])
+
+    # different object properties can be supplied
+    regionprops_features = ['label', 'area']
+    excluded_defaults = ['eccentricity']
+    segmentation_output_specified = \
+        marker_quantification.compute_marker_counts(input_images=input_images,
+                                                    segmentation_masks=segmentation_masks_equal,
+                                                    nuclear_counts=True,
+                                                    regionprops_features=regionprops_features)
+
+    assert np.all(np.isin(['label', 'area'], segmentation_output_specified.features.values))
+
+    assert not np.any(np.isin(excluded_defaults, segmentation_output_specified.features.values))
 
 
 def test_generate_expression_matrix():
