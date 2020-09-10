@@ -29,8 +29,8 @@ from sphinx.builders.html import StandaloneHTMLBuilder
 
 # -- Project information -----------------------------------------------------
 
-project = 'ark'
-copyright = '2020, Angelo Lab'
+project = 'ARK'
+copyright = '2020'
 author = 'Angelo Lab'
 
 # whether we are on readthedocs or not
