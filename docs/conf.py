@@ -56,9 +56,10 @@ extensions = ['IPython.sphinxext.ipython_console_highlighting', # syntax-highlig
               'sphinx.ext.napoleon', # support for Google style docstrings (STAR)
               'sphinx.ext.todo', # support fo TODO
               'sphinx.ext.viewcode', # support for adding links to highlighted source code, looks at Python object descriptions and tries to find source files where objects are contained
-              'm2r2', # allows you to include Markdown files in .rst, use mdinclude for this, choosing this over m2r because m2r is not supported anymore
-              'nbsphinx', # support for Jupyter notebooks (STAR)
-              'nbsphinx_link'] # include notebook files from outside sphinx src root (STAR)]
+              'm2r2'#, allows you to include Markdown files in .rst, use mdinclude for this, choosing this over m2r because m2r is not supported anymore
+              # 'nbsphinx', # support for Jupyter notebooks (STAR)
+              # 'nbsphinx_link'] # include notebook files from outside sphinx src root (STAR)]
+              ]
 
 # set parameter to read Google docstring and not NumPy
 # redundant to add since it's default True but good to know
