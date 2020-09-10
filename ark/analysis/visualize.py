@@ -4,6 +4,57 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 
+def draw_boxplot(cell_data, col_name, col_split=None, split_vals=None, save_dir=None):
+    """Draws a boxplot for a given column, optionally with help from a split column
+
+    Args:
+        cell_data (pandas.DataFrame):
+            Dataframe containing columns with Patient ID and Cell Name
+        col_name (str):
+            Name of the column we wish to draw a box-and-whisker plot for
+        col_split (str):
+            If specified, used for additional box-and-whisker plot faceting
+        split_vals (list):
+            If specified, only visualize the specified values in the col_split column
+        save_dir (str):
+            If specified, a directory where we will save the plot
+    """
+
+    # the col_name must be valid
+    if col_name not in cell_data.columns.values:
+        raise ValueError("col_name specified does not exist in data provided")
+
+    # all the values in split_vals must exist in the col_name of cell_data
+    if not all(val in split_vals for val in cell_data[col_name].unique()):
+        raise ValueError("Some values in split_vals do not exist in the col_split column of data")
+
+    # the user cannot specify split_vales without specifying col_split
+    if split_vals and not col_split:
+        raise ValueError("If split_vals is set, then col_split must also be set")
+
+    # don't modify cell_data in anyway
+    data_to_viz = cell_data.copy(deep=True)
+
+    # ignore values in col_split not in split_vals if split_vals is set
+    if split_vals:
+        data_to_viz = data_to_viz[data_to_viz[col_split].isin(split_vals)]
+
+    if col_split:
+        # if col_split, then we explicitly facet the visualization
+        # labels are automatically generated in Seaborn
+        sns.boxplot(x=col_split, y=col_name, data=cell_data)
+        plt.title("Distribution of %s, faceted by %s" % (col_name, col_split))
+    else:
+        # otherwise, we don't facet anything, but we have to explicitly make vertical
+        sns.boxplot(x=col_name, data=cell_data, orient="v")
+        plt.title("Distribution of %s" % col_name)
+
+    # save visualization to a directory if specified
+    if save_dir is not None:
+        plt.savefig(os.path.join(save_dir, "sample_boxplot_viz.jpg"))
+
+
+
 def visualize_z_scores(z, pheno_titles):
     """Plots the z scores between all phenotypes as a clustermap.
 
