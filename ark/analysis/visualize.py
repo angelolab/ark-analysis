@@ -26,9 +26,9 @@ def draw_boxplot(cell_data, col_name, col_split=None, split_vals=None, save_dir=
         raise ValueError("col_name specified does not exist in data provided")
 
     # basic error checks if split_vals is set
-    if split_vals:
+    if split_vals is not None:
         # the user cannot specify split_vales without specifying col_split
-        if split_vals and not col_split:
+        if col_split is None:
             raise ValueError("If split_vals is set, then col_split must also be set")
 
         # all the values in split_vals must exist in the col_name of cell_data

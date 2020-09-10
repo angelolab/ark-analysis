@@ -1,5 +1,6 @@
 import os
 import numpy as np
+import pytest
 
 from ark.analysis import visualize
 from ark.utils import test_utils
@@ -9,6 +10,25 @@ def test_draw_boxplot():
     # trim random data so we don't have to visualize as many facets
     random_data = test_utils.make_segmented_csv(100)
     random_data = random_data[random_data['PatientID'].isin(np.arange(1, 5))]
+
+    # basic error testing
+    with pytest.raises(ValueError):
+        # non-existant col_name
+        visualize.draw_boxplot(cell_data=random_data, col_name="AA")
+
+    with pytest.raises(ValueError):
+        # split_vals specified but not col_split
+        visualize.draw_boxplot(cell_data=random_data, col_name="A", split_vals=[])
+
+    with pytest.raises(ValueError):
+        # split_vals not found in col_split found
+        visualize.draw_boxplot(cell_data=random_data, col_name="A",
+                               col_split="PatientID", split_vals=[3, 4, 5, 6])
+
+    with pytest.raises(ValueError):
+        # trying to save to a non-existant directory
+        visualize.draw_boxplot(cell_data=random_data, col_name="A",
+                               save_dir="bad_dir")
 
     # most basic visualization: just data and a column name
     visualize.draw_boxplot(cell_data=random_data, col_name="A", save_dir=".")
@@ -47,6 +67,12 @@ def test_get_sort_data():
 
 def test_visualize_cells():
     random_data = test_utils.make_segmented_csv(100)
+
+    with pytest.raises(ValueError):
+        # trying to save to a non-existant directory
+        visualize.visualize_patient_population_distribution(random_data, "PatientID", 
+                                                            "cell_type", save_dir="bad_dir")
+
     visualize.visualize_patient_population_distribution(random_data, "PatientID", "cell_type",
                                                         save_dir=".")
 
