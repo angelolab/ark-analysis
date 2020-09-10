@@ -144,8 +144,12 @@ def visualize_segmentation(segmentation_labels_xr, channel_data_xr,
         output_dir (str): path to directory where the output will be saved
         overlay_channels (tuple): channels to overlay segmentation output over
         fovs (list): field of view
-        save_tifs (str): flag to control what level of output to save. Must be one of:
-        all - saves all tifs
+        save_tifs (str): flag to control what level of output to save.
+            Must be one of:
+
+            * 'all'
+            * 'none'
+            * 'overlays'
         overlays - saves color overlays and segmentation masks
     """
 
