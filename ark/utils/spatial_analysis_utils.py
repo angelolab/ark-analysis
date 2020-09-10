@@ -290,7 +290,7 @@ def compute_close_cell_num_random_context(marker_nums, cell_type_facets,
             Large matrix of random positive marker counts for every permutation in the bootstrap
     """
 
-    # TODO: basic checking to see if all specified cell_type_facets 
+    # TODO: basic checking to see if all specified cell_type_facets
     # exist in the FlowSOM ID col of current_fov_data
 
     # Create close_num_rand
@@ -324,11 +324,12 @@ def compute_close_cell_num_random_context(marker_nums, cell_type_facets,
         # in a context-based environment properly
         marker1posinds = current_fov_channel_data[current_fov_channel_data.columns[j]] > thresh
 
-        # generate the number of positive hits per cell type for a specific marker in cell_type_facets
-        # or else for all the non-cell_type_facets cell types
+        # generate the number of positive hits per cell type for a specific marker
+        # in cell_type_facets or else for all the non-cell_type_facets cell types
         cell_type_nums_per_facet_1 = {}
         for cell_type, cell_type_data in cell_type_data_per_facet.values():
-            cell_type_nums_per_facet_1[cell_type] = np.sum(np.logical_and(marker1posinds, cell_type_data.index))
+            cell_type_nums_per_facet_1[cell_type] = np.sum(
+                np.logical_and(marker1posinds, cell_type_data.index))
 
         # new iteration, needed to properly generate a pair of 1 vs 2 analysis
         # basically the same thing as generating cell_type_nums_per_facet_1
@@ -337,7 +338,8 @@ def compute_close_cell_num_random_context(marker_nums, cell_type_facets,
 
             cell_type_nums_per_facet_2 = {}
             for cell_type, cell_type_data in cell_type_data_per_facet.values():
-                cell_type_nums_per_facet_2[cell_type] = np.sum(np.logical_and(marker2posinds, cell_type_data.index))
+                cell_type_nums_per_facet_2[cell_type] = np.sum(
+                    np.logical_and(marker2posinds, cell_type_data.index))
 
                 # triple for-loops, what moron put these in...
                 for r in range(bootstrap_num):
@@ -347,10 +349,12 @@ def compute_close_cell_num_random_context(marker_nums, cell_type_facets,
 
                     # iterate through each marker type, and do a faceted random sample for 1 and 2
                     for m, m_data in cell_type_data_per_facet.values():
-                        marker1labelsfacet = np.random.choice(m_data.values, cell_type_nums_per_facet_1[m]).tolist()
+                        marker1labelsfacet = np.random.choice(
+                            m_data.values, cell_type_nums_per_facet_1[m]).tolist()
                         marker1labels_rand.extend(marker1labelsfacet)
 
-                        marker2labelsfacet = np.random.choice(m_data.values, cell_type_nums_per_facet_2[m]).tolist()
+                        marker2labelsfacet = np.random.choice(
+                            m_data.values, cell_type_nums_per_facet_2[m]).tolist()
                         marker2labels_rand.extend(marker2labelsfacet)
 
                         # now we subset the distance matrix accordingly and use dist_lim to threshold
