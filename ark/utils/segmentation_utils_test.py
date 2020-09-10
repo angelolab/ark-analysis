@@ -4,7 +4,7 @@ import os.path
 from skimage.measure import regionprops
 import tempfile
 
-from ark.utils import segmentation_utils  # data_utils
+from ark.utils import segmentation_utils, test_utils
 
 
 def _generate_channel_xr(fov_num=2, chan_num=5):
@@ -165,9 +165,9 @@ def test_transform_expression_matrix_multiple_compartments():
 
 def test_visualize_segmentation():
     with tempfile.TemporaryDirectory() as temp_dir:
-        channel_xr = _generate_channel_xr()
+        channel_xr = test_utils.make_images_xarray(np.zeros((2, 50, 50, 5)))
         overlay_channels = channel_xr.channels.values[:2],
-        segmentation_labels_xr = _generate_deepcell_ouput()
+        segmentation_labels_xr = test_utils.make_labels_xarray(np.zeros((2, 50, 50, 1)))
 
         segmentation_utils.visualize_segmentation(
             segmentation_labels_xr=segmentation_labels_xr,

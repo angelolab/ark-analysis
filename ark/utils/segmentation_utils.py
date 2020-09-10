@@ -6,7 +6,7 @@ import pandas as pd
 
 import skimage.io as io
 
-from ark.utils import plot_utils, io_utils #test_utils
+from ark.utils import plot_utils, io_utils
 
 
 def find_nuclear_mask_id(nuc_segmentation_mask, cell_coords):
