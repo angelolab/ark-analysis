@@ -357,7 +357,8 @@ def compute_close_cell_num_random_context(marker_nums, cell_type_facets,
                             m_data.values, cell_type_nums_per_facet_2[m]).tolist()
                         marker2labels_rand.extend(marker2labelsfacet)
 
-                        # now we subset the distance matrix accordingly and use dist_lim to threshold
+                        # now we subset the distance matrix accordingly
+                        # and use dist_lim to threshold
                         rand_dist_mat = dist_mat.loc[marker1labels_rand, marker2labels_rand].values
                         rand_dist_mat_bin = np.zeros(rand_dist_mat.shape)
                         rand_dist_mat_bin[rand_dist_mat < dist_lim] = 1
