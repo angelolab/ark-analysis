@@ -1,8 +1,32 @@
+import os
 import numpy as np
-from os import path
 
 from ark.analysis import visualize
 from ark.utils import test_utils
+
+
+def test_draw_boxplot():
+    # trim random data so we don't have to visualize as many facets
+    random_data = test_utils.make_segmented_csv(100)
+    random_data = random_data[random_data['PatientID'].isin(np.arange(1, 5))]
+
+    # most basic visualization: just data and a column name
+    visualize.draw_boxplot(cell_data=random_data, col_name="A", save_dir=".")
+    assert os.path.exists("sample_boxplot_viz.png")
+    os.remove("sample_boxplot_viz.png")
+
+    # next level up: data, a column name, and a split column
+    visualize.draw_boxplot(cell_data=random_data, col_name="A", 
+                           col_split="PatientID", save_dir=".")
+    assert os.path.exists("sample_boxplot_viz.png")
+    os.remove("sample_boxplot_viz.png")
+
+    # highest level: data, a column name, a split column, and split vals
+    visualize.draw_boxplot(cell_data=random_data, col_name="A",
+                           col_split="PatientID", split_vals=[1, 2],
+                           save_dir=".")
+    assert os.path.exists("sample_boxplot_viz.png")
+    os.remove("sample_boxplot_viz.png")
 
 
 def test_visualize_z_scores():
@@ -24,9 +48,9 @@ def test_get_sort_data():
 def test_visualize_cells():
     random_data = test_utils.make_segmented_csv(100)
     visualize.visualize_patient_population_distribution(random_data, "PatientID", "cell_type",
-                                                        save_dir="")
+                                                        save_dir=".")
 
     # Check if correct plots are saved
-    assert path.exists("PopulationDistribution.png")
-    assert path.exists("TotalPopulationDistribution.png")
-    assert path.exists("PopulationProportion.png")
+    assert os.path.exists("PopulationDistribution.png")
+    assert os.path.exists("TotalPopulationDistribution.png")
+    assert os.path.exists("PopulationProportion.png")

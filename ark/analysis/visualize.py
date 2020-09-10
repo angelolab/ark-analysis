@@ -1,3 +1,4 @@
+import os
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -24,13 +25,15 @@ def draw_boxplot(cell_data, col_name, col_split=None, split_vals=None, save_dir=
     if col_name not in cell_data.columns.values:
         raise ValueError("col_name specified does not exist in data provided")
 
-    # all the values in split_vals must exist in the col_name of cell_data
-    if not all(val in split_vals for val in cell_data[col_name].unique()):
-        raise ValueError("Some values in split_vals do not exist in the col_split column of data")
+    # basic error checks if split_vals is set
+    if split_vals:
+        # the user cannot specify split_vales without specifying col_split
+        if split_vals and not col_split:
+            raise ValueError("If split_vals is set, then col_split must also be set")
 
-    # the user cannot specify split_vales without specifying col_split
-    if split_vals and not col_split:
-        raise ValueError("If split_vals is set, then col_split must also be set")
+        # all the values in split_vals must exist in the col_name of cell_data
+        if not all(val in cell_data[col_split].unique() for val in split_vals):
+            raise ValueError("Some values in split_vals do not exist in the col_split column of data")
 
     # don't modify cell_data in anyway
     data_to_viz = cell_data.copy(deep=True)
@@ -51,8 +54,10 @@ def draw_boxplot(cell_data, col_name, col_split=None, split_vals=None, save_dir=
 
     # save visualization to a directory if specified
     if save_dir is not None:
-        plt.savefig(os.path.join(save_dir, "sample_boxplot_viz.jpg"))
+        if not os.path.exists(save_dir):
+            raise ValueError("save_dir %s does not exist" % save_dir)
 
+        plt.savefig(os.path.join(save_dir, "sample_boxplot_viz.png"))
 
 
 def visualize_z_scores(z, pheno_titles):
@@ -146,8 +151,12 @@ def visualize_patient_population_distribution(cell_data, patient_col_name, popul
         plt.title("Distribution of Population in all patients")
         plt.xlabel("Population Type")
         plt.ylabel("Population Count")
+
         if save_dir is not None:
-            plt.savefig(save_dir + "TotalPopulationDistribution.png")
+            if not os.path.exists(save_dir):
+                raise ValueError("save_dir %s does not exist" % save_dir)
+
+            plt.savefig(os.path.join(save_dir, "TotalPopulationDistribution.png"))
 
     # Plot by count
     if show_distribution:
@@ -159,8 +168,12 @@ def visualize_patient_population_distribution(cell_data, patient_col_name, popul
         plt.xlabel(patient_col_name)
         plt.ylabel(population_col_name)
         plt.title("Distribution of Population Count in Patients")
+
         if save_dir is not None:
-            plt.savefig(save_dir + "PopulationDistribution.png")
+            if not os.path.exists(save_dir):
+                raise ValueError("save_dir %s does not exist" % save_dir)
+
+            plt.savefig(os.path.join(save_dir, "PopulationDistribution.png"))
 
     # Plot by Proportion
     if show_proportion:
@@ -173,5 +186,9 @@ def visualize_patient_population_distribution(cell_data, patient_col_name, popul
         plt.xlabel(patient_col_name)
         plt.ylabel(population_col_name)
         plt.title("Distribution of Population Count Proportion in Patients")
+
         if save_dir is not None:
-            plt.savefig(save_dir + "PopulationProportion.png")
+            if not os.path.exists(save_dir):
+                raise ValueError("save_dir %s does not exist" % save_dir)
+
+            plt.savefig(os.path.join(save_dir, "PopulationProportion.png"))
