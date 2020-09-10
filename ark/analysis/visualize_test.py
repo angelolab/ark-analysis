@@ -70,7 +70,7 @@ def test_visualize_cells():
 
     with pytest.raises(ValueError):
         # trying to save to a non-existant directory
-        visualize.visualize_patient_population_distribution(random_data, "PatientID", 
+        visualize.visualize_patient_population_distribution(random_data, "PatientID",
                                                             "cell_type", save_dir="bad_dir")
 
     visualize.visualize_patient_population_distribution(random_data, "PatientID", "cell_type",
