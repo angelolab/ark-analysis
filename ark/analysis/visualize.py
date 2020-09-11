@@ -89,17 +89,17 @@ def visualize_z_scores(z, pheno_titles, save_dir=None):
         plt.savefig(os.path.join(save_dir, "z_score_viz.png"))
 
 
-def get_sorted_data(cell_data, index_facet, column_facet, is_normalized=False):
+def get_sorted_data(cell_data, sort_by_first, sort_by_second, is_normalized=False):
     """Gets the cell data and generates a new Sorted DataFrame with each row representing a
     patient and column representing Population categories
 
     Args:
         cell_data (pandas.DataFrame):
             Dataframe containing columns with Patient ID and Cell Name
-        index_facet (str):
-            Attribute we wish to set as the index for cross tabulation
-        column_facet (str):
-            Attribute we wish to set as the column names for cross tabulation
+        sort_by_first (str):
+            The first attribute we will be sorting our data by
+        sort_by_second (str):
+            The second attribute we will be sorting our data by
         is_normalized (bool):
             Boolean specifying whether to normalize cell counts or not, default is False
 
@@ -109,19 +109,19 @@ def get_sorted_data(cell_data, index_facet, column_facet, is_normalized=False):
     """
 
     cell_data_stacked = pd.crosstab(
-        cell_data[index_facet],
-        cell_data[column_facet],
+        cell_data[sort_by_first],
+        cell_data[sort_by_second],
         normalize='index' if is_normalized else False
     )
 
     # Sorts by Kagel Method :)
-    index_facet_order = cell_data.groupby(index_facet).count().sort_values(
-        by=column_facet,
+    index_facet_order = cell_data.groupby(sort_by_first).count().sort_values(
+        by=sort_by_second,
         ascending=False
     ).index.values
 
-    column_facet_order = cell_data.groupby(column_facet).count().sort_values(
-        by=index_facet,
+    column_facet_order = cell_data.groupby(sort_by_second).count().sort_values(
+        by=sort_by_first,
         ascending=False
     ).index.values
 
