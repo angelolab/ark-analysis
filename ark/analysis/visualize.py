@@ -100,8 +100,6 @@ def get_sorted_data(cell_data, index_facet, column_facet, is_normalized=False):
             Attribute we wish to set as the index for cross tabulation
         column_facet (str):
             Attribute we wish to set as the column names for cross tabulation
-        population_col_name (str):
-            Name of column in dataframe containing categorical Population data
         is_normalized (bool):
             Boolean specifying whether to normalize cell counts or not, default is False
 
