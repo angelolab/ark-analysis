@@ -143,14 +143,12 @@ def visualize_segmentation(segmentation_labels_xr, channel_data_xr,
         channel_data_xr (xarray.DataArray): xarray containing TIFs
         output_dir (str): path to directory where the output will be saved
         overlay_channels (tuple): channels to overlay segmentation output over
-        fovs (list): field of view
+        fovs (numpy.ndarray): field of view
         save_tifs (str): flag to control what level of output to save.
             Must be one of:
-
             * 'all'
             * 'none'
-            * 'overlays'
-        overlays - saves color overlays and segmentation masks
+            * 'overlays' - saves color overlays and segmentation masks
     """
 
     # error check model selected for local maxima finding in the image
@@ -163,7 +161,7 @@ def visualize_segmentation(segmentation_labels_xr, channel_data_xr,
             # save segmentation label map
             for chan_list in overlay_channels:
                 input_data = channel_data_xr.loc[fov, :, :, chan_list].values
-                save_path = '_'.join([f'{fov.values}', *chan_list, 'overlay.tiff'])
+                save_path = '_'.join([f'{fov}', *chan_list, 'overlay.tiff'])
                 plot_utils.plot_overlay(
                     segmentation_labels_xr.loc[fov, :, :, 'whole_cell'].values,
                     plotting_tif=input_data,
@@ -183,4 +181,4 @@ def visualize_segmentation(segmentation_labels_xr, channel_data_xr,
                 # ignore low-contrast image warnings with check_contrast=False
                 io.imsave(os.path.join(output_dir, "{}_segmentation_labels.tiff".format(fov)),
                           segmentation_labels_xr.loc[fov, :, :, 'whole_cell'].values,
-                          check_contrast=False)
+                          )
