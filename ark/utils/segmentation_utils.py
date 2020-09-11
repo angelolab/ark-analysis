@@ -146,6 +146,7 @@ def visualize_segmentation(segmentation_labels_xr, channel_data_xr,
         fovs (numpy.ndarray): field of view
         save_tifs (str): flag to control what level of output to save.
             Must be one of:
+
             * 'all'
             * 'none'
             * 'overlays' - saves color overlays and segmentation masks
