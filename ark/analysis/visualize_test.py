@@ -75,6 +75,21 @@ def test_get_sort_data():
     assert list(reversed(row_sums)) == sorted(row_sums)
 
 
+def test_plot_barchart():
+    # mostly error checking here, test_visualize_cells tests the meat of the functionality
+    random_data = test_utils.make_segmented_csv(100)
+
+    with pytest.raises(ValueError):
+        # trying to save to a non-existant directory
+        visualize.plot_barchart(random_data, "Random Title", "Random X Label",
+                                "Random Y Label", save_dir="bad_dir")
+
+    with pytest.raises(ValueError):
+        # setting save_dir but not setting save_file
+        visualize.plot_barchart(random_data, "Random Title", "Random X Label",
+                                "Random Y Label", save_dir=".")
+
+
 def test_visualize_cells():
     random_data = test_utils.make_segmented_csv(100)
 
@@ -89,5 +104,5 @@ def test_visualize_cells():
 
         # Check if correct plots are saved
         assert os.path.exists(os.path.join(temp_dir, "PopulationDistribution.png"))
-        assert os.path.exists(os.path.join(temp_dir, "PopulationDistribution.png"))
-        assert os.path.exists(os.path.join(temp_dir, "PopulationDistribution.png"))
+        assert os.path.exists(os.path.join(temp_dir, "TotalPopulationDistribution.png"))
+        assert os.path.exists(os.path.join(temp_dir, "PopulationProportion.png"))

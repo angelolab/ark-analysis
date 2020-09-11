@@ -133,7 +133,7 @@ def get_sorted_data(cell_data, patient_col_name, population_col_name, is_normali
 
 def plot_barchart(data, title, x_label, y_label, color_map="jet", is_stacked=True,
                   is_legend=True, legend_loc='center left', bbox_to_anchor=(1.0, 0.5),
-                  save_dir=None):
+                  save_dir=None, save_file=None):
     """A helper function to visualize_patient_population_distribution
 
     Args:
@@ -149,8 +149,6 @@ def plot_barchart(data, title, x_label, y_label, color_map="jet", is_stacked=Tru
             The name of the Matplotlib colormap used
         is_stacked (bool):
             Whether we want a stacked barchart or not
-        is_normalized (bool):
-            Whether we want a stacked barchart or not
         is_legend (bool):
             Whether we want a legend or not
         legend_loc (str):
@@ -161,6 +159,9 @@ def plot_barchart(data, title, x_label, y_label, color_map="jet", is_stacked=Tru
             Ignored if is_legend is False
         save_dir (str):
             Directory to save plots, default is None
+        save_file (str):
+            If save_dir specified, specify a file name you wish to save to.
+            Ignored if save_dir is None
     """
 
     data.plot.bar(colormap=color_map, stacked=is_stacked, legend=is_legend)
@@ -174,6 +175,11 @@ def plot_barchart(data, title, x_label, y_label, color_map="jet", is_stacked=Tru
     if save_dir is not None:
         if not os.path.exists(save_dir):
             raise ValueError("save_dir %s does not exist" % save_dir)
+
+        if save_file is None:
+            raise ValueError("save_dir specified but no save_file specified")
+
+        plt.savefig(os.path.join(save_dir, save_file))
 
 
 def visualize_patient_population_distribution(cell_data, patient_col_name, population_col_name,
@@ -210,19 +216,7 @@ def visualize_patient_population_distribution(cell_data, patient_col_name, popul
         y_label = "Population Count"
 
         plot_barchart(population_values, title, x_label, y_label, is_legend=False,
-                      save_dir=save_dir)
-
-        # population_values = cell_data[population_col_name].value_counts()
-        # population_values.plot.bar(colormap=color_map)
-        # plt.title("Distribution of Population in all patients")
-        # plt.xlabel("Population Type")
-        # plt.ylabel("Population Count")
-
-        # if save_dir is not None:
-        #     if not os.path.exists(save_dir):
-        #         raise ValueError("save_dir %s does not exist" % save_dir)
-
-        #     plt.savefig(os.path.join(save_dir, "TotalPopulationDistribution.png"))
+                      save_dir=save_dir, save_file="PopulationDistribution.png")
 
     # Plot by count
     if show_distribution:
@@ -230,22 +224,7 @@ def visualize_patient_population_distribution(cell_data, patient_col_name, popul
         title = "Distribution of Population Count in Patients"
 
         plot_barchart(sorted_data, title, patient_col_name, population_col_name,
-                      save_dir=save_dir)
-
-        # get_sorted_data(cell_data, patient_col_name,
-        #                 population_col_name).plot.bar(stacked=True,
-        #                                               colormap=color_map)
-
-        # plt.legend(loc='center left', bbox_to_anchor=(1.0, 0.5))
-        # plt.xlabel(patient_col_name)
-        # plt.ylabel(population_col_name)
-        # plt.title("Distribution of Population Count in Patients")
-
-        # if save_dir is not None:
-        #     if not os.path.exists(save_dir):
-        #         raise ValueError("save_dir %s does not exist" % save_dir)
-
-        #     plt.savefig(os.path.join(save_dir, "PopulationDistribution.png"))
+                      save_dir=save_dir, save_file="TotalPopulationDistribution.png")
 
     # Plot by Proportion
     if show_proportion:
@@ -254,20 +233,4 @@ def visualize_patient_population_distribution(cell_data, patient_col_name, popul
         title = "Distribution of Population Count Proportion in Patients"
 
         plot_barchart(sorted_data, title, patient_col_name, population_col_name,
-                      save_dir=save_dir)
-
-        # get_sorted_data(cell_data, patient_col_name,
-        #                 population_col_name, is_normalized=True).plot.bar(stacked=True,
-        #                                                                   legend=False,
-        #                                                                   colormap=color_map)
-
-        # plt.legend(loc='center left', bbox_to_anchor=(1.0, 0.5))
-        # plt.xlabel(patient_col_name)
-        # plt.ylabel(population_col_name)
-        # plt.title("Distribution of Population Count Proportion in Patients")
-
-        # if save_dir is not None:
-        #     if not os.path.exists(save_dir):
-        #         raise ValueError("save_dir %s does not exist" % save_dir)
-
-        #     plt.savefig(os.path.join(save_dir, "PopulationProportion.png"))
+                      save_dir=save_dir, save_file="PopulationProportion.png")
