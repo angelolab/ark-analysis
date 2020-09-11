@@ -159,31 +159,28 @@ def visualize_segmentation(segmentation_labels_xr, channel_data_xr,
     if fovs is None:
         fovs = segmentation_labels_xr.fovs
     for fov in fovs:
-        # ignore low-contrast image warnings
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
+        if save_tifs != 'none':
+            # save segmentation label map
+            for chan_list in overlay_channels:
+                input_data = channel_data_xr.loc[fov, :, :, chan_list].values
+                save_path = '_'.join([f'{fov.values}', *chan_list, 'overlay.tiff'])
+                plot_utils.plot_overlay(
+                    segmentation_labels_xr.loc[fov, :, :, 'whole_cell'].values,
+                    plotting_tif=input_data,
+                    path=os.path.join(output_dir, save_path)
+                )
 
-            if save_tifs != 'none':
-                # save segmentation label map
-                for chan_list in overlay_channels:
-                    input_data = channel_data_xr.loc[fov, :, :, chan_list].values
-                    save_path = '_'.join([f'{fov.values}', *chan_list, 'overlay.tiff'])
-                    plot_utils.plot_overlay(
-                        segmentation_labels_xr.loc[fov, :, :, 'whole_cell'].values,
-                        plotting_tif=input_data,
-                        path=os.path.join(output_dir, save_path)
-                    )
-
-            if save_tifs == 'all':
-                for chan_list in overlay_channels:
-                    channel = chan_list[0]
-                    chan_marker = channel_data_xr.loc[fov, :, :, channel].values
-                    plot_utils.plot_overlay(
-                        segmentation_labels_xr.loc[fov, :, :, 'whole_cell'].values,
-                        plotting_tif=chan_marker,
-                        path=os.path.join(output_dir,
-                                          "{}_segmentation_borders.tiff".format(
-                                              fov)))
-
-                    io.imsave(os.path.join(output_dir, "{}_segmentation_labels.tiff".format(fov)),
-                              segmentation_labels_xr.loc[fov, :, :, 'whole_cell'].values)
+        if save_tifs == 'all':
+            for chan_list in overlay_channels:
+                channel = chan_list[0]
+                chan_marker = channel_data_xr.loc[fov, :, :, channel].values
+                plot_utils.plot_overlay(
+                    segmentation_labels_xr.loc[fov, :, :, 'whole_cell'].values,
+                    plotting_tif=chan_marker,
+                    path=os.path.join(output_dir,
+                                      "{}_segmentation_borders.tiff".format(
+                                          fov)))
+                # ignore low-contrast image warnings with check_contrast=False
+                io.imsave(os.path.join(output_dir, "{}_segmentation_labels.tiff".format(fov)),
+                          segmentation_labels_xr.loc[fov, :, :, 'whole_cell'].values,
+                          check_contrast=False)
