@@ -89,15 +89,17 @@ def visualize_z_scores(z, pheno_titles, save_dir=None):
         plt.savefig(os.path.join(save_dir, "z_score_viz.png"))
 
 
-def get_sorted_data(cell_data, patient_col_name, population_col_name, is_normalized=False):
+def get_sorted_data(cell_data, index_facet, column_facet, is_normalized=False):
     """Gets the cell data and generates a new Sorted DataFrame with each row representing a
     patient and column representing Population categories
 
     Args:
         cell_data (pandas.DataFrame):
             Dataframe containing columns with Patient ID and Cell Name
-        patient_col_name (str):
-            Name of column containing categorical Patient data
+        index_facet (str):
+            Attribute we wish to set as the index for cross tabulation
+        column_facet (str):
+            Attribute we wish to set as the column names for cross tabulation
         population_col_name (str):
             Name of column in dataframe containing categorical Population data
         is_normalized (bool):
@@ -109,24 +111,24 @@ def get_sorted_data(cell_data, patient_col_name, population_col_name, is_normali
     """
 
     cell_data_stacked = pd.crosstab(
-        cell_data[patient_col_name],
-        cell_data[population_col_name],
+        cell_data[index_facet],
+        cell_data[column_facet],
         normalize='index' if is_normalized else False
     )
 
     # Sorts by Kagel Method :)
-    id_order = cell_data.groupby(patient_col_name).count().sort_values(
-        by=population_col_name,
+    index_facet_order = cell_data.groupby(index_facet).count().sort_values(
+        by=column_facet,
         ascending=False
     ).index.values
 
-    pop_order = cell_data.groupby(population_col_name).count().sort_values(
-        by=patient_col_name,
+    column_facet_order = cell_data.groupby(column_facet).count().sort_values(
+        by=index_facet,
         ascending=False
     ).index.values
 
-    cell_data_stacked = cell_data_stacked.reindex(id_order, axis='index')
-    cell_data_stacked = cell_data_stacked.reindex(pop_order, axis='columns')
+    cell_data_stacked = cell_data_stacked.reindex(index_facet_order, axis='index')
+    cell_data_stacked = cell_data_stacked.reindex(column_facet_order, axis='columns')
 
     return cell_data_stacked
 
