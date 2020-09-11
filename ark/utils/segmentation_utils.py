@@ -161,7 +161,7 @@ def visualize_segmentation(segmentation_labels_xr, channel_data_xr,
     for fov in fovs:
         # ignore low-contrast image warnings
         with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
+            warnings.simplefilter("ignore", category=)
 
             if save_tifs != 'none':
                 # save segmentation label map
