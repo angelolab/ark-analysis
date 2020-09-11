@@ -171,7 +171,7 @@ def test_visualize_segmentation():
 
         segmentation_utils.visualize_segmentation(
             segmentation_labels_xr=segmentation_labels_xr,
-            fovs=segmentation_labels_xr.fovs, channel_data_xr=channel_xr,
+            fovs=segmentation_labels_xr.fovs.values, channel_data_xr=channel_xr,
             overlay_channels=overlay_channels,
             output_dir=temp_dir)
         for mod_output_fov in segmentation_labels_xr.fovs:
@@ -182,10 +182,10 @@ def test_visualize_segmentation():
     with tempfile.TemporaryDirectory() as temp_dir:
         segmentation_utils.visualize_segmentation(
             segmentation_labels_xr=segmentation_labels_xr,
-            fovs=segmentation_labels_xr.fovs, channel_data_xr=channel_xr,
+            fovs=segmentation_labels_xr.fovs.values, channel_data_xr=channel_xr,
             overlay_channels=overlay_channels,
             output_dir=temp_dir, save_tifs='all')
-        for mod_output_fov in segmentation_labels_xr.fovs:
+        for mod_output_fov in segmentation_labels_xr.fovs.values:
             assert os.path.exists(
                 os.path.join(temp_dir, "{}_segmentation_borders.tiff".format(mod_output_fov)))
             assert os.path.exists(
