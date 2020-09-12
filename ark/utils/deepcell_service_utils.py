@@ -6,18 +6,20 @@ from pathlib import Path
 import shutil
 
 
-def create_deepcell_output(deepcell_input_dir, points, deepcell_output_dir, host='https://deepcell.org',
-                           job_type='multiplex'):
+def create_deepcell_output(deepcell_input_dir, points, deepcell_output_dir,
+                           host='https://deepcell.org', job_type='multiplex'):
     """ Handles all of the necessary data manipulation for running deepcell tasks.
 
         Creates .zip files (to be used as input for DeepCell),
-        calls run_deepcell_task method, and extracts zipped output files to the specified output location
+        calls run_deepcell_task method,
+        and extracts zipped output files to the specified output location
 
         Args:
             points (list):              List of points in preprocessing pipeline
 
-            deepcell_input_dir (str):   Location of preprocessed files (assume
-                                        deepcell_input_dir contains <point>.tif for each point in points list)
+            deepcell_input_dir (str):   Location of preprocessed files
+                                        (assume deepcell_input_dir contains <point>.tif
+                                        for each point in points list)
 
             deepcell_output_dir (str):  Location to save DeepCell output (as .tif)
 
@@ -31,7 +33,8 @@ def create_deepcell_output(deepcell_input_dir, points, deepcell_output_dir, host
             Writes DeepCell service .tif output to output_dir
 
         Raises:
-            UserWarning: Raised if DeepCell output .zip file was not created for some point in points list.
+            UserWarning:                Raised if DeepCell output .zip file
+                                        was not created for some point in points list.
 
         """
 
@@ -44,7 +47,8 @@ def create_deepcell_output(deepcell_input_dir, points, deepcell_output_dir, host
 
     # zip the preprocessed .tif files
     for i, point in enumerate(points):
-        shutil.make_archive(os.path.join(input_zip, point), 'zip', deepcell_input_dir, point + '.tif')
+        shutil.make_archive(os.path.join(input_zip, point), 'zip',
+                            deepcell_input_dir, point + '.tif')
 
     run_deepcell_task(input_zip, output_zip, host, job_type)
 
@@ -55,10 +59,12 @@ def create_deepcell_output(deepcell_input_dir, points, deepcell_output_dir, host
 
     # finally extract the .zip files
     for f in files:
-        shutil.unpack_archive(os.path.join(output_zip, f), deepcell_output_dir, 'zip')
+        shutil.unpack_archive(os.path.join(output_zip, f),
+                              deepcell_output_dir, 'zip')
 
 
-def run_deepcell_task(input_dir, output_dir, host='https://deepcell.org', job_type='multiplex'):
+def run_deepcell_task(input_dir, output_dir, host='https://deepcell.org',
+                      job_type='multiplex'):
     """Uses kiosk-client to run DeepCell task and saves output to output_dir.
         (https://github.com/vanvalenlab/kiosk-client)
 
@@ -67,9 +73,11 @@ def run_deepcell_task(input_dir, output_dir, host='https://deepcell.org', job_ty
 
             output_dir: location to save deepcell output (as .zip)
 
-            host: Hostname and port for the kiosk-frontend API server. Default: 'https://deepcell.org'
+            host: Hostname and port for the kiosk-frontend API server.
+                  Default: 'https://deepcell.org'
 
-            job_type: Name of job workflow (multiplex, segmentation, tracking). Default: 'multiplex'
+            job_type: Name of job workflow (multiplex, segmentation, tracking).
+                      Default: 'multiplex'
         Output:
             Writes DeepCell service .zip output to output_dir
 
