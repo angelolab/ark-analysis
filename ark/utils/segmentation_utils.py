@@ -149,7 +149,7 @@ def visualize_segmentation(segmentation_labels_xr, channel_data_xr,
 
             * 'all'
             * 'none'
-            * 'overlays' - saves color overlays and segmentation masks
+            * 'overlays' (saves color overlays and segmentation masks)
     """
 
     # error check model selected for local maxima finding in the image
