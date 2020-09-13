@@ -20,7 +20,6 @@ Twisted~=20.3.0
 certifi
 pyOpenSSL
 service_identity
-kiosk-client
-
+git+https://github.com/vanvalenlab/kiosk-client.git@e1f7b19a730b1223dde666f66748a1b25c2dac31
 
 
