@@ -28,8 +28,6 @@ def plot_dim_reduced_data(component_one, component_two, fig_id, hue, cell_data,
             the title we wish to set for the graph
         title_fontsize (int):
             the fontsize of the title we want
-        hue (pandas.Series):
-            define the hue for each data point
         palette (str):
             the color palette we wish to visualize with
         alpha (float):
