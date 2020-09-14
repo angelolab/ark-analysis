@@ -302,7 +302,7 @@ def compute_close_cell_num_random_context(marker_nums, cell_type_rand,
     # and get the indices that corrrespond to each cell type in current_fov_data
     cell_type_data = dict(zip(cell_type_rand.keys(),
                               {'percent': cell_type_rand.values(),
-                               'indices': current_fov_data[cell_type_col] == /
+                               'indices': current_fov_data[cell_type_col] == \
                                               np.expand_dims(cell_type_rand.keys(),
                                                              axis=1)}))
 
