@@ -37,6 +37,14 @@ def test_dimensionality_reduction():
     test_cols = test_utils.TEST_MARKERS
 
     test_algorithms = ['PCA', 'tSNE', 'UMAP']
+
+    with pytest.raises(ValueError):
+        # trying to specify an algorithm not in test_algorithms
+        dimensionality_reduction.visualize_dimensionality_reduction(random_cell_data,
+                                                                    test_cols,
+                                                                    "cell_type",
+                                                                    algorithm="bad_alg")
+
     with tempfile.TemporaryDirectory() as temp_dir:
         for alg in test_algorithms:
             # test without saving, assert that the path does not exist
