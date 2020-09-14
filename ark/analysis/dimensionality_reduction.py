@@ -82,37 +82,37 @@ def visualize_dimensionality_reduction(cell_data, columns, category, color_map="
         save_dir (str):
             Directory to save plots, default is None
     """
+
     cell_data = cell_data.dropna()
 
+    # check if the algorithm is valid
     if algorithm not in ["UMAP", "PCA", "tSNE"]:
         raise ValueError(f"The algorithm specified must be one of the following: "
                          f"{['UMAP', 'PCA', 'tSNE']}")
 
+    # set the title of the graph
     graph_title = "%s projection of data" % algorithm
 
-    if algorithm == "UMAP":
-        reducer = umap.UMAP()
+    # create a function mapping from each algorithm name
+    # to their respective Python algorithm calls
+    dim_red_map = {
+        'UMAP': umap.UMAP,
+        'PCA': PCA,
+        'tSNE': TSNE
+    }
 
-        column_data = cell_data[columns].values
-        scaled_column_data = StandardScaler().fit_transform(column_data)
-        embedding = reducer.fit_transform(scaled_column_data)
+    # just map cell_data[columns].values to fit_transform of the dimensionality reduction
+    # function if not UMAP, otherwise we will need to run an additional StandardScalar
+    # transform beforehand
+    dim_red_reducer = dim_red_map[algorithm]()
+    dim_red_results = dim_red_reducer.fit_transform(
+        cell_data[columns].values if algorithm != 'UMAP'
+        else StandardScaler().fit_transform(cell_data[columns].values)
+    )
 
-        plot_dim_reduced_data(embedding[:, 0], embedding[:, 1], fig_id=1,
-                              hue=cell_data[category], cell_data=cell_data, title=graph_title,
-                              save_dir=save_dir, save_file="UMAPVisualization.png")
-
-    elif algorithm == "PCA":
-        pca = PCA()
-        pca_result = pca.fit_transform(cell_data[columns].values)
-
-        plot_dim_reduced_data(pca_result[:, 0], pca_result[:, 1], fig_id=2,
-                              hue=cell_data[category], cell_data=cell_data, title=graph_title,
-                              save_dir=save_dir, save_file="PCAVisualization.png")
-
-    elif algorithm == "tSNE":
-        tsne = TSNE()
-        tsne_results = tsne.fit_transform(cell_data[columns].values)
-
-        plot_dim_reduced_data(tsne_results[:, 0], tsne_results[:, 1], fig_id=3,
-                              hue=cell_data[category], cell_data=cell_data, title=graph_title,
-                              save_dir=save_dir, save_file="tSNEVisualization.png")
+    # now plot the results of the dimensionality reduction
+    plot_dim_reduced_data(dim_red_results[:, 0], dim_red_results[:, 1],
+                          fig_id=list(dim_red_map.keys()).index(algorithm),
+                          hue=cell_data[category], cell_data=cell_data,
+                          title=graph_title, save_dir=save_dir,
+                          save_file=f"{algorithm}Visualization.png")
