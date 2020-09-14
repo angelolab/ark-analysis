@@ -1,8 +1,37 @@
 import tempfile
 import os
+import pytest
 
 from ark.analysis import dimensionality_reduction
 from ark.utils import test_utils
+
+
+def test_plot_dim_reduced_data():
+    # this only tests errors, test_dimensionality_reduction tests the meat of this function
+    random_cell_data = test_utils.make_segmented_csv(300)
+    test_cols = test_utils.TEST_MARKERS
+
+    test_algo = 'PCA'
+
+    with pytest.raises(ValueError):
+        # trying to save to a non-existant directory
+        dimensionality_reduction.plot_dim_reduced_data(component_one=random_cell_data[:, 0],
+                                                       component_two=random_cell_data[:, 1],
+                                                       fig_id=1,
+                                                       hue=random_cell_data[:, 2],
+                                                       cell_data=random_cell_data,
+                                                       title="Title",
+                                                       save_dir="bad_dir")
+
+    with pytest.raises(ValueError):
+        # setting save_dir but not setting save_file
+        dimensionality_reduction.plot_dim_reduced_data(component_one=random_cell_data[:, 0],
+                                                       component_two=random_cell_data[:, 1],
+                                                       fig_id=1,
+                                                       hue=random_cell_data[:, 2],
+                                                       cell_data=random_cell_data,
+                                                       title="Title",
+                                                       save_dir="bad_dir")
 
 
 def test_dimensionality_reduction():
