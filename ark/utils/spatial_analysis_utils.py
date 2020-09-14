@@ -330,7 +330,7 @@ def compute_close_cell_num_random_context(marker_nums, cell_type_rand,
         marker_pos_inds = current_fov_channel_data[marker_pos_select].index.values
 
         # now take the intersection between marker_pos_inds and the indices associated
-        # with each cell type, we'll need this for both the total marker_inds per cell_type 
+        # with each cell type, we'll need this for both the total marker_inds per cell_type
         # and the actual indices needed to subset the distance matrix
         for cell_type in cell_type_data:
             cell_type_data[str(cell_type)]['marker_inds'] = \
