@@ -177,10 +177,7 @@ def compute_close_cell_num(dist_mat, dist_lim, analysis_type,
     mark1_num = []
     mark1poslabels = []
 
-    dist_mat_bin = xr.DataArray(
-        (dist_mat.values < dist_lim).astype(np.int8),
-        coords=dist_mat.coords
-    )
+    dist_mat_bin = (dist_mat < dist_lim).astype(np.int8)
 
     for j in range(num):
         if analysis_type == "cluster":
@@ -236,10 +233,7 @@ def compute_close_cell_num_random(marker_nums, dist_mat, dist_lim, bootstrap_num
     close_num_rand = np.zeros((
         len(marker_nums), len(marker_nums), bootstrap_num), dtype='int')
 
-    dist_mat_bin = xr.DataArray(
-        (dist_mat.values < dist_lim).astype(np.int8),
-        coords=dist_mat.coords
-    )
+    dist_mat_bin = (dist_mat < dist_lim).astype(np.int8)
 
     for j, m1n in enumerate(marker_nums):
         for k, m2n in enumerate(marker_nums[j:], j):
@@ -272,7 +266,8 @@ def compute_close_cell_num_random_context(marker_nums, cell_type_rand,
             keyed to the randomization percentages we want for them, note that the 'else'
             percentage will be computed by taking 1 - sum(cell_type_rand.values())
         dist_mat (xarray.DataArray):
-            cells x cells matrix with the euclidian distance between centers of corresponding cells
+            cells x cells matrix with the euclidian distance
+            between centers of corresponding cells
         dist_lim (int):
             threshold for spatial enrichment distance proximity
         bootstrap_num (int):
@@ -300,21 +295,16 @@ def compute_close_cell_num_random_context(marker_nums, cell_type_rand,
     close_num_rand = np.zeros((
         len(marker_nums), len(marker_nums), bootstrap_num), dtype='int')
 
-    dist_mat_bin = xr.DataArray(
-        (dist_mat.values < dist_lim).astype(np.int8),
-        coords=dist_mat.coords
-    )
+    dist_mat_bin = (dist_mat < dist_lim).astype(np.int8)
 
     # create a dictionary to store information about each cell type
-    # initially copy over the percent value, will be filled with a lot more goodies
-    cell_type_data = {str(m): {'percent': cell_type_rand[m]} for m in cell_type_rand}
-
-    for cell_type in cell_type_rand:
-        cell_type_data[str(cell_type)]['percent'] = cell_type_rand[str(cell_type)]
-
-        # the indices corresponding to each cell type in current_fov_data
-        cell_type_index = current_fov_data[current_fov_data[cell_type_col] == cell_type].index.values
-        cell_type_data[str(cell_type)]['indices'] = cell_type_index
+    # copy over the percent value, will be filled with a lot more goodies
+    # and get the indices that corrrespond to each cell type in current_fov_data
+    cell_type_data = dict(zip(cell_type_rand.keys(),
+                              {'percent': cell_type_rand.values(),
+                               'indices': current_fov_data[cell_type_col] == /
+                                              np.expand_dims(cell_type_rand.keys(),
+                                                             axis=1)}))
 
     # the else column will basically be the inverse of everything else
     # percentage is the 1 - sum(cell_type_rand.values())
@@ -342,36 +332,39 @@ def compute_close_cell_num_random_context(marker_nums, cell_type_rand,
                 # compute the number of samples we need per bootstrap
                 # given the percentages specified in cell_type_rand
 
-                # subset the distance matrix to include only the rows/cols corresponding to
-                # the intersection between marker_pos_inds and cell_type_data[cell_type]['indices'],
+                # subset the distance matrix to include only the rows/cols corresponding to the
+                # intersection between marker_pos_inds and cell_type_data[cell_type]['indices'],
 
-                # use np.choice to generate the close_rand_num_hits data from the flattened distance
-                # matrix generated from above, this corresponds to our random samples for all
-                # our bootstraps for one cell_type
+                # use np.choice to generate the close_rand_num_hits data from the 
+                # flattened distance matrix generated from above, this corresponds to
+                # our random samples for all our bootstraps for one cell_type
 
                 # add the sum of the np.choice call above to close_num_rand[j, k, :], we can add
                 # because we compute each cell_type sum independent of each other, it works the
                 # same if we aggregated random indices together and used np.choice on that
 
-            # TODO: I'll need to talk with Erin about this, but the randomization strategy still needs
-            # clarification. Currently, the percentages I'm taking are from the number of cell_type
-            # hits per marker_counts. I'm almost certain that this is what she was getting at, but
-            # then again, I'm not 100% sure. Not using m1n and m2n definitely looks suspect here.
+            # TODO: I'll need to talk with Erin about this, but the randomization strategy 
+            # still needs clarification. Currently, the percentages I'm taking are from the 
+            # number of cell_type hits per marker_counts. I'm not 100% certain that this is what
+            # she was getting at. Not using m1n and m2n definitely looks suspect here.
             # Possibly, we'll need to use the percents specified in cell_type_rand to partition
             # m1n * m2n instead.
 
             for cell_type in cell_type_data:
                 # generate the dimensions of our samples array for the cell_type
                 samples_per_bootstrap = int(
-                    len(cell_type_data[cell_type]['marker_inds']) * cell_type_data[cell_type]['percent']
+                    len(cell_type_data[cell_type]['marker_inds']) * \
+                    cell_type_data[cell_type]['percent']
                 )
                 samples_dim = (samples_per_bootstrap, bootstrap_num)
 
                 # now generate the 
-                marker_inds_to_choose = np.random.choice(cell_type_data[str(cell_type)]['marker_inds'],
-                                                         samples_per_bootstrap)
+                marker_inds_to_choose = np.random.choice(
+                    cell_type_data[str(cell_type)]['marker_inds'],
+                    samples_per_bootstrap)
 
-                dist_mat_bin_flat = dist_mat_bin.values[marker_inds_subset, marker_inds_subset].flatten()
+                dist_mat_bin_flat = dist_mat_bin.values[marker_inds_subset,
+                                                        marker_inds_subset].flatten()
 
                 count_close_rand_num_hits = np.sum(
                     np.random.choice(dist_mat_bin_flattened, samples_dim, True),
