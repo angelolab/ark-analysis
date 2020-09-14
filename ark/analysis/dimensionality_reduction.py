@@ -54,8 +54,6 @@ def plot_dim_reduced_data(component_one, component_two, fig_id, hue, cell_data,
     plt.legend(bbox_to_anchor=bbox_to_anchor, loc=legend_loc, borderaxespad=legend_borderaxespad)
     plt.title(title, fontsize=title_fontsize)
 
-    # fig.show()
-
     if save_dir is not None:
         if not os.path.exists(save_dir):
             raise ValueError("save_dir %s does not exist" % save_dir)
