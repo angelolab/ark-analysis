@@ -303,9 +303,8 @@ def compute_close_cell_num_random_context(marker_nums, cell_type_rand,
     cell_type_data = dict(zip(cell_type_rand.keys(), {'percent': cell_type_rand.values()}))
     cell_type_data = {str(m): {'percent': cell_type_rand[m],
                                'indices': current_fov_data[current_fov_data[cell_type_col] == m]
-                                          .index.values}
-                      for m in cell_type_rand
-    }
+                               .index.values}
+                      for m in cell_type_rand}
 
     # TODO: trying to use Adam's optimization, not currently working
     # cell_type_data = dict(zip(cell_type_rand.keys(),
@@ -363,8 +362,8 @@ def compute_close_cell_num_random_context(marker_nums, cell_type_rand,
 
             for cell_type in cell_type_data:
                 # generate the dimensions of our samples array for the cell_type
-                samples_per_bootstrap = int(len(cell_type_data[cell_type]['marker_inds']) * \
-                    cell_type_data[cell_type]['percent'])
+                samples_per_bootstrap = int(len(cell_type_data[cell_type]['marker_inds']) *
+                                            cell_type_data[cell_type]['percent'])
 
                 samples_dim = (samples_per_bootstrap, bootstrap_num)
 
