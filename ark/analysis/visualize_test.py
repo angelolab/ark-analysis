@@ -61,9 +61,12 @@ def test_visualize_z_scores():
         visualize.visualize_z_scores(z, pheno_titles, save_dir="bad_dir")
 
     with tempfile.TemporaryDirectory() as temp_dir:
-        visualize.visualize_z_scores(z, pheno_titles, save_dir=temp_dir)
+        # test that without save_dir, we do not save
+        visualize.visualize_z_scores(z, pheno_titles)
+        assert not os.path.exists(os.path.join(temp_dir, "z_score_viz.png"))
 
-        # check if correct plot is saved
+        # test that with save_dir, we do save
+        visualize.visualize_z_scores(z, pheno_titles, save_dir=temp_dir)
         assert os.path.exists(os.path.join(temp_dir, "z_score_viz.png"))
 
 
@@ -90,15 +93,19 @@ def test_plot_barchart():
                                 "Random Y Label", save_dir=".")
 
 
-def test_visualize_cells():
+def test_visualize_patient_population_distribution():
     random_data = test_utils.make_segmented_csv(100)
 
-    with pytest.raises(ValueError):
-        # trying to save to a non-existant directory
-        visualize.visualize_patient_population_distribution(random_data, "PatientID",
-                                                            "cell_type", save_dir="bad_dir")
-
     with tempfile.TemporaryDirectory() as temp_dir:
+        # test without a save_dir, check that we do not save the files
+        visualize.visualize_patient_population_distribution(random_data, "PatientID",
+                                                            "cell_type")
+
+        assert not os.path.exists(os.path.join(temp_dir, "PopulationDistribution.png"))
+        assert not os.path.exists(os.path.join(temp_dir, "TotalPopulationDistribution.png"))
+        assert not os.path.exists(os.path.join(temp_dir, "PopulationProportion.png"))
+
+        # now test with a save_dir, which will check that we do save the files
         visualize.visualize_patient_population_distribution(random_data, "PatientID",
                                                             "cell_type", save_dir=temp_dir)
 
