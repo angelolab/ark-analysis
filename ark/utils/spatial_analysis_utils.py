@@ -301,10 +301,9 @@ def compute_close_cell_num_random_context(marker_nums, cell_type_rand,
     # copy over the percent value, will be filled with a lot more goodies
     # and get the indices that corrrespond to each cell type in current_fov_data
     cell_type_data = dict(zip(cell_type_rand.keys(), {'percent': cell_type_rand.values()}))
-    cell_type_data = {str(m):
-                          {'percent': cell_type_rand[m],
-                           'indices': current_fov_data[current_fov_data[cell_type_col] == m] \
-                                      .index.values}
+    cell_type_data = {str(m): {'percent': cell_type_rand[m],
+                               'indices': current_fov_data[current_fov_data[cell_type_col] == m]
+                                          .index.values}
                       for m in cell_type_rand
     }
 
@@ -336,7 +335,8 @@ def compute_close_cell_num_random_context(marker_nums, cell_type_rand,
         # actual indices needed to subset the distance matrix
         for cell_type in cell_type_data:
             cell_type_data[str(cell_type)]['marker_inds'] = \
-                list(set(marker_pos_inds).intersection(set(cell_type_data[str(cell_type)]['indices'])))
+                list(set(marker_pos_inds).intersection(set(
+                    cell_type_data[str(cell_type)]['indices'])))
 
         for k, m2n in enumerate(marker_nums[j:], j):
             # for each cell_type in cell_type_data_per_facet
@@ -346,7 +346,7 @@ def compute_close_cell_num_random_context(marker_nums, cell_type_rand,
             # subset the distance matrix to include only the rows/cols corresponding to the
             # intersection between marker_pos_inds and cell_type_data[cell_type]['indices'],
 
-            # use np.choice to generate the close_rand_num_hits data from the 
+            # use np.choice to generate the close_rand_num_hits data from the
             # flattened distance matrix generated from above, this corresponds to
             # our random samples for all our bootstraps for one cell_type
 
@@ -363,10 +363,9 @@ def compute_close_cell_num_random_context(marker_nums, cell_type_rand,
 
             for cell_type in cell_type_data:
                 # generate the dimensions of our samples array for the cell_type
-                samples_per_bootstrap = int(
-                    len(cell_type_data[cell_type]['marker_inds']) *
-                        cell_type_data[cell_type]['percent']
-                )
+                samples_per_bootstrap = int(len(cell_type_data[cell_type]['marker_inds']) * \
+                    cell_type_data[cell_type]['percent'])
+
                 samples_dim = (samples_per_bootstrap, bootstrap_num)
 
                 # now generate the marker inds
@@ -375,8 +374,8 @@ def compute_close_cell_num_random_context(marker_nums, cell_type_rand,
                     samples_per_bootstrap)
 
                 # this happens if the intersection between the marker inds and the cell type inds
-                # is the null set, in this case, we do not attempt to count the number of random hits
-                # since it would just be 0 anyways
+                # is the null set, in this case, we do not attempt to count the
+                # number of random hits since it would just be 0 anyways
                 if len(marker_inds_to_choose) == 0:
                     continue
 
