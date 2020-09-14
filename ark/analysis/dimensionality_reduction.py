@@ -103,15 +103,6 @@ def visualize_dimensionality_reduction(cell_data, columns, category, color_map="
                               hue=cell_data[category], cell_data=cell_data, title=graph_title,
                               save_dir=save_dir, save_file="UMAPVisualization.png")
 
-        # fig1 = plt.figure(1)
-        # sns.scatterplot(x=embedding[:, 0], y=embedding[:, 1], hue=cell_data[category],
-        #                 palette=color_map, data=cell_data, legend="full", alpha=0.3)
-        # plt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
-        # plt.title('UMAP projection of data', fontsize=24)
-        # fig1.show()
-        # if save_dir is not None:
-        #     plt.savefig(os.path.join(save_dir, "UMAPVisualization.png"))
-
     elif algorithm == "PCA":
         pca = PCA()
         pca_result = pca.fit_transform(cell_data[columns].values)
@@ -120,16 +111,6 @@ def visualize_dimensionality_reduction(cell_data, columns, category, color_map="
                               hue=cell_data[category], cell_data=cell_data, title=graph_title,
                               save_dir=save_dir, save_file="PCAVisualization.png")
 
-        # fig2 = plt.figure(2)
-        # sns.scatterplot(x=pca_result[:, 0], y=pca_result[:, 1], hue=cell_data[category],
-        #                 palette=color_map, data=cell_data, legend="full", alpha=0.3)
-        # plt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
-        # plt.title('PCA projection of data', fontsize=24)
-        # fig2.show()
-
-        # if save_dir is not None:
-        #     plt.savefig(os.path.join(save_dir, "PCAVisualization.png"))
-
     elif algorithm == "tSNE":
         tsne = TSNE()
         tsne_results = tsne.fit_transform(cell_data[columns].values)
@@ -137,19 +118,3 @@ def visualize_dimensionality_reduction(cell_data, columns, category, color_map="
         plot_dim_reduced_data(tsne_results[:, 0], tsne_results[:, 1], fig_id=3,
                               hue=cell_data[category], cell_data=cell_data, title=graph_title,
                               save_dir=save_dir, save_file="tSNEVisualization.png")
-
-        # fig3 = plt.figure(3)
-        # sns.scatterplot(
-        #     x=tsne_results[:, 0], y=tsne_results[:, 1],
-        #     hue=cell_data[category],
-        #     palette=color_map,
-        #     data=cell_data,
-        #     legend="full",
-        #     alpha=0.3
-        # )
-        # plt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
-        # plt.title('tSNE projection of data', fontsize=24)
-        # fig3.show()
-
-        # if save_dir is not None:
-        #     plt.savefig(os.path.join(save_dir, "tSNEVisualization.png"))
