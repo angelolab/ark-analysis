@@ -29,7 +29,7 @@ def test_plot_dim_reduced_data():
                                                        hue=random_cell_data.iloc[:, 2],
                                                        cell_data=random_cell_data,
                                                        title="Title",
-                                                       save_dir="bad_dir")
+                                                       save_dir=".")
 
 
 def test_dimensionality_reduction():
