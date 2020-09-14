@@ -300,18 +300,29 @@ def compute_close_cell_num_random_context(marker_nums, cell_type_rand,
     # create a dictionary to store information about each cell type
     # copy over the percent value, will be filled with a lot more goodies
     # and get the indices that corrrespond to each cell type in current_fov_data
-    cell_type_data = dict(zip(cell_type_rand.keys(),
-                              {'percent': cell_type_rand.values(),
-                               'indices': current_fov_data[cell_type_col] == \
-                                              np.expand_dims(cell_type_rand.keys(),
-                                                             axis=1)}))
+    cell_type_data = dict(zip(cell_type_rand.keys(), {'percent': cell_type_rand.values()}))
+    cell_type_data = {str(m):
+                          {'percent': cell_type_rand[m],
+                           'indices': current_fov_data[current_fov_data[cell_type_col] == m] \
+                                      .index.values}
+                      for m in cell_type_rand
+    }
+
+    # TODO: trying to use Adam's optimization, not currently working
+    # cell_type_data = dict(zip(cell_type_rand.keys(),
+    #                           {'percent': cell_type_rand.values(),
+    #                            'indices': current_fov_data[cell_type_col] ==
+    #                                       np.expand_dims(np.array(list(cell_type_rand.keys())),
+    #                                                      axis=1)}))
 
     # the else column will basically be the inverse of everything else
     # percentage is the 1 - sum(cell_type_rand.values())
     # indices are whatever rows do not correspond to a FlowSOM ID specified in cell_type_rand
+
     cell_type_data['else'] = {
         'percent': 1 - sum(cell_type_rand.values()),
-        'indices': current_fov_data[~current_fov_data[cell_type_col].isin(cell_type_facets)]
+        'indices': current_fov_data[~current_fov_data[cell_type_col].isin(
+            list(cell_type_rand.keys()))].index.values
     }
 
     for j, m1n in enumerate(marker_nums):
@@ -324,27 +335,27 @@ def compute_close_cell_num_random_context(marker_nums, cell_type_rand,
         # we'll need this for both the total marker_inds per cell_type and the
         # actual indices needed to subset the distance matrix
         for cell_type in cell_type_data:
-            cell_type_data[str(cell_type)]['marker_inds'] = np.logical_and(
-                marker_pos_inds, cell_type_data[str(cell_type)]['indices'])
+            cell_type_data[str(cell_type)]['marker_inds'] = \
+                list(set(marker_pos_inds).intersection(set(cell_type_data[str(cell_type)]['indices'])))
 
         for k, m2n in enumerate(marker_nums[j:], j):
             # for each cell_type in cell_type_data_per_facet
-                # compute the number of samples we need per bootstrap
-                # given the percentages specified in cell_type_rand
+            # compute the number of samples we need per bootstrap
+            # given the percentages specified in cell_type_rand
 
-                # subset the distance matrix to include only the rows/cols corresponding to the
-                # intersection between marker_pos_inds and cell_type_data[cell_type]['indices'],
+            # subset the distance matrix to include only the rows/cols corresponding to the
+            # intersection between marker_pos_inds and cell_type_data[cell_type]['indices'],
 
-                # use np.choice to generate the close_rand_num_hits data from the 
-                # flattened distance matrix generated from above, this corresponds to
-                # our random samples for all our bootstraps for one cell_type
+            # use np.choice to generate the close_rand_num_hits data from the 
+            # flattened distance matrix generated from above, this corresponds to
+            # our random samples for all our bootstraps for one cell_type
 
-                # add the sum of the np.choice call above to close_num_rand[j, k, :], we can add
-                # because we compute each cell_type sum independent of each other, it works the
-                # same if we aggregated random indices together and used np.choice on that
+            # add the sum of the np.choice call above to close_num_rand[j, k, :], we can add
+            # because we compute each cell_type sum independent of each other, it works the
+            # same if we aggregated random indices together and used np.choice on that
 
-            # TODO: I'll need to talk with Erin about this, but the randomization strategy 
-            # still needs clarification. Currently, the percentages I'm taking are from the 
+            # TODO: I'll need to talk with Erin about this, but the randomization strategy
+            # still needs clarification. Currently, the percentages I'm taking are from the
             # number of cell_type hits per marker_counts. I'm not 100% certain that this is what
             # she was getting at. Not using m1n and m2n definitely looks suspect here.
             # Possibly, we'll need to use the percents specified in cell_type_rand to partition
@@ -353,26 +364,37 @@ def compute_close_cell_num_random_context(marker_nums, cell_type_rand,
             for cell_type in cell_type_data:
                 # generate the dimensions of our samples array for the cell_type
                 samples_per_bootstrap = int(
-                    len(cell_type_data[cell_type]['marker_inds']) * \
-                    cell_type_data[cell_type]['percent']
+                    len(cell_type_data[cell_type]['marker_inds']) *
+                        cell_type_data[cell_type]['percent']
                 )
                 samples_dim = (samples_per_bootstrap, bootstrap_num)
 
-                # now generate the 
+                # now generate the marker inds
                 marker_inds_to_choose = np.random.choice(
                     cell_type_data[str(cell_type)]['marker_inds'],
                     samples_per_bootstrap)
 
-                dist_mat_bin_flat = dist_mat_bin.values[marker_inds_subset,
-                                                        marker_inds_subset].flatten()
+                # this happens if the intersection between the marker inds and the cell type inds
+                # is the null set, in this case, we do not attempt to count the number of random hits
+                # since it would just be 0 anyways
+                if len(marker_inds_to_choose) == 0:
+                    continue
 
+                # subset the distance matrix
+                dist_mat_bin_flat = dist_mat_bin.values[marker_inds_to_choose,
+                                                        marker_inds_to_choose].flatten()
+
+                # count the number of positive random hits we get
                 count_close_rand_num_hits = np.sum(
-                    np.random.choice(dist_mat_bin_flattened, samples_dim, True),
+                    np.random.choice(dist_mat_bin_flat, samples_dim, True),
                     axis=0
                 )
 
+                # add to the corresponding enry in close_num_rand we take
                 close_num_rand[j, k, :] += count_close_rand_num_hits
                 close_num_rand[k, j, :] += count_close_rand_num_hits
+
+    return close_num_rand
 
 
 def calculate_enrichment_stats(close_num, close_num_rand):

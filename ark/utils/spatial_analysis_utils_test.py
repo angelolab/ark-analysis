@@ -212,6 +212,37 @@ def test_compute_close_cell_num_random():
     assert example_closenumrand.shape == (20, 20, 100)
 
 
+def test_compute_close_cell_num_random_context():
+    all_data, example_distmat = make_example_data_closenum()
+
+    # Only include the columns of markers for fov_channel_data
+    fov_channel_data = all_data.drop(all_data.columns[[
+        0, 1, 14, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32]], axis=1)
+
+    # Generate random inputs to test shape
+    marker_nums = [random.randrange(0, 10) for i in range(20)]
+
+    # Generate a sample randomization strategy, note that the
+    # remaining FlowSOM IDs, 1 and 3, will be grouped into the 'else'
+    # category and have a percentage of 0.6 (1 - 0.4)
+    example_cell_type_rand = {
+        2: 0.4
+    }
+
+    # Generate example thresholds, subset threshold matrix to only include
+    # column with threshold values
+    example_thresholds = make_threshold_mat()
+    thresh_vec = example_thresholds.iloc[0:20, 1]
+
+    example_closenumrand_context = spatial_analysis_utils.compute_close_cell_num_random_context(
+        marker_nums=marker_nums, cell_type_rand=example_cell_type_rand, dist_mat=example_distmat,
+        dist_lim=100, bootstrap_num=100, thresh_vec=thresh_vec, current_fov_data=all_data,
+        current_fov_channel_data=fov_channel_data, cell_type_col='FlowSOM_ID'
+    )
+
+    assert example_closenumrand_context.shape == (20, 20, 100)
+
+
 def test_calculate_enrichment_stats():
     # Positive enrichment
 
