@@ -23,7 +23,7 @@ jobs:
         provider: pypi
         user: "__token__"
         password:
-          secure: $PYPI_TOKEN_EXCRYPT
+          secure: $PYPI_TOKEN_ENCRYPT
 
 after_success:
   - coveralls
