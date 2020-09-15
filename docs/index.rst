@@ -1,12 +1,7 @@
-ARK
-===============================
-
 .. mdinclude:: _rtd/landing.md
 
-Table of Contents
-------------------
-
 .. toctree::
+   :hidden:
    :caption: Getting Started
    :maxdepth: 4
 
@@ -17,21 +12,10 @@ Table of Contents
    Contributing Guidelines <_rtd/contributing>
 
 .. toctree::
+   :hidden:
    :caption: Libraries
    :maxdepth: 4
 
    analysis <_markdown/ark.analysis>
    segmentation <_markdown/ark.segmentation>
    markdown <_markdown/ark.utils>
-
-.. Main section
-.. ------------------
-
-.. .. mdinclude:: markdown-sample.md
-
-.. Indices and tables
-.. -------------------
-
-.. * :ref:`genindex`
-.. * :ref:`modindex`
-.. * :ref:`search`
