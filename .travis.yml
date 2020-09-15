@@ -13,5 +13,15 @@ env:
 script:
   - python -m pytest --cov=ark --pycodestyle ark
 
+jobs:
+  include:
+    - stage: deploy
+      if: tag IS present
+      deploy:
+        provider: pypi
+        user: "__token__"
+        password:
+          secure: $PYPI_TOKEN_EXCRYPT
+
 after_success:
   - coveralls
