@@ -18,12 +18,13 @@ script:
 jobs:
   include:
     - stage: deploy
-      if: tag IS present
       deploy:
         provider: pypi
         user: "__token__"
         password:
           secure: $PYPI_TOKEN_ENCRYPT
+        on:
+          branch: pypi_setup
 
 after_success:
   - coveralls
