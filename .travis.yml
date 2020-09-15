@@ -1,3 +1,5 @@
+dist: xenial
+
 language: python
 
 # We add python path to enable testing jupyter notebooks
