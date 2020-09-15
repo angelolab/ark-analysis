@@ -13,7 +13,7 @@ Pull requests (PRs) are how new code gets added to the project. They faciliate c
 
 Once you've decided to start working on an issue, please 'assign' that issue to yourself so that others know you're working on it. This prevents duplicate work and allows us to keep track of who is doing what. 
 
-If you'd like a refersher on using git and why it's useful, check out [this link](https://git-scm.com/book/en/v2). If you'd like an overview on collaborating via github, checkout [this link](https://docs.github.com/en/github/collaborating-with-issues-and-pull-requests)
+If you'd like a refersher on using git and why it's useful, check out [this git reference](https://git-scm.com/book/en/v2). If you'd like an overview on collaborating via github, check out [this tutorial](https://docs.github.com/en/github/collaborating-with-issues-and-pull-requests)
 
 #### While you're coding
 There are a few important details to keep in mind as you're writing your code. The first is that we follow [the google styleguide](https://google.github.io/styleguide/pyguide.html) for python code. It's good to take a look through here if you aren't familiar with it, to get a sense for what we  expect. You can also look through our [source code](https://github.com/angelolab/ark-analysis/tree/master/ark) to see how we've implemented these suggestions
