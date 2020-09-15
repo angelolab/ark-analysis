@@ -3,7 +3,7 @@ import xarray as xr
 
 from skimage.measure import regionprops
 
-from ark.utils import segmentation_utils
+from ark.utils import segmentation_utils, test_utils
 
 
 def test_find_nuclear_mask_id():
@@ -44,6 +44,61 @@ def test_find_nuclear_mask_id():
                                                                 cell_coords=prop.coords)
 
         assert predicted_nuc == true_nuc_ids[idx]
+
+
+def test_split_large_nuclei():
+    cell_mask, _ = test_utils.create_test_extraction_data()
+    cell_mask = cell_mask[0, :, :, 0]
+
+    nuc_mask = np.zeros_like(cell_mask)
+
+    # completely contained within the cell
+    nuc_mask[4:8, 4:8] = 1
+
+    # same size as cell
+    nuc_mask[15:25, 20:30] = 2
+
+    # strictly bigger than the cell
+    nuc_mask[25:32, 3:30] = 3
+
+    # only partially overlaps the cell
+    nuc_mask[33:37, 12:20] = 5
+
+    split_mask = segmentation_utils.split_large_nuclei(nuc_segmentation_mask=nuc_mask,
+                                                       cell_segmentation_mask=cell_mask,
+                                                       cell_ids=np.array([1, 2, 3, 5]))
+
+    # nuc 1 and 2 are unchanged
+    assert np.array_equal(nuc_mask == 1, split_mask == 1)
+    assert np.array_equal(nuc_mask == 2, split_mask == 2)
+
+    # nuc 3 was greater than cell 3
+    nuc_3_inner = np.logical_and(nuc_mask == 3, cell_mask == 3)
+    nuc_3_outer = np.logical_and(nuc_mask == 3, cell_mask != 3)
+
+    nuc_3_inner_val = np.unique(split_mask[nuc_3_inner])
+    nuc_3_outer_val = np.unique(split_mask[nuc_3_outer])
+
+    # the different parts of nuc 3 have a single label
+    assert len(nuc_3_inner_val) == 1
+    assert len(nuc_3_outer_val) == 1
+
+    # the labels are different
+    assert nuc_3_inner_val != nuc_3_outer_val
+
+    # nuc 5 partially overlapped cell 5
+    nuc_5_inner = np.logical_and(nuc_mask == 5, cell_mask == 5)
+    nuc_5_outer = np.logical_and(nuc_mask == 5, cell_mask != 5)
+
+    nuc_5_inner_val = np.unique(split_mask[nuc_5_inner])
+    nuc_5_outer_val = np.unique(split_mask[nuc_5_outer])
+
+    # the different parts of nuc 3 have a single label
+    assert len(nuc_5_inner_val) == 1
+    assert len(nuc_5_outer_val) == 1
+
+    # the labels are different
+    assert nuc_5_inner_val != nuc_5_outer_val
 
 
 # TODO: refactor to avoid code reuse
