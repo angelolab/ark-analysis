@@ -21,8 +21,7 @@ jobs:
       deploy:
         provider: pypi
         user: "__token__"
-        password:
-          secure: $PYPI_TOKEN_ENCRYPT
+        password: $PYPI_TOKEN
         on:
           branch: pypi_setup
         skip_cleanup: true
