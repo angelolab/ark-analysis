@@ -300,23 +300,14 @@ def compute_close_cell_num_random_context(marker_nums, cell_type_rand,
     # create a dictionary to store information about each cell type
     # copy over the percent value, will be filled with a lot more goodies
     # and get the indices that corrrespond to each cell type in current_fov_data
-    cell_type_data = dict(zip(cell_type_rand.keys(), {'percent': cell_type_rand.values()}))
     cell_type_data = {str(m): {'percent': cell_type_rand[m],
                                'indices': current_fov_data[current_fov_data[cell_type_col] == m]
                                .index.values}
                       for m in cell_type_rand}
 
-    # TODO: trying to use Adam's optimization, not currently working
-    # cell_type_data = dict(zip(cell_type_rand.keys(),
-    #                           {'percent': cell_type_rand.values(),
-    #                            'indices': current_fov_data[cell_type_col] ==
-    #                                       np.expand_dims(np.array(list(cell_type_rand.keys())),
-    #                                                      axis=1)}))
-
     # the else column will basically be the inverse of everything else
     # percentage is the 1 - sum(cell_type_rand.values())
     # indices are whatever rows do not correspond to a FlowSOM ID specified in cell_type_rand
-
     cell_type_data['else'] = {
         'percent': 1 - sum(cell_type_rand.values()),
         'indices': current_fov_data[~current_fov_data[cell_type_col].isin(
@@ -332,8 +323,12 @@ def compute_close_cell_num_random_context(marker_nums, cell_type_rand,
         # now take the intersection between marker_pos_inds and the indices associated
         # with each cell type, we'll need this for both the total marker_inds per cell_type
         # and the actual indices needed to subset the distance matrix
+        # to clarify, indices is the index that is associated with the cell_type
+        # and marker_inds is the index that is associated with the marker_num we're looking at
+        # we have to take the intersection because we have to enforce that we're looking at
+        # only the data corresponding to the cell_type and marker_num in question
         for cell_type in cell_type_data:
-            cell_type_data[str(cell_type)]['marker_inds'] = \
+            cell_type_data[cell_type]['marker_inds'] = \
                 list(set(marker_pos_inds).intersection(set(
                     cell_type_data[str(cell_type)]['indices'])))
 
