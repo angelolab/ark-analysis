@@ -18,12 +18,21 @@ Table of Contents
 ------------------
 
 .. toctree::
+   :caption: Getting Started
+   :maxdepth: 4
+
+   Home <_rtd/home>
+   About MIBI Pipeline <_rtd/pipeline>
+   Data Type Info <_rtd/data_types>
+   Virtual Environment Setup <_rtd/virtualenv>
+   Contributing Guidelines <_rtd/contributing>
+
    :caption: Libraries
    :maxdepth: 4
 
-   _markdown/ark.analysis
-   _markdown/ark.segmentation
-   _markdown/ark.utils
+   analysis <_markdown/ark.analysis>
+   segmentation <_markdown/ark.segmentation>
+   markdown <_markdown/ark.utils>
 
 .. Main section
 .. ------------------
