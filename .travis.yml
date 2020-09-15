@@ -25,7 +25,6 @@ jobs:
           secure: $PYPI_TOKEN_ENCRYPT
         on:
           branch: pypi_setup
-        skip_cleanup: true
 
 after_success:
   - coveralls
