@@ -164,7 +164,6 @@ def run_apidoc(_):
 
 def check_docstring_format(app, what, name, obj, options, lines):
     if what == 'function':
-        # print(name)
         argnames = inspect.getargspec(obj)[0]
 
         if len(argnames) > 0:
