@@ -21,12 +21,13 @@ Table of Contents
    :caption: Getting Started
    :maxdepth: 4
 
-   Home <_rtd/home>
+   Home <_rtd/landing>
    About MIBI Pipeline <_rtd/pipeline>
    Data Type Info <_rtd/data_types>
    Virtual Environment Setup <_rtd/virtualenv>
    Contributing Guidelines <_rtd/contributing>
 
+.. toctree::
    :caption: Libraries
    :maxdepth: 4
 
