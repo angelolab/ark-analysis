@@ -18,4 +18,4 @@
 
    analysis <_markdown/ark.analysis>
    segmentation <_markdown/ark.segmentation>
-   markdown <_markdown/ark.utils>
+   utils <_markdown/ark.utils>
