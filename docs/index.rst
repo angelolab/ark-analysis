@@ -1,18 +1,7 @@
 ARK
 ===============================
 
-This is ARK for ya.
-
-We're doing some cool stuff with medical imaging.
-
-Want to get started? Just follow our :ref:`quickstart-label` guide!
-
-.. _quickstart-label:
-
-Quickstart
--------------------------------
-
-.. mdinclude:: ../README.md
+.. mdinclude:: _rtd/landing.md
 
 Table of Contents
 ------------------
@@ -21,7 +10,7 @@ Table of Contents
    :caption: Getting Started
    :maxdepth: 4
 
-   Home <_rtd/landing>
+   Home <self>
    About MIBI Pipeline <_rtd/pipeline>
    Data Type Info <_rtd/data_types>
    Virtual Environment Setup <_rtd/virtualenv>
