@@ -1,3 +1,4 @@
+import pytest
 import numpy as np
 import pandas as pd
 import xarray as xr
@@ -258,6 +259,35 @@ def test_calculate_channel_spatial_enrichment():
     assert stats_no_enrich.loc["Point9", "p_neg", 3, 2] > .05
     assert abs(stats_no_enrich.loc["Point9", "z", 3, 2]) < 2
 
+    # error checking
+    with pytest.raises(ValueError):
+        # attempt to exclude a column name that doesn't appear in the expression matrix
+        _, stats_no_enrich = \
+            spatial_analysis.calculate_channel_spatial_enrichment(
+                dist_mat_no_enrich, marker_thresholds, all_data_no_enrich,
+                excluded_colnames=["bad_excluded_col_name"], bootstrap_num=100,
+                dist_lim=dist_lim)
+
+    with pytest.raises(ValueError):
+        # attempt to include fovs that do not exist
+        _, stat_no_enrich = \
+            spatial_analysis.calculate_channel_spatial_enrichment(
+                dist_mat_no_enrich, marker_thresholds, all_data_no_enrich,
+                excluded_colnames=excluded_colnames, included_fovs=[1, 100000],
+                bootstrap_num=100, dist_lim=dist_lim)
+
+    with pytest.raises(ValueError):
+        # attempt to include marker thresholds that do not exist
+        bad_marker_thresholds = pd.DataFrame(np.zeros((20, 2)))
+        bad_marker_thresholds.iloc[:, 1] = .5
+        bad_marker_thresholds.iloc[:, 0] = np.arange(10000, 10020) + 2
+
+        _, stat_no_enrich = \
+            spatial_analysis.calculate_channel_spatial_enrichment(
+                dist_mat_no_enrich, bad_marker_thresholds, all_data_no_enrich,
+                excluded_colnames=excluded_colnames, bootstrap_num=100,
+                dist_lim=dist_lim)
+
 
 def test_calculate_cluster_spatial_enrichment():
     # Test z and p values
@@ -319,6 +349,14 @@ def test_calculate_cluster_spatial_enrichment():
     assert stats_no_enrich.loc["Point8", "p_neg", "Pheno2", "Pheno1"] > .05
     assert abs(stats_no_enrich.loc["Point8", "z", "Pheno2", "Pheno1"]) < 2
 
+    # error checking
+    with pytest.raises(ValueError):
+        # attempt to include fovs that do not exist
+        _, stats_no_enrich = \
+            spatial_analysis.calculate_cluster_spatial_enrichment(
+                all_data_no_enrich, dist_mat_no_enrich, included_fovs=[1, 100000],
+                bootstrap_num=100, dist_lim=dist_lim)
+
 
 def test_create_neighborhood_matrix():
     # get positive expression and distance matrices
@@ -335,3 +373,10 @@ def test_create_neighborhood_matrix():
 
     assert (counts.loc[80:89, "Pheno3"] == 8).all()
     assert (counts.loc[90:99, "Pheno1"] == 8).all()
+
+    # error checking
+    with pytest.raises(ValueError):
+        # attempt to include fovs that do not exist
+        counts, freqs = spatial_analysis.create_neighborhood_matrix(
+            all_data_pos, dist_mat_pos, included_fovs=[1, 100000], distlim=51
+        )
