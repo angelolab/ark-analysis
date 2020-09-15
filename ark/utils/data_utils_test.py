@@ -378,8 +378,6 @@ def test_split_img_stack():
         data_utils.split_img_stack(stack_dir, output_dir, stack_list, [0, 1], names[0:2],
                                    channels_first=False)
 
-        # raise ValueError(f"{os.listdir(os.path.join(output_dir, 'stack_sample'))}")
-
         assert os.path.exists(os.path.join(output_dir, "stack_sample", "chan0.tiff"))
         assert os.path.exists(os.path.join(output_dir, "stack_sample", "chan1.tiff"))
 
