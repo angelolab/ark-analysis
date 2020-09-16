@@ -28,7 +28,7 @@ jobs:
         user: $PYPI_USERNAME
 	password: $PYPI_PASSWORD
         on:
-          branch: pypi_setup
+          branch: master
         skip_cleanup: true
 
 after_success:
