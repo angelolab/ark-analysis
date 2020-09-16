@@ -28,8 +28,7 @@ jobs:
         user: $PYPI_USERNAME
 	password: $PYPI_PASSWORD
         on:
-          branch: master
-        skip_cleanup: true
+          tags: true
 
 after_success:
   - coveralls
