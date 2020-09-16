@@ -1,9 +1,8 @@
-import warnings
 from twisted.internet import reactor
 from kiosk_client import manager
 import os
-from pathlib import Path
-import shutil
+import glob
+from zipfile import ZipFile
 
 
 def create_deepcell_output(deepcell_input_dir, points, deepcell_output_dir,
@@ -38,29 +37,23 @@ def create_deepcell_output(deepcell_input_dir, points, deepcell_output_dir,
 
         """
 
-    # create /zip folders if they do not exist, and make sure they are empty
-    input_zip = os.path.join(deepcell_input_dir, 'zip')
-    output_zip = os.path.join(deepcell_output_dir, 'zip')
-    for directory in [input_zip, output_zip]:
-        Path(directory).mkdir(parents=True, exist_ok=True)
-        [f.unlink() for f in Path(directory).glob("*") if f.is_file()]
+    # first remove all .zip files from output directory
+    list_of_files = glob.glob(os.path.join(deepcell_output_dir, '*.zip'))
+    for f in list_of_files:
+        os.remove(f)
 
-    # zip the preprocessed .tif files
-    for i, point in enumerate(points):
-        shutil.make_archive(os.path.join(input_zip, point), 'zip',
-                            deepcell_input_dir, point + '.tif')
+    zip_path = os.path.join(deepcell_input_dir, 'points.zip')
+    with ZipFile(zip_path, 'w') as zipObj:
+        for point in points:
+            filename = os.path.join(deepcell_input_dir, point + '.tif')
+            zipObj.write(filename, os.path.basename(filename))
 
-    run_deepcell_task(input_zip, output_zip, host, job_type)
+    run_deepcell_task(zip_path, deepcell_output_dir, host, job_type)
 
-    # make sure DeepCell output files were created
-    _, _, files = next(os.walk(output_zip))
-    if len(files) != len(points):
-        warnings.warn(f'failed to create {len(points) - len(files)} files')
-
-    # finally extract the .zip files
-    for f in files:
-        shutil.unpack_archive(os.path.join(output_zip, f),
-                              deepcell_output_dir, 'zip')
+    # extract the .tif output
+    zf = glob.glob(os.path.join(deepcell_output_dir, '*.zip'))[0]
+    with ZipFile(zf, 'r') as zipObj:
+        zipObj.extractall(deepcell_output_dir)
 
 
 def run_deepcell_task(input_dir, output_dir, host='https://deepcell.org',
