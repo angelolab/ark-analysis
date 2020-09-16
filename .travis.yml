@@ -1,5 +1,8 @@
 dist: xenial
 
+git:
+  depth: false
+
 language: python
 
 # We add python path to enable testing jupyter notebooks
@@ -23,7 +26,7 @@ jobs:
       deploy:
         provider: pypi
         user: "__token__"
-        password: pypi-AgEIcHlwaS5vcmcCJDU0MzA3NmY3LWQwYzQtNDNkMS1hYmVjLWJjMjBjZmEzNTAzZgACPXsicGVybWlzc2lvbnMiOiB7InByb2plY3RzIjogWyJhcmstYW5hbHlzaXMiXX0sICJ2ZXJzaW9uIjogMX0AAAYgVux2VCFYzuyGrTxlsSoubcxfoxM8rK1uUXujMm0EM5k
+        password: "pypi-AgEIcHlwaS5vcmcCJDU0MzA3NmY3LWQwYzQtNDNkMS1hYmVjLWJjMjBjZmEzNTAzZgACPXsicGVybWlzc2lvbnMiOiB7InByb2plY3RzIjogWyJhcmstYW5hbHlzaXMiXX0sICJ2ZXJzaW9uIjogMX0AAAYgVux2VCFYzuyGrTxlsSoubcxfoxM8rK1uUXujMm0EM5k"
         on:
           branch: pypi_setup
         skip_cleanup: true
