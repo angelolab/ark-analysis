@@ -137,6 +137,16 @@ def test_compute_marker_counts():
 
     assert not np.any(np.isin(excluded_defaults, segmentation_output_specified.features.values))
 
+    # these nuclei are all smaller than the cells, so we should get same result
+    segmentation_output_specified_split = \
+        marker_quantification.compute_marker_counts(input_images=input_images,
+                                                    segmentation_masks=segmentation_masks_equal,
+                                                    nuclear_counts=True,
+                                                    regionprops_features=regionprops_features,
+                                                    split_large_nuclei=True)
+
+    assert np.all(segmentation_output_specified_split == segmentation_output_specified)
+
 
 def test_generate_expression_matrix():
 
