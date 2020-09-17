@@ -10,6 +10,7 @@
    Data Type Info <_rtd/data_types>
    Virtual Environment Setup <_rtd/virtualenv>
    Contributing Guidelines <_rtd/contributing>
+   Version Updating <_rtd/version_update>
 
 .. toctree::
    :hidden:
