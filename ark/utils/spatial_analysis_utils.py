@@ -8,13 +8,13 @@ from scipy.spatial.distance import cdist
 import os
 
 
-def calc_dist_matrix(label_maps, path=None):
+def calc_dist_matrix(label_maps, save_path=None):
     """Generate matrix of distances between center of pairs of cells
 
     Args:
         label_maps (xarray.DataArray):
             array with unique cells given unique pixel labels per fov
-        path (str):
+        save_path (str):
             path to save file. If None, then will directly return
     Returns:
         dict:
@@ -24,9 +24,8 @@ def calc_dist_matrix(label_maps, path=None):
     """
 
     # Check that file path exists, if given
-
-    if path is not None:
-        if not os.path.exists(path):
+    if save_path is not None:
+        if not os.path.exists(save_path):
             raise FileNotFoundError("File path not valid")
 
     dist_mats_list = []
@@ -50,12 +49,12 @@ def calc_dist_matrix(label_maps, path=None):
     # Create dictionary to store distance matrices per fov
     dist_matrices = dict(zip(fovs, dist_mats_list))
 
-    # If path is None, function will directly return the dictionary
+    # If save_path is None, function will directly return the dictionary
     # else it will save it as a file with location specified by path
-    if path is None:
+    if save_path is None:
         return dist_matrices
     else:
-        np.savez(path + "dist_matrices.npz", **dist_matrices)
+        np.savez(os.path.join(save_path, "dist_matrices.npz"), **dist_matrices)
 
 
 def get_pos_cell_labels_channel(thresh, current_fov_channel_data, cell_labels, current_marker):
@@ -115,7 +114,9 @@ def get_pos_cell_labels_cluster(pheno, current_fov_neighborhood_data,
 
 def compute_close_cell_num(dist_mat, dist_lim, analysis_type,
                            current_fov_data=None, current_fov_channel_data=None,
-                           cluster_ids=None, thresh_vec=None):
+                           cluster_ids=None, thresh_vec=None,
+                           cell_label_col="cellLabelInImage",
+                           cell_type_col="FlowSOM_ID"):
     """Finds positive cell labels and creates matrix with counts for cells positive for
     corresponding markers. Computes close_num matrix for both Cell Label and Threshold spatial
     analyses.
@@ -141,6 +142,10 @@ def compute_close_cell_num(dist_mat, dist_lim, analysis_type,
             all the cell phenotypes in Cluster Analysis
         thresh_vec (numpy.ndarray):
             matrix of thresholds column for markers
+        cell_label_col (str):
+            the name of the cell label column in current_fov_data
+        cell_type_col (str):
+            the name of the FlowSOM ID column in current_fov_data
 
     Returns:
         numpy.ndarray:
@@ -155,10 +160,6 @@ def compute_close_cell_num(dist_mat, dist_lim, analysis_type,
     # Initialize variables
 
     cell_labels = []
-
-    # Assign column names for subsetting (cell labels and cell type ids)
-    cell_label_col = "cellLabelInImage"
-    cell_type_col = "FlowSOM_ID"
 
     # Subset data based on analysis type
     if analysis_type == "channel":
@@ -254,7 +255,7 @@ def compute_close_cell_num_random(marker_nums, dist_mat, dist_lim, bootstrap_num
 def compute_close_cell_num_random_context(marker_nums, cell_type_rand,
                                           dist_mat, dist_lim, bootstrap_num, thresh_vec,
                                           current_fov_data, current_fov_channel_data,
-                                          cell_type_col):
+                                          cell_type_col="FlowSOM_ID"):
     """Runs a context-dependent bootstrapping procedure to sample cell labels randomly faceted
     by which cell type they are based on their FlowSOM ID. Only for channel enrichment.
 

@@ -6,7 +6,8 @@ from ark.utils import spatial_analysis_utils
 
 def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, all_data,
                                          excluded_colnames=None, included_fovs=None,
-                                         dist_lim=100, bootstrap_num=1000, fov_col="SampleID"):
+                                         dist_lim=100, bootstrap_num=1000, fov_col="SampleID",
+                                         context=False, cell_type_rand=None):
     """Spatial enrichment analysis to find significant interactions between cells expressing
     different markers. Uses bootstrapping to permute cell labels randomly.
 
@@ -32,6 +33,11 @@ def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, 
             number of permutations for bootstrap. Default is 1000.
         fov_col (str):
             column with the cell fovs. Default is 'SampleID'
+        context (bool):
+            if we want to specify context-dependent randomization or not. Default is False.
+        cell_type_rand (dict):
+            the randomization strategies we want to specify for context-dependent randomization.
+            Default None. Ignored if context is set to False.
 
     Returns:
         tuple (list, xarray.DataArray):
@@ -101,8 +107,16 @@ def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, 
             current_fov_data=current_fov_data, current_fov_channel_data=current_fov_channel_data,
             thresh_vec=thresh_vec)
 
-        close_num_rand = spatial_analysis_utils.compute_close_cell_num_random(
-            channel_nums, dist_matrix, dist_lim, bootstrap_num)
+        if context:
+            close_num_rand = spatial_analysis_utils.compute_close_cell_num_random_context(
+                marker_nums=channel_nums, cell_type_rand=cell_type_rand, dist_mat=dist_matrix,
+                dist_lim=dist_lim, bootstrap_num=bootstrap_num, thresh_vec=thresh_vec,
+                current_fov_data=current_fov_data,
+                current_fov_channel_data=current_fov_channel_data)
+        else:
+            close_num_rand = spatial_analysis_utils.compute_close_cell_num_random(
+                marker_nums=channel_nums, dist_mat=dist_matrix, dist_lim=dist_lim,
+                bootstrap_num=bootstrap_num)
 
         values.append((close_num, close_num_rand))
 
