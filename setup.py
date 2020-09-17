@@ -1,11 +1,24 @@
 from os import path
 from setuptools import setup, find_packages
 
-VERSION = '0.2.4'
+VERSION = '0.2.5'
+
+
+def _parse_requirements(file_path):
+    # people should download mibilib separately for now
+    reqs = [line.strip() for line in open(file_path) if not (line.startswith('#')
+            or line.startswith('git+'))]
+    return reqs
+
 
 # set a long description which is basically the README
 with open(path.join(path.abspath(path.dirname(__file__)), 'README.md')) as f:
     long_description = f.read()
+
+try:
+    install_reqs = _parse_requirements('requirements.txt')
+except Exception:
+    install_reqs = []
 
 setup(
     name='ark',
@@ -15,23 +28,8 @@ setup(
     description='Toolbox for analysis on segmented images from MIBI',
     author='Angelo Lab',
     url='https://github.com/angelolab/ark-analysis',
-    download_url='https://github.com/angelolab/ark-analysis/archive/{}.tar.gz'.format(VERSION),
-    install_requires=['h5py',
-                      'jupyter',
-                      'jupyter_contrib_nbextensions',
-                      'matplotlib',
-                      'git+git://github.com/ionpath/mibilib@v1.2.6',
-                      'netCDF4',
-                      'numpy',
-                      'pandas',
-                      'scikit-image',
-                      'sciit-learn',
-                      'scipy',
-                      'seaborn',
-                      'statsmodels',
-                      'tables',
-                      'umap-learn',
-                      'xarray'],
+    download_url='https://github.com/angelolab/ark-analysis/archive/v{}.tar.gz'.format(VERSION),
+    install_requires=install_reqs,
     extras_require={
         'tests': ['pytest',
                   'pytest-cov',
