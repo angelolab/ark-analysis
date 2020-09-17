@@ -12,7 +12,7 @@ from ark.segmentation import signal_extraction
 
 
 def compute_marker_counts(input_images, segmentation_masks, nuclear_counts=False,
-                          regionprops_features=None):
+                          regionprops_features=None, split_large_nuclei=False):
     """Extract single cell protein expression data from channel TIFs for a single point
 
     Args:
@@ -24,6 +24,8 @@ def compute_marker_counts(input_images, segmentation_masks, nuclear_counts=False
             boolean flag to determine whether nuclear counts are returned
         regionprops_features (list):
             morphology features for regionprops to extract for each cell
+        split_large_nuclei (bool):
+            controls whether nuclei which have portions outside of the cell will get relabeled
 
     Returns:
         xarray.DataArray:
@@ -69,6 +71,12 @@ def compute_marker_counts(input_images, segmentation_masks, nuclear_counts=False
 
     if nuclear_counts:
         nuc_mask = segmentation_masks.loc[:, :, 'nuclear'].values
+
+        if split_large_nuclei:
+            cell_mask = segmentation_masks.loc[:, :, 'whole_cell'].values
+            nuc_mask = segmentation_utils.split_large_nuclei(cell_segmentation_mask=cell_mask,
+                                                             nuc_segmentation_mask=nuc_mask,
+                                                             cell_ids=unique_cell_ids)
         nuc_props = pd.DataFrame(regionprops_table(nuc_mask, properties=regionprops_features))
 
     # TODO: There's some repeated code here, maybe worth refactoring? Maybe not
