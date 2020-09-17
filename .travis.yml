@@ -23,7 +23,7 @@ script:
 jobs:
   include:
     - stage: deploy
-      if tag IS present
+      if: tag IS present
       deploy:
         provider: pypi
         user: $PYPI_USERNAME
