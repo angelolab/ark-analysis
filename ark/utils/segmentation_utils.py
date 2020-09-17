@@ -4,6 +4,8 @@ import copy
 import numpy as np
 import pandas as pd
 
+from skimage.measure import regionprops_table
+
 from ark.utils import io_utils
 
 
@@ -31,6 +33,53 @@ def find_nuclear_mask_id(nuc_segmentation_mask, cell_coords):
         nuclear_mask_id = ids[ids != 0][np.argmax(counts[ids != 0])]
 
     return nuclear_mask_id
+
+
+def split_large_nuclei(cell_segmentation_mask, nuc_segmentation_mask, cell_ids):
+    """Splits nuclei that are bigger than the corresponding cell into multiple pieces
+
+    Args:
+        cell_segmentation_mask (numpy.ndarray):
+            mask of cell segmentations
+        nuc_segmentation_mask (numpy.ndarray):
+            mask of nuclear segmentations
+        cell_ids (numpy.ndarray):
+            the unique cells in the segmentation mask
+
+    Returns:
+        numpy.ndarray:
+            modified nuclear segmentation mask
+    """
+
+    nuc_mask_modified = np.copy(nuc_segmentation_mask)
+    max_nuc_id = np.max(nuc_segmentation_mask)
+
+    cell_props = pd.DataFrame(regionprops_table(cell_segmentation_mask,
+                                                properties=['label', 'coords']))
+
+    for cell in cell_ids:
+        coords = cell_props.loc[cell_props['label'] == cell, 'coords'].values[0]
+
+        nuc_id = find_nuclear_mask_id(nuc_segmentation_mask=nuc_segmentation_mask,
+                                      cell_coords=coords)
+
+        # only proceed if there's a valid nuc_id
+        if nuc_id is not None:
+            # figure out if nuclear label is completely contained within cell label
+            cell_vals = nuc_segmentation_mask[tuple(coords.T)]
+            nuc_count = np.sum(cell_vals == nuc_id)
+
+            nuc_mask = nuc_segmentation_mask == nuc_id
+
+            # only proceed if parts of the nucleus are outside of the cell
+            if nuc_count != np.sum(nuc_mask):
+                # relabel nuclear counts within the cell
+                cell_mask = cell_segmentation_mask == cell
+                new_nuc_mask = np.logical_and(cell_mask, nuc_mask)
+                max_nuc_id += 1
+                nuc_mask_modified[new_nuc_mask] = max_nuc_id
+
+    return nuc_mask_modified
 
 
 def transform_expression_matrix(cell_data, transform, transform_kwargs=None):

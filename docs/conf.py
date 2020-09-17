@@ -9,7 +9,7 @@
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
-#
+
 import os
 import sys
 import mock # if we need to force mock import certain libraries autodoc_mock_imports fails ons
@@ -20,7 +20,6 @@ import re # for regex checking
 
 # our project officially 'begins' in the parent aka root project directory
 # since we do not separate source from build we can simply go up one directory
-# if we ever separate source from build we'll need to change this to '../..'
 sys.path.insert(0, os.path.abspath('..'))
 
 # if we ever have images, we'll be using the supported_image_types
@@ -113,7 +112,7 @@ nbsphinx_execute = 'never'
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = ['contributing.md', '_markdown/ark.md',  '_build', 'Thumbs.db', '.DS_Store', '**.ipynb_checkpoints']
+exclude_patterns = ['_rtd/landing.md', '_markdown/ark.md',  '_build', 'Thumbs.db', '.DS_Store', '**.ipynb_checkpoints']
 
 # custom 'stuff' we want to ignore in nitpicky mode
 # currently empty, I don't think we'll ever run in this
@@ -164,7 +163,6 @@ def run_apidoc(_):
 
 def check_docstring_format(app, what, name, obj, options, lines):
     if what == 'function':
-        # print(name)
         argnames = inspect.getargspec(obj)[0]
 
         if len(argnames) > 0:
