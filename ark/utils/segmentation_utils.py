@@ -4,6 +4,7 @@ import warnings
 import numpy as np
 import pandas as pd
 import skimage.io as io
+from skimage.measure import regionprops_table
 
 from ark.utils import plot_utils, io_utils
 
