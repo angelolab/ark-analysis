@@ -28,7 +28,7 @@ jobs:
         user: $PYPI_USERNAME
         password: $PYPI_PASSWORD
         on:
-          tags: true
+          tags: pypi_setup
 
 after_success:
   - coveralls
