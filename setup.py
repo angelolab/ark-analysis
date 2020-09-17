@@ -7,7 +7,7 @@ with open(path.join(path.abspath(path.dirname(__file__)), 'README.md')) as f:
 
 setup(
     name='ark',
-    version='0.2.3',
+    version='1.0.0',
     packages=find_packages(),
     license='Modified Apache License 2.0',
     description='Toolbox for analysis on segmented images from MIBI',
