@@ -23,12 +23,13 @@ script:
 jobs:
   include:
     - stage: deploy
+      if tag IS present
       deploy:
         provider: pypi
         user: $PYPI_USERNAME
         password: $PYPI_PASSWORD
         on:
-          tags: pypi_setup
+          tags: true
 
 after_success:
   - coveralls
