@@ -1,7 +1,7 @@
 from os import path
 from setuptools import setup, find_packages
 
-VERSION = '1.0.0'
+VERSION = '0.2.4'
 
 # set a long description which is basically the README
 with open(path.join(path.abspath(path.dirname(__file__)), 'README.md')) as f:
@@ -39,5 +39,8 @@ setup(
     },
     long_description=long_description,
     long_description_content_type='text/markdown',
-    classifiers=['Programming Language :: Python :: 3.6']
+    classifiers=['License :: OSI Approved :: Apache Software License',
+                 'Development Status :: 4 - Beta',
+                 'Programming Language :: Python :: 3',
+                 'Programming Language :: Python :: 3.6']
 )
