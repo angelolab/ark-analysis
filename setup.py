@@ -1,7 +1,7 @@
 from os import path
 from setuptools import setup, find_packages
 
-VERSION = '0.2.5'
+VERSION = '0.2.6'
 
 
 def _parse_requirements(file_path):
@@ -21,7 +21,7 @@ except Exception:
     install_reqs = []
 
 setup(
-    name='ark',
+    name='ark-analysis',
     version=VERSION,
     packages=find_packages(),
     license='Modified Apache License 2.0',
