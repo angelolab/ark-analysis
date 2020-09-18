@@ -171,6 +171,14 @@ def test_compute_close_cell_num():
     # Subsetting threshold matrix to only include column with threshold values
     thresh_vec = example_thresholds.iloc[0:20, 1]
 
+    # basic error checking
+    with pytest.raises(ValueError):
+        # ensure we throw an error if a bad analysis type is passed
+        example_closenum, m1 = spatial_analysis_utils.compute_close_cell_num(
+            dist_mat=example_dist_mat, dist_lim=100, analysis_type="bad_type",
+            current_fov_data=all_data, current_fov_channel_data=fov_channel_data,
+            thresh_vec=thresh_vec)
+
     # not taking into account mark1labels_per_id return value
     example_closenum, m1 = spatial_analysis_utils.compute_close_cell_num(
         dist_mat=example_dist_mat, dist_lim=100, analysis_type="channel",
@@ -251,7 +259,7 @@ def test_compute_close_cell_num_random_context():
     example_closenumrand_context = spatial_analysis_utils.compute_close_cell_num_random_context(
         marker_nums=marker_nums, cell_type_rand=example_cell_type_rand, dist_mat=example_distmat,
         dist_lim=100, bootstrap_num=100, thresh_vec=thresh_vec, current_fov_data=all_data,
-        current_fov_channel_data=fov_channel_data, cell_type_col='FlowSOM_ID'
+        current_fov_channel_data=fov_channel_data, cell_type_col='cell_type'
     )
 
     assert example_closenumrand_context.shape == (20, 20, 100)
