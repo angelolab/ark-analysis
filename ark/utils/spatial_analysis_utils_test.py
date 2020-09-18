@@ -342,3 +342,29 @@ def test_compute_neighbor_counts():
     assert (cell_neighbor_counts.loc[:3, "Pheno1"] == 4).all()
     assert (cell_neighbor_counts.loc[4:8, "Pheno2"] == 5).all()
     assert (cell_neighbor_counts.loc[9, "Pheno3"] == 1).all()
+
+    assert (cell_neighbor_freqs.loc[:3, "Pheno1"] == 1).all()
+    assert (cell_neighbor_freqs.loc[4:8, "Pheno2"] == 1).all()
+    assert (cell_neighbor_freqs.loc[9, "Pheno3"] == 1).all()
+
+    # now test for self_neighbor is True, first reset values
+    # TODO: create a better use case, such that the values we're checking
+    # differ from the self_neighbor=False case
+    cell_neighbor_counts = pd.DataFrame(np.zeros((fov_data.shape[0], cluster_num + 2)))
+    cell_neighbor_counts[[0, 1]] = fov_data[[fov_col, cell_label_col]]
+    cell_neighbor_counts.columns = cols
+    cell_neighbor_freqs = cell_neighbor_counts.copy(deep=True)
+
+    counts, freqs = spatial_analysis_utils.compute_neighbor_counts(
+        fov_data, dist_matrix, distlim, self_neighbor=True)
+
+    cell_neighbor_counts.loc[fov_data.index, cluster_names] = counts
+    cell_neighbor_freqs.loc[fov_data.index, cluster_names] = freqs
+
+    assert (cell_neighbor_counts.loc[:3, "Pheno1"] == 4).all()
+    assert (cell_neighbor_counts.loc[4:8, "Pheno2"] == 5).all()
+    assert (cell_neighbor_counts.loc[9, "Pheno3"] == 1).all()
+
+    assert (cell_neighbor_freqs.loc[:3, "Pheno1"] == 1).all()
+    assert (cell_neighbor_freqs.loc[4:8, "Pheno2"] == 1).all()
+    assert (cell_neighbor_freqs.loc[9, "Pheno3"] == 1).all()
