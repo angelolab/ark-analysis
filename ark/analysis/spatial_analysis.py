@@ -7,8 +7,8 @@ from ark.utils import spatial_analysis_utils
 def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, all_data,
                                          excluded_colnames=None, included_fovs=None,
                                          dist_lim=100, bootstrap_num=1000, fov_col="SampleID",
-                                         context=False, cell_type_col='cell_type',
-                                         cell_type_rand=None):
+                                         context=False, cell_types=None,
+                                         cell_type_col='cell_type'):
     """Spatial enrichment analysis to find significant interactions between cells expressing
     different markers. Uses bootstrapping to permute cell labels randomly.
 
@@ -36,15 +36,14 @@ def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, 
             column with the cell fovs. Default is 'SampleID'
         context (bool):
             if we want to specify context-dependent randomization or not. Default is False.
+        cell_types (list):
+            A list of cell types we wish to specifically subset in context-randomization.
+            Ignored if context is set to False. Note that values contained in here must
+            also be contained in cell_type_col of all_data.
         cell_type_col (str):
             The column defining the name of the cell types, needed to help facet all_data
             for context-dependent ranomization. Default 'cell_type'. Ignored if context is
             set to False.
-        cell_type_rand (dict):
-            The randomization strategies we want to specify for context-dependent randomization.
-            A mapping between different cell_types and percentages. Note Default None.
-            Ignored if context is set to False. Note that if provided, all of the keys must be
-            contained in the cell_type_col of all_data.
 
     Returns:
         tuple (list, xarray.DataArray):
@@ -72,10 +71,10 @@ def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, 
 
     # Error Checking
     if not np.isin(excluded_colnames, all_data.columns).all():
-        raise ValueError("Column names were not found in Expression Matrix")
+        raise ValueError("Column names were not found in expression matrix")
 
     if not np.isin(included_fovs, all_data[fov_col]).all():
-        raise ValueError("Fovs were not found in Expression Matrix")
+        raise ValueError("Fovs were not found in expression matrix")
 
     # Subsets the expression matrix to only have channel columns
     all_channel_data = all_data.drop(excluded_colnames, axis=1)
@@ -84,9 +83,11 @@ def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, 
     # Length of channels list
     channel_num = len(channel_titles)
 
-    # if not list(marker_thresholds.iloc[:, 0]) == list(channel_titles.values):
-    if not (list(marker_thresholds.iloc[:, 0]) == channel_titles).any():
-        raise ValueError("Threshold Markers do not match markers in Expression Matrix")
+    # the second check fails if the lengths are not the same, so we fail immediately
+    # if they are not
+    if len(marker_thresholds.iloc[:, 0]) != len(channel_titles) or \
+       not (list(marker_thresholds.iloc[:, 0]) == channel_titles).any():
+        raise ValueError("Threshold Markers do not match markers in expression matrix")
 
     # Create stats Xarray with the dimensions (fovs, stats variables, num_channels, num_channels)
     stats_raw_data = np.zeros((num_fovs, 7, channel_num, channel_num))
@@ -102,7 +103,13 @@ def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, 
         # Subsetting expression matrix to only include patients with correct fov label
         current_fov_idx = all_data[fov_col] == included_fovs[i]
         current_fov_data = all_data[current_fov_idx].reset_index(drop=True)
+        # print(current_fov_data.index.values)
+
         # Patients with correct label, and only columns of channel markers
+        # need to reset_index because all_data will contain data from multiple points
+        # meaning the indices need to be reset to 0
+        # TODO: is it safe to reindex here, I assumed that data for specific points
+        # was contained in order and
         current_fov_channel_data = all_channel_data[current_fov_idx].reset_index(drop=True)
 
         # Retrieve point specific distance matrix from distance matrix dictionary
@@ -114,12 +121,14 @@ def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, 
             current_fov_data=current_fov_data, current_fov_channel_data=current_fov_channel_data,
             thresh_vec=thresh_vec)
 
+        # run context-dependent randomization if context is True
+        # otherwise run basic randomization
         if context:
             close_num_rand = spatial_analysis_utils.compute_close_cell_num_random_context(
-                marker_nums=channel_nums, cell_type_rand=cell_type_rand, dist_mat=dist_matrix,
-                dist_lim=dist_lim, bootstrap_num=bootstrap_num, thresh_vec=thresh_vec,
+                marker_nums=channel_nums, dist_mat=dist_matrix, dist_lim=dist_lim,
+                bootstrap_num=bootstrap_num, thresh_vec=thresh_vec,
                 current_fov_data=current_fov_data,
-                current_fov_channel_data=current_fov_channel_data,
+                current_fov_channel_data=current_fov_channel_data, cell_types=cell_types,
                 cell_type_col=cell_type_col)
         else:
             close_num_rand = spatial_analysis_utils.compute_close_cell_num_random(

@@ -239,9 +239,9 @@ def compute_close_cell_num_random(marker_nums, dist_mat, dist_lim, bootstrap_num
     for j, m1n in enumerate(marker_nums):
         for k, m2n in enumerate(marker_nums[j:], j):
             samples_dim = (m1n * m2n, bootstrap_num)
-            dist_mat_bin_flattened = dist_mat_bin.values.flatten()
+            dist_mat_bin_flat = dist_mat_bin.values.flatten()
             count_close_num_rand_hits = np.sum(
-                np.random.choice(dist_mat_bin_flattened, samples_dim, True),
+                np.random.choice(dist_mat_bin_flat, samples_dim, True),
                 axis=0
             )
 
@@ -252,19 +252,15 @@ def compute_close_cell_num_random(marker_nums, dist_mat, dist_lim, bootstrap_num
     return close_num_rand
 
 
-def compute_close_cell_num_random_context(marker_nums, cell_type_rand,
-                                          dist_mat, dist_lim, bootstrap_num, thresh_vec,
-                                          current_fov_data, current_fov_channel_data,
-                                          cell_type_col="cell_type"):
+def compute_close_cell_num_random_context(marker_nums, dist_mat, dist_lim, bootstrap_num,
+                                          thresh_vec, current_fov_data, current_fov_channel_data,
+                                          cell_types, cell_type_col="cell_type"):
     """Runs a context-dependent bootstrapping procedure to sample cell labels randomly faceted
     by which cell type they are based on their FlowSOM ID. Only for channel enrichment.
 
     Args:
         marker_nums (numpy.ndarray):
             list of cell counts of each marker type
-        cell_type_rand (dict):
-            a dict containing a keys which are lists of FlowSOM ID's in a desired group,
-            keyed to the randomization percentages we want for them
         dist_mat (xarray.DataArray):
             cells x cells matrix with the euclidian distance
             between centers of corresponding cells
@@ -278,6 +274,10 @@ def compute_close_cell_num_random_context(marker_nums, cell_type_rand,
             data for specific patient in expression matrix
         current_fov_channel_data (pandas.DataFrame):
             data of only column markers for Channel Analysis
+        cell_types (list):
+            the list of cell types in the cell_type_col of current_fov_data we wish to
+            specifically facet in context-based randomization, all categories (if any)
+            get grouped into an "other" category
         cell_type_col (str):
             the name of the column in current_fov_data which contains the FlowSOM ID
 
@@ -286,92 +286,74 @@ def compute_close_cell_num_random_context(marker_nums, cell_type_rand,
             Large matrix of random positive marker counts for every permutation in the bootstrap
     """
 
-    # TODO: basic checking to see if all specified cell_type_facets
-    # exist in the FlowSOM ID col of current_fov_data
-
-    # TODO: basic checking to see if cell_type_rand percents sum up to less than 1
+    # ensure all of the cell_types specified actually exist in current_fov_data
+    if not np.isin(cell_types, current_fov_data[cell_type_col]).all():
+        raise ValueError("Cell types were not found in expression matrix")
 
     # Create close_num_rand
     close_num_rand = np.zeros((
         len(marker_nums), len(marker_nums), bootstrap_num), dtype='int')
 
+    # subset dist_mat_bin by dist_lim, and make sure we reorder and re-zero-index
+    # the distance matrix because it is by default an xarray with non-consecutive coordinates
     dist_mat_bin = (dist_mat < dist_lim).astype(np.int8)
+    dist_mat_bin = dist_mat_bin.loc[np.arange(1, current_fov_data.shape[0]),
+                                    np.arange(1, current_fov_data.shape[0])]
 
-    # create a dictionary to store information about each cell type
-    # copy over the percent value, will be filled with a lot more goodies
-    # and get the indices that corrrespond to each cell type in current_fov_data
-    cell_type_indices = {m: current_fov_data[current_fov_data[cell_type_col] == m].index.values
-                         for m in cell_type_rand}
+    # create a dictionary to store the indices in current_fov_data of cell_type
+    # we will need this so we know which indices correspond to which cell_type bucket
+    # for proper sampling
+    cell_type_indices = {ct: current_fov_data[current_fov_data[cell_type_col] == ct].index.values
+                         for ct in cell_types}
 
-    for j, m1n in enumerate(marker_nums):
-        # recalculate markerposinds, we need this to get the actual marker_counts per cell type
-        marker_col = current_fov_channel_data.columns[j]
-        marker_pos_select = current_fov_channel_data[marker_col] > thresh_vec[j]
+    # if some cell types are left out of context-based randomization, group everything
+    # else into an 'other' category, I don't know if we'll ever run into a case
+    # where the user specifies all cell types but just to make sure
+    if not np.isin(current_fov_data[cell_type_col].unique(), cell_types).all():
+        cell_type_indices['other'] = current_fov_data[
+            ~current_fov_data[cell_type_col].isin(cell_types)
+        ]
+
+    # create a dataframe containing cell_type count information per marker
+    # this will help us not have to precompute this information each time
+    # in the bootstrap loop below, note that this will have the same number
+    # of rows as len(marker_nums)
+    marker_count_data = pd.DataFrame(columns=cell_type_indices.keys())
+
+    for i in range(len(marker_nums)):
+        marker_col = current_fov_channel_data.columns[i]
+        marker_pos_select = current_fov_channel_data[marker_col] > thresh_vec[i]
         marker_pos_inds = current_fov_channel_data[marker_pos_select].index.values
 
-        # now take the intersection between marker_pos_inds and the indices associated
-        # with each cell type, we'll need this for both the total marker_inds per cell_type
-        # and the actual indices needed to subset the distance matrix
-        # to clarify, indices is the index that is associated with the cell_type
-        # and marker_inds is the index that is associated with the marker_num we're looking at
-        # we have to take the intersection because we have to enforce that we're looking at
-        # only the data corresponding to the cell_type and marker_num in question
-        cell_type_marker_inds = {m: list(set(marker_pos_inds).intersection(set(
-            cell_type_indices[m]))) for m in cell_type_rand}
+        marker_counts = {m: [len(set(marker_pos_inds).intersection(set(
+            cell_type_indices[m])))] for m in cell_type_indices}
 
-        for k, m2n in enumerate(marker_nums[j:], j):
-            # for each cell_type in cell_type_rand
-            # compute the number of samples we need per bootstrap
-            # given the percentages specified in cell_type_rand
+        marker_count_data = pd.concat([marker_count_data, pd.DataFrame.from_dict(marker_counts)])
 
-            # subset the distance matrix to include only the rows/cols corresponding to the
-            # intersection between marker_pos_inds and cell_type_indices[cell_type],
+    # we run this bootstrap separately for each run
+    for ct in cell_types:
+        # instead of enumerating marker_nums, we enumerate the column in marker_count_data
+        # which corresponds to the cell_type we're faceting
+        for j, m1n in enumerate(marker_count_data[ct]):
+            for k, m2n in enumerate(marker_count_data[ct].iloc[j:], j):
+                samples_dim = (m1n * m2n, bootstrap_num)
 
-            # use np.choice to generate the close_rand_num_hits data from the
-            # flattened distance matrix generated from above, this corresponds to
-            # our random samples for all our bootstraps for one cell_type
+                # make sure we only subsetting the indices which correspond to the
+                # cell type in question
+                indices = cell_type_indices[ct]
+                dist_mat_bin_flat = dist_mat_bin.values[indices, indices].flatten()
 
-            # add the sum of the np.choice call above to close_num_rand[j, k, :], we can add
-            # because we compute each cell_type sum independent of each other, it works the
-            # same if we aggregated random indices together and used np.choice on that
-
-            # TODO: I'll need to talk with Erin about this, but the randomization strategy
-            # still needs clarification. Currently, the percentages I'm taking are from the
-            # number of cell_type hits per marker_counts. I'm not 100% certain that this is what
-            # she was getting at. Not using m1n and m2n definitely looks suspect here.
-            # Possibly, we'll need to use the percents specified in cell_type_rand to partition
-            # m1n * m2n instead.
-
-            for cell_type in cell_type_rand:
-                # generate the dimensions of our samples array for the cell_type
-                samples_per_bootstrap = int(len(cell_type_marker_inds[cell_type]) *
-                                            cell_type_rand[cell_type])
-
-                samples_dim = (samples_per_bootstrap, bootstrap_num)
-
-                # now generate the marker inds
-                marker_inds_to_choose = np.random.choice(
-                    cell_type_marker_inds[cell_type], samples_per_bootstrap)
-
-                # this happens if the intersection between the marker inds and the cell type inds
-                # is the null set, in this case, we do not attempt to count the
-                # number of random hits since it would just be 0 anyways
-                if len(marker_inds_to_choose) == 0:
-                    continue
-
-                # subset the distance matrix
-                dist_mat_bin_flat = dist_mat_bin.values[marker_inds_to_choose,
-                                                        marker_inds_to_choose].flatten()
-
-                # count the number of positive random hits we get
-                count_close_rand_num_hits = np.sum(
+                # get the bootstrap for the specific cell type
+                count_close_num_context_rand_hits = np.sum(
                     np.random.choice(dist_mat_bin_flat, samples_dim, True),
                     axis=0
                 )
 
                 # add to the corresponding enry in close_num_rand we take
-                close_num_rand[j, k, :] += count_close_rand_num_hits
-                close_num_rand[k, j, :] += count_close_rand_num_hits
+                # we may still have other cell type random sample results
+                #  we'll need to add in, so don't just assign
+                close_num_rand[j, k, :] += count_close_num_context_rand_hits
+                close_num_rand[k, j, :] += count_close_num_context_rand_hits
 
     return close_num_rand
 

@@ -244,12 +244,9 @@ def test_compute_close_cell_num_random_context():
     # Generate random inputs to test shape
     marker_nums = [random.randrange(0, 10) for i in range(20)]
 
-    # Generate a sample randomization strategy
-    example_cell_type_rand = {
-        'Pheno1': 1.0,
-        'Pheno2': 1.0,
-        'Pheno3': 1.0
-    }
+    # Generate a sample list of cell_types we wish to explicitly facet
+    # note that Pheno2 and Pheno3 get grouped into the 'other' category
+    example_cell_types = ['Pheno1']
 
     # Generate example thresholds, subset threshold matrix to only include
     # column with threshold values
@@ -257,12 +254,23 @@ def test_compute_close_cell_num_random_context():
     thresh_vec = example_thresholds.iloc[0:20, 1]
 
     example_closenumrand_context = spatial_analysis_utils.compute_close_cell_num_random_context(
-        marker_nums=marker_nums, cell_type_rand=example_cell_type_rand, dist_mat=example_distmat,
-        dist_lim=100, bootstrap_num=100, thresh_vec=thresh_vec, current_fov_data=all_data,
-        current_fov_channel_data=fov_channel_data, cell_type_col='cell_type'
+        marker_nums=marker_nums, dist_mat=example_distmat, dist_lim=100, bootstrap_num=100,
+        thresh_vec=thresh_vec, current_fov_data=all_data,
+        current_fov_channel_data=fov_channel_data, cell_types=example_cell_types,
+        cell_type_col='cell_type'
     )
 
     assert example_closenumrand_context.shape == (20, 20, 100)
+
+    # error checking
+    with pytest.raises(ValueError):
+        # attempt to include non-existant cell_types for context-based randomization
+        _, stats_no_enrich = \
+            spatial_analysis_utils.compute_close_cell_num_random_context(
+                marker_nums=marker_nums, dist_mat=example_distmat, dist_lim=100,
+                bootstrap_num=100, thresh_vec=thresh_vec, current_fov_data=all_data,
+                current_fov_channel_data=fov_channel_data, cell_types=["bad_cell_type"],
+                cell_type_col='cell_type')
 
 
 def test_calculate_enrichment_stats():
