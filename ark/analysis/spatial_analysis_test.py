@@ -201,11 +201,15 @@ def test_calculate_channel_spatial_enrichment():
     all_data_pos = _make_expression_matrix(enrichment_type="positive")
     dist_mat_pos_direct = _make_distance_matrix(enrichment_type="positive", dist_lim=dist_lim)
 
+    # context-dependent randomization params
+    random_strategy = {'Pheno1': 1.0, 'Pheno2': 1.0}
+
+    # Positive enrichment, basic randomization
     _, stats_pos = \
         spatial_analysis.calculate_channel_spatial_enrichment(
             dist_mat_pos_direct, marker_thresholds, all_data_pos,
             excluded_colnames=excluded_colnames, bootstrap_num=100,
-            dist_lim=dist_lim)
+            dist_lim=dist_lim, cell_type_rand=random_strategy)
 
     # Test both Point8 and Point9
     # Extract the p-values and z-scores of the distance of marker 1 vs marker 2 for positive
@@ -218,7 +222,16 @@ def test_calculate_channel_spatial_enrichment():
     assert stats_pos.loc["Point9", "p_neg", 3, 2] > .05
     assert stats_pos.loc["Point9", "z", 3, 2] > 0
 
-    # Negative enrichment with direct matrix initialization
+    # Positive enrichment, context-based randomization
+    _, stats_pos = \
+        spatial_analysis.calculate_channel_spatial_enrichment(
+            dist_mat_pos_direct, marker_thresholds, all_data_pos,
+            excluded_colnames=excluded_colnames, bootstrap_num=100,
+            dist_lim=dist_lim, context=True, cell_type_rand=random_strategy)
+
+    # TODO: add tests for context-based positive enrichment
+
+    # Negative enrichment, basic randomization
     all_data_neg = _make_expression_matrix("negative")
     dist_mat_neg_direct = _make_distance_matrix("negative", dist_lim=dist_lim)
 
@@ -239,6 +252,13 @@ def test_calculate_channel_spatial_enrichment():
     assert stats_neg.loc["Point9", "p_pos", 3, 2] > .05
     assert stats_neg.loc["Point9", "z", 3, 2] < 0
 
+    # Negative enrichment, context-based randomization
+    _, stats_neg = \
+        spatial_analysis.calculate_channel_spatial_enrichment(
+            dist_mat_neg_direct, marker_thresholds, all_data_neg,
+            excluded_colnames=excluded_colnames, bootstrap_num=100,
+            dist_lim=dist_lim, context=True, cell_type_rand=random_strategy)
+
     # No enrichment
     all_data_no_enrich = _make_expression_matrix("none")
     dist_mat_no_enrich = _make_distance_matrix("none", dist_lim=dist_lim)
@@ -248,6 +268,7 @@ def test_calculate_channel_spatial_enrichment():
             dist_mat_no_enrich, marker_thresholds, all_data_no_enrich,
             excluded_colnames=excluded_colnames, bootstrap_num=100,
             dist_lim=dist_lim)
+
     # Test both Point8 and Point9
     # Extract the p-values and z-scores of the distance of marker 1 vs marker 2 for no enrichment
     # as tested against a random set of distances between centroids
@@ -258,6 +279,13 @@ def test_calculate_channel_spatial_enrichment():
     assert stats_no_enrich.loc["Point9", "p_pos", 3, 2] > .05
     assert stats_no_enrich.loc["Point9", "p_neg", 3, 2] > .05
     assert abs(stats_no_enrich.loc["Point9", "z", 3, 2]) < 2
+
+    # No enrichment, context-based randomization
+    _, stats_no_enrich = \
+        spatial_analysis.calculate_channel_spatial_enrichment(
+            dist_mat_no_enrich, marker_thresholds, all_data_no_enrich,
+            excluded_colnames=excluded_colnames, bootstrap_num=100,
+            dist_lim=dist_lim, context=True, cell_type_rand=random_strategy)
 
     # error checking
     with pytest.raises(ValueError):
