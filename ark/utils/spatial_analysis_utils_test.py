@@ -236,11 +236,11 @@ def test_compute_close_cell_num_random_context():
     # Generate random inputs to test shape
     marker_nums = [random.randrange(0, 10) for i in range(20)]
 
-    # Generate a sample randomization strategy, note that the
-    # remaining FlowSOM IDs, 1 and 3, will be grouped into the 'else'
-    # category and have a percentage of 0.6 (1 - 0.4)
+    # Generate a sample randomization strategy
     example_cell_type_rand = {
-        2: 0.4
+        'Pheno1': 1.0,
+        'Pheno2': 1.0,
+        'Pheno3': 1.0
     }
 
     # Generate example thresholds, subset threshold matrix to only include

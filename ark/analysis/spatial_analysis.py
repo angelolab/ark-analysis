@@ -7,7 +7,8 @@ from ark.utils import spatial_analysis_utils
 def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, all_data,
                                          excluded_colnames=None, included_fovs=None,
                                          dist_lim=100, bootstrap_num=1000, fov_col="SampleID",
-                                         context=False, cell_type_rand=None):
+                                         context=False, cell_type_col='cell_type',
+                                         cell_type_rand=None):
     """Spatial enrichment analysis to find significant interactions between cells expressing
     different markers. Uses bootstrapping to permute cell labels randomly.
 
@@ -35,9 +36,15 @@ def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, 
             column with the cell fovs. Default is 'SampleID'
         context (bool):
             if we want to specify context-dependent randomization or not. Default is False.
+        cell_type_col (str):
+            The column defining the name of the cell types, needed to help facet all_data
+            for context-dependent ranomization. Default 'cell_type'. Ignored if context is
+            set to False.
         cell_type_rand (dict):
-            the randomization strategies we want to specify for context-dependent randomization.
-            Default None. Ignored if context is set to False.
+            The randomization strategies we want to specify for context-dependent randomization.
+            A mapping between different cell_types and percentages. Note Default None.
+            Ignored if context is set to False. Note that if provided, all of the keys must be
+            contained in the cell_type_col of all_data.
 
     Returns:
         tuple (list, xarray.DataArray):
@@ -78,7 +85,7 @@ def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, 
     channel_num = len(channel_titles)
 
     # Check to see if order of channel thresholds is same as in expression matrix
-    if not (list(marker_thresholds.iloc[:, 0]) == channel_titles).any():
+    if not list(marker_thresholds.iloc[:, 0]) == list(channel_titles.values):
         raise ValueError("Threshold Markers do not match markers in Expression Matrix")
 
     # Create stats Xarray with the dimensions (fovs, stats variables, num_channels, num_channels)
@@ -94,9 +101,9 @@ def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, 
     for i in range(0, len(included_fovs)):
         # Subsetting expression matrix to only include patients with correct fov label
         current_fov_idx = all_data[fov_col] == included_fovs[i]
-        current_fov_data = all_data[current_fov_idx]
+        current_fov_data = all_data[current_fov_idx].reset_index(drop=True)
         # Patients with correct label, and only columns of channel markers
-        current_fov_channel_data = all_channel_data[current_fov_idx]
+        current_fov_channel_data = all_channel_data[current_fov_idx].reset_index(drop=True)
 
         # Retrieve point specific distance matrix from distance matrix dictionary
         dist_matrix = dist_matrices_dict[included_fovs[i]]
@@ -112,7 +119,8 @@ def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, 
                 marker_nums=channel_nums, cell_type_rand=cell_type_rand, dist_mat=dist_matrix,
                 dist_lim=dist_lim, bootstrap_num=bootstrap_num, thresh_vec=thresh_vec,
                 current_fov_data=current_fov_data,
-                current_fov_channel_data=current_fov_channel_data)
+                current_fov_channel_data=current_fov_channel_data,
+                cell_type_col='Cluster')
         else:
             close_num_rand = spatial_analysis_utils.compute_close_cell_num_random(
                 marker_nums=channel_nums, dist_mat=dist_matrix, dist_lim=dist_lim,
