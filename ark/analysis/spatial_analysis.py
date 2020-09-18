@@ -84,8 +84,8 @@ def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, 
     # Length of channels list
     channel_num = len(channel_titles)
 
-    # Check to see if order of channel thresholds is same as in expression matrix
-    if not list(marker_thresholds.iloc[:, 0]) == list(channel_titles.values):
+    # if not list(marker_thresholds.iloc[:, 0]) == list(channel_titles.values):
+    if not (list(marker_thresholds.iloc[:, 0]) == channel_titles).any():
         raise ValueError("Threshold Markers do not match markers in Expression Matrix")
 
     # Create stats Xarray with the dimensions (fovs, stats variables, num_channels, num_channels)
