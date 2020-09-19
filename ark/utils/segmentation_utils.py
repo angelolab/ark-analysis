@@ -213,7 +213,7 @@ def visualize_segmentation(segmentation_labels_xr, channel_data_xr,
 
         plot_utils.plot_overlay(
             labels,
-            plotting_tif=input_data[:, :, 0],
+            plotting_tif=None,
             path=os.path.join(output_dir, f'{fov}_segmentation_borders.tiff')
         )
         io.imsave(os.path.join(output_dir, f'{fov}_segmentation_labels.tiff'), labels)
