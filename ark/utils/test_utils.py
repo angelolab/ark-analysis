@@ -365,11 +365,11 @@ def create_paired_xarray_fovs(base_dir, fov_names, channel_names, img_shape=(10,
         mode (str):
             The type of data to generate. Current options are:
 
-            * 'tiff'
-            * 'multitiff'
-            * 'reverse_multitiff'
-            * 'mibitiff'
-            * 'labels'
+            - 'tiff'
+            - 'multitiff'
+            - 'reverse_multitiff'
+            - 'mibitiff'
+            - 'labels'
         delimiter (str or None):
             Delimiting character or string separating fov_id from rest of file/folder name.
             Default is None.

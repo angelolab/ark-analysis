@@ -369,13 +369,14 @@ def calculate_enrichment_stats(close_num, close_num_rand):
 
     Returns:
         xarray.DataArray:
-            xarray contining the following statistics for marker to marker enrichment
-                - z: z scores for corresponding markers
-                - muhat: predicted mean values of close_num_rand random distribution
-                - sigmahat: predicted standard deviations of close_num_rand random distribution
-                - p: p values for corresponding markers, for both positive and negative enrichment
-                - h: matrix indicating whether corresponding marker interactions are significant
-                - adj_p: fdh_br adjusted p values
+            xarray contining the following statistics for marker to marker enrichment:
+
+            - z: z scores for corresponding markers
+            - muhat: predicted mean values of close_num_rand random distribution
+            - sigmahat: predicted standard deviations of close_num_rand random distribution
+            - p: p values for corresponding markers, for both positive and negative enrichment
+            - h: matrix indicating whether corresponding marker interactions are significant
+            - adj_p: fdh_br adjusted p values
     """
     # Get the number of markers and number of permutations
     marker_num = close_num.shape[0]
