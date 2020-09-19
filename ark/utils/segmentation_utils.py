@@ -180,21 +180,16 @@ def concatenate_csv(base_dir, csv_files, column_name="point", column_values=None
 
 def visualize_segmentation(segmentation_labels_xr, channel_data_xr,
                            output_dir, chan_list=None, fovs=None):
-    """Runs the watershed transform over a set of probability masks output by deepcell network
+    """For each fov, generates segmentation labels, segmentation borders, and overlays
+    over the channels in chan_list if chan_list is provided.
     Saves xarray to output directory
 
     Args:
         segmentation_labels_xr (xarray.DataArray): xarray containing segmentation labels
         channel_data_xr (xarray.DataArray): xarray containing TIFs
         output_dir (str): path to directory where the output will be saved
-        overlay_channels (tuple): channels to overlay segmentation output over
+        chan_list (list): list of channels to overlay segmentation output over
         fovs (numpy.ndarray): field of view
-        save_tifs (str): flag to control what level of output to save.
-            Must be one of:
-
-            * 'all'
-            * 'none'
-            * 'overlays' (saves color overlays and segmentation masks)
     """
 
     if fovs is None:
