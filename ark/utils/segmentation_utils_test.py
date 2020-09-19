@@ -7,27 +7,6 @@ import tempfile
 from ark.utils import segmentation_utils, test_utils
 
 
-def _generate_channel_xr(fov_num=2, chan_num=5):
-    fovs = ["fov" + str(i) for i in range(fov_num)]
-    channels = ["channel" + str(i) for i in range(chan_num)]
-    output = np.random.randint(0, 20, size=(len(fovs), 50, 50, len(channels)))
-
-    output_xr = xr.DataArray(output, coords=[fovs, range(50), range(50), channels],
-                             dims=["fovs", "rows", "cols", "channels"])
-    return output_xr
-
-
-def _generate_deepcell_ouput(fov_num=2):
-    fovs = ["fov" + str(i) for i in range(fov_num)]
-    label_data = np.zeros((fov_num, 50, 50, 1))
-    label_xr = xr.DataArray(
-        label_data,
-        coords=[fovs, range(50), range(50), ['whole_cell']],
-        dims=("fovs", "rows", "cols", "compartments")
-    )
-    return label_xr
-
-
 def test_find_nuclear_mask_id():
     # create cell labels with 5 distinct cells
     cell_labels = np.zeros((60, 10), dtype='int')
