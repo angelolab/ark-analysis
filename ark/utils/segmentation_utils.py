@@ -179,9 +179,7 @@ def concatenate_csv(base_dir, csv_files, column_name="point", column_values=None
 
 
 def visualize_segmentation(segmentation_labels_xr, channel_data_xr,
-                           output_dir,
-                           overlay_channels, fovs=None,
-                           save_tifs='overlays'):
+                           output_dir, chan_list=None, fovs=None):
     """Runs the watershed transform over a set of probability masks output by deepcell network
     Saves xarray to output directory
 
@@ -202,17 +200,9 @@ def visualize_segmentation(segmentation_labels_xr, channel_data_xr,
     if fovs is None:
         fovs = segmentation_labels_xr.fovs
     for fov in fovs:
-        if save_tifs == 'none':
-            # this should actually plot the images, just not save them to tifs
-            plot_utils.plot_overlay(
-                labels,
-                plotting_tif=input_data,
-            )
-            return
-
         labels = segmentation_labels_xr.loc[fov, :, :, 'whole_cell'].values
 
-        for chan_list in overlay_channels:
+        if chan_list is not None:
             input_data = channel_data_xr.loc[fov, :, :, chan_list].values
             save_path = '_'.join([f'{fov}', *chan_list.astype('str'), 'overlay.tiff'])
             plot_utils.plot_overlay(
@@ -221,10 +211,9 @@ def visualize_segmentation(segmentation_labels_xr, channel_data_xr,
                 path=os.path.join(output_dir, save_path)
             )
 
-            if save_tifs == 'all':
-                plot_utils.plot_overlay(
-                    labels,
-                    plotting_tif=input_data[:, :, 0],
-                    path=os.path.join(output_dir, f'{fov}_segmentation_borders.tiff')
-                )
-            io.imsave(os.path.join(output_dir, f'{fov}_segmentation_labels.tiff'), labels)
+        plot_utils.plot_overlay(
+            labels,
+            plotting_tif=input_data[:, :, 0],
+            path=os.path.join(output_dir, f'{fov}_segmentation_borders.tiff')
+        )
+        io.imsave(os.path.join(output_dir, f'{fov}_segmentation_labels.tiff'), labels)
