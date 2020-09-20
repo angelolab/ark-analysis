@@ -60,7 +60,7 @@ def draw_boxplot(cell_data, col_name, col_split=None, split_vals=None, save_dir=
         plt.savefig(os.path.join(save_dir, "boxplot_viz.png"))
 
 
-def visualize_z_scores(z, pheno_titles, save_dir=None):
+def visualize_z_scores(z, pheno_titles, colormap="vlag", save_dir=None):
     """Plots the z scores between all phenotypes as a clustermap.
 
     Args:
@@ -80,7 +80,7 @@ def visualize_z_scores(z, pheno_titles, save_dir=None):
     # Assign numpy values respective phenotype labels
     zplot = pd.DataFrame(z, columns=pheno_titles, index=pheno_titles)
     sns.set(font_scale=.7)
-    sns.clustermap(zplot, figsize=(8, 8), cmap="vlag")
+    sns.heatmap(zplot, cmap=colormap, annot=pheno_titles)
 
     # save visualization to a directory if specified
     if save_dir is not None:
