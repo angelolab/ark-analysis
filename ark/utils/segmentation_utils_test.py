@@ -119,6 +119,11 @@ def test_transform_expression_matrix():
     unchanged_cols = ['cell_size', 'label', 'morph_1', 'morph_2']
     modified_cols = ['chan1', 'chan2', 'chan3']
 
+    with pytest.raises(ValueError):
+        # specifying a bad transform
+        normalized_data = segmentation_utils.transform_expression_matrix(cell_data,
+                                                                         transform='invalid')
+
     # test size_norm
     normalized_data = segmentation_utils.transform_expression_matrix(cell_data,
                                                                      transform='size_norm')
