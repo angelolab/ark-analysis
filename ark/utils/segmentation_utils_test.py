@@ -205,8 +205,8 @@ def test_concatenate_csv():
     with pytest.raises(ValueError):
         # attempt to pass column_values list with different length than number of csv files
         segmentation_utils.concatenate_csv(base_dir="example_base_dir",
-            csv_files=["example_1.csv", "example_2.csv"],
-            column_values=["missingno"])
+                                           csv_files=["example_1.csv", "example_2.csv"],
+                                           column_values=["missingno"])
 
     with tempfile.TemporaryDirectory() as temp_dir:
         # create a sample base_dir
@@ -222,7 +222,8 @@ def test_concatenate_csv():
 
         # create concatenated csv with basic settings
         segmentation_utils.concatenate_csv(base_dir=base_dir,
-            csv_files=["cell_data_1.csv", "cell_data_2.csv"])
+                                           csv_files=["cell_data_1.csv",
+                                                      "cell_data_2.csv"])
 
         assert os.path.exists(os.path.join(base_dir, "combined_data.csv"))
 
@@ -231,7 +232,9 @@ def test_concatenate_csv():
 
         # now test with column values
         segmentation_utils.concatenate_csv(base_dir=base_dir,
-            csv_files=["cell_data_1.csv", "cell_data_2.csv"],
-            column_values=["example_data_1", "example_data_2"])
+                                           csv_files=["cell_data_1.csv",
+                                                      "cell_data_2.csv"],
+                                           column_values=["example_data_1",
+                                                          "example_data_2"])
 
         assert os.path.exists(os.path.join(base_dir, "combined_data.csv"))
