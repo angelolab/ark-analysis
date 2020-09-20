@@ -179,54 +179,36 @@ def concatenate_csv(base_dir, csv_files, column_name="point", column_values=None
 
 
 def visualize_segmentation(segmentation_labels_xr, channel_data_xr,
-                           output_dir,
-                           overlay_channels, fovs=None,
-                           save_tifs='overlays'):
-    """Runs the watershed transform over a set of probability masks output by deepcell network
+                           output_dir, chan_list=None, fovs=None):
+    """For each fov, generates segmentation labels, segmentation borders, and overlays
+    over the channels in chan_list if chan_list is provided.
     Saves xarray to output directory
 
     Args:
         segmentation_labels_xr (xarray.DataArray): xarray containing segmentation labels
         channel_data_xr (xarray.DataArray): xarray containing TIFs
         output_dir (str): path to directory where the output will be saved
-        overlay_channels (tuple): channels to overlay segmentation output over
+        chan_list (list): list of channels to overlay segmentation output over
         fovs (numpy.ndarray): field of view
-        save_tifs (str): flag to control what level of output to save.
-            Must be one of:
-
-            * 'all'
-            * 'none'
-            * 'overlays' (saves color overlays and segmentation masks)
     """
 
-    # error check model selected for local maxima finding in the image
-
-    # loop through all fovs and segment
     if fovs is None:
         fovs = segmentation_labels_xr.fovs
     for fov in fovs:
-        if save_tifs != 'none':
-            # save segmentation label map
-            for chan_list in overlay_channels:
-                input_data = channel_data_xr.loc[fov, :, :, chan_list].values
-                save_path = '_'.join([f'{fov}', *chan_list.astype('str'), 'overlay.tiff'])
-                plot_utils.plot_overlay(
-                    segmentation_labels_xr.loc[fov, :, :, 'whole_cell'].values,
-                    plotting_tif=input_data,
-                    path=os.path.join(output_dir, save_path)
-                )
+        labels = segmentation_labels_xr.loc[fov, :, :, 'whole_cell'].values
+        #If chan_list is provided, overlay segmentation output over it
+        if chan_list is not None:
+            input_data = channel_data_xr.loc[fov, :, :, chan_list].values
+            save_path = '_'.join([f'{fov}', *chan_list.astype('str'), 'overlay.tiff'])
+            plot_utils.plot_overlay(
+                labels,
+                plotting_tif=input_data,
+                path=os.path.join(output_dir, save_path)
+            )
 
-        if save_tifs == 'all':
-            for chan_list in overlay_channels:
-                channel = chan_list[0]
-                chan_marker = channel_data_xr.loc[fov, :, :, channel].values
-                plot_utils.plot_overlay(
-                    segmentation_labels_xr.loc[fov, :, :, 'whole_cell'].values,
-                    plotting_tif=chan_marker,
-                    path=os.path.join(output_dir,
-                                      "{}_segmentation_borders.tiff".format(
-                                          fov)))
-                # ignore low-contrast image warnings with check_contrast=False
-                io.imsave(os.path.join(output_dir, "{}_segmentation_labels.tiff".format(fov)),
-                          segmentation_labels_xr.loc[fov, :, :, 'whole_cell'].values,
-                          )
+        plot_utils.plot_overlay(
+            labels,
+            plotting_tif=None,
+            path=os.path.join(output_dir, f'{fov}_segmentation_borders.tiff')
+        )
+        io.imsave(os.path.join(output_dir, f'{fov}_segmentation_labels.tiff'), labels)
