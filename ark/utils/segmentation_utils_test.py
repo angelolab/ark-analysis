@@ -42,7 +42,7 @@ def test_find_nuclear_mask_id():
     # check that predicted nuclear id is correct for all cells in image
     for idx, prop in enumerate(cell_props):
         predicted_nuc = segmentation_utils.find_nuclear_mask_id(nuc_segmentation_mask=nuc_labels,
-                                                    cell_coords=prop.coords)
+                                                                cell_coords=prop.coords)
 
         assert predicted_nuc == true_nuc_ids[idx]
 
@@ -220,6 +220,6 @@ def test_visualize_segmentation():
                     os.path.join(temp_dir, '_'.join(
                         [f'{mod_output_fov.values}', *chan_list, 'overlay.tiff'])))
                 assert os.path.exists(os.path.join(temp_dir,
-                    f'{mod_output_fov.values}_segmentation_borders.tiff'))
+                                                   f'{mod_output_fov.values}_segmentation_borders.tiff'))
                 assert os.path.exists(os.path.join(temp_dir,
-                    f'{mod_output_fov.values}_segmentation_labels.tiff'))
+                                                   f'{mod_output_fov.values}_segmentation_labels.tiff'))
