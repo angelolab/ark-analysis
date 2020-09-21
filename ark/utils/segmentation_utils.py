@@ -196,7 +196,7 @@ def visualize_segmentation(segmentation_labels_xr, channel_data_xr,
         fovs = segmentation_labels_xr.fovs
     for fov in fovs:
         labels = segmentation_labels_xr.loc[fov, :, :, 'whole_cell'].values
-        #If chan_list is provided, overlay segmentation output over it
+        # If chan_list is provided, overlay segmentation output over it
         if chan_list is not None:
             input_data = channel_data_xr.loc[fov, :, :, chan_list].values
             save_path = '_'.join([f'{fov}', *chan_list.astype('str'), 'overlay.tiff'])
