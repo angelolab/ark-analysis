@@ -5,13 +5,14 @@ import tempfile
 
 from ark.analysis import visualize
 from ark.utils import test_utils
+
 import ark.settings as settings
 
 
 def test_draw_boxplot():
     # trim random data so we don't have to visualize as many facets
     random_data = test_utils.make_segmented_csv(100)
-    random_data = random_data[random_data['PatientID'].isin(np.arange(1, 5))]
+    random_data = random_data[random_data[settings.PATIENT_ID].isin(np.arange(1, 5))]
 
     # basic error testing
     with pytest.raises(ValueError):
@@ -25,7 +26,7 @@ def test_draw_boxplot():
     with pytest.raises(ValueError):
         # split_vals not found in col_split found
         visualize.draw_boxplot(cell_data=random_data, col_name="A",
-                               col_split="PatientID", split_vals=[3, 4, 5, 6])
+                               col_split=settings.PATIENT_ID, split_vals=[3, 4, 5, 6])
 
     with pytest.raises(ValueError):
         # trying to save to a non-existant directory
@@ -40,13 +41,13 @@ def test_draw_boxplot():
     # next level up: data, a column name, and a split column
     with tempfile.TemporaryDirectory() as temp_dir:
         visualize.draw_boxplot(cell_data=random_data, col_name="A",
-                               col_split="PatientID", save_dir=temp_dir)
+                               col_split=settings.PATIENT_ID, save_dir=temp_dir)
         assert os.path.exists(os.path.join(temp_dir, "boxplot_viz.png"))
 
     # highest level: data, a column name, a split column, and split vals
     with tempfile.TemporaryDirectory() as temp_dir:
         visualize.draw_boxplot(cell_data=random_data, col_name="A",
-                               col_split="PatientID", split_vals=[1, 2],
+                               col_split=settings.PATIENT_ID, split_vals=[1, 2],
                                save_dir=temp_dir)
         assert os.path.exists(os.path.join(temp_dir, "boxplot_viz.png"))
 
@@ -99,16 +100,16 @@ def test_visualize_patient_population_distribution():
 
     with tempfile.TemporaryDirectory() as temp_dir:
         # test without a save_dir, check that we do not save the files
-        visualize.visualize_patient_population_distribution(random_data, "PatientID",
-                                                            "cell_type")
+        visualize.visualize_patient_population_distribution(random_data, settings.PATIENT_ID,
+                                                            settings.CELL_TYPE)
 
         assert not os.path.exists(os.path.join(temp_dir, "PopulationDistribution.png"))
         assert not os.path.exists(os.path.join(temp_dir, "TotalPopulationDistribution.png"))
         assert not os.path.exists(os.path.join(temp_dir, "PopulationProportion.png"))
 
         # now test with a save_dir, which will check that we do save the files
-        visualize.visualize_patient_population_distribution(random_data, "PatientID",
-                                                            "cell_type", save_dir=temp_dir)
+        visualize.visualize_patient_population_distribution(random_data, settings.PATIENT_ID,
+                                                            settings.CELL_TYPE, save_dir=temp_dir)
 
         # Check if correct plots are saved
         assert os.path.exists(os.path.join(temp_dir, "PopulationDistribution.png"))
