@@ -300,8 +300,6 @@ def compute_close_cell_num_random_context(marker_nums, dist_mat, dist_lim, boots
     # subset dist_mat_bin by dist_lim, and make sure we only grab the values
     # of the cells labels we actually computed over
     dist_mat_bin = (dist_mat < dist_lim).astype(np.int8)
-    dist_mat_bin = dist_mat_bin.loc[np.sort(current_fov_data[cell_label_col].values),
-                                    np.sort(current_fov_data[cell_label_col].values)]
 
     # create a dictionary to store the indices in current_fov_data of cell_type
     # we will need this so we know which indices correspond to which cell_type bucket
@@ -315,7 +313,7 @@ def compute_close_cell_num_random_context(marker_nums, dist_mat, dist_lim, boots
     if not np.isin(current_fov_data[cell_type_col].unique(), cell_types).all():
         cell_type_indices['other'] = current_fov_data[
             ~current_fov_data[cell_type_col].isin(cell_types)
-        ]
+        ].index.values
 
     # create a dataframe containing cell_type count information per marker
     # this will help us not have to precompute this information each time
@@ -343,8 +341,8 @@ def compute_close_cell_num_random_context(marker_nums, dist_mat, dist_lim, boots
 
                 # make sure we only subsetting the indices which correspond to the
                 # cell type in question
-                ct_indices = cell_type_indices[ct]
-                dist_mat_bin_flat = dist_mat_bin.values[np.ix_(ct_indices, ct_indices)].flatten()
+                ct_labels = current_fov_data.loc[cell_type_indices[ct], cell_label_col].values
+                dist_mat_bin_flat = dist_mat_bin.loc[ct_labels, ct_labels].values.flatten()
 
                 # get the bootstrap for the specific cell type
                 count_close_num_context_rand_hits = np.sum(

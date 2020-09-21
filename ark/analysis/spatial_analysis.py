@@ -102,22 +102,18 @@ def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, 
     for i in range(0, len(included_fovs)):
         # Subsetting expression matrix to only include patients with correct fov label
         current_fov_idx = all_data[fov_col] == included_fovs[i]
-        current_fov_data = all_data[current_fov_idx].reset_index(drop=True)
+        current_fov_data = all_data[current_fov_idx]
         # print(current_fov_data.index.values)
 
         # Patients with correct label, and only columns of channel markers
-        # need to reset_index because all_data will contain data from multiple points
-        # meaning the indices need to be reset to 0
-        # TODO: is it safe to reindex here, I assumed that data for specific points
-        # was contained in order and
-        current_fov_channel_data = all_channel_data[current_fov_idx].reset_index(drop=True)
+        current_fov_channel_data = all_channel_data[current_fov_idx]
 
         # Retrieve point specific distance matrix from distance matrix dictionary
         dist_matrix = dist_matrices_dict[included_fovs[i]]
 
         # Get close_num and close_num_rand
         close_num, channel_nums = spatial_analysis_utils.compute_close_cell_num(
-            dist_mat=dist_matrix, dist_lim=100, analysis_type="channel",
+            dist_mat=dist_matrix, dist_lim=dist_lim, analysis_type="channel",
             current_fov_data=current_fov_data, current_fov_channel_data=current_fov_channel_data,
             thresh_vec=thresh_vec)
 
