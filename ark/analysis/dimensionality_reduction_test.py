@@ -3,6 +3,7 @@ import os
 
 from ark.analysis import dimensionality_reduction
 from ark.utils import test_utils
+import ark.settings as settings
 
 
 def test_dimensionality_reduction():
@@ -14,14 +15,14 @@ def test_dimensionality_reduction():
         for alg in test_algorithms:
             dimensionality_reduction.visualize_dimensionality_reduction(random_cell_data,
                                                                         test_cols,
-                                                                        "cell_type",
+                                                                        settings.CELL_TYPE,
                                                                         algorithm=alg)
             assert not os.path.exists(os.path.join(temp_dir, alg + 'Visualization.png'))
 
         for alg in test_algorithms:
             dimensionality_reduction.visualize_dimensionality_reduction(random_cell_data,
                                                                         test_cols,
-                                                                        "cell_type",
+                                                                        settings.CELL_TYPE,
                                                                         algorithm=alg,
                                                                         save_dir=temp_dir)
             assert os.path.exists(os.path.join(temp_dir, alg + 'Visualization.png'))

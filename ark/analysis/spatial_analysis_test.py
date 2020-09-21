@@ -5,6 +5,8 @@ import xarray as xr
 from ark.analysis import spatial_analysis
 from ark.utils import synthetic_spatial_datagen
 
+import ark.settings as settings
+
 
 def _make_threshold_mat():
     thresh = pd.DataFrame(np.zeros((20, 2)))
@@ -68,10 +70,13 @@ def _make_expression_matrix(enrichment_type):
     # positive enrichment, and negative enrichment.
 
     # Column names for columns that are not markers (columns to be excluded)
-    excluded_colnames = {0: 'cell_size', 1: 'Background', 14: "HH3",
-                         23: "summed_channel", 24: "cellLabelInImage", 25: "area",
-                         26: "eccentricity", 27: "major_axis_length", 28: "minor_axis_length",
-                         29: "perimeter", 30: "SampleID", 31: "FlowSOM_ID", 32: "cell_type"}
+    excluded_colnames = \
+        settings.PRE_CHANNEL_COLS + list(range(1, 24)) + settings.CLUSTERED_POST_CHANNEL_COLS
+    excluded_colnames[1] = 'Background'
+    excluded_colnames[14] = 'HH3'
+    excluded_colnames[23] = 'summed_channel'
+
+    rename_map = dict(zip(np.arange(33), excluded_colnames))
 
     if enrichment_type == "none":
         all_data = pd.DataFrame(np.zeros((120, 33)))
@@ -101,9 +106,9 @@ def _make_expression_matrix(enrichment_type):
         all_data.iloc[80:100, 32] = "Pheno1"
 
         # Assign column names to columns not for markers (columns to be excluded)
-        all_patient_data = all_data.rename(excluded_colnames, axis=1)
+        all_patient_data = all_data.rename(rename_map, axis=1)
 
-        all_patient_data.loc[all_patient_data.iloc[:, 31] == 0, "cell_type"] = "Pheno3"
+        all_patient_data.loc[all_patient_data.iloc[:, 31] == 0, settings.CELL_TYPE] = "Pheno3"
         return all_patient_data
     elif enrichment_type == "positive":
         all_data_pos = pd.DataFrame(np.zeros((160, 33)))
@@ -147,9 +152,12 @@ def _make_expression_matrix(enrichment_type):
         all_data_pos.iloc[112:116, 32] = "Pheno1"
 
         # Assign column names to columns not for markers (columns to be excluded)
-        all_patient_data_pos = all_data_pos.rename(excluded_colnames, axis=1)
+        all_patient_data_pos = all_data_pos.rename(rename_map, axis=1)
 
-        all_patient_data_pos.loc[all_patient_data_pos.iloc[:, 31] == 0, "cell_type"] = "Pheno3"
+        all_patient_data_pos.loc[
+            all_patient_data_pos.iloc[:, 31] == 0, settings.CELL_TYPE
+        ] = "Pheno3"
+
         return all_patient_data_pos
     elif enrichment_type == "negative":
         all_data_neg = pd.DataFrame(np.zeros((120, 33)))
@@ -178,9 +186,12 @@ def _make_expression_matrix(enrichment_type):
         all_data_neg.iloc[80:100, 32] = "Pheno1"
 
         # Assign column names to columns not for markers (columns to be excluded)
-        all_patient_data_neg = all_data_neg.rename(excluded_colnames, axis=1)
+        all_patient_data_neg = all_data_neg.rename(rename_map, axis=1)
 
-        all_patient_data_neg.loc[all_patient_data_neg.iloc[:, 31] == 0, "cell_type"] = "Pheno3"
+        all_patient_data_neg.loc[
+            all_patient_data_neg.iloc[:, 31] == 0, settings.CELL_TYPE
+        ] = "Pheno3"
+
         return all_patient_data_neg
 
 
@@ -188,10 +199,10 @@ def test_calculate_channel_spatial_enrichment():
 
     dist_lim = 100
 
-    excluded_colnames = ["cell_size", "Background", "HH3",
-                         "summed_channel", "cellLabelInImage", "area",
-                         "eccentricity", "major_axis_length", "minor_axis_length",
-                         "perimeter", "SampleID", "FlowSOM_ID", "cell_type"]
+    excluded_colnames = \
+        settings.PRE_CHANNEL_COLS \
+        + ["Background", "HH3", "summed_channel"] \
+        + settings.CLUSTERED_POST_CHANNEL_COLS
 
     # Test z and p values
     marker_thresholds = _make_threshold_mat()
