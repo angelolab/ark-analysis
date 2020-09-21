@@ -22,7 +22,7 @@ To verify installation, activate your `conda` environment with `conda activate <
 
 ### Installing ark
 
-Inside your `conda` environment, you will need to run `pip install ark-analysis` to gain access to our repo. To verify installation, type `conda list ark-analysis` after completion. If `ark-analysis` is listed, the installation was successful. You can now access the `ark` library. For detailed explanations of the functions available to you, please look at the `Library` section of this documentation. 
+Inside your `conda` environment, you will need to run `pip install ark-analysis` to gain access to our repo. To verify installation, type `conda list ark-analysis` after completion. If `ark-analysis` is listed, the installation was successful. You can now access the `ark` library. For detailed explanations of the functions available to you, please look at the Libraries section of this documentation. 
  
 Note that you will not have access to `ark` outside of this virtual environment. 
 
