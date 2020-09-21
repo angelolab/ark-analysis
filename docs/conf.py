@@ -9,7 +9,7 @@
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
-#
+
 import os
 import sys
 import mock # if we need to force mock import certain libraries autodoc_mock_imports fails ons
@@ -20,7 +20,6 @@ import re # for regex checking
 
 # our project officially 'begins' in the parent aka root project directory
 # since we do not separate source from build we can simply go up one directory
-# if we ever separate source from build we'll need to change this to '../..'
 sys.path.insert(0, os.path.abspath('..'))
 
 # if we ever have images, we'll be using the supported_image_types
@@ -56,9 +55,7 @@ extensions = ['IPython.sphinxext.ipython_console_highlighting', # syntax-highlig
               'sphinx.ext.napoleon', # support for Google style docstrings (STAR)
               'sphinx.ext.todo', # support fo TODO
               'sphinx.ext.viewcode', # support for adding links to highlighted source code, looks at Python object descriptions and tries to find source files where objects are contained
-              'm2r2', # allows you to include Markdown files in .rst, use mdinclude for this, choosing this over m2r because m2r is not supported anymore
-              'nbsphinx', # support for Jupyter notebooks (STAR)
-              'nbsphinx_link'] # include notebook files from outside sphinx src root (STAR)]
+              'm2r2'] # allows you to include Markdown files in .rst, use mdinclude for this, choosing this over m2r because m2r is not supported anymore
 
 # set parameter to read Google docstring and not NumPy
 # redundant to add since it's default True but good to know
@@ -115,7 +112,7 @@ nbsphinx_execute = 'never'
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = ['contributing.md', '_markdown/ark.md',  '_build', 'Thumbs.db', '.DS_Store', '**.ipynb_checkpoints']
+exclude_patterns = ['_rtd/landing.md', '_markdown/ark.md',  '_build', 'Thumbs.db', '.DS_Store', '**.ipynb_checkpoints']
 
 # custom 'stuff' we want to ignore in nitpicky mode
 # currently empty, I don't think we'll ever run in this
@@ -166,7 +163,6 @@ def run_apidoc(_):
 
 def check_docstring_format(app, what, name, obj, options, lines):
     if what == 'function':
-        # print(name)
         argnames = inspect.getargspec(obj)[0]
 
         if len(argnames) > 0:
