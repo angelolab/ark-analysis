@@ -332,17 +332,18 @@ def compute_close_cell_num_random_context(marker_nums, dist_mat, dist_lim, boots
         marker_count_data = pd.concat([marker_count_data, pd.DataFrame.from_dict(marker_counts)])
 
     # we run this bootstrap separately for each run
-    for ct in cell_types:
+    for ct in cell_type_indices:
+        # make sure we only subsetting the indices which correspond to the
+        # cell type in question
+        # print("Cell type analyzing: %s" % ct)
+        ct_labels = current_fov_data.loc[cell_type_indices[ct], cell_label_col].values
+        dist_mat_bin_flat = dist_mat_bin.loc[ct_labels, ct_labels].values.flatten()
+
         # instead of enumerating marker_nums, we enumerate the column in marker_count_data
         # which corresponds to the marker counts of the cell_type we're faceting
         for j, m1n in enumerate(marker_count_data[ct]):
             for k, m2n in enumerate(marker_count_data[ct].iloc[j:], j):
                 samples_dim = (m1n * m2n, bootstrap_num)
-
-                # make sure we only subsetting the indices which correspond to the
-                # cell type in question
-                ct_labels = current_fov_data.loc[cell_type_indices[ct], cell_label_col].values
-                dist_mat_bin_flat = dist_mat_bin.loc[ct_labels, ct_labels].values.flatten()
 
                 # get the bootstrap for the specific cell type
                 count_close_num_context_rand_hits = np.sum(

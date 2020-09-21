@@ -120,23 +120,24 @@ def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, 
         # run context-dependent randomization if context is True
         # otherwise run basic randomization
         if context:
+            print("the bootstrap_num is %d" % bootstrap_num)
             close_num_rand = spatial_analysis_utils.compute_close_cell_num_random_context(
                 marker_nums=channel_nums, dist_mat=dist_matrix, dist_lim=dist_lim,
                 bootstrap_num=bootstrap_num, thresh_vec=thresh_vec,
                 current_fov_data=current_fov_data,
                 current_fov_channel_data=current_fov_channel_data, cell_types=cell_types,
                 cell_type_col=cell_type_col)
-
-            # print("Computed close_num")
-            # print(close_num)
-            # print(close_num.shape)
-            # print("Computed close_num_rand")
-            # print(close_num_rand)
-            # print(close_num_rand.shape)
         else:
             close_num_rand = spatial_analysis_utils.compute_close_cell_num_random(
                 marker_nums=channel_nums, dist_mat=dist_matrix, dist_lim=dist_lim,
                 bootstrap_num=bootstrap_num)
+
+        # print("Computed close_num")
+        # print(close_num)
+        # print(close_num.shape)
+        # print("Computed close_num_rand")
+        # print(close_num_rand)
+        # print(close_num_rand.shape)
 
         values.append((close_num, close_num_rand))
 
