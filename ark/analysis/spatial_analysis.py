@@ -5,6 +5,20 @@ from ark.utils import spatial_analysis_utils
 
 import ark.settings as settings
 
+DEFAULT_EXCLUDE_COLUMNS = [
+    settings.CELL_SIZE,
+    "Background",
+    "HH3",
+    "summed_channel",
+    settings.CELL_LABEL,
+    settings.AREA,
+    settings.ECCENTRICITY,
+    settings.MAJ_AXIS_LENGTH,
+    settings.MIN_AXIS_LENGTH,
+    settings.PERIMITER,
+    settings.FOV_ID,
+]
+
 
 def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, all_data,
                                          excluded_colnames=None, included_fovs=None,
@@ -55,9 +69,7 @@ def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, 
     values = []
 
     if excluded_colnames is None:
-        excluded_channels = ["Background", "HH3", "summed_channel"]
-        excluded_colnames = \
-            settings.PRE_CHANNEL_COLS + excluded_channels + settings.POST_CHANNEL_COLS
+        excluded_colnames = DEFAULT_EXCLUDE_COLUMNS
 
     # Error Checking
     if not np.isin(excluded_colnames, all_data.columns).all():
