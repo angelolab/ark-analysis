@@ -3,10 +3,13 @@ import xarray as xr
 import numpy as np
 from ark.utils import spatial_analysis_utils
 
+import ark.settings as settings
+
 
 def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, all_data,
                                          excluded_colnames=None, included_fovs=None,
-                                         dist_lim=100, bootstrap_num=1000, fov_col="SampleID"):
+                                         dist_lim=100, bootstrap_num=1000,
+                                         fov_col=settings.FOV_ID):
     """Spatial enrichment analysis to find significant interactions between cells expressing
     different markers. Uses bootstrapping to permute cell labels randomly.
 
@@ -31,7 +34,7 @@ def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, 
         bootstrap_num (int):
             number of permutations for bootstrap. Default is 1000.
         fov_col (str):
-            column with the cell fovs. Default is 'SampleID'
+            column with the cell fovs. Default is equal to `ark.settings.FOV_ID`
 
     Returns:
         tuple (list, xarray.DataArray):
@@ -52,10 +55,9 @@ def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, 
     values = []
 
     if excluded_colnames is None:
-        excluded_colnames = ["cell_size", "Background", "HH3",
-                             "summed_channel", "label", "area",
-                             "eccentricity", "major_axis_length", "minor_axis_length",
-                             "perimeter", "fov"]
+        excluded_channels = ["Background", "HH3", "summed_channel"]
+        excluded_colnames = \
+            settings.PRE_CHANNEL_COLS + excluded_channels + settings.POST_CHANNEL_COLS
 
     # Error Checking
     if not np.isin(excluded_colnames, all_data.columns).all():
@@ -113,9 +115,10 @@ def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, 
 
 
 def calculate_cluster_spatial_enrichment(all_data, dist_matrices_dict, included_fovs=None,
-                                         bootstrap_num=1000, dist_lim=100, fov_col="SampleID",
-                                         cluster_name_col="cell_type", cluster_id_col="FlowSOM_ID",
-                                         cell_label_col="cellLabelInImage", context_labels=None):
+                                         bootstrap_num=1000, dist_lim=100, fov_col=settings.FOV_ID,
+                                         cluster_name_col=settings.CELL_TYPE,
+                                         cluster_id_col=settings.CLUSTER_ID,
+                                         cell_label_col=settings.CELL_LABEL, context_labels=None):
     """Spatial enrichment analysis based on cell phenotypes to find significant interactions
     between different cell types, looking for both positive and negative enrichment. Uses
     bootstrapping to permute cell labels randomly.
@@ -133,13 +136,13 @@ def calculate_cluster_spatial_enrichment(all_data, dist_matrices_dict, included_
         dist_lim (int):
             cell proximity threshold. Default is 100
         fov_col (str):
-            column with the cell fovs. Default is 'SampleID'
+            column with the cell fovs. Default is eqaul to `ark.settings.FOV_ID`
         cluster_name_col (str):
-            column with the cell types. Default is 'cell_type'
+            column with the cell types. Default is `ark.settings.CELL_TYPE`
         cluster_id_col (str):
-            column with the cell phenotype IDs. Default is 'FlowSOM_ID'
+            column with the cell phenotype IDs. Default is `ark.settings.CLUSTER_ID`
         cell_label_col (str):
-            column with the cell labels. Default is 'cellLabelInImage'
+            column with the cell labels. Default is `ark.settings.CELL_LABEL`
         context_labels (dict):
             A dict that contains which specific types of cells we want to consider.
             If argument is None, we will not run context-dependent spatial analysis
@@ -212,8 +215,9 @@ def calculate_cluster_spatial_enrichment(all_data, dist_matrices_dict, included_
 
 
 def create_neighborhood_matrix(all_data, dist_matrices_dict, included_fovs=None, distlim=50,
-                               fov_col="SampleID", cluster_id_col="FlowSOM_ID",
-                               cell_label_col="cellLabelInImage", cluster_name_col="cell_type"):
+                               fov_col=settings.FOV_ID, cluster_id_col=settings.CLUSTER_ID,
+                               cell_label_col=settings.CELL_LABEL,
+                               cluster_name_col=settings.CELL_TYPE):
     """Calculates the number of neighbor phenotypes for each cell.
 
     Args:
@@ -227,13 +231,13 @@ def create_neighborhood_matrix(all_data, dist_matrices_dict, included_fovs=None,
         distlim (int):
             cell proximity threshold. Default is 50.
         fov_col (str):
-            column with the cell fovs. Default is 'SampleID'
+            column with the cell fovs. Default is `ark.settings.FOV_ID`
         cluster_id_col (str):
-            column with the cell phenotype IDs. Default is 'FlowSOM_ID'
+            column with the cell phenotype IDs. Default is `ark.settings.CLUSTER_ID`
         cell_label_col (str):
-            column with the cell labels. Default is 'cellLabelInImage'
+            column with the cell labels. Default is `ark.settings.CELL_LABEL`
         cluster_name_col (str):
-            column with the cell types. Default is 'cell_type'
+            column with the cell types. Default is `ark.settings.CELL_TYPE`
 
     Returns:
         pandas.DataFrame:

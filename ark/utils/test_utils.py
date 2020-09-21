@@ -8,6 +8,8 @@ import skimage.io as io
 
 from mibidata import mibi_image as mi, tiff
 
+import ark.settings as settings
+
 
 def gen_fov_chan_names(num_fovs, num_chans, return_imgs=False, use_delimiter=False):
     """Generate FOV and channel names
@@ -532,8 +534,8 @@ def make_segmented_csv(num_cells, extra_cols=None):
         np.random.random(size=(num_cells, len(TEST_MARKERS))),
         columns=TEST_MARKERS
     )
-    cell_data["cell_type"] = choices(ascii_lowercase, k=num_cells)
-    cell_data["PatientID"] = choices(range(1, 10), k=num_cells)
+    cell_data[settings.CELL_TYPE] = choices(ascii_lowercase, k=num_cells)
+    cell_data[settings.PATIENT_ID] = choices(range(1, 10), k=num_cells)
 
     return cell_data
 

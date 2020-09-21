@@ -3,6 +3,7 @@ from os import path
 
 from ark.analysis import visualize
 from ark.utils import test_utils
+import ark.settings as settings
 
 
 def test_visualize_z_scores():
@@ -15,7 +16,7 @@ def test_visualize_z_scores():
 
 def test_get_sort_data():
     random_data = test_utils.make_segmented_csv(100)
-    sorted_data = visualize.get_sorted_data(random_data, "PatientID", "cell_type")
+    sorted_data = visualize.get_sorted_data(random_data, settings.PATIENT_ID, settings.CELL_TYPE)
 
     row_sums = [row.sum() for index, row in sorted_data.iterrows()]
     assert list(reversed(row_sums)) == sorted(row_sums)
@@ -23,8 +24,8 @@ def test_get_sort_data():
 
 def test_visualize_cells():
     random_data = test_utils.make_segmented_csv(100)
-    visualize.visualize_patient_population_distribution(random_data, "PatientID", "cell_type",
-                                                        save_dir="")
+    visualize.visualize_patient_population_distribution(random_data, settings.PATIENT_ID,
+                                                        settings.CELL_TYPE, save_dir="")
 
     # Check if correct plots are saved
     assert path.exists("PopulationDistribution.png")
