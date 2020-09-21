@@ -11,7 +11,8 @@ from ark.utils import data_utils, io_utils, segmentation_utils
 from ark.segmentation import signal_extraction
 
 
-def compute_marker_counts(input_images, segmentation_masks, nuclear_counts=False):
+def compute_marker_counts(input_images, segmentation_masks, nuclear_counts=False,
+                          regionprops_features=None, split_large_nuclei=False):
     """Extract single cell protein expression data from channel TIFs for a single point
 
     Args:
@@ -21,21 +22,38 @@ def compute_marker_counts(input_images, segmentation_masks, nuclear_counts=False
             rows x columns x compartment matrix of masks
         nuclear_counts (bool):
             boolean flag to determine whether nuclear counts are returned
+        regionprops_features (list):
+            morphology features for regionprops to extract for each cell
+        split_large_nuclei (bool):
+            controls whether nuclei which have portions outside of the cell will get relabeled
 
     Returns:
         xarray.DataArray:
             xarray containing segmented data of cells x markers
     """
 
-    unique_cell_ids = np.unique(segmentation_masks[..., 0].values)
+    if regionprops_features is None:
+        regionprops_features = ['label', 'area', 'eccentricity', 'major_axis_length',
+                                'minor_axis_length', 'perimeter', 'centroid']
 
-    # define morphology properties to be extracted from regionprops
-    object_properties = ["label", "area", "eccentricity", "major_axis_length",
-                         "minor_axis_length", "perimeter", 'coords']
+    if 'coords' not in regionprops_features:
+        regionprops_features.append('coords')
+
+    # create variable to hold names of returned columns only
+    regionprops_names = copy.copy(regionprops_features)
+    regionprops_names.remove('coords')
+
+    # centroid returns two columns, need to modify names
+    if np.isin('centroid', regionprops_names):
+        regionprops_names.remove('centroid')
+        regionprops_names += ['centroid-0', 'centroid-1']
+
+    unique_cell_ids = np.unique(segmentation_masks[..., 0].values)
+    unique_cell_ids = unique_cell_ids[np.nonzero(unique_cell_ids)]
 
     # create labels for array holding channel counts and morphology metrics
     feature_names = np.concatenate((np.array('cell_size'), input_images.channels,
-                                    object_properties[:-1]), axis=None)
+                                    regionprops_names), axis=None)
 
     # create np.array to hold compartment x cell x feature info
     marker_counts_array = np.zeros((len(segmentation_masks.compartments), len(unique_cell_ids),
@@ -49,11 +67,17 @@ def compute_marker_counts(input_images, segmentation_masks, nuclear_counts=False
 
     # get regionprops for each cell
     cell_props = pd.DataFrame(regionprops_table(segmentation_masks.loc[:, :, 'whole_cell'].values,
-                                                properties=object_properties))
+                                                properties=regionprops_features))
 
     if nuclear_counts:
         nuc_mask = segmentation_masks.loc[:, :, 'nuclear'].values
-        nuc_props = pd.DataFrame(regionprops_table(nuc_mask, properties=object_properties))
+
+        if split_large_nuclei:
+            cell_mask = segmentation_masks.loc[:, :, 'whole_cell'].values
+            nuc_mask = segmentation_utils.split_large_nuclei(cell_segmentation_mask=cell_mask,
+                                                             nuc_segmentation_mask=nuc_mask,
+                                                             cell_ids=unique_cell_ids)
+        nuc_props = pd.DataFrame(regionprops_table(nuc_mask, properties=regionprops_features))
 
     # TODO: There's some repeated code here, maybe worth refactoring? Maybe not
     # loop through each cell in mask
@@ -65,7 +89,7 @@ def compute_marker_counts(input_images, segmentation_masks, nuclear_counts=False
         cell_counts = signal_extraction.default_extraction(cell_coords, input_images)
 
         # get morphology metrics
-        current_cell_props = cell_props.loc[cell_props['label'] == cell_id, object_properties[:-1]]
+        current_cell_props = cell_props.loc[cell_props['label'] == cell_id, regionprops_names]
 
         # combine marker counts and morphology metrics together
         cell_features = np.concatenate((cell_counts, current_cell_props), axis=None)
@@ -93,7 +117,7 @@ def compute_marker_counts(input_images, segmentation_masks, nuclear_counts=False
 
                 # get morphology metrics
                 current_nuc_props = nuc_props.loc[
-                    nuc_props['label'] == nuc_id, object_properties[:-1]]
+                    nuc_props['label'] == nuc_id, regionprops_names]
 
                 # combine marker counts and morphology metrics together
                 nuc_features = np.concatenate((nuc_counts, current_nuc_props), axis=None)
@@ -152,9 +176,6 @@ def generate_expression_matrix(segmentation_labels, image_data, nuclear_counts=F
         # extract the counts per cell for each marker
         marker_counts = compute_marker_counts(image_data.loc[fov, :, :, :], segmentation_label,
                                               nuclear_counts=nuclear_counts)
-
-        # remove the cell corresponding to background
-        marker_counts = marker_counts[:, 1:, :]
 
         # normalize counts by cell size
         marker_counts_norm = segmentation_utils.transform_expression_matrix(marker_counts,

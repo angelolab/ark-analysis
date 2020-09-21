@@ -4,6 +4,7 @@ env
 .pytest_cache
 *cache*
 
+*/.coverage
 */.DS_Store
 
 .devcontainer/
@@ -17,3 +18,4 @@ env
 
 */_build
 */_markdown
+*/visualizations
