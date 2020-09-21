@@ -10,7 +10,6 @@ import ark.settings as settings
 def test_plot_dim_reduced_data():
     # this only tests errors, test_dimensionality_reduction tests the meat of this function
     random_cell_data = test_utils.make_segmented_csv(300)
-    test_cols = test_utils.TEST_MARKERS
 
     with pytest.raises(ValueError):
         # trying to save to a non-existant directory
@@ -43,7 +42,7 @@ def test_dimensionality_reduction():
         # trying to specify an algorithm not in test_algorithms
         dimensionality_reduction.visualize_dimensionality_reduction(random_cell_data,
                                                                     test_cols,
-                                                                    "cell_type",
+                                                                    settings.CELL_TYPE,
                                                                     algorithm="bad_alg")
 
     with tempfile.TemporaryDirectory() as temp_dir:
