@@ -254,7 +254,8 @@ def compute_close_cell_num_random(marker_nums, dist_mat, dist_lim, bootstrap_num
 
 def compute_close_cell_num_random_context(marker_nums, dist_mat, dist_lim, bootstrap_num,
                                           thresh_vec, current_fov_data, current_fov_channel_data,
-                                          cell_types, cell_type_col="cell_type"):
+                                          cell_types, cell_type_col="cell_type",
+                                          cell_label_col="cellLabelInImage"):
     """Runs a context-dependent bootstrapping procedure to sample cell labels randomly faceted
     by which cell type they are based on their FlowSOM ID. Only for channel enrichment.
 
@@ -280,6 +281,8 @@ def compute_close_cell_num_random_context(marker_nums, dist_mat, dist_lim, boots
             get grouped into an "other" category
         cell_type_col (str):
             the name of the column in current_fov_data which contains the FlowSOM ID
+        cell_label_col (str):
+            the name of the column in current_fov_data which identifies the cell labels
 
     Returns:
         numpy.ndarray:
@@ -294,11 +297,11 @@ def compute_close_cell_num_random_context(marker_nums, dist_mat, dist_lim, boots
     close_num_rand = np.zeros((
         len(marker_nums), len(marker_nums), bootstrap_num), dtype='int')
 
-    # subset dist_mat_bin by dist_lim, and make sure we reorder and re-zero-index
-    # the distance matrix because it is by default an xarray with non-consecutive coordinates
+    # subset dist_mat_bin by dist_lim, and make sure we only grab the values
+    # of the cells labels we actually computed over
     dist_mat_bin = (dist_mat < dist_lim).astype(np.int8)
-    dist_mat_bin = dist_mat_bin.loc[np.arange(1, current_fov_data.shape[0]),
-                                    np.arange(1, current_fov_data.shape[0])]
+    dist_mat_bin = dist_mat_bin.loc[np.sort(current_fov_data[cell_label_col].values),
+                                    np.sort(current_fov_data[cell_label_col].values)]
 
     # create a dictionary to store the indices in current_fov_data of cell_type
     # we will need this so we know which indices correspond to which cell_type bucket
@@ -341,7 +344,7 @@ def compute_close_cell_num_random_context(marker_nums, dist_mat, dist_lim, boots
                 # make sure we only subsetting the indices which correspond to the
                 # cell type in question
                 ct_indices = cell_type_indices[ct]
-                dist_mat_bin_flat = dist_mat_bin.values[ct_indices, ct_indices].flatten()
+                dist_mat_bin_flat = dist_mat_bin.values[np.ix_(ct_indices, ct_indices)].flatten()
 
                 # get the bootstrap for the specific cell type
                 count_close_num_context_rand_hits = np.sum(
