@@ -206,9 +206,11 @@ def test_visualize_segmentation():
             output_dir=temp_dir)
         for mod_output_fov in segmentation_labels_xr.fovs:
             assert os.path.exists(os.path.join(temp_dir,
-                                               f'{mod_output_fov.values}_segmentation_borders.tiff'))
+                                               f'{mod_output_fov.values}'
+                                               f'_segmentation_borders.tiff'))
             assert os.path.exists(os.path.join(temp_dir,
-                                               f'{mod_output_fov.values}_segmentation_labels.tiff'))
+                                               f'{mod_output_fov.values}'
+                                               f'_segmentation_labels.tiff'))
         for chan_list in overlay_channels:
             segmentation_utils.visualize_segmentation(
                 segmentation_labels_xr=segmentation_labels_xr,
@@ -220,6 +222,8 @@ def test_visualize_segmentation():
                     os.path.join(temp_dir, '_'.join(
                         [f'{mod_output_fov.values}', *chan_list, 'overlay.tiff'])))
                 assert os.path.exists(os.path.join(temp_dir,
-                                                   f'{mod_output_fov.values}_segmentation_borders.tiff'))
+                                                   f'{mod_output_fov.values}'
+                                                   f'_segmentation_borders.tiff'))
                 assert os.path.exists(os.path.join(temp_dir,
-                                                   f'{mod_output_fov.values}_segmentation_labels.tiff'))
+                                                   f'{mod_output_fov.values}'
+                                                   f'_segmentation_labels.tiff'))
