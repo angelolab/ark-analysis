@@ -182,7 +182,7 @@ def visualize_segmentation(segmentation_labels_xr, channel_data_xr,
                            output_dir, chan_list=None, fovs=None):
     """For each fov, generates segmentation labels, segmentation borders, and overlays
     over the channels in chan_list if chan_list is provided.
-    Saves xarray to output directory
+    Saves overlay images to output directory
 
     Args:
         segmentation_labels_xr (xarray.DataArray): xarray containing segmentation labels
@@ -205,7 +205,7 @@ def visualize_segmentation(segmentation_labels_xr, channel_data_xr,
                 plotting_tif=input_data,
                 path=os.path.join(output_dir, save_path)
             )
-
+        #Adds overlay to segmentation visualization
         plot_utils.plot_overlay(
             labels,
             plotting_tif=None,
