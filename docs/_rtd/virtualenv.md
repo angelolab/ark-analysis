@@ -28,6 +28,6 @@ Note that you will not have access to `ark` or the other libraries inside `requi
  
 You're now set to start working with `ark-analysis`! Please look at [our contributing guidelines](contributing.md) for more information about development. For detailed explanations of the functions available to you in `ark`, please consult the Libraries section of this documentation. 
 
-### Using ark-analysis directly
+### Using ark functions directly
 
 If you will only be using functions in `ark` without developing on top of it, do not clone the repo. Simply run `pip install ark-analysis` to gain access to our functions. To verify installation, type `conda list ark-analysis` after completion. If `ark-analysis` is listed, the installation was successful. You can now access the `ark` library by running `import ark`. 
