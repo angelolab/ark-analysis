@@ -5,7 +5,7 @@
    :caption: Getting Started
    :maxdepth: 4
 
-   Home <self>
+   Home <_rtd/landing>
    About MIBI Pipeline <_rtd/pipeline>
    Data Type Info <_rtd/data_types>
    Virtual Environment Setup <_rtd/virtualenv>
