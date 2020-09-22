@@ -72,7 +72,8 @@ def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, 
         excluded_colnames = DEFAULT_EXCLUDE_COLUMNS
 
     # Error Checking
-    if not np.isin(excluded_colnames, all_data.columns).all():
+    if not np.isin(excluded_colnames, list(all_data.columns.values)).all():
+        raise ValueError(f'\n{excluded_colnames}\n\n{list(all_data.columns.values)}\n')
         raise ValueError("Column names were not found in Expression Matrix")
 
     if not np.isin(included_fovs, all_data[fov_col]).all():
