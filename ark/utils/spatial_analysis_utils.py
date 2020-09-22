@@ -331,6 +331,8 @@ def compute_close_cell_num_random_context(marker_nums, dist_mat, dist_lim, boots
 
         marker_count_data = pd.concat([marker_count_data, pd.DataFrame.from_dict(marker_counts)])
 
+    print(marker_count_data)
+
     # we run this bootstrap separately for each run
     for ct in cell_type_indices:
         # make sure we only subsetting the indices which correspond to the
@@ -351,7 +353,9 @@ def compute_close_cell_num_random_context(marker_nums, dist_mat, dist_lim, boots
                     axis=0
                 )
 
-                # add to the corresponding enry in close_num_rand we take
+                # print(count_close_num_context_rand_hits)
+
+                # add to the corresponding entry in close_num_rand we take
                 # we may still have other cell type random sample results
                 #  we'll need to add in, so don't just assign
                 close_num_rand[j, k, :] += count_close_num_context_rand_hits
