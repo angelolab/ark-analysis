@@ -20,11 +20,12 @@ Say yes to any prompts and your `conda` environment will be created!
  
 To verify installation, activate your `conda` environment with `conda activate <my_env>`. If you see `(<my_env>)` on the far left of the command prompt, you have successfully created and activated your environment. Type `conda deactivate` to exit at any time.
 
-### Installing packages
+### Setting up ark-analysis
 
-Inside your `conda` environment, you will need to run `pip install ark-analysis` to gain access to our repo. To verify installation, type `conda list ark-analysis` after completion. If `ark-analysis` is listed, the installation was successful. You can now access the `ark` library. For detailed explanations of the functions available to you, please look at the Libraries section of this documentation. 
+Inside your `conda` environment, you will need to run `pip install ark-analysis` to gain access to our repo. To verify installation, type `conda list ark-analysis` after completion. If `ark-analysis` is listed, the installation was successful. You can now access the `ark` library by running `import ark`. For detailed explanations of the functions available to you, please look at the Libraries section of this documentation. 
 
 `ark` relies on several other Python packages. Inside the `ark-analysis` repo (if you don't have it, first run `git clone https://github.com/angelolab/ark-analysis.git`), and with your virtual environment activated, you will need to install these other dependencies as well. Run `pip install -r requirements.txt` to do so. 
  
 Note that you will not have access to `ark` or the other libraries inside `requirements.txt` outside of this virtual environment. 
 
+You're now set to start working with `ark-analysis`!
