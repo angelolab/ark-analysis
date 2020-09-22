@@ -254,7 +254,7 @@ def compute_close_cell_num_random(marker_nums, dist_mat, dist_lim, bootstrap_num
 
 def compute_close_cell_num_random_context(marker_nums, dist_mat, dist_lim, bootstrap_num,
                                           thresh_vec, current_fov_data, current_fov_channel_data,
-                                          cell_types, cell_type_col="cell_type",
+                                          cell_lin_col="cell_lineage",
                                           cell_label_col="cellLabelInImage"):
     """Runs a context-dependent bootstrapping procedure to sample cell labels randomly faceted
     by which cell type they are based on their FlowSOM ID. Only for channel enrichment.
@@ -275,11 +275,7 @@ def compute_close_cell_num_random_context(marker_nums, dist_mat, dist_lim, boots
             data for specific patient in expression matrix
         current_fov_channel_data (pandas.DataFrame):
             data of only column markers for Channel Analysis
-        cell_types (list):
-            the list of cell types in the cell_type_col of current_fov_data we wish to
-            specifically facet in context-based randomization, all categories (if any)
-            get grouped into an "other" category
-        cell_type_col (str):
+        cell_lin_col (str):
             the name of the column in current_fov_data which contains the FlowSOM ID
         cell_label_col (str):
             the name of the column in current_fov_data which identifies the cell labels
@@ -289,9 +285,11 @@ def compute_close_cell_num_random_context(marker_nums, dist_mat, dist_lim, boots
             Large matrix of random positive marker counts for every permutation in the bootstrap
     """
 
-    # ensure all of the cell_types specified actually exist in current_fov_data
-    if not np.isin(cell_types, current_fov_data[cell_type_col]).all():
-        raise ValueError("Cell types were not found in expression matrix")
+    if cell_lin_col not in current_fov_data.columns.values:
+        raise ValueError("cell_lin_col %s does not exist in current_fov_data")
+
+    if cell_label_col not in current_fov_data.columns.values:
+        raise ValueError("cell_label_col %s does not exist in current_fov_data")
 
     # Create close_num_rand
     close_num_rand = np.zeros((
@@ -301,25 +299,17 @@ def compute_close_cell_num_random_context(marker_nums, dist_mat, dist_lim, boots
     # of the cells labels we actually computed over
     dist_mat_bin = (dist_mat < dist_lim).astype(np.int8)
 
-    # create a dictionary to store the indices in current_fov_data of cell_type
-    # we will need this so we know which indices correspond to which cell_type bucket
+    # create a dictionary to store the indices in current_fov_data of cell_lin
+    # we will need this so we know which indices correspond to which cell_lin bucket
     # for proper sampling
-    cell_type_indices = {ct: current_fov_data[current_fov_data[cell_type_col] == ct].index.values
-                         for ct in cell_types}
+    cell_lin_indices = {ct: current_fov_data[current_fov_data[cell_lin_col] == ct].index.values
+                        for ct in current_fov_data[cell_lin_col].unique()}
 
-    # if some cell types are left out of context-based randomization, group everything
-    # else into an 'other' category, I don't know if we'll ever run into a case
-    # where the user specifies all cell types but just to make sure
-    if not np.isin(current_fov_data[cell_type_col].unique(), cell_types).all():
-        cell_type_indices['other'] = current_fov_data[
-            ~current_fov_data[cell_type_col].isin(cell_types)
-        ].index.values
-
-    # create a dataframe containing cell_type count information per marker
+    # create a dataframe containing cell_lin count information per marker
     # this will help us not have to precompute this information each time
     # in the bootstrap loop below, note that this will have the same number
     # of rows as len(marker_nums)
-    marker_count_data = pd.DataFrame(columns=cell_type_indices.keys())
+    marker_count_data = pd.DataFrame(columns=cell_lin_indices.keys())
 
     for i in range(len(marker_nums)):
         marker_col = current_fov_channel_data.columns[i]
@@ -327,22 +317,20 @@ def compute_close_cell_num_random_context(marker_nums, dist_mat, dist_lim, boots
         marker_pos_inds = current_fov_channel_data[marker_pos_select].index.values
 
         marker_counts = {m: [len(set(marker_pos_inds).intersection(set(
-            cell_type_indices[m])))] for m in cell_type_indices}
+            cell_lin_indices[m])))] for m in cell_lin_indices}
 
         marker_count_data = pd.concat([marker_count_data, pd.DataFrame.from_dict(marker_counts)])
 
-    print(marker_count_data)
-
     # we run this bootstrap separately for each run
-    for ct in cell_type_indices:
+    for ct in cell_lin_indices:
         # make sure we only subsetting the indices which correspond to the
         # cell type in question
         # print("Cell type analyzing: %s" % ct)
-        ct_labels = current_fov_data.loc[cell_type_indices[ct], cell_label_col].values
+        ct_labels = current_fov_data.loc[cell_lin_indices[ct], cell_label_col].values
         dist_mat_bin_flat = dist_mat_bin.loc[ct_labels, ct_labels].values.flatten()
 
         # instead of enumerating marker_nums, we enumerate the column in marker_count_data
-        # which corresponds to the marker counts of the cell_type we're faceting
+        # which corresponds to the marker counts of the cell_lin we're faceting
         for j, m1n in enumerate(marker_count_data[ct]):
             for k, m2n in enumerate(marker_count_data[ct].iloc[j:], j):
                 samples_dim = (m1n * m2n, bootstrap_num)

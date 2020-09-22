@@ -72,10 +72,11 @@ def _make_expression_matrix(enrichment_type):
     excluded_colnames = {0: 'cell_size', 1: 'Background', 14: "HH3",
                          23: "summed_channel", 24: "cellLabelInImage", 25: "area",
                          26: "eccentricity", 27: "major_axis_length", 28: "minor_axis_length",
-                         29: "perimeter", 30: "SampleID", 31: "FlowSOM_ID", 32: "cell_type"}
+                         29: "perimeter", 30: "SampleID", 31: "FlowSOM_ID", 32: "cell_type",
+                         33: "cell_lineage"}
 
     if enrichment_type == "none":
-        all_data = pd.DataFrame(np.zeros((120, 33)))
+        all_data = pd.DataFrame(np.zeros((120, 34)))
         # Assigning values to the patient label and cell label columns
         # We create data for two fovs, with the second fov being the same as the first but the
         # cell expression data for marker 1 and marker 2 are inverted. cells 0-59 are Point8 and
@@ -93,13 +94,17 @@ def _make_expression_matrix(enrichment_type):
         # We assign the two populations of cells different cell phenotypes
         all_data.iloc[0:20, 31] = 1
         all_data.iloc[0:20, 32] = "Pheno1"
+        all_data.iloc[0:20, 33] = "Lin1"
         all_data.iloc[60:80, 31] = 2
         all_data.iloc[60:80, 32] = "Pheno2"
+        all_data.iloc[60:80, 33] = "Lin2"
 
         all_data.iloc[20:40, 31] = 2
         all_data.iloc[20:40, 32] = "Pheno2"
+        all_data.iloc[20:40, 33] = "Lin2"
         all_data.iloc[80:100, 31] = 1
         all_data.iloc[80:100, 32] = "Pheno1"
+        all_data.iloc[80:100, 33] = "Lin1"
 
         # Assign column names to columns not for markers (columns to be excluded)
         all_patient_data = all_data.rename(excluded_colnames, axis=1)
@@ -107,7 +112,7 @@ def _make_expression_matrix(enrichment_type):
         all_patient_data.loc[all_patient_data.iloc[:, 31] == 0, "cell_type"] = "Pheno3"
         return all_patient_data
     elif enrichment_type == "positive":
-        all_data_pos = pd.DataFrame(np.zeros((160, 33)))
+        all_data_pos = pd.DataFrame(np.zeros((160, 34)))
         # Assigning values to the patient label and cell label columns
         all_data_pos.loc[0:79, 30] = "Point8"
         all_data_pos.loc[80:, 30] = "Point9"
@@ -123,13 +128,17 @@ def _make_expression_matrix(enrichment_type):
         # We assign the two populations of cells different cell phenotypes
         all_data_pos.iloc[0:8, 31] = 1
         all_data_pos.iloc[0:8, 32] = "Pheno1"
+        all_data_pos.iloc[0:8, 33] = "Lin1"
         all_data_pos.iloc[80:88, 31] = 2
         all_data_pos.iloc[80:88, 32] = "Pheno2"
+        all_data_pos.iloc[80:88, 33] = "Lin2"
 
         all_data_pos.iloc[10:18, 31] = 2
         all_data_pos.iloc[10:18, 32] = "Pheno2"
+        all_data_pos.iloc[10:18, 33] = "Lin2"
         all_data_pos.iloc[90:98, 31] = 1
         all_data_pos.iloc[90:98, 32] = "Pheno1"
+        all_data_pos.iloc[90:98, 33] = "Lin1"
         # We create 4 cells in column index 2 and column index 3 that are also positive
         # for their respective markers.
         all_data_pos.iloc[28:32, 2] = 1
@@ -139,13 +148,17 @@ def _make_expression_matrix(enrichment_type):
         # We assign the two populations of cells different cell phenotypes
         all_data_pos.iloc[28:32, 31] = 1
         all_data_pos.iloc[28:32, 32] = "Pheno1"
+        all_data_pos.iloc[28:32, 33] = "Lin1"
         all_data_pos.iloc[108:112, 31] = 2
         all_data_pos.iloc[108:112, 32] = "Pheno2"
+        all_data_pos.iloc[108:112, 33] = "Lin2"
 
         all_data_pos.iloc[32:36, 31] = 2
         all_data_pos.iloc[32:36, 32] = "Pheno2"
+        all_data_pos.iloc[32:36, 33] = "Lin2"
         all_data_pos.iloc[112:116, 31] = 1
         all_data_pos.iloc[112:116, 32] = "Pheno1"
+        all_data_pos.iloc[112:116, 33] = "Lin1"
 
         # Assign column names to columns not for markers (columns to be excluded)
         all_patient_data_pos = all_data_pos.rename(excluded_colnames, axis=1)
@@ -153,7 +166,7 @@ def _make_expression_matrix(enrichment_type):
         all_patient_data_pos.loc[all_patient_data_pos.iloc[:, 31] == 0, "cell_type"] = "Pheno3"
         return all_patient_data_pos
     elif enrichment_type == "negative":
-        all_data_neg = pd.DataFrame(np.zeros((120, 33)))
+        all_data_neg = pd.DataFrame(np.zeros((120, 34)))
         # Assigning values to the patient label and cell label columns
         all_data_neg.loc[0:59, 30] = "Point8"
         all_data_neg.loc[60:, 30] = "Point9"
@@ -170,13 +183,17 @@ def _make_expression_matrix(enrichment_type):
         # We assign the two populations of cells different cell phenotypes
         all_data_neg.iloc[0:20, 31] = 1
         all_data_neg.iloc[0:20, 32] = "Pheno1"
+        all_data_neg.iloc[0:20, 33] = "Lin1"
         all_data_neg.iloc[60:80, 31] = 2
         all_data_neg.iloc[60:80, 32] = "Pheno2"
+        all_data_neg.iloc[60:80, 33] = "Lin2"
 
         all_data_neg.iloc[20:40, 31] = 2
         all_data_neg.iloc[20:40, 32] = "Pheno2"
+        all_data_neg.iloc[20:40, 33] = "Lin2"
         all_data_neg.iloc[80:100, 31] = 1
         all_data_neg.iloc[80:100, 32] = "Pheno1"
+        all_data_neg.iloc[80:100, 33] = "Lin1"
 
         # Assign column names to columns not for markers (columns to be excluded)
         all_patient_data_neg = all_data_neg.rename(excluded_colnames, axis=1)
@@ -192,7 +209,7 @@ def test_calculate_channel_spatial_enrichment():
     excluded_colnames = ["cell_size", "Background", "HH3",
                          "summed_channel", "cellLabelInImage", "area",
                          "eccentricity", "major_axis_length", "minor_axis_length",
-                         "perimeter", "SampleID", "FlowSOM_ID", "cell_type"]
+                         "perimeter", "SampleID", "FlowSOM_ID", "cell_type", "cell_lineage"]
 
     # Test z and p values
     marker_thresholds = _make_threshold_mat()
@@ -200,10 +217,6 @@ def test_calculate_channel_spatial_enrichment():
     # Positive enrichment with direct matrix initialization
     all_data_pos = _make_expression_matrix(enrichment_type="positive")
     dist_mat_pos_direct = _make_distance_matrix(enrichment_type="positive", dist_lim=dist_lim)
-
-    # identify the specific cell types we want to randomize over
-    # note that Pheno2 will get grouped into the else category
-    cell_types = ["Pheno1"]
 
     # Positive enrichment, basic randomization
     _, stats_pos = \
@@ -228,7 +241,7 @@ def test_calculate_channel_spatial_enrichment():
         spatial_analysis.calculate_channel_spatial_enrichment(
             dist_mat_pos_direct, marker_thresholds, all_data_pos,
             excluded_colnames=excluded_colnames, bootstrap_num=100,
-            dist_lim=dist_lim, context=True, cell_types=cell_types)
+            dist_lim=dist_lim, context=True)
 
     # TODO: add tests for context-based positive enrichment
 
@@ -258,7 +271,7 @@ def test_calculate_channel_spatial_enrichment():
         spatial_analysis.calculate_channel_spatial_enrichment(
             dist_mat_neg_direct, marker_thresholds, all_data_neg,
             excluded_colnames=excluded_colnames, bootstrap_num=100,
-            dist_lim=dist_lim, context=True, cell_types=cell_types)
+            dist_lim=dist_lim, context=True)
 
     # No enrichment
     all_data_no_enrich = _make_expression_matrix("none")
@@ -286,9 +299,16 @@ def test_calculate_channel_spatial_enrichment():
         spatial_analysis.calculate_channel_spatial_enrichment(
             dist_mat_no_enrich, marker_thresholds, all_data_no_enrich,
             excluded_colnames=excluded_colnames, bootstrap_num=100,
-            dist_lim=dist_lim, context=True, cell_types=cell_types)
+            dist_lim=dist_lim, context=True)
 
     # error checking
+    with pytest.raises(ValueError):
+        # attempt to specify a fov_col that doesn't exist in all_data
+        _ = _, stats_no_enrich = \
+            spatial_analysis.calculate_channel_spatial_enrichment(
+                dist_mat_no_enrich, marker_thresholds, all_data_no_enrich,
+                fov_col="bad_fov_col")
+
     with pytest.raises(ValueError):
         # attempt to exclude a column name that doesn't appear in the expression matrix
         _, stats_no_enrich = \
@@ -380,6 +400,20 @@ def test_calculate_cluster_spatial_enrichment():
 
     # error checking
     with pytest.raises(ValueError):
+        # attempt to specify a fov_col that doesn't exist in all_data
+        _, stats_no_enrich = \
+            spatial_analysis.calculate_cluster_spatial_enrichment(
+                all_data_no_enrich, dist_mat_no_enrich,
+                fov_col="bad_fov_col")
+
+    with pytest.raises(ValueError):
+        # attempt to specify a cluster_id_col that doesn't exist in all_data
+        _, stats_no_enrich = \
+            spatial_analysis.calculate_cluster_spatial_enrichment(
+                all_data_no_enrich, dist_mat_no_enrich,
+                cluster_id_col="bad_cluster_id_col")
+
+    with pytest.raises(ValueError):
         # attempt to include fovs that do not exist
         _, stats_no_enrich = \
             spatial_analysis.calculate_cluster_spatial_enrichment(
@@ -404,6 +438,12 @@ def test_create_neighborhood_matrix():
     assert (counts.loc[90:99, "Pheno1"] == 8).all()
 
     # error checking
+    with pytest.raises(ValueError):
+        # attempt to specify a fov_col that doesn't exist in all_data
+        counts, freqs = spatial_analysis.create_neighborhood_matrix(
+            all_data_pos, dist_mat_pos, fov_col="bad_fov_col"
+        )
+
     with pytest.raises(ValueError):
         # attempt to include fovs that do not exist
         counts, freqs = spatial_analysis.create_neighborhood_matrix(

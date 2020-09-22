@@ -19,12 +19,13 @@ def make_example_data_closenum():
     # Creates example data for the creation of the closenum matrix in the below test function
 
     # Create example all_patient_data cell expression matrix
-    all_data = pd.DataFrame(np.zeros((10, 33)))
+    all_data = pd.DataFrame(np.zeros((10, 34)))
     # Assigning values to the patient label and cell label columns
     all_data[30] = "Point8"
     all_data[24] = np.arange(len(all_data[1])) + 1
 
-    colnames = {24: "cellLabelInImage", 30: "SampleID", 31: "FlowSOM_ID", 32: "cell_type"}
+    colnames = {24: "cellLabelInImage", 30: "SampleID", 31: "FlowSOM_ID",
+                32: "cell_type", 33: "cell_lineage"}
     all_data = all_data.rename(colnames, axis=1)
 
     # Create 4 cells positive for marker 1 and 2, 5 cells positive for markers 3 and 4,
@@ -40,10 +41,12 @@ def make_example_data_closenum():
     # and the last cell assigned a different phenotype
     all_data.iloc[0:4, 31] = 1
     all_data.iloc[0:4, 32] = "Pheno1"
+    all_data.iloc[0:4, 33] = "Lin1"
     all_data.iloc[4:9, 31] = 2
     all_data.iloc[4:9, 32] = "Pheno2"
     all_data.iloc[9, 31] = 3
     all_data.iloc[9, 32] = "Pheno3"
+    all_data.iloc[4:10, 33] = "Lin2"
 
     # Create the distance matrix to test the closenum function
     dist_mat = np.zeros((10, 10))
@@ -131,7 +134,7 @@ def test_get_pos_cell_labels_channel():
 
     # Only include the columns of markers
     fov_channel_data = all_data.drop(all_data.columns[[
-        0, 1, 14, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32]], axis=1)
+        0, 1, 14, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33]], axis=1)
 
     thresh_vec = example_thresholds.iloc[0:20, 1]
 
@@ -149,7 +152,7 @@ def test_get_pos_cell_labels_cluster():
 
     # Only include the columns of markers
     fov_channel_data = all_data.drop(all_data.columns[[
-        0, 1, 14, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32]], axis=1)
+        0, 1, 14, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33]], axis=1)
 
     cluster_ids = all_data.iloc[:, 31].drop_duplicates()
 
@@ -166,7 +169,7 @@ def test_compute_close_cell_num():
 
     # Only include the columns of markers
     fov_channel_data = all_data.drop(all_data.columns[[
-        0, 1, 14, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32]], axis=1)
+        0, 1, 14, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33]], axis=1)
 
     # Subsetting threshold matrix to only include column with threshold values
     thresh_vec = example_thresholds.iloc[0:20, 1]
@@ -194,7 +197,7 @@ def test_compute_close_cell_num():
     all_data = all_data.drop(3, axis=0)
     # Only include the columns of markers
     fov_channel_data = all_data.drop(all_data.columns[[
-        0, 1, 14, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32]], axis=1)
+        0, 1, 14, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33]], axis=1)
 
     # Subsetting threshold matrix to only include column with threshold values
     thresh_vec = example_thresholds.iloc[0:20, 1]
@@ -239,14 +242,10 @@ def test_compute_close_cell_num_random_context():
 
     # Only include the columns of markers for fov_channel_data
     fov_channel_data = all_data.drop(all_data.columns[[
-        0, 1, 14, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32]], axis=1)
+        0, 1, 14, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33]], axis=1)
 
     # Generate random inputs to test shape
     marker_nums = [random.randrange(0, 10) for i in range(20)]
-
-    # Generate a sample list of cell_types we wish to explicitly facet
-    # note that Pheno2 and Pheno3 get grouped into the 'other' category
-    example_cell_types = ['Pheno1']
 
     # Generate example thresholds, subset threshold matrix to only include
     # column with threshold values
@@ -256,21 +255,35 @@ def test_compute_close_cell_num_random_context():
     example_closenumrand_context = spatial_analysis_utils.compute_close_cell_num_random_context(
         marker_nums=marker_nums, dist_mat=example_distmat, dist_lim=100, bootstrap_num=100,
         thresh_vec=thresh_vec, current_fov_data=all_data,
-        current_fov_channel_data=fov_channel_data, cell_types=example_cell_types,
-        cell_type_col='cell_type'
+        current_fov_channel_data=fov_channel_data
     )
 
     assert example_closenumrand_context.shape == (20, 20, 100)
 
     # error checking
     with pytest.raises(ValueError):
+        # attempt to specify a cell_lin_col that doesn't exist in current_fov_data
+        _, stats_no_enrich = \
+            spatial_analysis_utils.compute_close_cell_num_random_context(
+                marker_nums=marker_nums, dist_mat=example_distmat, dist_lim=100,
+                bootstrap_num=100, thresh_vec=thresh_vec, current_fov_data=all_data,
+                current_fov_channel_data=fov_channel_data, cell_lin_col="bad_cell_lin_col")
+
+    with pytest.raises(ValueError):
+        # attempt to specify a cell_label_col that doesn't exist in current_fov_data
+        _, stats_no_enrich = \
+            spatial_analysis_utils.compute_close_cell_num_random_context(
+                marker_nums=marker_nums, dist_mat=example_distmat, dist_lim=100,
+                bootstrap_num=100, thresh_vec=thresh_vec, current_fov_data=all_data,
+                current_fov_channel_data=fov_channel_data, cell_label_col="bad_cell_label_col")
+
+    with pytest.raises(ValueError):
         # attempt to include non-existant cell_types for context-based randomization
         _, stats_no_enrich = \
             spatial_analysis_utils.compute_close_cell_num_random_context(
                 marker_nums=marker_nums, dist_mat=example_distmat, dist_lim=100,
                 bootstrap_num=100, thresh_vec=thresh_vec, current_fov_data=all_data,
-                current_fov_channel_data=fov_channel_data, cell_types=["bad_cell_type"],
-                cell_type_col='cell_type')
+                current_fov_channel_data=fov_channel_data)
 
 
 def test_calculate_enrichment_stats():

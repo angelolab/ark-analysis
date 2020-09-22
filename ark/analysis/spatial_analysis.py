@@ -7,8 +7,8 @@ from ark.utils import spatial_analysis_utils
 def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, all_data,
                                          excluded_colnames=None, included_fovs=None,
                                          dist_lim=100, bootstrap_num=1000, fov_col="SampleID",
-                                         context=False, cell_types=None,
-                                         cell_type_col='cell_type'):
+                                         context=False, cell_lin_col="cell_lineage",
+                                         cell_label_col="cellLabelInImage"):
     """Spatial enrichment analysis to find significant interactions between cells expressing
     different markers. Uses bootstrapping to permute cell labels randomly.
 
@@ -36,14 +36,14 @@ def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, 
             column with the cell fovs. Default is 'SampleID'
         context (bool):
             if we want to specify context-dependent randomization or not. Default is False.
-        cell_types (list):
-            A list of cell types we wish to specifically subset in context-randomization.
-            Ignored if context is set to False. Note that values contained in here must
-            also be contained in cell_type_col of all_data.
-        cell_type_col (str):
-            The column defining the name of the cell types, needed to help facet all_data
-            for context-dependent ranomization. Default 'cell_type'. Ignored if context is
-            set to False.
+        cell_lin_col (str):
+            The column specifying the name of the cell lineages column,
+            needed to help facet all_data for context-dependent ranomization.
+            Default 'cell_lineage'. Ignored if context is set to False.
+        cell_label_col (str):
+            The column specifying the name of the cell labels column,
+            needed to help properly index into the xarray for context-dependent randomization.
+            Default 'cellLabelInImage'. Ignored if context is set to False.
 
     Returns:
         tuple (list, xarray.DataArray):
@@ -53,6 +53,9 @@ def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, 
               stats variables for each point are z, muhat, sigmahat, p, h, adj_p, and
               cluster_names
     """
+
+    if fov_col not in all_data.columns.values:
+        raise ValueError("fov_col %s does not exist in all_data")
 
     # Setup input and parameters
     if included_fovs is None:
@@ -124,8 +127,8 @@ def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, 
                 marker_nums=channel_nums, dist_mat=dist_matrix, dist_lim=dist_lim,
                 bootstrap_num=bootstrap_num, thresh_vec=thresh_vec,
                 current_fov_data=current_fov_data,
-                current_fov_channel_data=current_fov_channel_data, cell_types=cell_types,
-                cell_type_col=cell_type_col)
+                current_fov_channel_data=current_fov_channel_data,
+                cell_lin_col=cell_lin_col, cell_label_col=cell_label_col)
         else:
             close_num_rand = spatial_analysis_utils.compute_close_cell_num_random(
                 marker_nums=channel_nums, dist_mat=dist_matrix, dist_lim=dist_lim,
@@ -188,6 +191,12 @@ def calculate_cluster_spatial_enrichment(all_data, dist_matrices_dict, included_
               included stats variables for each point are: z, muhat, sigmahat, p, h, adj_p, and
               cluster_names
     """
+
+    if fov_col not in all_data.columns.values:
+        raise ValueError("fov_col %s does not exist in all_data")
+
+    if cluster_id_col not in all_data.columns.values:
+        raise ValueError("cluster_id_col %s does not exist in all_data")
 
     # Setup input and parameters
     if included_fovs is None:
@@ -273,6 +282,9 @@ def create_neighborhood_matrix(all_data, dist_matrices_dict, included_fovs=None,
             DataFrame containing phenotype counts per cell tupled with DataFrame containing
             phenotype frequencies of counts per phenotype/total phenotypes for each cell
     """
+
+    if fov_col not in all_data.columns.values:
+        raise ValueError("fov_col %s does not exist in all_data")
 
     # Setup input and parameters
     if included_fovs is None:
