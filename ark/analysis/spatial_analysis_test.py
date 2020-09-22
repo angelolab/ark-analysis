@@ -8,9 +8,9 @@ from ark.utils import synthetic_spatial_datagen
 
 import ark.settings as settings
 
-DEFAULT_EXCLUDE_COLUMNS = \
+DEFAULT_COLUMNS = \
     [settings.CELL_SIZE] \
-    + np.arange(1, 24) \
+    + list(range(1, 24)) \
     + [
         settings.CELL_LABEL,
         settings.AREA,
@@ -22,7 +22,25 @@ DEFAULT_EXCLUDE_COLUMNS = \
         settings.CLUSTER_ID,
         settings.CELL_TYPE,
     ]
-map(DEFAULT_EXCLUDE_COLUMNS.__setitem__, [1, 14, 23], ['Background', 'HH3', 'summed_channel'])
+list(map(
+    DEFAULT_COLUMNS.__setitem__, [1, 14, 23], ['Background', 'HH3', 'summed_channel']
+))
+
+DEFAULT_EXCLUDE_COLUMNS = [
+    settings.CELL_SIZE,
+    "Background",
+    "HH3",
+    "summed_channel",
+    settings.CELL_LABEL,
+    settings.AREA,
+    settings.ECCENTRICITY,
+    settings.MAJ_AXIS_LENGTH,
+    settings.MIN_AXIS_LENGTH,
+    settings.PERIMITER,
+    settings.FOV_ID,
+    settings.CLUSTER_ID,
+    settings.CELL_TYPE,
+]
 
 
 def _make_threshold_mat():
@@ -86,7 +104,7 @@ def _make_expression_matrix(enrichment_type):
     # Create the expression matrix with cell labels and patient labels for no enrichment,
     # positive enrichment, and negative enrichment.
 
-    rename_map = dict(zip(np.arange(33), DEFAULT_EXCLUDE_COLUMNS))
+    rename_map = dict(zip(np.arange(33), DEFAULT_COLUMNS))
 
     if enrichment_type == "none":
         all_data = pd.DataFrame(np.zeros((120, 33)))
