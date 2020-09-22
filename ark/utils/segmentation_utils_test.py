@@ -197,8 +197,8 @@ def test_transform_expression_matrix_multiple_compartments():
 
 def test_visualize_segmentation():
     with tempfile.TemporaryDirectory() as temp_dir:
-        channel_xr = test_utils.make_images_xarray(np.zeros((2, 50, 50, 5)))
-        overlay_channels = channel_xr.channels.values[:2],
+        channel_xr = test_utils.make_images_xarray(np.zeros((2, 50, 50, 3)))
+        overlay_channels = [channel_xr.channels.values[:2], channel_xr.channels.values[1:3]]
         segmentation_labels_xr = test_utils.make_labels_xarray(np.zeros((2, 50, 50, 1)))
         segmentation_utils.visualize_segmentation(
             segmentation_labels_xr=segmentation_labels_xr,
