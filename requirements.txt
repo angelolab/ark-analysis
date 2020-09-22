@@ -20,5 +20,5 @@ Twisted~=20.3.0
 certifi
 pyOpenSSL
 service_identity
-kiosk-client
+kiosk-client>=0.8.0
 
