@@ -5,8 +5,8 @@ RUN apt-get update && apt-get install -y gcc
 
 WORKDIR /scripts
 
-# copy over the requirements.txt and install dependencies
-COPY setup.py requirements.txt /opt/ark-analysis/
+# copy over the requirements.txt, install dependencies, and README
+COPY setup.py requirements.txt README.md /opt/ark-analysis/
 RUN pip install -r /opt/ark-analysis/requirements.txt
 
 # copy the scripts over
