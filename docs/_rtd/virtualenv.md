@@ -1,6 +1,6 @@
 ## Setting Up Your Virtual Environment
 
-If you wish to do higher-level development on top of `ark`, we recommend setting up a virtual environment. We highly recommend using `conda` virtual environments. To be able ot set one up, you will need to install the Anaconda package.
+If you wish to do higher-level development on top of `ark`, we recommend setting up a virtual environment. We highly recommend using `conda` virtual environments. To be able to set one up, you will need to install the Anaconda package.
 
 ### Installing Anaconda
 
