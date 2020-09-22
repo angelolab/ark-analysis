@@ -4,9 +4,10 @@ Thanks for choosing `ark`! `ark` is one of several libraries developed by [Angel
  
 Want to get started? Please follow our quickstart guide as follows:
 
-### Quickstart guide
+### Info
 
-#### Installation
+This project contains code and example scripts for analyzing multiplexed imaging data
+### To install the project:
 
 Open terminal and navigate to where you want the code stored.
 
@@ -28,7 +29,7 @@ $ docker build -t ark-analysis .
 
 You've now installed the code base. 
 
-#### Running the scripts
+### Whenever you want to run the scripts:
 
 Enter the following command into terminal from the same directory you ran the above commands:
 
@@ -40,17 +41,17 @@ This will generate a link to a jupyter notebook. Copy the last URL (the one with
 
 Be sure to keep this terminal open.  **Do not exit the terminal or enter control-c until you are finished with the notebooks**.
 
-#### Using the example notebooks
+### Using the example notebooks:
 - The Deepcell_preprocessing notebook walks you through the appropriate formatting steps in order to run your data through DeepCell to be segmented
 - The Deepcell_postprocessing notebooks takes the segmentation predictions from DeepCell, and uses them to extract the counts of each marker from your dataset
 - The spatial_analysis notebook contains code for performing cluster- and channel-based randomization, as well as neighborhood analysis. 
 
 
-#### Finishing up
+### Once you are finished
 
 You can shut down the notebooks and close docker by entering control-c in the terminal window.
 
-#### Updates
+### Updates
 
 This project is still in development, and we are making frequent updates and improvements. If you want to update the version on your computer to have the latest changes, perform the following steps
 
@@ -69,7 +70,7 @@ or
 bash start_docker.sh -u
 ```
 
-#### Warnings
+#### WARNING
 
 If you didn't change the name of any of the notebooks within the `scripts` folder, they will be overwritten by the command above!
 
@@ -84,4 +85,3 @@ Deepcell_Postprocessing.ipynb -> old_postprocessing.ipynb
 ```
 
 After updating, you can bring changes from the old notebooks into the new notebooks at your discretion
- 
