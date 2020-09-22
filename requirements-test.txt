@@ -3,3 +3,4 @@ pytest-cov==2.5.1
 pytest-pep8
 coveralls
 pytest-mock
+attrs>=19.2.0
