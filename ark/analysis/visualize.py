@@ -75,12 +75,11 @@ def visualize_z_scores(z, pheno_titles, colormap="vlag", save_dir=None):
     # Replace the NA's and inf values with 0s
     z[np.isnan(z)] = 0
     z[np.isinf(z)] = 0
-    
 
     # Assign numpy values respective phenotype labels
     zplot = pd.DataFrame(z, columns=pheno_titles, index=pheno_titles)
     sns.set(font_scale=.7)
-    sns.heatmap(zplot, cmap=colormap)
+    sns.heatmap(zplot, cmap=colormap, annot=z)
 
     # save visualization to a directory if specified
     if save_dir is not None:
