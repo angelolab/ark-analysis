@@ -14,7 +14,7 @@ We recommend using the graphical installer for ease of use.
 
 Now that Anaconda is installed, you can now create a `conda` environment. 
  
-To do so, on your command line, type `conda create -n <my_env> python=3.6`, where `<my_env>` is a name you set. We highly recommend setting `python=3.6` because this is the version of Python our code uses. 
+To do so, on your command line, type `conda create -n <my_env> python=3.6`, where `<my_env>` is a name you set. Our codebase only supports Python 3.6, so please do not change the `python=3.6` flag when creating your environment. 
  
 Say yes to any prompts and your `conda` environment will be created! 
  
