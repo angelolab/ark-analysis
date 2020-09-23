@@ -10,6 +10,8 @@ from skimage.measure import regionprops_table
 from ark.utils import data_utils, io_utils, segmentation_utils
 from ark.segmentation import signal_extraction
 
+import ark.settings as settings
+
 
 def compute_marker_counts(input_images, segmentation_masks, nuclear_counts=False,
                           regionprops_features=None, split_large_nuclei=False):
@@ -39,6 +41,16 @@ def compute_marker_counts(input_images, segmentation_masks, nuclear_counts=False
     if 'coords' not in regionprops_features:
         regionprops_features.append('coords')
 
+    # labels are required
+    if 'label' not in regionprops_features:
+        regionprops_features.append('label')
+
+    # enforce post channel column is present and first
+    if regionprops_features[0] != settings.POST_CHANNEL_COL:
+        if settings.POST_CHANNEL_COL in regionprops_features:
+            regionprops_features.remove(settings.POST_CHANNEL_COL)
+        regionprops_features.insert(0, settings.POST_CHANNEL_COL)
+
     # create variable to hold names of returned columns only
     regionprops_names = copy.copy(regionprops_features)
     regionprops_names.remove('coords')
@@ -52,7 +64,7 @@ def compute_marker_counts(input_images, segmentation_masks, nuclear_counts=False
     unique_cell_ids = unique_cell_ids[np.nonzero(unique_cell_ids)]
 
     # create labels for array holding channel counts and morphology metrics
-    feature_names = np.concatenate((np.array('cell_size'), input_images.channels,
+    feature_names = np.concatenate((np.array(settings.PRE_CHANNEL_COL), input_images.channels,
                                     regionprops_names), axis=None)
 
     # create np.array to hold compartment x cell x feature info
@@ -157,7 +169,7 @@ def generate_expression_matrix(segmentation_labels, image_data, nuclear_counts=F
 
     if nuclear_counts:
         if 'nuclear' not in segmentation_labels.compartments:
-            raise ValueError("Nuclear counts set to True, but not nuclear mask provided")
+            raise ValueError("Nuclear counts set to True, but no nuclear mask provided")
 
     if not np.all(set(segmentation_labels.fovs.values) == set(image_data.fovs.values)):
         raise ValueError("The same FOVs must be present in the segmentation labels and images")
