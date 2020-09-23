@@ -8,6 +8,8 @@ from skimage.measure import regionprops_table
 
 from ark.utils import io_utils
 
+import ark.settings as settings
+
 
 def find_nuclear_mask_id(nuc_segmentation_mask, cell_coords):
     """Get the ID of the nuclear mask which has the greatest amount of overlap with a given cell
@@ -108,16 +110,14 @@ def transform_expression_matrix(cell_data, transform, transform_kwargs=None):
     # generate array to hold transformed data
     cell_data_transformed = copy.deepcopy(cell_data)
 
-    # get start and end indices of channel data. We skip the 0th entry, which is cell size
-    channel_start = 1
-
-    # we include columns up to 'label', which is the first non-channel column
-    channel_end = np.where(cell_data.features == 'label')[0][0]
+    # get start and end indices of channel data
+    channel_start = np.where(cell_data.features == settings.PRE_CHANNEL_COL)[0][0] + 1
+    channel_end = np.where(cell_data.features == settings.POST_CHANNEL_COL)[0][0]
 
     if transform == 'size_norm':
 
         # get the size of each cell
-        cell_size = cell_data.values[:, :, 0:1]
+        cell_size = cell_data.loc[:, :, settings.CELL_SIZE].values
 
         # generate cell_size array that is broadcast to have the same shape as the channels
         cell_size_large = np.repeat(cell_size, channel_end - channel_start, axis=2)

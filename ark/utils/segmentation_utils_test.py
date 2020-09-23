@@ -5,6 +5,8 @@ from skimage.measure import regionprops
 
 from ark.utils import segmentation_utils, test_utils
 
+import ark.settings as settings
+
 
 def test_find_nuclear_mask_id():
     # create cell labels with 5 distinct cells
@@ -108,12 +110,12 @@ def test_transform_expression_matrix():
     cell_data = cell_data.reshape((1, 10, 7)).astype('float')
 
     coords = [['whole_cell'], list(range(10)),
-              ['cell_size', 'chan1', 'chan2', 'chan3', 'label', 'morph_1', 'morph_2']]
+              [settings.CELL_SIZE, 'chan1', 'chan2', 'chan3', 'label', 'morph_1', 'morph_2']]
     dims = ['compartments', 'cell_id', 'features']
 
     cell_data = xr.DataArray(cell_data, coords=coords, dims=dims)
 
-    unchanged_cols = ['cell_size', 'label', 'morph_1', 'morph_2']
+    unchanged_cols = [settings.CELL_SIZE, 'label', 'morph_1', 'morph_2']
     modified_cols = ['chan1', 'chan2', 'chan3']
 
     # test size_norm
@@ -125,9 +127,11 @@ def test_transform_expression_matrix():
 
     # TODO: In general it's bad practice for tests to call the same function as code under test
     for cell in cell_data.cell_id:
-        if cell_data.loc['whole_cell', cell, 'cell_size'] != 0:
-            normalized_vals = np.divide(cell_data.loc['whole_cell', cell, modified_cols].values,
-                                        cell_data.loc['whole_cell', cell, 'cell_size'].values)
+        if cell_data.loc['whole_cell', cell, settings.CELL_SIZE] != 0:
+            normalized_vals = np.divide(
+                cell_data.loc['whole_cell', cell, modified_cols].values,
+                cell_data.loc['whole_cell', cell, settings.CELL_SIZE].values
+            )
             assert np.array_equal(normalized_data.loc['whole_cell', cell, modified_cols].values,
                                   normalized_vals)
 
@@ -154,12 +158,12 @@ def test_transform_expression_matrix_multiple_compartments():
     cell_data = cell_data.reshape((2, 10, 7)).astype('float')
 
     coords = [['whole_cell', 'nuclear'], list(range(10)),
-              ['cell_size', 'chan1', 'chan2', 'chan3', 'label', 'morph_1', 'morph_2']]
+              [settings.CELL_SIZE, 'chan1', 'chan2', 'chan3', 'label', 'morph_1', 'morph_2']]
     dims = ['compartments', 'cell_id', 'features']
 
     cell_data = xr.DataArray(cell_data, coords=coords, dims=dims)
 
-    unchanged_cols = ['cell_size', 'label', 'morph_1', 'morph_2']
+    unchanged_cols = [settings.CELL_SIZE, 'label', 'morph_1', 'morph_2']
     modified_cols = ['chan1', 'chan2', 'chan3']
 
     # test size_norm
@@ -171,9 +175,11 @@ def test_transform_expression_matrix_multiple_compartments():
 
     # TODO: In general it's bad practice for tests to call the same function as code under test
     for cell in cell_data.cell_id:
-        if cell_data.loc['whole_cell', cell, 'cell_size'] != 0:
-            normalized_vals = np.divide(cell_data.loc['whole_cell', cell, modified_cols].values,
-                                        cell_data.loc['whole_cell', cell, 'cell_size'].values)
+        if cell_data.loc['whole_cell', cell, settings.CELL_SIZE] != 0:
+            normalized_vals = np.divide(
+                cell_data.loc['whole_cell', cell, modified_cols].values,
+                cell_data.loc['whole_cell', cell, settings.CELL_SIZE].values
+            )
             assert np.array_equal(normalized_data.loc['whole_cell', cell, modified_cols].values,
                                   normalized_vals)
 
