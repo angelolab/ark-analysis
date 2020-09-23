@@ -114,7 +114,7 @@ def compute_marker_counts(input_images, segmentation_masks, nuclear_counts=False
         # add cell size to first column
         marker_counts.loc['whole_cell', cell_id, marker_counts.features[0]] = cell_coords.shape[0]
 
-        if None not in (nuc_mask, nuc_props):
+        if nuc_mask is not None and nuc_props is not None:
             # get id of corresponding nucleus
             nuc_id = segmentation_utils.find_nuclear_mask_id(nuc_segmentation_mask=nuc_mask,
                                                              cell_coords=cell_coords)

@@ -117,7 +117,8 @@ def transform_expression_matrix(cell_data, transform, transform_kwargs=None):
     if transform == 'size_norm':
 
         # get the size of each cell
-        cell_size = cell_data.loc[:, :, settings.CELL_SIZE].values
+        size_index = np.where(cell_data.features == settings.CELL_SIZE)[0][0]
+        cell_size = cell_data[:, :, size_index:size_index + 1].values
 
         # generate cell_size array that is broadcast to have the same shape as the channels
         cell_size_large = np.repeat(cell_size, channel_end - channel_start, axis=2)
