@@ -5,6 +5,8 @@ import random
 from copy import deepcopy
 from ark.utils import spatial_analysis_utils
 
+import ark.settings as settings
+
 
 def make_threshold_mat():
     thresh = pd.DataFrame(np.zeros((20, 2)))
@@ -21,7 +23,12 @@ def make_example_data_closenum():
     all_data[30] = "Point8"
     all_data[24] = np.arange(len(all_data[1])) + 1
 
-    colnames = {24: "cellLabelInImage", 30: "SampleID", 31: "FlowSOM_ID", 32: "cell_type"}
+    colnames = {
+        24: settings.CELL_LABEL,
+        30: settings.FOV_ID,
+        31: settings.CLUSTER_ID,
+        32: settings.CELL_TYPE
+    }
     all_data = all_data.rename(colnames, axis=1)
 
     # Create 4 cells positive for marker 1 and 2, 5 cells positive for markers 3 and 4,
@@ -131,16 +138,14 @@ def test_get_pos_cell_labels_channel():
 
 def test_get_pos_cell_labels_cluster():
     all_data, _ = make_example_data_closenum()
-    example_thresholds = make_threshold_mat()
 
     # Only include the columns of markers
-    fov_channel_data = all_data.drop(all_data.columns[[
-        0, 1, 14, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32]], axis=1)
+    all_data.drop(all_data.columns[[0, 1, 14, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32]], axis=1)
 
     cluster_ids = all_data.iloc[:, 31].drop_duplicates()
 
     pos_cell_labels = spatial_analysis_utils.get_pos_cell_labels_cluster(
-        cluster_ids.iloc[0], all_data, "cellLabelInImage", "FlowSOM_ID")
+        cluster_ids.iloc[0], all_data, settings.CELL_LABEL, settings.CLUSTER_ID)
 
     assert len(pos_cell_labels) == 4
 
@@ -257,10 +262,10 @@ def test_calculate_enrichment_stats():
 
 
 def test_compute_neighbor_counts():
-    fov_col = "SampleID"
-    cluster_id_col = "FlowSOM_ID"
-    cell_label_col = "cellLabelInImage"
-    cluster_name_col = "cell_type"
+    fov_col = settings.FOV_ID
+    cluster_id_col = settings.CLUSTER_ID
+    cell_label_col = settings.CELL_LABEL
+    cluster_name_col = settings.CELL_TYPE
     distlim = 100
 
     fov_data, dist_matrix = make_example_data_closenum()
