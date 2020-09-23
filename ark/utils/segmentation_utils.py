@@ -185,11 +185,16 @@ def visualize_segmentation(segmentation_labels_xr, channel_data_xr,
     Saves overlay images to output directory
 
     Args:
-        segmentation_labels_xr (xarray.DataArray): xarray containing segmentation labels
-        channel_data_xr (xarray.DataArray): xarray containing TIFs
-        output_dir (str): path to directory where the output will be saved
-        chan_list (list): list of channels to overlay segmentation output over
-        fovs (numpy.ndarray): field of view
+        segmentation_labels_xr (xarray.DataArray):
+            xarray containing segmentation labels
+        channel_data_xr (xarray.DataArray):
+            xarray containing TIFs
+        output_dir (str):
+            path to directory where the output will be saved
+        chan_list (list):
+            list of channels to overlay segmentation output over
+        fovs (numpy.ndarray):
+            field of view
     """
 
     if fovs is None:
