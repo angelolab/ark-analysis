@@ -7,6 +7,8 @@ from statsmodels.stats.multitest import multipletests
 from scipy.spatial.distance import cdist
 import os
 
+import ark.settings as settings
+
 
 def calc_dist_matrix(label_maps, path=None):
     """Generate matrix of distances between center of pairs of cells
@@ -159,8 +161,8 @@ def compute_close_cell_num(dist_mat, dist_lim, analysis_type,
     cell_labels = []
 
     # Assign column names for subsetting (cell labels and cell type ids)
-    cell_label_col = "cellLabelInImage"
-    cell_type_col = "FlowSOM_ID"
+    cell_label_col = settings.CELL_LABEL
+    cell_type_col = settings.CLUSTER_ID
 
     # Subset data based on analysis type
     if analysis_type == "channel":
@@ -331,7 +333,7 @@ def calculate_enrichment_stats(close_num, close_num_rand):
 
 
 def compute_neighbor_counts(current_fov_neighborhood_data, dist_matrix, distlim,
-                            self_neighbor=True, cell_label_col="cellLabelInImage"):
+                            self_neighbor=True, cell_label_col=settings.CELL_LABEL):
     """Calculates the number of neighbor phenotypes for each cell. The cell counts itself as a
     neighbor.
 
