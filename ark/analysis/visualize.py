@@ -66,8 +66,12 @@ def visualize_z_scores(z, x_labels, y_labels, colormap="vlag", save_dir=None):
     Args:
         z (numpy.ndarray):
             Array of z scores of shape (pheno_num, pheno_num)
-        pheno_titles (list):
-            List of all the names of the phenotypes
+        x_labels (list):
+            List of names displayed on horizontal axis
+        y_labels (list):
+            List of all names displayed on vertical axis
+        colormap (str):
+            color scheme for visualization
         save_dir (str):
             If specified, a directory where we will save the plot
     """
