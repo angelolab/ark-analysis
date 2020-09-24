@@ -132,7 +132,7 @@ def compute_marker_counts(input_images, segmentation_masks, nuclear_counts=False
     return marker_counts
 
 
-def generate_expression_matrix(segmentation_labels, image_data, nuclear_counts=False):
+def create_marker_count_matrices(segmentation_labels, image_data, nuclear_counts=False):
     """Create a matrix of cells by channels with the total counts of each marker in each cell.
 
     Args:
@@ -216,8 +216,8 @@ def generate_expression_matrix(segmentation_labels, image_data, nuclear_counts=F
     return normalized_data, arcsinh_data
 
 
-def compute_complete_expression_matrices(segmentation_labels, tiff_dir, img_sub_folder,
-                                         is_mibitiff=False, points=None, batch_size=5):
+def generate_segmentation_marker_counts(segmentation_labels, tiff_dir, img_sub_folder,
+                                        is_mibitiff=False, points=None, batch_size=5):
     """
     This function takes the segmented data and computes the expression matrices batch-wise
     while also validating inputs
@@ -292,7 +292,7 @@ def compute_complete_expression_matrices(segmentation_labels, tiff_dir, img_sub_
         current_labels = segmentation_labels.loc[batch_names, :, :, :]
 
         # segment the imaging data
-        cell_size_normalized_data, arcsinh_transformed_data = generate_expression_matrix(
+        cell_size_normalized_data, arcsinh_transformed_data = create_marker_count_matrices(
             segmentation_labels=current_labels,
             image_data=image_data
         )

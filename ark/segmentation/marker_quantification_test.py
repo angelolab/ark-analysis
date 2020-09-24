@@ -148,7 +148,7 @@ def test_compute_marker_counts():
     assert np.all(segmentation_output_specified_split == segmentation_output_specified)
 
 
-def test_generate_expression_matrix():
+def test_create_marker_count_matrices():
 
     cell_mask, channel_data = test_utils.create_test_extraction_data()
 
@@ -168,8 +168,8 @@ def test_generate_expression_matrix():
 
     channel_data = test_utils.make_images_xarray(tif_data)
 
-    normalized, _ = marker_quantification.generate_expression_matrix(segmentation_masks,
-                                                                     channel_data)
+    normalized, _ = marker_quantification.create_marker_count_matrices(segmentation_masks,
+                                                                       channel_data)
 
     assert normalized.shape[0] == 7
 
@@ -177,7 +177,7 @@ def test_generate_expression_matrix():
     assert np.array_equal(normalized['chan1'], np.repeat(5, len(normalized)))
 
 
-def test_generate_expression_matrix_multiple_compartments():
+def test_create_marker_count_matrices_multiple_compartments():
 
     cell_mask, channel_data = test_utils.create_test_extraction_data()
 
@@ -210,7 +210,7 @@ def test_generate_expression_matrix_multiple_compartments():
 
     channel_data = test_utils.make_images_xarray(channel_datas)
 
-    normalized, arcsinh = marker_quantification.generate_expression_matrix(
+    normalized, arcsinh = marker_quantification.create_marker_count_matrices(
         segmentation_masks_unequal,
         channel_data,
         nuclear_counts=True
@@ -237,7 +237,7 @@ def test_generate_expression_matrix_multiple_compartments():
     assert np.array_equal(normalized_with_nuc['label'] * 2, normalized_with_nuc['label_nuclear'])
 
 
-def test_compute_complete_expression_matrices():
+def test_generate_segmentation_marker_counts():
 
     # checks if the tree loading is being called correctly when is_mibitiff is False
     # save the actual expression matrix and data loding tests for their respective test functions
@@ -279,13 +279,13 @@ def test_compute_complete_expression_matrices():
         with pytest.raises(ValueError):
             # generate a segmentation array with 1 FOV
 
-            marker_quantification.compute_complete_expression_matrices(
+            marker_quantification.generate_segmentation_marker_counts(
                 segmentation_labels=segmentation_masks.loc[["Point1"]], tiff_dir=tiff_dir,
                 img_sub_folder=img_sub_folder, is_mibitiff=False, points=["Point1", "Point2"],
                 batch_size=5)
 
         # generate sample norm and arcsinh data for all points
-        norm_data, arcsinh_data = marker_quantification.compute_complete_expression_matrices(
+        norm_data, arcsinh_data = marker_quantification.generate_segmentation_marker_counts(
             segmentation_labels=segmentation_masks, tiff_dir=tiff_dir,
             img_sub_folder=img_sub_folder, is_mibitiff=False, points=None, batch_size=2)
 
@@ -293,7 +293,7 @@ def test_compute_complete_expression_matrices():
         assert arcsinh_data.shape[0] > 0 and arcsinh_data.shape[1] > 0
 
         # generate sample norm and arcsinh data for a subset of points
-        norm_data, arcsinh_data = marker_quantification.compute_complete_expression_matrices(
+        norm_data, arcsinh_data = marker_quantification.generate_segmentation_marker_counts(
             segmentation_labels=segmentation_masks, tiff_dir=tiff_dir,
             img_sub_folder=img_sub_folder, is_mibitiff=False, points=fovs_subset, batch_size=2)
 
@@ -333,7 +333,7 @@ def test_compute_complete_expression_matrices():
         )
 
         # generate sample norm and arcsinh data for all points
-        norm_data, arcsinh_data = marker_quantification.compute_complete_expression_matrices(
+        norm_data, arcsinh_data = marker_quantification.generate_segmentation_marker_counts(
             segmentation_labels=segmentation_masks, tiff_dir=tiff_dir,
             img_sub_folder=img_sub_folder, is_mibitiff=True, points=None, batch_size=2)
 
@@ -341,7 +341,7 @@ def test_compute_complete_expression_matrices():
         assert arcsinh_data.shape[0] > 0 and arcsinh_data.shape[1] > 0
 
         # generate sample norm and arcsinh data for a subset of points
-        norm_data, arcsinh_data = marker_quantification.compute_complete_expression_matrices(
+        norm_data, arcsinh_data = marker_quantification.generate_segmentation_marker_counts(
             segmentation_labels=segmentation_masks, tiff_dir=tiff_dir,
             img_sub_folder=img_sub_folder, is_mibitiff=True, points=fovs_subset, batch_size=2)
 
