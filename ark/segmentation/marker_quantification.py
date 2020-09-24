@@ -7,7 +7,7 @@ import xarray as xr
 
 from skimage.measure import regionprops_table
 
-from ark.utils import data_utils, io_utils, segmentation_utils
+from ark.utils import load_utils, io_utils, segmentation_utils
 from ark.segmentation import signal_extraction
 
 
@@ -281,10 +281,10 @@ def compute_complete_expression_matrices(segmentation_labels, tiff_dir, img_sub_
     ):
         # and extract the image data for each batch
         if is_mibitiff:
-            image_data = data_utils.load_imgs_from_mibitiff(data_dir=tiff_dir,
+            image_data = load_utils.load_imgs_from_mibitiff(data_dir=tiff_dir,
                                                             mibitiff_files=batch_files)
         else:
-            image_data = data_utils.load_imgs_from_tree(data_dir=tiff_dir,
+            image_data = load_utils.load_imgs_from_tree(data_dir=tiff_dir,
                                                         img_sub_folder=img_sub_folder,
                                                         fovs=batch_names)
 
