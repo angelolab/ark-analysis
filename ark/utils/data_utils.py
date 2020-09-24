@@ -305,6 +305,7 @@ def load_imgs_from_dir(data_dir, imgdim_name='compartments', image_name='img_dat
                             dtype=dtype)
 
     for img in range(len(imgs)):
+        print(imgs[img])
         if variable_sizes:
             temp_img = io.imread(os.path.join(data_dir, imgs[img]))
             img_data[img, :temp_img.shape[0], :temp_img.shape[1], 0] = temp_img.astype(dtype)
