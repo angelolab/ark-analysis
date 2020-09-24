@@ -13,7 +13,7 @@ def calc_dist_matrix(label_maps, path=None):
 
     Args:
         label_maps (xarray.DataArray):
-            array with unique cells given unique pixel labels per fov
+            array of segmentation masks indexed by (fov, cell_id, cell_id, segmentation_label)
         path (str):
             path to save file. If None, then will directly return
     Returns:
@@ -137,7 +137,7 @@ def compute_close_cell_num(dist_mat, dist_lim, analysis_type,
             data for specific patient in expression matrix
         current_fov_channel_data (pandas.DataFrame):
             data of only column markers for Channel Analysis
-        cluster_ids (pandas.DataFrame):
+        cluster_ids (numpy.ndarray):
             all the cell phenotypes in Cluster Analysis
         cell_types_analyze (list):
             a list of the cell types we wish to analyze, if None we set it equal to all cell types
@@ -187,13 +187,13 @@ def compute_close_cell_num(dist_mat, dist_lim, analysis_type,
     for j in range(num):
         if analysis_type == "cluster":
             mark1poslabels.append(
-                get_pos_cell_labels_cluster(pheno=cluster_ids.iloc[j],
+                get_pos_cell_labels_cluster(pheno=cluster_ids[j],
                                             current_fov_neighborhood_data=current_fov_data,
                                             cell_label_col=cell_label_col,
                                             cell_type_col=cell_type_col))
         else:
             mark1poslabels.append(
-                get_pos_cell_labels_channel(thresh=thresh_vec.iloc[j],
+                get_pos_cell_labels_channel(thresh=thresh_vec[j],
                                             current_fov_channel_data=current_fov_channel_data,
                                             cell_labels=cell_labels,
                                             current_marker=current_fov_channel_data.columns[j]))

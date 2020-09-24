@@ -83,7 +83,7 @@ def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, 
     stats = xr.DataArray(stats_raw_data, coords=coords, dims=dims)
 
     # Subsetting threshold matrix to only include column with threshold values
-    thresh_vec = marker_thresholds.iloc[:, 1]
+    thresh_vec = marker_thresholds.iloc[:, 1].values
 
     for i in range(0, len(included_fovs)):
         # Subsetting expression matrix to only include patients with correct fov label
@@ -169,7 +169,7 @@ def calculate_cluster_spatial_enrichment(all_data, dist_matrices_dict, included_
     # Extract the names of the cell phenotypes
     cluster_names = all_data[cluster_name_col].drop_duplicates()
     # Extract the columns with the cell phenotype codes
-    cluster_ids = all_data[cluster_id_col].drop_duplicates()
+    cluster_ids = all_data[cluster_id_col].drop_duplicates().values
     # Get the total number of phenotypes
     cluster_num = len(cluster_ids)
 

@@ -155,7 +155,7 @@ def test_compute_close_cell_num():
         0, 1, 14, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32]], axis=1)
 
     # Subsetting threshold matrix to only include column with threshold values
-    thresh_vec = example_thresholds.iloc[0:20, 1]
+    thresh_vec = example_thresholds.iloc[0:20, 1].values
 
     # not taking into account mark1labels_per_id return value
     example_closenum, m1, _ = spatial_analysis_utils.compute_close_cell_num(
@@ -175,7 +175,7 @@ def test_compute_close_cell_num():
         0, 1, 14, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32]], axis=1)
 
     # Subsetting threshold matrix to only include column with threshold values
-    thresh_vec = example_thresholds.iloc[0:20, 1]
+    thresh_vec = example_thresholds.iloc[0:20, 1].values
 
     example_closenum, m1, _ = spatial_analysis_utils.compute_close_cell_num(
         dist_mat=example_dist_mat, dist_lim=100, analysis_type="channel",
@@ -188,7 +188,7 @@ def test_compute_close_cell_num():
 
     # now, test for cluster enrichment
     all_data, example_dist_mat = make_example_data_closenum()
-    cluster_ids = all_data.iloc[:, 31].drop_duplicates()
+    cluster_ids = all_data.iloc[:, 31].drop_duplicates().values
 
     example_closenum, m1, _ = spatial_analysis_utils.compute_close_cell_num(
         dist_mat=example_dist_mat, dist_lim=100, analysis_type="cluster",
