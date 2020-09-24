@@ -12,9 +12,7 @@ def make_threshold_mat():
     return thresh
 
 
-def make_example_data_closenum():
-    # Creates example data for the creation of the closenum matrix in the below test function
-
+def make_all_data():
     # Create example all_patient_data cell expression matrix
     all_data = pd.DataFrame(np.zeros((10, 33)))
     # Assigning values to the patient label and cell label columns
@@ -42,6 +40,10 @@ def make_example_data_closenum():
     all_data.iloc[9, 31] = 3
     all_data.iloc[9, 32] = "Pheno3"
 
+    return all_data
+
+
+def make_dist_mat():
     # Create the distance matrix to test the closenum function
     dist_mat = np.zeros((10, 10))
     np.fill_diagonal(dist_mat, 0)
@@ -84,6 +86,14 @@ def make_example_data_closenum():
     # we have to 1-index coords because people will be labeling their cells 1-indexed
     coords_dist_mat = [coords_permuted + 1, coords_permuted + 1]
     dist_mat = xr.DataArray(dist_mat, coords=coords_dist_mat)
+
+    return dist_mat
+
+
+def make_example_data_closenum():
+    # Creates example data for the creation of the closenum matrix in the below test function
+    all_data = make_all_data()
+    dist_mat = make_dist_mat()
 
     return all_data, dist_mat
 
