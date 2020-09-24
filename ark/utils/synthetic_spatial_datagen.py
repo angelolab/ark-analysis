@@ -417,7 +417,7 @@ def generate_two_cell_chan_data(size_img=(1024, 1024), cell_radius=10,
 
     Returns:
         tuple (numpy.ndarray, numpy.ndarray, numpy.ndarray):
-            
+
         - an array with the labeled cell regions
         - an array defining the nuclear signal for the desired cells
         - an array defining the membrane signal for the desired cells
