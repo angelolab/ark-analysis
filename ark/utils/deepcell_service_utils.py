@@ -3,10 +3,11 @@ from kiosk_client import manager
 import os
 import glob
 from zipfile import ZipFile
+import warnings
 
 
 def create_deepcell_output(deepcell_input_dir, points, deepcell_output_dir,
-                           host='https://deepcell.org', job_type='multiplex'):
+                           suffix='_feature_0', host='https://deepcell.org', job_type='multiplex'):
     """ Handles all of the necessary data manipulation for running deepcell tasks.
 
         Creates .zip files (to be used as input for DeepCell),
@@ -20,40 +21,50 @@ def create_deepcell_output(deepcell_input_dir, points, deepcell_output_dir,
                                         (assume deepcell_input_dir contains <point>.tif
                                         for each point in points list)
 
+            suffix (str):               Suffix for DeepCell output filename. e.g. for pointX,
+                                        DeepCell output should be <pointX>+suffix.tif.
+                                        Default: '_feature_0'
+
             deepcell_output_dir (str):  Location to save DeepCell output (as .tif)
 
-            host:                       Hostname and port for the kiosk-frontend API server
+            host (str):                 Hostname and port for the kiosk-frontend API server
                                         Default: 'https://deepcell.org'
 
-            job_type:                   Name of job workflow (multiplex, segmentation, tracking)
+            job_type (str):             Name of job workflow (multiplex, segmentation, tracking)
                                         Default: 'multiplex'
 
         Output:
             Writes DeepCell service .tif output to output_dir
 
         Raises:
-            UserWarning:                Raised if DeepCell output .zip file
-                                        was not created for some point in points list.
+            ValueError:                 Raised if there is some point X (from points list) s.t.
+                                        the file <deepcell_input_dir>/PointX.tif does not exist
 
         """
 
-    # first remove all .zip files from output directory
-    list_of_files = glob.glob(os.path.join(deepcell_output_dir, '*.zip'))
-    for f in list_of_files:
-        os.remove(f)
-
     zip_path = os.path.join(deepcell_input_dir, 'points.zip')
+    if os.path.isfile(zip_path):
+        warnings.warn(f'{zip_path} will be overwritten')
+
     with ZipFile(zip_path, 'w') as zipObj:
         for point in points:
             filename = os.path.join(deepcell_input_dir, point + '.tif')
+            if not os.path.isfile(filename):
+                raise ValueError('Could not find .tif file for %s. '
+                                 'Invalid value for %s' % (point, filename))
             zipObj.write(filename, os.path.basename(filename))
 
     run_deepcell_task(zip_path, deepcell_output_dir, host, job_type)
+    os.remove(zip_path)
 
     # extract the .tif output
-    zf = glob.glob(os.path.join(deepcell_output_dir, '*.zip'))[0]
-    with ZipFile(zf, 'r') as zipObj:
+    zip_files = glob.glob(os.path.join(deepcell_output_dir, '*.zip'))
+    zip_files.sort(key=os.path.getmtime)
+    with ZipFile(zip_files[-1], 'r') as zipObj:
         zipObj.extractall(deepcell_output_dir)
+        for point in points:
+            if point + suffix + '.tif' not in zipObj.namelist():
+                warnings.warn(f'Deep Cell output file was not found for {point}.')
 
 
 def run_deepcell_task(input_dir, output_dir, host='https://deepcell.org',
