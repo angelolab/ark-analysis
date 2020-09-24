@@ -371,7 +371,7 @@ def compute_neighbor_counts(current_fov_neighborhood_data, dist_matrix, distlim,
 
     # default is that cell counts itself as a matrix
     if not self_neighbor:
-        cell_dist_mat_bin[dist_matrix == 0] = 0
+        cell_dist_mat_bin[dist_matrix.values == 0] = 0
 
     # get num_neighbors for freqs
     num_neighbors = np.sum(cell_dist_mat_bin, axis=0)
