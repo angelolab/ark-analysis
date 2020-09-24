@@ -306,9 +306,6 @@ def test_compute_neighbor_counts():
     assert (cell_neighbor_freqs.loc[9, "Pheno3"] == 1).all()
 
     # now test for self_neighbor is False, first reset values
-    # TODO: create a better use case, such that the values we're checking
-    # differ from the self_neighbor=False case and one where
-    # we don't get NaN values
     cell_neighbor_counts = pd.DataFrame(np.zeros((fov_data.shape[0], cluster_num + 2)))
     cell_neighbor_counts[[0, 1]] = fov_data[[fov_col, cell_label_col]]
     cell_neighbor_counts.columns = cols
