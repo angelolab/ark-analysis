@@ -357,13 +357,8 @@ def compute_neighbor_counts(current_fov_neighborhood_data, dist_matrix, distlim,
     #  after our own inputs for functions are created
     # refine distance matrix to only cover cell labels in fov_data
 
-    cell_dist_mat = dist_matrix.loc[
-        current_fov_neighborhood_data[cell_label_col].values,
-        current_fov_neighborhood_data[cell_label_col].values
-    ].values
-
-    # cell_dist_mat = np.take(dist_matrix, current_fov_neighborhood_data[cell_label_col] - 1, 0)
-    # cell_dist_mat = np.take(cell_dist_mat, current_fov_neighborhood_data[cell_label_col] - 1, 1)
+    cell_labels = current_fov_neighborhood_data[cell_label_col].values
+    cell_dist_mat = dist_matrix.loc[cell_labels, cell_labels].values
 
     # binarize distance matrix
     cell_dist_mat_bin = np.zeros(cell_dist_mat.shape)
@@ -371,7 +366,8 @@ def compute_neighbor_counts(current_fov_neighborhood_data, dist_matrix, distlim,
 
     # default is that cell counts itself as a matrix
     if not self_neighbor:
-        cell_dist_mat_bin[dist_matrix.values == 0] = 0
+        dist_matrix_values = dist_matrix.loc[cell_labels, cell_labels].values
+        cell_dist_mat_bin[dist_matrix_values == 0] = 0
 
     # get num_neighbors for freqs
     num_neighbors = np.sum(cell_dist_mat_bin, axis=0)
