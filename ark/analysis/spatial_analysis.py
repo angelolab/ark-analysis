@@ -102,11 +102,12 @@ def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, 
     # Subsetting threshold matrix to only include column with threshold values
     thresh_vec = marker_thresholds.iloc[:, 1]
 
+    print(marker_thresholds)
+
     for i in range(0, len(included_fovs)):
         # Subsetting expression matrix to only include patients with correct fov label
         current_fov_idx = all_data[fov_col] == included_fovs[i]
         current_fov_data = all_data[current_fov_idx]
-        # print(current_fov_data.index.values)
 
         # Patients with correct label, and only columns of channel markers
         current_fov_channel_data = all_channel_data[current_fov_idx]
