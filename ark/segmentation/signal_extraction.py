@@ -1,7 +1,6 @@
 import numpy as np
 
 
-# TODO: work on weighted extraction and implement other discussed techniques of extraction
 def positive_pixels_extraction(cell_coords, image_data, threshold=0):
     """Extract channel counts by summing over the number of non-zero pixels in the cell.
 
@@ -17,10 +16,10 @@ def positive_pixels_extraction(cell_coords, image_data, threshold=0):
             Sums of counts for each channel
     """
 
-    # index indo image_data to get th channel values we're interested in
+    # index into image_data
     channel_values = image_data.values[tuple(cell_coords.T)]
 
-    # sum up based on a binary mask that is 1 if the expression value > threshold else 0
+    # create binary mask based on threshold
     channel_counts = np.sum(channel_values > threshold, axis=0)
 
     return channel_counts
@@ -31,7 +30,7 @@ def center_weighting_extraction(cell_coords, image_data, centroid):
     center.
 
     Improves upon default extraction by including a level of certainty/uncertainty.
-    Note: cell_coords and centroid are computed from regionprops prior to calling the function
+    cell_coords and centroid are computed from regionprops prior to calling the function
 
     Args:
         cell_coords (numpy.ndarray):
@@ -47,17 +46,12 @@ def center_weighting_extraction(cell_coords, image_data, centroid):
     """
 
     # compute the distance box-level from the center outward
-    # this method is more space efficient than the alternative bounding box method
-    # even if we only compute that bounding box around the cell
-    # because there will still be irrelevant cells that bounding box covers
     weights = np.linalg.norm(cell_coords - centroid, ord=np.inf, axis=1)
 
-    # now center the weights around the middle value
+    # center the weights around the middle value
     weights = 1 - (weights / (np.max(weights) + 1))
 
-    # now retrieve the channel counts
-    # for now, I'll leave the indexing as is, I think it's a bit simpler to understand
-    # and we can change in the future if necessary
+    # retrieve the channel counts
     channel_values = image_data.values[tuple(cell_coords.T)]
     channel_counts = weights.dot(channel_values)
 
@@ -78,7 +72,7 @@ def default_extraction(cell_coords, image_data):
             Sum of counts for each channel
     """
 
-    # index indo image_data to get th channel values we're interested in
+    # index into image_data to get the channel values we're interested in
     channel_values = image_data.values[tuple(cell_coords.T)]
 
     # collapse along channels dimension to get counts per channel
