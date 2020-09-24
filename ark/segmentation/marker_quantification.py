@@ -11,27 +11,49 @@ from ark.utils import data_utils, io_utils, segmentation_utils
 from ark.segmentation import signal_extraction
 
 
-def compute_marker_counts(input_images, segmentation_masks, nuclear_counts=False):
+def compute_marker_counts(input_images, segmentation_masks, nuclear_counts=False,
+                          regionprops_features=None, split_large_nuclei=False):
     """Extract single cell protein expression data from channel TIFs for a single point
 
-        Args:
-            input_images (xarray): rows x columns x channels matrix of imaging data
-            segmentation_masks (numpy array): rows x columns x compartment matrix of masks
-            nuclear_counts (bool): boolean flag to determine whether nuclear counts are returned
+    Args:
+        input_images (xarray.DataArray):
+            rows x columns x channels matrix of imaging data
+        segmentation_masks (numpy.ndarray):
+            rows x columns x compartment matrix of masks
+        nuclear_counts (bool):
+            boolean flag to determine whether nuclear counts are returned
+        regionprops_features (list):
+            morphology features for regionprops to extract for each cell
+        split_large_nuclei (bool):
+            controls whether nuclei which have portions outside of the cell will get relabeled
 
-        Returns:
-            marker_counts (xarray): xarray containing segmented data of cells x markers
+    Returns:
+        xarray.DataArray:
+            xarray containing segmented data of cells x markers
     """
 
-    unique_cell_ids = np.unique(segmentation_masks[..., 0].values)
+    if regionprops_features is None:
+        regionprops_features = ['label', 'area', 'eccentricity', 'major_axis_length',
+                                'minor_axis_length', 'perimeter', 'centroid']
 
-    # define morphology properties to be extracted from regionprops
-    object_properties = ["label", "area", "eccentricity", "major_axis_length",
-                         "minor_axis_length", "perimeter", 'coords']
+    if 'coords' not in regionprops_features:
+        regionprops_features.append('coords')
+
+    # create variable to hold names of returned columns only
+    regionprops_names = copy.copy(regionprops_features)
+    regionprops_names.remove('coords')
+
+    # centroid returns two columns, need to modify names
+    if np.isin('centroid', regionprops_names):
+        regionprops_names.remove('centroid')
+        regionprops_names += ['centroid-0', 'centroid-1']
+
+    unique_cell_ids = np.unique(segmentation_masks[..., 0].values)
+    unique_cell_ids = unique_cell_ids[np.nonzero(unique_cell_ids)]
 
     # create labels for array holding channel counts and morphology metrics
     feature_names = np.concatenate((np.array('cell_size'), input_images.channels,
-                                    object_properties[:-1]), axis=None)
+                                    regionprops_names), axis=None)
 
     # create np.array to hold compartment x cell x feature info
     marker_counts_array = np.zeros((len(segmentation_masks.compartments), len(unique_cell_ids),
@@ -45,11 +67,17 @@ def compute_marker_counts(input_images, segmentation_masks, nuclear_counts=False
 
     # get regionprops for each cell
     cell_props = pd.DataFrame(regionprops_table(segmentation_masks.loc[:, :, 'whole_cell'].values,
-                                                properties=object_properties))
+                                                properties=regionprops_features))
 
     if nuclear_counts:
         nuc_mask = segmentation_masks.loc[:, :, 'nuclear'].values
-        nuc_props = pd.DataFrame(regionprops_table(nuc_mask, properties=object_properties))
+
+        if split_large_nuclei:
+            cell_mask = segmentation_masks.loc[:, :, 'whole_cell'].values
+            nuc_mask = segmentation_utils.split_large_nuclei(cell_segmentation_mask=cell_mask,
+                                                             nuc_segmentation_mask=nuc_mask,
+                                                             cell_ids=unique_cell_ids)
+        nuc_props = pd.DataFrame(regionprops_table(nuc_mask, properties=regionprops_features))
 
     # TODO: There's some repeated code here, maybe worth refactoring? Maybe not
     # loop through each cell in mask
@@ -61,7 +89,7 @@ def compute_marker_counts(input_images, segmentation_masks, nuclear_counts=False
         cell_counts = signal_extraction.default_extraction(cell_coords, input_images)
 
         # get morphology metrics
-        current_cell_props = cell_props.loc[cell_props['label'] == cell_id, object_properties[:-1]]
+        current_cell_props = cell_props.loc[cell_props['label'] == cell_id, regionprops_names]
 
         # combine marker counts and morphology metrics together
         cell_features = np.concatenate((cell_counts, current_cell_props), axis=None)
@@ -89,7 +117,7 @@ def compute_marker_counts(input_images, segmentation_masks, nuclear_counts=False
 
                 # get morphology metrics
                 current_nuc_props = nuc_props.loc[
-                    nuc_props['label'] == nuc_id, object_properties[:-1]]
+                    nuc_props['label'] == nuc_id, regionprops_names]
 
                 # combine marker counts and morphology metrics together
                 nuc_features = np.concatenate((nuc_counts, current_nuc_props), axis=None)
@@ -108,14 +136,18 @@ def generate_expression_matrix(segmentation_labels, image_data, nuclear_counts=F
     """Create a matrix of cells by channels with the total counts of each marker in each cell.
 
     Args:
-        segmentation_labels (xarray): xarray of shape [fovs, rows, cols, compartment] containing
-            segmentation masks for each FOV, potentially across multiple cell compartments
-        image_data (xarray): xarray containing all of the channel data across all FOVs
-        nuclear_counts (bool): boolean flag to determine whether nuclear counts are returned
+        segmentation_labels (xarray.DataArray):
+            xarray of shape [fovs, rows, cols, compartment] containing segmentation masks for each
+            FOV, potentially across multiple cell compartments
+        image_data (xarray.DataArray):
+            xarray containing all of the channel data across all FOVs
+        nuclear_counts (bool):
+            boolean flag to determine whether nuclear counts are returned
 
     Returns:
-        normalized_data (pandas): marker counts per cell normalized by cell size
-        arcsinh_data (pandas): arcsinh transfomed marker counts per cell normalized by cell size
+        tuple (pandas.DataFrame, pandas.DataFrame):
+            - marker counts per cell normalized by cell size
+            - arcsinh transformation of the above
     """
     if type(segmentation_labels) is not xr.DataArray:
         raise ValueError("Incorrect data type for segmentation_labels, expecting xarray")
@@ -144,9 +176,6 @@ def generate_expression_matrix(segmentation_labels, image_data, nuclear_counts=F
         # extract the counts per cell for each marker
         marker_counts = compute_marker_counts(image_data.loc[fov, :, :, :], segmentation_label,
                                               nuclear_counts=nuclear_counts)
-
-        # remove the cell corresponding to background
-        marker_counts = marker_counts[:, 1:, :]
 
         # normalize counts by cell size
         marker_counts_norm = segmentation_utils.transform_expression_matrix(marker_counts,
@@ -193,20 +222,25 @@ def compute_complete_expression_matrices(segmentation_labels, tiff_dir, img_sub_
     This function takes the segmented data and computes the expression matrices batch-wise
     while also validating inputs
 
-    Inputs:
-        segmentation_labels (xarray): an xarray with the segmented data
-        tiff_dir (str): the name of the directory which contains the single_channel_inputs
-        img_sub_folder (str): the name of the folder where the TIF images are located
-        points (list): a list of points we wish to analyze, if None will default to all points
-        is_mibitiff (bool): a flag to indicate whether or not the base images are MIBItiffs
-        mibitiff_suffix (str): if is_mibitiff is true, then needs to be specified to select
-            which points to load from mibitiff
-        batch_size (int): how large we want each of the batches of points to be when computing,
-            adjust as necessary for speed and memory considerations
+    Args:
+        segmentation_labels (xarray.DataArray):
+            an xarray with the segmented data
+        tiff_dir (str):
+            the name of the directory which contains the single_channel_inputs
+        img_sub_folder (str):
+            the name of the folder where the TIF images are located
+        points (list):
+            a list of points we wish to analyze, if None will default to all points
+        is_mibitiff (bool):
+            a flag to indicate whether or not the base images are MIBItiffs
+        batch_size (int):
+            how large we want each of the batches of points to be when computing, adjust as
+            necessary for speed and memory considerations
 
     Returns:
-        combined_normalized_data (pandas): a DataFrame containing the size_norm transformed data
-        combined_transformed_data (pandas): a DataFrame containing the arcsinh transformed data
+        tuple (pandas.DataFrame, pandas.DataFrame):
+            - size normalized data
+            - arcsinh transformed data
     """
 
     # if no points are specified, then load all the points
@@ -264,7 +298,11 @@ def compute_complete_expression_matrices(segmentation_labels, tiff_dir, img_sub_
         )
 
         # now append to the final dfs to return
-        combined_cell_size_normalized_data = combined_cell_size_normalized_data.append(cell_size_normalized_data)
-        combined_arcsinh_transformed_data = combined_arcsinh_transformed_data.append(arcsinh_transformed_data)
+        combined_cell_size_normalized_data = combined_cell_size_normalized_data.append(
+            cell_size_normalized_data
+        )
+        combined_arcsinh_transformed_data = combined_arcsinh_transformed_data.append(
+            arcsinh_transformed_data
+        )
 
     return combined_cell_size_normalized_data, combined_arcsinh_transformed_data

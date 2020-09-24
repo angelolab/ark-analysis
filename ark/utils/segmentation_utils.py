@@ -4,6 +4,8 @@ import copy
 import numpy as np
 import pandas as pd
 
+from skimage.measure import regionprops_table
+
 from ark.utils import io_utils
 
 
@@ -11,12 +13,15 @@ def find_nuclear_mask_id(nuc_segmentation_mask, cell_coords):
     """Get the ID of the nuclear mask which has the greatest amount of overlap with a given cell
 
     Args:
-        nuc_segmentation_mask (numpy): label mask of nuclear segmentations
-        cell_coords (list): list of coords specifying pixels that belong to a cell
+        nuc_segmentation_mask (numpy.ndarray):
+            label mask of nuclear segmentations
+        cell_coords (list):
+            list of coords specifying pixels that belong to a cell
 
     Returns:
-        nuclear_mask_id (int): ID of the nuclear mask that overlaps most with cell.
-                               If no matches found, returns None.
+        int or None:
+            Integer ID of the nuclear mask that overlaps most with cell.
+            If no matches found, returns None.
     """
 
     ids, counts = np.unique(nuc_segmentation_mask[tuple(cell_coords.T)], return_counts=True)
@@ -30,16 +35,67 @@ def find_nuclear_mask_id(nuc_segmentation_mask, cell_coords):
     return nuclear_mask_id
 
 
+def split_large_nuclei(cell_segmentation_mask, nuc_segmentation_mask, cell_ids):
+    """Splits nuclei that are bigger than the corresponding cell into multiple pieces
+
+    Args:
+        cell_segmentation_mask (numpy.ndarray):
+            mask of cell segmentations
+        nuc_segmentation_mask (numpy.ndarray):
+            mask of nuclear segmentations
+        cell_ids (numpy.ndarray):
+            the unique cells in the segmentation mask
+
+    Returns:
+        numpy.ndarray:
+            modified nuclear segmentation mask
+    """
+
+    nuc_mask_modified = np.copy(nuc_segmentation_mask)
+    max_nuc_id = np.max(nuc_segmentation_mask)
+
+    cell_props = pd.DataFrame(regionprops_table(cell_segmentation_mask,
+                                                properties=['label', 'coords']))
+
+    for cell in cell_ids:
+        coords = cell_props.loc[cell_props['label'] == cell, 'coords'].values[0]
+
+        nuc_id = find_nuclear_mask_id(nuc_segmentation_mask=nuc_segmentation_mask,
+                                      cell_coords=coords)
+
+        # only proceed if there's a valid nuc_id
+        if nuc_id is not None:
+            # figure out if nuclear label is completely contained within cell label
+            cell_vals = nuc_segmentation_mask[tuple(coords.T)]
+            nuc_count = np.sum(cell_vals == nuc_id)
+
+            nuc_mask = nuc_segmentation_mask == nuc_id
+
+            # only proceed if parts of the nucleus are outside of the cell
+            if nuc_count != np.sum(nuc_mask):
+                # relabel nuclear counts within the cell
+                cell_mask = cell_segmentation_mask == cell
+                new_nuc_mask = np.logical_and(cell_mask, nuc_mask)
+                max_nuc_id += 1
+                nuc_mask_modified[new_nuc_mask] = max_nuc_id
+
+    return nuc_mask_modified
+
+
 def transform_expression_matrix(cell_data, transform, transform_kwargs=None):
     """Transform an xarray of marker counts with supplied transformation
 
     Args:
-        cell_data (xarray): xarray containing marker expression values
-        transform (str): the type of transform to apply. Must be one of ['size_norm', 'arcsinh']
-        transform_kwargs (dict): optional dictionary with additional settings for the transforms
+        cell_data (xarray.DataArray):
+            xarray containing marker expression values
+        transform (str):
+            the type of transform to apply. Must be one of ['size_norm', 'arcsinh']
+        transform_kwargs (dict):
+            optional dictionary with additional settings for the transforms
 
     Returns:
-        cell_data_norm (xarray): counts per marker normalized by cell size
+        xarray.DataArray:
+            xarray of counts per marker normalized by cell size
     """
     valid_transforms = ['size_norm', 'arcsinh']
 
@@ -88,13 +144,18 @@ def concatenate_csv(base_dir, csv_files, column_name="point", column_values=None
     """Take a list of CSV paths and concatenates them together,
     adding in the identifier in column_values
 
-    Inputs:
-        base_dir (str): directory to read and write csv_files into
-        csv_files (list): a list csv files
-        column_name (str): optional column name, defaults to point
-        column_values (list): optional values to use for each CSV, defaults to csv name
+    Saves combined CSV file into the same folder
 
-    Outputs: saved combined csv into same folder"""
+    Args:
+        base_dir (str):
+            directory to read and write csv_files into
+        csv_files (list):
+            a list csv files
+        column_name (str):
+            optional column name, defaults to point
+        column_values (list):
+            optional values to use for each CSV, defaults to csv name
+    """
 
     if column_values is None:
         column_values = io_utils.extract_delimited_names(csv_files, delimiter='.')

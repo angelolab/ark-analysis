@@ -9,14 +9,17 @@
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
-#
+
 import os
 import sys
 import mock # if we need to force mock import certain libraries autodoc_mock_imports fails ons
+import subprocess # to initiate sphinx-apidoc to build .md files
+import inspect # to help us check the arguments we receive in our docstring check
+import warnings # to throw warnings (not errors) for malformed docstrings
+import re # for regex checking
 
 # our project officially 'begins' in the parent aka root project directory
 # since we do not separate source from build we can simply go up one directory
-# if we ever separate source from build we'll need to change this to '../..'
 sys.path.insert(0, os.path.abspath('..'))
 
 # if we ever have images, we'll be using the supported_image_types
@@ -52,9 +55,7 @@ extensions = ['IPython.sphinxext.ipython_console_highlighting', # syntax-highlig
               'sphinx.ext.napoleon', # support for Google style docstrings (STAR)
               'sphinx.ext.todo', # support fo TODO
               'sphinx.ext.viewcode', # support for adding links to highlighted source code, looks at Python object descriptions and tries to find source files where objects are contained
-              'm2r2', # allows you to include Markdown files in .rst, use mdinclude for this, choosing this over m2r because m2r is not supported anymore
-              'nbsphinx', # support for Jupyter notebooks (STAR)
-              'nbsphinx_link'] # include notebook files from outside sphinx src root (STAR)]
+              'm2r2'] # allows you to include Markdown files in .rst, use mdinclude for this, choosing this over m2r because m2r is not supported anymore
 
 # set parameter to read Google docstring and not NumPy
 # redundant to add since it's default True but good to know
@@ -77,7 +78,8 @@ autodoc_mock_imports = ['h5py'
                         'umap',
                         'xarray']
 
-sys.modules['matplotlib.pyplot'] = mock.Mock()
+# explicitly mock mibidata
+sys.modules['mibidata'] = mock.Mock()
 
 # prefix each section label with the name of the document it is in, followed by a colon
 # autosection_label_prefix_document = True
@@ -110,7 +112,7 @@ nbsphinx_execute = 'never'
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store', '**.ipynb_checkpoints']
+exclude_patterns = ['_rtd/landing.md', '_markdown/ark.md',  '_build', 'Thumbs.db', '.DS_Store', '**.ipynb_checkpoints']
 
 # custom 'stuff' we want to ignore in nitpicky mode
 # currently empty, I don't think we'll ever run in this
@@ -137,8 +139,131 @@ intersphinx_mapping = {
     'python': ('https://docs.python.org/3.6', None),
     'numpy': ('https://numpy.org/doc/stable', None),
     'matplotlib': ('https://matplotlib.org/3.2.1', None),
-    'xarray': ('https://xarray.pydata.org/en/stable', None)
+    'xarray': ('https://xarray.pydata.org/en/stable', None),
+    'pandas': ('https://pandas.pydata.org/docs/', None)
 }
 
 # set a maximum number of days to cache remote inventories
 intersphinx_cache_limit = 0
+
+
+# this function appends the proper lines and formatting to landing.md
+# so it can get displayed properly
+def append_readme():
+    with open(os.path.join('..', 'README.md')) as fin, open(os.path.join('_rtd', 'landing.md'), 'a') as fout:
+        # flag to identify when to start writing to file, doing this because we don't want to
+        # include build or covarage status nor the ark-analysis heading
+        seen_heading = False
+
+        for line in fin:
+            # once we've seen an h2 heading, we can start writing to file
+            # we also append an extra '#' to the line to downgrade to an h3 heading
+            # so that it can display comfortably on ReadTheDocs
+            if line.startswith('##'):
+                seen_heading = True
+                line = '#' + line
+
+            # append line to landing.md
+            if seen_heading:
+                fout.write(line)
+
+
+# this we'll need to build the documentation from sphinx-apidoc ourselves
+def run_apidoc(_):
+    # the parent directory we will begin snaking through to find documentation
+    module = '../ark'
+
+    # we want the documents to be markdown files
+    output_ext = 'md'
+
+    # we want to store the documentation in the _markdown folder on the ReadTheDocs server
+    output_path = '_markdown'
+
+    # the sphinx-apidoc command to run
+    cmd_path = 'sphinx-apidoc'
+
+    # do not generate any documentation for test files
+    ignore = '../ark/*/*_test.py'
+
+    # should probably remove this
+    if hasattr(sys, 'real_prefix'):
+        cmd_path = os.path.abspath(os.path.join(sys.prefix, 'bin', 'sphinx-apidoc'))
+
+    # append the readme to landing.md before running sphinx apidoc build
+    append_readme()
+
+    # run sphinx-apidoc to build documentation from Google docstrings
+    subprocess.check_call([cmd_path, '-f', '-T', '-s', output_ext, '-o', output_path, module, ignore])
+
+
+def check_docstring_format(app, what, name, obj, options, lines):
+    if what == 'function':
+        argnames = inspect.getargspec(obj)[0]
+
+        if len(argnames) > 0:
+            # I'm leaving this one out for now since we're possibly waiting on some of these
+            # normally, we should indeed be throwing an exception for this case
+            # because every function needs a docstring
+            if len(lines) == 0:
+                # raise Exception('No docstring provided for function %s' % name)
+                return
+
+            # all docstrings need a description, if we're getting into the args list immediately
+            # that is a bad, bad thing
+            if len(lines) > 0 and lines[0][0] == ':':
+                raise Exception('No description before args list given for %s' % name)
+
+            # the first value of lines should always contain the start of the description
+            # if there is an extra space in front, that violates how a Google doctring should look
+            if lines[0][0].isspace():
+                raise Exception('Your description for %s should not have any preceding whitespace' % name)
+
+            # handle the Args section, all args should have an associated :param and :type in the lines list
+            param_args = [re.match(r':param (\S*):', line).group(1) for line in lines if re.match(r':param (\S*):', line)]
+            type_args = [re.match(r':type (\S*):', line).group(1) for line in lines if re.match(r':type (\S*):', line)]
+
+            # usually this happens when the person writing the docs does not know how to tab properly
+            # and ReadTheDocs gets screwed over when processing so reads something
+            # in an argument description as an actual argument
+            if sorted(param_args) != sorted(type_args):
+                raise Exception('Parameter list: %s and type list: %s do not match in %s, a formatting error in your Args section likely caused this' % (','.join(param_args), ','.join(type_args), name))
+
+            # if your parameters are not the same as the arguments in the function
+            # that's bad because your docstring args section needs to match up exactly
+            if sorted(param_args) != sorted(argnames):
+                raise Exception('Parameter list: %s does not match arglist: %s in %s, check your docstring formatting' % (','.join(param_args), ','.join(argnames), name))
+
+            # handle cases where return values are found
+            # currently, I can only check if in the case of a proper Return (:return) format (improper ones are usually handled by the above cases)
+            # it also contains a proper return type (:rtype)
+            # this one will be harder because for one, we cannot make the assumption that all functions return something
+            # second of all, the :returns and :rtype values may look OK in the list but still be formatted weird if the user screwed up tabs for example
+            if any(re.match(r':returns:', line) for line in lines):
+                if not any(re.match(r':rtype', line) for line in lines):
+                    raise Exception('Return value was provided but no return type specified in %s' % name)
+        else:
+            # every function needs a docstring, this currently is OK for now because only one function
+            # is like this: create_test_extraction_data in test_utils
+            if len(lines) == 0:
+                raise Exception('No docstring provided for function %s' % name)
+
+            # the first value of lines should always contain the start of the description
+            # if there is an extra space in front, that violates how a Google doctring should look
+            if lines[0][0].isspace():
+                raise Exception('Your description for %s should not have any preceding whitespace' % name)
+
+            param_args = [re.match(r':param (\S*):', line).group(1) for line in lines if re.match(r':param (\S*):', line)]
+
+            # do not allow the user to specify an args list for a function that doesn't take any arguments
+            if len(param_args) > 0:
+                raise Exception('You should not have an Args list specified for argument-less function %s' % name)
+
+            # this is like the returns check for if the function does specify arguments
+            if any(re.match(r':returns:', line) for line in lines):
+                if not any(re.match(r':rtype', line) for line in lines):
+                    raise Exception('Return value was provided but no return type specified in %s' % name)
+
+
+def setup(app):
+    app.connect('builder-inited', run_apidoc) # run sphinx-apidoc
+    app.connect('autodoc-process-docstring', check_docstring_format) # run a docstring-style check

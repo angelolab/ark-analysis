@@ -9,29 +9,35 @@ def generate_test_dist_matrix(num_A=100, num_B=100, num_C=100,
                               distr_AB=(10, 1), distr_random=(200, 1),
                               seed=None):
     """
-    This function will return a random dist matrix specifying the distance between cells of
-    types A and B and between cells of all other groups (type C).
+    This function will return a random dist matrix specifying the distance between cells of types
+    A and B and between cells of all other groups (type C).
 
-    Each row and column representing a cell.
-    We generate the points using Gaussian distributions
-    Ideally, the parameters for A to B distances will be set such that they produce a lower range of values
-    than A to C distances.
+    Each row and column representing a cell. We generate the points using Gaussian distributions
+    Ideally, the parameters for A to B distances will be set such that they produce a lower range
+    of values than A to C distances.
 
     Note that these distance matrices created are non-Euclidean.
 
     Args:
-        num_A (int): the number of A cells we wish to generate. Default 100
-        num_B (int): the number of B cells we wish to generate. Default 100
-        num_C (int): the number of C cells we wish to generate. Default 100
-        distr_AB (tuple): if specified, will be a tuple listing the mean and variance of the Gaussian distribution
-            we wish to generate numbers from. Default mean=10 and var=1
-        distr_random (tuple): similar to dist_AB, except it's what we set the distribution of
-            all other distances to be. Default mean=200 and var=1
-        seed (int): whether to fix the random seed or not. Useful for testing.
-            Should be a specified integer value. Default None.
+        num_A (int):
+            the number of A cells we wish to generate. Default 100
+        num_B (int):
+            the number of B cells we wish to generate. Default 100
+        num_C (int):
+            the number of C cells we wish to generate. Default 100
+        distr_AB (tuple):
+            if specified, will be a tuple listing the mean and variance of the Gaussian
+            distribution we wish to generate numbers from. Default mean=10 and var=1
+        distr_random (tuple):
+            similar to dist_AB, except it's what we set the distribution of all other distances to
+            be. Default mean=200 and var=1
+        seed (int):
+            whether to fix the random seed or not. Useful for testing. Should be a specified
+            integer value. Default None.
 
     Returns:
-        dist_mat (numpy): the randomized distance matrix we generate directly from predefined distributions
+        xarray.DataArray:
+            The randomized distance matrix we generate directly from predefined distributions
             where the average distances between cell types of a and b > average distances between
             cell types of b and c
     """
@@ -70,6 +76,18 @@ def generate_test_dist_matrix(num_A=100, num_B=100, num_C=100,
     # finally, fill the diagonals with 0 to ensure a proper distance matrix
     np.fill_diagonal(dist_mat, 0)
 
+    # now we're going to add some random permutation to our distance matrix
+    # we have to do it this way because we cannot assume that our cells will
+    # be labeled in-order
+    coords_in_order = np.arange(dist_mat.shape[0])
+    coords_permuted = deepcopy(coords_in_order)
+    np.random.shuffle(coords_permuted)
+    dist_mat = dist_mat[np.ix_(coords_permuted, coords_permuted)]
+
+    # # we have to 1-index coords because people will be labeling their cells 1-indexed
+    coords_dist_mat = [coords_permuted + 1, coords_permuted + 1]
+    dist_mat = xr.DataArray(dist_mat, coords=coords_dist_mat)
+
     return dist_mat
 
 
@@ -77,29 +95,40 @@ def generate_random_centroids(size_img=(1024, 1024), num_A=100, num_B=100, num_C
                               mean_A_factor=None, cov_A=None, mean_B_factor=None, cov_B=None,
                               mean_C_factor=None, cov_C=None, seed=None):
     """
-    Generate a set of random centroids given distribution parameters.
-    Used as a helper function by generate_test_label_map.
+    Generate a set of random centroids given distribution parameters. Used as a helper function by
+    generate_test_label_map.
 
     Args:
-        size_img (tuple): a tuple indicating the size of the image. Default 1024 x 1024
-        num_A (int): the number of A centroids to generate. Default 100.
-        num_B (int): the number of B centroids to generate. Default 100.
-        num_C (int): the number of C centroids to generate. Default 100.
-
-        mean_A_factor (tuple): a tuple to determine which number to multiply the height and width by
-            to indicate the center (mean) of the distribution to generate A points.
-            Will be randomly set to a predefined value if None.
-        cov_A (numpy): the covariance used to generate A poins in the format [[varXX, varXY], [varYX, varYY]].
-            Will be randomly set to a predefined value if None.
-        mean_B_factor (tuple): similar to mean_A_factor
-        cov_B (numpy): similar to cov_A
-        mean_C_factor (tuple): similar to mean_A_factor
-        cov_C (numpy): similar to cov_A
-        seed (int): whether to fix the random seed or not. Useful for testing.
-            Should be a specified integer value. Default None.
+        size_img (tuple):
+            a tuple indicating the size of the image. Default (1024, 1024)
+        num_A (int):
+            the number of A centroids to generate. Default 100.
+        num_B (int):
+            the number of B centroids to generate. Default 100.
+        num_C (int):
+            the number of C centroids to generate. Default 100.
+        mean_A_factor (tuple):
+            a tuple to determine which number to multiply the height and width by to indicate the
+            center (mean) of the distribution to generate A points. Will be randomly set to a
+            predefined value if None.
+        cov_A (numpy.ndarray):
+            the covariance used to generate A points as [[varXX, varXY], [varYX, varYY]]. Will be
+            randomly set to a predefined value if None.
+        mean_B_factor (tuple):
+            similar to mean_A_factor
+        cov_B (numpy.ndarray):
+            similar to cov_A
+        mean_C_factor (tuple):
+            similar to mean_A_factor
+        cov_C (numpy.ndarray):
+            similar to cov_A
+        seed (int):
+            whether to fix the random seed or not. Useful for testing. Should be a specified
+            integer value. Default None.
 
     Returns:
-        total_points (list): a list of non-duplicated cell centroids.
+        list:
+            List of non-duplicated cell centroids.
     """
 
     # extract the height and width
@@ -131,14 +160,21 @@ def generate_random_centroids(size_img=(1024, 1024), num_A=100, num_B=100, num_C
     total_points = np.concatenate((a_points, b_points, c_points), axis=0)
 
     # remove points with negative values since they're out of range
-    total_points = total_points[np.logical_and(total_points[:, 0] >= 0, total_points[:, 1] >= 0), :]
+    total_points = total_points[
+        np.logical_and(total_points[:, 0] >= 0, total_points[:, 1] >= 0), :]
 
     # remove points with values greater than the size_img dimensions since they're out of range
-    total_points = total_points[np.logical_and(total_points[:, 0] < size_img[0], total_points[:, 1] < size_img[1]), :]
+    total_points = total_points[
+        np.logical_and(total_points[:, 0] < size_img[0], total_points[:, 1] < size_img[1]), :]
 
     # this ensures that we only keep the points that are not duplicate across different cell types
     non_dup_points, non_dup_counts = np.unique(total_points, axis=0, return_counts=True)
     total_points = non_dup_points[non_dup_counts == 1]
+
+    # this we need because np.unique automatically sorts by ascending coordinate
+    # but we want more randomization because this forms the basis of generate_test_label_map
+    # which is passed into calc_dist_matrix which cannot assume a sequentially-labelled xarray
+    total_points = total_points[np.random.permutation(total_points.shape[0]), :]
 
     return total_points
 
@@ -147,35 +183,46 @@ def generate_test_label_map(size_img=(1024, 1024), num_A=100, num_B=100, num_C=1
                             mean_A_factor=None, cov_A=None, mean_B_factor=None, cov_B=None,
                             mean_C_factor=None, cov_C=None, seed=None):
     """
-    This function generates random centroid centers in the form of a label map
-    such that those of type A will have centers closer on average to those of type B
-    than those of type C
+    This function generates random centroid centers in the form of a label map such that those of
+    type A will have centers closer on average to those of type B than those of type C
 
-    We will use a multivariate Gaussian distribution for A, B, and C type cells to generate their respective centers.
+    We will use a multivariate Gaussian distribution for A, B, and C type cells to generate their
+    respective centers.
 
     Args:
-        size_img (tuple): a tuple indicating the size of the image. Default 1024 x 1024
-        num_A (int): the number of A centroids to generate. Default 100.
-        num_B (int): the number of B centroids to generate. Default 100.
-        num_C (int): the number of C centroids to generate. Default 100.
-        mean_A_factor (tuple): a tuple to determine which number to multiply the height and width by
-            to indicate the center (mean) of the distribution to generate A points.
-            Will be randomly set to a predefined value if None.
-        cov_A (numpy): the covariance used to generate A poins in the format [[varXX, varXY], [varYX, varYY]].
-            Will be randomly set to a predefined value if None.
-        mean_B_factor (tuple): similar to mean_A_factor
-        cov_B (numpy): similar to cov_A
-        mean_C_factor (tuple): similar to mean_A_factor
-        cov_C (numpy): similar to cov_A
-        seed (int): whether to fix the random seed or not. Useful for testing.
-            Should be a specified integer value. Default None.
+        size_img (tuple):
+            a tuple indicating the size of the image. Default (1024, 1024)
+        num_A (int):
+            the number of A centroids to generate. Default 100.
+        num_B (int):
+            the number of B centroids to generate. Default 100.
+        num_C (int):
+            the number of C centroids to generate. Default 100.
+        mean_A_factor (tuple):
+            a tuple to determine which number to multiply the height and width by to indicate the
+            center (mean) of the distribution to generate A points. Will be randomly set to a
+            predefined value if None.
+        cov_A (numpy.ndarray):
+            the covariance used to generate A points as [[varXX, varXY], [varYX, varYY]]. Will be
+            randomly set to a predefined value if None.
+        mean_B_factor (tuple):
+            similar to mean_A_factor
+        cov_B (numpy.ndarray):
+            similar to cov_A
+        mean_C_factor (tuple):
+            similar to mean_A_factor
+        cov_C (numpy.ndarray):
+            similar to cov_A
+        seed (int):
+            whether to fix the random seed or not. Useful for testing. Should be a specified
+            integer value. Default None.
 
     Returns:
-        sample_img_xr (xarray): the data in xarray format containing the randomized label matrix
-            based on the randomized centroid centers we generated. The label mat portion
-            of sample_img_xr is generated from a randomly initialized set of cell centroids
-            where those of type a are on average closer to those of type b than they
-            are to those of type c.
+        xarray.DataArray:
+            Data in xarray format containing the randomized label matrix based on the randomized
+            centroid centers we generated. The label mat portion of sample_img_xr is generated
+            from a randomly initialized set of cell centroids where those of type a are on average
+            closer to those of type b than they are to those of type c.
     """
 
     # generate the list of centroids and zip them into x and y coords
@@ -188,34 +235,26 @@ def generate_test_label_map(size_img=(1024, 1024), num_A=100, num_B=100, num_C=1
 
     point_x_coords, point_y_coords = zip(*all_centroids)
 
-    # all_centroids is ordered specifically to reflect a-labeled centroids first, then b, lastly c
-    # unfortunately, when we pass the final label map into calc_dist_matrix of spatial_analysis_utils
-    # we lose this desired ordering because of a call to regionprops, which automatically orders
-    # the centroids by ascending x-coordinate (in the case of ties, ascending y-coordinate)
-    # this messes up the ordering of the distance matrix which screws up, for example, the tests
-    # if a user wants to generate a distance matrix from randomly generated centroid points
-    # fortunately, lexsort allows us to compute the indices needed to reorder the sorted centroid
-    # list back to where they were originally, thus they can also be used to reorder the
-    # distance matrix back to the desired partitioning of first a-labeled rows/columns, then b, finally c
-    centroid_indices = np.lexsort(all_centroids[:, ::-1].T)
-
     # generate the label matrix for the image
     # doing it this way because using the label function in skimage does so based on
     # connected components and that messes up the regionprops call in calc_dist_matrix
     # we don't want to assume that we won't get points of distance 1 away from each other
     # so we can just use the labels generated from centroid_indices to assign this
+    centroid_indices = np.arange(len(all_centroids))
     label_mat = np.zeros(size_img)
     label_mat[point_x_coords, point_y_coords] = centroid_indices + 1
 
     # now generate the sample xarray
     sample_img = np.zeros((1, size_img[0], size_img[1], 1)).astype(np.int16)
     sample_img[0, :, :, 0] = deepcopy(label_mat)
-    sample_img_xr = xr.DataArray(sample_img,
-                                 coords=[[1], range(size_img[0]), range(size_img[1]), ['segmentation_label']],
-                                 dims=['fovs', 'rows', 'cols', 'channels'])
+    sample_img_xr = xr.DataArray(
+        sample_img,
+        coords=[[1], range(size_img[0]), range(size_img[1]), ['segmentation_label']],
+        dims=['fovs', 'rows', 'cols', 'channels']
+    )
 
     # and return the xarray to pass into calc_dist_matrix, plus the centroid_indices to readjust it
-    return sample_img_xr, centroid_indices
+    return sample_img_xr
 
 
 def generate_two_cell_test_segmentation_mask(size_img=(1024, 1024), cell_radius=10):
@@ -223,12 +262,14 @@ def generate_two_cell_test_segmentation_mask(size_img=(1024, 1024), cell_radius=
     This function generates a test segmentation mask with each separate cell labeled separately.
 
     Args:
-        size_img (tuple): the dimensions of the image we wish to generate
-        cell_radius (int): the radius of each cell
+        size_img (tuple):
+            the dimensions of the image we wish to generate
+        cell_radius (int):
+            the radius of each cell
 
     Returns:
-        sample_segmentation_mask (numpy): an array of dimensions size_img with two separate labeled
-            cells that border each other
+        numpy.ndarray:
+            An array of dimensions size_img with two separate labeled cells that border each other
     """
 
     # define the segmentation mask
@@ -240,8 +281,10 @@ def generate_two_cell_test_segmentation_mask(size_img=(1024, 1024), cell_radius=
     center_2 = (size_img[0] // 2, size_img[0] // 2 + cell_radius * 2 - 1)
 
     # generate the coordinates of each nuclear disk
-    cell_region_1_x, cell_region_1_y = circle(center_1[0], center_1[1], cell_radius, shape=size_img)
-    cell_region_2_x, cell_region_2_y = circle(center_2[0], center_2[1], cell_radius, shape=size_img)
+    cell_region_1_x, cell_region_1_y = circle(center_1[0], center_1[1], cell_radius,
+                                              shape=size_img)
+    cell_region_2_x, cell_region_2_y = circle(center_2[0], center_2[1], cell_radius,
+                                              shape=size_img)
 
     # now assign the respective cells value according to their label
     sample_segmentation_mask[cell_region_1_x, cell_region_1_y] = 1
@@ -263,16 +306,25 @@ def generate_two_cell_test_nuclear_signal(segmentation_mask, cell_centers,
     This function generates nuclear signal for the provided cells
 
     Args:
-        segmentation_mask (numpy): an array which contains the labeled cell regions
-        cell_centers (dict): a dictionary which contains the centers associated with each cell region
-        size_img (tuple): the dimensions of the image we wish to generate
-        nuc_cell_ids (list): a list of cells we wish to generate nuclear signal for, if None assume just cell 1
-        nuc_radius (int): the radius of the nucleus of each cell
-        nuc_uncertainty_length (int): will extend nuc_radius by the specified length
+        segmentation_mask (numpy.ndarray):
+            an array which contains the labeled cell regions
+        cell_centers (dict):
+            a dictionary which contains the centers associated with each cell region
+        size_img (tuple):
+            the dimensions of the image we wish to generate
+        nuc_cell_ids (list):
+            a list of cells we wish to generate nuclear signal for, if None assume just cell 1
+        nuc_radius (int):
+            the radius of the nucleus of each cell
+        nuc_signal_strength (int):
+            the value we want to assign for nuclear signal
+        nuc_uncertainty_length (int):
+            will extend nuc_radius by the specified length
 
     Returns:
-        sample_nuclear_signal (numpy): an array of equal dimensions to segmentation_mask
-            which have nuclear signal generated for the provided cell ids
+        numpy.ndarray:
+            An array of equal dimensions to segmentation_mask which have nuclear signal generated
+            for the provided cell ids
     """
 
     # define the nuclear signal array
@@ -283,8 +335,9 @@ def generate_two_cell_test_nuclear_signal(segmentation_mask, cell_centers,
 
         # generate the nuclear region in the middle of the cell with the same cell center
         # and set signal to a uniform value
-        nuc_region_x, nuc_region_y = circle(center[0], center[1], nuc_radius + nuc_uncertainty_length,
-                                            shape=size_img)
+        nuc_region_x, nuc_region_y = circle(center[0], center[1],
+                                            nuc_radius + nuc_uncertainty_length, shape=size_img)
+
         sample_nuclear_signal[nuc_region_x, nuc_region_y] = nuc_signal_strength
 
         # let's keep things simple for now and not include jitter or anything
@@ -301,18 +354,28 @@ def generate_two_cell_test_membrane_signal(segmentation_mask, cell_centers,
     This function generates membrane signal for the provided cells
 
     Args:
-        segmentation_mask (numpy): an array which contains the labeled cell regions
-        cell_centers (dict): a dictionary which contains the centers associated with each cell region
-        size_img (tuple): the dimensions of the image we wish to generate
-        cell_radius (int): the radius of the entire cell, needed to do proper circle subtraction
-            for a ring-shaped membrane
-        memb_cell_ids (list): a list of cells we wish to generate nuclear signal for, if None assume just cell 2
-        memb_thickness (int): the diameter of the membrane ring of each cell
-        memb_uncertainty_length (int): will extend memb_radius by the specified length
+        segmentation_mask (numpy.ndarray):
+            an array which contains the labeled cell regions
+        cell_centers (dict):
+            a dictionary which contains the centers associated with each cell region
+        size_img (tuple):
+            the dimensions of the image we wish to generate
+        cell_radius (int):
+            the radius of the entire cell, needed to do proper circle subtraction for a
+            ring-shaped membrane
+        memb_cell_ids (list):
+            a list of cells we wish to generate nuclear signal for, if None assume just cell 2
+        memb_thickness (int):
+            the diameter of the membrane ring of each cell
+        memb_signal_strength (int):
+            the value we want to assign to membrane signal
+        memb_uncertainty_length (int):
+            will extend memb_radius by the specified length
 
     Returns:
-        sample_membrane_signal (numpy): an array of equal dimensions to segmentation_mask
-            which have membrane signal generated for the provided cell ids
+        numpy.ndarray:
+            An array of equal dimensions to segmentation_mask which have membrane signal generated
+            for the provided cell ids
     """
 
     # define the nuclear signal array
@@ -323,8 +386,12 @@ def generate_two_cell_test_membrane_signal(segmentation_mask, cell_centers,
 
         # generate both the coordinates of the cell region and non-membrane region
         # for proper circle subtraction to generate membrane
-        cell_region_x, cell_region_y = circle(center[0], center[1], cell_radius + memb_uncertainty_length, shape=size_img)
-        non_memb_region_x, non_memb_region_y = circle(center[0], center[1], cell_radius - memb_thickness,
+        cell_region_x, cell_region_y = circle(center[0], center[1],
+                                              cell_radius + memb_uncertainty_length,
+                                              shape=size_img)
+
+        non_memb_region_x, non_memb_region_y = circle(center[0], center[1],
+                                                      cell_radius - memb_thickness,
                                                       shape=size_img)
 
         # perform circle subtraction
@@ -337,50 +404,71 @@ def generate_two_cell_test_membrane_signal(segmentation_mask, cell_centers,
     return sample_membrane_signal
 
 
-def generate_two_cell_test_channel_synthetic_data(size_img=(1024, 1024), cell_radius=10, nuc_radius=3, memb_thickness=5,
-                                                  nuc_cell_ids=[1], memb_cell_ids=[2], nuc_signal_strength=10,
-                                                  memb_signal_strength=10, nuc_uncertainty_length=0,
+def generate_two_cell_test_channel_synthetic_data(size_img=(1024, 1024), cell_radius=10,
+                                                  nuc_radius=3, memb_thickness=5, nuc_cell_ids=[1],
+                                                  memb_cell_ids=[2], nuc_signal_strength=10,
+                                                  memb_signal_strength=10,
+                                                  nuc_uncertainty_length=0,
                                                   memb_uncertainty_length=0):
     """
     This function generates the complete package of channel-level synthetic data we're looking for
 
     Args:
-        size_img (tuple): the dimensions of the image we wish to generate
-        cell_radius (int): the radius of each cell
-        nuc_radius (int): the radius of each nucleus
-        memb_diameter (int): the diameter of each membrane
-        nuc_cell_ids (list): a list of which cells we wish to generate nuclear signal for, if None assume just cell 1
-        memb_cell_ids (list): a list of which cells we wish to generate membrane signal for, if None assume just cell 2
-        nuc_signal_strength (int): defines the constant value we want to assign to nuclear signal
-        memb_signal_strength (int): defines the constant value we want to assign to membrane signal
-        nuc_uncertainty_length (int): will extend nuc_radius by specified length
-        memb_uncertainty_length (int) will extend memb_radius by specified length
+        size_img (tuple):
+            the dimensions of the image we wish to generate
+        cell_radius (int):
+            the radius of each cell
+        nuc_radius (int):
+            the radius of each nucleus
+        memb_thickness (int):
+            the thickness of each membrane
+        nuc_cell_ids (list):
+            a list of which cells we wish to generate nuclear signal for, if None assume just
+            cell 1
+        memb_cell_ids (list):
+            a list of which cells we wish to generate membrane signal for, if None assume just
+            cell 2
+        nuc_signal_strength (int):
+            defines the constant value we want to assign to nuclear signal
+        memb_signal_strength (int):
+            defines the constant value we want to assign to membrane signal
+        nuc_uncertainty_length (int):
+            will extend nuc_radius by specified length
+        memb_uncertainty_length (int):
+            will extend memb_radius by specified length
 
     Returns:
-        sample_segmentation_mask (numpy): an array which contains the labeled cell regions
-        sample_nuclear_signal (numpy): defines the nuclear signal for the desired cells
-        sample_membrane_signal (numpy): defines the membrane signal for the desired cells
+        tuple (numpy.ndarray, numpy.ndarray, numpy.ndarray):
+            - an array with the labeled cell regions
+            - an array defining the nuclear signal for the desired cells
+            - an array defining the membrane signal for the desired cells
     """
 
     # generate the segmentation mask
-    sample_segmentation_mask, sample_cell_centers = generate_two_cell_test_segmentation_mask(size_img=size_img, cell_radius=cell_radius)
+    sample_segmentation_mask, sample_cell_centers = generate_two_cell_test_segmentation_mask(
+        size_img=size_img,
+        cell_radius=cell_radius
+    )
 
     # generate the nuclear and membrane-level signal
-    sample_nuclear_signal = generate_two_cell_test_nuclear_signal(segmentation_mask=sample_segmentation_mask,
-                                                                  cell_centers=sample_cell_centers,
-                                                                  size_img=size_img,
-                                                                  nuc_cell_ids=nuc_cell_ids,
-                                                                  nuc_radius=nuc_radius,
-                                                                  nuc_signal_strength=nuc_signal_strength,
-                                                                  nuc_uncertainty_length=nuc_uncertainty_length)
-    sample_membrane_signal = generate_two_cell_test_membrane_signal(segmentation_mask=sample_segmentation_mask,
-                                                                    cell_centers=sample_cell_centers,
-                                                                    size_img=size_img,
-                                                                    cell_radius=cell_radius,
-                                                                    memb_cell_ids=memb_cell_ids,
-                                                                    memb_thickness=memb_thickness,
-                                                                    memb_signal_strength=memb_signal_strength,
-                                                                    memb_uncertainty_length=memb_uncertainty_length)
+    sample_nuclear_signal = generate_two_cell_test_nuclear_signal(
+        segmentation_mask=sample_segmentation_mask,
+        cell_centers=sample_cell_centers,
+        size_img=size_img,
+        nuc_cell_ids=nuc_cell_ids,
+        nuc_radius=nuc_radius,
+        nuc_signal_strength=nuc_signal_strength,
+        nuc_uncertainty_length=nuc_uncertainty_length
+    )
+    sample_membrane_signal = generate_two_cell_test_membrane_signal(
+        segmentation_mask=sample_segmentation_mask,
+        cell_centers=sample_cell_centers,
+        size_img=size_img,
+        cell_radius=cell_radius,
+        memb_cell_ids=memb_cell_ids,
+        memb_thickness=memb_thickness,
+        memb_signal_strength=memb_signal_strength,
+        memb_uncertainty_length=memb_uncertainty_length)
 
     # generate the channel data matrix
     sample_channel_data = np.zeros((size_img[0], size_img[1], 2))
