@@ -1,23 +1,21 @@
 import os
 import copy
-
+import warnings
 import numpy as np
 import pandas as pd
-
+import skimage.io as io
 from skimage.measure import regionprops_table
 
-from ark.utils import io_utils
+from ark.utils import plot_utils, io_utils
 
 
 def find_nuclear_mask_id(nuc_segmentation_mask, cell_coords):
     """Get the ID of the nuclear mask which has the greatest amount of overlap with a given cell
-
     Args:
         nuc_segmentation_mask (numpy.ndarray):
             label mask of nuclear segmentations
         cell_coords (list):
             list of coords specifying pixels that belong to a cell
-
     Returns:
         int or None:
             Integer ID of the nuclear mask that overlaps most with cell.
@@ -37,7 +35,6 @@ def find_nuclear_mask_id(nuc_segmentation_mask, cell_coords):
 
 def split_large_nuclei(cell_segmentation_mask, nuc_segmentation_mask, cell_ids):
     """Splits nuclei that are bigger than the corresponding cell into multiple pieces
-
     Args:
         cell_segmentation_mask (numpy.ndarray):
             mask of cell segmentations
@@ -45,7 +42,6 @@ def split_large_nuclei(cell_segmentation_mask, nuc_segmentation_mask, cell_ids):
             mask of nuclear segmentations
         cell_ids (numpy.ndarray):
             the unique cells in the segmentation mask
-
     Returns:
         numpy.ndarray:
             modified nuclear segmentation mask
@@ -84,7 +80,6 @@ def split_large_nuclei(cell_segmentation_mask, nuc_segmentation_mask, cell_ids):
 
 def transform_expression_matrix(cell_data, transform, transform_kwargs=None):
     """Transform an xarray of marker counts with supplied transformation
-
     Args:
         cell_data (xarray.DataArray):
             xarray containing marker expression values
@@ -92,7 +87,6 @@ def transform_expression_matrix(cell_data, transform, transform_kwargs=None):
             the type of transform to apply. Must be one of ['size_norm', 'arcsinh']
         transform_kwargs (dict):
             optional dictionary with additional settings for the transforms
-
     Returns:
         xarray.DataArray:
             xarray of counts per marker normalized by cell size
@@ -143,9 +137,7 @@ def transform_expression_matrix(cell_data, transform, transform_kwargs=None):
 def concatenate_csv(base_dir, csv_files, column_name="point", column_values=None):
     """Take a list of CSV paths and concatenates them together,
     adding in the identifier in column_values
-
     Saves combined CSV file into the same folder
-
     Args:
         base_dir (str):
             directory to read and write csv_files into
@@ -176,3 +168,44 @@ def concatenate_csv(base_dir, csv_files, column_name="point", column_values=None
             combined_data = pd.concat((combined_data, temp_data), axis=0, ignore_index=True)
 
     combined_data.to_csv(os.path.join(base_dir, "combined_data.csv"), index=False)
+
+
+def visualize_segmentation(segmentation_labels_xr, channel_data_xr,
+                           output_dir, chan_list=None, fovs=None):
+    """For each fov, generates segmentation labels, segmentation borders, and overlays
+    over the channels in chan_list if chan_list is provided.
+    Saves overlay images to output directory
+    Args:
+        segmentation_labels_xr (xarray.DataArray):
+            xarray containing segmentation labels
+        channel_data_xr (xarray.DataArray):
+            xarray containing TIFs
+        output_dir (str):
+            path to directory where the output will be saved
+        chan_list (list):
+            list of channels to overlay segmentation output over
+        fovs (numpy.ndarray):
+            field of view
+    """
+
+    if fovs is None:
+        fovs = segmentation_labels_xr.fovs
+    for fov in fovs:
+        labels = segmentation_labels_xr.loc[fov, :, :, 'whole_cell'].values
+        # If chan_list is provided, overlay segmentation output over it
+        if chan_list is not None:
+            input_data = channel_data_xr.loc[fov, :, :, chan_list].values
+            save_path = '_'.join([f'{fov}', *chan_list.astype('str'), 'overlay.tiff'])
+            plot_utils.plot_overlay(
+                labels,
+                plotting_tif=input_data,
+                path=os.path.join(output_dir, save_path)
+            )
+        # Adds overlay to segmentation visualization
+        plot_utils.plot_overlay(
+            labels,
+            plotting_tif=None,
+            path=os.path.join(output_dir, f'{fov}_segmentation_borders.tiff')
+        )
+        io.imsave(os.path.join(output_dir, f'{fov}_segmentation_labels.tiff'), labels)
+       
