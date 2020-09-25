@@ -54,9 +54,7 @@ def generate_test_dist_matrix(num_A=100, num_B=100, num_C=100,
         np.random.seed(seed)
 
     # we initialize the random distances across different types of points
-    # note that we don't really care about aa, bb, bc, or cc, so we
-    # initialize those to garbage. We do need them for a proper
-    # distance matrix format, however.
+    # completely randomize aa, ac, bb, bc, and cc distances, use params for ab distances
     random_aa = np.abs(np.random.normal(mean_random, var_random, (num_A, num_A)))
     random_ab = np.abs(np.random.normal(mean_ab, var_ab, (num_A, num_B)))
     random_ac = np.abs(np.random.normal(mean_random, var_random, (num_A, num_C)))
@@ -64,27 +62,24 @@ def generate_test_dist_matrix(num_A=100, num_B=100, num_C=100,
     random_bc = np.abs(np.random.normal(mean_random, var_random, (num_B, num_C)))
     random_cc = np.abs(np.random.normal(mean_random, var_random, (num_C, num_C)))
 
-    # create each partition one-by-one first
-    # we need to correct each aa, bb, and cc matrix to ensure symmetry
+    # create each partition one-by-one first and ensure symmetry
     a_partition = np.concatenate(((random_aa + random_aa.T) / 2, random_ab, random_ac), axis=1)
     b_partition = np.concatenate((random_ab.T, (random_bb + random_bb.T) / 2, random_bc), axis=1)
     c_partition = np.concatenate((random_ac.T, random_bc.T, (random_cc + random_cc.T) / 2), axis=1)
 
-    # then concatenate them together
+    # concatenate partitions together
     dist_mat = np.concatenate((a_partition, b_partition, c_partition), axis=0)
 
-    # finally, fill the diagonals with 0 to ensure a proper distance matrix
+    # ensure a proper dist mat
     np.fill_diagonal(dist_mat, 0)
 
-    # now we're going to add some random permutation to our distance matrix
-    # we have to do it this way because we cannot assume that our cells will
-    # be labeled in-order
+    # randomly permute dist_mat to make more realistic
     coords_in_order = np.arange(dist_mat.shape[0])
     coords_permuted = deepcopy(coords_in_order)
     np.random.shuffle(coords_permuted)
     dist_mat = dist_mat[np.ix_(coords_permuted, coords_permuted)]
 
-    # # we have to 1-index coords because people will be labeling their cells 1-indexed
+    # 1-index coords because that's where cell labels start at
     coords_dist_mat = [coords_permuted + 1, coords_permuted + 1]
     dist_mat = xr.DataArray(dist_mat, coords=coords_dist_mat)
 
@@ -131,7 +126,7 @@ def generate_random_centroids(size_img=(1024, 1024), num_A=100, num_B=100, num_C
             List of non-duplicated cell centroids.
     """
 
-    # extract the height and width
+    # extract different variable factors
     height = size_img[0]
     width = size_img[1]
 
@@ -148,32 +143,25 @@ def generate_random_centroids(size_img=(1024, 1024), num_A=100, num_B=100, num_C
     if seed:
         np.random.seed(seed)
 
-    # use the multivariate_normal distribution to generate the points
-    # because we're passing these into skimage.measure.label, it is important
-    # that we convert these to integers beforehand
-    # since label only takes a binary matrix
+    # use the multivariate_normal distribution, convert to int for label mat generation
     a_points = np.random.multivariate_normal(a_mean, a_cov, num_A).astype(np.int16)
     b_points = np.random.multivariate_normal(b_mean, b_cov, num_B).astype(np.int16)
     c_points = np.random.multivariate_normal(c_mean, c_cov, num_C).astype(np.int16)
 
-    # combine the points together into one list
+    # combine points
     total_points = np.concatenate((a_points, b_points, c_points), axis=0)
 
-    # remove points with negative values since they're out of range
+    # remote out-of-range points
     total_points = total_points[
         np.logical_and(total_points[:, 0] >= 0, total_points[:, 1] >= 0), :]
-
-    # remove points with values greater than the size_img dimensions since they're out of range
     total_points = total_points[
         np.logical_and(total_points[:, 0] < size_img[0], total_points[:, 1] < size_img[1]), :]
 
-    # this ensures that we only keep the points that are not duplicate across different cell types
+    # only keep the non-duplicate points
     non_dup_points, non_dup_counts = np.unique(total_points, axis=0, return_counts=True)
     total_points = non_dup_points[non_dup_counts == 1]
 
-    # this we need because np.unique automatically sorts by ascending coordinate
-    # but we want more randomization because this forms the basis of generate_test_label_map
-    # which is passed into calc_dist_matrix which cannot assume a sequentially-labelled xarray
+    # randomly permute order to make more realistic
     total_points = total_points[np.random.permutation(total_points.shape[0]), :]
 
     return total_points
@@ -225,7 +213,7 @@ def generate_test_label_map(size_img=(1024, 1024), num_A=100, num_B=100, num_C=1
             closer to those of type b than they are to those of type c.
     """
 
-    # generate the list of centroids and zip them into x and y coords
+    # generate the list of centroids
     all_centroids = \
         generate_random_centroids(size_img=size_img, num_A=num_A, num_B=num_B, num_C=num_C,
                                   mean_A_factor=mean_A_factor, cov_A=cov_A,
@@ -235,16 +223,12 @@ def generate_test_label_map(size_img=(1024, 1024), num_A=100, num_B=100, num_C=1
 
     point_x_coords, point_y_coords = zip(*all_centroids)
 
-    # generate the label matrix for the image
-    # doing it this way because using the label function in skimage does so based on
-    # connected components and that messes up the regionprops call in calc_dist_matrix
-    # we don't want to assume that we won't get points of distance 1 away from each other
-    # so we can just use the labels generated from centroid_indices to assign this
+    # assign each centroid a unique label
     centroid_indices = np.arange(len(all_centroids))
     label_mat = np.zeros(size_img)
     label_mat[point_x_coords, point_y_coords] = centroid_indices + 1
 
-    # now generate the sample xarray
+    # generate label mat
     sample_img = np.zeros((1, size_img[0], size_img[1], 1)).astype(np.int16)
     sample_img[0, :, :, 0] = deepcopy(label_mat)
     sample_img_xr = xr.DataArray(
@@ -253,11 +237,10 @@ def generate_test_label_map(size_img=(1024, 1024), num_A=100, num_B=100, num_C=1
         dims=['fovs', 'rows', 'cols', 'channels']
     )
 
-    # and return the xarray to pass into calc_dist_matrix, plus the centroid_indices to readjust it
     return sample_img_xr
 
 
-def generate_two_cell_test_segmentation_mask(size_img=(1024, 1024), cell_radius=10):
+def generate_two_cell_seg_mask(size_img=(1024, 1024), cell_radius=10):
     """
     This function generates a test segmentation mask with each separate cell labeled separately.
 
@@ -275,8 +258,7 @@ def generate_two_cell_test_segmentation_mask(size_img=(1024, 1024), cell_radius=
     # define the segmentation mask
     sample_segmentation_mask = np.zeros(size_img)
 
-    # define the centers of the cells, need to subtract 1 from center 2 because of how
-    # the circle function in skimage.draw works
+    # define the centers of the cells
     center_1 = (size_img[0] // 2, size_img[0] // 2)
     center_2 = (size_img[0] // 2, size_img[0] // 2 + cell_radius * 2 - 1)
 
@@ -286,22 +268,20 @@ def generate_two_cell_test_segmentation_mask(size_img=(1024, 1024), cell_radius=
     cell_region_2_x, cell_region_2_y = circle(center_2[0], center_2[1], cell_radius,
                                               shape=size_img)
 
-    # now assign the respective cells value according to their label
+    # assign the respective cells value according to their label
     sample_segmentation_mask[cell_region_1_x, cell_region_1_y] = 1
     sample_segmentation_mask[cell_region_2_x, cell_region_2_y] = 2
 
-    # we should define this dictionary to make it easy to index into the centers of each cell
-    # once we have to generate nuclear and membrane-level signal
-    # may need to change this to a different, immutable datatype
+    # store the centers and return for reference purposes
     cell_centers = {1: center_1, 2: center_2}
 
     return sample_segmentation_mask, cell_centers
 
 
-def generate_two_cell_test_nuclear_signal(segmentation_mask, cell_centers,
-                                          size_img=(1024, 1024), nuc_cell_ids=[1],
-                                          nuc_radius=3, nuc_signal_strength=10,
-                                          nuc_uncertainty_length=0):
+def generate_two_cell_nuc_signal(segmentation_mask, cell_centers,
+                                 size_img=(1024, 1024), nuc_cell_ids=[1],
+                                 nuc_radius=3, nuc_signal_strength=10,
+                                 nuc_uncertainty_length=0):
     """
     This function generates nuclear signal for the provided cells
 
@@ -333,23 +313,22 @@ def generate_two_cell_test_nuclear_signal(segmentation_mask, cell_centers,
     for cell in nuc_cell_ids:
         center = cell_centers[cell]
 
-        # generate the nuclear region in the middle of the cell with the same cell center
-        # and set signal to a uniform value
+        # generate nuclear region
         nuc_region_x, nuc_region_y = circle(center[0], center[1],
                                             nuc_radius + nuc_uncertainty_length, shape=size_img)
 
+        # set nuclear signal
         sample_nuclear_signal[nuc_region_x, nuc_region_y] = nuc_signal_strength
 
-        # let's keep things simple for now and not include jitter or anything
-        # that can easily be included in the next commit
+        # TODO: include jitter (probably after context-spatial randomization is done)
 
     return sample_nuclear_signal
 
 
-def generate_two_cell_test_membrane_signal(segmentation_mask, cell_centers,
-                                           size_img=(1024, 1024), cell_radius=10,
-                                           memb_cell_ids=[2], memb_thickness=5,
-                                           memb_signal_strength=10, memb_uncertainty_length=0):
+def generate_two_cell_memb_signal(segmentation_mask, cell_centers,
+                                  size_img=(1024, 1024), cell_radius=10,
+                                  memb_cell_ids=[2], memb_thickness=5,
+                                  memb_signal_strength=10, memb_uncertainty_length=0):
     """
     This function generates membrane signal for the provided cells
 
@@ -384,32 +363,31 @@ def generate_two_cell_test_membrane_signal(segmentation_mask, cell_centers,
     for cell in memb_cell_ids:
         center = cell_centers[cell]
 
-        # generate both the coordinates of the cell region and non-membrane region
-        # for proper circle subtraction to generate membrane
+        # generate coordinates of the cell region
         cell_region_x, cell_region_y = circle(center[0], center[1],
                                               cell_radius + memb_uncertainty_length,
                                               shape=size_img)
 
+        # generate coordinates of the non-membrane region
         non_memb_region_x, non_memb_region_y = circle(center[0], center[1],
                                                       cell_radius - memb_thickness,
                                                       shape=size_img)
 
-        # perform circle subtraction
+        # perform circle subtraction to generate membrane region
         sample_membrane_signal[cell_region_x, cell_region_y] = memb_signal_strength
         sample_membrane_signal[non_memb_region_x, non_memb_region_y] = 0
 
-        # let's keep things simple for now and not include jitter or anything
-        # that can easily be included in the next commit
+        # TODO: include jitter (probably after context-spatial randomization is done)
 
     return sample_membrane_signal
 
 
-def generate_two_cell_test_channel_synthetic_data(size_img=(1024, 1024), cell_radius=10,
-                                                  nuc_radius=3, memb_thickness=5, nuc_cell_ids=[1],
-                                                  memb_cell_ids=[2], nuc_signal_strength=10,
-                                                  memb_signal_strength=10,
-                                                  nuc_uncertainty_length=0,
-                                                  memb_uncertainty_length=0):
+def generate_two_cell_chan_data(size_img=(1024, 1024), cell_radius=10,
+                                nuc_radius=3, memb_thickness=5, nuc_cell_ids=[1],
+                                memb_cell_ids=[2], nuc_signal_strength=10,
+                                memb_signal_strength=10,
+                                nuc_uncertainty_length=0,
+                                memb_uncertainty_length=0):
     """
     This function generates the complete package of channel-level synthetic data we're looking for
 
@@ -439,19 +417,20 @@ def generate_two_cell_test_channel_synthetic_data(size_img=(1024, 1024), cell_ra
 
     Returns:
         tuple (numpy.ndarray, numpy.ndarray, numpy.ndarray):
-            - an array with the labeled cell regions
-            - an array defining the nuclear signal for the desired cells
-            - an array defining the membrane signal for the desired cells
+
+        - an array with the labeled cell regions
+        - an array defining the nuclear signal for the desired cells
+        - an array defining the membrane signal for the desired cells
     """
 
     # generate the segmentation mask
-    sample_segmentation_mask, sample_cell_centers = generate_two_cell_test_segmentation_mask(
+    sample_segmentation_mask, sample_cell_centers = generate_two_cell_seg_mask(
         size_img=size_img,
         cell_radius=cell_radius
     )
 
     # generate the nuclear and membrane-level signal
-    sample_nuclear_signal = generate_two_cell_test_nuclear_signal(
+    sample_nuclear_signal = generate_two_cell_nuc_signal(
         segmentation_mask=sample_segmentation_mask,
         cell_centers=sample_cell_centers,
         size_img=size_img,
@@ -460,7 +439,8 @@ def generate_two_cell_test_channel_synthetic_data(size_img=(1024, 1024), cell_ra
         nuc_signal_strength=nuc_signal_strength,
         nuc_uncertainty_length=nuc_uncertainty_length
     )
-    sample_membrane_signal = generate_two_cell_test_membrane_signal(
+
+    sample_membrane_signal = generate_two_cell_memb_signal(
         segmentation_mask=sample_segmentation_mask,
         cell_centers=sample_cell_centers,
         size_img=size_img,
