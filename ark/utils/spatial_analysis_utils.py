@@ -116,7 +116,7 @@ def get_pos_cell_labels_cluster(pheno, current_fov_neighborhood_data,
 def compute_close_cell_num(dist_mat, dist_lim, analysis_type,
                            current_fov_data=None, current_fov_channel_data=None,
                            cell_types_analyze=None, thresh_vec=None,
-                           cell_label_col="cellLabelInImage", cell_type_col="FlowSOM_ID"):
+                           cell_label_col="cellLabelInImage", cluster_id_col="FlowSOM_ID"):
     """Finds positive cell labels and creates matrix with counts for cells positive for
     corresponding markers. Computes close_num matrix for both Cell Label and Threshold spatial
     analyses.
@@ -142,10 +142,10 @@ def compute_close_cell_num(dist_mat, dist_lim, analysis_type,
             a list of the cell types we wish to analyze, if None we set it equal to all cell types
         thresh_vec (numpy.ndarray):
             matrix of thresholds column for markers
-        cluster_id_col (str):
-            column with the cell phenotype IDs. Default is 'FlowSOM_ID'
         cell_label_col (str):
             column with the cell labels. Default is 'cellLabelInImage'
+        cluster_id_col (str):
+            column with the cell phenotype IDs. Default is 'FlowSOM_ID'
 
     Returns:
         numpy.ndarray:
@@ -167,7 +167,7 @@ def compute_close_cell_num(dist_mat, dist_lim, analysis_type,
         cell_labels = current_fov_data[cell_label_col]
     else:
         # Generate the cluster ids for cluster enrichment
-        cluster_ids = current_fov_data[cell_type_col].drop_duplicates().values
+        cluster_ids = current_fov_data[cluster_id_col].drop_duplicates().values
 
     # assign the dimension of close_num respective to type of analysis
     if analysis_type == "channel":
@@ -192,7 +192,7 @@ def compute_close_cell_num(dist_mat, dist_lim, analysis_type,
                 get_pos_cell_labels_cluster(pheno=cluster_ids[j],
                                             current_fov_neighborhood_data=current_fov_data,
                                             cell_label_col=cell_label_col,
-                                            cell_type_col=cell_type_col))
+                                            cell_type_col=cluster_id_col))
         else:
             mark1poslabels.append(
                 get_pos_cell_labels_channel(thresh=thresh_vec[j],
