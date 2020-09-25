@@ -199,11 +199,10 @@ def test_compute_close_cell_num():
 
     # now, test for cluster enrichment
     all_data, example_dist_mat = make_example_data_closenum()
-    cluster_ids = all_data.iloc[:, 31].drop_duplicates().values
 
     example_closenum, m1, _ = spatial_analysis_utils.compute_close_cell_num(
         dist_mat=example_dist_mat, dist_lim=100, analysis_type="cluster",
-        current_fov_data=all_data, cluster_ids=cluster_ids)
+        current_fov_data=all_data)
 
     assert example_closenum[0, 0] == 16
     assert example_closenum[1, 1] == 25

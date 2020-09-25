@@ -194,7 +194,7 @@ def calculate_cluster_spatial_enrichment(all_data, dist_matrices_dict, included_
         # Get close_num and close_num_rand
         close_num, pheno_nums, pheno_nums_per_id = spatial_analysis_utils.compute_close_cell_num(
             dist_mat=dist_mat, dist_lim=dist_lim, analysis_type="cluster",
-            current_fov_data=current_fov_pheno_data, cluster_ids=cluster_ids)
+            current_fov_data=current_fov_pheno_data)
 
         close_num_rand = spatial_analysis_utils.compute_close_cell_num_random(
             pheno_nums, dist_mat, dist_lim, bootstrap_num)
