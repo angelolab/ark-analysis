@@ -30,7 +30,6 @@ def center_weighting_extraction(cell_coords, image_data, centroid):
     center.
 
     Improves upon default extraction by including a level of certainty/uncertainty.
-    cell_coords and centroid are computed from regionprops prior to calling the function
 
     Args:
         cell_coords (numpy.ndarray):
