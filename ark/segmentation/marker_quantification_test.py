@@ -10,8 +10,7 @@ from ark.segmentation import marker_quantification
 from ark.utils import test_utils
 
 
-def test_compute_marker_counts():
-
+def test_compute_marker_counts_base():
     cell_mask, channel_data = test_utils.create_test_extraction_data()
 
     segmentation_masks = test_utils.make_labels_xarray(label_data=cell_mask,
@@ -55,14 +54,23 @@ def test_compute_marker_counts():
     assert np.array_equal(segmentation_output.loc['whole_cell', :, 'cell_size'],
                           segmentation_output.loc['whole_cell', :, 'area'])
 
+
+def test_compute_marker_counts_equal_masks():
+    cell_mask, channel_data = test_utils.create_test_extraction_data()
+
+    segmentation_masks = test_utils.make_labels_xarray(label_data=cell_mask,
+                                                       compartment_names=['whole_cell'])
+
     # test whole_cell and nuclear compartments with same data
     segmentation_masks_equal = test_utils.make_labels_xarray(
         label_data=np.concatenate((cell_mask, cell_mask), axis=-1),
         compartment_names=['whole_cell', 'nuclear']
     )
 
+    input_images = test_utils.make_images_xarray(channel_data)
+
     # test utils output is 4D but tests require 3D
-    segmentation_masks_equal = segmentation_masks_equal[0]
+    segmentation_masks_equal, input_images = segmentation_masks_equal[0], input_images[0]
 
     segmentation_output_equal = \
         marker_quantification.compute_marker_counts(input_images=input_images,
@@ -71,7 +79,9 @@ def test_compute_marker_counts():
 
     assert np.all(segmentation_output_equal[0].values == segmentation_output_equal[1].values)
 
-    # test with different sized nuclear and whole_cell masks
+
+def test_compute_marker_counts_nuc_whole_cell_diff():
+    cell_mask, channel_data = test_utils.create_test_extraction_data()
 
     # nuclear mask is smaller
     nuc_mask = \
@@ -84,8 +94,10 @@ def test_compute_marker_counts():
         compartment_names=['whole_cell', 'nuclear']
     )
 
+    input_images = test_utils.make_images_xarray(channel_data)
+
     # test utils output is 4D but tests require 3D
-    segmentation_masks_unequal = segmentation_masks_unequal[0]
+    segmentation_masks_unequal, input_images = segmentation_masks_unequal[0], input_images[0]
 
     segmentation_output_unequal = \
         marker_quantification.compute_marker_counts(input_images=input_images,
@@ -124,9 +136,27 @@ def test_compute_marker_counts():
     assert np.array_equal(segmentation_output_unequal.loc['nuclear', :, 'cell_size'],
                           segmentation_output_unequal.loc['nuclear', :, 'area'])
 
+
+def test_compute_marker_counts_diff_props():
+    cell_mask, channel_data = test_utils.create_test_extraction_data()
+
+    segmentation_masks = test_utils.make_labels_xarray(label_data=cell_mask,
+                                                       compartment_names=['whole_cell'])
+
+    # test whole_cell and nuclear compartments with same data
+    segmentation_masks_equal = test_utils.make_labels_xarray(
+        label_data=np.concatenate((cell_mask, cell_mask), axis=-1),
+        compartment_names=['whole_cell', 'nuclear']
+    )
+
+    input_images = test_utils.make_images_xarray(channel_data)
+
+    segmentation_masks_equal, input_images = segmentation_masks_equal[0], input_images[0]
+
     # different object properties can be supplied
     regionprops_features = ['label', 'area']
     excluded_defaults = ['eccentricity']
+
     segmentation_output_specified = \
         marker_quantification.compute_marker_counts(input_images=input_images,
                                                     segmentation_masks=segmentation_masks_equal,
@@ -148,7 +178,7 @@ def test_compute_marker_counts():
     assert np.all(segmentation_output_specified_split == segmentation_output_specified)
 
 
-def test_create_marker_count_matrices():
+def test_create_marker_count_matrices_base():
 
     cell_mask, channel_data = test_utils.create_test_extraction_data()
 
@@ -237,10 +267,8 @@ def test_create_marker_count_matrices_multiple_compartments():
     assert np.array_equal(normalized_with_nuc['label'] * 2, normalized_with_nuc['label_nuclear'])
 
 
-def test_generate_segmentation_marker_counts():
-
-    # checks if the tree loading is being called correctly when is_mibitiff is False
-    # save the actual expression matrix and data loding tests for their respective test functions
+def test_generate_segmentation_marker_counts_tree_loading():
+    # is_mibitiff False case, load from directory tree
     with tempfile.TemporaryDirectory() as temp_dir:
         # define 3 FOVs and 3 imgs per FOV
         fovs, chans = test_utils.gen_fov_chan_names(3, 3)
@@ -274,11 +302,8 @@ def test_generate_segmentation_marker_counts():
             compartment_names=['whole_cell']
         )
 
-        # checks that a ValueError is thrown when the user tries to specify points that are not
-        # in the original segmentation mask
         with pytest.raises(ValueError):
-            # generate a segmentation array with 1 FOV
-
+            # specifying points not in the original segmentation mask
             marker_quantification.generate_segmentation_marker_counts(
                 segmentation_labels=segmentation_masks.loc[["Point1"]], tiff_dir=tiff_dir,
                 img_sub_folder=img_sub_folder, is_mibitiff=False, points=["Point1", "Point2"],
@@ -300,8 +325,9 @@ def test_generate_segmentation_marker_counts():
         assert norm_data.shape[0] > 0 and norm_data.shape[1] > 0
         assert arcsinh_data.shape[0] > 0 and arcsinh_data.shape[1] > 0
 
-    # checks if the loading is being called correctly when is_mibitiff is True
-    # save the actual expression matrix and data loding tests for their respective test functions
+
+def test_generate_segmentation_marker_counts_mibitiff_loading():
+    # is_mibitiff True case, load from mibitiff file structure
     with tempfile.TemporaryDirectory() as temp_dir:
         # define 3 FOVs and 2 mibitiff_imgs
         fovs, channels = test_utils.gen_fov_chan_names(3, 2)
@@ -335,7 +361,7 @@ def test_generate_segmentation_marker_counts():
         # generate sample norm and arcsinh data for all points
         norm_data, arcsinh_data = marker_quantification.generate_segmentation_marker_counts(
             segmentation_labels=segmentation_masks, tiff_dir=tiff_dir,
-            img_sub_folder=img_sub_folder, is_mibitiff=True, points=None, batch_size=2)
+            img_sub_folder=tiff_dir, is_mibitiff=True, points=None, batch_size=2)
 
         assert norm_data.shape[0] > 0 and norm_data.shape[1] > 0
         assert arcsinh_data.shape[0] > 0 and arcsinh_data.shape[1] > 0
@@ -343,7 +369,7 @@ def test_generate_segmentation_marker_counts():
         # generate sample norm and arcsinh data for a subset of points
         norm_data, arcsinh_data = marker_quantification.generate_segmentation_marker_counts(
             segmentation_labels=segmentation_masks, tiff_dir=tiff_dir,
-            img_sub_folder=img_sub_folder, is_mibitiff=True, points=fovs_subset, batch_size=2)
+            img_sub_folder=tiff_dir, is_mibitiff=True, points=fovs_subset, batch_size=2)
 
         assert norm_data.shape[0] > 0 and norm_data.shape[1] > 0
         assert arcsinh_data.shape[0] > 0 and arcsinh_data.shape[1] > 0
