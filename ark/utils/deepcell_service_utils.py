@@ -15,31 +15,26 @@ def create_deepcell_output(deepcell_input_dir, points, deepcell_output_dir,
         and extracts zipped output files to the specified output location
 
         Args:
-            points (list):              List of points in preprocessing pipeline
-
-            deepcell_input_dir (str):   Location of preprocessed files
-                                        (assume deepcell_input_dir contains <point>.tif
-                                        for each point in points list)
-
-            suffix (str):               Suffix for DeepCell output filename. e.g. for pointX,
-                                        DeepCell output should be <pointX>+suffix.tif.
-                                        Default: '_feature_0'
-
-            deepcell_output_dir (str):  Location to save DeepCell output (as .tif)
-
-            host (str):                 Hostname and port for the kiosk-frontend API server
-                                        Default: 'https://deepcell.org'
-
-            job_type (str):             Name of job workflow (multiplex, segmentation, tracking)
-                                        Default: 'multiplex'
-
-        Output:
-            Writes DeepCell service .tif output to output_dir
+            points (list):
+                List of points in preprocessing pipeline
+            deepcell_input_dir (str):
+                Location of preprocessed files (assume deepcell_input_dir contains <point>.tif
+                for each point in points list)
+            suffix (str):
+                Suffix for DeepCell output filename. e.g. for pointX, DeepCell output
+                should be <pointX>+suffix.tif. Default: '_feature_0'
+            deepcell_output_dir (str):
+                Location to save DeepCell output (as .tif)
+            host (str):
+                Hostname and port for the kiosk-frontend API server
+                Default: 'https://deepcell.org'
+            job_type (str):
+                Name of job workflow (multiplex, segmentation, tracking)
+                Default: 'multiplex'
 
         Raises:
-            ValueError:                 Raised if there is some point X (from points list) s.t.
-                                        the file <deepcell_input_dir>/PointX.tif does not exist
-
+            ValueError: Raised if there is some point X (from points list) s.t.
+            the file <deepcell_input_dir>/PointX.tif does not exist
         """
 
     zip_path = os.path.join(deepcell_input_dir, 'points.zip')
@@ -73,18 +68,16 @@ def run_deepcell_task(input_dir, output_dir, host='https://deepcell.org',
         (https://github.com/vanvalenlab/kiosk-client)
 
         Args:
-            input_dir: location of .zip files
-
-            output_dir: location to save deepcell output (as .zip)
-
-            host: Hostname and port for the kiosk-frontend API server.
-                  Default: 'https://deepcell.org'
-
-            job_type: Name of job workflow (multiplex, segmentation, tracking).
-                      Default: 'multiplex'
-        Output:
-            Writes DeepCell service .zip output to output_dir
-
+            input_dir (str):
+                location of .zip files
+            output_dir (str):
+                location to save deepcell output (as .zip)
+            host (str):
+                Hostname and port for the kiosk-frontend API server.
+                Default: 'https://deepcell.org'
+            job_type (str):
+                Name of job workflow (multiplex, segmentation, tracking).
+                Default: 'multiplex'
         """
 
     # more configuration parameters can be set. https://github.com/vanvalenlab/kiosk-client
