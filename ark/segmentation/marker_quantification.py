@@ -239,8 +239,9 @@ def generate_cell_data(segmentation_labels, tiff_dir, img_sub_folder,
 
     Returns:
         tuple (pandas.DataFrame, pandas.DataFrame):
-            - size normalized data
-            - arcsinh transformed data
+
+        - size normalized data
+        - arcsinh transformed data
     """
 
     # if no points are specified, then load all the points
