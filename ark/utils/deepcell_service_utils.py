@@ -31,10 +31,10 @@ def create_deepcell_output(deepcell_input_dir, points, deepcell_output_dir,
             job_type (str):
                 Name of job workflow (multiplex, segmentation, tracking)
                 Default: 'multiplex'
-
         Raises:
-            ValueError: Raised if there is some point X (from points list) s.t.
-            the file <deepcell_input_dir>/PointX.tif does not exist
+            ValueError:
+                Raised if there is some point X (from points list) s.t.
+                the file <deepcell_input_dir>/PointX.tif does not exist
         """
 
     zip_path = os.path.join(deepcell_input_dir, 'points.zip')
