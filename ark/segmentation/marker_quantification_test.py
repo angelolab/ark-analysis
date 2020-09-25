@@ -267,7 +267,7 @@ def test_create_marker_count_matrices_multiple_compartments():
     assert np.array_equal(normalized_with_nuc['label'] * 2, normalized_with_nuc['label_nuclear'])
 
 
-def test_generate_segmentation_marker_counts_tree_loading():
+def test_generate_cell_data_tree_loading():
     # is_mibitiff False case, load from directory tree
     with tempfile.TemporaryDirectory() as temp_dir:
         # define 3 FOVs and 3 imgs per FOV
@@ -304,13 +304,13 @@ def test_generate_segmentation_marker_counts_tree_loading():
 
         with pytest.raises(ValueError):
             # specifying points not in the original segmentation mask
-            marker_quantification.generate_segmentation_marker_counts(
+            marker_quantification.generate_cell_data(
                 segmentation_labels=segmentation_masks.loc[["Point1"]], tiff_dir=tiff_dir,
                 img_sub_folder=img_sub_folder, is_mibitiff=False, points=["Point1", "Point2"],
                 batch_size=5)
 
         # generate sample norm and arcsinh data for all points
-        norm_data, arcsinh_data = marker_quantification.generate_segmentation_marker_counts(
+        norm_data, arcsinh_data = marker_quantification.generate_cell_data(
             segmentation_labels=segmentation_masks, tiff_dir=tiff_dir,
             img_sub_folder=img_sub_folder, is_mibitiff=False, points=None, batch_size=2)
 
@@ -318,7 +318,7 @@ def test_generate_segmentation_marker_counts_tree_loading():
         assert arcsinh_data.shape[0] > 0 and arcsinh_data.shape[1] > 0
 
         # generate sample norm and arcsinh data for a subset of points
-        norm_data, arcsinh_data = marker_quantification.generate_segmentation_marker_counts(
+        norm_data, arcsinh_data = marker_quantification.generate_cell_data(
             segmentation_labels=segmentation_masks, tiff_dir=tiff_dir,
             img_sub_folder=img_sub_folder, is_mibitiff=False, points=fovs_subset, batch_size=2)
 
@@ -326,7 +326,7 @@ def test_generate_segmentation_marker_counts_tree_loading():
         assert arcsinh_data.shape[0] > 0 and arcsinh_data.shape[1] > 0
 
 
-def test_generate_segmentation_marker_counts_mibitiff_loading():
+def test_generate_cell_data_mibitiff_loading():
     # is_mibitiff True case, load from mibitiff file structure
     with tempfile.TemporaryDirectory() as temp_dir:
         # define 3 FOVs and 2 mibitiff_imgs
@@ -359,7 +359,7 @@ def test_generate_segmentation_marker_counts_mibitiff_loading():
         )
 
         # generate sample norm and arcsinh data for all points
-        norm_data, arcsinh_data = marker_quantification.generate_segmentation_marker_counts(
+        norm_data, arcsinh_data = marker_quantification.generate_cell_data(
             segmentation_labels=segmentation_masks, tiff_dir=tiff_dir,
             img_sub_folder=tiff_dir, is_mibitiff=True, points=None, batch_size=2)
 
@@ -367,7 +367,7 @@ def test_generate_segmentation_marker_counts_mibitiff_loading():
         assert arcsinh_data.shape[0] > 0 and arcsinh_data.shape[1] > 0
 
         # generate sample norm and arcsinh data for a subset of points
-        norm_data, arcsinh_data = marker_quantification.generate_segmentation_marker_counts(
+        norm_data, arcsinh_data = marker_quantification.generate_cell_data(
             segmentation_labels=segmentation_masks, tiff_dir=tiff_dir,
             img_sub_folder=tiff_dir, is_mibitiff=True, points=fovs_subset, batch_size=2)
 

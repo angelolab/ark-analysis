@@ -216,8 +216,8 @@ def create_marker_count_matrices(segmentation_labels, image_data, nuclear_counts
     return normalized_data, arcsinh_data
 
 
-def generate_segmentation_marker_counts(segmentation_labels, tiff_dir, img_sub_folder,
-                                        is_mibitiff=False, points=None, batch_size=5):
+def generate_cell_data(segmentation_labels, tiff_dir, img_sub_folder,
+                       is_mibitiff=False, points=None, batch_size=5):
     """
     This function takes the segmented data and computes the expression matrices batch-wise
     while also validating inputs
