@@ -44,7 +44,7 @@ def create_deepcell_output(deepcell_input_dir, points, deepcell_output_dir,
 
     zip_path = os.path.join(deepcell_input_dir, 'points.zip')
     if os.path.isfile(zip_path):
-        warnings.warn(f'{zip_path} will be overwritten')
+        warnings.warn(f'{zip_path} will be overwritten.')
 
     with ZipFile(zip_path, 'w') as zipObj:
         for point in points:
