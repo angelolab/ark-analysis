@@ -65,6 +65,7 @@ def create_deepcell_output(deepcell_input_dir, points, deepcell_output_dir,
 def run_deepcell_task(input_dir, output_dir, host='https://deepcell.org',
                       job_type='multiplex'):
     """Uses kiosk-client to run DeepCell task and saves output to output_dir.
+        More configuration parameters can be set than those currently used.
         (https://github.com/vanvalenlab/kiosk-client)
 
         Args:
@@ -80,7 +81,6 @@ def run_deepcell_task(input_dir, output_dir, host='https://deepcell.org',
                 Default: 'multiplex'
         """
 
-    # more configuration parameters can be set. https://github.com/vanvalenlab/kiosk-client
     mgr_kwargs = {
         'host': host,
         'job_type': job_type,

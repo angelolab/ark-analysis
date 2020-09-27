@@ -14,8 +14,5 @@ statsmodels==0.11.1
 tables==3.6.1
 umap-learn==0.4.6
 xarray==0.12.3
-Twisted~=20.3.0
-pyOpenSSL
-service_identity
 kiosk-client>=0.8.0
 

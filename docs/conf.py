@@ -77,9 +77,6 @@ autodoc_mock_imports = ['h5py'
                         'tables',
                         'umap',
                         'xarray',
-                        'twisted',
-                        'pyopenssl',
-                        'service_identity',
                         'kiosk_client']
 
 # explicitly mock mibidata
