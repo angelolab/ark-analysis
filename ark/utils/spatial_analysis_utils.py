@@ -13,7 +13,7 @@ def calc_dist_matrix(label_maps, path=None):
 
     Args:
         label_maps (xarray.DataArray):
-            array with unique cells given unique pixel labels per fov
+            array of segmentation masks indexed by (fov, cell_id, cell_id, segmentation_label)
         path (str):
             path to save file. If None, then will directly return
     Returns:
@@ -115,7 +115,8 @@ def get_pos_cell_labels_cluster(pheno, current_fov_neighborhood_data,
 
 def compute_close_cell_num(dist_mat, dist_lim, analysis_type,
                            current_fov_data=None, current_fov_channel_data=None,
-                           cluster_ids=None, cell_types_analyze=None, thresh_vec=None):
+                           cluster_ids=None, cell_types_analyze=None, thresh_vec=None,
+                           cell_label_col="cellLabelInImage", cell_type_col="FlowSOM_ID"):
     """Finds positive cell labels and creates matrix with counts for cells positive for
     corresponding markers. Computes close_num matrix for both Cell Label and Threshold spatial
     analyses.
@@ -137,12 +138,16 @@ def compute_close_cell_num(dist_mat, dist_lim, analysis_type,
             data for specific patient in expression matrix
         current_fov_channel_data (pandas.DataFrame):
             data of only column markers for Channel Analysis
-        cluster_ids (pandas.DataFrame):
+        cluster_ids (numpy.ndarray):
             all the cell phenotypes in Cluster Analysis
         cell_types_analyze (list):
             a list of the cell types we wish to analyze, if None we set it equal to all cell types
         thresh_vec (numpy.ndarray):
             matrix of thresholds column for markers
+        cell_label_col (str):
+            the name of the column containing the cell labels
+        cell_type_col (str):
+            the name of the column containing the cell types
 
     Returns:
         numpy.ndarray:
@@ -157,10 +162,6 @@ def compute_close_cell_num(dist_mat, dist_lim, analysis_type,
     # Initialize variables
 
     cell_labels = []
-
-    # Assign column names for subsetting (cell labels and cell type ids)
-    cell_label_col = "cellLabelInImage"
-    cell_type_col = "FlowSOM_ID"
 
     # Subset data based on analysis type
     if analysis_type == "channel":
@@ -187,13 +188,13 @@ def compute_close_cell_num(dist_mat, dist_lim, analysis_type,
     for j in range(num):
         if analysis_type == "cluster":
             mark1poslabels.append(
-                get_pos_cell_labels_cluster(pheno=cluster_ids.iloc[j],
+                get_pos_cell_labels_cluster(pheno=cluster_ids[j],
                                             current_fov_neighborhood_data=current_fov_data,
                                             cell_label_col=cell_label_col,
                                             cell_type_col=cell_type_col))
         else:
             mark1poslabels.append(
-                get_pos_cell_labels_channel(thresh=thresh_vec.iloc[j],
+                get_pos_cell_labels_channel(thresh=thresh_vec[j],
                                             current_fov_channel_data=current_fov_channel_data,
                                             cell_labels=cell_labels,
                                             current_marker=current_fov_channel_data.columns[j]))
@@ -278,12 +279,13 @@ def calculate_enrichment_stats(close_num, close_num_rand):
     Returns:
         xarray.DataArray:
             xarray contining the following statistics for marker to marker enrichment
-                - z: z scores for corresponding markers
-                - muhat: predicted mean values of close_num_rand random distribution
-                - sigmahat: predicted standard deviations of close_num_rand random distribution
-                - p: p values for corresponding markers, for both positive and negative enrichment
-                - h: matrix indicating whether corresponding marker interactions are significant
-                - adj_p: fdh_br adjusted p values
+
+            - z: z scores for corresponding markers
+            - muhat: predicted mean values of close_num_rand random distribution
+            - sigmahat: predicted standard deviations of close_num_rand random distribution
+            - p: p values for corresponding markers, for both positive and negative enrichment
+            - h: matrix indicating whether corresponding marker interactions are significant
+            - adj_p: fdh_br adjusted p values
     """
     # Get the number of markers and number of permutations
     marker_num = close_num.shape[0]
@@ -353,17 +355,9 @@ def compute_neighbor_counts(current_fov_neighborhood_data, dist_matrix, distlim,
             - phenotype frequencies of counts per total for each cell
     """
 
-    # TODO remove non-cell2cell lines (indices of distance matrix do not correspond to cell labels)
-    #  after our own inputs for functions are created
-    # refine distance matrix to only cover cell labels in fov_data
-
-    cell_dist_mat = dist_matrix.loc[
-        current_fov_neighborhood_data[cell_label_col].values,
-        current_fov_neighborhood_data[cell_label_col].values
-    ].values
-
-    # cell_dist_mat = np.take(dist_matrix, current_fov_neighborhood_data[cell_label_col] - 1, 0)
-    # cell_dist_mat = np.take(cell_dist_mat, current_fov_neighborhood_data[cell_label_col] - 1, 1)
+    # subset our distance matrix based on the cell labels provided
+    cell_labels = current_fov_neighborhood_data[cell_label_col].values
+    cell_dist_mat = dist_matrix.loc[cell_labels, cell_labels].values
 
     # binarize distance matrix
     cell_dist_mat_bin = np.zeros(cell_dist_mat.shape)
@@ -371,7 +365,7 @@ def compute_neighbor_counts(current_fov_neighborhood_data, dist_matrix, distlim,
 
     # default is that cell counts itself as a matrix
     if not self_neighbor:
-        cell_dist_mat_bin[dist_matrix == 0] = 0
+        cell_dist_mat_bin[cell_dist_mat == 0] = 0
 
     # get num_neighbors for freqs
     num_neighbors = np.sum(cell_dist_mat_bin, axis=0)
