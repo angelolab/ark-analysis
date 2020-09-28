@@ -1,3 +1,4 @@
+from ark.utils import io_utils
 from twisted.internet import reactor
 from kiosk_client import manager
 import os
@@ -6,7 +7,7 @@ from zipfile import ZipFile
 import warnings
 
 
-def create_deepcell_output(deepcell_input_dir, points, deepcell_output_dir,
+def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, points=None,
                            suffix='_feature_0', host='https://deepcell.org', job_type='multiplex'):
     """ Handles all of the necessary data manipulation for running deepcell tasks.
 
@@ -16,7 +17,8 @@ def create_deepcell_output(deepcell_input_dir, points, deepcell_output_dir,
 
         Args:
             points (list):
-                List of points in preprocessing pipeline
+                List of points in preprocessing pipeline. if None, all .tif files
+                in deepcell_input_dir will be considered as input points.
             deepcell_input_dir (str):
                 Location of preprocessed files (assume deepcell_input_dir contains <point>.tif
                 for each point in points list)
@@ -36,6 +38,9 @@ def create_deepcell_output(deepcell_input_dir, points, deepcell_output_dir,
                 Raised if there is some point X (from points list) s.t.
                 the file <deepcell_input_dir>/PointX.tif does not exist
         """
+    if points is None:
+        tifs = io_utils.list_files(deepcell_input_dir, substrs='.tif')
+        points = io_utils.extract_delimited_names(tifs, delimiter='.')
 
     zip_path = os.path.join(deepcell_input_dir, 'points.zip')
     if os.path.isfile(zip_path):
