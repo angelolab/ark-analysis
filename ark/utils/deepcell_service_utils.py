@@ -16,17 +16,17 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, points=None,
         and extracts zipped output files to the specified output location
 
         Args:
-            points (list):
-                List of points in preprocessing pipeline. if None, all .tif files
-                in deepcell_input_dir will be considered as input points.
             deepcell_input_dir (str):
                 Location of preprocessed files (assume deepcell_input_dir contains <point>.tif
                 for each point in points list)
+            deepcell_output_dir (str):
+                Location to save DeepCell output (as .tif)
+            points (list):
+                List of points in preprocessing pipeline. if None, all .tif files
+                in deepcell_input_dir will be considered as input points. Default: None
             suffix (str):
                 Suffix for DeepCell output filename. e.g. for pointX, DeepCell output
                 should be <pointX>+suffix.tif. Default: '_feature_0'
-            deepcell_output_dir (str):
-                Location to save DeepCell output (as .tif)
             host (str):
                 Hostname and port for the kiosk-frontend API server
                 Default: 'https://deepcell.org'
