@@ -76,7 +76,9 @@ autodoc_mock_imports = ['h5py'
                         'statsmodels',
                         'tables',
                         'umap',
-                        'xarray']
+                        'xarray',
+                        'twisted',
+                        'kiosk_client']
 
 # explicitly mock mibidata
 sys.modules['mibidata'] = mock.Mock()
