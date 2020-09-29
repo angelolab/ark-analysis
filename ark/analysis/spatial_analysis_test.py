@@ -8,6 +8,12 @@ from ark.utils import synthetic_spatial_datagen
 
 import ark.settings as settings
 
+EXCLUDE_CHANNELS = [
+    "Background",
+    "HH3",
+    "summed_channel",
+]
+
 DEFAULT_COLUMNS = \
     [settings.CELL_SIZE] \
     + list(range(1, 24)) \
@@ -23,24 +29,8 @@ DEFAULT_COLUMNS = \
         settings.CELL_TYPE,
     ]
 list(map(
-    DEFAULT_COLUMNS.__setitem__, [1, 14, 23], ['Background', 'HH3', 'summed_channel']
+    DEFAULT_COLUMNS.__setitem__, [1, 14, 23], EXCLUDE_CHANNELS
 ))
-
-DEFAULT_EXCLUDE_COLUMNS = [
-    settings.CELL_SIZE,
-    "Background",
-    "HH3",
-    "summed_channel",
-    settings.CELL_LABEL,
-    settings.AREA,
-    settings.ECCENTRICITY,
-    settings.MAJ_AXIS_LENGTH,
-    settings.MIN_AXIS_LENGTH,
-    settings.PERIMITER,
-    settings.FOV_ID,
-    settings.CLUSTER_ID,
-    settings.CELL_TYPE,
-]
 
 
 def _make_threshold_mat():
@@ -237,7 +227,7 @@ def test_calculate_channel_spatial_enrichment():
     _, stats_pos = \
         spatial_analysis.calculate_channel_spatial_enrichment(
             dist_mat_pos_direct, marker_thresholds, all_data_pos,
-            excluded_colnames=DEFAULT_EXCLUDE_COLUMNS, bootstrap_num=100,
+            excluded_channels=EXCLUDE_CHANNELS, bootstrap_num=100,
             dist_lim=dist_lim)
 
     # Test both Point8 and Point9
@@ -258,7 +248,7 @@ def test_calculate_channel_spatial_enrichment():
     _, stats_neg = \
         spatial_analysis.calculate_channel_spatial_enrichment(
             dist_mat_neg_direct, marker_thresholds, all_data_neg,
-            excluded_colnames=DEFAULT_EXCLUDE_COLUMNS, bootstrap_num=100,
+            excluded_channels=EXCLUDE_CHANNELS, bootstrap_num=100,
             dist_lim=dist_lim)
 
     # Test both Point8 and Point9
@@ -279,7 +269,7 @@ def test_calculate_channel_spatial_enrichment():
     _, stats_no_enrich = \
         spatial_analysis.calculate_channel_spatial_enrichment(
             dist_mat_no_enrich, marker_thresholds, all_data_no_enrich,
-            excluded_colnames=DEFAULT_EXCLUDE_COLUMNS, bootstrap_num=100,
+            excluded_channels=EXCLUDE_CHANNELS, bootstrap_num=100,
             dist_lim=dist_lim)
     # Test both Point8 and Point9
     # Extract the p-values and z-scores of the distance of marker 1 vs marker 2 for no enrichment
@@ -298,7 +288,7 @@ def test_calculate_channel_spatial_enrichment():
         _, stats_no_enrich = \
             spatial_analysis.calculate_channel_spatial_enrichment(
                 dist_mat_no_enrich, marker_thresholds, all_data_no_enrich,
-                excluded_colnames=["bad_excluded_col_name"], bootstrap_num=100,
+                excluded_channels=["bad_excluded_chan_name"], bootstrap_num=100,
                 dist_lim=dist_lim)
 
     with pytest.raises(ValueError):
@@ -306,7 +296,7 @@ def test_calculate_channel_spatial_enrichment():
         _, stat_no_enrich = \
             spatial_analysis.calculate_channel_spatial_enrichment(
                 dist_mat_no_enrich, marker_thresholds, all_data_no_enrich,
-                excluded_colnames=DEFAULT_EXCLUDE_COLUMNS, included_fovs=[1, 100000],
+                excluded_channels=EXCLUDE_CHANNELS, included_fovs=[1, 100000],
                 bootstrap_num=100, dist_lim=dist_lim)
 
     with pytest.raises(ValueError):
@@ -318,7 +308,7 @@ def test_calculate_channel_spatial_enrichment():
         _, stat_no_enrich = \
             spatial_analysis.calculate_channel_spatial_enrichment(
                 dist_mat_no_enrich, bad_marker_thresholds, all_data_no_enrich,
-                excluded_colnames=DEFAULT_EXCLUDE_COLUMNS, bootstrap_num=100,
+                excluded_channels=EXCLUDE_CHANNELS, bootstrap_num=100,
                 dist_lim=dist_lim)
 
 
