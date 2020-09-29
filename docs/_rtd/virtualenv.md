@@ -30,5 +30,4 @@ You're now set to start working with `ark-analysis`! Please look at [our contrib
 
 ### Using ark functions directly
 
-If you will only be using functions in `ark` without developing on top of it, do not clone the repo. Simply run `pip install ark-analysis` to gain access to our functions. To verify installation, type `conda list ark-analysis` after completion. If `ark-analysis` is listed, the installation was successful. You can now access the `ark` library with `import ark`.
- 
+If you will only be using functions in `ark` without developing on top of it, do not clone the repo. Simply run `pip install ark-analysis` inside the virtual environment to gain access to our functions. To verify installation, type `conda list ark-analysis` after completion. If `ark-analysis` is listed, the installation was successful. You can now access the `ark` library with `import ark`.
