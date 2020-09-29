@@ -61,7 +61,7 @@ def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, 
     channel_start = np.where(all_data.columns == settings.PRE_CHANNEL_COL)[0][0] + 1
     channel_end = np.where(all_data.columns == settings.POST_CHANNEL_COL)[0][0]
 
-    all_channel_data = all_data[channel_start:channel_end]
+    all_channel_data = all_data.iloc[:, channel_start:channel_end]
     all_channel_data = all_channel_data.drop(excluded_channels, axis=1)
 
     # List of all channels
