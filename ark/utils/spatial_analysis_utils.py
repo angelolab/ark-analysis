@@ -295,20 +295,18 @@ def compute_close_cell_num_random_context(marker_nums, dist_mat, dist_lim, boots
     close_num_rand_context = np.zeros((
         len(marker_nums), len(marker_nums), bootstrap_num), dtype='int')
 
-    # subset dist_mat_bin by dist_lim, and make sure we only grab the values
-    # of the cells labels we actually computed over
+    # subset dist_mat_bin by dist_lim
     dist_mat_bin = (dist_mat < dist_lim).astype(np.int8)
 
-    # create a dictionary to store the indices in current_fov_data of cell_lin
-    # we will need this so we know which indices correspond to which cell_lin bucket
-    # for proper sampling
+    # store the indices corresponding to each cell_lin in current_fov_data
     cell_lin_indices = {cl: current_fov_data[current_fov_data[cell_lin_col] == cl].index.values
                         for cl in current_fov_data[cell_lin_col].unique()}
 
+    # store the cell labels corresponding to each cell_lin in current_lin_labels
+    cell_lin_labels = {cl: current_fov_data[current_fov_data[cell_lin_col] == cl]
+                       [cell_label_col].values for cl in current_fov_data[cell_lin_col].unique()}
+
     # create a dataframe containing cell_lin count information per marker
-    # this will help us not have to precompute this information each time
-    # in the bootstrap loop below, note that this will have the same number
-    # of rows as len(marker_nums)
     marker_count_data = pd.DataFrame(columns=cell_lin_indices.keys())
 
     for i in range(len(marker_nums)):
@@ -323,146 +321,50 @@ def compute_close_cell_num_random_context(marker_nums, dist_mat, dist_lim, boots
 
     marker_count_data.index = np.arange(marker_count_data.shape[0])
 
-    # dist_mat_bin_reidx = dist_mat_bin.loc[np.arange(1, dist_mat_bin.shape[0] + 1),
-    #                                       np.arange(1, dist_mat_bin.shape[0] + 1)].values
-
-    # NOTE: what we're trying to optimize
-    # yes, I did kill my computer to verify this was correct 🙃...and it still isn't damn it
-    # for j, m1n in enumerate(marker_nums):
-    #     for k, m2n in enumerate(marker_nums[j:], j):
-    #         print("On marker j: %d, k: %d" % (j, k))
-
-    #         for r in range(bootstrap_num):
-    #             rand_labels_j = []
-    #             rand_labels_k = []
-
-    #             for cl in cell_lin_indices:
-    #                 rand_labels_j.extend(
-    #                     np.random.choice(current_fov_data.loc[cell_lin_indices[cl],
-    #                                                           cell_label_col].values,
-    #                                      marker_count_data.loc[j, cl]).tolist())
-    #                 rand_labels_k.extend(
-    #                     np.random.choice(current_fov_data.loc[cell_lin_indices[cl],
-    #                                                           cell_label_col].values,
-    #                                      marker_count_data.loc[k, cl]).tolist())
-
-    #             dist_mat_bin_subset = dist_mat_bin.loc[rand_labels_j, rand_labels_k].values
-    #             close_num_rand_context[j, k, r] = np.sum(dist_mat_bin_subset)
-
     for j, m1n in enumerate(marker_nums):
         for k, m2n in enumerate(marker_nums[j:], j):
-            print("On marker pair (j, k): (%d, %d)" % (j, k))
-            samples_dim = (m1n * m2n, bootstrap_num)
-            dist_mat_select = np.array([])
+            # each row is a random flattened distance matrix we'll be summing over
+            dist_mats_flattened = None
 
-            for cl in cell_lin_indices:
-                cl_labels = current_fov_data.loc[cell_lin_indices[cl], cell_label_col].values
-                dist_mat_bin_flat = dist_mat_bin.loc[cl_labels, cl_labels].values.flatten()
-                cl_dist_mat_values = np.random.choice(dist_mat_bin_flat,
-                                                      marker_count_data.loc[j, cl] *
-                                                      marker_count_data.loc[k, cl],
-                                                      replace=True)
+            # we will need to generate random values corresponding to each
+            # lineage-lineage pair, so if there are four lineages, there
+            # will be 16 pairing we'll need to take into account
+            for lin_index_row, cl_row in enumerate(cell_lin_labels):
+                # get the total markers for lineage type corresponding to marker j
+                markers_row_cl = marker_count_data.loc[j, cl_row]
 
-                dist_mat_select = np.concatenate([dist_mat_select, cl_dist_mat_values])
+                # and the respective row labels too
+                cl_row_labels = cell_lin_labels[cl_row]
 
-            count_close_num_context_rand_hits = np.sum(
-                np.random.choice(dist_mat_select, samples_dim, replace=True),
-                axis=0)
+                for lin_index_col, cl_col in enumerate(cell_lin_labels):
+                    # get the total markers for lineage type corresponding to marker k
+                    markers_col_cl = marker_count_data.loc[k, cl_col]
+                    cl_col_labels = cell_lin_labels[cl_col]
 
+                    # now subset the distance matrix accordingly
+                    dist_mat_bin_sub = dist_mat_bin.loc[cl_row_labels,
+                                                        cl_col_labels].values.flatten()
+
+                    # make sure we subset the right number of elements per bootstrap
+                    values_sample_size = (markers_row_cl * markers_col_cl, bootstrap_num)
+
+                    # sample with replacement from the subsetted matrix
+                    cl_dist_mat_values = np.random.choice(dist_mat_bin_sub, values_sample_size,
+                                                          replace=True)
+
+                    # and add the values to each bootstrap row of dist_mats_flattened
+                    if dist_mats_flattened is None:
+                        dist_mats_flattened = cl_dist_mat_values
+                    else:
+                        dist_mats_flattened = np.concatenate([dist_mats_flattened,
+                                                              cl_dist_mat_values])
+
+            # sum over each row to get the context-based close_num hits
+            count_close_num_context_rand_hits = np.sum(dist_mats_flattened, axis=0)
+
+            # and set corresponding entries to the close_num hits vector
             close_num_rand_context[j, k, :] = count_close_num_context_rand_hits
             close_num_rand_context[k, j, :] = count_close_num_context_rand_hits
-
-    # iterate over the marker_nums list
-    # for j, m1n in enumerate(marker_nums):
-    #     for k, m2n in enumerate(marker_nums[j:], j):
-    #         # same close_num_rand dimensions as with basic randomization
-    #         samples_dim = (m1n * m2n, bootstrap_num)
-
-    #         cell_labels_j = None
-    #         cell_labels_k = None
-
-    #         # iterate over each cell_lineage type
-    #         for cl in cell_lin_indices:
-    #             # print(current_fov_data.loc[cell_lin_indices[cl], cell_label_col].values)
-    #             # for each cell_lineage type, we need to first select the random indices
-    #             # we want to pick to subset the distance matrix for each bootstrap iteration,
-    #             # this needs to be done separately for marker j and k
-    #             # keep track of indices for both j and k
-
-    #             random_labels_j = np.repeat(
-    #                 current_fov_data.loc[cell_lin_indices[cl], cell_label_col],
-    #                 repeats=bootstrap_num).values.reshape(len(cell_lin_indices[cl]), bootstrap_num)
-    #             random_labels_k = np.repeat(
-    #                 current_fov_data.loc[cell_lin_indices[cl], cell_label_col],
-    #                 repeats=bootstrap_num).values.reshape(len(cell_lin_indices[cl]), bootstrap_num)
-
-    #             # EUGH...
-    #             # saw your suggestion Adam, it hung on the call to random.choices for some
-    #             # reason though, not sure why but I'll take a look into it later, this code
-    #             # isn't too much of a bottleneck for the time being
-    #             random_labels_j_perm = np.array(
-    #                 [np.random.permutation(arr) for arr in random_labels_j.T])
-    #             random_labels_k_perm = np.array(
-    #                 [np.random.permutation(arr) for arr in random_labels_k.T])
-
-    #             random_labels_j = random_labels_j_perm[:, :marker_count_data.loc[j, cl]]
-    #             random_labels_k = random_labels_k_perm[:, :marker_count_data.loc[k, cl]]
-
-    #             print(random_labels_j.shape)
-    #             print(random_labels_k.shape)
-
-    #             if cell_labels_j is None:
-    #                 cell_labels_j = random_labels_j
-    #                 cell_labels_k = random_labels_k
-    #             else:
-    #                 cell_labels_j = np.concatenate((cell_labels_j, random_labels_j),
-    #                                                       axis=1)
-    #                 cell_labels_k = np.concatenate((cell_labels_k, random_labels_k),
-    #                                                       axis=1)
-
-    #         dist_mat_bin_subset = np.take(dist_mat_bin_reidx, cell_labels_j - 1, axis=0)
-    #         print(dist_mat_bin_subset)
-    #         print(dist_mat_bin_subset.shape)
-    #         dist_mat_bin_subset = np.take(dist_mat_bin_subset, (cell_labels_k - 1).T, axis=2).T
-    #         print(dist_mat_bin_subset)
-    #         print(dist_mat_bin_subset.shape)
-            # print("Choosing distance matrices")
-            # dist_mat_bin_subset = np.choose(np.arange(), dist_mat_bin_subset).T
-            # print(dist_mat_bin_subset)
-
-    # # we run this bootstrap separately for each run
-    # for ct in cell_lin_indices:
-    #     # make sure we only subsetting the indices which correspond to the
-    #     # cell type in question
-    #     # print("Cell type analyzing: %s" % ct)
-    #     ct_labels = current_fov_data.loc[cell_lin_indices[ct], cell_label_col].values
-    #     print(dist_mat_bin.loc[ct_labels, ct_labels].values)
-    #     dist_mat_bin_flat = dist_mat_bin.loc[ct_labels, ct_labels].values.flatten()
-
-    #     # instead of enumerating marker_nums, we enumerate the column in marker_count_data
-    #     # which corresponds to the marker counts of the cell_lin we're faceting
-
-    #     # TODO: try changing this to just marker_nums
-    #     for j, m1n in enumerate(marker_nums):
-    #         for k, m2n in enumerate(marker_nums[j:], j):
-    #             print(m1n * m2n)
-    #             samples_dim = (m1n * m2n, bootstrap_num)
-
-    #             # get the bootstrap for the specific cell type
-    #             count_close_num_context_rand_hits = np.sum(
-    #                 np.random.choice(dist_mat_bin_flat, samples_dim, True),
-    #                 axis=0
-    #             )
-
-    #             print(count_close_num_context_rand_hits)
-
-    #             # print(count_close_num_context_rand_hits)
-
-    #             # add to the corresponding entry in close_num_rand we take
-    #             # we may still have other cell type random sample results
-    #             #  we'll need to add in, so don't just assign
-    #             close_num_rand_context[j, k, :] += count_close_num_context_rand_hits
-    #             close_num_rand_context[k, j, :] += count_close_num_context_rand_hits
 
     return close_num_rand_context
 

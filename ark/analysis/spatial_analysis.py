@@ -102,8 +102,6 @@ def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, 
     # Subsetting threshold matrix to only include column with threshold values
     thresh_vec = marker_thresholds.iloc[:, 1]
 
-    print(marker_thresholds)
-
     for i in range(0, len(included_fovs)):
         # Subsetting expression matrix to only include patients with correct fov label
         current_fov_idx = all_data[fov_col] == included_fovs[i]
@@ -134,17 +132,6 @@ def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, 
             close_num_rand = spatial_analysis_utils.compute_close_cell_num_random(
                 marker_nums=channel_nums, dist_mat=dist_matrix, dist_lim=dist_lim,
                 bootstrap_num=bootstrap_num)
-
-        # print("Computed close_num")
-        # print(close_num)
-        # print(close_num.shape)
-        # print("Computed close_num_rand")
-        # print(close_num_rand)
-        # print(close_num_rand.shape)
-
-        np.save("close_num_rand_ex", close_num_rand)
-
-        values.append((close_num, close_num_rand))
 
         # Get z, p, adj_p, muhat, sigmahat, and h
         stats_xr = spatial_analysis_utils.calculate_enrichment_stats(close_num, close_num_rand)
