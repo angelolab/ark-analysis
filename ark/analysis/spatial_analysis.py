@@ -22,11 +22,7 @@ def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, 
         all_data (pandas.DataFrame):
             data including fovs, cell labels, and cell expression matrix for all markers
         excluded_channels (list):
-            all column names that are not markers. If argument is none, default is
-            ["cell_size", "Background", "HH3",
-            "summed_channel", "label", "area",
-            "eccentricity", "major_axis_length",
-            "minor_axis_length", "perimeter", "fov"]
+            channels to be excluded from the analysis.  Default is None.
         included_fovs (list):
             patient labels to include in analysis. If argument is none, default is all labels used.
         dist_lim (int):
