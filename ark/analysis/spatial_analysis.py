@@ -5,23 +5,9 @@ from ark.utils import spatial_analysis_utils
 
 import ark.settings as settings
 
-DEFAULT_EXCLUDE_COLUMNS = [
-    settings.CELL_SIZE,
-    "Background",
-    "HH3",
-    "summed_channel",
-    settings.CELL_LABEL,
-    settings.AREA,
-    settings.ECCENTRICITY,
-    settings.MAJ_AXIS_LENGTH,
-    settings.MIN_AXIS_LENGTH,
-    settings.PERIMITER,
-    settings.FOV_ID,
-]
-
 
 def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, all_data,
-                                         excluded_colnames=None, included_fovs=None,
+                                         excluded_channels=None, included_fovs=None,
                                          dist_lim=100, bootstrap_num=1000,
                                          fov_col=settings.FOV_ID):
     """Spatial enrichment analysis to find significant interactions between cells expressing
@@ -35,7 +21,7 @@ def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, 
             threshold values for positive marker expression
         all_data (pandas.DataFrame):
             data including fovs, cell labels, and cell expression matrix for all markers
-        excluded_colnames (list):
+        excluded_channels (list):
             all column names that are not markers. If argument is none, default is
             ["cell_size", "Background", "HH3",
             "summed_channel", "label", "area",
@@ -68,18 +54,20 @@ def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, 
 
     values = []
 
-    if excluded_colnames is None:
-        excluded_colnames = DEFAULT_EXCLUDE_COLUMNS
-
     # Error Checking
-    if not np.isin(excluded_colnames, list(all_data.columns.values)).all():
+    if not np.isin(excluded_channels, list(all_data.columns.values)).all():
         raise ValueError("Column names were not found in Expression Matrix")
 
     if not np.isin(included_fovs, all_data[fov_col]).all():
         raise ValueError("Fovs were not found in Expression Matrix")
 
     # Subsets the expression matrix to only have channel columns
-    all_channel_data = all_data.drop(excluded_colnames, axis=1)
+    channel_start = np.where(all_data.columns == settings.PRE_CHANNEL_COL)[0][0] + 1
+    channel_end = np.where(all_data.columns == settings.POST_CHANNEL_COL)[0][0]
+
+    all_channel_data = all_data[channel_start:channel_end]
+    all_channel_data = all_channel_data.drop(excluded_channels, axis=1)
+
     # List of all channels
     channel_titles = all_channel_data.columns
     # Length of channels list
