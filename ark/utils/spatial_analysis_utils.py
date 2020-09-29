@@ -380,3 +380,7 @@ def compute_neighbor_counts(current_fov_neighborhood_data, dist_matrix, distlim,
     freqs = counts.T / num_neighbors
 
     return counts, freqs.T
+
+
+def generate_neighbor_clusters():
+    pass

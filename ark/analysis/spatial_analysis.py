@@ -294,3 +294,7 @@ def create_neighborhood_matrix(all_data, dist_matrices_dict, included_fovs=None,
         cell_neighbor_freqs.loc[current_fov_neighborhood_data.index, fov_cluster_names] = freqs
 
     return cell_neighbor_counts, cell_neighbor_freqs
+
+
+def cluster_neighborhood_matrix():
+    pass

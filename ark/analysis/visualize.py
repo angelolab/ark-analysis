@@ -234,3 +234,7 @@ def visualize_patient_population_distribution(cell_data, patient_col_name, popul
 
         plot_barchart(sorted_data, title, patient_col_name, population_col_name,
                       save_dir=save_dir, save_file="PopulationProportion.png")
+
+
+def visualize_cluster_metrics():
+    pass
