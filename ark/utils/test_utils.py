@@ -12,7 +12,7 @@ from mibidata import mibi_image as mi, tiff
 def gen_fov_chan_names(num_fovs, num_chans, return_imgs=False, use_delimiter=False):
     """Generate FOV and channel names
 
-    Names have the format 'Point0', 'Point1', ..., 'PointN' for FOVS and 'chan0', 'chan1', ...,
+    Names have the format 'Fov0', 'Fov1', ..., 'FovN' for FOVS and 'chan0', 'chan1', ...,
     'chanM' for channels.
 
     Args:
@@ -31,7 +31,7 @@ def gen_fov_chan_names(num_fovs, num_chans, return_imgs=False, use_delimiter=Fal
             If return_imgs is False, only FOV and channel names are returned
             If return_imgs is True, image names will also be returned
     """
-    fovs = [f'Point{i}' for i in range(num_fovs)]
+    fovs = [f'Fov{i}' for i in range(num_fovs)]
     if use_delimiter:
         fovs[0] = f'{fovs[0]}_otherinfo'
     chans = [f'chan{i}' for i in range(num_chans)]
@@ -47,8 +47,8 @@ def gen_fov_chan_names(num_fovs, num_chans, return_imgs=False, use_delimiter=Fal
 MIBITIFF_METADATA = {
     'run': '20180703_1234_test', 'date': '2017-09-16T15:26:00',
     'coordinates': (12345, -67890), 'size': 500., 'slide': '857',
-    'fov_id': 'Point1', 'fov_name': 'R1C3_Tonsil',
-    'folder': 'Point1/RowNumber0/Depth_Profile0',
+    'fov_id': 'Fov1', 'fov_name': 'R1C3_Tonsil',
+    'folder': 'Fov1/RowNumber0/Depth_Profile0',
     'dwell': 4, 'scans': '0,5', 'aperture': 'B',
     'instrument': 'MIBIscope1', 'tissue': 'Tonsil',
     'panel': '20170916_1x', 'mass_offset': 0.1, 'mass_gain': 0.2,
@@ -435,7 +435,7 @@ def make_images_xarray(tif_data, fov_ids=None, channel_names=None, row_size=10, 
             but fov_ids and channel_names must not be None.
         fov_ids (list or None):
             List of FOV names.  If None, FOV id's will be generated based on the shape of tif_data
-            following the scheme 'Point0', 'Point1', ... , 'PointN'. Default is None.
+            following the scheme 'Fov0', 'Fov1', ... , 'FovN'. Default is None.
         channel_names (list or None):
             List of channel names.  If None, channel names will be generated based on the shape of
             tif_data following the scheme 'chan0', 'chan1', ... , 'chanM'.  Default is None.
@@ -477,7 +477,7 @@ def make_labels_xarray(label_data, fov_ids=None, compartment_names=None, row_siz
             used, but fov_ids and compartment_names must not be None.
         fov_ids (list or None):
             List of FOV names.  If None, FOV id's will be generated based on the shape of tif_data
-            following the scheme 'Point0', 'Point1', ... , 'PointN'. Default is None.
+            following the scheme 'Fov0', 'Fov1', ... , 'FovN'. Default is None.
         compartment_names (list or None):
             List of compartment names.  If None, compartment names will be ['whole_cell'] or
             ['whole_cell', 'nuclear'] if label_data.shape[-1] is 1 or 2 respecticely. Default is
