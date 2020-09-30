@@ -385,7 +385,24 @@ def compute_neighbor_counts(current_fov_neighborhood_data, dist_matrix, distlim,
 
 
 def compute_neighbor_mat_cluster_info(current_neighbor_mat_data, max_k=10, metric='silhouette'):
-    # TODO: include error check for metric, depends on what we want to allow
+    """For a given fov's data in the neighborhood matrix, compute cluster metric scores.
+    Uses k-means clustering.
+
+    Args:
+        current_neighbor_mat_data (pandas.DataFrame):
+            neighborhood matrix data for the current fov
+        max_k (int):
+            the maximum k we want to generate cluster statistics for, must be at least 2
+        metric (str):
+            the cluster metric we want to use to calculate quality of clusters generated
+
+    Returns:
+        xarray.DataArray:
+            contains a single dimension, cluster_num, which determines the metric score
+            when cluster_num was set as k for k-means clustering
+    """
+
+    # TODO: possibly include error check for metric, depends on what we want to allow
     # not needed if we'll only be using silhouette
 
     # store the stats we'll need for cluster_points

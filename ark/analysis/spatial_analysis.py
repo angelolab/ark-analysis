@@ -297,9 +297,32 @@ def create_neighborhood_matrix(all_data, dist_matrices_dict, included_fovs=None,
 
 
 def cluster_neighborhood_matrix(neighbor_mat, max_k=10, included_fovs=None, fov_col='SampleID',
-                                label_col='cellLabelInImage', excluded_colnames=None,
-                                metric='silhouette'):
+                                label_col='cellLabelInImage', metric='silhouette'):
+    """Given a neighborhood matrix, provide a process to produce k-means clustering metrics.
+    Will be used to help determining which k to pick.
 
+    Args:
+        neighbor_mat (pandas.DataFrame):
+            a neighborhood matrix, created from create_neighborhood_matrix
+        max_k (int):
+            the maximum k we want to generate cluster statistics for, must be at least 2
+        included_fovs (list):
+            patient labels to include in analysis. If argument is none, default is all labels used.
+        fov_col (str):
+            the name of the column in neighbor_mat determining the column
+        label_col (str):
+            the name of the column in neighbor_mat determining the label
+        metric (str):
+            the cluster metric we want to use to calculate quality of clusters generated
+
+    Returns:
+        xarray.DataArray:
+            an xarray with dimensions (fovs, num_k_values) where num_k_values is the range
+            of integers from 2 to max_k included, contains the metric scores for each
+            fov at each value in num_k_values
+    """
+
+    # set included_fovs to everything if not set
     if included_fovs is None:
         included_fovs = all_data[fov_col].unique()
 

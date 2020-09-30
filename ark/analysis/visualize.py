@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+import xarray as xr
 
 
 def draw_boxplot(cell_data, col_name, col_split=None, split_vals=None, save_dir=None):
@@ -30,6 +31,9 @@ def draw_boxplot(cell_data, col_name, col_split=None, split_vals=None, save_dir=
         # the user cannot specify split_vales without specifying col_split
         if col_split is None:
             raise ValueError("If split_vals is set, then col_split must also be set")
+
+        if col_split not in cell_data.columns.values:
+            raise ValueError("col_split specified does not exist in data provided")
 
         # all the values in split_vals must exist in the col_name of cell_data
         if not all(val in cell_data[col_split].unique() for val in split_vals):
@@ -206,6 +210,7 @@ def visualize_patient_population_distribution(cell_data, patient_col_name, popul
         save_dir (str):
             Directory to save plots, default is None
     """
+
     cell_data = cell_data.dropna()
 
     # Plot by total count
@@ -236,5 +241,40 @@ def visualize_patient_population_distribution(cell_data, patient_col_name, popul
                       save_dir=save_dir, save_file="PopulationProportion.png")
 
 
-def visualize_cluster_metrics():
-    pass
+def visualize_neighbor_cluster_metrics(neighbor_cluster_stats, fov, metric='silhouette',
+                                       save_dir=None):
+    """Visualize the cluster performance results of a neighborhood matrix
+
+    Args:
+        neighbor_cluster_stats (xarray.DataArray):
+            contains the desired statistic we wish to visualize
+        fov (str):
+            which fov we want to visualize cluster scores for
+        metric (str):
+            the metric that was used to compute the cluster scores
+        save_dir (str):
+            Directory to save plots, default is None
+    """
+
+    # TODO: worth visualizing multiple fovs at once? Personally think that's too messy.
+
+    # specified fov must actually exist in neighbor_cluster_stats
+    if fov not in neighbor_cluster_stats.coords['fovs'].values:
+        raise ValueError("Specified fov does not exist in provided cluster stats")
+
+    # get the coordinates and values we'll need
+    x_coords = neighbor_cluster_stats.coords['cluster_num'].values
+    scores = neighbor_cluster_stats.loc[fov, :].values
+
+    # plot the results
+    plt.plot(x_coords, scores)
+    plt.title("FOV %s: %s score vs number of clusters" % (fov, metric))
+    plt.xlabel("Number of clusters")
+    plt.ylabel("%s score" % metric)
+
+    # save if desired
+    if save_dir is not None:
+        if not os.path.exists(save_dir):
+            raise ValueError("save_dir %s does not exist" % save_dir)
+
+        plt.savefig(os.path.join(save_dir, "cluster_scores_fov_%s" % fov))
