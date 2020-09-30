@@ -76,7 +76,9 @@ autodoc_mock_imports = ['h5py'
                         'statsmodels',
                         'tables',
                         'umap',
-                        'xarray']
+                        'xarray',
+                        'twisted',
+                        'kiosk_client']
 
 # explicitly mock mibidata
 sys.modules['mibidata'] = mock.Mock()
@@ -147,17 +149,52 @@ intersphinx_mapping = {
 intersphinx_cache_limit = 0
 
 
+# this function appends the proper lines and formatting to landing.md
+# so it can get displayed properly
+def append_readme():
+    with open(os.path.join('..', 'README.md')) as fin, open(os.path.join('_rtd', 'landing.md'), 'a') as fout:
+        # flag to identify when to start writing to file, doing this because we don't want to
+        # include build or covarage status nor the ark-analysis heading
+        seen_heading = False
+
+        for line in fin:
+            # once we've seen an h2 heading, we can start writing to file
+            # we also append an extra '#' to the line to downgrade to an h3 heading
+            # so that it can display comfortably on ReadTheDocs
+            if line.startswith('##'):
+                seen_heading = True
+                line = '#' + line
+
+            # append line to landing.md
+            if seen_heading:
+                fout.write(line)
+
+
 # this we'll need to build the documentation from sphinx-apidoc ourselves
 def run_apidoc(_):
+    # the parent directory we will begin snaking through to find documentation
     module = '../ark'
+
+    # we want the documents to be markdown files
     output_ext = 'md'
+
+    # we want to store the documentation in the _markdown folder on the ReadTheDocs server
     output_path = '_markdown'
+
+    # the sphinx-apidoc command to run
     cmd_path = 'sphinx-apidoc'
+
+    # do not generate any documentation for test files
     ignore = '../ark/*/*_test.py'
 
+    # should probably remove this
     if hasattr(sys, 'real_prefix'):
         cmd_path = os.path.abspath(os.path.join(sys.prefix, 'bin', 'sphinx-apidoc'))
 
+    # append the readme to landing.md before running sphinx apidoc build
+    append_readme()
+
+    # run sphinx-apidoc to build documentation from Google docstrings
     subprocess.check_call([cmd_path, '-f', '-T', '-s', output_ext, '-o', output_path, module, ignore])
 
 

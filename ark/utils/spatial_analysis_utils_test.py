@@ -14,9 +14,7 @@ def make_threshold_mat():
     return thresh
 
 
-def make_example_data_closenum():
-    # Creates example data for the creation of the closenum matrix in the below test function
-
+def make_all_data():
     # Create example all_patient_data cell expression matrix
     all_data = pd.DataFrame(np.zeros((10, 33)))
     # Assigning values to the patient label and cell label columns
@@ -49,9 +47,14 @@ def make_example_data_closenum():
     all_data.iloc[9, 31] = 3
     all_data.iloc[9, 32] = "Pheno3"
 
+    return all_data
+
+
+def make_dist_mat():
     # Create the distance matrix to test the closenum function
     dist_mat = np.zeros((10, 10))
     np.fill_diagonal(dist_mat, 0)
+
     # Create distance matrix where cells positive for marker 1 and 2 are within the dist_lim of
     # each other, but not the other groups. This is repeated for cells positive for marker 3 and 4,
     # and for cells positive for marker 5.
@@ -91,6 +94,14 @@ def make_example_data_closenum():
     # we have to 1-index coords because people will be labeling their cells 1-indexed
     coords_dist_mat = [coords_permuted + 1, coords_permuted + 1]
     dist_mat = xr.DataArray(dist_mat, coords=coords_dist_mat)
+
+    return dist_mat
+
+
+def make_example_data_closenum():
+    # Creates example data for the creation of the closenum matrix in the below test function
+    all_data = make_all_data()
+    dist_mat = make_dist_mat()
 
     return all_data, dist_mat
 
@@ -160,7 +171,7 @@ def test_compute_close_cell_num():
         0, 1, 14, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32]], axis=1)
 
     # Subsetting threshold matrix to only include column with threshold values
-    thresh_vec = example_thresholds.iloc[0:20, 1]
+    thresh_vec = example_thresholds.iloc[0:20, 1].values
 
     # not taking into account mark1labels_per_id return value
     example_closenum, m1, _ = spatial_analysis_utils.compute_close_cell_num(
@@ -180,7 +191,7 @@ def test_compute_close_cell_num():
         0, 1, 14, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32]], axis=1)
 
     # Subsetting threshold matrix to only include column with threshold values
-    thresh_vec = example_thresholds.iloc[0:20, 1]
+    thresh_vec = example_thresholds.iloc[0:20, 1].values
 
     example_closenum, m1, _ = spatial_analysis_utils.compute_close_cell_num(
         dist_mat=example_dist_mat, dist_lim=100, analysis_type="channel",
@@ -193,7 +204,7 @@ def test_compute_close_cell_num():
 
     # now, test for cluster enrichment
     all_data, example_dist_mat = make_example_data_closenum()
-    cluster_ids = all_data.iloc[:, 31].drop_duplicates()
+    cluster_ids = all_data.iloc[:, 31].drop_duplicates().values
 
     example_closenum, m1, _ = spatial_analysis_utils.compute_close_cell_num(
         dist_mat=example_dist_mat, dist_lim=100, analysis_type="cluster",
@@ -294,3 +305,27 @@ def test_compute_neighbor_counts():
     assert (cell_neighbor_counts.loc[:3, "Pheno1"] == 4).all()
     assert (cell_neighbor_counts.loc[4:8, "Pheno2"] == 5).all()
     assert (cell_neighbor_counts.loc[9, "Pheno3"] == 1).all()
+
+    assert (cell_neighbor_freqs.loc[:3, "Pheno1"] == 1).all()
+    assert (cell_neighbor_freqs.loc[4:8, "Pheno2"] == 1).all()
+    assert (cell_neighbor_freqs.loc[9, "Pheno3"] == 1).all()
+
+    # now test for self_neighbor is False, first reset values
+    cell_neighbor_counts = pd.DataFrame(np.zeros((fov_data.shape[0], cluster_num + 2)))
+    cell_neighbor_counts[[0, 1]] = fov_data[[fov_col, cell_label_col]]
+    cell_neighbor_counts.columns = cols
+    cell_neighbor_freqs = cell_neighbor_counts.copy(deep=True)
+
+    counts, freqs = spatial_analysis_utils.compute_neighbor_counts(
+        fov_data, dist_matrix, distlim, self_neighbor=False)
+
+    cell_neighbor_counts.loc[fov_data.index, cluster_names] = counts
+    cell_neighbor_freqs.loc[fov_data.index, cluster_names] = freqs
+
+    assert (cell_neighbor_counts.loc[:3, "Pheno1"] == 3).all()
+    assert (cell_neighbor_counts.loc[4:8, "Pheno2"] == 4).all()
+    assert (cell_neighbor_counts.loc[9, "Pheno3"] == 0).all()
+
+    assert (cell_neighbor_freqs.loc[:3, "Pheno1"] == 1).all()
+    assert (cell_neighbor_freqs.loc[4:8, "Pheno2"] == 1).all()
+    assert (np.isnan(cell_neighbor_freqs.loc[9, "Pheno3"])).all()
