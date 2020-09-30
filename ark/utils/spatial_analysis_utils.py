@@ -322,12 +322,12 @@ def compute_close_cell_num_random_context(marker_nums, dist_mat, dist_lim, boots
 
     for j, m1n in enumerate(marker_nums):
         for k, m2n in enumerate(marker_nums[j:], j):
-            # each row is a random flattened distance matrix we'll be summing over
+            # where we'll be storing our final dist matrices
             dist_mats_flattened = None
 
             # we will need to generate random values corresponding to each
-            # lineage-lineage pair, so if there are four lineages, there
-            # will be 16 pairing we'll need to take into account
+            # j-k lineage-lineage pair, so if there are four lineages, there
+            # will be 16 pairings we'll need to take into account
             for lin_index_row, cl_row in enumerate(cell_lin_labels):
                 # get the total markers for lineage type corresponding to marker j
                 markers_row_cl = marker_count_data.loc[j, cl_row]
@@ -350,6 +350,15 @@ def compute_close_cell_num_random_context(marker_nums, dist_mat, dist_lim, boots
                     # sample with replacement from the subsetted matrix
                     cl_dist_mat_values = np.random.choice(dist_mat_bin_sub, values_sample_size,
                                                           replace=True)
+
+                    # for some reason this does not work, really want it to
+                    # because it's much more memory efficient
+                    # # sum over each row to get the context-based close_num hits
+                    # count_close_num_context_rand_hits = np.sum(cl_dist_mat_values, axis=0)
+
+                    # # add these to their respective marker pair bootstrap entry
+                    # close_num_rand_context[j, k, :] += count_close_num_context_rand_hits
+                    # close_num_rand_context[k, j, :] += count_close_num_context_rand_hits
 
                     # and add the values to each bootstrap row of dist_mats_flattened
                     if dist_mats_flattened is None:
