@@ -324,20 +324,21 @@ def cluster_neighborhood_matrix(neighbor_mat, max_k=10, included_fovs=None, fov_
 
     # set included_fovs to everything if not set
     if included_fovs is None:
-        included_fovs = all_data[fov_col].unique()
+        included_fovs = neighbor_mat[fov_col].unique()
 
     # make sure the user specifies a positive k
-    if k < 2:
+    if max_k < 2:
         raise ValueError("Invalid k provided for clustering")
 
     # make sure the fovs specified all exist inside the fov_col
-    if not np.isin(inclued_fovs, all_data[fov_col]).all():
+    if not np.isin(included_fovs, neighbor_mat[fov_col]).all():
         raise ValueError("Not all specified fovs exist in the provided neighborhood matrix")
 
     # create array we can store the results of each k for clustering
     coords = [included_fovs, np.arange(2, max_k + 1)]
     dims = ["fovs", "cluster_num"]
-    neighbor_cluster_stats = xr.DataArray(coords=coords, dims=dims)
+    stats_raw_data = np.zeros((len(included_fovs), len(np.arange(2, max_k + 1))))
+    neighbor_cluster_stats = xr.DataArray(stats_raw_data, coords=coords, dims=dims)
 
     for i in range(len(included_fovs)):
         # subsetting neighborhood matrix

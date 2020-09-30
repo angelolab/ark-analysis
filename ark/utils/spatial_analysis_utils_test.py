@@ -99,6 +99,18 @@ def make_example_data_closenum():
     return all_data, dist_mat
 
 
+def make_example_neighbor_mat():
+    col_names = {0: 'feature_1', 1: 'feature_2'}
+    neighbor_counts = pd.DataFrame(np.zeros((60, 5)))
+
+    neighbor_counts.iloc[0:15, 0:2] = np.random.randint(low=0, high=10, size=(15, 2))
+    neighbor_counts.iloc[15:30, 0:2] = np.random.randint(low=90, high=100, size=(15, 2))
+    neighbor_counts.iloc[30:45, 0:2] = np.random.randint(low=490, high=500, size=(15, 2))
+    neighbor_counts.iloc[45:60, 0:2] = np.random.randint(low=990, high=1000, size=(15, 2))
+
+    return neighbor_counts
+
+
 def test_calc_dist_matrix():
     test_mat_data = np.zeros((2, 512, 512, 1), dtype="int")
     # Create pythagorean triple to test euclidian distance
@@ -327,4 +339,14 @@ def test_compute_neighbor_counts():
 
 
 def test_compute_neighbor_mat_cluster_info():
-    pass
+    neighbor_mat = make_example_neighbor_mat()
+
+    neighbor_cluster_stats = spatial_analysis_utils.compute_neighbor_mat_cluster_info(
+        neighbor_mat, max_k=4)
+
+    # assert we have the right cluster_num values
+    assert list(neighbor_cluster_stats.coords["cluster_num"].values) == [2, 3, 4]
+
+    # assert k=4 produces the best silhouette score
+    last_k = neighbor_cluster_stats.loc[4].values
+    assert np.all(last_k >= neighbor_cluster_stats.values)

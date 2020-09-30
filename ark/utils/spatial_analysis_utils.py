@@ -408,7 +408,8 @@ def compute_neighbor_mat_cluster_info(current_neighbor_mat_data, max_k=10, metri
     # store the stats we'll need for cluster_points
     coords = [np.arange(2, max_k + 1)]
     dims = ["cluster_num"]
-    cluster_stats = xr.DataArray(coords=coords, dims=dims)
+    stats_raw_data = np.zeros(len(np.arange(2, max_k + 1)))
+    cluster_stats = xr.DataArray(stats_raw_data, coords=coords, dims=dims)
 
     for n in range(2, max_k + 1):
         cluster_fit = KMeans(n_clusters=n).fit(current_neighbor_mat_data)

@@ -277,4 +277,4 @@ def visualize_neighbor_cluster_metrics(neighbor_cluster_stats, fov, metric='silh
         if not os.path.exists(save_dir):
             raise ValueError("save_dir %s does not exist" % save_dir)
 
-        plt.savefig(os.path.join(save_dir, "cluster_scores_fov_%s" % fov))
+        plt.savefig(os.path.join(save_dir, "cluster_scores_fov_%s.png" % fov))

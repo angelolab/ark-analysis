@@ -185,6 +185,30 @@ def _make_expression_matrix(enrichment_type):
         return all_patient_data_neg
 
 
+def _make_neighborhood_matrix():
+    col_names = {0: 'SampleID', 1: 'cellLabelInImage', 2: 'feature1', 3: 'feature2'}
+    neighbor_counts = pd.DataFrame(np.zeros((100, 5)))
+    neighbor_counts = neighbor_counts.rename(col_names, axis=1)
+
+    neighbor_counts.iloc[0:50, 0] = "Point1"
+    neighbor_counts.iloc[0:50, 1] = np.arange(50) + 1
+    neighbor_counts.iloc[0:10, 2:4] = np.random.randint(low=0, high=10, size=(10, 2))
+    neighbor_counts.iloc[10:20, 2:4] = np.random.randint(low=100, high=110, size=(10, 2))
+    neighbor_counts.iloc[20:30, 2:4] = np.random.randint(low=500, high=510, size=(10, 2))
+    neighbor_counts.iloc[30:40, 2:4] = np.random.randint(low=1000, high=1010, size=(10, 2))
+    neighbor_counts.iloc[40:50, 2:4] = np.random.randint(low=5000, high=5010, size=(10, 2))
+
+    neighbor_counts.iloc[50:100, 0] = "Point2"
+    neighbor_counts.iloc[50:100, 1] = np.arange(50) + 1
+    neighbor_counts.iloc[50:60, 2:4] = np.random.randint(low=5000, high=5010, size=(10, 2))
+    neighbor_counts.iloc[60:70, 2:4] = np.random.randint(low=1000, high=1010, size=(10, 2))
+    neighbor_counts.iloc[70:80, 2:4] = np.random.randint(low=500, high=510, size=(10, 2))
+    neighbor_counts.iloc[80:90, 2:4] = np.random.randint(low=100, high=110, size=(10, 2))
+    neighbor_counts.iloc[90:100, 2:4] = np.random.randint(low=0, high=10, size=(10, 2))
+
+    return neighbor_counts
+
+
 def test_calculate_channel_spatial_enrichment():
 
     dist_lim = 100
@@ -383,4 +407,30 @@ def test_create_neighborhood_matrix():
 
 
 def test_cluster_neighborhood_matrix():
-    pass
+    # get an example neighborhood matrix
+    neighbor_mat = _make_neighborhood_matrix()
+
+    # error checking
+    with pytest.raises(ValueError):
+        # pass an invalid k
+        spatial_analysis.cluster_neighborhood_matrix(neighbor_mat=neighbor_mat, max_k=1)
+
+    with pytest.raises(ValueError):
+        # pass invalid fovs
+        spatial_analysis.cluster_neighborhood_matrix(neighbor_mat=neighbor_mat,
+                                                     included_fovs=["Point3"])
+
+    neighbor_cluster_stats = spatial_analysis.cluster_neighborhood_matrix(
+        neighbor_mat=neighbor_mat, max_k=5)
+
+    # assert dimensions are correct
+    assert neighbor_cluster_stats.values.shape == (2, 4)
+    assert list(neighbor_cluster_stats.coords["fovs"].values) == ["Point1", "Point2"]
+    assert list(neighbor_cluster_stats.coords["cluster_num"]) == list(np.arange(2, 6))
+
+    # assert k=5 produces the best silhouette score for both Point1 and Point2
+    last_k = neighbor_cluster_stats.loc["Point1", 5].values
+    assert np.all(last_k >= neighbor_cluster_stats.loc["Point1", :].values)
+
+    last_k = neighbor_cluster_stats.loc["Point2", 5].values
+    assert np.all(last_k >= neighbor_cluster_stats.loc["Point2", :].values)

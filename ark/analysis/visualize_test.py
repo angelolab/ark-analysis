@@ -1,5 +1,6 @@
 import os
 import numpy as np
+import xarray as xr
 import pytest
 import tempfile
 
@@ -119,7 +120,7 @@ def test_visualize_patient_population_distribution():
         assert os.path.exists(os.path.join(temp_dir, "PopulationProportion.png"))
 
 
-def test_visualize_neighbor_cluster_stats():
+def test_visualize_neighbor_cluster_metrics():
     # create the random cluster scores xarray
     random_cluster_stats = np.random.uniform(low=0, high=100, size=(2, 9))
     random_fovs = ["Point1", "Point2"]
@@ -131,13 +132,17 @@ def test_visualize_neighbor_cluster_stats():
     # error checking
     with pytest.raises(ValueError):
         # specifying a non-existent fov
-        visualize.visualize_neighbor_cluster_stats(random_data, fov="Point3")
+        visualize.visualize_neighbor_cluster_metrics(random_data, fov="Point3")
+
+    with pytest.raises(ValueError):
+        # specifying a non-existent directory to save to
+        visualize.visualize_neighbor_cluster_metrics(random_data, fov="Point1", save_dir="bad_dir")
 
     with tempfile.TemporaryDirectory() as temp_dir:
         # test that without save_dir, we do not save
-        visualize.visualize_neighbor_cluster_stats(random_data, fov="Point1")
+        visualize.visualize_neighbor_cluster_metrics(random_data, fov="Point1")
         assert not os.path.exists(os.path.join(temp_dir, "cluster_scores_fov_Point1"))
 
         # test that with save_dir, we do save
-        visualize.visualize_neighbor_cluster_stats(random_data, fov="Point1")
-        assert os.path.exists(os.path.join(temp_dir, "cluster_scores_fov_Point1"))
+        visualize.visualize_neighbor_cluster_metrics(random_data, fov="Point1", save_dir=temp_dir)
+        assert os.path.exists(os.path.join(temp_dir, "cluster_scores_fov_Point1.png"))
