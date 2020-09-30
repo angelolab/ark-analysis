@@ -310,7 +310,7 @@ def compute_close_cell_num_random_context(marker_nums, dist_mat, dist_lim, boots
 
     for i in range(len(marker_nums)):
         marker_col = current_fov_channel_data.columns[i]
-        marker_pos_select = current_fov_channel_data[marker_col] > thresh_vec.iloc[i]
+        marker_pos_select = current_fov_channel_data[marker_col] > thresh_vec[i]
         marker_pos_inds = current_fov_channel_data[marker_pos_select].index.values
 
         marker_counts = {m: [len(set(marker_pos_inds).intersection(set(
