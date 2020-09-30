@@ -165,7 +165,6 @@ def compute_close_cell_num(dist_mat, dist_lim, analysis_type,
 
     cell_labels = []
 
-
     # Assign column names for subsetting (cell labels and cell type ids)
     cell_label_col = settings.CELL_LABEL
     cell_type_col = settings.CLUSTER_ID
