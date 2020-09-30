@@ -2,8 +2,10 @@ import numpy as np
 import xarray as xr
 import pandas as pd
 import skimage.measure
+import sklearn.metrics
 import scipy
 from statsmodels.stats.multitest import multipletests
+from sklearn.cluster import KMeans
 from scipy.spatial.distance import cdist
 import os
 
@@ -382,5 +384,20 @@ def compute_neighbor_counts(current_fov_neighborhood_data, dist_matrix, distlim,
     return counts, freqs.T
 
 
-def generate_neighbor_clusters():
-    pass
+def compute_neighbor_mat_cluster_info(current_neighbor_mat_data, max_k=10, metric='silhouette'):
+    # TODO: include error check for metric, depends on what we want to allow
+    # not needed if we'll only be using silhouette
+
+    # store the stats we'll need for cluster_points
+    coords = [np.arange(2, max_k + 1)]
+    dims = ["cluster_num"]
+    cluster_stats = xr.DataArray(coords=coords, dims=dims)
+
+    for n in range(2, max_k + 1):
+        cluster_fit = KMeans(n_clusters=n).fit(current_neighbor_mat_data)
+        cluster_labels = cluster_fit.labels_
+        cluster_score = sklearn.metrics.silhouette_score(current_neighbor_mat_data, cluster_labels,
+                                                         metric='euclidean')
+        cluster_stats.loc[n] = cluster_score
+
+    return cluster_stats

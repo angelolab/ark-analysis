@@ -44,7 +44,7 @@ def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, 
 
     # Setup input and parameters
     if included_fovs is None:
-        included_fovs = list(set(all_data[fov_col]))
+        included_fovs = all_data[fov_col].unique()
         num_fovs = len(included_fovs)
     else:
         num_fovs = len(included_fovs)
@@ -156,7 +156,7 @@ def calculate_cluster_spatial_enrichment(all_data, dist_matrices_dict, included_
 
     # Setup input and parameters
     if included_fovs is None:
-        included_fovs = list(set(all_data[fov_col]))
+        included_fovs = all_data[fov_col].unique()
         num_fovs = len(included_fovs)
     else:
         num_fovs = len(included_fovs)
@@ -186,7 +186,7 @@ def calculate_cluster_spatial_enrichment(all_data, dist_matrices_dict, included_
 
     for i in range(0, len(included_fovs)):
         # Subsetting expression matrix to only include patients with correct fov label
-        current_fov_idx = all_pheno_data.iloc[:, 0] == included_fovs[i]
+        current_fov_idx = all_pheno_data.loc[:, fov_col] == included_fovs[i]
         current_fov_pheno_data = all_pheno_data[current_fov_idx]
 
         # Retrieve point specific distance matrix from distance matrix dictionary
@@ -244,7 +244,7 @@ def create_neighborhood_matrix(all_data, dist_matrices_dict, included_fovs=None,
 
     # Setup input and parameters
     if included_fovs is None:
-        included_fovs = sorted(list(set(all_data[fov_col])))
+        included_fovs = all_data[fov_col].unique()
 
     # Error Checking
     if not np.isin(included_fovs, all_data[fov_col]).all():
@@ -276,7 +276,7 @@ def create_neighborhood_matrix(all_data, dist_matrices_dict, included_fovs=None,
 
     for i in range(len(included_fovs)):
         # Subsetting expression matrix to only include patients with correct fov label
-        current_fov_idx = all_neighborhood_data.iloc[:, 0] == included_fovs[i]
+        current_fov_idx = all_neighborhood_data.loc[:, fov_col] == included_fovs[i]
         current_fov_neighborhood_data = all_neighborhood_data[current_fov_idx]
 
         # Get the subset of phenotypes included in the current fov
@@ -296,5 +296,39 @@ def create_neighborhood_matrix(all_data, dist_matrices_dict, included_fovs=None,
     return cell_neighbor_counts, cell_neighbor_freqs
 
 
-def cluster_neighborhood_matrix():
-    pass
+def cluster_neighborhood_matrix(neighbor_mat, max_k=10, included_fovs=None, fov_col='SampleID',
+                                label_col='cellLabelInImage', excluded_colnames=None,
+                                metric='silhouette'):
+
+    if included_fovs is None:
+        included_fovs = all_data[fov_col].unique()
+
+    # make sure the user specifies a positive k
+    if k < 2:
+        raise ValueError("Invalid k provided for clustering")
+
+    # make sure the fovs specified all exist inside the fov_col
+    if not np.isin(inclued_fovs, all_data[fov_col]).all():
+        raise ValueError("Not all specified fovs exist in the provided neighborhood matrix")
+
+    # create array we can store the results of each k for clustering
+    coords = [included_fovs, np.arange(2, max_k + 1)]
+    dims = ["fovs", "cluster_num"]
+    neighbor_cluster_stats = xr.DataArray(coords=coords, dims=dims)
+
+    for i in range(len(included_fovs)):
+        # subsetting neighborhood matrix
+        current_fov_idx = neighbor_mat.loc[:, fov_col] == included_fovs[i]
+        current_neighbor_mat_data = neighbor_mat[current_fov_idx]
+
+        # drop the columns we don't need, based on how neighbor_mat comes out
+        col_to_drop = [fov_col, label_col]
+        current_neighbor_mat_data = current_neighbor_mat_data.drop(col_to_drop, axis=1)
+
+        # run k-means clustering and generate the specified metric for each value up to max_k
+        cluster_stats = spatial_analysis_utils.compute_neighbor_mat_cluster_info(
+            current_neighbor_mat_data=current_neighbor_mat_data, max_k=max_k, metric=metric)
+
+        neighbor_cluster_stats.loc[included_fovs[i], :] = cluster_stats
+
+    return neighbor_cluster_stats

@@ -324,3 +324,7 @@ def test_compute_neighbor_counts():
     assert (cell_neighbor_freqs.loc[:3, "Pheno1"] == 1).all()
     assert (cell_neighbor_freqs.loc[4:8, "Pheno2"] == 1).all()
     assert (np.isnan(cell_neighbor_freqs.loc[9, "Pheno3"])).all()
+
+
+def test_compute_neighbor_mat_cluster_info():
+    pass

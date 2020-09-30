@@ -380,3 +380,7 @@ def test_create_neighborhood_matrix():
         counts, freqs = spatial_analysis.create_neighborhood_matrix(
             all_data_pos, dist_mat_pos, included_fovs=[1, 100000], distlim=51
         )
+
+
+def test_cluster_neighborhood_matrix():
+    pass
