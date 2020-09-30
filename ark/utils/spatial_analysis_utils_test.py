@@ -338,10 +338,10 @@ def test_compute_neighbor_counts():
     assert (np.isnan(cell_neighbor_freqs.loc[9, "Pheno3"])).all()
 
 
-def test_compute_neighbor_mat_cluster_info():
+def test_cluster_neighborhood_matrix():
     neighbor_mat = make_example_neighbor_mat()
 
-    neighbor_cluster_stats = spatial_analysis_utils.compute_neighbor_mat_cluster_info(
+    neighbor_cluster_stats = spatial_analysis_utils.cluster_neighborhood_matrix(
         neighbor_mat, max_k=4)
 
     # assert we have the right cluster_num values

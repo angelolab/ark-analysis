@@ -406,31 +406,30 @@ def test_create_neighborhood_matrix():
         )
 
 
-def test_cluster_neighborhood_matrix():
+def test_compute_neighbor_mat_cluster_scores():
     # get an example neighborhood matrix
     neighbor_mat = _make_neighborhood_matrix()
 
     # error checking
     with pytest.raises(ValueError):
         # pass an invalid k
-        spatial_analysis.cluster_neighborhood_matrix(neighbor_mat=neighbor_mat, max_k=1)
+        spatial_analysis.compute_neighbor_mat_cluster_scores(neighbor_mat=neighbor_mat, max_k=1)
 
     with pytest.raises(ValueError):
         # pass invalid fovs
-        spatial_analysis.cluster_neighborhood_matrix(neighbor_mat=neighbor_mat,
-                                                     included_fovs=["Point3"])
+        spatial_analysis.compute_neighbor_mat_cluster_scores(neighbor_mat=neighbor_mat,
+                                                             included_fovs=["Point3"])
 
-    neighbor_cluster_stats = spatial_analysis.cluster_neighborhood_matrix(
+    neighbor_cluster_stats = spatial_analysis.compute_neighbor_mat_cluster_scores(
         neighbor_mat=neighbor_mat, max_k=5)
 
     # assert dimensions are correct
-    assert neighbor_cluster_stats.values.shape == (2, 4)
-    assert list(neighbor_cluster_stats.coords["fovs"].values) == ["Point1", "Point2"]
+    assert len(neighbor_cluster_stats.values) == 4
     assert list(neighbor_cluster_stats.coords["cluster_num"]) == list(np.arange(2, 6))
 
     # assert k=5 produces the best silhouette score for both Point1 and Point2
-    last_k = neighbor_cluster_stats.loc["Point1", 5].values
-    assert np.all(last_k >= neighbor_cluster_stats.loc["Point1", :].values)
+    last_k = neighbor_cluster_stats.loc[5].values
+    assert np.all(last_k >= neighbor_cluster_stats.values)
 
-    last_k = neighbor_cluster_stats.loc["Point2", 5].values
-    assert np.all(last_k >= neighbor_cluster_stats.loc["Point2", :].values)
+    last_k = neighbor_cluster_stats.loc[5].values
+    assert np.all(last_k >= neighbor_cluster_stats.values)

@@ -122,27 +122,22 @@ def test_visualize_patient_population_distribution():
 
 def test_visualize_neighbor_cluster_metrics():
     # create the random cluster scores xarray
-    random_cluster_stats = np.random.uniform(low=0, high=100, size=(2, 9))
-    random_fovs = ["Point1", "Point2"]
-    random_coords = np.arange(2, 11)
-    random_dims = ["fovs", "cluster_num"]
-    random_data = xr.DataArray(random_cluster_stats, coords=[random_fovs, random_coords],
+    random_cluster_stats = np.random.uniform(low=0, high=100, size=9)
+    random_coords = [np.arange(2, 11)]
+    random_dims = ["cluster_num"]
+    random_data = xr.DataArray(random_cluster_stats, coords=random_coords,
                                dims=random_dims)
 
     # error checking
     with pytest.raises(ValueError):
-        # specifying a non-existent fov
-        visualize.visualize_neighbor_cluster_metrics(random_data, fov="Point3")
-
-    with pytest.raises(ValueError):
         # specifying a non-existent directory to save to
-        visualize.visualize_neighbor_cluster_metrics(random_data, fov="Point1", save_dir="bad_dir")
+        visualize.visualize_neighbor_cluster_metrics(random_data, save_dir="bad_dir")
 
     with tempfile.TemporaryDirectory() as temp_dir:
         # test that without save_dir, we do not save
-        visualize.visualize_neighbor_cluster_metrics(random_data, fov="Point1")
-        assert not os.path.exists(os.path.join(temp_dir, "cluster_scores_fov_Point1"))
+        visualize.visualize_neighbor_cluster_metrics(random_data)
+        assert not os.path.exists(os.path.join(temp_dir, "neighborhood_cluster_scores.png"))
 
         # test that with save_dir, we do save
-        visualize.visualize_neighbor_cluster_metrics(random_data, fov="Point1", save_dir=temp_dir)
-        assert os.path.exists(os.path.join(temp_dir, "cluster_scores_fov_Point1.png"))
+        visualize.visualize_neighbor_cluster_metrics(random_data, save_dir=temp_dir)
+        assert os.path.exists(os.path.join(temp_dir, "neighborhood_cluster_scores.png"))

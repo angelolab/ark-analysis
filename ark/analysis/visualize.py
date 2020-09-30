@@ -241,40 +241,30 @@ def visualize_patient_population_distribution(cell_data, patient_col_name, popul
                       save_dir=save_dir, save_file="PopulationProportion.png")
 
 
-def visualize_neighbor_cluster_metrics(neighbor_cluster_stats, fov, metric='silhouette',
-                                       save_dir=None):
+def visualize_neighbor_cluster_metrics(neighbor_cluster_stats, save_dir=None):
     """Visualize the cluster performance results of a neighborhood matrix
 
     Args:
         neighbor_cluster_stats (xarray.DataArray):
-            contains the desired statistic we wish to visualize
-        fov (str):
-            which fov we want to visualize cluster scores for
-        metric (str):
-            the metric that was used to compute the cluster scores
+            contains the desired statistic we wish to visualize, should have one
+            coordinate called cluster_num labeled starting from 2
         save_dir (str):
             Directory to save plots, default is None
     """
 
-    # TODO: worth visualizing multiple fovs at once? Personally think that's too messy.
-
-    # specified fov must actually exist in neighbor_cluster_stats
-    if fov not in neighbor_cluster_stats.coords['fovs'].values:
-        raise ValueError("Specified fov does not exist in provided cluster stats")
-
     # get the coordinates and values we'll need
     x_coords = neighbor_cluster_stats.coords['cluster_num'].values
-    scores = neighbor_cluster_stats.loc[fov, :].values
+    scores = neighbor_cluster_stats.values
 
     # plot the results
     plt.plot(x_coords, scores)
-    plt.title("FOV %s: %s score vs number of clusters" % (fov, metric))
+    plt.title("silhouette score vs number of clusters")
     plt.xlabel("Number of clusters")
-    plt.ylabel("%s score" % metric)
+    plt.ylabel("silhouette score")
 
     # save if desired
     if save_dir is not None:
         if not os.path.exists(save_dir):
             raise ValueError("save_dir %s does not exist" % save_dir)
 
-        plt.savefig(os.path.join(save_dir, "cluster_scores_fov_%s.png" % fov))
+        plt.savefig(os.path.join(save_dir, "neighborhood_cluster_scores.png"))

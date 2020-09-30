@@ -384,17 +384,15 @@ def compute_neighbor_counts(current_fov_neighborhood_data, dist_matrix, distlim,
     return counts, freqs.T
 
 
-def compute_neighbor_mat_cluster_info(current_neighbor_mat_data, max_k=10, metric='silhouette'):
-    """For a given fov's data in the neighborhood matrix, compute cluster metric scores.
-    Uses k-means clustering.
+def cluster_neighborhood_matrix(neighbor_mat_data, max_k=10):
+    """For a given neighborhood matrix, cluster and compute metric scores. Uses k-means clustering.
+    Currently only supporting silhouette score as a cluster metric.
 
     Args:
-        current_neighbor_mat_data (pandas.DataFrame):
-            neighborhood matrix data for the current fov
+        neighbor_mat_data (pandas.DataFrame):
+            neighborhood matrix data with only the desired fovs
         max_k (int):
             the maximum k we want to generate cluster statistics for, must be at least 2
-        metric (str):
-            the cluster metric we want to use to calculate quality of clusters generated
 
     Returns:
         xarray.DataArray:
@@ -402,19 +400,16 @@ def compute_neighbor_mat_cluster_info(current_neighbor_mat_data, max_k=10, metri
             when cluster_num was set as k for k-means clustering
     """
 
-    # TODO: possibly include error check for metric, depends on what we want to allow
-    # not needed if we'll only be using silhouette
-
-    # store the stats we'll need for cluster_points
+    # create array we can store the results of each k for clustering
     coords = [np.arange(2, max_k + 1)]
     dims = ["cluster_num"]
     stats_raw_data = np.zeros(len(np.arange(2, max_k + 1)))
     cluster_stats = xr.DataArray(stats_raw_data, coords=coords, dims=dims)
 
     for n in range(2, max_k + 1):
-        cluster_fit = KMeans(n_clusters=n).fit(current_neighbor_mat_data)
+        cluster_fit = KMeans(n_clusters=n).fit(neighbor_mat_data)
         cluster_labels = cluster_fit.labels_
-        cluster_score = sklearn.metrics.silhouette_score(current_neighbor_mat_data, cluster_labels,
+        cluster_score = sklearn.metrics.silhouette_score(neighbor_mat_data, cluster_labels,
                                                          metric='euclidean')
         cluster_stats.loc[n] = cluster_score
 

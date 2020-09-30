@@ -296,10 +296,11 @@ def create_neighborhood_matrix(all_data, dist_matrices_dict, included_fovs=None,
     return cell_neighbor_counts, cell_neighbor_freqs
 
 
-def cluster_neighborhood_matrix(neighbor_mat, max_k=10, included_fovs=None, fov_col='SampleID',
-                                label_col='cellLabelInImage', metric='silhouette'):
+def compute_neighbor_mat_cluster_scores(neighbor_mat, max_k=10, included_fovs=None,
+                                        fov_col='SampleID', label_col='cellLabelInImage'):
     """Given a neighborhood matrix, provide a process to produce k-means clustering metrics.
-    Will be used to help determining which k to pick.
+    Will be used to help determining which k to pick. For now, we're only supporting silhouette
+    score as a cluster metric.
 
     Args:
         neighbor_mat (pandas.DataFrame):
@@ -309,17 +310,15 @@ def cluster_neighborhood_matrix(neighbor_mat, max_k=10, included_fovs=None, fov_
         included_fovs (list):
             patient labels to include in analysis. If argument is none, default is all labels used.
         fov_col (str):
-            the name of the column in neighbor_mat determining the column
+            the name of the column in neighbor_mat determining the fov
         label_col (str):
             the name of the column in neighbor_mat determining the label
-        metric (str):
-            the cluster metric we want to use to calculate quality of clusters generated
 
     Returns:
         xarray.DataArray:
-            an xarray with dimensions (fovs, num_k_values) where num_k_values is the range
-            of integers from 2 to max_k included, contains the metric scores for each
-            fov at each value in num_k_values
+            an xarray with dimensions (num_k_values) where num_k_values is the range
+            of integers from 2 to max_k included, contains the metric scores for each value
+            in num_k_values
     """
 
     # set included_fovs to everything if not set
@@ -334,25 +333,15 @@ def cluster_neighborhood_matrix(neighbor_mat, max_k=10, included_fovs=None, fov_
     if not np.isin(included_fovs, neighbor_mat[fov_col]).all():
         raise ValueError("Not all specified fovs exist in the provided neighborhood matrix")
 
-    # create array we can store the results of each k for clustering
-    coords = [included_fovs, np.arange(2, max_k + 1)]
-    dims = ["fovs", "cluster_num"]
-    stats_raw_data = np.zeros((len(included_fovs), len(np.arange(2, max_k + 1))))
-    neighbor_cluster_stats = xr.DataArray(stats_raw_data, coords=coords, dims=dims)
+    # subset neighbor_mat accordingly, and drop the columns we don't need
+    neighbor_mat_data = neighbor_mat[neighbor_mat[fov_col].isin(included_fovs)]
 
-    for i in range(len(included_fovs)):
-        # subsetting neighborhood matrix
-        current_fov_idx = neighbor_mat.loc[:, fov_col] == included_fovs[i]
-        current_neighbor_mat_data = neighbor_mat[current_fov_idx]
+    col_to_drop = [fov_col, label_col]
+    neighbor_mat_data = neighbor_mat_data.drop(col_to_drop, axis=1)
 
-        # drop the columns we don't need, based on how neighbor_mat comes out
-        col_to_drop = [fov_col, label_col]
-        current_neighbor_mat_data = current_neighbor_mat_data.drop(col_to_drop, axis=1)
-
-        # run k-means clustering and generate the specified metric for each value up to max_k
-        cluster_stats = spatial_analysis_utils.compute_neighbor_mat_cluster_info(
-            current_neighbor_mat_data=current_neighbor_mat_data, max_k=max_k, metric=metric)
-
-        neighbor_cluster_stats.loc[included_fovs[i], :] = cluster_stats
+    # generate the cluster score information
+    neighbor_cluster_stats = spatial_analysis_utils.cluster_neighborhood_matrix(
+        neighbor_mat_data=neighbor_mat_data, max_k=max_k
+    )
 
     return neighbor_cluster_stats
