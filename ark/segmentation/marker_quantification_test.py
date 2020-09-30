@@ -259,7 +259,7 @@ def test_create_marker_count_matrices_multiple_compartments():
     assert np.array_equal(normalized['chan1'], normalized['chan2'])
 
     # check that cell with missing nucleus has size 0
-    index = np.logical_and(normalized['label'] == 2, normalized['fov'] == 'Point0')
+    index = np.logical_and(normalized['label'] == 2, normalized['fov'] == 'Fov0')
     assert normalized.loc[index, 'cell_size_nuclear'].values == 0
 
     # check that correct nuclear label is assigned to all cells
@@ -303,24 +303,24 @@ def test_generate_cell_data_tree_loading():
         )
 
         with pytest.raises(ValueError):
-            # specifying points not in the original segmentation mask
+            # specifying fovs not in the original segmentation mask
             marker_quantification.generate_cell_data(
-                segmentation_labels=segmentation_masks.loc[["Point1"]], tiff_dir=tiff_dir,
-                img_sub_folder=img_sub_folder, is_mibitiff=False, points=["Point1", "Point2"],
+                segmentation_labels=segmentation_masks.loc[["Fov1"]], tiff_dir=tiff_dir,
+                img_sub_folder=img_sub_folder, is_mibitiff=False, fovs=["Fov1", "Fov2"],
                 batch_size=5)
 
-        # generate sample norm and arcsinh data for all points
+        # generate sample norm and arcsinh data for all fovs
         norm_data, arcsinh_data = marker_quantification.generate_cell_data(
             segmentation_labels=segmentation_masks, tiff_dir=tiff_dir,
-            img_sub_folder=img_sub_folder, is_mibitiff=False, points=None, batch_size=2)
+            img_sub_folder=img_sub_folder, is_mibitiff=False, fovs=None, batch_size=2)
 
         assert norm_data.shape[0] > 0 and norm_data.shape[1] > 0
         assert arcsinh_data.shape[0] > 0 and arcsinh_data.shape[1] > 0
 
-        # generate sample norm and arcsinh data for a subset of points
+        # generate sample norm and arcsinh data for a subset of fovs
         norm_data, arcsinh_data = marker_quantification.generate_cell_data(
             segmentation_labels=segmentation_masks, tiff_dir=tiff_dir,
-            img_sub_folder=img_sub_folder, is_mibitiff=False, points=fovs_subset, batch_size=2)
+            img_sub_folder=img_sub_folder, is_mibitiff=False, fovs=fovs_subset, batch_size=2)
 
         assert norm_data.shape[0] > 0 and norm_data.shape[1] > 0
         assert arcsinh_data.shape[0] > 0 and arcsinh_data.shape[1] > 0
@@ -358,18 +358,18 @@ def test_generate_cell_data_mibitiff_loading():
             compartment_names=['whole_cell']
         )
 
-        # generate sample norm and arcsinh data for all points
+        # generate sample norm and arcsinh data for all fovs
         norm_data, arcsinh_data = marker_quantification.generate_cell_data(
             segmentation_labels=segmentation_masks, tiff_dir=tiff_dir,
-            img_sub_folder=tiff_dir, is_mibitiff=True, points=None, batch_size=2)
+            img_sub_folder=tiff_dir, is_mibitiff=True, fovs=None, batch_size=2)
 
         assert norm_data.shape[0] > 0 and norm_data.shape[1] > 0
         assert arcsinh_data.shape[0] > 0 and arcsinh_data.shape[1] > 0
 
-        # generate sample norm and arcsinh data for a subset of points
+        # generate sample norm and arcsinh data for a subset of fovs
         norm_data, arcsinh_data = marker_quantification.generate_cell_data(
             segmentation_labels=segmentation_masks, tiff_dir=tiff_dir,
-            img_sub_folder=tiff_dir, is_mibitiff=True, points=fovs_subset, batch_size=2)
+            img_sub_folder=tiff_dir, is_mibitiff=True, fovs=fovs_subset, batch_size=2)
 
         assert norm_data.shape[0] > 0 and norm_data.shape[1] > 0
         assert arcsinh_data.shape[0] > 0 and arcsinh_data.shape[1] > 0

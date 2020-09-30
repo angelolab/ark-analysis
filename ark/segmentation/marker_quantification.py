@@ -13,7 +13,7 @@ from ark.segmentation import signal_extraction
 
 def compute_marker_counts(input_images, segmentation_masks, nuclear_counts=False,
                           regionprops_features=None, split_large_nuclei=False):
-    """Extract single cell protein expression data from channel TIFs for a single point
+    """Extract single cell protein expression data from channel TIFs for a single fov
 
     Args:
         input_images (xarray.DataArray):
@@ -217,7 +217,7 @@ def create_marker_count_matrices(segmentation_labels, image_data, nuclear_counts
 
 
 def generate_cell_data(segmentation_labels, tiff_dir, img_sub_folder,
-                       is_mibitiff=False, points=None, batch_size=5):
+                       is_mibitiff=False, fovs=None, batch_size=5):
     """
     This function takes the segmented data and computes the expression matrices batch-wise
     while also validating inputs
@@ -229,12 +229,12 @@ def generate_cell_data(segmentation_labels, tiff_dir, img_sub_folder,
             the name of the directory which contains the single_channel_inputs
         img_sub_folder (str):
             the name of the folder where the TIF images are located
-        points (list):
-            a list of points we wish to analyze, if None will default to all points
+        fovs (list):
+            a list of fovs we wish to analyze, if None will default to all fovs
         is_mibitiff (bool):
             a flag to indicate whether or not the base images are MIBItiffs
         batch_size (int):
-            how large we want each of the batches of points to be when computing, adjust as
+            how large we want each of the batches of fovs to be when computing, adjust as
             necessary for speed and memory considerations
 
     Returns:
@@ -244,32 +244,32 @@ def generate_cell_data(segmentation_labels, tiff_dir, img_sub_folder,
         - arcsinh transformed data
     """
 
-    # if no points are specified, then load all the points
-    if points is None:
+    # if no fovs are specified, then load all the fovs
+    if fovs is None:
         # handle mibitiffs with an assumed file structure
         if is_mibitiff:
             filenames = io_utils.list_files(tiff_dir, substrs=['.tif'])
-            points = io_utils.extract_delimited_names(filenames, delimiter=None)
+            fovs = io_utils.extract_delimited_names(filenames, delimiter=None)
         # otherwise assume the tree-like directory as defined for tree loading
         else:
             filenames = io_utils.list_folders(tiff_dir)
-            points = filenames
+            fovs = filenames
 
-    # check segmentation_labels for given points (img loaders will fail otherwise)
-    point_values = [point for point in points if point not in segmentation_labels['fovs'].values]
-    if point_values:
-        raise ValueError(f"Invalid point values specified: "
-                         f"points {','.join(point_values)} not found in segmentation_labels fovs")
+    # check segmentation_labels for given fovs (img loaders will fail otherwise)
+    fov_values = [fov for fov in fovs if fov not in segmentation_labels['fovs'].values]
+    if fov_values:
+        raise ValueError(f"Invalid fov values specified: "
+                         f"fovs {','.join(fov_values)} not found in segmentation_labels fovs")
 
-    # get full filenames from given points
-    filenames = io_utils.list_files(tiff_dir, substrs=points)
+    # get full filenames from given fovs
+    filenames = io_utils.list_files(tiff_dir, substrs=fovs)
 
-    # sort the points
-    points.sort()
+    # sort the fovs
+    fovs.sort()
     filenames.sort()
 
     # defined some vars for batch processing
-    cohort_len = len(points)
+    cohort_len = len(fovs)
 
     # create the final dfs to store the processed data
     combined_cell_size_normalized_data = pd.DataFrame()
@@ -277,7 +277,7 @@ def generate_cell_data(segmentation_labels, tiff_dir, img_sub_folder,
 
     # iterate over all the batches
     for batch_names, batch_files in zip(
-        [points[i:i + batch_size] for i in range(0, cohort_len, batch_size)],
+        [fovs[i:i + batch_size] for i in range(0, cohort_len, batch_size)],
         [filenames[i:i + batch_size] for i in range(0, cohort_len, batch_size)]
     ):
         # and extract the image data for each batch

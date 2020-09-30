@@ -16,7 +16,7 @@ def make_all_data():
     # Create example all_patient_data cell expression matrix
     all_data = pd.DataFrame(np.zeros((10, 33)))
     # Assigning values to the patient label and cell label columns
-    all_data[30] = "Point8"
+    all_data[30] = "Fov8"
     all_data[24] = np.arange(len(all_data[1])) + 1
 
     colnames = {24: "cellLabelInImage", 30: "SampleID", 31: "FlowSOM_ID", 32: "cell_type"}

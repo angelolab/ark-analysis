@@ -17,7 +17,7 @@ def test_load_imgs_from_mibitiff():
             fills=True, dtype=np.float32
         )
 
-        # check unspecified point loading
+        # check unspecified fov loading
         loaded_xr = load_utils.load_imgs_from_mibitiff(temp_dir,
                                                        channels=channels,
                                                        delimiter='_')
@@ -26,7 +26,7 @@ def test_load_imgs_from_mibitiff():
 
         fovnames = [f'{fov}.tiff' for fov in fovs]
 
-        # check specified point loading
+        # check specified fov loading
         loaded_xr = load_utils.load_imgs_from_mibitiff(temp_dir,
                                                        mibitiff_files=[fovnames[-1]],
                                                        channels=channels,
