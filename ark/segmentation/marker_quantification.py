@@ -7,7 +7,7 @@ import xarray as xr
 
 from skimage.measure import regionprops_table
 
-from ark.utils import data_utils, io_utils, segmentation_utils
+from ark.utils import load_utils, io_utils, segmentation_utils
 from ark.segmentation import signal_extraction
 
 import ark.settings as settings
@@ -146,7 +146,7 @@ def compute_marker_counts(input_images, segmentation_masks, nuclear_counts=False
     return marker_counts
 
 
-def generate_expression_matrix(segmentation_labels, image_data, nuclear_counts=False):
+def create_marker_count_matrices(segmentation_labels, image_data, nuclear_counts=False):
     """Create a matrix of cells by channels with the total counts of each marker in each cell.
 
     Args:
@@ -230,8 +230,8 @@ def generate_expression_matrix(segmentation_labels, image_data, nuclear_counts=F
     return normalized_data, arcsinh_data
 
 
-def compute_complete_expression_matrices(segmentation_labels, tiff_dir, img_sub_folder,
-                                         is_mibitiff=False, points=None, batch_size=5):
+def generate_cell_data(segmentation_labels, tiff_dir, img_sub_folder,
+                       is_mibitiff=False, points=None, batch_size=5):
     """
     This function takes the segmented data and computes the expression matrices batch-wise
     while also validating inputs
@@ -253,8 +253,9 @@ def compute_complete_expression_matrices(segmentation_labels, tiff_dir, img_sub_
 
     Returns:
         tuple (pandas.DataFrame, pandas.DataFrame):
-            - size normalized data
-            - arcsinh transformed data
+
+        - size normalized data
+        - arcsinh transformed data
     """
 
     # if no points are specified, then load all the points
@@ -295,10 +296,10 @@ def compute_complete_expression_matrices(segmentation_labels, tiff_dir, img_sub_
     ):
         # and extract the image data for each batch
         if is_mibitiff:
-            image_data = data_utils.load_imgs_from_mibitiff(data_dir=tiff_dir,
+            image_data = load_utils.load_imgs_from_mibitiff(data_dir=tiff_dir,
                                                             mibitiff_files=batch_files)
         else:
-            image_data = data_utils.load_imgs_from_tree(data_dir=tiff_dir,
+            image_data = load_utils.load_imgs_from_tree(data_dir=tiff_dir,
                                                         img_sub_folder=img_sub_folder,
                                                         fovs=batch_names)
 
@@ -306,7 +307,7 @@ def compute_complete_expression_matrices(segmentation_labels, tiff_dir, img_sub_
         current_labels = segmentation_labels.loc[batch_names, :, :, :]
 
         # segment the imaging data
-        cell_size_normalized_data, arcsinh_transformed_data = generate_expression_matrix(
+        cell_size_normalized_data, arcsinh_transformed_data = create_marker_count_matrices(
             segmentation_labels=current_labels,
             image_data=image_data
         )
