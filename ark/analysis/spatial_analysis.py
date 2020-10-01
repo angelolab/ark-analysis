@@ -297,7 +297,9 @@ def create_neighborhood_matrix(all_data, dist_matrices_dict, included_fovs=None,
     return cell_neighbor_counts, cell_neighbor_freqs
 
 
-def generate_cluster_matrix_results(all_data, neighbor_mat, cluster_num):
+def generate_cluster_matrix_results(all_data, neighbor_mat, included_fovs, cluster_num,
+                                    cluster_label_col='cluster_labels', fov_col='SampleID',
+                                    label_col='cellLabelInImage', cell_type_col='FlowSOM_ID'):
     """Generate the cluster info on all_data based on k=cluster_num k-means clustering
     on neighbor_mat. cluster_num has to be picked based on the visualization results generated
     from compute_cluster_metrics.
@@ -307,9 +309,19 @@ def generate_cluster_matrix_results(all_data, neighbor_mat, cluster_num):
             data including fovs, cell labels, and cell expression matrix for all markers
         neighbor_mat (pandas.DataFrame):
             a neighborhood matrix, created from create_neighborhood_matrix
+        included_fovs (list):
+            patient labels to include in analysis. If argument is None, default is all labels used.
         cluster_num (int):
             the optimal k to pass into k-means clustering to generate the final clusters
             and corresponding results
+        cluster_label_col (str):
+            the name of the cluster label col we will create
+        fov_col (str):
+            the name of the column in all_data and neighbor_mat determining the fov
+        label_col (str):
+            the name of the column in all_data and neighbor_mat determining the label
+        cell_type_col (str):
+            the name of the column in all_data determining the cell type
 
     Returns:
         tuple (pandas.DataFrame, pandas.DataFrame):
@@ -317,4 +329,43 @@ def generate_cluster_matrix_results(all_data, neighbor_mat, cluster_num):
         - a matrix listing the number of cell types per cluster
         - a matrix listing the mean expression of each marker per cluster
     """
-    pass
+
+    # error checking
+    if included_fovs is None:
+        included_fovs = neighbor_mat[fov_col].unique()
+
+    if not np.isin(included_fovs, neighbor_mat[fov_col]).all():
+        raise ValueError("Not all specified fovs exist in the provided neighborhood matrix")
+
+    if cluster_num < 2:
+        raise ValueError("Invalid k provided for clustering")
+
+    # subset neighbor mat
+    neighbor_mat_data = neighbor_mat[neighbor_mat[fov_col].isin(included_fovs)]
+
+    # drop non-channel columns
+    col_to_drop = [fov_col, label_col]
+    neighbor_mat_data = neighbor_mat_data.drop(col_to_drop, axis=1)
+
+    # generate cluster labels
+    cluster_labels = spatial_analysis_utils.generate_cluster_labels(
+        neighbor_mat_data, cluster_num, cluster_label_col)
+
+    # add labels to all_data
+    all_data_cluster = all_data.copy()
+    all_data_cluster[cluster_label_col] = cluster_labels
+
+    # create a count pivot table with cluster_label_col as row and cell_type_col as column
+    group_by_cell_type = all_data_cluster.groupby(
+        [cluster_label_col, cell_type_col]).size().reset_index(name="count")
+    cluster_counts_per_cell_type = group_by_cell_type.pivot(
+        index=cluster_label_col, columns=cell_type_col, values="count").fillna(0).astype(int)
+
+    # add labels to neighbor_mat
+    neighbor_mat_cluster = neighbor_mat_data.copy()
+    neighbor_mat_cluster[cluster_label_col] = cluster_labels
+
+    # create a mean pivot table with cluster_label_col as row and channels as column
+    cluster_mean_per_marker = all_data_cluster.groupby([cluster_label_col]).mean()
+
+    return cluster_counts_per_cell_type, cluster_mean_per_marker

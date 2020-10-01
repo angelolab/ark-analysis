@@ -380,3 +380,24 @@ def compute_neighbor_counts(current_fov_neighborhood_data, dist_matrix, distlim,
     freqs = counts.T / num_neighbors
 
     return counts, freqs.T
+
+
+def generate_cluster_labels(neighbor_mat_data, cluster_num):
+    """Run k-means clustering with the given cluster_num as k on each channel column
+    in neighbor_mat_data
+
+    Args:
+        neighbor_mat_data (pandas.DataFrame):
+            neighborhood matrix data with only the desired fovs
+        cluster_num (int):
+            the k we want to use when running k-means clustering
+
+    Returns:
+        numpy.ndarray:
+            the cluster labels we will be assigning to each cell in the neighborhood matrix
+    """
+
+    cluster_fit = KMeans(n_cluster=cluster_num).fit(neighbor_mat_data)
+    cluster_labels = cluster_fit.labels_
+
+    return cluster_labels
