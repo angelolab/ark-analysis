@@ -47,11 +47,12 @@ def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, 
 
     Returns:
         tuple (list, xarray.DataArray):
-            - a list with each element consisting of a tuple of closenum and closenumrand for each
-              point included in the analysis
-            - an xarray with dimensions (fovs, stats, num_channels, num_channels). The included
-              stats variables for each point are z, muhat, sigmahat, p, h, adj_p, and
-              cluster_names
+
+        - a list with each element consisting of a tuple of closenum and closenumrand for each
+          fov included in the analysis
+        - an xarray with dimensions (fovs, stats, num_channels, num_channels). The included
+          stats variables for each fov are z, muhat, sigmahat, p, h, adj_p, and
+          cluster_names
     """
 
     if fov_col not in all_data.columns.values:
@@ -110,7 +111,7 @@ def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, 
         # Patients with correct label, and only columns of channel markers
         current_fov_channel_data = all_channel_data[current_fov_idx]
 
-        # Retrieve point specific distance matrix from distance matrix dictionary
+        # Retrieve fov-specific distance matrix from distance matrix dictionary
         dist_matrix = dist_matrices_dict[included_fovs[i]]
 
         # Get close_num and close_num_rand
@@ -175,9 +176,9 @@ def calculate_cluster_spatial_enrichment(all_data, dist_matrices_dict, included_
         tuple (list, xarray.DataArray):
 
         - a list with each element consisting of a tuple of closenum and closenumrand for each
-          point included in the analysis
+          fov included in the analysis
         - an xarray with dimensions (fovs, stats, number of channels, number of channels). The
-          included stats variables for each point are: z, muhat, sigmahat, p, h, adj_p, and
+          included stats variables for each fov are: z, muhat, sigmahat, p, h, adj_p, and
           cluster_names
     """
 
@@ -210,7 +211,7 @@ def calculate_cluster_spatial_enrichment(all_data, dist_matrices_dict, included_
     # Only include the columns with the patient label, cell label, and cell phenotype
     all_pheno_data = all_data[[fov_col, cell_label_col, cluster_id_col]]
 
-    # Create stats Xarray with the dimensions (points, stats variables, num_markers, num_markers)
+    # Create stats Xarray with the dimensions (fovs, stats variables, num_markers, num_markers)
     stats_raw_data = np.zeros((num_fovs, 7, cluster_num, cluster_num))
     coords = [included_fovs, ["z", "muhat", "sigmahat", "p_pos", "p_neg", "h", "p_adj"],
               cluster_names, cluster_names]
@@ -222,7 +223,7 @@ def calculate_cluster_spatial_enrichment(all_data, dist_matrices_dict, included_
         current_fov_idx = all_pheno_data.iloc[:, 0] == included_fovs[i]
         current_fov_pheno_data = all_pheno_data[current_fov_idx]
 
-        # Retrieve point specific distance matrix from distance matrix dictionary
+        # Retrieve fov specific distance matrix from distance matrix dictionary
         dist_mat = dist_matrices_dict[included_fovs[i]]
 
         # Get close_num and close_num_rand
@@ -281,7 +282,7 @@ def create_neighborhood_matrix(all_data, dist_matrices_dict, included_fovs=None,
 
     # Error Checking
     if not np.isin(included_fovs, all_data[fov_col]).all():
-        raise ValueError("Points were not found in Expression Matrix")
+        raise ValueError("Fovs were not found in Expression Matrix")
 
     # Get the phenotypes
     cluster_names = all_data[cluster_name_col].drop_duplicates()
@@ -315,10 +316,10 @@ def create_neighborhood_matrix(all_data, dist_matrices_dict, included_fovs=None,
         # Get the subset of phenotypes included in the current fov
         fov_cluster_names = current_fov_neighborhood_data[cluster_name_col].drop_duplicates()
 
-        # Retrieve point specific distance matrix from distance matrix dictionary
+        # Retrieve fov-specific distance matrix from distance matrix dictionary
         dist_matrix = dist_matrices_dict[included_fovs[i]]
 
-        # Get cell_neighbor_counts and cell_neighbor_freqs for points
+        # Get cell_neighbor_counts and cell_neighbor_freqs for fovs
         counts, freqs = spatial_analysis_utils.compute_neighbor_counts(
             current_fov_neighborhood_data, dist_matrix, distlim)
 
