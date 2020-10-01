@@ -403,7 +403,7 @@ def compute_kmeans_cluster_metric(neighbor_mat_data, max_k=10):
     # create array we can store the results of each k for clustering
     coords = [np.arange(2, max_k + 1)]
     dims = ["cluster_num"]
-    stats_raw_data = np.zeros(len(np.arange(2, max_k + 1)))
+    stats_raw_data = np.zeros(max_k - 1)
     cluster_stats = xr.DataArray(stats_raw_data, coords=coords, dims=dims)
 
     for n in range(2, max_k + 1):
