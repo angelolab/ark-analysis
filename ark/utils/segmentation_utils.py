@@ -140,7 +140,7 @@ def transform_expression_matrix(cell_data, transform, transform_kwargs=None):
     return cell_data_transformed
 
 
-def concatenate_csv(base_dir, csv_files, column_name="point", column_values=None):
+def concatenate_csv(base_dir, csv_files, column_name="fov", column_values=None):
     """Take a list of CSV paths and concatenates them together,
     adding in the identifier in column_values
 
@@ -152,7 +152,7 @@ def concatenate_csv(base_dir, csv_files, column_name="point", column_values=None
         csv_files (list):
             a list csv files
         column_name (str):
-            optional column name, defaults to point
+            optional column name, defaults to fov
         column_values (list):
             optional values to use for each CSV, defaults to csv name
     """
