@@ -259,7 +259,7 @@ def test_create_marker_count_matrices_multiple_compartments():
     assert np.array_equal(normalized['chan1'], normalized['chan2'])
 
     # check that cell with missing nucleus has size 0
-    index = np.logical_and(normalized['label'] == 2, normalized['fov'] == 'Fov0')
+    index = np.logical_and(normalized['label'] == 2, normalized['fov'] == 'fov0')
     assert normalized.loc[index, 'cell_size_nuclear'].values == 0
 
     # check that correct nuclear label is assigned to all cells
@@ -270,7 +270,7 @@ def test_create_marker_count_matrices_multiple_compartments():
 def test_generate_cell_data_tree_loading():
     # is_mibitiff False case, load from directory tree
     with tempfile.TemporaryDirectory() as temp_dir:
-        # define 3 FOVs and 3 imgs per FOV
+        # define 3 fovs and 3 imgs per fov
         fovs, chans = test_utils.gen_fov_chan_names(3, 3)
 
         tiff_dir = os.path.join(temp_dir, "single_channel_inputs")
@@ -305,8 +305,8 @@ def test_generate_cell_data_tree_loading():
         with pytest.raises(ValueError):
             # specifying fovs not in the original segmentation mask
             marker_quantification.generate_cell_data(
-                segmentation_labels=segmentation_masks.loc[["Fov1"]], tiff_dir=tiff_dir,
-                img_sub_folder=img_sub_folder, is_mibitiff=False, fovs=["Fov1", "Fov2"],
+                segmentation_labels=segmentation_masks.loc[["fov1"]], tiff_dir=tiff_dir,
+                img_sub_folder=img_sub_folder, is_mibitiff=False, fovs=["fov1", "fov2"],
                 batch_size=5)
 
         # generate sample norm and arcsinh data for all fovs
@@ -329,7 +329,7 @@ def test_generate_cell_data_tree_loading():
 def test_generate_cell_data_mibitiff_loading():
     # is_mibitiff True case, load from mibitiff file structure
     with tempfile.TemporaryDirectory() as temp_dir:
-        # define 3 FOVs and 2 mibitiff_imgs
+        # define 3 fovs and 2 mibitiff_imgs
         fovs, channels = test_utils.gen_fov_chan_names(3, 2)
 
         # define a subset of fovs

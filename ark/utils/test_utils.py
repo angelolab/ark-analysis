@@ -10,28 +10,28 @@ from mibidata import mibi_image as mi, tiff
 
 
 def gen_fov_chan_names(num_fovs, num_chans, return_imgs=False, use_delimiter=False):
-    """Generate FOV and channel names
+    """Generate fov and channel names
 
-    Names have the format 'Fov0', 'Fov1', ..., 'FovN' for FOVS and 'chan0', 'chan1', ...,
+    Names have the format 'fov0', 'fov1', ..., 'fovN' for fovs and 'chan0', 'chan1', ...,
     'chanM' for channels.
 
     Args:
         num_fovs (int):
-            Number of FOV names to create
+            Number of fov names to create
         num_chans (int):
             Number of channel names to create
         return_imgs (bool):
             Return 'chanK.tiff' as well if True.  Default is False
         use_delimiter (bool):
-            Appends '_otherinfo' to the first FOV.  Useful for testing FOV id extraction from
+            Appends '_otherinfo' to the first fov. Useful for testing fov id extraction from
             filenames.  Default is False
 
     Returns:
         tuple (list, list) or (list, list, list):
-            If return_imgs is False, only FOV and channel names are returned
+            If return_imgs is False, only fov and channel names are returned
             If return_imgs is True, image names will also be returned
     """
-    fovs = [f'Fov{i}' for i in range(num_fovs)]
+    fovs = [f'fov{i}' for i in range(num_fovs)]
     if use_delimiter:
         fovs[0] = f'{fovs[0]}_otherinfo'
     chans = [f'chan{i}' for i in range(num_chans)]
@@ -47,8 +47,8 @@ def gen_fov_chan_names(num_fovs, num_chans, return_imgs=False, use_delimiter=Fal
 MIBITIFF_METADATA = {
     'run': '20180703_1234_test', 'date': '2017-09-16T15:26:00',
     'coordinates': (12345, -67890), 'size': 500., 'slide': '857',
-    'fov_id': 'Fov1', 'fov_name': 'R1C3_Tonsil',
-    'folder': 'Fov1/RowNumber0/Depth_Profile0',
+    'fov_id': 'fov1', 'fov_name': 'R1C3_Tonsil',
+    'folder': 'fov1/RowNumber0/Depth_Profile0',
     'dwell': 4, 'scans': '0,5', 'aperture': 'B',
     'instrument': 'MIBIscope1', 'tissue': 'Tonsil',
     'panel': '20170916_1x', 'mass_offset': 0.1, 'mass_gain': 0.2,
@@ -63,7 +63,7 @@ def _gen_tif_data(fov_number, chan_number, img_shape, fills, dtype):
 
     Args:
         fov_number (int):
-            Number of FOV's required
+            Number of fovs required
         chan_number (int):
             Number of channels required
         img_shape (tuple):
@@ -71,7 +71,7 @@ def _gen_tif_data(fov_number, chan_number, img_shape, fills, dtype):
         fills (bool):
             If False, data is randomized.  If True, each single image will be filled with a value
             one less than that of the next channel.  If said image is the last channel, then the
-            value is one less than that of the first channel in the next FOV.
+            value is one less than that of the first channel in the next fov.
         dtype (type):
             Data type for generated data
 
@@ -99,7 +99,7 @@ def _gen_label_data(fov_number, comp_number, img_shape, dtype):
 
     Args:
         fov_number (int):
-            Number of FOV's required
+            Number of fovs required
         comp_number (int):
             Number of components
         img_shape (tuple):
@@ -140,7 +140,7 @@ def _write_tifs(base_dir, fov_names, img_names, shape, sub_dir, fills, dtype):
         base_dir (str):
             Path to base directory
         fov_names (list):
-            List of FOV folders to create/fill
+            List of fov folders to create/fill
         img_names (list):
             Channel names
         shape (tuple):
@@ -150,13 +150,13 @@ def _write_tifs(base_dir, fov_names, img_names, shape, sub_dir, fills, dtype):
         fills (bool):
             If False, data is randomized.  If True, each single image will be filled with a value
             one less than that of the next channel.  If said image is the last channel, then the
-            value is one less than that of the first channel in the next FOV.
+            value is one less than that of the first channel in the next fov.
         dtype (type):
             Data type for generated images
 
     Returns:
         tuple (dict, numpy.ndarray):
-             - File locations, indexable by FOV names
+             - File locations, indexable by fov names
              - Image data as an array with shape (num_fovs, shape[0], shape[1], num_channels)
     """
     tif_data = _gen_tif_data(len(fov_names), len(img_names), shape, fills, dtype)
@@ -184,7 +184,7 @@ def _write_multitiff(base_dir, fov_names, channel_names, shape, sub_dir, fills, 
         base_dir (str):
             Path to base directory
         fov_names (list):
-            List of FOV files to write
+            List of fov files to write
         channel_names (list):
             Channel names
         shape (tuple):
@@ -194,13 +194,13 @@ def _write_multitiff(base_dir, fov_names, channel_names, shape, sub_dir, fills, 
         fills (bool):
             If False, data is randomized.  If True, each single image will be filled with a value
             one less than that of the next channel.  If said image is the last channel, then the
-            value is one less than that of the first channel in the next FOV.
+            value is one less than that of the first channel in the next fov.
         dtype (type):
             Data type for generated images
 
     Returns:
         tuple (dict, numpy.ndarray):
-             - File locations, indexable by FOV names
+             - File locations, indexable by fov names
              - Image data as an array with shape (num_fovs, shape[0], shape[1], num_channels)
     """
     tif_data = _gen_tif_data(len(fov_names), len(channel_names), shape, fills, dtype)
@@ -222,7 +222,7 @@ def _write_mibitiff(base_dir, fov_names, channel_names, shape, sub_dir, fills, d
         base_dir (str):
             Path to base directory
         fov_names (list):
-            List of FOV files to write
+            List of fov files to write
         channel_names (list):
             Channel names
         shape (tuple):
@@ -232,13 +232,13 @@ def _write_mibitiff(base_dir, fov_names, channel_names, shape, sub_dir, fills, d
         fills (bool):
             If False, data is randomized.  If True, each single image will be filled with a value
             one less than that of the next channel.  If said image is the last channel, then the
-            value is one less than that of the first channel in the next FOV.
+            value is one less than that of the first channel in the next fov.
         dtype (type):
             Data type for generated images
 
     Returns:
         tuple (dict, numpy.ndarray):
-             - File locations, indexable by FOV names
+             - File locations, indexable by fov names
              - Image data as an array with shape (num_fovs, shape[0], shape[1], num_channels)
     """
     tif_data = _gen_tif_data(len(fov_names), len(channel_names), shape, fills, dtype)
@@ -269,7 +269,7 @@ def _write_reverse_multitiff(base_dir, fov_names, channel_names, shape, sub_dir,
         base_dir (str):
             Path to base directory
         fov_names (list):
-            List of FOV files to write
+            List of fov files to write
         channel_names (list):
             Channel names
         shape (tuple):
@@ -279,13 +279,13 @@ def _write_reverse_multitiff(base_dir, fov_names, channel_names, shape, sub_dir,
         fills (bool):
             If False, data is randomized.  If True, each single image will be filled with a value
             one less than that of the next channel.  If said image is the last channel, then the
-            value is one less than that of the first channel in the next FOV.
+            value is one less than that of the first channel in the next fov.
         dtype (type):
             Data type for generated images
 
     Returns:
         tuple (dict, numpy.ndarray):
-             - File locations, indexable by FOV names
+             - File locations, indexable by fov names
              - Image data as an array with shape (num_fovs, shape[0], shape[1], num_channels)
     """
     tif_data = _gen_tif_data(len(channel_names), len(fov_names), shape, fills, dtype)
@@ -309,7 +309,7 @@ def _write_labels(base_dir, fov_names, comp_names, shape, sub_dir, fills, dtype)
         base_dir (str):
             Path to base directory
         fov_names (list):
-            List of FOV files to write
+            List of fov files to write
         comp_names (list):
             Component names
         shape (tuple):
@@ -323,7 +323,7 @@ def _write_labels(base_dir, fov_names, comp_names, shape, sub_dir, fills, dtype)
 
     Returns:
         tuple (dict, numpy.ndarray):
-             - File locations, indexable by FOV names
+             - File locations, indexable by fov names
              - Label data as an array with shape (num_fovs, shape[0], shape[1], num_components)
     """
     label_data = _gen_label_data(len(fov_names), len(comp_names), shape, dtype)
@@ -357,7 +357,7 @@ def create_paired_xarray_fovs(base_dir, fov_names, channel_names, img_shape=(10,
         base_dir (str):
             Path to base directory.  All data will be written into this folder.
         fov_names (list):
-            List of FOV's
+            List of fovs
         channel_names (list):
             List of channels/components
         img_shape (tuple):
@@ -375,18 +375,18 @@ def create_paired_xarray_fovs(base_dir, fov_names, channel_names, img_shape=(10,
             Default is None.
         sub_dir (str):
             Only active for 'tiff' mode.  Creates another sub directory in which tiffs are stored
-            within the parent FOV folder.  Default is None.
+            within the parent fov folder.  Default is None.
         fills (bool):
             Only active for image data (not 'labels'). If False, data is randomized.  If True,
             each single image will be filled with a value one less than that of the next channel.
             If said image is the last channel, then the value is one less than that of the first
-            channel in the next FOV.
+            channel in the next fov.
         dtype (type):
             Data type for generated images/labels.  Default is int16
 
     Returns:
         tuple (dict, xarray.DataArray):
-             - File locations, indexable by FOV names
+             - File locations, indexable by fov names
              - Image/label data as an xarray with shape
                (num_fovs, im_shape[0], shape[1], num_channels)
     """
@@ -434,8 +434,8 @@ def make_images_xarray(tif_data, fov_ids=None, channel_names=None, row_size=10, 
             Image data to embed within the xarray.  If None, randomly generated image data is used,
             but fov_ids and channel_names must not be None.
         fov_ids (list or None):
-            List of FOV names.  If None, FOV id's will be generated based on the shape of tif_data
-            following the scheme 'Fov0', 'Fov1', ... , 'FovN'. Default is None.
+            List of fov names.  If None, fov id's will be generated based on the shape of tif_data
+            following the scheme 'fov0', 'fov1', ... , 'fovN'. Default is None.
         channel_names (list or None):
             List of channel names.  If None, channel names will be generated based on the shape of
             tif_data following the scheme 'chan0', 'chan1', ... , 'chanM'.  Default is None.
@@ -476,8 +476,8 @@ def make_labels_xarray(label_data, fov_ids=None, compartment_names=None, row_siz
             Label data to embed within the xarray.  If None, automatically generated label data is
             used, but fov_ids and compartment_names must not be None.
         fov_ids (list or None):
-            List of FOV names.  If None, FOV id's will be generated based on the shape of tif_data
-            following the scheme 'Fov0', 'Fov1', ... , 'FovN'. Default is None.
+            List of fov names.  If None, fov id's will be generated based on the shape of tif_data
+            following the scheme 'fov0', 'fov1', ... , 'fovN'. Default is None.
         compartment_names (list or None):
             List of compartment names.  If None, compartment names will be ['whole_cell'] or
             ['whole_cell', 'nuclear'] if label_data.shape[-1] is 1 or 2 respecticely. Default is

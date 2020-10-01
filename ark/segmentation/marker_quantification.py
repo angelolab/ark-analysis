@@ -138,7 +138,7 @@ def create_marker_count_matrices(segmentation_labels, image_data, nuclear_counts
     Args:
         segmentation_labels (xarray.DataArray):
             xarray of shape [fovs, rows, cols, compartment] containing segmentation masks for each
-            FOV, potentially across multiple cell compartments
+            fov, potentially across multiple cell compartments
         image_data (xarray.DataArray):
             xarray containing all of the channel data across all FOVs
         nuclear_counts (bool):
@@ -160,13 +160,13 @@ def create_marker_count_matrices(segmentation_labels, image_data, nuclear_counts
             raise ValueError("Nuclear counts set to True, but not nuclear mask provided")
 
     if not np.all(set(segmentation_labels.fovs.values) == set(image_data.fovs.values)):
-        raise ValueError("The same FOVs must be present in the segmentation labels and images")
+        raise ValueError("The same fovs must be present in the segmentation labels and images")
 
     # initialize data frames
     normalized_data = pd.DataFrame()
     arcsinh_data = pd.DataFrame()
 
-    # loop over each FOV in the dataset
+    # loop over each fov in the dataset
     for fov in segmentation_labels.fovs.values:
         print("extracting data from {}".format(fov))
 
@@ -185,7 +185,7 @@ def create_marker_count_matrices(segmentation_labels, image_data, nuclear_counts
         marker_counts_arcsinh = segmentation_utils.transform_expression_matrix(marker_counts_norm,
                                                                                transform='arcsinh')
 
-        # add data from each FOV to array
+        # add data from each fov to array
         normalized = pd.DataFrame(data=marker_counts_norm.loc['whole_cell', :, :].values,
                                   columns=marker_counts_norm.features)
 
@@ -206,7 +206,7 @@ def create_marker_count_matrices(segmentation_labels, image_data, nuclear_counts
                                        columns=nuc_column_names)
             arcsinh = pd.concat((arcsinh, arcsinh_nuc), axis=1)
 
-        # add column for current FOV
+        # add column for current fov
         normalized['fov'] = fov
         normalized_data = normalized_data.append(normalized)
 

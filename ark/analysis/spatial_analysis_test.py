@@ -27,7 +27,7 @@ def _make_distance_matrix(enrichment_type, dist_lim):
                                 coords=[np.arange(rand_mat.shape[0]) + 1,
                                         np.arange(rand_mat.shape[1]) + 1])
 
-        fovs = ["Fov8", "Fov9"]
+        fovs = ["fov8", "fov9"]
         mats = [rand_mat, rand_mat]
         rand_matrix = dict(zip(fovs, mats))
 
@@ -43,7 +43,7 @@ def _make_distance_matrix(enrichment_type, dist_lim):
             distr_random=(int(dist_lim * 5), 1)
         )
 
-        fovs = ["Fov8", "Fov9"]
+        fovs = ["fov8", "fov9"]
         mats = [dist_mat_pos, dist_mat_pos]
         dist_mat_pos = dict(zip(fovs, mats))
 
@@ -57,7 +57,7 @@ def _make_distance_matrix(enrichment_type, dist_lim):
             distr_random=(int(dist_lim / 5), 1)
         )
 
-        fovs = ["Fov8", "Fov9"]
+        fovs = ["fov8", "fov9"]
         mats = [dist_mat_neg, dist_mat_neg]
         dist_mat_neg = dict(zip(fovs, mats))
 
@@ -78,10 +78,10 @@ def _make_expression_matrix(enrichment_type):
         all_data = pd.DataFrame(np.zeros((120, 33)))
         # Assigning values to the patient label and cell label columns
         # We create data for two fovs, with the second fov being the same as the first but the
-        # cell expression data for marker 1 and marker 2 are inverted. cells 0-59 are Fov8 and
-        # cells 60-119 are Fov9
-        all_data.loc[0:59, 30] = "Fov8"
-        all_data.loc[60:, 30] = "Fov9"
+        # cell expression data for marker 1 and marker 2 are inverted. cells 0-59 are fov8 and
+        # cells 60-119 are fov9
+        all_data.loc[0:59, 30] = "fov8"
+        all_data.loc[60:, 30] = "fov9"
         all_data.loc[0:59, 24] = np.arange(60) + 1
         all_data.loc[60:, 24] = np.arange(60) + 1
         # We create two populations of 20 cells, each positive for different marker (index 2 and 3)
@@ -109,8 +109,8 @@ def _make_expression_matrix(enrichment_type):
     elif enrichment_type == "positive":
         all_data_pos = pd.DataFrame(np.zeros((160, 33)))
         # Assigning values to the patient label and cell label columns
-        all_data_pos.loc[0:79, 30] = "Fov8"
-        all_data_pos.loc[80:, 30] = "Fov9"
+        all_data_pos.loc[0:79, 30] = "fov8"
+        all_data_pos.loc[80:, 30] = "fov9"
         all_data_pos.loc[0:79, 24] = np.arange(80) + 1
         all_data_pos.loc[80:, 24] = np.arange(80) + 1
         # We create 8 cells positive for column index 2, and 8 cells positive for column index 3.
@@ -155,8 +155,8 @@ def _make_expression_matrix(enrichment_type):
     elif enrichment_type == "negative":
         all_data_neg = pd.DataFrame(np.zeros((120, 33)))
         # Assigning values to the patient label and cell label columns
-        all_data_neg.loc[0:59, 30] = "Fov8"
-        all_data_neg.loc[60:, 30] = "Fov9"
+        all_data_neg.loc[0:59, 30] = "fov8"
+        all_data_neg.loc[60:, 30] = "fov9"
         all_data_neg.loc[0:59, 24] = np.arange(60) + 1
         all_data_neg.loc[60:, 24] = np.arange(60) + 1
         # We create two groups of 20 cells positive for marker 1 (in column index 2)
@@ -207,16 +207,16 @@ def test_calculate_channel_spatial_enrichment():
             excluded_colnames=excluded_colnames, bootstrap_num=100,
             dist_lim=dist_lim)
 
-    # Test both Fov8 and Fov9
+    # Test both fov8 and fov9
     # Extract the p-values and z-scores of the distance of marker 1 vs marker 2 for positive
     # enrichment as tested against a random set of distances between centroids
-    assert stats_pos.loc["Fov8", "p_pos", 2, 3] < .05
-    assert stats_pos.loc["Fov8", "p_neg", 2, 3] > .05
-    assert stats_pos.loc["Fov8", "z", 2, 3] > 0
+    assert stats_pos.loc["fov8", "p_pos", 2, 3] < .05
+    assert stats_pos.loc["fov8", "p_neg", 2, 3] > .05
+    assert stats_pos.loc["fov8", "z", 2, 3] > 0
 
-    assert stats_pos.loc["Fov9", "p_pos", 3, 2] < .05
-    assert stats_pos.loc["Fov9", "p_neg", 3, 2] > .05
-    assert stats_pos.loc["Fov9", "z", 3, 2] > 0
+    assert stats_pos.loc["fov9", "p_pos", 3, 2] < .05
+    assert stats_pos.loc["fov9", "p_neg", 3, 2] > .05
+    assert stats_pos.loc["fov9", "z", 3, 2] > 0
 
     # Negative enrichment with direct matrix initialization
     all_data_neg = _make_expression_matrix("negative")
@@ -228,16 +228,16 @@ def test_calculate_channel_spatial_enrichment():
             excluded_colnames=excluded_colnames, bootstrap_num=100,
             dist_lim=dist_lim)
 
-    # Test both Fov8 and Fov9
+    # Test both fov8 and fov9
     # Extract the p-values and z-scores of the distance of marker 1 vs marker 2 for negative
     # enrichment as tested against a random set of distances between centroids
-    assert stats_neg.loc["Fov8", "p_neg", 2, 3] < .05
-    assert stats_neg.loc["Fov8", "p_pos", 2, 3] > .05
-    assert stats_neg.loc["Fov8", "z", 2, 3] < 0
+    assert stats_neg.loc["fov8", "p_neg", 2, 3] < .05
+    assert stats_neg.loc["fov8", "p_pos", 2, 3] > .05
+    assert stats_neg.loc["fov8", "z", 2, 3] < 0
 
-    assert stats_neg.loc["Fov9", "p_neg", 3, 2] < .05
-    assert stats_neg.loc["Fov9", "p_pos", 3, 2] > .05
-    assert stats_neg.loc["Fov9", "z", 3, 2] < 0
+    assert stats_neg.loc["fov9", "p_neg", 3, 2] < .05
+    assert stats_neg.loc["fov9", "p_pos", 3, 2] > .05
+    assert stats_neg.loc["fov9", "z", 3, 2] < 0
 
     # No enrichment
     all_data_no_enrich = _make_expression_matrix("none")
@@ -249,16 +249,16 @@ def test_calculate_channel_spatial_enrichment():
             excluded_colnames=excluded_colnames, bootstrap_num=100,
             dist_lim=dist_lim)
 
-    # Test both Fov8 and Fov9
+    # Test both fov8 and fov9
     # Extract the p-values and z-scores of the distance of marker 1 vs marker 2 for no enrichment
     # as tested against a random set of distances between centroids
-    assert stats_no_enrich.loc["Fov8", "p_pos", 2, 3] > .05
-    assert stats_no_enrich.loc["Fov8", "p_neg", 2, 3] > .05
-    assert abs(stats_no_enrich.loc["Fov8", "z", 2, 3]) < 2
+    assert stats_no_enrich.loc["fov8", "p_pos", 2, 3] > .05
+    assert stats_no_enrich.loc["fov8", "p_neg", 2, 3] > .05
+    assert abs(stats_no_enrich.loc["fov8", "z", 2, 3]) < 2
 
-    assert stats_no_enrich.loc["Fov9", "p_pos", 3, 2] > .05
-    assert stats_no_enrich.loc["Fov9", "p_neg", 3, 2] > .05
-    assert abs(stats_no_enrich.loc["Fov9", "z", 3, 2]) < 2
+    assert stats_no_enrich.loc["fov9", "p_pos", 3, 2] > .05
+    assert stats_no_enrich.loc["fov9", "p_neg", 3, 2] > .05
+    assert abs(stats_no_enrich.loc["fov9", "z", 3, 2]) < 2
 
     # error checking
     with pytest.raises(ValueError):
@@ -303,16 +303,16 @@ def test_calculate_cluster_spatial_enrichment():
             all_data_pos, dist_mat_pos_direct,
             bootstrap_num=100, dist_lim=dist_lim)
 
-    # Test both Fov8 and Fov9
+    # Test both fov8 and fov9
     # Extract the p-values and z-scores of the distance of marker 1 vs marker 2 for positive
     # enrichment as tested against a random set of distances between centroids
-    assert stats_pos.loc["Fov8", "p_pos", "Pheno1", "Pheno2"] < .05
-    assert stats_pos.loc["Fov8", "p_neg", "Pheno1", "Pheno2"] > .05
-    assert stats_pos.loc["Fov8", "z", "Pheno1", "Pheno2"] > 0
+    assert stats_pos.loc["fov8", "p_pos", "Pheno1", "Pheno2"] < .05
+    assert stats_pos.loc["fov8", "p_neg", "Pheno1", "Pheno2"] > .05
+    assert stats_pos.loc["fov8", "z", "Pheno1", "Pheno2"] > 0
 
-    assert stats_pos.loc["Fov9", "p_pos", "Pheno2", "Pheno1"] < .05
-    assert stats_pos.loc["Fov9", "p_neg", "Pheno2", "Pheno1"] > .05
-    assert stats_pos.loc["Fov9", "z", "Pheno2", "Pheno1"] > 0
+    assert stats_pos.loc["fov9", "p_pos", "Pheno2", "Pheno1"] < .05
+    assert stats_pos.loc["fov9", "p_neg", "Pheno2", "Pheno1"] > .05
+    assert stats_pos.loc["fov9", "z", "Pheno2", "Pheno1"] > 0
 
     # Negative enrichment with direct matrix initialization
     all_data_neg = _make_expression_matrix("negative")
@@ -322,16 +322,16 @@ def test_calculate_cluster_spatial_enrichment():
         spatial_analysis.calculate_cluster_spatial_enrichment(
             all_data_neg, dist_mat_neg_direct,
             bootstrap_num=100, dist_lim=dist_lim)
-    # Test both Fov8 and Fov9
+    # Test both fov8 and fov9
     # Extract the p-values and z-scores of the distance of marker 1 vs marker 2 for negative
     # enrichment as tested against a random set of distances between centroids
-    assert stats_neg.loc["Fov8", "p_neg", "Pheno1", "Pheno2"] < .05
-    assert stats_neg.loc["Fov8", "p_pos", "Pheno1", "Pheno2"] > .05
-    assert stats_neg.loc["Fov8", "z", "Pheno1", "Pheno2"] < 0
+    assert stats_neg.loc["fov8", "p_neg", "Pheno1", "Pheno2"] < .05
+    assert stats_neg.loc["fov8", "p_pos", "Pheno1", "Pheno2"] > .05
+    assert stats_neg.loc["fov8", "z", "Pheno1", "Pheno2"] < 0
 
-    assert stats_neg.loc["Fov9", "p_neg", "Pheno2", "Pheno1"] < .05
-    assert stats_neg.loc["Fov9", "p_pos", "Pheno2", "Pheno1"] > .05
-    assert stats_neg.loc["Fov9", "z", "Pheno2", "Pheno1"] < 0
+    assert stats_neg.loc["fov9", "p_neg", "Pheno2", "Pheno1"] < .05
+    assert stats_neg.loc["fov9", "p_pos", "Pheno2", "Pheno1"] > .05
+    assert stats_neg.loc["fov9", "z", "Pheno2", "Pheno1"] < 0
 
     # No enrichment
     all_data_no_enrich = _make_expression_matrix("none")
@@ -343,13 +343,13 @@ def test_calculate_cluster_spatial_enrichment():
             bootstrap_num=100, dist_lim=dist_lim)
     # Extract the p-values and z-scores of the distance of marker 1 vs marker 2 for no enrichment
     # as tested against a random set of distances between centroids
-    assert stats_no_enrich.loc["Fov8", "p_pos", "Pheno1", "Pheno2"] > .05
-    assert stats_no_enrich.loc["Fov8", "p_neg", "Pheno1", "Pheno2"] > .05
-    assert abs(stats_no_enrich.loc["Fov8", "z", "Pheno1", "Pheno2"]) < 2
+    assert stats_no_enrich.loc["fov8", "p_pos", "Pheno1", "Pheno2"] > .05
+    assert stats_no_enrich.loc["fov8", "p_neg", "Pheno1", "Pheno2"] > .05
+    assert abs(stats_no_enrich.loc["fov8", "z", "Pheno1", "Pheno2"]) < 2
 
-    assert stats_no_enrich.loc["Fov8", "p_pos", "Pheno2", "Pheno1"] > .05
-    assert stats_no_enrich.loc["Fov8", "p_neg", "Pheno2", "Pheno1"] > .05
-    assert abs(stats_no_enrich.loc["Fov8", "z", "Pheno2", "Pheno1"]) < 2
+    assert stats_no_enrich.loc["fov9", "p_pos", "Pheno2", "Pheno1"] > .05
+    assert stats_no_enrich.loc["fov9", "p_neg", "Pheno2", "Pheno1"] > .05
+    assert abs(stats_no_enrich.loc["fov9", "z", "Pheno2", "Pheno1"]) < 2
 
     # error checking
     with pytest.raises(ValueError):

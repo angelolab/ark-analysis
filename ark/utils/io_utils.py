@@ -78,8 +78,8 @@ def extract_delimited_names(files, delimiter='_', delimiter_optional=True):
     Extracts a delimited prefix for every file in a given list of files
 
     Examples:
-         - 'Fov2_restofthefilename.tiff' becomes 'Fov2'
-         - 'Fov1.tiff' becomes 'Fov1'
+         - 'fov2_restofthefilename.tiff' becomes 'fov2'
+         - 'fov1.tiff' becomes 'fov1'
 
     Args:
         files (list):
