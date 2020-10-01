@@ -408,28 +408,28 @@ def test_create_neighborhood_matrix():
         )
 
 
-def test_compute_neighbor_mat_cluster_scores():
+def test_compute_cluster_metrics():
     # get an example neighborhood matrix
     neighbor_mat = _make_neighborhood_matrix()
 
     # error checking
     with pytest.raises(ValueError):
         # pass an invalid k
-        spatial_analysis.compute_neighbor_mat_cluster_scores(neighbor_mat=neighbor_mat, max_k=1)
+        spatial_analysis.compute_cluster_metrics(neighbor_mat=neighbor_mat, max_k=1)
 
     with pytest.raises(ValueError):
         # pass invalid fovs
-        spatial_analysis.compute_neighbor_mat_cluster_scores(neighbor_mat=neighbor_mat,
-                                                             included_fovs=["Point3"])
+        spatial_analysis.compute_cluster_metrics(neighbor_mat=neighbor_mat,
+                                                 included_fovs=["fov3"])
 
-    neighbor_cluster_stats = spatial_analysis.compute_neighbor_mat_cluster_scores(
+    neighbor_cluster_stats = spatial_analysis.compute_cluster_metrics(
         neighbor_mat=neighbor_mat, max_k=5)
 
     # assert dimensions are correct
     assert len(neighbor_cluster_stats.values) == 4
     assert list(neighbor_cluster_stats.coords["cluster_num"]) == list(np.arange(2, 6))
 
-    # assert k=5 produces the best silhouette score for both Point1 and Point2
+    # assert k=5 produces the best silhouette score for both fov1 and fov2
     last_k = neighbor_cluster_stats.loc[5].values
     assert np.all(last_k >= neighbor_cluster_stats.values)
 

@@ -297,8 +297,8 @@ def create_neighborhood_matrix(all_data, dist_matrices_dict, included_fovs=None,
     return cell_neighbor_counts, cell_neighbor_freqs
 
 
-def compute_neighbor_mat_cluster_scores(neighbor_mat, max_k=10, included_fovs=None,
-                                        fov_col='SampleID', label_col='cellLabelInImage'):
+def compute_cluster_metrics(neighbor_mat, max_k=10, included_fovs=None,
+                            fov_col='SampleID', label_col='cellLabelInImage'):
     """Given a neighborhood matrix, provide a process to produce k-means clustering metrics.
     Will be used to help determining which k to pick. For now, we're only supporting silhouette
     score as a cluster metric.
@@ -341,7 +341,7 @@ def compute_neighbor_mat_cluster_scores(neighbor_mat, max_k=10, included_fovs=No
     neighbor_mat_data = neighbor_mat_data.drop(col_to_drop, axis=1)
 
     # generate the cluster score information
-    neighbor_cluster_stats = spatial_analysis_utils.cluster_neighborhood_matrix(
+    neighbor_cluster_stats = spatial_analysis_utils.compute_kmeans_cluster_metric(
         neighbor_mat_data=neighbor_mat_data, max_k=max_k
     )
 

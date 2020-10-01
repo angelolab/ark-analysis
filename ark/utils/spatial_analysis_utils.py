@@ -384,7 +384,7 @@ def compute_neighbor_counts(current_fov_neighborhood_data, dist_matrix, distlim,
     return counts, freqs.T
 
 
-def cluster_neighborhood_matrix(neighbor_mat_data, max_k=10):
+def compute_kmeans_cluster_metric(neighbor_mat_data, max_k=10):
     """For a given neighborhood matrix, cluster and compute metric scores. Uses k-means clustering.
     Currently only supporting silhouette score as a cluster metric.
 
