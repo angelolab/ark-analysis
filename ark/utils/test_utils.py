@@ -564,3 +564,22 @@ def create_test_extraction_data():
     channel_data[:, 15:25, 20:30, 4] = 10
 
     return cell_mask, channel_data
+
+
+def _make_neighborhood_matrix():
+    col_names = {0: 'SampleID', 1: 'cellLabelInImage', 2: 'feature1', 3: 'feature2'}
+    neighbor_counts = pd.DataFrame(np.zeros((200, 5)))
+    neighbor_counts = neighbor_counts.rename(col_names, axis=1)
+
+    neighbor_counts.iloc[0:100, 0] = "fov1"
+    neighbor_counts.iloc[0:100, 1] = np.arange(100) + 1
+    neighbor_counts.iloc[0:50, 2:4] = np.random.randint(low=0, high=10, size=(50, 2))
+    neighbor_counts.iloc[50:100, 2:4] = np.random.randint(low=990, high=1000, size=(50, 2))
+
+    neighbor_counts.iloc[100:200, 0] = "fov2"
+    neighbor_counts.iloc[100:200, 1] = np.arange(100) + 1
+    neighbor_counts.iloc[100:150, 2:4] = np.random.randint(low=990, high=1000, size=(50, 2))
+    neighbor_counts.iloc[150:200, 2] = np.random.randint(low=0, high=10, size=50)
+    neighbor_counts.iloc[150:200, 3] = np.random.randint(low=990, high=1000, size=50)
+
+    return neighbor_counts

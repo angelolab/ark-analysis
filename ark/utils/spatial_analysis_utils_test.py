@@ -4,6 +4,7 @@ import xarray as xr
 import random
 from copy import deepcopy
 from ark.utils import spatial_analysis_utils
+from ark.utils import test_utils
 
 
 def make_threshold_mat():
@@ -97,18 +98,6 @@ def make_example_data_closenum():
     dist_mat = make_dist_mat()
 
     return all_data, dist_mat
-
-
-def make_example_neighbor_mat():
-    col_names = {0: 'feature_1', 1: 'feature_2'}
-    neighbor_counts = pd.DataFrame(np.zeros((60, 5)))
-
-    neighbor_counts.iloc[0:15, 0:2] = np.random.randint(low=0, high=10, size=(15, 2))
-    neighbor_counts.iloc[15:30, 0:2] = np.random.randint(low=90, high=100, size=(15, 2))
-    neighbor_counts.iloc[30:45, 0:2] = np.random.randint(low=490, high=500, size=(15, 2))
-    neighbor_counts.iloc[45:60, 0:2] = np.random.randint(low=990, high=1000, size=(15, 2))
-
-    return neighbor_counts
 
 
 def test_calc_dist_matrix():
@@ -339,14 +328,14 @@ def test_compute_neighbor_counts():
 
 
 def test_compute_kmeans_cluster_metric():
-    neighbor_mat = make_example_neighbor_mat()
+    neighbor_mat = test_utils._make_neighborhood_matrix()[['feature1', 'feature2']]
 
     neighbor_cluster_stats = spatial_analysis_utils.compute_kmeans_cluster_metric(
-        neighbor_mat, max_k=4)
+        neighbor_mat, max_k=3)
 
     # assert we have the right cluster_num values
-    assert list(neighbor_cluster_stats.coords["cluster_num"].values) == [2, 3, 4]
+    assert list(neighbor_cluster_stats.coords["cluster_num"].values) == [2, 3]
 
     # assert k=4 produces the best silhouette score
-    last_k = neighbor_cluster_stats.loc[4].values
+    last_k = neighbor_cluster_stats.loc[3].values
     assert np.all(last_k >= neighbor_cluster_stats.values)

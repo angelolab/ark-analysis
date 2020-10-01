@@ -5,6 +5,7 @@ import xarray as xr
 
 from ark.analysis import spatial_analysis
 from ark.utils import synthetic_spatial_datagen
+from ark.utils import test_utils
 
 
 def _make_threshold_mat():
@@ -183,30 +184,6 @@ def _make_expression_matrix(enrichment_type):
 
         all_patient_data_neg.loc[all_patient_data_neg.iloc[:, 31] == 0, "cell_type"] = "Pheno3"
         return all_patient_data_neg
-
-
-def _make_neighborhood_matrix():
-    col_names = {0: 'SampleID', 1: 'cellLabelInImage', 2: 'feature1', 3: 'feature2'}
-    neighbor_counts = pd.DataFrame(np.zeros((100, 5)))
-    neighbor_counts = neighbor_counts.rename(col_names, axis=1)
-
-    neighbor_counts.iloc[0:50, 0] = "Point1"
-    neighbor_counts.iloc[0:50, 1] = np.arange(50) + 1
-    neighbor_counts.iloc[0:10, 2:4] = np.random.randint(low=0, high=10, size=(10, 2))
-    neighbor_counts.iloc[10:20, 2:4] = np.random.randint(low=100, high=110, size=(10, 2))
-    neighbor_counts.iloc[20:30, 2:4] = np.random.randint(low=500, high=510, size=(10, 2))
-    neighbor_counts.iloc[30:40, 2:4] = np.random.randint(low=1000, high=1010, size=(10, 2))
-    neighbor_counts.iloc[40:50, 2:4] = np.random.randint(low=5000, high=5010, size=(10, 2))
-
-    neighbor_counts.iloc[50:100, 0] = "Point2"
-    neighbor_counts.iloc[50:100, 1] = np.arange(50) + 1
-    neighbor_counts.iloc[50:60, 2:4] = np.random.randint(low=5000, high=5010, size=(10, 2))
-    neighbor_counts.iloc[60:70, 2:4] = np.random.randint(low=1000, high=1010, size=(10, 2))
-    neighbor_counts.iloc[70:80, 2:4] = np.random.randint(low=500, high=510, size=(10, 2))
-    neighbor_counts.iloc[80:90, 2:4] = np.random.randint(low=100, high=110, size=(10, 2))
-    neighbor_counts.iloc[90:100, 2:4] = np.random.randint(low=0, high=10, size=(10, 2))
-
-    return neighbor_counts
 
 
 def test_calculate_channel_spatial_enrichment():
@@ -410,7 +387,7 @@ def test_create_neighborhood_matrix():
 
 def test_compute_cluster_metrics():
     # get an example neighborhood matrix
-    neighbor_mat = _make_neighborhood_matrix()
+    neighbor_mat = test_utils._make_neighborhood_matrix()
 
     # error checking
     with pytest.raises(ValueError):
@@ -423,15 +400,15 @@ def test_compute_cluster_metrics():
                                                  included_fovs=["fov3"])
 
     neighbor_cluster_stats = spatial_analysis.compute_cluster_metrics(
-        neighbor_mat=neighbor_mat, max_k=5)
+        neighbor_mat=neighbor_mat, max_k=3)
 
     # assert dimensions are correct
-    assert len(neighbor_cluster_stats.values) == 4
-    assert list(neighbor_cluster_stats.coords["cluster_num"]) == list(np.arange(2, 6))
+    assert len(neighbor_cluster_stats.values) == 2
+    assert list(neighbor_cluster_stats.coords["cluster_num"]) == [2, 3]
 
-    # assert k=5 produces the best silhouette score for both fov1 and fov2
-    last_k = neighbor_cluster_stats.loc[5].values
+    # assert k=3 produces the best silhouette score for both fov1 and fov2
+    last_k = neighbor_cluster_stats.loc[3].values
     assert np.all(last_k >= neighbor_cluster_stats.values)
 
-    last_k = neighbor_cluster_stats.loc[5].values
+    last_k = neighbor_cluster_stats.loc[3].values
     assert np.all(last_k >= neighbor_cluster_stats.values)
