@@ -4,6 +4,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 
+from ark.utils import test_utils
+
 
 def draw_boxplot(cell_data, col_name, col_split=None, split_vals=None, save_dir=None):
     """Draws a boxplot for a given column, optionally with help from a split column
@@ -54,10 +56,7 @@ def draw_boxplot(cell_data, col_name, col_split=None, split_vals=None, save_dir=
 
     # save visualization to a directory if specified
     if save_dir is not None:
-        if not os.path.exists(save_dir):
-            raise ValueError("save_dir %s does not exist" % save_dir)
-
-        plt.savefig(os.path.join(save_dir, "boxplot_viz.png"))
+        test_utils.save_figure(save_dir, "boxplot_viz.png")
 
 
 def visualize_z_scores(z, pheno_titles, save_dir=None):
@@ -83,10 +82,7 @@ def visualize_z_scores(z, pheno_titles, save_dir=None):
 
     # save visualization to a directory if specified
     if save_dir is not None:
-        if not os.path.exists(save_dir):
-            raise ValueError("save_dir %s does not exist" % save_dir)
-
-        plt.savefig(os.path.join(save_dir, "z_score_viz.png"))
+        test_utils.save_figure(save_dir, "z_score_viz.png")
 
 
 def get_sorted_data(cell_data, sort_by_first, sort_by_second, is_normalized=False):
@@ -173,13 +169,7 @@ def plot_barchart(data, title, x_label, y_label, color_map="jet", is_stacked=Tru
         plt.legend(loc=legend_loc, bbox_to_anchor=bbox_to_anchor)
 
     if save_dir is not None:
-        if not os.path.exists(save_dir):
-            raise ValueError("save_dir %s does not exist" % save_dir)
-
-        if save_file is None:
-            raise ValueError("save_dir specified but no save_file specified")
-
-        plt.savefig(os.path.join(save_dir, save_file))
+        test_utils.save_figure(save_dir, save_file)
 
 
 def visualize_patient_population_distribution(cell_data, patient_col_name, population_col_name,

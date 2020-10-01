@@ -11,7 +11,7 @@ def test_plot_dim_reduced_data():
     random_cell_data = test_utils.make_segmented_csv(300)
     test_cols = test_utils.TEST_MARKERS
 
-    with pytest.raises(ValueError):
+    with pytest.raises(FileNotFoundError):
         # trying to save to a non-existant directory
         dimensionality_reduction.plot_dim_reduced_data(component_one=random_cell_data.iloc[:, 0],
                                                        component_two=random_cell_data.iloc[:, 1],
@@ -21,7 +21,7 @@ def test_plot_dim_reduced_data():
                                                        title="Title",
                                                        save_dir="bad_dir")
 
-    with pytest.raises(ValueError):
+    with pytest.raises(FileNotFoundError):
         # setting save_dir but not setting save_file
         dimensionality_reduction.plot_dim_reduced_data(component_one=random_cell_data.iloc[:, 0],
                                                        component_two=random_cell_data.iloc[:, 1],

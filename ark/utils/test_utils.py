@@ -4,6 +4,7 @@ from string import ascii_lowercase
 import numpy as np
 import pandas as pd
 import xarray as xr
+import matplotlib.pyplot as plt
 import skimage.io as io
 
 from mibidata import mibi_image as mi, tiff
@@ -564,3 +565,78 @@ def create_test_extraction_data():
     channel_data[:, 15:25, 20:30, 4] = 10
 
     return cell_mask, channel_data
+
+
+def save_figure(save_dir, save_file):
+    """Verify save_dir and save_file, then save to specified location
+
+    Args:
+        save_dir (str):
+            the name of the directory we wish to save to
+        save_file (str):
+            the name of the file we wish to save to
+    """
+
+    # verify save_dir exists
+    if not os.path.exists(save_dir):
+        raise FileNotFoundError("save_dir %s does not exist" % save_dir)
+
+    # verify that if save_dir specified, save_file must also be specified
+    if save_file is None:
+        raise FileNotFoundError("save_dir specified but no save_file specified")
+
+    plt.savefig(os.path.join(save_dir, save_file))
+
+
+def get_fov_info(all_data, fov_col, included_fovs=None):
+    """Generate the included_fovs and the number of fovs
+
+    Args:
+        all_data (pandas.DataFrame):
+            data including fovs, cell labels, and cell expression matrix for all markers
+        fov_col (str):
+            the name of the column in all_data identifying the fovs
+        included_fovs (list):
+            patient labels to include in analysis. If argument is none, default is all labels used.
+
+    Returns:
+        tuple (list, int):
+
+        - a list of the fovs to use
+        - the number of fovs
+    """
+
+    if included_fovs is None:
+        included_fovs = all_data[fov_col].unique()
+        num_fovs = len(included_fovs)
+    else:
+        num_fovs = len(included_fovs)
+
+    return included_fovs, num_fovs
+
+
+def verify_spatial_info(all_data, fov_col, included_fovs, excluded_colnames=None):
+    """Verify at least whether the specified fovs actually exist. For channel-based analysis,
+    we'll also need to verify excluded_colnames.
+
+    Args:
+        all_data (pandas.DataFrame):
+            data including fovs, cell labels, and cell expression matrix for all markers
+        fov_col (str):
+            the name of the column in all_data identifying the fovs
+        included_fovs (list):
+            patient labels to include in analysis. If argument is none, default is all labels used.
+        excluded_colnames (list):
+            the names of the column names we want to exclude from all_data
+
+    Raises:
+        ValueError:
+            if either the fov or excluded_colname check fails
+    """
+
+    if not np.isin(included_fovs, all_data[fov_col]).all():
+        raise ValueError("Fovs were not found in expression matrix")
+
+    if excluded_colnames is not None:
+        if not np.isin(excluded_colnames, all_data.columns).all():
+            raise ValueError("Column names were not found in expression matrix")

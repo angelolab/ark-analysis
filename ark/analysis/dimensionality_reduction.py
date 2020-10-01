@@ -6,6 +6,8 @@ import seaborn as sns
 import umap.umap_ as umap
 import os
 
+from ark.utils import test_utils
+
 
 def plot_dim_reduced_data(component_one, component_two, fig_id, hue, cell_data,
                           title, title_fontsize=24, palette="Spectral", alpha=0.3,
@@ -55,13 +57,7 @@ def plot_dim_reduced_data(component_one, component_two, fig_id, hue, cell_data,
     plt.title(title, fontsize=title_fontsize)
 
     if save_dir is not None:
-        if not os.path.exists(save_dir):
-            raise ValueError("save_dir %s does not exist" % save_dir)
-
-        if save_file is None:
-            raise ValueError("save_dir specified but no save_file specified")
-
-        plt.savefig(os.path.join(save_dir, save_file))
+        test_utils.save_figure(save_dir, save_file)
 
 
 def visualize_dimensionality_reduction(cell_data, columns, category, color_map="Spectral",

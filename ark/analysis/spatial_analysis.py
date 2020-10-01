@@ -2,6 +2,7 @@ import pandas as pd
 import xarray as xr
 import numpy as np
 from ark.utils import spatial_analysis_utils
+from ark.utils import test_utils
 
 
 def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, all_data,
@@ -44,11 +45,7 @@ def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, 
     """
 
     # Setup input and parameters
-    if included_fovs is None:
-        included_fovs = list(set(all_data[fov_col]))
-        num_fovs = len(included_fovs)
-    else:
-        num_fovs = len(included_fovs)
+    included_fovs, num_fovs = test_utils.get_fov_info(all_data, fov_col, included_fovs)
 
     values = []
 
@@ -59,11 +56,7 @@ def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, 
                              "perimeter", "fov"]
 
     # Error Checking
-    if not np.isin(excluded_colnames, all_data.columns).all():
-        raise ValueError("Column names were not found in Expression Matrix")
-
-    if not np.isin(included_fovs, all_data[fov_col]).all():
-        raise ValueError("Fovs were not found in Expression Matrix")
+    test_utils.verify_spatial_info(all_data, fov_col, included_fovs, excluded_colnames)
 
     # Subsets the expression matrix to only have channel columns
     all_channel_data = all_data.drop(excluded_colnames, axis=1)
@@ -156,17 +149,12 @@ def calculate_cluster_spatial_enrichment(all_data, dist_matrices_dict, included_
     """
 
     # Setup input and parameters
-    if included_fovs is None:
-        included_fovs = list(set(all_data[fov_col]))
-        num_fovs = len(included_fovs)
-    else:
-        num_fovs = len(included_fovs)
+    included_fovs, num_fovs = test_utils.get_fov_info(all_data, fov_col, included_fovs)
 
     values = []
 
     # Error Checking
-    if not np.isin(included_fovs, all_data[fov_col]).all():
-        raise ValueError("Fovs were not found in Expression Matrix")
+    test_utils.verify_spatial_info(all_data, fov_col, included_fovs)
 
     # Extract the names of the cell phenotypes
     cluster_names = all_data[cluster_name_col].drop_duplicates()
@@ -244,12 +232,10 @@ def create_neighborhood_matrix(all_data, dist_matrices_dict, included_fovs=None,
     """
 
     # Setup input and parameters
-    if included_fovs is None:
-        included_fovs = sorted(list(set(all_data[fov_col])))
+    included_fovs, _ = test_utils.get_fov_info(all_data, fov_col, included_fovs)
 
     # Error Checking
-    if not np.isin(included_fovs, all_data[fov_col]).all():
-        raise ValueError("Fovs were not found in Expression Matrix")
+    test_utils.verify_spatial_info(all_data, fov_col, included_fovs)
 
     # Get the phenotypes
     cluster_names = all_data[cluster_name_col].drop_duplicates()
