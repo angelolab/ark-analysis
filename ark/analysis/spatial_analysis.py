@@ -295,3 +295,26 @@ def create_neighborhood_matrix(all_data, dist_matrices_dict, included_fovs=None,
         cell_neighbor_freqs.loc[current_fov_neighborhood_data.index, fov_cluster_names] = freqs
 
     return cell_neighbor_counts, cell_neighbor_freqs
+
+
+def generate_cluster_matrix_results(all_data, neighbor_mat, cluster_num):
+    """Generate the cluster info on all_data based on k=cluster_num k-means clustering
+    on neighbor_mat. cluster_num has to be picked based on the visualization results generated
+    from compute_cluster_metrics.
+
+    Args:
+        all_data (pandas.DataFrame):
+            data including fovs, cell labels, and cell expression matrix for all markers
+        neighbor_mat (pandas.DataFrame):
+            a neighborhood matrix, created from create_neighborhood_matrix
+        cluster_num (int):
+            the optimal k to pass into k-means clustering to generate the final clusters
+            and corresponding results
+
+    Returns:
+        tuple (pandas.DataFrame, pandas.DataFrame):
+
+        - a matrix listing the number of cell types per cluster
+        - a matrix listing the mean expression of each marker per cluster
+    """
+    pass
