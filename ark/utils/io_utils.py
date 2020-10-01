@@ -73,13 +73,13 @@ def list_files(dir_name, substrs=None):
 
 
 def extract_delimited_names(files, delimiter='_', delimiter_optional=True):
-    """Create a matched-index list of fov/point/etc names from a list of files/folders
+    """Create a matched-index list of fov names from a list of files/folders
 
     Extracts a delimited prefix for every file in a given list of files
 
     Examples:
-         - 'Point2_restofthefilename.tiff' becomes 'Point2'
-         - 'Point1.tiff' becomes 'Point1'
+         - 'fov2_restofthefilename.tiff' becomes 'fov2'
+         - 'fov1.tiff' becomes 'fov1'
 
     Args:
         files (list):

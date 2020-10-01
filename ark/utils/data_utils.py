@@ -75,7 +75,7 @@ def stitch_images(data_xr, num_cols):
 
     stitched_xr = xr.DataArray(stitched_data, coords=[['stitched_image'], range(total_row_len),
                                                       range(total_col_len), data_xr.channels],
-                               dims=['points', 'rows', 'cols', 'channels'])
+                               dims=['fovs', 'rows', 'cols', 'channels'])
     return stitched_xr
 
 
