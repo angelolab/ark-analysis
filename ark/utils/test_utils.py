@@ -291,7 +291,7 @@ def _write_reverse_multitiff(base_dir, fov_names, channel_names, shape, sub_dir,
 
     Returns:
         tuple (dict, numpy.ndarray):
-        
+
         - File locations, indexable by fov names
         - Image data as an array with shape (num_fovs, shape[0], shape[1], num_channels)
     """
@@ -330,7 +330,7 @@ def _write_labels(base_dir, fov_names, comp_names, shape, sub_dir, fills, dtype)
 
     Returns:
         tuple (dict, numpy.ndarray):
-        
+
         - File locations, indexable by fov names
         - Label data as an array with shape (num_fovs, shape[0], shape[1], num_components)
     """
@@ -394,7 +394,7 @@ def create_paired_xarray_fovs(base_dir, fov_names, channel_names, img_shape=(10,
 
     Returns:
         tuple (dict, xarray.DataArray):
-        
+
         - File locations, indexable by fov names
         - Image/label data as an xarray with shape
           (num_fovs, im_shape[0], shape[1], num_channels)
