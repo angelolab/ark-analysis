@@ -23,8 +23,8 @@ def test_generate_deepcell_input():
         mems = ['mem2']
 
         data_utils.generate_deepcell_input(data_xr, temp_dir, nucs, mems)
-        fov1 = io.imread(fov1path)
-        fov2 = io.imread(fov2path)
+        fov1 = np.transpose(io.imread(fov1path), (2, 1, 0))
+        fov2 = np.transpose(io.imread(fov2path), (2, 1, 0))
 
         assert np.array_equal(fov1, data_xr.loc['fov1', :, :, ['nuc2', 'mem2']].values)
         assert np.array_equal(fov2, data_xr.loc['fov2', :, :, ['nuc2', 'mem2']].values)
@@ -34,8 +34,8 @@ def test_generate_deepcell_input():
         mems = ['mem1', 'mem2']
 
         data_utils.generate_deepcell_input(data_xr, temp_dir, nucs, mems)
-        fov1 = io.imread(fov1path)
-        fov2 = io.imread(fov2path)
+        fov1 = np.transpose(io.imread(fov1path), (2, 1, 0))
+        fov2 = np.transpose(io.imread(fov2path), (2, 1, 0))
 
         nuc_sums = data_xr.loc[:, :, :, nucs].sum(dim='channels').values
         mem_sums = data_xr.loc[:, :, :, mems].sum(dim='channels').values
@@ -49,8 +49,8 @@ def test_generate_deepcell_input():
         nucs = None
 
         data_utils.generate_deepcell_input(data_xr, temp_dir, nucs, mems)
-        fov1 = io.imread(fov1path)
-        fov2 = io.imread(fov2path)
+        fov1 = np.transpose(io.imread(fov1path), (2, 1, 0))
+        fov2 = np.transpose(io.imread(fov2path), (2, 1, 0))
 
         assert np.all(fov1[:, :, 0] == 0)
         assert np.array_equal(fov1[:, :, 1], mem_sums[0, :, :])
@@ -62,8 +62,8 @@ def test_generate_deepcell_input():
         mems = None
 
         data_utils.generate_deepcell_input(data_xr, temp_dir, nucs, mems)
-        fov1 = io.imread(fov1path)
-        fov2 = io.imread(fov2path)
+        fov1 = np.transpose(io.imread(fov1path), (2, 1, 0))
+        fov2 = np.transpose(io.imread(fov2path), (2, 1, 0))
 
         assert np.all(fov1[:, :, 1] == 0)
         assert np.array_equal(fov1[:, :, 0], data_xr.loc['fov1', :, :, 'nuc2'].values)

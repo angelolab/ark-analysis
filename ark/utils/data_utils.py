@@ -36,7 +36,8 @@ def generate_deepcell_input(data_xr, data_dir, nuc_channels, mem_channels):
                        axis=2)
 
         save_path = os.path.join(data_dir, f'{fov}.tif')
-        io.imsave(save_path, out, plugin='tifffile')
+        # uses the channels_first format
+        io.imsave(save_path, np.transpose(out, (2, 1, 0)), plugin='tifffile')
 
 
 def stitch_images(data_xr, num_cols):

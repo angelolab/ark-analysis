@@ -172,23 +172,72 @@ def test_load_imgs_from_tree():
 
 
 def test_load_imgs_from_dir():
+    # invalid directory is provided
+    with pytest.raises(ValueError):
+        loaded_xr = \
+            load_utils.load_imgs_from_dir('not_a_dir', delimiter='_', dtype=np.float32)
+
     # test loading from 'free' directory
     with tempfile.TemporaryDirectory() as temp_dir:
+        # input directory contains no images
+        with pytest.raises(ValueError):
+            loaded_xr = \
+                load_utils.load_imgs_from_dir(temp_dir,
+                                              delimiter='_', dtype=np.float32)
+
         fovs, _ = test_utils.gen_fov_chan_names(num_fovs=3, num_chans=0, use_delimiter=True)
-        filelocs, data_xr = test_utils.create_paired_xarray_fovs(temp_dir, fovs, ['img_data'],
+        filelocs, data_xr = test_utils.create_paired_xarray_fovs(temp_dir, fovs, [0],
                                                                  img_shape=(10, 10), mode='labels',
                                                                  delimiter='_', dtype=np.float32)
 
+        # invalid list of files is provided
+        with pytest.raises(ValueError):
+            loaded_xr = \
+                load_utils.load_imgs_from_dir(temp_dir, files=fovs + ['not_an_image']
+                                              , delimiter='_', dtype=np.float32)
+        with pytest.raises(ValueError):
+            loaded_xr = \
+                load_utils.load_imgs_from_dir(temp_dir, files=['not_an_image'],
+                                              delimiter='_', dtype=np.float32)
+
         # check default loading
         loaded_xr = \
-            load_utils.load_imgs_from_dir(temp_dir, delimiter='_', dtype=np.float32)
+            load_utils.load_imgs_from_dir(temp_dir, delimiter='_',
+                                          imgdim_name='compartments', dtype=np.float32)
 
         assert loaded_xr.equals(data_xr)
 
         # test swap int16 -> float
         with pytest.warns(UserWarning):
             loaded_xr = \
-                load_utils.load_imgs_from_dir(temp_dir, delimiter='_', dtype="int16")
+                load_utils.load_imgs_from_dir(temp_dir, delimiter='_',
+                                              imgdim_name='compartments', dtype="int16")
 
             assert loaded_xr.equals(data_xr)
             assert np.issubdtype(loaded_xr.dtype, np.floating)
+
+    # test multitiff input
+    with tempfile.TemporaryDirectory() as temp_dir:
+        fovs, channels = test_utils.gen_fov_chan_names(num_fovs=2, num_chans=3, use_delimiter=True)
+
+        filelocs, data_xr = test_utils.create_paired_xarray_fovs(
+            temp_dir, fovs, channels, img_shape=(10, 10), mode='multitiff', delimiter='_',
+            fills=True, dtype=np.float32
+        )
+
+        fovnames = [f'{fov}.tiff' for fov in fovs]
+
+        # test all channels loading w/ specified file
+        loaded_xr = \
+            load_utils.load_imgs_from_dir(temp_dir, files=[fovnames[-1]],
+                                          delimiter='_', dtype=np.float32)
+
+        assert loaded_xr.equals(data_xr.loc[[fovs[-1]], :, :, :])
+
+        # test all channels w/ unspecified files + delimiter agnosticism
+        loaded_xr = load_utils.load_imgs_from_dir(temp_dir,
+                                                  files=None,
+                                                  channels=None,
+                                                  delimiter='_')
+
+        assert loaded_xr.equals(data_xr)
