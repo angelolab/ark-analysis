@@ -259,7 +259,7 @@ def load_imgs_from_dir(data_dir, files=None, delimiter=None, imgdim_name='channe
             directory containing images
         files (list):
             list of files (e.g. ['fov1.tif'. 'fov2.tif'] to load.
-            If None, all (*tif, *jpg, *png) files in data_dir are loaded.
+            If None, all (.tif, .jpg, .png) files in data_dir are loaded.
         delimiter (str):
             character used to determine the file-prefix containging the fov name.
             Default is None.
