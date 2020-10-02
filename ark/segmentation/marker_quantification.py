@@ -6,7 +6,6 @@ import pandas as pd
 import xarray as xr
 
 from skimage.measure import regionprops_table
-from skimage.morphology import remove_small_objects
 
 from ark.utils import load_utils, io_utils, segmentation_utils
 from ark.segmentation import signal_extraction
@@ -78,7 +77,6 @@ def compute_marker_counts(input_images, segmentation_masks, nuclear_counts=False
             nuc_mask = segmentation_utils.split_large_nuclei(cell_segmentation_mask=cell_mask,
                                                              nuc_segmentation_mask=nuc_mask,
                                                              cell_ids=unique_cell_ids)
-            nuc_mask = remove_small_objects(ar=nuc_mask, min_size=5)
 
         nuc_props = pd.DataFrame(regionprops_table(nuc_mask, properties=regionprops_features))
 
