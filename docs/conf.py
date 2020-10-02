@@ -76,7 +76,9 @@ autodoc_mock_imports = ['h5py'
                         'statsmodels',
                         'tables',
                         'umap',
-                        'xarray']
+                        'xarray',
+                        'twisted',
+                        'kiosk_client']
 
 # explicitly mock mibidata
 sys.modules['mibidata'] = mock.Mock()
@@ -183,7 +185,7 @@ def run_apidoc(_):
     cmd_path = 'sphinx-apidoc'
 
     # do not generate any documentation for test files
-    ignore = '../ark/*/*_test.py'
+    ignore = '../ark/*/*test*.py'
 
     # should probably remove this
     if hasattr(sys, 'real_prefix'):

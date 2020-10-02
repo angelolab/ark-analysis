@@ -86,8 +86,8 @@ def test_list_files():
 
 def test_extract_delimited_names():
     filenames = [
-        'Point1_restofname.txt',
-        'Point2.txt',
+        'fov1_restofname.txt',
+        'fov2.txt',
     ]
 
     # test no files given (None/[])
@@ -96,20 +96,20 @@ def test_extract_delimited_names():
 
     # non-optional delimiter warning
     with pytest.warns(UserWarning):
-        iou.extract_delimited_names(['Point2.txt'], delimiter_optional=False)
+        iou.extract_delimited_names(['fov2.txt'], delimiter_optional=False)
 
     # test regular files list
-    assert ['Point1', 'Point2'] == iou.extract_delimited_names(filenames)
+    assert ['fov1', 'fov2'] == iou.extract_delimited_names(filenames)
 
     # test fullpath list
     fullpaths = [
         os.path.join('folder_with_delims', filename)
         for filename in filenames
     ]
-    assert ['Point1', 'Point2'] == iou.extract_delimited_names(fullpaths)
+    assert ['fov1', 'fov2'] == iou.extract_delimited_names(fullpaths)
 
     # test mixed
-    assert ['Point1', 'Point2'] == iou.extract_delimited_names([fullpaths[0], filenames[1]])
+    assert ['fov1', 'fov2'] == iou.extract_delimited_names([fullpaths[0], filenames[1]])
 
     return
 
