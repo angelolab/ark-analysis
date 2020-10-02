@@ -299,9 +299,7 @@ def create_neighborhood_matrix(all_data, dist_matrices_dict, included_fovs=None,
 
 def compute_cluster_metrics(neighbor_mat, max_k=10, included_fovs=None,
                             fov_col='SampleID', label_col='cellLabelInImage'):
-    """Given a neighborhood matrix, provide a process to produce k-means clustering metrics.
-    Will be used to help determining which k to pick. For now, we're only supporting silhouette
-    score as a cluster metric.
+    """Produce k-means clustering metrics to help identify optimal number of clusters
 
     Args:
         neighbor_mat (pandas.DataFrame):

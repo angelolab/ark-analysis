@@ -20,7 +20,7 @@ def test_calculate_channel_spatial_enrichment():
     marker_thresholds = test_utils._make_threshold_mat(in_utils=False)
 
     # Positive enrichment
-    all_data_pos, dist_mat_pos = test_utils._make_example_mats_sa(
+    all_data_pos, dist_mat_pos = test_utils._make_dist_exp_mats_spatial_test(
         enrichment_type="positive", dist_lim=dist_lim)
 
     _, stats_pos = \
@@ -41,7 +41,7 @@ def test_calculate_channel_spatial_enrichment():
     assert stats_pos.loc["fov9", "z", 3, 2] > 0
 
     # Negative enrichment
-    all_data_neg, dist_mat_neg = test_utils._make_example_mats_sa(
+    all_data_neg, dist_mat_neg = test_utils._make_dist_exp_mats_spatial_test(
         enrichment_type="negative", dist_lim=dist_lim)
 
     _, stats_neg = \
@@ -62,7 +62,7 @@ def test_calculate_channel_spatial_enrichment():
     assert stats_neg.loc["fov9", "z", 3, 2] < 0
 
     # No enrichment
-    all_data_no_enrich, dist_mat_no_enrich = test_utils._make_example_mats_sa(
+    all_data_no_enrich, dist_mat_no_enrich = test_utils._make_dist_exp_mats_spatial_test(
         enrichment_type="none", dist_lim=dist_lim)
 
     _, stats_no_enrich = \
@@ -117,7 +117,7 @@ def test_calculate_cluster_spatial_enrichment():
     dist_lim = 100
 
     # Positive enrichment
-    all_data_pos, dist_mat_pos = test_utils._make_example_mats_sa(
+    all_data_pos, dist_mat_pos = test_utils._make_dist_exp_mats_spatial_test(
         enrichment_type="positive", dist_lim=dist_lim)
 
     _, stats_pos = \
@@ -137,7 +137,7 @@ def test_calculate_cluster_spatial_enrichment():
     assert stats_pos.loc["fov9", "z", "Pheno2", "Pheno1"] > 0
 
     # Negative enrichment
-    all_data_neg, dist_mat_neg = test_utils._make_example_mats_sa(
+    all_data_neg, dist_mat_neg = test_utils._make_dist_exp_mats_spatial_test(
         enrichment_type="negative", dist_lim=dist_lim)
 
     _, stats_neg = \
@@ -156,7 +156,7 @@ def test_calculate_cluster_spatial_enrichment():
     assert stats_neg.loc["fov9", "p_pos", "Pheno2", "Pheno1"] > .05
     assert stats_neg.loc["fov9", "z", "Pheno2", "Pheno1"] < 0
 
-    all_data_no_enrich, dist_mat_no_enrich = test_utils._make_example_mats_sa(
+    all_data_no_enrich, dist_mat_no_enrich = test_utils._make_dist_exp_mats_spatial_test(
         enrichment_type="none", dist_lim=dist_lim)
 
     _, stats_no_enrich = \
@@ -184,7 +184,7 @@ def test_calculate_cluster_spatial_enrichment():
 
 def test_create_neighborhood_matrix():
     # get positive expression and distance matrices
-    all_data_pos, dist_mat_pos = test_utils._make_example_mats_sa(
+    all_data_pos, dist_mat_pos = test_utils._make_dist_exp_mats_spatial_test(
         enrichment_type="positive", dist_lim=51)
 
     counts, freqs = spatial_analysis.create_neighborhood_matrix(

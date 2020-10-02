@@ -827,7 +827,7 @@ def _make_expression_mat_sa(enrichment_type):
         return all_patient_data_neg
 
 
-def _make_example_mats_sa(enrichment_type, dist_lim):
+def _make_dist_exp_mats_spatial_test(enrichment_type, dist_lim):
     """Generate example expression and distance matrices for testing spatial_analysis
 
     Args:
@@ -942,7 +942,7 @@ def _make_expression_mat_sa_utils():
     return all_data
 
 
-def _make_example_mats_sa_utils():
+def _make_dist_exp_mats_spatial_utils_test():
     """Generate example expression and distance matrices for testing spatial_analysis_utils
 
     Returns:

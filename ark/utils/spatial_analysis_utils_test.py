@@ -31,7 +31,7 @@ def test_calc_dist_matrix():
 
 
 def test_get_pos_cell_labels_channel():
-    all_data, _ = test_utils._make_example_mats_sa_utils()
+    all_data, _ = test_utils._make_dist_exp_mats_spatial_utils_test()
     example_thresholds = test_utils._make_threshold_mat(in_utils=True)
 
     # Only include the columns of markers
@@ -49,7 +49,7 @@ def test_get_pos_cell_labels_channel():
 
 
 def test_get_pos_cell_labels_cluster():
-    all_data, _ = test_utils._make_example_mats_sa_utils()
+    all_data, _ = test_utils._make_dist_exp_mats_spatial_utils_test()
     example_thresholds = test_utils._make_threshold_mat(in_utils=True)
 
     # Only include the columns of markers
@@ -66,7 +66,7 @@ def test_get_pos_cell_labels_cluster():
 
 def test_compute_close_cell_num():
     # Test the closenum function
-    all_data, example_dist_mat = test_utils._make_example_mats_sa_utils()
+    all_data, example_dist_mat = test_utils._make_dist_exp_mats_spatial_utils_test()
     example_thresholds = test_utils._make_threshold_mat(in_utils=True)
 
     # Only include the columns of markers
@@ -106,7 +106,7 @@ def test_compute_close_cell_num():
     assert (example_closenum[5:7, 5:7] == 1).all()
 
     # now, test for cluster enrichment
-    all_data, example_dist_mat = test_utils._make_example_mats_sa_utils()
+    all_data, example_dist_mat = test_utils._make_dist_exp_mats_spatial_utils_test()
     cluster_ids = all_data.iloc[:, 31].drop_duplicates().values
 
     example_closenum, m1, _ = spatial_analysis_utils.compute_close_cell_num(
@@ -119,7 +119,7 @@ def test_compute_close_cell_num():
 
 
 def test_compute_close_cell_num_random():
-    data_markers, example_distmat = test_utils._make_example_mats_sa_utils()
+    data_markers, example_distmat = test_utils._make_dist_exp_mats_spatial_utils_test()
 
     # Generate random inputs to test shape
     marker_nums = [random.randrange(0, 10) for i in range(20)]
@@ -182,7 +182,7 @@ def test_compute_neighbor_counts():
     cluster_name_col = "cell_type"
     distlim = 100
 
-    fov_data, dist_matrix = test_utils._make_example_mats_sa_utils()
+    fov_data, dist_matrix = test_utils._make_dist_exp_mats_spatial_utils_test()
 
     cluster_names = fov_data[cluster_name_col].drop_duplicates()
     fov_data = fov_data[[fov_col, cell_label_col, cluster_id_col, cluster_name_col]]
