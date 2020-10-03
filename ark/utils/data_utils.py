@@ -1,6 +1,5 @@
 import os
 import math
-
 import skimage.io as io
 import numpy as np
 import xarray as xr
@@ -39,7 +38,6 @@ def generate_deepcell_input(data_xr, data_dir, nuc_channels, mem_channels):
         io.imsave(save_path, out, plugin='tifffile')
 
 
-
 def stitch_images(data_xr, num_cols):
     """Stitch together a stack of different channels from different FOVs into a single 2D image
     for each channel
@@ -69,7 +67,7 @@ def stitch_images(data_xr, num_cols):
     for row in range(num_rows):
         for col in range(num_cols):
             stitched_data[0, row * row_len:(row + 1) * row_len,
-                          col * col_len:(col + 1) * col_len, :] = data_xr[img_idx, ...]
+            col * col_len:(col + 1) * col_len, :] = data_xr[img_idx, ...]
             img_idx += 1
             if img_idx == num_imgs:
                 break

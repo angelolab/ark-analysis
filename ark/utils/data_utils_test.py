@@ -20,8 +20,9 @@ def test_generate_deepcell_input():
         fovs = ['fov1', 'fov2']
         chans = ['nuc1', 'nuc2', 'mem1', 'mem2']
 
-        data_xr = test_utils.make_images_xarray(tif_data=None, fov_ids=fovs, channel_names=chans,
-                                                row_size=row_size, col_size=col_size, dtype='int16')
+        data_xr = test_utils.make_images_xarray(tif_data=None, fov_ids=fovs,
+                                                channel_names=chans, row_size=row_size,
+                                                col_size=col_size, dtype='int16')
 
         fov1path = os.path.join(temp_dir, 'fov1.tif')
         fov2path = os.path.join(temp_dir, 'fov2.tif')
@@ -92,7 +93,6 @@ def test_stitch_images():
 
 def test_split_img_stack():
     with tempfile.TemporaryDirectory() as temp_dir:
-
         fovs = ['stack_sample']
         _, chans, names = test_utils.gen_fov_chan_names(num_fovs=0, num_chans=10, return_imgs=True)
 

@@ -193,8 +193,8 @@ def test_load_imgs_from_dir():
         # invalid list of files is provided
         with pytest.raises(ValueError):
             loaded_xr = \
-                load_utils.load_imgs_from_dir(temp_dir, files=fovs + ['not_an_image']
-                                              , delimiter='_', dtype=np.float32)
+                load_utils.load_imgs_from_dir(temp_dir, files=fovs + ['not_an_image'],
+                                              delimiter='_', dtype=np.float32)
         with pytest.raises(ValueError):
             loaded_xr = \
                 load_utils.load_imgs_from_dir(temp_dir, files=['not_an_image'],
