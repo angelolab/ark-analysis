@@ -309,7 +309,7 @@ def calculate_enrichment_stats(close_num, close_num_rand):
             # Calculate z score based on distribution
             z[j, k] = (close_num[j, k] - muhat[j, k]) / sigmahat[j, k]
             # Calculate both positive and negative enrichment p values
-            p_pos[j, k] = (1 + (np.sum(tmp >= close_num[j, k]))) / (bootstrap_num + 1)
+            p_pos[j, k] = (1 + (np.sum(tmp > close_num[j, k]))) / (bootstrap_num + 1)
             p_neg[j, k] = (1 + (np.sum(tmp < close_num[j, k]))) / (bootstrap_num + 1)
 
     # Get fdh_br adjusted p values
