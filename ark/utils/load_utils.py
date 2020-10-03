@@ -273,7 +273,6 @@ def load_imgs_from_dir(data_dir, imgdim_name='compartments', image_name='img_dat
     Returns:
         xarray.DataArray:
             xarray with shape [fovs, x_dim, y_dim, 1]
-
     """
 
     imgs = iou.list_files(data_dir, substrs=['.tif', '.jpg', '.png'])
