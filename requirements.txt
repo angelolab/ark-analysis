@@ -1,6 +1,7 @@
 h5py==2.10.0
 jupyter>=1.0.0,<2
 jupyter_contrib_nbextensions==0.5.1
+kiosk-client>=0.8.0
 matplotlib==2.2.2
 git+git://github.com/ionpath/mibilib@v1.2.6
 netCDF4==1.5.3
@@ -14,5 +15,3 @@ statsmodels==0.11.1
 tables==3.6.1
 umap-learn==0.4.6
 xarray==0.12.3
-kiosk-client>=0.8.0
-
