@@ -67,7 +67,7 @@ def stitch_images(data_xr, num_cols):
     for row in range(num_rows):
         for col in range(num_cols):
             stitched_data[0, row * row_len:(row + 1) * row_len,
-            col * col_len:(col + 1) * col_len, :] = data_xr[img_idx, ...]
+                          col * col_len:(col + 1) * col_len, :] = data_xr[img_idx, ...]
             img_idx += 1
             if img_idx == num_imgs:
                 break
