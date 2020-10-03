@@ -14,8 +14,6 @@ install:
 env:
   - MPLBACKEND=Agg
 
-cache: pip
-
 # command to run tests
 script:
   - python -m pytest --cov=ark --pycodestyle ark
