@@ -243,6 +243,6 @@ def test_compute_kmeans_cluster_metric():
     # assert we have the right cluster_num values
     assert list(neighbor_cluster_stats.coords["cluster_num"].values) == [2, 3]
 
-    # assert k=4 produces the best silhouette score
-    last_k = neighbor_cluster_stats.loc[3].values
-    assert np.all(last_k >= neighbor_cluster_stats.values)
+    # assert k=3 produces the best silhouette score
+    three_cluster_score = neighbor_cluster_stats.loc[3].values
+    assert np.all(three_cluster_score >= neighbor_cluster_stats.values)
