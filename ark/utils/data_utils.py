@@ -10,7 +10,7 @@ import xarray as xr
 def generate_deepcell_input(data_xr, data_dir, nuc_channels, mem_channels):
     """Saves nuclear and membrane channels into deepcell input format.
 
-    Writes summed channel images out as multitiffs
+    Writes summed channel images out as multitiffs (channels first)
 
     Args:
         data_xr (xr.DataArray):
@@ -23,21 +23,21 @@ def generate_deepcell_input(data_xr, data_dir, nuc_channels, mem_channels):
             membrane channels to be summed over
     """
     for fov in data_xr.fovs.values:
-        out = np.zeros((data_xr.shape[1], data_xr.shape[2], 2), dtype=data_xr.dtype)
+        out = np.zeros((2, data_xr.shape[1], data_xr.shape[2]), dtype=data_xr.dtype)
 
         # sum over channels and add to output
         if nuc_channels:
-            out[:, :, 0] = \
+            out[0] = \
                 np.sum(data_xr.loc[fov, :, :, nuc_channels].values,
                        axis=2)
         if mem_channels:
-            out[:, :, 1] = \
+            out[1] = \
                 np.sum(data_xr.loc[fov, :, :, mem_channels].values,
                        axis=2)
 
         save_path = os.path.join(data_dir, f'{fov}.tif')
-        # uses the channels_first format
-        io.imsave(save_path, np.transpose(out, (2, 1, 0)), plugin='tifffile')
+        io.imsave(save_path, out, plugin='tifffile')
+
 
 
 def stitch_images(data_xr, num_cols):
