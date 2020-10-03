@@ -15,4 +15,5 @@ tables==3.6.1
 umap-learn==0.4.6
 xarray==0.12.3
 kiosk-client>=0.8.0
+six>=1.15.0
 
