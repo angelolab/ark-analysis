@@ -1,7 +1,5 @@
-attrs>=19.2.0
-coveralls
-pytest==5.4.0
-pytest-cov==2.5.1
-pytest-mock
-pytest-pycodestyle
-
+coveralls>=1.8.2,<2.0.0
+pytest<6.0.0
+pytest-cov<3.0.0
+pytest-mock<4.0.0
+pytest-pycodestyle<3.0.0
