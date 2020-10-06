@@ -60,7 +60,7 @@ def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, 
 
     # Setup input and parameters
     if included_fovs is None:
-        included_fovs = list(set(all_data[fov_col]))
+        included_fovs = all_data[fov_col].unique()
         num_fovs = len(included_fovs)
     else:
         num_fovs = len(included_fovs)
@@ -103,16 +103,16 @@ def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, 
     # Subsetting threshold matrix to only include column with threshold values
     thresh_vec = marker_thresholds.iloc[:, 1].values
 
-    for i in range(0, len(included_fovs)):
+    for fov in included_fovs:
         # Subsetting expression matrix to only include patients with correct fov label
-        current_fov_idx = all_data[fov_col] == included_fovs[i]
+        current_fov_idx = all_data[fov_col] == fov
         current_fov_data = all_data[current_fov_idx]
 
         # Patients with correct label, and only columns of channel markers
         current_fov_channel_data = all_channel_data[current_fov_idx]
 
         # Retrieve fov-specific distance matrix from distance matrix dictionary
-        dist_matrix = dist_matrices_dict[included_fovs[i]]
+        dist_matrix = dist_matrices_dict[fov]
 
         # Get close_num and close_num_rand
         close_num, channel_nums = spatial_analysis_utils.compute_close_cell_num(
@@ -136,7 +136,7 @@ def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, 
 
         # Get z, p, adj_p, muhat, sigmahat, and h
         stats_xr = spatial_analysis_utils.calculate_enrichment_stats(close_num, close_num_rand)
-        stats.loc[included_fovs[i], :, :] = stats_xr.values
+        stats.loc[fov, :, :] = stats_xr.values
     return values, stats
 
 
@@ -190,7 +190,7 @@ def calculate_cluster_spatial_enrichment(all_data, dist_matrices_dict, included_
 
     # Setup input and parameters
     if included_fovs is None:
-        included_fovs = list(set(all_data[fov_col]))
+        included_fovs = all_data[fov_col].unique()
         num_fovs = len(included_fovs)
     else:
         num_fovs = len(included_fovs)
@@ -218,13 +218,13 @@ def calculate_cluster_spatial_enrichment(all_data, dist_matrices_dict, included_
     dims = ["fovs", "stats", "pheno1", "pheno2"]
     stats = xr.DataArray(stats_raw_data, coords=coords, dims=dims)
 
-    for i in range(0, len(included_fovs)):
+    for fov in included_fovs:
         # Subsetting expression matrix to only include patients with correct fov label
-        current_fov_idx = all_pheno_data.iloc[:, 0] == included_fovs[i]
+        current_fov_idx = all_pheno_data.loc[:, fov_col] == fov
         current_fov_pheno_data = all_pheno_data[current_fov_idx]
 
         # Retrieve fov specific distance matrix from distance matrix dictionary
-        dist_mat = dist_matrices_dict[included_fovs[i]]
+        dist_mat = dist_matrices_dict[fov]
 
         # Get close_num and close_num_rand
         close_num, pheno_nums = spatial_analysis_utils.compute_close_cell_num(
@@ -238,7 +238,7 @@ def calculate_cluster_spatial_enrichment(all_data, dist_matrices_dict, included_
 
         # Get z, p, adj_p, muhat, sigmahat, and h
         stats_xr = spatial_analysis_utils.calculate_enrichment_stats(close_num, close_num_rand)
-        stats.loc[included_fovs[i], :, :] = stats_xr.values
+        stats.loc[fov, :, :] = stats_xr.values
 
     return values, stats
 
@@ -278,7 +278,7 @@ def create_neighborhood_matrix(all_data, dist_matrices_dict, included_fovs=None,
 
     # Setup input and parameters
     if included_fovs is None:
-        included_fovs = sorted(list(set(all_data[fov_col])))
+        included_fovs = all_data[fov_col].unique()
 
     # Error Checking
     if not np.isin(included_fovs, all_data[fov_col]).all():
@@ -308,16 +308,16 @@ def create_neighborhood_matrix(all_data, dist_matrices_dict, included_fovs=None,
 
     cell_neighbor_freqs = cell_neighbor_counts.copy(deep=True)
 
-    for i in range(len(included_fovs)):
+    for fov in included_fovs:
         # Subsetting expression matrix to only include patients with correct fov label
-        current_fov_idx = all_neighborhood_data.iloc[:, 0] == included_fovs[i]
+        current_fov_idx = all_neighborhood_data.loc[:, fov_col] == fov
         current_fov_neighborhood_data = all_neighborhood_data[current_fov_idx]
 
         # Get the subset of phenotypes included in the current fov
         fov_cluster_names = current_fov_neighborhood_data[cluster_name_col].drop_duplicates()
 
         # Retrieve fov-specific distance matrix from distance matrix dictionary
-        dist_matrix = dist_matrices_dict[included_fovs[i]]
+        dist_matrix = dist_matrices_dict[fov]
 
         # Get cell_neighbor_counts and cell_neighbor_freqs for fovs
         counts, freqs = spatial_analysis_utils.compute_neighbor_counts(
@@ -328,3 +328,52 @@ def create_neighborhood_matrix(all_data, dist_matrices_dict, included_fovs=None,
         cell_neighbor_freqs.loc[current_fov_neighborhood_data.index, fov_cluster_names] = freqs
 
     return cell_neighbor_counts, cell_neighbor_freqs
+
+
+def compute_cluster_metrics(neighbor_mat, max_k=10, included_fovs=None,
+                            fov_col='SampleID', label_col='cellLabelInImage'):
+    """Produce k-means clustering metrics to help identify optimal number of clusters
+
+    Args:
+        neighbor_mat (pandas.DataFrame):
+            a neighborhood matrix, created from create_neighborhood_matrix
+        max_k (int):
+            the maximum k we want to generate cluster statistics for, must be at least 2
+        included_fovs (list):
+            patient labels to include in analysis. If argument is none, default is all labels used.
+        fov_col (str):
+            the name of the column in neighbor_mat determining the fov
+        label_col (str):
+            the name of the column in neighbor_mat determining the label
+
+    Returns:
+        xarray.DataArray:
+            an xarray with dimensions (num_k_values) where num_k_values is the range
+            of integers from 2 to max_k included, contains the metric scores for each value
+            in num_k_values
+    """
+
+    # set included_fovs to everything if not set
+    if included_fovs is None:
+        included_fovs = neighbor_mat[fov_col].unique()
+
+    # make sure the user specifies a positive k
+    if max_k < 2:
+        raise ValueError("Invalid k provided for clustering")
+
+    # make sure the fovs specified all exist inside the fov_col
+    if not np.isin(included_fovs, neighbor_mat[fov_col]).all():
+        raise ValueError("Not all specified fovs exist in the provided neighborhood matrix")
+
+    # subset neighbor_mat accordingly, and drop the columns we don't need
+    neighbor_mat_data = neighbor_mat[neighbor_mat[fov_col].isin(included_fovs)]
+
+    col_to_drop = [fov_col, label_col]
+    neighbor_mat_data = neighbor_mat_data.drop(col_to_drop, axis=1)
+
+    # generate the cluster score information
+    neighbor_cluster_stats = spatial_analysis_utils.compute_kmeans_cluster_metric(
+        neighbor_mat_data=neighbor_mat_data, max_k=max_k
+    )
+
+    return neighbor_cluster_stats
