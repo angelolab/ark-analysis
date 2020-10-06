@@ -431,7 +431,7 @@ def generate_cluster_labels(neighbor_mat_data, cluster_num):
             the cluster labels we will be assigning to each cell in the neighborhood matrix
     """
 
-    cluster_fit = KMeans(n_cluster=cluster_num).fit(neighbor_mat_data)
+    cluster_fit = KMeans(n_clusters=cluster_num).fit(neighbor_mat_data)
     cluster_labels = cluster_fit.labels_
 
     return cluster_labels

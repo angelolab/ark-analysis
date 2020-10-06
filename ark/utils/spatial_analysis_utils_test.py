@@ -235,9 +235,13 @@ def test_compute_neighbor_counts():
 
 
 def test_generate_cluster_labels():
-    pass
+    neighbor_mat = test_utils._make_neighborhood_matrix()[['feature1', 'feature2']]
+    neighbor_cluster_labels = spatial_analysis_utils.generate_cluster_labels(neighbor_mat,
+                                                                             cluster_num=3)
 
-  
+    assert len(np.unique(neighbor_cluster_labels) == 3)
+
+
 def test_compute_kmeans_cluster_metric():
     neighbor_mat = test_utils._make_neighborhood_matrix()[['feature1', 'feature2']]
 
