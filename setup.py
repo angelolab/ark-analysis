@@ -4,6 +4,7 @@ from setuptools import setup, find_packages
 VERSION = '0.2.6'
 
 
+# define a parsing function for requirements.txt
 def _parse_requirements(file_path):
     # people should download mibilib separately for now
     reqs = [line.strip() for line in open(file_path) if not (line.startswith('#')
@@ -15,6 +16,7 @@ def _parse_requirements(file_path):
 with open(path.join(path.abspath(path.dirname(__file__)), 'README.md')) as f:
     long_description = f.read()
 
+# don't set install_reqs if we can't read requirements.txt
 try:
     install_reqs = _parse_requirements('requirements.txt')
 except Exception:
