@@ -77,6 +77,7 @@ def compute_marker_counts(input_images, segmentation_masks, nuclear_counts=False
             nuc_mask = segmentation_utils.split_large_nuclei(cell_segmentation_mask=cell_mask,
                                                              nuc_segmentation_mask=nuc_mask,
                                                              cell_ids=unique_cell_ids)
+
         nuc_props = pd.DataFrame(regionprops_table(nuc_mask, properties=regionprops_features))
 
     # TODO: There's some repeated code here, maybe worth refactoring? Maybe not
@@ -132,7 +133,8 @@ def compute_marker_counts(input_images, segmentation_masks, nuclear_counts=False
     return marker_counts
 
 
-def create_marker_count_matrices(segmentation_labels, image_data, nuclear_counts=False):
+def create_marker_count_matrices(segmentation_labels, image_data, nuclear_counts=False,
+                                 split_large_nuclei=False):
     """Create a matrix of cells by channels with the total counts of each marker in each cell.
 
     Args:
@@ -143,6 +145,9 @@ def create_marker_count_matrices(segmentation_labels, image_data, nuclear_counts
             xarray containing all of the channel data across all FOVs
         nuclear_counts (bool):
             boolean flag to determine whether nuclear counts are returned
+        split_large_nuclei (bool):
+            boolean flag to determine whether nuclei which are larger than their assigned cell
+            will get split into two different nuclear objects
 
     Returns:
         tuple (pandas.DataFrame, pandas.DataFrame):
@@ -175,7 +180,8 @@ def create_marker_count_matrices(segmentation_labels, image_data, nuclear_counts
 
         # extract the counts per cell for each marker
         marker_counts = compute_marker_counts(image_data.loc[fov, :, :, :], segmentation_label,
-                                              nuclear_counts=nuclear_counts)
+                                              nuclear_counts=nuclear_counts,
+                                              split_large_nuclei=split_large_nuclei)
 
         # normalize counts by cell size
         marker_counts_norm = segmentation_utils.transform_expression_matrix(marker_counts,
