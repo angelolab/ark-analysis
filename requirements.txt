@@ -1,6 +1,6 @@
 jupyter>=1.0.0,<2
 jupyter_contrib_nbextensions>=0.5.1,<1
-kiosk-client>=0.8.0
+kiosk-client>=0.8.1
 matplotlib>=2.2.2,<3
 git+git://github.com/ionpath/mibilib@v1.3.0
 numpy>=1.16.3,<2
