@@ -208,4 +208,4 @@ def visualize_segmentation(segmentation_labels_xr, channel_data_xr,
             path=os.path.join(output_dir, f'{fov}_segmentation_borders.tiff')
         )
         io.imsave(os.path.join(output_dir, f'{fov}_segmentation_labels.tiff'), labels)
-        io.imshow(labels)
+        #io.imshow(labels)
