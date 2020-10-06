@@ -297,9 +297,10 @@ def create_neighborhood_matrix(all_data, dist_matrices_dict, included_fovs=None,
     return cell_neighbor_counts, cell_neighbor_freqs
 
 
-def generate_cluster_matrix_results(all_data, neighbor_mat, included_fovs, cluster_num,
-                                    cluster_label_col='cluster_labels', fov_col='SampleID',
-                                    label_col='cellLabelInImage', cell_type_col='FlowSOM_ID'):
+def generate_cluster_matrix_results(all_data, neighbor_mat, cluster_num, excluded_colnames=None,
+                                    included_fovs=None, cluster_label_col='cluster_labels',
+                                    fov_col='SampleID', label_col='cellLabelInImage',
+                                    cell_type_col='cell_type'):
     """Generate the cluster info on all_data based on k=cluster_num k-means clustering
     on neighbor_mat. cluster_num has to be picked based on the visualization results generated
     from compute_cluster_metrics.
@@ -309,11 +310,17 @@ def generate_cluster_matrix_results(all_data, neighbor_mat, included_fovs, clust
             data including fovs, cell labels, and cell expression matrix for all markers
         neighbor_mat (pandas.DataFrame):
             a neighborhood matrix, created from create_neighborhood_matrix
-        included_fovs (list):
-            patient labels to include in analysis. If argument is None, default is all labels used.
         cluster_num (int):
             the optimal k to pass into k-means clustering to generate the final clusters
             and corresponding results
+        excluded_colnames (list):
+            all column names that are not markers. If argument is none, default is
+            ["cell_size", "Background", "HH3",
+            "summed_channel", "label", "area",
+            "eccentricity", "major_axis_length",
+            "minor_axis_length", "perimeter", "fov"]
+        included_fovs (list):
+            patient labels to include in analysis. If argument is None, default is all labels used.
         cluster_label_col (str):
             the name of the cluster label col we will create
         fov_col (str):
@@ -334,6 +341,16 @@ def generate_cluster_matrix_results(all_data, neighbor_mat, included_fovs, clust
     if included_fovs is None:
         included_fovs = neighbor_mat[fov_col].unique()
 
+    if excluded_colnames is None:
+        excluded_colnames = ["cell_size", "Background", "HH3",
+                             "summed_channel", "label", "area",
+                             "eccentricity", "major_axis_length", "minor_axis_length",
+                             "perimeter", "fov"]
+
+    # make sure the specified
+    if not np.isin(excluded_colnames, all_data.columns).all():
+        raise ValueError("Column names were not found in Expression Matrix")
+
     if not np.isin(included_fovs, neighbor_mat[fov_col]).all():
         raise ValueError("Not all specified fovs exist in the provided neighborhood matrix")
 
@@ -349,24 +366,22 @@ def generate_cluster_matrix_results(all_data, neighbor_mat, included_fovs, clust
 
     # generate cluster labels
     cluster_labels = spatial_analysis_utils.generate_cluster_labels(
-        neighbor_mat_data, cluster_num, cluster_label_col)
+        neighbor_mat_data, cluster_num)
 
     # add labels to all_data
-    all_data_cluster = all_data.copy()
-    all_data_cluster[cluster_label_col] = cluster_labels
+    all_data[cluster_label_col] = cluster_labels
 
     # create a count pivot table with cluster_label_col as row and cell_type_col as column
-    group_by_cell_type = all_data_cluster.groupby(
+    group_by_cell_type = all_data.groupby(
         [cluster_label_col, cell_type_col]).size().reset_index(name="count")
     cluster_counts_per_cell_type = group_by_cell_type.pivot(
         index=cluster_label_col, columns=cell_type_col, values="count").fillna(0).astype(int)
 
-    # add labels to neighbor_mat
-    neighbor_mat_cluster = neighbor_mat_data.copy()
-    neighbor_mat_cluster[cluster_label_col] = cluster_labels
+    # Subsets the expression matrix to only have channel columns
+    all_channel_data = all_data.drop(excluded_colnames, axis=1)
 
     # create a mean pivot table with cluster_label_col as row and channels as column
-    cluster_mean_per_marker = all_data_cluster.groupby([cluster_label_col]).mean()
+    cluster_mean_per_marker = all_channel_data.groupby([cluster_label_col]).mean()
 
     return cluster_counts_per_cell_type, cluster_mean_per_marker
 

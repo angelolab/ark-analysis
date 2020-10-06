@@ -207,9 +207,36 @@ def test_create_neighborhood_matrix():
 
 
 def test_generate_cluster_matrix_results():
-    pass
+    excluded_colnames = ["cell_size", "Background", "HH3",
+                         "summed_channel", "cellLabelInImage", "area",
+                         "eccentricity", "major_axis_length", "minor_axis_length",
+                         "perimeter", "SampleID", "FlowSOM_ID", "cell_type"]
 
-  
+    all_data_pos, dist_mat_pos = test_utils._make_dist_exp_mats_spatial_test(
+        enrichment_type="positive", dist_lim=50
+    )
+
+    # we need corresponding dimensions, so use this method to generate
+    # the neighborhood matrix
+    neighbor_counts, neighbor_freqs = spatial_analysis.create_neighborhood_matrix(
+        all_data_pos, dist_mat_pos, distlim=51
+    )
+
+    counts_cell_type, mean_per_marker = spatial_analysis.generate_cluster_matrix_results(
+        all_data_pos, neighbor_counts, cluster_num=3, excluded_colnames=excluded_colnames
+    )
+
+    # can't really assert specific locations of values because cluster assignment stochastic
+    # check just indexes and shapes
+    assert counts_cell_type.shape == (3, 3)
+    assert list(counts_cell_type.index.values) == [0, 1, 2]
+    assert list(counts_cell_type.columns.values) == ["Pheno1", "Pheno2", "Pheno3"]
+
+    assert mean_per_marker.shape == (3, 20)
+    assert list(mean_per_marker.index.values) == [0, 1, 2]
+    assert list(mean_per_marker.columns.values) == list(np.arange(2, 14)) + list(np.arange(15, 23))
+
+
 def test_compute_cluster_metrics():
     # get an example neighborhood matrix
     neighbor_mat = test_utils._make_neighborhood_matrix()
@@ -237,4 +264,3 @@ def test_compute_cluster_metrics():
 
     last_k = neighbor_cluster_stats.loc[3].values
     assert np.all(last_k >= neighbor_cluster_stats.values)
-
