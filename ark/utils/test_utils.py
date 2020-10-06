@@ -714,10 +714,11 @@ def _make_expression_mat_sa(enrichment_type):
     excluded_colnames = {0: 'cell_size', 1: 'Background', 14: "HH3",
                          23: "summed_channel", 24: "cellLabelInImage", 25: "area",
                          26: "eccentricity", 27: "major_axis_length", 28: "minor_axis_length",
-                         29: "perimeter", 30: "SampleID", 31: "FlowSOM_ID", 32: "cell_type"}
+                         29: "perimeter", 30: "SampleID", 31: "FlowSOM_ID", 32: "cell_type",
+                         33: "cell_lineage"}
 
     if enrichment_type == "none":
-        all_data = pd.DataFrame(np.zeros((120, 33)))
+        all_data = pd.DataFrame(np.zeros((120, 34)))
         # Assigning values to the patient label and cell label columns
         # We create data for two fovs, with the second fov being the same as the first but the
         # cell expression data for marker 1 and marker 2 are inverted. cells 0-59 are fov8 and
@@ -749,7 +750,7 @@ def _make_expression_mat_sa(enrichment_type):
         all_patient_data.loc[all_patient_data.iloc[:, 31] == 0, "cell_type"] = "Pheno3"
         return all_patient_data
     elif enrichment_type == "positive":
-        all_data_pos = pd.DataFrame(np.zeros((160, 33)))
+        all_data_pos = pd.DataFrame(np.zeros((160, 34)))
         # Assigning values to the patient label and cell label columns
         all_data_pos.loc[0:79, 30] = "fov8"
         all_data_pos.loc[80:, 30] = "fov9"
@@ -795,7 +796,7 @@ def _make_expression_mat_sa(enrichment_type):
         all_patient_data_pos.loc[all_patient_data_pos.iloc[:, 31] == 0, "cell_type"] = "Pheno3"
         return all_patient_data_pos
     elif enrichment_type == "negative":
-        all_data_neg = pd.DataFrame(np.zeros((120, 33)))
+        all_data_neg = pd.DataFrame(np.zeros((120, 34)))
         # Assigning values to the patient label and cell label columns
         all_data_neg.loc[0:59, 30] = "fov8"
         all_data_neg.loc[60:, 30] = "fov9"
@@ -912,13 +913,14 @@ def _make_expression_mat_sa_utils():
     """
 
     # Create example all_patient_data cell expression matrix
-    all_data = pd.DataFrame(np.zeros((10, 33)))
+    all_data = pd.DataFrame(np.zeros((10, 34)))
 
     # Assigning values to the patient label and cell label columns
     all_data[30] = "fov8"
     all_data[24] = np.arange(len(all_data[1])) + 1
 
-    colnames = {24: "cellLabelInImage", 30: "SampleID", 31: "FlowSOM_ID", 32: "cell_type"}
+    colnames = {24: "cellLabelInImage", 30: "SampleID", 31: "FlowSOM_ID",
+                32: "cell_type", 33: "cell_lineage"}
     all_data = all_data.rename(colnames, axis=1)
 
     # Create 4 cells positive for marker 1 and 2, 5 cells positive for markers 3 and 4,

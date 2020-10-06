@@ -155,7 +155,7 @@ def test_compute_close_cell_num_random():
 
 
 def test_compute_close_cell_num_random_context():
-    all_data, example_distmat = make_example_data_closenum()
+    all_data, example_distmat = test_utils._make_dist_exp_mats_spatial_utils_test()
 
     # Only include the columns of markers for fov_channel_data
     fov_channel_data = all_data.drop(all_data.columns[[
@@ -166,7 +166,7 @@ def test_compute_close_cell_num_random_context():
 
     # Generate example thresholds, subset threshold matrix to only include
     # column with threshold values
-    example_thresholds = make_threshold_mat()
+    example_thresholds = test_utils._make_threshold_mat(in_utils=True)
     thresh_vec = example_thresholds.iloc[0:20, 1]
 
     example_closenumrand_context = spatial_analysis_utils.compute_close_cell_num_random_context(

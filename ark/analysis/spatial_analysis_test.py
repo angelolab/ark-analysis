@@ -42,6 +42,13 @@ def test_calculate_channel_spatial_enrichment():
     assert stats_pos.loc["fov9", "p_neg", 3, 2] > .05
     assert stats_pos.loc["fov9", "z", 3, 2] > 0
 
+    # Positive enrichment, context-based randomization
+    _, stats_neg = \
+        spatial_analysis.calculate_channel_spatial_enrichment(
+            dist_mat_pos, marker_thresholds, all_data_pos,
+            excluded_colnames=excluded_colnames, bootstrap_num=100,
+            dist_lim=dist_lim, context=True)
+
     # Negative enrichment
     all_data_neg, dist_mat_neg = test_utils._make_dist_exp_mats_spatial_test(
         enrichment_type="negative", dist_lim=dist_lim)
@@ -66,7 +73,7 @@ def test_calculate_channel_spatial_enrichment():
     # Negative enrichment, context-based randomization
     _, stats_neg = \
         spatial_analysis.calculate_channel_spatial_enrichment(
-            dist_mat_neg_direct, marker_thresholds, all_data_neg,
+            dist_mat_neg, marker_thresholds, all_data_neg,
             excluded_colnames=excluded_colnames, bootstrap_num=100,
             dist_lim=dist_lim, context=True)
 
