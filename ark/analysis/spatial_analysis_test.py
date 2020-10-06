@@ -222,6 +222,26 @@ def test_generate_cluster_matrix_results():
         all_data_pos, dist_mat_pos, distlim=51
     )
 
+    # error checking
+    with pytest.raises(ValueError):
+        # pass bad columns
+        spatial_analysis.generate_cluster_matrix_results(
+            all_data_pos, neighbor_counts, cluster_num=3, excluded_colnames=["bad_col"]
+        )
+
+    with pytest.raises(ValueError):
+        # include bad fovs
+        spatial_analysis.generate_cluster_matrix_results(
+            all_data_pos, neighbor_counts, cluster_num=3, excluded_colnames=excluded_colnames,
+            included_fovs=[1000]
+        )
+
+    with pytest.raises(ValueError):
+        # specify bad k for clustering
+        spatial_analysis.generate_cluster_matrix_results(
+            all_data_pos, neighbor_counts, cluster_num=1, excluded_colnames=excluded_colnames
+        )
+
     counts_cell_type, mean_per_marker = spatial_analysis.generate_cluster_matrix_results(
         all_data_pos, neighbor_counts, cluster_num=3, excluded_colnames=excluded_colnames
     )
