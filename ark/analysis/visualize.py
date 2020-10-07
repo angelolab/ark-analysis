@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+import xarray as xr
 
 
 def draw_boxplot(cell_data, col_name, col_split=None, split_vals=None, save_dir=None):
@@ -24,6 +25,10 @@ def draw_boxplot(cell_data, col_name, col_split=None, split_vals=None, save_dir=
     # the col_name must be valid
     if col_name not in cell_data.columns.values:
         raise ValueError("col_name specified does not exist in data provided")
+
+    # if col_split is not None, it must exist as a column in cell_data
+    if col_split is not None and col_split not in cell_data.columns.values:
+        raise ValueError("col_split specified does not exist in data provided")
 
     # basic error checks if split_vals is set
     if split_vals is not None:
@@ -206,6 +211,7 @@ def visualize_patient_population_distribution(cell_data, patient_col_name, popul
         save_dir (str):
             Directory to save plots, default is None
     """
+
     cell_data = cell_data.dropna()
 
     # Plot by total count
@@ -234,3 +240,32 @@ def visualize_patient_population_distribution(cell_data, patient_col_name, popul
 
         plot_barchart(sorted_data, title, patient_col_name, population_col_name,
                       save_dir=save_dir, save_file="PopulationProportion.png")
+
+
+def visualize_neighbor_cluster_metrics(neighbor_cluster_stats, save_dir=None):
+    """Visualize the cluster performance results of a neighborhood matrix
+
+    Args:
+        neighbor_cluster_stats (xarray.DataArray):
+            contains the desired statistic we wish to visualize, should have one
+            coordinate called cluster_num labeled starting from 2
+        save_dir (str):
+            Directory to save plots, default is None
+    """
+
+    # get the coordinates and values we'll need
+    x_coords = neighbor_cluster_stats.coords['cluster_num'].values
+    scores = neighbor_cluster_stats.values
+
+    # plot the results
+    plt.plot(x_coords, scores)
+    plt.title("silhouette score vs number of clusters")
+    plt.xlabel("Number of clusters")
+    plt.ylabel("silhouette score")
+
+    # save if desired
+    if save_dir is not None:
+        if not os.path.exists(save_dir):
+            raise ValueError("save_dir %s does not exist" % save_dir)
+
+        plt.savefig(os.path.join(save_dir, "neighborhood_cluster_scores.png"))

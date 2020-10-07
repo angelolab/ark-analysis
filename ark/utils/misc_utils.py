@@ -65,7 +65,7 @@ def combine_xarrays(xarrays, axis):
     return combined_xr
 
 
-def combine_point_directories(dir_path):
+def combine_fov_directories(dir_path):
     """Combines a folder containing multiple imaging runs into a single folder
 
     Args:
@@ -84,8 +84,8 @@ def combine_point_directories(dir_path):
 
     # loop through sub folders, get all contents, and transfer to new folder
     for folder in folders:
-        points = os.listdir(os.path.join(dir_path, folder))
-        print(points)
-        for point in points:
-            os.rename(os.path.join(dir_path, folder, point),
-                      os.path.join(dir_path, "combined_folder", folder + "_" + point))
+        fovs = os.listdir(os.path.join(dir_path, folder))
+        print(fovs)
+        for fov in fovs:
+            os.rename(os.path.join(dir_path, folder, fov),
+                      os.path.join(dir_path, "combined_folder", folder + "_" + fov))
