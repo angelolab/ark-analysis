@@ -79,10 +79,10 @@ def visualize_dimensionality_reduction(cell_data, columns, category, color_map="
             Directory to save plots, default is None
     """
     cell_data = cell_data.dropna()
+    dim_reduction_algos = ["UMAP", "PCA", "tSNE"]
 
-    if algorithm not in ["UMAP", "PCA", "tSNE"]:
-        raise ValueError(f"The algorithm specified must be one of the following: "
-                         f"{['UMAP', 'PCA', 'tSNE']}")
+    test_utils.verify_in_list([algorithm], dim_reduction_algos,
+                              "algorithm", "[\"UMAP\", \"PCA\", \"tSNE\"]")
 
     graph_title = "%s projection of data" % algorithm
 

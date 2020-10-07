@@ -9,6 +9,8 @@ from sklearn.cluster import KMeans
 from scipy.spatial.distance import cdist
 import os
 
+from ark.utils import test_utils
+
 
 def calc_dist_matrix(label_maps, path=None):
     """Generate matrix of distances between center of pairs of cells
@@ -27,9 +29,8 @@ def calc_dist_matrix(label_maps, path=None):
 
     # Check that file path exists, if given
 
-    if path is not None:
-        if not os.path.exists(path):
-            raise FileNotFoundError("File path not valid")
+    if path is not None and not os.path.exists(path):
+        raise FileNotFoundError("File path not valid")
 
     dist_mats_list = []
 
@@ -158,8 +159,8 @@ def compute_close_cell_num(dist_mat, dist_lim, analysis_type,
     """
 
     # assert our analysis type is valid
-    if not np.isin(analysis_type, ("cluster", "channel")).all():
-        raise ValueError("Incorrect analysis type")
+    test_utils.verify_in_list([analysis_type], ["cluster", "channel"],
+                              "analysis_type", "[\"cluster\", \"channel\"]")
 
     # Initialize variables
 

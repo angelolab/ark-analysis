@@ -129,7 +129,7 @@ def test_visualize_neighbor_cluster_metrics():
                                dims=random_dims)
 
     # error checking
-    with pytest.raises(ValueError):
+    with pytest.raises(FileNotFoundError):
         # specifying a non-existent directory to save to
         visualize.visualize_neighbor_cluster_metrics(random_data, save_dir="bad_dir")
 

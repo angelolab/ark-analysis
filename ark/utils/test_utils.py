@@ -602,58 +602,29 @@ def save_figure(save_dir, save_file):
     plt.savefig(os.path.join(save_dir, save_file))
 
 
-def get_fov_info(all_data, fov_col, included_fovs=None):
-    """Generate the included_fovs and the number of fovs
+def verify_in_list(list_verify, values_bucket, name_list_verify, name_values_bucket):
+    """Verify at least whether the values in list_verify exist in values_bucket
 
     Args:
-        all_data (pandas.DataFrame):
-            data including fovs, cell labels, and cell expression matrix for all markers
-        fov_col (str):
-            the name of the column in all_data identifying the fovs
-        included_fovs (list):
-            patient labels to include in analysis. If argument is none, default is all labels used.
-
-    Returns:
-        tuple (list, int):
-
-        - a list of the fovs to use
-        - the number of fovs
-    """
-
-    if included_fovs is None:
-        included_fovs = all_data[fov_col].unique()
-        num_fovs = len(included_fovs)
-    else:
-        num_fovs = len(included_fovs)
-
-    return included_fovs, num_fovs
-
-
-def verify_spatial_info(all_data, fov_col, included_fovs, excluded_colnames=None):
-    """Verify at least whether the specified fovs actually exist. For channel-based analysis,
-    we'll also need to verify excluded_colnames.
-
-    Args:
-        all_data (pandas.DataFrame):
-            data including fovs, cell labels, and cell expression matrix for all markers
-        fov_col (str):
-            the name of the column in all_data identifying the fovs
-        included_fovs (list):
-            patient labels to include in analysis. If argument is none, default is all labels used.
-        excluded_colnames (list):
-            the names of the column names we want to exclude from all_data
+        list_verify (list):
+            the list we want to check for all values existing in values_bucket
+        values_bucket (list):
+            the list of acceptable values that should only be appearing in list_verify
+        name_list_verify (str):
+            should be similar to the name of the variable associated with list_verify
+        name_values_bucket (str):
+            should be similar to the name of the variable associated with values_bucket
 
     Raises:
         ValueError:
-            if either the fov or excluded_colname check fails
+            if not all values in list_verify exist in values_bucket
     """
 
-    if not np.isin(included_fovs, all_data[fov_col]).all():
-        raise ValueError("Fovs were not found in expression matrix")
+    if not np.isin(list_verify, values_bucket).all():
+        bad_vals = [str(val) for val in list_verify if val not in values_bucket]
 
-    if excluded_colnames is not None:
-        if not np.isin(excluded_colnames, all_data.columns).all():
-            raise ValueError("Column names were not found in expression matrix")
+        raise ValueError("%s value(s) %s not found in %s" %
+                         (','.join(bad_vals), name_list_verify, name_values_bucket))
 
 
 def _make_neighborhood_matrix():

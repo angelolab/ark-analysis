@@ -45,7 +45,11 @@ def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, 
     """
 
     # Setup input and parameters
-    included_fovs, num_fovs = test_utils.get_fov_info(all_data, fov_col, included_fovs)
+    if included_fovs is None:
+        included_fovs = all_data[fov_col].unique()
+        num_fovs = len(included_fovs)
+    else:
+        num_fovs = len(included_fovs)
 
     values = []
 
@@ -55,8 +59,13 @@ def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, 
                              "eccentricity", "major_axis_length", "minor_axis_length",
                              "perimeter", "fov"]
 
-    # Error Checking
-    test_utils.verify_spatial_info(all_data, fov_col, included_fovs, excluded_colnames)
+    # check if included fovs found in fov_col
+    test_utils.verify_in_list(included_fovs, all_data[fov_col].unique(),
+                              "included_fovs", "fov_col")
+
+    # check if all excluded column names found in all_data
+    test_utils.verify_in_list(excluded_colnames, all_data.columns,
+                              "excluded_colnames", "all_data columns")
 
     # Subsets the expression matrix to only have channel columns
     all_channel_data = all_data.drop(excluded_colnames, axis=1)
@@ -83,6 +92,7 @@ def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, 
         # Subsetting expression matrix to only include patients with correct fov label
         current_fov_idx = all_data[fov_col] == fov
         current_fov_data = all_data[current_fov_idx]
+
         # Patients with correct label, and only columns of channel markers
         current_fov_channel_data = all_channel_data[current_fov_idx]
 
@@ -149,12 +159,17 @@ def calculate_cluster_spatial_enrichment(all_data, dist_matrices_dict, included_
     """
 
     # Setup input and parameters
-    included_fovs, num_fovs = test_utils.get_fov_info(all_data, fov_col, included_fovs)
+    if included_fovs is None:
+        included_fovs = all_data[fov_col].unique()
+        num_fovs = len(included_fovs)
+    else:
+        num_fovs = len(included_fovs)
 
     values = []
 
-    # Error Checking
-    test_utils.verify_spatial_info(all_data, fov_col, included_fovs)
+    # check if included fovs found in fov_col
+    test_utils.verify_in_list(included_fovs, all_data[fov_col].unique(),
+                              "included_fovs", "fov_col")
 
     # Extract the names of the cell phenotypes
     cluster_names = all_data[cluster_name_col].drop_duplicates()
@@ -232,10 +247,12 @@ def create_neighborhood_matrix(all_data, dist_matrices_dict, included_fovs=None,
     """
 
     # Setup input and parameters
-    included_fovs, _ = test_utils.get_fov_info(all_data, fov_col, included_fovs)
+    if included_fovs is None:
+        included_fovs = all_data[fov_col].unique()
 
-    # Error Checking
-    test_utils.verify_spatial_info(all_data, fov_col, included_fovs)
+    # check if included fovs found in fov_col
+    test_utils.verify_in_list(included_fovs, all_data[fov_col].unique(),
+                              "included_fovs", "fov_col")
 
     # Get the phenotypes
     cluster_names = all_data[cluster_name_col].drop_duplicates()
@@ -314,9 +331,9 @@ def compute_cluster_metrics(neighbor_mat, max_k=10, included_fovs=None,
     if max_k < 2:
         raise ValueError("Invalid k provided for clustering")
 
-    # make sure the fovs specified all exist inside the fov_col
-    if not np.isin(included_fovs, neighbor_mat[fov_col]).all():
-        raise ValueError("Not all specified fovs exist in the provided neighborhood matrix")
+    # check if included fovs found in fov_col
+    test_utils.verify_in_list(included_fovs, neighbor_mat[fov_col].unique(),
+                              "included_fovs", "fov_col")
 
     # subset neighbor_mat accordingly, and drop the columns we don't need
     neighbor_mat_data = neighbor_mat[neighbor_mat[fov_col].isin(included_fovs)]
