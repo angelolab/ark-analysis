@@ -249,8 +249,9 @@ def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, channels=None,
     return img_xr
 
 
-def load_imgs_from_dir(data_dir, files=None, delimiter=None, imgdim_name='channels',
-                       dtype="int16", force_ints=False, channels=None):
+def load_imgs_from_dir(data_dir, files=None, delimiter=None, xr_dim_name='compartments',
+                       xr_channel_names=None, dtype="int16", force_ints=False,
+                       channel_indices=None):
     """Takes a set of images (possibly multitiffs) from a directory and loads them
      into an xarray.
 
@@ -263,18 +264,18 @@ def load_imgs_from_dir(data_dir, files=None, delimiter=None, imgdim_name='channe
         delimiter (str):
             character used to determine the file-prefix containging the fov name.
             Default is None.
-        imgdim_name (str):
+        xr_dim_name (str):
             sets the name of the last dimension of the output xarray.
-            Default: 'channels'
+            Default: 'compartments'
+        xr_channel_names (list):
+            sets the name of the coordinates in the last dimension of the output xarray.
         dtype (str/type):
             data type to load/store
         force_ints (bool):
             If dtype is an integer, forcefully convert float imgs to ints. Default is False.
-        channels (list):
+        channel_indices (list):
             optional list of imgs to load, if None or empty loads all imgs
             (relevant when loading multitiff images).
-            Alternatively, a list of size 1 that contains a string. In that case,
-            this string will be the name of the last dimension of the output xarray.
 
     Returns:
         xarray.DataArray:
@@ -320,19 +321,26 @@ def load_imgs_from_dir(data_dir, files=None, delimiter=None, imgdim_name='channe
         v = io.imread(os.path.join(data_dir, img))
         if v.ndim == 2:
             v = v[:, :, np.newaxis]
+        elif v.shape[0] == min(v.shape):
+            # covert channels_first to be channels_last
+            v = np.moveaxis(v, 0, -1)
         img_data.append(v)
     img_data = np.stack(img_data, axis=0)
 
     img_data = img_data.astype(dtype)
 
-    if channels and not isinstance(channels[0], str):
-        img_data = img_data[:, :, :, channels]
+    if channel_indices:
+        img_data = img_data[:, :, :, channel_indices]
 
     # check to make sure that dtype wasn't too small for range of data
     if np.min(img_data) < 0:
         raise ValueError("Integer overflow from loading TIF image, try a larger dtype")
 
-    row_coords, col_coords = range(test_img.shape[0]), range(test_img.shape[1])
+    if test_img.ndim == 3 and test_img.shape[0] == min(test_img.shape):
+        # channels_first
+        row_coords, col_coords = range(test_img.shape[1]), range(test_img.shape[2])
+    else:
+        row_coords, col_coords = range(test_img.shape[0]), range(test_img.shape[1])
 
     # get fov name from imgs
     fovs = iou.extract_delimited_names(imgs, delimiter=delimiter)
@@ -341,9 +349,9 @@ def load_imgs_from_dir(data_dir, files=None, delimiter=None, imgdim_name='channe
     img_xr = xr.DataArray(img_data,
                           coords=[fovs, row_coords,
                                   col_coords,
-                                  channels if channels else range(img_data.shape[3])],
-                          dims=["fovs", "rows", "cols", imgdim_name])
+                                  xr_channel_names if xr_channel_names else range(img_data.shape[3])],
+                          dims=["fovs", "rows", "cols", xr_dim_name])
 
-    img_xr = img_xr.sortby('fovs').sortby(imgdim_name)
+    img_xr = img_xr.sortby('fovs').sortby(xr_dim_name)
 
     return img_xr

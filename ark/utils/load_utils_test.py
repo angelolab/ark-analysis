@@ -203,7 +203,7 @@ def test_load_imgs_from_dir():
         # check default loading
         loaded_xr = \
             load_utils.load_imgs_from_dir(temp_dir, delimiter='_',
-                                          imgdim_name='compartments', dtype=np.float32)
+                                          xr_dim_name='compartments', dtype=np.float32)
 
         assert loaded_xr.equals(data_xr)
 
@@ -211,7 +211,7 @@ def test_load_imgs_from_dir():
         with pytest.warns(UserWarning):
             loaded_xr = \
                 load_utils.load_imgs_from_dir(temp_dir, delimiter='_',
-                                              imgdim_name='compartments', dtype="int16")
+                                              xr_dim_name='compartments', dtype="int16")
 
             assert loaded_xr.equals(data_xr)
             assert np.issubdtype(loaded_xr.dtype, np.floating)
@@ -221,7 +221,7 @@ def test_load_imgs_from_dir():
         fovs, channels = test_utils.gen_fov_chan_names(num_fovs=2, num_chans=3, use_delimiter=True)
 
         filelocs, data_xr = test_utils.create_paired_xarray_fovs(
-            temp_dir, fovs, channels, img_shape=(10, 10), mode='multitiff', delimiter='_',
+            temp_dir, fovs, channels, img_shape=(10, 10), mode='reverse_multitiff', delimiter='_',
             fills=True, dtype=np.float32
         )
 
@@ -229,7 +229,7 @@ def test_load_imgs_from_dir():
 
         # test all channels loading w/ specified file
         loaded_xr = \
-            load_utils.load_imgs_from_dir(temp_dir, files=[fovnames[-1]],
+            load_utils.load_imgs_from_dir(temp_dir, files=[fovnames[-1]], xr_dim_name='channels',
                                           delimiter='_', dtype=np.float32)
 
         assert loaded_xr.equals(data_xr.loc[[fovs[-1]], :, :, :])
@@ -237,7 +237,34 @@ def test_load_imgs_from_dir():
         # test all channels w/ unspecified files + delimiter agnosticism
         loaded_xr = load_utils.load_imgs_from_dir(temp_dir,
                                                   files=None,
-                                                  channels=None,
+                                                  channel_indices=None,
+                                                  xr_dim_name='channels',
+                                                  delimiter='_')
+
+        assert loaded_xr.equals(data_xr)
+
+        # test channels_first input
+        fovs, channels = test_utils.gen_fov_chan_names(num_fovs=2, num_chans=5, use_delimiter=True)
+
+        _, data_xr = test_utils.create_paired_xarray_fovs(
+            temp_dir, fovs, channels, img_shape=(10, 10), mode='multitiff', delimiter='_',
+            fills=True, dtype=np.float32, channels_first=True
+        )
+
+        fovnames = [f'{fov}.tiff' for fov in fovs]
+
+        # test all channels loading w/ specified file
+        loaded_xr = \
+            load_utils.load_imgs_from_dir(temp_dir, files=[fovnames[-1]], xr_dim_name='channels',
+                                          delimiter='_', dtype=np.float32)
+
+        assert loaded_xr.equals(data_xr.loc[[fovs[-1]], :, :, :])
+
+        # test all channels w/ unspecified files + delimiter agnosticism
+        loaded_xr = load_utils.load_imgs_from_dir(temp_dir,
+                                                  files=None,
+                                                  channel_indices=None,
+                                                  xr_dim_name='channels',
                                                   delimiter='_')
 
         assert loaded_xr.equals(data_xr)

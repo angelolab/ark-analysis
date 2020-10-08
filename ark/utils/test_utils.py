@@ -177,7 +177,8 @@ def _write_tifs(base_dir, fov_names, img_names, shape, sub_dir, fills, dtype):
     return filelocs, tif_data
 
 
-def _write_multitiff(base_dir, fov_names, channel_names, shape, sub_dir, fills, dtype):
+def _write_multitiff(base_dir, fov_names, channel_names, shape, sub_dir, fills,
+                     dtype, channels_first=False):
     """Generates and writes multitifs to into base_dir
 
     Args:
@@ -197,6 +198,8 @@ def _write_multitiff(base_dir, fov_names, channel_names, shape, sub_dir, fills, 
             value is one less than that of the first channel in the next fov.
         dtype (type):
             Data type for generated images
+        channels_first(bool):
+            Indicates whether the data should be saved in channels_first format. Default: False
 
     Returns:
         tuple (dict, numpy.ndarray):
@@ -209,7 +212,10 @@ def _write_multitiff(base_dir, fov_names, channel_names, shape, sub_dir, fills, 
 
     for i, fov in enumerate(fov_names):
         tiffpath = os.path.join(base_dir, f'{fov}.tiff')
-        io.imsave(tiffpath, tif_data[i, :, :, :], plugin='tifffile')
+        v = tif_data[i, :, :, :]
+        if channels_first:
+            v = np.moveaxis(v, -1, 0)
+        io.imsave(tiffpath, v, plugin='tifffile')
         filelocs[fov] = tiffpath
 
     return filelocs, tif_data
@@ -349,7 +355,7 @@ TIFFMAKERS = {
 
 def create_paired_xarray_fovs(base_dir, fov_names, channel_names, img_shape=(10, 10),
                               mode='tiff', delimiter=None, sub_dir=None, fills=False,
-                              dtype="int8"):
+                              dtype="int8", channels_first=False):
     """Writes data to file system (images or labels) and creates expected xarray for reloading
     data from said file system.
 
@@ -383,6 +389,9 @@ def create_paired_xarray_fovs(base_dir, fov_names, channel_names, img_shape=(10,
             channel in the next fov.
         dtype (type):
             Data type for generated images/labels.  Default is int16
+        channels_first (bool):
+            Indicates whether the data should be saved in channels_first format when
+            mode is 'multitiff'. Default: False
 
     Returns:
         tuple (dict, xarray.DataArray):
@@ -406,8 +415,12 @@ def create_paired_xarray_fovs(base_dir, fov_names, channel_names, img_shape=(10,
     if not isinstance(channel_names, list):
         channel_names = [channel_names]
 
-    filelocs, tif_data = TIFFMAKERS[mode](base_dir, fov_names, channel_names, img_shape, sub_dir,
-                                          fills, dtype)
+    if mode == 'multitiff':
+        filelocs, tif_data = TIFFMAKERS[mode](base_dir, fov_names, channel_names, img_shape, sub_dir,
+                                              fills, dtype, channels_first=channels_first)
+    else:
+        filelocs, tif_data = TIFFMAKERS[mode](base_dir, fov_names, channel_names, img_shape, sub_dir,
+                                              fills, dtype)
 
     if delimiter is not None:
         fov_ids = [fov.split(delimiter)[0] for fov in fov_names]
