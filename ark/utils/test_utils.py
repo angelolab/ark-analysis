@@ -416,11 +416,12 @@ def create_paired_xarray_fovs(base_dir, fov_names, channel_names, img_shape=(10,
         channel_names = [channel_names]
 
     if mode == 'multitiff':
-        filelocs, tif_data = TIFFMAKERS[mode](base_dir, fov_names, channel_names, img_shape, sub_dir,
-                                              fills, dtype, channels_first=channels_first)
+        filelocs, tif_data = TIFFMAKERS[mode](base_dir, fov_names, channel_names,
+                                              img_shape, sub_dir, fills, dtype,
+                                              channels_first=channels_first)
     else:
-        filelocs, tif_data = TIFFMAKERS[mode](base_dir, fov_names, channel_names, img_shape, sub_dir,
-                                              fills, dtype)
+        filelocs, tif_data = TIFFMAKERS[mode](base_dir, fov_names, channel_names,
+                                              img_shape, sub_dir, fills, dtype)
 
     if delimiter is not None:
         fov_ids = [fov.split(delimiter)[0] for fov in fov_names]
