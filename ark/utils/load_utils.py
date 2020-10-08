@@ -347,9 +347,9 @@ def load_imgs_from_dir(data_dir, files=None, delimiter=None, xr_dim_name='compar
 
     # create xarray with image data
     img_xr = xr.DataArray(img_data,
-                          coords=[fovs, row_coords,
-                                  col_coords,
-                                  xr_channel_names if xr_channel_names else range(img_data.shape[3])],
+                          coords=[fovs, row_coords, col_coords,
+                                  xr_channel_names if xr_channel_names
+                                  else range(img_data.shape[3])],
                           dims=["fovs", "rows", "cols", xr_dim_name])
 
     img_xr = img_xr.sortby('fovs').sortby(xr_dim_name)
