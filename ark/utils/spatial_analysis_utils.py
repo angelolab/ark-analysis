@@ -118,7 +118,7 @@ def get_pos_cell_labels_cluster(pheno, current_fov_neighborhood_data,
 def compute_close_cell_num(dist_mat, dist_lim, analysis_type,
                            current_fov_data=None, current_fov_channel_data=None,
                            cluster_ids=None, cell_types_analyze=None, thresh_vec=None,
-                           cell_label_col="cellLabelInImage", cell_type_col="FlowSOM_ID"):
+                           cell_label_col=settings.CELL_LABEL, cell_type_col=settings.CLUSTER_ID):
     """Finds positive cell labels and creates matrix with counts for cells positive for
     corresponding markers. Computes close_num matrix for both Cell Label and Threshold spatial
     analyses.
@@ -164,10 +164,6 @@ def compute_close_cell_num(dist_mat, dist_lim, analysis_type,
     # Initialize variables
 
     cell_labels = []
-
-    # Assign column names for subsetting (cell labels and cell type ids)
-    cell_label_col = settings.CELL_LABEL
-    cell_type_col = settings.CLUSTER_ID
 
     # Subset data based on analysis type
     if analysis_type == "channel":
