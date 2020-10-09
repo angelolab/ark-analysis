@@ -63,52 +63,6 @@ def test_load_imgs_from_mibitiff():
             assert np.issubdtype(loaded_xr.dtype, np.floating)
 
 
-def test_load_imgs_from_multitiff():
-
-    with tempfile.TemporaryDirectory() as temp_dir:
-        # config test environment
-        fovs, channels = test_utils.gen_fov_chan_names(num_fovs=2, num_chans=3, use_delimiter=True)
-
-        filelocs, data_xr = test_utils.create_paired_xarray_fovs(
-            temp_dir, fovs, channels, img_shape=(10, 10), mode='multitiff', delimiter='_',
-            fills=True, dtype=np.float32
-        )
-
-        fovnames = [f'{fov}.tiff' for fov in fovs]
-
-        # test all channels loading w/ specified file
-        loaded_xr = load_utils.load_imgs_from_multitiff(temp_dir,
-                                                        multitiff_files=[fovnames[-1]],
-                                                        delimiter='_')
-
-        assert loaded_xr.equals(data_xr.loc[[fovs[-1]], :, :, :])
-
-        # test single channel load
-        loaded_xr = load_utils.load_imgs_from_multitiff(temp_dir,
-                                                        multitiff_files=fovnames,
-                                                        channels=[0],
-                                                        delimiter='_')
-
-        assert loaded_xr.equals(data_xr.loc[:, :, :, [0]])
-
-        # test all channels w/ unspecified files + delimiter agnosticism
-        loaded_xr = load_utils.load_imgs_from_multitiff(temp_dir,
-                                                        multitiff_files=None,
-                                                        channels=None,
-                                                        delimiter='_')
-
-        assert loaded_xr.equals(data_xr)
-
-        # test float overwrite
-        with pytest.warns(UserWarning):
-            loaded_xr = load_utils.load_imgs_from_multitiff(temp_dir,
-                                                            delimiter='_',
-                                                            dtype='int16')
-
-            assert loaded_xr.equals(data_xr)
-            assert(np.issubdtype(loaded_xr.dtype, np.floating))
-
-
 def test_load_imgs_from_tree():
     # test loading from within fov directories
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -233,6 +187,17 @@ def test_load_imgs_from_dir():
                                           delimiter='_', dtype=np.float32)
 
         assert loaded_xr.equals(data_xr.loc[[fovs[-1]], :, :, :])
+
+        # indices should be between 0-2
+        with pytest.raises(ValueError):
+            load_utils.load_imgs_from_dir(temp_dir, files=[fovnames[-1]], xr_dim_name='channels',
+                                          delimiter='_', dtype=np.float32, channel_indices=[0, 1, 4])
+
+        # xr_channel_names should contain 3 names (as there are 3 channels)
+        with pytest.raises(ValueError):
+            load_utils.load_imgs_from_dir(temp_dir, files=[fovnames[-1]], xr_dim_name='channels',
+                                          delimiter='_', dtype=np.float32,
+                                          xr_channel_names=['A', 'B'])
 
         # test all channels w/ unspecified files + delimiter agnosticism
         loaded_xr = load_utils.load_imgs_from_dir(temp_dir,

@@ -8,6 +8,7 @@ import xarray as xr
 # TODO: Add metadata for channel name (eliminates need for fixed-order channels)
 def generate_deepcell_input(data_xr, data_dir, nuc_channels, mem_channels):
     """Saves nuclear and membrane channels into deepcell input format.
+    Either nuc_channels or mem_channels should be specified.
 
     Writes summed channel images out as multitiffs (channels first)
 
@@ -20,7 +21,13 @@ def generate_deepcell_input(data_xr, data_dir, nuc_channels, mem_channels):
             nuclear channels to be summed over
         mem_channels (list):
             membrane channels to be summed over
+    Raises:
+            ValueError:
+                Raised if nuc_channels and mem_channels are both None or empty
     """
+    if not nuc_channels and not mem_channels:
+        raise ValueError('Either nuc_channels or mem_channels should be non-empty.')
+
     for fov in data_xr.fovs.values:
         out = np.zeros((2, data_xr.shape[1], data_xr.shape[2]), dtype=data_xr.dtype)
 

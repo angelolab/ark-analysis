@@ -2,6 +2,7 @@ import numpy as np
 import os
 import tempfile
 from shutil import rmtree
+import pytest
 
 from ark.utils import data_utils, test_utils
 import skimage.io as io
@@ -69,6 +70,10 @@ def test_generate_deepcell_input():
         assert np.array_equal(fov1[:, :, 0], data_xr.loc['fov1', :, :, 'nuc2'].values)
         assert np.all(fov2[:, :, 1] == 0)
         assert np.array_equal(fov2[:, :, 0], data_xr.loc['fov2', :, :, 'nuc2'].values)
+
+        # test nuc None and mem None
+        with pytest.raises(ValueError):
+            data_utils.generate_deepcell_input(data_xr, temp_dir, None, None)
 
 
 def test_stitch_images():
