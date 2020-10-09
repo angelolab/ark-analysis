@@ -244,11 +244,12 @@ def load_imgs_from_dir(data_dir, files=None, delimiter=None, xr_dim_name='compar
     # check to make sure all channel indices are valid given the shape of the image
     # and that channels_names has the same length as the number of channels in the image
     n_channels = 1
-    if channel_indices and multitiff:
+    if multitiff:
         n_channels = test_img.shape[0] if channels_first else test_img.shape[2]
-        if max(channel_indices) >= n_channels or min(channel_indices) < 0:
-            raise ValueError(f'Invalid value for channel_indices. Indices should be'
-                             f' between 0-{n_channels-1} for the given data.')
+        if channel_indices:
+            if max(channel_indices) >= n_channels or min(channel_indices) < 0:
+                raise ValueError(f'Invalid value for channel_indices. Indices should be'
+                                 f' between 0-{n_channels-1} for the given data.')
     if xr_channel_names and n_channels != len(xr_channel_names):
         raise ValueError(f'Invalid value for xr_channel_names. xr_channel_names'
                          f' length should be {n_channels}, as the number of channels'

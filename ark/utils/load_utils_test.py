@@ -191,7 +191,8 @@ def test_load_imgs_from_dir():
         # indices should be between 0-2
         with pytest.raises(ValueError):
             load_utils.load_imgs_from_dir(temp_dir, files=[fovnames[-1]], xr_dim_name='channels',
-                                          delimiter='_', dtype=np.float32, channel_indices=[0, 1, 4])
+                                          delimiter='_', dtype=np.float32,
+                                          channel_indices=[0, 1, 4])
 
         # xr_channel_names should contain 3 names (as there are 3 channels)
         with pytest.raises(ValueError):
