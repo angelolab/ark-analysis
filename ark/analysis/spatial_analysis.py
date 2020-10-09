@@ -30,7 +30,7 @@ def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, 
         bootstrap_num (int):
             number of permutations for bootstrap. Default is 1000.
         fov_col (str):
-            column with the cell fovs. Default is equal to `ark.settings.FOV_ID`
+            column with the cell fovs.
 
     Returns:
         tuple (list, xarray.DataArray):
@@ -50,8 +50,11 @@ def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, 
 
     values = []
 
-    # Error Checking
-    if not np.isin(excluded_channels, list(all_data.columns.values)).all():
+    # Check for invalid excluded_channels
+    if(
+        not np.isin(excluded_channels, list(all_data.columns.values)).all()
+        or excluded_channels is not None
+    ):
         raise ValueError("Column names were not found in Expression Matrix")
 
     if not np.isin(included_fovs, all_data[fov_col]).all():
@@ -132,13 +135,13 @@ def calculate_cluster_spatial_enrichment(all_data, dist_matrices_dict, included_
         dist_lim (int):
             cell proximity threshold. Default is 100
         fov_col (str):
-            column with the cell fovs. Default is eqaul to `ark.settings.FOV_ID`
+            column with the cell fovs.
         cluster_name_col (str):
-            column with the cell types. Default is `ark.settings.CELL_TYPE`
+            column with the cell types.
         cluster_id_col (str):
-            column with the cell phenotype IDs. Default is `ark.settings.CLUSTER_ID`
+            column with the cell phenotype IDs.
         cell_label_col (str):
-            column with the cell labels. Default is `ark.settings.CELL_LABEL`
+            column with the cell labels.
         context_labels (dict):
             A dict that contains which specific types of cells we want to consider.
             If argument is None, we will not run context-dependent spatial analysis
@@ -228,13 +231,13 @@ def create_neighborhood_matrix(all_data, dist_matrices_dict, included_fovs=None,
         distlim (int):
             cell proximity threshold. Default is 50.
         fov_col (str):
-            column with the cell fovs. Default is `ark.settings.FOV_ID`
+            column with the cell fovs.
         cluster_id_col (str):
-            column with the cell phenotype IDs. Default is `ark.settings.CLUSTER_ID`
+            column with the cell phenotype IDs.
         cell_label_col (str):
-            column with the cell labels. Default is `ark.settings.CELL_LABEL`
+            column with the cell labels.
         cluster_name_col (str):
-            column with the cell types. Default is `ark.settings.CELL_TYPE`
+            column with the cell types.
 
     Returns:
         pandas.DataFrame:
