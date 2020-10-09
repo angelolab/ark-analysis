@@ -5,7 +5,6 @@ from string import ascii_lowercase
 import numpy as np
 import pandas as pd
 import xarray as xr
-import matplotlib.pyplot as plt
 import skimage.io as io
 
 from mibidata import mibi_image as mi, tiff
@@ -579,52 +578,6 @@ def create_test_extraction_data():
     channel_data[:, 15:25, 20:30, 4] = 10
 
     return cell_mask, channel_data
-
-
-def save_figure(save_dir, save_file):
-    """Verify save_dir and save_file, then save to specified location
-
-    Args:
-        save_dir (str):
-            the name of the directory we wish to save to
-        save_file (str):
-            the name of the file we wish to save to
-    """
-
-    # verify save_dir exists
-    if not os.path.exists(save_dir):
-        raise FileNotFoundError("save_dir %s does not exist" % save_dir)
-
-    # verify that if save_dir specified, save_file must also be specified
-    if save_file is None:
-        raise FileNotFoundError("save_dir specified but no save_file specified")
-
-    plt.savefig(os.path.join(save_dir, save_file))
-
-
-def verify_in_list(list_verify, values_bucket, name_list_verify, name_values_bucket):
-    """Verify at least whether the values in list_verify exist in values_bucket
-
-    Args:
-        list_verify (list):
-            the list we want to check for all values existing in values_bucket
-        values_bucket (list):
-            the list of acceptable values that should only be appearing in list_verify
-        name_list_verify (str):
-            should be similar to the name of the variable associated with list_verify
-        name_values_bucket (str):
-            should be similar to the name of the variable associated with values_bucket
-
-    Raises:
-        ValueError:
-            if not all values in list_verify exist in values_bucket
-    """
-
-    if not np.isin(list_verify, values_bucket).all():
-        bad_vals = [str(val) for val in list_verify if val not in values_bucket]
-
-        raise ValueError("%s value(s) %s not found in %s" %
-                         (','.join(bad_vals), name_list_verify, name_values_bucket))
 
 
 def _make_neighborhood_matrix():

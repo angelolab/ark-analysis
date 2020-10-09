@@ -7,7 +7,7 @@ import xarray as xr
 
 from skimage.measure import regionprops_table
 
-from ark.utils import load_utils, io_utils, segmentation_utils, test_utils
+from ark.utils import io_utils, load_utils, misc_utils, segmentation_utils
 from ark.segmentation import signal_extraction
 
 
@@ -159,8 +159,13 @@ def create_marker_count_matrices(segmentation_labels, image_data, nuclear_counts
         raise ValueError("Incorrect data type for image_data, expecting xarray")
 
     if nuclear_counts:
-        test_utils.verify_in_list(['nuclear'], segmentation_labels.compartments,
-                                  "nuclear label", "segmentation_labels compartments")
+        misc_utils.verify_in_list(
+            nuclear_label='nuclear',
+            segmentation_labels_compartments=segmentation_labels.compartments.values
+        )
+
+    misc_utils.verify_same_elements(segmentation_labels_fovs=segmentation_labels.fovs.values,
+                                    img_data_fovs=image_data.fovs.values)
 
     if not np.all(set(segmentation_labels.fovs.values) == set(image_data.fovs.values)):
         raise ValueError("The same fovs must be present in the segmentation labels and images")
@@ -260,8 +265,8 @@ def generate_cell_data(segmentation_labels, tiff_dir, img_sub_folder,
             fovs = filenames
 
     # check segmentation_labels for given fovs (img loaders will fail otherwise)
-    test_utils.verify_in_list(fovs, segmentation_labels['fovs'].values,
-                              "fovs", "segmentation_labels fovs")
+    misc_utils.verify_in_list(fovs=fovs,
+                              segmentation_labels_fovs=segmentation_labels['fovs'].values)
 
     # get full filenames from given fovs
     filenames = io_utils.list_files(tiff_dir, substrs=fovs)

@@ -6,7 +6,7 @@ import seaborn as sns
 import umap.umap_ as umap
 import os
 
-from ark.utils import test_utils
+from ark.utils import misc_utils
 
 
 def plot_dim_reduced_data(component_one, component_two, fig_id, hue, cell_data,
@@ -57,7 +57,7 @@ def plot_dim_reduced_data(component_one, component_two, fig_id, hue, cell_data,
     plt.title(title, fontsize=title_fontsize)
 
     if save_dir is not None:
-        test_utils.save_figure(save_dir, save_file)
+        misc_utils.save_figure(save_dir, save_file)
 
 
 def visualize_dimensionality_reduction(cell_data, columns, category, color_map="Spectral",
@@ -74,15 +74,15 @@ def visualize_dimensionality_reduction(cell_data, columns, category, color_map="
         color_map (str):
             Name of MatPlotLib ColorMap used, default is Spectral
         algorithm (str):
-            Name of dimensionality reduction algorithm, default is UMAP
+            Name of dimensionality reduction algorithm, must be UMAP, PCA, or tSNE, default is UMAP
         save_dir (str):
             Directory to save plots, default is None
     """
+
     cell_data = cell_data.dropna()
     dim_reduction_algos = ["UMAP", "PCA", "tSNE"]
 
-    test_utils.verify_in_list([algorithm], dim_reduction_algos,
-                              "algorithm", "[\"UMAP\", \"PCA\", \"tSNE\"]")
+    misc_utils.verify_in_list(algorithm=algorithm, dim_reduction_algos=dim_reduction_algos)
 
     graph_title = "%s projection of data" % algorithm
 

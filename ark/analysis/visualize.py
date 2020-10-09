@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import xarray as xr
 
-from ark.utils import test_utils
+from ark.utils import misc_utils
 
 
 def draw_boxplot(cell_data, col_name, col_split=None, split_vals=None, save_dir=None):
@@ -25,13 +25,11 @@ def draw_boxplot(cell_data, col_name, col_split=None, split_vals=None, save_dir=
     """
 
     # the col_name must be valid
-    test_utils.verify_in_list([col_name], cell_data.columns.values,
-                              "col_name", "cell_data columns")
+    misc_utils.verify_in_list(col_name=col_name, cell_data_cols=cell_data.columns.values)
 
     # if col_split is not None, it must exist as a column in cell_data
     if col_split is not None and col_split not in cell_data.columns.values:
-        test_utils.verify_in_list([col_split], cell_data.columns.values,
-                                  "col_split", "cell_data columns")
+        misc_utils.verify_in_list(col_split=col_split, cell_data_cols=cell_data.columns.values)
 
     # basic error checks if split_vals is set
     if split_vals is not None:
@@ -40,8 +38,8 @@ def draw_boxplot(cell_data, col_name, col_split=None, split_vals=None, save_dir=
             raise ValueError("If split_vals is set, then col_split must also be set")
 
         # all the values in split_vals must exist in the col_name of cell_data
-        test_utils.verify_in_list(split_vals, cell_data[col_split].unique(),
-                                  "split_vals", "col_split")
+        misc_utils.verify_in_list(split_vals=split_vals,
+                                  cell_data_col_split_vals=cell_data[col_split].unique())
 
     # don't modify cell_data in anyway
     data_to_viz = cell_data.copy(deep=True)
@@ -62,7 +60,7 @@ def draw_boxplot(cell_data, col_name, col_split=None, split_vals=None, save_dir=
 
     # save visualization to a directory if specified
     if save_dir is not None:
-        test_utils.save_figure(save_dir, "boxplot_viz.png")
+        misc_utils.save_figure(save_dir, "boxplot_viz.png")
 
 
 def visualize_z_scores(z, pheno_titles, save_dir=None):
@@ -88,7 +86,7 @@ def visualize_z_scores(z, pheno_titles, save_dir=None):
 
     # save visualization to a directory if specified
     if save_dir is not None:
-        test_utils.save_figure(save_dir, "z_score_viz.png")
+        misc_utils.save_figure(save_dir, "z_score_viz.png")
 
 
 def get_sorted_data(cell_data, sort_by_first, sort_by_second, is_normalized=False):
@@ -175,7 +173,7 @@ def plot_barchart(data, title, x_label, y_label, color_map="jet", is_stacked=Tru
         plt.legend(loc=legend_loc, bbox_to_anchor=bbox_to_anchor)
 
     if save_dir is not None:
-        test_utils.save_figure(save_dir, save_file)
+        misc_utils.save_figure(save_dir, save_file)
 
 
 def visualize_patient_population_distribution(cell_data, patient_col_name, population_col_name,
@@ -256,4 +254,4 @@ def visualize_neighbor_cluster_metrics(neighbor_cluster_stats, save_dir=None):
 
     # save if desired
     if save_dir is not None:
-        test_utils.save_figure(save_dir, "neighborhood_cluster_scores.png")
+        misc_utils.save_figure(save_dir, "neighborhood_cluster_scores.png")
