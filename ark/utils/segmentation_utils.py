@@ -12,11 +12,13 @@ from ark.utils import plot_utils, io_utils
 
 def find_nuclear_mask_id(nuc_segmentation_mask, cell_coords):
     """Get the ID of the nuclear mask which has the greatest amount of overlap with a given cell
+
     Args:
         nuc_segmentation_mask (numpy.ndarray):
             label mask of nuclear segmentations
         cell_coords (list):
             list of coords specifying pixels that belong to a cell
+
     Returns:
         int or None:
             Integer ID of the nuclear mask that overlaps most with cell.
@@ -36,6 +38,7 @@ def find_nuclear_mask_id(nuc_segmentation_mask, cell_coords):
 
 def split_large_nuclei(cell_segmentation_mask, nuc_segmentation_mask, cell_ids, min_size=5):
     """Splits nuclei that are bigger than the corresponding cell into multiple pieces
+
     Args:
         cell_segmentation_mask (numpy.ndarray):
             mask of cell segmentations
@@ -87,6 +90,7 @@ def split_large_nuclei(cell_segmentation_mask, nuc_segmentation_mask, cell_ids, 
 
 def transform_expression_matrix(cell_data, transform, transform_kwargs=None):
     """Transform an xarray of marker counts with supplied transformation
+
     Args:
         cell_data (xarray.DataArray):
             xarray containing marker expression values
@@ -94,6 +98,7 @@ def transform_expression_matrix(cell_data, transform, transform_kwargs=None):
             the type of transform to apply. Must be one of ['size_norm', 'arcsinh']
         transform_kwargs (dict):
             optional dictionary with additional settings for the transforms
+
     Returns:
         xarray.DataArray:
             xarray of counts per marker normalized by cell size
@@ -144,7 +149,9 @@ def transform_expression_matrix(cell_data, transform, transform_kwargs=None):
 def concatenate_csv(base_dir, csv_files, column_name="fov", column_values=None):
     """Take a list of CSV paths and concatenates them together,
     adding in the identifier in column_values
+
     Saves combined CSV file into the same folder
+
     Args:
         base_dir (str):
             directory to read and write csv_files into
@@ -181,7 +188,9 @@ def visualize_segmentation(segmentation_labels_xr, channel_data_xr,
                            output_dir, chan_list=None, fovs=None):
     """For each fov, generates segmentation labels, segmentation borders, and overlays
     over the channels in chan_list if chan_list is provided.
+
     Saves overlay images to output directory
+
     Args:
         segmentation_labels_xr (xarray.DataArray):
             xarray containing segmentation labels
