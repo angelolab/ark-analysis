@@ -161,6 +161,15 @@ def test_load_imgs_from_dir():
 
         assert loaded_xr.equals(data_xr)
 
+        # test swap float -> int16
+        with pytest.warns(UserWarning):
+            loaded_xr = \
+                load_utils.load_imgs_from_dir(temp_dir, delimiter='_', force_ints=True,
+                                              xr_dim_name='compartments', dtype="int16")
+
+            assert loaded_xr.equals(data_xr)
+            assert loaded_xr.dtype == 'int16'
+
         # test swap int16 -> float
         with pytest.warns(UserWarning):
             loaded_xr = \

@@ -259,7 +259,7 @@ def load_imgs_from_dir(data_dir, files=None, delimiter=None, xr_dim_name='compar
     data_dtype = test_img.dtype
     if force_ints and np.issubdtype(dtype, np.integer):
         if not np.issubdtype(data_dtype, np.integer):
-            warnings.warn(f"The the loaded {data_dtype} images were forcefully "
+            warnings.warn(f"The loaded {data_dtype} images were forcefully "
                           f"overwritten with the supplied integer dtype {dtype}")
     elif np.issubdtype(data_dtype, np.floating):
         if not np.issubdtype(dtype, np.floating):
