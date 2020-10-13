@@ -301,15 +301,16 @@ def generate_cluster_matrix_results(all_data, neighbor_mat, cluster_num, exclude
                                     included_fovs=None, cluster_label_col='cluster_labels',
                                     fov_col='SampleID', label_col='cellLabelInImage',
                                     cell_type_col='cell_type'):
-    """Generate the cluster info on all_data based on k=cluster_num k-means clustering
-    on neighbor_mat. cluster_num has to be picked based on the visualization results generated
-    from compute_cluster_metrics.
+    """Generate the cluster info on all_data using k-means clustering on neighbor_mat.
+
+    cluster_num has to be picked based on visualizations from compute_cluster_metrics.
 
     Args:
         all_data (pandas.DataFrame):
             data including fovs, cell labels, and cell expression matrix for all markers
         neighbor_mat (pandas.DataFrame):
             a neighborhood matrix, created from create_neighborhood_matrix
+            the matrix should have the label col dropped
         cluster_num (int):
             the optimal k to pass into k-means clustering to generate the final clusters
             and corresponding results
@@ -347,60 +348,60 @@ def generate_cluster_matrix_results(all_data, neighbor_mat, cluster_num, exclude
                              "eccentricity", "major_axis_length", "minor_axis_length",
                              "perimeter", "fov"]
 
-    # make sure the specified
+    # make sure the specified excluded_colnames exist in all_data
     if not np.isin(excluded_colnames, all_data.columns).all():
         raise ValueError("Column names were not found in Expression Matrix")
 
+    # make sure the specified fovs exist in included_fovs
     if not np.isin(included_fovs, neighbor_mat[fov_col]).all():
         raise ValueError("Not all specified fovs exist in the provided neighborhood matrix")
 
+    # make sure number of clusters specified is valid
     if cluster_num < 2:
         raise ValueError("Invalid k provided for clustering")
 
     # subset neighbor mat
     neighbor_mat_data = neighbor_mat[neighbor_mat[fov_col].isin(included_fovs)]
-
-    # drop non-channel columns
-    col_to_drop = [fov_col, label_col]
-    neighbor_mat_data = neighbor_mat_data.drop(col_to_drop, axis=1)
+    neighbor_mat_data = neighbor_mat_data.drop(fov_col, axis=1)
 
     # generate cluster labels
     cluster_labels = spatial_analysis_utils.generate_cluster_labels(
         neighbor_mat_data, cluster_num)
 
+    all_data_clusters = all_data.copy()
+
     # add labels to all_data
-    all_data[cluster_label_col] = cluster_labels
+    all_data_clusters[cluster_label_col] = cluster_labels
 
     # create a count pivot table with cluster_label_col as row and cell_type_col as column
-    group_by_cell_type = all_data.groupby(
+    group_by_cell_type = all_data_clusters.groupby(
         [cluster_label_col, cell_type_col]).size().reset_index(name="count")
     cluster_counts_per_cell_type = group_by_cell_type.pivot(
         index=cluster_label_col, columns=cell_type_col, values="count").fillna(0).astype(int)
 
     # Subsets the expression matrix to only have channel columns
-    all_channel_data = all_data.drop(excluded_colnames, axis=1)
+    all_data_markers_clusters = all_data_clusters.drop(excluded_colnames, axis=1)
 
     # create a mean pivot table with cluster_label_col as row and channels as column
-    cluster_mean_per_marker = all_channel_data.groupby([cluster_label_col]).mean()
+    mean_marker_exp_per_cluster = all_data_markers_clusters.groupby([cluster_label_col]).mean()
 
-    return cluster_counts_per_cell_type, cluster_mean_per_marker
+    return cluster_counts_per_cell_type, mean_marker_exp_per_cluster
 
 
 def compute_cluster_metrics(neighbor_mat, max_k=10, included_fovs=None,
-                            fov_col='SampleID', label_col='cellLabelInImage'):
+                            fov_col='SampleID'):
     """Produce k-means clustering metrics to help identify optimal number of clusters
 
     Args:
         neighbor_mat (pandas.DataFrame):
             a neighborhood matrix, created from create_neighborhood_matrix
+            the matrix should have the label col droppped
         max_k (int):
             the maximum k we want to generate cluster statistics for, must be at least 2
         included_fovs (list):
             patient labels to include in analysis. If argument is none, default is all labels used.
         fov_col (str):
             the name of the column in neighbor_mat determining the fov
-        label_col (str):
-            the name of the column in neighbor_mat determining the label
 
     Returns:
         xarray.DataArray:
@@ -423,9 +424,7 @@ def compute_cluster_metrics(neighbor_mat, max_k=10, included_fovs=None,
 
     # subset neighbor_mat accordingly, and drop the columns we don't need
     neighbor_mat_data = neighbor_mat[neighbor_mat[fov_col].isin(included_fovs)]
-
-    col_to_drop = [fov_col, label_col]
-    neighbor_mat_data = neighbor_mat_data.drop(col_to_drop, axis=1)
+    neighbor_mat_data = neighbor_mat_data.drop(fov_col, axis=1)
 
     # generate the cluster score information
     neighbor_cluster_stats = spatial_analysis_utils.compute_kmeans_cluster_metric(

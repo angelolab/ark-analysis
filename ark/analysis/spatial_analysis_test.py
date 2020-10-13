@@ -222,6 +222,8 @@ def test_generate_cluster_matrix_results():
         all_data_pos, dist_mat_pos, distlim=51
     )
 
+    neighbor_counts = neighbor_counts.drop("cellLabelInImage", axis=1)
+
     # error checking
     with pytest.raises(ValueError):
         # pass bad columns
@@ -260,6 +262,7 @@ def test_generate_cluster_matrix_results():
 def test_compute_cluster_metrics():
     # get an example neighborhood matrix
     neighbor_mat = test_utils._make_neighborhood_matrix()
+    neighbor_mat = neighbor_mat.drop("cellLabelInImage", axis=1)
 
     # error checking
     with pytest.raises(ValueError):

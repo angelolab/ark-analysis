@@ -385,7 +385,8 @@ def compute_neighbor_counts(current_fov_neighborhood_data, dist_matrix, distlim,
 
 
 def compute_kmeans_cluster_metric(neighbor_mat_data, max_k=10):
-    """For a given neighborhood matrix, cluster and compute metric scores. Uses k-means clustering.
+    """For a given neighborhood matrix, cluster and compute metric scores using k-means clustering.
+
     Currently only supporting silhouette score as a cluster metric.
 
     Args:
@@ -417,8 +418,10 @@ def compute_kmeans_cluster_metric(neighbor_mat_data, max_k=10):
 
 
 def generate_cluster_labels(neighbor_mat_data, cluster_num):
-    """Run k-means clustering with the given cluster_num as k on each channel column
-    in neighbor_mat_data
+    """Run k-means clustering with k=cluster_num on each channel column
+
+    Give the same data, given several runs the clusters will always be the same,
+    but the labels assigned will likely be different
 
     Args:
         neighbor_mat_data (pandas.DataFrame):
