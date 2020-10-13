@@ -213,7 +213,7 @@ def load_imgs_from_dir(data_dir, files=None, delimiter=None, xr_dim_name='compar
     Raises:
         ValueError:
             Raised in the following cases:
-            
+
             - data_dir is not a directory, <data_dir>/img is
               not a file for some img in the input 'files' list, or no images are found.
             - channels_indices are invalid according to the shape of the images.
