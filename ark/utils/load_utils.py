@@ -242,7 +242,6 @@ def load_imgs_from_dir(data_dir, files=None, delimiter=None, xr_dim_name='compar
     channels_first = multitiff and test_img.shape[0] == min(test_img.shape)
 
     # check to make sure all channel indices are valid given the shape of the image
-    # and that channels_names has the same length as the number of channels in the image
     n_channels = 1
     if multitiff:
         n_channels = test_img.shape[0] if channels_first else test_img.shape[2]
@@ -250,6 +249,7 @@ def load_imgs_from_dir(data_dir, files=None, delimiter=None, xr_dim_name='compar
             if max(channel_indices) >= n_channels or min(channel_indices) < 0:
                 raise ValueError(f'Invalid value for channel_indices. Indices should be'
                                  f' between 0-{n_channels-1} for the given data.')
+    # make sure channels_names has the same length as the number of channels in the image
     if xr_channel_names and n_channels != len(xr_channel_names):
         raise ValueError(f'Invalid value for xr_channel_names. xr_channel_names'
                          f' length should be {n_channels}, as the number of channels'
@@ -272,7 +272,7 @@ def load_imgs_from_dir(data_dir, files=None, delimiter=None, xr_dim_name='compar
     for img in imgs:
         v = io.imread(os.path.join(data_dir, img))
         if not multitiff:
-            v = v[:, :, np.newaxis]
+            v = np.expand_dims(v, axis=2)
         elif channels_first:
             # covert channels_first to be channels_last
             v = np.moveaxis(v, 0, -1)
@@ -288,8 +288,7 @@ def load_imgs_from_dir(data_dir, files=None, delimiter=None, xr_dim_name='compar
     if np.min(img_data) < 0:
         raise ValueError("Integer overflow from loading TIF image, try a larger dtype")
 
-    if test_img.ndim == 3 and test_img.shape[0] == min(test_img.shape):
-        # channels_first
+    if channels_first:
         row_coords, col_coords = range(test_img.shape[1]), range(test_img.shape[2])
     else:
         row_coords, col_coords = range(test_img.shape[0]), range(test_img.shape[1])
