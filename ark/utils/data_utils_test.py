@@ -2,6 +2,7 @@ import numpy as np
 import os
 import tempfile
 from shutil import rmtree
+import pytest
 
 from ark.utils import data_utils, test_utils
 import skimage.io as io
@@ -12,8 +13,8 @@ def test_generate_deepcell_input():
         fovs = ['fov1', 'fov2']
         chans = ['nuc1', 'nuc2', 'mem1', 'mem2']
 
-        data_xr = test_utils.make_images_xarray(tif_data=None, fov_ids=fovs, channel_names=chans,
-                                                dtype='int16')
+        data_xr = test_utils.make_images_xarray(tif_data=None, fov_ids=fovs,
+                                                channel_names=chans, dtype='int16')
 
         fov1path = os.path.join(temp_dir, 'fov1.tif')
         fov2path = os.path.join(temp_dir, 'fov2.tif')
@@ -23,8 +24,8 @@ def test_generate_deepcell_input():
         mems = ['mem2']
 
         data_utils.generate_deepcell_input(data_xr, temp_dir, nucs, mems)
-        fov1 = io.imread(fov1path)
-        fov2 = io.imread(fov2path)
+        fov1 = np.moveaxis(io.imread(fov1path), 0, -1)
+        fov2 = np.moveaxis(io.imread(fov2path), 0, -1)
 
         assert np.array_equal(fov1, data_xr.loc['fov1', :, :, ['nuc2', 'mem2']].values)
         assert np.array_equal(fov2, data_xr.loc['fov2', :, :, ['nuc2', 'mem2']].values)
@@ -34,8 +35,8 @@ def test_generate_deepcell_input():
         mems = ['mem1', 'mem2']
 
         data_utils.generate_deepcell_input(data_xr, temp_dir, nucs, mems)
-        fov1 = io.imread(fov1path)
-        fov2 = io.imread(fov2path)
+        fov1 = np.moveaxis(io.imread(fov1path), 0, -1)
+        fov2 = np.moveaxis(io.imread(fov2path), 0, -1)
 
         nuc_sums = data_xr.loc[:, :, :, nucs].sum(dim='channels').values
         mem_sums = data_xr.loc[:, :, :, mems].sum(dim='channels').values
@@ -49,8 +50,8 @@ def test_generate_deepcell_input():
         nucs = None
 
         data_utils.generate_deepcell_input(data_xr, temp_dir, nucs, mems)
-        fov1 = io.imread(fov1path)
-        fov2 = io.imread(fov2path)
+        fov1 = np.moveaxis(io.imread(fov1path), 0, -1)
+        fov2 = np.moveaxis(io.imread(fov2path), 0, -1)
 
         assert np.all(fov1[:, :, 0] == 0)
         assert np.array_equal(fov1[:, :, 1], mem_sums[0, :, :])
@@ -62,13 +63,17 @@ def test_generate_deepcell_input():
         mems = None
 
         data_utils.generate_deepcell_input(data_xr, temp_dir, nucs, mems)
-        fov1 = io.imread(fov1path)
-        fov2 = io.imread(fov2path)
+        fov1 = np.moveaxis(io.imread(fov1path), 0, -1)
+        fov2 = np.moveaxis(io.imread(fov2path), 0, -1)
 
         assert np.all(fov1[:, :, 1] == 0)
         assert np.array_equal(fov1[:, :, 0], data_xr.loc['fov1', :, :, 'nuc2'].values)
         assert np.all(fov2[:, :, 1] == 0)
         assert np.array_equal(fov2[:, :, 0], data_xr.loc['fov2', :, :, 'nuc2'].values)
+
+        # test nuc None and mem None
+        with pytest.raises(ValueError):
+            data_utils.generate_deepcell_input(data_xr, temp_dir, None, None)
 
 
 def test_stitch_images():
@@ -84,7 +89,6 @@ def test_stitch_images():
 
 def test_split_img_stack():
     with tempfile.TemporaryDirectory() as temp_dir:
-
         fovs = ['stack_sample']
         _, chans, names = test_utils.gen_fov_chan_names(num_fovs=0, num_chans=10, return_imgs=True)
 
