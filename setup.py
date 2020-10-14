@@ -21,7 +21,7 @@ with open(path.join(path.abspath(path.dirname(__file__)), 'README.md')) as f:
 # don't set install_reqs if we can't read requirements.txt
 try:
     install_reqs = _parse_requirements('requirements.txt')
-except Exception:
+except Exception as e:
     install_reqs = []
 
 

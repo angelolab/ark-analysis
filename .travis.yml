@@ -5,6 +5,9 @@ git:
 
 language: python
 
+python:
+  - 3.6
+
 # We add python path to enable testing jupyter notebooks
 install:
   - travis_retry pip install -r requirements.txt
