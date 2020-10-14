@@ -334,8 +334,12 @@ def generate_cluster_matrix_results(all_data, neighbor_mat, cluster_num, exclude
     Returns:
         tuple (pandas.DataFrame, pandas.DataFrame):
 
-        - a matrix listing the number of cell types per cluster
-        - a matrix listing the mean expression of each marker per cluster
+        - an a x b count matrix (a = # of clusters, b = # of cell types) with
+          cluster ids indexed row-wise and cell types indexed column-wise,
+          indicates number of cluster ids a that are also of cell type b
+        - an a x c mean matrix (a = # of clusters, c = # of markers) with
+          cluster ids indexed row-wise and markers indexed column-wise,
+          indicates the mean marker expression for each cluster id
     """
 
     # error checking
