@@ -1,3 +1,4 @@
+import setuptools
 from os import path
 from distutils.command.build_ext import build_ext as DistUtilsBuildExt
 from setuptools import setup, find_packages
