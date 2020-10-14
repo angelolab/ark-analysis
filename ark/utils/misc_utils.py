@@ -143,6 +143,8 @@ def verify_in_list(**kwargs):
     if not np.isin(test_list, good_values).all():
         bad_vals = ','.join([str(val) for val in test_list if val not in good_values])
         test_list_name, good_values_name = kwargs.keys()
+        test_list_name = test_list_name.replace('_', ' ')
+        good_values_name = good_values_name.replace('_', ' ')
 
         err_str = ("Invalid value(s) provided for %s variable: value(s) %s not found"
                    " in %s list")

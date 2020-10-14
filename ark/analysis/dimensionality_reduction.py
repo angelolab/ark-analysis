@@ -82,7 +82,8 @@ def visualize_dimensionality_reduction(cell_data, columns, category, color_map="
     cell_data = cell_data.dropna()
     dim_reduction_algos = ["UMAP", "PCA", "tSNE"]
 
-    misc_utils.verify_in_list(algorithm=algorithm, dim_reduction_algos=dim_reduction_algos)
+    misc_utils.verify_in_list(algorithm=algorithm,
+                              dimensionality_reduction_algorithms=dim_reduction_algos)
 
     graph_title = "%s projection of data" % algorithm
 

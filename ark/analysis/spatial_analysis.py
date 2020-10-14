@@ -61,7 +61,7 @@ def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, 
 
     # check if included fovs found in fov_col
     misc_utils.verify_in_list(included_fovs=included_fovs,
-                              all_data_fov_col_vals=all_data[fov_col].unique())
+                              all_data_fov_col_values=all_data[fov_col].unique())
 
     # check if all excluded column names found in all_data
     misc_utils.verify_in_list(excluded_colnames=excluded_colnames,
@@ -169,7 +169,7 @@ def calculate_cluster_spatial_enrichment(all_data, dist_matrices_dict, included_
 
     # check if included fovs found in fov_col
     misc_utils.verify_in_list(included_fovs=included_fovs,
-                              all_data_fov_col_vals=all_data[fov_col].unique())
+                              all_data_fov_col_values=all_data[fov_col].unique())
 
     # Extract the names of the cell phenotypes
     cluster_names = all_data[cluster_name_col].drop_duplicates()
@@ -252,7 +252,7 @@ def create_neighborhood_matrix(all_data, dist_matrices_dict, included_fovs=None,
 
     # check if included fovs found in fov_col
     misc_utils.verify_in_list(included_fovs=included_fovs,
-                              all_data_fov_col_vals=all_data[fov_col].unique())
+                              all_data_fov_col_values=all_data[fov_col].unique())
 
     # Get the phenotypes
     cluster_names = all_data[cluster_name_col].drop_duplicates()
@@ -333,7 +333,7 @@ def compute_cluster_metrics(neighbor_mat, max_k=10, included_fovs=None,
 
     # check if included fovs found in fov_col
     misc_utils.verify_in_list(included_fovs=included_fovs,
-                              neighbor_mat_fov_col_vals=neighbor_mat[fov_col].unique())
+                              neighbor_mat_fov_col_values=neighbor_mat[fov_col].unique())
 
     # subset neighbor_mat accordingly, and drop the columns we don't need
     neighbor_mat_data = neighbor_mat[neighbor_mat[fov_col].isin(included_fovs)]

@@ -25,11 +25,11 @@ def draw_boxplot(cell_data, col_name, col_split=None, split_vals=None, save_dir=
     """
 
     # the col_name must be valid
-    misc_utils.verify_in_list(col_name=col_name, cell_data_cols=cell_data.columns.values)
+    misc_utils.verify_in_list(col_name=col_name, cell_data_columns=cell_data.columns.values)
 
     # if col_split is not None, it must exist as a column in cell_data
     if col_split is not None and col_split not in cell_data.columns.values:
-        misc_utils.verify_in_list(col_split=col_split, cell_data_cols=cell_data.columns.values)
+        misc_utils.verify_in_list(col_split=col_split, cell_data_columns=cell_data.columns.values)
 
     # basic error checks if split_vals is set
     if split_vals is not None:
@@ -39,7 +39,7 @@ def draw_boxplot(cell_data, col_name, col_split=None, split_vals=None, save_dir=
 
         # all the values in split_vals must exist in the col_name of cell_data
         misc_utils.verify_in_list(split_vals=split_vals,
-                                  cell_data_col_split_vals=cell_data[col_split].unique())
+                                  cell_data_col_split_values=cell_data[col_split].unique())
 
     # don't modify cell_data in anyway
     data_to_viz = cell_data.copy(deep=True)
