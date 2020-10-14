@@ -15,7 +15,7 @@ import ark.settings as settings
 
 def compute_marker_counts(input_images, segmentation_masks, nuclear_counts=False,
                           regionprops_features=None, split_large_nuclei=False):
-    """Extract single cell protein expression data from channel TIFs for a single point
+    """Extract single cell protein expression data from channel TIFs for a single fov
 
     Args:
         input_images (xarray.DataArray):
@@ -91,6 +91,7 @@ def compute_marker_counts(input_images, segmentation_masks, nuclear_counts=False
             nuc_mask = segmentation_utils.split_large_nuclei(cell_segmentation_mask=cell_mask,
                                                              nuc_segmentation_mask=nuc_mask,
                                                              cell_ids=unique_cell_ids)
+
         nuc_props = pd.DataFrame(regionprops_table(nuc_mask, properties=regionprops_features))
 
     # TODO: There's some repeated code here, maybe worth refactoring? Maybe not
@@ -146,17 +147,21 @@ def compute_marker_counts(input_images, segmentation_masks, nuclear_counts=False
     return marker_counts
 
 
-def create_marker_count_matrices(segmentation_labels, image_data, nuclear_counts=False):
+def create_marker_count_matrices(segmentation_labels, image_data, nuclear_counts=False,
+                                 split_large_nuclei=False):
     """Create a matrix of cells by channels with the total counts of each marker in each cell.
 
     Args:
         segmentation_labels (xarray.DataArray):
             xarray of shape [fovs, rows, cols, compartment] containing segmentation masks for each
-            FOV, potentially across multiple cell compartments
+            fov, potentially across multiple cell compartments
         image_data (xarray.DataArray):
             xarray containing all of the channel data across all FOVs
         nuclear_counts (bool):
             boolean flag to determine whether nuclear counts are returned
+        split_large_nuclei (bool):
+            boolean flag to determine whether nuclei which are larger than their assigned cell
+            will get split into two different nuclear objects
 
     Returns:
         tuple (pandas.DataFrame, pandas.DataFrame):
@@ -174,13 +179,13 @@ def create_marker_count_matrices(segmentation_labels, image_data, nuclear_counts
             raise ValueError("Nuclear counts set to True, but no nuclear mask provided")
 
     if not np.all(set(segmentation_labels.fovs.values) == set(image_data.fovs.values)):
-        raise ValueError("The same FOVs must be present in the segmentation labels and images")
+        raise ValueError("The same fovs must be present in the segmentation labels and images")
 
     # initialize data frames
     normalized_data = pd.DataFrame()
     arcsinh_data = pd.DataFrame()
 
-    # loop over each FOV in the dataset
+    # loop over each fov in the dataset
     for fov in segmentation_labels.fovs.values:
         print("extracting data from {}".format(fov))
 
@@ -189,7 +194,8 @@ def create_marker_count_matrices(segmentation_labels, image_data, nuclear_counts
 
         # extract the counts per cell for each marker
         marker_counts = compute_marker_counts(image_data.loc[fov, :, :, :], segmentation_label,
-                                              nuclear_counts=nuclear_counts)
+                                              nuclear_counts=nuclear_counts,
+                                              split_large_nuclei=split_large_nuclei)
 
         # normalize counts by cell size
         marker_counts_norm = segmentation_utils.transform_expression_matrix(marker_counts,
@@ -199,7 +205,7 @@ def create_marker_count_matrices(segmentation_labels, image_data, nuclear_counts
         marker_counts_arcsinh = segmentation_utils.transform_expression_matrix(marker_counts_norm,
                                                                                transform='arcsinh')
 
-        # add data from each FOV to array
+        # add data from each fov to array
         normalized = pd.DataFrame(data=marker_counts_norm.loc['whole_cell', :, :].values,
                                   columns=marker_counts_norm.features)
 
@@ -220,7 +226,7 @@ def create_marker_count_matrices(segmentation_labels, image_data, nuclear_counts
                                        columns=nuc_column_names)
             arcsinh = pd.concat((arcsinh, arcsinh_nuc), axis=1)
 
-        # add column for current FOV
+        # add column for current fov
         normalized['fov'] = fov
         normalized_data = normalized_data.append(normalized)
 
@@ -231,7 +237,7 @@ def create_marker_count_matrices(segmentation_labels, image_data, nuclear_counts
 
 
 def generate_cell_data(segmentation_labels, tiff_dir, img_sub_folder,
-                       is_mibitiff=False, points=None, batch_size=5):
+                       is_mibitiff=False, fovs=None, batch_size=5):
     """
     This function takes the segmented data and computes the expression matrices batch-wise
     while also validating inputs
@@ -243,12 +249,12 @@ def generate_cell_data(segmentation_labels, tiff_dir, img_sub_folder,
             the name of the directory which contains the single_channel_inputs
         img_sub_folder (str):
             the name of the folder where the TIF images are located
-        points (list):
-            a list of points we wish to analyze, if None will default to all points
+        fovs (list):
+            a list of fovs we wish to analyze, if None will default to all fovs
         is_mibitiff (bool):
             a flag to indicate whether or not the base images are MIBItiffs
         batch_size (int):
-            how large we want each of the batches of points to be when computing, adjust as
+            how large we want each of the batches of fovs to be when computing, adjust as
             necessary for speed and memory considerations
 
     Returns:
@@ -258,32 +264,32 @@ def generate_cell_data(segmentation_labels, tiff_dir, img_sub_folder,
         - arcsinh transformed data
     """
 
-    # if no points are specified, then load all the points
-    if points is None:
+    # if no fovs are specified, then load all the fovs
+    if fovs is None:
         # handle mibitiffs with an assumed file structure
         if is_mibitiff:
             filenames = io_utils.list_files(tiff_dir, substrs=['.tif'])
-            points = io_utils.extract_delimited_names(filenames, delimiter=None)
+            fovs = io_utils.extract_delimited_names(filenames, delimiter=None)
         # otherwise assume the tree-like directory as defined for tree loading
         else:
             filenames = io_utils.list_folders(tiff_dir)
-            points = filenames
+            fovs = filenames
 
-    # check segmentation_labels for given points (img loaders will fail otherwise)
-    point_values = [point for point in points if point not in segmentation_labels['fovs'].values]
-    if point_values:
-        raise ValueError(f"Invalid point values specified: "
-                         f"points {','.join(point_values)} not found in segmentation_labels fovs")
+    # check segmentation_labels for given fovs (img loaders will fail otherwise)
+    fov_values = [fov for fov in fovs if fov not in segmentation_labels['fovs'].values]
+    if fov_values:
+        raise ValueError(f"Invalid fov values specified: "
+                         f"fovs {','.join(fov_values)} not found in segmentation_labels fovs")
 
-    # get full filenames from given points
-    filenames = io_utils.list_files(tiff_dir, substrs=points)
+    # get full filenames from given fovs
+    filenames = io_utils.list_files(tiff_dir, substrs=fovs)
 
-    # sort the points
-    points.sort()
+    # sort the fovs
+    fovs.sort()
     filenames.sort()
 
     # defined some vars for batch processing
-    cohort_len = len(points)
+    cohort_len = len(fovs)
 
     # create the final dfs to store the processed data
     combined_cell_size_normalized_data = pd.DataFrame()
@@ -291,7 +297,7 @@ def generate_cell_data(segmentation_labels, tiff_dir, img_sub_folder,
 
     # iterate over all the batches
     for batch_names, batch_files in zip(
-        [points[i:i + batch_size] for i in range(0, cohort_len, batch_size)],
+        [fovs[i:i + batch_size] for i in range(0, cohort_len, batch_size)],
         [filenames[i:i + batch_size] for i in range(0, cohort_len, batch_size)]
     ):
         # and extract the image data for each batch

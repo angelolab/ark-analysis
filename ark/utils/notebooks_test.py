@@ -13,12 +13,8 @@ def _exec_notebook(nb_filename):
         subprocess.check_call(args)
 
 
-def test_preprocessing():
-    _exec_notebook('Deepcell_Preprocessing.ipynb')
-
-
-def test_postprocessing():
-    _exec_notebook('Deepcell_Postprocessing.ipynb')
+def test_segment_image_data(mocker):
+    _exec_notebook('Segment_Image_Data.ipynb')
 
 
 def test_example_spatial_analysis():

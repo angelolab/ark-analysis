@@ -7,7 +7,7 @@ from zipfile import ZipFile
 import warnings
 
 
-def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, points=None,
+def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
                            suffix='_feature_0', host='https://deepcell.org', job_type='multiplex'):
     """ Handles all of the necessary data manipulation for running deepcell tasks.
 
@@ -17,16 +17,16 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, points=None,
 
         Args:
             deepcell_input_dir (str):
-                Location of preprocessed files (assume deepcell_input_dir contains <point>.tif
-                for each point in points list)
+                Location of preprocessed files (assume deepcell_input_dir contains <fov>.tif
+                for each fov in fovs list)
             deepcell_output_dir (str):
                 Location to save DeepCell output (as .tif)
-            points (list):
-                List of points in preprocessing pipeline. if None, all .tif files
-                in deepcell_input_dir will be considered as input points. Default: None
+            fovs (list):
+                List of fovs in preprocessing pipeline. if None, all .tif files
+                in deepcell_input_dir will be considered as input fovs. Default: None
             suffix (str):
-                Suffix for DeepCell output filename. e.g. for pointX, DeepCell output
-                should be <pointX>+suffix.tif. Default: '_feature_0'
+                Suffix for DeepCell output filename. e.g. for fovX, DeepCell output
+                should be <fovX>+suffix.tif. Default: '_feature_0'
             host (str):
                 Hostname and port for the kiosk-frontend API server
                 Default: 'https://deepcell.org'
@@ -35,23 +35,23 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, points=None,
                 Default: 'multiplex'
         Raises:
             ValueError:
-                Raised if there is some point X (from points list) s.t.
-                the file <deepcell_input_dir>/PointX.tif does not exist
+                Raised if there is some fov X (from fovs list) s.t.
+                the file <deepcell_input_dir>/fovX.tif does not exist
         """
-    if points is None:
+    if fovs is None:
         tifs = io_utils.list_files(deepcell_input_dir, substrs='.tif')
-        points = io_utils.extract_delimited_names(tifs, delimiter='.')
+        fovs = io_utils.extract_delimited_names(tifs, delimiter='.')
 
-    zip_path = os.path.join(deepcell_input_dir, 'points.zip')
+    zip_path = os.path.join(deepcell_input_dir, 'fovs.zip')
     if os.path.isfile(zip_path):
         warnings.warn(f'{zip_path} will be overwritten.')
 
     with ZipFile(zip_path, 'w') as zipObj:
-        for point in points:
-            filename = os.path.join(deepcell_input_dir, point + '.tif')
+        for fov in fovs:
+            filename = os.path.join(deepcell_input_dir, fov + '.tif')
             if not os.path.isfile(filename):
                 raise ValueError('Could not find .tif file for %s. '
-                                 'Invalid value for %s' % (point, filename))
+                                 'Invalid value for %s' % (fov, filename))
             zipObj.write(filename, os.path.basename(filename))
 
     run_deepcell_task(zip_path, deepcell_output_dir, host, job_type)
@@ -62,9 +62,9 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, points=None,
     zip_files.sort(key=os.path.getmtime)
     with ZipFile(zip_files[-1], 'r') as zipObj:
         zipObj.extractall(deepcell_output_dir)
-        for point in points:
-            if point + suffix + '.tif' not in zipObj.namelist():
-                warnings.warn(f'Deep Cell output file was not found for {point}.')
+        for fov in fovs:
+            if fov + suffix + '.tif' not in zipObj.namelist():
+                warnings.warn(f'Deep Cell output file was not found for {fov}.')
 
 
 def run_deepcell_task(input_dir, output_dir, host='https://deepcell.org',

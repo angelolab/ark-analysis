@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 
 from skimage.measure import regionprops_table
+from skimage.morphology import remove_small_objects
 
 from ark.utils import io_utils
 
@@ -37,7 +38,7 @@ def find_nuclear_mask_id(nuc_segmentation_mask, cell_coords):
     return nuclear_mask_id
 
 
-def split_large_nuclei(cell_segmentation_mask, nuc_segmentation_mask, cell_ids):
+def split_large_nuclei(cell_segmentation_mask, nuc_segmentation_mask, cell_ids, min_size=5):
     """Splits nuclei that are bigger than the corresponding cell into multiple pieces
 
     Args:
@@ -47,6 +48,9 @@ def split_large_nuclei(cell_segmentation_mask, nuc_segmentation_mask, cell_ids):
             mask of nuclear segmentations
         cell_ids (numpy.ndarray):
             the unique cells in the segmentation mask
+        min_size (int):
+            number of pixels of nucleus that must be outside of cell in order to be classified a
+            new object. Nuclei with fewer than this many extra pixels will not be relabeled
 
     Returns:
         numpy.ndarray:
@@ -73,13 +77,15 @@ def split_large_nuclei(cell_segmentation_mask, nuc_segmentation_mask, cell_ids):
 
             nuc_mask = nuc_segmentation_mask == nuc_id
 
-            # only proceed if parts of the nucleus are outside of the cell
-            if nuc_count != np.sum(nuc_mask):
+            # only proceed if a non-negligible part of the nucleus is outside of the cell
+            if np.sum(nuc_mask) - nuc_count > min_size:
                 # relabel nuclear counts within the cell
                 cell_mask = cell_segmentation_mask == cell
                 new_nuc_mask = np.logical_and(cell_mask, nuc_mask)
                 max_nuc_id += 1
                 nuc_mask_modified[new_nuc_mask] = max_nuc_id
+
+    nuc_mask_modified = remove_small_objects(ar=nuc_mask_modified, min_size=5)
 
     return nuc_mask_modified
 
@@ -141,7 +147,7 @@ def transform_expression_matrix(cell_data, transform, transform_kwargs=None):
     return cell_data_transformed
 
 
-def concatenate_csv(base_dir, csv_files, column_name="point", column_values=None):
+def concatenate_csv(base_dir, csv_files, column_name="fov", column_values=None):
     """Take a list of CSV paths and concatenates them together,
     adding in the identifier in column_values
 
@@ -153,7 +159,7 @@ def concatenate_csv(base_dir, csv_files, column_name="point", column_values=None
         csv_files (list):
             a list csv files
         column_name (str):
-            optional column name, defaults to point
+            optional column name, defaults to fov
         column_values (list):
             optional values to use for each CSV, defaults to csv name
     """

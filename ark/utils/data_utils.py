@@ -1,6 +1,5 @@
 import os
 import math
-
 import skimage.io as io
 import numpy as np
 import xarray as xr
@@ -9,8 +8,9 @@ import xarray as xr
 # TODO: Add metadata for channel name (eliminates need for fixed-order channels)
 def generate_deepcell_input(data_xr, data_dir, nuc_channels, mem_channels):
     """Saves nuclear and membrane channels into deepcell input format.
+    Either nuc_channels or mem_channels should be specified.
 
-    Writes summed channel images out as multitiffs
+    Writes summed channel images out as multitiffs (channels first)
 
     Args:
         data_xr (xr.DataArray):
@@ -21,19 +21,21 @@ def generate_deepcell_input(data_xr, data_dir, nuc_channels, mem_channels):
             nuclear channels to be summed over
         mem_channels (list):
             membrane channels to be summed over
+    Raises:
+            ValueError:
+                Raised if nuc_channels and mem_channels are both None or empty
     """
+    if not nuc_channels and not mem_channels:
+        raise ValueError('Either nuc_channels or mem_channels should be non-empty.')
+
     for fov in data_xr.fovs.values:
-        out = np.zeros((data_xr.shape[1], data_xr.shape[2], 2), dtype=data_xr.dtype)
+        out = np.zeros((2, data_xr.shape[1], data_xr.shape[2]), dtype=data_xr.dtype)
 
         # sum over channels and add to output
         if nuc_channels:
-            out[:, :, 0] = \
-                np.sum(data_xr.loc[fov, :, :, nuc_channels].values,
-                       axis=2)
+            out[0] = np.sum(data_xr.loc[fov, :, :, nuc_channels].values, axis=2)
         if mem_channels:
-            out[:, :, 1] = \
-                np.sum(data_xr.loc[fov, :, :, mem_channels].values,
-                       axis=2)
+            out[1] = np.sum(data_xr.loc[fov, :, :, mem_channels].values, axis=2)
 
         save_path = os.path.join(data_dir, f'{fov}.tif')
         io.imsave(save_path, out, plugin='tifffile')
@@ -75,7 +77,7 @@ def stitch_images(data_xr, num_cols):
 
     stitched_xr = xr.DataArray(stitched_data, coords=[['stitched_image'], range(total_row_len),
                                                       range(total_col_len), data_xr.channels],
-                               dims=['points', 'rows', 'cols', 'channels'])
+                               dims=['fovs', 'rows', 'cols', 'channels'])
     return stitched_xr
 
 
