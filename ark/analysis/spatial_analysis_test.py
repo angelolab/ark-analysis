@@ -19,11 +19,11 @@ DEFAULT_COLUMNS = \
     + list(range(1, 24)) \
     + [
         settings.CELL_LABEL,
-        settings.AREA,
-        settings.ECCENTRICITY,
-        settings.MAJ_AXIS_LENGTH,
-        settings.MIN_AXIS_LENGTH,
-        settings.PERIMITER,
+        'area',
+        'eccentricity',
+        'maj_axis_length',
+        'min_axis_length',
+        'perimiter',
         settings.FOV_ID,
         settings.CLUSTER_ID,
         settings.CELL_TYPE,
