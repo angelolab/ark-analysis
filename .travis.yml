@@ -10,6 +10,8 @@ install:
   - travis_retry pip install -r requirements.txt
   - travis_retry pip install -r requirements-test.txt
   - travis_retry export PYTHONPATH=$PWD
+  # this is needed to install the requirements
+  - travis_retry python setup.py build_ext --inplace
 
 env:
   - MPLBACKEND=Agg
