@@ -68,6 +68,7 @@ setup(
     download_url='https://github.com/angelolab/ark-analysis/archive/v{}.tar.gz'.format(VERSION),
     cmdclass={'build_ext': BuildExtension},
     install_requires=install_reqs,
+    setup_requires=['cython>=0.28', 'numpy>=1.16.3,<2'],
     extras_require={
         'tests': ['pytest',
                   'pytest-cov',
