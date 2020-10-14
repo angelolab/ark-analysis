@@ -53,7 +53,7 @@ def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, 
     # Check for invalid excluded_channels
     if(
         not np.isin(excluded_channels, list(all_data.columns.values)).all()
-        or excluded_channels is not None
+        and excluded_channels is not None
     ):
         raise ValueError("Column names were not found in Expression Matrix")
 
