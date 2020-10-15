@@ -324,8 +324,6 @@ def generate_cluster_matrix_results(all_data, neighbor_mat, cluster_num, exclude
             the name of the cluster label col we will create
         fov_col (str):
             the name of the column in all_data and neighbor_mat determining the fov
-        label_col (str):
-            the name of the column in all_data and neighbor_mat determining the label
         cell_type_col (str):
             the name of the column in all_data determining the cell type
 
