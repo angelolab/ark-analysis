@@ -6,6 +6,10 @@ from ark.utils import load_utils, test_utils
 
 
 def test_load_imgs_from_mibitiff():
+    # invalid directory is provided
+    with pytest.raises(ValueError):
+        loaded_xr = \
+            load_utils.load_imgs_from_mibitiff('not_a_dir', channels=None, delimeter='_')
 
     with tempfile.TemporaryDirectory() as temp_dir:
 
@@ -64,6 +68,11 @@ def test_load_imgs_from_mibitiff():
 
 
 def test_load_imgs_from_tree():
+    # invalid directory is provided
+    with pytest.raises(ValueError):
+        loaded_xr = \
+            load_utils.load_imgs_from_tree('not_a_dir', img_sub_folder="TIFs", dtype="int16")
+
     # test loading from within fov directories
     with tempfile.TemporaryDirectory() as temp_dir:
         fovs, chans, imgs = test_utils.gen_fov_chan_names(num_fovs=3, num_chans=3,
