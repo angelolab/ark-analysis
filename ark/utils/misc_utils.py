@@ -134,12 +134,6 @@ def verify_in_list(**kwargs):
 
     test_list, good_values = kwargs.values()
 
-    if not isinstance(test_list, list):
-        test_list = [test_list]
-
-    if not isinstance(good_values, list):
-        good_values = [good_values]
-
     if not np.isin(test_list, good_values).all():
         bad_vals = ','.join([str(val) for val in test_list if val not in good_values])
         test_list_name, good_values_name = kwargs.keys()
@@ -169,12 +163,16 @@ def verify_same_elements(**kwargs):
 
     list_one, list_two = kwargs.values()
 
+    if not isinstance(list_one, list) or not isinstance(list_two, list):
+        raise ValueError("Both arguments provided to verify_same_elements must be lists")
+
     if not np.all(set(list_one) == set(list_two)):
         bad_vals = ','.join(list(set(list_one) ^ set(list_two)))
         list_one_name, list_two_name = kwargs.keys()
         list_one_name = list_one_name.replace('_', ' ')
+        list_two_name = list_two_name.replace('_', ' ')
 
         err_str = ("Invalid value(s) provided in both %s and %s variables: value(s)"
                    " %s not found in both lists")
 
-        raise ValueError(err_str % (test_list_name, bad_vals, good_values_name))
+        raise ValueError(err_str % (list_one_name, list_two_name, bad_vals))
