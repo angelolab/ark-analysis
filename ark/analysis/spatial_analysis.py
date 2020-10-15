@@ -299,8 +299,7 @@ def create_neighborhood_matrix(all_data, dist_matrices_dict, included_fovs=None,
 
 def generate_cluster_matrix_results(all_data, neighbor_mat, cluster_num, excluded_colnames=None,
                                     included_fovs=None, cluster_label_col='cluster_labels',
-                                    fov_col='SampleID', label_col='cellLabelInImage',
-                                    cell_type_col='cell_type'):
+                                    fov_col='SampleID', cell_type_col='cell_type'):
     """Generate the cluster info on all_data using k-means clustering on neighbor_mat.
 
     cluster_num has to be picked based on visualizations from compute_cluster_metrics.
@@ -310,7 +309,6 @@ def generate_cluster_matrix_results(all_data, neighbor_mat, cluster_num, exclude
             data including fovs, cell labels, and cell expression matrix for all markers
         neighbor_mat (pandas.DataFrame):
             a neighborhood matrix, created from create_neighborhood_matrix
-            the matrix should have the label col dropped
         cluster_num (int):
             the optimal k to pass into k-means clustering to generate the final clusters
             and corresponding results
@@ -336,7 +334,7 @@ def generate_cluster_matrix_results(all_data, neighbor_mat, cluster_num, exclude
 
         - an a x b count matrix (a = # of clusters, b = # of cell types) with
           cluster ids indexed row-wise and cell types indexed column-wise,
-          indicates number of cluster ids a that are also of cell type b
+          indicates number of cell types that are within each cluster
         - an a x c mean matrix (a = # of clusters, c = # of markers) with
           cluster ids indexed row-wise and markers indexed column-wise,
           indicates the mean marker expression for each cluster id
@@ -380,7 +378,7 @@ def generate_cluster_matrix_results(all_data, neighbor_mat, cluster_num, exclude
     # create a count pivot table with cluster_label_col as row and cell_type_col as column
     group_by_cell_type = all_data_clusters.groupby(
         [cluster_label_col, cell_type_col]).size().reset_index(name="count")
-    cluster_counts_per_cell_type = group_by_cell_type.pivot(
+    num_cell_type_per_cluster = group_by_cell_type.pivot(
         index=cluster_label_col, columns=cell_type_col, values="count").fillna(0).astype(int)
 
     # Subsets the expression matrix to only have channel columns
@@ -389,7 +387,7 @@ def generate_cluster_matrix_results(all_data, neighbor_mat, cluster_num, exclude
     # create a mean pivot table with cluster_label_col as row and channels as column
     mean_marker_exp_per_cluster = all_data_markers_clusters.groupby([cluster_label_col]).mean()
 
-    return cluster_counts_per_cell_type, mean_marker_exp_per_cluster
+    return num_cell_type_per_cluster, mean_marker_exp_per_cluster
 
 
 def compute_cluster_metrics(neighbor_mat, max_k=10, included_fovs=None,
