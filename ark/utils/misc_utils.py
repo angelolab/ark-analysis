@@ -172,6 +172,9 @@ def verify_same_elements(**kwargs):
     if not np.all(set(list_one) == set(list_two)):
         bad_vals = ','.join(list(set(list_one) ^ set(list_two)))
         list_one_name, list_two_name = kwargs.keys()
+        list_one_name = list_one_name.replace('_', ' ')
 
         err_str = ("Invalid value(s) provided in both %s and %s variables: value(s)"
-                   " %s not found in both lists" % (list_one_name, list_two_name, bad_vals))
+                   " %s not found in both lists")
+
+        raise ValueError(err_str, % (test_list_name, bad_vals, good_values_name))

@@ -72,9 +72,9 @@ def visualize_dimensionality_reduction(cell_data, columns, category, color_map="
         category (str):
             Name of column in dataframe containing population or patient data
         color_map (str):
-            Name of MatPlotLib ColorMap used, default is Spectral
+            Name of MatPlotLib ColorMap used
         algorithm (str):
-            Name of dimensionality reduction algorithm, must be UMAP, PCA, or tSNE, default is UMAP
+            Name of dimensionality reduction algorithm, must be UMAP, PCA, or tSNE
         save_dir (str):
             Directory to save plots, default is None
     """
