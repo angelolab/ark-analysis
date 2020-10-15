@@ -45,7 +45,7 @@ def test_calculate_channel_spatial_enrichment():
     _, stats_pos = \
         spatial_analysis.calculate_channel_spatial_enrichment(
             dist_mat_pos, marker_thresholds, all_data_pos,
-            excluded_colnames=EXCLUDE_CHANNELS, bootstrap_num=100,
+            excluded_channels=EXCLUDE_CHANNELS, bootstrap_num=100,
             dist_lim=dist_lim)
 
     # Test both fov8 and fov9
@@ -66,7 +66,7 @@ def test_calculate_channel_spatial_enrichment():
     _, stats_neg = \
         spatial_analysis.calculate_channel_spatial_enrichment(
             dist_mat_neg, marker_thresholds, all_data_neg,
-            excluded_colnames=EXCLUDE_CHANNELS, bootstrap_num=100,
+            excluded_channels=EXCLUDE_CHANNELS, bootstrap_num=100,
             dist_lim=dist_lim)
 
     # Test both fov8 and fov9
