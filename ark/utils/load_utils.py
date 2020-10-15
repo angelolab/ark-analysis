@@ -218,14 +218,15 @@ def load_imgs_from_dir(data_dir, files=None, delimiter=None, xr_dim_name='compar
             xarray with shape [fovs, x_dim, y_dim, tifs]
 
     Raises:
-            ValueError:
-                Raised in the following cases:
-                 * data_dir is not a directory, <data_dir>/img is
-                not a file for some img in the input 'files' list, or no images are found.
-                * channels_indices are invalid according to the shape of the images.
-                * the provided dtype is too small to represent the data.
-                * The length of xr_channel_names (if provided) does not match the number
-                 of channels in the input.
+        ValueError:
+            Raised in the following cases:
+
+            - data_dir is not a directory, <data_dir>/img is
+              not a file for some img in the input 'files' list, or no images are found.
+            - channels_indices are invalid according to the shape of the images.
+            - the provided dtype is too small to represent the data.
+            - The length of xr_channel_names (if provided) does not match the number
+              of channels in the input.
     """
 
     iou.validate_paths(data_dir)
