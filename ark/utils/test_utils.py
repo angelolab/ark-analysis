@@ -640,7 +640,6 @@ def _make_threshold_mat(in_utils):
     thresh.iloc[:, 1] = .5
 
     if not in_utils:
-        # print(len(np.concatenate([np.arange(2, 14), np.arange(15, 23)])))
         thresh.iloc[:, 0] = np.concatenate([np.arange(2, 14), np.arange(15, 23)])
 
         # spatial analysis should still be correct regardless of the marker threshold ordering
