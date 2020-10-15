@@ -570,7 +570,7 @@ EXCLUDE_CHANNELS = [
     "summed_channel",
 ]
 
-DEFAULT_COLUMNS = \
+DEFAULT_COLUMNS_LIST = \
     [settings.CELL_SIZE] \
     + list(range(1, 24)) \
     + [
@@ -585,8 +585,10 @@ DEFAULT_COLUMNS = \
         settings.CELL_TYPE,
     ]
 list(map(
-    DEFAULT_COLUMNS.__setitem__, [1, 14, 23], EXCLUDE_CHANNELS
+    DEFAULT_COLUMNS_LIST.__setitem__, [1, 14, 23], EXCLUDE_CHANNELS
 ))
+
+DEFAULT_COLUMNS = dict(zip(range(33), DEFAULT_COLUMNS_LIST))
 
 
 def create_test_extraction_data():
@@ -752,12 +754,6 @@ def _make_expression_mat_sa(enrichment_type):
     if enrichment_type not in ["none", "positive", "negative"]:
         raise ValueError("enrichment_type must be none, positive, or negative")
 
-    # Column names for columns that are not markers (columns to be excluded)
-    excluded_colnames = {0: 'cell_size', 1: 'Background', 14: "HH3",
-                         23: "summed_channel", 24: "cellLabelInImage", 25: "area",
-                         26: "eccentricity", 27: "major_axis_length", 28: "minor_axis_length",
-                         29: "perimeter", 30: "SampleID", 31: "FlowSOM_ID", 32: "cell_type"}
-
     if enrichment_type == "none":
         all_data = pd.DataFrame(np.zeros((120, 33)))
         # Assigning values to the patient label and cell label columns
@@ -786,7 +782,7 @@ def _make_expression_mat_sa(enrichment_type):
         all_data.iloc[80:100, 32] = "Pheno1"
 
         # Assign column names to columns not for markers (columns to be excluded)
-        all_patient_data = all_data.rename(excluded_colnames, axis=1)
+        all_patient_data = all_data.rename(DEFAULT_COLUMNS, axis=1)
 
         all_patient_data.loc[all_patient_data.iloc[:, 31] == 0, "cell_type"] = "Pheno3"
         return all_patient_data
@@ -832,7 +828,7 @@ def _make_expression_mat_sa(enrichment_type):
         all_data_pos.iloc[112:116, 32] = "Pheno1"
 
         # Assign column names to columns not for markers (columns to be excluded)
-        all_patient_data_pos = all_data_pos.rename(excluded_colnames, axis=1)
+        all_patient_data_pos = all_data_pos.rename(DEFAULT_COLUMNS, axis=1)
 
         all_patient_data_pos.loc[all_patient_data_pos.iloc[:, 31] == 0, "cell_type"] = "Pheno3"
         return all_patient_data_pos
@@ -863,7 +859,7 @@ def _make_expression_mat_sa(enrichment_type):
         all_data_neg.iloc[80:100, 32] = "Pheno1"
 
         # Assign column names to columns not for markers (columns to be excluded)
-        all_patient_data_neg = all_data_neg.rename(excluded_colnames, axis=1)
+        all_patient_data_neg = all_data_neg.rename(DEFAULT_COLUMNS, axis=1)
 
         all_patient_data_neg.loc[all_patient_data_neg.iloc[:, 31] == 0, "cell_type"] = "Pheno3"
         return all_patient_data_neg
@@ -960,7 +956,13 @@ def _make_expression_mat_sa_utils():
     all_data[30] = "fov8"
     all_data[24] = np.arange(len(all_data[1])) + 1
 
-    colnames = {24: "cellLabelInImage", 30: "SampleID", 31: "FlowSOM_ID", 32: "cell_type"}
+    colnames = {
+        0: settings.CELL_SIZE,
+        24: settings.CELL_LABEL,
+        30: settings.FOV_ID,
+        31: settings.CLUSTER_ID,
+        32: settings.CELL_TYPE
+    }
     all_data = all_data.rename(colnames, axis=1)
 
     # Create 4 cells positive for marker 1 and 2, 5 cells positive for markers 3 and 4,
