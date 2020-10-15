@@ -96,7 +96,11 @@ def test_load_imgs_from_tree():
             load_utils.load_imgs_from_tree(temp_dir, img_sub_folder="TIFs", dtype="int16",
                                            channels=some_chans)
 
-        assert loaded_xr.equals(data_xr[:, :, :, :2], )
+        # need to reindex columns first before asserting equality
+        # cannot use xarray.equals for this because reindexing string coords changes their dtype
+        assert np.all(loaded_xr.values == data_xr[:, :, :, :2].loc[
+            :, :, :, loaded_xr.coords['channels'].values
+        ])
 
         # check mixed extension presence
         loaded_xr = \
@@ -104,7 +108,10 @@ def test_load_imgs_from_tree():
                                            channels=[chans[i] if i % 2 else imgs[i]
                                                      for i in range(3)])
 
-        assert loaded_xr.equals(data_xr)
+        # same as prior test
+        assert np.all(loaded_xr.values == data_xr.loc[
+            :, :, :, loaded_xr.coords['channels'].values
+        ])
 
     with tempfile.TemporaryDirectory() as temp_dir:
         fovs, chans, imgs = test_utils.gen_fov_chan_names(num_fovs=1, num_chans=2,

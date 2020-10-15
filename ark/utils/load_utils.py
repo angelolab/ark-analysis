@@ -172,7 +172,7 @@ def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, channels=None,
                           dims=["fovs", "rows", "cols", "channels"])
 
     # sort by fovs and channels for deterministic result
-    img_xr = img_xr.sortby('fovs').sortby('channels')
+    img_xr = img_xr.sortby('fovs')
 
     return img_xr
 
