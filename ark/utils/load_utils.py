@@ -35,8 +35,7 @@ def load_imgs_from_mibitiff(data_dir, mibitiff_files=None, channels=None, delimi
             xarray with shape [fovs, x_dim, y_dim, channels]
     """
 
-    if not os.path.isdir(data_dir):
-        raise ValueError(f"Invalid value for data_dir. {data_dir} is not a directory.")
+    iou.validate_paths(data_dir)
 
     if not mibitiff_files:
         mibitiff_files = iou.list_files(data_dir, substrs=['.tif'])
@@ -106,8 +105,7 @@ def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, channels=None,
             xarray with shape [fovs, x_dim, y_dim, tifs]
     """
 
-    if not os.path.isdir(data_dir):
-        raise ValueError(f"Invalid value for data_dir. {data_dir} is not a directory.")
+    iou.validate_paths(data_dir)
 
     if fovs is None:
         # get all fovs
@@ -230,8 +228,7 @@ def load_imgs_from_dir(data_dir, files=None, delimiter=None, xr_dim_name='compar
                  of channels in the input.
     """
 
-    if not os.path.isdir(data_dir):
-        raise ValueError(f"Invalid value for data_dir. {data_dir} is not a directory.")
+    iou.validate_paths(data_dir)
 
     if files is None:
         imgs = iou.list_files(data_dir, substrs=['.tif', '.jpg', '.png'])
