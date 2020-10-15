@@ -6,8 +6,17 @@ from ark.utils import load_utils, test_utils
 
 
 def test_load_imgs_from_mibitiff():
+    # invalid directory is provided
+    with pytest.raises(ValueError):
+        loaded_xr = \
+            load_utils.load_imgs_from_mibitiff('not_a_dir', channels=None, delimiter='_')
 
     with tempfile.TemporaryDirectory() as temp_dir:
+        # temp_dir contains no images
+        with pytest.raises(ValueError):
+            loaded_xr = load_utils.load_imgs_from_mibitiff(temp_dir,
+                                                           channels=None,
+                                                           delimiter='_')
 
         # config test environment
         fovs, channels = test_utils.gen_fov_chan_names(num_fovs=2, num_chans=3, use_delimiter=True)
@@ -64,8 +73,24 @@ def test_load_imgs_from_mibitiff():
 
 
 def test_load_imgs_from_tree():
+    # invalid directory is provided
+    with pytest.raises(ValueError):
+        loaded_xr = \
+            load_utils.load_imgs_from_tree('not_a_dir', img_sub_folder="TIFs", dtype="int16")
+
     # test loading from within fov directories
     with tempfile.TemporaryDirectory() as temp_dir:
+        # temp_dir contains no images
+        with pytest.raises(ValueError):
+            loaded_xr = \
+                load_utils.load_imgs_from_tree(temp_dir, img_sub_folder="TIFs", dtype="int16")
+
+        with pytest.raises(ValueError):
+            # attempt to pass an empty channels list
+            loaded_xr = \
+                load_utils.load_imgs_from_tree(temp_dir, img_sub_folder="TIFs",
+                                               dtype="int16", channels=[])
+
         fovs, chans, imgs = test_utils.gen_fov_chan_names(num_fovs=3, num_chans=3,
                                                           return_imgs=True)
 
@@ -106,6 +131,7 @@ def test_load_imgs_from_tree():
 
         assert loaded_xr.equals(data_xr)
 
+    # test loading with data_xr containing float values
     with tempfile.TemporaryDirectory() as temp_dir:
         fovs, chans, imgs = test_utils.gen_fov_chan_names(num_fovs=1, num_chans=2,
                                                           return_imgs=True)
@@ -123,6 +149,22 @@ def test_load_imgs_from_tree():
 
             # test swap int16 -> float
             assert np.issubdtype(loaded_xr.dtype, np.floating)
+
+    # test loading with variable sizes
+    with tempfile.TemporaryDirectory() as temp_dir:
+        fovs, chans, imgs = test_utils.gen_fov_chan_names(num_fovs=3, num_chans=3,
+                                                          return_imgs=True)
+
+        filelocs, data_xr = test_utils.create_paired_xarray_fovs(
+            temp_dir, fovs, chans, img_shape=(10, 10), delimiter='_', fills=True, sub_dir="TIFs",
+            dtype="int16"
+        )
+
+        loaded_xr = \
+            load_utils.load_imgs_from_tree(temp_dir, img_sub_folder="TIFs", dtype="int16",
+                                           variable_sizes=True)
+
+        assert loaded_xr.shape == (3, 1024, 1024, 3)
 
 
 def test_load_imgs_from_dir():
