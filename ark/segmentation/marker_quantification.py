@@ -161,7 +161,7 @@ def create_marker_count_matrices(segmentation_labels, image_data, nuclear_counts
     if nuclear_counts:
         misc_utils.verify_in_list(
             nuclear_label='nuclear',
-            segmentation_labels_compartments=segmentation_labels.compartments.values
+            compartment_names=segmentation_labels.compartments.values
         )
 
     misc_utils.verify_same_elements(segmentation_labels_fovs=segmentation_labels.fovs.values,

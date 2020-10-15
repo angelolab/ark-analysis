@@ -9,7 +9,7 @@ from sklearn.cluster import KMeans
 from scipy.spatial.distance import cdist
 import os
 
-from ark.utils import misc_utils
+from ark.utils import io_utils, misc_utils
 
 
 def calc_dist_matrix(label_maps, path=None):
@@ -29,8 +29,8 @@ def calc_dist_matrix(label_maps, path=None):
 
     # Check that file path exists, if given
 
-    if path is not None and not os.path.exists(path):
-        raise FileNotFoundError("File path not valid")
+    if path is not None:
+        io_utils.validate_paths(path)
 
     dist_mats_list = []
 
