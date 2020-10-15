@@ -177,4 +177,4 @@ def verify_same_elements(**kwargs):
         err_str = ("Invalid value(s) provided in both %s and %s variables: value(s)"
                    " %s not found in both lists")
 
-        raise ValueError(err_str, % (test_list_name, bad_vals, good_values_name))
+        raise ValueError(err_str % (test_list_name, bad_vals, good_values_name))
