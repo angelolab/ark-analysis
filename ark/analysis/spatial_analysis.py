@@ -69,9 +69,6 @@ def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, 
     all_channel_data = all_data.drop(excluded_colnames, axis=1)
 
     # this will get refactored once the verification refactor PR gets merged in
-    # TODO: this is the really easy way to to this, but is it worth enforcing such strict
-    # guidelines (every marker present in marker_thresholds must be found in channel_titles
-    # and vice versa)
     if not np.all(set(marker_thresholds.iloc[:, 0]) == set(all_channel_data.columns)):
         raise ValueError(
             "The same markers must be found in marker thresholds and expression matrix columns"
