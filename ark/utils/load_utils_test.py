@@ -9,9 +9,14 @@ def test_load_imgs_from_mibitiff():
     # invalid directory is provided
     with pytest.raises(ValueError):
         loaded_xr = \
-            load_utils.load_imgs_from_mibitiff('not_a_dir', channels=None, delimeter='_')
+            load_utils.load_imgs_from_mibitiff('not_a_dir', channels=None, delimiter='_')
 
     with tempfile.TemporaryDirectory() as temp_dir:
+        # temp_dir contains no images
+        with pytest.raises(ValueError):
+            loaded_xr = load_utils.load_imgs_from_mibitiff(temp_dir,
+                                                           channels=None,
+                                                           delimiter='_')
 
         # config test environment
         fovs, channels = test_utils.gen_fov_chan_names(num_fovs=2, num_chans=3, use_delimiter=True)
@@ -75,6 +80,11 @@ def test_load_imgs_from_tree():
 
     # test loading from within fov directories
     with tempfile.TemporaryDirectory() as temp_dir:
+        # temp_dir contains no images
+        with pytest.raises(ValueError):
+            loaded_xr = \
+                load_utils.load_imgs_from_tree(temp_dir, img_sub_folder="TIFs", dtype="int16")
+
         fovs, chans, imgs = test_utils.gen_fov_chan_names(num_fovs=3, num_chans=3,
                                                           return_imgs=True)
 
