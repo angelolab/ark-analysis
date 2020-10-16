@@ -82,16 +82,19 @@ def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, 
 
     # Subsets the expression matrix to only have channel columns
     all_channel_data = all_data.drop(excluded_colnames, axis=1)
+
+    # this will get refactored once the verification refactor PR gets merged in
+    if not np.all(set(marker_thresholds.iloc[:, 0]) == set(all_channel_data.columns)):
+        raise ValueError(
+            "The same markers must be found in marker thresholds and expression matrix columns"
+        )
+
+    # reorder all_channel_data's marker columns the same as they appear in marker_thresholds
+    all_channel_data = all_channel_data[marker_thresholds.iloc[:, 0].values]
     # List of all channels
     channel_titles = all_channel_data.columns
     # Length of channels list
     channel_num = len(channel_titles)
-
-    # the second check fails if the lengths are not the same, so we fail immediately
-    # if they are not
-    if len(marker_thresholds.iloc[:, 0]) != len(channel_titles) or \
-       not (list(marker_thresholds.iloc[:, 0]) == channel_titles).any():
-        raise ValueError("Threshold Markers do not match markers in expression matrix")
 
     # Create stats Xarray with the dimensions (fovs, stats variables, num_channels, num_channels)
     stats_raw_data = np.zeros((num_fovs, 7, channel_num, channel_num))

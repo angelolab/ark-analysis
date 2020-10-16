@@ -130,10 +130,12 @@ def test_calculate_channel_spatial_enrichment():
                 bootstrap_num=100, dist_lim=dist_lim)
 
     with pytest.raises(ValueError):
-        # attempt to include marker thresholds that do not exist
-        bad_marker_thresholds = pd.DataFrame(np.zeros((20, 2)))
+        # attempt to include marker thresholds and marker columns that do not exist
+        bad_marker_thresholds = pd.DataFrame(np.zeros((21, 2)))
         bad_marker_thresholds.iloc[:, 1] = .5
-        bad_marker_thresholds.iloc[:, 0] = np.arange(10000, 10020) + 2
+        bad_marker_thresholds.iloc[:, 0] = np.arange(10, 31) + 2
+
+        all_data_no_enrich_bad = all_data_no_enrich.rename(columns={18: 200})
 
         _, stat_no_enrich = \
             spatial_analysis.calculate_channel_spatial_enrichment(
