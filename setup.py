@@ -3,7 +3,7 @@ from os import path
 from distutils.command.build_ext import build_ext as DistUtilsBuildExt
 from setuptools import setup, find_packages
 
-VERSION = '0.3.6'
+VERSION = '0.2.7'
 VERSION_MIBILIB = '1.3.0'
 
 
