@@ -260,7 +260,7 @@ def test_generate_cluster_matrix_results():
     excluded_colnames = ["cell_size", "Background", "HH3",
                          "summed_channel", "cellLabelInImage", "area",
                          "eccentricity", "major_axis_length", "minor_axis_length",
-                         "perimeter", "SampleID", "FlowSOM_ID", "cell_type"]
+                         "perimeter", "SampleID", "FlowSOM_ID", "cell_type", "cell_lineage"]
 
     all_data_pos, dist_mat_pos = test_utils._make_dist_exp_mats_spatial_test(
         enrichment_type="positive", dist_lim=50
@@ -305,7 +305,7 @@ def test_generate_cluster_matrix_results():
     assert list(num_cell_type_per_cluster.index.values) == [0, 1, 2]
     assert list(num_cell_type_per_cluster.columns.values) == ["Pheno1", "Pheno2", "Pheno3"]
 
-    assert mean_marker_exp_per_cluster.shape == (3, 21)
+    assert mean_marker_exp_per_cluster.shape == (3, 20)
     assert list(mean_marker_exp_per_cluster.index.values) == [0, 1, 2]
     assert list(mean_marker_exp_per_cluster.columns.values) == \
         list(np.arange(2, 14)) + list(np.arange(15, 23))
