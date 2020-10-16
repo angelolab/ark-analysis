@@ -1,7 +1,10 @@
+import setuptools
 from os import path
+from distutils.command.build_ext import build_ext as DistUtilsBuildExt
 from setuptools import setup, find_packages
 
-VERSION = '0.2.6'
+VERSION = '0.2.7'
+VERSION_MIBILIB = '1.3.0'
 
 
 # define a parsing function for requirements.txt
@@ -19,8 +22,9 @@ with open(path.join(path.abspath(path.dirname(__file__)), 'README.md')) as f:
 # don't set install_reqs if we can't read requirements.txt
 try:
     install_reqs = _parse_requirements('requirements.txt')
-except Exception:
+except Exception as e:
     install_reqs = []
+
 
 setup(
     name='ark-analysis',
@@ -32,6 +36,7 @@ setup(
     url='https://github.com/angelolab/ark-analysis',
     download_url='https://github.com/angelolab/ark-analysis/archive/v{}.tar.gz'.format(VERSION),
     install_requires=install_reqs,
+    dependency_links=['http://github.com/ionpath/mibilib/archive/v{}.zip'.format(VERSION_MIBILIB)],
     extras_require={
         'tests': ['pytest',
                   'pytest-cov',
