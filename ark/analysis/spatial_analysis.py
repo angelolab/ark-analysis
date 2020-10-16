@@ -70,6 +70,10 @@ def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, 
     # Subsets the expression matrix to only have channel columns
     all_channel_data = all_data.drop(excluded_colnames, axis=1)
 
+    # check that the markers are the same in marker_thresholdsa and all_channel_data
+    misc_utils.verify_same_elements(markers_to_threshold=marker_thresholds.iloc[:, 0].values,
+                                    all_data_marker_columns=all_channel_data.columns.values)
+
     # this will get refactored once the verification refactor PR gets merged in
     if not np.all(set(marker_thresholds.iloc[:, 0]) == set(all_channel_data.columns)):
         raise ValueError(

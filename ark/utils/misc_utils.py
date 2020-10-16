@@ -167,10 +167,10 @@ def verify_same_elements(**kwargs):
         list_one_cast = list(list_one)
         list_two_cast = list(list_two)
     except TypeError:
-        raise ValueError("Both arguments provided must be a list or list type")
+        raise ValueError("Both arguments provided must be lists or list types")
 
     if not np.all(set(list_one_cast) == set(list_two_cast)):
-        bad_vals = ','.join(list(set(list_one_cast) ^ set(list_two_cast)))
+        bad_vals = ','.join([str(val) for val in set(list_one_cast) ^ set(list_two_cast)])
         list_one_name, list_two_name = kwargs.keys()
         list_one_name = list_one_name.replace('_', ' ')
         list_two_name = list_two_name.replace('_', ' ')
