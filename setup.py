@@ -4,6 +4,7 @@ from distutils.command.build_ext import build_ext as DistUtilsBuildExt
 from setuptools import setup, find_packages
 
 VERSION = '0.3.6'
+VERSION_MIBILIB = '1.3.0'
 
 
 # define a parsing function for requirements.txt
@@ -25,38 +26,6 @@ except Exception as e:
     install_reqs = []
 
 
-# this mess is needed for numpy to build properly and to install the requirements
-class BuildExtension(setuptools.Command):
-    description = DistUtilsBuildExt.description
-    user_options = DistUtilsBuildExt.user_options
-    boolean_options = DistUtilsBuildExt.boolean_options
-    help_options = DistUtilsBuildExt.help_options
-
-    def __init__(self, *args, **kwargs):
-        from setuptools.command.build_ext import build_ext as SetupToolsBuildExt
-
-        # Bypass __setatrr__ to avoid infinite recursion.
-        self.__dict__['_command'] = SetupToolsBuildExt(*args, **kwargs)
-
-    def __getattr__(self, name):
-        return getattr(self._command, name)
-
-    def __setattr__(self, name, value):
-        setattr(self._command, name, value)
-
-    def initialize_options(self, *args, **kwargs):
-        return self._command.initialize_options(*args, **kwargs)
-
-    def finalize_options(self, *args, **kwargs):
-        ret = self._command.finalize_options(*args, **kwargs)
-        import numpy
-        self.include_dirs.append(numpy.get_include())
-        return ret
-
-    def run(self, *args, **kwargs):
-        return self._command.run(*args, **kwargs)
-
-
 setup(
     name='ark-analysis',
     version=VERSION,
@@ -66,9 +35,8 @@ setup(
     author='Angelo Lab',
     url='https://github.com/angelolab/ark-analysis',
     download_url='https://github.com/angelolab/ark-analysis/archive/v{}.tar.gz'.format(VERSION),
-    cmdclass={'build_ext': BuildExtension},
     install_requires=install_reqs,
-    setup_requires=['cython>=0.28', 'numpy>=1.16.3,<2'],
+    dependency_links=['http://github.com/ionpath/mibilib/archive/v{}.zip'.format(VERSION_MIBILIB)],
     extras_require={
         'tests': ['pytest',
                   'pytest-cov',
