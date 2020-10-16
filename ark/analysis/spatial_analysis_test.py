@@ -206,9 +206,65 @@ def test_create_neighborhood_matrix():
         )
 
 
+def test_generate_cluster_matrix_results():
+    excluded_colnames = ["cell_size", "Background", "HH3",
+                         "summed_channel", "cellLabelInImage", "area",
+                         "eccentricity", "major_axis_length", "minor_axis_length",
+                         "perimeter", "SampleID", "FlowSOM_ID", "cell_type"]
+
+    all_data_pos, dist_mat_pos = test_utils._make_dist_exp_mats_spatial_test(
+        enrichment_type="positive", dist_lim=50
+    )
+
+    # we need corresponding dimensions, so use this method to generate
+    # the neighborhood matrix
+    neighbor_counts, neighbor_freqs = spatial_analysis.create_neighborhood_matrix(
+        all_data_pos, dist_mat_pos, distlim=51
+    )
+
+    neighbor_counts = neighbor_counts.drop("cellLabelInImage", axis=1)
+
+    # error checking
+    with pytest.raises(ValueError):
+        # pass bad columns
+        spatial_analysis.generate_cluster_matrix_results(
+            all_data_pos, neighbor_counts, cluster_num=3, excluded_colnames=["bad_col"]
+        )
+
+    with pytest.raises(ValueError):
+        # include bad fovs
+        spatial_analysis.generate_cluster_matrix_results(
+            all_data_pos, neighbor_counts, cluster_num=3, excluded_colnames=excluded_colnames,
+            included_fovs=[1000]
+        )
+
+    with pytest.raises(ValueError):
+        # specify bad k for clustering
+        spatial_analysis.generate_cluster_matrix_results(
+            all_data_pos, neighbor_counts, cluster_num=1, excluded_colnames=excluded_colnames
+        )
+
+    num_cell_type_per_cluster, mean_marker_exp_per_cluster = \
+        spatial_analysis.generate_cluster_matrix_results(
+            all_data_pos, neighbor_counts, cluster_num=3, excluded_colnames=excluded_colnames
+        )
+
+    # can't really assert specific locations of values because cluster assignment stochastic
+    # check just indexes and shapes
+    assert num_cell_type_per_cluster.shape == (3, 3)
+    assert list(num_cell_type_per_cluster.index.values) == [0, 1, 2]
+    assert list(num_cell_type_per_cluster.columns.values) == ["Pheno1", "Pheno2", "Pheno3"]
+
+    assert mean_marker_exp_per_cluster.shape == (3, 20)
+    assert list(mean_marker_exp_per_cluster.index.values) == [0, 1, 2]
+    assert list(mean_marker_exp_per_cluster.columns.values) == \
+        list(np.arange(2, 14)) + list(np.arange(15, 23))
+
+
 def test_compute_cluster_metrics():
     # get an example neighborhood matrix
     neighbor_mat = test_utils._make_neighborhood_matrix()
+    neighbor_mat = neighbor_mat.drop("cellLabelInImage", axis=1)
 
     # error checking
     with pytest.raises(ValueError):
