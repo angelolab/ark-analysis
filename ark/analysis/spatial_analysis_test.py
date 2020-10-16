@@ -305,7 +305,7 @@ def test_generate_cluster_matrix_results():
     assert list(num_cell_type_per_cluster.index.values) == [0, 1, 2]
     assert list(num_cell_type_per_cluster.columns.values) == ["Pheno1", "Pheno2", "Pheno3"]
 
-    assert mean_marker_exp_per_cluster.shape == (3, 20)
+    assert mean_marker_exp_per_cluster.shape == (3, 21)
     assert list(mean_marker_exp_per_cluster.index.values) == [0, 1, 2]
     assert list(mean_marker_exp_per_cluster.columns.values) == \
         list(np.arange(2, 14)) + list(np.arange(15, 23))
