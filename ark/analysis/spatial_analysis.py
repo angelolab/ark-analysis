@@ -72,7 +72,7 @@ def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, 
 
     # check that the markers are the same in marker_thresholdsa and all_channel_data
     misc_utils.verify_same_elements(markers_to_threshold=marker_thresholds.iloc[:, 0].values,
-                                    all_data_marker_columns=all_channel_data.columns.values)
+                                    all_markers=all_channel_data.columns.values)
 
     # reorder all_channel_data's marker columns the same as they appear in marker_thresholds
     all_channel_data = all_channel_data[marker_thresholds.iloc[:, 0].values]
