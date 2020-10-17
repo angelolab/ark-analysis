@@ -31,7 +31,7 @@ def test_draw_boxplot():
         visualize.draw_boxplot(cell_data=random_data, col_name="A",
                                col_split="PatientID", split_vals=[3, 4, 5, 6])
 
-    with pytest.raises(ValueError):
+    with pytest.raises(FileNotFoundError):
         # trying to save to a non-existant directory
         visualize.draw_boxplot(cell_data=random_data, col_name="A",
                                save_dir="bad_dir")
@@ -61,7 +61,7 @@ def test_visualize_z_scores():
     # Assign random phenotype titles
     pheno_titles = [chr(i) for i in range(ord('a'), ord('z') + 1)]
 
-    with pytest.raises(ValueError):
+    with pytest.raises(FileNotFoundError):
         # trying to save on a non-existant directory
         visualize.visualize_z_scores(z, pheno_titles, save_dir="bad_dir")
 
@@ -87,12 +87,12 @@ def test_plot_barchart():
     # mostly error checking here, test_visualize_cells tests the meat of the functionality
     random_data = test_utils.make_segmented_csv(100)
 
-    with pytest.raises(ValueError):
+    with pytest.raises(FileNotFoundError):
         # trying to save to a non-existant directory
         visualize.plot_barchart(random_data, "Random Title", "Random X Label",
                                 "Random Y Label", save_dir="bad_dir")
 
-    with pytest.raises(ValueError):
+    with pytest.raises(FileNotFoundError):
         # setting save_dir but not setting save_file
         visualize.plot_barchart(random_data, "Random Title", "Random X Label",
                                 "Random Y Label", save_dir=".")
@@ -129,7 +129,7 @@ def test_visualize_neighbor_cluster_metrics():
                                dims=random_dims)
 
     # error checking
-    with pytest.raises(ValueError):
+    with pytest.raises(FileNotFoundError):
         # specifying a non-existent directory to save to
         visualize.visualize_neighbor_cluster_metrics(random_data, save_dir="bad_dir")
 
