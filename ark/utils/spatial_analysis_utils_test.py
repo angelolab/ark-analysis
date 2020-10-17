@@ -39,10 +39,14 @@ def test_calc_dist_matrix():
         distance_mat = spatial_analysis_utils.calc_dist_matrix(test_mat, save_path="bad_path")
 
     with tempfile.TemporaryDirectory() as temp_dir:
-        # assert we actually save and save to the correct path if specified
-        spatial_analysis_utils.calc_dist_matrix(test_mat, save_path=temp_dir)
+        # validate_paths requires data as a prefix, so add one
+        data_path = os.path.join(temp_dir, "data_dir")
+        os.mkdir(data_path)
 
-        assert os.path.exists(os.path.join(temp_dir, "dist_matrices.npz"))
+        # assert we actually save and save to the correct path if specified
+        spatial_analysis_utils.calc_dist_matrix(test_mat, save_path=data_path)
+
+        assert os.path.exists(os.path.join(data_path, "dist_matrices.npz"))
 
 
 def test_get_pos_cell_labels_channel():
