@@ -34,7 +34,7 @@ def test_calc_dist_matrix():
     assert np.array_equal(distance_mat["2"].loc[range(1, 4), range(1, 4)], real_mat)
 
     # file save testing
-    with pytest.raises(FileNotFoundError):
+    with pytest.raises(ValueError):
         # trying to save to a non-existant directory
         distance_mat = spatial_analysis_utils.calc_dist_matrix(test_mat, save_path="bad_path")
 
