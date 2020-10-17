@@ -9,6 +9,8 @@ from sklearn.cluster import KMeans
 from scipy.spatial.distance import cdist
 import os
 
+from ark.utils import io_utils, misc_utils
+
 
 def calc_dist_matrix(label_maps, path=None):
     """Generate matrix of distances between center of pairs of cells
@@ -28,8 +30,7 @@ def calc_dist_matrix(label_maps, path=None):
     # Check that file path exists, if given
 
     if path is not None:
-        if not os.path.exists(path):
-            raise FileNotFoundError("File path not valid")
+        io_utils.validate_paths(path)
 
     dist_mats_list = []
 
@@ -135,7 +136,7 @@ def compute_close_cell_num(dist_mat, dist_lim, analysis_type,
         dist_lim (int):
             threshold for spatial enrichment distance proximity
         analysis_type (str):
-            type of analysis, either cluster or channel
+            type of analysis, must be either cluster or channel
         current_fov_data (pandas.DataFrame):
             data for specific patient in expression matrix
         current_fov_channel_data (pandas.DataFrame):
@@ -158,8 +159,8 @@ def compute_close_cell_num(dist_mat, dist_lim, analysis_type,
     """
 
     # assert our analysis type is valid
-    if not np.isin(analysis_type, ("cluster", "channel")).all():
-        raise ValueError("Incorrect analysis type")
+    good_analyses = ["cluster", "channel"]
+    misc_utils.verify_in_list(analysis_type=analysis_type, good_analyses=good_analyses)
 
     # Initialize variables
 
