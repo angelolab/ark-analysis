@@ -43,3 +43,37 @@ def test_combine_fov_directories():
         assert os.path.exists(os.path.join(temp_dir, "test", "combined_folder"))
         assert os.path.exists(os.path.join(temp_dir, "test", "combined_folder", "subdir1_fov1"))
         assert os.path.exists(os.path.join(temp_dir, "test", "combined_folder", "subdir2_fov2"))
+
+
+def test_verify_in_list():
+    with pytest.raises(ValueError):
+        # not passing two lists to verify_in_list
+        misc_utils.verify_in_list(one=['not_enough'])
+
+    with pytest.raises(ValueError):
+        # value is not contained in a list of acceptable values
+        misc_utils.verify_in_list(one='hello', two=['goodbye', 'hello world'])
+
+    with pytest.raises(ValueError):
+        # not every element in a list is equal to an value
+        misc_utils.verify_in_list(one=['goodbye', 'goodbye', 'hello'], two='goodbye')
+
+    with pytest.raises(ValueError):
+        # one list is not completely contained in another
+        misc_utils.verify_in_list(one=['hello', 'world'],
+                                  two=['hello', 'goodbye'])
+
+
+def test_verify_same_elements():
+    with pytest.raises(ValueError):
+        # not passing two lists to verify_same_elements
+        misc_utils.verify_same_elements(one=['not_enough'])
+
+    with pytest.raises(ValueError):
+        # not passing in lists for either first or second list
+        misc_utils.verify_same_elements(one='No', two='Bad')
+
+    with pytest.raises(ValueError):
+        # the two lists provided do not contain the same elements
+        misc_utils.verify_same_elements(one=['elem1', 'elem2', 'elem2'],
+                                        two=['elem2', 'elem2', 'elem4'])

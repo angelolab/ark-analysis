@@ -2,6 +2,7 @@ import pandas as pd
 import xarray as xr
 import numpy as np
 from ark.utils import spatial_analysis_utils
+from ark.utils import misc_utils
 
 
 def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, all_data,
@@ -73,21 +74,20 @@ def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, 
                              "eccentricity", "major_axis_length", "minor_axis_length",
                              "perimeter", "fov"]
 
-    # Error Checking
-    if not np.isin(excluded_colnames, all_data.columns).all():
-        raise ValueError("Column names were not found in expression matrix")
+    # check if included fovs found in fov_col
+    misc_utils.verify_in_list(fov_names=included_fovs,
+                              unique_fovs=all_data[fov_col].unique())
 
-    if not np.isin(included_fovs, all_data[fov_col]).all():
-        raise ValueError("Fovs were not found in expression matrix")
+    # check if all excluded column names found in all_data
+    misc_utils.verify_in_list(columns_to_exclude=excluded_colnames,
+                              column_names=all_data.columns)
 
     # Subsets the expression matrix to only have channel columns
     all_channel_data = all_data.drop(excluded_colnames, axis=1)
 
-    # this will get refactored once the verification refactor PR gets merged in
-    if not np.all(set(marker_thresholds.iloc[:, 0]) == set(all_channel_data.columns)):
-        raise ValueError(
-            "The same markers must be found in marker thresholds and expression matrix columns"
-        )
+    # check that the markers are the same in marker_thresholdsa and all_channel_data
+    misc_utils.verify_same_elements(markers_to_threshold=marker_thresholds.iloc[:, 0].values,
+                                    all_markers=all_channel_data.columns.values)
 
     # reorder all_channel_data's marker columns the same as they appear in marker_thresholds
     all_channel_data = all_channel_data[marker_thresholds.iloc[:, 0].values]
@@ -200,9 +200,9 @@ def calculate_cluster_spatial_enrichment(all_data, dist_matrices_dict, included_
 
     values = []
 
-    # Error Checking
-    if not np.isin(included_fovs, all_data[fov_col]).all():
-        raise ValueError("Fovs were not found in Expression Matrix")
+    # check if included fovs found in fov_col
+    misc_utils.verify_in_list(fov_names=included_fovs,
+                              unique_fovs=all_data[fov_col].unique())
 
     # Extract the names of the cell phenotypes
     cluster_names = all_data[cluster_name_col].drop_duplicates()
@@ -283,9 +283,9 @@ def create_neighborhood_matrix(all_data, dist_matrices_dict, included_fovs=None,
     if included_fovs is None:
         included_fovs = all_data[fov_col].unique()
 
-    # Error Checking
-    if not np.isin(included_fovs, all_data[fov_col]).all():
-        raise ValueError("Fovs were not found in Expression Matrix")
+    # check if included fovs found in fov_col
+    misc_utils.verify_in_list(fov_names=included_fovs,
+                              unique_fovs=all_data[fov_col].unique())
 
     # Get the phenotypes
     cluster_names = all_data[cluster_name_col].drop_duplicates()
@@ -454,9 +454,9 @@ def compute_cluster_metrics(neighbor_mat, max_k=10, included_fovs=None,
     if max_k < 2:
         raise ValueError("Invalid k provided for clustering")
 
-    # make sure the fovs specified all exist inside the fov_col
-    if not np.isin(included_fovs, neighbor_mat[fov_col]).all():
-        raise ValueError("Not all specified fovs exist in the provided neighborhood matrix")
+    # check if included fovs found in fov_col
+    misc_utils.verify_in_list(fov_names=included_fovs,
+                              unique_fovs=neighbor_mat[fov_col].unique())
 
     # subset neighbor_mat accordingly, and drop the columns we don't need
     neighbor_mat_data = neighbor_mat[neighbor_mat[fov_col].isin(included_fovs)]
