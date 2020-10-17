@@ -7,7 +7,7 @@ import pandas as pd
 from skimage.measure import regionprops_table
 from skimage.morphology import remove_small_objects
 
-from ark.utils import io_utils
+from ark.utils import io_utils, misc_utils
 
 
 def find_nuclear_mask_id(nuc_segmentation_mask, cell_coords):
@@ -95,7 +95,7 @@ def transform_expression_matrix(cell_data, transform, transform_kwargs=None):
         cell_data (xarray.DataArray):
             xarray containing marker expression values
         transform (str):
-            the type of transform to apply. Must be one of ['size_norm', 'arcsinh']
+            the type of transform to apply. Must be size_norm or arcsinh
         transform_kwargs (dict):
             optional dictionary with additional settings for the transforms
 
@@ -104,9 +104,7 @@ def transform_expression_matrix(cell_data, transform, transform_kwargs=None):
             xarray of counts per marker normalized by cell size
     """
     valid_transforms = ['size_norm', 'arcsinh']
-
-    if transform not in valid_transforms:
-        raise ValueError('Invalid transform supplied')
+    misc_utils.verify_in_list(transform=transform, valid_transforms=valid_transforms)
 
     if transform_kwargs is None:
         transform_kwargs = {}

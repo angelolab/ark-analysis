@@ -7,7 +7,7 @@ import xarray as xr
 
 from skimage.measure import regionprops_table
 
-from ark.utils import load_utils, io_utils, segmentation_utils
+from ark.utils import io_utils, load_utils, misc_utils, segmentation_utils
 from ark.segmentation import signal_extraction
 
 
@@ -106,10 +106,7 @@ def compute_marker_counts(input_images, segmentation_masks, nuclear_counts=False
             nuc_id = segmentation_utils.find_nuclear_mask_id(nuc_segmentation_mask=nuc_mask,
                                                              cell_coords=cell_coords)
 
-            if nuc_id is None:
-                # no nucleus found within this cell
-                pass
-            else:
+            if nuc_id is not None:
                 # get coordinates of corresponding nucleus
                 nuc_coords = nuc_props.loc[nuc_props['label'] == nuc_id, 'coords'].values[0]
 
@@ -144,7 +141,8 @@ def create_marker_count_matrices(segmentation_labels, image_data, nuclear_counts
         image_data (xarray.DataArray):
             xarray containing all of the channel data across all FOVs
         nuclear_counts (bool):
-            boolean flag to determine whether nuclear counts are returned
+            boolean flag to determine whether nuclear counts are returned, note that if
+            set to True, the compartments coordinate in segmentation_labels must contain 'nuclear'
         split_large_nuclei (bool):
             boolean flag to determine whether nuclei which are larger than their assigned cell
             will get split into two different nuclear objects
@@ -161,8 +159,13 @@ def create_marker_count_matrices(segmentation_labels, image_data, nuclear_counts
         raise ValueError("Incorrect data type for image_data, expecting xarray")
 
     if nuclear_counts:
-        if 'nuclear' not in segmentation_labels.compartments:
-            raise ValueError("Nuclear counts set to True, but not nuclear mask provided")
+        misc_utils.verify_in_list(
+            nuclear_label='nuclear',
+            compartment_names=segmentation_labels.compartments.values
+        )
+
+    misc_utils.verify_same_elements(segmentation_labels_fovs=segmentation_labels.fovs.values,
+                                    img_data_fovs=image_data.fovs.values)
 
     if not np.all(set(segmentation_labels.fovs.values) == set(image_data.fovs.values)):
         raise ValueError("The same fovs must be present in the segmentation labels and images")
@@ -262,10 +265,8 @@ def generate_cell_data(segmentation_labels, tiff_dir, img_sub_folder,
             fovs = filenames
 
     # check segmentation_labels for given fovs (img loaders will fail otherwise)
-    fov_values = [fov for fov in fovs if fov not in segmentation_labels['fovs'].values]
-    if fov_values:
-        raise ValueError(f"Invalid fov values specified: "
-                         f"fovs {','.join(fov_values)} not found in segmentation_labels fovs")
+    misc_utils.verify_in_list(fovs=fovs,
+                              segmentation_labels_fovs=segmentation_labels['fovs'].values)
 
     # get full filenames from given fovs
     filenames = io_utils.list_files(tiff_dir, substrs=fovs)
