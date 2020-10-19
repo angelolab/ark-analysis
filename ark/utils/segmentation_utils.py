@@ -185,7 +185,7 @@ def concatenate_csv(base_dir, csv_files, column_name="fov", column_values=None):
 
 
 def visualize_segmentation(segmentation_labels_xr, channel_data_xr,
-                           output_dir, chan_list=None, fovs=None):
+                           output_dir, chan_list=None, fovs=None, show=False):
     """For each fov, generates segmentation labels, segmentation borders, and overlays
     over the channels in chan_list if chan_list is provided.
 
@@ -202,6 +202,8 @@ def visualize_segmentation(segmentation_labels_xr, channel_data_xr,
             list of channels to overlay segmentation output over
         fovs (numpy.ndarray):
             field of view
+        show (bool):
+            whether or not to show plot
     """
 
     if fovs is None:
@@ -215,7 +217,7 @@ def visualize_segmentation(segmentation_labels_xr, channel_data_xr,
             plot_utils.plot_overlay(
                 labels,
                 plotting_tif=input_data,
-                path=os.path.join(output_dir, save_path)
+                path=os.path.join(output_dir, save_path), show=show
             )
         # Adds overlay to segmentation visualization
         plot_utils.plot_overlay(
