@@ -9,6 +9,8 @@ from sklearn.cluster import KMeans
 from scipy.spatial.distance import cdist
 import os
 
+from ark.utils import io_utils, misc_utils
+
 
 def calc_dist_matrix(label_maps, path=None):
     """Generate matrix of distances between center of pairs of cells
@@ -28,8 +30,7 @@ def calc_dist_matrix(label_maps, path=None):
     # Check that file path exists, if given
 
     if path is not None:
-        if not os.path.exists(path):
-            raise FileNotFoundError("File path not valid")
+        io_utils.validate_paths(path)
 
     dist_mats_list = []
 
@@ -135,7 +136,7 @@ def compute_close_cell_num(dist_mat, dist_lim, analysis_type,
         dist_lim (int):
             threshold for spatial enrichment distance proximity
         analysis_type (str):
-            type of analysis, either cluster or channel
+            type of analysis, must be either cluster or channel
         current_fov_data (pandas.DataFrame):
             data for specific patient in expression matrix
         current_fov_channel_data (pandas.DataFrame):
@@ -158,8 +159,8 @@ def compute_close_cell_num(dist_mat, dist_lim, analysis_type,
     """
 
     # assert our analysis type is valid
-    if not np.isin(analysis_type, ("cluster", "channel")).all():
-        raise ValueError("Incorrect analysis type")
+    good_analyses = ["cluster", "channel"]
+    misc_utils.verify_in_list(analysis_type=analysis_type, good_analyses=good_analyses)
 
     # Initialize variables
 
@@ -385,7 +386,8 @@ def compute_neighbor_counts(current_fov_neighborhood_data, dist_matrix, distlim,
 
 
 def compute_kmeans_cluster_metric(neighbor_mat_data, max_k=10):
-    """For a given neighborhood matrix, cluster and compute metric scores. Uses k-means clustering.
+    """For a given neighborhood matrix, cluster and compute metric scores using k-means clustering.
+
     Currently only supporting silhouette score as a cluster metric.
 
     Args:
@@ -414,3 +416,26 @@ def compute_kmeans_cluster_metric(neighbor_mat_data, max_k=10):
         cluster_stats.loc[n] = cluster_score
 
     return cluster_stats
+
+
+def generate_cluster_labels(neighbor_mat_data, cluster_num):
+    """Run k-means clustering with k=cluster_num on each channel column
+
+    Give the same data, given several runs the clusters will always be the same,
+    but the labels assigned will likely be different
+
+    Args:
+        neighbor_mat_data (pandas.DataFrame):
+            neighborhood matrix data with only the desired fovs
+        cluster_num (int):
+            the k we want to use when running k-means clustering
+
+    Returns:
+        numpy.ndarray:
+            the cluster labels we will be assigning to each cell in the neighborhood matrix
+    """
+
+    cluster_fit = KMeans(n_clusters=cluster_num).fit(neighbor_mat_data)
+    cluster_labels = cluster_fit.labels_
+
+    return cluster_labels
