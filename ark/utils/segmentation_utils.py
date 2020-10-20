@@ -186,13 +186,13 @@ def visualize_segmentation(segmentation_labels_xr, channel_data_xr,
         segmentation_labels_xr (xarray.DataArray):
             xarray containing segmentation labels
         channel_data_xr (xarray.DataArray):
-            xarray containing TIFs
+            xarray containing image data
         output_dir (str):
             path to directory where the output will be saved
         chan_list (list):
-            list of channels to overlay segmentation output over
+            list of channels to overlay segmentation output over, default is None
         fovs (numpy.ndarray):
-            field of view
+            field of view of image, default is None
     """
 
     if fovs is None:
@@ -208,6 +208,7 @@ def visualize_segmentation(segmentation_labels_xr, channel_data_xr,
                 plotting_tif=input_data,
                 path=os.path.join(output_dir, save_path)
             )
+            io.imshow(io.imread(os.path.join(output_dir, save_path)))
         # Adds overlay to segmentation visualization
         plot_utils.plot_overlay(
             labels,
