@@ -124,8 +124,6 @@ def test_calculate_channel_spatial_enrichment():
         bad_marker_thresholds.iloc[:, 1] = .5
         bad_marker_thresholds.iloc[:, 0] = np.arange(10, 31) + 2
 
-        all_data_no_enrich_bad = all_data_no_enrich.rename(columns={18: 200})
-
         _, stat_no_enrich = \
             spatial_analysis.calculate_channel_spatial_enrichment(
                 dist_mat_no_enrich, bad_marker_thresholds, all_data_no_enrich,

@@ -632,7 +632,7 @@ def _make_neighborhood_matrix():
             a sample neighborhood matrix with three different populations,
             intended to test clustering
     """
-    col_names = {0: 'SampleID', 1: 'cellLabelInImage', 2: 'feature1', 3: 'feature2'}
+    col_names = {0: settings.FOV_ID, 1: settings.CELL_LABEL, 2: 'feature1', 3: 'feature2'}
     neighbor_counts = pd.DataFrame(np.zeros((200, 5)))
     neighbor_counts = neighbor_counts.rename(col_names, axis=1)
 
@@ -787,7 +787,7 @@ def _make_expression_mat_sa(enrichment_type):
         # Assign column names to columns not for markers (columns to be excluded)
         all_patient_data = all_data.rename(DEFAULT_COLUMNS, axis=1)
 
-        all_patient_data.loc[all_patient_data.iloc[:, 31] == 0, "cell_type"] = "Pheno3"
+        all_patient_data.loc[all_patient_data.iloc[:, 31] == 0, settings.CELL_TYPE] = "Pheno3"
         return all_patient_data
     elif enrichment_type == "positive":
         all_data_pos = pd.DataFrame(np.zeros((160, 33)))
@@ -833,7 +833,8 @@ def _make_expression_mat_sa(enrichment_type):
         # Assign column names to columns not for markers (columns to be excluded)
         all_patient_data_pos = all_data_pos.rename(DEFAULT_COLUMNS, axis=1)
 
-        all_patient_data_pos.loc[all_patient_data_pos.iloc[:, 31] == 0, "cell_type"] = "Pheno3"
+        all_patient_data_pos.loc[all_patient_data_pos.iloc[:, 31] == 0,
+                                 settings.CELL_TYPE] = "Pheno3"
         return all_patient_data_pos
     elif enrichment_type == "negative":
         all_data_neg = pd.DataFrame(np.zeros((120, 33)))
@@ -864,7 +865,8 @@ def _make_expression_mat_sa(enrichment_type):
         # Assign column names to columns not for markers (columns to be excluded)
         all_patient_data_neg = all_data_neg.rename(DEFAULT_COLUMNS, axis=1)
 
-        all_patient_data_neg.loc[all_patient_data_neg.iloc[:, 31] == 0, "cell_type"] = "Pheno3"
+        all_patient_data_neg.loc[all_patient_data_neg.iloc[:, 31] == 0,
+                                 settings.CELL_TYPE] = "Pheno3"
         return all_patient_data_neg
 
 
