@@ -228,10 +228,7 @@ def test_create_neighborhood_matrix():
 
 
 def test_generate_cluster_matrix_results():
-    excluded_colnames = ["cell_size", "Background", "HH3",
-                         "summed_channel", "cellLabelInImage", "area",
-                         "eccentricity", "major_axis_length", "minor_axis_length",
-                         "perimeter", "SampleID", "FlowSOM_ID", "cell_type"]
+    excluded_channels = ["Background", "HH3", "summed_channel"]
 
     all_data_pos, dist_mat_pos = test_utils._make_dist_exp_mats_spatial_test(
         enrichment_type="positive", dist_lim=50
@@ -243,31 +240,31 @@ def test_generate_cluster_matrix_results():
         all_data_pos, dist_mat_pos, distlim=51
     )
 
-    neighbor_counts = neighbor_counts.drop("cellLabelInImage", axis=1)
+    neighbor_counts = neighbor_counts.drop(settings.CELL_LABEL, axis=1)
 
     # error checking
     with pytest.raises(ValueError):
         # pass bad columns
         spatial_analysis.generate_cluster_matrix_results(
-            all_data_pos, neighbor_counts, cluster_num=3, excluded_colnames=["bad_col"]
+            all_data_pos, neighbor_counts, cluster_num=3, excluded_channels=["bad_col"]
         )
 
     with pytest.raises(ValueError):
         # include bad fovs
         spatial_analysis.generate_cluster_matrix_results(
-            all_data_pos, neighbor_counts, cluster_num=3, excluded_colnames=excluded_colnames,
+            all_data_pos, neighbor_counts, cluster_num=3, excluded_channels=excluded_channels,
             included_fovs=[1000]
         )
 
     with pytest.raises(ValueError):
         # specify bad k for clustering
         spatial_analysis.generate_cluster_matrix_results(
-            all_data_pos, neighbor_counts, cluster_num=1, excluded_colnames=excluded_colnames
+            all_data_pos, neighbor_counts, cluster_num=1, excluded_channels=excluded_channels
         )
 
     num_cell_type_per_cluster, mean_marker_exp_per_cluster = \
         spatial_analysis.generate_cluster_matrix_results(
-            all_data_pos, neighbor_counts, cluster_num=3, excluded_colnames=excluded_colnames
+            all_data_pos, neighbor_counts, cluster_num=3, excluded_channels=excluded_channels
         )
 
     # can't really assert specific locations of values because cluster assignment stochastic
@@ -285,7 +282,7 @@ def test_generate_cluster_matrix_results():
 def test_compute_cluster_metrics():
     # get an example neighborhood matrix
     neighbor_mat = test_utils._make_neighborhood_matrix()
-    neighbor_mat = neighbor_mat.drop("cellLabelInImage", axis=1)
+    neighbor_mat = neighbor_mat.drop(settings.CELL_LABEL, axis=1)
 
     # error checking
     with pytest.raises(ValueError):

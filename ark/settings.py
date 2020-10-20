@@ -7,6 +7,7 @@ FOV_ID = 'SampleID'                         # cell's fov name
 CELL_TYPE = 'cell_type'                     # cell type name (flowsom)
 CLUSTER_ID = 'FlowSOM_ID'                   # cell cluster id (flowsom)
 PATIENT_ID = 'PatientID'                    # cell's patient id
+KMEANS_CLUSTER = 'cluster_labels'           # generated cluster column name
 
 # standardized columns surrounding channel data
 PRE_CHANNEL_COL = CELL_SIZE                 # last column before channel data
