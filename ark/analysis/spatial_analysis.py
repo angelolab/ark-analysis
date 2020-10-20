@@ -375,10 +375,12 @@ def generate_cluster_matrix_results(all_data, neighbor_mat, cluster_num, exclude
         index=cluster_label_col, columns=cell_type_col, values="count").fillna(0).astype(int)
 
     # Subsets the expression matrix to only have channel columns
-    channel_start = np.where(all_data.columns == settings.PRE_CHANNEL_COL)[0][0] + 1
-    channel_end = np.where(all_data.columns == settings.POST_CHANNEL_COL)[0][0]
+    channel_start = np.where(all_data_clusters.columns == settings.PRE_CHANNEL_COL)[0][0] + 1
+    channel_end = np.where(all_data_clusters.columns == settings.POST_CHANNEL_COL)[0][0]
+    cluster_label_colnum = np.where(all_data_clusters.columns == cluster_label_col)[0][0]
 
-    all_data_markers_clusters = all_data_clusters.iloc[:, channel_start:channel_end]
+    all_data_markers_clusters = \
+        all_data_clusters.iloc[:, list(range(channel_start, channel_end)) + [cluster_label_colnum]]
     all_data_markers_clusters = all_data_markers_clusters.drop(excluded_channels, axis=1)
 
     # create a mean pivot table with cluster_label_col as row and channels as column
