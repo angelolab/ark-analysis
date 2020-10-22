@@ -6,6 +6,8 @@ import glob
 from zipfile import ZipFile
 import warnings
 
+from ark.utils import misc_utils
+
 
 def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
                            suffix='_feature_0', host='https://deepcell.org', job_type='multiplex'):
@@ -37,10 +39,18 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
             ValueError:
                 Raised if there is some fov X (from fovs list) s.t.
                 the file <deepcell_input_dir>/fovX.tif does not exist
-        """
+    """
+
     if fovs is None:
-        tifs = io_utils.list_files(deepcell_input_dir, substrs='.tif')
-        fovs = io_utils.extract_delimited_names(tifs, delimiter='.')
+        fovs = io_utils.list_files(deepcell_input_dir, substrs='.tif')
+
+    fovs = io_utils.extract_delimited_names(fovs, delimiter='.')
+    input_files = [f.replace('.tif', '') for f in
+                   io_utils.list_files(deepcell_input_dir, substrs='.tif')]
+
+    misc_utils.verify_in_list(
+        fovs=fovs,
+        deepcell_input_files=input_files)
 
     zip_path = os.path.join(deepcell_input_dir, 'fovs.zip')
     if os.path.isfile(zip_path):
@@ -84,7 +94,7 @@ def run_deepcell_task(input_dir, output_dir, host='https://deepcell.org',
             job_type (str):
                 Name of job workflow (multiplex, segmentation, tracking).
                 Default: 'multiplex'
-        """
+    """
 
     mgr_kwargs = {
         'host': host,
