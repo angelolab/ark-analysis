@@ -41,16 +41,16 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
                 the file <deepcell_input_dir>/fovX.tif does not exist
     """
 
+    input_files = io_utils.list_files(deepcell_input_dir, substrs='.tif')
+
     if fovs is None:
-        fovs = io_utils.list_files(deepcell_input_dir, substrs='.tif')
+        fovs = input_files
 
     fovs = io_utils.extract_delimited_names(fovs, delimiter='.')
-    input_files = [f.replace('.tif', '') for f in
-                   io_utils.list_files(deepcell_input_dir, substrs='.tif')]
 
     misc_utils.verify_in_list(
         fovs=fovs,
-        deepcell_input_files=input_files)
+        deepcell_input_files=[in_file.replace('.tif', '') for in_file in input_files])
 
     zip_path = os.path.join(deepcell_input_dir, 'fovs.zip')
     if os.path.isfile(zip_path):
