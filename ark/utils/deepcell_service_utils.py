@@ -41,21 +41,27 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
                 the file <deepcell_input_dir>/fovX.tif does not exist
     """
 
+    # extract all the files from deepcell_input_dir
     input_files = io_utils.list_files(deepcell_input_dir, substrs='.tif')
 
+    # set fovs equal to input_files it not already set
     if fovs is None:
         fovs = input_files
 
+    # now extract only the names of the fovs without the file extension
     fovs = io_utils.extract_delimited_names(fovs, delimiter='.')
 
+    # make sure that all fovs actually exist in the list of input_files
     misc_utils.verify_in_list(
         fovs=fovs,
         deepcell_input_files=[in_file.replace('.tif', '') for in_file in input_files])
 
+    # define the location of the zip file for our fovs
     zip_path = os.path.join(deepcell_input_dir, 'fovs.zip')
     if os.path.isfile(zip_path):
         warnings.warn(f'{zip_path} will be overwritten.')
 
+    # write all files to the zip file
     with ZipFile(zip_path, 'w') as zipObj:
         for fov in fovs:
             filename = os.path.join(deepcell_input_dir, fov + '.tif')
@@ -64,6 +70,7 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
                                  'Invalid value for %s' % (fov, filename))
             zipObj.write(filename, os.path.basename(filename))
 
+    # pass the zip file to deepcell.org, then remove it afterwards
     run_deepcell_task(zip_path, deepcell_output_dir, host, job_type)
     os.remove(zip_path)
 

@@ -36,6 +36,7 @@ def test_create_deepcell_output(mocker):
             create_deepcell_output(deepcell_input_dir=input_dir, deepcell_output_dir=output_dir,
                                    fovs=['fov1', 'fov1000'])
 
+        # test with specified fov list
         create_deepcell_output(deepcell_input_dir=input_dir, deepcell_output_dir=output_dir,
                                fovs=['fov1', 'fov2'])
 
@@ -46,9 +47,30 @@ def test_create_deepcell_output(mocker):
         assert os.path.exists(os.path.join(output_dir, 'fov1_feature_0.tif'))
         assert os.path.exists(os.path.join(output_dir, 'fov2_feature_0.tif'))
 
-        # if fovs is None, all .tif files in input dir should be taken
+        # /fovs.zip file should be removed from input folder after completion
+        assert not os.path.isfile(os.path.join(input_dir, 'fovs.zip'))
+
         os.remove(os.path.join(output_dir, 'fov1_feature_0.tif'))
         os.remove(os.path.join(output_dir, 'fov2_feature_0.tif'))
+
+        # test with mixed fov/file list
+        create_deepcell_output(deepcell_input_dir=input_dir, deepcell_output_dir=output_dir,
+                               fovs=['fov1', 'fov2.tif'])
+
+        # make sure DeepCell (.zip) output exists
+        assert os.path.exists(os.path.join(output_dir, 'example_output.zip'))
+
+        # DeepCell output .zip file should be extracted
+        assert os.path.exists(os.path.join(output_dir, 'fov1_feature_0.tif'))
+        assert os.path.exists(os.path.join(output_dir, 'fov2_feature_0.tif'))
+
+        # /fovs.zip file should be removed from input folder after completion
+        assert not os.path.isfile(os.path.join(input_dir, 'fovs.zip'))
+
+        os.remove(os.path.join(output_dir, 'fov1_feature_0.tif'))
+        os.remove(os.path.join(output_dir, 'fov2_feature_0.tif'))
+
+        # if fovs is None, all .tif files in input dir should be taken
         create_deepcell_output(deepcell_input_dir=input_dir, deepcell_output_dir=output_dir)
         assert os.path.exists(os.path.join(output_dir, 'fov1_feature_0.tif'))
         assert os.path.exists(os.path.join(output_dir, 'fov2_feature_0.tif'))
