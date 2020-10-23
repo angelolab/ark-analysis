@@ -32,7 +32,7 @@ def test_create_deepcell_output(mocker):
         pathlib.Path(os.path.join(input_dir, 'fov2.tif')).touch()
 
         with pytest.raises(ValueError):
-            # fail if non-existant fovs are specified
+            # fail if non-existent fovs are specified
             create_deepcell_output(deepcell_input_dir=input_dir, deepcell_output_dir=output_dir,
                                    fovs=['fov1', 'fov1000'])
 
