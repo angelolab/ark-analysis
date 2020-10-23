@@ -47,7 +47,7 @@ def test_create_deepcell_output(mocker):
         assert os.path.exists(os.path.join(output_dir, 'fov1_feature_0.tif'))
         assert os.path.exists(os.path.join(output_dir, 'fov2_feature_0.tif'))
 
-        # /fovs.zip file should be removed from input folder after completion
+        # fovs.zip file should be removed from input folder after completion
         assert not os.path.isfile(os.path.join(input_dir, 'fovs.zip'))
 
         os.remove(os.path.join(output_dir, 'fov1_feature_0.tif'))
