@@ -13,17 +13,17 @@ from ark.utils import test_utils
 def test_compute_marker_counts_base():
     cell_mask, channel_data = test_utils.create_test_extraction_data()
 
-    segmentation_masks = test_utils.make_labels_xarray(label_data=cell_mask,
+    segmentation_labels = test_utils.make_labels_xarray(label_data=cell_mask,
                                                        compartment_names=['whole_cell'])
 
     input_images = test_utils.make_images_xarray(channel_data)
 
     # test utils output is 4D but tests require 3D
-    segmentation_masks, input_images = segmentation_masks[0], input_images[0]
+    segmentation_labels, input_images = segmentation_labels[0], input_images[0]
 
     segmentation_output = \
         marker_quantification.compute_marker_counts(input_images=input_images,
-                                                    segmentation_masks=segmentation_masks)
+                                                    segmentation_labels=segmentation_labels)
 
     # check that channel 0 counts are same as cell size
     assert np.array_equal(segmentation_output.loc['whole_cell', :, 'cell_size'].values,
@@ -58,11 +58,8 @@ def test_compute_marker_counts_base():
 def test_compute_marker_counts_equal_masks():
     cell_mask, channel_data = test_utils.create_test_extraction_data()
 
-    segmentation_masks = test_utils.make_labels_xarray(label_data=cell_mask,
-                                                       compartment_names=['whole_cell'])
-
     # test whole_cell and nuclear compartments with same data
-    segmentation_masks_equal = test_utils.make_labels_xarray(
+    segmentation_labels_equal = test_utils.make_labels_xarray(
         label_data=np.concatenate((cell_mask, cell_mask), axis=-1),
         compartment_names=['whole_cell', 'nuclear']
     )
@@ -70,11 +67,11 @@ def test_compute_marker_counts_equal_masks():
     input_images = test_utils.make_images_xarray(channel_data)
 
     # test utils output is 4D but tests require 3D
-    segmentation_masks_equal, input_images = segmentation_masks_equal[0], input_images[0]
+    segmentation_labels_equal, input_images = segmentation_labels_equal[0], input_images[0]
 
     segmentation_output_equal = \
         marker_quantification.compute_marker_counts(input_images=input_images,
-                                                    segmentation_masks=segmentation_masks_equal,
+                                                    segmentation_labels=segmentation_labels_equal,
                                                     nuclear_counts=True)
 
     assert np.all(segmentation_output_equal[0].values == segmentation_output_equal[1].values)
@@ -89,7 +86,7 @@ def test_compute_marker_counts_nuc_whole_cell_diff():
     nuc_mask = np.expand_dims(nuc_mask, axis=-1)
 
     unequal_masks = np.concatenate((cell_mask, nuc_mask), axis=-1)
-    segmentation_masks_unequal = test_utils.make_labels_xarray(
+    segmentation_labels_unequal = test_utils.make_labels_xarray(
         label_data=unequal_masks,
         compartment_names=['whole_cell', 'nuclear']
     )
@@ -97,12 +94,13 @@ def test_compute_marker_counts_nuc_whole_cell_diff():
     input_images = test_utils.make_images_xarray(channel_data)
 
     # test utils output is 4D but tests require 3D
-    segmentation_masks_unequal, input_images = segmentation_masks_unequal[0], input_images[0]
+    segmentation_labels_unequal, input_images = segmentation_labels_unequal[0], input_images[0]
 
     segmentation_output_unequal = \
-        marker_quantification.compute_marker_counts(input_images=input_images,
-                                                    segmentation_masks=segmentation_masks_unequal,
-                                                    nuclear_counts=True)
+        marker_quantification.compute_marker_counts(
+            input_images=input_images,
+            segmentation_labels=segmentation_labels_unequal,
+            nuclear_counts=True)
 
     # make sure nuclear segmentations are smaller
     assert np.all(segmentation_output_unequal.loc['nuclear', :, 'cell_size'].values <
@@ -140,18 +138,15 @@ def test_compute_marker_counts_nuc_whole_cell_diff():
 def test_compute_marker_counts_diff_props():
     cell_mask, channel_data = test_utils.create_test_extraction_data()
 
-    segmentation_masks = test_utils.make_labels_xarray(label_data=cell_mask,
-                                                       compartment_names=['whole_cell'])
-
     # test whole_cell and nuclear compartments with same data
-    segmentation_masks_equal = test_utils.make_labels_xarray(
+    segmentation_labels_equal = test_utils.make_labels_xarray(
         label_data=np.concatenate((cell_mask, cell_mask), axis=-1),
         compartment_names=['whole_cell', 'nuclear']
     )
 
     input_images = test_utils.make_images_xarray(channel_data)
 
-    segmentation_masks_equal, input_images = segmentation_masks_equal[0], input_images[0]
+    segmentation_labels_equal, input_images = segmentation_labels_equal[0], input_images[0]
 
     # different object properties can be supplied
     regionprops_features = ['label', 'area']
@@ -159,7 +154,7 @@ def test_compute_marker_counts_diff_props():
 
     segmentation_output_specified = \
         marker_quantification.compute_marker_counts(input_images=input_images,
-                                                    segmentation_masks=segmentation_masks_equal,
+                                                    segmentation_labels=segmentation_labels_equal,
                                                     nuclear_counts=True,
                                                     regionprops_features=regionprops_features)
 
@@ -170,7 +165,7 @@ def test_compute_marker_counts_diff_props():
     # these nuclei are all smaller than the cells, so we should get same result
     segmentation_output_specified_split = \
         marker_quantification.compute_marker_counts(input_images=input_images,
-                                                    segmentation_masks=segmentation_masks_equal,
+                                                    segmentation_labels=segmentation_labels_equal,
                                                     nuclear_counts=True,
                                                     regionprops_features=regionprops_features,
                                                     split_large_nuclei=True)
@@ -191,14 +186,14 @@ def test_create_marker_count_matrices_base():
     tif_data[0, :, :, :] = channel_data[0, :, :, :]
     tif_data[1, 5:, 5:, :] = channel_data[0, :-5, :-5, :]
 
-    segmentation_masks = test_utils.make_labels_xarray(
+    segmentation_labels = test_utils.make_labels_xarray(
         label_data=cell_masks,
         compartment_names=['whole_cell']
     )
 
     channel_data = test_utils.make_images_xarray(tif_data)
 
-    normalized, _ = marker_quantification.create_marker_count_matrices(segmentation_masks,
+    normalized, _ = marker_quantification.create_marker_count_matrices(segmentation_labels,
                                                                        channel_data)
 
     assert normalized.shape[0] == 7
@@ -233,7 +228,7 @@ def test_create_marker_count_matrices_multiple_compartments():
 
     unequal_masks = np.concatenate((cell_masks, nuc_masks), axis=-1)
 
-    segmentation_masks_unequal = test_utils.make_labels_xarray(
+    segmentation_labels_unequal = test_utils.make_labels_xarray(
         label_data=unequal_masks,
         compartment_names=['whole_cell', 'nuclear']
     )
@@ -241,7 +236,7 @@ def test_create_marker_count_matrices_multiple_compartments():
     channel_data = test_utils.make_images_xarray(channel_datas)
 
     normalized, arcsinh = marker_quantification.create_marker_count_matrices(
-        segmentation_masks_unequal,
+        segmentation_labels_unequal,
         channel_data,
         nuclear_counts=True
     )
@@ -304,13 +299,13 @@ def test_generate_cell_data_tree_loading():
 
         with pytest.raises(ValueError):
             # specifying fovs not in the original segmentation mask
-            marker_quantification.generate_cell_data(
+            marker_quantification.generate_cell_table(
                 segmentation_labels=segmentation_masks.loc[["fov1"]], tiff_dir=tiff_dir,
                 img_sub_folder=img_sub_folder, is_mibitiff=False, fovs=["fov1", "fov2"],
                 batch_size=5)
 
         # generate sample norm and arcsinh data for all fovs
-        norm_data, arcsinh_data = marker_quantification.generate_cell_data(
+        norm_data, arcsinh_data = marker_quantification.generate_cell_table(
             segmentation_labels=segmentation_masks, tiff_dir=tiff_dir,
             img_sub_folder=img_sub_folder, is_mibitiff=False, fovs=None, batch_size=2)
 
@@ -318,7 +313,7 @@ def test_generate_cell_data_tree_loading():
         assert arcsinh_data.shape[0] > 0 and arcsinh_data.shape[1] > 0
 
         # generate sample norm and arcsinh data for a subset of fovs
-        norm_data, arcsinh_data = marker_quantification.generate_cell_data(
+        norm_data, arcsinh_data = marker_quantification.generate_cell_table(
             segmentation_labels=segmentation_masks, tiff_dir=tiff_dir,
             img_sub_folder=img_sub_folder, is_mibitiff=False, fovs=fovs_subset, batch_size=2)
 
@@ -359,7 +354,7 @@ def test_generate_cell_data_mibitiff_loading():
         )
 
         # generate sample norm and arcsinh data for all fovs
-        norm_data, arcsinh_data = marker_quantification.generate_cell_data(
+        norm_data, arcsinh_data = marker_quantification.generate_cell_table(
             segmentation_labels=segmentation_masks, tiff_dir=tiff_dir,
             img_sub_folder=tiff_dir, is_mibitiff=True, fovs=None, batch_size=2)
 
@@ -367,7 +362,7 @@ def test_generate_cell_data_mibitiff_loading():
         assert arcsinh_data.shape[0] > 0 and arcsinh_data.shape[1] > 0
 
         # generate sample norm and arcsinh data for a subset of fovs
-        norm_data, arcsinh_data = marker_quantification.generate_cell_data(
+        norm_data, arcsinh_data = marker_quantification.generate_cell_table(
             segmentation_labels=segmentation_masks, tiff_dir=tiff_dir,
             img_sub_folder=tiff_dir, is_mibitiff=True, fovs=fovs_subset, batch_size=2)
 

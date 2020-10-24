@@ -74,9 +74,10 @@ def compute_marker_counts(input_images, segmentation_labels, nuclear_counts=Fals
 
         if split_large_nuclei:
             cell_labels = segmentation_labels.loc[:, :, 'whole_cell'].values
-            nuc_labels = segmentation_utils.split_large_nuclei(cell_segmentation_labels=cell_labels,
-                                                               nuc_segmentation_labels=nuc_labels,
-                                                               cell_ids=unique_cell_ids)
+            nuc_labels = \
+                segmentation_utils.split_large_nuclei(cell_segmentation_labels=cell_labels,
+                                                      nuc_segmentation_labels=nuc_labels,
+                                                      cell_ids=unique_cell_ids)
 
         nuc_props = pd.DataFrame(regionprops_table(nuc_labels, properties=regionprops_features))
 
@@ -103,7 +104,7 @@ def compute_marker_counts(input_images, segmentation_labels, nuclear_counts=Fals
 
         if nuclear_counts:
             # get id of corresponding nucleus
-            nuc_id = segmentation_utils.find_nuclear_label_id(nuc_segmentation_label=nuc_labels,
+            nuc_id = segmentation_utils.find_nuclear_label_id(nuc_segmentation_labels=nuc_labels,
                                                               cell_coords=cell_coords)
 
             if nuc_id is not None:
@@ -226,7 +227,7 @@ def create_marker_count_matrices(segmentation_labels, image_data, nuclear_counts
 
 
 def generate_cell_table(segmentation_labels, tiff_dir, img_sub_folder,
-                       is_mibitiff=False, fovs=None, batch_size=5):
+                        is_mibitiff=False, fovs=None, batch_size=5):
     """
     This function takes the segmented data and computes the expression matrices batch-wise
     while also validating inputs

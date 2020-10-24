@@ -65,7 +65,7 @@ def split_large_nuclei(cell_segmentation_labels, nuc_segmentation_labels, cell_i
         coords = cell_props.loc[cell_props['label'] == cell, 'coords'].values[0]
 
         nuc_id = find_nuclear_label_id(nuc_segmentation_labels=nuc_segmentation_labels,
-                                      cell_coords=coords)
+                                       cell_coords=coords)
 
         # only proceed if there's a valid nuc_id
         if nuc_id is not None:
