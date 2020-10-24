@@ -39,6 +39,7 @@ def load_imgs_from_mibitiff(data_dir, mibitiff_files=None, channels=None, delimi
 
     if not mibitiff_files:
         mibitiff_files = iou.list_files(data_dir, substrs=['.tif'])
+        mibitiff_files.sort()
 
     if len(mibitiff_files) == 0:
         raise ValueError("No mibitiff files specified in the data directory %s" % data_dir)
