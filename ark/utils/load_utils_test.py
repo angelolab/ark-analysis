@@ -131,8 +131,6 @@ def test_load_imgs_from_tree():
 
         assert loaded_xr.equals(data_xr)
 
-        # assert loaded_xr.equals(data_xr.loc[:, :, :, loaded_xr.coords['channels'].values])
-
     # test loading with data_xr containing float values
     with tempfile.TemporaryDirectory() as temp_dir:
         fovs, chans, imgs = test_utils.gen_fov_chan_names(num_fovs=1, num_chans=2,
