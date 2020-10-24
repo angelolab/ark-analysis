@@ -14,7 +14,7 @@ def test_compute_marker_counts_base():
     cell_mask, channel_data = test_utils.create_test_extraction_data()
 
     segmentation_labels = test_utils.make_labels_xarray(label_data=cell_mask,
-                                                       compartment_names=['whole_cell'])
+                                                        compartment_names=['whole_cell'])
 
     input_images = test_utils.make_images_xarray(channel_data)
 
