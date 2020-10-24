@@ -62,6 +62,8 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
         warnings.warn(f'{zip_path} will be overwritten.')
 
     # write all files to the zip file
+    print('Zipping preprocessed tif files.')
+
     with ZipFile(zip_path, 'w') as zipObj:
         for fov in fovs:
             filename = os.path.join(deepcell_input_dir, fov + '.tif')
@@ -71,9 +73,12 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
             zipObj.write(filename, os.path.basename(filename))
 
     # pass the zip file to deepcell.org, then remove it afterwards
+    print('Uploading files to DeppCell server.')
+
     run_deepcell_task(zip_path, deepcell_output_dir, host, job_type)
     os.remove(zip_path)
 
+    print('Extracting tif files from DeepCell response.')
     # extract the .tif output
     zip_files = glob.glob(os.path.join(deepcell_output_dir, '*.zip'))
     zip_files.sort(key=os.path.getmtime)
