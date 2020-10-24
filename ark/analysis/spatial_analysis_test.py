@@ -246,10 +246,13 @@ def test_generate_cluster_matrix_results():
             all_data_pos, neighbor_counts, cluster_num=1, excluded_colnames=excluded_colnames
         )
 
-    num_cell_type_per_cluster, mean_marker_exp_per_cluster = \
+    all_data_markers_clusters, num_cell_type_per_cluster, mean_marker_exp_per_cluster = \
         spatial_analysis.generate_cluster_matrix_results(
             all_data_pos, neighbor_counts, cluster_num=3, excluded_colnames=excluded_colnames
         )
+
+    # make sure we created a cluster_labels column
+    assert 'cluster_labels' in all_data_markers_clusters.columns.values
 
     # can't really assert specific locations of values because cluster assignment stochastic
     # check just indexes and shapes
