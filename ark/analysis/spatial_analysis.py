@@ -364,8 +364,9 @@ def generate_cluster_matrix_results(all_data, neighbor_mat, cluster_num, exclude
             the name of the column in all_data determining the cell type
 
     Returns:
-        tuple (pandas.DataFrame, pandas.DataFrame):
+        tuple (pandas.DataFrame, pandas.DataFrame, pandas.DataFrame):
 
+        - the expression matrix with the corresponding cluster labels attached
         - an a x b count matrix (a = # of clusters, b = # of cell types) with
           cluster ids indexed row-wise and cell types indexed column-wise,
           indicates number of cell types that are within each cluster
@@ -421,7 +422,7 @@ def generate_cluster_matrix_results(all_data, neighbor_mat, cluster_num, exclude
     # create a mean pivot table with cluster_label_col as row and channels as column
     mean_marker_exp_per_cluster = all_data_markers_clusters.groupby([cluster_label_col]).mean()
 
-    return num_cell_type_per_cluster, mean_marker_exp_per_cluster
+    return all_data_clusters, num_cell_type_per_cluster, mean_marker_exp_per_cluster
 
 
 def compute_cluster_metrics(neighbor_mat, max_k=10, included_fovs=None,

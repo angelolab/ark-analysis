@@ -19,3 +19,7 @@ def test_segment_image_data(mocker):
 
 def test_example_spatial_analysis():
     _exec_notebook('example_spatial_analysis_script.ipynb')
+
+
+def test_example_neighborhood_analysis():
+    _exec_notebook('example_neighborhood_analysis_script.ipynb')
