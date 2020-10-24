@@ -70,7 +70,7 @@ def split_large_nuclei(cell_segmentation_labels, nuc_segmentation_labels, cell_i
         # only proceed if there's a valid nuc_id
         if nuc_id is not None:
             # figure out if nuclear label is completely contained within cell label
-            cell_vals = cell_segmentation_labels[tuple(coords.T)]
+            cell_vals = nuc_segmentation_labels[tuple(coords.T)]
             nuc_count = np.sum(cell_vals == nuc_id)
 
             nuc_mask = nuc_segmentation_labels == nuc_id
