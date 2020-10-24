@@ -10,12 +10,12 @@ from skimage.morphology import remove_small_objects
 from ark.utils import io_utils, misc_utils
 
 
-def find_nuclear_mask_id(nuc_segmentation_mask, cell_coords):
+def find_nuclear_label_id(nuc_segmentation_labels, cell_coords):
     """Get the ID of the nuclear mask which has the greatest amount of overlap with a given cell
 
     Args:
-        nuc_segmentation_mask (numpy.ndarray):
-            label mask of nuclear segmentations
+        nuc_segmentation_labels (numpy.ndarray):
+            predicted nuclear segmentations
         cell_coords (list):
             list of coords specifying pixels that belong to a cell
 
@@ -25,25 +25,25 @@ def find_nuclear_mask_id(nuc_segmentation_mask, cell_coords):
             If no matches found, returns None.
     """
 
-    ids, counts = np.unique(nuc_segmentation_mask[tuple(cell_coords.T)], return_counts=True)
+    ids, counts = np.unique(nuc_segmentation_labels[tuple(cell_coords.T)], return_counts=True)
 
     # Return nuclear ID with greatest overlap. If only 0, return None
     if ids[ids != 0].size == 0:
-        nuclear_mask_id = None
+        nuclear_label_id = None
     else:
-        nuclear_mask_id = ids[ids != 0][np.argmax(counts[ids != 0])]
+        nuclear_label_id = ids[ids != 0][np.argmax(counts[ids != 0])]
 
-    return nuclear_mask_id
+    return nuclear_label_id
 
 
-def split_large_nuclei(cell_segmentation_mask, nuc_segmentation_mask, cell_ids, min_size=5):
+def split_large_nuclei(cell_segmentation_labels, nuc_segmentation_labels, cell_ids, min_size=5):
     """Splits nuclei that are bigger than the corresponding cell into multiple pieces
 
     Args:
-        cell_segmentation_mask (numpy.ndarray):
-            mask of cell segmentations
-        nuc_segmentation_mask (numpy.ndarray):
-            mask of nuclear segmentations
+        cell_segmentation_labels (numpy.ndarray):
+            predicted cell segmentations
+        nuc_segmentation_labels (numpy.ndarray):
+            predicted nuclear segmentations
         cell_ids (numpy.ndarray):
             the unique cells in the segmentation mask
         min_size (int):
@@ -55,44 +55,44 @@ def split_large_nuclei(cell_segmentation_mask, nuc_segmentation_mask, cell_ids, 
             modified nuclear segmentation mask
     """
 
-    nuc_mask_modified = np.copy(nuc_segmentation_mask)
-    max_nuc_id = np.max(nuc_segmentation_mask)
+    nuc_labels_modified = np.copy(nuc_segmentation_labels)
+    max_nuc_id = np.max(nuc_segmentation_labels)
 
-    cell_props = pd.DataFrame(regionprops_table(cell_segmentation_mask,
+    cell_props = pd.DataFrame(regionprops_table(cell_segmentation_labels,
                                                 properties=['label', 'coords']))
 
     for cell in cell_ids:
         coords = cell_props.loc[cell_props['label'] == cell, 'coords'].values[0]
 
-        nuc_id = find_nuclear_mask_id(nuc_segmentation_mask=nuc_segmentation_mask,
+        nuc_id = find_nuclear_label_id(nuc_segmentation_labels=nuc_segmentation_labels,
                                       cell_coords=coords)
 
         # only proceed if there's a valid nuc_id
         if nuc_id is not None:
             # figure out if nuclear label is completely contained within cell label
-            cell_vals = nuc_segmentation_mask[tuple(coords.T)]
+            cell_vals = cell_segmentation_labels[tuple(coords.T)]
             nuc_count = np.sum(cell_vals == nuc_id)
 
-            nuc_mask = nuc_segmentation_mask == nuc_id
+            nuc_mask = nuc_segmentation_labels == nuc_id
 
             # only proceed if a non-negligible part of the nucleus is outside of the cell
             if np.sum(nuc_mask) - nuc_count > min_size:
                 # relabel nuclear counts within the cell
-                cell_mask = cell_segmentation_mask == cell
+                cell_mask = cell_segmentation_labels == cell
                 new_nuc_mask = np.logical_and(cell_mask, nuc_mask)
                 max_nuc_id += 1
-                nuc_mask_modified[new_nuc_mask] = max_nuc_id
+                nuc_labels_modified[new_nuc_mask] = max_nuc_id
 
-    nuc_mask_modified = remove_small_objects(ar=nuc_mask_modified, min_size=5)
+    nuc_labels_modified = remove_small_objects(ar=nuc_labels_modified, min_size=5)
 
-    return nuc_mask_modified
+    return nuc_labels_modified
 
 
-def transform_expression_matrix(cell_data, transform, transform_kwargs=None):
+def transform_expression_matrix(cell_table, transform, transform_kwargs=None):
     """Transform an xarray of marker counts with supplied transformation
 
     Args:
-        cell_data (xarray.DataArray):
+        cell_table (xarray.DataArray):
             xarray containing marker expression values
         transform (str):
             the type of transform to apply. Must be size_norm or arcsinh
@@ -110,38 +110,38 @@ def transform_expression_matrix(cell_data, transform, transform_kwargs=None):
         transform_kwargs = {}
 
     # generate array to hold transformed data
-    cell_data_transformed = copy.deepcopy(cell_data)
+    cell_table_transformed = copy.deepcopy(cell_table)
 
     # get start and end indices of channel data. We skip the 0th entry, which is cell size
     channel_start = 1
 
     # we include columns up to 'label', which is the first non-channel column
-    channel_end = np.where(cell_data.features == 'label')[0][0]
+    channel_end = np.where(cell_table.features == 'label')[0][0]
 
     if transform == 'size_norm':
 
         # get the size of each cell
-        cell_size = cell_data.values[:, :, 0:1]
+        cell_size = cell_table.values[:, :, 0:1]
 
         # generate cell_size array that is broadcast to have the same shape as the channels
         cell_size_large = np.repeat(cell_size, channel_end - channel_start, axis=2)
 
         # Only calculate where cell_size > 0
-        cell_data_transformed.values[:, :, channel_start:channel_end] = \
-            np.divide(cell_data_transformed.values[:, :, channel_start:channel_end],
+        cell_table_transformed.values[:, :, channel_start:channel_end] = \
+            np.divide(cell_table_transformed.values[:, :, channel_start:channel_end],
                       cell_size_large, where=cell_size_large > 0)
 
     elif transform == 'arcsinh':
         linear_factor = transform_kwargs.get('linear_factor', 100)
 
         # first linearly scale the data
-        cell_data_transformed.values[:, :, channel_start:channel_end] *= linear_factor
+        cell_table_transformed.values[:, :, channel_start:channel_end] *= linear_factor
 
         # arcsinh transformation
-        cell_data_transformed.values[:, :, channel_start:channel_end] = \
-            np.arcsinh(cell_data_transformed[:, :, channel_start:channel_end].values)
+        cell_table_transformed.values[:, :, channel_start:channel_end] = \
+            np.arcsinh(cell_table_transformed[:, :, channel_start:channel_end].values)
 
-    return cell_data_transformed
+    return cell_table_transformed
 
 
 def concatenate_csv(base_dir, csv_files, column_name="fov", column_values=None):

@@ -11,14 +11,14 @@ from ark.utils import io_utils, load_utils, misc_utils, segmentation_utils
 from ark.segmentation import signal_extraction
 
 
-def compute_marker_counts(input_images, segmentation_masks, nuclear_counts=False,
+def compute_marker_counts(input_images, segmentation_labels, nuclear_counts=False,
                           regionprops_features=None, split_large_nuclei=False):
     """Extract single cell protein expression data from channel TIFs for a single fov
 
     Args:
         input_images (xarray.DataArray):
             rows x columns x channels matrix of imaging data
-        segmentation_masks (numpy.ndarray):
+        segmentation_labels (numpy.ndarray):
             rows x columns x compartment matrix of masks
         nuclear_counts (bool):
             boolean flag to determine whether nuclear counts are returned
@@ -48,7 +48,7 @@ def compute_marker_counts(input_images, segmentation_masks, nuclear_counts=False
         regionprops_names.remove('centroid')
         regionprops_names += ['centroid-0', 'centroid-1']
 
-    unique_cell_ids = np.unique(segmentation_masks[..., 0].values)
+    unique_cell_ids = np.unique(segmentation_labels[..., 0].values)
     unique_cell_ids = unique_cell_ids[np.nonzero(unique_cell_ids)]
 
     # create labels for array holding channel counts and morphology metrics
@@ -56,29 +56,29 @@ def compute_marker_counts(input_images, segmentation_masks, nuclear_counts=False
                                     regionprops_names), axis=None)
 
     # create np.array to hold compartment x cell x feature info
-    marker_counts_array = np.zeros((len(segmentation_masks.compartments), len(unique_cell_ids),
+    marker_counts_array = np.zeros((len(segmentation_labels.compartments), len(unique_cell_ids),
                                     len(feature_names)))
 
     marker_counts = xr.DataArray(copy.copy(marker_counts_array),
-                                 coords=[segmentation_masks.compartments,
+                                 coords=[segmentation_labels.compartments,
                                          unique_cell_ids.astype('int'),
                                          feature_names],
                                  dims=['compartments', 'cell_id', 'features'])
 
     # get regionprops for each cell
-    cell_props = pd.DataFrame(regionprops_table(segmentation_masks.loc[:, :, 'whole_cell'].values,
+    cell_props = pd.DataFrame(regionprops_table(segmentation_labels.loc[:, :, 'whole_cell'].values,
                                                 properties=regionprops_features))
 
     if nuclear_counts:
-        nuc_mask = segmentation_masks.loc[:, :, 'nuclear'].values
+        nuc_labels = segmentation_labels.loc[:, :, 'nuclear'].values
 
         if split_large_nuclei:
-            cell_mask = segmentation_masks.loc[:, :, 'whole_cell'].values
-            nuc_mask = segmentation_utils.split_large_nuclei(cell_segmentation_mask=cell_mask,
-                                                             nuc_segmentation_mask=nuc_mask,
-                                                             cell_ids=unique_cell_ids)
+            cell_labels = segmentation_labels.loc[:, :, 'whole_cell'].values
+            nuc_labels = segmentation_utils.split_large_nuclei(cell_segmentation_labels=cell_labels,
+                                                               nuc_segmentation_labels=nuc_labels,
+                                                               cell_ids=unique_cell_ids)
 
-        nuc_props = pd.DataFrame(regionprops_table(nuc_mask, properties=regionprops_features))
+        nuc_props = pd.DataFrame(regionprops_table(nuc_labels, properties=regionprops_features))
 
     # TODO: There's some repeated code here, maybe worth refactoring? Maybe not
     # loop through each cell in mask
@@ -103,8 +103,8 @@ def compute_marker_counts(input_images, segmentation_masks, nuclear_counts=False
 
         if nuclear_counts:
             # get id of corresponding nucleus
-            nuc_id = segmentation_utils.find_nuclear_mask_id(nuc_segmentation_mask=nuc_mask,
-                                                             cell_coords=cell_coords)
+            nuc_id = segmentation_utils.find_nuclear_label_id(nuc_segmentation_label=nuc_labels,
+                                                              cell_coords=cell_coords)
 
             if nuc_id is not None:
                 # get coordinates of corresponding nucleus
@@ -225,7 +225,7 @@ def create_marker_count_matrices(segmentation_labels, image_data, nuclear_counts
     return normalized_data, arcsinh_data
 
 
-def generate_cell_data(segmentation_labels, tiff_dir, img_sub_folder,
+def generate_cell_table(segmentation_labels, tiff_dir, img_sub_folder,
                        is_mibitiff=False, fovs=None, batch_size=5):
     """
     This function takes the segmented data and computes the expression matrices batch-wise
@@ -279,8 +279,8 @@ def generate_cell_data(segmentation_labels, tiff_dir, img_sub_folder,
     cohort_len = len(fovs)
 
     # create the final dfs to store the processed data
-    combined_cell_size_normalized_data = pd.DataFrame()
-    combined_arcsinh_transformed_data = pd.DataFrame()
+    combined_cell_table_size_normalized = pd.DataFrame()
+    combined_cell_table_arcsinh_transformed = pd.DataFrame()
 
     # iterate over all the batches
     for batch_names, batch_files in zip(
@@ -300,17 +300,17 @@ def generate_cell_data(segmentation_labels, tiff_dir, img_sub_folder,
         current_labels = segmentation_labels.loc[batch_names, :, :, :]
 
         # segment the imaging data
-        cell_size_normalized_data, arcsinh_transformed_data = create_marker_count_matrices(
+        cell_table_size_normalized, cell_table_arcsinh_transformed = create_marker_count_matrices(
             segmentation_labels=current_labels,
             image_data=image_data
         )
 
         # now append to the final dfs to return
-        combined_cell_size_normalized_data = combined_cell_size_normalized_data.append(
-            cell_size_normalized_data
+        combined_cell_table_size_normalized = combined_cell_table_size_normalized.append(
+            cell_table_size_normalized
         )
-        combined_arcsinh_transformed_data = combined_arcsinh_transformed_data.append(
-            arcsinh_transformed_data
+        combined_cell_table_arcsinh_transformed = combined_cell_table_arcsinh_transformed.append(
+            cell_table_arcsinh_transformed
         )
 
-    return combined_cell_size_normalized_data, combined_arcsinh_transformed_data
+    return combined_cell_table_size_normalized, combined_cell_table_arcsinh_transformed
