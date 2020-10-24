@@ -67,9 +67,6 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
     with ZipFile(zip_path, 'w') as zipObj:
         for fov in fovs:
             filename = os.path.join(deepcell_input_dir, fov + '.tif')
-            if not os.path.isfile(filename):
-                raise ValueError('Could not find .tif file for %s. '
-                                 'Invalid value for %s' % (fov, filename))
             zipObj.write(filename, os.path.basename(filename))
 
     # pass the zip file to deepcell.org, then remove it afterwards
