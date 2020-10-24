@@ -77,8 +77,6 @@ def load_imgs_from_mibitiff(data_dir, mibitiff_files=None, channels=None, delimi
                                   range(img_data[0].data.shape[1]), channels],
                           dims=["fovs", "rows", "cols", "channels"])
 
-    img_xr = img_xr.sortby('fovs').sortby('channels')
-
     return img_xr
 
 
@@ -239,6 +237,7 @@ def load_imgs_from_dir(data_dir, files=None, delimiter=None, xr_dim_name='compar
 
     if files is None:
         imgs = iou.list_files(data_dir, substrs=['.tif', '.jpg', '.png'])
+        imgs.sort()
     else:
         imgs = files
         for img in imgs:
@@ -316,7 +315,5 @@ def load_imgs_from_dir(data_dir, files=None, delimiter=None, xr_dim_name='compar
                                   xr_channel_names if xr_channel_names
                                   else range(img_data.shape[3])],
                           dims=["fovs", "rows", "cols", xr_dim_name])
-
-    img_xr = img_xr.sortby('fovs').sortby(xr_dim_name)
 
     return img_xr
