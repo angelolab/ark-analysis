@@ -13,7 +13,7 @@
 
 .. toctree::
    :hidden:
-   :caption: Libraries
+   :caption: Modules
    :maxdepth: 4
 
    analysis <_markdown/ark.analysis>
