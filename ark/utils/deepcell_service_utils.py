@@ -54,7 +54,7 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
     # make sure that all fovs actually exist in the list of input_files
     misc_utils.verify_in_list(
         fovs=fovs,
-        deepcell_input_files=[in_file.replace('.tif', '') for in_file in input_files])
+        deepcell_input_files=io_utils.extract_delimited_names(input_files, delimiter='.'))
 
     # define the location of the zip file for our fovs
     zip_path = os.path.join(deepcell_input_dir, 'fovs.zip')
@@ -70,7 +70,7 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
             zipObj.write(filename, os.path.basename(filename))
 
     # pass the zip file to deepcell.org, then remove it afterwards
-    print('Uploading files to DeppCell server.')
+    print('Uploading files to DeepCell server.')
 
     run_deepcell_task(zip_path, deepcell_output_dir, host, job_type)
     os.remove(zip_path)
