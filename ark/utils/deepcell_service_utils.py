@@ -59,7 +59,8 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
     # define the location of the zip file for our fovs
     zip_path = os.path.join(deepcell_input_dir, 'fovs.zip')
     if os.path.isfile(zip_path):
-        warnings.warn(f'{zip_path} will be overwritten.')
+        print(f'{zip_path} will be overwritten')
+        warnings.warn('overwriting')
 
     # write all files to the zip file
     print('Zipping preprocessed tif files.')
