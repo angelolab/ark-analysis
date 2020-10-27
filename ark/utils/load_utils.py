@@ -39,6 +39,7 @@ def load_imgs_from_mibitiff(data_dir, mibitiff_files=None, channels=None, delimi
 
     if not mibitiff_files:
         mibitiff_files = iou.list_files(data_dir, substrs=['.tif'])
+        mibitiff_files.sort()
 
     if len(mibitiff_files) == 0:
         raise ValueError("No mibitiff files specified in the data directory %s" % data_dir)
@@ -76,8 +77,6 @@ def load_imgs_from_mibitiff(data_dir, mibitiff_files=None, channels=None, delimi
                           coords=[fovs, range(img_data[0].data.shape[0]),
                                   range(img_data[0].data.shape[1]), channels],
                           dims=["fovs", "rows", "cols", "channels"])
-
-    img_xr = img_xr.sortby('fovs').sortby('channels')
 
     return img_xr
 
@@ -128,10 +127,19 @@ def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, channels=None,
         channels.sort()
     # otherwise, fill channel names with correct file extension
     elif not all([img.endswith(("tif", "tiff", "jpg", "png")) for img in channels]):
+        # need this to reorder channels back because list_files may mess up the ordering
+        channels_no_delim = [img.split('.')[0] for img in channels]
+
         channels = iou.list_files(
             os.path.join(data_dir, fovs[0], img_sub_folder),
             substrs=channels
         )
+
+        # get the corresponding indices found in channels_no_delim
+        channels_indices = [channels_no_delim.index(chan.split('.')[0]) for chan in channels]
+
+        # reorder back to original
+        channels = [chan for _, chan in sorted(zip(channels_indices, channels))]
 
     if len(channels) == 0:
         raise ValueError("No images found in designated folder")
@@ -177,9 +185,6 @@ def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, channels=None,
 
     img_xr = xr.DataArray(img_data, coords=[fovs, row_coords, col_coords, img_names],
                           dims=["fovs", "rows", "cols", "channels"])
-
-    # sort by fovs and channels for deterministic result
-    img_xr = img_xr.sortby('fovs').sortby('channels')
 
     return img_xr
 
@@ -233,6 +238,7 @@ def load_imgs_from_dir(data_dir, files=None, delimiter=None, xr_dim_name='compar
 
     if files is None:
         imgs = iou.list_files(data_dir, substrs=['.tif', '.jpg', '.png'])
+        imgs.sort()
     else:
         imgs = files
         for img in imgs:
@@ -310,7 +316,5 @@ def load_imgs_from_dir(data_dir, files=None, delimiter=None, xr_dim_name='compar
                                   xr_channel_names if xr_channel_names
                                   else range(img_data.shape[3])],
                           dims=["fovs", "rows", "cols", xr_dim_name])
-
-    img_xr = img_xr.sortby('fovs').sortby(xr_dim_name)
 
     return img_xr
