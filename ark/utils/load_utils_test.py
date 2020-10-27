@@ -121,7 +121,7 @@ def test_load_imgs_from_tree():
             load_utils.load_imgs_from_tree(temp_dir, img_sub_folder="TIFs", dtype="int16",
                                            channels=some_chans)
 
-        assert loaded_xr.equals(data_xr[:, :, :, :2], )
+        assert loaded_xr.equals(data_xr[:, :, :, :2])
 
         # check mixed extension presence
         loaded_xr = \
