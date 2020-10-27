@@ -42,7 +42,7 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
     """
 
     # extract all the files from deepcell_input_dir
-    input_files = io_utils.list_files(deepcell_input_dir, substrs='.tif')
+    input_files = io_utils.list_files(deepcell_input_dir, substrs=['.tif', '.tiff'])
 
     # set fovs equal to input_files it not already set
     if fovs is None:
@@ -66,17 +66,21 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
 
     with ZipFile(zip_path, 'w') as zipObj:
         for fov in fovs:
-            filename = os.path.join(deepcell_input_dir, fov + '.tif')
+            # file has .tif extension
+            if fov + '.tif' in input_files:
+                filename = os.path.join(deepcell_input_dir, fov + '.tif')
+            # file has .tiff extension
+            else:
+                filename = os.path.join(deepcell_input_dir, fov + '.tiff')
+
             zipObj.write(filename, os.path.basename(filename))
 
-    # pass the zip file to deepcell.org, then remove it afterwards
+    # pass the zip file to deepcell.org
     print('Uploading files to DeepCell server.')
-
     run_deepcell_task(zip_path, deepcell_output_dir, host, job_type)
-    os.remove(zip_path)
 
-    print('Extracting tif files from DeepCell response.')
     # extract the .tif output
+    print('Extracting tif files from DeepCell response.')
     zip_files = glob.glob(os.path.join(deepcell_output_dir, '*.zip'))
     zip_files.sort(key=os.path.getmtime)
     with ZipFile(zip_files[-1], 'r') as zipObj:
