@@ -43,8 +43,9 @@ def test_find_nuclear_mask_id():
 
     # check that predicted nuclear id is correct for all cells in image
     for idx, prop in enumerate(cell_props):
-        predicted_nuc = segmentation_utils.find_nuclear_mask_id(nuc_segmentation_mask=nuc_labels,
-                                                                cell_coords=prop.coords)
+        predicted_nuc = \
+            segmentation_utils.find_nuclear_label_id(nuc_segmentation_labels=nuc_labels,
+                                                     cell_coords=prop.coords)
 
         assert predicted_nuc == true_nuc_ids[idx]
 
@@ -67,8 +68,8 @@ def test_split_large_nuclei():
     # only partially overlaps the cell
     nuc_mask[33:37, 12:20] = 5
 
-    split_mask = segmentation_utils.split_large_nuclei(nuc_segmentation_mask=nuc_mask,
-                                                       cell_segmentation_mask=cell_mask,
+    split_mask = segmentation_utils.split_large_nuclei(nuc_segmentation_labels=nuc_mask,
+                                                       cell_segmentation_labels=cell_mask,
                                                        cell_ids=np.array([1, 2, 3, 5]))
 
     # nuc 1 and 2 are unchanged
