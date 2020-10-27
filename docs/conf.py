@@ -149,8 +149,7 @@ intersphinx_mapping = {
 intersphinx_cache_limit = 0
 
 
-# this function appends the proper lines and formatting to landing.md
-# so it can get displayed properly
+# appends README.md to landing.md and adds proper formatting
 def append_readme():
     with open(os.path.join('..', 'README.md')) as fin, open(os.path.join('_rtd', 'landing.md'), 'a') as fout:
         # flag to identify when to start writing to file, doing this because we don't want to
@@ -168,6 +167,45 @@ def append_readme():
             # append line to landing.md
             if seen_heading:
                 fout.write(line)
+
+
+# removes unnecessary text from the .md files created by sphinx-apidoc
+def trim_rtd():
+    # for some reason, sphinx-apidoc generates a .md file for the entire project, remove
+    os.remove(os.path.join('_markdown', 'ark.md'))
+
+    for md in os.listdir('_markdown'):
+        with open(os.path.join('_markdown', md)) as fin:
+            md_lines = fin.readlines()
+
+        # define a list of new lines we wish to append
+        new_lines = []
+
+        # whether to skip the line or not
+        write_line = True
+
+        for line in md_lines:
+            # skip writing a line, doing it this way: don't want nested if statements here
+            if not write_line:
+                write_line = True
+                continue
+
+            # remove "package" from the title
+            if 'package' in line:
+                new_lines.append(line.replace(' package', ''))
+            # don't write "Submodules" or the "---..." after it
+            elif 'Submodules' in line:
+                write_line = False
+            elif 'module' in line:
+                new_lines.append(line.replace(' module', ''))
+            # don't write anything after or including Module contents
+            elif 'Module contents' in line:
+                break
+            else:
+                new_lines.append(line)
+
+        with open(os.path.join('_markdown', md), "w") as fout:
+            fout.write(''.join(new_lines))
 
 
 # this we'll need to build the documentation from sphinx-apidoc ourselves
@@ -198,7 +236,11 @@ def run_apidoc(_):
     subprocess.check_call([cmd_path, '-f', '-T', '-s', output_ext,
                            '-o', output_path, module, ignore])
 
+    # remove extraneous text created by sphinx-apidoc
+    trim_rtd()
 
+
+# check for formatting errors in the docstring not caught by RTD's backend
 def check_docstring_format(app, what, name, obj, options, lines):
     if what == 'function':
         argnames = inspect.getargspec(obj)[0]
@@ -290,5 +332,5 @@ def check_docstring_format(app, what, name, obj, options, lines):
 
 
 def setup(app):
-    app.connect('builder-inited', run_apidoc) # run sphinx-apidoc
-    app.connect('autodoc-process-docstring', check_docstring_format) # run a docstring-style check
+    app.connect('builder-inited', run_apidoc)  # run sphinx-apidoc
+    app.connect('autodoc-process-docstring', check_docstring_format)  # run a docstring-style check
