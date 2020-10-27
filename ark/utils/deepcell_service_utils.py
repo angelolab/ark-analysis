@@ -6,6 +6,8 @@ import glob
 from zipfile import ZipFile
 import warnings
 
+from ark.utils import misc_utils
+
 
 def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
                            suffix='_feature_0', host='https://deepcell.org', job_type='multiplex'):
@@ -37,30 +39,49 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
             ValueError:
                 Raised if there is some fov X (from fovs list) s.t.
                 the file <deepcell_input_dir>/fovX.tif does not exist
-        """
-    if fovs is None:
-        tifs = io_utils.list_files(deepcell_input_dir, substrs='.tif')
-        fovs = io_utils.extract_delimited_names(tifs, delimiter='.')
+    """
 
+    # extract all the files from deepcell_input_dir
+    input_files = io_utils.list_files(deepcell_input_dir, substrs=['.tif', '.tiff'])
+
+    # set fovs equal to input_files it not already set
+    if fovs is None:
+        fovs = input_files
+
+    # now extract only the names of the fovs without the file extension
+    fovs = io_utils.extract_delimited_names(fovs, delimiter='.')
+
+    # make sure that all fovs actually exist in the list of input_files
+    misc_utils.verify_in_list(
+        fovs=fovs,
+        deepcell_input_files=io_utils.extract_delimited_names(input_files, delimiter='.'))
+
+    # define the location of the zip file for our fovs
     zip_path = os.path.join(deepcell_input_dir, 'fovs.zip')
     if os.path.isfile(zip_path):
-        warnings.warn(f'{zip_path} will be overwritten.')
+        print(f'{zip_path} will be overwritten')
+        warnings.warn('overwriting')
 
+    # write all files to the zip file
     print('Zipping preprocessed tif files.')
+
     with ZipFile(zip_path, 'w') as zipObj:
         for fov in fovs:
-            filename = os.path.join(deepcell_input_dir, fov + '.tif')
-            if not os.path.isfile(filename):
-                raise ValueError('Could not find .tif file for %s. '
-                                 'Invalid value for %s' % (fov, filename))
+            # file has .tif extension
+            if fov + '.tif' in input_files:
+                filename = os.path.join(deepcell_input_dir, fov + '.tif')
+            # file has .tiff extension
+            else:
+                filename = os.path.join(deepcell_input_dir, fov + '.tiff')
+
             zipObj.write(filename, os.path.basename(filename))
 
-    print('Uploading files to DeppCell server.')
+    # pass the zip file to deepcell.org
+    print('Uploading files to DeepCell server.')
     run_deepcell_task(zip_path, deepcell_output_dir, host, job_type)
-    os.remove(zip_path)
 
-    print('Extracting tif files from DeepCell response.')
     # extract the .tif output
+    print('Extracting tif files from DeepCell response.')
     zip_files = glob.glob(os.path.join(deepcell_output_dir, '*.zip'))
     zip_files.sort(key=os.path.getmtime)
     with ZipFile(zip_files[-1], 'r') as zipObj:
@@ -87,7 +108,7 @@ def run_deepcell_task(input_dir, output_dir, host='https://deepcell.org',
             job_type (str):
                 Name of job workflow (multiplex, segmentation, tracking).
                 Default: 'multiplex'
-        """
+    """
 
     mgr_kwargs = {
         'host': host,
