@@ -7,8 +7,7 @@ assignees: ''
 
 ---
 
-**Note**
-Please refer to our [FAQ](https://ark-analysis.readthedocs.io/en/latest/_rtd/faq.html) and look at our [known issues](https://github.com/angelolab/ark-analysis/issues) before opening a bug report.
+*Please refer to our [FAQ](https://ark-analysis.readthedocs.io/en/latest/_rtd/faq.html) and look at our [known issues](https://github.com/angelolab/ark-analysis/issues) before opening a bug report.*
 
 **Describe the bug**
 A clear and concise description of what the bug is.
