@@ -3,7 +3,7 @@ from twisted.internet import reactor
 from kiosk_client import manager
 import os
 import glob
-from zipfile import ZipFile
+from zipfile import ZipFile, ZIP_DEFLATED
 import warnings
 
 from ark.utils import misc_utils
@@ -65,7 +65,7 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
     # write all files to the zip file
     print('Zipping preprocessed tif files.')
 
-    with ZipFile(zip_path, 'w') as zipObj:
+    with ZipFile(zip_path, 'w', compression=ZIP_DEFLATED) as zipObj:
         for fov in fovs:
             # file has .tif extension
             if fov + '.tif' in input_files:
