@@ -7,6 +7,9 @@ assignees: ''
 
 ---
 
+**Note**
+Please refer to our [FAQ](https://ark-analysis.readthedocs.io/en/latest/_rtd/faq.html) before opening a bug report.
+
 **Describe the bug**
 A clear and concise description of what the bug is.
 
