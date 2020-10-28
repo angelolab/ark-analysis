@@ -168,9 +168,6 @@ def create_marker_count_matrices(segmentation_labels, image_data, nuclear_counts
     misc_utils.verify_same_elements(segmentation_labels_fovs=segmentation_labels.fovs.values,
                                     img_data_fovs=image_data.fovs.values)
 
-    if not np.all(set(segmentation_labels.fovs.values) == set(image_data.fovs.values)):
-        raise ValueError("The same fovs must be present in the segmentation labels and images")
-
     # initialize data frames
     normalized_data = pd.DataFrame()
     arcsinh_data = pd.DataFrame()
