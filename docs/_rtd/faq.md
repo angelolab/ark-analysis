@@ -22,11 +22,13 @@ If you would like to do something slightly different with MIBI-scanned images, y
 
 If you would like to add a feature on your own, please check out our [contributing](contributing.md) guidelines. 
 
-### I accidentally changed one of the source files
+### I accidentally changed/deleted one of the source files
 
 If that happens, don't panic. If you can't remember what the original code was, run `git restore path/to/file/changed` to reset the file back to its original state. 
 
 For example, let's say you accidentally changed `segmentation_utils.py`. To restore the file back to its original state, simply run `git restore ark/utils/segmentation_utils.py`. The path must be computed from the `ark-analysis` root. 
+
+The above process will also work if you accidentally deleted one of the source files as well. 
 
 A few exceptions to keep in mind:
 * We have a few default images we keep in our `git` repo that you may end up overwriting. If that happens, you do not need to restore the original. 
