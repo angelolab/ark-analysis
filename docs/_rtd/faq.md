@@ -2,7 +2,7 @@
 
 ### When I run the notebook, it says "No module named 'ark'"
 
-This error almost universally happens if you run the notebook outside of Docker. Simply running `jupyter notebook` or `jupyter lab` on a notebook will not start Docker for you. You need to explicitly run `bash start_docker.sh` and follow the prompts in our [readme](landing.md). 
+This error almost universally happens if you run the notebook outside of Docker. Simply running `jupyter notebook` or `jupyter lab` on a notebook will not start Docker for you. You need to explicitly run `bash start_docker.sh` and follow the prompts in our [README](https://github.com/angelolab/ark-analysis/blob/master/README.md). 
 
 Even if you started Docker, make sure you actually copy the link into your browser and run our notebooks from there. Don't start another local Jupyter server on your computer to run the notebooks. 
 
