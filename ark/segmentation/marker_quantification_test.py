@@ -201,6 +201,24 @@ def test_create_marker_count_matrices_base():
     assert np.array_equal(normalized['chan0'], np.repeat(1, len(normalized)))
     assert np.array_equal(normalized['chan1'], np.repeat(5, len(normalized)))
 
+    # error checking
+    with pytest.raises(ValueError):
+        # attempt to pass non-xarray for segmentation_labels
+        marker_quantification.create_marker_count_matrices(segmentation_labels.values,
+                                                           channel_data)
+
+    with pytest.raises(ValueError):
+        marker_quantification.create_marker_count_matrices(segmentation_labels,
+                                                           channel_data.values)
+
+    segmentation_labels_bad = segmentation_labels.copy()
+    segmentation_labels_bad = segmentation_labels_bad.reindex({'fovs': [1, 2]})
+
+    with pytest.raises(ValueError):
+        # attempt to pass segmentation_labels and channel_data with different fovs
+        marker_quantification.create_marker_count_matrices(segmentation_labels_bad,
+                                                           channel_data)
+
 
 def test_create_marker_count_matrices_multiple_compartments():
 
