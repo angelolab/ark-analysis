@@ -211,16 +211,13 @@ def test_create_marker_count_matrices_base():
         marker_quantification.create_marker_count_matrices(segmentation_labels,
                                                            channel_data.values)
 
-    channel_data_bad = channel_data.copy()
-    channel_data_bad = channel_data_bad.reindex({'fovs': [0, 1]})
-
     segmentation_labels_bad = segmentation_labels.copy()
     segmentation_labels_bad = segmentation_labels_bad.reindex({'fovs': [1, 2]})
 
     with pytest.raises(ValueError):
         # attempt to pass segmentation_labels and channel_data with different fovs
         marker_quantification.create_marker_count_matrices(segmentation_labels_bad,
-                                                           channel_data_bad)
+                                                           channel_data)
 
 
 def test_create_marker_count_matrices_multiple_compartments():
