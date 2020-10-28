@@ -2,6 +2,7 @@
 [![Coverage Status](https://coveralls.io/repos/github/angelolab/ark-analysis/badge.svg?branch=master)](https://coveralls.io/github/angelolab/ark-analysis?branch=master)
 
 # ark-analysis
+
 Toolbox for analyzing multiplexed imaging data
 
 Full documentation for the project can be found [here](https://ark-analysis.readthedocs.io/en/latest/)
