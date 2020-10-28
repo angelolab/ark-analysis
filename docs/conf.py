@@ -149,8 +149,7 @@ intersphinx_mapping = {
 intersphinx_cache_limit = 0
 
 
-# this function appends the proper lines and formatting to landing.md
-# so it can get displayed properly
+# appends README.md to landing.md and adds proper formatting
 def append_readme():
     with open(os.path.join('..', 'README.md')) as fin, open(os.path.join('_rtd', 'landing.md'), 'a') as fout:
         # flag to identify when to start writing to file, doing this because we don't want to
@@ -168,6 +167,45 @@ def append_readme():
             # append line to landing.md
             if seen_heading:
                 fout.write(line)
+
+
+# removes unnecessary text from the .md files created by sphinx-apidoc
+def trim_rtd():
+    # for some reason, sphinx-apidoc generates a .md file for the entire project, remove
+    os.remove(os.path.join('_markdown', 'ark.md'))
+
+    for md in os.listdir('_markdown'):
+        with open(os.path.join('_markdown', md)) as fin:
+            md_lines = fin.readlines()
+
+        # define a list of new lines we wish to append
+        new_lines = []
+
+        # whether to skip the line or not
+        write_line = True
+
+        for line in md_lines:
+            # skip writing a line, doing it this way: don't want nested if statements here
+            if not write_line:
+                write_line = True
+                continue
+
+            # remove "package" from the title
+            if 'package' in line:
+                new_lines.append(line.replace(' package', ''))
+            # don't write "Submodules" or the "---..." after it
+            elif 'Submodules' in line:
+                write_line = False
+            elif 'module' in line:
+                new_lines.append(line.replace(' module', ''))
+            # don't write anything after or including Module contents
+            elif 'Module contents' in line:
+                break
+            else:
+                new_lines.append(line)
+
+        with open(os.path.join('_markdown', md), "w") as fout:
+            fout.write(''.join(new_lines))
 
 
 # this we'll need to build the documentation from sphinx-apidoc ourselves
@@ -195,9 +233,14 @@ def run_apidoc(_):
     append_readme()
 
     # run sphinx-apidoc to build documentation from Google docstrings
-    subprocess.check_call([cmd_path, '-f', '-T', '-s', output_ext, '-o', output_path, module, ignore])
+    subprocess.check_call([cmd_path, '-f', '-T', '-s', output_ext,
+                           '-o', output_path, module, ignore])
+
+    # remove extraneous text created by sphinx-apidoc
+    trim_rtd()
 
 
+# check for formatting errors in the docstring not caught by RTD's backend
 def check_docstring_format(app, what, name, obj, options, lines):
     if what == 'function':
         argnames = inspect.getargspec(obj)[0]
@@ -218,22 +261,33 @@ def check_docstring_format(app, what, name, obj, options, lines):
             # the first value of lines should always contain the start of the description
             # if there is an extra space in front, that violates how a Google doctring should look
             if lines[0][0].isspace():
-                raise Exception('Your description for %s should not have any preceding whitespace' % name)
+                raise Exception(
+                    'Your description for %s should not have any preceding whitespace' % name
+                )
 
-            # handle the Args section, all args should have an associated :param and :type in the lines list
-            param_args = [re.match(r':param (\S*):', line).group(1) for line in lines if re.match(r':param (\S*):', line)]
-            type_args = [re.match(r':type (\S*):', line).group(1) for line in lines if re.match(r':type (\S*):', line)]
+            # handle the Args section, all args should have an associated :param and :type
+            # we need to ignore *args and **kwargs because those don't get counted in the args list
+            # but do get counted in the :param list
+            # TODO: fix if this causes an issue in the future
+            param_args = [re.match(r':param (\S*):', line).group(1) for line in lines
+                          if re.match(r':param (\S*):', line)
+                          and re.match(r':param (\S*):', line).group(1) != '\\*args'
+                          and re.match(r':param (\S*):', line).group(1) != '\\*\\*kwargs']
+            type_args = [re.match(r':param (\S*):', line).group(1) for line in lines
+                         if re.match(r':param (\S*):', line)
+                         and re.match(r':param (\S*):', line).group(1) != '\\*args'
+                         and re.match(r':param (\S*):', line).group(1) != '\\*\\*kwargs']
 
-            # usually this happens when the person writing the docs does not know how to tab properly
+            # usually this happens when the person writing the docs does not know how to tab right
             # and ReadTheDocs gets screwed over when processing so reads something
             # in an argument description as an actual argument
             if sorted(param_args) != sorted(type_args):
-                raise Exception('Parameter list: %s and type list: %s do not match in %s, a formatting error in your Args section likely caused this' % (','.join(param_args), ','.join(type_args), name))
+                raise Exception('Parameter list: %s and type list: %s do not match in %s, an Args section formatting error likely caused this' % (','.join(param_args), ','.join(type_args), name))
 
             # if your parameters are not the same as the arguments in the function
             # that's bad because your docstring args section needs to match up exactly
             if sorted(param_args) != sorted(argnames):
-                raise Exception('Parameter list: %s does not match arglist: %s in %s, check your docstring formatting' % (','.join(param_args), ','.join(argnames), name))
+                raise Exception('Parameter list: %s does not match arglist: %s in %s, check docstring formatting' % (','.join(param_args), ','.join(argnames), name))
 
             # handle cases where return values are found
             # currently, I can only check if in the case of a proper Return (:return) format (improper ones are usually handled by the above cases)
@@ -242,23 +296,34 @@ def check_docstring_format(app, what, name, obj, options, lines):
             # second of all, the :returns and :rtype values may look OK in the list but still be formatted weird if the user screwed up tabs for example
             if any(re.match(r':returns:', line) for line in lines):
                 if not any(re.match(r':rtype', line) for line in lines):
-                    raise Exception('Return value was provided but no return type specified in %s' % name)
+                    raise Exception('Return value was provided but no return type specified in %s'
+                                    % name)
         else:
-            # every function needs a docstring, this currently is OK for now because only one function
-            # is like this: create_test_extraction_data in test_utils
+            # every function needs a docstring, this currently is OK for now because
+            # only one function is like this: create_test_extraction_data in test_utils
             if len(lines) == 0:
                 raise Exception('No docstring provided for function %s' % name)
 
             # the first value of lines should always contain the start of the description
             # if there is an extra space in front, that violates how a Google doctring should look
             if lines[0][0].isspace():
-                raise Exception('Your description for %s should not have any preceding whitespace' % name)
+                raise Exception(
+                    'Your description for %s should not have any preceding whitespace' % name
+                )
 
-            param_args = [re.match(r':param (\S*):', line).group(1) for line in lines if re.match(r':param (\S*):', line)]
+            # we need to ignore *args and **kwargs because those don't get counted in the args list
+            # but do get counted in the :param list
+            # TODO: fix if this causes an issue in the future
+            param_args = [re.match(r':param (\S*):', line).group(1) for line in lines
+                          if re.match(r':param (\S*):', line)
+                          and re.match(r':param (\S*):', line).group(1) != '\\*args'
+                          and re.match(r':param (\S*):', line).group(1) != '\\*\\*kwargs']
 
-            # do not allow the user to specify an args list for a function that doesn't take any arguments
+            # do not allow the user to specify an args list for a function that doesn't take args
             if len(param_args) > 0:
-                raise Exception('You should not have an Args list specified for argument-less function %s' % name)
+                raise Exception(
+                    'You should not have an Args list specified for argument-less function %s'
+                    % name)
 
             # this is like the returns check for if the function does specify arguments
             if any(re.match(r':returns:', line) for line in lines):
@@ -267,5 +332,5 @@ def check_docstring_format(app, what, name, obj, options, lines):
 
 
 def setup(app):
-    app.connect('builder-inited', run_apidoc) # run sphinx-apidoc
-    app.connect('autodoc-process-docstring', check_docstring_format) # run a docstring-style check
+    app.connect('builder-inited', run_apidoc)  # run sphinx-apidoc
+    app.connect('autodoc-process-docstring', check_docstring_format)  # run a docstring-style check
