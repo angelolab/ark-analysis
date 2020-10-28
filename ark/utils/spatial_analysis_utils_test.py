@@ -34,7 +34,7 @@ def test_calc_dist_matrix():
 
     # file save testing
     with pytest.raises(ValueError):
-        # trying to save to a non-existant directory
+        # trying to save to a non-existent directory
         distance_mat = spatial_analysis_utils.calc_dist_matrix(test_mat, save_path="bad_path")
 
     with tempfile.TemporaryDirectory() as temp_dir:
