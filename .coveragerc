@@ -16,4 +16,4 @@ show_missing = False
 
 omit = 
     segmentation/scratch.py
-    **/*_test.py
+    **/*test*.py
