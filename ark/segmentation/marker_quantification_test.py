@@ -9,6 +9,8 @@ from skimage.morphology import erosion
 from ark.segmentation import marker_quantification
 from ark.utils import test_utils
 
+import ark.settings as settings
+
 
 def test_compute_marker_counts_base():
     cell_mask, channel_data = test_utils.create_test_extraction_data()
@@ -26,11 +28,11 @@ def test_compute_marker_counts_base():
                                                     segmentation_labels=segmentation_labels)
 
     # check that channel 0 counts are same as cell size
-    assert np.array_equal(segmentation_output.loc['whole_cell', :, 'cell_size'].values,
+    assert np.array_equal(segmentation_output.loc['whole_cell', :, settings.CELL_SIZE].values,
                           segmentation_output.loc['whole_cell', :, 'chan0'].values)
 
     # check that channel 1 counts are 5x cell size
-    assert np.array_equal(segmentation_output.loc['whole_cell', :, 'cell_size'].values * 5,
+    assert np.array_equal(segmentation_output.loc['whole_cell', :, settings.CELL_SIZE].values * 5,
                           segmentation_output.loc['whole_cell', :, 'chan1'].values)
 
     # check that channel 2 counts are the same as channel 1
@@ -48,10 +50,10 @@ def test_compute_marker_counts_base():
 
     # check that cell sizes are correct
     sizes = [np.sum(cell_mask == cell_id) for cell_id in [1, 2, 3, 5]]
-    assert np.array_equal(sizes, segmentation_output.loc['whole_cell', :, 'cell_size'])
+    assert np.array_equal(sizes, segmentation_output.loc['whole_cell', :, settings.CELL_SIZE])
 
     # check that regionprops size matches with cell size
-    assert np.array_equal(segmentation_output.loc['whole_cell', :, 'cell_size'],
+    assert np.array_equal(segmentation_output.loc['whole_cell', :, settings.CELL_SIZE],
                           segmentation_output.loc['whole_cell', :, 'area'])
 
 
