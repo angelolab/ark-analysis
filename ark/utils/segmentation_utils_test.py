@@ -1,7 +1,7 @@
 import os
+import numpy as np
 import pytest
 import tempfile
-import numpy as np
 import xarray as xr
 
 from skimage.measure import regionprops

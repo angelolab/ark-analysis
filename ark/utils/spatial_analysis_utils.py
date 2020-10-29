@@ -54,7 +54,7 @@ def calc_dist_matrix(label_maps, save_path=None):
     dist_matrices = dict(zip(fovs, dist_mats_list))
 
     # If save_path is None, function will directly return the dictionary
-    # else it will save it as a file with location specified by path
+    # else it will save it as a file with location specified by save_path
     if save_path is None:
         return dist_matrices
     else:

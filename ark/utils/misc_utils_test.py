@@ -14,6 +14,11 @@ def test_combine_xarrays():
     test_xr = misc_utils.combine_xarrays((base_xr[:3, :, :, :], base_xr[3:, :, :, :]), axis=0)
     assert test_xr.equals(base_xr)
 
+    # error checking
+    with pytest.raises(ValueError):
+        # pass xarrays with different fovs if axis is not 0
+        misc_utils.combine_xarrays((base_xr[:3, :, :, :], base_xr[1:4, :, :, :]), axis=-1)
+
     # test combining along channels axis
     fov_ids, chan_ids = test_utils.gen_fov_chan_names(num_fovs=3, num_chans=5)
 
@@ -21,6 +26,15 @@ def test_combine_xarrays():
 
     test_xr = misc_utils.combine_xarrays((base_xr[:, :, :, :3], base_xr[:, :, :, 3:]), axis=-1)
     assert test_xr.equals(base_xr)
+
+    # error checking
+    with pytest.raises(ValueError):
+        # the two xarrays don't have the same dimensions
+        misc_utils.combine_xarrays((base_xr[:, :, :, :3], base_xr[:, :, :, :2]), axis=0)
+
+    with pytest.raises(ValueError):
+        # pass xarrays with different channels if axis is 0
+        misc_utils.combine_xarrays((base_xr[:, :, :, :3], base_xr[:, :, :, 1:4]), axis=0)
 
 
 def test_combine_fov_directories():
@@ -70,8 +84,8 @@ def test_verify_same_elements():
         misc_utils.verify_same_elements(one=['not_enough'])
 
     with pytest.raises(ValueError):
-        # not passing in lists for either first or second list
-        misc_utils.verify_same_elements(one='No', two='Bad')
+        # not passing in items that can be cast to list for either one or two
+        misc_utils.verify_same_elements(one=1, two=2)
 
     with pytest.raises(ValueError):
         # the two lists provided do not contain the same elements

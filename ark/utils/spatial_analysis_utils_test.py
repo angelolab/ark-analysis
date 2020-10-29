@@ -1,4 +1,6 @@
 import os
+import pytest
+import tempfile
 import numpy as np
 import pandas as pd
 import xarray as xr
@@ -7,7 +9,6 @@ import pytest
 import tempfile
 from copy import deepcopy
 from ark.utils import spatial_analysis_utils
-
 from ark.utils import test_utils
 
 
@@ -35,7 +36,7 @@ def test_calc_dist_matrix():
 
     # file save testing
     with pytest.raises(ValueError):
-        # trying to save to a non-existant directory
+        # trying to save to a non-existent directory
         distance_mat = spatial_analysis_utils.calc_dist_matrix(test_mat, save_path="bad_path")
 
     with tempfile.TemporaryDirectory() as temp_dir:
