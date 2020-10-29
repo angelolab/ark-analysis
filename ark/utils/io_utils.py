@@ -98,7 +98,7 @@ def remove_file_extensions(files):
     return names
 
 
-def extract_delimited_names(names, delimiter='_', delimiter_optional=True, remove_exts=True):
+def extract_delimited_names(names, delimiter='_', delimiter_optional=True):
     """For a given list of names, extract the delimited prefix
 
     Examples (if delimiter='_'):
@@ -107,16 +107,14 @@ def extract_delimited_names(names, delimiter='_', delimiter_optional=True, remov
         - 'fov3_part1_part2' becomes 'fov3'
 
     Args:
-        files (list):
-            List of files to extract names from (if paths, just uses the last file/folder).
+        names (list):
+            List of names to split by delimiter.
             Make sure to call remove_file_extensions first if you need to drop file extensions.
         delimiter (str):
             Character separator used to determine filename prefix. Defaults to '_'.
         delimiter_optional (bool):
             If False, function will return None if any of the files don't contain the delimiter.
             Defaults to True.
-        remove_exts (bool):
-            Whether to remove file extensions on the files list as well
 
     Raises:
         UserWarning:
