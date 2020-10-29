@@ -5,8 +5,9 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 import random
-from copy import deepcopy
 from ark.utils import spatial_analysis_utils
+
+import ark.settings as settings
 from ark.utils import test_utils
 
 
@@ -52,13 +53,18 @@ def test_get_pos_cell_labels_channel():
     all_data, _ = test_utils._make_dist_exp_mats_spatial_utils_test()
     example_thresholds = test_utils._make_threshold_mat(in_utils=True)
 
-    # Only include the columns of markers
-    fov_channel_data = all_data.drop(all_data.columns[[
-        0, 1, 14, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32]], axis=1)
+    excluded_channels = [0, 13, 22]
+
+    # Subsets the expression matrix to only have channel columns
+    channel_start = np.where(all_data.columns == settings.PRE_CHANNEL_COL)[0][0] + 1
+    channel_end = np.where(all_data.columns == settings.POST_CHANNEL_COL)[0][0]
+
+    fov_channel_data = all_data.iloc[:, channel_start:channel_end]
+    fov_channel_data = fov_channel_data.drop(fov_channel_data.columns[excluded_channels], axis=1)
 
     thresh_vec = example_thresholds.iloc[0:20, 1]
 
-    cell_labels = all_data.iloc[:, 24]
+    cell_labels = all_data.loc[:, settings.CELL_LABEL]
 
     pos_cell_labels = spatial_analysis_utils.get_pos_cell_labels_channel(
         thresh_vec.iloc[0], fov_channel_data, cell_labels, fov_channel_data.columns[0])
@@ -68,16 +74,20 @@ def test_get_pos_cell_labels_channel():
 
 def test_get_pos_cell_labels_cluster():
     all_data, _ = test_utils._make_dist_exp_mats_spatial_utils_test()
-    example_thresholds = test_utils._make_threshold_mat(in_utils=True)
 
-    # Only include the columns of markers
-    fov_channel_data = all_data.drop(all_data.columns[[
-        0, 1, 14, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32]], axis=1)
+    excluded_channels = [0, 13, 22]
 
-    cluster_ids = all_data.iloc[:, 31].drop_duplicates()
+    # Subsets the expression matrix to only have channel columns
+    channel_start = np.where(all_data.columns == settings.PRE_CHANNEL_COL)[0][0] + 1
+    channel_end = np.where(all_data.columns == settings.POST_CHANNEL_COL)[0][0]
+
+    fov_channel_data = all_data.iloc[:, list(range(channel_start, channel_end + 1)) + [31]]
+    fov_channel_data = fov_channel_data.drop(fov_channel_data.columns[excluded_channels], axis=1)
+
+    cluster_ids = all_data.loc[:, settings.CLUSTER_ID].drop_duplicates()
 
     pos_cell_labels = spatial_analysis_utils.get_pos_cell_labels_cluster(
-        cluster_ids.iloc[0], all_data, "cellLabelInImage", "FlowSOM_ID")
+        cluster_ids.iloc[0], fov_channel_data, settings.CELL_LABEL, settings.CLUSTER_ID)
 
     assert len(pos_cell_labels) == 4
 
@@ -87,9 +97,14 @@ def test_compute_close_cell_num():
     all_data, example_dist_mat = test_utils._make_dist_exp_mats_spatial_utils_test()
     example_thresholds = test_utils._make_threshold_mat(in_utils=True)
 
-    # Only include the columns of markers
-    fov_channel_data = all_data.drop(all_data.columns[[
-        0, 1, 14, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32]], axis=1)
+    excluded_channels = [0, 13, 22]
+
+    # Subsets the expression matrix to only have channel columns
+    channel_start = np.where(all_data.columns == settings.PRE_CHANNEL_COL)[0][0] + 1
+    channel_end = np.where(all_data.columns == settings.POST_CHANNEL_COL)[0][0]
+
+    fov_channel_data = all_data.iloc[:, channel_start:channel_end]
+    fov_channel_data = fov_channel_data.drop(fov_channel_data.columns[excluded_channels], axis=1)
 
     # Subsetting threshold matrix to only include column with threshold values
     thresh_vec = example_thresholds.iloc[0:20, 1].values
@@ -107,9 +122,7 @@ def test_compute_close_cell_num():
     # Now test indexing with cell labels by removing a cell label from the expression matrix but
     # not the distance matrix
     all_data = all_data.drop(3, axis=0)
-    # Only include the columns of markers
-    fov_channel_data = all_data.drop(all_data.columns[[
-        0, 1, 14, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32]], axis=1)
+    fov_channel_data = fov_channel_data.drop(3, axis=0)
 
     # Subsetting threshold matrix to only include column with threshold values
     thresh_vec = example_thresholds.iloc[0:20, 1].values
@@ -125,7 +138,7 @@ def test_compute_close_cell_num():
 
     # now, test for cluster enrichment
     all_data, example_dist_mat = test_utils._make_dist_exp_mats_spatial_utils_test()
-    cluster_ids = all_data.iloc[:, 31].drop_duplicates().values
+    cluster_ids = all_data.loc[:, settings.CLUSTER_ID].drop_duplicates().values
 
     example_closenum, m1, _ = spatial_analysis_utils.compute_close_cell_num(
         dist_mat=example_dist_mat, dist_lim=100, analysis_type="cluster",
@@ -194,10 +207,10 @@ def test_calculate_enrichment_stats():
 
 
 def test_compute_neighbor_counts():
-    fov_col = "SampleID"
-    cluster_id_col = "FlowSOM_ID"
-    cell_label_col = "cellLabelInImage"
-    cluster_name_col = "cell_type"
+    fov_col = settings.FOV_ID
+    cluster_id_col = settings.CLUSTER_ID
+    cell_label_col = settings.CELL_LABEL
+    cluster_name_col = settings.CELL_TYPE
     distlim = 100
 
     fov_data, dist_matrix = test_utils._make_dist_exp_mats_spatial_utils_test()
