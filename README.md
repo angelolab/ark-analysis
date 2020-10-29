@@ -2,6 +2,7 @@
 [![Coverage Status](https://coveralls.io/repos/github/angelolab/ark-analysis/badge.svg?branch=master)](https://coveralls.io/github/angelolab/ark-analysis?branch=master)
 
 # ark-analysis
+
 Toolbox for analyzing multiplexed imaging data
 
 Full documentation for the project can be found [here](https://ark-analysis.readthedocs.io/en/latest/)
@@ -9,6 +10,7 @@ Full documentation for the project can be found [here](https://ark-analysis.read
 ## Info
 
 This project contains code and example scripts for analyzing multiplexed imaging data
+
 ## To install the project:
 
 Open terminal and navigate to where you want the code stored.
@@ -89,3 +91,7 @@ If you have made changes to these notebooks that you would like to keep (specifi
 For example, rename your existing copy of `Segment_Image_Data.ipynb` to `Segment_Image_Data_old.ipynb`. Then, after running the update command, a new version of `Segment_Image_Data.ipynb` will be created with the newest code, and your old copy will exist with the new name that you gave it. 
 
 After updating, you can copy over any important paths or modifications from the old notebooks into the new notebook
+
+## Questions?
+
+Please refer to our [FAQ](https://ark-analysis.readthedocs.io/en/latest/_rtd/faq.html).
