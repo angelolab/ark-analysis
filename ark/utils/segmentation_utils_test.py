@@ -1,4 +1,7 @@
+import os
 import numpy as np
+import pytest
+import tempfile
 import xarray as xr
 import os.path
 from skimage.measure import regionprops
@@ -195,7 +198,6 @@ def test_transform_expression_matrix_multiple_compartments():
         arcsinh_vals = np.arcsinh(cell_data.loc[:, cell, modified_cols].values)
         assert np.array_equal(arcsinh_data.loc[:, cell, modified_cols].values, arcsinh_vals)
 
-
 def test_visualize_segmentation():
     with tempfile.TemporaryDirectory() as temp_dir:
         channel_xr = test_utils.make_images_xarray(np.zeros((2, 50, 50, 3)))
@@ -228,3 +230,45 @@ def test_visualize_segmentation():
                 assert os.path.exists(os.path.join(temp_dir,
                                                    f'{mod_output_fov.values}'
                                                    f'_segmentation_labels.tiff'))
+
+def test_concatenate_csv():
+    # create sample data
+    test_data_1 = test_utils.make_segmented_csv(num_cells=10)
+    test_data_2 = test_utils.make_segmented_csv(num_cells=20)
+
+    with pytest.raises(ValueError):
+        # attempt to pass column_values list with different length than number of csv files
+        segmentation_utils.concatenate_csv(base_dir="example_base_dir",
+                                           csv_files=["example_1.csv", "example_2.csv"],
+                                           column_values=["missingno"])
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        # create a sample base_dir
+        base_dir = os.path.join(temp_dir, 'base_dir')
+        os.mkdir(base_dir)
+
+        # write the sample data
+        path_1 = os.path.join(base_dir, "cell_data_1.csv")
+        path_2 = os.path.join(base_dir, "cell_data_2.csv")
+
+        test_data_1.to_csv(path_1, index=False, header=False)
+        test_data_2.to_csv(path_2, index=False, header=False)
+
+        # create concatenated csv with basic settings
+        segmentation_utils.concatenate_csv(base_dir=base_dir,
+                                           csv_files=["cell_data_1.csv",
+                                                      "cell_data_2.csv"])
+
+        assert os.path.exists(os.path.join(base_dir, "combined_data.csv"))
+
+        # reset for next test
+        os.remove(os.path.join(base_dir, "combined_data.csv"))
+
+        # now test with column values
+        segmentation_utils.concatenate_csv(base_dir=base_dir,
+                                           csv_files=["cell_data_1.csv",
+                                                      "cell_data_2.csv"],
+                                           column_values=["example_data_1",
+                                                          "example_data_2"])
+
+        assert os.path.exists(os.path.join(base_dir, "combined_data.csv"))
