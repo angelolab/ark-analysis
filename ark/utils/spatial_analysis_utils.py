@@ -12,13 +12,13 @@ import ark.settings as settings
 from ark.utils import io_utils, misc_utils
 
 
-def calc_dist_matrix(label_maps, path=None):
+def calc_dist_matrix(label_maps, save_path=None):
     """Generate matrix of distances between center of pairs of cells
 
     Args:
         label_maps (xarray.DataArray):
             array of segmentation masks indexed by (fov, cell_id, cell_id, segmentation_label)
-        path (str):
+        save_path (str):
             path to save file. If None, then will directly return
     Returns:
         dict:
@@ -29,8 +29,8 @@ def calc_dist_matrix(label_maps, path=None):
 
     # Check that file path exists, if given
 
-    if path is not None:
-        io_utils.validate_paths(path)
+    if save_path is not None:
+        io_utils.validate_paths(save_path)
 
     dist_mats_list = []
 
@@ -53,12 +53,12 @@ def calc_dist_matrix(label_maps, path=None):
     # Create dictionary to store distance matrices per fov
     dist_matrices = dict(zip(fovs, dist_mats_list))
 
-    # If path is None, function will directly return the dictionary
-    # else it will save it as a file with location specified by path
-    if path is None:
+    # If save_path is None, function will directly return the dictionary
+    # else it will save it as a file with location specified by save_path
+    if save_path is None:
         return dist_matrices
     else:
-        np.savez(path + "dist_matrices.npz", **dist_matrices)
+        np.savez(os.path.join(save_path, "dist_matrices.npz"), **dist_matrices)
 
 
 def get_pos_cell_labels_channel(thresh, current_fov_channel_data, cell_labels, current_marker):

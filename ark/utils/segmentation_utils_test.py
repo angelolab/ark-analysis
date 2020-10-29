@@ -1,4 +1,7 @@
+import os
 import numpy as np
+import pytest
+import tempfile
 import xarray as xr
 
 from skimage.measure import regionprops
@@ -42,8 +45,9 @@ def test_find_nuclear_mask_id():
 
     # check that predicted nuclear id is correct for all cells in image
     for idx, prop in enumerate(cell_props):
-        predicted_nuc = segmentation_utils.find_nuclear_mask_id(nuc_segmentation_mask=nuc_labels,
-                                                                cell_coords=prop.coords)
+        predicted_nuc = \
+            segmentation_utils.find_nuclear_label_id(nuc_segmentation_labels=nuc_labels,
+                                                     cell_coords=prop.coords)
 
         assert predicted_nuc == true_nuc_ids[idx]
 
@@ -66,8 +70,8 @@ def test_split_large_nuclei():
     # only partially overlaps the cell
     nuc_mask[33:37, 12:20] = 5
 
-    split_mask = segmentation_utils.split_large_nuclei(nuc_segmentation_mask=nuc_mask,
-                                                       cell_segmentation_mask=cell_mask,
+    split_mask = segmentation_utils.split_large_nuclei(nuc_segmentation_labels=nuc_mask,
+                                                       cell_segmentation_labels=cell_mask,
                                                        cell_ids=np.array([1, 2, 3, 5]))
 
     # nuc 1 and 2 are unchanged
@@ -198,3 +202,46 @@ def test_transform_expression_matrix_multiple_compartments():
     for cell in cell_data.cell_id:
         arcsinh_vals = np.arcsinh(cell_data.loc[:, cell, modified_cols].values)
         assert np.array_equal(arcsinh_data.loc[:, cell, modified_cols].values, arcsinh_vals)
+
+
+def test_concatenate_csv():
+    # create sample data
+    test_data_1 = test_utils.make_segmented_csv(num_cells=10)
+    test_data_2 = test_utils.make_segmented_csv(num_cells=20)
+
+    with pytest.raises(ValueError):
+        # attempt to pass column_values list with different length than number of csv files
+        segmentation_utils.concatenate_csv(base_dir="example_base_dir",
+                                           csv_files=["example_1.csv", "example_2.csv"],
+                                           column_values=["missingno"])
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        # create a sample base_dir
+        base_dir = os.path.join(temp_dir, 'base_dir')
+        os.mkdir(base_dir)
+
+        # write the sample data
+        path_1 = os.path.join(base_dir, "cell_data_1.csv")
+        path_2 = os.path.join(base_dir, "cell_data_2.csv")
+
+        test_data_1.to_csv(path_1, index=False, header=False)
+        test_data_2.to_csv(path_2, index=False, header=False)
+
+        # create concatenated csv with basic settings
+        segmentation_utils.concatenate_csv(base_dir=base_dir,
+                                           csv_files=["cell_data_1.csv",
+                                                      "cell_data_2.csv"])
+
+        assert os.path.exists(os.path.join(base_dir, "combined_data.csv"))
+
+        # reset for next test
+        os.remove(os.path.join(base_dir, "combined_data.csv"))
+
+        # now test with column values
+        segmentation_utils.concatenate_csv(base_dir=base_dir,
+                                           csv_files=["cell_data_1.csv",
+                                                      "cell_data_2.csv"],
+                                           column_values=["example_data_1",
+                                                          "example_data_2"])
+
+        assert os.path.exists(os.path.join(base_dir, "combined_data.csv"))
