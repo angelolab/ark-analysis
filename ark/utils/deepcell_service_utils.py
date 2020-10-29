@@ -42,7 +42,7 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
     """
 
     # extract all the files from deepcell_input_dir
-    input_files = io_utils.list_files(deepcell_input_dir, substrs=['.tif', '.tiff'])
+    input_files = io_utils.list_files(deepcell_input_dir, substrs=['.tif'])
 
     # set fovs equal to input_files it not already set
     if fovs is None:

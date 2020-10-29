@@ -256,7 +256,7 @@ def generate_cell_table(segmentation_labels, tiff_dir, img_sub_folder,
     if fovs is None:
         # handle mibitiffs with an assumed file structure
         if is_mibitiff:
-            filenames = io_utils.list_files(tiff_dir, substrs=['.tif', '.tiff'])
+            filenames = io_utils.list_files(tiff_dir, substrs=['.tif'])
             fovs = io_utils.extract_delimited_names(filenames, delimiter=None)
         # otherwise assume the tree-like directory as defined for tree loading
         else:
