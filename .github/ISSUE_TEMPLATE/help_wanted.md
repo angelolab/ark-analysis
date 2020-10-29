@@ -7,6 +7,8 @@ assignees: ''
 
 ---
 
+*Please refer to our [FAQ](https://ark-analysis.readthedocs.io/en/latest/_rtd/faq.html) and look at our [known issues](https://github.com/angelolab/ark-analysis/issues) before opening a new issue*
+
 **What are you trying to do?**
 A clear and concise description of what script or function you're using
 

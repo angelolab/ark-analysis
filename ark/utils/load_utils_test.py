@@ -121,7 +121,7 @@ def test_load_imgs_from_tree():
             load_utils.load_imgs_from_tree(temp_dir, img_sub_folder="TIFs", dtype="int16",
                                            channels=some_chans)
 
-        assert loaded_xr.equals(data_xr[:, :, :, :2], )
+        assert loaded_xr.equals(data_xr[:, :, :, :2])
 
         # check mixed extension presence
         loaded_xr = \
@@ -252,6 +252,15 @@ def test_load_imgs_from_dir():
                                                   delimiter='_')
 
         assert loaded_xr.equals(data_xr)
+
+        # test with specified channel_indices
+        loaded_xr = load_utils.load_imgs_from_dir(temp_dir,
+                                                  files=None,
+                                                  channel_indices=[0, 1, 2],
+                                                  xr_dim_name='channels',
+                                                  delimiter='_')
+
+        assert loaded_xr.equals(data_xr[:, :, :, :3])
 
         # test channels_first input
         fovs, channels = test_utils.gen_fov_chan_names(num_fovs=2, num_chans=5, use_delimiter=True)
