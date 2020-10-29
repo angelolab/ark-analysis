@@ -224,7 +224,7 @@ def create_marker_count_matrices(segmentation_labels, image_data, nuclear_counts
 
 
 def generate_cell_table(segmentation_labels, tiff_dir, img_sub_folder,
-                        is_mibitiff=False, fovs=None, batch_size=5):
+                        is_mibitiff=False, fovs=None, batch_size=5, dtype="int16"):
     """
     This function takes the segmented data and computes the expression matrices batch-wise
     while also validating inputs
@@ -243,7 +243,8 @@ def generate_cell_table(segmentation_labels, tiff_dir, img_sub_folder,
         batch_size (int):
             how large we want each of the batches of fovs to be when computing, adjust as
             necessary for speed and memory considerations
-
+        dtype (str/type):
+            data type of base images
     Returns:
         tuple (pandas.DataFrame, pandas.DataFrame):
 
@@ -291,11 +292,13 @@ def generate_cell_table(segmentation_labels, tiff_dir, img_sub_folder,
         # and extract the image data for each batch
         if is_mibitiff:
             image_data = load_utils.load_imgs_from_mibitiff(data_dir=tiff_dir,
-                                                            mibitiff_files=batch_files)
+                                                            mibitiff_files=batch_files,
+                                                            dtype=dtype)
         else:
             image_data = load_utils.load_imgs_from_tree(data_dir=tiff_dir,
                                                         img_sub_folder=img_sub_folder,
-                                                        fovs=batch_names)
+                                                        fovs=batch_names,
+                                                        dtype=dtype)
 
         # as well as the labels corresponding to each of them
         current_labels = segmentation_labels.loc[batch_names, :, :, :]
