@@ -198,6 +198,7 @@ def test_transform_expression_matrix_multiple_compartments():
         arcsinh_vals = np.arcsinh(cell_data.loc[:, cell, modified_cols].values)
         assert np.array_equal(arcsinh_data.loc[:, cell, modified_cols].values, arcsinh_vals)
 
+
 def test_visualize_segmentation():
     with tempfile.TemporaryDirectory() as temp_dir:
         channel_xr = test_utils.make_images_xarray(np.zeros((2, 50, 50, 3)))
@@ -230,6 +231,7 @@ def test_visualize_segmentation():
                 assert os.path.exists(os.path.join(temp_dir,
                                                    f'{mod_output_fov.values}'
                                                    f'_segmentation_labels.tiff'))
+
 
 def test_concatenate_csv():
     # create sample data
