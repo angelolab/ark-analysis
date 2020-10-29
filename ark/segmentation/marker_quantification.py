@@ -81,8 +81,6 @@ def compute_marker_counts(input_images, segmentation_labels, nuclear_counts=Fals
     cell_props = pd.DataFrame(regionprops_table(segmentation_labels.loc[:, :, 'whole_cell'].values,
                                                 properties=regionprops_features))
 
-    nuc_mask = None
-    nuc_props = None
     if nuclear_counts:
         nuc_labels = segmentation_labels.loc[:, :, 'nuclear'].values
 
@@ -116,7 +114,7 @@ def compute_marker_counts(input_images, segmentation_labels, nuclear_counts=Fals
         # add cell size to first column
         marker_counts.loc['whole_cell', cell_id, marker_counts.features[0]] = cell_coords.shape[0]
 
-        if nuc_mask is not None and nuc_props is not None:
+        if nuclear_counts:
             # get id of corresponding nucleus
             nuc_id = segmentation_utils.find_nuclear_label_id(nuc_segmentation_labels=nuc_labels,
                                                               cell_coords=cell_coords)
