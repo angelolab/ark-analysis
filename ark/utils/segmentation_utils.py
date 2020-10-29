@@ -162,7 +162,7 @@ def concatenate_csv(base_dir, csv_files, column_name="fov", column_values=None):
     """
 
     if column_values is None:
-        column_values = io_utils.extract_delimited_names(csv_files, delimiter='.')
+        column_values = io_utils.remove_file_extensions(csv_files)
 
     if len(column_values) != len(csv_files):
         raise ValueError("csv_files and column_values have different lengths: "

@@ -72,23 +72,51 @@ def list_files(dir_name, substrs=None):
     return matches
 
 
-def extract_delimited_names(files, delimiter='_', delimiter_optional=True):
-    """Create a matched-index list of fov names from a list of files/folders
-
-    Extracts a delimited prefix for every file in a given list of files
-
-    Examples:
-         - 'fov2_restofthefilename.tiff' becomes 'fov2'
-         - 'fov1.tiff' becomes 'fov1'
+def remove_file_extensions(files):
+    """Removes file extensions and drops preceding path from a list of files
 
     Args:
         files (list):
-            List of files to extract names from (if paths, just uses the last file/folder)
+            List of files to remove file extensions from.
+            Any element that doesn't have an extension is left unchanged
+
+    Returns:
+        list:
+            List of files without file extensions
+    """
+
+    # make sure we don't try to split on an undefined list of files
+    if files is None:
+        return
+
+    # only get the file name and not the directory path leading up to it
+    names = [os.path.split(name)[1] for name in files]
+
+    # remove anything past and including the first '.' in each entry
+    names = [name.split('.')[0] for name in names]
+
+    return names
+
+
+def extract_delimited_names(names, delimiter='_', delimiter_optional=True, remove_exts=True):
+    """For a given list of names, extract the delimited prefix
+
+    Examples (if delimiter='_'):
+        - 'fov1' becomes 'fov1'
+        - 'fov2_part1' becomes 'fov2'
+        - 'fov3_part1_part2' becomes 'fov3'
+
+    Args:
+        files (list):
+            List of files to extract names from (if paths, just uses the last file/folder).
+            Make sure to call remove_file_extensions first if you need to drop file extensions.
         delimiter (str):
             Character separator used to determine filename prefix. Defaults to '_'.
         delimiter_optional (bool):
             If False, function will return None if any of the files don't contain the delimiter.
             Defaults to True.
+        remove_exts (bool):
+            Whether to remove file extensions on the files list as well
 
     Raises:
         UserWarning:
@@ -99,13 +127,10 @@ def extract_delimited_names(files, delimiter='_', delimiter_optional=True):
             List of extracted names. Indicies should match that of files
 
     """
-    if files is None:
-        return
 
-    names = [
-        os.path.split(name)[1]
-        for name in files
-    ]
+    # make sure we don't try to split on a non-existent list
+    if names is None:
+        return
 
     # check for bad files/folders
     if not delimiter_optional:
@@ -119,11 +144,8 @@ def extract_delimited_names(files, delimiter='_', delimiter_optional=True):
                           f"{[name for indx,name in enumerate(names) if no_delim[indx]]}")
             return None
 
-    # do filtering
-    names = [
-        name.split('.')[0].split(delimiter)[0]
-        for name in names
-    ]
+    # now split on the delimiter as well
+    names = [name.split(delimiter)[0] for name in names]
 
     return names
 

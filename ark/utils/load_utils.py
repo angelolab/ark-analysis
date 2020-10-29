@@ -45,7 +45,8 @@ def load_imgs_from_mibitiff(data_dir, mibitiff_files=None, channels=None, delimi
         raise ValueError("No mibitiff files specified in the data directory %s" % data_dir)
 
     # extract fov names w/ delimiter agnosticism
-    fovs = iou.extract_delimited_names(mibitiff_files, delimiter=delimiter)
+    fovs = iou.remove_file_extensions(mibitiff_files)
+    fovs = iou.extract_delimited_names(fovs, delimiter=delimiter)
 
     mibitiff_files = [os.path.join(data_dir, mt_file)
                       for mt_file in mibitiff_files]
@@ -308,7 +309,8 @@ def load_imgs_from_dir(data_dir, files=None, delimiter=None, xr_dim_name='compar
         row_coords, col_coords = range(test_img.shape[0]), range(test_img.shape[1])
 
     # get fov name from imgs
-    fovs = iou.extract_delimited_names(imgs, delimiter=delimiter)
+    fovs = iou.remove_file_extensions(imgs)
+    fovs = iou.extract_delimited_names(fovs, delimiter=delimiter)
 
     # create xarray with image data
     img_xr = xr.DataArray(img_data,
