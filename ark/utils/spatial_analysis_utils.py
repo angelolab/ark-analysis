@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import xarray as xr
 import pandas as pd
@@ -7,8 +8,8 @@ import scipy
 from statsmodels.stats.multitest import multipletests
 from sklearn.cluster import KMeans
 from scipy.spatial.distance import cdist
-import os
 
+import ark.settings as settings
 from ark.utils import io_utils, misc_utils
 
 
@@ -119,7 +120,7 @@ def get_pos_cell_labels_cluster(pheno, current_fov_neighborhood_data,
 def compute_close_cell_num(dist_mat, dist_lim, analysis_type,
                            current_fov_data=None, current_fov_channel_data=None,
                            cluster_ids=None, cell_types_analyze=None, thresh_vec=None,
-                           cell_label_col="cellLabelInImage", cell_type_col="FlowSOM_ID"):
+                           cell_label_col=settings.CELL_LABEL, cell_type_col=settings.CLUSTER_ID):
     """Finds positive cell labels and creates matrix with counts for cells positive for
     corresponding markers. Computes close_num matrix for both Cell Label and Threshold spatial
     analyses.
@@ -336,7 +337,7 @@ def calculate_enrichment_stats(close_num, close_num_rand):
 
 
 def compute_neighbor_counts(current_fov_neighborhood_data, dist_matrix, distlim,
-                            self_neighbor=True, cell_label_col="cellLabelInImage"):
+                            self_neighbor=True, cell_label_col=settings.CELL_LABEL):
     """Calculates the number of neighbor phenotypes for each cell. The cell counts itself as a
     neighbor.
 
