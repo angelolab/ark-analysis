@@ -2,9 +2,11 @@ import os
 import numpy as np
 import pandas as pd
 
+import ark.settings as settings
+
 
 def append_cell_lineage_col(exp_data, lineage_info, cell_type_col="cell_type",
-                            cell_lin_col="cell_lineage"):
+                            cell_lin_col=settings.CELL_LINEAGE):
     """Given a dictionary defining which cell types correspond to which
     cell lineages, create a column in exp_data that explicitly labels
     each cell with their respective lineage. Especially useful as a

@@ -258,8 +258,8 @@ def compute_close_cell_num_random(marker_nums, dist_mat, dist_lim, bootstrap_num
 
 def compute_close_cell_num_random_context(marker_nums, dist_mat, dist_lim, bootstrap_num,
                                           thresh_vec, current_fov_data, current_fov_channel_data,
-                                          cell_lin_col="cell_lineage",
-                                          cell_label_col="cellLabelInImage"):
+                                          cell_lin_col=settings.CELL_LINEAGE,
+                                          cell_label_col=settings.CELL_LABEL):
     """Runs a context-dependent bootstrapping procedure to sample cell labels randomly faceted
     by which cell type they are based on their FlowSOM ID. Only for channel enrichment.
 

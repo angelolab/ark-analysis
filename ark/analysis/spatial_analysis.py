@@ -8,10 +8,10 @@ import ark.settings as settings
 
 
 def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, all_data,
-                                         excluded_colnames=None, included_fovs=None,
+                                         excluded_channels=None, included_fovs=None,
                                          dist_lim=100, bootstrap_num=1000,
-                                         fov_col=settings.FOV_ID, context=False,
-                                         cell_lin_col="cell_lineage",
+                                         fov_col=settings.FOV_ID,
+                                         cell_lin_col=settings.CELL_LINEAGE,
                                          cell_label_col=settings.CELL_LABEL,
                                          context=False):
     """Spatial enrichment analysis to find significant interactions between cells expressing
@@ -35,16 +35,16 @@ def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, 
             number of permutations for bootstrap. Default is 1000.
         fov_col (str):
             column with the cell fovs.
-        context (bool):
-            if we want to specify context-dependent randomization or not. Default is False.
         cell_lin_col (str):
             The column specifying the name of the cell lineages column,
             needed to help facet all_data for context-dependent ranomization.
-            Default 'cell_lineage'. Ignored if context is set to False.
+            Ignored if context is set to False.
         cell_label_col (str):
             The column specifying the name of the cell labels column,
             needed to help properly index into the xarray for context-dependent randomization.
-            Default 'cellLabelInImage'. Ignored if context is set to False.
+            Ignored if context is set to False.
+        context (bool):
+            if we want to specify context-dependent randomization or not. Default is False.
 
     Returns:
         tuple (list, xarray.DataArray):

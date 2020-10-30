@@ -61,10 +61,10 @@ def test_calculate_channel_spatial_enrichment():
     assert stats_pos.loc["fov9", "z", 3, 2] > 0
 
     # Positive enrichment, context-based randomization
-    _, stats_neg = \
+    _, stats_pos_context = \
         spatial_analysis.calculate_channel_spatial_enrichment(
             dist_mat_pos, marker_thresholds, all_data_pos,
-            excluded_colnames=excluded_colnames, bootstrap_num=100,
+            excluded_channels=EXCLUDE_CHANNELS, bootstrap_num=100,
             dist_lim=dist_lim, context=True)
 
     # Negative enrichment
@@ -89,10 +89,10 @@ def test_calculate_channel_spatial_enrichment():
     assert stats_neg.loc["fov9", "z", 3, 2] < 0
 
     # Negative enrichment, context-based randomization
-    _, stats_neg = \
+    _, stats_neg_context = \
         spatial_analysis.calculate_channel_spatial_enrichment(
             dist_mat_neg, marker_thresholds, all_data_neg,
-            excluded_colnames=excluded_colnames, bootstrap_num=100,
+            excluded_channels=EXCLUDE_CHANNELS, bootstrap_num=100,
             dist_lim=dist_lim, context=True)
 
     # No enrichment
@@ -117,10 +117,10 @@ def test_calculate_channel_spatial_enrichment():
     assert abs(stats_no_enrich.loc["fov9", "z", 3, 2]) < 2
 
     # No enrichment, context-based randomization
-    _, stats_no_enrich = \
+    _, stats_no_enrich_context = \
         spatial_analysis.calculate_channel_spatial_enrichment(
             dist_mat_no_enrich, marker_thresholds, all_data_no_enrich,
-            excluded_colnames=excluded_colnames, bootstrap_num=100,
+            excluded_channels=EXCLUDE_CHANNELS, bootstrap_num=100,
             dist_lim=dist_lim, context=True)
 
     # error checking

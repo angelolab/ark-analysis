@@ -8,6 +8,7 @@ CELL_TYPE = 'cell_type'                     # cell type name (flowsom)
 CLUSTER_ID = 'FlowSOM_ID'                   # cell cluster id (flowsom)
 PATIENT_ID = 'PatientID'                    # cell's patient id
 KMEANS_CLUSTER = 'cluster_labels'           # generated cluster column name
+CELL_LINEAGE = 'cell_lineage'               # cell lineage type (context-based randomization)
 
 # standardized columns surrounding channel data
 PRE_CHANNEL_COL = CELL_SIZE                 # last column before channel data
