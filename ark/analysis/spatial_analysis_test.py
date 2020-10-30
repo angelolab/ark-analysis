@@ -1,21 +1,39 @@
 import pytest
 import numpy as np
 import pandas as pd
-import xarray as xr
 
 from ark.analysis import spatial_analysis
-from ark.utils import synthetic_spatial_datagen
 
+import ark.settings as settings
 from ark.utils import test_utils
+
+EXCLUDE_CHANNELS = [
+    "Background",
+    "HH3",
+    "summed_channel",
+]
+
+DEFAULT_COLUMNS = \
+    [settings.CELL_SIZE] \
+    + list(range(1, 24)) \
+    + [
+        settings.CELL_LABEL,
+        'area',
+        'eccentricity',
+        'maj_axis_length',
+        'min_axis_length',
+        'perimiter',
+        settings.FOV_ID,
+        settings.CLUSTER_ID,
+        settings.CELL_TYPE,
+    ]
+list(map(
+    DEFAULT_COLUMNS.__setitem__, [1, 14, 23], EXCLUDE_CHANNELS
+))
 
 
 def test_calculate_channel_spatial_enrichment():
     dist_lim = 100
-
-    excluded_colnames = ["cell_size", "Background", "HH3",
-                         "summed_channel", "cellLabelInImage", "area",
-                         "eccentricity", "major_axis_length", "minor_axis_length",
-                         "perimeter", "SampleID", "FlowSOM_ID", "cell_type", "cell_lineage"]
 
     # Test z and p values
     marker_thresholds = test_utils._make_threshold_mat(in_utils=False)
@@ -28,7 +46,7 @@ def test_calculate_channel_spatial_enrichment():
     _, stats_pos = \
         spatial_analysis.calculate_channel_spatial_enrichment(
             dist_mat_pos, marker_thresholds, all_data_pos,
-            excluded_colnames=excluded_colnames, bootstrap_num=100,
+            excluded_channels=EXCLUDE_CHANNELS, bootstrap_num=100,
             dist_lim=dist_lim)
 
     # Test both fov8 and fov9
@@ -56,7 +74,7 @@ def test_calculate_channel_spatial_enrichment():
     _, stats_neg = \
         spatial_analysis.calculate_channel_spatial_enrichment(
             dist_mat_neg, marker_thresholds, all_data_neg,
-            excluded_colnames=excluded_colnames, bootstrap_num=100,
+            excluded_channels=EXCLUDE_CHANNELS, bootstrap_num=100,
             dist_lim=dist_lim)
 
     # Test both fov8 and fov9
@@ -84,7 +102,7 @@ def test_calculate_channel_spatial_enrichment():
     _, stats_no_enrich = \
         spatial_analysis.calculate_channel_spatial_enrichment(
             dist_mat_no_enrich, marker_thresholds, all_data_no_enrich,
-            excluded_colnames=excluded_colnames, bootstrap_num=100,
+            excluded_channels=EXCLUDE_CHANNELS, bootstrap_num=100,
             dist_lim=dist_lim)
 
     # Test both fov8 and fov9
@@ -118,7 +136,7 @@ def test_calculate_channel_spatial_enrichment():
         _, stats_no_enrich = \
             spatial_analysis.calculate_channel_spatial_enrichment(
                 dist_mat_no_enrich, marker_thresholds, all_data_no_enrich,
-                excluded_colnames=["bad_excluded_col_name"], bootstrap_num=100,
+                excluded_channels=["bad_excluded_chan_name"], bootstrap_num=100,
                 dist_lim=dist_lim)
 
     with pytest.raises(ValueError):
@@ -126,7 +144,7 @@ def test_calculate_channel_spatial_enrichment():
         _, stat_no_enrich = \
             spatial_analysis.calculate_channel_spatial_enrichment(
                 dist_mat_no_enrich, marker_thresholds, all_data_no_enrich,
-                excluded_colnames=excluded_colnames, included_fovs=[1, 100000],
+                excluded_channels=EXCLUDE_CHANNELS, included_fovs=[1, 100000],
                 bootstrap_num=100, dist_lim=dist_lim)
 
     with pytest.raises(ValueError):
@@ -135,12 +153,10 @@ def test_calculate_channel_spatial_enrichment():
         bad_marker_thresholds.iloc[:, 1] = .5
         bad_marker_thresholds.iloc[:, 0] = np.arange(10, 31) + 2
 
-        all_data_no_enrich_bad = all_data_no_enrich.rename(columns={18: 200})
-
         _, stat_no_enrich = \
             spatial_analysis.calculate_channel_spatial_enrichment(
                 dist_mat_no_enrich, bad_marker_thresholds, all_data_no_enrich,
-                excluded_colnames=excluded_colnames, bootstrap_num=100,
+                excluded_channels=EXCLUDE_CHANNELS, bootstrap_num=100,
                 dist_lim=dist_lim)
 
 
@@ -259,10 +275,7 @@ def test_create_neighborhood_matrix():
 
 
 def test_generate_cluster_matrix_results():
-    excluded_colnames = ["cell_size", "Background", "HH3",
-                         "summed_channel", "cellLabelInImage", "area",
-                         "eccentricity", "major_axis_length", "minor_axis_length",
-                         "perimeter", "SampleID", "FlowSOM_ID", "cell_type", "cell_lineage"]
+    excluded_channels = ["Background", "HH3", "summed_channel"]
 
     all_data_pos, dist_mat_pos = test_utils._make_dist_exp_mats_spatial_test(
         enrichment_type="positive", dist_lim=50
@@ -274,31 +287,31 @@ def test_generate_cluster_matrix_results():
         all_data_pos, dist_mat_pos, distlim=51
     )
 
-    neighbor_counts = neighbor_counts.drop("cellLabelInImage", axis=1)
+    neighbor_counts = neighbor_counts.drop(settings.CELL_LABEL, axis=1)
 
     # error checking
     with pytest.raises(ValueError):
         # pass bad columns
         spatial_analysis.generate_cluster_matrix_results(
-            all_data_pos, neighbor_counts, cluster_num=3, excluded_colnames=["bad_col"]
+            all_data_pos, neighbor_counts, cluster_num=3, excluded_channels=["bad_col"]
         )
 
     with pytest.raises(ValueError):
         # include bad fovs
         spatial_analysis.generate_cluster_matrix_results(
-            all_data_pos, neighbor_counts, cluster_num=3, excluded_colnames=excluded_colnames,
+            all_data_pos, neighbor_counts, cluster_num=3, excluded_channels=excluded_channels,
             included_fovs=[1000]
         )
 
     with pytest.raises(ValueError):
         # specify bad k for clustering
         spatial_analysis.generate_cluster_matrix_results(
-            all_data_pos, neighbor_counts, cluster_num=1, excluded_colnames=excluded_colnames
+            all_data_pos, neighbor_counts, cluster_num=1, excluded_channels=excluded_channels
         )
 
     all_data_markers_clusters, num_cell_type_per_cluster, mean_marker_exp_per_cluster = \
         spatial_analysis.generate_cluster_matrix_results(
-            all_data_pos, neighbor_counts, cluster_num=3, excluded_colnames=excluded_colnames
+            all_data_pos, neighbor_counts, cluster_num=3, excluded_channels=excluded_channels
         )
 
     # make sure we created a cluster_labels column
@@ -319,7 +332,7 @@ def test_generate_cluster_matrix_results():
 def test_compute_cluster_metrics():
     # get an example neighborhood matrix
     neighbor_mat = test_utils._make_neighborhood_matrix()
-    neighbor_mat = neighbor_mat.drop("cellLabelInImage", axis=1)
+    neighbor_mat = neighbor_mat.drop(settings.CELL_LABEL, axis=1)
 
     # error checking
     with pytest.raises(ValueError):

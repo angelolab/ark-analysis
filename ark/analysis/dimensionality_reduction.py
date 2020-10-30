@@ -49,7 +49,7 @@ def plot_dim_reduced_data(component_one, component_two, fig_id, hue, cell_data,
             Ignored if save_dir is None
     """
 
-    fig = plt.figure(fig_id)
+    plt.figure(fig_id)
     sns.scatterplot(x=component_one, y=component_two, hue=hue, palette=palette,
                     data=cell_data, legend=legend_type, alpha=alpha)
 

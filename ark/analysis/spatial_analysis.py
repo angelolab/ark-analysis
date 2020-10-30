@@ -4,12 +4,16 @@ import numpy as np
 from ark.utils import spatial_analysis_utils
 from ark.utils import misc_utils
 
+import ark.settings as settings
+
 
 def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, all_data,
                                          excluded_colnames=None, included_fovs=None,
-                                         dist_lim=100, bootstrap_num=1000, fov_col="SampleID",
-                                         context=False, cell_lin_col="cell_lineage",
-                                         cell_label_col="cellLabelInImage"):
+                                         dist_lim=100, bootstrap_num=1000,
+                                         fov_col=settings.FOV_ID, context=False,
+                                         cell_lin_col="cell_lineage",
+                                         cell_label_col=settings.CELL_LABEL,
+                                         context=False):
     """Spatial enrichment analysis to find significant interactions between cells expressing
     different markers. Uses bootstrapping to permute cell labels randomly.
 
@@ -21,12 +25,8 @@ def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, 
             threshold values for positive marker expression
         all_data (pandas.DataFrame):
             data including fovs, cell labels, and cell expression matrix for all markers
-        excluded_colnames (list):
-            all column names that are not markers. If argument is none, default is
-            ["cell_size", "Background", "HH3",
-            "summed_channel", "label", "area",
-            "eccentricity", "major_axis_length",
-            "minor_axis_length", "perimeter", "fov"]
+        excluded_channels (list):
+            channels to be excluded from the analysis.  Default is None.
         included_fovs (list):
             patient labels to include in analysis. If argument is none, default is all labels used.
         dist_lim (int):
@@ -34,7 +34,7 @@ def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, 
         bootstrap_num (int):
             number of permutations for bootstrap. Default is 1000.
         fov_col (str):
-            column with the cell fovs. Default is 'SampleID'
+            column with the cell fovs.
         context (bool):
             if we want to specify context-dependent randomization or not. Default is False.
         cell_lin_col (str):
@@ -68,22 +68,20 @@ def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, 
 
     values = []
 
-    if excluded_colnames is None:
-        excluded_colnames = ["cell_size", "Background", "HH3",
-                             "summed_channel", "label", "area",
-                             "eccentricity", "major_axis_length", "minor_axis_length",
-                             "perimeter", "fov"]
-
     # check if included fovs found in fov_col
     misc_utils.verify_in_list(fov_names=included_fovs,
                               unique_fovs=all_data[fov_col].unique())
 
     # check if all excluded column names found in all_data
-    misc_utils.verify_in_list(columns_to_exclude=excluded_colnames,
+    misc_utils.verify_in_list(columns_to_exclude=excluded_channels,
                               column_names=all_data.columns)
 
     # Subsets the expression matrix to only have channel columns
-    all_channel_data = all_data.drop(excluded_colnames, axis=1)
+    channel_start = np.where(all_data.columns == settings.PRE_CHANNEL_COL)[0][0] + 1
+    channel_end = np.where(all_data.columns == settings.POST_CHANNEL_COL)[0][0]
+
+    all_channel_data = all_data.iloc[:, channel_start:channel_end]
+    all_channel_data = all_channel_data.drop(excluded_channels, axis=1)
 
     # check that the markers are the same in marker_thresholdsa and all_channel_data
     misc_utils.verify_same_elements(markers_to_threshold=marker_thresholds.iloc[:, 0].values,
@@ -144,9 +142,10 @@ def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, 
 
 
 def calculate_cluster_spatial_enrichment(all_data, dist_matrices_dict, included_fovs=None,
-                                         bootstrap_num=1000, dist_lim=100, fov_col="SampleID",
-                                         cluster_name_col="cell_type", cluster_id_col="FlowSOM_ID",
-                                         cell_label_col="cellLabelInImage", context_labels=None):
+                                         bootstrap_num=1000, dist_lim=100, fov_col=settings.FOV_ID,
+                                         cluster_name_col=settings.CELL_TYPE,
+                                         cluster_id_col=settings.CLUSTER_ID,
+                                         cell_label_col=settings.CELL_LABEL, context_labels=None):
     """Spatial enrichment analysis based on cell phenotypes to find significant interactions
     between different cell types, looking for both positive and negative enrichment. Uses
     bootstrapping to permute cell labels randomly.
@@ -164,13 +163,13 @@ def calculate_cluster_spatial_enrichment(all_data, dist_matrices_dict, included_
         dist_lim (int):
             cell proximity threshold. Default is 100
         fov_col (str):
-            column with the cell fovs. Default is 'SampleID'
+            column with the cell fovs.
         cluster_name_col (str):
-            column with the cell types. Default is 'cell_type'
+            column with the cell types.
         cluster_id_col (str):
-            column with the cell phenotype IDs. Default is 'FlowSOM_ID'
+            column with the cell phenotype IDs.
         cell_label_col (str):
-            column with the cell labels. Default is 'cellLabelInImage'
+            column with the cell labels.
         context_labels (dict):
             A dict that contains which specific types of cells we want to consider.
             If argument is None, we will not run context-dependent spatial analysis
@@ -247,8 +246,9 @@ def calculate_cluster_spatial_enrichment(all_data, dist_matrices_dict, included_
 
 
 def create_neighborhood_matrix(all_data, dist_matrices_dict, included_fovs=None, distlim=50,
-                               fov_col="SampleID", cluster_id_col="FlowSOM_ID",
-                               cell_label_col="cellLabelInImage", cluster_name_col="cell_type"):
+                               fov_col=settings.FOV_ID, cluster_id_col=settings.CLUSTER_ID,
+                               cell_label_col=settings.CELL_LABEL,
+                               cluster_name_col=settings.CELL_TYPE):
     """Calculates the number of neighbor phenotypes for each cell.
 
     Args:
@@ -262,13 +262,13 @@ def create_neighborhood_matrix(all_data, dist_matrices_dict, included_fovs=None,
         distlim (int):
             cell proximity threshold. Default is 50.
         fov_col (str):
-            column with the cell fovs. Default is 'SampleID'
+            column with the cell fovs.
         cluster_id_col (str):
-            column with the cell phenotype IDs. Default is 'FlowSOM_ID'
+            column with the cell phenotype IDs.
         cell_label_col (str):
-            column with the cell labels. Default is 'cellLabelInImage'
+            column with the cell labels.
         cluster_name_col (str):
-            column with the cell types. Default is 'cell_type'
+            column with the cell types.
 
     Returns:
         pandas.DataFrame:
@@ -333,9 +333,9 @@ def create_neighborhood_matrix(all_data, dist_matrices_dict, included_fovs=None,
     return cell_neighbor_counts, cell_neighbor_freqs
 
 
-def generate_cluster_matrix_results(all_data, neighbor_mat, cluster_num, excluded_colnames=None,
-                                    included_fovs=None, cluster_label_col='cluster_labels',
-                                    fov_col='SampleID', cell_type_col='cell_type'):
+def generate_cluster_matrix_results(all_data, neighbor_mat, cluster_num, excluded_channels=None,
+                                    included_fovs=None, cluster_label_col=settings.KMEANS_CLUSTER,
+                                    fov_col=settings.FOV_ID, cell_type_col=settings.CELL_TYPE):
     """Generate the cluster info on all_data using k-means clustering on neighbor_mat.
 
     cluster_num has to be picked based on visualizations from compute_cluster_metrics.
@@ -348,14 +348,10 @@ def generate_cluster_matrix_results(all_data, neighbor_mat, cluster_num, exclude
         cluster_num (int):
             the optimal k to pass into k-means clustering to generate the final clusters
             and corresponding results
-        excluded_colnames (list):
-            all column names that are not markers. If argument is none, default is
-            ["cell_size", "Background", "HH3",
-            "summed_channel", "label", "area",
-            "eccentricity", "major_axis_length",
-            "minor_axis_length", "perimeter", "fov"]
+        excluded_channels (list):
+            all channel names to be excluded from analysis
         included_fovs (list):
-            patient labels to include in analysis. If argument is None, default is all labels used.
+            patient labels to include in analysis. If argument is None, default is all labels used
         cluster_label_col (str):
             the name of the cluster label col we will create
         fov_col (str):
@@ -379,19 +375,13 @@ def generate_cluster_matrix_results(all_data, neighbor_mat, cluster_num, exclude
     if included_fovs is None:
         included_fovs = neighbor_mat[fov_col].unique()
 
-    if excluded_colnames is None:
-        excluded_colnames = ["cell_size", "Background", "HH3",
-                             "summed_channel", "label", "area",
-                             "eccentricity", "major_axis_length", "minor_axis_length",
-                             "perimeter", "fov"]
+    # check if included fovs found in fov_col
+    misc_utils.verify_in_list(fov_names=included_fovs,
+                              unique_fovs=all_data[fov_col].unique())
 
-    # make sure the specified excluded_colnames exist in all_data
-    if not np.isin(excluded_colnames, all_data.columns).all():
-        raise ValueError("Column names were not found in Expression Matrix")
-
-    # make sure the specified fovs exist in included_fovs
-    if not np.isin(included_fovs, neighbor_mat[fov_col]).all():
-        raise ValueError("Not all specified fovs exist in the provided neighborhood matrix")
+    # check if all excluded column names found in all_data
+    misc_utils.verify_in_list(columns_to_exclude=excluded_channels,
+                              column_names=all_data.columns)
 
     # make sure number of clusters specified is valid
     if cluster_num < 2:
@@ -417,7 +407,13 @@ def generate_cluster_matrix_results(all_data, neighbor_mat, cluster_num, exclude
         index=cluster_label_col, columns=cell_type_col, values="count").fillna(0).astype(int)
 
     # Subsets the expression matrix to only have channel columns
-    all_data_markers_clusters = all_data_clusters.drop(excluded_colnames, axis=1)
+    channel_start = np.where(all_data_clusters.columns == settings.PRE_CHANNEL_COL)[0][0] + 1
+    channel_end = np.where(all_data_clusters.columns == settings.POST_CHANNEL_COL)[0][0]
+    cluster_label_colnum = np.where(all_data_clusters.columns == cluster_label_col)[0][0]
+
+    all_data_markers_clusters = \
+        all_data_clusters.iloc[:, list(range(channel_start, channel_end)) + [cluster_label_colnum]]
+    all_data_markers_clusters = all_data_markers_clusters.drop(excluded_channels, axis=1)
 
     # create a mean pivot table with cluster_label_col as row and channels as column
     mean_marker_exp_per_cluster = all_data_markers_clusters.groupby([cluster_label_col]).mean()
