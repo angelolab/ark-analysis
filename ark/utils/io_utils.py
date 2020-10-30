@@ -80,25 +80,37 @@ def remove_file_extensions(files):
             List of files to remove file extensions from.
             Any element that doesn't have an extension is left unchanged
 
+    Raises:
+        UserWarning:
+            Some of the processed file names still contain a period
+
     Returns:
         list:
             List of files without file extensions
     """
 
-    # make sure we don't try to split on an undefined list of files
+    # make sure we don't try to split on a non-existent list
     if files is None:
         return
 
     # only get the file name and not the directory path leading up to it
     names = [os.path.split(name)[1] for name in files]
 
-    # remove anything past and including the first '.' in each entry
-    names = [name.split('.')[0] for name in names]
+    # remove the file extension
+    names = [os.path.splitext(name)[0] for name in names]
+
+    # identify names with '.' in them: these may not be processed correctly
+    bad_names = [name for name in names if '.' in name]
+    if len(bad_names) > 0:
+        print(f"These files still have \".\" in them after file extension removal: "
+              f"{','.join(bad_names)}, "
+              f"please double check that these are the correct names")
+        warnings.warn("remaining periods in file names")
 
     return names
 
 
-def extract_delimited_names(names, delimiter='_', delimiter_optional=True):
+def extract_delimited_names(names, delimiter=None, delimiter_optional=True):
     """For a given list of names, extract the delimited prefix
 
     Examples (if delimiter='_'):
@@ -114,7 +126,7 @@ def extract_delimited_names(names, delimiter='_', delimiter_optional=True):
             Character separator used to determine filename prefix. Defaults to '_'.
         delimiter_optional (bool):
             If False, function will return None if any of the files don't contain the delimiter.
-            Defaults to True.
+            Defaults to True. Ignored if delimiter is None.
 
     Raises:
         UserWarning:
@@ -131,15 +143,17 @@ def extract_delimited_names(names, delimiter='_', delimiter_optional=True):
         return
 
     # check for bad files/folders
-    if not delimiter_optional:
+    if delimiter is not None and not delimiter_optional:
         no_delim = [
             delimiter not in name
             for name in names
         ]
         if any(no_delim):
-            warnings.warn(f"The following files do not have the mandatory delimiter, "
-                          f"'{delimiter}'...\n"
-                          f"{[name for indx,name in enumerate(names) if no_delim[indx]]}")
+            print(f"The following files do not have the mandatory delimiter, "
+                  f"'{delimiter}': "
+                  f"{','.join([name for indx,name in enumerate(names) if no_delim[indx]])}")
+            warnings.warn("files without mandatory delimiter")
+
             return None
 
     # now split on the delimiter as well

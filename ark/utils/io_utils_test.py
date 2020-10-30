@@ -102,6 +102,10 @@ def test_remove_file_extensions():
 
     assert new_files == files_sans_ext
 
+    with pytest.warns(UserWarning):
+        new_files = iou.remove_file_extensions(['fov5.tar.gz', 'fov6.sample.csv'])
+        assert new_files == ['fov5.tar', 'fov6.sample']
+
 
 def test_extract_delimited_names():
     filenames = [
@@ -115,10 +119,10 @@ def test_extract_delimited_names():
 
     # non-optional delimiter warning
     with pytest.warns(UserWarning):
-        iou.extract_delimited_names(['fov2'], delimiter_optional=False)
+        iou.extract_delimited_names(['fov2'], delimiter='_', delimiter_optional=False)
 
     # test regular files list
-    assert ['fov1', 'fov2'] == iou.extract_delimited_names(filenames)
+    assert ['fov1', 'fov2'] == iou.extract_delimited_names(filenames, delimiter='_')
 
 
 def test_list_folders():

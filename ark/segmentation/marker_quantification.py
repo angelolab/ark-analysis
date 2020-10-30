@@ -274,10 +274,6 @@ def generate_cell_table(segmentation_labels, tiff_dir, img_sub_folder,
     # drop file extensions
     fovs = io_utils.remove_file_extensions(fovs)
 
-    # if mibitiff, also need to remove delimiters
-    if is_mibitiff:
-        fovs = io_utils.extract_delimited_names(fovs)
-
     # check segmentation_labels for given fovs (img loaders will fail otherwise)
     misc_utils.verify_in_list(fovs=fovs,
                               segmentation_labels_fovs=segmentation_labels['fovs'].values)
@@ -301,7 +297,6 @@ def generate_cell_table(segmentation_labels, tiff_dir, img_sub_folder,
         [fovs[i:i + batch_size] for i in range(0, cohort_len, batch_size)],
         [filenames[i:i + batch_size] for i in range(0, cohort_len, batch_size)]
     ):
-        print(batch_files)
         # and extract the image data for each batch
         if is_mibitiff:
             image_data = load_utils.load_imgs_from_mibitiff(data_dir=tiff_dir,
