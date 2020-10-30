@@ -9,6 +9,7 @@ import skimage.io as io
 
 from mibidata import mibi_image as mi, tiff
 
+import ark.settings as settings
 from ark.utils import synthetic_spatial_datagen
 
 
@@ -555,10 +556,39 @@ def make_segmented_csv(num_cells, extra_cols=None):
         np.random.random(size=(num_cells, len(TEST_MARKERS))),
         columns=TEST_MARKERS
     )
-    cell_data["cell_type"] = choices(ascii_lowercase, k=num_cells)
-    cell_data["PatientID"] = choices(range(1, 10), k=num_cells)
+    cell_data[settings.CELL_TYPE] = choices(ascii_lowercase, k=num_cells)
+    cell_data[settings.PATIENT_ID] = choices(range(1, 10), k=num_cells)
 
     return cell_data
+
+# TODO: Use these below
+
+
+EXCLUDE_CHANNELS = [
+    "Background",
+    "HH3",
+    "summed_channel",
+]
+
+DEFAULT_COLUMNS_LIST = \
+    [settings.CELL_SIZE] \
+    + list(range(1, 24)) \
+    + [
+        settings.CELL_LABEL,
+        'area',
+        'eccentricity',
+        'maj_axis_length',
+        'min_axis_length',
+        'perimiter',
+        settings.FOV_ID,
+        settings.CLUSTER_ID,
+        settings.CELL_TYPE,
+    ]
+list(map(
+    DEFAULT_COLUMNS_LIST.__setitem__, [1, 14, 23], EXCLUDE_CHANNELS
+))
+
+DEFAULT_COLUMNS = dict(zip(range(33), DEFAULT_COLUMNS_LIST))
 
 
 def create_test_extraction_data():
@@ -602,7 +632,7 @@ def _make_neighborhood_matrix():
             a sample neighborhood matrix with three different populations,
             intended to test clustering
     """
-    col_names = {0: 'SampleID', 1: 'cellLabelInImage', 2: 'feature1', 3: 'feature2'}
+    col_names = {0: settings.FOV_ID, 1: settings.CELL_LABEL, 2: 'feature1', 3: 'feature2'}
     neighbor_counts = pd.DataFrame(np.zeros((200, 5)))
     neighbor_counts = neighbor_counts.rename(col_names, axis=1)
 
@@ -727,12 +757,6 @@ def _make_expression_mat_sa(enrichment_type):
     if enrichment_type not in ["none", "positive", "negative"]:
         raise ValueError("enrichment_type must be none, positive, or negative")
 
-    # Column names for columns that are not markers (columns to be excluded)
-    excluded_colnames = {0: 'cell_size', 1: 'Background', 14: "HH3",
-                         23: "summed_channel", 24: "cellLabelInImage", 25: "area",
-                         26: "eccentricity", 27: "major_axis_length", 28: "minor_axis_length",
-                         29: "perimeter", 30: "SampleID", 31: "FlowSOM_ID", 32: "cell_type"}
-
     if enrichment_type == "none":
         all_data = pd.DataFrame(np.zeros((120, 33)))
         # Assigning values to the patient label and cell label columns
@@ -761,9 +785,9 @@ def _make_expression_mat_sa(enrichment_type):
         all_data.iloc[80:100, 32] = "Pheno1"
 
         # Assign column names to columns not for markers (columns to be excluded)
-        all_patient_data = all_data.rename(excluded_colnames, axis=1)
+        all_patient_data = all_data.rename(DEFAULT_COLUMNS, axis=1)
 
-        all_patient_data.loc[all_patient_data.iloc[:, 31] == 0, "cell_type"] = "Pheno3"
+        all_patient_data.loc[all_patient_data.iloc[:, 31] == 0, settings.CELL_TYPE] = "Pheno3"
         return all_patient_data
     elif enrichment_type == "positive":
         all_data_pos = pd.DataFrame(np.zeros((160, 33)))
@@ -807,9 +831,10 @@ def _make_expression_mat_sa(enrichment_type):
         all_data_pos.iloc[112:116, 32] = "Pheno1"
 
         # Assign column names to columns not for markers (columns to be excluded)
-        all_patient_data_pos = all_data_pos.rename(excluded_colnames, axis=1)
+        all_patient_data_pos = all_data_pos.rename(DEFAULT_COLUMNS, axis=1)
 
-        all_patient_data_pos.loc[all_patient_data_pos.iloc[:, 31] == 0, "cell_type"] = "Pheno3"
+        all_patient_data_pos.loc[all_patient_data_pos.iloc[:, 31] == 0,
+                                 settings.CELL_TYPE] = "Pheno3"
         return all_patient_data_pos
     elif enrichment_type == "negative":
         all_data_neg = pd.DataFrame(np.zeros((120, 33)))
@@ -838,9 +863,10 @@ def _make_expression_mat_sa(enrichment_type):
         all_data_neg.iloc[80:100, 32] = "Pheno1"
 
         # Assign column names to columns not for markers (columns to be excluded)
-        all_patient_data_neg = all_data_neg.rename(excluded_colnames, axis=1)
+        all_patient_data_neg = all_data_neg.rename(DEFAULT_COLUMNS, axis=1)
 
-        all_patient_data_neg.loc[all_patient_data_neg.iloc[:, 31] == 0, "cell_type"] = "Pheno3"
+        all_patient_data_neg.loc[all_patient_data_neg.iloc[:, 31] == 0,
+                                 settings.CELL_TYPE] = "Pheno3"
         return all_patient_data_neg
 
 
@@ -935,7 +961,13 @@ def _make_expression_mat_sa_utils():
     all_data[30] = "fov8"
     all_data[24] = np.arange(len(all_data[1])) + 1
 
-    colnames = {24: "cellLabelInImage", 30: "SampleID", 31: "FlowSOM_ID", 32: "cell_type"}
+    colnames = {
+        0: settings.CELL_SIZE,
+        24: settings.CELL_LABEL,
+        30: settings.FOV_ID,
+        31: settings.CLUSTER_ID,
+        32: settings.CELL_TYPE
+    }
     all_data = all_data.rename(colnames, axis=1)
 
     # Create 4 cells positive for marker 1 and 2, 5 cells positive for markers 3 and 4,

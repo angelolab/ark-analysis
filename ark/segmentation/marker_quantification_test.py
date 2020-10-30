@@ -9,6 +9,8 @@ from skimage.morphology import erosion
 from ark.segmentation import marker_quantification
 from ark.utils import test_utils
 
+import ark.settings as settings
+
 
 def test_compute_marker_counts_base():
     cell_mask, channel_data = test_utils.create_test_extraction_data()
@@ -26,11 +28,11 @@ def test_compute_marker_counts_base():
                                                     segmentation_labels=segmentation_labels)
 
     # check that channel 0 counts are same as cell size
-    assert np.array_equal(segmentation_output.loc['whole_cell', :, 'cell_size'].values,
+    assert np.array_equal(segmentation_output.loc['whole_cell', :, settings.CELL_SIZE].values,
                           segmentation_output.loc['whole_cell', :, 'chan0'].values)
 
     # check that channel 1 counts are 5x cell size
-    assert np.array_equal(segmentation_output.loc['whole_cell', :, 'cell_size'].values * 5,
+    assert np.array_equal(segmentation_output.loc['whole_cell', :, settings.CELL_SIZE].values * 5,
                           segmentation_output.loc['whole_cell', :, 'chan1'].values)
 
     # check that channel 2 counts are the same as channel 1
@@ -48,10 +50,10 @@ def test_compute_marker_counts_base():
 
     # check that cell sizes are correct
     sizes = [np.sum(cell_mask == cell_id) for cell_id in [1, 2, 3, 5]]
-    assert np.array_equal(sizes, segmentation_output.loc['whole_cell', :, 'cell_size'])
+    assert np.array_equal(sizes, segmentation_output.loc['whole_cell', :, settings.CELL_SIZE])
 
     # check that regionprops size matches with cell size
-    assert np.array_equal(segmentation_output.loc['whole_cell', :, 'cell_size'],
+    assert np.array_equal(segmentation_output.loc['whole_cell', :, settings.CELL_SIZE],
                           segmentation_output.loc['whole_cell', :, 'area'])
 
 
@@ -135,7 +137,7 @@ def test_compute_marker_counts_nuc_whole_cell_diff():
                           segmentation_output_unequal.loc['nuclear', :, 'area'])
 
 
-def test_compute_marker_counts_diff_props():
+def test_compute_marker_counts_no_coords():
     cell_mask, channel_data = test_utils.create_test_extraction_data()
 
     # test whole_cell and nuclear compartments with same data
@@ -150,6 +152,44 @@ def test_compute_marker_counts_diff_props():
 
     # different object properties can be supplied
     regionprops_features = ['label', 'area']
+    excluded_defaults = ['eccentricity']
+
+    segmentation_output_specified = \
+        marker_quantification.compute_marker_counts(input_images=input_images,
+                                                    segmentation_labels=segmentation_labels_equal,
+                                                    nuclear_counts=True,
+                                                    regionprops_features=regionprops_features)
+
+    assert np.all(np.isin(['label', 'area'], segmentation_output_specified.features.values))
+
+    assert not np.any(np.isin(excluded_defaults, segmentation_output_specified.features.values))
+
+    # these nuclei are all smaller than the cells, so we should get same result
+    segmentation_output_specified_split = \
+        marker_quantification.compute_marker_counts(input_images=input_images,
+                                                    segmentation_labels=segmentation_labels_equal,
+                                                    nuclear_counts=True,
+                                                    regionprops_features=regionprops_features,
+                                                    split_large_nuclei=True)
+
+    assert np.all(segmentation_output_specified_split == segmentation_output_specified)
+
+
+def test_compute_marker_counts_no_labels():
+    cell_mask, channel_data = test_utils.create_test_extraction_data()
+
+    # test whole_cell and nuclear compartments with same data
+    segmentation_labels_equal = test_utils.make_labels_xarray(
+        label_data=np.concatenate((cell_mask, cell_mask), axis=-1),
+        compartment_names=['whole_cell', 'nuclear']
+    )
+
+    input_images = test_utils.make_images_xarray(channel_data)
+
+    segmentation_labels_equal, input_images = segmentation_labels_equal[0], input_images[0]
+
+    # different object properties can be supplied
+    regionprops_features = ['coords', 'area']
     excluded_defaults = ['eccentricity']
 
     segmentation_output_specified = \
