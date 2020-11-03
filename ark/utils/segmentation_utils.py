@@ -9,6 +9,8 @@ from skimage.morphology import remove_small_objects
 
 from ark.utils import plot_utils, io_utils, misc_utils
 
+import ark.settings as settings
+
 
 def find_nuclear_label_id(nuc_segmentation_labels, cell_coords):
     """Get the ID of the nuclear mask which has the greatest amount of overlap with a given cell
@@ -115,16 +117,15 @@ def transform_expression_matrix(cell_table, transform, transform_kwargs=None):
     # generate array to hold transformed data
     cell_table_transformed = copy.deepcopy(cell_table)
 
-    # get start and end indices of channel data. We skip the 0th entry, which is cell size
-    channel_start = 1
-
-    # we include columns up to 'label', which is the first non-channel column
-    channel_end = np.where(cell_table.features == 'label')[0][0]
+    # get start and end indices of channel data
+    channel_start = np.where(cell_table.features == settings.PRE_CHANNEL_COL)[0][0] + 1
+    channel_end = np.where(cell_table.features == settings.POST_CHANNEL_COL)[0][0]
 
     if transform == 'size_norm':
 
         # get the size of each cell
-        cell_size = cell_table.values[:, :, 0:1]
+        size_index = np.where(cell_table.features == settings.CELL_SIZE)[0][0]
+        cell_size = cell_table[:, :, size_index:size_index + 1].values
 
         # generate cell_size array that is broadcast to have the same shape as the channels
         cell_size_large = np.repeat(cell_size, channel_end - channel_start, axis=2)
