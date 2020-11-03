@@ -7,7 +7,7 @@ import skimage.io as io
 from skimage.measure import regionprops_table
 from skimage.morphology import remove_small_objects
 
-from ark.utils import plot_utils, io_utils
+from ark.utils import plot_utils, io_utils, misc_utils
 
 
 def find_nuclear_label_id(nuc_segmentation_labels, cell_coords):
@@ -104,6 +104,7 @@ def transform_expression_matrix(cell_table, transform, transform_kwargs=None):
             xarray of counts per marker normalized by cell size
     """
     valid_transforms = ['size_norm', 'arcsinh']
+    misc_utils.verify_in_list(transform=transform, valid_transforms=valid_transforms)
 
     if transform not in valid_transforms:
         raise ValueError('Invalid transform supplied')
@@ -200,8 +201,8 @@ def visualize_segmentation(segmentation_labels_xr, channel_data_xr,
             path to directory where the output will be saved
         chan_list (list):
             list of channels to overlay segmentation output over
-        fovs (numpy.ndarray):
-            field of view
+        fovs (xarray.DataArray):
+            xarray containing multiple fovs
         show (bool):
             whether or not to show plot
     """
