@@ -24,7 +24,7 @@ def plot_clustering_result(labeled_image, labels_dict, title,
             2D numpy array of labeled cell objects.
         labels_dict (dict):
             a mapping between labeled cells and their clusters.
-        title (str:
+        title (str):
             The title of the image that will be displayed.
         default_val (int):
             Cells that were not assigned to any cluster (according to labels_dict
