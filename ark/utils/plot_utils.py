@@ -6,12 +6,54 @@ import pandas as pd
 import skimage.io as io
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 from skimage.segmentation import find_boundaries
 from skimage.exposure import rescale_intensity
 
 
 # plotting functions
+
+def plot_clustering_result(labeled_image, labels_dict, title,
+                           default_val=None, cmap='tab20', figsize=(10, 10)):
+    """Takes a labeled image and a dictionary that maps cell (labels) to clusters
+    and display an image showing which cells were assigned to which cluster.
+
+    Args:
+        labeled_image (numpy.ndarray):
+            2D numpy array of labeled cell objects.
+        labels_dict (dict):
+            a mapping between labeled cells and their clusters.
+        title (str:
+            The title of the image that will be displayed.
+        default_val (int):
+            Cells that were not assigned to any cluster (according to labels_dict
+            will be translated to this value. This value should not appear in
+            labels_dict.
+        cmap (str):
+            Cmap to use for the image that will be displayed.
+        figsize (tuple):
+            Size of the image that will be displayed.
+    """
+    if not default_val:
+        default_val = max(labels_dict.values()) + 1
+    if default_val in labels_dict.values():
+        raise ValueError('Invalid value for default_val. '
+                         'default_val should not appear as a value in labels_dict.')
+    # copy the given image so that it will not be overwritten
+    img = np.copy(labeled_image)
+    for i in range(img.shape[0]):
+        for j in range(img.shape[1]):
+            img[(i, j)] = labels_dict.get(img[(i, j)], default_val)
+
+    plt.figure(figsize=figsize)
+    ax = plt.gca()
+    plt.title(title)
+    plt.imshow(img, cmap=cmap)
+    divider = make_axes_locatable(ax)
+    cax = divider.append_axes("right", size="5%", pad=0.05)
+    plt.colorbar(cax=cax)
+
 
 def plot_overlay(predicted_contour, plotting_tif, alternate_contour=None, path=None):
     """Take in labeled contour data, along with optional mibi tif and second contour,
