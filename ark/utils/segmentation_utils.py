@@ -221,7 +221,7 @@ def visualize_segmentation(segmentation_labels_xr, channel_data_xr,
                 plotting_tif=input_data,
                 path=os.path.join(output_dir, save_path), show=show
             )
-        # Adds overlay to segmentation visualization
+        # Generates segmentation borders and labels
         plot_utils.plot_overlay(
             labels,
             plotting_tif=None,
