@@ -40,7 +40,7 @@ SEGMENT_IMAGE_DATA = os.path.join(os.path.dirname(os.path.realpath(__file__)),
 
 def segment_notebook_setup(tb, deepcell_tiff_dir, deepcell_input_dir, deepcell_output_dir,
                            single_cell_dir, is_mibitiff, num_fovs, num_chans, dtype):
-    # import modules and define file paths, need to import os separately
+    # import modules and define file paths
     tb.execute_cell('import')
 
     # create the path to the directory containing the input data
@@ -68,6 +68,8 @@ def segment_notebook_setup(tb, deepcell_tiff_dir, deepcell_input_dir, deepcell_o
             tiff_path, fovs, chans, img_shape=(1024, 1024), delimiter='_', fills=True,
             sub_dir="TIFs", dtype=dtype
         )
+
+    print(fovs, chans)
 
     # define custom mibitiff paths
     define_mibitiff_paths = """
@@ -125,6 +127,7 @@ def create_deepcell_input_output(tb, nucs_list, mems_list):
         nucs = %s\n
         mems = %s
     """ % (nucs_list_str, mems_list_str)
+    print(nuc_mem_set)
     tb.inject(nuc_mem_set, after='nuc_mem_set')
 
     # set the channels accordingly
