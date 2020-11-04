@@ -7,6 +7,7 @@ from testbook import testbook
 from ark.utils import test_utils
 from ark.utils import misc_utils
 
+import numpy as np
 import skimage.io as io
 
 
@@ -14,37 +15,40 @@ SEGMENT_IMAGE_DATA = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                   '..', '..', 'templates', 'Segment_Image_Data.ipynb')
 
 
-def _exec_notebook(nb_filename):
-    path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                        '..', '..', 'templates', nb_filename)
-    with tempfile.NamedTemporaryFile(suffix=".ipynb") as fout:
-        args = ["jupyter", "nbconvert", "--to", "notebook", "--execute",
-                "--ExecutePreprocessor.timeout=1000",
-                "--output", fout.name, path]
-        subprocess.check_call(args)
+# def _exec_notebook(nb_filename):
+#     path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+#                         '..', '..', 'templates', nb_filename)
+#     with tempfile.NamedTemporaryFile(suffix=".ipynb") as fout:
+#         args = ["jupyter", "nbconvert", "--to", "notebook", "--execute",
+#                 "--ExecutePreprocessor.timeout=1000",
+#                 "--output", fout.name, path]
+#         subprocess.check_call(args)
 
 
 # test overall runs
-def test_segment_image_data(mocker):
-    _exec_notebook('Segment_Image_Data.ipynb')
+# def test_segment_image_data(mocker):
+#     _exec_notebook('Segment_Image_Data.ipynb')
 
 
-def test_example_spatial_analysis():
-    _exec_notebook('example_spatial_analysis_script.ipynb')
+# def test_example_spatial_analysis():
+#     _exec_notebook('example_spatial_analysis_script.ipynb')
 
 
-def test_example_neighborhood_analysis():
-    _exec_notebook('example_neighborhood_analysis_script.ipynb')
+# def test_example_neighborhood_analysis():
+#     _exec_notebook('example_neighborhood_analysis_script.ipynb')
 
 
 def segment_notebook_setup(tb, deepcell_tiff_dir, deepcell_input_dir, deepcell_output_dir,
-                           single_cell_dir, is_mibitiff, num_fovs, num_chans):
-    # import modules and define file paths
+                           single_cell_dir, is_mibitiff, num_fovs, num_chans, dtype):
+    # import modules and define file paths, need to import os separately
+    # tb.inject("import os", before='import')
     tb.execute_cell('import')
 
-    # this path must be provided by the user, so we'll create a dummy one ourselves
-    # this should be done outside the Jupyter notebook to avoid extra long injections
-    os.path.mkdir(os.path.join("../data/example_dataset/input_data", deepcell_tiff_dir))
+    # create the path to the directory containing the input data
+    tiff_path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                             '..', '..', 'data', 'example_dataset',
+                             'input_data', deepcell_tiff_dir)
+    os.mkdir(tiff_path)
 
     # generate sample data in deepcell_tiff_dir
     if is_mibitiff:
@@ -53,8 +57,8 @@ def segment_notebook_setup(tb, deepcell_tiff_dir, deepcell_input_dir, deepcell_o
                                                     use_delimiter=True)
 
         filelocs, data_xr = test_utils.create_paired_xarray_fovs(
-            deepcell_tiff_dir, fovs, channels, img_shape=(1024, 1024), mode='mibitiff',
-            delimiter='_', fills=True, dtype="int16"
+            tiff_path, fovs, chans, img_shape=(1024, 1024), mode='mibitiff',
+            delimiter='_', fills=True, dtype=dtype
         )
     else:
         fovs, chans, imgs = test_utils.gen_fov_chan_names(num_fovs=num_fovs,
@@ -62,19 +66,19 @@ def segment_notebook_setup(tb, deepcell_tiff_dir, deepcell_input_dir, deepcell_o
                                                           return_imgs=True)
 
         filelocs, data_xr = test_utils.create_paired_xarray_fovs(
-            deepcell_tiff_dir, fovs, chans, img_shape=(1024, 1024), delimiter='_', fills=True,
-            sub_dir="TIFs", dtype="int16"
+            tiff_path, fovs, chans, img_shape=(1024, 1024), delimiter='_', fills=True,
+            sub_dir="TIFs", dtype=dtype
         )
 
     # define custom mibitiff paths
     define_mibitiff_paths = """
         base_dir = "../data/example_dataset"\n
         input_dir = os.path.join(base_dir, "input_data")\n
-        tiff_dir = os.path.join(input_dir, "%s/")\n
+        tiff_dir = "%s"\n
         deepcell_input_dir = os.path.join(input_dir, "%s/")\n
         deepcell_output_dir = os.path.join(base_dir, "%s")\n
         single_cell_dir = os.path.join(base_dir, "%s")
-    """ % (deepcell_tiff_dir, deepcell_input_dir, deepcell_output_dir, single_cell_dir)
+    """ % (tiff_path, deepcell_input_dir, deepcell_output_dir, single_cell_dir)
     tb.inject(define_mibitiff_paths, after='file_path')
 
     # create the directories as listed by define_mibitiff_paths
@@ -96,6 +100,7 @@ def segment_notebook_setup(tb, deepcell_tiff_dir, deepcell_input_dir, deepcell_o
     tb.execute_cell('load_fovs')
     if 'Error' in tb.cell_output_text('load_fovs'):
         print(tb.cell_output_text('load_fovs'))
+        remove_dirs()
         raise ValueError('Could not load fov names')
 
     # # TODO: some of these tests may already be covered in io_utils_test
@@ -130,6 +135,7 @@ def create_deepcell_input_output(tb, nucs_list, mems_list):
     tb.execute_cell('load_data_xr')
     if 'Error' in tb.cell_output_text('load_data_xr'):
         print(tb.cell_output_text('load_data_xr'))
+        remove_dirs()
         raise ValueError('Could not load images into data_xr')
 
     # # NOTE: any specific testing of load_imgs_from_mibitiff and load_imgs_from_tree
@@ -148,11 +154,13 @@ def create_deepcell_input_output(tb, nucs_list, mems_list):
     tb.execute_cell('gen_input')
     if 'Error' in tb.cell_output_text('gen_input'):
         print(tb.cell_output_text('gen_input'))
+        remove_dirs()
         raise ValueError('Could not generate deepcell input')
 
     tb.execute_cell('create_output')
     if 'Error' in tb.cell_output_text('create_output'):
         print(tb.cell_output_text('create_output'))
+        remove_dirs()
         raise ValueError('Could not create deepcell output')
 
     # assert that we created a .tif file for each fov
@@ -218,6 +226,7 @@ def save_seg_labels(tb, files=None, delimiter=None, xr_dim_name='compartments',
     tb.execute_cell('save_seg_labels')
     if 'Error' in tb.cell_output_text('save_seg_labels'):
         print(tb.cell_output_text('save_seg_labels'))
+        remove_dirs()
         raise ValueError('Could not save segmentation labels')
 
     # # assert that we actually saved the segmentation labels to segmentation_labels.xr
@@ -259,6 +268,7 @@ def data_xr_overlay(tb, files, xr_dim_name='compartments', xr_channel_names=None
     tb.execute_cell('plot_overlay')
     if 'Error' in tb.cell_output_text('load_summed'):
         print(tb.cell_output_text('load_summed'))
+        remove_dirs()
         raise ValueError('Could not load summed data_xr')
 
 
@@ -279,12 +289,13 @@ def create_exp_mat(tb, is_mibitiff=False, batch_size=5):
     tb.execute_cell('save_exp_mat')
     if 'Error' in tb.cell_output_text('save_exp_mat'):
         print(tb.cell_output_text('save_exp_mat'))
+        remove_dirs()
         raise ValueError('Could not save expression matrices')
 
 
 def remove_dirs():
     tb.inject("from shutil import rmtree")
-    tb.inject("rmtree(deepcell_tiff_dir)")
+    tb.inject("rmtree(tiff_dir)")
     tb.inject("rmtree(deepcell_input_dir)")
     tb.inject("rmtree(deepcell_output_dir)")
     tb.inject("rmtree(single_cell_dir)")
@@ -296,7 +307,7 @@ def test_mibitiff_segmentation(tb):
     segment_notebook_setup(tb, deepcell_tiff_dir="sample_tiff", deepcell_input_dir="sample_input",
                            deepcell_output_dir="sample_output",
                            single_cell_dir="sample_single_cell", is_mibitiff=True,
-                           num_fovs=3, num_chans=3)
+                           num_fovs=3, num_chans=3, dtype=np.uint16)
     create_deepcell_input_output(tb, nucs_list=['HH3'], mems_list=['Membrane'])
     save_seg_labels(tb, files=['fov1.tif', 'fov2.tif'], xr_channel_names=['whole_cell'])
     data_xr_overlay(tb, files=['fov1.tif', 'fov2.tif'], xr_channel_names=['nuclear', 'membrane'])
