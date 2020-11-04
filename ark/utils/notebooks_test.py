@@ -10,7 +10,8 @@ from ark.utils import misc_utils
 import skimage.io as io
 
 
-SEGMENT_IMAGE_DATA = os.path.join('..', '..', 'templates', 'Segment_Image_Data.ipynb')
+SEGMENT_IMAGE_DATA = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                                  '..', '..', 'templates', 'Segment_Image_Data.ipynb')
 
 
 def _exec_notebook(nb_filename):
@@ -36,7 +37,7 @@ def test_example_neighborhood_analysis():
     _exec_notebook('example_neighborhood_analysis_script.ipynb')
 
 
-def segment_notebook_setup(deepcell_tiff_dir, deepcell_input_dir, deepcell_output_dir,
+def segment_notebook_setup(tb, deepcell_tiff_dir, deepcell_input_dir, deepcell_output_dir,
                            single_cell_dir, is_mibitiff, num_fovs, num_chans):
     # import modules and define file paths
     tb.execute_cell('import')
@@ -104,7 +105,7 @@ def segment_notebook_setup(deepcell_tiff_dir, deepcell_input_dir, deepcell_outpu
     # return fovs, chans
 
 
-def create_deepcell_input_output(nucs_list, mems_list):
+def create_deepcell_input_output(tb, nucs_list, mems_list):
     # we need to set the nucs_list and the mems_list accordingly
     if nucs_list is None:
         nucs_list_str = "None"
@@ -159,8 +160,8 @@ def create_deepcell_input_output(nucs_list, mems_list):
     # tb.inject("assert sorted(os.listdir(os.path.join(%s)) == %s)" % str(sorted(fovs_with_tif)))
 
 
-def save_seg_labels(files=None, delimiter=None, xr_dim_name='compartments', xr_channel_names=None,
-                    dtype="int16", force_ints=False, channel_indices=None):
+def save_seg_labels(tb, files=None, delimiter=None, xr_dim_name='compartments',
+                    xr_channel_names=None, dtype="int16", force_ints=False, channel_indices=None):
     files_str = str(files) if files is not None else "None"
     delimiter_str = delimiter if delimiter is not None else "None"
     xr_channel_names_str = str(xr_channel_names) if xr_channel_names is not None else "None"
@@ -226,7 +227,7 @@ def save_seg_labels(files=None, delimiter=None, xr_dim_name='compartments', xr_c
     tb.execute_cell('save_seg_labels')
 
 
-def data_xr_overlay(files, xr_dim_name='compartments', xr_channel_names=None):
+def data_xr_overlay(tb, files, xr_dim_name='compartments', xr_channel_names=None):
     files_str = str(files) if files is not None else "None"
 
     load_data_xr_sum = """
@@ -261,7 +262,7 @@ def data_xr_overlay(files, xr_dim_name='compartments', xr_channel_names=None):
         raise ValueError('Could not load summed data_xr')
 
 
-def create_exp_mat(is_mibitiff=False, batch_size=5):
+def create_exp_mat(tb, is_mibitiff=False, batch_size=5):
     # NOTE: segmentation labels will already have been created
     exp_mat_gen = """
         cell_table_size_normalized, cell_table_arcsinh_transformed = \
@@ -291,13 +292,13 @@ def remove_dirs():
 
 # test mibitiff
 @testbook(SEGMENT_IMAGE_DATA)
-def test_mibitiff_segmentation(mocker):
-    segment_notebook_setup(deepcell_tiff_dir="sample_tiff", deepcell_input_dir="sample_input",
+def test_mibitiff_segmentation(tb):
+    segment_notebook_setup(tb, deepcell_tiff_dir="sample_tiff", deepcell_input_dir="sample_input",
                            deepcell_output_dir="sample_output",
                            single_cell_dir="sample_single_cell", is_mibitiff=True,
                            num_fovs=3, num_chans=3)
-    create_deepcell_input_output(nucs_list=['HH3'], mems_list=['Membrane'])
-    save_seg_labels(files=['fov1.tif', 'fov2.tif'], xr_channel_names=['whole_cell'])
-    data_xr_overlay(files=['fov1.tif', 'fov2.tif'], xr_channel_names=['nuclear', 'membrane'])
-    create_exp_map(is_mibitiff=True)
+    create_deepcell_input_output(tb, nucs_list=['HH3'], mems_list=['Membrane'])
+    save_seg_labels(tb, files=['fov1.tif', 'fov2.tif'], xr_channel_names=['whole_cell'])
+    data_xr_overlay(tb, files=['fov1.tif', 'fov2.tif'], xr_channel_names=['nuclear', 'membrane'])
+    create_exp_map(tb, is_mibitiff=True)
     remove_dirs()
