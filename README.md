@@ -87,3 +87,7 @@ After updating, you can copy over any important paths or modifications from the 
 ## Questions?
 
 Please refer to our [FAQ](https://ark-analysis.readthedocs.io/en/latest/_rtd/faq.html).
+
+## Want to contribute?  
+
+If you would like to help make `ark` better, please take a look at our [contributing guidelines](https://ark-analysis.readthedocs.io/en/latest/_rtd/contributing.html)
