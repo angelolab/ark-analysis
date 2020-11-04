@@ -13,3 +13,7 @@ The functions in `ark` have a lot of error checking built in. This means that if
 For example, if you get an invalid path error, the error message indicate which part of the path doesn't exist, helping you to troubleshoot. 
 
 If you're still stuck, please completely close the notebook, kill the docker, and restart everything. If you've exhausted all of these options and are still getting the same error, feel free to open an [issue](https://github.com/angelolab/ark-analysis/issues/new/choose). 
+
+### How can I help improve this project?
+
+If you're interested in helping to add new features and develop this project, please check out our [contributing guidelines](https://ark-analysis.readthedocs.io/en/latest/_rtd/contributing.html)
