@@ -1,4 +1,4 @@
-**If you haven't already, please read through our [contributing guidelines](https://github.com/angelolab/ark-analysis/tree/master/docs/contributing.md) before opening your PR**
+**If you haven't already, please read through our [contributing guidelines](https://ark-analysis.readthedocs.io/en/latest/_rtd/contributing.html) before opening your PR**
 
 **What is the purpose of this PR?**
 
