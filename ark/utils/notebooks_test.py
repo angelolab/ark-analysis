@@ -307,7 +307,7 @@ def test_mibitiff_segmentation(tb):
                            deepcell_output_dir="sample_output",
                            single_cell_dir="sample_single_cell", is_mibitiff=True,
                            num_fovs=3, num_chans=3, dtype=np.uint16)
-    create_deepcell_input_output(tb, nucs_list=['HH3'], mems_list=['Membrane'])
+    create_deepcell_input_output(tb, nucs_list=['chan0'], mems_list=['chan1', 'chan2'])
     save_seg_labels(tb, files=['fov1.tif', 'fov2.tif'], xr_channel_names=['whole_cell'])
     data_xr_overlay(tb, files=['fov1.tif', 'fov2.tif'], xr_channel_names=['nuclear', 'membrane'])
     create_exp_map(tb, is_mibitiff=True)
