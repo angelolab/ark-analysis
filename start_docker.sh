@@ -11,10 +11,9 @@ until [[ $(lsof -i -P -n | grep 127.0.0.1:$PORT | wc -l) -eq 0 ]]
     ((PORT=PORT+1))
 done
 
-echo $PORT
-
 if [ $PORT -ne 8888 ]
 then
+  echo "WARNING: another Jupyter server on port 8888 running"
   echo "Enter this URL instead to access the notebooks: http://127.0.0.1:$PORT/"
   echo "In the URLs below, copy the token after \"token=\", paste that into the password prompt, and log in"
 fi
