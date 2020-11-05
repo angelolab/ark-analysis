@@ -10,7 +10,8 @@ from ark.utils import misc_utils
 
 
 def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
-                           suffix='_feature_0', host='https://deepcell.org', job_type='multiplex', scale=1.0):
+                           suffix='_feature_0', host='https://deepcell.org', job_type='multiplex',
+                           scale=1.0):
     """ Handles all of the necessary data manipulation for running deepcell tasks.
 
         Creates .zip files (to be used as input for DeepCell),
@@ -95,7 +96,7 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
 
 
 def run_deepcell_task(input_dir, output_dir, host='https://deepcell.org',
-                      job_type='multiplex',scale=1.0):
+                      job_type='multiplex', scale=1.0):
     """Uses kiosk-client to run DeepCell task and saves output to output_dir.
         More configuration parameters can be set than those currently used.
         (https://github.com/vanvalenlab/kiosk-client)
@@ -122,7 +123,6 @@ def run_deepcell_task(input_dir, output_dir, host='https://deepcell.org',
         'download_results': True,
         'output_dir': output_dir,
         'scale': str(scale)
-        
     }
 
     mgr = manager.BatchProcessingJobManager(**mgr_kwargs)
