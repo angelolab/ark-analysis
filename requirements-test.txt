@@ -1,5 +1,7 @@
+attrs>=20.3.0
 coveralls>=1.8.2,<2.0.0
 pytest<6.0.0
 pytest-cov<3.0.0
 pytest-mock<4.0.0
 pytest-pycodestyle<3.0.0
+six>=1.13.0
