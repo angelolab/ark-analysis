@@ -203,13 +203,19 @@ def visualize_segmentation(segmentation_labels_xr, channel_data_xr,
         chan_list (list):
             list of channels to overlay segmentation output over
         fovs (xarray.DataArray):
-            xarray containing multiple fovs
+            xarray containing field of views
         show (bool):
             whether or not to show plot
     """
 
     if fovs is None:
         fovs = segmentation_labels_xr.fovs
+    misc_utils.verify_in_list(fovs=fovs, segmentation_label_fovs=segmentation_labels_xr.fovs)
+
+    if chan_list is not None:
+        misc_utils.verify_in_list(channels=chan_list,
+                                  channel_data_channels=channel_data_xr.channels)
+
     for fov in fovs:
         labels = segmentation_labels_xr.loc[fov, :, :, 'whole_cell'].values
         # If chan_list is provided, overlay segmentation output over it
