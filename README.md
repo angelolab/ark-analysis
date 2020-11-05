@@ -41,9 +41,17 @@ Enter the following command into terminal from the same directory you ran the ab
 $ bash start_docker.sh
 ``` 
 
-This will generate a link to a jupyter notebook. Copy the last URL (the one with 127.0.0.1:8888 at the beginning) into your web browser.
+This will generate a link to a jupyter notebook. Copy the last URL (the one with `127.0.0.1:8888` at the beginning) into your web browser.
 
 Be sure to keep this terminal open.  **Do not exit the terminal or enter control-c until you are finished with the notebooks**.
+
+### NOTE
+
+If you already have a Jupyter session open when you run `$ bash start_docker.sh`, you will receive a couple additional prompts. 
+
+Copy the URL listed after `Enter this URL instead to access the notebooks:` 
+
+You will need to authenticate. Note the last URL (the one with `127.0.0.1:8888` at the beginning), copy the token that appears there (it will be after `token=` in the URL), paste it into the password prompt of the Jupyter notebook, and log in.
 
 ## Using the example notebooks:
 - The Segment_Image_Data notebook walks you through the appropriate steps to format your data, run the data through deepcell, extracts the counts for each marker in each cell, and creats a csv file with the normalized counts
