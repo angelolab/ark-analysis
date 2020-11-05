@@ -39,7 +39,8 @@ SEGMENT_IMAGE_DATA = os.path.join(os.path.dirname(os.path.realpath(__file__)),
 
 
 def segment_notebook_setup(tb, deepcell_tiff_dir, deepcell_input_dir, deepcell_output_dir,
-                           single_cell_dir, is_mibitiff, num_fovs, num_chans, dtype):
+                           single_cell_dir, is_mibitiff, mibitiff_suffix,
+                           num_fovs, num_chans, dtype):
     # import modules and define file paths
     tb.execute_cell('import')
 
@@ -54,6 +55,7 @@ def segment_notebook_setup(tb, deepcell_tiff_dir, deepcell_input_dir, deepcell_o
         fovs, chans = test_utils.gen_fov_chan_names(num_fovs=num_fovs,
                                                     num_chans=num_chans,
                                                     use_delimiter=True)
+        fovs = [f + mibitiff_suffix for f in fovs]
 
         filelocs, data_xr = test_utils.create_paired_xarray_fovs(
             tiff_path, fovs, chans, img_shape=(1024, 1024), mode='mibitiff',
@@ -66,19 +68,16 @@ def segment_notebook_setup(tb, deepcell_tiff_dir, deepcell_input_dir, deepcell_o
 
         filelocs, data_xr = test_utils.create_paired_xarray_fovs(
             tiff_path, fovs, chans, img_shape=(1024, 1024), delimiter='_', fills=True,
-            sub_dir="TIFs", dtype=dtype
-        )
-
-    print(fovs, chans)
+            sub_dir="TIFs", dtype=dtype)
 
     # define custom mibitiff paths
     define_mibitiff_paths = """
         base_dir = "../data/example_dataset"\n
         input_dir = os.path.join(base_dir, "input_data")\n
-        tiff_dir = "%s"\n
+        tiff_dir = "%s/"\n
         deepcell_input_dir = os.path.join(input_dir, "%s/")\n
-        deepcell_output_dir = os.path.join(base_dir, "%s")\n
-        single_cell_dir = os.path.join(base_dir, "%s")
+        deepcell_output_dir = os.path.join(base_dir, "%s/")\n
+        single_cell_dir = os.path.join(base_dir, "%s/")
     """ % (tiff_path, deepcell_input_dir, deepcell_output_dir, single_cell_dir)
     tb.inject(define_mibitiff_paths, after='file_path')
 
@@ -116,18 +115,17 @@ def create_deepcell_input_output(tb, nucs_list, mems_list):
     if nucs_list is None:
         nucs_list_str = "None"
     else:
-        nucs_list_str = "[%s]" % str(nucs_list)
+        nucs_list_str = "%s" % str(nucs_list)
 
     if mems_list is None:
         mems_list_str = "None"
     else:
-        mems_list_str = "[%s]" % str(mems_list)
+        mems_list_str = "%s" % str(mems_list)
 
     nuc_mem_set = """
         nucs = %s\n
         mems = %s
     """ % (nucs_list_str, mems_list_str)
-    print(nuc_mem_set)
     tb.inject(nuc_mem_set, after='nuc_mem_set')
 
     # set the channels accordingly
@@ -160,9 +158,10 @@ def create_deepcell_input_output(tb, nucs_list, mems_list):
         raise ValueError('Could not generate deepcell input')
 
     tb.execute_cell('create_output')
-    if 'Error' in tb.cell_output_text('create_output'):
+    create_output_text = tb.cell_output_text('create_output')
+    if 'Error' in create_output_text or 'warnings' in create_output_text:
         print(tb.cell_output_text('create_output'))
-        remove_dirs()
+        remove_dirs(tb)
         raise ValueError('Could not create deepcell output')
 
     # assert that we created a .tif file for each fov
@@ -170,32 +169,24 @@ def create_deepcell_input_output(tb, nucs_list, mems_list):
     # tb.inject("assert sorted(os.listdir(os.path.join(%s)) == %s)" % str(sorted(fovs_with_tif)))
 
 
-def save_seg_labels(tb, files=None, delimiter=None, xr_dim_name='compartments',
-                    xr_channel_names=None, dtype="int16", force_ints=False, channel_indices=None):
-    files_str = str(files) if files is not None else "None"
+def save_seg_labels(tb, delimiter=None, xr_dim_name='compartments',
+                    xr_channel_names=None, force_ints=False):
     delimiter_str = delimiter if delimiter is not None else "None"
     xr_channel_names_str = str(xr_channel_names) if xr_channel_names is not None else "None"
-    channel_indices_str = str(channel_indices) if channel_indices is not None else "None"
 
     # load the segmentation label with the proper command
     # NOTE: any specific testing of load_imgs_from_dir should be done in load_utils_test.py
     load_seg_cmd = """
         segmentation_labels = load_utils.load_imgs_from_dir(data_dir=deepcell_output_dir,
-            files=%s,
             delimiter="%s",
             xr_dim_name="%s",
             xr_channel_names=%s,
-            dtype="%s",
-            force_ints=%s,
-            channel_indices=%s
+            force_ints=%s
         )
-    """ % (str(files),
-           delimiter_str,
+    """ % (delimiter_str,
            xr_dim_name,
            xr_channel_names,
-           dtype,
-           str(force_ints),
-           channel_indices_str)
+           str(force_ints))
     tb.inject(load_seg_cmd, after='load_seg_labels')
 
     # # assert that segmentation_labels contains the fovs that we want to load
@@ -234,8 +225,6 @@ def save_seg_labels(tb, files=None, delimiter=None, xr_dim_name='compartments',
     # # assert that we actually saved the segmentation labels to segmentation_labels.xr
     # tb.inject("assert os.path.exists(os.path.join(%s, 'segmentation_labels.xr'))" %
     #           deepcell_output_dir)
-
-    tb.execute_cell('save_seg_labels')
 
 
 def data_xr_overlay(tb, files, xr_dim_name='compartments', xr_channel_names=None):
@@ -295,7 +284,7 @@ def create_exp_mat(tb, is_mibitiff=False, batch_size=5):
         raise ValueError('Could not save expression matrices')
 
 
-def remove_dirs():
+def remove_dirs(tb):
     tb.inject("from shutil import rmtree")
     tb.inject("rmtree(tiff_dir)")
     tb.inject("rmtree(deepcell_input_dir)")
@@ -309,9 +298,10 @@ def test_mibitiff_segmentation(tb):
     segment_notebook_setup(tb, deepcell_tiff_dir="sample_tiff", deepcell_input_dir="sample_input",
                            deepcell_output_dir="sample_output",
                            single_cell_dir="sample_single_cell", is_mibitiff=True,
+                           mibitiff_suffix="-MassCorrected-Filtered",
                            num_fovs=3, num_chans=3, dtype=np.uint16)
     create_deepcell_input_output(tb, nucs_list=['chan0'], mems_list=['chan1', 'chan2'])
-    save_seg_labels(tb, files=['fov1.tif', 'fov2.tif'], xr_channel_names=['whole_cell'])
+    save_seg_labels(tb, delimiter='_feature_0', xr_channel_names=['whole_cell'], force_ints=True)
     data_xr_overlay(tb, files=['fov1.tif', 'fov2.tif'], xr_channel_names=['nuclear', 'membrane'])
     create_exp_map(tb, is_mibitiff=True)
     remove_dirs()
