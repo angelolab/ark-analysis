@@ -10,7 +10,7 @@ from ark.utils import misc_utils
 
 
 def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
-                           suffix='_feature_0', host='https://deepcell.org', job_type='multiplex'):
+                           suffix='_feature_0', host='https://deepcell.org', job_type='multiplex', scale=1.0):
     """ Handles all of the necessary data manipulation for running deepcell tasks.
 
         Creates .zip files (to be used as input for DeepCell),
@@ -35,6 +35,9 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
             job_type (str):
                 Name of job workflow (multiplex, segmentation, tracking)
                 Default: 'multiplex'
+            scale (float):
+                Value to rescale data by
+                Default: 1.0
         Raises:
             ValueError:
                 Raised if there is some fov X (from fovs list) s.t.
@@ -78,7 +81,7 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
 
     # pass the zip file to deepcell.org
     print('Uploading files to DeepCell server.')
-    run_deepcell_task(zip_path, deepcell_output_dir, host, job_type)
+    run_deepcell_task(zip_path, deepcell_output_dir, host, job_type, scale)
 
     # extract the .tif output
     print('Extracting tif files from DeepCell response.')
@@ -92,7 +95,7 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
 
 
 def run_deepcell_task(input_dir, output_dir, host='https://deepcell.org',
-                      job_type='multiplex'):
+                      job_type='multiplex',scale=1.0):
     """Uses kiosk-client to run DeepCell task and saves output to output_dir.
         More configuration parameters can be set than those currently used.
         (https://github.com/vanvalenlab/kiosk-client)
@@ -108,13 +111,18 @@ def run_deepcell_task(input_dir, output_dir, host='https://deepcell.org',
             job_type (str):
                 Name of job workflow (multiplex, segmentation, tracking).
                 Default: 'multiplex'
+            scale (float):
+                Value to rescale data by
+                Default: 1.0
     """
 
     mgr_kwargs = {
         'host': host,
         'job_type': job_type,
         'download_results': True,
-        'output_dir': output_dir
+        'output_dir': output_dir,
+        'scale': str(scale)
+        
     }
 
     mgr = manager.BatchProcessingJobManager(**mgr_kwargs)
