@@ -59,7 +59,7 @@ def segment_notebook_setup(tb, deepcell_tiff_dir, deepcell_input_dir, deepcell_o
 
         filelocs, data_xr = test_utils.create_paired_xarray_fovs(
             tiff_path, fovs, chans, img_shape=(1024, 1024), mode='mibitiff',
-            delimiter='_', fills=True, dtype=dtype
+            delimiter='_', fills=False, dtype=dtype
         )
     else:
         fovs, chans, imgs = test_utils.gen_fov_chan_names(num_fovs=num_fovs,
@@ -67,7 +67,7 @@ def segment_notebook_setup(tb, deepcell_tiff_dir, deepcell_input_dir, deepcell_o
                                                           return_imgs=True)
 
         filelocs, data_xr = test_utils.create_paired_xarray_fovs(
-            tiff_path, fovs, chans, img_shape=(1024, 1024), delimiter='_', fills=True,
+            tiff_path, fovs, chans, img_shape=(1024, 1024), delimiter='_', fills=False,
             sub_dir="TIFs", dtype=dtype)
 
     # define custom mibitiff paths
