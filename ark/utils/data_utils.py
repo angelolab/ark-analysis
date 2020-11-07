@@ -5,6 +5,55 @@ import numpy as np
 import xarray as xr
 
 
+def relabel_images(fovs, all_data, label_maps):
+    """Takes a list of fovs, and relabeled each image (array) according
+        to the clustering assignment.
+
+        Args:
+            fovs (list):
+                List of fovs to
+            all_data (pandas.DataFrame):
+                data including fovs, cell labels, and cell expression matrix for all markers
+            label_maps (xr.DataArray):
+                xarray of label maps for multiple fovs
+        Returns:
+            list:
+                The relabeled arrays (representing images).
+    """
+
+    images = []
+    for fov in fovs:
+        df = all_data.loc[all_data['SampleID'] == fov]
+        labels_dict = dict(zip(df.label, df.cluster_labels))
+        images.append(relabel_img_array(label_maps.loc[label_maps['fovs'] == fov].squeeze(),
+                                        labels_dict))
+    return images
+
+
+def relabel_img_array(labeled_image, labels_dict):
+    """Takes a labeled image (array) and a dictionary that maps cell IDs
+     to cluster labels. Returns the relabeled array (according to the dictionary).
+
+        Args:
+            labeled_image (numpy.ndarray):
+                2D numpy array of labeled cell objects.
+            labels_dict (dict):
+                a mapping between labeled cells and their clusters.
+        Returns:
+            numpy.ndarray:
+                The relabeled array.
+    """
+
+    img = np.copy(labeled_image)
+    unique_cell_ids = np.unique(labeled_image.values)
+    unique_cell_ids = unique_cell_ids[np.nonzero(unique_cell_ids)]
+
+    for cell_id in unique_cell_ids:
+        img[img == cell_id] = labels_dict.get(cell_id, -1)
+    img[img == -1] = max(labels_dict.values()) + 1
+    return img
+
+
 # TODO: Add metadata for channel name (eliminates need for fixed-order channels)
 def generate_deepcell_input(data_xr, data_dir, nuc_channels, mem_channels):
     """Saves nuclear and membrane channels into deepcell input format.
