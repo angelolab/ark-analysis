@@ -11,9 +11,9 @@ def relabel_images(fovs, all_data, label_maps):
 
         Args:
             fovs (list):
-                List of fovs to
+                List of fovs to relabel.
             all_data (pandas.DataFrame):
-                data including fovs, cell labels, and cell expression matrix for all markers
+                data including fovs, cell labels, and cell expression matrix for all markers.
             label_maps (xr.DataArray):
                 xarray of label maps for multiple fovs
         Returns:
@@ -34,14 +34,14 @@ def relabel_img_array(labeled_image, labels_dict):
     """Takes a labeled image (array) and a dictionary that maps cell IDs
      to cluster labels. Returns the relabeled array (according to the dictionary).
 
-        Args:
-            labeled_image (numpy.ndarray):
-                2D numpy array of labeled cell objects.
-            labels_dict (dict):
-                a mapping between labeled cells and their clusters.
-        Returns:
-            numpy.ndarray:
-                The relabeled array.
+    Args:
+        labeled_image (numpy.ndarray):
+            2D numpy array of labeled cell objects.
+        labels_dict (dict):
+            a mapping between labeled cells and their clusters.
+    Returns:
+        numpy.ndarray:
+            The relabeled array.
     """
 
     img = np.copy(labeled_image)
