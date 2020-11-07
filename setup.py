@@ -3,27 +3,13 @@ from os import path
 from distutils.command.build_ext import build_ext as DistUtilsBuildExt
 from setuptools import setup, find_packages
 
-VERSION = '0.2.7'
+VERSION = '0.2.8'
 VERSION_MIBILIB = '1.3.0'
-
-
-# define a parsing function for requirements.txt
-def _parse_requirements(file_path):
-    # people should download mibilib separately for now
-    reqs = [line.strip() for line in open(file_path) if not (line.startswith('#')
-            or line.startswith('git+'))]
-    return reqs
 
 
 # set a long description which is basically the README
 with open(path.join(path.abspath(path.dirname(__file__)), 'README.md')) as f:
     long_description = f.read()
-
-# don't set install_reqs if we can't read requirements.txt
-try:
-    install_reqs = _parse_requirements('requirements.txt')
-except Exception as e:
-    install_reqs = []
 
 
 setup(
@@ -35,13 +21,26 @@ setup(
     author='Angelo Lab',
     url='https://github.com/angelolab/ark-analysis',
     download_url='https://github.com/angelolab/ark-analysis/archive/v{}.tar.gz'.format(VERSION),
-    install_requires=install_reqs,
-    dependency_links=['http://github.com/ionpath/mibilib/archive/v{}.zip'.format(VERSION_MIBILIB)],
+    install_requires=['jupyter>=1.0.0,<2',
+                      'jupyter_contrib_nbextensions>=0.5.1,<1',
+                      'kiosk-client>=0.8.4',
+                      'matplotlib>=2.2.2,<3',
+                      'numpy>=1.16.3,<2',
+                      'pandas>=0.23.3,<1',
+                      'scikit-image>=0.14.3,<=0.16.2',
+                      'scikit-learn>=0.19.1,<1',
+                      'scipy>=1.1.0,<2',
+                      'seaborn>=0.10.1,<1',
+                      'statsmodels>=0.11.1,<1',
+                      'umap-learn>=0.4.6,<1',
+                      'xarray>=0.12.3,<1'],
     extras_require={
         'tests': ['pytest',
                   'pytest-cov',
                   'pytest-pycodestyle']
     },
+    dependency_links=['https://github.com/ionpath/mibilib/archive/v{}.tar.gz#egg=python-s3-{}'
+                      .format(VERSION_MIBILIB, VERSION_MIBILIB.replace('.', '-'))],
     long_description=long_description,
     long_description_content_type='text/markdown',
     classifiers=['License :: OSI Approved :: Apache Software License',
