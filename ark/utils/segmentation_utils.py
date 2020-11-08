@@ -202,8 +202,8 @@ def visualize_segmentation(segmentation_labels_xr, channel_data_xr,
             path to directory where the output will be saved
         chan_list (list):
             list of channels to overlay segmentation output over
-        fovs (xarray.DataArray):
-            xarray containing field of views
+        fovs (list):
+            list of FOVs to subset in segmentation_labels_xr
         show (bool):
             whether or not to show plot
     """
