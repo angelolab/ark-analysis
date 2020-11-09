@@ -2,9 +2,12 @@ import tempfile
 import os
 
 import numpy as np
+import pytest
 
 from ark.utils import plot_utils
 from skimage.draw import circle
+
+from ark.utils.plot_utils import plot_clustering_result
 
 
 def _generate_segmentation_labels(img_dims, num_cells=20):
@@ -26,6 +29,14 @@ def _generate_image_data(img_dims):
         raise ValueError("must be image data of [rows, cols, channels]")
 
     return np.random.randint(low=0, high=100, size=img_dims)
+
+
+def test_plot_clustering_result():
+    titles = ['fov1', 'fov2']
+    img_list = [np.ones((1024, 1024, 3))]
+    # titles and img_list should have the same length
+    with pytest.raises(ValueError):
+        plot_clustering_result(img_list, titles)
 
 
 def test_plot_overlay():
