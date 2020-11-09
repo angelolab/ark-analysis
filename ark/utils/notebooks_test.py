@@ -4,6 +4,7 @@ import os
 from shutil import rmtree
 
 from testbook import testbook
+from testbook.exceptions import TestbookRuntimeError
 
 from ark.utils import test_utils
 from ark.utils import misc_utils
@@ -128,22 +129,27 @@ def create_deepcell_input_output(tb, nucs_list, mems_list):
     # load data accordingly
     try:
         tb.execute_cell('load_data_xr')
-    except ValueError as ve:
-        print(ve)
+    except TestbookRuntimeError as e:
+        print(e)
         remove_dirs(tb)
+
+    # tb.inject("assert len(data_xr.coords['fovs'].values == 3)")
+    # tb.inject("assert 'fov1-MassCorrected-Filtered' in data_xr.coords['fovs'].values")
+    # tb.inject("assert 'fov0_otherinfo-MassCorrected-Filtered' in data_xr.coords['fovs'].values")
+    # tb.inject("assert 'fov2-MassCorrected-Filtered' in data_xr.coords['fovs'].values")
 
     # generate the deepcell input files
     # NOTE: any specific testing of generate_deepcell_input should be done in data_utils_test
     try:
         tb.execute_cell('gen_input')
-    except ValueError as ve:
-        print(ve)
+    except TestbookRuntimeError as e:
+        print(e)
         remove_dirs(tb)
 
     try:
         tb.execute_cell('create_output')
-    except ValueError as ve:
-        print(ve)
+    except TestbookRuntimeError as e:
+        print(e)
         remove_dirs(tb)
 
     # NOTE: the following is alternative code in case try-except blocks don't handle these correct
@@ -175,39 +181,28 @@ def save_seg_labels(tb, delimiter=None, xr_dim_name='compartments',
            str(force_ints))
     try:
         tb.inject(load_seg_cmd, after='load_seg_labels')
-    except ValueError as ve:
-        print(ve)
+    except TestbookRuntimeError as e:
+        print(e)
         remove_dirs(tb)
 
     try:
         tb.execute_cell('save_seg_labels')
-    except ValueError as ve:
-        print(ve)
+    except TestbookRuntimeError as e:
+        print(e)
         remove_dirs(tb)
 
 
-def data_xr_overlay(tb, files, xr_dim_name='compartments', xr_channel_names=None):
-    files_str = str(files) if files is not None else "None"
-
-    load_data_xr_sum = """
-        data_xr_summed = load_utils.load_imgs_from_dir(data_dir=deepcell_input_dir,
-            files=%s,
-            xr_dim_name="%s",
-            xr_channel_names=%s
-        )
-    """ % (files_str, xr_dim_name, str(xr_channel_names))
-
+def data_xr_overlay(tb):
     try:
-        tb.inject(load_data_xr_sum, after='load_summed')
-    except ValueError as ve:
-        print(ve)
+        tb.execute_cell('load_summed')
+    except TestbookRuntimeError as e:
+        print(e)
         remove_dirs(tb)
 
-    # NOTE: this will fail if load_data_xr_sum fails
     try:
         tb.execute_cell('overlay_mask')
-    except ValueError as ve:
-        print(ve)
+    except TestbookRuntimeError as e:
+        print(e)
         remove_dirs(tb)
 
 
@@ -225,8 +220,8 @@ def create_exp_mat(tb, is_mibitiff=False, batch_size=5):
 
     try:
         tb.inject(exp_mat_gen)
-    except ValueError as ve:
-        print(ve)
+    except TestbookRuntimeError as e:
+        print(e)
         remove_dirs(tb)
 
     tb.execute_cell('save_exp_mat')
