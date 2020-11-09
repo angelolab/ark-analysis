@@ -1,4 +1,5 @@
 import copy
+import os
 
 import numpy as np
 import pandas as pd
@@ -267,9 +268,10 @@ def generate_cell_table(segmentation_labels, tiff_dir, img_sub_folder,
     # if no fovs are specified, then load all the fovs
     if fovs is None:
         # handle mibitiffs with an assumed file structure
+        # NOTE: this will need to be updated to use remove_delimited_
         if is_mibitiff:
             filenames = io_utils.list_files(tiff_dir, substrs=['.tif'])
-            fovs = io_utils.extract_delimited_names(filenames, delimiter=None)
+            fovs = [os.path.splitext(f)[0] for f in filenames]
         # otherwise assume the tree-like directory as defined for tree loading
         else:
             filenames = io_utils.list_folders(tiff_dir)
