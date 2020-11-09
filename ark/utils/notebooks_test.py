@@ -127,30 +127,14 @@ def create_deepcell_input_output(tb, nucs_list, mems_list):
     tb.execute_cell('set_channels')
 
     # load data accordingly
-    try:
-        tb.execute_cell('load_data_xr')
-    except TestbookRuntimeError as e:
-        print(e)
-        remove_dirs(tb)
-
-    # tb.inject("assert len(data_xr.coords['fovs'].values == 3)")
-    # tb.inject("assert 'fov1-MassCorrected-Filtered' in data_xr.coords['fovs'].values")
-    # tb.inject("assert 'fov0_otherinfo-MassCorrected-Filtered' in data_xr.coords['fovs'].values")
-    # tb.inject("assert 'fov2-MassCorrected-Filtered' in data_xr.coords['fovs'].values")
+    tb.execute_cell('load_data_xr')
 
     # generate the deepcell input files
     # NOTE: any specific testing of generate_deepcell_input should be done in data_utils_test
-    try:
-        tb.execute_cell('gen_input')
-    except TestbookRuntimeError as e:
-        print(e)
-        remove_dirs(tb)
+    tb.execute_cell('gen_input')
 
-    try:
-        tb.execute_cell('create_output')
-    except TestbookRuntimeError as e:
-        print(e)
-        remove_dirs(tb)
+    # generate the deepcell output files from the server
+    tb.execute_cell('create_output')
 
     # NOTE: the following is alternative code in case try-except blocks don't handle these correct
     # create_output_text = tb.cell_output_text('create_output')
@@ -179,31 +163,14 @@ def save_seg_labels(tb, delimiter=None, xr_dim_name='compartments',
            xr_dim_name,
            xr_channel_names,
            str(force_ints))
-    try:
-        tb.inject(load_seg_cmd, after='load_seg_labels')
-    except TestbookRuntimeError as e:
-        print(e)
-        remove_dirs(tb)
+    tb.inject(load_seg_cmd, after='load_seg_labels')
 
-    try:
-        tb.execute_cell('save_seg_labels')
-    except TestbookRuntimeError as e:
-        print(e)
-        remove_dirs(tb)
+    # save the segmentation labels
+    tb.execute_cell('save_seg_labels')
 
-
-def data_xr_overlay(tb):
-    try:
-        tb.execute_cell('load_summed')
-    except TestbookRuntimeError as e:
-        print(e)
-        remove_dirs(tb)
-
-    try:
-        tb.execute_cell('overlay_mask')
-    except TestbookRuntimeError as e:
-        print(e)
-        remove_dirs(tb)
+    # now overlay data_xr
+    tb.execute_cell('load_summed')
+    tb.execute_cell('overlay_mask')
 
 
 def create_exp_mat(tb, is_mibitiff=False, batch_size=5):
@@ -217,13 +184,9 @@ def create_exp_mat(tb, is_mibitiff=False, batch_size=5):
                                                       fovs=fovs,
                                                       batch_size=%s)
     """ % (is_mibitiff, str(batch_size))
+    tb.inject(exp_mat_gen)
 
-    try:
-        tb.inject(exp_mat_gen)
-    except TestbookRuntimeError as e:
-        print(e)
-        remove_dirs(tb)
-
+    # save expression matrix
     tb.execute_cell('save_exp_mat')
 
 
@@ -248,6 +211,5 @@ def test_mibitiff_segmentation(tb):
                            num_fovs=3, num_chans=3, dtype=np.uint16)
     create_deepcell_input_output(tb, nucs_list=['chan0'], mems_list=['chan1', 'chan2'])
     save_seg_labels(tb, delimiter='_feature_0', xr_channel_names=['whole_cell'], force_ints=True)
-    data_xr_overlay(tb)
-    create_exp_map(tb, is_mibitiff=True)
-    remove_dirs()
+    create_exp_mat(tb, is_mibitiff=True)
+    # remove_dirs()
