@@ -23,7 +23,7 @@ setup(
     download_url='https://github.com/angelolab/ark-analysis/archive/v{}.tar.gz'.format(VERSION),
     install_requires=['jupyter>=1.0.0,<2',
                       'jupyter_contrib_nbextensions>=0.5.1,<1',
-                      'kiosk-client>=0.8.1',
+                      'kiosk-client>=0.8.4',
                       'matplotlib>=2.2.2,<3',
                       'numpy>=1.16.3,<2',
                       'pandas>=0.23.3,<1',
