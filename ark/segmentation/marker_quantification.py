@@ -265,6 +265,8 @@ def generate_cell_table(segmentation_labels, tiff_dir, img_sub_folder,
         - arcsinh transformed data
     """
 
+    print(is_mibitiff)
+
     # if no fovs are specified, then load all the fovs
     if fovs is None:
         # handle mibitiffs with an assumed file structure
@@ -276,6 +278,8 @@ def generate_cell_table(segmentation_labels, tiff_dir, img_sub_folder,
         else:
             filenames = io_utils.list_folders(tiff_dir)
             fovs = filenames
+
+    print(fovs)
 
     # check segmentation_labels for given fovs (img loaders will fail otherwise)
     misc_utils.verify_in_list(fovs=fovs,

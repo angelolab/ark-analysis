@@ -4,7 +4,6 @@ import os
 from shutil import rmtree
 
 from testbook import testbook
-from testbook.exceptions import TestbookRuntimeError
 
 from ark.utils import test_utils
 from ark.utils import misc_utils
@@ -184,6 +183,7 @@ def create_exp_mat(tb, is_mibitiff=False, batch_size=5):
                                                       fovs=fovs,
                                                       batch_size=%s)
     """ % (is_mibitiff, str(batch_size))
+    print(exp_mat_gen)
     tb.inject(exp_mat_gen)
 
     # save expression matrix
@@ -211,5 +211,5 @@ def test_mibitiff_segmentation(tb):
                            num_fovs=3, num_chans=3, dtype=np.uint16)
     create_deepcell_input_output(tb, nucs_list=['chan0'], mems_list=['chan1', 'chan2'])
     save_seg_labels(tb, delimiter='_feature_0', xr_channel_names=['whole_cell'], force_ints=True)
-    create_exp_mat(tb, is_mibitiff=True)
+    create_exp_mat(tb, is_mibitiff=True, batch_size=5)
     # remove_dirs()
