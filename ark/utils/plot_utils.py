@@ -11,10 +11,13 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 from skimage.segmentation import find_boundaries
 from skimage.exposure import rescale_intensity
 
+from ark.utils import misc_utils
 
 # plotting functions
 
-def plot_clustering_result(img_list, titles, cmap='tab20', figsize=(10, 10)):
+
+def plot_clustering_result(img_list, titles, save_dir=None, cmap='tab20',
+                           figsize=(10, 10)):
     """Takes a list of labeled images (nd-arrays) and displays them.
 
     Args:
@@ -23,6 +26,8 @@ def plot_clustering_result(img_list, titles, cmap='tab20', figsize=(10, 10)):
         titles (list):
             List of titles for the images that will be displayed. Must have the
             same length as img_list.
+        save_dir (str):
+            If provided, the image will be saved to this location.
         cmap (str):
             Cmap to use for the image that will be displayed.
         figsize (tuple):
@@ -40,6 +45,8 @@ def plot_clustering_result(img_list, titles, cmap='tab20', figsize=(10, 10)):
         divider = make_axes_locatable(ax)
         cax = divider.append_axes("right", size="5%", pad=0.05)
         plt.colorbar(cax=cax)
+        if save_dir:
+            misc_utils.save_figure(save_dir, f'{title}.png')
 
 
 def plot_overlay(predicted_contour, plotting_tif, alternate_contour=None, path=None):

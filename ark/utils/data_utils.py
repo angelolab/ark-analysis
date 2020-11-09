@@ -6,8 +6,10 @@ import xarray as xr
 
 
 def relabel_images(fovs, all_data, label_maps):
-    """Takes a list of fovs, and relabeled each image (array) according
-        to the clustering assignment.
+    """ Translates cell-ID labeled images according to the clustering assignment.
+
+    Takes a list of fovs, and relabels each image (array) according to the assignment
+    of cell IDs to cluster label.
 
         Args:
             fovs (list):
@@ -31,8 +33,9 @@ def relabel_images(fovs, all_data, label_maps):
 
 
 def relabel_img_array(labeled_image, labels_dict):
-    """Takes a labeled image (array) and a dictionary that maps cell IDs
-     to cluster labels. Returns the relabeled array (according to the dictionary).
+    """Takes a labeled image and translates its labels according to a dictionary.
+
+    Returns the relabeled array (according to the dictionary).
 
     Args:
         labeled_image (numpy.ndarray):
