@@ -11,16 +11,16 @@ def relabel_images(fovs, all_data, label_maps):
     Takes a list of fovs, and relabels each image (array) according to the assignment
     of cell IDs to cluster label.
 
-        Args:
-            fovs (list):
-                List of fovs to relabel.
-            all_data (pandas.DataFrame):
-                data including fovs, cell labels, and cell expression matrix for all markers.
-            label_maps (xr.DataArray):
-                xarray of label maps for multiple fovs
-        Returns:
-            list:
-                The relabeled arrays (representing images).
+    Args:
+        fovs (list):
+            List of fovs to relabel.
+        all_data (pandas.DataFrame):
+            data including fovs, cell labels, and cell expression matrix for all markers.
+        label_maps (xr.DataArray):
+            xarray of label maps for multiple fovs
+    Returns:
+        list:
+            The relabeled arrays (representing images).
     """
 
     images = []
