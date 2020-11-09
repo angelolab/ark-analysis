@@ -1,6 +1,7 @@
 import subprocess
 import tempfile
 import os
+from shutil import rmtree
 
 from testbook import testbook
 
@@ -48,6 +49,10 @@ def segment_notebook_setup(tb, deepcell_tiff_dir, deepcell_input_dir, deepcell_o
     tiff_path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                              '..', '..', 'data', 'example_dataset',
                              'input_data', deepcell_tiff_dir)
+
+    if os.path.exists(tiff_path):
+        rmtree(tiff_path)
+
     os.mkdir(tiff_path)
 
     # generate sample data in deepcell_tiff_dir
@@ -293,7 +298,7 @@ def remove_dirs(tb):
 
 
 # test mibitiff
-@testbook(SEGMENT_IMAGE_DATA)
+@testbook(SEGMENT_IMAGE_DATA, timeout=6000)
 def test_mibitiff_segmentation(tb):
     segment_notebook_setup(tb, deepcell_tiff_dir="sample_tiff", deepcell_input_dir="sample_input",
                            deepcell_output_dir="sample_output",
