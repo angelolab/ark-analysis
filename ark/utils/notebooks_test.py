@@ -235,7 +235,7 @@ def data_xr_overlay(tb, files, xr_dim_name='compartments', xr_channel_names=None
     files_str = str(files) if files is not None else "None"
 
     load_data_xr_sum = """
-        data_xr_summed = load_utils.load_imgs_from_dir(data_dir=deepcell_input_dir",
+        data_xr_summed = load_utils.load_imgs_from_dir(data_dir=deepcell_input_dir,
             files=%s,
             xr_dim_name="%s",
             xr_channel_names=%s
