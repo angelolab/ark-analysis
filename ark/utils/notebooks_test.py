@@ -87,7 +87,6 @@ def segment_notebook_setup(tb, deepcell_tiff_dir, deepcell_input_dir, deepcell_o
     tb.inject(define_mibitiff_paths, after='file_path')
 
     # create the directories as listed by define_mibitiff_paths
-    # this will also test that directories that don't exist are created
     tb.execute_cell('create_dirs')
 
     # validate the paths, and in Jupyter, this should always pass
