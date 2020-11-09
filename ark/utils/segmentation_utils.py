@@ -209,7 +209,7 @@ def visualize_segmentation(segmentation_labels_xr, channel_data_xr,
     """
 
     if fovs is None:
-        fovs = segmentation_labels_xr.fovs
+        fovs = segmentation_labels_xr.fovs.values
     misc_utils.verify_in_list(fovs=fovs, segmentation_label_fovs=segmentation_labels_xr.fovs)
 
     if chan_list is not None:
