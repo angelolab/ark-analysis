@@ -77,11 +77,11 @@ def segment_notebook_setup(tb, deepcell_tiff_dir, deepcell_input_dir, deepcell_o
 
     # define custom mibitiff paths
     define_mibitiff_paths = """
-        base_dir = "../data/example_dataset"\n
-        input_dir = os.path.join(base_dir, "input_data")\n
-        tiff_dir = "%s/"\n
-        deepcell_input_dir = os.path.join(input_dir, "%s/")\n
-        deepcell_output_dir = os.path.join(base_dir, "%s/")\n
+        base_dir = "../data/example_dataset"
+        input_dir = os.path.join(base_dir, "input_data")
+        tiff_dir = "%s/"
+        deepcell_input_dir = os.path.join(input_dir, "%s/")
+        deepcell_output_dir = os.path.join(base_dir, "%s/")
         single_cell_dir = os.path.join(base_dir, "%s/")
     """ % (tiff_path, deepcell_input_dir, deepcell_output_dir, single_cell_dir)
     tb.inject(define_mibitiff_paths, after='file_path')
@@ -102,16 +102,6 @@ def segment_notebook_setup(tb, deepcell_tiff_dir, deepcell_input_dir, deepcell_o
     # now load the fovs in the notebook
     # NOTE: any specific testing of list_files and list_folders should be done in io_utils_test
     tb.execute_cell('load_fovs')
-    if 'Error' in tb.cell_output_text('load_fovs'):
-        print(tb.cell_output_text('load_fovs'))
-        remove_dirs()
-        raise ValueError('Could not load fov names')
-
-    # # TODO: some of these tests may already be covered in io_utils_test
-    # # assert that each fov we generated actually exists in the fovs list
-    # tb.inject("sorted(fovs) == %s" % str(sorted(fovs)))
-
-    # return fovs, chans
 
 
 def create_deepcell_input_output(tb, nucs_list, mems_list):
@@ -136,41 +126,33 @@ def create_deepcell_input_output(tb, nucs_list, mems_list):
     tb.execute_cell('set_channels')
 
     # load data accordingly
-    tb.execute_cell('load_data_xr')
-    if 'Error' in tb.cell_output_text('load_data_xr'):
-        print(tb.cell_output_text('load_data_xr'))
-        remove_dirs()
-        raise ValueError('Could not load images into data_xr')
-
-    # # NOTE: any specific testing of load_imgs_from_mibitiff and load_imgs_from_tree
-    # # should be done in load_utils_test
-    # # TODO: some of these tests may already have been covered in load_utils_test
-    # # assert that we actually loaded all the correct fovs...
-    # tb.inject("assert sorted(data_xr.coords['fovs'].values.tolist()) == %s" %
-    #           str(sorted(fovs)))
-
-    # # ...and channels
-    # tb.inject("assert sorted(data_xr.coords['channels'].values.tolist()) == %s" %
-    #           str(sorted(chans)))
+    try:
+        tb.execute_cell('load_data_xr')
+    except ValueError as ve:
+        print(ve)
+        remove_dirs(tb)
 
     # generate the deepcell input files
     # NOTE: any specific testing of generate_deepcell_input should be done in data_utils_test
-    tb.execute_cell('gen_input')
-    if 'Error' in tb.cell_output_text('gen_input'):
-        print(tb.cell_output_text('gen_input'))
-        remove_dirs()
-        raise ValueError('Could not generate deepcell input')
-
-    tb.execute_cell('create_output')
-    create_output_text = tb.cell_output_text('create_output')
-    if 'Error' in create_output_text or 'warnings' in create_output_text:
-        print(tb.cell_output_text('create_output'))
+    try:
+        tb.execute_cell('gen_input')
+    except ValueError as ve:
+        print(ve)
         remove_dirs(tb)
-        raise ValueError('Could not create deepcell output')
 
-    # assert that we created a .tif file for each fov
-    # fovs_with_tif = [str(fov) + '.tif' for fov in fovs]
-    # tb.inject("assert sorted(os.listdir(os.path.join(%s)) == %s)" % str(sorted(fovs_with_tif)))
+    try:
+        tb.execute_cell('create_output')
+    except ValueError as ve:
+        print(ve)
+        remove_dirs(tb)
+
+    # NOTE: the following is alternative code in case try-except blocks don't handle these correct
+    # create_output_text = tb.cell_output_text('create_output')
+    # remove on final commit
+    # if 'Error' in create_output_text or 'warnings' in create_output_text:
+    #     print(tb.cell_output_text('create_output'))
+    #     remove_dirs(tb)
+    #     raise ValueError('Could not create deepcell output')
 
 
 def save_seg_labels(tb, delimiter=None, xr_dim_name='compartments',
@@ -191,44 +173,17 @@ def save_seg_labels(tb, delimiter=None, xr_dim_name='compartments',
            xr_dim_name,
            xr_channel_names,
            str(force_ints))
-    tb.inject(load_seg_cmd, after='load_seg_labels')
+    try:
+        tb.inject(load_seg_cmd, after='load_seg_labels')
+    except ValueError as ve:
+        print(ve)
+        remove_dirs(tb)
 
-    # # assert that segmentation_labels contains the fovs that we want to load
-    # # NOTE: extensions list contains all extensions load_imgs_from_dir lists
-    # exts = ['.tif', '.jpg', '.png']
-    # if files is not None:
-    #     # ensures a deepcopy
-    #     files_list = files[:]
-
-    #     # remove extensions from file list to ensure a proper check
-    #     files_list = [os.path.splitext(file)[0] for file in files_list if
-    #                   os.path.splitext(file)[1] in exts]
-    # # this will load everything in
-    # else:
-    #     files_list = [file for file in os.listdir(deepcell_output_dir)
-    #                   if os.path.splitext(file)[1] in exts]
-    # tb.inject("assert sorted(segmentation_labels.coords['fovs'].values.tolist() == %s" %
-    #           str(sorted(files_list)))
-
-    # # if xr_channel names was set, make sure that we're setting corresponding channel names
-    # if xr_channel_names is not None:
-    #     tb.inject("assert segmentation_labels.coords['%s'].values.tolist() == %s" %
-    #               xr_channel_names_str)
-    # # otherwise, the channels is simply np.arange(len(channel_indices))
-    # else:
-    #     tb.inject("assert segmentation_labels.coords['%s'].values.tolist() == %s" %
-    #               str(np.arange(len(channel_indices)).tolist()))
-
-    # NOTE: this will fail if load_seg_cmd fails
-    tb.execute_cell('save_seg_labels')
-    if 'Error' in tb.cell_output_text('save_seg_labels'):
-        print(tb.cell_output_text('save_seg_labels'))
-        remove_dirs()
-        raise ValueError('Could not save segmentation labels')
-
-    # # assert that we actually saved the segmentation labels to segmentation_labels.xr
-    # tb.inject("assert os.path.exists(os.path.join(%s, 'segmentation_labels.xr'))" %
-    #           deepcell_output_dir)
+    try:
+        tb.execute_cell('save_seg_labels')
+    except ValueError as ve:
+        print(ve)
+        remove_dirs(tb)
 
 
 def data_xr_overlay(tb, files, xr_dim_name='compartments', xr_channel_names=None):
@@ -241,30 +196,19 @@ def data_xr_overlay(tb, files, xr_dim_name='compartments', xr_channel_names=None
             xr_channel_names=%s
         )
     """ % (files_str, xr_dim_name, str(xr_channel_names))
-    tb.inject(load_data_xr_sum, after='load_summed')
 
-    # if files_str is not None:
-    #     exts = ['.tif', '.jpg', '.png']
-    #     if files is not None:
-    #         # ensures a deepcopy
-    #         files_list = files[:]
-
-    #         # remove extensions from file list to ensure a proper check
-    #         files_list = [os.path.splitext(file)[0] for file in files_list if
-    #                       os.path.splitext(file)[1] in exts]
-    #     # this will load everything in
-    #     else:
-    #         files_list = [file for file in os.listdir(deepcell_output_dir)
-    #                       if os.path.splitext(file)[1] in exts]
-    # tb.inject("assert sorted(segmentation_labels.coords['fovs'].values.tolist() == %s" %
-    #           str(sorted(files_list)))
+    try:
+        tb.inject(load_data_xr_sum, after='load_summed')
+    except ValueError as ve:
+        print(ve)
+        remove_dirs(tb)
 
     # NOTE: this will fail if load_data_xr_sum fails
-    tb.execute_cell('plot_overlay')
-    if 'Error' in tb.cell_output_text('load_summed'):
-        print(tb.cell_output_text('load_summed'))
-        remove_dirs()
-        raise ValueError('Could not load summed data_xr')
+    try:
+        tb.execute_cell('overlay_mask')
+    except ValueError as ve:
+        print(ve)
+        remove_dirs(tb)
 
 
 def create_exp_mat(tb, is_mibitiff=False, batch_size=5):
@@ -278,22 +222,25 @@ def create_exp_mat(tb, is_mibitiff=False, batch_size=5):
                                                       fovs=fovs,
                                                       batch_size=%s)
     """ % (is_mibitiff, str(batch_size))
-    tb.inject(exp_mat_gen)
 
-    # NOTE: this will fail if save_exp_mat fails
+    try:
+        tb.inject(exp_mat_gen)
+    except ValueError as ve:
+        print(ve)
+        remove_dirs(tb)
+
     tb.execute_cell('save_exp_mat')
-    if 'Error' in tb.cell_output_text('save_exp_mat'):
-        print(tb.cell_output_text('save_exp_mat'))
-        remove_dirs()
-        raise ValueError('Could not save expression matrices')
 
 
 def remove_dirs(tb):
-    tb.inject("from shutil import rmtree")
-    tb.inject("rmtree(tiff_dir)")
-    tb.inject("rmtree(deepcell_input_dir)")
-    tb.inject("rmtree(deepcell_output_dir)")
-    tb.inject("rmtree(single_cell_dir)")
+    remove_dirs = """
+        from shutil import rmtree
+        rmtree(tiff_dir)
+        rmtree(deepcell_input_dir)
+        rmtree(deepcell_output_dir)
+        rmtree(single_cell_dir)
+    """
+    tb.inject(remove_dirs)
 
 
 # test mibitiff
