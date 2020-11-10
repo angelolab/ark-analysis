@@ -160,7 +160,6 @@ def create_marker_count_matrices(segmentation_labels, image_data, nuclear_counts
 
     Returns:
         tuple (pandas.DataFrame, pandas.DataFrame):
-        
         - marker counts per cell normalized by cell size
         - arcsinh transformation of the above
     """
@@ -237,9 +236,9 @@ def create_marker_count_matrices(segmentation_labels, image_data, nuclear_counts
 
 def generate_cell_table(segmentation_labels, tiff_dir, img_sub_folder,
                         is_mibitiff=False, fovs=None, batch_size=5, dtype="int16"):
-    """
-    This function takes the segmented data and computes the expression matrices batch-wise
+    """This function takes the segmented data and computes the expression matrices batch-wise
     while also validating inputs
+
     Args:
         segmentation_labels (xarray.DataArray):
             an xarray with the segmented data
@@ -256,8 +255,9 @@ def generate_cell_table(segmentation_labels, tiff_dir, img_sub_folder,
             necessary for speed and memory considerations
         dtype (str/type):
             data type of base images
+
     Returns:
-        tuple (pandas.DataFrame, pandas.DataFrame):
+        tuple (pandas.DataFrame, pandas.DataFrame):å
         - size normalized data
         - arcsinh transformed data
     """
