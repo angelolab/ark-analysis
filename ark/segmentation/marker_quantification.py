@@ -1,5 +1,4 @@
 import copy
-import os
 
 import numpy as np
 import pandas as pd
@@ -17,7 +16,6 @@ import ark.settings as settings
 def compute_marker_counts(input_images, segmentation_labels, nuclear_counts=False,
                           regionprops_features=None, split_large_nuclei=False):
     """Extract single cell protein expression data from channel TIFs for a single fov
-
     Args:
         input_images (xarray.DataArray):
             rows x columns x channels matrix of imaging data
@@ -29,7 +27,6 @@ def compute_marker_counts(input_images, segmentation_labels, nuclear_counts=Fals
             morphology features for regionprops to extract for each cell
         split_large_nuclei (bool):
             controls whether nuclei which have portions outside of the cell will get relabeled
-
     Returns:
         xarray.DataArray:
             xarray containing segmented data of cells x markers
@@ -147,7 +144,6 @@ def compute_marker_counts(input_images, segmentation_labels, nuclear_counts=Fals
 def create_marker_count_matrices(segmentation_labels, image_data, nuclear_counts=False,
                                  split_large_nuclei=False):
     """Create a matrix of cells by channels with the total counts of each marker in each cell.
-
     Args:
         segmentation_labels (xarray.DataArray):
             xarray of shape [fovs, rows, cols, compartment] containing segmentation masks for each
@@ -160,7 +156,6 @@ def create_marker_count_matrices(segmentation_labels, image_data, nuclear_counts
         split_large_nuclei (bool):
             boolean flag to determine whether nuclei which are larger than their assigned cell
             will get split into two different nuclear objects
-
     Returns:
         tuple (pandas.DataFrame, pandas.DataFrame):
             - marker counts per cell normalized by cell size
@@ -241,7 +236,6 @@ def generate_cell_table(segmentation_labels, tiff_dir, img_sub_folder,
     """
     This function takes the segmented data and computes the expression matrices batch-wise
     while also validating inputs
-
     Args:
         segmentation_labels (xarray.DataArray):
             an xarray with the segmented data
@@ -260,26 +254,19 @@ def generate_cell_table(segmentation_labels, tiff_dir, img_sub_folder,
             data type of base images
     Returns:
         tuple (pandas.DataFrame, pandas.DataFrame):
-
         - size normalized data
         - arcsinh transformed data
     """
 
-    print(is_mibitiff)
-
     # if no fovs are specified, then load all the fovs
     if fovs is None:
-        # handle mibitiffs with an assumed file structure
-        # NOTE: this will need to be updated to use remove_delimited_
         if is_mibitiff:
-            filenames = io_utils.list_files(tiff_dir, substrs=['.tif'])
-            fovs = [os.path.splitext(f)[0] for f in filenames]
-        # otherwise assume the tree-like directory as defined for tree loading
+            fovs = io_utils.list_files(tiff_dir, substrs=['.tif'])
         else:
-            filenames = io_utils.list_folders(tiff_dir)
-            fovs = filenames
+            fovs = io_utils.list_folders(tiff_dir)
 
-    print(fovs)
+    # drop file extensions
+    fovs = io_utils.remove_file_extensions(fovs)
 
     # check segmentation_labels for given fovs (img loaders will fail otherwise)
     misc_utils.verify_in_list(fovs=fovs,

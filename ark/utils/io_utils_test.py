@@ -84,10 +84,33 @@ def test_list_files():
         assert get_test_and_other.sort() == filenames[1:].sort()
 
 
+def test_remove_file_extensions():
+    # test a mixture of file paths and extensions
+    files = [
+        'example_data/fov1',
+        'example_data/fov2/fov2.tif',
+        'fov3.tiff',
+        'fov4.jpg'
+    ]
+
+    assert iou.remove_file_extensions(None) is None
+    assert iou.remove_file_extensions([]) == []
+
+    files_sans_ext = ['fov1', 'fov2', 'fov3', 'fov4']
+
+    new_files = iou.remove_file_extensions(files)
+
+    assert new_files == files_sans_ext
+
+    with pytest.warns(UserWarning):
+        new_files = iou.remove_file_extensions(['fov5.tar.gz', 'fov6.sample.csv'])
+        assert new_files == ['fov5.tar', 'fov6.sample']
+
+
 def test_extract_delimited_names():
     filenames = [
-        'fov1_restofname.txt',
-        'fov2.txt',
+        'fov1_restofname',
+        'fov2',
     ]
 
     # test no files given (None/[])
@@ -96,22 +119,10 @@ def test_extract_delimited_names():
 
     # non-optional delimiter warning
     with pytest.warns(UserWarning):
-        iou.extract_delimited_names(['fov2.txt'], delimiter_optional=False)
+        iou.extract_delimited_names(['fov2'], delimiter='_', delimiter_optional=False)
 
     # test regular files list
-    assert ['fov1', 'fov2'] == iou.extract_delimited_names(filenames)
-
-    # test fullpath list
-    fullpaths = [
-        os.path.join('folder_with_delims', filename)
-        for filename in filenames
-    ]
-    assert ['fov1', 'fov2'] == iou.extract_delimited_names(fullpaths)
-
-    # test mixed
-    assert ['fov1', 'fov2'] == iou.extract_delimited_names([fullpaths[0], filenames[1]])
-
-    return
+    assert ['fov1', 'fov2'] == iou.extract_delimited_names(filenames, delimiter='_')
 
 
 def test_list_folders():

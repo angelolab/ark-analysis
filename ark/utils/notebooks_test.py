@@ -52,10 +52,10 @@ def segment_notebook_setup(tb, deepcell_tiff_dir, deepcell_input_dir, deepcell_o
 
     if os.path.exists(tiff_path):
         rmtree(tiff_path)
-
     os.mkdir(tiff_path)
 
-    # generate sample data in deepcell_tiff_dir
+    # create the tif files, don't do this in notebook it's too tedious to format this 
+    # also, because this is technically an input that would be created beforehand
     if is_mibitiff:
         fovs, chans = test_utils.gen_fov_chan_names(num_fovs=num_fovs,
                                                     num_chans=num_chans,
@@ -67,9 +67,9 @@ def segment_notebook_setup(tb, deepcell_tiff_dir, deepcell_input_dir, deepcell_o
             delimiter='_', fills=False, dtype=dtype
         )
     else:
-        fovs, chans, imgs = test_utils.gen_fov_chan_names(num_fovs=num_fovs,
-                                                          num_chans=num_chans,
-                                                          return_imgs=True)
+        fovs, chans = test_utils.gen_fov_chan_names(num_fovs=num_fovs,
+                                                    num_chans=num_chans,
+                                                    return_imgs=False)
 
         filelocs, data_xr = test_utils.create_paired_xarray_fovs(
             tiff_path, fovs, chans, img_shape=(1024, 1024), delimiter='_', fills=False,
@@ -149,10 +149,17 @@ def save_seg_labels(tb, delimiter=None, xr_dim_name='compartments',
     delimiter_str = delimiter if delimiter is not None else "None"
     xr_channel_names_str = str(xr_channel_names) if xr_channel_names is not None else "None"
 
+    # for img in os.listdir(os.path.join('..', 'data', 'example_dataset', 'sample_output')):
+    #     if '.tif' in img or '.tiff' in img:
+    #         print(img)
+    #         img = io.imread(os.path.join('..', 'data', 'example_dataset', 'sample_output', img))
+    #         print(img.shape)
+
     # load the segmentation label with the proper command
     # NOTE: any specific testing of load_imgs_from_dir should be done in load_utils_test.py
     load_seg_cmd = """
-        segmentation_labels = load_utils.load_imgs_from_dir(data_dir=deepcell_output_dir,
+        segmentation_labels = load_utils.load_imgs_from_dir(
+            data_dir=deepcell_output_dir,
             delimiter="%s",
             xr_dim_name="%s",
             xr_channel_names=%s,
@@ -164,7 +171,6 @@ def save_seg_labels(tb, delimiter=None, xr_dim_name='compartments',
            str(force_ints))
     tb.inject(load_seg_cmd, after='load_seg_labels')
 
-    # save the segmentation labels
     tb.execute_cell('save_seg_labels')
 
     # now overlay data_xr
@@ -183,7 +189,6 @@ def create_exp_mat(tb, is_mibitiff=False, batch_size=5):
                                                       fovs=fovs,
                                                       batch_size=%s)
     """ % (is_mibitiff, str(batch_size))
-    print(exp_mat_gen)
     tb.inject(exp_mat_gen)
 
     # save expression matrix
@@ -201,9 +206,9 @@ def remove_dirs(tb):
     tb.inject(remove_dirs)
 
 
-# test mibitiff
+# test mibitiff, 6000 seconds = default timeout on Travis
 @testbook(SEGMENT_IMAGE_DATA, timeout=6000)
-def test_mibitiff_segmentation(tb):
+def test_mibitiff(tb):
     segment_notebook_setup(tb, deepcell_tiff_dir="sample_tiff", deepcell_input_dir="sample_input",
                            deepcell_output_dir="sample_output",
                            single_cell_dir="sample_single_cell", is_mibitiff=True,
