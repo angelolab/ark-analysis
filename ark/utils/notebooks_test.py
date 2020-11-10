@@ -214,6 +214,6 @@ def test_mibitiff(tb):
 @testbook(SEGMENT_IMAGE_DATA, timeout=6000)
 def test_folder(tb):
     segment_notebook_setup(tb)
-    create_deepcell_input_output(tb, nucs_list['chan0'], mems_list=['chan1'])
+    create_deepcell_input_output(tb, nucs_list=['chan0'], mems_list=['chan1'])
     save_seg_labels(tb)
     create_exp_mat(tb)
