@@ -144,6 +144,7 @@ def compute_marker_counts(input_images, segmentation_labels, nuclear_counts=Fals
 def create_marker_count_matrices(segmentation_labels, image_data, nuclear_counts=False,
                                  split_large_nuclei=False):
     """Create a matrix of cells by channels with the total counts of each marker in each cell.
+
     Args:
         segmentation_labels (xarray.DataArray):
             xarray of shape [fovs, rows, cols, compartment] containing segmentation masks for each
@@ -156,11 +157,14 @@ def create_marker_count_matrices(segmentation_labels, image_data, nuclear_counts
         split_large_nuclei (bool):
             boolean flag to determine whether nuclei which are larger than their assigned cell
             will get split into two different nuclear objects
+
     Returns:
         tuple (pandas.DataFrame, pandas.DataFrame):
-            - marker counts per cell normalized by cell size
-            - arcsinh transformation of the above
+        
+        - marker counts per cell normalized by cell size
+        - arcsinh transformation of the above
     """
+
     if type(segmentation_labels) is not xr.DataArray:
         raise ValueError("Incorrect data type for segmentation_labels, expecting xarray")
 

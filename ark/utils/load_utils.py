@@ -12,8 +12,10 @@ from ark.utils import io_utils as iou
 def load_imgs_from_mibitiff(data_dir, mibitiff_files=None, channels=None, delimiter=None,
                             dtype='int16'):
     """Load images from a series of MIBItiff files.
+
     This function takes a set of MIBItiff files and load the images into an xarray. The type used
     to store the images will be the same as that of the MIBIimages stored in the MIBItiff files.
+
     Args:
         data_dir (str):
             directory containing MIBItiffs
@@ -27,6 +29,7 @@ def load_imgs_from_mibitiff(data_dir, mibitiff_files=None, channels=None, delimi
             name. Defaults to None
         dtype (str/type):
             optional specifier of image type.  Overwritten with warning for float images
+
     Returns:
         xarray.DataArray:
             xarray with shape [fovs, x_dim, y_dim, channels]
@@ -82,6 +85,7 @@ def load_imgs_from_mibitiff(data_dir, mibitiff_files=None, channels=None, delimi
 def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, channels=None,
                         dtype="int16", variable_sizes=False):
     """Takes a set of imgs from a directory structure and loads them into an xarray.
+
     Args:
         data_dir (str):
             directory containing folders of images
@@ -95,6 +99,7 @@ def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, channels=None,
             dtype of array which will be used to store values
         variable_sizes (bool):
             if true, will pad loaded images with zeros to fit into array
+
     Returns:
         xarray.DataArray:
             xarray with shape [fovs, x_dim, y_dim, tifs]
@@ -188,8 +193,8 @@ def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, channels=None,
 def load_imgs_from_dir(data_dir, files=None, delimiter=None, xr_dim_name='compartments',
                        xr_channel_names=None, dtype="int16", force_ints=False,
                        channel_indices=None):
-    """Takes a set of images (possibly multitiffs) from a directory and loads them
-     into an xarray.
+    """Takes a set of images (possibly multitiffs) from a directory and loads them into an xarray.
+
     Args:
         data_dir (str):
             directory containing images
@@ -212,12 +217,15 @@ def load_imgs_from_dir(data_dir, files=None, delimiter=None, xr_dim_name='compar
             optional list of indices specifying which channels to load (by their indices).
             if None or empty, the function loads all channels.
             (Ignored if data is not multitiff).
+
     Returns:
         xarray.DataArray:
             xarray with shape [fovs, x_dim, y_dim, tifs]
+
     Raises:
         ValueError:
             Raised in the following cases:
+
             - data_dir is not a directory, <data_dir>/img is
               not a file for some img in the input 'files' list, or no images are found.
             - channels_indices are invalid according to the shape of the images.
