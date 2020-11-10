@@ -122,7 +122,7 @@ def run_deepcell_task(input_dir, output_dir, host='https://deepcell.org',
         'job_type': job_type,
         'download_results': True,
         'output_dir': output_dir,
-        'scale': str(scale)
+        'data_scale': scale
     }
 
     mgr = manager.BatchProcessingJobManager(**mgr_kwargs)
