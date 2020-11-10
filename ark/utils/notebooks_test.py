@@ -39,9 +39,11 @@ SEGMENT_IMAGE_DATA = os.path.join(os.path.dirname(os.path.realpath(__file__)),
 #     _exec_notebook('example_neighborhood_analysis_script.ipynb')
 
 
-def segment_notebook_setup(tb, deepcell_tiff_dir, deepcell_input_dir, deepcell_output_dir,
-                           single_cell_dir, is_mibitiff, mibitiff_suffix,
-                           num_fovs, num_chans, dtype):
+def segment_notebook_setup(tb, deepcell_tiff_dir="sample_tiff", deepcell_input_dir="sample_input",
+                           deepcell_output_dir="sample_output",
+                           single_cell_dir="sample_single_cell",
+                           is_mibitiff=False, mibitiff_suffix="-MassCorrected-Filtered",
+                           num_fovs=3, num_chans=3, dtype=np.uint16):
     # import modules and define file paths
     tb.execute_cell('import')
 
@@ -144,16 +146,10 @@ def create_deepcell_input_output(tb, nucs_list, mems_list):
     #     raise ValueError('Could not create deepcell output')
 
 
-def save_seg_labels(tb, delimiter=None, xr_dim_name='compartments',
-                    xr_channel_names=None, force_ints=False):
+def save_seg_labels(tb, delimiter='_feature_0', xr_dim_name='compartments',
+                    xr_channel_names=None, force_ints=True):
     delimiter_str = delimiter if delimiter is not None else "None"
     xr_channel_names_str = str(xr_channel_names) if xr_channel_names is not None else "None"
-
-    # for img in os.listdir(os.path.join('..', 'data', 'example_dataset', 'sample_output')):
-    #     if '.tif' in img or '.tiff' in img:
-    #         print(img)
-    #         img = io.imread(os.path.join('..', 'data', 'example_dataset', 'sample_output', img))
-    #         print(img.shape)
 
     # load the segmentation label with the proper command
     # NOTE: any specific testing of load_imgs_from_dir should be done in load_utils_test.py
@@ -209,12 +205,15 @@ def remove_dirs(tb):
 # test mibitiff, 6000 seconds = default timeout on Travis
 @testbook(SEGMENT_IMAGE_DATA, timeout=6000)
 def test_mibitiff(tb):
-    segment_notebook_setup(tb, deepcell_tiff_dir="sample_tiff", deepcell_input_dir="sample_input",
-                           deepcell_output_dir="sample_output",
-                           single_cell_dir="sample_single_cell", is_mibitiff=True,
-                           mibitiff_suffix="-MassCorrected-Filtered",
-                           num_fovs=3, num_chans=3, dtype=np.uint16)
+    segment_notebook_setup(tb, is_mibitiff=True)
     create_deepcell_input_output(tb, nucs_list=['chan0'], mems_list=['chan1', 'chan2'])
-    save_seg_labels(tb, delimiter='_feature_0', xr_channel_names=['whole_cell'], force_ints=True)
-    create_exp_mat(tb, is_mibitiff=True, batch_size=5)
-    # remove_dirs()
+    save_seg_labels(tb, xr_channel_names=['whole_cell'])
+    create_exp_mat(tb, is_mibitiff=True)
+
+
+@testbook(SEGMENT_IMAGE_DATA, timeout=6000)
+def test_folder(tb):
+    segment_notebook_setup(tb)
+    create_deepcell_input_output(tb, nucs_list['chan0'], mems_list=['chan1'])
+    save_seg_labels(tb)
+    create_exp_mat(tb)
