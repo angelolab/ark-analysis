@@ -54,7 +54,7 @@ def segment_notebook_setup(tb, deepcell_tiff_dir, deepcell_input_dir, deepcell_o
         rmtree(tiff_path)
     os.mkdir(tiff_path)
 
-    # create the tif files, don't do this in notebook it's too tedious to format this 
+    # create the tif files, don't do this in notebook it's too tedious to format this
     # also, because this is technically an input that would be created beforehand
     if is_mibitiff:
         fovs, chans = test_utils.gen_fov_chan_names(num_fovs=num_fovs,
@@ -183,7 +183,7 @@ def create_exp_mat(tb, is_mibitiff=False, batch_size=5):
     exp_mat_gen = """
         cell_table_size_normalized, cell_table_arcsinh_transformed = \
             marker_quantification.generate_cell_table(segmentation_labels=segmentation_labels,
-                                                      tiff_dir=deepcell_output_dir,
+                                                      tiff_dir=tiff_dir,
                                                       img_sub_folder="TIFs",
                                                       is_mibitiff=%s,
                                                       fovs=fovs,
