@@ -54,6 +54,7 @@ def segment_notebook_setup(tb, deepcell_tiff_dir="sample_tiff", deepcell_input_d
 
     if os.path.exists(tiff_path):
         rmtree(tiff_path)
+
     os.mkdir(tiff_path)
 
     # create the tif files, don't do this in notebook it's too tedious to format this
@@ -209,11 +210,14 @@ def test_mibitiff(tb):
     create_deepcell_input_output(tb, nucs_list=['chan0'], mems_list=['chan1', 'chan2'])
     save_seg_labels(tb, xr_channel_names=['whole_cell'])
     create_exp_mat(tb, is_mibitiff=True)
+    remove_dirs(tb)
 
 
+# test folder loading
 @testbook(SEGMENT_IMAGE_DATA, timeout=6000)
 def test_folder(tb):
     segment_notebook_setup(tb)
     create_deepcell_input_output(tb, nucs_list=['chan0'], mems_list=['chan1'])
     save_seg_labels(tb)
     create_exp_mat(tb)
+    remove_dirs(tb)
