@@ -66,6 +66,9 @@ def load_imgs_from_mibitiff(data_dir, mibitiff_files=None, channels=None, delimi
         channel_tuples = tiff.read(mibitiff_files[0]).channels
         channels = [channel_tuple[1] for channel_tuple in channel_tuples]
 
+    if len(channels) == 0:
+        raise ValueError("No images found in designated folder")
+
     # extract images from MIBItiff file
     img_data = []
     for mibitiff_file in mibitiff_files:

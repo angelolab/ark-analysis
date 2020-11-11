@@ -12,36 +12,37 @@ import numpy as np
 import skimage.io as io
 
 
-SEGMENT_IMAGE_DATA = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                  '..', '..', 'templates', 'Segment_Image_Data.ipynb')
+SEGMENT_IMAGE_DATA_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                                       '..', '..', 'templates', 'Segment_Image_Data.ipynb')
 
 
-# def _exec_notebook(nb_filename):
-#     path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-#                         '..', '..', 'templates', nb_filename)
-#     with tempfile.NamedTemporaryFile(suffix=".ipynb") as fout:
-#         args = ["jupyter", "nbconvert", "--to", "notebook", "--execute",
-#                 "--ExecutePreprocessor.timeout=1000",
-#                 "--output", fout.name, path]
-#         subprocess.check_call(args)
+def _exec_notebook(nb_filename):
+    path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                        '..', '..', 'templates', nb_filename)
+    with tempfile.NamedTemporaryFile(suffix=".ipynb") as fout:
+        args = ["jupyter", "nbconvert", "--to", "notebook", "--execute",
+                "--ExecutePreprocessor.timeout=1000",
+                "--output", fout.name, path]
+        subprocess.check_call(args)
 
 
-# test overall runs
-# def test_segment_image_data(mocker):
-#     _exec_notebook('Segment_Image_Data.ipynb')
+# test runs with default inputs
+def test_segment_image_data(mocker):
+    _exec_notebook('Segment_Image_Data.ipynb')
 
 
-# def test_example_spatial_analysis():
-#     _exec_notebook('example_spatial_analysis_script.ipynb')
+def test_example_spatial_analysis():
+    _exec_notebook('example_spatial_analysis_script.ipynb')
 
 
-# def test_example_neighborhood_analysis():
-#     _exec_notebook('example_neighborhood_analysis_script.ipynb')
+def test_example_neighborhood_analysis():
+    _exec_notebook('example_neighborhood_analysis_script.ipynb')
 
 
-def segment_notebook_setup(tb, deepcell_tiff_dir="sample_tiff", deepcell_input_dir="sample_input",
-                           deepcell_output_dir="sample_output",
-                           single_cell_dir="sample_single_cell",
+# testing specific inputs for Segment_Image_Data
+def segment_notebook_setup(tb, deepcell_tiff_dir="test_tiff", deepcell_input_dir="test_input",
+                           deepcell_output_dir="test_output",
+                           single_cell_dir="test_single_cell",
                            is_mibitiff=False, mibitiff_suffix="-MassCorrected-Filtered",
                            num_fovs=3, num_chans=3, dtype=np.uint16):
     # import modules and define file paths
@@ -102,12 +103,14 @@ def segment_notebook_setup(tb, deepcell_tiff_dir="sample_tiff", deepcell_input_d
     if is_mibitiff:
         tb.inject("MIBItiff = True", after='mibitiff_set')
 
+
+def fov_channel_input_set(tb, fovs_to_load=None, nucs_list=None, mems_list=None):
     # now load the fovs in the notebook
-    # NOTE: any specific testing of list_files and list_folders should be done in io_utils_test
-    tb.execute_cell('load_fovs')
+    if fovs_to_load is not None:
+        tb.inject("fovs = %s" % str(fovs_to_load))
+    else:
+        tb.execute_cell('load_fovs')
 
-
-def create_deepcell_input_output(tb, nucs_list, mems_list):
     # we need to set the nucs_list and the mems_list accordingly
     if nucs_list is None:
         nucs_list_str = "None"
@@ -134,17 +137,6 @@ def create_deepcell_input_output(tb, nucs_list, mems_list):
     # generate the deepcell input files
     # NOTE: any specific testing of generate_deepcell_input should be done in data_utils_test
     tb.execute_cell('gen_input')
-
-    # generate the deepcell output files from the server
-    tb.execute_cell('create_output')
-
-    # NOTE: the following is alternative code in case try-except blocks don't handle these correct
-    # create_output_text = tb.cell_output_text('create_output')
-    # remove on final commit
-    # if 'Error' in create_output_text or 'warnings' in create_output_text:
-    #     print(tb.cell_output_text('create_output'))
-    #     remove_dirs(tb)
-    #     raise ValueError('Could not create deepcell output')
 
 
 def save_seg_labels(tb, delimiter='_feature_0', xr_dim_name='compartments',
@@ -204,20 +196,75 @@ def remove_dirs(tb):
 
 
 # test mibitiff, 6000 seconds = default timeout on Travis
-@testbook(SEGMENT_IMAGE_DATA, timeout=6000)
-def test_mibitiff(tb):
-    segment_notebook_setup(tb, is_mibitiff=True)
-    create_deepcell_input_output(tb, nucs_list=['chan0'], mems_list=['chan1', 'chan2'])
+@testbook(SEGMENT_IMAGE_DATA_PATH, timeout=6000)
+def test_segment_image_data_mibitiff(tb):
+    # create input files, set separate names for mibitiffs to avoid confusion
+    segment_notebook_setup(tb, deepcell_tiff_dir="test_mibitiff_imgs",
+                           deepcell_input_dir="test_mibitiff_input",
+                           deepcell_output_dir="test_mibitiff_output",
+                           single_cell_dir="test_mibitiff_single_cell",
+                           is_mibitiff=True)
+
+    # default fov setting, standard nucs/mems setting
+    fov_channel_input_set(tb, nucs_list=['chan0'], mems_list=['chan1', 'chan2'])
+
+    # default fov setting, nucs set to None
+    fov_channel_input_set(tb, nucs_list=None, mems_list=['chan1', 'chan2'])
+
+    # default fov setting, mems set to None
+    fov_channel_input_set(tb, nucs_list=['chan0', 'chan1'], mems_list=None)
+
+    # hard coded fov setting, standard nucs/mems setting, this is what we'll be testing on
+    # TODO: this will fail if fovs_to_load is set without file extensions
+    fov_channel_input_set(tb,
+                          fovs_to_load=['fov0_otherinfo-MassCorrected-Filtered.tiff',
+                                        'fov1-MassCorrected-Filtered.tiff'],
+                          nucs_list=['chan0'],
+                          mems_list=['chan1', 'chan2'])
+
+    # generate the deepcell output files from the server
+    tb.execute_cell('create_output')
+
+    # run the segmentation labels saving and summed channel overlay processes
     save_seg_labels(tb, xr_channel_names=['whole_cell'])
+
+    # create the expression matrix
     create_exp_mat(tb, is_mibitiff=True)
+
+    # clean up the directories
     remove_dirs(tb)
 
 
 # test folder loading
-@testbook(SEGMENT_IMAGE_DATA, timeout=6000)
-def test_folder(tb):
+# also handles case when user doesn't specify all channels across nucs and mems
+@testbook(SEGMENT_IMAGE_DATA_PATH, timeout=6000)
+def test_segment_image_data_folder(tb):
+    # create input files
     segment_notebook_setup(tb)
-    create_deepcell_input_output(tb, nucs_list=['chan0'], mems_list=['chan1'])
-    save_seg_labels(tb)
+
+    # default fov setting, standard nucs/mems setting
+    fov_channel_input_set(tb, nucs_list=['chan0'], mems_list=['chan1', 'chan2'])
+
+    # default fov setting, nucs set to None
+    fov_channel_input_set(tb, nucs_list=None, mems_list=['chan1', 'chan2'])
+
+    # default fov setting, mems set to None
+    fov_channel_input_set(tb, nucs_list=['chan0', 'chan1'], mems_list=None)
+
+    # hard coded fov setting, standard nucs/mems setting, this is what we'll be testing on
+    fov_channel_input_set(tb,
+                          fovs_to_load=['fov0', 'fov1'],
+                          nucs_list=['chan0'],
+                          mems_list=['chan1', 'chan2'])
+
+    # generate the deepcell output files from the server
+    tb.execute_cell('create_output')
+
+    # run the segmentation labels saving and summed channel overlay processes
+    save_seg_labels(tb, xr_channel_names=['whole_cell'])
+
+    # create the expression matrix
     create_exp_mat(tb)
+
+    # clean up the directories
     remove_dirs(tb)

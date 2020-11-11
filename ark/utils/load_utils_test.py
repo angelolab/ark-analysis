@@ -18,6 +18,12 @@ def test_load_imgs_from_mibitiff():
                                                            channels=None,
                                                            delimiter='_')
 
+        with pytest.raises(ValueError):
+            # attempt to pass an empty channels list
+            loaded_xr = load_utils.load_imgs_from_mibitiff(temp_dir,
+                                                           channels=None,
+                                                           delimiter='_')
+
         # config test environment
         fovs, channels = test_utils.gen_fov_chan_names(num_fovs=2, num_chans=3, use_delimiter=True)
 
