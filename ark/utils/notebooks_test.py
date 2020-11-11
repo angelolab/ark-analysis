@@ -48,18 +48,21 @@ def segment_notebook_setup(tb, deepcell_tiff_dir="test_tiff", deepcell_input_dir
     # import modules and define file paths
     tb.execute_cell('import')
 
-    # create the path to the directory containing the input data
-    tiff_path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                             '..', '..', 'data', 'example_dataset',
-                             'input_data', deepcell_tiff_dir)
-
-    if os.path.exists(tiff_path):
-        rmtree(tiff_path)
-
-    os.mkdir(tiff_path)
+    # define custom mibitiff paths
+    define_mibitiff_paths = """
+        base_dir = "../data/example_dataset"
+        input_dir = os.path.join(base_dir, "input_data")
+        tiff_dir = "os.path.join(input_dir, %s)"
+        deepcell_input_dir = os.path.join(input_dir, "%s/")
+        deepcell_output_dir = os.path.join(base_dir, "%s/")
+        single_cell_dir = os.path.join(base_dir, "%s/")
+    """ % (deepcell_tiff_dir, deepcell_input_dir, deepcell_output_dir, single_cell_dir)
+    tb.inject(define_mibitiff_paths, after='file_path')
 
     # create the tif files, don't do this in notebook it's too tedious to format this
     # also, because this is technically an input that would be created beforehand
+    tiff_path = os.path.join('..', 'data', 'example_dataset', 'input_data', deepcell_tiff_dir)
+
     if is_mibitiff:
         fovs, chans = test_utils.gen_fov_chan_names(num_fovs=num_fovs,
                                                     num_chans=num_chans,
@@ -78,17 +81,6 @@ def segment_notebook_setup(tb, deepcell_tiff_dir="test_tiff", deepcell_input_dir
         filelocs, data_xr = test_utils.create_paired_xarray_fovs(
             tiff_path, fovs, chans, img_shape=(1024, 1024), delimiter='_', fills=False,
             sub_dir="TIFs", dtype=dtype)
-
-    # define custom mibitiff paths
-    define_mibitiff_paths = """
-        base_dir = "../data/example_dataset"
-        input_dir = os.path.join(base_dir, "input_data")
-        tiff_dir = "%s/"
-        deepcell_input_dir = os.path.join(input_dir, "%s/")
-        deepcell_output_dir = os.path.join(base_dir, "%s/")
-        single_cell_dir = os.path.join(base_dir, "%s/")
-    """ % (tiff_path, deepcell_input_dir, deepcell_output_dir, single_cell_dir)
-    tb.inject(define_mibitiff_paths, after='file_path')
 
     # create the directories as listed by define_mibitiff_paths
     tb.execute_cell('create_dirs')
