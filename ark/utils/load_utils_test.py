@@ -21,7 +21,7 @@ def test_load_imgs_from_mibitiff():
         with pytest.raises(ValueError):
             # attempt to pass an empty channels list
             loaded_xr = load_utils.load_imgs_from_mibitiff(temp_dir,
-                                                           channels=None,
+                                                           channels=[],
                                                            delimiter='_')
 
         # config test environment
