@@ -8,7 +8,11 @@ For a step-by-step guide of how to install Anaconda, please refer to these links
 * https://docs.anaconda.com/anaconda/install/mac-os/ for Mac users
 * https://docs.anaconda.com/anaconda/install/windows/ for Windows users
 
-We recommend using the graphical installer for ease of use.
+We recommend following the command line installer instructions as users have reported recent issues with the graphical installer. 
+ 
+To test if `conda` has been added to your path, run `conda info` in your Terminal. If you get an error message, it means `conda` has not been added to your `PATH` environment variable yet. To fix this:
+* Run `export PATH="/Users/yourname/anaconda3/bin:$PATH"` for Mac users
+* Run `set PATH=%PATH%;C:\Anaconda3;C:\Anaconda3\Scripts\` for Windows users
 
 ### Creating a virtual environment
 
