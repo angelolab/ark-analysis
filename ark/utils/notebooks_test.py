@@ -39,7 +39,8 @@ def test_example_neighborhood_analysis():
 @testbook(SEGMENT_IMAGE_DATA_PATH, timeout=6000)
 def test_segment_image_data_mibitiff(tb):
     # create input files, set separate names for mibitiffs to avoid confusion
-    notebooks_test_utils.segment_notebook_setup(tb, deepcell_tiff_dir="test_mibitiff",
+    notebooks_test_utils.segment_notebook_setup(tb,
+                                                deepcell_tiff_dir="test_mibitiff",
                                                 deepcell_input_dir="test_mibitiff_input",
                                                 deepcell_output_dir="test_mibitiff_output",
                                                 single_cell_dir="test_mibitiff_single_cell",
