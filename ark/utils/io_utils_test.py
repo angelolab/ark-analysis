@@ -87,9 +87,9 @@ def test_list_files():
 def test_remove_file_extensions():
     # test a mixture of file paths and extensions
     files = [
-        'example_data/fov1',
-        'example_data/fov2/fov2.tif',
-        'fov3.tiff',
+        'fov1.tiff',
+        'fov2.tif',
+        'fov3.png',
         'fov4.jpg'
     ]
 

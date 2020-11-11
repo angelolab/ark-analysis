@@ -73,15 +73,17 @@ def list_files(dir_name, substrs=None):
 
 
 def remove_file_extensions(files):
-    """Removes file extensions and drops preceding path from a list of files
+    """Removes file extensions from a list of files
 
     Args:
         files (list):
             List of files to remove file extensions from.
             Any element that doesn't have an extension is left unchanged
+
     Raises:
         UserWarning:
             Some of the processed file names still contain a period
+
     Returns:
         list:
             List of files without file extensions
@@ -91,11 +93,8 @@ def remove_file_extensions(files):
     if files is None:
         return
 
-    # only get the file name and not the directory path leading up to it
-    names = [os.path.split(name)[1] for name in files]
-
     # remove the file extension
-    names = [os.path.splitext(name)[0] for name in names]
+    names = [os.path.splitext(name)[0] for name in files]
 
     # identify names with '.' in them: these may not be processed correctly
     bad_names = [name for name in names if '.' in name]

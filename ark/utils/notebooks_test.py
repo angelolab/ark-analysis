@@ -60,8 +60,9 @@ def segment_notebook_setup(tb, deepcell_tiff_dir="test_tiff", deepcell_input_dir
     tb.inject(define_mibitiff_paths, after='file_path')
 
     # create the tif files, don't do this in notebook it's too tedious to format this
-    # also, because this is technically an input that would be created beforehand
+    # also, because this is an input that would be created beforehand
     tiff_path = os.path.join('..', 'data', 'example_dataset', 'input_data', deepcell_tiff_dir)
+    os.mkdir(tiff_path)
 
     if is_mibitiff:
         fovs, chans = test_utils.gen_fov_chan_names(num_fovs=num_fovs,
