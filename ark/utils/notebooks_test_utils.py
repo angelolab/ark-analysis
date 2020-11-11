@@ -120,7 +120,7 @@ def fov_channel_input_set(tb, fovs_to_load=None, nucs_list=None, mems_list=None)
         mems_list_str = "%s" % str(mems_list)
 
     nuc_mem_set = """
-        nucs = %s\n
+        nucs = %s
         mems = %s
     """ % (nucs_list_str, mems_list_str)
     tb.inject(nuc_mem_set, after='nuc_mem_set')
