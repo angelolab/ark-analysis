@@ -42,7 +42,7 @@ def segment_notebook_setup(tb, deepcell_tiff_dir="test_tiff", deepcell_input_dir
     define_mibitiff_paths = """
         base_dir = "../data/example_dataset"
         input_dir = os.path.join(base_dir, "input_data")
-        tiff_dir = "os.path.join(input_dir, %s)"
+        tiff_dir = os.path.join(input_dir, "%s/")
         deepcell_input_dir = os.path.join(input_dir, "%s/")
         deepcell_output_dir = os.path.join(base_dir, "%s/")
         single_cell_dir = os.path.join(base_dir, "%s/")
@@ -51,8 +51,7 @@ def segment_notebook_setup(tb, deepcell_tiff_dir="test_tiff", deepcell_input_dir
 
     # create the tif files, don't do this in notebook it's too tedious to format this
     # also, because this is an input that would be created beforehand
-    tiff_path = os.path.join('..', '..', 'data', 'example_dataset',
-                             'input_data', deepcell_tiff_dir)
+    tiff_path = os.path.join('data', 'example_dataset', 'input_data', deepcell_tiff_dir)
     os.mkdir(tiff_path)
 
     if is_mibitiff:
