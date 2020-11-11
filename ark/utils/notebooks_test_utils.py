@@ -1,4 +1,5 @@
 import os
+import numpy as np
 
 from ark.utils import test_utils
 
