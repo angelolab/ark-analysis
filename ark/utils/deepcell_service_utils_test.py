@@ -42,6 +42,12 @@ def test_create_deepcell_output(mocker):
         create_deepcell_output(deepcell_input_dir=input_dir, deepcell_output_dir=output_dir,
                                fovs=['fov1', 'fov2'])
 
+        with pytest.raises(ValueError):
+            # fail if scale argument can not be converted to float
+            create_deepcell_output(deepcell_input_dir=input_dir, deepcell_output_dir=output_dir,
+                                   fovs=['fov1','fov2'], scale='test')
+
+
         # make sure DeepCell (.zip) output exists
         assert os.path.exists(os.path.join(output_dir, 'example_output.zip'))
 
