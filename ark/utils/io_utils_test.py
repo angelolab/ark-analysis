@@ -98,15 +98,15 @@ def test_list_files():
         os.mkdir(os.path.join(temp_dir, 'badfolder_test'))
 
         # test substrs is None (default)
-        get_all = iou.list_files(temp_dir, extensions=False)
+        get_all = iou.list_files(temp_dir, is_extensions=False)
         assert sorted(get_all) == sorted(filenames)
 
         # test substrs is not list (single string)
-        get_txt = iou.list_files(temp_dir, substrs='c', extensions=False)
+        get_txt = iou.list_files(temp_dir, substrs='c', is_extensions=False)
         assert sorted(get_txt) == [filenames[2]]
 
         # test substrs is list
-        get_test_and_other = iou.list_files(temp_dir, substrs=['c', 'chan'], extensions=False)
+        get_test_and_other = iou.list_files(temp_dir, substrs=['c', 'chan'], is_extensions=False)
         assert sorted(get_test_and_other) == sorted(filenames[1:])
 
 
