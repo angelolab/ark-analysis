@@ -136,8 +136,7 @@ def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, channels=None,
         )
 
         # get the corresponding indices found in channels_no_delim
-        channels_indices = [channels_no_delim.index(chan.split('.')[0]) for chan in channels_data
-                            if chan.split('.')[0] in channels_no_delim]
+        channels_indices = [channels_no_delim.index(chan.split('.')[0]) for chan in channels_data]
 
         # reorder back to original
         channels = [chan for _, chan in sorted(zip(channels_indices, channels_data))]
