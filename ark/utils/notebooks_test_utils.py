@@ -9,7 +9,7 @@ def segment_notebook_setup(tb, deepcell_tiff_dir="test_tiff", deepcell_input_dir
                            single_cell_dir="test_single_cell",
                            is_mibitiff=False, mibitiff_suffix="-MassCorrected-Filtered",
                            num_fovs=3, num_chans=3, dtype=np.uint16):
-    """Creates the diretories and data needed and sets the MIBITiff variable accordingly
+    """Creates the directories and data needed and sets the MIBITiff variable accordingly
 
     Args:
         tb (testbook.testbook):
