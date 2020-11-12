@@ -132,7 +132,7 @@ def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, channels=None,
 
         all_channels = iou.list_files(
             os.path.join(data_dir, fovs[0], img_sub_folder),
-            substrs=channels_no_delim, extensions=False
+            substrs=channels_no_delim, is_extensions=False
         )
 
         # get the corresponding indices found in channels_no_delim

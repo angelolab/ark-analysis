@@ -36,7 +36,7 @@ def validate_paths(paths):
                     f'and to reference as \'../data/path_to_data/myfile.tif\'')
 
 
-def list_files(dir_name, substrs=None, extensions=True):
+def list_files(dir_name, substrs=None, is_extensions=True):
     """ List all files in a directory containing at least one given substring
 
     Args:
@@ -44,7 +44,7 @@ def list_files(dir_name, substrs=None, extensions=True):
             Parent directory for files of interest
         substrs (str or list):
             Substring matching criteria, defaults to None (all files)
-        extensions (bool):
+        is_extensions (bool):
             If True, will match on file extensions, if False, will match exact file names
 
     Returns:
@@ -63,7 +63,7 @@ def list_files(dir_name, substrs=None, extensions=True):
     if type(substrs) is not list:
         substrs = [substrs]
 
-    if extensions:
+    if is_extensions:
         matches = [file
                    for file in files
                    if any([
