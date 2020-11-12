@@ -41,12 +41,6 @@ def test_example_neighborhood_analysis():
 def test_segment_image_data_mibitiff(tb):
     with tdir() as tiff_dir, tdir() as input_dir, tdir() as output_dir, tdir() as single_cell_dir:
         # create input files
-        # notebooks_test_utils.segment_notebook_setup(tb,
-        #                                             deepcell_tiff_dir="test_mibitiff",
-        #                                             deepcell_input_dir="test_mibitiff_input",
-        #                                             deepcell_output_dir="test_mibitiff_output",
-        #                                             single_cell_dir="test_mibitiff_single_cell",
-        #                                             is_mibitiff=True)
         notebooks_test_utils.segment_notebook_setup(tb,
                                                     deepcell_tiff_dir=tiff_dir,
                                                     deepcell_input_dir=input_dir,
