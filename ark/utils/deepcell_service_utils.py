@@ -44,6 +44,11 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
                 Raised if there is some fov X (from fovs list) s.t.
                 the file <deepcell_input_dir>/fovX.tif does not exist
     """
+    # check that scale arg can be converted to a float
+    try:
+        scale = float(scale)
+    except ValueError:
+        raise ValueError("Scale argument must be a number")
 
     # extract all the files from deepcell_input_dir
     input_files = io_utils.list_files(deepcell_input_dir, substrs=['.tif', '.tiff'])
@@ -122,7 +127,7 @@ def run_deepcell_task(input_dir, output_dir, host='https://deepcell.org',
         'job_type': job_type,
         'download_results': True,
         'output_dir': output_dir,
-        'scale': str(scale)
+        'data_scale': scale
     }
 
     mgr = manager.BatchProcessingJobManager(**mgr_kwargs)
