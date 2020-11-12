@@ -38,20 +38,11 @@ def segment_notebook_setup(tb, deepcell_tiff_dir="test_tiff", deepcell_input_dir
     # import modules and define file paths
     tb.execute_cell('import')
 
-    # define custom mibitiff paths
-    define_mibitiff_paths = """
-        base_dir = "../data/example_dataset"
-        input_dir = os.path.join(base_dir, "input_data")
-        tiff_dir = os.path.join(input_dir, "%s/")
-        deepcell_input_dir = os.path.join(input_dir, "%s/")
-        deepcell_output_dir = os.path.join(base_dir, "%s/")
-        single_cell_dir = os.path.join(base_dir, "%s/")
-    """ % (deepcell_tiff_dir, deepcell_input_dir, deepcell_output_dir, single_cell_dir)
-    tb.inject(define_mibitiff_paths, after='file_path')
-
     # create the tif files, don't do this in notebook it's too tedious to format this
     # also, because this is an input that would be created beforehand
-    tiff_path = os.path.join('data', 'example_dataset', 'input_data', deepcell_tiff_dir)
+    tiff_path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                             '..', '..', 'data', 'example_dataset', 'input_data',
+                             deepcell_tiff_dir)
     os.mkdir(tiff_path)
 
     if is_mibitiff:
@@ -73,11 +64,21 @@ def segment_notebook_setup(tb, deepcell_tiff_dir="test_tiff", deepcell_input_dir
             tiff_path, fovs, chans, img_shape=(1024, 1024), delimiter='_', fills=False,
             sub_dir="TIFs", dtype=dtype)
 
+    # define custom mibitiff paths
+    define_mibitiff_paths = """
+        base_dir = "../data/example_dataset"
+        input_dir = os.path.join(base_dir, "input_data")
+        tiff_dir = "%s"
+        deepcell_input_dir = os.path.join(input_dir, "%s")
+        deepcell_output_dir = os.path.join(base_dir, "%s")
+        single_cell_dir = os.path.join(base_dir, "%s")
+    """ % (tiff_path, deepcell_input_dir, deepcell_output_dir, single_cell_dir)
+    tb.inject(define_mibitiff_paths, after='file_path')
+
     # create the directories as listed by define_mibitiff_paths
     tb.execute_cell('create_dirs')
 
     # validate the paths, and in Jupyter, this should always pass
-    # NOTE: any specific testing of validate_paths should be done in io_utils_test.py
     tb.execute_cell('validate_path')
 
     # will set MIBItiff and MIBItiff_suffix
@@ -132,7 +133,6 @@ def fov_channel_input_set(tb, fovs_to_load=None, nucs_list=None, mems_list=None)
     tb.execute_cell('load_data_xr')
 
     # generate the deepcell input files
-    # NOTE: any specific testing of generate_deepcell_input should be done in data_utils_test
     tb.execute_cell('gen_input')
 
 
@@ -212,6 +212,7 @@ def remove_dirs(tb):
         tb (testbook.testbook):
             The testbook runner instance
     """
+
     remove_dirs = """
         from shutil import rmtree
         rmtree(tiff_dir)
