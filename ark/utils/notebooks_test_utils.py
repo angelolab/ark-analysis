@@ -38,8 +38,7 @@ def segment_notebook_setup(tb, deepcell_tiff_dir="test_tiff", deepcell_input_dir
     # import modules and define file paths
     tb.execute_cell('import')
 
-    # create the tif files, don't do this in notebook it's too tedious to format this
-    # also, because this is an input that would be created beforehand
+    # create the image files, not something the notebook should handle
     tiff_path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                              '..', '..', 'data', 'example_dataset', 'input_data',
                              deepcell_tiff_dir)
@@ -82,9 +81,9 @@ def segment_notebook_setup(tb, deepcell_tiff_dir="test_tiff", deepcell_input_dir
     tb.execute_cell('validate_path')
 
     # will set MIBItiff and MIBItiff_suffix
-    # if is_mibitiff is True, then we need to correct MIBITiff to True
     tb.execute_cell('mibitiff_set')
     if is_mibitiff:
+        # default setting is MIBItiff = False, change to True if user has mibitiff inputs
         tb.inject("MIBItiff = True", after='mibitiff_set')
 
 
@@ -105,11 +104,13 @@ def fov_channel_input_set(tb, fovs_to_load=None, nucs_list=None, mems_list=None)
 
     # load the fovs in the notebook
     if fovs_to_load is not None:
+        # handles the case when the user assigns fovs to an explicit list
         tb.inject("fovs = %s" % str(fovs_to_load))
     else:
+        # handles the case when the user allows list_files or list_folders to do the fov loading
         tb.execute_cell('load_fovs')
 
-    # we need to set the nucs_list and the mems_list accordingly
+    # set the nucs_list and the mems_list accordingly
     if nucs_list is None:
         nucs_list_str = "None"
     else:

@@ -105,7 +105,6 @@ def test_segment_image_data_folder(tb):
                                                mems_list=None)
 
     # hard coded fov setting, standard nucs/mems setting, this is what we'll be testing on
-    # TODO: this will fail if fovs_to_load is set without file extensions
     notebooks_test_utils.fov_channel_input_set(
         tb,
         fovs_to_load=['fov0', 'fov1'],
