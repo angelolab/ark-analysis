@@ -44,7 +44,7 @@ def list_files(dir_name, substrs=None, exact_match=False):
             Parent directory for files of interest
         substrs (str or list):
             Substring matching criteria, defaults to None (all files)
-        soft_match (bool):
+        exact_match (bool):
             If True, will match exact file names (so 'C' will match only 'C.tif')
             If False, will match substr pattern in file (so 'C' will match 'C.tif' and 'CD30.tif')
 
