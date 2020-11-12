@@ -132,7 +132,7 @@ def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, channels=None,
 
         all_channels = iou.list_files(
             os.path.join(data_dir, fovs[0], img_sub_folder),
-            substrs=channels_no_delim, is_extensions=False
+            substrs=channels_no_delim, exact_match=True
         )
 
         # get the corresponding indices found in channels_no_delim
@@ -192,8 +192,7 @@ def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, channels=None,
 def load_imgs_from_dir(data_dir, files=None, delimiter=None, xr_dim_name='compartments',
                        xr_channel_names=None, dtype="int16", force_ints=False,
                        channel_indices=None):
-    """Takes a set of images (possibly multitiffs) from a directory and loads them
-     into an xarray.
+    """Takes a set of images (possibly multitiffs) from a directory and loads them into an xarray.
 
     Args:
         data_dir (str):
