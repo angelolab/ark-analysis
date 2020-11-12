@@ -108,9 +108,6 @@ def transform_expression_matrix(cell_table, transform, transform_kwargs=None):
     valid_transforms = ['size_norm', 'arcsinh']
     misc_utils.verify_in_list(transform=transform, valid_transforms=valid_transforms)
 
-    if transform not in valid_transforms:
-        raise ValueError('Invalid transform supplied')
-
     if transform_kwargs is None:
         transform_kwargs = {}
 
