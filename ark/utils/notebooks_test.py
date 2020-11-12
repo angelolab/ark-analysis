@@ -22,7 +22,7 @@ def _exec_notebook(nb_filename):
 
 
 # test runs with default inputs
-def test_segment_image_data(mocker):
+def test_segment_image_data():
     _exec_notebook('Segment_Image_Data.ipynb')
 
 
@@ -46,23 +46,7 @@ def test_segment_image_data_mibitiff(tb):
                                                 single_cell_dir="test_mibitiff_single_cell",
                                                 is_mibitiff=True)
 
-    # default fov setting, standard nucs/mems setting
-    notebooks_test_utils.fov_channel_input_set(tb,
-                                               nucs_list=['chan0'],
-                                               mems_list=['chan1', 'chan2'])
-
-    # default fov setting, nucs set to None
-    notebooks_test_utils.fov_channel_input_set(tb,
-                                               nucs_list=None,
-                                               mems_list=['chan1', 'chan2'])
-
-    # default fov setting, mems set to None
-    notebooks_test_utils.fov_channel_input_set(tb,
-                                               nucs_list=['chan0', 'chan1'],
-                                               mems_list=None)
-
-    # hard coded fov setting, standard nucs/mems setting, this is what we'll be testing on
-    # TODO: this will fail if fovs_to_load is set without file extensions
+    # hard coded fov setting
     notebooks_test_utils.fov_channel_input_set(
         tb,
         fovs_to_load=['fov0_otherinfo-MassCorrected-Filtered.tiff',
@@ -89,22 +73,7 @@ def test_segment_image_data_folder(tb):
     # create input files
     notebooks_test_utils.segment_notebook_setup(tb)
 
-    # default fov setting, standard nucs/mems setting
-    notebooks_test_utils.fov_channel_input_set(tb,
-                                               nucs_list=['chan0'],
-                                               mems_list=['chan1', 'chan2'])
-
-    # default fov setting, nucs set to None
-    notebooks_test_utils.fov_channel_input_set(tb,
-                                               nucs_list=None,
-                                               mems_list=['chan1', 'chan2'])
-
-    # default fov setting, mems set to None
-    notebooks_test_utils.fov_channel_input_set(tb,
-                                               nucs_list=['chan0', 'chan1'],
-                                               mems_list=None)
-
-    # hard coded fov setting, standard nucs/mems setting, this is what we'll be testing on
+    # hard coded fov setting
     notebooks_test_utils.fov_channel_input_set(
         tb,
         fovs_to_load=['fov0', 'fov1'],

@@ -67,7 +67,7 @@ def load_imgs_from_mibitiff(data_dir, mibitiff_files=None, channels=None, delimi
         channels = [channel_tuple[1] for channel_tuple in channel_tuples]
 
     if len(channels) == 0:
-        raise ValueError("No images found in designated folder")
+        raise ValueError("No channels provided in channels list")
 
     # extract images from MIBItiff file
     img_data = []
@@ -146,7 +146,7 @@ def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, channels=None,
         channels = [chan for _, chan in sorted(zip(channels_indices, channels))]
 
     if len(channels) == 0:
-        raise ValueError("No channels specified")
+        raise ValueError("No images found in designated folder")
 
     test_img = io.imread(os.path.join(data_dir, fovs[0], img_sub_folder, channels[0]))
 
