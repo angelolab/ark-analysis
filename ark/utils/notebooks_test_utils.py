@@ -58,20 +58,12 @@ def segment_notebook_setup(tb, deepcell_tiff_dir, deepcell_input_dir, deepcell_o
 
     # define custom paths, leaving base_dir and input_dir for simplicity
     define_paths = """
-        base_dir = "../data/example_dataset"
-        input_dir = os.path.join(base_dir, "input_data")
         tiff_dir = "%s"
         deepcell_input_dir = "%s"
         deepcell_output_dir = "%s"
         single_cell_dir = "%s"
     """ % (deepcell_tiff_dir, deepcell_input_dir, deepcell_output_dir, single_cell_dir)
     tb.inject(define_paths, after='file_path')
-
-    # create the directories as listed by define_mibitiff_paths
-    tb.execute_cell('create_dirs')
-
-    # validate the paths, and in Jupyter, this should always pass
-    tb.execute_cell('validate_path')
 
     # will set MIBItiff and MIBItiff_suffix
     tb.execute_cell('mibitiff_set')
