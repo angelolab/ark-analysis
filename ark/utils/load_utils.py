@@ -130,16 +130,17 @@ def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, channels=None,
         # need this to reorder channels back because list_files may mess up the ordering
         channels_no_delim = [img.split('.')[0] for img in channels]
 
-        channels = iou.list_files(
+        channels_data = iou.list_files(
             os.path.join(data_dir, fovs[0], img_sub_folder),
             substrs=channels
         )
 
         # get the corresponding indices found in channels_no_delim
-        channels_indices = [channels_no_delim.index(chan.split('.')[0]) for chan in channels]
+        channels_indices = [channels_no_delim.index(chan.split('.')[0]) for chan in channels_data
+                            if chan.split('.')[0] in channels_no_delim]
 
         # reorder back to original
-        channels = [chan for _, chan in sorted(zip(channels_indices, channels))]
+        channels = [chan for _, chan in sorted(zip(channels_indices, channels_data))]
 
     if len(channels) == 0:
         raise ValueError("No images found in designated folder")
