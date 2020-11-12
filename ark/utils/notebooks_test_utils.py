@@ -63,8 +63,8 @@ def segment_notebook_setup(tb, deepcell_tiff_dir="test_tiff", deepcell_input_dir
             tiff_path, fovs, chans, img_shape=(1024, 1024), delimiter='_', fills=False,
             sub_dir="TIFs", dtype=dtype)
 
-    # define custom mibitiff paths
-    define_mibitiff_paths = """
+    # define custom paths
+    define_paths = """
         base_dir = "../data/example_dataset"
         input_dir = os.path.join(base_dir, "input_data")
         tiff_dir = "%s"
@@ -72,7 +72,7 @@ def segment_notebook_setup(tb, deepcell_tiff_dir="test_tiff", deepcell_input_dir
         deepcell_output_dir = os.path.join(base_dir, "%s")
         single_cell_dir = os.path.join(base_dir, "%s")
     """ % (tiff_path, deepcell_input_dir, deepcell_output_dir, single_cell_dir)
-    tb.inject(define_mibitiff_paths, after='file_path')
+    tb.inject(define_paths, after='file_path')
 
     # create the directories as listed by define_mibitiff_paths
     tb.execute_cell('create_dirs')
