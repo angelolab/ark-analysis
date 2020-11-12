@@ -4,10 +4,9 @@ import numpy as np
 from ark.utils import test_utils
 
 
-def segment_notebook_setup(tb, deepcell_tiff_dir="test_tiff", deepcell_input_dir="test_input",
-                           deepcell_output_dir="test_output",
-                           single_cell_dir="test_single_cell",
-                           is_mibitiff=False, mibitiff_suffix="-MassCorrected-Filtered",
+def segment_notebook_setup(tb, deepcell_tiff_dir, deepcell_input_dir, deepcell_output_dir,
+                           single_cell_dir, is_mibitiff=False,
+                           mibitiff_suffix="-MassCorrected-Filtered",
                            num_fovs=3, num_chans=3, dtype=np.uint16):
     """Creates the directories and data needed and sets the MIBITiff variable accordingly
 
@@ -15,13 +14,13 @@ def segment_notebook_setup(tb, deepcell_tiff_dir="test_tiff", deepcell_input_dir
         tb (testbook.testbook):
             The testbook runner instance
         deepcell_tiff_dir (str):
-            The name of the directory holding the images
+            The path to the tiff directory
         deepcell_input_dir (str):
-            The name of the directory to hold the processed images to send to DeepCell
+            The path to the input directory
         deepcell_output_dir (str):
-            The name of the directory to hold the DeepCell output
+            The path to the output directory
         single_cell_dir (str):
-            The name of the directory to hold the processed expression matrix files
+            The path to the single cell directory
         is_mibitiff (bool):
             Whether we're working with mibitiff files or not
         mibitiff_suffix (str):
@@ -38,12 +37,6 @@ def segment_notebook_setup(tb, deepcell_tiff_dir="test_tiff", deepcell_input_dir
     # import modules and define file paths
     tb.execute_cell('import')
 
-    # create the image files, not something the notebook should handle
-    tiff_path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                             '..', '..', 'data', 'example_dataset', 'input_data',
-                             deepcell_tiff_dir)
-    os.mkdir(tiff_path)
-
     if is_mibitiff:
         fovs, chans = test_utils.gen_fov_chan_names(num_fovs=num_fovs,
                                                     num_chans=num_chans,
@@ -51,7 +44,7 @@ def segment_notebook_setup(tb, deepcell_tiff_dir="test_tiff", deepcell_input_dir
         fovs = [f + mibitiff_suffix for f in fovs]
 
         filelocs, data_xr = test_utils.create_paired_xarray_fovs(
-            tiff_path, fovs, chans, img_shape=(1024, 1024), mode='mibitiff',
+            deepcell_tiff_dir, fovs, chans, img_shape=(1024, 1024), mode='mibitiff',
             delimiter='_', fills=False, dtype=dtype
         )
     else:
@@ -60,18 +53,18 @@ def segment_notebook_setup(tb, deepcell_tiff_dir="test_tiff", deepcell_input_dir
                                                     return_imgs=False)
 
         filelocs, data_xr = test_utils.create_paired_xarray_fovs(
-            tiff_path, fovs, chans, img_shape=(1024, 1024), delimiter='_', fills=False,
+            deepcell_tiff_dir, fovs, chans, img_shape=(1024, 1024), delimiter='_', fills=False,
             sub_dir="TIFs", dtype=dtype)
 
-    # define custom paths
+    # define custom paths, leaving base_dir and input_dir for simplicity
     define_paths = """
         base_dir = "../data/example_dataset"
         input_dir = os.path.join(base_dir, "input_data")
         tiff_dir = "%s"
-        deepcell_input_dir = os.path.join(input_dir, "%s")
-        deepcell_output_dir = os.path.join(base_dir, "%s")
-        single_cell_dir = os.path.join(base_dir, "%s")
-    """ % (tiff_path, deepcell_input_dir, deepcell_output_dir, single_cell_dir)
+        deepcell_input_dir = "%s"
+        deepcell_output_dir = "%s"
+        single_cell_dir = "%s"
+    """ % (deepcell_tiff_dir, deepcell_input_dir, deepcell_output_dir, single_cell_dir)
     tb.inject(define_paths, after='file_path')
 
     # create the directories as listed by define_mibitiff_paths
@@ -204,21 +197,3 @@ def create_exp_mat(tb, is_mibitiff=False, batch_size=5):
 
     # save expression matrix
     tb.execute_cell('save_exp_mat')
-
-
-def remove_dirs(tb):
-    """Removes all of the test folders created
-
-    Args:
-        tb (testbook.testbook):
-            The testbook runner instance
-    """
-
-    remove_dirs = """
-        from shutil import rmtree
-        rmtree(tiff_dir)
-        rmtree(deepcell_input_dir)
-        rmtree(deepcell_output_dir)
-        rmtree(single_cell_dir)
-    """
-    tb.inject(remove_dirs)

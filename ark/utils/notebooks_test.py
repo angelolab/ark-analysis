@@ -1,8 +1,9 @@
 import subprocess
-import tempfile
 import os
+import tempfile
 
 from testbook import testbook
+from tempfile import TemporaryDirectory as tdir
 
 from ark.utils import notebooks_test_utils
 
@@ -38,56 +39,63 @@ def test_example_neighborhood_analysis():
 # test mibitiff, 6000 seconds = default timeout on Travis
 @testbook(SEGMENT_IMAGE_DATA_PATH, timeout=6000)
 def test_segment_image_data_mibitiff(tb):
-    # create input files, set separate names for mibitiffs to avoid confusion
-    notebooks_test_utils.segment_notebook_setup(tb,
-                                                deepcell_tiff_dir="test_mibitiff",
-                                                deepcell_input_dir="test_mibitiff_input",
-                                                deepcell_output_dir="test_mibitiff_output",
-                                                single_cell_dir="test_mibitiff_single_cell",
-                                                is_mibitiff=True)
+    with tdir() as tiff_dir, tdir() as input_dir, tdir() as output_dir, tdir() as single_cell_dir:
+        # create input files
+        # notebooks_test_utils.segment_notebook_setup(tb,
+        #                                             deepcell_tiff_dir="test_mibitiff",
+        #                                             deepcell_input_dir="test_mibitiff_input",
+        #                                             deepcell_output_dir="test_mibitiff_output",
+        #                                             single_cell_dir="test_mibitiff_single_cell",
+        #                                             is_mibitiff=True)
+        notebooks_test_utils.segment_notebook_setup(tb,
+                                                    deepcell_tiff_dir=tiff_dir,
+                                                    deepcell_input_dir=input_dir,
+                                                    deepcell_output_dir=output_dir,
+                                                    single_cell_dir=single_cell_dir,
+                                                    is_mibitiff=True)
 
-    # hard coded fov setting
-    notebooks_test_utils.fov_channel_input_set(
-        tb,
-        fovs_to_load=['fov0_otherinfo-MassCorrected-Filtered.tiff',
-                      'fov1-MassCorrected-Filtered.tiff'],
-        nucs_list=['chan0'],
-        mems_list=['chan1', 'chan2'])
+        # hard coded fov setting
+        notebooks_test_utils.fov_channel_input_set(
+            tb,
+            fovs_to_load=['fov0_otherinfo-MassCorrected-Filtered.tiff',
+                          'fov1-MassCorrected-Filtered.tiff'],
+            nucs_list=['chan0'],
+            mems_list=['chan1', 'chan2'])
 
-    # generate the deepcell output files from the server
-    tb.execute_cell('create_output')
+        # generate the deepcell output files from the server
+        tb.execute_cell('create_output')
 
-    # run the segmentation labels saving and summed channel overlay processes
-    notebooks_test_utils.save_seg_labels(tb, xr_channel_names=['whole_cell'])
+        # run the segmentation labels saving and summed channel overlay processes
+        notebooks_test_utils.save_seg_labels(tb, xr_channel_names=['whole_cell'])
 
-    # create the expression matrix
-    notebooks_test_utils.create_exp_mat(tb, is_mibitiff=True)
-
-    # clean up the directories
-    notebooks_test_utils.remove_dirs(tb)
+        # create the expression matrix
+        notebooks_test_utils.create_exp_mat(tb, is_mibitiff=True)
 
 
 # test folder loading
 @testbook(SEGMENT_IMAGE_DATA_PATH, timeout=6000)
 def test_segment_image_data_folder(tb):
-    # create input files
-    notebooks_test_utils.segment_notebook_setup(tb)
+    with tdir() as tiff_dir, tdir() as input_dir, tdir() as output_dir, tdir() as single_cell_dir:
+        # create input files
+        # notebooks_test_utils.segment_notebook_setup(tb)
+        notebooks_test_utils.segment_notebook_setup(tb,
+                                                    deepcell_tiff_dir=tiff_dir,
+                                                    deepcell_input_dir=input_dir,
+                                                    deepcell_output_dir=output_dir,
+                                                    single_cell_dir=single_cell_dir)
 
-    # hard coded fov setting
-    notebooks_test_utils.fov_channel_input_set(
-        tb,
-        fovs_to_load=['fov0', 'fov1'],
-        nucs_list=['chan0'],
-        mems_list=['chan1', 'chan2'])
+        # hard coded fov setting
+        notebooks_test_utils.fov_channel_input_set(
+            tb,
+            fovs_to_load=['fov0', 'fov1'],
+            nucs_list=['chan0'],
+            mems_list=['chan1', 'chan2'])
 
-    # generate the deepcell output files from the server
-    tb.execute_cell('create_output')
+        # generate the deepcell output files from the server
+        tb.execute_cell('create_output')
 
-    # run the segmentation labels saving and summed channel overlay processes
-    notebooks_test_utils.save_seg_labels(tb, xr_channel_names=['whole_cell'])
+        # run the segmentation labels saving and summed channel overlay processes
+        notebooks_test_utils.save_seg_labels(tb, xr_channel_names=['whole_cell'])
 
-    # create the expression matrix
-    notebooks_test_utils.create_exp_mat(tb)
-
-    # clean up the directories
-    notebooks_test_utils.remove_dirs(tb)
+        # create the expression matrix
+        notebooks_test_utils.create_exp_mat(tb)
