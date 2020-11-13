@@ -1,5 +1,6 @@
 import os
 import numpy as np
+import skimage.io as io
 
 from ark.utils import test_utils
 
@@ -75,13 +76,13 @@ def segment_notebook_setup(tb, deepcell_tiff_dir, deepcell_input_dir, deepcell_o
         tb.inject("MIBItiff = True", after='mibitiff_set')
 
 
-def fov_channel_input_set(tb, fovs_to_load=None, nucs_list=None, mems_list=None):
+def fov_channel_input_set(tb, fovs=None, nucs_list=None, mems_list=None):
     """Sets the fovs and channels and creates the input directory for DeepCell
 
     Args:
         tb (testbook.testbook):
             The testbook runner instance
-        fovs_to_load (list):
+        fovs (list):
             If set, assigns the fovs variable to this list.
             If None, executes the default fov loading scheme in the 'load_fovs' cell.
         nucs_list (list):
@@ -91,9 +92,9 @@ def fov_channel_input_set(tb, fovs_to_load=None, nucs_list=None, mems_list=None)
     """
 
     # load the fovs in the notebook
-    if fovs_to_load is not None:
+    if fovs is not None:
         # handles the case when the user assigns fovs to an explicit list
-        tb.inject("fovs = %s" % str(fovs_to_load))
+        tb.inject("fovs = %s" % str(fovs))
     else:
         # handles the case when the user allows list_files or list_folders to do the fov loading
         tb.execute_cell('load_fovs')
@@ -123,6 +124,26 @@ def fov_channel_input_set(tb, fovs_to_load=None, nucs_list=None, mems_list=None)
 
     # generate the deepcell input files
     tb.execute_cell('gen_input')
+
+
+def generate_sample_feature_tifs(fovs, deepcell_output_dir):
+    """Generate a sample _feature_0 tif file for each fov
+
+    Done to bypass the bottleneck of create_deepcell_output, for testing purposes we don't care
+    about correct segmentation labels.
+
+    Args:
+        tb (testbook.testbook):
+            The testbook runner instance
+        fovs (list):
+            The list of fovs to generate sample _feature_0 tif files for
+        deepcell_output_dir (str):
+            The path to the output directory
+    """
+
+    for fov in fovs:
+        rand_img = np.random.randint(0, 16, size=(1024, 1024))
+        io.imsave(os.path.join(deepcell_output_dir, fov + "_feature_0.tif"), rand_img)
 
 
 def save_seg_labels(tb, delimiter='_feature_0', xr_dim_name='compartments',

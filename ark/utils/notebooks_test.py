@@ -53,13 +53,18 @@ def test_segment_image_data_mibitiff(tb):
         # hard coded fov setting
         notebooks_test_utils.fov_channel_input_set(
             tb,
-            fovs_to_load=['fov0_otherinfo-MassCorrected-Filtered.tiff',
-                          'fov1-MassCorrected-Filtered.tiff'],
+            fovs=['fov0_otherinfo-MassCorrected-Filtered.tiff',
+                  'fov1-MassCorrected-Filtered.tiff'],
             nucs_list=['chan0'],
             mems_list=['chan1', 'chan2'])
 
+        # generate _feature_0 tif files that would normally be handled by create_deepcell_output
+        notebooks_test_utils.generate_sample_feature_tifs(
+            fovs=['fov0_otherinfo-MassCorrected-Filtered', 'fov1-MassCorrected-Filtered'],
+            deepcell_output_dir=output_dir)
+
         # generate the deepcell output files from the server
-        tb.execute_cell('create_output')
+        # tb.execute_cell('create_output')
 
         # run the segmentation labels saving and summed channel overlay processes
         notebooks_test_utils.save_seg_labels(tb, xr_channel_names=['whole_cell'])
@@ -84,12 +89,17 @@ def test_segment_image_data_folder(tb):
         # hard coded fov setting
         notebooks_test_utils.fov_channel_input_set(
             tb,
-            fovs_to_load=['fov0', 'fov1'],
+            fovs=['fov0', 'fov1'],
             nucs_list=['chan0'],
             mems_list=['chan1', 'chan2'])
 
+        # generate _feature_0 tif files that would normally be handled by create_deepcell_output
+        notebooks_test_utils.generate_sample_feature_tifs(
+            fovs=['fov0', 'fov1'],
+            deepcell_output_dir=output_dir)
+
         # generate the deepcell output files from the server
-        tb.execute_cell('create_output')
+        # tb.execute_cell('create_output')
 
         # run the segmentation labels saving and summed channel overlay processes
         notebooks_test_utils.save_seg_labels(tb, xr_channel_names=['whole_cell'])
