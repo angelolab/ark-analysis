@@ -3,8 +3,9 @@ import numpy as np
 import pytest
 import tempfile
 import xarray as xr
-
+import os.path
 from skimage.measure import regionprops
+import tempfile
 
 from ark.utils import segmentation_utils, test_utils
 
@@ -207,6 +208,71 @@ def test_transform_expression_matrix_multiple_compartments():
     for cell in cell_data.cell_id:
         arcsinh_vals = np.arcsinh(cell_data.loc[:, cell, modified_cols].values)
         assert np.array_equal(arcsinh_data.loc[:, cell, modified_cols].values, arcsinh_vals)
+
+
+def test_visualize_segmentation():
+    channel_xr = test_utils.make_images_xarray(np.zeros((2, 50, 50, 3)))
+    overlay_channels = [channel_xr.channels.values[:2], channel_xr.channels.values[1:3]]
+    segmentation_labels_xr = test_utils.make_labels_xarray(np.zeros((2, 50, 50, 1)))
+    # Test fovs = None(all fovs should be selected)
+    with tempfile.TemporaryDirectory() as temp_dir:
+        segmentation_utils.visualize_segmentation(
+            segmentation_labels_xr=segmentation_labels_xr,
+            fovs=None, channel_data_xr=channel_xr,
+            output_dir=temp_dir)
+        for mod_output_fov in segmentation_labels_xr.fovs:
+            assert os.path.exists(os.path.join(temp_dir,
+                                               f'{mod_output_fov.values}'
+                                               f'_segmentation_borders.tiff'))
+            assert os.path.exists(os.path.join(temp_dir,
+                                               f'{mod_output_fov.values}'
+                                               f'_segmentation_labels.tiff'))
+        for chan_list in overlay_channels:
+            segmentation_utils.visualize_segmentation(
+                segmentation_labels_xr=segmentation_labels_xr,
+                fovs=segmentation_labels_xr.fovs.values, channel_data_xr=channel_xr,
+                chan_list=chan_list,
+                output_dir=temp_dir)
+            for mod_output_fov in segmentation_labels_xr.fovs:
+                assert os.path.exists(
+                    os.path.join(temp_dir, '_'.join(
+                        [f'{mod_output_fov.values}', *chan_list, 'overlay.tiff'])))
+                assert os.path.exists(os.path.join(temp_dir,
+                                                   f'{mod_output_fov.values}'
+                                                   f'_segmentation_borders.tiff'))
+                assert os.path.exists(os.path.join(temp_dir,
+                                                   f'{mod_output_fov.values}'
+                                                   f'_segmentation_labels.tiff'))
+
+    # test only one fov
+    with tempfile.TemporaryDirectory() as temp_dir:
+        segmentation_utils.visualize_segmentation(
+            segmentation_labels_xr=segmentation_labels_xr,
+            fovs=segmentation_labels_xr.fovs.values[:1], channel_data_xr=channel_xr,
+            output_dir=temp_dir)
+
+        assert os.path.exists(os.path.join(temp_dir,
+                                           f'{segmentation_labels_xr.fovs[0].values}'
+                                           f'_segmentation_borders.tiff'))
+        assert os.path.exists(os.path.join(temp_dir,
+                                           f'{segmentation_labels_xr.fovs[0].values}'
+                                           f'_segmentation_labels.tiff'))
+        for chan_list in overlay_channels:
+            segmentation_utils.visualize_segmentation(
+                segmentation_labels_xr=segmentation_labels_xr,
+                fovs=segmentation_labels_xr.fovs.values[:1], channel_data_xr=channel_xr,
+                chan_list=chan_list,
+                output_dir=temp_dir)
+
+            assert os.path.exists(
+                os.path.join(temp_dir, '_'.join(
+                    [f'{segmentation_labels_xr.fovs[0].values}', *chan_list, 'overlay.tiff'])))
+            assert os.path.exists(os.path.join(temp_dir,
+                                               f'{segmentation_labels_xr.fovs[0].values}'
+                                               f'_segmentation_borders.tiff'))
+            assert os.path.exists(os.path.join(temp_dir,
+                                               f'{segmentation_labels_xr.fovs[0].values}'
+                                               f'_segmentation_labels.tiff'))
 
 
 def test_concatenate_csv():
