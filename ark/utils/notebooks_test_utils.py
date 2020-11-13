@@ -5,7 +5,7 @@ from ark.utils import test_utils
 
 
 def segment_notebook_setup(tb, deepcell_tiff_dir, deepcell_input_dir, deepcell_output_dir,
-                           single_cell_dir, is_mibitiff=False,
+                           single_cell_dir, viz_dir, is_mibitiff=False,
                            mibitiff_suffix="-MassCorrected-Filtered",
                            num_fovs=3, num_chans=3, dtype=np.uint16):
     """Creates the directories and data needed and sets the MIBITiff variable accordingly
@@ -21,6 +21,8 @@ def segment_notebook_setup(tb, deepcell_tiff_dir, deepcell_input_dir, deepcell_o
             The path to the output directory
         single_cell_dir (str):
             The path to the single cell directory
+        viz_dir (str):
+            The path to the directory to store visualizations
         is_mibitiff (bool):
             Whether we're working with mibitiff files or not
         mibitiff_suffix (str):
@@ -62,7 +64,8 @@ def segment_notebook_setup(tb, deepcell_tiff_dir, deepcell_input_dir, deepcell_o
         deepcell_input_dir = "%s"
         deepcell_output_dir = "%s"
         single_cell_dir = "%s"
-    """ % (deepcell_tiff_dir, deepcell_input_dir, deepcell_output_dir, single_cell_dir)
+        viz_dir = "%s"
+    """ % (deepcell_tiff_dir, deepcell_input_dir, deepcell_output_dir, single_cell_dir, viz_dir)
     tb.inject(define_paths, after='file_path')
 
     # will set MIBItiff and MIBItiff_suffix

@@ -39,13 +39,15 @@ def test_example_neighborhood_analysis():
 # test mibitiff, 6000 seconds = default timeout on Travis
 @testbook(SEGMENT_IMAGE_DATA_PATH, timeout=6000)
 def test_segment_image_data_mibitiff(tb):
-    with tdir() as tiff_dir, tdir() as input_dir, tdir() as output_dir, tdir() as single_cell_dir:
+    with tdir() as tiff_dir, tdir() as input_dir, tdir() as output_dir, \
+         tdir() as single_cell_dir, tdir() as viz_dir:
         # create input files
         notebooks_test_utils.segment_notebook_setup(tb,
                                                     deepcell_tiff_dir=tiff_dir,
                                                     deepcell_input_dir=input_dir,
                                                     deepcell_output_dir=output_dir,
                                                     single_cell_dir=single_cell_dir,
+                                                    viz_dir=viz_dir,
                                                     is_mibitiff=True)
 
         # hard coded fov setting
@@ -69,14 +71,16 @@ def test_segment_image_data_mibitiff(tb):
 # test folder loading
 @testbook(SEGMENT_IMAGE_DATA_PATH, timeout=6000)
 def test_segment_image_data_folder(tb):
-    with tdir() as tiff_dir, tdir() as input_dir, tdir() as output_dir, tdir() as single_cell_dir:
+    with tdir() as tiff_dir, tdir() as input_dir, tdir() as output_dir, \
+         tdir() as single_cell_dir, tdir() as viz_dir:
         # create input files
         # notebooks_test_utils.segment_notebook_setup(tb)
         notebooks_test_utils.segment_notebook_setup(tb,
                                                     deepcell_tiff_dir=tiff_dir,
                                                     deepcell_input_dir=input_dir,
                                                     deepcell_output_dir=output_dir,
-                                                    single_cell_dir=single_cell_dir)
+                                                    single_cell_dir=single_cell_dir,
+                                                    viz_dir=viz_dir)
 
         # hard coded fov setting
         notebooks_test_utils.fov_channel_input_set(
