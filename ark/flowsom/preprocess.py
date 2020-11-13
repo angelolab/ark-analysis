@@ -60,7 +60,6 @@ def preprocess_flowsom(img_xr, seg_labels, save_path,
 
     # iterate over fovs
     for fov in fovs:
-        print(fov)
         # subset img_xr with only the fov we're looking for
         img_xr_sub = img_xr_subset.loc[fov, ...].values
 
@@ -75,19 +74,22 @@ def preprocess_flowsom(img_xr, seg_labels, save_path,
         # people who use FlowSOM expect pixel cluster matrices to be referenced
 
         # assign the fov to each cell
-        pixel_mat[:, len(channels)] = np.repeat(fov, img_data_blur.shape[0]**2)
+        fov_labels = np.repeat(int(fov.replace('Point', '')), img_data_blur.shape[0]**2)
+        pixel_mat = np.concatenate([pixel_mat, np.reshape(fov_labels, (-1, 1))], axis=1)
 
         # assign x and y coords
-        pixel_mat[:, len(channels) + 1] = np.repeat(
-            range(img_data_blur.shape[0]), img_data_blur.shape[0])
-        pixel_mat[:, len(channels) + 2] = np.tile(
-            range(img_data_blur.shape[0]), img_data_blur.shape[0])
+        x_coords = np.repeat(range(img_data_blur.shape[0]), img_data_blur.shape[0])
+        pixel_mat = np.concatenate([pixel_mat, np.reshape(x_coords, (-1, 1))], axis=1)
+
+        y_coords = np.tile(range(img_data_blur.shape[0]), img_data_blur.shape[0])
+        pixel_mat = np.concatenate([pixel_mat, np.reshape(y_coords, (-1, 1))], axis=1)
 
         # assign the corresponding segmentation labels
-        pixel_mat[:, len(channels) + 3] = seg_labels.loc[fov, ...].values.flatten()
+        seg_labels_flat = seg_labels.loc[fov, ...].values.flatten()
+        pixel_mat = np.concatenate([pixel_mat, np.reshape(seg_labels_flat, (-1, 1))], axis=1)
 
         # remove zero pixels
-        pixel_mat_nonzero = pixel_mat[np.sum(pixel_mat[:, num_markers], axis=1) != 0, :]
+        pixel_mat_nonzero = pixel_mat[np.sum(pixel_mat[:, :len(channels)], axis=1) != 0, :]
 
         header = ','.join(channels) + ',sample,x,y,label'
         np.savetxt(os.path.join(save_path, fov + '_pixel_info.csv'), pixel_mat_nonzero,
@@ -96,4 +98,4 @@ def preprocess_flowsom(img_xr, seg_labels, save_path,
         # # assign to respective fov in img_xr_proc
         # img_xr_proc.loc[fov, ...] = img_data_flat
 
-    return img_xr_proc
+    # return img_xr_proc
