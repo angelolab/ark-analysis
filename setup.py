@@ -37,7 +37,8 @@ setup(
     extras_require={
         'tests': ['pytest',
                   'pytest-cov',
-                  'pytest-pycodestyle']
+                  'pytest-pycodestyle',
+                  'testbook']
     },
     dependency_links=['https://github.com/ionpath/mibilib/archive/v{}.tar.gz#egg=python-s3-{}'
                       .format(VERSION_MIBILIB, VERSION_MIBILIB.replace('.', '-'))],

@@ -51,25 +51,24 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
         raise ValueError("Scale argument must be a number")
 
     # extract all the files from deepcell_input_dir
-    input_files = io_utils.list_files(deepcell_input_dir, substrs=['.tif', '.tiff'])
+    input_files = io_utils.list_files(deepcell_input_dir, substrs=['.tif'])
 
     # set fovs equal to input_files it not already set
     if fovs is None:
         fovs = input_files
 
     # now extract only the names of the fovs without the file extension
-    fovs = io_utils.extract_delimited_names(fovs, delimiter='.')
+    fovs = io_utils.remove_file_extensions(fovs)
 
     # make sure that all fovs actually exist in the list of input_files
     misc_utils.verify_in_list(
         fovs=fovs,
-        deepcell_input_files=io_utils.extract_delimited_names(input_files, delimiter='.'))
+        deepcell_input_files=io_utils.remove_file_extensions(input_files))
 
     # define the location of the zip file for our fovs
     zip_path = os.path.join(deepcell_input_dir, 'fovs.zip')
     if os.path.isfile(zip_path):
-        print(f'{zip_path} will be overwritten')
-        warnings.warn('overwriting')
+        warnings.warn(f'{zip_path} will be overwritten')
 
     # write all files to the zip file
     print('Zipping preprocessed tif files.')
