@@ -74,7 +74,6 @@ def test_segment_image_data_folder(tb):
     with tdir() as tiff_dir, tdir() as input_dir, tdir() as output_dir, \
          tdir() as single_cell_dir, tdir() as viz_dir:
         # create input files
-        # notebooks_test_utils.segment_notebook_setup(tb)
         notebooks_test_utils.segment_notebook_setup(tb,
                                                     deepcell_tiff_dir=tiff_dir,
                                                     deepcell_input_dir=input_dir,
