@@ -57,6 +57,7 @@ def test_validate_paths():
 
 
 def test_list_files():
+    # test extension matching
     with tempfile.TemporaryDirectory() as temp_dir:
         # set up temp_dir files
         filenames = [
@@ -73,15 +74,40 @@ def test_list_files():
 
         # test substrs is None (default)
         get_all = iou.list_files(temp_dir)
-        assert get_all.sort() == filenames.sort()
+        assert sorted(get_all) == sorted(filenames)
 
         # test substrs is not list (single string)
         get_txt = iou.list_files(temp_dir, substrs='.txt')
-        assert get_txt.sort() == filenames[0:2].sort()
+        assert sorted(get_txt) == sorted(filenames[0:2])
 
         # test substrs is list
-        get_test_and_other = iou.list_files(temp_dir, substrs=['test', 'other'])
-        assert get_test_and_other.sort() == filenames[1:].sort()
+        get_test_and_other = iou.list_files(temp_dir, substrs=['.txt', '.out'])
+        assert sorted(get_test_and_other) == sorted(filenames[:3])
+
+    # test file name exact matching
+    with tempfile.TemporaryDirectory() as temp_dir:
+        filenames = [
+            'chan0.tif',
+            'chan.tif',
+            'c.tif'
+        ]
+        for filename in filenames:
+            pathlib.Path(os.path.join(temp_dir, filename)).touch()
+
+        # add extra folder (shouldn't be picked up)
+        os.mkdir(os.path.join(temp_dir, 'badfolder_test'))
+
+        # test substrs is None (default)
+        get_all = iou.list_files(temp_dir, exact_match=True)
+        assert sorted(get_all) == sorted(filenames)
+
+        # test substrs is not list (single string)
+        get_txt = iou.list_files(temp_dir, substrs='c', exact_match=True)
+        assert sorted(get_txt) == [filenames[2]]
+
+        # test substrs is list
+        get_test_and_other = iou.list_files(temp_dir, substrs=['c', 'chan'], exact_match=True)
+        assert sorted(get_test_and_other) == sorted(filenames[1:])
 
 
 def test_remove_file_extensions():
