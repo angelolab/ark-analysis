@@ -280,7 +280,7 @@ def generate_cell_table(segmentation_labels, tiff_dir, img_sub_folder,
                               segmentation_labels_fovs=segmentation_labels['fovs'].values)
 
     # get full filenames from given fovs
-    filenames = io_utils.list_files(tiff_dir, substrs=fovs)
+    filenames = io_utils.list_files(tiff_dir, substrs=fovs, exact_match=True)
 
     # sort the fovs
     fovs.sort()
