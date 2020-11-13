@@ -16,7 +16,6 @@ import ark.settings as settings
 def compute_marker_counts(input_images, segmentation_labels, nuclear_counts=False,
                           regionprops_features=None, split_large_nuclei=False):
     """Extract single cell protein expression data from channel TIFs for a single fov
-
     Args:
         input_images (xarray.DataArray):
             rows x columns x channels matrix of imaging data
@@ -28,7 +27,6 @@ def compute_marker_counts(input_images, segmentation_labels, nuclear_counts=Fals
             morphology features for regionprops to extract for each cell
         split_large_nuclei (bool):
             controls whether nuclei which have portions outside of the cell will get relabeled
-
     Returns:
         xarray.DataArray:
             xarray containing segmented data of cells x markers
@@ -162,9 +160,10 @@ def create_marker_count_matrices(segmentation_labels, image_data, nuclear_counts
 
     Returns:
         tuple (pandas.DataFrame, pandas.DataFrame):
-            - marker counts per cell normalized by cell size
-            - arcsinh transformation of the above
+        - marker counts per cell normalized by cell size
+        - arcsinh transformation of the above
     """
+
     if type(segmentation_labels) is not xr.DataArray:
         raise ValueError("Incorrect data type for segmentation_labels, expecting xarray")
 
@@ -237,8 +236,7 @@ def create_marker_count_matrices(segmentation_labels, image_data, nuclear_counts
 
 def generate_cell_table(segmentation_labels, tiff_dir, img_sub_folder,
                         is_mibitiff=False, fovs=None, batch_size=5, dtype="int16"):
-    """
-    This function takes the segmented data and computes the expression matrices batch-wise
+    """This function takes the segmented data and computes the expression matrices batch-wise
     while also validating inputs
 
     Args:
@@ -257,30 +255,29 @@ def generate_cell_table(segmentation_labels, tiff_dir, img_sub_folder,
             necessary for speed and memory considerations
         dtype (str/type):
             data type of base images
-    Returns:
-        tuple (pandas.DataFrame, pandas.DataFrame):
 
+    Returns:
+        tuple (pandas.DataFrame, pandas.DataFrame):å
         - size normalized data
         - arcsinh transformed data
     """
 
     # if no fovs are specified, then load all the fovs
     if fovs is None:
-        # handle mibitiffs with an assumed file structure
         if is_mibitiff:
-            filenames = io_utils.list_files(tiff_dir, substrs=['.tif'])
-            fovs = io_utils.extract_delimited_names(filenames, delimiter=None)
-        # otherwise assume the tree-like directory as defined for tree loading
+            fovs = io_utils.list_files(tiff_dir, substrs=['.tif'])
         else:
-            filenames = io_utils.list_folders(tiff_dir)
-            fovs = filenames
+            fovs = io_utils.list_folders(tiff_dir)
+
+    # drop file extensions
+    fovs = io_utils.remove_file_extensions(fovs)
 
     # check segmentation_labels for given fovs (img loaders will fail otherwise)
     misc_utils.verify_in_list(fovs=fovs,
                               segmentation_labels_fovs=segmentation_labels['fovs'].values)
 
     # get full filenames from given fovs
-    filenames = io_utils.list_files(tiff_dir, substrs=fovs)
+    filenames = io_utils.list_files(tiff_dir, substrs=fovs, exact_match=True)
 
     # sort the fovs
     fovs.sort()

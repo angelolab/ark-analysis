@@ -342,6 +342,11 @@ def test_generate_cell_data_tree_loading():
         # define a subset of fovs
         fovs_subset = fovs[:2]
 
+        # define a subset of fovs with file extensions
+        fovs_subset_ext = fovs[:2]
+        fovs_subset_ext[0] = str(fovs_subset_ext[0]) + ".tif"
+        fovs_subset_ext[1] = str(fovs_subset_ext[1]) + ".tiff"
+
         # generate a sample segmentation_mask
         cell_mask, _ = test_utils.create_test_extraction_data()
 
@@ -378,6 +383,14 @@ def test_generate_cell_data_tree_loading():
         assert norm_data.shape[0] > 0 and norm_data.shape[1] > 0
         assert arcsinh_data.shape[0] > 0 and arcsinh_data.shape[1] > 0
 
+        # generate sample norm and arcsinh data for a subset of fovs
+        norm_data, arcsinh_data = marker_quantification.generate_cell_table(
+            segmentation_labels=segmentation_masks, tiff_dir=tiff_dir,
+            img_sub_folder=img_sub_folder, is_mibitiff=False, fovs=fovs_subset_ext, batch_size=2)
+
+        assert norm_data.shape[0] > 0 and norm_data.shape[1] > 0
+        assert arcsinh_data.shape[0] > 0 and arcsinh_data.shape[1] > 0
+
 
 def test_generate_cell_data_mibitiff_loading():
     # is_mibitiff True case, load from mibitiff file structure
@@ -387,6 +400,11 @@ def test_generate_cell_data_mibitiff_loading():
 
         # define a subset of fovs
         fovs_subset = fovs[:2]
+
+        # define a subset of fovs with file extensions
+        fovs_subset_ext = fovs[:2]
+        fovs_subset_ext[0] = str(fovs_subset_ext[0]) + ".tif"
+        fovs_subset_ext[1] = str(fovs_subset_ext[1]) + ".tiff"
 
         tiff_dir = os.path.join(temp_dir, "mibitiff_inputs")
 
@@ -423,6 +441,14 @@ def test_generate_cell_data_mibitiff_loading():
         norm_data, arcsinh_data = marker_quantification.generate_cell_table(
             segmentation_labels=segmentation_masks, tiff_dir=tiff_dir,
             img_sub_folder=tiff_dir, is_mibitiff=True, fovs=fovs_subset, batch_size=2)
+
+        assert norm_data.shape[0] > 0 and norm_data.shape[1] > 0
+        assert arcsinh_data.shape[0] > 0 and arcsinh_data.shape[1] > 0
+
+        # generate sample norm and arcsinh for a subset of fovs with file extensions
+        norm_data, arcsinh_data = marker_quantification.generate_cell_table(
+            segmentation_labels=segmentation_masks, tiff_dir=tiff_dir,
+            img_sub_folder=tiff_dir, is_mibitiff=True, fovs=fovs_subset_ext, batch_size=2)
 
         assert norm_data.shape[0] > 0 and norm_data.shape[1] > 0
         assert arcsinh_data.shape[0] > 0 and arcsinh_data.shape[1] > 0
