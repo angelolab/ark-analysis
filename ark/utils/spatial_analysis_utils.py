@@ -218,7 +218,7 @@ def compute_close_cell_num(dist_mat, dist_lim, analysis_type,
                 mark1poslabels[j].values,
                 mark1poslabels[k].values
             ].values
-            count_close_num_hits = np.sum(dist_mat_bin_subset)
+            count_close_num_hits = np.sum(dist_mat_bin_subset, dtype=np.uint16)
 
             close_num[j, k] = count_close_num_hits
             # symmetry :)
@@ -250,14 +250,14 @@ def compute_close_cell_num_random(marker_nums, dist_mat, dist_lim, bootstrap_num
     close_num_rand = np.zeros((
         len(marker_nums), len(marker_nums), bootstrap_num), dtype=np.uint16)
 
-    dist_mat_bin_flattened = (dist_mat.values < dist_lim).astype(np.uint16).flatten()
+    dist_mat_bin_flattened = (dist_mat.values < dist_lim).astype(np.uint8).flatten()
 
     for j, m1n in enumerate(marker_nums):
         for k, m2n in enumerate(marker_nums[j:], j):
             samples_dim = (m1n * m2n, bootstrap_num)
             count_close_num_rand_hits = np.sum(
-                np.random.choice(dist_mat_bin_flattened, samples_dim, True),
-                axis=0
+                np.random.choice(dist_mat_bin_flattened, samples_dim, True), axis=0,
+                dtype=np.uint16
             )
 
             close_num_rand[j, k, :] = count_close_num_rand_hits
