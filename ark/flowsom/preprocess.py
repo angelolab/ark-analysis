@@ -11,8 +11,8 @@ from ark.utils import load_utils
 from ark.utils import misc_utils
 
 
-def preprocess_flowsom(img_xr, seg_labels, fovs=None, channels=None, blur_factor=2):
-    """Preprocess the images for FlowSOM clustering and writes to file
+def create_pixel_matrix(img_xr, seg_labels, fovs=None, channels=None, blur_factor=2):
+    """Preprocess the images for FlowSOM clustering and creates a pixel-level matrix
 
     Args:
         img_xr (xarray.DataArray):
@@ -33,18 +33,17 @@ def preprocess_flowsom(img_xr, seg_labels, fovs=None, channels=None, blur_factor
 
     # set fovs to all if None
     if fovs is None:
-        fovs = img_xr.coords['fovs'].values
+        fovs = img_xr.fovs.values
 
     # set channels to all if None
     if channels is None:
-        channels = img_xr.coords['channels'].values
+        channels = img_xr.channels.values
 
     # verify that the fovs and channels provided are valid
-    misc_utils.verify_in_list(fovs=fovs, image_fovs=img_xr.coords['fovs'].values)
-    misc_utils.verify_in_list(channels=channels, image_channels=img_xr.coords['channels'].values)
+    misc_utils.verify_in_list(fovs=fovs, image_fovs=img_xr.fovs.values)
+    misc_utils.verify_in_list(channels=channels, image_channels=img_xr.channels.values)
 
     # delete any fovs and channels we don't need
-    # NOTE: no idea why Candace didn't use xarrays
     img_xr_subset = img_xr.loc[fovs, :, :, channels]
 
     # define our flowsom matrix
@@ -59,17 +58,16 @@ def preprocess_flowsom(img_xr, seg_labels, fovs=None, channels=None, blur_factor
         img_data_blur = np.apply_along_axis(ndimage.gaussian_filter, axis=2,
                                             arr=img_xr_sub, sigma=blur_factor)
 
-        # flatten each image, assuming each image is square for now
-        pixel_mat = np.reshape(img_data_blur, (img_data_blur.shape[0]**2, len(channels)))
+        # flatten each image
+        pixel_mat = img_data_blur.reshape(-1, len(channels))
 
         # convert into a dataframe
         pixel_mat = pd.DataFrame(pixel_mat, columns=channels)
 
         # assign metadata about each entry
-        # NOTE: no idea why Candace didn't use pandas
         pixel_mat['fov'] = fov
-        pixel_mat['x_coord'] = np.repeat(range(img_data_blur.shape[0]), img_data_blur.shape[0])
-        pixel_mat['y_coord'] = np.tile(range(img_data_blur.shape[0]), img_data_blur.shape[0])
+        pixel_mat['x_coord'] = np.repeat(range(img_data_blur.shape[0]), img_data_blur.shape[1])
+        pixel_mat['y_coord'] = np.tile(range(img_data_blur.shape[0]), img_data_blur.shape[1])
 
         # assign segmentation label
         seg_labels_flat = seg_labels.loc[fov, ...].values.flatten()
@@ -78,7 +76,6 @@ def preprocess_flowsom(img_xr, seg_labels, fovs=None, channels=None, blur_factor
         # remove any rows that sum to 0
         pixel_mat = pixel_mat.loc[pixel_mat.loc[:, channels].sum(axis=1) != 0, :]
 
-        # NOTE: no idea why Candace didn't do these preprocessing steps in Python
         # turn into frequency
         pixel_mat.loc[:, channels] = pixel_mat.loc[:, channels].div(
             pixel_mat.sum(axis=1), axis=0)
