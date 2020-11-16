@@ -15,7 +15,7 @@ def preprocess_flowsom(img_xr, seg_labels, fovs=None, channels=None, blur_factor
     """Preprocess the images for FlowSOM clustering and writes to file
 
     Args:
-        img_data (xarray.DataArray):
+        img_xr (xarray.DataArray):
             Array representing image data for each fov
         seg_labels (xarray.DataArray):
             Array representing segmentation labels for each image
