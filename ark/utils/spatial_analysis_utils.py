@@ -185,7 +185,7 @@ def compute_close_cell_num(dist_mat, dist_lim, analysis_type,
     mark1poslabels = []
 
     dist_mat_bin = xr.DataArray(
-        (dist_mat.values < dist_lim).astype(np.uint16),
+        (dist_mat.values < dist_lim).astype(np.uint8),
         coords=dist_mat.coords
     )
 
