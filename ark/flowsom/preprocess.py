@@ -11,17 +11,14 @@ from ark.utils import load_utils
 from ark.utils import misc_utils
 
 
-def preprocess_flowsom(img_xr, seg_labels, save_path,
-                       fovs=None, channels=None, blur_factor=2):
-    """Preprocess the images for FlowSOM clustering
+def preprocess_flowsom(img_xr, seg_labels, fovs=None, channels=None, blur_factor=2):
+    """Preprocess the images for FlowSOM clustering and writes to file
 
     Args:
         img_data (xarray.DataArray):
             Array representing image data for each fov
         seg_labels (xarray.DataArray):
             Array representing segmentation labels for each image
-        save_dir (str):
-            The directory to write the pixel cluster CSVs to
         fovs (list):
             List of fovs to subset over, if None selects all
         channels (list):
@@ -30,8 +27,8 @@ def preprocess_flowsom(img_xr, seg_labels, save_path,
             The sigma to set for the Gaussian blur
 
     Returns:
-        xarray.DataArray:
-            Array containing the Gaussian blurred and flattened image data
+        pandas.DataFrame:
+            A matrix with pixel-level channel information for non-zero pixels in img_xr
     """
 
     # set fovs to all if None
@@ -46,17 +43,12 @@ def preprocess_flowsom(img_xr, seg_labels, save_path,
     misc_utils.verify_in_list(fovs=fovs, image_fovs=img_xr.coords['fovs'].values)
     misc_utils.verify_in_list(channels=channels, image_channels=img_xr.coords['channels'].values)
 
-    # verify the save path exists
-    if not os.path.exists(save_path):
-        raise ValueError("save_path provided does not exist")
-
+    # delete any fovs and channels we don't need
+    # NOTE: no idea why Candace didn't use xarrays
     img_xr_subset = img_xr.loc[fovs, :, :, channels]
 
-    # create an xarray to store the pre-processed data, assuming square images
-    # flat_size = img_xr.shape[1]**2
-    # img_xr_proc = xr.DataArray(np.zeros((len(fovs), flat_size, len(channels))),
-    #                            coords=[fovs, np.arange(flat_size), channels],
-    #                            dims=["fovs", "pixel_num", "channels"])
+    # define our flowsom matrix
+    flowsom_data = None
 
     # iterate over fovs
     for fov in fovs:
@@ -70,32 +62,35 @@ def preprocess_flowsom(img_xr, seg_labels, save_path,
         # flatten each image, assuming each image is square for now
         pixel_mat = np.reshape(img_data_blur, (img_data_blur.shape[0]**2, len(channels)))
 
-        # NOTE: the following lines may be unnecessary, this is assuming that
-        # people who use FlowSOM expect pixel cluster matrices to be referenced
+        # convert into a dataframe
+        pixel_mat = pd.DataFrame(pixel_mat, columns=channels)
 
-        # assign the fov to each cell
-        fov_labels = np.repeat(int(fov.replace('Point', '')), img_data_blur.shape[0]**2)
-        pixel_mat = np.concatenate([pixel_mat, np.reshape(fov_labels, (-1, 1))], axis=1)
+        # assign metadata about each entry
+        # NOTE: no idea why Candace didn't use pandas
+        pixel_mat['fov'] = fov
+        pixel_mat['x_coord'] = np.repeat(range(img_data_blur.shape[0]), img_data_blur.shape[0])
+        pixel_mat['y_coord'] = np.tile(range(img_data_blur.shape[0]), img_data_blur.shape[0])
 
-        # assign x and y coords
-        x_coords = np.repeat(range(img_data_blur.shape[0]), img_data_blur.shape[0])
-        pixel_mat = np.concatenate([pixel_mat, np.reshape(x_coords, (-1, 1))], axis=1)
-
-        y_coords = np.tile(range(img_data_blur.shape[0]), img_data_blur.shape[0])
-        pixel_mat = np.concatenate([pixel_mat, np.reshape(y_coords, (-1, 1))], axis=1)
-
-        # assign the corresponding segmentation labels
+        # assign segmentation label
         seg_labels_flat = seg_labels.loc[fov, ...].values.flatten()
-        pixel_mat = np.concatenate([pixel_mat, np.reshape(seg_labels_flat, (-1, 1))], axis=1)
+        pixel_mat['seg_label'] = seg_labels_flat
 
-        # remove zero pixels
-        pixel_mat_nonzero = pixel_mat[np.sum(pixel_mat[:, :len(channels)], axis=1) != 0, :]
+        # remove any rows that sum to 0
+        pixel_mat = pixel_mat.loc[pixel_mat.loc[:, channels].sum(axis=1) != 0, :]
 
-        header = ','.join(channels) + ',sample,x,y,label'
-        np.savetxt(os.path.join(save_path, fov + '_pixel_info.csv'), pixel_mat_nonzero,
-                   delimiter=',', header=header)
+        # NOTE: no idea why Candace didn't do these preprocessing steps in Python
+        # turn into frequency
+        pixel_mat.loc[:, channels] = pixel_mat.loc[:, channels].div(
+            pixel_mat.sum(axis=1), axis=0)
 
-        # # assign to respective fov in img_xr_proc
-        # img_xr_proc.loc[fov, ...] = img_data_flat
+        # 99.9% normalization
+        pixel_mat.loc[:, channels] = pixel_mat.loc[:, channels].div(
+            pixel_mat.quantile(q=0.999, axis=1), axis=0)
 
-    # return img_xr_proc
+        # assign to flowsom_data if not already assigned, otherwise concatenates
+        if flowsom_data is None:
+            flowsom_data = pixel_mat
+        else:
+            flowsom_data = pd.concat([flowsom_data, pixel_mat])
+
+    return flowsom_data
