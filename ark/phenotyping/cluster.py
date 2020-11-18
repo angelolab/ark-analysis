@@ -119,8 +119,6 @@ def train_flowsom(pixel_mat, x_neurons=10, y_neurons=10, num_iters=100,
     # iterations = np.array_split(pixel_mat.index.values, num_iters)
 
     for t, iteration in enumerate(iterations):
-        if iteration % 100000 == 0:
-            print("On iteration %d" % iteration)
         # find the winning neuron's coordinates
         winning_coords = winner(pixel_mat.loc[iteration, :].values, weights)
 
