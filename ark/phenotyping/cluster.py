@@ -52,101 +52,102 @@ def update(sample, weights, winning_coords, sigma, learning_rate,
             The maximum number of iterations
 
     Returns:
-        tuple (numpy.ndarray, float, float):
-
-        - The updated weights matrix
-        - The updated learning rate
-        - The updated sigma
+        numpy.ndarray:
+            The updated weights matrix
     """
 
     # update learning rate with asymptotic decay
-    learning_rate = learning_rate / (1 + t / (num_iters / 2))
+    decay_lr = learning_rate / (1 + t / (num_iters / 2))
 
     # update sigma with asymptotic decay
-    sigma = sigma / (1 + t / (num_iters / 2))
+    decay_sig = sigma / (1 + t / (num_iters / 2))
 
     # return a Gaussian centered around the winning coordinates
-    d = 2 * np.pi * (sigma**2)
+    d = 2 * np.pi * decay_sig * decay_sig
     ax = np.exp(-np.power(x_mesh - x_mesh.T[winning_coords], 2) / d)
     ay = np.exp(-np.power(y_mesh - y_mesh.T[winning_coords], 2) / d)
-    g = (ax * ay).T * learning_rate
+    g = (ax * ay).T * decay_lr
 
     # update the weights based on the Gaussian neighborhood
     weights += np.einsum('ij, ijk->ijk', g, sample - weights)
 
-    return weights, learning_rate, sigma
+    return weights
 
 
-def train_flowsom(pixel_mat, num_iters=100, sigma=1.0, learning_rate=0.5):
+def train_flowsom(pixel_mat, x_neurons=10, y_neurons=10, num_iters=100,
+                  sigma=1.0, learning_rate=0.5, random_seed=0):
     """Trains the SOM by iterating through the each data point and updating the params
 
     Args:
         pixel_mat (pandas.DataFrame):
             A matrix with pixel-level channel information for non-zero pixels in img_xr
+        x_neurons (int):
+            The number of x neurons to use
+        y_neurons (int):
+            The number of y neurons to use
         num_iters (int):
             The maximum number of iterations for training
         sigma (float):
             Determines the spread of the Gaussian neighborhood function
         learning_rate (float):
             Determines how sensitive the weight updates will be to new data
+        random_seed (int):
+            The seed to set for random weight initialization
 
     Returns:
-        tuple (numpy.ndarray, float, float):
-
-        - The weights matrix after training
-        - The learning rate after training
-        - The sigma after training
+        numpy.ndarray:
+            The weights matrix after training
     """
-
-    # compute number of neurons to use, based on suggestion in MiniSom init docstring
-    num_neurons = 5 * pixel_mat.shape[0]**(1 / 2)
 
     # define the random generator
     rand_gen = np.random.RandomState(random_seed)
 
     # initialize the weights and normalize
-    weights = rand_gen.rand(num_neurons, num_neurons, pixel_mat.shape[1]) * 2 - 1
+    weights = rand_gen.rand(x_neurons, y_neurons, pixel_mat.shape[1]) * 2 - 1
     weights /= np.linalg.norm(weights, axis=-1, keepdims=True)
 
     # define the activation map
-    activation_map = np.zeros((num_neurons, num_neurons))
+    activation_map = np.zeros((x_neurons, y_neurons))
 
-    # define meshgrid coords for the weights matrix
-    x_mesh, y_mesh = np.meshgrid(np.arange(num_neurons), np.arange(num_neurons))
+    # define meshgrid coords for the weights matrix, convert to float (yikes, memory...)
+    x_mesh, y_mesh = np.meshgrid(np.arange(x_neurons), np.arange(y_neurons))
+    x_mesh = x_mesh.astype(float)
+    y_mesh = y_mesh.astype(float)
 
-    # define the iterations iterable
+    # define the iterations iterable, this is WRONG in MiniSOM
     iterations = np.arange(num_iters) % pixel_mat.shape[0]
+    # iterations = np.array_split(pixel_mat.index.values, num_iters)
 
     for t, iteration in enumerate(iterations):
+        if iteration % 100000 == 0:
+            print("On iteration %d" % iteration)
         # find the winning neuron's coordinates
         winning_coords = winner(pixel_mat.loc[iteration, :].values, weights)
 
         # update the weights, learning rate, and sigma
-        weights, learning_rate, sigma = update(pixel_mat.loc[iteration, :].values, weights,
-                                               winning_coords, sigma, learning_rate,
-                                               x_mesh, y_mesh, t, num_iters)
+        weights = update(pixel_mat.loc[iteration, :].values, weights,
+                         winning_coords, sigma, learning_rate,
+                         x_mesh, y_mesh, t, num_iters)
 
-    return weights, learning_rate, sigma
+    return weights
 
 
-def cluster_flowsom(pixel_mat, weights, cluster_col='pixel_cluster'):
-    """Assigns the winning neuron to each pixel in the matrix based on the trained weights
+def cluster_flowsom(pixel_mat, weights):
+    """Assigns the cluster label to each entry in the pixel matrix based on the trained weights
 
     Args:
         pixel_mat (pandas.DataFrame):
             A matrix with pixel-level channel information for non-zero pixels in img_xr
         weights (numpy.ndarray):
             The weights matrix after training
-        cluster_col (str):
-            The name of the pixel cluster column to create
 
     Returns:
-        pandas.DataFrame:
-            The pixel matrix with cluster_col indicating the cluster the pixel belongs to
+        pandas.Series:
+            The cluster labels to assign to the corresponding rows in pixel_mat
     """
 
     # iterate through each row and assign the cluster value accordingly
-    pixel_mat[cluster_col] = pixel_mat.apply(
-        lambda row: winner(np.array(row.values()), weights), axis=1)
+    cluster_labels = pixel_mat.apply(
+        lambda row: winner(np.array(list(row.values)), weights), axis=1)
 
-    return pixel_mat
+    return cluster_labels
