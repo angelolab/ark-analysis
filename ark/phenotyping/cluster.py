@@ -74,7 +74,7 @@ def update(sample, weights, winning_coords, sigma, learning_rate,
     return weights
 
 
-def train_flowsom(pixel_mat, x_neurons=10, y_neurons=10, num_iters=100,
+def train_flowsom(pixel_mat, x_neurons, y_neurons, num_iters,
                   sigma=1.0, learning_rate=0.5, random_seed=0):
     """Trains the SOM by iterating through the each data point and updating the params
 
