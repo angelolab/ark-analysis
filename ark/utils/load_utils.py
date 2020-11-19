@@ -35,11 +35,18 @@ def load_imgs_from_mibitiff(data_dir, mibitiff_files=None, channels=None, delimi
             xarray with shape [fovs, x_dim, y_dim, channels]
     """
 
+    iou.validate_paths(data_dir)
+
     if not mibitiff_files:
         mibitiff_files = iou.list_files(data_dir, substrs=['.tif'])
+        mibitiff_files.sort()
+
+    if len(mibitiff_files) == 0:
+        raise ValueError("No mibitiff files specified in the data directory %s" % data_dir)
 
     # extract fov names w/ delimiter agnosticism
-    fovs = iou.extract_delimited_names(mibitiff_files, delimiter=delimiter)
+    fovs = iou.remove_file_extensions(mibitiff_files)
+    fovs = iou.extract_delimited_names(fovs, delimiter=delimiter)
 
     mibitiff_files = [os.path.join(data_dir, mt_file)
                       for mt_file in mibitiff_files]
@@ -59,6 +66,9 @@ def load_imgs_from_mibitiff(data_dir, mibitiff_files=None, channels=None, delimi
         channel_tuples = tiff.read(mibitiff_files[0]).channels
         channels = [channel_tuple[1] for channel_tuple in channel_tuples]
 
+    if len(channels) == 0:
+        raise ValueError("No channels provided in channels list")
+
     # extract images from MIBItiff file
     img_data = []
     for mibitiff_file in mibitiff_files:
@@ -71,80 +81,6 @@ def load_imgs_from_mibitiff(data_dir, mibitiff_files=None, channels=None, delimi
                           coords=[fovs, range(img_data[0].data.shape[0]),
                                   range(img_data[0].data.shape[1]), channels],
                           dims=["fovs", "rows", "cols", "channels"])
-
-    img_xr = img_xr.sortby('fovs').sortby('channels')
-
-    return img_xr
-
-
-def load_imgs_from_multitiff(data_dir, multitiff_files=None, channels=None, delimiter=None,
-                             dtype='int16'):
-    """Load images from a series of multi-channel tiff files.
-
-    This function takes a set of multi-channel tiff files and loads the images into an xarray.
-    The type used to store the images will be the same as that of the images stored in the
-    multi-channel tiff files.
-
-    This function differs from `load_imgs_from_mibitiff` in that proprietary metadata is unneeded,
-    which is usefull loading in more general multi-channel tiff files.
-
-    Args:
-        data_dir (str):
-            directory containing multitiffs
-        multitiff_files (list):
-            list of multi-channel tiff files to load.  If None, all multitiff files in data_dir
-            are loaded.
-        channels (list):
-            optional list of channels to load.  Unlike MIBItiff, this must be given as a numeric
-            list of indices, since there is no metadata containing channel names.
-        delimiter (str):
-            optional delimiter-character/string which separate fov names from the rest of the file
-            name. Default is None.
-        dtype (str/type):
-            optional specifier of image type.  Overwritten with warning for float images
-
-    Returns:
-        xarray.DataArray:
-            xarray with shape [fovs, x_dim, y_dim, channels]
-    """
-
-    if not multitiff_files:
-        multitiff_files = iou.list_files(data_dir, substrs=['.tif'])
-
-    # extract fov names w/ delimiter agnosticism
-    fovs = iou.extract_delimited_names(multitiff_files, delimiter=delimiter)
-
-    multitiff_files = [os.path.join(data_dir, mt_file)
-                       for mt_file in multitiff_files]
-
-    test_img = io.imread(multitiff_files[0], plugin='tifffile')
-
-    # check to make sure that float dtype was supplied if image data is float
-    data_dtype = test_img.dtype
-    if np.issubdtype(data_dtype, np.floating):
-        if not np.issubdtype(dtype, np.floating):
-            warnings.warn(f"The supplied non-float dtype {dtype} was overwritten to {data_dtype}, "
-                          f"because the loaded images are floats")
-            dtype = data_dtype
-
-    # extract data
-    img_data = []
-    for multitiff_file in multitiff_files:
-        img_data.append(io.imread(multitiff_file, plugin='tifffile'))
-    img_data = np.stack(img_data, axis=0)
-    img_data = img_data.astype(dtype)
-
-    if channels:
-        img_data = img_data[:, :, :, channels]
-
-    # create xarray with image data
-    img_xr = xr.DataArray(img_data,
-                          coords=[fovs, range(img_data.shape[1]),
-                                  range(img_data.shape[2]),
-                                  channels if channels else range(img_data.shape[3])],
-                          dims=["fovs", "rows", "cols", "channels"])
-
-    img_xr = img_xr.sortby('fovs').sortby('channels')
 
     return img_xr
 
@@ -172,6 +108,8 @@ def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, channels=None,
             xarray with shape [fovs, x_dim, y_dim, tifs]
     """
 
+    iou.validate_paths(data_dir)
+
     if fovs is None:
         # get all fovs
         fovs = iou.list_folders(data_dir)
@@ -193,10 +131,19 @@ def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, channels=None,
         channels.sort()
     # otherwise, fill channel names with correct file extension
     elif not all([img.endswith(("tif", "tiff", "jpg", "png")) for img in channels]):
-        channels = iou.list_files(
+        # need this to reorder channels back because list_files may mess up the ordering
+        channels_no_delim = [img.split('.')[0] for img in channels]
+
+        all_channels = iou.list_files(
             os.path.join(data_dir, fovs[0], img_sub_folder),
-            substrs=channels
+            substrs=channels_no_delim, exact_match=True
         )
+
+        # get the corresponding indices found in channels_no_delim
+        channels_indices = [channels_no_delim.index(chan.split('.')[0]) for chan in all_channels]
+
+        # reorder back to original
+        channels = [chan for _, chan in sorted(zip(channels_indices, all_channels))]
 
     if len(channels) == 0:
         raise ValueError("No images found in designated folder")
@@ -243,53 +190,93 @@ def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, channels=None,
     img_xr = xr.DataArray(img_data, coords=[fovs, row_coords, col_coords, img_names],
                           dims=["fovs", "rows", "cols", "channels"])
 
-    # sort by fovs and channels for deterministic result
-    img_xr = img_xr.sortby('fovs').sortby('channels')
-
     return img_xr
 
 
-def load_imgs_from_dir(data_dir, imgdim_name='compartments', image_name='img_data', delimiter=None,
-                       dtype="int16", variable_sizes=False, force_ints=False):
-    """Takes a set of images from a directory and loads them into an xarray based on filename
-    prefixes.
+def load_imgs_from_dir(data_dir, files=None, delimiter=None, xr_dim_name='compartments',
+                       xr_channel_names=None, dtype="int16", force_ints=False,
+                       channel_indices=None):
+    """Takes a set of images (possibly multitiffs) from a directory and loads them into an xarray.
 
     Args:
         data_dir (str):
             directory containing images
-        imgdim_name (str):
-            sets the name of the last dimension of the output xarray
-        image_name (str):
-            sets name of the last coordinate in the output xarray
+        files (list):
+            list of files (e.g. ['fov1.tif'. 'fov2.tif'] to load.
+            If None, all (.tif, .jpg, .png) files in data_dir are loaded.
         delimiter (str):
-            character used to determine the file-prefix containging the fov name. Default is None.
+            character used to determine the file-prefix containging the fov name.
+            Default is None.
+        xr_dim_name (str):
+            sets the name of the last dimension of the output xarray.
+            Default: 'compartments'
+        xr_channel_names (list):
+            sets the name of the coordinates in the last dimension of the output xarray.
         dtype (str/type):
             data type to load/store
-        variable_sizes (bool):
-            Dynamically determine image sizes and pad smaller imgs w/ zeros
         force_ints (bool):
             If dtype is an integer, forcefully convert float imgs to ints. Default is False.
+        channel_indices (list):
+            optional list of indices specifying which channels to load (by their indices).
+            if None or empty, the function loads all channels.
+            (Ignored if data is not multitiff).
 
     Returns:
         xarray.DataArray:
-            xarray with shape [fovs, x_dim, y_dim, 1]
+            xarray with shape [fovs, x_dim, y_dim, tifs]
 
+    Raises:
+        ValueError:
+            Raised in the following cases:
+
+            - data_dir is not a directory, <data_dir>/img is
+              not a file for some img in the input 'files' list, or no images are found.
+            - channels_indices are invalid according to the shape of the images.
+            - the provided dtype is too small to represent the data.
+            - The length of xr_channel_names (if provided) does not match the number
+              of channels in the input.
     """
 
-    imgs = iou.list_files(data_dir, substrs=['.tif', '.jpg', '.png'])
+    iou.validate_paths(data_dir)
 
-    imgs.sort()
+    if files is None:
+        imgs = iou.list_files(data_dir, substrs=['.tif', '.jpg', '.png'])
+        imgs.sort()
+    else:
+        imgs = files
+        for img in imgs:
+            if not os.path.isfile(os.path.join(data_dir, img)):
+                raise ValueError(f"Invalid value for {img}. "
+                                 f"{os.path.join(data_dir, img)} is not a file.")
 
     if len(imgs) == 0:
         raise ValueError(f"No images found in directory, {data_dir}")
 
     test_img = io.imread(os.path.join(data_dir, imgs[0]))
 
+    # check data format
+    multitiff = test_img.ndim == 3
+    channels_first = multitiff and test_img.shape[0] == min(test_img.shape)
+
+    # check to make sure all channel indices are valid given the shape of the image
+    n_channels = 1
+    if multitiff:
+        n_channels = test_img.shape[0] if channels_first else test_img.shape[2]
+        if channel_indices:
+            if max(channel_indices) >= n_channels or min(channel_indices) < 0:
+                raise ValueError(f'Invalid value for channel_indices. Indices should be'
+                                 f' between 0-{n_channels-1} for the given data.')
+    # make sure channels_names has the same length as the number of channels in the image
+    if xr_channel_names and n_channels != len(xr_channel_names):
+        raise ValueError(f'Invalid value for xr_channel_names. xr_channel_names'
+                         f' length should be {n_channels}, as the number of channels'
+                         f' in the input data.')
+
     # check to make sure that float dtype was supplied if image data is float
     data_dtype = test_img.dtype
     if force_ints and np.issubdtype(dtype, np.integer):
         if not np.issubdtype(data_dtype, np.integer):
-            warnings.warn(f"The the loaded {data_dtype} images were forcefully "
+            warnings.warn(f"The loaded {data_dtype} images were forcefully "
                           f"overwritten with the supplied integer dtype {dtype}")
     elif np.issubdtype(data_dtype, np.floating):
         if not np.issubdtype(dtype, np.floating):
@@ -297,37 +284,41 @@ def load_imgs_from_dir(data_dir, imgdim_name='compartments', image_name='img_dat
                           f"because the loaded images are floats")
             dtype = data_dtype
 
-    if variable_sizes:
-        img_data = np.zeros((len(imgs), 1024, 1024, 1), dtype=dtype)
-    else:
-        img_data = np.zeros((len(imgs), test_img.shape[0], test_img.shape[1], 1),
-                            dtype=dtype)
+    # extract data
+    img_data = []
+    for img in imgs:
+        v = io.imread(os.path.join(data_dir, img))
+        if not multitiff:
+            v = np.expand_dims(v, axis=2)
+        elif channels_first:
+            # covert channels_first to be channels_last
+            v = np.moveaxis(v, 0, -1)
+        img_data.append(v)
+    img_data = np.stack(img_data, axis=0)
 
-    for img in range(len(imgs)):
-        if variable_sizes:
-            temp_img = io.imread(os.path.join(data_dir, imgs[img]))
-            img_data[img, :temp_img.shape[0], :temp_img.shape[1], 0] = temp_img.astype(dtype)
-        else:
-            img_data[img, :, :, 0] = io.imread(os.path.join(data_dir, imgs[img])).astype(dtype)
+    img_data = img_data.astype(dtype)
+
+    if channel_indices and multitiff:
+        img_data = img_data[:, :, :, channel_indices]
 
     # check to make sure that dtype wasn't too small for range of data
     if np.min(img_data) < 0:
         raise ValueError("Integer overflow from loading TIF image, try a larger dtype")
 
-    if variable_sizes:
-        row_coords, col_coords = range(1024), range(1024)
+    if channels_first:
+        row_coords, col_coords = range(test_img.shape[1]), range(test_img.shape[2])
     else:
         row_coords, col_coords = range(test_img.shape[0]), range(test_img.shape[1])
 
     # get fov name from imgs
-    fovs = iou.extract_delimited_names(imgs, delimiter=delimiter)
+    fovs = iou.remove_file_extensions(imgs)
+    fovs = iou.extract_delimited_names(fovs, delimiter=delimiter)
 
-    img_xr = xr.DataArray(img_data.astype(dtype),
-                          coords=[fovs, row_coords, col_coords, [image_name]],
-                          dims=["fovs", "rows", "cols",
-                          imgdim_name])
-
-    # sort for deterministic fov names
-    img_xr = img_xr.sortby('fovs')
+    # create xarray with image data
+    img_xr = xr.DataArray(img_data,
+                          coords=[fovs, row_coords, col_coords,
+                                  xr_channel_names if xr_channel_names
+                                  else range(img_data.shape[3])],
+                          dims=["fovs", "rows", "cols", xr_dim_name])
 
     return img_xr

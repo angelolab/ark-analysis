@@ -1,91 +1,14 @@
+import os
+import pytest
+import tempfile
 import numpy as np
 import pandas as pd
 import xarray as xr
 import random
-from copy import deepcopy
 from ark.utils import spatial_analysis_utils
 
-
-def make_threshold_mat():
-    thresh = pd.DataFrame(np.zeros((20, 2)))
-    thresh.iloc[:, 1] = .5
-    return thresh
-
-
-def make_example_data_closenum():
-    # Creates example data for the creation of the closenum matrix in the below test function
-
-    # Create example all_patient_data cell expression matrix
-    all_data = pd.DataFrame(np.zeros((10, 33)))
-    # Assigning values to the patient label and cell label columns
-    all_data[30] = "Point8"
-    all_data[24] = np.arange(len(all_data[1])) + 1
-
-    colnames = {24: "cellLabelInImage", 30: "SampleID", 31: "FlowSOM_ID", 32: "cell_type"}
-    all_data = all_data.rename(colnames, axis=1)
-
-    # Create 4 cells positive for marker 1 and 2, 5 cells positive for markers 3 and 4,
-    # and 1 cell positive for marker 5
-    all_data.iloc[0:4, 2] = 1
-    all_data.iloc[0:4, 3] = 1
-    all_data.iloc[4:9, 5] = 1
-    all_data.iloc[4:9, 6] = 1
-    all_data.iloc[9, 7] = 1
-    all_data.iloc[9, 8] = 1
-
-    # 4 cells assigned one phenotype, 5 cells assigned another phenotype,
-    # and the last cell assigned a different phenotype
-    all_data.iloc[0:4, 31] = 1
-    all_data.iloc[0:4, 32] = "Pheno1"
-    all_data.iloc[4:9, 31] = 2
-    all_data.iloc[4:9, 32] = "Pheno2"
-    all_data.iloc[9, 31] = 3
-    all_data.iloc[9, 32] = "Pheno3"
-
-    # Create the distance matrix to test the closenum function
-    dist_mat = np.zeros((10, 10))
-    np.fill_diagonal(dist_mat, 0)
-    # Create distance matrix where cells positive for marker 1 and 2 are within the dist_lim of
-    # each other, but not the other groups. This is repeated for cells positive for marker 3 and 4,
-    # and for cells positive for marker 5.
-    dist_mat[1:4, 0] = 50
-    dist_mat[0, 1:4] = 50
-    dist_mat[4:9, 0] = 200
-    dist_mat[0, 4:9] = 200
-    dist_mat[9, 0] = 500
-    dist_mat[0, 9] = 500
-    dist_mat[2:4, 1] = 50
-    dist_mat[1, 2:4] = 50
-    dist_mat[4:9, 1] = 150
-    dist_mat[1, 4:9] = 150
-    dist_mat[9, 1:9] = 200
-    dist_mat[1:9, 9] = 200
-    dist_mat[3, 2] = 50
-    dist_mat[2, 3] = 50
-    dist_mat[4:9, 2] = 150
-    dist_mat[2, 4:9] = 150
-    dist_mat[4:9, 3] = 150
-    dist_mat[3, 4:9] = 150
-    dist_mat[5:9, 4] = 50
-    dist_mat[4, 5:9] = 50
-    dist_mat[6:9, 5] = 50
-    dist_mat[5, 6:9] = 50
-    dist_mat[7:9, 6] = 50
-    dist_mat[6, 7:9] = 50
-    dist_mat[8, 7] = 50
-    dist_mat[7, 8] = 50
-
-    # add some randomization to the ordering
-    coords_in_order = np.arange(dist_mat.shape[0])
-    coords_permuted = deepcopy(coords_in_order)
-    np.random.shuffle(coords_permuted)
-    dist_mat = dist_mat[np.ix_(coords_permuted, coords_permuted)]
-
-    # we have to 1-index coords because people will be labeling their cells 1-indexed
-    coords_dist_mat = [coords_permuted + 1, coords_permuted + 1]
-    dist_mat = xr.DataArray(dist_mat, coords=coords_dist_mat)
-
-    return all_data, dist_mat
+import ark.settings as settings
+from ark.utils import test_utils
 
 
 def test_calc_dist_matrix():
@@ -110,18 +33,38 @@ def test_calc_dist_matrix():
     assert np.array_equal(distance_mat["1"].loc[range(1, 4), range(1, 4)], real_mat)
     assert np.array_equal(distance_mat["2"].loc[range(1, 4), range(1, 4)], real_mat)
 
+    # file save testing
+    with pytest.raises(ValueError):
+        # trying to save to a non-existent directory
+        distance_mat = spatial_analysis_utils.calc_dist_matrix(test_mat, save_path="bad_path")
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        # validate_paths requires data as a prefix, so add one
+        data_path = os.path.join(temp_dir, "data_dir")
+        os.mkdir(data_path)
+
+        # assert we actually save and save to the correct path if specified
+        spatial_analysis_utils.calc_dist_matrix(test_mat, save_path=data_path)
+
+        assert os.path.exists(os.path.join(data_path, "dist_matrices.npz"))
+
 
 def test_get_pos_cell_labels_channel():
-    all_data, _ = make_example_data_closenum()
-    example_thresholds = make_threshold_mat()
+    all_data, _ = test_utils._make_dist_exp_mats_spatial_utils_test()
+    example_thresholds = test_utils._make_threshold_mat(in_utils=True)
 
-    # Only include the columns of markers
-    fov_channel_data = all_data.drop(all_data.columns[[
-        0, 1, 14, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32]], axis=1)
+    excluded_channels = [0, 13, 22]
+
+    # Subsets the expression matrix to only have channel columns
+    channel_start = np.where(all_data.columns == settings.PRE_CHANNEL_COL)[0][0] + 1
+    channel_end = np.where(all_data.columns == settings.POST_CHANNEL_COL)[0][0]
+
+    fov_channel_data = all_data.iloc[:, channel_start:channel_end]
+    fov_channel_data = fov_channel_data.drop(fov_channel_data.columns[excluded_channels], axis=1)
 
     thresh_vec = example_thresholds.iloc[0:20, 1]
 
-    cell_labels = all_data.iloc[:, 24]
+    cell_labels = all_data.loc[:, settings.CELL_LABEL]
 
     pos_cell_labels = spatial_analysis_utils.get_pos_cell_labels_channel(
         thresh_vec.iloc[0], fov_channel_data, cell_labels, fov_channel_data.columns[0])
@@ -130,32 +73,41 @@ def test_get_pos_cell_labels_channel():
 
 
 def test_get_pos_cell_labels_cluster():
-    all_data, _ = make_example_data_closenum()
-    example_thresholds = make_threshold_mat()
+    all_data, _ = test_utils._make_dist_exp_mats_spatial_utils_test()
 
-    # Only include the columns of markers
-    fov_channel_data = all_data.drop(all_data.columns[[
-        0, 1, 14, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32]], axis=1)
+    excluded_channels = [0, 13, 22]
 
-    cluster_ids = all_data.iloc[:, 31].drop_duplicates()
+    # Subsets the expression matrix to only have channel columns
+    channel_start = np.where(all_data.columns == settings.PRE_CHANNEL_COL)[0][0] + 1
+    channel_end = np.where(all_data.columns == settings.POST_CHANNEL_COL)[0][0]
+
+    fov_channel_data = all_data.iloc[:, list(range(channel_start, channel_end + 1)) + [31]]
+    fov_channel_data = fov_channel_data.drop(fov_channel_data.columns[excluded_channels], axis=1)
+
+    cluster_ids = all_data.loc[:, settings.CLUSTER_ID].drop_duplicates()
 
     pos_cell_labels = spatial_analysis_utils.get_pos_cell_labels_cluster(
-        cluster_ids.iloc[0], all_data, "cellLabelInImage", "FlowSOM_ID")
+        cluster_ids.iloc[0], fov_channel_data, settings.CELL_LABEL, settings.CLUSTER_ID)
 
     assert len(pos_cell_labels) == 4
 
 
 def test_compute_close_cell_num():
     # Test the closenum function
-    all_data, example_dist_mat = make_example_data_closenum()
-    example_thresholds = make_threshold_mat()
+    all_data, example_dist_mat = test_utils._make_dist_exp_mats_spatial_utils_test()
+    example_thresholds = test_utils._make_threshold_mat(in_utils=True)
 
-    # Only include the columns of markers
-    fov_channel_data = all_data.drop(all_data.columns[[
-        0, 1, 14, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32]], axis=1)
+    excluded_channels = [0, 13, 22]
+
+    # Subsets the expression matrix to only have channel columns
+    channel_start = np.where(all_data.columns == settings.PRE_CHANNEL_COL)[0][0] + 1
+    channel_end = np.where(all_data.columns == settings.POST_CHANNEL_COL)[0][0]
+
+    fov_channel_data = all_data.iloc[:, channel_start:channel_end]
+    fov_channel_data = fov_channel_data.drop(fov_channel_data.columns[excluded_channels], axis=1)
 
     # Subsetting threshold matrix to only include column with threshold values
-    thresh_vec = example_thresholds.iloc[0:20, 1]
+    thresh_vec = example_thresholds.iloc[0:20, 1].values
 
     # not taking into account mark1labels_per_id return value
     example_closenum, m1, _ = spatial_analysis_utils.compute_close_cell_num(
@@ -170,12 +122,10 @@ def test_compute_close_cell_num():
     # Now test indexing with cell labels by removing a cell label from the expression matrix but
     # not the distance matrix
     all_data = all_data.drop(3, axis=0)
-    # Only include the columns of markers
-    fov_channel_data = all_data.drop(all_data.columns[[
-        0, 1, 14, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32]], axis=1)
+    fov_channel_data = fov_channel_data.drop(3, axis=0)
 
     # Subsetting threshold matrix to only include column with threshold values
-    thresh_vec = example_thresholds.iloc[0:20, 1]
+    thresh_vec = example_thresholds.iloc[0:20, 1].values
 
     example_closenum, m1, _ = spatial_analysis_utils.compute_close_cell_num(
         dist_mat=example_dist_mat, dist_lim=100, analysis_type="channel",
@@ -187,8 +137,8 @@ def test_compute_close_cell_num():
     assert (example_closenum[5:7, 5:7] == 1).all()
 
     # now, test for cluster enrichment
-    all_data, example_dist_mat = make_example_data_closenum()
-    cluster_ids = all_data.iloc[:, 31].drop_duplicates()
+    all_data, example_dist_mat = test_utils._make_dist_exp_mats_spatial_utils_test()
+    cluster_ids = all_data.loc[:, settings.CLUSTER_ID].drop_duplicates().values
 
     example_closenum, m1, _ = spatial_analysis_utils.compute_close_cell_num(
         dist_mat=example_dist_mat, dist_lim=100, analysis_type="cluster",
@@ -200,7 +150,7 @@ def test_compute_close_cell_num():
 
 
 def test_compute_close_cell_num_random():
-    data_markers, example_distmat = make_example_data_closenum()
+    data_markers, example_distmat = test_utils._make_dist_exp_mats_spatial_utils_test()
 
     # Generate random inputs to test shape
     marker_nums = [random.randrange(0, 10) for i in range(20)]
@@ -257,13 +207,13 @@ def test_calculate_enrichment_stats():
 
 
 def test_compute_neighbor_counts():
-    fov_col = "SampleID"
-    cluster_id_col = "FlowSOM_ID"
-    cell_label_col = "cellLabelInImage"
-    cluster_name_col = "cell_type"
+    fov_col = settings.FOV_ID
+    cluster_id_col = settings.CLUSTER_ID
+    cell_label_col = settings.CELL_LABEL
+    cluster_name_col = settings.CELL_TYPE
     distlim = 100
 
-    fov_data, dist_matrix = make_example_data_closenum()
+    fov_data, dist_matrix = test_utils._make_dist_exp_mats_spatial_utils_test()
 
     cluster_names = fov_data[cluster_name_col].drop_duplicates()
     fov_data = fov_data[[fov_col, cell_label_col, cluster_id_col, cluster_name_col]]
@@ -289,3 +239,49 @@ def test_compute_neighbor_counts():
     assert (cell_neighbor_counts.loc[:3, "Pheno1"] == 4).all()
     assert (cell_neighbor_counts.loc[4:8, "Pheno2"] == 5).all()
     assert (cell_neighbor_counts.loc[9, "Pheno3"] == 1).all()
+
+    assert (cell_neighbor_freqs.loc[:3, "Pheno1"] == 1).all()
+    assert (cell_neighbor_freqs.loc[4:8, "Pheno2"] == 1).all()
+    assert (cell_neighbor_freqs.loc[9, "Pheno3"] == 1).all()
+
+    # now test for self_neighbor is False, first reset values
+    cell_neighbor_counts = pd.DataFrame(np.zeros((fov_data.shape[0], cluster_num + 2)))
+    cell_neighbor_counts[[0, 1]] = fov_data[[fov_col, cell_label_col]]
+    cell_neighbor_counts.columns = cols
+    cell_neighbor_freqs = cell_neighbor_counts.copy(deep=True)
+
+    counts, freqs = spatial_analysis_utils.compute_neighbor_counts(
+        fov_data, dist_matrix, distlim, self_neighbor=False)
+
+    cell_neighbor_counts.loc[fov_data.index, cluster_names] = counts
+    cell_neighbor_freqs.loc[fov_data.index, cluster_names] = freqs
+
+    assert (cell_neighbor_counts.loc[:3, "Pheno1"] == 3).all()
+    assert (cell_neighbor_counts.loc[4:8, "Pheno2"] == 4).all()
+    assert (cell_neighbor_counts.loc[9, "Pheno3"] == 0).all()
+
+    assert (cell_neighbor_freqs.loc[:3, "Pheno1"] == 1).all()
+    assert (cell_neighbor_freqs.loc[4:8, "Pheno2"] == 1).all()
+    assert (np.isnan(cell_neighbor_freqs.loc[9, "Pheno3"])).all()
+
+
+def test_generate_cluster_labels():
+    neighbor_mat = test_utils._make_neighborhood_matrix()[['feature1', 'feature2']]
+    neighbor_cluster_labels = spatial_analysis_utils.generate_cluster_labels(neighbor_mat,
+                                                                             cluster_num=3)
+
+    assert len(np.unique(neighbor_cluster_labels) == 3)
+
+
+def test_compute_kmeans_cluster_metric():
+    neighbor_mat = test_utils._make_neighborhood_matrix()[['feature1', 'feature2']]
+
+    neighbor_cluster_stats = spatial_analysis_utils.compute_kmeans_cluster_metric(
+        neighbor_mat, max_k=3)
+
+    # assert we have the right cluster_num values
+    assert list(neighbor_cluster_stats.coords["cluster_num"].values) == [2, 3]
+
+    # assert k=3 produces the best silhouette score
+    three_cluster_score = neighbor_cluster_stats.loc[3].values
+    assert np.all(three_cluster_score >= neighbor_cluster_stats.values)
