@@ -1,4 +1,5 @@
 import os
+import multiprocessing
 
 import numpy as np
 import pandas as pd
@@ -9,6 +10,60 @@ from skimage.io import imread
 import ark.settings as settings
 from ark.utils import load_utils
 from ark.utils import misc_utils
+
+from timeit import default_timer
+
+
+def _unpacking_apply_along_axis(func_args):
+    """Maps apply_along_axis to each array subset
+
+    Args:
+        func_args (tuple):
+            The arguments to pass into apply_along_axis
+
+    Returns:
+        numpy.ndarray:
+            The result for apply_along_axis for a specific array subset
+    """
+
+    (func1d, axis, arr, args, kwargs) = func_args
+    return np.apply_along_axis(func1d, axis, arr, *args, **kwargs)
+
+
+def _parallel_apply_along_axis(func1d, axis, arr, *args, **kwargs):
+    """Runs apply_along_axis in parallel for a massive speedup (but at a massive memory cost too)
+
+    Args:
+        func1d (Callable):
+            The function to apply along the given axis
+        axis (int):
+            The axis to run
+
+    Returns:
+        numpy.ndarray:
+            The processed array, equivalent to what np.apply_along_axis returns
+    """
+
+    # If axis is 0 we'll effectively be working with the 1st axis
+    effective_axis = 1 if axis == 0 else axis
+
+    # Swap the 0th and 1st axis if axis specified is 0
+    if effective_axis != axis:
+        arr = arr.swapaxes(axis, effective_axis)
+
+    # Map the array subsets
+    chunks = [(func1d, effective_axis, sub_arr, args, kwargs)
+              for sub_arr in np.array_split(arr, multiprocessing.cpu_count())]
+
+    # Run the process in parallel
+    pool = multiprocessing.Pool()
+    individual_results = pool.map(_unpacking_apply_along_axis, chunks)
+
+    # Free the workers
+    pool.close()
+    pool.join()
+
+    return np.concatenate(individual_results)
 
 
 def create_pixel_matrix(img_xr, seg_labels, fovs=None, channels=None, blur_factor=2):
@@ -55,8 +110,8 @@ def create_pixel_matrix(img_xr, seg_labels, fovs=None, channels=None, blur_facto
         img_xr_sub = img_xr_subset.loc[fov, ...].values
 
         # apply a Gaussian blur for each marker
-        img_data_blur = np.apply_along_axis(ndimage.gaussian_filter, axis=2,
-                                            arr=img_xr_sub, sigma=blur_factor)
+        img_data_blur = _parallel_apply_along_axis(ndimage.gaussian_filter, axis=2,
+                                                   arr=img_xr_sub, sigma=blur_factor)
 
         # flatten each image
         pixel_mat = img_data_blur.reshape(-1, len(channels))
@@ -66,8 +121,8 @@ def create_pixel_matrix(img_xr, seg_labels, fovs=None, channels=None, blur_facto
 
         # assign metadata about each entry
         pixel_mat['fov'] = fov
-        pixel_mat['x_coord'] = np.repeat(range(img_data_blur.shape[0]), img_data_blur.shape[1])
-        pixel_mat['y_coord'] = np.tile(range(img_data_blur.shape[0]), img_data_blur.shape[1])
+        pixel_mat['x_coord'] = np.repeat(range(img_data_blur.shape[0]), img_data_blur.shape[0])
+        pixel_mat['y_coord'] = np.tile(range(img_data_blur.shape[0]), img_data_blur.shape[0])
 
         # assign segmentation label
         seg_labels_flat = seg_labels.loc[fov, ...].values.flatten()
