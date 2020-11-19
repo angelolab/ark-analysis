@@ -141,14 +141,14 @@ def cluster_som(pixel_mat, weights):
             The cluster labels to assign to the corresponding rows in pixel_mat
     """
 
-    # iterate through each row and assign the cluster value accordingly
-    cluster_nodes = pixel_mat.apply(
+    # extract the coordinate associated with the winning neuron for each row
+    cluster_coords = pixel_mat.apply(
         lambda row: winner(np.array(list(row.values)), weights), axis=1).astype(str)
 
     # reassign the coordinates to integers to make the label col more understandable
-    unique_cluster_nodes = cluster_nodes.unique()
-    unique_cluster_labels = list(range(len(unique_cluster_nodes)))
-    cluster_nodes = cluster_nodes.replace(to_replace=unique_cluster_nodes,
-                                          value=unique_cluster_labels)
+    unique_cluster_coords = cluster_coords.unique()
+    coord_to_label = list(range(len(unique_cluster_coords)))
+    cluster_labels = cluster_coords.replace(to_replace=unique_cluster_coords,
+                                            value=coord_to_label)
 
-    return cluster_nodes
+    return cluster_labels
