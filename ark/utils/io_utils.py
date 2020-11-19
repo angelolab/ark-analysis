@@ -36,7 +36,7 @@ def validate_paths(paths):
                     f'and to reference as \'../data/path_to_data/myfile.tif\'')
 
 
-def list_files(dir_name, substrs=None):
+def list_files(dir_name, substrs=None, exact_match=False):
     """ List all files in a directory containing at least one given substring
 
     Args:
@@ -44,11 +44,13 @@ def list_files(dir_name, substrs=None):
             Parent directory for files of interest
         substrs (str or list):
             Substring matching criteria, defaults to None (all files)
+        exact_match (bool):
+            If True, will match exact file names (so 'C' will match only 'C.tif')
+            If False, will match substr pattern in file (so 'C' will match 'C.tif' and 'CD30.tif')
 
     Returns:
         list:
             List of files containing at least one of the substrings
-
     """
 
     files = os.listdir(dir_name)
@@ -62,33 +64,75 @@ def list_files(dir_name, substrs=None):
     if type(substrs) is not list:
         substrs = [substrs]
 
-    matches = [file
-               for file in files
-               if any([
-                   substr in file
-                   for substr in substrs
-               ])]
+    if exact_match:
+        matches = [file
+                   for file in files
+                   if any([
+                        substr == os.path.splitext(file)[0]
+                        for substr in substrs
+                   ])]
+    else:
+        matches = [file
+                   for file in files
+                   if any([
+                       substr in file
+                       for substr in substrs
+                   ])]
 
     return matches
 
 
-def extract_delimited_names(files, delimiter='_', delimiter_optional=True):
-    """Create a matched-index list of fov/point/etc names from a list of files/folders
-
-    Extracts a delimited prefix for every file in a given list of files
-
-    Examples:
-         - 'Point2_restofthefilename.tiff' becomes 'Point2'
-         - 'Point1.tiff' becomes 'Point1'
+def remove_file_extensions(files):
+    """Removes file extensions from a list of files
 
     Args:
         files (list):
-            List of files to extract names from (if paths, just uses the last file/folder)
+            List of files to remove file extensions from.
+            Any element that doesn't have an extension is left unchanged
+
+    Raises:
+        UserWarning:
+            Some of the processed file names still contain a period
+
+    Returns:
+        list:
+            List of files without file extensions
+    """
+
+    # make sure we don't try to split on a non-existent list
+    if files is None:
+        return
+
+    # remove the file extension
+    names = [os.path.splitext(name)[0] for name in files]
+
+    # identify names with '.' in them: these may not be processed correctly
+    bad_names = [name for name in names if '.' in name]
+    if len(bad_names) > 0:
+        warnings.warn(f"These files still have \".\" in them after file extension removal: "
+                      f"{','.join(bad_names)}, "
+                      f"please double check that these are the correct names")
+
+    return names
+
+
+def extract_delimited_names(names, delimiter='_', delimiter_optional=True):
+    """For a given list of names, extract the delimited prefix
+
+    Examples (if delimiter='_'):
+        - 'fov1' becomes 'fov1'
+        - 'fov2_part1' becomes 'fov2'
+        - 'fov3_part1_part2' becomes 'fov3'
+
+    Args:
+        names (list):
+            List of names to split by delimiter.
+            Make sure to call remove_file_extensions first if you need to drop file extensions.
         delimiter (str):
             Character separator used to determine filename prefix. Defaults to '_'.
         delimiter_optional (bool):
             If False, function will return None if any of the files don't contain the delimiter.
-            Defaults to True.
+            Defaults to True. Ignored if delimiter is None.
 
     Raises:
         UserWarning:
@@ -97,33 +141,27 @@ def extract_delimited_names(files, delimiter='_', delimiter_optional=True):
     Returns:
         list:
             List of extracted names. Indicies should match that of files
-
     """
-    if files is None:
+
+    if names is None:
         return
 
-    names = [
-        os.path.split(name)[1]
-        for name in files
-    ]
-
     # check for bad files/folders
-    if not delimiter_optional:
+    if delimiter is not None and not delimiter_optional:
         no_delim = [
             delimiter not in name
             for name in names
         ]
         if any(no_delim):
-            warnings.warn(f"The following files do not have the mandatory delimiter, "
-                          f"'{delimiter}'...\n"
-                          f"{[name for indx,name in enumerate(names) if no_delim[indx]]}")
+            print(f"The following files do not have the mandatory delimiter, "
+                  f"'{delimiter}': "
+                  f"{','.join([name for indx,name in enumerate(names) if no_delim[indx]])}")
+            warnings.warn("files without mandatory delimiter")
+
             return None
 
-    # do filtering
-    names = [
-        name.split('.')[0].split(delimiter)[0]
-        for name in names
-    ]
+    # now split on the delimiter as well
+    names = [name.split(delimiter)[0] for name in names]
 
     return names
 

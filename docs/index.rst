@@ -10,10 +10,11 @@
    Data Type Info <_rtd/data_types>
    Virtual Environment Setup <_rtd/virtualenv>
    Contributing Guidelines <_rtd/contributing>
+   FAQ <_rtd/faq>
 
 .. toctree::
    :hidden:
-   :caption: Libraries
+   :caption: Modules
    :maxdepth: 4
 
    analysis <_markdown/ark.analysis>

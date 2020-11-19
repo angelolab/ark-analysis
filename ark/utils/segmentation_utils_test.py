@@ -1,9 +1,15 @@
+import os
 import numpy as np
+import pytest
+import tempfile
 import xarray as xr
-
+import os.path
 from skimage.measure import regionprops
+import tempfile
 
 from ark.utils import segmentation_utils, test_utils
+
+import ark.settings as settings
 
 
 def test_find_nuclear_mask_id():
@@ -40,8 +46,9 @@ def test_find_nuclear_mask_id():
 
     # check that predicted nuclear id is correct for all cells in image
     for idx, prop in enumerate(cell_props):
-        predicted_nuc = segmentation_utils.find_nuclear_mask_id(nuc_segmentation_mask=nuc_labels,
-                                                                cell_coords=prop.coords)
+        predicted_nuc = \
+            segmentation_utils.find_nuclear_label_id(nuc_segmentation_labels=nuc_labels,
+                                                     cell_coords=prop.coords)
 
         assert predicted_nuc == true_nuc_ids[idx]
 
@@ -64,8 +71,8 @@ def test_split_large_nuclei():
     # only partially overlaps the cell
     nuc_mask[33:37, 12:20] = 5
 
-    split_mask = segmentation_utils.split_large_nuclei(nuc_segmentation_mask=nuc_mask,
-                                                       cell_segmentation_mask=cell_mask,
+    split_mask = segmentation_utils.split_large_nuclei(nuc_segmentation_labels=nuc_mask,
+                                                       cell_segmentation_labels=cell_mask,
                                                        cell_ids=np.array([1, 2, 3, 5]))
 
     # nuc 1 and 2 are unchanged
@@ -108,12 +115,12 @@ def test_transform_expression_matrix():
     cell_data = cell_data.reshape((1, 10, 7)).astype('float')
 
     coords = [['whole_cell'], list(range(10)),
-              ['cell_size', 'chan1', 'chan2', 'chan3', 'label', 'morph_1', 'morph_2']]
+              [settings.CELL_SIZE, 'chan1', 'chan2', 'chan3', 'label', 'morph_1', 'morph_2']]
     dims = ['compartments', 'cell_id', 'features']
 
     cell_data = xr.DataArray(cell_data, coords=coords, dims=dims)
 
-    unchanged_cols = ['cell_size', 'label', 'morph_1', 'morph_2']
+    unchanged_cols = [settings.CELL_SIZE, 'label', 'morph_1', 'morph_2']
     modified_cols = ['chan1', 'chan2', 'chan3']
 
     # test size_norm
@@ -125,9 +132,11 @@ def test_transform_expression_matrix():
 
     # TODO: In general it's bad practice for tests to call the same function as code under test
     for cell in cell_data.cell_id:
-        if cell_data.loc['whole_cell', cell, 'cell_size'] != 0:
-            normalized_vals = np.divide(cell_data.loc['whole_cell', cell, modified_cols].values,
-                                        cell_data.loc['whole_cell', cell, 'cell_size'].values)
+        if cell_data.loc['whole_cell', cell, settings.CELL_SIZE] != 0:
+            normalized_vals = np.divide(
+                cell_data.loc['whole_cell', cell, modified_cols].values,
+                cell_data.loc['whole_cell', cell, settings.CELL_SIZE].values
+            )
             assert np.array_equal(normalized_data.loc['whole_cell', cell, modified_cols].values,
                                   normalized_vals)
 
@@ -154,12 +163,12 @@ def test_transform_expression_matrix_multiple_compartments():
     cell_data = cell_data.reshape((2, 10, 7)).astype('float')
 
     coords = [['whole_cell', 'nuclear'], list(range(10)),
-              ['cell_size', 'chan1', 'chan2', 'chan3', 'label', 'morph_1', 'morph_2']]
+              [settings.CELL_SIZE, 'chan1', 'chan2', 'chan3', 'label', 'morph_1', 'morph_2']]
     dims = ['compartments', 'cell_id', 'features']
 
     cell_data = xr.DataArray(cell_data, coords=coords, dims=dims)
 
-    unchanged_cols = ['cell_size', 'label', 'morph_1', 'morph_2']
+    unchanged_cols = [settings.CELL_SIZE, 'label', 'morph_1', 'morph_2']
     modified_cols = ['chan1', 'chan2', 'chan3']
 
     # test size_norm
@@ -171,9 +180,11 @@ def test_transform_expression_matrix_multiple_compartments():
 
     # TODO: In general it's bad practice for tests to call the same function as code under test
     for cell in cell_data.cell_id:
-        if cell_data.loc['whole_cell', cell, 'cell_size'] != 0:
-            normalized_vals = np.divide(cell_data.loc['whole_cell', cell, modified_cols].values,
-                                        cell_data.loc['whole_cell', cell, 'cell_size'].values)
+        if cell_data.loc['whole_cell', cell, settings.CELL_SIZE] != 0:
+            normalized_vals = np.divide(
+                cell_data.loc['whole_cell', cell, modified_cols].values,
+                cell_data.loc['whole_cell', cell, settings.CELL_SIZE].values
+            )
             assert np.array_equal(normalized_data.loc['whole_cell', cell, modified_cols].values,
                                   normalized_vals)
 
@@ -192,3 +203,111 @@ def test_transform_expression_matrix_multiple_compartments():
     for cell in cell_data.cell_id:
         arcsinh_vals = np.arcsinh(cell_data.loc[:, cell, modified_cols].values)
         assert np.array_equal(arcsinh_data.loc[:, cell, modified_cols].values, arcsinh_vals)
+
+
+def test_visualize_segmentation():
+    channel_xr = test_utils.make_images_xarray(np.zeros((2, 50, 50, 3)))
+    overlay_channels = [channel_xr.channels.values[:2], channel_xr.channels.values[1:3]]
+    segmentation_labels_xr = test_utils.make_labels_xarray(np.zeros((2, 50, 50, 1)))
+    # Test fovs = None(all fovs should be selected)
+    with tempfile.TemporaryDirectory() as temp_dir:
+        segmentation_utils.visualize_segmentation(
+            segmentation_labels_xr=segmentation_labels_xr,
+            fovs=None, channel_data_xr=channel_xr,
+            output_dir=temp_dir)
+        for mod_output_fov in segmentation_labels_xr.fovs:
+            assert os.path.exists(os.path.join(temp_dir,
+                                               f'{mod_output_fov.values}'
+                                               f'_segmentation_borders.tiff'))
+            assert os.path.exists(os.path.join(temp_dir,
+                                               f'{mod_output_fov.values}'
+                                               f'_segmentation_labels.tiff'))
+        for chan_list in overlay_channels:
+            segmentation_utils.visualize_segmentation(
+                segmentation_labels_xr=segmentation_labels_xr,
+                fovs=segmentation_labels_xr.fovs.values, channel_data_xr=channel_xr,
+                chan_list=chan_list,
+                output_dir=temp_dir)
+            for mod_output_fov in segmentation_labels_xr.fovs:
+                assert os.path.exists(
+                    os.path.join(temp_dir, '_'.join(
+                        [f'{mod_output_fov.values}', *chan_list, 'overlay.tiff'])))
+                assert os.path.exists(os.path.join(temp_dir,
+                                                   f'{mod_output_fov.values}'
+                                                   f'_segmentation_borders.tiff'))
+                assert os.path.exists(os.path.join(temp_dir,
+                                                   f'{mod_output_fov.values}'
+                                                   f'_segmentation_labels.tiff'))
+
+    # test only one fov
+    with tempfile.TemporaryDirectory() as temp_dir:
+        segmentation_utils.visualize_segmentation(
+            segmentation_labels_xr=segmentation_labels_xr,
+            fovs=segmentation_labels_xr.fovs.values[:1], channel_data_xr=channel_xr,
+            output_dir=temp_dir)
+
+        assert os.path.exists(os.path.join(temp_dir,
+                                           f'{segmentation_labels_xr.fovs[0].values}'
+                                           f'_segmentation_borders.tiff'))
+        assert os.path.exists(os.path.join(temp_dir,
+                                           f'{segmentation_labels_xr.fovs[0].values}'
+                                           f'_segmentation_labels.tiff'))
+        for chan_list in overlay_channels:
+            segmentation_utils.visualize_segmentation(
+                segmentation_labels_xr=segmentation_labels_xr,
+                fovs=segmentation_labels_xr.fovs.values[:1], channel_data_xr=channel_xr,
+                chan_list=chan_list,
+                output_dir=temp_dir)
+
+            assert os.path.exists(
+                os.path.join(temp_dir, '_'.join(
+                    [f'{segmentation_labels_xr.fovs[0].values}', *chan_list, 'overlay.tiff'])))
+            assert os.path.exists(os.path.join(temp_dir,
+                                               f'{segmentation_labels_xr.fovs[0].values}'
+                                               f'_segmentation_borders.tiff'))
+            assert os.path.exists(os.path.join(temp_dir,
+                                               f'{segmentation_labels_xr.fovs[0].values}'
+                                               f'_segmentation_labels.tiff'))
+
+
+def test_concatenate_csv():
+    # create sample data
+    test_data_1 = test_utils.make_segmented_csv(num_cells=10)
+    test_data_2 = test_utils.make_segmented_csv(num_cells=20)
+
+    with pytest.raises(ValueError):
+        # attempt to pass column_values list with different length than number of csv files
+        segmentation_utils.concatenate_csv(base_dir="example_base_dir",
+                                           csv_files=["example_1.csv", "example_2.csv"],
+                                           column_values=["missingno"])
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        # create a sample base_dir
+        base_dir = os.path.join(temp_dir, 'base_dir')
+        os.mkdir(base_dir)
+
+        # write the sample data
+        path_1 = os.path.join(base_dir, "cell_data_1.csv")
+        path_2 = os.path.join(base_dir, "cell_data_2.csv")
+
+        test_data_1.to_csv(path_1, index=False, header=False)
+        test_data_2.to_csv(path_2, index=False, header=False)
+
+        # create concatenated csv with basic settings
+        segmentation_utils.concatenate_csv(base_dir=base_dir,
+                                           csv_files=["cell_data_1.csv",
+                                                      "cell_data_2.csv"])
+
+        assert os.path.exists(os.path.join(base_dir, "combined_data.csv"))
+
+        # reset for next test
+        os.remove(os.path.join(base_dir, "combined_data.csv"))
+
+        # now test with column values
+        segmentation_utils.concatenate_csv(base_dir=base_dir,
+                                           csv_files=["cell_data_1.csv",
+                                                      "cell_data_2.csv"],
+                                           column_values=["example_data_1",
+                                                          "example_data_2"])
+
+        assert os.path.exists(os.path.join(base_dir, "combined_data.csv"))

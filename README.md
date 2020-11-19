@@ -2,6 +2,7 @@
 [![Coverage Status](https://coveralls.io/repos/github/angelolab/ark-analysis/badge.svg?branch=master)](https://coveralls.io/github/angelolab/ark-analysis?branch=master)
 
 # ark-analysis
+
 Toolbox for analyzing multiplexed imaging data
 
 Full documentation for the project can be found [here](https://ark-analysis.readthedocs.io/en/latest/)
@@ -9,6 +10,7 @@ Full documentation for the project can be found [here](https://ark-analysis.read
 ## Info
 
 This project contains code and example scripts for analyzing multiplexed imaging data
+
 ## To install the project:
 
 Open terminal and navigate to where you want the code stored.
@@ -39,14 +41,22 @@ Enter the following command into terminal from the same directory you ran the ab
 $ bash start_docker.sh
 ``` 
 
-This will generate a link to a jupyter notebook. Copy the last URL (the one with 127.0.0.1:8888 at the beginning) into your web browser.
+This will generate a link to a jupyter notebook. Copy the last URL (the one with `127.0.0.1:8888` at the beginning) into your web browser.
 
 Be sure to keep this terminal open.  **Do not exit the terminal or enter control-c until you are finished with the notebooks**.
 
+### NOTE
+
+If you already have a Jupyter session open when you run `$ bash start_docker.sh`, you will receive a couple additional prompts. 
+
+Copy the URL listed after `Enter this URL instead to access the notebooks:` 
+
+You will need to authenticate. Note the last URL (the one with `127.0.0.1:8888` at the beginning), copy the token that appears there (it will be after `token=` in the URL), paste it into the password prompt of the Jupyter notebook, and log in.
+
 ## Using the example notebooks:
-- The Deepcell_preprocessing notebook walks you through the appropriate formatting steps in order to run your data through DeepCell to be segmented
-- The Deepcell_postprocessing notebooks takes the segmentation predictions from DeepCell, and uses them to extract the counts of each marker from your dataset
+- The Segment_Image_Data notebook walks you through the appropriate steps to format your data, run the data through deepcell, extracts the counts for each marker in each cell, and creats a csv file with the normalized counts
 - The spatial_analysis notebook contains code for performing cluster- and channel-based randomization, as well as neighborhood analysis. 
+- The example_visualization notebooks contains code for basic plotting functions and visualizations
 
 
 ## Once you are finished
@@ -57,7 +67,7 @@ You can shut down the notebooks and close docker by entering control-c in the te
 
 This project is still in development, and we are making frequent updates and improvements. If you want to update the version on your computer to have the latest changes, perform the following steps
 
-First, copy the latest version of the code
+First, get the latest version of the code
 
 ```
 $ git pull
@@ -78,12 +88,14 @@ If you didn't change the name of any of the notebooks within the `scripts` folde
 
 If you have made changes to these notebooks that you would like to keep (specific file paths, settings, custom routines, etc), rename them before updating!
 
-Examples:
-```
-Deepcell_Postprocessing.ipynb -> old_postprocessing.ipynb
-                              or postprocessing_saved.ipynb
-                              or old_dcpostP.ipynb
-                              ...
-```
+For example, rename your existing copy of `Segment_Image_Data.ipynb` to `Segment_Image_Data_old.ipynb`. Then, after running the update command, a new version of `Segment_Image_Data.ipynb` will be created with the newest code, and your old copy will exist with the new name that you gave it. 
 
-After updating, you can bring changes from the old notebooks into the new notebooks at your discretion
+After updating, you can copy over any important paths or modifications from the old notebooks into the new notebook
+
+## Questions?
+
+Please refer to our [FAQ](https://ark-analysis.readthedocs.io/en/latest/_rtd/faq.html).
+
+## Want to contribute?  
+
+If you would like to help make `ark` better, please take a look at our [contributing guidelines](https://ark-analysis.readthedocs.io/en/latest/_rtd/contributing.html)
