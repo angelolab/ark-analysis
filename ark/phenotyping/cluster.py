@@ -11,11 +11,11 @@ def winner(sample, weights):
         sample (numpy.ndarray):
             A row in the pixel matrix identifying information associated with one pixel
         weights (numpy.ndarray):
-            A square matrix identifying the weights between two neurons
+            A weight matrix of dimensions [num_x, num_y, num_chans]
 
     Returns:
         tuple:
-            A coordinate array which indicates the winning neuron's position
+            The coordinates of the winning neuron
     """
 
     # get euclidean distance between the sample and the weights
@@ -35,7 +35,7 @@ def update(sample, weights, winning_coords, sigma, learning_rate,
         sample (numpy.ndarray):
             A row in the pixel matrix identifying information associated with one pixel
         weights (numpy.ndarray):
-            A square matrix identifying the weights between two neurons
+            A weight matrix of dimensions [num_x, num_y, num_chans]
         winning_coords (tuple):
             A coordinate array which indicates the winning neuron's position
         sigma (float):
@@ -74,8 +74,8 @@ def update(sample, weights, winning_coords, sigma, learning_rate,
     return weights
 
 
-def train_flowsom(pixel_mat, x_neurons, y_neurons, num_iters,
-                  sigma=1.0, learning_rate=0.5, random_seed=0):
+def train_som(pixel_mat, x_neurons, y_neurons, num_passes,
+              sigma=1.0, learning_rate=0.5, random_seed=0):
     """Trains the SOM by iterating through the each data point and updating the params
 
     Args:
@@ -85,8 +85,8 @@ def train_flowsom(pixel_mat, x_neurons, y_neurons, num_iters,
             The number of x neurons to use
         y_neurons (int):
             The number of y neurons to use
-        num_iters (int):
-            The maximum number of iterations for training
+        num_passes (int):
+            The maximum number of passes to make through the dataset for training
         sigma (float):
             Determines the spread of the Gaussian neighborhood function
         learning_rate (float):
@@ -106,31 +106,28 @@ def train_flowsom(pixel_mat, x_neurons, y_neurons, num_iters,
     weights = rand_gen.rand(x_neurons, y_neurons, pixel_mat.shape[1]) * 2 - 1
     weights /= np.linalg.norm(weights, axis=-1, keepdims=True)
 
-    # define the activation map
-    activation_map = np.zeros((x_neurons, y_neurons))
-
     # define meshgrid coords for the weights matrix, convert to float (yikes, memory...)
     x_mesh, y_mesh = np.meshgrid(np.arange(x_neurons), np.arange(y_neurons))
     x_mesh = x_mesh.astype(float)
     y_mesh = y_mesh.astype(float)
 
-    # define the iterations iterable, this is WRONG in MiniSOM
-    iterations = np.arange(num_iters) % pixel_mat.shape[0]
-    # iterations = np.array_split(pixel_mat.index.values, num_iters)
+    # define the number of iterations and the row in pixel_mat corresponding to each iteration
+    num_iters = num_passes * pixel_mat.shape[0]
+    iter_row = np.arange(num_iters) % pixel_mat.shape[0]
 
-    for t, iteration in enumerate(iterations):
+    for t, row in enumerate(iter_row):
         # find the winning neuron's coordinates
-        winning_coords = winner(pixel_mat.loc[iteration, :].values, weights)
+        winning_coords = winner(pixel_mat.loc[row, :].values, weights)
 
-        # update the weights, learning rate, and sigma
-        weights = update(pixel_mat.loc[iteration, :].values, weights,
+        # update the weights
+        weights = update(pixel_mat.loc[row, :].values, weights,
                          winning_coords, sigma, learning_rate,
                          x_mesh, y_mesh, t, num_iters)
 
     return weights
 
 
-def cluster_flowsom(pixel_mat, weights):
+def cluster_som(pixel_mat, weights):
     """Assigns the cluster label to each entry in the pixel matrix based on the trained weights
 
     Args:
@@ -145,7 +142,13 @@ def cluster_flowsom(pixel_mat, weights):
     """
 
     # iterate through each row and assign the cluster value accordingly
-    cluster_labels = pixel_mat.apply(
-        lambda row: winner(np.array(list(row.values)), weights), axis=1)
+    cluster_nodes = pixel_mat.apply(
+        lambda row: winner(np.array(list(row.values)), weights), axis=1).astype(str)
 
-    return cluster_labels
+    # reassign the coordinates to integers to make the label col more understandable
+    unique_cluster_nodes = cluster_nodes.unique()
+    unique_cluster_labels = list(range(len(unique_cluster_nodes)))
+    cluster_nodes = cluster_nodes.replace(to_replace=unique_cluster_nodes,
+                                          value=unique_cluster_labels)
+
+    return cluster_nodes
