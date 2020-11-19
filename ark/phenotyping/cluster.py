@@ -142,7 +142,13 @@ def cluster_som(pixel_mat, weights):
     """
 
     # iterate through each row and assign the cluster value accordingly
-    cluster_labels = pixel_mat.apply(
-        lambda row: winner(np.array(list(row.values)), weights), axis=1)
+    cluster_nodes = pixel_mat.apply(
+        lambda row: winner(np.array(list(row.values)), weights), axis=1).astype(str)
 
-    return cluster_labels
+    # reassign the coordinates to integers to make the label col more understandable
+    unique_cluster_nodes = cluster_nodes.unique()
+    unique_cluster_labels = list(range(len(unique_cluster_nodes)))
+    cluster_nodes = cluster_nodes.replace(to_replace=unique_cluster_nodes,
+                                          value=unique_cluster_labels)
+
+    return cluster_nodes
