@@ -46,8 +46,7 @@ def winner(sample, weights):
     return winning_coords
 
 
-def update(sample, weights, winning_coords, sigma, learning_rate,
-           x_mesh, y_mesh, t, num_iters):
+def update(sample, weights, winning_coords, sigma, learning_rate, x_mesh, y_mesh):
     """Updates the weights, learning rate, and sigma parameters
 
     Args:
@@ -65,10 +64,6 @@ def update(sample, weights, winning_coords, sigma, learning_rate,
             The x coordinate matrix of the weights vectors
         y_mesh (numpy.ndarray):
             The y coordinate matrix of the weights vectors
-        t (int):
-            The current iteration index
-        num_iters (int):
-            The maximum number of iterations
 
     Returns:
         numpy.ndarray:
@@ -139,7 +134,7 @@ def train_som(pixel_mat, x_neurons, y_neurons, num_passes,
         # update the weights
         weights = update(pixel_mat.loc[row, :].values, weights,
                          winning_coords, decay_sigma, decay_learning_rate,
-                         x_mesh, y_mesh, t, num_iters)
+                         x_mesh, y_mesh)
 
     return weights
 

@@ -37,13 +37,9 @@ def test_update():
     test_learning_rate = 0.5
     test_x_mesh, test_y_mesh = np.meshgrid(np.arange(2), np.arange(2))
 
-    test_t = 1
-    test_num_iters = 1
-
     # it's impractical to check exact values, so we'll round to make life easier
     weights = cluster.update(test_sample, test_weights, test_winning_coords,
-                             test_sigma, test_learning_rate, test_x_mesh, test_y_mesh,
-                             test_t, test_num_iters)
+                             test_sigma, test_learning_rate, test_x_mesh, test_y_mesh)
     weights = np.round(weights, decimals=8)
 
     result = np.array([[[1., 3.90893398],
@@ -72,12 +68,17 @@ def test_train_som():
     # only to see if it runs to completion with default sigma, learning_rate, and randomization
     weights = cluster.train_som(test_pixel_mat, test_x, test_y, test_num_passes, random_seed=0)
 
-    # check if our weights are within 1/10 times to 10 times the original pixel values
-    threshold = np.logical_and(weights.flatten() * 10 > test_pixel_mat.values.flatten(),
-                               weights.flatten() / 10 < test_pixel_mat.values.flatten())
+    # find the winning coordinates associated with the neuron weights closest to each pixel
+    cluster_coords = test_pixel_mat.apply(
+        lambda row: cluster.winner(np.array(row.values), weights), axis=1)
 
-    # the number of out of range weights should become less significant the more weights are added
-    assert np.sum(threshold) >= np.sqrt(len(threshold))
+    # now verify that the assigned weights are the ones that are the closest to each pixel
+    for row, coord in enumerate(cluster_coords.values):
+        pixel_data = test_pixel_mat.iloc[row, :].values
+        diff = weights - pixel_data
+        diff_magnitude = np.apply_along_axis(np.linalg.norm, axis=2, arr=diff)
+
+        assert np.all(diff_magnitude[coord] <= diff_magnitude)
 
 
 def test_cluster_som():
