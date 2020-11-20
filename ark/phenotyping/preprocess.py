@@ -64,12 +64,12 @@ def create_pixel_matrix(img_xr, seg_labels, fovs=None, channels=None, blur_facto
 
         # assign metadata about each entry
         pixel_mat['fov'] = fov
-        pixel_mat['x_coord'] = np.repeat(range(img_data_blur.shape[0]), img_data_blur.shape[0])
-        pixel_mat['y_coord'] = np.tile(range(img_data_blur.shape[0]), img_data_blur.shape[0])
+        pixel_mat['row_index'] = np.repeat(range(img_data_blur.shape[0]), img_data_blur.shape[1])
+        pixel_mat['column_index'] = np.tile(range(img_data_blur.shape[0]), img_data_blur.shape[1])
 
         # assign segmentation label
         seg_labels_flat = seg_labels.loc[fov, ...].values.flatten()
-        pixel_mat['seg_label'] = seg_labels_flat
+        pixel_mat['segmentation_label'] = seg_labels_flat
 
         # remove any rows that sum to 0
         pixel_mat = pixel_mat.loc[pixel_mat.loc[:, channels].sum(axis=1) != 0, :]
