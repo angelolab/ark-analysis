@@ -26,6 +26,12 @@ def test_load_imgs_from_mibitiff():
             fills=True, dtype=np.float32
         )
 
+        with pytest.raises(ValueError):
+            # attempt to pass an empty channels list
+            loaded_xr = load_utils.load_imgs_from_mibitiff(temp_dir,
+                                                           channels=[],
+                                                           delimiter='_')
+
         # check unspecified fov loading
         loaded_xr = load_utils.load_imgs_from_mibitiff(temp_dir,
                                                        channels=channels,
@@ -85,12 +91,6 @@ def test_load_imgs_from_tree():
             loaded_xr = \
                 load_utils.load_imgs_from_tree(temp_dir, img_sub_folder="TIFs", dtype="int16")
 
-        with pytest.raises(ValueError):
-            # attempt to pass an empty channels list
-            loaded_xr = \
-                load_utils.load_imgs_from_tree(temp_dir, img_sub_folder="TIFs",
-                                               dtype="int16", channels=[])
-
         fovs, chans, imgs = test_utils.gen_fov_chan_names(num_fovs=3, num_chans=3,
                                                           return_imgs=True)
 
@@ -98,6 +98,12 @@ def test_load_imgs_from_tree():
             temp_dir, fovs, chans, img_shape=(10, 10), delimiter='_', fills=True, sub_dir="TIFs",
             dtype="int16"
         )
+
+        with pytest.raises(ValueError):
+            # attempt to pass an empty channels list
+            loaded_xr = \
+                load_utils.load_imgs_from_tree(temp_dir, img_sub_folder="TIFs",
+                                               dtype="int16", channels=[])
 
         # check default loading of all files
         loaded_xr = \

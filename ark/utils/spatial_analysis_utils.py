@@ -45,7 +45,7 @@ def calc_dist_matrix(label_maps, save_path=None):
         centroid_labels = [prop.label for prop in props]
 
         # generate the distance matrix, then assign centroid_labels as coords
-        dist_matrix = cdist(centroids, centroids)
+        dist_matrix = cdist(centroids, centroids).astype(np.float32)
         dist_mat_xarr = xr.DataArray(dist_matrix, coords=[centroid_labels, centroid_labels])
 
         # append final result to dist_mats_list
@@ -179,13 +179,13 @@ def compute_close_cell_num(dist_mat, dist_lim, analysis_type,
         num = len(cluster_ids)
 
     # Create close_num, marker1_num, and marker2_num
-    close_num = np.zeros((num, num), dtype='int')
+    close_num = np.zeros((num, num), dtype=np.uint16)
 
     mark1_num = []
     mark1poslabels = []
 
     dist_mat_bin = xr.DataArray(
-        (dist_mat.values < dist_lim).astype(np.int8),
+        (dist_mat.values < dist_lim).astype(np.uint8),
         coords=dist_mat.coords
     )
 
@@ -218,7 +218,7 @@ def compute_close_cell_num(dist_mat, dist_lim, analysis_type,
                 mark1poslabels[j].values,
                 mark1poslabels[k].values
             ].values
-            count_close_num_hits = np.sum(dist_mat_bin_subset)
+            count_close_num_hits = np.sum(dist_mat_bin_subset, dtype=np.uint16)
 
             close_num[j, k] = count_close_num_hits
             # symmetry :)
@@ -248,20 +248,16 @@ def compute_close_cell_num_random(marker_nums, dist_mat, dist_lim, bootstrap_num
 
     # Create close_num_rand
     close_num_rand = np.zeros((
-        len(marker_nums), len(marker_nums), bootstrap_num), dtype='int')
+        len(marker_nums), len(marker_nums), bootstrap_num), dtype=np.uint16)
 
-    dist_mat_bin = xr.DataArray(
-        (dist_mat.values < dist_lim).astype(np.int8),
-        coords=dist_mat.coords
-    )
+    dist_mat_bin_flattened = (dist_mat.values < dist_lim).astype(np.uint8).flatten()
 
     for j, m1n in enumerate(marker_nums):
         for k, m2n in enumerate(marker_nums[j:], j):
             samples_dim = (m1n * m2n, bootstrap_num)
-            dist_mat_bin_flattened = dist_mat_bin.values.flatten()
             count_close_num_rand_hits = np.sum(
-                np.random.choice(dist_mat_bin_flattened, samples_dim, True),
-                axis=0
+                np.random.choice(dist_mat_bin_flattened, samples_dim, True), axis=0,
+                dtype=np.uint16
             )
 
             close_num_rand[j, k, :] = count_close_num_rand_hits

@@ -90,9 +90,10 @@ def generate_deepcell_input(data_xr, data_dir, nuc_channels, mem_channels):
         mem_channels (list):
             membrane channels to be summed over
     Raises:
-            ValueError:
-                Raised if nuc_channels and mem_channels are both None or empty
+        ValueError:
+            Raised if nuc_channels and mem_channels are both None or empty
     """
+
     if not nuc_channels and not mem_channels:
         raise ValueError('Either nuc_channels or mem_channels should be non-empty.')
 
@@ -123,6 +124,7 @@ def stitch_images(data_xr, num_cols):
         xarray.DataArray:
             the stitched image data
     """
+
     num_imgs = data_xr.shape[0]
     num_rows = math.ceil(num_imgs / num_cols)
     row_len = data_xr.shape[1]

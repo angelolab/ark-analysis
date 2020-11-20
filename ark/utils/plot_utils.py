@@ -50,7 +50,9 @@ def plot_clustering_result(img_xr, fovs, save_dir=None, cmap='tab20',
             misc_utils.save_figure(save_dir, f'{fov}.png')
 
 
-def plot_overlay(predicted_contour, plotting_tif, alternate_contour=None, path=None):
+# plotting functions
+
+def plot_overlay(predicted_contour, plotting_tif, alternate_contour=None, path=None, show=False):
     """Take in labeled contour data, along with optional mibi tif and second contour,
     and overlay them for comparison"
 
@@ -67,6 +69,8 @@ def plot_overlay(predicted_contour, plotting_tif, alternate_contour=None, path=N
             2D numpy array of labeled cell objects
         path (str):
             path to save the resulting image
+        show (bool):
+            whether or not to show plot
     """
 
     if plotting_tif is None:
@@ -144,5 +148,5 @@ def plot_overlay(predicted_contour, plotting_tif, alternate_contour=None, path=N
         # save as TIF if path supplied, otherwise display on screen
         if path is not None:
             io.imsave(path, rescaled)
-        else:
+        if show:
             io.imshow(rescaled)

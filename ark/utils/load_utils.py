@@ -45,7 +45,8 @@ def load_imgs_from_mibitiff(data_dir, mibitiff_files=None, channels=None, delimi
         raise ValueError("No mibitiff files specified in the data directory %s" % data_dir)
 
     # extract fov names w/ delimiter agnosticism
-    fovs = iou.extract_delimited_names(mibitiff_files, delimiter=delimiter)
+    fovs = iou.remove_file_extensions(mibitiff_files)
+    fovs = iou.extract_delimited_names(fovs, delimiter=delimiter)
 
     mibitiff_files = [os.path.join(data_dir, mt_file)
                       for mt_file in mibitiff_files]
@@ -64,6 +65,9 @@ def load_imgs_from_mibitiff(data_dir, mibitiff_files=None, channels=None, delimi
     if channels is None:
         channel_tuples = tiff.read(mibitiff_files[0]).channels
         channels = [channel_tuple[1] for channel_tuple in channel_tuples]
+
+    if len(channels) == 0:
+        raise ValueError("No channels provided in channels list")
 
     # extract images from MIBItiff file
     img_data = []
@@ -130,16 +134,16 @@ def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, channels=None,
         # need this to reorder channels back because list_files may mess up the ordering
         channels_no_delim = [img.split('.')[0] for img in channels]
 
-        channels = iou.list_files(
+        all_channels = iou.list_files(
             os.path.join(data_dir, fovs[0], img_sub_folder),
-            substrs=channels
+            substrs=channels_no_delim, exact_match=True
         )
 
         # get the corresponding indices found in channels_no_delim
-        channels_indices = [channels_no_delim.index(chan.split('.')[0]) for chan in channels]
+        channels_indices = [channels_no_delim.index(chan.split('.')[0]) for chan in all_channels]
 
         # reorder back to original
-        channels = [chan for _, chan in sorted(zip(channels_indices, channels))]
+        channels = [chan for _, chan in sorted(zip(channels_indices, all_channels))]
 
     if len(channels) == 0:
         raise ValueError("No images found in designated folder")
@@ -192,8 +196,7 @@ def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, channels=None,
 def load_imgs_from_dir(data_dir, files=None, delimiter=None, xr_dim_name='compartments',
                        xr_channel_names=None, dtype="int16", force_ints=False,
                        channel_indices=None):
-    """Takes a set of images (possibly multitiffs) from a directory and loads them
-     into an xarray.
+    """Takes a set of images (possibly multitiffs) from a directory and loads them into an xarray.
 
     Args:
         data_dir (str):
@@ -308,7 +311,8 @@ def load_imgs_from_dir(data_dir, files=None, delimiter=None, xr_dim_name='compar
         row_coords, col_coords = range(test_img.shape[0]), range(test_img.shape[1])
 
     # get fov name from imgs
-    fovs = iou.extract_delimited_names(imgs, delimiter=delimiter)
+    fovs = iou.remove_file_extensions(imgs)
+    fovs = iou.extract_delimited_names(fovs, delimiter=delimiter)
 
     # create xarray with image data
     img_xr = xr.DataArray(img_data,

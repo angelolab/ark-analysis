@@ -238,8 +238,6 @@ def test_generate_cluster_matrix_results():
         all_data_pos, dist_mat_pos, distlim=51
     )
 
-    neighbor_counts = neighbor_counts.drop(settings.CELL_LABEL, axis=1)
-
     # error checking
     with pytest.raises(ValueError):
         # pass bad columns
