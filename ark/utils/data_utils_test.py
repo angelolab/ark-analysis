@@ -7,6 +7,8 @@ import pytest
 from ark.utils import data_utils, test_utils
 import skimage.io as io
 
+from ark.utils.data_utils import relabel_img_array
+
 
 def test_generate_deepcell_input():
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -134,3 +136,20 @@ def test_split_img_stack():
 
         assert np.array_equal(sample_chan_1, data_xr[0, :, :, 0].values)
         assert np.array_equal(sample_chan_2, data_xr[0, :, :, 1].values)
+
+
+def test_relabel_img_array():
+    x = y = 5
+    img_arr = np.arange(1, x * y + 1).reshape((x, y))
+    d = {i: i + 1 for i in range(1, x * y + 1)}
+    res = relabel_img_array(img_arr, d)
+
+    assert np.array_equal(img_arr + 1, res)
+
+    # some cells are not mapped to any cluster-label
+    d = {i: i + 1 for i in range(1, x * y - 5)}
+    res = relabel_img_array(img_arr, d)
+    # these cells should all get a default label
+    img_arr[img_arr >= x * y - 5] = x * y - 5
+
+    assert np.array_equal(img_arr + 1, res)

@@ -14,39 +14,40 @@ from skimage.exposure import rescale_intensity
 from ark.utils import misc_utils
 
 # plotting functions
+from ark.utils.misc_utils import verify_in_list
 
 
-def plot_clustering_result(img_list, titles, save_dir=None, cmap='tab20',
-                           figsize=(10, 10)):
-    """Takes a list of labeled images (nd-arrays) and displays them.
+def plot_clustering_result(img_xr, fovs, save_dir=None, cmap='tab20',
+                           fov_col='fovs', figsize=(10, 10)):
+    """Takes an xarray containing labeled images and displays them.
 
     Args:
-        img_list (list):
-            List of 2D numpy arrays of labeled cell objects.
-        titles (list):
-            List of titles for the images that will be displayed. Must have the
-            same length as img_list.
+        img_xr (xr.DataArray):
+            xarray containing labeled cell objects.
+        fovs (list):
+            list of fovs to display.
         save_dir (str):
             If provided, the image will be saved to this location.
         cmap (str):
             Cmap to use for the image that will be displayed.
+        fov_col (str):
+            column with the fovs names in img_xr.
         figsize (tuple):
             Size of the image that will be displayed.
     """
 
-    if len(titles) != len(img_list):
-        raise ValueError('img_list and titles must be of the same length.')
+    verify_in_list(fov_names=fovs, unique_fovs=img_xr.fovs)
 
-    for img, title in zip(img_list, titles):
+    for fov in fovs:
         plt.figure(figsize=figsize)
         ax = plt.gca()
-        plt.title(title)
-        plt.imshow(img, cmap=cmap)
+        plt.title(fov)
+        plt.imshow(img_xr[img_xr[fov_col] == fov].values.squeeze(), cmap=cmap)
         divider = make_axes_locatable(ax)
         cax = divider.append_axes("right", size="5%", pad=0.05)
         plt.colorbar(cax=cax)
         if save_dir:
-            misc_utils.save_figure(save_dir, f'{title}.png')
+            misc_utils.save_figure(save_dir, f'{fov}.png')
 
 
 def plot_overlay(predicted_contour, plotting_tif, alternate_contour=None, path=None):

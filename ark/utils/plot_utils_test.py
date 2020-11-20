@@ -31,14 +31,6 @@ def _generate_image_data(img_dims):
     return np.random.randint(low=0, high=100, size=img_dims)
 
 
-def test_plot_clustering_result():
-    titles = ['fov1', 'fov2']
-    img_list = [np.ones((1024, 1024, 3))]
-    # titles and img_list should have the same length
-    with pytest.raises(ValueError):
-        plot_clustering_result(img_list, titles)
-
-
 def test_plot_overlay():
     example_labels = _generate_segmentation_labels((1024, 1024))
     example_images = _generate_image_data((1024, 1024, 3))
