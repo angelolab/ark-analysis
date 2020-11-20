@@ -3,11 +3,13 @@ import os
 import tempfile
 from shutil import rmtree
 import pytest
+import pandas as pd
+import xarray as xr
 
 from ark.utils import data_utils, test_utils
 import skimage.io as io
 
-from ark.utils.data_utils import relabel_img_array
+from ark.utils.data_utils import relabel_img_array, relabel_images
 
 
 def test_generate_deepcell_input():
@@ -153,3 +155,37 @@ def test_relabel_img_array():
     img_arr[img_arr >= x * y - 5] = x * y - 5
 
     assert np.array_equal(img_arr + 1, res)
+
+
+def test_relabel_images():
+    fovs = ['fov1', 'fov2', 'fov3']
+    x = y = 5
+    cluster_labels = np.random.randint(1, 5, x * y * len(fovs))
+    labels = [i % (x * y) for i in range(x * y * len(fovs))]
+    data = zip(cluster_labels, labels, [fov for _ in range(x * y) for fov in fovs])
+    all_data = pd.DataFrame(data, columns=['cluster_labels', 'label', 'fovs'])
+    img_data = np.array([np.arange(1, x * y + 1).reshape((x, y)) for _ in fovs])
+
+    # set random pixels to zero
+    idx = np.random.choice(5, 3, replace=False)
+    img_data[1][idx] = 0
+
+    np.stack(img_data, axis=0)
+    label_maps = xr.DataArray(img_data,
+                              coords=[fovs, range(x), range(y)],
+                              dims=["fovs", "rows", "cols"])
+    res_xr = relabel_images([fovs[0]], all_data, label_maps, cell_label_col='fovs',
+                            fov_col='fovs')
+    assert res_xr.shape == (1, x, y)
+
+    res_xr = relabel_images(fovs, all_data, label_maps, cell_label_col='fovs',
+                            fov_col='fovs')
+    assert res_xr.shape == (3, x, y)
+
+    # zero pixels in fov1 should remain zero
+    labeled_img = res_xr[res_xr['fovs'] == fovs[1]].values.squeeze()
+    assert np.all(labeled_img[idx] == 0)
+
+    # all pixels in fov2 should remain non-zero
+    labeled_img = res_xr[res_xr['fovs'] == fovs[2]].values.squeeze()
+    assert np.all(labeled_img[idx] > 0)
