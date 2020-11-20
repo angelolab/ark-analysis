@@ -4,6 +4,25 @@ import numpy as np
 import pandas as pd
 
 
+def decay_function(param, t, num_iters):
+    """Decays the parameter using an asymptotic decay function
+
+    Args:
+        param (float):
+            The value to decay (either sigma or learning_rate)
+        t (int):
+            The current iteration index
+        num_iters (int):
+            The maximum number of iterations
+
+    Returns:
+        float:
+            The decayed parameter
+    """
+
+    return param / (1 + t / (num_iters / 2))
+
+
 def winner(sample, weights):
     """Find the coordinates to the winning neuron in the SOM
 
@@ -39,9 +58,9 @@ def update(sample, weights, winning_coords, sigma, learning_rate,
         winning_coords (tuple):
             A coordinate array which indicates the winning neuron's position
         sigma (float):
-            Determines the spread of the Gaussian neighborhood function
+            Determines the spread of the Gaussian neighborhood function, decayed
         learning_rate (float):
-            Determines how sensitive the weight updates will be to new data
+            Determines how sensitive the weight updates will be to new data, decayed
         x_mesh (numpy.ndarray):
             The x coordinate matrix of the weights vectors
         y_mesh (numpy.ndarray):
@@ -56,26 +75,20 @@ def update(sample, weights, winning_coords, sigma, learning_rate,
             The updated weights matrix
     """
 
-    # update learning rate with asymptotic decay
-    decay_lr = learning_rate / (1 + t / (num_iters / 2))
-
-    # update sigma with asymptotic decay
-    decay_sig = sigma / (1 + t / (num_iters / 2))
-
     # return a Gaussian centered around the winning coordinates
-    d = 2 * np.pi * decay_sig * decay_sig
+    d = 2 * np.pi * sigma * sigma
     ax = np.exp(-np.power(x_mesh - x_mesh.T[winning_coords], 2) / d)
     ay = np.exp(-np.power(y_mesh - y_mesh.T[winning_coords], 2) / d)
-    g = (ax * ay).T * decay_lr
+    g = (ax * ay).T * learning_rate
 
     # update the weights based on the Gaussian neighborhood
-    weights += np.einsum('ij, ijk->ijk', g, sample - weights)
+    new_weights = weights + np.einsum('ij, ijk->ijk', g, sample - weights)
 
-    return weights
+    return new_weights
 
 
 def train_som(pixel_mat, x_neurons, y_neurons, num_passes,
-              sigma=1.0, learning_rate=0.5, random_seed=0):
+              sigma=1.0, learning_rate=0.5, random_seed=None):
     """Trains the SOM by iterating through the each data point and updating the params
 
     Args:
@@ -119,9 +132,13 @@ def train_som(pixel_mat, x_neurons, y_neurons, num_passes,
         # find the winning neuron's coordinates
         winning_coords = winner(pixel_mat.loc[row, :].values, weights)
 
+        # decay both sigma and learning_rate using the decay function
+        decay_sigma = decay_function(sigma, t, num_iters)
+        decay_learning_rate = decay_function(learning_rate, t, num_iters)
+
         # update the weights
         weights = update(pixel_mat.loc[row, :].values, weights,
-                         winning_coords, sigma, learning_rate,
+                         winning_coords, decay_sigma, decay_learning_rate,
                          x_mesh, y_mesh, t, num_iters)
 
     return weights
