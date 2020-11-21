@@ -72,7 +72,9 @@ def test_train_som():
     cluster_coords = test_pixel_mat.apply(
         lambda row: cluster.winner(np.array(row.values), weights), axis=1)
 
-    # now verify that the assigned weights are the ones that are the closest to each pixel
+    # assert np.all(np.isin(cluster_coords.values, np.unique(cluster_coords.values)))
+
+    # now verify that the difference between the weights and pixel data is close
     for row, coord in enumerate(cluster_coords.values):
         pixel_row = test_pixel_mat.iloc[row, :].values
         diff = weights - pixel_row
