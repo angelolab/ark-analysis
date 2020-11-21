@@ -1,4 +1,5 @@
 import os
+import multiprocessing
 
 import numpy as np
 import pandas as pd
@@ -43,20 +44,17 @@ def create_pixel_matrix(img_xr, seg_labels, fovs=None, channels=None, blur_facto
     misc_utils.verify_in_list(fovs=fovs, image_fovs=img_xr.fovs.values)
     misc_utils.verify_in_list(channels=channels, image_channels=img_xr.channels.values)
 
-    # delete any fovs and channels we don't need
-    img_xr_subset = img_xr.loc[fovs, :, :, channels]
-
     # define our flowsom matrix
     flowsom_data = None
 
     # iterate over fovs
     for fov in fovs:
         # subset img_xr with only the fov we're looking for
-        img_xr_sub = img_xr_subset.loc[fov, ...].values
+        img_data_blur = img_xr.loc[fov, ..., channels].values
 
-        # apply a Gaussian blur for each marker
-        img_data_blur = np.apply_along_axis(ndimage.gaussian_filter, axis=2,
-                                            arr=img_xr_sub, sigma=blur_factor)
+        for marker in range(len(channels)):
+            img_data_blur[:, :, marker] = ndimage.gaussian_filter(img_data_blur[:, :, marker],
+                                                                  sigma=blur_factor)
 
         # flatten each image
         pixel_mat = img_data_blur.reshape(-1, len(channels))
@@ -66,12 +64,12 @@ def create_pixel_matrix(img_xr, seg_labels, fovs=None, channels=None, blur_facto
 
         # assign metadata about each entry
         pixel_mat['fov'] = fov
-        pixel_mat['x_coord'] = np.repeat(range(img_data_blur.shape[0]), img_data_blur.shape[1])
-        pixel_mat['y_coord'] = np.tile(range(img_data_blur.shape[0]), img_data_blur.shape[1])
+        pixel_mat['row_index'] = np.repeat(range(img_data_blur.shape[0]), img_data_blur.shape[1])
+        pixel_mat['column_index'] = np.tile(range(img_data_blur.shape[0]), img_data_blur.shape[1])
 
         # assign segmentation label
         seg_labels_flat = seg_labels.loc[fov, ...].values.flatten()
-        pixel_mat['seg_label'] = seg_labels_flat
+        pixel_mat['segmentation_label'] = seg_labels_flat
 
         # remove any rows that sum to 0
         pixel_mat = pixel_mat.loc[pixel_mat.loc[:, channels].sum(axis=1) != 0, :]
