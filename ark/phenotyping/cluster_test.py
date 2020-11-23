@@ -3,6 +3,8 @@ import pandas as pd
 
 import ark.phenotyping.cluster as cluster
 
+import ark.utils.misc_utils as misc_utils
+
 
 def test_decay_function():
     sample_param = 1
@@ -60,9 +62,9 @@ def test_update():
 
 def test_train_som():
     # create a som with just 1 weight for each channel per pixel
-    test_pixel_mat = pd.DataFrame(np.random.rand(9, 4))
-    test_x = 3
-    test_y = 3
+    test_pixel_mat = pd.DataFrame(np.random.rand(4, 6))
+    test_x = 2
+    test_y = 2
     test_num_passes = 1000
 
     # only to see if it runs to completion with default sigma, learning_rate, and randomization
@@ -72,7 +74,9 @@ def test_train_som():
     cluster_coords = test_pixel_mat.apply(
         lambda row: cluster.winner(np.array(row.values), weights), axis=1)
 
-    # assert np.all(np.isin(cluster_coords.values, np.unique(cluster_coords.values)))
+    # test that each cluster coord is covered, str conversion cause tuple equality checks are weird
+    misc_utils.verify_same_elements(assigned_coords=cluster_coords.astype(str).values,
+                                    neuron_coords=np.unique(cluster_coords.astype(str).values))
 
     # now verify that the difference between the weights and pixel data is close
     for row, coord in enumerate(cluster_coords.values):
