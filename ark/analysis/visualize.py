@@ -3,7 +3,6 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-import xarray as xr
 
 from ark.utils import misc_utils
 
@@ -74,7 +73,7 @@ def visualize_z_scores(z, x_labels, y_labels, dpi=None, center_val=None,
             List of names displayed on horizontal axis
         y_labels (list):
             List of all names displayed on vertical axis
-        dpi (int):
+        dpi (float):
             dpi for resolution control if user wants to save figure
         center_val (float):
             value at which to center the heatmap
@@ -95,7 +94,11 @@ def visualize_z_scores(z, x_labels, y_labels, dpi=None, center_val=None,
 
     # save visualization to a directory if specified
     if save_dir is not None:
-        misc_utils.save_figure(save_dir, "z_score_viz.png")
+        if dpi is not None:
+            plt.savefig(os.path.join(save_dir, "z_score_viz.png"), dpi=dpi)
+        else:
+            misc_utils.save_figure(save_dir, "z_score_viz.png")
+
 
 
 def get_sorted_data(cell_data, sort_by_first, sort_by_second, is_normalized=False):

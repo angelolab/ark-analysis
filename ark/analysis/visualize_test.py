@@ -69,11 +69,13 @@ def test_visualize_z_scores():
 
     with tempfile.TemporaryDirectory() as temp_dir:
         # test that without save_dir, we do not save
-        visualize.visualize_z_scores(z, pheno_titles, pheno_titles)
+        visualize.visualize_z_scores(z, pheno_titles, pheno_titles, dpi=np.random.ranf(),
+                                     center_val=np.random.ranf())
         assert not os.path.exists(os.path.join(temp_dir, "z_score_viz.png"))
 
         # test that with save_dir, we do save
-        visualize.visualize_z_scores(z, pheno_titles, pheno_titles, save_dir=temp_dir)
+        visualize.visualize_z_scores(z, pheno_titles, pheno_titles, dpi=np.random.ranf(),
+                                     center_val=np.random.ranf(), save_dir=temp_dir)
         assert os.path.exists(os.path.join(temp_dir, "z_score_viz.png"))
 
 
