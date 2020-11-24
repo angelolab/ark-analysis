@@ -76,16 +76,16 @@ def create_pixel_matrix(img_xr, seg_labels, fovs=None, channels=None, blur_facto
 
         # turn into frequency
         pixel_mat.loc[:, channels] = pixel_mat.loc[:, channels].div(
-            pixel_mat.sum(axis=1), axis=0)
-
-        # 99.9% normalization
-        pixel_mat.loc[:, channels] = pixel_mat.loc[:, channels].div(
-            pixel_mat.quantile(q=0.999, axis=1), axis=0)
+            pixel_mat.loc[:, channels].sum(axis=1), axis=0)
 
         # assign to flowsom_data if not already assigned, otherwise concatenates
         if flowsom_data is None:
             flowsom_data = pixel_mat
         else:
             flowsom_data = pd.concat([flowsom_data, pixel_mat])
+
+    # 99.9% normalization
+    flowsom_data.loc[:, channels] = flowsom_data.loc[:, channels].div(
+        flowsom_data.loc[:, channels].quantile(q=0.999, axis=0), axis=1)
 
     return flowsom_data
