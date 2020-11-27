@@ -56,7 +56,16 @@ def test_compute_marker_counts_base():
     assert np.array_equal(segmentation_output.loc['whole_cell', :, settings.CELL_SIZE],
                           segmentation_output.loc['whole_cell', :, 'area'])
 
-    # TODO: add test to validate different extraction
+    # test different extraction selection
+    center_extraction = \
+        marker_quantification.compute_marker_counts(input_images=input_images,
+                                                    segmentation_labels=segmentation_labels,
+                                                    extraction='center_weighting')
+
+    assert np.all(
+        segmentation_output.loc['whole_cell', :, 'chan0'].values
+        > center_extraction.loc['whole_cell', :, 'chan0'].values
+    )
 
 
 def test_compute_marker_counts_equal_masks():

@@ -156,7 +156,7 @@ def test_center_weighting_extraction():
 
     # catch no centroid error
     with pytest.raises(TypeError):
-        signal_extraction.center_weighting_extraction(
+        _ = signal_extraction.center_weighting_extraction(
             cell_coords=coords_1,
             image_data=xr.DataArray(sample_channel_data)
         )

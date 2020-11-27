@@ -107,10 +107,10 @@ def compute_marker_counts(input_images, segmentation_labels, nuclear_counts=Fals
         cell_coords = cell_props.loc[cell_props['label'] == cell_id, 'coords'].values[0]
 
         # get centroid corresponding to current cell
-        kwargs['centroid'] = (
-            cell_props.loc[cell_props['label'] == cell_id, 'centroid-0'],
-            cell_props.loc[cell_props['label'] == cell_id, 'centroid-1']
-        )
+        kwargs['centroid'] = np.array((
+            cell_props.loc[cell_props['label'] == cell_id, 'centroid-0'].values,
+            cell_props.loc[cell_props['label'] == cell_id, 'centroid-1'].values
+        )).T
 
         # calculate the total signal intensity within cell
         cell_counts = extraction_function[extraction](cell_coords, input_images, **kwargs)
@@ -136,11 +136,11 @@ def compute_marker_counts(input_images, segmentation_labels, nuclear_counts=Fals
                 # get coordinates of corresponding nucleus
                 nuc_coords = nuc_props.loc[nuc_props['label'] == nuc_id, 'coords'].values[0]
 
-                # get nuclear coordinates
-                kwargs['centroid'] = (
-                    nuc_props.loc[nuc_props['label'] == nuc_id, 'centroid-0'],
-                    nuc_props.loc[nuc_props['label'] == nuc_id, 'centroid-1']
-                )
+                # get nuclear centroid
+                kwargs['centroid'] = np.array((
+                    nuc_props.loc[nuc_props['label'] == nuc_id, 'centroid-0'].values,
+                    nuc_props.loc[nuc_props['label'] == nuc_id, 'centroid-1'].values
+                )).T
 
                 # extract nuclear signal
                 nuc_counts = extraction_function[extraction](nuc_coords, input_images, **kwargs)
