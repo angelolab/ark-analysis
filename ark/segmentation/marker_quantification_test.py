@@ -56,6 +56,8 @@ def test_compute_marker_counts_base():
     assert np.array_equal(segmentation_output.loc['whole_cell', :, settings.CELL_SIZE],
                           segmentation_output.loc['whole_cell', :, 'area'])
 
+    # TODO: add test to validate different extraction
+
 
 def test_compute_marker_counts_equal_masks():
     cell_mask, channel_data = test_utils.create_test_extraction_data()

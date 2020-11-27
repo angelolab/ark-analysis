@@ -6,6 +6,8 @@ from ark.utils import synthetic_spatial_datagen
 
 from skimage.measure import regionprops
 
+import pytest
+
 
 def test_positive_pixels_extraction():
     # sample params
@@ -51,21 +53,39 @@ def test_positive_pixels_extraction():
     assert np.all(channel_counts_2 == [0, 236])
 
     # test with new threshold == 10
-    test_threshold = 10
+    kwargs = {'threshold': 10}
 
     channel_counts_1 = signal_extraction.positive_pixels_extraction(
         cell_coords=coords_1,
         image_data=xr.DataArray(sample_channel_data),
-        threshold=test_threshold
+        **kwargs
     )
 
     channel_counts_2 = signal_extraction.positive_pixels_extraction(
         cell_coords=coords_2,
         image_data=xr.DataArray(sample_channel_data),
-        threshold=test_threshold
+        **kwargs
     )
 
     assert np.all(channel_counts_1 == [0, 0])
+    assert np.all(channel_counts_2 == [0, 236])
+
+    # test for multichannel thresholds
+    kwargs = {'threshold': np.array([0, 10])}
+
+    channel_counts_1 = signal_extraction.positive_pixels_extraction(
+        cell_coords=coords_1,
+        image_data=xr.DataArray(sample_channel_data),
+        **kwargs
+    )
+
+    channel_counts_2 = signal_extraction.positive_pixels_extraction(
+        cell_coords=coords_2,
+        image_data=xr.DataArray(sample_channel_data),
+        **kwargs
+    )
+
+    assert np.all(channel_counts_1 == [25, 0])
     assert np.all(channel_counts_2 == [0, 236])
 
 
@@ -99,8 +119,8 @@ def test_center_weighting_extraction():
 
     # extract the centroids and coords
     region_info = regionprops(sample_segmentation_mask.astype(np.int16))
-    centroid_1 = region_info[0].centroid
-    centroid_2 = region_info[1].centroid
+    kwarg_1 = {'centroid': region_info[0].centroid}
+    kwarg_2 = {'centroid': region_info[1].centroid}
 
     coords_1 = region_info[0].coords
     coords_2 = region_info[1].coords
@@ -108,13 +128,13 @@ def test_center_weighting_extraction():
     channel_counts_1_center_weight = signal_extraction.center_weighting_extraction(
         cell_coords=coords_1,
         image_data=xr.DataArray(sample_channel_data),
-        centroid=centroid_1
+        **kwarg_1
     )
 
     channel_counts_2_center_weight = signal_extraction.center_weighting_extraction(
         cell_coords=coords_2,
         image_data=xr.DataArray(sample_channel_data),
-        centroid=centroid_2
+        **kwarg_2
     )
 
     channel_counts_1_base_weight = signal_extraction.default_extraction(
@@ -133,6 +153,13 @@ def test_center_weighting_extraction():
 
     # assert effect of "bleeding" membrane signal is less with weighted than default
     assert channel_counts_1_center_weight[1] < channel_counts_1_base_weight[1]
+
+    # catch no centroid error
+    with pytest.raises(TypeError):
+        signal_extraction.center_weighting_extraction(
+            cell_coords=coords_1,
+            image_data=xr.DataArray(sample_channel_data)
+        )
 
 
 def test_default_extraction():
