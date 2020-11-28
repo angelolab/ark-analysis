@@ -9,7 +9,7 @@ def positive_pixels_extraction(cell_coords, image_data, **kwargs):
     Args:
         cell_coords (numpy.ndarray): values representing pixels within one cell
         image_data (xarray.DataArray): array containing channel counts
-        kwargs: arbitrary keyword arguments
+        **kwargs: arbitrary keyword arguments
 
     Returns:
         numpy.ndarray:
@@ -72,7 +72,7 @@ def default_extraction(cell_coords, image_data, **kwargs):
             values representing pixels within one cell
         image_data (xarray.DataArray):
             array containing channel counts
-        kwargs:
+        **kwargs:
             arbitrary keyword arguments
 
     Returns:

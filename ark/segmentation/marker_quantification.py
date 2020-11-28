@@ -30,7 +30,7 @@ def compute_marker_counts(input_images, segmentation_labels, nuclear_counts=Fals
             controls whether nuclei which have portions outside of the cell will get relabeled
         extraction (str):
             extraction function used to compute marker counts. default is 'default'
-        kwargs:
+        **kwargs:
             arbitrary keyword arguments
     Returns:
         xarray.DataArray:
@@ -180,7 +180,7 @@ def create_marker_count_matrices(segmentation_labels, image_data, nuclear_counts
             will get split into two different nuclear objects
         extraction (str):
             extraction function used to compute marker counts. default is 'default'
-        kwargs:
+        **kwargs:
             arbitrary keyword args
 
     Returns:
@@ -284,7 +284,7 @@ def generate_cell_table(segmentation_labels, tiff_dir, img_sub_folder,
             data type of base images
         extraction (str):
             extraction function used to compute marker counts. default is 'default'
-        kwargs:
+        **kwargs:
             arbitrary keyword arguments
 
     Returns:
