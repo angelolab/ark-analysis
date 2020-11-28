@@ -17,6 +17,7 @@ def compute_marker_counts(input_images, segmentation_labels, nuclear_counts=Fals
                           regionprops_features=None, split_large_nuclei=False,
                           extraction='default', **kwargs):
     """Extract single cell protein expression data from channel TIFs for a single fov
+
     Args:
         input_images (xarray.DataArray):
             rows x columns x channels matrix of imaging data
