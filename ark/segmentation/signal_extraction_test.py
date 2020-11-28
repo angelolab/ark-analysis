@@ -6,8 +6,6 @@ from ark.utils import synthetic_spatial_datagen
 
 from skimage.measure import regionprops
 
-import pytest
-
 
 def test_positive_pixels_extraction():
     # sample params
@@ -153,13 +151,6 @@ def test_center_weighting_extraction():
 
     # assert effect of "bleeding" membrane signal is less with weighted than default
     assert channel_counts_1_center_weight[1] < channel_counts_1_base_weight[1]
-
-    # catch no centroid error
-    with pytest.raises(TypeError):
-        _ = signal_extraction.center_weighting_extraction(
-            cell_coords=coords_1,
-            image_data=xr.DataArray(sample_channel_data)
-        )
 
 
 def test_default_extraction():
