@@ -47,10 +47,6 @@ def center_weighting_extraction(cell_coords, image_data, **kwargs):
             Sums of counts for each channel
     """
 
-    # check for centroid in kwargs
-    if 'centroid' not in kwargs.keys():
-        raise TypeError("center_weighting_extraction() missing keyowrd-only argument: 'centroid'")
-
     # compute the distance box-level from the center outward
     weights = np.linalg.norm(cell_coords - kwargs['centroid'], ord=np.inf, axis=1)
 
@@ -92,5 +88,5 @@ def default_extraction(cell_coords, image_data, **kwargs):
 extraction_function = {
     'positive_pixel': positive_pixels_extraction,
     'center_weighting': center_weighting_extraction,
-    'default': default_extraction,
+    'total_intensity': default_extraction,
 }

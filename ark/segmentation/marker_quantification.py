@@ -15,7 +15,7 @@ import ark.settings as settings
 
 def compute_marker_counts(input_images, segmentation_labels, nuclear_counts=False,
                           regionprops_features=None, split_large_nuclei=False,
-                          extraction='default', **kwargs):
+                          extraction='total_intensity', **kwargs):
     """Extract single cell protein expression data from channel TIFs for a single fov
 
     Args:
@@ -30,13 +30,18 @@ def compute_marker_counts(input_images, segmentation_labels, nuclear_counts=Fals
         split_large_nuclei (bool):
             controls whether nuclei which have portions outside of the cell will get relabeled
         extraction (str):
-            extraction function used to compute marker counts. default is 'default'
+            extraction function used to compute marker counts. default is 'total_intensity'
         **kwargs:
             arbitrary keyword arguments
     Returns:
         xarray.DataArray:
             xarray containing segmented data of cells x markers
     """
+
+    misc_utils.verify_in_list(
+        extraction=[extraction],
+        extraction_options=list(extraction_function.keys())
+    )
 
     if regionprops_features is None:
         regionprops_features = ['label', 'area', 'eccentricity', 'major_axis_length',
@@ -164,7 +169,7 @@ def compute_marker_counts(input_images, segmentation_labels, nuclear_counts=Fals
 
 
 def create_marker_count_matrices(segmentation_labels, image_data, nuclear_counts=False,
-                                 split_large_nuclei=False, extraction='default', **kwargs):
+                                 split_large_nuclei=False, extraction='total_intensity', **kwargs):
     """Create a matrix of cells by channels with the total counts of each marker in each cell.
 
     Args:
@@ -180,7 +185,7 @@ def create_marker_count_matrices(segmentation_labels, image_data, nuclear_counts
             boolean flag to determine whether nuclei which are larger than their assigned cell
             will get split into two different nuclear objects
         extraction (str):
-            extraction function used to compute marker counts. default is 'default'
+            extraction function used to compute marker counts. default is 'total_intensity'
         **kwargs:
             arbitrary keyword args
 
@@ -201,6 +206,11 @@ def create_marker_count_matrices(segmentation_labels, image_data, nuclear_counts
             nuclear_label='nuclear',
             compartment_names=segmentation_labels.compartments.values
         )
+
+    misc_utils.verify_in_list(
+        extraction=[extraction],
+        extraction_options=list(extraction_function.keys())
+    )
 
     misc_utils.verify_same_elements(segmentation_labels_fovs=segmentation_labels.fovs.values,
                                     img_data_fovs=image_data.fovs.values)
@@ -263,7 +273,7 @@ def create_marker_count_matrices(segmentation_labels, image_data, nuclear_counts
 
 def generate_cell_table(segmentation_labels, tiff_dir, img_sub_folder,
                         is_mibitiff=False, fovs=None, batch_size=5, dtype="int16",
-                        extraction='default', **kwargs):
+                        extraction='total_intensity', **kwargs):
     """This function takes the segmented data and computes the expression matrices batch-wise
     while also validating inputs
 
@@ -284,9 +294,9 @@ def generate_cell_table(segmentation_labels, tiff_dir, img_sub_folder,
         dtype (str/type):
             data type of base images
         extraction (str):
-            extraction function used to compute marker counts. default is 'default'
+            extraction function used to compute marker counts. default is 'total_intensity'
         **kwargs:
-            arbitrary keyword arguments
+            arbitrary keyword arguments for signal extraction
 
     Returns:
         tuple (pandas.DataFrame, pandas.DataFrame):å
@@ -303,6 +313,11 @@ def generate_cell_table(segmentation_labels, tiff_dir, img_sub_folder,
 
     # drop file extensions
     fovs = io_utils.remove_file_extensions(fovs)
+
+    misc_utils.verify_in_list(
+        extraction=[extraction],
+        extraction_options=list(extraction_function.keys())
+    )
 
     # check segmentation_labels for given fovs (img loaders will fail otherwise)
     misc_utils.verify_in_list(fovs=fovs,

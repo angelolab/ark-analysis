@@ -463,3 +463,61 @@ def test_generate_cell_data_mibitiff_loading():
 
         assert norm_data.shape[0] > 0 and norm_data.shape[1] > 0
         assert arcsinh_data.shape[0] > 0 and arcsinh_data.shape[1] > 0
+
+
+def test_generate_cell_data_extractions():
+    with tempfile.TemporaryDirectory() as temp_dir:
+        # define 3 fovs and 3 imgs per fov
+        fovs, chans = test_utils.gen_fov_chan_names(3, 3)
+
+        tiff_dir = os.path.join(temp_dir, "single_channel_inputs")
+        img_sub_folder = "TIFs"
+
+        os.mkdir(tiff_dir)
+        test_utils.create_paired_xarray_fovs(
+            base_dir=tiff_dir,
+            fov_names=fovs,
+            channel_names=chans,
+            img_shape=(40, 40),
+            sub_dir=img_sub_folder,
+            fills=True,
+            dtype="int16"
+        )
+
+        # generate a sample segmentation_mask
+        cell_mask, _ = test_utils.create_test_extraction_data()
+
+        cell_masks = np.zeros((3, 40, 40, 1), dtype="int16")
+        cell_masks[0, :, :, 0] = cell_mask[0, :, :, 0]
+        cell_masks[1, 5:, 5:, 0] = cell_mask[0, :-5, :-5, 0]
+        cell_masks[2, 10:, 10:, 0] = cell_mask[0, :-10, :-10, 0]
+
+        segmentation_masks = test_utils.make_labels_xarray(
+            label_data=cell_masks,
+            compartment_names=['whole_cell']
+        )
+
+        default_norm_data, _ = marker_quantification.generate_cell_table(
+            segmentation_labels=segmentation_masks, tiff_dir=tiff_dir,
+            img_sub_folder=img_sub_folder, is_mibitiff=False, batch_size=2,
+        )
+
+        # verify total intensity extraction
+        assert np.all(
+            default_norm_data.loc[default_norm_data[settings.CELL_LABEL] == 1][chans].values
+            == np.arange(9).reshape(3, 3)
+        )
+
+        thresh_kwargs = {
+            'threshold': 1
+        }
+
+        # verify thresh kwarg passes through
+        positive_pixel_data, _ = marker_quantification.generate_cell_table(
+            segmentation_labels=segmentation_masks, tiff_dir=tiff_dir,
+            img_sub_folder=img_sub_folder, is_mibitiff=False, batch_size=2,
+            extraction='positive_pixel', **thresh_kwargs
+        )
+
+        assert np.all(positive_pixel_data.iloc[:4][['chan0', 'chan1']].values == 0)
+        assert np.all(positive_pixel_data.iloc[4:][chans].values == 1)
