@@ -9,7 +9,7 @@ import xarray as xr
 from ark.utils import data_utils, test_utils
 import skimage.io as io
 
-from ark.utils.data_utils import relabel_img_array, relabel_images
+from ark.utils.data_utils import relabel_segmentation, label_cells_by_cluster
 
 
 def test_generate_deepcell_input():
@@ -140,24 +140,33 @@ def test_split_img_stack():
         assert np.array_equal(sample_chan_2, data_xr[0, :, :, 1].values)
 
 
-def test_relabel_img_array():
+def test_relabel_segmentation():
     x = y = 5
     img_arr = np.arange(1, x * y + 1).reshape((x, y))
     d = {i: i + 1 for i in range(1, x * y + 1)}
-    res = relabel_img_array(img_arr, d)
+    res = relabel_segmentation(img_arr, d)
 
     assert np.array_equal(img_arr + 1, res)
 
     # some cells are not mapped to any cluster-label
     d = {i: i + 1 for i in range(1, x * y - 5)}
-    res = relabel_img_array(img_arr, d)
+    res = relabel_segmentation(img_arr, d)
     # these cells should all get a default label
     img_arr[img_arr >= x * y - 5] = x * y - 5
 
     assert np.array_equal(img_arr + 1, res)
 
+    # test case for multiple pixels with the same label
+    data = np.array([[1, 2], [3, 4]])
+    data = np.repeat(data, 2)  # ([1, 1, 2, 2, 3, 3, 4, 4])
+    img_arr = data.reshape((4, 2))
+    d = {i: 10 * i for i in range(5)}
+    res = relabel_segmentation(img_arr, d)
 
-def test_relabel_images():
+    assert np.array_equal(img_arr * 10, res)
+
+
+def test_label_cells_by_cluster():
     fovs = ['fov1', 'fov2', 'fov3']
     x = y = 5
     cluster_labels = np.random.randint(1, 5, x * y * len(fovs))
@@ -174,12 +183,10 @@ def test_relabel_images():
     label_maps = xr.DataArray(img_data,
                               coords=[fovs, range(x), range(y)],
                               dims=["fovs", "rows", "cols"])
-    res_xr = relabel_images([fovs[0]], all_data, label_maps, cell_label_col='fovs',
-                            fov_col='fovs')
+    res_xr = label_cells_by_cluster([fovs[0]], all_data, label_maps, fov_col='fovs')
     assert res_xr.shape == (1, x, y)
 
-    res_xr = relabel_images(fovs, all_data, label_maps, cell_label_col='fovs',
-                            fov_col='fovs')
+    res_xr = label_cells_by_cluster(fovs, all_data, label_maps, fov_col='fovs')
     assert res_xr.shape == (3, x, y)
 
     # zero pixels in fov1 should remain zero

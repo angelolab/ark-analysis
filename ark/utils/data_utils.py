@@ -8,8 +8,9 @@ from ark import settings
 from ark.utils.misc_utils import verify_in_list
 
 
-def relabel_images(fovs, all_data, label_maps, cell_label_col='fovs',
-                   fov_col=settings.FOV_ID):
+def label_cells_by_cluster(fovs, all_data, label_maps, fov_col=settings.FOV_ID,
+                           cell_label_column=settings.CELL_LABEL,
+                           cluster_column=settings.KMEANS_CLUSTER):
     """ Translates cell-ID labeled images according to the clustering assignment.
 
     Takes a list of fovs, and relabels each image (array) according to the assignment
@@ -22,10 +23,12 @@ def relabel_images(fovs, all_data, label_maps, cell_label_col='fovs',
             data including fovs, cell labels, and cell expression matrix for all markers.
         label_maps (xr.DataArray):
             xarray of label maps for multiple fovs
-        cell_label_col (str):
-            column with the fov names in label_maps.
         fov_col (str):
             column with the fovs names in all_data.
+        cell_label_column (str):
+            column with the cell labels in all_data.
+        cluster_column (str):
+            column with the cluster labels in all_data.
     Returns:
         xr.DataArray:
             The relabeled images (dims: ["fovs", "rows", "cols"]).
@@ -33,22 +36,22 @@ def relabel_images(fovs, all_data, label_maps, cell_label_col='fovs',
 
     # check if included fovs found in fov_col
     verify_in_list(fov_names=fovs, unique_fovs=all_data[fov_col].unique())
-    verify_in_list(fov_names=fovs, unique_fovs=label_maps[cell_label_col])
+    verify_in_list(fov_names=fovs, unique_fovs=label_maps.fovs.values)
 
     img_data = []
     for fov in fovs:
         df = all_data[all_data[fov_col] == fov]
-        labels_dict = dict(zip(df.label, df.cluster_labels))
-        img_data.append(
-            relabel_img_array(label_maps.loc[label_maps[cell_label_col] == fov].squeeze().values,
-                              labels_dict))
+        labels_dict = dict(zip(df[cell_label_column], df[cluster_column]))
+        labeled_img_array = label_maps.loc[label_maps.fovs == fov].squeeze().values
+        relabeled_img_array = relabel_segmentation(labeled_img_array, labels_dict)
+        img_data.append(relabeled_img_array)
     np.stack(img_data, axis=0)
     return xr.DataArray(img_data, coords=[fovs, range(img_data[0].shape[0]),
                                           range(img_data[0].shape[1])],
                         dims=["fovs", "rows", "cols"])
 
 
-def relabel_img_array(labeled_image, labels_dict):
+def relabel_segmentation(labeled_image, labels_dict):
     """Takes a labeled image and translates its labels according to a dictionary.
 
     Returns the relabeled array (according to the dictionary).
