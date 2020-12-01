@@ -205,13 +205,17 @@ def visualize_segmentation(segmentation_labels_xr, channel_data_xr,
             whether or not to show plot
     """
 
+    # assign fovs and channels to everything if None
     if fovs is None:
         fovs = segmentation_labels_xr.fovs.values
-    misc_utils.verify_in_list(fovs=fovs, segmentation_label_fovs=segmentation_labels_xr.fovs)
 
-    if chan_list is not None:
-        misc_utils.verify_in_list(channels=chan_list,
-                                  channel_data_channels=channel_data_xr.channels)
+    if chan_list is None:
+        chan_list = channel_data_xr.compartments.values
+
+    # verify that fovs and channels exist in their respective xarrays
+    misc_utils.verify_in_list(fovs=fovs, segmentation_label_fovs=segmentation_labels_xr.fovs)
+    misc_utils.verify_in_list(channels=chan_list,
+                              channel_data_channels=channel_data_xr.compartments)
 
     for fov in fovs:
         labels = segmentation_labels_xr.loc[fov, :, :, 'whole_cell'].values
