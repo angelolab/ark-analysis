@@ -209,13 +209,15 @@ def visualize_segmentation(segmentation_labels_xr, channel_data_xr,
     if fovs is None:
         fovs = segmentation_labels_xr.fovs.values
 
+    # this handles both "channels" in unsummed data_xr and "compartments" in summed data_xr
+    chan_dim_name = list(channel_data_xr.coords.keys())[-1]
     if chan_list is None:
-        chan_list = channel_data_xr.compartments.values
+        chan_list = channel_data_xr.coords[chan_dim_name].values
 
     # verify that fovs and channels exist in their respective xarrays
     misc_utils.verify_in_list(fovs=fovs, segmentation_label_fovs=segmentation_labels_xr.fovs)
     misc_utils.verify_in_list(channels=chan_list,
-                              channel_data_channels=channel_data_xr.compartments)
+                              channel_data_channels=channel_data_xr.coords[chan_dim_name].values)
 
     for fov in fovs:
         labels = segmentation_labels_xr.loc[fov, :, :, 'whole_cell'].values

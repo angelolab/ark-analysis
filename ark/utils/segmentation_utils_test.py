@@ -209,6 +209,7 @@ def test_visualize_segmentation():
     channel_xr = test_utils.make_images_xarray(np.zeros((2, 50, 50, 3)))
     overlay_channels = [channel_xr.channels.values[:2], channel_xr.channels.values[1:3]]
     segmentation_labels_xr = test_utils.make_labels_xarray(np.zeros((2, 50, 50, 1)))
+
     # Test fovs = None(all fovs should be selected)
     with tempfile.TemporaryDirectory() as temp_dir:
         segmentation_utils.visualize_segmentation(
