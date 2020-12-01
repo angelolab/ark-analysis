@@ -99,7 +99,6 @@ def visualize_z_scores(z, x_labels, y_labels, dpi=None, center_val=None,
             misc_utils.save_figure(save_dir, "z_score_viz.png")
 
 
-
 def get_sorted_data(cell_data, sort_by_first, sort_by_second, is_normalized=False):
     """Gets the cell data and generates a new Sorted DataFrame with each row representing a
     patient and column representing Population categories
