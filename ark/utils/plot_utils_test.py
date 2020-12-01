@@ -118,23 +118,3 @@ def test_create_overlay():
         plot_utils.create_overlay(predicted_contour=example_labels,
                                   plotting_tif=example_images,
                                   alternate_contour=example_labels[:100, :100])
-
-
-def test_plot_overlay():
-    example_labels = _generate_segmentation_labels((1024, 1024))
-    example_images = _generate_image_data((1024, 1024, 3))
-
-    with tempfile.TemporaryDirectory() as temp_dir:
-        # save with both tif and labels
-        plot_utils.plot_overlay(predicted_contour=example_labels, plotting_tif=example_images,
-                                alternate_contour=None,
-                                path=os.path.join(temp_dir, "example_plot1.tiff"))
-        # save with just labels
-        plot_utils.plot_overlay(predicted_contour=example_labels, plotting_tif=None,
-                                alternate_contour=None,
-                                path=os.path.join(temp_dir, "example_plot2.tiff"))
-
-        # save with two sets of labels
-        plot_utils.plot_overlay(predicted_contour=example_labels, plotting_tif=example_images,
-                                alternate_contour=example_labels,
-                                path=os.path.join(temp_dir, "example_plot3.tiff"))
