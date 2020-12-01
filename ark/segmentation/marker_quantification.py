@@ -16,6 +16,7 @@ import ark.settings as settings
 def compute_marker_counts(input_images, segmentation_labels, nuclear_counts=False,
                           regionprops_features=None, split_large_nuclei=False):
     """Extract single cell protein expression data from channel TIFs for a single fov
+
     Args:
         input_images (xarray.DataArray):
             rows x columns x channels matrix of imaging data
