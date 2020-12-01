@@ -90,8 +90,7 @@ def visualize_z_scores(z, x_labels, y_labels, dpi=None, center_val=None,
     # Assign numpy values respective phenotype labels
     zplot = pd.DataFrame(z, columns=x_labels, index=y_labels)
     sns.set(font_scale=.7)
-    sns.heatmap(zplot, center=center_val, cmap=colormap, annot=z)
-
+    sns.clustermap(zplot, cmap=colormap, annot=z, center=center_val)
     # save visualization to a directory if specified
     if save_dir is not None:
         if dpi is not None:
