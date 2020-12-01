@@ -54,7 +54,7 @@ def preprocess_tif(predicted_contour, plotting_tif):
     return plotting_tif
 
 
-def create_overlay(predicted_contour, plotting_tif, alternate_countour=None):
+def create_overlay(predicted_contour, plotting_tif, alternate_contour=None):
     """Take in labeled contour data, along with optional mibi tif and second contour,
     and overlay them for comparison"
 

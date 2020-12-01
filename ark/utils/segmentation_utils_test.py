@@ -224,7 +224,7 @@ def test_save_segmentation_labels():
                                                f'_segmentation_labels.tiff'))
 
     # test a subset of fovs
-    with tempfile.TemporaryDirectory as temp_dir:
+    with tempfile.TemporaryDirectory() as temp_dir:
         segmentation_utils.save_segmentation_labels(segmentation_labels_xr=segmentation_labels_xr,
                                                     output_dir=temp_dir,
                                                     fovs=segmentation_labels_xr.fovs.values[:1])

@@ -183,7 +183,7 @@ def concatenate_csv(base_dir, csv_files, column_name="fov", column_values=None):
     combined_data.to_csv(os.path.join(base_dir, "combined_data.csv"), index=False)
 
 
-def save_segmentation_labels(segmentation_labels_xr, channel_data_xr, output_dir, fovs=None):
+def save_segmentation_labels(segmentation_labels_xr, output_dir, fovs=None):
     """For each fov, generates segmentation labels, segmentation borders, and overlays
     over the channels in chan_list if chan_list is provided.
 
@@ -215,7 +215,7 @@ def save_segmentation_labels(segmentation_labels_xr, channel_data_xr, output_dir
         io.imsave(os.path.join(output_dir, f'{fov}_segmentation_labels.tiff'), labels)
 
         # generate segmentation borders and labels
-        contour_mask = plot_utils.plot_overlay(
+        contour_mask = plot_utils.create_overlay(
             labels,
             plotting_tif=None
         )

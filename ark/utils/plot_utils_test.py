@@ -9,6 +9,27 @@ from ark.utils import plot_utils
 from skimage.draw import circle
 
 
+def _generate_segmentation_labels(img_dims, num_cells=20):
+    if len(img_dims) != 2:
+        raise ValueError("must be image data of shape [rows, cols]")
+    labels = np.zeros(img_dims, dtype="int16")
+    radius = 20
+
+    for i in range(num_cells):
+        r, c = np.random.randint(radius, img_dims[0] - radius, 2)
+        rr, cc = circle(r, c, radius)
+        labels[rr, cc] = i
+
+    return labels
+
+
+def _generate_image_data(img_dims):
+    if len(img_dims) != 3:
+        raise ValueError("must be image data of [rows, cols, channels]")
+
+    return np.random.randint(low=0, high=100, size=img_dims)
+
+
 def test_preprocess_tif():
     example_labels = _generate_segmentation_labels((1024, 1024))
     example_images = _generate_image_data((1024, 1024, 3))
@@ -19,7 +40,7 @@ def test_preprocess_tif():
         plot_utils.preprocess_tif(predicted_contour=example_labels[:100, :100],
                                   plotting_tif=example_images[..., 0])
 
-    plotting_tif = plot_utils.preprocess_tif(predicted_countour=example_labels,
+    plotting_tif = plot_utils.preprocess_tif(predicted_contour=example_labels,
                                              plotting_tif=example_images[..., 0])
 
     # assert the channels all contain the same data
@@ -58,12 +79,12 @@ def test_preprocess_tif():
         bad_example_images = np.concatenate((example_images, blank_channel), axis=2)
 
         plot_utils.preprocess_tif(predicted_contour=example_labels,
-                                  plotting_tif=example_images)
+                                  plotting_tif=bad_example_images)
 
     # n-D test
     with pytest.raises(ValueError):
         # add a fourth dimension
-        plot_utils.preprocess_tif(predicted_countour=example_labels,
+        plot_utils.preprocess_tif(predicted_contour=example_labels,
                                   plotting_tif=np.expand_dims(example_images, axis=0))
 
 
@@ -72,31 +93,31 @@ def test_create_overlay():
     example_images = _generate_image_data((1024, 1024, 3))
 
     # base test: just contour and tif provided
-    contour_mask = plot_utils.plot_overlay(predicted_contour=example_labels,
-                                           plotting_tif=example_images,
-                                           alternate_contour=None)
+    contour_mask = plot_utils.create_overlay(predicted_contour=example_labels,
+                                             plotting_tif=example_images,
+                                             alternate_contour=None)
 
     assert contour_mask.shape == (1024, 1024, 3)
 
     # test with only labels
-    contour_mask = plot_utils.plot_overlay(predicted_contour=example_labels,
-                                           plotting_tif=None,
-                                           alternate_contour=None)
+    contour_mask = plot_utils.create_overlay(predicted_contour=example_labels,
+                                             plotting_tif=None,
+                                             alternate_contour=None)
 
-    assert contour_mask.shape == (1024, 1024, 3)
+    assert contour_mask.shape == (1024, 1024)
 
     # test with an alternate contour
-    contour_mask = plot_utils.plot_overlay(predicted_contour=example_labels,
-                                           plotting_tif=example_images,
-                                           alternate_contour=example_labels)
+    contour_mask = plot_utils.create_overlay(predicted_contour=example_labels,
+                                             plotting_tif=example_images,
+                                             alternate_contour=example_labels)
 
     assert contour_mask.shape == (1024, 1024, 3)
 
     # invalid alternate contour provided
     with pytest.raises(ValueError):
-        plot_utils.plot_overlay(predicted_contour=example_labels,
-                                plotting_tif=example_images,
-                                alternate_contour=example_labels[:100, :100])
+        plot_utils.create_overlay(predicted_contour=example_labels,
+                                  plotting_tif=example_images,
+                                  alternate_contour=example_labels[:100, :100])
 
 
 def test_plot_overlay():
