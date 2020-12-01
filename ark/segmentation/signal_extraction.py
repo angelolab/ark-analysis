@@ -1,15 +1,13 @@
 import numpy as np
 
 
-def positive_pixels_extraction(cell_coords, image_data, threshold=0):
+def positive_pixels_extraction(cell_coords, image_data, **kwargs):
     """Extract channel counts by summing over the number of non-zero pixels in the cell.
-
-    Improves on default_extraction by not distinguishing between pixel expression values
 
     Args:
         cell_coords (numpy.ndarray): values representing pixels within one cell
         image_data (xarray.DataArray): array containing channel counts
-        threshold (int): where we want to set the cutoff for a positive pixel, default 0
+        **kwargs: arbitrary keyword arguments
 
     Returns:
         numpy.ndarray:
@@ -20,24 +18,22 @@ def positive_pixels_extraction(cell_coords, image_data, threshold=0):
     channel_values = image_data.values[tuple(cell_coords.T)]
 
     # create binary mask based on threshold
-    channel_counts = np.sum(channel_values > threshold, axis=0)
+    channel_counts = np.sum(channel_values > kwargs.get('threshold', 0), axis=0)
 
     return channel_counts
 
 
-def center_weighting_extraction(cell_coords, image_data, centroid):
+def center_weighting_extraction(cell_coords, image_data, **kwargs):
     """Extract channel counts by summing over weighted expression values based on distance from
     center.
-
-    Improves upon default extraction by including a level of certainty/uncertainty.
 
     Args:
         cell_coords (numpy.ndarray):
             values representing pixels within one cell
         image_data (xarray.DataArray):
             array containing channel counts
-        centroid (tuple):
-            the centroid of the region in question
+        **kwargs:
+            arbitrary keyword arguments
 
     Returns:
         numpy.ndarray:
@@ -45,7 +41,7 @@ def center_weighting_extraction(cell_coords, image_data, centroid):
     """
 
     # compute the distance box-level from the center outward
-    weights = np.linalg.norm(cell_coords - centroid, ord=np.inf, axis=1)
+    weights = np.linalg.norm(cell_coords - kwargs.get('centroid'), ord=np.inf, axis=1)
 
     # center the weights around the middle value
     weights = 1 - (weights / (np.max(weights) + 1))
@@ -57,7 +53,7 @@ def center_weighting_extraction(cell_coords, image_data, centroid):
     return channel_counts
 
 
-def default_extraction(cell_coords, image_data):
+def total_intensity_extraction(cell_coords, image_data, **kwargs):
     """ Extract channel counts for an individual cell via basic summation for each channel
 
     Args:
@@ -65,6 +61,8 @@ def default_extraction(cell_coords, image_data):
             values representing pixels within one cell
         image_data (xarray.DataArray):
             array containing channel counts
+        **kwargs:
+            arbitrary keyword arguments
 
     Returns:
         numpy.ndarray:
@@ -78,3 +76,10 @@ def default_extraction(cell_coords, image_data):
     channel_counts = np.sum(channel_values, axis=0)
 
     return channel_counts
+
+
+extraction_function = {
+    'positive_pixel': positive_pixels_extraction,
+    'center_weighting': center_weighting_extraction,
+    'total_intensity': total_intensity_extraction,
+}
