@@ -135,12 +135,12 @@ def test_center_weighting_extraction():
         **kwarg_2
     )
 
-    channel_counts_1_base_weight = signal_extraction.default_extraction(
+    channel_counts_1_base_weight = signal_extraction.total_intensity_extraction(
         cell_coords=coords_1,
         image_data=xr.DataArray(sample_channel_data)
     )
 
-    channel_counts_2_base_weight = signal_extraction.default_extraction(
+    channel_counts_2_base_weight = signal_extraction.total_intensity_extraction(
         cell_coords=coords_2,
         image_data=xr.DataArray(sample_channel_data)
     )
@@ -153,7 +153,7 @@ def test_center_weighting_extraction():
     assert channel_counts_1_center_weight[1] < channel_counts_1_base_weight[1]
 
 
-def test_default_extraction():
+def test_total_intensity_extraction():
     # sample params
     size_img = (1024, 1024)
     cell_radius = 10
@@ -181,12 +181,12 @@ def test_default_extraction():
     coords_1 = np.argwhere(sample_segmentation_mask == 1)
     coords_2 = np.argwhere(sample_segmentation_mask == 2)
 
-    channel_counts_1 = signal_extraction.default_extraction(
+    channel_counts_1 = signal_extraction.total_intensity_extraction(
         cell_coords=coords_1,
         image_data=xr.DataArray(sample_channel_data)
     )
 
-    channel_counts_2 = signal_extraction.default_extraction(
+    channel_counts_2 = signal_extraction.total_intensity_extraction(
         cell_coords=coords_2,
         image_data=xr.DataArray(sample_channel_data)
     )

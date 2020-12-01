@@ -30,7 +30,7 @@ def compute_marker_counts(input_images, segmentation_labels, nuclear_counts=Fals
         split_large_nuclei (bool):
             controls whether nuclei which have portions outside of the cell will get relabeled
         extraction (str):
-            extraction function used to compute marker counts. default is 'total_intensity'
+            extraction function used to compute marker counts.
         **kwargs:
             arbitrary keyword arguments
     Returns:
@@ -39,7 +39,7 @@ def compute_marker_counts(input_images, segmentation_labels, nuclear_counts=Fals
     """
 
     misc_utils.verify_in_list(
-        extraction=[extraction],
+        extraction=extraction,
         extraction_options=list(extraction_function.keys())
     )
 
@@ -185,7 +185,7 @@ def create_marker_count_matrices(segmentation_labels, image_data, nuclear_counts
             boolean flag to determine whether nuclei which are larger than their assigned cell
             will get split into two different nuclear objects
         extraction (str):
-            extraction function used to compute marker counts. default is 'total_intensity'
+            extraction function used to compute marker counts.
         **kwargs:
             arbitrary keyword args
 
@@ -208,7 +208,7 @@ def create_marker_count_matrices(segmentation_labels, image_data, nuclear_counts
         )
 
     misc_utils.verify_in_list(
-        extraction=[extraction],
+        extraction=extraction,
         extraction_options=list(extraction_function.keys())
     )
 
@@ -294,7 +294,7 @@ def generate_cell_table(segmentation_labels, tiff_dir, img_sub_folder,
         dtype (str/type):
             data type of base images
         extraction (str):
-            extraction function used to compute marker counts. default is 'total_intensity'
+            extraction function used to compute marker counts.
         **kwargs:
             arbitrary keyword arguments for signal extraction
 
@@ -315,7 +315,7 @@ def generate_cell_table(segmentation_labels, tiff_dir, img_sub_folder,
     fovs = io_utils.remove_file_extensions(fovs)
 
     misc_utils.verify_in_list(
-        extraction=[extraction],
+        extraction=extraction,
         extraction_options=list(extraction_function.keys())
     )
 
