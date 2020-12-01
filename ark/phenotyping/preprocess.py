@@ -52,7 +52,7 @@ def create_pixel_matrix(img_xr, seg_labels, fovs=None, channels=None, blur_facto
         # subset img_xr with only the fov we're looking for, and cast to float32
         img_data_blur = img_xr.loc[fov, ..., channels].values.astype(np.float32)
 
-        # for each marker, compute the Gaussian blurå
+        # for each marker, compute the Gaussian blur
         for marker in range(len(channels)):
             img_data_blur[:, :, marker] = ndimage.gaussian_filter(img_data_blur[:, :, marker],
                                                                   sigma=blur_factor)
