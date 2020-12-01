@@ -49,14 +49,13 @@ def create_pixel_matrix(img_xr, seg_labels, fovs=None, channels=None, blur_facto
 
     # iterate over fovs
     for fov in fovs:
-        # subset img_xr with only the fov we're looking for
-        img_data_blur = img_xr.loc[fov, ..., channels].values
+        # subset img_xr with only the fov we're looking for, and cast to float32
+        img_data_blur = img_xr.loc[fov, ..., channels].values.astype(np.float32)
 
-        # for each marker, compute the Gaussian blur and cast to np.float32
+        # for each marker, compute the Gaussian blurå
         for marker in range(len(channels)):
             img_data_blur[:, :, marker] = ndimage.gaussian_filter(img_data_blur[:, :, marker],
-                                                                  sigma=blur_factor).astype(
-                                                                  np.float32)
+                                                                  sigma=blur_factor)
 
         # flatten each image
         pixel_mat = img_data_blur.reshape(-1, len(channels))
@@ -76,7 +75,7 @@ def create_pixel_matrix(img_xr, seg_labels, fovs=None, channels=None, blur_facto
         # remove any rows that sum to 0
         pixel_mat = pixel_mat.loc[pixel_mat.loc[:, channels].sum(axis=1) != 0, :]
 
-        # turn into frequency
+        # normalize each row by total marker counts to convert into frequencies
         pixel_mat.loc[:, channels] = pixel_mat.loc[:, channels].div(
             pixel_mat.loc[:, channels].sum(axis=1), axis=0)
 
@@ -86,8 +85,12 @@ def create_pixel_matrix(img_xr, seg_labels, fovs=None, channels=None, blur_facto
         else:
             flowsom_data = pd.concat([flowsom_data, pixel_mat])
 
-    # 99.9% normalization
+    # normalize each marker column by the 99.9 percentile value
     flowsom_data.loc[:, channels] = flowsom_data.loc[:, channels].div(
         flowsom_data.loc[:, channels].quantile(q=0.999, axis=0), axis=1)
+
+    # normalize each row by total marker counts to convert into frequencies
+    # flowsom_data.loc[:, channels] = flowsom_data.loc[:, channels].div(
+    #     flowsom_data.loc[:, channels].sum(axis=1), axis=0)
 
     return flowsom_data
