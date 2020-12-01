@@ -55,7 +55,7 @@ def compute_marker_counts(input_images, segmentation_labels, nuclear_counts=Fals
         regionprops_features.append('label')
 
     # centroid is required
-    if 'centroid-0' not in regionprops_features and 'centroid' not in regionprops_features:
+    if not any(['centroid' in rpf for rpf in regionprops_features]):
         regionprops_features.append('centroid')
 
     # enforce post channel column is present and first
