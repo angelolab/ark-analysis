@@ -38,11 +38,8 @@ def test_create_pixel_matrix():
     misc_utils.verify_same_elements(flowsom_chans=flowsom_data.columns.values[:-4],
                                     provided_chans=['chan0', 'chan1'])
 
-    print(flowsom_data)
-
-    # assert that all row channels sum to 1
-    row_sums = flowsom_data[:, ['chan0', 'chan1']].sum(axis=1).values
-    assert np.all(row_sums == 1)
+    # assert no rows sum to 0
+    assert np.all(flowsom_data.loc[:, ['chan0', 'chan1']].sum(axis=1).values != 0)
 
     # test on a subset of fovs
     flowsom_data = preprocess.create_pixel_matrix(sample_img_xr, sample_labels, fovs=['fov1'])
@@ -52,9 +49,7 @@ def test_create_pixel_matrix():
     misc_utils.verify_same_elements(flowsom_chans=flowsom_data.columns.values[:-4],
                                     provided_chans=['chan0', 'chan1'])
 
-    # assert that all row channels sum to 1
-    row_sums = flowsom_data[:, ['chan0', 'chan1']].sum(axis=1).values
-    assert np.all(row_sums == 1)
+    assert np.all(flowsom_data.loc[:, ['chan0', 'chan1']].sum(axis=1).values != 0)
 
     # test on a subset of channels
     flowsom_data = preprocess.create_pixel_matrix(sample_img_xr, sample_labels, channels=['chan0'])
@@ -63,10 +58,6 @@ def test_create_pixel_matrix():
                                     provided_fovs=['fov0', 'fov1'])
     misc_utils.verify_same_elements(flowsom_chans=flowsom_data.columns.values[:-4],
                                     provided_chans=['chan0'])
-
-    # assert that all row channels sum to 1
-    row_sums = flowsom_data[:, ['chan0', 'chan1']].sum(axis=1).values
-    assert np.all(row_sums == 1)
 
     # test on a subset of fovs and channels
     flowsom_data = preprocess.create_pixel_matrix(sample_img_xr, sample_labels,
@@ -77,6 +68,4 @@ def test_create_pixel_matrix():
     misc_utils.verify_same_elements(flowsom_chans=flowsom_data.columns.values[:-4],
                                     provided_chans=['chan0'])
 
-    # assert that all row channels sum to 1
-    row_sums = flowsom_data[:, ['chan0', 'chan1']].sum(axis=1).values
-    assert np.all(row_sums == 1)
+    assert np.all(flowsom_data.loc[:, ['chan0', 'chan1']].sum(axis=1).values != 0)

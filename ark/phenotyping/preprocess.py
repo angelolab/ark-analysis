@@ -89,8 +89,4 @@ def create_pixel_matrix(img_xr, seg_labels, fovs=None, channels=None, blur_facto
     flowsom_data.loc[:, channels] = flowsom_data.loc[:, channels].div(
         flowsom_data.loc[:, channels].quantile(q=0.999, axis=0), axis=1)
 
-    # normalize each row by total marker counts to convert into frequencies
-    # flowsom_data.loc[:, channels] = flowsom_data.loc[:, channels].div(
-    #     flowsom_data.loc[:, channels].sum(axis=1), axis=0)
-
     return flowsom_data
