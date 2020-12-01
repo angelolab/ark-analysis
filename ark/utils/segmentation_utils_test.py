@@ -205,6 +205,38 @@ def test_transform_expression_matrix_multiple_compartments():
         assert np.array_equal(arcsinh_data.loc[:, cell, modified_cols].values, arcsinh_vals)
 
 
+def test_save_segmentation_labels():
+    segmentation_labels_xr = test_utils.make_labels_xarray(np.zeros((2, 50, 50, 1)))
+
+    # test fovs = None (all fovs selected)
+    with tempfile.TemporaryDirectory() as temp_dir:
+        segmentation_utils.save_segmentation_labels(segmentation_labels_xr=segmentation_labels_xr,
+                                                    output_dir=temp_dir,
+                                                    fovs=None)
+
+        # make sure all files exist
+        for mod_output_fov in segmentation_labels_xr.fovs:
+            assert os.path.exists(os.path.join(temp_dir,
+                                               f'{mod_output_fov.values}'
+                                               f'_segmentation_borders.tiff'))
+            assert os.path.exists(os.path.join(temp_dir,
+                                               f'{mod_output_fov.values}'
+                                               f'_segmentation_labels.tiff'))
+
+    # test a subset of fovs
+    with tempfile.TemporaryDirectory as temp_dir:
+        segmentation_utils.save_segmentation_labels(segmentation_labels_xr=segmentation_labels_xr,
+                                                    output_dir=temp_dir,
+                                                    fovs=segmentation_labels_xr.fovs.values[:1])
+
+        assert os.path.exists(os.path.join(temp_dir,
+                                           f'{segmentation_labels_xr.fovs[0].values}'
+                                           f'_segmentation_borders.tiff'))
+        assert os.path.exists(os.path.join(temp_dir,
+                                           f'{segmentation_labels_xr.fovs[0].values}'
+                                           f'_segmentation_labels.tiff'))
+
+
 def test_visualize_segmentation():
     channel_xr = test_utils.make_images_xarray(np.zeros((2, 50, 50, 3)))
     overlay_channels = [channel_xr.channels.values[:2], channel_xr.channels.values[1:3]]

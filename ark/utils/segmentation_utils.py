@@ -183,6 +183,46 @@ def concatenate_csv(base_dir, csv_files, column_name="fov", column_values=None):
     combined_data.to_csv(os.path.join(base_dir, "combined_data.csv"), index=False)
 
 
+def save_segmentation_labels(segmentation_labels_xr, channel_data_xr, output_dir, fovs=None):
+    """For each fov, generates segmentation labels, segmentation borders, and overlays
+    over the channels in chan_list if chan_list is provided.
+
+    Saves overlay images to output directory
+
+    Args:
+        segmentation_labels_xr (xarray.DataArray):
+            xarray containing segmentation labels
+        channel_data_xr (xarray.DataArray):
+            xarray containing TIFs
+        output_dir (str):
+            path to directory where the output will be saved
+        fovs (list):
+            list of FOVs to subset in segmentation_labels_xr
+    """
+
+    # assign fovs and channels to everything if None
+    if fovs is None:
+        fovs = segmentation_labels_xr.fovs.values
+
+    # verify that fovs and channels exist in their respective xarrays
+    misc_utils.verify_in_list(fovs=fovs, segmentation_label_fovs=segmentation_labels_xr.fovs)
+
+    for fov in fovs:
+        # generates segmentation borders and labels
+        labels = segmentation_labels_xr.loc[fov, :, :, 'whole_cell'].values
+
+        # save the labels respectively
+        io.imsave(os.path.join(output_dir, f'{fov}_segmentation_labels.tiff'), labels)
+
+        # generate segmentation borders and labels
+        contour_mask = plot_utils.plot_overlay(
+            labels,
+            plotting_tif=None
+        )
+
+        io.imsave(os.path.join(output_dir, f'{fov}_segmentation_borders.tiff'), contour_mask)
+
+
 def visualize_segmentation(segmentation_labels_xr, channel_data_xr,
                            output_dir, chan_list=None, fovs=None, show=False):
     """For each fov, generates segmentation labels, segmentation borders, and overlays
