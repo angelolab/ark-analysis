@@ -192,8 +192,6 @@ def save_segmentation_labels(segmentation_labels_xr, output_dir, fovs=None):
     Args:
         segmentation_labels_xr (xarray.DataArray):
             xarray containing segmentation labels
-        channel_data_xr (xarray.DataArray):
-            xarray containing TIFs
         output_dir (str):
             path to directory where the output will be saved
         fovs (list):
