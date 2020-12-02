@@ -51,25 +51,25 @@ def test_tif_overlay_preprocess():
     plotting_tif = plot_utils.tif_overlay_preprocess(segmentation_labels=example_labels,
                                                      plotting_tif=example_images[..., 0:1])
 
-    assert np.all(plotting_tif[..., 0] == example_images[..., 0])
+    assert np.all(plotting_tif[..., 0] == 0)
     assert np.all(plotting_tif[..., 1] == 0)
-    assert np.all(plotting_tif[..., 2] == 0)
+    assert np.all(plotting_tif[..., 2] == example_images[..., 0])
 
     # test for third dimension == 2
     plotting_tif = plot_utils.tif_overlay_preprocess(segmentation_labels=example_labels,
                                                      plotting_tif=example_images[..., 0:2])
 
-    assert np.all(plotting_tif[..., 0] == example_images[..., 0])
+    assert np.all(plotting_tif[..., 0] == 0)
     assert np.all(plotting_tif[..., 1] == example_images[..., 1])
-    assert np.all(plotting_tif[..., 2] == 0)
+    assert np.all(plotting_tif[..., 2] == example_images[..., 0])
 
     # test for third dimension == 3
     plotting_tif = plot_utils.tif_overlay_preprocess(segmentation_labels=example_labels,
                                                      plotting_tif=example_images)
 
-    assert np.all(plotting_tif[..., 0] == example_images[..., 0])
+    assert np.all(plotting_tif[..., 0] == example_images[..., 2])
     assert np.all(plotting_tif[..., 1] == example_images[..., 1])
-    assert np.all(plotting_tif[..., 2] == example_images[..., 2])
+    assert np.all(plotting_tif[..., 2] == example_images[..., 0])
 
     # test for third dimension == anything else
     with pytest.raises(ValueError):

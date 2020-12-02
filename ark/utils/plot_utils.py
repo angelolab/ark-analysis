@@ -41,6 +41,7 @@ def tif_overlay_preprocess(segmentation_labels, plotting_tif):
         formatted_tif = np.zeros((plotting_tif.shape[0], plotting_tif.shape[1], 3),
                                  dtype=plotting_tif.dtype)
         formatted_tif[..., :plotting_tif.shape[2]] = plotting_tif
+        formatted_tif = np.flip(formatted_tif, axis=2)
     else:
         raise ValueError("plotting tif must be 2D or 3D array, got {}".
                          format(plotting_tif.shape))
