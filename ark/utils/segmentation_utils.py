@@ -187,7 +187,7 @@ def concatenate_csv(base_dir, csv_files, column_name="fov", column_values=None):
 def save_segmentation_labels(segmentation_labels_xr, channel_data_xr, output_dir,
                              fovs=None, channels=None):
     """For each fov, generates segmentation labels, segmentation borders, and overlays
-    over the channels in chan_list if chan_list is provided.
+    over the channels if specified.
 
     Saves overlay images to output directory
 
@@ -208,12 +208,12 @@ def save_segmentation_labels(segmentation_labels_xr, channel_data_xr, output_dir
     if fovs is None:
         fovs = segmentation_labels_xr.fovs.values
 
-    if channels is None:
-        channels = channel_data_xr.channels.values
-
     # verify that fovs and channels exist in their respective xarrays
     misc_utils.verify_in_list(fovs=fovs, segmentation_label_fovs=segmentation_labels_xr.fovs)
-    misc_utils.verify_in_list(channels=channels, channel_data_channels=channel_data_xr.channels)
+
+    if channels is not None:
+        misc_utils.verify_in_list(channels=channels,
+                                  channel_data_channels=channel_data_xr.channels)
 
     for fov in fovs:
         # generates segmentation borders and labels
@@ -229,10 +229,11 @@ def save_segmentation_labels(segmentation_labels_xr, channel_data_xr, output_dir
         # save the cell border image
         io.imsave(os.path.join(output_dir, f'{fov}_segmentation_borders.tiff'), contour_mask)
 
-        # generate the channel overlay
-        channel_overlay = plot_utils.create_overlay(labels,
-                                                    channel_data_xr.loc[fov, :, :, channels])
+        # generate the channel overlay if specified
+        if channels is not None:
+            channel_overlay = plot_utils.create_overlay(labels,
+                                                        channel_data_xr.loc[fov, :, :, channels])
 
-        # save the channel overlay
-        save_path = '_'.join([f'{fov}', *channels.astype('str'), 'overlay.tiff'])
-        io.imsave(os.path.join(output_dir, save_path), channel_overlay)
+            # save the channel overlay
+            save_path = '_'.join([f'{fov}', *channels.astype('str'), 'overlay.tiff'])
+            io.imsave(os.path.join(output_dir, save_path), channel_overlay)

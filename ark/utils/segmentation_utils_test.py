@@ -211,7 +211,7 @@ def test_save_segmentation_labels():
     segmentation_labels_xr = test_utils.make_labels_xarray(np.zeros((2, 50, 50, 1)))
     fov_sub = segmentation_labels_xr.fovs.values[:1]
 
-    # test fovs = None and channels = None (all fovs and channels selected)
+    # test fovs = None and channels = None (all fovs selected, no channel overlay)
     with tempfile.TemporaryDirectory() as temp_dir:
         segmentation_utils.save_segmentation_labels(segmentation_labels_xr=segmentation_labels_xr,
                                                     channel_data_xr=channel_xr,
@@ -223,14 +223,10 @@ def test_save_segmentation_labels():
                                                f'{mod_output_fov.values}'
                                                f'_segmentation_labels.tiff'))
             assert os.path.exists(os.path.join(temp_dir,
-                                  '_'.join([f'{mod_output_fov.values}',
-                                            *channel_xr.channels.values,
-                                            'overlay.tiff'])))
-            assert os.path.exists(os.path.join(temp_dir,
                                                f'{mod_output_fov.values}'
                                                f'_segmentation_borders.tiff'))
 
-    # test a subset of fovs
+    # test a subset of fovs (no channel overlay)
     with tempfile.TemporaryDirectory() as temp_dir:
         segmentation_utils.save_segmentation_labels(segmentation_labels_xr=segmentation_labels_xr,
                                                     channel_data_xr=channel_xr,
@@ -241,14 +237,10 @@ def test_save_segmentation_labels():
                                            f'{fov_sub[0]}'
                                            f'_segmentation_labels.tiff'))
         assert os.path.exists(os.path.join(temp_dir,
-                              '_'.join([f'{fov_sub[0]}',
-                                        *(channel_xr.channels.values),
-                                        'overlay.tiff'])))
-        assert os.path.exists(os.path.join(temp_dir,
                                            f'{fov_sub[0]}'
                                            f'_segmentation_borders.tiff'))
 
-    # test a subset of channels
+    # test with all fovs with channel overlay
     with tempfile.TemporaryDirectory() as temp_dir:
         segmentation_utils.save_segmentation_labels(segmentation_labels_xr=segmentation_labels_xr,
                                                     channel_data_xr=channel_xr,
@@ -268,7 +260,7 @@ def test_save_segmentation_labels():
                                                f'{mod_output_fov.values}'
                                                f'_segmentation_borders.tiff'))
 
-    # test a subset of fovs and channels
+    # test a subset of fovs with channel overlay
     with tempfile.TemporaryDirectory() as temp_dir:
         segmentation_utils.save_segmentation_labels(segmentation_labels_xr=segmentation_labels_xr,
                                                     channel_data_xr=channel_xr,

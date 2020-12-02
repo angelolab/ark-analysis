@@ -11,11 +11,11 @@ from skimage.segmentation import find_boundaries
 from skimage.exposure import rescale_intensity
 
 
-def preprocess_tif(predicted_contour, plotting_tif):
+def tif_overlay_preprocess(segmentation_labels, plotting_tif):
     """Validates plotting_tif and preprocesses it accordingly
 
     Args:
-        predicted_contour (numpy.ndarray):
+        segmentation_labels (numpy.ndarray):
             2D numpy array of labeled cell objects
         plotting_tif (numpy.ndarray):
             2D or 3D numpy array of imaging signal
@@ -26,8 +26,8 @@ def preprocess_tif(predicted_contour, plotting_tif):
     """
 
     if len(plotting_tif.shape) == 2:
-        if plotting_tif.shape != predicted_contour.shape:
-            raise ValueError("plotting_tif and predicted_contour array dimensions not equal.")
+        if plotting_tif.shape != segmentation_labels.shape:
+            raise ValueError("plotting_tif and segmentation_labels array dimensions not equal.")
         else:
             # convert RGB image with same data across all three channels
             formatted_tif = np.stack((plotting_tif, plotting_tif, plotting_tif), axis=2)
@@ -48,26 +48,30 @@ def preprocess_tif(predicted_contour, plotting_tif):
     return formatted_tif
 
 
-def create_overlay(predicted_contour, plotting_tif, alternate_contour=None):
+def create_overlay(segmentation_labels, plotting_tif, alternate_segmentation=None):
     """Take in labeled contour data, along with optional mibi tif and second contour,
     and overlay them for comparison"
 
     Generates the outline(s) of the mask(s) as well as intensity from plotting tif. Predicted
-    contours are colored red red, while alternate contours are colored white.
+    contours are colored red, while alternate contours are colored white.
 
     Args:
-        predicted_contour (numpy.ndarray):
+        segmentation_labels (numpy.ndarray):
             2D numpy array of labeled cell objects
         plotting_tif (numpy.ndarray):
             2D or 3D numpy array of imaging signal
-        alternate_contour (numpy.ndarray):
+        alternate_segmentation (numpy.ndarray):
             2D numpy array of labeled cell objects
+
+    Returns:
+        numpy.ndarray:
+            The image with the channel overlay
     """
 
-    plotting_tif = preprocess_tif(predicted_contour, plotting_tif)
+    plotting_tif = tif_overlay_preprocess(segmentation_labels, plotting_tif)
 
     # define borders of cells in mask
-    predicted_contour_mask = find_boundaries(predicted_contour,
+    predicted_contour_mask = find_boundaries(segmentation_labels,
                                              connectivity=1, mode='inner').astype(np.uint8)
     predicted_contour_mask[predicted_contour_mask > 0] = 255
 
@@ -90,14 +94,14 @@ def create_overlay(predicted_contour, plotting_tif, alternate_contour=None):
     rescaled[predicted_contour_mask > 0, :] = 255
 
     # overlay second contour as red outline if present
-    if alternate_contour is not None:
+    if alternate_segmentation is not None:
 
-        if predicted_contour.shape != alternate_contour.shape:
-            raise ValueError("predicted_contour and alternate_"
-                             "contour array dimensions not equal.")
+        if segmentation_labels.shape != alternate_segmentation.shape:
+            raise ValueError("segmentation_labels and alternate_"
+                             "segmentation array dimensions not equal.")
 
         # define borders of cell in mask
-        alternate_contour_mask = find_boundaries(alternate_contour, connectivity=1,
+        alternate_contour_mask = find_boundaries(alternate_segmentation, connectivity=1,
                                                  mode='inner').astype(np.uint8)
         rescaled[alternate_contour_mask > 0, 0] = 255
         rescaled[alternate_contour_mask > 0, 1:] = 0
