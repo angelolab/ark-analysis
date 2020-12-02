@@ -81,7 +81,7 @@ def test_preprocess_tif():
         plot_utils.preprocess_tif(predicted_contour=example_labels,
                                   plotting_tif=bad_example_images)
 
-    # n-D test
+    # n-D test (n > 3)
     with pytest.raises(ValueError):
         # add a fourth dimension
         plot_utils.preprocess_tif(predicted_contour=example_labels,
@@ -98,13 +98,6 @@ def test_create_overlay():
                                              alternate_contour=None)
 
     assert contour_mask.shape == (1024, 1024, 3)
-
-    # test with only labels
-    contour_mask = plot_utils.create_overlay(predicted_contour=example_labels,
-                                             plotting_tif=None,
-                                             alternate_contour=None)
-
-    assert contour_mask.shape == (1024, 1024)
 
     # test with an alternate contour
     contour_mask = plot_utils.create_overlay(predicted_contour=example_labels,

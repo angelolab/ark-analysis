@@ -30,28 +30,22 @@ def preprocess_tif(predicted_contour, plotting_tif):
             raise ValueError("plotting_tif and predicted_contour array dimensions not equal.")
         else:
             # convert RGB image with same data across all three channels
-            plotting_tif = np.stack((plotting_tif, plotting_tif, plotting_tif), axis=2)
-
+            formatted_tif = np.stack((plotting_tif, plotting_tif, plotting_tif), axis=2)
     elif len(plotting_tif.shape) == 3:
-        blank_channel = np.zeros(plotting_tif.shape[:2] + (1,), dtype=plotting_tif.dtype)
-        if plotting_tif.shape[2] == 1:
-            # pad two empty channels
-            plotting_tif = np.concatenate((plotting_tif, blank_channel, blank_channel), axis=2)
-        elif plotting_tif.shape[2] == 2:
-            # pad one empty channel
-            plotting_tif = np.concatenate((plotting_tif, blank_channel), axis=2)
-        elif plotting_tif.shape[2] == 3:
-            # don't need to do anything
-            pass
-        else:
-            raise ValueError("only 3 channels of overlay supported, got {}".
+        # can only support up to 3 channels
+        if plotting_tif.shape[2] > 3:
+            raise ValueError("max 3 channels of overlay supported, got {}".
                              format(plotting_tif.shape))
 
+        # set first n channels of formatted_tif to plotting_tif (n = num channels in plotting_tif)
+        formatted_tif = np.zeros((plotting_tif.shape[0], plotting_tif.shape[1], 3),
+                                 dtype=plotting_tif.dtype)
+        formatted_tif[..., :plotting_tif.shape[2]] = plotting_tif
     else:
         raise ValueError("plotting tif must be 2D or 3D array, got {}".
                          format(plotting_tif.shape))
 
-    return plotting_tif
+    return formatted_tif
 
 
 def create_overlay(predicted_contour, plotting_tif, alternate_contour=None):
@@ -70,49 +64,42 @@ def create_overlay(predicted_contour, plotting_tif, alternate_contour=None):
             2D numpy array of labeled cell objects
     """
 
-    # just plot the outlines
-    if plotting_tif is None:
-        pass
-    else:
-        plotting_tif = preprocess_tif(predicted_contour, plotting_tif)
+    plotting_tif = preprocess_tif(predicted_contour, plotting_tif)
 
     # define borders of cells in mask
     predicted_contour_mask = find_boundaries(predicted_contour,
                                              connectivity=1, mode='inner').astype(np.uint8)
     predicted_contour_mask[predicted_contour_mask > 0] = 255
 
-    if plotting_tif is None:
-        return predicted_contour_mask
-    else:
-        # rescale each channel to go from 0 to 255
-        rescaled = np.zeros(plotting_tif.shape, dtype='uint8')
+    # rescale each channel to go from 0 to 255
+    rescaled = np.zeros(plotting_tif.shape, dtype='uint8')
 
-        for idx in range(plotting_tif.shape[2]):
-            if np.max(plotting_tif[:, :, idx]) == 0:
-                # don't need to rescale this channel
-                pass
-            else:
-                percentiles = np.percentile(plotting_tif[:, :, idx][plotting_tif[:, :, idx] > 0],
-                                            [5, 95])
-                rescaled_intensity = rescale_intensity(plotting_tif[:, :, idx],
-                                                       in_range=(percentiles[0], percentiles[1]),
-                                                       out_range='uint8')
-                rescaled[:, :, idx] = rescaled_intensity
+    for idx in range(plotting_tif.shape[2]):
+        if np.max(plotting_tif[:, :, idx]) == 0:
+            # don't need to rescale this channel
+            pass
+        else:
+            percentiles = np.percentile(plotting_tif[:, :, idx][plotting_tif[:, :, idx] > 0],
+                                        [5, 95])
+            rescaled_intensity = rescale_intensity(plotting_tif[:, :, idx],
+                                                   in_range=(percentiles[0], percentiles[1]),
+                                                   out_range='uint8')
+            rescaled[:, :, idx] = rescaled_intensity
 
-        # overlay first contour on all three RGB, to have it show up as white border
-        rescaled[predicted_contour_mask > 0, :] = 255
+    # overlay first contour on all three RGB, to have it show up as white border
+    rescaled[predicted_contour_mask > 0, :] = 255
 
-        # overlay second contour as red outline if present
-        if alternate_contour is not None:
+    # overlay second contour as red outline if present
+    if alternate_contour is not None:
 
-            if predicted_contour.shape != alternate_contour.shape:
-                raise ValueError("predicted_contour and alternate_"
-                                 "contour array dimensions not equal.")
+        if predicted_contour.shape != alternate_contour.shape:
+            raise ValueError("predicted_contour and alternate_"
+                             "contour array dimensions not equal.")
 
-            # define borders of cell in mask
-            alternate_contour_mask = find_boundaries(alternate_contour, connectivity=1,
-                                                     mode='inner').astype(np.uint8)
-            rescaled[alternate_contour_mask > 0, 0] = 255
-            rescaled[alternate_contour_mask > 0, 1:] = 0
+        # define borders of cell in mask
+        alternate_contour_mask = find_boundaries(alternate_contour, connectivity=1,
+                                                 mode='inner').astype(np.uint8)
+        rescaled[alternate_contour_mask > 0, 0] = 255
+        rescaled[alternate_contour_mask > 0, 1:] = 0
 
-        return rescaled
+    return rescaled
