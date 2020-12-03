@@ -40,7 +40,7 @@ If you will only be using functions in `ark` without developing on top of it, do
 
 ### More on xarrays
 
-One type of N-D array with frequently is `xarray` ([documentation](http://xarray.pydata.org/en/stable/). The main advantages `xarray` offers are:
+One type of N-D array with frequently is `xarray` ([documentation](http://xarray.pydata.org/en/stable/)). The main advantages `xarray` offers are:
 
 * Labeled dimension names
 * Flexible indexing types
