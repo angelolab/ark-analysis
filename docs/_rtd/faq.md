@@ -24,4 +24,8 @@ Avoid adjusting the CPUs, Swap, and Disk Image Size sliders.
 
 ### How can I help improve this project?
 
-If you're interested in helping to add new features and develop this project, please check out our [contributing guidelines](https://ark-analysis.readthedocs.io/en/latest/_rtd/contributing.html). You can look at our list of open issues [here](https://github.com/angelolab/ark-analysis/issues). 
+If you're interested in helping to add new features and develop this project, please check out our [contributing guidelines](https://ark-analysis.readthedocs.io/en/latest/_rtd/contributing.html). 
+
+### I have a different question
+
+Feel free to check out our [issues](https://github.com/angelolab/ark-analysis/issues) page. If someone doesn't already have an open issue for your question, feel free to open one yourself.
