@@ -57,11 +57,11 @@ arr = xr.DataArray(np.zeros((1024, 1024, 3)),
 
 In this example, we assign the 0th, 1st, and 2nd dimensions to names 'x', 'y', and 'channel'. Both 'x' and 'y' are indexed with 0-1023, whereas 'channel' is indexed with RGB color names. 
 
-Indexing works much like `numpy` arrays. For example, if I want to extract an `xarray` subset on just x and y in range 10:15 and the red and blue channels:
+Indexing works much like `numpy` arrays. For example, to extract an `xarray` subset on just x and y in range 10:15 and the red and blue channels:
 
 `arr.loc[10:15, 10:15, ['red', 'blue']]`
 
-I can also extract these values into a `numpy` array using `.values`:
+This can also be extracted into a `numpy` array using `.values`:
 
 `arr.loc[10:15, 10:15, ['red', 'blue']].values`
 
