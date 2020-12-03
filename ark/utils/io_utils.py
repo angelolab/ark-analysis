@@ -120,9 +120,10 @@ def extract_delimited_names(names, delimiter='_', delimiter_optional=True):
     """For a given list of names, extract the delimited prefix
 
     Examples (if delimiter='_'):
-        - 'fov1' becomes 'fov1'
-        - 'fov2_part1' becomes 'fov2'
-        - 'fov3_part1_part2' becomes 'fov3'
+
+    - 'fov1' becomes 'fov1'
+    - 'fov2_part1' becomes 'fov2'
+    - 'fov3_part1_part2' becomes 'fov3'
 
     Args:
         names (list):
