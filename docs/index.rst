@@ -8,7 +8,7 @@
    Home <self>
    About MIBI Pipeline <_rtd/pipeline>
    Data Type Info <_rtd/data_types>
-   Virtual Environment Setup <_rtd/virtualenv>
+   Developer Info <_rtd/development>
    Contributing Guidelines <_rtd/contributing>
    FAQ <_rtd/faq>
 
