@@ -98,4 +98,4 @@ Please refer to our [FAQ](https://ark-analysis.readthedocs.io/en/latest/_rtd/faq
 
 ## Want to contribute?  
 
-If you would like to help make `ark` better, please take a look at our [contributing guidelines](https://ark-analysis.readthedocs.io/en/latest/_rtd/contributing.html)
+If you would like to help make `ark` better, please take a look at our [contributing guidelines](https://ark-analysis.readthedocs.io/en/latest/_rtd/contributing.html). You can look at our list of open issues [here](https://github.com/angelolab/ark-analysis/issues). 
