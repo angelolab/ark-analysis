@@ -26,7 +26,7 @@ Say yes to any prompts and your `conda` environment will be created!
  
 To verify installation, activate your `conda` environment with `conda activate <my_env>`. If you see `(<my_env>)` on the far left of the command prompt, you have successfully created and activated your environment. Type `conda deactivate` to exit at any time.
 
-#### Setting up ark-analysis for development
+### Setting up ark-analysis for development
 
 `ark` relies on several other Python packages. Inside the `ark-analysis` repo (if you don't have it, first run `git clone https://github.com/angelolab/ark-analysis.git`), and with your virtual environment activated, you will need to install these other dependencies as well. Run `pip install -r requirements.txt` to do so. 
  
@@ -40,14 +40,14 @@ If you will only be using functions in `ark` without developing on top of it, do
 
 ### More on xarrays
 
-One type of N-D array with frequently is `xarray` ([documentation](http://xarray.pydata.org/en/stable/)). The main advantages `xarray` offers are:
+One type of N-D array we use frequently is `xarray` ([documentation](http://xarray.pydata.org/en/stable/)). The main advantages `xarray` offers are:
 
 * Labeled dimension names
 * Flexible indexing types
 
-While these can be achieved in `numpy` to a certain extent, it is much less intuitive. In contrast, `xarray` makes it very easy to accomplish this. 
+While these can be achieved in `numpy` to a certain extent, it's much less intuitive. In contrast, `xarray` makes it very easy to accomplish this. 
 
-Just as `numpy`'s base array is `ndarray`, `xarray`'s base array is `DataArray`. We can initialize it with a numpy array as such (`xarray` should always be imported as `xr`):
+Just as `numpy`'s base array is `ndarray`, `xarray`'s base array is `DataArray`. We can initialize it with a `numpy` array as such (`xarray` should always be imported as `xr`):
 
 ```
 arr = xr.DataArray(np.zeros((1024, 1024, 3)),
@@ -55,9 +55,9 @@ arr = xr.DataArray(np.zeros((1024, 1024, 3)),
                    coords=[np.arange(1024), np.arange(1024), ['red', 'green', 'blue']])
 ```
 
-In this example, we assign the 0th, 1st, and 2nd dimensions to names 'x', 'y', and 'channel'. Both 'x' and 'y' are indexed with 0-1023, whereas 'channel' is indexed with RGB color names. 
+In this example, we assign the 0th, 1st, and 2nd dimensions to 'x', 'y', and 'channel' respectively. Both 'x' and 'y' are indexed with 0-1023, whereas 'channel' is indexed with RGB color names. 
 
-Indexing works much like `numpy` arrays. For example, to extract an `xarray` subset on just x and y in range 10:15 and the red and blue channels:
+Indexing for `xarray` works like `numpy`. For example, to extract an `xarray` with x=10:15, y=10:15, and channels=['red', 'blue']:
 
 `arr.loc[10:15, 10:15, ['red', 'blue']]`
 
@@ -65,15 +65,15 @@ This can also be extracted into a `numpy` array using `.values`:
 
 `arr.loc[10:15, 10:15, ['red', 'blue']].values`
 
-Note the use of `.loc` in both cases. You do not have to use `.loc` to index, but you will be forced to use only integer indexes otherwise. The following is equivalent to the above:
+Note the use of `.loc` in both cases. You do not have to use `.loc` to index, but you will be forced to use integer indexes. The following is equivalent to the above:
 
 `arr[10:15, 10:15, [0, 2]].values`
 
-In most cases, we recommend using `.loc` to get the full benefit of an `xarray`. Note that this can also be used to assign values as well:
+In most cases, we recommend using `.loc` to get the full benefit of `xarray`. Note that this can also be used to assign values as well:
 
 `arr.loc[10:15, 10:15, ['red', 'blue']] = 255`
 
-To access the coordinate names, use `arr.dims`, and to access the specific coordinate values, use `arr.coord_name.values`. 
+To access the coordinate names, use `arr.dims`, and to access specific coordinate indices, use `arr.coord_name.values`. 
 
 Finally, to save an `xarray` to a file, use:
 
