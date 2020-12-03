@@ -35,3 +35,48 @@ You're now set to start working with `ark-analysis`! Please look at [our contrib
 ### Using ark functions directly
 
 If you will only be using functions in `ark` without developing on top of it, do not clone the repo. Simply run `pip install ark-analysis` inside the virtual environment to gain access to our functions. To verify installation, type `conda list ark-analysis` after completion. If `ark-analysis` is listed, the installation was successful. You can now access the `ark` library with `import ark`.
+
+### More on xarrays
+
+One type of N-D array with frequently is `xarray` ([documentation]http://xarray.pydata.org/en/stable/). The main advantages `xarray` offers are:
+
+* Labeled dimension names
+* Flexible indexing types
+
+While these can be achieved in `numpy` to a certain extent, it is much less intuitive. In contrast, `xarray` makes it very easy to accomplish this. 
+
+Just as `numpy`'s base array is `ndarray`, `xarray`'s base array is `DataArray`. We can initialize it with a numpy array as such (`xarray` should always be imported as `xr`):
+
+```
+arr = xr.DataArray(np.zeros((1024, 1024, 3)),
+                   dims=['x', 'y', 'channel'],
+                   coords=[np.arange(1024), np.arange(1024), ['red', 'green', 'blue']])
+```
+
+In this example, we assign the 0th, 1st, and 2nd dimensions to names 'x', 'y', and 'channel'. Both 'x' and 'y' are indexed with 0-1023, whereas 'channel' is indexed with RGB color names. 
+
+Indexing works much like `numpy` arrays. For example, if I want to extract an `xarray` subset on just x and y in range 10:15 and the red and blue channels:
+
+`arr.loc[10:15, 10:15, ['red', 'blue']]`
+
+I can also extract these values into a `numpy` array using `.values`:
+
+`arr.loc[10:15, 10:15, ['red', 'blue']].values`
+
+Note the use of `.loc` in both cases. You do not have to use `.loc` to index, but you will be forced to use only integer indexes otherwise. The following is equivalent to the above:
+
+`arr[10:15, 10:15, [0, 2]].values`
+
+In most cases, we recommend using `.loc` to get the full benefit of an `xarray`. Note that this can also be used to assign values as well:
+
+`arr.loc[10:15, 10:15, ['red', 'blue']] = 255`
+
+To access the coordinate names, use `arr.dims`, and to access the specific coordinate values, use `arr.coord_name.values`. 
+
+Finally, to save an `xarray` to a file, use:
+
+`arr.to_netcdf(path, format="NETCDF3_64BIT")`
+
+You can load the `xarray` back in using:
+
+`arr = xr.load_dataarray(path)`
