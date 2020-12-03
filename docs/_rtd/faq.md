@@ -14,6 +14,14 @@ For example, if you get an invalid path error, the error message indicate which 
 
 If you're still stuck, please completely close the notebook, kill the docker, and restart everything. If you've exhausted all of these options and are still getting the same error, feel free to open an [issue](https://github.com/angelolab/ark-analysis/issues/new/choose). 
 
+### My kernel keeps dying
+
+This means Docker is running out of memory. To increase the memory, open Docker Preferences (on Mac, click the whale logo with boxes on the top menu bar, and select Preferences). Select Resources on the left panel, and a slider will appear for Docker memory usage which you can use to increase. 
+
+Keep in mind that you should be careful increasing your Docker memory usage above half of your computer RAM. For example, if you have a 16 GB computer, we recommend not increasing your Docker memory above 8 GB. 
+
+Avoid adjusting the CPUs, Swap, and Disk Image Size sliders. 
+
 ### How can I help improve this project?
 
 If you're interested in helping to add new features and develop this project, please check out our [contributing guidelines](https://ark-analysis.readthedocs.io/en/latest/_rtd/contributing.html)
