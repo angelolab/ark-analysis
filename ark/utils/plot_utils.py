@@ -29,15 +29,18 @@ def tif_overlay_preprocess(segmentation_labels, plotting_tif):
         if plotting_tif.shape != segmentation_labels.shape:
             raise ValueError("plotting_tif and segmentation_labels array dimensions not equal.")
         else:
-            # convert RGB image with same data across all three channels
-            formatted_tif = np.stack((plotting_tif, plotting_tif, plotting_tif), axis=2)
+            # convert RGB image with the blue channel containing the plotting tif data
+            formatted_tif = np.zeros((plotting_tif.shape[0], plotting_tif.shape[1], 3),
+                                     dtype=plotting_tif.dtype)
+            formatted_tif[..., 2] = plotting_tif
     elif len(plotting_tif.shape) == 3:
         # can only support up to 3 channels
         if plotting_tif.shape[2] > 3:
             raise ValueError("max 3 channels of overlay supported, got {}".
                              format(plotting_tif.shape))
 
-        # set first n channels of formatted_tif to plotting_tif (n = num channels in plotting_tif)
+        # set first n channels (in reverse order) of formatted_tif to plotting_tif
+        # (n = num channels in plotting_tif)
         formatted_tif = np.zeros((plotting_tif.shape[0], plotting_tif.shape[1], 3),
                                  dtype=plotting_tif.dtype)
         formatted_tif[..., :plotting_tif.shape[2]] = plotting_tif

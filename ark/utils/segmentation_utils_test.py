@@ -217,7 +217,7 @@ def test_save_segmentation_labels():
                                                     channel_data_xr=channel_xr,
                                                     output_dir=temp_dir)
 
-        # make sure all files exist
+        # make sure all files exist except overlay.tiff exists
         for mod_output_fov in segmentation_labels_xr.fovs:
             assert os.path.exists(os.path.join(temp_dir,
                                                f'{mod_output_fov.values}'
@@ -225,6 +225,7 @@ def test_save_segmentation_labels():
             assert os.path.exists(os.path.join(temp_dir,
                                                f'{mod_output_fov.values}'
                                                f'_segmentation_borders.tiff'))
+            assert not any(f.endswith('_overlay.tiff') for f in os.listdir(temp_dir))
 
     # test a subset of fovs (no channel overlay)
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -233,12 +234,14 @@ def test_save_segmentation_labels():
                                                     output_dir=temp_dir,
                                                     fovs=fov_sub)
 
+        # make sure all files except overlay.tiff exists
         assert os.path.exists(os.path.join(temp_dir,
                                            f'{fov_sub[0]}'
                                            f'_segmentation_labels.tiff'))
         assert os.path.exists(os.path.join(temp_dir,
                                            f'{fov_sub[0]}'
                                            f'_segmentation_borders.tiff'))
+        assert not any(f.endswith('_overlay.tiff') for f in os.listdir(temp_dir))
 
     # test with all fovs with channel overlay
     with tempfile.TemporaryDirectory() as temp_dir:

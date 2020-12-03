@@ -43,8 +43,9 @@ def test_tif_overlay_preprocess():
                                                      plotting_tif=example_images[..., 0])
 
     # assert the channels all contain the same data
-    assert np.all(plotting_tif[:, :, 0] == plotting_tif[:, :, 1])
-    assert np.all(plotting_tif[:, :, 1] == plotting_tif[:, :, 2])
+    assert np.all(plotting_tif[:, :, 0] == 0)
+    assert np.all(plotting_tif[:, :, 1] == 0)
+    assert np.all(plotting_tif[:, :, 2] == example_images[..., 0])
 
     # 3-D tests
     # test for third dimension == 1
