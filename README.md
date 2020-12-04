@@ -94,8 +94,8 @@ After updating, you can copy over any important paths or modifications from the 
 
 ## Questions?
 
-Please refer to our [FAQ](https://ark-analysis.readthedocs.io/en/latest/_rtd/faq.html).
+If you run into trouble, please first refer to our [FAQ](https://ark-analysis.readthedocs.io/en/latest/_rtd/faq.html). If that doesn't answer your question, you can open an [issue](https://github.com/angelolab/ark-analysis/issues). Before opening, please double check and see that someone else hasn't opened an issue for your question already. 
 
 ## Want to contribute?  
 
-If you would like to help make `ark` better, please take a look at our [contributing guidelines](https://ark-analysis.readthedocs.io/en/latest/_rtd/contributing.html)
+If you would like to help make `ark` better, please take a look at our [contributing guidelines](https://ark-analysis.readthedocs.io/en/latest/_rtd/contributing.html). 
