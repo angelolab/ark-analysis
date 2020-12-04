@@ -35,8 +35,8 @@ def label_cells_by_cluster(fovs, all_data, label_maps, fov_col=settings.FOV_ID,
     """
 
     # check if included fovs found in fov_col
-    verify_in_list(fov_names=fovs, unique_fovs=all_data[fov_col].unique())
-    verify_in_list(fov_names=fovs, unique_fovs=label_maps.fovs.values)
+    verify_in_list(fov_names=fovs, all_data_fovs=all_data[fov_col].unique())
+    verify_in_list(fov_names=fovs, label_map_fovs=label_maps.fovs.values)
 
     img_data = []
     for fov in fovs:
