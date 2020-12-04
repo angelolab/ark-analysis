@@ -8,6 +8,8 @@ WORKDIR /scripts
 # copy over the requirements.txt, install dependencies, and README
 COPY setup.py requirements.txt requirements-nodeps.txt README.md /opt/ark-analysis/
 RUN pip install -r /opt/ark-analysis/requirements.txt
+
+# install mibilib separately, with no dependencies, to avoid irrelevant dependency conflicts
 RUN pip install --no-deps -r /opt/ark-analysis/requirements-nodeps.txt
 
 # copy the scripts over
