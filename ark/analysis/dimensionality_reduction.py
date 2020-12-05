@@ -6,6 +6,8 @@ import seaborn as sns
 import umap.umap_ as umap
 import os
 
+from ark.utils import misc_utils
+
 
 def plot_dim_reduced_data(component_one, component_two, fig_id, hue, cell_data,
                           title, title_fontsize=24, palette="Spectral", alpha=0.3,
@@ -47,7 +49,7 @@ def plot_dim_reduced_data(component_one, component_two, fig_id, hue, cell_data,
             Ignored if save_dir is None
     """
 
-    fig = plt.figure(fig_id)
+    plt.figure(fig_id)
     sns.scatterplot(x=component_one, y=component_two, hue=hue, palette=palette,
                     data=cell_data, legend=legend_type, alpha=alpha)
 
@@ -55,13 +57,7 @@ def plot_dim_reduced_data(component_one, component_two, fig_id, hue, cell_data,
     plt.title(title, fontsize=title_fontsize)
 
     if save_dir is not None:
-        if not os.path.exists(save_dir):
-            raise ValueError("save_dir %s does not exist" % save_dir)
-
-        if save_file is None:
-            raise ValueError("save_dir specified but no save_file specified")
-
-        plt.savefig(os.path.join(save_dir, save_file))
+        misc_utils.save_figure(save_dir, save_file)
 
 
 def visualize_dimensionality_reduction(cell_data, columns, category, color_map="Spectral",
@@ -76,17 +72,18 @@ def visualize_dimensionality_reduction(cell_data, columns, category, color_map="
         category (str):
             Name of column in dataframe containing population or patient data
         color_map (str):
-            Name of MatPlotLib ColorMap used, default is Spectral
+            Name of MatPlotLib ColorMap used
         algorithm (str):
-            Name of dimensionality reduction algorithm, default is UMAP
+            Name of dimensionality reduction algorithm, must be UMAP, PCA, or tSNE
         save_dir (str):
             Directory to save plots, default is None
     """
-    cell_data = cell_data.dropna()
 
-    if algorithm not in ["UMAP", "PCA", "tSNE"]:
-        raise ValueError(f"The algorithm specified must be one of the following: "
-                         f"{['UMAP', 'PCA', 'tSNE']}")
+    cell_data = cell_data.dropna()
+    dim_reduction_algos = ["UMAP", "PCA", "tSNE"]
+
+    misc_utils.verify_in_list(algorithm=algorithm,
+                              dimensionality_reduction_algorithms=dim_reduction_algos)
 
     graph_title = "%s projection of data" % algorithm
 

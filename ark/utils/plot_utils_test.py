@@ -1,5 +1,6 @@
-import tempfile
 import os
+import pytest
+import tempfile
 
 import numpy as np
 
@@ -28,103 +29,86 @@ def _generate_image_data(img_dims):
     return np.random.randint(low=0, high=100, size=img_dims)
 
 
-def test_plot_overlay():
+def test_tif_overlay_preprocess():
     example_labels = _generate_segmentation_labels((1024, 1024))
     example_images = _generate_image_data((1024, 1024, 3))
 
-    with tempfile.TemporaryDirectory() as temp_dir:
-        # save with both tif and labels
-        plot_utils.plot_overlay(predicted_contour=example_labels, plotting_tif=example_images,
-                                alternate_contour=None,
-                                path=os.path.join(temp_dir, "example_plot1.tiff"))
-        # save with just labels
-        plot_utils.plot_overlay(predicted_contour=example_labels, plotting_tif=None,
-                                alternate_contour=None,
-                                path=os.path.join(temp_dir, "example_plot2.tiff"))
+    # 2-D tests
+    # dimensions are not the same for 2-D example_images
+    with pytest.raises(ValueError):
+        plot_utils.tif_overlay_preprocess(segmentation_labels=example_labels[:100, :100],
+                                          plotting_tif=example_images[..., 0])
 
-        # save with two sets of labels
-        plot_utils.plot_overlay(predicted_contour=example_labels, plotting_tif=example_images,
-                                alternate_contour=example_labels,
-                                path=os.path.join(temp_dir, "example_plot3.tiff"))
+    plotting_tif = plot_utils.tif_overlay_preprocess(segmentation_labels=example_labels,
+                                                     plotting_tif=example_images[..., 0])
 
+    # assert the channels all contain the same data
+    assert np.all(plotting_tif[:, :, 0] == 0)
+    assert np.all(plotting_tif[:, :, 1] == 0)
+    assert np.all(plotting_tif[:, :, 2] == example_images[..., 0])
 
-def test_randomize_labels():
-    labels = _generate_segmentation_labels((1024, 1024))
-    randomized = plot_utils.randomize_labels(labels)
+    # 3-D tests
+    # test for third dimension == 1
+    plotting_tif = plot_utils.tif_overlay_preprocess(segmentation_labels=example_labels,
+                                                     plotting_tif=example_images[..., 0:1])
 
-    assert np.array_equal(np.unique(labels), np.unique(randomized))
+    assert np.all(plotting_tif[..., 0] == 0)
+    assert np.all(plotting_tif[..., 1] == 0)
+    assert np.all(plotting_tif[..., 2] == example_images[..., 0])
 
-    # check that all pixels to belong to single cell in newly transformed image
-    unique_vals = np.unique(labels)
-    for val in unique_vals:
-        coords = labels == val
-        assert len(np.unique(randomized[coords])) == 1
+    # test for third dimension == 2
+    plotting_tif = plot_utils.tif_overlay_preprocess(segmentation_labels=example_labels,
+                                                     plotting_tif=example_images[..., 0:2])
 
+    assert np.all(plotting_tif[..., 0] == 0)
+    assert np.all(plotting_tif[..., 1] == example_images[..., 1])
+    assert np.all(plotting_tif[..., 2] == example_images[..., 0])
 
-def test_outline_objects():
-    labels = _generate_segmentation_labels((1024, 1024), num_cells=300)
-    unique_vals = np.unique(labels)[1:]
+    # test for third dimension == 3
+    plotting_tif = plot_utils.tif_overlay_preprocess(segmentation_labels=example_labels,
+                                                     plotting_tif=example_images)
 
-    # generate a random subset of unique vals to be placed in each list
-    vals = np.random.choice(unique_vals, size=60, replace=False)
-    object_list = [vals[:20], vals[20:40], vals[40:]]
+    assert np.all(plotting_tif[..., 0] == example_images[..., 2])
+    assert np.all(plotting_tif[..., 1] == example_images[..., 1])
+    assert np.all(plotting_tif[..., 2] == example_images[..., 0])
 
-    outlined = plot_utils.outline_objects(labels, object_list)
+    # test for third dimension == anything else
+    with pytest.raises(ValueError):
+        # add another layer to the last dimension
+        blank_channel = np.zeros(example_images.shape[:2] + (1,), dtype=example_images.dtype)
+        bad_example_images = np.concatenate((example_images, blank_channel), axis=2)
 
-    # check that cells in same object list were assigned the same label
-    mask1 = np.isin(labels, object_list[0])
-    assert len(np.unique(outlined[mask1])) == 1
+        plot_utils.tif_overlay_preprocess(segmentation_labels=example_labels,
+                                          plotting_tif=bad_example_images)
 
-    mask2 = np.isin(labels, object_list[1])
-    assert len(np.unique(outlined[mask2])) == 1
-
-    mask3 = np.isin(labels, object_list[2])
-    assert len(np.unique(outlined[mask3])) == 1
-
-
-def test_plot_mod_ap():
-    labels = ['alg1', 'alg2', 'alg3']
-    thresholds = np.arange(0.5, 1, 0.1)
-    mAP_array = [{'scores': [0.9, 0.8, 0.7, 0.4, 0.2]}, {'scores': [0.8, 0.7, 0.6, 0.3, 0.1]},
-                 {'scores': [0.95, 0.85, 0.75, 0.45, 0.25]}]
-
-    plot_utils.plot_mod_ap(mAP_array, thresholds, labels)
+    # n-D test (n > 3)
+    with pytest.raises(ValueError):
+        # add a fourth dimension
+        plot_utils.tif_overlay_preprocess(segmentation_labels=example_labels,
+                                          plotting_tif=np.expand_dims(example_images, axis=0))
 
 
-def test_plot_error_types():
-    stats_dict = {
-        'n_pred': 200,
-        'n_true': 200,
-        'correct_detections': 140,
-        'missed_detections': 40,
-        'gained_detections': 30,
-        'merge': 20,
-        'split': 10,
-        'catastrophe': 20
-    }
+def test_create_overlay():
+    example_labels = _generate_segmentation_labels((1024, 1024))
+    alternate_labels = _generate_segmentation_labels((1024, 1024))
+    example_images = _generate_image_data((1024, 1024, 3))
 
-    stats_dict1 = {
-        'n_pred': 210,
-        'n_true': 210,
-        'correct_detections': 120,
-        'missed_detections': 30,
-        'gained_detections': 50,
-        'merge': 50,
-        'split': 30,
-        'catastrophe': 50
-    }
+    # base test: just contour and tif provided
+    contour_mask = plot_utils.create_overlay(segmentation_labels=example_labels,
+                                             plotting_tif=example_images,
+                                             alternate_segmentation=None)
 
-    stats_dict2 = {
-        'n_pred': 10,
-        'n_true': 20,
-        'correct_detections': 10,
-        'missed_detections': 70,
-        'gained_detections': 50,
-        'merge': 5,
-        'split': 3,
-        'catastrophe': 5
-    }
+    assert contour_mask.shape == (1024, 1024, 3)
 
-    plot_utils.plot_error_types([stats_dict, stats_dict1, stats_dict2], ['alg1', 'alg2', 'alg3'],
-                                ['missed_detections', 'gained_detections', 'merge', 'split',
-                                 'catastrophe'])
+    # test with an alternate contour
+    contour_mask = plot_utils.create_overlay(segmentation_labels=example_labels,
+                                             plotting_tif=example_images,
+                                             alternate_segmentation=alternate_labels)
+
+    assert contour_mask.shape == (1024, 1024, 3)
+
+    # invalid alternate contour provided
+    with pytest.raises(ValueError):
+        plot_utils.create_overlay(segmentation_labels=example_labels,
+                                  plotting_tif=example_images,
+                                  alternate_segmentation=alternate_labels[:100, :100])

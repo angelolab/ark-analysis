@@ -7,18 +7,21 @@ import xarray as xr
 
 from skimage.measure import regionprops_table
 
-from ark.utils import data_utils, io_utils, segmentation_utils
-from ark.segmentation import signal_extraction
+from ark.utils import io_utils, load_utils, misc_utils, segmentation_utils
+from ark.segmentation.signal_extraction import extraction_function
+
+import ark.settings as settings
 
 
-def compute_marker_counts(input_images, segmentation_masks, nuclear_counts=False,
-                          regionprops_features=None, split_large_nuclei=False):
-    """Extract single cell protein expression data from channel TIFs for a single point
+def compute_marker_counts(input_images, segmentation_labels, nuclear_counts=False,
+                          regionprops_features=None, split_large_nuclei=False,
+                          extraction='total_intensity', **kwargs):
+    """Extract single cell protein expression data from channel TIFs for a single fov
 
     Args:
         input_images (xarray.DataArray):
             rows x columns x channels matrix of imaging data
-        segmentation_masks (numpy.ndarray):
+        segmentation_labels (numpy.ndarray):
             rows x columns x compartment matrix of masks
         nuclear_counts (bool):
             boolean flag to determine whether nuclear counts are returned
@@ -26,11 +29,19 @@ def compute_marker_counts(input_images, segmentation_masks, nuclear_counts=False
             morphology features for regionprops to extract for each cell
         split_large_nuclei (bool):
             controls whether nuclei which have portions outside of the cell will get relabeled
-
+        extraction (str):
+            extraction function used to compute marker counts.
+        **kwargs:
+            arbitrary keyword arguments
     Returns:
         xarray.DataArray:
             xarray containing segmented data of cells x markers
     """
+
+    misc_utils.verify_in_list(
+        extraction=extraction,
+        extraction_options=list(extraction_function.keys())
+    )
 
     if regionprops_features is None:
         regionprops_features = ['label', 'area', 'eccentricity', 'major_axis_length',
@@ -38,6 +49,20 @@ def compute_marker_counts(input_images, segmentation_masks, nuclear_counts=False
 
     if 'coords' not in regionprops_features:
         regionprops_features.append('coords')
+
+    # labels are required
+    if 'label' not in regionprops_features:
+        regionprops_features.append('label')
+
+    # centroid is required
+    if not any(['centroid' in rpf for rpf in regionprops_features]):
+        regionprops_features.append('centroid')
+
+    # enforce post channel column is present and first
+    if regionprops_features[0] != settings.POST_CHANNEL_COL:
+        if settings.POST_CHANNEL_COL in regionprops_features:
+            regionprops_features.remove(settings.POST_CHANNEL_COL)
+        regionprops_features.insert(0, settings.POST_CHANNEL_COL)
 
     # create variable to hold names of returned columns only
     regionprops_names = copy.copy(regionprops_features)
@@ -48,36 +73,38 @@ def compute_marker_counts(input_images, segmentation_masks, nuclear_counts=False
         regionprops_names.remove('centroid')
         regionprops_names += ['centroid-0', 'centroid-1']
 
-    unique_cell_ids = np.unique(segmentation_masks[..., 0].values)
+    unique_cell_ids = np.unique(segmentation_labels[..., 0].values)
     unique_cell_ids = unique_cell_ids[np.nonzero(unique_cell_ids)]
 
     # create labels for array holding channel counts and morphology metrics
-    feature_names = np.concatenate((np.array('cell_size'), input_images.channels,
+    feature_names = np.concatenate((np.array(settings.PRE_CHANNEL_COL), input_images.channels,
                                     regionprops_names), axis=None)
 
     # create np.array to hold compartment x cell x feature info
-    marker_counts_array = np.zeros((len(segmentation_masks.compartments), len(unique_cell_ids),
+    marker_counts_array = np.zeros((len(segmentation_labels.compartments), len(unique_cell_ids),
                                     len(feature_names)))
 
     marker_counts = xr.DataArray(copy.copy(marker_counts_array),
-                                 coords=[segmentation_masks.compartments,
+                                 coords=[segmentation_labels.compartments,
                                          unique_cell_ids.astype('int'),
                                          feature_names],
                                  dims=['compartments', 'cell_id', 'features'])
 
     # get regionprops for each cell
-    cell_props = pd.DataFrame(regionprops_table(segmentation_masks.loc[:, :, 'whole_cell'].values,
+    cell_props = pd.DataFrame(regionprops_table(segmentation_labels.loc[:, :, 'whole_cell'].values,
                                                 properties=regionprops_features))
 
     if nuclear_counts:
-        nuc_mask = segmentation_masks.loc[:, :, 'nuclear'].values
+        nuc_labels = segmentation_labels.loc[:, :, 'nuclear'].values
 
         if split_large_nuclei:
-            cell_mask = segmentation_masks.loc[:, :, 'whole_cell'].values
-            nuc_mask = segmentation_utils.split_large_nuclei(cell_segmentation_mask=cell_mask,
-                                                             nuc_segmentation_mask=nuc_mask,
-                                                             cell_ids=unique_cell_ids)
-        nuc_props = pd.DataFrame(regionprops_table(nuc_mask, properties=regionprops_features))
+            cell_labels = segmentation_labels.loc[:, :, 'whole_cell'].values
+            nuc_labels = \
+                segmentation_utils.split_large_nuclei(cell_segmentation_labels=cell_labels,
+                                                      nuc_segmentation_labels=nuc_labels,
+                                                      cell_ids=unique_cell_ids)
+
+        nuc_props = pd.DataFrame(regionprops_table(nuc_labels, properties=regionprops_features))
 
     # TODO: There's some repeated code here, maybe worth refactoring? Maybe not
     # loop through each cell in mask
@@ -85,8 +112,14 @@ def compute_marker_counts(input_images, segmentation_masks, nuclear_counts=False
         # get coords corresponding to current cell.
         cell_coords = cell_props.loc[cell_props['label'] == cell_id, 'coords'].values[0]
 
+        # get centroid corresponding to current cell
+        kwargs['centroid'] = np.array((
+            cell_props.loc[cell_props['label'] == cell_id, 'centroid-0'].values,
+            cell_props.loc[cell_props['label'] == cell_id, 'centroid-1'].values
+        )).T
+
         # calculate the total signal intensity within cell
-        cell_counts = signal_extraction.default_extraction(cell_coords, input_images)
+        cell_counts = extraction_function[extraction](cell_coords, input_images, **kwargs)
 
         # get morphology metrics
         current_cell_props = cell_props.loc[cell_props['label'] == cell_id, regionprops_names]
@@ -102,18 +135,21 @@ def compute_marker_counts(input_images, segmentation_masks, nuclear_counts=False
 
         if nuclear_counts:
             # get id of corresponding nucleus
-            nuc_id = segmentation_utils.find_nuclear_mask_id(nuc_segmentation_mask=nuc_mask,
-                                                             cell_coords=cell_coords)
+            nuc_id = segmentation_utils.find_nuclear_label_id(nuc_segmentation_labels=nuc_labels,
+                                                              cell_coords=cell_coords)
 
-            if nuc_id is None:
-                # no nucleus found within this cell
-                pass
-            else:
+            if nuc_id is not None:
                 # get coordinates of corresponding nucleus
                 nuc_coords = nuc_props.loc[nuc_props['label'] == nuc_id, 'coords'].values[0]
 
+                # get nuclear centroid
+                kwargs['centroid'] = np.array((
+                    nuc_props.loc[nuc_props['label'] == nuc_id, 'centroid-0'].values,
+                    nuc_props.loc[nuc_props['label'] == nuc_id, 'centroid-1'].values
+                )).T
+
                 # extract nuclear signal
-                nuc_counts = signal_extraction.default_extraction(nuc_coords, input_images)
+                nuc_counts = extraction_function[extraction](nuc_coords, input_images, **kwargs)
 
                 # get morphology metrics
                 current_nuc_props = nuc_props.loc[
@@ -132,23 +168,33 @@ def compute_marker_counts(input_images, segmentation_masks, nuclear_counts=False
     return marker_counts
 
 
-def generate_expression_matrix(segmentation_labels, image_data, nuclear_counts=False):
+def create_marker_count_matrices(segmentation_labels, image_data, nuclear_counts=False,
+                                 split_large_nuclei=False, extraction='total_intensity', **kwargs):
     """Create a matrix of cells by channels with the total counts of each marker in each cell.
 
     Args:
         segmentation_labels (xarray.DataArray):
             xarray of shape [fovs, rows, cols, compartment] containing segmentation masks for each
-            FOV, potentially across multiple cell compartments
+            fov, potentially across multiple cell compartments
         image_data (xarray.DataArray):
             xarray containing all of the channel data across all FOVs
         nuclear_counts (bool):
-            boolean flag to determine whether nuclear counts are returned
+            boolean flag to determine whether nuclear counts are returned, note that if
+            set to True, the compartments coordinate in segmentation_labels must contain 'nuclear'
+        split_large_nuclei (bool):
+            boolean flag to determine whether nuclei which are larger than their assigned cell
+            will get split into two different nuclear objects
+        extraction (str):
+            extraction function used to compute marker counts.
+        **kwargs:
+            arbitrary keyword args
 
     Returns:
         tuple (pandas.DataFrame, pandas.DataFrame):
-            - marker counts per cell normalized by cell size
-            - arcsinh transformation of the above
+        - marker counts per cell normalized by cell size
+        - arcsinh transformation of the above
     """
+
     if type(segmentation_labels) is not xr.DataArray:
         raise ValueError("Incorrect data type for segmentation_labels, expecting xarray")
 
@@ -156,17 +202,24 @@ def generate_expression_matrix(segmentation_labels, image_data, nuclear_counts=F
         raise ValueError("Incorrect data type for image_data, expecting xarray")
 
     if nuclear_counts:
-        if 'nuclear' not in segmentation_labels.compartments:
-            raise ValueError("Nuclear counts set to True, but not nuclear mask provided")
+        misc_utils.verify_in_list(
+            nuclear_label='nuclear',
+            compartment_names=segmentation_labels.compartments.values
+        )
 
-    if not np.all(set(segmentation_labels.fovs.values) == set(image_data.fovs.values)):
-        raise ValueError("The same FOVs must be present in the segmentation labels and images")
+    misc_utils.verify_in_list(
+        extraction=extraction,
+        extraction_options=list(extraction_function.keys())
+    )
+
+    misc_utils.verify_same_elements(segmentation_labels_fovs=segmentation_labels.fovs.values,
+                                    img_data_fovs=image_data.fovs.values)
 
     # initialize data frames
     normalized_data = pd.DataFrame()
     arcsinh_data = pd.DataFrame()
 
-    # loop over each FOV in the dataset
+    # loop over each fov in the dataset
     for fov in segmentation_labels.fovs.values:
         print("extracting data from {}".format(fov))
 
@@ -175,7 +228,9 @@ def generate_expression_matrix(segmentation_labels, image_data, nuclear_counts=F
 
         # extract the counts per cell for each marker
         marker_counts = compute_marker_counts(image_data.loc[fov, :, :, :], segmentation_label,
-                                              nuclear_counts=nuclear_counts)
+                                              nuclear_counts=nuclear_counts,
+                                              split_large_nuclei=split_large_nuclei,
+                                              extraction=extraction, **kwargs)
 
         # normalize counts by cell size
         marker_counts_norm = segmentation_utils.transform_expression_matrix(marker_counts,
@@ -185,7 +240,7 @@ def generate_expression_matrix(segmentation_labels, image_data, nuclear_counts=F
         marker_counts_arcsinh = segmentation_utils.transform_expression_matrix(marker_counts_norm,
                                                                                transform='arcsinh')
 
-        # add data from each FOV to array
+        # add data from each fov to array
         normalized = pd.DataFrame(data=marker_counts_norm.loc['whole_cell', :, :].values,
                                   columns=marker_counts_norm.features)
 
@@ -206,7 +261,7 @@ def generate_expression_matrix(segmentation_labels, image_data, nuclear_counts=F
                                        columns=nuc_column_names)
             arcsinh = pd.concat((arcsinh, arcsinh_nuc), axis=1)
 
-        # add column for current FOV
+        # add column for current fov
         normalized['fov'] = fov
         normalized_data = normalized_data.append(normalized)
 
@@ -216,10 +271,10 @@ def generate_expression_matrix(segmentation_labels, image_data, nuclear_counts=F
     return normalized_data, arcsinh_data
 
 
-def compute_complete_expression_matrices(segmentation_labels, tiff_dir, img_sub_folder,
-                                         is_mibitiff=False, points=None, batch_size=5):
-    """
-    This function takes the segmented data and computes the expression matrices batch-wise
+def generate_cell_table(segmentation_labels, tiff_dir, img_sub_folder,
+                        is_mibitiff=False, fovs=None, batch_size=5, dtype="int16",
+                        extraction='total_intensity', **kwargs):
+    """This function takes the segmented data and computes the expression matrices batch-wise
     while also validating inputs
 
     Args:
@@ -229,80 +284,92 @@ def compute_complete_expression_matrices(segmentation_labels, tiff_dir, img_sub_
             the name of the directory which contains the single_channel_inputs
         img_sub_folder (str):
             the name of the folder where the TIF images are located
-        points (list):
-            a list of points we wish to analyze, if None will default to all points
+        fovs (list):
+            a list of fovs we wish to analyze, if None will default to all fovs
         is_mibitiff (bool):
             a flag to indicate whether or not the base images are MIBItiffs
         batch_size (int):
-            how large we want each of the batches of points to be when computing, adjust as
+            how large we want each of the batches of fovs to be when computing, adjust as
             necessary for speed and memory considerations
+        dtype (str/type):
+            data type of base images
+        extraction (str):
+            extraction function used to compute marker counts.
+        **kwargs:
+            arbitrary keyword arguments for signal extraction
 
     Returns:
-        tuple (pandas.DataFrame, pandas.DataFrame):
-            - size normalized data
-            - arcsinh transformed data
+        tuple (pandas.DataFrame, pandas.DataFrame):å
+        - size normalized data
+        - arcsinh transformed data
     """
 
-    # if no points are specified, then load all the points
-    if points is None:
-        # handle mibitiffs with an assumed file structure
+    # if no fovs are specified, then load all the fovs
+    if fovs is None:
         if is_mibitiff:
-            filenames = io_utils.list_files(tiff_dir, substrs=['.tif'])
-            points = io_utils.extract_delimited_names(filenames, delimiter=None)
-        # otherwise assume the tree-like directory as defined for tree loading
+            fovs = io_utils.list_files(tiff_dir, substrs=['.tif'])
         else:
-            filenames = io_utils.list_folders(tiff_dir)
-            points = filenames
+            fovs = io_utils.list_folders(tiff_dir)
 
-    # check segmentation_labels for given points (img loaders will fail otherwise)
-    point_values = [point for point in points if point not in segmentation_labels['fovs'].values]
-    if point_values:
-        raise ValueError(f"Invalid point values specified: "
-                         f"points {','.join(point_values)} not found in segmentation_labels fovs")
+    # drop file extensions
+    fovs = io_utils.remove_file_extensions(fovs)
 
-    # get full filenames from given points
-    filenames = io_utils.list_files(tiff_dir, substrs=points)
+    misc_utils.verify_in_list(
+        extraction=extraction,
+        extraction_options=list(extraction_function.keys())
+    )
 
-    # sort the points
-    points.sort()
+    # check segmentation_labels for given fovs (img loaders will fail otherwise)
+    misc_utils.verify_in_list(fovs=fovs,
+                              segmentation_labels_fovs=segmentation_labels['fovs'].values)
+
+    # get full filenames from given fovs
+    filenames = io_utils.list_files(tiff_dir, substrs=fovs, exact_match=True)
+
+    # sort the fovs
+    fovs.sort()
     filenames.sort()
 
     # defined some vars for batch processing
-    cohort_len = len(points)
+    cohort_len = len(fovs)
 
     # create the final dfs to store the processed data
-    combined_cell_size_normalized_data = pd.DataFrame()
-    combined_arcsinh_transformed_data = pd.DataFrame()
+    combined_cell_table_size_normalized = pd.DataFrame()
+    combined_cell_table_arcsinh_transformed = pd.DataFrame()
 
     # iterate over all the batches
     for batch_names, batch_files in zip(
-        [points[i:i + batch_size] for i in range(0, cohort_len, batch_size)],
+        [fovs[i:i + batch_size] for i in range(0, cohort_len, batch_size)],
         [filenames[i:i + batch_size] for i in range(0, cohort_len, batch_size)]
     ):
         # and extract the image data for each batch
         if is_mibitiff:
-            image_data = data_utils.load_imgs_from_mibitiff(data_dir=tiff_dir,
-                                                            mibitiff_files=batch_files)
+            image_data = load_utils.load_imgs_from_mibitiff(data_dir=tiff_dir,
+                                                            mibitiff_files=batch_files,
+                                                            dtype=dtype)
         else:
-            image_data = data_utils.load_imgs_from_tree(data_dir=tiff_dir,
+            image_data = load_utils.load_imgs_from_tree(data_dir=tiff_dir,
                                                         img_sub_folder=img_sub_folder,
-                                                        fovs=batch_names)
+                                                        fovs=batch_names,
+                                                        dtype=dtype)
 
         # as well as the labels corresponding to each of them
         current_labels = segmentation_labels.loc[batch_names, :, :, :]
 
         # segment the imaging data
-        cell_size_normalized_data, arcsinh_transformed_data = generate_expression_matrix(
+        cell_table_size_normalized, cell_table_arcsinh_transformed = create_marker_count_matrices(
             segmentation_labels=current_labels,
-            image_data=image_data
+            image_data=image_data,
+            extraction=extraction,
+            **kwargs
         )
 
         # now append to the final dfs to return
-        combined_cell_size_normalized_data = combined_cell_size_normalized_data.append(
-            cell_size_normalized_data
+        combined_cell_table_size_normalized = combined_cell_table_size_normalized.append(
+            cell_table_size_normalized
         )
-        combined_arcsinh_transformed_data = combined_arcsinh_transformed_data.append(
-            arcsinh_transformed_data
+        combined_cell_table_arcsinh_transformed = combined_cell_table_arcsinh_transformed.append(
+            cell_table_arcsinh_transformed
         )
 
-    return combined_cell_size_normalized_data, combined_arcsinh_transformed_data
+    return combined_cell_table_size_normalized, combined_cell_table_arcsinh_transformed

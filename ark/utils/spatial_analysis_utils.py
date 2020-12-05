@@ -1,20 +1,25 @@
+import os
 import numpy as np
 import xarray as xr
 import pandas as pd
 import skimage.measure
+import sklearn.metrics
 import scipy
 from statsmodels.stats.multitest import multipletests
+from sklearn.cluster import KMeans
 from scipy.spatial.distance import cdist
-import os
+
+import ark.settings as settings
+from ark.utils import io_utils, misc_utils
 
 
-def calc_dist_matrix(label_maps, path=None):
+def calc_dist_matrix(label_maps, save_path=None):
     """Generate matrix of distances between center of pairs of cells
 
     Args:
         label_maps (xarray.DataArray):
-            array with unique cells given unique pixel labels per fov
-        path (str):
+            array of segmentation masks indexed by (fov, cell_id, cell_id, segmentation_label)
+        save_path (str):
             path to save file. If None, then will directly return
     Returns:
         dict:
@@ -25,9 +30,8 @@ def calc_dist_matrix(label_maps, path=None):
 
     # Check that file path exists, if given
 
-    if path is not None:
-        if not os.path.exists(path):
-            raise FileNotFoundError("File path not valid")
+    if save_path is not None:
+        io_utils.validate_paths(save_path)
 
     dist_mats_list = []
 
@@ -41,7 +45,7 @@ def calc_dist_matrix(label_maps, path=None):
         centroid_labels = [prop.label for prop in props]
 
         # generate the distance matrix, then assign centroid_labels as coords
-        dist_matrix = cdist(centroids, centroids)
+        dist_matrix = cdist(centroids, centroids).astype(np.float32)
         dist_mat_xarr = xr.DataArray(dist_matrix, coords=[centroid_labels, centroid_labels])
 
         # append final result to dist_mats_list
@@ -50,12 +54,12 @@ def calc_dist_matrix(label_maps, path=None):
     # Create dictionary to store distance matrices per fov
     dist_matrices = dict(zip(fovs, dist_mats_list))
 
-    # If path is None, function will directly return the dictionary
-    # else it will save it as a file with location specified by path
-    if path is None:
+    # If save_path is None, function will directly return the dictionary
+    # else it will save it as a file with location specified by save_path
+    if save_path is None:
         return dist_matrices
     else:
-        np.savez(path + "dist_matrices.npz", **dist_matrices)
+        np.savez(os.path.join(save_path, "dist_matrices.npz"), **dist_matrices)
 
 
 def get_pos_cell_labels_channel(thresh, current_fov_channel_data, cell_labels, current_marker):
@@ -115,7 +119,8 @@ def get_pos_cell_labels_cluster(pheno, current_fov_neighborhood_data,
 
 def compute_close_cell_num(dist_mat, dist_lim, analysis_type,
                            current_fov_data=None, current_fov_channel_data=None,
-                           cluster_ids=None, cell_types_analyze=None, thresh_vec=None):
+                           cluster_ids=None, cell_types_analyze=None, thresh_vec=None,
+                           cell_label_col=settings.CELL_LABEL, cell_type_col=settings.CLUSTER_ID):
     """Finds positive cell labels and creates matrix with counts for cells positive for
     corresponding markers. Computes close_num matrix for both Cell Label and Threshold spatial
     analyses.
@@ -132,17 +137,21 @@ def compute_close_cell_num(dist_mat, dist_lim, analysis_type,
         dist_lim (int):
             threshold for spatial enrichment distance proximity
         analysis_type (str):
-            type of analysis, either cluster or channel
+            type of analysis, must be either cluster or channel
         current_fov_data (pandas.DataFrame):
             data for specific patient in expression matrix
         current_fov_channel_data (pandas.DataFrame):
             data of only column markers for Channel Analysis
-        cluster_ids (pandas.DataFrame):
+        cluster_ids (numpy.ndarray):
             all the cell phenotypes in Cluster Analysis
         cell_types_analyze (list):
             a list of the cell types we wish to analyze, if None we set it equal to all cell types
         thresh_vec (numpy.ndarray):
             matrix of thresholds column for markers
+        cell_label_col (str):
+            the name of the column containing the cell labels
+        cell_type_col (str):
+            the name of the column containing the cell types
 
     Returns:
         numpy.ndarray:
@@ -151,16 +160,12 @@ def compute_close_cell_num(dist_mat, dist_lim, analysis_type,
     """
 
     # assert our analysis type is valid
-    if not np.isin(analysis_type, ("cluster", "channel")).all():
-        raise ValueError("Incorrect analysis type")
+    good_analyses = ["cluster", "channel"]
+    misc_utils.verify_in_list(analysis_type=analysis_type, good_analyses=good_analyses)
 
     # Initialize variables
 
     cell_labels = []
-
-    # Assign column names for subsetting (cell labels and cell type ids)
-    cell_label_col = "cellLabelInImage"
-    cell_type_col = "FlowSOM_ID"
 
     # Subset data based on analysis type
     if analysis_type == "channel":
@@ -174,26 +179,26 @@ def compute_close_cell_num(dist_mat, dist_lim, analysis_type,
         num = len(cluster_ids)
 
     # Create close_num, marker1_num, and marker2_num
-    close_num = np.zeros((num, num), dtype='int')
+    close_num = np.zeros((num, num), dtype=np.uint16)
 
     mark1_num = []
     mark1poslabels = []
 
     dist_mat_bin = xr.DataArray(
-        (dist_mat.values < dist_lim).astype(np.int8),
+        (dist_mat.values < dist_lim).astype(np.uint8),
         coords=dist_mat.coords
     )
 
     for j in range(num):
         if analysis_type == "cluster":
             mark1poslabels.append(
-                get_pos_cell_labels_cluster(pheno=cluster_ids.iloc[j],
+                get_pos_cell_labels_cluster(pheno=cluster_ids[j],
                                             current_fov_neighborhood_data=current_fov_data,
                                             cell_label_col=cell_label_col,
                                             cell_type_col=cell_type_col))
         else:
             mark1poslabels.append(
-                get_pos_cell_labels_channel(thresh=thresh_vec.iloc[j],
+                get_pos_cell_labels_channel(thresh=thresh_vec[j],
                                             current_fov_channel_data=current_fov_channel_data,
                                             cell_labels=cell_labels,
                                             current_marker=current_fov_channel_data.columns[j]))
@@ -213,7 +218,7 @@ def compute_close_cell_num(dist_mat, dist_lim, analysis_type,
                 mark1poslabels[j].values,
                 mark1poslabels[k].values
             ].values
-            count_close_num_hits = np.sum(dist_mat_bin_subset)
+            count_close_num_hits = np.sum(dist_mat_bin_subset, dtype=np.uint16)
 
             close_num[j, k] = count_close_num_hits
             # symmetry :)
@@ -243,20 +248,16 @@ def compute_close_cell_num_random(marker_nums, dist_mat, dist_lim, bootstrap_num
 
     # Create close_num_rand
     close_num_rand = np.zeros((
-        len(marker_nums), len(marker_nums), bootstrap_num), dtype='int')
+        len(marker_nums), len(marker_nums), bootstrap_num), dtype=np.uint16)
 
-    dist_mat_bin = xr.DataArray(
-        (dist_mat.values < dist_lim).astype(np.int8),
-        coords=dist_mat.coords
-    )
+    dist_mat_bin_flattened = (dist_mat.values < dist_lim).astype(np.uint8).flatten()
 
     for j, m1n in enumerate(marker_nums):
         for k, m2n in enumerate(marker_nums[j:], j):
             samples_dim = (m1n * m2n, bootstrap_num)
-            dist_mat_bin_flattened = dist_mat_bin.values.flatten()
             count_close_num_rand_hits = np.sum(
-                np.random.choice(dist_mat_bin_flattened, samples_dim, True),
-                axis=0
+                np.random.choice(dist_mat_bin_flattened, samples_dim, True), axis=0,
+                dtype=np.uint16
             )
 
             close_num_rand[j, k, :] = count_close_num_rand_hits
@@ -278,12 +279,13 @@ def calculate_enrichment_stats(close_num, close_num_rand):
     Returns:
         xarray.DataArray:
             xarray contining the following statistics for marker to marker enrichment
-                - z: z scores for corresponding markers
-                - muhat: predicted mean values of close_num_rand random distribution
-                - sigmahat: predicted standard deviations of close_num_rand random distribution
-                - p: p values for corresponding markers, for both positive and negative enrichment
-                - h: matrix indicating whether corresponding marker interactions are significant
-                - adj_p: fdh_br adjusted p values
+
+            - z: z scores for corresponding markers
+            - muhat: predicted mean values of close_num_rand random distribution
+            - sigmahat: predicted standard deviations of close_num_rand random distribution
+            - p: p values for corresponding markers, for both positive and negative enrichment
+            - h: matrix indicating whether corresponding marker interactions are significant
+            - adj_p: fdh_br adjusted p values
     """
     # Get the number of markers and number of permutations
     marker_num = close_num.shape[0]
@@ -305,7 +307,7 @@ def calculate_enrichment_stats(close_num, close_num_rand):
             # Calculate z score based on distribution
             z[j, k] = (close_num[j, k] - muhat[j, k]) / sigmahat[j, k]
             # Calculate both positive and negative enrichment p values
-            p_pos[j, k] = (1 + (np.sum(tmp >= close_num[j, k]))) / (bootstrap_num + 1)
+            p_pos[j, k] = (1 + (np.sum(tmp > close_num[j, k]))) / (bootstrap_num + 1)
             p_neg[j, k] = (1 + (np.sum(tmp < close_num[j, k]))) / (bootstrap_num + 1)
 
     # Get fdh_br adjusted p values
@@ -331,7 +333,7 @@ def calculate_enrichment_stats(close_num, close_num_rand):
 
 
 def compute_neighbor_counts(current_fov_neighborhood_data, dist_matrix, distlim,
-                            self_neighbor=True, cell_label_col="cellLabelInImage"):
+                            self_neighbor=True, cell_label_col=settings.CELL_LABEL):
     """Calculates the number of neighbor phenotypes for each cell. The cell counts itself as a
     neighbor.
 
@@ -353,17 +355,9 @@ def compute_neighbor_counts(current_fov_neighborhood_data, dist_matrix, distlim,
             - phenotype frequencies of counts per total for each cell
     """
 
-    # TODO remove non-cell2cell lines (indices of distance matrix do not correspond to cell labels)
-    #  after our own inputs for functions are created
-    # refine distance matrix to only cover cell labels in fov_data
-
-    cell_dist_mat = dist_matrix.loc[
-        current_fov_neighborhood_data[cell_label_col].values,
-        current_fov_neighborhood_data[cell_label_col].values
-    ].values
-
-    # cell_dist_mat = np.take(dist_matrix, current_fov_neighborhood_data[cell_label_col] - 1, 0)
-    # cell_dist_mat = np.take(cell_dist_mat, current_fov_neighborhood_data[cell_label_col] - 1, 1)
+    # subset our distance matrix based on the cell labels provided
+    cell_labels = current_fov_neighborhood_data[cell_label_col].values
+    cell_dist_mat = dist_matrix.loc[cell_labels, cell_labels].values
 
     # binarize distance matrix
     cell_dist_mat_bin = np.zeros(cell_dist_mat.shape)
@@ -371,7 +365,7 @@ def compute_neighbor_counts(current_fov_neighborhood_data, dist_matrix, distlim,
 
     # default is that cell counts itself as a matrix
     if not self_neighbor:
-        cell_dist_mat_bin[dist_matrix == 0] = 0
+        cell_dist_mat_bin[cell_dist_mat == 0] = 0
 
     # get num_neighbors for freqs
     num_neighbors = np.sum(cell_dist_mat_bin, axis=0)
@@ -386,3 +380,59 @@ def compute_neighbor_counts(current_fov_neighborhood_data, dist_matrix, distlim,
     freqs = counts.T / num_neighbors
 
     return counts, freqs.T
+
+
+def compute_kmeans_cluster_metric(neighbor_mat_data, max_k=10):
+    """For a given neighborhood matrix, cluster and compute metric scores using k-means clustering.
+
+    Currently only supporting silhouette score as a cluster metric.
+
+    Args:
+        neighbor_mat_data (pandas.DataFrame):
+            neighborhood matrix data with only the desired fovs
+        max_k (int):
+            the maximum k we want to generate cluster statistics for, must be at least 2
+
+    Returns:
+        xarray.DataArray:
+            contains a single dimension, cluster_num, which determines the metric score
+            when cluster_num was set as k for k-means clustering
+    """
+
+    # create array we can store the results of each k for clustering
+    coords = [np.arange(2, max_k + 1)]
+    dims = ["cluster_num"]
+    stats_raw_data = np.zeros(max_k - 1)
+    cluster_stats = xr.DataArray(stats_raw_data, coords=coords, dims=dims)
+
+    for n in range(2, max_k + 1):
+        cluster_fit = KMeans(n_clusters=n).fit(neighbor_mat_data)
+        cluster_labels = cluster_fit.labels_
+        cluster_score = sklearn.metrics.silhouette_score(neighbor_mat_data, cluster_labels,
+                                                         metric='euclidean')
+        cluster_stats.loc[n] = cluster_score
+
+    return cluster_stats
+
+
+def generate_cluster_labels(neighbor_mat_data, cluster_num):
+    """Run k-means clustering with k=cluster_num on each channel column
+
+    Give the same data, given several runs the clusters will always be the same,
+    but the labels assigned will likely be different
+
+    Args:
+        neighbor_mat_data (pandas.DataFrame):
+            neighborhood matrix data with only the desired fovs
+        cluster_num (int):
+            the k we want to use when running k-means clustering
+
+    Returns:
+        numpy.ndarray:
+            the cluster labels we will be assigning to each cell in the neighborhood matrix
+    """
+
+    cluster_fit = KMeans(n_clusters=cluster_num).fit(neighbor_mat_data)
+    cluster_labels = cluster_fit.labels_
+
+    return cluster_labels
