@@ -6,9 +6,48 @@ import pandas as pd
 import skimage.io as io
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 from skimage.segmentation import find_boundaries
 from skimage.exposure import rescale_intensity
+
+from ark.utils import misc_utils
+
+# plotting functions
+from ark.utils.misc_utils import verify_in_list
+
+
+def plot_clustering_result(img_xr, fovs, save_dir=None, cmap='tab20',
+                           fov_col='fovs', figsize=(10, 10)):
+    """Takes an xarray containing labeled images and displays them.
+
+    Args:
+        img_xr (xr.DataArray):
+            xarray containing labeled cell objects.
+        fovs (list):
+            list of fovs to display.
+        save_dir (str):
+            If provided, the image will be saved to this location.
+        cmap (str):
+            Cmap to use for the image that will be displayed.
+        fov_col (str):
+            column with the fovs names in img_xr.
+        figsize (tuple):
+            Size of the image that will be displayed.
+    """
+
+    verify_in_list(fov_names=fovs, unique_fovs=img_xr.fovs)
+
+    for fov in fovs:
+        plt.figure(figsize=figsize)
+        ax = plt.gca()
+        plt.title(fov)
+        plt.imshow(img_xr[img_xr[fov_col] == fov].values.squeeze(), cmap=cmap)
+        divider = make_axes_locatable(ax)
+        cax = divider.append_axes("right", size="5%", pad=0.05)
+        plt.colorbar(cax=cax)
+        if save_dir:
+            misc_utils.save_figure(save_dir, f'{fov}.png')
 
 
 def tif_overlay_preprocess(segmentation_labels, plotting_tif):
