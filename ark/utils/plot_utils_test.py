@@ -3,9 +3,12 @@ import pytest
 import tempfile
 
 import numpy as np
+import pytest
 
 from ark.utils import plot_utils
 from skimage.draw import circle
+
+from ark.utils.plot_utils import plot_clustering_result
 
 
 def _generate_segmentation_labels(img_dims, num_cells=20):
