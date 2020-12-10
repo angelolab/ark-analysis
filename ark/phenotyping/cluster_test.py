@@ -28,6 +28,21 @@ def test_winner():
     assert winning_coords == (1, 1)
 
 
+def test_batch_winner():
+    test_samples = np.array([[0.01, 0.02],
+                             [0.04, 0.08],
+                             [0.03, 0.09]])
+    test_weights = np.array([[[0.001, 0.005],
+                              [0.002, 0.004]],
+                             [[0.003, 0.009],
+                              [0.008, 0.027]]])
+
+    winning_coords_list = cluster.batch_winner(test_samples, test_weights)
+
+    # TODO: difficult to get variety with this few weights and samples
+    assert np.all(coords == (1, 1) for coords in winning_coords_list)
+
+
 def test_update():
     test_sample = np.array([1, 2]).astype(float)
     test_weights = np.array([[[1, 5],

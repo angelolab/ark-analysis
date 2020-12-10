@@ -1,3 +1,4 @@
+# from concurrent.futures import ProcessPoolExecutor
 import os
 
 import numpy as np
@@ -44,6 +45,59 @@ def winner(sample, weights):
     winning_coords = np.unravel_index(activation_map.argmin(), activation_map.shape)
 
     return winning_coords
+
+
+def batch_winner(samples, weights):
+    """Predict multiple samples at once
+
+    Args:
+        samples (numpy.ndarray):
+            Contains the rows of the pixel matrix to predict
+        weights (numpy.ndarray):
+            A weight matrix of dimensions [num_x, num_y, num_chans]
+
+    Returns:
+        list:
+            The list with indices corresponding to the prediction of the respective sample
+    """
+
+    # collapse the weights for proper subtraction
+    # dimensions will be (m x n) x c
+    # (m x n): number of m and n SOM nodes
+    # c: number of channels
+    weights_collapse = np.reshape(weights, (weights.shape[0] * weights.shape[1], weights.shape[2]))
+
+    # subtract weights from each sample individually, need to reshape back to original
+    # for proper Euclidean distance calculation
+    samples_subtract = samples - weights_collapse[:, None]
+    samples_subtract = np.reshape(samples_subtract, (weights.shape[0], weights.shape[1],
+                                                     samples_subtract.shape[1],
+                                                     samples_subtract.shape[2]))
+
+    # take the Euclidean distance along the last axis, then reshuffle
+    # to a final matrix of r x (m x n)
+    # r: number of samples
+    # (m x n): number of m and n SOM nodes
+    activation_map = np.linalg.norm(samples_subtract, axis=-1)
+    activation_map = np.swapaxes(np.swapaxes(activation_map, 1, 2), 0, 1)
+
+    # collapse the last two dimensions of activation map so we can unravel the indices properly
+    activation_map_collapse = np.reshape(activation_map,
+                                         (samples.shape[0], weights.shape[0] * weights.shape[1]))
+
+    # get the winning coordinates for each position
+    x_min_coords, y_min_coords = np.unravel_index(np.argmin(activation_map_collapse, axis=1),
+                                                  (weights.shape[0], weights.shape[1]))
+
+    # zip the coordinates together to get the final result
+    winning_coords_list = list(zip(x_min_coords, y_min_coords))
+
+    # with ProcessPoolExecutor() as executor:
+    #     winning_coords_list = list(
+    #         executor.map(winner, samples,
+    #                      np.repeat(weights[np.newaxis, ...], samples.shape[0], axis=0)))
+
+    return winning_coords_list
 
 
 def update(sample, weights, winning_coords, sigma, learning_rate, x_mesh, y_mesh):
@@ -139,7 +193,7 @@ def train_som(pixel_mat, x_neurons, y_neurons, num_passes,
     return weights
 
 
-def cluster_som(pixel_mat, weights):
+def cluster_som(pixel_mat, weights, batch_size=100):
     """Assigns the cluster label to each entry in the pixel matrix based on the trained weights
 
     Args:
@@ -147,6 +201,8 @@ def cluster_som(pixel_mat, weights):
             A matrix with pixel-level channel information for non-zero pixels in img_xr
         weights (numpy.ndarray):
             The weights matrix after training
+        batch_size (int):
+            The number of pixels we want to cluster at once
 
     Returns:
         pandas.Series:
