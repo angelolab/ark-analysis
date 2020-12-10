@@ -222,7 +222,6 @@ def cluster_som(pixel_mat, weights, batch_size=10000):
         cluster_coords.extend(cluster_batch_coords)
 
     # didn't divide up evenly, need to process final row(s)
-    print(pixel_mat.shape[0] % batch_size)
     if pixel_mat.shape[0] % batch_size != 0:
         vals_to_cluster = pixel_mat.loc[num_batches * batch_size:]
         cluster_batch_coords = batch_winner(vals_to_cluster.values, weights)
