@@ -92,58 +92,6 @@ def batch_winner(samples, weights):
     return winning_coords_list
 
 
-# def batch_winner(samples, weights):
-#     """Predict multiple samples at once
-
-#     Args:
-#         samples (numpy.ndarray):
-#             Contains the rows of the pixel matrix to predict
-#         weights (numpy.ndarray):
-#             A weight matrix of dimensions [num_x, num_y, num_chans]
-
-#     Returns:
-#         list:
-#             The list with indices corresponding to the prediction of the respective sample
-#     """
-
-#     # only 1 sample provided: expand to 2-D
-#     if len(samples.shape) == 1:
-#         samples = np.expand_dims(samples, axis=0)
-
-#     # collapse the weights for proper subtraction
-#     # dimensions will be (m x n) x c
-#     # (m x n): number of m and n SOM nodes
-#     # c: number of channels
-#     weights_collapse = np.reshape(weights, (weights.shape[0] * weights.shape[1], weights.shape[2]))
-
-#     # subtract weights from each sample individually, need to reshape back to original
-#     # for proper Euclidean distance calculation
-#     samples_subtract = samples - weights_collapse[:, None]
-#     samples_subtract = np.reshape(samples_subtract, (weights.shape[0], weights.shape[1],
-#                                                      samples_subtract.shape[1],
-#                                                      samples_subtract.shape[2]))
-
-#     # take the Euclidean distance along the last axis, then reshuffle
-#     # to a final matrix of r x (m x n)
-#     # r: number of samples
-#     # (m x n): number of m and n SOM nodes
-#     activation_map = np.linalg.norm(samples_subtract, axis=-1)
-#     activation_map = np.swapaxes(np.swapaxes(activation_map, 1, 2), 0, 1)
-
-#     # collapse the last two dimensions of activation map so we can unravel the indices properly
-#     activation_map_collapse = np.reshape(activation_map,
-#                                          (samples.shape[0], weights.shape[0] * weights.shape[1]))
-
-#     # get the winning coordinates for each position
-#     x_min_coords, y_min_coords = np.unravel_index(np.argmin(activation_map_collapse, axis=1),
-#                                                   (weights.shape[0], weights.shape[1]))
-
-#     # zip the coordinates together to get the final result
-#     winning_coords_list = list(zip(x_min_coords, y_min_coords))
-
-#     return winning_coords_list
-
-
 def update(sample, weights, winning_coords, sigma, learning_rate, x_mesh, y_mesh):
     """Updates the weights, learning rate, and sigma parameters
 
