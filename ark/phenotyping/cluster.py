@@ -1,4 +1,3 @@
-# from concurrent.futures import ProcessPoolExecutor
 import os
 
 import numpy as np
@@ -91,11 +90,6 @@ def batch_winner(samples, weights):
 
     # zip the coordinates together to get the final result
     winning_coords_list = list(zip(x_min_coords, y_min_coords))
-
-    # with ProcessPoolExecutor() as executor:
-    #     winning_coords_list = list(
-    #         executor.map(winner, samples,
-    #                      np.repeat(weights[np.newaxis, ...], samples.shape[0], axis=0)))
 
     return winning_coords_list
 
