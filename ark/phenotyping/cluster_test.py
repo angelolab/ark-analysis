@@ -1,8 +1,9 @@
+import pytest
+
 import numpy as np
 import pandas as pd
 
 import ark.phenotyping.cluster as cluster
-
 import ark.utils.misc_utils as misc_utils
 
 
@@ -29,6 +30,7 @@ def test_winner():
 
 
 def test_batch_winner():
+    # test with multiple samples
     test_samples = np.array([[0.01, 0.02],
                              [0.04, 0.08],
                              [0.03, 0.09]])
@@ -39,8 +41,17 @@ def test_batch_winner():
 
     winning_coords_list = cluster.batch_winner(test_samples, test_weights)
 
-    # TODO: difficult to get variety with this few weights and samples
+    # assert length and coordinate assignments are correct
+    # TODO: difficult to get variety in coordinate assignment with limited data/weights
+    assert len(winning_coords_list) == test_samples.shape[0]
     assert np.all(coords == (1, 1) for coords in winning_coords_list)
+
+    # test with just 1 sample, should work the same
+    test_sample = np.array([0.01, 0.02])
+    winning_coords_list = cluster.batch_winner(test_sample, test_weights)
+
+    assert len(winning_coords_list) == 1
+    assert winning_coords_list[0] == (1, 1)
 
 
 def test_update():
@@ -103,7 +114,7 @@ def test_train_som():
 
 
 def test_cluster_som():
-    test_pixel_mat = pd.DataFrame(np.reshape(np.arange(0.01, 0.28, 0.01), (-1, 3)))
+    test_pixel_mat = pd.DataFrame(np.reshape(np.arange(0.01, 0.31, 0.01), (-1, 3)))
     test_weights = np.array([[[0.001, 0.005, 0.010],
                               [0.002, 0.004, 0.007],
                               [0.003, 0.006, 0.009]],
@@ -114,6 +125,22 @@ def test_cluster_som():
                               [0.033, 0.066, 0.099],
                               [0.016, 0.032, 0.064]]])
 
-    cluster_labels = cluster.cluster_som(test_pixel_mat, test_weights)
+    # invalid batch size provided
+    with pytest.raises(ValueError):
+        cluster.cluster_som(test_pixel_mat, test_weights, batch_size=0)
 
-    assert np.all(cluster_labels.values == np.array([0, 1, 2, 2, 2, 2, 2, 2, 2]))
+    # test batch size that divides the dataset up equally
+    cluster_labels = cluster.cluster_som(test_pixel_mat, test_weights, batch_size=5)
+    assert np.all(cluster_labels.values == np.array([0, 1, 2, 2, 2, 2, 2, 2, 2, 2]))
+
+    # test batch size that divides the dataset up unequally with 1 row remaining
+    cluster_labels = cluster.cluster_som(test_pixel_mat, test_weights, batch_size=3)
+    assert np.all(cluster_labels.values == np.array([0, 1, 2, 2, 2, 2, 2, 2, 2, 2]))
+
+    # test batch size that divides the dataset up unequally with more than 1 row remaining
+    cluster_labels = cluster.cluster_som(test_pixel_mat, test_weights, batch_size=7)
+    assert np.all(cluster_labels.values == np.array([0, 1, 2, 2, 2, 2, 2, 2, 2, 2]))
+
+    # test batch size larger than number of rows
+    cluster_labels = cluster.cluster_som(test_pixel_mat, test_weights, batch_size=15)
+    assert np.all(cluster_labels.values == np.array([0, 1, 2, 2, 2, 2, 2, 2, 2, 2]))

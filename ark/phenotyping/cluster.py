@@ -24,7 +24,7 @@ def decay_function(param, t, num_iters):
 
 
 def winner(sample, weights):
-    """Find the coordinates to the winning neuron in the SOM
+    """Find the coordinates to the winning neuron in the SOM for one sample
 
     Args:
         sample (numpy.ndarray):
@@ -59,6 +59,10 @@ def batch_winner(samples, weights):
         list:
             The list with indices corresponding to the prediction of the respective sample
     """
+
+    # only 1 sample provided: expand to 2-D
+    if len(samples.shape) == 1:
+        samples = np.expand_dims(samples, axis=0)
 
     # collapse the weights for proper subtraction
     # dimensions will be (m x n) x c
@@ -187,7 +191,7 @@ def train_som(pixel_mat, x_neurons, y_neurons, num_passes,
     return weights
 
 
-def cluster_som(pixel_mat, weights, batch_size=100):
+def cluster_som(pixel_mat, weights, batch_size=10000):
     """Assigns the cluster label to each entry in the pixel matrix based on the trained weights
 
     Args:
@@ -203,9 +207,33 @@ def cluster_som(pixel_mat, weights, batch_size=100):
             The cluster labels to assign to the corresponding rows in pixel_mat
     """
 
+    # just in case...
+    if batch_size < 1:
+        raise ValueError("Batch size provided must be positive")
+
+    # generate the winning coordinates for each sample in batches
+    cluster_coords = []
+    num_batches = pixel_mat.shape[0] // batch_size
+
+    # generate all the equal-sized batches we can find
+    for batch in range(num_batches):
+        vals_to_cluster = pixel_mat.loc[batch * batch_size:(batch + 1) * batch_size - 1]
+        cluster_batch_coords = batch_winner(vals_to_cluster.values, weights)
+        cluster_coords.extend(cluster_batch_coords)
+
+    # didn't divide up evenly, need to process final row(s)
+    print(pixel_mat.shape[0] % batch_size)
+    if pixel_mat.shape[0] % batch_size != 0:
+        vals_to_cluster = pixel_mat.loc[num_batches * batch_size:]
+        cluster_batch_coords = batch_winner(vals_to_cluster.values, weights)
+        cluster_coords.extend(cluster_batch_coords)
+
+    # convert to series, cast to str so the replace function works
+    cluster_coords = pd.Series(cluster_coords).astype(str)
+
     # extract the coordinate associated with the winning neuron for each row
-    cluster_coords = pixel_mat.apply(
-        lambda row: winner(np.array(list(row.values)), weights), axis=1).astype(str)
+    # cluster_coords = pixel_mat.apply(
+    #     lambda row: winner(np.array(list(row.values)), weights), axis=1).astype(str)
 
     # reassign the coordinates to integers to make the label col more understandable
     unique_cluster_coords = cluster_coords.unique()
