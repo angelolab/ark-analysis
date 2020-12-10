@@ -231,10 +231,6 @@ def cluster_som(pixel_mat, weights, batch_size=10000):
     # convert to series, cast to str so the replace function works
     cluster_coords = pd.Series(cluster_coords).astype(str)
 
-    # extract the coordinate associated with the winning neuron for each row
-    # cluster_coords = pixel_mat.apply(
-    #     lambda row: winner(np.array(list(row.values)), weights), axis=1).astype(str)
-
     # reassign the coordinates to integers to make the label col more understandable
     unique_cluster_coords = cluster_coords.unique()
     coord_to_label = list(range(len(unique_cluster_coords)))
