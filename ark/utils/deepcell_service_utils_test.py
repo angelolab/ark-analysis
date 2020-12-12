@@ -7,7 +7,7 @@ import pytest
 from ark.utils.deepcell_service_utils import create_deepcell_output
 
 
-def mocked_run_deepcell(input_dir, output_dir, host, job_type, scale):
+def mocked_run_deepcell(input_dir, output_dir, host, job_type, scale, timeout):
     pathlib.Path(os.path.join(output_dir, 'fov1_feature_0.tif')).touch()
     pathlib.Path(os.path.join(output_dir, 'fov2_feature_0.tif')).touch()
     pathlib.Path(os.path.join(output_dir, 'fov3_feature_0.tif')).touch()
