@@ -214,7 +214,7 @@ def run_deepcell_direct(input_dir, output_dir, host='https://deepcell.org',
         # update progress bar here
         if redis_responce['value'][0] == 'waiting':
             pbar_next = int(redis_responce['value'][1])
-            progress_bar.update(pbar_next - pbar_last)
+            progress_bar.update(max(pbar_next - pbar_last, 0))
             pbar_last = pbar_next
 
         time.sleep(3.0)
