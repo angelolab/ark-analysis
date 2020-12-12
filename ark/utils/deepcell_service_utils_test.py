@@ -22,7 +22,7 @@ def mocked_run_deepcell(input_dir, output_dir, host, job_type, scale):
 
 def test_create_deepcell_output(mocker):
     with tempfile.TemporaryDirectory() as temp_dir:
-        mocker.patch('ark.utils.deepcell_service_utils.run_deepcell_task', mocked_run_deepcell)
+        mocker.patch('ark.utils.deepcell_service_utils.run_deepcell_direct', mocked_run_deepcell)
 
         input_dir = os.path.join(temp_dir, 'input_dir')
         os.makedirs(input_dir)
