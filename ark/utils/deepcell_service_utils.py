@@ -3,7 +3,7 @@ import requests
 from pathlib import Path
 import time
 from tqdm.notebook import tqdm
-from urllib.parse import unquote
+from urllib.parse import unquote, unquote_plus
 from twisted.internet import reactor
 from kiosk_client import manager
 import os
@@ -228,9 +228,7 @@ def run_deepcell_direct(input_dir, output_dir, host='https://deepcell.org',
     # when done, download result or examine errors
     if len(redis_responce['value'][4]) > 0:
         # error happened
-        print(f"Encountered Failure: {unquote(redis_responce['value'][4])}")
-        print("Skipping download")
-        return
+        print(f"Encountered Failure(s): {unquote_plus(redis_responce['value'][4])}")
 
     deepcell_output = requests.get(redis_responce['value'][2], allow_redirects=True)
     open(os.path.join(output_dir, 'deepcell_responce.zip'), 'wb').write(deepcell_output.content)
