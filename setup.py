@@ -33,7 +33,8 @@ setup(
                       'seaborn>=0.10.1,<1',
                       'statsmodels>=0.11.1,<1',
                       'umap-learn>=0.4.6,<1',
-                      'xarray>=0.12.3,<1'],
+                      'xarray>=0.12.3,<1',
+                      'tqdm>=4.54.1,<5'],
     extras_require={
         'tests': ['pytest',
                   'pytest-cov',

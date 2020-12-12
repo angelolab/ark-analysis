@@ -160,7 +160,8 @@ def run_deepcell_direct(input_dir, output_dir, host='https://deepcell.org',
             scale (float):
                 Value to rescale data by
                 Default: 1.0
-            Approximate seconds until timeout.
+            timeout (int):
+                Approximate seconds until timeout.
                 Default: 1 hour (3600)
     """
 
