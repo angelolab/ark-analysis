@@ -2,7 +2,7 @@ from ark.utils import io_utils
 import requests
 from pathlib import Path
 import time
-from tqdm import tqdm
+from tqdm.notebook import tqdm
 from twisted.internet import reactor
 from kiosk_client import manager
 import os
