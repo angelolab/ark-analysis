@@ -15,7 +15,7 @@ from ark.utils import misc_utils
 
 def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
                            suffix='_feature_0', host='https://deepcell.org', job_type='multiplex',
-                           scale=1.0):
+                           scale=1.0, timeout=3600):
     """ Handles all of the necessary data manipulation for running deepcell tasks.
 
         Creates .zip files (to be used as input for DeepCell),
@@ -43,6 +43,9 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
             scale (float):
                 Value to rescale data by
                 Default: 1.0
+            timeout (int):
+                Approximate seconds until timeout.
+                Default: 1 hour (3600)
         Raises:
             ValueError:
                 Raised if there is some fov X (from fovs list) s.t.
@@ -91,7 +94,7 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
     # pass the zip file to deepcell.org
     print('Uploading files to DeepCell server.')
     # run_deepcell_task(zip_path, deepcell_output_dir, host, job_type, scale)
-    run_deepcell_direct(zip_path, deepcell_output_dir, host, job_type, scale)
+    run_deepcell_direct(zip_path, deepcell_output_dir, host, job_type, scale, timeout)
 
     # extract the .tif output
     print('Extracting tif files from DeepCell response.')
@@ -141,6 +144,25 @@ def run_deepcell_task(input_dir, output_dir, host='https://deepcell.org',
 
 def run_deepcell_direct(input_dir, output_dir, host='https://deepcell.org',
                         job_type='multiplex', scale=1.0, timeout=3600):
+    """Uses direct calls to DeepCell API and saves output to output_dir.
+
+        Args:
+            input_dir (str):
+                location of .zip files
+            output_dir (str):
+                location to save deepcell output (as .zip)
+            host (str):
+                Hostname and port for the kiosk-frontend API server.
+                Default: 'https://deepcell.org'
+            job_type (str):
+                Name of job workflow (multiplex, segmentation, tracking).
+                Default: 'multiplex'
+            scale (float):
+                Value to rescale data by
+                Default: 1.0
+            Approximate seconds until timeout.
+                Default: 1 hour (3600)
+    """
 
     # upload zip file
     upload_url = host + '/api/upload'
