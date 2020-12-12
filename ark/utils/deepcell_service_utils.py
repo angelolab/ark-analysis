@@ -1,4 +1,8 @@
 from ark.utils import io_utils
+import requests
+from pathlib import Path
+import time
+from tqdm import tqdm
 from twisted.internet import reactor
 from kiosk_client import manager
 import os
@@ -86,7 +90,8 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
 
     # pass the zip file to deepcell.org
     print('Uploading files to DeepCell server.')
-    run_deepcell_task(zip_path, deepcell_output_dir, host, job_type, scale)
+    # run_deepcell_task(zip_path, deepcell_output_dir, host, job_type, scale)
+    run_deepcell_direct(zip_path, deepcell_output_dir, host, job_type, scale)
 
     # extract the .tif output
     print('Extracting tif files from DeepCell response.')
@@ -132,3 +137,73 @@ def run_deepcell_task(input_dir, output_dir, host='https://deepcell.org',
     mgr = manager.BatchProcessingJobManager(**mgr_kwargs)
     mgr.run(filepath=input_dir)
     reactor.run()
+
+
+def run_deepcell_direct(input_dir, output_dir, host='https://deepcell.org',
+                        job_type='multiplex', scale=1.0, timeout=3600):
+
+    # upload zip file
+    upload_url = host + '/api/upload'
+
+    upload_fields = {
+        'file': (Path(input_dir).name, open(input_dir, 'rb'), 'application/zip'),
+    }
+
+    upload_responce = requests.post(
+        upload_url,
+        files=upload_fields
+    ).json()
+
+    # call prediction
+    predict_url = host + '/api/predict'
+
+    predict_responce = requests.post(
+        predict_url,
+        json={
+            'dataRescale': scale,
+            'imageName': Path(input_dir).name,
+            'imageUrl': upload_responce['imageURL'],
+            'jobType': job_type,
+            'uploadedName': upload_responce['uploadedName']
+        }
+    ).json()
+
+    predict_hash = predict_responce['hash']
+
+    # check redis every 3 seconds
+    redis_url = host + '/api/redis'
+    progress_bar = tqdm(total=100)
+    pbar_last = 0
+    total_time = 0
+    redis_responce = None
+
+    while total_time < timeout:
+        redis_responce = requests.post(
+            redis_url,
+            json={
+                'hash': predict_hash,
+                'key': ["status", "progress", "output_url", "reason", "failures"]
+            }
+        ).json()
+        if redis_responce['value'][0] == 'done':
+            break
+
+        # update progress bar here
+        if redis_responce['value'][0] == 'waiting':
+            pbar_next = int(redis_responce['value'][1])
+            progress_bar.update(pbar_next - pbar_last)
+            pbar_last = pbar_next
+
+        time.sleep(3.0)
+        total_time += 3
+    progress_bar.close()
+
+    # when done, download result or examine errors
+    if len(redis_responce['value'][4]) > 0:
+        # error happened
+        print(f"Encountered Failure: {redis_responce['value'][4]}")
+        print("Skipping download")
+        return
+
+    deepcell_output = requests.get(redis_responce['value'][2], allow_redirects=True)
+    open(os.path.join(output_dir, 'deepcell_responce.zip'), 'wb').write(deepcell_output.content)
