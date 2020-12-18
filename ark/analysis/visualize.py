@@ -64,13 +64,13 @@ def draw_boxplot(cell_data, col_name, col_split=None, split_vals=None, dpi=None,
         misc_utils.save_figure(save_dir, "boxplot_viz.png", dpi=dpi)
 
 
-def draw_heatmap(z, x_labels, y_labels, dpi=None, center_val=None,
+def draw_heatmap(data, x_labels, y_labels, dpi=None, center_val=None,
                  colormap="vlag", save_dir=None):
     """Plots the z scores between all phenotypes as a clustermap.
 
     Args:
-        z (numpy.ndarray):
-            Array of z scores of shape (pheno_num, pheno_num)
+        data (numpy.ndarray):
+            The data array to visualize
         x_labels (list):
             List of names displayed on horizontal axis
         y_labels (list):
@@ -86,13 +86,13 @@ def draw_heatmap(z, x_labels, y_labels, dpi=None, center_val=None,
     """
 
     # Replace the NA's and inf values with 0s
-    z[np.isnan(z)] = 0
-    z[np.isinf(z)] = 0
+    data[np.isnan(data)] = 0
+    data[np.isinf(data)] = 0
 
     # Assign numpy values respective phenotype labels
-    zplot = pd.DataFrame(z, columns=x_labels, index=y_labels)
+    data_df = pd.DataFrame(data, index=x_labels, columns=y_labels)
     sns.set(font_scale=.7)
-    sns.clustermap(zplot, cmap=colormap, annot=z, center=center_val)
+    sns.clustermap(data_df, cmap=colormap, annot=data, center=center_val)
 
     if save_dir is not None:
         misc_utils.save_figure(save_dir, "z_score_viz.png", dpi=dpi)
