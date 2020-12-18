@@ -57,7 +57,7 @@ def test_draw_boxplot():
         assert os.path.exists(os.path.join(temp_dir, "boxplot_viz.png"))
 
 
-def test_visualize_z_scores():
+def test_draw_heatmap():
     # Create random Z score
     z = np.random.uniform(low=-5, high=5, size=(26, 26))
     # Assign random phenotype titles
@@ -65,17 +65,17 @@ def test_visualize_z_scores():
 
     with pytest.raises(FileNotFoundError):
         # trying to save on a non-existant directory
-        visualize.visualize_z_scores(z, pheno_titles, pheno_titles, save_dir="bad_dir")
+        visualize.draw_heatmap(z, pheno_titles, pheno_titles, save_dir="bad_dir")
 
     with tempfile.TemporaryDirectory() as temp_dir:
         # test that without save_dir, we do not save
-        visualize.visualize_z_scores(z, pheno_titles, pheno_titles,
-                                     center_val=np.random.ranf())
+        visualize.draw_heatmap(z, pheno_titles, pheno_titles,
+                               center_val=np.random.ranf())
         assert not os.path.exists(os.path.join(temp_dir, "z_score_viz.png"))
 
         # test that with save_dir, we do save
-        visualize.visualize_z_scores(z, pheno_titles, pheno_titles,
-                                     center_val=np.random.ranf(), save_dir=temp_dir)
+        visualize.draw_heatmap(z, pheno_titles, pheno_titles,
+                               center_val=np.random.ranf(), save_dir=temp_dir)
         assert os.path.exists(os.path.join(temp_dir, "z_score_viz.png"))
 
 
