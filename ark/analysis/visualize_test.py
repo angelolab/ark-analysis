@@ -67,15 +67,27 @@ def test_draw_heatmap():
         # trying to save on a non-existant directory
         visualize.draw_heatmap(z, pheno_titles, pheno_titles, save_dir="bad_dir")
 
+    # most basic visualization with just data, xlabels, ylabels
     with tempfile.TemporaryDirectory() as temp_dir:
         # test that without save_dir, we do not save
-        visualize.draw_heatmap(z, pheno_titles, pheno_titles,
-                               center_val=np.random.ranf())
+        visualize.draw_heatmap(z, pheno_titles, pheno_titles)
         assert not os.path.exists(os.path.join(temp_dir, "z_score_viz.png"))
 
         # test that with save_dir, we do save
         visualize.draw_heatmap(z, pheno_titles, pheno_titles,
+                               save_dir=temp_dir)
+        assert os.path.exists(os.path.join(temp_dir, "z_score_viz.png"))
+
+    # next level: data, x_labels, y_labels, and center_val
+    with tempfile.TemporaryDirectory() as temp_dir:
+        visualize.draw_heatmap(z, pheno_titles, pheno_titles,
                                center_val=np.random.ranf(), save_dir=temp_dir)
+        assert os.path.exists(os.path.join(temp_dir, "z_score_viz.png"))
+
+    # next level: data, x_labels, y_labels, center_val, and colormap
+    with tempfile.TemporaryDirectory() as temp_dir:
+        visualize.draw_heatmap(z, pheno_titles, pheno_titles,
+                               center_val=np.random.ranf(), cmap="YlGnBu", save_dir=temp_dir)
         assert os.path.exists(os.path.join(temp_dir, "z_score_viz.png"))
 
 
