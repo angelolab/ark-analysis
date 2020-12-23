@@ -87,7 +87,7 @@ def test_draw_heatmap():
     # next level: data, x_labels, y_labels, center_val, and colormap
     with tempfile.TemporaryDirectory() as temp_dir:
         visualize.draw_heatmap(z, pheno_titles, pheno_titles,
-                               center_val=np.random.ranf(), cmap="YlGnBu", save_dir=temp_dir)
+                               center_val=np.random.ranf(), colormap="YlGnBu", save_dir=temp_dir)
         assert os.path.exists(os.path.join(temp_dir, "z_score_viz.png"))
 
 
