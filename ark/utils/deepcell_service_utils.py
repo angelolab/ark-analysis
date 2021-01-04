@@ -3,7 +3,7 @@ import requests
 from pathlib import Path
 import time
 from tqdm.notebook import tqdm
-from urllib.parse import unquote, unquote_plus
+from urllib.parse import unquote_plus
 from twisted.internet import reactor
 from kiosk_client import manager
 import os
@@ -232,3 +232,15 @@ def run_deepcell_direct(input_dir, output_dir, host='https://deepcell.org',
 
     deepcell_output = requests.get(redis_responce['value'][2], allow_redirects=True)
     open(os.path.join(output_dir, 'deepcell_responce.zip'), 'wb').write(deepcell_output.content)
+
+    # being kind and sending an expire signal to deepcell
+    expire_url = redis_url + '/expire'
+    requests.post(
+        expire_url,
+        json={
+            'hash': predict_hash,
+            'expireIn': 3600,
+        }
+    )
+
+    return
