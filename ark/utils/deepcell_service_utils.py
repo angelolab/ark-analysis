@@ -175,6 +175,7 @@ def run_deepcell_direct(input_dir, output_dir, host='https://deepcell.org',
 
     upload_responce = requests.post(
         upload_url,
+        timeout=timeout,
         files=upload_fields
     ).json()
 
