@@ -31,10 +31,10 @@ def test_read_mibitiff():
     # should throw error on standard tif load
     with pytest.raises(ValueError):
         with tempfile.TemporaryDirectory() as temp_dir:
-            paths, _ = test_utils.create_paired_xarray_fovs(temp_dir, ['test_fov'], ['chan0'])
+            filepaths, _ = test_utils.create_paired_xarray_fovs(temp_dir, ['test_fov'], ['chan0'])
 
             # should raise value error
-            img_data, all_channels = tiff_utils.read_mibitiff(paths['test_fov'])
+            img_data, all_channels = tiff_utils.read_mibitiff(filepaths['test_fov'][0] + '.tiff')
 
 
 # test write_mibitiff and verify with read_mibitiff
@@ -43,11 +43,11 @@ def test_write_mibitiff():
     fovs, chans = test_utils.gen_fov_chan_names(1, 10)
     with tempfile.TemporaryDirectory() as temp_dir:
         # this uses write_mibitiff
-        paths, true_data = test_utils.create_paired_xarray_fovs(temp_dir, fov_names=fovs,
-                                                                channel_names=chans,
-                                                                mode='mibitiff', fills=True)
+        filepaths, true_data = test_utils.create_paired_xarray_fovs(temp_dir, fov_names=fovs,
+                                                                    channel_names=chans,
+                                                                    mode='mibitiff', fills=True)
 
         # validate correct tiff writeout via read_mibitiff
-        load_data, chan_tups = tiff_utils.read_mibitiff(paths[fovs[0]])
+        load_data, chan_tups = tiff_utils.read_mibitiff(filepaths[fovs[0]])
 
         assert(np.all(true_data[0, :, :, :].values == load_data))
