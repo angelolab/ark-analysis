@@ -1,6 +1,7 @@
 import os
 import numpy as np
 import tempfile
+import pytest
 
 from ark.utils import tiff_utils, test_utils
 
@@ -26,6 +27,14 @@ def test_read_mibitiff():
     assert(subset_chan == all_channels[:3])
 
     assert(np.all(img_data[:, :, :3] == subset_imgdata))
+
+    # should throw error on standard tif load
+    with pytest.raises(ValueError):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            paths, _ = test_utils.create_paired_xarray_fovs(temp_dir, ['test_fov'], ['chan0'])
+
+            # should raise value error
+            img_data, all_channels = tiff_utils.read_mibitiff(paths['test_fov'])
 
 
 # test write_mibitiff and verify with read_mibitiff

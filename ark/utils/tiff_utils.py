@@ -103,8 +103,6 @@ def write_mibitiff(filepath, img_data, channel_tuples, metadata):
     for key, value in metadata.items():
         if key in _PREFIXED_METADATA_ATTRIBUTES:
             description[f'mibi.{key}'] = value
-        elif key != "date":
-            description[key] = value
 
     with TiffWriter(filepath, software="IonpathMIBIv1.0") as infile:
         for index, channel_tuple in enumerate(channel_tuples):
