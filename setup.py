@@ -4,7 +4,6 @@ from distutils.command.build_ext import build_ext as DistUtilsBuildExt
 from setuptools import setup, find_packages
 
 VERSION = '0.2.8'
-VERSION_MIBILIB = '1.3.0'
 
 
 # set a long description which is basically the README
@@ -41,8 +40,6 @@ setup(
                   'pytest-pycodestyle',
                   'testbook']
     },
-    dependency_links=['https://github.com/ionpath/mibilib/archive/v{}.tar.gz#egg=python-s3-{}'
-                      .format(VERSION_MIBILIB, VERSION_MIBILIB.replace('.', '-'))],
     long_description=long_description,
     long_description_content_type='text/markdown',
     classifiers=['License :: OSI Approved :: Apache Software License',

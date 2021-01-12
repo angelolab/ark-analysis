@@ -63,9 +63,7 @@ napoleon_google_docstring = True
 
 # contains list of modules to be marked up
 # will ensure 'clean' imports of all the following libraries
-# I imagine mibidata will be a problem we'll have to address in the future...
-autodoc_mock_imports = ['h5py'
-                        'mibidata',
+autodoc_mock_imports = ['h5py',
                         'numpy',
                         'matplotlib',
                         'pandas',
@@ -81,9 +79,6 @@ autodoc_mock_imports = ['h5py'
                         'kiosk_client',
                         'mpl_toolkits',
                         'tqdm']
-
-# explicitly mock mibidata
-sys.modules['mibidata'] = mock.Mock()
 
 # prefix each section label with the name of the document it is in, followed by a colon
 # autosection_label_prefix_document = True
