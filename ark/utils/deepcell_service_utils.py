@@ -94,7 +94,6 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
 
     # pass the zip file to deepcell.org
     print('Uploading files to DeepCell server.')
-    # run_deepcell_task(zip_path, deepcell_output_dir, host, job_type, scale)
     run_deepcell_direct(zip_path, deepcell_output_dir, host, job_type, scale, timeout)
 
     # extract the .tif output
