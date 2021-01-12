@@ -4,8 +4,6 @@ from pathlib import Path
 import time
 from tqdm.notebook import tqdm
 from urllib.parse import unquote_plus
-from twisted.internet import reactor
-from kiosk_client import manager
 import os
 import glob
 from zipfile import ZipFile, ZIP_DEFLATED
@@ -105,41 +103,6 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
         for fov in fovs:
             if fov + suffix + '.tif' not in zipObj.namelist():
                 warnings.warn(f'Deep Cell output file was not found for {fov}.')
-
-
-def run_deepcell_task(input_dir, output_dir, host='https://deepcell.org',
-                      job_type='multiplex', scale=1.0):
-    """Uses kiosk-client to run DeepCell task and saves output to output_dir.
-        More configuration parameters can be set than those currently used.
-        (https://github.com/vanvalenlab/kiosk-client)
-
-        Args:
-            input_dir (str):
-                location of .zip files
-            output_dir (str):
-                location to save deepcell output (as .zip)
-            host (str):
-                Hostname and port for the kiosk-frontend API server.
-                Default: 'https://deepcell.org'
-            job_type (str):
-                Name of job workflow (multiplex, segmentation, tracking).
-                Default: 'multiplex'
-            scale (float):
-                Value to rescale data by
-                Default: 1.0
-    """
-
-    mgr_kwargs = {
-        'host': host,
-        'job_type': job_type,
-        'download_results': True,
-        'output_dir': output_dir,
-        'data_scale': scale
-    }
-
-    mgr = manager.BatchProcessingJobManager(**mgr_kwargs)
-    mgr.run(filepath=input_dir)
-    reactor.run()
 
 
 def run_deepcell_direct(input_dir, output_dir, host='https://deepcell.org',
