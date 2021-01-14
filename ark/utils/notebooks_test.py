@@ -11,6 +11,9 @@ from ark.utils import notebooks_test_utils
 SEGMENT_IMAGE_DATA_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                        '..', '..', 'templates', 'Segment_Image_Data.ipynb')
 
+FLOWSOM_CLUSTER_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                                    '..', '..', 'templates', 'example_flowsom_clustering.ipynb')
+
 
 def _exec_notebook(nb_filename):
     path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
@@ -106,3 +109,36 @@ def test_segment_image_data_folder(tb):
 
         # create the expression matrix
         notebooks_test_utils.create_exp_mat(tb)
+
+
+# test mibitiff clustering
+@testbook(FLOWSOM_CLUSTER_PATH, timeout=6000)
+def test_flowsom_cluster_mibitiff(tb):
+    with tdir() as base_dir:
+        # create input files
+        notebooks_test_utils.flowsom_setup(tb, flowsom_dir=base_dir, is_mibitiff=True)
+
+        # load img data in
+        notebooks_test_utils.load_imgs_labels(tb,
+                                              channels=['chan0', 'chan1'],
+                                              fovs=['fov0_otherinfo-MassCorrected-Filtered.tiff',
+                                                    'fov1-MassCorrected-Filtered.tiff'])
+
+        # run the FlowSOM preprocessing and clustering
+        notebooks_test_utils.flowsom_run(tb)
+
+
+# test folder clustering
+@testbook(FLOWSOM_CLUSTER_PATH, timeout=6000)
+def test_flowsom_cluster_folder(tb):
+    with tdir() as base_dir:
+        # create input files
+        notebooks_test_utils.flowsom_setup(tb, flowsom_dir=base_dir)
+
+        # load img data in
+        notebooks_test_utils.load_imgs_labels(tb,
+                                              channels=['chan0', 'chan1'],
+                                              fovs=['fov0', 'fov1'])
+
+        # run the FlowSOM preprocessing and clustering
+        notebooks_test_utils.flowsom_run(tb)

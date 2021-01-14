@@ -9,7 +9,7 @@ def segment_notebook_setup(tb, deepcell_tiff_dir, deepcell_input_dir, deepcell_o
                            single_cell_dir, viz_dir, is_mibitiff=False,
                            mibitiff_suffix="-MassCorrected-Filtered",
                            num_fovs=3, num_chans=3, dtype=np.uint16):
-    """Creates the directories and data needed and sets the MIBITiff variable accordingly
+    """Creates the directories, data, and MIBItiff settings for testing segmentation process
 
     Args:
         tb (testbook.testbook):
@@ -76,7 +76,136 @@ def segment_notebook_setup(tb, deepcell_tiff_dir, deepcell_input_dir, deepcell_o
         tb.inject("MIBItiff = True", after='mibitiff_set')
 
 
-def fov_channel_input_set(tb, fovs=None, nucs_list=None, mems_list=None):
+def flowsom_setup(tb, flowsom_dir, num_fovs=3, num_chans=3, is_mibitiff=False,
+                  mibitiff_suffix="-MassCorrected-Filtered", dtype=np.uint16):
+    """Creates the directories, data, and MIBItiff settings for testing FlowSOM clustering
+
+    Args:
+        tb (testbook.testbook):
+            The testbook runner instance
+        flowsom_dir (str):
+            The path to the FlowSOM data directory
+        num_fovs (int):
+            The number of test fovs to generate
+        num_chans (int):
+            The number of test channels to generate
+        is_mibitiff (bool):
+            Whether we're working with mibitiff files or not
+        mibitiff_suffix (str):
+            If is_mibitiff = True, the suffix to append to each fov.
+            Ignored if is_mibitiff = False.
+        dtype (numpy.dtype):
+            The datatype of each test image generated
+    """
+
+    tb.execute_cell('import')
+
+    # create data which will be loaded into img_xr
+    tiff_dir = os.path.join(flowsom_dir, "TIFs")
+    os.mkdir(tiff_dir)
+
+    if is_mibitiff:
+        fovs, chans = test_utils.gen_fov_chan_names(num_fovs=num_fovs,
+                                                    num_chans=num_chans,
+                                                    use_delimiter=True)
+        fovs = [f + mibitiff_suffix for f in fovs]
+
+        filelocs, data_xr = test_utils.create_paired_xarray_fovs(
+            tiff_dir, fovs, chans, img_shape=(1024, 1024), mode='mibitiff',
+            delimiter='_', fills=False, dtype=dtype
+        )
+    else:
+        fovs, chans = test_utils.gen_fov_chan_names(num_fovs=num_fovs,
+                                                    num_chans=num_chans,
+                                                    return_imgs=False)
+
+        filelocs, data_xr = test_utils.create_paired_xarray_fovs(
+            tiff_dir, fovs, chans, img_shape=(1024, 1024), delimiter='_', fills=False,
+            sub_dir="TIFs", dtype=dtype)
+
+    # define custom paths
+    define_paths = """
+        base_dir = "%s"
+        tiff_dir = "%s"
+    """ % (flowsom_dir, tiff_dir)
+    tb.inject(define_paths, after='file_path')
+
+    # will set MIBItiff and MIBItiff_suffix
+    tb.execute_cell('mibitiff_set')
+    if is_mibitiff:
+        # default setting is MIBItiff = False, change to True if user has mibitiff inputs
+        tb.inject("MIBItiff = True", after='mibitiff_set')
+
+
+def load_imgs_labels(tb, channels, fovs=None):
+    """Sets the fovs and chan_list variables and loads img_xr and segmentation_labels for FlowSOM
+
+    Args:
+        tb (testbook.testbook):
+            The testbook runner instance
+        channels (list):
+            The list of channels to subset in the image.
+        fovs (list):
+            If set, assigns the fovs variable to this list.
+            If None, executes the default fov loading scheme in the 'load_fovs' cell.
+    """
+
+    if fovs is not None:
+        # handles the case when the user assigns fovs to an explicit list
+        tb.inject("fovs = %s" % str(fovs), after='load_fovs')
+    else:
+        # handles the case when the user allows list_files or list_folders to do the fov loading
+        tb.execute_cell('load_fovs')
+
+    # sets the channels accordingly
+    tb.inject("chan_list = %s" % str(channels), after='set_channels')
+
+    # load the image data in
+    tb.execute('load_img_xr')
+
+    # load the segmentation labels in
+    load_seg_cmd = """
+        segmentation_labels = load_utils.load_imgs_from_dir(
+            data_dir=base_dir,
+            xr_dim_name="%s",
+            xr_channel_names=%s,
+            force_ints=%s
+        )
+    """ % (xr_dim_name,
+           xr_channel_names,
+           str(force_ints))
+    tb.inject(load_seg_cmd, after='load_seg_labels')
+
+    # trim the seg label coordinate names
+    tb.execute('trim_seg_coords')
+
+
+def flowsom_run(tb):
+    """Run the FlowSOM clustering
+
+    Args:
+        tb (testbook.testbook):
+            The testbook runner instance
+    """
+
+    # test the preprocessing works, we won't save nor run the actual FlowSOM clustering
+    tb.execute_cell('gen_pixel_mat')
+
+    # here we assume that FlowSOM clustering produced a correct pixel_mat_clustered.csv
+    dummy_cluster_cmd = """
+        pixel_data['cluster_labels'] = np.random.randint(low=0, high=100, size=pixel_data.shape[0])
+        pixel_data['cluster_dists'] = np.random.rand(pixel_data.shape[0])
+        pixel_data.to_csv(os.path.join(base_dir, 'pixel_mat_clustered.csv'), index=False)
+    """
+    tb.inject(dummy_cluster_cmd, after='cluster_pixel_mat')
+
+    # read the dummy clustered data in
+    tb.execute_cell('read_cluster_mat')
+
+
+def fov_channel_input_set(tb, fovs=None, nucs_list=None, mems_list=None,
+                          xr_dim_name='compartments', xr_channel_names=None,
+                          force_ints=True):
     """Sets the fovs and channels and creates the input directory for DeepCell
 
     Args:
@@ -89,12 +218,18 @@ def fov_channel_input_set(tb, fovs=None, nucs_list=None, mems_list=None):
             Assigns the nucs variable to this list
         mems_list (list):
             Assigns the mems variable to this list
+        xr_dim_name (str):
+            The dimension containing the channel names to read in
+        xr_channel_names (list):
+            The list of the channels we wish to read in
+        force_ints (bool):
+            Whether to convert the segmentation labels to integer type
     """
 
     # load the fovs in the notebook
     if fovs is not None:
         # handles the case when the user assigns fovs to an explicit list
-        tb.inject("fovs = %s" % str(fovs))
+        tb.inject("fovs = %s" % str(fovs), after='load_fovs')
     else:
         # handles the case when the user allows list_files or list_folders to do the fov loading
         tb.execute_cell('load_fovs')
