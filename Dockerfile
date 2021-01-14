@@ -1,7 +1,7 @@
 FROM python:3.6
 
 # system maintenance
-RUN apt-get update && apt-get install -y gcc r-base build-essential libcurl4-gnutls-dev libxml2-dev libssl-dev
+RUN apt-get update && apt-get install -y gcc r-base
 
 WORKDIR /scripts
 
