@@ -12,7 +12,6 @@ pixelMatPath <- args[1]
 # create a vector out of the list of channels provided
 print("Creating marker list")
 markers <- unlist(strsplit(args[2], split=","))
-print(markers)
 
 # get the path to the write directory
 print("Getting the write directory")
