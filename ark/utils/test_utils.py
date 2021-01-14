@@ -7,10 +7,9 @@ import pandas as pd
 import xarray as xr
 import skimage.io as io
 
-from mibidata import mibi_image as mi, tiff
-
 import ark.settings as settings
 from ark.utils import synthetic_spatial_datagen
+from ark.utils.tiff_utils import write_mibitiff
 
 
 def gen_fov_chan_names(num_fovs, num_chans, return_imgs=False, use_delimiter=False):
@@ -261,12 +260,8 @@ def _write_mibitiff(base_dir, fov_names, channel_names, shape, sub_dir, fills, d
     mass_map = tuple(enumerate(channel_names, 1))
 
     for i, fov in enumerate(fov_names):
-        tif_obj = mi.MibiImage(tif_data[i, :, :, :],
-                               mass_map,
-                               **MIBITIFF_METADATA)
-
         tiffpath = os.path.join(base_dir, f'{fov}.tiff')
-        tiff.write(tiffpath, tif_obj, dtype=dtype)
+        write_mibitiff(tiffpath, tif_data[i, :, :, :], mass_map, MIBITIFF_METADATA)
         filelocs[fov] = tiffpath
 
     return filelocs, tif_data
