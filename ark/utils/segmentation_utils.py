@@ -6,6 +6,7 @@ import pandas as pd
 import skimage.io as io
 from skimage.measure import regionprops_table
 from skimage.morphology import remove_small_objects
+from skimage.segmentation import find_boundaries
 
 from ark.utils import plot_utils, io_utils, misc_utils
 
@@ -183,10 +184,10 @@ def concatenate_csv(base_dir, csv_files, column_name="fov", column_values=None):
     combined_data.to_csv(os.path.join(base_dir, "combined_data.csv"), index=False)
 
 
-def visualize_segmentation(segmentation_labels_xr, channel_data_xr,
-                           output_dir, chan_list=None, fovs=None, show=False):
+def save_segmentation_labels(segmentation_labels_xr, channel_data_xr, output_dir,
+                             fovs=None, channels=None):
     """For each fov, generates segmentation labels, segmentation borders, and overlays
-    over the channels in chan_list if chan_list is provided.
+    over the channels if specified.
 
     Saves overlay images to output directory
 
@@ -194,40 +195,45 @@ def visualize_segmentation(segmentation_labels_xr, channel_data_xr,
         segmentation_labels_xr (xarray.DataArray):
             xarray containing segmentation labels
         channel_data_xr (xarray.DataArray):
-            xarray containing TIFs
+            xarray containing the image data
         output_dir (str):
             path to directory where the output will be saved
-        chan_list (list):
-            list of channels to overlay segmentation output over
         fovs (list):
             list of FOVs to subset in segmentation_labels_xr
-        show (bool):
-            whether or not to show plot
+        channels (list):
+            list of channels to subset in segmentation_labels_xr
     """
 
+    # assign fovs and channels to everything if None
     if fovs is None:
         fovs = segmentation_labels_xr.fovs.values
+
+    # verify that fovs and channels exist in their respective xarrays
     misc_utils.verify_in_list(fovs=fovs, segmentation_label_fovs=segmentation_labels_xr.fovs)
 
-    if chan_list is not None:
-        misc_utils.verify_in_list(channels=chan_list,
+    if channels is not None:
+        misc_utils.verify_in_list(channels=channels,
                                   channel_data_channels=channel_data_xr.channels)
 
     for fov in fovs:
+        # generates segmentation borders and labels
         labels = segmentation_labels_xr.loc[fov, :, :, 'whole_cell'].values
-        # If chan_list is provided, overlay segmentation output over it
-        if chan_list is not None:
-            input_data = channel_data_xr.loc[fov, :, :, chan_list].values
-            save_path = '_'.join([f'{fov}', *chan_list.astype('str'), 'overlay.tiff'])
-            plot_utils.plot_overlay(
-                labels,
-                plotting_tif=input_data,
-                path=os.path.join(output_dir, save_path), show=show
-            )
-        # Generates segmentation borders and labels
-        plot_utils.plot_overlay(
-            labels,
-            plotting_tif=None,
-            path=os.path.join(output_dir, f'{fov}_segmentation_borders.tiff')
-        )
+
+        # save the labels respectively
         io.imsave(os.path.join(output_dir, f'{fov}_segmentation_labels.tiff'), labels)
+
+        # define borders of cells in mask
+        contour_mask = find_boundaries(labels, connectivity=1, mode='inner').astype(np.uint8)
+        contour_mask[contour_mask > 0] = 255
+
+        # save the cell border image
+        io.imsave(os.path.join(output_dir, f'{fov}_segmentation_borders.tiff'), contour_mask)
+
+        # generate the channel overlay if specified
+        if channels is not None:
+            channel_overlay = plot_utils.create_overlay(labels,
+                                                        channel_data_xr.loc[fov, :, :, channels])
+
+            # save the channel overlay
+            save_path = '_'.join([f'{fov}', *channels.astype('str'), 'overlay.tiff'])
+            io.imsave(os.path.join(output_dir, save_path), channel_overlay)

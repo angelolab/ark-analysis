@@ -4,8 +4,8 @@ import warnings
 import skimage.io as io
 import numpy as np
 import xarray as xr
-from mibidata import tiff
 
+from ark.utils.tiff_utils import read_mibitiff
 from ark.utils import io_utils as iou
 
 
@@ -63,7 +63,7 @@ def load_imgs_from_mibitiff(data_dir, mibitiff_files=None, channels=None, delimi
 
     # if no channels specified, get them from first MIBItiff file
     if channels is None:
-        channel_tuples = tiff.read(mibitiff_files[0]).channels
+        _, channel_tuples = read_mibitiff(mibitiff_files[0])
         channels = [channel_tuple[1] for channel_tuple in channel_tuples]
 
     if len(channels) == 0:
@@ -72,7 +72,7 @@ def load_imgs_from_mibitiff(data_dir, mibitiff_files=None, channels=None, delimi
     # extract images from MIBItiff file
     img_data = []
     for mibitiff_file in mibitiff_files:
-        img_data.append(tiff.read(mibitiff_file)[channels])
+        img_data.append(read_mibitiff(mibitiff_file, channels)[0])
     img_data = np.stack(img_data, axis=0)
     img_data = img_data.astype(dtype)
 

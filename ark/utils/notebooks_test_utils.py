@@ -186,6 +186,7 @@ def save_seg_labels(tb, delimiter='_feature_0', xr_dim_name='compartments',
     # now overlay data_xr
     tb.execute_cell('load_summed')
     tb.execute_cell('overlay_mask')
+    tb.execute_cell('save_mask')
 
 
 def create_exp_mat(tb, is_mibitiff=False, batch_size=5):

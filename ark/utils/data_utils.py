@@ -4,6 +4,77 @@ import skimage.io as io
 import numpy as np
 import xarray as xr
 
+from ark import settings
+from ark.utils.misc_utils import verify_in_list
+
+
+def label_cells_by_cluster(fovs, all_data, label_maps, fov_col=settings.FOV_ID,
+                           cell_label_column=settings.CELL_LABEL,
+                           cluster_column=settings.KMEANS_CLUSTER):
+    """ Translates cell-ID labeled images according to the clustering assignment.
+
+    Takes a list of fovs, and relabels each image (array) according to the assignment
+    of cell IDs to cluster label.
+
+    Args:
+        fovs (list):
+            List of fovs to relabel.
+        all_data (pandas.DataFrame):
+            data including fovs, cell labels, and cell expression matrix for all markers.
+        label_maps (xr.DataArray):
+            xarray of label maps for multiple fovs
+        fov_col (str):
+            column with the fovs names in all_data.
+        cell_label_column (str):
+            column with the cell labels in all_data.
+        cluster_column (str):
+            column with the cluster labels in all_data.
+    Returns:
+        xr.DataArray:
+            The relabeled images (dims: ["fovs", "rows", "cols"]).
+    """
+
+    # check if included fovs found in fov_col
+    verify_in_list(fov_names=fovs, all_data_fovs=all_data[fov_col].unique())
+    verify_in_list(fov_names=fovs, label_map_fovs=label_maps.fovs.values)
+
+    img_data = []
+    for fov in fovs:
+        df = all_data[all_data[fov_col] == fov]
+        labels_dict = dict(zip(df[cell_label_column], df[cluster_column]))
+        labeled_img_array = label_maps.loc[label_maps.fovs == fov].squeeze().values
+        relabeled_img_array = relabel_segmentation(labeled_img_array, labels_dict)
+        img_data.append(relabeled_img_array)
+    np.stack(img_data, axis=0)
+    return xr.DataArray(img_data, coords=[fovs, range(img_data[0].shape[0]),
+                                          range(img_data[0].shape[1])],
+                        dims=["fovs", "rows", "cols"])
+
+
+def relabel_segmentation(labeled_image, labels_dict):
+    """Takes a labeled image and translates its labels according to a dictionary.
+
+    Returns the relabeled array (according to the dictionary).
+
+    Args:
+        labeled_image (numpy.ndarray):
+            2D numpy array of labeled cell objects.
+        labels_dict (dict):
+            a mapping between labeled cells and their clusters.
+    Returns:
+        numpy.ndarray:
+            The relabeled array.
+    """
+
+    img = np.copy(labeled_image)
+    unique_cell_ids = np.unique(labeled_image)
+    unique_cell_ids = unique_cell_ids[np.nonzero(unique_cell_ids)]
+
+    default_label = max(labels_dict.values()) + 1
+    for cell_id in unique_cell_ids:
+        img[labeled_image == cell_id] = labels_dict.get(cell_id, default_label)
+    return img
+
 
 # TODO: Add metadata for channel name (eliminates need for fixed-order channels)
 def generate_deepcell_input(data_xr, data_dir, nuc_channels, mem_channels):
