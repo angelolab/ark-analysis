@@ -83,4 +83,4 @@ def test_cluster_pixels():
         som_utils.cluster_pixels(temp_dir, chan_list)
 
         # make sure we've created pixel_mat_clustered.csv
-        assert os.path.exists(temp_dir, 'pixel_mat_clustered.csv')
+        assert os.path.exists(os.path.join(temp_dir, 'pixel_mat_clustered.csv'))

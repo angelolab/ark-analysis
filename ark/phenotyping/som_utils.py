@@ -105,13 +105,6 @@ def cluster_pixels(base_dir, chan_list):
             The list of markers to subset on
     """
 
-    # path_to_som_runner = os.path.join(os.path.dirname(os.path.realpath(__file__),
-    #                                   '..', 'som_runner.R'))
-
-    print(os.listdir('.'))
-    print(os.path.join(os.path.dirname(os.path.realpath(__file__))))
-    print(os.listdir(os.path.dirname(os.path.realpath(__file__))))
-
-    subprocess.call(['Rscript', os.path.join('..', 'som_runner.R'),
+    subprocess.call(['Rscript', os.path.join('ark', 'phenotyping', 'som_runner.R'),
                      os.path.join(base_dir, 'example_pixel_matrix.csv'),
                      ','.join(chan_list), base_dir])
