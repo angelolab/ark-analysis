@@ -121,7 +121,7 @@ def flowsom_setup(tb, flowsom_dir, num_fovs=3, num_chans=3, is_mibitiff=False,
 
         filelocs, data_xr = test_utils.create_paired_xarray_fovs(
             tiff_dir, fovs, chans, img_shape=(1024, 1024), delimiter='_', fills=False,
-            sub_dir="TIFs", dtype=dtype)
+            sub_dir="TIFsNoAgg", dtype=dtype)
 
     # define custom paths
     define_paths = """
@@ -137,7 +137,8 @@ def flowsom_setup(tb, flowsom_dir, num_fovs=3, num_chans=3, is_mibitiff=False,
         tb.inject("MIBItiff = True", after='mibitiff_set')
 
 
-def load_imgs_labels(tb, channels, fovs=None):
+def load_imgs_labels(tb, channels, fovs=None, xr_dim_name='compartments',
+                     xr_channel_names=None, force_ints=True):
     """Sets the fovs and chan_list variables and loads img_xr and segmentation_labels for FlowSOM
 
     Args:
@@ -148,6 +149,12 @@ def load_imgs_labels(tb, channels, fovs=None):
         fovs (list):
             If set, assigns the fovs variable to this list.
             If None, executes the default fov loading scheme in the 'load_fovs' cell.
+        xr_dim_name (str):
+            The dimension containing the channel names to read in
+        xr_channel_names (list):
+            The list of the channels we wish to read in
+        force_ints (bool):
+            Whether to convert the segmentation labels to integer type
     """
 
     if fovs is not None:
@@ -203,9 +210,7 @@ def flowsom_run(tb):
     tb.execute_cell('read_cluster_mat')
 
 
-def fov_channel_input_set(tb, fovs=None, nucs_list=None, mems_list=None,
-                          xr_dim_name='compartments', xr_channel_names=None,
-                          force_ints=True):
+def fov_channel_input_set(tb, fovs=None, nucs_list=None, mems_list=None):
     """Sets the fovs and channels and creates the input directory for DeepCell
 
     Args:
@@ -218,12 +223,6 @@ def fov_channel_input_set(tb, fovs=None, nucs_list=None, mems_list=None,
             Assigns the nucs variable to this list
         mems_list (list):
             Assigns the mems variable to this list
-        xr_dim_name (str):
-            The dimension containing the channel names to read in
-        xr_channel_names (list):
-            The list of the channels we wish to read in
-        force_ints (bool):
-            Whether to convert the segmentation labels to integer type
     """
 
     # load the fovs in the notebook
