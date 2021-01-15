@@ -14,8 +14,9 @@ install:
   - travis_retry pip install -r requirements-test.txt
   - travis_retry export PYTHONPATH=$PWD
   - travis_retry sudo apt-get install -y r-base
-  - travis_retry Rscript -e 'install.packages("data.table")'
-  - travis_retry Rscript -e 'install.packages("BiocManager")'
+  - travis_retry Rscript -e 'dir.create(path=Sys.getenv("R_LIBS_USER"), showWarnings=FALSE, recursive=TRUE)'
+  - travis_retry Rscript -e 'install.packages("data.table", lib=Sys.getenv("R_LIBS_USER")'
+  - travis_retry Rscript -e 'install.packages("BiocManager", lib=Sys.getenv("R_LIBS_USER"))'
   - travis_retry Rscript -e 'BiocManager::install("FlowSOM")'
   - travis_retry Rscript -e 'BiocManager::install("rhdf5")'
 
