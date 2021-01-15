@@ -21,8 +21,8 @@ install:
   - travis_retry Rscript -e 'install.packages("BiocManager", lib=Sys.getenv("R_LIBS_USER"), repos="http://cran.us.r-project.org")'
   - travis_retry Rscript -e 'install.packages("remotes", lib=Sys.getenv("R_LIBS_USER"), repos="http://cran.us.r-project.org")'
   # - travis_retry Rscript -e 'BiocManager::install("cytolib", lib=Sys.getenv("R_LIBS_USER"))'
-  - travis_retry Rscript -e 'remotes::install_github("RGLab/RProtoBufLib", lib=Sys.getenv("R_LIBS_USER"), force=True)'
-  - travis_retry Rscript -e 'remotes::install_github("RGLab/cytolib", lib=Sys.getenv("R_LIBS_USER"), force=True)'
+  - travis_retry Rscript -e 'remotes::install_github("RGLab/RProtoBufLib", lib=Sys.getenv("R_LIBS_USER"), force=TRUE)'
+  - travis_retry Rscript -e 'remotes::install_github("RGLab/cytolib", lib=Sys.getenv("R_LIBS_USER"), force=TRUE)'
   - travis_retry Rscript -e 'BiocManager::install("FlowSOM", lib=Sys.getenv("R_LIBS_USER"))'
   - travis_retry Rscript -e 'BiocManager::install("rhdf5", lib=Sys.getenv("R_LIBS_USER"))'
 
