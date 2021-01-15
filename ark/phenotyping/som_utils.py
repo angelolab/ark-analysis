@@ -108,9 +108,9 @@ def cluster_pixels(base_dir, chan_list):
     # path_to_som_runner = os.path.join(os.path.dirname(os.path.realpath(__file__),
     #                                   '..', 'som_runner.R'))
 
-    print(os.path.listdir('.'))
+    print(os.istdir('.'))
     print(os.path.join(os.path.dirname(os.path.realpath(__file__))))
-    print(os.path.listdir(os.path.dirname(os.path.realpath(__file__))))
+    print(os.listdir(os.path.dirname(os.path.realpath(__file__))))
 
     subprocess.call(['Rscript', 'som_runner.R',
                      os.path.join(base_dir, 'example_pixel_matrix.csv'),

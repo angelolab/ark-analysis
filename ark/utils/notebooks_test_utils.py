@@ -123,6 +123,9 @@ def flowsom_setup(tb, flowsom_dir, num_fovs=3, num_chans=3, is_mibitiff=False,
             tiff_dir, fovs, chans, img_shape=(1024, 1024), delimiter='_', fills=False,
             sub_dir="TIFsNoAgg", dtype=dtype)
 
+    # generate sample segmentation labels so we can load them in
+    generate_sample_feature_tifs(fovs, flowsom_dir)
+
     # define custom paths
     define_paths = """
         base_dir = "%s"
@@ -260,24 +263,31 @@ def fov_channel_input_set(tb, fovs=None, nucs_list=None, mems_list=None):
     tb.execute_cell('gen_input')
 
 
-def generate_sample_feature_tifs(fovs, deepcell_output_dir):
+def generate_sample_feature_tifs(fovs, deepcell_output_dir, delimiter=None):
     """Generate a sample _feature_0 tif file for each fov
 
     Done to bypass the bottleneck of create_deepcell_output, for testing purposes we don't care
     about correct segmentation labels.
 
     Args:
-        tb (testbook.testbook):
-            The testbook runner instance
         fovs (list):
             The list of fovs to generate sample _feature_0 tif files for
         deepcell_output_dir (str):
             The path to the output directory
+        delimiter (str):
+            The name of the delimiter to add to the TIF, if specified
     """
 
     for fov in fovs:
         rand_img = np.random.randint(0, 16, size=(1024, 1024))
-        io.imsave(os.path.join(deepcell_output_dir, fov + "_feature_0.tif"), rand_img)
+
+        # add the delimiter if specified
+        if delimiter is not None:
+            file_name = fov + "%s.tif" % delimiter
+        else:
+            file_name = fov + ".tif"
+
+        io.imsave(os.path.join(deepcell_output_dir, file_name), rand_img)
 
 
 def save_seg_labels(tb, delimiter='_feature_0', xr_dim_name='compartments',

@@ -38,6 +38,10 @@ def test_example_neighborhood_analysis():
     _exec_notebook('example_neighborhood_analysis_script.ipynb')
 
 
+def test_example_flowsom_clustering():
+    _exec_notebook('example_flowsom_clustering.ipynb')
+
+
 # testing specific inputs for Segment_Image_Data
 # test mibitiff, 6000 seconds = default timeout on Travis
 @testbook(SEGMENT_IMAGE_DATA_PATH, timeout=6000)
@@ -64,7 +68,8 @@ def test_segment_image_data_mibitiff(tb):
         # generate _feature_0 tif files that would normally be handled by create_deepcell_output
         notebooks_test_utils.generate_sample_feature_tifs(
             fovs=['fov0_otherinfo-MassCorrected-Filtered', 'fov1-MassCorrected-Filtered'],
-            deepcell_output_dir=output_dir)
+            deepcell_output_dir=output_dir,
+            delimiter="_feature_0")
 
         # generate the deepcell output files from the server
         # tb.execute_cell('create_output')
@@ -99,7 +104,8 @@ def test_segment_image_data_folder(tb):
         # generate _feature_0 tif files that would normally be handled by create_deepcell_output
         notebooks_test_utils.generate_sample_feature_tifs(
             fovs=['fov0', 'fov1'],
-            deepcell_output_dir=output_dir)
+            deepcell_output_dir=output_dir,
+            delimiter="_feature_0")
 
         # generate the deepcell output files from the server
         # tb.execute_cell('create_output')
