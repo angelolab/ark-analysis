@@ -161,7 +161,7 @@ def load_imgs_labels(tb, channels, fovs=None):
     tb.inject("chan_list = %s" % str(channels), after='set_channels')
 
     # load the image data in
-    tb.execute('load_img_xr')
+    tb.execute_cell('load_img_xr')
 
     # load the segmentation labels in
     load_seg_cmd = """
@@ -177,7 +177,7 @@ def load_imgs_labels(tb, channels, fovs=None):
     tb.inject(load_seg_cmd, after='load_seg_labels')
 
     # trim the seg label coordinate names
-    tb.execute('trim_seg_coords')
+    tb.execute_cell('trim_seg_coords')
 
 
 def flowsom_run(tb):
