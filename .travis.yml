@@ -16,7 +16,11 @@ install:
   - travis_retry sudo add-apt-repository 'deb https://cloud.r-project.org/bin/linux/ubuntu xenial-cran40/'
   - travis_retry sudo apt-get update
   - travis_retry sudo apt-get -y --allow-unauthenticated install r-base r-base-dev
+  - travis_retry sudo apt-get install wget
+  - travis_retry sudo wget https://cran.r-project.org/src/contrib/Archive/BH/BH_1.72.0-3.tar.gz
   - travis_retry Rscript -e 'dir.create(path=Sys.getenv("R_LIBS_USER"), showWarnings=FALSE, recursive=TRUE)'
+  # need to override the default BH installation for cytolib/FlowSOM
+  - travis_retry Rscript -e 'install.packages("BH_1.72.0-3.tar.gz", lib=Sys.getenv("R_LIBS_USER"), repos=NULL, type="source")
   - travis_retry Rscript -e 'install.packages("data.table", lib=Sys.getenv("R_LIBS_USER"), repos="http://cran.us.r-project.org")'
   - travis_retry Rscript -e 'install.packages("BiocManager", lib=Sys.getenv("R_LIBS_USER"), repos="http://cran.us.r-project.org")'
   # - travis_retry Rscript -e 'install.packages("remotes", lib=Sys.getenv("R_LIBS_USER"), repos="http://cran.us.r-project.org")'
