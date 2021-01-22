@@ -111,7 +111,7 @@ def flowsom_setup(tb, flowsom_dir, num_fovs=3, num_chans=3, is_mibitiff=False,
         fovs = [f + mibitiff_suffix for f in fovs]
 
         filelocs, data_xr = test_utils.create_paired_xarray_fovs(
-            tiff_dir, fovs, chans, img_shape=(1024, 1024), mode='mibitiff',
+            tiff_dir, fovs, chans, img_shape=(50, 50), mode='mibitiff',
             delimiter='_', fills=False, dtype=dtype
         )
     else:
@@ -120,11 +120,11 @@ def flowsom_setup(tb, flowsom_dir, num_fovs=3, num_chans=3, is_mibitiff=False,
                                                     return_imgs=False)
 
         filelocs, data_xr = test_utils.create_paired_xarray_fovs(
-            tiff_dir, fovs, chans, img_shape=(1024, 1024), delimiter='_', fills=False,
+            tiff_dir, fovs, chans, img_shape=(50, 50), delimiter='_', fills=False,
             sub_dir="TIFsNoAgg", dtype=dtype)
 
     # generate sample segmentation labels so we can load them in
-    generate_sample_feature_tifs(fovs, flowsom_dir)
+    generate_sample_feature_tifs(fovs, flowsom_dir, size=(50, 50))
 
     # define custom paths
     define_paths = """
@@ -263,7 +263,7 @@ def fov_channel_input_set(tb, fovs=None, nucs_list=None, mems_list=None):
     tb.execute_cell('gen_input')
 
 
-def generate_sample_feature_tifs(fovs, deepcell_output_dir, delimiter=None):
+def generate_sample_feature_tifs(fovs, deepcell_output_dir, size=(1024, 1024), delimiter=None):
     """Generate a sample _feature_0 tif file for each fov
 
     Done to bypass the bottleneck of create_deepcell_output, for testing purposes we don't care
@@ -274,12 +274,14 @@ def generate_sample_feature_tifs(fovs, deepcell_output_dir, delimiter=None):
             The list of fovs to generate sample _feature_0 tif files for
         deepcell_output_dir (str):
             The path to the output directory
+        size (tuple):
+            The dimensions of the image to generate
         delimiter (str):
             The name of the delimiter to add to the TIF, if specified
     """
 
     for fov in fovs:
-        rand_img = np.random.randint(0, 16, size=(1024, 1024))
+        rand_img = np.random.randint(0, 16, size=size)
 
         # add the delimiter if specified
         if delimiter is not None:
