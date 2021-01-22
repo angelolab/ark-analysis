@@ -75,7 +75,10 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
         deepcell_input_files=io_utils.remove_file_extensions(input_files))
 
     # partition fovs for smaller zip file batching
-    fov_groups = [fovs[100 * i:100 * (i + 1)] for i in range(len(fovs) // 100)]
+    fov_groups = [
+        fovs[zip_size * i:zip_size * (i + 1)]
+        for i in range((len(fovs) // zip_size) + 1)
+    ]
 
     print(f'Processing tiffs in {len(fov_groups)} batches...')
 
