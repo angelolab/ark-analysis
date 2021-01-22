@@ -8,6 +8,7 @@ import os
 import glob
 from zipfile import ZipFile, ZIP_DEFLATED
 import warnings
+from concurrent.futures import ProcessPoolExecutor
 
 from ark.utils import misc_utils
 
@@ -82,8 +83,8 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
 
     print(f'Processing tiffs in {len(fov_groups)} batches...')
 
-    for group_index, fov_group in enumerate(fov_groups):
-
+    # yes this is function, don't worry about it
+    def _zip_run_extract(fov_group, group_index):
         # define the location of the zip file for our fovs
         zip_path = os.path.join(deepcell_input_dir, f'fovs_batch_{group_index + 1}.zip')
         if os.path.isfile(zip_path):
@@ -116,6 +117,10 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
             for fov in fov_group:
                 if fov + suffix + '.tif' not in zipObj.namelist():
                     warnings.warn(f'Deep Cell output file was not found for {fov}.')
+
+    # make calls in parallel
+    with ProcessPoolExecutor() as executor:
+        executor.map(_zip_run_extract, fov_groups, range(len(fov_groups)))
 
 
 def run_deepcell_direct(input_dir, output_dir, host='https://deepcell.org',
