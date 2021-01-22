@@ -94,8 +94,9 @@ def create_pixel_matrix(img_xr, seg_labels, fovs=None, channels=None, blur_facto
 
 
 def cluster_pixels(base_dir, chan_list):
-    """Run the FlowSOM training on the pixel data
+    """Run the FlowSOM training on the pixel data.
 
+    Saves results to pixel_mat_clustered.csv in base_dir.
     Usage: Rscript som_runner.R {path_to_pixel_matrix} {chan_list_comma_separated} {save_path}
 
     Args:
