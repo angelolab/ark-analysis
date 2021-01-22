@@ -15,7 +15,7 @@ from ark.utils import misc_utils
 
 def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
                            suffix='_feature_0', host='https://deepcell.org', job_type='multiplex',
-                           scale=1.0, timeout=3600, zip_size=100):
+                           scale=1.0, timeout=3600, zip_size=100, parallel=False):
     """ Handles all of the necessary data manipulation for running deepcell tasks.
 
         Creates .zip files (to be used as input for DeepCell),
@@ -49,6 +49,9 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
             zip_size (int):
                 Maximum number of files to include in zip.
                 Default: 100
+            parallel (bool):
+                Tries to zip, upload, and extract zip files in parallel
+                Default: False
         Raises:
             ValueError:
                 Raised if there is some fov X (from fovs list) s.t.
@@ -119,8 +122,11 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
                     warnings.warn(f'Deep Cell output file was not found for {fov}.')
 
     # make calls in parallel
-    with ThreadPoolExecutor() as executor:
-        executor.map(_zip_run_extract, fov_groups, range(len(fov_groups)))
+    if parallel:
+        with ThreadPoolExecutor() as executor:
+            executor.map(_zip_run_extract, fov_groups, range(len(fov_groups)))
+    else:
+        map(_zip_run_extract, fov_groups, range(len(fov_groups)))
 
 
 def run_deepcell_direct(input_dir, output_dir, host='https://deepcell.org',
