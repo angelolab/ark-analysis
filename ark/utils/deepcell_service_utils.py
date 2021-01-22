@@ -8,7 +8,7 @@ import os
 import glob
 from zipfile import ZipFile, ZIP_DEFLATED
 import warnings
-from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import ThreadPoolExecutor
 
 from ark.utils import misc_utils
 
@@ -119,7 +119,7 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
                     warnings.warn(f'Deep Cell output file was not found for {fov}.')
 
     # make calls in parallel
-    with ProcessPoolExecutor() as executor:
+    with ThreadPoolExecutor() as executor:
         executor.map(_zip_run_extract, fov_groups, range(len(fov_groups)))
 
 
