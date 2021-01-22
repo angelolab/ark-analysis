@@ -87,6 +87,8 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
     print(f'Processing tiffs in {len(fov_groups)} batches...')
 
     # yes this is function, don't worry about it
+    # long story short, too many args to pass if function not in local scope
+    # i.e easier to map fov_groups
     def _zip_run_extract(fov_group, group_index):
         # define the location of the zip file for our fovs
         zip_path = os.path.join(deepcell_input_dir, f'fovs_batch_{group_index + 1}.zip')
@@ -126,7 +128,7 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
         with ThreadPoolExecutor() as executor:
             executor.map(_zip_run_extract, fov_groups, range(len(fov_groups)))
     else:
-        map(_zip_run_extract, fov_groups, range(len(fov_groups)))
+        list(map(_zip_run_extract, fov_groups, range(len(fov_groups))))
 
 
 def run_deepcell_direct(input_dir, output_dir, host='https://deepcell.org',
