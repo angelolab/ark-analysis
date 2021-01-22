@@ -14,7 +14,7 @@ from ark.utils import misc_utils
 
 def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
                            suffix='_feature_0', host='https://deepcell.org', job_type='multiplex',
-                           scale=1.0, timeout=3600):
+                           scale=1.0, timeout=3600, zip_size=100):
     """ Handles all of the necessary data manipulation for running deepcell tasks.
 
         Creates .zip files (to be used as input for DeepCell),
@@ -45,6 +45,9 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
             timeout (int):
                 Approximate seconds until timeout.
                 Default: 1 hour (3600)
+            zip_size (int):
+                Maximum number of files to include in zip.
+                Default: 100
         Raises:
             ValueError:
                 Raised if there is some fov X (from fovs list) s.t.
@@ -71,38 +74,45 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
         fovs=fovs,
         deepcell_input_files=io_utils.remove_file_extensions(input_files))
 
-    # define the location of the zip file for our fovs
-    zip_path = os.path.join(deepcell_input_dir, 'fovs.zip')
-    if os.path.isfile(zip_path):
-        warnings.warn(f'{zip_path} will be overwritten')
+    # partition fovs for smaller zip file batching
+    fov_groups = [fovs[i:i + 100] for i in 100 * range(len(fovs) // 100)]
 
-    # write all files to the zip file
-    print('Zipping preprocessed tif files.')
+    print(f'Processing tiffs in {len(fov_groups)} batches...')
 
-    with ZipFile(zip_path, 'w', compression=ZIP_DEFLATED) as zipObj:
-        for fov in fovs:
-            # file has .tif extension
-            if fov + '.tif' in input_files:
-                filename = os.path.join(deepcell_input_dir, fov + '.tif')
-            # file has .tiff extension
-            else:
-                filename = os.path.join(deepcell_input_dir, fov + '.tiff')
+    for group_index, fov_group in enumerate(fov_groups):
 
-            zipObj.write(filename, os.path.basename(filename))
+        # define the location of the zip file for our fovs
+        zip_path = os.path.join(deepcell_input_dir, f'fovs_batch_{group_index + 1}.zip')
+        if os.path.isfile(zip_path):
+            warnings.warn(f'{zip_path} will be overwritten')
 
-    # pass the zip file to deepcell.org
-    print('Uploading files to DeepCell server.')
-    run_deepcell_direct(zip_path, deepcell_output_dir, host, job_type, scale, timeout)
+        # write all files to the zip file
+        print('Zipping preprocessed tif files.')
 
-    # extract the .tif output
-    print('Extracting tif files from DeepCell response.')
-    zip_files = glob.glob(os.path.join(deepcell_output_dir, '*.zip'))
-    zip_files.sort(key=os.path.getmtime)
-    with ZipFile(zip_files[-1], 'r') as zipObj:
-        zipObj.extractall(deepcell_output_dir)
-        for fov in fovs:
-            if fov + suffix + '.tif' not in zipObj.namelist():
-                warnings.warn(f'Deep Cell output file was not found for {fov}.')
+        with ZipFile(zip_path, 'w', compression=ZIP_DEFLATED) as zipObj:
+            for fov in fov_group:
+                # file has .tif extension
+                if fov + '.tif' in input_files:
+                    filename = os.path.join(deepcell_input_dir, fov + '.tif')
+                # file has .tiff extension
+                else:
+                    filename = os.path.join(deepcell_input_dir, fov + '.tiff')
+
+                zipObj.write(filename, os.path.basename(filename))
+
+        # pass the zip file to deepcell.org
+        print('Uploading files to DeepCell server.')
+        run_deepcell_direct(zip_path, deepcell_output_dir, host, job_type, scale, timeout)
+
+        # extract the .tif output
+        print('Extracting tif files from DeepCell response.')
+        zip_files = glob.glob(os.path.join(deepcell_output_dir, '*.zip'))
+        zip_files.sort(key=os.path.getmtime)
+        with ZipFile(zip_files[-1], 'r') as zipObj:
+            zipObj.extractall(deepcell_output_dir)
+            for fov in fov_group:
+                if fov + suffix + '.tif' not in zipObj.namelist():
+                    warnings.warn(f'Deep Cell output file was not found for {fov}.')
 
 
 def run_deepcell_direct(input_dir, output_dir, host='https://deepcell.org',
