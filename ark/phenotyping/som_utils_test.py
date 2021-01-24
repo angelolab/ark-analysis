@@ -13,14 +13,20 @@ import ark.utils.test_utils as test_utils
 
 def mocked_cluster_pixels(base_dir, chan_list):
     # assign marker names and create sample marker information
-    chan_list = ['Marker1', 'Marker2', 'Marker3']
-    sample_matrix = pd.DataFrame(np.random.rand(100, 3), columns=chan_list)
+    sample_pixel_mat = pd.read_csv(os.path.join(base_dir, 'pixel_mat_preprocessed.csv'),
+                                   usecols=chan_list)
 
-    # assign random cluster IDs
-    sample_matrix['ClusterID'] = np.random.randint(low=0, high=100, size=100)
+    sample_pixel_mat = sample_pixel_mat
+
+    # we will assign cluster labels based on the average of the rows
+    sample_pixel_mat['Cluster_ID'] = sample_pixel_mat.mean(axis=1)
+
+    # multiply by 100 and truncate for an integer cluster assignment
+    sample_pixel_mat['Cluster_ID'] *= 100
+    sample_pixel_mat['Cluster_ID'] = sample_pixel_mat['Cluster_ID'].astype(int)
 
     # write the final data to CSV
-    sample_matrix.to_csv(os.path.join(base_dir, 'pixel_mat_clustered.csv'), index=False)
+    sample_pixel_mat.to_csv(os.path.join(base_dir, 'pixel_mat_clustered.csv'), index=False)
 
 
 def test_create_pixel_matrix():
@@ -90,12 +96,26 @@ def test_cluster_pixels(mocker):
         mocker.patch('ark.phenotyping.som_utils.cluster_pixels', mocked_cluster_pixels)
 
         # create a sample preprocessed pixel matrix with specified channel names
-        chan_list = ['Marker1', 'Marker2', 'Marker3']
-        sample_matrix = pd.DataFrame(np.random.rand(100, 3), columns=chan_list)
-        sample_matrix.to_csv(os.path.join(temp_dir, 'example_pixel_matrix.csv'))
+        chan_list = ['Marker1', 'Marker2', 'Marker3', 'Marker4']
+        sample_matrix = pd.DataFrame(np.random.rand(100, 4), columns=chan_list)
+        sample_matrix.to_csv(os.path.join(temp_dir, 'pixel_mat_preprocessed.csv'))
 
-        # run clustering using mocked function
-        som_utils.cluster_pixels(temp_dir, chan_list)
+        # subset specific markers for clustering
+        chan_select = ['Marker1', 'Marker2']
+
+        # run "clustering" using mocked function
+        som_utils.cluster_pixels(temp_dir, chan_select)
 
         # assert the clustered file has been created
         assert os.path.exists(os.path.join(temp_dir, 'pixel_mat_clustered.csv'))
+
+        sample_pixel_clustered = pd.read_csv(os.path.join(temp_dir, 'pixel_mat_clustered.csv'))
+
+        # assert the columns we subsetted are the same (aside from the Cluster_ID column)
+        misc_utils.verify_same_elements(
+            selected_markers=chan_select,
+            pixel_mat_cols=sample_pixel_clustered.drop(columns='Cluster_ID').columns.values)
+
+        # assert we didn't assign any cluster 100 or above
+        cluster_ids = sample_pixel_clustered['Cluster_ID'].values
+        assert np.all(cluster_ids < 100)

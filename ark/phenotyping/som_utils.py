@@ -111,5 +111,5 @@ def cluster_pixels(base_dir, chan_list):
 
     # use Rscript to run som_runner.R with the correct command line args
     subprocess.call(['Rscript', os.path.join(som_runner_path, 'som_runner.R'),
-                     os.path.join(base_dir, 'example_pixel_matrix.csv'),
+                     os.path.join(base_dir, 'pixel_mat_preprocessed.csv'),
                      ','.join(chan_list), base_dir])

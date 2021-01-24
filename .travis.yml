@@ -8,7 +8,7 @@ language: python
 python:
   - 3.6
 
-# We add python path and all R dependencies to enable testing jupyter notebooks
+# We add python path to enable testing jupyter notebooks
 install:
   - travis_retry pip install -r requirements.txt
   - travis_retry pip install -r requirements-test.txt
