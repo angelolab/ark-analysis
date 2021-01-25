@@ -182,7 +182,7 @@ def load_imgs_labels(tb, channels, fovs=None, xr_dim_name='compartments',
     # load the segmentation labels in
     load_seg_cmd = """
         segmentation_labels = load_utils.load_imgs_from_dir(
-            data_dir=segmenation_dir,
+            data_dir=segmentation_dir,
             xr_dim_name="%s",
             xr_channel_names=%s,
             force_ints=%s
