@@ -105,7 +105,7 @@ def flowsom_setup(tb, flowsom_dir, img_shape=(50, 50), num_fovs=3, num_chans=3,
     tb.execute_cell('import')
 
     # create data which will be loaded into img_xr
-    tiff_dir = os.path.join(flowsom_dir, "TIFs")
+    tiff_dir = os.path.join(flowsom_dir, "input_data")
     os.mkdir(tiff_dir)
 
     if is_mibitiff:
@@ -124,17 +124,19 @@ def flowsom_setup(tb, flowsom_dir, img_shape=(50, 50), num_fovs=3, num_chans=3,
                                                     return_imgs=False)
 
         filelocs, data_xr = test_utils.create_paired_xarray_fovs(
-            tiff_dir, fovs, chans, img_shape=img_shape, delimiter='_', fills=False,
-            sub_dir="TIFsNoAgg", dtype=dtype)
+            tiff_dir, fovs, chans, img_shape=img_shape, delimiter='_', fills=False, dtype=dtype)
 
     # generate sample segmentation labels so we can load them in
-    generate_sample_feature_tifs(fovs, flowsom_dir)
+    seg_dir = os.path.join(flowsom_dir, "deepcell_output")
+    os.mkdir(seg_dir)
+    generate_sample_feature_tifs(fovs, seg_dir)
 
     # define custom paths
     define_paths = """
         base_dir = "%s"
         tiff_dir = "%s"
-    """ % (flowsom_dir, tiff_dir)
+        segmentation_dir = "%s"
+    """ % (flowsom_dir, tiff_dir, seg_dir)
     tb.inject(define_paths, after='file_path')
 
     # will set MIBItiff and MIBItiff_suffix
@@ -180,7 +182,7 @@ def load_imgs_labels(tb, channels, fovs=None, xr_dim_name='compartments',
     # load the segmentation labels in
     load_seg_cmd = """
         segmentation_labels = load_utils.load_imgs_from_dir(
-            data_dir=base_dir,
+            data_dir=segmenation_dir,
             xr_dim_name="%s",
             xr_channel_names=%s,
             force_ints=%s
