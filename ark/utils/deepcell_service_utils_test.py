@@ -18,6 +18,8 @@ def mocked_run_deepcell(in_zip_path, output_dir, host, job_type, scale, timeout)
     else:
         zip_path = os.path.join(output_dir, f'example_output_{batch_num}.zip')
     with ZipFile(zip_path, 'w') as zipObj:
+        if batch_num > 1:
+            return
         for i in range(1, 4):
             filename = os.path.join(output_dir, f'fov{i}_feature_0.tif')
             zipObj.write(filename, os.path.basename(filename))
@@ -69,10 +71,6 @@ def test_create_deepcell_output(mocker):
         # make sure DeepCell (.zip's) output exists
         assert os.path.exists(os.path.join(output_dir, 'example_output.zip'))
         assert os.path.exists(os.path.join(output_dir, 'example_output_2.zip'))
-
-        # DeepCell output .zip file should be extracted
-        assert os.path.exists(os.path.join(output_dir, 'fov1_feature_0.tif'))
-        assert os.path.exists(os.path.join(output_dir, 'fov2_feature_0.tif'))
 
         os.remove(os.path.join(output_dir, 'fov1_feature_0.tif'))
         os.remove(os.path.join(output_dir, 'fov2_feature_0.tif'))

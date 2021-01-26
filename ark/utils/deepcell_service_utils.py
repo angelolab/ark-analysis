@@ -127,6 +127,7 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
     if parallel:
         with ThreadPoolExecutor() as executor:
             executor.map(_zip_run_extract, fov_groups, range(len(fov_groups)))
+            executor.shutdown(wait=True)
     else:
         list(map(_zip_run_extract, fov_groups, range(len(fov_groups))))
 
