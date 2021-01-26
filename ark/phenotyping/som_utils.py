@@ -13,7 +13,8 @@ from ark.utils import load_utils
 from ark.utils import misc_utils
 
 
-def create_pixel_matrix(img_xr, seg_labels, fovs=None, channels=None, blur_factor=2):
+def create_pixel_matrix(img_xr, seg_labels, fovs=None, channels=None,
+                        blur_factor=2, subset_percent=0.1):
     """Preprocess the images for FlowSOM clustering and creates a pixel-level matrix
 
     Args:
