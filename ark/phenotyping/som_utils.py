@@ -124,7 +124,7 @@ def cluster_pixels(chan_list, base_dir, pixel_pre_name=None, pixel_cluster_name=
 
     # if path to the preprocessed file does not exist
     if not os.path.exists(preprocessed_path):
-        raise ValueError('Pixel preprocessed path does not exist')
+        raise FileNotFoundError('Pixel preprocessed path does not exist')
 
     # use Rscript to run som_runner.R with the correct command line args
     subprocess.call(['Rscript', '/som_runner.R', preprocessed_path,

@@ -91,6 +91,10 @@ def test_create_pixel_matrix():
 
 
 def test_cluster_pixels(mocker):
+    # basic error check: bad path to preprocessed matrix
+    with pytest.raises(FileNotFoundError):
+        som_utils.cluster_pixels(['Marker1', 'Marker2'], 'bad_base_dir')
+
     with tempfile.TemporaryDirectory() as temp_dir:
         # add mocked function to create a dummy pixel matrix with cluster labels
         mocker.patch('ark.phenotyping.som_utils.cluster_pixels', mocked_cluster_pixels)
