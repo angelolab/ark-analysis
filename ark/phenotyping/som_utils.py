@@ -93,7 +93,9 @@ def create_pixel_matrix(img_xr, seg_labels, fovs=None, channels=None, blur_facto
     return flowsom_data
 
 
-def cluster_pixels(chan_list, base_dir, pixel_pre_name=None, pixel_cluster_name=None):
+def cluster_pixels(chan_list, base_dir,
+                   pixel_pre_name='pixel_mat_preprocessed.csv',
+                   pixel_cluster_name='pixel_mat_clustered.csv'):
     """Run the FlowSOM training on the pixel data.
 
     Saves results to pixel_mat_clustered.csv in base_dir.
@@ -105,21 +107,13 @@ def cluster_pixels(chan_list, base_dir, pixel_pre_name=None, pixel_cluster_name=
         base_dir (str):
             The path to the directory to save the clustered pixel matrix in
         pixel_pre_name (str):
-            The name of the preprocessed file name
+            The name of the preprocessed file name, default to pixel_mat_preprocessed.csv
         pixel_cluster_name (str):
-            The name of the file to write the clustered csv to
+            The name of the file to write the clustered csv to, default to pixel_mat_clustered.csv
     """
 
-    # set the path to the preprocessed matrix, default to pixel_mat_preprocessed.csv
-    if pixel_pre_name is None:
-        pixel_pre_name = 'pixel_mat_preprocessed.csv'
-
+    # set the paths to the preprocessed matrix and clustered matrix
     preprocessed_path = os.path.join(base_dir, pixel_pre_name)
-
-    # set the desired path to the clustered matrix, default to pixel_mat_clustered.csv
-    if pixel_cluster_name is None:
-        pixel_cluster_name = 'pixel_mat_clustered.csv'
-
     clustered_path = os.path.join(base_dir, pixel_cluster_name)
 
     # if path to the preprocessed file does not exist
