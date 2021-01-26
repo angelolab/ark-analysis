@@ -93,20 +93,39 @@ def create_pixel_matrix(img_xr, seg_labels, fovs=None, channels=None, blur_facto
     return flowsom_data
 
 
-def cluster_pixels(base_dir, chan_list):
+def cluster_pixels(chan_list, base_dir, pixel_pre_name=None, pixel_cluster_name=None):
     """Run the FlowSOM training on the pixel data.
 
     Saves results to pixel_mat_clustered.csv in base_dir.
     Usage: Rscript som_runner.R {path_to_pixel_matrix} {chan_list_comma_separated} {save_path}
 
     Args:
-        base_dir (str):
-            The path to the base directory
         chan_list (list):
             The list of markers to subset on
+        base_dir (str):
+            The path to the directory to save the clustered pixel matrix in
+        pixel_pre_name (str):
+            The name of the preprocessed file name
+        pixel_cluster_name (str):
+            The name of the file to write the clustered csv to
     """
 
+    # set the path to the preprocessed matrix, default to pixel_mat_preprocessed.csv
+    if pixel_pre_name is None:
+        pixel_pre_name = 'pixel_mat_preprocessed.csv'
+
+    preprocessed_path = os.path.join(base_dir, pixel_pre_name)
+
+    # set the desired path to the clustered matrix, default to pixel_mat_clustered.csv
+    if pixel_cluster_name is None:
+        pixel_cluster_name = 'pixel_mat_clustered.csv'
+
+    clustered_path = os.path.join(base_dir, pixel_cluster_name)
+
+    # if path to the preprocessed file does not exist
+    if not os.path.exists(preprocessed_path):
+        raise ValueError('Pixel preprocessed path does not exist')
+
     # use Rscript to run som_runner.R with the correct command line args
-    subprocess.call(['Rscript', 'som_runner.R',
-                     os.path.join(base_dir, 'pixel_mat_preprocessed.csv'),
-                     ','.join(chan_list), base_dir])
+    subprocess.call(['Rscript', '/som_runner.R', preprocessed_path,
+                     ','.join(chan_list), clustered_path])

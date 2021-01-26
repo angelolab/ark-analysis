@@ -14,8 +14,8 @@ print("Creating marker list")
 markers <- unlist(strsplit(args[2], split=","))
 
 # get the path to the write directory
-print("Getting the write directory")
-write_dir <- args[3]
+print("Getting the write path")
+writePath <- args[3]
 
 # read the pixel mat data
 print("Reading the pixel matrix data")
@@ -25,10 +25,10 @@ pixelMatData <- fread(pixelMatPath, select=markers)
 
 # run the SOM clustering step
 print("Run the SOM clustering")
-som_results <- SOM(data=as.matrix(pixelMatData))
+somResults <- SOM(data=as.matrix(pixelMatData))
 
 # add original cluster labels to pixelMatData and save, used for verification
 print("Mapping original SOM data")
-clusters <- FlowSOM:::MapDataToCodes(som_results$codes, as.matrix(pixelMatData))
+clusters <- FlowSOM:::MapDataToCodes(somResults$codes, as.matrix(pixelMatData))
 pixelMatData <- cbind(pixelMatData, clusters=clusters)
-fwrite(as.matrix(pixelMatData), paste(write_dir, "/pixel_mat_clustered.csv", sep=""))
+fwrite(as.matrix(pixelMatData), writePath)
