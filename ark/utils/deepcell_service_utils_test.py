@@ -100,7 +100,16 @@ def test_create_deepcell_output(mocker):
         pathlib.Path(os.path.join(input_dir, 'fov4.tif')).touch()
         with pytest.warns(UserWarning):
             create_deepcell_output(deepcell_input_dir=input_dir, deepcell_output_dir=output_dir,
-                                   fovs=['fov1', 'fov2', 'fov3', 'fov4'])
+                                   fovs=['fov1', 'fov2', 'fov3', 'fov4'], zip_size=3)
+
+        # check that there are two zip files with sizes 3, 1 respectively
+        assert os.path.exists(os.path.join(input_dir, 'fovs_batch_1.zip'))
+        assert os.path.exists(os.path.join(input_dir, 'fovs_batch_2.zip'))
+
+        with ZipFile(os.path.join(input_dir, 'fovs_batch_1.zip'), 'r') as zip_batch1:
+            assert zip_batch1.namelist() == ['fov1.tif', 'fov2.tif', 'fov3.tiff']
+        with ZipFile(os.path.join(input_dir, 'fovs_batch_2.zip'), 'r') as zip_batch2:
+            assert zip_batch2.namelist() == ['fov4.tif']
 
         # ValueError should be raised if .tif file does not exists for some fov in fovs
         with pytest.raises(ValueError):
