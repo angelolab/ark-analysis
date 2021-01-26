@@ -18,5 +18,6 @@
    :maxdepth: 4
 
    analysis <_markdown/ark.analysis>
+   phenotyping <_markdown/ark.phenotyping>
    segmentation <_markdown/ark.segmentation>
    utils <_markdown/ark.utils>
