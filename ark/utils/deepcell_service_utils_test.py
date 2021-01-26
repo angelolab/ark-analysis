@@ -7,12 +7,16 @@ import pytest
 from ark.utils.deepcell_service_utils import create_deepcell_output
 
 
-def mocked_run_deepcell(input_dir, output_dir, host, job_type, scale, timeout):
+def mocked_run_deepcell(in_zip_path, output_dir, host, job_type, scale, timeout):
     pathlib.Path(os.path.join(output_dir, 'fov1_feature_0.tif')).touch()
     pathlib.Path(os.path.join(output_dir, 'fov2_feature_0.tif')).touch()
     pathlib.Path(os.path.join(output_dir, 'fov3_feature_0.tif')).touch()
 
-    zip_path = os.path.join(output_dir, 'example_output.zip')
+    batch_num = int(in_zip_path.split('.')[0].split('_')[-1])
+    if batch_num < 2:
+        zip_path = os.path.join(output_dir, 'example_output.zip')
+    else:
+        zip_path = os.path.join(output_dir, f'example_output_{batch_num}.zip')
     with ZipFile(zip_path, 'w') as zipObj:
         for i in range(1, 4):
             filename = os.path.join(output_dir, f'fov{i}_feature_0.tif')
@@ -57,6 +61,23 @@ def test_create_deepcell_output(mocker):
         os.remove(os.path.join(output_dir, 'fov1_feature_0.tif'))
         os.remove(os.path.join(output_dir, 'fov2_feature_0.tif'))
         os.remove(os.path.join(output_dir, 'example_output.zip'))
+
+        # test parallel
+        create_deepcell_output(deepcell_input_dir=input_dir, deepcell_output_dir=output_dir,
+                               fovs=['fov1', 'fov2'], zip_size=1, parallel=True)
+
+        # make sure DeepCell (.zip's) output exists
+        assert os.path.exists(os.path.join(output_dir, 'example_output.zip'))
+        assert os.path.exists(os.path.join(output_dir, 'example_output_2.zip'))
+
+        # DeepCell output .zip file should be extracted
+        assert os.path.exists(os.path.join(output_dir, 'fov1_feature_0.tif'))
+        assert os.path.exists(os.path.join(output_dir, 'fov2_feature_0.tif'))
+
+        os.remove(os.path.join(output_dir, 'fov1_feature_0.tif'))
+        os.remove(os.path.join(output_dir, 'fov2_feature_0.tif'))
+        os.remove(os.path.join(output_dir, 'example_output.zip'))
+        os.remove(os.path.join(output_dir, 'example_output_2.zip'))
 
         # test with mixed fov/file list
         create_deepcell_output(deepcell_input_dir=input_dir, deepcell_output_dir=output_dir,
