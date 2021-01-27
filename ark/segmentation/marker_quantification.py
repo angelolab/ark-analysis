@@ -5,7 +5,7 @@ import pandas as pd
 
 import xarray as xr
 
-from skimage.measure import regionprops_table
+from skimage.measure import moments, regionprops, regionprops_table
 
 from ark.utils import io_utils, load_utils, misc_utils, segmentation_utils
 from ark.segmentation.signal_extraction import extraction_function
@@ -13,8 +13,100 @@ from ark.segmentation.signal_extraction import extraction_function
 import ark.settings as settings
 
 
+def centroid_dif(prop):
+    """Return the cell centroid shift for a cell
+
+    Args:
+        prop (skimage.measure.regionprops):
+            The property information for a cell returned by regionprops
+
+    Returns:
+        float:
+            The centroid shift for the cell
+    """
+
+    cell_image = prop.image
+    cell_M = skimage.measure.moments(cell_image)
+    cell_centroid = cell_M[1, 0] / cell_M[0, 0], cell_M[0, 1] / cell_M[0, 0]
+
+    convex_image = prop.convex_image
+    convex_M = skimage.measure.moments(convex_image)
+    convex_centroid = convex_M[1, 0] / convex_M[0, 0], convex_M[0, 1] / convex_M[0, 0]
+
+    centroid_dist = np.sqrt((cell_centroid[1] - convex_centroid[1]) ** 2 +
+                            (cell_centroid[0] - convex_centroid[0]) ** 2)
+
+    centroid_dist /= np.sqrt(prop.area)
+
+    centroid_dif.append(centroid_dist)
+
+    return centroid_dif
+
+
+def num_concavities(prop):
+    """Return the number of concavities for a cell
+
+    Args:
+        prop (skimage.measure.regionprops):
+            The property information for a cell returned by regionprops
+
+    Returns:
+        int:
+            The number of concavities for a cell
+    """
+
+    cell_image = prop.image
+    convex_image = prop.convex_image
+
+    diff_img = convex_image ^ cell_image
+
+    if np.sum(diff_img) > 0:
+        labeled_diff_img = label(diff_img)
+        hull_prop_df = pd.DataFrame(regionprops_table(labeled_diff_img,
+                                                      properties=['area', 'perimeter']))
+        hull_prop_df['compactness'] = np.square(hull_prop_df['perimeter']) / hull_prop_df['area']
+        small_idx = np.logical_and(hull_prop_df['area'] > 10,
+                                   hull_prop_df['compactness'] < 60)
+        large_idx = hull_prop_df['area'] > 150
+        combined_idx = np.logical_or(small_idx, large_idx)
+
+        concavities = np.sum(combined_idx)
+    else:
+        concavities = 0
+
+
+def compute_extra_prop_info(prop_info, regionprops_extras):
+    """Derives new features specified by regionprops_extras from a regionprops features
+
+    Args:
+        prop_info (skimage.measure.regionprops):
+            A list of property information returned by regionprops
+        regionprops_extras (list):
+            A list of regionprops features to compute, each value should correspond to
+            a function in the global regionprops_functions variable
+
+    Returns:
+        pandas.DataFrame:
+            A dataframe with columns corresponding to each regionprops_extras feature
+    """
+
+    # define an empty list for each regionprop feature
+    prop_extra_data = {re: [] for re in regionprops_extras}
+
+    # generate the required data for each cell
+    for prop in prop_info:
+        for re in regionprops_extras:
+            prop_extra_data[re].append(regionprops_functions[re](prop))
+
+    # convert the dictionary to a DataFrame
+    prop_extra_df = pd.DataFrame.from_dict(prop_extra_data)
+
+    return prop_extra_df
+
+
 def compute_marker_counts(input_images, segmentation_labels, nuclear_counts=False,
-                          regionprops_features=None, split_large_nuclei=False,
+                          regionprops_features=None, regionprops_extras=None,
+                          split_large_nuclei=False,
                           extraction='total_intensity', **kwargs):
     """Extract single cell protein expression data from channel TIFs for a single fov
 
@@ -27,12 +119,15 @@ def compute_marker_counts(input_images, segmentation_labels, nuclear_counts=Fals
             boolean flag to determine whether nuclear counts are returned
         regionprops_features (list):
             morphology features for regionprops to extract for each cell
+        regionprops_extras (list):
+            A list of extra properties derived from regionprops to compute
         split_large_nuclei (bool):
             controls whether nuclei which have portions outside of the cell will get relabeled
         extraction (str):
             extraction function used to compute marker counts.
         **kwargs:
             arbitrary keyword arguments
+
     Returns:
         xarray.DataArray:
             xarray containing segmented data of cells x markers
@@ -94,6 +189,13 @@ def compute_marker_counts(input_images, segmentation_labels, nuclear_counts=Fals
     cell_props = pd.DataFrame(regionprops_table(segmentation_labels.loc[:, :, 'whole_cell'].values,
                                                 properties=regionprops_features))
 
+    # if specified, compute the extras properties for each cell, and append to cell_props
+    if regionprops_extras is not None:
+        regionprops_names.extend(regionprops_extras)
+        prop_info = regionprops(segmentation_labels.loc[:, :, 'whole_cell'].values)
+        extra_prop_data = compute_extra_prop_info(prop_info, regionprops_extras)
+        cell_props = pd.concat([cell_props, extra_prop_data], axis=1)
+
     if nuclear_counts:
         nuc_labels = segmentation_labels.loc[:, :, 'nuclear'].values
 
@@ -105,6 +207,12 @@ def compute_marker_counts(input_images, segmentation_labels, nuclear_counts=Fals
                                                       cell_ids=unique_cell_ids)
 
         nuc_props = pd.DataFrame(regionprops_table(nuc_labels, properties=regionprops_features))
+
+        # if specified, compute the extras properties for each cell
+        if regionprops_extras is not None:
+            nuc_regionprop_info = regionprops(segmentation_labels.loc[:, :, 'nuclear'].values)
+            nuc_extra_props = compute_extra_prop_info(nuc_regionprop_info, regionprops_extras)
+            nuc_props = pd.concat([nuc_props, nuc_extra_props], axis=1)
 
     # TODO: There's some repeated code here, maybe worth refactoring? Maybe not
     # loop through each cell in mask
@@ -373,3 +481,9 @@ def generate_cell_table(segmentation_labels, tiff_dir, img_sub_folder,
         )
 
     return combined_cell_table_size_normalized, combined_cell_table_arcsinh_transformed
+
+
+regionprops_functions = {
+    'centroid_dif': centroid_dif,
+    'num_concavities': num_concavities
+}
