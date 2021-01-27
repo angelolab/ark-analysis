@@ -109,11 +109,12 @@ def test_create_deepcell_output(mocker):
                                        deepcell_output_dir=output_dir, suffix='_other_suffix',
                                        fovs=['fov1'])
 
+            # add additional fov for auto-batch testing
             pathlib.Path(os.path.join(input_dir, 'fov4.tif')).touch()
-            with pytest.warns(UserWarning):
-                create_deepcell_output(deepcell_input_dir=input_dir,
-                                       deepcell_output_dir=output_dir,
-                                       fovs=['fov1', 'fov2', 'fov3', 'fov4'], zip_size=3)
+
+            create_deepcell_output(deepcell_input_dir=input_dir,
+                                   deepcell_output_dir=output_dir,
+                                   fovs=['fov1', 'fov2', 'fov3', 'fov4'], zip_size=3)
 
             # check that there are two zip files with sizes 3, 1 respectively
             assert os.path.exists(os.path.join(input_dir, 'fovs_batch_1.zip'))
