@@ -36,101 +36,95 @@ def test_create_deepcell_output(mocker):
         pathlib.Path(os.path.join(input_dir, 'fov2.tif')).touch()
         pathlib.Path(os.path.join(input_dir, 'fov3.tiff')).touch()
 
-        output_dir = os.path.join(temp_dir, 'output_dir')
-        os.makedirs(output_dir)
+        with tempfile.TemporaryDirectory() as output_dir:
 
-        with pytest.raises(ValueError):
-            # fail if non-existent fovs are specified
+            with pytest.raises(ValueError):
+                # fail if non-existent fovs are specified
+                create_deepcell_output(deepcell_input_dir=input_dir,
+                                       deepcell_output_dir=output_dir, fovs=['fov1', 'fov1000'])
+
+            # test with specified fov list
             create_deepcell_output(deepcell_input_dir=input_dir, deepcell_output_dir=output_dir,
-                                   fovs=['fov1', 'fov1000'])
+                                   fovs=['fov1', 'fov2'])
 
-        # test with specified fov list
-        create_deepcell_output(deepcell_input_dir=input_dir, deepcell_output_dir=output_dir,
-                               fovs=['fov1', 'fov2'])
+            with pytest.raises(ValueError):
+                # fail if scale argument can not be converted to float
+                create_deepcell_output(deepcell_input_dir=input_dir,
+                                       deepcell_output_dir=output_dir, fovs=['fov1', 'fov2'],
+                                       scale='test')
 
-        with pytest.raises(ValueError):
-            # fail if scale argument can not be converted to float
+            # make sure DeepCell (.zip) output exists
+            assert os.path.exists(os.path.join(output_dir, 'example_output.zip'))
+
+            # DeepCell output .zip file should be extracted
+            assert os.path.exists(os.path.join(output_dir, 'fov1_feature_0.tif'))
+            assert os.path.exists(os.path.join(output_dir, 'fov2_feature_0.tif'))
+
+        with tempfile.TemporaryDirectory() as output_dir:
+
+            # test parallel
             create_deepcell_output(deepcell_input_dir=input_dir, deepcell_output_dir=output_dir,
-                                   fovs=['fov1', 'fov2'], scale='test')
+                                   fovs=['fov1', 'fov2'], zip_size=1, parallel=True)
 
-        # make sure DeepCell (.zip) output exists
-        assert os.path.exists(os.path.join(output_dir, 'example_output.zip'))
+            # make sure DeepCell (.zip's) output exists
+            assert os.path.exists(os.path.join(output_dir, 'example_output.zip'))
+            assert os.path.exists(os.path.join(output_dir, 'example_output_2.zip'))
 
-        # DeepCell output .zip file should be extracted
-        assert os.path.exists(os.path.join(output_dir, 'fov1_feature_0.tif'))
-        assert os.path.exists(os.path.join(output_dir, 'fov2_feature_0.tif'))
+        with tempfile.TemporaryDirectory() as output_dir:
 
-        os.remove(os.path.join(output_dir, 'fov1_feature_0.tif'))
-        os.remove(os.path.join(output_dir, 'fov2_feature_0.tif'))
-        os.remove(os.path.join(output_dir, 'example_output.zip'))
-
-        # test parallel
-        create_deepcell_output(deepcell_input_dir=input_dir, deepcell_output_dir=output_dir,
-                               fovs=['fov1', 'fov2'], zip_size=1, parallel=True)
-
-        # make sure DeepCell (.zip's) output exists
-        assert os.path.exists(os.path.join(output_dir, 'example_output.zip'))
-        assert os.path.exists(os.path.join(output_dir, 'example_output_2.zip'))
-
-        os.remove(os.path.join(output_dir, 'fov1_feature_0.tif'))
-        os.remove(os.path.join(output_dir, 'fov2_feature_0.tif'))
-        os.remove(os.path.join(output_dir, 'example_output.zip'))
-        os.remove(os.path.join(output_dir, 'example_output_2.zip'))
-
-        # test with mixed fov/file list
-        create_deepcell_output(deepcell_input_dir=input_dir, deepcell_output_dir=output_dir,
-                               fovs=['fov1', 'fov2.tif', 'fov3.tiff'])
-
-        # make sure DeepCell (.zip) output exists
-        assert os.path.exists(os.path.join(output_dir, 'example_output.zip'))
-
-        # DeepCell output .zip file should be extracted
-        assert os.path.exists(os.path.join(output_dir, 'fov1_feature_0.tif'))
-        assert os.path.exists(os.path.join(output_dir, 'fov2_feature_0.tif'))
-        assert os.path.exists(os.path.join(output_dir, 'fov3_feature_0.tif'))
-
-        os.remove(os.path.join(output_dir, 'fov1_feature_0.tif'))
-        os.remove(os.path.join(output_dir, 'fov2_feature_0.tif'))
-        os.remove(os.path.join(output_dir, 'fov3_feature_0.tif'))
-        os.remove(os.path.join(output_dir, 'example_output.zip'))
-
-        # if fovs is None, all .tif files in input dir should be taken
-        create_deepcell_output(deepcell_input_dir=input_dir, deepcell_output_dir=output_dir)
-
-        # make sure DeepCell (.zip) output exists
-        assert os.path.exists(os.path.join(output_dir, 'example_output.zip'))
-
-        assert os.path.exists(os.path.join(output_dir, 'fov1_feature_0.tif'))
-        assert os.path.exists(os.path.join(output_dir, 'fov2_feature_0.tif'))
-        assert os.path.exists(os.path.join(output_dir, 'fov3_feature_0.tif'))
-
-        pathlib.Path(os.path.join(input_dir, 'fovs.zip')).touch()
-
-        # Warning should be displayed if fovs.zip file exists (will be overwritten)
-        with pytest.warns(UserWarning):
+            # test with mixed fov/file list
             create_deepcell_output(deepcell_input_dir=input_dir, deepcell_output_dir=output_dir,
-                                   fovs=['fov1'])
+                                   fovs=['fov1', 'fov2.tif', 'fov3.tiff'])
 
-        # DeepCell output .tif file does not exist for some fov
-        with pytest.warns(UserWarning):
-            create_deepcell_output(deepcell_input_dir=input_dir, deepcell_output_dir=output_dir,
-                                   suffix='_other_suffix', fovs=['fov1'])
+            # make sure DeepCell (.zip) output exists
+            assert os.path.exists(os.path.join(output_dir, 'example_output.zip'))
 
-        pathlib.Path(os.path.join(input_dir, 'fov4.tif')).touch()
-        with pytest.warns(UserWarning):
-            create_deepcell_output(deepcell_input_dir=input_dir, deepcell_output_dir=output_dir,
-                                   fovs=['fov1', 'fov2', 'fov3', 'fov4'], zip_size=3)
+            # DeepCell output .zip file should be extracted
+            assert os.path.exists(os.path.join(output_dir, 'fov1_feature_0.tif'))
+            assert os.path.exists(os.path.join(output_dir, 'fov2_feature_0.tif'))
+            assert os.path.exists(os.path.join(output_dir, 'fov3_feature_0.tif'))
 
-        # check that there are two zip files with sizes 3, 1 respectively
-        assert os.path.exists(os.path.join(input_dir, 'fovs_batch_1.zip'))
-        assert os.path.exists(os.path.join(input_dir, 'fovs_batch_2.zip'))
+        with tempfile.TemporaryDirectory() as output_dir:
 
-        with ZipFile(os.path.join(input_dir, 'fovs_batch_1.zip'), 'r') as zip_batch1:
-            assert zip_batch1.namelist() == ['fov1.tif', 'fov2.tif', 'fov3.tiff']
-        with ZipFile(os.path.join(input_dir, 'fovs_batch_2.zip'), 'r') as zip_batch2:
-            assert zip_batch2.namelist() == ['fov4.tif']
+            # if fovs is None, all .tif files in input dir should be taken
+            create_deepcell_output(deepcell_input_dir=input_dir, deepcell_output_dir=output_dir)
 
-        # ValueError should be raised if .tif file does not exists for some fov in fovs
-        with pytest.raises(ValueError):
-            create_deepcell_output(deepcell_input_dir=input_dir, deepcell_output_dir=output_dir,
-                                   fovs=['fov1', 'fov5'])
+            # make sure DeepCell (.zip) output exists
+            assert os.path.exists(os.path.join(output_dir, 'example_output.zip'))
+
+            assert os.path.exists(os.path.join(output_dir, 'fov1_feature_0.tif'))
+            assert os.path.exists(os.path.join(output_dir, 'fov2_feature_0.tif'))
+            assert os.path.exists(os.path.join(output_dir, 'fov3_feature_0.tif'))
+
+            pathlib.Path(os.path.join(input_dir, 'fovs.zip')).touch()
+
+            # Warning should be displayed if fovs.zip file exists (will be overwritten)
+            with pytest.warns(UserWarning):
+                create_deepcell_output(deepcell_input_dir=input_dir,
+                                       deepcell_output_dir=output_dir, fovs=['fov1'])
+
+            # DeepCell output .tif file does not exist for some fov
+            with pytest.warns(UserWarning):
+                create_deepcell_output(deepcell_input_dir=input_dir,
+                                       deepcell_output_dir=output_dir, suffix='_other_suffix',
+                                       fovs=['fov1'])
+
+            pathlib.Path(os.path.join(input_dir, 'fov4.tif')).touch()
+            with pytest.warns(UserWarning):
+                create_deepcell_output(deepcell_input_dir=input_dir,
+                                       deepcell_output_dir=output_dir,
+                                       fovs=['fov1', 'fov2', 'fov3', 'fov4'], zip_size=3)
+
+            # check that there are two zip files with sizes 3, 1 respectively
+            assert os.path.exists(os.path.join(input_dir, 'fovs_batch_1.zip'))
+            assert os.path.exists(os.path.join(input_dir, 'fovs_batch_2.zip'))
+
+            with ZipFile(os.path.join(input_dir, 'fovs_batch_1.zip'), 'r') as zip_batch1:
+                assert zip_batch1.namelist() == ['fov1.tif', 'fov2.tif', 'fov3.tiff']
+            with ZipFile(os.path.join(input_dir, 'fovs_batch_2.zip'), 'r') as zip_batch2:
+                assert zip_batch2.namelist() == ['fov4.tif']
+
+            # ValueError should be raised if .tif file does not exists for some fov in fovs
+            with pytest.raises(ValueError):
+                create_deepcell_output(deepcell_input_dir=input_dir,
+                                       deepcell_output_dir=output_dir, fovs=['fov1', 'fov5'])
