@@ -48,7 +48,7 @@ def test_create_pixel_matrix():
                                                   dtype='float64')
 
     sample_labels = test_utils.make_labels_xarray(label_data=None,
-                                                  fov_ids=['fov0', 'fov1'],
+                                                  fov_ids=fovs,
                                                   compartment_names=['whole_cell'])
 
     # basic error checking

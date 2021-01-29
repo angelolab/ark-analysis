@@ -196,24 +196,32 @@ def load_imgs_labels(tb, channels, fovs=None, xr_dim_name='compartments',
     tb.execute_cell('trim_seg_coords')
 
 
-def flowsom_run(tb):
+def flowsom_run(tb, fovs, channels):
     """Run the FlowSOM clustering
 
     Args:
         tb (testbook.testbook):
             The testbook runner instance
+        fovs (list):
+            The list of fovs
+        channels (list)
+            The list of channels
     """
 
     # test the preprocessing works, we won't save nor run the actual FlowSOM clustering
     tb.execute_cell('gen_pixel_mat')
     tb.execute_cell('subset_pixel_mat')
 
-    # here we assume that FlowSOM clustering produced a correct pixel_mat_clustered.csv
-    dummy_cluster_cmd = """
-        pixel_data['cluster_labels'] = np.random.randint(low=0, high=100, size=pixel_data.shape[0])
-        pixel_data['cluster_dists'] = np.random.rand(pixel_data.shape[0])
-        pixel_data.to_csv(os.path.join(base_dir, 'pixel_mat_clustered.csv'), index=False)
-    """
+    # create a dummy HDF5 file with random dataframes for each fov
+    for fov in fovs:
+        dummy_cluster_cmd = """
+            sample_df = pd.DataFrame(np.random.rand(100, 6),
+                                     columns=%s +
+                                     ['fov', 'row_index', 'col_index', 'segmentation_label'])
+            sample_df['fov'] = '%s'
+            sample_df.to_hdf(os.path.join(base_dir, 'pixel_mat_clustered.hdf5'), key='%s', mode='a')
+        """ % (str(channels), fov, fov)
+
     tb.inject(dummy_cluster_cmd, after='cluster_pixel_mat')
 
 

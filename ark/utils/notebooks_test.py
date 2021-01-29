@@ -113,21 +113,24 @@ def test_segment_image_data_folder(tb):
         notebooks_test_utils.create_exp_mat(tb)
 
 
-# test mibitiff clustering
-@testbook(FLOWSOM_CLUSTER_PATH, timeout=6000)
-def test_flowsom_cluster_mibitiff(tb):
-    with tdir() as base_dir:
-        # create input files
-        notebooks_test_utils.flowsom_setup(tb, flowsom_dir=base_dir, is_mibitiff=True)
+# # test mibitiff clustering
+# @testbook(FLOWSOM_CLUSTER_PATH, timeout=6000)
+# def test_flowsom_cluster_mibitiff(tb):
+#     with tdir() as base_dir:
+#         # create input files
+#         notebooks_test_utils.flowsom_setup(tb, flowsom_dir=base_dir, is_mibitiff=True)
 
-        # load img data in
-        notebooks_test_utils.load_imgs_labels(tb,
-                                              channels=['chan0', 'chan1'],
-                                              fovs=['fov0_otherinfo-MassCorrected-Filtered.tiff',
-                                                    'fov1-MassCorrected-Filtered.tiff'])
+#         # load img data in
+#         notebooks_test_utils.load_imgs_labels(tb,
+#                                               channels=['chan0', 'chan1'],
+#                                               fovs=['fov0_otherinfo-MassCorrected-Filtered.tiff',
+#                                                     'fov1-MassCorrected-Filtered.tiff'])
 
-        # run the FlowSOM preprocessing and clustering
-        notebooks_test_utils.flowsom_run(tb)
+#         # run the FlowSOM preprocessing and clustering
+#         notebooks_test_utils.flowsom_run(tb,
+#                                          fovs=['fov0_otherinfo-MassCorrected-Filtered.tiff',
+#                                                'fov1-MassCorrected-Filtered.tiff'],
+#                                          channels=['chan0', 'chan1'])
 
 
 # test folder clustering
@@ -143,4 +146,4 @@ def test_flowsom_cluster_folder(tb):
                                               fovs=['fov0', 'fov1'])
 
         # run the FlowSOM preprocessing and clustering
-        notebooks_test_utils.flowsom_run(tb)
+        notebooks_test_utils.flowsom_run(tb, fovs=['fov0', 'fov1'], channels=['chan0', 'chan1'])
