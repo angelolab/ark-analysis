@@ -1,4 +1,3 @@
-import hdf5
 import multiprocessing
 import os
 import subprocess
@@ -47,6 +46,10 @@ def create_pixel_matrix(img_xr, seg_labels, base_dir,
     # verify that the fovs and channels provided are valid
     misc_utils.verify_in_list(fovs=fovs, image_fovs=img_xr.fovs.values)
     misc_utils.verify_in_list(channels=channels, image_channels=img_xr.channels.values)
+
+    # verify that the path to base_dir is valid
+    if not os.path.exists(base_dir):
+        raise FileNotFoundError('Path to base_dir %s does not exist' % base_dir)
 
     # iterate over fovs
     for fov in fovs:
@@ -102,6 +105,15 @@ def subset_pixels(fovs, base_dir, hdf_name='pixel_mat_preprocessed.hdf5',
             The percentage of pixels to take from each fov, defaults to 0.1
     """
 
+    # ensure subset percent is valid
+    if subset_percent <= 0 or subset_percent > 1:
+        raise ValueError('Subset percent provided must be in (0, 1]')
+
+    # ensure the file path to hdf_name exists
+    if not os.path.exists(os.path.join(base_dir, hdf_name)):
+        raise FileNotFoundError('Preprocessed HDF5 %s not found in base_dir %s' %
+                                (hdf_name, base_dir))
+
     # define our subsetted flowsom matrix
     flowsom_subset_data = None
 
@@ -121,7 +133,7 @@ def subset_pixels(fovs, base_dir, hdf_name='pixel_mat_preprocessed.hdf5',
     flowsom_subset_data.to_csv(os.path.join(base_dir, csv_name), index=False)
 
 
-def cluster_pixels(chan_list, fovs, base_dir,
+def cluster_pixels(fovs, channels, base_dir,
                    pixel_pre_name='pixel_mat_preprocessed.hdf5',
                    pixel_subset_name='pixel_mat_subsetted.csv',
                    pixel_cluster_name='pixel_mat_clustered.hdf5'):
@@ -132,10 +144,10 @@ def cluster_pixels(chan_list, fovs, base_dir,
     {pixel_subset_path} {save_path}
 
     Args:
-        chan_list (list):
-            The list of markers to subset on
         fovs (list):
             The list of fovs to subset on
+        channels (list):
+            The list of markers to subset on
         base_dir (str):
             The path to the data directory
         pixel_pre_name (str):
@@ -153,7 +165,13 @@ def cluster_pixels(chan_list, fovs, base_dir,
 
     # if path to the preprocessed file does not exist
     if not os.path.exists(preprocessed_path):
-        raise FileNotFoundError('Pixel preprocessed path does not exist')
+        raise FileNotFoundError('Pixel preprocessed HDF5 %s does not exist in base_dir %s' %
+                                (pixel_pre_name, base_dir))
+
+    # if path to the subsetted file does not exist
+    if not os.path.exists(subsetted_path):
+        raise FileNotFoundError('Pixel subsetted CSV %s does not exist in base_dir %s' %
+                                (pixel_subset_name, base_dir))
 
     # use Rscript to run som_runner.R with the correct command line args
     subprocess.call(['Rscript', '/som_runner.R', ','.join(fovs), ','.join(chan_list),
