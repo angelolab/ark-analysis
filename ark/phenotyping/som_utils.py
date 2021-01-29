@@ -1,5 +1,6 @@
-import os
+import hdf5
 import multiprocessing
+import os
 import subprocess
 
 import numpy as np
@@ -13,8 +14,9 @@ from ark.utils import load_utils
 from ark.utils import misc_utils
 
 
-def create_pixel_matrix(img_xr, seg_labels, fovs=None, channels=None,
-                        blur_factor=2, subset_percent=0.1):
+def create_pixel_matrix(img_xr, seg_labels, base_dir,
+                        hdf_name='pixel_mat_preprocessed.hdf5', fovs=None,
+                        channels=None, blur_factor=2):
     """Preprocess the images for FlowSOM clustering and creates a pixel-level matrix
 
     Args:
@@ -22,16 +24,16 @@ def create_pixel_matrix(img_xr, seg_labels, fovs=None, channels=None,
             Array representing image data for each fov
         seg_labels (xarray.DataArray):
             Array representing segmentation labels for each image
+        base_dir (str):
+            Name of the directory to save the pixel files to
+        hdf_name (str):
+            Name of the file to save the pixel files to, defaults to pixel_mat_preprocessed.hdf5
         fovs (list):
             List of fovs to subset over, if None selects all
         channels (list):
             List of channels to subset over, if None selects all
         blur_factor (int):
             The sigma to set for the Gaussian blur
-
-    Returns:
-        pandas.DataFrame:
-            A matrix with pixel-level channel information for non-zero pixels in img_xr
     """
 
     # set fovs to all if None
@@ -45,9 +47,6 @@ def create_pixel_matrix(img_xr, seg_labels, fovs=None, channels=None,
     # verify that the fovs and channels provided are valid
     misc_utils.verify_in_list(fovs=fovs, image_fovs=img_xr.fovs.values)
     misc_utils.verify_in_list(channels=channels, image_channels=img_xr.channels.values)
-
-    # define our flowsom matrix
-    flowsom_data = None
 
     # iterate over fovs
     for fov in fovs:
@@ -81,40 +80,75 @@ def create_pixel_matrix(img_xr, seg_labels, fovs=None, channels=None,
         pixel_mat.loc[:, channels] = pixel_mat.loc[:, channels].div(
             pixel_mat.loc[:, channels].sum(axis=1), axis=0)
 
-        # assign to flowsom_data if not already assigned, otherwise concatenates
-        if flowsom_data is None:
-            flowsom_data = pixel_mat
+        # write dataset to hdf5 file, mode 'a' will create if it doesn't exist
+        pixel_mat.to_hdf(os.path.join(base_dir, hdf_name), key=fov, mode='a')
+
+
+def subset_pixels(fovs, base_dir, hdf_name='pixel_mat_preprocessed.hdf5',
+                  csv_name='pixel_mat_subsetted.csv', subset_percent=0.1):
+    """Takes a random percentage subset of pixel data from each fov
+
+    Args:
+        fovs (list):
+            The list of fovs to read
+        base_dir (str):
+            Name of the directory to save the subsetted CSV to
+        hdf_name (str):
+            Name of the file which contains the preprocessed pixel data,
+            defaults to pixel_mat_preprocessed.hdf5
+        csv_name (str):
+            Name of the file to write the subsetted pixel data frame to
+        subset_percent (float):
+            The percentage of pixels to take from each fov, defaults to 0.1
+    """
+
+    # define our subsetted flowsom matrix
+    flowsom_subset_data = None
+
+    for fov in fovs:
+        # read the specific fov key from the HDF5
+        fov_pixel_data = pd.read_hdf(os.path.join(base_dir, hdf_name), key=fov)
+
+        # subset the data per fov using the subset_percent argument
+        fov_pixel_data = fov_pixel_data.sample(frac=subset_percent)
+
+        # assign to flowsom_subset_data if not already assigned, otherwise concatenates
+        if flowsom_subset_data is None:
+            flowsom_subset_data = fov_pixel_data
         else:
-            flowsom_data = pd.concat([flowsom_data, pixel_mat])
+            flowsom_subset_data = pd.concat([flowsom_subset_data, fov_pixel_data])
 
-    # normalize each marker column by the 99.9 percentile value
-    flowsom_data.loc[:, channels] = flowsom_data.loc[:, channels].div(
-        flowsom_data.loc[:, channels].quantile(q=0.999, axis=0), axis=1)
-
-    return flowsom_data
+    flowsom_subset_data.to_csv(os.path.join(base_dir, csv_name), index=False)
 
 
-def cluster_pixels(chan_list, base_dir,
-                   pixel_pre_name='pixel_mat_preprocessed.csv',
-                   pixel_cluster_name='pixel_mat_clustered.csv'):
+def cluster_pixels(chan_list, fovs, base_dir,
+                   pixel_pre_name='pixel_mat_preprocessed.hdf5',
+                   pixel_subset_name='pixel_mat_subsetted.csv',
+                   pixel_cluster_name='pixel_mat_clustered.hdf5'):
     """Run the FlowSOM training on the pixel data.
 
     Saves results to pixel_mat_clustered.csv in base_dir.
-    Usage: Rscript som_runner.R {path_to_pixel_matrix} {chan_list_comma_separated} {save_path}
+    Usage: Rscript som_runner.R {fovs} {chan_list} {pixel_matrix_path}
+    {pixel_subset_path} {save_path}
 
     Args:
         chan_list (list):
             The list of markers to subset on
+        fovs (list):
+            The list of fovs to subset on
         base_dir (str):
-            The path to the directory to save the clustered pixel matrix in
+            The path to the data directory
         pixel_pre_name (str):
-            The name of the preprocessed file name, default to pixel_mat_preprocessed.csv
+            The name of the preprocessed file name, defaults to pixel_mat_preprocessed.csv
+        pixel_subset_name (str):
+            The name of the subsetted file name, defaults to pixel_mat_subsetted.csv
         pixel_cluster_name (str):
-            The name of the file to write the clustered csv to, default to pixel_mat_clustered.csv
+            The name of the file to write the clustered csv to, default to pixel_mat_clustered.hdf5
     """
 
     # set the paths to the preprocessed matrix and clustered matrix
     preprocessed_path = os.path.join(base_dir, pixel_pre_name)
+    subsetted_path = os.path.join(base_dir, pixel_subset_name)
     clustered_path = os.path.join(base_dir, pixel_cluster_name)
 
     # if path to the preprocessed file does not exist
@@ -122,5 +156,5 @@ def cluster_pixels(chan_list, base_dir,
         raise FileNotFoundError('Pixel preprocessed path does not exist')
 
     # use Rscript to run som_runner.R with the correct command line args
-    subprocess.call(['Rscript', '/som_runner.R', preprocessed_path,
-                     ','.join(chan_list), clustered_path])
+    subprocess.call(['Rscript', '/som_runner.R', ','.join(fovs), ','.join(chan_list),
+                     preprocessed_path, subsetted_path, clustered_path])
