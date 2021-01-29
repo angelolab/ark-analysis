@@ -187,16 +187,16 @@ def test_subset_pixels():
                                         'row_index', 'col_index', 'segmentation_label'])
 
     # standardize the fov columns, this will help with testing
-    sample_df_0['fov'] = 'Point0'
-    sample_df_1['fov'] = 'Point1'
+    sample_df_0['fov'] = 'fov0'
+    sample_df_1['fov'] = 'fov1'
 
     # set the list of fovs we'll be using
-    fovs = ['Point0', 'Point1']
+    fovs = ['fov0', 'fov1']
 
     with tempfile.TemporaryDirectory() as temp_dir:
         # write the dataframes to HDF5
-        sample_df_0.to_hdf(os.path.join(temp_dir, 'pixel_mat_preprocessed.hdf5'), key='Point0', mode='a')
-        sample_df_1.to_hdf(os.path.join(temp_dir, 'pixel_mat_preprocessed.hdf5'), key='Point1', mode='a')
+        sample_df_0.to_hdf(os.path.join(temp_dir, 'pixel_mat_preprocessed.hdf5'), key='fov0', mode='a')
+        sample_df_1.to_hdf(os.path.join(temp_dir, 'pixel_mat_preprocessed.hdf5'), key='fov1', mode='a')
 
         # bad subset percentage set
         with pytest.raises(ValueError):
@@ -229,15 +229,15 @@ def test_cluster_pixels(mocker):
     # basic error checks: bad path to preprocessed and subsetted matrices
     with tempfile.TemporaryDirectory() as temp_dir:
         with pytest.raises(FileNotFoundError):
-            som_utils.cluster_pixels(fovs=['Point0'], channels=['Marker1'],
+            som_utils.cluster_pixels(fovs=['fov0'], channels=['Marker1'],
                                      base_dir=temp_dir, pixel_pre_name='bad_path.hdf5')
 
         # write a random HDF5 for the undefined subsetted matrix test
         random_df = pd.DataFrame(np.random.rand(10, 2))
-        random_df.to_hdf(os.path.join(temp_dir, 'pixel_mat_preprocessed.hdf5'), key='Point0', mode='a')
+        random_df.to_hdf(os.path.join(temp_dir, 'pixel_mat_preprocessed.hdf5'), key='fov0', mode='a')
 
         with pytest.raises(FileNotFoundError):
-            som_utils.cluster_pixels(fovs=['Point0'], channels=['Marker1'],
+            som_utils.cluster_pixels(fovs=['fov0'], channels=['Marker1'],
                                      base_dir=temp_dir, pixel_subset_name='bad_path.csv')
 
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -246,7 +246,7 @@ def test_cluster_pixels(mocker):
 
         # create list of markers and fovs we want to use
         chan_list = ['Marker1', 'Marker2', 'Marker3', 'Marker4']
-        fovs = ['Point0', 'Point1']
+        fovs = ['fov0', 'fov1']
 
         # make it easy to name columns
         colnames = chan_list + ['fov', 'row_index', 'col_index', 'segmentation_label']
