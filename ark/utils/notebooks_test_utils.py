@@ -219,7 +219,8 @@ def flowsom_run(tb, fovs, channels):
                                      columns=%s +
                                      ['fov', 'row_index', 'col_index', 'segmentation_label'])
             sample_df['fov'] = '%s'
-            sample_df.to_hdf(os.path.join(base_dir, 'pixel_mat_clustered.hdf5'), key='%s', mode='a')
+            sample_df.to_hdf(os.path.join(base_dir, 'pixel_mat_clustered.hdf5'),
+                             key='%s', mode='a')
         """ % (str(channels), fov, fov)
 
     tb.inject(dummy_cluster_cmd, after='cluster_pixel_mat')
