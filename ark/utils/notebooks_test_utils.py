@@ -206,6 +206,7 @@ def flowsom_run(tb):
 
     # test the preprocessing works, we won't save nor run the actual FlowSOM clustering
     tb.execute_cell('gen_pixel_mat')
+    tb.execute_cell('subset_pixel_mat')
 
     # here we assume that FlowSOM clustering produced a correct pixel_mat_clustered.csv
     dummy_cluster_cmd = """
@@ -214,9 +215,6 @@ def flowsom_run(tb):
         pixel_data.to_csv(os.path.join(base_dir, 'pixel_mat_clustered.csv'), index=False)
     """
     tb.inject(dummy_cluster_cmd, after='cluster_pixel_mat')
-
-    # read the dummy clustered data in
-    tb.execute_cell('read_cluster_mat')
 
 
 def fov_channel_input_set(tb, fovs=None, nucs_list=None, mems_list=None):
