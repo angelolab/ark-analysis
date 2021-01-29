@@ -195,8 +195,10 @@ def test_subset_pixels():
 
     with tempfile.TemporaryDirectory() as temp_dir:
         # write the dataframes to HDF5
-        sample_df_0.to_hdf(os.path.join(temp_dir, 'pixel_mat_preprocessed.hdf5'), key='fov0', mode='a')
-        sample_df_1.to_hdf(os.path.join(temp_dir, 'pixel_mat_preprocessed.hdf5'), key='fov1', mode='a')
+        sample_df_0.to_hdf(os.path.join(temp_dir, 'pixel_mat_preprocessed.hdf5'),
+                           key='fov0', mode='a')
+        sample_df_1.to_hdf(os.path.join(temp_dir, 'pixel_mat_preprocessed.hdf5'),
+                           key='fov1', mode='a')
 
         # bad subset percentage set
         with pytest.raises(ValueError):
@@ -234,7 +236,8 @@ def test_cluster_pixels(mocker):
 
         # write a random HDF5 for the undefined subsetted matrix test
         random_df = pd.DataFrame(np.random.rand(10, 2))
-        random_df.to_hdf(os.path.join(temp_dir, 'pixel_mat_preprocessed.hdf5'), key='fov0', mode='a')
+        random_df.to_hdf(os.path.join(temp_dir, 'pixel_mat_preprocessed.hdf5'),
+                         key='fov0', mode='a')
 
         with pytest.raises(FileNotFoundError):
             som_utils.cluster_pixels(fovs=['fov0'], channels=['Marker1'],
@@ -259,7 +262,8 @@ def test_cluster_pixels(mocker):
             fov_matrix = pd.DataFrame(np.random.rand(100, 8), columns=colnames)
 
             # write the dummy data to the preprocessed hdf5
-            fov_matrix.to_hdf(os.path.join(temp_dir, 'pixel_mat_preprocessed.hdf5'), key=fov, mode='a')
+            fov_matrix.to_hdf(os.path.join(temp_dir, 'pixel_mat_preprocessed.hdf5'),
+                              key=fov, mode='a')
 
             # now take 10 random rows from each fov_matrix and add that to pixel_mat_subsetted
             pixel_mat_subsetted = pd.concat([pixel_mat_subsetted, fov_matrix.sample(frac=0.1)])
