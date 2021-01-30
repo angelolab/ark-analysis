@@ -225,7 +225,6 @@ def test_compute_marker_counts_no_labels():
 
 
 def test_create_marker_count_matrices_base():
-
     cell_mask, channel_data = test_utils.create_test_extraction_data()
 
     # generate data for two fovs offset
@@ -272,7 +271,6 @@ def test_create_marker_count_matrices_base():
 
 
 def test_create_marker_count_matrices_multiple_compartments():
-
     cell_mask, channel_data = test_utils.create_test_extraction_data()
 
     # generate data for two fovs offset
