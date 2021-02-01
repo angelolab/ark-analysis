@@ -21,12 +21,12 @@ def centroid_dif(prop, **kwargs):
     """
 
     cell_image = prop.image
-    cell_M = skimage.measure.moments(cell_image)
-    cell_centroid = cell_M[1, 0] / cell_M[0, 0], cell_M[0, 1] / cell_M[0, 0]
+    cell_M = moments(cell_image)
+    cell_centroid = np.array([cell_M[1, 0] / cell_M[0, 0], cell_M[0, 1] / cell_M[0, 0]])
 
     convex_image = prop.convex_image
-    convex_M = skimage.measure.moments(convex_image)
-    convex_centroid = convex_M[1, 0] / convex_M[0, 0], convex_M[0, 1] / convex_M[0, 0]
+    convex_M = moments(convex_image)
+    convex_centroid = np.array([convex_M[1, 0] / convex_M[0, 0], convex_M[0, 1] / convex_M[0, 0]])
 
     centroid_dist = np.linalg.norm(cell_centroid - convex_centroid) / np.sqrt(prop.area)
 

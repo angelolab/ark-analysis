@@ -31,6 +31,11 @@ def compute_extra_prop_info(prop_info, regionprops_extras, **kwargs):
             A dataframe with columns corresponding to each regionprops_extras feature
     """
 
+    misc_utils.verify_in_list(
+        regionprops_extras=regionprops_extras,
+        regionprops_extras_options=list(REGIONPROPS_FUNCTION.keys())
+    )
+
     # define an empty list for each regionprop feature
     prop_extra_data = {re: [] for re in regionprops_extras}
 
@@ -162,6 +167,9 @@ def compute_marker_counts(input_images, segmentation_labels, nuclear_counts=Fals
         regionprops_features = ['label', 'area', 'eccentricity', 'major_axis_length',
                                 'minor_axis_length', 'perimeter', 'centroid']
 
+    if regionprops_extras is None:
+        regionprops_extras = ['centroid_dif', 'num_concavities']
+
     if 'coords' not in regionprops_features:
         regionprops_features.append('coords')
 
@@ -188,6 +196,10 @@ def compute_marker_counts(input_images, segmentation_labels, nuclear_counts=Fals
         regionprops_names.remove('centroid')
         regionprops_names += ['centroid-0', 'centroid-1']
 
+    # add the extras features to regionprops_names
+    regionprops_names.extend(regionprops_extras)
+
+    # get all the cell ids
     unique_cell_ids = np.unique(segmentation_labels[..., 0].values)
     unique_cell_ids = unique_cell_ids[np.nonzero(unique_cell_ids)]
 
@@ -221,10 +233,6 @@ def compute_marker_counts(input_images, segmentation_labels, nuclear_counts=Fals
 
         nuc_props = get_cell_props(segmentation_labels.loc[:, :, 'nuclear'].values,
                                    regionprops_features, regionprops_extras, **kwargs)
-
-    # extend regionprops_names to include regionprops_extras for assigning cell features
-    if regionprops_extras is not None:
-        regionprops_names.extend(regionprops_extras)
 
     # loop through each cell in mask
     for cell_id in cell_props['label']:

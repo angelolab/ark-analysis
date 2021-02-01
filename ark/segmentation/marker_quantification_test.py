@@ -12,6 +12,18 @@ from ark.utils import test_utils
 import ark.settings as settings
 
 
+def test_compute_extra_prop_info():
+    pass
+
+
+def test_get_cell_props():
+    pass
+
+
+def test_assign_cell_features():
+    pass
+
+
 def test_compute_marker_counts_base():
     cell_mask, channel_data = test_utils.create_test_extraction_data()
 
