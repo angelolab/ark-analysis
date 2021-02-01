@@ -5,83 +5,16 @@ import pandas as pd
 
 import xarray as xr
 
-from skimage.measure import moments, regionprops, regionprops_table
+from skimage.measure import regionprops, regionprops_table
 
 from ark.utils import io_utils, load_utils, misc_utils, segmentation_utils
 from ark.segmentation.signal_extraction import EXTRACTION_FUNCTION
+from ark.segmentation.regionprops_extraction import REGIONPROPS_FUNCTION
 
 import ark.settings as settings
 
 
-def centroid_dif(prop):
-    """Return the cell centroid shift for a cell
-
-    Args:
-        prop (skimage.measure.regionprops):
-            The property information for a cell returned by regionprops
-
-    Returns:
-        float:
-            The centroid shift for the cell
-    """
-
-    cell_image = prop.image
-    cell_M = skimage.measure.moments(cell_image)
-    cell_centroid = cell_M[1, 0] / cell_M[0, 0], cell_M[0, 1] / cell_M[0, 0]
-
-    convex_image = prop.convex_image
-    convex_M = skimage.measure.moments(convex_image)
-    convex_centroid = convex_M[1, 0] / convex_M[0, 0], convex_M[0, 1] / convex_M[0, 0]
-
-    centroid_dist = np.sqrt((cell_centroid[1] - convex_centroid[1]) ** 2 +
-                            (cell_centroid[0] - convex_centroid[0]) ** 2)
-
-    centroid_dist /= np.sqrt(prop.area)
-
-    return centroid_dist
-
-
-def num_concavities(prop):
-    """Return the number of concavities for a cell
-
-    Args:
-        prop (skimage.measure.regionprops):
-            The property information for a cell returned by regionprops
-
-    Returns:
-        int:
-            The number of concavities for a cell
-    """
-
-    cell_image = prop.image
-    convex_image = prop.convex_image
-
-    diff_img = convex_image ^ cell_image
-
-    if np.sum(diff_img) > 0:
-        labeled_diff_img = label(diff_img)
-        hull_prop_df = pd.DataFrame(regionprops_table(labeled_diff_img,
-                                                      properties=['area', 'perimeter']))
-        hull_prop_df['compactness'] = np.square(hull_prop_df['perimeter']) / hull_prop_df['area']
-        small_idx = np.logical_and(hull_prop_df['area'] > 10,
-                                   hull_prop_df['compactness'] < 60)
-        large_idx = hull_prop_df['area'] > 150
-        combined_idx = np.logical_or(small_idx, large_idx)
-
-        concavities = np.sum(combined_idx)
-    else:
-        concavities = 0
-
-    return concavities
-
-
-REGIONPROPS_FUNCTIONS = {
-    'centroid_dif': centroid_dif,
-    'num_concavities': num_concavities
-}
-
-
-def compute_extra_prop_info(prop_info, regionprops_extras):
+def compute_extra_prop_info(prop_info, regionprops_extras, **kwargs):
     """Derives new features specified by regionprops_extras from a regionprops features
 
     Args:
@@ -90,6 +23,8 @@ def compute_extra_prop_info(prop_info, regionprops_extras):
         regionprops_extras (list):
             A list of regionprops features to compute, each value should correspond to
             a function in the global regionprops_functions variable
+        **kwargs:
+            Arbitrary keyword arguments
 
     Returns:
         pandas.DataFrame:
@@ -102,7 +37,7 @@ def compute_extra_prop_info(prop_info, regionprops_extras):
     # generate the required data for each cell
     for prop in prop_info:
         for re in regionprops_extras:
-            prop_extra_data[re].append(regionprops_functions[re](prop))
+            prop_extra_data[re].append(REGIONPROPS_FUNCTION[re](prop))
 
     # convert the dictionary to a DataFrame
     prop_extra_df = pd.DataFrame.from_dict(prop_extra_data)
@@ -110,7 +45,7 @@ def compute_extra_prop_info(prop_info, regionprops_extras):
     return prop_extra_df
 
 
-def get_cell_props(segmentation_labels, regionprops_features, regionprops_extras=None):
+def get_cell_props(segmentation_labels, regionprops_features, regionprops_extras=None, **kwargs):
     """Gets regionprops features from the provided segmentation labels
 
     Args:
@@ -120,6 +55,8 @@ def get_cell_props(segmentation_labels, regionprops_features, regionprops_extras
             morphology features for regionprops to extract for each cell
         regionprops_extras (list):
             list of extra properties derived from regionprops to compute
+        **kwargs:
+            Arbitrary keyword arguments for compute_extra_prop_info
 
     Returns:
         pandas.DataFrame:
@@ -131,9 +68,8 @@ def get_cell_props(segmentation_labels, regionprops_features, regionprops_extras
 
     # if specified, compute the extras properties for each cell, and append to cell_props
     if regionprops_extras is not None:
-        regionprops_names.extend(regionprops_extras)
         prop_info = regionprops(segmentation_labels)
-        extra_prop_data = compute_extra_prop_info(prop_info, regionprops_extras)
+        extra_prop_data = compute_extra_prop_info(prop_info, regionprops_extras, **kwargs)
         cell_props = pd.concat([cell_props, extra_prop_data], axis=1)
 
     return cell_props
@@ -155,7 +91,7 @@ def assign_cell_features(marker_counts, compartment, cell_props, cell_coords, ce
         cell_id (int):
             id of the cell
         label_id (int):
-            id used to index into cell_props, if None then set to cell_id
+            id used to index into cell_props
         input_images (xarray.DataArray):
             rows x columns x channels matrix of imaging data
         regionprops_names (list):
@@ -165,13 +101,6 @@ def assign_cell_features(marker_counts, compartment, cell_props, cell_coords, ce
         **kwargs:
             arbitrary keyword arguments
     """
-
-    # # get coords corresponding to current cell.
-    # cell_coords = cell_props.loc[cell_props['label'] == cell_id, 'coords'].values[0]
-
-    # set label_id to cell_id if None
-    if label_id is None:
-        label_id = copy.deepcopy(cell_id)
 
     # get centroid corresponding to current cell
     kwargs['centroid'] = np.array((
@@ -217,7 +146,7 @@ def compute_marker_counts(input_images, segmentation_labels, nuclear_counts=Fals
         extraction (str):
             extraction function used to compute marker counts.
         **kwargs:
-            arbitrary keyword arguments
+            arbitrary keyword arguments for get_cell_props
 
     Returns:
         xarray.DataArray:
@@ -278,7 +207,7 @@ def compute_marker_counts(input_images, segmentation_labels, nuclear_counts=Fals
 
     # get regionprops for each cell
     cell_props = get_cell_props(segmentation_labels.loc[:, :, 'whole_cell'].values,
-                                regionprops_features, regionprops_extras)
+                                regionprops_features, regionprops_extras, **kwargs)
 
     if nuclear_counts:
         nuc_labels = segmentation_labels.loc[:, :, 'nuclear'].values
@@ -291,15 +220,20 @@ def compute_marker_counts(input_images, segmentation_labels, nuclear_counts=Fals
                                                       cell_ids=unique_cell_ids)
 
         nuc_props = get_cell_props(segmentation_labels.loc[:, :, 'nuclear'].values,
-                                   regionprops_features, regionprops_extras)
+                                   regionprops_features, regionprops_extras, **kwargs)
+
+    # extend regionprops_names to include regionprops_extras for assigning cell features
+    if regionprops_extras is not None:
+        regionprops_names.extend(regionprops_extras)
 
     # loop through each cell in mask
     for cell_id in cell_props['label']:
         # get coords corresponding to current cell.
         cell_coords = cell_props.loc[cell_props['label'] == cell_id, 'coords'].values[0]
 
+        # assign whole_cell features
         assign_cell_features(
-            marker_counts, 'whole_cell', cell_props, cell_coords, cell_id, None,
+            marker_counts, 'whole_cell', cell_props, cell_coords, cell_id, cell_id,
             input_images, regionprops_names, extraction, **kwargs
         )
 
@@ -312,6 +246,7 @@ def compute_marker_counts(input_images, segmentation_labels, nuclear_counts=Fals
                 # get the coords of the corresponding nucleus
                 nuc_coords = nuc_props.loc[nuc_props['label'] == nuc_id, 'coords'].values[0]
 
+                # assign nuclear features
                 assign_cell_features(
                     marker_counts, 'nuclear', nuc_props, nuc_coords, cell_id, nuc_id,
                     input_images, regionprops_names, extraction, **kwargs
@@ -339,7 +274,7 @@ def create_marker_count_matrices(segmentation_labels, image_data, nuclear_counts
         extraction (str):
             extraction function used to compute marker counts.
         **kwargs:
-            arbitrary keyword args
+            arbitrary keyword args for compute_marker_counts
 
     Returns:
         tuple (pandas.DataFrame, pandas.DataFrame):
@@ -448,7 +383,7 @@ def generate_cell_table(segmentation_labels, tiff_dir, img_sub_folder,
         extraction (str):
             extraction function used to compute marker counts.
         **kwargs:
-            arbitrary keyword arguments for signal extraction
+            arbitrary keyword arguments for signal and regionprops extraction
 
     Returns:
         tuple (pandas.DataFrame, pandas.DataFrame):å
