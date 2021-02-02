@@ -1,27 +1,144 @@
+import copy
 import numpy as np
 import os
 import pytest
 import tempfile
+import xarray as xr
 
 import skimage.morphology as morph
 from skimage.morphology import erosion
+from skimage.measure import regionprops
 
 from ark.segmentation import marker_quantification
+from ark.utils import misc_utils
 from ark.utils import test_utils
 
 import ark.settings as settings
 
 
 def test_compute_extra_prop_info():
-    pass
+    cell_mask, channel_data = test_utils.create_test_extraction_data()
+
+    segmentation_labels = test_utils.make_labels_xarray(label_data=cell_mask,
+                                                        compartment_names=['whole_cell'])
+
+    regionprop_info = regionprops(segmentation_labels.loc['fov0', :, :, 'whole_cell'].values)
+    regionprops_extras = ['centroid_dif', 'num_concavities']
+
+    # bad extra property specified
+    with pytest.raises(ValueError):
+        marker_quantification.compute_extra_prop_info(
+            prop_info=regionprop_info,
+            regionprops_extras=['centroid_dif', 'bad_extra'])
+
+    regionprop_extra_info = marker_quantification.compute_extra_prop_info(
+        prop_info=regionprop_info,
+        regionprops_extras=regionprops_extras
+    )
+
+    # assert we created all the columns specified
+    misc_utils.verify_same_elements(
+        provided_extras=regionprops_extras,
+        regionprop_extras_columns=regionprop_extra_info.columns.values)
 
 
 def test_get_cell_props():
-    pass
+    cell_mask, channel_data = test_utils.create_test_extraction_data()
+
+    segmentation_labels = test_utils.make_labels_xarray(label_data=cell_mask,
+                                                        compartment_names=['whole_cell'])
+
+    regionprops_features = ['label', 'area', 'eccentricity', 'major_axis_length',
+                            'minor_axis_length', 'perimeter', 'centroid']
+    regionprops_names = ['label', 'area', 'eccentricity', 'major_axis_length',
+                         'minor_axis_length', 'perimeter', 'centroid-0', 'centroid-1']
+    regionprops_extras = ['centroid_dif', 'num_concavities']
+
+    # no extras list
+    cell_props = marker_quantification.get_cell_props(
+        segmentation_labels.loc['fov0', :, :, 'whole_cell'].values,
+        regionprops_features)
+
+    misc_utils.verify_same_elements(
+        all_features=regionprops_names,
+        cell_props_columns=cell_props.columns.values
+    )
+
+    # specify extras list
+    cell_props = marker_quantification.get_cell_props(
+        segmentation_labels.loc['fov0', :, :, 'whole_cell'].values,
+        regionprops_features,
+        regionprops_extras)
+
+    misc_utils.verify_same_elements(
+        all_features=regionprops_names + regionprops_extras,
+        cell_props_columns=cell_props.columns.values
+    )
 
 
 def test_assign_cell_features():
-    pass
+    cell_mask, channel_data = test_utils.create_test_extraction_data()
+
+    segmentation_labels = test_utils.make_labels_xarray(
+        label_data=cell_mask,
+        compartment_names=['whole_cell']
+    )
+
+    input_images = test_utils.make_images_xarray(channel_data)
+
+    # define the names of the base features that can be computed directly from regionprops
+    regionprops_features = ['label', 'area', 'eccentricity', 'major_axis_length',
+                            'minor_axis_length', 'perimeter', 'centroid', 'coords', 'label']
+
+    # define the names of the extras
+    regionprops_extras = ['centroid_dif', 'num_concavities']
+
+    # define the names of everything
+    regionprops_names = ['label', 'area', 'eccentricity', 'major_axis_length',
+                         'minor_axis_length', 'perimeter', 'label',
+                         'centroid-0', 'centroid-1', 'centroid_dif', 'num_concavities']
+
+    # get all the cell ids, for testing we'll only use 1 cell id
+    unique_cell_ids = np.unique(segmentation_labels[..., 0].values)
+    unique_cell_ids = unique_cell_ids[np.nonzero(unique_cell_ids)]
+    cell_id = unique_cell_ids[0]
+
+    # create the cell properties, easier to just use get_cell_props and make_labels_xarray
+    cell_props = marker_quantification.get_cell_props(
+        segmentation_labels.loc['fov0', :, :, 'whole_cell'].values,
+        regionprops_features, regionprops_extras)
+
+    # create labels for array holding channel counts and morphology metrics
+    feature_names = np.concatenate((np.array(settings.PRE_CHANNEL_COL), input_images.channels,
+                                    regionprops_names), axis=None)
+
+    # create np.array to hold compartment x cell x feature info
+    marker_counts_array = np.zeros((len(segmentation_labels.compartments), 1,
+                                    len(feature_names)))
+
+    marker_counts = xr.DataArray(copy.copy(marker_counts_array),
+                                 coords=[segmentation_labels.compartments,
+                                         [cell_id],
+                                         feature_names],
+                                 dims=['compartments', 'cell_id', 'features'])
+
+    # get the cell coordinates of the cell_id
+    cell_coords = cell_props.loc[cell_props['label'] == cell_id, 'coords'].values[0]
+
+    # assign the features to that cell id
+    marker_quantification.assign_cell_features(
+        marker_counts, 'whole_cell', cell_props, cell_coords, cell_id, cell_id,
+        input_images.loc['fov0', ...], regionprops_names, 'total_intensity'
+    )
+
+    assert marker_counts.loc[..., 'area'] == 36
+
+    major_axis_length = marker_counts.loc[..., 'major_axis_length']
+    minor_axis_length = marker_counts.loc[..., 'minor_axis_length']
+    assert major_axis_length == minor_axis_length
+
+    assert marker_counts.loc[..., 'centroid_dif'] == 0
+    assert marker_counts.loc[..., 'num_concavities'] == 0
 
 
 def test_compute_marker_counts_base():
@@ -67,6 +184,12 @@ def test_compute_marker_counts_base():
     # check that regionprops size matches with cell size
     assert np.array_equal(segmentation_output.loc['whole_cell', :, settings.CELL_SIZE],
                           segmentation_output.loc['whole_cell', :, 'area'])
+
+    # bad extraction selection
+    with pytest.raises(ValueError):
+        marker_quantification.compute_marker_counts(input_images=input_images,
+                                                    segmentation_labels=segmentation_labels,
+                                                    extraction='bad_extraction')
 
     # test different extraction selection
     center_extraction = \

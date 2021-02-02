@@ -3,7 +3,7 @@ import copy
 import numpy as np
 import pandas as pd
 
-from skimage.measure import moments, regionprops_table
+from skimage.measure import label, moments, regionprops_table
 
 
 def centroid_dif(prop, **kwargs):
@@ -31,13 +31,6 @@ def centroid_dif(prop, **kwargs):
     centroid_dist = np.linalg.norm(cell_centroid - convex_centroid) / np.sqrt(prop.area)
 
     return centroid_dist
-
-    # centroid_dist = np.sqrt((cell_centroid[1] - convex_centroid[1]) ** 2 +
-    #                         (cell_centroid[0] - convex_centroid[0]) ** 2)
-
-    # centroid_dist /= np.sqrt(prop.area)
-
-    # return centroid_dist
 
 
 def num_concavities(prop, **kwargs):

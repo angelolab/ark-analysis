@@ -42,7 +42,7 @@ def compute_extra_prop_info(prop_info, regionprops_extras, **kwargs):
     # generate the required data for each cell
     for prop in prop_info:
         for re in regionprops_extras:
-            prop_extra_data[re].append(REGIONPROPS_FUNCTION[re](prop))
+            prop_extra_data[re].append(REGIONPROPS_FUNCTION[re](prop, **kwargs))
 
     # convert the dictionary to a DataFrame
     prop_extra_df = pd.DataFrame.from_dict(prop_extra_data)
