@@ -7,7 +7,7 @@ from skimage.measure import label, moments, regionprops_table
 
 
 def centroid_dif(prop, **kwargs):
-    """Return the cell centroid shift for a cell
+    """Return the normalized euclidian distance between the centroid of the cell and the centroid of the corresponding convex hull
 
     Args:
         prop (skimage.measure.regionprops):
