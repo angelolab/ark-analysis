@@ -148,7 +148,7 @@ def flowsom_setup(tb, flowsom_dir, img_shape=(50, 50), num_fovs=3, num_chans=3,
 
 def load_imgs_labels(tb, channels, fovs=None, xr_dim_name='compartments',
                      xr_channel_names=None, force_ints=True):
-    """Sets the fovs and chan_list variables and loads img_xr and segmentation_labels for FlowSOM
+    """Sets the fovs and channels variables and loads img_xr and segmentation_labels for FlowSOM
 
     Args:
         tb (testbook.testbook):
@@ -174,7 +174,7 @@ def load_imgs_labels(tb, channels, fovs=None, xr_dim_name='compartments',
         tb.execute_cell('load_fovs')
 
     # sets the channels accordingly
-    tb.inject("chan_list = %s" % str(channels), after='set_channels')
+    tb.inject("channels = %s" % str(channels), after='set_channels')
 
     # load the image data in
     tb.execute_cell('load_img_xr')
@@ -210,15 +210,26 @@ def flowsom_run(tb, fovs, channels):
 
     # test the preprocessing works, we won't save nor run the actual FlowSOM clustering
     tb.execute_cell('gen_pixel_mat')
-    tb.execute_cell('subset_pixel_mat')
 
-    # create a dummy HDF5 file with random dataframes for each fov
+    # create a dummy weights HDF5
+    dummy_weights = """
+        import h5py
+        weights = np.random.rand(100, len(channels))
+
+        with h5py.File(os.path.join(base_dir, 'weights.hdf5'), 'w') as hf:
+            hf.create_dataset('weights', data=weights)
+    """
+
+    tb.inject(dummy_weights, after='train_som')
+
+    # create a dummy HDF5 clustered file with random dataframes for each fov
     for fov in fovs:
         dummy_cluster_cmd = """
             sample_df = pd.DataFrame(np.random.rand(100, 6),
                                      columns=%s +
                                      ['fov', 'row_index', 'col_index', 'segmentation_label'])
             sample_df['fov'] = '%s'
+            sample_df['clusters'] = np.random.randint(0, 100, size=100)
             sample_df.to_hdf(os.path.join(base_dir, 'pixel_mat_clustered.hdf5'),
                              key='%s', mode='a')
         """ % (str(channels), fov, fov)

@@ -45,7 +45,7 @@ def mocked_cluster_pixels(fovs, channels, base_dir,
                           cluster_name='pixel_mat_clustered.hdf5'):
     # read in the weights matrix
     with h5py.File(os.path.join(base_dir, weights_name), 'r') as hf:
-        weights = hf['weights'].value
+        weights = hf['weights'][:]
 
     for fov in fovs:
         # read the specific fov from the preprocessed HDF5
