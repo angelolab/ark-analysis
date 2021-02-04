@@ -14,8 +14,9 @@ from ark.utils import misc_utils
 
 
 def create_pixel_matrix(img_xr, seg_labels, base_dir,
-                        hdf_name='pixel_mat_preprocessed.hdf5', fovs=None,
-                        channels=None, blur_factor=2):
+                        pre_name='pixel_mat_preprocessed.hdf5',
+                        sub_name='pixel_mat_subsetted.hdf5', fovs=None, channels=None,
+                        blur_factor=2, subset_percent=0.1):
     """Preprocess the images for FlowSOM clustering and creates a pixel-level matrix
 
     Args:
@@ -25,15 +26,26 @@ def create_pixel_matrix(img_xr, seg_labels, base_dir,
             Array representing segmentation labels for each image
         base_dir (str):
             Name of the directory to save the pixel files to
-        hdf_name (str):
-            Name of the file to save the pixel files to, defaults to pixel_mat_preprocessed.hdf5
+        pre_name (str):
+            Name of the file which contains the preprocessed pixel data,
+            defaults to pixel_mat_preprocessed.hdf5
+        sub_name (str):
+            The name of the subsetted file name, defaults to pixel_mat_subsetted.hdf5
         fovs (list):
             List of fovs to subset over, if None selects all
         channels (list):
             List of channels to subset over, if None selects all
         blur_factor (int):
             The sigma to set for the Gaussian blur
+        subset_percent (float):
+            The percentage of pixels to take from each fov, defaults to 0.1
     """
+
+    if subset_percent <= 0 or subset_percent > 1:
+        raise ValueError('Invalid subset percentage entered: must be in (0, 1]')
+
+    if not os.path.exists(base_dir):
+        raise FileNotFoundError("Path to base_dir %s does not exist" % base_dir)
 
     # set fovs to all if None
     if fovs is None:
@@ -46,10 +58,6 @@ def create_pixel_matrix(img_xr, seg_labels, base_dir,
     # verify that the fovs and channels provided are valid
     misc_utils.verify_in_list(fovs=fovs, image_fovs=img_xr.fovs.values)
     misc_utils.verify_in_list(channels=channels, image_channels=img_xr.channels.values)
-
-    # verify that the path to base_dir is valid
-    if not os.path.exists(base_dir):
-        raise FileNotFoundError('Path to base_dir %s does not exist' % base_dir)
 
     # iterate over fovs
     for fov in fovs:
@@ -83,65 +91,23 @@ def create_pixel_matrix(img_xr, seg_labels, base_dir,
         pixel_mat.loc[:, channels] = pixel_mat.loc[:, channels].div(
             pixel_mat.loc[:, channels].sum(axis=1), axis=0)
 
-        # write dataset to hdf5 file, mode 'a' will create if it doesn't exist
-        pixel_mat.to_hdf(os.path.join(base_dir, hdf_name), key=fov, mode='a')
+        # subset the pixel matrix for training
+        pixel_mat_subset = pixel_mat.sample(frac=subset_percent)
+
+        # write complete dataset to hdf5, needed for cluster assignment
+        pixel_mat.to_hdf(os.path.join(base_dir, pre_name), key=fov, mode='a',
+                         format='table', data_columns=True)
+
+        # write subseted dataset to hdf5, needed for training
+        pixel_mat_subset.to_hdf(os.path.join(base_dir, sub_name), key=fov, mode='a',
+                                format='table', data_columns=True)
 
 
-def subset_pixels(fovs, base_dir, hdf_name='pixel_mat_preprocessed.hdf5',
-                  csv_name='pixel_mat_subsetted.csv', subset_percent=0.1):
-    """Takes a random percentage subset of pixel data from each fov
+def train_som(fovs, channels, base_dir,
+              subset_name='pixel_mat_subsetted.hdf5', weights_name='weights.hdf5'):
+    """Run the SOM training on the subsetted pixel data.
 
-    Args:
-        fovs (list):
-            The list of fovs to read
-        base_dir (str):
-            Name of the directory to save the subsetted CSV to
-        hdf_name (str):
-            Name of the file which contains the preprocessed pixel data,
-            defaults to pixel_mat_preprocessed.hdf5
-        csv_name (str):
-            Name of the file to write the subsetted pixel data frame to
-        subset_percent (float):
-            The percentage of pixels to take from each fov, defaults to 0.1
-    """
-
-    # ensure subset percent is valid
-    if subset_percent <= 0 or subset_percent > 1:
-        raise ValueError('Subset percent provided must be in (0, 1]')
-
-    # ensure the file path to hdf_name exists
-    if not os.path.exists(os.path.join(base_dir, hdf_name)):
-        raise FileNotFoundError('Preprocessed HDF5 %s not found in base_dir %s' %
-                                (hdf_name, base_dir))
-
-    # define our subsetted flowsom matrix
-    flowsom_subset_data = None
-
-    for fov in fovs:
-        # read the specific fov key from the HDF5
-        fov_pixel_data = pd.read_hdf(os.path.join(base_dir, hdf_name), key=fov)
-
-        # subset the data per fov using the subset_percent argument
-        fov_pixel_data = fov_pixel_data.sample(frac=subset_percent)
-
-        # assign to flowsom_subset_data if not already assigned, otherwise concatenates
-        if flowsom_subset_data is None:
-            flowsom_subset_data = fov_pixel_data
-        else:
-            flowsom_subset_data = pd.concat([flowsom_subset_data, fov_pixel_data])
-
-    flowsom_subset_data.to_csv(os.path.join(base_dir, csv_name), index=False)
-
-
-def cluster_pixels(fovs, channels, base_dir,
-                   pixel_pre_name='pixel_mat_preprocessed.hdf5',
-                   pixel_subset_name='pixel_mat_subsetted.csv',
-                   pixel_cluster_name='pixel_mat_clustered.hdf5'):
-    """Run the FlowSOM training on the pixel data.
-
-    Saves results to pixel_mat_clustered.csv in base_dir.
-    Usage: Rscript som_runner.R {fovs} {chan_list} {pixel_matrix_path}
-    {pixel_subset_path} {save_path}
+    Saves weights to base_dir/weights_name.
 
     Args:
         fovs (list):
@@ -150,29 +116,148 @@ def cluster_pixels(fovs, channels, base_dir,
             The list of markers to subset on
         base_dir (str):
             The path to the data directory
-        pixel_pre_name (str):
-            The name of the preprocessed file name, defaults to pixel_mat_preprocessed.csv
-        pixel_subset_name (str):
-            The name of the subsetted file name, defaults to pixel_mat_subsetted.csv
-        pixel_cluster_name (str):
+        subset_name (str):
+            The name of the subsetted file name, defaults to pixel_mat_subsetted.hdf5
+        weights_name (str):
+            The name of the weights file, defaults to weights.hdf5
+    """
+
+    subsetted_path = os.path.join(base_dir, subset_name)
+    weights_path = os.path.join(base_dir, weights_name)
+
+    # if path to the subsetted file does not exist
+    if not os.path.exists(subsetted_path):
+        raise FileNotFoundError('Pixel subsetted HDF5 %s does not exist in base_dir %s' %
+                                (subset_name, base_dir))
+
+    # run som_train.R
+    process_args = ['Rscript', '/som_train.R', ','.join(fovs), ','.join(channels),
+                    subsetted_path, weights_path]
+    process = subprocess.Popen(process_args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+
+    # continuously poll the process for output/error to display in Jupyter notebook
+    while True:
+        # convert from byte string
+        output = process.stdout.readline().decode('utf-8')
+
+        # if the output is nothing and the process is done, break
+        if process.poll() is not None:
+            break
+        if output:
+            print(output.strip())
+
+
+def cluster_pixels(fovs, channels, base_dir, pre_name='pixel_mat_preprocessed.hdf5',
+                   weights_name='weights.hdf5', cluster_name='pixel_mat_clustered.hdf5'):
+    """Uses trained weights to assign cluster labels on full pixel data
+
+    Saves data with cluster labels to base_dir/pixel_mat_clustered.hdf5
+
+    Args:
+        fovs (list):
+            The list of fovs to subset on
+        channels (list):
+            The list of markers to subset on
+        base_dir (str):
+            The path to the data directory
+        pre_name (str):
+            The name of the preprocessed file name, defaults to pixel_mat_preprocessed.hdf5
+        weights_name (str):
+            The name of the weights file, defaults to weights.hdf5
+        cluster_name (str):
             The name of the file to write the clustered csv to, default to pixel_mat_clustered.hdf5
     """
 
-    # set the paths to the preprocessed matrix and clustered matrix
-    preprocessed_path = os.path.join(base_dir, pixel_pre_name)
-    subsetted_path = os.path.join(base_dir, pixel_subset_name)
-    clustered_path = os.path.join(base_dir, pixel_cluster_name)
+    preprocessed_path = os.path.join(base_dir, pre_name)
+    weights_path = os.path.join(base_dir, weights_name)
+    clustered_path = os.path.join(base_dir, cluster_name)
 
     # if path to the preprocessed file does not exist
     if not os.path.exists(preprocessed_path):
         raise FileNotFoundError('Pixel preprocessed HDF5 %s does not exist in base_dir %s' %
-                                (pixel_pre_name, base_dir))
+                                (pre_name, base_dir))
 
-    # if path to the subsetted file does not exist
-    if not os.path.exists(subsetted_path):
-        raise FileNotFoundError('Pixel subsetted CSV %s does not exist in base_dir %s' %
-                                (pixel_subset_name, base_dir))
+    # if path to the weights file does not exist
+    if not os.path.exists(weights_path):
+        raise FileNotFoundError('Weights HDF5 %s does not exist in base_dir %s' %
+                                (weights_name, base_dir))
 
-    # use Rscript to run som_runner.R with the correct command line args
-    subprocess.call(['Rscript', '/som_runner.R', ','.join(fovs), ','.join(chan_list),
-                     preprocessed_path, subsetted_path, clustered_path])
+    process_args = ['Rscript', '/som_cluster.R', ','.join(fovs), ','.join(channels),
+                    preprocessed_path, weights_path, clustered_path]
+
+    process = subprocess.Popen(process_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+    # continuously poll the process for output/error so it gets displayed in the Jupyter notebook
+    while True:
+        # convert from byte string
+        output = process.stdout.readline().decode('utf-8')
+
+        # if the output is nothing and the process is done, break
+        if process.poll() is not None:
+            break
+        if output:
+            print(output.strip())
+
+
+# def cluster_pixels(fovs, channels, base_dir,
+#                    pre_name='pixel_mat_preprocessed.hdf5', subset_name='pixel_mat_subsetted.hdf5',
+#                    weights_name='weights.hdf5', cluster_name='pixel_mat_clustered.hdf5'):
+#     """Run the FlowSOM training on the pixel data.
+
+#     Saves results to pixel_mat_clustered.csv in base_dir.
+
+#     Args:
+#         fovs (list):
+#             The list of fovs to subset on
+#         channels (list):
+#             The list of markers to subset on
+#         base_dir (str):
+#             The path to the data directory
+#         pre_name (str):
+#             The name of the preprocessed file name, defaults to pixel_mat_preprocessed.hdf5
+#         subset_name (str):
+#             The name of the subsetted file name, defaults to pixel_mat_subsetted.hdf5
+#         weights_name (str):
+#             The name of the weights file, defaults to weights.hdf5
+#         cluster_name (str):
+#             The name of the file to write the clustered csv to, default to pixel_mat_clustered.hdf5
+#     """
+
+#     # set the paths to the preprocessed matrix and clustered matrix
+#     preprocessed_path = os.path.join(base_dir, pre_name)
+#     subsetted_path = os.path.join(base_dir, subset_name)
+#     weights_path = os.path.join(base_dir, weights_name)
+#     clustered_path = os.path.join(base_dir, cluster_name)
+
+#     # if path to the preprocessed file does not exist
+#     if not os.path.exists(preprocessed_path):
+#         raise FileNotFoundError('Pixel preprocessed HDF5 %s does not exist in base_dir %s' %
+#                                 (pixel_pre_name, base_dir))
+
+#     # if path to the subsetted file does not exist
+#     if not os.path.exists(subsetted_path):
+#         raise FileNotFoundError('Pixel subsetted CSV %s does not exist in base_dir %s' %
+#                                 (pixel_subset_name, base_dir))
+
+#     # use Rscript to run som_runner.R with the correct command line args
+#     process_args = ['Rscript', '/som_runner.R', ','.join(fovs), ','.join(channels),
+#                     preprocessed_path, subsetted_path, weights_path, clustered_path]
+#     process = subprocess.Popen(process_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+#     # continuously poll the process for output/error so it gets displayed in the Jupyter notebook
+#     while True:
+#         # handle stdout, convert from byte string
+#         output = process.stdout.readline().decode('utf-8')
+
+#         # if the output is nothing and the process is done, break
+#         if process.poll() is not None:
+#             break
+#         if output:
+#             print(output.strip())
+
+#         # handle error, convert from byte string
+#         error = process.stderr.readline().decode('utf-8')
+
+#         # print the error, includes non-error stuff so don't break (allow output check to handle)
+#         if error:
+#             print(error.strip())
