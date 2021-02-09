@@ -20,7 +20,7 @@ pixelWeightsPath <- args[4]
 # get the cluster write path
 pixelClusterPath <- args[5]
 
-# read teh weights
+# read the weights
 somWeights <- h5read(pixelWeightsPath, 'weights')
 
 # using trained SOM, batch cluster the original dataset by fov
