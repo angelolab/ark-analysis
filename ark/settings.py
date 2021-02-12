@@ -20,3 +20,4 @@ REGIONPROPS_FEATURES = ['label', 'area', 'eccentricity', 'major_axis_length',
 REGIONPROPS_EXTRAS = ['major_minor_axis_ratio', 'perim_square_over_area',
                       'major_axis_equiv_diam_ratio', 'convex_hull_resid',
                       'centroid_dif', 'num_concavities']
+REGIONPROPS_NUCLEAR = ['nc_ratio']

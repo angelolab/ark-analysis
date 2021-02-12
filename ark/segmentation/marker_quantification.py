@@ -32,8 +32,8 @@ def compute_extra_props(props, regionprops_extras, **kwargs):
     """
 
     misc_utils.verify_in_list(
-        regionprops_extras=regionprops_extras,
-        regionprops_extras_options=list(REGIONPROPS_FUNCTION.keys())
+        extras_props=regionprops_extras,
+        props_options=list(REGIONPROPS_FUNCTION.keys())
     )
 
     # define an empty list for each regionprop feature
@@ -50,7 +50,7 @@ def compute_extra_props(props, regionprops_extras, **kwargs):
     return prop_extra_df
 
 
-def get_cell_props(segmentation_labels, regionprops_features, regionprops_extras=None, **kwargs):
+def get_cell_props(segmentation_labels, regionprops_features, regionprops_extras, **kwargs):
     """Gets regionprops features from the provided segmentation labels for a fov
 
     Args:
@@ -71,11 +71,10 @@ def get_cell_props(segmentation_labels, regionprops_features, regionprops_extras
     cell_props = pd.DataFrame(regionprops_table(segmentation_labels,
                                                 properties=regionprops_features))
 
-    # if specified, compute the extras properties for each cell, and append to cell_props
-    if regionprops_extras is not None:
-        props = regionprops(segmentation_labels)
-        extra_prop_data = compute_extra_props(props, regionprops_extras, **kwargs)
-        cell_props = pd.concat([cell_props, extra_prop_data], axis=1)
+    # compute the extras properties for each cell, and append to cell_props
+    props = regionprops(segmentation_labels)
+    extra_prop_data = compute_extra_props(props, regionprops_extras, **kwargs)
+    cell_props = pd.concat([cell_props, extra_prop_data], axis=1)
 
     return cell_props
 
@@ -100,7 +99,7 @@ def assign_cell_features(marker_counts, compartment, cell_props, cell_coords, ce
         input_images (xarray.DataArray):
             rows x columns x channels matrix of imaging data
         regionprops_names (list):
-            all of the regionprops features (including derived)
+            all of the regionprops features (including derived, except nuclear-specific)
         extraction (str):
             the extraction method to use for signal intensity calculation
         **kwargs:
@@ -129,9 +128,32 @@ def assign_cell_features(marker_counts, compartment, cell_props, cell_coords, ce
     marker_counts.loc[compartment, cell_id, marker_counts.features[0]] = cell_coords.shape[0]
 
 
+def assign_nuclear_features(marker_counts, regionprops_nuclear, **kwargs):
+    """Assigns the nuclear-specific properties for marker_counts
+
+    Args:
+        marker_counts (xarray.DataArray):
+            xarray containing segmentaed data of cells x markers
+        regionprops_nuclear (list):
+            list of nuclear properties derived from regionprops to compute, each value
+            should correspond to a value in REGIONPROPS_FUNCTION
+        **kwargs:
+            arbitrary keyword arguments
+    """
+
+    misc_utils.verify_in_list(
+        nuclear_props=regionprops_nuclear,
+        props_options=list(REGIONPROPS_FUNCTION.keys())
+    )
+
+    for rn in regionprops_nuclear:
+        REGIONPROPS_FUNCTION[rn](marker_counts, **kwargs)
+
+
 def compute_marker_counts(input_images, segmentation_labels, nuclear_counts=False,
                           regionprops_features=copy.deepcopy(settings.REGIONPROPS_FEATURES),
                           regionprops_extras=copy.deepcopy(settings.REGIONPROPS_EXTRAS),
+                          regionprops_nuclear=copy.deepcopy(settings.REGIONPROPS_NUCLEAR),
                           split_large_nuclei=False,
                           extraction='total_intensity', **kwargs):
     """Extract single cell protein expression data from channel TIFs for a single fov
@@ -147,6 +169,8 @@ def compute_marker_counts(input_images, segmentation_labels, nuclear_counts=Fals
             morphology features for regionprops to extract for each cell
         regionprops_extras (list):
             list of extra properties derived from regionprops to compute
+        regionprops_nuclear (list):
+            list of nuclear-specific properties derived from regionprops to compute
         split_large_nuclei (bool):
             controls whether nuclei which have portions outside of the cell will get relabeled
         extraction (str):
@@ -192,6 +216,9 @@ def compute_marker_counts(input_images, segmentation_labels, nuclear_counts=Fals
 
     # add the extras features to regionprops_names
     regionprops_names.extend(regionprops_extras)
+
+    # add nuclear-specific features to regionprops_names
+    regionprops_names.extend(regionprops_nuclear)
 
     # get all the cell ids
     unique_cell_ids = np.unique(segmentation_labels[..., 0].values)
@@ -239,7 +266,7 @@ def compute_marker_counts(input_images, segmentation_labels, nuclear_counts=Fals
         # get coords corresponding to current cell.
         cell_coords = cell_props.loc[cell_props['label'] == cell_id, 'coords'].values[0]
 
-        # assign whole_cell features
+        # assign properties for whole cell compartment
         assign_cell_features(
             marker_counts, 'whole_cell', cell_props, cell_coords, cell_id, cell_id,
             input_images, regionprops_names, extraction, **sig_kwargs
@@ -254,11 +281,14 @@ def compute_marker_counts(input_images, segmentation_labels, nuclear_counts=Fals
                 # get the coords of the corresponding nucleus
                 nuc_coords = nuc_props.loc[nuc_props['label'] == nuc_id, 'coords'].values[0]
 
-                # assign nuclear features
+                # assign properties for nuclear compartment
                 assign_cell_features(
                     marker_counts, 'nuclear', nuc_props, nuc_coords, cell_id, nuc_id,
                     input_images, regionprops_names, extraction, **sig_kwargs
                 )
+
+                # assign nuclear-specific properties
+                assign_nuclear_features(marker_counts, regionprops_nuclear)
 
     return marker_counts
 

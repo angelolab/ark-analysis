@@ -143,11 +143,33 @@ def num_concavities(prop, **kwargs):
     return concavities
 
 
+def nc_ratio(marker_counts, **kwargs):
+    """Return the ratio of the nuclear area to total cell area
+
+    Args:
+        marker_counts (xarray.DataArray):
+            xarray containing segmentaed data of cells x markers
+        **kwargs:
+            Arbitrary keyword arguments
+    """
+
+    for cell_id in marker_counts.cell_id.values:
+        # only divide if not 0, this we do to avoid NaN
+        if marker_counts.loc['nuclear', cell_id, 'area'] != 0:
+            # get the whole cell and nuclear area
+            wc_area = marker_counts.loc['whole_cell', cell_id, 'area']
+            nuc_area = marker_counts.loc['nuclear', cell_id, 'area']
+
+            # set both whole cell and nuclear nc_ratio = nuclear area / whole cell area
+            marker_counts.loc[:, cell_id, 'nc_ratio'] = nuc_area / wc_area
+
+
 REGIONPROPS_FUNCTION = {
     'major_minor_axis_ratio': major_minor_axis_ratio,
     'perim_square_over_area': perim_square_over_area,
     'major_axis_equiv_diam_ratio': major_axis_equiv_diam_ratio,
     'convex_hull_resid': convex_hull_resid,
     'centroid_dif': centroid_dif,
-    'num_concavities': num_concavities
+    'num_concavities': num_concavities,
+    'nc_ratio': nc_ratio
 }

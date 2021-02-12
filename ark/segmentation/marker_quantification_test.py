@@ -23,7 +23,7 @@ def test_compute_extra_props():
                                                         compartment_names=['whole_cell'])
 
     regionprop_info = regionprops(segmentation_labels.loc['fov0', :, :, 'whole_cell'].values)
-    regionprops_extras = ['centroid_dif', 'num_concavities']
+    regionprops_extras = copy.deepcopy(settings.REGIONPROPS_EXTRAS)
 
     # bad extra property specified
     with pytest.raises(ValueError):
@@ -56,17 +56,6 @@ def test_get_cell_props():
 
     regionprops_extras = copy.deepcopy(settings.REGIONPROPS_EXTRAS)
 
-    # no extras list
-    cell_props = marker_quantification.get_cell_props(
-        segmentation_labels.loc['fov0', :, :, 'whole_cell'].values,
-        regionprops_features)
-
-    misc_utils.verify_same_elements(
-        all_features=regionprops_names,
-        cell_props_columns=cell_props.columns.values
-    )
-
-    # specify extras list
     cell_props = marker_quantification.get_cell_props(
         segmentation_labels.loc['fov0', :, :, 'whole_cell'].values,
         regionprops_features,
@@ -159,6 +148,56 @@ def test_assign_cell_features():
 
     assert marker_counts.loc[:, cell_ids[1], 'centroid_dif'] == 0
     assert marker_counts.loc[:, cell_ids[1], 'num_concavities'] == 0
+
+
+def test_assign_nuclear_features_equal_masks():
+    cell_mask, channel_data = test_utils.create_test_extraction_data()
+
+    # test whole_cell and nuclear compartments with same data
+    segmentation_labels_equal = test_utils.make_labels_xarray(
+        label_data=np.concatenate((cell_mask, cell_mask), axis=-1),
+        compartment_names=['whole_cell', 'nuclear']
+    )
+
+    # create a sample marker count matrix with 2 compartments, 3 cell ids, and 3 features
+    sample_marker_counts = np.zeros((2, 3, 3))
+
+    # cell 0: no nucleus
+    sample_marker_counts[0, 0, 1] = 5
+
+    # cell 1: equal whole cell and nuclear area
+    sample_marker_counts[0, 1, 1] = 10
+    sample_marker_counts[1, 1, 1] = 10
+
+    # cell 2: different whole cell and nuclear area
+    sample_marker_counts[0, 2, 1] = 10
+    sample_marker_counts[1, 2, 1] = 5
+
+    # write marker_counts to xarray
+    sample_marker_counts = xr.DataArray(copy.copy(sample_marker_counts),
+                                        coords=[['whole_cell', 'nuclear'],
+                                                [0, 1, 2],
+                                                ['feat_1', 'area', 'nc_ratio']],
+                                        dims=['compartments', 'cell_id', 'features'])
+
+    # define the nuclear properties
+    nuc_props = copy.deepcopy(settings.REGIONPROPS_NUCLEAR)
+
+    marker_quantification.assign_nuclear_features(
+        sample_marker_counts, nuc_props
+    )
+
+    # testing cell 0
+    assert sample_marker_counts.loc['whole_cell', 0, 'nc_ratio'] == 0
+    assert sample_marker_counts.loc['nuclear', 0, 'nc_ratio'] == 0
+
+    # testing cell 1
+    assert sample_marker_counts.loc['whole_cell', 1, 'nc_ratio'] == 1
+    assert sample_marker_counts.loc['nuclear', 1, 'nc_ratio'] == 1
+
+    # testing cell 2
+    assert sample_marker_counts.loc['whole_cell', 2, 'nc_ratio'] == 0.5
+    assert sample_marker_counts.loc['nuclear', 2, 'nc_ratio'] == 0.5
 
 
 def test_compute_marker_counts_base():
