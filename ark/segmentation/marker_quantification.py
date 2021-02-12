@@ -14,11 +14,11 @@ from ark.segmentation.regionprops_extraction import REGIONPROPS_FUNCTION
 import ark.settings as settings
 
 
-def compute_extra_prop_info(prop_info, regionprops_extras, **kwargs):
+def compute_extra_props(props, regionprops_extras, **kwargs):
     """Derives new features specified by regionprops_extras from a regionprops features
 
     Args:
-        prop_info (skimage.measure.regionprops):
+        props (skimage.measure.regionprops):
             A list of property information returned by regionprops
         regionprops_extras (list):
             A list of regionprops features to compute, each value should correspond to
@@ -40,7 +40,7 @@ def compute_extra_prop_info(prop_info, regionprops_extras, **kwargs):
     prop_extra_data = {re: [] for re in regionprops_extras}
 
     # generate the required data for each cell
-    for prop in prop_info:
+    for prop in props:
         for re in regionprops_extras:
             prop_extra_data[re].append(REGIONPROPS_FUNCTION[re](prop, **kwargs))
 
@@ -51,7 +51,7 @@ def compute_extra_prop_info(prop_info, regionprops_extras, **kwargs):
 
 
 def get_cell_props(segmentation_labels, regionprops_features, regionprops_extras=None, **kwargs):
-    """Gets regionprops features from the provided segmentation labels
+    """Gets regionprops features from the provided segmentation labels for a fov
 
     Args:
         segmentation_labels (numpy.ndarray):
@@ -61,7 +61,7 @@ def get_cell_props(segmentation_labels, regionprops_features, regionprops_extras
         regionprops_extras (list):
             list of extra properties derived from regionprops to compute
         **kwargs:
-            Arbitrary keyword arguments for compute_extra_prop_info
+            Arbitrary keyword arguments for compute_extra_props
 
     Returns:
         pandas.DataFrame:
@@ -73,8 +73,8 @@ def get_cell_props(segmentation_labels, regionprops_features, regionprops_extras
 
     # if specified, compute the extras properties for each cell, and append to cell_props
     if regionprops_extras is not None:
-        prop_info = regionprops(segmentation_labels)
-        extra_prop_data = compute_extra_prop_info(prop_info, regionprops_extras, **kwargs)
+        props = regionprops(segmentation_labels)
+        extra_prop_data = compute_extra_props(props, regionprops_extras, **kwargs)
         cell_props = pd.concat([cell_props, extra_prop_data], axis=1)
 
     return cell_props
@@ -130,7 +130,8 @@ def assign_cell_features(marker_counts, compartment, cell_props, cell_coords, ce
 
 
 def compute_marker_counts(input_images, segmentation_labels, nuclear_counts=False,
-                          regionprops_features=None, regionprops_extras=None,
+                          regionprops_features=copy.deepcopy(settings.REGIONPROPS_FEATURES),
+                          regionprops_extras=copy.deepcopy(settings.REGIONPROPS_EXTRAS),
                           split_large_nuclei=False,
                           extraction='total_intensity', **kwargs):
     """Extract single cell protein expression data from channel TIFs for a single fov
@@ -162,13 +163,6 @@ def compute_marker_counts(input_images, segmentation_labels, nuclear_counts=Fals
         extraction=extraction,
         extraction_options=list(EXTRACTION_FUNCTION.keys())
     )
-
-    if regionprops_features is None:
-        regionprops_features = ['label', 'area', 'eccentricity', 'major_axis_length',
-                                'minor_axis_length', 'perimeter', 'centroid']
-
-    if regionprops_extras is None:
-        regionprops_extras = ['centroid_dif', 'num_concavities']
 
     if 'coords' not in regionprops_features:
         regionprops_features.append('coords')
@@ -217,9 +211,12 @@ def compute_marker_counts(input_images, segmentation_labels, nuclear_counts=Fals
                                          feature_names],
                                  dims=['compartments', 'cell_id', 'features'])
 
+    # get the regionprops kwargs
+    reg_props = kwargs.get('regionprops_kwargs', {})
+
     # get regionprops for each cell
     cell_props = get_cell_props(segmentation_labels.loc[:, :, 'whole_cell'].values,
-                                regionprops_features, regionprops_extras, **kwargs)
+                                regionprops_features, regionprops_extras, **reg_props)
 
     if nuclear_counts:
         nuc_labels = segmentation_labels.loc[:, :, 'nuclear'].values
@@ -232,7 +229,10 @@ def compute_marker_counts(input_images, segmentation_labels, nuclear_counts=Fals
                                                       cell_ids=unique_cell_ids)
 
         nuc_props = get_cell_props(segmentation_labels.loc[:, :, 'nuclear'].values,
-                                   regionprops_features, regionprops_extras, **kwargs)
+                                   regionprops_features, regionprops_extras, **reg_props)
+
+    # get the signal kwargs
+    sig_kwargs = kwargs.get('signal_kwargs', {})
 
     # loop through each cell in mask
     for cell_id in cell_props['label']:
@@ -242,7 +242,7 @@ def compute_marker_counts(input_images, segmentation_labels, nuclear_counts=Fals
         # assign whole_cell features
         assign_cell_features(
             marker_counts, 'whole_cell', cell_props, cell_coords, cell_id, cell_id,
-            input_images, regionprops_names, extraction, **kwargs
+            input_images, regionprops_names, extraction, **sig_kwargs
         )
 
         if nuclear_counts:
@@ -257,7 +257,7 @@ def compute_marker_counts(input_images, segmentation_labels, nuclear_counts=Fals
                 # assign nuclear features
                 assign_cell_features(
                     marker_counts, 'nuclear', nuc_props, nuc_coords, cell_id, nuc_id,
-                    input_images, regionprops_names, extraction, **kwargs
+                    input_images, regionprops_names, extraction, **sig_kwargs
                 )
 
     return marker_counts

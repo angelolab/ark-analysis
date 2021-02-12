@@ -16,7 +16,7 @@ from ark.utils import test_utils
 import ark.settings as settings
 
 
-def test_compute_extra_prop_info():
+def test_compute_extra_props():
     cell_mask, channel_data = test_utils.create_test_extraction_data()
 
     segmentation_labels = test_utils.make_labels_xarray(label_data=cell_mask,
@@ -27,12 +27,12 @@ def test_compute_extra_prop_info():
 
     # bad extra property specified
     with pytest.raises(ValueError):
-        marker_quantification.compute_extra_prop_info(
-            prop_info=regionprop_info,
+        marker_quantification.compute_extra_props(
+            props=regionprop_info,
             regionprops_extras=['centroid_dif', 'bad_extra'])
 
-    regionprop_extra_info = marker_quantification.compute_extra_prop_info(
-        prop_info=regionprop_info,
+    regionprop_extra_info = marker_quantification.compute_extra_props(
+        props=regionprop_info,
         regionprops_extras=regionprops_extras
     )
 
@@ -48,11 +48,13 @@ def test_get_cell_props():
     segmentation_labels = test_utils.make_labels_xarray(label_data=cell_mask,
                                                         compartment_names=['whole_cell'])
 
-    regionprops_features = ['label', 'area', 'eccentricity', 'major_axis_length',
-                            'minor_axis_length', 'perimeter', 'centroid']
-    regionprops_names = ['label', 'area', 'eccentricity', 'major_axis_length',
-                         'minor_axis_length', 'perimeter', 'centroid-0', 'centroid-1']
-    regionprops_extras = ['centroid_dif', 'num_concavities']
+    regionprops_features = copy.deepcopy(settings.REGIONPROPS_FEATURES)
+
+    regionprops_names = copy.deepcopy(regionprops_features)
+    regionprops_names.remove('centroid')
+    regionprops_names += ['centroid-0', 'centroid-1']
+
+    regionprops_extras = copy.deepcopy(settings.REGIONPROPS_EXTRAS)
 
     # no extras list
     cell_props = marker_quantification.get_cell_props(
@@ -87,21 +89,21 @@ def test_assign_cell_features():
     input_images = test_utils.make_images_xarray(channel_data)
 
     # define the names of the base features that can be computed directly from regionprops
-    regionprops_features = ['label', 'area', 'eccentricity', 'major_axis_length',
-                            'minor_axis_length', 'perimeter', 'centroid', 'coords', 'label']
+    regionprops_features = copy.deepcopy(settings.REGIONPROPS_FEATURES) + ['coords']
 
     # define the names of the extras
-    regionprops_extras = ['centroid_dif', 'num_concavities']
+    regionprops_extras = copy.deepcopy(settings.REGIONPROPS_EXTRAS)
 
     # define the names of everything
-    regionprops_names = ['label', 'area', 'eccentricity', 'major_axis_length',
-                         'minor_axis_length', 'perimeter', 'label',
-                         'centroid-0', 'centroid-1', 'centroid_dif', 'num_concavities']
+    regionprops_names = copy.deepcopy(regionprops_features)
+    regionprops_names.remove('coords')
+    regionprops_names.remove('centroid')
+    regionprops_names += ['centroid-0', 'centroid-1'] + regionprops_extras
 
     # get all the cell ids, for testing we'll only use 1 cell id
     unique_cell_ids = np.unique(segmentation_labels[..., 0].values)
     unique_cell_ids = unique_cell_ids[np.nonzero(unique_cell_ids)]
-    cell_id = unique_cell_ids[0]
+    cell_ids = unique_cell_ids[:2]
 
     # create the cell properties, easier to just use get_cell_props and make_labels_xarray
     cell_props = marker_quantification.get_cell_props(
@@ -113,32 +115,50 @@ def test_assign_cell_features():
                                     regionprops_names), axis=None)
 
     # create np.array to hold compartment x cell x feature info
-    marker_counts_array = np.zeros((len(segmentation_labels.compartments), 1,
+    marker_counts_array = np.zeros((len(segmentation_labels.compartments), 2,
                                     len(feature_names)))
 
     marker_counts = xr.DataArray(copy.copy(marker_counts_array),
                                  coords=[segmentation_labels.compartments,
-                                         [cell_id],
+                                         cell_ids,
                                          feature_names],
                                  dims=['compartments', 'cell_id', 'features'])
 
     # get the cell coordinates of the cell_id
-    cell_coords = cell_props.loc[cell_props['label'] == cell_id, 'coords'].values[0]
+    cell_coords = cell_props.loc[cell_props['label'] == cell_ids[0], 'coords'].values[0]
 
     # assign the features to that cell id
     marker_quantification.assign_cell_features(
-        marker_counts, 'whole_cell', cell_props, cell_coords, cell_id, cell_id,
+        marker_counts, 'whole_cell', cell_props, cell_coords, cell_ids[0], cell_ids[0],
         input_images.loc['fov0', ...], regionprops_names, 'total_intensity'
     )
 
-    assert marker_counts.loc[..., 'area'] == 36
+    assert marker_counts.loc[:, cell_ids[0], 'area'] == 36
 
-    major_axis_length = marker_counts.loc[..., 'major_axis_length']
-    minor_axis_length = marker_counts.loc[..., 'minor_axis_length']
+    major_axis_length = marker_counts.loc[:, cell_ids[0], 'major_axis_length']
+    minor_axis_length = marker_counts.loc[:, cell_ids[0], 'minor_axis_length']
     assert major_axis_length == minor_axis_length
 
-    assert marker_counts.loc[..., 'centroid_dif'] == 0
-    assert marker_counts.loc[..., 'num_concavities'] == 0
+    assert marker_counts.loc[:, cell_ids[0], 'centroid_dif'] == 0
+    assert marker_counts.loc[:, cell_ids[0], 'num_concavities'] == 0
+
+    # get the cell coordinates of the cell_id
+    cell_coords = cell_props.loc[cell_props['label'] == cell_ids[1], 'coords'].values[0]
+
+    # assign the features to that cell id
+    marker_quantification.assign_cell_features(
+        marker_counts, 'whole_cell', cell_props, cell_coords, cell_ids[1], cell_ids[1],
+        input_images.loc['fov0', ...], regionprops_names, 'total_intensity'
+    )
+
+    assert marker_counts.loc[:, cell_ids[1], 'area'] == 100
+
+    major_axis_length = marker_counts.loc[:, cell_ids[1], 'major_axis_length']
+    minor_axis_length = marker_counts.loc[:, cell_ids[1], 'minor_axis_length']
+    assert major_axis_length == minor_axis_length
+
+    assert marker_counts.loc[:, cell_ids[1], 'centroid_dif'] == 0
+    assert marker_counts.loc[:, cell_ids[1], 'num_concavities'] == 0
 
 
 def test_compute_marker_counts_base():
@@ -641,8 +661,12 @@ def test_generate_cell_data_extractions():
             == np.arange(9).reshape(3, 3)
         )
 
+        # define a specific threshold for positive pixel extraction
         thresh_kwargs = {
-            'threshold': 1
+            'signal_kwargs':
+                {
+                    'threshold': 1
+                }
         }
 
         # verify thresh kwarg passes through

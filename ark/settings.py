@@ -12,3 +12,11 @@ KMEANS_CLUSTER = 'cluster_labels'           # generated cluster column name
 # standardized columns surrounding channel data
 PRE_CHANNEL_COL = CELL_SIZE                 # last column before channel data
 POST_CHANNEL_COL = CELL_LABEL               # first column after channel data
+
+# regionprops extraction
+REGIONPROPS_FEATURES = ['label', 'area', 'eccentricity', 'major_axis_length',
+                        'minor_axis_length', 'perimeter', 'centroid',
+                        'convex_area', 'equivalent_diameter']
+REGIONPROPS_EXTRAS = ['major_minor_axis_ratio', 'perim_square_over_area',
+                      'major_axis_equiv_diam_ratio', 'convex_hull_resid',
+                      'centroid_dif', 'num_concavities']
