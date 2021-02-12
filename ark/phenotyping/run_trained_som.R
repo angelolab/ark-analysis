@@ -43,12 +43,6 @@ for (i in 1:length(fovs)) {
     matPath <- paste(pixelMatDir, fileName, sep="/")
     fovPixelData <- as.matrix(arrow::read_feather(matPath, col_select=all_of(markers)))
 
-    # make sure the weights contain the same columns as the pixel data
-    if (setequal(colnames(somWeights), colnames(fovPixelData)) == FALSE) {
-        print("Weights channels do not correspond with pixel data channels")
-        quit(status=1)
-    }
-
     # 99.9% normalize pixel data
     for (marker in markers) {
         marker_quantile <- quantile(fovPixelData[, marker], 0.999)

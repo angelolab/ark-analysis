@@ -80,11 +80,10 @@ def test_create_pixel_matrix():
     fov_lists = [['fov0', 'fov1'], ['fov0']]
     chans = ['chan0', 'chan1', 'chan2']
 
-    # must be float64 since that's how Candace's data comes in
+    # make sample data
     sample_img_xr = test_utils.make_images_xarray(tif_data=None,
                                                   fov_ids=fov_lists[0],
-                                                  channel_names=chans,
-                                                  dtype='float64')
+                                                  channel_names=chans)
 
     sample_labels = test_utils.make_labels_xarray(label_data=None,
                                                   fov_ids=fov_lists[0],
@@ -195,7 +194,7 @@ def test_cluster_pixels(mocker):
 
         with pytest.raises(FileNotFoundError):
             som_utils.cluster_pixels(fovs=['fov0'], channels=['Marker1'],
-                                     base_dir=temp_dir, weights_name='bad_path.hdf5')
+                                     base_dir=temp_dir, weights_name='bad_path.feather')
 
     with tempfile.TemporaryDirectory() as temp_dir:
         # add mocked function to "cluster" preprocessed data based on dummy weights
@@ -219,6 +218,13 @@ def test_cluster_pixels(mocker):
             feather.write_dataframe(fov_pre_matrix, os.path.join(temp_dir,
                                                                  'pixel_mat_preprocessed',
                                                                  fov + '.feather'))
+
+        # column name mismatch between weights and pixel data
+        with pytest.raises(ValueError):
+            weights = pd.DataFrame(np.random.rand(100, 2), columns=chan_list[:2])
+            feather.write_dataframe(weights, os.path.join(temp_dir, 'weights.feather'))
+
+            som_utils.cluster_pixels(fovs=fovs, channels=chan_list, base_dir=temp_dir)
 
         # create a dummy weights matrix and write to feather
         weights = pd.DataFrame(np.random.rand(100, 4), columns=chan_list)

@@ -29,17 +29,15 @@ def create_pixel_matrix(img_xr, seg_labels, base_dir,
         base_dir (str):
             Name of the directory to save the pixel files to
         pre_dir (str):
-            Name of the directory which contains the preprocessed pixel data,
-            defaults to pixel_mat_preprocessed
+            Name of the directory which contains the preprocessed pixel data
         sub_dir (str):
-            The name of the directory containing the subsetted pixel data,
-            defaults to pixel_mat_subsetted
+            The name of the directory containing the subsetted pixel data
         fovs (list):
             List of fovs to subset over, if None selects all
         blur_factor (int):
             The sigma to set for the Gaussian blur
         subset_proportion (float):
-            The percentage of pixels to take from each fov, defaults to 0.1
+            The proportion of pixels to take from each fov
         seed (int):
             The random seed to set for subsetting
     """
@@ -135,9 +133,9 @@ def train_som(fovs, channels, base_dir,
         base_dir (str):
             The path to the data directory
         sub_dir (str):
-            The name of the subsetted data directory, defaults to pixel_mat_subsetted
+            The name of the subsetted data directory
         weights_name (str):
-            The name of the weights file, defaults to weights.feather
+            The name of the weights file
         num_passes (int):
             The number of training passes to make through the dataset
     """
@@ -151,7 +149,7 @@ def train_som(fovs, channels, base_dir,
                                 (sub_dir, base_dir))
 
     # run som_train.R
-    process_args = ['Rscript', '/som_train.R', ','.join(fovs), ','.join(channels),
+    process_args = ['Rscript', '/create_som_matrix.R', ','.join(fovs), ','.join(channels),
                     str(num_passes), subsetted_path, weights_path]
     process = subprocess.Popen(process_args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
@@ -184,9 +182,9 @@ def cluster_pixels(fovs, channels, base_dir, pre_dir='pixel_mat_preprocessed',
             Name of the directory which contains the preprocessed pixel data,
             defaults to pixel_mat_preprocessed
         weights_name (str):
-            The name of the weights file, defaults to weights.feather
+            The name of the weights file
         cluster_dir (str):
-            The name of the directory to write the clustered data, defaults to pixel_mat_clustered
+            The name of the directory to write the clustered data
     """
 
     preprocessed_path = os.path.join(base_dir, pre_dir)
@@ -203,14 +201,21 @@ def cluster_pixels(fovs, channels, base_dir, pre_dir='pixel_mat_preprocessed',
         raise FileNotFoundError('Weights file %s does not exist in base_dir %s' %
                                 (weights_name, base_dir))
 
+    # ensure the weights columns are the same as the pixel data columns
+    weights = feather.read_dataframe(os.path.join(base_dir, weights_name))
+    sample_fov = feather.read_dataframe(os.path.join(base_dir, pre_dir, fovs[0] + '.feather'))
+
+    misc_utils.verify_same_elements(weights_columns=weights.columns.values,
+                                    pixel_data_columns=sample_fov[channels].columns.values)
+
     # make the clustered dir if it does not exist
     if not os.path.exists(clustered_path):
         os.mkdir(clustered_path)
 
-    process_args = ['Rscript', '/som_cluster.R', ','.join(fovs), ','.join(channels),
+    process_args = ['Rscript', '/run_trained_som.R', ','.join(fovs), ','.join(channels),
                     preprocessed_path, weights_path, clustered_path]
 
-    process = subprocess.Popen(process_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    process = subprocess.Popen(process_args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
     # continuously poll the process for output/error so it gets displayed in the Jupyter notebook
     while True:
