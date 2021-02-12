@@ -16,7 +16,7 @@ from ark.utils import misc_utils
 def create_pixel_matrix(img_xr, seg_labels, base_dir,
                         pre_dir='pixel_mat_preprocessed',
                         sub_dir='pixel_mat_subsetted', fovs=None,
-                        blur_factor=2, subset_proportion=0.1):
+                        blur_factor=2, subset_proportion=0.1, seed=42):
     """Preprocess the images for FlowSOM clustering and creates a pixel-level matrix
 
     Saves preprocessed data to pre_dir and subsetted data to sub_dir
@@ -40,6 +40,8 @@ def create_pixel_matrix(img_xr, seg_labels, base_dir,
             The sigma to set for the Gaussian blur
         subset_proportion (float):
             The percentage of pixels to take from each fov, defaults to 0.1
+        seed (int):
+            The random seed to set for subsetting
     """
 
     # if the subset_proportion specified is out of range
@@ -102,7 +104,7 @@ def create_pixel_matrix(img_xr, seg_labels, base_dir,
             pixel_mat.loc[:, chan_cols].sum(axis=1), axis=0)
 
         # subset the pixel matrix for training
-        pixel_mat_subset = pixel_mat.sample(frac=subset_proportion)
+        pixel_mat_subset = pixel_mat.sample(frac=subset_proportion, random_state=seed)
 
         # write complete dataset to feather, needed for cluster assignment
         feather.write_dataframe(pixel_mat,
@@ -120,7 +122,7 @@ def create_pixel_matrix(img_xr, seg_labels, base_dir,
 
 
 def train_som(fovs, channels, base_dir,
-              sub_dir='pixel_mat_subsetted', weights_name='weights.feather'):
+              sub_dir='pixel_mat_subsetted', weights_name='weights.feather', num_passes=1):
     """Run the SOM training on the subsetted pixel data.
 
     Saves weights to base_dir/weights_name.
@@ -136,6 +138,8 @@ def train_som(fovs, channels, base_dir,
             The name of the subsetted data directory, defaults to pixel_mat_subsetted
         weights_name (str):
             The name of the weights file, defaults to weights.feather
+        num_passes (int):
+            The number of training passes to make through the dataset
     """
 
     subsetted_path = os.path.join(base_dir, sub_dir)
@@ -148,7 +152,7 @@ def train_som(fovs, channels, base_dir,
 
     # run som_train.R
     process_args = ['Rscript', '/som_train.R', ','.join(fovs), ','.join(channels),
-                    subsetted_path, weights_path]
+                    str(num_passes), subsetted_path, weights_path]
     process = subprocess.Popen(process_args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
     # continuously poll the process for output/error to display in Jupyter notebook

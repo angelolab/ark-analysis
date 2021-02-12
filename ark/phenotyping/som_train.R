@@ -1,9 +1,10 @@
 # Trains a SOM matrix using subsetted pixel data
 
-# Usage: Rscript {fovs} {markers} {pixelSubsetDir} {pixelWeightsPath}
+# Usage: Rscript {fovs} {markers} {numPasses} {pixelSubsetDir} {pixelWeightsPath}
 
 # - fovs: list of fovs to cluster
 # - markers: list of channel columns to use
+# - numPasses: passes to make through dataset for training
 # - pixelSubsetDir: path to directory containing the subsetted pixel data
 # - pixelWeightsPath: path to the SOM weights file
 
@@ -21,11 +22,14 @@ fovs <- unlist(strsplit(args[1], split=","))
 # create a vector out of the list of channels provided
 markers <- unlist(strsplit(args[2], split=","))
 
+# get the number of passes to make through SOM training
+numPasses <- strtoi(args[3])
+
 # get path to subsetted mat directory
-pixelSubsetDir <- args[3]
+pixelSubsetDir <- args[4]
 
 # get the weights write path
-pixelWeightsPath <- args[4]
+pixelWeightsPath <- args[5]
 
 # read the subsetted pixel mat data for training
 print("Reading the subsetted pixel matrix data for SOM training")
@@ -63,7 +67,7 @@ for (marker in markers) {
 
 # run the SOM training step
 print("Run the SOM training")
-somResults <- SOM(data=pixelSubsetData)
+somResults <- SOM(data=pixelSubsetData, rlen=numPasses)
 
 # write the weights to HDF5
 print("Save trained weights")
