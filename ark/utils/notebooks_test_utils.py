@@ -146,8 +146,8 @@ def flowsom_setup(tb, flowsom_dir, img_shape=(50, 50), num_fovs=3, num_chans=3,
         tb.inject("MIBItiff = True", after='mibitiff_set')
 
 
-def load_imgs_labels(tb, channels, fovs=None, xr_dim_name='compartments',
-                     xr_channel_names=None, force_ints=True):
+def flowsom_load_imgs_labels(tb, channels, fovs=None, xr_dim_name='compartments',
+                             xr_channel_names=None, force_ints=True):
     """Sets the fovs and channels variables and loads img_xr and segmentation_labels for FlowSOM
 
     Args:
@@ -211,18 +211,24 @@ def flowsom_run(tb, fovs, channels):
     # test the preprocessing works, we won't save nor run the actual FlowSOM clustering
     tb.execute_cell('gen_pixel_mat')
 
-    # create a dummy weights HDF5
+    # create a dummy weights .feather
     dummy_weights = """
-        import h5py
-        weights = np.random.rand(100, len(channels))
+        import feather
+        weights = pd.DataFrame(np.random.rand(100, len(channels)), columns=channels)
 
-        with h5py.File(os.path.join(base_dir, 'weights.hdf5'), 'w') as hf:
-            hf.create_dataset('weights', data=weights)
+        feather.write_dataframe(weights, os.path.join(base_dir, 'weights.hdf5'))
     """
 
     tb.inject(dummy_weights, after='train_som')
 
-    # create a dummy HDF5 clustered file with random dataframes for each fov
+    # create dummy clustered .feathers for each fov
+    cluster_setup = """
+        if not os.path.exists(os.path.join(base_dir, 'pixel_mat_preprocessed')):
+            os.mkdir(os.path.join(base_dir, 'pixel_mat_preprocessed'))
+    """
+
+    tb.inject(cluster_setup, after='cluster_pixel_mat')
+
     for fov in fovs:
         dummy_cluster_cmd = """
             sample_df = pd.DataFrame(np.random.rand(100, 6),
@@ -230,8 +236,10 @@ def flowsom_run(tb, fovs, channels):
                                      ['fov', 'row_index', 'col_index', 'segmentation_label'])
             sample_df['fov'] = '%s'
             sample_df['clusters'] = np.random.randint(0, 100, size=100)
-            sample_df.to_hdf(os.path.join(base_dir, 'pixel_mat_clustered.hdf5'),
-                             key='%s', mode='a')
+
+            feather.write_dataframe(sample_df, os.path.join(base_dir,
+                                                            'pixel_mat_preprocessed',
+                                                            '%s' + '.feather'))
         """ % (str(channels), fov, fov)
 
     tb.inject(dummy_cluster_cmd, after='cluster_pixel_mat')

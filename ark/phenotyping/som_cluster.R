@@ -1,3 +1,14 @@
+# Assigns cluster labels to pixel data using a trained SOM weights matrix
+
+# Usage: Rscript {fovs} {markers} {pixelMatDir} {pixelWeightsPath} {pixelClusterDir}
+
+# - fovs: list of fovs to cluster
+# - markers: list of channel columns to use
+# - pixelMatDir: path to directory containing the complete pixel data
+# - pixelWeightsPath: path to the SOM weights file
+# - pixelClusterDir: path to directory where the clustered data will be written to
+
+library(arrow)
 library(data.table)
 library(FlowSOM)
 library(rhdf5)
@@ -11,34 +22,52 @@ fovs <- unlist(strsplit(args[1], split=","))
 # create a vector out of the list of channels provided
 markers <- unlist(strsplit(args[2], split=","))
 
-# get path to pixel mat data
-pixelMatPath <- args[3]
+# get path to pixel mat directory
+pixelMatDir <- args[3]
 
 # get path to the weights
 pixelWeightsPath <- args[4]
 
-# get the cluster write path
-pixelClusterPath <- args[5]
+# get the cluster write path directory
+pixelClusterDir <- args[5]
 
 # read the weights
-somWeights <- h5read(pixelWeightsPath, 'weights')
+print("Reading the weights matrix")
+somWeights <- as.matrix(arrow::read_feather(pixelWeightsPath))
 
 # using trained SOM, batch cluster the original dataset by fov
-print("Mapping cluster labels")
+print("Mapping data to cluster labels")
 for (i in 1:length(fovs)) {
     # read in pixel data
-    fovPixelData <- h5read(pixelMatPath, fovs[i])
-    fovPixelData <- fovPixelData$table
+    fileName <- paste(fovs[i], ".feather", sep="")
+    matPath <- paste(pixelMatDir, fileName, sep="/")
+    fovPixelData <- as.matrix(arrow::read_feather(matPath, col_select=all_of(markers)))
+
+    # make sure the weights contain the same columns as the pixel data
+    if (setequal(colnames(somWeights), colnames(fovPixelData)) == FALSE) {
+        print("Weights channels do not correspond with pixel data channels")
+        quit(status=1)
+    }
+
+    # 99.9% normalize pixel data
+    for (marker in markers) {
+        marker_quantile <- quantile(fovPixelData[, marker], 0.999)
+
+        # this prevents all-zero columns from getting normalized and becoming NA/Inf
+        if (marker_quantile != 0) {
+            fovPixelData[, marker] = fovPixelData[, marker] / marker_quantile
+        }
+    }
 
     # map FlowSOM data
-    clusters <- FlowSOM:::MapDataToCodes(somWeights,
-                                         as.matrix(fovPixelData[,markers]))
+    clusters <- FlowSOM:::MapDataToCodes(somWeights, fovPixelData)
 
     # assign cluster labels column to pixel data
-    fovPixelData <- cbind(as.matrix(fovPixelData), clusters=clusters[,1])
+    fovPixelData <- as.matrix(cbind(as.matrix(fovPixelData), clusters=clusters[,1]))
 
-    # write to hdf5
-    h5write(as.matrix(fovPixelData), pixelClusterPath, fovs[i])
+    # write to feather
+    clusterPath <- paste(pixelClusterDir, fileName, sep="/")
+    arrow::write_feather(as.data.table(fovPixelData), clusterPath)
 
     # print an update every 10 fovs
     if (i %% 10 == 0) {

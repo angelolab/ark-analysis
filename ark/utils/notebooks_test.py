@@ -38,8 +38,7 @@ def test_example_neighborhood_analysis():
     _exec_notebook('example_neighborhood_analysis_script.ipynb')
 
 
-# testing specific inputs for Segment_Image_Data
-# test mibitiff, 6000 seconds = default timeout on Travis
+# test mibitiff segmentation
 @testbook(SEGMENT_IMAGE_DATA_PATH, timeout=6000)
 def test_segment_image_data_mibitiff(tb):
     with tdir() as tiff_dir, tdir() as input_dir, tdir() as output_dir, \
@@ -67,9 +66,6 @@ def test_segment_image_data_mibitiff(tb):
             deepcell_output_dir=output_dir,
             delimiter="_feature_0")
 
-        # generate the deepcell output files from the server
-        # tb.execute_cell('create_output')
-
         # run the segmentation labels saving and summed channel overlay processes
         notebooks_test_utils.save_seg_labels(tb, xr_channel_names=['whole_cell'])
 
@@ -77,7 +73,7 @@ def test_segment_image_data_mibitiff(tb):
         notebooks_test_utils.create_exp_mat(tb, is_mibitiff=True)
 
 
-# test folder loading
+# test folder segmentation
 @testbook(SEGMENT_IMAGE_DATA_PATH, timeout=6000)
 def test_segment_image_data_folder(tb):
     with tdir() as tiff_dir, tdir() as input_dir, tdir() as output_dir, \
@@ -102,9 +98,6 @@ def test_segment_image_data_folder(tb):
             fovs=['fov0', 'fov1'],
             deepcell_output_dir=output_dir,
             delimiter="_feature_0")
-
-        # generate the deepcell output files from the server
-        # tb.execute_cell('create_output')
 
         # run the segmentation labels saving and summed channel overlay processes
         notebooks_test_utils.save_seg_labels(tb, xr_channel_names=['whole_cell'])
@@ -141,9 +134,9 @@ def test_flowsom_cluster_folder(tb):
         notebooks_test_utils.flowsom_setup(tb, flowsom_dir=base_dir)
 
         # load img data in
-        notebooks_test_utils.load_imgs_labels(tb,
-                                              channels=['chan0', 'chan1'],
-                                              fovs=['fov0', 'fov1'])
+        notebooks_test_utils.flowsom_load_imgs_labels(tb,
+                                                      channels=['chan0', 'chan1'],
+                                                      fovs=['fov0', 'fov1'])
 
         # run the FlowSOM preprocessing and clustering
         notebooks_test_utils.flowsom_run(tb, fovs=['fov0', 'fov1'], channels=['chan0', 'chan1'])

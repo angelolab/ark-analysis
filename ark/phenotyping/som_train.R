@@ -1,3 +1,13 @@
+# Trains a SOM matrix using subsetted pixel data
+
+# Usage: Rscript {fovs} {markers} {pixelSubsetDir} {pixelWeightsPath}
+
+# - fovs: list of fovs to cluster
+# - markers: list of channel columns to use
+# - pixelSubsetDir: path to directory containing the subsetted pixel data
+# - pixelWeightsPath: path to the SOM weights file
+
+library(arrow)
 library(data.table)
 library(FlowSOM)
 library(rhdf5)
@@ -11,8 +21,8 @@ fovs <- unlist(strsplit(args[1], split=","))
 # create a vector out of the list of channels provided
 markers <- unlist(strsplit(args[2], split=","))
 
-# get path to subsetted mat data
-pixelSubsetPath <- args[3]
+# get path to subsetted mat directory
+pixelSubsetDir <- args[3]
 
 # get the weights write path
 pixelWeightsPath <- args[4]
@@ -23,15 +33,31 @@ pixelSubsetData <- NULL
 
 for (i in 1:length(fovs)) {
     # subset each matrix with only the markers columns
-    fovSubsetData <- h5read(pixelSubsetPath, fovs[i])
-    fovSubsetData <- fovSubsetData$table[,markers]
+    fileName <- paste(fovs[i], ".feather", sep="")
+    subPath <- paste(pixelSubsetDir, fileName, sep="/")
+    fovSubsetData <- arrow::read_feather(subPath, col_select=all_of(markers))
 
     # attach each fov's dataset to pixelSubsetData
     if (is.null(pixelSubsetData)) {
+        # pixelSubsetData <- as.matrix(fovSubsetData)
         pixelSubsetData <- as.matrix(fovSubsetData)
     }
     else {
+        # pixelSubsetData <- rbind(pixelSubsetData, as.matrix(fovSubsetData))
         pixelSubsetData <- rbind(pixelSubsetData, as.matrix(fovSubsetData))
+    }
+}
+
+# perform 99.9% normalization on the subsetted data
+print("Performing 99.9% normalization")
+
+# TODO: need to one-liner this
+for (marker in markers) {
+    marker_quantile <- quantile(pixelSubsetData[, marker], 0.999)
+
+    # this prevents all-zero columns from getting normalized and becoming NA/Inf
+    if (marker_quantile != 0) {
+        pixelSubsetData[, marker] = pixelSubsetData[, marker] / marker_quantile
     }
 }
 
@@ -41,4 +67,4 @@ somResults <- SOM(data=pixelSubsetData)
 
 # write the weights to HDF5
 print("Save trained weights")
-h5write(somResults$codes, pixelWeightsPath, 'weights')
+arrow::write_feather(as.data.table(somResults$codes), pixelWeightsPath)
