@@ -43,11 +43,9 @@ for (i in 1:length(fovs)) {
 
     # attach each fov's dataset to pixelSubsetData
     if (is.null(pixelSubsetData)) {
-        # pixelSubsetData <- as.matrix(fovSubsetData)
         pixelSubsetData <- as.matrix(fovSubsetData)
     }
     else {
-        # pixelSubsetData <- rbind(pixelSubsetData, as.matrix(fovSubsetData))
         pixelSubsetData <- rbind(pixelSubsetData, as.matrix(fovSubsetData))
     }
 }
@@ -55,7 +53,6 @@ for (i in 1:length(fovs)) {
 # perform 99.9% normalization on the subsetted data
 print("Performing 99.9% normalization")
 
-# TODO: need to one-liner this
 for (marker in markers) {
     marker_quantile <- quantile(pixelSubsetData[, marker], 0.999)
 
