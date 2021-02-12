@@ -132,7 +132,7 @@ def train_som(fovs, channels, base_dir,
             The list of markers to subset on
         base_dir (str):
             The path to the data directory
-        subset_name (str):
+        sub_dir (str):
             The name of the subsetted data directory, defaults to pixel_mat_subsetted
         weights_name (str):
             The name of the weights file, defaults to weights.feather
