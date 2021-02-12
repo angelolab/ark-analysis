@@ -181,7 +181,7 @@ def cluster_pixels(fovs, channels, base_dir, pre_dir='pixel_mat_preprocessed',
             defaults to pixel_mat_preprocessed
         weights_name (str):
             The name of the weights file, defaults to weights.feather
-        cluster_name (str):
+        cluster_dir (str):
             The name of the directory to write the clustered data, defaults to pixel_mat_clustered
     """
 
