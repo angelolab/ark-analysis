@@ -1,6 +1,5 @@
 import os
 import numpy as np
-import matplotlib.pyplot as plt
 import xarray as xr
 import pytest
 import tempfile
@@ -10,6 +9,48 @@ from ark.utils import test_utils
 
 import ark.settings as settings
 import timeit
+
+
+def test_draw_heatmap():
+    print("Starting process")
+    # Create random Z score
+    z = np.random.uniform(low=-5, high=5, size=(26, 26))
+    # Assign random phenotype titles
+    pheno_titles = [chr(i) for i in range(ord('a'), ord('z') + 1)]
+
+    with pytest.raises(FileNotFoundError):
+        # trying to save on a non-existant directory
+        visualize.draw_heatmap(z, pheno_titles, pheno_titles, save_dir="bad_dir")
+
+    # most basic visualization with just data, xlabels, ylabels
+    with tempfile.TemporaryDirectory() as temp_dir:
+        # test that without save_dir, we do not save
+        visualize.draw_heatmap(z, pheno_titles, pheno_titles)
+        assert not os.path.exists(os.path.join(temp_dir, "z_score_viz.png"))
+
+        # test that with save_dir, we do save
+        visualize.draw_heatmap(z, pheno_titles, pheno_titles,
+                               save_dir=temp_dir)
+        assert os.path.exists(os.path.join(temp_dir, "z_score_viz.png"))
+
+    # next level: data, x_labels, y_labels, and center_val
+    with tempfile.TemporaryDirectory() as temp_dir:
+        visualize.draw_heatmap(z, pheno_titles, pheno_titles,
+                               center_val=np.random.ranf(), save_dir=temp_dir)
+        assert os.path.exists(os.path.join(temp_dir, "z_score_viz.png"))
+
+    # next level: data, x_labels, y_labels, center_val, and colormap
+    with tempfile.TemporaryDirectory() as temp_dir:
+        visualize.draw_heatmap(z, pheno_titles, pheno_titles,
+                               center_val=np.random.ranf(), colormap="YlGnBu", save_dir=temp_dir)
+        assert os.path.exists(os.path.join(temp_dir, "z_score_viz.png"))
+
+    # next level: data, x_labels, y_labels, center_val, colormap, and overlay_values
+    with tempfile.TemporaryDirectory() as temp_dir:
+        visualize.draw_heatmap(z, pheno_titles, pheno_titles,
+                               center_val=np.random.ranf(), colormap="YlGnBu",
+                               overlay_values=True, save_dir=temp_dir)
+        assert os.path.exists(os.path.join(temp_dir, "z_score_viz.png"))
 
 
 def test_draw_boxplot():
@@ -60,47 +101,6 @@ def test_draw_boxplot():
                                col_split=settings.PATIENT_ID, split_vals=[1, 2],
                                save_dir=temp_dir)
         assert os.path.exists(os.path.join(temp_dir, "boxplot_viz.png"))
-
-
-def test_draw_heatmap():
-    # Create random Z score
-    z = np.random.uniform(low=-5, high=5, size=(26, 26))
-    # Assign random phenotype titles
-    pheno_titles = [chr(i) for i in range(ord('a'), ord('z') + 1)]
-
-    with pytest.raises(FileNotFoundError):
-        # trying to save on a non-existant directory
-        visualize.draw_heatmap(z, pheno_titles, pheno_titles, save_dir="bad_dir")
-
-    # most basic visualization with just data, xlabels, ylabels
-    with tempfile.TemporaryDirectory() as temp_dir:
-        # test that without save_dir, we do not save
-        visualize.draw_heatmap(z, pheno_titles, pheno_titles)
-        assert not os.path.exists(os.path.join(temp_dir, "z_score_viz.png"))
-
-        # test that with save_dir, we do save
-        visualize.draw_heatmap(z, pheno_titles, pheno_titles,
-                               save_dir=temp_dir)
-        assert os.path.exists(os.path.join(temp_dir, "z_score_viz.png"))
-
-    # next level: data, x_labels, y_labels, and center_val
-    with tempfile.TemporaryDirectory() as temp_dir:
-        visualize.draw_heatmap(z, pheno_titles, pheno_titles,
-                               center_val=np.random.ranf(), save_dir=temp_dir)
-        assert os.path.exists(os.path.join(temp_dir, "z_score_viz.png"))
-
-    # next level: data, x_labels, y_labels, center_val, and colormap
-    with tempfile.TemporaryDirectory() as temp_dir:
-        visualize.draw_heatmap(z, pheno_titles, pheno_titles,
-                               center_val=np.random.ranf(), colormap="YlGnBu", save_dir=temp_dir)
-        assert os.path.exists(os.path.join(temp_dir, "z_score_viz.png"))
-
-    # next level: data, x_labels, y_labels, center_val, colormap, and overlay_values
-    with tempfile.TemporaryDirectory() as temp_dir:
-        visualize.draw_heatmap(z, pheno_titles, pheno_titles,
-                               center_val=np.random.ranf(), colormap="YlGnBu",
-                               overlay_values=True, save_dir=temp_dir)
-        assert os.path.exists(os.path.join(temp_dir, "z_score_viz.png"))
 
 
 def test_get_sort_data():
