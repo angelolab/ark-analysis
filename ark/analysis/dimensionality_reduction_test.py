@@ -8,6 +8,7 @@ import ark.settings as settings
 
 
 def test_plot_dim_reduced_data():
+    print("Starting process")
     # this only tests errors, test_dimensionality_reduction tests the meat of this function
     random_cell_data = test_utils.make_segmented_csv(300)
 
