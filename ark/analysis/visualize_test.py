@@ -113,6 +113,7 @@ def test_get_sort_data():
 
 def test_plot_barchart():
     # mostly error checking here, test_visualize_cells tests the meat of the functionality
+    print("Starting process")
     random_data = test_utils.make_segmented_csv(100)
 
     with pytest.raises(FileNotFoundError):
