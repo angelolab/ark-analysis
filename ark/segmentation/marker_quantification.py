@@ -14,42 +14,6 @@ from ark.segmentation.regionprops_extraction import REGIONPROPS_FUNCTION
 import ark.settings as settings
 
 
-def compute_extra_props(props, regionprops_extras, **kwargs):
-    """Derives new features specified by regionprops_extras from a regionprops features
-
-    Args:
-        props (skimage.measure.regionprops):
-            A list of property information returned by regionprops
-        regionprops_extras (list):
-            A list of regionprops features to compute, each value should correspond to
-            a function in the global regionprops_functions variable
-        **kwargs:
-            Arbitrary keyword arguments
-
-    Returns:
-        pandas.DataFrame:
-            A dataframe with columns corresponding to each regionprops_extras feature
-    """
-
-    misc_utils.verify_in_list(
-        extras_props=regionprops_extras,
-        props_options=list(REGIONPROPS_FUNCTION.keys())
-    )
-
-    # define an empty list for each regionprop feature
-    prop_extra_data = {re: [] for re in regionprops_extras}
-
-    # generate the required data for each cell
-    for prop in props:
-        for re in regionprops_extras:
-            prop_extra_data[re].append(REGIONPROPS_FUNCTION[re](prop, **kwargs))
-
-    # convert the dictionary to a DataFrame
-    prop_extra_df = pd.DataFrame.from_dict(prop_extra_data)
-
-    return prop_extra_df
-
-
 def get_single_compartment_props(segmentation_labels, regionprops_base,
                                  regionprops_single_comp, **kwargs):
     """Gets regionprops features from the provided segmentation labels for a fov

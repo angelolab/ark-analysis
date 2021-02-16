@@ -16,32 +16,6 @@ from ark.utils import test_utils
 import ark.settings as settings
 
 
-# def test_compute_extra_props():
-#     cell_mask, channel_data = test_utils.create_test_extraction_data()
-
-#     segmentation_labels = test_utils.make_labels_xarray(label_data=cell_mask,
-#                                                         compartment_names=['whole_cell'])
-
-#     regionprop_info = regionprops(segmentation_labels.loc['fov0', :, :, 'whole_cell'].values)
-#     regionprops_single_comp = copy.deepcopy(settings.REGIONPROPS_SINGLE_COMP)
-
-#     # bad extra property specified
-#     with pytest.raises(ValueError):
-#         marker_quantification.compute_extra_props(
-#             props=regionprop_info,
-#             regionprops_single_comp=['centroid_dif', 'bad_extra'])
-
-#     regionprop_extra_info = marker_quantification.compute_extra_props(
-#         props=regionprop_info,
-#         regionprops_single_comp=regionprops_single_comp
-#     )
-
-#     # assert we created all the columns specified
-#     misc_utils.verify_same_elements(
-#         provided_extras=regionprops_single_comp,
-#         regionprop_extras_columns=regionprop_extra_info.columns.values)
-
-
 def test_get_single_compartment_props():
     cell_mask, channel_data = test_utils.create_test_extraction_data()
 
