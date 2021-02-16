@@ -65,7 +65,7 @@ def draw_boxplot(cell_data, col_name, col_split=None, split_vals=None, dpi=None,
 
 
 def draw_heatmap(data, x_labels, y_labels, dpi=None, center_val=None,
-                 colormap="vlag", save_dir=None):
+                 overlay_values=False, colormap="vlag", save_dir=None):
     """Plots the z scores between all phenotypes as a clustermap.
 
     Args:
@@ -79,6 +79,8 @@ def draw_heatmap(data, x_labels, y_labels, dpi=None, center_val=None,
             The resolution of the image to save, ignored if save_dir is None
         center_val (float):
             value at which to center the heatmap
+        overlay_values (bool):
+            whether to overlay the raw heatmap values on top
         colormap (str):
             color scheme for visualization
         save_dir (str):
@@ -92,7 +94,11 @@ def draw_heatmap(data, x_labels, y_labels, dpi=None, center_val=None,
     # Assign numpy values respective phenotype labels
     data_df = pd.DataFrame(data, index=x_labels, columns=y_labels)
     sns.set(font_scale=.7)
-    sns.clustermap(data_df, cmap=colormap, annot=data, center=center_val)
+
+    if overlay_values:
+        sns.clustermap(data_df, cmap=colormap, annot=data, center=center_val)
+    else:
+        sns.clustermap(data_df, cmap=colormap, center=center_val)
 
     if save_dir is not None:
         misc_utils.save_figure(save_dir, "z_score_viz.png", dpi=dpi)
