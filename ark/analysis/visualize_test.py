@@ -14,9 +14,11 @@ import timeit
 
 def test_draw_boxplot():
     # trim random data so we don't have to visualize as many facets
+    print("Starting process")
+    start_time = timeit.default_timer()
     random_data = test_utils.make_segmented_csv(100)
     random_data = random_data[random_data[settings.PATIENT_ID].isin(np.arange(1, 5))]
-    print(random_data.shape)
+    print("Time to make random data: %.2f" % timeit.default_timer() - start_time)
 
     # basic error testing
     with pytest.raises(ValueError):
