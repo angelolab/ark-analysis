@@ -12,7 +12,6 @@ import timeit
 
 
 def test_draw_heatmap():
-    print("Starting process")
     # Create random Z score
     z = np.random.uniform(low=-5, high=5, size=(26, 26))
     # Assign random phenotype titles
@@ -33,33 +32,12 @@ def test_draw_heatmap():
                                save_dir=temp_dir)
         assert os.path.exists(os.path.join(temp_dir, "z_score_viz.png"))
 
-    # # next level: data, x_labels, y_labels, and center_val
-    # with tempfile.TemporaryDirectory() as temp_dir:
-    #     visualize.draw_heatmap(z, pheno_titles, pheno_titles,
-    #                            center_val=np.random.ranf(), save_dir=temp_dir)
-    #     assert os.path.exists(os.path.join(temp_dir, "z_score_viz.png"))
-
-    # # next level: data, x_labels, y_labels, center_val, and colormap
-    # with tempfile.TemporaryDirectory() as temp_dir:
-    #     visualize.draw_heatmap(z, pheno_titles, pheno_titles,
-    #                            center_val=np.random.ranf(), colormap="YlGnBu", save_dir=temp_dir)
-    #     assert os.path.exists(os.path.join(temp_dir, "z_score_viz.png"))
-
-    # # next level: data, x_labels, y_labels, center_val, colormap, and overlay_values
-    # with tempfile.TemporaryDirectory() as temp_dir:
-    #     visualize.draw_heatmap(z, pheno_titles, pheno_titles,
-    #                            center_val=np.random.ranf(), colormap="YlGnBu",
-    #                            overlay_values=True, save_dir=temp_dir)
-    #     assert os.path.exists(os.path.join(temp_dir, "z_score_viz.png"))
-
 
 def test_draw_boxplot():
     # trim random data so we don't have to visualize as many facets
-    print("Starting process")
     start_time = timeit.default_timer()
     random_data = test_utils.make_segmented_csv(100)
     random_data = random_data[random_data[settings.PATIENT_ID].isin(np.arange(1, 5))]
-    print("Time to make random data: %.2f" % (timeit.default_timer() - start_time))
 
     # basic error testing
     with pytest.raises(ValueError):
@@ -84,17 +62,6 @@ def test_draw_boxplot():
         visualize.draw_boxplot(cell_data=random_data, col_name="A",
                                save_dir="bad_dir")
 
-    # # most basic visualization: just data and a column name
-    # with tempfile.TemporaryDirectory() as temp_dir:
-    #     visualize.draw_boxplot(cell_data=random_data, col_name="A", save_dir=temp_dir)
-    #     assert os.path.exists(os.path.join(temp_dir, "boxplot_viz.png"))
-
-    # # next level up: data, a column name, and a split column
-    # with tempfile.TemporaryDirectory() as temp_dir:
-    #     visualize.draw_boxplot(cell_data=random_data, col_name="A",
-    #                            col_split=settings.PATIENT_ID, save_dir=temp_dir)
-    #     assert os.path.exists(os.path.join(temp_dir, "boxplot_viz.png"))
-
     # highest level: data, a column name, a split column, and split vals
     with tempfile.TemporaryDirectory() as temp_dir:
         visualize.draw_boxplot(cell_data=random_data, col_name="A",
@@ -113,7 +80,6 @@ def test_get_sort_data():
 
 def test_plot_barchart():
     # mostly error checking here, test_visualize_cells tests the meat of the functionality
-    print("Starting process")
     random_data = test_utils.make_segmented_csv(100)
 
     with pytest.raises(FileNotFoundError):
