@@ -163,6 +163,8 @@ def nc_ratio(marker_counts, **kwargs):
             # set both whole cell and nuclear nc_ratio = nuclear area / whole cell area
             marker_counts.loc[:, cell_id, 'nc_ratio'] = nuc_area / wc_area
 
+    return marker_counts
+
 
 REGIONPROPS_FUNCTION = {
     'major_minor_axis_ratio': major_minor_axis_ratio,

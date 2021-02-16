@@ -50,16 +50,19 @@ def compute_extra_props(props, regionprops_extras, **kwargs):
     return prop_extra_df
 
 
-def get_cell_props(segmentation_labels, regionprops_features, regionprops_extras, **kwargs):
+def get_single_compartment_props(segmentation_labels, regionprops_base,
+                                 regionprops_single_comp, **kwargs):
     """Gets regionprops features from the provided segmentation labels for a fov
+
+    Based on segmentation labels from a single compartment
 
     Args:
         segmentation_labels (numpy.ndarray):
             rows x columns matrix of masks
-        regionprops_features (list):
-            morphology features for regionprops to extract for each cell
-        regionprops_extras (list):
-            list of extra properties derived from regionprops to compute
+        regionprops_base (list):
+            base morphology features directly computed by regionprops to extract for each cell
+        regionprops_single_comp (list):
+            list of single compartment extra properties derived from regionprops to compute
         **kwargs:
             Arbitrary keyword arguments for compute_extra_props
 
@@ -68,20 +71,40 @@ def get_cell_props(segmentation_labels, regionprops_features, regionprops_extras
             Contains the regionprops info (base and derived) for each labeled cell
     """
 
-    cell_props = pd.DataFrame(regionprops_table(segmentation_labels,
-                                                properties=regionprops_features))
+    # verify that all the regionprops single compartment featues provided actually exist
+    misc_utils.verify_in_list(
+        extras_props=regionprops_single_comp,
+        props_options=list(REGIONPROPS_FUNCTION.keys())
+    )
 
-    # compute the extras properties for each cell, and append to cell_props
+    # get the base features
+    cell_props = pd.DataFrame(regionprops_table(segmentation_labels,
+                                                properties=regionprops_base))
+
+    # define an empty list for each regionprop feature
+    cell_props_single_comp = {re: [] for re in regionprops_single_comp}
+
+    # get regionprop info needed for single compartment computations
     props = regionprops(segmentation_labels)
-    extra_prop_data = compute_extra_props(props, regionprops_extras, **kwargs)
-    cell_props = pd.concat([cell_props, extra_prop_data], axis=1)
+
+    # generate the required data for each cell
+    for prop in props:
+        for re in regionprops_single_comp:
+            cell_props_single_comp[re].append(REGIONPROPS_FUNCTION[re](prop, **kwargs))
+
+    # convert the dictionary to a DataFrame
+    cell_props_single_comp = pd.DataFrame.from_dict(cell_props_single_comp)
+
+    # append the single compartment derived props info to the cell_props DataFrame
+    cell_props = pd.concat([cell_props, cell_props_single_comp], axis=1)
 
     return cell_props
 
 
-def assign_cell_features(marker_counts, compartment, cell_props, cell_coords, cell_id,
-                         label_id, input_images, regionprops_names, extraction, **kwargs):
-    """Assign the regionprops features and signal intensity to cell_id in marker_counts
+def assign_single_compartment_features(marker_counts, compartment, cell_props, cell_coords,
+                                       cell_id, label_id, input_images, regionprops_names,
+                                       extraction, **kwargs):
+    """Assign computed regionprops features and signal intensity to cell_id in marker_counts
 
     Args:
         marker_counts (xarray.DataArray):
@@ -104,6 +127,10 @@ def assign_cell_features(marker_counts, compartment, cell_props, cell_coords, ce
             the extraction method to use for signal intensity calculation
         **kwargs:
             arbitrary keyword arguments
+
+    Returns:
+        xarray.DataArray:
+            the updated marker_counts matrix with data for the specified cell_id and compartment
     """
 
     # get centroid corresponding to current cell
@@ -127,33 +154,41 @@ def assign_cell_features(marker_counts, compartment, cell_props, cell_coords, ce
     # add cell size to first column
     marker_counts.loc[compartment, cell_id, marker_counts.features[0]] = cell_coords.shape[0]
 
+    return marker_counts
 
-def assign_nuclear_features(marker_counts, regionprops_nuclear, **kwargs):
-    """Assigns the nuclear-specific properties for marker_counts
+
+def assign_multi_compartment_features(marker_counts, regionprops_multi_comp, **kwargs):
+    """Assigns features to marker_counts that depend on multiple compartments
 
     Args:
         marker_counts (xarray.DataArray):
             xarray containing segmentaed data of cells x markers
-        regionprops_nuclear (list):
-            list of nuclear properties derived from regionprops to compute, each value
-            should correspond to a value in REGIONPROPS_FUNCTION
+        regionprops_multi_comp (list):
+            list of multi-compartment properties derived from regionprops to compute,
+            each value should correspond to a value in REGIONPROPS_FUNCTION
         **kwargs:
             arbitrary keyword arguments
+
+    Returns:
+        xarray.DataArray:
+            the updated marker_counts matrix with data for the specified cell_id and compartment
     """
 
     misc_utils.verify_in_list(
-        nuclear_props=regionprops_nuclear,
+        nuclear_props=regionprops_multi_comp,
         props_options=list(REGIONPROPS_FUNCTION.keys())
     )
 
-    for rn in regionprops_nuclear:
-        REGIONPROPS_FUNCTION[rn](marker_counts, **kwargs)
+    for rn in regionprops_multi_comp:
+        marker_counts = REGIONPROPS_FUNCTION[rn](marker_counts, **kwargs)
+
+    return marker_counts
 
 
 def compute_marker_counts(input_images, segmentation_labels, nuclear_counts=False,
-                          regionprops_features=copy.deepcopy(settings.REGIONPROPS_FEATURES),
-                          regionprops_extras=copy.deepcopy(settings.REGIONPROPS_EXTRAS),
-                          regionprops_nuclear=copy.deepcopy(settings.REGIONPROPS_NUCLEAR),
+                          regionprops_base=copy.deepcopy(settings.REGIONPROPS_BASE),
+                          regionprops_single_comp=copy.deepcopy(settings.REGIONPROPS_SINGLE_COMP),
+                          regionprops_multi_comp=copy.deepcopy(settings.REGIONPROPS_MULTI_COMP),
                           split_large_nuclei=False,
                           extraction='total_intensity', **kwargs):
     """Extract single cell protein expression data from channel TIFs for a single fov
@@ -165,12 +200,12 @@ def compute_marker_counts(input_images, segmentation_labels, nuclear_counts=Fals
             rows x columns x compartment matrix of masks
         nuclear_counts (bool):
             boolean flag to determine whether nuclear counts are returned
-        regionprops_features (list):
-            morphology features for regionprops to extract for each cell
-        regionprops_extras (list):
-            list of extra properties derived from regionprops to compute
-        regionprops_nuclear (list):
-            list of nuclear-specific properties derived from regionprops to compute
+        regionprops_base (list):
+            base morphology features directly computed by regionprops to extract for each cell
+        regionprops_single_comp (list):
+            list of single compartment extra properties derived from regionprops to compute
+        regionprops_multi_comp (list):
+            list of multi compartment extra properties derived from regionprops to compute
         split_large_nuclei (bool):
             controls whether nuclei which have portions outside of the cell will get relabeled
         extraction (str):
@@ -188,25 +223,25 @@ def compute_marker_counts(input_images, segmentation_labels, nuclear_counts=Fals
         extraction_options=list(EXTRACTION_FUNCTION.keys())
     )
 
-    if 'coords' not in regionprops_features:
-        regionprops_features.append('coords')
+    if 'coords' not in regionprops_base:
+        regionprops_base.append('coords')
 
     # labels are required
-    if 'label' not in regionprops_features:
-        regionprops_features.append('label')
+    if 'label' not in regionprops_base:
+        regionprops_base.append('label')
 
     # centroid is required
-    if not any(['centroid' in rpf for rpf in regionprops_features]):
-        regionprops_features.append('centroid')
+    if not any(['centroid' in rpf for rpf in regionprops_base]):
+        regionprops_base.append('centroid')
 
     # enforce post channel column is present and first
-    if regionprops_features[0] != settings.POST_CHANNEL_COL:
-        if settings.POST_CHANNEL_COL in regionprops_features:
-            regionprops_features.remove(settings.POST_CHANNEL_COL)
-        regionprops_features.insert(0, settings.POST_CHANNEL_COL)
+    if regionprops_base[0] != settings.POST_CHANNEL_COL:
+        if settings.POST_CHANNEL_COL in regionprops_base:
+            regionprops_base.remove(settings.POST_CHANNEL_COL)
+        regionprops_base.insert(0, settings.POST_CHANNEL_COL)
 
     # create variable to hold names of returned columns only
-    regionprops_names = copy.copy(regionprops_features)
+    regionprops_names = copy.copy(regionprops_base)
     regionprops_names.remove('coords')
 
     # centroid returns two columns, need to modify names
@@ -214,11 +249,11 @@ def compute_marker_counts(input_images, segmentation_labels, nuclear_counts=Fals
         regionprops_names.remove('centroid')
         regionprops_names += ['centroid-0', 'centroid-1']
 
-    # add the extras features to regionprops_names
-    regionprops_names.extend(regionprops_extras)
+    # add the single compartment features to regionprops_names
+    regionprops_names.extend(regionprops_single_comp)
 
-    # add nuclear-specific features to regionprops_names
-    regionprops_names.extend(regionprops_nuclear)
+    # add the multi compartment features to regionprops_names
+    regionprops_names.extend(regionprops_multi_comp)
 
     # get all the cell ids
     unique_cell_ids = np.unique(segmentation_labels[..., 0].values)
@@ -242,8 +277,9 @@ def compute_marker_counts(input_images, segmentation_labels, nuclear_counts=Fals
     reg_props = kwargs.get('regionprops_kwargs', {})
 
     # get regionprops for each cell
-    cell_props = get_cell_props(segmentation_labels.loc[:, :, 'whole_cell'].values,
-                                regionprops_features, regionprops_extras, **reg_props)
+    cell_props = get_single_compartment_props(segmentation_labels.loc[:, :, 'whole_cell'].values,
+                                              regionprops_base, regionprops_single_comp,
+                                              **reg_props)
 
     if nuclear_counts:
         nuc_labels = segmentation_labels.loc[:, :, 'nuclear'].values
@@ -255,8 +291,9 @@ def compute_marker_counts(input_images, segmentation_labels, nuclear_counts=Fals
                                                       nuc_segmentation_labels=nuc_labels,
                                                       cell_ids=unique_cell_ids)
 
-        nuc_props = get_cell_props(segmentation_labels.loc[:, :, 'nuclear'].values,
-                                   regionprops_features, regionprops_extras, **reg_props)
+        nuc_props = get_single_compartment_props(segmentation_labels.loc[:, :, 'nuclear'].values,
+                                                 regionprops_base, regionprops_single_comp,
+                                                 **reg_props)
 
     # get the signal kwargs
     sig_kwargs = kwargs.get('signal_kwargs', {})
@@ -267,7 +304,7 @@ def compute_marker_counts(input_images, segmentation_labels, nuclear_counts=Fals
         cell_coords = cell_props.loc[cell_props['label'] == cell_id, 'coords'].values[0]
 
         # assign properties for whole cell compartment
-        assign_cell_features(
+        marker_counts = assign_single_compartment_features(
             marker_counts, 'whole_cell', cell_props, cell_coords, cell_id, cell_id,
             input_images, regionprops_names, extraction, **sig_kwargs
         )
@@ -282,13 +319,15 @@ def compute_marker_counts(input_images, segmentation_labels, nuclear_counts=Fals
                 nuc_coords = nuc_props.loc[nuc_props['label'] == nuc_id, 'coords'].values[0]
 
                 # assign properties for nuclear compartment
-                assign_cell_features(
+                marker_counts = assign_single_compartment_features(
                     marker_counts, 'nuclear', nuc_props, nuc_coords, cell_id, nuc_id,
                     input_images, regionprops_names, extraction, **sig_kwargs
                 )
 
                 # assign nuclear-specific properties
-                assign_nuclear_features(marker_counts, regionprops_nuclear)
+                marker_counts = assign_multi_compartment_features(
+                    marker_counts, regionprops_multi_comp
+                )
 
     return marker_counts
 

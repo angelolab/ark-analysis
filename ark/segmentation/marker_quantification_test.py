@@ -16,58 +16,58 @@ from ark.utils import test_utils
 import ark.settings as settings
 
 
-def test_compute_extra_props():
+# def test_compute_extra_props():
+#     cell_mask, channel_data = test_utils.create_test_extraction_data()
+
+#     segmentation_labels = test_utils.make_labels_xarray(label_data=cell_mask,
+#                                                         compartment_names=['whole_cell'])
+
+#     regionprop_info = regionprops(segmentation_labels.loc['fov0', :, :, 'whole_cell'].values)
+#     regionprops_single_comp = copy.deepcopy(settings.REGIONPROPS_SINGLE_COMP)
+
+#     # bad extra property specified
+#     with pytest.raises(ValueError):
+#         marker_quantification.compute_extra_props(
+#             props=regionprop_info,
+#             regionprops_single_comp=['centroid_dif', 'bad_extra'])
+
+#     regionprop_extra_info = marker_quantification.compute_extra_props(
+#         props=regionprop_info,
+#         regionprops_single_comp=regionprops_single_comp
+#     )
+
+#     # assert we created all the columns specified
+#     misc_utils.verify_same_elements(
+#         provided_extras=regionprops_single_comp,
+#         regionprop_extras_columns=regionprop_extra_info.columns.values)
+
+
+def test_get_single_compartment_props():
     cell_mask, channel_data = test_utils.create_test_extraction_data()
 
     segmentation_labels = test_utils.make_labels_xarray(label_data=cell_mask,
                                                         compartment_names=['whole_cell'])
 
-    regionprop_info = regionprops(segmentation_labels.loc['fov0', :, :, 'whole_cell'].values)
-    regionprops_extras = copy.deepcopy(settings.REGIONPROPS_EXTRAS)
+    regionprops_base = copy.deepcopy(settings.REGIONPROPS_BASE)
 
-    # bad extra property specified
-    with pytest.raises(ValueError):
-        marker_quantification.compute_extra_props(
-            props=regionprop_info,
-            regionprops_extras=['centroid_dif', 'bad_extra'])
-
-    regionprop_extra_info = marker_quantification.compute_extra_props(
-        props=regionprop_info,
-        regionprops_extras=regionprops_extras
-    )
-
-    # assert we created all the columns specified
-    misc_utils.verify_same_elements(
-        provided_extras=regionprops_extras,
-        regionprop_extras_columns=regionprop_extra_info.columns.values)
-
-
-def test_get_cell_props():
-    cell_mask, channel_data = test_utils.create_test_extraction_data()
-
-    segmentation_labels = test_utils.make_labels_xarray(label_data=cell_mask,
-                                                        compartment_names=['whole_cell'])
-
-    regionprops_features = copy.deepcopy(settings.REGIONPROPS_FEATURES)
-
-    regionprops_names = copy.deepcopy(regionprops_features)
+    regionprops_names = copy.deepcopy(regionprops_base)
     regionprops_names.remove('centroid')
     regionprops_names += ['centroid-0', 'centroid-1']
 
-    regionprops_extras = copy.deepcopy(settings.REGIONPROPS_EXTRAS)
+    regionprops_single_comp = copy.deepcopy(settings.REGIONPROPS_SINGLE_COMP)
 
-    cell_props = marker_quantification.get_cell_props(
+    cell_props = marker_quantification.get_single_compartment_props(
         segmentation_labels.loc['fov0', :, :, 'whole_cell'].values,
-        regionprops_features,
-        regionprops_extras)
+        regionprops_base,
+        regionprops_single_comp)
 
     misc_utils.verify_same_elements(
-        all_features=regionprops_names + regionprops_extras,
+        all_features=regionprops_names + regionprops_single_comp,
         cell_props_columns=cell_props.columns.values
     )
 
 
-def test_assign_cell_features():
+def test_assign_single_compartment_props():
     cell_mask, channel_data = test_utils.create_test_extraction_data()
 
     segmentation_labels = test_utils.make_labels_xarray(
@@ -78,26 +78,26 @@ def test_assign_cell_features():
     input_images = test_utils.make_images_xarray(channel_data)
 
     # define the names of the base features that can be computed directly from regionprops
-    regionprops_features = copy.deepcopy(settings.REGIONPROPS_FEATURES) + ['coords']
+    regionprops_base = copy.deepcopy(settings.REGIONPROPS_BASE) + ['coords']
 
     # define the names of the extras
-    regionprops_extras = copy.deepcopy(settings.REGIONPROPS_EXTRAS)
+    regionprops_single_comp = copy.deepcopy(settings.REGIONPROPS_SINGLE_COMP)
 
     # define the names of everything
-    regionprops_names = copy.deepcopy(regionprops_features)
+    regionprops_names = copy.deepcopy(regionprops_base)
     regionprops_names.remove('coords')
     regionprops_names.remove('centroid')
-    regionprops_names += ['centroid-0', 'centroid-1'] + regionprops_extras
+    regionprops_names += ['centroid-0', 'centroid-1'] + regionprops_single_comp
 
     # get all the cell ids, for testing we'll only use 1 cell id
     unique_cell_ids = np.unique(segmentation_labels[..., 0].values)
     unique_cell_ids = unique_cell_ids[np.nonzero(unique_cell_ids)]
     cell_ids = unique_cell_ids[:2]
 
-    # create the cell properties, easier to just use get_cell_props and make_labels_xarray
-    cell_props = marker_quantification.get_cell_props(
+    # create the cell properties, easier to use get_single_compartment_props and make_labels_xarray
+    cell_props = marker_quantification.get_single_compartment_props(
         segmentation_labels.loc['fov0', :, :, 'whole_cell'].values,
-        regionprops_features, regionprops_extras)
+        regionprops_base, regionprops_single_comp)
 
     # create labels for array holding channel counts and morphology metrics
     feature_names = np.concatenate((np.array(settings.PRE_CHANNEL_COL), input_images.channels,
@@ -117,7 +117,7 @@ def test_assign_cell_features():
     cell_coords = cell_props.loc[cell_props['label'] == cell_ids[0], 'coords'].values[0]
 
     # assign the features to that cell id
-    marker_quantification.assign_cell_features(
+    marker_counts = marker_quantification.assign_single_compartment_features(
         marker_counts, 'whole_cell', cell_props, cell_coords, cell_ids[0], cell_ids[0],
         input_images.loc['fov0', ...], regionprops_names, 'total_intensity'
     )
@@ -135,7 +135,7 @@ def test_assign_cell_features():
     cell_coords = cell_props.loc[cell_props['label'] == cell_ids[1], 'coords'].values[0]
 
     # assign the features to that cell id
-    marker_quantification.assign_cell_features(
+    marker_counts = marker_quantification.assign_single_compartment_features(
         marker_counts, 'whole_cell', cell_props, cell_coords, cell_ids[1], cell_ids[1],
         input_images.loc['fov0', ...], regionprops_names, 'total_intensity'
     )
@@ -150,7 +150,7 @@ def test_assign_cell_features():
     assert marker_counts.loc[:, cell_ids[1], 'num_concavities'] == 0
 
 
-def test_assign_nuclear_features_equal_masks():
+def test_assign_multi_compartment_features():
     cell_mask, channel_data = test_utils.create_test_extraction_data()
 
     # test whole_cell and nuclear compartments with same data
@@ -181,10 +181,10 @@ def test_assign_nuclear_features_equal_masks():
                                         dims=['compartments', 'cell_id', 'features'])
 
     # define the nuclear properties
-    nuc_props = copy.deepcopy(settings.REGIONPROPS_NUCLEAR)
+    regionprops_multi_comp = copy.deepcopy(settings.REGIONPROPS_MULTI_COMP)
 
-    marker_quantification.assign_nuclear_features(
-        sample_marker_counts, nuc_props
+    sample_marker_counts = marker_quantification.assign_multi_compartment_features(
+        sample_marker_counts, regionprops_multi_comp
     )
 
     # testing cell 0
@@ -356,14 +356,14 @@ def test_compute_marker_counts_no_coords():
     segmentation_labels_equal, input_images = segmentation_labels_equal[0], input_images[0]
 
     # different object properties can be supplied
-    regionprops_features = ['label', 'area']
+    regionprops_base = ['label', 'area']
     excluded_defaults = ['eccentricity']
 
     segmentation_output_specified = \
         marker_quantification.compute_marker_counts(input_images=input_images,
                                                     segmentation_labels=segmentation_labels_equal,
                                                     nuclear_counts=True,
-                                                    regionprops_features=regionprops_features)
+                                                    regionprops_base=regionprops_base)
 
     assert np.all(np.isin(['label', 'area'], segmentation_output_specified.features.values))
 
@@ -374,7 +374,7 @@ def test_compute_marker_counts_no_coords():
         marker_quantification.compute_marker_counts(input_images=input_images,
                                                     segmentation_labels=segmentation_labels_equal,
                                                     nuclear_counts=True,
-                                                    regionprops_features=regionprops_features,
+                                                    regionprops_base=regionprops_base,
                                                     split_large_nuclei=True)
 
     assert np.all(segmentation_output_specified_split == segmentation_output_specified)
@@ -394,14 +394,14 @@ def test_compute_marker_counts_no_labels():
     segmentation_labels_equal, input_images = segmentation_labels_equal[0], input_images[0]
 
     # different object properties can be supplied
-    regionprops_features = ['coords', 'area']
+    regionprops_base = ['coords', 'area']
     excluded_defaults = ['eccentricity']
 
     segmentation_output_specified = \
         marker_quantification.compute_marker_counts(input_images=input_images,
                                                     segmentation_labels=segmentation_labels_equal,
                                                     nuclear_counts=True,
-                                                    regionprops_features=regionprops_features)
+                                                    regionprops_base=regionprops_base)
 
     assert np.all(np.isin(['label', 'area'], segmentation_output_specified.features.values))
 
@@ -412,7 +412,7 @@ def test_compute_marker_counts_no_labels():
         marker_quantification.compute_marker_counts(input_images=input_images,
                                                     segmentation_labels=segmentation_labels_equal,
                                                     nuclear_counts=True,
-                                                    regionprops_features=regionprops_features,
+                                                    regionprops_base=regionprops_base,
                                                     split_large_nuclei=True)
 
     assert np.all(segmentation_output_specified_split == segmentation_output_specified)

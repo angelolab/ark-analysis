@@ -2,10 +2,12 @@ import copy
 
 import numpy as np
 import pandas as pd
+import xarray as xr
 
 from skimage.draw import ellipse
 from skimage.measure import moments, regionprops, regionprops_table
 
+import ark.settings as settings
 import ark.segmentation.regionprops_extraction as regionprops_extraction
 
 
@@ -55,6 +57,46 @@ def test_convex_hull_resid():
 
     convex_res = regionprops_extraction.convex_hull_resid(prop_info)
     assert np.round(convex_res, 4) == 0.6605
+
+
+def test_nc_ratio():
+    # create a sample marker count matrix with 2 compartments, 3 cell ids, and 3 features
+    sample_marker_counts = np.zeros((2, 3, 3))
+
+    # cell 0: no nucleus
+    sample_marker_counts[0, 0, 1] = 5
+
+    # cell 1: equal whole cell and nuclear area
+    sample_marker_counts[0, 1, 1] = 10
+    sample_marker_counts[1, 1, 1] = 10
+
+    # cell 2: different whole cell and nuclear area
+    sample_marker_counts[0, 2, 1] = 10
+    sample_marker_counts[1, 2, 1] = 5
+
+    # write marker_counts to xarray
+    sample_marker_counts = xr.DataArray(copy.copy(sample_marker_counts),
+                                        coords=[['whole_cell', 'nuclear'],
+                                                [0, 1, 2],
+                                                ['feat_1', 'area', 'nc_ratio']],
+                                        dims=['compartments', 'cell_id', 'features'])
+
+    # define the nuclear properties
+    nuc_props = copy.deepcopy(settings.REGIONPROPS_NUCLEAR)
+
+    sample_marker_counts = regionprops_extraction.nc_ratio(sample_marker_counts)
+
+    # testing cell 0
+    assert sample_marker_counts.loc['whole_cell', 0, 'nc_ratio'] == 0
+    assert sample_marker_counts.loc['nuclear', 0, 'nc_ratio'] == 0
+
+    # testing cell 1
+    assert sample_marker_counts.loc['whole_cell', 1, 'nc_ratio'] == 1
+    assert sample_marker_counts.loc['nuclear', 1, 'nc_ratio'] == 1
+
+    # testing cell 2
+    assert sample_marker_counts.loc['whole_cell', 2, 'nc_ratio'] == 0.5
+    assert sample_marker_counts.loc['nuclear', 2, 'nc_ratio'] == 0.5
 
 
 def test_centroid_dif():
