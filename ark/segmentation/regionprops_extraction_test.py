@@ -81,9 +81,6 @@ def test_nc_ratio():
                                                 ['feat_1', 'area', 'nc_ratio']],
                                         dims=['compartments', 'cell_id', 'features'])
 
-    # define the nuclear properties
-    nuc_props = copy.deepcopy(settings.REGIONPROPS_NUCLEAR)
-
     sample_marker_counts = regionprops_extraction.nc_ratio(sample_marker_counts)
 
     # testing cell 0
