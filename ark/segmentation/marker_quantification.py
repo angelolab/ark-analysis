@@ -288,7 +288,7 @@ def compute_marker_counts(input_images, segmentation_labels, nuclear_counts=Fals
                     input_images, regionprops_names, extraction, **sig_kwargs
                 )
 
-                # assign nuclear-specific properties
+                # generate properties which involve multiple compartments
                 marker_counts = assign_multi_compartment_features(
                     marker_counts, regionprops_multi_comp
                 )
