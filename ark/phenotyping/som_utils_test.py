@@ -41,10 +41,8 @@ def mocked_train_som(fovs, channels, base_dir,
     feather.write_dataframe(weights, os.path.join(base_dir, weights_name))
 
 
-def mocked_cluster_pixels(fovs, channels, base_dir,
-                          pre_dir='pixel_mat_preprocessed',
-                          weights_name='weights.feather',
-                          cluster_dir='pixel_mat_clustered'):
+def mocked_cluster_pixels(fovs, base_dir, pre_dir='pixel_mat_preprocessed',
+                          weights_name='weights.feather', cluster_dir='pixel_mat_clustered'):
     # read in the weights matrix
     weights = feather.read_dataframe(os.path.join(base_dir, weights_name))
 
@@ -53,11 +51,7 @@ def mocked_cluster_pixels(fovs, channels, base_dir,
         fov_mat_pre = feather.read_dataframe(os.path.join(base_dir, pre_dir, fov + '.feather'))
 
         # only take the specified channel columns
-        fov_mat_pre = fov_mat_pre[channels]
-
-        # like som_cluster.R, fail if the weight and pixel matrix columns aren't the same
-        misc_utils.verify_same_elements(weights_columns=weights.columns.values,
-                                        pixel_columns=fov_mat_pre.columns.values)
+        fov_mat_pre = fov_mat_pre[weights.columns.values]
 
         # get the mean weight for each channel column
         sub_means = weights.mean(axis=1)
@@ -149,9 +143,6 @@ def test_train_som(mocker):
                                 base_dir=temp_dir, sub_dir='bad_path')
 
     with tempfile.TemporaryDirectory() as temp_dir:
-        # add mocked function to "train" the SOM based on dummy subsetted data
-        mocker.patch('ark.phenotyping.som_utils.train_som', mocked_train_som)
-
         # create list of markers and fovs we want to use
         chan_list = ['Marker1', 'Marker2', 'Marker3', 'Marker4']
         fovs = ['fov0', 'fov1', 'fov2']
@@ -171,6 +162,18 @@ def test_train_som(mocker):
                                                                  'pixel_mat_subsetted',
                                                                  fov + '.feather'))
 
+        # not all of the provided fovs exist
+        with pytest.raises(ValueError):
+            som_utils.train_som(fovs=['fov2', 'fov3'], channels=chan_list, base_dir=temp_dir)
+
+        # column mismatch between provided channels and subsetted data
+        with pytest.raises(ValueError):
+            som_utils.train_som(fovs=fovs, channels=['Marker3', 'Marker4', 'MarkerBad'],
+                                base_dir=temp_dir)
+
+        # add mocked function to "train" the SOM based on dummy subsetted data
+        mocker.patch('ark.phenotyping.som_utils.train_som', mocked_train_som)
+
         # run "training" using mocked function
         som_utils.train_som(fovs=fovs, channels=chan_list, base_dir=temp_dir)
 
@@ -186,20 +189,16 @@ def test_cluster_pixels(mocker):
     # basic error checks: bad path to preprocessed and weights matrices
     with tempfile.TemporaryDirectory() as temp_dir:
         with pytest.raises(FileNotFoundError):
-            som_utils.cluster_pixels(fovs=['fov0'], channels=['Marker1'],
-                                     base_dir=temp_dir, pre_dir='bad_path')
+            som_utils.cluster_pixels(fovs=['fov0'], base_dir=temp_dir, pre_dir='bad_path')
 
         # create a preprocessed directory for the undefined weights test
         os.mkdir(os.path.join(temp_dir, 'pixel_mat_preprocessed'))
 
         with pytest.raises(FileNotFoundError):
-            som_utils.cluster_pixels(fovs=['fov0'], channels=['Marker1'],
-                                     base_dir=temp_dir, weights_name='bad_path.feather')
+            som_utils.cluster_pixels(fovs=['fov0'], base_dir=temp_dir,
+                                     weights_name='bad_path.feather')
 
     with tempfile.TemporaryDirectory() as temp_dir:
-        # add mocked function to "cluster" preprocessed data based on dummy weights
-        mocker.patch('ark.phenotyping.som_utils.cluster_pixels', mocked_cluster_pixels)
-
         # create list of markers and fovs we want to use
         chan_list = ['Marker1', 'Marker2', 'Marker3', 'Marker4']
         fovs = ['fov0', 'fov1', 'fov2']
@@ -219,12 +218,19 @@ def test_cluster_pixels(mocker):
                                                                  'pixel_mat_preprocessed',
                                                                  fov + '.feather'))
 
-        # column name mismatch between weights and pixel data
+        # not all of the provided fovs exist
         with pytest.raises(ValueError):
-            weights = pd.DataFrame(np.random.rand(100, 2), columns=chan_list[:2])
+            weights = pd.DataFrame(np.random.rand(100, 4), columns=chan_list)
             feather.write_dataframe(weights, os.path.join(temp_dir, 'weights.feather'))
 
-            som_utils.cluster_pixels(fovs=fovs, channels=chan_list, base_dir=temp_dir)
+            som_utils.cluster_pixels(fovs=['fov2', 'fov3'], base_dir=temp_dir)
+
+        # column name mismatch between weights channels and pixel data channels
+        with pytest.raises(ValueError):
+            weights = pd.DataFrame(np.random.rand(100, 2), columns=['Marker4', 'Marker5'])
+            feather.write_dataframe(weights, os.path.join(temp_dir, 'weights.feather'))
+
+            som_utils.cluster_pixels(fovs=fovs, base_dir=temp_dir)
 
         # create a dummy weights matrix and write to feather
         weights = pd.DataFrame(np.random.rand(100, 4), columns=chan_list)
@@ -233,8 +239,11 @@ def test_cluster_pixels(mocker):
         # make a dummy cluster dir
         os.mkdir(os.path.join(temp_dir, 'pixel_mat_clustered'))
 
+        # add mocked function to "cluster" preprocessed data based on dummy weights
+        mocker.patch('ark.phenotyping.som_utils.cluster_pixels', mocked_cluster_pixels)
+
         # run "clustering" using mocked function
-        som_utils.cluster_pixels(fovs=fovs, channels=chan_list, base_dir=temp_dir)
+        som_utils.cluster_pixels(fovs=fovs, base_dir=temp_dir)
 
         # assert the clustered directory has been created
         assert os.path.exists(os.path.join(temp_dir, 'pixel_mat_clustered'))

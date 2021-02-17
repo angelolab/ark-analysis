@@ -11,7 +11,6 @@
 library(arrow)
 library(data.table)
 library(FlowSOM)
-library(rhdf5)
 
 # get the command line arguments
 args <- commandArgs(trailingOnly=TRUE)
@@ -19,21 +18,21 @@ args <- commandArgs(trailingOnly=TRUE)
 # create the list of fovs
 fovs <- unlist(strsplit(args[1], split=","))
 
-# create a vector out of the list of channels provided
-markers <- unlist(strsplit(args[2], split=","))
-
 # get path to pixel mat directory
-pixelMatDir <- args[3]
+pixelMatDir <- args[2]
 
 # get path to the weights
-pixelWeightsPath <- args[4]
+pixelWeightsPath <- args[3]
 
 # get the cluster write path directory
-pixelClusterDir <- args[5]
+pixelClusterDir <- args[4]
 
 # read the weights
 print("Reading the weights matrix")
 somWeights <- as.matrix(arrow::read_feather(pixelWeightsPath))
+
+# get the marker names from the weights matrix
+markers <- colnames(somWeights)
 
 # using trained SOM, batch cluster the original dataset by fov
 print("Mapping data to cluster labels")

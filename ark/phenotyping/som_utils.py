@@ -9,7 +9,7 @@ import scipy.ndimage as ndimage
 from skimage.io import imread
 
 import ark.settings as settings
-from ark.utils import load_utils
+from ark.utils import io_utils
 from ark.utils import misc_utils
 
 
@@ -140,6 +140,7 @@ def train_som(fovs, channels, base_dir,
             The number of training passes to make through the dataset
     """
 
+    # define the paths to the data
     subsetted_path = os.path.join(base_dir, sub_dir)
     weights_path = os.path.join(base_dir, weights_name)
 
@@ -147,6 +148,16 @@ def train_som(fovs, channels, base_dir,
     if not os.path.exists(subsetted_path):
         raise FileNotFoundError('Pixel subsetted directory %s does not exist in base_dir %s' %
                                 (sub_dir, base_dir))
+
+    # verify that all provided fovs exist in the folder
+    files = io_utils.list_files(subsetted_path, substrs='.feather')
+    misc_utils.verify_in_list(provided_fovs=fovs,
+                              subsetted_fovs=io_utils.remove_file_extensions(files))
+
+    # verify that all the provided channels exist in subsetted data
+    sample_sub = feather.read_dataframe(os.path.join(subsetted_path, files[0]))
+    misc_utils.verify_in_list(provided_channels=channels,
+                              subsetted_channels=sample_sub.columns.values)
 
     # run som_train.R
     process_args = ['Rscript', '/create_som_matrix.R', ','.join(fovs), ','.join(channels),
@@ -165,7 +176,7 @@ def train_som(fovs, channels, base_dir,
             print(output.strip())
 
 
-def cluster_pixels(fovs, channels, base_dir, pre_dir='pixel_mat_preprocessed',
+def cluster_pixels(fovs, base_dir, pre_dir='pixel_mat_preprocessed',
                    weights_name='weights.feather', cluster_dir='pixel_mat_clustered'):
     """Uses trained weights to assign cluster labels on full pixel data
 
@@ -174,8 +185,6 @@ def cluster_pixels(fovs, channels, base_dir, pre_dir='pixel_mat_preprocessed',
     Args:
         fovs (list):
             The list of fovs to subset on
-        channels (list):
-            The list of markers to subset on
         base_dir (str):
             The path to the data directory
         pre_dir (str):
@@ -187,6 +196,7 @@ def cluster_pixels(fovs, channels, base_dir, pre_dir='pixel_mat_preprocessed',
             The name of the directory to write the clustered data
     """
 
+    # define the paths to the data
     preprocessed_path = os.path.join(base_dir, pre_dir)
     weights_path = os.path.join(base_dir, weights_name)
     clustered_path = os.path.join(base_dir, cluster_dir)
@@ -201,18 +211,23 @@ def cluster_pixels(fovs, channels, base_dir, pre_dir='pixel_mat_preprocessed',
         raise FileNotFoundError('Weights file %s does not exist in base_dir %s' %
                                 (weights_name, base_dir))
 
-    # ensure the weights columns are the same as the pixel data columns
-    weights = feather.read_dataframe(os.path.join(base_dir, weights_name))
-    sample_fov = feather.read_dataframe(os.path.join(base_dir, pre_dir, fovs[0] + '.feather'))
+    # verify that all provided fovs exist in the folder
+    files = io_utils.list_files(preprocessed_path, substrs='.feather')
+    misc_utils.verify_in_list(provided_fovs=fovs,
+                              subsetted_fovs=io_utils.remove_file_extensions(files))
 
-    misc_utils.verify_same_elements(weights_columns=weights.columns.values,
-                                    pixel_data_columns=sample_fov[channels].columns.values)
+    # ensure the weights columns are valid indexes
+    weights = feather.read_dataframe(os.path.join(base_dir, weights_name))
+    sample_fov = feather.read_dataframe(os.path.join(base_dir, pre_dir, files[0]))
+
+    misc_utils.verify_in_list(weights_columns=weights.columns.values,
+                              pixel_data_columns=sample_fov.columns.values)
 
     # make the clustered dir if it does not exist
     if not os.path.exists(clustered_path):
         os.mkdir(clustered_path)
 
-    process_args = ['Rscript', '/run_trained_som.R', ','.join(fovs), ','.join(channels),
+    process_args = ['Rscript', '/run_trained_som.R', ','.join(fovs),
                     preprocessed_path, weights_path, clustered_path]
 
     process = subprocess.Popen(process_args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)

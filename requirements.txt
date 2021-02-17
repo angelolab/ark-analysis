@@ -1,5 +1,4 @@
 feather-format>=0.4.1,<1
-h5py>=3.1.0
 jupyter>=1.0.0,<2
 jupyter_contrib_nbextensions>=0.5.1,<1
 matplotlib>=2.2.2,<3

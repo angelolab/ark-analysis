@@ -64,7 +64,6 @@ napoleon_google_docstring = True
 # contains list of modules to be marked up
 # will ensure 'clean' imports of all the following libraries
 autodoc_mock_imports = ['feather',
-                        'h5py',
                         'numpy',
                         'matplotlib',
                         'pandas',

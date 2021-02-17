@@ -11,7 +11,6 @@
 library(arrow)
 library(data.table)
 library(FlowSOM)
-library(rhdf5)
 
 # get the command line arguments
 args <- commandArgs(trailingOnly=TRUE)
