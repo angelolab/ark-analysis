@@ -146,9 +146,9 @@ def flowsom_setup(tb, flowsom_dir, img_shape=(50, 50), num_fovs=3, num_chans=3,
         tb.inject("MIBItiff = True", after='mibitiff_set')
 
 
-def load_imgs_labels(tb, channels, fovs=None, xr_dim_name='compartments',
-                     xr_channel_names=None, force_ints=True):
-    """Sets the fovs and chan_list variables and loads img_xr and segmentation_labels for FlowSOM
+def flowsom_load_imgs_labels(tb, channels, fovs=None, xr_dim_name='compartments',
+                             xr_channel_names=None, force_ints=True):
+    """Sets the fovs and channels variables and loads img_xr and segmentation_labels for FlowSOM
 
     Args:
         tb (testbook.testbook):
@@ -174,7 +174,7 @@ def load_imgs_labels(tb, channels, fovs=None, xr_dim_name='compartments',
         tb.execute_cell('load_fovs')
 
     # sets the channels accordingly
-    tb.inject("chan_list = %s" % str(channels), after='set_channels')
+    tb.inject("channels = %s" % str(channels), after='set_channels')
 
     # load the image data in
     tb.execute_cell('load_img_xr')
@@ -196,27 +196,53 @@ def load_imgs_labels(tb, channels, fovs=None, xr_dim_name='compartments',
     tb.execute_cell('trim_seg_coords')
 
 
-def flowsom_run(tb):
+def flowsom_run(tb, fovs, channels):
     """Run the FlowSOM clustering
 
     Args:
         tb (testbook.testbook):
             The testbook runner instance
+        fovs (list):
+            The list of fovs
+        channels (list)
+            The list of channels
     """
 
     # test the preprocessing works, we won't save nor run the actual FlowSOM clustering
     tb.execute_cell('gen_pixel_mat')
 
-    # here we assume that FlowSOM clustering produced a correct pixel_mat_clustered.csv
-    dummy_cluster_cmd = """
-        pixel_data['cluster_labels'] = np.random.randint(low=0, high=100, size=pixel_data.shape[0])
-        pixel_data['cluster_dists'] = np.random.rand(pixel_data.shape[0])
-        pixel_data.to_csv(os.path.join(base_dir, 'pixel_mat_clustered.csv'), index=False)
-    """
-    tb.inject(dummy_cluster_cmd, after='cluster_pixel_mat')
+    # create a dummy weights .feather
+    dummy_weights = """
+        import feather
+        weights = pd.DataFrame(np.random.rand(100, len(channels)), columns=channels)
 
-    # read the dummy clustered data in
-    tb.execute_cell('read_cluster_mat')
+        feather.write_dataframe(weights, os.path.join(base_dir, 'weights.hdf5'))
+    """
+
+    tb.inject(dummy_weights, after='train_som')
+
+    # create dummy clustered .feathers for each fov
+    cluster_setup = """
+        if not os.path.exists(os.path.join(base_dir, 'pixel_mat_preprocessed')):
+            os.mkdir(os.path.join(base_dir, 'pixel_mat_preprocessed'))
+    """
+
+    tb.inject(cluster_setup, after='cluster_pixel_mat')
+
+    for fov in fovs:
+        dummy_cluster_cmd = """
+            sample_df = pd.DataFrame(np.random.rand(100, 6),
+                                     columns=%s +
+                                     ['fov', 'row_index', 'col_index', 'segmentation_label'])
+            sample_df['fov'] = '%s'
+            sample_df['clusters'] = np.random.randint(0, 100, size=100)
+
+            feather.write_dataframe(sample_df, os.path.join(base_dir,
+                                                            'pixel_mat_preprocessed',
+                                                            '%s' + '.feather'))
+        """ % (str(channels), fov, fov)
+
+    tb.inject(dummy_cluster_cmd, after='cluster_pixel_mat')
 
 
 def fov_channel_input_set(tb, fovs=None, nucs_list=None, mems_list=None):

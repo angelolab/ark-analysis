@@ -23,5 +23,6 @@ docker run -it \
   -v "$PWD/ark:/usr/local/lib/python3.6/site-packages/ark" \
   -v "$PWD/scripts:/scripts" \
   -v "$PWD/data:/data" \
-  -v "$PWD/ark/phenotyping/som_runner.R:/som_runner.R" \
+  -v "$PWD/ark/phenotyping/create_som_matrix.R:/create_som_matrix.R" \
+  -v "$PWD/ark/phenotyping/run_trained_som.R:/run_trained_som.R" \
   ark-analysis:latest
