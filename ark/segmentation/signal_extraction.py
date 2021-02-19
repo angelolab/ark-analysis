@@ -5,9 +5,12 @@ def positive_pixels_extraction(cell_coords, image_data, **kwargs):
     """Extract channel counts by summing over the number of non-zero pixels in the cell.
 
     Args:
-        cell_coords (numpy.ndarray): values representing pixels within one cell
-        image_data (xarray.DataArray): array containing channel counts
-        **kwargs: arbitrary keyword arguments
+        cell_coords (numpy.ndarray):
+            values representing pixels within one cell
+        image_data (xarray.DataArray):
+            array containing channel counts
+        **kwargs:
+            arbitrary keyword arguments
 
     Returns:
         numpy.ndarray:
@@ -78,7 +81,7 @@ def total_intensity_extraction(cell_coords, image_data, **kwargs):
     return channel_counts
 
 
-extraction_function = {
+EXTRACTION_FUNCTION = {
     'positive_pixel': positive_pixels_extraction,
     'center_weighting': center_weighting_extraction,
     'total_intensity': total_intensity_extraction,
