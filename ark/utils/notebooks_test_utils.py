@@ -242,7 +242,19 @@ def flowsom_run(tb, fovs, channels):
                                                             '%s' + '.feather'))
         """ % (str(channels), fov, fov)
 
-    tb.inject(dummy_cluster_cmd, after='cluster_pixel_mat')
+        tb.inject(dummy_cluster_cmd, after='cluster_pixel_mat')
+
+    # create a dummy consensus clustered data file
+    dummy_consensus = """
+        sample_consensus = pd.DataFrame(np.random.rand(100, len(channels)), columns=channels)
+        sample_consensus['clusters'] = np.arange(100)
+        sample_consensus['hCluster_cap'] = np.repeat(np.arange(20), repeats=5)
+
+        feather.write_dataframe(sample_consensus, os.path.join(base_dir,
+                                                               'cluster_consensus.feather'))
+    """
+
+    tb.inject(dummy_consensus, after='consensus_cluster')
 
 
 def fov_channel_input_set(tb, fovs=None, nucs_list=None, mems_list=None):
