@@ -47,7 +47,7 @@ def read_mibitiff(file, channels=None):
             # read image data
             img_data.append(page.asarray())
 
-    ## make sure all passed channels were found
+    # make sure all passed channels were found
     if channels is not None:
         channel_names = [return_channel[1] for return_channel in return_channels]
         found_channels = [channel not in channel_names for channel in channels]
