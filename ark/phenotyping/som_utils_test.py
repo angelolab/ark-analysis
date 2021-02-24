@@ -68,7 +68,7 @@ def mocked_cluster_pixels(fovs, base_dir, pre_dir='pixel_mat_preprocessed',
                                                           fov + '.feather'))
 
 
-def mocked_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
+def mocked_consensus_cluster(channels, base_dir, max_k=20, cap=3,
                              cluster_avg_name='pixel_cluster_avg.feather',
                              consensus_name='cluster_consensus.feather'):
     # read the cluster average
@@ -363,7 +363,7 @@ def test_consensus_cluster(mocker):
         mocker.patch('ark.phenotyping.som_utils.consensus_cluster', mocked_consensus_cluster)
 
         # run "consensus clustering" using mocked function
-        som_utils.consensus_cluster(fovs=fovs, channels=chans, base_dir=temp_dir)
+        som_utils.consensus_cluster(channels=chans, base_dir=temp_dir)
 
         # assert the final consensus cluster file has been created
         assert os.path.exists(os.path.join(temp_dir, 'cluster_consensus.feather'))

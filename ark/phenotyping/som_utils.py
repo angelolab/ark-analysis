@@ -31,7 +31,7 @@ def compute_cluster_avg(fovs, channels, base_dir,
             Name of file to save the averaged results to
     """
 
-    cluster_avgs = None
+    cluster_avgs = pd.DataFrame()
 
     for fov in fovs:
         # read in the fovs data
@@ -46,11 +46,7 @@ def compute_cluster_avg(fovs, channels, base_dir,
         agg_results = pd.merge(
             sum_by_cluster, count_by_cluster, left_index=True, right_index=True).reset_index()
 
-        # set to cluster_avgs if not defined, otherwise concat
-        if cluster_avgs is None:
-            cluster_avgs = agg_results
-        else:
-            cluster_avgs = pd.concat([cluster_avgs, agg_results])
+        cluster_avgs = pd.concat([cluster_avgs, agg_results])
 
     # sum the counts and the channel sums
     sum_count_totals = cluster_avgs.groupby('cluster')[channels + ['count']].sum().reset_index()
@@ -336,7 +332,7 @@ def consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
     compute_cluster_avg(fovs, channels, base_dir, cluster_dir)
 
     # run the consensus clustering process
-    process_args = ['Rscript', '/consensus_cluster.R', ','.join(fovs), ','.join(channels),
+    process_args = ['Rscript', '/consensus_cluster.R', ','.join(channels),
                     str(max_k), str(cap), cluster_avg_path, consensus_path]
 
     process = subprocess.Popen(process_args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
