@@ -5,6 +5,8 @@ import json
 import datetime
 from itertools import compress
 
+from ark.utils.misc_utils import verify_in_list
+
 
 def read_mibitiff(file, channels=None):
     """ Reads MIBI data from an IonpathMIBI TIFF file.
@@ -49,13 +51,11 @@ def read_mibitiff(file, channels=None):
 
     # make sure all passed channels were found
     if channels is not None:
-        channel_names = [return_channel[1] for return_channel in return_channels]
-        found_channels = [channel not in channel_names for channel in channels]
-        if any(found_channels):
-            raise IndexError(
-                f'The following channels could not be found as named: '
-                f'{list(compress(channels, found_channels))}'
-            )
+        try:
+            channel_names = [return_channel[1] for return_channel in return_channels]
+            verify_in_list(passed_channels=channels, in_tiff=channel_names)
+        except ValueError as exc:
+            raise IndexError('Passed unknown channels...') from exc
 
     return np.stack(img_data, axis=2), return_channels
 
