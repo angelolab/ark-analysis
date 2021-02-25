@@ -94,7 +94,7 @@ def combine_fov_directories(dir_path):
                       os.path.join(dir_path, "combined_folder", folder + "_" + fov))
 
 
-def save_figure(save_dir, save_file):
+def save_figure(save_dir, save_file, dpi=None):
     """Verify save_dir and save_file, then save to specified location
 
     Args:
@@ -102,6 +102,8 @@ def save_figure(save_dir, save_file):
             the name of the directory we wish to save to
         save_file (str):
             the name of the file we wish to save to
+        dpi (float):
+            the resolution of the figure
     """
 
     # verify save_dir exists
@@ -112,7 +114,7 @@ def save_figure(save_dir, save_file):
     if save_file is None:
         raise FileNotFoundError("save_dir specified but no save_file specified")
 
-    plt.savefig(os.path.join(save_dir, save_file))
+    plt.savefig(os.path.join(save_dir, save_file), dpi=dpi)
 
 
 def verify_in_list(**kwargs):

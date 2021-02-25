@@ -186,7 +186,11 @@ def run_deepcell_direct(input_dir, output_dir, host='https://deepcell.org',
 
     # check redis every 3 seconds
     redis_url = host + '/api/redis'
-    progress_bar = tqdm(total=100)
+
+    print('Segmentation progress:')
+    progress_bar = tqdm(total=100,
+                        bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}]')
+
     pbar_last = 0
     total_time = 0
     redis_responce = None

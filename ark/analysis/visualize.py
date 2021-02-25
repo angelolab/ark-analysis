@@ -3,12 +3,11 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-import xarray as xr
 
 from ark.utils import misc_utils
 
 
-def draw_boxplot(cell_data, col_name, col_split=None, split_vals=None, save_dir=None):
+def draw_boxplot(cell_data, col_name, col_split=None, split_vals=None, dpi=None, save_dir=None):
     """Draws a boxplot for a given column, optionally with help from a split column
 
     Args:
@@ -20,6 +19,8 @@ def draw_boxplot(cell_data, col_name, col_split=None, split_vals=None, save_dir=
             If specified, used for additional box-and-whisker plot faceting
         split_vals (list):
             If specified, only visualize the specified values in the col_split column
+        dpi (float):
+            The resolution of the image to save, ignored if save_dir is None
         save_dir (str):
             If specified, a directory where we will save the plot
     """
@@ -60,33 +61,47 @@ def draw_boxplot(cell_data, col_name, col_split=None, split_vals=None, save_dir=
 
     # save visualization to a directory if specified
     if save_dir is not None:
-        misc_utils.save_figure(save_dir, "boxplot_viz.png")
+        misc_utils.save_figure(save_dir, "boxplot_viz.png", dpi=dpi)
 
 
-def visualize_z_scores(z, pheno_titles, save_dir=None):
+def draw_heatmap(data, x_labels, y_labels, dpi=None, center_val=None,
+                 overlay_values=False, colormap="vlag", save_dir=None):
     """Plots the z scores between all phenotypes as a clustermap.
 
     Args:
-        z (numpy.ndarray):
-            Array of z scores of shape (pheno_num, pheno_num)
-        pheno_titles (list):
-            List of all the names of the phenotypes
+        data (numpy.ndarray):
+            The data array to visualize
+        x_labels (list):
+            List of names displayed on horizontal axis
+        y_labels (list):
+            List of all names displayed on vertical axis
+        dpi (float):
+            The resolution of the image to save, ignored if save_dir is None
+        center_val (float):
+            value at which to center the heatmap
+        overlay_values (bool):
+            whether to overlay the raw heatmap values on top
+        colormap (str):
+            color scheme for visualization
         save_dir (str):
             If specified, a directory where we will save the plot
     """
 
     # Replace the NA's and inf values with 0s
-    z[np.isnan(z)] = 0
-    z[np.isinf(z)] = 0
+    data[np.isnan(data)] = 0
+    data[np.isinf(data)] = 0
 
     # Assign numpy values respective phenotype labels
-    zplot = pd.DataFrame(z, columns=pheno_titles, index=pheno_titles)
+    data_df = pd.DataFrame(data, index=x_labels, columns=y_labels)
     sns.set(font_scale=.7)
-    sns.clustermap(zplot, figsize=(8, 8), cmap="vlag")
 
-    # save visualization to a directory if specified
+    if overlay_values:
+        sns.clustermap(data_df, cmap=colormap, annot=data, center=center_val)
+    else:
+        sns.clustermap(data_df, cmap=colormap, center=center_val)
+
     if save_dir is not None:
-        misc_utils.save_figure(save_dir, "z_score_viz.png")
+        misc_utils.save_figure(save_dir, "z_score_viz.png", dpi=dpi)
 
 
 def get_sorted_data(cell_data, sort_by_first, sort_by_second, is_normalized=False):
@@ -133,7 +148,7 @@ def get_sorted_data(cell_data, sort_by_first, sort_by_second, is_normalized=Fals
 
 def plot_barchart(data, title, x_label, y_label, color_map="jet", is_stacked=True,
                   is_legend=True, legend_loc='center left', bbox_to_anchor=(1.0, 0.5),
-                  save_dir=None, save_file=None):
+                  dpi=None, save_dir=None, save_file=None):
     """A helper function to visualize_patient_population_distribution
 
     Args:
@@ -157,6 +172,8 @@ def plot_barchart(data, title, x_label, y_label, color_map="jet", is_stacked=Tru
         bbox_to_anchor (tuple):
             If is_legend is set, specify the bounding box of the legend
             Ignored if is_legend is False
+        dpi (float):
+            The resolution of the image to save, ignored if save_dir is None
         save_dir (str):
             Directory to save plots, default is None
         save_file (str):
@@ -179,7 +196,7 @@ def plot_barchart(data, title, x_label, y_label, color_map="jet", is_stacked=Tru
 def visualize_patient_population_distribution(cell_data, patient_col_name, population_col_name,
                                               color_map="jet", show_total_count=True,
                                               show_distribution=True, show_proportion=True,
-                                              save_dir=None):
+                                              dpi=None, save_dir=None):
     """Plots the distribution of the population given by total count, direct count, and proportion
 
     Args:
@@ -197,6 +214,8 @@ def visualize_patient_population_distribution(cell_data, patient_col_name, popul
             Boolean specifying whether to show graph of population distribution, default is true
         show_proportion (bool):
             Boolean specifying whether to show graph of total count, default is true
+        dpi (float):
+            The resolution of the image to save, ignored if save_dir is None
         save_dir (str):
             Directory to save plots, default is None
     """
@@ -211,7 +230,7 @@ def visualize_patient_population_distribution(cell_data, patient_col_name, popul
         y_label = "Population Count"
 
         plot_barchart(population_values, title, x_label, y_label, is_legend=False,
-                      save_dir=save_dir, save_file="PopulationDistribution.png")
+                      dpi=dpi, save_dir=save_dir, save_file="PopulationDistribution.png")
 
     # Plot by count
     if show_distribution:
@@ -219,7 +238,7 @@ def visualize_patient_population_distribution(cell_data, patient_col_name, popul
         title = "Distribution of Population Count in Patients"
 
         plot_barchart(sorted_data, title, patient_col_name, population_col_name,
-                      save_dir=save_dir, save_file="TotalPopulationDistribution.png")
+                      dpi=dpi, save_dir=save_dir, save_file="TotalPopulationDistribution.png")
 
     # Plot by Proportion
     if show_proportion:
@@ -228,16 +247,18 @@ def visualize_patient_population_distribution(cell_data, patient_col_name, popul
         title = "Distribution of Population Count Proportion in Patients"
 
         plot_barchart(sorted_data, title, patient_col_name, population_col_name,
-                      save_dir=save_dir, save_file="PopulationProportion.png")
+                      dpi=dpi, save_dir=save_dir, save_file="PopulationProportion.png")
 
 
-def visualize_neighbor_cluster_metrics(neighbor_cluster_stats, save_dir=None):
+def visualize_neighbor_cluster_metrics(neighbor_cluster_stats, dpi=None, save_dir=None):
     """Visualize the cluster performance results of a neighborhood matrix
 
     Args:
         neighbor_cluster_stats (xarray.DataArray):
             contains the desired statistic we wish to visualize, should have one
             coordinate called cluster_num labeled starting from 2
+        dpi (float):
+            The resolution of the image to save, ignored if save_dir is None
         save_dir (str):
             Directory to save plots, default is None
     """
@@ -254,4 +275,4 @@ def visualize_neighbor_cluster_metrics(neighbor_cluster_stats, save_dir=None):
 
     # save if desired
     if save_dir is not None:
-        misc_utils.save_figure(save_dir, "neighborhood_cluster_scores.png")
+        misc_utils.save_figure(save_dir, "neighborhood_cluster_scores.png", dpi=dpi)
