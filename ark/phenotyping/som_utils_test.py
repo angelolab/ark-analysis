@@ -60,12 +60,80 @@ def mocked_cluster_pixels(fovs, base_dir, pre_dir='pixel_mat_preprocessed',
         cluster_ids = cluster_ids.astype(int)
 
         # now assign the calculated cluster_ids as the cluster assignment
-        fov_mat_pre['clusters'] = cluster_ids
+        fov_mat_pre['cluster'] = cluster_ids
 
-        # write clustered data to HDF5
+        # write clustered data to feather
         feather.write_dataframe(fov_mat_pre, os.path.join(base_dir,
                                                           cluster_dir,
                                                           fov + '.feather'))
+
+
+def mocked_consensus_cluster(channels, base_dir, max_k=20, cap=3,
+                             cluster_avg_name='pixel_cluster_avg.feather',
+                             consensus_name='cluster_consensus.feather'):
+    # read the cluster average
+    cluster_avg = feather.read_dataframe(os.path.join(base_dir, cluster_avg_name))
+
+    # dummy scaling using cap
+    cluster_avg_scale = cluster_avg[channels] * (cap - 1) / cap
+
+    # get the mean weight for each channel column
+    cluster_means = cluster_avg_scale.mean(axis=1)
+
+    # multiply by 100 and mod by 20 to get dummy cluster ids for consensus clustering
+    cluster_ids = cluster_means * 100
+    cluster_ids = cluster_ids.astype(int) % 20
+
+    # assign dummy consensus cluster ids
+    cluster_avg['hCluster_cap'] = cluster_ids
+
+    # write consensus cluster results to feather
+    feather.write_dataframe(cluster_avg, os.path.join(base_dir, consensus_name))
+
+
+def test_compute_cluster_avg():
+    # define list of fovs and channels
+    fovs = ['fov0', 'fov1', 'fov2']
+    chans = ['chan0', 'chan1', 'chan2']
+
+    # do not need to test for cluster_dir existence, that happens in consensus_cluster
+    with tempfile.TemporaryDirectory() as temp_dir:
+        # create a dummy clustered matrix
+        os.mkdir(os.path.join(temp_dir, 'pixel_mat_clustered'))
+
+        # write dummy clustered data for each fov
+        for fov in fovs:
+            # create dummy preprocessed data for each fov
+            fov_cluster_matrix = pd.DataFrame(
+                np.repeat(np.array([[0.1, 0.2, 0.3]]), repeats=1000, axis=0),
+                columns=chans
+            )
+
+            # assign dummy cluster labels
+            fov_cluster_matrix['cluster'] = np.repeat(np.arange(100), repeats=10)
+
+            # write the dummy data to pixel_mat_clustered
+            feather.write_dataframe(fov_cluster_matrix, os.path.join(temp_dir,
+                                                                     'pixel_mat_clustered',
+                                                                     fov + '.feather'))
+
+        # compute cluster average matrix
+        som_utils.compute_cluster_avg(fovs, chans, temp_dir)
+
+        # assert that pixel_cluster_avg.feather was actually created
+        assert os.path.exists(os.path.join(temp_dir, 'pixel_cluster_avg.feather'))
+
+        # read the averaged results
+        cluster_avg = feather.read_dataframe(os.path.join(temp_dir, 'pixel_cluster_avg.feather'))
+
+        # verify the provided channels and the channels in cluster_avg are exactly the same
+        misc_utils.verify_same_elements(
+            cluster_avg_chans=cluster_avg[chans].columns.values,
+            provided_chans=chans)
+
+        # assert all rows equal [0.1, 0.2, 0.3], round due to minor float arithmetic inaccuracies
+        result = np.repeat(np.array([[0.1, 0.2, 0.3]]), repeats=100, axis=0)
+        assert np.array_equal(result, np.round(cluster_avg[chans].values, 1))
 
 
 def test_create_pixel_matrix():
@@ -253,5 +321,58 @@ def test_cluster_pixels(mocker):
                                                                    fov + '.feather'))
 
             # assert we didn't assign any cluster 100 or above
-            cluster_ids = fov_cluster_data['clusters']
+            cluster_ids = fov_cluster_data['cluster']
             assert np.all(cluster_ids < 100)
+
+
+def test_consensus_cluster(mocker):
+    # basic error checks: bad path to clustered dir
+    with tempfile.TemporaryDirectory() as temp_dir:
+        with pytest.raises(FileNotFoundError):
+            som_utils.consensus_cluster(fovs=['fov0'], channels=['chan0'],
+                                        base_dir=temp_dir, cluster_dir='bad_path')
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        # define fovs and channels
+        fovs = ['fov0', 'fov1', 'fov2']
+        chans = ['Marker1', 'Marker2', 'Marker3', 'Marker4']
+
+        # create a dummy clustered matrix
+        os.mkdir(os.path.join(temp_dir, 'pixel_mat_clustered'))
+
+        # write dummy clustered data for each fov
+        for fov in fovs:
+            # create dummy preprocessed data for each fov
+            fov_cluster_matrix = pd.DataFrame(
+                np.repeat(np.array([[0.1, 0.2, 0.3, 0.4]]), repeats=1000, axis=0),
+                columns=chans
+            )
+
+            # assign dummy cluster labels
+            fov_cluster_matrix['cluster'] = np.repeat(np.arange(100), repeats=10)
+
+            # write the dummy data to pixel_mat_clustered
+            feather.write_dataframe(fov_cluster_matrix, os.path.join(temp_dir,
+                                                                     'pixel_mat_clustered',
+                                                                     fov + '.feather'))
+
+        # compute averages by cluster, this happens before call to R
+        som_utils.compute_cluster_avg(fovs, chans, temp_dir)
+
+        # add mocked function to "consensus cluster" data averaged by cluster
+        mocker.patch('ark.phenotyping.som_utils.consensus_cluster', mocked_consensus_cluster)
+
+        # run "consensus clustering" using mocked function
+        som_utils.consensus_cluster(channels=chans, base_dir=temp_dir)
+
+        # assert the final consensus cluster file has been created
+        assert os.path.exists(os.path.join(temp_dir, 'cluster_consensus.feather'))
+
+        # read the dummy consensus cluster results in
+        consensus_cluster_results = feather.read_dataframe(
+            os.path.join(temp_dir, 'cluster_consensus.feather')
+        )
+
+        # assert we didn't assign any cluster 20 or above
+        cluster_ids = consensus_cluster_results['hCluster_cap']
+        assert np.all(cluster_ids < 20)

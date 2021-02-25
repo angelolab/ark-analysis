@@ -25,4 +25,5 @@ docker run -it \
   -v "$PWD/data:/data" \
   -v "$PWD/ark/phenotyping/create_som_matrix.R:/create_som_matrix.R" \
   -v "$PWD/ark/phenotyping/run_trained_som.R:/run_trained_som.R" \
+  -v "$PWD/ark/phenotyping/consensus_cluster.R:/consensus_cluster.R" \
   ark-analysis:latest

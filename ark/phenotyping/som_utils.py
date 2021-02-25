@@ -13,6 +13,56 @@ from ark.utils import io_utils
 from ark.utils import misc_utils
 
 
+def compute_cluster_avg(fovs, channels, base_dir,
+                        cluster_dir='pixel_mat_clustered',
+                        cluster_avg_name='pixel_cluster_avg.feather'):
+    """Averages channel values across all fovs in pixel_mat_clustered
+
+    Args:
+        fovs (list):
+            The list of fovs to subset on
+        channels (list):
+            The list of channels to subset on
+        base_dir (str):
+            Name of the directory to save the pixel files to
+        cluster_dir (str):
+            Name of the file containing the pixel data with cluster labels
+        cluster_avg_name (str):
+            Name of file to save the averaged results to
+    """
+
+    cluster_avgs = pd.DataFrame()
+
+    for fov in fovs:
+        # read in the fovs data
+        fov_pixel_data = feather.read_dataframe(
+            os.path.join(base_dir, cluster_dir, fov + '.feather'))
+
+        # aggregate the sums and counts
+        sum_by_cluster = fov_pixel_data.groupby('cluster')[channels].sum()
+        count_by_cluster = fov_pixel_data.groupby('cluster')[channels].size().to_frame('count')
+
+        # concat the results together
+        agg_results = pd.merge(
+            sum_by_cluster, count_by_cluster, left_index=True, right_index=True).reset_index()
+
+        cluster_avgs = pd.concat([cluster_avgs, agg_results])
+
+    # sum the counts and the channel sums
+    sum_count_totals = cluster_avgs.groupby('cluster')[channels + ['count']].sum().reset_index()
+
+    # now compute the means using the count column
+    sum_count_totals[channels] = sum_count_totals[channels].div(sum_count_totals['count'], axis=0)
+
+    # drop the count column
+    sum_count_totals = sum_count_totals.drop('count', axis=1)
+
+    # save the DataFrame
+    feather.write_dataframe(sum_count_totals,
+                            os.path.join(base_dir, cluster_avg_name),
+                            compression='uncompressed')
+
+
 def create_pixel_matrix(img_xr, seg_labels, base_dir,
                         pre_dir='pixel_mat_preprocessed',
                         sub_dir='pixel_mat_subsetted', fovs=None,
@@ -159,7 +209,7 @@ def train_som(fovs, channels, base_dir,
     misc_utils.verify_in_list(provided_channels=channels,
                               subsetted_channels=sample_sub.columns.values)
 
-    # run som_train.R
+    # run the SOM training process
     process_args = ['Rscript', '/create_som_matrix.R', ','.join(fovs), ','.join(channels),
                     str(num_passes), subsetted_path, weights_path]
     process = subprocess.Popen(process_args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
@@ -227,8 +277,63 @@ def cluster_pixels(fovs, base_dir, pre_dir='pixel_mat_preprocessed',
     if not os.path.exists(clustered_path):
         os.mkdir(clustered_path)
 
+    # run the trained SOM on the dataset, assigning clusters
     process_args = ['Rscript', '/run_trained_som.R', ','.join(fovs),
                     preprocessed_path, weights_path, clustered_path]
+
+    process = subprocess.Popen(process_args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+
+    # continuously poll the process for output/error so it gets displayed in the Jupyter notebook
+    while True:
+        # convert from byte string
+        output = process.stdout.readline().decode('utf-8')
+
+        # if the output is nothing and the process is done, break
+        if process.poll() is not None:
+            break
+        if output:
+            print(output.strip())
+
+
+def consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
+                      cluster_dir='pixel_mat_clustered',
+                      cluster_avg_name='pixel_cluster_avg.feather',
+                      consensus_name='cluster_consensus.feather'):
+    """Run consensus clustering algorithm on summed data across channels
+
+    Args:
+        fovs (list):
+            The list of fovs to subset on
+        channels (list):
+            The list of channels to subset on
+        base_dir (str):
+            Name of the directory to save the pixel files to
+        max_k (int):
+            The number of consensus clusters
+        cap (int):
+            z-score cap to use when hierarchical clustering
+        cluster_dir (str):
+            Name of the file containing the pixel data with cluster labels
+        cluster_avg_name (str):
+            Name of file to save the channel-averaged results to
+        consensus_name (str):
+            Name of file to save the consensus clustered results
+    """
+
+    clustered_path = os.path.join(base_dir, cluster_dir)
+    cluster_avg_path = os.path.join(base_dir, cluster_avg_name)
+    consensus_path = os.path.join(base_dir, consensus_name)
+
+    if not os.path.exists(clustered_path):
+        raise FileNotFoundError('Cluster dir %s does not exist in base_dir %s' %
+                                (base_dir, consensus_path))
+
+    # compute and write the averaged cluster results
+    compute_cluster_avg(fovs, channels, base_dir, cluster_dir)
+
+    # run the consensus clustering process
+    process_args = ['Rscript', '/consensus_cluster.R', ','.join(channels),
+                    str(max_k), str(cap), cluster_avg_path, consensus_path]
 
     process = subprocess.Popen(process_args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 

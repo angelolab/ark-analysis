@@ -20,6 +20,7 @@ RUN R -e "install.packages('arrow')"
 RUN R -e "install.packages('data.table')"
 RUN R -e "install.packages('BiocManager')"
 RUN R -e "BiocManager::install('FlowSOM')"
+RUN R -e "BiocManager::install('ConsensusClusterPlus')"
 
 # jupyter notebook
 CMD ["jupyter", "notebook", "--ip=0.0.0.0", "--allow-root"]
