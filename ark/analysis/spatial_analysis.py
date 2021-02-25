@@ -379,6 +379,10 @@ def generate_cluster_matrix_results(all_data, neighbor_mat, cluster_num, exclude
     num_cell_type_per_cluster = group_by_cell_type.pivot(
         index=cluster_label_col, columns=cell_type_col, values="count").fillna(0).astype(int)
 
+    # annotate index with "Cluster" to make visualization clear that these are cluster labels
+    num_cell_type_per_cluster.index = ["Cluster" + str(c)
+                                       for c in num_cell_type_per_cluster.index]
+
     # Subsets the expression matrix to only have channel columns
     channel_start = np.where(all_data_clusters.columns == settings.PRE_CHANNEL_COL)[0][0] + 1
     channel_end = np.where(all_data_clusters.columns == settings.POST_CHANNEL_COL)[0][0]
@@ -390,6 +394,10 @@ def generate_cluster_matrix_results(all_data, neighbor_mat, cluster_num, exclude
 
     # create a mean pivot table with cluster_label_col as row and channels as column
     mean_marker_exp_per_cluster = all_data_markers_clusters.groupby([cluster_label_col]).mean()
+
+    # annotate index with "Cluster" to make visualization clear that these are cluster labels
+    mean_marker_exp_per_cluster.index = ["Cluster" + str(c)
+                                         for c in mean_marker_exp_per_cluster.index]
 
     return all_data_clusters, num_cell_type_per_cluster, mean_marker_exp_per_cluster
 

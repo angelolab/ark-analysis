@@ -8,10 +8,34 @@ from ark.analysis import visualize
 from ark.utils import test_utils
 
 import ark.settings as settings
+import timeit
+
+
+def test_draw_heatmap():
+    # Create random Z score
+    z = np.random.uniform(low=-5, high=5, size=(26, 26))
+    # Assign random phenotype titles
+    pheno_titles = [chr(i) for i in range(ord('a'), ord('z') + 1)]
+
+    with pytest.raises(FileNotFoundError):
+        # trying to save on a non-existant directory
+        visualize.draw_heatmap(z, pheno_titles, pheno_titles, save_dir="bad_dir")
+
+    # most basic visualization with just data, xlabels, ylabels
+    with tempfile.TemporaryDirectory() as temp_dir:
+        # test that without save_dir, we do not save
+        visualize.draw_heatmap(z, pheno_titles, pheno_titles)
+        assert not os.path.exists(os.path.join(temp_dir, "z_score_viz.png"))
+
+        # test that with save_dir, we do save
+        visualize.draw_heatmap(z, pheno_titles, pheno_titles,
+                               save_dir=temp_dir)
+        assert os.path.exists(os.path.join(temp_dir, "z_score_viz.png"))
 
 
 def test_draw_boxplot():
     # trim random data so we don't have to visualize as many facets
+    start_time = timeit.default_timer()
     random_data = test_utils.make_segmented_csv(100)
     random_data = random_data[random_data[settings.PATIENT_ID].isin(np.arange(1, 5))]
 
@@ -38,43 +62,12 @@ def test_draw_boxplot():
         visualize.draw_boxplot(cell_data=random_data, col_name="A",
                                save_dir="bad_dir")
 
-    # most basic visualization: just data and a column name
-    with tempfile.TemporaryDirectory() as temp_dir:
-        visualize.draw_boxplot(cell_data=random_data, col_name="A", save_dir=temp_dir)
-        assert os.path.exists(os.path.join(temp_dir, "boxplot_viz.png"))
-
-    # next level up: data, a column name, and a split column
-    with tempfile.TemporaryDirectory() as temp_dir:
-        visualize.draw_boxplot(cell_data=random_data, col_name="A",
-                               col_split=settings.PATIENT_ID, save_dir=temp_dir)
-        assert os.path.exists(os.path.join(temp_dir, "boxplot_viz.png"))
-
     # highest level: data, a column name, a split column, and split vals
     with tempfile.TemporaryDirectory() as temp_dir:
         visualize.draw_boxplot(cell_data=random_data, col_name="A",
                                col_split=settings.PATIENT_ID, split_vals=[1, 2],
                                save_dir=temp_dir)
         assert os.path.exists(os.path.join(temp_dir, "boxplot_viz.png"))
-
-
-def test_visualize_z_scores():
-    # Create random Z score
-    z = np.random.uniform(low=-5, high=5, size=(26, 26))
-    # Assign random phenotype titles
-    pheno_titles = [chr(i) for i in range(ord('a'), ord('z') + 1)]
-
-    with pytest.raises(FileNotFoundError):
-        # trying to save on a non-existant directory
-        visualize.visualize_z_scores(z, pheno_titles, save_dir="bad_dir")
-
-    with tempfile.TemporaryDirectory() as temp_dir:
-        # test that without save_dir, we do not save
-        visualize.visualize_z_scores(z, pheno_titles)
-        assert not os.path.exists(os.path.join(temp_dir, "z_score_viz.png"))
-
-        # test that with save_dir, we do save
-        visualize.visualize_z_scores(z, pheno_titles, save_dir=temp_dir)
-        assert os.path.exists(os.path.join(temp_dir, "z_score_viz.png"))
 
 
 def test_get_sort_data():

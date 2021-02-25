@@ -269,11 +269,11 @@ def test_generate_cluster_matrix_results():
     # can't really assert specific locations of values because cluster assignment stochastic
     # check just indexes and shapes
     assert num_cell_type_per_cluster.shape == (3, 3)
-    assert list(num_cell_type_per_cluster.index.values) == [0, 1, 2]
+    assert list(num_cell_type_per_cluster.index.values) == ["Cluster0", "Cluster1", "Cluster2"]
     assert list(num_cell_type_per_cluster.columns.values) == ["Pheno1", "Pheno2", "Pheno3"]
 
     assert mean_marker_exp_per_cluster.shape == (3, 20)
-    assert list(mean_marker_exp_per_cluster.index.values) == [0, 1, 2]
+    assert list(mean_marker_exp_per_cluster.index.values) == ["Cluster0", "Cluster1", "Cluster2"]
     assert list(mean_marker_exp_per_cluster.columns.values) == \
         list(np.arange(2, 14)) + list(np.arange(15, 23))
 

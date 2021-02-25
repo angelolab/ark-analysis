@@ -12,7 +12,7 @@ from ark.utils import misc_utils
 def plot_dim_reduced_data(component_one, component_two, fig_id, hue, cell_data,
                           title, title_fontsize=24, palette="Spectral", alpha=0.3,
                           legend_type="full", bbox_to_anchor=(1.05, 1), legend_loc=2,
-                          legend_borderaxespad=0., save_dir=None, save_file=None):
+                          legend_borderaxespad=0., dpi=None, save_dir=None, save_file=None):
     """Helper function to visualize_dimensionality_reduction
 
     Args:
@@ -42,6 +42,8 @@ def plot_dim_reduced_data(component_one, component_two, fig_id, hue, cell_data,
             an string describing where we want the legend located
         legend_borderaxespad (float):
             the pad between the axes and legend border
+        dpi (float):
+            The resolution of the image to save, ignored if save_dir is None
         save_dir (str):
             Directory to save plots, default is None
         save_file (str):
@@ -57,11 +59,11 @@ def plot_dim_reduced_data(component_one, component_two, fig_id, hue, cell_data,
     plt.title(title, fontsize=title_fontsize)
 
     if save_dir is not None:
-        misc_utils.save_figure(save_dir, save_file)
+        misc_utils.save_figure(save_dir, save_file, dpi=dpi)
 
 
 def visualize_dimensionality_reduction(cell_data, columns, category, color_map="Spectral",
-                                       algorithm="UMAP", save_dir=None):
+                                       algorithm="UMAP", dpi=None, save_dir=None):
     """Plots the dimensionality reduction of specified population columns
 
     Args:
@@ -75,6 +77,8 @@ def visualize_dimensionality_reduction(cell_data, columns, category, color_map="
             Name of MatPlotLib ColorMap used
         algorithm (str):
             Name of dimensionality reduction algorithm, must be UMAP, PCA, or tSNE
+        dpi (float):
+            The resolution of the image to save, ignored if save_dir is None
         save_dir (str):
             Directory to save plots, default is None
     """
@@ -96,7 +100,7 @@ def visualize_dimensionality_reduction(cell_data, columns, category, color_map="
 
         plot_dim_reduced_data(embedding[:, 0], embedding[:, 1], fig_id=1,
                               hue=cell_data[category], cell_data=cell_data, title=graph_title,
-                              save_dir=save_dir, save_file="UMAPVisualization.png")
+                              dpi=dpi, save_dir=save_dir, save_file="UMAPVisualization.png")
 
     elif algorithm == "PCA":
         pca = PCA()
@@ -104,7 +108,7 @@ def visualize_dimensionality_reduction(cell_data, columns, category, color_map="
 
         plot_dim_reduced_data(pca_result[:, 0], pca_result[:, 1], fig_id=2,
                               hue=cell_data[category], cell_data=cell_data, title=graph_title,
-                              save_dir=save_dir, save_file="PCAVisualization.png")
+                              dpi=dpi, save_dir=save_dir, save_file="PCAVisualization.png")
 
     elif algorithm == "tSNE":
         tsne = TSNE()
@@ -112,4 +116,4 @@ def visualize_dimensionality_reduction(cell_data, columns, category, color_map="
 
         plot_dim_reduced_data(tsne_results[:, 0], tsne_results[:, 1], fig_id=3,
                               hue=cell_data[category], cell_data=cell_data, title=graph_title,
-                              save_dir=save_dir, save_file="tSNEVisualization.png")
+                              dpi=dpi, save_dir=save_dir, save_file="tSNEVisualization.png")
