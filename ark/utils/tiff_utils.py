@@ -3,6 +3,9 @@ import numpy as np
 from skimage.external.tifffile import TiffFile, TiffWriter
 import json
 import datetime
+from itertools import compress
+
+from ark.utils.misc_utils import verify_in_list
 
 
 def read_mibitiff(file, channels=None):
@@ -45,6 +48,14 @@ def read_mibitiff(file, channels=None):
 
             # read image data
             img_data.append(page.asarray())
+
+    # make sure all passed channels were found
+    if channels is not None:
+        try:
+            channel_names = [return_channel[1] for return_channel in return_channels]
+            verify_in_list(passed_channels=channels, in_tiff=channel_names)
+        except ValueError as exc:
+            raise IndexError('Passed unknown channels...') from exc
 
     return np.stack(img_data, axis=2), return_channels
 
