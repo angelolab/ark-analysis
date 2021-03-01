@@ -170,7 +170,8 @@ def create_pixel_matrix(img_xr, seg_labels, base_dir,
 
 
 def train_som(fovs, channels, base_dir,
-              sub_dir='pixel_mat_subsetted', weights_name='weights.feather', num_passes=1):
+              sub_dir='pixel_mat_subsetted', norm_vals_name='norm_vals.feather',
+              weights_name='weights.feather', num_passes=1):
     """Run the SOM training on the subsetted pixel data.
 
     Saves weights to base_dir/weights_name.
@@ -184,6 +185,8 @@ def train_som(fovs, channels, base_dir,
             The path to the data directory
         sub_dir (str):
             The name of the subsetted data directory
+        norm_vals_name (str):
+            The name of the file to store the 99.9% normalized values
         weights_name (str):
             The name of the weights file
         num_passes (int):
@@ -192,6 +195,7 @@ def train_som(fovs, channels, base_dir,
 
     # define the paths to the data
     subsetted_path = os.path.join(base_dir, sub_dir)
+    norm_vals_path = os.path.join(base_dir, norm_vals_name)
     weights_path = os.path.join(base_dir, weights_name)
 
     # if path to the subsetted file does not exist
@@ -211,7 +215,7 @@ def train_som(fovs, channels, base_dir,
 
     # run the SOM training process
     process_args = ['Rscript', '/create_som_matrix.R', ','.join(fovs), ','.join(channels),
-                    str(num_passes), subsetted_path, weights_path]
+                    str(num_passes), subsetted_path, norm_vals_path, weights_path]
     process = subprocess.Popen(process_args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
     # continuously poll the process for output/error to display in Jupyter notebook
@@ -227,7 +231,8 @@ def train_som(fovs, channels, base_dir,
 
 
 def cluster_pixels(fovs, base_dir, pre_dir='pixel_mat_preprocessed',
-                   weights_name='weights.feather', cluster_dir='pixel_mat_clustered'):
+                   norm_vals_name='norm_vals.feather', weights_name='weights.feather',
+                   cluster_dir='pixel_mat_clustered'):
     """Uses trained weights to assign cluster labels on full pixel data
 
     Saves data with cluster labels to cluster_dir
@@ -240,6 +245,8 @@ def cluster_pixels(fovs, base_dir, pre_dir='pixel_mat_preprocessed',
         pre_dir (str):
             Name of the directory which contains the preprocessed pixel data,
             defaults to pixel_mat_preprocessed
+        norm_vals_name (str):
+            The name of the file to store the 99.9% normalized values
         weights_name (str):
             The name of the weights file
         cluster_dir (str):
@@ -248,6 +255,7 @@ def cluster_pixels(fovs, base_dir, pre_dir='pixel_mat_preprocessed',
 
     # define the paths to the data
     preprocessed_path = os.path.join(base_dir, pre_dir)
+    norm_vals_path = os.path.join(base_dir, norm_vals_name)
     weights_path = os.path.join(base_dir, weights_name)
     clustered_path = os.path.join(base_dir, cluster_dir)
 
@@ -255,6 +263,10 @@ def cluster_pixels(fovs, base_dir, pre_dir='pixel_mat_preprocessed',
     if not os.path.exists(preprocessed_path):
         raise FileNotFoundError('Pixel preprocessed directory %s does not exist in base_dir %s' %
                                 (pre_dir, base_dir))
+
+    if not os.path.exists(norm_vals_path):
+        raise FileNotFoundError('Normalized values file %s does not exist in base_dir %s' %
+                                (norm_vals_path, base_dir))
 
     # if path to the weights file does not exist
     if not os.path.exists(weights_path):
@@ -266,10 +278,14 @@ def cluster_pixels(fovs, base_dir, pre_dir='pixel_mat_preprocessed',
     misc_utils.verify_in_list(provided_fovs=fovs,
                               subsetted_fovs=io_utils.remove_file_extensions(files))
 
+    # ensure the norm vals columns are valid indexes
+    norm_vals = feather.read_dataframe(os.path.join(base_dir, norm_vals_name))
+    sample_fov = feather.read_dataframe(os.path.join(base_dir, pre_dir, files[0]))
+    misc_utils.verify_in_list(norm_vals_columns=norm_vals.columns.values,
+                              pixel_data_columns=sample_fov.columns.values)
+
     # ensure the weights columns are valid indexes
     weights = feather.read_dataframe(os.path.join(base_dir, weights_name))
-    sample_fov = feather.read_dataframe(os.path.join(base_dir, pre_dir, files[0]))
-
     misc_utils.verify_in_list(weights_columns=weights.columns.values,
                               pixel_data_columns=sample_fov.columns.values)
 
@@ -279,7 +295,7 @@ def cluster_pixels(fovs, base_dir, pre_dir='pixel_mat_preprocessed',
 
     # run the trained SOM on the dataset, assigning clusters
     process_args = ['Rscript', '/run_trained_som.R', ','.join(fovs),
-                    preprocessed_path, weights_path, clustered_path]
+                    preprocessed_path, norm_vals_path, weights_path, clustered_path]
 
     process = subprocess.Popen(process_args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
