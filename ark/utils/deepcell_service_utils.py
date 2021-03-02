@@ -14,7 +14,7 @@ from ark.utils import misc_utils
 
 
 def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
-                           suffix='_feature_0', host='https://deepcell.org', job_type='multiplex',
+                           suffix='_feature_0', host='https://deepcell.org', job_type='mesmer',
                            scale=1.0, timeout=3600, zip_size=100, parallel=False):
     """ Handles all of the necessary data manipulation for running deepcell tasks.
 
@@ -133,7 +133,7 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
 
 
 def run_deepcell_direct(input_dir, output_dir, host='https://deepcell.org',
-                        job_type='multiplex', scale=1.0, timeout=3600):
+                        job_type='mesmer', scale=1.0, timeout=3600):
     """Uses direct calls to DeepCell API and saves output to output_dir.
 
         Args:
@@ -145,8 +145,7 @@ def run_deepcell_direct(input_dir, output_dir, host='https://deepcell.org',
                 Hostname and port for the kiosk-frontend API server.
                 Default: 'https://deepcell.org'
             job_type (str):
-                Name of job workflow (multiplex, segmentation, tracking).
-                Default: 'multiplex'
+                Name of job workflow (mesmer, segmentation, tracking).
             scale (float):
                 Value to rescale data by
                 Default: 1.0
