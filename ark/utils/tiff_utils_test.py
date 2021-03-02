@@ -36,6 +36,17 @@ def test_read_mibitiff():
             # should raise value error
             img_data, all_channels = tiff_utils.read_mibitiff(filepaths['test_fov'][0] + '.tiff')
 
+    # should throw error on loading bad channel!
+    with pytest.raises(IndexError):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            filepaths, _ = test_utils.create_paired_xarray_fovs(
+                temp_dir, ['test_fov'], ['chan0', 'chan1'], mode='mibitiff'
+            )
+
+            img_data, all_channels = tiff_utils.read_mibitiff(
+                filepaths['test_fov'], channels=['chan2']
+            )
+
 
 # test write_mibitiff and verify with read_mibitiff
 # test utils uses write_mibitiff so we can just use that to test it
