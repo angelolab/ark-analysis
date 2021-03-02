@@ -6,6 +6,7 @@
 # - markers: list of channel columns to use
 # - numPasses: passes to make through dataset for training
 # - pixelSubsetDir: path to directory containing the subsetted pixel data
+# - normValsPath: path to the 99.9% normalized values file
 # - pixelWeightsPath: path to the SOM weights file
 
 library(arrow)
@@ -27,8 +28,11 @@ numPasses <- strtoi(args[3])
 # get path to subsetted mat directory
 pixelSubsetDir <- args[4]
 
+# get the normalized values write path
+normValsPath <- args[5]
+
 # get the weights write path
-pixelWeightsPath <- args[5]
+pixelWeightsPath <- args[6]
 
 # read the subsetted pixel mat data for training
 print("Reading the subsetted pixel matrix data for SOM training")
@@ -50,6 +54,9 @@ for (i in 1:length(fovs)) {
 }
 
 # perform 99.9% normalization on the subsetted data
+quantiles <- data.frame(matrix(NA, nrow=1, ncol=length(markers)))
+colnames(quantiles) <- markers
+
 print("Performing 99.9% normalization")
 
 for (marker in markers) {
@@ -59,7 +66,13 @@ for (marker in markers) {
     if (marker_quantile != 0) {
         pixelSubsetData[, marker] = pixelSubsetData[, marker] / marker_quantile
     }
+
+    quantiles[marker] = marker_quantile
 }
+
+# write 99.9% normalized values to feather
+print("Save 99.9% normalized values for each marker")
+arrow::write_feather(as.data.table(quantiles), normValsPath)
 
 # run the SOM training step
 print("Run the SOM training")

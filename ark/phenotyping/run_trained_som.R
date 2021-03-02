@@ -5,6 +5,7 @@
 # - fovs: list of fovs to cluster
 # - markers: list of channel columns to use
 # - pixelMatDir: path to directory containing the complete pixel data
+# - normValsPath: path to the 99.9% normalized values file
 # - pixelWeightsPath: path to the SOM weights file
 # - pixelClusterDir: path to directory where the clustered data will be written to
 
@@ -21,15 +22,23 @@ fovs <- unlist(strsplit(args[1], split=","))
 # get path to pixel mat directory
 pixelMatDir <- args[2]
 
+# get path to the 99.9% normalized values
+normValsPath <- args[3]
+
 # get path to the weights
-pixelWeightsPath <- args[3]
+pixelWeightsPath <- args[4]
 
 # get the cluster write path directory
-pixelClusterDir <- args[4]
+pixelClusterDir <- args[5]
 
 # read the weights
-print("Reading the weights matrix")
 somWeights <- as.matrix(arrow::read_feather(pixelWeightsPath))
+
+# read the normalization values
+normVals <- as.matrix(arrow::read_feather(normValsPath))
+
+# convert normVals into a vector
+normVals <- as.numeric(normVals[1, ])
 
 # get the marker names from the weights matrix
 markers <- colnames(somWeights)
@@ -44,11 +53,9 @@ for (i in 1:length(fovs)) {
 
     # 99.9% normalize pixel data
     for (marker in markers) {
-        marker_quantile <- quantile(fovPixelData[, marker], 0.999)
-
         # this prevents all-zero columns from getting normalized and becoming NA/Inf
-        if (marker_quantile != 0) {
-            fovPixelData[, marker] = fovPixelData[, marker] / marker_quantile
+        if (normVals[1, marker] != 0) {
+            fovPixelData[, marker] = fovPixelData[, marker] / normVals[1, marker]
         }
     }
 
