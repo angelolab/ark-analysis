@@ -288,7 +288,7 @@ def train_som(fovs, channels, base_dir,
 
 def cluster_pixels(fovs, base_dir, pre_dir='pixel_mat_preprocessed',
                    norm_vals_name='norm_vals.feather', weights_name='weights.feather',
-                   cluster_dir='pixel_mat_clustered'):
+                   cluster_dir='pixel_mat_clustered', batch_size=5):
     """Uses trained weights to assign cluster labels on full pixel data
 
     Saves data with cluster labels to cluster_dir
@@ -307,6 +307,8 @@ def cluster_pixels(fovs, base_dir, pre_dir='pixel_mat_preprocessed',
             The name of the weights file
         cluster_dir (str):
             The name of the directory to write the clustered data
+        batch_size (int):
+            Number of fovs to cluster at once
     """
 
     # define the paths to the data
@@ -351,7 +353,8 @@ def cluster_pixels(fovs, base_dir, pre_dir='pixel_mat_preprocessed',
 
     # run the trained SOM on the dataset, assigning clusters
     process_args = ['Rscript', '/run_trained_som.R', ','.join(fovs),
-                    preprocessed_path, norm_vals_path, weights_path, clustered_path]
+                    preprocessed_path, norm_vals_path, weights_path,
+                    clustered_path, str(batch_size)]
 
     process = subprocess.Popen(process_args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 

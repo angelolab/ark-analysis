@@ -176,9 +176,6 @@ def flowsom_load_imgs_labels(tb, channels, fovs=None, xr_dim_name='compartments'
     # sets the channels accordingly
     tb.inject("channels = %s" % str(channels), after='set_channels')
 
-    # load the image data in
-    tb.execute_cell('load_img_xr')
-
     # load the segmentation labels in
     load_seg_cmd = """
         segmentation_labels = load_utils.load_imgs_from_dir(

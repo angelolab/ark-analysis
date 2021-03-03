@@ -38,9 +38,9 @@ pixelWeightsPath <- args[6]
 print("Reading the subsetted pixel matrix data for SOM training")
 pixelSubsetData <- NULL
 
-for (i in 1:length(fovs)) {
+for (fov in fovs) {
     # subset each matrix with only the markers columns
-    fileName <- paste(fovs[i], ".feather", sep="")
+    fileName <- paste(fov, ".feather", sep="")
     subPath <- paste(pixelSubsetDir, fileName, sep="/")
     fovSubsetData <- arrow::read_feather(subPath, col_select=all_of(markers))
 
@@ -54,8 +54,8 @@ for (i in 1:length(fovs)) {
 }
 
 # perform 99.9% normalization on the subsetted data
-quantiles <- data.frame(matrix(NA, nrow=1, ncol=length(markers)))
-colnames(quantiles) <- markers
+normVals <- data.frame(matrix(NA, nrow=1, ncol=length(markers)))
+colnames(normVals) <- markers
 
 print("Performing 99.9% normalization")
 
@@ -67,12 +67,12 @@ for (marker in markers) {
         pixelSubsetData[, marker] = pixelSubsetData[, marker] / marker_quantile
     }
 
-    quantiles[marker] = marker_quantile
+    normVals[marker] = marker_quantile
 }
 
 # write 99.9% normalized values to feather
 print("Save 99.9% normalized values for each marker")
-arrow::write_feather(as.data.table(quantiles), normValsPath)
+arrow::write_feather(as.data.table(normVals), normValsPath)
 
 # run the SOM training step
 print("Run the SOM training")
