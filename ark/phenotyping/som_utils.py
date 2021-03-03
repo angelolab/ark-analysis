@@ -10,6 +10,7 @@ from skimage.io import imread
 
 import ark.settings as settings
 from ark.utils import io_utils
+from ark.utils import load_utils
 from ark.utils import misc_utils
 
 
@@ -63,17 +64,20 @@ def compute_cluster_avg(fovs, channels, base_dir,
                             compression='uncompressed')
 
 
-def create_pixel_matrix(img_xr, seg_labels, base_dir,
-                        pre_dir='pixel_mat_preprocessed',
-                        sub_dir='pixel_mat_subsetted', fovs=None,
-                        blur_factor=2, subset_proportion=0.1, seed=42):
-    """Preprocess the images for FlowSOM clustering and creates a pixel-level matrix
+def create_fov_pixel_data(fov, channels, img_data, seg_labels, base_dir,
+                          pre_dir='pixel_mat_preprocessed', sub_dir='pixel_mat_subsetted',
+                          blur_factor=2, subset_proportion=0.1, seed=42):
+    """Preprocess pixel data for one fov
 
     Saves preprocessed data to pre_dir and subsetted data to sub_dir
 
     Args:
-        img_xr (xarray.DataArray):
-            Array representing image data for each fov
+        fov (str):
+            Name of the fov to index
+        channels (list):
+            List of channels to subset over
+        img_data (numpy.ndarray):
+            Array representing image data for one fov
         seg_labels (xarray.DataArray):
             Array representing segmentation labels for each image
         base_dir (str):
@@ -82,12 +86,94 @@ def create_pixel_matrix(img_xr, seg_labels, base_dir,
             Name of the directory which contains the preprocessed pixel data
         sub_dir (str):
             The name of the directory containing the subsetted pixel data
-        fovs (list):
-            List of fovs to subset over, if None selects all
         blur_factor (int):
             The sigma to set for the Gaussian blur
         subset_proportion (float):
             The proportion of pixels to take from each fov
+        seed (int):
+            The random seed to set for subsetting
+    """
+
+    # for each marker, compute the Gaussian blur
+    for marker in range(len(channels)):
+        img_data[:, :, marker] = ndimage.gaussian_filter(img_data[:, :, marker],
+                                                         sigma=blur_factor)
+
+    # flatten each image
+    pixel_mat = img_data.reshape(-1, len(channels))
+
+    # convert into a dataframe
+    pixel_mat = pd.DataFrame(pixel_mat, columns=channels)
+
+    # assign metadata about each entry
+    pixel_mat['fov'] = fov
+    pixel_mat['row_index'] = np.repeat(range(img_data.shape[0]), img_data.shape[1])
+    pixel_mat['column_index'] = np.tile(range(img_data.shape[0]), img_data.shape[1])
+
+    # assign segmentation label
+    seg_labels_flat = seg_labels.loc[fov, ...].values.flatten()
+    pixel_mat['segmentation_label'] = seg_labels_flat
+
+    # needed for selecting just channel columns
+    non_num_cols = ['fov', 'row_index', 'column_index', 'segmentation_label']
+    chan_cols = [col for col in pixel_mat.columns.values if col not in non_num_cols]
+
+    # remove any rows that sum to 0
+    pixel_mat = pixel_mat.loc[pixel_mat.loc[:, chan_cols].sum(axis=1) != 0, :]
+
+    # normalize each row by total marker counts to convert into frequencies
+    pixel_mat.loc[:, chan_cols] = pixel_mat.loc[:, chan_cols].div(
+        pixel_mat.loc[:, chan_cols].sum(axis=1), axis=0)
+
+    # subset the pixel matrix for training
+    pixel_mat_subset = pixel_mat.sample(frac=subset_proportion, random_state=seed)
+
+    # write complete dataset to feather, needed for cluster assignment
+    feather.write_dataframe(pixel_mat,
+                            os.path.join(base_dir,
+                                         pre_dir,
+                                         fov + ".feather"),
+                            compression='uncompressed')
+
+    # write subseted dataset to hdf5, needed for training
+    feather.write_dataframe(pixel_mat_subset,
+                            os.path.join(base_dir,
+                                         sub_dir,
+                                         fov + ".feather"),
+                            compression='uncompressed')
+
+
+def create_pixel_matrix(fovs, channels, seg_labels, base_dir, tiff_dir,
+                        pre_dir='pixel_mat_preprocessed',
+                        sub_dir='pixel_mat_subsetted', is_MIBITiff=False,
+                        blur_factor=2, subset_proportion=0.1, batch_size=5, seed=42):
+    """Preprocess the images for FlowSOM clustering and creates a pixel-level matrix
+
+    Saves preprocessed data to pre_dir and subsetted data to sub_dir
+
+    Args:
+        fovs (list):
+            List of fovs to subset over
+        channels (list):
+            List of channels to subset over
+        seg_labels (xarray.DataArray):
+            Array representing segmentation labels for each image
+        base_dir (str):
+            Name of the directory to save the pixel files to
+        tiff_dir (str):
+            Name of the directory containing the tiff files
+        pre_dir (str):
+            Name of the directory which contains the preprocessed pixel data
+        sub_dir (str):
+            The name of the directory containing the subsetted pixel data
+        is_MIBITiff (bool):
+            Whether to load the images from MIBITiff
+        blur_factor (int):
+            The sigma to set for the Gaussian blur
+        subset_proportion (float):
+            The proportion of pixels to take from each fov
+        batch_size (int):
+            Number of fovs to process at once
         seed (int):
             The random seed to set for subsetting
     """
@@ -100,6 +186,9 @@ def create_pixel_matrix(img_xr, seg_labels, base_dir,
     if not os.path.exists(base_dir):
         raise FileNotFoundError("base_dir %s does not exist" % base_dir)
 
+    if not os.path.exists(tiff_dir):
+        raise FileNotFoundError("tiff_dir %s does not exist" % tiff_dir)
+
     # create pre_dir if it doesn't already exist
     if not os.path.exists(os.path.join(base_dir, pre_dir)):
         os.mkdir(os.path.join(base_dir, pre_dir))
@@ -108,65 +197,32 @@ def create_pixel_matrix(img_xr, seg_labels, base_dir,
     if not os.path.exists(os.path.join(base_dir, sub_dir)):
         os.mkdir(os.path.join(base_dir, sub_dir))
 
-    # set fovs to all if None
-    if fovs is None:
-        fovs = img_xr.fovs.values
-
     # verify that the fovs provided are valid
-    misc_utils.verify_in_list(fovs=fovs, image_fovs=img_xr.fovs.values)
+    misc_utils.verify_in_list(fovs=fovs, image_fovs=seg_labels.fovs.values)
 
-    # iterate over fovs
-    for fov in fovs:
-        # subset img_xr with only the fov we're looking for, and cast to float32
-        img_data_blur = img_xr.loc[fov, ...].values.astype(np.float32)
+    # split fovs into batches of batch_size, this handles remainders too
+    fov_batches = np.array_split(fovs, len(fovs) / batch_size + 1)
 
-        # for each marker, compute the Gaussian blur
-        for marker in range(len(img_xr.channels.values)):
-            img_data_blur[:, :, marker] = ndimage.gaussian_filter(img_data_blur[:, :, marker],
-                                                                  sigma=blur_factor)
+    # iterate over fov_batches
+    for fov_batch in fov_batches:
+        # load img_xr from MIBITiff or directory
+        if is_MIBITiff:
+            img_xr = load_utils.load_imgs_from_mibitiff(
+                tiff_dir, mibitiff_files=fov_batch, channels=channels, dtype="int16"
+            )
+        else:
+            img_xr = load_utils.load_imgs_from_tree(
+                tiff_dir, fovs=fov_batch, channels=channels, dtype="int16"
+            )
 
-        # flatten each image
-        pixel_mat = img_data_blur.reshape(-1, len(img_xr.channels.values))
+        # iterate over each fov in fov_batch and create pixel matrix accordingly
+        for fov in fov_batch:
+            img_data = img_xr.loc[fov, ...].values.astype(np.float32)
 
-        # convert into a dataframe
-        pixel_mat = pd.DataFrame(pixel_mat, columns=img_xr.channels.values)
-
-        # assign metadata about each entry
-        pixel_mat['fov'] = fov
-        pixel_mat['row_index'] = np.repeat(range(img_data_blur.shape[0]), img_data_blur.shape[1])
-        pixel_mat['column_index'] = np.tile(range(img_data_blur.shape[0]), img_data_blur.shape[1])
-
-        # assign segmentation label
-        seg_labels_flat = seg_labels.loc[fov, ...].values.flatten()
-        pixel_mat['segmentation_label'] = seg_labels_flat
-
-        # needed for selecting just channel columns
-        non_num_cols = ['fov', 'row_index', 'column_index', 'segmentation_label']
-        chan_cols = [col for col in pixel_mat.columns.values if col not in non_num_cols]
-
-        # remove any rows that sum to 0
-        pixel_mat = pixel_mat.loc[pixel_mat.loc[:, chan_cols].sum(axis=1) != 0, :]
-
-        # normalize each row by total marker counts to convert into frequencies
-        pixel_mat.loc[:, chan_cols] = pixel_mat.loc[:, chan_cols].div(
-            pixel_mat.loc[:, chan_cols].sum(axis=1), axis=0)
-
-        # subset the pixel matrix for training
-        pixel_mat_subset = pixel_mat.sample(frac=subset_proportion, random_state=seed)
-
-        # write complete dataset to feather, needed for cluster assignment
-        feather.write_dataframe(pixel_mat,
-                                os.path.join(base_dir,
-                                             pre_dir,
-                                             fov + ".feather"),
-                                compression='uncompressed')
-
-        # write subseted dataset to hdf5, needed for training
-        feather.write_dataframe(pixel_mat_subset,
-                                os.path.join(base_dir,
-                                             sub_dir,
-                                             fov + ".feather"),
-                                compression='uncompressed')
+            create_fov_pixel_data(fov=fov, channels=channels, img_data=img_data,
+                                  seg_labels=seg_labels, base_dir=base_dir, pre_dir=pre_dir,
+                                  sub_dir=sub_dir, blur_factor=blur_factor,
+                                  subset_proportion=subset_proportion, seed=seed)
 
 
 def train_som(fovs, channels, base_dir,
