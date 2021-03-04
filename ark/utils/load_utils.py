@@ -205,7 +205,7 @@ def load_imgs_from_dir(data_dir, files=None, delimiter=None, xr_dim_name='compar
             list of files (e.g. ['fov1.tif'. 'fov2.tif'] to load.
             If None, all (.tif, .jpg, .png) files in data_dir are loaded.
         delimiter (str):
-            character used to determine the file-prefix containging the fov name.
+            character used to determine the file-prefix containing the fov name.
             Default is None.
         xr_dim_name (str):
             sets the name of the last dimension of the output xarray.

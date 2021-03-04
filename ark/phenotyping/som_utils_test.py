@@ -5,6 +5,7 @@ import tempfile
 import feather
 import numpy as np
 import pandas as pd
+import skimage.io as io
 import xarray as xr
 
 import ark.phenotyping.som_utils as som_utils
@@ -217,30 +218,34 @@ def test_create_pixel_matrix():
         tiff_dir = os.path.join(temp_dir, 'TIFs')
         os.mkdir(tiff_dir)
 
+        # create a dummy seg_dir
+        seg_dir = os.path.join(temp_dir, 'segmentation')
+        os.mkdir(seg_dir)
+
         # invalid subset proportion specified
         with pytest.raises(ValueError):
             som_utils.create_pixel_matrix(fovs=['fov1', 'fov2'],
                                           channels=['Marker1', 'Marker2'],
-                                          seg_labels=sample_labels,
                                           base_dir=temp_dir,
                                           tiff_dir=tiff_dir,
+                                          seg_dir=seg_dir,
                                           subset_proportion=1.1)
 
         # pass invalid base directory
         with pytest.raises(FileNotFoundError):
             som_utils.create_pixel_matrix(fovs=['fov1', 'fov2'],
                                           channels=['Marker1', 'Marker2'],
-                                          seg_labels=sample_labels,
                                           base_dir='bad_base_dir',
-                                          tiff_dir=tiff_dir)
+                                          tiff_dir=tiff_dir,
+                                          seg_dir=seg_dir)
 
         # pass invalid tiff directory
         with pytest.raises(FileNotFoundError):
             som_utils.create_pixel_matrix(fovs=['fov1', 'fov2'],
                                           channels=['Marker1', 'Marker2'],
-                                          seg_labels=sample_labels,
                                           base_dir=temp_dir,
-                                          tiff_dir='bad_tiff_dir')
+                                          tiff_dir='bad_tiff_dir',
+                                          seg_dir=seg_dir)
 
     # test all fovs and channels as well as subsets of fovs and/or channels
     for fovs in fov_lists:
@@ -249,25 +254,35 @@ def test_create_pixel_matrix():
             tiff_dir = os.path.join(temp_dir, 'TIFs')
             os.mkdir(tiff_dir)
 
+            # create a dummy seg_dir
+            seg_dir = os.path.join(temp_dir, 'segmentation')
+            os.mkdir(seg_dir)
+
             # create sample image data
-            fov_paths, data_xr = test_utils.create_paired_xarray_fovs(
-                base_dir=tiff_dir, fov_names=fovs, channel_names=chans)
+            test_utils.create_paired_xarray_fovs(
+                base_dir=tiff_dir, fov_names=fovs, channel_names=chans, img_shape=(10, 10)
+            )
+
+            # create sample segmentation data
+            for fov in fovs:
+                rand_img = np.random.randint(0, 16, size=(10, 10))
+                file_name = fov + "_feature_0.tif"
+                io.imsave(os.path.join(seg_dir, file_name), rand_img)
 
             # pass invalid fov names
-            with pytest.raises(ValueError):
+            with pytest.raises(FileNotFoundError):
                 som_utils.create_pixel_matrix(fovs=['fov1', 'fov2', 'fov3'],
-                                              channels=['Marker1', 'Marker2'],
-                                              seg_labels=sample_labels,
+                                              channels=chans,
                                               base_dir=temp_dir,
-                                              tiff_dir=tiff_dir)
+                                              tiff_dir=tiff_dir,
+                                              seg_dir=seg_dir)
 
             # create the pixel matrices
             som_utils.create_pixel_matrix(fovs=fovs,
                                           channels=chans,
-                                          seg_labels=sample_labels,
                                           base_dir=temp_dir,
                                           tiff_dir=tiff_dir,
-                                          batch_size=2)
+                                          seg_dir=seg_dir)
 
             # check that we actually created a preprocessed directory
             assert os.path.exists(os.path.join(temp_dir, 'pixel_mat_preprocessed'))

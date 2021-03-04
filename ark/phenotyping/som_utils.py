@@ -114,16 +114,12 @@ def create_fov_pixel_data(fov, channels, img_data, seg_labels, base_dir,
     seg_labels_flat = seg_labels.loc[fov, ...].values.flatten()
     pixel_mat['segmentation_label'] = seg_labels_flat
 
-    # needed for selecting just channel columns
-    non_num_cols = ['fov', 'row_index', 'column_index', 'segmentation_label']
-    chan_cols = [col for col in pixel_mat.columns.values if col not in non_num_cols]
-
     # remove any rows that sum to 0
-    pixel_mat = pixel_mat.loc[pixel_mat.loc[:, chan_cols].sum(axis=1) != 0, :]
+    pixel_mat = pixel_mat.loc[pixel_mat.loc[:, channels].sum(axis=1) != 0, :]
 
     # normalize each row by total marker counts to convert into frequencies
-    pixel_mat.loc[:, chan_cols] = pixel_mat.loc[:, chan_cols].div(
-        pixel_mat.loc[:, chan_cols].sum(axis=1), axis=0)
+    pixel_mat.loc[:, channels] = pixel_mat.loc[:, channels].div(
+        pixel_mat.loc[:, channels].sum(axis=1), axis=0)
 
     # subset the pixel matrix for training
     pixel_mat_subset = pixel_mat.sample(frac=subset_proportion, random_state=seed)
@@ -135,7 +131,7 @@ def create_fov_pixel_data(fov, channels, img_data, seg_labels, base_dir,
                                          fov + ".feather"),
                             compression='uncompressed')
 
-    # write subseted dataset to hdf5, needed for training
+    # write subseted dataset to feather, needed for training
     feather.write_dataframe(pixel_mat_subset,
                             os.path.join(base_dir,
                                          sub_dir,
@@ -143,10 +139,10 @@ def create_fov_pixel_data(fov, channels, img_data, seg_labels, base_dir,
                             compression='uncompressed')
 
 
-def create_pixel_matrix(fovs, channels, seg_labels, base_dir, tiff_dir,
+def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
                         pre_dir='pixel_mat_preprocessed',
-                        sub_dir='pixel_mat_subsetted', is_MIBITiff=False,
-                        blur_factor=2, subset_proportion=0.1, batch_size=5, seed=42):
+                        sub_dir='pixel_mat_subsetted', is_mibitiff=False,
+                        blur_factor=2, subset_proportion=0.1, seed=42):
     """Preprocess the images for FlowSOM clustering and creates a pixel-level matrix
 
     Saves preprocessed data to pre_dir and subsetted data to sub_dir
@@ -156,24 +152,22 @@ def create_pixel_matrix(fovs, channels, seg_labels, base_dir, tiff_dir,
             List of fovs to subset over
         channels (list):
             List of channels to subset over
-        seg_labels (xarray.DataArray):
-            Array representing segmentation labels for each image
         base_dir (str):
             Name of the directory to save the pixel files to
         tiff_dir (str):
             Name of the directory containing the tiff files
+        seg_dir (str):
+            Name of the directory containing the segmented files
         pre_dir (str):
             Name of the directory which contains the preprocessed pixel data
         sub_dir (str):
             The name of the directory containing the subsetted pixel data
-        is_MIBITiff (bool):
+        is_mibitiff (bool):
             Whether to load the images from MIBITiff
         blur_factor (int):
             The sigma to set for the Gaussian blur
         subset_proportion (float):
             The proportion of pixels to take from each fov
-        batch_size (int):
-            Number of fovs to process at once
         seed (int):
             The random seed to set for subsetting
     """
@@ -197,32 +191,32 @@ def create_pixel_matrix(fovs, channels, seg_labels, base_dir, tiff_dir,
     if not os.path.exists(os.path.join(base_dir, sub_dir)):
         os.mkdir(os.path.join(base_dir, sub_dir))
 
-    # verify that the fovs provided are valid
-    misc_utils.verify_in_list(fovs=fovs, image_fovs=seg_labels.fovs.values)
-
-    # split fovs into batches of batch_size, this handles remainders too
-    fov_batches = np.array_split(fovs, len(fovs) / batch_size + 1)
-
     # iterate over fov_batches
-    for fov_batch in fov_batches:
-        # load img_xr from MIBITiff or directory
-        if is_MIBITiff:
+    for fov in fovs:
+        # load img_xr from MIBITiff or directory with the fov
+        if is_mibitiff:
             img_xr = load_utils.load_imgs_from_mibitiff(
-                tiff_dir, mibitiff_files=fov_batch, channels=channels, dtype="int16"
+                tiff_dir, mibitiff_files=[fov], channels=channels, dtype="int16"
             )
         else:
             img_xr = load_utils.load_imgs_from_tree(
-                tiff_dir, fovs=fov_batch, channels=channels, dtype="int16"
+                tiff_dir, fovs=[fov], channels=channels, dtype="int16"
             )
 
-        # iterate over each fov in fov_batch and create pixel matrix accordingly
-        for fov in fov_batch:
-            img_data = img_xr.loc[fov, ...].values.astype(np.float32)
+        # load segmentation labels in for fov
+        seg_labels = load_utils.load_imgs_from_dir(
+            seg_dir, files=[fov + '_feature_0.tif'], delimiter='_feature_0',
+            xr_dim_name='compartments', xr_channel_names=['whole_cell'], force_ints=True
+        )
 
-            create_fov_pixel_data(fov=fov, channels=channels, img_data=img_data,
-                                  seg_labels=seg_labels, base_dir=base_dir, pre_dir=pre_dir,
-                                  sub_dir=sub_dir, blur_factor=blur_factor,
-                                  subset_proportion=subset_proportion, seed=seed)
+        # subset for the channel data
+        img_data = img_xr.loc[fov, ...].values.astype(np.float32)
+
+        # create and save the full and subsetted fov matrices
+        create_fov_pixel_data(fov=fov, channels=channels, img_data=img_data,
+                              seg_labels=seg_labels, base_dir=base_dir, pre_dir=pre_dir,
+                              sub_dir=sub_dir, blur_factor=blur_factor,
+                              subset_proportion=subset_proportion, seed=seed)
 
 
 def train_som(fovs, channels, base_dir,

@@ -129,7 +129,7 @@ def flowsom_setup(tb, flowsom_dir, img_shape=(50, 50), num_fovs=3, num_chans=3,
     # generate sample segmentation labels so we can load them in
     seg_dir = os.path.join(flowsom_dir, "deepcell_output")
     os.mkdir(seg_dir)
-    generate_sample_feature_tifs(fovs, seg_dir)
+    generate_sample_feature_tifs(fovs, seg_dir, delimiter='_feature_0')
 
     # define custom paths
     define_paths = """
@@ -146,9 +146,8 @@ def flowsom_setup(tb, flowsom_dir, img_shape=(50, 50), num_fovs=3, num_chans=3,
         tb.inject("MIBItiff = True", after='mibitiff_set')
 
 
-def flowsom_load_imgs_labels(tb, channels, fovs=None, xr_dim_name='compartments',
-                             xr_channel_names=None, force_ints=True):
-    """Sets the fovs and channels variables and loads img_xr and segmentation_labels for FlowSOM
+def flowsom_set_fovs_channels(tb, channels, fovs=None):
+    """Sets the fovs and channels variables
 
     Args:
         tb (testbook.testbook):
@@ -158,12 +157,6 @@ def flowsom_load_imgs_labels(tb, channels, fovs=None, xr_dim_name='compartments'
         fovs (list):
             If set, assigns the fovs variable to this list.
             If None, executes the default fov loading scheme in the 'load_fovs' cell.
-        xr_dim_name (str):
-            The dimension containing the channel names to read in
-        xr_channel_names (list):
-            The list of the channels we wish to read in
-        force_ints (bool):
-            Whether to convert the segmentation labels to integer type
     """
 
     if fovs is not None:
@@ -176,24 +169,8 @@ def flowsom_load_imgs_labels(tb, channels, fovs=None, xr_dim_name='compartments'
     # sets the channels accordingly
     tb.inject("channels = %s" % str(channels), after='set_channels')
 
-    # load the segmentation labels in
-    load_seg_cmd = """
-        segmentation_labels = load_utils.load_imgs_from_dir(
-            data_dir=segmentation_dir,
-            xr_dim_name="%s",
-            xr_channel_names=%s,
-            force_ints=%s
-        )
-    """ % (xr_dim_name,
-           xr_channel_names,
-           str(force_ints))
-    tb.inject(load_seg_cmd, after='load_seg_labels')
 
-    # trim the seg label coordinate names
-    tb.execute_cell('trim_seg_coords')
-
-
-def flowsom_run(tb, fovs, channels):
+def flowsom_run(tb, fovs, channels, is_mibitiff=False):
     """Run the FlowSOM clustering
 
     Args:
@@ -201,12 +178,23 @@ def flowsom_run(tb, fovs, channels):
             The testbook runner instance
         fovs (list):
             The list of fovs
-        channels (list)
+        channels (list):
             The list of channels
+        is_mibitiff (bool):
+            Whether we're working with mibitiff im
     """
 
     # test the preprocessing works, we won't save nor run the actual FlowSOM clustering
-    tb.execute_cell('gen_pixel_mat')
+    if is_mibitiff:
+        mibitiff_preprocess = """
+            som_utils.create_pixel_matrix(
+                fovs, channels, base_dir, tiff_dir, segmentation_dir, is_mibitiff=True
+            )
+        """
+
+        tb.inject(mibitiff_preprocess, after='gen_pixel_mat')
+    else:
+        tb.execute_cell('gen_pixel_mat')
 
     # create a dummy weights .feather
     dummy_weights = """

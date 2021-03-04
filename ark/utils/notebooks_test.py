@@ -25,17 +25,17 @@ def _exec_notebook(nb_filename):
         subprocess.check_call(args)
 
 
-# test runs with default inputs
-def test_segment_image_data():
-    _exec_notebook('Segment_Image_Data.ipynb')
+# # test runs with default inputs
+# def test_segment_image_data():
+#     _exec_notebook('Segment_Image_Data.ipynb')
 
 
-def test_example_spatial_analysis():
-    _exec_notebook('example_spatial_analysis_script.ipynb')
+# def test_example_spatial_analysis():
+#     _exec_notebook('example_spatial_analysis_script.ipynb')
 
 
-def test_example_neighborhood_analysis():
-    _exec_notebook('example_neighborhood_analysis_script.ipynb')
+# def test_example_neighborhood_analysis():
+#     _exec_notebook('example_neighborhood_analysis_script.ipynb')
 
 
 # test mibitiff segmentation
@@ -114,16 +114,17 @@ def test_segment_image_data_folder(tb):
 #         notebooks_test_utils.flowsom_setup(tb, flowsom_dir=base_dir, is_mibitiff=True)
 
 #         # load img data in
-#         notebooks_test_utils.load_imgs_labels(tb,
-#                                               channels=['chan0', 'chan1'],
-#                                               fovs=['fov0_otherinfo-MassCorrected-Filtered.tiff',
-#                                                     'fov1-MassCorrected-Filtered.tiff'])
+#         notebooks_test_utils.flowsom_set_fovs_channels(tb,
+#                                                        channels=['chan0', 'chan1'],
+#                                                        fovs=['fov0_otherinfo-MassCorrected-Filtered.tiff',
+#                                                              'fov1-MassCorrected-Filtered.tiff'])
 
 #         # run the FlowSOM preprocessing and clustering
 #         notebooks_test_utils.flowsom_run(tb,
 #                                          fovs=['fov0_otherinfo-MassCorrected-Filtered.tiff',
 #                                                'fov1-MassCorrected-Filtered.tiff'],
-#                                          channels=['chan0', 'chan1'])
+#                                          channels=['chan0', 'chan1'],
+#                                          is_mibitiff=True)
 
 
 # test folder clustering
@@ -134,9 +135,9 @@ def test_flowsom_cluster_folder(tb):
         notebooks_test_utils.flowsom_setup(tb, flowsom_dir=base_dir)
 
         # load img data in
-        notebooks_test_utils.flowsom_load_imgs_labels(tb,
-                                                      channels=['chan0', 'chan1'],
-                                                      fovs=['fov0', 'fov1'])
+        notebooks_test_utils.flowsom_set_fovs_channels(tb,
+                                                       channels=['chan0', 'chan1'],
+                                                       fovs=['fov0', 'fov1'])
 
         # run the FlowSOM preprocessing and clustering
         notebooks_test_utils.flowsom_run(tb, fovs=['fov0', 'fov1'], channels=['chan0', 'chan1'])
