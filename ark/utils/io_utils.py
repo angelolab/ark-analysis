@@ -32,10 +32,10 @@ def validate_paths(paths, data_prefix=True):
                 raise ValueError(
                     f'The file/path, {pathlib.Path(path).name}, could not be found...')
             else:
-                    raise ValueError(
-                        f'The path, {path}, is not prefixed with \'../data\'.\n'
-                        f'Be sure to add all images/files/data to the \'data\' folder, '
-                        f'and to reference as \'../data/path_to_data/myfile.tif\'')
+                raise ValueError(
+                    f'The path, {path}, is not prefixed with \'../data\'.\n'
+                    f'Be sure to add all images/files/data to the \'data\' folder, '
+                    f'and to reference as \'../data/path_to_data/myfile.tif\'')
 
 
 def list_files(dir_name, substrs=None, exact_match=False):
