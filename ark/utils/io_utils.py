@@ -3,12 +3,14 @@ import pathlib
 import warnings
 
 
-def validate_paths(paths):
+def validate_paths(paths, data_prefix=True):
     """Verifys that paths exist and don't leave Docker's scope
 
     Args:
         paths (str or list):
             paths to verify.
+        data_prefix (bool):
+            if True, checks that directory starts with /data, necessary when inside the docker
 
     Raises:
         ValueError:
@@ -21,7 +23,7 @@ def validate_paths(paths):
 
     for path in paths:
         if not os.path.exists(path):
-            if str(path).startswith('../data'):
+            if str(path).startswith('../data') or not data_prefix:
                 for parent in reversed(pathlib.Path(path).parents):
                     if not os.path.exists(parent):
                         raise ValueError(
@@ -30,10 +32,10 @@ def validate_paths(paths):
                 raise ValueError(
                     f'The file/path, {pathlib.Path(path).name}, could not be found...')
             else:
-                raise ValueError(
-                    f'The path, {path}, is not prefixed with \'../data\'.\n'
-                    f'Be sure to add all images/files/data to the \'data\' folder, '
-                    f'and to reference as \'../data/path_to_data/myfile.tif\'')
+                    raise ValueError(
+                        f'The path, {path}, is not prefixed with \'../data\'.\n'
+                        f'Be sure to add all images/files/data to the \'data\' folder, '
+                        f'and to reference as \'../data/path_to_data/myfile.tif\'')
 
 
 def list_files(dir_name, substrs=None, exact_match=False):
