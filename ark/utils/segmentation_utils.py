@@ -39,7 +39,7 @@ def find_nuclear_label_id(nuc_segmentation_labels, cell_coords):
     return nuclear_label_id
 
 
-def split_large_nuclei(cell_segmentation_labels, nuc_segmentation_labels, cell_ids, min_size=5):
+def split_large_nuclei(cell_segmentation_labels, nuc_segmentation_labels, cell_ids, min_size=15):
     """Splits nuclei that are bigger than the corresponding cell into multiple pieces
 
     Args:
