@@ -216,9 +216,6 @@ def compute_marker_counts(input_images, segmentation_labels, nuclear_counts=Fals
     # add the single compartment features to regionprops_names
     regionprops_names.extend(regionprops_single_comp)
 
-    # add the multi compartment features to regionprops_names
-    regionprops_names.extend(regionprops_multi_comp)
-
     # get all the cell ids
     unique_cell_ids = np.unique(segmentation_labels[..., 0].values)
     unique_cell_ids = unique_cell_ids[np.nonzero(unique_cell_ids)]
