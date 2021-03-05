@@ -176,9 +176,11 @@ def test_create_fov_pixel_data():
 
             sample_img_data = sample_img_xr.loc[fov, ...].values.astype(np.float32)
 
+            seg_labels = sample_labels.loc[fov, ...].values.reshape(10, 10)
+
             # run fov preprocessing for one fov
             som_utils.create_fov_pixel_data(fov=fov, channels=chans, img_data=sample_img_data,
-                                            seg_labels=sample_labels, base_dir=temp_dir)
+                                            seg_labels=seg_labels, base_dir=temp_dir)
 
             # assert we created both a preprocessed and a subsetted feather file for the fov
             fov_pre_path = os.path.join(temp_dir, 'pixel_mat_preprocessed', fov + '.feather')

@@ -78,7 +78,7 @@ def create_fov_pixel_data(fov, channels, img_data, seg_labels, base_dir,
             List of channels to subset over
         img_data (numpy.ndarray):
             Array representing image data for one fov
-        seg_labels (xarray.DataArray):
+        seg_labels (numpy.ndarray):
             Array representing segmentation labels for each image
         base_dir (str):
             Name of the directory to save the pixel files to
@@ -111,7 +111,8 @@ def create_fov_pixel_data(fov, channels, img_data, seg_labels, base_dir,
     pixel_mat['column_index'] = np.tile(range(img_data.shape[0]), img_data.shape[1])
 
     # assign segmentation label
-    seg_labels_flat = seg_labels.loc[fov, ...].values.flatten()
+    # seg_labels_flat = seg_labels.loc[fov, ...].values.flatten()
+    seg_labels_flat = seg_labels.flatten()
     pixel_mat['segmentation_label'] = seg_labels_flat
 
     # remove any rows that sum to 0
@@ -204,10 +205,13 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
             )
 
         # load segmentation labels in for fov
-        seg_labels = load_utils.load_imgs_from_dir(
-            seg_dir, files=[fov + '_feature_0.tif'], delimiter='_feature_0',
-            xr_dim_name='compartments', xr_channel_names=['whole_cell'], force_ints=True
-        )
+        seg_labels = imread(os.path.join(seg_dir, fov + '_feature_0.tif'))
+
+        # # load segmentation labels in for fov
+        # seg_labels = load_utils.load_imgs_from_dir(
+        #     seg_dir, files=[fov + '_feature_0.tif'], delimiter='_feature_0',
+        #     xr_dim_name='compartments', xr_channel_names=['whole_cell'], force_ints=True
+        # )
 
         # subset for the channel data
         img_data = img_xr.loc[fov, ...].values.astype(np.float32)
