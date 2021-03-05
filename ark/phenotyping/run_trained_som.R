@@ -1,6 +1,6 @@
 # Assigns cluster labels to pixel data using a trained SOM weights matrix
 
-# Usage: Rscript {fovs} {markers} {pixelMatDir} {pixelWeightsPath} {pixelClusterDir}
+# Usage: Rscript {fovs} {markers} {pixelMatDir} {pixelWeightsPath} {pixelClusterDir} {batchSize}
 
 # - fovs: list of fovs to cluster
 # - markers: list of channel columns to use
@@ -37,9 +37,6 @@ somWeights <- as.matrix(arrow::read_feather(pixelWeightsPath))
 # read the normalization values
 normVals <- as.matrix(arrow::read_feather(normValsPath))
 
-# convert normVals into a vector
-normVals <- as.numeric(normVals[1, ])
-
 # get the marker names from the weights matrix
 markers <- colnames(somWeights)
 
@@ -53,7 +50,7 @@ for (i in 1:length(fovs)) {
 
     # 99.9% normalize pixel data
     for (marker in markers) {
-        # this prevents all-zero columns from getting normalized and becoming NA/Inf
+        # this prevents all- or mostly-zero columns from getting normalized and becoming NA/Inf
         if (normVals[1, marker] != 0) {
             fovPixelData[, marker] = fovPixelData[, marker] / normVals[1, marker]
         }
