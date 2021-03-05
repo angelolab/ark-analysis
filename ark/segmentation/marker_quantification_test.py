@@ -315,6 +315,25 @@ def test_compute_marker_counts_nuc_whole_cell_diff():
     assert np.array_equal(segmentation_output_unequal.loc['nuclear', :, 'cell_size'],
                           segmentation_output_unequal.loc['nuclear', :, 'area'])
 
+    # check that splitting large nuclei works as expected
+
+    # swap nuclear and cell masks so that nuc is bigger
+    big_nuc_masks = np.concatenate((nuc_mask, cell_mask), axis=-1)
+    segmentation_labels_big_nuc = test_utils.make_labels_xarray(
+        label_data=big_nuc_masks,
+        compartment_names=['whole_cell', 'nuclear']
+    )
+
+    # test utils output is 4D but tests require 3D
+    segmentation_labels_big_nuc = segmentation_labels_big_nuc[0]
+
+    segmentation_output_big_nuc = \
+        marker_quantification.compute_marker_counts(
+            input_images=input_images,
+            segmentation_labels=segmentation_labels_big_nuc,
+            nuclear_counts=True,
+            split_large_nuclei=True)
+
 
 def test_compute_marker_counts_no_coords():
     cell_mask, channel_data = test_utils.create_test_extraction_data()
