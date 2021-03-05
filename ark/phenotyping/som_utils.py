@@ -64,8 +64,7 @@ def compute_cluster_avg(fovs, channels, base_dir,
                             compression='uncompressed')
 
 
-def create_fov_pixel_data(fov, channels, img_data, seg_labels, base_dir,
-                          pre_dir='pixel_mat_preprocessed', sub_dir='pixel_mat_subsetted',
+def create_fov_pixel_data(fov, channels, img_data, seg_labels,
                           blur_factor=2, subset_proportion=0.1, seed=42):
     """Preprocess pixel data for one fov
 
@@ -79,19 +78,20 @@ def create_fov_pixel_data(fov, channels, img_data, seg_labels, base_dir,
         img_data (numpy.ndarray):
             Array representing image data for one fov
         seg_labels (numpy.ndarray):
-            Array representing segmentation labels for each image
-        base_dir (str):
-            Name of the directory to save the pixel files to
-        pre_dir (str):
-            Name of the directory which contains the preprocessed pixel data
-        sub_dir (str):
-            The name of the directory containing the subsetted pixel data
+            Array representing segmentation labels for one fov
         blur_factor (int):
             The sigma to set for the Gaussian blur
         subset_proportion (float):
             The proportion of pixels to take from each fov
         seed (int):
             The random seed to set for subsetting
+
+    Returns:
+        tuple:
+            A tuple containing two pd.Dataframes:
+
+            - The full preprocessed pixel dataset for a fov
+            - The subsetted pixel dataset for a fov
     """
 
     # for each marker, compute the Gaussian blur
@@ -111,7 +111,6 @@ def create_fov_pixel_data(fov, channels, img_data, seg_labels, base_dir,
     pixel_mat['column_index'] = np.tile(range(img_data.shape[0]), img_data.shape[1])
 
     # assign segmentation label
-    # seg_labels_flat = seg_labels.loc[fov, ...].values.flatten()
     seg_labels_flat = seg_labels.flatten()
     pixel_mat['segmentation_label'] = seg_labels_flat
 
@@ -125,19 +124,7 @@ def create_fov_pixel_data(fov, channels, img_data, seg_labels, base_dir,
     # subset the pixel matrix for training
     pixel_mat_subset = pixel_mat.sample(frac=subset_proportion, random_state=seed)
 
-    # write complete dataset to feather, needed for cluster assignment
-    feather.write_dataframe(pixel_mat,
-                            os.path.join(base_dir,
-                                         pre_dir,
-                                         fov + ".feather"),
-                            compression='uncompressed')
-
-    # write subseted dataset to feather, needed for training
-    feather.write_dataframe(pixel_mat_subset,
-                            os.path.join(base_dir,
-                                         sub_dir,
-                                         fov + ".feather"),
-                            compression='uncompressed')
+    return pixel_mat, pixel_mat_subset
 
 
 def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
@@ -207,20 +194,28 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
         # load segmentation labels in for fov
         seg_labels = imread(os.path.join(seg_dir, fov + '_feature_0.tif'))
 
-        # # load segmentation labels in for fov
-        # seg_labels = load_utils.load_imgs_from_dir(
-        #     seg_dir, files=[fov + '_feature_0.tif'], delimiter='_feature_0',
-        #     xr_dim_name='compartments', xr_channel_names=['whole_cell'], force_ints=True
-        # )
-
         # subset for the channel data
         img_data = img_xr.loc[fov, ...].values.astype(np.float32)
 
-        # create and save the full and subsetted fov matrices
-        create_fov_pixel_data(fov=fov, channels=channels, img_data=img_data,
-                              seg_labels=seg_labels, base_dir=base_dir, pre_dir=pre_dir,
-                              sub_dir=sub_dir, blur_factor=blur_factor,
-                              subset_proportion=subset_proportion, seed=seed)
+        # create the full and subsetted fov matrices
+        pixel_mat, pixel_mat_subset = create_fov_pixel_data(
+            fov=fov, channels=channels, img_data=img_data, seg_labels=seg_labels,
+            blur_factor=blur_factor, subset_proportion=subset_proportion, seed=seed
+        )
+
+        # write complete dataset to feather, needed for cluster assignment
+        feather.write_dataframe(pixel_mat,
+                                os.path.join(base_dir,
+                                             pre_dir,
+                                             fov + ".feather"),
+                                compression='uncompressed')
+
+        # write subseted dataset to feather, needed for training
+        feather.write_dataframe(pixel_mat_subset,
+                                os.path.join(base_dir,
+                                             sub_dir,
+                                             fov + ".feather"),
+                                compression='uncompressed')
 
 
 def train_som(fovs, channels, base_dir,

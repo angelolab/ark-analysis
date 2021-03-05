@@ -169,39 +169,26 @@ def test_create_fov_pixel_data():
 
     # test for each fov
     for fov in fovs:
-        with tempfile.TemporaryDirectory() as temp_dir:
-            # make preprocessed and subsetted directories
-            os.mkdir(os.path.join(temp_dir, 'pixel_mat_preprocessed'))
-            os.mkdir(os.path.join(temp_dir, 'pixel_mat_subsetted'))
+        sample_img_data = sample_img_xr.loc[fov, ...].values.astype(np.float32)
 
-            sample_img_data = sample_img_xr.loc[fov, ...].values.astype(np.float32)
+        seg_labels = sample_labels.loc[fov, ...].values.reshape(10, 10)
 
-            seg_labels = sample_labels.loc[fov, ...].values.reshape(10, 10)
+        # run fov preprocessing for one fov
+        sample_pixel_mat, sample_pixel_mat_subset = som_utils.create_fov_pixel_data(
+            fov=fov, channels=chans, img_data=sample_img_data, seg_labels=seg_labels
+        )
 
-            # run fov preprocessing for one fov
-            som_utils.create_fov_pixel_data(fov=fov, channels=chans, img_data=sample_img_data,
-                                            seg_labels=seg_labels, base_dir=temp_dir)
+        # assert the channel names are the same
+        misc_utils.verify_same_elements(flowsom_chans=sample_pixel_mat.columns.values[:-4],
+                                        provided_chans=chans)
+        misc_utils.verify_same_elements(flowsom_chans=sample_pixel_mat_subset.columns.values[:-4],
+                                        provided_chans=chans)
 
-            # assert we created both a preprocessed and a subsetted feather file for the fov
-            fov_pre_path = os.path.join(temp_dir, 'pixel_mat_preprocessed', fov + '.feather')
-            fov_sub_path = os.path.join(temp_dir, 'pixel_mat_subsetted', fov + '.feather')
+        # assert no rows sum to 0
+        assert np.all(sample_pixel_mat.loc[:, ['chan0', 'chan1']].sum(axis=1).values != 0)
 
-            assert os.path.exists(fov_pre_path)
-            assert os.path.exists(fov_sub_path)
-
-            # get the data for the specific fov
-            flowsom_pre_fov = feather.read_dataframe(fov_pre_path)
-            flowsom_sub_fov = feather.read_dataframe(fov_sub_path)
-
-            # assert the channel names are the same
-            misc_utils.verify_same_elements(flowsom_chans=flowsom_pre_fov.columns.values[:-4],
-                                            provided_chans=chans)
-
-            # assert no rows sum to 0
-            assert np.all(flowsom_pre_fov.loc[:, ['chan0', 'chan1']].sum(axis=1).values != 0)
-
-            # assert the size of the subsetted DataFrame is 0.1 of the preprocessed DataFrame
-            assert flowsom_pre_fov.shape[0] * 0.1 == flowsom_sub_fov.shape[0]
+        # assert the size of the subsetted DataFrame is 0.1 of the preprocessed DataFrame
+        assert sample_pixel_mat.shape[0] * 0.1 == sample_pixel_mat_subset.shape[0]
 
 
 # TODO: leaving out MIBItiff testing until someone needs it
