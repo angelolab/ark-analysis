@@ -3,7 +3,7 @@ from os import path
 from distutils.command.build_ext import build_ext as DistUtilsBuildExt
 from setuptools import setup, find_packages
 
-VERSION = '0.2.8'
+VERSION = '0.2.9'
 
 # set a long description which is basically the README
 with open(path.join(path.abspath(path.dirname(__file__)), 'README.md')) as f:

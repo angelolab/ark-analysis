@@ -22,6 +22,16 @@ def test_major_minor_axis_ratio():
     major_minor_rat = regionprops_extraction.major_minor_axis_ratio(prop_info)
     assert np.round(major_minor_rat, 4) == 1.1524
 
+    class Regionprop(object):
+        pass
+
+    prop_info = Regionprop()
+    prop_info.major_axis_length = 10
+    prop_info.minor_axis_length = 0
+
+    nan_val = regionprops_extraction.major_minor_axis_ratio(prop_info)
+    assert np.isnan(nan_val)
+
 
 def test_perim_square_over_area():
     sample_arr = np.zeros((50, 50)).astype(int)
