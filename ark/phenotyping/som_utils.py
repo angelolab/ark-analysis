@@ -16,7 +16,7 @@ from ark.utils import misc_utils
 
 def compute_cluster_avg(fovs, channels, base_dir,
                         cluster_dir='pixel_mat_clustered',
-                        cluster_avg_name='pixel_cluster_avg.feather'):
+                        cluster_avg_name='pixel_cluster_avg.feather',):
     """Averages channel values across all fovs in pixel_mat_clustered
 
     Args:
@@ -32,12 +32,14 @@ def compute_cluster_avg(fovs, channels, base_dir,
             Name of file to save the averaged results to
     """
 
+    # define the cluster averages DataFrame
     cluster_avgs = pd.DataFrame()
 
     for fov in fovs:
         # read in the fovs data
         fov_pixel_data = feather.read_dataframe(
-            os.path.join(base_dir, cluster_dir, fov + '.feather'))
+            os.path.join(base_dir, cluster_dir, fov + '.feather')
+        )
 
         # aggregate the sums and counts
         sum_by_cluster = fov_pixel_data.groupby('cluster')[channels].sum()
@@ -363,7 +365,7 @@ def cluster_pixels(fovs, base_dir, pre_dir='pixel_mat_preprocessed',
 def consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
                       cluster_dir='pixel_mat_clustered',
                       cluster_avg_name='pixel_cluster_avg.feather',
-                      consensus_name='cluster_consensus.feather'):
+                      consensus_dir='pixel_mat_consensus'):
     """Run consensus clustering algorithm on summed data across channels
 
     Args:
@@ -381,24 +383,28 @@ def consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
             Name of the file containing the pixel data with cluster labels
         cluster_avg_name (str):
             Name of file to save the channel-averaged results to
-        consensus_name (str):
-            Name of file to save the consensus clustered results
+        consensus_dir (str):
+            Name of directory to save the consensus clustered results
     """
 
     clustered_path = os.path.join(base_dir, cluster_dir)
     cluster_avg_path = os.path.join(base_dir, cluster_avg_name)
-    consensus_path = os.path.join(base_dir, consensus_name)
+    consensus_path = os.path.join(base_dir, consensus_dir)
 
     if not os.path.exists(clustered_path):
         raise FileNotFoundError('Cluster dir %s does not exist in base_dir %s' %
-                                (base_dir, consensus_path))
+                                (base_dir, clustered_path))
 
     # compute and write the averaged cluster results
     compute_cluster_avg(fovs, channels, base_dir, cluster_dir)
 
+    # make consensus_dir if it doesn't exist
+    if not os.path.exists(consensus_path):
+        os.mkdir(consensus_path)
+
     # run the consensus clustering process
-    process_args = ['Rscript', '/consensus_cluster.R', ','.join(channels),
-                    str(max_k), str(cap), cluster_avg_path, consensus_path]
+    process_args = ['Rscript', '/consensus_cluster.R', ','.join(fovs), ','.join(channels),
+                    str(max_k), str(cap), clustered_path, cluster_avg_path, consensus_path]
 
     process = subprocess.Popen(process_args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
