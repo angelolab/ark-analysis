@@ -144,6 +144,19 @@ def assign_multi_compartment_features(marker_counts, regionprops_multi_comp, **k
     )
 
     for rn in regionprops_multi_comp:
+        # if rn is not a feature, then we add a new dimension to hold this regionprop info
+        if rn not in marker_counts.features.values:
+            rn_fill = np.zeros((marker_counts.shape[0], marker_counts.shape[1], 1))
+            rn_arr = xr.DataArray(
+                rn_fill,
+                coords=[marker_counts.compartments.values, marker_counts.cell_id.values, [rn]],
+                dims=['compartments', 'cell_id', 'features']
+            )
+
+            # append new dimension to marker_counts
+            marker_counts = xr.concat([marker_counts, rn_arr], dim='features')
+
+        # compute the multi-compatment regionprop info
         marker_counts = REGIONPROPS_FUNCTION[rn](marker_counts, **kwargs)
 
     return marker_counts
@@ -289,6 +302,10 @@ def compute_marker_counts(input_images, segmentation_labels, nuclear_counts=Fals
                 marker_counts = assign_multi_compartment_features(
                     marker_counts, regionprops_multi_comp
                 )
+
+                # if regionprops names does not contain multi_comp props then add them
+                if not set(regionprops_multi_comp).issubset(regionprops_names):
+                    regionprops_names.extend(regionprops_multi_comp)
 
     return marker_counts
 
