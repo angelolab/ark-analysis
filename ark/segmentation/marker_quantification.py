@@ -252,7 +252,7 @@ def compute_marker_counts(input_images, segmentation_labels, nuclear_counts=Fals
                                                       nuc_segmentation_labels=nuc_labels,
                                                       cell_ids=unique_cell_ids)
 
-        nuc_props = get_single_compartment_props(segmentation_labels.loc[:, :, 'nuclear'].values,
+        nuc_props = get_single_compartment_props(nuc_labels,
                                                  regionprops_base, regionprops_single_comp,
                                                  **reg_props)
 

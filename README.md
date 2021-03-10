@@ -99,3 +99,8 @@ If you run into trouble, please first refer to our [FAQ](https://ark-analysis.re
 ## Want to contribute?  
 
 If you would like to help make `ark` better, please take a look at our [contributing guidelines](https://ark-analysis.readthedocs.io/en/latest/_rtd/contributing.html). 
+
+## Citation
+Please cite our paper if you found our repo useful!
+
+[Greenwald, Miller et al. Whole-cell segmentation of tissue images with human-level performance using large-scale data annotation and deep learning](https://www.biorxiv.org/content/10.1101/2021.03.01.431313v2)

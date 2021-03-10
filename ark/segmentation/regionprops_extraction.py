@@ -19,8 +19,10 @@ def major_minor_axis_ratio(prop, **kwargs):
         float:
             major axis length / minor axis length
     """
-
-    return prop.major_axis_length / prop.minor_axis_length
+    if prop.minor_axis_length == 0:
+        return np.float('NaN')
+    else:
+        return prop.major_axis_length / prop.minor_axis_length
 
 
 def perim_square_over_area(prop, **kwargs):

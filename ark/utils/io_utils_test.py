@@ -52,6 +52,23 @@ def test_validate_paths():
         with pytest.raises(ValueError, match=r".*The file/path.*not_a_real_file.*"):
             iou.validate_paths(wrong_file)
 
+    # make tempdir for testing outside of docker
+    with tempfile.TemporaryDirectory() as valid_path:
+
+        # make valid subdirectory
+        valid_parts = [p for p in pathlib.Path(valid_path).parts]
+        valid_parts[0] = 'not_a_real_directory'
+
+        # test no '../data' prefix
+        starts_out_of_scope = os.path.join(*valid_parts)
+
+        # test out of scope when specifying out of scope
+        with pytest.raises(ValueError, match=r".*not_a_real_directory*"):
+            iou.validate_paths(starts_out_of_scope, data_prefix=False)
+
+        with pytest.raises(ValueError, match=r".*is not prefixed with.*"):
+            iou.validate_paths(starts_out_of_scope, data_prefix=True)
+
     # reset cwd after testing
     os.chdir('../')
 

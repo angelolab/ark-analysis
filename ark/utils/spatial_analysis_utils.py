@@ -31,7 +31,7 @@ def calc_dist_matrix(label_maps, save_path=None):
     # Check that file path exists, if given
 
     if save_path is not None:
-        io_utils.validate_paths(save_path)
+        io_utils.validate_paths(save_path, data_prefix=False)
 
     dist_mats_list = []
 
