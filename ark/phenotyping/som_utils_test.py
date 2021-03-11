@@ -85,9 +85,10 @@ def mocked_cluster_pixels(fovs, base_dir, pre_dir='pixel_mat_preprocessed',
                                                           fov + '.feather'))
 
 
-def mocked_consensus_cluster(channels, base_dir, max_k=20, cap=3,
+def mocked_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
+                             cluster_dir='pixel_mat_clustered',
                              cluster_avg_name='pixel_cluster_avg.feather',
-                             consensus_name='cluster_consensus.feather'):
+                             consensus_dir='pixel_mat_consensus'):
     # read the cluster average
     cluster_avg = feather.read_dataframe(os.path.join(base_dir, cluster_avg_name))
 
@@ -101,11 +102,23 @@ def mocked_consensus_cluster(channels, base_dir, max_k=20, cap=3,
     cluster_ids = cluster_means * 100
     cluster_ids = cluster_ids.astype(int) % 20
 
-    # assign dummy consensus cluster ids
-    cluster_avg['hCluster_cap'] = cluster_ids
+    # map SOM cluster ids to hierarchical cluster ids
+    hClust_to_clust = cluster_avg.drop(columns=channels)
+    hClust_to_clust['hCluster_cap'] = cluster_ids
 
-    # write consensus cluster results to feather
-    feather.write_dataframe(cluster_avg, os.path.join(base_dir, consensus_name))
+    for fov in fovs:
+        # read fov pixel data with clusters
+        fov_cluster_matrix = feather.read_dataframe(os.path.join(base_dir,
+                                                                 cluster_dir,
+                                                                 fov + '.feather'))
+
+        # use mapping to assign hierarchical cluster ids
+        fov_cluster_matrix = pd.merge(fov_cluster_matrix, hClust_to_clust)
+
+        # write consensus cluster results to feather
+        feather.write_dataframe(fov_cluster_matrix, os.path.join(base_dir,
+                                                                 consensus_dir,
+                                                                 fov + '.feather'))
 
 
 def test_compute_cluster_avg():
@@ -489,20 +502,31 @@ def test_consensus_cluster(mocker):
         # compute averages by cluster, this happens before call to R
         som_utils.compute_cluster_avg(fovs, chans, temp_dir)
 
+        # make a dummy consensus dir
+        os.mkdir(os.path.join(temp_dir, 'pixel_mat_consensus'))
+
         # add mocked function to "consensus cluster" data averaged by cluster
         mocker.patch('ark.phenotyping.som_utils.consensus_cluster', mocked_consensus_cluster)
 
         # run "consensus clustering" using mocked function
-        som_utils.consensus_cluster(channels=chans, base_dir=temp_dir)
+        som_utils.consensus_cluster(fovs=fovs, channels=chans, base_dir=temp_dir)
 
-        # assert the final consensus cluster file has been created
-        assert os.path.exists(os.path.join(temp_dir, 'cluster_consensus.feather'))
+        # assert the final consensus cluster directory has been created
+        assert os.path.exists(os.path.join(temp_dir, 'pixel_mat_consensus'))
 
-        # read the dummy consensus cluster results in
-        consensus_cluster_results = feather.read_dataframe(
-            os.path.join(temp_dir, 'cluster_consensus.feather')
-        )
+        for fov in fovs:
+            fov_cluster_data = feather.read_dataframe(os.path.join(temp_dir,
+                                                                   'pixel_mat_clustered',
+                                                                   fov + '.feather'))
 
-        # assert we didn't assign any cluster 20 or above
-        cluster_ids = consensus_cluster_results['hCluster_cap']
-        assert np.all(cluster_ids < 20)
+            fov_consensus_data = feather.read_dataframe(os.path.join(temp_dir,
+                                                                     'pixel_mat_consensus',
+                                                                     fov + '.feather'))
+
+            # assert we didn't modify the cluster column in the consensus clustered results
+            assert np.all(
+                fov_cluster_data['cluster'].values == fov_consensus_data['cluster'].values
+            )
+
+            # assert we didn't assign any cluster 20 or above
+            consensus_cluster_ids = fov_consensus_data['hCluster_cap']

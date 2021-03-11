@@ -15,20 +15,26 @@ library(ConsensusClusterPlus)
 # get the command line arguments
 args <- commandArgs(trailingOnly=TRUE)
 
+# create the list of fovs
+fovs <- unlist(strsplit(args[1], split=","))
+
 # create the list of channels
-markers <- unlist(strsplit(args[1], split=","))
+markers <- unlist(strsplit(args[2], split=","))
 
 # get number of consensus clusters
-maxK <- strtoi(args[2])
+maxK <- strtoi(args[3])
 
 # get z-score scaling factor
-cap <- strtoi(args[3])
+cap <- strtoi(args[4])
+
+# get path to the clustered pixel data
+pixelClusterDir <- args[5]
 
 # get path to the averaged channel data
-clusterAvgPath <- args[4]
+clusterAvgPath <- args[6]
 
 # get consensus clustered write path
-consensusClusterPath <- args[5]
+pixelMatConsensus <- args[7]
 
 # read cluster averaged data
 print("Reading cluster averaged data")
@@ -42,8 +48,20 @@ clusterAvgsScale <- pmin(scale(clusterAvgs[markers]), cap)
 print("Running consensus clustering")
 consensusClusterResults <- ConsensusClusterPlus(t(clusterAvgsScale), maxK=maxK)
 hClust <- consensusClusterResults[[maxK]]$consensusClass
-clusterAvgs$hCluster_cap = hClust[clusterAvgs$cluster]
+names(hClust) <- clusterAvgs$cluster
 
-# saving consensus clustering results
+# append hClust to each fov's data
 print('Writing consensus clustering results')
-arrow::write_feather(as.data.table(clusterAvgs), consensusClusterPath)
+for (fov in fovs) {
+    # read in pixel data, we'll need the cluster column for mapping
+    fileName <- paste(fov, ".feather", sep="")
+    matPath <- paste(pixelClusterDir, fileName, sep="/")
+    fovPixelData <- arrow::read_feather(matPath)
+
+    # assign hierarchical cluster labels
+    fovPixelData$hCluster_cap <- hClust[as.character(fovPixelData$cluster)]
+
+    # overwrite old cluster file with new one containing hCluster_cap
+    clusterPath <- paste(pixelMatConsensus, fileName, sep="/")
+    arrow::write_feather(as.data.table(fovPixelData), clusterPath)
+}
