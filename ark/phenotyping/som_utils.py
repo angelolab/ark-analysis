@@ -16,7 +16,7 @@ from ark.utils import misc_utils
 
 def compute_cluster_avg(fovs, channels, base_dir,
                         cluster_dir='pixel_mat_clustered',
-                        cluster_avg_name='pixel_cluster_avg.feather',):
+                        cluster_avg_name='pixel_cluster_avg.feather'):
     """Averages channel values across all fovs in pixel_mat_clustered
 
     Args:
