@@ -25,23 +25,23 @@ Description: This holds the extracted single cell data. Each row is a unique cel
 
 For each cell, these are the specific morphology metrics computed:
 
-* cell_size: the signal intensity. May not be the same as area depending on the signal extraction method used.
-* area
-* eccentricity
-* major_axis_length
-* minor_axis_length
-* perimeter
-* convex_area: the area of the convex hull
-* equivalent_diameter: the diameter of the circle with the same area as the cell
-* centroid-0: the x-coordinate of the centroid
-* centroid-1: the y-coordinate of the centroid
-* major_minor_axis_ratio: the major axis length divided by the minor axis length
-* perim_square_over_area: the square of the perimeter divided by the area
-* major_axis_equiv_diam_ratio: the major axis length divided by the equivalent diameter
-* convex_hull_resid: the difference between the convex area and the area divided by the convex area
-* centroid_dif: the normalized euclidian distance between the cell centroid and the corresponding convex hull centroid
-* num_concavities
-* nc_ratio: for nuclear segmentation only. The nuclear area divided by the total area.
+* `cell_size`: the signal intensity. May not be the same as area depending on the signal extraction method used.
+* `area`
+* `eccentricity`
+* `major_axis_length`
+* `minor_axis_length`
+* `perimeter`
+* `convex_area`: the area of the convex hull
+* `equivalent_diameter`: the diameter of the circle with the same area as the cell
+* `centroid-0`: the x-coordinate of the centroid
+* `centroid-1`: the y-coordinate of the centroid
+* `major_minor_axis_ratio`: the major axis length divided by the minor axis length
+* `perim_square_over_area`: the square of the perimeter divided by the area
+* `major_axis_equiv_diam_ratio`: the major axis length divided by the equivalent diameter
+* `convex_hull_resid`: the difference between the convex area and the area divided by the convex area
+* `centroid_dif`: the normalized euclidian distance between the cell centroid and the corresponding convex hull centroid
+* `num_concavities`
+* `nc_ratio`: for nuclear segmentation only. The nuclear area divided by the total area.
 
 ---
 
