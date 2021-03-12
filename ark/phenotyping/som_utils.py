@@ -9,14 +9,14 @@ import scipy.ndimage as ndimage
 from skimage.io import imread
 
 import ark.settings as settings
+from ark.analysis import visualize
 from ark.utils import io_utils
 from ark.utils import load_utils
 from ark.utils import misc_utils
 
 
-def compute_cluster_avg(fovs, channels, base_dir,
-                        cluster_dir='pixel_mat_clustered',
-                        cluster_avg_name='pixel_cluster_avg.feather'):
+def compute_cluster_avg(fovs, channels, base_dir, cluster_col,
+                        cluster_dir='pixel_mat_clustered'):
     """Averages channel values across all fovs in pixel_mat_clustered
 
     Args:
@@ -25,11 +25,11 @@ def compute_cluster_avg(fovs, channels, base_dir,
         channels (list):
             The list of channels to subset on
         base_dir (str):
-            Name of the directory to save the pixel files to
+            The path to the data directories
+        cluster_col (str):
+            Name of the column to group by
         cluster_dir (str):
             Name of the file containing the pixel data with cluster labels
-        cluster_avg_name (str):
-            Name of file to save the averaged results to
     """
 
     # define the cluster averages DataFrame
@@ -42,8 +42,8 @@ def compute_cluster_avg(fovs, channels, base_dir,
         )
 
         # aggregate the sums and counts
-        sum_by_cluster = fov_pixel_data.groupby('cluster')[channels].sum()
-        count_by_cluster = fov_pixel_data.groupby('cluster')[channels].size().to_frame('count')
+        sum_by_cluster = fov_pixel_data.groupby(cluster_col)[channels].sum()
+        count_by_cluster = fov_pixel_data.groupby(cluster_col)[channels].size().to_frame('count')
 
         # concat the results together
         agg_results = pd.merge(
@@ -52,7 +52,7 @@ def compute_cluster_avg(fovs, channels, base_dir,
         cluster_avgs = pd.concat([cluster_avgs, agg_results])
 
     # sum the counts and the channel sums
-    sum_count_totals = cluster_avgs.groupby('cluster')[channels + ['count']].sum().reset_index()
+    sum_count_totals = cluster_avgs.groupby(cluster_col)[channels + ['count']].sum().reset_index()
 
     # now compute the means using the count column
     sum_count_totals[channels] = sum_count_totals[channels].div(sum_count_totals['count'], axis=0)
@@ -60,10 +60,7 @@ def compute_cluster_avg(fovs, channels, base_dir,
     # drop the count column
     sum_count_totals = sum_count_totals.drop('count', axis=1)
 
-    # save the DataFrame
-    feather.write_dataframe(sum_count_totals,
-                            os.path.join(base_dir, cluster_avg_name),
-                            compression='uncompressed')
+    return sum_count_totals
 
 
 def create_fov_pixel_data(fov, channels, img_data, seg_labels,
@@ -143,7 +140,7 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
         channels (list):
             List of channels to subset over
         base_dir (str):
-            Name of the directory to save the pixel files to
+            The path to the data directories
         tiff_dir (str):
             Name of the directory containing the tiff files
         seg_dir (str):
@@ -233,7 +230,7 @@ def train_som(fovs, channels, base_dir,
         channels (list):
             The list of markers to subset on
         base_dir (str):
-            The path to the data directory
+            The path to the data directories
         sub_dir (str):
             The name of the subsetted data directory
         norm_vals_name (str):
@@ -374,7 +371,7 @@ def consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
         channels (list):
             The list of channels to subset on
         base_dir (str):
-            Name of the directory to save the pixel files to
+            The path to the data directory
         max_k (int):
             The number of consensus clusters
         cap (int):
@@ -396,7 +393,13 @@ def consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
                                 (base_dir, clustered_path))
 
     # compute and write the averaged cluster results
-    compute_cluster_avg(fovs, channels, base_dir, cluster_dir)
+    cluster_avgs = compute_cluster_avg(fovs, channels, base_dir,
+                                       cluster_col='cluster', cluster_dir=cluster_dir)
+
+    # save the DataFrame
+    feather.write_dataframe(cluster_avgs,
+                            os.path.join(base_dir, cluster_avg_name),
+                            compression='uncompressed')
 
     # make consensus_dir if it doesn't exist
     if not os.path.exists(consensus_path):
@@ -418,3 +421,51 @@ def consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
             break
         if output:
             print(output.strip())
+
+
+def visualize_cluster_data(fovs, channels, base_dir, cluster_dir, cluster_col='cluster',
+                           dpi=None, center_val=None, overlay_values=False, colormap="vlag",
+                           save_dir=None, save_file=None):
+    """Visualize the average cluster results for each cluster
+
+    Args:
+        fovs (list):
+            The list of fovs to subset on
+        channels (list):
+            The list of channels to subset on
+        base_dir (str):
+            The path to the data directories
+        cluster_dir (str):
+            Name of the directory containing the data to visualize
+        cluster_col (str):
+            Name of the column to group values by
+        dpi (float):
+            The resolution of the image to save, ignored if save_dir is None
+        center_val (float):
+            value at which to center the heatmap
+        overlay_values (bool):
+            whether to overlay the raw heatmap values on top
+        colormap (str):
+            color scheme for visualization
+        save_dir (str):
+            If specified, a directory where we will save the plot
+        save_file (str):
+            If save_dir specified, specify a file name you wish to save to.
+            Ignored if save_dir is None
+    """
+
+    # average the channel values across the cluster column
+    cluster_avgs = compute_cluster_avg(fovs, channels, base_dir, cluster_col, cluster_dir)
+
+    # convert cluster column to integer type
+    cluster_avgs[cluster_col] = cluster_avgs[cluster_col].astype(int)
+
+    # sort cluster col in ascending order
+    cluster_avgs = cluster_avgs.sort_values(by=cluster_col)
+
+    # draw the heatmap
+    visualize.draw_heatmap(
+        data=cluster_avgs[channels].values, x_labels=cluster_avgs[cluster_col], y_labels=channels,
+        dpi=dpi, center_val=center_val, overlay_values=overlay_values,
+        colormap=colormap, save_dir=save_dir, save_file=save_file
+    )

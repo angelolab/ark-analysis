@@ -7,7 +7,8 @@ import seaborn as sns
 from ark.utils import misc_utils
 
 
-def draw_boxplot(cell_data, col_name, col_split=None, split_vals=None, dpi=None, save_dir=None):
+def draw_boxplot(cell_data, col_name, col_split=None,
+                 split_vals=None, dpi=None, save_dir=None, save_file=None):
     """Draws a boxplot for a given column, optionally with help from a split column
 
     Args:
@@ -23,6 +24,9 @@ def draw_boxplot(cell_data, col_name, col_split=None, split_vals=None, dpi=None,
             The resolution of the image to save, ignored if save_dir is None
         save_dir (str):
             If specified, a directory where we will save the plot
+        save_file (str):
+            If save_dir specified, specify a file name you wish to save to.
+            Ignored if save_dir is None
     """
 
     # the col_name must be valid
@@ -61,11 +65,11 @@ def draw_boxplot(cell_data, col_name, col_split=None, split_vals=None, dpi=None,
 
     # save visualization to a directory if specified
     if save_dir is not None:
-        misc_utils.save_figure(save_dir, "boxplot_viz.png", dpi=dpi)
+        misc_utils.save_figure(save_dir, save_file, dpi=dpi)
 
 
 def draw_heatmap(data, x_labels, y_labels, dpi=None, center_val=None,
-                 overlay_values=False, colormap="vlag", save_dir=None):
+                 overlay_values=False, colormap="vlag", save_dir=None, save_file=None):
     """Plots the z scores between all phenotypes as a clustermap.
 
     Args:
@@ -85,6 +89,9 @@ def draw_heatmap(data, x_labels, y_labels, dpi=None, center_val=None,
             color scheme for visualization
         save_dir (str):
             If specified, a directory where we will save the plot
+        save_file (str):
+            If save_dir specified, specify a file name you wish to save to.
+            Ignored if save_dir is None
     """
 
     # Replace the NA's and inf values with 0s
@@ -101,7 +108,7 @@ def draw_heatmap(data, x_labels, y_labels, dpi=None, center_val=None,
         sns.clustermap(data_df, cmap=colormap, center=center_val)
 
     if save_dir is not None:
-        misc_utils.save_figure(save_dir, "z_score_viz.png", dpi=dpi)
+        misc_utils.save_figure(save_dir, save_file, dpi=dpi)
 
 
 def get_sorted_data(cell_data, sort_by_first, sort_by_second, is_normalized=False):
