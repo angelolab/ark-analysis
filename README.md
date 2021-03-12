@@ -38,7 +38,7 @@ You've now installed the code base.
 Enter the following command into terminal from the same directory you ran the above commands:
 
 ```
-$ bash start_docker.sh
+bash start_docker.sh
 ``` 
 
 This will generate a link to a jupyter notebook. Copy the last URL (the one with `127.0.0.1:8888` at the beginning) into your web browser.
@@ -70,7 +70,12 @@ This project is still in development, and we are making frequent updates and imp
 First, get the latest version of the code
 
 ```
-$ git pull
+git pull
+```
+
+Because `requirements.txt` may have changed, rebuild the Docker using
+```
+docker build -t ark-analysis .
 ```
 
 Then, run the command below to update the jupyter notebooks to the latest version
