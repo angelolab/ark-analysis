@@ -39,6 +39,7 @@ clusterAvgPath <- args[6]
 pixelMatConsensus <- args[7]
 
 # if a seed is set, get it and set
+seed <- NULL
 if (length(args) == 8) {
     seed <- strtoi(args[8])
     set.seed(seed)

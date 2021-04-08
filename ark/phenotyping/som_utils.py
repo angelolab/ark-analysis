@@ -126,7 +126,7 @@ def create_fov_pixel_data(fov, channels, img_data, seg_labels,
     return pixel_mat, pixel_mat_subset
 
 
-def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
+def create_pixel_matrix(fovs, base_dir, tiff_dir, seg_dir,
                         pre_dir='pixel_mat_preprocessed',
                         sub_dir='pixel_mat_subsetted', is_mibitiff=False,
                         blur_factor=2, subset_proportion=0.1, seed=None):
@@ -137,8 +137,6 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
     Args:
         fovs (list):
             List of fovs to subset over
-        channels (list):
-            List of channels to subset over
         base_dir (str):
             The path to the data directories
         tiff_dir (str):
@@ -183,11 +181,11 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
         # load img_xr from MIBITiff or directory with the fov
         if is_mibitiff:
             img_xr = load_utils.load_imgs_from_mibitiff(
-                tiff_dir, mibitiff_files=[fov], channels=channels, dtype="int16"
+                tiff_dir, mibitiff_files=[fov], dtype="int16"
             )
         else:
             img_xr = load_utils.load_imgs_from_tree(
-                tiff_dir, fovs=[fov], channels=channels, dtype="int16"
+                tiff_dir, fovs=[fov], dtype="int16"
             )
 
         # load segmentation labels in for fov
@@ -198,7 +196,7 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
 
         # create the full and subsetted fov matrices
         pixel_mat, pixel_mat_subset = create_fov_pixel_data(
-            fov=fov, channels=channels, img_data=img_data, seg_labels=seg_labels,
+            fov=fov, channels=img_xr.channels.values, img_data=img_data, seg_labels=seg_labels,
             blur_factor=blur_factor, subset_proportion=subset_proportion, seed=seed
         )
 

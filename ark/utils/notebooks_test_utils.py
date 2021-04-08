@@ -79,7 +79,8 @@ def segment_notebook_setup(tb, deepcell_tiff_dir, deepcell_input_dir, deepcell_o
 
 
 def flowsom_setup(tb, flowsom_dir, img_shape=(50, 50), num_fovs=3, num_chans=3,
-                  is_mibitiff=False, mibitiff_suffix="-MassCorrected-Filtered", dtype=np.uint16):
+                  seed=None, is_mibitiff=False, mibitiff_suffix="-MassCorrected-Filtered",
+                  dtype=np.uint16):
     """Creates the directories, data, and MIBItiff settings for testing FlowSOM clustering
 
     Args:
@@ -93,6 +94,8 @@ def flowsom_setup(tb, flowsom_dir, img_shape=(50, 50), num_fovs=3, num_chans=3,
             The number of test fovs to generate
         num_chans (int):
             The number of test channels to generate
+        seed (int):
+            The random seed to set
         is_mibitiff (bool):
             Whether we're working with mibitiff files or not
         mibitiff_suffix (str):
@@ -143,35 +146,17 @@ def flowsom_setup(tb, flowsom_dir, img_shape=(50, 50), num_fovs=3, num_chans=3,
     """ % (flowsom_dir, tiff_dir, seg_dir)
     tb.inject(define_paths, after='file_path')
 
+    # set a random seed
+    if seed is not None:
+        tb.inject("seed = %d" % seed, after='set_seed')
+    else:
+        tb.execute_cell('set_seed')
+
     # will set MIBItiff and MIBItiff_suffix
     tb.execute_cell('mibitiff_set')
     if is_mibitiff:
         # default setting is MIBItiff = False, change to True if user has mibitiff inputs
         tb.inject("MIBItiff = True", after='mibitiff_set')
-
-
-def flowsom_set_fovs_channels(tb, channels, fovs=None):
-    """Sets the fovs and channels variables
-
-    Args:
-        tb (testbook.testbook):
-            The testbook runner instance
-        channels (list):
-            The list of channels to subset in the image.
-        fovs (list):
-            If set, assigns the fovs variable to this list.
-            If None, executes the default fov loading scheme in the 'load_fovs' cell.
-    """
-
-    if fovs is not None:
-        # handles the case when the user assigns fovs to an explicit list
-        tb.inject("fovs = %s" % str(fovs), after='load_fovs')
-    else:
-        # handles the case when the user allows list_files or list_folders to do the fov loading
-        tb.execute_cell('load_fovs')
-
-    # sets the channels accordingly
-    tb.inject("channels = %s" % str(channels), after='set_channels')
 
 
 def flowsom_run(tb, fovs, channels, is_mibitiff=False):
@@ -188,17 +173,27 @@ def flowsom_run(tb, fovs, channels, is_mibitiff=False):
             Whether we're working with mibitiff im
     """
 
+    if fovs is not None:
+        # handles the case when the user assigns fovs to an explicit list
+        tb.inject("fovs = %s" % str(fovs), after='load_fovs')
+    else:
+        # handles the case when the user allows list_files or list_folders to do the fov loading
+        tb.execute_cell('load_fovs')
+
     # test the preprocessing works, we won't save nor run the actual FlowSOM clustering
     if is_mibitiff:
         mibitiff_preprocess = """
             som_utils.create_pixel_matrix(
-                fovs, channels, base_dir, tiff_dir, segmentation_dir, is_mibitiff=True
+                fovs, base_dir, tiff_dir, segmentation_dir, is_mibitiff=True, seed=seed
             )
         """
 
         tb.inject(mibitiff_preprocess, after='gen_pixel_mat')
     else:
         tb.execute_cell('gen_pixel_mat')
+
+    # sets the channels accordingly
+    tb.inject("channels = %s" % str(channels), after='set_channels')
 
     # create a dummy weights .feather
     dummy_weights = """

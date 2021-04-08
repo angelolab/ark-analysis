@@ -227,7 +227,6 @@ def test_create_pixel_matrix():
         # invalid subset proportion specified
         with pytest.raises(ValueError):
             som_utils.create_pixel_matrix(fovs=['fov1', 'fov2'],
-                                          channels=['Marker1', 'Marker2'],
                                           base_dir=temp_dir,
                                           tiff_dir=tiff_dir,
                                           seg_dir=seg_dir,
@@ -236,7 +235,6 @@ def test_create_pixel_matrix():
         # pass invalid base directory
         with pytest.raises(FileNotFoundError):
             som_utils.create_pixel_matrix(fovs=['fov1', 'fov2'],
-                                          channels=['Marker1', 'Marker2'],
                                           base_dir='bad_base_dir',
                                           tiff_dir=tiff_dir,
                                           seg_dir=seg_dir)
@@ -244,7 +242,6 @@ def test_create_pixel_matrix():
         # pass invalid tiff directory
         with pytest.raises(FileNotFoundError):
             som_utils.create_pixel_matrix(fovs=['fov1', 'fov2'],
-                                          channels=['Marker1', 'Marker2'],
                                           base_dir=temp_dir,
                                           tiff_dir='bad_tiff_dir',
                                           seg_dir=seg_dir)
@@ -274,14 +271,12 @@ def test_create_pixel_matrix():
             # pass invalid fov names
             with pytest.raises(FileNotFoundError):
                 som_utils.create_pixel_matrix(fovs=['fov1', 'fov2', 'fov3'],
-                                              channels=chans,
                                               base_dir=temp_dir,
                                               tiff_dir=tiff_dir,
                                               seg_dir=seg_dir)
 
             # create the pixel matrices
             som_utils.create_pixel_matrix(fovs=fovs,
-                                          channels=chans,
                                           base_dir=temp_dir,
                                           tiff_dir=tiff_dir,
                                           seg_dir=seg_dir)
@@ -311,7 +306,7 @@ def test_create_pixel_matrix():
                                                 provided_chans=chans)
 
                 # assert no rows sum to 0
-                assert np.all(flowsom_pre_fov.loc[:, ['chan0', 'chan1']].sum(axis=1).values != 0)
+                assert np.all(flowsom_pre_fov.loc[:, chans].sum(axis=1).values != 0)
 
                 # assert the size of the subsetted DataFrame is 0.1 of the preprocessed DataFrame
                 assert flowsom_pre_fov.shape[0] * 0.1 == flowsom_sub_fov.shape[0]

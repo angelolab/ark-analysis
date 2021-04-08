@@ -85,7 +85,6 @@ arrow::write_feather(as.data.table(normVals), normValsPath)
 # run the SOM training step
 print("Run the SOM training")
 somResults <- SOM(data=pixelSubsetData, rlen=numPasses, alpha=c(0.05, 0.01))
-print(somResults$codes)
 
 # write the weights to HDF5
 print("Save trained weights")
