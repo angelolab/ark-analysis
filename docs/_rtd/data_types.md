@@ -40,7 +40,7 @@ For each cell, these are the specific morphology metrics computed:
 * `major_axis_equiv_diam_ratio`: the major axis length divided by the equivalent diameter
 * `convex_hull_resid`: the difference between the convex area and the area divided by the convex area
 * `centroid_dif`: the normalized euclidian distance between the cell centroid and the corresponding convex hull centroid
-* `num_concavities`
+* `num_concavities`: the number of concavities of the region
 * `nc_ratio`: for nuclear segmentation only. The nuclear area divided by the total area.
 
 ---
