@@ -133,8 +133,8 @@ def test_assign_multi_compartment_features():
         compartment_names=['whole_cell', 'nuclear']
     )
 
-    # create a sample marker count matrix with 2 compartments, 3 cell ids, and 3 features
-    sample_marker_counts = np.zeros((2, 3, 3))
+    # create a sample marker count matrix with 2 compartments, 3 cell ids, and 2 features
+    sample_marker_counts = np.zeros((2, 3, 2))
 
     # cell 0: no nucleus
     sample_marker_counts[0, 0, 1] = 5
@@ -151,7 +151,7 @@ def test_assign_multi_compartment_features():
     sample_marker_counts = xr.DataArray(copy.copy(sample_marker_counts),
                                         coords=[['whole_cell', 'nuclear'],
                                                 [0, 1, 2],
-                                                ['feat_1', 'area', 'nc_ratio']],
+                                                ['feat_1', 'area']],
                                         dims=['compartments', 'cell_id', 'features'])
 
     # define the nuclear properties
@@ -160,6 +160,9 @@ def test_assign_multi_compartment_features():
     sample_marker_counts = marker_quantification.assign_multi_compartment_features(
         sample_marker_counts, regionprops_multi_comp
     )
+
+    # assert we added nc_ratio as a features key
+    assert 'nc_ratio' in sample_marker_counts.features.values
 
     # testing cell 0
     assert sample_marker_counts.loc['whole_cell', 0, 'nc_ratio'] == 0
