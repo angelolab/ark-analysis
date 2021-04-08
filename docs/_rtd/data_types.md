@@ -23,7 +23,7 @@ Shape: 2D matrix of cells x cell_features
 
 Description: This holds the extracted single cell data. Each row is a unique cell, and each column is a feature for that cell. This includes the counts for each marker, morphological information, and information to link that cell back to the original image such as segmentation id and FOV.  
 
-For each cell, these are the specific morphology metrics computed:
+For each cell, the following morphology features calculated from `skimage.measure.regionprops` are included:
 
 * `cell_size`: the signal intensity. May not be the same as area depending on the signal extraction method used.
 * `area`: number of pixels of the region
@@ -35,6 +35,8 @@ For each cell, these are the specific morphology metrics computed:
 * `equivalent_diameter`: the diameter of the circle with the same area as the cell
 * `centroid-0`: the x-coordinate of the centroid
 * `centroid-1`: the y-coordinate of the centroid
+
+The base `regionprops` metric often don't provide enough morphological information about each cell on their own. We add the following derived metrics to provide more complete information about the segmented cells:
 * `major_minor_axis_ratio`: the major axis length divided by the minor axis length
 * `perim_square_over_area`: the square of the perimeter divided by the area
 * `major_axis_equiv_diam_ratio`: the major axis length divided by the equivalent diameter
