@@ -27,8 +27,8 @@ Next, you'll need to set up a docker image with all of the required dependencies
  - Once it's running, enter the following commands into terminal 
 
 ```
-$ cd ark-analysis
-$ docker build -t ark-analysis .
+cd ark-analysis
+docker build -t ark-analysis .
 ``` 
 
 You've now installed the code base. 
