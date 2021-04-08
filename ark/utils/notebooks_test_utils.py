@@ -1,3 +1,4 @@
+from datetime import datetime as dt
 import os
 import numpy as np
 import skimage.io as io
@@ -139,11 +140,15 @@ def flowsom_setup(tb, flowsom_dir, img_shape=(50, 50), num_fovs=3, num_chans=3,
         base_dir = "%s"
         tiff_dir = "%s"
         segmentation_dir = "%s"
-        preprocessed_dir = "pixel_mat_preprocessed"
-        subsetted_dir = "pixel_mat_subsetted"
-        som_clustered_dir = "pixel_mat_clustered"
-        consensus_clustered_dir = "pixel_mat_consensus"
-    """ % (flowsom_dir, tiff_dir, seg_dir)
+
+        som_dir = os.path.join(base_dir, "run_%s")
+        os.mkdir(som_dir)
+
+        preprocessed_dir = os.path.join(som_dir, "pixel_mat_preprocessed")
+        subsetted_dir = os.path.join(som_dir, "pixel_mat_subsetted")
+        som_clustered_dir = os.path.join(som_dir, "pixel_mat_clustered")
+        consensus_clustered_dir = os.path.join(som_dir, "pixel_mat_consensus")
+    """ % (flowsom_dir, tiff_dir, seg_dir, dt.now().strftime("%Y-%m-%dT%H:%M:%S"))
     tb.inject(define_paths, after='file_path')
 
     # set a random seed
