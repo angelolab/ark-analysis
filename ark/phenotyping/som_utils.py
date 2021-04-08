@@ -64,7 +64,7 @@ def compute_cluster_avg(fovs, channels, base_dir, cluster_col,
 
 
 def create_fov_pixel_data(fov, channels, img_data, seg_labels,
-                          blur_factor=2, subset_proportion=0.1, seed=42):
+                          blur_factor=2, subset_proportion=0.1, seed=None):
     """Preprocess pixel data for one fov
 
     Saves preprocessed data to pre_dir and subsetted data to sub_dir
@@ -129,7 +129,7 @@ def create_fov_pixel_data(fov, channels, img_data, seg_labels,
 def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
                         pre_dir='pixel_mat_preprocessed',
                         sub_dir='pixel_mat_subsetted', is_mibitiff=False,
-                        blur_factor=2, subset_proportion=0.1, seed=42):
+                        blur_factor=2, subset_proportion=0.1, seed=None):
     """Preprocess the images for FlowSOM clustering and creates a pixel-level matrix
 
     Saves preprocessed data to pre_dir and subsetted data to sub_dir
@@ -219,7 +219,7 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
 
 def train_som(fovs, channels, base_dir,
               sub_dir='pixel_mat_subsetted', norm_vals_name='norm_vals.feather',
-              weights_name='weights.feather', num_passes=1):
+              weights_name='weights.feather', num_passes=1, seed=None):
     """Run the SOM training on the subsetted pixel data.
 
     Saves weights to base_dir/weights_name.
@@ -239,6 +239,8 @@ def train_som(fovs, channels, base_dir,
             The name of the weights file
         num_passes (int):
             The number of training passes to make through the dataset
+        seed (int):
+            The random seed to set for training
     """
 
     # define the paths to the data
@@ -264,6 +266,11 @@ def train_som(fovs, channels, base_dir,
     # run the SOM training process
     process_args = ['Rscript', '/create_som_matrix.R', ','.join(fovs), ','.join(channels),
                     str(num_passes), subsetted_path, norm_vals_path, weights_path]
+
+    # add a random seed to function call if set
+    if seed is not None:
+        process_args.append(str(seed))
+
     process = subprocess.Popen(process_args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
     # continuously poll the process for output/error to display in Jupyter notebook
@@ -362,7 +369,7 @@ def cluster_pixels(fovs, base_dir, pre_dir='pixel_mat_preprocessed',
 def consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
                       cluster_dir='pixel_mat_clustered',
                       cluster_avg_name='pixel_cluster_avg.feather',
-                      consensus_dir='pixel_mat_consensus'):
+                      consensus_dir='pixel_mat_consensus', seed=None):
     """Run consensus clustering algorithm on summed data across channels
 
     Args:
@@ -382,6 +389,8 @@ def consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
             Name of file to save the channel-averaged results to
         consensus_dir (str):
             Name of directory to save the consensus clustered results
+        seed (int):
+            The random seed to set for consensus clustering
     """
 
     clustered_path = os.path.join(base_dir, cluster_dir)
@@ -408,6 +417,10 @@ def consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
     # run the consensus clustering process
     process_args = ['Rscript', '/consensus_cluster.R', ','.join(fovs), ','.join(channels),
                     str(max_k), str(cap), clustered_path, cluster_avg_path, consensus_path]
+
+    # add a random seed to function call if set
+    if seed is not None:
+        process_args.append(str(seed))
 
     process = subprocess.Popen(process_args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 

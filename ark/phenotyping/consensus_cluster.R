@@ -12,6 +12,8 @@ library(arrow)
 library(data.table)
 library(ConsensusClusterPlus)
 
+set.seed(59)
+
 # get the command line arguments
 args <- commandArgs(trailingOnly=TRUE)
 
@@ -35,6 +37,12 @@ clusterAvgPath <- args[6]
 
 # get consensus clustered write path
 pixelMatConsensus <- args[7]
+
+# if a seed is set, get it and set
+if (length(args) == 8) {
+    seed <- strtoi(args[8])
+    set.seed(seed)
+}
 
 # read cluster averaged data
 print("Reading cluster averaged data")

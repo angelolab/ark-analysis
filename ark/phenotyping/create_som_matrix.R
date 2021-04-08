@@ -13,6 +13,8 @@ library(arrow)
 library(data.table)
 library(FlowSOM)
 
+set.seed(59)
+
 # get the command line arguments
 args <- commandArgs(trailingOnly=TRUE)
 
@@ -33,6 +35,12 @@ normValsPath <- args[5]
 
 # get the weights write path
 pixelWeightsPath <- args[6]
+
+# if a seed is set, get it and set
+if (length(args) == 7) {
+    seed <- strtoi(args[7])
+    set.seed(seed)
+}
 
 # read the subsetted pixel mat data for training
 print("Reading the subsetted pixel matrix data for SOM training")
@@ -76,7 +84,8 @@ arrow::write_feather(as.data.table(normVals), normValsPath)
 
 # run the SOM training step
 print("Run the SOM training")
-somResults <- SOM(data=pixelSubsetData, rlen=numPasses)
+somResults <- SOM(data=pixelSubsetData, alpha=c(0.05, 0.01))
+print(somResults$codes)
 
 # write the weights to HDF5
 print("Save trained weights")
