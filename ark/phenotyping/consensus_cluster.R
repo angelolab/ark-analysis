@@ -54,7 +54,7 @@ clusterAvgsScale <- pmin(scale(clusterAvgs[markers]), cap)
 
 # run the consensus clustering
 print("Running consensus clustering")
-consensusClusterResults <- ConsensusClusterPlus(t(clusterAvgsScale), maxK=maxK)
+consensusClusterResults <- ConsensusClusterPlus(t(clusterAvgsScale), maxK=maxK, seed=seed)
 hClust <- consensusClusterResults[[maxK]]$consensusClass
 names(hClust) <- clusterAvgs$cluster
 
