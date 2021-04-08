@@ -34,11 +34,9 @@ normValsPath <- args[5]
 # get the weights write path
 pixelWeightsPath <- args[6]
 
-# if a seed is set, get it and set
-if (length(args) == 7) {
-    seed <- strtoi(args[7])
-    set.seed(seed)
-}
+# set the random seed
+seed <- strtoi(args[7])
+set.seed(seed)
 
 # read the subsetted pixel mat data for training
 print("Reading the subsetted pixel matrix data for SOM training")

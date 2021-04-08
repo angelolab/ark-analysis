@@ -217,7 +217,7 @@ def create_pixel_matrix(fovs, base_dir, tiff_dir, seg_dir,
 
 def train_som(fovs, channels, base_dir,
               sub_dir='pixel_mat_subsetted', norm_vals_name='norm_vals.feather',
-              weights_name='weights.feather', num_passes=1, seed=None):
+              weights_name='weights.feather', num_passes=1, seed=42):
     """Run the SOM training on the subsetted pixel data.
 
     Saves weights to base_dir/weights_name.
@@ -263,11 +263,7 @@ def train_som(fovs, channels, base_dir,
 
     # run the SOM training process
     process_args = ['Rscript', '/create_som_matrix.R', ','.join(fovs), ','.join(channels),
-                    str(num_passes), subsetted_path, norm_vals_path, weights_path]
-
-    # add a random seed to function call if set
-    if seed is not None:
-        process_args.append(str(seed))
+                    str(num_passes), subsetted_path, norm_vals_path, weights_path, str(seed)]
 
     process = subprocess.Popen(process_args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
@@ -367,7 +363,7 @@ def cluster_pixels(fovs, base_dir, pre_dir='pixel_mat_preprocessed',
 def consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
                       cluster_dir='pixel_mat_clustered',
                       cluster_avg_name='pixel_cluster_avg.feather',
-                      consensus_dir='pixel_mat_consensus', seed=None):
+                      consensus_dir='pixel_mat_consensus', seed=42):
     """Run consensus clustering algorithm on summed data across channels
 
     Args:
@@ -414,11 +410,8 @@ def consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
 
     # run the consensus clustering process
     process_args = ['Rscript', '/consensus_cluster.R', ','.join(fovs), ','.join(channels),
-                    str(max_k), str(cap), clustered_path, cluster_avg_path, consensus_path]
-
-    # add a random seed to function call if set
-    if seed is not None:
-        process_args.append(str(seed))
+                    str(max_k), str(cap), clustered_path, cluster_avg_path, consensus_path,
+                    str(seed)]
 
     process = subprocess.Popen(process_args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 

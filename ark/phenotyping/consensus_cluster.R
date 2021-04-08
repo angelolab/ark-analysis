@@ -36,12 +36,9 @@ clusterAvgPath <- args[6]
 # get consensus clustered write path
 pixelMatConsensus <- args[7]
 
-# if a seed is set, get it and set
-seed <- NULL
-if (length(args) == 8) {
-    seed <- strtoi(args[8])
-    set.seed(seed)
-}
+# set the random seed
+seed <- strtoi(args[8])
+set.seed(seed)
 
 # read cluster averaged data
 print("Reading cluster averaged data")
