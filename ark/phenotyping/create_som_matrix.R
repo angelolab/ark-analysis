@@ -13,8 +13,6 @@ library(arrow)
 library(data.table)
 library(FlowSOM)
 
-set.seed(59)
-
 # get the command line arguments
 args <- commandArgs(trailingOnly=TRUE)
 

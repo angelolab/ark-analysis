@@ -150,12 +150,6 @@ def test_compute_cluster_avg():
         # compute cluster average matrix
         cluster_avg = som_utils.compute_cluster_avg(fovs, chans, temp_dir, 'cluster')
 
-        # assert that pixel_cluster_avg.feather was actually created
-        # assert os.path.exists(os.path.join(temp_dir, 'pixel_cluster_avg.feather'))
-
-        # read the averaged results
-        # cluster_avg = feather.read_dataframe(os.path.join(temp_dir, 'pixel_cluster_avg.feather'))
-
         # verify the provided channels and the channels in cluster_avg are exactly the same
         misc_utils.verify_same_elements(
             cluster_avg_chans=cluster_avg[chans].columns.values,

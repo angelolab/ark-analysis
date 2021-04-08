@@ -12,8 +12,6 @@ library(arrow)
 library(data.table)
 library(ConsensusClusterPlus)
 
-set.seed(59)
-
 # get the command line arguments
 args <- commandArgs(trailingOnly=TRUE)
 
