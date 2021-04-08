@@ -26,11 +26,11 @@ Description: This holds the extracted single cell data. Each row is a unique cel
 For each cell, these are the specific morphology metrics computed:
 
 * `cell_size`: the signal intensity. May not be the same as area depending on the signal extraction method used.
-* `area`
-* `eccentricity`
-* `major_axis_length`
-* `minor_axis_length`
-* `perimeter`
+* `area`: number of pixels of the region
+* `eccentricity`: eccentricity of the ellipse that has the same second-moments as the region. The eccentricity is the ratio of the focal distance (distance between focal points) over the major axis length. The value is in the interval [0, 1). When it is 0, the ellipse becomes a circle.
+* `major_axis_length`: the length of the major axis of the ellipse that has the same normalized second central moments as the region
+* `minor_axis_length`: the length of the minor axis of the ellipse that has the same normalized second central moments as the region.
+* `perimeter`: perimeter of object which approximates the contour as a line through the centers of border pixels using a 4-connectivity
 * `convex_area`: the area of the convex hull
 * `equivalent_diameter`: the diameter of the circle with the same area as the cell
 * `centroid-0`: the x-coordinate of the centroid
