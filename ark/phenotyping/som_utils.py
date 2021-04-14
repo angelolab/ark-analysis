@@ -30,6 +30,10 @@ def compute_cluster_avg(fovs, channels, base_dir, cluster_col,
             Name of the column to group by
         cluster_dir (str):
             Name of the file containing the pixel data with cluster labels
+
+    Returns:
+        pandas.DataFrame:
+            Contains the average channel values for each SOM cluster
     """
 
     # define the cluster averages DataFrame
@@ -64,7 +68,7 @@ def compute_cluster_avg(fovs, channels, base_dir, cluster_col,
 
 
 def create_fov_pixel_data(fov, channels, img_data, seg_labels,
-                          blur_factor=2, subset_proportion=0.1, seed=None):
+                          blur_factor=2, subset_proportion=0.1, seed=42):
     """Preprocess pixel data for one fov
 
     Saves preprocessed data to pre_dir and subsetted data to sub_dir
@@ -87,10 +91,10 @@ def create_fov_pixel_data(fov, channels, img_data, seg_labels,
 
     Returns:
         tuple:
-            A tuple containing two pd.Dataframes:
+            Contains the following:
 
-            - The full preprocessed pixel dataset for a fov
-            - The subsetted pixel dataset for a fov
+            - pandas.DataFrame: Gaussian blurred and channel sum normalized pixel data for a fov
+            - pandas.DataFrame: subset of the preprocessed pixel dataset for a fov
     """
 
     # for each marker, compute the Gaussian blur
@@ -129,10 +133,10 @@ def create_fov_pixel_data(fov, channels, img_data, seg_labels,
 def create_pixel_matrix(fovs, base_dir, tiff_dir, seg_dir,
                         pre_dir='pixel_mat_preprocessed',
                         sub_dir='pixel_mat_subsetted', is_mibitiff=False,
-                        blur_factor=2, subset_proportion=0.1, seed=None):
+                        blur_factor=2, subset_proportion=0.1, seed=42):
     """For each fov, add a Gaussian blur to each channel and normalize channel sums for each pixel
 
-    Saves preprocessed data to pre_dir and subsetted data to sub_dir
+    Saves data to pre_dir and subsetted data to sub_dir
 
     Args:
         fovs (list):
@@ -365,6 +369,8 @@ def consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
                       cluster_avg_name='pixel_cluster_avg.feather',
                       consensus_dir='pixel_mat_consensus', seed=42):
     """Run consensus clustering algorithm on summed data across channels
+
+    Saves data with consensus cluster labels to consensus_dir
 
     Args:
         fovs (list):

@@ -132,7 +132,7 @@ def test_segment_image_data_folder(tb):
 def test_flowsom_cluster_folder(tb):
     with tdir() as base_dir:
         # create input files
-        notebooks_test_utils.flowsom_setup(tb, flowsom_dir=base_dir, seed=42)
+        notebooks_test_utils.flowsom_setup(tb, flowsom_dir=base_dir)
 
         # run the FlowSOM preprocessing and clustering
         notebooks_test_utils.flowsom_run(tb, fovs=['fov0', 'fov1'], channels=['chan0', 'chan1'])

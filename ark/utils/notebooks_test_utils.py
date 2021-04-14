@@ -80,7 +80,7 @@ def segment_notebook_setup(tb, deepcell_tiff_dir, deepcell_input_dir, deepcell_o
 
 
 def flowsom_setup(tb, flowsom_dir, img_shape=(50, 50), num_fovs=3, num_chans=3,
-                  seed=None, is_mibitiff=False, mibitiff_suffix="-MassCorrected-Filtered",
+                  is_mibitiff=False, mibitiff_suffix="-MassCorrected-Filtered",
                   dtype=np.uint16):
     """Creates the directories, data, and MIBItiff settings for testing FlowSOM clustering
 
@@ -95,8 +95,6 @@ def flowsom_setup(tb, flowsom_dir, img_shape=(50, 50), num_fovs=3, num_chans=3,
             The number of test fovs to generate
         num_chans (int):
             The number of test channels to generate
-        seed (int):
-            The random seed to set
         is_mibitiff (bool):
             Whether we're working with mibitiff files or not
         mibitiff_suffix (str):
@@ -150,12 +148,6 @@ def flowsom_setup(tb, flowsom_dir, img_shape=(50, 50), num_fovs=3, num_chans=3,
         consensus_clustered_dir = os.path.join(som_dir, "pixel_mat_consensus")
     """ % (flowsom_dir, tiff_dir, seg_dir, dt.now().strftime("%Y-%m-%dT%H:%M:%S"))
     tb.inject(define_paths, after='file_path')
-
-    # set a random seed
-    if seed is not None:
-        tb.inject("seed = %d" % seed, after='set_seed')
-    else:
-        tb.execute_cell('set_seed')
 
     # will set MIBItiff and MIBItiff_suffix
     tb.execute_cell('mibitiff_set')
