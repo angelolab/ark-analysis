@@ -139,7 +139,7 @@ def flowsom_setup(tb, flowsom_dir, img_shape=(50, 50), num_fovs=3, num_chans=3,
         tiff_dir = "%s"
         segmentation_dir = "%s"
     """ % (flowsom_dir, tiff_dir, seg_dir)
-    tb.inject(define_paths, after='file_path')
+    tb.inject(define_data_paths, after='file_path')
 
     # set the SOM preprocessed paths
     tb.execute_cell('preprocess_path_set')
