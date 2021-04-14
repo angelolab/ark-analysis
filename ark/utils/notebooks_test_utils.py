@@ -191,8 +191,8 @@ def flowsom_run(tb, fovs, channels, cluster_dir='som_clustered_dir',
 
     # sets the paths to the SOM cluster assignments and the consensus cluster assignments
     define_som_paths = """
-        som_clustered_dir = %s
-        consensus_clustered_dir = %s
+        som_clustered_dir = '%s'
+        consensus_clustered_dir = '%s'
     """ % (cluster_dir, consensus_dir)
     tb.inject(define_som_paths, after='som_path_set')
 
@@ -235,7 +235,7 @@ def flowsom_run(tb, fovs, channels, cluster_dir='som_clustered_dir',
         if not os.path.exists(os.path.join(base_dir, consensus_clustered_dir)):
             os.mkdir(os.path.join(base_dir, consensus_clustered_dir))
     """
-    tb.inject(cluster_setup, after='consensus_cluster')
+    tb.inject(consensus_setup, after='consensus_cluster')
 
     for fov in fovs:
         dummy_consensus_cmd = """
@@ -244,9 +244,9 @@ def flowsom_run(tb, fovs, channels, cluster_dir='som_clustered_dir',
             sample_consensus['hCluster_cap'] = np.repeat(np.arange(20), repeats=5)
 
             feather.write_dataframe(sample_consensus, os.path.join(base_dir,
-                                                                   consensus_clustered_dir
+                                                                   consensus_clustered_dir,
                                                                    '%s' + '.feather'))
-        """
+        """ % fov
 
         tb.inject(dummy_consensus_cmd, after='consensus_cluster')
 
