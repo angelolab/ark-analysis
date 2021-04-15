@@ -36,6 +36,10 @@ clusterAvgPath <- args[6]
 # get consensus clustered write path
 pixelMatConsensus <- args[7]
 
+# set the random seed
+seed <- strtoi(args[8])
+set.seed(seed)
+
 # read cluster averaged data
 print("Reading cluster averaged data")
 clusterAvgs <- arrow::read_feather(clusterAvgPath)
@@ -46,7 +50,7 @@ clusterAvgsScale <- pmin(scale(clusterAvgs[markers]), cap)
 
 # run the consensus clustering
 print("Running consensus clustering")
-consensusClusterResults <- ConsensusClusterPlus(t(clusterAvgsScale), maxK=maxK)
+consensusClusterResults <- ConsensusClusterPlus(t(clusterAvgsScale), maxK=maxK, seed=seed)
 hClust <- consensusClusterResults[[maxK]]$consensusClass
 names(hClust) <- clusterAvgs$cluster
 

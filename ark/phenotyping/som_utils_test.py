@@ -148,13 +148,7 @@ def test_compute_cluster_avg():
                                                                      fov + '.feather'))
 
         # compute cluster average matrix
-        som_utils.compute_cluster_avg(fovs, chans, temp_dir)
-
-        # assert that pixel_cluster_avg.feather was actually created
-        assert os.path.exists(os.path.join(temp_dir, 'pixel_cluster_avg.feather'))
-
-        # read the averaged results
-        cluster_avg = feather.read_dataframe(os.path.join(temp_dir, 'pixel_cluster_avg.feather'))
+        cluster_avg = som_utils.compute_cluster_avg(fovs, chans, temp_dir, 'cluster')
 
         # verify the provided channels and the channels in cluster_avg are exactly the same
         misc_utils.verify_same_elements(
@@ -227,7 +221,6 @@ def test_create_pixel_matrix():
         # invalid subset proportion specified
         with pytest.raises(ValueError):
             som_utils.create_pixel_matrix(fovs=['fov1', 'fov2'],
-                                          channels=['Marker1', 'Marker2'],
                                           base_dir=temp_dir,
                                           tiff_dir=tiff_dir,
                                           seg_dir=seg_dir,
@@ -236,7 +229,6 @@ def test_create_pixel_matrix():
         # pass invalid base directory
         with pytest.raises(FileNotFoundError):
             som_utils.create_pixel_matrix(fovs=['fov1', 'fov2'],
-                                          channels=['Marker1', 'Marker2'],
                                           base_dir='bad_base_dir',
                                           tiff_dir=tiff_dir,
                                           seg_dir=seg_dir)
@@ -244,7 +236,6 @@ def test_create_pixel_matrix():
         # pass invalid tiff directory
         with pytest.raises(FileNotFoundError):
             som_utils.create_pixel_matrix(fovs=['fov1', 'fov2'],
-                                          channels=['Marker1', 'Marker2'],
                                           base_dir=temp_dir,
                                           tiff_dir='bad_tiff_dir',
                                           seg_dir=seg_dir)
@@ -274,14 +265,12 @@ def test_create_pixel_matrix():
             # pass invalid fov names
             with pytest.raises(FileNotFoundError):
                 som_utils.create_pixel_matrix(fovs=['fov1', 'fov2', 'fov3'],
-                                              channels=chans,
                                               base_dir=temp_dir,
                                               tiff_dir=tiff_dir,
                                               seg_dir=seg_dir)
 
             # create the pixel matrices
             som_utils.create_pixel_matrix(fovs=fovs,
-                                          channels=chans,
                                           base_dir=temp_dir,
                                           tiff_dir=tiff_dir,
                                           seg_dir=seg_dir)
@@ -311,7 +300,7 @@ def test_create_pixel_matrix():
                                                 provided_chans=chans)
 
                 # assert no rows sum to 0
-                assert np.all(flowsom_pre_fov.loc[:, ['chan0', 'chan1']].sum(axis=1).values != 0)
+                assert np.all(flowsom_pre_fov.loc[:, chans].sum(axis=1).values != 0)
 
                 # assert the size of the subsetted DataFrame is 0.1 of the preprocessed DataFrame
                 assert flowsom_pre_fov.shape[0] * 0.1 == flowsom_sub_fov.shape[0]
@@ -500,7 +489,12 @@ def test_consensus_cluster(mocker):
                                                                      fov + '.feather'))
 
         # compute averages by cluster, this happens before call to R
-        som_utils.compute_cluster_avg(fovs, chans, temp_dir)
+        cluster_avg = som_utils.compute_cluster_avg(fovs, chans, temp_dir, 'cluster')
+
+        # save the DataFrame
+        feather.write_dataframe(cluster_avg,
+                                os.path.join(temp_dir, 'pixel_cluster_avg.feather'),
+                                compression='uncompressed')
 
         # make a dummy consensus dir
         os.mkdir(os.path.join(temp_dir, 'pixel_mat_consensus'))
@@ -530,3 +524,56 @@ def test_consensus_cluster(mocker):
 
             # assert we didn't assign any cluster 20 or above
             consensus_cluster_ids = fov_consensus_data['hCluster_cap']
+
+
+def test_visualize_cluster_data():
+    with tempfile.TemporaryDirectory() as temp_dir:
+        fovs = ['fov0', 'fov1', 'fov2']
+        chans = ['Marker1', 'Marker2', 'Marker3', 'Marker4']
+
+        # create a dummy clustered matrix
+        os.mkdir(os.path.join(temp_dir, 'pixel_mat_clustered'))
+
+        # write dummy clustered data for each fov
+        for fov in fovs:
+            # create dummy preprocessed data for each fov
+            fov_cluster_matrix = pd.DataFrame(
+                np.repeat(np.array([[0.1, 0.2, 0.3, 0.4]]), repeats=1000, axis=0),
+                columns=chans
+            )
+
+            # assign dummy SOM cluster labels
+            fov_cluster_matrix['cluster'] = np.repeat(np.arange(100), repeats=10)
+
+            # assign dummy hierarchical cluster labels
+            fov_cluster_matrix['hCluster_cap'] = np.repeat(np.arange(20), repeats=50)
+
+            # write the dummy data to pixel_mat_clustered
+            feather.write_dataframe(fov_cluster_matrix, os.path.join(temp_dir,
+                                                                     'pixel_mat_clustered',
+                                                                     fov + '.feather'))
+
+        # test visualization for cluster: no saving
+        som_utils.visualize_cluster_data(fovs=fovs, channels=chans, base_dir=temp_dir,
+                                         cluster_dir='pixel_mat_clustered', cluster_col='cluster',
+                                         save_dir=None)
+        assert not os.path.exists(os.path.join(temp_dir, "som_cluster_avgs.png"))
+
+        # test visualization for cluster: saving
+        som_utils.visualize_cluster_data(fovs=fovs, channels=chans, base_dir=temp_dir,
+                                         cluster_dir='pixel_mat_clustered', cluster_col='cluster',
+                                         save_dir=temp_dir, save_file="som_cluster_avgs.png")
+        assert os.path.exists(os.path.join(temp_dir, "som_cluster_avgs.png"))
+
+        # test visualization for hierarchical cluster: no saving
+        som_utils.visualize_cluster_data(fovs=fovs, channels=chans, base_dir=temp_dir,
+                                         cluster_dir='pixel_mat_clustered',
+                                         cluster_col='hCluster_cap', save_dir=None)
+        assert not os.path.exists(os.path.join(temp_dir, "som_hierarchical_avgs.png"))
+
+        # test visualization for hierarchical cluster: saving
+        som_utils.visualize_cluster_data(fovs=fovs, channels=chans, base_dir=temp_dir,
+                                         cluster_dir='pixel_mat_clustered',
+                                         cluster_col='hCluster_cap', save_dir=temp_dir,
+                                         save_file="som_hierarchical_avgs.png")
+        assert os.path.exists(os.path.join(temp_dir, "som_hierarchical_avgs.png"))
