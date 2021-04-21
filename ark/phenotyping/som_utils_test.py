@@ -64,10 +64,10 @@ def mocked_cluster_pixels(fovs, base_dir, pre_dir='pixel_mat_preprocessed',
         fov_mat_pre = feather.read_dataframe(os.path.join(base_dir, pre_dir, fov + '.feather'))
 
         # only take the specified channel columns
-        fov_mat_pre = fov_mat_pre[weights.columns.values]
+        fov_mat_channels = fov_mat_pre[weights.columns.values].copy()
 
         # perform 99.9% normalization
-        fov_mat_pre = fov_mat_pre.div(norm_vals, axis=1)
+        fov_mat_channels = fov_mat_channels.div(norm_vals, axis=1)
 
         # get the mean weight for each channel column
         sub_means = weights.mean(axis=1)
@@ -469,6 +469,9 @@ def test_consensus_cluster(mocker):
         fovs = ['fov0', 'fov1', 'fov2']
         chans = ['Marker1', 'Marker2', 'Marker3', 'Marker4']
 
+        # make it easy to name metadata columns
+        meta_colnames = ['fov', 'row_index', 'col_index', 'segmentation_label']
+
         # create a dummy clustered matrix
         os.mkdir(os.path.join(temp_dir, 'pixel_mat_clustered'))
 
@@ -478,6 +481,12 @@ def test_consensus_cluster(mocker):
             fov_cluster_matrix = pd.DataFrame(
                 np.repeat(np.array([[0.1, 0.2, 0.3, 0.4]]), repeats=1000, axis=0),
                 columns=chans
+            )
+
+            # add metadata
+            fov_cluster_matrix = pd.concat(
+                [fov_cluster_matrix, pd.DataFrame(np.random.rand(1000, 4), columns=meta_colnames)],
+                axis=1
             )
 
             # assign dummy cluster labels
