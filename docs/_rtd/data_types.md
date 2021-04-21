@@ -25,8 +25,8 @@ Description: This holds the extracted single cell data. Each row is a unique cel
 
 For each cell, the following morphology features calculated from `skimage.measure.regionprops` are included:
 
-* `cell_size`: the signal intensity. May not be the same as area depending on the signal extraction method used.
-* `area`: number of pixels of the region
+* `cell_size`: number of coordinates (pixels) in the cell
+* `area`: area of the cell
 * `eccentricity`: eccentricity of the ellipse that has the same second-moments as the region. The eccentricity is the ratio of the focal distance (distance between focal points) over the major axis length. The value is in the interval [0, 1). When it is 0, the ellipse becomes a circle.
 * `major_axis_length`: the length of the major axis of the ellipse that has the same normalized second central moments as the region
 * `minor_axis_length`: the length of the minor axis of the ellipse that has the same normalized second central moments as the region.
