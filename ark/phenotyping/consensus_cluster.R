@@ -55,17 +55,23 @@ hClust <- consensusClusterResults[[maxK]]$consensusClass
 names(hClust) <- clusterAvgs$cluster
 
 # append hClust to each fov's data
-print('Writing consensus clustering results')
-for (fov in fovs) {
+print("Writing consensus clustering results")
+for (i in 1:length(fovs)) {
     # read in pixel data, we'll need the cluster column for mapping
-    fileName <- paste(fov, ".feather", sep="")
-    matPath <- paste(pixelClusterDir, fileName, sep="/")
+    fileName <- file.path(fovs[i], "feather", fsep=".")
+    matPath <- file.path(pixelClusterDir, fileName)
     fovPixelData <- arrow::read_feather(matPath)
 
     # assign hierarchical cluster labels
     fovPixelData$hCluster_cap <- hClust[as.character(fovPixelData$cluster)]
 
-    # overwrite old cluster file with new one containing hCluster_cap
-    clusterPath <- paste(pixelMatConsensus, fileName, sep="/")
+    # write consensus clustered data
+    clusterPath <- file.path(pixelMatConsensus, fileName)
     arrow::write_feather(as.data.table(fovPixelData), clusterPath)
+
+    # print an update every 10 fovs
+    if (i %% 10 == 0) {
+        print("# fovs clustered:")
+        print(i)
+    }
 }

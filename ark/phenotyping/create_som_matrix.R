@@ -44,8 +44,8 @@ pixelSubsetData <- NULL
 
 for (fov in fovs) {
     # subset each matrix with only the markers columns
-    fileName <- paste(fov, ".feather", sep="")
-    subPath <- paste(pixelSubsetDir, fileName, sep="/")
+    fileName <- file.path(fov, "feather", fsep=".")
+    subPath <- file.path(pixelSubsetDir, fileName)
     fovSubsetData <- arrow::read_feather(subPath, col_select=all_of(markers))
 
     # attach each fov's dataset to pixelSubsetData

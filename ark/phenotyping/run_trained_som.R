@@ -44,31 +44,32 @@ markers <- colnames(somWeights)
 print("Mapping data to cluster labels")
 for (i in 1:length(fovs)) {
     # read in pixel data
-    fileName <- paste(fovs[i], ".feather", sep="")
-    matPath <- paste(pixelMatDir, fileName, sep="/")
-    fovPixelData <- as.matrix(arrow::read_feather(matPath, col_select=all_of(markers)))
+    fileName <- file.path(fovs[i], "feather", fsep=".")
+    matPath <- file.path(pixelMatDir, fileName)
+    fovPixelData <- arrow::read_feather(matPath)
 
     # 99.9% normalize pixel data
     for (marker in markers) {
         # this prevents all- or mostly-zero columns from getting normalized and becoming NA/Inf
         if (normVals[1, marker] != 0) {
-            fovPixelData[, marker] = fovPixelData[, marker] / normVals[1, marker]
+            fovPixelData[, marker] <- fovPixelData[, marker] / normVals[1, marker]
         }
     }
 
     # map FlowSOM data
-    clusters <- FlowSOM:::MapDataToCodes(somWeights, fovPixelData)
+    clusters <- FlowSOM:::MapDataToCodes(somWeights, as.matrix(fovPixelData[, markers]))
 
     # assign cluster labels column to pixel data
-    fovPixelData <- as.matrix(cbind(as.matrix(fovPixelData), cluster=clusters[,1]))
+    fovPixelData$cluster <- clusters[,1]
 
     # write to feather
-    clusterPath <- paste(pixelClusterDir, fileName, sep="/")
+    clusterPath <- file.path(pixelClusterDir, fileName)
     arrow::write_feather(as.data.table(fovPixelData), clusterPath)
 
     # print an update every 10 fovs
     if (i %% 10 == 0) {
-        sprintf("Finished clustering %s fovs", i)
+        print("# fovs clustered:")
+        print(i)
     }
 }
 
