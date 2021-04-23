@@ -219,9 +219,9 @@ def create_pixel_matrix(fovs, base_dir, tiff_dir, seg_dir,
                                 compression='uncompressed')
 
 
-def train_som(fovs, channels, base_dir,
-              sub_dir='pixel_mat_subsetted', norm_vals_name='norm_vals.feather',
-              weights_name='weights.feather', num_passes=1, seed=42):
+def train_pixel_som(fovs, channels, base_dir,
+                    sub_dir='pixel_mat_subsetted', norm_vals_name='norm_vals.feather',
+                    weights_name='weights.feather', num_passes=1, seed=42):
     """Run the SOM training on the subsetted pixel data.
 
     Saves weights to base_dir/weights_name.
@@ -479,3 +479,21 @@ def visualize_cluster_data(fovs, channels, base_dir, cluster_dir, cluster_col='c
         dpi=dpi, center_val=center_val, overlay_values=overlay_values,
         colormap=colormap, save_dir=save_dir, save_file=save_file
     )
+
+
+def train_cell_som(fovs, channels, base_dir, consensus_dir, cluster_col='cluster'):
+    """Run the SOM training on the average marker values across each pixel cluster
+
+    Args:
+        fovs (list):
+            The list of fovs to subset on
+        channels (list):
+            The list of channels to subset on
+        base_dir (str):
+            The path to the data directories
+        consensus_dir (str):
+            Name of directory to save the consensus clustered results
+        cluster_col (str):
+            Name of the column with the pixel SOM cluster assignments
+    """
+    pass
