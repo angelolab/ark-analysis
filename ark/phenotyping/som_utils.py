@@ -741,22 +741,18 @@ def cell_consensus_cluster(base_dir, max_k=20, cap=3,
     Saves data with consensus cluster labels to cell_consensus_name
 
     Args:
-        fovs (list):
-            The list of fovs to subset on
-        channels (list):
-            The list of channels to subset on
         base_dir (str):
             The path to the data directory
         max_k (int):
             The number of consensus clusters
         cap (int):
             z-score cap to use when hierarchical clustering
-        cluster_dir (str):
-            Name of the file containing the pixel data with cluster labels
-        cluster_avg_name (str):
-            Name of file to save the channel-averaged results to
-        consensus_dir (str):
-            Name of directory to save the consensus clustered results
+        cell_cluster_name (str):
+            Name of the file containing the cell data with cluster labels
+        cell_cluster_avg_name (str):
+            Name of file to save the column-averaged results to
+        cell_consensus_name (str):
+            Name of file to save the consensus clustered results
         seed (int):
             The random seed to set for consensus clustering
     """
