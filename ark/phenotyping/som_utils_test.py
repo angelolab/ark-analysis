@@ -85,10 +85,10 @@ def mocked_cluster_pixels(fovs, base_dir, pre_dir='pixel_mat_preprocessed',
                                                           fov + '.feather'))
 
 
-def mocked_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
-                             cluster_dir='pixel_mat_clustered',
-                             cluster_avg_name='pixel_cluster_avg.feather',
-                             consensus_dir='pixel_mat_consensus'):
+def mocked_pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
+                                   cluster_dir='pixel_mat_clustered',
+                                   cluster_avg_name='pixel_cluster_avg.feather',
+                                   consensus_dir='pixel_mat_consensus'):
     # read the cluster average
     cluster_avg = feather.read_dataframe(os.path.join(base_dir, cluster_avg_name))
 
@@ -310,8 +310,8 @@ def test_train_pixel_som(mocker):
     # basic error check: bad path to subsetted matrix
     with tempfile.TemporaryDirectory() as temp_dir:
         with pytest.raises(FileNotFoundError):
-            som_utils.train_som(fovs=['fov0'], channels=['Marker1'],
-                                base_dir=temp_dir, sub_dir='bad_path')
+            som_utils.train_pixel_som(fovs=['fov0'], channels=['Marker1'],
+                                      base_dir=temp_dir, sub_dir='bad_path')
 
     with tempfile.TemporaryDirectory() as temp_dir:
         # create list of markers and fovs we want to use
@@ -335,12 +335,12 @@ def test_train_pixel_som(mocker):
 
         # not all of the provided fovs exist
         with pytest.raises(ValueError):
-            som_utils.train_som(fovs=['fov2', 'fov3'], channels=chan_list, base_dir=temp_dir)
+            som_utils.train_pixel_som(fovs=['fov2', 'fov3'], channels=chan_list, base_dir=temp_dir)
 
         # column mismatch between provided channels and subsetted data
         with pytest.raises(ValueError):
-            som_utils.train_som(fovs=fovs, channels=['Marker3', 'Marker4', 'MarkerBad'],
-                                base_dir=temp_dir)
+            som_utils.train_pixel_som(fovs=fovs, channels=['Marker3', 'Marker4', 'MarkerBad'],
+                                      base_dir=temp_dir)
 
         # add mocked function to "train" the SOM based on dummy subsetted data
         mocker.patch('ark.phenotyping.som_utils.train_pixel_som', mocked_train_pixel_som)
@@ -461,7 +461,7 @@ def test_pixel_consensus_cluster(mocker):
     # basic error checks: bad path to clustered dir
     with tempfile.TemporaryDirectory() as temp_dir:
         with pytest.raises(FileNotFoundError):
-            som_utils.consensus_cluster(fovs=['fov0'], channels=['chan0'],
+            som_utils.pixel_consensus_cluster(fovs=['fov0'], channels=['chan0'],
                                         base_dir=temp_dir, cluster_dir='bad_path')
 
     with tempfile.TemporaryDirectory() as temp_dir:
