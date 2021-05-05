@@ -1,6 +1,6 @@
 # Assigns cluster labels to pixel data using a trained SOM weights matrix
 
-# Usage: Rscript {fovs} {markers} {pixelMatDir} {pixelWeightsPath} {pixelClusterDir} {batchSize}
+# Usage: Rscript run_pixel_som.R {fovs} {markers} {pixelMatDir} {normValsPath} {pixelWeightsPath} {pixelClusterDir}
 
 # - fovs: list of fovs to cluster
 # - markers: list of channel columns to use

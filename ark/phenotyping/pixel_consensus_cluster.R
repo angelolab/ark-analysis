@@ -1,12 +1,14 @@
 # Runs consensus clustering on the pixel data averaged across all channels
 
-# Usage: Rscript {markers} {maxK} {cap} {clusterAvgPath} {consensusClusterPath}
+# Usage: Rscript {markers} {maxK} {cap} {pixelClusterDir} {clusterAvgPath} {pixelMatConsensus} {seed}
 
 # - markers: list of channel columns to use
 # - maxK: number of consensus clusters
 # - cap: z-score scaling factor
+# - pixelClusterDir: path to the pixel data with SOM clusters
 # - clusterAvgPath: path to the averaged cluster data
-# - consensusClusterPath: path to file where the consensus cluster results will be written
+# - pixelMatConsensus: path to file where the consensus cluster results will be written
+# - seed: random factor
 
 library(arrow)
 library(data.table)

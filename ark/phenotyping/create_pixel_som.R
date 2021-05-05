@@ -1,13 +1,16 @@
 # Trains a SOM matrix using subsetted pixel data
 
-# Usage: Rscript {fovs} {markers} {numPasses} {pixelSubsetDir} {pixelWeightsPath}
+# Usage: Rscript create_pixel_som.R {fovs} {markers} {xdim} {ydim} {numPasses} {pixelSubsetDir} {normValsPath} {pixelWeightsPath} {seed}
 
 # - fovs: list of fovs to cluster
 # - markers: list of channel columns to use
+# - xdim: number of x nodes to use for SOM
+# - ydim: number of y nodes to use for SOM
 # - numPasses: passes to make through dataset for training
 # - pixelSubsetDir: path to directory containing the subsetted pixel data
 # - normValsPath: path to the 99.9% normalized values file
 # - pixelWeightsPath: path to the SOM weights file
+# - seed: the random seed to use for training
 
 library(arrow)
 library(data.table)
@@ -22,20 +25,26 @@ fovs <- unlist(strsplit(args[1], split=","))
 # create a vector out of the list of channels provided
 markers <- unlist(strsplit(args[2], split=","))
 
+# get the number of x nodes to use for the SOM
+xdim <- strtoi(args[3])
+
+# get the number of y nodes to use for the SOM
+ydim <- strtoi(args[4])
+
 # get the number of passes to make through SOM training
-numPasses <- strtoi(args[3])
+numPasses <- strtoi(args[5])
 
 # get path to subsetted mat directory
-pixelSubsetDir <- args[4]
+pixelSubsetDir <- args[6]
 
 # get the normalized values write path
-normValsPath <- args[5]
+normValsPath <- args[7]
 
 # get the weights write path
-pixelWeightsPath <- args[6]
+pixelWeightsPath <- args[8]
 
 # set the random seed
-seed <- strtoi(args[7])
+seed <- strtoi(args[9])
 set.seed(seed)
 
 # read the subsetted pixel mat data for training
@@ -80,8 +89,8 @@ arrow::write_feather(as.data.table(normVals), normValsPath)
 
 # run the SOM training step
 print("Run the SOM training")
-somResults <- SOM(data=pixelSubsetData, rlen=numPasses, alpha=c(0.05, 0.01))
+somResults <- SOM(data=pixelSubsetData, rlen=numPasses, xdim=xdim, ydim=ydim, alpha=c(0.05, 0.01))
 
-# write the weights to HDF5
+# write the weights to feather
 print("Save trained weights")
 arrow::write_feather(as.data.table(somResults$codes), pixelWeightsPath)

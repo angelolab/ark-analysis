@@ -4,9 +4,10 @@ import subprocess
 import feather
 import numpy as np
 import pandas as pd
-import xarray as xr
+import re
 import scipy.ndimage as ndimage
 from skimage.io import imread
+import xarray as xr
 
 import ark.settings as settings
 from ark.analysis import visualize
@@ -15,9 +16,9 @@ from ark.utils import load_utils
 from ark.utils import misc_utils
 
 
-def compute_cluster_avg(fovs, channels, base_dir, cluster_col,
-                        cluster_dir='pixel_mat_clustered'):
-    """For each fov, compute the average channel values across each SOM cluster
+def compute_pixel_cluster_avg(fovs, channels, base_dir, cluster_col,
+                              cluster_dir='pixel_mat_clustered'):
+    """For each fov, compute the average channel values across each pixel SOM cluster
 
     Args:
         fovs (list):
@@ -33,7 +34,7 @@ def compute_cluster_avg(fovs, channels, base_dir, cluster_col,
 
     Returns:
         pandas.DataFrame:
-            Contains the average channel values for each SOM cluster
+            Contains the average channel values for each pixel SOM cluster
     """
 
     # define the cluster averages DataFrame
@@ -65,6 +66,134 @@ def compute_cluster_avg(fovs, channels, base_dir, cluster_col,
     sum_count_totals = sum_count_totals.drop('count', axis=1)
 
     return sum_count_totals
+
+
+def compute_cell_cluster_avg(cluster_path, cluster_col):
+    """Compute the average values across each column for each cell SOM cluster
+
+    Args:
+        cluster_path (str):
+            The path to the cell data with SOM labels
+        cluster_col (str):
+            Name of the column to group by
+
+    Returns:
+        pandas.DataFrame:
+            Contains the average values for each column across cell SOM clusters
+    """
+
+    # read in the clustered data
+    cluster_data = feather.read_dataframe(cluster_path)
+
+    # subset by columns with cluster in them
+    cluster_columns = [c for c in cluster_data.columns.values if c.startswith('cluster_')]
+    cluster_data_subset = cluster_data.loc[:, cluster_columns + [cluster_col]]
+
+    # average each column
+    mean_count_totals = cluster_data_subset.groupby(cluster_col).mean().reset_index()
+
+    return mean_count_totals
+
+
+def compute_cell_cluster_counts(fovs, channels, base_dir, consensus_dir,
+                                cell_table_path, cluster_col='cluster'):
+    """Compute the number of pixel/meta clusters per cell
+
+    Args:
+        fovs (list):
+            The list of fovs to subset on
+        channels (list):
+            The list of channels to subset on
+        base_dir (str):
+            The path to the data directories
+        consensus_dir (str):
+            Name of directory to save the consensus clustered results
+        cell_table_path (str):
+            Path to the cell table, needs to be created with Segment_Image_Data.ipynb
+        cluster_col (str):
+            Name of the column with the pixel SOM cluster assignments
+
+    Returns:
+        pd.DataFrame:
+            cell x cluster list of counts of each cluster per each cell
+    """
+
+    # define the counts per segmentation label DataFrame
+    cluster_counts = pd.DataFrame()
+
+    # read the cell table data
+    cell_table = pd.read_csv(cell_table_path)
+
+    # subset on fov, label, and cell size
+    cell_table = cell_table[['fov', 'label', 'cell_size']]
+
+    # for verification purposes, make sure the fovs are sorted in numerical order
+    fovs_sorted = sorted(fovs, key=lambda x: int(re.findall(r'\d+', x)[0]))
+
+    for fov in fovs_sorted:
+        # read the full dataset with pixel and meta clusters
+        fov_pixel_data = feather.read_dataframe(
+            os.path.join(base_dir, consensus_dir, fov + '.feather')
+        )
+
+        # group the data by fov and segmentation label
+        group_by_cluster_col = fov_pixel_data.groupby(
+            ['fov', 'segmentation_label', cluster_col]
+        ).size().reset_index(name='count')
+
+        # cast the cluster column to int for aesthetics
+        group_by_cluster_col[cluster_col] = group_by_cluster_col[cluster_col].astype(int)
+
+        # create a pivot table with counts of each cluster per segmentation label
+        num_cluster_per_seg_label = group_by_cluster_col.pivot(
+            index='segmentation_label', columns=cluster_col, values='count'
+        ).fillna(0).astype(int)
+
+        # change column names to indicate which cluster type (pixel or meta) is used
+        new_columns = ['%s_' % cluster_col + str(c) for c in num_cluster_per_seg_label.columns]
+        num_cluster_per_seg_label.columns = new_columns
+
+        # copy over the fov and segmentation label data
+        num_cluster_per_seg_label['fov'] = group_by_cluster_col['fov']
+        num_cluster_per_seg_label['segmentation_label'] = num_cluster_per_seg_label.index.values
+
+        # reset the index
+        num_cluster_per_seg_label = num_cluster_per_seg_label.reset_index(drop=True)
+
+        # subset cell table on specific fov, convert labels to int to match data types
+        cell_table_fov = cell_table[cell_table['fov'] == fov]
+        cell_table_fov['label'] = cell_table_fov['label'].astype(int)
+
+        # subtract 1 from cell labels to match with pixel data labels
+        cell_table_fov['label'] = cell_table_fov['label'] - 1
+
+        # rename label in cell_table_fov as segmentation_label for joining purposes
+        cell_table_fov = cell_table_fov.rename(columns={'label': 'segmentation_label'})
+
+        # join the two DataFrames
+        num_cluster_per_seg_label = num_cluster_per_seg_label.merge(
+            cell_table_fov,
+            how='inner',
+            on=['fov', 'segmentation_label']
+        )
+
+        # concatenate to cluster_counts
+        cluster_counts = pd.concat([cluster_counts, num_cluster_per_seg_label])
+
+    # fill empty elements with 0
+    cluster_counts = cluster_counts.fillna(0)
+
+    # remove any clusters that sum to 0
+    cluster_columns = [c for c in cluster_counts.columns.values if c.startswith(cluster_col)]
+    zero_columns = cluster_counts.loc[:, cluster_columns].columns[
+        cluster_counts.loc[:, cluster_columns].sum() == 0
+    ]
+    cluster_counts = cluster_counts.drop(columns=zero_columns)
+
+    # because cell_table is quite large, free up memory space
+    del cell_table
+
+    return cluster_counts
 
 
 def create_fov_pixel_data(fov, channels, img_data, seg_labels,
@@ -221,7 +350,7 @@ def create_pixel_matrix(fovs, base_dir, tiff_dir, seg_dir,
 
 def train_pixel_som(fovs, channels, base_dir,
                     sub_dir='pixel_mat_subsetted', norm_vals_name='norm_vals.feather',
-                    weights_name='weights.feather', num_passes=1, seed=42):
+                    weights_name='pixel_weights.feather', xdim=10, ydim=10, num_passes=1, seed=42):
     """Run the SOM training on the subsetted pixel data.
 
     Saves weights to base_dir/weights_name.
@@ -239,6 +368,10 @@ def train_pixel_som(fovs, channels, base_dir,
             The name of the file to store the 99.9% normalized values
         weights_name (str):
             The name of the weights file
+        xdim (int):
+            The number of x nodes to use for the SOM
+        ydim (int):
+            The number of y nodes to use for the SOM
         num_passes (int):
             The number of training passes to make through the dataset
         seed (int):
@@ -266,8 +399,9 @@ def train_pixel_som(fovs, channels, base_dir,
                               subsetted_channels=sample_sub.columns.values)
 
     # run the SOM training process
-    process_args = ['Rscript', '/create_som_matrix.R', ','.join(fovs), ','.join(channels),
-                    str(num_passes), subsetted_path, norm_vals_path, weights_path, str(seed)]
+    process_args = ['Rscript', '/create_pixel_som.R', ','.join(fovs), ','.join(channels),
+                    str(xdim), str(ydim), str(num_passes), subsetted_path, norm_vals_path,
+                    weights_path, str(seed)]
 
     process = subprocess.Popen(process_args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
@@ -347,7 +481,7 @@ def cluster_pixels(fovs, base_dir, pre_dir='pixel_mat_preprocessed',
         os.mkdir(clustered_path)
 
     # run the trained SOM on the dataset, assigning clusters
-    process_args = ['Rscript', '/run_trained_som.R', ','.join(fovs),
+    process_args = ['Rscript', '/run_pixel_som.R', ','.join(fovs),
                     preprocessed_path, norm_vals_path, weights_path, clustered_path]
 
     process = subprocess.Popen(process_args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
@@ -364,11 +498,11 @@ def cluster_pixels(fovs, base_dir, pre_dir='pixel_mat_preprocessed',
             print(output.strip())
 
 
-def consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
-                      cluster_dir='pixel_mat_clustered',
-                      cluster_avg_name='pixel_cluster_avg.feather',
-                      consensus_dir='pixel_mat_consensus', seed=42):
-    """Run consensus clustering algorithm on summed data across channels
+def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
+                            cluster_dir='pixel_mat_clustered',
+                            cluster_avg_name='pixel_cluster_avg.feather',
+                            consensus_dir='pixel_mat_consensus', seed=42):
+    """Run consensus clustering algorithm on pixel-level summed data across channels
 
     Saves data with consensus cluster labels to consensus_dir
 
@@ -399,13 +533,13 @@ def consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
 
     if not os.path.exists(clustered_path):
         raise FileNotFoundError('Cluster dir %s does not exist in base_dir %s' %
-                                (base_dir, clustered_path))
+                                (cluster_dir, base_dir))
 
-    # compute and write the averaged cluster results
-    cluster_avgs = compute_cluster_avg(fovs, channels, base_dir,
-                                       cluster_col='cluster', cluster_dir=cluster_dir)
+    # compute the cluster averages
+    cluster_avgs = compute_pixel_cluster_avg(fovs, channels, base_dir,
+                                             cluster_col='cluster', cluster_dir=cluster_dir)
 
-    # save the DataFrame
+    # save the cluster averages
     feather.write_dataframe(cluster_avgs,
                             os.path.join(base_dir, cluster_avg_name),
                             compression='uncompressed')
@@ -415,7 +549,7 @@ def consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
         os.mkdir(consensus_path)
 
     # run the consensus clustering process
-    process_args = ['Rscript', '/consensus_cluster.R', ','.join(fovs), ','.join(channels),
+    process_args = ['Rscript', '/pixel_consensus_cluster.R', ','.join(fovs), ','.join(channels),
                     str(max_k), str(cap), clustered_path, cluster_avg_path, consensus_path,
                     str(seed)]
 
@@ -433,10 +567,10 @@ def consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
             print(output.strip())
 
 
-def visualize_cluster_data(fovs, channels, base_dir, cluster_dir, cluster_col='cluster',
-                           dpi=None, center_val=None, overlay_values=False, colormap="vlag",
-                           save_dir=None, save_file=None):
-    """Visualize the average cluster results for each cluster
+def visualize_pixel_cluster_data(fovs, channels, base_dir, cluster_dir, cluster_col='cluster',
+                                 dpi=None, center_val=None, overlay_values=False, colormap="vlag",
+                                 save_dir=None, save_file=None):
+    """For pixel-level analysis, visualize the average cluster results for each cluster
 
     Args:
         fovs (list):
@@ -465,7 +599,7 @@ def visualize_cluster_data(fovs, channels, base_dir, cluster_dir, cluster_col='c
     """
 
     # average the channel values across the cluster column
-    cluster_avgs = compute_cluster_avg(fovs, channels, base_dir, cluster_col, cluster_dir)
+    cluster_avgs = compute_pixel_cluster_avg(fovs, channels, base_dir, cluster_col, cluster_dir)
 
     # convert cluster column to integer type
     cluster_avgs[cluster_col] = cluster_avgs[cluster_col].astype(int)
@@ -481,8 +615,12 @@ def visualize_cluster_data(fovs, channels, base_dir, cluster_dir, cluster_col='c
     )
 
 
-def train_cell_som(fovs, channels, base_dir, consensus_dir, cluster_col='cluster'):
-    """Run the SOM training on the average marker values across each pixel cluster
+def train_cell_som(fovs, channels, base_dir, pixel_consensus_dir, cell_table_name,
+                   cluster_counts_name='cluster_counts.feather', cluster_col='cluster',
+                   weights_name='cell_weights.feather', xdim=10, ydim=10, num_passes=1, seed=42):
+    """Run the SOM training on the number of pixel/meta clusters in each cell of each fov
+
+    Saves the weights to base_dir/weights_name
 
     Args:
         fovs (list):
@@ -491,9 +629,212 @@ def train_cell_som(fovs, channels, base_dir, consensus_dir, cluster_col='cluster
             The list of channels to subset on
         base_dir (str):
             The path to the data directories
-        consensus_dir (str):
-            Name of directory to save the consensus clustered results
+        pixel_consensus_dir (str):
+            Name of directory which contains the pixel-level consensus data
+        cell_table_name (str):
+            Name of the cell table, needs to be created with Segment_Image_Data.ipynb
+        cluster_counts_name (str):
+            Name of the file to save the cluster counts of each cell
         cluster_col (str):
             Name of the column with the pixel SOM cluster assignments
+        xdim (int):
+            The number of x nodes to use for the SOM
+        ydim (int):
+            The number of y nodes to use for the SOM
+        num_passes (int):
+            The number of training passes to make through the dataset
+        seed (int):
+            The random seed to set for training
     """
-    pass
+
+    # define the data paths
+    cell_table_path = os.path.join(base_dir, cell_table_name)
+    cluster_counts_path = os.path.join(base_dir, cluster_counts_name)
+    weights_path = os.path.join(base_dir, weights_name)
+
+    if not os.path.exists(cell_table_path):
+        raise FileNotFoundError('Cell table %s does not exist in base_dir %s' %
+                                (cell_table_name, base_dir))
+
+    # create the counts per cluster DataFrame
+    cluster_counts = compute_cell_cluster_counts(
+        fovs, channels, base_dir, pixel_consensus_dir, cell_table_path, cluster_col
+    )
+
+    # write the counts per cluster DataFrame
+    feather.write_dataframe(cluster_counts,
+                            os.path.join(base_dir, cluster_counts_name),
+                            compression='uncompressed')
+
+    # run the SOM training process
+    process_args = ['Rscript', '/create_cell_som.R', ','.join(fovs), str(xdim), str(ydim),
+                    str(num_passes), cluster_counts_path, weights_path, str(seed)]
+
+    process = subprocess.Popen(process_args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+
+    # continuously poll the process for output/error to display in Jupyter notebook
+    while True:
+        # convert from byte string
+        output = process.stdout.readline().decode('utf-8')
+
+        # if the output is nothing and the process is done, break
+        if process.poll() is not None:
+            break
+        if output:
+            print(output.strip())
+
+
+def cluster_cells(base_dir, cluster_counts_name='cluster_counts.feather',
+                  weights_name='cell_weights.feather', cell_cluster_name='cell_clusters.feather'):
+    """Uses trained weights to assign cluster labels on full pixel data
+
+    Saves data with cluster labels to cell_cluster_name
+
+    Args:
+        base_dir (str):
+            The path to the data directory
+        cluster_counts_name (str):
+            Name of the file with the cluster counts of each cell
+        weights_name (str):
+            The name of the weights file
+        cell_cluster_name (str):
+            The name of the file to write the clustered data
+    """
+
+    # define the paths to the data
+    cluster_counts_path = os.path.join(base_dir, cluster_counts_name)
+    weights_path = os.path.join(base_dir, weights_name)
+    cell_cluster_path = os.path.join(base_dir, cell_cluster_name)
+
+    if not os.path.exists(cluster_counts_path):
+        raise FileNotFoundError('Cluster counts table %s does not exist in base_dir %s' %
+                                (cluster_counts_name, base_dir))
+
+    if not os.path.exists(weights_path):
+        raise FileNotFoundError('Weights file %s does not exist in base_dir %s' %
+                                (weights_name, base_dir))
+
+    # run the trained SOM on the dataset, assigning clusters
+    process_args = ['Rscript', '/run_cell_som.R', cluster_counts_path,
+                    weights_path, cell_cluster_path]
+
+    process = subprocess.Popen(process_args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+
+    # continuously poll the process for output/error so it gets displayed in the Jupyter notebook
+    while True:
+        # convert from byte string
+        output = process.stdout.readline().decode('utf-8')
+
+        # if the output is nothing and the process is done, break
+        if process.poll() is not None:
+            break
+        if output:
+            print(output.strip())
+
+
+def cell_consensus_cluster(base_dir, max_k=20, cap=3,
+                           cell_cluster_name='cell_mat_clustered.feather',
+                           cell_cluster_avg_name='cell_cluster_avg.feather',
+                           cell_consensus_name='cell_mat_consensus.feather', seed=42):
+    """Run consensus clustering algorithm on cell-level summed data across channels
+
+    Saves data with consensus cluster labels to cell_consensus_name
+
+    Args:
+        fovs (list):
+            The list of fovs to subset on
+        channels (list):
+            The list of channels to subset on
+        base_dir (str):
+            The path to the data directory
+        max_k (int):
+            The number of consensus clusters
+        cap (int):
+            z-score cap to use when hierarchical clustering
+        cluster_dir (str):
+            Name of the file containing the pixel data with cluster labels
+        cluster_avg_name (str):
+            Name of file to save the channel-averaged results to
+        consensus_dir (str):
+            Name of directory to save the consensus clustered results
+        seed (int):
+            The random seed to set for consensus clustering
+    """
+
+    clustered_path = os.path.join(base_dir, cell_cluster_name)
+    cluster_avg_path = os.path.join(base_dir, cell_cluster_avg_name)
+    consensus_path = os.path.join(base_dir, cell_consensus_name)
+
+    if not os.path.exists(clustered_path):
+        raise FileNotFoundError('Cluster table %s does not exist in base_dir %s' %
+                                (cluster_dir, base_dir))
+
+    # compute the cluster averages
+    cluster_avgs = compute_cell_cluster_avg(clustered_path, cluster_col='cluster')
+
+    # save the cluster averages
+    feather.write_dataframe(cluster_avgs,
+                            os.path.join(base_dir, cell_cluster_avg_name),
+                            compression='uncompressed')
+
+    # run the consensus clustering process
+    process_args = ['Rscript', '/cell_consensus_cluster.R', str(max_k), str(cap), clustered_path,
+                    cluster_avg_path, consensus_path, str(seed)]
+
+    process = subprocess.Popen(process_args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+
+    # continuously poll the process for output/error so it gets displayed in the Jupyter notebook
+    while True:
+        # convert from byte string
+        output = process.stdout.readline().decode('utf-8')
+
+        # if the output is nothing and the process is done, break
+        if process.poll() is not None:
+            break
+        if output:
+            print(output.strip())
+
+
+def visualize_cell_cluster_data(base_dir, cluster_name, cluster_col='cluster',
+                                dpi=None, center_val=None, overlay_values=False, colormap="vlag",
+                                save_dir=None, save_file=None):
+    """For cell-level analysis, visualize the average cluster results for each cluster
+
+    Args:
+        base_dir (str):
+            The path to the data directories
+        cluster_name (str):
+            The name of the file containing the cluster data
+        cluster_col (str):
+            Name of the column to group values by
+        dpi (float):
+            The resolution of the image to save, ignored if save_dir is None
+        center_val (float):
+            value at which to center the heatmap
+        overlay_values (bool):
+            whether to overlay the raw heatmap values on top
+        colormap (str):
+            color scheme for visualization
+        save_dir (str):
+            If specified, a directory where we will save the plot
+        save_file (str):
+            If save_dir specified, specify a file name you wish to save to.
+            Ignored if save_dir is None
+    """
+
+    # average the columns across the cluster column
+    cluster_avgs = compute_cell_cluster_avg(os.path.join(base_dir, cluster_name), cluster_col)
+
+    # convert cluster column to integer type
+    cluster_avgs[cluster_col] = cluster_avgs[cluster_col].astype(int)
+
+    # sort cluster col in ascending order
+    cluster_avgs = cluster_avgs.sort_values(by=cluster_col)
+
+    # draw the heatmap
+    visualize.draw_heatmap(
+        data=cluster_avgs.drop(columns=cluster_col).values, x_labels=cluster_avgs[cluster_col],
+        y_labels=cluster_avgs.drop(columns=cluster_col).columns.values,
+        dpi=dpi, center_val=center_val, overlay_values=overlay_values,
+        colormap=colormap, save_dir=save_dir, save_file=save_file
+    )
