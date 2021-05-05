@@ -462,7 +462,7 @@ def test_pixel_consensus_cluster(mocker):
     with tempfile.TemporaryDirectory() as temp_dir:
         with pytest.raises(FileNotFoundError):
             som_utils.pixel_consensus_cluster(fovs=['fov0'], channels=['chan0'],
-                                        base_dir=temp_dir, cluster_dir='bad_path')
+                                              base_dir=temp_dir, cluster_dir='bad_path')
 
     with tempfile.TemporaryDirectory() as temp_dir:
         # define fovs and channels
