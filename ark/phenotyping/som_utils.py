@@ -637,6 +637,8 @@ def train_cell_som(fovs, channels, base_dir, pixel_consensus_dir, cell_table_nam
             Name of the file to save the cluster counts of each cell
         cluster_col (str):
             Name of the column with the pixel SOM cluster assignments
+        weights_name (str):
+            The name of the weights file
         xdim (int):
             The number of x nodes to use for the SOM
         ydim (int):
