@@ -350,7 +350,8 @@ def create_pixel_matrix(fovs, base_dir, tiff_dir, seg_dir,
 
 def train_pixel_som(fovs, channels, base_dir,
                     sub_dir='pixel_mat_subsetted', norm_vals_name='norm_vals.feather',
-                    weights_name='pixel_weights.feather', xdim=10, ydim=10, num_passes=1, seed=42):
+                    weights_name='pixel_weights.feather', xdim=10, ydim=10,
+                    lr_start=0.05, lr_end=0.01, num_passes=1, seed=42):
     """Run the SOM training on the subsetted pixel data.
 
     Saves weights to base_dir/weights_name.
@@ -372,6 +373,10 @@ def train_pixel_som(fovs, channels, base_dir,
             The number of x nodes to use for the SOM
         ydim (int):
             The number of y nodes to use for the SOM
+        lr_start (float):
+            The start learning rate for the SOM, decays to lr_end
+        lr_end (float):
+            The end learning rate for the SOM, decays from lr_start
         num_passes (int):
             The number of training passes to make through the dataset
         seed (int):
@@ -400,8 +405,8 @@ def train_pixel_som(fovs, channels, base_dir,
 
     # run the SOM training process
     process_args = ['Rscript', '/create_pixel_som.R', ','.join(fovs), ','.join(channels),
-                    str(xdim), str(ydim), str(num_passes), subsetted_path, norm_vals_path,
-                    weights_path, str(seed)]
+                    str(xdim), str(ydim), str(lr_start), str(lr_end), str(num_passes),
+                    subsetted_path, norm_vals_path, weights_path, str(seed)]
 
     process = subprocess.Popen(process_args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
@@ -617,7 +622,8 @@ def visualize_pixel_cluster_data(fovs, channels, base_dir, cluster_dir, cluster_
 
 def train_cell_som(fovs, channels, base_dir, pixel_consensus_dir, cell_table_name,
                    cluster_counts_name='cluster_counts.feather', cluster_col='cluster',
-                   weights_name='cell_weights.feather', xdim=10, ydim=10, num_passes=1, seed=42):
+                   weights_name='cell_weights.feather', xdim=10, ydim=10,
+                   lr_srart=0.05, lr_end=0.01, num_passes=1, seed=42):
     """Run the SOM training on the number of pixel/meta clusters in each cell of each fov
 
     Saves the weights to base_dir/weights_name
@@ -643,6 +649,10 @@ def train_cell_som(fovs, channels, base_dir, pixel_consensus_dir, cell_table_nam
             The number of x nodes to use for the SOM
         ydim (int):
             The number of y nodes to use for the SOM
+        lr_start (float):
+            The start learning rate for the SOM, decays to lr_end
+        lr_end (float):
+            The end learning rate for the SOM, decays from lr_start
         num_passes (int):
             The number of training passes to make through the dataset
         seed (int):
@@ -670,7 +680,8 @@ def train_cell_som(fovs, channels, base_dir, pixel_consensus_dir, cell_table_nam
 
     # run the SOM training process
     process_args = ['Rscript', '/create_cell_som.R', ','.join(fovs), str(xdim), str(ydim),
-                    str(num_passes), cluster_counts_path, weights_path, str(seed)]
+                    str(lr_start), str(lr_end), str(num_passes), cluster_counts_path,
+                    weights_path, str(seed)]
 
     process = subprocess.Popen(process_args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 

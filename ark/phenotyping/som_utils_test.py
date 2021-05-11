@@ -16,7 +16,8 @@ import ark.utils.test_utils as test_utils
 
 def mocked_train_pixel_som(fovs, channels, base_dir,
                            sub_dir='pixel_mat_subsetted', norm_vals_name='norm_vals.feather',
-                           weights_name='weights.feather', num_passes=1):
+                           weights_name='weights.feather', xdim=10, ydim=10,
+                           lr_start=0.05, lr_end=0.01, num_passes=1, seed=42):
     # define the matrix we'll be training on
     pixel_mat_sub = pd.DataFrame(columns=channels)
 
@@ -88,7 +89,7 @@ def mocked_cluster_pixels(fovs, base_dir, pre_dir='pixel_mat_preprocessed',
 def mocked_pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
                                    cluster_dir='pixel_mat_clustered',
                                    cluster_avg_name='pixel_cluster_avg.feather',
-                                   consensus_dir='pixel_mat_consensus'):
+                                   consensus_dir='pixel_mat_consensus', seed=42):
     # read the cluster average
     cluster_avg = feather.read_dataframe(os.path.join(base_dir, cluster_avg_name))
 

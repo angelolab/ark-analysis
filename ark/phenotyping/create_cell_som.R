@@ -1,11 +1,13 @@
 # Trains a SOM matrix using cluster counts per cell
 
-# Usage: Rscript create_cell_som.R {fovs} {markers} {xdim} {ydim} {numPasses} {clusterCountsPath} {cellWeightsPath} {seed}
+# Usage: Rscript create_cell_som.R {fovs} {markers} {xdim} {ydim} {lr_start} {lr_end} {numPasses} {clusterCountsPath} {cellWeightsPath} {seed}
 
 # - fovs: list of fovs to cluster
 # - markers: list of channel columns to use
 # - xdim: number of x nodes to use for SOM
 # - ydim: number of y nodes to use for SOM
+# - lr_start: the start learning rate
+# - lr_end: the end learning rate
 # - numPasses: passes to make through dataset for training
 # - clusterCountsPath: path to file containing the label per pixel/meta cluster counts
 # - cellWeightsPath: path to the SOM weights file
@@ -27,17 +29,23 @@ xdim <- strtoi(args[2])
 # get the number of y nodes to use for the SOM
 ydim <- strtoi(args[3])
 
+# get the start learning rate
+lr_start <- as.double(args[4])
+
+# get the end learning rate
+lr_end <- as.double(args[5])
+
 # get the number of passes to make through SOM training
-numPasses <- strtoi(args[4])
+numPasses <- strtoi(args[6])
 
 # get the path to the cluster counts data
-clusterCountsPath <- args[5]
+clusterCountsPath <- args[7]
 
 # get the weights write path
-cellWeightsPath <- args[6]
+cellWeightsPath <- args[8]
 
 # set the random seed
-seed <- strtoi(args[7])
+seed <- strtoi(args[9])
 set.seed(seed)
 
 # read the cluster counts data
@@ -63,13 +71,10 @@ for (clusterCol in clusterCols) {
     }
 }
 
-# clusterCountsNorm <- sapply(clusterCountsNorm, function(x) x / quantile(x, 0.999))
-# clusterCountsNorm <- clusterCountsNorm[,lapply(clusterCountsNorm, function(x) x / quantile(x,0.999))]
-# print(clusterCountsNorm)
-
 # create the cell SOM
 print("Run the SOM training")
-somResults <- SOM(data=clusterCountsNorm, xdim=xdim, ydim=ydim, rlen=numPasses, alpha=c(0.05, 0.01))
+somResults <- SOM(data=clusterCountsNorm, xdim=xdim, ydim=ydim,
+                  rlen=numPasses, alpha=c(lr_start, lr_end))
 
 # write the weights to feather
 print("Save trained weights")

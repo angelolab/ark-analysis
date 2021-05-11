@@ -34,6 +34,20 @@ somWeights <- as.matrix(arrow::read_feather(cellWeightsPath))
 clusterCols <- colnames(clusterCountsData)[grepl("cluster_|hCluster_cap_",
                                            colnames(clusterCountsData))]
 
+# subset on the cluster columns
+clusterCountsData <- clusterCountsData[, clusterCols]
+
+# 99.9% normalize
+print("Perform 99.9% normalization")
+for (clusterCol in clusterCols) {
+    normVal <- quantile(clusterCountsData[,clusterCol])
+
+    # prevent normalizing by 0
+    if (normVal != 0) {
+        clusterCountsData[,clusterCol] <- clusterCountsData[,clusterCol] / normVal
+    }
+}
+
 # map FlowSOM data
 print("Mapping cluster labels")
 clusters <- FlowSOM:::MapDataToCodes(somWeights, as.matrix(clusterCountsData[, clusterCols]))
