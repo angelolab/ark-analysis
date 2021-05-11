@@ -50,7 +50,7 @@ for (clusterCol in clusterCols) {
 
 # map FlowSOM data
 print("Mapping cluster labels")
-clusters <- FlowSOM:::MapDataToCodes(somWeights, as.matrix(clusterCountsData[, clusterCols]))
+clusters <- FlowSOM:::MapDataToCodes(somWeights, as.matrix(clusterCountsData))
 
 # assign cluster labels to pixel data
 clusterCountsData$cluster <- clusters[,1]
