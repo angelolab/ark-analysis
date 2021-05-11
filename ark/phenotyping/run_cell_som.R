@@ -35,22 +35,22 @@ clusterCols <- colnames(clusterCountsData)[grepl("cluster_|hCluster_cap_",
                                            colnames(clusterCountsData))]
 
 # subset on the cluster columns
-clusterCountsData <- clusterCountsData[, clusterCols]
+clusterCountsNorm <- clusterCountsData[, clusterCols]
 
 # 99.9% normalize
 print("Perform 99.9% normalization")
 for (clusterCol in clusterCols) {
-    normVal <- quantile(clusterCountsData[,clusterCol])
+    normVal <- quantile(clusterCountsNorm[,clusterCol])
 
     # prevent normalizing by 0
     if (normVal != 0) {
-        clusterCountsData[,clusterCol] <- clusterCountsData[,clusterCol] / normVal
+        clusterCountsNorm[,clusterCol] <- clusterCountsNorm[,clusterCol] / normVal
     }
 }
 
 # map FlowSOM data
 print("Mapping cluster labels")
-clusters <- FlowSOM:::MapDataToCodes(somWeights, as.matrix(clusterCountsData))
+clusters <- FlowSOM:::MapDataToCodes(somWeights, as.matrix(clusterCountsNorm))
 
 # assign cluster labels to pixel data
 clusterCountsData$cluster <- clusters[,1]
