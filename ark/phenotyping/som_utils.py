@@ -623,7 +623,7 @@ def visualize_pixel_cluster_data(fovs, channels, base_dir, cluster_dir, cluster_
 def train_cell_som(fovs, channels, base_dir, pixel_consensus_dir, cell_table_name,
                    cluster_counts_name='cluster_counts.feather', cluster_col='cluster',
                    weights_name='cell_weights.feather', xdim=10, ydim=10,
-                   lr_srart=0.05, lr_end=0.01, num_passes=1, seed=42):
+                   lr_start=0.05, lr_end=0.01, num_passes=1, seed=42):
     """Run the SOM training on the number of pixel/meta clusters in each cell of each fov
 
     Saves the weights to base_dir/weights_name
