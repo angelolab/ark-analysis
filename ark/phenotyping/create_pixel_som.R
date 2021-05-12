@@ -74,6 +74,12 @@ for (fov in fovs) {
     }
 }
 
+# remove any row that sums to 0
+pixelSubsetData <- pixelSubsetData[rowSums(pixelSubsetData > 0) != 0, ]
+
+# normalize each row by their sums
+pixelSubsetData <- apply(pixelSubsetData, 2, function(x) x / rowSums(pixelSubsetData))
+
 # perform 99.9% normalization on the subsetted data
 normVals <- data.frame(matrix(NA, nrow=1, ncol=length(markers)))
 colnames(normVals) <- markers
