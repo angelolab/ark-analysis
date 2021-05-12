@@ -68,14 +68,16 @@ def compute_pixel_cluster_avg(fovs, channels, base_dir, cluster_col,
     return sum_count_totals
 
 
-def compute_cell_cluster_avg(cluster_path, cluster_col):
+def compute_cell_cluster_avg(cluster_path, column_prefix, cluster_col):
     """Compute the average values across each column for each cell SOM cluster
 
     Args:
         cluster_path (str):
             The path to the cell data with SOM labels
+        column_prefix (str):
+            The prefix of the columns to subset, should be 'cluster' or 'hCluster_cap'
         cluster_col (str):
-            Name of the column to group by
+            Name of the cell cluster column to group by
 
     Returns:
         pandas.DataFrame:
@@ -86,8 +88,8 @@ def compute_cell_cluster_avg(cluster_path, cluster_col):
     cluster_data = feather.read_dataframe(cluster_path)
 
     # subset by columns with cluster in them
-    cluster_columns = [c for c in cluster_data.columns.values if c.startswith('cluster_')]
-    cluster_data_subset = cluster_data.loc[:, cluster_columns + [cluster_col]]
+    column_subset = [c for c in cluster_data.columns.values if c.startswith(column_prefix + '_')]
+    cluster_data_subset = cluster_data.loc[:, column_subset + [cluster_col]]
 
     # average each column
     mean_count_totals = cluster_data_subset.groupby(cluster_col).mean().reset_index()
@@ -111,7 +113,7 @@ def compute_cell_cluster_counts(fovs, channels, base_dir, consensus_dir,
         cell_table_path (str):
             Path to the cell table, needs to be created with Segment_Image_Data.ipynb
         cluster_col (str):
-            Name of the column with the pixel SOM cluster assignments
+            The name of the cluster column to group by, should be 'cluster' or 'hCluster_cap'
 
     Returns:
         pd.DataFrame:
@@ -245,13 +247,6 @@ def create_fov_pixel_data(fov, channels, img_data, seg_labels,
     # assign segmentation label
     seg_labels_flat = seg_labels.flatten()
     pixel_mat['segmentation_label'] = seg_labels_flat
-
-    # remove any rows that sum to 0
-    pixel_mat = pixel_mat.loc[pixel_mat.loc[:, channels].sum(axis=1) != 0, :]
-
-    # normalize each row by total marker counts to convert into frequencies
-    pixel_mat.loc[:, channels] = pixel_mat.loc[:, channels].div(
-        pixel_mat.loc[:, channels].sum(axis=1), axis=0)
 
     # subset the pixel matrix for training
     pixel_mat_subset = pixel_mat.sample(frac=subset_proportion, random_state=seed)
@@ -572,8 +567,9 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
             print(output.strip())
 
 
-def visualize_pixel_cluster_data(fovs, channels, base_dir, cluster_dir, cluster_col='cluster',
-                                 dpi=None, center_val=None, overlay_values=False, colormap="vlag",
+def visualize_pixel_cluster_data(fovs, channels, base_dir, cluster_dir,
+                                 pixel_cluster_col='cluster', dpi=None, center_val=None,
+                                 overlay_values=False, colormap="vlag",
                                  save_dir=None, save_file=None):
     """For pixel-level analysis, visualize the average cluster results for each cluster
 
@@ -586,7 +582,7 @@ def visualize_pixel_cluster_data(fovs, channels, base_dir, cluster_dir, cluster_
             The path to the data directories
         cluster_dir (str):
             Name of the directory containing the data to visualize
-        cluster_col (str):
+        pixel_cluster_col (str):
             Name of the column to group values by
         dpi (float):
             The resolution of the image to save, ignored if save_dir is None
@@ -604,18 +600,19 @@ def visualize_pixel_cluster_data(fovs, channels, base_dir, cluster_dir, cluster_
     """
 
     # average the channel values across the cluster column
-    cluster_avgs = compute_pixel_cluster_avg(fovs, channels, base_dir, cluster_col, cluster_dir)
+    cluster_avgs = compute_pixel_cluster_avg(fovs, channels, base_dir,
+                                             pixel_cluster_col, cluster_dir)
 
     # convert cluster column to integer type
-    cluster_avgs[cluster_col] = cluster_avgs[cluster_col].astype(int)
+    cluster_avgs[pixel_cluster_col] = cluster_avgs[pixel_cluster_col].astype(int)
 
     # sort cluster col in ascending order
-    cluster_avgs = cluster_avgs.sort_values(by=cluster_col)
+    cluster_avgs = cluster_avgs.sort_values(by=pixel_cluster_col)
 
     # draw the heatmap
     visualize.draw_heatmap(
-        data=cluster_avgs[channels].values, x_labels=cluster_avgs[cluster_col], y_labels=channels,
-        dpi=dpi, center_val=center_val, overlay_values=overlay_values,
+        data=cluster_avgs[channels].values, x_labels=cluster_avgs[pixel_cluster_col],
+        y_labels=channels, dpi=dpi, center_val=center_val, overlay_values=overlay_values,
         colormap=colormap, save_dir=save_dir, save_file=save_file
     )
 
@@ -745,7 +742,7 @@ def cluster_cells(base_dir, cluster_counts_name='cluster_counts.feather',
             print(output.strip())
 
 
-def cell_consensus_cluster(base_dir, max_k=20, cap=3,
+def cell_consensus_cluster(base_dir, max_k=20, cap=3, column_prefix='cluster',
                            cell_cluster_name='cell_mat_clustered.feather',
                            cell_cluster_avg_name='cell_cluster_avg.feather',
                            cell_consensus_name='cell_mat_consensus.feather', seed=42):
@@ -760,6 +757,8 @@ def cell_consensus_cluster(base_dir, max_k=20, cap=3,
             The number of consensus clusters
         cap (int):
             z-score cap to use when hierarchical clustering
+        column_prefix (str):
+            The prefix of the columns to subset, should be 'cluster' or 'hCluster_cap'
         cell_cluster_name (str):
             Name of the file containing the cell data with cluster labels
         cell_cluster_avg_name (str):
@@ -779,7 +778,8 @@ def cell_consensus_cluster(base_dir, max_k=20, cap=3,
                                 (cluster_dir, base_dir))
 
     # compute the cluster averages
-    cluster_avgs = compute_cell_cluster_avg(clustered_path, cluster_col='cluster')
+    cluster_avgs = compute_cell_cluster_avg(clustered_path, column_prefix=column_prefix,
+                                            cluster_col='cluster')
 
     # save the cluster averages
     feather.write_dataframe(cluster_avgs,
@@ -804,7 +804,7 @@ def cell_consensus_cluster(base_dir, max_k=20, cap=3,
             print(output.strip())
 
 
-def visualize_cell_cluster_data(base_dir, cluster_name, cluster_col='cluster',
+def visualize_cell_cluster_data(base_dir, cluster_name, column_prefix, cell_cluster_col='cluster',
                                 dpi=None, center_val=None, overlay_values=False, colormap="vlag",
                                 save_dir=None, save_file=None):
     """For cell-level analysis, visualize the average cluster results for each cluster
@@ -814,7 +814,9 @@ def visualize_cell_cluster_data(base_dir, cluster_name, cluster_col='cluster',
             The path to the data directories
         cluster_name (str):
             The name of the file containing the cluster data
-        cluster_col (str):
+        column_prefix (str):
+            The prefix of the columns to subset, should be 'cluster' or 'hCluster_cap'
+        cell_cluster_col (str):
             Name of the column to group values by
         dpi (float):
             The resolution of the image to save, ignored if save_dir is None
@@ -832,18 +834,20 @@ def visualize_cell_cluster_data(base_dir, cluster_name, cluster_col='cluster',
     """
 
     # average the columns across the cluster column
-    cluster_avgs = compute_cell_cluster_avg(os.path.join(base_dir, cluster_name), cluster_col)
+    cluster_avgs = compute_cell_cluster_avg(os.path.join(base_dir, cluster_name),
+                                            column_prefix, cell_cluster_col)
 
     # convert cluster column to integer type
-    cluster_avgs[cluster_col] = cluster_avgs[cluster_col].astype(int)
+    cluster_avgs[cell_cluster_col] = cluster_avgs[cell_cluster_col].astype(int)
 
     # sort cluster col in ascending order
-    cluster_avgs = cluster_avgs.sort_values(by=cluster_col)
+    cluster_avgs = cluster_avgs.sort_values(by=cell_cluster_col)
 
     # draw the heatmap
     visualize.draw_heatmap(
-        data=cluster_avgs.drop(columns=cluster_col).values, x_labels=cluster_avgs[cluster_col],
-        y_labels=cluster_avgs.drop(columns=cluster_col).columns.values,
+        data=cluster_avgs.drop(columns=cell_cluster_col).values,
+        x_labels=cluster_avgs[cell_cluster_col],
+        y_labels=cluster_avgs.drop(columns=cell_cluster_col).columns.values,
         dpi=dpi, center_val=center_val, overlay_values=overlay_values,
         colormap=colormap, save_dir=save_dir, save_file=save_file
     )
