@@ -138,9 +138,12 @@ def compute_cell_cluster_counts(fovs, channels, base_dir, consensus_dir,
             os.path.join(base_dir, consensus_dir, fov + '.feather')
         )
 
-        # group the data by fov and segmentation label
+        # discard fov as we'll get it from the cell table
+        fov_pixel_data = fov_pixel_data.drop(columns='fov')
+
+        # group the data by segmentation label and cluster value
         group_by_cluster_col = fov_pixel_data.groupby(
-            ['fov', 'segmentation_label', cluster_col]
+            ['segmentation_label', cluster_col]
         ).size().reset_index(name='count')
 
         # cast the cluster column to int for aesthetics
@@ -155,8 +158,7 @@ def compute_cell_cluster_counts(fovs, channels, base_dir, consensus_dir,
         new_columns = ['%s_' % cluster_col + str(c) for c in num_cluster_per_seg_label.columns]
         num_cluster_per_seg_label.columns = new_columns
 
-        # copy over the fov and segmentation label data
-        num_cluster_per_seg_label['fov'] = group_by_cluster_col['fov']
+        # copy over the segmentation label data
         num_cluster_per_seg_label['segmentation_label'] = num_cluster_per_seg_label.index.values
 
         # reset the index
@@ -176,7 +178,7 @@ def compute_cell_cluster_counts(fovs, channels, base_dir, consensus_dir,
         num_cluster_per_seg_label = num_cluster_per_seg_label.merge(
             cell_table_fov,
             how='inner',
-            on=['fov', 'segmentation_label']
+            on=['segmentation_label']
         )
 
         # concatenate to cluster_counts
