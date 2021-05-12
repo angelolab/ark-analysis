@@ -69,7 +69,7 @@ def compute_pixel_cluster_avg(fovs, channels, base_dir, cluster_col,
 
 
 def compute_cell_cluster_avg(cluster_path, column_prefix, cluster_col):
-    """Compute the average values across each column for each cell SOM cluster
+    """For each cell SOM cluster, compute the average number of associated pixel SOM/meta clusters
 
     Args:
         cluster_path (str):
@@ -99,7 +99,7 @@ def compute_cell_cluster_avg(cluster_path, column_prefix, cluster_col):
 
 def compute_cell_cluster_counts(fovs, channels, base_dir, consensus_dir,
                                 cell_table_path, cluster_col='cluster'):
-    """Compute the number of pixel/meta clusters per cell
+    """Create a matrix with each fov-cell label pair and their pixel SOM/meta cluster counts
 
     Args:
         fovs (list):
@@ -117,7 +117,7 @@ def compute_cell_cluster_counts(fovs, channels, base_dir, consensus_dir,
 
     Returns:
         pd.DataFrame:
-            cell x cluster list of counts of each cluster per each cell
+            cell x cluster list of counts of each pixel SOM/meta cluster per each cell
     """
 
     # define the counts per segmentation label DataFrame
@@ -665,12 +665,12 @@ def train_cell_som(fovs, channels, base_dir, pixel_consensus_dir, cell_table_nam
         raise FileNotFoundError('Cell table %s does not exist in base_dir %s' %
                                 (cell_table_name, base_dir))
 
-    # create the counts per cluster DataFrame
+    # generate a matrix with each fov/cell label pair with their pixel SOM/meta cluster counts
     cluster_counts = compute_cell_cluster_counts(
         fovs, channels, base_dir, pixel_consensus_dir, cell_table_path, cluster_col
     )
 
-    # write the counts per cluster DataFrame
+    # write the created matrix
     feather.write_dataframe(cluster_counts,
                             os.path.join(base_dir, cluster_counts_name),
                             compression='uncompressed')

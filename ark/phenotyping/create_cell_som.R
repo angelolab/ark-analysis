@@ -9,7 +9,7 @@
 # - lr_start: the start learning rate
 # - lr_end: the end learning rate
 # - numPasses: passes to make through dataset for training
-# - clusterCountsPath: path to file containing the label per pixel/meta cluster counts
+# - clusterCountsPath: path to file containing an m x n matrix with each fov/cell labe pair (m) with the counts of every pixel SOM/meta cluster (n)
 # - cellWeightsPath: path to the SOM weights file
 # - seed: the random seed to use for training
 

@@ -1,11 +1,13 @@
-# Runs consensus clustering on the cell data averaged across all columns
+# Runs consensus clustering on the averaged cell data table, defined as the mean counts of each
+# pixel SOM/meta cluster across all cell SOM clusters in each fov (m x n table, where m is the number of
+# cell SOM/meta clusters and n is the number of pixel SOM/meta clusters)
 
 # Usage: Rscript {maxK} {cap} {cellClusterPath} {clusterAvgPath} {cellConsensusPath} {seed}
 
 # - maxK: number of consensus clusters
 # - cap: z-score scaling factor
-# - cellClusterPath: path to the data containing the data with cell clusters
-# - clusterAvgPath: path to the data containing averages of each column grouped by cell SOM cluster
+# - cellClusterPath: path to the cell-level data with assigned SOM clusters
+# - clusterAvgPath: path to the averaged cell data table (as defined above)
 # - cellConsensusPath: path to file where the cell consensus cluster results will be written
 # - seed: random factor
 

@@ -23,7 +23,7 @@ cellWeightsPath <- args[2]
 cellClusterPath <- args[3]
 
 # read the cluster counts data
-print("Reading the cluster counts data for SOM training")
+print("Reading the cluster counts data")
 clusterCountsData <- arrow::read_feather(clusterCountsPath)
 
 # read the weights
