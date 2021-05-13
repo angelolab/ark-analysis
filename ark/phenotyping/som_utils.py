@@ -168,9 +168,6 @@ def compute_cell_cluster_counts(fovs, channels, base_dir, consensus_dir,
         cell_table_fov = cell_table[cell_table['fov'] == fov]
         cell_table_fov['label'] = cell_table_fov['label'].astype(int)
 
-        # subtract 1 from cell labels to match with pixel data labels
-        cell_table_fov['label'] = cell_table_fov['label'] - 1
-
         # rename label in cell_table_fov as segmentation_label for joining purposes
         cell_table_fov = cell_table_fov.rename(columns={'label': 'segmentation_label'})
 

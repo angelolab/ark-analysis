@@ -569,25 +569,25 @@ def test_visualize_pixel_cluster_data():
         # test visualization for cluster: no saving
         som_utils.visualize_pixel_cluster_data(fovs=fovs, channels=chans, base_dir=temp_dir,
                                                cluster_dir='pixel_mat_clustered',
-                                               cluster_col='cluster', save_dir=None)
+                                               pixel_cluster_col='cluster', save_dir=None)
         assert not os.path.exists(os.path.join(temp_dir, "som_cluster_avgs.png"))
 
         # test visualization for cluster: saving
         som_utils.visualize_pixel_cluster_data(fovs=fovs, channels=chans, base_dir=temp_dir,
                                                cluster_dir='pixel_mat_clustered',
-                                               cluster_col='cluster', save_dir=temp_dir,
+                                               pixel_cluster_col='cluster', save_dir=temp_dir,
                                                save_file="som_cluster_avgs.png")
         assert os.path.exists(os.path.join(temp_dir, "som_cluster_avgs.png"))
 
         # test visualization for hierarchical cluster: no saving
         som_utils.visualize_pixel_cluster_data(fovs=fovs, channels=chans, base_dir=temp_dir,
                                                cluster_dir='pixel_mat_clustered',
-                                               cluster_col='hCluster_cap', save_dir=None)
+                                               pixel_cluster_col='hCluster_cap', save_dir=None)
         assert not os.path.exists(os.path.join(temp_dir, "som_hierarchical_avgs.png"))
 
         # test visualization for hierarchical cluster: saving
         som_utils.visualize_pixel_cluster_data(fovs=fovs, channels=chans, base_dir=temp_dir,
                                                cluster_dir='pixel_mat_clustered',
-                                               cluster_col='hCluster_cap', save_dir=temp_dir,
+                                               pixel_cluster_col='hCluster_cap', save_dir=temp_dir,
                                                save_file="som_hierarchical_avgs.png")
         assert os.path.exists(os.path.join(temp_dir, "som_hierarchical_avgs.png"))
