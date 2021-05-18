@@ -91,7 +91,7 @@ def compute_cell_cluster_avg(cluster_path, column_prefix, cluster_col):
     column_subset = [c for c in cluster_data.columns.values if c.startswith(column_prefix + '_')]
     cluster_data_subset = cluster_data.loc[:, column_subset + [cluster_col]]
 
-    # average each column
+    # average each column grouped by the cell SOM cluster column
     mean_count_totals = cluster_data_subset.groupby(cluster_col).mean().reset_index()
 
     return mean_count_totals
@@ -113,7 +113,8 @@ def compute_cell_cluster_counts(fovs, channels, base_dir, consensus_dir,
         cell_table_path (str):
             Path to the cell table, needs to be created with Segment_Image_Data.ipynb
         cluster_col (str):
-            The name of the cluster column to group by, should be 'cluster' or 'hCluster_cap'
+            The name of the pixel cluster column to count per cell,
+            should be 'cluster' or 'hCluster_cap'
 
     Returns:
         pd.DataFrame:
@@ -534,7 +535,7 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
         raise FileNotFoundError('Cluster dir %s does not exist in base_dir %s' %
                                 (cluster_dir, base_dir))
 
-    # compute the cluster averages
+    # compute the averages across each pixel cluster
     cluster_avgs = compute_pixel_cluster_avg(fovs, channels, base_dir,
                                              cluster_col='cluster', cluster_dir=cluster_dir)
 
@@ -598,7 +599,7 @@ def visualize_pixel_cluster_data(fovs, channels, base_dir, cluster_dir,
             Ignored if save_dir is None
     """
 
-    # average the channel values across the cluster column
+    # average the channel values across the pixel cluster column
     cluster_avgs = compute_pixel_cluster_avg(fovs, channels, base_dir,
                                              pixel_cluster_col, cluster_dir)
 
@@ -695,7 +696,7 @@ def train_cell_som(fovs, channels, base_dir, pixel_consensus_dir, cell_table_nam
 
 def cluster_cells(base_dir, cluster_counts_name='cluster_counts.feather',
                   weights_name='cell_weights.feather', cell_cluster_name='cell_clusters.feather'):
-    """Uses trained weights to assign cluster labels on full pixel data
+    """Uses trained weights to assign cluster labels on full cell data
 
     Saves data with cluster labels to cell_cluster_name
 
@@ -745,7 +746,7 @@ def cell_consensus_cluster(base_dir, max_k=20, cap=3, column_prefix='cluster',
                            cell_cluster_name='cell_mat_clustered.feather',
                            cell_cluster_avg_name='cell_cluster_avg.feather',
                            cell_consensus_name='cell_mat_consensus.feather', seed=42):
-    """Run consensus clustering algorithm on cell-level summed data across channels
+    """Run consensus clustering algorithm on cell-level data averaged across each cell SOM cluster
 
     Saves data with consensus cluster labels to cell_consensus_name
 
@@ -776,7 +777,7 @@ def cell_consensus_cluster(base_dir, max_k=20, cap=3, column_prefix='cluster',
         raise FileNotFoundError('Cluster table %s does not exist in base_dir %s' %
                                 (cluster_dir, base_dir))
 
-    # compute the cluster averages
+    # compute the averages across each cell SOM cluster
     cluster_avgs = compute_cell_cluster_avg(clustered_path, column_prefix=column_prefix,
                                             cluster_col='cluster')
 

@@ -6,7 +6,7 @@
 
 # - maxK: number of consensus clusters
 # - cap: z-score scaling factor
-# - cellClusterPath: path to the cell-level data with assigned SOM clusters
+# - cellClusterPath: path to the cell-level data containing the counts of each pixel SOM/meta clusters per cell, labeled with cell SOM clusters
 # - clusterAvgPath: path to the averaged cell data table (as defined above)
 # - cellConsensusPath: path to file where the cell consensus cluster results will be written
 # - seed: random factor

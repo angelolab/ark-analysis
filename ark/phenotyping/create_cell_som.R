@@ -52,11 +52,11 @@ set.seed(seed)
 print("Reading the cluster counts data for SOM training")
 clusterCountsData <- as.data.frame(arrow::read_feather(clusterCountsPath))
 
-# get the column names of the pixel clusters
+# get the column names of the pixel SOM/meta clusters
 clusterCols <- colnames(clusterCountsData)[grepl(pattern="cluster_|hCluster_cap_",
                                            colnames(clusterCountsData))]
 
-# normalized the rows by their cell size
+# normalize the rows by their cell size
 print("Normalizing each cell's cluster counts by cell size")
 clusterCountsNorm <- as.matrix(clusterCountsData[,clusterCols] / clusterCountsData$cell_size)
 
