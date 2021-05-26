@@ -415,7 +415,7 @@ def create_marker_count_matrices(segmentation_labels, image_data, nuclear_counts
 
 def generate_cell_table(segmentation_labels, tiff_dir, img_sub_folder,
                         is_mibitiff=False, fovs=None, batch_size=5, dtype="int16",
-                        extraction='total_intensity', nuclear_counts=True, **kwargs):
+                        extraction='total_intensity', nuclear_counts=False, **kwargs):
     """This function takes the segmented data and computes the expression matrices batch-wise
     while also validating inputs
 

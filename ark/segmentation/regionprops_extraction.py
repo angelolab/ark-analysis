@@ -155,15 +155,12 @@ def nc_ratio(marker_counts, **kwargs):
             Arbitrary keyword arguments
     """
 
-    for cell_id in marker_counts.cell_id.values:
-        # only divide if not 0, this we do to avoid NaN
-        if marker_counts.loc['nuclear', cell_id, 'area'] != 0:
-            # get the whole cell and nuclear area
-            wc_area = marker_counts.loc['whole_cell', cell_id, 'area']
-            nuc_area = marker_counts.loc['nuclear', cell_id, 'area']
+    whole_cell_areas = marker_counts.loc['whole_cell', :, 'area']
+    nuclear_areas = marker_counts.loc['nuclear', :, 'area']
 
-            # set both whole cell and nuclear nc_ratio = nuclear area / whole cell area
-            marker_counts.loc[:, cell_id, 'nc_ratio'] = nuc_area / wc_area
+    marker_counts.loc['nuclear', :, 'nc_ratio'] = np.nan_to_num(whole_cell_areas / nuclear_areas,
+                                                                posinf=0, neginf=0)
+    marker_counts.loc['whole_cell', :, 'nc_ratio'] = marker_counts.loc['nuclear', :, 'nc_ratio']
 
     return marker_counts
 
