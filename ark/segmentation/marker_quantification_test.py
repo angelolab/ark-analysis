@@ -173,8 +173,8 @@ def test_assign_multi_compartment_features():
     assert sample_marker_counts.loc['nuclear', 1, 'nc_ratio'] == 1
 
     # testing cell 2
-    assert sample_marker_counts.loc['whole_cell', 2, 'nc_ratio'] == 2
-    assert sample_marker_counts.loc['nuclear', 2, 'nc_ratio'] == 2
+    assert sample_marker_counts.loc['whole_cell', 2, 'nc_ratio'] == 0.5
+    assert sample_marker_counts.loc['nuclear', 2, 'nc_ratio'] == 0.5
 
 
 def test_compute_marker_counts_base():

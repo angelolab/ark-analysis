@@ -158,7 +158,7 @@ def nc_ratio(marker_counts, **kwargs):
     whole_cell_areas = marker_counts.loc['whole_cell', :, 'area']
     nuclear_areas = marker_counts.loc['nuclear', :, 'area']
 
-    marker_counts.loc['nuclear', :, 'nc_ratio'] = np.nan_to_num(whole_cell_areas / nuclear_areas,
+    marker_counts.loc['nuclear', :, 'nc_ratio'] = np.nan_to_num(nuclear_areas / whole_cell_areas,
                                                                 posinf=0, neginf=0)
     marker_counts.loc['whole_cell', :, 'nc_ratio'] = marker_counts.loc['nuclear', :, 'nc_ratio']
 
