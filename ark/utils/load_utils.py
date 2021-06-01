@@ -241,7 +241,7 @@ def load_imgs_from_dir(data_dir, files=None, delimiter=None, xr_dim_name='compar
 
     if files is None:
         imgs = iou.list_files(data_dir, substrs=['.tif', '.jpg', '.png'])
-        imgs.sort()
+        imgs = [img for img in imgs if delimiter in img]
     else:
         imgs = files
         for img in imgs:
