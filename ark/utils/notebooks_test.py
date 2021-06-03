@@ -102,7 +102,10 @@ def test_segment_image_data_folder(tb):
         # tb.execute_cell('create_output')
 
         # run the segmentation labels saving and summed channel overlay processes
-        notebooks_test_utils.save_seg_labels(tb, xr_channel_names=['whole_cell'])
+        notebooks_test_utils.save_seg_labels(tb, xr_channel_names=['whole_cell', 'nuclear'])
 
         # create the expression matrix
         notebooks_test_utils.create_exp_mat(tb)
+
+        # create the expression matrix with nuclear counts
+        notebooks_test_utils.create_exp_mat(tb, nuclear_counts=True)
