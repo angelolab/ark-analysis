@@ -172,7 +172,7 @@ def save_seg_labels(tb, delimiter='_feature_0', nuc_delimiter='_feature_1',
         segmentation_labels_cell = load_utils.load_imgs_from_dir(
             data_dir=deepcell_output_dir,
             trim_suffix="%s",
-            match_suffix="%s",
+            match_substring="%s",
             xr_dim_name="%s",
             xr_channel_names=["%s"],
             force_ints=%s
@@ -192,7 +192,7 @@ def save_seg_labels(tb, delimiter='_feature_0', nuc_delimiter='_feature_1',
         segmentation_labels_nuc = load_utils.load_imgs_from_dir(
             data_dir=deepcell_output_dir,
             trim_suffix="%s",
-            match_suffix="%s",
+            match_substring="%s",
             xr_dim_name="%s",
             xr_channel_names=["%s"],
             force_ints=%s
