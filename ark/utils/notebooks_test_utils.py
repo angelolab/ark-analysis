@@ -144,7 +144,7 @@ def generate_sample_feature_tifs(fovs, deepcell_output_dir):
     for fov in fovs:
         rand_img = np.random.randint(0, 16, size=(1024, 1024))
         io.imsave(os.path.join(deepcell_output_dir, fov + "_feature_0.tif"), rand_img)
-        io.imsave(os.path.join(deepcell_output_dir, fov + "_featuer_1.tif"), rand_img)
+        io.imsave(os.path.join(deepcell_output_dir, fov + "_feature_1.tif"), rand_img)
 
 
 def save_seg_labels(tb, delimiter='_feature_0', nuc_delimiter='_feature_1',
