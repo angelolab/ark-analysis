@@ -205,7 +205,7 @@ def test_load_imgs_from_dir():
         assert loaded_xr.equals(data_xr)
 
         # check suffix matched loading:
-        loaded_xr = load_utils.load_imgs_from_dir(temp_dir, match_suffix='_otherinfo',
+        loaded_xr = load_utils.load_imgs_from_dir(temp_dir, match_substring='_otherinfo',
                                                   trim_suffix='_', xr_dim_name='compartments',
                                                   dtype=np.float32)
 
@@ -213,16 +213,22 @@ def test_load_imgs_from_dir():
 
         fovnames = [f'{fov}.tiff' for fov in fovs]
 
-        # check provided file overruling of match_suffix
+        # check general substring matched loading
+        loaded_xr = load_utils.load_imgs_from_dir(temp_dir, match_substring='ov', trim_suffix='_',
+                                                  xr_dim_name='compartments', dtype=np.float32)
+
+        assert loaded_xr.equals(data_xr)
+
+        # check provided file overruling of match_substring
         loaded_xr = load_utils.load_imgs_from_dir(temp_dir, files=fovnames,
-                                                  match_suffix='_otherinfo', trim_suffix='_',
+                                                  match_substring='_otherinfo', trim_suffix='_',
                                                   xr_dim_name='compartments', dtype=np.float32)
 
         assert loaded_xr.equals(data_xr)
 
         # test error on no matched suffix
         with pytest.raises(ValueError):
-            load_utils.load_imgs_from_dir(temp_dir, match_suffix='not_a_real_suffix',
+            load_utils.load_imgs_from_dir(temp_dir, match_substring='not_a_real_suffix',
                                           trim_suffix='_', xr_dim_name='compartments',
                                           dtype=np.float32)
 
