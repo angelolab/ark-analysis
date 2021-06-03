@@ -174,7 +174,7 @@ def save_seg_labels(tb, delimiter='_feature_0', nuc_delimiter='_feature_1',
             trim_suffix="%s",
             match_suffix="%s",
             xr_dim_name="%s",
-            xr_channel_names=%s,
+            xr_channel_names=["%s"],
             force_ints=%s
         )
 
@@ -194,7 +194,7 @@ def save_seg_labels(tb, delimiter='_feature_0', nuc_delimiter='_feature_1',
             trim_suffix="%s",
             match_suffix="%s",
             xr_dim_name="%s",
-            xr_channel_names=%s,
+            xr_channel_names=["%s"],
             force_ints=%s
         )
 
