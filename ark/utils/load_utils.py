@@ -205,7 +205,8 @@ def load_imgs_from_dir(data_dir, files=None, match_suffix=None, trim_suffix=None
             list of files (e.g. ['fov1.tif'. 'fov2.tif'] to load.
             If None, all (.tif, .jpg, .png) files in data_dir are loaded.
         match_suffix (str):
-            a filename suffix all loaded images must contain. If None, no matching is performed.
+            a filename suffix all loaded images must contain. Ignored if files argument is not
+            None.  If None, no matching is performed.
             Default is None.
         trim_suffix (str):
             a filename suffix to trim from the fov name if present. If None, no characters will be
