@@ -193,9 +193,9 @@ def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, channels=None,
     return img_xr
 
 
-def load_imgs_from_dir(data_dir, files=None, delimiter=None, xr_dim_name='compartments',
-                       xr_channel_names=None, dtype="int16", force_ints=False,
-                       channel_indices=None):
+def load_imgs_from_dir(data_dir, files=None, match_substring=None, trim_suffix=None,
+                       xr_dim_name='compartments', xr_channel_names=None, dtype="int16",
+                       force_ints=False, channel_indices=None):
     """Takes a set of images (possibly multitiffs) from a directory and loads them into an xarray.
 
     Args:
@@ -204,9 +204,13 @@ def load_imgs_from_dir(data_dir, files=None, delimiter=None, xr_dim_name='compar
         files (list):
             list of files (e.g. ['fov1.tif'. 'fov2.tif'] to load.
             If None, all (.tif, .jpg, .png) files in data_dir are loaded.
-        delimiter (str):
-            character used to determine the file-prefix containging the fov name.
+        match_substring (str):
+            a filename substring that all loaded images must contain. Ignored if files argument is
+            not None.  If None, no matching is performed.
             Default is None.
+        trim_suffix (str):
+            a filename suffix to trim from the fov name if present. If None, no characters will be
+            trimmed.  Default is None.
         xr_dim_name (str):
             sets the name of the last dimension of the output xarray.
             Default: 'compartments'
@@ -241,6 +245,9 @@ def load_imgs_from_dir(data_dir, files=None, delimiter=None, xr_dim_name='compar
 
     if files is None:
         imgs = iou.list_files(data_dir, substrs=['.tif', '.jpg', '.png'])
+        if match_substring is not None:
+            filenames = iou.remove_file_extensions(imgs)
+            imgs = [imgs[i] for i, name in enumerate(filenames) if match_substring in name]
         imgs.sort()
     else:
         imgs = files
@@ -312,7 +319,7 @@ def load_imgs_from_dir(data_dir, files=None, delimiter=None, xr_dim_name='compar
 
     # get fov name from imgs
     fovs = iou.remove_file_extensions(imgs)
-    fovs = iou.extract_delimited_names(fovs, delimiter=delimiter)
+    fovs = iou.extract_delimited_names(fovs, delimiter=trim_suffix)
 
     # create xarray with image data
     img_xr = xr.DataArray(img_data,
