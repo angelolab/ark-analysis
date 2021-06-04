@@ -1,15 +1,14 @@
 # Trains a SOM matrix using cluster counts per cell
 
-# Usage: Rscript create_cell_som.R {fovs} {markers} {xdim} {ydim} {lr_start} {lr_end} {numPasses} {clusterCountsPath} {cellWeightsPath} {seed}
+# Usage: Rscript create_cell_som.R {fovs} {xdim} {ydim} {lr_start} {lr_end} {numPasses} {clusterCountsPath} {cellWeightsPath} {seed}
 
 # - fovs: list of fovs to cluster
-# - markers: list of channel columns to use
 # - xdim: number of x nodes to use for SOM
 # - ydim: number of y nodes to use for SOM
 # - lr_start: the start learning rate
 # - lr_end: the end learning rate
 # - numPasses: passes to make through dataset for training
-# - clusterCountsPath: path to file containing an m x n matrix with each fov/cell labe pair (m) with the counts of every pixel SOM/meta cluster (n)
+# - clusterCountsPath: path to file with counts of unique cells (rows) by unique SOM pixel/meta clusters (columns)
 # - cellWeightsPath: path to the SOM weights file
 # - seed: the random seed to use for training
 
@@ -52,7 +51,7 @@ set.seed(seed)
 print("Reading the cluster counts data for SOM training")
 clusterCountsData <- as.data.frame(arrow::read_feather(clusterCountsPath))
 
-# get the column names of the pixel SOM/meta clusters
+# get the column names of the SOM pixel/meta clusters
 clusterCols <- colnames(clusterCountsData)[grepl(pattern="cluster_|hCluster_cap_",
                                            colnames(clusterCountsData))]
 

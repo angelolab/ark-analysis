@@ -18,7 +18,7 @@ from ark.utils import misc_utils
 
 def compute_pixel_cluster_avg(fovs, channels, base_dir, cluster_col,
                               cluster_dir='pixel_mat_clustered'):
-    """For each fov, compute the average channel values across each pixel SOM cluster
+    """Compute the average channel values across each pixel SOM cluster
 
     Args:
         fovs (list):
@@ -69,11 +69,11 @@ def compute_pixel_cluster_avg(fovs, channels, base_dir, cluster_col,
 
 
 def compute_cell_cluster_avg(cluster_path, column_prefix, cluster_col):
-    """For each cell SOM cluster, compute the average number of associated pixel SOM/meta clusters
+    """For each cell SOM cluster, compute the average number of associated SOM pixel/meta clusters
 
     Args:
         cluster_path (str):
-            The path to the cell data with SOM labels
+            The path to the cell data with SOM labels, created by cluster_cells
         column_prefix (str):
             The prefix of the columns to subset, should be 'cluster' or 'hCluster_cap'
         cluster_col (str):
@@ -97,24 +97,23 @@ def compute_cell_cluster_avg(cluster_path, column_prefix, cluster_col):
     return mean_count_totals
 
 
-def compute_cell_cluster_counts(fovs, channels, base_dir, consensus_dir,
+def compute_cell_cluster_counts(fovs, base_dir, consensus_dir,
                                 cell_table_path, cluster_col='cluster'):
-    """Create a matrix with each fov-cell label pair and their pixel SOM/meta cluster counts
+    """Create a matrix with each fov-cell label pair and their SOM pixel/meta cluster counts
 
     Args:
         fovs (list):
             The list of fovs to subset on
-        channels (list):
-            The list of channels to subset on
         base_dir (str):
             The path to the data directories
         consensus_dir (str):
-            Name of directory to save the consensus clustered results
+            Name of directory with the SOM pixel and meta labels
+            Created by pixel_consensus_cluster
         cell_table_path (str):
             Path to the cell table, needs to be created with Segment_Image_Data.ipynb
         cluster_col (str):
-            The name of the pixel cluster column to count per cell,
-            should be 'cluster' or 'hCluster_cap'
+            The name of the pixel cluster column to count per cell
+            Should be 'cluster' or 'hCluster_cap'
 
     Returns:
         pd.DataFrame:
@@ -184,13 +183,6 @@ def compute_cell_cluster_counts(fovs, channels, base_dir, consensus_dir,
 
     # fill empty elements with 0
     cluster_counts = cluster_counts.fillna(0)
-
-    # remove any clusters that sum to 0
-    cluster_columns = [c for c in cluster_counts.columns.values if c.startswith(cluster_col)]
-    zero_columns = cluster_counts.loc[:, cluster_columns].columns[
-        cluster_counts.loc[:, cluster_columns].sum() == 0
-    ]
-    cluster_counts = cluster_counts.drop(columns=zero_columns)
 
     # because cell_table is quite large, free up memory space
     del cell_table
@@ -363,7 +355,7 @@ def train_pixel_som(fovs, channels, base_dir,
         norm_vals_name (str):
             The name of the file to store the 99.9% normalized values
         weights_name (str):
-            The name of the weights file
+            The name of the file to save the weights to
         xdim (int):
             The number of x nodes to use for the SOM
         ydim (int):
@@ -433,9 +425,9 @@ def cluster_pixels(fovs, base_dir, pre_dir='pixel_mat_preprocessed',
             Name of the directory which contains the preprocessed pixel data,
             defaults to pixel_mat_preprocessed
         norm_vals_name (str):
-            The name of the file to store the 99.9% normalized values
+            The name of the file with the 99.9% normalized values, created by train_pixel_som
         weights_name (str):
-            The name of the weights file
+            The name of the weights file created by train_pixel_som
         cluster_dir (str):
             The name of the directory to write the clustered data
     """
@@ -519,6 +511,7 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
             z-score cap to use when hierarchical clustering
         cluster_dir (str):
             Name of the file containing the pixel data with cluster labels
+            Created by cluster_pixels
         cluster_avg_name (str):
             Name of file to save the channel-averaged results to
         consensus_dir (str):
@@ -582,6 +575,7 @@ def visualize_pixel_cluster_data(fovs, channels, base_dir, cluster_dir,
             The path to the data directories
         cluster_dir (str):
             Name of the directory containing the data to visualize
+            Created by cluster_pixels or pixel_consensus_cluster depending on use case
         pixel_cluster_col (str):
             Name of the column to group values by
         dpi (float):
@@ -617,7 +611,7 @@ def visualize_pixel_cluster_data(fovs, channels, base_dir, cluster_dir,
     )
 
 
-def train_cell_som(fovs, channels, base_dir, pixel_consensus_dir, cell_table_name,
+def train_cell_som(fovs, base_dir, pixel_consensus_dir, cell_table_name,
                    cluster_counts_name='cluster_counts.feather', cluster_col='cluster',
                    weights_name='cell_weights.feather', xdim=10, ydim=10,
                    lr_start=0.05, lr_end=0.01, num_passes=1, seed=42):
@@ -628,12 +622,11 @@ def train_cell_som(fovs, channels, base_dir, pixel_consensus_dir, cell_table_nam
     Args:
         fovs (list):
             The list of fovs to subset on
-        channels (list):
-            The list of channels to subset on
         base_dir (str):
             The path to the data directories
         pixel_consensus_dir (str):
             Name of directory which contains the pixel-level consensus data
+            Created by pixel_consensus_cluster
         cell_table_name (str):
             Name of the cell table, needs to be created with Segment_Image_Data.ipynb
         cluster_counts_name (str):
@@ -641,7 +634,7 @@ def train_cell_som(fovs, channels, base_dir, pixel_consensus_dir, cell_table_nam
         cluster_col (str):
             Name of the column with the pixel SOM cluster assignments
         weights_name (str):
-            The name of the weights file
+            The name of the file to save the weights to
         xdim (int):
             The number of x nodes to use for the SOM
         ydim (int):
@@ -667,7 +660,7 @@ def train_cell_som(fovs, channels, base_dir, pixel_consensus_dir, cell_table_nam
 
     # generate a matrix with each fov/cell label pair with their pixel SOM/meta cluster counts
     cluster_counts = compute_cell_cluster_counts(
-        fovs, channels, base_dir, pixel_consensus_dir, cell_table_path, cluster_col
+        fovs, base_dir, pixel_consensus_dir, cell_table_path, cluster_col
     )
 
     # write the created matrix
@@ -705,8 +698,9 @@ def cluster_cells(base_dir, cluster_counts_name='cluster_counts.feather',
             The path to the data directory
         cluster_counts_name (str):
             Name of the file with the cluster counts of each cell
+            Created by train_cell_som
         weights_name (str):
-            The name of the weights file
+            The name of the weights file, created by train_cell_som
         cell_cluster_name (str):
             The name of the file to write the clustered data
     """
@@ -761,6 +755,7 @@ def cell_consensus_cluster(base_dir, max_k=20, cap=3, column_prefix='cluster',
             The prefix of the columns to subset, should be 'cluster' or 'hCluster_cap'
         cell_cluster_name (str):
             Name of the file containing the cell data with cluster labels
+            Created by cluster_cells
         cell_cluster_avg_name (str):
             Name of file to save the column-averaged results to
         cell_consensus_name (str):
@@ -814,6 +809,7 @@ def visualize_cell_cluster_data(base_dir, cluster_name, column_prefix, cell_clus
             The path to the data directories
         cluster_name (str):
             The name of the file containing the cluster data
+            Created by cluster_cells or cell_consensus_cluster depending on use case
         column_prefix (str):
             The prefix of the columns to subset, should be 'cluster' or 'hCluster_cap'
         cell_cluster_col (str):

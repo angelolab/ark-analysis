@@ -48,6 +48,9 @@ for (i in 1:length(fovs)) {
     matPath <- file.path(pixelMatDir, fileName)
     fovPixelData <- arrow::read_feather(matPath)
 
+    # verify markers passed in are the same as in fovPixelData
+    stopifnot(all(markers %in% colnames(fovPixelData)))
+
     # subset by channels
     fovChannelData <- fovPixelData[, markers]
 

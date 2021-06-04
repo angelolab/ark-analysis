@@ -2,7 +2,7 @@
 
 # Usage: Rscript run_cell_som.R {clusterCountsPath} {cellWeightsPath} {cellClusterPath}
 
-# - clusterCountsPath: name of the file containing each fov/cell labe pair along with the respective counts of every pixel SOM/meta cluster contained
+# - clusterCountsPath: path to file with counts of unique cells (rows) by unique SOM pixel/meta clusters (columns)
 # - cellWeightsPath: path to the SOM weights file
 # - cellClusterPath: path to file where the cell SOM labeled data will be written to
 
@@ -30,11 +30,11 @@ clusterCountsData <- arrow::read_feather(clusterCountsPath)
 print("Reading the weights matrix")
 somWeights <- as.matrix(arrow::read_feather(cellWeightsPath))
 
-# get the column names of the pixel SOM/meta clusters
+# get the column names of the SOM pixel/meta clusters
 clusterCols <- colnames(clusterCountsData)[grepl("cluster_|hCluster_cap_",
                                            colnames(clusterCountsData))]
 
-# subset on the cluster columns
+# keep just the cluster columns
 clusterCountsNorm <- clusterCountsData[, clusterCols]
 
 # 99.9% normalize

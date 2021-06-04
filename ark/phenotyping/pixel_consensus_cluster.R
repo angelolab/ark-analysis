@@ -4,7 +4,7 @@
 
 # - markers: list of channel columns to use
 # - maxK: number of consensus clusters
-# - cap: z-score scaling factor
+# - cap: max z-score cutoff
 # - pixelClusterDir: path to the pixel data with SOM clusters
 # - clusterAvgPath: path to the averaged cluster data
 # - pixelMatConsensus: path to file where the consensus cluster results will be written
