@@ -19,6 +19,7 @@ from googleapiclient.http import MediaIoBaseDownload
 _SCOPES = ['https://www.googleapis.com/auth/drive']
 
 _FOLDER_MIME = "mimeType='application/vnd.google-apps.folder'"
+_FILE_MIME = "mimeType!='aplication/vnd.google-apps.folder'"
 
 SERVICE = None
 
@@ -242,5 +243,61 @@ class GoogleDrivePath(object):
             return
 
         ## TODO: implement this
-
         return
+
+    def lsfiles(self):
+        if self._service_check() or self.fileID is None:
+            return None
+
+        filenames = []
+
+        global SERVICE
+        page_token = None
+        while True:
+            response = SERVICE.files().list(q=f"(('{self.fileID}' in parents) and ({_FILE_MIME}))",
+                                            spaces='drive',
+                                            fields='nextPageToken, files(name)',
+                                            pageToken=page_token).execute()
+
+            for file in response.get('files', []):
+                filenames.append(file.get('name'))
+
+            page_token = response.get('nextPageToken', None)
+            if page_token is None:
+                break
+
+        return filenames
+
+    def lsdirs(self):
+        if self._service_check() or self.fileID is None:
+            return None
+
+        dirnames = []
+
+        global SERVICE
+        page_token = None
+        while True:
+            response = SERVICE.files().list(
+                q=f"(('{self.fileID}' in parents) and ({_FOLDER_MIME}))",
+                spaces='drive',
+                fields='nextPageToken, files(name)',
+                pageToken=page_token).execute()
+
+            for file in response.get('files', []):
+                dirnames.append(file.get('name'))
+
+            page_token = response.get('nextPageToken', None)
+            if page_token is None:
+                break
+
+        return dirnames
+
+def path_join(gdrive_path, *more_path, get_filehandle=False):
+    google_drive_path = type(gdrive_path) is GoogleDrivePath
+
+    if not google_drive_path:
+        return os.path.join(gdrive_path, *more_path)
+
+    path_out = gdrive_path / more_path.join('/')
+    if get_filehandle:
+        return path_out.read()
