@@ -23,4 +23,5 @@ docker run -it \
   -v "$PWD/ark:/usr/local/lib/python3.6/site-packages/ark" \
   -v "$PWD/scripts:/scripts" \
   -v "$PWD/data:/data" \
+  -v "$PWD/.toks:/home/.toks"
   ark-analysis:latest
