@@ -11,6 +11,8 @@ env
 .scripts/
 .vscode/
 
+*/.token.json
+
 /scripts
 
 /build
