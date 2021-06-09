@@ -51,7 +51,7 @@ def _decrypt_cred_data(data, pw):
 
     return data_out
 
-def init_google_dirve_api(auth_pw):
+def init_google_drive_api(auth_pw):
     """Initializes the google drive api service
 
     Args:
