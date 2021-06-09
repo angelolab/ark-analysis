@@ -18,8 +18,11 @@ from googleapiclient.http import MediaIoBaseDownload
 
 _SCOPES = ['https://www.googleapis.com/auth/drive']
 
-_FOLDER_MIME = "mimeType='application/vnd.google-apps.folder'"
-_FILE_MIME = "mimeType!='aplication/vnd.google-apps.folder'"
+_FOLDER_MIME_CHECK = "mimeType = 'application/vnd.google-apps.folder'"
+_FILE_MIME_CHECK = "mimeType != 'application/vnd.google-apps.folder'"
+_SHORTCUT_MIME_CHECK = "mimeType = 'application/vnd.google-apps.shortcut'"
+
+_FOLDER_MIME = "application/vnd.google-apps.folder"
 
 SERVICE = None
 
@@ -95,25 +98,31 @@ def _validate(path_string):
     ids = ['root']
 
     # validate parent existence
-    for parent in parents:
+    for i, parent in enumerate(parents):
+        if parent == '':
+            continue
         response = SERVICE.files().list(
-            q=f"(('{ids[-1]}' in parents) and (name = '{parent}') and ({_FOLDER_MIME}))",
+            q=f"(('{ids[-1]}' in parents) and (name = '{parent}') and (({_FOLDER_MIME_CHECK}) or ({_SHORTCUT_MIME_CHECK})))",
             spaces='drive',
-            fields='files(id)',
+            fields='files(id, shortcutDetails(targetId))',
         ).execute()
 
         files = response.get('files', [])
         if len(files) == 0:
-            print(f'Could not find the folder {parent}...')
+            print(f'Could not find the folder {parent} in parent folder {parents[i - 1]}...')
             return None, None
         
-        ids.append(files[0].get('id'))
+        # if shortcut, get target id
+        if files[0].get('shortcutDetails', None) is not None:
+            ids.append(files[0].get('shortcutDetails').get('targetId'))
+        else:
+            ids.append(files[0].get('id'))
 
     # validate file existence
     response = SERVICE.files().list(
         q=f"(('{ids[-1]}' in parents) and (name = '{path_string.split('/')[-1]}'))",
         spaces='drive',
-        fields='files(id)'
+        fields='files(id, shortcutDetails(targetId))'
     ).execute()
     files = response.get('files', [])
 
@@ -123,7 +132,12 @@ def _validate(path_string):
     # return appropriate result
     if len(files) == 0:
         return ids, None
-    return ids, files[0].get('id')
+
+    # if shortcut, get target id
+    if files[0].get('shortcutDetails', None) is not None:
+        return ids, files[0].get('shortcutDetails').get('targetId')
+    else:
+        return ids, files[0].get('id')
 
 class GoogleDrivePath(object):
     def __init__(self, path_string):
@@ -209,7 +223,7 @@ class GoogleDrivePath(object):
         done = False
         while not done:
             status, done = downloader.next_chunk()
-            print(f'Download {int(status.progress() * 100)}% ...')
+            print(f'Downloading {self.path_string} - {int(status.progress() * 100)}% ...')
         fh.seek(0)
         return fh
 
@@ -254,13 +268,19 @@ class GoogleDrivePath(object):
         global SERVICE
         page_token = None
         while True:
-            response = SERVICE.files().list(q=f"(('{self.fileID}' in parents) and ({_FILE_MIME}))",
-                                            spaces='drive',
-                                            fields='nextPageToken, files(name)',
-                                            pageToken=page_token).execute()
+            response = SERVICE.files().list(
+                q=f"(('{self.fileID}' in parents) and ({_FILE_MIME_CHECK}))",
+                spaces='drive',
+                fields='nextPageToken, files(name, mimeType, shortcutDetails(targetMimeType))',
+                pageToken=page_token).execute()
 
             for file in response.get('files', []):
-                filenames.append(file.get('name'))
+                if file.get('shortcutDetails', None) is not None:
+                    mimeType = file.get('shortcutDetails').get('targetMimeType')
+                    if mimeType != _FOLDER_MIME:
+                        filenames.append(file.get('name'))
+                else:    
+                    filenames.append(file.get('name'))
 
             page_token = response.get('nextPageToken', None)
             if page_token is None:
@@ -278,12 +298,17 @@ class GoogleDrivePath(object):
         page_token = None
         while True:
             response = SERVICE.files().list(
-                q=f"(('{self.fileID}' in parents) and ({_FOLDER_MIME}))",
+                q=f"(('{self.fileID}' in parents) and (({_FOLDER_MIME_CHECK}) or ({_SHORTCUT_MIME_CHECK})))",
                 spaces='drive',
-                fields='nextPageToken, files(name)',
+                fields='nextPageToken, files(name, shortcutDetails(targetMimeType))',
                 pageToken=page_token).execute()
 
             for file in response.get('files', []):
+                if file.get('shortcutDetails', None) is not None:
+                    mimeType = file.get('shortcutDetails').get('targetMimeType')
+                    if mimeType == _FOLDER_MIME:
+                        dirnames.append(file.get('name'))
+
                 dirnames.append(file.get('name'))
 
             page_token = response.get('nextPageToken', None)
@@ -292,12 +317,20 @@ class GoogleDrivePath(object):
 
         return dirnames
 
-def path_join(gdrive_path, *more_path, get_filehandle=False):
-    google_drive_path = type(gdrive_path) is GoogleDrivePath
+def path_join(*path_parts, get_filehandle=False):
+    google_drive_path = type(path_parts[0]) is GoogleDrivePath
 
     if not google_drive_path:
-        return os.path.join(gdrive_path, *more_path)
+        return os.path.join(path_parts[0], *path_parts[1:])
 
-    path_out = gdrive_path / more_path.join('/')
+    path_parts_filt = [
+        pp
+        for pp in path_parts[1:]
+        if pp != ""
+    ]
+
+    path_out = path_parts[0] / '/'.join(path_parts_filt)
     if get_filehandle:
         return path_out.read()
+
+    return path_out
