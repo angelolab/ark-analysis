@@ -336,11 +336,15 @@ def path_join(*path_parts, get_filehandle=False):
     """ Generalization of os.path.join for GoogleDrivePaths and strings
 
     Args:
-        *path_parts (tuple):
+        path_parts (tuple):
             Tuple of GoogleDrivePath+strings or strings
         get_filehandle (bool):
             If true and path_parts contains a GoogleDrivePath, file handles are returned instead
             of filepaths/GoogleDrivePath
+
+    Returns:
+        str or GoogleDrivePath or BytesIO:
+            Filepath, GoogleDrivePath, or the filehandle
     """
     google_drive_path = type(path_parts[0]) is GoogleDrivePath
 
