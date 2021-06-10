@@ -261,7 +261,7 @@ def load_imgs_from_dir(data_dir, files=None, match_substring=None, trim_suffix=N
     else:
         imgs = files
         for img in imgs:
-            ## TODO: make this google drive compatible
+            # TODO: make this google drive compatible
             if not os.path.isfile(os.path.join(data_dir, img)):
                 raise ValueError(f"Invalid value for {img}. "
                                  f"{os.path.join(data_dir, img)} is not a file.")

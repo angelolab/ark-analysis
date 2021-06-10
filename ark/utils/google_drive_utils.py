@@ -26,6 +26,7 @@ _FOLDER_MIME = "application/vnd.google-apps.folder"
 
 SERVICE = None
 
+
 def _gen_enckey(pw):
     pw = pw.encode()
     kdf = PBKDF2HMAC(
@@ -37,19 +38,21 @@ def _gen_enckey(pw):
     )
     return base64.urlsafe_b64encode(kdf.derive(pw))
 
+
 def _decrypt_cred_data(data, pw):
     fernet = Fernet(_gen_enckey(pw))
     data_out = None
 
     try:
         data_out = fernet.decrypt(data)
-    except InvalidToken as e:
+    except InvalidToken:
         print("Invalid Key - Could not retrieve credentials...")
-    
+
     if data_out is not None:
         data_out = json.loads(data_out)
 
     return data_out
+
 
 def init_google_drive_api(auth_pw):
     """Initializes the google drive api service
@@ -88,10 +91,11 @@ def init_google_drive_api(auth_pw):
     global SERVICE
     SERVICE = build('drive', 'v3', credentials=creds)
 
+
 def _validate(path_string):
     global SERVICE
     if path_string[0] != '/':
-        print(f'Invalid path provided.  Please use the format: /path/to/folder')
+        print('Invalid path provided.  Please use the format: /path/to/folder')
         return None, None
 
     parents = path_string.split('/')[1:-1]
@@ -102,7 +106,8 @@ def _validate(path_string):
         if parent == '':
             continue
         response = SERVICE.files().list(
-            q=f"(('{ids[-1]}' in parents) and (name = '{parent}') and (({_FOLDER_MIME_CHECK}) or ({_SHORTCUT_MIME_CHECK})))",
+            q=f"(('{ids[-1]}' in parents) and (name = '{parent}') " +
+              f"and (({_FOLDER_MIME_CHECK}) or ({_SHORTCUT_MIME_CHECK})))",
             spaces='drive',
             fields='files(id, shortcutDetails(targetId))',
         ).execute()
@@ -111,7 +116,7 @@ def _validate(path_string):
         if len(files) == 0:
             print(f'Could not find the folder {parent} in parent folder {parents[i - 1]}...')
             return None, None
-        
+
         # if shortcut, get target id
         if files[0].get('shortcutDetails', None) is not None:
             ids.append(files[0].get('shortcutDetails').get('targetId'))
@@ -138,6 +143,7 @@ def _validate(path_string):
         return ids, files[0].get('shortcutDetails').get('targetId')
     else:
         return ids, files[0].get('id')
+
 
 class GoogleDrivePath(object):
     def __init__(self, path_string):
@@ -184,8 +190,8 @@ class GoogleDrivePath(object):
         """
         if self._service_check() or self.fileID is None:
             return
-        
-        ## TODO: implement this
+
+        # TODO: implement this
 
         return
 
@@ -206,7 +212,7 @@ class GoogleDrivePath(object):
         if self._service_check() or self.parent_id_map is None:
             return
 
-        ## TODO: implement this
+        # TODO: implement this
 
         return
 
@@ -235,7 +241,7 @@ class GoogleDrivePath(object):
 
         Args:
             **kwargs (dict): Arguments passed to `pandas.read_csv()` function.
-        
+
         Returns:
             DataFrame: pandas dataframe from read csv
         """
@@ -259,7 +265,7 @@ class GoogleDrivePath(object):
         if self._service_check() or self.parent_id_map is None:
             return
 
-        ## TODO: implement this
+        # TODO: implement this
         return
 
     def lsfiles(self):
@@ -284,7 +290,7 @@ class GoogleDrivePath(object):
                     mimeType = file.get('shortcutDetails').get('targetMimeType')
                     if mimeType != _FOLDER_MIME:
                         filenames.append(file.get('name'))
-                else:    
+                else:
                     filenames.append(file.get('name'))
 
             page_token = response.get('nextPageToken', None)
@@ -305,7 +311,8 @@ class GoogleDrivePath(object):
         page_token = None
         while True:
             response = SERVICE.files().list(
-                q=f"(('{self.fileID}' in parents) and (({_FOLDER_MIME_CHECK}) or ({_SHORTCUT_MIME_CHECK})))",
+                q=f"(('{self.fileID}' in parents) " +
+                  f"and (({_FOLDER_MIME_CHECK}) or ({_SHORTCUT_MIME_CHECK})))",
                 spaces='drive',
                 fields='nextPageToken, files(name, shortcutDetails(targetMimeType))',
                 pageToken=page_token).execute()
@@ -324,15 +331,16 @@ class GoogleDrivePath(object):
 
         return dirnames
 
+
 def path_join(*path_parts, get_filehandle=False):
     """ Generalization of os.path.join for GoogleDrivePaths and strings
 
     Args:
-        *path_parts (tuple): 
+        *path_parts (tuple):
             Tuple of GoogleDrivePath+strings or strings
         get_filehandle (bool):
             If true and path_parts contains a GoogleDrivePath, file handles are returned instead
-            of filepaths/GoogleDrivePath 
+            of filepaths/GoogleDrivePath
     """
     google_drive_path = type(path_parts[0]) is GoogleDrivePath
 
