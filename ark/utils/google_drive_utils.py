@@ -159,7 +159,10 @@ class GoogleDrivePath(object):
         return super().__init__()
 
     def __truediv__(self, more_path):
-        new_path_string = self.path_string + '/' + more_path
+        new_path_string = self.path_string
+        if more_path != "":
+            new_path_string = self.path_string + '/' + more_path
+
         return GoogleDrivePath(new_path_string)
 
     def _service_check(self):
@@ -260,6 +263,8 @@ class GoogleDrivePath(object):
         return
 
     def lsfiles(self):
+        """ List all non-directory files at path_string in Drive
+        """
         if self._service_check() or self.fileID is None:
             return None
 
@@ -289,6 +294,8 @@ class GoogleDrivePath(object):
         return filenames
 
     def lsdirs(self):
+        """ List all directories at path_string in Drive
+        """
         if self._service_check() or self.fileID is None:
             return None
 
@@ -318,6 +325,15 @@ class GoogleDrivePath(object):
         return dirnames
 
 def path_join(*path_parts, get_filehandle=False):
+    """ Generalization of os.path.join for GoogleDrivePaths and strings
+
+    Args:
+        *path_parts (tuple): 
+            Tuple of GoogleDrivePath+strings or strings
+        get_filehandle (bool):
+            If true and path_parts contains a GoogleDrivePath, file handles are returned instead
+            of filepaths/GoogleDrivePath 
+    """
     google_drive_path = type(path_parts[0]) is GoogleDrivePath
 
     if not google_drive_path:
