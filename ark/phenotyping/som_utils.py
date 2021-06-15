@@ -452,7 +452,6 @@ def preprocess_row_sums(fovs, channels, base_dir, pre_dir='pixel_mat_preprocesse
                                 compression='uncompressed')
 
 
-
 def cluster_pixels(fovs, base_dir, pre_dir='pixel_mat_preprocessed',
                    norm_vals_name='norm_vals.feather', weights_name='weights.feather',
                    cluster_dir='pixel_mat_clustered'):
