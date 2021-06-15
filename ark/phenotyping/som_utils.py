@@ -410,7 +410,7 @@ def train_pixel_som(fovs, channels, base_dir,
 def preprocess_row_sums(fovs, channels, base_dir, pre_dir='pixel_mat_preprocessed'):
     """Divide each row in the pixel matrices per fov by their sum
 
-    Saves normalized data to preprocessed folder
+    Saves normalized data to pre_dir
 
     Args:
         fovs (list):
@@ -512,13 +512,9 @@ def cluster_pixels(fovs, base_dir, pre_dir='pixel_mat_preprocessed',
     misc_utils.verify_in_list(weights_columns=weights.columns.values,
                               pixel_data_columns=sample_fov.columns.values)
 
-    # precompute row sums for each fov because R is highly inefficient
-    import timeit
-    start = timeit.default_timer()
+    # precompute row sums for each fov (more efficient in Python than R)
     print("Normalizing row sums and removing rows that sum to 0")
     preprocess_row_sums(fovs, weights.columns.values, base_dir, pre_dir)
-    end = timeit.default_timer()
-    print("Time to preprocess row sums: %.2f" % (end - start))
 
     # make the clustered dir if it does not exist
     if not os.path.exists(clustered_path):
@@ -580,8 +576,8 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
         raise FileNotFoundError('Cluster dir %s does not exist in base_dir %s' %
                                 (cluster_dir, base_dir))
 
-    # compute the averages across each pixel cluster
-    print("Averaging channel values across each pixel cluster")
+    # compute the averages across each pixel SOM cluster
+    print("Averaging channel values across each pixel SOM cluster")
     cluster_avgs = compute_pixel_cluster_avg(fovs, channels, base_dir,
                                              cluster_col='cluster', cluster_dir=cluster_dir)
 
@@ -827,7 +823,7 @@ def cell_consensus_cluster(base_dir, max_k=20, cap=3, column_prefix='cluster',
                                 (cluster_dir, base_dir))
 
     # compute the averages across each cell SOM cluster
-    print("Averaging the pixel SOM/meta cluster counts across each cell SOM")
+    print("Averaging the pixel SOM/meta cluster counts across each cell SOM cluster")
     cluster_avgs = compute_cell_cluster_avg(clustered_path, column_prefix=column_prefix,
                                             cluster_col='cluster')
 
