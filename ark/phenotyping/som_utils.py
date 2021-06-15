@@ -129,6 +129,12 @@ def compute_cell_cluster_counts(fovs, base_dir, consensus_dir,
     # subset on fov, label, and cell size
     cell_table = cell_table[['fov', 'label', 'cell_size']]
 
+    # convert labels to int type
+    cell_table['label'] = cell_table['label'].astype(int)
+
+    # rename cell_table label as segmentation_label for joining purposes
+    cell_table = cell_table.rename(columns={'label': 'segmentation_label'})
+
     # for verification purposes, make sure the fovs are sorted in numerical order
     fovs_sorted = sorted(fovs, key=lambda x: int(re.findall(r'\d+', x)[0]))
 
@@ -137,9 +143,6 @@ def compute_cell_cluster_counts(fovs, base_dir, consensus_dir,
         fov_pixel_data = feather.read_dataframe(
             os.path.join(base_dir, consensus_dir, fov + '.feather')
         )
-
-        # discard fov as we'll get it from the cell table
-        fov_pixel_data = fov_pixel_data.drop(columns='fov')
 
         # group the data by segmentation label and cluster value
         group_by_cluster_col = fov_pixel_data.groupby(
@@ -158,24 +161,19 @@ def compute_cell_cluster_counts(fovs, base_dir, consensus_dir,
         new_columns = ['%s_' % cluster_col + str(c) for c in num_cluster_per_seg_label.columns]
         num_cluster_per_seg_label.columns = new_columns
 
-        # copy over the segmentation label data
+        # copy over the fov and segmentation label data for merging
+        # we can't merge on just segmentation_label because cell_table contains multiple fovs
+        num_cluster_per_seg_label['fov'] = fov
         num_cluster_per_seg_label['segmentation_label'] = num_cluster_per_seg_label.index.values
 
         # reset the index
         num_cluster_per_seg_label = num_cluster_per_seg_label.reset_index(drop=True)
 
-        # subset cell table on specific fov, convert labels to int to match data types
-        cell_table_fov = cell_table[cell_table['fov'] == fov]
-        cell_table_fov['label'] = cell_table_fov['label'].astype(int)
-
-        # rename label in cell_table_fov as segmentation_label for joining purposes
-        cell_table_fov = cell_table_fov.rename(columns={'label': 'segmentation_label'})
-
-        # join the two DataFrames
+        # join the counts data with the segmentation label metadata
         num_cluster_per_seg_label = num_cluster_per_seg_label.merge(
-            cell_table_fov,
+            cell_table,
             how='inner',
-            on=['segmentation_label']
+            on=['fov', 'segmentation_label']
         )
 
         # concatenate to cluster_counts
@@ -409,6 +407,52 @@ def train_pixel_som(fovs, channels, base_dir,
             print(output.strip())
 
 
+def preprocess_row_sums(fovs, channels, base_dir, pre_dir='pixel_mat_preprocessed'):
+    """Divide each row in the pixel matrices per fov by their sum
+
+    Saves normalized data to preprocessed folder
+
+    Args:
+        fovs (list):
+            The list of fovs to subset on
+        channels (list):
+            The list of channels to subset on
+            Known from the weights matrix created by create_pixel_som
+        base_dir (str):
+            The path to the data directory
+        pre_dir (str):
+            Name of the directory which contains the preprocessed pixel data,
+            defaults to pixel_mat_preprocessed
+    """
+
+    # define the paths to the data
+    preprocessed_path = os.path.join(base_dir, pre_dir)
+
+    for fov in fovs:
+        # read the pixel data for the fov
+        pixel_data = feather.read_dataframe(os.path.join(preprocessed_path,
+                                                         fov + '.feather'))
+
+        # subset the fov data by the channels the user trained the pixel SOM on
+        pixel_data_sub = pixel_data[channels]
+
+        # remove rows that sum to 0
+        pixel_data_sub = pixel_data_sub.loc[(pixel_data_sub != 0).any(1), :]
+
+        # divide each row by their sum
+        pixel_data_sub = pixel_data_sub.div(pixel_data_sub.sum(axis=1), axis=0)
+
+        # add back meta columns
+        meta_cols = ['fov', 'row_index', 'column_index', 'segmentation_label']
+        pixel_data_sub[meta_cols] = pixel_data[meta_cols]
+
+        # write the normalized data
+        feather.write_dataframe(pixel_data,
+                                os.path.join(preprocessed_path, fov + '_norm.feather'),
+                                compression='uncompressed')
+
+
+
 def cluster_pixels(fovs, base_dir, pre_dir='pixel_mat_preprocessed',
                    norm_vals_name='norm_vals.feather', weights_name='weights.feather',
                    cluster_dir='pixel_mat_clustered'):
@@ -467,6 +511,14 @@ def cluster_pixels(fovs, base_dir, pre_dir='pixel_mat_preprocessed',
     weights = feather.read_dataframe(os.path.join(base_dir, weights_name))
     misc_utils.verify_in_list(weights_columns=weights.columns.values,
                               pixel_data_columns=sample_fov.columns.values)
+
+    # precompute row sums for each fov because R is highly inefficient
+    import timeit
+    start = timeit.default_timer()
+    print("Normalizing row sums and removing rows that sum to 0")
+    preprocess_row_sums(fovs, weights.columns.values, base_dir, pre_dir)
+    end = timeit.default_timer()
+    print("Time to preprocess row sums: %.2f" % (end - start))
 
     # make the clustered dir if it does not exist
     if not os.path.exists(clustered_path):
@@ -529,6 +581,7 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
                                 (cluster_dir, base_dir))
 
     # compute the averages across each pixel cluster
+    print("Averaging channel values across each pixel cluster")
     cluster_avgs = compute_pixel_cluster_avg(fovs, channels, base_dir,
                                              cluster_col='cluster', cluster_dir=cluster_dir)
 
@@ -659,6 +712,7 @@ def train_cell_som(fovs, base_dir, pixel_consensus_dir, cell_table_name,
                                 (cell_table_name, base_dir))
 
     # generate a matrix with each fov/cell label pair with their pixel SOM/meta cluster counts
+    print("Counting the number of pixel SOM/meta cluster counts for each fov/cell pair")
     cluster_counts = compute_cell_cluster_counts(
         fovs, base_dir, pixel_consensus_dir, cell_table_path, cluster_col
     )
@@ -773,6 +827,7 @@ def cell_consensus_cluster(base_dir, max_k=20, cap=3, column_prefix='cluster',
                                 (cluster_dir, base_dir))
 
     # compute the averages across each cell SOM cluster
+    print("Averaging the pixel SOM/meta cluster counts across each cell SOM")
     cluster_avgs = compute_cell_cluster_avg(clustered_path, column_prefix=column_prefix,
                                             cluster_col='cluster')
 
