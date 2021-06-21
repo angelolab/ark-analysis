@@ -13,8 +13,11 @@ from cryptography.fernet import Fernet, InvalidToken
 from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
+from google.auth.exceptions import RefreshError
 from google.oauth2.credentials import Credentials
-from googleapiclient.http import MediaIoBaseDownload
+from googleapiclient.http import MediaFileUpload, MediaIoBaseDownload, MediaIoBaseUpload
+
+import mimetypes
 
 _SCOPES = ['https://www.googleapis.com/auth/drive']
 
@@ -54,6 +57,22 @@ def _decrypt_cred_data(data, pw):
     return data_out
 
 
+def _get_creds(auth_pw):
+    with open('/home/.toks/.creds.enc', 'rb') as f:
+        data = f.read()
+
+    # decrypt via user provided key
+    client_config = _decrypt_cred_data(data, auth_pw)
+    if client_config is None:
+        return None
+
+    # generate oauth2 session
+    flow = InstalledAppFlow.from_client_config(client_config, _SCOPES)
+    creds = flow.run_local_server(port=0)
+
+    return creds
+
+
 def init_google_drive_api(auth_pw):
     """Initializes the google drive api service
 
@@ -69,20 +88,16 @@ def init_google_drive_api(auth_pw):
     # If there are no (valid) credentials available, let the user log in.
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
+            try:
+                creds.refresh(Request())
+            except RefreshError:
+                creds = _get_creds(auth_pw)
+                if creds is None:
+                    return
         else:
-            # read encrypted file data
-            with open('/home/.toks/.creds.enc', 'rb') as f:
-                data = f.read()
-
-            # decrypt via user provided key
-            client_config = _decrypt_cred_data(data, auth_pw)
-            if client_config is None:
+            creds = _get_creds(auth_pw)
+            if creds is None:
                 return
-
-            # generate oauth2 session
-            flow = InstalledAppFlow.from_client_config(client_config, _SCOPES)
-            creds = flow.run_local_server(port=0)
 
         # Save the credentials for the next run
         with open('/home/.toks/.token.json', 'w') as token:
@@ -175,6 +190,16 @@ class GoogleDrivePath(object):
         global SERVICE
         return SERVICE is None or self.bad_service
 
+    def filename(self):
+        """ Get filename given in path_string
+        """
+        return self.path_string.split('/')[-1]
+
+    def path_parents(self):
+        """ Get list of parent directories listed in path_string
+        """
+        return self.path_string.split('/')[1:-1]
+
     def clone(self, dest, overwrite=False):
         """ Clones directory structure into provided destination
 
@@ -209,7 +234,9 @@ class GoogleDrivePath(object):
                 If similarly named content exists on Drive, overwrite is False, no upload will take
                 place.  Otherwise, the content on the Drive folder is updated/overwritten.
         """
-        if self._service_check() or self.parent_id_map is None:
+        if (self._service_check()
+            or set(list(self.parent_id_map.keys())[1:]) != set(self.path_parents())
+        ):
             return
 
         # TODO: implement this
@@ -257,15 +284,77 @@ class GoogleDrivePath(object):
         Args:
             data (str or BytesIO):
                 If BytesIO, data is directly uploaded.  If str, data is assumed to be a filepath
-                and data is attempted to be read from the file.
+                and data is attempted to be read from the local file.
             overwrite (bool):
                 If a file already exists at the path_string and overwrite is False, no data is
                 written.  Otherwise, the existing file on Drive is updated/overwritten.
         """
-        if self._service_check() or self.parent_id_map is None:
+        if (self._service_check()
+            or set(list(self.parent_id_map.keys())[1:]) != set(self.path_parents())
+        ):
             return
 
-        # TODO: implement this
+        if self.fileID is not None and not overwrite:
+            return
+
+        mtype = mimetypes.types_map.get(
+            '.' + self.filename().split('.')[-1],
+            'application/octet-stream'
+        )
+        if type(data) is str:
+            # warn if extension causes mismatch
+            data_mtype = mimetypes.types_map.get(
+                '.' + data.split('.')[-1],
+                'application/octet-stream'
+            )
+            if data_mtype != mtype:
+                print(
+                    f'Warning: local MimeType {data_mtype} does not match with Drive file of '
+                    + f'MimeType: {mtype} ...'
+                )
+
+        global SERVICE
+        if self.fileID is None:
+            # create upload structure
+            if type(data) is str:
+                media = MediaFileUpload(data, mimetype=mtype, resumable=True)
+            else:
+                media = MediaIoBaseUpload(data, mimetype=mtype, resumable=True)
+
+            file_metadata = {
+                'name': self.filename(),
+                'parents': [self.parent_id_map[self.path_parents()[-1]]]
+            }
+
+            response = SERVICE.files().create(body=file_metadata,
+                                              media_body=media,
+                                              fields='id').execute()
+
+            self.fileID = response.get('id')
+        else:
+            response = SERVICE.files().get(fileId=self.fileID).execute()
+            if response.get('mimeType') == _FOLDER_MIME:
+                print(
+                    f'This path {self.path_string} points to a folder...\n'
+                    + 'Please create a new path to a new file, for example:\n'
+                    + '    new_filepath = this_filepath / "example.txt"'
+                )
+                return
+
+            if response.get('mimeType') != mtype:
+                print(
+                    f"Warning: extension inferred mimeTypy '{mtype}' doesn't match Drive's "
+                    + f"'{response.get('mimeType')}'"
+                )
+
+            if type(data) is str:
+                media = MediaFileUpload(data, mimetype=mtype, resumable=True)
+            else:
+                media = MediaIoBaseUpload(data, mimetype=mtype, resumable=True)
+
+            response = SERVICE.files().update(fileId=self.fileID,
+                                              media_body=media,
+                                              media_mime_type=mtype).execute()
         return
 
     def lsfiles(self):
