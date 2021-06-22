@@ -499,10 +499,15 @@ def cluster_pixels(fovs, base_dir, pre_dir='pixel_mat_preprocessed',
     misc_utils.verify_in_list(provided_fovs=fovs,
                               subsetted_fovs=io_utils.remove_file_extensions(files))
 
+    # precompute row sums for each fov (more efficient in Python than R)
+    print("Normalizing row sums and removing rows that sum to 0")
+    weights = feather.read_dataframe(os.path.join(base_dir, weights_name))
+    preprocess_row_sums(fovs, weights.columns.values, base_dir, pre_dir)
+
     # ensure the norm vals columns are valid indexes
+    sum_norm_files = io_utils.list_files(preprocessed_path, substrs='_norm.feather')
     norm_vals = feather.read_dataframe(os.path.join(base_dir, norm_vals_name))
-    sample_fov = feather.read_dataframe(os.path.join(base_dir, pre_dir, files[0]))
-    sample_fov = sample_fov.drop(columns=['fov', 'row_index', 'col_index', 'segmentation_label'])
+    sample_fov = feather.read_dataframe(os.path.join(base_dir, pre_dir, sum_norm_files[0]))
     misc_utils.verify_same_elements(
         enforce_order=True,
         norm_vals_columns=norm_vals.columns.values,
@@ -510,16 +515,11 @@ def cluster_pixels(fovs, base_dir, pre_dir='pixel_mat_preprocessed',
     )
 
     # ensure the weights columns are valid indexes
-    weights = feather.read_dataframe(os.path.join(base_dir, weights_name))
     misc_utils.verify_same_elements(
         enforce_order=True,
         pixel_weights_columns=norm_vals.columns.values,
         pixel_data_columns=sample_fov.columns.values
     )
-
-    # precompute row sums for each fov (more efficient in Python than R)
-    print("Normalizing row sums and removing rows that sum to 0")
-    preprocess_row_sums(fovs, weights.columns.values, base_dir, pre_dir)
 
     # make the clustered dir if it does not exist
     if not os.path.exists(clustered_path):

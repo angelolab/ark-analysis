@@ -623,7 +623,7 @@ def test_train_pixel_som(mocker):
         fovs = ['fov0', 'fov1', 'fov2']
 
         # make it easy to name columns
-        colnames = chan_list + ['fov', 'row_index', 'col_index', 'segmentation_label']
+        colnames = chan_list + ['fov', 'row_index', 'column_index', 'segmentation_label']
 
         # make a dummy sub directory
         os.mkdir(os.path.join(temp_dir, 'pixel_mat_subsetted'))
@@ -701,7 +701,7 @@ def test_cluster_pixels(mocker):
         fovs = ['fov0', 'fov1', 'fov2']
 
         # make it easy to name columns
-        colnames = chan_list + ['fov', 'row_index', 'col_index', 'segmentation_label']
+        colnames = chan_list + ['fov', 'row_index', 'column_index', 'segmentation_label']
 
         # make a dummy pre dir
         os.mkdir(os.path.join(temp_dir, 'pixel_mat_preprocessed'))
@@ -778,7 +778,7 @@ def test_pixel_consensus_cluster(mocker):
         chans = ['Marker1', 'Marker2', 'Marker3', 'Marker4']
 
         # make it easy to name metadata columns
-        meta_colnames = ['fov', 'row_index', 'col_index', 'segmentation_label']
+        meta_colnames = ['fov', 'row_index', 'column_index', 'segmentation_label']
 
         # create a dummy clustered matrix
         os.mkdir(os.path.join(temp_dir, 'pixel_mat_clustered'))
