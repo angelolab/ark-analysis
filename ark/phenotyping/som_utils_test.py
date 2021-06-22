@@ -717,7 +717,8 @@ def test_cluster_pixels(mocker):
 
         with pytest.raises(ValueError):
             norm_vals = pd.DataFrame(
-                np.random.rand(1, 4), columns=['Marker2', 'Marker3', 'Marker4', 'Marker1']
+                np.random.rand(1, 4),
+                columns=['Marker2', 'Marker3', 'Marker4', 'Marker5']
             )
             feather.write_dataframe(norm_vals, os.path.join(temp_dir, 'norm_vals.feather'))
 
@@ -726,10 +727,10 @@ def test_cluster_pixels(mocker):
             )
             feather.write_dataframe(weights, os.path.join(temp_dir, 'pixel_weights.feather'))
 
-            # column name mismatch for norm_vals
+            # bad column name passed for norm_vals
             som_utils.cluster_pixels(fovs=fovs, base_dir=temp_dir)
 
-            # column name mismatch for weights
+            # column name ordering mismatch for weights
             som_utils.cluster_pixels(fovs=fovs, base_dir=temp_dir)
 
             # not all the provided fovs exist

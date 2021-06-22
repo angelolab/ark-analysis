@@ -508,8 +508,10 @@ def cluster_pixels(fovs, base_dir, pre_dir='pixel_mat_preprocessed',
     sum_norm_files = io_utils.list_files(preprocessed_path, substrs='_norm.feather')
     norm_vals = feather.read_dataframe(os.path.join(base_dir, norm_vals_name))
     sample_fov = feather.read_dataframe(os.path.join(base_dir, pre_dir, sum_norm_files[0]))
+    sample_fov = sample_fov.drop(
+        columns=['fov', 'row_index', 'column_index', 'segmentation_label']
+    )
     misc_utils.verify_same_elements(
-        enforce_order=True,
         norm_vals_columns=norm_vals.columns.values,
         pixel_data_columns=sample_fov.columns.values
     )
@@ -517,7 +519,7 @@ def cluster_pixels(fovs, base_dir, pre_dir='pixel_mat_preprocessed',
     # ensure the weights columns are valid indexes
     misc_utils.verify_same_elements(
         enforce_order=True,
-        pixel_weights_columns=norm_vals.columns.values,
+        pixel_weights_columns=weights.columns.values,
         pixel_data_columns=sample_fov.columns.values
     )
 
