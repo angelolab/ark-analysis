@@ -49,9 +49,6 @@ for (i in 1:length(fovs)) {
     matPath <- file.path(pixelMatDir, fileName)
     fovPixelData <- arrow::read_feather(matPath)
 
-    # verify markers passed in are the same as in fovPixelData
-    stopifnot(all(markers %in% colnames(fovPixelData)))
-
     # 99.9% normalize pixel data
     for (marker in markers) {
         # this prevents all- or mostly-zero columns from getting normalized and becoming NA/Inf

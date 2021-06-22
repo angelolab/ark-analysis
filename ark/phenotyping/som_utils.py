@@ -452,7 +452,7 @@ def train_pixel_som(fovs, channels, base_dir,
 
 
 def cluster_pixels(fovs, base_dir, pre_dir='pixel_mat_preprocessed',
-                   norm_vals_name='norm_vals.feather', weights_name='weights.feather',
+                   norm_vals_name='norm_vals.feather', weights_name='pixel_weights.feather',
                    cluster_dir='pixel_mat_clustered'):
     """Uses trained weights to assign cluster labels on full pixel data
 
@@ -502,13 +502,20 @@ def cluster_pixels(fovs, base_dir, pre_dir='pixel_mat_preprocessed',
     # ensure the norm vals columns are valid indexes
     norm_vals = feather.read_dataframe(os.path.join(base_dir, norm_vals_name))
     sample_fov = feather.read_dataframe(os.path.join(base_dir, pre_dir, files[0]))
-    misc_utils.verify_in_list(norm_vals_columns=norm_vals.columns.values,
-                              pixel_data_columns=sample_fov.columns.values)
+    sample_fov = sample_fov.drop(columns=['fov', 'row_index', 'col_index', 'segmentation_label'])
+    misc_utils.verify_same_elements(
+        enforce_order=True,
+        norm_vals_columns=norm_vals.columns.values,
+        pixel_data_columns=sample_fov.columns.values
+    )
 
     # ensure the weights columns are valid indexes
     weights = feather.read_dataframe(os.path.join(base_dir, weights_name))
-    misc_utils.verify_in_list(weights_columns=weights.columns.values,
-                              pixel_data_columns=sample_fov.columns.values)
+    misc_utils.verify_same_elements(
+        enforce_order=True,
+        pixel_weights_columns=norm_vals.columns.values,
+        pixel_data_columns=sample_fov.columns.values
+    )
 
     # precompute row sums for each fov (more efficient in Python than R)
     print("Normalizing row sums and removing rows that sum to 0")
@@ -771,6 +778,15 @@ def cluster_cells(base_dir, cluster_counts_name='cluster_counts.feather',
     if not os.path.exists(weights_path):
         raise FileNotFoundError('Weights file %s does not exist in base_dir %s' %
                                 (weights_name, base_dir))
+
+    # ensure the weights columns are valid indexes
+    cluster_counts = feather.read_dataframe(os.path.join(base_dir, cluster_counts_name))
+    weights = feather.read_dataframe(os.path.join(base_dir, weights_name))
+    misc_utils.verify_same_elements(
+        enforce_order=True,
+        cluster_counts_columns=cluster_counts.columns.values,
+        cell_weights_columns=weights.columns.values
+    )
 
     # run the trained SOM on the dataset, assigning clusters
     process_args = ['Rscript', '/run_cell_som.R', cluster_counts_path,

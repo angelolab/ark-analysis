@@ -16,7 +16,7 @@ import ark.utils.test_utils as test_utils
 
 def mocked_train_pixel_som(fovs, channels, base_dir,
                            sub_dir='pixel_mat_subsetted', norm_vals_name='norm_vals.feather',
-                           weights_name='weights.feather', xdim=10, ydim=10,
+                           weights_name='pixel_weights.feather', xdim=10, ydim=10,
                            lr_start=0.05, lr_end=0.01, num_passes=1, seed=42):
     # define the matrix we'll be training on
     pixel_mat_sub = pd.DataFrame(columns=channels)
@@ -52,7 +52,7 @@ def mocked_train_pixel_som(fovs, channels, base_dir,
 
 
 def mocked_cluster_pixels(fovs, base_dir, pre_dir='pixel_mat_preprocessed',
-                          norm_vals_name='norm_vals.feather', weights_name='weights.feather',
+                          norm_vals_name='norm_vals.feather', weights_name='pixel_weights.feather',
                           cluster_dir='pixel_mat_clustered'):
     # read in the norm_vals matrix
     norm_vals = feather.read_dataframe(os.path.join(base_dir, norm_vals_name))
@@ -653,10 +653,10 @@ def test_train_pixel_som(mocker):
         som_utils.train_pixel_som(fovs=fovs, channels=chan_list, base_dir=temp_dir)
 
         # assert the weights file has been created
-        assert os.path.exists(os.path.join(temp_dir, 'weights.feather'))
+        assert os.path.exists(os.path.join(temp_dir, 'pixel_weights.feather'))
 
         # assert that the dimensions of the weights are correct
-        weights = feather.read_dataframe(os.path.join(temp_dir, 'weights.feather'))
+        weights = feather.read_dataframe(os.path.join(temp_dir, 'pixel_weights.feather'))
         assert weights.shape == (100, 4)
 
         # assert that the weights columns are the same as chan_list
@@ -716,11 +716,15 @@ def test_cluster_pixels(mocker):
                                                                  fov + '.feather'))
 
         with pytest.raises(ValueError):
-            norm_vals = pd.DataFrame(np.random.rand(1, 2), columns=['Marker4', 'Marker5'])
+            norm_vals = pd.DataFrame(
+                np.random.rand(1, 4), columns=['Marker2', 'Marker3', 'Marker4', 'Marker1']
+            )
             feather.write_dataframe(norm_vals, os.path.join(temp_dir, 'norm_vals.feather'))
 
-            weights = pd.DataFrame(np.random.rand(100, 2), columns=['Marker4', 'Marker5'])
-            feather.write_dataframe(weights, os.path.join(temp_dir, 'weights.feather'))
+            weights = pd.DataFrame(
+                np.random.rand(100, 4), columns=['Marker2', 'Marker3', 'Marker4', 'Marker1']
+            )
+            feather.write_dataframe(weights, os.path.join(temp_dir, 'pixel_weights.feather'))
 
             # column name mismatch for norm_vals
             som_utils.cluster_pixels(fovs=fovs, base_dir=temp_dir)
@@ -737,7 +741,7 @@ def test_cluster_pixels(mocker):
 
         # create a dummy weights matrix and write to feather
         weights = pd.DataFrame(np.random.rand(100, 4), columns=chan_list)
-        feather.write_dataframe(weights, os.path.join(temp_dir, 'weights.feather'))
+        feather.write_dataframe(weights, os.path.join(temp_dir, 'pixel_weights.feather'))
 
         # make a dummy cluster dir
         os.mkdir(os.path.join(temp_dir, 'pixel_mat_clustered'))
@@ -1068,7 +1072,15 @@ def test_cluster_cells(mocker):
         cluster_counts_path = os.path.join(temp_dir, 'cluster_counts.feather')
         feather.write_dataframe(cluster_counts, cluster_counts_path)
 
-        # TODO: need to include test that handles a weight matrix with out-of-order columns
+        with pytest.raises(ValueError):
+            bad_cluster_cols = cluster_cols[:]
+            bad_cluster_cols[2], bad_cluster_cols[1] = bad_cluster_cols[1], bad_cluster_cols[2]
+
+            weights = pd.DataFrame(np.random.rand(100, 3), columns=bad_cluster_cols)
+            feather.write_dataframe(weights, os.path.join(temp_dir, 'cell_weights.feather'))
+
+            # column name mismatch for weights
+            som_utils.cluster_cells(base_dir=temp_dir)
 
         # generate a random weights matrix
         weights = pd.DataFrame(np.random.rand(100, 3), columns=cluster_cols)
@@ -1084,7 +1096,7 @@ def test_cluster_cells(mocker):
         )
 
         # "cluster" the cells
-        som_utils.cluster_cells(temp_dir)
+        som_utils.cluster_cells(base_dir=temp_dir)
 
         # assert the clustered feather file has been created
         assert os.path.exists(os.path.join(temp_dir, 'cell_mat_clustered.feather'))
