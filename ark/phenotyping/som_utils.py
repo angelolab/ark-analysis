@@ -784,6 +784,9 @@ def cluster_cells(base_dir, cluster_counts_name='cluster_counts.feather',
     # ensure the weights columns are valid indexes
     cluster_counts = feather.read_dataframe(os.path.join(base_dir, cluster_counts_name))
     weights = feather.read_dataframe(os.path.join(base_dir, weights_name))
+    cluster_counts = cluster_counts.drop(
+        columns=['fov', 'segmentation_label', 'cell_size']
+    )
     misc_utils.verify_same_elements(
         enforce_order=True,
         cluster_counts_columns=cluster_counts.columns.values,
