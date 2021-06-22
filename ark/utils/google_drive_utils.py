@@ -216,6 +216,29 @@ class GoogleDrivePath(object):
             None if response.get('mimeType') == _FOLDER_MIME else self.read()
         )
 
+    def mkdir(self):
+        """ Creates specified directory on Drive
+
+        Must have valid parents, and filename must not contain a file extension
+
+        Returns:
+            bool:
+                If a folder was able to be created.
+        """
+
+        if self.parent_id_map is not None and self.fileID is None and '.' not in self.filename():
+            global SERVICE
+            folder_metadata = {
+                'name': self.filename(),
+                'mimeType': _FOLDER_MIME,
+                'parents': [self.parent_id_map[(['root'] + self.path_parents())[-1]]]
+            }
+            response = SERVICE.files().create(body=folder_metadata, fields='id').execute()
+            self.fileID = response.get('id')
+            return True
+
+        return False
+
     def clone(self, dest, overwrite=False, clear_dest=False):
         """ Clones directory structure into provided destination
 
@@ -229,7 +252,8 @@ class GoogleDrivePath(object):
                 If files are already present in dest and overwrite is False, no cloning is
                 performed.  Otherwise, the directory is overwriten with the cloned data.
             clear_dest (bool):
-                If clear_dest is true, all contents of dest are removed before cloning.
+                If clear_dest is true, all contents of dest are removed before cloning. Default is
+                False.
         """
         if self._service_check() or self.fileID is None:
             return
@@ -267,7 +291,7 @@ class GoogleDrivePath(object):
 
         return
 
-    def upload(self, src, overwrite=False):
+    def upload(self, src, overwrite=False, clear_dest=False):
         """ Uploads contents and file structure of local directory to Drive.
 
         For a given path_string, e.g '/root/folderA/folderB', the provided source file, as well as
@@ -280,6 +304,9 @@ class GoogleDrivePath(object):
             overwrite (bool):
                 If similarly named content exists on Drive, overwrite is False, no upload will take
                 place.  Otherwise, the content on the Drive folder is updated/overwritten.
+            clear_dest (bool) [! NOT IMPLEMENTED !]:
+                If clear_dest is true, all contents of destination are removed before uploading.
+                Default is False.
         """
         if (
             self._service_check()
@@ -287,7 +314,29 @@ class GoogleDrivePath(object):
         ):
             return
 
+        if not os.path.exists(src):
+            print()
+            return
+
         # TODO: implement this
+        if self.fileID is None:
+            if not self.mkdir():
+                self.write(src)
+                return
+        elif not overwrite:
+            print(
+                f"Warning: The Drive path '{self.path_string}' already exists. If you wish to"
+                + " overwrite/update files, please pass the argument `overwrite=True`"
+            )
+
+        if not os.path.isdir(src):
+            (self / os.path.basename(src)).write(src, overwrite=overwrite)
+        else:
+            for filename in os.listdir(src):
+                if not os.path.isdir(os.path.join(src, filename)):
+                    (self / filename).write(os.path.join(src, filename), overwrite=True)
+                else:
+                    (self / filename).upload(os.path.join(src, filename), overwrite=overwrite)
 
         return
 
