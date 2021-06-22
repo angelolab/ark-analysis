@@ -1069,6 +1069,11 @@ def test_cluster_cells(mocker):
         cluster_counts = pd.DataFrame(np.random.randint(0, 100, (100, 3)),
                                       columns=cluster_cols)
 
+        # add metadata
+        cluster_counts['fov'] = -1
+        cluster_counts['cell_size'] = -1
+        cluster_counts['segmentation_label'] = -1
+
         # write cluster counts
         cluster_counts_path = os.path.join(temp_dir, 'cluster_counts.feather')
         feather.write_dataframe(cluster_counts, cluster_counts_path)
