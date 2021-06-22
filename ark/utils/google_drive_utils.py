@@ -291,7 +291,7 @@ class GoogleDrivePath(object):
 
         return
 
-    def upload(self, src, overwrite=False, clear_dest=False):
+    def upload(self, src, overwrite=False):
         """ Uploads contents and file structure of local directory to Drive.
 
         For a given path_string, e.g '/root/folderA/folderB', the provided source file, as well as
@@ -304,9 +304,6 @@ class GoogleDrivePath(object):
             overwrite (bool):
                 If similarly named content exists on Drive, overwrite is False, no upload will take
                 place.  Otherwise, the content on the Drive folder is updated/overwritten.
-            clear_dest (bool) [! NOT IMPLEMENTED !]:
-                If clear_dest is true, all contents of destination are removed before uploading.
-                Default is False.
         """
         if (
             self._service_check()
@@ -318,7 +315,6 @@ class GoogleDrivePath(object):
             print()
             return
 
-        # TODO: implement this
         if self.fileID is None:
             if not self.mkdir():
                 self.write(src)
@@ -330,10 +326,15 @@ class GoogleDrivePath(object):
             )
 
         if not os.path.isdir(src):
+            print(f"\x1b[1K\rUploading {src} to Drive...", end='')
             (self / os.path.basename(src)).write(src, overwrite=overwrite)
         else:
             for filename in os.listdir(src):
                 if not os.path.isdir(os.path.join(src, filename)):
+                    print(
+                        f"\x1b[1K\rUploading {os.path.join(src, filename)} to Drive...",
+                        end=''
+                    )
                     (self / filename).write(os.path.join(src, filename), overwrite=True)
                 else:
                     (self / filename).upload(os.path.join(src, filename), overwrite=overwrite)
@@ -356,7 +357,10 @@ class GoogleDrivePath(object):
         done = False
         while not done:
             status, done = downloader.next_chunk()
-            print(f'Downloading {self.path_string} - {int(status.progress() * 100)}% ...')
+            print(
+                f'\x1b[1K\rDownloading {self.path_string} - {int(status.progress() * 100)}% ...',
+                end=''
+            )
         fh.seek(0)
         return fh
 
@@ -441,7 +445,7 @@ class GoogleDrivePath(object):
 
             if response.get('mimeType') != mtype:
                 print(
-                    f"Warning: extension inferred mimeTypy '{mtype}' doesn't match Drive's "
+                    f"Warning: extension inferred mimeType '{mtype}' doesn't match Drive's "
                     + f"'{response.get('mimeType')}'"
                 )
 
