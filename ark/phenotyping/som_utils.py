@@ -16,6 +16,51 @@ from ark.utils import load_utils
 from ark.utils import misc_utils
 
 
+def preprocess_row_sums(fovs, channels, base_dir, pre_dir='pixel_mat_preprocessed'):
+    """Divide each row in the pixel matrices per fov by their sum
+
+    Saves normalized data to pre_dir
+
+    Args:
+        fovs (list):
+            The list of fovs to subset on
+        channels (list):
+            The list of channels to subset on
+            Known from the weights matrix created by create_pixel_som
+        base_dir (str):
+            The path to the data directory
+        pre_dir (str):
+            Name of the directory which contains the preprocessed pixel data,
+            defaults to pixel_mat_preprocessed
+    """
+
+    # define the paths to the data
+    preprocessed_path = os.path.join(base_dir, pre_dir)
+
+    for fov in fovs:
+        # read the pixel data for the fov
+        pixel_data = feather.read_dataframe(os.path.join(preprocessed_path,
+                                                         fov + '.feather'))
+
+        # subset the fov data by the channels the user trained the pixel SOM on
+        pixel_data_sub = pixel_data[channels]
+
+        # remove rows that sum to 0
+        pixel_data_sub = pixel_data_sub.loc[(pixel_data_sub != 0).any(1), :]
+
+        # divide each row by their sum
+        pixel_data_sub = pixel_data_sub.div(pixel_data_sub.sum(axis=1), axis=0)
+
+        # add back meta columns
+        meta_cols = ['fov', 'row_index', 'column_index', 'segmentation_label']
+        pixel_data_sub[meta_cols] = pixel_data[meta_cols]
+
+        # write the normalized data
+        feather.write_dataframe(pixel_data_sub,
+                                os.path.join(preprocessed_path, fov + '_norm.feather'),
+                                compression='uncompressed')
+
+
 def compute_pixel_cluster_avg(fovs, channels, base_dir, cluster_col,
                               cluster_dir='pixel_mat_clustered'):
     """Compute the average channel values across each pixel SOM cluster
@@ -97,17 +142,15 @@ def compute_cell_cluster_avg(cluster_path, column_prefix, cluster_col):
     return mean_count_totals
 
 
-def compute_cell_cluster_counts(fovs, base_dir, consensus_dir,
+def compute_cell_cluster_counts(fovs, consensus_path,
                                 cell_table_path, cluster_col='cluster'):
     """Create a matrix with each fov-cell label pair and their SOM pixel/meta cluster counts
 
     Args:
         fovs (list):
             The list of fovs to subset on
-        base_dir (str):
-            The path to the data directories
-        consensus_dir (str):
-            Name of directory with the SOM pixel and meta labels
+        consensus_path (str):
+            Path to directory with the SOM pixel and meta labels
             Created by pixel_consensus_cluster
         cell_table_path (str):
             Path to the cell table, needs to be created with Segment_Image_Data.ipynb
@@ -119,9 +162,6 @@ def compute_cell_cluster_counts(fovs, base_dir, consensus_dir,
         pd.DataFrame:
             cell x cluster list of counts of each pixel SOM/meta cluster per each cell
     """
-
-    # define the counts per segmentation label DataFrame
-    cluster_counts = pd.DataFrame()
 
     # read the cell table data
     cell_table = pd.read_csv(cell_table_path)
@@ -135,57 +175,61 @@ def compute_cell_cluster_counts(fovs, base_dir, consensus_dir,
     # rename cell_table label as segmentation_label for joining purposes
     cell_table = cell_table.rename(columns={'label': 'segmentation_label'})
 
+    # subset on only the fovs the user has specified
+    cell_table = cell_table[cell_table['fov'].isin(fovs)]
+
     # for verification purposes, make sure the fovs are sorted in numerical order
     fovs_sorted = sorted(fovs, key=lambda x: int(re.findall(r'\d+', x)[0]))
 
+    # because current version of pandas doesn't support key-based sorting, need to do it this way
+    cell_table['fov'] = cell_table['fov'].map(lambda x: x.replace('fov', '')).astype(int)
+    cell_table = cell_table.sort_values(by=['fov', 'segmentation_label']).reset_index(drop=True)
+    cell_table['fov'] = cell_table['fov'].map(lambda x: 'fov' + str(x))
+
+    # define cell_table columns to subset on for merging
+    cell_table_cols = ['fov', 'segmentation_label', 'cell_size']
+
     for fov in fovs_sorted:
-        # read the full dataset with pixel and meta clusters
         fov_pixel_data = feather.read_dataframe(
-            os.path.join(base_dir, consensus_dir, fov + '.feather')
+            os.path.join(consensus_path, fov + '.feather')
         )
 
-        # group the data by segmentation label and cluster value
         group_by_cluster_col = fov_pixel_data.groupby(
             ['segmentation_label', cluster_col]
         ).size().reset_index(name='count')
 
-        # cast the cluster column to int for aesthetics
         group_by_cluster_col[cluster_col] = group_by_cluster_col[cluster_col].astype(int)
 
-        # create a pivot table with counts of each cluster per segmentation label
         num_cluster_per_seg_label = group_by_cluster_col.pivot(
             index='segmentation_label', columns=cluster_col, values='count'
         ).fillna(0).astype(int)
 
-        # change column names to indicate which cluster type (pixel or meta) is used
         new_columns = ['%s_' % cluster_col + str(c) for c in num_cluster_per_seg_label.columns]
         num_cluster_per_seg_label.columns = new_columns
 
-        # copy over the fov and segmentation label data for merging
-        # we can't merge on just segmentation_label because cell_table contains multiple fovs
-        num_cluster_per_seg_label['fov'] = fov
-        num_cluster_per_seg_label['segmentation_label'] = num_cluster_per_seg_label.index.values
+        # get intersection of the segmentation labels between cell_table_indices
+        # and num_cluster_per_seg_label
+        cell_table_labels = list(cell_table[cell_table['fov'] == fov]['segmentation_label'])
+        cluster_labels = list(num_cluster_per_seg_label.index.values)
+        label_intersection = list(set(cell_table_labels).intersection(cluster_labels))
 
-        # reset the index
-        num_cluster_per_seg_label = num_cluster_per_seg_label.reset_index(drop=True)
-
-        # join the counts data with the segmentation label metadata
-        num_cluster_per_seg_label = num_cluster_per_seg_label.merge(
-            cell_table,
-            how='inner',
-            on=['fov', 'segmentation_label']
+        # subset on the label intersection
+        num_cluster_per_seg_label = num_cluster_per_seg_label.loc[label_intersection]
+        cell_table_indices = pd.Index(
+            cell_table[
+                (cell_table['fov'] == fov) &
+                (cell_table['segmentation_label'].isin(label_intersection))
+            ].index.values
         )
 
-        # concatenate to cluster_counts
-        cluster_counts = pd.concat([cluster_counts, num_cluster_per_seg_label])
+        # combine the data of num_cluster_per_seg_label into cell_table_indices
+        num_cluster_per_seg_label = num_cluster_per_seg_label.set_index(cell_table_indices)
+        cell_table = cell_table.combine_first(num_cluster_per_seg_label)
 
-    # fill empty elements with 0
-    cluster_counts = cluster_counts.fillna(0)
+    # NaN means the cluster wasn't found in the specified fov-cell pair
+    cell_table = cell_table.fillna(0)
 
-    # because cell_table is quite large, free up memory space
-    del cell_table
-
-    return cluster_counts
+    return cell_table
 
 
 def create_fov_pixel_data(fov, channels, img_data, seg_labels,
@@ -405,51 +449,6 @@ def train_pixel_som(fovs, channels, base_dir,
             break
         if output:
             print(output.strip())
-
-
-def preprocess_row_sums(fovs, channels, base_dir, pre_dir='pixel_mat_preprocessed'):
-    """Divide each row in the pixel matrices per fov by their sum
-
-    Saves normalized data to pre_dir
-
-    Args:
-        fovs (list):
-            The list of fovs to subset on
-        channels (list):
-            The list of channels to subset on
-            Known from the weights matrix created by create_pixel_som
-        base_dir (str):
-            The path to the data directory
-        pre_dir (str):
-            Name of the directory which contains the preprocessed pixel data,
-            defaults to pixel_mat_preprocessed
-    """
-
-    # define the paths to the data
-    preprocessed_path = os.path.join(base_dir, pre_dir)
-
-    for fov in fovs:
-        # read the pixel data for the fov
-        pixel_data = feather.read_dataframe(os.path.join(preprocessed_path,
-                                                         fov + '.feather'))
-
-        # subset the fov data by the channels the user trained the pixel SOM on
-        pixel_data_sub = pixel_data[channels]
-
-        # remove rows that sum to 0
-        pixel_data_sub = pixel_data_sub.loc[(pixel_data_sub != 0).any(1), :]
-
-        # divide each row by their sum
-        pixel_data_sub = pixel_data_sub.div(pixel_data_sub.sum(axis=1), axis=0)
-
-        # add back meta columns
-        meta_cols = ['fov', 'row_index', 'column_index', 'segmentation_label']
-        pixel_data_sub[meta_cols] = pixel_data[meta_cols]
-
-        # write the normalized data
-        feather.write_dataframe(pixel_data,
-                                os.path.join(preprocessed_path, fov + '_norm.feather'),
-                                compression='uncompressed')
 
 
 def cluster_pixels(fovs, base_dir, pre_dir='pixel_mat_preprocessed',
@@ -699,6 +698,7 @@ def train_cell_som(fovs, base_dir, pixel_consensus_dir, cell_table_name,
 
     # define the data paths
     cell_table_path = os.path.join(base_dir, cell_table_name)
+    consensus_path = os.path.join(base_dir, pixel_consensus_dir)
     cluster_counts_path = os.path.join(base_dir, cluster_counts_name)
     weights_path = os.path.join(base_dir, weights_name)
 
@@ -706,10 +706,14 @@ def train_cell_som(fovs, base_dir, pixel_consensus_dir, cell_table_name,
         raise FileNotFoundError('Cell table %s does not exist in base_dir %s' %
                                 (cell_table_name, base_dir))
 
+    if not os.path.exists(consensus_path):
+        raise FileNotFoundError('Consensus dir %s does not exist in base_dir %s' %
+                                (consensus_path, base_dir))
+
     # generate a matrix with each fov/cell label pair with their pixel SOM/meta cluster counts
     print("Counting the number of pixel SOM/meta cluster counts for each fov/cell pair")
     cluster_counts = compute_cell_cluster_counts(
-        fovs, base_dir, pixel_consensus_dir, cell_table_path, cluster_col
+        fovs, consensus_path, cell_table_path, cluster_col
     )
 
     # write the created matrix
@@ -737,7 +741,8 @@ def train_cell_som(fovs, base_dir, pixel_consensus_dir, cell_table_name,
 
 
 def cluster_cells(base_dir, cluster_counts_name='cluster_counts.feather',
-                  weights_name='cell_weights.feather', cell_cluster_name='cell_clusters.feather'):
+                  weights_name='cell_weights.feather',
+                  cell_cluster_name='cell_mat_clustered.feather'):
     """Uses trained weights to assign cluster labels on full cell data
 
     Saves data with cluster labels to cell_cluster_name
@@ -819,7 +824,7 @@ def cell_consensus_cluster(base_dir, max_k=20, cap=3, column_prefix='cluster',
 
     if not os.path.exists(clustered_path):
         raise FileNotFoundError('Cluster table %s does not exist in base_dir %s' %
-                                (cluster_dir, base_dir))
+                                (cell_cluster_name, base_dir))
 
     # compute the averages across each cell SOM cluster
     print("Averaging the pixel SOM/meta cluster counts across each cell SOM cluster")
