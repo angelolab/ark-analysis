@@ -1,6 +1,7 @@
 import os
 import json
 import io
+import shutil
 
 import pandas as pd
 
@@ -200,7 +201,22 @@ class GoogleDrivePath(object):
         """
         return self.path_string.split('/')[1:-1]
 
-    def clone(self, dest, overwrite=False):
+    def get_type(self):
+        """ Get mimeType and media from Drive object
+
+        Returns:
+            tuple:
+                type and media (media is None if type is a folder)
+        """
+        global SERVICE
+        response = SERVICE.files().get(fileId=self.fileID).execute()
+
+        return (
+            response.get('name'),
+            None if response.get('mimeType') == _FOLDER_MIME else self.read()
+        )
+
+    def clone(self, dest, overwrite=False, clear_dest=False):
         """ Clones directory structure into provided destination
 
         For a given path_string, e.g '/root/folderA/folderB', all files and subdirectories of
@@ -212,11 +228,42 @@ class GoogleDrivePath(object):
             overwrite (bool):
                 If files are already present in dest and overwrite is False, no cloning is
                 performed.  Otherwise, the directory is overwriten with the cloned data.
+            clear_dest (bool):
+                If clear_dest is true, all contents of dest are removed before cloning.
         """
         if self._service_check() or self.fileID is None:
             return
 
-        # TODO: implement this
+        if clear_dest and os.path.exists(dest):
+            shutil.rmtree(dest)
+
+        if not os.path.exists(dest):
+            new_foldername = os.path.basename(dest)
+            dest = os.path.abspath(os.path.join(dest, os.pardir))
+            if not os.path.exists(dest):
+                raise FileNotFoundError(f"Could not resolve the path {dest}")
+
+            dest = os.path.join(dest, new_foldername)
+            os.mkdir(dest)
+
+        elif not overwrite:
+            print(
+                f"Warning: The path '{dest}' already exists. If you wish to overwrite/update files"
+                + " here, please pass the argument `overwrite=True`"
+            )
+            return
+
+        fname, fdata = self.get_type()
+        if fdata is None:
+            for filename in self.lsfiles():
+                filepath = self / filename
+                filepath.clone(dest, overwrite=True)
+            for dirname in self.lsdirs():
+                dirpath = self / dirname
+                dirpath.clone(os.path.join(dest, dirname), overwrite=overwrite)
+        else:
+            with open(os.path.join(dest, fname), 'wb') as f:
+                f.write(fdata.read())
 
         return
 
@@ -234,7 +281,8 @@ class GoogleDrivePath(object):
                 If similarly named content exists on Drive, overwrite is False, no upload will take
                 place.  Otherwise, the content on the Drive folder is updated/overwritten.
         """
-        if (self._service_check()
+        if (
+            self._service_check()
             or set(list(self.parent_id_map.keys())[1:]) != set(self.path_parents())
         ):
             return
@@ -289,7 +337,8 @@ class GoogleDrivePath(object):
                 If a file already exists at the path_string and overwrite is False, no data is
                 written.  Otherwise, the existing file on Drive is updated/overwritten.
         """
-        if (self._service_check()
+        if (
+            self._service_check()
             or set(list(self.parent_id_map.keys())[1:]) != set(self.path_parents())
         ):
             return
