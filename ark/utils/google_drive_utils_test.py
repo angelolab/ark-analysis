@@ -1,6 +1,11 @@
 import os
 import re
 import mimetypes
+import io
+import functools
+from collections import namedtuple
+
+import tempfile
 
 from ark.utils import google_drive_utils
 
@@ -58,7 +63,7 @@ def _op_or(cond1, cond2):
     return check_or
 
 
-operator_key = {
+OPERATOR_KEY = {
     'in': _op_in,
     '=': _op_eq,
     '!=': _op_neq,
@@ -71,9 +76,9 @@ def _parse_base_query(bq, funcs=None):
     query_term, operator, values = tuple(bq.split(' '))
 
     if query_term[0] == '$' and values[0] == '$':
-        return operator_key[operator](funcs[query_term], funcs[values])
+        return OPERATOR_KEY[operator](funcs[query_term], funcs[values])
     else:
-        return operator_key[operator](query_term, values)
+        return OPERATOR_KEY[operator](query_term, values)
 
 
 def _parse_full_query(q: str, funcs=None):
@@ -91,8 +96,6 @@ def _parse_full_query(q: str, funcs=None):
     for i, bq in enumerate(base_queries):
         q_reduced = q_reduced.replace(bq, '$' + str(i))
 
-    print(q_reduced)
-
     q_reduced_split = [term for term in q_reduced.split('(') if term != '']
 
     if len(q_reduced_split) == 1:
@@ -103,7 +106,7 @@ def _parse_full_query(q: str, funcs=None):
 
 def _parse_base_field(bf, dicts=None):
     name = bf[0]
-    new_keys = [nk.remove(' ') for nk in bf[1].split(',')]
+    new_keys = [nk.replace(' ', '') for nk in bf[1].split(',')]
 
     out_dict = {name: {}}
     for nk in new_keys:
@@ -152,10 +155,10 @@ def _fill_fields(path: str, fields: dict):
         # never need to worry about shortcuts
         files['shortcutDetails'] = None
 
-    pass
+    return fields
 
 
-class MockedExecute:
+class _MockedExecute:
     def __init__(self, response):
         self.response = response
 
@@ -163,7 +166,7 @@ class MockedExecute:
         return self.response
 
 
-class MockedFiles:
+class _MockedFiles:
     def __init__(self, mock_drive_dir):
         self.mock_drive_dir = mock_drive_dir
         return
@@ -188,7 +191,7 @@ class MockedFiles:
             'files': [ff['files'] for ff in filled_fields],
         }
 
-        return MockedExecute(response)
+        return _MockedExecute(response)
 
     def create(self, body, media_body=None, fields=None):
         assert(fields == 'id' or fields is None)
@@ -207,10 +210,10 @@ class MockedFiles:
         if fields == 'id':
             response['id'] = path
 
-        return MockedExecute(response)
+        return _MockedExecute(response)
 
     def get(self, fileId):
-        return MockedExecute({
+        return _MockedExecute({
             'name': os.path.basename(fileId),
             'mimeType': mimetypes.types_map.get(
                 os.path.splitext(fileId)[1],
@@ -219,24 +222,55 @@ class MockedFiles:
         })
 
     def get_media(self, fileId):
-        return MockedExecute(fileId)
+        return _MockedExecute(fileId)
 
     def update(self, fileId, media_body, media_mime_type):
         with open(fileId, 'wb') as f:
             f.write(media_body.read())
-        return MockedExecute(None)
+        return _MockedExecute(None)
 
 
-class MockedService:
+class _MockedService:
     def __init__(self, mock_drive_dir):
-        self.files = MockedFiles(mock_drive_dir)
+        self._files = _MockedFiles(mock_drive_dir)
 
     def files(self):
-        return self.files
+        return self._files
 
 
 def _mocked_init(auth_pw, mock_drive_dir):
-    google_drive_utils.SERVICE = MockedService(mock_drive_dir)
+    google_drive_utils.SERVICE = _MockedService(mock_drive_dir)
+
+
+class _MockUploadFile:
+    def __init__(self, data, mtype, resumable):
+        with open(data, mode='rb') as f:
+            self.fh = io.BytesIO(f.read())
+        self.fh.seek(0)
+
+    def read(self):
+        return self.fh.read()
+
+
+class _MockUploadBytes():
+    def __init__(self, data, mtype, resumable):
+        self.fh = io.BytesIO(data.read())
+        self.fh.seek(0)
+
+    def read(self):
+        return self.fh.read()
+
+
+class _MockDownload:
+    def __init__(self, fh, request):
+        self.path = request
+        self.fh = fh
+
+    def next_chunk(self):
+        with open(self.path, mode='rb') as f:
+            self.fh.write(f.read())
+
+        return namedtuple('status', 'progress')(progress=lambda x: 1), True
 
 
 def _offline_mocker(mocker: MockerFixture, mock_drive_dir):
@@ -245,15 +279,62 @@ def _offline_mocker(mocker: MockerFixture, mock_drive_dir):
         lambda x: _mocked_init(x, mock_drive_dir)
     )
 
-    # TODO: write mockers for these
     mocker.patch(
-        'googleapiclient.http.MediaFileUpload', None
+        'googleapiclient.http.MediaFileUpload', _MockUploadFile
     )
     mocker.patch(
-        'googleapiclient.http.MediaIoBaseUpload', None
+        'googleapiclient.http.MediaIoBaseUpload', _MockUploadBytes
     )
     mocker.patch(
-        'googleapiclient.http.MediaIoBaseDownload', None
+        'googleapiclient.http.MediaIoBaseDownload', _MockDownload
     )
 
-    pass
+
+def _fill_gdrive(gdrive, dir_structure=None):
+    if dir_structure is None:
+        dir_structure = {
+            'folderA': {
+                'fileA.txt': 'folderA/fileA.txt content!',
+                'fileB.txt': 'folderA/fileB.txt content!',
+            },
+            'folderB': {
+                'fileA.txt': 'folderB/fileA.txt content!',
+                'fileB.txt': 'folderB/fileB.txt content!',
+                'fileC.txt': 'folderB/fileC.txt content!',
+            },
+            'fileA.txt': '/fileA.txt content!',
+            'data_folder': {
+                'example.csv':
+                ''.join([w for w in """ name, age,
+                                        bill, 21,
+                                        tom, 24,
+                                        thom, 33,
+                                        beuregard, 93,""".split(' ') if w != ''])
+            }
+        }
+
+    for dirc in dir_structure.keys():
+        if type(dir_structure[dirc]) is dict:
+            _fill_gdrive(os.path.join(gdrive, dirc), dir_structure[dirc])
+        else:
+            os.makedirs(gdrive, exist_ok=True)
+            with open(os.path.join(gdrive, dirc), mode='w') as f:
+                f.write(dir_structure[dirc])
+
+
+def local_gdrive(func):
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        with tempfile.TemporaryDirectory() as gdrive:
+            _fill_gdrive(gdrive)
+            _offline_mocker(kwargs['mocker'], gdrive)
+            google_drive_utils.init_google_drive_api('')
+            return func(*args, **kwargs)
+    return wrapper
+
+
+@local_gdrive
+def test_filename(mocker: MockerFixture):
+    fileA_path = google_drive_utils.GoogleDrivePath('/folderA/fileA.txt')
+    assert(fileA_path.filename() == 'fileA.txt')
+    return
