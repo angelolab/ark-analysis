@@ -1,10 +1,12 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
+import xarray as xr
 
 from skimage.segmentation import find_boundaries
 from skimage.exposure import rescale_intensity
 
+from ark.utils import load_utils
 from ark.utils import misc_utils
 
 # plotting functions
@@ -14,7 +16,6 @@ from ark.utils.misc_utils import verify_in_list
 def plot_clustering_result(img_xr, fovs, save_dir=None, cmap='tab20',
                            fov_col='fovs', figsize=(10, 10)):
     """Takes an xarray containing labeled images and displays them.
-
     Args:
         img_xr (xr.DataArray):
             xarray containing labeled cell objects.
@@ -46,13 +47,11 @@ def plot_clustering_result(img_xr, fovs, save_dir=None, cmap='tab20',
 
 def tif_overlay_preprocess(segmentation_labels, plotting_tif):
     """Validates plotting_tif and preprocesses it accordingly
-
     Args:
         segmentation_labels (numpy.ndarray):
             2D numpy array of labeled cell objects
         plotting_tif (numpy.ndarray):
             2D or 3D numpy array of imaging signal
-
     Returns:
         numpy.ndarray:
             The preprocessed image
@@ -85,26 +84,142 @@ def tif_overlay_preprocess(segmentation_labels, plotting_tif):
     return formatted_tif
 
 
-def create_overlay(segmentation_labels, plotting_tif, alternate_segmentation=None):
+# def create_overlay(segmentation_labels, plotting_tif, alternate_segmentation=None):
+#     """Take in labeled contour data, along with optional mibi tif and second contour,
+#     and overlay them for comparison"
+#     Generates the outline(s) of the mask(s) as well as intensity from plotting tif. Predicted
+#     contours are colored red, while alternate contours are colored white.
+#     Args:
+#         segmentation_labels (numpy.ndarray):
+#             2D numpy array of labeled cell objects
+#         plotting_tif (numpy.ndarray):
+#             2D or 3D numpy array of imaging signal
+#         alternate_segmentation (numpy.ndarray):
+#             2D numpy array of labeled cell objects
+#     Returns:
+#         numpy.ndarray:
+#             The image with the channel overlay
+#     """
+
+#     plotting_tif = tif_overlay_preprocess(segmentation_labels, plotting_tif)
+
+#     # define borders of cells in mask
+#     predicted_contour_mask = find_boundaries(segmentation_labels,
+#                                              connectivity=1, mode='inner').astype(np.uint8)
+#     predicted_contour_mask[predicted_contour_mask > 0] = 255
+
+#     # rescale each channel to go from 0 to 255
+#     rescaled = np.zeros(plotting_tif.shape, dtype='uint8')
+
+#     for idx in range(plotting_tif.shape[2]):
+#         if np.max(plotting_tif[:, :, idx]) == 0:
+#             # don't need to rescale this channel
+#             pass
+#         else:
+#             percentiles = np.percentile(plotting_tif[:, :, idx][plotting_tif[:, :, idx] > 0],
+#                                         [5, 95])
+#             rescaled_intensity = rescale_intensity(plotting_tif[:, :, idx],
+#                                                    in_range=(percentiles[0], percentiles[1]),
+#                                                    out_range='uint8')
+#             rescaled[:, :, idx] = rescaled_intensity
+
+#     # overlay first contour on all three RGB, to have it show up as white border
+#     rescaled[predicted_contour_mask > 0, :] = 255
+
+#     # overlay second contour as red outline if present
+#     if alternate_segmentation is not None:
+
+#         if segmentation_labels.shape != alternate_segmentation.shape:
+#             raise ValueError("segmentation_labels and alternate_"
+#                              "segmentation array dimensions not equal.")
+
+#         # define borders of cell in mask
+#         alternate_contour_mask = find_boundaries(alternate_segmentation, connectivity=1,
+#                                                  mode='inner').astype(np.uint8)
+#         rescaled[alternate_contour_mask > 0, 0] = 255
+#         rescaled[alternate_contour_mask > 0, 1:] = 0
+
+#     return rescaled
+
+
+def create_overlay(fov, segmentation_dir, data_dir,
+                   img_overlay_chans, seg_overlay_comp, alternate_segmentation=None):
     """Take in labeled contour data, along with optional mibi tif and second contour,
     and overlay them for comparison"
-
     Generates the outline(s) of the mask(s) as well as intensity from plotting tif. Predicted
     contours are colored red, while alternate contours are colored white.
 
     Args:
-        segmentation_labels (numpy.ndarray):
+        fov (str):
+            The name of the fov to overlay
+        segmentation_dir (str):
+            The path to the directory containing the segmentatation data
+        data_dir (str):
+            The path to the directory containing the nuclear and whole cell image data
+        img_overlay_chans (list):
+            List of channels the user will overlay
+        seg_overlay_comp (str):
+            The segmentted compartment the user will overlay
+        alternate_segmentation (bool):
             2D numpy array of labeled cell objects
-        plotting_tif (numpy.ndarray):
-            2D or 3D numpy array of imaging signal
-        alternate_segmentation (numpy.ndarray):
-            2D numpy array of labeled cell objects
-
     Returns:
         numpy.ndarray:
             The image with the channel overlay
     """
 
+    # load the specified fov data in
+    plotting_tif = load_utils.load_imgs_from_dir(
+        data_dir=data_dir,
+        files=[fov + '.tif'],
+        xr_dim_name='channels',
+        xr_channel_names=['nuclear_channel', 'membrane_channel']
+    )
+
+    # verify that the provided image channels exist in plotting_tif
+    misc_utils.verify_in_list(
+        provided_channels=img_overlay_chans,
+        img_channels=plotting_tif.channels.values
+    )
+
+    # subset the plotting tif with the provided image overlay channels
+    plotting_tif = plotting_tif.loc[fov, :, :, img_overlay_chans].values
+
+    # read the segmentation data in
+    segmentation_labels_cell = load_utils.load_imgs_from_dir(data_dir=segmentation_dir,
+                                                             files=[fov + '_feature_0.tif'],
+                                                             xr_dim_name='compartments',
+                                                             xr_channel_names=['whole_cell'],
+                                                             trim_suffix='_feature_0',
+                                                             match_substring='_feature_0',
+                                                             force_ints=True)
+
+    segmentation_labels_nuc = load_utils.load_imgs_from_dir(data_dir=segmentation_dir,
+                                                            files=[fov + '_feature_1.tif'],
+                                                            xr_dim_name='compartments',
+                                                            xr_channel_names=['nuclear'],
+                                                            trim_suffix='_feature_1',
+                                                            match_substring='_feature_1',
+                                                            force_ints=True)
+
+    segmentation_labels = xr.DataArray(np.concatenate((segmentation_labels_cell.values,
+                                                      segmentation_labels_nuc.values),
+                                                      axis=-1),
+                                       coords=[segmentation_labels_cell.fovs,
+                                               segmentation_labels_cell.rows,
+                                               segmentation_labels_cell.cols,
+                                               ['whole_cell', 'nuclear']],
+                                       dims=segmentation_labels_cell.dims)
+
+    # verify that the provided segmentation channels exist in segmentation_labels
+    misc_utils.verify_in_list(
+        provided_compartments=seg_overlay_comp,
+        seg_compartments=segmentation_labels.compartments.values
+    )
+
+    # subset segmentation labels with the provided segmentation overlay channels
+    segmentation_labels = segmentation_labels.loc[fov, :, :, seg_overlay_comp].values
+
+    # overlay the segmentation labels over the image
     plotting_tif = tif_overlay_preprocess(segmentation_labels, plotting_tif)
 
     # define borders of cells in mask

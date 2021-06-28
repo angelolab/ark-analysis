@@ -7,8 +7,9 @@ import skimage.io as io
 from skimage.measure import regionprops_table
 from skimage.morphology import remove_small_objects
 from skimage.segmentation import find_boundaries
+import xarray as xr
 
-from ark.utils import plot_utils, io_utils, misc_utils
+from ark.utils import load_utils, plot_utils, io_utils, misc_utils
 
 import ark.settings as settings
 
@@ -184,18 +185,18 @@ def concatenate_csv(base_dir, csv_files, column_name="fov", column_values=None):
     combined_data.to_csv(os.path.join(base_dir, "combined_data.csv"), index=False)
 
 
-def save_segmentation_labels(segmentation_labels_xr, channel_data_xr, output_dir,
-                             fovs=None, channels=None):
+def save_segmentation_labels(segmentation_dir, data_dir, output_dir,
+                             fovs, channels=None):
     """For each fov, generates segmentation labels, segmentation borders, and overlays
     over the channels if specified.
 
     Saves overlay images to output directory
 
     Args:
-        segmentation_labels_xr (xarray.DataArray):
-            xarray containing segmentation labels
-        channel_data_xr (xarray.DataArray):
-            xarray containing the image data
+        segmentation_dir (str):
+            Path to the directory containing segmentation labels
+        data_dir (str):
+            Path to the directory containing the image data
         output_dir (str):
             path to directory where the output will be saved
         fovs (list):
@@ -204,18 +205,33 @@ def save_segmentation_labels(segmentation_labels_xr, channel_data_xr, output_dir
             list of channels to subset in segmentation_labels_xr
     """
 
-    # assign fovs and channels to everything if None
-    if fovs is None:
-        fovs = segmentation_labels_xr.fovs.values
-
-    # verify that fovs and channels exist in their respective xarrays
-    misc_utils.verify_in_list(fovs=fovs, segmentation_label_fovs=segmentation_labels_xr.fovs)
-
-    if channels is not None:
-        misc_utils.verify_in_list(channels=channels,
-                                  channel_data_channels=channel_data_xr.channels)
-
     for fov in fovs:
+        # read the segmentation data in
+        segmentation_labels_cell = load_utils.load_imgs_from_dir(data_dir=segmentation_dir,
+                                                                 files=[fov + '_feature_0.tif'],
+                                                                 xr_dim_name='compartments',
+                                                                 xr_channel_names=['whole_cell'],
+                                                                 trim_suffix='_feature_0',
+                                                                 match_substring='_feature_0',
+                                                                 force_ints=True)
+
+        segmentation_labels_nuc = load_utils.load_imgs_from_dir(data_dir=segmentation_dir,
+                                                                files=[fov + '_feature_1.tif'],
+                                                                xr_dim_name='compartments',
+                                                                xr_channel_names=['nuclear'],
+                                                                trim_suffix='_feature_1',
+                                                                match_substring='_feature_1',
+                                                                force_ints=True)
+
+        segmentation_labels_xr = xr.DataArray(np.concatenate((segmentation_labels_cell.values,
+                                                             segmentation_labels_nuc.values),
+                                                             axis=-1),
+                                              coords=[segmentation_labels_cell.fovs,
+                                                      segmentation_labels_cell.rows,
+                                                      segmentation_labels_cell.cols,
+                                                      ['whole_cell', 'nuclear']],
+                                              dims=segmentation_labels_cell.dims)
+
         # generates segmentation borders and labels
         labels = segmentation_labels_xr.loc[fov, :, :, 'whole_cell'].values
 
@@ -231,6 +247,20 @@ def save_segmentation_labels(segmentation_labels_xr, channel_data_xr, output_dir
 
         # generate the channel overlay if specified
         if channels is not None:
+            # load the specified fov data in
+            channel_data_xr = load_utils.load_imgs_from_dir(
+                data_dir=data_dir,
+                files=[fov + '.tif'],
+                xr_dim_name='channels',
+                xr_channel_names=['nuclear_channel', 'membrane_channel']
+            )
+
+            # verify that the provided image channels exist in channel_data_xr, if provided
+            misc_utils.verify_in_list(
+                provided_channels=channels,
+                img_channels=channel_data_xr.channels.values
+            )
+
             channel_overlay = plot_utils.create_overlay(labels,
                                                         channel_data_xr.loc[fov, :, :, channels])
 

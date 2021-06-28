@@ -413,110 +413,6 @@ def create_marker_count_matrices(segmentation_labels, image_data, nuclear_counts
     return normalized_data, arcsinh_data
 
 
-# def generate_cell_table(segmentation_labels, tiff_dir, img_sub_folder,
-#                         is_mibitiff=False, fovs=None, batch_size=5, dtype="int16",
-#                         extraction='total_intensity', **kwargs):
-#     """This function takes the segmented data and computes the expression matrices batch-wise
-#     while also validating inputs
-
-#     Args:
-#         segmentation_labels (xarray.DataArray):
-#             an xarray with the segmented data
-#         tiff_dir (str):
-#             the name of the directory which contains the single_channel_inputs
-#         img_sub_folder (str):
-#             the name of the folder where the TIF images are located
-#         fovs (list):
-#             a list of fovs we wish to analyze, if None will default to all fovs
-#         is_mibitiff (bool):
-#             a flag to indicate whether or not the base images are MIBItiffs
-#         batch_size (int):
-#             how large we want each of the batches of fovs to be when computing, adjust as
-#             necessary for speed and memory considerations
-#         dtype (str/type):
-#             data type of base images
-#         extraction (str):
-#             extraction function used to compute marker counts.
-#         **kwargs:
-#             arbitrary keyword arguments for signal and regionprops extraction
-
-#     Returns:
-#         tuple (pandas.DataFrame, pandas.DataFrame):å
-#         - size normalized data
-#         - arcsinh transformed data
-#     """
-
-#     # if no fovs are specified, then load all the fovs
-#     if fovs is None:
-#         if is_mibitiff:
-#             fovs = io_utils.list_files(tiff_dir, substrs=['.tif'])
-#         else:
-#             fovs = io_utils.list_folders(tiff_dir)
-
-#     # drop file extensions
-#     fovs = io_utils.remove_file_extensions(fovs)
-
-#     misc_utils.verify_in_list(
-#         extraction=extraction,
-#         extraction_options=list(EXTRACTION_FUNCTION.keys())
-#     )
-
-#     # check segmentation_labels for given fovs (img loaders will fail otherwise)
-#     misc_utils.verify_in_list(fovs=fovs,
-#                               segmentation_labels_fovs=segmentation_labels['fovs'].values)
-
-#     # get full filenames from given fovs
-#     filenames = io_utils.list_files(tiff_dir, substrs=fovs, exact_match=True)
-
-#     # sort the fovs
-#     fovs.sort()
-#     filenames.sort()
-
-#     # defined some vars for batch processing
-#     cohort_len = len(fovs)
-
-#     # create the final dfs to store the processed data
-#     combined_cell_table_size_normalized = pd.DataFrame()
-#     combined_cell_table_arcsinh_transformed = pd.DataFrame()
-
-#     # iterate over all the batches
-#     for batch_names, batch_files in zip(
-#         [fovs[i:i + batch_size] for i in range(0, cohort_len, batch_size)],
-#         [filenames[i:i + batch_size] for i in range(0, cohort_len, batch_size)]
-#     ):
-#         # and extract the image data for each batch
-#         if is_mibitiff:
-#             image_data = load_utils.load_imgs_from_mibitiff(data_dir=tiff_dir,
-#                                                             mibitiff_files=batch_files,
-#                                                             dtype=dtype)
-#         else:
-#             image_data = load_utils.load_imgs_from_tree(data_dir=tiff_dir,
-#                                                         img_sub_folder=img_sub_folder,
-#                                                         fovs=batch_names,
-#                                                         dtype=dtype)
-
-#         # as well as the labels corresponding to each of them
-#         current_labels = segmentation_labels.loc[batch_names, :, :, :]
-
-#         # segment the imaging data
-#         cell_table_size_normalized, cell_table_arcsinh_transformed = create_marker_count_matrices(
-#             segmentation_labels=current_labels,
-#             image_data=image_data,
-#             extraction=extraction,
-#             **kwargs
-#         )
-
-#         # now append to the final dfs to return
-#         combined_cell_table_size_normalized = combined_cell_table_size_normalized.append(
-#             cell_table_size_normalized
-#         )
-#         combined_cell_table_arcsinh_transformed = combined_cell_table_arcsinh_transformed.append(
-#             cell_table_arcsinh_transformed
-#         )
-
-#     return combined_cell_table_size_normalized, combined_cell_table_arcsinh_transformed
-
-
 def generate_cell_table(segmentation_dir, tiff_dir, img_sub_folder,
                         is_mibitiff=False, fovs=None, batch_size=5, dtype="int16",
                         extraction='total_intensity', nuclear_counts=False, **kwargs):
@@ -607,14 +503,14 @@ def generate_cell_table(segmentation_dir, tiff_dir, img_sub_folder,
                                                             files=whole_cell_files,
                                                             xr_dim_name='compartments',
                                                             xr_channel_names=['whole_cell'],
-                                                            delimiter='_feature_0',
+                                                            trim_suffix='_feature_0',
                                                             force_ints=True)
 
         current_labels_nuc = load_utils.load_imgs_from_dir(data_dir=segmentation_dir,
                                                            files=nuclear_files,
                                                            xr_dim_name='compartments',
                                                            xr_channel_names=['nuclear'],
-                                                           delimiter='_feature_1',
+                                                           trim_suffix='_feature_1',
                                                            force_ints=True)
 
         current_labels = xr.DataArray(np.concatenate((current_labels_cell.values,
