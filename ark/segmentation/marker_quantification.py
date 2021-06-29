@@ -413,7 +413,7 @@ def create_marker_count_matrices(segmentation_labels, image_data, nuclear_counts
     return normalized_data, arcsinh_data
 
 
-def generate_cell_table(segmentation_dir, tiff_dir, img_sub_folder,
+def generate_cell_table(segmentation_dir, tiff_dir, img_sub_folder="TIFs",
                         is_mibitiff=False, fovs=None, batch_size=5, dtype="int16",
                         extraction='total_intensity', nuclear_counts=False, **kwargs):
     """This function takes the segmented data and computes the expression matrices batch-wise
@@ -494,7 +494,7 @@ def generate_cell_table(segmentation_dir, tiff_dir, img_sub_folder,
                                                         fovs=batch_names,
                                                         dtype=dtype)
 
-        # define the files for whole cell and nuclear channels
+        # define the files for whole cell and nuclear
         whole_cell_files = [fov + '_feature_0.tif' for fov in batch_names]
         nuclear_files = [fov + '_feature_1.tif' for fov in batch_names]
 

@@ -5,6 +5,7 @@ import tempfile
 import xarray as xr
 import os.path
 from skimage.measure import regionprops
+import skimage.io as io
 import tempfile
 
 from ark.utils import segmentation_utils, test_utils
@@ -206,33 +207,34 @@ def test_transform_expression_matrix_multiple_compartments():
 
 
 def test_save_segmentation_labels():
-    channel_xr = test_utils.make_images_xarray(np.zeros((2, 50, 50, 3)))
+    channel_xr = test_utils.make_images_xarray(
+        np.zeros((2, 50, 50, 2)), channel_names=['nuclear_channel', 'membrane_channel']
+    )
     chan_sub = channel_xr.channels.values[:2]
-    segmentation_labels_xr = test_utils.make_labels_xarray(np.zeros((2, 50, 50, 1)))
+    segmentation_labels_xr = test_utils.make_labels_xarray(np.zeros((2, 50, 50, 2)))
     fov_sub = segmentation_labels_xr.fovs.values[:1]
 
-    # test fovs = None and channels = None (all fovs selected, no channel overlay)
+    # test saving without channel overlay
     with tempfile.TemporaryDirectory() as temp_dir:
-        segmentation_utils.save_segmentation_labels(segmentation_labels_xr=segmentation_labels_xr,
-                                                    channel_data_xr=channel_xr,
-                                                    output_dir=temp_dir)
+        # save the images
+        img_dir = os.path.join(temp_dir, 'data_dir')
+        os.mkdir(img_dir)
 
-        # make sure all files exist except overlay.tiff exists
-        for mod_output_fov in segmentation_labels_xr.fovs:
-            assert os.path.exists(os.path.join(temp_dir,
-                                               f'{mod_output_fov.values}'
-                                               f'_segmentation_labels.tiff'))
-            assert os.path.exists(os.path.join(temp_dir,
-                                               f'{mod_output_fov.values}'
-                                               f'_segmentation_borders.tiff'))
-            assert not any(f.endswith('_overlay.tiff') for f in os.listdir(temp_dir))
+        for fov in channel_xr.fovs.values:
+            fov_channel_vals = channel_xr.loc[fov, ...].values
+            io.imsave(os.path.join(img_dir, '%s.tif' % fov), fov_channel_vals)
 
-    # test a subset of fovs (no channel overlay)
-    with tempfile.TemporaryDirectory() as temp_dir:
-        segmentation_utils.save_segmentation_labels(segmentation_labels_xr=segmentation_labels_xr,
-                                                    channel_data_xr=channel_xr,
-                                                    output_dir=temp_dir,
-                                                    fovs=fov_sub)
+        # save the segmentation labels
+        for fov in segmentation_labels_xr.fovs.values:
+            fov_whole_cell = segmentation_labels_xr.loc[fov, :, :, 'whole_cell'].values
+            fov_nuclear = segmentation_labels_xr.loc[fov, :, :, 'nuclear'].values
+            io.imsave(os.path.join(temp_dir, '%s_feature_0.tif' % fov), fov_whole_cell)
+            io.imsave(os.path.join(temp_dir, '%s_feature_1.tif' % fov), fov_nuclear)
+
+        # test segmentation without channel overlay
+        segmentation_utils.save_segmentation_labels(
+            segmentation_dir=temp_dir, data_dir=img_dir, output_dir=temp_dir, fovs=fov_sub
+        )
 
         # make sure all files except overlay.tiff exists
         assert os.path.exists(os.path.join(temp_dir,
@@ -243,45 +245,39 @@ def test_save_segmentation_labels():
                                            f'_segmentation_borders.tiff'))
         assert not any(f.endswith('_overlay.tiff') for f in os.listdir(temp_dir))
 
-    # test with all fovs with channel overlay
+    # test saving with channel overlay
     with tempfile.TemporaryDirectory() as temp_dir:
-        segmentation_utils.save_segmentation_labels(segmentation_labels_xr=segmentation_labels_xr,
-                                                    channel_data_xr=channel_xr,
-                                                    output_dir=temp_dir,
-                                                    channels=chan_sub)
+        # save the images
+        img_dir = os.path.join(temp_dir, 'data_dir')
+        os.mkdir(img_dir)
 
-        # make sure all files exist
-        for mod_output_fov in segmentation_labels_xr.fovs:
-            assert os.path.exists(os.path.join(temp_dir,
-                                               f'{mod_output_fov.values}'
-                                               f'_segmentation_labels.tiff'))
-            assert os.path.exists(os.path.join(temp_dir,
-                                  '_'.join([f'{mod_output_fov.values}',
-                                            *chan_sub,
-                                            'overlay.tiff'])))
-            assert os.path.exists(os.path.join(temp_dir,
-                                               f'{mod_output_fov.values}'
-                                               f'_segmentation_borders.tiff'))
+        for fov in channel_xr.fovs.values:
+            fov_channel_vals = channel_xr.loc[fov, ...].values
+            io.imsave(os.path.join(img_dir, '%s.tif' % fov), fov_channel_vals)
 
-    # test a subset of fovs with channel overlay
-    with tempfile.TemporaryDirectory() as temp_dir:
-        segmentation_utils.save_segmentation_labels(segmentation_labels_xr=segmentation_labels_xr,
-                                                    channel_data_xr=channel_xr,
-                                                    output_dir=temp_dir,
-                                                    fovs=fov_sub,
-                                                    channels=chan_sub)
+        # save the segmentation labels
+        for fov in segmentation_labels_xr.fovs.values:
+            fov_whole_cell = segmentation_labels_xr.loc[fov, :, :, 'whole_cell'].values
+            fov_nuclear = segmentation_labels_xr.loc[fov, :, :, 'nuclear'].values
+            io.imsave(os.path.join(temp_dir, '%s_feature_0.tif' % fov), fov_whole_cell)
+            io.imsave(os.path.join(temp_dir, '%s_feature_1.tif' % fov), fov_nuclear)
 
-        # make sure all files exist
+        segmentation_utils.save_segmentation_labels(
+            segmentation_dir=temp_dir, data_dir=img_dir, output_dir=temp_dir,
+            fovs=fov_sub, channels=chan_sub
+        )
+
+        # make sure all files and overlay.tiff exists
         assert os.path.exists(os.path.join(temp_dir,
                                            f'{fov_sub[0]}'
                                            f'_segmentation_labels.tiff'))
         assert os.path.exists(os.path.join(temp_dir,
-                              '_'.join([f'{fov_sub[0]}',
-                                        *chan_sub,
-                                        'overlay.tiff'])))
-        assert os.path.exists(os.path.join(temp_dir,
                                            f'{fov_sub[0]}'
                                            f'_segmentation_borders.tiff'))
+        assert os.path.exists(os.path.join(temp_dir,
+                                           '_'.join([f'{fov_sub[0]}',
+                                                     *chan_sub,
+                                                     'overlay.tiff'])))
 
 
 def test_concatenate_csv():

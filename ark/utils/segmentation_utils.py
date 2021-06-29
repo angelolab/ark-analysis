@@ -207,33 +207,16 @@ def save_segmentation_labels(segmentation_dir, data_dir, output_dir,
 
     for fov in fovs:
         # read the segmentation data in
-        segmentation_labels_cell = load_utils.load_imgs_from_dir(data_dir=segmentation_dir,
-                                                                 files=[fov + '_feature_0.tif'],
-                                                                 xr_dim_name='compartments',
-                                                                 xr_channel_names=['whole_cell'],
-                                                                 trim_suffix='_feature_0',
-                                                                 match_substring='_feature_0',
-                                                                 force_ints=True)
-
-        segmentation_labels_nuc = load_utils.load_imgs_from_dir(data_dir=segmentation_dir,
-                                                                files=[fov + '_feature_1.tif'],
-                                                                xr_dim_name='compartments',
-                                                                xr_channel_names=['nuclear'],
-                                                                trim_suffix='_feature_1',
-                                                                match_substring='_feature_1',
-                                                                force_ints=True)
-
-        segmentation_labels_xr = xr.DataArray(np.concatenate((segmentation_labels_cell.values,
-                                                             segmentation_labels_nuc.values),
-                                                             axis=-1),
-                                              coords=[segmentation_labels_cell.fovs,
-                                                      segmentation_labels_cell.rows,
-                                                      segmentation_labels_cell.cols,
-                                                      ['whole_cell', 'nuclear']],
-                                              dims=segmentation_labels_cell.dims)
+        labels = load_utils.load_imgs_from_dir(data_dir=segmentation_dir,
+                                               files=[fov + '_feature_0.tif'],
+                                               xr_dim_name='compartments',
+                                               xr_channel_names=['whole_cell'],
+                                               trim_suffix='_feature_0',
+                                               match_substring='_feature_0',
+                                               force_ints=True)
 
         # generates segmentation borders and labels
-        labels = segmentation_labels_xr.loc[fov, :, :, 'whole_cell'].values
+        labels = labels.loc[fov, :, :, 'whole_cell'].values
 
         # save the labels respectively
         io.imsave(os.path.join(output_dir, f'{fov}_segmentation_labels.tiff'), labels)
@@ -247,22 +230,11 @@ def save_segmentation_labels(segmentation_dir, data_dir, output_dir,
 
         # generate the channel overlay if specified
         if channels is not None:
-            # load the specified fov data in
-            channel_data_xr = load_utils.load_imgs_from_dir(
-                data_dir=data_dir,
-                files=[fov + '.tif'],
-                xr_dim_name='channels',
-                xr_channel_names=['nuclear_channel', 'membrane_channel']
+            # create a channel overlay for the fov with the provided channels
+            channel_overlay = plot_utils.create_overlay(
+                fov=fov, segmentation_dir=segmentation_dir, data_dir=data_dir,
+                img_overlay_chans=channels, seg_overlay_comp='whole_cell'
             )
-
-            # verify that the provided image channels exist in channel_data_xr, if provided
-            misc_utils.verify_in_list(
-                provided_channels=channels,
-                img_channels=channel_data_xr.channels.values
-            )
-
-            channel_overlay = plot_utils.create_overlay(labels,
-                                                        channel_data_xr.loc[fov, :, :, channels])
 
             # save the channel overlay
             save_path = '_'.join([f'{fov}', *channels.astype('str'), 'overlay.tiff'])
