@@ -119,7 +119,9 @@ def test_generate_deepcell_input():
 
             # test nuc None and mem None
             with pytest.raises(ValueError):
-                data_utils.generate_deepcell_input(data_xr, temp_dir, None, None, ['fov0'], ['chan0'])
+                data_utils.generate_deepcell_input(
+                    data_xr, temp_dir, None, None, ['fov0'], ['chan0']
+                )
 
 
 def test_stitch_images():
