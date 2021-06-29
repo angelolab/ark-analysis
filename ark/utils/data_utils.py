@@ -88,7 +88,7 @@ def generate_deepcell_input(data_dir, tiff_dir, nuc_channels, mem_channels, fovs
     Args:
         data_dir (str):
             location to save deepcell input tifs
-        tiff_dif (str):
+        tiff_dir (str):
             directory containing folders of images, is_mibitiff determines what type
         nuc_channels (list):
             nuclear channels to be summed over
