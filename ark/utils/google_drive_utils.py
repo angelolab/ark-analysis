@@ -122,7 +122,7 @@ def _validate(path_string):
         if parent == '':
             continue
         response = SERVICE.files().list(
-            q=f"(('{ids[-1]}' in parents) and (name = '{parent}') " +
+            q=f"((('{ids[-1]}' in parents) and (name = '{parent}')) " +
               f"and (({_FOLDER_MIME_CHECK}) or ({_SHORTCUT_MIME_CHECK})))",
             spaces='drive',
             fields='files(id, shortcutDetails(targetId))',
@@ -201,12 +201,12 @@ class GoogleDrivePath(object):
         """
         return self.path_string.split('/')[1:-1]
 
-    def get_type(self):
-        """ Get mimeType and media from Drive object
+    def get_name_and_data(self):
+        """ Get name and media from Drive object
 
         Returns:
             tuple:
-                type and media (media is None if type is a folder)
+                name and media (media is None if mimeType is a folder)
         """
         global SERVICE
         response = SERVICE.files().get(fileId=self.fileID).execute()
@@ -277,7 +277,7 @@ class GoogleDrivePath(object):
             )
             return
 
-        fname, fdata = self.get_type()
+        fname, fdata = self.get_name_and_data()
         if fdata is None:
             for filename in self.lsfiles():
                 filepath = self / filename

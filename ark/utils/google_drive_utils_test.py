@@ -1,3 +1,4 @@
+from copy import deepcopy
 import os
 import re
 import mimetypes
@@ -14,17 +15,18 @@ from pytest_mock import MockerFixture
 
 def _op_in(qt, v):
     def check_parent(path):
-        return qt == os.path.dirname(path)
+        return qt.replace("'", "") == os.path.dirname(path)
 
     return check_parent
 
 
 def _op_eq(qt, v):
+
     def check_name(path):
-        return v == os.path.basename(path)
+        return v.replace("'", "") == os.path.basename(path)
 
     def check_mimetype(path):
-        if v == google_drive_utils._FOLDER_MIME:
+        if v.replace("'", "") == google_drive_utils._FOLDER_MIME:
             return os.path.isdir(path)
         elif v == google_drive_utils._SHORTCUT_MIME_CHECK.split(' ')[-1]:
             return False
@@ -36,10 +38,10 @@ def _op_eq(qt, v):
 
 def _op_neq(qt, v):
     def check_name(path):
-        return v != os.path.basename(path)
+        return v.replace("'", "") != os.path.basename(path)
 
     def check_mimetype(path):
-        if v == google_drive_utils._FOLDER_MIME:
+        if v.replace("'", "") == google_drive_utils._FOLDER_MIME:
             return not os.path.isdir(path)
         elif v == google_drive_utils._SHORTCUT_MIME_CHECK.split(' ')[-1]:
             return True
@@ -72,16 +74,19 @@ OPERATOR_KEY = {
 }
 
 
-def _parse_base_query(bq, funcs=None):
+def _parse_base_query(bq, funcs=None, base_dir=None):
     query_term, operator, values = tuple(bq.split(' '))
 
     if query_term[0] == '$' and values[0] == '$':
         return OPERATOR_KEY[operator](funcs[query_term], funcs[values])
     else:
+        if query_term == "'root'":
+            query_term = base_dir
+
         return OPERATOR_KEY[operator](query_term, values)
 
 
-def _parse_full_query(q: str, funcs=None):
+def _parse_full_query(q: str, funcs=None, base_dir=None):
     base_queries = re.findall('\\([^\\(\\)]*\\)', q)
 
     # trim parentheses
@@ -89,19 +94,19 @@ def _parse_full_query(q: str, funcs=None):
 
     results = dict(zip(
         ['$' + str(i) for i in range(len(base_queries))],
-        [_parse_base_query(bq, funcs) for bq in base_queries_trimmed]
+        [_parse_base_query(bq, funcs, base_dir=base_dir) for bq in base_queries_trimmed]
     ))
 
     q_reduced = q
     for i, bq in enumerate(base_queries):
         q_reduced = q_reduced.replace(bq, '$' + str(i))
 
-    q_reduced_split = [term for term in q_reduced.split('(') if term != '']
+    q_reduced_split = [term for term in q_reduced.split(' ') if term != '']
 
     if len(q_reduced_split) == 1:
         return results['$0']
     else:
-        return _parse_full_query(q_reduced, funcs=results)
+        return _parse_full_query(q_reduced, funcs=results, base_dir=base_dir)
 
 
 def _parse_base_field(bf, dicts=None):
@@ -136,14 +141,17 @@ def _parse_fields(fields: str, dicts=None):
         return _parse_fields(fields_reduced, dicts=next_dicts)
 
 
-def _fill_fields(path: str, fields: dict):
+def _fill_fields(path: str, _fields: dict):
     # always fix next page token to none
+    fields = deepcopy(_fields)
     fields['nextPageToken'] = None
 
     files = fields.get('files', None)
     if files is not None:
         if files.get('id', None) is not None:
             files['id'] = path
+        if files.get('name', None) is not None:
+            files['name'] = os.path.basename(path)
         if files.get('mimeType', None) is not None:
             if os.path.isdir(path):
                 files['mimeType'] = google_drive_utils._FOLDER_MIME
@@ -171,17 +179,21 @@ class _MockedFiles:
         self.mock_drive_dir = mock_drive_dir
         return
 
-    def list(self, q, spaces, fields):
+    def list(self, q, spaces, fields, pageToken=None):
         assert(spaces == 'drive')
 
-        query_function = _parse_full_query(q)
+        query_function = _parse_full_query(q, funcs=None, base_dir=self.mock_drive_dir)
 
         matches = []
         for root, dirs, files in os.walk(self.mock_drive_dir):
             for name in files:
                 if query_function(os.path.join(root, name)):
                     matches.append(os.path.join(root, name))
+            for name in dirs:
+                if query_function(os.path.join(root, name)):
+                    matches.append(os.path.join(root, name))
 
+        fields = fields.split('nextPageToken, ')[-1]
         parsed_fields = _parse_fields(fields)
 
         filled_fields = [_fill_fields(match, parsed_fields) for match in matches]
@@ -198,6 +210,8 @@ class _MockedFiles:
 
         path = ''
         for parent in body.get('parents', []):
+            if parent == 'root':
+                parent = self.mock_drive_dir
             path = os.path.join(parent, body.get('name', 'default_name'))
             if media_body is None:
                 os.mkdir(path)
@@ -215,14 +229,17 @@ class _MockedFiles:
     def get(self, fileId):
         return _MockedExecute({
             'name': os.path.basename(fileId),
-            'mimeType': mimetypes.types_map.get(
-                os.path.splitext(fileId)[1],
-                'application/octed-stream'
-            )
+            'mimeType':
+                google_drive_utils._FOLDER_MIME if os.path.isdir(fileId) else (
+                    mimetypes.types_map.get(
+                        os.path.splitext(fileId)[1],
+                        'application/octet-stream'
+                    )
+                )
         })
 
     def get_media(self, fileId):
-        return _MockedExecute(fileId)
+        return fileId
 
     def update(self, fileId, media_body, media_mime_type):
         with open(fileId, 'wb') as f:
@@ -243,7 +260,7 @@ def _mocked_init(auth_pw, mock_drive_dir):
 
 
 class _MockUploadFile:
-    def __init__(self, data, mtype, resumable):
+    def __init__(self, data, mimetype, resumable):
         with open(data, mode='rb') as f:
             self.fh = io.BytesIO(f.read())
         self.fh.seek(0)
@@ -253,7 +270,7 @@ class _MockUploadFile:
 
 
 class _MockUploadBytes():
-    def __init__(self, data, mtype, resumable):
+    def __init__(self, data, mimetype, resumable):
         self.fh = io.BytesIO(data.read())
         self.fh.seek(0)
 
@@ -270,7 +287,7 @@ class _MockDownload:
         with open(self.path, mode='rb') as f:
             self.fh.write(f.read())
 
-        return namedtuple('status', 'progress')(progress=lambda x: 1), True
+        return namedtuple('status', 'progress')(progress=lambda: 1), True
 
 
 def _offline_mocker(mocker: MockerFixture, mock_drive_dir):
@@ -279,14 +296,24 @@ def _offline_mocker(mocker: MockerFixture, mock_drive_dir):
         lambda x: _mocked_init(x, mock_drive_dir)
     )
 
-    mocker.patch(
-        'googleapiclient.http.MediaFileUpload', _MockUploadFile
+    mocker.patch.multiple(
+        'googleapiclient.http.MediaFileUpload',
+        create=True,
+        __init__=_MockUploadFile.__init__,
+        read=_MockUploadFile.read
     )
-    mocker.patch(
-        'googleapiclient.http.MediaIoBaseUpload', _MockUploadBytes
+
+    mocker.patch.multiple(
+        'googleapiclient.http.MediaIoBaseUpload',
+        create=True,
+        __init__=_MockUploadBytes.__init__,
+        read=_MockUploadBytes.read
     )
-    mocker.patch(
-        'googleapiclient.http.MediaIoBaseDownload', _MockDownload
+
+    mocker.patch.multiple(
+        'googleapiclient.http.MediaIoBaseDownload',
+        __init__=_MockDownload.__init__,
+        next_chunk=_MockDownload.next_chunk
     )
 
 
@@ -334,7 +361,109 @@ def local_gdrive(func):
 
 
 @local_gdrive
-def test_filename(mocker: MockerFixture):
+def test_validate(mocker: MockerFixture):
     fileA_path = google_drive_utils.GoogleDrivePath('/folderA/fileA.txt')
-    assert(fileA_path.filename() == 'fileA.txt')
+
+    assert(fileA_path.fileID.endswith('/folderA/fileA.txt'))
+
+
+@local_gdrive
+def test_get_name_and_data(mocker: MockerFixture):
+    folderA_path = google_drive_utils.GoogleDrivePath('/folderA')
+
+    print('')
+    name, media = folderA_path.get_name_and_data()
+    assert(name == 'folderA')
+    assert(media is None)
+
+    fileA_path = folderA_path / 'fileA.txt'
+
+    name, media = fileA_path.get_name_and_data()
+    assert(name == 'fileA.txt')
+    assert(media.read() == b'folderA/fileA.txt content!')
+
+
+@local_gdrive
+def test_mkdir(mocker: MockerFixture):
+    print('')
+    folderA_path = google_drive_utils.GoogleDrivePath('/folderA')
+    folderA_truepath = folderA_path.fileID
+    nested_path = folderA_path / 'nested_folder'
+
+    nested_path.mkdir()
+    assert(nested_path.fileID == os.path.join(folderA_truepath, 'nested_folder'))
+
+
+@local_gdrive
+def test_read(mocker: MockerFixture):
+    print('')
+    fileA_path = google_drive_utils.GoogleDrivePath('/folderA/fileA.txt')
+
+    assert(fileA_path.read().read() == b'folderA/fileA.txt content!')
+
+
+@local_gdrive
+def test_write(mocker: MockerFixture):
+    print('')
+    folderA_path = google_drive_utils.GoogleDrivePath('/folderA')
+    newfileC_path = folderA_path / 'fileC.txt'
+
+    assert(newfileC_path.fileID is None)
+
+    newfileC_path.write(io.BytesIO(b'new text file!'))
+    assert(newfileC_path.fileID == os.path.join(folderA_path.fileID, 'fileC.txt'))
+    assert(newfileC_path.read().read() == b'new text file!')
+
+    newfileC_path.write(io.BytesIO(b'overwritten text'), overwrite=True)
+    assert(newfileC_path.read().read() == b'overwritten text')
+
+
+@local_gdrive
+def test_clone(mocker: MockerFixture):
+    print('')
+    folderA_path = google_drive_utils.GoogleDrivePath('/folderA')
+    with tempfile.TemporaryDirectory() as local:
+
+        # test base cloning
+        clone_dir = os.path.join(local, 'folder_clone')
+        folderA_path.clone(clone_dir)
+        assert(os.path.exists(os.path.join(clone_dir, 'fileA.txt')))
+        assert(os.path.exists(os.path.join(clone_dir, 'fileB.txt')))
+        assert(not os.path.exists(os.path.join(clone_dir, 'fileC.txt')))
+
+        # test overwrite cloning
+        clone_overwrite = os.path.join(local, 'content')
+        os.mkdir(clone_overwrite)
+        with open(os.path.join(clone_overwrite, 'fileB.txt'), mode='w') as f:
+            f.write('fileB content!')
+
+        with open(os.path.join(clone_overwrite, 'fileC.txt'), mode='w') as f:
+            f.write('fileC content!')
+
+        folderA_path.clone(clone_overwrite, overwrite=True)
+        assert(os.path.exists(os.path.join(clone_overwrite, 'fileB.txt')))
+        assert(os.path.exists(os.path.join(clone_overwrite, 'fileA.txt')))
+        with open(os.path.join(clone_overwrite, 'fileB.txt'), mode='r') as f:
+            assert(f.read() == 'folderA/fileB.txt content!')
+        with open(os.path.join(clone_overwrite, 'fileC.txt'), mode='r') as f:
+            assert(f.read() == 'fileC content!')
+
+        # test dir clearing
+        folderA_path.clone(clone_overwrite, overwrite=True, clear_dest=True)
+        assert(not os.path.exists(os.path.join(clone_overwrite, 'fileC.txt')))
+
     return
+
+
+@local_gdrive
+def test_upload(mocker: MockerFixture):
+    print('')
+    folderC_path = google_drive_utils.GoogleDrivePath('/folderC')
+    with tempfile.TemporaryDirectory() as local:
+        upload_dir = os.path.join(local, 'folder_upload')
+        os.mkdir(upload_dir)
+        with open(os.path.join(upload_dir, 'fileA.txt'), mode='w') as f:
+            f.write('/folderC/fileA.txt content!')
+
+        folderC_path.upload(upload_dir)
+        assert((folderC_path / 'fileA.txt').read().read() == b'/folderC/fileA.txt content!')
