@@ -185,8 +185,12 @@ def verify_same_elements(enforce_order=False, **kwargs):
                 zip(list_one_cast, list_two_cast)) if l1 != l2
             )
 
-            err_str = ("Lists %s and %s ordered differently: index mismatch at %d")
-            raise ValueError(err_str % (list_one_name, list_two_name, first_bad_index))
+            err_str = ("Lists %s and %s ordered differently: values %s and %s do not match"
+                       " at index %d")
+            raise ValueError(err_str % (list_one_name, list_two_name,
+                                        list_one_cast[first_bad_index],
+                                        list_two_cast[first_bad_index],
+                                        first_bad_index))
     else:
         if not np.all(set(list_one_cast) == set(list_two_cast)):
             bad_vals = ','.join([str(val) for val in set(list_one_cast) ^ set(list_two_cast)])
