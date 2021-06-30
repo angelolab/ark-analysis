@@ -664,7 +664,7 @@ def test_create_pixel_matrix():
                     # assert no rows sum to 0
                     assert np.all(flowsom_pre_fov.loc[:, chans].sum(axis=1).values != 0)
 
-                    # assert the size of the subsetted DataFrame is 0.1 of the preprocessed DataFrame
+                    # assert the subsetted DataFrame size is 0.1 of the preprocessed DataFrame
                     assert flowsom_pre_fov.shape[0] * 0.1 == flowsom_sub_fov.shape[0]
 
 
