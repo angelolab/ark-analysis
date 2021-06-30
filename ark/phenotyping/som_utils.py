@@ -16,6 +16,41 @@ from ark.utils import load_utils
 from ark.utils import misc_utils
 
 
+def normalize_rows(pixel_data, channels):
+    """Normalizes the rows of a pixel matrix by their sum and removes rows that sum to 0
+
+    Helper function to preprocess_row_sums
+
+    Args:
+        pixel_data (pandas.DataFrame):
+            The dataframe containing the pixel data for a given fov
+            Includes channel and meta (fov, segmentation_label, etc.) columns
+        channels (list):
+            List of channels to subset over
+
+    Returns:
+        pandas.DataFrame:
+            The pixel data with rows normalized and 0-sum rows removed
+    """
+
+    # subset the fov data by the channels the user trained the pixel SOM on
+    pixel_data_sub = pixel_data[channels]
+
+    # remove rows that sum to 0
+    pixel_data_sub = pixel_data_sub.loc[(pixel_data_sub != 0).any(1), :]
+
+    # divide each row by their sum
+    pixel_data_sub = pixel_data_sub.div(pixel_data_sub.sum(axis=1), axis=0)
+
+    # define the meta columns to add back
+    meta_cols = ['fov', 'row_index', 'column_index', 'segmentation_label']
+
+    # add back meta columns, making sure to remove 0-row indices
+    pixel_data_sub[meta_cols] = pixel_data.loc[pixel_data_sub.index.values, meta_cols]
+
+    return pixel_data_sub
+
+
 def preprocess_row_sums(fovs, channels, base_dir, pre_dir='pixel_mat_preprocessed'):
     """Divide each row in the pixel matrices per fov by their sum
 
@@ -42,21 +77,10 @@ def preprocess_row_sums(fovs, channels, base_dir, pre_dir='pixel_mat_preprocesse
         pixel_data = feather.read_dataframe(os.path.join(preprocessed_path,
                                                          fov + '.feather'))
 
-        # subset the fov data by the channels the user trained the pixel SOM on
-        pixel_data_sub = pixel_data[channels]
-
-        # remove rows that sum to 0
-        pixel_data_sub = pixel_data_sub.loc[(pixel_data_sub != 0).any(1), :]
-
-        # divide each row by their sum
-        pixel_data_sub = pixel_data_sub.div(pixel_data_sub.sum(axis=1), axis=0)
-
-        # add back meta columns
-        meta_cols = ['fov', 'row_index', 'column_index', 'segmentation_label']
-        pixel_data_sub[meta_cols] = pixel_data[meta_cols]
+        pixel_data = normalize_rows(pixel_data, channels)
 
         # write the normalized data
-        feather.write_dataframe(pixel_data_sub,
+        feather.write_dataframe(pixel_data,
                                 os.path.join(preprocessed_path, fov + '_norm.feather'),
                                 compression='uncompressed')
 
@@ -288,7 +312,7 @@ def create_fov_pixel_data(fov, channels, img_data, seg_labels,
     return pixel_mat, pixel_mat_subset
 
 
-def create_pixel_matrix(fovs, base_dir, tiff_dir, seg_dir,
+def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
                         pre_dir='pixel_mat_preprocessed',
                         sub_dir='pixel_mat_subsetted', is_mibitiff=False,
                         blur_factor=2, subset_proportion=0.1, seed=42):
@@ -299,6 +323,8 @@ def create_pixel_matrix(fovs, base_dir, tiff_dir, seg_dir,
     Args:
         fovs (list):
             List of fovs to subset over
+        channels (list):
+            List of channels to subset over, applies only to pixel_mat_subset
         base_dir (str):
             The path to the data directories
         tiff_dir (str):
@@ -350,6 +376,12 @@ def create_pixel_matrix(fovs, base_dir, tiff_dir, seg_dir,
                 tiff_dir, fovs=[fov], dtype="int16"
             )
 
+        # ensure the provided channels will actually exist in pixel_mat_subset
+        misc_utils.verify_in_list(
+            provided_chans=channels,
+            pixel_mat_chans=img_xr.channels.values
+        )
+
         # load segmentation labels in for fov
         seg_labels = imread(os.path.join(seg_dir, fov + '_feature_0.tif'))
 
@@ -361,6 +393,9 @@ def create_pixel_matrix(fovs, base_dir, tiff_dir, seg_dir,
             fov=fov, channels=img_xr.channels.values, img_data=img_data, seg_labels=seg_labels,
             blur_factor=blur_factor, subset_proportion=subset_proportion, seed=seed
         )
+
+        # for the subsetted data, normalize the row sums over subsetted channels
+        pixel_mat_subset = normalize_rows(pixel_mat_subset, channels)
 
         # write complete dataset to feather, needed for cluster assignment
         feather.write_dataframe(pixel_mat,
