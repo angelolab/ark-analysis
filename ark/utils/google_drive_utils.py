@@ -33,10 +33,13 @@ SERVICE = None
 
 def _gen_enckey(pw):
     pw = pw.encode()
+    with open('/home/.toks/.s.txt', 'rb') as f:
+        s = f.read()
+
     kdf = PBKDF2HMAC(
         algorithm=hashes.SHA256(),
         length=32,
-        salt=b'.\x03\x95d\x19\xc3o(L\xc3T\x12\xfd \xb1\x95',
+        salt=s,
         iterations=100000,
         backend=default_backend()
     )
