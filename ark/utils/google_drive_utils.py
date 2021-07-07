@@ -2,6 +2,7 @@ import os
 import json
 import io
 import shutil
+import warnings
 
 import pandas as pd
 
@@ -53,7 +54,7 @@ def _decrypt_cred_data(data, pw):
     try:
         data_out = fernet.decrypt(data)
     except InvalidToken:
-        print("Invalid Key - Could not retrieve credentials...")
+        raise ValueError("Invalid Key - Could not decrypt credentials...")
 
     if data_out is not None:
         data_out = json.loads(data_out)
@@ -114,8 +115,7 @@ def init_google_drive_api(auth_pw):
 def _validate(path_string):
     global SERVICE
     if path_string[0] != '/':
-        print('Invalid path provided.  Please use the format: /path/to/folder')
-        return None, None
+        raise ValueError('Invalid path provided.  Please use the format: /path/to/folder')
 
     parents = path_string.split('/')[1:-1]
     ids = ['root']
@@ -133,8 +133,8 @@ def _validate(path_string):
 
         files = response.get('files', [])
         if len(files) == 0:
-            print(f'Could not find the folder {parent} in parent folder {parents[i - 1]}...')
-            return None, None
+            raise FileNotFoundError(f'Could not find the folder {parent} in parent folder ' +
+                                    f'{parents[i - 1]}...')
 
         # if shortcut, get target id
         if files[0].get('shortcutDetails', None) is not None:
@@ -169,10 +169,11 @@ class GoogleDrivePath(object):
         self.bad_service = False
         global SERVICE
         if self._service_check():
-            print("""
-            Warning: Please call `init_google_drive_api` with the appropriate password, in order to
-                     use GoogleDrivePath's.
-            """)
+            warnings.warn(
+                """Please call `init_google_drive_api` with the appropriate password, in
+                   order to use GoogleDrivePath objects...""",
+                UserWarning
+            )
             self.bad_service = True
             self.path_string = None
             self.parent_id_map = {}
@@ -259,7 +260,8 @@ class GoogleDrivePath(object):
                 False.
         """
         if self._service_check() or self.fileID is None:
-            return
+            raise FileNotFoundError(f"The path '{self.path_string}' does not exist, so it cannot" +
+                                    " be cloned")
 
         if clear_dest and os.path.exists(dest):
             shutil.rmtree(dest)
@@ -274,11 +276,10 @@ class GoogleDrivePath(object):
             os.mkdir(dest)
 
         elif not overwrite:
-            print(
-                f"Warning: The path '{dest}' already exists. If you wish to overwrite/update files"
+            raise FileExistsError(
+                f"The path '{dest}' already exists. If you wish to overwrite/update files"
                 + " here, please pass the argument `overwrite=True`"
             )
-            return
 
         fname, fdata = self.get_name_and_data()
         if fdata is None:
@@ -312,19 +313,19 @@ class GoogleDrivePath(object):
             self._service_check()
             or set(list(self.parent_id_map.keys())[1:]) != set(self.path_parents())
         ):
-            return
+            raise FileNotFoundError(f"The path {self.path_string} contains folders which do not " +
+                                    "exist...")
 
         if not os.path.exists(src):
-            print()
-            return
+            raise FileNotFoundError(f"The path '{src}' does not exist...")
 
         if self.fileID is None:
             if not self.mkdir():
                 self.write(src)
                 return
         elif not overwrite:
-            print(
-                f"Warning: The Drive path '{self.path_string}' already exists. If you wish to"
+            raise FileExistsError(
+                f"The Drive path '{self.path_string}' already exists. If you wish to"
                 + " overwrite/update files, please pass the argument `overwrite=True`"
             )
 
@@ -351,7 +352,8 @@ class GoogleDrivePath(object):
             BytesIO: file data bytes.
         """
         if self._service_check() or self.fileID is None:
-            return None
+            raise FileNotFoundError(f"The path '{self.path_string}' does not exist, so it cannot" +
+                                    " be read")
 
         global SERVICE
         request = SERVICE.files().get_media(fileId=self.fileID)
@@ -380,7 +382,8 @@ class GoogleDrivePath(object):
             data = self.read()
             if data is not None:
                 return pd.read_csv(data, **kwargs)
-        return None
+        else:
+            raise ValueError(f"{self.path_string} is not a csv file...")
 
     def write(self, data, overwrite=False):
         """ Writes file data or data from file path to provided Drive file.
@@ -397,10 +400,14 @@ class GoogleDrivePath(object):
             self._service_check()
             or set(list(self.parent_id_map.keys())[1:]) != set(self.path_parents())
         ):
-            return
+            raise FileNotFoundError(f"The path {self.path_string} contains folders which do not " +
+                                    "exist...")
 
         if self.fileID is not None and not overwrite:
-            return
+            raise FileExistsError(
+                f"The Drive path '{self.path_string}' already exists. If you wish to"
+                + " overwrite/update files, please pass the argument `overwrite=True`"
+            )
 
         mtype = mimetypes.types_map.get(
             '.' + self.filename().split('.')[-1],
@@ -413,9 +420,10 @@ class GoogleDrivePath(object):
                 'application/octet-stream'
             )
             if data_mtype != mtype:
-                print(
+                warnings.warn(
                     f'Warning: local MimeType {data_mtype} does not match with Drive file of '
-                    + f'MimeType: {mtype} ...'
+                    + f'MimeType: {mtype} ...',
+                    UserWarning
                 )
 
         global SERVICE
@@ -439,17 +447,17 @@ class GoogleDrivePath(object):
         else:
             response = SERVICE.files().get(fileId=self.fileID).execute()
             if response.get('mimeType') == _FOLDER_MIME:
-                print(
+                raise IsADirectoryError(
                     f'This path {self.path_string} points to a folder...\n'
                     + 'Please create a new path to a new file, for example:\n'
                     + '    new_filepath = this_filepath / "example.txt"'
                 )
-                return
 
             if response.get('mimeType') != mtype:
-                print(
+                warnings.warn(
                     f"Warning: extension inferred mimeType '{mtype}' doesn't match Drive's "
-                    + f"'{response.get('mimeType')}'"
+                    + f"'{response.get('mimeType')}'",
+                    UserWarning
                 )
 
             if type(data) is str:
