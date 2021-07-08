@@ -25,17 +25,17 @@ def _exec_notebook(nb_filename):
         subprocess.check_call(args)
 
 
-# test runs with default inputs
-def test_segment_image_data():
-    _exec_notebook('Segment_Image_Data.ipynb')
+# # test runs with default inputs
+# def test_segment_image_data():
+#     _exec_notebook('Segment_Image_Data.ipynb')
 
 
-def test_example_spatial_analysis():
-    _exec_notebook('example_spatial_analysis_script.ipynb')
+# def test_example_spatial_analysis():
+#     _exec_notebook('example_spatial_analysis_script.ipynb')
 
 
-def test_example_neighborhood_analysis():
-    _exec_notebook('example_neighborhood_analysis_script.ipynb')
+# def test_example_neighborhood_analysis():
+#     _exec_notebook('example_neighborhood_analysis_script.ipynb')
 
 
 # test mibitiff segmentation
@@ -65,6 +65,12 @@ def test_segment_image_data_mibitiff(tb):
             fovs=['fov0_otherinfo-MassCorrected-Filtered', 'fov1-MassCorrected-Filtered'],
             deepcell_output_dir=output_dir,
             delimiter="_feature_0")
+
+        # generate _feature_1 tif files that would normally be handled by create_deepcell_output
+        notebooks_test_utils.generate_sample_feature_tifs(
+            fovs=['fov0', 'fov1'],
+            deepcell_output_dir=output_dir,
+            delimiter="_feature_1")
 
         # run the segmentation labels saving and summed channel overlay processes
         notebooks_test_utils.save_seg_labels(tb, xr_channel_names=['whole_cell', 'nuclear'])
@@ -101,6 +107,12 @@ def test_segment_image_data_folder(tb):
             fovs=['fov0', 'fov1'],
             deepcell_output_dir=output_dir,
             delimiter="_feature_0")
+
+        # generate _feature_1 tif files that would normally be handled by create_deepcell_output
+        notebooks_test_utils.generate_sample_feature_tifs(
+            fovs=['fov0', 'fov1'],
+            deepcell_output_dir=output_dir,
+            delimiter="_feature_1")
 
         # run the segmentation labels saving and summed channel overlay processes
         notebooks_test_utils.save_seg_labels(tb, xr_channel_names=['whole_cell', 'nuclear'])
