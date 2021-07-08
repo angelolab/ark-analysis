@@ -335,8 +335,8 @@ def generate_sample_feature_tifs(fovs, deepcell_output_dir, img_shape=(50, 50), 
         io.imsave(os.path.join(deepcell_output_dir, file_name), rand_img)
 
 
-def save_seg_labels(tb, delimiter='_feature_0', xr_dim_name='compartments',
-                    xr_channel_names=None, force_ints=True):
+def save_seg_labels(tb, delimiter='_feature_0', nuc_delimiter='_feature_1',
+                    xr_dim_name='compartments', xr_channel_names=None, force_ints=True):
     """Processes and saves the generated segmentation labels and runs the summed channel overlay
 
     Args:
@@ -353,21 +353,58 @@ def save_seg_labels(tb, delimiter='_feature_0', xr_dim_name='compartments',
     """
 
     delimiter_str = delimiter if delimiter is not None else "None"
-    xr_channel_names_str = str(xr_channel_names) if xr_channel_names is not None else "None"
+    xr_channel_names_str = str(xr_channel_names[0]) if xr_channel_names is not None else "None"
 
-    # load the segmentation label with the proper command
-    load_seg_cmd = """
-        segmentation_labels = load_utils.load_imgs_from_dir(
+    # load the cell segmentation labels with the proper command
+    load_seg_cell_cmd = """
+        segmentation_labels_cell = load_utils.load_imgs_from_dir(
             data_dir=deepcell_output_dir,
-            delimiter="%s",
+            trim_suffix="%s",
+            match_substring="%s",
             xr_dim_name="%s",
-            xr_channel_names=%s,
+            xr_channel_names=["%s"],
             force_ints=%s
         )
+
     """ % (delimiter_str,
+           delimiter_str,
            xr_dim_name,
-           xr_channel_names,
+           xr_channel_names_str,
            str(force_ints))
+
+    nuc_delimiter_str = nuc_delimiter if nuc_delimiter is not None else "None"
+    nuc_xr_channel_names_str = str(xr_channel_names[1]) if xr_channel_names is not None else "None"
+
+    # load the nuclear segmentation labels with the proper command
+    load_seg_nuc_cmd = """
+        segmentation_labels_nuc = load_utils.load_imgs_from_dir(
+            data_dir=deepcell_output_dir,
+            trim_suffix="%s",
+            match_substring="%s",
+            xr_dim_name="%s",
+            xr_channel_names=["%s"],
+            force_ints=%s
+        )
+
+    """ % (nuc_delimiter_str,
+           nuc_delimiter_str,
+           xr_dim_name,
+           nuc_xr_channel_names_str,
+           str(force_ints))
+
+    combine_cell_nuc_cmd = """
+        segmentation_labels = xr.DataArray(
+            np.concatenate(
+                (segmentation_labels_cell.values, segmentation_labels_nuc.values),
+                axis=-1),
+            coords=[segmentation_labels_cell.fovs, segmentation_labels_cell.rows,
+                    segmentation_labels_cell.cols, ["%s", "%s"]],
+            dims=segmentation_labels_cell.dims
+        )
+
+    """ % (xr_channel_names_str, nuc_xr_channel_names_str)
+
+    load_seg_cmd = load_seg_cell_cmd + load_seg_nuc_cmd + combine_cell_nuc_cmd
     tb.inject(load_seg_cmd, after='load_seg_labels')
 
     tb.execute_cell('save_seg_labels')
@@ -378,7 +415,7 @@ def save_seg_labels(tb, delimiter='_feature_0', xr_dim_name='compartments',
     tb.execute_cell('save_mask')
 
 
-def create_exp_mat(tb, is_mibitiff=False, batch_size=5):
+def create_exp_mat(tb, is_mibitiff=False, batch_size=5, nuclear_counts=False):
     """Creates the expression matrices from the generated segmentation labels
 
     Args:
@@ -397,8 +434,9 @@ def create_exp_mat(tb, is_mibitiff=False, batch_size=5):
                                                       img_sub_folder="TIFs",
                                                       is_mibitiff=%s,
                                                       fovs=fovs,
-                                                      batch_size=%s)
-    """ % (is_mibitiff, str(batch_size))
+                                                      batch_size=%s,
+                                                      nuclear_counts=%s)
+    """ % (is_mibitiff, str(batch_size), nuclear_counts)
     tb.inject(exp_mat_gen)
 
     # save expression matrix
