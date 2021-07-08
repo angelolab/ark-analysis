@@ -86,27 +86,31 @@ def _parse_base_query(bq, funcs=None, base_dir=None):
         return OPERATOR_KEY[operator](query_term, values)
 
 
-def _parse_full_query(q: str, funcs=None, base_dir=None):
+def _parse_full_query(q: str, funcs=None, base_dir=None, var_count=0):
     base_queries = re.findall('\\([^\\(\\)]*\\)', q)
 
     # trim parentheses
     base_queries_trimmed = [bq[1:-1] for bq in base_queries]
 
     results = dict(zip(
-        ['$' + str(i) for i in range(len(base_queries))],
+        ['$' + str(i + var_count) for i in range(len(base_queries))],
         [_parse_base_query(bq, funcs, base_dir=base_dir) for bq in base_queries_trimmed]
     ))
 
+    if funcs is not None:
+        results.update(funcs)
+
     q_reduced = q
     for i, bq in enumerate(base_queries):
-        q_reduced = q_reduced.replace(bq, '$' + str(i))
+        q_reduced = q_reduced.replace(bq, '$' + str(i + var_count))
 
     q_reduced_split = [term for term in q_reduced.split(' ') if term != '']
 
     if len(q_reduced_split) == 1:
-        return results['$0']
+        return results['$' + str(i + var_count)]
     else:
-        return _parse_full_query(q_reduced, funcs=results, base_dir=base_dir)
+        return _parse_full_query(q_reduced, funcs=results, base_dir=base_dir,
+                                 var_count=len(base_queries) + var_count)
 
 
 def _parse_base_field(bf, dicts=None):
