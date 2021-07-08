@@ -25,17 +25,17 @@ def _exec_notebook(nb_filename):
         subprocess.check_call(args)
 
 
-# # test runs with default inputs
-# def test_segment_image_data():
-#     _exec_notebook('Segment_Image_Data.ipynb')
+# test runs with default inputs
+def test_segment_image_data():
+    _exec_notebook('Segment_Image_Data.ipynb')
 
 
-# def test_example_spatial_analysis():
-#     _exec_notebook('example_spatial_analysis_script.ipynb')
+def test_example_spatial_analysis():
+    _exec_notebook('example_spatial_analysis_script.ipynb')
 
 
-# def test_example_neighborhood_analysis():
-#     _exec_notebook('example_neighborhood_analysis_script.ipynb')
+def test_example_neighborhood_analysis():
+    _exec_notebook('example_neighborhood_analysis_script.ipynb')
 
 
 # test mibitiff segmentation
