@@ -415,7 +415,7 @@ def create_marker_count_matrices(segmentation_labels, image_data, nuclear_counts
 
 def generate_cell_table(segmentation_labels, tiff_dir, img_sub_folder,
                         is_mibitiff=False, fovs=None, batch_size=5, dtype="int16",
-                        extraction='total_intensity', **kwargs):
+                        extraction='total_intensity', nuclear_counts=False, **kwargs):
     """This function takes the segmented data and computes the expression matrices batch-wise
     while also validating inputs
 
@@ -436,12 +436,15 @@ def generate_cell_table(segmentation_labels, tiff_dir, img_sub_folder,
         dtype (str/type):
             data type of base images
         extraction (str):
-            extraction function used to compute marker counts.
+            extraction function used to compute marker counts
+        nuclear_counts (bool):
+            boolean flag to determine whether nuclear counts are returned, note that if
+            set to True, the compartments coordinate in segmentation_labels must contain 'nuclear'
         **kwargs:
             arbitrary keyword arguments for signal and regionprops extraction
 
     Returns:
-        tuple (pandas.DataFrame, pandas.DataFrame):å
+        tuple (pandas.DataFrame, pandas.DataFrame):
         - size normalized data
         - arcsinh transformed data
     """
@@ -503,6 +506,7 @@ def generate_cell_table(segmentation_labels, tiff_dir, img_sub_folder,
             segmentation_labels=current_labels,
             image_data=image_data,
             extraction=extraction,
+            nuclear_counts=nuclear_counts,
             **kwargs
         )
 
