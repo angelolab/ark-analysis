@@ -107,7 +107,7 @@ def test_segment_image_data_folder(tb):
 
         # create the expression matrix
         notebooks_test_utils.create_exp_mat(tb)
-        
+
         # create the expression matrix with nuclear counts
         notebooks_test_utils.create_exp_mat(tb, nuclear_counts=True)
 
