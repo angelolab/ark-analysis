@@ -66,6 +66,12 @@ def test_segment_image_data_mibitiff(tb):
             deepcell_output_dir=output_dir,
             delimiter="_feature_0")
 
+        # generate _feature_1 tif files that would normally be handled by create_deepcell_output
+        notebooks_test_utils.generate_sample_feature_tifs(
+            fovs=['fov0', 'fov1'],
+            deepcell_output_dir=output_dir,
+            delimiter="_feature_1")
+
         # run the segmentation labels saving and summed channel overlay processes
         notebooks_test_utils.save_seg_labels(tb, xr_channel_names=['whole_cell', 'nuclear'])
 
@@ -101,6 +107,12 @@ def test_segment_image_data_folder(tb):
             fovs=['fov0', 'fov1'],
             deepcell_output_dir=output_dir,
             delimiter="_feature_0")
+
+        # generate _feature_1 tif files that would normally be handled by create_deepcell_output
+        notebooks_test_utils.generate_sample_feature_tifs(
+            fovs=['fov0', 'fov1'],
+            deepcell_output_dir=output_dir,
+            delimiter="_feature_1")
 
         # run the segmentation labels saving and summed channel overlay processes
         notebooks_test_utils.save_seg_labels(tb, xr_channel_names=['whole_cell', 'nuclear'])
