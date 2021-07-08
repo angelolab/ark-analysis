@@ -262,6 +262,14 @@ def test_save_segmentation_labels():
             io.imsave(os.path.join(temp_dir, '%s_feature_0.tif' % fov), fov_whole_cell)
             io.imsave(os.path.join(temp_dir, '%s_feature_1.tif' % fov), fov_nuclear)
 
+        # invalid channel values passed
+        with pytest.raises(ValueError):
+            segmentation_utils.save_segmentation_labels(
+                segmentation_dir=temp_dir, data_dir=img_dir, output_dir=temp_dir,
+                fovs=fov_sub, channels=['bad_chan']
+            )
+
+        # test segmentation with channel overlay
         segmentation_utils.save_segmentation_labels(
             segmentation_dir=temp_dir, data_dir=img_dir, output_dir=temp_dir,
             fovs=fov_sub, channels=chan_sub

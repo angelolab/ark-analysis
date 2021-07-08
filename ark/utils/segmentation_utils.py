@@ -230,12 +230,15 @@ def save_segmentation_labels(segmentation_dir, data_dir, output_dir,
 
         # generate the channel overlay if specified
         if channels is not None:
+            # chans needs to be a numpy array so *chans.astype('str') can work properly
+            chans = np.array(channels)
+
             # create a channel overlay for the fov with the provided channels
             channel_overlay = plot_utils.create_overlay(
                 fov=fov, segmentation_dir=segmentation_dir, data_dir=data_dir,
-                img_overlay_chans=channels, seg_overlay_comp='whole_cell'
+                img_overlay_chans=chans, seg_overlay_comp='whole_cell'
             )
 
             # save the channel overlay
-            save_path = '_'.join([f'{fov}', *channels.astype('str'), 'overlay.tiff'])
+            save_path = '_'.join([f'{fov}', *chans.astype('str'), 'overlay.tiff'])
             io.imsave(os.path.join(output_dir, save_path), channel_overlay)

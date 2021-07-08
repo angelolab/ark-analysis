@@ -173,6 +173,7 @@ def overlay_mask(tb, channels=None):
                 channels=%s
             )
         """ % str(channels)
+        tb.inject(save_seg, after='save_mask')
     else:
         tb.execute_cell('save_mask')
 

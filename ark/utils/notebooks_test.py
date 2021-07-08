@@ -68,7 +68,7 @@ def test_segment_image_data_mibitiff(tb):
         notebooks_test_utils.overlay_mask(tb)
 
         # saves the segmentation mask overlay with channels
-        notebooks_test_utils.overlay_mask(tb, channels=['chan0', 'chan1'])
+        notebooks_test_utils.overlay_mask(tb, channels=['nuclear_channel', 'membrane_channel'])
 
         # create the expression matrix
         notebooks_test_utils.create_exp_mat(tb, is_mibitiff=True)
@@ -106,7 +106,7 @@ def test_segment_image_data_folder(tb):
         notebooks_test_utils.overlay_mask(tb)
 
         # saves the segmentation mask overlay with channels
-        notebooks_test_utils.overlay_mask(tb, channels=['chan0', 'chan1'])
+        notebooks_test_utils.overlay_mask(tb, channels=['nuclear_channel', 'membrane_channel'])
 
         # create the expression matrix
         notebooks_test_utils.create_exp_mat(tb)
