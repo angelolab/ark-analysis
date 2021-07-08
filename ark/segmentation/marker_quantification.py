@@ -522,10 +522,6 @@ def generate_cell_table(segmentation_dir, tiff_dir, img_sub_folder="TIFs",
                                               ['whole_cell', 'nuclear']],
                                       dims=current_labels_cell.dims)
 
-        # check segmentation_labels for given fovs (img loaders will fail otherwise)
-        misc_utils.verify_in_list(fovs=batch_names,
-                                  segmentation_labels_fovs=current_labels['fovs'].values)
-
         # segment the imaging data
         cell_table_size_normalized, cell_table_arcsinh_transformed = create_marker_count_matrices(
             segmentation_labels=current_labels,

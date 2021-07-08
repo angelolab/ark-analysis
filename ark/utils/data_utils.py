@@ -78,7 +78,7 @@ def relabel_segmentation(labeled_image, labels_dict):
 
 
 # TODO: Add metadata for channel name (eliminates need for fixed-order channels)
-def generate_deepcell_input(data_dir, tiff_dir, nuc_channels, mem_channels, fovs, channels,
+def generate_deepcell_input(data_dir, tiff_dir, nuc_channels, mem_channels, fovs,
                             is_mibitiff=False, img_sub_folder="TIFs", batch_size=5):
     """Saves nuclear and membrane channels into deepcell input format.
     Either nuc_channels or mem_channels should be specified.
@@ -96,8 +96,6 @@ def generate_deepcell_input(data_dir, tiff_dir, nuc_channels, mem_channels, fovs
             membrane channels to be summed over
         fovs (list):
             list of folders to or MIBItiff files to load imgs from
-        channels (list):
-            list of channels to subset each fov on
         is_mibitiff (bool):
             if the images are of type MIBITiff
         img_sub_folder (str):
@@ -113,6 +111,12 @@ def generate_deepcell_input(data_dir, tiff_dir, nuc_channels, mem_channels, fovs
     # cannot have no nuclear and no membrane channels
     if not nuc_channels and not mem_channels:
         raise ValueError('Either nuc_channels or mem_channels should be non-empty.')
+
+    # define the channels list by combining nuc_channels and mem_channels
+    channels = (nuc_channels if nuc_channels else []) + (mem_channels if mem_channels else [])
+
+    # filter channels for None (just in case)
+    channels = [channel for channel in channels if channel is not None]
 
     # define a list of fov batches to process over
     fov_batches = [fovs[i:i + batch_size] for i in range(0, len(fovs), batch_size)]

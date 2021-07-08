@@ -119,13 +119,10 @@ def fov_channel_input_set(tb, fovs=None, nucs_list=None, mems_list=None, is_mibi
     """ % (nucs_list_str, mems_list_str)
     tb.inject(nuc_mem_set, after='nuc_mem_set')
 
-    # set the channels accordingly
-    tb.execute_cell('set_channels')
-
     # generate the deepcell input files, explicitly set is_mibitiff if True
     mibitiff_deepcell = """
         data_utils.generate_deepcell_input(
-            deepcell_input_dir, tiff_dir, nucs, mems, fovs, channels,
+            deepcell_input_dir, tiff_dir, nucs, mems, fovs,
             is_mibitiff=%s, img_sub_folder="TIFs", batch_size=5
         )
     """ % str(is_mibitiff)
