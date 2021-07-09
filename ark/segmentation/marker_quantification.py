@@ -426,6 +426,7 @@ def generate_cell_table(segmentation_dir, tiff_dir, img_sub_folder="TIFs",
             the name of the directory which contains the single_channel_inputs
         img_sub_folder (str):
             the name of the folder where the TIF images are located
+            ignored if is_mibitiff is True
         fovs (list):
             a list of fovs we wish to analyze, if None will default to all fovs
         is_mibitiff (bool):
