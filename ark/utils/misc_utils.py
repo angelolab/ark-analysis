@@ -148,10 +148,12 @@ def verify_in_list(**kwargs):
         raise ValueError(err_str % (test_list_name, bad_vals, good_values_name))
 
 
-def verify_same_elements(**kwargs):
+def verify_same_elements(enforce_order=False, **kwargs):
     """Verify if two lists contain the same elements regardless of count
 
     Args:
+        enforce_order (bool):
+            Whether to also check for the same ordering between the two lists
         **kwargs (list, list):
             Two lists
 
@@ -161,7 +163,7 @@ def verify_same_elements(**kwargs):
     """
 
     if len(kwargs) != 2:
-        raise ValueError("You must provide 2 arguments to verify_same_elements")
+        raise ValueError("You must provide 2 list arguments to verify_same_elements")
 
     list_one, list_two = kwargs.values()
 
@@ -171,13 +173,31 @@ def verify_same_elements(**kwargs):
     except TypeError:
         raise ValueError("Both arguments provided must be lists or list types")
 
-    if not np.all(set(list_one_cast) == set(list_two_cast)):
-        bad_vals = ','.join([str(val) for val in set(list_one_cast) ^ set(list_two_cast)])
-        list_one_name, list_two_name = kwargs.keys()
-        list_one_name = list_one_name.replace('_', ' ')
-        list_two_name = list_two_name.replace('_', ' ')
+    list_one_name, list_two_name = kwargs.keys()
 
-        err_str = ("Invalid value(s) provided in both %s and %s variables: value(s)"
-                   " %s not found in both lists")
+    if enforce_order:
+        if len(list_one_cast) != len(list_two_cast):
+            err_str = ("Lists %s and %s have differing lengths")
 
-        raise ValueError(err_str % (list_one_name, list_two_name, bad_vals))
+            raise ValueError(err_str % (list_one_name, list_two_name))
+        elif not all(list_one_cast[i] == list_two_cast[i] for i in range(len(list_one_cast))):
+            first_bad_index = next(i for i, (l1, l2) in enumerate(
+                zip(list_one_cast, list_two_cast)) if l1 != l2
+            )
+
+            err_str = ("Lists %s and %s ordered differently: values %s and %s do not match"
+                       " at index %d")
+            raise ValueError(err_str % (list_one_name, list_two_name,
+                                        list_one_cast[first_bad_index],
+                                        list_two_cast[first_bad_index],
+                                        first_bad_index))
+    else:
+        if not np.all(set(list_one_cast) == set(list_two_cast)):
+            bad_vals = ','.join([str(val) for val in set(list_one_cast) ^ set(list_two_cast)])
+            list_one_name = list_one_name.replace('_', ' ')
+            list_two_name = list_two_name.replace('_', ' ')
+
+            err_str = ("Invalid value(s) provided in both %s and %s variables: value(s)"
+                       " %s not found in both lists")
+
+            raise ValueError(err_str % (list_one_name, list_two_name, bad_vals))

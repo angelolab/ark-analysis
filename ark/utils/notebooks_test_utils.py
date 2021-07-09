@@ -151,9 +151,10 @@ def flowsom_setup(tb, flowsom_dir, img_shape=(50, 50), num_fovs=3, num_chans=3,
         tb.inject("MIBItiff = True", after='mibitiff_set')
 
 
-def flowsom_run(tb, fovs, channels, cluster_dir='som_clustered_dir',
-                consensus_dir='consensus_clustered_dir', is_mibitiff=False):
-    """Run the FlowSOM clustering
+def flowsom_pixel_run(tb, fovs, channels, pixel_cluster_dir='som_clustered_dir',
+                      pixel_consensus_dir='consensus_clustered_dir',
+                      pixel_weights_name='pixel_weights.feather', is_mibitiff=False):
+    """Run the FlowSOM pixel-level clustering
 
     Args:
         tb (testbook.testbook):
@@ -162,10 +163,12 @@ def flowsom_run(tb, fovs, channels, cluster_dir='som_clustered_dir',
             The list of fovs
         channels (list):
             The list of channels
-        cluster_dir (str):
+        pixel_cluster_dir (str):
             The name of the directory to write the clustered data
-        consensus_dir (str):
+        pixel_consensus_dir (str):
             Name of directory to save the consensus clustered results
+        pixel_weights_name (str):
+            Name of the file to store the pixel SOM weights
         is_mibitiff (bool):
             Whether we're working with mibitiff im
     """
@@ -177,11 +180,15 @@ def flowsom_run(tb, fovs, channels, cluster_dir='som_clustered_dir',
         # handles the case when the user allows list_files or list_folders to do the fov loading
         tb.execute_cell('load_fovs')
 
+    # sets the channels to include
+    tb.inject("channels = %s" % str(channels), after='channel_set')
+
     # test the preprocessing works, we won't save nor run the actual FlowSOM clustering
     if is_mibitiff:
         mibitiff_preprocess = """
             som_utils.create_pixel_matrix(
-                fovs, base_dir, tiff_dir, segmentation_dir, is_mibitiff=True, seed=seed
+                fovs, channels, base_dir, tiff_dir, segmentation_dir,
+                pre_dir=preprocessed_dir, sub_dir=subsetted_dir, is_mibitiff=True, seed=seed
             )
         """
 
@@ -191,27 +198,25 @@ def flowsom_run(tb, fovs, channels, cluster_dir='som_clustered_dir',
 
     # sets the paths to the SOM cluster assignments and the consensus cluster assignments
     define_som_paths = """
-        som_clustered_dir = '%s'
-        consensus_clustered_dir = '%s'
-    """ % (cluster_dir, consensus_dir)
+        pixel_cluster_dir = '%s'
+        pixel_consensus_dir = '%s'
+        pixel_weights_name = '%s'
+    """ % (pixel_cluster_dir, pixel_consensus_dir, pixel_weights_name)
     tb.inject(define_som_paths, after='som_path_set')
-
-    # sets the channels to include
-    tb.inject("channels = %s" % str(channels), after='set_channels')
 
     # create a dummy weights feather
     dummy_weights = """
         import feather
         weights = pd.DataFrame(np.random.rand(100, len(channels)), columns=channels)
 
-        feather.write_dataframe(weights, os.path.join(base_dir, 'weights.feather'))
+        feather.write_dataframe(weights, os.path.join(base_dir, pixel_weights_name))
     """
     tb.inject(dummy_weights, after='train_som')
 
     # create dummy clustered feathers for each fov
     cluster_setup = """
-        if not os.path.exists(os.path.join(base_dir, som_clustered_dir)):
-            os.mkdir(os.path.join(base_dir, som_clustered_dir))
+        if not os.path.exists(os.path.join(base_dir, pixel_cluster_dir)):
+            os.mkdir(os.path.join(base_dir, pixel_cluster_dir))
     """
     tb.inject(cluster_setup, after='cluster_pixel_mat')
 
@@ -224,7 +229,7 @@ def flowsom_run(tb, fovs, channels, cluster_dir='som_clustered_dir',
             sample_df['clusters'] = np.random.randint(0, 100, size=100)
 
             feather.write_dataframe(sample_df, os.path.join(base_dir,
-                                                            som_clustered_dir,
+                                                            pixel_cluster_dir,
                                                             '%s' + '.feather'))
         """ % (str(channels), fov, fov)
 
@@ -232,8 +237,8 @@ def flowsom_run(tb, fovs, channels, cluster_dir='som_clustered_dir',
 
     # create dummy clustered feathers for each fov
     consensus_setup = """
-        if not os.path.exists(os.path.join(base_dir, consensus_clustered_dir)):
-            os.mkdir(os.path.join(base_dir, consensus_clustered_dir))
+        if not os.path.exists(os.path.join(base_dir, pixel_consensus_dir)):
+            os.mkdir(os.path.join(base_dir, pixel_consensus_dir))
     """
     tb.inject(consensus_setup, after='consensus_cluster')
 
@@ -244,7 +249,7 @@ def flowsom_run(tb, fovs, channels, cluster_dir='som_clustered_dir',
             sample_consensus['hCluster_cap'] = np.repeat(np.arange(20), repeats=5)
 
             feather.write_dataframe(sample_consensus, os.path.join(base_dir,
-                                                                   consensus_clustered_dir,
+                                                                   pixel_consensus_dir,
                                                                    '%s' + '.feather'))
         """ % fov
 

@@ -1,6 +1,6 @@
 # Assigns cluster labels to pixel data using a trained SOM weights matrix
 
-# Usage: Rscript {fovs} {markers} {pixelMatDir} {pixelWeightsPath} {pixelClusterDir} {batchSize}
+# Usage: Rscript run_pixel_som.R {fovs} {markers} {pixelMatDir} {normValsPath} {pixelWeightsPath} {pixelClusterDir}
 
 # - fovs: list of fovs to cluster
 # - markers: list of channel columns to use
@@ -44,7 +44,8 @@ markers <- colnames(somWeights)
 print("Mapping data to cluster labels")
 for (i in 1:length(fovs)) {
     # read in pixel data
-    fileName <- file.path(fovs[i], "feather", fsep=".")
+    fovName <- file.path(fovs[i], "norm", fsep="_")
+    fileName <- file.path(fovName, "feather", fsep=".")
     matPath <- file.path(pixelMatDir, fileName)
     fovPixelData <- arrow::read_feather(matPath)
 
@@ -57,7 +58,7 @@ for (i in 1:length(fovs)) {
     }
 
     # map FlowSOM data
-    clusters <- FlowSOM:::MapDataToCodes(somWeights, as.matrix(fovPixelData[, markers]))
+    clusters <- FlowSOM:::MapDataToCodes(somWeights, as.matrix(fovPixelData[,markers]))
 
     # assign cluster labels column to pixel data
     fovPixelData$cluster <- clusters[,1]

@@ -153,4 +153,8 @@ def test_flowsom_cluster_folder(tb):
         notebooks_test_utils.flowsom_setup(tb, flowsom_dir=base_dir)
 
         # run the FlowSOM preprocessing and clustering
-        notebooks_test_utils.flowsom_run(tb, fovs=['fov0', 'fov1'], channels=['chan0', 'chan1'])
+        notebooks_test_utils.flowsom_pixel_run(
+            tb, fovs=['fov0', 'fov1'], channels=['chan0', 'chan1']
+        )
+
+        # TODO: see what Brian discovers about R testing, then add cell clustering tests
