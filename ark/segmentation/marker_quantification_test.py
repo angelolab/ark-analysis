@@ -556,17 +556,11 @@ def test_generate_cell_data_tree_loading():
         cell_masks[2, 10:, 10:, 0] = cell_mask[0, :-10, :-10, 0]
         cell_masks[..., 1] = cell_masks[..., 0]
 
-        segmentation_masks = test_utils.make_labels_xarray(
-            label_data=cell_masks,
-            compartment_names=['whole_cell', 'nuclear']
-        )
-
-        # save the segmentation masks
-        for fov in segmentation_masks.fovs.values:
-            fov_whole_cell = segmentation_masks.loc[fov, :, :, 'whole_cell'].values
-            fov_nuclear = segmentation_masks.loc[fov, :, :, 'nuclear'].values
-            io.imsave(os.path.join(temp_dir, '%s_feature_0.tif' % fov), fov_whole_cell)
-            io.imsave(os.path.join(temp_dir, '%s_feature_1.tif' % fov), fov_nuclear)
+        for fov in range(cell_masks.shape[0]):
+            fov_whole_cell = cell_masks[fov, :, :, 0]
+            fov_nuclear = cell_masks[fov, :, :, 1]
+            io.imsave(os.path.join(temp_dir, 'fov%d_feature_0.tif' % fov), fov_whole_cell)
+            io.imsave(os.path.join(temp_dir, 'fov%d_feature_1.tif' % fov), fov_nuclear)
 
         with pytest.raises(FileNotFoundError):
             # specifying fovs not in the original segmentation mask
@@ -643,17 +637,11 @@ def test_generate_cell_data_mibitiff_loading():
         cell_masks[2, 10:, 10:, 0] = cell_mask[0, :-10, :-10, 0]
         cell_masks[..., 1] = cell_masks[..., 0]
 
-        segmentation_masks = test_utils.make_labels_xarray(
-            label_data=cell_masks,
-            compartment_names=['whole_cell', 'nuclear']
-        )
-
-        # save the segmentation masks
-        for fov in segmentation_masks.fovs.values:
-            fov_whole_cell = segmentation_masks.loc[fov, :, :, 'whole_cell'].values
-            fov_nuclear = segmentation_masks.loc[fov, :, :, 'nuclear'].values
-            io.imsave(os.path.join(temp_dir, '%s_feature_0.tif' % fov), fov_whole_cell)
-            io.imsave(os.path.join(temp_dir, '%s_feature_1.tif' % fov), fov_nuclear)
+        for fov in range(cell_masks.shape[0]):
+            fov_whole_cell = cell_masks[fov, :, :, 0]
+            fov_nuclear = cell_masks[fov, :, :, 1]
+            io.imsave(os.path.join(temp_dir, 'fov%d_feature_0.tif' % fov), fov_whole_cell)
+            io.imsave(os.path.join(temp_dir, 'fov%d_feature_1.tif' % fov), fov_nuclear)
 
         # generate sample norm and arcsinh data for all fovs
         norm_data, arcsinh_data = marker_quantification.generate_cell_table(
@@ -717,17 +705,11 @@ def test_generate_cell_data_extractions():
         cell_masks[2, 10:, 10:, 0] = cell_mask[0, :-10, :-10, 0]
         cell_masks[..., 1] = cell_masks[..., 0]
 
-        segmentation_masks = test_utils.make_labels_xarray(
-            label_data=cell_masks,
-            compartment_names=['whole_cell', 'nuclear']
-        )
-
-        # save the segmentation masks
-        for fov in segmentation_masks.fovs.values:
-            fov_whole_cell = segmentation_masks.loc[fov, :, :, 'whole_cell'].values
-            fov_nuclear = segmentation_masks.loc[fov, :, :, 'nuclear'].values
-            io.imsave(os.path.join(temp_dir, '%s_feature_0.tif' % fov), fov_whole_cell)
-            io.imsave(os.path.join(temp_dir, '%s_feature_1.tif' % fov), fov_nuclear)
+        for fov in range(cell_masks.shape[0]):
+            fov_whole_cell = cell_masks[fov, :, :, 0]
+            fov_nuclear = cell_masks[fov, :, :, 1]
+            io.imsave(os.path.join(temp_dir, 'fov%d_feature_0.tif' % fov), fov_whole_cell)
+            io.imsave(os.path.join(temp_dir, 'fov%d_feature_1.tif' % fov), fov_nuclear)
 
         default_norm_data, _ = marker_quantification.generate_cell_table(
             segmentation_dir=temp_dir, tiff_dir=tiff_dir,
