@@ -44,8 +44,7 @@ markers <- colnames(somWeights)
 print("Mapping data to cluster labels")
 for (i in 1:length(fovs)) {
     # read in pixel data
-    fovName <- file.path(fovs[i], "norm", fsep="_")
-    fileName <- file.path(fovName, "feather", fsep=".")
+    fileName <- file.path(fovs[i], "feather", fsep=".")
     matPath <- file.path(pixelMatDir, fileName)
     fovPixelData <- arrow::read_feather(matPath)
 

@@ -79,9 +79,9 @@ def preprocess_row_sums(fovs, channels, base_dir, pre_dir='pixel_mat_preprocesse
 
         pixel_data = normalize_rows(pixel_data, channels)
 
-        # write the normalized data
+        # write the normalized data, overwrite with sum normalized values
         feather.write_dataframe(pixel_data,
-                                os.path.join(preprocessed_path, fov + '_norm.feather'),
+                                os.path.join(preprocessed_path, fov + '.feather'),
                                 compression='uncompressed')
 
 
@@ -540,7 +540,7 @@ def cluster_pixels(fovs, base_dir, pre_dir='pixel_mat_preprocessed',
     preprocess_row_sums(fovs, weights.columns.values, base_dir, pre_dir)
 
     # ensure the norm vals columns are valid indexes
-    sum_norm_files = io_utils.list_files(preprocessed_path, substrs='_norm.feather')
+    sum_norm_files = io_utils.list_files(preprocessed_path, substrs='.feather')
     norm_vals = feather.read_dataframe(os.path.join(base_dir, norm_vals_name))
     sample_fov = feather.read_dataframe(os.path.join(base_dir, pre_dir, sum_norm_files[0]))
     sample_fov = sample_fov.drop(

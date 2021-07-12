@@ -278,15 +278,15 @@ def test_preprocess_row_sums():
         som_utils.preprocess_row_sums(fovs, chans, temp_dir, 'pixel_mat_preprocessed')
 
         for fov in fovs:
-            # assert we actually created a fov_norm.feather file
+            # assert we still have a fov.feather file
             assert os.path.exists(
-                os.path.join(temp_dir, 'pixel_mat_preprocessed', fov + '_norm.feather')
+                os.path.join(temp_dir, 'pixel_mat_preprocessed', fov + '.feather')
             )
 
             # read the row preprocessed data in
             fov_row_pre = feather.read_dataframe(os.path.join(temp_dir,
                                                               'pixel_mat_preprocessed',
-                                                              fov + '_norm.feather'))
+                                                              fov + '.feather'))
 
             # drop the metadata columns
             fov_row_pre = fov_row_pre.drop(
