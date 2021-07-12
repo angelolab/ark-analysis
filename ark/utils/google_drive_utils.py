@@ -564,3 +564,35 @@ def path_join(*path_parts, get_filehandle=False):
         return path_out.read()
 
     return path_out
+
+
+def drive_write_out(filepath, func):
+    """ Wrapper around write out operations which don't use 'open()' interface e.g `io.imsave()`.
+
+    Args:
+        filepath (PathLike or GoogleDrivePath):
+            Filepath or GoogleDrivePath to write data to
+
+        func (Callable[[PathLike or GoogleDrivePath], None]):
+            Lambda function for taking filepath
+    """
+    new_fh = io.BytesIO()
+    func(new_fh)
+    new_fh.seek(0)
+    with DriveOpen(filepath, mode='wb') as f:
+        f.write(new_fh.read())
+
+
+class DriveOpen:
+    """ Context manager for generically opening drive filepaths
+    """
+    def __init__(self, filepath, mode='wb'):
+        self.is_drive = (type(filepath) is GoogleDrivePath)
+        self.drive_path = filepath if self.is_drive else open(filepath, mode=mode)
+
+    def __enter__(self):
+        return self.drive_path
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        if not self.is_drive:
+            self.drive_path.close()
