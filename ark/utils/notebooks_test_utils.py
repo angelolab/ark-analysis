@@ -1,7 +1,6 @@
 import os
 import numpy as np
 import skimage.io as io
-import timeit
 
 from ark.utils import test_utils
 

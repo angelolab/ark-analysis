@@ -553,7 +553,7 @@ def test_generate_cell_data_tree_loading():
         cell_masks = np.zeros((3, 40, 40, 2), dtype="int16")
         cell_masks[0, :, :, 0] = cell_mask[0, :, :, 0]
         cell_masks[1, 5:, 5:, 0] = cell_mask[0, :-5, :-5, 0]
-        cell_masks[2, 10:, 10:, 0] = cell_mask[0, :-10, :-10, 0]
+        cell_masks[2, 10:, 10:, 0] = cell_mask[0, :-10, :-10, 0] / 2
         cell_masks[..., 1] = cell_masks[..., 0]
 
         for fov in range(cell_masks.shape[0]):
@@ -601,6 +601,18 @@ def test_generate_cell_data_tree_loading():
 
         assert norm_data.shape[0] > 0 and norm_data.shape[1] > 0
         assert arcsinh_data.shape[0] > 0 and arcsinh_data.shape[1] > 0
+
+
+        # base_props = copy.deepcopy(settings.REGIONPROPS_BASE)
+        # single_comp_props = copy.deepcopy(settings.REGIONPROPS_SINGLE_COMP)
+        # multi_comp_props = copy.deepcopy(settings.REGIONPROPS_SINGLE_COMP)
+
+        # all_props = settings.REGIONPROPS_BASE + single_comp_props + multi_comp_props
+
+        # misc_utils.verify_in_list(
+        #     nuclear_props=settings.
+        #     cell_table_cols=
+        # )
 
 
 def test_generate_cell_data_mibitiff_loading():
