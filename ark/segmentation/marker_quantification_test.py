@@ -570,49 +570,48 @@ def test_generate_cell_data_tree_loading():
                 batch_size=5)
 
         # generate sample norm and arcsinh data for all fovs
-        norm_data, arcsinh_data = marker_quantification.generate_cell_table(
+        norm_data_all_fov, arcsinh_data_all_fov = marker_quantification.generate_cell_table(
             segmentation_dir=temp_dir, tiff_dir=tiff_dir,
             img_sub_folder=img_sub_folder, is_mibitiff=False, fovs=None, batch_size=2)
 
-        assert norm_data.shape[0] > 0 and norm_data.shape[1] > 0
-        assert arcsinh_data.shape[0] > 0 and arcsinh_data.shape[1] > 0
+        assert norm_data_all_fov.shape[0] > 0 and norm_data_all_fov.shape[1] > 0
+        assert arcsinh_data_all_fov.shape[0] > 0 and arcsinh_data_all_fov.shape[1] > 0
 
         # generate sample norm and arcsinh data for a subset of fovs
-        norm_data, arcsinh_data = marker_quantification.generate_cell_table(
+        norm_data_fov_sub, arcsinh_data_fov_sub = marker_quantification.generate_cell_table(
             segmentation_dir=temp_dir, tiff_dir=tiff_dir,
             img_sub_folder=img_sub_folder, is_mibitiff=False, fovs=fovs_subset, batch_size=2)
 
-        assert norm_data.shape[0] > 0 and norm_data.shape[1] > 0
-        assert arcsinh_data.shape[0] > 0 and arcsinh_data.shape[1] > 0
+        assert norm_data_fov_sub.shape[0] > 0 and norm_data_fov_sub.shape[1] > 0
+        assert arcsinh_data_fov_sub.shape[0] > 0 and arcsinh_data_fov_sub.shape[1] > 0
 
-        # generate sample norm and arcsinh data for a subset of fovs
-        norm_data, arcsinh_data = marker_quantification.generate_cell_table(
+        # generate sample norm and arcsinh data for a subset of fovs with extensions
+        norm_data_fov_ext, arcsinh_data_fov_ext = marker_quantification.generate_cell_table(
             segmentation_dir=temp_dir, tiff_dir=tiff_dir,
             img_sub_folder=img_sub_folder, is_mibitiff=False, fovs=fovs_subset_ext, batch_size=2)
 
-        assert norm_data.shape[0] > 0 and norm_data.shape[1] > 0
-        assert arcsinh_data.shape[0] > 0 and arcsinh_data.shape[1] > 0
+        assert norm_data_fov_ext.shape[0] > 0 and norm_data_fov_ext.shape[1] > 0
+        assert arcsinh_data_fov_ext.shape[0] > 0 and arcsinh_data_fov_ext.shape[1] > 0
 
         # test nuclear_counts True
-        norm_data, arcsinh_data = marker_quantification.generate_cell_table(
+        norm_data_nuc, arcsinh_data_nuc = marker_quantification.generate_cell_table(
             segmentation_dir=temp_dir, tiff_dir=tiff_dir,
             img_sub_folder=img_sub_folder, is_mibitiff=False, fovs=fovs_subset,
             batch_size=2, nuclear_counts=True)
 
-        assert norm_data.shape[0] > 0 and norm_data.shape[1] > 0
-        assert arcsinh_data.shape[0] > 0 and arcsinh_data.shape[1] > 0
+        assert norm_data_nuc.shape[0] == norm_data_fov_sub.shape[0]
+        assert norm_data_nuc.shape[1] == norm_data_fov_sub.shape[1] * 2 + 1
+        misc_utils.verify_in_list(
+            nuclear_col='nc_ratio',
+            nuc_cell_table_cols=norm_data_nuc.columns.values
+        )
 
-
-        # base_props = copy.deepcopy(settings.REGIONPROPS_BASE)
-        # single_comp_props = copy.deepcopy(settings.REGIONPROPS_SINGLE_COMP)
-        # multi_comp_props = copy.deepcopy(settings.REGIONPROPS_SINGLE_COMP)
-
-        # all_props = settings.REGIONPROPS_BASE + single_comp_props + multi_comp_props
-
-        # misc_utils.verify_in_list(
-        #     nuclear_props=settings.
-        #     cell_table_cols=
-        # )
+        assert arcsinh_data_nuc.shape[0] == arcsinh_data_fov_sub.shape[0]
+        assert arcsinh_data_nuc.shape[1] == norm_data_fov_sub.shape[1] * 2 + 1
+        misc_utils.verify_in_list(
+            nuclear_col='nc_ratio',
+            nuc_cell_table_cols=norm_data_nuc.columns.values
+        )
 
 
 def test_generate_cell_data_mibitiff_loading():
@@ -656,37 +655,48 @@ def test_generate_cell_data_mibitiff_loading():
             io.imsave(os.path.join(temp_dir, 'fov%d_feature_1.tif' % fov), fov_nuclear)
 
         # generate sample norm and arcsinh data for all fovs
-        norm_data, arcsinh_data = marker_quantification.generate_cell_table(
+        norm_data_all_fov, arcsinh_data_all_fov = marker_quantification.generate_cell_table(
             segmentation_dir=temp_dir, tiff_dir=tiff_dir,
             img_sub_folder=tiff_dir, is_mibitiff=True, fovs=None, batch_size=2)
 
-        assert norm_data.shape[0] > 0 and norm_data.shape[1] > 0
-        assert arcsinh_data.shape[0] > 0 and arcsinh_data.shape[1] > 0
+        assert norm_data_all_fov.shape[0] > 0 and norm_data_all_fov.shape[1] > 0
+        assert arcsinh_data_all_fov.shape[0] > 0 and arcsinh_data_all_fov.shape[1] > 0
 
         # generate sample norm and arcsinh data for a subset of fovs
-        norm_data, arcsinh_data = marker_quantification.generate_cell_table(
+        norm_data_fov_sub, arcsinh_data_fov_sub = marker_quantification.generate_cell_table(
             segmentation_dir=temp_dir, tiff_dir=tiff_dir,
             img_sub_folder=tiff_dir, is_mibitiff=True, fovs=fovs_subset, batch_size=2)
 
-        assert norm_data.shape[0] > 0 and norm_data.shape[1] > 0
-        assert arcsinh_data.shape[0] > 0 and arcsinh_data.shape[1] > 0
+        assert norm_data_fov_sub.shape[0] > 0 and norm_data_fov_sub.shape[1] > 0
+        assert arcsinh_data_fov_sub.shape[0] > 0 and arcsinh_data_fov_sub.shape[1] > 0
 
-        # generate sample norm and arcsinh for a subset of fovs with file extensions
-        norm_data, arcsinh_data = marker_quantification.generate_cell_table(
+        # generate sample norm and arcsinh data for a subset of fovs with extensions
+        norm_data_fov_ext, arcsinh_data_fov_ext = marker_quantification.generate_cell_table(
             segmentation_dir=temp_dir, tiff_dir=tiff_dir,
             img_sub_folder=tiff_dir, is_mibitiff=True, fovs=fovs_subset_ext, batch_size=2)
 
-        assert norm_data.shape[0] > 0 and norm_data.shape[1] > 0
-        assert arcsinh_data.shape[0] > 0 and arcsinh_data.shape[1] > 0
+        assert norm_data_fov_ext.shape[0] > 0 and norm_data_fov_ext.shape[1] > 0
+        assert arcsinh_data_fov_ext.shape[0] > 0 and arcsinh_data_fov_ext.shape[1] > 0
 
         # test nuclear_counts True
-        norm_data, arcsinh_data = marker_quantification.generate_cell_table(
+        norm_data_nuc, arcsinh_data_nuc = marker_quantification.generate_cell_table(
             segmentation_dir=temp_dir, tiff_dir=tiff_dir,
             img_sub_folder=tiff_dir, is_mibitiff=True, fovs=fovs_subset,
             batch_size=2, nuclear_counts=True)
 
-        assert norm_data.shape[0] > 0 and norm_data.shape[1] > 0
-        assert arcsinh_data.shape[0] > 0 and arcsinh_data.shape[1] > 0
+        assert norm_data_nuc.shape[0] == norm_data_fov_sub.shape[0]
+        assert norm_data_nuc.shape[1] == norm_data_fov_sub.shape[1] * 2 + 1
+        misc_utils.verify_in_list(
+            nuclear_col='nc_ratio',
+            nuc_cell_table_cols=norm_data_nuc.columns.values
+        )
+
+        assert arcsinh_data_nuc.shape[0] == arcsinh_data_fov_sub.shape[0]
+        assert arcsinh_data_nuc.shape[1] == norm_data_fov_sub.shape[1] * 2 + 1
+        misc_utils.verify_in_list(
+            nuclear_col='nc_ratio',
+            nuc_cell_table_cols=norm_data_nuc.columns.values
+        )
 
 
 def test_generate_cell_data_extractions():
@@ -753,11 +763,17 @@ def test_generate_cell_data_extractions():
         assert np.all(positive_pixel_data.iloc[4:][chans].values == 1)
 
         # verify thresh kwarg passes through and nuclear counts True
-        positive_pixel_data, _ = marker_quantification.generate_cell_table(
+        positive_pixel_data_nuc, _ = marker_quantification.generate_cell_table(
             segmentation_dir=temp_dir, tiff_dir=tiff_dir,
             img_sub_folder=img_sub_folder, is_mibitiff=False, batch_size=2,
             extraction='positive_pixel', nuclear_counts=True, **thresh_kwargs
         )
 
-        assert np.all(positive_pixel_data.iloc[:4][['chan0', 'chan1']].values == 0)
-        assert np.all(positive_pixel_data.iloc[4:][chans].values == 1)
+        assert np.all(positive_pixel_data_nuc.iloc[:4][['chan0', 'chan1']].values == 0)
+        assert np.all(positive_pixel_data_nuc.iloc[4:][chans].values == 1)
+        assert positive_pixel_data_nuc.shape[0] == positive_pixel_data.shape[0]
+        assert positive_pixel_data_nuc.shape[1] == positive_pixel_data.shape[1] * 2 + 1
+        misc_utils.verify_in_list(
+            nuclear_col='nc_ratio',
+            nuc_cell_table_cols=positive_pixel_data_nuc.columns.values
+        )
