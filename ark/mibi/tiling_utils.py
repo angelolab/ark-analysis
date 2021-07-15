@@ -35,17 +35,21 @@ def set_tiling_params(fov_list_path):
     tiling_params['fovFormatVersion'] = fov_tile_info['fovFormatVersion']
 
     # define lists to hold the starting x and y coordinates for each fov
-    fov_start_x = []
-    fov_start_y = []
+    region_start_x = []
+    region_start_y = []
 
     # define lists to hold the number of fovs along each axis
     fov_num_x = []
     fov_num_y = []
 
-    # read in the data for each fov (fov_start from fov_list_path, fov_num from user)
+    # define lists to hold the size of each fov
+    x_fov_size = []
+    y_fov_size = []
+
+    # read in the data for each fov (region_start from fov_list_path, fov_num from user)
     for fov in fov_tile_info['fovs']:
-        fov_start_x.append(fov['centerPointMicrons']['x'])
-        fov_start_y.append(fov['centerPointMicrons']['y'])
+        region_start_x.append(fov['centerPointMicrons']['x'])
+        region_start_y.append(fov['centerPointMicrons']['y'])
 
         num_x = int(input("Enter number of x fovs for region %s: " % fov['name']))
 
@@ -62,18 +66,21 @@ def set_tiling_params(fov_list_path):
         fov_num_x.append(num_x)
         fov_num_y.append(num_y)
 
-    # allow the user to specify the step size
-    x_fov_size = int(input("Enter the x step size: "))
+        # allow the user to specify the step size
+        size_x = int(input("Enter the x step size for region %s: " % fov['name']))
 
-    while x_fov_size < 1:
-        print("Error: step size must be positive")
-        x_fov_size = int(input("Enter the x step size: "))
+        while size_x < 1:
+            print("Error: step size must be positive")
+            size_x = int(input("Enter the x step size for region %s: " % fov['name']))
 
-    y_fov_size = int(input("Enter the y step size: "))
+        size_y = int(input("Enter the y step size for region %s: " % fov['name']))
 
-    while y_fov_size < 1:
-        print("Error: step size must be positive")
-        x_fov_size = int(input("Enter the y step size: "))
+        while size_y < 1:
+            print("Error: step size must be positive")
+            size_y = int(input("Enter the y step size for region %s: " % fov['name']))
+
+        x_fov_size.append(size_x)
+        y_fov_size.append(size_y)
 
     # allow the user to specify if the FOVs should be randomized
     randomize = int(input("Randomize? Enter 0 for no and 1 for yes: "))
@@ -86,8 +93,8 @@ def set_tiling_params(fov_list_path):
     tiling_params['fovs'] = copy.deepcopy(fov_tile_info['fovs'])
 
     # assign fields to tiling_params
-    tiling_params['fov_start_x'] = fov_start_x
-    tiling_params['fov_start_y'] = fov_start_y
+    tiling_params['region_start_x'] = region_start_x
+    tiling_params['region_start_y'] = region_start_y
     tiling_params['fov_num_x'] = fov_num_x
     tiling_params['fov_num_y'] = fov_num_y
     tiling_params['x_fov_size'] = x_fov_size
@@ -162,15 +169,15 @@ def create_tiled_regions(tiling_params, moly_path):
     # only used if tiling_params['moly_interval'] is set
     moly_counter = 0
 
-    # append tile information to fov_list
-    for tile_index in range(len(tiling_params['fov_num_x'])):
+    # append tile information to fov_list, iterate through each tiles iteratively
+    for region_index in range(len(tiling_params['fov_num_x'])):
         # extract start coordinates
-        start_x = tiling_params['fov_start_x'][tile_index]
-        start_y = tiling_params['fov_start_y'][tile_index]
+        start_x = tiling_params['region_start_x'][region_index]
+        start_y = tiling_params['region_start_y'][region_index]
 
         # generate range of x and y coordinates
-        x_range = list(range(tiling_params['fov_num_x'][tile_index]))
-        y_range = list(range(tiling_params['fov_num_y'][tile_index]))
+        x_range = list(range(tiling_params['fov_num_x'][region_index]))
+        y_range = list(range(tiling_params['fov_num_y'][region_index]))
 
         x_range_rep = x_range * len(y_range)
         y_range_rep = y_range * len(x_range)
@@ -184,11 +191,11 @@ def create_tiled_regions(tiling_params, moly_path):
 
         for xi, yi in x_y_pairs:
             # set the current x and y coordinate
-            cur_x = start_x + xi * tiling_params['x_fov_size']
-            cur_y = start_y - yi * tiling_params['y_fov_size']
+            cur_x = start_x + xi * tiling_params['x_fov_size'][region_index]
+            cur_y = start_y - yi * tiling_params['y_fov_size'][region_index]
 
             # copy the fov metadata over and add cur_x, cur_y, and identifier
-            fov = copy.deepcopy(tiling_params['fovs'][tile_index])
+            fov = copy.deepcopy(tiling_params['fovs'][region_index])
             fov['centerPointMicrons']['x'] = cur_x
             fov['centerPointMicrons']['y'] = cur_y
             fov['name'] = f'row{yi}_col{xi}'
@@ -205,7 +212,7 @@ def create_tiled_regions(tiling_params, moly_path):
                 tiled_regions['fovs'].append(moly_point)
 
         # append moly point to seperate runs if not last
-        if tile_index != len(tiling_params['fov_num_x']) - 1:
+        if region_index != len(tiling_params['fov_num_x']) - 1:
             tiled_regions['fovs'].append(moly_point)
 
     return tiled_regions
