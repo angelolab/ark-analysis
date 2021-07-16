@@ -183,12 +183,16 @@ def flowsom_pixel_run(tb, fovs, channels, pixel_cluster_dir='som_clustered_dir',
     # sets the channels to include
     tb.inject("channels = %s" % str(channels), after='channel_set')
 
+    # set the preprocessing arguments
+    tb.execute('preprocess_arg_set')
+
     # test the preprocessing works, we won't save nor run the actual FlowSOM clustering
     if is_mibitiff:
         mibitiff_preprocess = """
             som_utils.create_pixel_matrix(
                 fovs, channels, base_dir, tiff_dir, segmentation_dir,
-                pre_dir=preprocessed_dir, sub_dir=subsetted_dir, is_mibitiff=True, seed=seed
+                pre_dir=preprocessed_dir, sub_dir=subsetted_dir, is_mibitiff=True,
+                blur_factor=blur_factor, subset_proportion=subset_proportion, seed=seed
             )
         """
 
@@ -202,7 +206,7 @@ def flowsom_pixel_run(tb, fovs, channels, pixel_cluster_dir='som_clustered_dir',
         pixel_consensus_dir = '%s'
         pixel_weights_name = '%s'
     """ % (pixel_cluster_dir, pixel_consensus_dir, pixel_weights_name)
-    tb.inject(define_som_paths, after='som_path_set')
+    tb.inject(define_som_paths, after='pixel_som_path_set')
 
     # create a dummy weights feather
     dummy_weights = """
@@ -211,7 +215,7 @@ def flowsom_pixel_run(tb, fovs, channels, pixel_cluster_dir='som_clustered_dir',
 
         feather.write_dataframe(weights, os.path.join(base_dir, pixel_weights_name))
     """
-    tb.inject(dummy_weights, after='train_som')
+    tb.inject(dummy_weights, after='train_pixel_som')
 
     # create dummy clustered feathers for each fov
     cluster_setup = """
@@ -240,7 +244,7 @@ def flowsom_pixel_run(tb, fovs, channels, pixel_cluster_dir='som_clustered_dir',
         if not os.path.exists(os.path.join(base_dir, pixel_consensus_dir)):
             os.mkdir(os.path.join(base_dir, pixel_consensus_dir))
     """
-    tb.inject(consensus_setup, after='consensus_cluster')
+    tb.inject(consensus_setup, after='pixel_consensus_cluster')
 
     for fov in fovs:
         dummy_consensus_cmd = """
@@ -253,7 +257,7 @@ def flowsom_pixel_run(tb, fovs, channels, pixel_cluster_dir='som_clustered_dir',
                                                                    '%s' + '.feather'))
         """ % fov
 
-        tb.inject(dummy_consensus_cmd, after='consensus_cluster')
+        tb.inject(dummy_consensus_cmd, after='pixel_consensus_cluster')
 
 
 def fov_channel_input_set(tb, fovs=None, nucs_list=None, mems_list=None):
