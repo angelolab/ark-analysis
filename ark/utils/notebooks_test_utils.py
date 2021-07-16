@@ -184,7 +184,7 @@ def flowsom_pixel_run(tb, fovs, channels, pixel_cluster_dir='som_clustered_dir',
     tb.inject("channels = %s" % str(channels), after='channel_set')
 
     # set the preprocessing arguments
-    tb.execute('preprocess_arg_set')
+    tb.execute_cell('preprocess_arg_set')
 
     # test the preprocessing works, we won't save nor run the actual FlowSOM clustering
     if is_mibitiff:
