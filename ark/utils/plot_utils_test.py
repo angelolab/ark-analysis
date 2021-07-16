@@ -3,6 +3,8 @@ import pytest
 import tempfile
 
 import numpy as np
+import skimage.io as io
+import xarray as xr
 import pytest
 
 from ark.utils import plot_utils
@@ -92,26 +94,59 @@ def test_tif_overlay_preprocess():
 
 
 def test_create_overlay():
+    fov = 'fov8'
+
     example_labels = _generate_segmentation_labels((1024, 1024))
     alternate_labels = _generate_segmentation_labels((1024, 1024))
-    example_images = _generate_image_data((1024, 1024, 3))
+    example_images = _generate_image_data((1024, 1024, 2))
 
-    # base test: just contour and tif provided
-    contour_mask = plot_utils.create_overlay(segmentation_labels=example_labels,
-                                             plotting_tif=example_images,
-                                             alternate_segmentation=None)
+    with tempfile.TemporaryDirectory() as temp_dir:
+        # create the whole cell and nuclear segmentation label compartments
+        io.imsave(os.path.join(temp_dir, '%s_feature_0.tif' % fov), example_labels)
+        io.imsave(os.path.join(temp_dir, '%s_feature_1.tif' % fov), example_labels)
 
-    assert contour_mask.shape == (1024, 1024, 3)
+        # save the cell image
+        img_dir = os.path.join(temp_dir, 'img_dir')
+        os.mkdir(img_dir)
+        io.imsave(os.path.join(img_dir, '%s.tif' % fov), example_images)
 
-    # test with an alternate contour
-    contour_mask = plot_utils.create_overlay(segmentation_labels=example_labels,
-                                             plotting_tif=example_images,
-                                             alternate_segmentation=alternate_labels)
+        # test with both nuclear and membrane specified
+        contour_mask = plot_utils.create_overlay(
+            fov=fov, segmentation_dir=temp_dir, data_dir=img_dir,
+            img_overlay_chans=['nuclear_channel', 'membrane_channel'],
+            seg_overlay_comp='whole_cell')
 
-    assert contour_mask.shape == (1024, 1024, 3)
+        assert contour_mask.shape == (1024, 1024, 3)
 
-    # invalid alternate contour provided
-    with pytest.raises(ValueError):
-        plot_utils.create_overlay(segmentation_labels=example_labels,
-                                  plotting_tif=example_images,
-                                  alternate_segmentation=alternate_labels[:100, :100])
+        # test with just nuclear specified
+        contour_mask = plot_utils.create_overlay(
+            fov=fov, segmentation_dir=temp_dir, data_dir=img_dir,
+            img_overlay_chans=['nuclear_channel'],
+            seg_overlay_comp='whole_cell')
+
+        assert contour_mask.shape == (1024, 1024, 3)
+
+        # test with nuclear compartment
+        contour_mask = plot_utils.create_overlay(
+            fov=fov, segmentation_dir=temp_dir, data_dir=img_dir,
+            img_overlay_chans=['nuclear_channel', 'membrane_channel'],
+            seg_overlay_comp='nuclear')
+
+        assert contour_mask.shape == (1024, 1024, 3)
+
+        # test with an alternate contour
+        contour_mask = plot_utils.create_overlay(
+            fov=fov, segmentation_dir=temp_dir, data_dir=img_dir,
+            img_overlay_chans=['nuclear_channel', 'membrane_channel'],
+            seg_overlay_comp='whole_cell',
+            alternate_segmentation=alternate_labels)
+
+        assert contour_mask.shape == (1024, 1024, 3)
+
+        # invalid alternate contour provided
+        with pytest.raises(ValueError):
+            plot_utils.create_overlay(
+                fov=fov, segmentation_dir=temp_dir, data_dir=img_dir,
+                img_overlay_chans=['nuclear_channel', 'membrane_channel'],
+                seg_overlay_comp='whole_cell',
+                alternate_segmentation=alternate_labels[:100, :100])
