@@ -151,9 +151,7 @@ def flowsom_setup(tb, flowsom_dir, img_shape=(50, 50), num_fovs=3, num_chans=3,
         tb.inject("MIBItiff = True", after='mibitiff_set')
 
 
-def flowsom_pixel_run(tb, fovs, channels, pixel_cluster_dir='som_clustered_dir',
-                      pixel_consensus_dir='consensus_clustered_dir',
-                      pixel_weights_name='pixel_weights.feather', is_mibitiff=False):
+def flowsom_pixel_run(tb, fovs, channels, cluster_prefix='test', is_mibitiff=False):
     """Run the FlowSOM pixel-level clustering
 
     Args:
@@ -163,12 +161,8 @@ def flowsom_pixel_run(tb, fovs, channels, pixel_cluster_dir='som_clustered_dir',
             The list of fovs
         channels (list):
             The list of channels
-        pixel_cluster_dir (str):
-            The name of the directory to write the clustered data
-        pixel_consensus_dir (str):
-            Name of directory to save the consensus clustered results
-        pixel_weights_name (str):
-            Name of the file to store the pixel SOM weights
+        cluster_prefix (str):
+            The name of the prefix to use for each directory/file created by pixel/cell clustering
         is_mibitiff (bool):
             Whether we're working with mibitiff im
     """
@@ -200,13 +194,12 @@ def flowsom_pixel_run(tb, fovs, channels, pixel_cluster_dir='som_clustered_dir',
     else:
         tb.execute_cell('gen_pixel_mat')
 
-    # sets the paths to the SOM cluster assignments and the consensus cluster assignments
-    define_som_paths = """
-        pixel_cluster_dir = '%s'
-        pixel_consensus_dir = '%s'
-        pixel_weights_name = '%s'
-    """ % (pixel_cluster_dir, pixel_consensus_dir, pixel_weights_name)
-    tb.inject(define_som_paths, after='pixel_som_path_set')
+    # define a custom prefix for the SOM and cell cluster assignments
+    prefix_set = "cluster_prefix = '%s'" % cluster_prefix
+    tb.inject(prefix_set, after='cluster_prefix_set')
+
+    # set the paths to write pixel data to
+    tb.execute_cell('pixel_som_path_set')
 
     # create a dummy weights feather
     dummy_weights = """
@@ -219,8 +212,8 @@ def flowsom_pixel_run(tb, fovs, channels, pixel_cluster_dir='som_clustered_dir',
 
     # create dummy clustered feathers for each fov
     cluster_setup = """
-        if not os.path.exists(os.path.join(base_dir, pixel_cluster_dir)):
-            os.mkdir(os.path.join(base_dir, pixel_cluster_dir))
+        if not os.path.exists(os.path.join(base_dir, pixel_clustered_dir)):
+            os.mkdir(os.path.join(base_dir, pixel_clustered_dir))
     """
     tb.inject(cluster_setup, after='cluster_pixel_mat')
 
@@ -233,7 +226,7 @@ def flowsom_pixel_run(tb, fovs, channels, pixel_cluster_dir='som_clustered_dir',
             sample_df['clusters'] = np.random.randint(0, 100, size=100)
 
             feather.write_dataframe(sample_df, os.path.join(base_dir,
-                                                            pixel_cluster_dir,
+                                                            pixel_clustered_dir,
                                                             '%s' + '.feather'))
         """ % (str(channels), fov, fov)
 
