@@ -12,7 +12,7 @@ SEGMENT_IMAGE_DATA_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__
                                        '..', '..', 'templates', 'Segment_Image_Data.ipynb')
 
 FLOWSOM_CLUSTER_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                    '..', '..', 'templates', 'example_flowsom_clustering.ipynb')
+                                    '..', '..', 'templates', 'example_pixel_cell_clustering.ipynb')
 
 
 def _exec_notebook(nb_filename):
