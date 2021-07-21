@@ -25,17 +25,17 @@ def _exec_notebook(nb_filename):
         subprocess.check_call(args)
 
 
-# test runs with default inputs
-def test_segment_image_data():
-    _exec_notebook('Segment_Image_Data.ipynb')
+# # test runs with default inputs
+# def test_segment_image_data():
+#     _exec_notebook('Segment_Image_Data.ipynb')
 
 
-def test_example_spatial_analysis():
-    _exec_notebook('example_spatial_analysis_script.ipynb')
+# def test_example_spatial_analysis():
+#     _exec_notebook('example_spatial_analysis_script.ipynb')
 
 
-def test_example_neighborhood_analysis():
-    _exec_notebook('example_neighborhood_analysis_script.ipynb')
+# def test_example_neighborhood_analysis():
+#     _exec_notebook('example_neighborhood_analysis_script.ipynb')
 
 
 # test mibitiff segmentation
@@ -102,13 +102,8 @@ def test_segment_image_data_folder(tb):
         # generate _feature_0 and _feature_1 tif files normally handled by create_deepcell_output
         notebooks_test_utils.generate_sample_feature_tifs(
             fovs=['fov0', 'fov1'],
-            deepcell_output_dir=output_dir,
-            delimiter="_feature_0")
-
-        # generate _feature_0 and _feature_1 tif files normally handled by create_deepcell_output
-        notebooks_test_utils.generate_sample_feature_tifs(
-            fovs=['fov0', 'fov1'],
-            deepcell_output_dir=output_dir)
+            deepcell_output_dir=output_dir
+        )
 
         # saves the segmentation mask overlay without channels
         notebooks_test_utils.overlay_mask(tb)

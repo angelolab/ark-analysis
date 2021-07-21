@@ -131,7 +131,7 @@ def flowsom_setup(tb, flowsom_dir, img_shape=(50, 50), num_fovs=3, num_chans=3,
     # generate sample segmentation labels so we can load them in
     seg_dir = os.path.join(flowsom_dir, "deepcell_output")
     os.mkdir(seg_dir)
-    generate_sample_feature_tifs(fovs, seg_dir, delimiter='_feature_0')
+    generate_sample_feature_tifs(fovs, seg_dir)
 
     # define custom data paths
     define_data_paths = """
@@ -305,7 +305,7 @@ def fov_channel_input_set(tb, fovs=None, nucs_list=None, mems_list=None, is_mibi
     tb.inject(mibitiff_deepcell, after='gen_input')
 
 
-def generate_sample_feature_tifs(fovs, deepcell_output_dir, img_shape=(50, 50), delimiter=None):
+def generate_sample_feature_tifs(fovs, deepcell_output_dir, img_shape=(50, 50)):
     """Generate a sample _feature_0 tif file for each fov
 
     Done to bypass the bottleneck of create_deepcell_output, for testing purposes we don't care
@@ -317,22 +317,14 @@ def generate_sample_feature_tifs(fovs, deepcell_output_dir, img_shape=(50, 50), 
         deepcell_output_dir (str):
             The path to the output directory
         img_shape (tuple):
-            The dimensions of the image to generate
-        delimiter (str):
-            The name of the delimiter to add to the TIF, if specified
+            Dimensions of the tifs to create
     """
 
     # generate a random image for each fov, set as both whole cell and nuclear
     for fov in fovs:
         rand_img = np.random.randint(0, 16, size=img_shape)
-
-        # add the delimiter if specified
-        if delimiter is not None:
-            file_name = fov + "%s.tif" % delimiter
-        else:
-            file_name = fov + ".tif"
-
-        io.imsave(os.path.join(deepcell_output_dir, file_name), rand_img)
+        io.imsave(os.path.join(deepcell_output_dir, fov + "_feature_0.tif"), rand_img)
+        io.imsave(os.path.join(deepcell_output_dir, fov + "_feature_1.tif"), rand_img)
 
 
 def overlay_mask(tb, channels=None):
