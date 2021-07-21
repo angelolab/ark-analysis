@@ -58,22 +58,19 @@ def test_segment_image_data_mibitiff(tb):
             fovs=['fov0_otherinfo-MassCorrected-Filtered.tiff',
                   'fov1-MassCorrected-Filtered.tiff'],
             nucs_list=['chan0'],
-            mems_list=['chan1', 'chan2'])
+            mems_list=['chan1', 'chan2'],
+            is_mibitiff=True)
 
-        # generate _feature_0 tif files that would normally be handled by create_deepcell_output
+        # generate _feature_0 and _feature_1 tif files normally handled by create_deepcell_output
         notebooks_test_utils.generate_sample_feature_tifs(
             fovs=['fov0_otherinfo-MassCorrected-Filtered', 'fov1-MassCorrected-Filtered'],
-            deepcell_output_dir=output_dir,
-            delimiter="_feature_0")
+            deepcell_output_dir=output_dir)
 
-        # generate _feature_1 tif files that would normally be handled by create_deepcell_output
-        notebooks_test_utils.generate_sample_feature_tifs(
-            fovs=['fov0', 'fov1'],
-            deepcell_output_dir=output_dir,
-            delimiter="_feature_1")
+        # saves the segmentation mask overlay without channels
+        notebooks_test_utils.overlay_mask(tb)
 
-        # run the segmentation labels saving and summed channel overlay processes
-        notebooks_test_utils.save_seg_labels(tb, xr_channel_names=['whole_cell', 'nuclear'])
+        # saves the segmentation mask overlay with channels
+        notebooks_test_utils.overlay_mask(tb, channels=['nuclear_channel', 'membrane_channel'])
 
         # create the expression matrix
         notebooks_test_utils.create_exp_mat(tb, is_mibitiff=True)
@@ -102,20 +99,22 @@ def test_segment_image_data_folder(tb):
             nucs_list=['chan0'],
             mems_list=['chan1', 'chan2'])
 
-        # generate _feature_0 tif files that would normally be handled by create_deepcell_output
+        # generate _feature_0 and _feature_1 tif files normally handled by create_deepcell_output
         notebooks_test_utils.generate_sample_feature_tifs(
             fovs=['fov0', 'fov1'],
             deepcell_output_dir=output_dir,
             delimiter="_feature_0")
 
-        # generate _feature_1 tif files that would normally be handled by create_deepcell_output
+        # generate _feature_0 and _feature_1 tif files normally handled by create_deepcell_output
         notebooks_test_utils.generate_sample_feature_tifs(
             fovs=['fov0', 'fov1'],
-            deepcell_output_dir=output_dir,
-            delimiter="_feature_1")
+            deepcell_output_dir=output_dir)
 
-        # run the segmentation labels saving and summed channel overlay processes
-        notebooks_test_utils.save_seg_labels(tb, xr_channel_names=['whole_cell', 'nuclear'])
+        # saves the segmentation mask overlay without channels
+        notebooks_test_utils.overlay_mask(tb)
+
+        # saves the segmentation mask overlay with channels
+        notebooks_test_utils.overlay_mask(tb, channels=['nuclear_channel', 'membrane_channel'])
 
         # create the expression matrix
         notebooks_test_utils.create_exp_mat(tb)
