@@ -6,6 +6,7 @@ import numpy as np
 import xarray as xr
 
 from ark import settings
+from ark.utils import load_utils
 from ark.utils.misc_utils import verify_in_list
 
 
@@ -213,40 +214,72 @@ def relabel_segmentation(labeled_image, labels_dict):
 
 
 # TODO: Add metadata for channel name (eliminates need for fixed-order channels)
-def generate_deepcell_input(data_xr, data_dir, nuc_channels, mem_channels):
+def generate_deepcell_input(data_dir, tiff_dir, nuc_channels, mem_channels, fovs,
+                            is_mibitiff=False, img_sub_folder="TIFs", batch_size=5):
     """Saves nuclear and membrane channels into deepcell input format.
     Either nuc_channels or mem_channels should be specified.
 
     Writes summed channel images out as multitiffs (channels first)
 
     Args:
-        data_xr (xr.DataArray):
-            xarray containing nuclear and membrane channels over many fov's
         data_dir (str):
             location to save deepcell input tifs
+        tiff_dir (str):
+            directory containing folders of images, is_mibitiff determines what type
         nuc_channels (list):
             nuclear channels to be summed over
         mem_channels (list):
             membrane channels to be summed over
+        fovs (list):
+            list of folders to or MIBItiff files to load imgs from
+        is_mibitiff (bool):
+            if the images are of type MIBITiff
+        img_sub_folder (str):
+            if is_mibitiff is False, define the image subfolder for each fov
+            ignored if is_mibitiff is True
+        batch_size (int):
+            the number of fovs to process at once for each batch
     Raises:
         ValueError:
             Raised if nuc_channels and mem_channels are both None or empty
     """
 
+    # cannot have no nuclear and no membrane channels
     if not nuc_channels and not mem_channels:
         raise ValueError('Either nuc_channels or mem_channels should be non-empty.')
 
-    for fov in data_xr.fovs.values:
-        out = np.zeros((2, data_xr.shape[1], data_xr.shape[2]), dtype=data_xr.dtype)
+    # define the channels list by combining nuc_channels and mem_channels
+    channels = (nuc_channels if nuc_channels else []) + (mem_channels if mem_channels else [])
 
-        # sum over channels and add to output
-        if nuc_channels:
-            out[0] = np.sum(data_xr.loc[fov, :, :, nuc_channels].values, axis=2)
-        if mem_channels:
-            out[1] = np.sum(data_xr.loc[fov, :, :, mem_channels].values, axis=2)
+    # filter channels for None (just in case)
+    channels = [channel for channel in channels if channel is not None]
 
-        save_path = os.path.join(data_dir, f'{fov}.tif')
-        io.imsave(save_path, out, plugin='tifffile', check_contrast=False)
+    # define a list of fov batches to process over
+    fov_batches = [fovs[i:i + batch_size] for i in range(0, len(fovs), batch_size)]
+
+    for fovs in fov_batches:
+        # load the images in the current fov batch
+        if is_mibitiff:
+            data_xr = load_utils.load_imgs_from_mibitiff(
+                tiff_dir, mibitiff_files=fovs, channels=channels
+            )
+        else:
+            data_xr = load_utils.load_imgs_from_tree(
+                tiff_dir, img_sub_folder="TIFs", fovs=fovs, channels=channels
+            )
+
+        # write each fov data to data_dir
+        for fov in data_xr.fovs.values:
+            out = np.zeros((2, data_xr.shape[1], data_xr.shape[2]), dtype=data_xr.dtype)
+
+            # sum over channels and add to output
+            if nuc_channels:
+                out[0] = np.sum(data_xr.loc[fov, :, :, nuc_channels].values, axis=2)
+            if mem_channels:
+                out[1] = np.sum(data_xr.loc[fov, :, :, mem_channels].values, axis=2)
+
+            save_path = os.path.join(data_dir, f'{fov}.tif')
+            io.imsave(save_path, out, plugin='tifffile', check_contrast=False)
 
 
 def stitch_images(data_xr, num_cols):
