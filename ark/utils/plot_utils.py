@@ -17,7 +17,7 @@ def plot_clustering_result(img_xr, fovs, save_dir=None, cmap='tab20',
                            fov_col='fovs', figsize=(10, 10)):
     """Takes an xarray containing labeled images and displays them.
     Args:
-        img_xr (xr.DataArray):
+        img_xr (xarray.DataArray):
             xarray containing labeled cell objects.
         fovs (list):
             list of fovs to display.

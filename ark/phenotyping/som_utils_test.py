@@ -932,6 +932,12 @@ def test_visualize_pixel_cluster_data():
                                                                      'pixel_mat_clustered',
                                                                      fov + '.feather'))
 
+        # bad cluster_col provided
+        with pytest.raises(ValueError):
+            som_utils.visualize_pixel_cluster_data(fovs=fovs, channels=chans, base_dir=temp_dir,
+                                                   cluster_dir='pixel_mat_clustered',
+                                                   pixel_cluster_col='bad_cluster')
+
         # test visualization for cluster: no saving
         som_utils.visualize_pixel_cluster_data(fovs=fovs, channels=chans, base_dir=temp_dir,
                                                cluster_dir='pixel_mat_clustered',
@@ -1026,6 +1032,13 @@ def test_train_cell_som(mocker):
             # write fov data to feather
             feather.write_dataframe(fov_table, os.path.join(pixel_consensus_path,
                                                             fov + '.feather'))
+
+        # bad cluster_col provided
+        with pytest.raises(ValueError):
+            som_utils.train_cell_som(
+                fovs, temp_dir, 'pixel_consensus_dir', 'cell_table_size_normalized.csv',
+                cluster_col='bad_cluster'
+            )
 
         # TEST 1: computing weights using pixel clusters
         # compute cluster counts
@@ -1180,6 +1193,16 @@ def test_cell_consensus_cluster(mocker):
         with pytest.raises(FileNotFoundError):
             som_utils.cell_consensus_cluster(base_dir=temp_dir, cell_cluster_name='bad_path')
 
+    # basic error check: bad column_prefix provided
+    with tempfile.TemporaryDirectory() as temp_dir:
+        with pytest.raises(ValueError):
+            cell_cluster_data = pd.DataFrame()
+            feather.write_dataframe(
+                cell_cluster_data, os.path.join(temp_dir, 'cell_mat_clustered.feather')
+            )
+
+            som_utils.cell_consensus_cluster(base_dir=temp_dir, column_prefix='bad_cluster')
+
     # define the cluster columns
     pixel_clusters = ['cluster_0', 'cluster_1', 'cluster_2']
     h_clusters = ['hCluster_cap_0', 'hCluster_cap_1', 'hCluster_cap_2']
@@ -1206,7 +1229,8 @@ def test_cell_consensus_cluster(mocker):
 
             # compute average counts of each pixel SOM/meta cluster across all cell SOM clusters
             cluster_avg = som_utils.compute_cell_cluster_avg(
-                clustered_path, column_prefix=cluster_prefix, cluster_col='cluster')
+                clustered_path, column_prefix=cluster_prefix, cluster_col='cluster'
+            )
 
             # write cluster average
             cluster_avg_path = os.path.join(temp_dir, 'cell_cluster_avg.feather')
@@ -1260,6 +1284,20 @@ def test_visualize_cell_cluster_data():
             # write clustered data
             clustered_path = os.path.join(temp_dir, 'cell_mat_clustered.feather')
             feather.write_dataframe(cluster_data, clustered_path)
+
+            # bad column_prefix provided
+            with pytest.raises(ValueError):
+                som_utils.visualize_cell_cluster_data(
+                    base_dir=temp_dir, cluster_name='cell_mat_clustered.feather',
+                    column_prefix='bad_cluster'
+                )
+
+            # bad cluster_col provided
+            with pytest.raises(ValueError):
+                som_utils.visualize_cell_cluster_data(
+                    base_dir=temp_dir, cluster_name='cell_mat_clustered.feather',
+                    column_prefix=cluster_prefix, cell_cluster_col='bad_cluster'
+                )
 
             # test visualization for cluster: no saving
             som_utils.visualize_cell_cluster_data(
