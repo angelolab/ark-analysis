@@ -548,12 +548,10 @@ def test_generate_cell_data_tree_loading():
         fovs_subset_ext[1] = str(fovs_subset_ext[1]) + ".tiff"
 
         # generate a sample segmentation_mask
-        cell_mask, _ = test_utils.create_test_extraction_data()
-
-        cell_masks = np.zeros((3, 40, 40, 2), dtype="int16")
-        cell_masks[0, :, :, 0] = cell_mask[0, :, :, 0]
-        cell_masks[1, 5:, 5:, 0] = cell_mask[0, :-5, :-5, 0]
-        cell_masks[2, 10:, 10:, 0] = cell_mask[0, :-10, :-10, 0] / 2
+        cell_masks = np.random.randint(low=0, high=5, size=(3, 40, 40, 2), dtype="int16")
+        cell_masks[0, :, :, 0] = cell_masks[0, :, :, 0]
+        cell_masks[1, 5:, 5:, 0] = cell_masks[0, :-5, :-5, 0]
+        cell_masks[2, 10:, 10:, 0] = cell_masks[0, :-10, :-10, 0] / 2
         cell_masks[..., 1] = cell_masks[..., 0]
 
         for fov in range(cell_masks.shape[0]):
@@ -641,11 +639,10 @@ def test_generate_cell_data_mibitiff_loading():
         )
 
         # generate a sample segmentation_mask
-        cell_mask, _ = test_utils.create_test_extraction_data()
-        cell_masks = np.zeros((3, 40, 40, 2), dtype="int16")
-        cell_masks[0, :, :, 0] = cell_mask[0, :, :, 0]
-        cell_masks[1, 5:, 5:, 0] = cell_mask[0, :-5, :-5, 0]
-        cell_masks[2, 10:, 10:, 0] = cell_mask[0, :-10, :-10, 0]
+        cell_masks = np.random.randint(low=0, high=5, size=(3, 40, 40, 2), dtype="int16")
+        cell_masks[0, :, :, 0] = cell_masks[0, :, :, 0]
+        cell_masks[1, 5:, 5:, 0] = cell_masks[0, :-5, :-5, 0]
+        cell_masks[2, 10:, 10:, 0] = cell_masks[0, :-10, :-10, 0]
         cell_masks[..., 1] = cell_masks[..., 0]
 
         for fov in range(cell_masks.shape[0]):
@@ -719,12 +716,10 @@ def test_generate_cell_data_extractions():
         )
 
         # generate a sample segmentation_mask
-        cell_mask, _ = test_utils.create_test_extraction_data()
-
-        cell_masks = np.zeros((3, 40, 40, 2), dtype="int16")
-        cell_masks[0, :, :, 0] = cell_mask[0, :, :, 0]
-        cell_masks[1, 5:, 5:, 0] = cell_mask[0, :-5, :-5, 0]
-        cell_masks[2, 10:, 10:, 0] = cell_mask[0, :-10, :-10, 0]
+        cell_masks = np.random.randint(low=0, high=5, size=(3, 40, 40, 2), dtype="int16")
+        cell_masks[0, :, :, 0] = cell_masks[0, :, :, 0]
+        cell_masks[1, 5:, 5:, 0] = cell_masks[0, :-5, :-5, 0]
+        cell_masks[2, 10:, 10:, 0] = cell_masks[0, :-10, :-10, 0]
         cell_masks[..., 1] = cell_masks[..., 0]
 
         for fov in range(cell_masks.shape[0]):
