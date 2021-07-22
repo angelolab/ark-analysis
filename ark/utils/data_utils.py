@@ -10,6 +10,40 @@ from ark.utils import load_utils
 from ark.utils.misc_utils import verify_in_list
 
 
+def save_fov_images(fovs, data_dir, img_xr, name_suffix=''):
+    """Given an xarray of images per fov, saves each image separately
+
+    Args:
+        fovs (list):
+            List of fovs to save in img_xr
+        data_dir (str):
+            The directory to save the images
+        img_xr (xarray.DataArray):
+            The array of images per fov
+        name_suffix (str):
+            Specify what to append at the end of every fov
+    """
+
+    if not os.path.exists(data_dir):
+        raise FileNotFoundError("data_dir %s does not exist")
+
+    # verify that the fovs provided are valid
+    verify_in_list(
+        provided_fovs=fovs,
+        img_xr_fovs=img_xr.fovs.values
+    )
+
+    for fov in fovs:
+        # retrieve the image for the fov
+        fov_img_data = img_xr.loc[fov, ...].values
+
+        # define the file name as the fov name with the name suffix appended
+        fov_file = fov + name_suffix + '.tiff'
+
+        # save the image to data_dir
+        io.imsave(os.path.join(data_dir, fov_file), fov_img_data)
+
+
 def label_cells_by_cluster(fovs, all_data, label_maps, fov_col=settings.FOV_ID,
                            cell_label_column=settings.CELL_LABEL,
                            cluster_column=settings.KMEANS_CLUSTER):
@@ -23,7 +57,7 @@ def label_cells_by_cluster(fovs, all_data, label_maps, fov_col=settings.FOV_ID,
             List of fovs to relabel.
         all_data (pandas.DataFrame):
             data including fovs, cell labels, and cell expression matrix for all markers.
-        label_maps (xr.DataArray):
+        label_maps (xarray.DataArray):
             xarray of label maps for multiple fovs
         fov_col (str):
             column with the fovs names in all_data.
@@ -31,6 +65,7 @@ def label_cells_by_cluster(fovs, all_data, label_maps, fov_col=settings.FOV_ID,
             column with the cell labels in all_data.
         cluster_column (str):
             column with the cluster labels in all_data.
+
     Returns:
         xarray.DataArray:
             The relabeled images (dims: ["fovs", "rows", "cols"]).

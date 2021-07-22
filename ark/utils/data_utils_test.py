@@ -13,6 +13,50 @@ import skimage.io as io
 from ark.utils.data_utils import relabel_segmentation, label_cells_by_cluster
 
 
+def test_save_fov_images():
+    # define the full set of fovs as well as a subset of fovs
+    fovs = ['fov0', 'fov1', 'fov2']
+    fovs_sub = fovs[:2]
+
+    # generate a random img_xr
+    sample_img_xr = xr.DataArray(
+        np.random.rand(3, 40, 40),
+        coords=[fovs, np.arange(40), np.arange(40)],
+        dims=['fovs', 'x', 'y']
+    )
+
+    # basic error checking
+    with tempfile.TemporaryDirectory() as temp_dir:
+        # bad data_dir path provided
+        with pytest.raises(FileNotFoundError):
+            data_utils.save_fov_images(fovs, 'bad_data_path', sample_img_xr)
+
+        # invalid fovs provided
+        with pytest.raises(ValueError):
+            data_utils.save_fov_images(['fov1', 'fov2', 'fov3'], temp_dir, sample_img_xr)
+
+    # test 1: all fovs provided
+    with tempfile.TemporaryDirectory() as temp_dir:
+        data_utils.save_fov_images(fovs, temp_dir, sample_img_xr)
+
+        for fov in fovs:
+            assert os.path.exists(os.path.join(temp_dir, fov + '.tiff'))
+
+    # test 2: fov subset provided
+    with tempfile.TemporaryDirectory() as temp_dir:
+        data_utils.save_fov_images(fovs_sub, temp_dir, sample_img_xr)
+
+        for fov in fovs_sub:
+            assert os.path.exists(os.path.join(temp_dir, fov + '.tiff'))
+
+    # test 3: name suffix provided
+    with tempfile.TemporaryDirectory() as temp_dir:
+        data_utils.save_fov_images(fovs_sub, temp_dir, sample_img_xr, name_suffix='_test')
+
+        for fov in fovs_sub:
+            assert os.path.exists(os.path.join(temp_dir, fov + '_test.tiff'))
+
+
 def test_generate_deepcell_input():
     for is_mibitiff in [False, True]:
         with tempfile.TemporaryDirectory() as temp_dir:
