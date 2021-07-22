@@ -668,7 +668,7 @@ def visualize_pixel_cluster_data(fovs, channels, base_dir, cluster_dir,
             Name of the directory containing the data to visualize
             Created by cluster_pixels or pixel_consensus_cluster depending on use case
         pixel_cluster_col (str):
-            Name of the column to group values by
+            Name of the column to group values by, should be 'cluster' or 'hCluster_cap'
         dpi (float):
             The resolution of the image to save, ignored if save_dir is None
         center_val (float):
@@ -683,6 +683,12 @@ def visualize_pixel_cluster_data(fovs, channels, base_dir, cluster_dir,
             If save_dir specified, specify a file name you wish to save to.
             Ignored if save_dir is None
     """
+
+    # verify the pixel_cluster_col provided is valid
+    misc_utils.verify_in_list(
+        provided_cluster_col=pixel_cluster_col,
+        valid_cluster_cols=['cluster', 'hCluster_cap']
+    )
 
     # average the channel values across the pixel cluster column
     cluster_avgs = compute_pixel_cluster_avg(fovs, channels, base_dir,
@@ -723,7 +729,8 @@ def train_cell_som(fovs, base_dir, pixel_consensus_dir, cell_table_name,
         cluster_counts_name (str):
             Name of the file to save the cluster counts of each cell
         cluster_col (str):
-            Name of the column with the pixel SOM cluster assignments
+            Name of the column with the pixel SOM cluster assignments.
+            Should be 'cluster' or 'hCluster_cap'.
         weights_name (str):
             The name of the file to save the weights to
         xdim (int):
@@ -753,6 +760,12 @@ def train_cell_som(fovs, base_dir, pixel_consensus_dir, cell_table_name,
     if not os.path.exists(consensus_path):
         raise FileNotFoundError('Consensus dir %s does not exist in base_dir %s' %
                                 (consensus_path, base_dir))
+
+    # verify the cluster_col provided is valid
+    misc_utils.verify_in_list(
+        provided_cluster_col=cluster_col,
+        valid_cluster_cols=['cluster', 'hCluster_cap']
+    )
 
     # generate a matrix with each fov/cell label pair with their pixel SOM/meta cluster counts
     print("Counting the number of pixel SOM/meta cluster counts for each fov/cell pair")
@@ -882,6 +895,12 @@ def cell_consensus_cluster(base_dir, max_k=20, cap=3, column_prefix='cluster',
         raise FileNotFoundError('Cluster table %s does not exist in base_dir %s' %
                                 (cell_cluster_name, base_dir))
 
+    # verify the column_prefix provided is valid
+    misc_utils.verify_in_list(
+        provided_column_prefix=column_prefix,
+        valid_column_prefixes=['cluster', 'hCluster_cap']
+    )
+
     # compute the averages across each cell SOM cluster
     print("Averaging the pixel SOM/meta cluster counts across each cell SOM cluster")
     cluster_avgs = compute_cell_cluster_avg(clustered_path, column_prefix=column_prefix,
@@ -924,7 +943,7 @@ def visualize_cell_cluster_data(base_dir, cluster_name, column_prefix, cell_clus
         column_prefix (str):
             The prefix of the columns to subset, should be 'cluster' or 'hCluster_cap'
         cell_cluster_col (str):
-            Name of the column to group values by
+            Name of the column to group values by, should be 'cluster' or 'hCluster_cap'
         dpi (float):
             The resolution of the image to save, ignored if save_dir is None
         center_val (float):
@@ -939,6 +958,18 @@ def visualize_cell_cluster_data(base_dir, cluster_name, column_prefix, cell_clus
             If save_dir specified, specify a file name you wish to save to.
             Ignored if save_dir is None
     """
+
+    # verify the column prefix provided is valid
+    misc_utils.verify_in_list(
+        provided_column_prefix=column_prefix,
+        valid_column_prefixes=['cluster', 'hCluster_cap']
+    )
+
+    # verify the cell_cluster_col provided is valid
+    misc_utils.verify_in_list(
+        provided_cluster_col=cell_cluster_col,
+        valid_cluster_cols=['cluster', 'hCluster_cap']
+    )
 
     # average the columns across the cluster column
     cluster_avgs = compute_cell_cluster_avg(os.path.join(base_dir, cluster_name),

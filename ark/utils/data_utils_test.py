@@ -307,6 +307,19 @@ def test_generate_cell_cluster_mask():
             consensus_data_som, os.path.join(temp_dir, 'cluster_consensus_meta.feather')
         )
 
+        # bad cluster column provided
+        with pytest.raises(ValueError):
+            data_utils.generate_cell_cluster_mask(
+                fovs, temp_dir, temp_dir, 'cluster_consensus_som.feather', 'bad_cluster'
+            )
+
+        # bad fovs provided
+        with pytest.raises(ValueError):
+            data_utils.generate_cell_cluster_mask(
+                ['fov1', 'fov2', 'fov3'], temp_dir, temp_dir,
+                'cluster_consensus_som.feather', 'cluster'
+            )
+
         # test on SOM assignments
         cell_masks = data_utils.generate_cell_cluster_mask(
             fovs, temp_dir, temp_dir, 'cluster_consensus_som.feather', 'cluster'
@@ -367,6 +380,18 @@ def test_generate_pixel_cluster_mask():
 
             feather.write_dataframe(
                 consensus_data, os.path.join(temp_dir, 'pixel_mat_consensus', fov + '.feather')
+            )
+
+        # bad cluster column provided
+        with pytest.raises(ValueError):
+            data_utils.generate_pixel_cluster_mask(
+                fovs, temp_dir, temp_dir, 'pixel_mat_consensus', 'bad_cluster'
+            )
+
+        # bad fovs provided
+        with pytest.raises(ValueError):
+            data_utils.generate_pixel_cluster_mask(
+                ['fov1', 'fov2', 'fov3'], temp_dir, temp_dir, 'pixel_mat_consensus', 'cluster'
             )
 
         # test on SOM assignments

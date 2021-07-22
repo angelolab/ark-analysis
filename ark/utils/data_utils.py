@@ -83,12 +83,23 @@ def generate_cell_cluster_mask(fovs, base_dir, seg_dir, cell_consensus_name,
             "consensus_dir %s does not exist in base_dir %s" % (cell_consensus_name, base_dir)
         )
 
+    # verify the cluster_col provided is valid
+    verify_in_list(
+        provided_cluster_col=cluster_col,
+        valid_cluster_cols=['cluster', 'hCluster_cap']
+    )
+
     # load the consensus data in
     cell_consensus_data = feather.read_dataframe(os.path.join(base_dir, cell_consensus_name))
 
+    # verify all the fovs are valid
+    verify_in_list(
+        provided_fovs=fovs,
+        consensus_fovs=cell_consensus_data['fov']
+    )
+
     # define the files for whole cell and nuclear
     whole_cell_files = [fov + '_feature_0.tif' for fov in fovs]
-    # nuclear_files = [fov + '_feature_1.tif' for fov in fovs]
 
     # load the segmentation labels in
     label_maps = load_utils.load_imgs_from_dir(data_dir=seg_dir,
@@ -136,6 +147,12 @@ def generate_pixel_cluster_mask(fovs, base_dir, seg_dir, pixel_consensus_dir,
         raise FileNotFoundError(
             "consensus_dir %s does not exist in base_dir %s" % (pixel_consensus_dir, base_dir)
         )
+
+    # verify the cluster_col provided is valid
+    verify_in_list(
+        provided_cluster_col=cluster_col,
+        valid_cluster_cols=['cluster', 'hCluster_cap']
+    )
 
     # verify all the fovs are valid
     verify_in_list(
