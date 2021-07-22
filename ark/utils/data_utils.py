@@ -78,9 +78,9 @@ def generate_cell_cluster_mask(fovs, base_dir, seg_dir, cell_consensus_name,
     if not os.path.exists(seg_dir):
         raise FileNotFoundError("seg_dir %s does not exist")
 
-    if not os.path.exists(os.path.join(base_dir, pixel_consensus_dir)):
+    if not os.path.exists(os.path.join(base_dir, cell_consensus_name)):
         raise FileNotFoundError(
-            "consensus_dir %s does not exist in base_dir %s" % (pixel_consensus_dir, base_dir)
+            "consensus_dir %s does not exist in base_dir %s" % (cell_consensus_name, base_dir)
         )
 
     # load the consensus data in
@@ -88,34 +88,23 @@ def generate_cell_cluster_mask(fovs, base_dir, seg_dir, cell_consensus_name,
 
     # define the files for whole cell and nuclear
     whole_cell_files = [fov + '_feature_0.tif' for fov in fovs]
-    nuclear_files = [fov + '_feature_1.tif' for fov in fovs]
+    # nuclear_files = [fov + '_feature_1.tif' for fov in fovs]
 
     # load the segmentation labels in
-    current_labels_cell = load_utils.load_imgs_from_dir(data_dir=seg_dir,
-                                                        files=whole_cell_files,
-                                                        xr_dim_name='compartments',
-                                                        xr_channel_names=['whole_cell'],
-                                                        trim_suffix='_feature_0',
-                                                        force_ints=True)
-
-    current_labels_nuc = load_utils.load_imgs_from_dir(data_dir=seg_dir,
-                                                       files=nuclear_files,
-                                                       xr_dim_name='compartments',
-                                                       xr_channel_names=['nuclear'],
-                                                       trim_suffix='_feature_1',
-                                                       force_ints=True)
-
-    current_labels = xr.DataArray(np.concatenate((current_labels_cell.values,
-                                                  current_labels_nuc.values),
-                                                 axis=-1),
-                                  coords=[current_labels_cell.fovs,
-                                          current_labels_cell.rows,
-                                          current_labels_cell.cols,
-                                          ['whole_cell', 'nuclear']],
-                                  dims=current_labels_cell.dims)
+    label_maps = load_utils.load_imgs_from_dir(data_dir=seg_dir,
+                                               files=whole_cell_files,
+                                               xr_dim_name='compartments',
+                                               xr_channel_names=['whole_cell'],
+                                               trim_suffix='_feature_0',
+                                               force_ints=True)
 
     # use label_cells_by_cluster to create cell masks
-    return label_cells_by_cluster(fovs, cell_consensus_data, label_maps, cluster_column=cluster_col)
+    img_data = label_cells_by_cluster(
+        fovs, cell_consensus_data, label_maps, fov_col='fov',
+        cell_label_column='segmentation_label', cluster_column=cluster_col
+    )
+
+    return img_data
 
 
 def generate_pixel_cluster_mask(fovs, base_dir, seg_dir, pixel_consensus_dir,

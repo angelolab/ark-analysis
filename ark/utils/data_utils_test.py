@@ -240,3 +240,11 @@ def test_label_cells_by_cluster():
     # all pixels in fov2 should remain non-zero
     labeled_img = res_xr[res_xr['fovs'] == fovs[2]].values.squeeze()
     assert np.all(labeled_img[idx] > 0)
+
+
+def test_generate_cell_cluster_mask():
+    pass
+
+
+def test_generate_pixel_cluster_mask():
+    pass
