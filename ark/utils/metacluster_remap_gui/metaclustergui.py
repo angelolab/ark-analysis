@@ -200,7 +200,6 @@ class MetaClusterGui():
             label.set_y(y + label_y_spacing)
             label.set_text(text)
 
-
         self._heatmaps_stale = False
 
     def enable_debug_mode(self):
@@ -227,7 +226,7 @@ class MetaClusterGui():
 
     @DEBUG_VIEW.capture(clear_output=False)
     def new_metacluster(self, e):
-        metacluster = max(self.mcd.mapping['hCluster_cap']) + 1
+        metacluster = self.mcd.new_metacluster()
         print(metacluster)
         self.remap_current_selection(metacluster)
         self.update_gui()

@@ -37,6 +37,9 @@ class MetaClusterData():
     def which_metacluster(self, cluster):
         return self.mapping.loc[cluster]['hCluster_cap']
 
+    def new_metacluster(self):
+        return max(self.mapping['hCluster_cap']) + 1
+
     def remap(self, cluster, metacluster):
         self.mapping.loc[cluster, 'hCluster_cap'] = metacluster
         self.mapping.to_csv(self.path / self.output_mapping_filename)
