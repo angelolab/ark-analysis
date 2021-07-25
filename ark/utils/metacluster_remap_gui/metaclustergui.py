@@ -29,7 +29,8 @@ class MetaClusterGui():
 
     @property
     def cmap(self):
-        return distinct_cmap(self.mcd.metacluster_count)
+        # will never have more metaclusters than clusters
+        return distinct_cmap(self.mcd.cluster_count)
 
     def preplot(self, df):
         return df.apply(zscore).clip(upper=self.max_zscore).T
@@ -82,8 +83,8 @@ class MetaClusterGui():
         self.ax_cl.set_yticklabels(["Metacluster"])
         self.ax_ml.yaxis.set_tick_params(which='both', left=False, labelleft=False)
 
-        self.im_cl = self.ax_cl.imshow(np.zeros((1, self.mcd.cluster_count)), aspect='auto', picker=True)
-        self.im_ml = self.ax_ml.imshow(np.zeros((1, self.mcd.metacluster_count)), aspect='auto', picker=True)
+        self.im_cl = self.ax_cl.imshow(np.zeros((1, self.mcd.cluster_count)), aspect='auto', picker=True, vmin=1, vmax=self.mcd.cluster_count)
+        self.im_ml = self.ax_ml.imshow(np.zeros((1, self.mcd.metacluster_count)), aspect='auto', picker=True, vmin=1, vmax=self.mcd.cluster_count)
 
         # xaxis cluster selection labels
         self.ax_cs.xaxis.set_tick_params(which='both', bottom=False, labelbottom=False)
@@ -179,16 +180,13 @@ class MetaClusterGui():
         self.im_m.set_clim(0, self.max_zscore)
 
         # xaxis metacluster color labels
-        metacluster_iloc = {mc:i+1 for (mc,i) in zip(self.mcd.metaclusters.index, range(self.mcd.metacluster_count))}
-        self.im_cl.set_data([[metacluster_iloc[mc] for mc in self.mcd.clusters_with_metaclusters['hCluster_cap']]])
-        self.im_cl.set_extent((0, self.mcd.metacluster_count, 0, 1))
+        assert max(self.mcd.metaclusters.index) < self.mcd.cluster_count, "index of metaclusters has surpassed the colormap limit"
+        self.im_cl.set_data([self.mcd.clusters_with_metaclusters['hCluster_cap']])
+        self.im_cl.set_extent((0, self.mcd.cluster_count, 0, 1))
         self.im_cl.set_cmap(self.cmap)
-        self.im_cl.set_clim(1, self.mcd.metacluster_count)
-
-        self.im_ml.set_data([[metacluster_iloc[mc] for mc in self.mcd.metaclusters.index]])
+        self.im_ml.set_data([self.mcd.metaclusters.index])
         self.im_ml.set_extent((0, self.mcd.metacluster_count, 0, 1))
         self.im_ml.set_cmap(self.cmap)
-        self.im_ml.set_clim(1, self.mcd.metacluster_count)
 
         # xaxis pixelcount graphs
         ax_cp_ymax = max(self.mcd.cluster_pixelcounts['count'])*1.5
@@ -258,7 +256,8 @@ class MetaClusterGui():
             self.select_metacluster(self.mcd.metaclusters.index[selected_ix])
         elif e.artist in [self.im_cl]:
             selected_cluster = self.mcd.clusters_with_metaclusters.index[selected_ix]
-            self.select_metacluster(self.mcd.which_metacluster(cluster=selected_cluster))
+            metacluster = self.mcd.which_metacluster(cluster=selected_cluster)
+            self.select_metacluster(metacluster)
 
     def select_metacluster(self, metacluster):
         clusters = self.mcd.cluster_in_metacluster(metacluster)
