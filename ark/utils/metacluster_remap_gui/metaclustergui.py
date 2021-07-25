@@ -214,6 +214,7 @@ class MetaClusterGui():
 
     @DEBUG_VIEW.capture(clear_output=False)
     def update_zscore(self, e):
+        self._heatmaps_stale = True
         self.update_gui()
 
     @DEBUG_VIEW.capture(clear_output=False)
