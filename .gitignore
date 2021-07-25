@@ -21,3 +21,5 @@ env
 */_build
 */_markdown
 */visualizations
+
+data/example_dataset/metaclustering/*output*.csv
