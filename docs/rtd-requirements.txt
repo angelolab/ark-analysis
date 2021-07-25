@@ -1,5 +1,6 @@
 commonmark==0.9.1
 ipython==7.16.1
+ipywidgets==7.6.3
 m2r2==0.2.5
 mock==4.0.2
 nbsphinx==0.7.1
