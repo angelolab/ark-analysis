@@ -77,7 +77,9 @@ class MetaClusterGui():
         # xaxis metacluster color labels
         self.ax_cl.xaxis.set_tick_params(which='both', bottom=False, labelbottom=False)
         self.ax_ml.xaxis.set_tick_params(which='both', bottom=False, labelbottom=False)
-        self.ax_cl.yaxis.set_tick_params(which='both', left=False, labelleft=False)
+        self.ax_cl.yaxis.set_tick_params(which='both', left=False, labelleft=True)
+        self.ax_cl.set_yticks([0.5])
+        self.ax_cl.set_yticklabels(["Metacluster"])
         self.ax_ml.yaxis.set_tick_params(which='both', left=False, labelleft=False)
 
         self.im_cl = self.ax_cl.imshow(np.zeros((1, self.mcd.cluster_count)), aspect='auto', picker=True)
@@ -86,7 +88,9 @@ class MetaClusterGui():
         # xaxis cluster selection labels
         self.ax_cs.xaxis.set_tick_params(which='both', bottom=False, labelbottom=False)
         self.ax_ms.xaxis.set_tick_params(which='both', bottom=False, labelbottom=False)
-        self.ax_cs.yaxis.set_tick_params(which='both', left=False, labelleft=False)
+        self.ax_cs.yaxis.set_tick_params(which='both', left=False, labelleft=True)
+        self.ax_cs.set_yticks([0.5])
+        self.ax_cs.set_yticklabels(["Selected"])
         self.ax_ms.yaxis.set_tick_params(which='both', left=False, labelleft=False)
         self.im_cs = self.ax_cs.imshow(np.zeros((1, self.mcd.marker_count)), cmap='Blues', aspect='auto', picker=True, vmin=-0.3, vmax=1)
         self.im_ms = self.ax_ms.imshow(np.zeros((1, self.mcd.marker_count)), cmap='Blues', aspect='auto', picker=True, vmin=-0.3, vmax=1)
@@ -96,10 +100,11 @@ class MetaClusterGui():
         self.ax_mp.xaxis.set_tick_params(which='both', bottom=False, labelbottom=False)
         self.ax_cp.yaxis.set_tick_params(which='both', left=False, labelleft=False)
         self.ax_mp.yaxis.set_tick_params(which='both', left=False, labelleft=False)
+        self.ax_cp.set_ylabel("Pixels (k)", rotation=90)
         self.ax_cp.set_xlim(0, self.mcd.cluster_count)
         self.rects_cp = self.ax_cp.bar(np.arange(self.mcd.cluster_count)+0.5, np.zeros(self.mcd.cluster_count))
         self.labels_cp = []
-        label_alignment_fudge = 0.05
+        label_alignment_fudge = 0.08
         for x in np.arange(self.mcd.cluster_count)+0.5+label_alignment_fudge:
             label = self.ax_cp.text(x=x, y=0, s="-", va='bottom', ha='center', rotation=90, color='black', fontsize=8)
             self.labels_cp.append(label)
@@ -157,7 +162,7 @@ class MetaClusterGui():
         # xaxis cluster selection labels
         selection_mask = [[1 if c in self.selected_clusters else 0 for c in self.mcd.clusters.index]]
         self.im_cs.set_data(selection_mask)
-        self.im_cs.set_extent((0, self.mcd.cluster_count, 0, self.mcd.marker_count))
+        self.im_cs.set_extent((0, self.mcd.cluster_count, 0, 1))
 
         if not self._heatmaps_stale:
             print("skipping other repaints")
@@ -176,12 +181,12 @@ class MetaClusterGui():
         # xaxis metacluster color labels
         metacluster_iloc = {mc:i+1 for (mc,i) in zip(self.mcd.metaclusters.index, range(self.mcd.metacluster_count))}
         self.im_cl.set_data([[metacluster_iloc[mc] for mc in self.mcd.clusters_with_metaclusters['hCluster_cap']]])
-        self.im_cl.set_extent((0, self.mcd.cluster_count, 0, self.mcd.metacluster_count))
+        self.im_cl.set_extent((0, self.mcd.metacluster_count, 0, 1))
         self.im_cl.set_cmap(self.cmap)
         self.im_cl.set_clim(1, self.mcd.metacluster_count)
 
         self.im_ml.set_data([[metacluster_iloc[mc] for mc in self.mcd.metaclusters.index]])
-        self.im_ml.set_extent((0, self.mcd.metacluster_count, 0, self.mcd.metacluster_count))
+        self.im_ml.set_extent((0, self.mcd.metacluster_count, 0, 1))
         self.im_ml.set_cmap(self.cmap)
         self.im_ml.set_clim(1, self.mcd.metacluster_count)
 
@@ -192,7 +197,7 @@ class MetaClusterGui():
         for rect, h in zip(self.rects_cp, sorted_pixel_counts):
             rect.set_height(h)
         for label, y in zip(self.labels_cp, sorted_pixel_counts):
-            text = "{:0.0f}".format(y/1000)
+            text = "{:0.0f}".format(y / 1000)
             label_y_spacing = ax_cp_ymax * 0.05
             label.set_y(y + label_y_spacing)
             label.set_text(text)
