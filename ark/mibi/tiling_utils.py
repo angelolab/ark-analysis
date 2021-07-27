@@ -192,7 +192,7 @@ def create_tiled_regions(tiling_params, moly_path):
         for xi, yi in x_y_pairs:
             # set the current x and y coordinate
             cur_x = start_x + xi * tiling_params['x_fov_size'][region_index]
-            cur_y = start_y - yi * tiling_params['y_fov_size'][region_index]
+            cur_y = start_y + yi * tiling_params['y_fov_size'][region_index]
 
             # copy the fov metadata over and add cur_x, cur_y, and identifier
             fov = copy.deepcopy(tiling_params['fovs'][region_index])
