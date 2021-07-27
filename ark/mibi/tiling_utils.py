@@ -175,7 +175,7 @@ def create_tiled_regions(tiling_params, moly_path):
     # only used if tiling_params['moly_interval'] is set
     moly_counter = 0
 
-    # append tile information to fov_list, iterate through each tiles iteratively
+    # iterate through each region and append created tiles to tiled_regions['fovs']
     for region_index in range(len(tiling_params['fov_num_x'])):
         # extract start coordinates
         start_x = tiling_params['region_start_x'][region_index]
