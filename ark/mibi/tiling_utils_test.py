@@ -8,8 +8,111 @@ import ark.mibi.tiling_utils as tiling_utils
 import ark.utils.misc_utils as misc_utils
 
 
-def test_set_tiling_params():
-    pass
+def test_set_tiling_params(monkeypatch):
+    # define a sample set of fovs
+    sample_fovs_list = {
+        "exportDateTime": "2021-03-12T19:02:37.920Z",
+        "fovFormatVersion": "1.5",
+        "fovs": [
+            {
+              "scanCount": 1,
+              "centerPointMicrons": {
+                "x": 8758,
+                "y": 38150
+              },
+              "timingChoice": 7,
+              "frameSizePixels": {
+                "width": 2048,
+                "height": 2048
+              },
+              "imagingPreset": {
+                "preset": "Normal",
+                "aperture": "2",
+                "displayName": "Fine",
+                "defaults": {
+                  "timingChoice": 7
+                }
+              },
+              "sectionId": 8201,
+              "slideId": 5931,
+              "name": "TheFirstFOV",
+              "timingDescription": "1 ms"
+            },
+            {
+              "scanCount": 1,
+              "centerPointMicrons": {
+                "x": 5142,
+                "y": 6371
+              },
+              "timingChoice": 7,
+              "frameSizePixels": {
+                "width": 2048,
+                "height": 2048
+              },
+              "imagingPreset": {
+                "preset": "Normal",
+                "aperture": "2",
+                "displayName": "Fine",
+                "defaults": {
+                  "timingChoice": 7
+                }
+              },
+              "sectionId": 8201,
+              "slideId": 5931,
+              "name": "TheSecondFOV",
+              "timingDescription": "1 ms"
+            }
+        ]
+    }
+
+    # let's just set all the user inputs to 1 to make the test easy
+    user_input = 1
+
+    # override the default functionality of the input function
+    monkeypatch.setattr(
+        'builtins.input', lambda _: 1
+    )
+
+    # error checking: bad fov list path provided
+    with pytest.raises(FileNotFoundError):
+        tiling_utils.set_tiling_params('bad_fov_list_path.json')
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        # write fov list
+        sample_fov_list_path = os.path.join(temp_dir, 'fov_list.json')
+        with open(sample_fov_list_path, 'w') as fl:
+            json.dump(sample_fovs_list, fl)
+
+        # run tiling parameter setting process with predefined user inputs
+        sample_tiling_params = tiling_utils.set_tiling_params(sample_fov_list_path)
+
+        # assert the fovs in the tiling params are the same as in the original fovs list
+        assert sample_tiling_params['fovs'] == sample_fovs_list['fovs']
+
+        # assert region start x and region start y values are correct
+        region_start_x = sample_tiling_params['region_start_x']
+        region_start_y = sample_tiling_params['region_start_y']
+        fov_0 = sample_fovs_list['fovs'][0]
+        fov_1 = sample_fovs_list['fovs'][1]
+
+        assert region_start_x[0] == fov_0['centerPointMicrons']['x']
+        assert region_start_x[1] == fov_1['centerPointMicrons']['x']
+        assert region_start_y[0] == fov_0['centerPointMicrons']['y']
+        assert region_start_y[1] == fov_1['centerPointMicrons']['y']
+
+        # assert fov_num_x and fov_num_y are all set to 1
+        assert all(nx == 1 for nx in sample_tiling_params['fov_num_x'])
+        assert all(ny == 1 for ny in sample_tiling_params['fov_num_y'])
+
+        # assert x_fov_size and y_fov_size are all set to 1
+        assert all(sx == 1 for sx in sample_tiling_params['x_fov_size'])
+        assert all(sy == 1 for sy in sample_tiling_params['y_fov_size'])
+
+        # assert randomize is set to 1
+        assert sample_tiling_params['randomize'] == 1
+
+        # assert moly interval is set to 1
+        assert sample_tiling_params['moly_interval'] == 1
 
 
 def test_create_tiled_regions():
@@ -85,11 +188,11 @@ def test_create_tiled_regions():
             "height": 128
         },
         "imagingPreset": {
-        "preset": "Tuning",
-        "aperture": "3",
-        "displayName": "QC - 100µm",
+            "preset": "Tuning",
+            "aperture": "3",
+            "displayName": "QC - 100µm",
             "defaults": {
-              "timingChoice": 7
+                "timingChoice": 7
             }
         },
         "standardTarget": "Moly Foil",
@@ -100,7 +203,7 @@ def test_create_tiled_regions():
 
     # error checking: bad moly_path provided
     with pytest.raises(FileNotFoundError):
-        tiling_utils.create_tiled_regions(sample_tiling_params, 'bad_moly_path')
+        tiling_utils.create_tiled_regions(sample_tiling_params, 'bad_moly_path.json')
 
     with tempfile.TemporaryDirectory() as temp_dir:
         # write moly point
