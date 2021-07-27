@@ -65,15 +65,42 @@ def test_set_tiling_params(monkeypatch):
         ]
     }
 
+    # set moly point
+    sample_moly_point = {
+        "scanCount": 3,
+        "centerPointMicrons": {
+            "x": 14540,
+            "y": -10830
+        },
+        "fovSizeMicrons": 200,
+        "timingChoice": 7,
+        "frameSizePixels": {
+            "width": 128,
+            "height": 128
+        },
+        "imagingPreset": {
+            "preset": "Tuning",
+            "aperture": "3",
+            "displayName": "QC - 100µm",
+            "defaults": {
+                "timingChoice": 7
+            }
+        },
+        "standardTarget": "Moly Foil",
+        "name": "MoQC",
+        "notes": None,
+        "timingDescription": "1 ms"
+    }
+
     # let's just set all the user inputs to 1 to make the test easy
     user_input = 1
 
     # override the default functionality of the input function
     monkeypatch.setattr('builtins.input', lambda _: 1)
 
-    # error checking: bad fov list path provided
+    # bad fov list path provided
     with pytest.raises(FileNotFoundError):
-        tiling_utils.set_tiling_params('bad_fov_list_path.json')
+        tiling_utils.set_tiling_params('bad_fov_list_path.json', 'bad_moly_path.json')
 
     with tempfile.TemporaryDirectory() as temp_dir:
         # write fov list
@@ -81,8 +108,19 @@ def test_set_tiling_params(monkeypatch):
         with open(sample_fov_list_path, 'w') as fl:
             json.dump(sample_fovs_list, fl)
 
+        # bad moly path provided
+        with pytest.raises(FileNotFoundError):
+            tiling_utils.set_tiling_params(sample_fov_list_path, 'bad_moly_path.json')
+
+        # write moly point
+        sample_moly_path = os.path.join(temp_dir, 'moly_point.json')
+        with open(sample_moly_path, 'w') as moly:
+            json.dump(sample_moly_point, moly)
+
         # run tiling parameter setting process with predefined user inputs
-        sample_tiling_params = tiling_utils.set_tiling_params(sample_fov_list_path)
+        sample_tiling_params, moly_point = tiling_utils.set_tiling_params(
+            sample_fov_list_path, sample_moly_path
+        )
 
         # assert the fovs in the tiling params are the same as in the original fovs list
         assert sample_tiling_params['fovs'] == sample_fovs_list['fovs']
@@ -199,19 +237,10 @@ def test_create_tiled_regions():
         "timingDescription": "1 ms"
     }
 
-    # error checking: bad moly_path provided
-    with pytest.raises(FileNotFoundError):
-        tiling_utils.create_tiled_regions(sample_tiling_params, 'bad_moly_path.json')
-
     with tempfile.TemporaryDirectory() as temp_dir:
-        # write moly point
-        sample_moly_path = os.path.join(temp_dir, 'moly_point.json')
-        with open(sample_moly_path, 'w') as moly:
-            json.dump(sample_moly_point, moly)
-
         # test 1: no randomization, no additional moly point interval
         tiled_regions_base = tiling_utils.create_tiled_regions(
-            sample_tiling_params, sample_moly_path
+            sample_tiling_params, sample_moly_point
         )
 
         # get the center points created
@@ -234,7 +263,7 @@ def test_create_tiled_regions():
         # test 2: randomization for one fov, no additional moly point interval
         sample_tiling_params['randomize'] = [0, 1]
         tiled_regions_random_some = tiling_utils.create_tiled_regions(
-            sample_tiling_params, sample_moly_path
+            sample_tiling_params, sample_moly_point
         )
 
         # get the center points created
@@ -262,7 +291,7 @@ def test_create_tiled_regions():
         # test 3: randomization for both fovs, no additional moly point interval
         sample_tiling_params['randomize'] = [1, 1]
         tiled_regions_random_all = tiling_utils.create_tiled_regions(
-            sample_tiling_params, sample_moly_path
+            sample_tiling_params, sample_moly_point
         )
 
         # get the center points created
@@ -288,7 +317,7 @@ def test_create_tiled_regions():
         sample_tiling_params['randomize'] = [0, 0]
         sample_tiling_params['moly_interval'] = 3
         tiled_regions_moly_int = tiling_utils.create_tiled_regions(
-            sample_tiling_params, sample_moly_path
+            sample_tiling_params, sample_moly_point
         )
 
         # get the center points created
@@ -313,7 +342,7 @@ def test_create_tiled_regions():
         # test 5: randomization for one fov, additional moly point interval
         sample_tiling_params['randomize'] = [0, 1]
         tiled_regions_random_some_moly_int = tiling_utils.create_tiled_regions(
-            sample_tiling_params, sample_moly_path
+            sample_tiling_params, sample_moly_point
         )
 
         # get the center points created
@@ -345,7 +374,7 @@ def test_create_tiled_regions():
         # test 6: randomization for both fovs, additional moly point interval
         sample_tiling_params['randomize'] = [1, 1]
         tiled_regions_random_all_moly_int = tiling_utils.create_tiled_regions(
-            sample_tiling_params, sample_moly_path
+            sample_tiling_params, sample_moly_point
         )
 
         # get the center points created
