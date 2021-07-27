@@ -8,6 +8,10 @@ import ark.mibi.tiling_utils as tiling_utils
 import ark.utils.misc_utils as misc_utils
 
 
+def test_set_tiling_params():
+    pass
+
+
 def test_create_tiled_regions():
     # set tiling_params dict
     sample_tiling_params = {
