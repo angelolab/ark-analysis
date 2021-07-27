@@ -13,7 +13,7 @@ def set_tiling_params(fov_list_path):
 
     Args:
         fov_list_path (str):
-            Path to the JSON file containing the fov region data
+            Path to the JSON file containing the fovs used to define each tiled region
 
     Returns:
         dict:
