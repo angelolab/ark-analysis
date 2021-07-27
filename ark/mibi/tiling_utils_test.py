@@ -69,9 +69,7 @@ def test_set_tiling_params(monkeypatch):
     user_input = 1
 
     # override the default functionality of the input function
-    monkeypatch.setattr(
-        'builtins.input', lambda _: 1
-    )
+    monkeypatch.setattr('builtins.input', lambda _: 1)
 
     # error checking: bad fov list path provided
     with pytest.raises(FileNotFoundError):
