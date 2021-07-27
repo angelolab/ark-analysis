@@ -34,7 +34,7 @@ def set_tiling_params(fov_list_path):
     # retrieve the format version
     tiling_params['fovFormatVersion'] = fov_tile_info['fovFormatVersion']
 
-    # define lists to hold the starting x and y coordinates for each fov
+    # define lists to hold the starting x and y coordinates for each region
     region_start_x = []
     region_start_y = []
 
