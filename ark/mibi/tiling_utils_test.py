@@ -106,8 +106,8 @@ def test_set_tiling_params(monkeypatch):
         assert all(sx == 1 for sx in sample_tiling_params['x_fov_size'])
         assert all(sy == 1 for sy in sample_tiling_params['y_fov_size'])
 
-        # assert randomize is set to 1
-        assert sample_tiling_params['randomize'] == 1
+        # assert randomize is set to 1 for both fovs
+        assert all(r == 1 for r in sample_tiling_params['randomize'])
 
         # assert moly interval is set to 1
         assert sample_tiling_params['moly_interval'] == 1
@@ -169,7 +169,7 @@ def test_create_tiled_regions():
         'fov_num_y': [4, 2],
         'x_fov_size': [5, 10],
         'y_fov_size': [10, 5],
-        'randomize': 0
+        'randomize': [0, 0]
     }
 
     # set moly point
@@ -231,16 +231,44 @@ def test_create_tiled_regions():
         # check that the created center points equal the sorted center points
         assert sorted_center_points == actual_center_points
 
-        # test 2: randomization, no additional moly point interval
-        sample_tiling_params['randomize'] = 1
-        tiled_regions_random = tiling_utils.create_tiled_regions(
+        # test 2: randomization for one fov, no additional moly point interval
+        sample_tiling_params['randomize'] = [0, 1]
+        tiled_regions_random_some = tiling_utils.create_tiled_regions(
             sample_tiling_params, sample_moly_path
         )
 
         # get the center points created
         random_center_points = [
             (fov['centerPointMicrons']['x'], fov['centerPointMicrons']['y'])
-            for fov in tiled_regions_random['fovs']
+            for fov in tiled_regions_random_some['fovs']
+        ]
+
+        # ensure the moly point is inserted in the same spot as if the fovs were sorted
+        random_center_points[8] == sorted_center_points[8]
+
+        # ensure the fov 1 center points are the same for both sorted and random
+        assert random_center_points[:7] == sorted_center_points[:7]
+
+        # ensure the random center points for fov 2 contain the same elements as its sorted version
+        misc_utils.verify_same_elements(
+            random_center_points=random_center_points[9:],
+            sorted_center_points=sorted_center_points[9:]
+        )
+
+        # the random center points for fov 2 should be ordered differently than its sorted version
+        # due to the nature of randomization, this test will fail once in a blue moon
+        assert random_center_points[9:] != sorted_center_points[9:]
+
+        # test 3: randomization for both fovs, no additional moly point interval
+        sample_tiling_params['randomize'] = [1, 1]
+        tiled_regions_random_all = tiling_utils.create_tiled_regions(
+            sample_tiling_params, sample_moly_path
+        )
+
+        # get the center points created
+        random_center_points = [
+            (fov['centerPointMicrons']['x'], fov['centerPointMicrons']['y'])
+            for fov in tiled_regions_random_all['fovs']
         ]
 
         # ensure the moly point is inserted in the same spot as if the fovs were sorted
@@ -256,8 +284,8 @@ def test_create_tiled_regions():
         # due to the nature of randomization, this test will fail once in a blue moon
         assert random_center_points != sorted_center_points
 
-        # test 3: no randomization, additional moly point interval
-        sample_tiling_params['randomize'] = 0
+        # test 4: no randomization, additional moly point interval
+        sample_tiling_params['randomize'] = [0, 0]
         sample_tiling_params['moly_interval'] = 3
         tiled_regions_moly_int = tiling_utils.create_tiled_regions(
             sample_tiling_params, sample_moly_path
@@ -282,16 +310,48 @@ def test_create_tiled_regions():
         # check that the created center points equal the sorted center points
         assert sorted_center_points == actual_center_points
 
-        # test 4: randomization, additional moly point interval
-        sample_tiling_params['randomize'] = 1
-        tiled_regions_random_moly_int = tiling_utils.create_tiled_regions(
+        # test 5: randomization for one fov, additional moly point interval
+        sample_tiling_params['randomize'] = [0, 1]
+        tiled_regions_random_some_moly_int = tiling_utils.create_tiled_regions(
             sample_tiling_params, sample_moly_path
         )
 
         # get the center points created
         random_center_points = [
             (fov['centerPointMicrons']['x'], fov['centerPointMicrons']['y'])
-            for fov in tiled_regions_random_moly_int['fovs']
+            for fov in tiled_regions_random_some_moly_int['fovs']
+        ]
+
+        # define the moly point indices, applies for both sorted and random tiled regions
+        moly_indices = [3, 6, 8, 10, 13, 16]
+
+        # assert that each moly index is the same in both sorted and random tiled regions
+        for mi in moly_indices:
+            random_center_points[mi] == sorted_center_points[mi]
+
+        # ensure the fov 1 center points are the same for both sorted and random
+        assert random_center_points[:9] == sorted_center_points[:9]
+
+        # ensure the random center points for fov 2 contain the same elements as its sorted version
+        misc_utils.verify_same_elements(
+            random_center_points=random_center_points[11:],
+            sorted_center_points=sorted_center_points[11:]
+        )
+
+        # the random center points for fov 2 should be ordered differently than its sorted version
+        # due to the nature of randomization, this test will fail once in a blue moon
+        assert random_center_points[11:] != sorted_center_points[11:]
+
+        # test 6: randomization for both fovs, additional moly point interval
+        sample_tiling_params['randomize'] = [1, 1]
+        tiled_regions_random_all_moly_int = tiling_utils.create_tiled_regions(
+            sample_tiling_params, sample_moly_path
+        )
+
+        # get the center points created
+        random_center_points = [
+            (fov['centerPointMicrons']['x'], fov['centerPointMicrons']['y'])
+            for fov in tiled_regions_random_all_moly_int['fovs']
         ]
 
         # define the moly point indices, applies for both sorted and random tiled regions

@@ -46,6 +46,9 @@ def set_tiling_params(fov_list_path):
     x_fov_size = []
     y_fov_size = []
 
+    # define a list to determine if the fovs should be randomly ordered
+    region_rand = []
+
     # read in the data for each fov (region_start from fov_list_path, fov_num from user)
     for fov in fov_tile_info['fovs']:
         region_start_x.append(fov['centerPointMicrons']['x'])
@@ -82,12 +85,15 @@ def set_tiling_params(fov_list_path):
         x_fov_size.append(size_x)
         y_fov_size.append(size_y)
 
-    # allow the user to specify if the FOVs should be randomized
-    randomize = int(input("Randomize? Enter 0 for no and 1 for yes: "))
+        # allow the user to specify if the FOVs should be randomized
+        randomize = int(input("Randomize fovs for region %s? Enter 0 for no and 1 for yes: " %
+                              fov['name']))
 
-    while randomize not in [0, 1]:
-        print("Error: randomize parameter must be 0 or 1")
-        randomize = int(input("Randomize? Enter 0 for no and 1 for yes: "))
+        while randomize not in [0, 1]:
+            print("Error: randomize parameter must be 0 or 1")
+            randomize = int(input("Randomize? Enter 0 for no and 1 for yes: "))
+
+        region_rand.append(randomize)
 
     # need to copy fov metadata over, needed for create_tiled_regions
     tiling_params['fovs'] = copy.deepcopy(fov_tile_info['fovs'])
@@ -99,7 +105,7 @@ def set_tiling_params(fov_list_path):
     tiling_params['fov_num_y'] = fov_num_y
     tiling_params['x_fov_size'] = x_fov_size
     tiling_params['y_fov_size'] = y_fov_size
-    tiling_params['randomize'] = randomize
+    tiling_params['randomize'] = region_rand
 
     # whether to insert moly points between tiles
     # NOTE: moly points will be inserted between different runs regardless of what's set here
@@ -186,7 +192,7 @@ def create_tiled_regions(tiling_params, moly_path):
         x_y_pairs = list(pairs(x_range, y_range))
 
         # randomize pairs list if specified
-        if tiling_params['randomize'] == 1:
+        if tiling_params['randomize'][region_index] == 1:
             random.shuffle(x_y_pairs)
 
         for xi, yi in x_y_pairs:
