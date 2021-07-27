@@ -67,6 +67,7 @@ def test_create_tiled_regions():
         'randomize': 0
     }
 
+    # set moly point
     sample_moly_point = {
         "scanCount": 3,
         "centerPointMicrons": {
