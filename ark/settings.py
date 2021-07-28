@@ -21,3 +21,6 @@ REGIONPROPS_SINGLE_COMP = ['major_minor_axis_ratio', 'perim_square_over_area',
                            'major_axis_equiv_diam_ratio', 'convex_hull_resid',
                            'centroid_dif', 'num_concavities']
 REGIONPROPS_MULTI_COMP = ['nc_ratio']
+
+# spatial-LDA minimum required columns
+BASE_COLS = ["point", "label", "cell_size", "centroid-0", "centroid-1", "pixelfreq_hclust_cap", "name"]

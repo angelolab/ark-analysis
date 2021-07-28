@@ -12,3 +12,4 @@ statsmodels>=0.11.1,<1
 umap-learn>=0.4.6,<1
 xarray>=0.12.3,<1
 tqdm>=4.54.1,<5
+spatial_lda>=0.1.0

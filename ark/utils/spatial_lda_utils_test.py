@@ -3,29 +3,18 @@ import numpy as np
 import pandas as pd
 import tempfile
 import pytest
-from ark.utils.spatial_lda_utils import *
-
+from ark.utils.spatial_lda_utils import check_format_cell_table_args, check_featurize_cell_table_args
+from ark.settings import BASE_COLS
 
 def test_check_format_cell_table_args():
     # Testing variables
-    base_cols = [
-        "point",
-        "label",
-        "cell_size",
-        "centroid-0",
-        "centroid-1",
-        "pixelfreq_hclust_cap",
-        "name",
-        "Au",
-        "CD4",
-        "CD8"
-    ]
+    for i in ["Au", "CD4", "CD8"]:
+        BASE_COLS.append(i)
+
     # Cell table pd.DataFrame
-    VALID_DF = pd.DataFrame(columns=base_cols)
-    # Not a pd.DataFrame
-    INVALID_DF1 = []
+    VALID_DF = pd.DataFrame(columns=BASE_COLS)
     # Doesn't meet minimum column requirements
-    INVALID_DF2 = pd.DataFrame(columns=base_cols[1:6])
+    INVALID_DF1 = pd.DataFrame(columns=BASE_COLS[1:6])
 
     # Markers
     VALID_MARKERS = ["Au", "CD4", "CD8"]
@@ -50,30 +39,30 @@ def test_check_format_cell_table_args():
     # Empty List
     INVALID_FOVS2 = []
 
-    # Run Checks
+    # DataFrame Checks
     with pytest.raises(ValueError):
-        # DataFrame Checks
         check_format_cell_table_args(INVALID_DF1, VALID_MARKERS, VALID_CLUSTERS, VALID_FOVS)
-        check_format_cell_table_args(INVALID_DF2, VALID_MARKERS, VALID_CLUSTERS, VALID_FOVS)
-        # Markers/Clusters Checks
+    # Markers/Clusters Checks
+    with pytest.raises(ValueError):
         check_format_cell_table_args(VALID_DF, None, None, VALID_FOVS)
+    with pytest.raises(TypeError):
         check_format_cell_table_args(VALID_DF, 1, None, VALID_FOVS)
+    with pytest.raises(ValueError):
         check_format_cell_table_args(VALID_DF, INVALID_MARKERS1, None, VALID_FOVS)
+    with pytest.raises(TypeError):
         check_format_cell_table_args(VALID_DF, INVALID_MARKERS2, None, VALID_FOVS)
+    with pytest.raises(ValueError):
         check_format_cell_table_args(VALID_DF, INVALID_MARKERS3, None, VALID_FOVS)
+    with pytest.raises(TypeError):
         check_format_cell_table_args(VALID_DF, VALID_MARKERS, 1, VALID_FOVS)
+    with pytest.raises(TypeError):
         check_format_cell_table_args(VALID_DF, VALID_MARKERS, INVALID_CLUSTERS1, VALID_FOVS)
+    with pytest.raises(ValueError):
         check_format_cell_table_args(VALID_DF, VALID_MARKERS, INVALID_CLUSTERS2, VALID_FOVS)
-        # FOV Checks
+    # FOV Checks
+    with pytest.raises(TypeError):
         check_format_cell_table_args(VALID_DF, VALID_MARKERS, VALID_CLUSTERS, 1)
+    with pytest.raises(ValueError):
         check_format_cell_table_args(VALID_DF, VALID_MARKERS, VALID_CLUSTERS, INVALID_FOVS1)
+    with pytest.raises(ValueError):
         check_format_cell_table_args(VALID_DF, VALID_MARKERS, VALID_CLUSTERS, INVALID_FOVS2)
-
-
-
-
-
-
-
-
-

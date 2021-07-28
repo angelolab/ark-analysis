@@ -1,9 +1,9 @@
 import os
 import numpy as np
 import pandas as pd
+from ark.settings import BASE_COLS
 
 def check_format_cell_table_args(cell_table, markers, clusters, fovs):
-
     """
     Checks the input arguments of the format_cell_table() function.
 
@@ -22,22 +22,9 @@ def check_format_cell_table_args(cell_table, markers, clusters, fovs):
         None
     """
 
-    base_cols = [
-        "point",
-        "label",
-        "cell_size",
-        "centroid-0",
-        "centroid-1",
-        "pixelfreq_hclust_cap",
-        "name"
-    ]
-
     # Check cell table
-    if not isinstance(cell_table, pd.DataFrame):
-        raise ValueError("cell_table must be a pd.DataFrame")
-
-    if not all([True for x in base_cols if x in cell_table.columns]):
-        raise ValueError("cell table must contain the following columns:{}".format(base_cols))
+    if not all([x in cell_table.columns for x in BASE_COLS]):
+        raise ValueError("cell table must contain the following columns:{}".format(BASE_COLS))
 
     # Check markers/clusters
     if all([markers is None, clusters is None]):
@@ -46,18 +33,59 @@ def check_format_cell_table_args(cell_table, markers, clusters, fovs):
         if isinstance(markers, list) and len(markers) == 0:
             raise ValueError("list of marker names cannot be empty")
         if not isinstance(markers, list) or not all([isinstance(x, str) for x in markers]):
-            raise ValueError("clusters must be a list of integers")
-        assert all([x in cell_table.columns for x in markers])
+            raise TypeError("markers must be a list of strings")
+        if not all([x in cell_table.columns for x in markers]):
+            raise ValueError("all markers must have a column in cell table")
     if clusters is not None:
         if isinstance(clusters, list) and len(clusters) == 0:
             raise ValueError("list of cluster ids cannot be empty")
         if not isinstance(clusters, list) or not all([isinstance(x, int) for x in clusters]):
-            raise ValueError("markers must be a list of strings")
+            raise TypeError("clusters must be a list of integers")
 
     # Check fovs
     if fovs != "all_fovs":
-        if not all([isinstance(x, int) for x in fovs]) or not isinstance(fovs, list) or len(fovs) == 0:
+        if not isinstance(fovs, list):
+            raise TypeError("fovs must be of type 'list'")
+        if not all([isinstance(x, int) for x in fovs]) or len(fovs) == 0:
             raise ValueError("fovs must be 'all_fovs' or a list of integers")
 
     return None
 
+def check_featurize_cell_table_args(cell_table, feature_by, radius, cell_index):
+    """
+
+    Args:
+        cell_table (dict):
+            A dictionary whose elements are the correctly formatted pd.DataFrames for each field of view.
+        feature_by (str):
+            One of "cluster", "marker", "avg_marker", or "count".
+        radius (int):
+            Pixel radius corresponding to cellular neighborhood size.
+        cell_index (str):
+            Name of the column in each field of view pd.Dataframe indicating reference cells.
+
+    Returns:
+        None
+
+    """
+    # Check valid data types
+    if not isinstance(cell_table, dict):
+        raise TypeError("cell_table should be of type 'dict'")
+    if not isinstance(cell_table[1], pd.DataFrame):
+        raise TypeError("cell_table should contain formatted pd.DataFrames")
+    if not isinstance(feature_by, str):
+        raise TypeError("feature_by should be of type 'str'")
+    if not isinstance(radius, int):
+        raise TypeError("radius should be of type 'int'")
+    if not isinstance(cell_index, str):
+        raise TypeError("cell_index should be of type 'str'")
+
+    # Check valid data values
+    if feature_by not in ["cluster", "marker", "avg_marker", "count"]:
+        raise ValueError("feature_by must be one of 'cluster', 'marker', 'avg_marker', 'count'")
+    if radius < 25:
+        raise ValueError("radius must not be less than 25")
+    if cell_index not in cell_table[1].columns:
+        raise ValueError("cell_index must be a valid column")
+
+    return None
