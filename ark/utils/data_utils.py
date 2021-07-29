@@ -6,6 +6,7 @@ import xarray as xr
 
 from ark import settings
 from ark.utils.misc_utils import verify_in_list
+from ark.utils.google_drive_utils import GoogleDrivePath, drive_write_out, path_join
 
 
 def label_cells_by_cluster(fovs, all_data, label_maps, fov_col=settings.FOV_ID,
@@ -109,8 +110,11 @@ def generate_deepcell_input(data_xr, data_dir, nuc_channels, mem_channels):
         if mem_channels:
             out[1] = np.sum(data_xr.loc[fov, :, :, mem_channels].values, axis=2)
 
-        save_path = os.path.join(data_dir, f'{fov}.tif')
-        io.imsave(save_path, out, plugin='tifffile', check_contrast=False)
+        save_path = path_join(data_dir, f'{fov}.tif')
+        drive_write_out(
+            save_path,
+            lambda x: io.imsave(x, out, plugin='tifffile', check_contrast=False)
+        )
 
 
 def stitch_images(data_xr, num_cols):
@@ -175,13 +179,19 @@ def split_img_stack(stack_dir, output_dir, stack_list, indices, names, channels_
     """
 
     for stack_name in stack_list:
-        img_stack = io.imread(os.path.join(stack_dir, stack_name))
-        img_dir = os.path.join(output_dir, os.path.splitext(stack_name)[0])
-        os.makedirs(img_dir)
+        img_stack = io.imread(path_join(stack_dir, stack_name))
+        img_dir = path_join(output_dir, os.path.splitext(stack_name)[0])
+        if type(img_dir) is GoogleDrivePath:
+            img_dir.mkdir()
+        else:
+            os.makedirs(img_dir)
 
         for i in range(len(indices)):
             if channels_first:
                 channel = img_stack[indices[i], ...]
             else:
                 channel = img_stack[..., indices[i]]
-            io.imsave(os.path.join(os.path.join(img_dir, names[i])), channel)
+            drive_write_out(
+                path_join(img_dir, names[i]),
+                lambda x: io.imsave(x, channel)
+            )

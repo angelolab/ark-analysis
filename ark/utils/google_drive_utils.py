@@ -385,12 +385,12 @@ class GoogleDrivePath(object):
         else:
             raise ValueError(f"{self.path_string} is not a csv file...")
 
-    def write(self, data, overwrite=False):
+    def write(self, data, overwrite=True):
         """ Writes file data or data from file path to provided Drive file.
 
         Args:
-            data (str or BytesIO):
-                If BytesIO, data is directly uploaded.  If str, data is assumed to be a filepath
+            data (str, bytes, or BytesIO):
+                If BytesIO or bytes, data is directly uploaded.  If str, data is assumed to be a filepath
                 and data is attempted to be read from the local file.
             overwrite (bool):
                 If a file already exists at the path_string and overwrite is False, no data is
@@ -432,6 +432,9 @@ class GoogleDrivePath(object):
             if type(data) is str:
                 media = MediaFileUpload(data, mimetype=mtype, resumable=True)
             else:
+                if type(data) is bytes:
+                    data = io.BytesIO(data)
+                    data.seek(0)
                 media = MediaIoBaseUpload(data, mimetype=mtype, resumable=True)
 
             file_metadata = {
@@ -463,6 +466,9 @@ class GoogleDrivePath(object):
             if type(data) is str:
                 media = MediaFileUpload(data, mimetype=mtype, resumable=True)
             else:
+                if type(data) is bytes:
+                    data = io.BytesIO(data)
+                    data.seek(0)
                 media = MediaIoBaseUpload(data, mimetype=mtype, resumable=True)
 
             response = SERVICE.files().update(fileId=self.fileID,
@@ -533,6 +539,14 @@ class GoogleDrivePath(object):
 
         return dirnames
 
+    def getmtime(self):
+        """ Get last modified datetime
+        """
+        global SERVICE
+        response = SERVICE.files().get(fileId=self.fileID).execute()
+
+        return response.get('modifiedTime')
+
 
 def path_join(*path_parts, get_filehandle=False):
     """ Generalization of os.path.join for GoogleDrivePaths and strings
@@ -576,11 +590,18 @@ def drive_write_out(filepath, func):
         func (Callable[[PathLike or GoogleDrivePath], None]):
             Lambda function for taking filepath
     """
-    new_fh = io.BytesIO()
-    func(new_fh)
+    try:
+        new_fh = io.BytesIO()
+        func(new_fh)
+    except:
+        new_fh = io.StringIO()
+        func(new_fh)
+        new_fh = io.BytesIO(bytes(new_fh.getvalue(), 'utf-8'))
+
     new_fh.seek(0)
     with DriveOpen(filepath, mode='wb') as f:
-        f.write(new_fh.read())
+        f.write(new_fh)
+    new_fh.close()
 
 
 class DriveOpen:
@@ -589,10 +610,17 @@ class DriveOpen:
     def __init__(self, filepath, mode='wb'):
         self.is_drive = (type(filepath) is GoogleDrivePath)
         self.drive_path = filepath if self.is_drive else open(filepath, mode=mode)
+        self.mode = mode
 
     def __enter__(self):
+        if self.mode == 'rb' and self.is_drive:
+            self.read_buffer = self.drive_path.read()
+            return self.read_buffer
+
         return self.drive_path
 
     def __exit__(self, exc_type, exc_value, traceback):
         if not self.is_drive:
             self.drive_path.close()
+        elif self.mode == 'rb':
+            self.read_buffer.close()
