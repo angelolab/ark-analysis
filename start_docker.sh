@@ -15,7 +15,7 @@ PORT=8888
 
 until [[ $(docker container ls | grep 0.0.0.0:$PORT | wc -l) -eq 0 ]]
   do
-    ((PORT=PORT+1))
+    ((PORT=$PORT+1))
 done
 
 if [ $PORT -ne 8888 ]
@@ -25,8 +25,10 @@ if [ $PORT -ne 8888 ]
     echo "In the URLs below, copy the token after \"token=\", paste that into the password prompt, and log in"
 fi
 
+
 docker run -it \
-  -p $PORT:8888 \
+  -p $PORT:$PORT \
+  -e JUPYTER_PORT=$PORT\
   -v "$PWD/ark:/usr/local/lib/python3.6/site-packages/ark" \
   -v "$PWD/scripts:/scripts" \
   -v "$PWD/data:/data" \
