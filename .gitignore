@@ -23,3 +23,7 @@ env
 */visualizations
 
 data/example_dataset/metaclustering/*output*.csv
+data/example_dataset/metaclustering/example_manually_adjust_metaclusters.ipynb
+Pipfile
+Pipfile.lock
+.coverage
