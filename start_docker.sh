@@ -13,7 +13,7 @@ bash update_notebooks.sh "$@"
 # find lowest open port available
 PORT=8888
 
-until [[ $(lsof -i -P -n | grep 127.0.0.1:$PORT | wc -l) -eq 0 ]]
+until [[ $(docker container ls | grep 0.0.0.0:$PORT | wc -l) -eq 0 ]]
   do
     ((PORT=PORT+1))
 done
