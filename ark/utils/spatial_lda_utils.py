@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 from ark.settings import BASE_COLS
 
-def check_format_cell_table_args(cell_table, markers, clusters, fovs):
+def check_format_cell_table_args(cell_table, markers, clusters):
     """
     Checks the input arguments of the format_cell_table() function.
 
@@ -14,9 +14,6 @@ def check_format_cell_table_args(cell_table, markers, clusters, fovs):
             A list of strings corresponding to marker names.
         clusters (list, int):
             A list of integers corresponding to cluster ids.
-        fovs (str, int):
-            One of either "all_fovs" indicating all field of views are to be kept, or a list of integers corresponding
-            to the index of each field of view which should be kept.
 
     Returns:
         None
@@ -41,13 +38,6 @@ def check_format_cell_table_args(cell_table, markers, clusters, fovs):
             raise ValueError("list of cluster ids cannot be empty")
         if not isinstance(clusters, list) or not all([isinstance(x, int) for x in clusters]):
             raise TypeError("clusters must be a list of integers")
-
-    # Check fovs
-    if fovs != "all_fovs":
-        if not isinstance(fovs, list):
-            raise TypeError("fovs must be of type 'list'")
-        if not all([isinstance(x, int) for x in fovs]) or len(fovs) == 0:
-            raise ValueError("fovs must be 'all_fovs' or a list of integers")
 
     return None
 

@@ -9,7 +9,7 @@ from spatial_lda.visualization import plot_adjacency_graph
 
 train_frac = 0.75
 
-def format_cell_table(cell_table, markers=None, clusters=None, fovs="all_fovs"):
+def format_cell_table(cell_table, markers=None, clusters=None):
     """
     Formats a cell table containing one for more fields of view to be compatible with the spatial_lda library.
     Args:
@@ -19,9 +19,6 @@ def format_cell_table(cell_table, markers=None, clusters=None, fovs="all_fovs"):
             A list of strings corresponding to marker names.  Either markers or clusters must be provided.
         clusters (list, int):
             A list of integers corresponding to cluster ids.
-        fovs (str, int):
-            One of either "all_fovs" indicating all field of views are to be kept, or a list of integers corresponding
-            to the index of each field of view which should be kept.
 
     Returns:
         dict:
@@ -32,7 +29,7 @@ def format_cell_table(cell_table, markers=None, clusters=None, fovs="all_fovs"):
     """
 
     # Check function arguments
-    check_format_cell_table_args(cell_table=cell_table, markers=markers, clusters=clusters, fovs=fovs)
+    check_format_cell_table_args(cell_table=cell_table, markers=markers, clusters=clusters)
 
     # Only keep columns relevant for spatial-LDA
     if markers is not None:
@@ -51,8 +48,7 @@ def format_cell_table(cell_table, markers=None, clusters=None, fovs="all_fovs"):
         })
 
     # Create dictionary of FOVs
-    if fovs == "all_fovs":
-        fovs = np.unique(cell_table["point"])
+    fovs = np.unique(cell_table["point"])
 
     fov_dict = {}
     for i in fovs:
