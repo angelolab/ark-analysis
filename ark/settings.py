@@ -1,17 +1,17 @@
 # hope u liek capital letters
 
 # default segmented csv column names
-CELL_SIZE = 'cell_size'                     # cell size
-CELL_LABEL = 'label'                        # cell label number (regionprops)
-FOV_ID = 'SampleID'                         # cell's fov name
-CELL_TYPE = 'cell_type'                     # cell type name (flowsom)
-CLUSTER_ID = 'FlowSOM_ID'                   # cell cluster id (flowsom)
-PATIENT_ID = 'PatientID'                    # cell's patient id
-KMEANS_CLUSTER = 'cluster_labels'           # generated cluster column name
+CELL_SIZE = 'cell_size'  # cell size
+CELL_LABEL = 'label'  # cell label number (regionprops)
+FOV_ID = 'SampleID'  # cell's fov name
+CELL_TYPE = 'cell_type'  # cell type name (flowsom)
+CLUSTER_ID = 'FlowSOM_ID'  # cell cluster id (flowsom)
+PATIENT_ID = 'PatientID'  # cell's patient id
+KMEANS_CLUSTER = 'cluster_labels'  # generated cluster column name
 
 # standardized columns surrounding channel data
-PRE_CHANNEL_COL = CELL_SIZE                 # last column before channel data
-POST_CHANNEL_COL = CELL_LABEL               # first column after channel data
+PRE_CHANNEL_COL = CELL_SIZE  # last column before channel data
+POST_CHANNEL_COL = CELL_LABEL  # first column after channel data
 
 # regionprops extraction
 REGIONPROPS_BASE = ['label', 'area', 'eccentricity', 'major_axis_length',
@@ -23,4 +23,5 @@ REGIONPROPS_SINGLE_COMP = ['major_minor_axis_ratio', 'perim_square_over_area',
 REGIONPROPS_MULTI_COMP = ['nc_ratio']
 
 # spatial-LDA minimum required columns
-BASE_COLS = ["point", "label", "cell_size", "centroid-0", "centroid-1", "pixelfreq_hclust_cap", "name"]
+BASE_COLS = ["point", "label", "cell_size", "centroid-0", "centroid-1",
+             "pixelfreq_hclust_cap", "name"]

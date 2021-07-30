@@ -2,7 +2,8 @@ import pandas as pd
 import pytest
 
 from ark.settings import BASE_COLS
-from ark.utils.spatial_lda_utils import check_format_cell_table_args, check_featurize_cell_table_args, \
+from ark.utils.spatial_lda_utils import check_format_cell_table_args, \
+    check_featurize_cell_table_args, \
     check_create_difference_matrices_args
 
 
@@ -70,18 +71,26 @@ def test_check_featurize_cell_table_args():
     INVALID_CELL_INDEX1 = 1
     INVALID_CELL_INDEX2 = "is_tumor"
 
-    with pytest.raises(ValueError, match=r"feature_by must be one of 'cluster', 'marker', 'avg_marker', 'count'"):
-        check_featurize_cell_table_args(VALID_CELL_TABLE, INVALID_FEATURE_BY1, VALID_RADIUS, VALID_CELL_INDEX)
+    with pytest.raises(ValueError,
+                       match=r"feature_by must be one of 'cluster', 'marker', "
+                             r"'avg_marker', 'count'"):
+        check_featurize_cell_table_args(VALID_CELL_TABLE, INVALID_FEATURE_BY1,
+                                        VALID_RADIUS, VALID_CELL_INDEX)
     with pytest.raises(TypeError, match=r"feature_by should be of type 'str'"):
-        check_featurize_cell_table_args(VALID_CELL_TABLE, INVALID_FEATURE_BY2, VALID_RADIUS, VALID_CELL_INDEX)
+        check_featurize_cell_table_args(VALID_CELL_TABLE, INVALID_FEATURE_BY2,
+                                        VALID_RADIUS, VALID_CELL_INDEX)
     with pytest.raises(ValueError, match=r"radius must not be less than 25"):
-        check_featurize_cell_table_args(VALID_CELL_TABLE, VALID_FEATURE_BY, INVALID_RADIUS1, VALID_CELL_INDEX)
+        check_featurize_cell_table_args(VALID_CELL_TABLE, VALID_FEATURE_BY,
+                                        INVALID_RADIUS1, VALID_CELL_INDEX)
     with pytest.raises(TypeError, match=r"radius should be of type 'int'"):
-        check_featurize_cell_table_args(VALID_CELL_TABLE, VALID_FEATURE_BY, INVALID_RADIUS2, VALID_CELL_INDEX)
+        check_featurize_cell_table_args(VALID_CELL_TABLE, VALID_FEATURE_BY,
+                                        INVALID_RADIUS2, VALID_CELL_INDEX)
     with pytest.raises(TypeError, match=r"cell_index should be of type 'str'"):
-        check_featurize_cell_table_args(VALID_CELL_TABLE, VALID_FEATURE_BY, VALID_RADIUS, INVALID_CELL_INDEX1)
+        check_featurize_cell_table_args(VALID_CELL_TABLE, VALID_FEATURE_BY,
+                                        VALID_RADIUS, INVALID_CELL_INDEX1)
     with pytest.raises(ValueError, match=r"cell_index must be a valid column"):
-        check_featurize_cell_table_args(VALID_CELL_TABLE, VALID_FEATURE_BY, VALID_RADIUS, INVALID_CELL_INDEX2)
+        check_featurize_cell_table_args(VALID_CELL_TABLE, VALID_FEATURE_BY,
+                                        VALID_RADIUS, INVALID_CELL_INDEX2)
 
 
 def test_check_create_difference_matrices_args():
@@ -91,20 +100,28 @@ def test_check_create_difference_matrices_args():
 
     VALID_FEATURES1 = {"featurized_fovs": pd.DataFrame(columns=["a", "b"]),
                        "train_features": pd.DataFrame(columns=["a", "b"])}
-    VALID_FEATURES2 = {"featurized_fovs": pd.DataFrame(columns=["a", "b"]), "train_features": None}
+    VALID_FEATURES2 = {"featurized_fovs": pd.DataFrame(columns=["a", "b"]),
+                       "train_features": None}
 
     INVALID_FEATURES1 = []
-    INVALID_FEATURES2 = {"featurized_fovs": "a", "train_features": pd.DataFrame(columns=["a", "b"])}
+    INVALID_FEATURES2 = {"featurized_fovs": "a",
+                         "train_features": pd.DataFrame(columns=["a", "b"])}
 
+    with pytest.raises(TypeError, match=r"cell_table should contain"):
+        check_create_difference_matrices_args(INVALID_CELL_TABLE1,
+                                              VALID_FEATURES1, True, True)
     with pytest.raises(TypeError, match=r"cell_table must be of type"):
-        check_create_difference_matrices_args(INVALID_CELL_TABLE1, VALID_FEATURES1, True, True)
-    with pytest.raises(TypeError, match=r"cell_table should contai"):
-        check_create_difference_matrices_args(INVALID_CELL_TABLE2, VALID_FEATURES1, True, True)
+        check_create_difference_matrices_args(INVALID_CELL_TABLE2,
+                                              VALID_FEATURES1, True, True)
     with pytest.raises(TypeError, match=r"features must be of type"):
-        check_create_difference_matrices_args(VALID_CELL_TABLE, INVALID_FEATURES1, True, True)
+        check_create_difference_matrices_args(VALID_CELL_TABLE,
+                                              INVALID_FEATURES1, True, True)
     with pytest.raises(TypeError, match=r"features should contain"):
-        check_create_difference_matrices_args(VALID_CELL_TABLE, INVALID_FEATURES2, True, True)
+        check_create_difference_matrices_args(VALID_CELL_TABLE,
+                                              INVALID_FEATURES2, True, True)
     with pytest.raises(ValueError, match=r"One or both of"):
-        check_create_difference_matrices_args(VALID_CELL_TABLE, VALID_FEATURES1, False, False)
+        check_create_difference_matrices_args(VALID_CELL_TABLE, VALID_FEATURES1,
+                                              False, False)
     with pytest.raises(ValueError, match=r"train_features cannot be"):
-        check_create_difference_matrices_args(VALID_CELL_TABLE, VALID_FEATURES2, True, True)
+        check_create_difference_matrices_args(VALID_CELL_TABLE, VALID_FEATURES2,
+                                              True, True)
