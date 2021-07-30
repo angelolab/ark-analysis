@@ -1,13 +1,12 @@
-import numpy as np
 import pandas as pd
-import random
-from math import floor
-from ark.utils.spatial_lda_utils import check_format_cell_table_args
-from ark.settings import BASE_COLS
+from sklearn.model_selection import train_test_split
 from spatial_lda.featurization import *
-from spatial_lda.visualization import plot_adjacency_graph
+
+from ark.settings import BASE_COLS
+from ark.utils.spatial_lda_utils import check_format_cell_table_args, check_featurize_cell_table_args
 
 train_frac = 0.75
+
 
 def format_cell_table(cell_table, markers=None, clusters=None):
     """
@@ -71,7 +70,7 @@ def featurize_cell_table(cell_table, feature_by="cluster", radius=100, cell_inde
                          train_split=True):
     """
     Args:
-        cell_table (pd.DataFrame):
+        cell_table (dict, pd.DataFrame):
             A formatted cell table for use in spatial-LDA analysis.  Specifically, this is the output from
             format_cell_table().
         feature_by (str):
@@ -95,10 +94,9 @@ def featurize_cell_table(cell_table, feature_by="cluster", radius=100, cell_inde
     Returns:
         dict:
 
-        - A dictionary of featurized cellular neighborhoods.  Each element in the dictionary is a pd.DataFrame
-        corresponding to a single field of view.
+        - A dictionary containing featurized cellular neighborhoods and training splits if applicable.
     """
-    # Add argument checking function here
+    check_featurize_cell_table_args(cell_table=cell_table, feature_by=feature_by, radius=radius, cell_index=cell_index)
     # Define Featurization Function
     func_type = {
         "marker": neighborhood_to_marker,
@@ -112,7 +110,7 @@ def featurize_cell_table(cell_table, feature_by="cluster", radius=100, cell_inde
         neighborhood_feature_fn = functools.partial(func_type[feature_by])
 
     # Featurize FOVs
-    feature_sample = {k: v for (k, v) in cell_table.items() if k in cell_table["fovs"]}
+    feature_sample = {k: v for (k, v) in cell_table.items() if k in cell_table["fovs"].tolist()}
     featurized_fovs = featurize_samples(feature_sample,
                                         neighborhood_feature_fn,
                                         radius=radius,
@@ -122,14 +120,51 @@ def featurize_cell_table(cell_table, feature_by="cluster", radius=100, cell_inde
                                         n_processes=n_processes,
                                         include_anchors=True)
 
+    if train_split:
+        all_sample_idxs = featurized_fovs.index.map(lambda x: x[0])
+        _sets = train_test_split(featurized_fovs, test_size=1. - train_frac, stratify=all_sample_idxs)
+        train_features_fraction, _ = _sets
+    else:
+        train_features_fraction = None
 
-    for i in cell_table["fovs"]:
-        ind = list(featurized_fovs[i].index)
-        if train_split:
-            train = random.sample(featurized_fovs[i].index.index, k=floor(len(ind) * train_frac))
-            featurized_fovs[i]["train_index"] = [x in train for x in ind]
-        else:
-            featurized_fovs[i]["train_index"] = [True] * len(ind)
+    return {"featurized_fovs": featurized_fovs, "train_features": train_features_fraction}
 
-    return featurized_fovs
 
+def create_difference_matrices(cell_table, features, training=True, inference=True):
+    """
+
+    Args:
+        cell_table (dict, pd.DataFrame):
+            A formatted cell table for use in spatial-LDA analysis.  Specifically, this is the output from
+            format_cell_table().
+        features (dict, pd.DataFrame):
+            A featurized cell table and training split. Specifically, this is the output from featurize_cell_table().
+        training (bool):
+            If True, create the difference matrix for running training algorithm.  One or both of training and inference
+            must be True.
+        inference (bool):
+             If True, create the difference matrix for running inference algorithm.
+
+    Returns:
+        dict:
+
+        - A dictionary containing the training and inference difference matrices.
+
+    """
+    cell_table = {k: v for (k, v) in cell_table.items() if k not in ["fovs", "markers", "clusters"]}
+    # check args function here
+    if training:
+        train_diff_mat = make_merged_difference_matrices(sample_features=features["train_features"],
+                                                         sample_dfs=cell_table,
+                                                         x_col="x", y_col="y")
+    else:
+        train_diff_mat = None
+
+    if inference:
+        inference_diff_mat = make_merged_difference_matrices(sample_features=features["featurized_fovs"],
+                                                             sample_dfs=cell_table,
+                                                             x_col="x", y_col="y")
+    else:
+        inference_diff_mat = None
+
+    return {"train_diff_mat": train_diff_mat, "inference_diff_mat": inference_diff_mat}

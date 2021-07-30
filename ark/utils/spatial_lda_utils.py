@@ -1,7 +1,7 @@
-import os
-import numpy as np
 import pandas as pd
+
 from ark.settings import BASE_COLS
+
 
 def check_format_cell_table_args(cell_table, markers, clusters):
     """
@@ -41,6 +41,7 @@ def check_format_cell_table_args(cell_table, markers, clusters):
 
     return None
 
+
 def check_featurize_cell_table_args(cell_table, feature_by, radius, cell_index):
     """
 
@@ -79,3 +80,35 @@ def check_featurize_cell_table_args(cell_table, feature_by, radius, cell_index):
         raise ValueError("cell_index must be a valid column")
 
     return None
+
+
+def check_create_difference_matrices_args(cell_table, features, training, inference):
+    """
+
+    Args:
+        cell_table (dict):
+            A dictionary whose elements are the correctly formatted pd.DataFrames for each field of view.
+        features (dict, pd.DataFrame):
+            A featurized cell table and training split. Specifically, this is the output from featurize_cell_table().
+        training (bool):
+            If True, create the difference matrix for running training algorithm.
+        inference (bool):
+             If True, create the difference matrix for running inference algorithm.
+
+    Returns:
+        None
+
+    """
+
+    if not isinstance(cell_table, dict):
+        raise TypeError("cell_table must be of type 'dict'")
+    if not isinstance(features, dict):
+        raise TypeError("features must be of type 'dict'")
+    if not isinstance(cell_table[1], pd.DataFrame):
+        raise TypeError("cell_table should contain formatted pd.DataFrames")
+    if not isinstance(features[1], pd.DataFrame):
+        raise TypeError("features should contain featurized pd.DataFrames")
+    if not training and not inference:
+        raise ValueError("One or both of 'training' or 'inference' must be True")
+    if training and features["train_features"] is None:
+        raise ValueError("train_features cannot be 'None'")
