@@ -193,5 +193,5 @@ def split_img_stack(stack_dir, output_dir, stack_list, indices, names, channels_
                 channel = img_stack[..., indices[i]]
             drive_write_out(
                 path_join(img_dir, names[i]),
-                lambda x: io.imsave(x, channel)
+                lambda x: io.imsave(x, channel, plugin='tifffile')
             )

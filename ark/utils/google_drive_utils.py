@@ -600,7 +600,7 @@ def drive_write_out(filepath, func):
 
     new_fh.seek(0)
     with DriveOpen(filepath, mode='wb') as f:
-        f.write(new_fh)
+        f.write(new_fh.read())
     new_fh.close()
 
 
