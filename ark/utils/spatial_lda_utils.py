@@ -120,7 +120,7 @@ def check_create_difference_matrices_args(cell_table, features, training,
         raise TypeError("features must be of type 'dict'")
     if not isinstance(cell_table[1], pd.DataFrame):
         raise TypeError("cell_table should contain formatted pd.DataFrames")
-    if not isinstance(features[1], pd.DataFrame):
+    if not isinstance(features["featurized_fovs"], pd.DataFrame):
         raise TypeError("features should contain featurized pd.DataFrames")
     if not training and not inference:
         raise ValueError(
