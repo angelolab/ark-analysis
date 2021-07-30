@@ -13,6 +13,7 @@ warnings.filterwarnings("ignore", message="nbagg.transparent is deprecated")
 
 DEBUG_VIEW = widgets.Output(layout={'border': '1px solid black'})
 
+
 class MetaClusterGui():
     def __init__(self, metaclusterdata, heatmapcolors='seismic', width=17, debug=False):
         self.width = width
@@ -42,9 +43,11 @@ class MetaClusterGui():
         #  |    c           |  m   | heatmap itself
         #  |    cs          |  ms  | selection markers
         #  |    cl          |  ml  | metacluster color labels
-        subplots = plt.subplots(4,2,
+        subplots = plt.subplots(
+            4, 2,
             gridspec_kw={
-                'width_ratios': [self.mcd.cluster_count, self.mcd.metacluster_count], # cluster plot bigger than metacluster plot
+                # cluster plot bigger than metacluster plot
+                'width_ratios': [self.mcd.cluster_count, self.mcd.metacluster_count],
                 'height_ratios': [5, self.mcd.marker_count, 1, 1]},
             figsize=(self.width, 5),
             )
@@ -71,8 +74,8 @@ class MetaClusterGui():
         self.ax_m.xaxis.set_tick_params(which='both', bottom=False, labelbottom=False)
 
         # heatmaps
-        self.im_c = self.ax_c.imshow(np.zeros((self.mcd.marker_count, self.mcd.cluster_count)), cmap=self.heatmapcolors, aspect='auto', picker=True)
-        self.im_m = self.ax_m.imshow(np.zeros((self.mcd.marker_count, self.mcd.metacluster_count)), cmap=self.heatmapcolors, aspect='auto', picker=True)
+        self.im_c = self.ax_c.imshow(np.zeros((self.mcd.marker_count, self.mcd.cluster_count)), cmap=self.heatmapcolors, aspect='auto', picker=True)  # noqa
+        self.im_m = self.ax_m.imshow(np.zeros((self.mcd.marker_count, self.mcd.metacluster_count)), cmap=self.heatmapcolors, aspect='auto', picker=True)  # noqa
         self.ax_m.yaxis.set_tick_params(which='both', left=True, labelleft=False)
 
         # xaxis metacluster color labels
@@ -83,8 +86,8 @@ class MetaClusterGui():
         self.ax_cl.set_yticklabels(["Metacluster"])
         self.ax_ml.yaxis.set_tick_params(which='both', left=False, labelleft=False)
 
-        self.im_cl = self.ax_cl.imshow(np.zeros((1, self.mcd.cluster_count)), aspect='auto', picker=True, vmin=1, vmax=self.mcd.cluster_count)
-        self.im_ml = self.ax_ml.imshow(np.zeros((1, self.mcd.metacluster_count)), aspect='auto', picker=True, vmin=1, vmax=self.mcd.cluster_count)
+        self.im_cl = self.ax_cl.imshow(np.zeros((1, self.mcd.cluster_count)), aspect='auto', picker=True, vmin=1, vmax=self.mcd.cluster_count)  # noqa
+        self.im_ml = self.ax_ml.imshow(np.zeros((1, self.mcd.metacluster_count)), aspect='auto', picker=True, vmin=1, vmax=self.mcd.cluster_count)  # noqa
 
         # xaxis cluster selection labels
         self.ax_cs.xaxis.set_tick_params(which='both', bottom=False, labelbottom=False)
@@ -93,8 +96,8 @@ class MetaClusterGui():
         self.ax_cs.set_yticks([0.5])
         self.ax_cs.set_yticklabels(["Selected"])
         self.ax_ms.yaxis.set_tick_params(which='both', left=False, labelleft=False)
-        self.im_cs = self.ax_cs.imshow(np.zeros((1, self.mcd.marker_count)), cmap='Blues', aspect='auto', picker=True, vmin=-0.3, vmax=1)
-        self.im_ms = self.ax_ms.imshow(np.zeros((1, self.mcd.marker_count)), cmap='Blues', aspect='auto', picker=True, vmin=-0.3, vmax=1)
+        self.im_cs = self.ax_cs.imshow(np.zeros((1, self.mcd.marker_count)), cmap='Blues', aspect='auto', picker=True, vmin=-0.3, vmax=1)  # noqa
+        self.im_ms = self.ax_ms.imshow(np.zeros((1, self.mcd.marker_count)), cmap='Blues', aspect='auto', picker=True, vmin=-0.3, vmax=1)  # noqa
 
         # xaxis pixelcount graphs
         self.ax_cp.xaxis.set_tick_params(which='both', bottom=False, labelbottom=False)
@@ -103,13 +106,16 @@ class MetaClusterGui():
         self.ax_mp.yaxis.set_tick_params(which='both', left=False, labelleft=False)
         self.ax_cp.set_ylabel("Pixels (k)", rotation=90)
         self.ax_cp.set_xlim(0, self.mcd.cluster_count)
-        self.rects_cp = self.ax_cp.bar(np.arange(self.mcd.cluster_count)+0.5, np.zeros(self.mcd.cluster_count))
+        self.rects_cp = self.ax_cp.bar(
+            np.arange(self.mcd.cluster_count)+0.5,
+            np.zeros(self.mcd.cluster_count))
         self.labels_cp = []
         label_alignment_fudge = 0.08
         for x in np.arange(self.mcd.cluster_count)+0.5+label_alignment_fudge:
-            label = self.ax_cp.text(x=x, y=0, s="-", va='bottom', ha='center', rotation=90, color='black', fontsize=8)
+            label = self.ax_cp.text(
+                x=x, y=0, s="-", va='bottom',
+                ha='center', rotation=90, color='black', fontsize=8)
             self.labels_cp.append(label)
-
 
         # zscore adjuster
         self.zscore_clamp_slider = widgets.FloatSlider(
@@ -150,18 +156,21 @@ class MetaClusterGui():
         self.new_metacluster_button.on_click(self.new_metacluster)
         display(self.new_metacluster_button)
 
-
         self._heatmaps_stale = True
 
         # initilize data, etc
         self.update_gui()
         # Tighten layout based on display
         self.fig.tight_layout()
-        plt.subplots_adjust(hspace = .0) # make color labels touch heatmap
+        plt.subplots_adjust(hspace=.0)  # make color labels touch heatmap
 
     def update_gui(self):
-        # xaxis cluster selection labels
-        selection_mask = [[1 if c in self.selected_clusters else 0 for c in self.mcd.clusters.index]]
+        def is_selected(cluster):
+            if cluster in self.selected_clusters:
+                return 1
+            else:
+                return 0
+        selection_mask = [[is_selected(c) for c in self.mcd.clusters.index]]
         self.im_cs.set_data(selection_mask)
         self.im_cs.set_extent((0, self.mcd.cluster_count, 0, 1))
 
@@ -180,7 +189,8 @@ class MetaClusterGui():
         self.im_m.set_clim(0, self.max_zscore)
 
         # xaxis metacluster color labels
-        assert max(self.mcd.metaclusters.index) < self.mcd.cluster_count, "index of metaclusters has surpassed the colormap limit"
+        assert max(self.mcd.metaclusters.index) < self.mcd.cluster_count, \
+            "Can't support metaclusters idx > cluster count"
         self.im_cl.set_data([self.mcd.clusters_with_metaclusters['hCluster_cap']])
         self.im_cl.set_extent((0, self.mcd.cluster_count, 0, 1))
         self.im_cl.set_cmap(self.cmap)
