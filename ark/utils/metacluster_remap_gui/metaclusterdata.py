@@ -4,16 +4,30 @@ import pandas as pd
 from scipy.stats import zscore
 
 
+def metaclusterdata_from_files(cluster_filepath, pixelcount_filepath):
+    clusters_raw = pd.read_csv(cluster_filepath)
+    pixelcounts_raw = pd.read_csv(pixelcount_filepath)
+    return MetaClusterData(clusters_raw, pixelcounts_raw)
+
+
 class MetaClusterData():
-    def __init__(self, path, cluster_filename, pixelcount_filename, output_mapping_filename):
-        self.path = Path(path)
-        self.output_mapping_filename = output_mapping_filename
-        clusters_raw = pd.read_csv(self.path / cluster_filename).sort_values('cluster')
-        self.cluster_pixelcounts = pd.read_csv(self.path / pixelcount_filename) \
-            .sort_values('cluster').set_index('cluster')
-        self._clusters = clusters_raw.set_index('cluster').drop(columns='hCluster_cap')
-        self.mapping = clusters_raw[['cluster', 'hCluster_cap']].set_index('cluster')
+    def __init__(self, raw_clusters_df, raw_pixelcounts_df):
+        self.cluster_pixelcounts = raw_pixelcounts_df.sort_values('cluster').set_index('cluster')
+
+        sorted_clusters_df = raw_clusters_df.sort_values('cluster')
+        self._clusters = sorted_clusters_df.set_index('cluster').drop(columns='hCluster_cap')
+        self.mapping = sorted_clusters_df[['cluster', 'hCluster_cap']].set_index('cluster')
+
+        self._output_mapping_filename = None
         self._cached_metaclusters = None
+
+    @property
+    def output_mapping_filename(self):
+        return self._output_mapping_filename
+
+    @output_mapping_filename.setter
+    def output_mapping_filename(self, filepath):
+        self._output_mapping_filename = Path(filepath)
 
     @property
     def clusters_with_metaclusters(self):
@@ -47,8 +61,11 @@ class MetaClusterData():
 
     def remap(self, cluster, metacluster):
         self.mapping.loc[cluster, 'hCluster_cap'] = metacluster
-        self.mapping.to_csv(self.path / self.output_mapping_filename)
+        self.save_output_mapping()
         self._cached_metaclusters = None
+
+    def save_output_mapping(self):
+        self.mapping.to_csv(self.output_mapping_filename)
 
     @property
     def cluster_count(self):
