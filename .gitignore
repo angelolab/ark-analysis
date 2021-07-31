@@ -3,6 +3,7 @@ env
 .ipynb_checkpoints
 .pytest_cache
 *cache*
+*.egg-info
 
 */.coverage
 */.DS_Store
