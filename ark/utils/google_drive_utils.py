@@ -390,8 +390,8 @@ class GoogleDrivePath(object):
 
         Args:
             data (str, bytes, or BytesIO):
-                If BytesIO or bytes, data is directly uploaded.  If str, data is assumed to be a filepath
-                and data is attempted to be read from the local file.
+                If BytesIO or bytes, data is directly uploaded.  If str, data is assumed to be a
+                filepath and data is attempted to be read from the local file.
             overwrite (bool):
                 If a file already exists at the path_string and overwrite is False, no data is
                 written.  Otherwise, the existing file on Drive is updated/overwritten.
@@ -593,7 +593,7 @@ def drive_write_out(filepath, func):
     try:
         new_fh = io.BytesIO()
         func(new_fh)
-    except:
+    except ValueError:
         new_fh = io.StringIO()
         func(new_fh)
         new_fh = io.BytesIO(bytes(new_fh.getvalue(), 'utf-8'))

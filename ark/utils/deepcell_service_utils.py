@@ -128,9 +128,14 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
         zip_names = io_utils.list_files(deepcell_output_dir, substrs=['.zip'])
         zip_files = [path_join(deepcell_output_dir, name) for name in zip_names]
 
+        # sort by newest added
         zip_files.sort(key=io_utils.getmtime)
 
-        with ZipFile(zip_files[-1].read(), 'r') as zipObj:
+        # generalize for str/filehandle input to ZipFile call
+        if type(deepcell_output_dir) is GoogleDrivePath:
+            zip_files = [zf.read() for zf in zip_files]
+
+        with ZipFile(zip_files[-1], 'r') as zipObj:
             for name in zipObj.namelist():
                 with DriveOpen(path_join(deepcell_output_dir, name), mode='wb') as f:
                     f.write(zipObj.read(name))
@@ -180,9 +185,10 @@ def run_deepcell_direct(input_dir, output_dir, host='https://deepcell.org',
         upload_fields = {
             'file': (
                 filename,
-                f.getvalue(),
+                f.read(),
                 'application/zip'),
         }
+        f.seek(0)
 
     upload_responce = requests.post(
         upload_url,
