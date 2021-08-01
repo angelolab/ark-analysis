@@ -35,8 +35,8 @@ def test_can_remap_all_selected(simple_metaclusterdata: MetaClusterData):
     mcg.selected_clusters.add(1)
     mcg.selected_clusters.add(2)
     mcg.remap_current_selection(3)
-    assert simple_metaclusterdata.mapping.loc[1, 'hCluster_cap'] == 3
-    assert simple_metaclusterdata.mapping.loc[2, 'hCluster_cap'] == 3
+    assert simple_metaclusterdata.mapping.loc[1, 'metacluster'] == 3
+    assert simple_metaclusterdata.mapping.loc[2, 'metacluster'] == 3
 
 
 def test_can_pick_cell_in_heatmap(simple_metaclusterdata: MetaClusterData):
