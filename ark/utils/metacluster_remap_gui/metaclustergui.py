@@ -7,6 +7,7 @@ from scipy.stats import zscore
 from IPython.display import display
 
 from .colormap_helper import distinct_cmap
+from .metaclusterdata import MetaClusterData
 
 # Third party ipympl causing this in it's backend_agg startup code
 warnings.filterwarnings("ignore", message="nbagg.transparent is deprecated")
@@ -15,12 +16,13 @@ DEBUG_VIEW = widgets.Output(layout={'border': '1px solid black'})
 
 
 class MetaClusterGui():
-    def __init__(self, metaclusterdata, heatmapcolors='seismic', width=17, debug=False):
-        self.width = width
-        self.heatmapcolors = heatmapcolors
-        self.mcd = metaclusterdata
+    def __init__(self, metaclusterdata, heatmapcolors='seismic', width=17.0, debug=False):
+        self.width: float = width
+        self.heatmapcolors: str = heatmapcolors
+        self.mcd: MetaClusterData = metaclusterdata
         self.selected_clusters = set()
         self.make_gui()
+
         if debug:
             self.enable_debug_mode()
 
@@ -80,7 +82,7 @@ class MetaClusterGui():
 
         # xaxis metacluster color labels
         self.ax_cl.xaxis.set_tick_params(which='both', bottom=False, labelbottom=False)
-        self.ax_ml.xaxis.set_tick_params(which='both', bottom=False, labelbottom=False)
+        self.ax_ml.xaxis.set_tick_params(which='both', bottom=True, labelbottom=True)
         self.ax_cl.yaxis.set_tick_params(which='both', left=False, labelleft=True)
         self.ax_cl.set_yticks([0.5])
         self.ax_cl.set_yticklabels(["Metacluster"])
@@ -194,6 +196,8 @@ class MetaClusterGui():
         self.im_cl.set_data([self.mcd.clusters_with_metaclusters['metacluster']])
         self.im_cl.set_extent((0, self.mcd.cluster_count, 0, 1))
         self.im_cl.set_cmap(self.cmap)
+        self.ax_ml.set_xticks(np.arange(self.mcd.metacluster_count)+0.5)
+        self.ax_ml.set_xticklabels(self.mcd.metacluster_displaynames, rotation=75, fontsize=8)
         self.im_ml.set_data([self.mcd.metaclusters.index])
         self.im_ml.set_extent((0, self.mcd.metacluster_count, 0, 1))
         self.im_ml.set_cmap(self.cmap)
