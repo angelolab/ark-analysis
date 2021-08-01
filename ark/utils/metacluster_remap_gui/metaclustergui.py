@@ -191,7 +191,7 @@ class MetaClusterGui():
         # xaxis metacluster color labels
         assert max(self.mcd.metaclusters.index) < self.mcd.cluster_count, \
             "Can't support metaclusters idx > cluster count"
-        self.im_cl.set_data([self.mcd.clusters_with_metaclusters['hCluster_cap']])
+        self.im_cl.set_data([self.mcd.clusters_with_metaclusters['metacluster']])
         self.im_cl.set_extent((0, self.mcd.cluster_count, 0, 1))
         self.im_cl.set_cmap(self.cmap)
         self.im_ml.set_data([self.mcd.metaclusters.index])

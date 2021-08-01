@@ -26,7 +26,7 @@ def test_can_read_example_input_2():
 
 @pytest.fixture
 def simple_metaclusterdata():
-    clusters_headers = ['CD163', 'CD206', 'CD31', 'cluster', 'hCluster_cap']
+    clusters_headers = ['CD163', 'CD206', 'CD31', 'cluster', 'metacluster']
     clusters_data = [
         (0.1, 0.2, 0.1, 1, 1),
         (0.1, 0.1, 0.3, 2, 2),
@@ -49,19 +49,19 @@ def simple_metaclusterdata():
 
 def test_can_get_mapping(simple_metaclusterdata: MetaClusterData):
     np.testing.assert_array_equal(
-        simple_metaclusterdata.mapping['hCluster_cap'].values,
+        simple_metaclusterdata.mapping['metacluster'].values,
         np.array((1, 2, 3, 3)))
 
 
 def test_can_remap(simple_metaclusterdata: MetaClusterData):
     simple_metaclusterdata.remap(4, 1)
-    assert simple_metaclusterdata.mapping.loc[4, 'hCluster_cap'] == 1
+    assert simple_metaclusterdata.mapping.loc[4, 'metacluster'] == 1
 
 
 def test_can_create_new_metacluster(simple_metaclusterdata: MetaClusterData):
     new_mc = simple_metaclusterdata.new_metacluster()
     simple_metaclusterdata.remap(4, new_mc)
-    assert simple_metaclusterdata.mapping.loc[4, 'hCluster_cap'] == 4
+    assert simple_metaclusterdata.mapping.loc[4, 'metacluster'] == 4
 
 
 def test_can_save_mapping(simple_metaclusterdata: MetaClusterData, tmp_path):
@@ -70,11 +70,11 @@ def test_can_save_mapping(simple_metaclusterdata: MetaClusterData, tmp_path):
     with open(tmp_path / 'output_mapping.csv', 'r') as f:
         output = [ll.strip() for ll in f.readlines()]
     assert output == [
-        "cluster,hCluster_cap",
+        "cluster,metacluster",
         "1,1",
         "2,2",
         "3,3",
         "4,3",
         ]
 
-# ptest_can_provide_alternate_name_for_hcluster_cap
+# ptest_can_provide_alternate_name_for_metacluster
