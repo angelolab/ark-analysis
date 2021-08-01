@@ -81,5 +81,10 @@ def test_can_save_mapping(simple_metaclusterdata: MetaClusterData, tmp_path):
 def test_metaclusters_can_have_displaynames(simple_metaclusterdata: MetaClusterData):
     assert simple_metaclusterdata.metacluster_displaynames == ['1', '2', '3']
 
+
+def test_metaclusters_can_change_displaynames(simple_metaclusterdata: MetaClusterData):
+    simple_metaclusterdata.change_displayname(1, 'y2k')
+    assert simple_metaclusterdata.metacluster_displaynames == ['y2k', '2', '3']
+
 # test_can_provide_alternate_name_for_metacluster
 # test_can_average_clusters_by_metacluster

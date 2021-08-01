@@ -18,6 +18,7 @@ class MetaClusterData():
         sorted_clusters_df = raw_clusters_df.sort_values('cluster')
         self._clusters = sorted_clusters_df.set_index('cluster').drop(columns='metacluster')
         self.mapping = sorted_clusters_df[['cluster', 'metacluster']].set_index('cluster')
+        self._metacluster_displaynames_map = {}
 
         self._output_mapping_filename = None
         self._cached_metaclusters = None
@@ -40,7 +41,12 @@ class MetaClusterData():
 
     @property
     def metacluster_displaynames(self):
-        return [str(mc) for mc in self.metaclusters.index]
+        def get_displayname(metacluster):
+            try:
+                return self._metacluster_displaynames_map[metacluster]
+            except KeyError:
+                return str(metacluster)
+        return [get_displayname(mc) for mc in self.metaclusters.index]
 
     @property
     def metaclusters(self):
@@ -68,6 +74,9 @@ class MetaClusterData():
         self.mapping.loc[cluster, 'metacluster'] = metacluster
         self.save_output_mapping()
         self._cached_metaclusters = None
+
+    def change_displayname(self, metacluster, displayname):
+        self._metacluster_displaynames_map[metacluster] = displayname
 
     def save_output_mapping(self):
         self.mapping.to_csv(self.output_mapping_filename)
