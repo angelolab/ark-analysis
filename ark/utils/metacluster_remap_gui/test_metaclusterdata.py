@@ -77,4 +77,9 @@ def test_can_save_mapping(simple_metaclusterdata: MetaClusterData, tmp_path):
         "4,3",
         ]
 
-# ptest_can_provide_alternate_name_for_metacluster
+
+def test_metaclusters_can_have_displaynames(simple_metaclusterdata: MetaClusterData):
+    assert simple_metaclusterdata.metacluster_displaynames == ['1', '2', '3']
+
+# test_can_provide_alternate_name_for_metacluster
+# test_can_average_clusters_by_metacluster

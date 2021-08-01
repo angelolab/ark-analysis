@@ -39,6 +39,10 @@ class MetaClusterData():
         return self.clusters_with_metaclusters.drop(columns='metacluster')
 
     @property
+    def metacluster_displaynames(self):
+        return [str(mc) for mc in self.metaclusters.index]
+
+    @property
     def metaclusters(self):
         if self._cached_metaclusters is not None:
             return self._cached_metaclusters
