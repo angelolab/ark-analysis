@@ -6,8 +6,9 @@ import skimage.io as io
 from skimage.measure import regionprops_table
 from skimage.morphology import remove_small_objects
 from skimage.segmentation import find_boundaries
+import xarray as xr
 
-from ark.utils import plot_utils, io_utils, misc_utils
+from ark.utils import load_utils, plot_utils, io_utils, misc_utils
 from ark.utils.google_drive_utils import drive_write_out, path_join
 
 import ark.settings as settings
@@ -184,18 +185,18 @@ def concatenate_csv(base_dir, csv_files, column_name="fov", column_values=None):
     combined_data.to_csv(os.path.join(base_dir, "combined_data.csv"), index=False)
 
 
-def save_segmentation_labels(segmentation_labels_xr, channel_data_xr, output_dir,
-                             fovs=None, channels=None):
+def save_segmentation_labels(segmentation_dir, data_dir, output_dir,
+                             fovs, channels=None):
     """For each fov, generates segmentation labels, segmentation borders, and overlays
     over the channels if specified.
 
     Saves overlay images to output directory
 
     Args:
-        segmentation_labels_xr (xarray.DataArray):
-            xarray containing segmentation labels
-        channel_data_xr (xarray.DataArray):
-            xarray containing the image data
+        segmentation_dir (str):
+            Path to the directory containing segmentation labels
+        data_dir (str):
+            Path to the directory containing the image data
         output_dir (str):
             path to directory where the output will be saved
         fovs (list):
@@ -204,20 +205,18 @@ def save_segmentation_labels(segmentation_labels_xr, channel_data_xr, output_dir
             list of channels to subset in segmentation_labels_xr
     """
 
-    # assign fovs and channels to everything if None
-    if fovs is None:
-        fovs = segmentation_labels_xr.fovs.values
-
-    # verify that fovs and channels exist in their respective xarrays
-    misc_utils.verify_in_list(fovs=fovs, segmentation_label_fovs=segmentation_labels_xr.fovs)
-
-    if channels is not None:
-        misc_utils.verify_in_list(channels=channels,
-                                  channel_data_channels=channel_data_xr.channels)
-
     for fov in fovs:
+        # read the segmentation data in
+        labels = load_utils.load_imgs_from_dir(data_dir=segmentation_dir,
+                                               files=[fov + '_feature_0.tif'],
+                                               xr_dim_name='compartments',
+                                               xr_channel_names=['whole_cell'],
+                                               trim_suffix='_feature_0',
+                                               match_substring='_feature_0',
+                                               force_ints=True)
+
         # generates segmentation borders and labels
-        labels = segmentation_labels_xr.loc[fov, :, :, 'whole_cell'].values
+        labels = labels.loc[fov, :, :, 'whole_cell'].values
 
         # save the labels respectively
         drive_write_out(
@@ -237,11 +236,17 @@ def save_segmentation_labels(segmentation_labels_xr, channel_data_xr, output_dir
 
         # generate the channel overlay if specified
         if channels is not None:
-            channel_overlay = plot_utils.create_overlay(labels,
-                                                        channel_data_xr.loc[fov, :, :, channels])
+            # chans needs to be a numpy array so *chans.astype('str') can work properly
+            chans = np.array(channels)
+
+            # create a channel overlay for the fov with the provided channels
+            channel_overlay = plot_utils.create_overlay(
+                fov=fov, segmentation_dir=segmentation_dir, data_dir=data_dir,
+                img_overlay_chans=chans, seg_overlay_comp='whole_cell'
+            )
 
             # save the channel overlay
-            save_path = '_'.join([f'{fov}', *channels.astype('str'), 'overlay.tiff'])
+            save_path = '_'.join([f'{fov}', *chans.astype('str'), 'overlay.tiff'])
             drive_write_out(
                 path_join(output_dir, save_path),
                 lambda x: io.imsave(x, channel_overlay, plugin='tifffile')

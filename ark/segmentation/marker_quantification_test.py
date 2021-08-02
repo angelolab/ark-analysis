@@ -2,6 +2,7 @@ import copy
 import numpy as np
 import os
 import pytest
+import skimage.io as io
 import tempfile
 import xarray as xr
 
@@ -549,46 +550,68 @@ def test_generate_cell_data_tree_loading():
         # generate a sample segmentation_mask
         cell_mask, _ = test_utils.create_test_extraction_data()
 
-        cell_masks = np.zeros((3, 40, 40, 1), dtype="int16")
+        cell_masks = np.zeros((3, 40, 40, 2), dtype="int16")
         cell_masks[0, :, :, 0] = cell_mask[0, :, :, 0]
         cell_masks[1, 5:, 5:, 0] = cell_mask[0, :-5, :-5, 0]
-        cell_masks[2, 10:, 10:, 0] = cell_mask[0, :-10, :-10, 0]
+        cell_masks[2, 10:, 10:, 0] = cell_mask[0, :-10, :-10, 0] / 2
+        cell_masks[..., 1] = cell_masks[..., 0]
 
-        segmentation_masks = test_utils.make_labels_xarray(
-            label_data=cell_masks,
-            compartment_names=['whole_cell']
-        )
+        for fov in range(cell_masks.shape[0]):
+            fov_whole_cell = cell_masks[fov, :, :, 0]
+            fov_nuclear = cell_masks[fov, :, :, 1]
+            io.imsave(os.path.join(temp_dir, 'fov%d_feature_0.tif' % fov), fov_whole_cell)
+            io.imsave(os.path.join(temp_dir, 'fov%d_feature_1.tif' % fov), fov_nuclear)
 
-        with pytest.raises(ValueError):
+        with pytest.raises(FileNotFoundError):
             # specifying fovs not in the original segmentation mask
             marker_quantification.generate_cell_table(
-                segmentation_labels=segmentation_masks.loc[["fov1"]], tiff_dir=tiff_dir,
-                img_sub_folder=img_sub_folder, is_mibitiff=False, fovs=["fov1", "fov2"],
+                segmentation_dir=temp_dir, tiff_dir=tiff_dir,
+                img_sub_folder=img_sub_folder, is_mibitiff=False, fovs=["fov2", "fov3"],
                 batch_size=5)
 
         # generate sample norm and arcsinh data for all fovs
-        norm_data, arcsinh_data = marker_quantification.generate_cell_table(
-            segmentation_labels=segmentation_masks, tiff_dir=tiff_dir,
+        norm_data_all_fov, arcsinh_data_all_fov = marker_quantification.generate_cell_table(
+            segmentation_dir=temp_dir, tiff_dir=tiff_dir,
             img_sub_folder=img_sub_folder, is_mibitiff=False, fovs=None, batch_size=2)
 
-        assert norm_data.shape[0] > 0 and norm_data.shape[1] > 0
-        assert arcsinh_data.shape[0] > 0 and arcsinh_data.shape[1] > 0
+        assert norm_data_all_fov.shape[0] > 0 and norm_data_all_fov.shape[1] > 0
+        assert arcsinh_data_all_fov.shape[0] > 0 and arcsinh_data_all_fov.shape[1] > 0
 
         # generate sample norm and arcsinh data for a subset of fovs
-        norm_data, arcsinh_data = marker_quantification.generate_cell_table(
-            segmentation_labels=segmentation_masks, tiff_dir=tiff_dir,
+        norm_data_fov_sub, arcsinh_data_fov_sub = marker_quantification.generate_cell_table(
+            segmentation_dir=temp_dir, tiff_dir=tiff_dir,
             img_sub_folder=img_sub_folder, is_mibitiff=False, fovs=fovs_subset, batch_size=2)
 
-        assert norm_data.shape[0] > 0 and norm_data.shape[1] > 0
-        assert arcsinh_data.shape[0] > 0 and arcsinh_data.shape[1] > 0
+        assert norm_data_fov_sub.shape[0] > 0 and norm_data_fov_sub.shape[1] > 0
+        assert arcsinh_data_fov_sub.shape[0] > 0 and arcsinh_data_fov_sub.shape[1] > 0
 
-        # generate sample norm and arcsinh data for a subset of fovs
-        norm_data, arcsinh_data = marker_quantification.generate_cell_table(
-            segmentation_labels=segmentation_masks, tiff_dir=tiff_dir,
+        # generate sample norm and arcsinh data for a subset of fovs with extensions
+        norm_data_fov_ext, arcsinh_data_fov_ext = marker_quantification.generate_cell_table(
+            segmentation_dir=temp_dir, tiff_dir=tiff_dir,
             img_sub_folder=img_sub_folder, is_mibitiff=False, fovs=fovs_subset_ext, batch_size=2)
 
-        assert norm_data.shape[0] > 0 and norm_data.shape[1] > 0
-        assert arcsinh_data.shape[0] > 0 and arcsinh_data.shape[1] > 0
+        assert norm_data_fov_ext.shape[0] > 0 and norm_data_fov_ext.shape[1] > 0
+        assert arcsinh_data_fov_ext.shape[0] > 0 and arcsinh_data_fov_ext.shape[1] > 0
+
+        # test nuclear_counts True
+        norm_data_nuc, arcsinh_data_nuc = marker_quantification.generate_cell_table(
+            segmentation_dir=temp_dir, tiff_dir=tiff_dir,
+            img_sub_folder=img_sub_folder, is_mibitiff=False, fovs=fovs_subset,
+            batch_size=2, nuclear_counts=True)
+
+        assert norm_data_nuc.shape[0] == norm_data_fov_sub.shape[0]
+        assert norm_data_nuc.shape[1] == norm_data_fov_sub.shape[1] * 2 + 1
+        misc_utils.verify_in_list(
+            nuclear_col='nc_ratio',
+            nuc_cell_table_cols=norm_data_nuc.columns.values
+        )
+
+        assert arcsinh_data_nuc.shape[0] == arcsinh_data_fov_sub.shape[0]
+        assert arcsinh_data_nuc.shape[1] == norm_data_fov_sub.shape[1] * 2 + 1
+        misc_utils.verify_in_list(
+            nuclear_col='nc_ratio',
+            nuc_cell_table_cols=norm_data_nuc.columns.values
+        )
 
 
 def test_generate_cell_data_mibitiff_loading():
@@ -619,38 +642,61 @@ def test_generate_cell_data_mibitiff_loading():
 
         # generate a sample segmentation_mask
         cell_mask, _ = test_utils.create_test_extraction_data()
-        cell_masks = np.zeros((3, 40, 40, 1), dtype="int16")
+        cell_masks = np.zeros((3, 40, 40, 2), dtype="int16")
         cell_masks[0, :, :, 0] = cell_mask[0, :, :, 0]
         cell_masks[1, 5:, 5:, 0] = cell_mask[0, :-5, :-5, 0]
         cell_masks[2, 10:, 10:, 0] = cell_mask[0, :-10, :-10, 0]
-        segmentation_masks = test_utils.make_labels_xarray(
-            label_data=cell_masks,
-            compartment_names=['whole_cell']
-        )
+        cell_masks[..., 1] = cell_masks[..., 0]
+
+        for fov in range(cell_masks.shape[0]):
+            fov_whole_cell = cell_masks[fov, :, :, 0]
+            fov_nuclear = cell_masks[fov, :, :, 1]
+            io.imsave(os.path.join(temp_dir, 'fov%d_feature_0.tif' % fov), fov_whole_cell)
+            io.imsave(os.path.join(temp_dir, 'fov%d_feature_1.tif' % fov), fov_nuclear)
 
         # generate sample norm and arcsinh data for all fovs
-        norm_data, arcsinh_data = marker_quantification.generate_cell_table(
-            segmentation_labels=segmentation_masks, tiff_dir=tiff_dir,
+        norm_data_all_fov, arcsinh_data_all_fov = marker_quantification.generate_cell_table(
+            segmentation_dir=temp_dir, tiff_dir=tiff_dir,
             img_sub_folder=tiff_dir, is_mibitiff=True, fovs=None, batch_size=2)
 
-        assert norm_data.shape[0] > 0 and norm_data.shape[1] > 0
-        assert arcsinh_data.shape[0] > 0 and arcsinh_data.shape[1] > 0
+        assert norm_data_all_fov.shape[0] > 0 and norm_data_all_fov.shape[1] > 0
+        assert arcsinh_data_all_fov.shape[0] > 0 and arcsinh_data_all_fov.shape[1] > 0
 
         # generate sample norm and arcsinh data for a subset of fovs
-        norm_data, arcsinh_data = marker_quantification.generate_cell_table(
-            segmentation_labels=segmentation_masks, tiff_dir=tiff_dir,
+        norm_data_fov_sub, arcsinh_data_fov_sub = marker_quantification.generate_cell_table(
+            segmentation_dir=temp_dir, tiff_dir=tiff_dir,
             img_sub_folder=tiff_dir, is_mibitiff=True, fovs=fovs_subset, batch_size=2)
 
-        assert norm_data.shape[0] > 0 and norm_data.shape[1] > 0
-        assert arcsinh_data.shape[0] > 0 and arcsinh_data.shape[1] > 0
+        assert norm_data_fov_sub.shape[0] > 0 and norm_data_fov_sub.shape[1] > 0
+        assert arcsinh_data_fov_sub.shape[0] > 0 and arcsinh_data_fov_sub.shape[1] > 0
 
-        # generate sample norm and arcsinh for a subset of fovs with file extensions
-        norm_data, arcsinh_data = marker_quantification.generate_cell_table(
-            segmentation_labels=segmentation_masks, tiff_dir=tiff_dir,
+        # generate sample norm and arcsinh data for a subset of fovs with extensions
+        norm_data_fov_ext, arcsinh_data_fov_ext = marker_quantification.generate_cell_table(
+            segmentation_dir=temp_dir, tiff_dir=tiff_dir,
             img_sub_folder=tiff_dir, is_mibitiff=True, fovs=fovs_subset_ext, batch_size=2)
 
-        assert norm_data.shape[0] > 0 and norm_data.shape[1] > 0
-        assert arcsinh_data.shape[0] > 0 and arcsinh_data.shape[1] > 0
+        assert norm_data_fov_ext.shape[0] > 0 and norm_data_fov_ext.shape[1] > 0
+        assert arcsinh_data_fov_ext.shape[0] > 0 and arcsinh_data_fov_ext.shape[1] > 0
+
+        # test nuclear_counts True
+        norm_data_nuc, arcsinh_data_nuc = marker_quantification.generate_cell_table(
+            segmentation_dir=temp_dir, tiff_dir=tiff_dir,
+            img_sub_folder=tiff_dir, is_mibitiff=True, fovs=fovs_subset,
+            batch_size=2, nuclear_counts=True)
+
+        assert norm_data_nuc.shape[0] == norm_data_fov_sub.shape[0]
+        assert norm_data_nuc.shape[1] == norm_data_fov_sub.shape[1] * 2 + 1
+        misc_utils.verify_in_list(
+            nuclear_col='nc_ratio',
+            nuc_cell_table_cols=norm_data_nuc.columns.values
+        )
+
+        assert arcsinh_data_nuc.shape[0] == arcsinh_data_fov_sub.shape[0]
+        assert arcsinh_data_nuc.shape[1] == norm_data_fov_sub.shape[1] * 2 + 1
+        misc_utils.verify_in_list(
+            nuclear_col='nc_ratio',
+            nuc_cell_table_cols=norm_data_nuc.columns.values
+        )
 
 
 def test_generate_cell_data_extractions():
@@ -675,18 +721,20 @@ def test_generate_cell_data_extractions():
         # generate a sample segmentation_mask
         cell_mask, _ = test_utils.create_test_extraction_data()
 
-        cell_masks = np.zeros((3, 40, 40, 1), dtype="int16")
+        cell_masks = np.zeros((3, 40, 40, 2), dtype="int16")
         cell_masks[0, :, :, 0] = cell_mask[0, :, :, 0]
         cell_masks[1, 5:, 5:, 0] = cell_mask[0, :-5, :-5, 0]
         cell_masks[2, 10:, 10:, 0] = cell_mask[0, :-10, :-10, 0]
+        cell_masks[..., 1] = cell_masks[..., 0]
 
-        segmentation_masks = test_utils.make_labels_xarray(
-            label_data=cell_masks,
-            compartment_names=['whole_cell']
-        )
+        for fov in range(cell_masks.shape[0]):
+            fov_whole_cell = cell_masks[fov, :, :, 0]
+            fov_nuclear = cell_masks[fov, :, :, 1]
+            io.imsave(os.path.join(temp_dir, 'fov%d_feature_0.tif' % fov), fov_whole_cell)
+            io.imsave(os.path.join(temp_dir, 'fov%d_feature_1.tif' % fov), fov_nuclear)
 
         default_norm_data, _ = marker_quantification.generate_cell_table(
-            segmentation_labels=segmentation_masks, tiff_dir=tiff_dir,
+            segmentation_dir=temp_dir, tiff_dir=tiff_dir,
             img_sub_folder=img_sub_folder, is_mibitiff=False, batch_size=2,
         )
 
@@ -706,10 +754,26 @@ def test_generate_cell_data_extractions():
 
         # verify thresh kwarg passes through
         positive_pixel_data, _ = marker_quantification.generate_cell_table(
-            segmentation_labels=segmentation_masks, tiff_dir=tiff_dir,
+            segmentation_dir=temp_dir, tiff_dir=tiff_dir,
             img_sub_folder=img_sub_folder, is_mibitiff=False, batch_size=2,
             extraction='positive_pixel', **thresh_kwargs
         )
 
         assert np.all(positive_pixel_data.iloc[:4][['chan0', 'chan1']].values == 0)
         assert np.all(positive_pixel_data.iloc[4:][chans].values == 1)
+
+        # verify thresh kwarg passes through and nuclear counts True
+        positive_pixel_data_nuc, _ = marker_quantification.generate_cell_table(
+            segmentation_dir=temp_dir, tiff_dir=tiff_dir,
+            img_sub_folder=img_sub_folder, is_mibitiff=False, batch_size=2,
+            extraction='positive_pixel', nuclear_counts=True, **thresh_kwargs
+        )
+
+        assert np.all(positive_pixel_data_nuc.iloc[:4][['chan0', 'chan1']].values == 0)
+        assert np.all(positive_pixel_data_nuc.iloc[4:][chans].values == 1)
+        assert positive_pixel_data_nuc.shape[0] == positive_pixel_data.shape[0]
+        assert positive_pixel_data_nuc.shape[1] == positive_pixel_data.shape[1] * 2 + 1
+        misc_utils.verify_in_list(
+            nuclear_col='nc_ratio',
+            nuc_cell_table_cols=positive_pixel_data_nuc.columns.values
+        )

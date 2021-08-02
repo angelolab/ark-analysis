@@ -73,11 +73,6 @@ First, get the latest version of the code
 git pull
 ```
 
-Because `requirements.txt` may have changed, rebuild the Docker using
-```
-docker build -t ark-analysis .
-```
-
 Then, run the command below to update the jupyter notebooks to the latest version
 ```
 bash start_docker.sh --update
@@ -86,6 +81,8 @@ or
 ```
 bash start_docker.sh -u
 ```
+
+If the requirements.txt has changed, Docker will rebuild with the new dependencies first.
 
 ### WARNING
 

@@ -76,7 +76,7 @@ def segment_notebook_setup(tb, deepcell_tiff_dir, deepcell_input_dir, deepcell_o
         tb.inject("MIBItiff = True", after='mibitiff_set')
 
 
-def fov_channel_input_set(tb, fovs=None, nucs_list=None, mems_list=None):
+def fov_channel_input_set(tb, fovs=None, nucs_list=None, mems_list=None, is_mibitiff=False):
     """Sets the fovs and channels and creates the input directory for DeepCell
 
     Args:
@@ -89,6 +89,8 @@ def fov_channel_input_set(tb, fovs=None, nucs_list=None, mems_list=None):
             Assigns the nucs variable to this list
         mems_list (list):
             Assigns the mems variable to this list
+        is_mibitiff (bool):
+            Whether we're working with mibitiff files or not
     """
 
     # load the fovs in the notebook
@@ -116,14 +118,14 @@ def fov_channel_input_set(tb, fovs=None, nucs_list=None, mems_list=None):
     """ % (nucs_list_str, mems_list_str)
     tb.inject(nuc_mem_set, after='nuc_mem_set')
 
-    # set the channels accordingly
-    tb.execute_cell('set_channels')
-
-    # load data accordingly
-    tb.execute_cell('load_data_xr')
-
-    # generate the deepcell input files
-    tb.execute_cell('gen_input')
+    # generate the deepcell input files, explicitly set is_mibitiff if True
+    mibitiff_deepcell = """
+        data_utils.generate_deepcell_input(
+            deepcell_input_dir, tiff_dir, nucs, mems, fovs,
+            is_mibitiff=%s, img_sub_folder="TIFs", batch_size=5
+        )
+    """ % str(is_mibitiff)
+    tb.inject(mibitiff_deepcell, after='gen_input')
 
 
 def generate_sample_feature_tifs(fovs, deepcell_output_dir):
@@ -133,98 +135,46 @@ def generate_sample_feature_tifs(fovs, deepcell_output_dir):
     about correct segmentation labels.
 
     Args:
-        tb (testbook.testbook):
-            The testbook runner instance
         fovs (list):
             The list of fovs to generate sample _feature_0 tif files for
         deepcell_output_dir (str):
             The path to the output directory
     """
 
+    # generate a random image for each fov, set as both whole cell and nuclear
     for fov in fovs:
         rand_img = np.random.randint(0, 16, size=(1024, 1024))
         io.imsave(os.path.join(deepcell_output_dir, fov + "_feature_0.tif"), rand_img)
         io.imsave(os.path.join(deepcell_output_dir, fov + "_feature_1.tif"), rand_img)
 
 
-def save_seg_labels(tb, delimiter='_feature_0', nuc_delimiter='_feature_1',
-                    xr_dim_name='compartments', xr_channel_names=None, force_ints=True):
-    """Processes and saves the generated segmentation labels and runs the summed channel overlay
+def overlay_mask(tb, channels=None):
+    """Overlays the segmentation labels overlay (with channel data if specified)
 
     Args:
         tb (testbook.testbook):
             The testbook runner instance
-        delimiter (str):
-            The suffix of the files to read from deepcell_output_dir
-        xr_dim_name (str):
-            The dimension containing the channel names to read in
-        xr_channel_names (list):
-            The list of the channels we wish to read in
-        force_ints (bool):
-            Whether to convert the segmentation labels to integer type
+        channels (list):
+            List of channels to overlay
     """
 
-    delimiter_str = delimiter if delimiter is not None else "None"
-    xr_channel_names_str = str(xr_channel_names[0]) if xr_channel_names is not None else "None"
-
-    # load the cell segmentation labels with the proper command
-    load_seg_cell_cmd = """
-        segmentation_labels_cell = load_utils.load_imgs_from_dir(
-            data_dir=deepcell_output_dir,
-            trim_suffix="%s",
-            match_substring="%s",
-            xr_dim_name="%s",
-            xr_channel_names=["%s"],
-            force_ints=%s
-        )
-
-    """ % (delimiter_str,
-           delimiter_str,
-           xr_dim_name,
-           xr_channel_names_str,
-           str(force_ints))
-
-    nuc_delimiter_str = nuc_delimiter if nuc_delimiter is not None else "None"
-    nuc_xr_channel_names_str = str(xr_channel_names[1]) if xr_channel_names is not None else "None"
-
-    # load the nuclear segmentation labels with the proper command
-    load_seg_nuc_cmd = """
-        segmentation_labels_nuc = load_utils.load_imgs_from_dir(
-            data_dir=deepcell_output_dir,
-            trim_suffix="%s",
-            match_substring="%s",
-            xr_dim_name="%s",
-            xr_channel_names=["%s"],
-            force_ints=%s
-        )
-
-    """ % (nuc_delimiter_str,
-           nuc_delimiter_str,
-           xr_dim_name,
-           nuc_xr_channel_names_str,
-           str(force_ints))
-
-    combine_cell_nuc_cmd = """
-        segmentation_labels = xr.DataArray(
-            np.concatenate(
-                (segmentation_labels_cell.values, segmentation_labels_nuc.values),
-                axis=-1),
-            coords=[segmentation_labels_cell.fovs, segmentation_labels_cell.rows,
-                    segmentation_labels_cell.cols, ["%s", "%s"]],
-            dims=segmentation_labels_cell.dims
-        )
-
-    """ % (xr_channel_names_str, nuc_xr_channel_names_str)
-
-    load_seg_cmd = load_seg_cell_cmd + load_seg_nuc_cmd + combine_cell_nuc_cmd
-    tb.inject(load_seg_cmd, after='load_seg_labels')
-
-    tb.execute_cell('save_seg_labels')
-
-    # now overlay data_xr
-    tb.execute_cell('load_summed')
+    # generate segmentation mask overlay
     tb.execute_cell('overlay_mask')
-    tb.execute_cell('save_mask')
+
+    # save the overlay, channels needs to be explicitly set if not None
+    if channels is not None:
+        save_seg = """
+            segmentation_utils.save_segmentation_labels(
+                segmentation_dir=deepcell_output_dir,
+                data_dir=deepcell_input_dir,
+                output_dir=viz_dir,
+                fovs=io_utils.remove_file_extensions(fovs),
+                channels=%s
+            )
+        """ % str(channels)
+        tb.inject(save_seg, after='save_mask')
+    else:
+        tb.execute_cell('save_mask')
 
 
 def create_exp_mat(tb, is_mibitiff=False, batch_size=5, nuclear_counts=False):
@@ -237,11 +187,14 @@ def create_exp_mat(tb, is_mibitiff=False, batch_size=5, nuclear_counts=False):
             Whether we're working with mibitiff images
         batch_size (int):
             The number of fovs we want to process at a time
+        nuclear_counts (bool):
+            Whether to include nuclear properties in the cell table
     """
 
+    # explicitly set is_mibitiff and nuclear_counts if default overridden
     exp_mat_gen = """
         cell_table_size_normalized, cell_table_arcsinh_transformed = \
-            marker_quantification.generate_cell_table(segmentation_labels=segmentation_labels,
+            marker_quantification.generate_cell_table(segmentation_dir=deepcell_output_dir,
                                                       tiff_dir=tiff_dir,
                                                       img_sub_folder="TIFs",
                                                       is_mibitiff=%s,
@@ -249,7 +202,7 @@ def create_exp_mat(tb, is_mibitiff=False, batch_size=5, nuclear_counts=False):
                                                       batch_size=%s,
                                                       nuclear_counts=%s)
     """ % (is_mibitiff, str(batch_size), nuclear_counts)
-    tb.inject(exp_mat_gen)
+    tb.inject(exp_mat_gen, after='create_exp_mat')
 
-    # save expression matrix
+    # save expression matrices
     tb.execute_cell('save_exp_mat')
