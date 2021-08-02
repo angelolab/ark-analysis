@@ -124,3 +124,5 @@ def check_create_difference_matrices_args(cell_table, features, training,
             "One or both of 'training' or 'inference' must be True")
     if training and features["train_features"] is None:
         raise ValueError("train_features cannot be 'None'")
+
+    return None
