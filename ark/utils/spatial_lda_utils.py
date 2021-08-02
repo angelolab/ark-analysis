@@ -4,8 +4,7 @@ from ark.settings import BASE_COLS
 
 
 def check_format_cell_table_args(cell_table, markers, clusters):
-    """
-    Checks the input arguments of the format_cell_table() function.
+    """Checks the input arguments of the format_cell_table() function.
 
     Args:
         cell_table (pd.DataFrame):
@@ -48,7 +47,7 @@ def check_format_cell_table_args(cell_table, markers, clusters):
 
 
 def check_featurize_cell_table_args(cell_table, feature_by, radius, cell_index):
-    """
+    """Checks the input arguments of the featurize_cell_table() function.
 
     Args:
         cell_table (dict):
@@ -64,7 +63,6 @@ def check_featurize_cell_table_args(cell_table, feature_by, radius, cell_index):
 
     Returns:
         None
-
     """
     # Check valid data types
     if not isinstance(cell_table, dict):
@@ -93,7 +91,7 @@ def check_featurize_cell_table_args(cell_table, feature_by, radius, cell_index):
 
 def check_create_difference_matrices_args(cell_table, features, training,
                                           inference):
-    """
+    """Checks the input arguments of the create_difference_matrices() function.
 
     Args:
         cell_table (dict):
@@ -111,7 +109,6 @@ def check_create_difference_matrices_args(cell_table, features, training,
 
     Returns:
         None
-
     """
 
     if not isinstance(cell_table, dict):

@@ -10,9 +10,9 @@ train_frac = 0.75
 
 
 def format_cell_table(cell_table, markers=None, clusters=None):
-    """
-    Formats a cell table containing one for more fields of view to be
+    """Formats a cell table containing one for more fields of view to be
     compatible with the spatial_lda library.
+
     Args:
         cell_table (pd.DataFrame):
             A pandas DataFrame containing the columns of cell marker
@@ -29,7 +29,6 @@ def format_cell_table(cell_table, markers=None, clusters=None):
         - A dictionary of formatted cell tables for use in spatial-LDA
         analysis.  Each element in the dictionary is a
         pd.DataFrame corresponding to a single field of view.
-
     """
 
     # Check function arguments
@@ -76,7 +75,9 @@ def format_cell_table(cell_table, markers=None, clusters=None):
 def featurize_cell_table(cell_table, feature_by="cluster", radius=100,
                          cell_index="is_index", n_processes=None,
                          train_split=True):
-    """
+    """Calculates statistics for local cellular neighborhoods based on the
+    specified features and radius.
+
     Args:
         cell_table (dict, pd.DataFrame):
             A formatted cell table for use in spatial-LDA analysis.
@@ -155,7 +156,8 @@ def featurize_cell_table(cell_table, feature_by="cluster", radius=100,
 
 def create_difference_matrices(cell_table, features, training=True,
                                inference=True):
-    """
+    """Constructs the difference matrices used for training and inference for
+    each field of view in the formatted cell table.
 
     Args:
         cell_table (dict, pd.DataFrame):
@@ -178,7 +180,6 @@ def create_difference_matrices(cell_table, features, training=True,
 
         - A dictionary containing the training and inference difference
         matrices.
-
     """
     cell_table = {k: v for (k, v) in cell_table.items() if
                   k not in ["fovs", "markers", "clusters"]}
