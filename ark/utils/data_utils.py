@@ -133,6 +133,7 @@ def generate_deepcell_input(data_dir, tiff_dir, nuc_channels, mem_channels, fovs
                 tiff_dir, img_sub_folder="TIFs", fovs=fovs, channels=channels
             )
 
+        # write each fov data to data_dir
         for fov in data_xr.fovs.values:
             out = np.zeros((2, data_xr.shape[1], data_xr.shape[2]), dtype=data_xr.dtype)
 
