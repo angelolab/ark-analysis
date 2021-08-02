@@ -15,8 +15,6 @@ def check_format_cell_table_args(cell_table, markers, clusters):
         clusters (list, int):
             A list of integers corresponding to cluster ids.
 
-    Returns:
-        None
     """
 
     # Check cell table
@@ -43,8 +41,6 @@ def check_format_cell_table_args(cell_table, markers, clusters):
                 [isinstance(x, int) for x in clusters]):
             raise TypeError("clusters must be a list of integers")
 
-    return None
-
 
 def check_featurize_cell_table_args(cell_table, feature_by, radius, cell_index):
     """Checks the input arguments of the featurize_cell_table() function.
@@ -61,8 +57,6 @@ def check_featurize_cell_table_args(cell_table, feature_by, radius, cell_index):
             Name of the column in each field of view pd.Dataframe indicating
             reference cells.
 
-    Returns:
-        None
     """
     # Check valid data types
     if not isinstance(cell_table, dict):
@@ -86,8 +80,6 @@ def check_featurize_cell_table_args(cell_table, feature_by, radius, cell_index):
     if cell_index not in cell_table[1].columns:
         raise ValueError("cell_index must be a valid column")
 
-    return None
-
 
 def check_create_difference_matrices_args(cell_table, features, training,
                                           inference):
@@ -107,8 +99,6 @@ def check_create_difference_matrices_args(cell_table, features, training,
              If True, create the difference matrix for running inference
              algorithm.
 
-    Returns:
-        None
     """
 
     if not isinstance(cell_table, dict):
@@ -124,5 +114,3 @@ def check_create_difference_matrices_args(cell_table, features, training,
             "One or both of 'training' or 'inference' must be True")
     if training and features["train_features"] is None:
         raise ValueError("train_features cannot be 'None'")
-
-    return None
