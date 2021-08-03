@@ -166,6 +166,7 @@ class MetaClusterGui():
         self.fig.tight_layout()
         plt.subplots_adjust(hspace=.0)  # make color labels touch heatmap
 
+    @throttle(.3)
     def update_gui(self):
         def is_selected(cluster):
             if cluster in self.selected_clusters:
