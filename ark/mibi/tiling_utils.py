@@ -119,21 +119,33 @@ def set_tiling_params(fov_list_path, moly_path):
     tiling_params['y_fov_size'] = y_fov_size
     tiling_params['randomize'] = region_rand
 
+    moly_run_insert = int(
+        input("Insert moly points between runs? Enter 0 for no and 1 for yes: ")
+    )
+
+    while moly_run_insert not in [0, 1]:
+        print("Error: moly point run parameter must be either 0 or 1")
+        moly_run_insert = int(
+            input("Insert moly points between runs? Enter 0 for no and 1 for yes: ")
+        )
+
+    tiling_params['moly_run'] = moly_run_insert
+
     # whether to insert moly points between tiles
     # NOTE: moly points will be inserted between different runs regardless of what's set here
-    moly_insert = int(
+    moly_interval_insert = int(
         input("Specify moly point tile interval? Enter 0 for no and 1 for yes: ")
     )
 
-    if moly_insert not in [0, 1]:
-        print("Error: moly insertion parameter must enter 0 or 1")
-        moly_insert = int(
+    while moly_interval_insert not in [0, 1]:
+        print("Error: moly interval insertion parameter must enter 0 or 1")
+        moly_interval_insert = int(
             input("Specify moly point tile interval? Enter 0 for no and 1 for yes: ")
         )
 
     # if moly insert is set, we need to specify an additional moly_interval param
     # NOTE: the interval applies regardless of if the tiles overlap runs or not
-    if moly_insert:
+    if moly_interval_insert:
         moly_interval = int(input("Enter the fov interval size to insert moly points: "))
 
         while moly_interval < 1:
@@ -221,8 +233,8 @@ def create_tiled_regions(tiling_params, moly_point):
                moly_counter % tiling_params['moly_interval'] == 0:
                 tiled_regions['fovs'].append(moly_point)
 
-        # append moly point to seperate runs if not last
-        if region_index != len(tiling_params['fov_num_x']) - 1:
+        # append moly point to seperate runs if not last and if specified
+        if tiling_params['moly_run'] == 1 and region_index != len(tiling_params['fov_num_x']) - 1:
             tiled_regions['fovs'].append(moly_point)
 
     return tiled_regions
