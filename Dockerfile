@@ -15,5 +15,5 @@ COPY ark /opt/ark-analysis/ark
 # Install the package via setup.py
 RUN pip install /opt/ark-analysis
 
-# jupyter notebook
-CMD ["jupyter", "notebook", "--ip=0.0.0.0", "--allow-root"]
+# jupyter lab
+CMD jupyter lab --ip=0.0.0.0 --allow-root --no-browser --port=$JUPYTER_PORT
