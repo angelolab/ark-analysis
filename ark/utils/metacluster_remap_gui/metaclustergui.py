@@ -179,6 +179,7 @@ class MetaClusterGui():
 
         if not self._heatmaps_stale:
             print("skipping other repaints")
+            self.fig.canvas.draw()
             return
 
         # clusters heatmap
