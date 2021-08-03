@@ -41,12 +41,7 @@ class MetaClusterData():
 
     @property
     def metacluster_displaynames(self):
-        def get_displayname(metacluster):
-            try:
-                return self._metacluster_displaynames_map[metacluster]
-            except KeyError:
-                return str(metacluster)
-        return [get_displayname(mc) for mc in self.metaclusters.index]
+        return [self.get_metacluster_displayname(mc) for mc in self.metaclusters.index]
 
     @property
     def metaclusters(self):
@@ -60,6 +55,12 @@ class MetaClusterData():
             .divide(metacluster_pixelcounts['count'], axis=0)
         self._cached_metaclusters = weighted_metaclusters
         return weighted_metaclusters
+
+    def get_metacluster_displayname(self, metacluster):
+        try:
+            return self._metacluster_displaynames_map[metacluster]
+        except KeyError:
+            return str(metacluster)
 
     def cluster_in_metacluster(self, metacluster):
         return list(self.mapping[self.mapping['metacluster'] == metacluster].index.values)

@@ -5,9 +5,11 @@ import ipywidgets as widgets
 import matplotlib.pyplot as plt
 from scipy.stats import zscore
 from IPython.display import display
+from scipy.stats.stats import F_onewayBadInputSizesWarning
 
 from .colormap_helper import distinct_cmap
 from .metaclusterdata import MetaClusterData
+from .throttle import throttle
 
 # Third party ipympl causing this in it's backend_agg startup code
 warnings.filterwarnings("ignore", message="nbagg.transparent is deprecated")
@@ -21,6 +23,7 @@ class MetaClusterGui():
         self.heatmapcolors: str = heatmapcolors
         self.mcd: MetaClusterData = metaclusterdata
         self.selected_clusters = set()
+
         self.make_gui()
 
         if debug:
@@ -158,10 +161,38 @@ class MetaClusterGui():
         self.new_metacluster_button.on_click(self.new_metacluster)
         display(self.new_metacluster_button)
 
+        # metacluster metadata
+        self.current_metacluster = widgets.Dropdown(
+            value=self.mcd.metaclusters.index[0],
+            options=list(zip(self.mcd.metacluster_displaynames, self.mcd.metaclusters.index)),
+            description='MetaCluster:',
+            )
+        self.current_metacluster.observe(
+            lambda t: self.update_current_metacluster(t.new), type="change", names="value")
+        display(self.current_metacluster)
+
+        self.current_metacluster_displayname = widgets.Text(
+            value=self.mcd.get_metacluster_displayname(self.current_metacluster.value),
+            placeholder='Metacluster Displayname',
+            description='Display Name:',
+            disabled=False,
+            )
+        self.current_metacluster_displayname.observe(
+            self.update_current_metacluster_displayname,
+            type="change",
+            names="value")
+        display(self.current_metacluster_displayname)
+
+        # naive cache expiration
         self._heatmaps_stale = True
 
         # initilize data, etc
         self.update_gui()
+
+        # space for longer labels hack
+        self.ax_ml.set_xticks([0.5])
+        self.ax_ml.set_xticklabels(["SpaceHolder----"], rotation=90)
+
         # Tighten layout based on display
         self.fig.tight_layout()
         plt.subplots_adjust(hspace=.0)  # make color labels touch heatmap
@@ -199,7 +230,7 @@ class MetaClusterGui():
         self.im_cl.set_extent((0, self.mcd.cluster_count, 0, 1))
         self.im_cl.set_cmap(self.cmap)
         self.ax_ml.set_xticks(np.arange(self.mcd.metacluster_count)+0.5)
-        self.ax_ml.set_xticklabels(self.mcd.metacluster_displaynames, rotation=75, fontsize=8)
+        self.ax_ml.set_xticklabels(self.mcd.metacluster_displaynames, rotation=90, fontsize=7)
         self.im_ml.set_data([self.mcd.metaclusters.index])
         self.im_ml.set_extent((0, self.mcd.metacluster_count, 0, 1))
         self.im_ml.set_cmap(self.cmap)
@@ -216,6 +247,7 @@ class MetaClusterGui():
             label.set_y(y + label_y_spacing)
             label.set_text(text)
 
+        self.fig.canvas.draw()
         self._heatmaps_stale = False
 
     def enable_debug_mode(self):
@@ -248,6 +280,22 @@ class MetaClusterGui():
         self.update_gui()
 
     @DEBUG_VIEW.capture(clear_output=False)
+    def update_current_metacluster(self, metacluster):
+        self.current_metacluster.options = \
+            list(zip(self.mcd.metacluster_displaynames, self.mcd.metaclusters.index))
+        self.current_metacluster.value = metacluster
+        self.current_metacluster_displayname.value = \
+            self.mcd.get_metacluster_displayname(metacluster)
+
+    @DEBUG_VIEW.capture(clear_output=False)
+    def update_current_metacluster_displayname(self, t):
+        self.mcd.change_displayname(self.current_metacluster.value, t.new)
+        self.current_metacluster.options = \
+            list(zip(self.mcd.metacluster_displaynames, self.mcd.metaclusters.index))
+        self._heatmaps_stale = True
+        self.update_gui()
+
+    @DEBUG_VIEW.capture(clear_output=False)
     def onpick(self, e):
         self.e = e
         if e.mouseevent.name != 'button_press_event':
@@ -275,6 +323,7 @@ class MetaClusterGui():
             self.select_metacluster(metacluster)
 
     def select_metacluster(self, metacluster):
+        self.update_current_metacluster(metacluster)
         clusters = self.mcd.cluster_in_metacluster(metacluster)
         # Toggle entire metacluster
         if all(c in self.selected_clusters for c in clusters):
@@ -295,4 +344,6 @@ class MetaClusterGui():
         elif e.artist in [self.im_cl]:
             selected_cluster = self.mcd.clusters_with_metaclusters.index[selected_ix]
             metacluster = self.mcd.which_metacluster(cluster=selected_cluster)
+
+        self.update_current_metacluster(metacluster)
         self.remap_current_selection(metacluster)
