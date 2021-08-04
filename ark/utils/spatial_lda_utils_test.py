@@ -40,15 +40,11 @@ def test_check_format_cell_table_args():
     with pytest.raises(ValueError, match=r"cannot both be None"):
         check_format_cell_table_args(valid_df, None, None)
     with pytest.raises(ValueError):
-        check_format_cell_table_args(valid_df, 1, None)
-    with pytest.raises(ValueError):
         check_format_cell_table_args(valid_df, invalid_markers1, None)
     with pytest.raises(ValueError):
         check_format_cell_table_args(valid_df, invalid_markers2, None)
     with pytest.raises(ValueError, match=r"marker names cannot be empty"):
         check_format_cell_table_args(valid_df, invalid_markers3, None)
-    with pytest.raises(TypeError, match=r"clusters must be a list"):
-        check_format_cell_table_args(valid_df, valid_markers, 1)
     with pytest.raises(TypeError, match=r"clusters must be a list"):
         check_format_cell_table_args(valid_df, valid_markers, invalid_clusters1)
     with pytest.raises(ValueError, match=r"cluster ids cannot be empty"):
@@ -97,8 +93,7 @@ def test_check_create_difference_matrices_args():
     valid_features1 = {"featurized_fovs": pd.DataFrame(columns=["a", "b"]),
                        "train_features": pd.DataFrame(columns=["a", "b"])}
     invalid_features1 = []
-    invalid_features2 = {"featurized_fovs": "a",
-                         "train_features": pd.DataFrame(columns=["a", "b"])}
+    invalid_features2 = {"featurized_fovs": "a", "train_features": None}
 
     with pytest.raises(TypeError, match=r"cell_table must be of type"):
         check_create_difference_matrices_args(invalid_cell_table1, valid_features1, True, True)
