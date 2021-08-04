@@ -51,14 +51,14 @@ def check_featurize_cell_table_args(cell_table, featurization, radius, cell_inde
     # Check valid data types
     if not isinstance(cell_table, dict):
         raise TypeError("cell_table should be of type 'dict'")
-    if not isinstance(cell_table[1], pd.DataFrame):
+    if not isinstance(cell_table[0], pd.DataFrame):
         raise TypeError("cell_table should contain formatted dataframes")
     if not isinstance(radius, int):
         raise TypeError("radius should be of type 'int'")
 
     verify_in_list(featurization=[featurization],
                    featurization_options=["cluster", "marker", "avg_marker", "count"])
-    verify_in_list(cell_index=[cell_index], cell_table_columns=cell_table[1].columns.to_list())
+    verify_in_list(cell_index=[cell_index], cell_table_columns=cell_table[0].columns.to_list())
 
     if radius < 25:
         raise ValueError("radius must not be less than 25")
