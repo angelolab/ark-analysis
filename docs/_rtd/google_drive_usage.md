@@ -97,7 +97,7 @@ Furthermore, we may not want all of these to be `GoogleDrivePath`s.  In the cont
 data, while `deepcell_output_dir` stores the results of the Mesmer segmentation.  
 
 We probably don't need to upload/download this re-formatted data, and wouldn't mind if it's stored
-locally since it's very small relative to the size of the dataset.  On the other hand, we'll
+locally since it's very small relative to the size of the dataset.  On the other hand, we
 may want to immediately upload our segmentation results to Google Drive.  In that case,
 `deepcell_input_dir` should be a local folder, while `deepcell_output_dir` should be a
 `GoogleDrivePath`:
@@ -124,8 +124,7 @@ Key take aways: 🔑
 
 Now that your paths are formatted, most `ark-analysis` data-processing functions should work
 out of the box, as if your `GoogleDrivePath`s were actual local files.  If you come across an issue
-using a `GoogleDrivePath` within an `ark-analysis` function, please submit an issue here
-(TODO: add a link here...).
+using a `GoogleDrivePath` within an `ark-analysis` function, please submit an issue [here](https://github.com/angelolab/ark-analysis/issues).
 
 ### Writing Data Out
 
@@ -157,10 +156,3 @@ For the generalized example above, we can make it `GoogleDrivePath` compatable v
 ```
 google_drive_utils.drive_write_out( some_path, lambda x: df.to_csv(x, index=False) )
 ```
-Note that this lambda function could also be a regular function:
-
-```
-def to_csv_wrapper(x):
-    df.to_csv(x, index=False)
-```
-
