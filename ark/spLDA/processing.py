@@ -15,8 +15,7 @@ def format_cell_table(cell_table, markers=None, clusters=None):
 
     Args:
         cell_table (pandas.DataFrame):
-            A pandas DataFrame containing the columns of cell marker frequencies and/or cluster
-            ids.
+            A DataFrame containing the columns of cell marker frequencies and/or cluster ids.
         markers (list):
             A list of strings corresponding to the markers in cell_table which will be used to
             train the spatial LDA model.  Either markers or clusters must be provided.
@@ -79,7 +78,7 @@ def featurize_cell_table(cell_table, featurization=None, radius=100, cell_index=
     Args:
         cell_table (dict):
             A formatted cell table for use in spatial-LDA analysis. Specifically, this is the
-            output from format_cell_table().
+            output from :func:`~ark.spLDA.processing.format_cell_table`.
         featurization (str):
             One of four choices of featurization method, defaults to "cluster" if None is provided:
                 * marker: for each marker, count the total number of cells within a ``radius``
@@ -92,8 +91,8 @@ def featurize_cell_table(cell_table, featurization=None, radius=100, cell_index=
         radius (int):
             Size of the radius, in pixels, used to featurize cellular neighborhoods.
         cell_index (str):
-            Name of the column containing the reference cell indexes.  If not specified,
-            all cells are used.
+            Name of the column containing the indexes of reference cells to be used in
+            constructing local cellular neighborhoods.  If not specified, all cells are used.
         n_processes (int):
             Number of parallel processes to use.
         train_frac (float):
@@ -102,7 +101,8 @@ def featurize_cell_table(cell_table, featurization=None, radius=100, cell_index=
     Returns:
         dict:
 
-        - A dictionary containing featurized cellular neighborhoods and designated training data.
+        - A dictionary containing a DataFrame of featurized cellular neighborhoods and a
+        separate DataFrame for designated training data.
     """
 
     # Default to "cluster", "is_index if featurization, cell_index are not provided.
@@ -149,12 +149,13 @@ def create_difference_matrices(cell_table, features, training=True, inference=Tr
     Args:
         cell_table (dict):
             A formatted cell table for use in spatial-LDA analysis. Specifically, this is the
-            output from format_cell_table().
+            output from :func:`~ark.spLDA.processing.format_cell_table`.
         features (dict):
             A dictionary containing the featurized cell table and the training data.
-            Specifically, this is the output from featurize_cell_table().
+            Specifically, this is the output from
+            :func:`~ark.spLDA.processing.featurize_cell_table`.
         training (bool):
-            If True, create the difference matrix for running training algorithm.  One or both
+            If True, create the difference matrix for running the training algorithm.  One or both
             of training and inference must be True.
         inference (bool):
              If True, create the difference matrix for running inference algorithm.

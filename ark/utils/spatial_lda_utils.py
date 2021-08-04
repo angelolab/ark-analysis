@@ -73,7 +73,8 @@ def check_create_difference_matrices_args(cell_table, features, training, infere
             view.
         features (dict):
             A dictionary containing the featurized cell table and the training data.
-            Specifically, this is the output from featurize_cell_table().
+            Specifically, this is the output from
+            :func:`~ark.spLDA.processing.featurize_cell_table`.
         training (bool):
             If True, create the difference matrix for running training algorithm.
         inference (bool):
