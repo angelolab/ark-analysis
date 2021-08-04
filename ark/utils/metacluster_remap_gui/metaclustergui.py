@@ -122,6 +122,23 @@ class MetaClusterGui():
                 ha='center', rotation=90, color='black', fontsize=8)
             self.labels_cp.append(label)
 
+        # naive cache expiration
+        self._heatmaps_stale = True
+
+        # initilize data, etc
+        self.update_gui()
+
+        # space for longer labels hack
+        self.ax_ml.set_xticks([0.5])
+        self.ax_ml.set_xticklabels(["SpaceHolder--"], rotation=90, fontsize=8)
+
+        # Tighten layout based on display
+        self.fig.tight_layout()
+        plt.subplots_adjust(hspace=.0)  # make color labels touch heatmap
+
+        self.make_widgets()
+
+    def make_widgets(self):
         # zscore adjuster
         self.zscore_clamp_slider = widgets.FloatSlider(
             value=3,
@@ -137,7 +154,6 @@ class MetaClusterGui():
             tooltip='Clamp/Clip zscore to a certain max value.',
         )
         self.zscore_clamp_slider.observe(self.update_zscore)
-        display(self.zscore_clamp_slider)
 
         # clear_selection button
         self.clear_selection_button = widgets.Button(
@@ -148,7 +164,6 @@ class MetaClusterGui():
             icon='ban',
             )
         self.clear_selection_button.on_click(self.clear_selection)
-        display(self.clear_selection_button)
 
         # new metacluster button
         self.new_metacluster_button = widgets.Button(
@@ -159,7 +174,6 @@ class MetaClusterGui():
             icon='plus',
             )
         self.new_metacluster_button.on_click(self.new_metacluster)
-        display(self.new_metacluster_button)
 
         # metacluster metadata
         self.current_metacluster = widgets.Dropdown(
@@ -169,33 +183,33 @@ class MetaClusterGui():
             )
         self.current_metacluster.observe(
             lambda t: self.update_current_metacluster(t.new), type="change", names="value")
-        display(self.current_metacluster)
 
         self.current_metacluster_displayname = widgets.Text(
             value=self.mcd.get_metacluster_displayname(self.current_metacluster.value),
             placeholder='Metacluster Displayname',
-            description='Display Name:',
+            description='Edit Name:',
             disabled=False,
             )
         self.current_metacluster_displayname.observe(
             self.update_current_metacluster_displayname,
             type="change",
             names="value")
-        display(self.current_metacluster_displayname)
 
-        # naive cache expiration
-        self._heatmaps_stale = True
-
-        # initilize data, etc
-        self.update_gui()
-
-        # space for longer labels hack
-        self.ax_ml.set_xticks([0.5])
-        self.ax_ml.set_xticklabels(["SpaceHolder----"], rotation=90)
-
-        # Tighten layout based on display
-        self.fig.tight_layout()
-        plt.subplots_adjust(hspace=.0)  # make color labels touch heatmap
+        # group widgets to look nice
+        self.metacluster_info = widgets.VBox([
+            self.current_metacluster,
+            self.current_metacluster_displayname])
+        self.tools = widgets.HBox([
+            self.zscore_clamp_slider,
+            self.clear_selection_button,
+            self.new_metacluster_button,
+            ])
+        self.toolbar = widgets.HBox([
+            self.tools,
+            self.metacluster_info,
+            ])
+        self.toolbar.layout.justify_content = 'space-between'
+        display(self.toolbar)
 
     @throttle(.3)
     def update_gui(self):
