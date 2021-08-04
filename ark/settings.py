@@ -8,6 +8,8 @@ CELL_TYPE = 'cell_type'             # cell type name (flowsom)
 CLUSTER_ID = 'FlowSOM_ID'           # cell cluster id (flowsom)
 PATIENT_ID = 'PatientID'            # cell's patient id
 KMEANS_CLUSTER = 'cluster_labels'   # generated cluster column name
+CENTROID_0 = 'centroid-0'           # cell centroid x-coordinate
+CENTROID_1 = 'centroid-1'           # cell centroid y-coordinate
 
 # standardized columns surrounding channel data
 PRE_CHANNEL_COL = CELL_SIZE  # last column before channel data
@@ -23,5 +25,4 @@ REGIONPROPS_SINGLE_COMP = ['major_minor_axis_ratio', 'perim_square_over_area',
 REGIONPROPS_MULTI_COMP = ['nc_ratio']
 
 # spatial-LDA minimum required columns
-BASE_COLS = ["point", "label", "cell_size", "centroid-0", "centroid-1",
-             "pixelfreq_hclust_cap", "name"]
+BASE_COLS = [FOV_ID, CELL_LABEL, CELL_SIZE, CENTROID_0, CENTROID_1, CLUSTER_ID, KMEANS_CLUSTER]

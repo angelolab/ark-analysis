@@ -42,20 +42,19 @@ def format_cell_table(cell_table, markers=None, clusters=None):
     # Rename columns
     cell_table = cell_table.rename(
         columns={
-            "cell_size": "area",
             "centroid-0": "x",
             "centroid-1": "y",
-            "pixelfreq_hclust_cap": "cluster_id",
-            "name": "cluster"
+            "FlowSOM_ID": "cluster_id",
+            "cluster_labels": "cluster"
         })
 
     # Create dictionary of FOVs
-    fovs = np.unique(cell_table["point"])
+    fovs = np.unique(cell_table["SampleID"])
 
     fov_dict = {}
     for i in fovs:
-        df = cell_table[cell_table["point"] == i].drop(
-            columns=["point", "label"])
+        df = cell_table[cell_table["SampleID"] == i].drop(
+            columns=["SampleID", "label"])
         if clusters is not None:
             df = df[df["cluster_id"].isin(clusters)]
         df["is_index"] = True
