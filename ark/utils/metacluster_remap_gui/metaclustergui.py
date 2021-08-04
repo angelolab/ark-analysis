@@ -290,8 +290,10 @@ class MetaClusterGui():
     @DEBUG_VIEW.capture(clear_output=False)
     def update_current_metacluster_displayname(self, t):
         self.mcd.change_displayname(self.current_metacluster.value, t.new)
+        old_current_metacluster = self.current_metacluster.value
         self.current_metacluster.options = \
             list(zip(self.mcd.metacluster_displaynames, self.mcd.metaclusters.index))
+        self.current_metacluster.value = old_current_metacluster
         self._heatmaps_stale = True
         self.update_gui()
 
