@@ -79,7 +79,7 @@ def test_check_featurize_cell_table_args():
     with pytest.raises(TypeError, match=r"radius should be of type 'int'"):
         check_featurize_cell_table_args(valid_cell_table, valid_feature, invalid_radius2,
                                         valid_cell_index)
-    with pytest.raises(TypeError, match=r"cell_index should be of type 'str'"):
+    with pytest.raises(ValueError):
         check_featurize_cell_table_args(valid_cell_table, valid_feature, valid_radius,
                                         invalid_cell_index1)
     with pytest.raises(ValueError):
