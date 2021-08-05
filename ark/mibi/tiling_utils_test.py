@@ -1,5 +1,6 @@
 import copy
 import json
+import numpy as np
 import os
 import pytest
 import random
@@ -7,91 +8,18 @@ import tempfile
 
 import ark.mibi.tiling_utils as tiling_utils
 import ark.utils.misc_utils as misc_utils
+import ark.utils.test_utils as test_utils
 
 
 def test_set_tiling_params(monkeypatch):
     # define a sample set of fovs
-    sample_fovs_list = {
-        "exportDateTime": "2021-03-12T19:02:37.920Z",
-        "fovFormatVersion": "1.5",
-        "fovs": [
-            {
-              "scanCount": 1,
-              "centerPointMicrons": {
-                "x": 8758,
-                "y": 38150
-              },
-              "timingChoice": 7,
-              "frameSizePixels": {
-                "width": 2048,
-                "height": 2048
-              },
-              "imagingPreset": {
-                "preset": "Normal",
-                "aperture": "2",
-                "displayName": "Fine",
-                "defaults": {
-                  "timingChoice": 7
-                }
-              },
-              "sectionId": 8201,
-              "slideId": 5931,
-              "name": "TheFirstFOV",
-              "timingDescription": "1 ms"
-            },
-            {
-              "scanCount": 1,
-              "centerPointMicrons": {
-                "x": 5142,
-                "y": 6371
-              },
-              "timingChoice": 7,
-              "frameSizePixels": {
-                "width": 2048,
-                "height": 2048
-              },
-              "imagingPreset": {
-                "preset": "Normal",
-                "aperture": "2",
-                "displayName": "Fine",
-                "defaults": {
-                  "timingChoice": 7
-                }
-              },
-              "sectionId": 8201,
-              "slideId": 5931,
-              "name": "TheSecondFOV",
-              "timingDescription": "1 ms"
-            }
-        ]
-    }
+    sample_fovs_list = test_utils.generate_sample_fovs_list(
+        fov_coords=[(0, 0), (100, 100)], fov_names=["TheFirstFOV", "TheSecondFOV"]
+    )
 
-    # set moly point
-    sample_moly_point = {
-        "scanCount": 3,
-        "centerPointMicrons": {
-            "x": 14540,
-            "y": -10830
-        },
-        "fovSizeMicrons": 200,
-        "timingChoice": 7,
-        "frameSizePixels": {
-            "width": 128,
-            "height": 128
-        },
-        "imagingPreset": {
-            "preset": "Tuning",
-            "aperture": "3",
-            "displayName": "QC - 100µm",
-            "defaults": {
-                "timingChoice": 7
-            }
-        },
-        "standardTarget": "Moly Foil",
-        "name": "MoQC",
-        "notes": None,
-        "timingDescription": "1 ms"
-    }
+    sample_moly_point = test_utils.generate_sample_fov_tiling_entry(
+        coord=(14540, -10830), name="MoQC"
+    )
 
     # let's just set all the user inputs to 1 to make the test easy
     user_input = 1
@@ -156,55 +84,13 @@ def test_set_tiling_params(monkeypatch):
 
 
 def test_create_tiled_regions():
-    # set tiling_params dict
+    sample_fovs_list = test_utils.generate_sample_fovs_list(
+        fov_coords=[(0, 0), (100, 100)], fov_names=["TheFirstFOV", "TheSecondFOV"]
+    )
+
     sample_tiling_params = {
         'fovFormatVersion': '1.5',
-        'fovs': [
-            {
-                'scanCount': 1,
-                'centerPointMicrons': {
-                    'x': 0, 'y': 0
-                },
-                'timingChoice': 7,
-                'frameSizePixels': {
-                    'width': 2048, 'height': 2048
-                },
-                'imagingPreset': {
-                    'preset': 'Normal',
-                    'aperture': '2',
-                    'displayName': 'Fine',
-                    'defaults': {
-                        'timingChoice': 7
-                    }
-                },
-                'sectionId': 8201,
-                'slideId': 5931,
-                'name': 'TheFirstFOV',
-                'timingDescription': '1 ms'
-            },
-            {
-                'scanCount': 1,
-                'centerPointMicrons': {
-                    'x': 100, 'y': 100
-                },
-                'timingChoice': 7,
-                'frameSizePixels': {
-                    'width': 2048, 'height': 2048
-                },
-                'imagingPreset': {
-                    'preset': 'Normal',
-                    'aperture': '2',
-                    'displayName': 'Fine',
-                    'defaults': {
-                        'timingChoice': 7
-                    }
-                },
-                'sectionId': 8201,
-                'slideId': 5931,
-                'name': 'TheSecondFOV',
-                'timingDescription': '1 ms'
-            }
-        ],
+        'fovs': sample_fovs_list['fovs'],
         'region_start_x': [0, 50],
         'region_start_y': [100, 150],
         'fov_num_x': [2, 4],
@@ -215,32 +101,9 @@ def test_create_tiled_regions():
         'moly_run': 1
     }
 
-    # set moly point
-    sample_moly_point = {
-        "scanCount": 3,
-        "centerPointMicrons": {
-            "x": 14540,
-            "y": -10830
-        },
-        "fovSizeMicrons": 200,
-        "timingChoice": 7,
-        "frameSizePixels": {
-            "width": 128,
-            "height": 128
-        },
-        "imagingPreset": {
-            "preset": "Tuning",
-            "aperture": "3",
-            "displayName": "QC - 100µm",
-            "defaults": {
-                "timingChoice": 7
-            }
-        },
-        "standardTarget": "Moly Foil",
-        "name": "MoQC",
-        "notes": None,
-        "timingDescription": "1 ms"
-    }
+    sample_moly_point = test_utils.generate_sample_fov_tiling_entry(
+        coord=(14540, -10830), name="MoQC"
+    )
 
     with tempfile.TemporaryDirectory() as temp_dir:
         # test 1: no randomization, no additional moly point interval, moly points between runs
@@ -256,10 +119,9 @@ def test_create_tiled_regions():
 
         # define the actual center points in the same expected order
         actual_center_points_run = [
-            (0, 100), (0, 110), (0, 120), (0, 130), (5, 100),
-            (5, 110), (5, 120), (5, 130), (14540, -10830),
-            (50, 150), (50, 155), (60, 150), (60, 155), (70, 150),
-            (70, 155), (80, 150), (80, 155)
+            (x, y) for x in np.arange(0, 10, 5) for y in np.arange(100, 140, 10)
+        ] + [(14540, -10830)] + [
+            (x, y) for x in np.arange(50, 90, 10) for y in np.arange(150, 160, 5)
         ]
 
         # check that the created center points equal the sorted center points
@@ -400,15 +262,12 @@ def test_create_tiled_regions():
             for fov in tiled_regions_moly_int_run['fovs']
         ]
 
+        # define the moly point indices, applies for both sorted and random tiled regions
+        moly_indices_run = [3, 7, 12, 16, 20]
+
         # define the actual center points in the same expected order with additional moly point
-        actual_center_points_run = [
-            (0, 100), (0, 110), (0, 120), (14540, -10830),
-            (0, 130), (5, 100), (5, 110), (14540, -10830),
-            (5, 120), (5, 130), (14540, -10830), (50, 150),
-            (14540, -10830), (50, 155), (60, 150), (60, 155),
-            (14540, -10830), (70, 150), (70, 155), (80, 150),
-            (14540, -10830), (80, 155)
-        ]
+        for mi in moly_indices_run:
+            actual_center_points_run.insert(mi, (14540, -10830))
 
         # check that the created center points equal the sorted center points
         assert sorted_center_points_run == actual_center_points_run
@@ -445,9 +304,6 @@ def test_create_tiled_regions():
             for fov in tiled_regions_random_some_moly_int_run['fovs']
         ]
 
-        # define the moly point indices, applies for both sorted and random tiled regions
-        moly_indices_run = [3, 6, 8, 10, 13, 16]
-
         # assert that each moly index is the same in both sorted and random tiled regions
         for mi in moly_indices_run:
             random_center_points_run[mi] == sorted_center_points_run[mi]
@@ -479,11 +335,11 @@ def test_create_tiled_regions():
         ]
 
         # define the moly point indices, applies for both sorted and random tiled regions
-        moly_indices_no_run = [3, 6, 8, 12, 15]
+        moly_indices_no_run = [3, 6, 11, 15, 19]
 
         # assert that each moly index is the same in both sorted and random tiled regions
-        for mi in moly_indices_run:
-            random_center_points_run[mi] == sorted_center_points_run[mi]
+        for mi in moly_indices_no_run:
+            random_center_points_no_run[mi] == sorted_center_points_no_run[mi]
 
         # ensure the fov 1 center points are the same for both sorted and random
         assert random_center_points_no_run[:10] == sorted_center_points_no_run[:10]

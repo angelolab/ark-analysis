@@ -119,6 +119,7 @@ def set_tiling_params(fov_list_path, moly_path):
     tiling_params['y_fov_size'] = y_fov_size
     tiling_params['randomize'] = region_rand
 
+    # whether to insert moly points between runs
     moly_run_insert = int(
         input("Insert moly points between runs? Enter 0 for no and 1 for yes: ")
     )
@@ -132,7 +133,6 @@ def set_tiling_params(fov_list_path, moly_path):
     tiling_params['moly_run'] = moly_run_insert
 
     # whether to insert moly points between tiles
-    # NOTE: moly points will be inserted between different runs regardless of what's set here
     moly_interval_insert = int(
         input("Specify moly point tile interval? Enter 0 for no and 1 for yes: ")
     )
