@@ -2,7 +2,7 @@
 
 ### Motivation
 
-Image data can be very large, and it can be difficult to keep all of it on you local hard drive.
+Image data can be very large, and it can be difficult to keep all of it on your local hard drive.
 Many people use Google Drive to store their data off of their local hard drive, but this can create
 logistic issues when processing it.
 
