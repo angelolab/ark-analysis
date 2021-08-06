@@ -86,5 +86,10 @@ def test_metaclusters_can_change_displaynames(simple_metaclusterdata: MetaCluste
     simple_metaclusterdata.change_displayname(1, 'y2k')
     assert simple_metaclusterdata.metacluster_displaynames == ['y2k', '2', '3']
 
+
+def test_can_find_which_metacluster_a_cluster_belongs_to(simple_metaclusterdata: MetaClusterData):
+    assert simple_metaclusterdata.which_metacluster(4) == 3
+
+
 # test_can_provide_alternate_name_for_metacluster
 # test_can_average_clusters_by_metacluster
