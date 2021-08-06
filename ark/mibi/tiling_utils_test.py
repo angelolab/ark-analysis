@@ -97,310 +97,160 @@ def test_create_tiled_regions():
         'fov_num_y': [4, 2],
         'x_fov_size': [5, 10],
         'y_fov_size': [10, 5],
-        'randomize': [0, 0],
-        'moly_run': 1
+        'moly_run': 0,
+        'moly_interval': 3
     }
 
     sample_moly_point = test_utils.generate_sample_fov_tiling_entry(
         coord=(14540, -10830), name="MoQC"
     )
 
-    with tempfile.TemporaryDirectory() as temp_dir:
-        # test 1: no randomization, no additional moly point interval, moly points between runs
-        tiled_regions_base = tiling_utils.create_tiled_regions(
-            sample_tiling_params, sample_moly_point
-        )
+    # we need these globals to set baselines for both moly interval settings
+    actual_center_points_no_run_no_int = None
+    actual_center_points_no_run_int = None
+    actual_center_points_run_no_int = None
+    actual_center_points_run_int = None
 
-        # get the center points created
-        sorted_center_points_run = [
-            (fov['centerPointMicrons']['x'], fov['centerPointMicrons']['y'])
-            for fov in tiled_regions_base['fovs']
-        ]
+    # test randomization for no fovs, some fovs, and all fovs
+    for randomize_setting in [[0, 0], [0, 1], [1, 1]]:
+        sample_tiling_params['randomize'] = randomize_setting
 
-        # define the actual center points in the same expected order
-        actual_center_points_run = [
-            (x, y) for x in np.arange(0, 10, 5) for y in np.arange(100, 140, 10)
-        ] + [(14540, -10830)] + [
-            (x, y) for x in np.arange(50, 90, 10) for y in np.arange(150, 160, 5)
-        ]
+        for moly_run in [0, 1]:
+            sample_tiling_params['moly_run'] = moly_run
 
-        # check that the created center points equal the sorted center points
-        assert sorted_center_points_run == actual_center_points_run
+            for moly_interval_setting in [False, True]:
+                # place the moly_interval param in if True, else remove
+                if moly_interval_setting:
+                    sample_tiling_params['moly_interval'] = 3
+                else:
+                    del sample_tiling_params['moly_interval']
 
-        # test 2: no randomization, no additional moly point interval, no moly points between runs
-        sample_tiling_params['moly_run'] = 0
-        tiled_regions_no_run = tiling_utils.create_tiled_regions(
-            sample_tiling_params, sample_moly_point
-        )
+                # create the tiles
+                tiled_regions = tiling_utils.create_tiled_regions(
+                    sample_tiling_params, sample_moly_point
+                )
 
-        # get the center points created
-        sorted_center_points_no_run = [
-            (fov['centerPointMicrons']['x'], fov['centerPointMicrons']['y'])
-            for fov in tiled_regions_no_run['fovs']
-        ]
+                # retrieve the center points
+                center_points = [
+                    (fov['centerPointMicrons']['x'], fov['centerPointMicrons']['y'])
+                    for fov in tiled_regions['fovs']
+                ]
 
-        # define the actual center points in the same expected order
-        actual_center_points_no_run = actual_center_points_run[:]
-        actual_center_points_no_run.remove((14540, -10830))
+                if randomize_setting == [0, 0] and moly_run:
+                    if moly_interval_setting:
+                        # since True will run after False for moly_interval_setting
+                        # actual_center_points_no_run_no_int will be set so we can piggyback
+                        actual_center_points_run_int = actual_center_points_run_no_int[:]
 
-        # check that the created center points equal the sorted center points
-        assert sorted_center_points_no_run == actual_center_points_no_run
+                        # define the indices to add moly points
+                        moly_indices_run = [3, 7, 12, 16, 20]
 
-        # test 3: randomization for one fov, no additional moly point interval,
-        # moly points between runs
-        sample_tiling_params['randomize'] = [0, 1]
-        sample_tiling_params['moly_run'] = 1
-        tiled_regions_random_some_run = tiling_utils.create_tiled_regions(
-            sample_tiling_params, sample_moly_point
-        )
+                        # insert moly points
+                        for mi in moly_indices_run:
+                            actual_center_points_run_int.insert(mi, (14540, -10830))
 
-        # get the center points created
-        random_center_points_run = [
-            (fov['centerPointMicrons']['x'], fov['centerPointMicrons']['y'])
-            for fov in tiled_regions_random_some_run['fovs']
-        ]
+                        # the center points should match up exactly with no sorting
+                        assert center_points == actual_center_points_run_int
+                    else:
+                        # set a baseline for what the center points should be
+                        actual_center_points_run_no_int = [
+                            (x, y) for x in np.arange(0, 10, 5) for y in np.arange(100, 140, 10)
+                        ] + [(14540, -10830)] + [
+                            (x, y) for x in np.arange(50, 90, 10) for y in np.arange(150, 160, 5)
+                        ]
 
-        # ensure the moly point is inserted in the same spot as if the fovs were sorted
-        random_center_points_run[8] == sorted_center_points_run[8]
+                        # the center points should match up exactly with no sorting
+                        assert center_points == actual_center_points_run_no_int
+                elif randomize_setting == [0, 0] and not moly_run:
+                    if moly_interval_setting:
+                        # since True will run after False for moly_interval_setting
+                        # actual_center_points_no_run_no_int will be set so we can piggyback
+                        actual_center_points_no_run_int = actual_center_points_no_run_no_int[:]
 
-        # ensure the fov 1 center points are the same for both sorted and random
-        assert random_center_points_run[:8] == sorted_center_points_run[:8]
+                        # define the indices to add moly points
+                        moly_indices_no_run = [3, 7, 11, 15, 19]
 
-        # ensure the random center points for fov 2 contain the same elements as its sorted version
-        misc_utils.verify_same_elements(
-            random_center_points=random_center_points_run[9:],
-            sorted_center_points=sorted_center_points_run[9:]
-        )
+                        # insert moly points
+                        for mi in moly_indices_no_run:
+                            actual_center_points_no_run_int.insert(mi, (14540, -10830))
 
-        # the random center points for fov 2 should be ordered differently than its sorted version
-        # due to the nature of randomization, this test will fail once in a blue moon
-        assert random_center_points_run[9:] != sorted_center_points_run[9:]
+                        # the center points should match up exactly with no sorting
+                        assert center_points == actual_center_points_no_run_int
+                    else:
+                        # set a baseline for what the center points should be
+                        actual_center_points_no_run_no_int = [
+                            (x, y) for x in np.arange(0, 10, 5) for y in np.arange(100, 140, 10)
+                        ] + [
+                            (x, y) for x in np.arange(50, 90, 10) for y in np.arange(150, 160, 5)
+                        ]
 
-        # test 4: randomization for one fov, no additional moly point interval,
-        # no moly points between runs
-        sample_tiling_params['moly_run'] = 0
-        tiled_regions_random_some_no_run = tiling_utils.create_tiled_regions(
-            sample_tiling_params, sample_moly_point
-        )
+                        # the center points should match up exactly with no sorting
+                        assert center_points == actual_center_points_no_run_no_int
 
-        # get the center points created
-        random_center_points_no_run = [
-            (fov['centerPointMicrons']['x'], fov['centerPointMicrons']['y'])
-            for fov in tiled_regions_random_some_no_run['fovs']
-        ]
+                elif randomize_setting == [0, 1]:
+                    if moly_run:
+                        # define the end of fov 1
+                        fov_1_end = 11 if moly_interval_setting else 9
 
-        # ensure that fov 1 center points are the same for both sorted and random
-        assert random_center_points_no_run[:8] == sorted_center_points_no_run[:8]
+                        # define the baseline points we will be testing against
+                        actual_points = actual_center_points_run_int if moly_interval_setting \
+                            else actual_center_points_run_no_int
+                    else:
+                        # define the end of fov 1
+                        fov_1_end = 10 if moly_interval_setting else 8
 
-        # ensure the random center points for fov 2 contain the same elements as its sorted version
-        misc_utils.verify_same_elements(
-            random_center_points=random_center_points_run[8:],
-            sorted_center_points=sorted_center_points_run[8:]
-        )
+                        # define the baseline points we will be testing against
+                        actual_points = actual_center_points_no_run_int if moly_interval_setting \
+                            else actual_center_points_no_run_no_int
 
-        # the random center points for fov 2 should be ordered differently than its sorted version
-        # due to the nature of randomization, this test will fail once in a blue moon
-        assert random_center_points_run[8:] != sorted_center_points_run[8:]
+                    # ensure the fov 1 center points are the same for both sorted and random
+                    assert center_points[:fov_1_end] == actual_points[:fov_1_end]
 
-        # test 5: randomization for both fovs, no additional moly point interval,
-        # moly points between runs
-        sample_tiling_params['randomize'] = [1, 1]
-        sample_tiling_params['moly_run'] = 1
-        tiled_regions_random_all_run = tiling_utils.create_tiled_regions(
-            sample_tiling_params, sample_moly_point
-        )
+                    # ensure the random center points for fov 2 contain the same elements
+                    # as its sorted version
+                    misc_utils.verify_same_elements(
+                        computed_center_points=center_points[fov_1_end:],
+                        actual_center_points=actual_points[fov_1_end:]
+                    )
 
-        # get the center points created
-        random_center_points_run = [
-            (fov['centerPointMicrons']['x'], fov['centerPointMicrons']['y'])
-            for fov in tiled_regions_random_all_run['fovs']
-        ]
+                    # however, fov 2 sorted entries should NOT equal fov 2 random entries
+                    # NOTE: due to randomization, this test will fail once in a blue moon
+                    assert center_points[fov_1_end:] != actual_points[fov_1_end:]
 
-        # ensure the moly point is inserted in the same spot as if the fovs were sorted
-        assert random_center_points_run[8] == sorted_center_points_run[8]
+                elif randomize_setting == [1, 1]:
+                    if moly_run:
+                        # define the end of fov 1
+                        fov_1_end = 11 if moly_interval_setting else 9
 
-        # make sure the random center points contain the same elements as the sorted center points
-        misc_utils.verify_same_elements(
-            random_center_points=random_center_points_run,
-            sorted_center_points=sorted_center_points_run
-        )
+                        # define the baseline points we will be testing against
+                        actual_points = actual_center_points_run_int if moly_interval_setting \
+                            else actual_center_points_run_no_int
+                    else:
+                        # define the end of fov 1
+                        fov_1_end = 10 if moly_interval_setting else 8
 
-        # test 6: randomization for both fovs, no additional moly point interval,
-        # no moly points between runs
-        sample_tiling_params['moly_run'] = 0
-        tiled_regions_random_all_no_run = tiling_utils.create_tiled_regions(
-            sample_tiling_params, sample_moly_point
-        )
+                        # define the baseline points we will be testing against
+                        actual_points = actual_center_points_no_run_int if moly_interval_setting \
+                            else actual_center_points_no_run_no_int
 
-        # get the center points created
-        random_center_points_no_run = [
-            (fov['centerPointMicrons']['x'], fov['centerPointMicrons']['y'])
-            for fov in tiled_regions_random_all_no_run['fovs']
-        ]
+                    # ensure the random center points for fov 1 contain the same elements
+                    # as its sorted version
+                    misc_utils.verify_same_elements(
+                        computed_center_points=center_points[:fov_1_end],
+                        actual_center_points=actual_points[:fov_1_end]
+                    )
 
-        # make sure the random center points contain the same elements as the sorted center points
-        misc_utils.verify_same_elements(
-            random_center_points=random_center_points_no_run,
-            sorted_center_points=sorted_center_points_no_run
-        )
+                    # however, fov 1 sorted entries should NOT equal fov 1 random entries
+                    # NOTE: due to randomization, this test will fail once in a blue moon
+                    assert center_points[:fov_1_end] != actual_points[:fov_1_end]
 
-        # the random center points should be ordered differently than the sorted center points
-        # due to the nature of randomization, this test will fail once in a blue moon
-        assert random_center_points_no_run != sorted_center_points_no_run
+                    # ensure the random center points for fov 2 contain the same elements
+                    # as its sorted version
+                    misc_utils.verify_same_elements(
+                        computed_center_points=center_points[fov_1_end:],
+                        actual_center_points=actual_points[fov_1_end:]
+                    )
 
-        # test 7: no randomization, additional moly point interval, moly points between runs
-        sample_tiling_params['randomize'] = [0, 0]
-        sample_tiling_params['moly_run'] = 1
-        sample_tiling_params['moly_interval'] = 3
-        tiled_regions_moly_int_run = tiling_utils.create_tiled_regions(
-            sample_tiling_params, sample_moly_point
-        )
-
-        # get the center points created
-        sorted_center_points_run = [
-            (fov['centerPointMicrons']['x'], fov['centerPointMicrons']['y'])
-            for fov in tiled_regions_moly_int_run['fovs']
-        ]
-
-        # define the moly point indices, applies for both sorted and random tiled regions
-        moly_indices_run = [3, 7, 12, 16, 20]
-
-        # define the actual center points in the same expected order with additional moly point
-        for mi in moly_indices_run:
-            actual_center_points_run.insert(mi, (14540, -10830))
-
-        # check that the created center points equal the sorted center points
-        assert sorted_center_points_run == actual_center_points_run
-
-        # test 8: no randomization, additional moly point interval, no moly points between runs
-        sample_tiling_params['moly_run'] = 0
-        tiled_regions_moly_int_no_run = tiling_utils.create_tiled_regions(
-            sample_tiling_params, sample_moly_point
-        )
-
-        # get the center points created
-        sorted_center_points_no_run = [
-            (fov['centerPointMicrons']['x'], fov['centerPointMicrons']['y'])
-            for fov in tiled_regions_moly_int_no_run['fovs']
-        ]
-
-        # define the actual center points in the same expected order with additional moly point
-        actual_center_points_no_run = actual_center_points_run[:]
-        del actual_center_points_no_run[10]
-
-        assert sorted_center_points_no_run == actual_center_points_no_run
-
-        # test 9: randomization for one fov, additional moly point interval,
-        # moly points between runs
-        sample_tiling_params['randomize'] = [0, 1]
-        sample_tiling_params['moly_run'] = 1
-        tiled_regions_random_some_moly_int_run = tiling_utils.create_tiled_regions(
-            sample_tiling_params, sample_moly_point
-        )
-
-        # get the center points created
-        random_center_points_run = [
-            (fov['centerPointMicrons']['x'], fov['centerPointMicrons']['y'])
-            for fov in tiled_regions_random_some_moly_int_run['fovs']
-        ]
-
-        # assert that each moly index is the same in both sorted and random tiled regions
-        for mi in moly_indices_run:
-            random_center_points_run[mi] == sorted_center_points_run[mi]
-
-        # ensure the fov 1 center points are the same for both sorted and random
-        assert random_center_points_run[:10] == sorted_center_points_run[:10]
-
-        # ensure the random center points for fov 2 contain the same elements as its sorted version
-        misc_utils.verify_same_elements(
-            random_center_points=random_center_points_run[11:],
-            sorted_center_points=sorted_center_points_run[11:]
-        )
-
-        # the random center points for fov 2 should be ordered differently than its sorted version
-        # due to the nature of randomization, this test will fail once in a blue moon
-        assert random_center_points_run[11:] != sorted_center_points_run[11:]
-
-        # test 10: randomization for one fov, additional moly point interval,
-        # no moly points between runs
-        sample_tiling_params['moly_run'] = 0
-        tiled_regions_random_some_moly_int_no_run = tiling_utils.create_tiled_regions(
-            sample_tiling_params, sample_moly_point
-        )
-
-        # get the center points created
-        random_center_points_no_run = [
-            (fov['centerPointMicrons']['x'], fov['centerPointMicrons']['y'])
-            for fov in tiled_regions_random_some_moly_int_no_run['fovs']
-        ]
-
-        # define the moly point indices, applies for both sorted and random tiled regions
-        moly_indices_no_run = [3, 6, 11, 15, 19]
-
-        # assert that each moly index is the same in both sorted and random tiled regions
-        for mi in moly_indices_no_run:
-            random_center_points_no_run[mi] == sorted_center_points_no_run[mi]
-
-        # ensure the fov 1 center points are the same for both sorted and random
-        assert random_center_points_no_run[:10] == sorted_center_points_no_run[:10]
-
-        # ensure the random center points for fov 2 contain the same elements as its sorted version
-        misc_utils.verify_same_elements(
-            random_center_points=random_center_points_no_run[10:],
-            sorted_center_points=sorted_center_points_no_run[10:]
-        )
-
-        # test 11: randomization for both fovs, additional moly point interval,
-        # moly points between runs
-        sample_tiling_params['randomize'] = [1, 1]
-        sample_tiling_params['moly_run'] = 1
-        tiled_regions_random_all_moly_int_run = tiling_utils.create_tiled_regions(
-            sample_tiling_params, sample_moly_point
-        )
-
-        # get the center points created
-        random_center_points_run = [
-            (fov['centerPointMicrons']['x'], fov['centerPointMicrons']['y'])
-            for fov in tiled_regions_random_all_moly_int_run['fovs']
-        ]
-
-        # assert that each moly index is the same in both sorted and random tiled regions
-        for mi in moly_indices_run:
-            random_center_points_run[mi] == sorted_center_points_run[mi]
-
-        # make sure the random center points contain the same elements as the sorted center points
-        misc_utils.verify_same_elements(
-            random_center_points=random_center_points_run,
-            sorted_center_points=sorted_center_points_run
-        )
-
-        # the random center points should be ordered differently than the sorted center points
-        # due to the nature of randomization, this test will fail once in a blue moon
-        assert random_center_points_run != sorted_center_points_run
-
-        # test 12: randomization for both fovs, additional moly point interval,
-        # no moly points between runs
-        sample_tiling_params['moly_run'] = 0
-        tiled_regions_random_all_moly_int_no_run = tiling_utils.create_tiled_regions(
-            sample_tiling_params, sample_moly_point
-        )
-
-        # get the center points created
-        random_center_points_no_run = [
-            (fov['centerPointMicrons']['x'], fov['centerPointMicrons']['y'])
-            for fov in tiled_regions_random_all_moly_int_no_run['fovs']
-        ]
-
-        # assert that each moly index is the same in both sorted and random tiled regions
-        for mi in moly_indices_no_run:
-            random_center_points_no_run[mi] == sorted_center_points_no_run[mi]
-
-        # make sure the random center points contain the same elements as the sorted center points
-        misc_utils.verify_same_elements(
-            random_center_points=random_center_points_no_run,
-            sorted_center_points=sorted_center_points_no_run
-        )
-
-        # the random center points should be ordered differently than the sorted center points
-        # due to the nature of randomization, this test will fail once in a blue moon
-        assert random_center_points_no_run != sorted_center_points_no_run
+                    # however, fov 2 sorted entries should NOT equal fov 2 random entries
+                    # NOTE: due to randomization, this test will fail once in a blue moon
+                    assert center_points[fov_1_end:] != actual_points[fov_1_end:]
