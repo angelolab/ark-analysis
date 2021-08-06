@@ -21,12 +21,8 @@ def check_format_cell_table_args(cell_table, markers, clusters):
     if markers is None and clusters is None:
         raise ValueError("markers and clusters cannot both be None")
     if markers is not None:
-        if len(markers) == 0:
-            raise ValueError("list of marker names cannot be empty")
         verify_in_list(markers=markers, cell_table_columns=cell_table.columns.to_list())
     if clusters is not None:
-        if len(clusters) == 0:
-            raise ValueError("list of cluster ids cannot be empty")
         cell_table_clusters = cell_table[CLUSTER_ID].unique().tolist()
         verify_in_list(clusters=clusters, cell_table_clusters=cell_table_clusters)
 
