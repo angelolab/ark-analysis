@@ -6,27 +6,47 @@ import pytest
 import random
 import tempfile
 
-import ark.mibi.tiling_utils as tiling_utils
-import ark.utils.misc_utils as misc_utils
-import ark.utils.test_utils as test_utils
+from ark.mibi import tiling_utils
+from ark.utils import misc_utils
+from ark.utils import test_utils
 
 
 def test_read_tiling_param(monkeypatch):
+    # test 1: int inputs
     # test an incorrect response then a correct response
-    responses = iter([0, 1])
+    user_inputs_int = iter([0, 1])
 
     # make sure the function receives the incorrect input first then the correct input
-    monkeypatch.setattr('builtins.input', lambda _: next(responses))
+    monkeypatch.setattr('builtins.input', lambda _: next(user_inputs_int))
 
-    # simulate the input sequence
+    # simulate the input sequence for
     sample_tiling_param = tiling_utils.read_tiling_param(
         "Sample prompt: ",
         "Sample error message: ",
-        lambda x: x == 1
+        lambda x: x == 1,
+        dtype=int
     )
 
     # assert sample_tiling_param was set to 1
     assert sample_tiling_param == 1
+
+    # test 2: str inputs
+    # test an incorrect response then a correct response
+    user_inputs_str = iter(['N', 'Y'])
+
+    # make sure the function receives the incorrect input first then the correct input
+    monkeypatch.setattr('builtins.input', lambda _: next(user_inputs_str))
+
+    # simulate the input sequence for
+    sample_tiling_param = tiling_utils.read_tiling_param(
+        "Sample prompt: ",
+        "Sample error message: ",
+        lambda x: x == 'Y',
+        dtype=str
+    )
+
+    # assert sample_tiling_param was set to 1
+    assert sample_tiling_param == 'Y'
 
 
 def test_set_tiling_params(monkeypatch):
@@ -39,11 +59,11 @@ def test_set_tiling_params(monkeypatch):
         coord=(14540, -10830), name="MoQC"
     )
 
-    # set all the user inputs to 1 to make the test easy
-    user_input = 1
+    # set all the user inputs to 1 or 'Y' to make the test easy
+    user_inputs = iter([1, 1, 1, 1, 'Y', 1, 1, 1, 1, 'Y', 'Y', 'Y', 1])
 
     # override the default functionality of the input function
-    monkeypatch.setattr('builtins.input', lambda _: user_input)
+    monkeypatch.setattr('builtins.input', lambda _: next(user_inputs))
 
     # bad fov list path provided
     with pytest.raises(FileNotFoundError):
@@ -100,23 +120,25 @@ def test_set_tiling_params(monkeypatch):
 
         # assert randomize is set to 1 for both fovs
         assert all(
-            sample_region_params[i]['randomize'] == 1 for i in range(len(sample_region_params))
+            sample_region_params[i]['randomize'] == 'Y' for i in range(len(sample_region_params))
         )
 
         # assert moly run is set to 1
-        assert sample_tiling_params['moly_run'] == 1
+        assert sample_tiling_params['moly_run'] == 'Y'
 
         # assert moly interval is set to 1
         assert sample_tiling_params['moly_interval'] == 1
 
 
 def test_generate_x_y_fov_pairs():
-    sample_x_range = [0, 5, 10]
+    # define sample x and y pair lists
+    sample_x_range = [0, 5]
     sample_y_range = [2, 4]
 
+    # generate the sample (x, y) pairs
     sample_pairs = tiling_utils.generate_x_y_fov_pairs(sample_x_range, sample_y_range)
 
-    assert sample_pairs == [(0, 2), (0, 4), (5, 2), (5, 4), (10, 2), (10, 4)]
+    assert sample_pairs == [(0, 2), (0, 4), (5, 2), (5, 4)]
 
 
 def test_generate_region_info():
@@ -127,7 +149,7 @@ def test_generate_region_info():
     sample_fov_num_y = [4, 4]
     sample_x_fov_size = [5, 5]
     sample_y_fov_size = [6, 6]
-    sample_randomize = [0, 0]
+    sample_randomize = ['Y', 'Y']
 
     # generate the sample region param list
     sample_region_params = tiling_utils.generate_region_info(
@@ -167,7 +189,7 @@ def test_generate_region_info():
 
     # assert both randomize's are 0
     assert all(
-        sample_region_params[i]['randomize'] == 0 for i in range(len(sample_region_params))
+        sample_region_params[i]['randomize'] == 'Y' for i in range(len(sample_region_params))
     )
 
 
@@ -178,13 +200,13 @@ def test_create_tiled_regions():
 
     sample_region_params = tiling_utils.generate_region_info(
         region_start_x=[0, 50], region_start_y=[100, 150], fov_num_x=[2, 4], fov_num_y=[4, 2],
-        x_fov_size=[5, 10], y_fov_size=[10, 5], randomize=[0, 0])
+        x_fov_size=[5, 10], y_fov_size=[10, 5], randomize=['N', 'N'])
 
     sample_tiling_params = {
         'fovFormatVersion': '1.5',
         'fovs': sample_fovs_list['fovs'],
         'region_params': sample_region_params,
-        'moly_run': 0,
+        'moly_run': 'N',
         'moly_interval': 3
     }
 
@@ -199,12 +221,12 @@ def test_create_tiled_regions():
     actual_center_points_run_int = None
 
     # test randomization for no fovs, some fovs, and all fovs
-    for randomize_setting in [[0, 0], [0, 1], [1, 1]]:
+    for randomize_setting in [['N', 'N'], ['N', 'Y'], ['Y', 'Y']]:
         # set the randomization parameters accordingly
         sample_tiling_params['region_params'][0]['randomize'] = randomize_setting[0]
         sample_tiling_params['region_params'][1]['randomize'] = randomize_setting[1]
 
-        for moly_run in [0, 1]:
+        for moly_run in ['N', 'Y']:
             sample_tiling_params['moly_run'] = moly_run
 
             for moly_interval_setting in [False, True]:
@@ -225,7 +247,7 @@ def test_create_tiled_regions():
                     for fov in tiled_regions['fovs']
                 ]
 
-                if randomize_setting == [0, 0] and moly_run:
+                if randomize_setting == ['N', 'N'] and moly_run == 'Y':
                     if moly_interval_setting:
                         # since True will run after False for moly_interval_setting
                         # actual_center_points_no_run_no_int will be set so we can piggyback
@@ -250,7 +272,7 @@ def test_create_tiled_regions():
 
                         # the center points should match up exactly with no sorting
                         assert center_points == actual_center_points_run_no_int
-                elif randomize_setting == [0, 0] and not moly_run:
+                elif randomize_setting == ['N', 'N'] and moly_run == 'N':
                     if moly_interval_setting:
                         # since True will run after False for moly_interval_setting
                         # actual_center_points_no_run_no_int will be set so we can piggyback
@@ -276,8 +298,8 @@ def test_create_tiled_regions():
                         # the center points should match up exactly with no sorting
                         assert center_points == actual_center_points_no_run_no_int
 
-                elif randomize_setting == [0, 1]:
-                    if moly_run:
+                elif randomize_setting == ['N', 'Y']:
+                    if moly_run == 'Y':
                         # define the end of fov 1
                         fov_1_end = 11 if moly_interval_setting else 9
 
@@ -306,8 +328,8 @@ def test_create_tiled_regions():
                     # NOTE: due to randomization, this test will fail once in a blue moon
                     assert center_points[fov_1_end:] != actual_points[fov_1_end:]
 
-                elif randomize_setting == [1, 1]:
-                    if moly_run:
+                elif randomize_setting == ['Y', 'Y']:
+                    if moly_run == 'Y':
                         # define the end of fov 1
                         fov_1_end = 11 if moly_interval_setting else 9
 

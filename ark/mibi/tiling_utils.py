@@ -5,9 +5,11 @@ import json
 import os
 import random
 
+from ark.utils import misc_utils
+
 
 # helper function to reading in input
-def read_tiling_param(prompt, error_msg, cond):
+def read_tiling_param(prompt, error_msg, cond, dtype):
     """A helper function to read in tiling input
 
     Args:
@@ -17,18 +19,29 @@ def read_tiling_param(prompt, error_msg, cond):
             The message to display if an invalid input is entered
         cond (function):
             What defines valid input for the variable
+        dtype (type):
+            The type of variable to read
 
     Returns:
-        int:
-            The value to place in the variable, for now always of type int
+        Union([int, str]):
+            The value to place in the variable, limited to just int and str for now
     """
 
-    while True:
-        var = int(input(prompt))
+    # ensure the dtype is valid
+    misc_utils.verify_in_list(
+        provided_dtype=dtype,
+        acceptable_dtypes=[int, str]
+    )
 
+    while True:
+        # read in the variable with correct dtype
+        var = dtype(input(prompt))
+
+        # if condition passes, return
         if cond(var):
             return var
 
+        # otherwise, print the error message and re-prompt
         print(error_msg)
 
 
@@ -142,13 +155,15 @@ def set_tiling_params(fov_list_path, moly_path):
         num_x = read_tiling_param(
             "Enter number of x fovs for region %s: " % fov['name'],
             "Error: number of x fovs must be positive",
-            lambda nx: nx >= 1
+            lambda nx: nx >= 1,
+            dtype=int
         )
 
         num_y = read_tiling_param(
             "Enter number of y fovs for region %s: " % fov['name'],
             "Error: number of y fovs must be positive",
-            lambda ny: ny >= 1
+            lambda ny: ny >= 1,
+            dtype=int
         )
 
         fov_num_x.append(num_x)
@@ -158,13 +173,15 @@ def set_tiling_params(fov_list_path, moly_path):
         size_x = read_tiling_param(
             "Enter the x step size for region %s: " % fov['name'],
             "Error: x step size must be positive",
-            lambda sx: sx >= 1
+            lambda sx: sx >= 1,
+            dtype=int
         )
 
         size_y = read_tiling_param(
             "Enter the y step size for region %s: " % fov['name'],
             "Error: y step size must be positive",
-            lambda sy: sy >= 1
+            lambda sy: sy >= 1,
+            dtype=int
         )
 
         x_fov_size.append(size_x)
@@ -172,9 +189,10 @@ def set_tiling_params(fov_list_path, moly_path):
 
         # allow the user to specify if the FOVs should be randomized
         randomize = read_tiling_param(
-            "Randomize fovs for region %s? Enter 0 for no and 1 for yes: " % fov['name'],
-            "Error: randomize parameter must be 0 or 1",
-            lambda r: r in [0, 1]
+            "Randomize fovs for region %s? Y/N: " % fov['name'],
+            "Error: randomize parameter must Y or N",
+            lambda r: r in ['Y', 'N'],
+            dtype=str
         )
 
         region_rand.append(randomize)
@@ -189,18 +207,20 @@ def set_tiling_params(fov_list_path, moly_path):
 
     # whether to insert moly points between runs
     moly_run_insert = read_tiling_param(
-        "Insert moly points between runs? Enter 0 for no and 1 for yes: ",
-        "Error: moly point run parameter must be either 0 or 1",
-        lambda mri: mri in [0, 1]
+        "Insert moly points between runs? Y/N: ",
+        "Error: moly point run parameter must be either Y or N",
+        lambda mri: mri in ['Y', 'N'],
+        dtype=str
     )
 
     tiling_params['moly_run'] = moly_run_insert
 
     # whether to insert moly points between tiles
     moly_interval_insert = read_tiling_param(
-        "Specify moly point tile interval? Enter 0 for no and 1 for yes: ",
-        "Error: moly interval insertion parameter must enter 0 or 1",
-        lambda mii: mii in [0, 1]
+        "Specify moly point tile interval? Y/N: ",
+        "Error: moly interval insertion parameter must either Y or N",
+        lambda mii: mii in ['Y', 'N'],
+        dtype=str
     )
 
     # if moly insert is set, we need to specify an additional moly_interval param
@@ -209,7 +229,8 @@ def set_tiling_params(fov_list_path, moly_path):
         moly_interval = read_tiling_param(
             "Enter the fov interval size to insert moly points: ",
             "Error: moly interval must be positive",
-            lambda mi: mi >= 1
+            lambda mi: mi >= 1,
+            dtype=int
         )
 
         tiling_params['moly_interval'] = moly_interval
@@ -232,9 +253,12 @@ def generate_x_y_fov_pairs(x_range, y_range):
             Every possible (x, y) pair for a fov
     """
 
+    # define a list to hold all the (x, y) pairs
     all_pairs = []
 
+    # iterate over all combinations of x and y
     for t in combinations((x_range, y_range), 2):
+        # compute the product of the resulting x and y list pair, append results
         for pair in product(t[0], t[1]):
             all_pairs.append(pair)
 
@@ -286,7 +310,7 @@ def create_tiled_regions(tiling_params, moly_point):
         x_y_pairs = generate_x_y_fov_pairs(x_range, y_range)
 
         # randomize pairs list if specified
-        if region_info['randomize'] == 1:
+        if region_info['randomize'] == 'Y':
             random.shuffle(x_y_pairs)
 
         for xi, yi in x_y_pairs:
@@ -312,7 +336,7 @@ def create_tiled_regions(tiling_params, moly_point):
                 tiled_regions['fovs'].append(moly_point)
 
         # append moly point to seperate runs if not last and if specified
-        if tiling_params['moly_run'] == 1 and \
+        if tiling_params['moly_run'] == 'Y' and \
            region_index != len(tiling_params['region_params']) - 1:
             tiled_regions['fovs'].append(moly_point)
 
