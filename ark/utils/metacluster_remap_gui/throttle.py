@@ -19,8 +19,6 @@ class Timer:
 
 
 def throttle(wait):
-    """ Decorator that prevents a function from being called
-        more than once every wait period. """
     def decorator(fn):
         time_of_last_call = 0
         fn_latest = fn
