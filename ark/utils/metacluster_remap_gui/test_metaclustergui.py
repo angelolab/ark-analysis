@@ -42,3 +42,12 @@ def test_can_remap_all_selected(simple_metaclusterdata: MetaClusterData):
 def test_can_pick_cell_in_heatmap(simple_metaclusterdata: MetaClusterData):
     mcg = MetaClusterGui(simple_metaclusterdata)
     mcg.ax_c.pick
+
+
+def test_enable_debug_mode(simple_metaclusterdata: MetaClusterData):
+    mcg = MetaClusterGui(simple_metaclusterdata, debug=True)
+
+
+def test_update_zscore(simple_metaclusterdata: MetaClusterData):
+    mcg = MetaClusterGui(simple_metaclusterdata, debug=True)
+    mcg.zscore_clamp_slider.value += 1
