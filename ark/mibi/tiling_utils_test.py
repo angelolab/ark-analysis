@@ -22,7 +22,7 @@ def test_read_tiling_param(monkeypatch):
     # simulate the input sequence for
     sample_tiling_param = tiling_utils.read_tiling_param(
         "Sample prompt: ",
-        "Sample error message: ",
+        "Sample error message",
         lambda x: x == 1,
         dtype=int
     )
@@ -40,7 +40,7 @@ def test_read_tiling_param(monkeypatch):
     # simulate the input sequence for
     sample_tiling_param = tiling_utils.read_tiling_param(
         "Sample prompt: ",
-        "Sample error message: ",
+        "Sample error message",
         lambda x: x == 'Y',
         dtype=str
     )
