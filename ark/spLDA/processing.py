@@ -37,10 +37,10 @@ def format_cell_table(cell_table, markers=None, clusters=None):
     if markers is not None:
         BASE_COLS.append(markers)
     drop_columns = [c for c in cell_table.columns if c not in BASE_COLS]
-    cell_table = cell_table.drop(columns=drop_columns)
+    cell_table_drop = cell_table.drop(columns=drop_columns)
 
     # Rename columns
-    cell_table = cell_table.rename(
+    cell_table_drop = cell_table_drop.rename(
         columns={
             "centroid-0": "x",
             "centroid-1": "y",
@@ -49,11 +49,11 @@ def format_cell_table(cell_table, markers=None, clusters=None):
         })
 
     # Create dictionary of FOVs
-    fovs = np.unique(cell_table["SampleID"])
+    fovs = np.unique(cell_table_drop["SampleID"])
 
     fov_dict = {}
     for i in fovs:
-        df = cell_table[cell_table["SampleID"] == i].drop(
+        df = cell_table_drop[cell_table_drop["SampleID"] == i].drop(
             columns=["SampleID", "label"])
         if clusters is not None:
             df = df[df["cluster_id"].isin(clusters)]
@@ -69,7 +69,7 @@ def format_cell_table(cell_table, markers=None, clusters=None):
     return fov_dict
 
 
-def featurize_cell_table(cell_table, featurization=None, radius=100, cell_index=None,
+def featurize_cell_table(cell_table, featurization="cluster", radius=100, cell_index="is_index",
                          n_processes=None, train_frac=0.75):
     """Calculates statistics for local cellular neighborhoods based on the specified features
     and radius.
@@ -79,7 +79,7 @@ def featurize_cell_table(cell_table, featurization=None, radius=100, cell_index=
             A formatted cell table for use in spatial-LDA analysis. Specifically, this is the
             output from :func:`~ark.spLDA.processing.format_cell_table`.
         featurization (str):
-            One of four choices of featurization method, defaults to "cluster" if None is provided:
+            One of four choices of featurization method, defaults to "cluster" if not provided:
                 * marker: for each marker, count the total number of cells within a ``radius``
                 *r* from cell *i* having marker expression greater than 0.5.
                 * avg_marker: for each marker, compute the average marker expression of all
@@ -104,11 +104,6 @@ def featurize_cell_table(cell_table, featurization=None, radius=100, cell_index=
         separate DataFrame for designated training data.
     """
 
-    # Default to "cluster", "is_index if featurization, cell_index are not provided.
-    if featurization is None:
-        featurization = "cluster"
-    if cell_index is None:
-        cell_index = "is_index"
     # Check arguments
     check_featurize_cell_table_args(cell_table=cell_table, featurization=featurization,
                                     radius=radius, cell_index=cell_index)
@@ -164,6 +159,11 @@ def create_difference_matrices(cell_table, features, training=True, inference=Tr
 
         - A dictionary containing the difference matrices used for training and inference.
     """
+    if not training and not inference:
+        raise ValueError("One or both of 'training' or 'inference' must be True")
+    if training and features["train_features"] is None:
+        raise ValueError("train_features cannot be 'None'")
+
     cell_table = {
         k: v for (k, v) in cell_table.items() if k not in ["fovs", "markers", "clusters"]
     }
