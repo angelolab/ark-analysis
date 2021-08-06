@@ -11,6 +11,24 @@ import ark.utils.misc_utils as misc_utils
 import ark.utils.test_utils as test_utils
 
 
+def test_read_tiling_param(monkeypatch):
+    # test an incorrect response then a correct response
+    responses = iter([0, 1])
+
+    # make sure the function receives the incorrect input first then the correct input
+    monkeypatch.setattr('builtins.input', lambda _: next(responses))
+
+    # simulate the input sequence
+    sample_tiling_param = tiling_utils.read_tiling_param(
+        "Sample prompt: ",
+        "Sample error message: ",
+        lambda x: x == 1
+    )
+
+    # assert sample_tiling_param was set to 1
+    assert sample_tiling_param == 1
+
+
 def test_set_tiling_params(monkeypatch):
     # define a sample set of fovs
     sample_fovs_list = test_utils.generate_sample_fovs_list(
@@ -21,11 +39,11 @@ def test_set_tiling_params(monkeypatch):
         coord=(14540, -10830), name="MoQC"
     )
 
-    # let's just set all the user inputs to 1 to make the test easy
+    # set all the user inputs to 1 to make the test easy
     user_input = 1
 
     # override the default functionality of the input function
-    monkeypatch.setattr('builtins.input', lambda _: 1)
+    monkeypatch.setattr('builtins.input', lambda _: user_input)
 
     # bad fov list path provided
     with pytest.raises(FileNotFoundError):
@@ -55,26 +73,35 @@ def test_set_tiling_params(monkeypatch):
         assert sample_tiling_params['fovs'] == sample_fovs_list['fovs']
 
         # assert region start x and region start y values are correct
-        region_start_x = sample_tiling_params['region_start_x']
-        region_start_y = sample_tiling_params['region_start_y']
+        sample_region_params = sample_tiling_params['region_params']
         fov_0 = sample_fovs_list['fovs'][0]
         fov_1 = sample_fovs_list['fovs'][1]
 
-        assert region_start_x[0] == fov_0['centerPointMicrons']['x']
-        assert region_start_x[1] == fov_1['centerPointMicrons']['x']
-        assert region_start_y[0] == fov_0['centerPointMicrons']['y']
-        assert region_start_y[1] == fov_1['centerPointMicrons']['y']
+        assert sample_region_params[0]['region_start_x'] == fov_0['centerPointMicrons']['x']
+        assert sample_region_params[1]['region_start_x'] == fov_1['centerPointMicrons']['x']
+        assert sample_region_params[0]['region_start_y'] == fov_0['centerPointMicrons']['y']
+        assert sample_region_params[1]['region_start_y'] == fov_1['centerPointMicrons']['y']
 
         # assert fov_num_x and fov_num_y are all set to 1
-        assert all(nx == 1 for nx in sample_tiling_params['fov_num_x'])
-        assert all(ny == 1 for ny in sample_tiling_params['fov_num_y'])
+        assert all(
+            sample_region_params[i]['fov_num_x'] == 1 for i in range(len(sample_region_params))
+        )
+        assert all(
+            sample_region_params[i]['fov_num_y'] == 1 for i in range(len(sample_region_params))
+        )
 
         # assert x_fov_size and y_fov_size are all set to 1
-        assert all(sx == 1 for sx in sample_tiling_params['x_fov_size'])
-        assert all(sy == 1 for sy in sample_tiling_params['y_fov_size'])
+        assert all(
+            sample_region_params[i]['x_fov_size'] == 1 for i in range(len(sample_region_params))
+        )
+        assert all(
+            sample_region_params[i]['y_fov_size'] == 1 for i in range(len(sample_region_params))
+        )
 
         # assert randomize is set to 1 for both fovs
-        assert all(r == 1 for r in sample_tiling_params['randomize'])
+        assert all(
+            sample_region_params[i]['randomize'] == 1 for i in range(len(sample_region_params))
+        )
 
         # assert moly run is set to 1
         assert sample_tiling_params['moly_run'] == 1
@@ -83,20 +110,80 @@ def test_set_tiling_params(monkeypatch):
         assert sample_tiling_params['moly_interval'] == 1
 
 
+def test_generate_x_y_fov_pairs():
+    sample_x_range = [0, 5, 10]
+    sample_y_range = [2, 4]
+
+    sample_pairs = tiling_utils.generate_x_y_fov_pairs(sample_x_range, sample_y_range)
+
+    assert sample_pairs == [(0, 2), (0, 4), (5, 2), (5, 4), (10, 2), (10, 4)]
+
+
+def test_generate_region_info():
+    # define sample region param lists
+    sample_region_start_x = [1, 1]
+    sample_region_start_y = [2, 2]
+    sample_fov_num_x = [3, 3]
+    sample_fov_num_y = [4, 4]
+    sample_x_fov_size = [5, 5]
+    sample_y_fov_size = [6, 6]
+    sample_randomize = [0, 0]
+
+    # generate the sample region param list
+    sample_region_params = tiling_utils.generate_region_info(
+        sample_region_start_x, sample_region_start_y, sample_fov_num_x, sample_fov_num_y,
+        sample_x_fov_size, sample_y_fov_size, sample_randomize
+    )
+
+    # assert both region_start_x's are 1
+    assert all(
+        sample_region_params[i]['region_start_x'] == 1 for i in range(len(sample_region_params))
+    )
+
+    # assert both region_start_y's are 2
+    assert all(
+        sample_region_params[i]['region_start_y'] == 2 for i in range(len(sample_region_params))
+    )
+
+    # assert both num_fov_x's are 3
+    assert all(
+        sample_region_params[i]['fov_num_x'] == 3 for i in range(len(sample_region_params))
+    )
+
+    # assert both num_fov_y's are 4
+    assert all(
+        sample_region_params[i]['fov_num_y'] == 4 for i in range(len(sample_region_params))
+    )
+
+    # assert both x_fov_size's are 5
+    assert all(
+        sample_region_params[i]['x_fov_size'] == 5 for i in range(len(sample_region_params))
+    )
+
+    # assert both y_fov_size's are 6
+    assert all(
+        sample_region_params[i]['y_fov_size'] == 6 for i in range(len(sample_region_params))
+    )
+
+    # assert both randomize's are 0
+    assert all(
+        sample_region_params[i]['randomize'] == 0 for i in range(len(sample_region_params))
+    )
+
+
 def test_create_tiled_regions():
     sample_fovs_list = test_utils.generate_sample_fovs_list(
         fov_coords=[(0, 0), (100, 100)], fov_names=["TheFirstFOV", "TheSecondFOV"]
     )
 
+    sample_region_params = tiling_utils.generate_region_info(
+        region_start_x=[0, 50], region_start_y=[100, 150], fov_num_x=[2, 4], fov_num_y=[4, 2],
+        x_fov_size=[5, 10], y_fov_size=[10, 5], randomize=[0, 0])
+
     sample_tiling_params = {
         'fovFormatVersion': '1.5',
         'fovs': sample_fovs_list['fovs'],
-        'region_start_x': [0, 50],
-        'region_start_y': [100, 150],
-        'fov_num_x': [2, 4],
-        'fov_num_y': [4, 2],
-        'x_fov_size': [5, 10],
-        'y_fov_size': [10, 5],
+        'region_params': sample_region_params,
         'moly_run': 0,
         'moly_interval': 3
     }
@@ -113,7 +200,9 @@ def test_create_tiled_regions():
 
     # test randomization for no fovs, some fovs, and all fovs
     for randomize_setting in [[0, 0], [0, 1], [1, 1]]:
-        sample_tiling_params['randomize'] = randomize_setting
+        # set the randomization parameters accordingly
+        sample_tiling_params['region_params'][0]['randomize'] = randomize_setting[0]
+        sample_tiling_params['region_params'][1]['randomize'] = randomize_setting[1]
 
         for moly_run in [0, 1]:
             sample_tiling_params['moly_run'] = moly_run
