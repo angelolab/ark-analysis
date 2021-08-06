@@ -214,7 +214,7 @@ def test_create_tiled_regions():
         coord=(14540, -10830), name="MoQC"
     )
 
-    # we need these globals to set baselines for both moly interval settings
+    # we need these globals to set baselines for both moly run and moly interval settings
     actual_center_points_no_run_no_int = None
     actual_center_points_no_run_int = None
     actual_center_points_run_no_int = None
@@ -226,9 +226,11 @@ def test_create_tiled_regions():
         sample_tiling_params['region_params'][0]['randomize'] = randomize_setting[0]
         sample_tiling_params['region_params'][1]['randomize'] = randomize_setting[1]
 
+        # test both moly run settings
         for moly_run in ['N', 'Y']:
             sample_tiling_params['moly_run'] = moly_run
 
+            # test both moly interval settings
             for moly_interval_setting in [False, True]:
                 # place the moly_interval param in if True, else remove
                 if moly_interval_setting:
@@ -250,7 +252,7 @@ def test_create_tiled_regions():
                 if randomize_setting == ['N', 'N'] and moly_run == 'Y':
                     if moly_interval_setting:
                         # since True will run after False for moly_interval_setting
-                        # actual_center_points_no_run_no_int will be set so we can piggyback
+                        # actual_center_points_run_no_int will be set so we can piggyback
                         actual_center_points_run_int = actual_center_points_run_no_int[:]
 
                         # define the indices to add moly points
