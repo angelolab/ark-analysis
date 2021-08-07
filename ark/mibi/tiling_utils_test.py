@@ -45,7 +45,7 @@ def test_read_tiling_param(monkeypatch):
         dtype=str
     )
 
-    # assert sample_tiling_param was set to 1
+    # assert sample_tiling_param was set to 'Y'
     assert sample_tiling_param == 'Y'
 
 
