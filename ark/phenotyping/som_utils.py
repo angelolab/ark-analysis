@@ -14,6 +14,7 @@ from ark.analysis import visualize
 from ark.utils import io_utils
 from ark.utils import load_utils
 from ark.utils import misc_utils
+from ark.utils import rand_utils
 
 
 def normalize_rows(pixel_data, channels):
@@ -307,7 +308,9 @@ def create_fov_pixel_data(fov, channels, img_data, seg_labels,
     pixel_mat['segmentation_label'] = seg_labels_flat
 
     # subset the pixel matrix for training
-    pixel_mat_subset = pixel_mat.sample(frac=subset_proportion, random_state=seed)
+    pixel_mat_subset = rand_utils.random_sample(
+        pixel_mat, subset_proportion=subset_proportion, seed=seed
+    )
 
     return pixel_mat, pixel_mat_subset
 
