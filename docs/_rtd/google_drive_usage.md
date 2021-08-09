@@ -25,6 +25,19 @@ from ark.utils import google_drive_utils
 google_drive_utils.init_google_drive_api("passcode")
 ```
 
+This will open a web page requesting you to sign in to your Google account.  Currently, this
+feature isn't verified by Google, so it will warn you about giving access to an unverified
+application.  To use the `ark-analysis` Google Drive interoperability feature, you will need to
+ignore Google's warning, and proceed to give `ark-analysis` access to Google Drive.
+
+Once you have given `ark-analysis` access, you should be redirected to a 'success' screen.  If
+otherwise, close the browser tab/window, interupt the jupyter kernel, and re-run the
+`init_google_drive_api("passcode")` cell.  This step can occasionally take a few tries to get
+running properly.
+
+Once you have been redirected to a 'success' screen on the browser, you are now free to use
+`GoogleDrivePaths`.
+
 ### Defining Paths
 
 Template notebooks in `ark-analysis` typically have a code cell where the majority of one's paths
@@ -67,22 +80,21 @@ another_folder
 ...
 ```
 
-So, to configure our existing filepaths as `GoogleDrivePath`s, we would write:
+So, to configure our filepaths as `GoogleDrivePath`s, in the style of our template notebook, 
+we would write:
 
 ```
-base_dir = google_drive_utils.GoogleDrivePath('/mibi_data/runYYYYMMDD')
-input_dir = base_dir
-tiff_dir = google_drive_utils.path_join(base_dir, 'denoised')
+base_dir = google_drive_utils.GoogleDrivePath('/mibi_data')
+input_dir = google_drive_utils.path_join(base_dir, 'runYYYYMMDD')
+tiff_dir = google_drive_utils.path_join(input_dir, 'denoised')
+
+deepcell_input_dir = google_drive_utils.path_join(input_dir, 'deepcell_input/')
+deepcell_output_dir = google_drive_utils.path_join(base_dir, "deepcell_output")
+single_cell_dir = google_drive_utils.path_join(base_dir, "single_cell_output")
+viz_dir = google_drive_utils.path_join(base_dir, "deepcell_visualization")
 ```
 
-Key take aways: 🔑
- 1. Our base directory must be called as a `GoogleDrivePath('...')`, while others can be infered
- 2. We don't use `os.path.join`, and instead use `google_drive_utils.path_join`, to combine paths
-
-**But what about the other paths?**
-
-We can turn those into `GoogleDrivePath`s as well.  However, since these directories don't exist,
-they'll have to be created as follows:
+Since some of these directories don't exist, they'll have to be created as follows:
 
 ```
 for directory in [deepcell_input_dir, deepcell_output_dir, single_cell_dir, viz_dir]:
@@ -92,33 +104,10 @@ for directory in [deepcell_input_dir, deepcell_output_dir, single_cell_dir, viz_
         os.makedirs(directory)
 ```
 
-Furthermore, we may not want all of these to be `GoogleDrivePath`s.  In the context of the 
-`Segment_Image_Data` notebook, `deepcell_input_dir` only stores the Mesmer-compatable formatted
-data, while `deepcell_output_dir` stores the results of the Mesmer segmentation.  
-
-We probably don't need to upload/download this re-formatted data, and wouldn't mind if it's stored
-locally since it's very small relative to the size of the dataset.  On the other hand, we
-may want to immediately upload our segmentation results to Google Drive.  In that case,
-`deepcell_input_dir` should be a local folder, while `deepcell_output_dir` should be a
-`GoogleDrivePath`:
-
-```
-# paths for new processed data
-
-## local
-base_local_dir = "../data/tmp"
-deepcell_input_dir = os.path.join(base_local_dir, "deepcell_input/")
-
-## google drive
-deepcell_output_dir = google_drive_utils.path_join(base_dir, "deepcell_output")
-single_cell_dir = google_drive_utils.path_join(base_dir, "single_cell_output")
-viz_dir = google_drive_utils.path_join(base_dir, "deepcell_visualization")
-```
-
 Key take aways: 🔑
-
- 1. We don't necesarily want all paths to be `GoogleDrivePath`s
- 2. We should always create new folders regardless of if they're local or Google Drive folders
+ 1. Our base directory must be called as a `GoogleDrivePath('...')`, while others can be infered
+ 2. We don't use `os.path.join`, and instead use `google_drive_utils.path_join`, to combine paths
+ 3. We need to create new directories if they do not already exist
 
 ### Running notebooks
 
@@ -156,3 +145,40 @@ For the generalized example above, we can make it `GoogleDrivePath` compatable v
 ```
 google_drive_utils.drive_write_out( some_path, lambda x: df.to_csv(x, index=False) )
 ```
+
+## Troubleshooting
+
+### Slow Upload/Download Speeds?
+
+In the case of slow upload or download speed, we may not want all of our paths to be
+`GoogleDrivePath`s. For example, in the context of the `Segment_Image_Data` notebook,
+`deepcell_input_dir` only stores the Mesmer-compatable formatted data, while `deepcell_output_dir`
+stores the results of the Mesmer segmentation.  
+
+We probably don't need to upload/download this re-formatted data, and wouldn't mind if it's stored
+locally since it's very small relative to the size of the dataset.  On the other hand, we
+may want to immediately upload our segmentation results to Google Drive.  In that case,
+`deepcell_input_dir` should be a local folder, while `deepcell_output_dir` should be a
+`GoogleDrivePath`:
+
+```
+# paths for new processed data
+
+## local
+base_local_dir = "../data/tmp"
+deepcell_input_dir = os.path.join(base_local_dir, "deepcell_input/")
+
+## google drive
+deepcell_output_dir = google_drive_utils.path_join(base_dir, "deepcell_output")
+single_cell_dir = google_drive_utils.path_join(base_dir, "single_cell_output")
+viz_dir = google_drive_utils.path_join(base_dir, "deepcell_visualization")
+```
+
+Key take aways: 🔑
+
+ 1. We don't necesarily want all paths to be `GoogleDrivePath`s
+ 2. We should always create new folders regardless of if they're local or Google Drive folders
+
+    **NOTE:** This process will require you to keep track of local paths vs `GoogleDrivePaths`.  Since that
+can be a bit of a headache, please only use this solution in the case of slow upload/download
+speeds
