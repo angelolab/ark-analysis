@@ -22,5 +22,5 @@ RUN R -e "install.packages('BiocManager')"
 RUN R -e "BiocManager::install('FlowSOM')"
 RUN R -e "BiocManager::install('ConsensusClusterPlus')"
 
-# jupyter notebook
-CMD ["jupyter", "notebook", "--ip=0.0.0.0", "--allow-root"]
+# jupyter lab
+CMD jupyter lab --ip=0.0.0.0 --allow-root --no-browser --port=$JUPYTER_PORT
