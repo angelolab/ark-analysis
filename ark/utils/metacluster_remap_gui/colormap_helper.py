@@ -5,6 +5,11 @@ import matplotlib
 
 
 def distinct_cmap(n=33):
+    rgbs = distinct_rgbs(n)
+    return matplotlib.colors.ListedColormap(rgbs)
+
+
+def distinct_rgbs(n=33):
     def infinite_hues():
         yield 0
         for k in itertools.count():
@@ -21,4 +26,4 @@ def distinct_cmap(n=33):
     hues = infinite_hues()
     hsvs = itertools.chain.from_iterable(hue_to_hsvs(hue) for hue in hues)
     rgbs = (colorsys.hsv_to_rgb(*hsv) for hsv in hsvs)
-    return matplotlib.colors.ListedColormap(list(itertools.islice(rgbs, n)))
+    return list(itertools.islice(rgbs, n))
