@@ -2,8 +2,14 @@ import asyncio
 from time import time
 
 
+class NullTimer:
+    def cancel(self):
+        pass
+
+
 class Timer:
     def __init__(self, timeout, callback):
+        self._task = None
         self._timeout = timeout
         self._callback = callback
 
@@ -15,31 +21,29 @@ class Timer:
         self._task = asyncio.ensure_future(self._job())
 
     def cancel(self):
-        self._task.cancel()
+        if self._task is not None:
+            self._task.cancel()
 
 
 def throttle(wait):
     def decorator(fn):
         time_of_last_call = 0
-        fn_latest = fn
-        scheduled, timer = False, None
-        new_args, new_kwargs = None, None
+        timer = NullTimer()
+
+        def current_wait_time():
+            time_since_last_call = time() - time_of_last_call
+            return max(0, wait - time_since_last_call)
 
         def throttled(*args, **kwargs):
-            nonlocal new_args, new_kwargs, time_of_last_call, scheduled, timer, fn_latest
+            nonlocal time_of_last_call, timer
 
             def call_it():
-                nonlocal new_args, new_kwargs, time_of_last_call, scheduled, timer, fn_latest
+                nonlocal time_of_last_call
                 time_of_last_call = time()
-                fn_latest(*new_args, **new_kwargs)
-                scheduled = False
+                fn(*args, **kwargs)
 
-            time_since_last_call = time() - time_of_last_call
-            new_args, new_kwargs = args, kwargs
-            if not scheduled:
-                scheduled = True
-                new_wait = max(0, wait - time_since_last_call)
-                timer = Timer(new_wait, call_it)
-                timer.start()
+            timer.cancel()
+            timer = Timer(current_wait_time(), call_it)
+            timer.start()
         return throttled
     return decorator
