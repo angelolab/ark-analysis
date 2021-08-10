@@ -145,3 +145,9 @@ def test_can_remap_by_metacluster(simple_metaclusterdata: MetaClusterData):
     dummyclick = DummyClick(mcg.im_m, 2.5, is_rightclick=True)
     mcg.onpick(dummyclick)
     assert mcg.mcd.which_metacluster(1) == 3
+
+
+def test_selection_mask(simple_metaclusterdata: MetaClusterData):
+    mcg = MetaClusterGui(simple_metaclusterdata)
+    mcg.selected_clusters.add(2)
+    assert mcg.selection_mask == [[0, 1, 0, 0]]

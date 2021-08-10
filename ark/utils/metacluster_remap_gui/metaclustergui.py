@@ -211,15 +211,18 @@ class MetaClusterGui():
         self.toolbar.layout.justify_content = 'space-between'
         display(self.toolbar)
 
-    @throttle(.3)
-    def update_gui(self):
+    @property
+    def selection_mask(self):
         def is_selected(cluster):
             if cluster in self.selected_clusters:
                 return 1
             else:
                 return 0
-        selection_mask = [[is_selected(c) for c in self.mcd.clusters.index]]
-        self.im_cs.set_data(selection_mask)
+        return [[is_selected(c) for c in self.mcd.clusters.index]]
+
+    @throttle(.3)
+    def update_gui(self):
+        self.im_cs.set_data(self.selection_mask)
         self.im_cs.set_extent((0, self.mcd.cluster_count, 0, 1))
 
         if not self._heatmaps_stale:
