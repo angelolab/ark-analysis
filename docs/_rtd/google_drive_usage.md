@@ -174,11 +174,11 @@ single_cell_dir = google_drive_utils.path_join(base_dir, "single_cell_output")
 viz_dir = google_drive_utils.path_join(base_dir, "deepcell_visualization")
 ```
 
+**NOTE:** This process will require you to keep track of local paths vs `GoogleDrivePaths`.  Since that
+can be a bit of a headache, please only use this solution in the case of slow upload/download
+speeds
+
 Key take aways: 🔑
 
  1. We don't necesarily want all paths to be `GoogleDrivePath`s
  2. We should always create new folders regardless of if they're local or Google Drive folders
-
-    **NOTE:** This process will require you to keep track of local paths vs `GoogleDrivePaths`.  Since that
-can be a bit of a headache, please only use this solution in the case of slow upload/download
-speeds
