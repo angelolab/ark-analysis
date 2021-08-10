@@ -22,6 +22,10 @@ async def test_can_run_asyncio_pieces_of_gui_refresh(simple_metaclusterdata: Met
     while mcg._heatmaps_stale:
         await asyncio.sleep(0.01)
 
+    # and check shortcut update as well
+    mcg.update_gui()
+    await asyncio.sleep(0.4)
+
 
 def test_can_select_cluster(simple_metaclusterdata: MetaClusterData):
     mcg = MetaClusterGui(simple_metaclusterdata)
