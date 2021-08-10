@@ -1,4 +1,7 @@
 from pathlib import Path
+import asyncio
+
+import pytest
 
 from .metaclusterdata import MetaClusterData
 from .metaclustergui import MetaClusterGui
@@ -6,9 +9,18 @@ from .test_metaclusterdata import simple_metaclusterdata
 
 THIS_DIR = Path(__file__).parent
 
+pytestmark = pytest.mark.filterwarnings("ignore:coroutine*:RuntimeWarning")
+
 
 def test_can_create_metaclustergui(simple_metaclusterdata: MetaClusterData):
     MetaClusterGui(simple_metaclusterdata)
+
+
+@pytest.mark.asyncio
+async def test_can_run_asyncio_pieces_of_gui_refresh(simple_metaclusterdata: MetaClusterData):
+    mcg = MetaClusterGui(simple_metaclusterdata)
+    while mcg._heatmaps_stale:
+        await asyncio.sleep(0.01)
 
 
 def test_can_select_cluster(simple_metaclusterdata: MetaClusterData):
@@ -55,16 +67,23 @@ def test_new_metacluster(simple_metaclusterdata: MetaClusterData):
 
 
 class DummyClick:
-    def __init__(self, artist, x, y=None, is_rightclick=False):
+    def __init__(self, artist, x, y=None, is_rightclick=False, event_type='button_press_event'):
         self.artist = artist
 
         class MouseEvent:
             pass
         self.mouseevent = MouseEvent()
-        self.mouseevent.name = 'button_press_event'
+        self.mouseevent.name = event_type
         self.mouseevent.xdata = x
         self.mouseevent.ydata = y
         self.mouseevent.button = 3 if is_rightclick else 1
+
+
+def test_handler_ignore_non_clicks(simple_metaclusterdata: MetaClusterData):
+    mcg = MetaClusterGui(simple_metaclusterdata)
+    dummyclick = DummyClick(mcg.im_c, 0.5, event_type='fake')
+    mcg.onpick(dummyclick)
+    assert mcg.selected_clusters == set()
 
 
 def test_can_select_cluster_in_cluster_heatmap(simple_metaclusterdata: MetaClusterData):
