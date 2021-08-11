@@ -184,3 +184,4 @@ def create_difference_matrices(cell_table, features, training=True, inference=Tr
 
     matrix_dict = {"train_diff_mat": train_diff_mat, "inference_diff_mat": inference_diff_mat}
     return matrix_dict
+
