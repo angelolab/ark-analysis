@@ -1,79 +1,86 @@
-import os
-import numpy as np
 import pandas as pd
-import tempfile
 import pytest
-from ark.utils.spatial_lda_utils import *
+
+from ark.settings import BASE_COLS
+from ark.utils.spatial_lda_utils import check_format_cell_table_args, \
+    check_featurize_cell_table_args
 
 
 def test_check_format_cell_table_args():
     # Testing variables
-    base_cols = [
-        "point",
-        "label",
-        "cell_size",
-        "centroid-0",
-        "centroid-1",
-        "pixelfreq_hclust_cap",
-        "name",
-        "Au",
-        "CD4",
-        "CD8"
-    ]
+    for i in ["Au", "CD4", "CD8"]:
+        BASE_COLS.append(i)
+
     # Cell table pd.DataFrame
-    VALID_DF = pd.DataFrame(columns=base_cols)
-    # Not a pd.DataFrame
-    INVALID_DF1 = []
+    valid_df = pd.DataFrame(columns=BASE_COLS)
     # Doesn't meet minimum column requirements
-    INVALID_DF2 = pd.DataFrame(columns=base_cols[1:6])
+    invalid_df1 = pd.DataFrame(columns=BASE_COLS[1:6])
 
     # Markers
-    VALID_MARKERS = ["Au", "CD4", "CD8"]
+    valid_markers = ["Au", "CD4", "CD8"]
     # Specifies marker not included in cell table
-    INVALID_MARKERS1 = ["Au", "CD4", "CD8", "Vimentin"]
+    invalid_markers1 = ["Au", "CD4", "CD8", "Vimentin"]
     # Includes integer
-    INVALID_MARKERS2 = ["Au", "CD4", "CD8", 3]
+    invalid_markers2 = ["Au", "CD4", "CD8", 3]
     # Empty list
-    INVALID_MARKERS3 = []
+    invalid_markers3 = []
 
     # Cluster
-    VALID_CLUSTERS = [1, 2, 3]
+    valid_clusters = [1, 2, 3]
     # Strings instead of integers
-    INVALID_CLUSTERS1 = ["a", "b", "c"]
+    invalid_clusters1 = ["a", "b", "c"]
     # Empty List
-    INVALID_CLUSTERS2 = []
+    invalid_clusters2 = []
 
-    # FOVs
-    VALID_FOVS = [1, 2, 3]
-    # Strings instead of integers
-    INVALID_FOVS1 = ["a", "b", "c"]
-    # Empty List
-    INVALID_FOVS2 = []
-
-    # Run Checks
+    # DataFrame Checks
     with pytest.raises(ValueError):
-        # DataFrame Checks
-        check_format_cell_table_args(INVALID_DF1, VALID_MARKERS, VALID_CLUSTERS, VALID_FOVS)
-        check_format_cell_table_args(INVALID_DF2, VALID_MARKERS, VALID_CLUSTERS, VALID_FOVS)
-        # Markers/Clusters Checks
-        check_format_cell_table_args(VALID_DF, None, None, VALID_FOVS)
-        check_format_cell_table_args(VALID_DF, 1, None, VALID_FOVS)
-        check_format_cell_table_args(VALID_DF, INVALID_MARKERS1, None, VALID_FOVS)
-        check_format_cell_table_args(VALID_DF, INVALID_MARKERS2, None, VALID_FOVS)
-        check_format_cell_table_args(VALID_DF, INVALID_MARKERS3, None, VALID_FOVS)
-        check_format_cell_table_args(VALID_DF, VALID_MARKERS, 1, VALID_FOVS)
-        check_format_cell_table_args(VALID_DF, VALID_MARKERS, INVALID_CLUSTERS1, VALID_FOVS)
-        check_format_cell_table_args(VALID_DF, VALID_MARKERS, INVALID_CLUSTERS2, VALID_FOVS)
-        # FOV Checks
-        check_format_cell_table_args(VALID_DF, VALID_MARKERS, VALID_CLUSTERS, 1)
-        check_format_cell_table_args(VALID_DF, VALID_MARKERS, VALID_CLUSTERS, INVALID_FOVS1)
-        check_format_cell_table_args(VALID_DF, VALID_MARKERS, VALID_CLUSTERS, INVALID_FOVS2)
+        check_format_cell_table_args(invalid_df1, valid_markers, valid_clusters)
+    # Markers/Clusters Checks
+    with pytest.raises(ValueError, match=r"cannot both be None"):
+        check_format_cell_table_args(valid_df, None, None)
+    with pytest.raises(ValueError):
+        check_format_cell_table_args(valid_df, invalid_markers1, None)
+    with pytest.raises(ValueError):
+        check_format_cell_table_args(valid_df, invalid_markers2, None)
+    with pytest.raises(ValueError, match=r"List arguments cannot be empty"):
+        check_format_cell_table_args(valid_df, invalid_markers3, None)
+    with pytest.raises(ValueError):
+        check_format_cell_table_args(valid_df, valid_markers, invalid_clusters1)
+    with pytest.raises(ValueError, match=r"List arguments cannot be empty"):
+        check_format_cell_table_args(valid_df, valid_markers, invalid_clusters2)
 
 
+def test_check_featurize_cell_table_args():
+    # Testing variables
+    valid_cell_table = {1: pd.DataFrame(columns=["CD4", "CD8", "is_index"])}
 
+    valid_feature = "marker"
+    invalid_feature1 = "avg_cluster"
+    invalid_feature2 = 2
 
+    valid_radius = 100
+    invalid_radius1 = 20
+    invalid_radius2 = "25"
 
+    valid_cell_index = "is_index"
+    invalid_cell_index1 = 1
+    invalid_cell_index2 = "is_tumor"
 
-
-
-
+    with pytest.raises(ValueError):
+        check_featurize_cell_table_args(valid_cell_table, invalid_feature1, valid_radius,
+                                        valid_cell_index)
+    with pytest.raises(ValueError):
+        check_featurize_cell_table_args(valid_cell_table, invalid_feature2, valid_radius,
+                                        valid_cell_index)
+    with pytest.raises(ValueError, match=r"radius must not be less than 25"):
+        check_featurize_cell_table_args(valid_cell_table, valid_feature, invalid_radius1,
+                                        valid_cell_index)
+    with pytest.raises(TypeError, match=r"radius should be of type 'int'"):
+        check_featurize_cell_table_args(valid_cell_table, valid_feature, invalid_radius2,
+                                        valid_cell_index)
+    with pytest.raises(ValueError):
+        check_featurize_cell_table_args(valid_cell_table, valid_feature, valid_radius,
+                                        invalid_cell_index1)
+    with pytest.raises(ValueError):
+        check_featurize_cell_table_args(valid_cell_table, valid_feature, valid_radius,
+                                        invalid_cell_index2)

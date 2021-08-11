@@ -77,6 +77,11 @@ def test_verify_in_list():
         misc_utils.verify_in_list(one=['hello', 'world'],
                                   two=['hello', 'goodbye'])
 
+    with pytest.raises(ValueError):
+        # empty list
+        misc_utils.verify_in_list(one=[],
+                                  two=['hello', 'goodbye'])
+
 
 def test_verify_same_elements():
     with pytest.raises(ValueError):

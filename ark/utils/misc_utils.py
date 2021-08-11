@@ -135,6 +135,14 @@ def verify_in_list(**kwargs):
         raise ValueError("You must provide 2 arguments to verify_in_list")
 
     test_list, good_values = kwargs.values()
+    if not isinstance(test_list, list):
+        test_list = [test_list]
+    if not isinstance(good_values, list):
+        good_values = [good_values]
+
+    for v in [test_list, good_values]:
+        if len(v) == 0:
+            raise ValueError("List arguments cannot be empty")
 
     if not np.isin(test_list, good_values).all():
         bad_vals = ','.join([str(val) for val in test_list if val not in good_values])

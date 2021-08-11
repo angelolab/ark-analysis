@@ -1,63 +1,52 @@
-import os
-import numpy as np
-import pandas as pd
+from ark.settings import BASE_COLS, CLUSTER_ID
+from ark.utils.misc_utils import verify_in_list
 
-def check_format_cell_table_args(cell_table, markers, clusters, fovs):
 
-    """
-    Checks the input arguments of the format_cell_table() function.
+def check_format_cell_table_args(cell_table, markers, clusters):
+    """Checks the input arguments of the format_cell_table() function.
 
     Args:
-        cell_table (pd.DataFrame):
-            A pandas DataFrame containing the columns of cell marker frequencies and/or cluster ids.
-        markers (list, str):
+        cell_table (pandas.DataFrame):
+            A DataFrame containing the columns of cell marker frequencies and/or cluster ids.
+        markers (list):
             A list of strings corresponding to marker names.
-        clusters (list, int):
+        clusters (list):
             A list of integers corresponding to cluster ids.
-        fovs (str, int):
-            One of either "all_fovs" indicating all field of views are to be kept, or a list of integers corresponding
-            to the index of each field of view which should be kept.
-
-    Returns:
-        None
     """
 
-    base_cols = [
-        "point",
-        "label",
-        "cell_size",
-        "centroid-0",
-        "centroid-1",
-        "pixelfreq_hclust_cap",
-        "name"
-    ]
-
-    # Check cell table
-    if not isinstance(cell_table, pd.DataFrame):
-        raise ValueError("cell_table must be a pd.DataFrame")
-
-    if not all([True for x in base_cols if x in cell_table.columns]):
-        raise ValueError("cell table must contain the following columns:{}".format(base_cols))
+    # Check cell table columns
+    verify_in_list(required_columns=BASE_COLS, cell_table_columns=cell_table.columns.to_list())
 
     # Check markers/clusters
-    if all([markers is None, clusters is None]):
+    if markers is None and clusters is None:
         raise ValueError("markers and clusters cannot both be None")
     if markers is not None:
-        if isinstance(markers, list) and len(markers) == 0:
-            raise ValueError("list of marker names cannot be empty")
-        if not isinstance(markers, list) or not all([isinstance(x, str) for x in markers]):
-            raise ValueError("clusters must be a list of integers")
-        assert all([x in cell_table.columns for x in markers])
+        verify_in_list(markers=markers, cell_table_columns=cell_table.columns.to_list())
     if clusters is not None:
-        if isinstance(clusters, list) and len(clusters) == 0:
-            raise ValueError("list of cluster ids cannot be empty")
-        if not isinstance(clusters, list) or not all([isinstance(x, int) for x in clusters]):
-            raise ValueError("markers must be a list of strings")
+        cell_table_clusters = cell_table[CLUSTER_ID].unique().tolist()
+        verify_in_list(clusters=clusters, cell_table_clusters=cell_table_clusters)
 
-    # Check fovs
-    if fovs != "all_fovs":
-        if not all([isinstance(x, int) for x in fovs]) or not isinstance(fovs, list) or len(fovs) == 0:
-            raise ValueError("fovs must be 'all_fovs' or a list of integers")
 
-    return None
+def check_featurize_cell_table_args(cell_table, featurization, radius, cell_index):
+    """Checks the input arguments of the featurize_cell_table() function.
 
+    Args:
+        cell_table (dict):
+            A dictionary whose elements are the correctly formatted dataframes for each field of
+            view.
+        featurization (str):
+            One of "cluster", "marker", "avg_marker", or "count".
+        radius (int):
+            Pixel radius corresponding to cellular neighborhood size.
+        cell_index (str):
+            Name of the column in each field of view pd.Dataframe indicating reference cells.
+    """
+    # Check valid data types and values
+    if not isinstance(radius, int):
+        raise TypeError("radius should be of type 'int'")
+    if radius < 25:
+        raise ValueError("radius must not be less than 25")
+
+    verify_in_list(featurization=[featurization],
+                   featurization_options=["cluster", "marker", "avg_marker", "count"])
+    verify_in_list(cell_index=[cell_index], cell_table_columns=cell_table[1].columns.to_list())
