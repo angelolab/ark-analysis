@@ -190,7 +190,7 @@ def run_deepcell_direct(input_dir, output_dir, host='https://deepcell.org',
         }
         f.seek(0)
 
-    upload_responce = requests.post(
+    upload_response = requests.post(
         upload_url,
         timeout=timeout,
         files=upload_fields
@@ -199,18 +199,18 @@ def run_deepcell_direct(input_dir, output_dir, host='https://deepcell.org',
     # call prediction
     predict_url = host + '/api/predict'
 
-    predict_responce = requests.post(
+    predict_response = requests.post(
         predict_url,
         json={
             'dataRescale': scale,
             'imageName': filename,
-            'imageUrl': upload_responce['imageURL'],
+            'imageUrl': upload_response['imageURL'],
             'jobType': job_type,
-            'uploadedName': upload_responce['uploadedName']
+            'uploadedName': upload_response['uploadedName']
         }
     ).json()
 
-    predict_hash = predict_responce['hash']
+    predict_hash = predict_response['hash']
 
     # check redis every 3 seconds
     redis_url = host + '/api/redis'
@@ -221,39 +221,39 @@ def run_deepcell_direct(input_dir, output_dir, host='https://deepcell.org',
 
     pbar_last = 0
     total_time = 0
-    redis_responce = None
+    redis_response = None
 
     while total_time < timeout:
-        redis_responce = requests.post(
+        redis_response = requests.post(
             redis_url,
             json={
                 'hash': predict_hash,
                 'key': ["status", "progress", "output_url", "reason", "failures"]
             }
         ).json()
-        if redis_responce['value'][0] == 'done':
+        if redis_response['value'][0] == 'done':
             break
 
         # update progress bar here
-        if redis_responce['value'][0] == 'waiting':
-            pbar_next = int(redis_responce['value'][1])
+        if redis_response['value'][0] == 'waiting':
+            pbar_next = int(redis_response['value'][1])
             progress_bar.update(max(pbar_next - pbar_last, 0))
             pbar_last = pbar_next
 
-        if redis_responce['value'][0] not in ['done', 'waiting', 'new']:
-            print(redis_responce['value'])
+        if redis_response['value'][0] not in ['done', 'waiting', 'new']:
+            print(redis_response['value'])
 
         time.sleep(3.0)
         total_time += 3
     progress_bar.close()
 
     # when done, download result or examine errors
-    if len(redis_responce['value'][4]) > 0:
+    if len(redis_response['value'][4]) > 0:
         # error happened
-        print(f"Encountered Failure(s): {unquote_plus(redis_responce['value'][4])}")
+        print(f"Encountered Failure(s): {unquote_plus(redis_response['value'][4])}")
 
-    deepcell_output = requests.get(redis_responce['value'][2], allow_redirects=True)
-    with DriveOpen(path_join(output_dir, 'deepcell_responce.zip'), mode='wb') as f:
+    deepcell_output = requests.get(redis_response['value'][2], allow_redirects=True)
+    with DriveOpen(path_join(output_dir, 'deepcell_response.zip'), mode='wb') as f:
         f.write(deepcell_output.content)
 
     # being kind and sending an expire signal to deepcell
