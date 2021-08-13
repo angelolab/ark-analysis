@@ -92,4 +92,13 @@ def test_can_find_which_metacluster_a_cluster_belongs_to(simple_metaclusterdata:
 
 
 # test_can_provide_alternate_name_for_metacluster
-# test_can_average_clusters_by_metacluster
+def test_can_average_clusters_by_metacluster(simple_metaclusterdata: MetaClusterData):
+    simple_metaclusterdata.remap(4, 3)
+    clusters_data = np.array([
+        (0.1, 0.2, 0.1),
+        (0.1, 0.1, 0.3),
+        ((0.5*50+0.7*77)/(50+77),
+         (0.1*50+0.2*77)/(50+77),
+         (0.1*50+0.1*77)/(50+77)),
+        ])
+    np.testing.assert_equal(simple_metaclusterdata.metaclusters.values, clusters_data)
