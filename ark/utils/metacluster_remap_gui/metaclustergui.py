@@ -8,6 +8,7 @@ from scipy.stats import zscore
 from IPython.display import display
 from scipy.stats.stats import F_onewayBadInputSizesWarning
 
+from .zscore_norm import ZScoreNormalize
 from .colormap_helper import distinct_cmap
 from .metaclusterdata import MetaClusterData
 from .throttle import throttle
@@ -19,7 +20,7 @@ DEBUG_VIEW = widgets.Output(layout={'border': '1px solid black'})
 
 
 class MetaClusterGui():
-    def __init__(self, metaclusterdata, heatmapcolors=sns.diverging_palette(240, 10, n=9, as_cmap=True), width=17.0, debug=False, enable_throttle=True):  # noqa
+    def __init__(self, metaclusterdata, heatmapcolors=sns.diverging_palette(240, 10, n=3, as_cmap=True), width=17.0, debug=False, enable_throttle=True):  # noqa
         self.width: float = width
         self.heatmapcolors: str = heatmapcolors
         self.mcd: MetaClusterData = metaclusterdata
@@ -84,8 +85,9 @@ class MetaClusterGui():
         self.ax_m.xaxis.set_tick_params(which='both', bottom=False, labelbottom=False)
 
         # heatmaps
-        self.im_c = self.ax_c.imshow(np.zeros((self.mcd.marker_count, self.mcd.cluster_count)), cmap=self.heatmapcolors, aspect='auto', picker=True)  # noqa
-        self.im_m = self.ax_m.imshow(np.zeros((self.mcd.marker_count, self.mcd.metacluster_count)), cmap=self.heatmapcolors, aspect='auto', picker=True)  # noqa
+        n = ZScoreNormalize()
+        self.im_c = self.ax_c.imshow(np.zeros((self.mcd.marker_count, self.mcd.cluster_count)), norm=n, cmap=self.heatmapcolors, aspect='auto', picker=True)  # noqa
+        self.im_m = self.ax_m.imshow(np.zeros((self.mcd.marker_count, self.mcd.metacluster_count)), norm=n, cmap=self.heatmapcolors, aspect='auto', picker=True)  # noqa
         self.ax_m.yaxis.set_tick_params(which='both', left=True, labelleft=False)
 
         # xaxis metacluster color labels
