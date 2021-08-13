@@ -2,10 +2,11 @@ import os
 from copy import deepcopy
 from random import choices
 from string import ascii_lowercase
+
 import numpy as np
 import pandas as pd
-import xarray as xr
 import skimage.io as io
+import xarray as xr
 
 import ark.settings as settings
 from ark.utils import synthetic_spatial_datagen
@@ -533,7 +534,7 @@ def make_labels_xarray(label_data, fov_ids=None, compartment_names=None, row_siz
 TEST_MARKERS = list('ABCDEFG')
 
 
-def generate_cell_table(num_cells, extra_cols=None):
+def make_cell_table(num_cells, extra_cols=None):
     """ Generate a cell table with default column names for testing purposes.
 
     Args:
@@ -548,25 +549,33 @@ def generate_cell_table(num_cells, extra_cols=None):
             cluster labels, centroid coordinates, and more.
 
     """
-    column_names = TEST_MARKERS
-    num_cols = len(column_names)
+    # colmns from regionprops extraction
+    region_cols = settings.REGIONPROPS_BASE[2:] + settings.REGIONPROPS_SINGLE_COMP + \
+                  settings.REGIONPROPS_MULTI_COMP
+    # consistent ordering of column names
+    column_names = [settings.FOV_ID,
+                    settings.PATIENT_ID,
+                    settings.CLUSTER_ID,
+                    settings.KMEANS_CLUSTER,
+                    settings.CELL_LABEL,
+                    settings.CELL_TYPE,
+                    settings.CELL_SIZE] + TEST_MARKERS + region_cols
+
     if extra_cols is not None:
-        num_cols += len(extra_cols.items())
-        for i in list(extra_cols.values()):
-            column_names.append(i)
+        column_names += list(extra_cols.values())
 
-    cell_data = pd.DataFrame(
-        np.random.random(size=(num_cells, num_cols)),
-        columns=column_names
-    )
-
-    cluster_id = choices(range(1,21), k=num_cells)
-    fields = [(settings.CELL_TYPE, choices(ascii_lowercase, k=num_cells)),
+    # random filler data
+    cell_data = pd.DataFrame(np.random.random(size=(num_cells, len(column_names))),
+                             columns=column_names)
+    # not-so-random filler data
+    cluster_id = choices(range(1, 21), k=num_cells)
+    fields = [(settings.FOV_ID, choices(range(1, 5), k=num_cells)),
               (settings.PATIENT_ID, choices(range(1, 10), k=num_cells)),
-              (settings.CELL_SIZE, np.random.uniform(100, 300, size=num_cells)),
-              (settings.FOV_ID, choices(range(1,5), k=num_cells)),
               (settings.CLUSTER_ID, cluster_id),
               (settings.KMEANS_CLUSTER, [ascii_lowercase[i] for i in cluster_id]),
+              (settings.CELL_LABEL, list(range(num_cells))),
+              (settings.CELL_TYPE, choices(ascii_lowercase, k=num_cells)),
+              (settings.CELL_SIZE, np.random.uniform(100, 300, size=num_cells)),
               (settings.CENTROID_0, np.random.choice(range(1024), size=num_cells, replace=False)),
               (settings.CENTROID_1, np.random.choice(range(1024), size=num_cells, replace=False))
               ]
@@ -575,6 +584,7 @@ def generate_cell_table(num_cells, extra_cols=None):
         cell_data[name] = col
 
     return cell_data
+
 
 # TODO: Use these below
 

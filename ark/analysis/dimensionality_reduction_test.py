@@ -9,7 +9,7 @@ import ark.settings as settings
 
 def test_plot_dim_reduced_data():
     # this only tests errors, test_dimensionality_reduction tests the meat of this function
-    random_cell_data = test_utils.generate_cell_table(300)
+    random_cell_data = test_utils.make_cell_table(300)
 
     with pytest.raises(FileNotFoundError):
         # trying to save to a non-existant directory
@@ -33,7 +33,7 @@ def test_plot_dim_reduced_data():
 
 
 def test_dimensionality_reduction():
-    random_cell_data = test_utils.generate_cell_table(300)
+    random_cell_data = test_utils.make_cell_table(300)
     test_cols = test_utils.TEST_MARKERS
 
     test_algorithms = ['PCA', 'tSNE', 'UMAP']
