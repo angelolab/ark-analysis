@@ -533,26 +533,46 @@ def make_labels_xarray(label_data, fov_ids=None, compartment_names=None, row_siz
 TEST_MARKERS = list('ABCDEFG')
 
 
-def make_segmented_csv(num_cells, extra_cols=None):
-    """ Generate segmented 'csv' file
+def generate_cell_table(num_cells, extra_cols=None):
+    """ Generate a cell table with default column names for testing purposes.
 
     Args:
         num_cells (int):
-            Number of rows (cells) in csv
+            Number of rows (cells) in the cell table
         extra_cols (dict):
             Extra columns to add in the format ``{'Column_Name' : data_1D, ...}``
 
     Returns:
         pandas.DataFrame:
-            segmented csv data
+            A structural example of a cell table containing simulated marker expressions,
+            cluster labels, centroid coordinates, and more.
 
     """
+    column_names = TEST_MARKERS
+    num_cols = len(column_names)
+    if extra_cols is not None:
+        num_cols += len(extra_cols.items())
+        for i in list(extra_cols.values()):
+            column_names.append(i)
+
     cell_data = pd.DataFrame(
-        np.random.random(size=(num_cells, len(TEST_MARKERS))),
-        columns=TEST_MARKERS
+        np.random.random(size=(num_cells, num_cols)),
+        columns=column_names
     )
-    cell_data[settings.CELL_TYPE] = choices(ascii_lowercase, k=num_cells)
-    cell_data[settings.PATIENT_ID] = choices(range(1, 10), k=num_cells)
+
+    cluster_id = choices(range(1,21), k=num_cells)
+    fields = [(settings.CELL_TYPE, choices(ascii_lowercase, k=num_cells)),
+              (settings.PATIENT_ID, choices(range(1, 10), k=num_cells)),
+              (settings.CELL_SIZE, np.random.uniform(100, 300, size=num_cells)),
+              (settings.FOV_ID, choices(range(1,5), k=num_cells)),
+              (settings.CLUSTER_ID, cluster_id),
+              (settings.KMEANS_CLUSTER, [ascii_lowercase[i] for i in cluster_id]),
+              (settings.CENTROID_0, np.random.choice(range(1024), size=num_cells, replace=False)),
+              (settings.CENTROID_1, np.random.choice(range(1024), size=num_cells, replace=False))
+              ]
+
+    for name, col in fields:
+        cell_data[name] = col
 
     return cell_data
 
