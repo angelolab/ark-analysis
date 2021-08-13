@@ -135,12 +135,12 @@ class MetaClusterGui():
         # make widget toolbar
         self.make_widgets()
 
-        # initilize data, etc
-        self.update_gui()
-
         # space for longer labels hack
         self.ax_ml.set_xticks([0.5])
         self.ax_ml.set_xticklabels(["SpaceHolder--"], rotation=90, fontsize=8)
+
+        # initilize data, etc
+        self.update_gui()
 
         # Tighten layout based on display
         self.fig.tight_layout()
