@@ -3,6 +3,7 @@ import warnings
 import numpy as np
 import ipywidgets as widgets
 import matplotlib.pyplot as plt
+import seaborn as sns
 from scipy.stats import zscore
 from IPython.display import display
 from scipy.stats.stats import F_onewayBadInputSizesWarning
@@ -18,7 +19,7 @@ DEBUG_VIEW = widgets.Output(layout={'border': '1px solid black'})
 
 
 class MetaClusterGui():
-    def __init__(self, metaclusterdata, heatmapcolors='seismic', width=17.0, debug=False, enable_throttle=True):  # noqa
+    def __init__(self, metaclusterdata, heatmapcolors=sns.diverging_palette(240, 10, n=9, as_cmap=True), width=17.0, debug=False, enable_throttle=True):  # noqa
         self.width: float = width
         self.heatmapcolors: str = heatmapcolors
         self.mcd: MetaClusterData = metaclusterdata
