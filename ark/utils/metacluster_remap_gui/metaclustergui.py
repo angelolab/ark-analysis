@@ -18,7 +18,7 @@ DEBUG_VIEW = widgets.Output(layout={'border': '1px solid black'})
 
 
 class MetaClusterGui():
-    def __init__(self, metaclusterdata, heatmapcolors='seismic', width=17.0, debug=False):
+    def __init__(self, metaclusterdata, heatmapcolors='seismic', width=17.0, debug=False, enable_throttle=True):  # noqa
         self.width: float = width
         self.heatmapcolors: str = heatmapcolors
         self.mcd: MetaClusterData = metaclusterdata
@@ -28,6 +28,10 @@ class MetaClusterGui():
 
         if debug:
             self.enable_debug_mode()
+
+        if enable_throttle:
+            throttler = throttle(.3)
+            self.update_gui = throttler(self.update_gui)
 
     @property
     def max_zscore(self):
@@ -125,6 +129,9 @@ class MetaClusterGui():
         # naive cache expiration
         self._heatmaps_stale = True
 
+        # make widget toolbar
+        self.make_widgets()
+
         # initilize data, etc
         self.update_gui()
 
@@ -135,8 +142,6 @@ class MetaClusterGui():
         # Tighten layout based on display
         self.fig.tight_layout()
         plt.subplots_adjust(hspace=.0)  # make color labels touch heatmap
-
-        self.make_widgets()
 
     def make_widgets(self):
         # zscore adjuster
@@ -220,7 +225,6 @@ class MetaClusterGui():
                 return 0
         return [[is_selected(c) for c in self.mcd.clusters.index]]
 
-    @throttle(.3)
     def update_gui(self):
         self.im_cs.set_data(self.selection_mask)
         self.im_cs.set_extent((0, self.mcd.cluster_count, 0, 1))
