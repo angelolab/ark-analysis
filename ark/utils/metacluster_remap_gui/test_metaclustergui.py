@@ -12,62 +12,70 @@ THIS_DIR = Path(__file__).parent
 pytestmark = pytest.mark.filterwarnings("ignore:coroutine*:RuntimeWarning")
 
 
-def test_can_create_metaclustergui(simple_metaclusterdata: MetaClusterData):
-    MetaClusterGui(simple_metaclusterdata)
+@pytest.fixture
+def mcg(simple_metaclusterdata: MetaClusterData):
+    return MetaClusterGui(simple_metaclusterdata)
 
 
-@pytest.mark.asyncio
-async def test_can_run_asyncio_pieces_of_gui_refresh(simple_metaclusterdata: MetaClusterData):
-    mcg = MetaClusterGui(simple_metaclusterdata)
-    while mcg._heatmaps_stale:
-        await asyncio.sleep(0.01)
-
-    # and check shortcut update as well
-    mcg.update_gui()
-    await asyncio.sleep(0.4)
-
-
-def test_can_select_cluster(simple_metaclusterdata: MetaClusterData):
-    mcg = MetaClusterGui(simple_metaclusterdata)
-    mcg.selected_clusters.add(2)
-    assert mcg.selected_clusters == set([2])
-
-
-def test_can_select_all_clusters_in_metacluster(simple_metaclusterdata: MetaClusterData):
-    mcg = MetaClusterGui(simple_metaclusterdata)
-    mcg.select_metacluster(3)
-    assert len(mcg.selected_clusters) == 2
-
-
-def test_can_clear_selection(simple_metaclusterdata: MetaClusterData):
-    mcg = MetaClusterGui(simple_metaclusterdata)
-    mcg.selected_clusters.add(2)
-    mcg.clear_selection(None)
-    assert len(mcg.selected_clusters) == 0
-
-
-def test_can_remap_all_selected(simple_metaclusterdata: MetaClusterData):
-    mcg = MetaClusterGui(simple_metaclusterdata)
-    mcg.selected_clusters = {1, 2}
-    mcg.remap_current_selection(3)
-    assert mcg.mcd.which_metacluster(1) == 3
-    assert mcg.mcd.which_metacluster(2) == 3
+def test_can_create_metaclustergui(mcg: MetaClusterGui):
+    mcg
 
 
 def test_enable_debug_mode(simple_metaclusterdata: MetaClusterData):
     mcg = MetaClusterGui(simple_metaclusterdata, debug=True)
 
 
-def test_update_zscore(simple_metaclusterdata: MetaClusterData):
-    mcg = MetaClusterGui(simple_metaclusterdata)
+@pytest.mark.asyncio
+async def test_can_run_asyncio_pieces_of_gui_refresh(simple_metaclusterdata: MetaClusterData):
+    mcg = MetaClusterGui(simple_metaclusterdata, enable_throttle=True)
+    mcg._heatmaps_stale = True
+
+    mcg.update_gui()
+    assert mcg._heatmaps_stale
+
+    while mcg._heatmaps_stale:
+        await asyncio.sleep(0.01)
+    assert not mcg._heatmaps_stale
+
+    # and run shortcut update as well
+    mcg.update_gui()
+    assert not mcg._heatmaps_stale
+
+    # let it run
+    await asyncio.sleep(0.4)
+
+
+def test_can_select_cluster(mcg: MetaClusterGui):
+    mcg.selected_clusters.add(2)
+    assert mcg.selected_clusters == set([2])
+
+
+def test_can_select_all_clusters_in_metacluster(mcg: MetaClusterGui):
+    mcg.select_metacluster(3)
+    assert len(mcg.selected_clusters) == 2
+
+
+def test_can_clear_selection(mcg: MetaClusterGui):
+    mcg.selected_clusters.add(2)
+    mcg.clear_selection(None)
+    assert len(mcg.selected_clusters) == 0
+
+
+def test_can_remap_all_selected(mcg: MetaClusterGui):
+    mcg.selected_clusters = {1, 2}
+    mcg.remap_current_selection(3)
+    assert mcg.mcd.which_metacluster(1) == 3
+    assert mcg.mcd.which_metacluster(2) == 3
+
+
+def test_update_zscore(mcg: MetaClusterGui):
     mcg.zscore_clamp_slider.value += 1
 
 
-def test_new_metacluster(simple_metaclusterdata: MetaClusterData):
-    mcg = MetaClusterGui(simple_metaclusterdata)
+def test_new_metacluster(mcg: MetaClusterGui):
     mcg.selected_clusters.add(1)
     mcg.new_metacluster(None)
-    assert simple_metaclusterdata.mapping.loc[1, 'metacluster'] == 4
+    assert mcg.mcd.mapping.loc[1, 'metacluster'] == 4
 
 
 class DummyClick:
@@ -83,75 +91,65 @@ class DummyClick:
         self.mouseevent.button = 3 if is_rightclick else 1
 
 
-def test_handler_ignore_non_clicks(simple_metaclusterdata: MetaClusterData):
-    mcg = MetaClusterGui(simple_metaclusterdata)
+def test_handler_ignore_non_clicks(mcg: MetaClusterGui):
     dummyclick = DummyClick(mcg.im_c, 0.5, event_type='fake')
     mcg.onpick(dummyclick)
     assert mcg.selected_clusters == set()
 
 
-def test_can_select_cluster_in_cluster_heatmap(simple_metaclusterdata: MetaClusterData):
-    mcg = MetaClusterGui(simple_metaclusterdata)
+def test_can_select_cluster_in_cluster_heatmap(mcg: MetaClusterGui):
     dummyclick = DummyClick(mcg.im_c, 0.5)
     mcg.onpick(dummyclick)
     assert mcg.selected_clusters == {1}
 
 
-def test_can_deselect_clusters_in_cluster_heatmap(simple_metaclusterdata: MetaClusterData):
-    mcg = MetaClusterGui(simple_metaclusterdata)
+def test_can_deselect_clusters_in_cluster_heatmap(mcg: MetaClusterGui):
     mcg.selected_clusters = {1, 2, 3, 4}
     dummyclick = DummyClick(mcg.im_c, 0.5)
     mcg.onpick(dummyclick)
     assert mcg.selected_clusters == {2, 3, 4}
 
 
-def test_can_pick_metacluster_in_metacluster_heatmap(simple_metaclusterdata: MetaClusterData):
-    mcg = MetaClusterGui(simple_metaclusterdata)
+def test_can_pick_metacluster_in_metacluster_heatmap(mcg: MetaClusterGui):
     dummyclick = DummyClick(mcg.im_m, 2.5)
     mcg.onpick(dummyclick)
     assert mcg.selected_clusters == {3, 4}
 
 
-def test_can_select_metacluster_color_labels(simple_metaclusterdata: MetaClusterData):
-    mcg = MetaClusterGui(simple_metaclusterdata)
+def test_can_select_metacluster_color_labels(mcg: MetaClusterGui):
     dummyclick = DummyClick(mcg.im_cl, 3.5)
     mcg.onpick(dummyclick)
     assert mcg.selected_clusters == {3, 4}
 
 
-def test_can_deselect_metacluster_color_labels(simple_metaclusterdata: MetaClusterData):
-    mcg = MetaClusterGui(simple_metaclusterdata)
+def test_can_deselect_metacluster_color_labels(mcg: MetaClusterGui):
     mcg.selected_clusters = {1, 2, 3, 4}
     dummyclick = DummyClick(mcg.im_cl, 3.5)
     mcg.onpick(dummyclick)
     assert mcg.selected_clusters == {1, 2}
 
 
-def test_can_remap_by_cluster(simple_metaclusterdata: MetaClusterData):
-    mcg = MetaClusterGui(simple_metaclusterdata)
+def test_can_remap_by_cluster(mcg: MetaClusterGui):
     mcg.selected_clusters = {1}
     dummyclick = DummyClick(mcg.im_c, 3.5, is_rightclick=True)
     mcg.onpick(dummyclick)
     assert mcg.mcd.which_metacluster(1) == 3
 
 
-def test_can_remap_by_cluster_color_label(simple_metaclusterdata: MetaClusterData):
-    mcg = MetaClusterGui(simple_metaclusterdata)
+def test_can_remap_by_cluster_color_label(mcg: MetaClusterGui):
     mcg.selected_clusters = {1}
     dummyclick = DummyClick(mcg.im_cl, 3.5, is_rightclick=True)
     mcg.onpick(dummyclick)
     assert mcg.mcd.which_metacluster(1) == 3
 
 
-def test_can_remap_by_metacluster(simple_metaclusterdata: MetaClusterData):
-    mcg = MetaClusterGui(simple_metaclusterdata)
+def test_can_remap_by_metacluster(mcg: MetaClusterGui):
     mcg.selected_clusters = {1}
     dummyclick = DummyClick(mcg.im_m, 2.5, is_rightclick=True)
     mcg.onpick(dummyclick)
     assert mcg.mcd.which_metacluster(1) == 3
 
 
-def test_selection_mask(simple_metaclusterdata: MetaClusterData):
-    mcg = MetaClusterGui(simple_metaclusterdata)
+def test_selection_mask(mcg: MetaClusterGui):
     mcg.selected_clusters.add(2)
     assert mcg.selection_mask == [[0, 1, 0, 0]]
