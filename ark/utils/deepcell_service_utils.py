@@ -5,12 +5,12 @@ import time
 from tqdm.notebook import tqdm
 from urllib.parse import unquote_plus
 import os
-import glob
 from zipfile import ZipFile, ZIP_DEFLATED
 import warnings
 from concurrent.futures import ThreadPoolExecutor
 
 from ark.utils import misc_utils
+from ark.utils.google_drive_utils import GoogleDrivePath, drive_write_out, path_join, DriveOpen
 
 
 def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
@@ -25,7 +25,7 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
         Args:
             deepcell_input_dir (str):
                 Location of preprocessed files (assume deepcell_input_dir contains <fov>.tif
-                for each fov in fovs list)
+                for each fov in fovs list).  This should not be a GoogleDrivePath.
             deepcell_output_dir (str):
                 Location to save DeepCell output (as .tif)
             fovs (list):
@@ -63,6 +63,11 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
     except ValueError:
         raise ValueError("Scale argument must be a number")
 
+    is_drive_path = False
+    if type(deepcell_input_dir) is GoogleDrivePath:
+        warnings.warn("Consider saving preprocessed deepcell input tifs locally...", UserWarning)
+        is_drive_path = True
+
     # extract all the files from deepcell_input_dir
     input_files = io_utils.list_files(deepcell_input_dir, substrs=['.tif'])
 
@@ -91,23 +96,28 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
     # i.e easier to map fov_groups
     def _zip_run_extract(fov_group, group_index):
         # define the location of the zip file for our fovs
-        zip_path = os.path.join(deepcell_input_dir, f'fovs_batch_{group_index + 1}.zip')
-        if os.path.isfile(zip_path):
+        zip_path = path_join(deepcell_input_dir, f'fovs_batch_{group_index + 1}.zip')
+        if not is_drive_path and os.path.isfile(zip_path):
             warnings.warn(f'{zip_path} will be overwritten')
 
         # write all files to the zip file
         print('Zipping preprocessed tif files.')
 
-        with ZipFile(zip_path, 'w', compression=ZIP_DEFLATED) as zipObj:
-            for fov in fov_group:
-                # file has .tif extension
-                if fov + '.tif' in input_files:
-                    filename = os.path.join(deepcell_input_dir, fov + '.tif')
-                # file has .tiff extension
-                else:
-                    filename = os.path.join(deepcell_input_dir, fov + '.tiff')
+        def zip_write(zip_path):
+            with ZipFile(zip_path, 'w', compression=ZIP_DEFLATED) as zipObj:
+                for fov in fov_group:
+                    # file has .tif extension
+                    basename = fov + '.tif'
+                    if basename not in input_files:
+                        basename = basename + 'f'
+                    filename = path_join(deepcell_input_dir, basename)
+                    if is_drive_path:
+                        with filename.read() as f:
+                            zipObj.writestr(basename, f.getvalue())
+                    else:
+                        zipObj.write(filename, basename)
 
-                zipObj.write(filename, os.path.basename(filename))
+        drive_write_out(zip_path, zip_write)
 
         # pass the zip file to deepcell.org
         print('Uploading files to DeepCell server.')
@@ -115,10 +125,21 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
 
         # extract the .tif output
         print('Extracting tif files from DeepCell response.')
-        zip_files = glob.glob(os.path.join(deepcell_output_dir, '*.zip'))
-        zip_files.sort(key=os.path.getmtime)
+        zip_names = io_utils.list_files(deepcell_output_dir, substrs=['.zip'])
+        zip_files = [path_join(deepcell_output_dir, name) for name in zip_names]
+
+        # sort by newest added
+        zip_files.sort(key=io_utils.getmtime)
+
+        # generalize for str/filehandle input to ZipFile call
+        if type(deepcell_output_dir) is GoogleDrivePath:
+            zip_files = [zf.read() for zf in zip_files]
+
         with ZipFile(zip_files[-1], 'r') as zipObj:
-            zipObj.extractall(deepcell_output_dir)
+            for name in zipObj.namelist():
+                with DriveOpen(path_join(deepcell_output_dir, name), mode='wb') as f:
+                    f.write(zipObj.read(name))
+            # zipObj.extractall(deepcell_output_dir)
             for fov in fov_group:
                 if fov + suffix + '.tif' not in zipObj.namelist():
                     warnings.warn(f'Deep Cell output file was not found for {fov}.')
@@ -157,11 +178,19 @@ def run_deepcell_direct(input_dir, output_dir, host='https://deepcell.org',
     # upload zip file
     upload_url = host + '/api/upload'
 
-    upload_fields = {
-        'file': (Path(input_dir).name, open(input_dir, 'rb'), 'application/zip'),
-    }
+    is_drive_path = type(input_dir) is GoogleDrivePath
+    filename = input_dir.filename() if is_drive_path else Path(input_dir).name
 
-    upload_responce = requests.post(
+    with DriveOpen(input_dir, mode='rb') as f:
+        upload_fields = {
+            'file': (
+                filename,
+                f.read(),
+                'application/zip'),
+        }
+        f.seek(0)
+
+    upload_response = requests.post(
         upload_url,
         timeout=timeout,
         files=upload_fields
@@ -170,18 +199,18 @@ def run_deepcell_direct(input_dir, output_dir, host='https://deepcell.org',
     # call prediction
     predict_url = host + '/api/predict'
 
-    predict_responce = requests.post(
+    predict_response = requests.post(
         predict_url,
         json={
             'dataRescale': scale,
-            'imageName': Path(input_dir).name,
-            'imageUrl': upload_responce['imageURL'],
+            'imageName': filename,
+            'imageUrl': upload_response['imageURL'],
             'jobType': job_type,
-            'uploadedName': upload_responce['uploadedName']
+            'uploadedName': upload_response['uploadedName']
         }
     ).json()
 
-    predict_hash = predict_responce['hash']
+    predict_hash = predict_response['hash']
 
     # check redis every 3 seconds
     redis_url = host + '/api/redis'
@@ -192,39 +221,40 @@ def run_deepcell_direct(input_dir, output_dir, host='https://deepcell.org',
 
     pbar_last = 0
     total_time = 0
-    redis_responce = None
+    redis_response = None
 
     while total_time < timeout:
-        redis_responce = requests.post(
+        redis_response = requests.post(
             redis_url,
             json={
                 'hash': predict_hash,
                 'key': ["status", "progress", "output_url", "reason", "failures"]
             }
         ).json()
-        if redis_responce['value'][0] == 'done':
+        if redis_response['value'][0] == 'done':
             break
 
         # update progress bar here
-        if redis_responce['value'][0] == 'waiting':
-            pbar_next = int(redis_responce['value'][1])
+        if redis_response['value'][0] == 'waiting':
+            pbar_next = int(redis_response['value'][1])
             progress_bar.update(max(pbar_next - pbar_last, 0))
             pbar_last = pbar_next
 
-        if redis_responce['value'][0] not in ['done', 'waiting', 'new']:
-            print(redis_responce['value'])
+        if redis_response['value'][0] not in ['done', 'waiting', 'new']:
+            print(redis_response['value'])
 
         time.sleep(3.0)
         total_time += 3
     progress_bar.close()
 
     # when done, download result or examine errors
-    if len(redis_responce['value'][4]) > 0:
+    if len(redis_response['value'][4]) > 0:
         # error happened
-        print(f"Encountered Failure(s): {unquote_plus(redis_responce['value'][4])}")
+        print(f"Encountered Failure(s): {unquote_plus(redis_response['value'][4])}")
 
-    deepcell_output = requests.get(redis_responce['value'][2], allow_redirects=True)
-    open(os.path.join(output_dir, 'deepcell_responce.zip'), 'wb').write(deepcell_output.content)
+    deepcell_output = requests.get(redis_response['value'][2], allow_redirects=True)
+    with DriveOpen(path_join(output_dir, 'deepcell_response.zip'), mode='wb') as f:
+        f.write(deepcell_output.content)
 
     # being kind and sending an expire signal to deepcell
     expire_url = redis_url + '/expire'

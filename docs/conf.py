@@ -63,7 +63,11 @@ napoleon_google_docstring = True
 
 # contains list of modules to be marked up
 # will ensure 'clean' imports of all the following libraries
-autodoc_mock_imports = ['h5py',
+autodoc_mock_imports = ['cryptography',
+                        'google',
+                        'googleapiclient',
+                        'google_auth_oauthlib',
+                        'h5py',
                         'numpy',
                         'matplotlib',
                         'pandas',
@@ -240,7 +244,11 @@ def run_apidoc(_):
 # check for formatting errors in the docstring not caught by RTD's backend
 def check_docstring_format(app, what, name, obj, options, lines):
     if what == 'function':
-        argnames = inspect.getargspec(obj)[0]
+        argspec = inspect.getfullargspec(obj)
+        argnames = \
+            argspec.args \
+            + ([argspec.varargs] if argspec.varargs else []) \
+            + argspec.kwonlyargs
 
         if len(argnames) > 0:
             # I'm leaving this one out for now since we're possibly waiting on some of these
