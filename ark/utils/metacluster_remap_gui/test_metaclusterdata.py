@@ -15,13 +15,15 @@ MC_DATA_DIR = DATA_DIR / "example_dataset" / "metaclustering"
 def test_can_read_example_input_1():
     metaclusterdata_from_files(
         MC_DATA_DIR / "ex1_clusters_nozscore.csv",
-        MC_DATA_DIR / "ex1_clusters_pixelcount.csv")
+        MC_DATA_DIR / "ex1_clusters_pixelcount.csv",
+        metacluster_header='hCluster_cap')
 
 
 def test_can_read_example_input_2():
     metaclusterdata_from_files(
         MC_DATA_DIR / "ex2_clusters_nozscore.csv",
-        MC_DATA_DIR / "ex2_clusters_pixelcount.csv")
+        MC_DATA_DIR / "ex2_clusters_pixelcount.csv",
+        metacluster_header='hCluster_cap')
 
 
 @pytest.fixture
@@ -70,11 +72,11 @@ def test_can_save_mapping(simple_metaclusterdata: MetaClusterData, tmp_path):
     with open(tmp_path / 'output_mapping.csv', 'r') as f:
         output = [ll.strip() for ll in f.readlines()]
     assert output == [
-        "cluster,metacluster",
-        "1,1",
-        "2,2",
-        "3,3",
-        "4,3",
+        "cluster,metacluster,mc_name",
+        "1,1,1",
+        "2,2,2",
+        "3,3,3",
+        "4,3,3",
         ]
 
 

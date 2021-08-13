@@ -285,6 +285,7 @@ class MetaClusterGui():
             print('remapping', cluster, metacluster)
             self.mcd.remap(cluster, metacluster)
         self._heatmaps_stale = True
+        self.mcd.save_output_mapping()
 
     @DEBUG_VIEW.capture(clear_output=False)
     def update_zscore(self, e):

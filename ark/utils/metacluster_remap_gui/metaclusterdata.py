@@ -4,7 +4,7 @@ import pandas as pd
 from scipy.stats import zscore
 
 
-def metaclusterdata_from_files(cluster_filepath, pixelcount_filepath, metacluster_header='hCluster_cap'):  # noqa
+def metaclusterdata_from_files(cluster_filepath, pixelcount_filepath, metacluster_header='metacluster'):  # noqa
     clusters = pd.read_csv(cluster_filepath).rename(columns={metacluster_header: 'metacluster'})
     clusters = clusters.rename(columns={metacluster_header: 'metacluster'})
     pixelcounts = pd.read_csv(pixelcount_filepath)
@@ -73,14 +73,16 @@ class MetaClusterData():
 
     def remap(self, cluster, metacluster):
         self.mapping.loc[cluster, 'metacluster'] = metacluster
-        self.save_output_mapping()
         self._cached_metaclusters = None
 
     def change_displayname(self, metacluster, displayname):
         self._metacluster_displaynames_map[metacluster] = displayname
+        self.save_output_mapping()
 
     def save_output_mapping(self):
-        self.mapping.to_csv(self.output_mapping_filename)
+        out_df = self.mapping.copy()
+        out_df['mc_name'] = [self.get_metacluster_displayname(mc) for mc in out_df['metacluster']]
+        out_df.to_csv(self.output_mapping_filename)
 
     @property
     def cluster_count(self):
