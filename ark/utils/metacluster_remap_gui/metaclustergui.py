@@ -139,12 +139,12 @@ class MetaClusterGui():
         self.ax_ml.set_xticks([0.5])
         self.ax_ml.set_xticklabels(["SpaceHolder--"], rotation=90, fontsize=8)
 
-        # initilize data, etc
-        self.update_gui()
-
         # Tighten layout based on display
         self.fig.tight_layout()
         plt.subplots_adjust(hspace=.0)  # make color labels touch heatmap
+
+        # initilize data, etc
+        self.update_gui()
 
     def make_widgets(self):
         # zscore adjuster
