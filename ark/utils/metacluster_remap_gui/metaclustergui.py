@@ -90,7 +90,7 @@ class MetaClusterGui():
         n = ZScoreNormalize()
         self.im_c = self.ax_c.imshow(np.zeros((self.mcd.marker_count, self.mcd.cluster_count)), norm=n, cmap=self.heatmapcolors, aspect='auto', picker=True)  # noqa
         self.im_m = self.ax_m.imshow(np.zeros((self.mcd.marker_count, self.mcd.metacluster_count)), norm=n, cmap=self.heatmapcolors, aspect='auto', picker=True)  # noqa
-        self.ax_m.yaxis.set_tick_params(which='both', left=True, labelleft=False)
+        self.ax_m.yaxis.set_tick_params(which='both', left=False, labelleft=False)
 
         # xaxis metacluster color labels
         self.ax_cl.xaxis.set_tick_params(which='both', bottom=False, labelbottom=False)
