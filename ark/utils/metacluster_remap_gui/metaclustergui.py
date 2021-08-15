@@ -48,26 +48,28 @@ class MetaClusterGui():
         return df.apply(zscore).clip(upper=self.max_zscore).T
 
     def make_gui(self):
-        #  |    Cluster     | Meta |
-        #  -------------------------
-        #  |    cp          |  mp  | counts of pixels
-        #  |    c           |  m   | heatmap itself
-        #  |    cs          |  ms  | selection markers
-        #  |    cl          |  ml  | metacluster color labels
+        #  |  |    Cluster     | Meta |
+        #  ----------------------------
+        #  |  |    cp          |  mp  | counts of pixels
+        #  |cd|    c           |  m   | heatmap itself
+        #  |  |    cs          |  ms  | selection markers
+        #  |  |    cl          |  ml  | metacluster color labels
         subplots = plt.subplots(
-            4, 2,
+            4, 3,
             gridspec_kw={
                 # cluster plot bigger than metacluster plot
-                'width_ratios': [self.mcd.cluster_count, self.mcd.metacluster_count],
+                'width_ratios': [int(self.mcd.cluster_count/14),
+                                 self.mcd.cluster_count,
+                                 self.mcd.metacluster_count],
                 'height_ratios': [5, self.mcd.marker_count, 1, 1]},
             figsize=(self.width, 5),
             )
 
         (self.fig, (
-            (self.ax_cp, self.ax_mp),
-            (self.ax_c, self.ax_m),
-            (self.ax_cs, self.ax_ms),
-            (self.ax_cl, self.ax_ml))) = subplots
+            (self.ax_01, self.ax_cp, self.ax_mp),
+            (self.ax_cd, self.ax_c, self.ax_m),
+            (self.ax_02, self.ax_cs, self.ax_ms),
+            (self.ax_03, self.ax_cl, self.ax_ml))) = subplots
 
         self.fig.canvas.toolbar_visible = False
         self.fig.canvas.header_visible = False
