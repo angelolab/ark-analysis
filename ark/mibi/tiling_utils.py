@@ -2,6 +2,7 @@ import copy
 import datetime
 from itertools import combinations, product
 import json
+import numpy as np
 import os
 import random
 
@@ -46,7 +47,8 @@ def read_tiling_param(prompt, error_msg, cond, dtype):
 
 
 def generate_region_info(region_start_x, region_start_y, fov_num_x, fov_num_y,
-                         x_fov_size, y_fov_size, randomize):
+                         x_fov_size, y_fov_size, region_rand,
+                         x_intervals=None, y_intervals=None):
     """Generate the region_params list in the tiling parameter dict
 
     Args:
@@ -62,13 +64,22 @@ def generate_region_info(region_start_x, region_start_y, fov_num_x, fov_num_y,
             The size of the x axis sorted by run
         y_fov_size (list):
             The size of the y axis sorted by run
-        randomize (list):
+        region_rand (list):
             Whether to set randomization or not sorted by run
+        x_intervals (list):
+            List of x points to choose sorted by run
+        y_intervals (list):
+            List of y points to choose sorted by run
 
     Returns:
         list:
             The complete set of region_params sorted by run
     """
+
+    # check that region_end_x and region_end_y are either both None or set
+    # cannot use ^ shorthand because we're not dealing with bools
+    if (x_intervals and not y_intervals) or (not x_intervals and y_intervals):
+        raise ValueError("x_intervals and y_intervals must either both be None or set")
 
     region_params_list = []
 
@@ -82,8 +93,13 @@ def generate_region_info(region_start_x, region_start_y, fov_num_x, fov_num_y,
             'fov_num_y': fov_num_y[i],
             'x_fov_size': x_fov_size[i],
             'y_fov_size': y_fov_size[i],
-            'randomize': randomize[i]
+            'region_rand': region_rand[i]
         }
+
+        # add x_interval and y_interval if they're set
+        if x_intervals and y_intervals:
+            region_info['x_interval'] = x_intervals[i]
+            region_info['y_interval'] = y_intervals[i]
 
         # append info to region_params
         region_params_list.append(region_info)
@@ -91,60 +107,181 @@ def generate_region_info(region_start_x, region_start_y, fov_num_x, fov_num_y,
     return region_params_list
 
 
-def set_tiling_params(fov_list_path, moly_path):
-    """Given a file specifying fov regions, set the MIBI tiling parameters
+def read_tma_region_input(fov_tile_info, region_start_x, region_start_y,
+                          region_end_x, region_end_y, fov_num_x, fov_num_y, x_fov_size,
+                          y_fov_size, x_intervals, y_intervals, region_rand):
+    """Reads input for TMAs from user and fov_tile_info
 
-    User inputs will be required for many values. Also returns moly_path data.
+    Updates all the tiling params inplace
 
     Args:
-        fov_list_path (str):
-            Path to the JSON file containing the fovs used to define each tiled region
-        moly_path (str):
-            Path to the JSON moly point file, needed to separate fovs
-
-    Returns:
-        tuple:
-            Contains:
-
-            - A dict containing the tiling parameters for each fov
-            - A dict defining the moly points to insert if specified
+        fov_list_info (dict):
+            The data containing the fovs used to define each tiled region
+        region_start_x (list):
+            List of x starting points sorted by run
+        region_start_y (list):
+            List of y starting points sorted by run
+        region_end_x (list):
+            List of x ending points sorted by run
+        region_end_y (list):
+            List of y ending points sorted by run
+        fov_num_x (list):
+            Number of fovs along the x coord sorted by run
+        fov_num_y (list):
+            Number of fovs along the y coord sorted by run
+        x_fov_size (list):
+            The size of the x axis sorted by run
+        y_fov_size (list):
+            The size of the y axis sorted by run
+        x_intervals (list):
+            The indices to put fovs at sorted by run
+        y_intervals (list):
+            The indices to put fovs at sorted by run
+        region_rand (list):
+            Whether to set randomization or not sorted by run
     """
 
-    # file path validation
-    if not os.path.exists(fov_list_path):
-        raise FileNotFoundError("FOV region file %s does not exist" % fov_list_path)
+    # there has to be a starting and ending fov for each region
+    if len(fov_tile_info['fovs']) % 2 != 0:
+        raise ValueError(
+            "Data in fov_list_path needs to contain a start and end fov for each region"
+        )
 
-    if not os.path.exists(moly_path):
-        raise FileNotFoundError("Moly point file %s does not exist" % moly_path)
+    # every two fovs should define the start and end of the fov
+    for i in range(0, len(fov_tile_info['fovs']), 2):
+        # define the current start and end fov
+        fov_batches = fov_tile_info['fovs'][i:i + 2]
+        start_fov = fov_batches[0]
+        end_fov = fov_batches[1]
 
-    # read in the fov list data
-    with open(fov_list_path, 'r') as flf:
-        fov_tile_info = json.load(flf)
+        # the names of the fovs need to match
+        if start_fov['name'] != end_fov['name']:
+            err_msg = "FOV mismatch at indices %d, %d: names %s, %s are not equal"
+            raise ValueError(
+                err_msg % (i, i + 1, start_fov['name'], end_fov['name'])
+            )
 
-    # read in the moly point data
-    with open(moly_path, 'r') as mpf:
-        moly_point = json.load(mpf)
+        # define the start and end coordinates
+        start_fov_x = start_fov['centerPointMicrons']['x']
+        end_fov_x = end_fov['centerPointMicrons']['x']
+        start_fov_y = start_fov['centerPointMicrons']['y']
+        end_fov_y = end_fov['centerPointMicrons']['y']
 
-    # define the parameter dict to return
-    tiling_params = {}
+        # the coordinates have to be valid
+        if start_fov_x > end_fov_x or start_fov_y > end_fov_y:
+            err_msg = ("Coordinate error at indices %d, %d: start coordinates cannot be",
+                       " greater than end coordinates")
+            raise ValueError(err_msg % (i, i + 1))
 
-    # retrieve the format version
-    tiling_params['fovFormatVersion'] = fov_tile_info['fovFormatVersion']
+        region_start_x.append(start_fov_x)
+        region_start_y.append(start_fov_y)
+        region_end_x.append(end_fov_x)
+        region_end_y.append(end_fov_y)
 
-    # define lists to hold the starting x and y coordinates for each region
-    region_start_x = []
-    region_start_y = []
+        # the num_x, num_y, size_x, and size_y need additional validation
+        # since they may not be compatible with the starting and ending coordinates
+        while True:
+            # allow the user to specify the number of fovs along each dimension
+            num_x = read_tiling_param(
+                "Enter number of x fovs for region %s: " % start_fov['name'],
+                "Error: number of x fovs must be positive",
+                lambda nx: nx >= 1,
+                dtype=int
+            )
 
-    # define lists to hold the number of fovs along each axis
-    fov_num_x = []
-    fov_num_y = []
+            num_y = read_tiling_param(
+                "Enter number of y fovs for region %s: " % start_fov['name'],
+                "Error: number of y fovs must be positive",
+                lambda ny: ny >= 1,
+                dtype=int
+            )
 
-    # define lists to hold the size of each fov
-    x_fov_size = []
-    y_fov_size = []
+            # allow the user to specify the step size along each dimension
+            size_x = read_tiling_param(
+                "Enter the x step size for region %s: " % start_fov['name'],
+                "Error: x step size must be positive",
+                lambda sx: sx >= 1,
+                dtype=int
+            )
 
-    # define a list to determine if the fovs should be randomly ordered
-    region_rand = []
+            size_y = read_tiling_param(
+                "Enter the y step size for region %s: " % start_fov['name'],
+                "Error: y step size must be positive",
+                lambda sy: sy >= 1,
+                dtype=int
+            )
+
+            # find num_x/num_y even intervals between start and end fov_x/fov_y
+            # casted because indices cannot be floats
+            x_interval = np.linspace(start_fov_x, end_fov_x, num_x).astype(int)
+            y_interval = np.linspace(start_fov_y, end_fov_y, num_y).astype(int)
+
+            # get difference between x and y
+            # if there is only one point take the difference between the end and start coord
+            diff_marker_x = x_interval[1] if len(x_interval) > 1 else end_fov_x
+            diff_marker_y = y_interval[1] if len(y_interval) > 1 else end_fov_y
+            x_spacing = diff_marker_x - x_interval[0]
+            y_spacing = diff_marker_y - y_interval[0]
+
+            # we're good to go if size_x is not greater than x_spacing and y_spacing
+            if size_x <= x_spacing and size_y <= y_spacing:
+                break
+
+            # otherwise throw errors for invalid num_x/num_y and size_x/size_y
+            if size_x > x_spacing:
+                err_msg = ("Provided params num_x = %d, size_x = %d are incompatible"
+                           " with x start = %d and x end = %d for region %s")
+                print(err_msg % (num_x, size_x, start_fov_x, end_fov_x, start_fov['name']))
+
+            if size_y > y_spacing:
+                err_msg = ("Provided params num_y = %d, size_y = %d are incompatible"
+                           " with y start = %d and y end = %d for region %s")
+                print(err_msg % (num_y, size_y, start_fov_y, end_fov_y, start_fov['name']))
+
+        fov_num_x.append(num_x)
+        fov_num_y.append(num_y)
+
+        x_fov_size.append(size_x)
+        y_fov_size.append(size_y)
+
+        x_intervals.append(list(x_interval))
+        y_intervals.append(list(y_interval))
+
+        # allow the user to specify if the FOVs should be randomized
+        randomize = read_tiling_param(
+            "Randomize fovs for region %s? Y/N: " % start_fov['name'],
+            "Error: randomize parameter must Y or N",
+            lambda r: r in ['Y', 'N'],
+            dtype=str
+        )
+
+        region_rand.append(randomize)
+
+
+def read_non_tma_region_input(fov_tile_info, region_start_x, region_start_y,
+                              fov_num_x, fov_num_y, x_fov_size, y_fov_size, region_rand):
+    """Reads input for non-TMAs from user and fov_tile_info
+
+    Updates all the tiling params inplace
+
+    Args:
+        fov_list_info (dict):
+            The data containing the fovs used to define each tiled region
+        region_start_x (list):
+            List of x starting points sorted by run
+        region_start_y (list):
+            List of y starting points sorted by run
+        fov_num_x (list):
+            Number of fovs along the x coord sorted by run
+        fov_num_y (list):
+            Number of fovs along the y coord sorted by run
+        x_fov_size (list):
+            The size of the x axis sorted by run
+        y_fov_size (list):
+            The size of the y axis sorted by run
+        region_rand (list):
+            Whether to set randomization or not sorted by run
+    """
 
     # read in the data for each fov (region_start from fov_list_path, fov_num from user)
     for fov in fov_tile_info['fovs']:
@@ -197,12 +334,89 @@ def set_tiling_params(fov_list_path, moly_path):
 
         region_rand.append(randomize)
 
+
+def set_tiling_params(fov_list_path, moly_path, tma=False):
+    """Given a file specifying fov regions, set the MIBI tiling parameters
+
+    User inputs will be required for many values. Also returns moly_path data.
+
+    Args:
+        fov_list_path (str):
+            Path to the JSON file containing the fovs used to define each tiled region
+        moly_path (str):
+            Path to the JSON moly point file, needed to separate fovs
+        tma (bool):
+            Whether the data in fov_list_path is in TMA format or not
+
+    Returns:
+        tuple:
+            Contains:
+
+            - A dict containing the tiling parameters for each fov
+            - A dict defining the moly points to insert if specified
+    """
+
+    # file path validation
+    if not os.path.exists(fov_list_path):
+        raise FileNotFoundError("FOV region file %s does not exist" % fov_list_path)
+
+    if not os.path.exists(moly_path):
+        raise FileNotFoundError("Moly point file %s does not exist" % moly_path)
+
+    # read in the fov list data
+    with open(fov_list_path, 'r') as flf:
+        fov_tile_info = json.load(flf)
+
+    # read in the moly point data
+    with open(moly_path, 'r') as mpf:
+        moly_point = json.load(mpf)
+
+    # define the parameter dict to return
+    tiling_params = {}
+
+    # retrieve the format version
+    tiling_params['fovFormatVersion'] = fov_tile_info['fovFormatVersion']
+
+    # define lists to hold the starting x and y coordinates for each region
+    region_start_x = []
+    region_start_y = []
+
+    # define lists to hold the number of fovs along each axis
+    fov_num_x = []
+    fov_num_y = []
+
+    # define lists to hold the size of each fov
+    x_fov_size = []
+    y_fov_size = []
+
+    # define a list to determine if the fovs should be randomly ordered
+    region_rand = []
+
+    # if TMA is set we also need to define ending coordinates and intervals for each region
+    region_end_x = [] if tma else None
+    region_end_y = [] if tma else None
+    x_intervals = [] if tma else None
+    y_intervals = [] if tma else None
+
+    # reading in the params from fov_tile_info will be different for TMAs and non-TMAs
+    if tma:
+        read_tma_region_input(
+            fov_tile_info, region_start_x, region_start_y, region_end_x, region_end_y,
+            fov_num_x, fov_num_y, x_fov_size, y_fov_size, x_intervals, y_intervals, region_rand
+        )
+    else:
+        read_non_tma_region_input(
+            fov_tile_info, region_start_x, region_start_y, fov_num_x, fov_num_y,
+            x_fov_size, y_fov_size, region_rand
+        )
+
     # need to copy fov metadata over, needed for create_tiled_regions
     tiling_params['fovs'] = copy.deepcopy(fov_tile_info['fovs'])
 
     # store the read in parameters in the region_params key
     tiling_params['region_params'] = generate_region_info(
-        region_start_x, region_start_y, fov_num_x, fov_num_y, x_fov_size, y_fov_size, region_rand
+        region_start_x, region_start_y, fov_num_x, fov_num_y, x_fov_size, y_fov_size, region_rand,
+        x_intervals, y_intervals
     )
 
     # whether to insert moly points between runs
@@ -225,7 +439,7 @@ def set_tiling_params(fov_list_path, moly_path):
 
     # if moly insert is set, we need to specify an additional moly_interval param
     # NOTE: the interval applies regardless of if the tiles overlap runs or not
-    if moly_interval_insert:
+    if moly_interval_insert == 'Y':
         moly_interval = read_tiling_param(
             "Enter the fov interval size to insert moly points: ",
             "Error: moly interval must be positive",
@@ -265,8 +479,8 @@ def generate_x_y_fov_pairs(x_range, y_range):
     return all_pairs
 
 
-def create_tiled_regions(tiling_params, moly_point):
-    """Create the tiled regions for each fov
+def create_tiled_regions_tma(tiling_params, moly_point):
+    """Create the tiled regions for each fov for TMAs
 
     Args:
         tiling_params (dict):
@@ -295,28 +509,68 @@ def create_tiled_regions(tiling_params, moly_point):
 
     # iterate through each region and append created tiles to tiled_regions['fovs']
     for region_index, region_info in enumerate(tiling_params['region_params']):
+        print(region_info)
+
+
+def create_tiled_regions(tiling_params, moly_point, tma=False):
+    """Create the tiled regions for each fov for non-TMAs
+
+    Args:
+        tiling_params (dict):
+            The tiling parameters created by set_tiling_params
+        moly_point (dict):
+            The moly point to insert between fovs (and intervals if specified in tiling_params)
+        tma (bool):
+            Whether the data in tiling_params is in TMA format or not
+
+    Returns:
+        dict:
+            Data containing information about each tile, will be saved to JSON
+    """
+
+    # get the current time info
+    dt = datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
+
+    # define the fov tiling info
+    tiled_regions = {
+        'exportDateTime': dt,
+        'fovFormatVersion': tiling_params['fovFormatVersion'],
+        'fovs': []
+    }
+
+    # define a counter to determine where to insert a moly point
+    # only used if tiling_params['moly_interval'] is set
+    moly_counter = 0
+
+    # iterate through each region and append created tiles to tiled_regions['fovs']
+    for region_index, region_info in enumerate(tiling_params['region_params']):
         # extract start coordinates
         start_x = region_info['region_start_x']
         start_y = region_info['region_start_y']
 
         # generate range of x and y coordinates
-        x_range = list(range(region_info['fov_num_x']))
-        y_range = list(range(region_info['fov_num_y']))
-
-        x_range_rep = x_range * len(y_range)
-        y_range_rep = y_range * len(x_range)
+        if tma:
+            x_range = region_info['x_interval']
+            y_range = region_info['y_interval']
+        else:
+            x_range = list(range(region_info['fov_num_x']))
+            y_range = list(range(region_info['fov_num_y']))
 
         # create all pairs between two lists
         x_y_pairs = generate_x_y_fov_pairs(x_range, y_range)
 
         # randomize pairs list if specified
-        if region_info['randomize'] == 'Y':
+        if region_info['region_rand'] == 'Y':
             random.shuffle(x_y_pairs)
 
         for xi, yi in x_y_pairs:
             # set the current x and y coordinate
-            cur_x = start_x + xi * region_info['x_fov_size']
-            cur_y = start_y + yi * region_info['y_fov_size']
+            if tma:
+                cur_x = xi.item()
+                cur_y = yi.item()
+            else:
+                cur_x = start_x + xi * region_info['x_fov_size']
+                cur_y = start_y + yi * region_info['y_fov_size']
 
             # copy the fov metadata over and add cur_x, cur_y, and identifier
             fov = copy.deepcopy(tiling_params['fovs'][region_index])
