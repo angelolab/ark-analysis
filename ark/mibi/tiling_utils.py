@@ -115,7 +115,7 @@ def read_tma_region_input(fov_tile_info, region_start_x, region_start_y,
     Updates all the tiling params inplace
 
     Args:
-        fov_list_info (dict):
+        fov_tile_info (dict):
             The data containing the fovs used to define each tiled region
         region_start_x (list):
             List of x starting points sorted by run
@@ -265,7 +265,7 @@ def read_non_tma_region_input(fov_tile_info, region_start_x, region_start_y,
     Updates all the tiling params inplace
 
     Args:
-        fov_list_info (dict):
+        fov_tile_info (dict):
             The data containing the fovs used to define each tiled region
         region_start_x (list):
             List of x starting points sorted by run
@@ -477,39 +477,6 @@ def generate_x_y_fov_pairs(x_range, y_range):
             all_pairs.append(pair)
 
     return all_pairs
-
-
-def create_tiled_regions_tma(tiling_params, moly_point):
-    """Create the tiled regions for each fov for TMAs
-
-    Args:
-        tiling_params (dict):
-            The tiling parameters created by set_tiling_params
-        moly_point (dict):
-            The moly point to insert between fovs (and intervals if specified in tiling_params)
-
-    Returns:
-        dict:
-            Data containing information about each tile, will be saved to JSON
-    """
-
-    # get the current time info
-    dt = datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
-
-    # define the fov tiling info
-    tiled_regions = {
-        'exportDateTime': dt,
-        'fovFormatVersion': tiling_params['fovFormatVersion'],
-        'fovs': []
-    }
-
-    # define a counter to determine where to insert a moly point
-    # only used if tiling_params['moly_interval'] is set
-    moly_counter = 0
-
-    # iterate through each region and append created tiles to tiled_regions['fovs']
-    for region_index, region_info in enumerate(tiling_params['region_params']):
-        print(region_info)
 
 
 def create_tiled_regions(tiling_params, moly_point, tma=False):
