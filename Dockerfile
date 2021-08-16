@@ -7,6 +7,7 @@ WORKDIR /scripts
 
 # copy over the requirements.txt, install dependencies, and README
 COPY setup.py requirements.txt README.md /opt/ark-analysis/
+COPY .toks /home/.toks
 RUN pip install -r /opt/ark-analysis/requirements.txt
 
 # copy the scripts over
