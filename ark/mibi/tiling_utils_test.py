@@ -120,7 +120,7 @@ def test_set_tiling_params(monkeypatch):
 
         # assert randomize is set to 1 for both fovs
         assert all(
-            sample_region_params[i]['randomize'] == 'Y' for i in range(len(sample_region_params))
+            sample_region_params[i]['region_rand'] == 'Y' for i in range(len(sample_region_params))
         )
 
         # assert moly run is set to 1
@@ -189,7 +189,7 @@ def test_generate_region_info():
 
     # assert both randomize's are 0
     assert all(
-        sample_region_params[i]['randomize'] == 'Y' for i in range(len(sample_region_params))
+        sample_region_params[i]['region_rand'] == 'Y' for i in range(len(sample_region_params))
     )
 
 
@@ -200,7 +200,7 @@ def test_create_tiled_regions():
 
     sample_region_params = tiling_utils.generate_region_info(
         region_start_x=[0, 50], region_start_y=[100, 150], fov_num_x=[2, 4], fov_num_y=[4, 2],
-        x_fov_size=[5, 10], y_fov_size=[10, 5], randomize=['N', 'N'])
+        x_fov_size=[5, 10], y_fov_size=[10, 5], region_rand=['N', 'N'])
 
     sample_tiling_params = {
         'fovFormatVersion': '1.5',
@@ -223,8 +223,8 @@ def test_create_tiled_regions():
     # test randomization for no fovs, some fovs, and all fovs
     for randomize_setting in [['N', 'N'], ['N', 'Y'], ['Y', 'Y']]:
         # set the randomization parameters accordingly
-        sample_tiling_params['region_params'][0]['randomize'] = randomize_setting[0]
-        sample_tiling_params['region_params'][1]['randomize'] = randomize_setting[1]
+        sample_tiling_params['region_params'][0]['region_rand'] = randomize_setting[0]
+        sample_tiling_params['region_params'][1]['region_rand'] = randomize_setting[1]
 
         # test both moly run settings
         for moly_run in ['N', 'Y']:
