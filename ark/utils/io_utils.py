@@ -2,6 +2,8 @@ import os
 import pathlib
 import warnings
 
+from ark.utils.google_drive_utils import GoogleDrivePath
+
 
 def validate_paths(paths, data_prefix=True):
     """Verifys that paths exist and don't leave Docker's scope
@@ -22,6 +24,8 @@ def validate_paths(paths, data_prefix=True):
         paths = [paths]
 
     for path in paths:
+        if type(path) is GoogleDrivePath:
+            continue
         if not os.path.exists(path):
             if str(path).startswith('../data') or not data_prefix:
                 for parent in reversed(pathlib.Path(path).parents):
@@ -55,8 +59,11 @@ def list_files(dir_name, substrs=None, exact_match=False):
             List of files containing at least one of the substrings
     """
 
-    files = os.listdir(dir_name)
-    files = [file for file in files if not os.path.isdir(os.path.join(dir_name, file))]
+    if type(dir_name) is not GoogleDrivePath:
+        files = os.listdir(dir_name)
+        files = [file for file in files if not os.path.isdir(os.path.join(dir_name, file))]
+    else:
+        files = dir_name.lsfiles()
 
     # default to return all files
     if substrs is None:
@@ -183,8 +190,11 @@ def list_folders(dir_name, substrs=None):
             List of folders containing at least one of the substrings
     """
 
-    files = os.listdir(dir_name)
-    folders = [file for file in files if os.path.isdir(os.path.join(dir_name, file))]
+    if type(dir_name) is not GoogleDrivePath:
+        files = os.listdir(dir_name)
+        folders = [file for file in files if os.path.isdir(os.path.join(dir_name, file))]
+    else:
+        folders = dir_name.lsdirs()
 
     # default to return all files
     if substrs is None:
@@ -202,3 +212,17 @@ def list_folders(dir_name, substrs=None):
                ])]
 
     return matches
+
+
+def getmtime(filepath):
+    """ Generalizes os.path.getmtime for google drive paths
+
+    Args:
+        filepath (PathLike or GoogleDrivePath):
+            Path to file of interest
+
+    Returns:
+        int:
+            Last modified time
+    """
+    return filepath.getmtime() if type(filepath) is GoogleDrivePath else os.path.getmtime(filepath)
