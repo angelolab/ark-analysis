@@ -154,13 +154,6 @@ def read_tma_region_input(fov_tile_info, region_start_x, region_start_y,
         start_fov = fov_batches[0]
         end_fov = fov_batches[1]
 
-        # the names of the fovs need to match
-        if start_fov['name'] != end_fov['name']:
-            err_msg = "FOV mismatch at indices %d, %d: names %s, %s are not equal"
-            raise ValueError(
-                err_msg % (i, i + 1, start_fov['name'], end_fov['name'])
-            )
-
         # define the start and end coordinates
         start_fov_x = start_fov['centerPointMicrons']['x']
         end_fov_x = end_fov['centerPointMicrons']['x']
@@ -169,9 +162,9 @@ def read_tma_region_input(fov_tile_info, region_start_x, region_start_y,
 
         # the coordinates have to be valid
         if start_fov_x > end_fov_x or start_fov_y > end_fov_y:
-            err_msg = ("Coordinate error at indices %d, %d: start coordinates cannot be",
+            err_msg = ("Coordinate error for region %s: start coordinates cannot be",
                        " greater than end coordinates")
-            raise ValueError(err_msg % (i, i + 1))
+            raise ValueError(err_msg % start_fov['name'])
 
         region_start_x.append(start_fov_x)
         region_start_y.append(start_fov_y)
@@ -183,29 +176,29 @@ def read_tma_region_input(fov_tile_info, region_start_x, region_start_y,
         while True:
             # allow the user to specify the number of fovs along each dimension
             num_x = read_tiling_param(
-                "Enter number of x fovs for region %s: " % start_fov['name'],
-                "Error: number of x fovs must be positive",
-                lambda nx: nx >= 1,
+                "Enter number of x fovs for region %s (at least 3 required): " % start_fov['name'],
+                "Error: number of x fovs must be 3 or more",
+                lambda nx: nx >= 3,
                 dtype=int
             )
 
             num_y = read_tiling_param(
-                "Enter number of y fovs for region %s: " % start_fov['name'],
-                "Error: number of y fovs must be positive",
-                lambda ny: ny >= 1,
+                "Enter number of y fovs for region %s (at least 3 required): " % start_fov['name'],
+                "Error: number of y fovs must be 3 or more",
+                lambda ny: ny >= 3,
                 dtype=int
             )
 
             # allow the user to specify the step size along each dimension
             size_x = read_tiling_param(
-                "Enter the x step size for region %s: " % start_fov['name'],
+                "Enter the x image size for region %s: " % start_fov['name'],
                 "Error: x step size must be positive",
                 lambda sx: sx >= 1,
                 dtype=int
             )
 
             size_y = read_tiling_param(
-                "Enter the y step size for region %s: " % start_fov['name'],
+                "Enter the y image size for region %s: " % start_fov['name'],
                 "Error: y step size must be positive",
                 lambda sy: sy >= 1,
                 dtype=int
@@ -217,11 +210,8 @@ def read_tma_region_input(fov_tile_info, region_start_x, region_start_y,
             y_interval = np.linspace(start_fov_y, end_fov_y, num_y).astype(int)
 
             # get difference between x and y
-            # if there is only one point take the difference between the end and start coord
-            diff_marker_x = x_interval[1] if len(x_interval) > 1 else end_fov_x
-            diff_marker_y = y_interval[1] if len(y_interval) > 1 else end_fov_y
-            x_spacing = diff_marker_x - x_interval[0]
-            y_spacing = diff_marker_y - y_interval[0]
+            x_spacing = x_interval[1] - x_interval[0]
+            y_spacing = y_interval[1] - y_interval[0]
 
             # we're good to go if size_x is not greater than x_spacing and y_spacing
             if size_x <= x_spacing and size_y <= y_spacing:
