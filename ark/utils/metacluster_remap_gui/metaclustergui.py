@@ -87,7 +87,6 @@ class MetaClusterGui():
         self.ax_c.yaxis.set_tick_params(which='major', labelleft=False)
         self.ax_c.set_yticks(np.arange(self.mcd.marker_count)+0.5)
         self.ax_c.set_yticklabels(self.mcd.marker_names)
-        # self.ax_c.set_yticklabels([None for _ in self.mcd.marker_names])
         self.ax_c.set_xticks(np.arange(self.mcd.cluster_count)+0.5)
         self.ax_m.set_xticks(np.arange(self.mcd.metacluster_count)+0.5)
         self.ax_c.xaxis.set_tick_params(which='both', bottom=False, labelbottom=False)
