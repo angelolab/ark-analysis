@@ -20,6 +20,7 @@ class MetaClusterData():
         self._clusters = sorted_clusters_df.set_index('cluster').drop(columns='metacluster')
         self.mapping = sorted_clusters_df[['cluster', 'metacluster']].set_index('cluster')
         self._metacluster_displaynames_map = {}
+        self._marker_order = list(range(len(self._clusters.columns)))
 
         self._output_mapping_filename = None
         self._cached_metaclusters = None
@@ -34,7 +35,8 @@ class MetaClusterData():
 
     @property
     def clusters_with_metaclusters(self):
-        return self._clusters.join(self.mapping).sort_values(by='metacluster')
+        df = self._clusters.join(self.mapping).sort_values(by='metacluster')
+        return df.iloc[:, self._marker_order + [max(self._marker_order)+1]]
 
     @property
     def clusters(self):
@@ -91,9 +93,14 @@ class MetaClusterData():
         out_df['mc_name'] = [self.get_metacluster_displayname(mc) for mc in out_df['metacluster']]
         out_df.to_csv(self.output_mapping_filename)
 
+    def set_marker_order(self, new_indexes):
+        assert set(new_indexes) == set(self._marker_order), \
+            f"New indexes ({new_indexes}) must be permuation of existing indexes ({self._marker_order})."  # noqa
+        self._marker_order = new_indexes
+
     @property
     def cluster_count(self):
-        return len(self._clusters)
+        return len(self.clusters)
 
     @property
     def metacluster_count(self):

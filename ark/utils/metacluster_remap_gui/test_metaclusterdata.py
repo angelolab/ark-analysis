@@ -93,7 +93,6 @@ def test_can_find_which_metacluster_a_cluster_belongs_to(simple_metaclusterdata:
     assert simple_metaclusterdata.which_metacluster(4) == 3
 
 
-# test_can_provide_alternate_name_for_metacluster
 def test_can_average_clusters_by_metacluster(simple_metaclusterdata: MetaClusterData):
     simple_metaclusterdata.remap(4, 3)
     clusters_data = np.array([
@@ -104,3 +103,10 @@ def test_can_average_clusters_by_metacluster(simple_metaclusterdata: MetaCluster
          (0.1*50+0.1*77)/(50+77)),
         ])
     np.testing.assert_equal(simple_metaclusterdata.metaclusters.values, clusters_data)
+
+
+def test_can_reorder_markers(simple_metaclusterdata: MetaClusterData):
+    print(simple_metaclusterdata._marker_order)
+    simple_metaclusterdata.set_marker_order([0, 2, 1])
+    print(simple_metaclusterdata._marker_order)
+    assert list(simple_metaclusterdata.marker_names) == ['CD163', 'CD31', 'CD206']
