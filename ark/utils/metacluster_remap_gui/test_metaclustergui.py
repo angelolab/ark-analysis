@@ -17,6 +17,15 @@ def mcg(simple_metaclusterdata: MetaClusterData):
     return MetaClusterGui(simple_metaclusterdata)
 
 
+@pytest.fixture(autouse=True, scope='session')
+def use_pseudo_inverse():
+    from numpy.linalg import pinv, inv
+    import matplotlib.transforms as f
+    f.inv = pinv
+    yield
+    f.inv = inv
+
+
 def test_can_create_metaclustergui(mcg: MetaClusterGui):
     mcg
 
