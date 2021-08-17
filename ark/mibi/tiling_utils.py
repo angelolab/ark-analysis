@@ -108,8 +108,8 @@ def generate_region_info(region_start_x, region_start_y, fov_num_x, fov_num_y,
 
 
 def read_tma_region_input(fov_tile_info, region_start_x, region_start_y,
-                          region_end_x, region_end_y, fov_num_x, fov_num_y, x_fov_size,
-                          y_fov_size, x_intervals, y_intervals, region_rand):
+                          fov_num_x, fov_num_y, x_fov_size, y_fov_size,
+                          x_intervals, y_intervals, region_rand):
     """Reads input for TMAs from user and fov_tile_info
 
     Updates all the tiling params inplace
@@ -121,10 +121,6 @@ def read_tma_region_input(fov_tile_info, region_start_x, region_start_y,
             List of x starting points sorted by run
         region_start_y (list):
             List of y starting points sorted by run
-        region_end_x (list):
-            List of x ending points sorted by run
-        region_end_y (list):
-            List of y ending points sorted by run
         fov_num_x (list):
             Number of fovs along the x coord sorted by run
         fov_num_y (list):
@@ -168,8 +164,6 @@ def read_tma_region_input(fov_tile_info, region_start_x, region_start_y,
 
         region_start_x.append(start_fov_x)
         region_start_y.append(start_fov_y)
-        region_end_x.append(end_fov_x)
-        region_end_y.append(end_fov_y)
 
         # the num_x, num_y, size_x, and size_y need additional validation
         # since they may not be compatible with the starting and ending coordinates
@@ -383,16 +377,14 @@ def set_tiling_params(fov_list_path, moly_path, tma=False):
     region_rand = []
 
     # if TMA is set we also need to define ending coordinates and intervals for each region
-    region_end_x = [] if tma else None
-    region_end_y = [] if tma else None
     x_intervals = [] if tma else None
     y_intervals = [] if tma else None
 
     # reading in the params from fov_tile_info will be different for TMAs and non-TMAs
     if tma:
         read_tma_region_input(
-            fov_tile_info, region_start_x, region_start_y, region_end_x, region_end_y,
-            fov_num_x, fov_num_y, x_fov_size, y_fov_size, x_intervals, y_intervals, region_rand
+            fov_tile_info, region_start_x, region_start_y, fov_num_x, fov_num_y,
+            x_fov_size, y_fov_size, x_intervals, y_intervals, region_rand
         )
     else:
         read_non_tma_region_input(

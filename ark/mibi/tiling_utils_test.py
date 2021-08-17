@@ -49,20 +49,84 @@ def test_read_tiling_param(monkeypatch):
     assert sample_tiling_param == 'Y'
 
 
-def test_read_tma_region_input():
-    pass
+def test_read_tma_region_input(monkeypatch):
+    # define a sample fovs list
+    sample_fovs_list = test_utils.generate_sample_fovs_list(
+        fov_coords=[(0, 0), (100, 100), (100, 100), (200, 200)],
+        fov_names=["TheFirstFOV", "TheFirstFOV", "TheSecondFOV", "TheSecondFOV"]
+    )
+
+    # define sample params lists to read data into
+    sample_region_start_x = []
+    sample_region_start_y = []
+    sample_fov_num_x = []
+    sample_fov_num_y = []
+    sample_x_fov_size = []
+    sample_y_fov_size = []
+    sample_x_interval = []
+    sample_y_interval = []
+    sample_randomize = []
+
+    # set the user inputs
+    user_inputs = iter([3, 3, 1, 1, 'Y', 3, 3, 1, 1, 'Y'])
+
+    # override the default functionality of the input function
+    monkeypatch.setattr('builtins.input', lambda _: next(user_inputs))
+
+    # use the dummy user data to read values into the params lists
+    tiling_utils.read_tma_region_input(
+        sample_fovs_list, sample_region_start_x, sample_region_start_y,
+        sample_fov_num_x, sample_fov_num_y, sample_x_fov_size, sample_y_fov_size,
+        sample_x_interval, sample_y_interval, sample_randomize
+    )
+
+    # assert the values were set properly
+    assert sample_region_start_x == [0, 100]
+    assert sample_region_start_y == [0, 100]
+    assert sample_fov_num_x == [3, 3]
+    assert sample_fov_num_y == [3, 3]
+    assert sample_x_fov_size == [1, 1]
+    assert sample_y_fov_size == [1, 1]
+    assert sample_x_interval == [[0, 50, 100], [100, 150, 200]]
+    assert sample_y_interval == [[0, 50, 100], [100, 150, 200]]
+    assert sample_randomize == ['Y', 'Y']
 
 
-def test_read_non_tma_region_input():
+def test_read_non_tma_region_input(monkeypatch):
     # define a sample fovs list
     sample_fovs_list = test_utils.generate_sample_fovs_list(
         fov_coords=[(0, 0), (100, 100)], fov_names=["TheFirstFOV", "TheSecondFOV"]
     )
 
-    # define sample lists to read data into
+    # define sample params lists to read data into
     sample_region_start_x = []
     sample_region_start_y = []
-    sample_region_end_x = []
+    sample_fov_num_x = []
+    sample_fov_num_y = []
+    sample_x_fov_size = []
+    sample_y_fov_size = []
+    sample_randomize = []
+
+    # set the user inputs
+    user_inputs = iter([3, 3, 1, 1, 'Y', 3, 3, 1, 1, 'Y'])
+
+    # override the default functionality of the input function
+    monkeypatch.setattr('builtins.input', lambda _: next(user_inputs))
+
+    # use the dummy user data to read values into the params lists
+    tiling_utils.read_non_tma_region_input(
+        sample_fovs_list, sample_region_start_x, sample_region_start_y,
+        sample_fov_num_x, sample_fov_num_y, sample_x_fov_size, sample_y_fov_size, sample_randomize
+    )
+
+    # assert the values were set properly
+    assert sample_region_start_x == [0, 100]
+    assert sample_region_start_y == [0, 100]
+    assert sample_fov_num_x == [3, 3]
+    assert sample_fov_num_y == [3, 3]
+    assert sample_x_fov_size == [1, 1]
+    assert sample_y_fov_size == [1, 1]
+    assert sample_randomize == ['Y', 'Y']
 
 
 def test_generate_region_info():
@@ -255,15 +319,13 @@ def test_set_tiling_params(monkeypatch):
 
             # for TMAs, assert that the x interval and y intervals were created properly
             if tma:
-                assert all(
-                    sample_region_params[i]['x_interval'] == [0, 50, 100] for i in
-                    range(len(sample_region_params))
-                )
+                # TheFirstFOV
+                assert sample_region_params[0]['x_interval'] == [0, 50, 100]
+                assert sample_region_params[0]['y_interval'] == [0, 50, 100]
 
-                assert all(
-                    sample_region_params[i]['y_interval'] == [0, 50, 100] for i in
-                    range(len(sample_region_params))
-                )
+                # TheSecondFOV
+                assert sample_region_params[1]['x_interval'] == [100, 150, 200]
+                assert sample_region_params[1]['y_interval'] == [100, 150, 200]
 
 
 def test_generate_x_y_fov_pairs():
