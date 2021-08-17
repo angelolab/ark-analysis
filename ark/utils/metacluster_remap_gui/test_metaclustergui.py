@@ -14,7 +14,7 @@ pytestmark = pytest.mark.filterwarnings("ignore:coroutine*:RuntimeWarning")
 
 @pytest.fixture
 def mcg(simple_metaclusterdata: MetaClusterData):
-    return MetaClusterGui(simple_metaclusterdata)
+    return MetaClusterGui(simple_metaclusterdata, enable_throttle=False)
 
 
 @pytest.fixture(autouse=True, scope='session')
