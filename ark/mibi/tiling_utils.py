@@ -76,7 +76,7 @@ def generate_region_info(region_start_x, region_start_y, fov_num_x, fov_num_y,
             The complete set of region_params sorted by run
     """
 
-    # check that region_end_x and region_end_y are either both None or set
+    # check that x_intervals and y_intervals are either both None or set
     # cannot use ^ shorthand because we're not dealing with bools
     if (x_intervals and not y_intervals) or (not x_intervals and y_intervals):
         raise ValueError("x_intervals and y_intervals must either both be None or set")
