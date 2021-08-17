@@ -3,6 +3,7 @@ import warnings
 import numpy as np
 import ipywidgets as widgets
 import matplotlib.pyplot as plt
+import matplotlib.patheffects as path_effects
 import seaborn as sns
 from scipy.stats import zscore
 from IPython.display import display
@@ -58,11 +59,11 @@ class MetaClusterGui():
             4, 3,
             gridspec_kw={
                 # cluster plot bigger than metacluster plot
-                'width_ratios': [int(self.mcd.cluster_count/14),
+                'width_ratios': [int(self.mcd.cluster_count/7),
                                  self.mcd.cluster_count,
                                  self.mcd.metacluster_count],
-                'height_ratios': [5, self.mcd.marker_count, 1, 1]},
-            figsize=(self.width, 5),
+                'height_ratios': [6, self.mcd.marker_count, 1, 1]},
+            figsize=(self.width, 6),
             )
 
         (self.fig, (
@@ -77,20 +78,20 @@ class MetaClusterGui():
 
         self.fig.canvas.mpl_connect('pick_event', self.onpick)
 
-        # heatmap axis
-        self.ax_c.yaxis.set_tick_params(which='major', labelsize=8)
-        self.ax_c.set_yticks(np.arange(self.mcd.marker_count)+0.5)
-        self.ax_c.set_yticklabels(self.mcd.marker_names)
-        self.ax_c.set_xticks(np.arange(self.mcd.cluster_count)+0.5)
-        self.ax_m.set_xticks(np.arange(self.mcd.metacluster_count)+0.5)
-        self.ax_c.xaxis.set_tick_params(which='both', bottom=False, labelbottom=False)
-        self.ax_m.xaxis.set_tick_params(which='both', bottom=False, labelbottom=False)
-
         # heatmaps
         n = ZScoreNormalize()
         self.im_c = self.ax_c.imshow(np.zeros((self.mcd.marker_count, self.mcd.cluster_count)), norm=n, cmap=self.heatmapcolors, aspect='auto', picker=True)  # noqa
         self.im_m = self.ax_m.imshow(np.zeros((self.mcd.marker_count, self.mcd.metacluster_count)), norm=n, cmap=self.heatmapcolors, aspect='auto', picker=True)  # noqa
-        self.ax_m.yaxis.set_tick_params(which='both', left=False, labelleft=False)
+
+        self.ax_c.yaxis.set_tick_params(which='major', labelleft=False)
+        self.ax_c.set_yticks(np.arange(self.mcd.marker_count)+0.5)
+        self.ax_c.set_yticklabels(self.mcd.marker_names)
+        # self.ax_c.set_yticklabels([None for _ in self.mcd.marker_names])
+        self.ax_c.set_xticks(np.arange(self.mcd.cluster_count)+0.5)
+        self.ax_m.set_xticks(np.arange(self.mcd.metacluster_count)+0.5)
+        self.ax_c.xaxis.set_tick_params(which='both', bottom=False, labelbottom=False)
+        self.ax_m.xaxis.set_tick_params(which='both', bottom=False, labelbottom=False)
+        self.ax_m.yaxis.set_tick_params(which='both', bottom=False, labelbottom=False)
 
         # xaxis metacluster color labels
         self.ax_cl.xaxis.set_tick_params(which='both', bottom=False, labelbottom=False)
@@ -131,6 +132,40 @@ class MetaClusterGui():
                 ha='center', rotation=90, color='black', fontsize=8)
             self.labels_cp.append(label)
 
+        # dendrogram
+        from scipy.cluster.hierarchy import dendrogram, ward
+        from sklearn.metrics.pairwise import cosine_similarity
+
+        dist_matrix = cosine_similarity(self.mcd.clusters.T.values)
+        linkage_matrix = ward(dist_matrix)
+
+        def fixed_width_marker_names():
+            width = max(len(c) for c in self.mcd.clusters.columns)
+            return [f"{c:^{width}}" for c in self.mcd.clusters.columns]
+
+        self.ddg = dendrogram(
+            linkage_matrix,
+            ax=self.ax_cd,
+            orientation='left',
+            labels=fixed_width_marker_names(),
+            leaf_font_size=8,
+            )
+
+        self.ax_cd.figure.frameon = False
+        self.ax_cd.spines["top"].set_visible(False)
+        self.ax_cd.spines["left"].set_visible(False)
+        self.ax_cd.spines["right"].set_visible(False)
+        self.ax_cd.spines["bottom"].set_visible(False)
+        self.ax_cd.xaxis.set_tick_params(which='both', bottom=False, labelbottom=False)
+        self.ax_cd.yaxis.set_tick_params(which='both', pad=-2)
+        self.ax_cd.tick_params(axis="y", direction="in")
+        self.move_dendro_labels(self.ax_cd)
+
+        self.ax_01.axis('off')
+        self.ax_02.axis('off')
+        self.ax_03.axis('off')
+        self.ax_mp.axis('off')
+
         # naive cache expiration
         self._heatmaps_stale = True
 
@@ -144,6 +179,7 @@ class MetaClusterGui():
         # Tighten layout based on display
         self.fig.tight_layout()
         plt.subplots_adjust(hspace=.0)  # make color labels touch heatmap
+        plt.subplots_adjust(wspace=.02)
 
         # initilize data, etc
         self.update_gui()
@@ -221,6 +257,49 @@ class MetaClusterGui():
         self.toolbar.layout.justify_content = 'space-between'
         display(self.toolbar)
 
+    def move_dendro_labels(self, ax, dendrosplit_ratio=1.8):
+        """Overlay axis labels directly onto a scipy dendrogram
+
+        Final image will use the ratio 1:dendrosplit_ratio
+        for tree_region:labels_region
+        """
+        def add_room_for_labels():
+            ax.set_axisbelow(False)
+            xlim = ax.get_xlim()
+            ax.set_xlim((xlim[0], -(xlim[0]*dendrosplit_ratio)))
+
+        def stretch_dendro_leaves():
+            for c in ax.collections:
+                for path in c.get_paths():
+                    for v in path.vertices:
+                        if v[0] == 0:
+                            v[0] = ax.get_xlim()[1]
+
+        def get_ax_width_points(ax):
+            """points = 1/72 in"""
+            bbox = ax.get_window_extent().transformed(ax.figure.dpi_scale_trans.inverted())
+            return bbox.width * 72
+
+        def move_ax_labels():
+            dr = dendrosplit_ratio
+            width = get_ax_width_points(ax)
+            dedent = -(width * dr / (1 + dr))
+            ax.yaxis.set_tick_params(which='both', pad=dedent)
+
+        def restyle_ax_labels():
+            for lb in ax.get_yticklabels():
+                lb.set_path_effects([
+                    path_effects.Stroke(linewidth=4, foreground='white'),
+                    path_effects.Normal(),
+                    ])
+                lb.set_family('monospace')
+                lb.set_zorder(4)
+
+        add_room_for_labels()
+        stretch_dendro_leaves()
+        move_ax_labels()
+        restyle_ax_labels()
+
     @property
     def selection_mask(self):
         def is_selected(cluster):
@@ -262,7 +341,7 @@ class MetaClusterGui():
         self.im_ml.set_cmap(self.cmap)
 
         # xaxis pixelcount graphs
-        ax_cp_ymax = max(self.mcd.cluster_pixelcounts['count'])*1.5
+        ax_cp_ymax = max(self.mcd.cluster_pixelcounts['count'])*1.65
         self.ax_cp.set_ylim(0, ax_cp_ymax)
         sorted_pixel_counts = self.mcd.clusters.join(self.mcd.cluster_pixelcounts)['count']
         for rect, h in zip(self.rects_cp, sorted_pixel_counts):
