@@ -1,7 +1,8 @@
 from pathlib import Path
 
 import pandas as pd
-from scipy.stats import zscore
+from scipy.cluster.hierarchy import ward
+from sklearn.metrics.pairwise import cosine_similarity
 
 
 def metaclusterdata_from_files(cluster_filepath, pixelcount_filepath, metacluster_header='metacluster'):  # noqa
@@ -56,6 +57,12 @@ class MetaClusterData():
         self._cached_metaclusters = weighted_metaclusters
         return weighted_metaclusters
 
+    @property
+    def linkage_matrix(self):
+        dist_matrix = cosine_similarity(self.clusters.T.values)
+        linkage_matrix = ward(dist_matrix)
+        return linkage_matrix
+
     def get_metacluster_displayname(self, metacluster):
         try:
             return self._metacluster_displaynames_map[metacluster]
@@ -99,3 +106,8 @@ class MetaClusterData():
     @property
     def marker_names(self):
         return self.clusters.columns
+
+    @property
+    def fixed_width_marker_names(self):
+        width = max(len(c) for c in self.marker_names)
+        return [f"{c:^{width}}" for c in self.marker_names]

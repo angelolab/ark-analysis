@@ -5,6 +5,7 @@ import ipywidgets as widgets
 import matplotlib.pyplot as plt
 import matplotlib.patheffects as path_effects
 import seaborn as sns
+from scipy.cluster.hierarchy import dendrogram
 from scipy.stats import zscore
 from IPython.display import display
 from scipy.stats.stats import F_onewayBadInputSizesWarning
@@ -133,21 +134,11 @@ class MetaClusterGui():
             self.labels_cp.append(label)
 
         # dendrogram
-        from scipy.cluster.hierarchy import dendrogram, ward
-        from sklearn.metrics.pairwise import cosine_similarity
-
-        dist_matrix = cosine_similarity(self.mcd.clusters.T.values)
-        linkage_matrix = ward(dist_matrix)
-
-        def fixed_width_marker_names():
-            width = max(len(c) for c in self.mcd.clusters.columns)
-            return [f"{c:^{width}}" for c in self.mcd.clusters.columns]
-
         self.ddg = dendrogram(
-            linkage_matrix,
+            self.mcd.linkage_matrix,
             ax=self.ax_cd,
             orientation='left',
-            labels=fixed_width_marker_names(),
+            labels=self.mcd.fixed_width_marker_names,
             leaf_font_size=8,
             )
 
