@@ -1,6 +1,5 @@
 from ark.settings import BASE_COLS, CLUSTER_ID
 from ark.utils.misc_utils import verify_in_list
-from sklearn.metrics import silhouette_score
 
 
 def check_format_cell_table_args(cell_table, markers, clusters):
@@ -51,18 +50,3 @@ def check_featurize_cell_table_args(cell_table, featurization, radius, cell_inde
     verify_in_list(featurization=[featurization],
                    featurization_options=["cluster", "marker", "avg_marker", "count"])
     verify_in_list(cell_index=[cell_index], cell_table_columns=cell_table[1].columns.to_list())
-
-
-def silhouette(features, labels):
-    return silhouette_score(features, labels, metric='euclidean')
-
-
-def inertia(fit):
-    return fit.inertia_
-
-
-def filter_by_index(array, index, k, rows=True):
-    if rows:
-        return array[:, index == k]
-    else:
-        return array[index == k, :]
