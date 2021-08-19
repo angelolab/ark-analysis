@@ -67,8 +67,36 @@ def test_read_tma_region_input(monkeypatch):
     sample_y_interval = []
     sample_randomize = []
 
-    # set the user inputs
-    user_inputs = iter([3, 3, 1, 1, 'Y', 3, 3, 1, 1, 'Y'])
+    # basic error check: odd number of FOVs provided
+    with pytest.raises(ValueError):
+        sample_fovs_list_bad = sample_fovs_list.copy()
+        sample_fovs_list_bad['fovs'] = sample_fovs_list_bad['fovs'][:3]
+
+        # use the dummy user data to read values into the params lists
+        tiling_utils.read_tma_region_input(
+            sample_fovs_list_bad, sample_region_start_x, sample_region_start_y,
+            sample_fov_num_x, sample_fov_num_y, sample_x_fov_size, sample_y_fov_size,
+            sample_x_interval, sample_y_interval, sample_randomize
+        )
+
+    # basic error check: start coordinate cannot be greater than end coordinate
+    with pytest.raises(ValueError):
+        # define a sample fovs list
+        sample_fovs_list_bad = test_utils.generate_sample_fovs_list(
+            fov_coords=[(100, 100), (0, 0), (0, 0), (100, 100)],
+            fov_names=["TheFirstFOV", "TheFirstFOV", "TheSecondFOV", "TheSecondFOV"]
+        )
+
+        # use the dummy user data to read values into the params lists
+        tiling_utils.read_tma_region_input(
+            sample_fovs_list_bad, sample_region_start_x, sample_region_start_y,
+            sample_fov_num_x, sample_fov_num_y, sample_x_fov_size, sample_y_fov_size,
+            sample_x_interval, sample_y_interval, sample_randomize
+        )
+
+    # set the user inputs, also tests the validation check for num and spacing vals for x and y
+    user_inputs = iter([300, 300, 100, 100, 3, 3, 1, 1, 'Y',
+                        300, 300, 100, 100, 3, 3, 1, 1, 'Y'])
 
     # override the default functionality of the input function
     monkeypatch.setattr('builtins.input', lambda _: next(user_inputs))
@@ -140,6 +168,14 @@ def test_generate_region_info():
     sample_randomize = ['Y', 'Y']
     sample_x_interval = [[100, 200, 300], [100, 200, 300]]
     sample_y_interval = [[200, 400, 600], [200, 400, 600]]
+
+    # basic error check: if one of x or y is set and other is None
+    with pytest.raises(ValueError):
+        tiling_utils.generate_region_info(
+            sample_region_start_x, sample_region_start_y, sample_fov_num_x, sample_fov_num_y,
+            sample_x_fov_size, sample_y_fov_size, sample_randomize,
+            sample_x_interval, None
+        )
 
     # test for TMA and non-TMA data
     for tma in [False, True]:

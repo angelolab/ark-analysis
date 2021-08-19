@@ -159,7 +159,7 @@ def read_tma_region_input(fov_tile_info, region_start_x, region_start_y,
 
         # the coordinates have to be valid
         if start_fov_x > end_fov_x or start_fov_y > end_fov_y:
-            err_msg = ("Coordinate error for region %s: start coordinates cannot be",
+            err_msg = ("Coordinate error for region %s: start coordinates cannot be"
                        " greater than end coordinates")
             raise ValueError(err_msg % start_fov['name'])
 
