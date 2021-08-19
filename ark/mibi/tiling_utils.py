@@ -78,6 +78,7 @@ def generate_region_info(region_start_x, region_start_y, fov_num_x, fov_num_y,
 
     # check that x_intervals and y_intervals are either both None or set
     # cannot use ^ shorthand because we're not dealing with bools
+    # also need to support both numpy arrays and lists
     if (x_intervals and not y_intervals) or (not x_intervals and y_intervals):
         raise ValueError("x_intervals and y_intervals must either both be None or set")
 
@@ -200,8 +201,9 @@ def read_tma_region_input(fov_tile_info, region_start_x, region_start_y,
 
             # find num_x/num_y even intervals between start and end fov_x/fov_y
             # casted because indices cannot be floats
-            x_interval = np.linspace(start_fov_x, end_fov_x, num_x).astype(int)
-            y_interval = np.linspace(start_fov_y, end_fov_y, num_y).astype(int)
+            # need .item() cast to prevent int64 is not JSON serializable error
+            x_interval = [x.item() for x in np.linspace(start_fov_x, end_fov_x, num_x).astype(int)]
+            y_interval = [y.item() for y in np.linspace(start_fov_y, end_fov_y, num_y).astype(int)]
 
             # get difference between x and y
             x_spacing = x_interval[1] - x_interval[0]
@@ -462,7 +464,7 @@ def generate_x_y_fov_pairs(x_range, y_range):
 
 
 def create_tiled_regions(tiling_params, moly_point, tma=False):
-    """Create the tiled regions for each fov for non-TMAs
+    """Create the tiled regions for each fov
 
     Args:
         tiling_params (dict):
@@ -515,8 +517,8 @@ def create_tiled_regions(tiling_params, moly_point, tma=False):
         for xi, yi in x_y_pairs:
             # set the current x and y coordinate
             if tma:
-                cur_x = xi.item()
-                cur_y = yi.item()
+                cur_x = xi
+                cur_y = yi
             else:
                 cur_x = start_x + xi * region_info['x_fov_size']
                 cur_y = start_y + yi * region_info['y_fov_size']
