@@ -85,8 +85,8 @@ def preprocess_row_sums(fovs, channels, base_dir, pre_dir='pixel_mat_preprocesse
                                 compression='uncompressed')
 
 
-def compute_pixel_cluster_avg(fovs, channels, base_dir, cluster_col,
-                              cluster_dir='pixel_mat_clustered'):
+def compute_pixel_cluster_channel_avg(fovs, channels, base_dir, cluster_col,
+                                      cluster_dir='pixel_mat_clustered'):
     """Compute the average channel values across each pixel SOM cluster
 
     Args:
@@ -103,7 +103,7 @@ def compute_pixel_cluster_avg(fovs, channels, base_dir, cluster_col,
 
     Returns:
         pandas.DataFrame:
-            Contains the average channel values for each pixel SOM cluster
+            Contains the average channel values for each pixel SOM/meta cluster
     """
 
     # define the cluster averages DataFrame
@@ -119,10 +119,12 @@ def compute_pixel_cluster_avg(fovs, channels, base_dir, cluster_col,
         sum_by_cluster = fov_pixel_data.groupby(cluster_col)[channels].sum()
         count_by_cluster = fov_pixel_data.groupby(cluster_col)[channels].size().to_frame('count')
 
-        # concat the results together
+        # merge the results by column
         agg_results = pd.merge(
-            sum_by_cluster, count_by_cluster, left_index=True, right_index=True).reset_index()
+            sum_by_cluster, count_by_cluster, left_index=True, right_index=True
+        ).reset_index()
 
+        # concat the results together
         cluster_avgs = pd.concat([cluster_avgs, agg_results])
 
     # sum the counts and the channel sums
@@ -164,6 +166,75 @@ def compute_cell_cluster_avg(cluster_path, column_prefix, cluster_col):
     mean_count_totals = cluster_data_subset.groupby(cluster_col).mean().reset_index()
 
     return mean_count_totals
+
+
+def compute_cell_cluster_channel_avg(pixel_channel_avg, cell_counts,
+                                     fovs=None, cluster_col='cluster'):
+    """Compute the average marker expression for each cell
+
+    This expression is weighted by the pixel SOM/meta cluster counts. So for each cell,
+    marker expression vector is computed by:
+
+    pixel_cluster_n_count * avg_marker_exp_pixel_cluster_n + ...
+
+    Args:
+        pixel_channel_avg (pandas.DataFrame):
+            The average channel values for each pixel SOM/meta cluster
+            Computed by compute_pixel_cluster_channel_avg
+        cell_counts (pandas.DataFrame):
+            The dataframe listing the number of each type of pixel SOM/meta cluster per cell
+        fovs (list):
+            The list of fovs to include, if None provided all are used
+        cluster_col (str):
+            Name of the cell cluster column to group by
+
+    Returns:
+        pandas.DataFrame:
+            Returns the average marker expression for each cell in the dataset
+    """
+
+    # if no fovs provided make sure they're all iterated over
+    if fovs is None:
+        fovs = list(cell_counts['fov'].unique())
+
+    # verify that the fovs provided are valid
+    misc_utils.verify_in_list(
+        provided_fovs=fovs,
+        dataset_fovs=cell_counts['fov'].unique()
+    )
+
+    # verify the pixel_cluster_col provided is valid
+    misc_utils.verify_in_list(
+        provided_cluster_col=cluster_col,
+        valid_cluster_cols=['cluster', 'hCluster_cap']
+    )
+
+    # subset over the provided fovs
+    cell_counts_sub = cell_counts[cell_counts['fov'].isin(fovs)].copy()
+
+    # subset over the cluster count columns of pixel_channel_avg
+    cluster_cols = [c for c in cell_counts_sub.columns.values if cluster_col in c]
+    cell_counts_clusters = cell_counts_sub[cluster_cols].copy()
+
+    # subset over just the markers of pixel_channel_avg
+    pixel_channel_avg_sub = pixel_channel_avg.drop(columns=cluster_col)
+
+    # broadcast multiply cell_counts_clusters and pixel_channel_avg to get weighted
+    # average expression values for each cell
+    weighted_cell_channel_avg = np.matmul(
+        cell_counts_clusters.values, pixel_channel_avg_sub.values
+    )
+
+    # convert back to dataframe
+    weighted_cell_channel_avg = pd.DataFrame(
+        weighted_cell_channel_avg, columns=pixel_channel_avg_sub.columns.values
+    )
+
+    # add columns back
+    meta_cols = ['cell_size', 'fov', 'segmentation_label']
+    weighted_cell_channel_avg[meta_cols] = cell_counts[meta_cols]
+
+    return weighted_cell_channel_avg
 
 
 def compute_cell_cluster_counts(fovs, consensus_path,
@@ -620,8 +691,9 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
 
     # compute the averages across each pixel SOM cluster
     print("Averaging channel values across each pixel SOM cluster")
-    cluster_avgs = compute_pixel_cluster_avg(fovs, channels, base_dir,
-                                             cluster_col='cluster', cluster_dir=cluster_dir)
+    cluster_avgs = compute_pixel_cluster_channel_avg(fovs, channels, base_dir,
+                                                     cluster_col='cluster',
+                                                     cluster_dir=cluster_dir)
 
     # save the cluster averages
     feather.write_dataframe(cluster_avgs,
@@ -691,8 +763,8 @@ def visualize_pixel_cluster_data(fovs, channels, base_dir, cluster_dir,
     )
 
     # average the channel values across the pixel cluster column
-    cluster_avgs = compute_pixel_cluster_avg(fovs, channels, base_dir,
-                                             pixel_cluster_col, cluster_dir)
+    cluster_avgs = compute_pixel_cluster_channel_avg(fovs, channels, base_dir,
+                                                     pixel_cluster_col, cluster_dir)
 
     # convert cluster column to integer type
     cluster_avgs[pixel_cluster_col] = cluster_avgs[pixel_cluster_col].astype(int)
