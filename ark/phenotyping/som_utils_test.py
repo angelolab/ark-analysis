@@ -304,7 +304,7 @@ def test_preprocess_row_sums():
             assert np.all(fov_row_pre == [0.2, 0.4, 0.4])
 
 
-def test_compute_pixel_cluster_avg():
+def test_compute_pixel_cluster_channel_avg():
     # define list of fovs and channels
     fovs = ['fov0', 'fov1', 'fov2']
     chans = ['chan0', 'chan1', 'chan2']
@@ -338,6 +338,46 @@ def test_compute_pixel_cluster_avg():
             feather.write_dataframe(fov_cluster_matrix, os.path.join(temp_dir,
                                                                      'pixel_mat_consensus',
                                                                      fov + '.feather'))
+
+        for cluster_col in ['cluster', 'hCluster_cap']:
+            # define the final result we should get
+            if cluster_col == 'cluster':
+                num_repeats = 100
+            else:
+                num_repeats = 10
+
+            result = np.repeat(np.array([[0.1, 0.2, 0.3]]), repeats=num_repeats, axis=0)
+
+            for keep_count in [False, True]:
+                # compute pixel cluster average matrix
+                cluster_avg = som_utils.compute_pixel_cluster_channel_avg(
+                    fovs, chans, temp_dir, cluster_col,
+                    'pixel_mat_consensus', keep_count=keep_count
+                )
+
+                # verify the provided channels and the channels in cluster_avg are exactly the same
+                misc_utils.verify_same_elements(
+                    cluster_avg_chans=cluster_avg[chans].columns.values,
+                    provided_chans=chans
+                )
+
+                # define the columns to check in cluster_avg, count may also be included
+                cluster_avg_cols = chans[:]
+
+                # if keep_count is true then add the counts
+                if keep_count:
+                    if cluster_col == 'cluster':
+                        counts = 30
+                    else:
+                        counts = 300
+
+                    count_col = np.expand_dims(np.repeat(counts, repeats=result.shape[0]), axis=1)
+                    result = np.append(result, count_col, 1)
+
+                    cluster_avg_cols.append('count')
+
+                # assert all elements of cluster_avg and the actual result are equal
+                assert np.array_equal(result, np.round(cluster_avg[cluster_avg_cols].values, 1))
 
         # compute pixel cluster average matrix
         cluster_avg = som_utils.compute_pixel_cluster_channel_avg(

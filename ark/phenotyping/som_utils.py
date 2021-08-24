@@ -86,7 +86,7 @@ def preprocess_row_sums(fovs, channels, base_dir, pre_dir='pixel_mat_preprocesse
 
 
 def compute_pixel_cluster_channel_avg(fovs, channels, base_dir, cluster_col,
-                                      cluster_dir='pixel_mat_clustered'):
+                                      cluster_dir='pixel_mat_clustered', keep_count=False):
     """Compute the average channel values across each pixel SOM cluster
 
     Args:
@@ -100,6 +100,8 @@ def compute_pixel_cluster_channel_avg(fovs, channels, base_dir, cluster_col,
             Name of the column to group by
         cluster_dir (str):
             Name of the file containing the pixel data with cluster labels
+        keep_count (bool):
+            Whether to keep the count column when aggregating or not
 
     Returns:
         pandas.DataFrame:
@@ -133,8 +135,9 @@ def compute_pixel_cluster_channel_avg(fovs, channels, base_dir, cluster_col,
     # now compute the means using the count column
     sum_count_totals[channels] = sum_count_totals[channels].div(sum_count_totals['count'], axis=0)
 
-    # drop the count column
-    sum_count_totals = sum_count_totals.drop('count', axis=1)
+    # drop the count column if specified
+    if not keep_count:
+        sum_count_totals = sum_count_totals.drop('count', axis=1)
 
     return sum_count_totals
 
