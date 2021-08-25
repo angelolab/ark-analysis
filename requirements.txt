@@ -1,4 +1,4 @@
-cryptography>=3.4.7,<4
+cryptography>=3.4.8,<4
 feather-format>=0.4.1,<1
 google-api-python-client>=2.7.0,<3
 google-auth-httplib2>=0.1.0,<1
