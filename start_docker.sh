@@ -30,5 +30,5 @@ docker run -it \
   -v "$PWD/ark/phenotyping/create_cell_som.R:/create_cell_som.R" \
   -v "$PWD/ark/phenotyping/run_cell_som.R:/run_cell_som.R" \
   -v "$PWD/ark/phenotyping/cell_consensus_cluster.R:/cell_consensus_cluster.R" \
-  -v "$PWD/.toks:/home/.toks"
+  -v "$PWD/.toks:/home/.toks" \
   ark-analysis:latest
