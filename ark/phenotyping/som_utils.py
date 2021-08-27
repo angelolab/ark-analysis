@@ -990,7 +990,7 @@ def cell_consensus_cluster(base_dir, max_k=20, cap=3, column_prefix='cluster',
     # compute the averages across each cell SOM cluster
     print("Averaging the pixel SOM/meta cluster counts across each cell SOM cluster")
     cluster_avgs = compute_cell_cluster_count_avg(clustered_path, column_prefix=column_prefix,
-                                            cluster_col='cluster')
+                                                  cluster_col='cluster')
 
     # save the cluster averages
     feather.write_dataframe(cluster_avgs,
