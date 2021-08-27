@@ -7,6 +7,7 @@ import random
 import tempfile
 
 from ark.mibi import tiling_utils
+import ark.settings as settings
 from ark.utils import misc_utils
 from ark.utils import test_utils
 
@@ -56,16 +57,8 @@ def test_read_tma_region_input(monkeypatch):
         fov_names=["TheFirstFOV", "TheFirstFOV", "TheSecondFOV", "TheSecondFOV"]
     )
 
-    # define sample params lists to read data into
-    sample_region_start_x = []
-    sample_region_start_y = []
-    sample_fov_num_x = []
-    sample_fov_num_y = []
-    sample_x_fov_size = []
-    sample_y_fov_size = []
-    sample_x_interval = []
-    sample_y_interval = []
-    sample_randomize = []
+    # define sample region_params to read data into
+    sample_region_params = {rpf: [] for rpf in settings.REGION_PARAM_FIELDS}
 
     # basic error check: odd number of FOVs provided
     with pytest.raises(ValueError):
@@ -73,10 +66,8 @@ def test_read_tma_region_input(monkeypatch):
         sample_fovs_list_bad['fovs'] = sample_fovs_list_bad['fovs'][:3]
 
         # use the dummy user data to read values into the params lists
-        tiling_utils.read_tma_region_input(
-            sample_fovs_list_bad, sample_region_start_x, sample_region_start_y,
-            sample_fov_num_x, sample_fov_num_y, sample_x_fov_size, sample_y_fov_size,
-            sample_x_interval, sample_y_interval, sample_randomize
+        tiling_utils._read_tma_region_input(
+            sample_fovs_list_bad, sample_region_params
         )
 
     # basic error check: start coordinate cannot be greater than end coordinate
@@ -88,10 +79,8 @@ def test_read_tma_region_input(monkeypatch):
         )
 
         # use the dummy user data to read values into the params lists
-        tiling_utils.read_tma_region_input(
-            sample_fovs_list_bad, sample_region_start_x, sample_region_start_y,
-            sample_fov_num_x, sample_fov_num_y, sample_x_fov_size, sample_y_fov_size,
-            sample_x_interval, sample_y_interval, sample_randomize
+        tiling_utils._read_tma_region_input(
+            sample_fovs_list_bad, sample_region_params
         )
 
     # set the user inputs, also tests the validation check for num and spacing vals for x and y
@@ -102,22 +91,20 @@ def test_read_tma_region_input(monkeypatch):
     monkeypatch.setattr('builtins.input', lambda _: next(user_inputs))
 
     # use the dummy user data to read values into the params lists
-    tiling_utils.read_tma_region_input(
-        sample_fovs_list, sample_region_start_x, sample_region_start_y,
-        sample_fov_num_x, sample_fov_num_y, sample_x_fov_size, sample_y_fov_size,
-        sample_x_interval, sample_y_interval, sample_randomize
+    tiling_utils._read_tma_region_input(
+        sample_fovs_list, sample_region_params
     )
 
     # assert the values were set properly
-    assert sample_region_start_x == [0, 100]
-    assert sample_region_start_y == [0, 100]
-    assert sample_fov_num_x == [3, 3]
-    assert sample_fov_num_y == [3, 3]
-    assert sample_x_fov_size == [1, 1]
-    assert sample_y_fov_size == [1, 1]
-    assert sample_x_interval == [[0, 50, 100], [100, 150, 200]]
-    assert sample_y_interval == [[0, 50, 100], [100, 150, 200]]
-    assert sample_randomize == ['Y', 'Y']
+    assert sample_region_params['region_start_x'] == [0, 100]
+    assert sample_region_params['region_start_y'] == [0, 100]
+    assert sample_region_params['fov_num_x'] == [3, 3]
+    assert sample_region_params['fov_num_y'] == [3, 3]
+    assert sample_region_params['x_fov_size'] == [1, 1]
+    assert sample_region_params['y_fov_size'] == [1, 1]
+    assert sample_region_params['x_intervals'] == [[0, 50, 100], [100, 150, 200]]
+    assert sample_region_params['y_intervals'] == [[0, 50, 100], [100, 150, 200]]
+    assert sample_region_params['region_rand'] == ['Y', 'Y']
 
 
 def test_read_non_tma_region_input(monkeypatch):
@@ -126,14 +113,10 @@ def test_read_non_tma_region_input(monkeypatch):
         fov_coords=[(0, 0), (100, 100)], fov_names=["TheFirstFOV", "TheSecondFOV"]
     )
 
-    # define sample params lists to read data into
-    sample_region_start_x = []
-    sample_region_start_y = []
-    sample_fov_num_x = []
-    sample_fov_num_y = []
-    sample_x_fov_size = []
-    sample_y_fov_size = []
-    sample_randomize = []
+    # define sample region_params to read data into
+    sample_region_params = {rpf: [] for rpf in settings.REGION_PARAM_FIELDS}
+    sample_region_params.pop('x_intervals')
+    sample_region_params.pop('y_intervals')
 
     # set the user inputs
     user_inputs = iter([3, 3, 1, 1, 'Y', 3, 3, 1, 1, 'Y'])
@@ -142,56 +125,41 @@ def test_read_non_tma_region_input(monkeypatch):
     monkeypatch.setattr('builtins.input', lambda _: next(user_inputs))
 
     # use the dummy user data to read values into the params lists
-    tiling_utils.read_non_tma_region_input(
-        sample_fovs_list, sample_region_start_x, sample_region_start_y,
-        sample_fov_num_x, sample_fov_num_y, sample_x_fov_size, sample_y_fov_size, sample_randomize
+    tiling_utils._read_non_tma_region_input(
+        sample_fovs_list, sample_region_params
     )
 
     # assert the values were set properly
-    assert sample_region_start_x == [0, 100]
-    assert sample_region_start_y == [0, 100]
-    assert sample_fov_num_x == [3, 3]
-    assert sample_fov_num_y == [3, 3]
-    assert sample_x_fov_size == [1, 1]
-    assert sample_y_fov_size == [1, 1]
-    assert sample_randomize == ['Y', 'Y']
+    assert sample_region_params['region_start_x'] == [0, 100]
+    assert sample_region_params['region_start_y'] == [0, 100]
+    assert sample_region_params['fov_num_x'] == [3, 3]
+    assert sample_region_params['fov_num_y'] == [3, 3]
+    assert sample_region_params['x_fov_size'] == [1, 1]
+    assert sample_region_params['y_fov_size'] == [1, 1]
+    assert sample_region_params['region_rand'] == ['Y', 'Y']
 
 
 def test_generate_region_info():
-    # define sample region param lists
-    sample_region_start_x = [1, 1]
-    sample_region_start_y = [2, 2]
-    sample_fov_num_x = [3, 3]
-    sample_fov_num_y = [4, 4]
-    sample_x_fov_size = [5, 5]
-    sample_y_fov_size = [6, 6]
-    sample_randomize = ['Y', 'Y']
-    sample_x_interval = [[100, 200, 300], [100, 200, 300]]
-    sample_y_interval = [[200, 400, 600], [200, 400, 600]]
-
-    # basic error check: if one of x or y is set and other is None
-    with pytest.raises(ValueError):
-        tiling_utils.generate_region_info(
-            sample_region_start_x, sample_region_start_y, sample_fov_num_x, sample_fov_num_y,
-            sample_x_fov_size, sample_y_fov_size, sample_randomize,
-            sample_x_interval, None
-        )
-
-    # test for TMA and non-TMA data
+    # test for TMA and non-TMA region inputs
     for tma in [False, True]:
+        # sample_region_inputs will already be set so we can just add on
         if tma:
-            # generate the sample region param list for TMA data
-            sample_region_params = tiling_utils.generate_region_info(
-                sample_region_start_x, sample_region_start_y, sample_fov_num_x, sample_fov_num_y,
-                sample_x_fov_size, sample_y_fov_size, sample_randomize,
-                sample_x_interval, sample_y_interval
-            )
+            sample_region_inputs['x_interval'] = [[100, 200, 300], [100, 200, 300]]
+            sample_region_inputs['y_interval'] = [[200, 400, 600], [200, 400, 600]]
+        # otherwise define dummy inputs that are needed for both TMA and non-TMA
         else:
-            # generate the sample region param list for non-TMA data
-            sample_region_params = tiling_utils.generate_region_info(
-                sample_region_start_x, sample_region_start_y, sample_fov_num_x, sample_fov_num_y,
-                sample_x_fov_size, sample_y_fov_size, sample_randomize
-            )
+            sample_region_inputs = {
+                'region_start_x': [1, 1],
+                'region_start_y': [2, 2],
+                'fov_num_x': [3, 3],
+                'fov_num_y': [4, 4],
+                'x_fov_size': [5, 5],
+                'y_fov_size': [6, 6],
+                'region_rand': ['Y', 'Y']
+            }
+
+        # generate the region params
+        sample_region_params = tiling_utils.generate_region_info(sample_region_inputs)
 
         # assert both region_start_x's are 1
         assert all(
@@ -356,12 +324,12 @@ def test_set_tiling_params(monkeypatch):
             # for TMAs, assert that the x interval and y intervals were created properly
             if tma:
                 # TheFirstFOV
-                assert sample_region_params[0]['x_interval'] == [0, 50, 100]
-                assert sample_region_params[0]['y_interval'] == [0, 50, 100]
+                assert sample_region_params[0]['x_intervals'] == [0, 50, 100]
+                assert sample_region_params[0]['y_intervals'] == [0, 50, 100]
 
                 # TheSecondFOV
-                assert sample_region_params[1]['x_interval'] == [100, 150, 200]
-                assert sample_region_params[1]['y_interval'] == [100, 150, 200]
+                assert sample_region_params[1]['x_intervals'] == [100, 150, 200]
+                assert sample_region_params[1]['y_intervals'] == [100, 150, 200]
 
 
 def test_generate_x_y_fov_pairs():
@@ -380,10 +348,17 @@ def test_create_tiled_regions_non_tma():
         fov_coords=[(0, 0), (100, 100)], fov_names=["TheFirstFOV", "TheSecondFOV"]
     )
 
-    sample_region_params = tiling_utils.generate_region_info(
-        region_start_x=[0, 50], region_start_y=[100, 150], fov_num_x=[2, 4], fov_num_y=[4, 2],
-        x_fov_size=[5, 10], y_fov_size=[10, 5], region_rand=['N', 'N']
-    )
+    sample_region_inputs = {
+        'region_start_x': [0, 50],
+        'region_start_y': [100, 150],
+        'fov_num_x': [2, 4],
+        'fov_num_y': [4, 2],
+        'x_fov_size': [5, 10],
+        'y_fov_size': [10, 5],
+        'region_rand': ['N', 'N']
+    }
+
+    sample_region_params = tiling_utils.generate_region_info(sample_region_inputs)
 
     sample_tiling_params = {
         'fovFormatVersion': '1.5',
@@ -558,12 +533,19 @@ def test_create_tiled_regions_tma():
         fov_names=["TheFirstFOV", "TheFirstFOV", "TheSecondFOV", "TheSecondFOV"]
     )
 
-    sample_region_params = tiling_utils.generate_region_info(
-        region_start_x=[0, 100], region_start_y=[0, 100], fov_num_x=[3, 3], fov_num_y=[3, 3],
-        x_fov_size=[25, 25], y_fov_size=[25, 25], region_rand=['N', 'N'],
-        x_intervals=[[0, 50, 100], [100, 150, 200]],
-        y_intervals=[[0, 50, 100], [100, 150, 200]]
-    )
+    sample_region_inputs = {
+        'region_start_x': [0, 50],
+        'region_start_y': [100, 150],
+        'fov_num_x': [2, 4],
+        'fov_num_y': [4, 2],
+        'x_fov_size': [5, 10],
+        'y_fov_size': [10, 5],
+        'x_intervals': [[0, 50, 100], [100, 150, 200]],
+        'y_intervals': [[0, 50, 100], [100, 150, 200]],
+        'region_rand': ['N', 'N']
+    }
+
+    sample_region_params = tiling_utils.generate_region_info(sample_region_inputs)
 
     sample_tiling_params = {
         'fovFormatVersion': '1.5',

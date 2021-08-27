@@ -6,6 +6,7 @@ import numpy as np
 import os
 import random
 
+import ark.settings as settings
 from ark.utils import misc_utils
 
 
@@ -46,61 +47,27 @@ def read_tiling_param(prompt, error_msg, cond, dtype):
         print(error_msg)
 
 
-def generate_region_info(region_start_x, region_start_y, fov_num_x, fov_num_y,
-                         x_fov_size, y_fov_size, region_rand,
-                         x_intervals=None, y_intervals=None):
+def generate_region_info(region_params):
     """Generate the region_params list in the tiling parameter dict
 
     Args:
-        region_start_x (list):
-            List of x starting points sorted by run
-        region_start_y (list):
-            List of y starting points sorted by run
-        fov_num_x (list):
-            Number of fovs along the x coord sorted by run
-        fov_num_y (list):
-            Number of fovs along the y coord sorted by run
-        x_fov_size (list):
-            The size of the x axis sorted by run
-        y_fov_size (list):
-            The size of the y axis sorted by run
-        region_rand (list):
-            Whether to set randomization or not sorted by run
-        x_intervals (list):
-            List of x points to choose sorted by run
-        y_intervals (list):
-            List of y points to choose sorted by run
+        region_params (dict):
+            A dictionary mapping each region-specific parameter to a list of values per fov
 
     Returns:
         list:
             The complete set of region_params sorted by run
     """
 
-    # check that x_intervals and y_intervals are either both None or set
-    # cannot use ^ shorthand because we're not dealing with bools
-    # also need to support both numpy arrays and lists
-    if (x_intervals and not y_intervals) or (not x_intervals and y_intervals):
-        raise ValueError("x_intervals and y_intervals must either both be None or set")
-
+    # define the region params list
     region_params_list = []
 
     # iterate over all the region parameters, all parameter lists are the same length
-    for i in range(len(region_start_x)):
+    for i in range(len(region_params['region_start_x'])):
         # define a dict containing all the region info for the specific fov
         region_info = {
-            'region_start_x': region_start_x[i],
-            'region_start_y': region_start_y[i],
-            'fov_num_x': fov_num_x[i],
-            'fov_num_y': fov_num_y[i],
-            'x_fov_size': x_fov_size[i],
-            'y_fov_size': y_fov_size[i],
-            'region_rand': region_rand[i]
+            rp: region_params[rp][i] for rp in region_params
         }
-
-        # add x_interval and y_interval if they're set
-        if x_intervals and y_intervals:
-            region_info['x_interval'] = x_intervals[i]
-            region_info['y_interval'] = y_intervals[i]
 
         # append info to region_params
         region_params_list.append(region_info)
@@ -108,9 +75,7 @@ def generate_region_info(region_start_x, region_start_y, fov_num_x, fov_num_y,
     return region_params_list
 
 
-def read_tma_region_input(fov_tile_info, region_start_x, region_start_y,
-                          fov_num_x, fov_num_y, x_fov_size, y_fov_size,
-                          x_intervals, y_intervals, region_rand):
+def _read_tma_region_input(fov_tile_info, region_params):
     """Reads input for TMAs from user and fov_tile_info
 
     Updates all the tiling params inplace
@@ -118,24 +83,8 @@ def read_tma_region_input(fov_tile_info, region_start_x, region_start_y,
     Args:
         fov_tile_info (dict):
             The data containing the fovs used to define each tiled region
-        region_start_x (list):
-            List of x starting points sorted by run
-        region_start_y (list):
-            List of y starting points sorted by run
-        fov_num_x (list):
-            Number of fovs along the x coord sorted by run
-        fov_num_y (list):
-            Number of fovs along the y coord sorted by run
-        x_fov_size (list):
-            The size of the x axis sorted by run
-        y_fov_size (list):
-            The size of the y axis sorted by run
-        x_intervals (list):
-            The indices to put fovs at sorted by run
-        y_intervals (list):
-            The indices to put fovs at sorted by run
-        region_rand (list):
-            Whether to set randomization or not sorted by run
+        region_params (dict):
+            A dictionary mapping each region-specific parameter to a list of values per fov
     """
 
     # there has to be a starting and ending fov for each region
@@ -163,8 +112,8 @@ def read_tma_region_input(fov_tile_info, region_start_x, region_start_y,
                        " greater than end coordinates")
             raise ValueError(err_msg % start_fov['name'])
 
-        region_start_x.append(start_fov_x)
-        region_start_y.append(start_fov_y)
+        region_params['region_start_x'].append(start_fov_x)
+        region_params['region_start_y'].append(start_fov_y)
 
         # the num_x, num_y, size_x, and size_y need additional validation
         # since they may not be compatible with the starting and ending coordinates
@@ -184,7 +133,7 @@ def read_tma_region_input(fov_tile_info, region_start_x, region_start_y,
                 dtype=int
             )
 
-            # allow the user to specify the step size along each dimension
+            # allow the user to specify the image size along each dimension
             size_x = read_tiling_param(
                 "Enter the x image size for region %s: " % start_fov['name'],
                 "Error: x step size must be positive",
@@ -224,14 +173,14 @@ def read_tma_region_input(fov_tile_info, region_start_x, region_start_y,
                            " with y start = %d and y end = %d for region %s")
                 print(err_msg % (num_y, size_y, start_fov_y, end_fov_y, start_fov['name']))
 
-        fov_num_x.append(num_x)
-        fov_num_y.append(num_y)
+        region_params['fov_num_x'].append(num_x)
+        region_params['fov_num_y'].append(num_y)
 
-        x_fov_size.append(size_x)
-        y_fov_size.append(size_y)
+        region_params['x_fov_size'].append(size_x)
+        region_params['y_fov_size'].append(size_y)
 
-        x_intervals.append(list(x_interval))
-        y_intervals.append(list(y_interval))
+        region_params['x_intervals'].append(list(x_interval))
+        region_params['y_intervals'].append(list(y_interval))
 
         # allow the user to specify if the FOVs should be randomized
         randomize = read_tiling_param(
@@ -241,11 +190,10 @@ def read_tma_region_input(fov_tile_info, region_start_x, region_start_y,
             dtype=str
         )
 
-        region_rand.append(randomize)
+        region_params['region_rand'].append(randomize)
 
 
-def read_non_tma_region_input(fov_tile_info, region_start_x, region_start_y,
-                              fov_num_x, fov_num_y, x_fov_size, y_fov_size, region_rand):
+def _read_non_tma_region_input(fov_tile_info, region_params):
     """Reads input for non-TMAs from user and fov_tile_info
 
     Updates all the tiling params inplace
@@ -253,26 +201,14 @@ def read_non_tma_region_input(fov_tile_info, region_start_x, region_start_y,
     Args:
         fov_tile_info (dict):
             The data containing the fovs used to define each tiled region
-        region_start_x (list):
-            List of x starting points sorted by run
-        region_start_y (list):
-            List of y starting points sorted by run
-        fov_num_x (list):
-            Number of fovs along the x coord sorted by run
-        fov_num_y (list):
-            Number of fovs along the y coord sorted by run
-        x_fov_size (list):
-            The size of the x axis sorted by run
-        y_fov_size (list):
-            The size of the y axis sorted by run
-        region_rand (list):
-            Whether to set randomization or not sorted by run
+        region_params (dict):
+            A dictionary mapping each region-specific parameter to a list of values per fov
     """
 
     # read in the data for each fov (region_start from fov_list_path, fov_num from user)
     for fov in fov_tile_info['fovs']:
-        region_start_x.append(fov['centerPointMicrons']['x'])
-        region_start_y.append(fov['centerPointMicrons']['y'])
+        region_params['region_start_x'].append(fov['centerPointMicrons']['x'])
+        region_params['region_start_y'].append(fov['centerPointMicrons']['y'])
 
         # allow the user to specify the number of fovs along each dimension
         num_x = read_tiling_param(
@@ -289,8 +225,8 @@ def read_non_tma_region_input(fov_tile_info, region_start_x, region_start_y,
             dtype=int
         )
 
-        fov_num_x.append(num_x)
-        fov_num_y.append(num_y)
+        region_params['fov_num_x'].append(num_x)
+        region_params['fov_num_y'].append(num_y)
 
         # allow the user to specify the step size along each dimension
         size_x = read_tiling_param(
@@ -307,8 +243,8 @@ def read_non_tma_region_input(fov_tile_info, region_start_x, region_start_y,
             dtype=int
         )
 
-        x_fov_size.append(size_x)
-        y_fov_size.append(size_y)
+        region_params['x_fov_size'].append(size_x)
+        region_params['y_fov_size'].append(size_y)
 
         # allow the user to specify if the FOVs should be randomized
         randomize = read_tiling_param(
@@ -318,7 +254,7 @@ def read_non_tma_region_input(fov_tile_info, region_start_x, region_start_y,
             dtype=str
         )
 
-        region_rand.append(randomize)
+        region_params['region_rand'].append(randomize)
 
 
 def set_tiling_params(fov_list_path, moly_path, tma=False):
@@ -363,45 +299,25 @@ def set_tiling_params(fov_list_path, moly_path, tma=False):
     # retrieve the format version
     tiling_params['fovFormatVersion'] = fov_tile_info['fovFormatVersion']
 
-    # define lists to hold the starting x and y coordinates for each region
-    region_start_x = []
-    region_start_y = []
+    # define the region_params dict
+    region_params = {rpf: [] for rpf in settings.REGION_PARAM_FIELDS}
 
-    # define lists to hold the number of fovs along each axis
-    fov_num_x = []
-    fov_num_y = []
+    # remove x and y interval keys if non-TMA is used
+    if not tma:
+        region_params.pop('x_intervals')
+        region_params.pop('y_intervals')
 
-    # define lists to hold the size of each fov
-    x_fov_size = []
-    y_fov_size = []
-
-    # define a list to determine if the fovs should be randomly ordered
-    region_rand = []
-
-    # if TMA is set we also need to define ending coordinates and intervals for each region
-    x_intervals = [] if tma else None
-    y_intervals = [] if tma else None
-
-    # reading in the params from fov_tile_info will be different for TMAs and non-TMAs
+    # read in the tma inputs
     if tma:
-        read_tma_region_input(
-            fov_tile_info, region_start_x, region_start_y, fov_num_x, fov_num_y,
-            x_fov_size, y_fov_size, x_intervals, y_intervals, region_rand
-        )
+        _read_tma_region_input(fov_tile_info, region_params)
     else:
-        read_non_tma_region_input(
-            fov_tile_info, region_start_x, region_start_y, fov_num_x, fov_num_y,
-            x_fov_size, y_fov_size, region_rand
-        )
+        _read_non_tma_region_input(fov_tile_info, region_params)
 
     # need to copy fov metadata over, needed for create_tiled_regions
     tiling_params['fovs'] = copy.deepcopy(fov_tile_info['fovs'])
 
     # store the read in parameters in the region_params key
-    tiling_params['region_params'] = generate_region_info(
-        region_start_x, region_start_y, fov_num_x, fov_num_y, x_fov_size, y_fov_size, region_rand,
-        x_intervals, y_intervals
-    )
+    tiling_params['region_params'] = generate_region_info(region_params)
 
     # whether to insert moly points between runs
     moly_run_insert = read_tiling_param(
@@ -501,8 +417,8 @@ def create_tiled_regions(tiling_params, moly_point, tma=False):
 
         # generate range of x and y coordinates
         if tma:
-            x_range = region_info['x_interval']
-            y_range = region_info['y_interval']
+            x_range = region_info['x_intervals']
+            y_range = region_info['y_intervals']
         else:
             x_range = list(range(region_info['fov_num_x']))
             y_range = list(range(region_info['fov_num_y']))
