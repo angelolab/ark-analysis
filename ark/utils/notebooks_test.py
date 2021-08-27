@@ -11,8 +11,8 @@ from ark.utils import notebooks_test_utils
 SEGMENT_IMAGE_DATA_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                        '..', '..', 'templates', 'Segment_Image_Data.ipynb')
 
-FLOWSOM_CLUSTER_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                    '..', '..', 'templates', 'example_pixel_cell_clustering.ipynb')
+PIXEL_CLUSTER_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                                  '..', '..', 'templates', 'example_pixel_clustering.ipynb')
 
 
 def _exec_notebook(nb_filename):
@@ -120,7 +120,7 @@ def test_segment_image_data_folder(tb):
 
 # # test mibitiff clustering
 # @testbook(FLOWSOM_CLUSTER_PATH, timeout=6000)
-# def test_flowsom_cluster_mibitiff(tb):
+# def test_pixel_clustering_mibitiff(tb):
 #     with tdir() as base_dir:
 #         # create input files
 #         notebooks_test_utils.flowsom_setup(tb, flowsom_dir=base_dir, is_mibitiff=True)
@@ -140,8 +140,8 @@ def test_segment_image_data_folder(tb):
 
 
 # test folder clustering
-@testbook(FLOWSOM_CLUSTER_PATH, timeout=6000)
-def test_flowsom_cluster_folder(tb):
+@testbook(PIXEL_CLUSTER_PATH, timeout=6000)
+def test_pixel_clustering_folder(tb):
     with tdir() as base_dir:
         # create input files
         notebooks_test_utils.flowsom_setup(tb, flowsom_dir=base_dir)
