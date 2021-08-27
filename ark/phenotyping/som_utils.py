@@ -102,6 +102,7 @@ def compute_pixel_cluster_channel_avg(fovs, channels, base_dir, cluster_col,
             Name of the file containing the pixel data with cluster labels
         keep_count (bool):
             Whether to keep the count column when aggregating or not
+            This should only be needed for visualization purposes
 
     Returns:
         pandas.DataFrame:
@@ -142,7 +143,7 @@ def compute_pixel_cluster_channel_avg(fovs, channels, base_dir, cluster_col,
     return sum_count_totals
 
 
-def compute_cell_cluster_avg(cluster_path, column_prefix, cluster_col):
+def compute_cell_cluster_count_avg(cluster_path, column_prefix, cluster_col):
     """For each cell SOM cluster, compute the average number of associated SOM pixel/meta clusters
 
     Args:
@@ -179,6 +180,8 @@ def compute_cell_cluster_channel_avg(pixel_channel_avg, cell_counts,
     marker expression vector is computed by:
 
     pixel_cluster_n_count * avg_marker_exp_pixel_cluster_n + ...
+
+    Note that this function will only be used to correct overlapping signal for visualization.
 
     Args:
         pixel_channel_avg (pandas.DataFrame):
@@ -219,8 +222,16 @@ def compute_cell_cluster_channel_avg(pixel_channel_avg, cell_counts,
     cluster_cols = [c for c in cell_counts_sub.columns.values if cluster_col in c]
     cell_counts_clusters = cell_counts_sub[cluster_cols].copy()
 
+    # sort the columns of cell_counts_clusters in ascending cluster order
+    cell_counts_clusters = cell_counts_clusters.reindex(
+        sorted(cell_counts_clusters.columns.values), axis=1
+    )
+
+    # sort the pixel_channel_avg table by cluster_col in ascending cluster order
+    pixel_channel_avg_sorted = pixel_channel_avg.sort_values(by=cluster_col)
+
     # subset over just the markers of pixel_channel_avg
-    pixel_channel_avg_sub = pixel_channel_avg.drop(columns=cluster_col)
+    pixel_channel_avg_sub = pixel_channel_avg_sorted.drop(columns=cluster_col)
 
     # broadcast multiply cell_counts_clusters and pixel_channel_avg to get weighted
     # average expression values for each cell
@@ -978,7 +989,7 @@ def cell_consensus_cluster(base_dir, max_k=20, cap=3, column_prefix='cluster',
 
     # compute the averages across each cell SOM cluster
     print("Averaging the pixel SOM/meta cluster counts across each cell SOM cluster")
-    cluster_avgs = compute_cell_cluster_avg(clustered_path, column_prefix=column_prefix,
+    cluster_avgs = compute_cell_cluster_count_avg(clustered_path, column_prefix=column_prefix,
                                             cluster_col='cluster')
 
     # save the cluster averages
@@ -1047,8 +1058,8 @@ def visualize_cell_cluster_data(base_dir, cluster_name, column_prefix, cell_clus
     )
 
     # average the columns across the cluster column
-    cluster_avgs = compute_cell_cluster_avg(os.path.join(base_dir, cluster_name),
-                                            column_prefix, cell_cluster_col)
+    cluster_avgs = compute_cell_cluster_count_avg(os.path.join(base_dir, cluster_name),
+                                                  column_prefix, cell_cluster_col)
 
     # convert cluster column to integer type
     cluster_avgs[cell_cluster_col] = cluster_avgs[cell_cluster_col].astype(int)

@@ -410,7 +410,7 @@ def test_compute_pixel_cluster_channel_avg():
         assert np.array_equal(result, np.round(cluster_avg[chans].values, 1))
 
 
-def test_compute_cell_cluster_avg():
+def test_compute_cell_cluster_count_avg():
     # define the cluster columns
     pixel_clusters = ['cluster_0', 'cluster_1', 'cluster_2']
     h_clusters = ['hCluster_cap_0', 'hCluster_cap_1', 'hCluster_cap_2']
@@ -443,7 +443,7 @@ def test_compute_cell_cluster_avg():
             feather.write_dataframe(cluster_data, clustered_path)
 
             # TEST 1: paveraged over cell SOM clusters
-            cell_cluster_avg = som_utils.compute_cell_cluster_avg(
+            cell_cluster_avg = som_utils.compute_cell_cluster_count_avg(
                 clustered_path, cluster_prefix, 'cluster'
             )
 
@@ -459,7 +459,7 @@ def test_compute_cell_cluster_avg():
             assert np.all(cell_cluster_avg_sub == 0.1)
 
             # TEST 2: averaged over cell meta clusters
-            cell_cluster_avg = som_utils.compute_cell_cluster_avg(
+            cell_cluster_avg = som_utils.compute_cell_cluster_count_avg(
                 clustered_path, cluster_prefix, 'hCluster_cap'
             )
 
@@ -1395,7 +1395,7 @@ def test_cell_consensus_cluster(mocker):
             feather.write_dataframe(cluster_data, clustered_path)
 
             # compute average counts of each pixel SOM/meta cluster across all cell SOM clusters
-            cluster_avg = som_utils.compute_cell_cluster_avg(
+            cluster_avg = som_utils.compute_cell_cluster_count_avg(
                 clustered_path, column_prefix=cluster_prefix, cluster_col='cluster'
             )
 
