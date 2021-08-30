@@ -51,7 +51,7 @@ def batch_channel_spatial_enrichment(label_dir, marker_thresholds, all_data, bat
 
         batch_vals, batch_stats = \
             calculate_channel_spatial_enrichment(dist_mats, marker_thresholds, all_data, **kwargs)
-        
+
         # append new values
         values = values + batch_vals
 
@@ -173,7 +173,7 @@ def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, 
     return values, stats
 
 
-def batch_cluster_spatial_enrichent(label_dir, all_data, batch_size=5, **kwargs):
+def batch_cluster_spatial_enrichment(label_dir, all_data, batch_size=5, **kwargs):
     """ Wrapper function for batching calls to `calculate_cluster_spatial_enrichment` over fovs
 
     Args:
@@ -215,7 +215,7 @@ def batch_cluster_spatial_enrichent(label_dir, all_data, batch_size=5, **kwargs)
 
         batch_vals, batch_stats = \
             calculate_cluster_spatial_enrichment(all_data, dist_mats, **kwargs)
-        
+
         # append new values
         values = values + batch_vals
 
