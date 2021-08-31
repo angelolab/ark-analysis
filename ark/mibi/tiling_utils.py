@@ -186,9 +186,12 @@ def _read_tma_region_input(fov_tile_info, region_params):
         randomize = read_tiling_param(
             "Randomize fovs for region %s? Y/N: " % start_fov['name'],
             "Error: randomize parameter must Y or N",
-            lambda r: r in ['Y', 'N'],
+            lambda r: r in ['Y', 'N', 'y', 'n'],
             dtype=str
         )
+
+        # make sure randomize is uppercase
+        randomize = randomize.upper()
 
         region_params['region_rand'].append(randomize)
 
