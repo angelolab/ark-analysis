@@ -13,6 +13,10 @@ KMEANS_CLUSTER = 'cluster_labels'           # generated cluster column name
 PRE_CHANNEL_COL = CELL_SIZE                 # last column before channel data
 POST_CHANNEL_COL = CELL_LABEL               # first column after channel data
 
+# MIBI tiling parameters
+REGION_PARAM_FIELDS = ['region_start_x', 'region_start_y', 'fov_num_x', 'fov_num_y',
+                       'x_fov_size', 'y_fov_size', 'region_rand', 'x_intervals', 'y_intervals']
+
 # regionprops extraction
 REGIONPROPS_BASE = ['label', 'area', 'eccentricity', 'major_axis_length',
                     'minor_axis_length', 'perimeter', 'centroid',
