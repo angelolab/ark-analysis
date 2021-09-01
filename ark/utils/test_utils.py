@@ -740,6 +740,21 @@ def _make_dist_mat_sa(enrichment_type, dist_lim):
 
 
 def spoof_cell_table_from_labels(labels, cell_count=4, positive_population_ratio=1/4):
+    """Generates example cell table from label images to test spatial_analysis batching
+
+    Args:
+        labels (xr.DataArray):
+            data array with segmentation labels
+        cell_count (int):
+            number of cells per fov
+        positive_population_ration (float):
+            fraction of cells per fov to assign unique trait to.  This is performed twice for two
+            unique populations, so it must be smaller than 1/2.
+
+    Returns:
+        pandas.DataFrame:
+            cell table which matches the provided label images
+    """
     num_fovs = len(labels.fovs.values)
 
     if positive_population_ratio > 1/2:
