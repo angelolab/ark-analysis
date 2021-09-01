@@ -42,12 +42,20 @@ def batch_channel_spatial_enrichment(label_dir, marker_thresholds, all_data, bat
     values = []
     stats_datasets = []
 
+    # extract 'included_fovs' kwarg
+    included_fovs = kwargs.get('included_fovs', None)
+
     for batch_names in batching_strategy:
         label_maps = load_utils.load_imgs_from_dir(label_dir, files=batch_names,
                                                    xr_channel_names=['segmentation_label'],
                                                    trim_suffix='_feature_0')
 
         dist_mats = spatial_analysis_utils.calc_dist_matrix(label_maps)
+
+        # filter 'included_fovs'
+        if included_fovs:
+            filtered_includes = set(dist_mats.keys()).intersection(included_fovs)
+            kwargs.set('included_fovs', list(filtered_includes))
 
         batch_vals, batch_stats = \
             calculate_channel_spatial_enrichment(dist_mats, marker_thresholds, all_data, **kwargs)
@@ -102,7 +110,7 @@ def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, 
 
     # Setup input and parameters
     if included_fovs is None:
-        included_fovs = all_data[fov_col].unique()
+        included_fovs = list(dist_matrices_dict.keys())
         num_fovs = len(included_fovs)
     else:
         num_fovs = len(included_fovs)
@@ -206,12 +214,20 @@ def batch_cluster_spatial_enrichment(label_dir, all_data, batch_size=5, **kwargs
     values = []
     stats_datasets = []
 
+    # extract 'included_fovs' kwarg
+    included_fovs = kwargs.get('included_fovs', None)
+
     for batch_names in batching_strategy:
         label_maps = load_utils.load_imgs_from_dir(label_dir, files=batch_names,
                                                    xr_channel_names=['segmentation_label'],
                                                    trim_suffix='_feature_0')
 
         dist_mats = spatial_analysis_utils.calc_dist_matrix(label_maps)
+
+        # filter 'included_fovs'
+        if included_fovs:
+            filtered_includes = set(dist_mats.keys()).intersection(included_fovs)
+            kwargs.set('included_fovs', list(filtered_includes))
 
         batch_vals, batch_stats = \
             calculate_cluster_spatial_enrichment(all_data, dist_mats, **kwargs)
@@ -273,7 +289,7 @@ def calculate_cluster_spatial_enrichment(all_data, dist_matrices_dict, included_
 
     # Setup input and parameters
     if included_fovs is None:
-        included_fovs = all_data[fov_col].unique()
+        included_fovs = list(dist_matrices_dict.keys())
         num_fovs = len(included_fovs)
     else:
         num_fovs = len(included_fovs)
