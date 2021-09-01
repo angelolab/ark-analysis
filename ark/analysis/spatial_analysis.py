@@ -55,7 +55,7 @@ def batch_channel_spatial_enrichment(label_dir, marker_thresholds, all_data, bat
         # filter 'included_fovs'
         if included_fovs:
             filtered_includes = set(dist_mats.keys()).intersection(included_fovs)
-            kwargs.set('included_fovs', list(filtered_includes))
+            kwargs['included_fovs'] = list(filtered_includes)
 
         batch_vals, batch_stats = \
             calculate_channel_spatial_enrichment(dist_mats, marker_thresholds, all_data, **kwargs)
@@ -227,7 +227,7 @@ def batch_cluster_spatial_enrichment(label_dir, all_data, batch_size=5, **kwargs
         # filter 'included_fovs'
         if included_fovs:
             filtered_includes = set(dist_mats.keys()).intersection(included_fovs)
-            kwargs.set('included_fovs', list(filtered_includes))
+            kwargs['included_fovs'] = list(filtered_includes)
 
         batch_vals, batch_stats = \
             calculate_cluster_spatial_enrichment(all_data, dist_mats, **kwargs)

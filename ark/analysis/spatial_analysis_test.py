@@ -82,6 +82,19 @@ def test_batch_channel_spatial_enrichment():
         np.testing.assert_equal(vals_pos, vals_pos_batch_2)
         xr.testing.assert_equal(stats_pos, stats_pos_batch_2)
 
+        # test fov inclusion w/ fixed seed
+        random.seed(0)
+        vals_pos_fov8, stats_pos_fov8 = \
+            spatial_analysis.batch_channel_spatial_enrichment(
+                label_dir, marker_thresholds, all_data, excluded_channels=EXCLUDE_CHANNELS,
+                bootstrap_num=100, dist_lim=100, batch_size=5, included_fovs=["fov8"]
+            )
+
+        np.testing.assert_equal(vals_pos_fov8[0], vals_pos[0])
+        assert len(vals_pos_fov8) == 1
+
+        xr.testing.assert_equal(stats_pos_fov8, stats_pos.loc[["fov8"], :, :])
+
 
 def test_batch_cluster_spatial_enrichment():
 
@@ -122,6 +135,18 @@ def test_batch_cluster_spatial_enrichment():
         # batch function should match for multi batch process
         np.testing.assert_equal(vals_pos, vals_pos_batch_2)
         xr.testing.assert_equal(stats_pos, stats_pos_batch_2)
+
+        # test fov inclusion w/ fixed seed
+        random.seed(0)
+        vals_pos_fov8, stats_pos_fov8 = \
+            spatial_analysis.batch_cluster_spatial_enrichment(
+                label_dir, all_data, bootstrap_num=100, dist_lim=100, batch_size=5,
+                included_fovs=["fov8"])
+
+        np.testing.assert_equal(vals_pos_fov8[0], vals_pos[0])
+        assert len(vals_pos_fov8) == 1
+
+        xr.testing.assert_equal(stats_pos_fov8, stats_pos.loc[["fov8"], :, :])
 
 
 def test_calculate_channel_spatial_enrichment():
