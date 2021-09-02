@@ -7,6 +7,7 @@ import ark.settings as settings
 
 
 def batch_channel_spatial_enrichment(label_dir, marker_thresholds, all_data, batch_size=5,
+                                     suffix='_feature_0', xr_channel_name='segmentation_label',
                                      **kwargs):
     """Wrapper function for batching calls to `calculate_channel_spatial_enrichment` over fovs
 
@@ -19,6 +20,10 @@ def batch_channel_spatial_enrichment(label_dir, marker_thresholds, all_data, bat
             data including fovs, cell labels, and cell expression matrix for all markers
         batch_size (int):
             fov count to load into memory at a time
+        suffix (str):
+            suffix for tif file names
+        xr_channel_name (str):
+            channel name for label data array
         **kwargs (dict):
             args passed to `calculate_channel_spatial_enrichment`
 
@@ -35,6 +40,12 @@ def batch_channel_spatial_enrichment(label_dir, marker_thresholds, all_data, bat
     # parse files in label_dir
     all_label_names = io_utils.list_files(label_dir, substrs=['.tif'])
 
+    included_fovs = kwargs.get('included_fovs', None)
+    if included_fovs:
+        label_fovs = io_utils.extract_delimited_names(all_label_names, delimiter=suffix)
+        all_label_names = \
+            [all_label_names[i] for i, fov in enumerate(label_fovs) if fov in included_fovs]
+
     batching_strategy = \
         [all_label_names[i:i + batch_size] for i in range(0, len(all_label_names), batch_size)]
 
@@ -42,13 +53,10 @@ def batch_channel_spatial_enrichment(label_dir, marker_thresholds, all_data, bat
     values = []
     stats_datasets = []
 
-    # extract 'included_fovs' kwarg
-    included_fovs = kwargs.get('included_fovs', None)
-
     for batch_names in batching_strategy:
         label_maps = load_utils.load_imgs_from_dir(label_dir, files=batch_names,
-                                                   xr_channel_names=['segmentation_label'],
-                                                   trim_suffix='_feature_0')
+                                                   xr_channel_names=[xr_channel_name],
+                                                   trim_suffix=suffix)
 
         dist_mats = spatial_analysis_utils.calc_dist_matrix(label_maps)
 
@@ -181,7 +189,8 @@ def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, 
     return values, stats
 
 
-def batch_cluster_spatial_enrichment(label_dir, all_data, batch_size=5, **kwargs):
+def batch_cluster_spatial_enrichment(label_dir, all_data, batch_size=5, suffix='_feature_0',
+                                     xr_channel_name='segmentation_label', **kwargs):
     """ Wrapper function for batching calls to `calculate_cluster_spatial_enrichment` over fovs
 
     Args:
@@ -191,6 +200,10 @@ def batch_cluster_spatial_enrichment(label_dir, all_data, batch_size=5, **kwargs
             data including fovs, cell labels, and cell expression matrix for all markers
         batch_size (int):
             fov count to load into memory at a time
+        suffix (str):
+            suffix for tif file names
+        xr_channel_name (str):
+            channel name for label data array
         **kwargs (dict):
             args passed to `calculate_cluster_spatial_enrichment`
 
@@ -207,6 +220,12 @@ def batch_cluster_spatial_enrichment(label_dir, all_data, batch_size=5, **kwargs
     # parse files in label_dir
     all_label_names = io_utils.list_files(label_dir, substrs=['.tif'])
 
+    included_fovs = kwargs.get('included_fovs', None)
+    if included_fovs:
+        label_fovs = io_utils.extract_delimited_names(all_label_names, delimiter=suffix)
+        all_label_names = \
+            [all_label_names[i] for i, fov in enumerate(label_fovs) if fov in included_fovs]
+
     batching_strategy = \
         [all_label_names[i:i + batch_size] for i in range(0, len(all_label_names), batch_size)]
 
@@ -214,13 +233,10 @@ def batch_cluster_spatial_enrichment(label_dir, all_data, batch_size=5, **kwargs
     values = []
     stats_datasets = []
 
-    # extract 'included_fovs' kwarg
-    included_fovs = kwargs.get('included_fovs', None)
-
     for batch_names in batching_strategy:
         label_maps = load_utils.load_imgs_from_dir(label_dir, files=batch_names,
-                                                   xr_channel_names=['segmentation_label'],
-                                                   trim_suffix='_feature_0')
+                                                   xr_channel_names=[xr_channel_name],
+                                                   trim_suffix=suffix)
 
         dist_mats = spatial_analysis_utils.calc_dist_matrix(label_maps)
 
