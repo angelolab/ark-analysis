@@ -18,7 +18,7 @@ Open terminal and navigate to where you want the code stored.
 Then input the command:
 
 ```
-$ git clone https://github.com/angelolab/ark-analysis.git
+git clone https://github.com/angelolab/ark-analysis.git
 ```
 
 Next, you'll need to set up a docker image with all of the required dependencies.
@@ -28,7 +28,7 @@ Next, you'll need to set up a docker image with all of the required dependencies
 
 ```
 cd ark-analysis
-docker build -t ark-analysis .
+docker build -t ark-analysis '.'
 ``` 
 
 You've now installed the code base. 
@@ -47,7 +47,7 @@ Be sure to keep this terminal open.  **Do not exit the terminal or enter control
 
 ### NOTE
 
-If you already have a Jupyter session open when you run `$ ./start_docker.sh`, you will receive a couple additional prompts. 
+If you already have a Jupyter session open when you run `./start_docker.sh`, you will receive a couple additional prompts. 
 
 Copy the URL listed after `Enter this URL instead to access the notebooks:` 
 
