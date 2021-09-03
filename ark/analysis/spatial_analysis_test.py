@@ -115,7 +115,7 @@ def test_batch_cluster_spatial_enrichment():
         random.seed(0)
         vals_pos, stats_pos = \
             spatial_analysis.calculate_cluster_spatial_enrichment(
-                all_data, dist_mats, bootstrap_num=100, dist_lim=100)
+                dist_mats, all_data, bootstrap_num=100, dist_lim=100)
 
         # fix seed
         random.seed(0)
@@ -258,7 +258,7 @@ def test_calculate_cluster_spatial_enrichment():
 
     _, stats_pos = \
         spatial_analysis.calculate_cluster_spatial_enrichment(
-            all_data_pos, dist_mat_pos,
+            dist_mat_pos, all_data_pos,
             bootstrap_num=dist_lim, dist_lim=dist_lim)
 
     # Test both fov8 and fov9
@@ -278,7 +278,7 @@ def test_calculate_cluster_spatial_enrichment():
 
     _, stats_neg = \
         spatial_analysis.calculate_cluster_spatial_enrichment(
-            all_data_neg, dist_mat_neg,
+            dist_mat_neg, all_data_neg,
             bootstrap_num=dist_lim, dist_lim=dist_lim)
 
     # Test both fov8 and fov9
@@ -297,7 +297,7 @@ def test_calculate_cluster_spatial_enrichment():
 
     _, stats_no_enrich = \
         spatial_analysis.calculate_cluster_spatial_enrichment(
-            all_data_no_enrich, dist_mat_no_enrich,
+            dist_mat_no_enrich, all_data_no_enrich,
             bootstrap_num=dist_lim, dist_lim=dist_lim)
     # Extract the p-values and z-scores of the distance of marker 1 vs marker 2 for no enrichment
     # as tested against a random set of distances between centroids
@@ -314,7 +314,7 @@ def test_calculate_cluster_spatial_enrichment():
         # attempt to include fovs that do not exist
         _, stats_no_enrich = \
             spatial_analysis.calculate_cluster_spatial_enrichment(
-                all_data_no_enrich, dist_mat_no_enrich, included_fovs=[1, 100000],
+                dist_mat_no_enrich, all_data_no_enrich, included_fovs=[1, 100000],
                 bootstrap_num=100, dist_lim=dist_lim)
 
 

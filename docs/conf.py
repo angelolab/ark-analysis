@@ -247,7 +247,7 @@ def check_docstring_format(app, what, name, obj, options, lines):
         argspec = inspect.getfullargspec(obj)
         argnames = \
             argspec.args \
-            + ([argspec.varargs] if argspec.varargs else []) \
+            + ([argspec.varargs] if argspec.varargs and argspec.varargs != 'args' else []) \
             + argspec.kwonlyargs
 
         if len(argnames) > 0:
