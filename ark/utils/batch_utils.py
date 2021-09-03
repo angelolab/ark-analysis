@@ -1,7 +1,8 @@
-import functools
 import inspect
 from types import FunctionType, CodeType
 from ark.utils import io_utils
+
+# here be dragons
 
 
 def batch_over_fovs(listing_strategy, loading_strategy, append_strategies, dirname='label_dir'):
@@ -41,6 +42,10 @@ def batch_over_fovs(listing_strategy, loading_strategy, append_strategies, dirna
 def _blank(): pass
 
 
+def _exec_format(val):
+    return f"'{val}'" if isinstance(val, str) else val
+
+
 def make_batch_function(core_func, batching_strategy):
     def decorator_batch(func):
 
@@ -49,15 +54,6 @@ def make_batch_function(core_func, batching_strategy):
         if hasattr(operational_func, 'replaces'):
             replaces = operational_func.replaces
 
-        @functools.wraps(func)
-        def wrapper_batch(*args, batch_size=5, **kwargs):
-            return batching_strategy(core_func)(*args, batch_size=batch_size, **kwargs)
-
-        wrapper_batch.__doc__ = func.__doc__
-        wrapper_batch.__name__ = func.__name__
-        wrapper_batch.__defaults__ = core_func.__defaults__ + (5,)
-
-        # there be demon magic afoot here
         core_spec = inspect.getfullargspec(core_func)
 
         new_args = core_spec.args.copy()
@@ -65,7 +61,28 @@ def make_batch_function(core_func, batching_strategy):
             for ind, new_name in replaces:
                 new_args[ind] = new_name
 
-        all_args = tuple(new_args + ['batch_size'] + core_spec.kwonlyargs)
+        wrapper_parameter_def = [
+            f'{new_arg}={_exec_format(core_spec.defaults[::-1][i])}'
+            if i < len(core_spec.defaults) else new_arg
+            for i, new_arg in enumerate(new_args[::-1])
+        ][::-1]
+
+        # not wyverns. straight up dragons
+        scope = {
+            'batching_strategy': batching_strategy,
+            'core_func': core_func
+        }
+        exec(f"def _wrapper_batch({', '.join(wrapper_parameter_def)}, batch_size=5):\n"
+             + f"\treturn batching_strategy(core_func)({', '.join(new_args)}, "
+             + "batch_size=batch_size)", scope)
+
+        wrapper_batch = scope['_wrapper_batch']
+
+        wrapper_batch.__doc__ = func.__doc__
+        wrapper_batch.__name__ = func.__name__
+        wrapper_batch.__module__ = func.__module__
+
+        all_args = tuple(new_args + core_spec.kwonlyargs)
 
         passer_args = [
             len(core_spec.args) + 1,
@@ -74,7 +91,7 @@ def make_batch_function(core_func, batching_strategy):
             _blank.__code__.co_stacksize,
             core_func.__code__.co_flags,
             _blank.__code__.co_code, (), (),
-            all_args, wrapper_batch.__code__.co_filename,
+            all_args + ('batch_size',), wrapper_batch.__code__.co_filename,
             wrapper_batch.__code__.co_name,
             wrapper_batch.__code__.co_firstlineno,
             wrapper_batch.__code__.co_lnotab
@@ -84,24 +101,6 @@ def make_batch_function(core_func, batching_strategy):
         passer = FunctionType(passer_code, globals())
         passer.__defaults__ = core_func.__defaults__ + (5,)
         wrapper_batch.__wrapped__ = passer
-
-        wrapper_args = [
-            len(core_spec.args) + 1,
-            len(core_spec.kwonlyargs),
-            wrapper_batch.__code__.co_nlocals,
-            wrapper_batch.__code__.co_stacksize,
-            wrapper_batch.__code__.co_flags,
-            wrapper_batch.__code__.co_code, (), (),
-            all_args + ('args', 'kwargs'),
-            wrapper_batch.__code__.co_filename,
-            wrapper_batch.__code__.co_name,
-            wrapper_batch.__code__.co_firstlineno,
-            wrapper_batch.__code__.co_lnotab,
-            wrapper_batch.__code__.co_freevars,
-            wrapper_batch.__code__.co_cellvars
-        ]
-
-        wrapper_batch.__code__ = CodeType(*wrapper_args)
 
         return wrapper_batch
     return decorator_batch
