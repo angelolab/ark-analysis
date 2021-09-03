@@ -16,7 +16,7 @@ def batch_over_fovs(listing_strategy, loading_strategy, append_strategies, dirna
             function which takes a directory and gets all relevant filenames
         loading_strategy (Callable):
             function which takes a directory and loads batched filenames from said directory
-        append_strategy (tuple):
+        append_strategies (tuple):
             tuple of callables for how to 'rejoin' returned values after batch processing
         dirname (str):
             name of replaced function argument/parameter
