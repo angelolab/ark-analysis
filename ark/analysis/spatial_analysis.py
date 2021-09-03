@@ -1,10 +1,83 @@
 import pandas as pd
 import xarray as xr
 import numpy as np
-from ark.utils import spatial_analysis_utils
-from ark.utils import misc_utils
+from ark.utils import spatial_analysis_utils, misc_utils, load_utils, io_utils
 
 import ark.settings as settings
+
+
+def batch_channel_spatial_enrichment(label_dir, marker_thresholds, all_data, batch_size=5,
+                                     suffix='_feature_0', xr_channel_name='segmentation_label',
+                                     **kwargs):
+    """Wrapper function for batching calls to `calculate_channel_spatial_enrichment` over fovs
+
+    Args:
+        label_dir (str | Pathlike):
+            directory containing labeled tiffs
+        marker_thresholds (numpy.ndarray):
+            threshold values for positive marker expression
+        all_data (pandas.DataFrame):
+            data including fovs, cell labels, and cell expression matrix for all markers
+        batch_size (int):
+            fov count to load into memory at a time
+        suffix (str):
+            suffix for tif file names
+        xr_channel_name (str):
+            channel name for label data array
+        **kwargs (dict):
+            args passed to `calculate_channel_spatial_enrichment`
+
+    Returns:
+        tuple (list, xarray.DataArray):
+
+        - a list with each element consisting of a tuple of closenum and closenumrand for each
+          fov included in the analysis
+        - an xarray with dimensions (fovs, stats, num_channels, num_channels). The included
+          stats variables for each fov are z, muhat, sigmahat, p, h, adj_p, and
+          cluster_names
+    """
+
+    # parse files in label_dir
+    all_label_names = io_utils.list_files(label_dir, substrs=['.tif'])
+
+    included_fovs = kwargs.get('included_fovs', None)
+    if included_fovs:
+        label_fovs = io_utils.extract_delimited_names(all_label_names, delimiter=suffix)
+        all_label_names = \
+            [all_label_names[i] for i, fov in enumerate(label_fovs) if fov in included_fovs]
+
+    batching_strategy = \
+        [all_label_names[i:i + batch_size] for i in range(0, len(all_label_names), batch_size)]
+
+    # create containers for batched return values
+    values = []
+    stats_datasets = []
+
+    for batch_names in batching_strategy:
+        label_maps = load_utils.load_imgs_from_dir(label_dir, files=batch_names,
+                                                   xr_channel_names=[xr_channel_name],
+                                                   trim_suffix=suffix)
+
+        dist_mats = spatial_analysis_utils.calc_dist_matrix(label_maps)
+
+        # filter 'included_fovs'
+        if included_fovs:
+            filtered_includes = set(dist_mats.keys()).intersection(included_fovs)
+            kwargs['included_fovs'] = list(filtered_includes)
+
+        batch_vals, batch_stats = \
+            calculate_channel_spatial_enrichment(dist_mats, marker_thresholds, all_data, **kwargs)
+
+        # append new values
+        values = values + batch_vals
+
+        # append new data array (easier than iteratively combining)
+        stats_datasets.append(batch_stats)
+
+    # combine list of data arrays into one
+    stats = xr.concat(stats_datasets, dim="fovs")
+
+    return values, stats
 
 
 def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, all_data,
@@ -16,7 +89,7 @@ def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, 
 
     Args:
         dist_matrices_dict (dict):
-            Contains a cells x cells matrix with the euclidian distance between centers of
+            contains a cells x cells matrix with the euclidian distance between centers of
             corresponding cells for every fov
         marker_thresholds (numpy.ndarray):
             threshold values for positive marker expression
@@ -45,7 +118,7 @@ def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, 
 
     # Setup input and parameters
     if included_fovs is None:
-        included_fovs = all_data[fov_col].unique()
+        included_fovs = list(dist_matrices_dict.keys())
         num_fovs = len(included_fovs)
     else:
         num_fovs = len(included_fovs)
@@ -116,6 +189,77 @@ def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, 
     return values, stats
 
 
+def batch_cluster_spatial_enrichment(label_dir, all_data, batch_size=5, suffix='_feature_0',
+                                     xr_channel_name='segmentation_label', **kwargs):
+    """ Wrapper function for batching calls to `calculate_cluster_spatial_enrichment` over fovs
+
+    Args:
+        label_dir (str | Pathlike):
+            directory containing labeled tiffs
+        all_data (pandas.DataFrame):
+            data including fovs, cell labels, and cell expression matrix for all markers
+        batch_size (int):
+            fov count to load into memory at a time
+        suffix (str):
+            suffix for tif file names
+        xr_channel_name (str):
+            channel name for label data array
+        **kwargs (dict):
+            args passed to `calculate_cluster_spatial_enrichment`
+
+    Returns:
+        tuple (list, xarray.DataArray):
+
+        - a list with each element consisting of a tuple of closenum and closenumrand for each
+          fov included in the analysis
+        - an xarray with dimensions (fovs, stats, num_channels, num_channels). The included
+          stats variables for each fov are z, muhat, sigmahat, p, h, adj_p, and
+          cluster_names
+    """
+
+    # parse files in label_dir
+    all_label_names = io_utils.list_files(label_dir, substrs=['.tif'])
+
+    included_fovs = kwargs.get('included_fovs', None)
+    if included_fovs:
+        label_fovs = io_utils.extract_delimited_names(all_label_names, delimiter=suffix)
+        all_label_names = \
+            [all_label_names[i] for i, fov in enumerate(label_fovs) if fov in included_fovs]
+
+    batching_strategy = \
+        [all_label_names[i:i + batch_size] for i in range(0, len(all_label_names), batch_size)]
+
+    # create containers for batched return values
+    values = []
+    stats_datasets = []
+
+    for batch_names in batching_strategy:
+        label_maps = load_utils.load_imgs_from_dir(label_dir, files=batch_names,
+                                                   xr_channel_names=[xr_channel_name],
+                                                   trim_suffix=suffix)
+
+        dist_mats = spatial_analysis_utils.calc_dist_matrix(label_maps)
+
+        # filter 'included_fovs'
+        if included_fovs:
+            filtered_includes = set(dist_mats.keys()).intersection(included_fovs)
+            kwargs['included_fovs'] = list(filtered_includes)
+
+        batch_vals, batch_stats = \
+            calculate_cluster_spatial_enrichment(all_data, dist_mats, **kwargs)
+
+        # append new values
+        values = values + batch_vals
+
+        # append new data array (easier than iteratively combining)
+        stats_datasets.append(batch_stats)
+
+    # combine list of data arrays into one
+    stats = xr.concat(stats_datasets, dim="fovs")
+
+    return values, stats
+
+
 def calculate_cluster_spatial_enrichment(all_data, dist_matrices_dict, included_fovs=None,
                                          bootstrap_num=1000, dist_lim=100, fov_col=settings.FOV_ID,
                                          cluster_name_col=settings.CELL_TYPE,
@@ -161,7 +305,7 @@ def calculate_cluster_spatial_enrichment(all_data, dist_matrices_dict, included_
 
     # Setup input and parameters
     if included_fovs is None:
-        included_fovs = all_data[fov_col].unique()
+        included_fovs = list(dist_matrices_dict.keys())
         num_fovs = len(included_fovs)
     else:
         num_fovs = len(included_fovs)

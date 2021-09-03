@@ -1,11 +1,14 @@
+import tempfile
 import pytest
 import numpy as np
 import pandas as pd
+import xarray as xr
+import random
 
 from ark.analysis import spatial_analysis
 
 import ark.settings as settings
-from ark.utils import test_utils
+from ark.utils import spatial_analysis_utils, load_utils, test_utils
 
 EXCLUDE_CHANNELS = [
     "Background",
@@ -30,6 +33,120 @@ DEFAULT_COLUMNS = \
 list(map(
     DEFAULT_COLUMNS.__setitem__, [1, 14, 23], EXCLUDE_CHANNELS
 ))
+
+
+def test_batch_channel_spatial_enrichment():
+
+    # since the functionality if channel spatial enrichment is tested later,
+    # only the batching needs to be tested
+    marker_thresholds = test_utils._make_threshold_mat(in_utils=False)
+
+    with tempfile.TemporaryDirectory() as label_dir:
+
+        test_utils._write_labels(label_dir, ["fov8", "fov9"], ["segmentation_label"], (10, 10),
+                                 '', True, np.uint8, suffix='_feature_0')
+
+        label_maps = load_utils.load_imgs_from_dir(label_dir, trim_suffix="_feature_0",
+                                                   xr_channel_names=["segmentation_label"])
+
+        dist_mats = spatial_analysis_utils.calc_dist_matrix(label_maps)
+
+        all_data = test_utils.spoof_cell_table_from_labels(label_maps)
+
+        # fix seed
+        random.seed(0)
+        vals_pos, stats_pos = \
+            spatial_analysis.calculate_channel_spatial_enrichment(
+                dist_mats, marker_thresholds, all_data, excluded_channels=EXCLUDE_CHANNELS,
+                bootstrap_num=100, dist_lim=100)
+
+        # fix seed
+        random.seed(0)
+        vals_pos_batch, stats_pos_batch = \
+            spatial_analysis.batch_channel_spatial_enrichment(
+                label_dir, marker_thresholds, all_data, excluded_channels=EXCLUDE_CHANNELS,
+                bootstrap_num=100, dist_lim=100, batch_size=5)
+
+        # fix seed
+        random.seed(0)
+        vals_pos_batch_2, stats_pos_batch_2 = \
+            spatial_analysis.batch_channel_spatial_enrichment(
+                label_dir, marker_thresholds, all_data, excluded_channels=EXCLUDE_CHANNELS,
+                bootstrap_num=100, dist_lim=100, batch_size=1
+            )
+
+        np.testing.assert_equal(vals_pos, vals_pos_batch)
+        xr.testing.assert_equal(stats_pos, stats_pos_batch)
+
+        # batch function should match for multi batch process
+        np.testing.assert_equal(vals_pos, vals_pos_batch_2)
+        xr.testing.assert_equal(stats_pos, stats_pos_batch_2)
+
+        # test fov inclusion w/ fixed seed
+        random.seed(0)
+        vals_pos_fov8, stats_pos_fov8 = \
+            spatial_analysis.batch_channel_spatial_enrichment(
+                label_dir, marker_thresholds, all_data, excluded_channels=EXCLUDE_CHANNELS,
+                bootstrap_num=100, dist_lim=100, batch_size=5, included_fovs=["fov8"]
+            )
+
+        np.testing.assert_equal(vals_pos_fov8[0], vals_pos[0])
+        assert len(vals_pos_fov8) == 1
+
+        xr.testing.assert_equal(stats_pos_fov8, stats_pos.loc[["fov8"], :, :])
+
+
+def test_batch_cluster_spatial_enrichment():
+
+    # since the functionality if channel spatial enrichment is tested later,
+    # only the batching needs to be tested
+    with tempfile.TemporaryDirectory() as label_dir:
+        test_utils._write_labels(label_dir, ["fov8", "fov9"], ["segmentation_label"], (10, 10),
+                                 '', True, np.uint8, suffix='_feature_0')
+
+        label_maps = load_utils.load_imgs_from_dir(label_dir, trim_suffix="_feature_0",
+                                                   xr_channel_names=["segmentation_label"])
+
+        dist_mats = spatial_analysis_utils.calc_dist_matrix(label_maps)
+
+        all_data = test_utils.spoof_cell_table_from_labels(label_maps)
+
+        # fix seed
+        random.seed(0)
+        vals_pos, stats_pos = \
+            spatial_analysis.calculate_cluster_spatial_enrichment(
+                all_data, dist_mats, bootstrap_num=100, dist_lim=100)
+
+        # fix seed
+        random.seed(0)
+        vals_pos_batch, stats_pos_batch = \
+            spatial_analysis.batch_cluster_spatial_enrichment(
+                label_dir, all_data, bootstrap_num=100, dist_lim=100, batch_size=5)
+
+        # fix seed
+        random.seed(0)
+        vals_pos_batch_2, stats_pos_batch_2 = \
+            spatial_analysis.batch_cluster_spatial_enrichment(
+                label_dir, all_data, bootstrap_num=100, dist_lim=100, batch_size=1)
+
+        np.testing.assert_equal(vals_pos, vals_pos_batch)
+        xr.testing.assert_equal(stats_pos, stats_pos_batch)
+
+        # batch function should match for multi batch process
+        np.testing.assert_equal(vals_pos, vals_pos_batch_2)
+        xr.testing.assert_equal(stats_pos, stats_pos_batch_2)
+
+        # test fov inclusion w/ fixed seed
+        random.seed(0)
+        vals_pos_fov8, stats_pos_fov8 = \
+            spatial_analysis.batch_cluster_spatial_enrichment(
+                label_dir, all_data, bootstrap_num=100, dist_lim=100, batch_size=5,
+                included_fovs=["fov8"])
+
+        np.testing.assert_equal(vals_pos_fov8[0], vals_pos[0])
+        assert len(vals_pos_fov8) == 1
+
+        xr.testing.assert_equal(stats_pos_fov8, stats_pos.loc[["fov8"], :, :])
 
 
 def test_calculate_channel_spatial_enrichment():
