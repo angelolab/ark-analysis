@@ -119,7 +119,7 @@ def test_segment_image_data_folder(tb):
 
 
 # # test mibitiff clustering
-# @testbook(FLOWSOM_CLUSTER_PATH, timeout=6000)
+# @testbook(PIXEL_CLUSTER_PATH, timeout=6000)
 # def test_pixel_clustering_mibitiff(tb):
 #     with tdir() as base_dir:
 #         # create input files

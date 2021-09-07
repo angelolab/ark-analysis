@@ -222,7 +222,6 @@ def plot_barchart(data, title, x_label, y_label, color_map="jet", is_stacked=Tru
                   is_legend=True, legend_loc='center left', bbox_to_anchor=(1.0, 0.5),
                   dpi=None, save_dir=None, save_file=None):
     """A helper function to visualize_patient_population_distribution
-
     Args:
         data (pandas.DataFrame):
             The data we wish to visualize
@@ -253,15 +252,10 @@ def plot_barchart(data, title, x_label, y_label, color_map="jet", is_stacked=Tru
             Ignored if save_dir is None
     """
 
-    plt.bar(x=data[x_label], y=data[y_label], )
-
-    # data.plot.bar(colormap=color_map, stacked=is_stacked, legend=is_legend)
-    # plt.title(title)
-    # plt.xlabel(x_label)
-    # plt.ylabel(y_label)
-
-    # sometimes the grid appearsls with certain datasets, ensure this doesn't happen
-    plt.grid(False)
+    data.plot.bar(colormap=color_map, stacked=is_stacked, legend=is_legend)
+    plt.title(title)
+    plt.xlabel(x_label)
+    plt.ylabel(y_label)
 
     if is_legend:
         plt.legend(loc=legend_loc, bbox_to_anchor=bbox_to_anchor)
