@@ -374,6 +374,7 @@ class MetaClusterGui():
         metacluster = self.mcd.new_metacluster()
         print(metacluster)
         self.remap_current_selection(metacluster)
+        self.update_current_metacluster(metacluster)
         self.update_gui()
 
     @DEBUG_VIEW.capture(clear_output=False)
