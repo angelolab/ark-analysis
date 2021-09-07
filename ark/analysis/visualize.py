@@ -24,7 +24,7 @@ def draw_barplot(data, x_col, y_col, x_label, y_label, title, figsize, color='#0
             The name of the column to put on the y-axis
         x_label (str):
             The name of the x label
-        y_labeel (str):
+        y_label (str):
             The name of the y label
         title (str):
             The name of the title to give the histogram
