@@ -11,10 +11,6 @@ def draw_barplot(data, x_col, y_col, x_label, y_label, title, figsize, color='#0
                  dpi=None, save_dir=None, save_file=None):
     """Draws a barplot for a given dataset
 
-    NOTE: hoping this function can replace plot_barchart
-    However stacking doesn't work the same way, only reason plot_barchart is still here
-    Color palette setting is also a lot weirder
-
     Args:
         data (pandas.DataFrame):
             Dataframe containing the two columns to visualize
