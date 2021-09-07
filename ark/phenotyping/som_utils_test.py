@@ -1072,7 +1072,7 @@ def test_pixel_consensus_cluster(mocker):
             consensus_cluster_ids = fov_consensus_data['hCluster_cap']
 
 
-def test_visualize_pixel_cluster_data():
+def test_visualize_pixel_cluster_channel_avgs():
     with tempfile.TemporaryDirectory() as temp_dir:
         fovs = ['fov0', 'fov1', 'fov2']
         chans = ['Marker1', 'Marker2', 'Marker3', 'Marker4']
@@ -1101,34 +1101,39 @@ def test_visualize_pixel_cluster_data():
 
         # bad cluster_col provided
         with pytest.raises(ValueError):
-            som_utils.visualize_pixel_cluster_data(fovs=fovs, channels=chans, base_dir=temp_dir,
-                                                   cluster_dir='pixel_mat_clustered',
-                                                   pixel_cluster_col='bad_cluster')
+            som_utils.visualize_pixel_cluster_channel_avgs(
+                fovs=fovs, channels=chans, base_dir=temp_dir,
+                cluster_dir='pixel_mat_clustered',
+                pixel_cluster_col='bad_cluster')
 
         # test visualization for cluster: no saving
-        som_utils.visualize_pixel_cluster_data(fovs=fovs, channels=chans, base_dir=temp_dir,
-                                               cluster_dir='pixel_mat_clustered',
-                                               pixel_cluster_col='cluster', save_dir=None)
+        som_utils.visualize_pixel_cluster_channel_avgs(
+            fovs=fovs, channels=chans, base_dir=temp_dir,
+            cluster_dir='pixel_mat_clustered',
+            pixel_cluster_col='cluster', save_dir=None)
         assert not os.path.exists(os.path.join(temp_dir, "som_cluster_avgs.png"))
 
         # test visualization for cluster: saving
-        som_utils.visualize_pixel_cluster_data(fovs=fovs, channels=chans, base_dir=temp_dir,
-                                               cluster_dir='pixel_mat_clustered',
-                                               pixel_cluster_col='cluster', save_dir=temp_dir,
-                                               save_file="som_cluster_avgs.png")
+        som_utils.visualize_pixel_cluster_channel_avgs(
+            fovs=fovs, channels=chans, base_dir=temp_dir,
+            cluster_dir='pixel_mat_clustered',
+            pixel_cluster_col='cluster', save_dir=temp_dir,
+            save_file="som_cluster_avgs.png")
         assert os.path.exists(os.path.join(temp_dir, "som_cluster_avgs.png"))
 
         # test visualization for hierarchical cluster: no saving
-        som_utils.visualize_pixel_cluster_data(fovs=fovs, channels=chans, base_dir=temp_dir,
-                                               cluster_dir='pixel_mat_clustered',
-                                               pixel_cluster_col='hCluster_cap', save_dir=None)
+        som_utils.visualize_pixel_cluster_channel_avgs(
+            fovs=fovs, channels=chans, base_dir=temp_dir,
+            cluster_dir='pixel_mat_clustered',
+            pixel_cluster_col='hCluster_cap', save_dir=None)
         assert not os.path.exists(os.path.join(temp_dir, "som_hierarchical_avgs.png"))
 
         # test visualization for hierarchical cluster: saving
-        som_utils.visualize_pixel_cluster_data(fovs=fovs, channels=chans, base_dir=temp_dir,
-                                               cluster_dir='pixel_mat_clustered',
-                                               pixel_cluster_col='hCluster_cap', save_dir=temp_dir,
-                                               save_file="som_hierarchical_avgs.png")
+        som_utils.visualize_pixel_cluster_channel_avgs(
+            fovs=fovs, channels=chans, base_dir=temp_dir,
+            cluster_dir='pixel_mat_clustered',
+            pixel_cluster_col='hCluster_cap', save_dir=temp_dir,
+            save_file="som_hierarchical_avgs.png")
         assert os.path.exists(os.path.join(temp_dir, "som_hierarchical_avgs.png"))
 
 

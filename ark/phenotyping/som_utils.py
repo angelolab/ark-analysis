@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 import re
 import scipy.ndimage as ndimage
+import scipy.stats as stats
 from skimage.io import imread
 import xarray as xr
 
@@ -102,7 +103,7 @@ def compute_pixel_cluster_channel_avg(fovs, channels, base_dir, cluster_col,
             Name of the file containing the pixel data with cluster labels
         keep_count (bool):
             Whether to keep the count column when aggregating or not
-            This should only be needed for visualization purposes
+            This should only be set to True for visualization purposes
 
     Returns:
         pandas.DataFrame:
@@ -737,10 +738,79 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
             print(output.strip())
 
 
-def visualize_pixel_cluster_data(fovs, channels, base_dir, cluster_dir,
-                                 pixel_cluster_col='cluster', dpi=None, center_val=None,
-                                 overlay_values=False, colormap="vlag",
-                                 save_dir=None, save_file=None):
+def visualize_pixel_cluster_counts(fovs, channels, base_dir, data_dir,
+                                   pixel_cluster_col='cluster', figsize=(50, 20),
+                                   color='#00FF00', dpi=None,
+                                   save_dir=None, save_file=None):
+    """Visualize the number of pixels per cluster in a bar chart
+
+    Args:
+        fovs (list):
+            The list of fovs to subset on
+        channels (list):
+            The list of channels to subset on
+        base_dir (str):
+            The path to the data directories
+        data_dir (str):
+            The path to the data directory, either the cluster or consensus dir
+        pixel_cluster_col (str):
+            The name of the cluster column to visualize, should be 'cluster' or 'hCluster_cap'
+        figsize (tuple):
+            A tuple determining the x and y dimension of the figure to plot
+        color (str):
+            The color of the bars in the barchart
+        dpi (float):
+            The resolution of the image to save, ignored if save_dir is None
+        save_dir (str):
+            If specified, a directory where we will save the plot
+        save_file (str):
+            If save_dir specified, specify a file name you wish to save to.
+            Ignored if save_dir is None
+    """
+
+    # verify the pixel_cluster_col provided is valid
+    misc_utils.verify_in_list(
+        provided_cluster_col=pixel_cluster_col,
+        valid_cluster_cols=['cluster', 'hCluster_cap']
+    )
+
+    # compute the channel average dataframe with counts
+    cluster_avgs = compute_pixel_cluster_channel_avg(fovs, channels, base_dir,
+                                                     pixel_cluster_col, data_dir,
+                                                     keep_count=True)
+
+    # convert the cluster column to integer type
+    cluster_avgs[pixel_cluster_col] = cluster_avgs[pixel_cluster_col].astype(int)
+
+    # keep just the pixel_cluster_col and the count column
+    cluster_avgs = cluster_avgs[[pixel_cluster_col, 'count']]
+
+    # need to make pixel_cluster_col string type so it displays properly (also int, no decimals)
+    cluster_avgs[pixel_cluster_col] = cluster_avgs[pixel_cluster_col].astype(int).astype(str)
+
+    # define a custom title
+    if pixel_cluster_col == 'cluster':
+        title = 'Distribution of pixel SOM cluster counts'
+        x_label = 'Pixel SOM cluster'
+    else:
+        title = 'Distribution of pixel meta cluster counts'
+        x_label = 'Pixel meta cluster'
+
+    y_label = 'Count'
+
+    # draw a bar chart for the cluster_avgs vs their counts
+    visualize.draw_barplot(
+        cluster_avgs, pixel_cluster_col, 'count', x_label=x_label, y_label=y_label,
+        figsize=figsize, title=title, color=color, dpi=dpi,
+        save_dir=save_dir, save_file=save_file
+    )
+
+
+def visualize_pixel_cluster_channel_avgs(fovs, channels, base_dir, cluster_dir,
+                                         pixel_cluster_col='cluster', dpi=None, center_val=None,
+                                         overlay_values=False, min_val=None, max_val=None,
+                                         cbar_ticks=None, colormap="vlag",
+                                         save_dir=None, save_file=None):
     """For pixel-level analysis, visualize the average cluster results for each cluster
 
     Args:
@@ -761,6 +831,12 @@ def visualize_pixel_cluster_data(fovs, channels, base_dir, cluster_dir,
             value at which to center the heatmap
         overlay_values (bool):
             whether to overlay the raw heatmap values on top
+        min_val (float):
+            minimum value the heatmap should take
+        max_val (float):
+            maximum value the heatmap should take
+        cbar_ticks (int):
+            list of values containing tick labels for the heatmap colorbar
         colormap (str):
             color scheme for visualization
         save_dir (str):
@@ -786,11 +862,15 @@ def visualize_pixel_cluster_data(fovs, channels, base_dir, cluster_dir,
     # sort cluster col in ascending order
     cluster_avgs = cluster_avgs.sort_values(by=pixel_cluster_col)
 
+    # z-score the channel columns
+    cluster_avgs[channels] = stats.zscore(cluster_avgs[channels].values)
+
     # draw the heatmap
     visualize.draw_heatmap(
         data=cluster_avgs[channels].values, x_labels=cluster_avgs[pixel_cluster_col],
         y_labels=channels, dpi=dpi, center_val=center_val, overlay_values=overlay_values,
-        colormap=colormap, save_dir=save_dir, save_file=save_file
+        min_val=min_val, max_val=max_val, cbar_ticks=cbar_ticks, colormap=colormap,
+        save_dir=save_dir, save_file=save_file
     )
 
 

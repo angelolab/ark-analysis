@@ -7,6 +7,58 @@ import seaborn as sns
 from ark.utils import misc_utils
 
 
+def draw_barplot(data, x_col, y_col, x_label, y_label, title, figsize, color='#00FF00',
+                 dpi=None, save_dir=None, save_file=None):
+    """Draws a barplot for a given dataset
+
+    NOTE: hoping this function can replace plot_barchart
+    However stacking doesn't work the same way, only reason plot_barchart is still here
+    Color palette setting is also a lot weirder
+
+    Args:
+        data (pandas.DataFrame):
+            Dataframe containing the two columns to visualize
+        x_col (str):
+            The name of the column to put on the x-axis
+        y_col (str):
+            The name of the column to put on the y-axis
+        title (str):
+            The name of the title to give the histogram
+            If None defaults to "Distribution of y vs x"
+        figsize (tuple):
+            A tuple determining the x and y dimension of the figure to plot
+        color (str):
+            The color of the bars to set
+        dpi (float):
+            The resolution of the image to save, ignored if save_dir is None
+        save_dir (str):
+            If specified, a directory where we will save the plot
+        save_file (str):
+            If save_dir specified, specify a file name you wish to save to.
+            Ignored if save_dir is None
+    """
+
+    # x_col must be valid
+    misc_utils.verify_in_list(x_col=x_col, column_names=data.columns.values)
+
+    # y_col must be valid
+    misc_utils.verify_in_list(y_col=y_col, column_names=data.columns.values)
+
+    # we need to set the plot to white since Seaborn likes to override this sometimes
+    fig = plt.figure(figsize=figsize)
+
+    # draw the barplot
+    sns.barplot(x=data[x_col], y=data[y_col], palette=[color for i in range(data.shape[0])])
+    plt.title(title)
+    plt.xlabel(x_label)
+    plt.ylabel(y_label)
+    # plt.grid(False)
+
+    # save visualization to a directory if specified
+    if save_dir is not None:
+        misc_utils.save_figure(save_dir, save_file, dpi=dpi)
+
+
 def draw_boxplot(cell_data, col_name, col_split=None,
                  split_vals=None, dpi=None, save_dir=None, save_file=None):
     """Draws a boxplot for a given column, optionally with help from a split column
@@ -68,8 +120,9 @@ def draw_boxplot(cell_data, col_name, col_split=None,
         misc_utils.save_figure(save_dir, save_file, dpi=dpi)
 
 
-def draw_heatmap(data, x_labels, y_labels, dpi=None, center_val=None,
-                 overlay_values=False, colormap="vlag", save_dir=None, save_file=None):
+def draw_heatmap(data, x_labels, y_labels, dpi=None, center_val=None, min_val=None, max_val=None,
+                 cbar_ticks=None, overlay_values=False, colormap="vlag",
+                 save_dir=None, save_file=None):
     """Plots the z scores between all phenotypes as a clustermap.
 
     Args:
@@ -83,6 +136,12 @@ def draw_heatmap(data, x_labels, y_labels, dpi=None, center_val=None,
             The resolution of the image to save, ignored if save_dir is None
         center_val (float):
             value at which to center the heatmap
+        min_val (float):
+            minimum value the heatmap should take
+        max_val (float):
+            maximum value the heatmap should take
+        cbar_ticks (int):
+            list of values containing tick labels for the heatmap colorbar
         overlay_values (bool):
             whether to overlay the raw heatmap values on top
         colormap (str):
@@ -103,9 +162,11 @@ def draw_heatmap(data, x_labels, y_labels, dpi=None, center_val=None,
     sns.set(font_scale=.7)
 
     if overlay_values:
-        sns.clustermap(data_df, cmap=colormap, annot=data, center=center_val)
+        sns.clustermap(data_df, cmap=colormap, annot=data, center=center_val,
+                       vmin=min_val, vmax=max_val, cbar_kws={'ticks': cbar_ticks})
     else:
-        sns.clustermap(data_df, cmap=colormap, center=center_val)
+        sns.clustermap(data_df, cmap=colormap, center=center_val,
+                       vmin=min_val, vmax=max_val, cbar_kws={'ticks': cbar_ticks})
 
     if save_dir is not None:
         misc_utils.save_figure(save_dir, save_file, dpi=dpi)
@@ -188,10 +249,15 @@ def plot_barchart(data, title, x_label, y_label, color_map="jet", is_stacked=Tru
             Ignored if save_dir is None
     """
 
-    data.plot.bar(colormap=color_map, stacked=is_stacked, legend=is_legend)
-    plt.title(title)
-    plt.xlabel(x_label)
-    plt.ylabel(y_label)
+    plt.bar(x=data[x_label], y=data[y_label], )
+
+    # data.plot.bar(colormap=color_map, stacked=is_stacked, legend=is_legend)
+    # plt.title(title)
+    # plt.xlabel(x_label)
+    # plt.ylabel(y_label)
+
+    # sometimes the grid appearsls with certain datasets, ensure this doesn't happen
+    plt.grid(False)
 
     if is_legend:
         plt.legend(loc=legend_loc, bbox_to_anchor=bbox_to_anchor)
