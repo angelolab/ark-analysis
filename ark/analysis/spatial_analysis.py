@@ -290,7 +290,7 @@ def calculate_cluster_spatial_enrichment(all_data, dist_matrices_dict, included_
             column with the cell phenotype IDs.
         cell_label_col (str):
             column with the cell labels.
-        contexts (str):
+        context_col (str):
             column with context labels. If None, no context is assumed.
 
     Returns:
@@ -349,17 +349,19 @@ def calculate_cluster_spatial_enrichment(all_data, dist_matrices_dict, included_
         dist_mat = dist_matrices_dict[fov]
 
         # Get close_num and close_num_rand
-        close_num, pheno_nums, context_nums_per_id = spatial_analysis_utils.compute_close_cell_num(
+        close_num, pheno_nums = spatial_analysis_utils.compute_close_cell_num(
             dist_mat=dist_mat, dist_lim=dist_lim, analysis_type="cluster",
-            current_fov_data=current_fov_pheno_data, cluster_ids=cluster_ids,
-            context_col=context_col)
+            current_fov_data=current_fov_pheno_data, cluster_ids=cluster_ids)
 
         # subset distance matrix with context
         if context_col is not None:
             close_num_rand = np.zeros((*close_num, bootstrap_num), dtype=np.uint16)
 
+            context_nums_per_id = \
+                current_fov_pheno_data.groupby(context_col)[cell_label_col].apply(list).to_dict()
+
             for name_i, name_j in context_pairings:
-                context_cell_labels = list(context_nums_per_id[name_i])
+                context_cell_labels = context_nums_per_id[name_i]
                 context_cell_labels.extend(context_nums_per_id[name_j])
                 context_cell_labels = set(context_cell_labels)
 
