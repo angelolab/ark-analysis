@@ -52,7 +52,6 @@ def draw_barplot(data, x_col, y_col, x_label, y_label, title, figsize, color='#0
     plt.title(title)
     plt.xlabel(x_label)
     plt.ylabel(y_label)
-    # plt.grid(False)
 
     # save visualization to a directory if specified
     if save_dir is not None:
@@ -218,6 +217,7 @@ def plot_barchart(data, title, x_label, y_label, color_map="jet", is_stacked=Tru
                   is_legend=True, legend_loc='center left', bbox_to_anchor=(1.0, 0.5),
                   dpi=None, save_dir=None, save_file=None):
     """A helper function to visualize_patient_population_distribution
+
     Args:
         data (pandas.DataFrame):
             The data we wish to visualize
