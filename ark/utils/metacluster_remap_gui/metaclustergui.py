@@ -219,7 +219,7 @@ class MetaClusterGui():
             description='MetaCluster:',
             )
         self.current_metacluster.observe(
-            lambda t: self.update_current_metacluster(t.new), type="change", names="value")
+            self.update_current_metacluster_handler, type="change", names="value")
 
         self.current_metacluster_displayname = widgets.Text(
             value=self.mcd.get_metacluster_displayname(self.current_metacluster.value),
@@ -372,10 +372,12 @@ class MetaClusterGui():
     @DEBUG_VIEW.capture(clear_output=False)
     def new_metacluster(self, e):
         metacluster = self.mcd.new_metacluster()
-        print(metacluster)
         self.remap_current_selection(metacluster)
         self.update_current_metacluster(metacluster)
         self.update_gui()
+
+    def update_current_metacluster_handler(self, t):
+        return self.update_current_metacluster(t.new)
 
     @DEBUG_VIEW.capture(clear_output=False)
     def update_current_metacluster(self, metacluster):
@@ -389,9 +391,17 @@ class MetaClusterGui():
     def update_current_metacluster_displayname(self, t):
         self.mcd.change_displayname(self.current_metacluster.value, t.new)
         old_current_metacluster = self.current_metacluster.value
+
+        self.current_metacluster.unobserve(
+            self.update_current_metacluster_handler, type="change", names="value")
+
         self.current_metacluster.options = \
             list(zip(self.mcd.metacluster_displaynames, self.mcd.metaclusters.index))
         self.current_metacluster.value = old_current_metacluster
+
+        self.current_metacluster.observe(
+            self.update_current_metacluster_handler, type="change", names="value")
+
         self._heatmaps_stale = True
         self.update_gui()
 
