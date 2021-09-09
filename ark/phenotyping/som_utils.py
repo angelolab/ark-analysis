@@ -362,7 +362,7 @@ def compute_cell_cluster_counts(fovs, pixel_consensus_path,
     Args:
         fovs (list):
             The list of fovs to subset on
-        consensus_path (str):
+        pixel_consensus_path (str):
             Path to directory with the pixel SOM and meta labels
             Created by pixel_consensus_cluster
         cell_table_path (str):
