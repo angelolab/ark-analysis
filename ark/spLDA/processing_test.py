@@ -35,7 +35,7 @@ def test_featurize_cell_table():
 
 def test_compute_topic_eda():
     # at least 25 bootstrap iterations
-    with pytest.raises(ValueError, match="Number of bootstrap samples must be at least 25"):
+    with pytest.raises(ValueError, match="Number of bootstrap samples must be at least"):
         pros.compute_topic_eda(TEST_FEATURES["featurized_fovs"], topics=[5], num_boots=20)
     # appropriate range of topics
     with pytest.raises(ValueError, match="Number of topics must be greater than 2"):
