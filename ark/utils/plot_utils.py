@@ -117,7 +117,7 @@ def create_overlay(fov, segmentation_dir, data_dir,
         data_dir=data_dir,
         files=[fov + '.tif'],
         xr_dim_name='channels',
-        xr_channel_names=['nuclear_channel', 'membrane_channel']
+        xr_channel_names=['nuclear_channel', 'membrane_channel'],
         dtype=dtype
     )
 
