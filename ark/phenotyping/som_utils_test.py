@@ -475,7 +475,7 @@ def test_compute_cell_cluster_count_avg():
             assert np.all(cell_cluster_avg_sub == 0.1)
 
 
-def test_compute_cell_cluster_channel_avg():
+def test_compute_p2c_weighted_channel_avg():
     fovs = ['fov1', 'fov2']
     chans = ['chan1', 'chan2', 'chan3']
 
@@ -543,20 +543,20 @@ def test_compute_cell_cluster_channel_avg():
 
             # error check: invalid fovs provided
             with pytest.raises(ValueError):
-                som_utils.compute_cell_cluster_channel_avg(
+                som_utils.compute_p2c_weighted_channel_avg(
                     cluster_avg, cell_counts, fovs=['fov2', 'fov3']
                 )
 
             # error check: invalid cluster col provided
             with pytest.raises(ValueError):
-                som_utils.compute_cell_cluster_channel_avg(
+                som_utils.compute_p2c_weighted_channel_avg(
                     cluster_avg, cell_counts, cluster_col='bad_cluster_col'
                 )
 
             # test for all and some fovs
             for fov_list in [None, fovs[:1]]:
                 # test with som cluster counts and all fovs
-                channel_avg = som_utils.compute_cell_cluster_channel_avg(
+                channel_avg = som_utils.compute_p2c_weighted_channel_avg(
                     cluster_avg, cell_counts, fovs=fov_list, cluster_col=cluster_col
                 )
 

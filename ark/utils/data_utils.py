@@ -83,8 +83,8 @@ def label_cells_by_cluster(fovs, all_data, label_maps, fov_col=settings.FOV_ID,
         labeled_img_array = label_maps.loc[label_maps.fovs == fov].squeeze().values
 
         # TODO: I'll remove this when the PR is ready to merge in
-        # there's an issue with cell 1 in Candace's dataset when I ran it through Segment_Image_Data
-        # labeled_img_array[labeled_img_array == 1] = 0
+        # there's an issue with cell 1 in Candace's dataset running it through Segment_Image_Data
+        labeled_img_array[labeled_img_array == 1] = 0
 
         relabeled_img_array = relabel_segmentation(labeled_img_array, labels_dict)
         img_data.append(relabeled_img_array)

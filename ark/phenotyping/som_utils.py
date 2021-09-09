@@ -100,7 +100,7 @@ def compute_pixel_cluster_channel_avg(fovs, channels, base_dir, cluster_col,
         cluster_col (str):
             Name of the column to group by
         cluster_dir (str):
-            Name of the file containing the pixel data with cluster labels
+            Name of the directory containing the pixel data with cluster labels
         keep_count (bool):
             Whether to keep the count column when aggregating or not
             This should only be set to True for visualization purposes
@@ -167,15 +167,118 @@ def compute_cell_cluster_count_avg(cluster_path, column_prefix, cluster_col):
     column_subset = [c for c in cluster_data.columns.values if c.startswith(column_prefix + '_')]
     cluster_data_subset = cluster_data.loc[:, column_subset + [cluster_col]]
 
-    # average each column grouped by the cell SOM cluster column
+    # average each column grouped by the cell cluster column
     mean_count_totals = cluster_data_subset.groupby(cluster_col).mean().reset_index()
 
     return mean_count_totals
 
 
-def compute_cell_cluster_channel_avg(pixel_channel_avg, cell_counts,
+def compute_cell_cluster_channel_avg(channels, cell_table, cluster_col):
+    """Compute the average marker expression for each cell cluster
+
+    Args:
+        channels (list):
+            The list of channels to subset on
+        cell_table (pandas.DataFrame):
+            The cell table, created by Segment_Image_Data.ipynb, with the cell cluster ids
+        cluster_col (str):
+            Whether to aggregate by cell SOM or meta labels
+            Needs to be either 'cluster', or 'hCluster_cap'
+
+    Returns:
+        pandas.DataFrame:
+            The averaged channel values across each cell cluster
+    """
+
+    # subset the cell table by just the desired channels and the cluster_col
+    cell_table_sub = cell_table[channels + [cluster_col]]
+
+    # average each channel column grouped by the cell cluster column
+    mean_channels = cell_table_sub.groupby(cluster_col).mean().reset_index()
+
+    return mean_channels
+
+
+def visualize_cell_cluster_channel_avg(fovs, channels, base_dir, cell_table_path,
+                                       cluster_name='cell_mat_clustered.feather',
+                                       cluster_col='cluster', dpi=None, center_val=None,
+                                       overlay_values=False, min_val=None, max_val=None,
+                                       cbar_ticks=None, colormap="vlag",
+                                       save_dir=None, save_file=None):
+    """Visualize the average marker expression for each cell cluster
+
+    Args:
+        fovs (list):
+            The list of fovs to subset on
+        channels (list):
+            The list of channels to subset on
+        base_dir (str):
+            The path to the data directory
+        cell_table_path (str):
+            Path to the cell table, needs to be created by Segment_Image_Data.ipynb
+        cluster_name (str):
+            Name of the file containing the cell data with cluster labels
+        cluster_col (str):
+            Whether to aggregate by cell SOM or meta labels
+            Needs to be either 'cluster', or 'hCluster_cap'
+        dpi (float):
+            The resolution of the image to save, ignored if save_dir is None
+        center_val (float):
+            value at which to center the heatmap
+        overlay_values (bool):
+            whether to overlay the raw heatmap values on top
+        min_val (float):
+            minimum value the heatmap should take
+        max_val (float):
+            maximum value the heatmap should take
+        cbar_ticks (int):
+            list of values containing tick labels for the heatmap colorbar
+        colormap (str):
+            color scheme for visualization
+        save_dir (str):
+            If specified, a directory where we will save the plot
+        save_file (str):
+            If save_dir specified, specify a file name you wish to save to.
+            Ignored if save_dir is None
+    """
+
+    # read the cell table data
+    cell_table = pd.read_csv(cell_table_path)
+
+    # subset on only the fovs the user has specified
+    cell_table = cell_table[cell_table['fov'].isin(fovs)]
+
+    # because current version of pandas doesn't support key-based sorting, need to do it this way
+    cell_table['fov'] = cell_table['fov'].map(lambda x: x.replace('fov', '')).astype(int)
+    cell_table = cell_table.sort_values(by=['fov', 'label']).reset_index(drop=True)
+    cell_table['fov'] = cell_table['fov'].map(lambda x: 'fov' + str(x))
+
+    # read the clustered data
+    cluster_data = feather.read_dataframe(os.path.join(base_dir, cluster_name))
+
+    # assign the cluster labels to cell_table
+    cell_table[cluster_col] = cluster_data[cluster_col]
+
+    # compute the mean channel expression across each cell cluster
+    cluster_avgs = compute_cell_cluster_channel_avg(channels, cell_table, cluster_col)
+
+    # z-score the cluster_avgs
+    cluster_avgs[channels] = stats.zscore(cluster_avgs[channels].values)
+
+    # draw the heatmap
+    visualize.draw_heatmap(
+        data=cluster_avgs.drop(columns=cluster_col).values,
+        x_labels=cluster_avgs[cluster_col],
+        y_labels=cluster_avgs.drop(columns=cluster_col).columns.values,
+        dpi=dpi, center_val=center_val, overlay_values=overlay_values,
+        min_val=min_val, max_val=max_val, cbar_ticks=cbar_ticks,
+        colormap=colormap, save_dir=save_dir, save_file=save_file
+    )
+
+
+def compute_p2c_weighted_channel_avg(pixel_channel_avg, cell_counts,
                                      fovs=None, cluster_col='cluster'):
-    """Compute the average marker expression for each cell
+    """Compute the average marker expression for each cell weighted by pixel cluster
 
     This expression is weighted by the pixel SOM/meta cluster counts. So for each cell,
     marker expression vector is computed by:
@@ -252,7 +355,7 @@ def compute_cell_cluster_channel_avg(pixel_channel_avg, cell_counts,
     return weighted_cell_channel_avg
 
 
-def compute_cell_cluster_counts(fovs, consensus_path,
+def compute_cell_cluster_counts(fovs, pixel_consensus_path,
                                 cell_table_path, cluster_col='cluster'):
     """Create a matrix with each fov-cell label pair and their SOM pixel/meta cluster counts
 
@@ -260,7 +363,7 @@ def compute_cell_cluster_counts(fovs, consensus_path,
         fovs (list):
             The list of fovs to subset on
         consensus_path (str):
-            Path to directory with the SOM pixel and meta labels
+            Path to directory with the pixel SOM and meta labels
             Created by pixel_consensus_cluster
         cell_table_path (str):
             Path to the cell table, needs to be created with Segment_Image_Data.ipynb
@@ -301,7 +404,7 @@ def compute_cell_cluster_counts(fovs, consensus_path,
 
     for fov in fovs_sorted:
         fov_pixel_data = feather.read_dataframe(
-            os.path.join(consensus_path, fov + '.feather')
+            os.path.join(pixel_consensus_path, fov + '.feather')
         )
 
         group_by_cluster_col = fov_pixel_data.groupby(
@@ -953,9 +1056,9 @@ def train_cell_som(fovs, base_dir, pixel_consensus_dir, cell_table_name,
 
     # TODO: I'll remove this when the PR is ready to merge in
     # there's an issue with cell 1 in Candace's dataset when I ran it through Segment_Image_Data
-    # cluster_counts = cluster_counts.drop(
-    #     cluster_counts[cluster_counts['segmentation_label'] == 1].index
-    # )
+    cluster_counts = cluster_counts.drop(
+        cluster_counts[cluster_counts['segmentation_label'] == 1].index
+    )
 
     # write the created matrix
     feather.write_dataframe(cluster_counts,
