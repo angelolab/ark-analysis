@@ -11,6 +11,7 @@ from scipy.spatial.distance import cdist
 
 import ark.settings as settings
 from ark.utils import io_utils, misc_utils
+from ark.utils._bootstrapping import compute_close_num_rand
 
 
 def calc_dist_matrix(label_maps, save_path=None):
@@ -246,33 +247,15 @@ def compute_close_cell_num_random(marker_nums, dist_mat, dist_lim, bootstrap_num
             Large matrix of random positive marker counts for every permutation in the bootstrap
     """
 
-    # Get marker counts
-    marker_count = len(marker_nums)
-
-    # Create close_num_rand
-    close_num_rand = np.zeros((
-        marker_count, marker_count, bootstrap_num), dtype=np.uint16)
-
     # Generate binarized distance matrix
     dist_mat_bin = (dist_mat.values < dist_lim).astype(np.uint16)
 
     # static choice array
-    choice_ar = list(range(dist_mat.shape[0]))
+    _marker_nums = np.array(marker_nums, dtype=np.uint16)
+    _choice_ar = np.array(list(range(dist_mat.shape[0])), dtype=np.uint16)
 
-    for j, m1n in enumerate(marker_nums):
-        for k, m2n in enumerate(marker_nums[j:], j):
-            for r in range(bootstrap_num):
-                # Select same amount of random cell labels as positive ones in close_num
-                marker1_labels_rand = np.random.choice(a=choice_ar, size=m1n, replace=False)
-                marker2_labels_rand = np.random.choice(a=choice_ar, size=m2n, replace=False)
-
-                # Record the number of interactions and store in close_num_rand in the index
-                # corresponding to both markers, for every permutation
-                close_num_rand[j, k, r] = \
-                    np.sum(dist_mat_bin[np.ix_(marker1_labels_rand, marker2_labels_rand)])
-
-            # System should be symetric
-            close_num_rand[k, j, :] = close_num_rand[j, k, :]
+    close_num_rand = compute_close_num_rand(dist_mat_bin, _marker_nums, _choice_ar,
+                                            int(bootstrap_num))
 
     return close_num_rand
 
