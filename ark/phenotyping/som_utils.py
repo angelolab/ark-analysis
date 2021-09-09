@@ -339,6 +339,18 @@ def compute_cell_cluster_counts(fovs, consensus_path,
     # NaN means the cluster wasn't found in the specified fov-cell pair
     cell_table = cell_table.fillna(0)
 
+    # remove all columns that are zero (should rarely happen)
+    cell_table = cell_table.loc[:, (cell_table != 0).any(axis=0)]
+
+    # TODO: might need to include an option not to normalize since this may be needed
+    # to compute the weighted marker expression for cells
+
+    # normalize the pixel cluster counts by the cell size
+    pixel_cluster_cols = [c for c in cell_table.columns if cluster_col in c]
+    cell_table[pixel_cluster_cols] = cell_table[pixel_cluster_cols].div(
+        cell_table['cell_size'], axis=0
+    )
+
     return cell_table
 
 
@@ -939,6 +951,12 @@ def train_cell_som(fovs, base_dir, pixel_consensus_dir, cell_table_name,
         fovs, consensus_path, cell_table_path, cluster_col
     )
 
+    # TODO: I'll remove this when the PR is ready to merge in
+    # there's an issue with cell 1 in Candace's dataset when I ran it through Segment_Image_Data
+    # cluster_counts = cluster_counts.drop(
+    #     cluster_counts[cluster_counts['segmentation_label'] == 1].index
+    # )
+
     # write the created matrix
     feather.write_dataframe(cluster_counts,
                             os.path.join(base_dir, cluster_counts_name),
@@ -1095,10 +1113,11 @@ def cell_consensus_cluster(base_dir, max_k=20, cap=3, column_prefix='cluster',
             print(output.strip())
 
 
-def visualize_cell_cluster_data(base_dir, cluster_name, column_prefix, cell_cluster_col='cluster',
-                                dpi=None, center_val=None, overlay_values=False, colormap="vlag",
-                                save_dir=None, save_file=None):
-    """For cell-level analysis, visualize the average cluster results for each cluster
+def visualize_avg_p2c_counts(base_dir, cluster_name, column_prefix, cell_cluster_col='cluster',
+                             dpi=None, center_val=None, overlay_values=False,
+                             min_val=None, max_val=None, cbar_ticks=None, colormap="vlag",
+                             save_dir=None, save_file=None):
+    """Visualize the average pixel cluster counts for each cell cluster
 
     Args:
         base_dir (str):
@@ -1116,6 +1135,12 @@ def visualize_cell_cluster_data(base_dir, cluster_name, column_prefix, cell_clus
             value at which to center the heatmap
         overlay_values (bool):
             whether to overlay the raw heatmap values on top
+        min_val (float):
+            minimum value the heatmap should take
+        max_val (float):
+            maximum value the heatmap should take
+        cbar_ticks (int):
+            list of values containing tick labels for the heatmap colorbar
         colormap (str):
             color scheme for visualization
         save_dir (str):
@@ -1147,11 +1172,16 @@ def visualize_cell_cluster_data(base_dir, cluster_name, column_prefix, cell_clus
     # sort cluster col in ascending order
     cluster_avgs = cluster_avgs.sort_values(by=cell_cluster_col)
 
+    # z-score the pixel cluster columns
+    column_subset = [c for c in cluster_avgs.columns.values if c.startswith(column_prefix + '_')]
+    cluster_avgs[column_subset] = stats.zscore(cluster_avgs[column_subset].values)
+
     # draw the heatmap
     visualize.draw_heatmap(
         data=cluster_avgs.drop(columns=cell_cluster_col).values,
         x_labels=cluster_avgs[cell_cluster_col],
         y_labels=cluster_avgs.drop(columns=cell_cluster_col).columns.values,
         dpi=dpi, center_val=center_val, overlay_values=overlay_values,
+        min_val=min_val, max_val=max_val, cbar_ticks=cbar_ticks,
         colormap=colormap, save_dir=save_dir, save_file=save_file
     )

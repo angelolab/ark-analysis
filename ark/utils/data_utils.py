@@ -81,6 +81,11 @@ def label_cells_by_cluster(fovs, all_data, label_maps, fov_col=settings.FOV_ID,
         df = all_data[all_data[fov_col] == fov]
         labels_dict = dict(zip(df[cell_label_column], df[cluster_column]))
         labeled_img_array = label_maps.loc[label_maps.fovs == fov].squeeze().values
+
+        # TODO: I'll remove this when the PR is ready to merge in
+        # there's an issue with cell 1 in Candace's dataset when I ran it through Segment_Image_Data
+        # labeled_img_array[labeled_img_array == 1] = 0
+
         relabeled_img_array = relabel_segmentation(labeled_img_array, labels_dict)
         img_data.append(relabeled_img_array)
 
@@ -127,6 +132,9 @@ def generate_cell_cluster_mask(fovs, base_dir, seg_dir, cell_consensus_name,
 
     # load the consensus data in
     cell_consensus_data = feather.read_dataframe(os.path.join(base_dir, cell_consensus_name))
+
+    # ensure the cluster col will be displayed as an integer and not a float
+    cell_consensus_data[cluster_col] = cell_consensus_data[cluster_col].astype(int)
 
     # verify all the fovs are valid
     verify_in_list(
@@ -204,6 +212,9 @@ def generate_pixel_cluster_mask(fovs, base_dir, seg_dir, pixel_consensus_dir,
         fov_data = feather.read_dataframe(
             os.path.join(base_dir, pixel_consensus_dir, fov + '.feather')
         )
+
+        # ensure integer display and not float
+        fov_data[cluster_col] = fov_data[cluster_col].astype(int)
 
         # read the segmentation mask to determine size of pixel cluster mask
         seg_mask = io.imread(os.path.join(seg_dir, fov + '_feature_0.tif'))

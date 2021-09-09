@@ -1429,7 +1429,7 @@ def test_cell_consensus_cluster(mocker):
             assert np.all(cluster_ids < 2)
 
 
-def test_visualize_cell_cluster_data():
+def test_visualize_avg_p2c_counts():
     # define the cluster columns
     pixel_clusters = ['cluster_0', 'cluster_1', 'cluster_2']
     h_clusters = ['hCluster_cap_0', 'hCluster_cap_1', 'hCluster_cap_2']
@@ -1459,27 +1459,27 @@ def test_visualize_cell_cluster_data():
 
             # bad column_prefix provided
             with pytest.raises(ValueError):
-                som_utils.visualize_cell_cluster_data(
+                som_utils.visualize_avg_p2c_counts(
                     base_dir=temp_dir, cluster_name='cell_mat_clustered.feather',
                     column_prefix='bad_cluster'
                 )
 
             # bad cluster_col provided
             with pytest.raises(ValueError):
-                som_utils.visualize_cell_cluster_data(
+                som_utils.visualize_avg_p2c_counts(
                     base_dir=temp_dir, cluster_name='cell_mat_clustered.feather',
                     column_prefix=cluster_prefix, cell_cluster_col='bad_cluster'
                 )
 
             # test visualization for cluster: no saving
-            som_utils.visualize_cell_cluster_data(
+            som_utils.visualize_avg_p2c_counts(
                 base_dir=temp_dir, cluster_name='cell_mat_clustered.feather',
                 column_prefix=cluster_prefix, cell_cluster_col='cluster')
 
             assert not os.path.exists(os.path.join(temp_dir, "som_cluster_avgs.png"))
 
             # test visualization for cluster: saving
-            som_utils.visualize_cell_cluster_data(
+            som_utils.visualize_avg_p2c_counts(
                 base_dir=temp_dir, cluster_name='cell_mat_clustered.feather',
                 column_prefix=cluster_prefix, cell_cluster_col='cluster',
                 save_dir=temp_dir, save_file="som_cluster_avgs.png")
@@ -1487,14 +1487,14 @@ def test_visualize_cell_cluster_data():
             assert os.path.exists(os.path.join(temp_dir, "som_cluster_avgs.png"))
 
             # test visualization for hierarchical cluster: no saving
-            som_utils.visualize_cell_cluster_data(
+            som_utils.visualize_avg_p2c_counts(
                 base_dir=temp_dir, cluster_name='cell_mat_clustered.feather',
                 column_prefix=cluster_prefix, cell_cluster_col='hCluster_cap')
 
             assert not os.path.exists(os.path.join(temp_dir, "som_hierarchical_avgs.png"))
 
             # test visualization for cluster: saving
-            som_utils.visualize_cell_cluster_data(
+            som_utils.visualize_avg_p2c_counts(
                 base_dir=temp_dir, cluster_name='cell_mat_clustered.feather',
                 column_prefix=cluster_prefix, cell_cluster_col='hCluster_cap',
                 save_dir=temp_dir, save_file="som_hierarchical_avgs.png")

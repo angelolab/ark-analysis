@@ -62,7 +62,7 @@ clusterCountsNorm <- as.matrix(clusterCountsData[,clusterCols] / clusterCountsDa
 # 99.9% normalize
 print("Perform 99.9% normalization")
 for (clusterCol in clusterCols) {
-    normVal <- quantile(clusterCountsNorm[,clusterCol])
+    normVal <- quantile(clusterCountsNorm[,clusterCol], 0.999)
 
     # prevent normalizing by 0
     if (normVal != 0) {
