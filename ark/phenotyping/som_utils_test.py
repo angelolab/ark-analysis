@@ -491,7 +491,7 @@ def test_compute_cell_cluster_channel_avg():
     cell_table.loc[5:9, 'label'] = np.arange(5)
 
     # assign dummy cell sizes, these won't really matter for this test
-    cell_table['cell_size'] = np.random.randint(low=1, high=100, size=(10, 1))
+    cell_table['cell_size'] = 5
 
     with tempfile.TemporaryDirectory() as temp_dir:
         # write cell table
@@ -533,11 +533,13 @@ def test_compute_cell_cluster_channel_avg():
         for cluster_col in ['cluster', 'hCluster_cap']:
             # count number of clusters for each cell
             cell_counts = som_utils.compute_cell_cluster_counts(
-                fovs, pixel_consensus_path, cell_table_path, cluster_col=cluster_col)
+                fovs, pixel_consensus_path, cell_table_path, cluster_col=cluster_col
+            )
 
             # compute average cluster expression for each pixel som cluster
             cluster_avg = som_utils.compute_pixel_cluster_channel_avg(
-                fovs, chans, temp_dir, cluster_col, 'pixel_consensus_path')
+                fovs, chans, temp_dir, cluster_col, 'pixel_consensus_path'
+            )
 
             # error check: invalid fovs provided
             with pytest.raises(ValueError):
@@ -568,7 +570,7 @@ def test_compute_cell_cluster_channel_avg():
                     num_repeats = 5
 
                 actual_markers = np.tile(
-                    np.array([1., 2., 4.]), num_repeats
+                    np.array([0.2, 0.4, 0.8]), num_repeats
                 ).reshape(num_repeats, 3)
 
                 # assert the values are close enough
@@ -590,8 +592,8 @@ def test_compute_cell_cluster_counts():
     cell_table.loc[0:4, 'label'] = np.arange(5)
     cell_table.loc[5:9, 'label'] = np.arange(5)
 
-    # assign dummy cell sizes, these won't really matter for this test
-    cell_table['cell_size'] = np.random.randint(low=1, high=100, size=(10, 1))
+    # assign dummy cell sizes
+    cell_table['cell_size'] = 5
 
     with tempfile.TemporaryDirectory() as temp_dir:
         # write cell table
@@ -627,7 +629,8 @@ def test_compute_cell_cluster_counts():
 
         # test counts on the pixel cluster column
         cluster_counts = som_utils.compute_cell_cluster_counts(
-            fovs, pixel_consensus_path, cell_table_path, cluster_col='cluster')
+            fovs, pixel_consensus_path, cell_table_path, cluster_col='cluster'
+        )
 
         # assert we actually created the cluster_cols
         cluster_cols = ['cluster_' + str(cluster_num) for cluster_num in np.arange(3)]
@@ -637,16 +640,16 @@ def test_compute_cell_cluster_counts():
         )
 
         # assert the values created
-        correct_val = [[10, 0, 0],
-                       [10, 0, 0],
-                       [5, 5, 0],
-                       [0, 10, 0],
-                       [0, 10, 0],
-                       [0, 10, 0],
-                       [0, 10, 0],
-                       [0, 5, 5],
-                       [0, 0, 10],
-                       [0, 0, 10]]
+        correct_val = [[2, 0, 0],
+                       [2, 0, 0],
+                       [1, 1, 0],
+                       [0, 2, 0],
+                       [0, 2, 0],
+                       [0, 2, 0],
+                       [0, 2, 0],
+                       [0, 1, 1],
+                       [0, 0, 2],
+                       [0, 0, 2]]
 
         assert np.all(np.equal(np.array(correct_val), cluster_counts[cluster_cols].values))
 
@@ -662,16 +665,16 @@ def test_compute_cell_cluster_counts():
         )
 
         # assert the values created
-        correct_val = [[10, 0],
-                       [10, 0],
-                       [5, 5],
-                       [0, 10],
-                       [0, 10],
-                       [10, 0],
-                       [10, 0],
-                       [5, 5],
-                       [0, 10],
-                       [0, 10]]
+        correct_val = [[2, 0],
+                       [2, 0],
+                       [1, 1],
+                       [0, 2],
+                       [0, 2],
+                       [2, 0],
+                       [2, 0],
+                       [1, 1],
+                       [0, 2],
+                       [0, 2]]
 
         assert np.all(np.equal(np.array(correct_val), cluster_counts[hCluster_cols].values))
 
@@ -1158,7 +1161,7 @@ def test_train_cell_som(mocker):
     with tempfile.TemporaryDirectory() as temp_dir:
         # create list of markeres and fovs we want to use
         chan_list = ['Marker1', 'Marker2', 'Marker3', 'Marker4']
-        fovs = ['fov0', 'fov1']
+        fovs = ['fov1', 'fov2']
 
         # create an example cell table
         cell_table = pd.DataFrame(np.random.rand(100, 4), columns=chan_list)
