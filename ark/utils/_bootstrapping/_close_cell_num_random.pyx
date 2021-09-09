@@ -1,26 +1,27 @@
 from cython cimport cdivision, boundscheck, wraparound
 from cpython.mem cimport PyMem_Malloc, PyMem_Free
 
-from numpy import zeros, uint16
-from numpy cimport uint16_t
+import numpy as np
+cimport numpy as np
 
 from libc.stdlib cimport rand
 
-ctypedef uint16_t DTYPE_t
+ctypedef np.uint16_t DTYPE_t
 
 @cdivision(True) # Ignore modulo/divide by zero warning
-cdef _c_permutation(Py_ssize_t* array, int size):
-    cdef int i, j
+cdef inline void _c_permutation(Py_ssize_t* arr, const Py_ssize_t size):
+    cdef Py_ssize_t i, j, temp
 
     for i in range(size-1, -1, -1):
         j = rand() % (i + 1)
-        array[i] = j
-        array[j] = i
+        temp = arr[i]
+        arr[i] = j
+        arr[j] = temp
 
 
 @boundscheck(False)  # Deactivate bounds checking
 @wraparound(False)   # Deactivate negative indexing.
-def compute_close_num_rand(DTYPE_t[:, :] dist_mat_bin, DTYPE_t[:] marker_nums,
+cdef np.ndarray _compute_close_num_rand(DTYPE_t[:, ::1] dist_mat_bin, DTYPE_t[:] marker_nums,
                            DTYPE_t[:] choice_ar, int bootstrap_num):
 
     cdef Py_ssize_t num_markers = marker_nums.shape[0]
@@ -31,36 +32,46 @@ def compute_close_num_rand(DTYPE_t[:, :] dist_mat_bin, DTYPE_t[:] marker_nums,
     for mn in range(num_markers):
         assert num_choices >= marker_nums[mn]
 
-    close_num_rand = zeros((num_markers, num_markers, bootstrap_num), dtype=uint16)
+    close_num_rand = np.zeros((num_markers, num_markers, bootstrap_num), dtype=np.uint16)
     cdef DTYPE_t[:, :, :] close_num_rand_view = close_num_rand
     
+    # allocate marker_label randomization containers
     cdef Py_ssize_t* marker1_labels = <Py_ssize_t*> PyMem_Malloc(num_choices * sizeof(Py_ssize_t))
     cdef Py_ssize_t* marker2_labels = <Py_ssize_t*> PyMem_Malloc(num_choices * sizeof(Py_ssize_t))
     if not marker1_labels or not marker2_labels:
         raise MemoryError()
 
-    cdef int j, k, r, m1n, m2n, label_i, label_j, m1_label, m2_label
+    # initialize marker_label containers
+    for mn in range(num_choices):
+        marker1_labels[mn] = mn
+        marker2_labels[mn] = mn
 
+    cdef int j, k, r, m1n, m2n
+    cdef Py_ssize_t m1_label, m2_label
+
+    cdef DTYPE_t accum
     for j in range(num_markers):
         m1n = marker_nums[j]
         for k in range(j, num_markers):
             m2n = marker_nums[k]
             for r in range(bootstrap_num):
-                _c_permutation(marker1_labels, m1n)
-                _c_permutation(marker2_labels, m2n)
-                #marker1_labels = np.permutation(num_choices)
-                #marker2_labels = np.permutation(num_choices)
-                for label_i in range(m1n):
-                    m1_label = marker1_labels[label_i]
-                    for label_j in range(m2n):
-                        m2_label = marker2_labels[label_j]
-                        close_num_rand_view[j, k, r] += dist_mat_bin[m1_label, m2_label]
-            close_num_rand_view[k, j, :] = close_num_rand_view[j, k, :]
+                accum = 0
+                _c_permutation(marker1_labels, num_choices)
+                _c_permutation(marker2_labels, num_choices)
+                for m1_label in marker1_labels[:m1n]:
+                    for m2_label in marker2_labels[:m2n]:
+                        accum += dist_mat_bin[m1_label, m2_label]
+                close_num_rand_view[j, k, r] = accum
+                close_num_rand_view[k, j, r] = accum
 
     PyMem_Free(marker1_labels)
     PyMem_Free(marker2_labels)
 
     return close_num_rand
+
+def compute_close_num_rand(DTYPE_t[:, ::1] dist_mat_bin, DTYPE_t[:] marker_nums,
+                           DTYPE_t[:] choice_ar, int bootstrap_num):
+    return _compute_close_num_rand(dist_mat_bin, marker_nums, choice_ar, bootstrap_num)
 
 ''''
 //     cdef np.ndarray marker1_labels_rand = [np.permutation(num_choices)[:m1n]]

@@ -24,3 +24,5 @@ env
 
 *.c
 *.html
+*.so
+*.egg-info
