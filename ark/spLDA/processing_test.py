@@ -1,15 +1,16 @@
 import numpy as np
 import pytest
+from sklearn.cluster import KMeans
 
 import ark.settings as settings
 import ark.spLDA.processing as pros
 from ark.utils.misc_utils import verify_in_list
 from ark.utils.test_utils import make_cell_table
-from sklearn.cluster import KMeans
 
 # Generate a test cell table
 N_CELLS = 1000
 TEST_CELL_TABLE = make_cell_table(N_CELLS)
+
 
 def test_format_cell_table():
     # call formatting function
@@ -129,4 +130,3 @@ def test_create_difference_matrices():
     for i in range(len(train_dims)):
         assert train_dims[i] == cell_table_train_dims[i]
         assert infer_dims[i] == cell_table_infer_dims[i]
-
