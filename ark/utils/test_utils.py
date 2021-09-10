@@ -549,8 +549,9 @@ def make_cell_table(num_cells, extra_cols=None):
             cluster labels, centroid coordinates, and more.
 
     """
-    # colmns from regionprops extraction
-    region_cols = settings.REGIONPROPS_BASE[2:] + settings.REGIONPROPS_SINGLE_COMP + \
+    # columns from regionprops extraction
+    region_cols = [x for x in settings.REGIONPROPS_BASE if x not in ['label','area','centroid']]+ \
+                  settings.REGIONPROPS_SINGLE_COMP + \
                   settings.REGIONPROPS_MULTI_COMP
     # consistent ordering of column names
     column_names = [settings.FOV_ID,
@@ -559,7 +560,7 @@ def make_cell_table(num_cells, extra_cols=None):
                     settings.KMEANS_CLUSTER,
                     settings.CELL_LABEL,
                     settings.CELL_TYPE,
-                    settings.CELL_SIZE] + TEST_MARKERS + region_cols
+                    settings.CELL_SIZE] + TEST_MARKERS + region_cols + ['centroid-0', 'centroid-1']
 
     if extra_cols is not None:
         column_names += list(extra_cols.values())
