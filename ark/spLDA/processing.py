@@ -2,7 +2,7 @@ import functools
 
 import numpy as np
 import pandas as pd
-from scipy.spatial.distance import cdist, pdist
+from scipy.spatial.distance import pdist
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
 from sklearn.model_selection import train_test_split
@@ -279,7 +279,7 @@ def compute_topic_eda(features, topics, num_boots=25):
     return stats
 
 
-def fov_density(cell_table, total_pix=1024**2):
+def fov_density(cell_table, total_pix=1024 ** 2):
     """Computes cellular density metrics for each field of view to determine an appropriate
     radius for the featurization step.
 
@@ -301,7 +301,7 @@ def fov_density(cell_table, total_pix=1024**2):
     density_stats = {
         "average_area": {k: v["cell_size"].mean() for (k, v) in cell_table.items()},
         "cellular_density": {
-            k: np.sum(v["cell_size"]) / total_pix for (k,v) in cell_table.items()}
-                     }
+            k: np.sum(v["cell_size"]) / total_pix for (k, v) in cell_table.items()}
+    }
 
     return density_stats

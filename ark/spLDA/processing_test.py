@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 import ark.spLDA.processing as pros
+import ark.settings as settings
 from ark.utils.misc_utils import verify_in_list
 from ark.utils.test_utils import make_cell_table
 
@@ -11,19 +12,20 @@ TRAIN_FRAC = 0.75
 TRAIN_CELLS = TRAIN_FRAC * N_CELLS
 TEST_CELL_TABLE = make_cell_table(N_CELLS)
 TEST_FORMAT = pros.format_cell_table(
-    cell_table=TEST_CELL_TABLE, clusters=list(np.unique(TEST_CELL_TABLE["cluster_id"])))
+    cell_table=TEST_CELL_TABLE, clusters=list(np.unique(TEST_CELL_TABLE[settings.CLUSTER_ID])))
 TEST_FEATURES = pros.featurize_cell_table(cell_table=TEST_FORMAT, train_frac=TRAIN_FRAC)
 
 
 def test_format_cell_table():
     # Check that number of FOVS match
+    fov_list=[x for x in TEST_FORMAT.keys() if x not in ['fovs', 'markers', 'clusters']]
     verify_in_list(
-        fovs1=list(np.unique(TEST_CELL_TABLE["SampleID"])), fovs2=list(TEST_FORMAT.keys()))
+        fovs1=list(np.unique(TEST_CELL_TABLE[settings.FOV_ID])), fovs2=fov_list)
     # Check that columns were retained/renamed
     verify_in_list(
         cols1=["x", "y", "cluster_id", "cluster", "is_index"], cols2=list(TEST_FORMAT[1].columns))
     # Check that columns were dropped
-    assert len(TEST_CELL_TABLE.columns) < len(TEST_FORMAT[1].columns)
+    assert len(TEST_CELL_TABLE.columns) > len(TEST_FORMAT[1].columns)
 
 
 def test_featurize_cell_table():
