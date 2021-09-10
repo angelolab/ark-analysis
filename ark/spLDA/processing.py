@@ -38,8 +38,10 @@ def format_cell_table(cell_table, markers=None, clusters=None):
 
     # Only keep columns relevant for spatial-LDA
     if markers is not None:
-        BASE_COLS.append(markers)
-    drop_columns = [c for c in cell_table.columns if c not in BASE_COLS]
+        keep_cols = BASE_COLS + markers
+    else:
+        keep_cols = BASE_COLS
+    drop_columns = [c for c in cell_table.columns if c not in keep_cols]
     cell_table_drop = cell_table.drop(columns=drop_columns)
 
     # Rename columns
@@ -189,7 +191,7 @@ def create_difference_matrices(cell_table, features, training=True, inference=Tr
     return matrix_dict
 
 
-def gap_stat(features, k, clust_inertia, num_boots):
+def gap_stat(features, k, clust_inertia, num_boots=25):
     """Computes the Gap-statistic for a given k-means clustering model as introduced by
     Tibshirani, Walther and Hastie (2001).
 
