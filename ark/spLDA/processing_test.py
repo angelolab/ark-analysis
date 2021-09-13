@@ -50,21 +50,28 @@ def test_format_cell_table():
 
 
 def test_featurize_cell_table():
-    # call formatting function - only test on clusters to avoid repetition
+    # call formatting function
     all_clusters = list(np.unique(TEST_CELL_TABLE[settings.CLUSTER_ID]))
-    cluster_format = pros.format_cell_table(cell_table=TEST_CELL_TABLE, clusters=all_clusters)
+    all_markers = ['A', 'B', 'C', 'D', 'E', 'F', 'G']
+    cluster_names = list(np.unique(TEST_CELL_TABLE["cluster_labels"]))
+    cell_table_format = pros.format_cell_table(cell_table=TEST_CELL_TABLE, clusters=all_clusters,
+                                               markers=all_markers)
 
     # call featurization
-    features1 = pros.featurize_cell_table(cell_table=cluster_format, featurization='cluster',
+    features1 = pros.featurize_cell_table(cell_table=cell_table_format, featurization='cluster',
                                           train_frac=0.75)
-    features2 = pros.featurize_cell_table(cell_table=cluster_format, featurization='cluster',
+    features2 = pros.featurize_cell_table(cell_table=cell_table_format, featurization='cluster',
                                           train_frac=0.5)
+    features3 = pros.featurize_cell_table(cell_table=cell_table_format, featurization='marker',
+                                          train_frac=0.75)
 
-    # Check for consistent dimensions
+    # Check for consistent dimensions and correct column names
     assert features1["featurized_fovs"].shape[0] == TEST_CELL_TABLE.shape[0] == N_CELLS
     assert features2["featurized_fovs"].shape[0] == TEST_CELL_TABLE.shape[0] == N_CELLS
     assert features1["train_features"].shape[0] == 0.75 * N_CELLS
     assert features2["train_features"].shape[0] == 0.5 * N_CELLS
+    verify_in_list(correct=all_markers, actual=list(features3["featurized_fovs"].columns))
+    verify_in_list(correct=cluster_names, actual=list(features1["featurized_fovs"].columns))
 
 
 def test_gap_stat():
