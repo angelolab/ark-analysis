@@ -125,7 +125,7 @@ def test_create_difference_matrices():
     infer_dims = [x.shape[1] for x in diff_mat['inference_diff_mat'].values()]
     cell_table_infer_dims = [cluster_format[1].shape[0], cluster_format[2].shape[0],
                              cluster_format[3].shape[0], cluster_format[4].shape[0]]
-    cell_table_train_dims = [np.round(x * 0.75) for x in cell_table_infer_dims]
+    cell_table_train_dims = [np.round(x * 0.75).astype(int) for x in cell_table_infer_dims]
 
     for i in range(len(train_dims)):
         assert train_dims[i] == cell_table_train_dims[i]
