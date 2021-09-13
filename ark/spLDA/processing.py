@@ -296,10 +296,12 @@ def fov_density(cell_table, total_pix=1024 ** 2):
         by cells divided by the total number of pixels in each field of view.
 
     """
-    density_stats = {
-        "average_area": {k: v["cell_size"].mean() for (k, v) in cell_table.items()},
-        "cellular_density": {
-            k: np.sum(v["cell_size"]) / total_pix for (k, v) in cell_table.items()}
-    }
+    average_area = {}
+    cellular_density = {}
+    for i in range(1, 5):
+        average_area[i] = cell_table[i].cell_size.mean()
+        cellular_density[i] = np.sum(cell_table[i].cell_size) / total_pix
+
+    density_stats = {"average_area": average_area, "cellular_density": cellular_density}
 
     return density_stats

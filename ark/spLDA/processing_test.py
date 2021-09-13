@@ -120,3 +120,19 @@ def test_create_difference_matrices():
     # check output values
     assert all(list(diff_mat.values()))
     assert diff_mat_train['inference_diff_mat'] is None
+
+
+def test_fov_density():
+    # Format cell table
+    all_clusters = list(np.unique(TEST_CELL_TABLE[settings.CLUSTER_ID]))
+    cluster_format = pros.format_cell_table(cell_table=TEST_CELL_TABLE, clusters=all_clusters)
+    cell_dens = pros.fov_density(cluster_format)
+
+    # check for correct names
+    verify_in_list(correct=["average_area", "cellular_density"], actual=list(cell_dens.keys()))
+    # check for correct dims
+    assert len(cell_dens["average_area"]) == len(cluster_format["fovs"])
+    assert len(cell_dens["cellular_density"]) == len(cluster_format["fovs"])
+    # check for non-negative output
+    assert all([x >= 0 for x in cell_dens["average_area"].values()])
+    assert all([x >= 0 for x in cell_dens["cellular_density"].values()])
