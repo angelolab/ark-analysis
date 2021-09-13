@@ -93,9 +93,9 @@ def test_compute_topic_eda():
     with pytest.raises(ValueError, match="Number of bootstrap samples must be at least"):
         pros.compute_topic_eda(features["featurized_fovs"], topics=[5], num_boots=20)
     # appropriate range of topics
-    with pytest.raises(ValueError, match="Number of topics must be greater than 2"):
+    with pytest.raises(ValueError, match="Number of topics must be in"):
         pros.compute_topic_eda(features["featurized_fovs"], topics=[2], num_boots=25)
-    with pytest.raises(ValueError, match=r"Number of topics must be less than"):
+    with pytest.raises(ValueError, match=r"Number of topics must be in"):
         pros.compute_topic_eda(features["featurized_fovs"], topics=[1000], num_boots=25)
     # check for correct output
     eda = pros.compute_topic_eda(features=features["featurized_fovs"], topics=[5], num_boots=25)
@@ -112,6 +112,11 @@ def test_create_difference_matrices():
     diff_mat = pros.create_difference_matrices(cell_table=cluster_format, features=features)
     diff_mat_train = pros.create_difference_matrices(cell_table=cluster_format,
                                                      features=features, inference=False)
+
+    # check for valid inputs
+    with pytest.raises(ValueError, match="One or both of"):
+        pros.create_difference_matrices(cell_table=cluster_format, features=features,
+                                        training=False, inference=False)
 
     # check output names
     verify_in_list(correct=['train_diff_mat', 'inference_diff_mat'], actual=list(diff_mat.keys()))

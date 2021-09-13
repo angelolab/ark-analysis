@@ -165,8 +165,6 @@ def create_difference_matrices(cell_table, features, training=True, inference=Tr
     """
     if not training and not inference:
         raise ValueError("One or both of 'training' or 'inference' must be True")
-    if training and features["train_features"] is None:
-        raise ValueError("train_features cannot be 'None'")
 
     cell_table = {
         k: v for (k, v) in cell_table.items() if k not in ["fovs", "markers", "clusters"]
@@ -256,12 +254,10 @@ def compute_topic_eda(features, topics, num_boots=25):
     # Check inputs
     if num_boots < 25:
         raise ValueError("Number of bootstrap samples must be at least 25")
-    if min(topics) <= 2:
-        raise ValueError("Number of topics must be greater than 2")
-    if max(topics) >= features.shape[0] - 1:
-        raise ValueError("Number of topics must be less than {}".format(features.shape[0] - 1))
+    if min(topics) <= 2 or max(topics) >= features.shape[0] - 1:
+        raise ValueError("Number of topics must be in [2, %d]" % (features.shape[0] - 1))
 
-    inertias, silhouettes, gap_stats, gap_sds, pct_vars = {}, {}, {}, {}, {}
+    inertias = silhouettes = gap_stats = gap_sds = pct_vars = {}
 
     # Compute the total sum of squared pairwise distances between all observations
     total_ss = np.sum(pdist(features) ** 2) / features.shape[0]
