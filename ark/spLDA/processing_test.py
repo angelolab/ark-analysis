@@ -119,6 +119,9 @@ def test_create_difference_matrices():
     diff_mat = pros.create_difference_matrices(cell_table=cluster_format, features=features)
     diff_mat_train = pros.create_difference_matrices(cell_table=cluster_format,
                                                      features=features, inference=False)
+    diff_mat_infer = pros.create_difference_matrices(cell_table=cluster_format,
+                                                     features=features, training=False,
+                                                     inference=True)
 
     # check for valid inputs
     with pytest.raises(ValueError, match="One or both of"):
@@ -132,6 +135,7 @@ def test_create_difference_matrices():
     # check output values
     assert all(list(diff_mat.values()))
     assert diff_mat_train['inference_diff_mat'] is None
+    assert diff_mat_infer['train_diff_mat'] is None
 
 
 def test_fov_density():
