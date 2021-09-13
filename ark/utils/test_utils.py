@@ -551,9 +551,8 @@ def make_cell_table(num_cells, extra_cols=None):
     """
     # columns from regionprops extraction
     region_cols = [x for x in settings.REGIONPROPS_BASE if
-                   x not in ['label', 'area', 'centroid']] + \
-                  settings.REGIONPROPS_SINGLE_COMP + \
-                  settings.REGIONPROPS_MULTI_COMP
+                   x not in ['label', 'area', 'centroid']] + settings.REGIONPROPS_SINGLE_COMP
+    region_cols += settings.REGIONPROPS_MULTI_COMP
     # consistent ordering of column names
     column_names = [settings.FOV_ID,
                     settings.PATIENT_ID,
