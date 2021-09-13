@@ -570,6 +570,8 @@ def make_cell_table(num_cells, extra_cols=None):
                              columns=column_names)
     # not-so-random filler data
     cluster_id = choices(range(1, 21), k=num_cells)
+    centroids = pd.DataFrame(np.array([(x, y) for x in range(1024) for y in range(1024)]))
+    centroid_loc = np.random.choice(range(1024 ** 2), size=num_cells, replace=False)
     fields = [(settings.FOV_ID, choices(range(1, 5), k=num_cells)),
               (settings.PATIENT_ID, choices(range(1, 10), k=num_cells)),
               (settings.CLUSTER_ID, cluster_id),
@@ -577,8 +579,8 @@ def make_cell_table(num_cells, extra_cols=None):
               (settings.CELL_LABEL, list(range(num_cells))),
               (settings.CELL_TYPE, choices(ascii_lowercase, k=num_cells)),
               (settings.CELL_SIZE, np.random.uniform(100, 300, size=num_cells)),
-              (settings.CENTROID_0, np.random.choice(range(1024), size=num_cells, replace=False)),
-              (settings.CENTROID_1, np.random.choice(range(1024), size=num_cells, replace=False))
+              (settings.CENTROID_0, np.array(centroids.iloc[centroid_loc, 0])),
+              (settings.CENTROID_1, np.array(centroids.iloc[centroid_loc, 1]))
               ]
 
     for name, col in fields:

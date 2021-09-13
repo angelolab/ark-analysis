@@ -1,7 +1,6 @@
 import functools
 
 import numpy as np
-import pandas as pd
 from scipy.spatial.distance import pdist
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
@@ -220,14 +219,11 @@ def gap_stat(features, k, clust_inertia, num_boots=25):
     n, p = features.shape
     w_kb = []
     # Create bootstrapped reference data
-    boots = np.zeros(shape=(n * num_boots, p))
-    boot_ind = np.repeat(np.array(range(num_boots)), n)
-    np.random.shuffle(boot_ind)
-    for i in range(p):
-        boots[:, i] = np.random.uniform(low=mins[i], high=maxs[i], size=n * num_boots)
+    boot_array = np.zeros((n, p))
     # Cluster each bootstrapped sample to get the inertia
     for b in range(num_boots):
-        boot_array = pd.DataFrame(boots[boot_ind == b, :])
+        for i in range(p):
+            boot_array[:, i] = np.random.uniform(low=mins[i], high=maxs[i], size=n)
         boot_clust = KMeans(n_clusters=k).fit(boot_array)
         w_kb.append(boot_clust.inertia_)
     # Gap statistic and standard error
