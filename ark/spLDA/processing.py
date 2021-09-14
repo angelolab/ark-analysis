@@ -267,7 +267,7 @@ def compute_topic_eda(features, topics, num_boots=25):
         stats['inertia'][k] = cluster_fit.inertia_
         stats['silhouette'][k] = silhouette_score(features, cluster_fit.labels_, 'euclidean')
         stats['gap_stat'][k], stats['gap_sds'][k] = gap_stat(features, k, cluster_fit.inertia_,
-                                                       num_boots)
+                                                             num_boots)
         stats['percent_var_exp'][k] = (total_ss - cluster_fit.inertia_) / total_ss
 
     return stats
