@@ -52,7 +52,7 @@ class MetaClusterGui():
     def make_gui(self):
         #  |  |    Cluster     | Meta |
         #  ----------------------------
-        #  |  |    cp          |  mp  | counts of pixels
+        #  |  |    cp          |  cb  | counts of pixels, color bar
         #  |cd|    c           |  m   | heatmap itself
         #  |  |    cs          |  ms  | selection markers
         #  |  |    cl          |  ml  | metacluster color labels
@@ -68,7 +68,7 @@ class MetaClusterGui():
             )
 
         (self.fig, (
-            (self.ax_01, self.ax_cp, self.ax_mp),
+            (self.ax_01, self.ax_cp, self.ax_cb),
             (self.ax_cd, self.ax_c, self.ax_m),
             (self.ax_02, self.ax_cs, self.ax_ms),
             (self.ax_03, self.ax_cl, self.ax_ml))) = subplots
@@ -80,9 +80,9 @@ class MetaClusterGui():
         self.fig.canvas.mpl_connect('pick_event', self.onpick)
 
         # heatmaps
-        n = ZScoreNormalize()
-        self.im_c = self.ax_c.imshow(np.zeros((self.mcd.marker_count, self.mcd.cluster_count)), norm=n, cmap=self.heatmapcolors, aspect='auto', picker=True)  # noqa
-        self.im_m = self.ax_m.imshow(np.zeros((self.mcd.marker_count, self.mcd.metacluster_count)), norm=n, cmap=self.heatmapcolors, aspect='auto', picker=True)  # noqa
+        self.normalizer = ZScoreNormalize(-1, 0, 1)
+        self.im_c = self.ax_c.imshow(np.zeros((self.mcd.marker_count, self.mcd.cluster_count)), norm=self.normalizer, cmap=self.heatmapcolors, aspect='auto', picker=True)  # noqa
+        self.im_m = self.ax_m.imshow(np.zeros((self.mcd.marker_count, self.mcd.metacluster_count)), norm=self.normalizer, cmap=self.heatmapcolors, aspect='auto', picker=True)  # noqa
 
         self.ax_c.yaxis.set_tick_params(which='major', labelleft=False)
         self.ax_c.set_yticks(np.arange(self.mcd.marker_count)+0.5)
@@ -116,9 +116,7 @@ class MetaClusterGui():
 
         # xaxis pixelcount graphs
         self.ax_cp.xaxis.set_tick_params(which='both', bottom=False, labelbottom=False)
-        self.ax_mp.xaxis.set_tick_params(which='both', bottom=False, labelbottom=False)
         self.ax_cp.yaxis.set_tick_params(which='both', left=False, labelleft=False)
-        self.ax_mp.yaxis.set_tick_params(which='both', left=False, labelleft=False)
         self.ax_cp.set_ylabel("Pixels (k)", rotation=90)
         self.ax_cp.set_xlim(0, self.mcd.cluster_count)
         self.rects_cp = self.ax_cp.bar(
@@ -131,6 +129,10 @@ class MetaClusterGui():
                 x=x, y=0, s="-", va='bottom',
                 ha='center', rotation=90, color='black', fontsize=8)
             self.labels_cp.append(label)
+
+        # colorbar
+        self.cb = plt.colorbar(self.im_c, ax=self.ax_cb, orientation='horizontal', fraction=.75, shrink=.95, aspect=15)  # noqa
+        self.cb.ax.xaxis.set_tick_params(which='both', labelsize=7, labelrotation=90)
 
         # dendrogram
         self.ddg = dendrogram(
@@ -155,7 +157,7 @@ class MetaClusterGui():
         self.ax_01.axis('off')
         self.ax_02.axis('off')
         self.ax_03.axis('off')
-        self.ax_mp.axis('off')
+        self.ax_cb.axis('off')
 
         # naive cache expiration
         self._heatmaps_stale = True
@@ -309,15 +311,17 @@ class MetaClusterGui():
             self.fig.canvas.draw()
             return
 
+        self.normalizer.calibrate(self.preplot(self.mcd.clusters).values)
+
         # clusters heatmap
         self.im_c.set_data(self.preplot(self.mcd.clusters))
         self.im_c.set_extent((0, self.mcd.cluster_count, 0, self.mcd.marker_count))
-        self.im_c.set_clim(0, self.max_zscore)
+        self.im_c.set_clim(self.normalizer.vmin, self.normalizer.vmax)
 
         # metaclusters heatmap
         self.im_m.set_data(self.preplot(self.mcd.metaclusters))
         self.im_m.set_extent((0, self.mcd.metacluster_count, 0, self.mcd.marker_count))
-        self.im_m.set_clim(0, self.max_zscore)
+        self.im_m.set_clim(self.normalizer.vmin, self.normalizer.vmax)
 
         # xaxis metacluster color labels
         assert max(self.mcd.metaclusters.index) <= self.mcd.cluster_count, \
