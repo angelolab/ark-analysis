@@ -212,10 +212,10 @@ def test_normalize_rows():
         columns=chans
     )
 
-    # add some zero rows
-    fov_pixel_matrix = pd.concat([
-        fov_pixel_matrix, pd.DataFrame(np.zeros((100, 3)), columns=chans)
-    ]).reset_index(drop=True)
+    # # add some zero rows
+    # fov_pixel_matrix = pd.concat([
+    #     fov_pixel_matrix, pd.DataFrame(np.zeros((100, 3)), columns=chans)
+    # ]).reset_index(drop=True)
 
     # add dummy metadata
     fov_pixel_matrix['fov'] = 'fov0'
@@ -240,68 +240,68 @@ def test_normalize_rows():
     assert np.all(fov_pixel_matrix_sub.drop(columns=meta_cols) == [0.5, 0.5])
 
 
-def test_preprocess_row_sums():
-    # define list of fovs and channels
-    fovs = ['fov0', 'fov1', 'fov2']
-    chans = ['chan0', 'chan1', 'chan2']
+# def test_preprocess_row_sums():
+#     # define list of fovs and channels
+#     fovs = ['fov0', 'fov1', 'fov2']
+#     chans = ['chan0', 'chan1', 'chan2']
 
-    # do not need to test for cluster_dir existence, that happens in consensus_cluster
-    with tempfile.TemporaryDirectory() as temp_dir:
-        # create a dummy preprocessed matrix
-        os.mkdir(os.path.join(temp_dir, 'pixel_mat_preprocessed'))
+#     # do not need to test for cluster_dir existence, that happens in consensus_cluster
+#     with tempfile.TemporaryDirectory() as temp_dir:
+#         # create a dummy preprocessed matrix
+#         os.mkdir(os.path.join(temp_dir, 'pixel_mat_preprocessed'))
 
-        # write dummy clustered data for each fov
-        for fov in fovs:
-            # create dummy preprocessed data for each fov
-            fov_cluster_matrix = pd.DataFrame(
-                np.repeat(np.array([[2, 4, 4]]), repeats=1000, axis=0),
-                columns=chans
-            )
+#         # write dummy clustered data for each fov
+#         for fov in fovs:
+#             # create dummy preprocessed data for each fov
+#             fov_cluster_matrix = pd.DataFrame(
+#                 np.repeat(np.array([[2, 4, 4]]), repeats=1000, axis=0),
+#                 columns=chans
+#             )
 
-            # add some zero rows
-            fov_cluster_matrix = pd.concat([
-                fov_cluster_matrix, pd.DataFrame(np.zeros((100, 3)), columns=chans)
-            ])
+#             # add some zero rows
+#             fov_cluster_matrix = pd.concat([
+#                 fov_cluster_matrix, pd.DataFrame(np.zeros((100, 3)), columns=chans)
+#             ])
 
-            # add dummy metadata
-            fov_cluster_matrix['fov'] = fov
-            fov_cluster_matrix['row_index'] = -1
-            fov_cluster_matrix['column_index'] = -1
-            fov_cluster_matrix['segmentation_label'] = -1
+#             # add dummy metadata
+#             fov_cluster_matrix['fov'] = fov
+#             fov_cluster_matrix['row_index'] = -1
+#             fov_cluster_matrix['column_index'] = -1
+#             fov_cluster_matrix['segmentation_label'] = -1
 
-            # write the dummy data to pixel_mat_preprocessed
-            feather.write_dataframe(fov_cluster_matrix, os.path.join(temp_dir,
-                                                                     'pixel_mat_preprocessed',
-                                                                     fov + '.feather'))
+#             # write the dummy data to pixel_mat_preprocessed
+#             feather.write_dataframe(fov_cluster_matrix, os.path.join(temp_dir,
+#                                                                      'pixel_mat_preprocessed',
+#                                                                      fov + '.feather'))
 
-        # run row preprocessing
-        som_utils.preprocess_row_sums(fovs, chans, temp_dir, 'pixel_mat_preprocessed')
+#         # run row preprocessing
+#         som_utils.preprocess_row_sums(fovs, chans, temp_dir, 'pixel_mat_preprocessed')
 
-        for fov in fovs:
-            # assert we still have a fov.feather file
-            assert os.path.exists(
-                os.path.join(temp_dir, 'pixel_mat_preprocessed', fov + '.feather')
-            )
+#         for fov in fovs:
+#             # assert we still have a fov.feather file
+#             assert os.path.exists(
+#                 os.path.join(temp_dir, 'pixel_mat_preprocessed', fov + '.feather')
+#             )
 
-            # read the row preprocessed data in
-            fov_row_pre = feather.read_dataframe(os.path.join(temp_dir,
-                                                              'pixel_mat_preprocessed',
-                                                              fov + '.feather'))
+#             # read the row preprocessed data in
+#             fov_row_pre = feather.read_dataframe(os.path.join(temp_dir,
+#                                                               'pixel_mat_preprocessed',
+#                                                               fov + '.feather'))
 
-            # drop the metadata columns
-            fov_row_pre = fov_row_pre.drop(
-                columns=['fov', 'row_index', 'column_index', 'segmentation_label']
-            )
+#             # drop the metadata columns
+#             fov_row_pre = fov_row_pre.drop(
+#                 columns=['fov', 'row_index', 'column_index', 'segmentation_label']
+#             )
 
-            # assert the same channels we subsetted on are found in fov_row_pre
-            misc_utils.verify_same_elements(
-                provided_chans=chans,
-                fov_pixel_chans=fov_row_pre.columns.values,
-            )
+#             # assert the same channels we subsetted on are found in fov_row_pre
+#             misc_utils.verify_same_elements(
+#                 provided_chans=chans,
+#                 fov_pixel_chans=fov_row_pre.columns.values,
+#             )
 
-            # assert all the rows sum to 0.2, 0.4, 0.4
-            # this also checks that all the zero-sum rows have been removed
-            assert np.all(fov_row_pre == [0.2, 0.4, 0.4])
+#             # assert all the rows sum to 0.2, 0.4, 0.4
+#             # this also checks that all the zero-sum rows have been removed
+#             assert np.all(fov_row_pre == [0.2, 0.4, 0.4])
 
 
 def test_compute_pixel_cluster_channel_avg():
@@ -442,37 +442,57 @@ def test_compute_cell_cluster_count_avg():
             clustered_path = os.path.join(temp_dir, 'cell_mat_clustered.feather')
             feather.write_dataframe(cluster_data, clustered_path)
 
-            # TEST 1: paveraged over cell SOM clusters
-            cell_cluster_avg = som_utils.compute_cell_cluster_count_avg(
-                clustered_path, cluster_prefix, 'cluster'
-            )
+            # test for both keep_count settings
+            for keep_count in [False, True]:
+                # TEST 1: paveraged over cell SOM clusters
+                # drop a certain set of columns when checking count avg values
+                drop_cols = ['cluster']
+                if keep_count:
+                    drop_cols.append('count')
 
-            # assert we have results for all 10 labels
-            assert cell_cluster_avg.shape[0] == 10
+                cell_cluster_avg = som_utils.compute_cell_cluster_count_avg(
+                    clustered_path, cluster_prefix, 'cluster', keep_count=keep_count
+                )
 
-            # assert the values are 0.1 across the board
-            cell_cluster_avg_sub = cell_cluster_avg.drop(columns='cluster')
+                # assert we have results for all 10 labels
+                assert cell_cluster_avg.shape[0] == 10
 
-            # division causes tiny errors so round to 1 decimal place
-            cell_cluster_avg_sub = cell_cluster_avg_sub.round(decimals=1)
+                # assert the values are 0.1 across the board
+                cell_cluster_avg_sub = cell_cluster_avg.drop(columns=drop_cols)
 
-            assert np.all(cell_cluster_avg_sub == 0.1)
+                # division causes tiny errors so round to 1 decimal place
+                cell_cluster_avg_sub = cell_cluster_avg_sub.round(decimals=1)
 
-            # TEST 2: averaged over cell meta clusters
-            cell_cluster_avg = som_utils.compute_cell_cluster_count_avg(
-                clustered_path, cluster_prefix, 'hCluster_cap'
-            )
+                assert np.all(cell_cluster_avg_sub == 0.1)
 
-            # assert we have results for all 2 labels
-            assert cell_cluster_avg.shape[0] == 2
+                # assert that the counts are valid if keep_count set to True
+                if keep_count:
+                    assert np.all(cell_cluster_avg['count'].values == 100)
 
-            # assert the values are 0.1 across the board
-            cell_cluster_avg_sub = cell_cluster_avg.drop(columns='hCluster_cap')
+                # TEST 2: averaged over cell meta clusters
+                # drop a certain set of columns when checking count avg values
+                drop_cols = ['hCluster_cap']
+                if keep_count:
+                    drop_cols.append('count')
 
-            # division causes tiny errors so round to 1 decimal place
-            cell_cluster_avg_sub = cell_cluster_avg_sub.round(decimals=1)
+                cell_cluster_avg = som_utils.compute_cell_cluster_count_avg(
+                    clustered_path, cluster_prefix, 'hCluster_cap', keep_count=keep_count
+                )
 
-            assert np.all(cell_cluster_avg_sub == 0.1)
+                # assert we have results for all 2 labels
+                assert cell_cluster_avg.shape[0] == 2
+
+                # assert the values are 0.1 across the board
+                cell_cluster_avg_sub = cell_cluster_avg.drop(columns=drop_cols)
+
+                # division causes tiny errors so round to 1 decimal place
+                cell_cluster_avg_sub = cell_cluster_avg_sub.round(decimals=1)
+
+                assert np.all(cell_cluster_avg_sub == 0.1)
+
+                # assert that the counts are valid if keep_count set to True
+                if keep_count:
+                    assert np.all(cell_cluster_avg['count'].values == 500)
 
 
 def test_compute_p2c_weighted_channel_avg():
@@ -570,7 +590,7 @@ def test_compute_p2c_weighted_channel_avg():
                     num_repeats = 5
 
                 actual_markers = np.tile(
-                    np.array([0.2, 0.4, 0.8]), num_repeats
+                    np.array([1, 2, 4]), num_repeats
                 ).reshape(num_repeats, 3)
 
                 # assert the values are close enough
@@ -640,16 +660,16 @@ def test_compute_cell_cluster_counts():
         )
 
         # assert the values created
-        correct_val = [[2, 0, 0],
-                       [2, 0, 0],
-                       [1, 1, 0],
-                       [0, 2, 0],
-                       [0, 2, 0],
-                       [0, 2, 0],
-                       [0, 2, 0],
-                       [0, 1, 1],
-                       [0, 0, 2],
-                       [0, 0, 2]]
+        correct_val = [[10, 0, 0],
+                       [10, 0, 0],
+                       [5, 5, 0],
+                       [0, 10, 0],
+                       [0, 10, 0],
+                       [0, 10, 0],
+                       [0, 10, 0],
+                       [0, 5, 5],
+                       [0, 0, 10],
+                       [0, 0, 10]]
 
         assert np.all(np.equal(np.array(correct_val), cluster_counts[cluster_cols].values))
 
@@ -665,16 +685,16 @@ def test_compute_cell_cluster_counts():
         )
 
         # assert the values created
-        correct_val = [[2, 0],
-                       [2, 0],
-                       [1, 1],
-                       [0, 2],
-                       [0, 2],
-                       [2, 0],
-                       [2, 0],
-                       [1, 1],
-                       [0, 2],
-                       [0, 2]]
+        correct_val = [[10, 0],
+                       [10, 0],
+                       [5, 5],
+                       [0, 10],
+                       [0, 10],
+                       [10, 0],
+                       [10, 0],
+                       [5, 5],
+                       [0, 10],
+                       [0, 10]]
 
         assert np.all(np.equal(np.array(correct_val), cluster_counts[hCluster_cols].values))
 
@@ -828,7 +848,7 @@ def test_create_pixel_matrix():
                     # assert the channel names are the same
                     misc_utils.verify_same_elements(
                         flowsom_chans=flowsom_pre_fov.columns.values[:-4],
-                        provided_chans=chan_lists[0]
+                        provided_chans=chans
                     )
 
                     # assert no rows sum to 0

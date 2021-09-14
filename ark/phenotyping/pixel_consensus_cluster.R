@@ -47,10 +47,13 @@ print("Reading cluster averaged data")
 clusterAvgs <- arrow::read_feather(clusterAvgPath)
 
 # scale and cap the data accordingly
+# note: z-scoring and capping cluster avg data produces better clustering results
+# CANDACE REQUEST: add comment found z-scoring and capping cluster avg data works better
 print("Scaling data")
 clusterAvgsScale <- pmin(scale(clusterAvgs[markers]), cap)
 
 # run the consensus clustering
+# CANDACE SUGGESTION: look into suppressing output for Rs (invisible), not urgent
 print("Running consensus clustering")
 consensusClusterResults <- ConsensusClusterPlus(t(clusterAvgsScale), maxK=maxK, seed=seed)
 hClust <- consensusClusterResults[[maxK]]$consensusClass

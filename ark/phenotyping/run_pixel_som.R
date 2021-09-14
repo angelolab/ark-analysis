@@ -48,12 +48,14 @@ for (i in 1:length(fovs)) {
     matPath <- file.path(pixelMatDir, fileName)
     fovPixelData <- arrow::read_feather(matPath)
 
+    # CANDACE REQUEST: if you normalize by max if 0 in create_pixel_som, no need to check for 0 here
     # 99.9% normalize pixel data
     for (marker in markers) {
-        # this prevents all- or mostly-zero columns from getting normalized and becoming NA/Inf
-        if (normVals[1, marker] != 0) {
-            fovPixelData[, marker] <- fovPixelData[, marker] / normVals[1, marker]
-        }
+        # # this prevents all- or mostly-zero columns from getting normalized and becoming NA/Inf
+        # if (normVals[1, marker] != 0) {
+        #     fovPixelData[, marker] <- fovPixelData[, marker] / normVals[1, marker]
+        # }
+        fovPixelData[, marker] <- fovPixelData[, marker] / normVals[1, marker]
     }
 
     # map FlowSOM data

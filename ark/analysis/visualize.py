@@ -8,7 +8,8 @@ from ark.utils import misc_utils
 
 
 def draw_barplot(data, x_col, y_col, x_label, y_label, title, figsize, color='#00FF00',
-                 dpi=None, save_dir=None, save_file=None):
+                 dpi=None, title_size=48, axes_size=48, ticks_size=20,
+                 save_dir=None, save_file=None):
     """Draws a barplot for a given dataset
 
     Args:
@@ -31,6 +32,12 @@ def draw_barplot(data, x_col, y_col, x_label, y_label, title, figsize, color='#0
             The color of the bars to set
         dpi (float):
             The resolution of the image to save, ignored if save_dir is None
+        title_size (int):
+            The font size of the title
+        axes_size (int):
+            The font size of the axes
+        ticks_size (int):
+            The font size of the ticks
         save_dir (str):
             If specified, a directory where we will save the plot
         save_file (str):
@@ -49,9 +56,11 @@ def draw_barplot(data, x_col, y_col, x_label, y_label, title, figsize, color='#0
 
     # draw the barplot
     sns.barplot(x=data[x_col], y=data[y_col], palette=[color for i in range(data.shape[0])])
-    plt.title(title)
-    plt.xlabel(x_label)
-    plt.ylabel(y_label)
+    plt.title(title, fontsize=title_size)
+    plt.xlabel(x_label, fontsize=axes_size)
+    plt.ylabel(y_label, fontsize=axes_size)
+    plt.xticks(fontsize=ticks_size)
+    plt.yticks(fontsize=ticks_size)
 
     # save visualization to a directory if specified
     if save_dir is not None:
