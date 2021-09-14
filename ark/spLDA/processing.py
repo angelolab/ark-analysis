@@ -257,19 +257,19 @@ def compute_topic_eda(features, topics, num_boots=25):
     if min(topics) <= 2 or max(topics) >= features.shape[0] - 1:
         raise ValueError("Number of topics must be in [2, %d]" % (features.shape[0] - 1))
 
-    inertias = silhouettes = gap_stats = gap_sds = pct_vars = {}
+    stat_names = ['inertia', 'silhouette', 'gap_stat', 'gap_sds', 'percent_var_exp']
+    stats = dict(zip(stat_names, [{} for name in stat_names]))
 
     # Compute the total sum of squared pairwise distances between all observations
     total_ss = np.sum(pdist(features) ** 2) / features.shape[0]
     for k in topics:
         cluster_fit = KMeans(n_clusters=k).fit(features)
-        inertias[k] = cluster_fit.inertia_
-        silhouettes[k] = silhouette_score(features, cluster_fit.labels_, metric='euclidean')
-        gap_stats[k], gap_sds[k] = gap_stat(features, k, cluster_fit.inertia_, num_boots)
-        pct_vars[k] = (total_ss - cluster_fit.inertia_) / total_ss
+        stats['inertia'][k] = cluster_fit.inertia_
+        stats['silhouette'][k] = silhouette_score(features, cluster_fit.labels_, 'euclidean')
+        stats['gap_stat'][k], stats['gap_sds'][k] = gap_stat(features, k, cluster_fit.inertia_,
+                                                       num_boots)
+        stats['percent_var_exp'][k] = (total_ss - cluster_fit.inertia_) / total_ss
 
-    stats = {"inertia": inertias, "silhouette": silhouettes,
-             "gap_stat": gap_stats, "gap_sds": gap_sds, "percent_var_exp": pct_vars}
     return stats
 
 
