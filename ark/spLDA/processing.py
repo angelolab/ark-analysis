@@ -294,7 +294,7 @@ def fov_density(cell_table, total_pix=1024 ** 2):
     """
     average_area = {}
     cellular_density = {}
-    for i in range(1, 5):
+    for i in cell_table["fovs"]:
         average_area[i] = cell_table[i].cell_size.mean()
         cellular_density[i] = np.sum(cell_table[i].cell_size) / total_pix
 
