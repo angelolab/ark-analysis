@@ -1,3 +1,4 @@
+import copy
 import functools
 
 import numpy as np
@@ -36,10 +37,10 @@ def format_cell_table(cell_table, markers=None, clusters=None):
     spu.check_format_cell_table_args(cell_table=cell_table, markers=markers, clusters=clusters)
 
     # Only keep columns relevant for spatial-LDA
+    keep_cols = copy.deepcopy(BASE_COLS)
     if markers is not None:
-        keep_cols = BASE_COLS + markers
-    else:
-        keep_cols = BASE_COLS
+        keep_cols += markers
+
     drop_columns = [c for c in cell_table.columns if c not in keep_cols]
     cell_table_drop = cell_table.drop(columns=drop_columns)
 
@@ -216,12 +217,9 @@ def gap_stat(features, k, clust_inertia, num_boots=25):
     mins, maxs = features.apply(min, axis=0), features.apply(max, axis=0)
     n, p = features.shape
     w_kb = []
-    # Create bootstrapped reference data
-    boot_array = np.zeros((n, p))
     # Cluster each bootstrapped sample to get the inertia
     for b in range(num_boots):
-        for i in range(p):
-            boot_array[:, i] = np.random.uniform(low=mins[i], high=maxs[i], size=n)
+        boot_array = np.random.uniform(low=mins, high=maxs, size=(n, p))
         boot_clust = KMeans(n_clusters=k).fit(boot_array)
         w_kb.append(boot_clust.inertia_)
     # Gap statistic and standard error
