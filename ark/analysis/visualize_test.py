@@ -36,7 +36,7 @@ def test_draw_heatmap():
 def test_draw_boxplot():
     # trim random data so we don't have to visualize as many facets
     start_time = timeit.default_timer()
-    random_data = test_utils.make_segmented_csv(100)
+    random_data = test_utils.make_cell_table(100)
     random_data = random_data[random_data[settings.PATIENT_ID].isin(np.arange(1, 5))]
 
     # basic error testing
@@ -71,7 +71,7 @@ def test_draw_boxplot():
 
 
 def test_get_sort_data():
-    random_data = test_utils.make_segmented_csv(100)
+    random_data = test_utils.make_cell_table(100)
     sorted_data = visualize.get_sorted_data(random_data, settings.PATIENT_ID, settings.CELL_TYPE)
 
     row_sums = [row.sum() for index, row in sorted_data.iterrows()]
@@ -80,7 +80,7 @@ def test_get_sort_data():
 
 def test_plot_barchart():
     # mostly error checking here, test_visualize_cells tests the meat of the functionality
-    random_data = test_utils.make_segmented_csv(100)
+    random_data = test_utils.make_cell_table(100)
 
     with pytest.raises(FileNotFoundError):
         # trying to save to a non-existant directory
@@ -94,7 +94,7 @@ def test_plot_barchart():
 
 
 def test_visualize_patient_population_distribution():
-    random_data = test_utils.make_segmented_csv(100)
+    random_data = test_utils.make_cell_table(100)
 
     with tempfile.TemporaryDirectory() as temp_dir:
         # test without a save_dir, check that we do not save the files

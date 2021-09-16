@@ -1,12 +1,15 @@
+import copy
 import functools
 
 import numpy as np
+from scipy.spatial.distance import pdist
+from sklearn.cluster import KMeans
+from sklearn.metrics import silhouette_score
 from sklearn.model_selection import train_test_split
 from spatial_lda import featurization as ft
 
+import ark.utils.spatial_lda_utils as spu
 from ark.settings import BASE_COLS
-from ark.utils.spatial_lda_utils import check_format_cell_table_args, \
-    check_featurize_cell_table_args
 
 
 def format_cell_table(cell_table, markers=None, clusters=None):
@@ -31,12 +34,14 @@ def format_cell_table(cell_table, markers=None, clusters=None):
     """
 
     # Check function arguments
-    check_format_cell_table_args(cell_table=cell_table, markers=markers, clusters=clusters)
+    spu.check_format_cell_table_args(cell_table=cell_table, markers=markers, clusters=clusters)
 
     # Only keep columns relevant for spatial-LDA
+    keep_cols = copy.deepcopy(BASE_COLS)
     if markers is not None:
-        BASE_COLS.append(markers)
-    drop_columns = [c for c in cell_table.columns if c not in BASE_COLS]
+        keep_cols += markers
+
+    drop_columns = [c for c in cell_table.columns if c not in keep_cols]
     cell_table_drop = cell_table.drop(columns=drop_columns)
 
     # Rename columns
@@ -105,8 +110,8 @@ def featurize_cell_table(cell_table, featurization="cluster", radius=100, cell_i
     """
 
     # Check arguments
-    check_featurize_cell_table_args(cell_table=cell_table, featurization=featurization,
-                                    radius=radius, cell_index=cell_index)
+    spu.check_featurize_cell_table_args(cell_table=cell_table, featurization=featurization,
+                                        radius=radius, cell_index=cell_index)
     # Define Featurization Function
     func_type = {"marker": ft.neighborhood_to_marker, "cluster": ft.neighborhood_to_cluster,
                  "avg_marker": ft.neighborhood_to_avg_marker, "count": ft.neighborhood_to_count}
@@ -161,8 +166,6 @@ def create_difference_matrices(cell_table, features, training=True, inference=Tr
     """
     if not training and not inference:
         raise ValueError("One or both of 'training' or 'inference' must be True")
-    if training and features["train_features"] is None:
-        raise ValueError("train_features cannot be 'None'")
 
     cell_table = {
         k: v for (k, v) in cell_table.items() if k not in ["fovs", "markers", "clusters"]
@@ -184,3 +187,115 @@ def create_difference_matrices(cell_table, features, training=True, inference=Tr
 
     matrix_dict = {"train_diff_mat": train_diff_mat, "inference_diff_mat": inference_diff_mat}
     return matrix_dict
+
+
+def gap_stat(features, k, clust_inertia, num_boots=25):
+    """Computes the Gap-statistic for a given k-means clustering model as introduced by
+    Tibshirani, Walther and Hastie (2001).
+
+    Args:
+        features (pandas.DataFrame):
+            A DataFrame of featurized cellular neighborhoods.  Specifically, this is one of the
+            outputs of :func:`~ark.spLDA.processing.featurize_cell_table`.
+        k (int):
+            The number of clusters in the k-means model.
+        clust_inertia (float):
+            The calculated inertia from the k-means fit using the featurized data.
+        num_boots (int):
+            The number of bootstrap reference samples to generate.
+
+    Returns:
+        tuple (float, float)
+
+        - Estimated difference between the the expected log within-cluster sum of squares and
+        the observed log within-cluster sum of squares (a.k.a. the Gap-statistic).
+        - A scaled estimate of the standard error of the expected log
+        within-cluster sum of squares.
+
+    """
+    # Calculate the range of each feature column
+    mins, maxs = features.apply(min, axis=0), features.apply(max, axis=0)
+    n, p = features.shape
+    w_kb = []
+    # Cluster each bootstrapped sample to get the inertia
+    for b in range(num_boots):
+        boot_array = np.random.uniform(low=mins, high=maxs, size=(n, p))
+        boot_clust = KMeans(n_clusters=k).fit(boot_array)
+        w_kb.append(boot_clust.inertia_)
+    # Gap statistic and standard error
+    gap = np.log(w_kb).mean() - np.log(clust_inertia)
+    s = np.log(w_kb).std() * np.sqrt(1 + 1 / num_boots)
+    return gap, s
+
+
+def compute_topic_eda(features, topics, num_boots=25):
+    """Computes various metrics for k-means clustering models to help determine an
+    appropriate number of topics for use in spatial-LDA analysis.
+
+    Args:
+        features (pandas.DataFrame):
+            A DataFrame of featurized cellular neighborhoods.  Specifically, this is one of the
+            outputs of :func:`~ark.spLDA.processing.featurize_cell_table`.
+        topics (list):
+            A list of integers corresponding to the different number of possible topics to
+            investigate.
+        num_boots (int):
+            The number of bootstrap samples to use when calculating the Gap-statistic.
+
+    Returns:
+        dict:
+
+        - A dictionary of dictionaries containing the corresponding metrics for each topic value
+        provided.
+
+    """
+    # Check inputs
+    if num_boots < 25:
+        raise ValueError("Number of bootstrap samples must be at least 25")
+    if min(topics) <= 2 or max(topics) >= features.shape[0] - 1:
+        raise ValueError("Number of topics must be in [2, %d]" % (features.shape[0] - 1))
+
+    stat_names = ['inertia', 'silhouette', 'gap_stat', 'gap_sds', 'percent_var_exp']
+    stats = dict(zip(stat_names, [{} for name in stat_names]))
+
+    # Compute the total sum of squared pairwise distances between all observations
+    total_ss = np.sum(pdist(features) ** 2) / features.shape[0]
+    for k in topics:
+        cluster_fit = KMeans(n_clusters=k).fit(features)
+        stats['inertia'][k] = cluster_fit.inertia_
+        stats['silhouette'][k] = silhouette_score(features, cluster_fit.labels_, 'euclidean')
+        stats['gap_stat'][k], stats['gap_sds'][k] = gap_stat(features, k, cluster_fit.inertia_,
+                                                             num_boots)
+        stats['percent_var_exp'][k] = (total_ss - cluster_fit.inertia_) / total_ss
+
+    return stats
+
+
+def fov_density(cell_table, total_pix=1024 ** 2):
+    """Computes cellular density metrics for each field of view to determine an appropriate
+    radius for the featurization step.
+
+    Args:
+        cell_table (dict):
+            A formatted cell table for use in spatial-LDA analysis. Specifically, this is the
+            output from :func:`~ark.spLDA.processing.format_cell_table`.
+        total_pix (int):
+            The total number of pixels in each field of view.
+
+    Returns:
+        dict:
+
+        - A dictionary containing the average cell size and the cellular density for each field
+        of view.  Cellular density is calculated by summing the total number of pixels occupied
+        by cells divided by the total number of pixels in each field of view.
+
+    """
+    average_area = {}
+    cellular_density = {}
+    for i in cell_table["fovs"]:
+        average_area[i] = cell_table[i].cell_size.mean()
+        cellular_density[i] = np.sum(cell_table[i].cell_size) / total_pix
+
+    density_stats = {"average_area": average_area, "cellular_density": cellular_density}
+
+    return density_stats
