@@ -1,13 +1,14 @@
-import pandas as pd
-import numpy as np
-import pytest
 import copy
 
+import numpy as np
+import pandas as pd
+import pytest
 from sklearn.cluster import KMeans
-from ark.utils.test_utils import make_cell_table
-from ark.spLDA.processing import format_cell_table, featurize_cell_table
+
 import ark.settings as settings
 import ark.utils.spatial_lda_utils as spu
+from ark.spLDA.processing import format_cell_table, featurize_cell_table
+from ark.utils.test_utils import make_cell_table
 
 
 def test_check_format_cell_table_args():
@@ -73,22 +74,23 @@ def test_check_featurize_cell_table_args():
 
     with pytest.raises(ValueError):
         spu.check_featurize_cell_table_args(valid_cell_table, invalid_feature1, valid_radius,
-                                        valid_cell_index)
+                                            valid_cell_index)
     with pytest.raises(ValueError):
         spu.check_featurize_cell_table_args(valid_cell_table, invalid_feature2, valid_radius,
-                                        valid_cell_index)
+                                            valid_cell_index)
     with pytest.raises(ValueError, match=r"radius must not be less than 25"):
         spu.check_featurize_cell_table_args(valid_cell_table, valid_feature, invalid_radius1,
-                                        valid_cell_index)
+                                            valid_cell_index)
     with pytest.raises(TypeError, match=r"radius should be of type 'int'"):
         spu.check_featurize_cell_table_args(valid_cell_table, valid_feature, invalid_radius2,
-                                        valid_cell_index)
+                                            valid_cell_index)
     with pytest.raises(ValueError):
         spu.check_featurize_cell_table_args(valid_cell_table, valid_feature, valid_radius,
-                                        invalid_cell_index1)
+                                            invalid_cell_index1)
     with pytest.raises(ValueError):
         spu.check_featurize_cell_table_args(valid_cell_table, valid_feature, valid_radius,
-                                        invalid_cell_index2)
+                                            invalid_cell_index2)
+
 
 def test_within_cluster_sums():
     cell_table = make_cell_table(num_cells=1000)
@@ -97,6 +99,6 @@ def test_within_cluster_sums():
     featurized_table = featurize_cell_table(formatted_table)
     k_means = KMeans(n_clusters=5).fit(featurized_table["featurized_fovs"])
     wk = spu.within_cluster_sums(featurized_table["featurized_fovs"], k_means.labels_)
-    # check for correct type and strictly positive value
-    assert type(wk) == float
+    # check for strictly positive value
     assert wk >= 0
+
