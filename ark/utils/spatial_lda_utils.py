@@ -1,3 +1,6 @@
+import numpy as np
+from scipy.spatial.distance import pdist
+
 from ark.settings import BASE_COLS, CLUSTER_ID
 from ark.utils.misc_utils import verify_in_list
 
@@ -50,3 +53,26 @@ def check_featurize_cell_table_args(cell_table, featurization, radius, cell_inde
     verify_in_list(featurization=[featurization],
                    featurization_options=["cluster", "marker", "avg_marker", "count"])
     verify_in_list(cell_index=[cell_index], cell_table_columns=cell_table[1].columns.to_list())
+
+
+def within_cluster_sums(data, labels):
+    """Computes the pooled within-cluster sum of squares for the gap statistic .
+
+        Args:
+            data (pandas.DataFrame):
+                A formatted and featurized cell table.
+            labels (numpy.ndarray):
+                A list of cluster labels corresponding to cluster assignments in data.
+
+        Returns:
+            float
+
+            - The pooled within-cluster sum of squares for a given clustering iteration.
+        """
+    cluster_sums = []
+    for x in np.unique(labels):
+        d = data[labels == x]
+        cluster_ss = pdist(d).sum() / (2 * d.shape[0])
+        cluster_sums.append(cluster_ss)
+    wk = np.sum(cluster_sums)
+    return wk
