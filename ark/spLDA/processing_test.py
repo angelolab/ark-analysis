@@ -6,7 +6,7 @@ import ark.settings as settings
 import ark.spLDA.processing as pros
 from ark.utils.misc_utils import verify_in_list
 from ark.utils.test_utils import make_cell_table
-
+from ark.utils.spatial_lda_utils import within_cluster_sums
 # Generate a test cell table
 N_CELLS = 1000
 TEST_CELL_TABLE = make_cell_table(N_CELLS)
@@ -85,10 +85,11 @@ def test_gap_stat():
     all_clusters = list(np.unique(TEST_CELL_TABLE[settings.CLUSTER_ID]))
     all_clusters_format = pros.format_cell_table(cell_table=TEST_CELL_TABLE, clusters=all_clusters)
     features = pros.featurize_cell_table(cell_table=all_clusters_format, featurization='cluster')
-    inert = KMeans(n_clusters=5).fit(features['featurized_fovs']).inertia_
+    clust_labs = KMeans(n_clusters=5).fit(features['featurized_fovs']).labels_
+    clust_sums = within_cluster_sums(features['featurized_fovs'], clust_labs)
 
     # compute gap_stat
-    gap = pros.gap_stat(features=features['featurized_fovs'], k=5, clust_inertia=inert,
+    gap = pros.gap_stat(features=features['featurized_fovs'], k=5, clust_inertia=clust_sums,
                         num_boots=25)
 
     # check correct output length
