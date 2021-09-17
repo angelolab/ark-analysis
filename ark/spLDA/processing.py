@@ -221,7 +221,8 @@ def gap_stat(features, k, clust_inertia, num_boots=25):
     for b in range(num_boots):
         boot_array = np.random.uniform(low=mins, high=maxs, size=(n, p))
         boot_clust = KMeans(n_clusters=k).fit(boot_array)
-        w_kb.append(boot_clust.inertia_)
+        within_cluster = spu.within_cluster_sums(data=boot_array, labels=boot_clust.labels_)
+        w_kb.append(within_cluster)
     # Gap statistic and standard error
     gap = np.log(w_kb).mean() - np.log(clust_inertia)
     s = np.log(w_kb).std() * np.sqrt(1 + 1 / num_boots)
@@ -262,9 +263,10 @@ def compute_topic_eda(features, topics, num_boots=25):
     total_ss = np.sum(pdist(features) ** 2) / features.shape[0]
     for k in topics:
         cluster_fit = KMeans(n_clusters=k).fit(features)
+        pooled_within_ss = spu.within_cluster_sums(data=features, labels=cluster_fit.labels_)
         stats['inertia'][k] = cluster_fit.inertia_
         stats['silhouette'][k] = silhouette_score(features, cluster_fit.labels_, 'euclidean')
-        stats['gap_stat'][k], stats['gap_sds'][k] = gap_stat(features, k, cluster_fit.inertia_,
+        stats['gap_stat'][k], stats['gap_sds'][k] = gap_stat(features, k, pooled_within_ss,
                                                              num_boots)
         stats['percent_var_exp'][k] = (total_ss - cluster_fit.inertia_) / total_ss
 
