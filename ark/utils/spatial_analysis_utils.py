@@ -276,7 +276,7 @@ def compute_close_cell_num_random(marker_nums, dist_mat, dist_lim, bootstrap_num
     sorted_marker_nums, sort_permutation = zip(*marker_order)
     _marker_nums = np.array(sorted_marker_nums, dtype=np.uint16)
 
-    close_num_rand = compute_close_num_rand_linear(dist_mat_bin, cols_in_row_flat, row_indicies,
+    close_num_rand = compute_close_num_rand(dist_mat_bin, cols_in_row_flat, row_indicies,
                                                    _marker_nums, int(bootstrap_num))
 
     # unpermute close_num_rand
