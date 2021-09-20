@@ -11,7 +11,7 @@ from scipy.spatial.distance import cdist
 
 import ark.settings as settings
 from ark.utils import io_utils, misc_utils
-from ark.utils._bootstrapping import compute_close_num_rand
+from ark.utils._bootstrapping import compute_close_num_rand_linear
 
 
 def calc_dist_matrix(label_maps, save_path=None):
@@ -250,12 +250,40 @@ def compute_close_cell_num_random(marker_nums, dist_mat, dist_lim, bootstrap_num
     # Generate binarized distance matrix
     dist_mat_bin = (dist_mat.values < dist_lim).astype(np.uint16)
 
-    # static choice array
-    _marker_nums = np.array(marker_nums, dtype=np.uint16)
-    _choice_ar = np.array(list(range(dist_mat.shape[0])), dtype=np.uint16)
+    for mn in marker_nums:
+        if mn >= dist_mat_bin.shape[0]:
+            raise ValueError('Marker number count can not be greater than number of cells...')
 
-    close_num_rand = compute_close_num_rand(dist_mat_bin, _marker_nums, _choice_ar,
-                                            int(bootstrap_num))
+    rows, cols = np.nonzero(dist_mat_bin)
+    cols_in_row = [[] for i in range(dist_mat_bin.shape[0])]
+    for pair_idx, row in enumerate(rows):
+        cols_in_row[row].append(cols[pair_idx])
+
+    row_indicies = [0]
+    cols_in_row_flat = []
+    for cell_indx, row in enumerate(range(dist_mat_bin.shape[0])):
+        row_indicies.append(len(cols_in_row[row]) + row_indicies[cell_indx])
+        cols_in_row_flat.extend(cols_in_row[row])
+
+    # static
+    cols_in_row_flat = np.array(cols_in_row_flat, dtype=np.uint16)
+    row_indicies = np.array(row_indicies, dtype=np.uint16)
+
+    # sort marker_nums and save permutation
+    marker_order = [(mn, i) for i, mn in enumerate(marker_nums)]
+    marker_order.sort()
+
+    sorted_marker_nums, sort_permutation = zip(*marker_order)
+    _marker_nums = np.array(sorted_marker_nums, dtype=np.uint16)
+
+    close_num_rand = compute_close_num_rand_linear(dist_mat_bin, cols_in_row_flat, row_indicies,
+                                                   _marker_nums, int(bootstrap_num))
+
+    # unpermute close_num_rand
+    x_scramble = np.tile(np.argsort(sort_permutation), (len(sort_permutation), 1))
+    y_scramble = x_scramble.T
+
+    close_num_rand = close_num_rand[x_scramble, y_scramble, :]
 
     return close_num_rand
 

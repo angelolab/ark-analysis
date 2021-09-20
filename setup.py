@@ -26,7 +26,7 @@ with open(path.join(path.abspath(path.dirname(__file__)), 'README.md')) as f:
 
 extensions = [Extension(
     name="ark.utils._bootstrapping",
-    sources=["ark/utils/_bootstrapping/_close_cell_num_random.pyx"],
+    sources=["ark/utils/_bootstrapping.pyx"],
     include_dirs=[np.get_include()],
     define_macros=CYTHON_MACROS
 )]
