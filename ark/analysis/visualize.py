@@ -276,6 +276,7 @@ def visualize_neighbor_cluster_metrics(neighbor_cluster_stats, dpi=None, save_di
     if save_dir is not None:
         misc_utils.save_figure(save_dir, "neighborhood_cluster_scores.png", dpi=dpi)
 
+
 def visualize_topic_eda(data, metric="gap_stat", gap_sd=True, dpi=None, save_dir=None):
     """Visualize the exploratory metrics for spatial-LDA topics
 
@@ -319,5 +320,41 @@ def visualize_topic_eda(data, metric="gap_stat", gap_sd=True, dpi=None, save_dir
 
     if save_dir is not None:
         file_name = "topic_eda_" + metric + ".png"
+        misc_utils.save_figure(save_dir, file_name, dpi=dpi)
+
+
+def visualize_fov_stats(data, metric="cellular_density", dpi=None, save_dir=None):
+    """Visualize area and cell count distributions for all field of views.
+
+            Args:
+                data (dict):
+                    The dictionary of exploratory metrics produced by
+                    :func:`~ark.spLDA.processing.fov_density`.
+                metric (str):
+                    One of "cellular_density", "average_area", or "total_cells".  See
+                    documentation of :func:`~ark.spLDA.processing.fov_density` for details.
+                dpi (float):
+                    The resolution of the image to save, ignored if save_dir is None
+                save_dir (str):
+                    Directory to save plots, default is None
+            """
+    df = pd.DataFrame.from_dict(data)
+    df['fov'] = df.index
+
+    if metric == "cellular_density":
+        sns.histplot(data=df, x="cellular_density")
+        plt.xlabel("FOV Cellular Density")
+        plt.ylabel("Count")
+    elif metric == "average_area":
+        sns.histplot(data=df, x="average_area")
+        plt.xlabel("FOV Average Cell Area")
+        plt.ylabel("Count")
+    else:
+        sns.histplot(data=df, x="total_cells")
+        plt.xlabel("FOV Total Cell Count")
+        plt.ylabel("Count")
+
+    if save_dir is not None:
+        file_name = "fov_metrics_" + metric + ".png"
         misc_utils.save_figure(save_dir, file_name, dpi=dpi)
 

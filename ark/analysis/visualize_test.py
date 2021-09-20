@@ -163,3 +163,28 @@ def test_visualize_topic_eda():
         # test that with save_dir, we do save
         visualize.visualize_topic_eda(data=eda, metric="gap_stat", save_dir=temp_dir)
         assert os.path.exists(os.path.join(temp_dir, "topic_eda_gap_stat.png"))
+
+
+def test_visualize_fov_stats():
+    # Create/format/featurize testing cell table
+    cell_table = make_cell_table(num_cells=1000)
+    all_clusters = list(np.unique(cell_table[settings.CLUSTER_ID]))
+    cell_table_format = pros.format_cell_table(cell_table, clusters=all_clusters)
+
+    # Run topic EDA
+    fov_stats = pros.fov_density(cell_table_format)
+
+    with pytest.raises(FileNotFoundError):
+        # trying to save on a non-existant directory
+        visualize.visualize_fov_stats(data=fov_stats, save_dir="bad_dir")
+
+    # Basic visualization
+    with tempfile.TemporaryDirectory() as temp_dir:
+        # test that without save_dir, we do not save
+        visualize.visualize_fov_stats(data=fov_stats, metric="average_area")
+        assert not os.path.exists(os.path.join(temp_dir, "fov_metrics_average_area.png"))
+
+        # test that with save_dir, we do save
+        visualize.visualize_fov_stats(data=fov_stats, metric="average_area", save_dir=temp_dir)
+        assert os.path.exists(os.path.join(temp_dir, "fov_metrics_average_area.png"))
+
