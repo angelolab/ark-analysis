@@ -145,24 +145,3 @@ def compute_close_num_rand(DTYPE_t[:, :] dist_mat_bin, DTYPE_t[:] cols_in_row_fl
                            MAXINDEX_t[:] row_indicies, DTYPE_t[:] marker_nums, int bootstrap_num):
     return _compute_close_num_rand(dist_mat_bin, cols_in_row_flat, row_indicies, marker_nums,
                                    bootstrap_num)
-
-'''
-//     cdef np.ndarray marker1_labels_rand = [np.permutation(num_choices)[:m1n]]
-//     cdef np.ndarray marker2_labels_rand = [np.permutation(num_choices)[:m2n]]
-
-// for j, m1n in enumerate(marker_nums):
-//     for k, m2n in enumerate(marker_nums[j:], j):
-//         for r in range(bootstrap_num):
-//             # Select same amount of random cell labels as positive ones in close_num
-//             marker1_labels_rand = np.random.choice(a=choice_ar, size=m1n, replace=False)
-//             marker2_labels_rand = np.random.choice(a=choice_ar, size=m2n, replace=False)
-
-//             # Record the number of interactions and store in close_num_rand in the index
-//             # corresponding to both markers, for every permutation
-//             close_num_rand[j, k, r] = \
-//                 np.sum(dist_mat_bin[np.ix_(marker1_labels_rand, marker2_labels_rand)])
-
-//         # System should be symetric
-//         close_num_rand[k, j, :] = close_num_rand[j, k, :]
-// return close_num_rand
-'''
