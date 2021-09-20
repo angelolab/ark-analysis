@@ -7,6 +7,7 @@ cimport numpy as np
 from libc.stdlib cimport rand
 from libc.string cimport memset
 
+ctypedef np.uint64_t MAXINDEX_t
 ctypedef np.uint16_t DTYPE_t
 ctypedef np.uint8_t UINT8_t
 
@@ -14,12 +15,15 @@ ctypedef np.uint8_t UINT8_t
 cdef inline void _c_permutation(Py_ssize_t* arr, const Py_ssize_t size) nogil:
     cdef Py_ssize_t i, j, temp
 
-    for i in range(size-1, -1, -1):
+    for i in range(size-1, 0, -1):
         j = rand() % (i + 1)
         temp = arr[i]
-        arr[i] = j
+        arr[i] = arr[j]
         arr[j] = temp
 
+
+@boundscheck(False) # Deactivate bounds checking
+@wraparound(False)  # Deactivate negative indexing
 @cdivision(True) # Ignore modulo/divide by zero warning
 cdef inline void _init_flag_table(UINT8_t* flags, const Py_ssize_t* perm,
                                   const Py_ssize_t size) nogil:
@@ -34,9 +38,13 @@ cdef inline void _init_flag_table(UINT8_t* flags, const Py_ssize_t* perm,
 cdef inline void _list_accum(DTYPE_t[:] close_num_rand_view,
                              const DTYPE_t[:, :] dist_mat_bin, Py_ssize_t* rand_rows,
                              Py_ssize_t* rand_cols, Py_ssize_t num_choices, int m1n, int m2n,
-                             int bootstrap_num) nogil:
+                             int bootstrap_num):
     cdef DTYPE_t accum
     cdef Py_ssize_t m1_label, m2_label
+
+    if not m1n or not m2n:
+        return
+
     for r in range(bootstrap_num):
         accum = 0
         _c_permutation(rand_rows, num_choices)
@@ -45,18 +53,23 @@ cdef inline void _list_accum(DTYPE_t[:] close_num_rand_view,
             for m2_label in rand_cols[:m2n]:
                 accum += dist_mat_bin[m1_label, m2_label]
         close_num_rand_view[r] = accum
-        
 
 @boundscheck(False) # Deactivate bounds checking
 @wraparound(False)  # Deactivate negative indexing
 @cdivision(True)    # Ignore modulo/divide by zero warning
 cdef inline void _dict_accum(DTYPE_t[:] close_num_rand_view,
-                             const DTYPE_t[:] cols_in_row_flat, const DTYPE_t[:] row_indicies,
+                             const DTYPE_t[:] cols_in_row_flat, const MAXINDEX_t[:] row_indicies,
                              Py_ssize_t* rand_rows, Py_ssize_t* rand_cols,
                              UINT8_t* rand_cols_flags, Py_ssize_t num_choices, int m1n, int m2n,
-                             int bootstrap_num) nogil:
-    cdef DTYPE_t accum, flat_start, flat_end, m1_label, m2_label, m2_idx
-    for r in range(bootstrap_num):
+                             int bootstrap_num):
+    cdef DTYPE_t accum
+    cdef MAXINDEX_t flat_start, flat_end, m2_idx
+    cdef Py_ssize_t m1_label, m2_label
+
+    if not m1n or not m2n:
+        return
+
+    for r in range(bootstrap_num):   
         accum = 0
         _c_permutation(rand_rows, num_choices)
         _c_permutation(rand_cols, num_choices)
@@ -75,11 +88,11 @@ cdef inline void _dict_accum(DTYPE_t[:] close_num_rand_view,
 @wraparound(False)  # Deactivate negative indexing
 @cdivision(True)    # Ignore modulo/divide by zero warning
 cdef _compute_close_num_rand(DTYPE_t[:, :] dist_mat_bin, DTYPE_t[:] cols_in_row_flat,
-                            DTYPE_t[:] row_indicies, DTYPE_t[:] marker_nums,
-                            int bootstrap_num):
+                             MAXINDEX_t[:] row_indicies, DTYPE_t[:] marker_nums,
+                             int bootstrap_num):
 
     cdef Py_ssize_t num_markers = marker_nums.shape[0]
-    cdef Py_ssize_t num_choices = row_indicies.shape[0] - 1
+    cdef Py_ssize_t num_choices = dist_mat_bin.shape[0]
 
     close_num_rand = np.zeros((num_markers, num_markers, bootstrap_num), dtype=np.uint16)
     cdef DTYPE_t[:, :, :] close_num_rand_view = close_num_rand
@@ -106,10 +119,8 @@ cdef _compute_close_num_rand(DTYPE_t[:, :] dist_mat_bin, DTYPE_t[:] cols_in_row_
     for mn in range(num_markers):
         m2n_small[mn] = (marker_nums[mn] < avg_rowsize)
 
-    cdef int j, k, r, m1n, m2n
-    cdef Py_ssize_t m1_label, m2_label
+    cdef int j, k, m1n, m2n
 
-    cdef DTYPE_t accum, flat_start, flat_end, m2_idx
     for j in range(num_markers):
         m1n = marker_nums[j]
         for k in range(j, num_markers):
@@ -131,7 +142,7 @@ cdef _compute_close_num_rand(DTYPE_t[:, :] dist_mat_bin, DTYPE_t[:] cols_in_row_
     return close_num_rand
 
 def compute_close_num_rand(DTYPE_t[:, :] dist_mat_bin, DTYPE_t[:] cols_in_row_flat,
-                           DTYPE_t[:] row_indicies, DTYPE_t[:] marker_nums, int bootstrap_num):
+                           MAXINDEX_t[:] row_indicies, DTYPE_t[:] marker_nums, int bootstrap_num):
     return _compute_close_num_rand(dist_mat_bin, cols_in_row_flat, row_indicies, marker_nums,
                                    bootstrap_num)
 

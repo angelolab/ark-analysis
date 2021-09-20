@@ -267,7 +267,7 @@ def compute_close_cell_num_random(marker_nums, dist_mat, dist_lim, bootstrap_num
 
     # static
     cols_in_row_flat = np.array(cols_in_row_flat, dtype=np.uint16)
-    row_indicies = np.array(row_indicies, dtype=np.uint16)
+    _row_indicies = np.array(row_indicies, dtype=np.uint64)
 
     # sort marker_nums and save permutation
     marker_order = [(mn, i) for i, mn in enumerate(marker_nums)]
@@ -276,8 +276,8 @@ def compute_close_cell_num_random(marker_nums, dist_mat, dist_lim, bootstrap_num
     sorted_marker_nums, sort_permutation = zip(*marker_order)
     _marker_nums = np.array(sorted_marker_nums, dtype=np.uint16)
 
-    close_num_rand = compute_close_num_rand(dist_mat_bin, cols_in_row_flat, row_indicies,
-                                                   _marker_nums, int(bootstrap_num))
+    close_num_rand = compute_close_num_rand(dist_mat_bin, cols_in_row_flat, _row_indicies,
+                                            _marker_nums, int(bootstrap_num))
 
     # unpermute close_num_rand
     x_scramble = np.tile(np.argsort(sort_permutation), (len(sort_permutation), 1))
