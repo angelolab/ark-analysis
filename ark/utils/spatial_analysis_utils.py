@@ -11,7 +11,7 @@ from scipy.spatial.distance import cdist
 
 import ark.settings as settings
 from ark.utils import io_utils, misc_utils
-from ark.utils._bootstrapping import compute_close_num_rand_linear
+from ark.utils._bootstrapping import compute_close_num_rand
 
 
 def calc_dist_matrix(label_maps, save_path=None):
