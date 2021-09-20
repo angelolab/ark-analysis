@@ -1,7 +1,6 @@
-import os
-import pandas as pd
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
 import seaborn as sns
 
 from ark.utils import misc_utils
@@ -276,3 +275,49 @@ def visualize_neighbor_cluster_metrics(neighbor_cluster_stats, dpi=None, save_di
     # save if desired
     if save_dir is not None:
         misc_utils.save_figure(save_dir, "neighborhood_cluster_scores.png", dpi=dpi)
+
+def visualize_topic_eda(data, metric="gap_stat", gap_sd=True, dpi=None, save_dir=None):
+    """Visualize the exploratory metrics for spatial-LDA topics
+
+        Args:
+            data (dict):
+                The dictionary of exploratory metrics produced by
+                :func:`~ark.spLDA.processing.compute_topic_eda`.
+            metric (str):
+                One of "gap_stat", "inertia", "silhouette", or "percent_var_exp".
+            gap_sd (bool):
+                If True, the standard error of the gap statistic is included in the plot.
+            dpi (float):
+                The resolution of the image to save, ignored if save_dir is None
+            save_dir (str):
+                Directory to save plots, default is None
+        """
+
+    df = pd.DataFrame.from_dict(data)
+    df['num_clusters'] = df.index
+
+    if metric == "gap_stat":
+        if gap_sd:
+            plt.plot()
+            plt.errorbar(x=df["num_topics"], y=df["gap_stat"], yerr=df["gap_sds"])
+        else:
+            sns.relplot(x=df["num_topics"], y=df["gap_stat"])
+        plt.xlabel("Number of Clusters")
+        plt.ylabel("Gap")
+    elif metric == "inertia":
+        sns.relplot(x=df["num_topics"], y=df["inertia"], kind="line")
+        plt.xlabel("Number of Clusters")
+        plt.ylabel("Inertia")
+    elif metric == "silhouette":
+        sns.relplot(x=df["num_topics"], y=df["silhouette"], kind="line")
+        plt.xlabel("Number of Clusters")
+        plt.ylabel("Silhouette Score")
+    else:
+        sns.relplot(x=df["num_topics"], y=df["percent_var_exp"] * 100, kind="line")
+        plt.xlabel("Number of Clusters")
+        plt.ylabel("% of Total Variance Explained")
+
+    if save_dir is not None:
+        file_name = "topic_eda_" + metric + ".png"
+        misc_utils.save_figure(save_dir, file_name, dpi=dpi)
+
