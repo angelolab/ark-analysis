@@ -287,17 +287,24 @@ def fov_density(cell_table, total_pix=1024 ** 2):
     Returns:
         dict:
 
-        - A dictionary containing the average cell size and the cellular density for each field
-        of view.  Cellular density is calculated by summing the total number of pixels occupied
-        by cells divided by the total number of pixels in each field of view.
+        - A dictionary containing the average cell size, cellular density, and total cell count
+        for each field of view.  Cellular density is calculated by summing the total number of
+        pixels occupied by cells divided by the total number of pixels in each field of view.
 
     """
     average_area = {}
     cellular_density = {}
+    total_cells = {}
     for i in cell_table["fovs"]:
         average_area[i] = cell_table[i].cell_size.mean()
         cellular_density[i] = np.sum(cell_table[i].cell_size) / total_pix
+        total_cells[i] = cell_table[i].shape[0]
 
-    density_stats = {"average_area": average_area, "cellular_density": cellular_density}
+    density_stats = {
+        "average_area": average_area,
+        "cellular_density": cellular_density,
+        "total_cells": total_cells
+    }
 
     return density_stats
+

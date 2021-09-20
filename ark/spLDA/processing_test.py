@@ -154,8 +154,12 @@ def test_fov_density():
     # check for correct names
     verify_in_list(correct=["average_area", "cellular_density"], actual=list(cell_dens.keys()))
     # check for correct dims
-    assert len(cell_dens["average_area"]) == len(all_clusters_format["fovs"])
-    assert len(cell_dens["cellular_density"]) == len(all_clusters_format["fovs"])
+    avg_len = len(cell_dens["average_area"])
+    den_len = len(cell_dens["cellular_density"])
+    tot_len = len(cell_dens["total_cells"])
+    assert avg_len == den_len == tot_len == len(all_clusters_format["fovs"])
     # check for non-negative output
     assert all([x >= 0 for x in cell_dens["average_area"].values()])
     assert all([x >= 0 for x in cell_dens["cellular_density"].values()])
+    assert all([x >= 0 for x in cell_dens["total_cells"].values()])
+
