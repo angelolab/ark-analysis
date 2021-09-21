@@ -58,6 +58,14 @@ def test_requires_rows_match():
             metacluster_header='hCluster_cap')
 
 
+def test_requires_unique_clusterid():
+    with pytest.raises(AssertionError):
+        metaclusterdata_from_files(
+            TESTDATA_DIR / "ex1_clusters_nozscore_notuniqueid.csv",
+            MC_DATA_DIR / "ex1_clusters_pixelcount.csv",
+            metacluster_header='hCluster_cap')
+
+
 @pytest.fixture
 def simple_metaclusterdata():
     clusters_headers = ['CD163', 'CD206', 'CD31', 'cluster', 'metacluster']

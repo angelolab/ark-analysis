@@ -24,6 +24,7 @@ class MetaClusterData():
         self._metacluster_displaynames_map = {}
         self._marker_order = list(range(len(self._clusters.columns)))
 
+        assert len(set(self.clusters.index)) ==  len(list(self.clusters.index)), "Cluster ids must be unique."  # noqa
         assert set(self.clusters.index) == set(self.cluster_pixelcounts.index), "Cluster ids in both files must match"  # noqa
         assert 1 in self.clusters.index and 0 not in self.clusters.index, "Cluster ids must be integer, starting with 1."  # noqa
 
