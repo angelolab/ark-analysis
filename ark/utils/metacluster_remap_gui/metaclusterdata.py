@@ -25,10 +25,10 @@ class MetaClusterData():
         self._marker_order = list(range(len(self._clusters.columns)))
 
         assert set(self.clusters.index) == set(self.cluster_pixelcounts.index), "Cluster ids in both files must match"  # noqa
+        assert 1 in self.clusters.index and 0 not in self.clusters.index, "Cluster ids must be integer, starting with 1."  # noqa
 
         self._output_mapping_filename = None
         self._cached_metaclusters = None
-
 
     @property
     def output_mapping_filename(self):
