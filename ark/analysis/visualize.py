@@ -278,7 +278,7 @@ def visualize_neighbor_cluster_metrics(neighbor_cluster_stats, dpi=None, save_di
         misc_utils.save_figure(save_dir, "neighborhood_cluster_scores.png", dpi=dpi)
 
 
-def visualize_topic_eda(data, metric="gap_stat", gap_sd=True, dpi=None, save_dir=None):
+def visualize_topic_eda(data, metric="gap_stat", gap_sd=True, k=None, dpi=None, save_dir=None):
     """Visualize the exploratory metrics for spatial-LDA topics
 
     Args:
@@ -286,9 +286,12 @@ def visualize_topic_eda(data, metric="gap_stat", gap_sd=True, dpi=None, save_dir
             The dictionary of exploratory metrics produced by
             :func:`~ark.spLDA.processing.compute_topic_eda`.
         metric (str):
-            One of "gap_stat", "inertia", "silhouette", or "percent_var_exp".
+            One of "gap_stat", "inertia", "silhouette", "percent_var_exp", or "cell_counts".
         gap_sd (bool):
             If True, the standard error of the gap statistic is included in the plot.
+        k (int):
+            References a specific KMeans clustering with k clusters for visualizing the cell count
+            heatmap.
         dpi (float):
             The resolution of the image to save, ignored if save_dir is None
         save_dir (str):
@@ -314,13 +317,22 @@ def visualize_topic_eda(data, metric="gap_stat", gap_sd=True, dpi=None, save_dir
         sns.relplot(x=df["num_clusters"], y=df["silhouette"], kind="line")
         plt.xlabel("Number of Clusters")
         plt.ylabel("Silhouette Score")
+    elif metric == "cell_counts":
+        if k is None:
+            raise ValueError("Must provide number of clusters for k value.")
+        sns.heatmap(data["cell_counts"][k])
+        plt.xlabel("KMeans Cluster Label")
+        plt.ylabel("Cell Feature")
     else:
         sns.relplot(x=df["num_clusters"], y=df["percent_var_exp"] * 100, kind="line")
         plt.xlabel("Number of Clusters")
         plt.ylabel("% of Total Variance Explained")
 
     if save_dir is not None:
-        file_name = "topic_eda_" + metric + ".png"
+        clust_label = ""
+        if metric == "cell_counts":
+            clust_label = "_k_{}".format(str(k))
+        file_name = "topic_eda_" + metric + clust_label + ".png"
         misc_utils.save_figure(save_dir, file_name, dpi=dpi)
 
 

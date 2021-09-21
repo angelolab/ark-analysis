@@ -154,6 +154,9 @@ def test_visualize_topic_eda():
         # trying to save on a non-existant directory
         visualize.visualize_topic_eda(data=eda, save_dir="bad_dir")
 
+    with pytest.raises(ValueError, match="Must provide number of clusters"):
+        visualize.visualize_topic_eda(data=eda, metric="cell_counts")
+
     # Basic visualization
     with tempfile.TemporaryDirectory() as temp_dir:
         # test that without save_dir, we do not save
