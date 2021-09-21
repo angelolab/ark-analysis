@@ -24,8 +24,11 @@ class MetaClusterData():
         self._metacluster_displaynames_map = {}
         self._marker_order = list(range(len(self._clusters.columns)))
 
+        assert set(self.clusters.index) == set(self.cluster_pixelcounts.index), "Cluster ids in both files must match"  # noqa
+
         self._output_mapping_filename = None
         self._cached_metaclusters = None
+
 
     @property
     def output_mapping_filename(self):

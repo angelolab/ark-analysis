@@ -42,6 +42,14 @@ def test_requires_metacluster_column():
             MC_DATA_DIR / "ex1_clusters_pixelcount.csv")
 
 
+def test_requires_rows_match():
+    with pytest.raises(AssertionError):
+        metaclusterdata_from_files(
+            MC_DATA_DIR / "ex1_clusters_nozscore.csv",
+            TESTDATA_DIR / "ex1_clusters_pixelcount_mismatchedids.csv",
+            metacluster_header='hCluster_cap')
+
+
 @pytest.fixture
 def simple_metaclusterdata():
     clusters_headers = ['CD163', 'CD206', 'CD31', 'cluster', 'metacluster']
