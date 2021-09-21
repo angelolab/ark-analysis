@@ -4,7 +4,8 @@ import pandas as pd
 import seaborn as sns
 
 from ark.utils import misc_utils
-
+from ark.utils.spatial_lda_utils import make_plot_fn
+from spatial_lda.visualization import plot_samples_in_a_row
 
 def draw_boxplot(cell_data, col_name, col_split=None, split_vals=None, dpi=None, save_dir=None):
     """Draws a boxplot for a given column, optionally with help from a split column
@@ -280,19 +281,19 @@ def visualize_neighbor_cluster_metrics(neighbor_cluster_stats, dpi=None, save_di
 def visualize_topic_eda(data, metric="gap_stat", gap_sd=True, dpi=None, save_dir=None):
     """Visualize the exploratory metrics for spatial-LDA topics
 
-        Args:
-            data (dict):
-                The dictionary of exploratory metrics produced by
-                :func:`~ark.spLDA.processing.compute_topic_eda`.
-            metric (str):
-                One of "gap_stat", "inertia", "silhouette", or "percent_var_exp".
-            gap_sd (bool):
-                If True, the standard error of the gap statistic is included in the plot.
-            dpi (float):
-                The resolution of the image to save, ignored if save_dir is None
-            save_dir (str):
-                Directory to save plots, default is None
-        """
+    Args:
+        data (dict):
+            The dictionary of exploratory metrics produced by
+            :func:`~ark.spLDA.processing.compute_topic_eda`.
+        metric (str):
+            One of "gap_stat", "inertia", "silhouette", or "percent_var_exp".
+        gap_sd (bool):
+            If True, the standard error of the gap statistic is included in the plot.
+        dpi (float):
+            The resolution of the image to save, ignored if save_dir is None
+        save_dir (str):
+            Directory to save plots, default is None
+    """
 
     df = pd.DataFrame.from_dict(data)
     df['num_clusters'] = df.index
@@ -326,18 +327,18 @@ def visualize_topic_eda(data, metric="gap_stat", gap_sd=True, dpi=None, save_dir
 def visualize_fov_stats(data, metric="cellular_density", dpi=None, save_dir=None):
     """Visualize area and cell count distributions for all field of views.
 
-            Args:
-                data (dict):
-                    The dictionary of exploratory metrics produced by
-                    :func:`~ark.spLDA.processing.fov_density`.
-                metric (str):
-                    One of "cellular_density", "average_area", or "total_cells".  See
-                    documentation of :func:`~ark.spLDA.processing.fov_density` for details.
-                dpi (float):
-                    The resolution of the image to save, ignored if save_dir is None
-                save_dir (str):
-                    Directory to save plots, default is None
-            """
+    Args:
+        data (dict):
+            The dictionary of field of view metrics produced by
+            :func:`~ark.spLDA.processing.fov_density`.
+        metric (str):
+            One of "cellular_density", "average_area", or "total_cells".  See
+            documentation of :func:`~ark.spLDA.processing.fov_density` for details.
+        dpi (float):
+            The resolution of the image to save, ignored if save_dir is None
+        save_dir (str):
+            Directory to save plots, default is None
+    """
     df = pd.DataFrame.from_dict(data)
     df['fov'] = df.index
 
@@ -356,5 +357,33 @@ def visualize_fov_stats(data, metric="cellular_density", dpi=None, save_dir=None
 
     if save_dir is not None:
         file_name = "fov_metrics_" + metric + ".png"
+        misc_utils.save_figure(save_dir, file_name, dpi=dpi)
+
+
+def visualize_fov_graphs(cell_table, features, diff_mats, fovs, dpi=None, save_dir=None):
+    """Visualize the adjacency graph used to define neighboring environments in each field of view.
+
+    Args:
+        cell_table (dict):
+            A formatted cell table for use in spatial-LDA analysis. Specifically, this is the
+            output from :func:`~ark.spLDA.processing.format_cell_table`.
+        features (dict):
+            A featurized cell table.  Specifically, this is the output from
+            :func:`~ark.spLDA.processing.featurize_cell_table`.
+        diff_mats (dict):
+            The difference matrices produced by
+            :func:`~ark.spLDA.processing.create_difference_matrices`.
+        fovs (list):
+            A list of field of view IDs to plot.
+        dpi (float):
+            The resolution of the image to save, ignored if save_dir is None.
+        save_dir (str):
+            Directory to save plots, default is None
+    """
+    _plot_fn = make_plot_fn(diff_mats)
+    plot_samples_in_a_row(features["train_features"], _plot_fn, cell_table, tumor_set=fovs)
+    if save_dir is not None:
+        fovs_str = "_".join([str(x) for x in fovs])
+        file_name = "adjacency_graph_fovs_" + fovs_str + ".png"
         misc_utils.save_figure(save_dir, file_name, dpi=dpi)
 

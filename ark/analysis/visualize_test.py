@@ -188,3 +188,31 @@ def test_visualize_fov_stats():
         visualize.visualize_fov_stats(data=fov_stats, metric="average_area", save_dir=temp_dir)
         assert os.path.exists(os.path.join(temp_dir, "fov_metrics_average_area.png"))
 
+
+def test_visualize_fov_graphs():
+    cell_table = make_cell_table(num_cells=1000)
+    all_clusters = list(np.unique(cell_table[settings.CLUSTER_ID]))
+    cell_table_format = pros.format_cell_table(cell_table, clusters=all_clusters)
+    cell_table_features = pros.featurize_cell_table(cell_table)
+    diff_mats = pros.create_difference_matrices(cell_table_format, cell_table_features)
+
+    with pytest.raises(FileNotFoundError):
+        # trying to save on a non-existant directory
+        visualize.visualize_fov_graphs(cell_table=cell_table_format,
+                                       features=cell_table_features,
+                                       diff_mats=diff_mats, fovs=[1, 2], save_dir="bad_dir")
+
+    # Basic visualization
+    with tempfile.TemporaryDirectory() as temp_dir:
+        # test that without save_dir, we do not save
+        visualize.visualize_fov_graphs(cell_table=cell_table_format,
+                                       features=cell_table_features,
+                                       diff_mats=diff_mats, fovs=[1, 2])
+        assert not os.path.exists(os.path.join(temp_dir, "adjacency_graph_fovs_1_2.png"))
+
+        # test that with save_dir, we do save
+        visualize.visualize_fov_graphs(cell_table=cell_table_format,
+                                       features=cell_table_features,
+                                       diff_mats=diff_mats, fovs=[1, 2], save_dir=temp_dir)
+        assert os.path.exists(os.path.join(temp_dir, "adjacency_graph_fovs_1_2.png"))
+
