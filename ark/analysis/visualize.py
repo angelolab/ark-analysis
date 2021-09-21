@@ -301,21 +301,21 @@ def visualize_topic_eda(data, metric="gap_stat", gap_sd=True, dpi=None, save_dir
     if metric == "gap_stat":
         if gap_sd:
             plt.plot()
-            plt.errorbar(x=df["num_topics"], y=df["gap_stat"], yerr=df["gap_sds"])
+            plt.errorbar(x=df["num_clusters"], y=df["gap_stat"], yerr=df["gap_sds"])
         else:
-            sns.relplot(x=df["num_topics"], y=df["gap_stat"])
+            sns.relplot(x=df["num_clusters"], y=df["gap_stat"])
         plt.xlabel("Number of Clusters")
         plt.ylabel("Gap")
     elif metric == "inertia":
-        sns.relplot(x=df["num_topics"], y=df["inertia"], kind="line")
+        sns.relplot(x=df["num_clusters"], y=df["inertia"], kind="line")
         plt.xlabel("Number of Clusters")
         plt.ylabel("Inertia")
     elif metric == "silhouette":
-        sns.relplot(x=df["num_topics"], y=df["silhouette"], kind="line")
+        sns.relplot(x=df["num_clusters"], y=df["silhouette"], kind="line")
         plt.xlabel("Number of Clusters")
         plt.ylabel("Silhouette Score")
     else:
-        sns.relplot(x=df["num_topics"], y=df["percent_var_exp"] * 100, kind="line")
+        sns.relplot(x=df["num_clusters"], y=df["percent_var_exp"] * 100, kind="line")
         plt.xlabel("Number of Clusters")
         plt.ylabel("% of Total Variance Explained")
 
@@ -380,7 +380,7 @@ def visualize_fov_graphs(cell_table, features, diff_mats, fovs, dpi=None, save_d
         save_dir (str):
             Directory to save plots, default is None
     """
-    _plot_fn = make_plot_fn(diff_mats)
+    _plot_fn = make_plot_fn(diff_mats["train_diff_mat"])
     plot_samples_in_a_row(features["train_features"], _plot_fn, cell_table, tumor_set=fovs)
     if save_dir is not None:
         fovs_str = "_".join([str(x) for x in fovs])

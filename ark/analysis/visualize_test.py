@@ -193,7 +193,7 @@ def test_visualize_fov_graphs():
     cell_table = make_cell_table(num_cells=1000)
     all_clusters = list(np.unique(cell_table[settings.CLUSTER_ID]))
     cell_table_format = pros.format_cell_table(cell_table, clusters=all_clusters)
-    cell_table_features = pros.featurize_cell_table(cell_table)
+    cell_table_features = pros.featurize_cell_table(cell_table_format)
     diff_mats = pros.create_difference_matrices(cell_table_format, cell_table_features)
 
     with pytest.raises(FileNotFoundError):
