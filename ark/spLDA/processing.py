@@ -2,6 +2,7 @@ import copy
 import functools
 
 import numpy as np
+import pandas as pd
 import spatial_lda.featurization as ft
 from scipy.spatial.distance import pdist
 from sklearn.cluster import KMeans
@@ -256,19 +257,28 @@ def compute_topic_eda(features, topics, num_boots=25):
     if min(topics) <= 2 or max(topics) >= features.shape[0] - 1:
         raise ValueError("Number of topics must be in [2, %d]" % (features.shape[0] - 1))
 
-    stat_names = ['inertia', 'silhouette', 'gap_stat', 'gap_sds', 'percent_var_exp']
+    stat_names = ['inertia', 'silhouette', 'gap_stat', 'gap_sds', 'percent_var_exp', "cell_counts"]
     stats = dict(zip(stat_names, [{} for name in stat_names]))
 
     # Compute the total sum of squared pairwise distances between all observations
     total_ss = np.sum(pdist(features) ** 2) / features.shape[0]
     for k in topics:
+        # cluster with KMeans
         cluster_fit = KMeans(n_clusters=k).fit(features)
+        # cell feature count per cluster
+        feature_copy = copy.deepcopy(features)
+        cell_count = {}
+        for i in range(k):
+            cell_count[i] = feature_copy[cluster_fit.labels_ == i].sum(axis=0)
+        cell_count = pd.DataFrame.from_dict(cell_count)
+        # pooled within cluster sum of squares
         pooled_within_ss = spu.within_cluster_sums(data=features, labels=cluster_fit.labels_)
         stats['inertia'][k] = cluster_fit.inertia_
         stats['silhouette'][k] = silhouette_score(features, cluster_fit.labels_, 'euclidean')
         stats['gap_stat'][k], stats['gap_sds'][k] = gap_stat(features, k, pooled_within_ss,
                                                              num_boots)
         stats['percent_var_exp'][k] = (total_ss - cluster_fit.inertia_) / total_ss
+        stats['cell_counts'][k] = cell_count
 
     return stats
 
