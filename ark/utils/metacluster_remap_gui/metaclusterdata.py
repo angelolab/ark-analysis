@@ -11,6 +11,8 @@ def metaclusterdata_from_files(cluster_filepath, pixelcount_filepath, metacluste
     assert metacluster_header in clusters.columns, "cluster csv must include column named \"metacluster\", alternately specify the metacluster indexs using keyword `metacluster_index`"  # noqa
     clusters = clusters.rename(columns={metacluster_header: 'metacluster'})
     pixelcounts = pd.read_csv(pixelcount_filepath)
+    assert 'cluster' in pixelcounts.columns, "pixelcounts csv must include column named \"cluster\""  # noqa
+    assert 'count' in pixelcounts.columns, "pixelcounts csv must include column named \"count\""
     return MetaClusterData(clusters, pixelcounts)
 
 
@@ -24,7 +26,7 @@ class MetaClusterData():
         self._metacluster_displaynames_map = {}
         self._marker_order = list(range(len(self._clusters.columns)))
 
-        assert len(set(self.clusters.index)) ==  len(list(self.clusters.index)), "Cluster ids must be unique."  # noqa
+        assert len(set(self.clusters.index)) == len(list(self.clusters.index)), "Cluster ids must be unique."  # noqa
         assert set(self.clusters.index) == set(self.cluster_pixelcounts.index), "Cluster ids in both files must match"  # noqa
         assert 1 in self.clusters.index and 0 not in self.clusters.index, "Cluster ids must be integer, starting with 1."  # noqa
 
