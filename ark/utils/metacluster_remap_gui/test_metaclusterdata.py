@@ -8,6 +8,7 @@ import pytest
 from .metaclusterdata import MetaClusterData, metaclusterdata_from_files
 
 THIS_DIR = Path(__file__).parent
+TESTDATA_DIR = THIS_DIR / 'test_data'
 DATA_DIR = THIS_DIR.parent.parent.parent / 'data'
 MC_DATA_DIR = DATA_DIR / "example_dataset" / "metaclustering"
 
@@ -24,6 +25,21 @@ def test_can_read_example_input_2():
         MC_DATA_DIR / "ex2_clusters_nozscore.csv",
         MC_DATA_DIR / "ex2_clusters_pixelcount.csv",
         metacluster_header='hCluster_cap')
+
+
+def test_requires_cluster_column():
+    with pytest.raises(AssertionError):
+        metaclusterdata_from_files(
+            TESTDATA_DIR / "ex1_clusters_nozscore_nocluster.csv",
+            MC_DATA_DIR / "ex1_clusters_pixelcount.csv",
+            metacluster_header='hCluster_cap')
+
+
+def test_requires_metacluster_column():
+    with pytest.raises(AssertionError):
+        metaclusterdata_from_files(
+            MC_DATA_DIR / "ex1_clusters_nozscore.csv",
+            MC_DATA_DIR / "ex1_clusters_pixelcount.csv")
 
 
 @pytest.fixture

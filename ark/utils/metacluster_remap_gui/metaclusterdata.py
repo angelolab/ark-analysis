@@ -6,7 +6,9 @@ from sklearn.metrics.pairwise import cosine_similarity
 
 
 def metaclusterdata_from_files(cluster_filepath, pixelcount_filepath, metacluster_header='metacluster'):  # noqa
-    clusters = pd.read_csv(cluster_filepath).rename(columns={metacluster_header: 'metacluster'})
+    clusters = pd.read_csv(cluster_filepath)
+    assert 'cluster' in clusters.columns, "cluster csv must include column named \"cluster\""
+    assert metacluster_header in clusters.columns, "cluster csv must include column named \"metacluster\", alternately specify the metacluster indexs using keyword `metacluster_index`"  # noqa
     clusters = clusters.rename(columns={metacluster_header: 'metacluster'})
     pixelcounts = pd.read_csv(pixelcount_filepath)
     return MetaClusterData(clusters, pixelcounts)
