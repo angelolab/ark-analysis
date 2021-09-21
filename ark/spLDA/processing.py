@@ -2,11 +2,11 @@ import copy
 import functools
 
 import numpy as np
+import spatial_lda.featurization as ft
 from scipy.spatial.distance import pdist
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
 from sklearn.model_selection import train_test_split
-from spatial_lda import featurization as ft
 
 import ark.utils.spatial_lda_utils as spu
 from ark.settings import BASE_COLS
@@ -174,14 +174,14 @@ def create_difference_matrices(cell_table, features, training=True, inference=Tr
     if training:
         train_diff_mat = ft.make_merged_difference_matrices(
             sample_features=features["train_features"], sample_dfs=cell_table,
-            x_col="x", y_col="y")
+            x_col="x", y_col="y", reduce_to_mst=True)
     else:
         train_diff_mat = None
 
     if inference:
         inference_diff_mat = ft.make_merged_difference_matrices(
             sample_features=features["featurized_fovs"], sample_dfs=cell_table,
-            x_col="x", y_col="y")
+            x_col="x", y_col="y", reduce_to_mst=True)
     else:
         inference_diff_mat = None
 
