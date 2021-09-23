@@ -53,40 +53,6 @@ def normalize_rows(pixel_data, channels):
     return pixel_data_sub
 
 
-# def preprocess_row_sums(fovs, channels, base_dir, pre_dir='pixel_mat_preprocessed'):
-#     """Divide each row in the pixel matrices per fov by their sum
-
-#     Saves normalized data to pre_dir
-
-#     Args:
-#         fovs (list):
-#             The list of fovs to subset on
-#         channels (list):
-#             The list of channels to subset on
-#             Known from the weights matrix created by create_pixel_som
-#         base_dir (str):
-#             The path to the data directory
-#         pre_dir (str):
-#             Name of the directory which contains the preprocessed pixel data,
-#             defaults to pixel_mat_preprocessed
-#     """
-
-#     # define the paths to the data
-#     preprocessed_path = os.path.join(base_dir, pre_dir)
-
-#     for fov in fovs:
-#         # read the pixel data for the fov
-#         pixel_data = feather.read_dataframe(os.path.join(preprocessed_path,
-#                                                          fov + '.feather'))
-
-#         pixel_data = normalize_rows(pixel_data, channels)
-
-#         # write the normalized data, overwrite with sum normalized values
-#         feather.write_dataframe(pixel_data,
-#                                 os.path.join(preprocessed_path, fov + '.feather'),
-#                                 compression='uncompressed')
-
-
 def compute_pixel_cluster_channel_avg(fovs, channels, base_dir, cluster_col,
                                       cluster_dir='pixel_mat_clustered', keep_count=False):
     """Compute the average channel values across each pixel SOM cluster
@@ -137,6 +103,12 @@ def compute_pixel_cluster_channel_avg(fovs, channels, base_dir, cluster_col,
 
     # now compute the means using the count column
     sum_count_totals[channels] = sum_count_totals[channels].div(sum_count_totals['count'], axis=0)
+
+    # convert cluster column to integer type
+    sum_count_totals[cluster_col] = sum_count_totals[cluster_col].astype(int)
+
+    # sort cluster col in ascending order
+    sum_count_totals = sum_count_totals.sort_values(by=cluster_col)
 
     # drop the count column if specified
     if not keep_count:
@@ -224,7 +196,7 @@ def visualize_cell_cluster_channel_avg(fovs, channels, base_dir, cell_table_path
         base_dir (str):
             The path to the data directory
         cell_table_path (str):
-            Path to the cell table, needs to be created by Segment_Image_Data.ipynb
+            Path to the weighted cell table, created in `example_cell_clustering.ipynb`
         cluster_name (str):
             Name of the file containing the cell data with cluster labels
         cluster_col (str):
@@ -252,14 +224,16 @@ def visualize_cell_cluster_channel_avg(fovs, channels, base_dir, cell_table_path
     """
 
     # read the cell table data
-    cell_table = pd.read_csv(cell_table_path)
+    # cell_table = pd.read_csv(cell_table_path)
+    cell_table = feather.read_dataframe(cell_table_path)
 
     # subset on only the fovs the user has specified
     cell_table = cell_table[cell_table['fov'].isin(fovs)]
 
     # because current version of pandas doesn't support key-based sorting, need to do it this way
     cell_table['fov'] = cell_table['fov'].map(lambda x: x.replace('fov', '')).astype(int)
-    cell_table = cell_table.sort_values(by=['fov', 'label']).reset_index(drop=True)
+    # cell_table = cell_table.sort_values(by=['fov', 'label']).reset_index(drop=True)
+    cell_tabel = cell_table.sort_values(by=['fov', 'segmentation_label']).reset_index(drop=True)
     cell_table['fov'] = cell_table['fov'].map(lambda x: 'fov' + str(x))
 
     # read the clustered data
@@ -939,14 +913,11 @@ def visualize_pixel_cluster_counts(fovs, channels, base_dir, data_dir,
                                                      pixel_cluster_col, data_dir,
                                                      keep_count=True)
 
-    # convert the cluster column to integer type
-    cluster_avgs[pixel_cluster_col] = cluster_avgs[pixel_cluster_col].astype(int)
-
     # keep just the pixel_cluster_col and the count column
     cluster_avgs = cluster_avgs[[pixel_cluster_col, 'count']]
 
     # need to make pixel_cluster_col string type so it displays properly (also int, no decimals)
-    cluster_avgs[pixel_cluster_col] = cluster_avgs[pixel_cluster_col].astype(int).astype(str)
+    cluster_avgs[pixel_cluster_col] = cluster_avgs[pixel_cluster_col].astype(str)
 
     # define a custom title
     if pixel_cluster_col == 'cluster':
@@ -1040,74 +1011,6 @@ def visualize_cell_cluster_counts(base_dir, data_file,
         cluster_counts, cell_cluster_col, 'count', x_label=x_label, y_label=y_label,
         figsize=figsize, title=title, color=color, dpi=dpi,
         title_size=title_size, axes_size=axes_size, ticks_size=ticks_size,
-        save_dir=save_dir, save_file=save_file
-    )
-
-
-def visualize_pixel_cluster_channel_avgs(fovs, channels, base_dir, cluster_dir,
-                                         pixel_cluster_col='cluster', dpi=None, center_val=None,
-                                         overlay_values=False, min_val=None, max_val=None,
-                                         cbar_ticks=None, colormap="vlag",
-                                         save_dir=None, save_file=None):
-    """For pixel-level analysis, visualize the average cluster results for each cluster
-
-    Args:
-        fovs (list):
-            The list of fovs to subset on
-        channels (list):
-            The list of channels to subset on
-        base_dir (str):
-            The path to the data directories
-        cluster_dir (str):
-            Name of the directory containing the data to visualize
-            Created by cluster_pixels or pixel_consensus_cluster depending on use case
-        pixel_cluster_col (str):
-            Name of the column to group values by, should be 'cluster' or 'hCluster_cap'
-        dpi (float):
-            The resolution of the image to save, ignored if save_dir is None
-        center_val (float):
-            value at which to center the heatmap
-        overlay_values (bool):
-            whether to overlay the raw heatmap values on top
-        min_val (float):
-            minimum value the heatmap should take
-        max_val (float):
-            maximum value the heatmap should take
-        cbar_ticks (int):
-            list of values containing tick labels for the heatmap colorbar
-        colormap (str):
-            color scheme for visualization
-        save_dir (str):
-            If specified, a directory where we will save the plot
-        save_file (str):
-            If save_dir specified, specify a file name you wish to save to.
-            Ignored if save_dir is None
-    """
-
-    # verify the pixel_cluster_col provided is valid
-    misc_utils.verify_in_list(
-        provided_cluster_col=pixel_cluster_col,
-        valid_cluster_cols=['cluster', 'hCluster_cap']
-    )
-
-    # average the channel values across the pixel cluster column
-    cluster_avgs = compute_pixel_cluster_channel_avg(fovs, channels, base_dir,
-                                                     pixel_cluster_col, cluster_dir)
-
-    # convert cluster column to integer type
-    cluster_avgs[pixel_cluster_col] = cluster_avgs[pixel_cluster_col].astype(int)
-
-    # sort cluster col in ascending order
-    cluster_avgs = cluster_avgs.sort_values(by=pixel_cluster_col)
-
-    # z-score the channel columns
-    cluster_avgs[channels] = stats.zscore(cluster_avgs[channels].values)
-
-    # draw the heatmap
-    visualize.draw_heatmap(
-        data=cluster_avgs[channels].values, x_labels=cluster_avgs[pixel_cluster_col],
-        y_labels=channels, dpi=dpi, center_val=center_val, overlay_values=overlay_values,
-        min_val=min_val, max_val=max_val, cbar_ticks=cbar_ticks, colormap=colormap,
         save_dir=save_dir, save_file=save_file
     )
 
