@@ -56,7 +56,8 @@ def check_featurize_cell_table_args(cell_table, featurization, radius, cell_inde
 
     verify_in_list(featurization=[featurization],
                    featurization_options=["cluster", "marker", "avg_marker", "count"])
-    verify_in_list(cell_index=[cell_index], cell_table_columns=cell_table[1].columns.to_list())
+    key = list(cell_table.keys())[0]
+    verify_in_list(cell_index=[cell_index], cell_table_columns=cell_table[key].columns.to_list())
 
 
 def within_cluster_sums(data, labels):
