@@ -1,3 +1,6 @@
+import os
+import pickle
+
 import numpy as np
 from scipy.spatial.distance import pdist
 from spatial_lda.visualization import plot_adjacency_graph
@@ -82,18 +85,48 @@ def within_cluster_sums(data, labels):
 def make_plot_fn(difference_matrices):
     """Helper function for making plots using the spatial-lda library.
 
-            Args:
-                difference_matrices (dict):
-                    A dictionary of featurized difference matrices for each field of view.
+    Args:
+        difference_matrices (dict):
+            A dictionary of featurized difference matrices for each field of view.
 
-            Returns:
-                function
+    Returns:
+        function
 
-                - A function for plotting the adjacency network for each field of view..
-            """
+        - A function for plotting the adjacency network for each field of view..
+    """
 
     def plot_fn(ax, sample_idx, features_df, fov_df):
         plot_adjacency_graph(ax, sample_idx, features_df, fov_df, difference_matrices)
 
     return plot_fn
+
+
+def save_spatial_lda_file(data, dir, file_name, format="pkl"):
+    """Helper function saving spatial-LDA objects.
+
+    Args:
+        data (dict, pandas.DataFrame):
+            A dictionary or data frame.
+        dir (str):
+            The directory where the data will be saved.
+        file_name (str):
+            Name of the data file.
+        format (str):
+            The designated file extension.  Must be one of either 'pkl' or 'csv'.
+    """
+    if not os.path.exists(dir):
+        raise ValueError("'dir' must be a valid directory.")
+    file_name += "." + format
+    file_path = os.path.join(dir, file_name)
+
+    if format == "pkl":
+        with open(file_path, "wb") as f:
+            pickle.dump(data, f)
+    elif format == "csv":
+        if type(data) == dict:
+            raise ValueError("'data' is of type dict.  Use format='pkl' instead.")
+        else:
+            data.to_csv(file_path)
+    else:
+        raise ValueError("format must be either 'csv' or 'pkl'.")
 
