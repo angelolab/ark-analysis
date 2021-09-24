@@ -219,3 +219,4 @@ def test_visualize_fov_graphs():
                                        diff_mats=diff_mats, fovs=[1, 2], save_dir=temp_dir)
         assert os.path.exists(os.path.join(temp_dir, "adjacency_graph_fovs_1_2.png"))
 
+

@@ -133,3 +133,4 @@ def test_save_spatial_lda_data():
             spu.save_spatial_lda_file(data=cell_table_format, dir=temp_dir, file_name="dict",
                                       format="csv")
 
+
