@@ -398,3 +398,4 @@ def visualize_fov_graphs(cell_table, features, diff_mats, fovs, dpi=None, save_d
         fovs_str = "_".join([str(x) for x in fovs])
         file_name = "adjacency_graph_fovs_" + fovs_str + ".png"
         misc_utils.save_figure(save_dir, file_name, dpi=dpi)
+
