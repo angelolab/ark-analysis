@@ -130,5 +130,3 @@ def save_spatial_lda_file(data, dir, file_name, format="pkl"):
             data.to_csv(file_path)
     else:
         raise ValueError("format must be either 'csv' or 'pkl'.")
-
-

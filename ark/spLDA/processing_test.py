@@ -162,5 +162,3 @@ def test_fov_density():
     assert all([x >= 0 for x in cell_dens["average_area"].values()])
     assert all([x >= 0 for x in cell_dens["cellular_density"].values()])
     assert all([x >= 0 for x in cell_dens["total_cells"].values()])
-
-
