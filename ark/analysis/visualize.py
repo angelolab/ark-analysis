@@ -2,10 +2,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
+from spatial_lda.visualization import plot_samples_in_a_row
 
 from ark.utils import misc_utils
 from ark.utils.spatial_lda_utils import make_plot_fn
-from spatial_lda.visualization import plot_samples_in_a_row
+
 
 def draw_boxplot(cell_data, col_name, col_split=None, split_vals=None, dpi=None, save_dir=None):
     """Draws a boxplot for a given column, optionally with help from a split column
@@ -398,4 +399,3 @@ def visualize_fov_graphs(cell_table, features, diff_mats, fovs, dpi=None, save_d
         fovs_str = "_".join([str(x) for x in fovs])
         file_name = "adjacency_graph_fovs_" + fovs_str + ".png"
         misc_utils.save_figure(save_dir, file_name, dpi=dpi)
-
