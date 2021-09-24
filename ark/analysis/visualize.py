@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
-from spatial_lda.visualization import plot_samples_in_a_row
+import spatial_lda.visualization as sv
 
 from ark.utils import misc_utils
 from ark.utils.spatial_lda_utils import make_plot_fn
@@ -394,7 +394,7 @@ def visualize_fov_graphs(cell_table, features, diff_mats, fovs, dpi=None, save_d
             Directory to save plots, default is None
     """
     _plot_fn = make_plot_fn(diff_mats["train_diff_mat"])
-    plot_samples_in_a_row(features["train_features"], _plot_fn, cell_table, tumor_set=fovs)
+    sv.plot_samples_in_a_row(features["train_features"], _plot_fn, cell_table, tumor_set=fovs)
     if save_dir is not None:
         fovs_str = "_".join([str(x) for x in fovs])
         file_name = "adjacency_graph_fovs_" + fovs_str + ".png"

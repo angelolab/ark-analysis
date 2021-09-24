@@ -2,8 +2,8 @@ import os
 import pickle
 
 import numpy as np
+import spatial_lda.visualization as sv
 from scipy.spatial.distance import pdist
-from spatial_lda.visualization import plot_adjacency_graph
 
 from ark.settings import BASE_COLS, CLUSTER_ID
 from ark.utils.misc_utils import verify_in_list
@@ -97,7 +97,7 @@ def make_plot_fn(difference_matrices):
     """
 
     def plot_fn(ax, sample_idx, features_df, fov_df):
-        plot_adjacency_graph(ax, sample_idx, features_df, fov_df, difference_matrices)
+        sv.plot_adjacency_graph(ax, sample_idx, features_df, fov_df, difference_matrices)
 
     return plot_fn
 

@@ -148,7 +148,8 @@ def test_visualize_topic_eda():
     cell_table_features = pros.featurize_cell_table(cell_table_format)
 
     # Run topic EDA
-    eda = pros.compute_topic_eda(cell_table_features["featurized_fovs"], topics=[3, 4, 5, 6, 7])
+    tops = [3, 4, 5, 6, 7]
+    eda = pros.compute_topic_eda(cell_table_features["featurized_fovs"], topics=tops)
 
     with pytest.raises(FileNotFoundError):
         # trying to save on a non-existant directory
@@ -164,8 +165,14 @@ def test_visualize_topic_eda():
         assert not os.path.exists(os.path.join(temp_dir, "topic_eda_gap_stat.png"))
 
         # test that with save_dir, we do save
-        visualize.visualize_topic_eda(data=eda, metric="gap_stat", save_dir=temp_dir)
-        assert os.path.exists(os.path.join(temp_dir, "topic_eda_gap_stat.png"))
+        viz_types = ["gap_stat", "inertia", "silhouette", "percent_var_exp"]
+        for viz in viz_types:
+            visualize.visualize_topic_eda(data=eda, metric=viz, save_dir=temp_dir)
+            assert os.path.exists(os.path.join(temp_dir, "topic_eda_{}.png".format(viz)))
+        # heatmap
+        visualize.visualize_topic_eda(data=eda, metric="cell_counts", k=tops[0], save_dir=temp_dir)
+        assert os.path.exists(os.path.join(temp_dir,
+                                           "topic_eda_cell_counts_k_{}.png".format(tops[0])))
 
 
 def test_visualize_fov_stats():
@@ -190,6 +197,8 @@ def test_visualize_fov_stats():
         # test that with save_dir, we do save
         visualize.visualize_fov_stats(data=fov_stats, metric="average_area", save_dir=temp_dir)
         assert os.path.exists(os.path.join(temp_dir, "fov_metrics_average_area.png"))
+        visualize.visualize_fov_stats(data=fov_stats, metric="total_cells", save_dir=temp_dir)
+        assert os.path.exists(os.path.join(temp_dir, "fov_metrics_total_cells.png"))
 
 
 def test_visualize_fov_graphs():
