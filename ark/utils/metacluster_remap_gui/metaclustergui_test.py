@@ -5,7 +5,7 @@ import pytest
 
 from .metaclusterdata import MetaClusterData
 from .metaclustergui import MetaClusterGui
-from .test_metaclusterdata import simple_metaclusterdata
+from .metaclusterdata_test import simple_metaclusterdata
 
 THIS_DIR = Path(__file__).parent
 
