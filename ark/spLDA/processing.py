@@ -231,8 +231,20 @@ def gap_stat(features, k, clust_inertia, num_boots=25):
 
 
 def compute_topic_eda(features, topics, num_boots=25):
-    """Computes various metrics for k-means clustering models to help determine an
-    appropriate number of topics for use in spatial-LDA analysis.
+    """Computes five metrics for k-means clustering models to help determine an
+    appropriate number of topics for use in spatial-LDA analysis.  The five metrics are:
+        * Inertia: the total sum of within-cluster variance for all clusters.
+        * Silhouette Score: the silhouette score is a goodness-of-fit measurement for
+        clustering.  Values closer to 1 indicate that most observations are well-matched to
+        their cluster, while values closer to -1 indicate poorly matched observations.
+        * Gap Statistic: the gap statistic, $Gap(k)$, is a re-sampling based measure which
+        computes the difference between the log of the pooled within-cluster sum of squares (
+        $logW_k$ ) to its expected value ( $E(logW_k)$ ) under a null distribution.  The optimal
+        number of clusters $k$ is the smallest $k$ for which $Gap(k) \geq Gap(k+1) - s_{k+1}$
+        where $s_{k+1}$ is a scaled estimate of the standard error of $Gap(k+1)$.
+        * Percent of Variance Explained: The percent of total variance in the data explained by
+        the clustering.
+        * Cell Count: the distribution of cell features within each cluster.
 
     Args:
         features (pandas.DataFrame):
