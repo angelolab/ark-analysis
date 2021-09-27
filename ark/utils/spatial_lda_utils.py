@@ -63,17 +63,17 @@ def check_featurize_cell_table_args(cell_table, featurization, radius, cell_inde
 def within_cluster_sums(data, labels):
     """Computes the pooled within-cluster sum of squares for the gap statistic .
 
-        Args:
-            data (pandas.DataFrame):
-                A formatted and featurized cell table.
-            labels (numpy.ndarray):
-                A list of cluster labels corresponding to cluster assignments in data.
+    Args:
+        data (pandas.DataFrame):
+            A formatted and featurized cell table.
+        labels (numpy.ndarray):
+            A list of cluster labels corresponding to cluster assignments in data.
 
-        Returns:
-            float
+    Returns:
+        float
 
-            - The pooled within-cluster sum of squares for a given clustering iteration.
-        """
+        - The pooled within-cluster sum of squares for a given clustering iteration.
+    """
     cluster_sums = []
     for x in np.unique(labels):
         d = data[labels == x]

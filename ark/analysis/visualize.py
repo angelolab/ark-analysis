@@ -298,7 +298,8 @@ def visualize_topic_eda(data, metric="gap_stat", gap_sd=True, k=None, dpi=None, 
         save_dir (str):
             Directory to save plots, default is None
     """
-
+    valid_metrics = ["gap_stat", "inertia", "silhouette", "percent_var_exp", "cell_counts"]
+    misc_utils.verify_in_list(actual=[metric], expected=valid_metrics)
     df = pd.DataFrame.from_dict(data)
     df['num_clusters'] = df.index
 
