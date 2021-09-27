@@ -70,7 +70,7 @@ def within_cluster_sums(data, labels):
             A list of cluster labels corresponding to cluster assignments in data.
 
     Returns:
-        float
+        float:
 
         - The pooled within-cluster sum of squares for a given clustering iteration.
     """
@@ -91,7 +91,7 @@ def make_plot_fn(difference_matrices):
             A dictionary of featurized difference matrices for each field of view.
 
     Returns:
-        function
+        function:
 
         - A function for plotting the adjacency network for each field of view..
     """
