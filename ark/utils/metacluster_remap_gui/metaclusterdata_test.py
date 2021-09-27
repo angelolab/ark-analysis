@@ -1,8 +1,8 @@
 from pathlib import Path
 from tempfile import tempdir
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 import pytest
 
 from .metaclusterdata import MetaClusterData, metaclusterdata_from_files

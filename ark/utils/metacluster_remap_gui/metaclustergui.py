@@ -1,19 +1,19 @@
 import warnings
 
-import numpy as np
 import ipywidgets as widgets
-import matplotlib.pyplot as plt
 import matplotlib.patheffects as path_effects
+import matplotlib.pyplot as plt
+import numpy as np
 import seaborn as sns
+from IPython.display import display
 from scipy.cluster.hierarchy import dendrogram
 from scipy.stats import zscore
-from IPython.display import display
 from scipy.stats.stats import F_onewayBadInputSizesWarning
 
-from .zscore_norm import ZScoreNormalize
 from .colormap_helper import distinct_cmap
 from .metaclusterdata import MetaClusterData
 from .throttle import throttle
+from .zscore_norm import ZScoreNormalize
 
 # Third party ipympl causing this in it's backend_agg startup code
 warnings.filterwarnings("ignore", message="nbagg.transparent is deprecated")

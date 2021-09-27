@@ -1,11 +1,11 @@
-from pathlib import Path
 import asyncio
+from pathlib import Path
 
 import pytest
 
 from .metaclusterdata import MetaClusterData
-from .metaclustergui import MetaClusterGui
 from .metaclusterdata_test import simple_metaclusterdata
+from .metaclustergui import MetaClusterGui
 
 THIS_DIR = Path(__file__).parent
 
@@ -19,8 +19,8 @@ def mcg(simple_metaclusterdata: MetaClusterData):
 
 @pytest.fixture(autouse=True, scope='session')
 def use_pseudo_inverse():
-    from numpy.linalg import pinv, inv
     import matplotlib.transforms as f
+    from numpy.linalg import inv, pinv
     f.inv = pinv
     yield
     f.inv = inv
