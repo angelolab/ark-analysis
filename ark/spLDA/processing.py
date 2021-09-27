@@ -241,7 +241,7 @@ def compute_topic_eda(features, topics, num_boots=25):
         computes the difference between the log of the pooled within-cluster sum of squares (
         :math:`logW_k` ) to its expected value ( :math:`E(logW_k)` ) under a null distribution.
         The optimal number of clusters :math:`k` is the smallest :math:`k` for which :math:`Gap(
-        k) \geq Gap(k+1) - s_{k+1}` where :math:`s_{k+1}` is a scaled estimate of the standard
+        k) > Gap(k+1) - s_{k+1}` where :math:`s_{k+1}` is a scaled estimate of the standard
         error of :math:`Gap(k+1)`.
         * Percent of Variance Explained: The percent of total variance in the data explained by
         the clustering.
