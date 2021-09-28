@@ -1,3 +1,4 @@
+import io
 from pathlib import Path
 from tempfile import tempdir
 
@@ -13,8 +14,16 @@ DATA_DIR = THIS_DIR.parent.parent.parent / 'data'
 MC_DATA_DIR = DATA_DIR / "example_dataset" / "metaclustering"
 
 
-def test_can_read_csvs(simple_clusters_csv, simple_pixelcount_csv):
-    metaclusterdata_from_files(simple_clusters_csv, simple_pixelcount_csv)
+def as_csv(df):
+    """Returns an in-memory csv of Pandas.DataFrame"""
+    f = io.StringIO()
+    df.to_csv(f, index=False)
+    f.seek(0)
+    return f
+
+
+def test_can_read_csvs(simple_clusters_df, simple_pixelcount_df):
+    metaclusterdata_from_files(as_csv(simple_clusters_df), as_csv(simple_pixelcount_df))
 
 
 def test_requires_cluster_column():
