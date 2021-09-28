@@ -156,7 +156,7 @@ def visualize_cell_cluster_channel_avg(fovs, channels, base_dir, cell_table_path
                                        min_val=None, max_val=None,
                                        cbar_ticks=None, colormap="vlag",
                                        save_dir=None, save_file=None):
-    """Visualize the average marker expression for each cell cluster
+    """Computes the average marker expression for each cell cluster
 
     Args:
         fovs (list):
@@ -816,10 +816,7 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
 
 
 def compute_pixel_cluster_counts(fovs, channels, base_dir, data_dir,
-                                 pixel_cluster_col='cluster', figsize=(50, 20),
-                                 color='#0000FF', dpi=None,
-                                 title_size=48, axes_size=36, ticks_size=28,
-                                 save_dir=None, save_file=None):
+                                 pixel_cluster_col='cluster'):
     """Counts the number of pixels per cluster
 
     Args:
@@ -833,23 +830,6 @@ def compute_pixel_cluster_counts(fovs, channels, base_dir, data_dir,
             The path to the data directory, either the cluster or consensus dir
         pixel_cluster_col (str):
             The name of the cluster column to visualize, should be 'cluster' or 'hCluster_cap'
-        figsize (tuple):
-            A tuple determining the x and y dimension of the figure to plot
-        color (str):
-            The color of the bars in the barchart
-        dpi (float):
-            The resolution of the image to save, ignored if save_dir is None
-        title_size (int):
-            The font size of the title
-        axes_size (int):
-            The font size of the axes
-        ticks_size (int):
-            The font size of the ticks
-        save_dir (str):
-            If specified, a directory where we will save the plot
-        save_file (str):
-            If save_dir specified, specify a file name you wish to save to.
-            Ignored if save_dir is None
 
     Returns:
         pandas.DataFrame:
@@ -877,10 +857,7 @@ def compute_pixel_cluster_counts(fovs, channels, base_dir, data_dir,
 
 
 def compute_cell_cluster_counts(base_dir, data_file,
-                                column_prefix='cluster', cell_cluster_col='cluster',
-                                figsize=(50, 20), color='#0000FF', dpi=None,
-                                title_size=48, axes_size=28, ticks_size=20,
-                                save_dir=None, save_file=None):
+                                column_prefix='cluster', cell_cluster_col='cluster'):
     """Counts the number of cells per cluster
 
     Args:
@@ -892,23 +869,6 @@ def compute_cell_cluster_counts(base_dir, data_file,
             The name of the cluster count column prefixes (aka the type of pixel cluster used)
         cell_cluster_col (str):
             The name of the cluster column to visualize, should be 'cluster' or 'hCluster_cap'
-        figsize (tuple):
-            A tuple determining the x and y dimension of the figure to plot
-        color (str):
-            The color of the bars in the barchart
-        dpi (float):
-            The resolution of the image to save, ignored if save_dir is None
-        title_size (int):
-            The font size of the title
-        axes_size (int):
-            The font size of the axes
-        ticks_size (int):
-            The font size of the ticks
-        save_dir (str):
-            If specified, a directory where we will save the plot
-        save_file (str):
-            If save_dir specified, specify a file name you wish to save to.
-            Ignored if save_dir is None
 
     Returns:
         pandas.DataFrame:
