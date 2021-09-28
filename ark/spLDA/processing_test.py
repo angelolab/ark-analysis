@@ -78,6 +78,9 @@ def test_featurize_cell_table():
     assert all_clusters_50["train_features"].shape[0] == 0.5 * N_CELLS
     verify_in_list(correct=all_markers, actual=list(all_markers_75["featurized_fovs"].columns))
     verify_in_list(correct=cluster_names, actual=list(all_clusters_75["featurized_fovs"].columns))
+    # check for correct featurization method
+    assert all_clusters_75["featurization"] == "cluster"
+    assert all_markers_75["featurization"] == "marker"
 
 
 def test_gap_stat():
@@ -105,14 +108,19 @@ def test_compute_topic_eda():
     features = pros.featurize_cell_table(cell_table=all_clusters_format, featurization='cluster')
     # at least 25 bootstrap iterations
     with pytest.raises(ValueError, match="Number of bootstrap samples must be at least"):
-        pros.compute_topic_eda(features["featurized_fovs"], topics=[5], num_boots=20)
+        pros.compute_topic_eda(features["featurized_fovs"],
+                               featurization=features["featurization"], topics=[5], num_boots=20)
     # appropriate range of topics
     with pytest.raises(ValueError, match="Number of topics must be in"):
-        pros.compute_topic_eda(features["featurized_fovs"], topics=[2], num_boots=25)
+        pros.compute_topic_eda(features["featurized_fovs"],
+                               featurization=features["featurization"], topics=[2], num_boots=25)
     with pytest.raises(ValueError, match=r"Number of topics must be in"):
-        pros.compute_topic_eda(features["featurized_fovs"], topics=[1000], num_boots=25)
+        pros.compute_topic_eda(features["featurized_fovs"],
+                               featurization=features["featurization"], topics=[1000],
+                               num_boots=25)
     # check for correct output
-    eda = pros.compute_topic_eda(features=features["featurized_fovs"], topics=[5], num_boots=25)
+    eda = pros.compute_topic_eda(features=features["featurized_fovs"],
+                                 featurization=features["featurization"], topics=[5], num_boots=25)
     verify_in_list(eda_correct_keys=settings.EDA_KEYS, eda_actual_keys=list(eda.keys()))
 
 

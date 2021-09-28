@@ -107,7 +107,8 @@ def featurize_cell_table(cell_table, featurization="cluster", radius=100, cell_i
         dict:
 
         - A dictionary containing a DataFrame of featurized cellular neighborhoods and a
-        separate DataFrame for designated training data.
+        separate DataFrame for designated training data.  Also returns the featurization method
+        to be used in later functions.
     """
 
     # Check arguments
@@ -138,7 +139,9 @@ def featurize_cell_table(cell_table, featurization="cluster", radius=100, cell_i
     train_features_fraction, _ = train_test_split(featurized_fovs, test_size=1. - train_frac,
                                                   stratify=all_sample_idxs)
 
-    feature_dict = {"featurized_fovs": featurized_fovs, "train_features": train_features_fraction}
+    feature_dict = {"featurized_fovs": featurized_fovs,
+                    "train_features": train_features_fraction,
+                    "featurization": featurization}
     return feature_dict
 
 
@@ -230,7 +233,7 @@ def gap_stat(features, k, clust_inertia, num_boots=25):
     return gap, s
 
 
-def compute_topic_eda(features, topics, num_boots=25):
+def compute_topic_eda(features, featurization, topics, num_boots=25):
     """Computes five metrics for k-means clustering models to help determine an
     appropriate number of topics for use in spatial-LDA analysis.  The five metrics are:
         * Inertia: the total sum of within-cluster variance for all clusters.
@@ -251,6 +254,8 @@ def compute_topic_eda(features, topics, num_boots=25):
         features (pandas.DataFrame):
             A DataFrame of featurized cellular neighborhoods.  Specifically, this is one of the
             outputs of :func:`~ark.spLDA.processing.featurize_cell_table`.
+        featurization (str):
+            The featurization method used to construct cellular neighborhoods.
         topics (list):
             A list of integers corresponding to the different number of possible topics to
             investigate.
@@ -292,6 +297,8 @@ def compute_topic_eda(features, topics, num_boots=25):
                                                              num_boots)
         stats['percent_var_exp'][k] = (total_ss - cluster_fit.inertia_) / total_ss
         stats['cell_counts'][k] = cell_count
+
+    stats["featurization"] = featurization
 
     return stats
 
