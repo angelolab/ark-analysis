@@ -8,11 +8,6 @@ import pytest
 
 from .metaclusterdata import MetaClusterData, metaclusterdata_from_files
 
-THIS_DIR = Path(__file__).parent
-TESTDATA_DIR = THIS_DIR / 'test_data'
-DATA_DIR = THIS_DIR.parent.parent.parent / 'data'
-MC_DATA_DIR = DATA_DIR / "example_dataset" / "metaclustering"
-
 
 def as_csv(df):
     """Returns an in-memory csv of Pandas.DataFrame"""
@@ -26,43 +21,35 @@ def test_can_read_csvs(simple_clusters_df, simple_pixelcount_df):
     metaclusterdata_from_files(as_csv(simple_clusters_df), as_csv(simple_pixelcount_df))
 
 
-def test_requires_cluster_column():
+def test_requires_cluster_column(simple_clusters_df, simple_pixelcount_df):
+    simple_clusters_df.rename(columns={'cluster': 'wrongname'}, inplace=True)
     with pytest.raises(AssertionError):
-        metaclusterdata_from_files(
-            TESTDATA_DIR / "ex1_clusters_nozscore_nocluster.csv",
-            MC_DATA_DIR / "ex1_clusters_pixelcount.csv",
-            metacluster_header='hCluster_cap')
+        metaclusterdata_from_files(as_csv(simple_clusters_df), as_csv(simple_pixelcount_df))
 
 
-def test_requires_metacluster_column():
+def test_requires_metacluster_column(simple_clusters_df, simple_pixelcount_df):
+    simple_clusters_df.rename(columns={'metacluster': 'wrongname'}, inplace=True)
     with pytest.raises(AssertionError):
-        metaclusterdata_from_files(
-            MC_DATA_DIR / "ex1_clusters_nozscore.csv",
-            MC_DATA_DIR / "ex1_clusters_pixelcount.csv")
+        metaclusterdata_from_files(as_csv(simple_clusters_df), as_csv(simple_pixelcount_df))
 
 
-def test_requires_rows_match():
+def test_requires_rows_match(simple_clusters_df, simple_pixelcount_df):
+    simple_pixelcount_df.drop(1, inplace=True)
     with pytest.raises(AssertionError):
-        metaclusterdata_from_files(
-            MC_DATA_DIR / "ex1_clusters_nozscore.csv",
-            TESTDATA_DIR / "ex1_clusters_pixelcount_mismatchedids.csv",
-            metacluster_header='hCluster_cap')
+        metaclusterdata_from_files(as_csv(simple_clusters_df), as_csv(simple_pixelcount_df))
 
 
-def test_requires_rows_match():
+def test_requires_int_cluster_ids(simple_clusters_df, simple_pixelcount_df):
+    simple_clusters_df = simple_clusters_df.astype({'cluster': str})
+    simple_clusters_df.at[1, 'cluster'] = 'd'
     with pytest.raises(AssertionError):
-        metaclusterdata_from_files(
-            TESTDATA_DIR / "ex1_clusters_nozscore_notint.csv",
-            MC_DATA_DIR / "ex1_clusters_pixelcount.csv",
-            metacluster_header='hCluster_cap')
+        metaclusterdata_from_files(as_csv(simple_clusters_df), as_csv(simple_pixelcount_df))
 
 
-def test_requires_unique_clusterid():
+def test_requires_unique_clusterid(simple_clusters_df, simple_pixelcount_df):
+    simple_clusters_df.at[1, 'cluster'] = 3
     with pytest.raises(AssertionError):
-        metaclusterdata_from_files(
-            TESTDATA_DIR / "ex1_clusters_nozscore_notuniqueid.csv",
-            MC_DATA_DIR / "ex1_clusters_pixelcount.csv",
-            metacluster_header='hCluster_cap')
+        metaclusterdata_from_files(as_csv(simple_clusters_df), as_csv(simple_pixelcount_df))
 
 
 def test_can_get_mapping(simple_metaclusterdata: MetaClusterData):
