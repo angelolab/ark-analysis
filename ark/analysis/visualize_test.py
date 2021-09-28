@@ -149,7 +149,8 @@ def test_visualize_topic_eda():
 
     # Run topic EDA
     tops = [3, 4, 5, 6, 7]
-    eda = pros.compute_topic_eda(cell_table_features["featurized_fovs"], topics=tops)
+    eda = pros.compute_topic_eda(cell_table_features["featurized_fovs"],
+                                 featurization=cell_table_features["featurization"], topics=tops)
 
     with pytest.raises(FileNotFoundError):
         # trying to save on a non-existant directory

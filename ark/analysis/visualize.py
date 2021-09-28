@@ -300,7 +300,9 @@ def visualize_topic_eda(data, metric="gap_stat", gap_sd=True, k=None, dpi=None, 
     """
     valid_metrics = ["gap_stat", "inertia", "silhouette", "percent_var_exp", "cell_counts"]
     misc_utils.verify_in_list(actual=[metric], expected=valid_metrics)
-    df = pd.DataFrame.from_dict(data)
+    featurization = data["featurization"]
+    data_k = {k: v for k, v in data.items() if k != "featurization"}
+    df = pd.DataFrame.from_dict(data_k)
     df['num_clusters'] = df.index
 
     if metric == "gap_stat":
@@ -322,9 +324,15 @@ def visualize_topic_eda(data, metric="gap_stat", gap_sd=True, k=None, dpi=None, 
     elif metric == "cell_counts":
         if k is None:
             raise ValueError("Must provide number of clusters for k value.")
-        sns.heatmap(data["cell_counts"][k])
+        sns.heatmap(data["cell_counts"][k], vmin=0, square=True, xticklabels=True,
+                    yticklabels=True, cmap="viridis")
         plt.xlabel("KMeans Cluster Label")
-        plt.ylabel("Cell Feature")
+        if featurization == "cluster":
+            plt.ylabel("Cell Cluster")
+        elif featurization == "marker" or featurization == "avg_marker":
+            plt.ylabel("Channel Marker")
+        else:
+            plt.ylabel("Cell Counts")
     else:
         sns.relplot(x=df["num_clusters"], y=df["percent_var_exp"] * 100, kind="line")
         plt.xlabel("Number of Clusters")
