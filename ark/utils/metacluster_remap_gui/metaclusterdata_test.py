@@ -66,29 +66,6 @@ def test_requires_unique_clusterid():
             metacluster_header='hCluster_cap')
 
 
-@pytest.fixture
-def simple_metaclusterdata():
-    clusters_headers = ['CD163', 'CD206', 'CD31', 'cluster', 'metacluster']
-    clusters_data = [
-        (0.1, 0.2, 0.1, 1, 1),
-        (0.1, 0.1, 0.3, 2, 2),
-        (0.5, 0.1, 0.1, 3, 3),
-        (0.7, 0.2, 0.1, 4, 3),
-        ]
-    clusters_raw_df = pd.DataFrame(data=clusters_data, columns=clusters_headers)
-
-    pixelcount_headers = ['cluster', 'count']
-    pixelcount_data = [
-        (1, 25),
-        (2, 10),
-        (3, 50),
-        (4, 77),
-        ]
-    pixelcount_df = pd.DataFrame(data=pixelcount_data, columns=pixelcount_headers)
-
-    return MetaClusterData(clusters_raw_df, pixelcount_df)
-
-
 def test_can_get_mapping(simple_metaclusterdata: MetaClusterData):
     np.testing.assert_array_equal(
         simple_metaclusterdata.mapping['metacluster'].values,

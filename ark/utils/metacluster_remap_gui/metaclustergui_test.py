@@ -4,7 +4,6 @@ from pathlib import Path
 import pytest
 
 from .metaclusterdata import MetaClusterData
-from .metaclusterdata_test import simple_metaclusterdata
 from .metaclustergui import MetaClusterGui
 
 THIS_DIR = Path(__file__).parent
