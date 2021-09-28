@@ -153,7 +153,7 @@ def compute_cell_cluster_count_avg(cluster_path, column_prefix, cluster_col, kee
 def visualize_cell_cluster_channel_avg(fovs, channels, base_dir, cell_table_path,
                                        cluster_name='cell_mat_clustered.feather',
                                        cluster_col='cluster', dpi=None, center_val=None,
-                                       overlay_values=False, min_val=None, max_val=None,
+                                       min_val=None, max_val=None,
                                        cbar_ticks=None, colormap="vlag",
                                        save_dir=None, save_file=None):
     """Visualize the average marker expression for each cell cluster
@@ -176,8 +176,6 @@ def visualize_cell_cluster_channel_avg(fovs, channels, base_dir, cell_table_path
             The resolution of the image to save, ignored if save_dir is None
         center_val (float):
             value at which to center the heatmap
-        overlay_values (bool):
-            whether to overlay the raw heatmap values on top
         min_val (float):
             minimum value the heatmap should take
         max_val (float):
@@ -216,7 +214,7 @@ def visualize_cell_cluster_channel_avg(fovs, channels, base_dir, cell_table_path
     cell_table = cell_table[channels + [cluster_col]]
 
     # compute the mean channel expression across each cell cluster
-    cluster_avgs = cell_table_sub.groupby(cluster_col).mean().reset_index()
+    cluster_avgs = cell_table.groupby(cluster_col).mean().reset_index()
 
     # z-score the cluster_avgs
     cluster_avgs[channels] = stats.zscore(cluster_avgs[channels].values)
@@ -226,7 +224,7 @@ def visualize_cell_cluster_channel_avg(fovs, channels, base_dir, cell_table_path
         data=cluster_avgs.drop(columns=cluster_col).values,
         x_labels=cluster_avgs[cluster_col],
         y_labels=cluster_avgs.drop(columns=cluster_col).columns.values,
-        dpi=dpi, center_val=center_val, overlay_values=overlay_values,
+        dpi=dpi, center_val=center_val,
         min_val=min_val, max_val=max_val, cbar_ticks=cbar_ticks,
         colormap=colormap, save_dir=save_dir, save_file=save_file
     )
@@ -322,8 +320,8 @@ def compute_p2c_weighted_channel_avg(pixel_channel_avg, cell_counts,
     return weighted_cell_channel_avg
 
 
-def compute_cell_cluster_counts(fovs, pixel_consensus_path,
-                                cell_table_path, cluster_col='cluster'):
+def create_c2pc_data(fovs, pixel_consensus_path,
+                     cell_table_path, cluster_col='cluster'):
     """Create a matrix with each fov-cell label pair and their SOM pixel/meta cluster counts
 
     Args:
@@ -817,12 +815,12 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
             print(output.strip())
 
 
-def visualize_pixel_cluster_counts(fovs, channels, base_dir, data_dir,
-                                   pixel_cluster_col='cluster', figsize=(50, 20),
-                                   color='#0000FF', dpi=None,
-                                   title_size=48, axes_size=36, ticks_size=28,
-                                   save_dir=None, save_file=None):
-    """Visualize the number of pixels per cluster in a bar chart
+def compute_pixel_cluster_counts(fovs, channels, base_dir, data_dir,
+                                 pixel_cluster_col='cluster', figsize=(50, 20),
+                                 color='#0000FF', dpi=None,
+                                 title_size=48, axes_size=36, ticks_size=28,
+                                 save_dir=None, save_file=None):
+    """Counts the number of pixels per cluster
 
     Args:
         fovs (list):
@@ -852,6 +850,10 @@ def visualize_pixel_cluster_counts(fovs, channels, base_dir, data_dir,
         save_file (str):
             If save_dir specified, specify a file name you wish to save to.
             Ignored if save_dir is None
+
+    Returns:
+        pandas.DataFrame:
+            The number of pixels assigned to each cluster
     """
 
     # verify the pixel_cluster_col provided is valid
@@ -861,41 +863,25 @@ def visualize_pixel_cluster_counts(fovs, channels, base_dir, data_dir,
     )
 
     # compute the channel average dataframe with counts
-    cluster_avgs = compute_pixel_cluster_channel_avg(fovs, channels, base_dir,
-                                                     pixel_cluster_col, data_dir,
-                                                     keep_count=True)
+    cluster_counts = compute_pixel_cluster_channel_avg(fovs, channels, base_dir,
+                                                       pixel_cluster_col, data_dir,
+                                                       keep_count=True)
 
     # keep just the pixel_cluster_col and the count column
-    cluster_avgs = cluster_avgs[[pixel_cluster_col, 'count']]
+    cluster_counts = cluster_counts[[pixel_cluster_col, 'count']]
 
     # need to make pixel_cluster_col string type so it displays properly (also int, no decimals)
-    cluster_avgs[pixel_cluster_col] = cluster_avgs[pixel_cluster_col].astype(str)
+    cluster_counts[pixel_cluster_col] = cluster_counts[pixel_cluster_col].astype(str)
 
-    # define a custom title
-    if pixel_cluster_col == 'cluster':
-        title = 'Distribution of pixel SOM cluster counts'
-        x_label = 'Pixel SOM cluster'
-    else:
-        title = 'Distribution of pixel meta cluster counts'
-        x_label = 'Pixel meta cluster'
-
-    y_label = 'Count'
-
-    # draw a bar chart for the cluster_avgs vs their counts
-    visualize.draw_barplot(
-        cluster_avgs, pixel_cluster_col, 'count', x_label=x_label, y_label=y_label,
-        figsize=figsize, title=title, color=color, dpi=dpi,
-        title_size=title_size, axes_size=axes_size, ticks_size=ticks_size,
-        save_dir=save_dir, save_file=save_file
-    )
+    return cluster_counts
 
 
-def visualize_cell_cluster_counts(base_dir, data_file,
-                                  column_prefix='cluster', cell_cluster_col='cluster',
-                                  figsize=(50, 20), color='#0000FF', dpi=None,
-                                  title_size=48, axes_size=28, ticks_size=20,
-                                  save_dir=None, save_file=None):
-    """Visualize the number of cells per cluster in a bar chart
+def compute_cell_cluster_counts(base_dir, data_file,
+                                column_prefix='cluster', cell_cluster_col='cluster',
+                                figsize=(50, 20), color='#0000FF', dpi=None,
+                                title_size=48, axes_size=28, ticks_size=20,
+                                save_dir=None, save_file=None):
+    """Counts the number of cells per cluster
 
     Args:
         base_dir (str):
@@ -923,6 +909,10 @@ def visualize_cell_cluster_counts(base_dir, data_file,
         save_file (str):
             If save_dir specified, specify a file name you wish to save to.
             Ignored if save_dir is None
+
+    Returns:
+        pandas.DataFrame:
+            The number of cells assigned to each cluster
     """
 
     # verify the column_prefix provided is valid
@@ -948,23 +938,25 @@ def visualize_cell_cluster_counts(base_dir, data_file,
     # need to make pixel_cluster_col string type so it displays properly (also int, no decimals)
     cluster_counts[cell_cluster_col] = cluster_counts[cell_cluster_col].astype(int).astype(str)
 
-    # define a custom title
-    if cell_cluster_col == 'cluster':
-        title = 'Distribution of cell SOM cluster counts'
-        x_label = 'Cell SOM cluster'
-    else:
-        title = 'Distribution of cell meta cluster counts'
-        x_label = 'Cell meta cluster'
+    return cluster_counts
 
-    y_label = 'Count'
+    # # define a custom title
+    # if cell_cluster_col == 'cluster':
+    #     title = 'Distribution of cell SOM cluster counts'
+    #     x_label = 'Cell SOM cluster'
+    # else:
+    #     title = 'Distribution of cell meta cluster counts'
+    #     x_label = 'Cell meta cluster'
 
-    # draw a bar chart for the cluster_avgs vs their counts
-    visualize.draw_barplot(
-        cluster_counts, cell_cluster_col, 'count', x_label=x_label, y_label=y_label,
-        figsize=figsize, title=title, color=color, dpi=dpi,
-        title_size=title_size, axes_size=axes_size, ticks_size=ticks_size,
-        save_dir=save_dir, save_file=save_file
-    )
+    # y_label = 'Count'
+
+    # # draw a bar chart for the cluster_avgs vs their counts
+    # visualize.draw_barplot(
+    #     cluster_counts, cell_cluster_col, 'count', x_label=x_label, y_label=y_label,
+    #     figsize=figsize, title=title, color=color, dpi=dpi,
+    #     title_size=title_size, axes_size=axes_size, ticks_size=ticks_size,
+    #     save_dir=save_dir, save_file=save_file
+    # )
 
 
 def train_cell_som(fovs, base_dir, pixel_consensus_dir, cell_table_name,
@@ -1028,7 +1020,7 @@ def train_cell_som(fovs, base_dir, pixel_consensus_dir, cell_table_name,
 
     # generate a matrix with each fov/cell label pair with their pixel SOM/meta cluster counts
     print("Counting the number of pixel SOM/meta cluster counts for each fov/cell pair")
-    cluster_counts = compute_cell_cluster_counts(
+    cluster_counts = create_c2pc_data(
         fovs, consensus_path, cell_table_path, cluster_col
     )
 
@@ -1189,9 +1181,8 @@ def cell_consensus_cluster(base_dir, max_k=20, cap=3, column_prefix='cluster',
 
 
 def visualize_avg_p2c_counts(base_dir, cluster_name, column_prefix, cell_cluster_col='cluster',
-                             dpi=None, center_val=None, overlay_values=False,
-                             min_val=None, max_val=None, cbar_ticks=None, colormap="vlag",
-                             save_dir=None, save_file=None):
+                             dpi=None, center_val=None, min_val=None, max_val=None,
+                             cbar_ticks=None, colormap="vlag", save_dir=None, save_file=None):
     """Visualize the average pixel cluster counts for each cell cluster
 
     Args:
@@ -1208,8 +1199,6 @@ def visualize_avg_p2c_counts(base_dir, cluster_name, column_prefix, cell_cluster
             The resolution of the image to save, ignored if save_dir is None
         center_val (float):
             value at which to center the heatmap
-        overlay_values (bool):
-            whether to overlay the raw heatmap values on top
         min_val (float):
             minimum value the heatmap should take
         max_val (float):
@@ -1256,7 +1245,7 @@ def visualize_avg_p2c_counts(base_dir, cluster_name, column_prefix, cell_cluster
         data=cluster_avgs.drop(columns=cell_cluster_col).values,
         x_labels=cluster_avgs[cell_cluster_col],
         y_labels=cluster_avgs.drop(columns=cell_cluster_col).columns.values,
-        dpi=dpi, center_val=center_val, overlay_values=overlay_values,
+        dpi=dpi, center_val=center_val,
         min_val=min_val, max_val=max_val, cbar_ticks=cbar_ticks,
         colormap=colormap, save_dir=save_dir, save_file=save_file
     )
