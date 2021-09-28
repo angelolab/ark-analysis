@@ -431,6 +431,81 @@ def test_compute_cell_cluster_count_avg():
                     assert np.all(cell_cluster_avg['count'].values == 500)
 
 
+def test_compute_cell_cluster_channel_avg():
+    fovs = ['fov1', 'fov2']
+    chans = ['chan1', 'chan2', 'chan3']
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        # create an example weighted cell table
+        weighted_cell_table = pd.DataFrame(
+            np.random.rand(10, 3),
+            columns=chans
+        )
+
+        # assign dummy fovs
+        weighted_cell_table.loc[0:4, 'fov'] = 'fov1'
+        weighted_cell_table.loc[5:9, 'fov'] = 'fov2'
+
+        # assign dummy segmentation labels, 5 cells for each
+        weighted_cell_table.loc[0:4, 'segmentation_label'] = np.arange(5)
+        weighted_cell_table.loc[5:9, 'segmentation_label'] = np.arange(5)
+
+        # assign dummy cell sizes, these won't really matter for this test
+        weighted_cell_table['cell_size'] = 5
+
+        # write weighted cell table
+        weighted_cell_path = os.path.join(temp_dir, 'weighted_cell_table.feather')
+        feather.write_dataframe(weighted_cell_table, weighted_cell_path)
+
+        # create a dummy cell consensus data file
+        # the actual column prefix won't matter for this test
+        consensus_data = pd.DataFrame(
+            np.random.randint(0, 100, (10, 3)),
+            columns=['cluster_0', 'cluster_1', 'cluster_2']
+        )
+
+        # assign dummy cell cluster labels
+        consensus_data['cluster'] = np.repeat(np.arange(5), 2)
+
+        # assign dummy consensus cluster labels
+        consensus_data['hCluster_cap'] = np.repeat(np.arange(2), 5)
+
+        # write consensus data
+        consensus_path = os.path.join(temp_dir, 'cell_mat_consensus.feather')
+        feather.write_dataframe(consensus_data, consensus_path)
+
+        # error: bad cell cluster col passed
+        with pytest.raises(ValueError):
+            som_utils.compute_cell_cluster_channel_avg(
+                fovs, chans, temp_dir, weighted_cell_path,
+                'cell_mat_consensus.feather', cluster_col='bad_col'
+            )
+
+        # test averages for cell SOM clusters
+        cell_channel_avg = som_utils.compute_cell_cluster_channel_avg(
+            fovs, chans, temp_dir, weighted_cell_path,
+            'cell_mat_consensus.feather', cluster_col='cluster'
+        )
+
+        # assert the same SOM clusters were assigned
+        assert np.all(cell_channel_avg['cluster'].values == np.arange(5))
+
+        # assert the returned shape is correct
+        assert cell_channel_avg.drop(columns='cluster').shape == (5, 3)
+
+        # test averages for cell meta clusters
+        cell_channel_avg = som_utils.compute_cell_cluster_channel_avg(
+            fovs, chans, temp_dir, weighted_cell_path,
+            'cell_mat_consensus.feather', cluster_col='hCluster_cap'
+        )
+
+        # assert the same meta clusters were assigned
+        assert np.all(cell_channel_avg['hCluster_cap'].values == np.arange(2))
+
+        # assert the returned shape is correct
+        assert cell_channel_avg.drop(columns='hCluster_cap').shape == (2, 3)
+
+
 def test_compute_p2c_weighted_channel_avg():
     fovs = ['fov1', 'fov2']
     chans = ['chan1', 'chan2', 'chan3']
@@ -1448,7 +1523,7 @@ def test_cell_consensus_cluster(mocker):
             assert np.all(cluster_ids < 2)
 
 
-def test_visualize_avg_p2c_counts():
+def test_compute_avg_p2c_counts():
     # define the cluster columns
     pixel_clusters = ['cluster_0', 'cluster_1', 'cluster_2']
     h_clusters = ['hCluster_cap_0', 'hCluster_cap_1', 'hCluster_cap_2']
@@ -1460,66 +1535,85 @@ def test_visualize_avg_p2c_counts():
         for i in range(len(cluster_col_arr)):
             cluster_prefix = 'cluster' if i == 0 else 'hCluster_cap'
 
-            # create a dummy cluster_data file
-            cluster_data = pd.DataFrame(
+            # create a dummy consensus data file
+            consensus_data = pd.DataFrame(
                 np.random.randint(0, 100, (100, 3)),
                 columns=cluster_col_arr[i]
             )
 
             # assign dummy cell cluster labels
-            cluster_data['cluster'] = np.repeat(np.arange(10), 10)
+            consensus_data['cluster'] = np.repeat(np.arange(10), 10)
 
             # assign dummy consensus cluster labels
-            cluster_data['hCluster_cap'] = np.repeat(np.arange(2), 50)
+            consensus_data['hCluster_cap'] = np.repeat(np.arange(2), 50)
 
-            # write clustered data
-            clustered_path = os.path.join(temp_dir, 'cell_mat_clustered.feather')
-            feather.write_dataframe(cluster_data, clustered_path)
+            # write consensus data
+            consensus_path = os.path.join(temp_dir, 'cell_mat_consensus.feather')
+            feather.write_dataframe(consensus_data, consensus_path)
 
             # bad column_prefix provided
             with pytest.raises(ValueError):
-                som_utils.visualize_avg_p2c_counts(
-                    base_dir=temp_dir, cluster_name='cell_mat_clustered.feather',
+                som_utils.compute_avg_p2c_counts(
+                    base_dir=temp_dir, cluster_name='cell_mat_consensus.feather',
                     column_prefix='bad_cluster'
                 )
 
             # bad cluster_col provided
             with pytest.raises(ValueError):
-                som_utils.visualize_avg_p2c_counts(
-                    base_dir=temp_dir, cluster_name='cell_mat_clustered.feather',
+                som_utils.compute_avg_p2c_counts(
+                    base_dir=temp_dir, cluster_name='cell_mat_consensus.feather',
                     column_prefix=cluster_prefix, cell_cluster_col='bad_cluster'
                 )
 
-            # test visualization for cluster: no saving
-            som_utils.visualize_avg_p2c_counts(
-                base_dir=temp_dir, cluster_name='cell_mat_clustered.feather',
-                column_prefix=cluster_prefix, cell_cluster_col='cluster')
+            # test pixel cluster count averaging across cell SOM clusters
+            avg_p2c_counts = som_utils.compute_avg_p2c_counts(
+                base_dir=temp_dir, cluster_name='cell_mat_consensus.feather',
+                column_prefix=cluster_prefix, cell_cluster_col='cluster'
+            )
 
-            assert not os.path.exists(os.path.join(temp_dir, "som_cluster_avgs.png"))
+            # assert the same cell SOM clusters appear in numerical order
+            assert np.all(avg_p2c_counts['cluster'].values == np.arange(10))
 
-            # test visualization for cluster: saving
-            som_utils.visualize_avg_p2c_counts(
-                base_dir=temp_dir, cluster_name='cell_mat_clustered.feather',
-                column_prefix=cluster_prefix, cell_cluster_col='cluster',
-                save_dir=temp_dir, save_file="som_cluster_avgs.png")
+            # assert the returned shape is correct
+            assert avg_p2c_counts.drop(columns='cluster').shape == (10, 3)
 
-            assert os.path.exists(os.path.join(temp_dir, "som_cluster_avgs.png"))
+            # test pixel cluster count averaging across cell meta clusters
+            avg_p2c_counts = som_utils.compute_avg_p2c_counts(
+                base_dir=temp_dir, cluster_name='cell_mat_consensus.feather',
+                column_prefix=cluster_prefix, cell_cluster_col='hCluster_cap'
+            )
 
-            # test visualization for hierarchical cluster: no saving
-            som_utils.visualize_avg_p2c_counts(
-                base_dir=temp_dir, cluster_name='cell_mat_clustered.feather',
-                column_prefix=cluster_prefix, cell_cluster_col='hCluster_cap')
+            # assert the same cell meta clusters appear in numerical order
+            assert np.all(avg_p2c_counts['hCluster_cap'].values == np.arange(2))
 
-            assert not os.path.exists(os.path.join(temp_dir, "som_hierarchical_avgs.png"))
+            # assert the returned shape is correct
+            assert avg_p2c_counts.drop(columns='hCluster_cap').shape == (2, 3)
 
-            # test visualization for cluster: saving
-            som_utils.visualize_avg_p2c_counts(
-                base_dir=temp_dir, cluster_name='cell_mat_clustered.feather',
-                column_prefix=cluster_prefix, cell_cluster_col='hCluster_cap',
-                save_dir=temp_dir, save_file="som_hierarchical_avgs.png")
+            # assert not os.path.exists(os.path.join(temp_dir, "som_cluster_avgs.png"))
 
-            assert os.path.exists(os.path.join(temp_dir, "som_hierarchical_avgs.png"))
+            # # test visualization for cluster: saving
+            # som_utils.visualize_avg_p2c_counts(
+            #     base_dir=temp_dir, cluster_name='cell_mat_clustered.feather',
+            #     column_prefix=cluster_prefix, cell_cluster_col='cluster',
+            #     save_dir=temp_dir, save_file="som_cluster_avgs.png")
 
-            # remove saved files for next iteration
-            os.remove(os.path.join(temp_dir, "som_cluster_avgs.png"))
-            os.remove(os.path.join(temp_dir, "som_hierarchical_avgs.png"))
+            # assert os.path.exists(os.path.join(temp_dir, "som_cluster_avgs.png"))
+
+            # # test visualization for hierarchical cluster: no saving
+            # som_utils.visualize_avg_p2c_counts(
+            #     base_dir=temp_dir, cluster_name='cell_mat_clustered.feather',
+            #     column_prefix=cluster_prefix, cell_cluster_col='hCluster_cap')
+
+            # assert not os.path.exists(os.path.join(temp_dir, "som_hierarchical_avgs.png"))
+
+            # # test visualization for cluster: saving
+            # som_utils.visualize_avg_p2c_counts(
+            #     base_dir=temp_dir, cluster_name='cell_mat_clustered.feather',
+            #     column_prefix=cluster_prefix, cell_cluster_col='hCluster_cap',
+            #     save_dir=temp_dir, save_file="som_hierarchical_avgs.png")
+
+            # assert os.path.exists(os.path.join(temp_dir, "som_hierarchical_avgs.png"))
+
+            # # remove saved files for next iteration
+            # os.remove(os.path.join(temp_dir, "som_cluster_avgs.png"))
+            # os.remove(os.path.join(temp_dir, "som_hierarchical_avgs.png"))

@@ -150,12 +150,9 @@ def compute_cell_cluster_count_avg(cluster_path, column_prefix, cluster_col, kee
     return mean_count_totals
 
 
-def visualize_cell_cluster_channel_avg(fovs, channels, base_dir, cell_table_path,
-                                       cluster_name='cell_mat_clustered.feather',
-                                       cluster_col='cluster', dpi=None, center_val=None,
-                                       min_val=None, max_val=None,
-                                       cbar_ticks=None, colormap="vlag",
-                                       save_dir=None, save_file=None):
+def compute_cell_cluster_channel_avg(fovs, channels, base_dir, cell_table_path,
+                                     cluster_name='cell_mat_clustered.feather',
+                                     cluster_col='cluster'):
     """Computes the average marker expression for each cell cluster
 
     Args:
@@ -172,27 +169,18 @@ def visualize_cell_cluster_channel_avg(fovs, channels, base_dir, cell_table_path
         cluster_col (str):
             Whether to aggregate by cell SOM or meta labels
             Needs to be either 'cluster', or 'hCluster_cap'
-        dpi (float):
-            The resolution of the image to save, ignored if save_dir is None
-        center_val (float):
-            value at which to center the heatmap
-        min_val (float):
-            minimum value the heatmap should take
-        max_val (float):
-            maximum value the heatmap should take
-        cbar_ticks (int):
-            list of values containing tick labels for the heatmap colorbar
-        colormap (str):
-            color scheme for visualization
-        save_dir (str):
-            If specified, a directory where we will save the plot
-        save_file (str):
-            If save_dir specified, specify a file name you wish to save to.
-            Ignored if save_dir is None
+
+    Returns:
+        pandas.DataFrame:
+            Each cell cluster mapped to the average expression for each marker
     """
 
+    misc_utils.verify_in_list(
+        provided_cluster_col=cluster_col,
+        valid_cluster_cols=['cluster', 'hCluster_cap']
+    )
+
     # read the cell table data
-    # cell_table = pd.read_csv(cell_table_path)
     cell_table = feather.read_dataframe(cell_table_path)
 
     # subset on only the fovs the user has specified
@@ -200,7 +188,6 @@ def visualize_cell_cluster_channel_avg(fovs, channels, base_dir, cell_table_path
 
     # because current version of pandas doesn't support key-based sorting, need to do it this way
     cell_table['fov'] = cell_table['fov'].map(lambda x: x.replace('fov', '')).astype(int)
-    # cell_table = cell_table.sort_values(by=['fov', 'label']).reset_index(drop=True)
     cell_tabel = cell_table.sort_values(by=['fov', 'segmentation_label']).reset_index(drop=True)
     cell_table['fov'] = cell_table['fov'].map(lambda x: 'fov' + str(x))
 
@@ -219,15 +206,7 @@ def visualize_cell_cluster_channel_avg(fovs, channels, base_dir, cell_table_path
     # z-score the cluster_avgs
     cluster_avgs[channels] = stats.zscore(cluster_avgs[channels].values)
 
-    # draw the heatmap
-    visualize.draw_heatmap(
-        data=cluster_avgs.drop(columns=cluster_col).values,
-        x_labels=cluster_avgs[cluster_col],
-        y_labels=cluster_avgs.drop(columns=cluster_col).columns.values,
-        dpi=dpi, center_val=center_val,
-        min_val=min_val, max_val=max_val, cbar_ticks=cbar_ticks,
-        colormap=colormap, save_dir=save_dir, save_file=save_file
-    )
+    return cluster_avgs
 
 
 def compute_p2c_weighted_channel_avg(pixel_channel_avg, cell_counts,
@@ -1122,10 +1101,8 @@ def cell_consensus_cluster(base_dir, max_k=20, cap=3, column_prefix='cluster',
             print(output.strip())
 
 
-def visualize_avg_p2c_counts(base_dir, cluster_name, column_prefix, cell_cluster_col='cluster',
-                             dpi=None, center_val=None, min_val=None, max_val=None,
-                             cbar_ticks=None, colormap="vlag", save_dir=None, save_file=None):
-    """Visualize the average pixel cluster counts for each cell cluster
+def compute_avg_p2c_counts(base_dir, cluster_name, column_prefix, cell_cluster_col='cluster'):
+    """Compute the average pixel cluster counts for each cell cluster
 
     Args:
         base_dir (str):
@@ -1137,23 +1114,10 @@ def visualize_avg_p2c_counts(base_dir, cluster_name, column_prefix, cell_cluster
             The prefix of the columns to subset, should be 'cluster' or 'hCluster_cap'
         cell_cluster_col (str):
             Name of the column to group values by, should be 'cluster' or 'hCluster_cap'
-        dpi (float):
-            The resolution of the image to save, ignored if save_dir is None
-        center_val (float):
-            value at which to center the heatmap
-        min_val (float):
-            minimum value the heatmap should take
-        max_val (float):
-            maximum value the heatmap should take
-        cbar_ticks (int):
-            list of values containing tick labels for the heatmap colorbar
-        colormap (str):
-            color scheme for visualization
-        save_dir (str):
-            If specified, a directory where we will save the plot
-        save_file (str):
-            If save_dir specified, specify a file name you wish to save to.
-            Ignored if save_dir is None
+
+    Returns:
+        pandas.DataFrame:
+            Each cell cluster mapped to the average number of pixel cluster counts
     """
 
     # verify the column prefix provided is valid
@@ -1182,12 +1146,4 @@ def visualize_avg_p2c_counts(base_dir, cluster_name, column_prefix, cell_cluster
     column_subset = [c for c in cluster_avgs.columns.values if c.startswith(column_prefix + '_')]
     cluster_avgs[column_subset] = stats.zscore(cluster_avgs[column_subset].values)
 
-    # draw the heatmap
-    visualize.draw_heatmap(
-        data=cluster_avgs.drop(columns=cell_cluster_col).values,
-        x_labels=cluster_avgs[cell_cluster_col],
-        y_labels=cluster_avgs.drop(columns=cell_cluster_col).columns.values,
-        dpi=dpi, center_val=center_val,
-        min_val=min_val, max_val=max_val, cbar_ticks=cbar_ticks,
-        colormap=colormap, save_dir=save_dir, save_file=save_file
-    )
+    return cluster_avgs
