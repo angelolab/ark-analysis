@@ -940,24 +940,6 @@ def compute_cell_cluster_counts(base_dir, data_file,
 
     return cluster_counts
 
-    # # define a custom title
-    # if cell_cluster_col == 'cluster':
-    #     title = 'Distribution of cell SOM cluster counts'
-    #     x_label = 'Cell SOM cluster'
-    # else:
-    #     title = 'Distribution of cell meta cluster counts'
-    #     x_label = 'Cell meta cluster'
-
-    # y_label = 'Count'
-
-    # # draw a bar chart for the cluster_avgs vs their counts
-    # visualize.draw_barplot(
-    #     cluster_counts, cell_cluster_col, 'count', x_label=x_label, y_label=y_label,
-    #     figsize=figsize, title=title, color=color, dpi=dpi,
-    #     title_size=title_size, axes_size=axes_size, ticks_size=ticks_size,
-    #     save_dir=save_dir, save_file=save_file
-    # )
-
 
 def train_cell_som(fovs, base_dir, pixel_consensus_dir, cell_table_name,
                    cluster_counts_name='cluster_counts.feather', cluster_col='cluster',
