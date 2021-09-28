@@ -1,3 +1,5 @@
+import io
+
 import pandas as pd
 import pytest
 
@@ -31,3 +33,21 @@ def simple_pixelcount_df():
 @pytest.fixture()
 def simple_metaclusterdata(simple_clusters_df, simple_pixelcount_df):
     return MetaClusterData(simple_clusters_df, simple_pixelcount_df)
+
+
+@pytest.fixture()
+def simple_clusters_csv(simple_clusters_df):
+    f = io.StringIO()
+    simple_clusters_df.to_csv(f, index=False)
+    f.seek(0)
+    yield f
+    f.close()
+
+
+@pytest.fixture()
+def simple_pixelcount_csv(simple_pixelcount_df):
+    f = io.StringIO()
+    simple_pixelcount_df.to_csv(f, index=False)
+    f.seek(0)
+    yield f
+    f.close()
