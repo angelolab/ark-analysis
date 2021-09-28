@@ -56,20 +56,15 @@ clusterCols <- colnames(clusterCountsData)[grepl(pattern="cluster_|hCluster_cap_
                                            colnames(clusterCountsData))]
 
 # normalize the rows by their cell size
-# CANDACE SUGGESTION: keep cell normalization in R (done)
 print("Normalizing each cell's cluster counts by cell size")
 clusterCountsNorm <- as.matrix(clusterCountsData[,clusterCols] / clusterCountsData$cell_size)
 
 # 99.9% normalize
-# CANDACE SUGGESTION: normalize by max instead of 99.9% if normVal SOMEHOW happens to be 0 (more unlikely than pixel)
+# normalize by max (100%) instead of 99.9% if 99.9% = 0
 print("Perform 99.9% normalization")
 for (clusterCol in clusterCols) {
     normVal <- quantile(clusterCountsNorm[,clusterCol], 0.999)
 
-    # # prevent normalizing by 0
-    # if (normVal != 0) {
-    #     clusterCountsNorm[,clusterCol] <- clusterCountsNorm[,clusterCol] / normVal
-    # }
     if (normVal == 0) {
         normVal <- quantile(clusterCountsNorm[,clusterCol], 1)
     }

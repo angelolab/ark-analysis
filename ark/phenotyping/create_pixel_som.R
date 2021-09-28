@@ -59,11 +59,8 @@ set.seed(seed)
 print("Reading the subsetted pixel matrix data for SOM training")
 pixelSubsetData <- NULL
 
-# CANDACE REQUEST: use fread to batch all of this (or rbindlist)
-# rbindlist: takes a function
-# lapply
-# data.table
-# CANDACE REQUEST: include an error message to lower subset proportion if out-of-memory
+# TODO: use a combination of fread, rbindlist, lapply, and data.table to batch read (not urgent, more for readability)
+# TODO: include an error message to lower subset proportion if out-of-memory
 for (fov in fovs) {
     # subset each matrix with only the markers columns
     fileName <- file.path(fov, "feather", fsep=".")
@@ -88,10 +85,7 @@ for (marker in markers) {
     marker_quantile <- quantile(pixelSubsetData[, marker], 0.999)
 
     # this prevents all-zero columns from getting normalized and becoming NA/Inf
-    # CANDACE REQUEST: if this fails, divide by the max value instead, don't worry about all 0 channels
-    # if (marker_quantile != 0) {
-    #     pixelSubsetData[, marker] = pixelSubsetData[, marker] / marker_quantile
-    # }
+    # if 99.9% is 0, divide by the max value (100%) instead
     if (marker_quantile == 0) {
         marker_quantile <- quantile(pixelSubsetData[, marker], 1)
     }

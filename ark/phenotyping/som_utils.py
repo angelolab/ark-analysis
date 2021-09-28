@@ -37,10 +37,6 @@ def normalize_rows(pixel_data, channels):
     # subset the fov data by the channels the user trained the pixel SOM on
     pixel_data_sub = pixel_data[channels]
 
-    # remove rows that sum to 0
-    # CANDACE REQUEST: do this BEFORE subsetting because some fovs may have a ton of zero rows
-    # pixel_data_sub = pixel_data_sub.loc[(pixel_data_sub != 0).any(1), :]
-
     # divide each row by their sum
     pixel_data_sub = pixel_data_sub.div(pixel_data_sub.sum(axis=1), axis=0)
 
@@ -154,32 +150,6 @@ def compute_cell_cluster_count_avg(cluster_path, column_prefix, cluster_col, kee
     return mean_count_totals
 
 
-def compute_cell_cluster_channel_avg(channels, cell_table, cluster_col):
-    """Compute the average marker expression for each cell cluster
-
-    Args:
-        channels (list):
-            The list of channels to subset on
-        cell_table (pandas.DataFrame):
-            The cell table, created by Segment_Image_Data.ipynb, with the cell cluster ids
-        cluster_col (str):
-            Whether to aggregate by cell SOM or meta labels
-            Needs to be either 'cluster', or 'hCluster_cap'
-
-    Returns:
-        pandas.DataFrame:
-            The averaged channel values across each cell cluster
-    """
-
-    # subset the cell table by just the desired channels and the cluster_col
-    cell_table_sub = cell_table[channels + [cluster_col]]
-
-    # average each channel column grouped by the cell cluster column
-    mean_channels = cell_table_sub.groupby(cluster_col).mean().reset_index()
-
-    return mean_channels
-
-
 def visualize_cell_cluster_channel_avg(fovs, channels, base_dir, cell_table_path,
                                        cluster_name='cell_mat_clustered.feather',
                                        cluster_col='cluster', dpi=None, center_val=None,
@@ -242,8 +212,11 @@ def visualize_cell_cluster_channel_avg(fovs, channels, base_dir, cell_table_path
     # assign the cluster labels to cell_table
     cell_table[cluster_col] = cluster_data[cluster_col]
 
+    # subset the cell table by just the desired channels and the cluster_col
+    cell_table = cell_table[channels + [cluster_col]]
+
     # compute the mean channel expression across each cell cluster
-    cluster_avgs = compute_cell_cluster_channel_avg(channels, cell_table, cluster_col)
+    cluster_avgs = cell_table_sub.groupby(cluster_col).mean().reset_index()
 
     # z-score the cluster_avgs
     cluster_avgs[channels] = stats.zscore(cluster_avgs[channels].values)
@@ -317,9 +290,8 @@ def compute_p2c_weighted_channel_avg(pixel_channel_avg, cell_counts,
     # sort the pixel_channel_avg table by cluster_col in ascending cluster order
     pixel_channel_avg_sorted = pixel_channel_avg.sort_values(by=cluster_col)
 
-    # CANDACE SUGGESTION: add a check that the same clusters are in both
-    # cell_counts_clusters and pixel_channel_avg_sorted, the matrix multiplication
-    # will fail if this is not caught
+    # check that the same clusters are in both cell_counts_clusters and pixel_channel_avg_sorted
+    # the matrix multiplication will fail if this is not caught
     cell_counts_cluster_ids = [
         int(x.replace(cluster_col + '_', '')) for x in cell_counts_clusters.columns.values
     ]
@@ -443,12 +415,6 @@ def compute_cell_cluster_counts(fovs, pixel_consensus_path,
     # NaN means the cluster wasn't found in the specified fov-cell pair
     cell_table = cell_table.fillna(0)
 
-    # remove all columns that are zero (should rarely happen)
-    cell_table = cell_table.loc[:, (cell_table != 0).any(axis=0)]
-
-    # TODO: might need to include an option not to normalize since this may be needed
-    # to compute the weighted marker expression for cells
-
     return cell_table
 
 
@@ -509,14 +475,12 @@ def create_fov_pixel_data(fov, channels, img_data, seg_labels,
     pixel_mat = normalize_rows(pixel_mat, channels)
 
     # subset the pixel matrix for training
-    # NOTE: maybe add in the documentation to override seed=None if the user wants
-    # a fully randomized process, but leave default at a constant int
     pixel_mat_subset = pixel_mat.sample(frac=subset_proportion, random_state=seed)
 
     return pixel_mat, pixel_mat_subset
 
 
-def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
+def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir, seg_suffix='_feature_0.tif',
                         pre_dir='pixel_mat_preprocessed',
                         sub_dir='pixel_mat_subsetted', is_mibitiff=False,
                         blur_factor=2, subset_proportion=0.1, seed=42):
@@ -535,6 +499,8 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
             Name of the directory containing the tiff files
         seg_dir (str):
             Name of the directory containing the segmented files
+        seg_suffix (str):
+            The suffix that the segmentation images use
         pre_dir (str):
             Name of the directory which contains the preprocessed pixel data
         sub_dir (str):
@@ -587,8 +553,7 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
         )
 
         # load segmentation labels in for fov
-        # CANDACE SUGGESTION: perhaps set '_feature_0' as some global constant
-        seg_labels = imread(os.path.join(seg_dir, fov + '_feature_0.tif'))
+        seg_labels = imread(os.path.join(seg_dir, fov + seg_suffix))
 
         # subset for the channel data
         img_data = img_xr.loc[fov, :, :, channels].values.astype(np.float32)
@@ -598,15 +563,6 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
             fov=fov, channels=channels, img_data=img_data, seg_labels=seg_labels,
             blur_factor=blur_factor, subset_proportion=subset_proportion, seed=seed
         )
-
-        # CANDACE REQUEST: make another call to normalize_rows on pixel_mat
-        # this will prevent needing to call preprocess_row_sums in cluster_pixels
-        # reduce redundancy
-        # UPDATE: handled in create_fov_pixel_data
-
-        # for the full and subsetted data, normalize the row sums over subsetted channels
-        # pixel_mat = normalize_rows(pixel_mat, channels)
-        # pixel_mat_subset = normalize_rows(pixel_mat_subset, channels)
 
         # write complete dataset to feather, needed for cluster assignment
         feather.write_dataframe(pixel_mat,
@@ -748,10 +704,6 @@ def cluster_pixels(fovs, base_dir, pre_dir='pixel_mat_preprocessed',
     print("Normalizing row sums and removing rows that sum to 0")
     weights = feather.read_dataframe(os.path.join(base_dir, weights_name))
 
-    # CANDACE REQUEST: remove and handle this at preprocess time
-    # precompute row sums for each fov (more efficient in Python than R)
-    # preprocess_row_sums(fovs, weights.columns.values, base_dir, pre_dir)
-
     # ensure the norm vals columns are valid indexes
     sum_norm_files = io_utils.list_files(preprocessed_path, substrs='.feather')
     norm_vals = feather.read_dataframe(os.path.join(base_dir, norm_vals_name))
@@ -868,7 +820,7 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
 def visualize_pixel_cluster_counts(fovs, channels, base_dir, data_dir,
                                    pixel_cluster_col='cluster', figsize=(50, 20),
                                    color='#0000FF', dpi=None,
-                                   title_size=48, axes_size=28, ticks_size=20,
+                                   title_size=48, axes_size=36, ticks_size=28,
                                    save_dir=None, save_file=None):
     """Visualize the number of pixels per cluster in a bar chart
 
@@ -1078,14 +1030,6 @@ def train_cell_som(fovs, base_dir, pixel_consensus_dir, cell_table_name,
     print("Counting the number of pixel SOM/meta cluster counts for each fov/cell pair")
     cluster_counts = compute_cell_cluster_counts(
         fovs, consensus_path, cell_table_path, cluster_col
-    )
-
-    # TODO: I'll remove this when the PR is ready to merge in
-    # there's an issue with cell 1 in Candace's dataset when I ran it through Segment_Image_Data
-    # CANDACE CONFIRMATION: cell 1 is indeed empty space since it's a pre-Mesmer segmentation
-    # remove once everything is finalized
-    cluster_counts = cluster_counts.drop(
-        cluster_counts[cluster_counts['segmentation_label'] == 1].index
     )
 
     # write the created matrix
@@ -1316,7 +1260,3 @@ def visualize_avg_p2c_counts(base_dir, cluster_name, column_prefix, cell_cluster
         min_val=min_val, max_val=max_val, cbar_ticks=cbar_ticks,
         colormap=colormap, save_dir=save_dir, save_file=save_file
     )
-
-
-# CANDACE REQUEST: overlays should only be done on the meta cluster results
-# use the function in the Colab notebook shared on GDrive
