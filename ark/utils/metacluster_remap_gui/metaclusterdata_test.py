@@ -13,18 +13,8 @@ DATA_DIR = THIS_DIR.parent.parent.parent / 'data'
 MC_DATA_DIR = DATA_DIR / "example_dataset" / "metaclustering"
 
 
-def test_can_read_example_input_1():
-    metaclusterdata_from_files(
-        MC_DATA_DIR / "ex1_clusters_nozscore.csv",
-        MC_DATA_DIR / "ex1_clusters_pixelcount.csv",
-        metacluster_header='hCluster_cap')
-
-
-def test_can_read_example_input_2():
-    metaclusterdata_from_files(
-        MC_DATA_DIR / "ex2_clusters_nozscore.csv",
-        MC_DATA_DIR / "ex2_clusters_pixelcount.csv",
-        metacluster_header='hCluster_cap')
+def test_can_read_csvs(simple_clusters_csv, simple_pixelcount_csv):
+    metaclusterdata_from_files(simple_clusters_csv, simple_pixelcount_csv)
 
 
 def test_requires_cluster_column():
