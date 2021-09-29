@@ -30,3 +30,4 @@ BASE_COLS = [FOV_ID, CELL_LABEL, CELL_SIZE, CENTROID_0, CENTROID_1, CLUSTER_ID, 
 # spatial_lda topic EDA key names
 EDA_KEYS = ['inertia', 'silhouette', 'gap_stat', 'gap_sds', 'percent_var_exp', 'cell_counts',
             "featurization"]
+LDA_PLOT_TYPES = ["adjacency", "topic_assignment"]
