@@ -28,4 +28,5 @@ REGIONPROPS_MULTI_COMP = ['nc_ratio']
 BASE_COLS = [FOV_ID, CELL_LABEL, CELL_SIZE, CENTROID_0, CENTROID_1, CLUSTER_ID, KMEANS_CLUSTER]
 
 # spatial_lda topic EDA key names
-EDA_KEYS = ['inertia', 'silhouette', 'gap_stat', 'gap_sds', 'percent_var_exp']
+EDA_KEYS = ['inertia', 'silhouette', 'gap_stat', 'gap_sds', 'percent_var_exp', 'cell_counts',
+            "featurization"]

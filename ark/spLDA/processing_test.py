@@ -6,7 +6,7 @@ import ark.settings as settings
 import ark.spLDA.processing as pros
 from ark.utils.misc_utils import verify_in_list
 from ark.utils.test_utils import make_cell_table
-
+from ark.utils.spatial_lda_utils import within_cluster_sums
 # Generate a test cell table
 N_CELLS = 1000
 TEST_CELL_TABLE = make_cell_table(N_CELLS)
@@ -78,6 +78,9 @@ def test_featurize_cell_table():
     assert all_clusters_50["train_features"].shape[0] == 0.5 * N_CELLS
     verify_in_list(correct=all_markers, actual=list(all_markers_75["featurized_fovs"].columns))
     verify_in_list(correct=cluster_names, actual=list(all_clusters_75["featurized_fovs"].columns))
+    # check for correct featurization method
+    assert all_clusters_75["featurization"] == "cluster"
+    assert all_markers_75["featurization"] == "marker"
 
 
 def test_gap_stat():
@@ -85,10 +88,11 @@ def test_gap_stat():
     all_clusters = list(np.unique(TEST_CELL_TABLE[settings.CLUSTER_ID]))
     all_clusters_format = pros.format_cell_table(cell_table=TEST_CELL_TABLE, clusters=all_clusters)
     features = pros.featurize_cell_table(cell_table=all_clusters_format, featurization='cluster')
-    inert = KMeans(n_clusters=5).fit(features['featurized_fovs']).inertia_
+    clust_labs = KMeans(n_clusters=5).fit(features['featurized_fovs']).labels_
+    clust_sums = within_cluster_sums(features['featurized_fovs'], clust_labs)
 
     # compute gap_stat
-    gap = pros.gap_stat(features=features['featurized_fovs'], k=5, clust_inertia=inert,
+    gap = pros.gap_stat(features=features['featurized_fovs'], k=5, clust_inertia=clust_sums,
                         num_boots=25)
 
     # check correct output length
@@ -104,14 +108,19 @@ def test_compute_topic_eda():
     features = pros.featurize_cell_table(cell_table=all_clusters_format, featurization='cluster')
     # at least 25 bootstrap iterations
     with pytest.raises(ValueError, match="Number of bootstrap samples must be at least"):
-        pros.compute_topic_eda(features["featurized_fovs"], topics=[5], num_boots=20)
+        pros.compute_topic_eda(features["featurized_fovs"],
+                               featurization=features["featurization"], topics=[5], num_boots=20)
     # appropriate range of topics
     with pytest.raises(ValueError, match="Number of topics must be in"):
-        pros.compute_topic_eda(features["featurized_fovs"], topics=[2], num_boots=25)
+        pros.compute_topic_eda(features["featurized_fovs"],
+                               featurization=features["featurization"], topics=[2], num_boots=25)
     with pytest.raises(ValueError, match=r"Number of topics must be in"):
-        pros.compute_topic_eda(features["featurized_fovs"], topics=[1000], num_boots=25)
+        pros.compute_topic_eda(features["featurized_fovs"],
+                               featurization=features["featurization"], topics=[1000],
+                               num_boots=25)
     # check for correct output
-    eda = pros.compute_topic_eda(features=features["featurized_fovs"], topics=[5], num_boots=25)
+    eda = pros.compute_topic_eda(features=features["featurized_fovs"],
+                                 featurization=features["featurization"], topics=[5], num_boots=25)
     verify_in_list(eda_correct_keys=settings.EDA_KEYS, eda_actual_keys=list(eda.keys()))
 
 
@@ -153,8 +162,11 @@ def test_fov_density():
     # check for correct names
     verify_in_list(correct=["average_area", "cellular_density"], actual=list(cell_dens.keys()))
     # check for correct dims
-    assert len(cell_dens["average_area"]) == len(all_clusters_format["fovs"])
-    assert len(cell_dens["cellular_density"]) == len(all_clusters_format["fovs"])
+    avg_len = len(cell_dens["average_area"])
+    den_len = len(cell_dens["cellular_density"])
+    tot_len = len(cell_dens["total_cells"])
+    assert avg_len == den_len == tot_len == len(all_clusters_format["fovs"])
     # check for non-negative output
     assert all([x >= 0 for x in cell_dens["average_area"].values()])
     assert all([x >= 0 for x in cell_dens["cellular_density"].values()])
+    assert all([x >= 0 for x in cell_dens["total_cells"].values()])
