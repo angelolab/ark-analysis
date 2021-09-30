@@ -167,7 +167,6 @@ def flowsom_pixel_run(tb, fovs, channels, cluster_prefix='test', is_mibitiff=Fal
         tb.inject(
             """
                 fovs = %s
-                %%store fovs
             """ % str(fovs),
             after='load_fovs'
         )
@@ -179,7 +178,6 @@ def flowsom_pixel_run(tb, fovs, channels, cluster_prefix='test', is_mibitiff=Fal
     tb.inject(
         """
             channels = %s
-            %%store channels
         """ % str(channels),
         after='channel_set'
     )
@@ -208,8 +206,6 @@ def flowsom_pixel_run(tb, fovs, channels, cluster_prefix='test', is_mibitiff=Fal
         pixel_clustered_dir = '%s_pixel_mat_clustered'
         pixel_consensus_dir = '%s_pixel_mat_consensus'
         pixel_weights_name = '%s_pixel_weights.feather'
-
-        %%store pixel_consensus_dir
     """ % (cluster_prefix, cluster_prefix, cluster_prefix, cluster_prefix)
     tb.inject(prefix_set, after='cluster_prefix_set')
 
