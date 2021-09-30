@@ -80,7 +80,7 @@ def relabel_segmentation(labeled_image, labels_dict):
 
 # TODO: Add metadata for channel name (eliminates need for fixed-order channels)
 def generate_deepcell_input(data_dir, tiff_dir, nuc_channels, mem_channels, fovs,
-                            is_mibitiff=False, img_sub_folder=None, batch_size=5,
+                            is_mibitiff=False, img_sub_folder="TIFs", batch_size=5,
                             dtype="int16"):
     """Saves nuclear and membrane channels into deepcell input format.
     Either nuc_channels or mem_channels should be specified.
