@@ -103,7 +103,7 @@ def test_generate_deepcell_input():
 
             data_utils.generate_deepcell_input(
                 data_dir=temp_dir, tiff_dir=tiff_dir, nuc_channels=nucs, mem_channels=mems,
-                fovs=fovs, is_mibitiff=is_mibitiff, batch_size=2
+                fovs=fovs, is_mibitiff=is_mibitiff, img_sub_folder='TIFs', batch_size=2
             )
 
             fov1 = np.moveaxis(io.imread(fov1path), 0, -1)
