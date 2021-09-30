@@ -64,7 +64,7 @@ def format_cell_table(cell_table, markers=None, clusters=None):
         if clusters is not None:
             df = df[df["cluster_id"].isin(clusters)]
         df["is_index"] = True
-        df["is_immune"] = True  # might remove this
+        df["isimmune"] = True  # might remove this
         fov_dict[i] = df.reset_index(drop=True)
 
     # Save Arguments
