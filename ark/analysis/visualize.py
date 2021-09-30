@@ -402,7 +402,7 @@ def visualize_fov_graphs(cell_table, features, diff_mats, fovs, dpi=None, save_d
         save_dir (str):
             Directory to save plots, default is None
     """
-    _plot_fn = make_plot_fn(diff_mats["train_diff_mat"])
+    _plot_fn = make_plot_fn(plot="adjacency", difference_matrices=diff_mats["train_diff_mat"])
     sv.plot_samples_in_a_row(features["train_features"], _plot_fn, cell_table, tumor_set=fovs)
     if save_dir is not None:
         fovs_str = "_".join([str(x) for x in fovs])
