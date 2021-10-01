@@ -40,11 +40,6 @@ class MetaClusterGui():
             throttler = throttle(.3)
             self.update_gui = throttler(self.update_gui)
 
-    @property
-    def cmap(self):
-        # will never have more metaclusters than clusters
-        return distinct_cmap(self.mcd.cluster_count)
-
     def make_gui(self):
         # map of the physically layout of the
         # Axes within the Figure
@@ -355,14 +350,15 @@ class MetaClusterGui():
         # xaxis metacluster color labels
         assert max(self.mcd.metaclusters.index) <= self.mcd.cluster_count, \
             "Can't support metaclusters idx > cluster count"
+        mc_cmap = distinct_cmap(self.mcd.cluster_count)  # metaclusters < clusters
         self.im_cl.set_data([self.mcd.clusters_with_metaclusters['metacluster']])
         self.im_cl.set_extent((0, self.mcd.cluster_count, 0, 1))
-        self.im_cl.set_cmap(self.cmap)
+        self.im_cl.set_cmap(mc_cmap)
         self.ax_ml.set_xticks(np.arange(self.mcd.metacluster_count)+0.5)
         self.ax_ml.set_xticklabels(self.mcd.metacluster_displaynames, rotation=90, fontsize=7)
         self.im_ml.set_data([self.mcd.metaclusters.index])
         self.im_ml.set_extent((0, self.mcd.metacluster_count, 0, 1))
-        self.im_ml.set_cmap(self.cmap)
+        self.im_ml.set_cmap(mc_cmap)
 
         # xaxis pixelcount graphs
         ax_cp_ymax = max(self.mcd.cluster_pixelcounts['count'])*1.65
