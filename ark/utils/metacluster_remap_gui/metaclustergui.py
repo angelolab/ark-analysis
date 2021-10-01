@@ -49,9 +49,6 @@ class MetaClusterGui():
         # will never have more metaclusters than clusters
         return distinct_cmap(self.mcd.cluster_count)
 
-    def preplot(self, df):
-        return df.apply(zscore).clip(upper=self.max_zscore).T
-
     def make_gui(self):
         # map of the physically layout of the
         # Axes within the Figure
@@ -344,15 +341,18 @@ class MetaClusterGui():
             self.fig.canvas.draw()
             return
 
-        self.normalizer.calibrate(self.preplot(self.mcd.clusters).values)
+        def _preplot(df):
+            return df.apply(zscore).clip(upper=self.max_zscore).T
+
+        self.normalizer.calibrate(_preplot(self.mcd.clusters).values)
 
         # clusters heatmap
-        self.im_c.set_data(self.preplot(self.mcd.clusters))
+        self.im_c.set_data(_preplot(self.mcd.clusters))
         self.im_c.set_extent((0, self.mcd.cluster_count, 0, self.mcd.marker_count))
         self.im_c.set_clim(self.normalizer.vmin, self.normalizer.vmax)
 
         # metaclusters heatmap
-        self.im_m.set_data(self.preplot(self.mcd.metaclusters))
+        self.im_m.set_data(_preplot(self.mcd.metaclusters))
         self.im_m.set_extent((0, self.mcd.metacluster_count, 0, self.mcd.marker_count))
         self.im_m.set_clim(self.normalizer.vmin, self.normalizer.vmax)
 
