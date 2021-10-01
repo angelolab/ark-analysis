@@ -5,12 +5,12 @@ from scipy.cluster.hierarchy import ward
 from sklearn.metrics.pairwise import cosine_similarity
 
 
-def metaclusterdata_from_files(cluster_filepath, pixelcount_filepath, metacluster_header='metacluster'):  # noqa
-    clusters = pd.read_csv(cluster_filepath)
+def metaclusterdata_from_files(cluster_io, pixelcount_io, metacluster_header='metacluster'):
+    clusters = pd.read_csv(cluster_io)
     assert 'cluster' in clusters.columns, "cluster csv must include column named \"cluster\""
     assert metacluster_header in clusters.columns, "cluster csv must include column named \"metacluster\", alternately specify the metacluster indexs using keyword `metacluster_index`"  # noqa
     clusters = clusters.rename(columns={metacluster_header: 'metacluster'})
-    pixelcounts = pd.read_csv(pixelcount_filepath)
+    pixelcounts = pd.read_csv(pixelcount_io)
     assert 'cluster' in pixelcounts.columns, "pixelcounts csv must include column named \"cluster\""  # noqa
     assert 'count' in pixelcounts.columns, "pixelcounts csv must include column named \"count\""
     return MetaClusterData(clusters, pixelcounts)
@@ -102,8 +102,6 @@ class MetaClusterData():
         out_df.to_csv(self.output_mapping_filename)
 
     def set_marker_order(self, new_indexes):
-        assert set(new_indexes) == set(self._marker_order), \
-            f"New indexes ({new_indexes}) must be permuation of existing indexes ({self._marker_order})."  # noqa
         self._marker_order = new_indexes
 
     @property

@@ -19,10 +19,13 @@ from .zscore_norm import ZScoreNormalize
 warnings.filterwarnings("ignore", message="nbagg.transparent is deprecated")
 
 DEBUG_VIEW = widgets.Output(layout={'border': '1px solid black'})
+DEFAULT_HEATMAP = sns.diverging_palette(240, 10, n=3, as_cmap=True)
 
 
 class MetaClusterGui():
-    def __init__(self, metaclusterdata, heatmapcolors=sns.diverging_palette(240, 10, n=3, as_cmap=True), width=17.0, debug=False, enable_throttle=True):  # noqa
+    def __init__(self, metaclusterdata, heatmapcolors=DEFAULT_HEATMAP,
+                 width=17.0, debug=False, enable_throttle=True):
+
         self.width: float = width
         self.heatmapcolors: str = heatmapcolors
         self.mcd: MetaClusterData = metaclusterdata
@@ -81,8 +84,18 @@ class MetaClusterGui():
 
         # heatmaps
         self.normalizer = ZScoreNormalize(-1, 0, 1)
-        self.im_c = self.ax_c.imshow(np.zeros((self.mcd.marker_count, self.mcd.cluster_count)), norm=self.normalizer, cmap=self.heatmapcolors, aspect='auto', picker=True)  # noqa
-        self.im_m = self.ax_m.imshow(np.zeros((self.mcd.marker_count, self.mcd.metacluster_count)), norm=self.normalizer, cmap=self.heatmapcolors, aspect='auto', picker=True)  # noqa
+
+        def _heatmap(ax, column_count):
+            data = np.zeros((self.mcd.marker_count, column_count))
+            return ax.imshow(
+                data,
+                norm=self.normalizer,
+                cmap=self.heatmapcolors,
+                aspect='auto',
+                picker=True,
+                )
+        self.im_c = _heatmap(self.ax_c, self.mcd.cluster_count)
+        self.im_m = _heatmap(self.ax_m, self.mcd.metacluster_count)
 
         self.ax_c.yaxis.set_tick_params(which='major', labelleft=False)
         self.ax_c.set_yticks(np.arange(self.mcd.marker_count)+0.5)
@@ -101,18 +114,27 @@ class MetaClusterGui():
         self.ax_cl.set_yticklabels(["Metacluster"])
         self.ax_ml.yaxis.set_tick_params(which='both', left=False, labelleft=False)
 
-        self.im_cl = self.ax_cl.imshow(np.zeros((1, self.mcd.cluster_count)), aspect='auto', picker=True, vmin=1, vmax=self.mcd.cluster_count)  # noqa
-        self.im_ml = self.ax_ml.imshow(np.zeros((1, self.mcd.metacluster_count)), aspect='auto', picker=True, vmin=1, vmax=self.mcd.cluster_count)  # noqa
+        def _color_labels(ax, column_count):
+            data = np.zeros((1, column_count))
+            return ax.imshow(data, aspect='auto', picker=True, vmin=1, vmax=self.mcd.cluster_count)
+
+        self.im_cl = _color_labels(self.ax_cl, self.mcd.cluster_count)
+        self.im_ml = _color_labels(self.ax_ml, self.mcd.metacluster_count)
 
         # xaxis cluster selection labels
         self.ax_cs.xaxis.set_tick_params(which='both', bottom=False, labelbottom=False)
-        self.ax_ms.xaxis.set_tick_params(which='both', bottom=False, labelbottom=False)
         self.ax_cs.yaxis.set_tick_params(which='both', left=False, labelleft=True)
         self.ax_cs.set_yticks([0.5])
         self.ax_cs.set_yticklabels(["Selected"])
-        self.ax_ms.yaxis.set_tick_params(which='both', left=False, labelleft=False)
-        self.im_cs = self.ax_cs.imshow(np.zeros((1, self.mcd.marker_count)), cmap='Blues', aspect='auto', picker=True, vmin=-0.3, vmax=1)  # noqa
-        self.im_ms = self.ax_ms.imshow(np.zeros((1, self.mcd.marker_count)), cmap='Blues', aspect='auto', picker=True, vmin=-0.3, vmax=1)  # noqa
+
+        self.im_cs = self.ax_cs.imshow(
+            np.zeros((1, self.mcd.marker_count)),
+            cmap='Blues',
+            aspect='auto',
+            picker=True,
+            vmin=-0.3,
+            vmax=1,
+            )
 
         # xaxis pixelcount graphs
         self.ax_cp.xaxis.set_tick_params(which='both', bottom=False, labelbottom=False)
@@ -131,7 +153,8 @@ class MetaClusterGui():
             self.labels_cp.append(label)
 
         # colorbar
-        self.cb = plt.colorbar(self.im_c, ax=self.ax_cb, orientation='horizontal', fraction=.75, shrink=.95, aspect=15)  # noqa
+        self.cb = plt.colorbar(self.im_c, ax=self.ax_cb, orientation='horizontal',
+                               fraction=.75, shrink=.95, aspect=15)
         self.cb.ax.xaxis.set_tick_params(which='both', labelsize=7, labelrotation=90)
 
         # dendrogram
@@ -158,6 +181,7 @@ class MetaClusterGui():
         self.ax_02.axis('off')
         self.ax_03.axis('off')
         self.ax_cb.axis('off')
+        self.ax_ms.axis('off')
 
         # naive cache expiration
         self._heatmaps_stale = True

@@ -20,9 +20,6 @@ class ZScoreNormalize(Normalize):
         self.vcenter = 0.0
         self.vmax = np.max(values)
 
-        assert self.vmin <= self.vcenter <= self.vmax, \
-            f"vmin({self.vmin:0.0f}), vcenter({self.vcenter:0.0f}), vmax({self.vmax:0.0f}) must increase monotonically"  # noqa
-
     def __call__(self, value, clip=None):
         """Map ndarray to the interval [0, 1]. The clip argument is unused."""
         result, is_scalar = self.process_value(value)
