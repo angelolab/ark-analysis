@@ -53,12 +53,21 @@ class MetaClusterGui():
         return df.apply(zscore).clip(upper=self.max_zscore).T
 
     def make_gui(self):
+        # map of the physically layout of the
+        # Axes within the Figure
+        #
+        # The abbreviation is used both for the axes
+        #     e.g. self.ax_c
+        # as well as the plotted items.
+        #     e.g. self.im_c, self.rects_cp
+        #
         #  |  |    Cluster     | Meta |
         #  ----------------------------
         #  |  |    cp          |  cb  | counts of pixels, color bar
         #  |cd|    c           |  m   | heatmap itself
         #  |  |    cs          |  ms  | selection markers
         #  |  |    cl          |  ml  | metacluster color labels
+
         subplots = plt.subplots(
             4, 3,
             gridspec_kw={
