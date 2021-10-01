@@ -133,7 +133,7 @@ def generate_deepcell_input(data_dir, tiff_dir, nuc_channels, mem_channels, fovs
             )
         else:
             data_xr = load_utils.load_imgs_from_tree(
-                tiff_dir, img_sub_folder="TIFs", fovs=fovs, channels=channels, dtype=dtype
+                tiff_dir, img_sub_folder=img_sub_folder, fovs=fovs, channels=channels, dtype=dtype
             )
 
         # write each fov data to data_dir
