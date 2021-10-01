@@ -41,10 +41,6 @@ class MetaClusterGui():
             self.update_gui = throttler(self.update_gui)
 
     @property
-    def max_zscore(self):
-        return self.zscore_clamp_slider.value
-
-    @property
     def cmap(self):
         # will never have more metaclusters than clusters
         return distinct_cmap(self.mcd.cluster_count)
@@ -342,7 +338,7 @@ class MetaClusterGui():
             return
 
         def _preplot(df):
-            return df.apply(zscore).clip(upper=self.max_zscore).T
+            return df.apply(zscore).clip(upper=self.zscore_clamp_slider.value).T
 
         self.normalizer.calibrate(_preplot(self.mcd.clusters).values)
 
