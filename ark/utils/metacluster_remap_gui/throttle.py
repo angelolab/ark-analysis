@@ -8,9 +8,10 @@ def throttle(wait):
     - The first call will always happen *without* delay.
     - Subsequent calls, within wait seconds, are dropped, even if argurments differ.
     - The final call will always execute, sometimes with a delay. This guarentees
-        that that final value passed to will be applied.
+      that that final value passed to will be applied.
 
-    Example:
+    Example usage::
+
         @throttle(.5)
         def update_a_gui_element(e):
             do_stuff(e.name)

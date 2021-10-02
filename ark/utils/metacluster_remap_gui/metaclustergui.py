@@ -8,7 +8,6 @@ import seaborn as sns
 from IPython.display import display
 from scipy.cluster.hierarchy import dendrogram
 from scipy.stats import zscore
-from scipy.stats.stats import F_onewayBadInputSizesWarning
 
 from .colormap_helper import distinct_cmap
 from .metaclusterdata import MetaClusterData
@@ -74,20 +73,24 @@ class MetaClusterGui():
     def make_gui(self):
         """Create and configure all of the plots which make up the GUI
 
-         Below is a map of the physical subplot layout of
-         the Axes within the Figure.
+        Below is a map of the physical subplot layout of
+        the Axes within the Figure.
 
-         The abbreviation is used both for the axes
-             e.g. self.ax_c
-         as well as the plotted items.
-             e.g. self.im_c, self.rects_cp
+        The abbreviation is used both for the axes
+            e.g. self.ax_c
 
-          |  |    Cluster     | Meta |
-          ----------------------------
-          |  |    cp          |  cb  | counts of pixels, color bar
-          |cd|    c           |  m   | heatmap itself
-          |  |    cs          |  ms  | selection markers
-          |  |    cl          |  ml  | metacluster color labels
+        as well as the plotted items.
+            e.g. self.im_c, self.rects_cp
+
+        Map of matplotlib Figure::
+
+            |   |    Cluster     | Meta |
+            ----------------------------
+            |   |    cp          |  cb  | counts of pixels, color bar
+            | cd|    c           |  m   | heatmap itself
+            |   |    cs          |  ms  | selection markers
+            |   |    cl          |  ml  | metacluster color labels
+
         """
         width_ratios = [
             int(self.mcd.cluster_count / 7),
