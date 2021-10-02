@@ -20,7 +20,7 @@ def throttle(wait):
         wait (float):
             minimum time between subsequent calls, in seconds
     Returns:
-        function
+        function:
             Decorator for throttling by *wait* seconds
     """
     def decorator(fn):
