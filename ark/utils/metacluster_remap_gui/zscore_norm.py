@@ -5,11 +5,28 @@ from matplotlib.colors import Normalize
 class ZScoreNormalize(Normalize):
     """Normalizer tailored for zscore heatmaps
 
-    Creates two linear slops about zero using intervals:
+    Map each value of an incoming vector each between 0 and 1, which
+    is the interval for cmaps.
 
-        [min(array),0] and [0,max(array)]
+    The mapping consists of two separate linearly interpolated intervals:
+
+        [vmin,vcenter] -> [0.0,0.5]
+        [vcenter,vmax] -> [0.5,1.0]
+
     """
     def __init__(self, vmin=-1, vcenter=0, vmax=1):
+        """Initial ZScoreNormalize
+
+        vmin < vcenter < vmax
+
+        Args:
+            vmin (float):
+                Value to map to 0 in the colormap
+            vcenter (float):
+                Value to map to .5 in the colormap
+            vmax (float):
+                Value to map to 1 in the colormap
+        """
         self.vcenter = vcenter
         super().__init__(vmin, vmax)
 
@@ -20,7 +37,7 @@ class ZScoreNormalize(Normalize):
         self.vcenter = 0.0
         self.vmax = np.max(values)
 
-    def __call__(self, value, clip=None):
+    def __call__(self, value: np.ndarray, clip=None):
         """Map ndarray to the interval [0, 1]. The clip argument is unused."""
         result, is_scalar = self.process_value(value)
         assert not is_scalar, "This normalizer doesn't support scalars"

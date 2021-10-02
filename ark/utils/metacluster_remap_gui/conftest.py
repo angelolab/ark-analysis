@@ -1,6 +1,4 @@
 import matplotlib.pyplot as plt
-import io
-
 import pandas as pd
 import pytest
 
@@ -9,6 +7,7 @@ from .metaclusterdata import MetaClusterData, metaclusterdata_from_files
 
 @pytest.fixture()
 def simple_clusters_df():
+    """Minimal example data for cluster data"""
     clusters_headers = ['CD163', 'CD206', 'CD31', 'cluster', 'metacluster']
     clusters_data = [
         (0.1, 0.2, 0.1, 1, 1),
@@ -21,6 +20,7 @@ def simple_clusters_df():
 
 @pytest.fixture()
 def simple_pixelcount_df():
+    """Minimal example data for cluster data"""
     pixelcount_headers = ['cluster', 'count']
     pixelcount_data = [
         (1, 25),

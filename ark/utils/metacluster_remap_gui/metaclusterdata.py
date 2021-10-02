@@ -6,6 +6,19 @@ from sklearn.metrics.pairwise import cosine_similarity
 
 
 def metaclusterdata_from_files(cluster_io, pixelcount_io, metacluster_header='metacluster'):
+    """Read and validate raw CSVs and return an initialized MetaClusterData
+
+        Args:
+            cluster_io (IO)):
+                file path or filelike object
+            pixelcount_io (IO)):
+                file path or filelike object
+            metacluster_header (str):
+                alternate header which can contains the metacluster ids
+        Returns:
+            MetaClusterData:
+                Fully initialized metacluster data
+    """
     clusters = pd.read_csv(cluster_io)
     assert 'cluster' in clusters.columns, "cluster csv must include column named \"cluster\""
     assert metacluster_header in clusters.columns, "cluster csv must include column named \"metacluster\", alternately specify the metacluster indexs using keyword `metacluster_index`"  # noqa
@@ -17,6 +30,16 @@ def metaclusterdata_from_files(cluster_io, pixelcount_io, metacluster_header='me
 
 
 class MetaClusterData():
+    """Store the state of the clusters and metaclusters
+
+    Full input file specification in templates/example_manually_adjust_metaclusters.ipynb
+
+    Args:
+        raw_clusters_df (pd.Dataframe):
+            validated and initialized clusters dataframe.
+        raw_pixelcounts_df (pd.Dataframe):
+            validated and initialized pixelcounts dataframe.
+    """
     def __init__(self, raw_clusters_df, raw_pixelcounts_df):
         self.cluster_pixelcounts = raw_pixelcounts_df.sort_values('cluster').set_index('cluster')
 

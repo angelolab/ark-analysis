@@ -23,6 +23,31 @@ DEFAULT_HEATMAP = sns.diverging_palette(240, 10, n=3, as_cmap=True)
 
 
 class MetaClusterGui():
+    """Coordinate and present the metacluster Graphical User Interface
+
+    Example usage in templates/example_manually_adjust_metaclusters.ipynb
+
+    Attributes:
+        mcd (MetaClusterData)):
+            State of the actual clusters at any point in time
+        selected_clusters (set[int]):
+            Currently selected clusters
+
+    Args:
+        data (MetaClusterData)):
+            An initialized MetaClusterData instance
+        heatmapcolors (matplotlib.colors.ColorMap)):
+            If you wish to change the default heatmap colors
+        width (float):
+            Adjust the actual width to accomodate monitor size, resolution, zoom, etc
+        debug (bool):
+            Enable debug mode for the GUI. This enables a special logging window where
+            output from callbacks can be printed.
+        enable_throttle (bool):
+            Control whether or not to throttle GUI callbacks. Disabling might be
+            helpful for debugging certain race conditions.
+
+    """
     def __init__(self, metaclusterdata, heatmapcolors=DEFAULT_HEATMAP,
                  width=17.0, debug=False, enable_throttle=True):
 
@@ -47,20 +72,23 @@ class MetaClusterGui():
             self.update_gui = throttler(self.update_gui)
 
     def make_gui(self):
-        # map of the physically layout of the
-        # Axes within the Figure
-        #
-        # The abbreviation is used both for the axes
-        #     e.g. self.ax_c
-        # as well as the plotted items.
-        #     e.g. self.im_c, self.rects_cp
-        #
-        #  |  |    Cluster     | Meta |
-        #  ----------------------------
-        #  |  |    cp          |  cb  | counts of pixels, color bar
-        #  |cd|    c           |  m   | heatmap itself
-        #  |  |    cs          |  ms  | selection markers
-        #  |  |    cl          |  ml  | metacluster color labels
+        """Create and configure all of the plots which make up the GUI
+
+         Below is a map of the physical subplot layout of
+         the Axes within the Figure.
+
+         The abbreviation is used both for the axes
+             e.g. self.ax_c
+         as well as the plotted items.
+             e.g. self.im_c, self.rects_cp
+
+          |  |    Cluster     | Meta |
+          ----------------------------
+          |  |    cp          |  cb  | counts of pixels, color bar
+          |cd|    c           |  m   | heatmap itself
+          |  |    cs          |  ms  | selection markers
+          |  |    cl          |  ml  | metacluster color labels
+        """
         width_ratios = [
             int(self.mcd.cluster_count / 7),
             self.mcd.cluster_count,
@@ -201,6 +229,8 @@ class MetaClusterGui():
         plt.subplots_adjust(wspace=.02)
 
     def make_widgets(self):
+        """Create the physical ipywidgets that display below the GUI plot."""
+
         # zscore adjuster
         self.zscore_clamp_slider = widgets.FloatSlider(
             value=3,
@@ -279,6 +309,12 @@ class MetaClusterGui():
 
         Final image will use the ratio 1:dendrosplit_ratio
         for tree_region:labels_region
+
+        Args:
+            ax (matplotlib.axes.Axes):
+                The axis containing the existing scipy dendrogram
+            dendrosplit_ratio (float):
+                How big to make the the labels compared to the tree
         """
         def add_room_for_labels():
             ax.set_axisbelow(False)
@@ -293,9 +329,8 @@ class MetaClusterGui():
                             v[0] = ax.get_xlim()[1]
 
         def get_ax_width_points(ax):
-            """points = 1/72 in"""
             bbox = ax.get_window_extent().transformed(ax.figure.dpi_scale_trans.inverted())
-            return bbox.width * 72
+            return bbox.width * 72  # points = 1/72 in
 
         def move_ax_labels():
             dr = dendrosplit_ratio
@@ -319,6 +354,7 @@ class MetaClusterGui():
 
     @property
     def selection_mask(self):
+        """2D boolean mask of shape (1,cluster_count) of currently selected clusters"""
         def is_selected(cluster):
             if cluster in self.selected_clusters:
                 return 1
@@ -327,6 +363,7 @@ class MetaClusterGui():
         return [[is_selected(c) for c in self.mcd.clusters.index]]
 
     def update_gui(self):
+        """Update and redraw any updated GUI elements"""
         self.im_cs.set_data(self.selection_mask)
         self.im_cs.set_extent((0, self.mcd.cluster_count, 0, 1))
 
@@ -379,12 +416,25 @@ class MetaClusterGui():
         self._heatmaps_stale = False
 
     def enable_debug_mode(self):
+        """Display the debug output widget as part of the GUI
+
+        This is used to route logging, output, and tracebacks that happen
+        in any of the event handler callbacks.
+        """
         self.fig.canvas.footer_visible = True
         DEBUG_VIEW.clear_output()
         DEBUG_VIEW.append_stdout("Debug mode started\n")
         display(DEBUG_VIEW)
 
     def remap_current_selection(self, metacluster):
+        """Instruct the MetaClusterData to remap the selected clusters
+
+        All selected clusters will be remapped to the metacluster id which is passed
+
+        Args:
+            metacluster (int):
+                metacluster id to map the current selection to
+        """
         for cluster in self.selected_clusters:
             print('remapping', cluster, metacluster)
             self.mcd.remap(cluster, metacluster)
@@ -449,6 +499,7 @@ class MetaClusterGui():
         self.update_gui()
 
     def onpick_select(self, e):
+        """Handle or route for handling all clicks to any matplotlib plots."""
         selected_ix = int(e.mouseevent.xdata)
         if e.artist in [self.im_c, self.im_cs]:
             selected_cluster = self.mcd.clusters.index[selected_ix]
