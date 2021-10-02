@@ -1,3 +1,4 @@
+import matplotlib.pyplot as plt
 import io
 
 import pandas as pd
@@ -33,3 +34,9 @@ def simple_pixelcount_df():
 @pytest.fixture()
 def simple_metaclusterdata(simple_clusters_df, simple_pixelcount_df):
     return MetaClusterData(simple_clusters_df, simple_pixelcount_df)
+
+
+@pytest.fixture(autouse=True)
+def test_plot_fn(monkeypatch):
+    """Make plt.show impotent for all tests"""
+    monkeypatch.setattr(plt, 'show', lambda: None)

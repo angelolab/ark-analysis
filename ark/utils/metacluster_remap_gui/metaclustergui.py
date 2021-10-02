@@ -31,7 +31,13 @@ class MetaClusterGui():
         self.mcd: MetaClusterData = metaclusterdata
         self.selected_clusters = set()
 
+        self.make_widgets()
         self.make_gui()
+
+        self._heatmaps_stale = True
+        self.update_gui()
+
+        display(self.gui)
 
         if debug:
             self.enable_debug_mode()
@@ -55,17 +61,22 @@ class MetaClusterGui():
         #  |cd|    c           |  m   | heatmap itself
         #  |  |    cs          |  ms  | selection markers
         #  |  |    cl          |  ml  | metacluster color labels
+        width_ratios = [
+            int(self.mcd.cluster_count / 7),
+            self.mcd.cluster_count,
+            self.mcd.metacluster_count,
+            ]
+        height_ratios = [6, self.mcd.marker_count, 1, 1]
 
         subplots = plt.subplots(
             4, 3,
             gridspec_kw={
-                # cluster plot bigger than metacluster plot
-                'width_ratios': [int(self.mcd.cluster_count/7),
-                                 self.mcd.cluster_count,
-                                 self.mcd.metacluster_count],
-                'height_ratios': [6, self.mcd.marker_count, 1, 1]},
+                'width_ratios': width_ratios,
+                'height_ratios': height_ratios},
             figsize=(self.width, 6),
             )
+        with self.plot_output:
+            plt.show()
 
         (self.fig, (
             (self.ax_01, self.ax_cp, self.ax_cb),
@@ -180,12 +191,6 @@ class MetaClusterGui():
         self.ax_cb.axis('off')
         self.ax_ms.axis('off')
 
-        # naive cache expiration
-        self._heatmaps_stale = True
-
-        # make widget toolbar
-        self.make_widgets()
-
         # space for longer labels hack
         self.ax_ml.set_xticks([0.5])
         self.ax_ml.set_xticklabels(["SpaceHolder--"], rotation=90, fontsize=8)
@@ -194,9 +199,6 @@ class MetaClusterGui():
         self.fig.tight_layout()
         plt.subplots_adjust(hspace=.0)  # make color labels touch heatmap
         plt.subplots_adjust(wspace=.02)
-
-        # initilize data, etc
-        self.update_gui()
 
     def make_widgets(self):
         # zscore adjuster
@@ -269,7 +271,8 @@ class MetaClusterGui():
             self.metacluster_info,
             ])
         self.toolbar.layout.justify_content = 'space-between'
-        display(self.toolbar)
+        self.plot_output = widgets.Output()
+        self.gui = widgets.VBox([self.plot_output, self.toolbar])
 
     def move_dendro_labels(self, ax, dendrosplit_ratio=1.8):
         """Overlay axis labels directly onto a scipy dendrogram
@@ -454,7 +457,7 @@ class MetaClusterGui():
                 self.selected_clusters.remove(selected_cluster)
             else:
                 self.selected_clusters.add(selected_cluster)
-        elif e.artist in [self.im_m, self.im_ml, self.im_ms]:
+        elif e.artist in [self.im_m, self.im_ml]:
             self.select_metacluster(self.mcd.metaclusters.index[selected_ix])
         elif e.artist in [self.im_cl]:
             selected_cluster = self.mcd.clusters_with_metaclusters.index[selected_ix]
@@ -478,7 +481,7 @@ class MetaClusterGui():
         if e.artist in [self.im_c, self.im_cs]:
             selected_cluster = self.mcd.clusters.index[selected_ix]
             metacluster = self.mcd.which_metacluster(cluster=selected_cluster)
-        elif e.artist in [self.im_m, self.im_ml, self.im_ms]:
+        elif e.artist in [self.im_m, self.im_ml]:
             metacluster = self.mcd.metaclusters.index[selected_ix]
         elif e.artist in [self.im_cl]:
             selected_cluster = self.mcd.clusters_with_metaclusters.index[selected_ix]
