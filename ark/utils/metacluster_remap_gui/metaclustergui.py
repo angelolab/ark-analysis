@@ -134,10 +134,10 @@ class MetaClusterGui():
         self.im_m = _heatmap(self.ax_m, self.mcd.metacluster_count)
 
         self.ax_c.yaxis.set_tick_params(which='major', labelleft=False)
-        self.ax_c.set_yticks(np.arange(self.mcd.marker_count)+0.5)
+        self.ax_c.set_yticks(np.arange(self.mcd.marker_count) + 0.5)
         self.ax_c.set_yticklabels(self.mcd.marker_names)
-        self.ax_c.set_xticks(np.arange(self.mcd.cluster_count)+0.5)
-        self.ax_m.set_xticks(np.arange(self.mcd.metacluster_count)+0.5)
+        self.ax_c.set_xticks(np.arange(self.mcd.cluster_count) + 0.5)
+        self.ax_m.set_xticks(np.arange(self.mcd.metacluster_count) + 0.5)
         self.ax_c.xaxis.set_tick_params(which='both', bottom=False, labelbottom=False)
         self.ax_m.xaxis.set_tick_params(which='both', bottom=False, labelbottom=False)
         self.ax_m.yaxis.set_tick_params(which='both', bottom=False, labelbottom=False)
@@ -178,11 +178,11 @@ class MetaClusterGui():
         self.ax_cp.set_ylabel("Pixels (k)", rotation=90)
         self.ax_cp.set_xlim(0, self.mcd.cluster_count)
         self.rects_cp = self.ax_cp.bar(
-            np.arange(self.mcd.cluster_count)+0.5,
+            np.arange(self.mcd.cluster_count) + 0.5,
             np.zeros(self.mcd.cluster_count))
         self.labels_cp = []
         label_alignment_fudge = 0.08
-        for x in np.arange(self.mcd.cluster_count)+0.5+label_alignment_fudge:
+        for x in np.arange(self.mcd.cluster_count) + 0.5 + label_alignment_fudge:
             label = self.ax_cp.text(
                 x=x, y=0, s="-", va='bottom',
                 ha='center', rotation=90, color='black', fontsize=8)
@@ -319,7 +319,7 @@ class MetaClusterGui():
         def add_room_for_labels():
             ax.set_axisbelow(False)
             xlim = ax.get_xlim()
-            ax.set_xlim((xlim[0], -(xlim[0]*dendrosplit_ratio)))
+            ax.set_xlim((xlim[0], -(xlim[0] * dendrosplit_ratio)))
 
         def stretch_dendro_leaves():
             for c in ax.collections:
@@ -394,14 +394,14 @@ class MetaClusterGui():
         self.im_cl.set_data([self.mcd.clusters_with_metaclusters['metacluster']])
         self.im_cl.set_extent((0, self.mcd.cluster_count, 0, 1))
         self.im_cl.set_cmap(mc_cmap)
-        self.ax_ml.set_xticks(np.arange(self.mcd.metacluster_count)+0.5)
+        self.ax_ml.set_xticks(np.arange(self.mcd.metacluster_count) + 0.5)
         self.ax_ml.set_xticklabels(self.mcd.metacluster_displaynames, rotation=90, fontsize=7)
         self.im_ml.set_data([self.mcd.metaclusters.index])
         self.im_ml.set_extent((0, self.mcd.metacluster_count, 0, 1))
         self.im_ml.set_cmap(mc_cmap)
 
         # xaxis pixelcount graphs
-        ax_cp_ymax = max(self.mcd.cluster_pixelcounts['count'])*1.65
+        ax_cp_ymax = max(self.mcd.cluster_pixelcounts['count']) * 1.65
         self.ax_cp.set_ylim(0, ax_cp_ymax)
         sorted_pixel_counts = self.mcd.clusters.join(self.mcd.cluster_pixelcounts)['count']
         for rect, h in zip(self.rects_cp, sorted_pixel_counts):

@@ -67,7 +67,7 @@ class MetaClusterData():
     @property
     def clusters_with_metaclusters(self):
         df = self._clusters.join(self.mapping).sort_values(by='metacluster')
-        return df.iloc[:, self._marker_order + [max(self._marker_order)+1]]
+        return df.iloc[:, self._marker_order + [max(self._marker_order) + 1]]
 
     @property
     def clusters(self):

@@ -101,9 +101,9 @@ def test_can_average_clusters_by_metacluster(simple_metaclusterdata: MetaCluster
     clusters_data = np.array([
         (0.1, 0.2, 0.1),
         (0.1, 0.1, 0.3),
-        ((0.5*50+0.7*77)/(50+77),
-         (0.1*50+0.2*77)/(50+77),
-         (0.1*50+0.1*77)/(50+77)),
+        ((0.5 * 50 + 0.7 * 77) / (50 + 77),
+         (0.1 * 50 + 0.2 * 77) / (50 + 77),
+         (0.1 * 50 + 0.1 * 77) / (50 + 77)),
         ])
     np.testing.assert_equal(simple_metaclusterdata.metaclusters.values, clusters_data)
 
