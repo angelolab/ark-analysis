@@ -12,7 +12,7 @@ do
     *)
       echo "$1 is not an accepted option..."
       echo "-d, --develop-notebook-templates : Mount templates for direct editing."
-      shift
+      exit
       ;;
   esac
 done
