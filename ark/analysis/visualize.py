@@ -69,7 +69,8 @@ def draw_boxplot(cell_data, col_name, col_split=None,
 
 
 def draw_heatmap(data, x_labels, y_labels, dpi=None, center_val=None, min_val=None, max_val=None,
-                 cbar_ticks=None, colormap="vlag", save_dir=None, save_file=None):
+                 cbar_ticks=None, colormap="vlag", row_colors=None, col_colors=None,
+                 save_dir=None, save_file=None):
     """Plots the z scores between all phenotypes as a clustermap.
 
     Args:
@@ -91,6 +92,10 @@ def draw_heatmap(data, x_labels, y_labels, dpi=None, center_val=None, min_val=No
             list of values containing tick labels for the heatmap colorbar
         colormap (str):
             color scheme for visualization
+        row_colors (list):
+            Include these values as an additional color-coded cluster bar for row values
+        col_colors (list):
+            Include these values as an additional color-coded cluster bar for column values
         save_dir (str):
             If specified, a directory where we will save the plot
         save_file (str):
@@ -108,7 +113,8 @@ def draw_heatmap(data, x_labels, y_labels, dpi=None, center_val=None, min_val=No
 
     sns.clustermap(
         data_df, cmap=colormap, center=center_val,
-        vmin=min_val, vmax=max_val, cbar_kws={'ticks': cbar_ticks}
+        vmin=min_val, vmax=max_val, row_colors=row_colors, col_colors=col_colors,
+        cbar_kws={'ticks': cbar_ticks}
     )
 
     if save_dir is not None:

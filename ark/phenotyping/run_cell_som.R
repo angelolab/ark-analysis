@@ -58,7 +58,7 @@ print("Mapping cluster labels")
 clusters <- FlowSOM:::MapDataToCodes(somWeights, as.matrix(clusterCountsNorm))
 
 # assign cluster labels to pixel data
-clusterCountsData$cluster <- clusters[,1]
+clusterCountsData$cluster <- as.integer(clusters[,1])
 
 # write to feather
 print("Writing clustered data")

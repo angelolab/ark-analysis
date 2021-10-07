@@ -213,7 +213,7 @@ def generate_pixel_cluster_mask(fovs, base_dir, seg_dir, pixel_consensus_dir,
         fov_data[cluster_col] = fov_data[cluster_col].astype(int)
 
         # read the segmentation mask to determine size of pixel cluster mask
-        seg_mask = io.imread(os.path.join(seg_dir, fov + '_feature_0.tif'))
+        seg_mask = np.squeeze(io.imread(os.path.join(seg_dir, fov + '_feature_0.tif')))
 
         # define a pixel cluster mask with the same dimensions as seg_mask
         pixel_cluster_mask = np.zeros(seg_mask.shape)

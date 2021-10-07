@@ -114,7 +114,7 @@ def compute_pixel_cluster_channel_avg(fovs, channels, base_dir, cluster_col,
 
 
 def compute_cell_cluster_count_avg(cluster_path, column_prefix, cluster_col, keep_count=False):
-    """For each cell SOM cluster, compute the average number of associated SOM pixel/meta clusters
+    """For each cell SOM cluster, compute the average number of associated pixel SOM/meta clusters
 
     Args:
         cluster_path (str):
@@ -145,6 +145,7 @@ def compute_cell_cluster_count_avg(cluster_path, column_prefix, cluster_col, kee
     # if keep_count is included, add the count column to the cell table
     if keep_count:
         cell_cluster_totals = cluster_data_subset.groupby(cluster_col).size().to_frame('count')
+        cell_cluster_totals = cell_cluster_totals.reset_index(drop=True)
         mean_count_totals['count'] = cell_cluster_totals['count']
 
     return mean_count_totals
@@ -335,18 +336,10 @@ def create_c2pc_data(fovs, pixel_consensus_path,
     # subset on only the fovs the user has specified
     cell_table = cell_table[cell_table['fov'].isin(fovs)]
 
-    # for verification purposes, make sure the fovs are sorted in numerical order
-    fovs_sorted = sorted(fovs, key=lambda x: int(re.findall(r'\d+', x)[0]))
-
-    # because current version of pandas doesn't support key-based sorting, need to do it this way
-    cell_table['fov'] = cell_table['fov'].map(lambda x: x.replace('fov', '')).astype(int)
-    cell_table = cell_table.sort_values(by=['fov', 'segmentation_label']).reset_index(drop=True)
-    cell_table['fov'] = cell_table['fov'].map(lambda x: 'fov' + str(x))
-
     # define cell_table columns to subset on for merging
     cell_table_cols = ['fov', 'segmentation_label', 'cell_size']
 
-    for fov in fovs_sorted:
+    for fov in fovs:
         # read in the pixel dataset for the fov
         fov_pixel_data = feather.read_dataframe(
             os.path.join(pixel_consensus_path, fov + '.feather')
@@ -439,7 +432,7 @@ def create_fov_pixel_data(fov, channels, img_data, seg_labels,
     # assign metadata about each entry
     pixel_mat['fov'] = fov
     pixel_mat['row_index'] = np.repeat(range(img_data.shape[0]), img_data.shape[1])
-    pixel_mat['column_index'] = np.tile(range(img_data.shape[0]), img_data.shape[1])
+    pixel_mat['column_index'] = np.tile(range(img_data.shape[1]), img_data.shape[0])
 
     # assign segmentation label
     seg_labels_flat = seg_labels.flatten()
@@ -678,7 +671,6 @@ def cluster_pixels(fovs, base_dir, pre_dir='pixel_mat_preprocessed',
     misc_utils.verify_in_list(provided_fovs=fovs,
                               subsetted_fovs=io_utils.remove_file_extensions(files))
 
-    print("Normalizing row sums and removing rows that sum to 0")
     weights = feather.read_dataframe(os.path.join(base_dir, weights_name))
 
     # ensure the norm vals columns are valid indexes
@@ -724,7 +716,8 @@ def cluster_pixels(fovs, base_dir, pre_dir='pixel_mat_preprocessed',
 
 def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
                             cluster_dir='pixel_mat_clustered',
-                            cluster_avg_name='pixel_cluster_avg.feather',
+                            cluster_avg_name='test_pixel_cluster_channel_avg_cluster.feather',
+                            clust_to_meta_name='pixel_clust_to_meta.feather',
                             consensus_dir='pixel_mat_consensus', seed=42):
     """Run consensus clustering algorithm on pixel-level summed data across channels
 
@@ -748,6 +741,8 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
             Name of file to save the channel-averaged results to
         consensus_dir (str):
             Name of directory to save the consensus clustered results
+        clust_to_meta_name (str):
+            Name of file storing the SOM cluster to meta cluster mapping
         seed (int):
             The random seed to set for consensus clustering
     """
@@ -755,21 +750,15 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
     clustered_path = os.path.join(base_dir, cluster_dir)
     cluster_avg_path = os.path.join(base_dir, cluster_avg_name)
     consensus_path = os.path.join(base_dir, consensus_dir)
+    clust_to_meta_path = os.path.join(base_dir, clust_to_meta_name)
 
     if not os.path.exists(clustered_path):
         raise FileNotFoundError('Cluster dir %s does not exist in base_dir %s' %
                                 (cluster_dir, base_dir))
 
-    # compute the averages across each pixel SOM cluster
-    print("Averaging channel values across each pixel SOM cluster")
-    cluster_avgs = compute_pixel_cluster_channel_avg(fovs, channels, base_dir,
-                                                     cluster_col='cluster',
-                                                     cluster_dir=cluster_dir)
-
-    # save the cluster averages
-    feather.write_dataframe(cluster_avgs,
-                            os.path.join(base_dir, cluster_avg_name),
-                            compression='uncompressed')
+    if not os.path.exists(cluster_avg_path):
+        raise FileNotFoundError('Cluster avg file %s does not exist in base_dir %s' %
+                                (cluster_avg_name, base_dir))
 
     # make consensus_dir if it doesn't exist
     if not os.path.exists(consensus_path):
@@ -778,7 +767,7 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
     # run the consensus clustering process
     process_args = ['Rscript', '/pixel_consensus_cluster.R', ','.join(fovs), ','.join(channels),
                     str(max_k), str(cap), clustered_path, cluster_avg_path, consensus_path,
-                    str(seed)]
+                    clust_to_meta_path, str(seed)]
 
     process = subprocess.Popen(process_args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
@@ -792,92 +781,6 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
             break
         if output:
             print(output.strip())
-
-
-def compute_pixel_cluster_counts(fovs, channels, base_dir, data_dir,
-                                 pixel_cluster_col='cluster'):
-    """Counts the number of pixels per cluster
-
-    Args:
-        fovs (list):
-            The list of fovs to subset on
-        channels (list):
-            The list of channels to subset on
-        base_dir (str):
-            The path to the data directories
-        data_dir (str):
-            The path to the data directory, either the cluster or consensus dir
-        pixel_cluster_col (str):
-            The name of the cluster column to visualize, should be 'cluster' or 'hCluster_cap'
-
-    Returns:
-        pandas.DataFrame:
-            The number of pixels assigned to each cluster
-    """
-
-    # verify the pixel_cluster_col provided is valid
-    misc_utils.verify_in_list(
-        provided_cluster_col=pixel_cluster_col,
-        valid_cluster_cols=['cluster', 'hCluster_cap']
-    )
-
-    # compute the channel average dataframe with counts
-    cluster_counts = compute_pixel_cluster_channel_avg(fovs, channels, base_dir,
-                                                       pixel_cluster_col, data_dir,
-                                                       keep_count=True)
-
-    # keep just the pixel_cluster_col and the count column
-    cluster_counts = cluster_counts[[pixel_cluster_col, 'count']]
-
-    # need to make pixel_cluster_col string type so it displays properly (also int, no decimals)
-    cluster_counts[pixel_cluster_col] = cluster_counts[pixel_cluster_col].astype(str)
-
-    return cluster_counts
-
-
-def compute_cell_cluster_counts(base_dir, data_file,
-                                column_prefix='cluster', cell_cluster_col='cluster'):
-    """Counts the number of cells per cluster
-
-    Args:
-        base_dir (str):
-            The path to the data directories
-        data_file (str):
-            The path to the data file, either the cluster or consensus file
-        column_prefix (str):
-            The name of the cluster count column prefixes (aka the type of pixel cluster used)
-        cell_cluster_col (str):
-            The name of the cluster column to visualize, should be 'cluster' or 'hCluster_cap'
-
-    Returns:
-        pandas.DataFrame:
-            The number of cells assigned to each cluster
-    """
-
-    # verify the column_prefix provided is valid
-    misc_utils.verify_in_list(
-        provided_cluster_col=column_prefix,
-        valid_cluster_cols=['cluster', 'hCluster_cap']
-    )
-
-    # verify the cell_cluster_col provided is valid
-    misc_utils.verify_in_list(
-        provided_cluster_col=cell_cluster_col,
-        valid_cluster_cols=['cluster', 'hCluster_cap']
-    )
-
-    # compute the average number of pixel clusters with the total counts of cell clusters included
-    cluster_counts = compute_cell_cluster_count_avg(
-        os.path.join(base_dir, data_file), column_prefix, cell_cluster_col, keep_count=True
-    )
-
-    # keep just the cell_cluster_col and the count column
-    cluster_counts = cluster_counts[[cell_cluster_col, 'count']]
-
-    # need to make pixel_cluster_col string type so it displays properly (also int, no decimals)
-    cluster_counts[cell_cluster_col] = cluster_counts[cell_cluster_col].astype(int).astype(str)
-
-    return cluster_counts
 
 
 def train_cell_som(fovs, base_dir, pixel_consensus_dir, cell_table_name,
@@ -1031,9 +934,10 @@ def cluster_cells(base_dir, cluster_counts_name='cluster_counts.feather',
             print(output.strip())
 
 
-def cell_consensus_cluster(base_dir, max_k=20, cap=3, column_prefix='cluster',
+def cell_consensus_cluster(base_dir, cluster_cols, max_k=20, cap=3,
                            cell_cluster_name='cell_mat_clustered.feather',
                            cell_cluster_avg_name='cell_cluster_avg.feather',
+                           clust_to_meta_name='cell_clust_to_meta.feather',
                            cell_consensus_name='cell_mat_consensus.feather', seed=42):
     """Run consensus clustering algorithm on cell-level data averaged across each cell SOM cluster
 
@@ -1042,12 +946,12 @@ def cell_consensus_cluster(base_dir, max_k=20, cap=3, column_prefix='cluster',
     Args:
         base_dir (str):
             The path to the data directory
+        cluster_cols (list):
+            List of the cluster cols to subset over
         max_k (int):
             The number of consensus clusters
         cap (int):
             z-score cap to use when hierarchical clustering
-        column_prefix (str):
-            The prefix of the columns to subset, should be 'cluster' or 'hCluster_cap'
         cell_cluster_name (str):
             Name of the file containing the cell data with cluster labels
             Created by cluster_cells
@@ -1062,30 +966,20 @@ def cell_consensus_cluster(base_dir, max_k=20, cap=3, column_prefix='cluster',
     clustered_path = os.path.join(base_dir, cell_cluster_name)
     cluster_avg_path = os.path.join(base_dir, cell_cluster_avg_name)
     consensus_path = os.path.join(base_dir, cell_consensus_name)
+    clust_to_meta_path = os.path.join(base_dir, clust_to_meta_name)
 
     if not os.path.exists(clustered_path):
         raise FileNotFoundError('Cluster table %s does not exist in base_dir %s' %
                                 (cell_cluster_name, base_dir))
 
-    # verify the column_prefix provided is valid
-    misc_utils.verify_in_list(
-        provided_column_prefix=column_prefix,
-        valid_column_prefixes=['cluster', 'hCluster_cap']
-    )
-
-    # compute the averages across each cell SOM cluster
-    print("Averaging the pixel SOM/meta cluster counts across each cell SOM cluster")
-    cluster_avgs = compute_cell_cluster_count_avg(clustered_path, column_prefix=column_prefix,
-                                                  cluster_col='cluster')
-
-    # save the cluster averages
-    feather.write_dataframe(cluster_avgs,
-                            os.path.join(base_dir, cell_cluster_avg_name),
-                            compression='uncompressed')
+    if not os.path.exists(cluster_avg_path):
+        raise FileNotFoundError('Cluster avg table %s does not exist in base_dir %s' %
+                                (cell_cluster_avg_name, base_dir))
 
     # run the consensus clustering process
-    process_args = ['Rscript', '/cell_consensus_cluster.R', str(max_k), str(cap), clustered_path,
-                    cluster_avg_path, consensus_path, str(seed)]
+    process_args = ['Rscript', '/cell_consensus_cluster.R', ','.join(cluster_cols),
+                    str(max_k), str(cap), clustered_path,
+                    cluster_avg_path, consensus_path, clust_to_meta_path, str(seed)]
 
     process = subprocess.Popen(process_args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
@@ -1099,51 +993,3 @@ def cell_consensus_cluster(base_dir, max_k=20, cap=3, column_prefix='cluster',
             break
         if output:
             print(output.strip())
-
-
-def compute_avg_p2c_counts(base_dir, cluster_name, column_prefix, cell_cluster_col='cluster'):
-    """Compute the average pixel cluster counts for each cell cluster
-
-    Args:
-        base_dir (str):
-            The path to the data directories
-        cluster_name (str):
-            The name of the file containing the cluster data
-            Created by cluster_cells or cell_consensus_cluster depending on use case
-        column_prefix (str):
-            The prefix of the columns to subset, should be 'cluster' or 'hCluster_cap'
-        cell_cluster_col (str):
-            Name of the column to group values by, should be 'cluster' or 'hCluster_cap'
-
-    Returns:
-        pandas.DataFrame:
-            Each cell cluster mapped to the average number of pixel cluster counts
-    """
-
-    # verify the column prefix provided is valid
-    misc_utils.verify_in_list(
-        provided_column_prefix=column_prefix,
-        valid_column_prefixes=['cluster', 'hCluster_cap']
-    )
-
-    # verify the cell_cluster_col provided is valid
-    misc_utils.verify_in_list(
-        provided_cluster_col=cell_cluster_col,
-        valid_cluster_cols=['cluster', 'hCluster_cap']
-    )
-
-    # average the columns across the cluster column
-    cluster_avgs = compute_cell_cluster_count_avg(os.path.join(base_dir, cluster_name),
-                                                  column_prefix, cell_cluster_col)
-
-    # convert cluster column to integer type
-    cluster_avgs[cell_cluster_col] = cluster_avgs[cell_cluster_col].astype(int)
-
-    # sort cluster col in ascending order
-    cluster_avgs = cluster_avgs.sort_values(by=cell_cluster_col)
-
-    # z-score the pixel cluster columns
-    column_subset = [c for c in cluster_avgs.columns.values if c.startswith(column_prefix + '_')]
-    cluster_avgs[column_subset] = stats.zscore(cluster_avgs[column_subset].values)
-
-    return cluster_avgs

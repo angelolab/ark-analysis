@@ -14,7 +14,7 @@ from ark.utils.misc_utils import verify_in_list
 
 
 def plot_clustering_result(img_xr, fovs, save_dir=None, cmap='tab20',
-                           fov_col='fovs', figsize=(10, 10)):
+                           fov_col='fovs', figsize=(10, 10), tick_range=None):
     """Takes an xarray containing labeled images and displays them.
     Args:
         img_xr (xarray.DataArray):
@@ -29,6 +29,8 @@ def plot_clustering_result(img_xr, fovs, save_dir=None, cmap='tab20',
             column with the fovs names in img_xr.
         figsize (tuple):
             Size of the image that will be displayed.
+        tick_range (list):
+            Set explicit ticks if specified
     """
 
     verify_in_list(fov_names=fovs, unique_fovs=img_xr.fovs)
@@ -40,7 +42,7 @@ def plot_clustering_result(img_xr, fovs, save_dir=None, cmap='tab20',
         plt.imshow(img_xr[img_xr[fov_col] == fov].values.squeeze(), cmap=cmap)
         divider = make_axes_locatable(ax)
         cax = divider.append_axes("right", size="5%", pad=0.05)
-        plt.colorbar(cax=cax)
+        plt.colorbar(cax=cax, ticks=tick_range)
         if save_dir:
             misc_utils.save_figure(save_dir, f'{fov}.png')
 

@@ -8,6 +8,7 @@
 # - pixelClusterDir: path to the pixel data with SOM clusters
 # - clusterAvgPath: path to the averaged cluster data
 # - pixelMatConsensus: path to file where the consensus cluster results will be written
+# - clustToMeta: path to file where the SOM cluster to meta cluster mapping will be written
 # - seed: random factor
 
 library(arrow)
@@ -38,8 +39,11 @@ clusterAvgPath <- args[6]
 # get consensus clustered write path
 pixelMatConsensus <- args[7]
 
+# get the clust to meta write path
+clustToMeta <- args[8]
+
 # set the random seed
-seed <- strtoi(args[8])
+seed <- strtoi(args[9])
 set.seed(seed)
 
 # read cluster averaged data
@@ -79,3 +83,10 @@ for (i in 1:length(fovs)) {
         print(i)
     }
 }
+
+# save the mapping from cluster to hCluster_cap
+print("Writing SOM to meta cluster mapping table")
+hClustLabeled <- as.data.table(hClust)
+hClustLabeled$cluster <- as.integer(rownames(hClustLabeled))
+hClustLabeles <- setnames(hClustLabeled, "hClust", "hCluster_cap")
+arrow::write_feather(hClustLabeled, clustToMeta)
