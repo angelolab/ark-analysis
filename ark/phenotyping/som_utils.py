@@ -450,7 +450,8 @@ def create_fov_pixel_data(fov, channels, img_data, seg_labels,
     return pixel_mat, pixel_mat_subset
 
 
-def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir, seg_suffix='_feature_0.tif',
+def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
+                        img_sub_folder="TIFs", seg_suffix='_feature_0.tif',
                         pre_dir='pixel_mat_preprocessed',
                         sub_dir='pixel_mat_subsetted', is_mibitiff=False,
                         blur_factor=2, subset_proportion=0.1, seed=42):
@@ -469,6 +470,9 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir, seg_suffix=
             Name of the directory containing the tiff files
         seg_dir (str):
             Name of the directory containing the segmented files
+        img_sub_folder (str):
+            Name of the subdirectory inside tiff_dir containing the tiff files.
+            Set to None if there isn't any.
         seg_suffix (str):
             The suffix that the segmentation images use
         pre_dir (str):
@@ -513,7 +517,7 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir, seg_suffix=
             )
         else:
             img_xr = load_utils.load_imgs_from_tree(
-                tiff_dir, fovs=[fov], dtype="int16"
+                tiff_dir, img_sub_folder=img_sub_folder, fovs=[fov], dtype="int16"
             )
 
         # ensure the provided channels will actually exist in pixel_mat_subset
