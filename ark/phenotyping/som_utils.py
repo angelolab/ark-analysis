@@ -957,6 +957,8 @@ def cell_consensus_cluster(base_dir, cluster_cols, max_k=20, cap=3,
             Created by cluster_cells
         cell_cluster_avg_name (str):
             Name of file to save the column-averaged results to
+        clust_to_meta_name (str):
+            Name of file storing the SOM cluster to meta cluster mapping
         cell_consensus_name (str):
             Name of file to save the consensus clustered results
         seed (int):
