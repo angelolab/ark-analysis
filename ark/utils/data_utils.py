@@ -91,7 +91,7 @@ def label_cells_by_cluster(fovs, all_data, label_maps, fov_col=settings.FOV_ID,
 
 
 def generate_cell_cluster_mask(fovs, base_dir, seg_dir, cell_consensus_name,
-                               cluster_col='cluster'):
+                               cluster_col='cluster', seg_suffix='_feature_0.tif'):
     """For each fov, create a mask labeling each cell with their SOM or meta cluster label
 
     Args:
@@ -105,6 +105,8 @@ def generate_cell_cluster_mask(fovs, base_dir, seg_dir, cell_consensus_name,
             The path to the data with both cell SOM and meta cluster assignments
         cluster_col (str):
             Whether to assign SOM or meta clusters, needs to be 'cluster' or 'hCluster_cap'
+        seg_suffix (str):
+            The suffix that the segmentation images use
 
     Returns:
         xarray.DataArray:
@@ -139,14 +141,14 @@ def generate_cell_cluster_mask(fovs, base_dir, seg_dir, cell_consensus_name,
     )
 
     # define the files for whole cell and nuclear
-    whole_cell_files = [fov + '_feature_0.tif' for fov in fovs]
+    whole_cell_files = [fov + seg_suffix for fov in fovs]
 
     # load the segmentation labels in
     label_maps = load_utils.load_imgs_from_dir(data_dir=seg_dir,
                                                files=whole_cell_files,
                                                xr_dim_name='compartments',
                                                xr_channel_names=['whole_cell'],
-                                               trim_suffix='_feature_0',
+                                               trim_suffix=seg_suffix.split('.')[0],
                                                force_ints=True)
 
     # use label_cells_by_cluster to create cell masks
@@ -159,7 +161,7 @@ def generate_cell_cluster_mask(fovs, base_dir, seg_dir, cell_consensus_name,
 
 
 def generate_pixel_cluster_mask(fovs, base_dir, seg_dir, pixel_consensus_dir,
-                                cluster_col='cluster'):
+                                cluster_col='cluster', seg_suffix='_feature_0.tif'):
     """For each fov, create a mask labeling each pixel with their SOM or meta cluster label
 
     Args:
@@ -173,6 +175,8 @@ def generate_pixel_cluster_mask(fovs, base_dir, seg_dir, pixel_consensus_dir,
             The path to the data with both pixel SOM and meta cluster assignments
         cluster_col (str):
             Whether to assign SOM or meta clusters, needs to be 'cluster' or 'hCluster_cap'
+        seg_suffix (str):
+            The suffix that the segmentation images use
 
     Returns:
         xarray.DataArray:
