@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import pytest
 
-from .metaclusterdata import MetaClusterData, metaclusterdata_from_files
+from . import MetaClusterData
 
 
 @pytest.fixture()
