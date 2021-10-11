@@ -48,12 +48,18 @@ set.seed(seed)
 
 # read cluster averaged data
 print("Reading cluster averaged data")
-clusterAvgs <- arrow::read_feather(clusterAvgPath)
+# clusterAvgs <- arrow::read_feather(clusterAvgPath)
+clusterAvgs <- as.data.frame(read.csv(clusterAvgPath))
 
 # scale and cap the data accordingly
 # note: z-scoring and capping cluster avg data produces better clustering results
+print(markers)
+print(typeof(clusterAvgs))
+print(colnames(clusterAvgs))
 print("Scaling data")
-clusterAvgsScale <- pmin(scale(clusterAvgs[markers]), cap)
+print(clusterAvgs[,markers])
+# print(clusterAvgs[markers])
+clusterAvgsScale <- pmin(scale(clusterAvgs[,markers]), cap)
 
 # run the consensus clustering
 # TODO: look into suppressing output for Rs (invisible), not urgent

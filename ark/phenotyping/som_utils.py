@@ -720,7 +720,7 @@ def cluster_pixels(fovs, base_dir, pre_dir='pixel_mat_preprocessed',
 
 def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
                             cluster_dir='pixel_mat_clustered',
-                            cluster_avg_name='test_pixel_cluster_channel_avg_cluster.feather',
+                            cluster_avg_name='test_pixel_cluster_channel_avg_cluster.csv',
                             clust_to_meta_name='pixel_clust_to_meta.feather',
                             consensus_dir='pixel_mat_consensus', seed=42):
     """Run consensus clustering algorithm on pixel-level summed data across channels
