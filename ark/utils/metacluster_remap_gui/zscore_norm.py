@@ -31,16 +31,13 @@ class ZScoreNormalize(Normalize):
         super().__init__(vmin, vmax)
 
     def calibrate(self, values):
-        self.vmin = np.min(values)
-        if (self.vmin > 0):
-            self.vmin = 0.0
+        self.vmin = min([np.min(values), 0])
         self.vcenter = 0.0
         self.vmax = np.max(values)
 
     def __call__(self, value: np.ndarray, clip=None):
         """Map ndarray to the interval [0, 1]. The clip argument is unused."""
         result, is_scalar = self.process_value(value)
-        assert not is_scalar, "This normalizer doesn't support scalars"
 
         normalized_values = np.interp(
             result,

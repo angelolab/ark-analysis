@@ -20,12 +20,34 @@ def metaclusterdata_from_files(cluster_io, pixelcount_io, metacluster_header='me
                 Fully initialized metacluster data
     """
     clusters = pd.read_csv(cluster_io)
-    assert 'cluster' in clusters.columns, "cluster csv must include column named \"cluster\""
-    assert metacluster_header in clusters.columns, "cluster csv must include column named \"metacluster\", alternately specify the metacluster indexs using keyword `metacluster_index`"  # noqa
+
+    if 'cluster' not in clusters.columns:
+        raise ValueError("cluster csv must include column named \"cluster\"")
+
+    if metacluster_header not in clusters.columns:
+        raise ValueError("cluster csv must include column named \"metacluster\", alternately specify the metacluster indexs using keyword `metacluster_index`")  # noqa
+
     clusters = clusters.rename(columns={metacluster_header: 'metacluster'})
     pixelcounts = pd.read_csv(pixelcount_io)
-    assert 'cluster' in pixelcounts.columns, "pixelcounts csv must include column named \"cluster\""  # noqa
-    assert 'count' in pixelcounts.columns, "pixelcounts csv must include column named \"count\""
+
+    if 'cluster' not in pixelcounts.columns:
+        raise ValueError("pixelcounts csv must include column named \"cluster\"")
+
+    if 'count' not in pixelcounts.columns:
+        raise ValueError("pixelcounts csv must include column named \"count\"")
+
+    if len(set(clusters['cluster'].values)) != len(list(clusters['cluster'].values)):
+        raise ValueError("Cluster ids must be unique.")
+
+    if 1 not in clusters['cluster'].values:
+        raise ValueError("Cluster ids must be int type, starting with 1.")
+
+    if 0 in clusters['cluster'].values:
+        raise ValueError("Cluster ids start with 1, but a zero was detected.")
+
+    if set(clusters['cluster'].values) != set(pixelcounts['cluster'].values):
+        raise ValueError("Cluster ids in both files must match")
+
     return MetaClusterData(clusters, pixelcounts)
 
 
@@ -48,11 +70,6 @@ class MetaClusterData():
         self.mapping = sorted_clusters_df[['cluster', 'metacluster']].set_index('cluster')
         self._metacluster_displaynames_map = {}
         self._marker_order = list(range(len(self._clusters.columns)))
-
-        assert len(set(self.clusters.index)) == len(list(self.clusters.index)), "Cluster ids must be unique."  # noqa
-        assert set(self.clusters.index) == set(self.cluster_pixelcounts.index), "Cluster ids in both files must match"  # noqa
-        assert 1 in self.clusters.index and 0 not in self.clusters.index, "Cluster ids must be integer, starting with 1."  # noqa
-
         self._output_mapping_filename = None
         self._cached_metaclusters = None
 
