@@ -205,8 +205,8 @@ class MetaClusterGui():
             labels=self.mcd.fixed_width_marker_names,
             leaf_font_size=8,
             )
-        self.mcd.set_marker_order(self.ddg['leaves'])
-        self.ax_m.set_yticklabels(self.mcd.marker_names)
+        self.mcd.set_marker_order(self.ddg['leaves'][::-1])
+        self.ax_m.set_yticklabels(self.mcd.marker_names[::-1])
 
         self.ax_cd.figure.frameon = False
         self.ax_cd.spines["top"].set_visible(False)
