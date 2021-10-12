@@ -60,7 +60,16 @@ def test_can_average_clusters_by_metacluster(simple_metaclusterdata: MetaCluster
 
 
 def test_can_reorder_markers(simple_metaclusterdata: MetaClusterData):
-    print(simple_metaclusterdata._marker_order)
     simple_metaclusterdata.set_marker_order([0, 2, 1])
-    print(simple_metaclusterdata._marker_order)
     assert list(simple_metaclusterdata.marker_names) == ['CD163', 'CD31', 'CD206']
+
+
+def test_marker_orders_match(simple_metaclusterdata: MetaClusterData):
+    # access the properties first to reproduce a cache invalidation bug
+    _ = simple_metaclusterdata.clusters
+    _ = simple_metaclusterdata.metaclusters
+    _ = simple_metaclusterdata.clusters_with_metaclusters
+    simple_metaclusterdata.set_marker_order([0, 2, 1])
+    c_marks = list(simple_metaclusterdata.clusters.columns[0:3])
+    m_marks = list(simple_metaclusterdata.metaclusters.columns[0:3])
+    assert c_marks == m_marks

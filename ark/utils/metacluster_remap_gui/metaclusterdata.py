@@ -96,6 +96,7 @@ class MetaClusterData():
 
     def set_marker_order(self, new_indexes):
         self._marker_order = new_indexes
+        self._cached_metaclusters = None
 
     @property
     def cluster_count(self):
