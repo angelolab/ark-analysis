@@ -17,4 +17,4 @@ COPY ark /opt/ark-analysis/ark
 RUN pip install /opt/ark-analysis
 
 # jupyter lab
-CMD jupyter lab --ip=0.0.0.0 --allow-root --no-browser --port=$JUPYTER_PORT
+CMD jupyter lab --ip=0.0.0.0 --allow-root --no-browser --port=$JUPYTER_PORT --notebook-dir=/$JUPYTER_DIR
