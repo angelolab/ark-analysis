@@ -138,12 +138,13 @@ class MetaClusterGui():
 
         self.ax_c.yaxis.set_tick_params(which='major', labelleft=False)
         self.ax_c.set_yticks(np.arange(self.mcd.marker_count) + 0.5)
-        self.ax_c.set_yticklabels(self.mcd.marker_names)
         self.ax_c.set_xticks(np.arange(self.mcd.cluster_count) + 0.5)
         self.ax_m.set_xticks(np.arange(self.mcd.metacluster_count) + 0.5)
         self.ax_c.xaxis.set_tick_params(which='both', bottom=False, labelbottom=False)
         self.ax_m.xaxis.set_tick_params(which='both', bottom=False, labelbottom=False)
-        self.ax_m.yaxis.set_tick_params(which='both', bottom=False, labelbottom=False)
+        self.ax_m.yaxis.set_tick_params(which='both', left=False, labelleft=False)
+        self.ax_m.yaxis.set_tick_params(which='both', right=True, labelright=True, labelsize=7)
+        self.ax_m.set_yticks(np.arange(self.mcd.marker_count) + 0.5)
 
         # xaxis metacluster color labels
         self.ax_cl.xaxis.set_tick_params(which='both', bottom=False, labelbottom=False)
@@ -205,6 +206,7 @@ class MetaClusterGui():
             leaf_font_size=8,
             )
         self.mcd.set_marker_order(self.ddg['leaves'])
+        self.ax_m.set_yticklabels(self.mcd.marker_names)
 
         self.ax_cd.figure.frameon = False
         self.ax_cd.spines["top"].set_visible(False)
