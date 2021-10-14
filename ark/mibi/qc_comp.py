@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import scipy.ndimage as ndimage
 import xarray as xr
 
 import ark.utils.io_utils as io_utils
@@ -59,7 +60,7 @@ def compute_99_9_intensity(image_data):
 
 
 def compute_qc_metrics(tiff_dir, img_sub_folder="TIFs", is_mibitiff=False,
-                       fovs=None, chans=None, batch_size=5, dtype="int16"):
+                       fovs=None, chans=None, batch_size=5, blur_factor=0, dtype="int16"):
     """Compute the QC metric matrices
 
     Args:
@@ -77,6 +78,9 @@ def compute_qc_metrics(tiff_dir, img_sub_folder="TIFs", is_mibitiff=False,
         batch_size (int):
             how large we want each of the batches of fovs to be when computing, adjust as
             necessary for speed and memory considerations
+        blur_factor (int):
+            the sigma (standard deviation) to use for Gaussian blurring
+            set to 0 to use raw inputs without Gaussian blurring
         dtype (str/type):
             data type of base images
 
@@ -141,6 +145,13 @@ def compute_qc_metrics(tiff_dir, img_sub_folder="TIFs", is_mibitiff=False,
 
         # subset image_data on just the channel names provided
         image_data = image_data.loc[..., chans]
+
+        # run Gaussian blurring per channel
+        # TODO: check with Erin to see if this is the correct way to Gaussian blur
+        for chan in chans:
+            image_data.loc[..., chan].values = ndimage.gaussian_filter(
+                image_data.loc[..., chan].values, sigma=blur_factor
+            )
 
         # compute nonzero mean across each fov and channel of the batch
         df_nonzero_mean = df_nonzero_mean.append(
