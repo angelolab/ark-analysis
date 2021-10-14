@@ -60,7 +60,8 @@ def compute_99_9_intensity(image_data):
 
 
 def compute_qc_metrics(tiff_dir, img_sub_folder="TIFs", is_mibitiff=False,
-                       fovs=None, chans=None, batch_size=5, blur_factor=0, dtype="int16"):
+                       fovs=None, chans=None, batch_size=5, gaussian_blur=False,
+                       blur_factor=1, dtype="int16"):
     """Compute the QC metric matrices
 
     Args:
@@ -78,9 +79,12 @@ def compute_qc_metrics(tiff_dir, img_sub_folder="TIFs", is_mibitiff=False,
         batch_size (int):
             how large we want each of the batches of fovs to be when computing, adjust as
             necessary for speed and memory considerations
+        gaussian_blur (bool):
+            whether or not to add Gaussian blurring
         blur_factor (int):
             the sigma (standard deviation) to use for Gaussian blurring
             set to 0 to use raw inputs without Gaussian blurring
+            ignored if gaussian_blur set to False
         dtype (str/type):
             data type of base images
 
@@ -117,6 +121,9 @@ def compute_qc_metrics(tiff_dir, img_sub_folder="TIFs", is_mibitiff=False,
     df_total_intensity = pd.DataFrame()
     df_99_9_intensity = pd.DataFrame()
 
+    # define number of fovs processed (for printing out update to user)
+    fovs_processed = 0
+
     # iterate over all the batches
     for batch_names, batch_files in zip(
         [fovs[i:i + batch_size] for i in range(0, cohort_len, batch_size)],
@@ -148,29 +155,45 @@ def compute_qc_metrics(tiff_dir, img_sub_folder="TIFs", is_mibitiff=False,
 
         # run Gaussian blurring per channel
         # TODO: check with Erin to see if this is the correct way to Gaussian blur
-        for chan in chans:
-            image_data.loc[..., chan].values = ndimage.gaussian_filter(
-                image_data.loc[..., chan].values, sigma=blur_factor
-            )
+        if gaussian_blur:
+            for chan in chans:
+                image_data.loc[..., chan].values = ndimage.gaussian_filter(
+                    image_data.loc[..., chan].values, sigma=blur_factor
+                )
 
-        # compute nonzero mean across each fov and channel of the batch
-        df_nonzero_mean = df_nonzero_mean.append(
-            pd.DataFrame(compute_nonzero_mean_intensity(image_data), columns=chans)
+        # compute the QC metrics for the batch
+        df_nonzero_mean_batch = pd.DataFrame(
+            compute_nonzero_mean_intensity(image_data), columns=chans
         )
 
-        # compute total intensity across each fov and channel of the batch
-        df_total_intensity = df_total_intensity.append(
-            pd.DataFrame(compute_total_intensity(image_data), columns=chans)
+        df_total_intensity_batch = pd.DataFrame(
+            compute_total_intensity(image_data), columns=chans
         )
 
-        # compute the 99.9% intensity value across each fov and channel of the batch
-        df_99_9_intensity = df_99_9_intensity.append(
-            pd.DataFrame(compute_99_9_intensity(image_data), columns=chans)
+        df_99_9_intensity_batch = pd.DataFrame(
+            compute_99_9_intensity(image_data), columns=chans
         )
 
         # append the batch_names as fovs to each DataFrame
-        df_nonzero_mean['fovs'] = batch_names
-        df_total_intensity['fovs'] = batch_names
-        df_99_9_intensity['fovs'] = batch_names
+        df_nonzero_mean_batch['fov'] = batch_names
+        df_total_intensity_batch['fov'] = batch_names
+        df_99_9_intensity_batch['fov'] = batch_names
 
+        # append the batch QC metric data to the full processed data
+        df_nonzero_mean = pd.concat([df_nonzero_mean, df_nonzero_mean_batch])
+        df_total_intensity = pd.concat([df_total_intensity, df_total_intensity_batch])
+        df_99_9_intensity = pd.concat([df_99_9_intensity, df_99_9_intensity_batch])
+
+        # update number of fovs processed
+        fovs_processed += batch_size
+
+        # print fovs processed update
+        print("Number of fovs processed: %d" % fovs_processed)
+
+    # reset the indices to make indexing consistent
+    df_nonzero_mean = df_nonzero_mean.reset_index(drop=True)
+    df_total_intensity = df_total_intensity.reset_index(drop=True)
+    df_99_9_intensity = df_99_9_intensity.reset_index(drop=True)
+
+    # TODO: may want to use a dict as more metrics get included
     return df_nonzero_mean, df_total_intensity, df_99_9_intensity

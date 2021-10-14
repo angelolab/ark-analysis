@@ -12,10 +12,14 @@ import tempfile
 
 
 FOVS_CHANS_TEST = [
-    (None, None),
-    (['fov0', 'fov1'], None),
-    (None, ['chan0', 'chan1']),
-    (['fov0', 'fov1'], ['chan0', 'chan1'])
+    (None, None, False),
+    (None, None, True),
+    (['fov0', 'fov1'], None, False),
+    (['fov0', 'fov1'], None, True),
+    (None, ['chan0', 'chan1'], False),
+    (None, ['chan0', 'chan1'], True),
+    (['fov0', 'fov1'], ['chan0', 'chan1'], False),
+    (['fov0', 'fov1'], ['chan0', 'chan1'], True)
 ]
 
 
@@ -80,8 +84,8 @@ def test_compute_99_9_intensity():
     )
 
 
-@pytest.mark.parametrize("test_fovs,test_chans", FOVS_CHANS_TEST)
-def test_compute_qc_metrics_mibitiff(test_fovs, test_chans):
+@pytest.mark.parametrize("test_fovs,test_chans,test_gaussian_blur", FOVS_CHANS_TEST)
+def test_compute_qc_metrics_mibitiff(test_fovs, test_chans, test_gaussian_blur):
     # is_mibitiff True case, load from mibitiff file structure
     with tempfile.TemporaryDirectory() as temp_dir:
         # define 3 fovs and 2 mibitiff_imgs
@@ -115,7 +119,8 @@ def test_compute_qc_metrics_mibitiff(test_fovs, test_chans):
 
         # test sets of fovs and channels
         nonzero_mean, total_intensity, intensity_99_9 = qc_comp.compute_qc_metrics(
-            tiff_dir, is_mibitiff=True, fovs=test_fovs, chans=test_chans
+            tiff_dir, is_mibitiff=True, fovs=test_fovs, chans=test_chans,
+            gaussian_blur=test_gaussian_blur
         )
 
         # assert fovs are correct (if fovs is None, set to all fovs)
@@ -124,15 +129,15 @@ def test_compute_qc_metrics_mibitiff(test_fovs, test_chans):
 
         misc_utils.verify_same_elements(
             provided_fovs=test_fovs,
-            nzm_fovs=nonzero_mean['fovs'].values
+            nzm_fovs=nonzero_mean['fov'].values
         )
         misc_utils.verify_same_elements(
             provided_fovs=test_fovs,
-            ti_fovs=total_intensity['fovs'].values
+            ti_fovs=total_intensity['fov'].values
         )
         misc_utils.verify_same_elements(
             provided_fovs=test_fovs,
-            i99_9_fovs=intensity_99_9['fovs'].values
+            i99_9_fovs=intensity_99_9['fov'].values
         )
 
         # assert channels are correct (if chans is None, set to all chans)
@@ -141,20 +146,20 @@ def test_compute_qc_metrics_mibitiff(test_fovs, test_chans):
 
         misc_utils.verify_same_elements(
             provided_chans=test_chans,
-            nzm_chans=nonzero_mean.drop(columns='fovs').columns.values
+            nzm_chans=nonzero_mean.drop(columns='fov').columns.values
         )
         misc_utils.verify_same_elements(
             provided_chans=test_chans,
-            nzm_chans=total_intensity.drop(columns='fovs').columns.values
+            nzm_chans=total_intensity.drop(columns='fov').columns.values
         )
         misc_utils.verify_same_elements(
             provided_chans=test_chans,
-            nzm_chans=intensity_99_9.drop(columns='fovs').columns.values
+            nzm_chans=intensity_99_9.drop(columns='fov').columns.values
         )
 
 
-@pytest.mark.parametrize("test_fovs,test_chans", FOVS_CHANS_TEST)
-def test_compute_qc_metrics_non_mibitiff(test_fovs, test_chans):
+@pytest.mark.parametrize("test_fovs,test_chans,test_gaussian_blur", FOVS_CHANS_TEST)
+def test_compute_qc_metrics_non_mibitiff(test_fovs, test_chans, test_gaussian_blur):
     with tempfile.TemporaryDirectory() as temp_dir:
         # define 3 fovs and 3 channels
         fovs, chans = test_utils.gen_fov_chan_names(3, 3)
@@ -180,9 +185,11 @@ def test_compute_qc_metrics_non_mibitiff(test_fovs, test_chans):
                 tiff_dir, img_sub_folder, chans=['bad_chan']
             )
 
-        # test sets of fovs and channels
+        # test sets of fovs and channels and Gaussian blur turned on or off
+        # NOTE: leave default Gaussian blur sigma at 1 (same test regardless of sigma)
         nonzero_mean, total_intensity, intensity_99_9 = qc_comp.compute_qc_metrics(
-            tiff_dir, img_sub_folder, fovs=test_fovs, chans=test_chans
+            tiff_dir, img_sub_folder, fovs=test_fovs, chans=test_chans,
+            gaussian_blur=test_gaussian_blur
         )
 
         # assert fovs are correct (if fovs is None, set to all fovs)
@@ -191,15 +198,15 @@ def test_compute_qc_metrics_non_mibitiff(test_fovs, test_chans):
 
         misc_utils.verify_same_elements(
             provided_fovs=test_fovs,
-            nzm_fovs=nonzero_mean['fovs'].values
+            nzm_fovs=nonzero_mean['fov'].values
         )
         misc_utils.verify_same_elements(
             provided_fovs=test_fovs,
-            ti_fovs=total_intensity['fovs'].values
+            ti_fovs=total_intensity['fov'].values
         )
         misc_utils.verify_same_elements(
             provided_fovs=test_fovs,
-            i99_9_fovs=intensity_99_9['fovs'].values
+            i99_9_fovs=intensity_99_9['fov'].values
         )
 
         # assert channels are correct (if chans is None, set to all chans)
@@ -208,13 +215,13 @@ def test_compute_qc_metrics_non_mibitiff(test_fovs, test_chans):
 
         misc_utils.verify_same_elements(
             provided_chans=test_chans,
-            nzm_chans=nonzero_mean.drop(columns='fovs').columns.values
+            nzm_chans=nonzero_mean.drop(columns='fov').columns.values
         )
         misc_utils.verify_same_elements(
             provided_chans=test_chans,
-            nzm_chans=total_intensity.drop(columns='fovs').columns.values
+            nzm_chans=total_intensity.drop(columns='fov').columns.values
         )
         misc_utils.verify_same_elements(
             provided_chans=test_chans,
-            nzm_chans=intensity_99_9.drop(columns='fovs').columns.values
+            nzm_chans=intensity_99_9.drop(columns='fov').columns.values
         )
