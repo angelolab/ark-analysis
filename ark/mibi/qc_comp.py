@@ -156,9 +156,9 @@ def compute_qc_metrics(tiff_dir, img_sub_folder="TIFs", is_mibitiff=False,
         # run Gaussian blurring per channel
         # TODO: check with Erin to see if this is the correct way to Gaussian blur
         if gaussian_blur:
-            for chan in chans:
-                image_data.loc[..., chan].values = ndimage.gaussian_filter(
-                    image_data.loc[..., chan].values, sigma=blur_factor
+            for fov in batch_names:
+                image_data.loc[fov, ...].values = ndimage.gaussian_filter(
+                    image_data.loc[fov, ...].values, sigma=blur_factor
                 )
 
         # compute the QC metrics for the batch
