@@ -122,7 +122,7 @@ def compute_qc_metrics(tiff_dir, img_sub_folder="TIFs", is_mibitiff=False,
         [fovs[i:i + batch_size] for i in range(0, cohort_len, batch_size)],
         [filenames[i:i + batch_size] for i in range(0, cohort_len, batch_size)]
     ):
-        # and extract the image data for each batch
+        # extract the image data for each batch
         if is_mibitiff:
             image_data = load_utils.load_imgs_from_mibitiff(data_dir=tiff_dir,
                                                             mibitiff_files=batch_files,
