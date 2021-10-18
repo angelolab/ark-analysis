@@ -62,6 +62,8 @@ cdef inline void _dict_accum(DTYPE_t[:] close_num_rand_view,
                              Py_ssize_t* rand_rows, Py_ssize_t* rand_cols,
                              UINT8_t* rand_cols_flags, Py_ssize_t num_choices, int m1n, int m2n,
                              int bootstrap_num):
+    """ Dictionary based accumulation for large secondary marker size
+    """
     cdef DTYPE_t accum
     cdef MAXINDEX_t flat_start, flat_end, m2_idx
     cdef Py_ssize_t m1_label, m2_label
@@ -90,10 +92,32 @@ cdef inline void _dict_accum(DTYPE_t[:] close_num_rand_view,
 cdef _compute_close_num_rand(DTYPE_t[:, :] dist_mat_bin, DTYPE_t[:] cols_in_row_flat,
                              MAXINDEX_t[:] row_indicies, DTYPE_t[:] marker_nums,
                              int bootstrap_num):
+    """ Cython implementation of the spatial enrichment bootstrapper
 
+    Args:
+        dist_mat_bin (np.ndarray[np.uint16]):
+            binarized distance matrix.  Dtype is not np.uint8 as to avoid overflows on opperations
+            involving this matrix.
+        cols_in_row_flat (np.ndarray[np.uint16]):
+            flattened list-of-lists sparse matrix representation of `dist_mat_bin`.
+        row_indicies (np.ndarray[np.uint64]):
+            mapping from row to index of `cols_in_row_flat` containing list of positive columns for
+            that row.
+        marker_nums (np.ndarray[np.uint16]):
+            number of hits for each marker
+        bootstrap_num (int):
+            number of bootstrapping iterations to perform
+
+    Returns:
+        np.ndarray[np.uint16]:
+            3d array containing the enrichment matrix for each bootstrap iteration
+    """
+
+    # premptively type cast to native signed size type
     cdef Py_ssize_t num_markers = marker_nums.shape[0]
     cdef Py_ssize_t num_choices = dist_mat_bin.shape[0]
 
+    # pre-allocate space for close_num_rand and create memory view for fast access
     close_num_rand = np.zeros((num_markers, num_markers, bootstrap_num), dtype=np.uint16)
     cdef DTYPE_t[:, :, :] close_num_rand_view = close_num_rand
     
@@ -105,6 +129,8 @@ cdef _compute_close_num_rand(DTYPE_t[:, :] dist_mat_bin, DTYPE_t[:] cols_in_row_
         raise MemoryError()
 
     # allocate 'm2n < avg_rowsize' memory
+    # when m2n_small is true, traditional accumulation is used
+    # whne m2n_small is false, dictionary indexed accumulation is faster
     cdef UINT8_t* m2n_small = <UINT8_t*> PyMem_Malloc(num_markers * sizeof(UINT8_t))
 
     # initialize marker_label containers and m2n_small
@@ -121,6 +147,7 @@ cdef _compute_close_num_rand(DTYPE_t[:, :] dist_mat_bin, DTYPE_t[:] cols_in_row_
 
     cdef int j, k, m1n, m2n
 
+    # start main bootstrapping loop
     for j in range(num_markers):
         m1n = marker_nums[j]
         for k in range(j, num_markers):
@@ -134,6 +161,7 @@ cdef _compute_close_num_rand(DTYPE_t[:, :] dist_mat_bin, DTYPE_t[:] cols_in_row_
                             bootstrap_num)
             close_num_rand_view[k, j, :] = close_num_rand_view[j, k, :]
 
+    # free used memeory
     PyMem_Free(rand_rows)
     PyMem_Free(rand_cols)
     PyMem_Free(rand_cols_flags)
@@ -143,5 +171,27 @@ cdef _compute_close_num_rand(DTYPE_t[:, :] dist_mat_bin, DTYPE_t[:] cols_in_row_
 
 def compute_close_num_rand(DTYPE_t[:, :] dist_mat_bin, DTYPE_t[:] cols_in_row_flat,
                            MAXINDEX_t[:] row_indicies, DTYPE_t[:] marker_nums, int bootstrap_num):
+    """ Python wrapper function for the cython implementation of the spatial enrichment
+        bootstrapper
+
+    Args:
+        dist_mat_bin (np.ndarray[np.uint16]):
+            binarized distance matrix.  Dtype is not np.uint8 as to avoid overflows on opperations
+            involving this matrix.  This should be sorted in increasing marker size order for
+            optimal speedups.
+        cols_in_row_flat (np.ndarray[np.uint16]):
+            flattened list-of-lists sparse matrix representation of `dist_mat_bin`.
+        row_indicies (np.ndarray[np.uint64]):
+            mapping from row to index of `cols_in_row_flat` containing list of positive columns for
+            that row.
+        marker_nums (np.ndarray[np.uint16]):
+            number of hits for each marker
+        bootstrap_num (int):
+            number of bootstrapping iterations to perform
+
+    Returns:
+        np.ndarray[np.uint16]:
+            3d array containing the enrichment matrix for each bootstrap iteration
+    """
     return _compute_close_num_rand(dist_mat_bin, cols_in_row_flat, row_indicies, marker_nums,
                                    bootstrap_num)
