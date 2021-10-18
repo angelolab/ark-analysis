@@ -13,6 +13,16 @@ ctypedef np.uint8_t UINT8_t
 
 @cdivision(True) # Ignore modulo/divide by zero warning
 cdef inline void _c_permutation(Py_ssize_t* arr, const Py_ssize_t size) nogil:
+    """ Randomly permutes the provided arr
+
+    Very common implementation
+
+    Args:
+        arr (Py_ssize_t*):
+            array to be permuted/shuffled
+        size (Py_ssize_t):
+            size of array to be shuffled
+    """
     cdef Py_ssize_t i, j, temp
 
     for i in range(size-1, 0, -1):
@@ -27,6 +37,16 @@ cdef inline void _c_permutation(Py_ssize_t* arr, const Py_ssize_t size) nogil:
 @cdivision(True) # Ignore modulo/divide by zero warning
 cdef inline void _init_flag_table(UINT8_t* flags, const Py_ssize_t* perm,
                                   const Py_ssize_t size) nogil:
+    """ Initializes lookup table according to provided permutation
+
+    Args:
+        flags (uint8_t*):
+            pointer to mutable randomized column lookup table memory block
+        perm (Py_ssize_t*):
+            pointer to immutable permutation memory block
+        size (Py_ssize_t):
+            size of the lookup table/permutation
+    """
     cdef Py_ssize_t idx
     for idx in range(size):
         flags[perm[idx]] = 1
@@ -39,6 +59,34 @@ cdef inline void _list_accum(DTYPE_t[:] close_num_rand_view,
                              const DTYPE_t[:, :] dist_mat_bin, Py_ssize_t* rand_rows,
                              Py_ssize_t* rand_cols, Py_ssize_t num_choices, int m1n, int m2n,
                              int bootstrap_num):
+    """ List based accumulation for small secondary marker size
+
+    Accumulation loops over a randomized list of columnns within a randomized list of rows.  The
+    binarized distance matrix is directly indexed via these cols/rows and accumulated to the
+    result.
+
+    This is faster when the average number of positive columns in a row is more than the number of
+    random columns to check.
+
+    Args:
+        close_num_rand_view (np.ndarray[np.uint16]):
+            typed memory view of the close_num_rand_view datastructure
+        dist_mat_bin (np.ndarray[np.uint16]):
+            binarized distance matrix
+        rand_rows (Py_ssize_t*):
+            pointer to mutable row randomization memory block
+        rand_cols (Py_ssize_t*):
+            pointer to mutable column randomization memory block
+        num_choices (Py_ssize_t):
+            number of choices for permutation generation
+        m1n (int):
+            number of rows to select
+        m2n (int):
+            number of columns to select
+        bootstrap_num (int):
+            number of bootstrap iterations
+
+    """
     cdef DTYPE_t accum
     cdef Py_ssize_t m1_label, m2_label
 
@@ -63,6 +111,36 @@ cdef inline void _dict_accum(DTYPE_t[:] close_num_rand_view,
                              UINT8_t* rand_cols_flags, Py_ssize_t num_choices, int m1n, int m2n,
                              int bootstrap_num):
     """ Dictionary based accumulation for large secondary marker size
+
+    Accumulation still loops over a random list of rows, but instead of directly indexing the
+    binarized distance matrix over a random list of columns, the known positive columns within each
+    row are checked against a randomized 'positive column' lookup table (dictionary).
+    
+    This is faster when the average number of positive columns in a row is significantly less than
+    the number of random columns to check (hence why sorting marker column order low to high is
+    encouraged...)
+
+    Args:
+        close_num_rand_view (np.ndarray[np.uint16]):
+            typed memory view of the close_num_rand_view datastructure
+        cols_in_row_flat (np.ndarray[np.uint16]):
+            flattened list-of-lists representation of binarized distance matrix
+        row_indicies (np.ndarray[np.uint64]):
+            'deflattening' index array for `cols_in_row_flat`
+        rand_rows (Py_ssize_t*):
+            pointer to mutable row randomization memory block
+        rand_cols (Py_ssize_t*):
+            pointer to mutable column randomization memory block
+        rand_cols_flags (uint8_t*):
+            pointer to mutable randomized column lookup table memory block
+        num_choices (Py_ssize_t):
+            number of choices for permutation generation
+        m1n (int):
+            number of rows to select
+        m2n (int):
+            number of columns to select
+        bootstrap_num (int):
+            number of bootstrap iterations
     """
     cdef DTYPE_t accum
     cdef MAXINDEX_t flat_start, flat_end, m2_idx
