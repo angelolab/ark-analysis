@@ -172,7 +172,7 @@ def append_readme():
                 if match:
                     match_str = match.string[match.start():match.end()]
                     match_path = match_str[4:-1]
-                    adjusted_path = os.path.join('..', '..', match_path)
+                    adjusted_path = os.path.join('..', match_path)
                     line = match_str[:4] + adjusted_path + match_str[-1]
 
                 fout.write(line)
