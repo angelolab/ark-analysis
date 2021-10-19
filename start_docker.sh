@@ -18,6 +18,7 @@ do
     -e|--external)
       external="$2"
       shift
+      shift
       ;;
     *)
       echo "$1 is not an accepted option..."
@@ -48,6 +49,7 @@ if [ -d "$PWD/scripts" ]
   else
     mkdir "$PWD/scripts"
     cp "$PWD"/templates/*.ipynb "$PWD/scripts/."
+fi
 
 # find lowest open port available
 PORT=8888
@@ -57,7 +59,7 @@ until [[ $(docker container ls | grep 0.0.0.0:$PORT | wc -l) -eq 0 ]]
     ((PORT=$PORT+1))
 done
 
-if [ $external -ne '' ]
+if [ ! -z "$external" ]
   then
     docker run -it \
       -p $PORT:$PORT \
