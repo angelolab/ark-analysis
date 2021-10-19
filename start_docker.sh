@@ -37,18 +37,11 @@ if [[ $(find . -mmin -1440 -type f -print | grep requirements.txt | wc -l) -eq 1
     docker build -t ark-analysis .
 fi
 
-# perform update if requested
-if [ -d "$PWD/scripts" ]
+if [ $update -ne 0 ]
   then
-    if [ $update -ne 0 ]
-      then
-        bash update_notebooks.sh
-      else
-        cp -n "$PWD"/templates/*.ipynb "$PWD/scripts/."
-    fi
+    bash update_notebooks.sh -u
   else
-    mkdir "$PWD/scripts"
-    cp "$PWD"/templates/*.ipynb "$PWD/scripts/."
+    bash update_notebooks.sh
 fi
 
 # find lowest open port available
