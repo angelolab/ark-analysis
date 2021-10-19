@@ -63,6 +63,27 @@ You will need to authenticate. Note the last URL (the one with `127.0.0.1:8888` 
 
 You can shut down the notebooks and close docker by entering control-c in the terminal window.
 
+## External Hard Drives and Google File Stream
+
+To configure external hard drive (or google file stream) access, you will have to add this to Dockers file paths in the Preferences menu.
+
+On Docker for macOS, this can be found in Preferences -> Resources -> File Sharing.  Adding `/Volumes` will allow docker to see external drives
+
+On Docker for Windows, the specific external drive of interest will need to be added to this list, i.e `G:\\`, `E:\\`, etc.
+
+![](.github/docker_preferences.png)
+
+Once the path is added, you can run:
+```
+bash start_docker.sh --external 'path/added/to/preferences'
+```
+or
+```
+bash start_docker.sh -e 'path/added/to/preferences'
+```
+
+to mount the drive into the virtual `/data/external` path inside the docker.
+
 ## Updates
 
 This project is still in development, and we are making frequent updates and improvements. If you want to update the version on your computer to have the latest changes, perform the following steps
