@@ -71,7 +71,7 @@ On Docker for macOS, this can be found in Preferences -> Resources -> File Shari
 
 On Docker for Windows, the specific external drive of interest will need to be added to this list, i.e `G:\\`, `E:\\`, etc.
 
-![](.github/docker_preferences.png)
+![](docs/docker_preferences.png)
 
 Once the path is added, you can run:
 ```
