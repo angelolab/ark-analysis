@@ -10,6 +10,8 @@ from ark.utils import notebooks_test_utils
 
 SEGMENT_IMAGE_DATA_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                        '..', '..', 'templates', 'Segment_Image_Data.ipynb')
+QC_METRIC_COMP_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                                   '..', '..', 'templates', 'example_qc_metric_eval.ipynb')
 
 
 def _exec_notebook(nb_filename):
@@ -35,8 +37,12 @@ def test_example_neighborhood_analysis():
     _exec_notebook('example_neighborhood_analysis_script.ipynb')
 
 
-# testing specific inputs for Segment_Image_Data
-# test mibitiff, 6000 seconds = default timeout on Travis
+def test_example_qc_extract():
+    _exec_notebook('example_qc_metric_eval.ipynb')
+
+
+# test mibitiff inputs for image segmentation
+# NOTE: 6000 seconds = default timeout on Travis
 @testbook(SEGMENT_IMAGE_DATA_PATH, timeout=6000)
 def test_segment_image_data_mibitiff(tb):
     with tdir() as tiff_dir, tdir() as input_dir, tdir() as output_dir, \
@@ -77,7 +83,7 @@ def test_segment_image_data_mibitiff(tb):
         notebooks_test_utils.create_exp_mat(tb, is_mibitiff=True, nuclear_counts=True)
 
 
-# test folder loading
+# test folder inputs for image segmentation
 @testbook(SEGMENT_IMAGE_DATA_PATH, timeout=6000)
 def test_segment_image_data_folder(tb):
     with tdir() as tiff_dir, tdir() as input_dir, tdir() as output_dir, \
@@ -113,3 +119,22 @@ def test_segment_image_data_folder(tb):
 
         # create the expression matrix with nuclear counts
         notebooks_test_utils.create_exp_mat(tb, nuclear_counts=True)
+
+
+# test mibitiff inputs for qc metric computation
+@testbook(QC_METRIC_COMP_PATH, timeout=6000)
+def test_qc_metric_comp_mibitiff(tb):
+    with tdir() as tiff_dir:
+        # create input files
+        notebooks_test_utils.qc_notebook_setup(tb,
+                                               tiff_dir=tiff_dir,
+                                               is_mibitiff=True)
+
+
+# test folder inputs for qc metric computation
+@testbook(QC_METRIC_COMP_PATH, timeout=6000)
+def test_qc_metric_comp_folder(tb):
+    with tdir() as tiff_dir:
+        # create input files
+        notebooks_test_utils.qc_notebook_setup(tb,
+                                               tiff_dir=tiff_dir)
