@@ -162,7 +162,6 @@ def compute_qc_metrics(tiff_dir, img_sub_folder="TIFs", is_mibitiff=False,
                     image_data.loc[fov, ...], sigma=blur_factor
                 )
 
-
         # compute the QC metrics for the batch
         df_nonzero_mean_batch = pd.DataFrame(
             compute_nonzero_mean_intensity(image_data), columns=chans
