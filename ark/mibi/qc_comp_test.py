@@ -118,10 +118,14 @@ def test_compute_qc_metrics_mibitiff(test_fovs, test_chans, test_gaussian_blur):
             )
 
         # test sets of fovs and channels
-        nonzero_mean, total_intensity, intensity_99_9 = qc_comp.compute_qc_metrics(
+        qc_data = qc_comp.compute_qc_metrics(
             tiff_dir, is_mibitiff=True, fovs=test_fovs, chans=test_chans,
             gaussian_blur=test_gaussian_blur
         )
+
+        nonzero_mean = qc_data['nonzero_mean']
+        total_intensity = qc_data['total_intensity']
+        intensity_99_9 = qc_data['99_9_intensity']
 
         # assert fovs are correct (if fovs is None, set to all fovs)
         if test_fovs is None:
@@ -187,10 +191,14 @@ def test_compute_qc_metrics_non_mibitiff(test_fovs, test_chans, test_gaussian_bl
 
         # test sets of fovs and channels and Gaussian blur turned on or off
         # NOTE: leave default Gaussian blur sigma at 1 (same test regardless of sigma)
-        nonzero_mean, total_intensity, intensity_99_9 = qc_comp.compute_qc_metrics(
+        qc_data = qc_comp.compute_qc_metrics(
             tiff_dir, img_sub_folder, fovs=test_fovs, chans=test_chans,
             gaussian_blur=test_gaussian_blur
         )
+
+        nonzero_mean = qc_data['nonzero_mean']
+        total_intensity = qc_data['total_intensity']
+        intensity_99_9 = qc_data['99_9_intensity']
 
         # assert fovs are correct (if fovs is None, set to all fovs)
         if test_fovs is None:

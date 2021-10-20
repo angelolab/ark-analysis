@@ -24,8 +24,13 @@ def compute_nonzero_mean_intensity(image_data):
     masked_image_data = np.ma.masked_equal(image_data.values, 0)
 
     # compute the nonzero mean across each fov and channel, convert back to numpy array
-    # TODO: if a channel is all 0 this will blow up, assumption that this won't happen for now
-    return masked_image_data.mean(axis=(1, 2)).filled()
+    nonzero_mean_intensity = masked_image_data.mean(axis=(1, 2)).filled()
+
+    # clip very large values (this applies when a division by 0 occurred
+    # because the channel values were all 0 for a specific fov)
+    nonzero_mean_intensity[nonzero_mean_intensity > 10 ** 10] = np.nan
+
+    return nonzero_mean_intensity
 
 
 def compute_total_intensity(image_data):
@@ -89,11 +94,8 @@ def compute_qc_metrics(tiff_dir, img_sub_folder="TIFs", is_mibitiff=False,
             data type of base images
 
     Returns:
-        pandas.DataFrame, pandas.DataFrame, pandas.DataFrame:
-
-        - Matrix indicating the nonzero mean intensity of each channel per fov
-        - Matrix indicating the total intensity of each channel per fov
-        - Matrix indicating the 99.9% intensity value of each channel per fov
+        dict:
+            A mapping between each QC metric name and their respective DataFrames
     """
 
     # if no fovs are specified, then load all the fovs
@@ -154,12 +156,12 @@ def compute_qc_metrics(tiff_dir, img_sub_folder="TIFs", is_mibitiff=False,
         image_data = image_data.loc[..., chans]
 
         # run Gaussian blurring per channel
-        # TODO: check with Erin to see if this is the correct way to Gaussian blur
         if gaussian_blur:
             for fov in batch_names:
                 image_data.loc[fov, ...].values = ndimage.gaussian_filter(
-                    image_data.loc[fov, ...].values, sigma=blur_factor
+                    image_data.loc[fov, ...], sigma=blur_factor
                 )
+
 
         # compute the QC metrics for the batch
         df_nonzero_mean_batch = pd.DataFrame(
@@ -195,5 +197,11 @@ def compute_qc_metrics(tiff_dir, img_sub_folder="TIFs", is_mibitiff=False,
     df_total_intensity = df_total_intensity.reset_index(drop=True)
     df_99_9_intensity = df_99_9_intensity.reset_index(drop=True)
 
-    # TODO: may want to use a dict as more metrics get included
-    return df_nonzero_mean, df_total_intensity, df_99_9_intensity
+    # create a dictionary mapping the metric name to its respective DataFrame
+    qc_data = {
+        'nonzero_mean': df_nonzero_mean,
+        'total_intensity': df_total_intensity,
+        '99_9_intensity': df_99_9_intensity
+    }
+
+    return qc_data
