@@ -1,5 +1,4 @@
 import cv2
-from numba import njit
 import numpy as np
 import pandas as pd
 import scipy.ndimage as ndimage
