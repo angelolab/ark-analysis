@@ -233,8 +233,26 @@ def run_qc_comp(tb):
     # extract from a dictionary the final results
     tb.execute('assign_qc_data')
 
+    # extract just the numeric value from fovs
+    tb.execute('rename_fovs')
+
+    # sort the fovs by fov number
+    tb.execute('sort_by_fov')
+
     # save the QC data to CSV
     tb.execute('save_qc_data')
+
+    # melt the QC data for visualization
+    tb.execute('melt_qc')
+
+    # visualize the non-zero mean intensity
+    tb.execute('viz_nonzero_mean')
+
+    # visualize the total intensity
+    tb.execute('viz_total_intensity')
+
+    # visualize the 99.9% intensity value
+    tb.execute('viz_99_9')
 
 
 def generate_sample_feature_tifs(fovs, deepcell_output_dir):
