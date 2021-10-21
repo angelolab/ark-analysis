@@ -69,7 +69,7 @@ To configure external hard drive (or google file stream) access, you will have t
 
 On Docker for macOS, this can be found in Preferences -> Resources -> File Sharing.  Adding `/Volumes` will allow docker to see external drives
 
-On Docker for Windows, the specific external drive of interest will need to be added to this list, i.e `G:\\`, `E:\\`, etc.
+On Docker for Windows with the WSL2 backend, no paths need to be added.  However, if using the Hyper-V backend, these paths will need to be added as in the macOS case.
 
 ![](docs/docker_preferences.png)
 
