@@ -24,64 +24,21 @@ FOVS_CHANS_TEST = [
 
 
 def test_compute_nonzero_mean_intensity():
-    sample_img_arr = xr.DataArray(
-        np.random.randint(0, 2, (3, 1024, 1024, 3)),
-        coords=[['fov0', 'fov1', 'fov2'],
-                np.arange(1024),
-                np.arange(1024),
-                ['chan0', 'chan1', 'chan2']],
-        dims=['fovs', 'x', 'y', 'channels']
-    )
-
+    sample_img_arr = np.array([[0, 1, 2], [3, 0, 0], [0, 4, 5]])
     sample_nonzero_mean = qc_comp.compute_nonzero_mean_intensity(sample_img_arr)
-
-    # output shape must match num_fovs x num_channels
-    assert sample_nonzero_mean.shape == (3, 3)
-
-    # all nonzero means have to be greater than 0
-    assert np.all(sample_nonzero_mean > 0)
+    assert sample_nonzero_mean == 5
 
 
 def test_compute_total_intensity():
-    sample_img_arr = xr.DataArray(
-        np.random.randint(0, 2, (3, 1024, 1024, 3)),
-        coords=[['fov0', 'fov1', 'fov2'],
-                np.arange(1024),
-                np.arange(1024),
-                ['chan0', 'chan1', 'chan2']],
-        dims=['fovs', 'x', 'y', 'channels']
-    )
-
+    sample_img_arr = np.array([[0, 1, 2], [3, 0, 0], [0, 4, 5]])
     sample_total_intensity = qc_comp.compute_total_intensity(sample_img_arr)
-
-    # output shape must match num_fovs x num_channels
-    assert sample_total_intensity.shape == (3, 3)
-
-    # all total intensities have to be greater than 0 but also less than or equal to 1024 * 1024
-    assert np.all(
-        np.logical_and(sample_total_intensity > 0, sample_total_intensity <= 1024 * 1024)
-    )
+    assert sample_total_intensity = 15
 
 
 def test_compute_99_9_intensity():
-    sample_img_arr = xr.DataArray(
-        np.random.randint(0, 2, (3, 1024, 1024, 3)),
-        coords=[['fov0', 'fov1', 'fov2'],
-                np.arange(1024),
-                np.arange(1024),
-                ['chan0', 'chan1', 'chan2']],
-        dims=['fovs', 'x', 'y', 'channels']
-    )
-
+    sample_img_arr = np.array([[0, 1, 2], [3, 0, 0], [0, 4, 5]])
     sample_99_9_intensity = qc_comp.compute_99_9_intensity(sample_img_arr)
-
-    # output shape must match num_fovs x num_channels
-    assert sample_99_9_intensity.shape == (3, 3)
-
-    # all 99.9% intensities have to be greater than or equal to 0 but also less than or equal to 1
-    assert np.all(
-        np.logical_and(sample_99_9_intensity >= 0, sample_99_9_intensity <= 1)
-    )
+    assert np.allclose(sample_99_9_intensity, 5, rtol=1e-02)
 
 
 @pytest.mark.parametrize("test_fovs,test_chans,test_gaussian_blur", FOVS_CHANS_TEST)

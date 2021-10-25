@@ -126,6 +126,8 @@ def test_qc_metric_comp_mibitiff(tb):
                                                tiff_dir=tiff_dir,
                                                is_mibitiff=True)
 
+        notebooks_test_utils.run_qc_comp(tb)
+
 
 # test folder inputs for qc metric computation
 @testbook(QC_METRIC_COMP_PATH, timeout=6000)
@@ -134,3 +136,5 @@ def test_qc_metric_comp_folder(tb):
         # create input files
         notebooks_test_utils.qc_notebook_setup(tb,
                                                tiff_dir=tiff_dir)
+
+        notebooks_test_utils.run_qc_comp(tb)
