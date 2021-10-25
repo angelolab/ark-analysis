@@ -32,7 +32,7 @@ def test_compute_nonzero_mean_intensity():
 def test_compute_total_intensity():
     sample_img_arr = np.array([[0, 1, 2], [3, 0, 0], [0, 4, 5]])
     sample_total_intensity = qc_comp.compute_total_intensity(sample_img_arr)
-    assert sample_total_intensity = 15
+    assert sample_total_intensity == 15
 
 
 def test_compute_99_9_intensity():
