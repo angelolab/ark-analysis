@@ -5,7 +5,7 @@ import skimage.io as io
 from ark.utils import test_utils
 
 
-def create_tiff_files(num_fovs, num_chans, tiff_dir, is_mibitiff=False,
+def create_tiff_files(num_fovs, num_chans, tiff_dir, sub_dir="TIFs", is_mibitiff=False,
                       mibitiff_suffix="-MassCorrected-Filtered", dtype=np.uint16):
     """Creates the desired input tiff data for testing a notebook
 
@@ -48,13 +48,13 @@ def create_tiff_files(num_fovs, num_chans, tiff_dir, is_mibitiff=False,
 
         filelocs, data_xr = test_utils.create_paired_xarray_fovs(
             tiff_dir, fovs, chans, img_shape=(1024, 1024), delimiter='_', fills=False,
-            sub_dir=None, dtype=dtype)
+            sub_dir=sub_dir, dtype=dtype)
 
     return fovs, chans
 
 
 def segment_notebook_setup(tb, deepcell_tiff_dir, deepcell_input_dir, deepcell_output_dir,
-                           single_cell_dir, viz_dir, is_mibitiff=False,
+                           single_cell_dir, viz_dir, sub_dir="TIFs", is_mibitiff=False,
                            mibitiff_suffix="-MassCorrected-Filtered",
                            num_fovs=3, num_chans=3, dtype=np.uint16):
     """Creates the directories and data needed for image segemntation
@@ -73,6 +73,8 @@ def segment_notebook_setup(tb, deepcell_tiff_dir, deepcell_input_dir, deepcell_o
             The path to the single cell directory
         viz_dir (str):
             The path to the directory to store visualizations
+        sub_dir (str):
+            The name of the subdirectory to use for non-mibitiff image folders
         is_mibitiff (bool):
             Whether we're working with mibitiff files or not
         mibitiff_suffix (str):
@@ -90,7 +92,8 @@ def segment_notebook_setup(tb, deepcell_tiff_dir, deepcell_input_dir, deepcell_o
     tb.execute_cell('import')
 
     # create the input tiff files
-    create_tiff_files(num_fovs, num_chans, deepcell_tiff_dir, is_mibitiff, mibitiff_suffix, dtype)
+    create_tiff_files(num_fovs, num_chans, deepcell_tiff_dir, sub_dir, is_mibitiff,
+                      mibitiff_suffix, dtype)
 
     # define custom paths, leave base_dir and input_dir for simplicity
     define_paths = """
@@ -109,7 +112,8 @@ def segment_notebook_setup(tb, deepcell_tiff_dir, deepcell_input_dir, deepcell_o
         tb.inject("MIBItiff = True", after='mibitiff_set')
 
 
-def qc_notebook_setup(tb, tiff_dir, is_mibitiff=False, mibitiff_suffix="-MassCorrected-Filtered",
+def qc_notebook_setup(tb, tiff_dir, sub_dir=None, is_mibitiff=False,
+                      mibitiff_suffix="-MassCorrected-Filtered",
                       num_fovs=3, num_chans=3, gaussian_blur=True, dtype=np.uint16):
     """Creates the directories and data needed for qc metric computation
     and sets the MIBITiff, fovs, chans, and gaussian_blur/blur_factor vairables
@@ -119,6 +123,8 @@ def qc_notebook_setup(tb, tiff_dir, is_mibitiff=False, mibitiff_suffix="-MassCor
             The testbook runner instance
         deepcell_tiff_dir (str):
             The path to the tiff directory
+        sub_dir (str):
+            The name of the subdirectory to use for non-mibitiff image folders
         is_mibitiff (bool):
             Whether we're working with mibitiff files or not
         mibitiff_suffix (str):
@@ -138,7 +144,7 @@ def qc_notebook_setup(tb, tiff_dir, is_mibitiff=False, mibitiff_suffix="-MassCor
     tb.execute_cell('import')
 
     # create the input tiff files
-    create_tiff_files(num_fovs, num_chans, tiff_dir, is_mibitiff, mibitiff_suffix, dtype)
+    create_tiff_files(num_fovs, num_chans, tiff_dir, sub_dir, is_mibitiff, mibitiff_suffix, dtype)
 
     # define custom paths, leave base_dir for simplicity
     define_paths = """
