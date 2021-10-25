@@ -26,7 +26,7 @@ FOVS_CHANS_TEST = [
 def test_compute_nonzero_mean_intensity():
     sample_img_arr = np.array([[0, 1, 2], [3, 0, 0], [0, 4, 5]])
     sample_nonzero_mean = qc_comp.compute_nonzero_mean_intensity(sample_img_arr)
-    assert sample_nonzero_mean == 5
+    assert sample_nonzero_mean == 3
 
 
 def test_compute_total_intensity():

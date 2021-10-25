@@ -48,7 +48,7 @@ def create_tiff_files(num_fovs, num_chans, tiff_dir, is_mibitiff=False,
 
         filelocs, data_xr = test_utils.create_paired_xarray_fovs(
             tiff_dir, fovs, chans, img_shape=(1024, 1024), delimiter='_', fills=False,
-            sub_dir="TIFs", dtype=dtype)
+            sub_dir=None, dtype=dtype)
 
     return fovs, chans
 
@@ -142,13 +142,16 @@ def qc_notebook_setup(tb, tiff_dir, is_mibitiff=False, mibitiff_suffix="-MassCor
 
     # define custom paths, leave base_dir for simplicity
     define_paths = """
+        base_dir = "%s"
         tiff_dir = "%s"
-    """
+    """ % (tiff_dir, tiff_dir)
     tb.inject(define_paths, after='file_path')
 
     # set is_mibitiff to True if corresponding arg is True
     if is_mibitiff:
         tb.inject("MIBItiff = True", after='mibitiff_set')
+    else:
+        tb.execute_cell('mibitiff_set')
 
     # specify a list of fovs
     fovs_set = """
@@ -161,6 +164,9 @@ def qc_notebook_setup(tb, tiff_dir, is_mibitiff=False, mibitiff_suffix="-MassCor
         chans = ["chan0", "chan1", "chan2"]
     """
     tb.inject(chans_set, after='set_chans')
+
+    # set the blur factor
+    tb.execute_cell('set_gaussian_blur')
 
     # if Gaussian blurring is set to True we need to set it in the notebook too
     if gaussian_blur:
@@ -228,31 +234,31 @@ def run_qc_comp(tb):
     """
 
     # run compute_qc_metrics
-    tb.execute('compute_qc_data')
+    tb.execute_cell('compute_qc_data')
 
     # extract from a dictionary the final results
-    tb.execute('assign_qc_data')
+    tb.execute_cell('assign_qc_data')
 
     # extract just the numeric value from fovs
-    tb.execute('rename_fovs')
+    tb.execute_cell('rename_fovs')
 
     # sort the fovs by fov number
-    tb.execute('sort_by_fov')
+    tb.execute_cell('sort_by_fov')
 
     # save the QC data to CSV
-    tb.execute('save_qc_data')
+    tb.execute_cell('save_qc_data')
 
     # melt the QC data for visualization
-    tb.execute('melt_qc')
+    tb.execute_cell('melt_qc')
 
     # visualize the non-zero mean intensity
-    tb.execute('viz_nonzero_mean')
+    tb.execute_cell('viz_nonzero_mean')
 
     # visualize the total intensity
-    tb.execute('viz_total_intensity')
+    tb.execute_cell('viz_total_intensity')
 
     # visualize the 99.9% intensity value
-    tb.execute('viz_99_9')
+    tb.execute_cell('viz_99_9')
 
 
 def generate_sample_feature_tifs(fovs, deepcell_output_dir):
