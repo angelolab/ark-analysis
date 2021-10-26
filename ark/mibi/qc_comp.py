@@ -112,16 +112,16 @@ def compute_qc_metrics_batch(image_data, fovs, chans, gaussian_blur=False, blur_
 
             # STEP 1: gaussian blur (if specified)
             if gaussian_blur:
-                # the kernel size for opencv needs to be defined as such
-                kernel_size = 5 + 4 * blur_factor
+                # # the kernel size for opencv needs to be defined as such
+                # kernel_size = 5 + 4 * blur_factor
 
-                image_data_np = GaussianBlur(
-                    image_data_np, sigmaX=blur_factor,
-                    borderType=BORDER_REPLICATE, ksize=(5 + 4 * blur_factor, 5 + 4 * blur_factor)
-                )
-                # image_data_np = gaussian_filter(
-                #     image_data_np, sigma=blur_factor, mode='nearest', truncate=2.0
+                # image_data_np = GaussianBlur(
+                #     image_data_np, sigmaX=blur_factor,
+                #     borderType=BORDER_REPLICATE, ksize=(5 + 4 * blur_factor, 5 + 4 * blur_factor)
                 # )
+                image_data_np = gaussian_filter(
+                    image_data_np, sigma=blur_factor, mode='nearest', truncate=2.0
+                )
 
             # STEP 2: extract non-zero mean intensity
             nonzero_mean_intensity[i, j] = compute_nonzero_mean_intensity(image_data_np)
