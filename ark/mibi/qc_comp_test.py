@@ -41,6 +41,58 @@ def test_compute_99_9_intensity():
     assert np.allclose(sample_99_9_intensity, 5, rtol=1e-02)
 
 
+def test_compute_qc_metrics_batch():
+    # define the fovs and chans for this test batch
+    fovs = ['fov0', 'fov1', 'fov2']
+    chans = ['chan0', 'chan1', 'chan2']
+
+    # create a test batched image array
+    sample_img_arr = xr.DataArray(
+        np.random.rand(3, 10, 10, 3),
+        coords=[fovs, np.arange(10), np.arange(10), chans],
+        dims=['fov', 'x', 'y', 'channel']
+    )
+
+    # test with Gaussian blurring turned on and off
+    for gaussian_blur in [False, True]:
+        qc_data_batch = qc_comp.compute_qc_metrics_batch(
+            sample_img_arr, fovs, chans, gaussian_blur=gaussian_blur
+        )
+
+        # extract the QC metric batch data separately
+        nonzero_mean_batch = qc_data_batch['nonzero_mean_batch']
+        total_intensity_batch = qc_data_batch['total_intensity_batch']
+        intensity_99_9_batch = qc_data_batch['99_9_intensity_batch']
+
+        # assert the fovs are correct
+        misc_utils.verify_same_elements(
+            provided_fovs=fovs,
+            nzm_fovs=nonzero_mean_batch['fov'].values
+        )
+        misc_utils.verify_same_elements(
+            provided_fovs=fovs,
+            ti_fovs=total_intensity_batch['fov'].values
+        )
+        misc_utils.verify_same_elements(
+            provided_fovs=fovs,
+            i99_9_fovs=intensity_99_9_batch['fov'].values
+        )
+
+        # assert the chans are correct
+        misc_utils.verify_same_elements(
+            provided_chans=chans,
+            nzm_chans=nonzero_mean_batch.drop(columns='fov').columns.values
+        )
+        misc_utils.verify_same_elements(
+            provided_chans=chans,
+            nzm_chans=total_intensity_batch.drop(columns='fov').columns.values
+        )
+        misc_utils.verify_same_elements(
+            provided_chans=chans,
+            nzm_chans=intensity_99_9_batch.drop(columns='fov').columns.values
+        )
+
+
 @pytest.mark.parametrize("test_fovs,test_chans,test_gaussian_blur", FOVS_CHANS_TEST)
 def test_compute_qc_metrics_mibitiff(test_fovs, test_chans, test_gaussian_blur):
     # is_mibitiff True case, load from mibitiff file structure
@@ -80,6 +132,7 @@ def test_compute_qc_metrics_mibitiff(test_fovs, test_chans, test_gaussian_blur):
             gaussian_blur=test_gaussian_blur
         )
 
+        # extract the QC metric data separately
         nonzero_mean = qc_data['nonzero_mean']
         total_intensity = qc_data['total_intensity']
         intensity_99_9 = qc_data['99_9_intensity']
@@ -190,3 +243,31 @@ def test_compute_qc_metrics_non_mibitiff(test_fovs, test_chans, test_gaussian_bl
             provided_chans=test_chans,
             nzm_chans=intensity_99_9.drop(columns='fov').columns.values
         )
+
+
+def test_visualize_qc_metrics():
+    # define the channels to use
+    chans = ['chan0', 'chan1', 'chan2']
+
+    # define the fov names to use for each channel
+    fov_batches = [['fov0', 'fov1'], ['fov2', 'fov3'], ['fov4', 'fov5']]
+
+    # define the test melted DataFrame for an arbitrary QC metric
+    sample_qc_metric_data = pd.DataFrame()
+
+    # for each channel append a random set of data for each fov associated with the QC metric
+    for chan, fovs in zip(chans, fov_batches):
+        chan_data = pd.DataFrame(np.random.rand(len(fovs)), columns=['sample_qc_metric'])
+        chan_data['fov'] = fovs
+        chan_data['channel'] = chan
+
+        sample_qc_metric_data = pd.concat([sample_qc_metric_data, chan_data])
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        # test without saving
+        qc_comp.visualize_qc_metrics(sample_qc_metric_data, 'sample_qc_metric')
+        assert not os.path.exists(os.path.join(temp_dir, 'sample_qc_metric_barplot_stats.png'))
+
+        # test with saving
+        qc_comp.visualize_qc_metrics(sample_qc_metric_data, 'sample_qc_metric', save_dir=temp_dir)
+        assert os.path.exists(os.path.join(temp_dir, 'sample_qc_metric_barplot_stats.png'))

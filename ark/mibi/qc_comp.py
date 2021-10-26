@@ -1,11 +1,16 @@
 import copy
-import cv2
+from cv2 import BORDER_REPLICATE, GaussianBlur
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
+from scipy.ndimage import gaussian_filter
+import seaborn as sns
 
 import ark.utils.io_utils as io_utils
 import ark.utils.load_utils as load_utils
 import ark.utils.misc_utils as misc_utils
+
+import timeit
 
 
 def compute_nonzero_mean_intensity(image_data):
@@ -61,6 +66,98 @@ def compute_99_9_intensity(image_data):
     """
 
     return np.percentile(image_data, q=99.9)
+
+
+def compute_qc_metrics_batch(image_data, fovs, chans, gaussian_blur=False, blur_factor=1):
+    """Compute the QC metric matrices for a fov batch
+
+    Helper function to compute_qc_metrics
+
+    Args:
+        image_data (xarray.DataArray):
+            the data associated with the fov batch
+        fovs (list):
+            the list of fov names in the batch
+        chans (list):
+            the subset of channels specified
+        gaussian_blur (bool):
+            whether to add a Gaussian blur to each batch
+        blur_factor (int):
+            the sigma (standard deviation) to use for Gaussian blurring
+            set to 0 to use raw inputs without Gaussian blurring
+            ignored if gaussian_blur set to False
+
+
+    Returns:
+        dict:
+            A mapping between each QC metric name and their respective DataFrames (batch)
+    """
+
+    # subset image_data on just the channel names provided
+    image_data = image_data.loc[..., chans]
+
+    # define a numpy array for all the metrics to extract
+    # NOTE: numpy array is faster for indexing than pandas
+    blank_arr = np.zeros((image_data.shape[0], image_data.shape[3]), dtype='float32')
+    nonzero_mean_intensity = copy.deepcopy(blank_arr)
+    total_intensity = copy.deepcopy(blank_arr)
+    intensity_99_9 = copy.deepcopy(blank_arr)
+
+    # NOTE: looping through each fov and channel separately much faster
+    # than numpy vectorization
+    for i in np.arange(image_data.shape[0]):
+        for j in np.arange(image_data.shape[3]):
+            # extract the data for the fov and channel as float
+            image_data_np = image_data[i, :, :, j].values.astype('float32')
+
+            # STEP 1: gaussian blur (if specified)
+            if gaussian_blur:
+                # the kernel size for opencv needs to be defined as such
+                kernel_size = 5 + 4 * blur_factor
+
+                image_data_np = GaussianBlur(
+                    image_data_np, sigmaX=blur_factor,
+                    borderType=BORDER_REPLICATE, ksize=(5 + 4 * blur_factor, 5 + 4 * blur_factor)
+                )
+                # image_data_np = gaussian_filter(
+                #     image_data_np, sigma=blur_factor, mode='nearest', truncate=2.0
+                # )
+
+            # STEP 2: extract non-zero mean intensity
+            nonzero_mean_intensity[i, j] = compute_nonzero_mean_intensity(image_data_np)
+
+            # STEP 3: extract total intensity
+            total_intensity[i, j] = compute_total_intensity(image_data_np)
+
+            # STEP 4: take 99.9% value of the data and assign
+            intensity_99_9[i, j] = compute_99_9_intensity(image_data_np)
+
+    # convert the numpy arrays to pandas DataFrames
+    df_nonzero_mean_batch = pd.DataFrame(
+        nonzero_mean_intensity, columns=chans
+    )
+
+    df_total_intensity_batch = pd.DataFrame(
+        total_intensity, columns=chans
+    )
+
+    df_99_9_intensity_batch = pd.DataFrame(
+        intensity_99_9, columns=chans
+    )
+
+    # append the batch_names as fovs to each DataFrame
+    df_nonzero_mean_batch['fov'] = fovs
+    df_total_intensity_batch['fov'] = fovs
+    df_99_9_intensity_batch['fov'] = fovs
+
+    # create a dictionary mapping the metric name to its respective DataFrame
+    qc_data_batch = {
+        'nonzero_mean_batch': df_nonzero_mean_batch,
+        'total_intensity_batch': df_total_intensity_batch,
+        '99_9_intensity_batch': df_99_9_intensity_batch
+    }
+
+    return qc_data_batch
 
 
 def compute_qc_metrics(tiff_dir, img_sub_folder="TIFs", is_mibitiff=False,
@@ -151,61 +248,75 @@ def compute_qc_metrics(tiff_dir, img_sub_folder="TIFs", is_mibitiff=False,
             image_chans=image_data.channels.values
         )
 
-        # subset image_data on just the channel names provided
-        image_data = image_data.loc[..., chans]
+        # # subset image_data on just the channel names provided
+        # image_data = image_data.loc[..., chans]
 
-        # define a numpy array for all the metrics to extract
-        # NOTE: numpy array is faster for indexing than pandas
-        blank_arr = np.zeros((image_data.shape[0], image_data.shape[3]), dtype='float32')
-        nonzero_mean_intensity = copy.deepcopy(blank_arr)
-        total_intensity = copy.deepcopy(blank_arr)
-        intensity_99_9 = copy.deepcopy(blank_arr)
+        # # define a numpy array for all the metrics to extract
+        # # NOTE: numpy array is faster for indexing than pandas
+        # blank_arr = np.zeros((image_data.shape[0], image_data.shape[3]), dtype='float32')
+        # nonzero_mean_intensity = copy.deepcopy(blank_arr)
+        # total_intensity = copy.deepcopy(blank_arr)
+        # intensity_99_9 = copy.deepcopy(blank_arr)
 
-        # NOTE: looping through each fov and channel separately much faster
-        # than numpy vectorization
-        for i in np.arange(image_data.shape[0]):
-            for j in np.arange(image_data.shape[3]):
-                # extract the data for the fov and channel as float
-                image_data_np = image_data[i, :, :, j].values.astype('float32')
+        # # NOTE: looping through each fov and channel separately much faster
+        # # than numpy vectorization
+        # for i in np.arange(image_data.shape[0]):
+        #     for j in np.arange(image_data.shape[3]):
+        #         # extract the data for the fov and channel as float
+        #         image_data_np = image_data[i, :, :, j].values.astype('float32')
 
-                # STEP 1: gaussian blur (if specified)
-                if gaussian_blur:
-                    image_data_np = cv2.GaussianBlur(
-                        image_data_np, sigmaX=1,
-                        borderType=cv2.BORDER_REPLICATE, ksize=(5, 5)
-                    )
+        #         # STEP 1: gaussian blur (if specified)
+        #         if gaussian_blur:
+        #             image_data_np = GaussianBlur(
+        #                 image_data_np, sigmaX=1,
+        #                 borderType=BORDER_REPLICATE, ksize=(5, 5)
+        #             )
 
-                # STEP 2: extract non-zero mean intensity
-                nonzero_mean_intensity[i, j] = compute_nonzero_mean_intensity(image_data_np)
+        #         # STEP 2: extract non-zero mean intensity
+        #         nonzero_mean_intensity[i, j] = compute_nonzero_mean_intensity(image_data_np)
 
-                # STEP 3: extract total intensity
-                total_intensity[i, j] = compute_total_intensity(image_data_np)
+        #         # STEP 3: extract total intensity
+        #         total_intensity[i, j] = compute_total_intensity(image_data_np)
 
-                # STEP 4: take 99.9% value of the data and assign
-                intensity_99_9[i, j] = compute_99_9_intensity(image_data_np)
+        #         # STEP 4: take 99.9% value of the data and assign
+        #         intensity_99_9[i, j] = compute_99_9_intensity(image_data_np)
 
-        # convert the numpy arrays to pandas DataFrames
-        df_nonzero_mean_batch = pd.DataFrame(
-            nonzero_mean_intensity, columns=chans
+        # # convert the numpy arrays to pandas DataFrames
+        # df_nonzero_mean_batch = pd.DataFrame(
+        #     nonzero_mean_intensity, columns=chans
+        # )
+
+        # df_total_intensity_batch = pd.DataFrame(
+        #     total_intensity, columns=chans
+        # )
+
+        # df_99_9_intensity_batch = pd.DataFrame(
+        #     intensity_99_9, columns=chans
+        # )
+
+        # # append the batch_names as fovs to each DataFrame
+        # df_nonzero_mean_batch['fov'] = batch_names
+        # df_total_intensity_batch['fov'] = batch_names
+        # df_99_9_intensity_batch['fov'] = batch_names
+
+        # compute the QC metrics of this batch
+        qc_data_batch = compute_qc_metrics_batch(
+            image_data, batch_names, chans, gaussian_blur, blur_factor
         )
-
-        df_total_intensity_batch = pd.DataFrame(
-            total_intensity, columns=chans
-        )
-
-        df_99_9_intensity_batch = pd.DataFrame(
-            intensity_99_9, columns=chans
-        )
-
-        # append the batch_names as fovs to each DataFrame
-        df_nonzero_mean_batch['fov'] = batch_names
-        df_total_intensity_batch['fov'] = batch_names
-        df_99_9_intensity_batch['fov'] = batch_names
 
         # append the batch QC metric data to the full processed data
-        df_nonzero_mean = pd.concat([df_nonzero_mean, df_nonzero_mean_batch])
-        df_total_intensity = pd.concat([df_total_intensity, df_total_intensity_batch])
-        df_99_9_intensity = pd.concat([df_99_9_intensity, df_99_9_intensity_batch])
+        # df_nonzero_mean = pd.concat([df_nonzero_mean, df_nonzero_mean_batch])
+        # df_total_intensity = pd.concat([df_total_intensity, df_total_intensity_batch])
+        # df_99_9_intensity = pd.concat([df_99_9_intensity, df_99_9_intensity_batch])
+        df_nonzero_mean = pd.concat(
+            [df_nonzero_mean, qc_data_batch['nonzero_mean_batch']]
+        )
+        df_total_intensity = pd.concat(
+            [df_total_intensity, qc_data_batch['total_intensity_batch']]
+        )
+        df_99_9_intensity = pd.concat(
+            [df_99_9_intensity, qc_data_batch['99_9_intensity_batch']]
+        )
 
         # update number of fovs processed
         fovs_processed += batch_size
@@ -226,3 +337,67 @@ def compute_qc_metrics(tiff_dir, img_sub_folder="TIFs", is_mibitiff=False,
     }
 
     return qc_data
+
+
+def visualize_qc_metrics(qc_metric_df, metric_name, axes_size=16, wrap=6, dpi=None, save_dir=None):
+    """Visualize a barplot of a specific QC metric
+
+    Args:
+        qc_metric_df (pandas.DataFrame):
+            A QC metric matrix as returned by compute_qc_metrics
+        metric_name (str):
+            The name of the QC metric, used as the y-axis label
+        title_size (int):
+            The font size of the title
+        axes_size (int):
+            The font size of the axes labels
+        wrap (int):
+            How many plots to display per row
+        dpi (int):
+            If saving, the resolution of the image to use
+            Ignored if save_dir is None
+        save_dir (str):
+            If saving, the name of the directory to save visualization to
+    """
+
+    # catplot allows for easy facets on a barplot
+    g = sns.catplot(
+        x='fov',
+        y=metric_name,
+        col='channel',
+        col_wrap=wrap,
+        data=qc_metric_df,
+        kind='bar',
+        color='black',
+        sharex=True,
+        sharey=False
+    )
+
+    # per Erin's visualization, don't show the hundreds of fov labels on the x-axis
+    _ = plt.xticks([])
+
+    # remove the 'channel =' in each subplot title
+    _ = g.set_titles(template='{col_name}')
+
+    # per Erin's visualization remove the default axis title on the y-axis
+    # and instead show 'fov' along x-axis and the metric name along the y-axis (overarching)
+    _ = g.set_axis_labels('', '')
+    _ = g.fig.text(
+        x=0.5,
+        y=0,
+        horizontalalignment='center',
+        s='fov',
+        size=axes_size
+    )
+    _ = g.fig.text(
+        x=0,
+        y=0.5,
+        verticalalignment='center',
+        s='Non-zero Mean Intensity',
+        size=axes_size,
+        rotation=90
+    )
+
+    # save the figure if specified
+    if save_dir is not None:
+        misc_utils.save_figure(save_dir, '%s_barplot_stats.png' % metric_name, dpi=dpi)
