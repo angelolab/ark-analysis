@@ -250,39 +250,42 @@ def compute_close_cell_num_random(marker_nums, dist_mat, dist_lim, bootstrap_num
     # Generate binarized distance matrix
     dist_mat_bin = (dist_mat.values < dist_lim).astype(np.uint16)
 
+    # assures that marker counts don't exceed number of cells
     for mn in marker_nums:
         if mn >= dist_mat_bin.shape[0]:
             raise ValueError('Marker number count can not be greater than number of cells...')
 
+    # creates list-of-lists sparse matrix-representation of binarized distance matrix
     rows, cols = np.nonzero(dist_mat_bin)
     cols_in_row = [[] for i in range(dist_mat_bin.shape[0])]
     for pair_idx, row in enumerate(rows):
         cols_in_row[row].append(cols[pair_idx])
 
+    # flattens list-of-list representation into 1D array and stores the index keys
     row_indicies = [0]
     cols_in_row_flat = []
     for cell_indx, row in enumerate(range(dist_mat_bin.shape[0])):
         row_indicies.append(len(cols_in_row[row]) + row_indicies[cell_indx])
         cols_in_row_flat.extend(cols_in_row[row])
 
-    # static
+    # formats list-of-list representation into cython compatable argument
     cols_in_row_flat = np.array(cols_in_row_flat, dtype=np.uint16)
     _row_indicies = np.array(row_indicies, dtype=np.uint64)
 
     # sort marker_nums and save permutation
+    # this can speed up compute_close_num_rand
     marker_order = [(mn, i) for i, mn in enumerate(marker_nums)]
     marker_order.sort()
-
     sorted_marker_nums, sort_permutation = zip(*marker_order)
     _marker_nums = np.array(sorted_marker_nums, dtype=np.uint16)
 
+    # performing bootstrapping
     close_num_rand = compute_close_num_rand(dist_mat_bin, cols_in_row_flat, _row_indicies,
                                             _marker_nums, int(bootstrap_num))
 
     # unpermute close_num_rand
     x_scramble = np.tile(np.argsort(sort_permutation), (len(sort_permutation), 1))
     y_scramble = x_scramble.T
-
     close_num_rand = close_num_rand[x_scramble, y_scramble, :]
 
     return close_num_rand
