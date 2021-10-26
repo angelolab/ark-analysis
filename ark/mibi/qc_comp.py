@@ -248,66 +248,12 @@ def compute_qc_metrics(tiff_dir, img_sub_folder="TIFs", is_mibitiff=False,
             image_chans=image_data.channels.values
         )
 
-        # # subset image_data on just the channel names provided
-        # image_data = image_data.loc[..., chans]
-
-        # # define a numpy array for all the metrics to extract
-        # # NOTE: numpy array is faster for indexing than pandas
-        # blank_arr = np.zeros((image_data.shape[0], image_data.shape[3]), dtype='float32')
-        # nonzero_mean_intensity = copy.deepcopy(blank_arr)
-        # total_intensity = copy.deepcopy(blank_arr)
-        # intensity_99_9 = copy.deepcopy(blank_arr)
-
-        # # NOTE: looping through each fov and channel separately much faster
-        # # than numpy vectorization
-        # for i in np.arange(image_data.shape[0]):
-        #     for j in np.arange(image_data.shape[3]):
-        #         # extract the data for the fov and channel as float
-        #         image_data_np = image_data[i, :, :, j].values.astype('float32')
-
-        #         # STEP 1: gaussian blur (if specified)
-        #         if gaussian_blur:
-        #             image_data_np = GaussianBlur(
-        #                 image_data_np, sigmaX=1,
-        #                 borderType=BORDER_REPLICATE, ksize=(5, 5)
-        #             )
-
-        #         # STEP 2: extract non-zero mean intensity
-        #         nonzero_mean_intensity[i, j] = compute_nonzero_mean_intensity(image_data_np)
-
-        #         # STEP 3: extract total intensity
-        #         total_intensity[i, j] = compute_total_intensity(image_data_np)
-
-        #         # STEP 4: take 99.9% value of the data and assign
-        #         intensity_99_9[i, j] = compute_99_9_intensity(image_data_np)
-
-        # # convert the numpy arrays to pandas DataFrames
-        # df_nonzero_mean_batch = pd.DataFrame(
-        #     nonzero_mean_intensity, columns=chans
-        # )
-
-        # df_total_intensity_batch = pd.DataFrame(
-        #     total_intensity, columns=chans
-        # )
-
-        # df_99_9_intensity_batch = pd.DataFrame(
-        #     intensity_99_9, columns=chans
-        # )
-
-        # # append the batch_names as fovs to each DataFrame
-        # df_nonzero_mean_batch['fov'] = batch_names
-        # df_total_intensity_batch['fov'] = batch_names
-        # df_99_9_intensity_batch['fov'] = batch_names
-
         # compute the QC metrics of this batch
         qc_data_batch = compute_qc_metrics_batch(
             image_data, batch_names, chans, gaussian_blur, blur_factor
         )
 
         # append the batch QC metric data to the full processed data
-        # df_nonzero_mean = pd.concat([df_nonzero_mean, df_nonzero_mean_batch])
-        # df_total_intensity = pd.concat([df_total_intensity, df_total_intensity_batch])
-        # df_99_9_intensity = pd.concat([df_99_9_intensity, df_99_9_intensity_batch])
         df_nonzero_mean = pd.concat(
             [df_nonzero_mean, qc_data_batch['nonzero_mean_batch']]
         )
