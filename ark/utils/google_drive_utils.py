@@ -73,7 +73,7 @@ def _get_creds(auth_pw):
 
     # generate oauth2 session
     flow = InstalledAppFlow.from_client_config(client_config, _SCOPES)
-    creds = flow.run_local_server(port=0)
+    creds = flow.run_console()
 
     return creds
 

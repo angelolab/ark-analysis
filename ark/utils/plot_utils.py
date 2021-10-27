@@ -85,7 +85,8 @@ def tif_overlay_preprocess(segmentation_labels, plotting_tif):
 
 
 def create_overlay(fov, segmentation_dir, data_dir,
-                   img_overlay_chans, seg_overlay_comp, alternate_segmentation=None):
+                   img_overlay_chans, seg_overlay_comp, alternate_segmentation=None,
+                   dtype='int16'):
     """Take in labeled contour data, along with optional mibi tif and second contour,
     and overlay them for comparison"
     Generates the outline(s) of the mask(s) as well as intensity from plotting tif. Predicted
@@ -104,6 +105,8 @@ def create_overlay(fov, segmentation_dir, data_dir,
             The segmentted compartment the user will overlay
         alternate_segmentation (numpy.ndarray):
             2D numpy array of labeled cell objects
+        dtype (str/type):
+            optional specifier of image type.  Overwritten with warning for float images
     Returns:
         numpy.ndarray:
             The image with the channel overlay
@@ -114,7 +117,8 @@ def create_overlay(fov, segmentation_dir, data_dir,
         data_dir=data_dir,
         files=[fov + '.tif'],
         xr_dim_name='channels',
-        xr_channel_names=['nuclear_channel', 'membrane_channel']
+        xr_channel_names=['nuclear_channel', 'membrane_channel'],
+        dtype=dtype
     )
 
     # verify that the provided image channels exist in plotting_tif
