@@ -7,11 +7,32 @@ from ark.utils.batch_utils import batch_over_fovs, make_batch_function
 import ark.settings as settings
 
 
-def _LABEL_LISTING(dirname):
+def _label_listing(dirname):
+    """ Lists tiffs in given folder
+
+    Args:
+        dirname (str):
+            Path to folder containing tifs
+    
+    Returns:
+        list:
+            Tiff files in given directory
+    """
     return io_utils.list_files(dirname, substrs=['.tif'])
 
 
-def _DIST_MAT_LOADING(dirname, batch_names):
+def _dist_mat_loading(dirname, batch_names):
+    """ Computes distance matricies for fovs in dirname, whose names are contained in `batch_names`
+
+    Args:
+        dirname (str):
+            Path to folder containing segmentation labels
+        batch_names (list):
+            List of fov labels to load in
+    Returns:
+        dict:
+            Distance matricies indexed by fov name
+    """
     label_maps = \
         load_utils.load_imgs_from_dir(dirname, files=batch_names,
                                       xr_channel_names=['segmentation_label'],
@@ -20,17 +41,30 @@ def _DIST_MAT_LOADING(dirname, batch_names):
     return spatial_analysis_utils.calc_dist_matrix(label_maps)
 
 
-def _XR_APPEND_STRATEGY(xr_container):
+def _xr_append_strategy(xr_container):
+    """ Wrapper around xr.concat
+
+    Args:
+        xr_container (list[xr.DataArray]):
+            List of (fovs, *) indexable xarrays with matching non `fovs` dimensions
+    Returns:
+        xr.DataArray:
+            Concatenated xarray along `fovs` dimension
+    """
     return xr.concat(xr_container, dim="fovs")
 
 
+# Because spatial enrichment returns the tuple (values: list, stats: xr.DataArray), there are two
+# tupled batching joining strategies (one for list, the following for xarrays)
 _APPEND_STRATEGIES = (
     lambda x: sum(x, []),
-    _XR_APPEND_STRATEGY,
+    _xr_append_strategy,
 )
 
-
-_SPATIAL_BATCHER = batch_over_fovs(_LABEL_LISTING, _DIST_MAT_LOADING, _APPEND_STRATEGIES,
+# spatial batcher, which will create a wrapper function which generates fov-batched distance matrix
+# dictionaries, passes those to the given function which accepts distance matrix dictionaries as
+# its first argument, and rejoins their outputs via the defined appending strategies.
+_SPATIAL_BATCHER = batch_over_fovs(_label_listing, _dist_mat_loading, _APPEND_STRATEGIES,
                                    dirname='label_dir')
 
 
