@@ -24,4 +24,4 @@ RUN R -e "BiocManager::install('FlowSOM')"
 RUN R -e "BiocManager::install('ConsensusClusterPlus')"
 
 # jupyter lab
-CMD jupyter lab --ip=0.0.0.0 --allow-root --no-browser --port=$JUPYTER_PORT
+CMD jupyter lab --ip=0.0.0.0 --allow-root --no-browser --port=$JUPYTER_PORT --notebook-dir=/$JUPYTER_DIR

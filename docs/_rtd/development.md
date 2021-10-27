@@ -38,6 +38,18 @@ You're now set to start working with `ark-analysis`! Please look at [our contrib
 
 If you will only be using functions in `ark` without developing on top of it, do not clone the repo. Simply run `pip install ark-analysis` inside the virtual environment to gain access to our functions. To verify installation, type `conda list ark-analysis` after completion. If `ark-analysis` is listed, the installation was successful. You can now access the `ark` library with `import ark`.
 
+### Developing template notebooks via Docker
+
+If you are using docker for your virtual environment, and plan to develop and commit template notebooks, then you should use the `--develop-notebook-templates` flag for `start_docker.sh`.
+
+Typically, the `./templates` folder is copied into `./scripts` before starting docker and Jupyter is started within `./scripts`. This enables users of `ark-analysis` to use the notebooks without dirtying the git working directory—doing so would cause merge conflicts on pull. When using `--develop-notebook-templates`, `./templates` is used directly, so changes are changes reflected directly.
+
+To enable, pass the either `-d` or  `--develop-notebook-templates` to `start_docker.sh`
+
+    $ ./start_docker -d
+
+Now notebooks can be `git diff`ed and `git commit`ed without having to copy changed notedbooks between `./scripts` and `./templates`.
+
 ### More on xarrays
 
 One type of N-D array we use frequently is `xarray` ([documentation](http://xarray.pydata.org/en/stable/)). The main advantages `xarray` offers are:
