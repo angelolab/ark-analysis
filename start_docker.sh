@@ -2,6 +2,8 @@
 
 # check for template developer flag
 JUPYTER_DIR='scripts'
+update=0
+external=''
 while test $# -gt 0
 do
   case "$1" in
@@ -9,9 +11,20 @@ do
       JUPYTER_DIR='templates'
       shift
       ;;
+    -u|--update)
+      update=1
+      shift
+      ;;
+    -e|--external)
+      external="$2"
+      shift
+      shift
+      ;;
     *)
       echo "$1 is not an accepted option..."
-      echo "-d, --develop-notebook-templates : Mount templates for direct editing."
+      echo "-d, --develop-notebook-templates  : Mount templates for direct editing."
+      echo "-u, --update                      : Update default scripts"
+      echo "-e, --external                    : Mount external drives to /data/external"
       exit
       ;;
   esac
@@ -24,8 +37,12 @@ if [[ $(find . -mmin -1440 -type f -print | grep requirements.txt | wc -l) -eq 1
     docker build -t ark-analysis .
 fi
 
-# catch and pass update flag to notebook update routine
-bash update_notebooks.sh "$@"
+if [ $update -ne 0 ]
+  then
+    bash update_notebooks.sh -u
+  else
+    bash update_notebooks.sh
+fi
 
 # find lowest open port available
 PORT=8888
@@ -35,12 +52,26 @@ until [[ $(docker container ls | grep 0.0.0.0:$PORT | wc -l) -eq 0 ]]
     ((PORT=$PORT+1))
 done
 
-docker run -it \
-  -p $PORT:$PORT \
-  -e JUPYTER_PORT=$PORT\
-  -e JUPYTER_DIR=$JUPYTER_DIR\
-  -v "$PWD/ark:/usr/local/lib/python3.6/site-packages/ark" \
-  -v "$PWD/$JUPYTER_DIR:/$JUPYTER_DIR" \
-  -v "$PWD/data:/data" \
-  -v "$PWD/.toks:/home/.toks" \
-  ark-analysis:latest
+if [ ! -z "$external" ]
+  then
+    docker run -it \
+      -p $PORT:$PORT \
+      -e JUPYTER_PORT=$PORT\
+      -e JUPYTER_DIR=$JUPYTER_DIR\
+      -v "$PWD/ark:/usr/local/lib/python3.6/site-packages/ark" \
+      -v "$PWD/$JUPYTER_DIR:/$JUPYTER_DIR" \
+      -v "$PWD/data:/data" \
+      -v "$external:/data/external" \
+      -v "$PWD/.toks:/home/.toks" \
+      ark-analysis:latest
+  else
+    docker run -it \
+      -p $PORT:$PORT \
+      -e JUPYTER_PORT=$PORT\
+      -e JUPYTER_DIR=$JUPYTER_DIR\
+      -v "$PWD/ark:/usr/local/lib/python3.6/site-packages/ark" \
+      -v "$PWD/$JUPYTER_DIR:/$JUPYTER_DIR" \
+      -v "$PWD/data:/data" \
+      -v "$PWD/.toks:/home/.toks" \
+      ark-analysis:latest
+fi
