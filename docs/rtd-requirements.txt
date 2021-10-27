@@ -1,4 +1,5 @@
 commonmark==0.9.1
+docutils==0.16
 ipython==7.16.1
 ipywidgets==7.6.3
 m2r2==0.2.5
