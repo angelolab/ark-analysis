@@ -283,8 +283,6 @@ def visualize_qc_metrics(qc_metric_df, metric_name, axes_size=16, wrap=6, dpi=No
             A QC metric matrix as returned by compute_qc_metrics
         metric_name (str):
             The name of the QC metric, used as the y-axis label
-        title_size (int):
-            The font size of the title
         axes_size (int):
             The font size of the axes labels
         wrap (int):
