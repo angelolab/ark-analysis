@@ -1,5 +1,4 @@
 import copy
-from cv2 import BORDER_REPLICATE, GaussianBlur
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -9,8 +8,6 @@ import seaborn as sns
 import ark.utils.io_utils as io_utils
 import ark.utils.load_utils as load_utils
 import ark.utils.misc_utils as misc_utils
-
-import timeit
 
 
 def compute_nonzero_mean_intensity(image_data):
