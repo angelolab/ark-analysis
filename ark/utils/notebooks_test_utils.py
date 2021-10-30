@@ -231,16 +231,30 @@ def fov_channel_input_set(tb, fovs=None, nucs_list=None, mems_list=None, is_mibi
     tb.inject(mibitiff_deepcell, after='gen_input')
 
 
-def run_qc_comp(tb):
+def run_qc_comp(tb, sub_dir=None):
     """Runs the QC computation process with the hard-coded inputs from qc_notebook_setup
 
     Args:
         tb (testbook.testbook):
             The testbook runner instance
+        sub_dir (str):
+            The name of the subdirectory of tiff_dir
     """
 
     # run compute_qc_metrics
-    tb.execute_cell('compute_qc_data')
+    compute_qc = """
+        qc_data = qc_comp.compute_qc_metrics(
+            tiff_dir,
+            img_sub_folder=%s,
+            is_mibitiff=MIBItiff,
+            fovs=fovs,
+            chans=chans,
+            batch_size=5,
+            gaussian_blur=gaussian_blur,
+            blur_factor=blur_factor
+        )
+    """ % ("\"%s\"" % sub_dir if sub_dir is not None else "None")
+    tb.inject(compute_qc, after='compute_qc_data')
 
     # extract from a dictionary the final results
     tb.execute_cell('assign_qc_data')

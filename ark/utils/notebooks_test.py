@@ -37,6 +37,10 @@ def test_example_neighborhood_analysis():
     _exec_notebook('example_neighborhood_analysis_script.ipynb')
 
 
+def test_example_qc_metrics_comp():
+    _exec_notebook('example_qc_metric_eval.ipynb')
+
+
 # test mibitiff inputs for image segmentation
 # NOTE: 6000 seconds = default timeout on Travis
 @testbook(SEGMENT_IMAGE_DATA_PATH, timeout=6000)
