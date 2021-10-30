@@ -164,11 +164,11 @@ def test_compute_qc_metrics_mibitiff(test_fovs, test_chans, test_gaussian_blur):
         )
         misc_utils.verify_same_elements(
             provided_chans=test_chans,
-            nzm_chans=total_intensity.drop(columns='fov').columns.values
+            ti_chans=total_intensity.drop(columns='fov').columns.values
         )
         misc_utils.verify_same_elements(
             provided_chans=test_chans,
-            nzm_chans=intensity_99_9.drop(columns='fov').columns.values
+            i99_9_chans=intensity_99_9.drop(columns='fov').columns.values
         )
 
 
@@ -237,11 +237,11 @@ def test_compute_qc_metrics_non_mibitiff(test_fovs, test_chans, test_gaussian_bl
         )
         misc_utils.verify_same_elements(
             provided_chans=test_chans,
-            nzm_chans=total_intensity.drop(columns='fov').columns.values
+            ti_chans=total_intensity.drop(columns='fov').columns.values
         )
         misc_utils.verify_same_elements(
             provided_chans=test_chans,
-            nzm_chans=intensity_99_9.drop(columns='fov').columns.values
+            i99_9_chans=intensity_99_9.drop(columns='fov').columns.values
         )
 
 
