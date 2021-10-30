@@ -48,7 +48,8 @@ def create_tiff_files(num_fovs, num_chans, tiff_dir, sub_dir="TIFs", is_mibitiff
 
         filelocs, data_xr = test_utils.create_paired_xarray_fovs(
             tiff_dir, fovs, chans, img_shape=(1024, 1024), delimiter='_', fills=False,
-            sub_dir=sub_dir, dtype=dtype)
+            sub_dir=sub_dir, dtype=dtype
+        )
 
     return fovs, chans
 

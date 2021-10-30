@@ -327,7 +327,7 @@ def visualize_qc_metrics(qc_metric_df, metric_name, axes_size=16, wrap=6, dpi=No
         x=0,
         y=0.5,
         verticalalignment='center',
-        s='Non-zero Mean Intensity',
+        s=metric_name,
         size=axes_size,
         rotation=90
     )
