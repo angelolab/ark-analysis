@@ -162,14 +162,14 @@ def qc_notebook_setup(tb, tiff_dir, sub_dir=None, is_mibitiff=False,
 
     # specify a list of fovs
     fovs_set = """
-        fovs = ["fov0", "fov1", "fov2"]
-    """
+        fovs = %s
+    """ % str(["fov%d" % i for i in range(num_fovs)])
     tb.inject(fovs_set, after='load_fovs')
 
     # specify a list of chans
     chans_set = """
-        chans = ["chan0", "chan1", "chan2"]
-    """
+        chans = %s
+    """ % str(["chan%d" % i for i in range(num_chans)])
     tb.inject(chans_set, after='set_chans')
 
     # set the blur factor
