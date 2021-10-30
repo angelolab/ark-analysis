@@ -280,7 +280,7 @@ def visualize_qc_metrics(qc_metric_df, metric_name, axes_size=16, wrap=6, dpi=No
 
     Args:
         qc_metric_df (pandas.DataFrame):
-            A QC metric matrix as returned by compute_qc_metrics
+            A QC metric matrix as returned by compute_qc_metrics, melted
         metric_name (str):
             The name of the QC metric, used as the y-axis label
         axes_size (int):
