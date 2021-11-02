@@ -163,7 +163,7 @@ def compute_cell_cluster_channel_avg(fovs, channels, base_dir, cell_table,
             The list of channels to subset on
         base_dir (str):
             The path to the data directory
-        cell_table_path (pandas.DataFrame):
+        cell_table (pandas.DataFrame):
             The weighted cell table, created in `example_cell_clustering.ipynb`
         cluster_name (str):
             Name of the file containing the cell data with cluster labels
