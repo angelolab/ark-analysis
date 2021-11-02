@@ -2,8 +2,9 @@
 # defined as the mean counts of each SOM pixel/meta cluster across all cell SOM clusters in each fov
 # (m x n table, where m is the number of cell SOM/meta clusters and n is the number of pixel SOM/meta clusters).
 
-# Usage: Rscript {maxK} {cap} {cellClusterPath} {clusterAvgPath} {cellConsensusPath} {seed}
+# Usage: Rscript {clusterCols} {maxK} {cap} {cellClusterPath} {clusterAvgPath} {cellConsensusPath} {seed}
 
+# - clusterCols: the name of the columns defining pixel SOM/meta cluster counts per cell
 # - maxK: number of consensus clusters
 # - cap: maximum z-score cutoff
 # - cellClusterPath: path to the cell-level data containing the counts of each SOM pixel/meta clusters per cell, labeled with cell SOM clusters
@@ -45,12 +46,12 @@ seed <- strtoi(args[8])
 set.seed(seed)
 
 print("Reading cluster averaged data")
-clusterAvgs <- arrow::read_feather(clusterAvgPath)
+clusterAvgs <- as.data.frame(read.csv(clusterAvgPath, check.names=FALSE))
 
 # scale and cap the data respectively
-# note: z-scoring and capping cluster avg data produces better clustering results
+# NOTE: z-scoring and capping cluster avg data produces better clustering results
 print("Scaling data")
-clusterAvgsScale <- pmin(scale(clusterAvgs[clusterCols]), cap)
+clusterAvgsScale <- pmin(scale(clusterAvgs[,clusterCols]), cap)
 
 # run the consensus clustering
 # TODO: also look into invisible() function here (not urgent, just to prevent printout)

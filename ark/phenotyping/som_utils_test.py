@@ -448,10 +448,6 @@ def test_compute_cell_cluster_channel_avg():
         # assign dummy cell sizes, these won't really matter for this test
         weighted_cell_table['cell_size'] = 5
 
-        # write weighted cell table
-        weighted_cell_path = os.path.join(temp_dir, 'weighted_cell_table.feather')
-        feather.write_dataframe(weighted_cell_table, weighted_cell_path)
-
         # create a dummy cell consensus data file
         # the actual column prefix won't matter for this test
         consensus_data = pd.DataFrame(
@@ -472,13 +468,13 @@ def test_compute_cell_cluster_channel_avg():
         # error: bad cell cluster col passed
         with pytest.raises(ValueError):
             som_utils.compute_cell_cluster_channel_avg(
-                fovs, chans, temp_dir, weighted_cell_path,
+                fovs, chans, temp_dir, weighted_cell_table,
                 'cell_mat_consensus.feather', cluster_col='bad_col'
             )
 
         # test averages for cell SOM clusters
         cell_channel_avg = som_utils.compute_cell_cluster_channel_avg(
-            fovs, chans, temp_dir, weighted_cell_path,
+            fovs, chans, temp_dir, weighted_cell_table,
             'cell_mat_consensus.feather', cluster_col='cluster'
         )
 
@@ -490,7 +486,7 @@ def test_compute_cell_cluster_channel_avg():
 
         # test averages for cell meta clusters
         cell_channel_avg = som_utils.compute_cell_cluster_channel_avg(
-            fovs, chans, temp_dir, weighted_cell_path,
+            fovs, chans, temp_dir, weighted_cell_table,
             'cell_mat_consensus.feather', cluster_col='hCluster_cap'
         )
 

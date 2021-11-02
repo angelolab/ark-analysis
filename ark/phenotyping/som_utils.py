@@ -151,7 +151,7 @@ def compute_cell_cluster_count_avg(cluster_path, column_prefix, cluster_col, kee
     return mean_count_totals
 
 
-def compute_cell_cluster_channel_avg(fovs, channels, base_dir, cell_table_path,
+def compute_cell_cluster_channel_avg(fovs, channels, base_dir, cell_table,
                                      cluster_name='cell_mat_clustered.feather',
                                      cluster_col='cluster'):
     """Computes the average marker expression for each cell cluster
@@ -163,8 +163,8 @@ def compute_cell_cluster_channel_avg(fovs, channels, base_dir, cell_table_path,
             The list of channels to subset on
         base_dir (str):
             The path to the data directory
-        cell_table_path (str):
-            Path to the weighted cell table, created in `example_cell_clustering.ipynb`
+        cell_table_path (pandas.DataFrame):
+            The weighted cell table, created in `example_cell_clustering.ipynb`
         cluster_name (str):
             Name of the file containing the cell data with cluster labels
         cluster_col (str):
@@ -180,9 +180,6 @@ def compute_cell_cluster_channel_avg(fovs, channels, base_dir, cell_table_path,
         provided_cluster_col=cluster_col,
         valid_cluster_cols=['cluster', 'hCluster_cap']
     )
-
-    # read the cell table data
-    cell_table = feather.read_dataframe(cell_table_path)
 
     # subset on only the fovs the user has specified
     cell_table = cell_table[cell_table['fov'].isin(fovs)]
@@ -940,7 +937,7 @@ def cluster_cells(base_dir, cluster_counts_name='cluster_counts.feather',
 
 def cell_consensus_cluster(base_dir, cluster_cols, max_k=20, cap=3,
                            cell_cluster_name='cell_mat_clustered.feather',
-                           cell_cluster_avg_name='cell_cluster_avg.feather',
+                           cell_cluster_avg_name='cell_cluster_avgs.csv',
                            clust_to_meta_name='cell_clust_to_meta.feather',
                            cell_consensus_name='cell_mat_consensus.feather', seed=42):
     """Run consensus clustering algorithm on cell-level data averaged across each cell SOM cluster

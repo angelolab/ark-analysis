@@ -1,6 +1,6 @@
 # Runs consensus clustering on the pixel data averaged across all channels
 
-# Usage: Rscript {markers} {maxK} {cap} {pixelClusterDir} {clusterAvgPath} {pixelMatConsensus} {seed}
+# Usage: Rscript {markers} {maxK} {cap} {pixelClusterDir} {clusterAvgPath} {pixelMatConsensus} {clustToMeta} {seed}
 
 # - markers: list of channel columns to use
 # - maxK: number of consensus clusters
@@ -48,17 +48,10 @@ set.seed(seed)
 
 # read cluster averaged data
 print("Reading cluster averaged data")
-# clusterAvgs <- arrow::read_feather(clusterAvgPath)
-clusterAvgs <- as.data.frame(read.csv(clusterAvgPath))
+clusterAvgs <- as.data.frame(read.csv(clusterAvgPath, check.names=FALSE))
 
 # scale and cap the data accordingly
-# note: z-scoring and capping cluster avg data produces better clustering results
-print(markers)
-print(typeof(clusterAvgs))
-print(colnames(clusterAvgs))
-print("Scaling data")
-print(clusterAvgs[,markers])
-# print(clusterAvgs[markers])
+# NOTE: z-scoring and capping cluster avg data produces better clustering results
 clusterAvgsScale <- pmin(scale(clusterAvgs[,markers]), cap)
 
 # run the consensus clustering
