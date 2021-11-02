@@ -82,15 +82,15 @@ colnames(normVals) <- markers
 
 print("Performing 99.9% normalization")
 for (marker in markers) {
-    marker_quantile <- quantile(pixelSubsetData[, marker], 0.999)
+    marker_quantile <- quantile(pixelSubsetData[,marker], 0.999)
 
     # this prevents all-zero columns from getting normalized and becoming NA/Inf
     # if 99.9% is 0, divide by the max value (100%) instead
     if (marker_quantile == 0) {
-        marker_quantile <- quantile(pixelSubsetData[, marker], 1)
+        marker_quantile <- quantile(pixelSubsetData[,marker], 1)
     }
 
-    pixelSubsetData[, marker] = pixelSubsetData[, marker] / marker_quantile
+    pixelSubsetData[,marker] = pixelSubsetData[,marker] / marker_quantile
     normVals[marker] = marker_quantile
 }
 
@@ -100,7 +100,7 @@ arrow::write_feather(as.data.table(normVals), normValsPath)
 
 # run the SOM training step
 print("Run the SOM training")
-somResults <- SOM(data=pixelSubsetData, rlen=numPasses,
+somResults <- SOM(data=as.matrix(pixelSubsetData), rlen=numPasses,
                   xdim=xdim, ydim=ydim, alpha=c(lr_start, lr_end))
 
 # write the weights to feather

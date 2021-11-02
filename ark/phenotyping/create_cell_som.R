@@ -8,7 +8,7 @@
 # - lr_start: the start learning rate
 # - lr_end: the end learning rate
 # - numPasses: passes to make through dataset for training
-# - clusterCountsPath: path to file with counts of unique cells (rows) by unique SOM pixel/meta clusters (columns)
+# - clusterCountsNormPath: path to file with counts of unique cells (rows) by unique SOM pixel/meta clusters (columns), normalized by cell size
 # - cellWeightsPath: path to the SOM weights file
 # - seed: the random seed to use for training
 
@@ -37,8 +37,8 @@ lr_end <- as.double(args[5])
 # get the number of passes to make through SOM training
 numPasses <- strtoi(args[6])
 
-# get the path to the cluster counts data
-clusterCountsPath <- args[7]
+# get the path to the cluster counts norm data
+clusterCountsNormPath <- args[7]
 
 # get the weights write path
 cellWeightsPath <- args[8]
@@ -49,15 +49,14 @@ set.seed(seed)
 
 # read the cluster counts data
 print("Reading the cluster counts data for SOM training")
-clusterCountsData <- as.data.frame(arrow::read_feather(clusterCountsPath))
+clusterCountsNorm <- as.data.frame(arrow::read_feather(clusterCountsNormPath))
 
 # get the column names of the SOM pixel/meta clusters
-clusterCols <- colnames(clusterCountsData)[grepl(pattern="cluster_|hCluster_cap_",
-                                           colnames(clusterCountsData))]
+clusterCols <- colnames(clusterCountsNorm)[grepl(pattern="cluster_|hCluster_cap_",
+                                           colnames(clusterCountsNorm))]
 
-# normalize the rows by their cell size
-print("Normalizing each cell's cluster counts by cell size")
-clusterCountsNorm <- as.matrix(clusterCountsData[,clusterCols] / clusterCountsData$cell_size)
+# keep just the cluster columns
+clusterCountsNorm <- as.matrix(clusterCountsNorm[,clusterCols])
 
 # 99.9% normalize
 # normalize by max (100%) instead of 99.9% if 99.9% = 0
@@ -74,7 +73,7 @@ for (clusterCol in clusterCols) {
 
 # create the cell SOM
 print("Run the SOM training")
-somResults <- SOM(data=clusterCountsNorm, xdim=xdim, ydim=ydim,
+somResults <- SOM(data=as.matrix(clusterCountsNorm), xdim=xdim, ydim=ydim,
                   rlen=numPasses, alpha=c(lr_start, lr_end))
 
 # write the weights to feather

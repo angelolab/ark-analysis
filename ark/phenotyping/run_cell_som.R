@@ -1,8 +1,9 @@
 # Assigns cluster labels to cell data using a trained SOM weights matrix
 
-# Usage: Rscript run_cell_som.R {clusterCountsPath} {cellWeightsPath} {cellClusterPath}
+# Usage: Rscript run_cell_som.R {clusterCountsPath} {clusterCountsNormPath} {cellWeightsPath} {cellClusterPath}
 
 # - clusterCountsPath: path to file with counts of unique cells (rows) by unique SOM pixel/meta clusters (columns)
+# - clusterCountsNormPath: same as clusterCountsPath, but with counts normalized by cell size
 # - cellWeightsPath: path to the SOM weights file
 # - cellClusterPath: path to file where the cell SOM labeled data will be written to
 
@@ -16,30 +17,29 @@ args <- commandArgs(trailingOnly=TRUE)
 # get the path to the cluster counts data
 clusterCountsPath <- args[1]
 
+# get the path to the cluster counts norm data
+clusterCountsNormPath <- args[2]
+
 # get the weights write path
-cellWeightsPath <- args[2]
+cellWeightsPath <- args[3]
 
 # get the cluster write path
-cellClusterPath <- args[3]
+cellClusterPath <- args[4]
 
-# read the cluster counts data
+# read the cluster counts data (norm and un-norm)
 print("Reading the cluster counts data")
 clusterCountsData <- arrow::read_feather(clusterCountsPath)
+clusterCountsNorm <- arrow::read_feather(clusterCountsNormPath)
 
 # read the weights
 print("Reading the weights matrix")
 somWeights <- as.matrix(arrow::read_feather(cellWeightsPath))
 
-# get the column names of the SOM pixel/meta clusters
-clusterCols <- colnames(clusterCountsData)[grepl("cluster_|hCluster_cap_",
-                                           colnames(clusterCountsData))]
+clusterCols <- colnames(clusterCountsNorm)[grepl("cluster_|hCluster_cap_",
+                                           colnames(clusterCountsNorm))]
 
 # keep just the cluster columns
-clusterCountsNorm <- clusterCountsData[, clusterCols]
-
-# normalize the rows by their cell size
-print("Normalizing each cell's cluster counts by cell size")
-clusterCountsNorm <- as.matrix(clusterCountsData[,clusterCols] / clusterCountsData$cell_size)
+clusterCountsNorm <- as.matrix(clusterCountsNorm[,clusterCols])
 
 # 99.9% normalize
 print("Perform 99.9% normalization")

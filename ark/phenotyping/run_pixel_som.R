@@ -50,7 +50,7 @@ for (i in 1:length(fovs)) {
 
     # 99.9% normalize pixel data based on values computed for subsetted pixel data in train_pixel_som
     for (marker in markers) {
-        fovPixelData[, marker] <- fovPixelData[, marker] / normVals[1, marker]
+        fovPixelData[,marker] <- fovPixelData[,marker] / normVals[1, marker]
     }
 
     # map FlowSOM data
