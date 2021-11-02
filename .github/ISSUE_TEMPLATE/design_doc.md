@@ -33,6 +33,7 @@ Provide a description of the outputs for this project, including column names fo
 provide (simple) sketches demonstrating the plot type and axes labels. 
 
 **Section 2: Implimentation details**
+
 Once you have completed section 1, please tag the relevant parties and iterate on the initial design details until everyone is satisfied. Then, 
 proceed to section 2
 
