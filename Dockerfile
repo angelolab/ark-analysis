@@ -11,10 +11,10 @@ COPY .toks /home/.toks
 RUN python -m pip install -r /opt/ark-analysis/requirements.txt
 
 # copy the scripts over
+# this should catch changes to the scripts from updates
 COPY ark /opt/ark-analysis/ark
 
 # Install the package via setup.py
-RUN cd /opt/ark-analysis && python -m pip install -e .
 RUN cd /opt/ark-analysis && python -m pip install .
 
 # jupyter lab
