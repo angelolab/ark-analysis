@@ -90,6 +90,7 @@ for (marker in markers) {
         marker_quantile <- quantile(pixelSubsetData[,marker], 1)
     }
 
+    # NOTE: check if this is equal to pixelSubsetData
     pixelSubsetData[,marker] = pixelSubsetData[,marker] / marker_quantile
     normVals[marker] = marker_quantile
 }

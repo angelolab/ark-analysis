@@ -18,7 +18,7 @@ from ark.utils import misc_utils
 
 
 def normalize_rows(pixel_data, channels):
-    """Normalizes the rows of a pixel matrix by their sum and removes rows that sum to 0
+    """Normalizes the rows of a pixel matrix by their sum
 
     Helper function to preprocess_row_sums
 
@@ -258,8 +258,11 @@ def compute_p2c_weighted_channel_avg(pixel_channel_avg, cell_counts,
     cell_counts_clusters = cell_counts_sub[cluster_cols].copy()
 
     # sort the columns of cell_counts_clusters in ascending cluster order
+    # sort by int value, not string value
     cell_counts_clusters = cell_counts_clusters.reindex(
-        sorted(cell_counts_clusters.columns.values), axis=1
+        sorted(cell_counts_clusters.columns.values,
+               key=lambda x: int(x.replace(cluster_col + '_', ''))),
+        axis=1
     )
 
     # sort the pixel_channel_avg table by cluster_col in ascending cluster order
@@ -271,7 +274,9 @@ def compute_p2c_weighted_channel_avg(pixel_channel_avg, cell_counts,
         int(x.replace(cluster_col + '_', '')) for x in cell_counts_clusters.columns.values
     ]
     pixel_channel_cluster_ids = pixel_channel_avg[cluster_col].values
+
     misc_utils.verify_same_elements(
+        enforce_order=True,
         cell_counts_cluster_ids=cell_counts_cluster_ids,
         pixel_channel_cluster_ids=pixel_channel_cluster_ids
     )
@@ -690,6 +695,7 @@ def cluster_pixels(fovs, base_dir, pre_dir='pixel_mat_preprocessed',
         columns=['fov', 'row_index', 'column_index', 'segmentation_label']
     )
     misc_utils.verify_same_elements(
+        enforce_order=True,
         norm_vals_columns=norm_vals.columns.values,
         pixel_data_columns=sample_fov.columns.values
     )
@@ -859,6 +865,8 @@ def train_cell_som(fovs, base_dir, pixel_consensus_dir, cell_table_name,
 
     # generate matrices with each fov/cell label pair with their pixel SOM/meta cluster counts
     # NOTE: a normalized and an un-normalized matrix (by cell size) will be created
+    # NOTE: we'll need the un-normalized matrix to compute weighted channel average
+    # but the normalized matrix will be used to train, cluster, and consensus cluster
     print("Counting the number of pixel SOM/meta cluster counts for each fov/cell pair")
     cluster_counts, cluster_counts_norm = create_c2pc_data(
         fovs, consensus_path, cell_table_path, cluster_col
@@ -891,8 +899,7 @@ def train_cell_som(fovs, base_dir, pixel_consensus_dir, cell_table_name,
             print(output.strip())
 
 
-def cluster_cells(base_dir, cluster_counts_name='cluster_counts.feather',
-                  cluster_counts_norm_name='cluster_counts_norm.feather',
+def cluster_cells(base_dir, cluster_counts_norm_name='cluster_counts_norm.feather',
                   weights_name='cell_weights.feather',
                   cell_cluster_name='cell_mat_clustered.feather'):
     """Uses trained weights to assign cluster labels on full cell data
@@ -915,14 +922,9 @@ def cluster_cells(base_dir, cluster_counts_name='cluster_counts.feather',
     """
 
     # define the paths to the data
-    cluster_counts_path = os.path.join(base_dir, cluster_counts_name)
     cluster_counts_norm_path = os.path.join(base_dir, cluster_counts_norm_name)
     weights_path = os.path.join(base_dir, weights_name)
     cell_cluster_path = os.path.join(base_dir, cell_cluster_name)
-
-    if not os.path.exists(cluster_counts_path):
-        raise FileNotFoundError('Cluster counts table %s does not exist in base_dir %s' %
-                                (cluster_counts_name, base_dir))
 
     if not os.path.exists(cluster_counts_norm_path):
         raise FileNotFoundError('Cluster counts table %s does not exist in base_dir %s' %
@@ -933,19 +935,10 @@ def cluster_cells(base_dir, cluster_counts_name='cluster_counts.feather',
                                 (weights_name, base_dir))
 
     # ensure the weights columns are valid indexes
-    cluster_counts = feather.read_dataframe(cluster_counts_path)
     cluster_counts_norm = feather.read_dataframe(cluster_counts_norm_path)
     weights = feather.read_dataframe(os.path.join(base_dir, weights_name))
-    cluster_counts = cluster_counts.drop(
-        columns=['fov', 'segmentation_label', 'cell_size']
-    )
     cluster_counts_norm = cluster_counts_norm.drop(
         columns=['fov', 'segmentation_label', 'cell_size']
-    )
-    misc_utils.verify_same_elements(
-        enforce_order=True,
-        cluster_counts_columns=cluster_counts.columns.values,
-        cell_weights_columns=weights.columns.values
     )
     misc_utils.verify_same_elements(
         enforce_order=True,
@@ -954,7 +947,7 @@ def cluster_cells(base_dir, cluster_counts_name='cluster_counts.feather',
     )
 
     # run the trained SOM on the dataset, assigning clusters
-    process_args = ['Rscript', '/run_cell_som.R', cluster_counts_path, cluster_counts_norm_path,
+    process_args = ['Rscript', '/run_cell_som.R', cluster_counts_norm_path,
                     weights_path, cell_cluster_path]
 
     process = subprocess.Popen(process_args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)

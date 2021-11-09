@@ -1,7 +1,8 @@
 # Runs consensus clustering on the pixel data averaged across all channels
 
-# Usage: Rscript {markers} {maxK} {cap} {pixelClusterDir} {clusterAvgPath} {pixelMatConsensus} {clustToMeta} {seed}
+# Usage: Rscript {fovs} {markers} {maxK} {cap} {pixelClusterDir} {clusterAvgPath} {pixelMatConsensus} {clustToMeta} {seed}
 
+# - fovs: list of fovs to cluster
 # - markers: list of channel columns to use
 # - maxK: number of consensus clusters
 # - cap: max z-score cutoff
@@ -58,8 +59,8 @@ clusterAvgsScale <- pmin(scale(clusterAvgs[,markers]), cap)
 # TODO: look into suppressing output for Rs (invisible), not urgent
 print("Running consensus clustering")
 consensusClusterResults <- ConsensusClusterPlus(t(clusterAvgsScale), maxK=maxK, seed=seed)
-hClust <- consensusClusterResults[[maxK]]$consensusClass
-names(hClust) <- clusterAvgs$cluster
+hCluster_cap <- consensusClusterResults[[maxK]]$consensusClass
+names(hCluster_cap) <- clusterAvgs$cluster
 
 # append hClust to each fov's data
 print("Writing consensus clustering results")
@@ -70,7 +71,7 @@ for (i in 1:length(fovs)) {
     fovPixelData <- arrow::read_feather(matPath)
 
     # assign hierarchical cluster labels
-    fovPixelData$hCluster_cap <- hClust[as.character(fovPixelData$cluster)]
+    fovPixelData$hCluster_cap <- hCluster_cap[as.character(fovPixelData$cluster)]
 
     # write consensus clustered data
     clusterPath <- file.path(pixelMatConsensus, fileName)
@@ -85,7 +86,6 @@ for (i in 1:length(fovs)) {
 
 # save the mapping from cluster to hCluster_cap
 print("Writing SOM to meta cluster mapping table")
-hClustLabeled <- as.data.table(hClust)
+hClustLabeled <- as.data.table(hCluster_cap)
 hClustLabeled$cluster <- as.integer(rownames(hClustLabeled))
-hClustLabeles <- setnames(hClustLabeled, "hClust", "hCluster_cap")
 arrow::write_feather(hClustLabeled, clustToMeta)

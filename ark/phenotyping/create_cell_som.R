@@ -1,6 +1,6 @@
 # Trains a SOM matrix using cluster counts per cell
 
-# Usage: Rscript create_cell_som.R {fovs} {xdim} {ydim} {lr_start} {lr_end} {numPasses} {clusterCountsPath} {cellWeightsPath} {seed}
+# Usage: Rscript create_cell_som.R {fovs} {xdim} {ydim} {lr_start} {lr_end} {numPasses} {clusterCountsNormPath} {cellWeightsPath} {seed}
 
 # - fovs: list of fovs to cluster
 # - xdim: number of x nodes to use for SOM

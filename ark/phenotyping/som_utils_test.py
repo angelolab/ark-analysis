@@ -151,12 +151,11 @@ def mocked_train_cell_som(fovs, base_dir, pixel_consensus_dir, cell_table_name,
     feather.write_dataframe(weights, os.path.join(base_dir, weights_name))
 
 
-def mocked_cluster_cells(base_dir, cluster_counts_name='cluster_counts.feather',
-                         cluster_counts_norm_name='cluster_counts_norm.feather',
+def mocked_cluster_cells(base_dir, cluster_counts_norm_name='cluster_counts_norm.feather',
                          weights_name='cell_weights.feather',
                          cell_cluster_name='cell_mat_clustered.feather'):
     # read in the cluster counts data
-    cluster_counts = feather.read_dataframe(os.path.join(base_dir, cluster_counts_name))
+    cluster_counts = feather.read_dataframe(os.path.join(base_dir, cluster_counts_norm_name))
 
     # read in the weights matrix
     weights = feather.read_dataframe(os.path.join(base_dir, weights_name))
@@ -1264,26 +1263,15 @@ def test_train_cell_som(mocker):
 
 
 def test_cluster_cells(mocker):
-    # basic error check: path to cluster counts path does not exist
-    with tempfile.TemporaryDirectory() as temp_dir:
-        with pytest.raises(FileNotFoundError):
-            som_utils.cluster_cells(base_dir=temp_dir, cluster_counts_name='bad_path')
-
     # basic error check: path to cell counts norm does not exist
     with tempfile.TemporaryDirectory() as temp_dir:
-        # create a dummy cluster_counts_name
-        cluster_counts = pd.DataFrame()
-        cluster_counts.to_csv(os.path.join(temp_dir, 'cluster_counts.feather'))
-
         with pytest.raises(FileNotFoundError):
             som_utils.cluster_cells(base_dir=temp_dir, cluster_counts_norm_name='bad_path')
 
     # basic error check: path to cell weights does not exist
     with tempfile.TemporaryDirectory() as temp_dir:
-        # create a dummy cluster_counts_name and cluster_counts_norm_name
-        cluster_counts = pd.DataFrame()
+        # create a dummy cluster_counts_norm_name file
         cluster_counts_norm = pd.DataFrame()
-        cluster_counts.to_csv(os.path.join(temp_dir, 'cluster_counts.feather'))
         cluster_counts_norm.to_csv(os.path.join(temp_dir, 'cluster_counts_norm.feather'))
 
         with pytest.raises(FileNotFoundError):
