@@ -909,12 +909,8 @@ def cluster_cells(base_dir, cluster_counts_norm_name='cluster_counts_norm.feathe
     Args:
         base_dir (str):
             The path to the data directory
-        cluster_counts_name (str):
-            Name of the file with the cluster counts of each cell
-            Created by train_cell_som
         cluster_counts_norm_name (str):
-            Same as cluster_counts_name, except the cluster columns are normalized by
-            cell size.
+            Name of the file with the cluster counts of each cell, normalized by cell size
         weights_name (str):
             The name of the weights file, created by train_cell_som
         cell_cluster_name (str):
