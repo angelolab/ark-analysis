@@ -161,7 +161,8 @@ def generate_cell_cluster_mask(fovs, base_dir, seg_dir, cell_consensus_name,
 
 
 def generate_pixel_cluster_mask(fovs, base_dir, seg_dir, pixel_consensus_dir,
-                                pixel_cluster_col='pixel_meta_cluster', seg_suffix='_feature_0.tif'):
+                                pixel_cluster_col='pixel_meta_cluster',
+                                seg_suffix='_feature_0.tif'):
     """For each fov, create a mask labeling each pixel with their SOM or meta cluster label
 
     Args:
@@ -173,7 +174,7 @@ def generate_pixel_cluster_mask(fovs, base_dir, seg_dir, pixel_consensus_dir,
             The path to the segmentation data
         pixel_consensus_dir (str):
             The path to the data with both pixel SOM and meta cluster assignments
-        cluster_col (str):
+        pixel_cluster_col (str):
             Whether to assign SOM or meta clusters
             needs to be 'pixel_som_cluster' or 'pixel_meta_cluster'
         seg_suffix (str):
