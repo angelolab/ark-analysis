@@ -57,17 +57,20 @@ clusterAvgsScale <- pmin(scale(clusterAvgs[,clusterCols]), cap)
 # TODO: also look into invisible() function here (not urgent, just to prevent printout)
 print("Running consensus clustering")
 consensusClusterResults <- ConsensusClusterPlus(t(clusterAvgsScale), maxK=maxK, seed=seed)
-hCluster_cap <- consensusClusterResults[[maxK]]$consensusClass
-names(hCluster_cap) <- clusterAvgs$cluster
+som_to_meta_map <- consensusClusterResults[[maxK]]$consensusClass
+names(som_to_meta_map) <- clusterAvgs$cell_som_cluster
 
 # append hClust to data
 print("Writing consensus clustering")
 cellClusterData <- arrow::read_feather(cellClusterPath)
-cellClusterData$hCluster_cap <- hCluster_cap[as.character(cellClusterData$cluster)]
+cellClusterData$cell_meta_cluster <- som_to_meta_map[as.character(cellClusterData$cell_som_cluster)]
 arrow::write_feather(as.data.table(cellClusterData), cellConsensusPath)
 
 # save the mapping from cluster to hCluster_cap
 print("Writing SOM to meta cluster mapping table")
-hClustLabeled <- as.data.table(hCluster_cap)
-hClustLabeled$cluster <- as.integer(rownames(hClustLabeled))
-arrow::write_feather(hClustLabeled, clustToMeta)
+som_to_meta_map <- as.data.table(som_to_meta_map)
+
+# assign cell_som_cluster column, then rename som_to_meta_map to cell_meta_cluster
+som_to_meta_map$cell_som_cluster <- as.integer(rownames(som_to_meta_map))
+som_to_meta_map <- setnames(som_to_meta_map, "som_to_meta_map", "cell_meta_cluster")
+arrow::write_feather(som_to_meta_map, clustToMeta)

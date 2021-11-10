@@ -59,8 +59,8 @@ clusterAvgsScale <- pmin(scale(clusterAvgs[,markers]), cap)
 # TODO: look into suppressing output for Rs (invisible), not urgent
 print("Running consensus clustering")
 consensusClusterResults <- ConsensusClusterPlus(t(clusterAvgsScale), maxK=maxK, seed=seed)
-hCluster_cap <- consensusClusterResults[[maxK]]$consensusClass
-names(hCluster_cap) <- clusterAvgs$cluster
+som_to_meta_map <- consensusClusterResults[[maxK]]$consensusClass
+names(som_to_meta_map) <- clusterAvgs$pixel_som_cluster
 
 # append hClust to each fov's data
 print("Writing consensus clustering results")
@@ -71,7 +71,7 @@ for (i in 1:length(fovs)) {
     fovPixelData <- arrow::read_feather(matPath)
 
     # assign hierarchical cluster labels
-    fovPixelData$hCluster_cap <- hCluster_cap[as.character(fovPixelData$cluster)]
+    fovPixelData$pixel_meta_cluster <- som_to_meta_map[as.character(fovPixelData$pixel_som_cluster)]
 
     # write consensus clustered data
     clusterPath <- file.path(pixelMatConsensus, fileName)
@@ -84,8 +84,11 @@ for (i in 1:length(fovs)) {
     }
 }
 
-# save the mapping from cluster to hCluster_cap
+# save the mapping from cluster to som_to_meta_map
 print("Writing SOM to meta cluster mapping table")
-hClustLabeled <- as.data.table(hCluster_cap)
-hClustLabeled$cluster <- as.integer(rownames(hClustLabeled))
-arrow::write_feather(hClustLabeled, clustToMeta)
+som_to_meta_map <- as.data.table(som_to_meta_map)
+
+# assign pixel_som_cluster column, then rename som_to_meta_map to pixel_meta_cluster
+som_to_meta_map$pixel_som_cluster <- as.integer(rownames(som_to_meta_map))
+som_to_meta_map <- setnames(som_to_meta_map, "som_to_meta_map", "pixel_meta_cluster")
+arrow::write_feather(som_to_meta_map, clustToMeta)

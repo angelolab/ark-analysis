@@ -52,7 +52,7 @@ print("Reading the cluster counts data for SOM training")
 clusterCountsNorm <- as.data.frame(arrow::read_feather(clusterCountsNormPath))
 
 # get the column names of the SOM pixel/meta clusters
-clusterCols <- colnames(clusterCountsNorm)[grepl(pattern="cluster_|hCluster_cap_",
+clusterCols <- colnames(clusterCountsNorm)[grepl(pattern="pixel_som_cluster_|pixel_meta_cluster_",
                                            colnames(clusterCountsNorm))]
 
 # keep just the cluster columns

@@ -49,8 +49,8 @@ def normalize_rows(pixel_data, channels):
     return pixel_data_sub
 
 
-def compute_pixel_cluster_channel_avg(fovs, channels, base_dir, cluster_col,
-                                      cluster_dir='pixel_mat_clustered', keep_count=False):
+def compute_pixel_cluster_channel_avg(fovs, channels, base_dir, pixel_cluster_col,
+                                      pixel_cluster_dir='pixel_mat_clustered', keep_count=False):
     """Compute the average channel values across each pixel SOM cluster
 
     Args:
@@ -60,9 +60,9 @@ def compute_pixel_cluster_channel_avg(fovs, channels, base_dir, cluster_col,
             The list of channels to subset on
         base_dir (str):
             The path to the data directories
-        cluster_col (str):
+        pixel_cluster_col (str):
             Name of the column to group by
-        cluster_dir (str):
+        pixel_cluster_dir (str):
             Name of the directory containing the pixel data with cluster labels
         keep_count (bool):
             Whether to keep the count column when aggregating or not
@@ -73,18 +73,24 @@ def compute_pixel_cluster_channel_avg(fovs, channels, base_dir, cluster_col,
             Contains the average channel values for each pixel SOM/meta cluster
     """
 
+    # verify the pixel cluster col specified is valid
+    misc_utils.verify_in_list(
+        provided_cluster_col=[pixel_cluster_col],
+        valid_cluster_cols=['pixel_som_cluster', 'pixel_meta_cluster']
+    )
+
     # define the cluster averages DataFrame
     cluster_avgs = pd.DataFrame()
 
     for fov in fovs:
         # read in the fovs data
         fov_pixel_data = feather.read_dataframe(
-            os.path.join(base_dir, cluster_dir, fov + '.feather')
+            os.path.join(base_dir, pixel_cluster_dir, fov + '.feather')
         )
 
         # aggregate the sums and counts
-        sum_by_cluster = fov_pixel_data.groupby(cluster_col)[channels].sum()
-        count_by_cluster = fov_pixel_data.groupby(cluster_col)[channels].size().to_frame('count')
+        sum_by_cluster = fov_pixel_data.groupby(pixel_cluster_col)[channels].sum()
+        count_by_cluster = fov_pixel_data.groupby(pixel_cluster_col)[channels].size().to_frame('count')
 
         # merge the results by column
         agg_results = pd.merge(
@@ -95,16 +101,18 @@ def compute_pixel_cluster_channel_avg(fovs, channels, base_dir, cluster_col,
         cluster_avgs = pd.concat([cluster_avgs, agg_results])
 
     # sum the counts and the channel sums
-    sum_count_totals = cluster_avgs.groupby(cluster_col)[channels + ['count']].sum().reset_index()
+    sum_count_totals = cluster_avgs.groupby(
+        pixel_cluster_col
+    )[channels + ['count']].sum().reset_index()
 
     # now compute the means using the count column
     sum_count_totals[channels] = sum_count_totals[channels].div(sum_count_totals['count'], axis=0)
 
     # convert cluster column to integer type
-    sum_count_totals[cluster_col] = sum_count_totals[cluster_col].astype(int)
+    sum_count_totals[pixel_cluster_col] = sum_count_totals[pixel_cluster_col].astype(int)
 
     # sort cluster col in ascending order
-    sum_count_totals = sum_count_totals.sort_values(by=cluster_col)
+    sum_count_totals = sum_count_totals.sort_values(by=pixel_cluster_col)
 
     # drop the count column if specified
     if not keep_count:
@@ -113,16 +121,19 @@ def compute_pixel_cluster_channel_avg(fovs, channels, base_dir, cluster_col,
     return sum_count_totals
 
 
-def compute_cell_cluster_count_avg(cluster_path, column_prefix, cluster_col, keep_count=False):
+def compute_cell_cluster_count_avg(cell_cluster_path, pixel_cluster_col_prefix,
+                                   cell_cluster_col, keep_count=False):
     """For each cell SOM cluster, compute the average number of associated pixel SOM/meta clusters
 
     Args:
-        cluster_path (str):
+        cell_cluster_path (str):
             The path to the cell data with SOM labels, created by cluster_cells
-        column_prefix (str):
-            The prefix of the columns to subset, should be 'cluster' or 'hCluster_cap'
-        cluster_col (str):
+        pixel_cluster_col_prefix (str):
+            The prefix of the columns to subset
+            should be 'pixel_som_cluster' or 'pixel_meta_cluster'
+        cell_cluster_col (str):
             Name of the cell cluster column to group by
+            should be 'cell_som_cluster' or 'cell_meta_cluster'
         keep_count (bool):
             Whether to include the cell counts or not
             This should only be set to True for visualization purposes
@@ -132,19 +143,35 @@ def compute_cell_cluster_count_avg(cluster_path, column_prefix, cluster_col, kee
             Contains the average values for each column across cell SOM clusters
     """
 
+    # verify the pixel cluster col prefix specified is valid
+    misc_utils.verify_in_list(
+        provided_cluster_col=[pixel_cluster_col_prefix],
+        valid_cluster_cols=['pixel_som_cluster', 'pixel_meta_cluster']
+    )
+
+    # verify the cell cluster col prefix specified is valid
+    misc_utils.verify_in_list(
+        provided_cluster_col=[cell_cluster_col],
+        valid_cluster_cols=['cell_som_cluster', 'cell_meta_cluster']
+    )
+
     # read in the clustered data
-    cluster_data = feather.read_dataframe(cluster_path)
+    cluster_data = feather.read_dataframe(cell_cluster_path)
 
     # subset by columns with cluster in them
-    column_subset = [c for c in cluster_data.columns.values if c.startswith(column_prefix + '_')]
-    cluster_data_subset = cluster_data.loc[:, column_subset + [cluster_col]]
+    column_subset = [
+        c for c in cluster_data.columns.values if c.startswith(pixel_cluster_col_prefix + '_')
+    ]
+    cluster_data_subset = cluster_data.loc[:, column_subset + [cell_cluster_col]]
 
     # average each column grouped by the cell cluster column
-    mean_count_totals = cluster_data_subset.groupby(cluster_col).mean().reset_index()
+    mean_count_totals = cluster_data_subset.groupby(cell_cluster_col).mean().reset_index()
 
     # if keep_count is included, add the count column to the cell table
     if keep_count:
-        cell_cluster_totals = cluster_data_subset.groupby(cluster_col).size().to_frame('count')
+        cell_cluster_totals = cluster_data_subset.groupby(
+            cell_cluster_col
+        ).size().to_frame('count')
         cell_cluster_totals = cell_cluster_totals.reset_index(drop=True)
         mean_count_totals['count'] = cell_cluster_totals['count']
 
@@ -152,8 +179,8 @@ def compute_cell_cluster_count_avg(cluster_path, column_prefix, cluster_col, kee
 
 
 def compute_cell_cluster_channel_avg(fovs, channels, base_dir, cell_table,
-                                     cluster_name='cell_mat_clustered.feather',
-                                     cluster_col='cluster'):
+                                     cell_cluster_name='cell_mat_clustered.feather',
+                                     cell_cluster_col='cell_meta_cluster'):
     """Computes the average marker expression for each cell cluster
 
     Args:
@@ -165,20 +192,21 @@ def compute_cell_cluster_channel_avg(fovs, channels, base_dir, cell_table,
             The path to the data directory
         cell_table (pandas.DataFrame):
             The weighted cell table, created in `example_cell_clustering.ipynb`
-        cluster_name (str):
+        cell_cluster_name (str):
             Name of the file containing the cell data with cluster labels
-        cluster_col (str):
+        cell_cluster_col (str):
             Whether to aggregate by cell SOM or meta labels
-            Needs to be either 'cluster', or 'hCluster_cap'
+            Needs to be either 'cell_som_cluster', or 'cell_meta_cluster'
 
     Returns:
         pandas.DataFrame:
             Each cell cluster mapped to the average expression for each marker
     """
 
+    # verify the cell cluster col specified is valid
     misc_utils.verify_in_list(
-        provided_cluster_col=cluster_col,
-        valid_cluster_cols=['cluster', 'hCluster_cap']
+        provided_cluster_col=[cell_cluster_col],
+        valid_cluster_cols=['cell_som_cluster', 'cell_meta_cluster']
     )
 
     # subset on only the fovs the user has specified
@@ -190,16 +218,16 @@ def compute_cell_cluster_channel_avg(fovs, channels, base_dir, cell_table,
     cell_table['fov'] = cell_table['fov'].map(lambda x: 'fov' + str(x))
 
     # read the clustered data
-    cluster_data = feather.read_dataframe(os.path.join(base_dir, cluster_name))
+    cluster_data = feather.read_dataframe(os.path.join(base_dir, cell_cluster_name))
 
     # assign the cluster labels to cell_table
-    cell_table[cluster_col] = cluster_data[cluster_col]
+    cell_table[cell_cluster_col] = cluster_data[cell_cluster_col]
 
-    # subset the cell table by just the desired channels and the cluster_col
-    cell_table = cell_table[channels + [cluster_col]]
+    # subset the cell table by just the desired channels and the cell_cluster_col
+    cell_table = cell_table[channels + [cell_cluster_col]]
 
     # compute the mean channel expression across each cell cluster
-    cluster_avgs = cell_table.groupby(cluster_col).mean().reset_index()
+    cluster_avgs = cell_table.groupby(cell_cluster_col).mean().reset_index()
 
     # z-score the cluster_avgs
     cluster_avgs[channels] = stats.zscore(cluster_avgs[channels].values)
@@ -208,7 +236,7 @@ def compute_cell_cluster_channel_avg(fovs, channels, base_dir, cell_table,
 
 
 def compute_p2c_weighted_channel_avg(pixel_channel_avg, cell_counts,
-                                     fovs=None, cluster_col='cluster'):
+                                     fovs=None, pixel_cluster_col='pixel_meta_cluster'):
     """Compute the average marker expression for each cell weighted by pixel cluster
 
     This expression is weighted by the pixel SOM/meta cluster counts. So for each cell,
@@ -226,8 +254,9 @@ def compute_p2c_weighted_channel_avg(pixel_channel_avg, cell_counts,
             The dataframe listing the number of each type of pixel SOM/meta cluster per cell
         fovs (list):
             The list of fovs to include, if None provided all are used
-        cluster_col (str):
+        pixel_cluster_col (str):
             Name of the cell cluster column to group by
+            Should be 'pixel_som_cluster' or 'pixel_meta_cluster'
 
     Returns:
         pandas.DataFrame:
@@ -246,34 +275,34 @@ def compute_p2c_weighted_channel_avg(pixel_channel_avg, cell_counts,
 
     # verify the pixel_cluster_col provided is valid
     misc_utils.verify_in_list(
-        provided_cluster_col=cluster_col,
-        valid_cluster_cols=['cluster', 'hCluster_cap']
+        provided_cluster_col=[pixel_cluster_col],
+        valid_cluster_cols=['pixel_som_cluster', 'pixel_meta_cluster']
     )
 
     # subset over the provided fovs
     cell_counts_sub = cell_counts[cell_counts['fov'].isin(fovs)].copy()
 
     # subset over the cluster count columns of pixel_channel_avg
-    cluster_cols = [c for c in cell_counts_sub.columns.values if cluster_col in c]
+    cluster_cols = [c for c in cell_counts_sub.columns.values if pixel_cluster_col in c]
     cell_counts_clusters = cell_counts_sub[cluster_cols].copy()
 
     # sort the columns of cell_counts_clusters in ascending cluster order
     # sort by int value, not string value
     cell_counts_clusters = cell_counts_clusters.reindex(
         sorted(cell_counts_clusters.columns.values,
-               key=lambda x: int(x.replace(cluster_col + '_', ''))),
+               key=lambda x: int(x.replace(pixel_cluster_col + '_', ''))),
         axis=1
     )
 
-    # sort the pixel_channel_avg table by cluster_col in ascending cluster order
-    pixel_channel_avg_sorted = pixel_channel_avg.sort_values(by=cluster_col)
+    # sort the pixel_channel_avg table by pixel_cluster_col in ascending cluster order
+    pixel_channel_avg_sorted = pixel_channel_avg.sort_values(by=pixel_cluster_col)
 
     # check that the same clusters are in both cell_counts_clusters and pixel_channel_avg_sorted
     # the matrix multiplication will fail if this is not caught
     cell_counts_cluster_ids = [
-        int(x.replace(cluster_col + '_', '')) for x in cell_counts_clusters.columns.values
+        int(x.replace(pixel_cluster_col + '_', '')) for x in cell_counts_clusters.columns.values
     ]
-    pixel_channel_cluster_ids = pixel_channel_avg[cluster_col].values
+    pixel_channel_cluster_ids = pixel_channel_avg[pixel_cluster_col].values
 
     misc_utils.verify_same_elements(
         enforce_order=True,
@@ -282,7 +311,7 @@ def compute_p2c_weighted_channel_avg(pixel_channel_avg, cell_counts,
     )
 
     # subset over just the markers of pixel_channel_avg
-    pixel_channel_avg_sub = pixel_channel_avg_sorted.drop(columns=cluster_col)
+    pixel_channel_avg_sub = pixel_channel_avg_sorted.drop(columns=pixel_cluster_col)
 
     # broadcast multiply cell_counts_clusters and pixel_channel_avg to get weighted
     # average expression values for each cell
@@ -303,7 +332,7 @@ def compute_p2c_weighted_channel_avg(pixel_channel_avg, cell_counts,
 
 
 def create_c2pc_data(fovs, pixel_consensus_path,
-                     cell_table_path, cluster_col='cluster'):
+                     cell_table_path, pixel_cluster_col='pixel_meta_cluster'):
     """Create a matrix with each fov-cell label pair and their SOM pixel/meta cluster counts
 
     Args:
@@ -314,9 +343,9 @@ def create_c2pc_data(fovs, pixel_consensus_path,
             Created by pixel_consensus_cluster
         cell_table_path (str):
             Path to the cell table, needs to be created with Segment_Image_Data.ipynb
-        cluster_col (str):
+        pixel_cluster_col (str):
             The name of the pixel cluster column to count per cell
-            Should be 'cluster' or 'hCluster_cap'
+            Should be 'pixel_som_cluster' or 'pixel_meta_cluster'
 
     Returns:
         tuple:
@@ -324,6 +353,12 @@ def create_c2pc_data(fovs, pixel_consensus_path,
         - pandas.DataFrame: cell x cluster counts of each pixel SOM/meta cluster per each cell
         - pandas.DataFrame: same as above, but normalized by cell_size
     """
+
+    # verify the pixel_cluster_col provided is valid
+    misc_utils.verify_in_list(
+        provided_cluster_col=[pixel_cluster_col],
+        valid_cluster_cols=['pixel_som_cluster', 'pixel_meta_cluster']
+    )
 
     # read the cell table data
     cell_table = pd.read_csv(cell_table_path)
@@ -349,22 +384,26 @@ def create_c2pc_data(fovs, pixel_consensus_path,
             os.path.join(pixel_consensus_path, fov + '.feather')
         )
 
-        # create a groupby object that aggregates the segmentation_label and the cluster_col data
+        # create a groupby object that aggregates the segmentation_label and the pixel_cluster_col
         # intermediate step for creating a pivot table, makes it easier
         group_by_cluster_col = fov_pixel_data.groupby(
-            ['segmentation_label', cluster_col]
+            ['segmentation_label', pixel_cluster_col]
         ).size().reset_index(name='count')
 
         # make sure all cluster labels are of type int
-        group_by_cluster_col[cluster_col] = group_by_cluster_col[cluster_col].astype(int)
+        group_by_cluster_col[pixel_cluster_col] = group_by_cluster_col[
+            pixel_cluster_col
+        ].astype(int)
 
         # counts number of pixel SOM/meta clusters per cell
         num_cluster_per_seg_label = group_by_cluster_col.pivot(
-            index='segmentation_label', columns=cluster_col, values='count'
+            index='segmentation_label', columns=pixel_cluster_col, values='count'
         ).fillna(0).astype(int)
 
         # renames the columns to be 'cluster_' or 'hCluster_cap_' prefix
-        new_columns = ['%s_' % cluster_col + str(c) for c in num_cluster_per_seg_label.columns]
+        new_columns = [
+            '%s_' % pixel_cluster_col + str(c) for c in num_cluster_per_seg_label.columns
+        ]
         num_cluster_per_seg_label.columns = new_columns
 
         # get intersection of the segmentation labels between cell_table_indices
@@ -391,7 +430,7 @@ def create_c2pc_data(fovs, pixel_consensus_path,
 
     # also produce a cell table with counts normalized by cell_size
     cell_table_norm = cell_table.copy()
-    count_cols = [c for c in cell_table_norm.columns if '%s_' % cluster_col in c]
+    count_cols = [c for c in cell_table_norm.columns if '%s_' % pixel_cluster_col in c]
     cell_table_norm[count_cols] = cell_table_norm[count_cols].div(cell_table_norm['cell_size'],
                                                                   axis=0)
 
@@ -401,8 +440,6 @@ def create_c2pc_data(fovs, pixel_consensus_path,
 def create_fov_pixel_data(fov, channels, img_data, seg_labels,
                           blur_factor=2, subset_proportion=0.1, seed=42):
     """Preprocess pixel data for one fov
-
-    Saves preprocessed data to pre_dir and subsetted data to sub_dir
 
     Args:
         fov (str):
@@ -467,7 +504,7 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
                         blur_factor=2, subset_proportion=0.1, seed=42):
     """For each fov, add a Gaussian blur to each channel and normalize channel sums for each pixel
 
-    Saves data to pre_dir and subsetted data to sub_dir
+    Saves data to pre_dir and subsetted data to subset_dir
 
     Args:
         fovs (list):
@@ -514,7 +551,7 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
     if not os.path.exists(os.path.join(base_dir, pre_dir)):
         os.mkdir(os.path.join(base_dir, pre_dir))
 
-    # create sub_dir if it doesn't already exist
+    # create subset_dir if it doesn't already exist
     if not os.path.exists(os.path.join(base_dir, subset_dir)):
         os.mkdir(os.path.join(base_dir, subset_dir))
 
@@ -606,7 +643,7 @@ def train_pixel_som(fovs, channels, base_dir,
     # if path to the subsetted file does not exist
     if not os.path.exists(subsetted_path):
         raise FileNotFoundError('Pixel subsetted directory %s does not exist in base_dir %s' %
-                                (sub_dir, base_dir))
+                                (subset_dir, base_dir))
 
     # verify that all provided fovs exist in the folder
     files = io_utils.list_files(subsetted_path, substrs='.feather')
@@ -801,7 +838,7 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
 def train_cell_som(fovs, base_dir, pixel_consensus_dir, cell_table_name,
                    cluster_counts_name='cluster_counts.feather',
                    cluster_counts_norm_name='cluster_counts_norm.feather',
-                   cluster_col='cluster',
+                   pixel_cluster_col='pixel_meta_cluster',
                    weights_name='cell_weights.feather', xdim=10, ydim=10,
                    lr_start=0.05, lr_end=0.01, num_passes=1, seed=42):
     """Run the SOM training on the number of pixel/meta clusters in each cell of each fov
@@ -823,7 +860,7 @@ def train_cell_som(fovs, base_dir, pixel_consensus_dir, cell_table_name,
         cluster_counts_norm_name (str):
             Same as cluster_counts_name, except the cluster columns are normalized by
             cell size
-        cluster_col (str):
+        pixel_cluster_col (str):
             Name of the column with the pixel SOM cluster assignments.
             Should be 'cluster' or 'hCluster_cap'.
         weights_name (str):
@@ -859,8 +896,8 @@ def train_cell_som(fovs, base_dir, pixel_consensus_dir, cell_table_name,
 
     # verify the cluster_col provided is valid
     misc_utils.verify_in_list(
-        provided_cluster_col=cluster_col,
-        valid_cluster_cols=['cluster', 'hCluster_cap']
+        provided_cluster_col=[pixel_cluster_col],
+        valid_cluster_cols=['pixel_som_cluster', 'pixel_meta_cluster']
     )
 
     # generate matrices with each fov/cell label pair with their pixel SOM/meta cluster counts
@@ -869,7 +906,7 @@ def train_cell_som(fovs, base_dir, pixel_consensus_dir, cell_table_name,
     # but the normalized matrix will be used to train, cluster, and consensus cluster
     print("Counting the number of pixel SOM/meta cluster counts for each fov/cell pair")
     cluster_counts, cluster_counts_norm = create_c2pc_data(
-        fovs, consensus_path, cell_table_path, cluster_col
+        fovs, consensus_path, cell_table_path, pixel_cluster_col
     )
 
     # write the created matrices
@@ -960,7 +997,7 @@ def cluster_cells(base_dir, cluster_counts_norm_name='cluster_counts_norm.feathe
             print(output.strip())
 
 
-def cell_consensus_cluster(base_dir, cluster_cols, max_k=20, cap=3,
+def cell_consensus_cluster(base_dir, pixel_cluster_cols, max_k=20, cap=3,
                            cell_cluster_name='cell_mat_clustered.feather',
                            cell_cluster_avg_name='cell_cluster_avgs.csv',
                            clust_to_meta_name='cell_clust_to_meta.feather',
@@ -972,7 +1009,7 @@ def cell_consensus_cluster(base_dir, cluster_cols, max_k=20, cap=3,
     Args:
         base_dir (str):
             The path to the data directory
-        cluster_cols (list):
+        pixel_cluster_cols (list):
             List of the cluster cols to subset over
         max_k (int):
             The number of consensus clusters
@@ -1005,7 +1042,7 @@ def cell_consensus_cluster(base_dir, cluster_cols, max_k=20, cap=3,
                                 (cell_cluster_avg_name, base_dir))
 
     # run the consensus clustering process
-    process_args = ['Rscript', '/cell_consensus_cluster.R', ','.join(cluster_cols),
+    process_args = ['Rscript', '/cell_consensus_cluster.R', ','.join(pixel_cluster_cols),
                     str(max_k), str(cap), clustered_path,
                     cluster_avg_path, consensus_path, clust_to_meta_path, str(seed)]
 

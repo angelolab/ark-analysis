@@ -57,7 +57,7 @@ for (i in 1:length(fovs)) {
     clusters <- FlowSOM:::MapDataToCodes(somWeights, as.matrix(fovPixelData[,markers]))
 
     # assign cluster labels column to pixel data
-    fovPixelData$cluster <- as.integer(clusters[,1])
+    fovPixelData$pixel_som_cluster <- as.integer(clusters[,1])
 
     # write to feather
     clusterPath <- file.path(pixelClusterDir, fileName)
