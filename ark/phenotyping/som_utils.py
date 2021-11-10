@@ -89,8 +89,12 @@ def compute_pixel_cluster_channel_avg(fovs, channels, base_dir, pixel_cluster_co
         )
 
         # aggregate the sums and counts
-        sum_by_cluster = fov_pixel_data.groupby(pixel_cluster_col)[channels].sum()
-        count_by_cluster = fov_pixel_data.groupby(pixel_cluster_col)[channels].size().to_frame('count')
+        sum_by_cluster = fov_pixel_data.groupby(
+            pixel_cluster_col
+        )[channels].sum()
+        count_by_cluster = fov_pixel_data.groupby(
+            pixel_cluster_col
+        )[channels].size().to_frame('count')
 
         # merge the results by column
         agg_results = pd.merge(
