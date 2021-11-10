@@ -463,7 +463,7 @@ def create_fov_pixel_data(fov, channels, img_data, seg_labels,
 def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
                         img_sub_folder="TIFs", seg_suffix='_feature_0.tif',
                         pre_dir='pixel_mat_preprocessed',
-                        sub_dir='pixel_mat_subsetted', is_mibitiff=False,
+                        subset_dir='pixel_mat_subsetted', is_mibitiff=False,
                         blur_factor=2, subset_proportion=0.1, seed=42):
     """For each fov, add a Gaussian blur to each channel and normalize channel sums for each pixel
 
@@ -487,7 +487,7 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
             The suffix that the segmentation images use
         pre_dir (str):
             Name of the directory which contains the preprocessed pixel data
-        sub_dir (str):
+        subset_dir (str):
             The name of the directory containing the subsetted pixel data
         is_mibitiff (bool):
             Whether to load the images from MIBITiff
@@ -515,8 +515,8 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
         os.mkdir(os.path.join(base_dir, pre_dir))
 
     # create sub_dir if it doesn't already exist
-    if not os.path.exists(os.path.join(base_dir, sub_dir)):
-        os.mkdir(os.path.join(base_dir, sub_dir))
+    if not os.path.exists(os.path.join(base_dir, subset_dir)):
+        os.mkdir(os.path.join(base_dir, subset_dir))
 
     # iterate over fov_batches
     for fov in fovs:
@@ -558,13 +558,13 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
         # write subseted dataset to feather, needed for training
         feather.write_dataframe(pixel_mat_subset,
                                 os.path.join(base_dir,
-                                             sub_dir,
+                                             subset_dir,
                                              fov + ".feather"),
                                 compression='uncompressed')
 
 
 def train_pixel_som(fovs, channels, base_dir,
-                    sub_dir='pixel_mat_subsetted', norm_vals_name='norm_vals.feather',
+                    subset_dir='pixel_mat_subsetted', norm_vals_name='norm_vals.feather',
                     weights_name='pixel_weights.feather', xdim=10, ydim=10,
                     lr_start=0.05, lr_end=0.01, num_passes=1, seed=42):
     """Run the SOM training on the subsetted pixel data.
@@ -578,7 +578,7 @@ def train_pixel_som(fovs, channels, base_dir,
             The list of markers to subset on
         base_dir (str):
             The path to the data directories
-        sub_dir (str):
+        subset_dir (str):
             The name of the subsetted data directory
         norm_vals_name (str):
             The name of the file to store the 99.9% normalized values
@@ -599,7 +599,7 @@ def train_pixel_som(fovs, channels, base_dir,
     """
 
     # define the paths to the data
-    subsetted_path = os.path.join(base_dir, sub_dir)
+    subsetted_path = os.path.join(base_dir, subset_dir)
     norm_vals_path = os.path.join(base_dir, norm_vals_name)
     weights_path = os.path.join(base_dir, weights_name)
 
