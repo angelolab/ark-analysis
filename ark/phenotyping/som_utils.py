@@ -410,7 +410,7 @@ def create_c2pc_data(fovs, pixel_consensus_path,
             index='segmentation_label', columns=pixel_cluster_col, values='count'
         ).fillna(0).astype(int)
 
-        # renames the columns to be 'cluster_' or 'hCluster_cap_' prefix
+        # renames the columns to have 'pixel_som_cluster_' or 'pixel_meta_cluster_' prefix
         new_columns = [
             '%s_' % pixel_cluster_col + str(c) for c in num_cluster_per_seg_label.columns
         ]
