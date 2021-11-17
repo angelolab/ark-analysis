@@ -104,7 +104,8 @@ def generate_cell_cluster_mask(fovs, base_dir, seg_dir, cell_consensus_name,
         cell_consensus_name (str):
             The path to the data with both cell SOM and meta cluster assignments
         cell_cluster_col (str):
-            Whether to assign SOM or meta clusters, needs to be 'cluster' or 'hCluster_cap'
+            Whether to assign SOM or meta clusters.
+            Needs to be `'cell_som_cluster'` or `'cell_meta_cluster'`
         seg_suffix (str):
             The suffix that the segmentation images use
 
@@ -178,7 +179,7 @@ def generate_pixel_cluster_mask(fovs, base_dir, tiff_dir, chan_file,
             The path to the data with both pixel SOM and meta cluster assignments
         pixel_cluster_col (str):
             Whether to assign SOM or meta clusters
-            needs to be 'pixel_som_cluster' or 'pixel_meta_cluster'
+            needs to be `'pixel_som_cluster'` or `'pixel_meta_cluster'`
 
     Returns:
         xarray.DataArray:
