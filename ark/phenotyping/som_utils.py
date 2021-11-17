@@ -28,7 +28,7 @@ def normalize_rows(pixel_data, channels, include_seg_label=True):
             Includes channel and meta (fov, segmentation_label, etc.) columns
         channels (list):
             List of channels to subset over
-        inclue_seg_label (bool):
+        include_seg_label (bool):
             Whether to include `'segmentation_label'` as a meta column
 
     Returns:
