@@ -527,12 +527,14 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
         tiff_dir (str):
             Name of the directory containing the tiff files
         seg_dir (str):
-            Name of the directory containing the segmented files
+            Name of the directory containing the segmented files.
+            Set to None if no segmentation directory is available or desired.
         img_sub_folder (str):
             Name of the subdirectory inside tiff_dir containing the tiff files.
             Set to None if there isn't any.
         seg_suffix (str):
-            The suffix that the segmentation images use
+            The suffix that the segmentation images use.
+            Ignored if seg_dir is None.
         pre_dir (str):
             Name of the directory which contains the preprocessed pixel data
         subset_dir (str):
@@ -584,11 +586,11 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
             pixel_mat_chans=img_xr.channels.values
         )
 
-        # if seg_suffix is None, leave seg_labels as None
+        # if seg_dir is None, leave seg_labels as None
         seg_labels = None
 
         # otherwise, load segmentation labels in for fov
-        if seg_suffix is not None:
+        if seg_dir is not None:
             seg_labels = imread(os.path.join(seg_dir, fov + seg_suffix))
 
         # subset for the channel data

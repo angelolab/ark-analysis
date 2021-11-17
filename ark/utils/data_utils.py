@@ -160,9 +160,8 @@ def generate_cell_cluster_mask(fovs, base_dir, seg_dir, cell_consensus_name,
     return img_data
 
 
-def generate_pixel_cluster_mask(fovs, base_dir, seg_dir, pixel_consensus_dir,
-                                pixel_cluster_col='pixel_meta_cluster',
-                                seg_suffix='_feature_0.tif'):
+def generate_pixel_cluster_mask(fovs, base_dir, tiff_dir, chan_file,
+                                pixel_consensus_dir, pixel_cluster_col='pixel_meta_cluster'):
     """For each fov, create a mask labeling each pixel with their SOM or meta cluster label
 
     Args:
@@ -170,8 +169,11 @@ def generate_pixel_cluster_mask(fovs, base_dir, seg_dir, pixel_consensus_dir,
             List of fovs to relabel
         base_dir (str):
             The path to the data directory
-        seg_dir (str):
-            The path to the segmentation data
+        tiff_dir (str):
+            The path to the tiff data
+        chan_file (str):
+            The path to the sample channel file to load (assuming tiff_dir as root)
+            Only used to determine dimensions of the pixel mask.
         pixel_consensus_dir (str):
             The path to the data with both pixel SOM and meta cluster assignments
         pixel_cluster_col (str):
@@ -186,8 +188,11 @@ def generate_pixel_cluster_mask(fovs, base_dir, seg_dir, pixel_consensus_dir,
     """
 
     # path checking
-    if not os.path.exists(seg_dir):
-        raise FileNotFoundError("seg_dir %s does not exist")
+    if not os.path.exists(tiff_dir):
+        raise FileNotFoundError("tiff_dir %s does not exist")
+
+    if not os.path.exists(os.path.join(tiff_dir, chan_file)):
+        raise FileNotFoundError("chan_file %s does not exist in tiff_dir" % chan_file)
 
     if not os.path.exists(os.path.join(base_dir, pixel_consensus_dir)):
         raise FileNotFoundError(
@@ -218,11 +223,11 @@ def generate_pixel_cluster_mask(fovs, base_dir, seg_dir, pixel_consensus_dir,
         # ensure integer display and not float
         fov_data[pixel_cluster_col] = fov_data[pixel_cluster_col].astype(int)
 
-        # read the segmentation mask to determine size of pixel cluster mask
-        seg_mask = np.squeeze(io.imread(os.path.join(seg_dir, fov + '_feature_0.tif')))
+        # read the sample channel file to determine size of pixel cluster mask
+        channel_data = np.squeeze(io.imread(os.path.join(tiff_dir, chan_file)))
 
         # define a pixel cluster mask with the same dimensions as seg_mask
-        pixel_cluster_mask = np.zeros(seg_mask.shape)
+        pixel_cluster_mask = np.zeros(channel_data.shape)
 
         # get the pixel coordinates
         x_coords = list(fov_data['row_index'])

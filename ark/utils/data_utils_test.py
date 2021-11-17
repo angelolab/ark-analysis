@@ -260,7 +260,7 @@ def test_label_cells_by_cluster():
     x = y = 5
     cluster_labels = np.random.randint(1, 5, x * y * len(fovs))
     labels = [i % (x * y) for i in range(x * y * len(fovs))]
-    data = zip(cluster_labels, labels, [fov for _ in range(x * y) for fov in fovs])
+    data = list(zip(cluster_labels, labels, [fov for _ in range(x * y) for fov in fovs]))
     all_data = pd.DataFrame(data, columns=['cluster_labels', 'label', 'fovs'])
     img_data = np.array([np.arange(1, x * y + 1).reshape((x, y)) for _ in fovs])
 
@@ -395,20 +395,28 @@ def test_generate_pixel_cluster_mask():
         # bad segmentation path passed
         with pytest.raises(FileNotFoundError):
             data_utils.generate_pixel_cluster_mask(
-                fovs, temp_dir, 'bad_seg_dir', 'bad_consensus_path'
+                fovs, temp_dir, 'bad_tiff_dir', 'bad_chan_file', 'bad_consensus_path'
             )
 
-        # generate sample segmentation masks
-        cell_masks = np.random.randint(low=0, high=5, size=(3, 40, 40, 1), dtype="int16")
+        # bad channel file path passed
+        with pytest.raises(FileNotFoundError):
+            data_utils.generate_pixel_cluster_mask(
+                fovs, temp_dir, temp_dir, 'bad_chan_file', 'bad_consensus_path'
+            )
 
-        for fov in range(cell_masks.shape[0]):
-            fov_whole_cell = cell_masks[fov, :, :, 0]
-            io.imsave(os.path.join(temp_dir, 'fov%d_feature_0.tif' % fov), fov_whole_cell)
+        # generate sample fov folder with one channel value, no sub folder
+        channel_data = np.random.randint(low=0, high=5, size=(40, 40), dtype="int16")
+        os.mkdir(os.path.join(temp_dir, 'fov0'))
+        io.imsave(os.path.join(temp_dir, 'fov0', 'chan0.tif'), channel_data)
+
+        # for fov in range(cell_masks.shape[0]):
+        #     fov_whole_cell = cell_masks[fov, :, :, 0]
+        #     io.imsave(os.path.join(temp_dir, 'fov%d_feature_0.tif' % fov), fov_whole_cell)
 
         # bad consensus path passed
         with pytest.raises(FileNotFoundError):
             data_utils.generate_pixel_cluster_mask(
-                fovs, temp_dir, temp_dir, 'bad_consensus_path'
+                fovs, temp_dir, temp_dir, os.path.join('fov0', 'chan0.tif'), 'bad_consensus_path'
             )
 
         # create a dummy consensus directory
@@ -429,19 +437,21 @@ def test_generate_pixel_cluster_mask():
         # bad cluster column provided
         with pytest.raises(ValueError):
             data_utils.generate_pixel_cluster_mask(
-                fovs, temp_dir, temp_dir, 'pixel_mat_consensus', 'bad_cluster'
+                fovs, temp_dir, temp_dir, os.path.join('fov0', 'chan0.tif'),
+                'pixel_mat_consensus', 'bad_cluster'
             )
 
         # bad fovs provided
         with pytest.raises(ValueError):
             data_utils.generate_pixel_cluster_mask(
-                ['fov1', 'fov2', 'fov3'], temp_dir, temp_dir,
+                ['fov1', 'fov2', 'fov3'], temp_dir, temp_dir, os.path.join('fov0', 'chan0.tif'),
                 'pixel_mat_consensus', 'pixel_som_cluster'
             )
 
         # test on SOM assignments
         pixel_masks = data_utils.generate_pixel_cluster_mask(
-            fovs, temp_dir, temp_dir, 'pixel_mat_consensus', 'pixel_som_cluster'
+            fovs, temp_dir, temp_dir, os.path.join('fov0', 'chan0.tif'),
+            'pixel_mat_consensus', 'pixel_som_cluster'
         )
 
         # assert we have 3 fovs and the image size is the same as the mask (40, 40)
@@ -452,7 +462,8 @@ def test_generate_pixel_cluster_mask():
 
         # test on meta assignments
         pixel_masks = data_utils.generate_pixel_cluster_mask(
-            fovs, temp_dir, temp_dir, 'pixel_mat_consensus', 'pixel_meta_cluster'
+            fovs, temp_dir, temp_dir, os.path.join('fov0', 'chan0.tif'),
+            'pixel_mat_consensus', 'pixel_meta_cluster'
         )
 
         # assert we have 3 fovs and the image size is the same as the mask (40, 40)
