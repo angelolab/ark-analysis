@@ -1049,6 +1049,8 @@ def cluster_cells(base_dir, cluster_counts_norm_name='cluster_counts_norm.feathe
             Name of the file with the cluster counts of each cell, normalized by cell size
         weights_name (str):
             The name of the weights file, created by train_cell_som
+        cell_cluster_name (str):
+            Name of the file to save the cell data with cluster labels
         pixel_cluster_col_prefix (str):
             The name of the prefixes of each of the pixel SOM/meta columns
             Should be `'pixel_som_cluster'` or `'pixel_meta_cluster'`.
