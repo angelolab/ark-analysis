@@ -137,6 +137,7 @@ def flowsom_setup(tb, flowsom_dir, img_shape=(50, 50), num_fovs=3, num_chans=3,
     define_data_paths = """
         base_dir = "%s"
         tiff_dir = "%s"
+        img_sub_folder = None
         segmentation_dir = "%s"
         MIBItiff = %s
         mibitiff_suffix = '%s'
