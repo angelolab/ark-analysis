@@ -1052,7 +1052,7 @@ def cluster_cells(base_dir, cluster_counts_norm_name='cluster_counts_norm.feathe
         pixel_cluster_col_prefix (str):
             The name of the prefixes of each of the pixel SOM/meta columns
             Should be `'pixel_som_cluster'` or `'pixel_meta_cluster'`.
-        cell_cluster_name (str):
+        cell_som_cluster_avgs_name (str):
             The name of the file to write the clustered data
     """
 
