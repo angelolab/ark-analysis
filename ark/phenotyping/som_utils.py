@@ -17,7 +17,7 @@ from ark.utils import load_utils
 from ark.utils import misc_utils
 
 
-def normalize_rows(pixel_data, channels):
+def normalize_rows(pixel_data, channels, include_seg_label=True):
     """Normalizes the rows of a pixel matrix by their sum
 
     Helper function to preprocess_row_sums
@@ -28,6 +28,8 @@ def normalize_rows(pixel_data, channels):
             Includes channel and meta (fov, segmentation_label, etc.) columns
         channels (list):
             List of channels to subset over
+        inclue_seg_label (bool):
+            Whether to include `'segmentation_label'` as a meta column
 
     Returns:
         pandas.DataFrame:
@@ -41,7 +43,11 @@ def normalize_rows(pixel_data, channels):
     pixel_data_sub = pixel_data_sub.div(pixel_data_sub.sum(axis=1), axis=0)
 
     # define the meta columns to add back
-    meta_cols = ['fov', 'row_index', 'column_index', 'segmentation_label']
+    meta_cols = ['fov', 'row_index', 'column_index']
+
+    # add the segmentation_label column if it should be kept
+    if include_seg_label:
+        meta_cols.append('segmentation_label')
 
     # add back meta columns, making sure to remove 0-row indices
     pixel_data_sub[meta_cols] = pixel_data.loc[pixel_data_sub.index.values, meta_cols]
@@ -485,15 +491,16 @@ def create_fov_pixel_data(fov, channels, img_data, seg_labels,
     pixel_mat['row_index'] = np.repeat(range(img_data.shape[0]), img_data.shape[1])
     pixel_mat['column_index'] = np.tile(range(img_data.shape[1]), img_data.shape[0])
 
-    # assign segmentation label
-    seg_labels_flat = seg_labels.flatten()
-    pixel_mat['segmentation_label'] = seg_labels_flat
+    # assign segmentation labels if it is not None
+    if seg_labels is not None:
+        seg_labels_flat = seg_labels.flatten()
+        pixel_mat['segmentation_label'] = seg_labels_flat
 
     # remove any rows with channels that sum to zero prior to sampling
     pixel_mat = pixel_mat.loc[(pixel_mat[channels] != 0).any(1), :]
 
     # normalize the row sums of pixel mat
-    pixel_mat = normalize_rows(pixel_mat, channels)
+    pixel_mat = normalize_rows(pixel_mat, channels, seg_labels is not None)
 
     # subset the pixel matrix for training
     pixel_mat_subset = pixel_mat.sample(frac=subset_proportion, random_state=seed)
@@ -577,8 +584,12 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
             pixel_mat_chans=img_xr.channels.values
         )
 
-        # load segmentation labels in for fov
-        seg_labels = imread(os.path.join(seg_dir, fov + seg_suffix))
+        # if seg_suffix is None, leave seg_labels as None
+        seg_labels = None
+
+        # otherwise, load segmentation labels in for fov
+        if seg_suffix is not None:
+            seg_labels = imread(os.path.join(seg_dir, fov + seg_suffix))
 
         # subset for the channel data
         img_data = img_xr.loc[fov, :, :, channels].values.astype(np.float32)
@@ -738,8 +749,13 @@ def cluster_pixels(fovs, channels, base_dir, pre_dir='pixel_mat_preprocessed',
     pre_files = io_utils.list_files(preprocessed_path, substrs='.feather')
     norm_vals = feather.read_dataframe(os.path.join(base_dir, norm_vals_name))
     sample_fov = feather.read_dataframe(os.path.join(base_dir, pre_dir, pre_files[0]))
+
+    cols_to_drop = ['fov', 'row_index', 'column_index']
+    if 'segmentation_label' in sample_fov.columns.values:
+        cols_to_drop.append('segmentation_label')
+
     sample_fov = sample_fov.drop(
-        columns=['fov', 'row_index', 'column_index', 'segmentation_label']
+        columns=cols_to_drop
     )
     misc_utils.verify_same_elements(
         enforce_order=True,
