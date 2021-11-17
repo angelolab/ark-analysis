@@ -179,8 +179,6 @@ def generate_pixel_cluster_mask(fovs, base_dir, tiff_dir, chan_file,
         pixel_cluster_col (str):
             Whether to assign SOM or meta clusters
             needs to be 'pixel_som_cluster' or 'pixel_meta_cluster'
-        seg_suffix (str):
-            The suffix that the segmentation images use
 
     Returns:
         xarray.DataArray:
