@@ -409,10 +409,6 @@ def test_generate_pixel_cluster_mask():
         os.mkdir(os.path.join(temp_dir, 'fov0'))
         io.imsave(os.path.join(temp_dir, 'fov0', 'chan0.tif'), channel_data)
 
-        # for fov in range(cell_masks.shape[0]):
-        #     fov_whole_cell = cell_masks[fov, :, :, 0]
-        #     io.imsave(os.path.join(temp_dir, 'fov%d_feature_0.tif' % fov), fov_whole_cell)
-
         # bad consensus path passed
         with pytest.raises(FileNotFoundError):
             data_utils.generate_pixel_cluster_mask(

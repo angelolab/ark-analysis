@@ -2,10 +2,10 @@
 
 # Usage: Rscript run_cell_som.R {clusterCountsPath} {clusterCountsNormPath} {cellWeightsPath} {cellClusterNormPath}
 
-# - clusterCountsPath: path to file with counts of unique cells (rows) by unique SOM pixel/meta clusters (columns)
+# - clusterCountsPath: path to file with counts of unique cells (rows) by unique pixel SOM/meta clusters (columns)
 # - clusterCountsNormPath: same as clusterCountsPath, but with counts normalized by cell size
 # - cellWeightsPath: path to the SOM weights file
-# - cellClusterNormPath: same as cellClusterPath, but counts are normalized. This will be used for consensus clustering.
+# - cellClusterNormPath: the path to write the normalized pixel SOM/meta cluster count data (normalized) with cell SOM labelss. This will be used for consensus clustering.
 
 library(arrow)
 library(data.table)

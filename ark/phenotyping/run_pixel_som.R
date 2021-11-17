@@ -3,7 +3,6 @@
 # Usage: Rscript run_pixel_som.R {fovs} {pixelMatDir} {normValsPath} {pixelWeightsPath} {pixelClusterDir}
 
 # - fovs: list of fovs to cluster
-# - markers: list of channel columns to use
 # - pixelMatDir: path to directory containing the complete pixel data
 # - normValsPath: path to the 99.9% normalized values file
 # - pixelWeightsPath: path to the SOM weights file
