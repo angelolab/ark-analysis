@@ -138,8 +138,6 @@ def flowsom_setup(tb, flowsom_dir, img_shape=(50, 50), num_fovs=3, num_chans=3,
         base_dir = "%s"
         tiff_dir = "%s"
         segmentation_dir = "%s"
-        preprocessed_dir = 'pixel_mat_preprocessed'
-        subsetted_dir = 'pixel_mat_subsetted'
         MIBItiff = %s
         mibitiff_suffix = '%s'
     """ % (flowsom_dir, tiff_dir, seg_dir, is_mibitiff, mibitiff_suffix)
@@ -173,6 +171,16 @@ def flowsom_pixel_run(tb, fovs, channels, cluster_prefix='test', is_mibitiff=Fal
     else:
         # handles the case when the user allows list_files or list_folders to do the fov loading
         tb.execute_cell('load_fovs')
+
+    # set the names of the preprocessed and segmented directories
+    set_pre_seg_dirs = """
+        preprocessed_dir = '%s_preprocessed_dir'
+        subsetted_dir = '%s_subsetted_dir'
+    """ % (cluster_prefix, cluster_prefix)
+    tb.inject(set_pre_seg_dirs, after='pre_sub_dir_set')
+
+    # set the name of the segmentation suffix
+    tb.execute_cell('seg_suffix_set')
 
     # sets the channels to include
     tb.inject(
