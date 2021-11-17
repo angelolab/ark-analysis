@@ -1150,10 +1150,10 @@ def cell_consensus_cluster(fovs, channels, base_dir, pixel_cluster_col, max_k=20
         cell_cluster_name (str):
             Name of the file containing the cell data with cluster labels
             Created by cluster_cells
-        cell_som_cluster_avg_name (str):
+        cell_som_cluster_avgs_name (str):
             The average number of pixel SOM/meta clusters per cell SOM cluster.
             Used to run consensus clustering on.
-        cell_meta_cluster_avg_name (str):
+        cell_meta_cluster_avgs_name (str):
             Same as above except for cell meta clusters
         cell_cluster_col (str):
             The cell cluster column used to aggregate to compute cell_cluster_channel_avg.
