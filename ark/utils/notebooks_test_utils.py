@@ -5,11 +5,61 @@ import skimage.io as io
 from ark.utils import test_utils
 
 
+def create_tiff_files(num_fovs, num_chans, tiff_dir, sub_dir="TIFs", is_mibitiff=False,
+                      mibitiff_suffix="-MassCorrected-Filtered", dtype=np.uint16):
+    """Creates the desired input tiff data for testing a notebook
+
+    Args:
+        num_fovs (int):
+            The number of test fovs to generate
+        num_chans (int):
+            The number of test channels to generate
+        tiff_dir (str):
+            The path to the tiff directory
+        is_mibitiff (bool):
+            Whether we're working with mibitiff files or not
+        mibitiff_suffix (str):
+            If is_mibitiff = True, the suffix to append to each fov.
+            Ignored if is_mibitiff = False.
+        dtype (numpy.dtype):
+            The datatype of each test image generated
+
+    Returns:
+        tuple:
+
+        - A list of fovs created
+        - A list of channels created
+    """
+
+    if is_mibitiff:
+        fovs, chans = test_utils.gen_fov_chan_names(num_fovs=num_fovs,
+                                                    num_chans=num_chans,
+                                                    use_delimiter=True)
+        fovs = [f + mibitiff_suffix for f in fovs]
+
+        filelocs, data_xr = test_utils.create_paired_xarray_fovs(
+            tiff_dir, fovs, chans, img_shape=(1024, 1024), mode='mibitiff',
+            delimiter='_', fills=False, dtype=dtype
+        )
+    else:
+        fovs, chans = test_utils.gen_fov_chan_names(num_fovs=num_fovs,
+                                                    num_chans=num_chans,
+                                                    return_imgs=False)
+
+        filelocs, data_xr = test_utils.create_paired_xarray_fovs(
+            tiff_dir, fovs, chans, img_shape=(1024, 1024), delimiter='_', fills=False,
+            sub_dir=sub_dir, dtype=dtype
+        )
+
+    return fovs, chans
+
+
 def segment_notebook_setup(tb, deepcell_tiff_dir, deepcell_input_dir, deepcell_output_dir,
-                           single_cell_dir, viz_dir, is_mibitiff=False,
+                           single_cell_dir, viz_dir, sub_dir="TIFs", is_mibitiff=False,
                            mibitiff_suffix="-MassCorrected-Filtered",
                            num_fovs=3, num_chans=3, dtype=np.uint16):
-    """Creates the directories and data needed and sets the MIBITiff variable accordingly
+    """Creates the directories and data needed for image segemntation
+    and sets the MIBITiff variable accordingly
 
     Args:
         tb (testbook.testbook):
@@ -24,6 +74,8 @@ def segment_notebook_setup(tb, deepcell_tiff_dir, deepcell_input_dir, deepcell_o
             The path to the single cell directory
         viz_dir (str):
             The path to the directory to store visualizations
+        sub_dir (str):
+            The name of the subdirectory to use for non-mibitiff image folders
         is_mibitiff (bool):
             Whether we're working with mibitiff files or not
         mibitiff_suffix (str):
@@ -40,26 +92,11 @@ def segment_notebook_setup(tb, deepcell_tiff_dir, deepcell_input_dir, deepcell_o
     # import modules and define file paths
     tb.execute_cell('import')
 
-    if is_mibitiff:
-        fovs, chans = test_utils.gen_fov_chan_names(num_fovs=num_fovs,
-                                                    num_chans=num_chans,
-                                                    use_delimiter=True)
-        fovs = [f + mibitiff_suffix for f in fovs]
+    # create the input tiff files
+    create_tiff_files(num_fovs, num_chans, deepcell_tiff_dir, sub_dir, is_mibitiff,
+                      mibitiff_suffix, dtype)
 
-        filelocs, data_xr = test_utils.create_paired_xarray_fovs(
-            deepcell_tiff_dir, fovs, chans, img_shape=(1024, 1024), mode='mibitiff',
-            delimiter='_', fills=False, dtype=dtype
-        )
-    else:
-        fovs, chans = test_utils.gen_fov_chan_names(num_fovs=num_fovs,
-                                                    num_chans=num_chans,
-                                                    return_imgs=False)
-
-        filelocs, data_xr = test_utils.create_paired_xarray_fovs(
-            deepcell_tiff_dir, fovs, chans, img_shape=(1024, 1024), delimiter='_', fills=False,
-            sub_dir="TIFs", dtype=dtype)
-
-    # define custom paths, leaving base_dir and input_dir for simplicity
+    # define custom paths, leave base_dir and input_dir for simplicity
     define_paths = """
         tiff_dir = "%s"
         deepcell_input_dir = "%s"
@@ -74,6 +111,73 @@ def segment_notebook_setup(tb, deepcell_tiff_dir, deepcell_input_dir, deepcell_o
     if is_mibitiff:
         # default setting is MIBItiff = False, change to True if user has mibitiff inputs
         tb.inject("MIBItiff = True", after='mibitiff_set')
+
+
+def qc_notebook_setup(tb, tiff_dir, sub_dir=None, is_mibitiff=False,
+                      mibitiff_suffix="-MassCorrected-Filtered",
+                      num_fovs=3, num_chans=3, gaussian_blur=True, dtype=np.uint16):
+    """Creates the directories and data needed for qc metric computation
+    and sets the MIBITiff, fovs, chans, and gaussian_blur/blur_factor vairables
+
+    Args:
+        tb (testbook.testbook):
+            The testbook runner instance
+        deepcell_tiff_dir (str):
+            The path to the tiff directory
+        sub_dir (str):
+            The name of the subdirectory to use for non-mibitiff image folders
+        is_mibitiff (bool):
+            Whether we're working with mibitiff files or not
+        mibitiff_suffix (str):
+            If is_mibitiff = True, the suffix to append to each fov.
+            Ignored if is_mibitiff = False.
+        num_fovs (int):
+            The number of test fovs to generate
+        num_chans (int):
+            The number of test channels to generate
+        gaussian_blur (bool):
+            Whether to set Gaussian blurring or not
+        dtype (numpy.dtype):
+            The datatype of each test image generated
+    """
+
+    # import modules and define file paths
+    tb.execute_cell('import')
+
+    # create the input tiff files
+    create_tiff_files(num_fovs, num_chans, tiff_dir, sub_dir, is_mibitiff, mibitiff_suffix, dtype)
+
+    # define custom paths, leave base_dir for simplicity
+    define_paths = """
+        base_dir = "%s"
+        tiff_dir = "%s"
+    """ % (tiff_dir, tiff_dir)
+    tb.inject(define_paths, after='file_path')
+
+    # set is_mibitiff to True if corresponding arg is True
+    if is_mibitiff:
+        tb.inject("MIBItiff = True", after='mibitiff_set')
+    else:
+        tb.execute_cell('mibitiff_set')
+
+    # specify a list of fovs
+    fovs_set = """
+        fovs = %s
+    """ % str(["fov%d" % i for i in range(num_fovs)])
+    tb.inject(fovs_set, after='load_fovs')
+
+    # specify a list of chans
+    chans_set = """
+        chans = %s
+    """ % str(["chan%d" % i for i in range(num_chans)])
+    tb.inject(chans_set, after='set_chans')
+
+    # set the blur factor
+    tb.execute_cell('set_gaussian_blur')
+
+    # if Gaussian blurring is set to True we need to set it in the notebook too
+    if gaussian_blur:
+        tb.inject("gaussian_blur = True", after='set_gaussian_blur')
 
 
 def fov_channel_input_set(tb, fovs=None, nucs_list=None, mems_list=None, is_mibitiff=False):
@@ -126,6 +230,56 @@ def fov_channel_input_set(tb, fovs=None, nucs_list=None, mems_list=None, is_mibi
         )
     """ % str(is_mibitiff)
     tb.inject(mibitiff_deepcell, after='gen_input')
+
+
+def run_qc_comp(tb, sub_dir=None):
+    """Runs the QC computation process with the hard-coded inputs from qc_notebook_setup
+
+    Args:
+        tb (testbook.testbook):
+            The testbook runner instance
+        sub_dir (str):
+            The name of the subdirectory of tiff_dir
+    """
+
+    # run compute_qc_metrics
+    compute_qc = """
+        qc_data = qc_comp.compute_qc_metrics(
+            tiff_dir,
+            img_sub_folder=%s,
+            is_mibitiff=MIBItiff,
+            fovs=fovs,
+            chans=chans,
+            batch_size=5,
+            gaussian_blur=gaussian_blur,
+            blur_factor=blur_factor
+        )
+    """ % ("\"%s\"" % sub_dir if sub_dir is not None else "None")
+    tb.inject(compute_qc, after='compute_qc_data')
+
+    # extract from a dictionary the final results
+    tb.execute_cell('assign_qc_data')
+
+    # extract just the numeric value from fovs
+    tb.execute_cell('rename_fovs')
+
+    # sort the fovs by fov number
+    tb.execute_cell('sort_by_fov')
+
+    # save the QC data to CSV
+    tb.execute_cell('save_qc_data')
+
+    # melt the QC data for visualization
+    tb.execute_cell('melt_qc')
+
+    # visualize the non-zero mean intensity
+    tb.execute_cell('viz_nonzero_mean')
+
+    # visualize the total intensity
+    tb.execute_cell('viz_total_intensity')
+
+    # visualize the 99.9% intensity value
+    tb.execute_cell('viz_99_9')
 
 
 def generate_sample_feature_tifs(fovs, deepcell_output_dir):
