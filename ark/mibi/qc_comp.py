@@ -1,13 +1,158 @@
 import copy
+import os
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.ndimage import gaussian_filter
 import seaborn as sns
+from shutil import rmtree
+from skimage.io import imsave
 
+from ark.mibi.mibitracker_utils import MibiRequests
+
+import ark.settings as settings
 import ark.utils.io_utils as io_utils
 import ark.utils.load_utils as load_utils
 import ark.utils.misc_utils as misc_utils
+
+# needed to prevent UserWarning: low contrast image barf when saving images
+import warnings
+warnings.filterwarnings('ignore')
+
+
+def create_mibitracker_request_helper(email, password):
+    """Create a mibitracker request helper to access a user's MIBItracker info on Ionpath
+
+    Args:
+        email (str):
+            The user's MIBItracker email address
+        password (str):
+            The user's MIBItracker password
+
+    Returns:
+        ark.mibi.mibitracker_utils.MibiRequests:
+            A request helper module instance to access a user's MIBItracker info
+    """
+
+    return MibiRequests(settings.MIBITRACKER_BACKEND, email, password)
+
+
+def download_mibitracker_data(email, password, run_name, run_label, base_dir, tiff_dir,
+                              xml_name, img_sub_folder=None, fovs=None, channels=None):
+    """Download a specific run's image data off of MIBITracker
+    in an `ark` compatible directory structure
+
+    Args:
+        email (str):
+            The user's MIBItracker email address
+        password (str):
+            The user's MIBItracker password
+        run_name (str):
+            The name of the run (specified on the user's MIBItracker run page)
+        run_label (str):
+            The label of the run (specified on the user's MIBItracker run page)
+        base_dir (str):
+            Where to place the created `tiff_dir`
+        tiff_dir (str):
+            The name of the data directory in `base_dir` to write the run's image data to
+        xml_name (str):
+            The name of the XML file to save the run metadata to in `data_dir`.
+            Needs to be suffixed by `.xml`
+        img_sub_folder (str):
+            If specified, the subdirectory inside each FOV folder in `data_dir` to place
+            the image data into
+        fovs (list):
+            A list of FOVs to subset over. If `None`, uses all FOVs.
+        channels (lsit):
+            A list of channels to subset over. If `None`, uses all channels.
+    """
+
+    if not os.path.exists(base_dir):
+        raise FileNotFoundError("base_dir %s does not exist" % base_dir)
+
+    # create the MIBItracker request helper
+    mr = create_mibitracker_request_helper(email, password)
+
+    # get the run info using the run_name and the run_label
+    # NOTE: there will only be one entry in the 'results' key with run_name and run_label specified
+    run_info = mr.search_runs(run_name, run_label)
+
+    # extract the name of the FOVs and their associated internal IDs
+    run_fov_names = [img['number'] for img in run_info['results'][0]['imageset']['images']]
+    run_fov_ids = [img['id'] for img in run_info['results'][0]['imageset']['images']]
+
+    # if fovs is None, ensure all of the fovs in run_fov_names_ids are chosen
+    if fovs is None:
+        fovs = run_fov_names
+
+    # ensure all of the fovs are valid (important if the user explicitly specifies fovs)
+    misc_utils.verify_in_list(
+        mibitracker_run_fovs=run_fov_names,
+        provided_fovs=fovs
+    )
+
+    # extract the name of the channels
+    # NOTE: this set of channels will be the same across all FOVs in the run
+    run_channels = run_info['results'][0]['imageset']['images'][0]['pngs']
+
+    # if channels is None, ensure all of the channels in run_channels are chosen
+    if channels is None:
+        channels = run_channels
+
+    # ensure all of the channels are valid (important if the user explicitly specifies channels)
+    misc_utils.verify_in_list(
+        mibitracker_run_chans=run_channels,
+        provided_chans=channels
+    )
+
+    # download the run metadata
+    run_metadata = mr.download_file(
+        os.path.join(run_info['results'][0]['path'], run_info['results'][0]['xml'])
+    )
+
+    # if the desired tiff_dir exists, remove it
+    if os.path.exists(os.path.join(base_dir, tiff_dir)):
+        rmtree(os.path.join(base_dir, tiff_dir))
+
+    # make the image directory
+    os.mkdir(os.path.join(base_dir, tiff_dir))
+
+    # write the run metadata as XML to specified xml_name in tiff_dir
+    with open(os.path.join(base_dir, tiff_dir, xml_name), 'wb') as outfile:
+        outfile.write(run_metadata.read())
+
+    # ensure sub_folder gets set to "" if img_sub_folder is None (for os.path.join convenience)
+    if not img_sub_folder:
+        img_sub_folder = ""
+
+    # iterate over each FOV of the run
+    for img in run_info['results'][0]['imageset']['images']:
+        # if the image fov name is not specified, move on
+        if img['number'] not in fovs:
+            continue
+
+        print("Creating data for fov %s" % img['number'])
+
+        # make the fov directory
+        os.mkdir(os.path.join(base_dir, tiff_dir, img['number']))
+
+        # make the img_sub_folder inside the fov directory if specified
+        if len(img_sub_folder) > 0:
+            os.mkdir(os.path.join(base_dir, tiff_dir, img['number'], img_sub_folder))
+
+        # iterate over each channel
+        for chan in run_channels:
+            # extract the channel data from MIBItracker as a numpy array
+            chan_data = mr.get_channel_data(img['id'], chan)
+
+            # define the name of the channel file
+            chan_file = '%s.tiff' % chan
+
+            # write the data to a .tiff file in the FOV directory structure
+            imsave(
+                os.path.join(base_dir, tiff_dir, img['number'], img_sub_folder, chan_file),
+                chan_data
+            )
 
 
 def compute_nonzero_mean_intensity(image_data):

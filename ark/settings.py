@@ -25,3 +25,6 @@ REGIONPROPS_SINGLE_COMP = ['major_minor_axis_ratio', 'perim_square_over_area',
                            'major_axis_equiv_diam_ratio', 'convex_hull_resid',
                            'centroid_dif', 'num_concavities']
 REGIONPROPS_MULTI_COMP = ['nc_ratio']
+
+# mibitracker
+MIBITRACKER_BACKEND = 'https://backend-dot-mibitracker-angelolab.appspot.com'
