@@ -37,38 +37,55 @@ class MibiTrackerError(Exception):
 
 class MibiRequests():
     """Helper class for making requests to the MIBItracker.
+
     This is an opinionated way of using ``requests.Session`` with the following
     features:
+
     - In the case of specified HTTP errors, requests are retried.
     - All responses call ``raise_for_status()``.
     - An instance requests an authorization token upon initialization, and
-        includes it in a default header for all future requests. No token
-        refresh capabilities are built in, so if the token expires a new
-        instance needs to be initialized.
+      includes it in a default header for all future requests. No token
+      refresh capabilities are built in, so if the token expires a new
+      instance needs to be initialized.
+
     Args:
-        url: The string url to the backend of a MIBItracker instance, e.g.
-            ``'https://backend-dot-mibitracker-demo.appspot.com'``.
-        email: The string email address of your MIBItracker account.
-        password: The string password of your MIBItracker account.
-        token: A JSON Web Token (JWT) to validate a MIBItracker session.
-        refresh: Number of seconds since previous refresh to automatically
+        url:
+            The string url to the backend of a MIBItracker instance, e.g.
+            'https://backend-dot-mibitracker-demo.appspot.com'``.
+        email:
+            The string email address of your MIBItracker account.
+        password:
+            The string password of your MIBItracker account.
+        token:
+            A JSON Web Token (JWT) to validate a MIBItracker session.
+        refresh:
+            Number of seconds since previous refresh to automatically
             refresh token. Defaults to 5 minutes. Set to 0 or None in order
             to not attempt refreshes.
-        retries: The max number of retries for HTTP status errors. Defaults
+        retries:
+            The max number of retries for HTTP status errors. Defaults
             to ``MAX_RETRIES`` which is set to 3.
-        retry_methods: The HTTP methods to retry. Defaults to
+        retry_methods:
+            The HTTP methods to retry. Defaults to
             ``RETRY_METHOD_WHITELIST`` which is the defaults to ``urllib3``'s
             whitelist with the addition of POST.
-        retry_codes: The HTTP status codes to retry. Defaults to ``(502, 503)``,
+        retry_codes:
+            The HTTP status codes to retry. Defaults to ``(502, 503)``,
             which are associated with transient errors seen on app engine.
-        session_timeout: Timeout for MIBItracker requests.
-        data_transfer_timeout: Timeout for data transfer requests.
+        session_timeout:
+            Timeout for MIBItracker requests.
+            data_transfer_timeout: Timeout for data transfer requests.
+
     Attributes:
-        url: The string url to the backend of a MIBItracker instance.
-        session: A ``StatusCheckedSession`` that includes an authorization
+        url:
+            The string url to the backend of a MIBItracker instance.
+        session:
+            A ``StatusCheckedSession`` that includes an authorization
             header and automatically raises for HTTP status errors.
+
     Raises:
-        HTTPError: Raised by ``requests.raise_for_status()``, i.e. if a
+        HTTPError:
+            Raised by ``requests.raise_for_status()``, i.e. if a
             response's status code is >= 400.
     """
 
@@ -148,10 +165,13 @@ class MibiRequests():
     def get(self, route, *args, **kwargs):
         """Makes a GET request to the url using the session.
         Args:
-            route: The route to add to the base url, such as ``'/images/'``
+            route:
+                The route to add to the base url, such as ``'/images/'``
                 or ``'/tissues/?organ=tonsil'``.
-            *args: Passed to ``requests.Session.get``.
-            **kwargs: Passes to ``requests.Session.get``.
+            *args:
+                Passed to ``requests.Session.get``.
+            **kwargs:
+                Passes to ``requests.Session.get``.
         Returns:
             The response from ``requests.Session.get``.
         """
@@ -162,9 +182,12 @@ class MibiRequests():
     def post(self, route, *args, **kwargs):
         """Makes a POST request to the url using the session.
         Args:
-            route: The route to add to the base url, such as ``'/slides/1/'``.
-            *args: Passed to ``requests.Session.post``.
-            **kwargs: Passes to ``requests.Session.post``.
+            route:
+                The route to add to the base url, such as ``'/slides/1/'``.
+            *args:
+                Passed to ``requests.Session.post``.
+            **kwargs:
+                Passes to ``requests.Session.post``.
         Returns:
             The response from ``requests.Session.post``.
         """
@@ -175,9 +198,12 @@ class MibiRequests():
     def put(self, route, *args, **kwargs):
         """Makes a PUT request to the url using the session.
         Args:
-            route: The route to add to the base url, such as ``'/images/1/'``.
-            *args: Passed to ``requests.Session.put``.
-            **kwargs: Passes to ``requests.Session.put`.
+            route:
+                The route to add to the base url, such as ``'/images/1/'``.
+            *args:
+                Passed to ``requests.Session.put``.
+            **kwargs:
+                Passes to ``requests.Session.put`.
         Returns:
             The response from ``requests.Session.put``.
         """
@@ -188,9 +214,12 @@ class MibiRequests():
     def delete(self, route, *args, **kwargs):
         """Makes a DELETE request to the url using the session.
         Args:
-            route: The route to add to the base url, such as ``'/images/1/'``.
-            *args: Passed to ``requests.Session.delete``.
-            **kwargs: Passes to ``requests.Session.delete``.
+            route:
+                The route to add to the base url, such as ``'/images/1/'``.
+            *args:
+                Passed to ``requests.Session.delete``.
+            **kwargs:
+                Passes to ``requests.Session.delete``.
         Returns:
             The response from ``requests.Session.delete``.
         """
@@ -201,9 +230,11 @@ class MibiRequests():
     def download_file(self, path):
         """Downloads a file from MIBItracker storage.
         Args:
-            path: The path to the file in storage. This usually can be
+            path:
+                The path to the file in storage. This usually can be
                 constructed from the run and image folders.
-        Returns: An open file object containing the downloaded file's data,
+        Returns:
+            An open file object containing the downloaded file's data,
             rewound to the beginning of the file.
         """
         response = self.get('/download/', params={'path': path})
@@ -248,7 +279,8 @@ class MibiRequests():
     def image_conjugates(self, image_id):
         """Gets a JSON array of panel conjugates from a given image id.
         Args:
-            image_id: The integer id of an image.
+            image_id:
+                The integer id of an image.
         Returns:
             A list of dicts of antibody conjugate details from the image's
             panel. This will be an empty list of the image does not have a
@@ -261,16 +293,19 @@ class MibiRequests():
     def image_id(self, run_label, fov_id):
         """Gets the primary key of an image given the specified run and FOV.
         Args:
-            run_label: The label of the run the image belongs to. If no images
+            run_label:
+                The label of the run the image belongs to. If no images
                 found using run label (which is the unique identifier of
                 each run), run name is checked instead (run name is not
                 guaranteed to be unique per run).
-            fov_id: The FOV ID, in the format of ``FOV<n>`` or ``Point<n>``
+            fov_id:
+                The FOV ID, in the format of ``FOV<n>`` or ``Point<n>``
                 for data generated with MIBIcontrol and MiniSIMS, respectively.
         Returns:
             An int id corresponding to the primary key of the image.
         Raises:
-            ValueError: Raised if no images match the specified run and FOV,
+            ValueError:
+                Raised if no images match the specified run and FOV,
                 or if more than one image matches the specified run and FOV.
         """
         results = self.get(
