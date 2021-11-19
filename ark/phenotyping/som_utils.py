@@ -1286,16 +1286,13 @@ def cell_consensus_cluster(fovs, channels, base_dir, pixel_cluster_col, max_k=20
         index=False
     )
 
-    # read in the weighted channel expression table
-    print("Compute average weighted channel expression across cell clusters")
-    weighted_cell_channel_avg = pd.read_csv(os.path.join(base_dir, weighted_cell_channel_avg_name))
-
     # compute the weighted channel average expression per cell cluster
+    print("Compute average weighted channel expression across cell clusters")
     cell_cluster_channel_avg = compute_cell_cluster_channel_avg(
         fovs,
         channels,
         base_dir,
-        weighted_cell_channel_avg,
+        weighted_cell_channel_avg_name,
         cell_consensus_name,
         cell_cluster_col
     )
