@@ -87,11 +87,11 @@ def download_mibitracker_data(email, password, run_name, run_label, base_dir, ti
 
     # ensure all of the fovs are valid (important if the user explicitly specifies fovs)
     misc_utils.verify_in_list(
-        mibitracker_run_fovs=run_fov_names,
-        provided_fovs=fovs
+        provided_fovs=fovs,
+        mibitracker_run_fovs=run_fov_names
     )
 
-    # extract the name of the channels
+    # extract the name of all the channels
     # NOTE: this set of channels will be the same across all FOVs in the run
     run_channels = run_info['results'][0]['imageset']['images'][0]['pngs']
 
@@ -101,8 +101,8 @@ def download_mibitracker_data(email, password, run_name, run_label, base_dir, ti
 
     # ensure all of the channels are valid (important if the user explicitly specifies channels)
     misc_utils.verify_in_list(
-        mibitracker_run_chans=run_channels,
-        provided_chans=channels
+        provided_chans=channels,
+        mibitracker_run_chans=run_channels
     )
 
     # download the run metadata
@@ -140,8 +140,8 @@ def download_mibitracker_data(email, password, run_name, run_label, base_dir, ti
         if len(img_sub_folder) > 0:
             os.mkdir(os.path.join(base_dir, tiff_dir, img['number'], img_sub_folder))
 
-        # iterate over each channel
-        for chan in run_channels:
+        # iterate over each provided channel
+        for chan in channels:
             # extract the channel data from MIBItracker as a numpy array
             chan_data = mr.get_channel_data(img['id'], chan)
 

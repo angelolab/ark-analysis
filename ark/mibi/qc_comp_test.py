@@ -2,7 +2,9 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 
+from ark.mibi.mibitracker_utils import MibiRequests
 import ark.mibi.qc_comp as qc_comp
+import ark.utils.io_utils as io_utils
 import ark.utils.misc_utils as misc_utils
 import ark.utils.test_utils as test_utils
 
@@ -11,7 +13,18 @@ import pytest
 import tempfile
 
 
-FOVS_CHANS_TEST = [
+# NOTE: all fovs and all channels will be tested in the example_qc_metric_eval notebook test
+FOVS_CHANS_TEST_MIBI = [
+    (None, ['CCL8', 'CD11b'], None),
+    (None, ['CCL8', 'CD11b'], "TIFs"),
+    (['Point1'], None, None),
+    (['Point1'], None, "TIFs"),
+    (['Point1'], ['CCL8', 'CD11b'], None),
+    (['Point1'], ['CCL8', 'CD11b'], "TIFs")
+]
+
+
+FOVS_CHANS_TEST_QC = [
     (None, None, False),
     (None, None, True),
     (['fov0', 'fov1'], None, False),
@@ -21,6 +34,99 @@ FOVS_CHANS_TEST = [
     (['fov0', 'fov1'], ['chan0', 'chan1'], False),
     (['fov0', 'fov1'], ['chan0', 'chan1'], True)
 ]
+
+MIBITRACKER_EMAIL = 'qc.mibi@gmail.com'
+MIBITRACKER_PASSWORD = 'The_MIBI_Is_Down_Again1!?'
+MIBITRACKER_RUN_NAME = '191008_JG85b'
+MIBITRACKER_RUN_LABEL = 'JG85_Run2'
+
+
+def test_create_mibitracker_request_helper():
+    # test creation works (just test the correct type returned)
+    mr = qc_comp.create_mibitracker_request_helper(MIBITRACKER_EMAIL, MIBITRACKER_PASSWORD)
+    assert type(mr) == MibiRequests
+
+
+@pytest.mark.parametrize("test_fovs,test_chans,test_sub_folder", FOVS_CHANS_TEST_MIBI)
+def test_download_mibitracker_data(test_fovs, test_chans, test_sub_folder):
+    # error checks
+    with tempfile.TemporaryDirectory() as temp_dir:
+        # bad base_dir provided
+        with pytest.raises(FileNotFoundError):
+            qc_comp.download_mibitracker_data('', '', '', '', 'bad_base_dir', '', '')
+
+        # bad fovs provided
+        with pytest.raises(ValueError):
+            qc_comp.download_mibitracker_data(
+                MIBITRACKER_EMAIL, MIBITRACKER_PASSWORD,
+                MIBITRACKER_RUN_NAME, MIBITRACKER_RUN_LABEL,
+                temp_dir, '', '', fovs=['Point0', 'Point1']
+            )
+
+        # bad channels provided
+        with pytest.raises(ValueError):
+            qc_comp.download_mibitracker_data(
+                MIBITRACKER_EMAIL, MIBITRACKER_PASSWORD,
+                MIBITRACKER_RUN_NAME, MIBITRACKER_RUN_LABEL,
+                temp_dir, '', '', channels=['B', 'C']
+            )
+
+        # ensure test to remove tiff_dir if it already exists runs
+        os.mkdir(os.path.join(temp_dir, 'sample_tiff_dir'))
+
+        # run the data
+        qc_comp.download_mibitracker_data(
+            MIBITRACKER_EMAIL, MIBITRACKER_PASSWORD,
+            MIBITRACKER_RUN_NAME, MIBITRACKER_RUN_LABEL,
+            temp_dir, 'sample_tiff_dir', 'sample_metadata.xml',
+            img_sub_folder=test_sub_folder, fovs=test_fovs, channels=test_chans
+        )
+
+        # for testing purposes, set test_fovs and test_chans to all fovs and channels
+        # if they're set to None
+        if test_fovs is None:
+            test_fovs = ['Point%d' % i for i in np.arange(1, 13)]
+
+        if test_chans is None:
+            test_chans = [
+                'CD115', 'C', 'Au', 'CCL8', 'CD11c', 'Ca', 'Background',
+                'CD11b', 'CD192', 'CD19', 'CD206', 'CD25', 'CD4', 'CD45.1',
+                'CD3', 'CD31', 'CD49b', 'CD68', 'CD45.2', 'FceRI', 'DNA', 'CD8',
+                'F4-80', 'Fe', 'IL-1B', 'Ly-6C', 'FRB', 'Lyve1', 'Ly-6G', 'MHCII',
+                'Na', 'Si', 'SMA', 'P', 'Ta', 'TREM2'
+            ]
+
+        # set the sub folder to a blank string if None
+        if test_sub_folder is None:
+            test_sub_folder = ""
+
+        # get the contents of tiff_dir
+        tiff_dir_contents = os.listdir(os.path.join(temp_dir, 'sample_tiff_dir'))
+
+        # assert sample_metadata.xml was created
+        assert 'sample_metadata.xml' in tiff_dir_contents
+
+        # assert all the fovs are contained in the dir
+        tiff_dir_fovs = [d for d in tiff_dir_contents if
+                         os.path.isdir(os.path.join(temp_dir, 'sample_tiff_dir', d))]
+        misc_utils.verify_same_elements(
+            created_fov_dirs=tiff_dir_fovs,
+            provided_fov_dirs=test_fovs
+        )
+
+        # assert for each fov the channels created are correct
+        for fov in tiff_dir_fovs:
+            # list all the files in the fov folder (and sub folder)
+            # remove file extensions so raw channel names are extracted
+            channel_files = io_utils.remove_file_extensions(os.listdir(
+                os.path.join(temp_dir, 'sample_tiff_dir', fov, test_sub_folder)
+            ))
+
+            # assert the channel names are the same
+            misc_utils.verify_same_elements(
+                create_channels=channel_files,
+                provided_channels=test_chans
+            )
 
 
 def test_compute_nonzero_mean_intensity():
@@ -93,7 +199,7 @@ def test_compute_qc_metrics_batch():
         )
 
 
-@pytest.mark.parametrize("test_fovs,test_chans,test_gaussian_blur", FOVS_CHANS_TEST)
+@pytest.mark.parametrize("test_fovs,test_chans,test_gaussian_blur", FOVS_CHANS_TEST_QC)
 def test_compute_qc_metrics_mibitiff(test_fovs, test_chans, test_gaussian_blur):
     # is_mibitiff True case, load from mibitiff file structure
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -172,7 +278,7 @@ def test_compute_qc_metrics_mibitiff(test_fovs, test_chans, test_gaussian_blur):
         )
 
 
-@pytest.mark.parametrize("test_fovs,test_chans,test_gaussian_blur", FOVS_CHANS_TEST)
+@pytest.mark.parametrize("test_fovs,test_chans,test_gaussian_blur", FOVS_CHANS_TEST_QC)
 def test_compute_qc_metrics_non_mibitiff(test_fovs, test_chans, test_gaussian_blur):
     with tempfile.TemporaryDirectory() as temp_dir:
         # define 3 fovs and 3 channels
