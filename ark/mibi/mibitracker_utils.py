@@ -173,7 +173,8 @@ class MibiRequests():
             **kwargs:
                 Passes to ``requests.Session.get``.
         Returns:
-            The response from ``requests.Session.get``.
+            requests.Session.get:
+                The response from ``requests.Session.get``.
         """
         self._check_refresh()
         return self.session.get('{}{}'.format(
@@ -189,7 +190,8 @@ class MibiRequests():
             **kwargs:
                 Passes to ``requests.Session.post``.
         Returns:
-            The response from ``requests.Session.post``.
+            requests.Session.post:
+                The response from ``requests.Session.post``.
         """
         self._check_refresh()
         return self.session.post('{}{}'.format(
@@ -205,7 +207,8 @@ class MibiRequests():
             **kwargs:
                 Passes to ``requests.Session.put`.
         Returns:
-            The response from ``requests.Session.put``.
+            requests.Session.put:
+                The response from ``requests.Session.put``.
         """
         self._check_refresh()
         return self.session.put('{}{}'.format(
@@ -221,7 +224,8 @@ class MibiRequests():
             **kwargs:
                 Passes to ``requests.Session.delete``.
         Returns:
-            The response from ``requests.Session.delete``.
+            requests.Session.delete:
+                The response from ``requests.Session.delete``.
         """
         self._check_refresh()
         return self.session.delete('{}{}'.format(
@@ -234,8 +238,9 @@ class MibiRequests():
                 The path to the file in storage. This usually can be
                 constructed from the run and image folders.
         Returns:
-            An open file object containing the downloaded file's data,
-            rewound to the beginning of the file.
+            io.BytesIO:
+                An open file object containing the downloaded file's data,
+                rewound to the beginning of the file.
         """
         response = self.get('/download/', params={'path': path})
         url = requests.get(response.json()['url'],
@@ -250,12 +255,14 @@ class MibiRequests():
         Args:
             run_name: The name of the run the image belongs to.
             run_label: (optional) The label of the run.
-        Returns: A list of JSON data for each run that matches the search.
-            If only ``run_name`` is specified, this list could be of any
-            length as a run's name is not necessarily unique. If
-            ``run_label`` is also specified, this is guaranteed to be
-            unique and the returned list could either be of length
-            zero or one.
+        Returns:
+            list:
+                A list of JSON data for each run that matches the search.
+                If only ``run_name`` is specified, this list could be of any
+                length as a run's name is not necessarily unique. If
+                ``run_label`` is also specified, this is guaranteed to be
+                unique and the returned list could either be of length
+                zero or one.
         """
 
         payload = {'name': run_name}
@@ -268,7 +275,8 @@ class MibiRequests():
     def run_images(self, run_label):
         """Gets a JSON array of image metadata from a given run label.
         Args:
-            run_label: The unique string label of a run.
+            run_label:
+                The unique string label of a run.
         Returns:
             A list of dicts of of image metadata for the specified run.
         """
@@ -282,9 +290,10 @@ class MibiRequests():
             image_id:
                 The integer id of an image.
         Returns:
-            A list of dicts of antibody conjugate details from the image's
-            panel. This will be an empty list of the image does not have a
-            section assigned, or if its section does not have a panel assigned.
+            list:
+                A list of dicts of antibody conjugate details from the image's
+                panel. This will be an empty list of the image does not have a
+                section assigned, or if its section does not have a panel assigned.
         """
         return self.get(
             '/images/{}/conjugates/'.format(image_id),
@@ -302,7 +311,8 @@ class MibiRequests():
                 The FOV ID, in the format of ``FOV<n>`` or ``Point<n>``
                 for data generated with MIBIcontrol and MiniSIMS, respectively.
         Returns:
-            An int id corresponding to the primary key of the image.
+            int:
+                An int id corresponding to the primary key of the image.
         Raises:
             ValueError:
                 Raised if no images match the specified run and FOV,
@@ -343,10 +353,13 @@ class MibiRequests():
     def get_channel_data(self, image_id, channel_name):
         """Gets a single channel from MIBItracker as a 2D numpy array.
         Args:
-            image_id: The integer id of an image.
-            channel_name: The name of the channel to download.
+            image_id:
+                The integer id of an image.
+            channel_name:
+                The name of the channel to download.
         Returns:
-            A MxN numpy array of the channel data.
+            numpy.ndarray:
+                A MxN numpy array of the channel data.
         """
         try:
             response = self.get(
