@@ -131,4 +131,5 @@ def test_qc_metric_comp(tb):
             fovs=['Point1', 'Point2'], chans=['Au', 'Ca']
         )
 
+        # run QC metric process (MIBItracker download and QC metric analysis)
         notebooks_test_utils.run_qc_comp(tb, gauss_blur=True)
