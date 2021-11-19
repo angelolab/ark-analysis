@@ -18,21 +18,25 @@ from urllib3.util.retry import Retry
 
 # The number of retries will be applied to these code and methods only.
 MAX_RETRIES = 3
+
 # Unavailable and Bad Gateway; we see this transiently on App Engine.
 RETRY_STATUS_CODES = (502, 503)
+
 # POST is added here as compared to the urllib3 defaults.
 RETRY_METHOD_WHITELIST = (
     'HEAD', 'GET', 'PUT', 'DELETE', 'OPTIONS', 'TRACE', 'POST'
 )
+
 # Timeout for MIBItracker requests
 SESSION_TIMEOUT = 10
+
 # Timeout for data transfer requests
 DATA_TRANSFER_TIMEOUT = 30
 
 
 class MibiTrackerError(Exception):
     """Raise for exceptions where the response from the MibiTracker API is
-        invalid or unexpected."""
+    invalid or unexpected."""
 
 
 class MibiRequests():
@@ -51,7 +55,7 @@ class MibiRequests():
     Args:
         url:
             The string url to the backend of a MIBItracker instance, e.g.
-            'https://backend-dot-mibitracker-demo.appspot.com'``.
+            ``'https://backend-dot-mibitracker-demo.appspot.com'``.
         email:
             The string email address of your MIBItracker account.
         password:
@@ -128,7 +132,8 @@ class MibiRequests():
         self.session.mount('https://', HTTPAdapter(max_retries=retry))
 
     def _auth(self, url, email, password):
-        """Adds an authorization token to the session's default header."""
+        """Adds an authorization token to the session's default header.
+        """
         response = self.session.post(
             '{}/api-token-auth/'.format(url),
             headers={'content-type': 'application/json'},
@@ -164,6 +169,7 @@ class MibiRequests():
 
     def get(self, route, *args, **kwargs):
         """Makes a GET request to the url using the session.
+
         Args:
             route:
                 The route to add to the base url, such as ``'/images/'``
@@ -182,6 +188,7 @@ class MibiRequests():
 
     def post(self, route, *args, **kwargs):
         """Makes a POST request to the url using the session.
+
         Args:
             route:
                 The route to add to the base url, such as ``'/slides/1/'``.
@@ -199,13 +206,14 @@ class MibiRequests():
 
     def put(self, route, *args, **kwargs):
         """Makes a PUT request to the url using the session.
+
         Args:
             route:
                 The route to add to the base url, such as ``'/images/1/'``.
             *args:
                 Passed to ``requests.Session.put``.
             **kwargs:
-                Passes to ``requests.Session.put`.
+                Passes to ``requests.Session.put``.
         Returns:
             requests.Session.put:
                 The response from ``requests.Session.put``.
@@ -216,6 +224,7 @@ class MibiRequests():
 
     def delete(self, route, *args, **kwargs):
         """Makes a DELETE request to the url using the session.
+
         Args:
             route:
                 The route to add to the base url, such as ``'/images/1/'``.
@@ -233,6 +242,7 @@ class MibiRequests():
 
     def download_file(self, path):
         """Downloads a file from MIBItracker storage.
+
         Args:
             path:
                 The path to the file in storage. This usually can be
@@ -252,6 +262,7 @@ class MibiRequests():
 
     def search_runs(self, run_name, run_label=None):
         """Searches for runs which have the name and optionally label.
+
         Args:
             run_name: The name of the run the image belongs to.
             run_label: (optional) The label of the run.
@@ -274,6 +285,7 @@ class MibiRequests():
 
     def run_images(self, run_label):
         """Gets a JSON array of image metadata from a given run label.
+
         Args:
             run_label:
                 The unique string label of a run.
@@ -286,6 +298,7 @@ class MibiRequests():
 
     def image_conjugates(self, image_id):
         """Gets a JSON array of panel conjugates from a given image id.
+
         Args:
             image_id:
                 The integer id of an image.
@@ -301,6 +314,7 @@ class MibiRequests():
 
     def image_id(self, run_label, fov_id):
         """Gets the primary key of an image given the specified run and FOV.
+
         Args:
             run_label:
                 The label of the run the image belongs to. If no images
@@ -352,6 +366,7 @@ class MibiRequests():
 
     def get_channel_data(self, image_id, channel_name):
         """Gets a single channel from MIBItracker as a 2D numpy array.
+
         Args:
             image_id:
                 The integer id of an image.
@@ -382,7 +397,8 @@ class MibiRequests():
 
 
 class StatusCheckedSession(requests.Session):
-    """Raises for HTTP errors and adds any response JSON to the message."""
+    """Raises for HTTP errors and adds any response JSON to the message.
+    """
 
     def __init__(self, timeout=SESSION_TIMEOUT):
         super(StatusCheckedSession, self).__init__()
