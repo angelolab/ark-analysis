@@ -1,7 +1,5 @@
 """Helper class for making and retrying requests to the MIBItracker.
 Copyright (C) 2021 Ionpath, Inc.  All rights reserved.
-
-Hehe copying from Ionpath go command-C
 """
 
 import datetime
