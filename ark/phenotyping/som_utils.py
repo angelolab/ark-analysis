@@ -188,7 +188,8 @@ def compute_cell_cluster_count_avg(cell_cluster_path, pixel_cluster_col_prefix,
     return mean_count_totals
 
 
-def compute_cell_cluster_channel_avg(fovs, channels, base_dir, cell_table,
+def compute_cell_cluster_channel_avg(fovs, channels, base_dir,
+                                     weighted_cell_channel_avg_name,
                                      cell_cluster_name='cell_mat_clustered.feather',
                                      cell_cluster_col='cell_meta_cluster'):
     """Computes the average marker expression for each cell cluster
@@ -200,8 +201,8 @@ def compute_cell_cluster_channel_avg(fovs, channels, base_dir, cell_table,
             The list of channels to subset on
         base_dir (str):
             The path to the data directory
-        cell_table (pandas.DataFrame):
-            The weighted cell table, created in `example_cell_clustering.ipynb`
+        weighted_cell_channel_avg_name (str):
+            The name of the weighted cell table, created in `example_cell_clustering.ipynb`
         cell_cluster_name (str):
             Name of the file containing the cell data with cluster labels
         cell_cluster_col (str):
@@ -213,11 +214,19 @@ def compute_cell_cluster_channel_avg(fovs, channels, base_dir, cell_table,
             Each cell cluster mapped to the average expression for each marker
     """
 
+    # verify the cell table actually exists
+    if not os.path.exists(os.path.join(base_dir, weighted_cell_channel_avg_name)):
+        raise FileNotFoundError(
+            "Weighted cell table %s not found in %s" % (weighted_cell_channel_avg_name, base_dir)
+        )
+
     # verify the cell cluster col specified is valid
     misc_utils.verify_in_list(
         provided_cluster_col=[cell_cluster_col],
         valid_cluster_cols=['cell_som_cluster', 'cell_meta_cluster']
     )
+
+    cell_table = pd.read_csv(os.path.join(base_dir, weighted_cell_channel_avg_name))
 
     # subset on only the fovs the user has specified
     cell_table = cell_table[cell_table['fov'].isin(fovs)]
