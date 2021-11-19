@@ -121,24 +121,14 @@ def test_segment_image_data_folder(tb):
         notebooks_test_utils.create_exp_mat(tb, nuclear_counts=True)
 
 
-# test mibitiff inputs for qc metric computation
+# test ffor qc metric computation
 @testbook(QC_METRIC_COMP_PATH, timeout=6000)
-def test_qc_metric_comp_mibitiff(tb):
-    with tdir() as tiff_dir:
-        # create input files
-        notebooks_test_utils.qc_notebook_setup(tb,
-                                               tiff_dir=tiff_dir,
-                                               is_mibitiff=True)
+def test_qc_metric_comp(tb):
+    with tdir() as base_dir:
+        # define QC metric notebook params
+        notebooks_test_utils.qc_notebook_setup(
+            tb, base_dir, 'sample_tiff_dir',
+            fovs=['Point1', 'Point2'], chans=['Au', 'Ca']
+        )
 
-        notebooks_test_utils.run_qc_comp(tb)
-
-
-# test folder inputs for qc metric computation
-@testbook(QC_METRIC_COMP_PATH, timeout=6000)
-def test_qc_metric_comp_folder(tb):
-    with tdir() as tiff_dir:
-        # create input files
-        notebooks_test_utils.qc_notebook_setup(tb,
-                                               tiff_dir=tiff_dir)
-
-        notebooks_test_utils.run_qc_comp(tb)
+        notebooks_test_utils.run_qc_comp(tb, gauss_blur=True)

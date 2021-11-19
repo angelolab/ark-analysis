@@ -113,71 +113,48 @@ def segment_notebook_setup(tb, deepcell_tiff_dir, deepcell_input_dir, deepcell_o
         tb.inject("MIBItiff = True", after='mibitiff_set')
 
 
-def qc_notebook_setup(tb, tiff_dir, sub_dir=None, is_mibitiff=False,
-                      mibitiff_suffix="-MassCorrected-Filtered",
-                      num_fovs=3, num_chans=3, gaussian_blur=True, dtype=np.uint16):
-    """Creates the directories and data needed for qc metric computation
-    and sets the MIBITiff, fovs, chans, and gaussian_blur/blur_factor vairables
+def qc_notebook_setup(tb, base_dir, tiff_dir, sub_dir=None, fovs=None, chans=None):
+    """Explicitly set the file parameters and desired fovs and channels needed
 
     Args:
         tb (testbook.testbook):
             The testbook runner instance
-        deepcell_tiff_dir (str):
-            The path to the tiff directory
+        base_dir (str):
+            The directory to store the tiff dir
+        tiff_dir (str):
+            The name of the tiff directory
         sub_dir (str):
             The name of the subdirectory to use for non-mibitiff image folders
-        is_mibitiff (bool):
-            Whether we're working with mibitiff files or not
-        mibitiff_suffix (str):
-            If is_mibitiff = True, the suffix to append to each fov.
-            Ignored if is_mibitiff = False.
-        num_fovs (int):
-            The number of test fovs to generate
-        num_chans (int):
-            The number of test channels to generate
-        gaussian_blur (bool):
-            Whether to set Gaussian blurring or not
-        dtype (numpy.dtype):
-            The datatype of each test image generated
+        fovs (list):
+            The list of fovs to subset over
+        chans (list):
+            The list of channels to subset over
     """
 
-    # import modules and define file paths
+    # import modules
     tb.execute_cell('import')
 
-    # create the input tiff files
-    create_tiff_files(num_fovs, num_chans, tiff_dir, sub_dir, is_mibitiff, mibitiff_suffix, dtype)
+    # set the user's MIBItracker info (use hard-coded values)
+    tb.execute_cell('set_mibitracker_info')
 
-    # define custom paths, leave base_dir for simplicity
-    define_paths = """
-        base_dir = "%s"
-        tiff_dir = "%s"
-    """ % (tiff_dir, tiff_dir)
-    tb.inject(define_paths, after='file_path')
+    # convert sub_dir, fovs, and chans to appropriate string representations
+    img_sub_folder = "None" if sub_dir is None else "\"%s\"" % sub_dir
+    fov_list = "None" if fovs is None else str(fovs)
+    chan_list = "None" if chans is None else str(chans)
 
-    # set is_mibitiff to True if corresponding arg is True
-    if is_mibitiff:
-        tb.inject("MIBItiff = True", after='mibitiff_set')
-    else:
-        tb.execute_cell('mibitiff_set')
+    data_paths = """
+        base_dir = '%s'
+        tiff_dir = '%s'
+        img_sub_folder = %s
+        xml_name = 'sample_mibitracker_metadata.xml'
+    """ % (base_dir, tiff_dir, img_sub_folder)
+    tb.inject(data_paths, after='set_data_info')
 
-    # specify a list of fovs
-    fovs_set = """
+    fov_chans = """
         fovs = %s
-    """ % str(["fov%d" % i for i in range(num_fovs)])
-    tb.inject(fovs_set, after='load_fovs')
-
-    # specify a list of chans
-    chans_set = """
-        chans = %s
-    """ % str(["chan%d" % i for i in range(num_chans)])
-    tb.inject(chans_set, after='set_chans')
-
-    # set the blur factor
-    tb.execute_cell('set_gaussian_blur')
-
-    # if Gaussian blurring is set to True we need to set it in the notebook too
-    if gaussian_blur:
-        tb.inject("gaussian_blur = True", after='set_gaussian_blur')
+        channels = %s
+    """ % (fov_list, chan_list)
+    tb.inject(fov_chans, after='set_fovs_chans')
 
 
 def fov_channel_input_set(tb, fovs=None, nucs_list=None, mems_list=None, is_mibitiff=False):
@@ -232,30 +209,28 @@ def fov_channel_input_set(tb, fovs=None, nucs_list=None, mems_list=None, is_mibi
     tb.inject(mibitiff_deepcell, after='gen_input')
 
 
-def run_qc_comp(tb, sub_dir=None):
+def run_qc_comp(tb, gauss_blur=False):
     """Runs the QC computation process with the hard-coded inputs from qc_notebook_setup
 
     Args:
         tb (testbook.testbook):
             The testbook runner instance
-        sub_dir (str):
-            The name of the subdirectory of tiff_dir
+        gauss_blur (bool):
+            Whether to include Gaussian blurring
     """
 
-    # run compute_qc_metrics
-    compute_qc = """
-        qc_data = qc_comp.compute_qc_metrics(
-            tiff_dir,
-            img_sub_folder=%s,
-            is_mibitiff=MIBItiff,
-            fovs=fovs,
-            chans=chans,
-            batch_size=5,
-            gaussian_blur=gaussian_blur,
-            blur_factor=blur_factor
-        )
-    """ % ("\"%s\"" % sub_dir if sub_dir is not None else "None")
-    tb.inject(compute_qc, after='compute_qc_data')
+    # download the data off the MIBItracker
+    tb.execute_cell('download_mibitracker')
+
+    # set the Gaussian blurring parameters
+    gauss_blur = """
+        gaussian_blur = %s
+        blur_factor = 1
+    """ % str(gauss_blur)
+    tb.inject(gauss_blur, after='set_gaussian_blur')
+
+    # run QC metric extraction
+    tb.execute_cell('compute_qc_data')
 
     # extract from a dictionary the final results
     tb.execute_cell('assign_qc_data')

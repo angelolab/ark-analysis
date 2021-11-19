@@ -295,9 +295,8 @@ def compute_qc_metrics_batch(image_data, fovs, chans, gaussian_blur=False, blur_
     return qc_data_batch
 
 
-def compute_qc_metrics(tiff_dir, img_sub_folder="TIFs", is_mibitiff=False,
-                       fovs=None, chans=None, batch_size=5, gaussian_blur=False,
-                       blur_factor=1, dtype='int16'):
+def compute_qc_metrics(tiff_dir, img_sub_folder="TIFs", fovs=None, channels=None,
+                       batch_size=5, gaussian_blur=False, blur_factor=1, dtype='int16'):
     """Compute the QC metric matrices
 
     Args:
@@ -305,12 +304,9 @@ def compute_qc_metrics(tiff_dir, img_sub_folder="TIFs", is_mibitiff=False,
             the name of the directory which contains the single_channel_inputs
         img_sub_folder (str):
             the name of the folder where the TIF images are located
-            ignored if is_mibitiff is True
-        is_mibitiff (bool):
-            a flag to indicate whether or not the base images are MIBItiffs
         fovs (list):
             a list of fovs we wish to analyze, if None will default to all fovs
-        chans (list):
+        channels (list):
             a list of channels we wish to subset on, if None will default to all channels
         batch_size (int):
             how large we want each of the batches of fovs to be when computing, adjust as
@@ -331,10 +327,7 @@ def compute_qc_metrics(tiff_dir, img_sub_folder="TIFs", is_mibitiff=False,
 
     # if no fovs are specified, then load all the fovs
     if fovs is None:
-        if is_mibitiff:
-            fovs = io_utils.list_files(tiff_dir, substrs=['.tif', '.tiff'])
-        else:
-            fovs = io_utils.list_folders(tiff_dir)
+        fovs = io_utils.list_folders(tiff_dir)
 
     # drop file extensions
     fovs = io_utils.remove_file_extensions(fovs)
@@ -362,30 +355,24 @@ def compute_qc_metrics(tiff_dir, img_sub_folder="TIFs", is_mibitiff=False,
         [fovs[i:i + batch_size] for i in range(0, cohort_len, batch_size)],
         [filenames[i:i + batch_size] for i in range(0, cohort_len, batch_size)]
     ):
-        # extract the image data for each batch
-        if is_mibitiff:
-            image_data = load_utils.load_imgs_from_mibitiff(data_dir=tiff_dir,
-                                                            mibitiff_files=batch_files,
-                                                            dtype=dtype)
-        else:
-            image_data = load_utils.load_imgs_from_tree(data_dir=tiff_dir,
-                                                        img_sub_folder=img_sub_folder,
-                                                        fovs=batch_names,
-                                                        dtype=dtype)
+        image_data = load_utils.load_imgs_from_tree(data_dir=tiff_dir,
+                                                    img_sub_folder=img_sub_folder,
+                                                    fovs=batch_names,
+                                                    dtype=dtype)
 
         # get the channel names directly from image_data if not specified
-        if chans is None:
-            chans = image_data.channels.values
+        if channels is None:
+            channels = image_data.channels.values
 
         # verify the channel names (important if the user explicitly specifies channels)
         misc_utils.verify_in_list(
-            provided_chans=chans,
+            provided_chans=channels,
             image_chans=image_data.channels.values
         )
 
         # compute the QC metrics of this batch
         qc_data_batch = compute_qc_metrics_batch(
-            image_data, batch_names, chans, gaussian_blur, blur_factor
+            image_data, batch_names, channels, gaussian_blur, blur_factor
         )
 
         # append the batch QC metric data to the full processed data
