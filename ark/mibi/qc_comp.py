@@ -67,6 +67,7 @@ def download_mibitracker_data(email, password, run_name, run_label, base_dir, ti
             A list of channels to subset over. If `None`, uses all channels.
     """
 
+    # verify that base_dir provided exists
     if not os.path.exists(base_dir):
         raise FileNotFoundError("base_dir %s does not exist" % base_dir)
 
