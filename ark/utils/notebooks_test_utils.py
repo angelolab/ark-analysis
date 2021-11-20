@@ -126,7 +126,8 @@ def flowsom_setup(tb, flowsom_dir, img_shape=(50, 50), num_fovs=3, num_chans=3,
                                                     return_imgs=False)
 
         filelocs, data_xr = test_utils.create_paired_xarray_fovs(
-            tiff_dir, fovs, chans, img_shape=img_shape, delimiter='_', fills=False, dtype=dtype)
+            tiff_dir, fovs, chans, img_shape=img_shape, delimiter='_', fills=False, dtype=dtype
+        )
 
     # generate sample segmentation labels so we can load them in
     seg_dir = os.path.join(flowsom_dir, "deepcell_output")
@@ -139,6 +140,7 @@ def flowsom_setup(tb, flowsom_dir, img_shape=(50, 50), num_fovs=3, num_chans=3,
         tiff_dir = "%s"
         img_sub_folder = None
         segmentation_dir = "%s"
+        seg_suffix = '_feature_0.tif'
         MIBItiff = %s
         mibitiff_suffix = '%s'
     """ % (flowsom_dir, tiff_dir, seg_dir, is_mibitiff, mibitiff_suffix)
@@ -180,19 +182,15 @@ def flowsom_pixel_run(tb, fovs, channels, cluster_prefix='test', is_mibitiff=Fal
     """ % (cluster_prefix, cluster_prefix)
     tb.inject(set_pre_seg_dirs, after='pre_sub_dir_set')
 
-    # set the name of the segmentation suffix
-    tb.execute_cell('seg_suffix_set')
-
     # sets the channels to include
     tb.inject(
         """
             channels = %s
+            blur_factor = 2
+            subset_proportion = 0.1
         """ % str(channels),
         after='channel_set'
     )
-
-    # set the preprocessing arguments
-    tb.execute_cell('preprocess_arg_set')
 
     # test the preprocessing works, we won't save nor run the actual FlowSOM clustering
     if is_mibitiff:
@@ -216,7 +214,7 @@ def flowsom_pixel_run(tb, fovs, channels, cluster_prefix='test', is_mibitiff=Fal
         pixel_consensus_dir = '%s_pixel_mat_consensus'
         pixel_weights_name = '%s_pixel_weights.feather'
     """ % (cluster_prefix, cluster_prefix, cluster_prefix, cluster_prefix)
-    tb.inject(prefix_set, after='cluster_prefix_set')
+    tb.inject(prefix_set, after='pixel_som_path_set')
 
     # create a dummy weights feather
     dummy_weights = """
