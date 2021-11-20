@@ -32,7 +32,7 @@ print("Reading the weights matrix")
 somWeights <- as.matrix(arrow::read_feather(cellWeightsPath))
 
 # define the subset of count columns to cluster on
-clusterCols <- colnames(clusterCountsNorm)[grepl("cluster_|hCluster_cap_",
+clusterCols <- colnames(clusterCountsNorm)[grepl("pixel_som_cluster_|pixel_meta_cluster_",
                                            colnames(clusterCountsNorm))]
 
 # subset on just the clusterCols for normalization
