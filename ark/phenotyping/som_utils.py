@@ -118,6 +118,9 @@ def compute_pixel_cluster_channel_avg(fovs, channels, base_dir, pixel_cluster_co
     # now compute the means using the count column
     sum_count_totals[channels] = sum_count_totals[channels].div(sum_count_totals['count'], axis=0)
 
+    # z-score the mean channel expressions
+    sum_count_totals[channels] = stats.zscore(sum_count_totals[channels])
+
     # convert cluster column to integer type
     sum_count_totals[pixel_cluster_col] = sum_count_totals[pixel_cluster_col].astype(int)
 
@@ -176,6 +179,9 @@ def compute_cell_cluster_count_avg(cell_cluster_path, pixel_cluster_col_prefix,
 
     # average each column grouped by the cell cluster column
     mean_count_totals = cluster_data_subset.groupby(cell_cluster_col).mean().reset_index()
+
+    # z-score the average pixel SOM/meta cluster counts
+    mean_count_totals[column_subset] = stats.zscore(mean_count_totals[column_subset])
 
     # if keep_count is included, add the count column to the cell table
     if keep_count:

@@ -314,10 +314,10 @@ def test_compute_pixel_cluster_channel_avg():
             # define the final result we should get
             if cluster_col == 'pixel_som_cluster':
                 num_repeats = 100
+                result = np.repeat(np.array([[1., 1., 1.]]), repeats=num_repeats, axis=0)
             else:
                 num_repeats = 10
-
-            result = np.repeat(np.array([[0.1, 0.2, 0.3]]), repeats=num_repeats, axis=0)
+                result = np.repeat(np.array([[-1., -1., -1.]]), repeats=num_repeats, axis=0)
 
             for keep_count in [False, True]:
                 # compute pixel cluster average matrix
@@ -350,36 +350,6 @@ def test_compute_pixel_cluster_channel_avg():
                 # assert all elements of cluster_avg and the actual result are equal
                 assert np.array_equal(result, np.round(cluster_avg[cluster_avg_cols].values, 1))
 
-        # compute pixel cluster average matrix
-        cluster_avg = som_utils.compute_pixel_cluster_channel_avg(
-            fovs, chans, temp_dir, 'pixel_som_cluster', 'pixel_mat_clustered'
-        )
-
-        # verify the provided channels and the channels in cluster_avg are exactly the same
-        misc_utils.verify_same_elements(
-            cluster_avg_chans=cluster_avg[chans].columns.values,
-            provided_chans=chans
-        )
-
-        # assert all rows equal [0.1, 0.2, 0.3], round due to minor float arithmetic inaccuracies
-        result = np.repeat(np.array([[0.1, 0.2, 0.3]]), repeats=100, axis=0)
-        assert np.array_equal(result, np.round(cluster_avg[chans].values, 1))
-
-        # compute meta cluster average matrix
-        cluster_avg = som_utils.compute_pixel_cluster_channel_avg(
-            fovs, chans, temp_dir, 'pixel_meta_cluster', 'pixel_mat_consensus'
-        )
-
-        # verify the provided channels and the channels in cluster_avg are exactly the same
-        misc_utils.verify_same_elements(
-            cluster_avg_chans=cluster_avg[chans].columns.values,
-            provided_chans=chans
-        )
-
-        # assert all rows equal [0.1, 0.2, 0.3], round due to minor float arithmetic inaccuracies
-        result = np.repeat(np.array([[0.1, 0.2, 0.3]]), repeats=10, axis=0)
-        assert np.array_equal(result, np.round(cluster_avg[chans].values, 1))
-
 
 def test_compute_cell_cluster_count_avg():
     # define the cluster columns
@@ -407,7 +377,7 @@ def test_compute_cell_cluster_count_avg():
 
             # create a dummy cluster_data file
             cluster_data = pd.DataFrame(
-                np.repeat(np.array([[0.1, 0.1, 0.1]]), repeats=1000, axis=0),
+                np.repeat(np.array([[0.1, 0.2, 0.3]]), repeats=1000, axis=0),
                 columns=cluster_col_arr[i]
             )
 
@@ -419,7 +389,7 @@ def test_compute_cell_cluster_count_avg():
 
             # assign cell cluster labels
             cluster_data['cell_som_cluster'] = np.repeat(np.arange(10), 100)
-            cluster_data['cell_meta_cluster'] = np.repeat(np.arange(2), 500)
+            cluster_data['cell_meta_cluster'] = np.repeat(np.arange(5), 200)
 
             # write cluster data
             clustered_path = os.path.join(temp_dir, 'cell_mat_clustered.feather')
@@ -446,7 +416,7 @@ def test_compute_cell_cluster_count_avg():
                 # division causes tiny errors so round to 1 decimal place
                 cell_cluster_avg_sub = cell_cluster_avg_sub.round(decimals=1)
 
-                assert np.all(cell_cluster_avg_sub == 0.1)
+                assert np.all(cell_cluster_avg_sub == -1.)
 
                 # assert that the counts are valid if keep_count set to True
                 if keep_count:
@@ -462,20 +432,25 @@ def test_compute_cell_cluster_count_avg():
                     clustered_path, cluster_prefix, 'cell_meta_cluster', keep_count=keep_count
                 )
 
-                # assert we have results for all 2 labels
-                assert cell_cluster_avg.shape[0] == 2
+                # assert we have results for all 5 labels
+                assert cell_cluster_avg.shape[0] == 5
 
-                # assert the values are 0.1 across the board
+                # assert the values are the same across the board
                 cell_cluster_avg_sub = cell_cluster_avg.drop(columns=drop_cols)
 
                 # division causes tiny errors so round to 1 decimal place
                 cell_cluster_avg_sub = cell_cluster_avg_sub.round(decimals=1)
 
-                assert np.all(cell_cluster_avg_sub == 0.1)
+                # this particular result will contain a NaN, not abnormal
+                # these will be filled with 0 in the visualizations
+                cell_cluster_avg_sub = cell_cluster_avg_sub.fillna(0.)
+                result = np.repeat(np.array([[1., 1., 0.]]), repeats=5, axis=0)
+
+                assert np.all(result == cell_cluster_avg_sub.values)
 
                 # assert that the counts are valid if keep_count set to True
                 if keep_count:
-                    assert np.all(cell_cluster_avg['count'].values == 500)
+                    assert np.all(cell_cluster_avg['count'].values == 200)
 
 
 def test_compute_cell_cluster_channel_avg():
@@ -621,10 +596,14 @@ def test_compute_p2c_weighted_channel_avg():
                 fovs, pixel_consensus_path, cell_table_path, pixel_cluster_col=cluster_col
             )
 
-            # compute average cluster expression for each pixel som cluster
-            cluster_avg = som_utils.compute_pixel_cluster_channel_avg(
-                fovs, chans, temp_dir, cluster_col, 'pixel_consensus_path'
+            # define a sample cluster_avgs table
+            num_repeats = 3 if cluster_col == 'pixel_som_cluster' else 2
+            cluster_avg = pd.DataFrame(
+                np.repeat([[0.1, 0.2, 0.4]], num_repeats, axis=0),
+                columns=chans
             )
+            cluster_labels = np.arange(num_repeats)
+            cluster_avg[cluster_col] = cluster_labels
 
             # error check: invalid fovs provided
             with pytest.raises(ValueError):
