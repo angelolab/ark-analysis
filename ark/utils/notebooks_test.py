@@ -121,7 +121,7 @@ def test_segment_image_data_folder(tb):
         notebooks_test_utils.create_exp_mat(tb, nuclear_counts=True)
 
 
-# test ffor qc metric computation
+# test for qc metric computation
 @testbook(QC_METRIC_COMP_PATH, timeout=6000)
 def test_qc_metric_comp(tb):
     with tdir() as base_dir:
