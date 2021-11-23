@@ -3,6 +3,7 @@ import os
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from requests.exceptions import HTTPError
 from scipy.ndimage import gaussian_filter
 import seaborn as sns
 from shutil import rmtree
@@ -34,11 +35,14 @@ def create_mibitracker_request_helper(email, password):
             A request helper module instance to access a user's MIBItracker info
     """
 
-    return MibiRequests(settings.MIBITRACKER_BACKEND, email, password)
+    try:
+        return MibiRequests(settings.MIBITRACKER_BACKEND, email, password)
+    except HTTPError:
+        print("Invalid MIBItracker email or password provided")
 
 
 def download_mibitracker_data(email, password, run_name, run_label, base_dir, tiff_dir,
-                              xml_name, img_sub_folder=None, fovs=None, channels=None):
+                              img_sub_folder=None, fovs=None, channels=None):
     """Download a specific run's image data off of MIBITracker
     in an `ark` compatible directory structure
 
@@ -55,9 +59,6 @@ def download_mibitracker_data(email, password, run_name, run_label, base_dir, ti
             Where to place the created `tiff_dir`
         tiff_dir (str):
             The name of the data directory in `base_dir` to write the run's image data to
-        xml_name (str):
-            The name of the XML file to save the run metadata to in `data_dir`.
-            Needs to be suffixed by `.xml`
         img_sub_folder (str):
             If specified, the subdirectory inside each FOV folder in `data_dir` to place
             the image data into
@@ -65,6 +66,11 @@ def download_mibitracker_data(email, password, run_name, run_label, base_dir, ti
             A list of FOVs to subset over. If `None`, uses all FOVs.
         channels (lsit):
             A list of channels to subset over. If `None`, uses all channels.
+
+    Returns:
+        list:
+            A list of tuples containing (point name, point id), sorted by point id.
+            This defines the run acquisition order needed for plotting the QC graphs.
     """
 
     # verify that base_dir provided exists
@@ -77,6 +83,10 @@ def download_mibitracker_data(email, password, run_name, run_label, base_dir, ti
     # get the run info using the run_name and the run_label
     # NOTE: there will only be one entry in the 'results' key with run_name and run_label specified
     run_info = mr.search_runs(run_name, run_label)
+
+    # if no results are returned, invalid run_name and/or run_label provided
+    if len(run_info['results']) == 0:
+        raise ValueError('No data found for run_name %s and run_label %s' % (run_name, run_label))
 
     # extract the name of the FOVs and their associated internal IDs
     run_fov_names = [img['number'] for img in run_info['results'][0]['imageset']['images']]
@@ -106,11 +116,6 @@ def download_mibitracker_data(email, password, run_name, run_label, base_dir, ti
         mibitracker_run_chans=run_channels
     )
 
-    # download the run metadata
-    run_metadata = mr.download_file(
-        os.path.join(run_info['results'][0]['path'], run_info['results'][0]['xml'])
-    )
-
     # if the desired tiff_dir exists, remove it
     if os.path.exists(os.path.join(base_dir, tiff_dir)):
         rmtree(os.path.join(base_dir, tiff_dir))
@@ -118,13 +123,12 @@ def download_mibitracker_data(email, password, run_name, run_label, base_dir, ti
     # make the image directory
     os.mkdir(os.path.join(base_dir, tiff_dir))
 
-    # write the run metadata as XML to specified xml_name in tiff_dir
-    with open(os.path.join(base_dir, tiff_dir, xml_name), 'wb') as outfile:
-        outfile.write(run_metadata.read())
-
     # ensure sub_folder gets set to "" if img_sub_folder is None (for os.path.join convenience)
     if not img_sub_folder:
         img_sub_folder = ""
+
+    # define the run order list to return
+    run_order = []
 
     # iterate over each FOV of the run
     for img in run_info['results'][0]['imageset']['images']:
@@ -154,6 +158,11 @@ def download_mibitracker_data(email, password, run_name, run_label, base_dir, ti
                 os.path.join(base_dir, tiff_dir, img['number'], img_sub_folder, chan_file),
                 chan_data
             )
+
+        # append the run name and run id to the list
+        run_order.append((img['number'], img['id']))
+
+    return run_order
 
 
 def compute_nonzero_mean_intensity(image_data):

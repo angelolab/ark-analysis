@@ -146,7 +146,6 @@ def qc_notebook_setup(tb, base_dir, tiff_dir, sub_dir=None, fovs=None, chans=Non
         base_dir = '%s'
         tiff_dir = '%s'
         img_sub_folder = %s
-        xml_name = 'sample_mibitracker_metadata.xml'
     """ % (base_dir, tiff_dir, img_sub_folder)
     tb.inject(data_paths, after='set_data_info')
 

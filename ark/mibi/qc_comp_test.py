@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+from requests.exceptions import HTTPError
 import xarray as xr
 
 from ark.mibi.mibitracker_utils import MibiRequests
@@ -13,14 +14,17 @@ import pytest
 import tempfile
 
 
+RUN_POINT_NAMES = ['Point%d' % i for i in range(1, 13)]
+RUN_POINT_IDS = list(range(661, 673))
+
 # NOTE: all fovs and all channels will be tested in the example_qc_metric_eval notebook test
 FOVS_CHANS_TEST_MIBI = [
-    (None, ['CCL8', 'CD11b'], None),
-    (None, ['CCL8', 'CD11b'], "TIFs"),
-    (['Point1'], None, None),
-    (['Point1'], None, "TIFs"),
-    (['Point1'], ['CCL8', 'CD11b'], None),
-    (['Point1'], ['CCL8', 'CD11b'], "TIFs")
+    (None, ['CCL8', 'CD11b'], None, RUN_POINT_NAMES, RUN_POINT_IDS),
+    (None, ['CCL8', 'CD11b'], "TIFs", RUN_POINT_NAMES, RUN_POINT_IDS),
+    (['Point1'], None, None, RUN_POINT_NAMES[0:1], RUN_POINT_IDS[0:1]),
+    (['Point1'], None, "TIFs", RUN_POINT_NAMES[0:1], RUN_POINT_IDS[0:1]),
+    (['Point1'], ['CCL8', 'CD11b'], None, RUN_POINT_NAMES[0:1], RUN_POINT_IDS[0:1]),
+    (['Point1'], ['CCL8', 'CD11b'], "TIFs", RUN_POINT_NAMES[0:1], RUN_POINT_IDS[0:1])
 ]
 
 
@@ -42,18 +46,32 @@ MIBITRACKER_RUN_LABEL = 'JG85_Run2'
 
 
 def test_create_mibitracker_request_helper():
+    # error check: bad email and/or password provided
+    mr = qc_comp.create_mibitracker_request_helper('bad_email', 'bad_password')
+    assert mr is None
+
     # test creation works (just test the correct type returned)
     mr = qc_comp.create_mibitracker_request_helper(MIBITRACKER_EMAIL, MIBITRACKER_PASSWORD)
     assert type(mr) == MibiRequests
 
 
-@pytest.mark.parametrize("test_fovs,test_chans,test_sub_folder", FOVS_CHANS_TEST_MIBI)
-def test_download_mibitracker_data(test_fovs, test_chans, test_sub_folder):
-    # error checks
+@pytest.mark.parametrize(
+    "test_fovs,test_chans,test_sub_folder,actual_points,actual_ids",
+    FOVS_CHANS_TEST_MIBI
+)
+def test_download_mibitracker_data(test_fovs, test_chans, test_sub_folder,
+                                   actual_points, actual_ids):
     with tempfile.TemporaryDirectory() as temp_dir:
-        # bad base_dir provided
+        # error check: bad base_dir provided
         with pytest.raises(FileNotFoundError):
             qc_comp.download_mibitracker_data('', '', '', '', 'bad_base_dir', '', '')
+
+        # error check: bad run_name and/or run_label provided
+        with pytest.raises(ValueError):
+            qc_comp.download_mibitracker_data(
+                MIBITRACKER_EMAIL, MIBITRACKER_PASSWORD, 'bad_run_name', 'bad_run_label',
+                temp_dir, '', ''
+            )
 
         # bad fovs provided
         with pytest.raises(ValueError):
@@ -75,11 +93,11 @@ def test_download_mibitracker_data(test_fovs, test_chans, test_sub_folder):
         os.mkdir(os.path.join(temp_dir, 'sample_tiff_dir'))
 
         # run the data
-        qc_comp.download_mibitracker_data(
+        run_order = qc_comp.download_mibitracker_data(
             MIBITRACKER_EMAIL, MIBITRACKER_PASSWORD,
             MIBITRACKER_RUN_NAME, MIBITRACKER_RUN_LABEL,
-            temp_dir, 'sample_tiff_dir', 'sample_metadata.xml',
-            img_sub_folder=test_sub_folder, fovs=test_fovs, channels=test_chans
+            temp_dir, 'sample_tiff_dir', img_sub_folder=test_sub_folder,
+            fovs=test_fovs, channels=test_chans
         )
 
         # for testing purposes, set test_fovs and test_chans to all fovs and channels
@@ -103,9 +121,6 @@ def test_download_mibitracker_data(test_fovs, test_chans, test_sub_folder):
         # get the contents of tiff_dir
         tiff_dir_contents = os.listdir(os.path.join(temp_dir, 'sample_tiff_dir'))
 
-        # assert sample_metadata.xml was created
-        assert 'sample_metadata.xml' in tiff_dir_contents
-
         # assert all the fovs are contained in the dir
         tiff_dir_fovs = [d for d in tiff_dir_contents if
                          os.path.isdir(os.path.join(temp_dir, 'sample_tiff_dir', d))]
@@ -127,6 +142,13 @@ def test_download_mibitracker_data(test_fovs, test_chans, test_sub_folder):
                 create_channels=channel_files,
                 provided_channels=test_chans
             )
+
+        # assert that the run order created is correct for both points and ids
+        run_fov_names = [ro[0] for ro in run_order]
+        run_fov_ids = [ro[1] for ro in run_order]
+
+        assert run_fov_names == actual_points
+        assert run_fov_ids == actual_ids
 
 
 def test_compute_nonzero_mean_intensity():
