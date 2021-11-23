@@ -9,9 +9,11 @@ from ark.utils import notebooks_test_utils
 
 
 SEGMENT_IMAGE_DATA_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                       '..', '..', 'templates', 'Segment_Image_Data.ipynb')
+                                       '..', '..', 'segmentation_templates',
+                                       'Segment_Image_Data.ipynb')
 QC_METRIC_COMP_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                   '..', '..', 'templates', 'example_qc_metric_eval.ipynb')
+                                   '..', '..', 'qc_templates',
+                                   'example_qc_metric_eval.ipynb')
 
 
 def _exec_notebook(nb_filename):
