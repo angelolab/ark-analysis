@@ -16,9 +16,9 @@ QC_METRIC_COMP_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                    'example_qc_metric_eval.ipynb')
 
 
-def _exec_notebook(nb_filename):
+def _exec_notebook(nb_filename, base_folder):
     path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                        '..', '..', 'templates', nb_filename)
+                        '..', '..', base_folder, nb_filename)
     with tempfile.NamedTemporaryFile(suffix=".ipynb") as fout:
         args = ["jupyter", "nbconvert", "--to", "notebook", "--execute",
                 "--ExecutePreprocessor.timeout=1000",
@@ -28,19 +28,19 @@ def _exec_notebook(nb_filename):
 
 # test runs with default inputs
 def test_segment_image_data():
-    _exec_notebook('Segment_Image_Data.ipynb')
+    _exec_notebook('Segment_Image_Data.ipynb', 'templates_ark')
 
 
 def test_example_spatial_analysis():
-    _exec_notebook('example_spatial_analysis_script.ipynb')
+    _exec_notebook('example_spatial_analysis_script.ipynb', 'templates_ark')
 
 
 def test_example_neighborhood_analysis():
-    _exec_notebook('example_neighborhood_analysis_script.ipynb')
+    _exec_notebook('example_neighborhood_analysis_script.ipynb', 'templates_ark')
 
 
 def test_example_qc_metrics_comp():
-    _exec_notebook('example_qc_metric_eval.ipynb')
+    _exec_notebook('example_qc_metric_eval.ipynb', 'templates_qc')
 
 
 # test mibitiff inputs for image segmentation
