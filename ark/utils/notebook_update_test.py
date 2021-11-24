@@ -28,7 +28,7 @@ def _exec_update_notebooks(base_path, update_flag=True, bad_flag=False):
         # we have to append /private ahead of the base_path due to the
         # way the temp_dir gets configured
         # also, to ensure wild card * gets read properly, use shell=True
-        output = subprocess.check_output(
+        subprocess.check_output(
             ' '.join(args),
             cwd=os.path.join('/private', base_path),
             stderr=subprocess.PIPE,
