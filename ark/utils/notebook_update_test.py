@@ -2,6 +2,7 @@ import subprocess
 import tempfile
 import os
 import pathlib
+import sys
 
 TEMPLATES = [
     ('a.ipynb', 'a'),
@@ -22,14 +23,30 @@ def _exec_update_notebooks(base_path, update_flag=True, bad_flag=False):
     if bad_flag:
         args.append("-g")
 
-    # run subprocess from base_dir
-    subprocess.check_call(args, cwd=base_path)
+    try:
+        print("Calling process")
+        output = subprocess.check_output(
+            args,
+            cwd=os.path.join('/private', base_path),
+            stderr=subprocess.PIPE
+        )
+    except subprocess.CalledProcessError as e:
+        print("Raising error...")
+        stderr = e.stderr.decode(sys.getfilesystemencoding())
+        print(stderr)
+
+        if len(stderr) > 0:
+            print("Raising subprocess error")
+            raise subprocess.CalledProcessError(stderr)
 
 
 def _make_dir_and_exec(base_dir, templates, scripts=None, update_flag=True, bad_flag=False):
-    os.mkdir(os.path.join(base_dir, "templates"))
+    os.mkdir(os.path.join(base_dir, "templates_ark"))
     for template in templates:
-        pathlib.Path(os.path.join(base_dir, "templates", template[0])).write_text(template[1])
+        pathlib.Path(os.path.join(base_dir, "templates_ark", template[0])).write_text(template[1])
+
+    print("Scripts to create:")
+    print(scripts)
 
     if scripts is not None:
         os.mkdir(os.path.join(base_dir, "scripts"))

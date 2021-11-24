@@ -55,12 +55,10 @@ then
       fi
     done
   else
-    # -n for no overwrite
-    # this is to prevent the case of an empty scripts directory not being filled
-    cp -n "$PWD"/templates_ark/*.ipynb "$PWD/scripts/."
+    cp -n "$PWD/templates_ark"/*\.ipynb "$PWD/scripts/."
   fi
 else
   # since there is no scripts directory, just make one and copy from templates
   mkdir "$PWD/scripts"
-  cp "$PWD"/templates_ark/*.ipynb "$PWD/scripts/."
+  cp "$PWD"/templates_ark/*\.ipynb "$PWD/scripts/."
 fi
