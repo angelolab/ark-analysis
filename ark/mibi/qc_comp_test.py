@@ -92,12 +92,21 @@ def test_download_mibitracker_data(test_fovs, test_chans, test_sub_folder,
         # ensure test to remove tiff_dir if it already exists runs
         os.mkdir(os.path.join(temp_dir, 'sample_tiff_dir'))
 
+        # error check: tiff_dir that already exists provided with overwrite_tiff_dir=False
+        with pytest.raises(ValueError):
+            qc_comp.download_mibitracker_data(
+                MIBITRACKER_EMAIL, MIBITRACKER_PASSWORD,
+                MIBITRACKER_RUN_NAME, MIBITRACKER_RUN_LABEL,
+                temp_dir, 'sample_tiff_dir', overwrite_tiff_dir=False,
+                img_sub_folder=test_sub_folder, fovs=test_fovs, channels=test_chans
+            )
+
         # run the data
         run_order = qc_comp.download_mibitracker_data(
             MIBITRACKER_EMAIL, MIBITRACKER_PASSWORD,
             MIBITRACKER_RUN_NAME, MIBITRACKER_RUN_LABEL,
-            temp_dir, 'sample_tiff_dir', img_sub_folder=test_sub_folder,
-            fovs=test_fovs, channels=test_chans
+            temp_dir, 'sample_tiff_dir', overwrite_tiff_dir=True,
+            img_sub_folder=test_sub_folder, fovs=test_fovs, channels=test_chans
         )
 
         # for testing purposes, set test_fovs and test_chans to all fovs and channels

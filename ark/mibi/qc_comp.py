@@ -42,7 +42,8 @@ def create_mibitracker_request_helper(email, password):
 
 
 def download_mibitracker_data(email, password, run_name, run_label, base_dir, tiff_dir,
-                              img_sub_folder=None, fovs=None, channels=None):
+                              overwrite_tiff_dir=False, img_sub_folder=None,
+                              fovs=None, channels=None):
     """Download a specific run's image data off of MIBITracker
     in an `ark` compatible directory structure
 
@@ -57,6 +58,8 @@ def download_mibitracker_data(email, password, run_name, run_label, base_dir, ti
             The label of the run (specified on the user's MIBItracker run page)
         base_dir (str):
             Where to place the created `tiff_dir`
+        overwrite_tiff_dir (bool):
+            Whether to overwrite the data already in `tiff_dir`
         tiff_dir (str):
             The name of the data directory in `base_dir` to write the run's image data to
         img_sub_folder (str):
@@ -116,9 +119,14 @@ def download_mibitracker_data(email, password, run_name, run_label, base_dir, ti
         mibitracker_run_chans=run_channels
     )
 
-    # if the desired tiff_dir exists, remove it
+    # if the desired tiff_dir exists, remove it if overwrite_tiff_dir is True
+    # otherwise, throw an error
     if os.path.exists(os.path.join(base_dir, tiff_dir)):
-        rmtree(os.path.join(base_dir, tiff_dir))
+        if overwrite_tiff_dir:
+            print("Overwriting existing data in tiff_dir %s" % tiff_dir)
+            rmtree(os.path.join(base_dir, tiff_dir))
+        else:
+            raise ValueError("tiff_dir %s already exists in %s" % (tiff_dir, base_dir))
 
     # make the image directory
     os.mkdir(os.path.join(base_dir, tiff_dir))
