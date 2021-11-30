@@ -237,13 +237,29 @@ def compute_cell_cluster_channel_avg(fovs, channels, base_dir,
     # subset on only the fovs the user has specified
     cell_table = cell_table[cell_table['fov'].isin(fovs)]
 
-    # because current version of pandas doesn't support key-based sorting, need to do it this way
-    cell_table['fov'] = cell_table['fov'].map(lambda x: x.replace('fov', '')).astype(int)
-    cell_tabel = cell_table.sort_values(by=['fov', 'segmentation_label']).reset_index(drop=True)
-    cell_table['fov'] = cell_table['fov'].map(lambda x: 'fov' + str(x))
-
     # read the clustered data
     cluster_data = feather.read_dataframe(os.path.join(base_dir, cell_cluster_name))
+
+    # need to ensure that both cell_table and cluster_data have FOVs and segmentation_labels sorted
+    # in the same order, this can be done by simply sorting by fov and segmentation_label for both
+    cell_table = cell_table.sort_values(
+        by=['fov', 'segmentation_label']
+    ).reset_index(drop=True)
+    cluster_data = cluster_data.sort_values(
+        by=['fov', 'segmentation_label']
+    ).reset_index(drop=True)
+
+    # add an extra check to ensure that the FOVs and segmentation labels are in the same order
+    misc_utils.verify_same_elements(
+        enforce_order=True,
+        cell_table_fovs=list(cell_table['fov']),
+        cluster_data_fovs=list(cell_table['fov'])
+    )
+    misc_utils.verify_same_elements(
+        enforce_order=True,
+        cell_table_labels=list(cell_table['segmentation_label']),
+        cluster_data_labels=list(cell_table['segmentation_label'])
+    )
 
     # assign the cluster labels to cell_table
     cell_table[cell_cluster_col] = cluster_data[cell_cluster_col]
@@ -351,7 +367,7 @@ def compute_p2c_weighted_channel_avg(pixel_channel_avg, cell_counts,
 
     # add columns back
     meta_cols = ['cell_size', 'fov', 'segmentation_label']
-    weighted_cell_channel_avg[meta_cols] = cell_counts[meta_cols]
+    weighted_cell_channel_avg[meta_cols] = cell_counts_sub[meta_cols]
 
     return weighted_cell_channel_avg
 

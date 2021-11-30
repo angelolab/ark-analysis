@@ -482,7 +482,10 @@ def test_compute_cell_cluster_channel_avg():
         weighted_cell_table['cell_size'] = 5
 
         # write the data to csv
-        weighted_cell_table.to_csv(os.path.join(temp_dir, 'weighted_cell_channel_avg.csv'))
+        weighted_cell_table.to_csv(
+            os.path.join(temp_dir, 'weighted_cell_channel_avg.csv'),
+            index=False
+        )
 
         # error check: bad cell_cluster_col provided
         with pytest.raises(ValueError):
@@ -503,6 +506,11 @@ def test_compute_cell_cluster_channel_avg():
 
         # assign dummy consensus cluster labels
         consensus_data['cell_meta_cluster'] = np.repeat(np.arange(2), 5)
+
+        # assign the same FOV and segmentation_label data to consensus_data
+        consensus_data[['fov', 'segmentation_label']] = weighted_cell_table[
+            ['fov', 'segmentation_label']
+        ].copy()
 
         # write consensus data
         consensus_path = os.path.join(temp_dir, 'cell_mat_consensus.feather')
@@ -1155,7 +1163,10 @@ def test_pixel_consensus_cluster(mocker):
         )
 
         # save the DataFrame
-        cluster_avg.to_csv(os.path.join(temp_dir, 'pixel_chan_avg_som_cluster.csv'))
+        cluster_avg.to_csv(
+            os.path.join(temp_dir, 'pixel_chan_avg_som_cluster.csv'),
+            index=False
+        )
 
         # make a dummy consensus dir
         os.mkdir(os.path.join(temp_dir, 'pixel_mat_consensus'))
@@ -1202,7 +1213,10 @@ def test_train_cell_som(mocker):
     # basic error check: bad path to consensus dir
     with tempfile.TemporaryDirectory() as temp_dir:
         blank_cell_table = pd.DataFrame()
-        blank_cell_table.to_csv(os.path.join(temp_dir, 'sample_cell_table.csv'))
+        blank_cell_table.to_csv(
+            os.path.join(temp_dir, 'sample_cell_table.csv'),
+            index=False
+        )
 
         with pytest.raises(FileNotFoundError):
             som_utils.train_cell_som(fovs=['fov0'], base_dir=temp_dir,
@@ -1355,7 +1369,10 @@ def test_cluster_cells(mocker):
     with tempfile.TemporaryDirectory() as temp_dir:
         # create a dummy cluster_counts_norm_name file
         cluster_counts_norm = pd.DataFrame()
-        cluster_counts_norm.to_csv(os.path.join(temp_dir, 'cluster_counts_norm.feather'))
+        cluster_counts_norm.to_csv(
+            os.path.join(temp_dir, 'cluster_counts_norm.feather'),
+            index=False
+        )
 
         with pytest.raises(FileNotFoundError):
             som_utils.cluster_cells(base_dir=temp_dir,
@@ -1461,7 +1478,8 @@ def test_cell_consensus_cluster(mocker):
                 cell_cluster_data, os.path.join(temp_dir, 'cell_mat_clustered.feather')
             )
             cell_cluster_avg_data.to_csv(
-                os.path.join(temp_dir, 'cell_som_cluster_avgs.csv')
+                os.path.join(temp_dir, 'cell_som_cluster_avgs.csv'),
+                index=False
             )
 
             som_utils.cell_consensus_cluster(
@@ -1492,14 +1510,14 @@ def test_cell_consensus_cluster(mocker):
 
             # write cluster average
             cluster_avg_path = os.path.join(temp_dir, 'cell_som_cluster_avgs.csv')
-            cluster_avg.to_csv(cluster_avg_path)
+            cluster_avg.to_csv(cluster_avg_path, index=False)
 
             # create a dummy weighted channel average table
             weighted_channel_avg = pd.DataFrame()
 
             # write dummy weighted channel average table
             weighted_channel_path = os.path.join(temp_dir, 'weighted_cell_channel_avg.csv')
-            weighted_channel_avg.to_csv(weighted_channel_path)
+            weighted_channel_avg.to_csv(weighted_channel_path, index=False)
 
             # add mocked function to "consensus cluster" cell average data
             mocker.patch(
