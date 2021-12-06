@@ -55,7 +55,8 @@ clusterAvgs <- as.data.frame(read.csv(clusterAvgPath, check.names=FALSE))
 # NOTE: z-scoring (done in Python) and capping cluster avg data produces better clustering results
 # NOTE: need to cap with sapply because pmin sets out-of-range values to NA on non-vectors
 clusterAvgsScale <- clusterAvgs[,markers]
-clusterAvgsScale <- sapply(clusterAvgsScale, pmin, cap)
+clusterAvgsScale <- sapply(as.data.frame(clusterAvgsScale), pmin, cap)
+clusterAvgsScale <- sapply(as.data.frame(clusterAvgsScale), pmax, -cap)
 
 # run the consensus clustering
 # TODO: look into suppressing output for Rs (invisible), not urgent
@@ -64,7 +65,7 @@ consensusClusterResults <- ConsensusClusterPlus(t(clusterAvgsScale), maxK=maxK, 
 som_to_meta_map <- consensusClusterResults[[maxK]]$consensusClass
 names(som_to_meta_map) <- clusterAvgs$pixel_som_cluster
 
-# append hClust to each fov's data
+# append pixel_meta_cluster to each fov's data
 print("Writing consensus clustering results")
 for (i in 1:length(fovs)) {
     # read in pixel data, we'll need the cluster column for mapping
@@ -86,7 +87,7 @@ for (i in 1:length(fovs)) {
     }
 }
 
-# save the mapping from cluster to som_to_meta_map
+# save the mapping from pixel_som_cluster to pixel_meta_cluster
 print("Writing SOM to meta cluster mapping table")
 som_to_meta_map <- as.data.table(som_to_meta_map)
 

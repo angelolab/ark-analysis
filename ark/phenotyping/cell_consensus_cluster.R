@@ -54,7 +54,9 @@ clusterAvgs <- as.data.frame(read.csv(clusterAvgPath, check.names=FALSE))
 print("Scaling data")
 clusterCols <- colnames(clusterAvgs)[grepl(pattern=sprintf('%s_', pixelClusterCol),
                                      colnames(clusterAvgs))]
-clusterAvgsScale <- sapply(clusterAvgs[,clusterCols], pmin, cap)
+clusterAvgsScale <- clusterAvgs[,clusterCols]
+clusterAvgsScale <- sapply(as.data.frame(clusterAvgsScale), pmin, cap)
+clusterAvgsScale <- sapply(as.data.frame(clusterAvgsScale), pmax, -cap)
 
 # run the consensus clustering
 # TODO: also look into invisible() function here (not urgent, just to prevent printout)
@@ -63,13 +65,13 @@ consensusClusterResults <- ConsensusClusterPlus(t(clusterAvgsScale), maxK=maxK, 
 som_to_meta_map <- consensusClusterResults[[maxK]]$consensusClass
 names(som_to_meta_map) <- clusterAvgs$cell_som_cluster
 
-# append hClust to data
+# append cell_meta_cluster to data
 print("Writing consensus clustering")
 cellClusterData <- arrow::read_feather(cellClusterPath)
 cellClusterData$cell_meta_cluster <- som_to_meta_map[as.character(cellClusterData$cell_som_cluster)]
 arrow::write_feather(as.data.table(cellClusterData), cellConsensusPath)
 
-# save the mapping from cluster to hCluster_cap
+# save the mapping from cell_som_cluster to cell_meta_cluster
 print("Writing SOM to meta cluster mapping table")
 som_to_meta_map <- as.data.table(som_to_meta_map)
 
