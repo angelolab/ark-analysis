@@ -119,7 +119,14 @@ def compute_pixel_cluster_channel_avg(fovs, channels, base_dir, pixel_cluster_co
     sum_count_totals[channels] = sum_count_totals[channels].div(sum_count_totals['count'], axis=0)
 
     # z-score the mean channel expressions
-    sum_count_totals[channels] = stats.zscore(sum_count_totals[channels])
+    # replace NA's and infs with 0 as an extra precaution
+    # NOTE: z-scoring cluster avg data produces better clustering results
+    channels_z_score = stats.zscore(sum_count_totals[channels].values)
+    channels_z_score[np.isnan(channels_z_score)] = 0
+    channels_z_score[np.isinf(channels_z_score)] = 0
+
+    # assign z-scored values back
+    sum_count_totals[channels] = channels_z_score
 
     # convert cluster column to integer type
     sum_count_totals[pixel_cluster_col] = sum_count_totals[pixel_cluster_col].astype(int)
@@ -181,7 +188,14 @@ def compute_cell_cluster_count_avg(cell_cluster_path, pixel_cluster_col_prefix,
     mean_count_totals = cluster_data_subset.groupby(cell_cluster_col).mean().reset_index()
 
     # z-score the average pixel SOM/meta cluster counts
-    mean_count_totals[column_subset] = stats.zscore(mean_count_totals[column_subset])
+    # replace NA's and infs with 0 as an extra precaution
+    # NOTE: z-scoring cluster avg data produces better clustering results
+    mean_count_z_scored = stats.zscore(mean_count_totals[column_subset])
+    mean_count_z_scored[np.isnan(mean_count_z_scored)] = 0
+    mean_count_z_scored[np.isinf(mean_count_z_scored)] = 0
+
+    # assign z-scored values back
+    mean_count_totals[column_subset] = mean_count_z_scored
 
     # if keep_count is included, add the count column to the cell table
     if keep_count:
@@ -253,12 +267,12 @@ def compute_cell_cluster_channel_avg(fovs, channels, base_dir,
     misc_utils.verify_same_elements(
         enforce_order=True,
         cell_table_fovs=list(cell_table['fov']),
-        cluster_data_fovs=list(cell_table['fov'])
+        cluster_data_fovs=list(cluster_data['fov'])
     )
     misc_utils.verify_same_elements(
         enforce_order=True,
         cell_table_labels=list(cell_table['segmentation_label']),
-        cluster_data_labels=list(cell_table['segmentation_label'])
+        cluster_data_labels=list(cluster_data['segmentation_label'])
     )
 
     # assign the cluster labels to cell_table

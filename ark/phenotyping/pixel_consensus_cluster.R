@@ -52,8 +52,10 @@ print("Reading cluster averaged data")
 clusterAvgs <- as.data.frame(read.csv(clusterAvgPath, check.names=FALSE))
 
 # scale and cap the data accordingly
-# NOTE: z-scoring and capping cluster avg data produces better clustering results
-clusterAvgsScale <- pmin(scale(clusterAvgs[,markers]), cap)
+# NOTE: z-scoring (done in Python) and capping cluster avg data produces better clustering results
+# NOTE: need to cap with sapply because pmin sets out-of-range values to NA on non-vectors
+clusterAvgsScale <- clusterAvgs[,markers]
+clusterAvgsScale <- sapply(clusterAvgsScale, pmin, cap)
 
 # run the consensus clustering
 # TODO: look into suppressing output for Rs (invisible), not urgent

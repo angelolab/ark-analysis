@@ -50,10 +50,11 @@ clusterAvgs <- as.data.frame(read.csv(clusterAvgPath, check.names=FALSE))
 
 # scale and cap the data respectively
 # NOTE: z-scoring and capping cluster avg data produces better clustering results
+# NOTE: need to cap with sapply because pmin sets out-of-range values to NA on non-vectors
 print("Scaling data")
 clusterCols <- colnames(clusterAvgs)[grepl(pattern=sprintf('%s_', pixelClusterCol),
                                      colnames(clusterAvgs))]
-clusterAvgsScale <- pmin(scale(clusterAvgs[,clusterCols]), cap)
+clusterAvgsScale <- sapply(clusterAvgs[,clusterCols], pmin, cap)
 
 # run the consensus clustering
 # TODO: also look into invisible() function here (not urgent, just to prevent printout)
