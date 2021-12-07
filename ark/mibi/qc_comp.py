@@ -1,13 +1,176 @@
 import copy
+import matplotlib.pyplot as plt
+import os
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
+from requests.exceptions import HTTPError
 from scipy.ndimage import gaussian_filter
 import seaborn as sns
+from shutil import rmtree
+from skimage.io import imsave
 
+from ark.mibi.mibitracker_utils import MibiRequests
+
+import ark.settings as settings
 import ark.utils.io_utils as io_utils
 import ark.utils.load_utils as load_utils
 import ark.utils.misc_utils as misc_utils
+
+# needed to prevent UserWarning: low contrast image barf when saving images
+import warnings
+warnings.filterwarnings('ignore')
+
+
+def create_mibitracker_request_helper(email, password):
+    """Create a mibitracker request helper to access a user's MIBItracker info on Ionpath
+
+    Args:
+        email (str):
+            The user's MIBItracker email address
+        password (str):
+            The user's MIBItracker password
+
+    Returns:
+        ark.mibi.mibitracker_utils.MibiRequests:
+            A request helper module instance to access a user's MIBItracker info
+    """
+
+    try:
+        return MibiRequests(settings.MIBITRACKER_BACKEND, email, password)
+    except HTTPError:
+        print("Invalid MIBItracker email or password provided")
+
+
+def download_mibitracker_data(email, password, run_name, run_label, base_dir, tiff_dir,
+                              overwrite_tiff_dir=False, img_sub_folder=None,
+                              fovs=None, channels=None):
+    """Download a specific run's image data off of MIBITracker
+    in an `ark` compatible directory structure
+
+    Args:
+        email (str):
+            The user's MIBItracker email address
+        password (str):
+            The user's MIBItracker password
+        run_name (str):
+            The name of the run (specified on the user's MIBItracker run page)
+        run_label (str):
+            The label of the run (specified on the user's MIBItracker run page)
+        base_dir (str):
+            Where to place the created `tiff_dir`
+        overwrite_tiff_dir (bool):
+            Whether to overwrite the data already in `tiff_dir`
+        tiff_dir (str):
+            The name of the data directory in `base_dir` to write the run's image data to
+        img_sub_folder (str):
+            If specified, the subdirectory inside each FOV folder in `data_dir` to place
+            the image data into
+        fovs (list):
+            A list of FOVs to subset over. If `None`, uses all FOVs.
+        channels (lsit):
+            A list of channels to subset over. If `None`, uses all channels.
+
+    Returns:
+        list:
+            A list of tuples containing (point name, point id), sorted by point id.
+            This defines the run acquisition order needed for plotting the QC graphs.
+    """
+
+    # verify that base_dir provided exists
+    if not os.path.exists(base_dir):
+        raise FileNotFoundError("base_dir %s does not exist" % base_dir)
+
+    # create the MIBItracker request helper
+    mr = create_mibitracker_request_helper(email, password)
+
+    # get the run info using the run_name and the run_label
+    # NOTE: there will only be one entry in the 'results' key with run_name and run_label specified
+    run_info = mr.search_runs(run_name, run_label)
+
+    # if no results are returned, invalid run_name and/or run_label provided
+    if len(run_info['results']) == 0:
+        raise ValueError('No data found for run_name %s and run_label %s' % (run_name, run_label))
+
+    # extract the name of the FOVs and their associated internal IDs
+    run_fov_names = [img['number'] for img in run_info['results'][0]['imageset']['images']]
+    run_fov_ids = [img['id'] for img in run_info['results'][0]['imageset']['images']]
+
+    # if fovs is None, ensure all of the fovs in run_fov_names_ids are chosen
+    if fovs is None:
+        fovs = run_fov_names
+
+    # ensure all of the fovs are valid (important if the user explicitly specifies fovs)
+    misc_utils.verify_in_list(
+        provided_fovs=fovs,
+        mibitracker_run_fovs=run_fov_names
+    )
+
+    # extract the name of all the channels
+    # NOTE: this set of channels will be the same across all FOVs in the run
+    run_channels = run_info['results'][0]['imageset']['images'][0]['pngs']
+
+    # if channels is None, ensure all of the channels in run_channels are chosen
+    if channels is None:
+        channels = run_channels
+
+    # ensure all of the channels are valid (important if the user explicitly specifies channels)
+    misc_utils.verify_in_list(
+        provided_chans=channels,
+        mibitracker_run_chans=run_channels
+    )
+
+    # if the desired tiff_dir exists, remove it if overwrite_tiff_dir is True
+    # otherwise, throw an error
+    if os.path.exists(os.path.join(base_dir, tiff_dir)):
+        if overwrite_tiff_dir:
+            print("Overwriting existing data in tiff_dir %s" % tiff_dir)
+            rmtree(os.path.join(base_dir, tiff_dir))
+        else:
+            raise ValueError("tiff_dir %s already exists in %s" % (tiff_dir, base_dir))
+
+    # make the image directory
+    os.mkdir(os.path.join(base_dir, tiff_dir))
+
+    # ensure sub_folder gets set to "" if img_sub_folder is None (for os.path.join convenience)
+    if not img_sub_folder:
+        img_sub_folder = ""
+
+    # define the run order list to return
+    run_order = []
+
+    # iterate over each FOV of the run
+    for img in run_info['results'][0]['imageset']['images']:
+        # if the image fov name is not specified, move on
+        if img['number'] not in fovs:
+            continue
+
+        print("Creating data for fov %s" % img['number'])
+
+        # make the fov directory
+        os.mkdir(os.path.join(base_dir, tiff_dir, img['number']))
+
+        # make the img_sub_folder inside the fov directory if specified
+        if len(img_sub_folder) > 0:
+            os.mkdir(os.path.join(base_dir, tiff_dir, img['number'], img_sub_folder))
+
+        # iterate over each provided channel
+        for chan in channels:
+            # extract the channel data from MIBItracker as a numpy array
+            chan_data = mr.get_channel_data(img['id'], chan)
+
+            # define the name of the channel file
+            chan_file = '%s.tiff' % chan
+
+            # write the data to a .tiff file in the FOV directory structure
+            imsave(
+                os.path.join(base_dir, tiff_dir, img['number'], img_sub_folder, chan_file),
+                chan_data
+            )
+
+        # append the run name and run id to the list
+        run_order.append((img['number'], img['id']))
+
+    return run_order
 
 
 def compute_nonzero_mean_intensity(image_data):
@@ -150,9 +313,8 @@ def compute_qc_metrics_batch(image_data, fovs, chans, gaussian_blur=False, blur_
     return qc_data_batch
 
 
-def compute_qc_metrics(tiff_dir, img_sub_folder="TIFs", is_mibitiff=False,
-                       fovs=None, chans=None, batch_size=5, gaussian_blur=False,
-                       blur_factor=1, dtype='int16'):
+def compute_qc_metrics(tiff_dir, img_sub_folder="TIFs", fovs=None, channels=None,
+                       batch_size=5, gaussian_blur=False, blur_factor=1, dtype='int16'):
     """Compute the QC metric matrices
 
     Args:
@@ -160,12 +322,9 @@ def compute_qc_metrics(tiff_dir, img_sub_folder="TIFs", is_mibitiff=False,
             the name of the directory which contains the single_channel_inputs
         img_sub_folder (str):
             the name of the folder where the TIF images are located
-            ignored if is_mibitiff is True
-        is_mibitiff (bool):
-            a flag to indicate whether or not the base images are MIBItiffs
         fovs (list):
             a list of fovs we wish to analyze, if None will default to all fovs
-        chans (list):
+        channels (list):
             a list of channels we wish to subset on, if None will default to all channels
         batch_size (int):
             how large we want each of the batches of fovs to be when computing, adjust as
@@ -186,10 +345,7 @@ def compute_qc_metrics(tiff_dir, img_sub_folder="TIFs", is_mibitiff=False,
 
     # if no fovs are specified, then load all the fovs
     if fovs is None:
-        if is_mibitiff:
-            fovs = io_utils.list_files(tiff_dir, substrs=['.tif', '.tiff'])
-        else:
-            fovs = io_utils.list_folders(tiff_dir)
+        fovs = io_utils.list_folders(tiff_dir)
 
     # drop file extensions
     fovs = io_utils.remove_file_extensions(fovs)
@@ -217,30 +373,24 @@ def compute_qc_metrics(tiff_dir, img_sub_folder="TIFs", is_mibitiff=False,
         [fovs[i:i + batch_size] for i in range(0, cohort_len, batch_size)],
         [filenames[i:i + batch_size] for i in range(0, cohort_len, batch_size)]
     ):
-        # extract the image data for each batch
-        if is_mibitiff:
-            image_data = load_utils.load_imgs_from_mibitiff(data_dir=tiff_dir,
-                                                            mibitiff_files=batch_files,
-                                                            dtype=dtype)
-        else:
-            image_data = load_utils.load_imgs_from_tree(data_dir=tiff_dir,
-                                                        img_sub_folder=img_sub_folder,
-                                                        fovs=batch_names,
-                                                        dtype=dtype)
+        image_data = load_utils.load_imgs_from_tree(data_dir=tiff_dir,
+                                                    img_sub_folder=img_sub_folder,
+                                                    fovs=batch_names,
+                                                    dtype=dtype)
 
         # get the channel names directly from image_data if not specified
-        if chans is None:
-            chans = image_data.channels.values
+        if channels is None:
+            channels = image_data.channels.values
 
         # verify the channel names (important if the user explicitly specifies channels)
         misc_utils.verify_in_list(
-            provided_chans=chans,
+            provided_chans=channels,
             image_chans=image_data.channels.values
         )
 
         # compute the QC metrics of this batch
         qc_data_batch = compute_qc_metrics_batch(
-            image_data, batch_names, chans, gaussian_blur, blur_factor
+            image_data, batch_names, channels, gaussian_blur, blur_factor
         )
 
         # append the batch QC metric data to the full processed data

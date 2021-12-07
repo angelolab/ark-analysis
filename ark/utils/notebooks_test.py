@@ -9,14 +9,16 @@ from ark.utils import notebooks_test_utils
 
 
 SEGMENT_IMAGE_DATA_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                       '..', '..', 'templates', 'Segment_Image_Data.ipynb')
+                                       '..', '..', 'templates_ark',
+                                       'Segment_Image_Data.ipynb')
 QC_METRIC_COMP_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                   '..', '..', 'templates', 'example_qc_metric_eval.ipynb')
+                                   '..', '..', 'templates_qc',
+                                   'example_qc_metric_eval.ipynb')
 
 
-def _exec_notebook(nb_filename):
+def _exec_notebook(nb_filename, base_folder):
     path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                        '..', '..', 'templates', nb_filename)
+                        '..', '..', base_folder, nb_filename)
     with tempfile.NamedTemporaryFile(suffix=".ipynb") as fout:
         args = ["jupyter", "nbconvert", "--to", "notebook", "--execute",
                 "--ExecutePreprocessor.timeout=1000",
@@ -26,19 +28,19 @@ def _exec_notebook(nb_filename):
 
 # test runs with default inputs
 def test_segment_image_data():
-    _exec_notebook('Segment_Image_Data.ipynb')
+    _exec_notebook('Segment_Image_Data.ipynb', 'templates_ark')
 
 
 def test_example_spatial_analysis():
-    _exec_notebook('example_spatial_analysis_script.ipynb')
+    _exec_notebook('example_spatial_analysis_script.ipynb', 'templates_ark')
 
 
 def test_example_neighborhood_analysis():
-    _exec_notebook('example_neighborhood_analysis_script.ipynb')
+    _exec_notebook('example_neighborhood_analysis_script.ipynb', 'templates_ark')
 
 
 def test_example_qc_metrics_comp():
-    _exec_notebook('example_qc_metric_eval.ipynb')
+    _exec_notebook('example_qc_metric_eval.ipynb', 'templates_qc')
 
 
 # test mibitiff inputs for image segmentation
@@ -121,24 +123,15 @@ def test_segment_image_data_folder(tb):
         notebooks_test_utils.create_exp_mat(tb, nuclear_counts=True)
 
 
-# test mibitiff inputs for qc metric computation
+# test for qc metric computation
 @testbook(QC_METRIC_COMP_PATH, timeout=6000)
-def test_qc_metric_comp_mibitiff(tb):
-    with tdir() as tiff_dir:
-        # create input files
-        notebooks_test_utils.qc_notebook_setup(tb,
-                                               tiff_dir=tiff_dir,
-                                               is_mibitiff=True)
+def test_qc_metric_comp(tb):
+    with tdir() as base_dir:
+        # define QC metric notebook params
+        notebooks_test_utils.qc_notebook_setup(
+            tb, base_dir, 'sample_tiff_dir',
+            fovs=['Point1', 'Point2'], chans=['Au', 'Ca']
+        )
 
-        notebooks_test_utils.run_qc_comp(tb)
-
-
-# test folder inputs for qc metric computation
-@testbook(QC_METRIC_COMP_PATH, timeout=6000)
-def test_qc_metric_comp_folder(tb):
-    with tdir() as tiff_dir:
-        # create input files
-        notebooks_test_utils.qc_notebook_setup(tb,
-                                               tiff_dir=tiff_dir)
-
-        notebooks_test_utils.run_qc_comp(tb)
+        # run QC metric process (MIBItracker download and QC metric analysis)
+        notebooks_test_utils.run_qc_comp(tb, gauss_blur=True)

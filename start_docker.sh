@@ -8,7 +8,7 @@ while test $# -gt 0
 do
   case "$1" in
     -d|--develop-notebook-templates)
-      JUPYTER_DIR='templates'
+      JUPYTER_DIR='templates_ark'
       shift
       ;;
     -u|--update)
