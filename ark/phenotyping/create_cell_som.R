@@ -56,24 +56,24 @@ clusterCols <- colnames(clusterCountsNorm)[grepl(pattern="pixel_som_cluster_|pix
                                            colnames(clusterCountsNorm))]
 
 # keep just the cluster columns
-clusterCountsNorm <- as.matrix(clusterCountsNorm[,clusterCols])
+clusterCountsNormSub <- as.matrix(clusterCountsNorm[,clusterCols])
 
 # 99.9% normalize
 # normalize by max (100%) instead of 99.9% if 99.9% = 0
 print("Perform 99.9% normalization")
 for (clusterCol in clusterCols) {
-    normVal <- quantile(clusterCountsNorm[,clusterCol], 0.999)
+    normVal <- quantile(clusterCountsNormSub[,clusterCol], 0.999)
 
     if (normVal == 0) {
-        normVal <- quantile(clusterCountsNorm[,clusterCol], 1)
+        normVal <- quantile(clusterCountsNormSub[,clusterCol], 1)
     }
 
-    clusterCountsNorm[,clusterCol] <- clusterCountsNorm[,clusterCol] / normVal
+    clusterCountsNormSub[,clusterCol] <- clusterCountsNormSub[,clusterCol] / normVal
 }
 
 # create the cell SOM
 print("Run the SOM training")
-somResults <- SOM(data=as.matrix(clusterCountsNorm), xdim=xdim, ydim=ydim,
+somResults <- SOM(data=as.matrix(clusterCountsNormSub), xdim=xdim, ydim=ydim,
                   rlen=numPasses, alpha=c(lr_start, lr_end))
 
 # write the weights to feather
