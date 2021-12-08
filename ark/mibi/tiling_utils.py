@@ -13,6 +13,11 @@ from skimage.draw import circle_perimeter
 import ark.settings as settings
 from ark.utils import misc_utils
 
+# suppress mpl deprecation
+import warnings
+import matplotlib.cbook
+warnings.filterwarnings("ignore",category=matplotlib.cbook.mplDeprecation)
+
 
 # helper function to reading in input
 def read_tiling_param(prompt, error_msg, cond, dtype):
@@ -575,27 +580,26 @@ def assign_closest_tiled_regions(tiled_regions_proposed, tiled_regions_auto, mol
     return proposed_to_auto_map, proposed_tiles_info, auto_tiles_info
 
 
-def visualize_user_and_auto_tiles(proposed_to_auto_map, proposed_tiles_info,
-                                  auto_tiles_info, slide_img, proposed_name, auto_name):
-    """Overlays the proposed tiles and the auto tiles on the slide.
-
-    Helper function to interactive remap, re-run on each dropdown menu change.
+def generate_tile_circles(proposed_to_auto_map, proposed_tiles_info, auto_tiles_info, slide_img):
+    """Draw the circles defining each tile (proposed and automatically-generated)
 
     Args:
         proposed_to_auto_map (dict):
-            The name of each proposed tile mapped to its closest auto tile
+            defines the mapping of proposed to auto tile names
         proposed_tiles_info (dict):
-            Information about the centroid and size of each proposed tile
+            maps each proposed tile to its centroid coordinates and size
         auto_tiles_info (dict):
-            Information about the centroid and size of each auto tile
+            maps each automatically-generated tile to its centroid coordinates and size
         slide_img (numpy.ndarray):
-            The image of the slide to overlay the tiles on
-        proposed_name (str):
-            The name of the proposed tile selected
-        auto_name (str):
-            The name of the auto tile selected
-    """
+            the image to overlay
 
+    Returns:
+        tuple:
+
+        - A numpy.ndarray containing the slide_img with circles defining each tile
+        - A dict mapping each proposed tile to its annotation
+        - A dict mapping each automatically-generated tile to its annotation
+    """
     # define dictionaries to hold the annotations
     proposed_annot = {}
     auto_annot = {}
@@ -623,7 +627,7 @@ def visualize_user_and_auto_tiles(proposed_to_auto_map, proposed_tiles_info,
         slide_img[pr_x, pr_y, :] = 0
 
         # define the annotations to place at each coordinate
-        proposed_annot[(proposed_x, proposed_y)] = pti
+        proposed_annot[pti] = (proposed_x, proposed_y)
 
     # repeat but for the automatically generated points
     for ati in auto_tiles_info:
@@ -642,18 +646,44 @@ def visualize_user_and_auto_tiles(proposed_to_auto_map, proposed_tiles_info,
         slide_img[ar_x, ar_y, 0:2] = 0
         # slide_img[ar_x, ar_y, 0] = 255
 
-        auto_annot[(auto_x, auto_y)] = ati
+        auto_annot[ati] = (auto_x, auto_y)
 
-    # display the image
-    _ = plt.imshow(slide_img)
+    return slide_img, proposed_annot, auto_annot
+
+
+def generate_tile_annotations(proposed_annot, auto_annot, proposed_name, auto_name):
+    """Generates the initial set of annotations to display over each tile
+
+    Args:
+        proposed_annot (dict):
+            maps each proposed tile to its annotation
+        auto_annot (dict):
+            maps each automatically-generated tile to its annotation
+        proposed_name (str):
+            the name of the proposed tile to highlight
+        auto_name (str):
+            the name of the automatically-generated tile to highlight
+
+    Returns:
+        tuple:
+
+        - A dict mapping each proposed tile to its matplotlib.pyplot.annotate annotation
+        - A dict mapping each automatically-generated tile to its
+          matplotlib.pyplot.annotate annotation
+    """
+
+    # define dicts to store the proposed and the auto annotations
+    pa_anns = {}
+    aa_anns = {}
 
     # generate the annotation text for proposed tiles
-    for pa_coord, pa_text in proposed_annot.items():
+    for pa_text, pa_coord in proposed_annot.items():
         # increase size of and bold the proposed tile name if that's the one selected
         font_size = 'x-large' if pa_text == proposed_name else 'medium'
         font_weight = 'bold' if pa_text == proposed_name else 'normal'
 
-        _ = plt.annotate(
+        # draw the proposed tile name
+        pa_ann = plt.annotate(
             pa_text,
             (pa_coord[1], pa_coord[0]),
             color='black',
@@ -661,13 +691,17 @@ def visualize_user_and_auto_tiles(proposed_to_auto_map, proposed_tiles_info,
             fontweight=font_weight
         )
 
+        # add annotation to pa_anns
+        pa_anns[pa_text] = pa_ann
+
     # generate the annotation text for auto tiles
-    for aa_coord, aa_text in auto_annot.items():
+    for aa_text, aa_coord in auto_annot.items():
         # increase size of and bold the auto tile name if that's the one selected
         font_size = 'x-large' if aa_text == auto_name else 'medium'
         font_weight = 'bold' if aa_text == auto_name else 'normal'
 
-        _ = plt.annotate(
+        # draw the auto tile name
+        aa_ann = plt.annotate(
             aa_text,
             (aa_coord[1], aa_coord[0]),
             color='blue',
@@ -675,9 +709,28 @@ def visualize_user_and_auto_tiles(proposed_to_auto_map, proposed_tiles_info,
             fontweight=font_weight
         )
 
+        # add annotation to aa_anns
+        aa_anns[aa_text] = aa_ann
+
+    return pa_anns, aa_anns
+
 
 def interactive_remap(proposed_to_auto_map, proposed_tiles_info,
                       auto_tiles_info, slide_img, figsize):
+    """Creates the remapping interactive interface
+
+    Args:
+        proposed_to_auto_map (dict):
+            defines the mapping of proposed to auto tile names
+        proposed_tiles_info (dict):
+            maps each proposed tile to its centroid coordinates and size
+        auto_tiles_info (dict):
+            maps each automatically-generated tile to its centroid coordinates and size
+        slide_img (numpy.ndarray):
+            the image to overlay
+        figsize (tuple):
+            the size of the figure to display
+    """
 
     # get the first proposed tile
     # this will define the initial default value to display
@@ -688,7 +741,9 @@ def interactive_remap(proposed_to_auto_map, proposed_tiles_info,
     w_prop = widgets.Dropdown(
         options=[pti for pti in list(proposed_tiles_info.keys())],
         value=first_proposed,
-        description='Proposed tile'
+        description='Proposed tile',
+        layout=widgets.Layout(width='auto'),
+        style={'description_width': 'initial'}
     )
 
     # the second will define the automatically-generated tile mappings
@@ -696,68 +751,116 @@ def interactive_remap(proposed_to_auto_map, proposed_tiles_info,
     w_auto = widgets.Dropdown(
         options=[ati for ati in list(auto_tiles_info.keys())],
         value=proposed_to_auto_map[first_proposed],
-        description='Automatically-generated tile'
+        description='Automatically-generated tile',
+        layout=widgets.Layout(width='auto'),
+        style={'description_width': 'initial'}
     )
 
     # define a box to hold w_prop and w_auto
-    w_box = widgets.HBox([w_prop, w_auto])
+    w_box = widgets.HBox(
+        [w_prop, w_auto],
+        layout=widgets.Layout(
+            display='flex',
+            flex_flow='row',
+            align_items='stretch',
+            width='50%'
+        )
+    )
 
     # display the box with w_prop and w_auto dropdown menus
     display(w_box)
 
     # define an output context to display
     out = widgets.Output()
-    display(out)
+
+    # display the figure to plot on
+    fig, ax = plt.subplots(figsize=figsize)
+
+    # generate the circles and annotations for each circle to display on the image
+    slide_img, proposed_annot, auto_annot = generate_tile_circles(
+        proposed_to_auto_map, proposed_tiles_info, auto_tiles_info, slide_img
+    )
+
+    with out:
+        img_plot = ax.imshow(slide_img)
+        plt.tight_layout()
+
+        # generate the annotations
+        pa_anns, aa_anns = generate_tile_annotations(
+            proposed_annot, auto_annot, w_prop.value, w_auto.value
+        )
 
     # a callback function for changing w_auto to the value w_prop maps to
     # NOTE: needs to be here so it can easily access w_prop, w_auto, and w_box
     def update_mapping(change):
         if change['name'] == 'value' and change['new'] != change['old']:
             with out:
-                # clear the figure
-                _ = plt.clf()
+                # remove annotations for the proposed annotations and the new auto annotation
+                pa_anns[change['old']].remove()
+                pa_anns[change['new']].remove()
+                aa_anns[proposed_to_auto_map[change['new']]].remove()
 
-                # clear the visualization
-                clear_output()
+                # only remove the old auto annotation if it doesn't match the new one
+                # otherwise we'll be removing the same text twice and it will fail
+                if w_auto.value != proposed_to_auto_map[change['new']]:
+                    aa_anns[w_auto.value].remove()
 
-                # set the mapped auto value according to the new proposed value
-                w_auto.value = proposed_to_auto_map[change['new']]
-
-                # # redraw w_prop and w_auto in w_box
-                # # make sure w_prop contains the new value set
-                # w_prop = widgets.Dropdown(
-                #     options=[pti for pti in list(proposed_tiles_info.keys())],
-                #     value=change['new'],
-                #     description='Proposed tile'
-                # )
-
-                # # make sure w_auto contains the value w_prop maps to
-                # w_auto = widgets.Dropdown(
-                #     options=[ati for ati in list(auto_tiles_info.keys())],
-                #     value=proposed_to_auto_map[change['new']],
-                #     description='Automatically-generated tile'
-                # )
-
-                # # display w_box again
-                # w_box = widgets.HBox([w_prop, w_auto])
-                # display(w_box)
-
-                # redraw the figure
-                fig = plt.figure(figsize=figsize)
-
-                # redraw the image
-                visualize_user_and_auto_tiles(
-                    proposed_to_auto_map, proposed_tiles_info, auto_tiles_info, slide_img,
-                    change['new'], proposed_to_auto_map[change['new']]
+                # create a new unbolded annotation for the proposed tile
+                old_pa_ann = plt.annotate(
+                    change['old'],
+                    (proposed_annot[change['old']][1], proposed_annot[change['old']][0]),
+                    color='black',
+                    ha='center',
+                    fontweight='normal'
                 )
 
-            # display(fig)
+                # update the annotation for the old proposed tile
+                pa_anns[change['old']] = old_pa_ann
 
-            # # set w_prop value accordingly
-            # w_prop.value = proposed_to_auto_map[change]
+                # only create a new unbolded annotation for the old auto tile if it doesn't
+                # match the new one, otherwise both a normal and bold name will be drawn
+                if w_auto.value != proposed_to_auto_map[change['new']]:
+                    old_aa_ann = plt.annotate(
+                        w_auto.value,
+                        (auto_annot[w_auto.value][1], auto_annot[w_auto.value][0]),
+                        color='blue',
+                        ha='center',
+                        fontweight='normal'
+                    )
 
-            # # display
-            # w_auto.value = proposed_to_auto_map[change]
+                    # update the annotation for the old auto tile
+                    aa_anns[w_auto.value] = old_aa_ann
+
+                # create a new bolded annotation for the new pair
+                new_pa_ann = plt.annotate(
+                    change['new'],
+                    (proposed_annot[change['new']][1], proposed_annot[change['new']][0]),
+                    color='black',
+                    ha='center',
+                    fontweight='bold'
+                )
+
+                # update the annotation for the new proposed tile
+                pa_anns[change['new']] = new_pa_ann
+
+                new_aa_ann = plt.annotate(
+                    proposed_to_auto_map[change['new']],
+                    (
+                        auto_annot[proposed_to_auto_map[change['new']]][1],
+                        auto_annot[proposed_to_auto_map[change['new']]][0]
+                    ),
+                    color='blue',
+                    ha='center',
+                    fontweight='bold'
+                )
+
+                # update the annotation for the new auto tile
+                aa_anns[proposed_to_auto_map[change['new']]] = new_aa_ann
+
+                # set the mapped auto value according to the new proposed value
+                # note that this will call remap_values, but because the mapping didn't change
+                # nothing happens
+                w_auto.value = proposed_to_auto_map[change['new']]
 
     # a callback function for remapping when w_auto changes
     # NOTE: needs to be here so it can easily access w_prop, w_auto, and w_box
@@ -765,44 +868,36 @@ def interactive_remap(proposed_to_auto_map, proposed_tiles_info,
         # only remap if the auto change as been updated
         if change['name'] == 'value' and change['new'] != change['old']:
             with out:
-                # remap the proposed data to the changed value
-                proposed_to_auto_map[w_prop.value] = change['new']
+                # remove annotation for the old and new value w_prop maps to
+                aa_anns[change['old']].remove()
+                aa_anns[change['new']].remove()
 
-                # clear the figure
-                _ = plt.clf()
-
-                # clear the visualization
-                clear_output()
-
-                # # redraw w_prop and w_auto in w_box
-                # # make sure w_prop is set to its original value
-                # w_prop = widgets.Dropdown(
-                #     options=[pti for pti in list(proposed_tiles_info.keys())],
-                #     value=w_prop.value,
-                #     description='Proposed tile'
-                # )
-
-                # # make sure w_auto contains the new value set
-                # w_auto = widgets.Dropdown(
-                #     options=[ati for ati in list(auto_tiles_info.keys())],
-                #     value=change['new'],
-                #     description='Automatically-generated tile'
-                # )
-
-                # # display w_box again
-                # w_box = widgets.HBox([w_prop, w_auto])
-                # display(w_box)
-
-                # redraw the figure
-                fig = plt.figure(figsize=figsize)
-
-                # redraw the image
-                visualize_user_and_auto_tiles(
-                    proposed_to_auto_map, proposed_tiles_info, auto_tiles_info, slide_img,
-                    w_prop.value, change['new']
+                # generate a new un-bolded annotation for the old value w_prop mapped to
+                old_aa_ann = plt.annotate(
+                    change['old'],
+                    (auto_annot[change['old']][1], auto_annot[change['old']][0]),
+                    color='blue',
+                    ha='center',
+                    fontweight='normal'
                 )
 
-                # display(fig)
+                # update the annotation of the old value w_prop mapped to
+                aa_anns[change['old']] = old_aa_ann
+
+                # generate a new bolded annotation for the new value w_prop mapped to
+                new_aa_ann = plt.annotate(
+                    change['new'],
+                    (auto_annot[change['new']][1], auto_annot[change['new']][0]),
+                    color='blue',
+                    ha='center',
+                    fontweight='bold'
+                )
+
+                # update the annotation of the new value w_prop maps to
+                aa_anns[change['new']] = new_aa_ann
+
+                # remap the proposed tile to the changed value
+                proposed_to_auto_map[w_prop.value] = change['new']
 
     # ensure a change to w_prop redraws the image due to a new proposed tile selected
     w_prop.observe(update_mapping)
@@ -811,11 +906,4 @@ def interactive_remap(proposed_to_auto_map, proposed_tiles_info,
     # mapped to the proposed tile
     w_auto.observe(remap_values)
 
-    # display the figure to plot on
-    fig = plt.figure(figsize=figsize)
-
-    # display the image
-    visualize_user_and_auto_tiles(
-        proposed_to_auto_map, proposed_tiles_info, auto_tiles_info, slide_img,
-        first_proposed, proposed_to_auto_map[first_proposed]
-    )
+    display(out)
