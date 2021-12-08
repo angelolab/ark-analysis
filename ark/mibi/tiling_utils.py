@@ -40,8 +40,12 @@ def read_tiling_param(prompt, error_msg, cond, dtype):
     )
 
     while True:
-        # read in the variable with correct dtype
-        var = dtype(input(prompt))
+        # read in the variable with correct dtype, print error message if cannot be coerced
+        try:
+            var = dtype(input(prompt))
+        except ValueError:
+            print(error_msg)
+            continue
 
         # if condition passes, return
         if cond(var):
@@ -125,14 +129,14 @@ def _read_tma_region_input(fov_tile_info, region_params):
             # allow the user to specify the number of fovs along each dimension
             num_x = read_tiling_param(
                 "Enter number of x fovs for region %s (at least 3 required): " % start_fov['name'],
-                "Error: number of x fovs must be 3 or more",
+                "Error: number of x fovs must be a positive integer >=3",
                 lambda nx: nx >= 3,
                 dtype=int
             )
 
             num_y = read_tiling_param(
                 "Enter number of y fovs for region %s (at least 3 required): " % start_fov['name'],
-                "Error: number of y fovs must be 3 or more",
+                "Error: number of y fovs must be a positive integer >=3",
                 lambda ny: ny >= 3,
                 dtype=int
             )
@@ -140,14 +144,14 @@ def _read_tma_region_input(fov_tile_info, region_params):
             # allow the user to specify the image size along each dimension
             size_x = read_tiling_param(
                 "Enter the x image size for region %s: " % start_fov['name'],
-                "Error: x step size must be positive",
+                "Error: x step size must be a positive integer",
                 lambda sx: sx >= 1,
                 dtype=int
             )
 
             size_y = read_tiling_param(
                 "Enter the y image size for region %s: " % start_fov['name'],
-                "Error: y step size must be positive",
+                "Error: y step size must be a positive integer",
                 lambda sy: sy >= 1,
                 dtype=int
             )
@@ -355,7 +359,7 @@ def set_tiling_params(fov_list_path, moly_path, tma=False):
     if moly_interval_insert == 'Y':
         moly_interval = read_tiling_param(
             "Enter the fov interval size to insert moly points: ",
-            "Error: moly interval must be positive",
+            "Error: moly interval must be a positive integer",
             lambda mi: mi >= 1,
             dtype=int
         )
