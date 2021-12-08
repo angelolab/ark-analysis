@@ -716,7 +716,7 @@ def generate_tile_annotations(proposed_annot, auto_annot, proposed_name, auto_na
 
 
 def interactive_remap(proposed_to_auto_map, proposed_tiles_info,
-                      auto_tiles_info, slide_img, figsize):
+                      auto_tiles_info, slide_img, mapping_path, figsize=(15, 15)):
     """Creates the remapping interactive interface
 
     Args:
@@ -728,6 +728,8 @@ def interactive_remap(proposed_to_auto_map, proposed_tiles_info,
             maps each automatically-generated tile to its centroid coordinates and size
         slide_img (numpy.ndarray):
             the image to overlay
+        mapping_path (str):
+            The path to the file to save the mapping to
         figsize (tuple):
             the size of the figure to display
     """
@@ -756,14 +758,20 @@ def interactive_remap(proposed_to_auto_map, proposed_tiles_info,
         style={'description_width': 'initial'}
     )
 
+    w_save = widgets.Button(
+        description='Save mapping',
+        layout=widgets.Layout(width='auto'),
+        style={'description_width': 'initial'}
+    )
+
     # define a box to hold w_prop and w_auto
     w_box = widgets.HBox(
-        [w_prop, w_auto],
+        [w_prop, w_auto, w_save],
         layout=widgets.Layout(
             display='flex',
             flex_flow='row',
             align_items='stretch',
-            width='50%'
+            width='75%'
         )
     )
 
@@ -781,19 +789,40 @@ def interactive_remap(proposed_to_auto_map, proposed_tiles_info,
         proposed_to_auto_map, proposed_tiles_info, auto_tiles_info, slide_img
     )
 
+    # make sure the output gets displayed to the output widget so it displays properly
     with out:
+        # draw the image
         img_plot = ax.imshow(slide_img)
-        plt.tight_layout()
 
-        # generate the annotations
+        # overwrite the default title
+        _ = plt.title('Proposed to automatically-generated tile map')
+
+        # remove massive padding
+        _ = plt.tight_layout()
+
+        # generate the tile annotations
         pa_anns, aa_anns = generate_tile_annotations(
             proposed_annot, auto_annot, w_prop.value, w_auto.value
         )
 
+        # define status of the save annotation
+        # initially None, updates when user clicks w_save
+        save_ann = None
+
     # a callback function for changing w_auto to the value w_prop maps to
-    # NOTE: needs to be here so it can easily access w_prop, w_auto, and w_box
+    # NOTE: needs to be here so it can easily access w_prop and w_auto
     def update_mapping(change):
+        """Updates w_auto and bolds a different proposed-auto pair when w_prop changes
+
+        Args:
+            change (dict):
+                defines the properties of the changed value in w_prop
+        """
+
+        # only operate if w_prop actually changed
+        # prevents update if the user drops down w_prop but leaves it as the same proposed tile
         if change['name'] == 'value' and change['new'] != change['old']:
+            # need to be in the output widget context to update
             with out:
                 # remove annotations for the proposed annotations and the new auto annotation
                 pa_anns[change['old']].remove()
@@ -863,10 +892,20 @@ def interactive_remap(proposed_to_auto_map, proposed_tiles_info,
                 w_auto.value = proposed_to_auto_map[change['new']]
 
     # a callback function for remapping when w_auto changes
-    # NOTE: needs to be here so it can easily access w_prop, w_auto, and w_box
+    # NOTE: needs to be here so it can easily access w_prop and w_auto
     def remap_values(change):
+        """Bolds the new w_auto and maps the selected tile in w_prop
+        to the new w_auto in `proposed_to_auto_amp`
+
+        Args:
+            change (dict):
+                defines the properties of the changed value in w_auto
+        """
+
         # only remap if the auto change as been updated
+        # prevents update if the user drops down w_auto but leaves it as the same auto tile
         if change['name'] == 'value' and change['new'] != change['old']:
+            # need to be in the output widget context to update
             with out:
                 # remove annotation for the old and new value w_prop maps to
                 aa_anns[change['old']].remove()
@@ -899,6 +938,35 @@ def interactive_remap(proposed_to_auto_map, proposed_tiles_info,
                 # remap the proposed tile to the changed value
                 proposed_to_auto_map[w_prop.value] = change['new']
 
+    # a callback function for saving proposed_to_auto_map to mapping_path if w_save clicked
+    def save_mapping(b):
+        """Saves the mapping defined in `proposed_to_auto_map`
+
+        Args:
+            b (ipywidgets.widgets.widget_button.Button):
+                the button defining w_save, only passed as a standard for on_click callback
+        """
+
+        # need to be in the output widget context to display status
+        with out:
+            # save the mapping
+            with open(mapping_path, 'w') as mp:
+                json.dump(proposed_to_auto_map, mp)
+
+            # remove the save annotation if it already exists
+            # otherwise, if user saves several times, this could get really large
+            if save_ann:
+                save_ann.remove()
+
+            # display save annotation above the plot
+            new_aa_ann = plt.annotate(
+                'Mapping saved!',
+                (0, -10),
+                color='black',
+                fontweight='bold',
+                annotation_clip=False
+            )
+
     # ensure a change to w_prop redraws the image due to a new proposed tile selected
     w_prop.observe(update_mapping)
 
@@ -906,4 +974,8 @@ def interactive_remap(proposed_to_auto_map, proposed_tiles_info,
     # mapped to the proposed tile
     w_auto.observe(remap_values)
 
+    # if w_save clicked, save the new mapping to the path defined in mapping_path
+    w_save.on_click(save_mapping)
+
+    # display the output
     display(out)
