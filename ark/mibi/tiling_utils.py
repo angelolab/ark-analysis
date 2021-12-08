@@ -597,8 +597,8 @@ def generate_tile_circles(proposed_to_auto_map, proposed_tiles_info, auto_tiles_
         tuple:
 
         - A numpy.ndarray containing the slide_img with circles defining each tile
-        - A dict mapping each proposed tile to its annotation
-        - A dict mapping each automatically-generated tile to its annotation
+        - A dict mapping each proposed tile to its annotation coordinate
+        - A dict mapping each automatically-generated tile to its annotation coordinate
     """
     # define dictionaries to hold the annotations
     proposed_annot = {}
@@ -667,9 +667,8 @@ def generate_tile_annotations(proposed_annot, auto_annot, proposed_name, auto_na
     Returns:
         tuple:
 
-        - A dict mapping each proposed tile to its matplotlib.pyplot.annotate annotation
-        - A dict mapping each automatically-generated tile to its
-          matplotlib.pyplot.annotate annotation
+        - A dict mapping each proposed tile to its matplotlib annotation object
+        - A dict mapping each automatically-generated tile to its matplotlib annotation object
     """
 
     # define dicts to store the proposed and the auto annotations
@@ -715,6 +714,189 @@ def generate_tile_annotations(proposed_annot, auto_annot, proposed_name, auto_na
     return pa_anns, aa_anns
 
 
+def update_mapping_display(change, proposed_to_auto_map, proposed_annot, auto_annot,
+                           pa_anns, aa_anns, w_auto):
+    """Changes the bolded proposed to automatically-generated tile in the remapping visualization
+    based on change in proposed tile menu
+
+    Helper to `update_mapping` nested callback function in `interactive_remap`
+
+    Args:
+        change (dict):
+            defines the properties of the changed value of the proposed tile menu
+        proposed_to_auto_map (dict):
+            defines the mapping of proposed to auto tile names
+        proposed_annot (dict):
+            maps each proposed tile to its annotation coordinate
+        auto_annot (dict):
+            maps each automatically-generated tile to its annotation coordinate
+        pa_anns (dict):
+            maps each proposed tile to its matplotlib annotation object
+        aa_anns (dict):
+            maps each automatically-generated tile to its matplotlib annotation object
+        w_auto (ipywidgets.widgets.widget_selection.Dropdown):
+            the dropdown menu handler for the automatically-generated tiles
+    """
+
+    # remove annotations for the proposed annotations and the new auto annotation
+    pa_anns[change['old']].remove()
+    pa_anns[change['new']].remove()
+    aa_anns[proposed_to_auto_map[change['new']]].remove()
+
+    # only remove the old auto annotation if it doesn't match the new one
+    # otherwise we'll be removing the same text twice and it will fail
+    if w_auto.value != proposed_to_auto_map[change['new']]:
+        aa_anns[w_auto.value].remove()
+
+    # create a new unbolded annotation for the proposed tile
+    old_pa_ann = plt.annotate(
+        change['old'],
+        (proposed_annot[change['old']][1], proposed_annot[change['old']][0]),
+        color='black',
+        ha='center',
+        fontweight='normal'
+    )
+
+    # update the annotation for the old proposed tile
+    pa_anns[change['old']] = old_pa_ann
+
+    # only create a new unbolded annotation for the old auto tile if it doesn't
+    # match the new one, otherwise both a normal and bold name will be drawn
+    if w_auto.value != proposed_to_auto_map[change['new']]:
+        old_aa_ann = plt.annotate(
+            w_auto.value,
+            (auto_annot[w_auto.value][1], auto_annot[w_auto.value][0]),
+            color='blue',
+            ha='center',
+            fontweight='normal'
+        )
+
+        # update the annotation for the old auto tile
+        aa_anns[w_auto.value] = old_aa_ann
+
+    # create a new bolded annotation for the new pair
+    new_pa_ann = plt.annotate(
+        change['new'],
+        (proposed_annot[change['new']][1], proposed_annot[change['new']][0]),
+        color='black',
+        ha='center',
+        fontweight='bold'
+    )
+
+    # update the annotation for the new proposed tile
+    pa_anns[change['new']] = new_pa_ann
+
+    new_aa_ann = plt.annotate(
+        proposed_to_auto_map[change['new']],
+        (
+            auto_annot[proposed_to_auto_map[change['new']]][1],
+            auto_annot[proposed_to_auto_map[change['new']]][0]
+        ),
+        color='blue',
+        ha='center',
+        fontweight='bold'
+    )
+
+    # update the annotation for the new auto tile
+    aa_anns[proposed_to_auto_map[change['new']]] = new_aa_ann
+
+    # set the mapped auto value according to the new proposed value
+    # note that this will call remap_values, but because the mapping didn't change
+    # nothing happens
+    w_auto.value = proposed_to_auto_map[change['new']]
+
+
+def remap_proposed_to_auto_display(change, proposed_to_auto_map, auto_annot, aa_anns, w_prop):
+    """Changes the bolded automatically-generated tile to new value selected for proposed tile
+    and updates the mapping in proposed_to_auto_map
+
+    Helper to `remap_values` nested callback function in `interactive_remap`
+
+    Args:
+        change (dict):
+            defines the properties of the changed value of the automatically-generated tile menu
+        proposed_to_auto_map (dict):
+            defines the mapping of proposed to auto tile names
+        auto_annot (dict):
+            maps each automatically-generated tile to its annotation coordinate
+        aa_anns (dict):
+            maps each automatically-generated tile to its matplotlib annotation object
+        w_prop (ipywidgets.widgets.widget_selection.Dropdown):
+            the dropdown menu handler for the proposed tiles
+    """
+
+    # remove annotation for the old and new value w_prop maps to
+    aa_anns[change['old']].remove()
+    aa_anns[change['new']].remove()
+
+    # generate a new un-bolded annotation for the old value w_prop mapped to
+    old_aa_ann = plt.annotate(
+        change['old'],
+        (auto_annot[change['old']][1], auto_annot[change['old']][0]),
+        color='blue',
+        ha='center',
+        fontweight='normal'
+    )
+
+    # update the annotation of the old value w_prop mapped to
+    aa_anns[change['old']] = old_aa_ann
+
+    # generate a new bolded annotation for the new value w_prop mapped to
+    new_aa_ann = plt.annotate(
+        change['new'],
+        (auto_annot[change['new']][1], auto_annot[change['new']][0]),
+        color='blue',
+        ha='center',
+        fontweight='bold'
+    )
+
+    # update the annotation of the new value w_prop maps to
+    aa_anns[change['new']] = new_aa_ann
+
+    # remap the proposed tile to the changed value
+    proposed_to_auto_map[w_prop.value] = change['new']
+
+
+def write_proposed_to_auto_map(proposed_to_auto_map, save_ann, mapping_path):
+    """Saves the proposed to automatically-generated tile map and notifies the user
+
+    Helper to `save_mapping` nested callback function in `interactive_remap`
+
+    Args:
+        proposed_to_auto_map (dict):
+            defines the mapping of proposed to auto tile names
+        save_ann (dict):
+            contains the annotation object defining the save notification
+        mapping_path (str):
+            the path to the file to save the mapping to
+
+    Returns:
+        ipywidgets:
+            the updated annotation contained in `save_ann`
+    """
+
+    # save the mapping
+    with open(mapping_path, 'w') as mp:
+        json.dump(proposed_to_auto_map, mp)
+
+    # remove the save annotation if it already exists
+    # clears up some space if the user decides to save several times
+    if save_ann['annotation']:
+        save_ann['annotation'].remove()
+
+    # display save annotation above the plot
+    save_msg = plt.annotate(
+        'Mapping saved!',
+        (0, -5),
+        color='black',
+        fontweight='bold',
+        annotation_clip=False
+    )
+
+    # assign annotation to save_ann
+    save_ann['annotation'] = save_msg
+
+
 def interactive_remap(proposed_to_auto_map, proposed_tiles_info,
                       auto_tiles_info, slide_img, mapping_path, figsize=(15, 15)):
     """Creates the remapping interactive interface
@@ -729,10 +911,16 @@ def interactive_remap(proposed_to_auto_map, proposed_tiles_info,
         slide_img (numpy.ndarray):
             the image to overlay
         mapping_path (str):
-            The path to the file to save the mapping to
+            the path to the file to save the mapping to
         figsize (tuple):
             the size of the figure to display
     """
+
+    # error check: ensure mapping path exists
+    if not os.path.exists(mapping_path):
+        raise FileNotFoundError(
+            "mapping_path %s does not exist, please rename to a valid location"
+        )
 
     # get the first proposed tile
     # this will define the initial default value to display
@@ -805,9 +993,9 @@ def interactive_remap(proposed_to_auto_map, proposed_tiles_info,
             proposed_annot, auto_annot, w_prop.value, w_auto.value
         )
 
-        # define status of the save annotation
-        # initially None, updates when user clicks w_save
-        save_ann = None
+        # define status of the save annotation, nitially None, updates when user clicks w_save
+        # NOTE: ipywidget callback functions can only access dicts defined in scope
+        save_ann = {'annotation': None}
 
     # a callback function for changing w_auto to the value w_prop maps to
     # NOTE: needs to be here so it can easily access w_prop and w_auto
@@ -824,72 +1012,11 @@ def interactive_remap(proposed_to_auto_map, proposed_tiles_info,
         if change['name'] == 'value' and change['new'] != change['old']:
             # need to be in the output widget context to update
             with out:
-                # remove annotations for the proposed annotations and the new auto annotation
-                pa_anns[change['old']].remove()
-                pa_anns[change['new']].remove()
-                aa_anns[proposed_to_auto_map[change['new']]].remove()
-
-                # only remove the old auto annotation if it doesn't match the new one
-                # otherwise we'll be removing the same text twice and it will fail
-                if w_auto.value != proposed_to_auto_map[change['new']]:
-                    aa_anns[w_auto.value].remove()
-
-                # create a new unbolded annotation for the proposed tile
-                old_pa_ann = plt.annotate(
-                    change['old'],
-                    (proposed_annot[change['old']][1], proposed_annot[change['old']][0]),
-                    color='black',
-                    ha='center',
-                    fontweight='normal'
+                # call the helper function to update annotations
+                update_mapping_display(
+                    change, proposed_to_auto_map, proposed_annot, auto_annot,
+                    pa_anns, aa_anns, w_auto
                 )
-
-                # update the annotation for the old proposed tile
-                pa_anns[change['old']] = old_pa_ann
-
-                # only create a new unbolded annotation for the old auto tile if it doesn't
-                # match the new one, otherwise both a normal and bold name will be drawn
-                if w_auto.value != proposed_to_auto_map[change['new']]:
-                    old_aa_ann = plt.annotate(
-                        w_auto.value,
-                        (auto_annot[w_auto.value][1], auto_annot[w_auto.value][0]),
-                        color='blue',
-                        ha='center',
-                        fontweight='normal'
-                    )
-
-                    # update the annotation for the old auto tile
-                    aa_anns[w_auto.value] = old_aa_ann
-
-                # create a new bolded annotation for the new pair
-                new_pa_ann = plt.annotate(
-                    change['new'],
-                    (proposed_annot[change['new']][1], proposed_annot[change['new']][0]),
-                    color='black',
-                    ha='center',
-                    fontweight='bold'
-                )
-
-                # update the annotation for the new proposed tile
-                pa_anns[change['new']] = new_pa_ann
-
-                new_aa_ann = plt.annotate(
-                    proposed_to_auto_map[change['new']],
-                    (
-                        auto_annot[proposed_to_auto_map[change['new']]][1],
-                        auto_annot[proposed_to_auto_map[change['new']]][0]
-                    ),
-                    color='blue',
-                    ha='center',
-                    fontweight='bold'
-                )
-
-                # update the annotation for the new auto tile
-                aa_anns[proposed_to_auto_map[change['new']]] = new_aa_ann
-
-                # set the mapped auto value according to the new proposed value
-                # note that this will call remap_values, but because the mapping didn't change
-                # nothing happens
-                w_auto.value = proposed_to_auto_map[change['new']]
 
     # a callback function for remapping when w_auto changes
     # NOTE: needs to be here so it can easily access w_prop and w_auto
@@ -907,36 +1034,10 @@ def interactive_remap(proposed_to_auto_map, proposed_tiles_info,
         if change['name'] == 'value' and change['new'] != change['old']:
             # need to be in the output widget context to update
             with out:
-                # remove annotation for the old and new value w_prop maps to
-                aa_anns[change['old']].remove()
-                aa_anns[change['new']].remove()
-
-                # generate a new un-bolded annotation for the old value w_prop mapped to
-                old_aa_ann = plt.annotate(
-                    change['old'],
-                    (auto_annot[change['old']][1], auto_annot[change['old']][0]),
-                    color='blue',
-                    ha='center',
-                    fontweight='normal'
+                # call the helper function to remap and update annotations
+                remap_proposed_to_auto_display(
+                    change, proposed_to_auto_map, auto_annot, aa_anns, w_prop
                 )
-
-                # update the annotation of the old value w_prop mapped to
-                aa_anns[change['old']] = old_aa_ann
-
-                # generate a new bolded annotation for the new value w_prop mapped to
-                new_aa_ann = plt.annotate(
-                    change['new'],
-                    (auto_annot[change['new']][1], auto_annot[change['new']][0]),
-                    color='blue',
-                    ha='center',
-                    fontweight='bold'
-                )
-
-                # update the annotation of the new value w_prop maps to
-                aa_anns[change['new']] = new_aa_ann
-
-                # remap the proposed tile to the changed value
-                proposed_to_auto_map[w_prop.value] = change['new']
 
     # a callback function for saving proposed_to_auto_map to mapping_path if w_save clicked
     def save_mapping(b):
@@ -944,27 +1045,14 @@ def interactive_remap(proposed_to_auto_map, proposed_tiles_info,
 
         Args:
             b (ipywidgets.widgets.widget_button.Button):
-                the button defining w_save, only passed as a standard for on_click callback
+                the button handler for w_save, only passed as a standard for `on_click` callback
         """
 
         # need to be in the output widget context to display status
         with out:
-            # save the mapping
-            with open(mapping_path, 'w') as mp:
-                json.dump(proposed_to_auto_map, mp)
-
-            # remove the save annotation if it already exists
-            # otherwise, if user saves several times, this could get really large
-            if save_ann:
-                save_ann.remove()
-
-            # display save annotation above the plot
-            new_aa_ann = plt.annotate(
-                'Mapping saved!',
-                (0, -10),
-                color='black',
-                fontweight='bold',
-                annotation_clip=False
+            # call the helper function to save proposed_to_auto_map and notify user
+            write_proposed_to_auto_map(
+                proposed_to_auto_map, save_ann, mapping_path
             )
 
     # ensure a change to w_prop redraws the image due to a new proposed tile selected
