@@ -13,11 +13,6 @@ from skimage.draw import circle_perimeter
 import ark.settings as settings
 from ark.utils import misc_utils
 
-# suppress mpl deprecation
-import warnings
-import matplotlib.cbook
-warnings.filterwarnings("ignore",category=matplotlib.cbook.mplDeprecation)
-
 
 # helper function to reading in input
 def read_tiling_param(prompt, error_msg, cond, dtype):
