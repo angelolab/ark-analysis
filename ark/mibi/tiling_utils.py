@@ -579,7 +579,8 @@ def assign_closest_tiled_regions(tiled_regions_proposed, tiled_regions_auto, mol
     return proposed_to_auto_map, proposed_tiles_info, auto_tiles_info
 
 
-def generate_tile_circles(proposed_to_auto_map, proposed_tiles_info, auto_tiles_info, slide_img):
+def generate_tile_circles(proposed_to_auto_map, proposed_tiles_info, auto_tiles_info,
+                          slide_img, draw_radius=50):
     """Draw the circles defining each tile (proposed and automatically-generated)
 
     Args:
@@ -591,6 +592,8 @@ def generate_tile_circles(proposed_to_auto_map, proposed_tiles_info, auto_tiles_
             maps each automatically-generated tile to its centroid coordinates and size
         slide_img (numpy.ndarray):
             the image to overlay
+        draw_radius (int):
+            the radius of the circle to overlay for each tile, will be centered at the centroid
 
     Returns:
         tuple:
@@ -612,14 +615,9 @@ def generate_tile_circles(proposed_to_auto_map, proposed_tiles_info, auto_tiles_
         proposed_x = proposed_tiles_info[pti]['centroid'][0]
         proposed_y = proposed_tiles_info[pti]['centroid'][1]
 
-        # get the radius of the tile
-        # NOTE: width and height are assumed to be the same
-        # proposed_radius = proposed_tiles_info[pti]['size'][0]
-        proposed_radius = 50
-
         # define the circle coordinates for the region
         pr_x, pr_y = circle_perimeter(
-            proposed_x, proposed_y, proposed_radius, shape=tile_size
+            proposed_x, proposed_y, draw_radius, shape=tile_size
         )
 
         # color each tile black for proposed
@@ -634,16 +632,13 @@ def generate_tile_circles(proposed_to_auto_map, proposed_tiles_info, auto_tiles_
         auto_x = auto_tiles_info[ati]['centroid'][0]
         auto_y = auto_tiles_info[ati]['centroid'][1]
 
-        # auto_radius = auto_tiles_info[ati]['size'][0]
-        auto_radius = 50
-
         # define the circle coordinates for the region
         ar_x, ar_y = circle_perimeter(
-            auto_x, auto_y, auto_radius, shape=tile_size
+            auto_x, auto_y, draw_radius, shape=tile_size
         )
 
+        # color each tile blue for auto
         slide_img[ar_x, ar_y, 0:2] = 0
-        # slide_img[ar_x, ar_y, 0] = 255
 
         auto_annot[ati] = (auto_x, auto_y)
 
@@ -897,7 +892,8 @@ def write_proposed_to_auto_map(proposed_to_auto_map, save_ann, mapping_path):
 
 
 def interactive_remap(proposed_to_auto_map, proposed_tiles_info,
-                      auto_tiles_info, slide_img, mapping_path, figsize=(15, 15)):
+                      auto_tiles_info, slide_img, mapping_path,
+                      draw_radius=50, figsize=(15, 15)):
     """Creates the remapping interactive interface
 
     Args:
@@ -911,8 +907,10 @@ def interactive_remap(proposed_to_auto_map, proposed_tiles_info,
             the image to overlay
         mapping_path (str):
             the path to the file to save the mapping to
+        draw_radius (int):
+
         figsize (tuple):
-            the size of the figure to display
+            the size of the interactive figure to display
     """
 
     # error check: ensure mapping path exists
@@ -973,7 +971,7 @@ def interactive_remap(proposed_to_auto_map, proposed_tiles_info,
 
     # generate the circles and annotations for each circle to display on the image
     slide_img, proposed_annot, auto_annot = generate_tile_circles(
-        proposed_to_auto_map, proposed_tiles_info, auto_tiles_info, slide_img
+        proposed_to_auto_map, proposed_tiles_info, auto_tiles_info, slide_img, draw_radius
     )
 
     # make sure the output gets displayed to the output widget so it displays properly

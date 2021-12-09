@@ -587,3 +587,143 @@ def test_create_tiled_regions_tma_test(randomize_setting, moly_run, moly_interva
             # however, fov 2 sorted entries should NOT equal fov 2 random entries
             # NOTE: due to randomization, this test will fail once in a blue moon
             assert center_points[fov_1_end:] != actual_center_points_sorted[fov_1_end:]
+
+
+def test_assign_closest_tiled_regions():
+    # define the coordinates and fov names generated from the tiled script
+    auto_coords = [(0, 0), (0, 50), (0, 100), (100, 0), (100, 50), (100, 100)]
+    auto_fov_names = ['row%d_col%d' % (x, y) for (x, y) in auto_coords]
+
+    # generate the list of automatically-generated tiles
+    auto_sample_tiles = test_utils.generate_sample_fovs_list(
+        auto_coords, auto_fov_names
+    )
+
+    # define the coordinates and fov names proposed by the user
+    proposed_coords = [(0, 25), (50, 25), (50, 50), (75, 50), (100, 25)]
+    proposed_fov_names = ['row%d_col%d' % (x, y) for (x, y) in proposed_coords]
+
+    # generate the list of proposed tiles
+    proposed_sample_tiles = test_utils.generate_sample_fovs_list(
+        proposed_coords, proposed_fov_names
+    )
+
+    # define the sample Moly point
+    sample_moly_point = test_utils.generate_sample_fov_tiling_entry(
+        coord=(14540, -10830), name="MoQC"
+    )
+
+    # insert Moly point at every 2 fovs in both fov names list
+    moly_indices = [2, 4]
+    for mi in moly_indices:
+        auto_sample_tiles['fovs'].insert(mi, sample_moly_point)
+        proposed_sample_tiles['fovs'].insert(mi, sample_moly_point)
+
+    # generate the mapping from proposed to automatically-generated
+    proposed_to_auto_map, proposed_tiles_info, auto_tiles_info = \
+        tiling_utils.assign_closest_tiled_regions(
+            proposed_sample_tiles, auto_sample_tiles, sample_moly_point['name']
+        )
+
+    # for each proposed tile, ensure the centroids are the same in proposed_tiles_info
+    for fov in proposed_sample_tiles['fovs']:
+        # skip the Moly points
+        if fov['name'] != 'MoQC':
+            proposed_centroid = tuple(fov['centerPointMicrons'].values())
+            assert proposed_tiles_info[fov['name']]['centroid'] == proposed_centroid
+
+    # same for automatically-generated tiles
+    for fov in auto_sample_tiles['fovs']:
+        if fov['name'] != 'MoQC':
+            auto_centroid = tuple(fov['centerPointMicrons'].values())
+            assert auto_tiles_info[fov['name']]['centroid'] == auto_centroid
+
+    # assert the mapping is correct
+    actual_map = {
+        'row0_col25': 'row0_col0',
+        'row50_col25': 'row0_col0',
+        'row50_col50': 'row0_col50',
+        'row75_col50': 'row100_col50',
+        'row100_col25': 'row100_col0'
+    }
+
+    assert proposed_to_auto_map == actual_map
+
+
+def test_generate_tile_circles():
+    # we'll literally be copying the data generated from test_assign_closest_tiled_regions
+    sample_proposed_to_auto_map = {
+        'row0_col25': 'row0_col0',
+        'row50_col25': 'row0_col0',
+        'row50_col50': 'row0_col50',
+        'row75_col50': 'row100_col50',
+        'row100_col25': 'row100_col0'
+    }
+
+    sample_proposed_tiles_info = {
+        'row0_col25': {'centroid': (0, 25), 'size': (2048, 2048)},
+        'row50_col25': {'centroid': (50, 25), 'size': (2048, 2048)},
+        'row50_col50': {'centroid': (50, 50), 'size': (2048, 2048)},
+        'row75_col50': {'centroid': (75, 50), 'size': (2048, 2048)},
+        'row100_col25': {'centroid': (100, 25), 'size': (2048, 2048)}
+    }
+
+    sample_auto_tiles_info = {
+        'row0_col0': {'centroid': (0, 0), 'size': (2048, 2048)},
+        'row0_col50': {'centroid': (0, 50), 'size': (2048, 2048)},
+        'row0_col100': {'centroid': (0, 100), 'size': (2048, 2048)},
+        'row100_col0': {'centroid': (100, 0), 'size': (2048, 2048)},
+        'row100_col50': {'centroid': (100, 50), 'size': (2048, 2048)},
+        'row100_col100': {'centroid': (100, 100), 'size': (2048, 2048)}
+    }
+
+    # define the sample slide image
+    sample_slide_img = np.full((200, 200, 3), 255)
+
+    # draw the circles
+    sample_slide_img, sample_proposed_annot, sample_auto_annot = \
+        tiling_utils.generate_tile_circles(
+            sample_proposed_to_auto_map, sample_proposed_tiles_info,
+            sample_auto_tiles_info, sample_slide_img
+        )
+
+    # NOTE: we will not test actual values yet, co-registration will change this
+
+
+def test_generate_tile_annotations():
+    # define the name of each annotation and the coordinates where they will be placed
+    sample_proposed_annot = {
+        'row25_col25': (25, 25),
+        'row50_col50': (50, 50)
+    }
+
+    sample_auto_annot = {
+        'row75_col75': (75, 75),
+        'row100_col100': (100, 100)
+    }
+
+    # define the pair to highlight
+    sample_proposed_name = 'row25_col25'
+    sample_auto_name = 'row75_col75'
+
+    sample_pa_anns, sample_aa_anns = tiling_utils.generate_tile_annotations(
+        sample_proposed_annot, sample_auto_annot, sample_proposed_name, sample_auto_name
+    )
+
+    # assert the coordinates are correct for each proposed tile annotation
+    for pa_ann in sample_pa_anns:
+        # make sure the pa_ann is for a valid tile
+        assert pa_ann in sample_proposed_annot
+
+        # make sure the coordinates match up
+        pa_ann_obj = sample_pa_anns[pa_ann]
+        assert pa_ann_obj.xy == sample_proposed_annot[pa_ann]
+
+    # same for automatically-generated tile annotations
+    for aa_ann in sample_aa_anns:
+        # make sure the pa_ann is for a valid tile
+        assert aa_ann in sample_auto_annot
+
+        # make sure the coordinates match up
+        aa_ann_obj = sample_aa_anns[aa_ann]
+        assert aa_ann_obj.xy == sample_auto_annot[aa_ann]
