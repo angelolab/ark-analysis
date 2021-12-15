@@ -7,8 +7,8 @@ import json
 import matplotlib.pyplot as plt
 import numpy as np
 import os
-import random
-from skimage.draw import circle_perimeter
+from skimage.draw import ellipse
+from sklearn.utils import shuffle
 
 import ark.settings as settings
 from ark.utils import misc_utils
@@ -84,9 +84,9 @@ def generate_region_info(region_params):
 
 
 def _read_tma_region_input(fov_tile_info, region_params):
-    """Reads input for TMAs from user and fov_tile_info
+    """Reads input for TMAs from user and fov_tile_info.
 
-    Updates all the tiling params inplace
+    Updates all the tiling params inplace. Units used are pixels.
 
     Args:
         fov_tile_info (dict):
@@ -143,14 +143,14 @@ def _read_tma_region_input(fov_tile_info, region_params):
 
             # allow the user to specify the image size along each dimension
             size_x = read_tiling_param(
-                "Enter the x image size for region %s: " % start_fov['name'],
+                "Enter the x image size for region %s (in microns): " % start_fov['name'],
                 "Error: x step size must be a positive integer",
                 lambda sx: sx >= 1,
                 dtype=int
             )
 
             size_y = read_tiling_param(
-                "Enter the y image size for region %s: " % start_fov['name'],
+                "Enter the y image size for region %s (in microns): " % start_fov['name'],
                 "Error: y step size must be a positive integer",
                 lambda sy: sy >= 1,
                 dtype=int
@@ -207,7 +207,7 @@ def _read_tma_region_input(fov_tile_info, region_params):
 def _read_non_tma_region_input(fov_tile_info, region_params):
     """Reads input for non-TMAs from user and fov_tile_info
 
-    Updates all the tiling params inplace
+    Updates all the tiling params inplace. Units used are pixels.
 
     Args:
         fov_tile_info (dict):
@@ -443,11 +443,16 @@ def create_tiled_regions(tiling_params, moly_point, tma=False):
         # create all pairs between two lists
         x_y_pairs = generate_x_y_fov_pairs(x_range, y_range)
 
+        # name the FOVs according to MIBI conventions
+        fov_names = ['R%dC%d' % (x, y) for y in range(region_info['fov_num_y'])
+                     for x in range(region_info['fov_num_x'])]
+
         # randomize pairs list if specified
         if region_info['region_rand'] == 'Y':
-            random.shuffle(x_y_pairs)
+            # make sure the fov_names are set in the same shuffled indices for renaming
+            x_y_pairs, fov_names = shuffle(x_y_pairs, fov_names)
 
-        for xi, yi in x_y_pairs:
+        for index, (xi, yi) in enumerate(x_y_pairs):
             # set the current x and y coordinate
             if tma:
                 cur_x = xi
@@ -460,7 +465,7 @@ def create_tiled_regions(tiling_params, moly_point, tma=False):
             fov = copy.deepcopy(tiling_params['fovs'][region_index])
             fov['centerPointMicrons']['x'] = cur_x
             fov['centerPointMicrons']['y'] = cur_y
-            fov['name'] = f'row{xi}_col{yi}'
+            fov['name'] = fov_names[index]
 
             # append value to tiled_regions
             tiled_regions['fovs'].append(fov)
@@ -479,6 +484,35 @@ def create_tiled_regions(tiling_params, moly_point, tma=False):
             tiled_regions['fovs'].append(moly_point)
 
     return tiled_regions
+
+
+def convert_microns_to_pixels(coord):
+    """Convert the coordinate in stage microns to optical pixels
+
+    In other words, co-register using the centroid of a FOV.
+
+    The values are coerced to ints to allow indexing into the slide.
+    Coordinates are also returned in (y, x) form to account for a different coordinate axis.
+
+    Args:
+        coord (tuple):
+            The coordinate in microns to convert
+
+    Returns:
+        tuple:
+            The converted coordinate from microns to pixels
+    """
+
+    # NOTE: all conversions are done using the fiducials
+    # convert from microns to stage coordinates
+    stage_coord_x = (coord[0] * 0.001001 - 0.3116)
+    stage_coord_y = (coord[1] * 0.001018 - 0.6294)
+
+    # convert from stage coordinates to pixels
+    pixel_coord_x = (stage_coord_x + 27.79) / 0.06887
+    pixel_coord_y = (stage_coord_y - 77.40) / -0.06926
+
+    return (int(pixel_coord_y), int(pixel_coord_x))
 
 
 def assign_closest_tiled_regions(tiled_regions_proposed, tiled_regions_auto, moly_point_name):
@@ -507,11 +541,11 @@ def assign_closest_tiled_regions(tiled_regions_proposed, tiled_regions_auto, mol
     """
 
     # define the centroid and size info for tiled_regions_proposed and tiled_regions_auto
-    # ignore any Moly points as those are only used as separators
-    # these will simply be returned to help with the slide overlay and remapping
     proposed_tiles_info = {
         fov['name']: {
-            'centroid': (fov['centerPointMicrons']['x'], fov['centerPointMicrons']['y']),
+            'centroid': convert_microns_to_pixels(
+                (fov['centerPointMicrons']['x'], fov['centerPointMicrons']['y'])
+            ),
             'size': (fov['frameSizePixels']['width'], fov['frameSizePixels']['height'])
         }
 
@@ -520,7 +554,9 @@ def assign_closest_tiled_regions(tiled_regions_proposed, tiled_regions_auto, mol
 
     auto_tiles_info = {
         fov['name']: {
-            'centroid': (fov['centerPointMicrons']['x'], fov['centerPointMicrons']['y']),
+            'centroid': convert_microns_to_pixels(
+                (fov['centerPointMicrons']['x'], fov['centerPointMicrons']['y'])
+            ),
             'size': (fov['frameSizePixels']['width'], fov['frameSizePixels']['height'])
         }
 
@@ -602,6 +638,7 @@ def generate_tile_circles(proposed_to_auto_map, proposed_tiles_info, auto_tiles_
         - A dict mapping each proposed tile to its annotation coordinate
         - A dict mapping each automatically-generated tile to its annotation coordinate
     """
+
     # define dictionaries to hold the annotations
     proposed_annot = {}
     auto_annot = {}
@@ -612,16 +649,18 @@ def generate_tile_circles(proposed_to_auto_map, proposed_tiles_info, auto_tiles_
     # generate the regions for each proposed and mapped auto tile
     for pti in proposed_tiles_info:
         # get the x- and y-coordinate of the centroid
-        proposed_x = proposed_tiles_info[pti]['centroid'][0]
-        proposed_y = proposed_tiles_info[pti]['centroid'][1]
+        proposed_x = int(proposed_tiles_info[pti]['centroid'][0])
+        proposed_y = int(proposed_tiles_info[pti]['centroid'][1])
 
         # define the circle coordinates for the region
-        pr_x, pr_y = circle_perimeter(
-            proposed_x, proposed_y, draw_radius, shape=tile_size
+        pr_x, pr_y = ellipse(
+            proposed_x, proposed_y, draw_radius, draw_radius, shape=tile_size
         )
 
-        # color each tile black for proposed
-        slide_img[pr_x, pr_y, :] = 0
+        # color each tile red for proposed
+        slide_img[pr_x, pr_y, 0] = 238
+        slide_img[pr_x, pr_y, 1] = 75
+        slide_img[pr_x, pr_y, 2] = 43
 
         # define the annotations to place at each coordinate
         proposed_annot[pti] = (proposed_x, proposed_y)
@@ -629,16 +668,18 @@ def generate_tile_circles(proposed_to_auto_map, proposed_tiles_info, auto_tiles_
     # repeat but for the automatically generated points
     for ati in auto_tiles_info:
         # repeat the above for auto points
-        auto_x = auto_tiles_info[ati]['centroid'][0]
-        auto_y = auto_tiles_info[ati]['centroid'][1]
+        auto_x = int(auto_tiles_info[ati]['centroid'][0])
+        auto_y = int(auto_tiles_info[ati]['centroid'][1])
 
         # define the circle coordinates for the region
-        ar_x, ar_y = circle_perimeter(
-            auto_x, auto_y, draw_radius, shape=tile_size
+        ar_x, ar_y = ellipse(
+            auto_x, auto_y, draw_radius, draw_radius, shape=tile_size
         )
 
         # color each tile blue for auto
-        slide_img[ar_x, ar_y, 0:2] = 0
+        slide_img[ar_x, ar_y, 0] = 135
+        slide_img[ar_x, ar_y, 1] = 206
+        slide_img[ar_x, ar_y, 2] = 250
 
         auto_annot[ati] = (auto_x, auto_y)
 
@@ -672,16 +713,17 @@ def generate_tile_annotations(proposed_annot, auto_annot, proposed_name, auto_na
     # generate the annotation text for proposed tiles
     for pa_text, pa_coord in proposed_annot.items():
         # increase size of and bold the proposed tile name if that's the one selected
-        font_size = 'x-large' if pa_text == proposed_name else 'medium'
         font_weight = 'bold' if pa_text == proposed_name else 'normal'
+        font_color = 'green' if pa_text == proposed_name else 'white'
 
         # draw the proposed tile name
         pa_ann = plt.annotate(
             pa_text,
             (pa_coord[1], pa_coord[0]),
-            color='black',
+            color=font_color,
             ha='center',
-            fontweight=font_weight
+            fontweight=font_weight,
+            fontsize=5
         )
 
         # add annotation to pa_anns
@@ -690,16 +732,17 @@ def generate_tile_annotations(proposed_annot, auto_annot, proposed_name, auto_na
     # generate the annotation text for auto tiles
     for aa_text, aa_coord in auto_annot.items():
         # increase size of and bold the auto tile name if that's the one selected
-        font_size = 'x-large' if aa_text == auto_name else 'medium'
         font_weight = 'bold' if aa_text == auto_name else 'normal'
+        font_color = 'green' if aa_text == auto_name else 'black'
 
         # draw the auto tile name
         aa_ann = plt.annotate(
             aa_text,
             (aa_coord[1], aa_coord[0]),
-            color='blue',
+            color=font_color,
             ha='center',
-            fontweight=font_weight
+            fontweight=font_weight,
+            fontsize=5
         )
 
         # add annotation to aa_anns
@@ -746,9 +789,10 @@ def update_mapping_display(change, proposed_to_auto_map, proposed_annot, auto_an
     old_pa_ann = plt.annotate(
         change['old'],
         (proposed_annot[change['old']][1], proposed_annot[change['old']][0]),
-        color='black',
+        color='white',
         ha='center',
-        fontweight='normal'
+        fontweight='normal',
+        fontsize=5
     )
 
     # update the annotation for the old proposed tile
@@ -760,9 +804,10 @@ def update_mapping_display(change, proposed_to_auto_map, proposed_annot, auto_an
         old_aa_ann = plt.annotate(
             w_auto.value,
             (auto_annot[w_auto.value][1], auto_annot[w_auto.value][0]),
-            color='blue',
+            color='black',
             ha='center',
-            fontweight='normal'
+            fontweight='normal',
+            fontsize=5
         )
 
         # update the annotation for the old auto tile
@@ -772,9 +817,10 @@ def update_mapping_display(change, proposed_to_auto_map, proposed_annot, auto_an
     new_pa_ann = plt.annotate(
         change['new'],
         (proposed_annot[change['new']][1], proposed_annot[change['new']][0]),
-        color='black',
+        color='green',
         ha='center',
-        fontweight='bold'
+        fontweight='bold',
+        fontsize=5
     )
 
     # update the annotation for the new proposed tile
@@ -786,17 +832,16 @@ def update_mapping_display(change, proposed_to_auto_map, proposed_annot, auto_an
             auto_annot[proposed_to_auto_map[change['new']]][1],
             auto_annot[proposed_to_auto_map[change['new']]][0]
         ),
-        color='blue',
+        color='green',
         ha='center',
-        fontweight='bold'
+        fontweight='bold',
+        fontsize=5
     )
 
     # update the annotation for the new auto tile
     aa_anns[proposed_to_auto_map[change['new']]] = new_aa_ann
 
     # set the mapped auto value according to the new proposed value
-    # note that this will call remap_values, but because the mapping didn't change
-    # nothing happens
     w_auto.value = proposed_to_auto_map[change['new']]
 
 
@@ -827,9 +872,10 @@ def remap_proposed_to_auto_display(change, proposed_to_auto_map, auto_annot, aa_
     old_aa_ann = plt.annotate(
         change['old'],
         (auto_annot[change['old']][1], auto_annot[change['old']][0]),
-        color='blue',
+        color='black',
         ha='center',
-        fontweight='normal'
+        fontweight='normal',
+        fontsize=5
     )
 
     # update the annotation of the old value w_prop mapped to
@@ -839,9 +885,10 @@ def remap_proposed_to_auto_display(change, proposed_to_auto_map, auto_annot, aa_
     new_aa_ann = plt.annotate(
         change['new'],
         (auto_annot[change['new']][1], auto_annot[change['new']][0]),
-        color='blue',
+        color='green',
         ha='center',
-        fontweight='bold'
+        fontweight='bold',
+        fontsize=5
     )
 
     # update the annotation of the new value w_prop maps to
@@ -892,8 +939,8 @@ def write_proposed_to_auto_map(proposed_to_auto_map, save_ann, mapping_path):
 
 
 def interactive_remap(proposed_to_auto_map, proposed_tiles_info,
-                      auto_tiles_info, slide_img, mapping_path,
-                      draw_radius=50, figsize=(15, 15)):
+                      auto_tiles_info, slide_img, fiducial_info, mapping_path,
+                      draw_radius=5, figsize=(15, 15)):
     """Creates the remapping interactive interface
 
     Args:
@@ -905,10 +952,12 @@ def interactive_remap(proposed_to_auto_map, proposed_tiles_info,
             maps each automatically-generated tile to its centroid coordinates and size
         slide_img (numpy.ndarray):
             the image to overlay
+        fiducial_info (dict):
+            the location of the fiducials on the image in both pixels and microns
         mapping_path (str):
             the path to the file to save the mapping to
         draw_radius (int):
-
+            the radius to draw each circle on the slide
         figsize (tuple):
             the size of the interactive figure to display
     """

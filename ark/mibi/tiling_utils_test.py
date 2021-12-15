@@ -477,8 +477,8 @@ def test_create_tiled_regions_tma_test(randomize_setting, moly_run, moly_interva
     sample_region_inputs = {
         'region_start_x': [0, 50],
         'region_start_y': [100, 150],
-        'fov_num_x': [2, 4],
-        'fov_num_y': [4, 2],
+        'fov_num_x': [3, 3],
+        'fov_num_y': [3, 3],
         'x_fov_size': [5, 10],
         'y_fov_size': [10, 5],
         'x_intervals': [[0, 50, 100], [100, 150, 200]],
@@ -629,21 +629,27 @@ def test_assign_closest_tiled_regions():
     for fov in proposed_sample_tiles['fovs']:
         # skip the Moly points
         if fov['name'] != 'MoQC':
-            proposed_centroid = tuple(fov['centerPointMicrons'].values())
+            proposed_centroid = tiling_utils.convert_microns_to_pixels(
+                tuple(fov['centerPointMicrons'].values())
+            )
+
             assert proposed_tiles_info[fov['name']]['centroid'] == proposed_centroid
 
     # same for automatically-generated tiles
     for fov in auto_sample_tiles['fovs']:
         if fov['name'] != 'MoQC':
-            auto_centroid = tuple(fov['centerPointMicrons'].values())
+            auto_centroid = tiling_utils.convert_microns_to_pixels(
+                tuple(fov['centerPointMicrons'].values())
+            )
+
             assert auto_tiles_info[fov['name']]['centroid'] == auto_centroid
 
     # assert the mapping is correct
     actual_map = {
         'row0_col25': 'row0_col0',
         'row50_col25': 'row0_col0',
-        'row50_col50': 'row0_col50',
-        'row75_col50': 'row100_col50',
+        'row50_col50': 'row0_col100',
+        'row75_col50': 'row100_col100',
         'row100_col25': 'row100_col0'
     }
 

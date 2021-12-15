@@ -5,8 +5,12 @@
     {
       "scanCount": 1,
       "centerPointMicrons": {
-        "x": 100,
-        "y": 100
+        "x": 10000,
+        "y": 30000
+      },
+      "centerPointPixels": {
+        "x": 500,
+        "y": 450
       },
       "timingChoice": 7,
       "frameSizePixels": {
@@ -29,8 +33,12 @@
     {
       "scanCount": 1,
       "centerPointMicrons": {
-        "x": 400,
-        "y": 400
+        "x": 17500,
+        "y": 45000
+      },
+      "centerPointPixels": {
+        "x": 700,
+        "y": 650
       },
       "timingChoice": 7,
       "frameSizePixels": {
