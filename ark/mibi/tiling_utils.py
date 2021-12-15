@@ -445,7 +445,7 @@ def create_tiled_regions(tiling_params, moly_point, tma=False):
 
         # name the FOVs according to MIBI conventions
         fov_names = ['R%dC%d' % (x, y) for y in range(region_info['fov_num_y'])
-                     for x in range(region_info['fov_num_x'])]
+                     for x in reversed(range(region_info['fov_num_x']))]
 
         # randomize pairs list if specified
         if region_info['region_rand'] == 'Y':
@@ -939,7 +939,7 @@ def write_proposed_to_auto_map(proposed_to_auto_map, save_ann, mapping_path):
 
 
 def interactive_remap(proposed_to_auto_map, proposed_tiles_info,
-                      auto_tiles_info, slide_img, fiducial_info, mapping_path,
+                      auto_tiles_info, slide_img, mapping_path,
                       draw_radius=5, figsize=(15, 15)):
     """Creates the remapping interactive interface
 
@@ -952,8 +952,6 @@ def interactive_remap(proposed_to_auto_map, proposed_tiles_info,
             maps each automatically-generated tile to its centroid coordinates and size
         slide_img (numpy.ndarray):
             the image to overlay
-        fiducial_info (dict):
-            the location of the fiducials on the image in both pixels and microns
         mapping_path (str):
             the path to the file to save the mapping to
         draw_radius (int):
@@ -963,9 +961,10 @@ def interactive_remap(proposed_to_auto_map, proposed_tiles_info,
     """
 
     # error check: ensure mapping path exists
-    if not os.path.exists(mapping_path):
+    if not os.path.exists(os.path.split(mapping_path)[0]):
         raise FileNotFoundError(
-            "mapping_path %s does not exist, please rename to a valid location"
+            "Path %s to mapping_path does not exist, "
+            "please rename to a valid location" % os.path.split(mapping_path)[0]
         )
 
     # get the first proposed tile

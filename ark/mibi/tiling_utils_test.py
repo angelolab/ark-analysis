@@ -589,6 +589,14 @@ def test_create_tiled_regions_tma_test(randomize_setting, moly_run, moly_interva
             assert center_points[fov_1_end:] != actual_center_points_sorted[fov_1_end:]
 
 
+def test_convert_microns_to_pixels():
+    # just need to test it gets the right values for one coordinate in microns
+    sample_coord = (25000, 35000)
+    new_coord = tiling_utils.convert_microns_to_pixels(sample_coord)
+
+    assert new_coord == (612, 762)
+
+
 def test_assign_closest_tiled_regions():
     # define the coordinates and fov names generated from the tiled script
     auto_coords = [(0, 0), (0, 50), (0, 100), (100, 0), (100, 50), (100, 100)]
@@ -690,10 +698,24 @@ def test_generate_tile_circles():
     sample_slide_img, sample_proposed_annot, sample_auto_annot = \
         tiling_utils.generate_tile_circles(
             sample_proposed_to_auto_map, sample_proposed_tiles_info,
-            sample_auto_tiles_info, sample_slide_img
+            sample_auto_tiles_info, sample_slide_img, draw_radius=1
         )
 
-    # NOTE: we will not test actual values yet, co-registration will change this
+    # assert the proposed annotations have the correct centroids and they are filled in
+    for pti in sample_proposed_tiles_info:
+        assert pti in sample_proposed_annot
+        assert sample_proposed_annot[pti] == sample_proposed_tiles_info[pti]['centroid']
+
+        x, y = sample_proposed_annot[pti]
+        assert np.all(sample_slide_img[x, y, :] == np.array([238, 75, 43]))
+
+    # same for the auto annotations
+    for ati in sample_auto_tiles_info:
+        assert ati in sample_auto_annot
+        assert sample_auto_annot[ati] == sample_auto_tiles_info[ati]['centroid']
+
+        x, y = sample_auto_annot[ati]
+        assert np.all(sample_slide_img[x, y, :] == np.array([135, 206, 250]))
 
 
 def test_generate_tile_annotations():
