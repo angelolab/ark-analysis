@@ -453,8 +453,8 @@ def create_tiled_regions(tiling_params, moly_point, tma=False):
         x_y_pairs = generate_x_y_fov_pairs(x_range, y_range)
 
         # name the FOVs according to MIBI conventions
-        fov_names = ['R%dC%d' % (x, y) for y in range(region_info['fov_num_y'])
-                     for x in range(region_info['fov_num_x'])]
+        fov_names = ['R%dC%d' % (y, x) for x in range(region_info['fov_num_x'])
+                     for y in range(region_info['fov_num_y'])]
 
         # randomize pairs list if specified
         if region_info['region_rand'] == 'Y':
