@@ -59,7 +59,7 @@ def test_read_tiling_param(monkeypatch):
 def test_read_tma_region_input(monkeypatch):
     # define a sample fovs list
     sample_fovs_list = test_utils.generate_sample_fovs_list(
-        fov_coords=[(0, 0), (100, 100), (100, 100), (200, 200)],
+        fov_coords=[(0, 100), (100, 0), (100, 200), (200, 100)],
         fov_names=["TheFirstFOV", "TheFirstFOV", "TheSecondFOV", "TheSecondFOV"]
     )
 
@@ -76,11 +76,24 @@ def test_read_tma_region_input(monkeypatch):
             sample_fovs_list_bad, sample_region_params
         )
 
-    # basic error check: start coordinate cannot be greater than end coordinate
+    # basic error check: start x-coordinate cannot be greater than end coordinate
     with pytest.raises(ValueError):
         # define a sample fovs list
         sample_fovs_list_bad = test_utils.generate_sample_fovs_list(
             fov_coords=[(100, 100), (0, 0), (0, 0), (100, 100)],
+            fov_names=["TheFirstFOV", "TheFirstFOV", "TheSecondFOV", "TheSecondFOV"]
+        )
+
+        # use the dummy user data to read values into the params lists
+        tiling_utils._read_tma_region_input(
+            sample_fovs_list_bad, sample_region_params
+        )
+
+    # basic error check: start y-coordinate cannot be less than end coordinate
+    with pytest.raises(ValueError):
+        # define a sample fovs list
+        sample_fovs_list_bad = test_utils.generate_sample_fovs_list(
+            fov_coords=[(0, 0), (100, 100), (100, 100), (200, 200)],
             fov_names=["TheFirstFOV", "TheFirstFOV", "TheSecondFOV", "TheSecondFOV"]
         )
 
@@ -101,15 +114,18 @@ def test_read_tma_region_input(monkeypatch):
         sample_fovs_list, sample_region_params
     )
 
+    from pprint import pprint
+    pprint(sample_region_params)
+
     # assert the values were set properly
     assert sample_region_params['region_start_x'] == [0, 100]
-    assert sample_region_params['region_start_y'] == [0, 100]
+    assert sample_region_params['region_start_y'] == [100, 200]
     assert sample_region_params['fov_num_x'] == [3, 3]
     assert sample_region_params['fov_num_y'] == [3, 3]
     assert sample_region_params['x_fov_size'] == [1, 1]
     assert sample_region_params['y_fov_size'] == [1, 1]
     assert sample_region_params['x_intervals'] == [[0, 50, 100], [100, 150, 200]]
-    assert sample_region_params['y_intervals'] == [[0, 50, 100], [100, 150, 200]]
+    assert sample_region_params['y_intervals'] == [[100, 50, 0], [200, 150, 100]]
     assert sample_region_params['region_rand'] == ['Y', 'Y']
 
 
@@ -237,7 +253,7 @@ def test_set_tiling_params(monkeypatch, tma):
     # define a sample set of fovs
     if tma:
         sample_fovs_list = test_utils.generate_sample_fovs_list(
-            fov_coords=[(0, 0), (100, 100), (100, 100), (200, 200)],
+            fov_coords=[(0, 100), (100, 0), (100, 200), (200, 100)],
             fov_names=["TheFirstFOV", "TheFirstFOV", "TheSecondFOV", "TheSecondFOV"]
         )
     else:
@@ -285,7 +301,7 @@ def test_set_tiling_params(monkeypatch, tma):
         # assert region start x and region start y values are correct
         sample_region_params = sample_tiling_params['region_params']
         fov_0 = sample_fovs_list['fovs'][0]
-        fov_1 = sample_fovs_list['fovs'][1]
+        fov_1 = sample_fovs_list['fovs'][2] if tma else sample_fovs_list['fovs'][1]
 
         assert sample_region_params[0]['region_start_x'] == fov_0['centerPointMicrons']['x']
         assert sample_region_params[1]['region_start_x'] == fov_1['centerPointMicrons']['x']
@@ -328,11 +344,11 @@ def test_set_tiling_params(monkeypatch, tma):
         if tma:
             # TheFirstFOV
             assert sample_region_params[0]['x_intervals'] == [0, 50, 100]
-            assert sample_region_params[0]['y_intervals'] == [0, 50, 100]
+            assert sample_region_params[0]['y_intervals'] == [100, 50, 0]
 
             # TheSecondFOV
             assert sample_region_params[1]['x_intervals'] == [100, 150, 200]
-            assert sample_region_params[1]['y_intervals'] == [100, 150, 200]
+            assert sample_region_params[1]['y_intervals'] == [200, 150, 100]
 
 
 def test_generate_x_y_fov_pairs():
@@ -396,9 +412,9 @@ def test_create_tiled_regions_non_tma(randomize_setting, moly_run, moly_interval
 
     # define the center points sorted
     actual_center_points_sorted = [
-        (x, y) for x in np.arange(0, 10, 5) for y in np.arange(100, 140, 10)
+        (x, y) for x in np.arange(0, 10, 5) for y in list(reversed(np.arange(100, 140, 10)))
     ] + [
-        (x, y) for x in np.arange(50, 90, 10) for y in np.arange(150, 160, 5)
+        (x, y) for x in np.arange(50, 90, 10) for y in list(reversed(np.arange(150, 160, 5)))
     ]
 
     # if moly_run is Y, add a point in between the two runs

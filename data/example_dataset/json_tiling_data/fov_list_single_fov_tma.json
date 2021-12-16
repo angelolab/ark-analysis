@@ -6,7 +6,7 @@
       "scanCount": 1,
       "centerPointMicrons": {
         "x": 10000,
-        "y": 30000
+        "y": 45000
       },
       "centerPointPixels": {
         "x": 500,
@@ -34,7 +34,7 @@
       "scanCount": 1,
       "centerPointMicrons": {
         "x": 17500,
-        "y": 45000
+        "y": 30000
       },
       "centerPointPixels": {
         "x": 700,

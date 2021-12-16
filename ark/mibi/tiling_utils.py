@@ -115,9 +115,14 @@ def _read_tma_region_input(fov_tile_info, region_params):
         end_fov_y = end_fov['centerPointMicrons']['y']
 
         # the coordinates have to be valid
-        if start_fov_x > end_fov_x or start_fov_y > end_fov_y:
-            err_msg = ("Coordinate error for region %s: start coordinates cannot be"
+        if start_fov_x > end_fov_x:
+            err_msg = ("Coordinate error for region %s: start x coordinates cannot be"
                        " greater than end coordinates")
+            raise ValueError(err_msg % start_fov['name'])
+
+        if start_fov_y < end_fov_y:
+            err_msg = ("Coordinate error for region %s: start y coordinates cannot be"
+                       " less than end coordinates")
             raise ValueError(err_msg % start_fov['name'])
 
         region_params['region_start_x'].append(start_fov_x)
@@ -159,12 +164,16 @@ def _read_tma_region_input(fov_tile_info, region_params):
             # find num_x/num_y even intervals between start and end fov_x/fov_y
             # casted because indices cannot be floats
             # need .item() cast to prevent int64 is not JSON serializable error
-            x_interval = [x.item() for x in np.linspace(start_fov_x, end_fov_x, num_x).astype(int)]
-            y_interval = [y.item() for y in np.linspace(start_fov_y, end_fov_y, num_y).astype(int)]
+            x_interval = [
+                x.item() for x in np.linspace(start_fov_x, end_fov_x, num_x).astype(int)
+            ]
+            y_interval = list(reversed([
+                y.item() for y in np.linspace(end_fov_y, start_fov_y, num_y).astype(int)
+            ]))
 
             # get difference between x and y
             x_spacing = x_interval[1] - x_interval[0]
-            y_spacing = y_interval[1] - y_interval[0]
+            y_spacing = y_interval[0] - y_interval[1]
 
             # we're good to go if size_x is not greater than x_spacing and y_spacing
             if size_x <= x_spacing and size_y <= y_spacing:
@@ -437,15 +446,15 @@ def create_tiled_regions(tiling_params, moly_point, tma=False):
             x_range = region_info['x_intervals']
             y_range = region_info['y_intervals']
         else:
-            x_range = list(range(region_info['fov_num_x']))
-            y_range = list(range(region_info['fov_num_y']))
+            x_range = range(region_info['fov_num_x'])
+            y_range = list(reversed(range(region_info['fov_num_y'])))
 
         # create all pairs between two lists
         x_y_pairs = generate_x_y_fov_pairs(x_range, y_range)
 
         # name the FOVs according to MIBI conventions
         fov_names = ['R%dC%d' % (x, y) for y in range(region_info['fov_num_y'])
-                     for x in reversed(range(region_info['fov_num_x']))]
+                     for x in range(region_info['fov_num_x'])]
 
         # randomize pairs list if specified
         if region_info['region_rand'] == 'Y':
