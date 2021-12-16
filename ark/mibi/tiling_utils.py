@@ -1112,3 +1112,44 @@ def interactive_remap(proposed_to_auto_map, proposed_tiles_info,
 
     # display the output
     display(out)
+
+
+def remap_and_reorder_tiles(tiled_regions_proposed, proposed_to_auto_map,
+                            moly_point, moly_interval=5):
+    """Runs 3 separate tasks on `tiled_regions_proposed`:
+
+    - Uses proposed_to_auto_map to rename the FOVs
+    - Randomizes the order of the FOVs
+    - Inserts Moly points at the specified interval
+
+    Args:
+        tiled_regions_proposed (dict):
+            The list of tiles proposed by the user
+        proposed_to_auto_map (dict):
+            Defines the mapping of proposed to auto tile names
+        moly_point (dict):
+            The Moly point to insert
+        moly_interval (int):
+            The interval in which to insert Moly points
+
+    Returns:
+        dict:
+            `tiled_regions_proposed` with new FOV names, randomized, and with Moly points
+    """
+
+    # error check: moly_interval cannot be less than or equal to 0
+    if moly_interval <= 0:
+        raise ValueError("moly_interval must be at least 1")
+
+    # rename the FOVs based on the mapping
+    for fov in tiled_regions_proposed['fovs']:
+        fov['name'] = proposed_to_auto_map[fov['name']]
+
+    # randomize the order of the FOVs
+    tiled_regions_proposed['fovs'] = shuffle(tiled_regions_proposed['fovs'])
+
+    # insert Moly points at the specified interval
+    for mi in range(moly_interval, len(tiled_regions_proposed['fovs']), moly_interval + 1):
+        tiled_regions_proposed['fovs'].insert(mi, moly_point)
+
+    return tiled_regions_proposed

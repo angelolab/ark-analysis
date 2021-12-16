@@ -755,3 +755,70 @@ def test_generate_tile_annotations():
         # make sure the coordinates match up
         aa_ann_obj = sample_aa_anns[aa_ann]
         assert aa_ann_obj.xy == sample_auto_annot[aa_ann]
+
+
+def test_remap_and_reorder_tiles():
+    # error check: moly_interval must be at least 1
+    with pytest.raises(ValueError):
+        tiling_utils.remap_and_reorder_tiles(None, None, None, 0)
+
+    # define the coordinates and fov names proposed by the user
+    proposed_coords = [(0, 25), (50, 25), (50, 50), (75, 50), (100, 25), (100, 75)]
+    proposed_fov_names = ['row%d_col%d' % (x, y) for (x, y) in proposed_coords]
+
+    # generate the list of proposed tiles
+    proposed_sample_tiles = test_utils.generate_sample_fovs_list(
+        proposed_coords, proposed_fov_names
+    )
+
+    # define the sample Moly point
+    sample_moly_point = test_utils.generate_sample_fov_tiling_entry(
+        coord=(14540, -10830), name="MoQC"
+    )
+
+    # define a sample mapping
+    sample_mapping = {
+        'row0_col25': 'row0_col0',
+        'row50_col25': 'row0_col25',
+        'row50_col50': 'row0_col100',
+        'row75_col50': 'row100_col100',
+        'row100_col25': 'row100_col0',
+        'row100_col75': 'row100_col75'
+    }
+
+    proposed_sample_tiles_copy = copy.deepcopy(proposed_sample_tiles)
+
+    # moly interval 2: divides cleanly into len(sample_mapping)
+    # moly interval 4: does not divide cleanly into len(sample_mapping)
+    for moly_interval in [4, 2]:
+        proposed_sample_tiles_copy = copy.deepcopy(proposed_sample_tiles)
+        new_proposed_sample_tiles = tiling_utils.remap_and_reorder_tiles(
+            proposed_sample_tiles_copy, sample_mapping, sample_moly_point, moly_interval
+        )
+
+        # assert same number of FOVs exist in both original and scrambled (excluding Moly points)
+        assert len(proposed_sample_tiles['fovs']) == \
+               len([fov for fov in new_proposed_sample_tiles['fovs'] if fov['name'] != 'MoQC'])
+
+        # assert the mapping was done correctly
+        scrambled_names = [fov['name'] for fov in new_proposed_sample_tiles['fovs']]
+
+        for fov in proposed_sample_tiles['fovs']:
+            mapped_name = sample_mapping[fov['name']]
+            assert mapped_name in scrambled_names
+
+        # assert the tiles are randomized (same elements, but not same order)
+        scrambled_coords = [(fov['centerPointMicrons']['x'], fov['centerPointMicrons']['y'])
+                            for fov in new_proposed_sample_tiles['fovs'] if fov['name'] != 'MoQC']
+        misc_utils.verify_same_elements(
+            scrambled_fov_coords=scrambled_coords,
+            actual_coords=proposed_coords
+        )
+        assert scrambled_coords != proposed_coords
+
+        # assert the moly_indices are inserted at the correct locations
+        moly_indices = np.arange(
+            moly_interval, len(new_proposed_sample_tiles['fovs']), moly_interval + 1
+        )
+        for mi in moly_indices:
+            assert new_proposed_sample_tiles['fovs'][mi]['name'] == 'MoQC'
