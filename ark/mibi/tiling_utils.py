@@ -625,7 +625,7 @@ def assign_closest_tiled_regions(tiled_regions_proposed, tiled_regions_auto, mol
 
 
 def generate_tile_circles(proposed_to_auto_map, proposed_tiles_info, auto_tiles_info,
-                          slide_img, draw_radius=50):
+                          proposed_name, auto_name, slide_img, draw_radius=5):
     """Draw the circles defining each tile (proposed and automatically-generated)
 
     Args:
@@ -635,6 +635,10 @@ def generate_tile_circles(proposed_to_auto_map, proposed_tiles_info, auto_tiles_
             maps each proposed tile to its centroid coordinates and size
         auto_tiles_info (dict):
             maps each automatically-generated tile to its centroid coordinates and size
+        proposed_name (str):
+            the name of the proposed tile to highlight
+        auto_name (str):
+            the name of the automatically-generated tile to highlight
         slide_img (numpy.ndarray):
             the image to overlay
         draw_radius (int):
@@ -643,14 +647,14 @@ def generate_tile_circles(proposed_to_auto_map, proposed_tiles_info, auto_tiles_
     Returns:
         tuple:
 
-        - A numpy.ndarray containing the slide_img with circles defining each tile
+        - A `numpy.ndarray` containing the slide_img with circles defining each tile
         - A dict mapping each proposed tile to its annotation coordinate
         - A dict mapping each automatically-generated tile to its annotation coordinate
     """
 
-    # define dictionaries to hold the annotations
-    proposed_annot = {}
-    auto_annot = {}
+    # define dictionaries to hold the coordinates
+    proposed_coords = {}
+    auto_coords = {}
 
     # define the tile size boundaries, needed to prevent drawing a circle out of bounds
     tile_size = slide_img.shape[:2]
@@ -666,13 +670,18 @@ def generate_tile_circles(proposed_to_auto_map, proposed_tiles_info, auto_tiles_
             proposed_x, proposed_y, draw_radius, draw_radius, shape=tile_size
         )
 
-        # color each tile red for proposed
-        slide_img[pr_x, pr_y, 0] = 238
-        slide_img[pr_x, pr_y, 1] = 75
-        slide_img[pr_x, pr_y, 2] = 43
+        # color the selected proposed tile light green, else red
+        if pti == proposed_name:
+            slide_img[pr_x, pr_y, 0] = 153
+            slide_img[pr_x, pr_y, 1] = 255
+            slide_img[pr_x, pr_y, 2] = 102
+        else:
+            slide_img[pr_x, pr_y, 0] = 255
+            slide_img[pr_x, pr_y, 1] = 102
+            slide_img[pr_x, pr_y, 2] = 102
 
         # define the annotations to place at each coordinate
-        proposed_annot[pti] = (proposed_x, proposed_y)
+        proposed_coords[pti] = (proposed_x, proposed_y)
 
     # repeat but for the automatically generated points
     for ati in auto_tiles_info:
@@ -685,176 +694,109 @@ def generate_tile_circles(proposed_to_auto_map, proposed_tiles_info, auto_tiles_
             auto_x, auto_y, draw_radius, draw_radius, shape=tile_size
         )
 
-        # color each tile blue for auto
-        slide_img[ar_x, ar_y, 0] = 135
-        slide_img[ar_x, ar_y, 1] = 206
-        slide_img[ar_x, ar_y, 2] = 250
+        # color the selected auto tile green, else blue
+        if ati == auto_name:
+            slide_img[ar_x, ar_y, 0] = 153
+            slide_img[ar_x, ar_y, 1] = 255
+            slide_img[ar_x, ar_y, 2] = 102
+        else:
+            slide_img[ar_x, ar_y, 0] = 135
+            slide_img[ar_x, ar_y, 1] = 206
+            slide_img[ar_x, ar_y, 2] = 250
 
-        auto_annot[ati] = (auto_x, auto_y)
+        auto_coords[ati] = (auto_x, auto_y)
 
-    return slide_img, proposed_annot, auto_annot
-
-
-def generate_tile_annotations(proposed_annot, auto_annot, proposed_name, auto_name):
-    """Generates the initial set of annotations to display over each tile
-
-    Args:
-        proposed_annot (dict):
-            maps each proposed tile to its annotation
-        auto_annot (dict):
-            maps each automatically-generated tile to its annotation
-        proposed_name (str):
-            the name of the proposed tile to highlight
-        auto_name (str):
-            the name of the automatically-generated tile to highlight
-
-    Returns:
-        tuple:
-
-        - A dict mapping each proposed tile to its matplotlib annotation object
-        - A dict mapping each automatically-generated tile to its matplotlib annotation object
-    """
-
-    # define dicts to store the proposed and the auto annotations
-    pa_anns = {}
-    aa_anns = {}
-
-    # generate the annotation text for proposed tiles
-    for pa_text, pa_coord in proposed_annot.items():
-        # increase size of and bold the proposed tile name if that's the one selected
-        font_weight = 'bold' if pa_text == proposed_name else 'normal'
-        font_color = 'green' if pa_text == proposed_name else 'white'
-
-        # draw the proposed tile name
-        pa_ann = plt.annotate(
-            pa_text,
-            (pa_coord[1], pa_coord[0]),
-            color=font_color,
-            ha='center',
-            fontweight=font_weight,
-            fontsize=5
-        )
-
-        # add annotation to pa_anns
-        pa_anns[pa_text] = pa_ann
-
-    # generate the annotation text for auto tiles
-    for aa_text, aa_coord in auto_annot.items():
-        # increase size of and bold the auto tile name if that's the one selected
-        font_weight = 'bold' if aa_text == auto_name else 'normal'
-        font_color = 'green' if aa_text == auto_name else 'black'
-
-        # draw the auto tile name
-        aa_ann = plt.annotate(
-            aa_text,
-            (aa_coord[1], aa_coord[0]),
-            color=font_color,
-            ha='center',
-            fontweight=font_weight,
-            fontsize=5
-        )
-
-        # add annotation to aa_anns
-        aa_anns[aa_text] = aa_ann
-
-    return pa_anns, aa_anns
+    return slide_img, proposed_coords, auto_coords
 
 
-def update_mapping_display(change, proposed_to_auto_map, proposed_annot, auto_annot,
-                           pa_anns, aa_anns, w_auto):
-    """Changes the bolded proposed to automatically-generated tile in the remapping visualization
-    based on change in proposed tile menu
+def update_mapping_display(change, w_auto, proposed_to_auto_map, proposed_coords, auto_coords,
+                           slide_img, draw_radius=15):
+    """Changes the selected pairs of circles on the image based on new selected proposed tile
 
     Helper to `update_mapping` nested callback function in `interactive_remap`
 
     Args:
         change (dict):
             defines the properties of the changed value of the proposed tile menu
-        proposed_to_auto_map (dict):
-            defines the mapping of proposed to auto tile names
-        proposed_annot (dict):
-            maps each proposed tile to its annotation coordinate
-        auto_annot (dict):
-            maps each automatically-generated tile to its annotation coordinate
-        pa_anns (dict):
-            maps each proposed tile to its matplotlib annotation object
-        aa_anns (dict):
-            maps each automatically-generated tile to its matplotlib annotation object
         w_auto (ipywidgets.widgets.widget_selection.Dropdown):
             the dropdown menu handler for the automatically-generated tiles
+        proposed_to_auto_map (dict):
+            defines the mapping of proposed to auto tile names
+        proposed_coords (dict):
+            a dict defining each tile in `tiled_regions_proposed` mapped to its centroid
+            coordinates
+        auto_coords (dict):
+            a dict defining each tile in `tiled_regions_auto` mapped to its centroid
+            coordinates
+        slide_img (numpy.ndarray):
+            the image to overlay
+        draw_radius (int):
+            the radius to draw each circle on the slide
+
+    Returns:
+        numpy.ndarray:
+            the slide_img with the updated circles after proposed tile changed defining each tile
     """
 
-    # remove annotations for the proposed annotations and the new auto annotation
-    pa_anns[change['old']].remove()
-    pa_anns[change['new']].remove()
-    aa_anns[proposed_to_auto_map[change['new']]].remove()
+    # define the tile size boundaries, needed to prevent drawing a circle out of bounds
+    tile_size = slide_img.shape[:2]
 
-    # only remove the old auto annotation if it doesn't match the new one
-    # otherwise we'll be removing the same text twice and it will fail
-    if w_auto.value != proposed_to_auto_map[change['new']]:
-        aa_anns[w_auto.value].remove()
+    # retrieve the old proposed centroid
+    old_proposed_x, old_proposed_y = proposed_coords[change['old']]
 
-    # create a new unbolded annotation for the proposed tile
-    old_pa_ann = plt.annotate(
-        change['old'],
-        (proposed_annot[change['old']][1], proposed_annot[change['old']][0]),
-        color='white',
-        ha='center',
-        fontweight='normal',
-        fontsize=5
+    # redraw the old proposed centroid on the slide_img
+    old_pr_x, old_pr_y = ellipse(
+        old_proposed_x, old_proposed_y, draw_radius, draw_radius, shape=tile_size
     )
 
-    # update the annotation for the old proposed tile
-    pa_anns[change['old']] = old_pa_ann
+    slide_img[old_pr_x, old_pr_y, 0] = 255
+    slide_img[old_pr_x, old_pr_y, 1] = 102
+    slide_img[old_pr_x, old_pr_y, 2] = 102
 
-    # only create a new unbolded annotation for the old auto tile if it doesn't
-    # match the new one, otherwise both a normal and bold name will be drawn
-    if w_auto.value != proposed_to_auto_map[change['new']]:
-        old_aa_ann = plt.annotate(
-            w_auto.value,
-            (auto_annot[w_auto.value][1], auto_annot[w_auto.value][0]),
-            color='black',
-            ha='center',
-            fontweight='normal',
-            fontsize=5
-        )
+    # retrieve the old auto centroid
+    old_auto_x, old_auto_y = auto_coords[w_auto.value]
 
-        # update the annotation for the old auto tile
-        aa_anns[w_auto.value] = old_aa_ann
-
-    # create a new bolded annotation for the new pair
-    new_pa_ann = plt.annotate(
-        change['new'],
-        (proposed_annot[change['new']][1], proposed_annot[change['new']][0]),
-        color='green',
-        ha='center',
-        fontweight='bold',
-        fontsize=5
+    # redraw the old auto centroid on the slide_img
+    old_ar_x, old_ar_y = ellipse(
+        old_auto_x, old_auto_y, draw_radius, draw_radius, shape=tile_size
     )
 
-    # update the annotation for the new proposed tile
-    pa_anns[change['new']] = new_pa_ann
+    slide_img[old_ar_x, old_ar_y, 0] = 135
+    slide_img[old_ar_x, old_ar_y, 1] = 206
+    slide_img[old_ar_x, old_ar_y, 2] = 250
 
-    new_aa_ann = plt.annotate(
-        proposed_to_auto_map[change['new']],
-        (
-            auto_annot[proposed_to_auto_map[change['new']]][1],
-            auto_annot[proposed_to_auto_map[change['new']]][0]
-        ),
-        color='green',
-        ha='center',
-        fontweight='bold',
-        fontsize=5
+    # retrieve the new proposed centroid
+    new_proposed_x, new_proposed_y = proposed_coords[change['new']]
+
+    # redraw the new proposed centroid on the slide_img
+    new_pr_x, new_pr_y = ellipse(
+        new_proposed_x, new_proposed_y, draw_radius, draw_radius, shape=tile_size
     )
 
-    # update the annotation for the new auto tile
-    aa_anns[proposed_to_auto_map[change['new']]] = new_aa_ann
+    slide_img[new_pr_x, new_pr_y, 0] = 153
+    slide_img[new_pr_x, new_pr_y, 1] = 255
+    slide_img[new_pr_x, new_pr_y, 2] = 102
+
+    # retrieve the new auto centroid
+    new_auto_x, new_auto_y = auto_coords[proposed_to_auto_map[change['new']]]
+
+    # redraw the new auto centroid on the slide_img
+    new_ar_x, new_ar_y = ellipse(
+        new_auto_x, new_auto_y, draw_radius, draw_radius, shape=tile_size
+    )
+
+    slide_img[new_ar_x, new_ar_y, 0] = 153
+    slide_img[new_ar_x, new_ar_y, 1] = 255
+    slide_img[new_ar_x, new_ar_y, 2] = 102
 
     # set the mapped auto value according to the new proposed value
     w_auto.value = proposed_to_auto_map[change['new']]
 
+    return slide_img
 
-def remap_proposed_to_auto_display(change, proposed_to_auto_map, auto_annot, aa_anns, w_prop):
+
+def remap_proposed_to_auto_display(change, w_prop, proposed_to_auto_map, auto_coords,
+                                   slide_img, draw_radius=15):
     """Changes the bolded automatically-generated tile to new value selected for proposed tile
     and updates the mapping in proposed_to_auto_map
 
@@ -863,48 +805,53 @@ def remap_proposed_to_auto_display(change, proposed_to_auto_map, auto_annot, aa_
     Args:
         change (dict):
             defines the properties of the changed value of the automatically-generated tile menu
-        proposed_to_auto_map (dict):
-            defines the mapping of proposed to auto tile names
-        auto_annot (dict):
-            maps each automatically-generated tile to its annotation coordinate
-        aa_anns (dict):
-            maps each automatically-generated tile to its matplotlib annotation object
         w_prop (ipywidgets.widgets.widget_selection.Dropdown):
             the dropdown menu handler for the proposed tiles
+        proposed_to_auto_map (dict):
+            defines the mapping of proposed to auto tile names
+        auto_coords (dict):
+            maps each automatically-generated tile to its annotation coordinate
+        slide_img (numpy.ndarray):
+            the image to overlay
+        draw_radius (int):
+            the radius to draw each circle on the slide
+
+    Returns:
+        numpy.ndarray:
+            the slide_img with the updated circles after auto tile changed remapping the tiles
     """
 
-    # remove annotation for the old and new value w_prop maps to
-    aa_anns[change['old']].remove()
-    aa_anns[change['new']].remove()
+    # define the tile size boundaries, needed to prevent drawing a circle out of bounds
+    tile_size = slide_img.shape[:2]
 
-    # generate a new un-bolded annotation for the old value w_prop mapped to
-    old_aa_ann = plt.annotate(
-        change['old'],
-        (auto_annot[change['old']][1], auto_annot[change['old']][0]),
-        color='black',
-        ha='center',
-        fontweight='normal',
-        fontsize=5
+    # retrieve the coordinates for the old auto centroid w_prop mapped to
+    old_auto_x, old_auto_y = auto_coords[change['old']]
+
+    # redraw the old auto centroid on the slide_img
+    old_ar_x, old_ar_y = ellipse(
+        old_auto_x, old_auto_y, draw_radius, draw_radius, shape=tile_size
     )
 
-    # update the annotation of the old value w_prop mapped to
-    aa_anns[change['old']] = old_aa_ann
+    slide_img[old_ar_x, old_ar_y, 0] = 135
+    slide_img[old_ar_x, old_ar_y, 1] = 206
+    slide_img[old_ar_x, old_ar_y, 2] = 250
 
-    # generate a new bolded annotation for the new value w_prop mapped to
-    new_aa_ann = plt.annotate(
-        change['new'],
-        (auto_annot[change['new']][1], auto_annot[change['new']][0]),
-        color='green',
-        ha='center',
-        fontweight='bold',
-        fontsize=5
+    # retrieve the coordinates for the new auto centroid w_prop maps to
+    new_auto_x, new_auto_y = auto_coords[change['new']]
+
+    # redraw the new auto centroid on the slide_img
+    new_ar_x, new_ar_y = ellipse(
+        new_auto_x, new_auto_y, draw_radius, draw_radius, shape=tile_size
     )
 
-    # update the annotation of the new value w_prop maps to
-    aa_anns[change['new']] = new_aa_ann
+    slide_img[new_ar_x, new_ar_y, 0] = 153
+    slide_img[new_ar_x, new_ar_y, 1] = 255
+    slide_img[new_ar_x, new_ar_y, 2] = 102
 
     # remap the proposed tile to the changed value
     proposed_to_auto_map[w_prop.value] = change['new']
+
+    return slide_img
 
 
 def write_proposed_to_auto_map(proposed_to_auto_map, save_ann, mapping_path):
@@ -949,7 +896,7 @@ def write_proposed_to_auto_map(proposed_to_auto_map, save_ann, mapping_path):
 
 def interactive_remap(proposed_to_auto_map, proposed_tiles_info,
                       auto_tiles_info, slide_img, mapping_path,
-                      draw_radius=5, figsize=(15, 15)):
+                      draw_radius=15, figsize=(15, 15)):
     """Creates the remapping interactive interface
 
     Args:
@@ -1027,8 +974,9 @@ def interactive_remap(proposed_to_auto_map, proposed_tiles_info,
     fig, ax = plt.subplots(figsize=figsize)
 
     # generate the circles and annotations for each circle to display on the image
-    slide_img, proposed_annot, auto_annot = generate_tile_circles(
-        proposed_to_auto_map, proposed_tiles_info, auto_tiles_info, slide_img, draw_radius
+    slide_img, proposed_coords, auto_coords = generate_tile_circles(
+        proposed_to_auto_map, proposed_tiles_info, auto_tiles_info, w_prop.value, w_auto.value,
+        slide_img, draw_radius
     )
 
     # make sure the output gets displayed to the output widget so it displays properly
@@ -1042,12 +990,7 @@ def interactive_remap(proposed_to_auto_map, proposed_tiles_info,
         # remove massive padding
         _ = plt.tight_layout()
 
-        # generate the tile annotations
-        pa_anns, aa_anns = generate_tile_annotations(
-            proposed_annot, auto_annot, w_prop.value, w_auto.value
-        )
-
-        # define status of the save annotation, nitially None, updates when user clicks w_save
+        # define status of the save annotation, initially None, updates when user clicks w_save
         # NOTE: ipywidget callback functions can only access dicts defined in scope
         save_ann = {'annotation': None}
 
@@ -1066,11 +1009,15 @@ def interactive_remap(proposed_to_auto_map, proposed_tiles_info,
         if change['name'] == 'value' and change['new'] != change['old']:
             # need to be in the output widget context to update
             with out:
-                # call the helper function to update annotations
-                update_mapping_display(
-                    change, proposed_to_auto_map, proposed_annot, auto_annot,
-                    pa_anns, aa_anns, w_auto
+                # call the helper function to redraw circles on the slide_img
+                new_slide_img = update_mapping_display(
+                    change, w_auto, proposed_to_auto_map, proposed_coords, auto_coords,
+                    slide_img, draw_radius
                 )
+
+                # set the new slide img in the plot
+                img_plot.set_data(new_slide_img)
+                fig.canvas.draw_idle()
 
     # a callback function for remapping when w_auto changes
     # NOTE: needs to be here so it can easily access w_prop and w_auto
@@ -1088,10 +1035,15 @@ def interactive_remap(proposed_to_auto_map, proposed_tiles_info,
         if change['name'] == 'value' and change['new'] != change['old']:
             # need to be in the output widget context to update
             with out:
-                # call the helper function to remap and update annotations
-                remap_proposed_to_auto_display(
-                    change, proposed_to_auto_map, auto_annot, aa_anns, w_prop
+                # call the helper function to redraw the circles on the slide_img
+                # and update proposed_to_auto_map with the new w_prop mapping
+                new_slide_img = remap_proposed_to_auto_display(
+                    change, w_prop, proposed_to_auto_map, auto_coords, slide_img, draw_radius
                 )
+
+                # set the new slide img in the plot
+                img_plot.set_data(new_slide_img)
+                fig.canvas.draw_idle()
 
     # a callback function for saving proposed_to_auto_map to mapping_path if w_save clicked
     def save_mapping(b):
@@ -1150,15 +1102,32 @@ def remap_and_reorder_tiles(tiled_regions_proposed, proposed_to_auto_map,
     if moly_interval <= 0:
         raise ValueError("moly_interval must be at least 1")
 
-    # rename the FOVs based on the mapping
+    # define a new tiled regions proposed dict
+    tiled_regions_remapped = {}
+
+    # copy over the basic metadata
+    tiled_regions_remapped['id'] = tiled_regions_proposed['id']
+    tiled_regions_remapped['name'] = tiled_regions_proposed['name']
+    tiled_regions_remapped['status'] = tiled_regions_proposed['status']
+
+    # define a new FOVs list for tiled_regions_remapped
+    tiled_regions_remapped['fovs'] = []
+
+    # rename the FOVs based on the mapping and append to tiled_regions_remapped
     for fov in tiled_regions_proposed['fovs']:
-        fov['name'] = proposed_to_auto_map[fov['name']]
+        # needed to prevent early saving since interactive visualization cannot stop this
+        # from running if a mapping_path provided already exists
+        fov_data = copy.deepcopy(fov)
+
+        # remap the name and append to tiled_regions_remapped
+        fov_data['name'] = proposed_to_auto_map[fov['name']]
+        tiled_regions_remapped['fovs'].append(fov_data)
 
     # randomize the order of the FOVs
-    tiled_regions_proposed['fovs'] = shuffle(tiled_regions_proposed['fovs'])
+    tiled_regions_remapped['fovs'] = shuffle(tiled_regions_remapped['fovs'])
 
     # insert Moly points at the specified interval
-    for mi in range(moly_interval, len(tiled_regions_proposed['fovs']), moly_interval + 1):
-        tiled_regions_proposed['fovs'].insert(mi, moly_point)
+    for mi in range(moly_interval, len(tiled_regions_remapped['fovs']), moly_interval + 1):
+        tiled_regions_remapped['fovs'].insert(mi, moly_point)
 
-    return tiled_regions_proposed
+    return tiled_regions_remapped

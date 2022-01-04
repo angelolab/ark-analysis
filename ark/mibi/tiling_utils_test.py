@@ -711,66 +711,38 @@ def test_generate_tile_circles():
     sample_slide_img = np.full((200, 200, 3), 255)
 
     # draw the circles
-    sample_slide_img, sample_proposed_annot, sample_auto_annot = \
+    sample_slide_img, sample_proposed_coords, sample_auto_coords = \
         tiling_utils.generate_tile_circles(
             sample_proposed_to_auto_map, sample_proposed_tiles_info,
-            sample_auto_tiles_info, sample_slide_img, draw_radius=1
+            sample_auto_tiles_info, 'row0_col25', 'row0_col0',
+            sample_slide_img, draw_radius=1
         )
 
     # assert the proposed annotations have the correct centroids and they are filled in
     for pti in sample_proposed_tiles_info:
-        assert pti in sample_proposed_annot
-        assert sample_proposed_annot[pti] == sample_proposed_tiles_info[pti]['centroid']
+        assert pti in sample_proposed_coords
+        assert sample_proposed_coords[pti] == sample_proposed_tiles_info[pti]['centroid']
 
-        x, y = sample_proposed_annot[pti]
-        assert np.all(sample_slide_img[x, y, :] == np.array([238, 75, 43]))
+        x, y = sample_proposed_coords[pti]
+
+        # green if row0_col25, else red
+        if pti == 'row0_col25':
+            assert np.all(sample_slide_img[x, y, :] == np.array([153, 255, 102]))
+        else:
+            assert np.all(sample_slide_img[x, y, :] == np.array([255, 102, 102]))
 
     # same for the auto annotations
     for ati in sample_auto_tiles_info:
-        assert ati in sample_auto_annot
-        assert sample_auto_annot[ati] == sample_auto_tiles_info[ati]['centroid']
+        assert ati in sample_auto_coords
+        assert sample_auto_coords[ati] == sample_auto_tiles_info[ati]['centroid']
 
-        x, y = sample_auto_annot[ati]
-        assert np.all(sample_slide_img[x, y, :] == np.array([135, 206, 250]))
+        x, y = sample_auto_coords[ati]
 
-
-def test_generate_tile_annotations():
-    # define the name of each annotation and the coordinates where they will be placed
-    sample_proposed_annot = {
-        'row25_col25': (25, 25),
-        'row50_col50': (50, 50)
-    }
-
-    sample_auto_annot = {
-        'row75_col75': (75, 75),
-        'row100_col100': (100, 100)
-    }
-
-    # define the pair to highlight
-    sample_proposed_name = 'row25_col25'
-    sample_auto_name = 'row75_col75'
-
-    sample_pa_anns, sample_aa_anns = tiling_utils.generate_tile_annotations(
-        sample_proposed_annot, sample_auto_annot, sample_proposed_name, sample_auto_name
-    )
-
-    # assert the coordinates are correct for each proposed tile annotation
-    for pa_ann in sample_pa_anns:
-        # make sure the pa_ann is for a valid tile
-        assert pa_ann in sample_proposed_annot
-
-        # make sure the coordinates match up
-        pa_ann_obj = sample_pa_anns[pa_ann]
-        assert pa_ann_obj.xy == sample_proposed_annot[pa_ann]
-
-    # same for automatically-generated tile annotations
-    for aa_ann in sample_aa_anns:
-        # make sure the pa_ann is for a valid tile
-        assert aa_ann in sample_auto_annot
-
-        # make sure the coordinates match up
-        aa_ann_obj = sample_aa_anns[aa_ann]
-        assert aa_ann_obj.xy == sample_auto_annot[aa_ann]
+        # green if row0_col0, else blue
+        if ati == 'row0_col0':
+            assert np.all(sample_slide_img[x, y, :] == np.array([153, 255, 102]))
+        else:
+            assert np.all(sample_slide_img[x, y, :] == np.array([135, 206, 250]))
 
 
 def test_remap_and_reorder_tiles():
@@ -802,15 +774,25 @@ def test_remap_and_reorder_tiles():
         'row100_col75': 'row100_col75'
     }
 
+    # ensure the same copy exists for all iterations
     proposed_sample_tiles_copy = copy.deepcopy(proposed_sample_tiles)
+
+    # add id, name, and status
+    proposed_sample_tiles_copy['id'] = -1
+    proposed_sample_tiles_copy['name'] = 'test'
+    proposed_sample_tiles_copy['status'] = 'all_systems_go'
 
     # moly interval 2: divides cleanly into len(sample_mapping)
     # moly interval 4: does not divide cleanly into len(sample_mapping)
     for moly_interval in [4, 2]:
-        proposed_sample_tiles_copy = copy.deepcopy(proposed_sample_tiles)
         new_proposed_sample_tiles = tiling_utils.remap_and_reorder_tiles(
             proposed_sample_tiles_copy, sample_mapping, sample_moly_point, moly_interval
         )
+
+        # assert id, name, and status are the same
+        assert new_proposed_sample_tiles['id'] == proposed_sample_tiles_copy['id']
+        assert new_proposed_sample_tiles['name'] == proposed_sample_tiles_copy['name']
+        assert new_proposed_sample_tiles['status'] == proposed_sample_tiles_copy['status']
 
         # assert same number of FOVs exist in both original and scrambled (excluding Moly points)
         assert len(proposed_sample_tiles['fovs']) == \
