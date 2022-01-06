@@ -670,15 +670,15 @@ def generate_tile_circles(proposed_to_auto_map, proposed_tiles_info, auto_tiles_
             proposed_x, proposed_y, draw_radius, draw_radius, shape=tile_size
         )
 
-        # color the selected proposed tile light green, else red
+        # color the selected proposed tile dark red, else bright red
         if pti == proposed_name:
-            slide_img[pr_x, pr_y, 0] = 153
-            slide_img[pr_x, pr_y, 1] = 255
-            slide_img[pr_x, pr_y, 2] = 102
+            slide_img[pr_x, pr_y, 0] = 210
+            slide_img[pr_x, pr_y, 1] = 37
+            slide_img[pr_x, pr_y, 2] = 37
         else:
             slide_img[pr_x, pr_y, 0] = 255
-            slide_img[pr_x, pr_y, 1] = 102
-            slide_img[pr_x, pr_y, 2] = 102
+            slide_img[pr_x, pr_y, 1] = 133
+            slide_img[pr_x, pr_y, 2] = 133
 
         # define the annotations to place at each coordinate
         proposed_coords[pti] = (proposed_x, proposed_y)
@@ -694,15 +694,15 @@ def generate_tile_circles(proposed_to_auto_map, proposed_tiles_info, auto_tiles_
             auto_x, auto_y, draw_radius, draw_radius, shape=tile_size
         )
 
-        # color the selected auto tile green, else blue
+        # color the selected auto tile dark blue, else bright blue
         if ati == auto_name:
-            slide_img[ar_x, ar_y, 0] = 153
-            slide_img[ar_x, ar_y, 1] = 255
-            slide_img[ar_x, ar_y, 2] = 102
+            slide_img[ar_x, ar_y, 0] = 50
+            slide_img[ar_x, ar_y, 1] = 115
+            slide_img[ar_x, ar_y, 2] = 229
         else:
-            slide_img[ar_x, ar_y, 0] = 135
-            slide_img[ar_x, ar_y, 1] = 206
-            slide_img[ar_x, ar_y, 2] = 250
+            slide_img[ar_x, ar_y, 0] = 162
+            slide_img[ar_x, ar_y, 1] = 197
+            slide_img[ar_x, ar_y, 2] = 255
 
         auto_coords[ati] = (auto_x, auto_y)
 
@@ -710,7 +710,7 @@ def generate_tile_circles(proposed_to_auto_map, proposed_tiles_info, auto_tiles_
 
 
 def update_mapping_display(change, w_auto, proposed_to_auto_map, proposed_coords, auto_coords,
-                           slide_img, draw_radius=15):
+                           slide_img, draw_radius=7):
     """Changes the selected pairs of circles on the image based on new selected proposed tile
 
     Helper to `update_mapping` nested callback function in `interactive_remap`
@@ -750,8 +750,8 @@ def update_mapping_display(change, w_auto, proposed_to_auto_map, proposed_coords
     )
 
     slide_img[old_pr_x, old_pr_y, 0] = 255
-    slide_img[old_pr_x, old_pr_y, 1] = 102
-    slide_img[old_pr_x, old_pr_y, 2] = 102
+    slide_img[old_pr_x, old_pr_y, 1] = 133
+    slide_img[old_pr_x, old_pr_y, 2] = 133
 
     # retrieve the old auto centroid
     old_auto_x, old_auto_y = auto_coords[w_auto.value]
@@ -761,9 +761,9 @@ def update_mapping_display(change, w_auto, proposed_to_auto_map, proposed_coords
         old_auto_x, old_auto_y, draw_radius, draw_radius, shape=tile_size
     )
 
-    slide_img[old_ar_x, old_ar_y, 0] = 135
-    slide_img[old_ar_x, old_ar_y, 1] = 206
-    slide_img[old_ar_x, old_ar_y, 2] = 250
+    slide_img[old_ar_x, old_ar_y, 0] = 162
+    slide_img[old_ar_x, old_ar_y, 1] = 197
+    slide_img[old_ar_x, old_ar_y, 2] = 255
 
     # retrieve the new proposed centroid
     new_proposed_x, new_proposed_y = proposed_coords[change['new']]
@@ -773,9 +773,9 @@ def update_mapping_display(change, w_auto, proposed_to_auto_map, proposed_coords
         new_proposed_x, new_proposed_y, draw_radius, draw_radius, shape=tile_size
     )
 
-    slide_img[new_pr_x, new_pr_y, 0] = 153
-    slide_img[new_pr_x, new_pr_y, 1] = 255
-    slide_img[new_pr_x, new_pr_y, 2] = 102
+    slide_img[new_pr_x, new_pr_y, 0] = 210
+    slide_img[new_pr_x, new_pr_y, 1] = 37
+    slide_img[new_pr_x, new_pr_y, 2] = 37
 
     # retrieve the new auto centroid
     new_auto_x, new_auto_y = auto_coords[proposed_to_auto_map[change['new']]]
@@ -785,9 +785,9 @@ def update_mapping_display(change, w_auto, proposed_to_auto_map, proposed_coords
         new_auto_x, new_auto_y, draw_radius, draw_radius, shape=tile_size
     )
 
-    slide_img[new_ar_x, new_ar_y, 0] = 153
-    slide_img[new_ar_x, new_ar_y, 1] = 255
-    slide_img[new_ar_x, new_ar_y, 2] = 102
+    slide_img[new_ar_x, new_ar_y, 0] = 50
+    slide_img[new_ar_x, new_ar_y, 1] = 115
+    slide_img[new_ar_x, new_ar_y, 2] = 229
 
     # set the mapped auto value according to the new proposed value
     w_auto.value = proposed_to_auto_map[change['new']]
@@ -796,7 +796,7 @@ def update_mapping_display(change, w_auto, proposed_to_auto_map, proposed_coords
 
 
 def remap_proposed_to_auto_display(change, w_prop, proposed_to_auto_map, auto_coords,
-                                   slide_img, draw_radius=15):
+                                   slide_img, draw_radius=7):
     """Changes the bolded automatically-generated tile to new value selected for proposed tile
     and updates the mapping in proposed_to_auto_map
 
@@ -832,9 +832,9 @@ def remap_proposed_to_auto_display(change, w_prop, proposed_to_auto_map, auto_co
         old_auto_x, old_auto_y, draw_radius, draw_radius, shape=tile_size
     )
 
-    slide_img[old_ar_x, old_ar_y, 0] = 135
-    slide_img[old_ar_x, old_ar_y, 1] = 206
-    slide_img[old_ar_x, old_ar_y, 2] = 250
+    slide_img[old_ar_x, old_ar_y, 0] = 162
+    slide_img[old_ar_x, old_ar_y, 1] = 197
+    slide_img[old_ar_x, old_ar_y, 2] = 255
 
     # retrieve the coordinates for the new auto centroid w_prop maps to
     new_auto_x, new_auto_y = auto_coords[change['new']]
@@ -844,9 +844,9 @@ def remap_proposed_to_auto_display(change, w_prop, proposed_to_auto_map, auto_co
         new_auto_x, new_auto_y, draw_radius, draw_radius, shape=tile_size
     )
 
-    slide_img[new_ar_x, new_ar_y, 0] = 153
-    slide_img[new_ar_x, new_ar_y, 1] = 255
-    slide_img[new_ar_x, new_ar_y, 2] = 102
+    slide_img[new_ar_x, new_ar_y, 0] = 50
+    slide_img[new_ar_x, new_ar_y, 1] = 115
+    slide_img[new_ar_x, new_ar_y, 2] = 229
 
     # remap the proposed tile to the changed value
     proposed_to_auto_map[w_prop.value] = change['new']
@@ -896,7 +896,7 @@ def write_proposed_to_auto_map(proposed_to_auto_map, save_ann, mapping_path):
 
 def interactive_remap(proposed_to_auto_map, proposed_tiles_info,
                       auto_tiles_info, slide_img, mapping_path,
-                      draw_radius=15, figsize=(15, 15)):
+                      draw_radius=7, figsize=(7, 7)):
     """Creates the remapping interactive interface
 
     Args:

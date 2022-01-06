@@ -725,11 +725,11 @@ def test_generate_tile_circles():
 
         x, y = sample_proposed_coords[pti]
 
-        # green if row0_col25, else red
+        # dark red if row0_col25, else bright red
         if pti == 'row0_col25':
-            assert np.all(sample_slide_img[x, y, :] == np.array([153, 255, 102]))
+            assert np.all(sample_slide_img[x, y, :] == np.array([210, 37, 37]))
         else:
-            assert np.all(sample_slide_img[x, y, :] == np.array([255, 102, 102]))
+            assert np.all(sample_slide_img[x, y, :] == np.array([255, 133, 133]))
 
     # same for the auto annotations
     for ati in sample_auto_tiles_info:
@@ -738,11 +738,11 @@ def test_generate_tile_circles():
 
         x, y = sample_auto_coords[ati]
 
-        # green if row0_col0, else blue
+        # dark blue if row0_col0, else bright blue
         if ati == 'row0_col0':
-            assert np.all(sample_slide_img[x, y, :] == np.array([153, 255, 102]))
+            assert np.all(sample_slide_img[x, y, :] == np.array([50, 115, 229]))
         else:
-            assert np.all(sample_slide_img[x, y, :] == np.array([135, 206, 250]))
+            assert np.all(sample_slide_img[x, y, :] == np.array([162, 197, 255]))
 
 
 def test_remap_and_reorder_tiles():
