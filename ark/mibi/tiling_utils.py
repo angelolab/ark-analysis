@@ -1105,10 +1105,14 @@ def remap_and_reorder_tiles(tiled_regions_proposed, proposed_to_auto_map,
     # define a new tiled regions proposed dict
     tiled_regions_remapped = {}
 
-    # copy over the basic metadata
-    tiled_regions_remapped['id'] = tiled_regions_proposed['id']
-    tiled_regions_remapped['name'] = tiled_regions_proposed['name']
-    tiled_regions_remapped['status'] = tiled_regions_proposed['status']
+    # if the user specifies additional metadata, make sure they're copied over
+    # specifically, id, name, and status
+    if 'id' in tiled_regions_proposed:
+        tiled_regions_remapped['id'] = tiled_regions_proposed['id']
+    if 'name' in tiled_regions_proposed:
+        tiled_regions_remapped['name'] = tiled_regions_proposed['name']
+    if 'status' in tiled_regions_proposed:
+        tiled_regions_remapped['status'] = tiled_regions_proposed['status']
 
     # define a new FOVs list for tiled_regions_remapped
     tiled_regions_remapped['fovs'] = []
