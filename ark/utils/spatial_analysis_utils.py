@@ -225,18 +225,23 @@ def compute_close_cell_num(dist_mat, dist_lim, analysis_type,
             # symmetry :)
             close_num[k, j] = close_num[j, k]
 
-    return close_num, mark1_num, mark1labels_per_id
+    return close_num, mark1_num, mark1poslabels 
 
 
-def compute_close_cell_num_random(marker_nums, dist_mat, dist_lim, bootstrap_num):
+# TODO: passing marker_nums and mark_pos_labels is redundant:
+#       marker_nums[j] = len(mark_pos_labels[j])
+def compute_close_cell_num_random(marker_nums, mark_pos_labels, dist_mat, dist_lim, bootstrap_num):
     """Uses bootstrapping to permute cell labels randomly and records the number of close cells
-    (within the dit_lim) in that random setup.
+    (within the dist_lim) in that random setup.
 
     Args:
         marker_nums (numpy.ndarray):
             list of cell counts of each marker type
-        dist_mat (numpy.ndarray):
-            cells x cells matrix with the euclidian distance between centers of corresponding cells
+        mark_pos_labels (list):
+            cell labels for each marker number
+        dist_mat (xr.DataArray):
+            cells x cells matrix with the euclidian distance between centers of corresponding
+            cells. This can be indexed by cell label
         dist_lim (int):
             threshold for spatial enrichment distance proximity
         bootstrap_num (int):
@@ -249,6 +254,9 @@ def compute_close_cell_num_random(marker_nums, dist_mat, dist_lim, bootstrap_num
 
     # Generate binarized distance matrix
     dist_mat_bin = (dist_mat.values < dist_lim).astype(np.uint16)
+    
+    # remove self counts
+    np.fill_diagonal(dist_mat_bin, 0)
 
     # assures that marker counts don't exceed number of cells
     for mn in marker_nums:
@@ -274,14 +282,15 @@ def compute_close_cell_num_random(marker_nums, dist_mat, dist_lim, bootstrap_num
 
     # sort marker_nums and save permutation
     # this can speed up compute_close_num_rand
-    marker_order = [(mn, i) for i, mn in enumerate(marker_nums)]
-    marker_order.sort()
-    sorted_marker_nums, sort_permutation = zip(*marker_order)
+    marker_order = [(mn, np.array(mark_pos_labels[i], dtype=np.uint64), i) for i, mn in enumerate(marker_nums)]
+    marker_order.sort(key=lambda x: x[0])
+    sorted_marker_nums, sorted_pos_labels, sort_permutation = zip(*marker_order)
     _marker_nums = np.array(sorted_marker_nums, dtype=np.uint16)
+    _pos_labels = {i: v for i, v in enumerate(sorted_pos_labels)}
 
     # performing bootstrapping
     close_num_rand = compute_close_num_rand(dist_mat_bin, cols_in_row_flat, _row_indicies,
-                                            _marker_nums, int(bootstrap_num))
+                                            _marker_nums, _pos_labels, int(bootstrap_num))
 
     # unpermute close_num_rand
     x_scramble = np.tile(np.argsort(sort_permutation), (len(sort_permutation), 1))
