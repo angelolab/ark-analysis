@@ -1087,7 +1087,7 @@ def remap_and_reorder_fovs(manual_fov_regions, manual_to_auto_map,
     Args:
         manual_fov_regions (dict):
             The list of fovs proposed by the user
-        proposed_to_auto_map (dict):
+        manual_to_auto_map (dict):
             Defines the mapping of proposed to auto fov names
         moly_point (dict):
             The Moly point to insert
