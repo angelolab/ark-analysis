@@ -83,28 +83,28 @@ def generate_region_info(region_params):
     return region_params_list
 
 
-def _read_tma_region_input(fov_tile_info, region_params):
-    """Reads input for TMAs from user and `fov_tile_info`.
+def _read_tma_region_input(fov_list_info, region_params):
+    """Reads input for TMAs from user and `fov_list_info`.
 
     Updates all the tiling params inplace. Units used are pixels.
 
     Args:
-        fov_tile_info (dict):
+        fov_list_info (dict):
             The data containing the fovs used to define each tiled region
         region_params (dict):
             A dictionary mapping each region-specific parameter to a list of values per fov
     """
 
     # there has to be a starting and ending fov for each region
-    if len(fov_tile_info['fovs']) % 2 != 0:
+    if len(fov_list_info['fovs']) % 2 != 0:
         raise ValueError(
-            "Data in fov_list_path needs to contain a start and end fov for each region"
+            "Data in fov_list_info needs to contain a start and end FOV for each region"
         )
 
     # every two fovs should define the start and end of the fov
-    for i in range(0, len(fov_tile_info['fovs']), 2):
+    for i in range(0, len(fov_list_info['fovs']), 2):
         # define the current start and end fov
-        fov_batches = fov_tile_info['fovs'][i:i + 2]
+        fov_batches = fov_list_info['fovs'][i:i + 2]
         start_fov = fov_batches[0]
         end_fov = fov_batches[1]
 
@@ -133,15 +133,15 @@ def _read_tma_region_input(fov_tile_info, region_params):
         while True:
             # allow the user to specify the number of fovs along each dimension
             num_x = read_tiling_param(
-                "Enter number of x fovs for region %s (at least 3 required): " % start_fov['name'],
-                "Error: number of x fovs must be a positive integer >=3",
+                "Enter number of x FOVs for region %s (at least 3 required): " % start_fov['name'],
+                "Error: number of x FOVs must be a positive integer >=3",
                 lambda nx: nx >= 3,
                 dtype=int
             )
 
             num_y = read_tiling_param(
-                "Enter number of y fovs for region %s (at least 3 required): " % start_fov['name'],
-                "Error: number of y fovs must be a positive integer >=3",
+                "Enter number of y FOVs for region %s (at least 3 required): " % start_fov['name'],
+                "Error: number of y FOVs must be a positive integer >=3",
                 lambda ny: ny >= 3,
                 dtype=int
             )
@@ -213,20 +213,20 @@ def _read_tma_region_input(fov_tile_info, region_params):
         region_params['region_rand'].append(randomize)
 
 
-def _read_non_tma_region_input(fov_tile_info, region_params):
-    """Reads input for non-TMAs from user and `fov_tile_info`.
+def _read_non_tma_region_input(fov_list_info, region_params):
+    """Reads input for non-TMAs from user and `fov_list_info`.
 
     Updates all the tiling params inplace. Units used are pixels.
 
     Args:
-        fov_tile_info (dict):
+        fov_list_info (dict):
             The data containing the fovs used to define each tiled region
         region_params (dict):
             A dictionary mapping each region-specific parameter to a list of values per fov
     """
 
     # read in the data for each fov (region_start from fov_list_path, fov_num from user)
-    for fov in fov_tile_info['fovs']:
+    for fov in fov_list_info['fovs']:
         region_params['region_start_x'].append(fov['centerPointMicrons']['x'])
         region_params['region_start_y'].append(fov['centerPointMicrons']['y'])
 
@@ -309,7 +309,7 @@ def set_tiling_params(fov_list_path, moly_path, tma=False):
 
     # read in the fov list data
     with open(fov_list_path, 'r') as flf:
-        fov_tile_info = json.load(flf)
+        fov_list_info = json.load(flf)
 
     # read in the moly point data
     with open(moly_path, 'r') as mpf:
@@ -319,7 +319,7 @@ def set_tiling_params(fov_list_path, moly_path, tma=False):
     tiling_params = {}
 
     # retrieve the format version
-    tiling_params['fovFormatVersion'] = fov_tile_info['fovFormatVersion']
+    tiling_params['fovFormatVersion'] = fov_list_info['fovFormatVersion']
 
     # define the region_params dict
     region_params = {rpf: [] for rpf in settings.REGION_PARAM_FIELDS}
@@ -331,12 +331,12 @@ def set_tiling_params(fov_list_path, moly_path, tma=False):
 
     # read in the tma inputs
     if tma:
-        _read_tma_region_input(fov_tile_info, region_params)
+        _read_tma_region_input(fov_list_info, region_params)
     else:
-        _read_non_tma_region_input(fov_tile_info, region_params)
+        _read_non_tma_region_input(fov_list_info, region_params)
 
-    # need to copy fov metadata over, needed for create_tiled_regions
-    tiling_params['fovs'] = copy.deepcopy(fov_tile_info['fovs'])
+    # need to copy fov metadata over, needed for generate_fov_list
+    tiling_params['fovs'] = copy.deepcopy(fov_list_info['fovs'])
 
     # store the read in parameters in the region_params key
     tiling_params['region_params'] = generate_region_info(region_params)
@@ -435,7 +435,7 @@ def generate_fov_list(tiling_params, moly_point, tma=False):
     # only used if tiling_params['moly_interval'] is set
     moly_counter = 0
 
-    # iterate through each region and append created fovs to tiled_regions['fovs']
+    # iterate through each region and append created fovs to fov_regions['fovs']
     for region_index, region_info in enumerate(tiling_params['region_params']):
         # extract start coordinates
         start_x = region_info['region_start_x']
