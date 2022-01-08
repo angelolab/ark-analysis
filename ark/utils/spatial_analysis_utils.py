@@ -285,7 +285,7 @@ def compute_close_cell_num_random(marker_nums, mark_pos_labels, dist_mat, dist_l
     marker_order = [
         (
             mn,
-            np.flatnonzero(dist_mat[dist_mat.dims[0]].isin(mark_pos_labels[i])),
+            np.flatnonzero(dist_mat[dist_mat.dims[0]].isin(mark_pos_labels[i])).astype(np.uint64),
             i
         )
         for i, mn in enumerate(marker_nums)
