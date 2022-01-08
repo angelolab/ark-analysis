@@ -83,28 +83,28 @@ def generate_region_info(region_params):
     return region_params_list
 
 
-def _read_tma_region_input(fov_tile_info, region_params):
-    """Reads input for TMAs from user and fov_tile_info.
+def _read_tma_region_input(fov_list_info, region_params):
+    """Reads input for TMAs from user and `fov_list_info`.
 
     Updates all the tiling params inplace. Units used are pixels.
 
     Args:
-        fov_tile_info (dict):
+        fov_list_info (dict):
             The data containing the fovs used to define each tiled region
         region_params (dict):
             A dictionary mapping each region-specific parameter to a list of values per fov
     """
 
     # there has to be a starting and ending fov for each region
-    if len(fov_tile_info['fovs']) % 2 != 0:
+    if len(fov_list_info['fovs']) % 2 != 0:
         raise ValueError(
-            "Data in fov_list_path needs to contain a start and end fov for each region"
+            "Data in fov_list_info needs to contain a start and end FOV for each region"
         )
 
     # every two fovs should define the start and end of the fov
-    for i in range(0, len(fov_tile_info['fovs']), 2):
+    for i in range(0, len(fov_list_info['fovs']), 2):
         # define the current start and end fov
-        fov_batches = fov_tile_info['fovs'][i:i + 2]
+        fov_batches = fov_list_info['fovs'][i:i + 2]
         start_fov = fov_batches[0]
         end_fov = fov_batches[1]
 
@@ -133,15 +133,15 @@ def _read_tma_region_input(fov_tile_info, region_params):
         while True:
             # allow the user to specify the number of fovs along each dimension
             num_x = read_tiling_param(
-                "Enter number of x fovs for region %s (at least 3 required): " % start_fov['name'],
-                "Error: number of x fovs must be a positive integer >=3",
+                "Enter number of x FOVs for region %s (at least 3 required): " % start_fov['name'],
+                "Error: number of x FOVs must be a positive integer >=3",
                 lambda nx: nx >= 3,
                 dtype=int
             )
 
             num_y = read_tiling_param(
-                "Enter number of y fovs for region %s (at least 3 required): " % start_fov['name'],
-                "Error: number of y fovs must be a positive integer >=3",
+                "Enter number of y FOVs for region %s (at least 3 required): " % start_fov['name'],
+                "Error: number of y FOVs must be a positive integer >=3",
                 lambda ny: ny >= 3,
                 dtype=int
             )
@@ -201,7 +201,7 @@ def _read_tma_region_input(fov_tile_info, region_params):
 
         # allow the user to specify if the FOVs should be randomized
         randomize = read_tiling_param(
-            "Randomize fovs for region %s? Y/N: " % start_fov['name'],
+            "Randomize FOVs for region %s? Y/N: " % start_fov['name'],
             "Error: randomize parameter must Y or N",
             lambda r: r in ['Y', 'N', 'y', 'n'],
             dtype=str
@@ -213,20 +213,20 @@ def _read_tma_region_input(fov_tile_info, region_params):
         region_params['region_rand'].append(randomize)
 
 
-def _read_non_tma_region_input(fov_tile_info, region_params):
-    """Reads input for non-TMAs from user and fov_tile_info
+def _read_non_tma_region_input(fov_list_info, region_params):
+    """Reads input for non-TMAs from user and `fov_list_info`.
 
     Updates all the tiling params inplace. Units used are pixels.
 
     Args:
-        fov_tile_info (dict):
+        fov_list_info (dict):
             The data containing the fovs used to define each tiled region
         region_params (dict):
             A dictionary mapping each region-specific parameter to a list of values per fov
     """
 
     # read in the data for each fov (region_start from fov_list_path, fov_num from user)
-    for fov in fov_tile_info['fovs']:
+    for fov in fov_list_info['fovs']:
         region_params['region_start_x'].append(fov['centerPointMicrons']['x'])
         region_params['region_start_y'].append(fov['centerPointMicrons']['y'])
 
@@ -268,7 +268,7 @@ def _read_non_tma_region_input(fov_tile_info, region_params):
 
         # allow the user to specify if the FOVs should be randomized
         randomize = read_tiling_param(
-            "Randomize fovs for region %s? Y/N: " % fov['name'],
+            "Randomize FOVs for region %s? Y/N: " % fov['name'],
             "Error: randomize parameter must Y or N",
             lambda r: r in ['Y', 'N', 'y', 'n'],
             dtype=str
@@ -309,7 +309,7 @@ def set_tiling_params(fov_list_path, moly_path, tma=False):
 
     # read in the fov list data
     with open(fov_list_path, 'r') as flf:
-        fov_tile_info = json.load(flf)
+        fov_list_info = json.load(flf)
 
     # read in the moly point data
     with open(moly_path, 'r') as mpf:
@@ -319,7 +319,7 @@ def set_tiling_params(fov_list_path, moly_path, tma=False):
     tiling_params = {}
 
     # retrieve the format version
-    tiling_params['fovFormatVersion'] = fov_tile_info['fovFormatVersion']
+    tiling_params['fovFormatVersion'] = fov_list_info['fovFormatVersion']
 
     # define the region_params dict
     region_params = {rpf: [] for rpf in settings.REGION_PARAM_FIELDS}
@@ -331,12 +331,12 @@ def set_tiling_params(fov_list_path, moly_path, tma=False):
 
     # read in the tma inputs
     if tma:
-        _read_tma_region_input(fov_tile_info, region_params)
+        _read_tma_region_input(fov_list_info, region_params)
     else:
-        _read_non_tma_region_input(fov_tile_info, region_params)
+        _read_non_tma_region_input(fov_list_info, region_params)
 
-    # need to copy fov metadata over, needed for create_tiled_regions
-    tiling_params['fovs'] = copy.deepcopy(fov_tile_info['fovs'])
+    # need to copy fov metadata over, needed for generate_fov_list
+    tiling_params['fovs'] = copy.deepcopy(fov_list_info['fovs'])
 
     # store the read in parameters in the region_params key
     tiling_params['region_params'] = generate_region_info(region_params)
@@ -353,9 +353,9 @@ def set_tiling_params(fov_list_path, moly_path, tma=False):
 
     tiling_params['moly_run'] = moly_run_insert
 
-    # whether to insert moly points between tiles
+    # whether to insert moly points between fovs
     moly_interval_insert = read_tiling_param(
-        "Specify moly point tile interval? Y/N: ",
+        "Specify moly point FOV interval? Y/N: ",
         "Error: moly interval insertion parameter must either Y or N",
         lambda mii: mii in ['Y', 'N', 'y', 'n'],
         dtype=str
@@ -364,10 +364,10 @@ def set_tiling_params(fov_list_path, moly_path, tma=False):
     moly_interval_insert = moly_interval_insert.upper()
 
     # if moly insert is set, we need to specify an additional moly_interval param
-    # NOTE: the interval applies regardless of if the tiles overlap runs or not
+    # NOTE: the interval applies regardless of if the fovs overlap runs or not
     if moly_interval_insert == 'Y':
         moly_interval = read_tiling_param(
-            "Enter the fov interval size to insert moly points: ",
+            "Enter the FOV interval size to insert moly points: ",
             "Error: moly interval must be a positive integer",
             lambda mi: mi >= 1,
             dtype=int
@@ -405,27 +405,27 @@ def generate_x_y_fov_pairs(x_range, y_range):
     return all_pairs
 
 
-def create_tiled_regions(tiling_params, moly_point, tma=False):
-    """Create the tiled regions for each fov
+def generate_fov_list(tiling_params, moly_point, tma=False):
+    """Generate the list of fovs on the image from the tiling_params set
 
     Args:
         tiling_params (dict):
-            The tiling parameters created by set_tiling_params
+            The tiling parameters created by `set_tiling_params`
         moly_point (dict):
-            The moly point to insert between fovs (and intervals if specified in tiling_params)
+            The moly point to insert between fovs (and intervals if specified in `tiling_params`)
         tma (bool):
             Whether the data in tiling_params is in TMA format or not
 
     Returns:
         dict:
-            Data containing information about each tile, will be saved to JSON
+            Data containing information about each fov, will be saved to JSON
     """
 
     # get the current time info
     dt = datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
 
-    # define the fov tiling info
-    tiled_regions = {
+    # define the fov info
+    fov_regions = {
         'exportDateTime': dt,
         'fovFormatVersion': tiling_params['fovFormatVersion'],
         'fovs': []
@@ -435,7 +435,7 @@ def create_tiled_regions(tiling_params, moly_point, tma=False):
     # only used if tiling_params['moly_interval'] is set
     moly_counter = 0
 
-    # iterate through each region and append created tiles to tiled_regions['fovs']
+    # iterate through each region and append created fovs to fov_regions['fovs']
     for region_index, region_info in enumerate(tiling_params['region_params']):
         # extract start coordinates
         start_x = region_info['region_start_x']
@@ -453,7 +453,7 @@ def create_tiled_regions(tiling_params, moly_point, tma=False):
         x_y_pairs = generate_x_y_fov_pairs(x_range, y_range)
 
         # name the FOVs according to MIBI conventions
-        fov_names = ['R%dC%d' % (y, x) for x in range(region_info['fov_num_x'])
+        fov_names = ['R%dC%d' % (y + 1, x + 1) for x in range(region_info['fov_num_x'])
                      for y in range(region_info['fov_num_y'])]
 
         # randomize pairs list if specified
@@ -476,8 +476,8 @@ def create_tiled_regions(tiling_params, moly_point, tma=False):
             fov['centerPointMicrons']['y'] = cur_y
             fov['name'] = fov_names[index]
 
-            # append value to tiled_regions
-            tiled_regions['fovs'].append(fov)
+            # append value to fov_regions
+            fov_regions['fovs'].append(fov)
 
             # increment moly_counter as we've added another fov
             moly_counter += 1
@@ -485,14 +485,14 @@ def create_tiled_regions(tiling_params, moly_point, tma=False):
             # append a moly point if moly_interval is set and we've reached the interval threshold
             if 'moly_interval' in tiling_params and \
                moly_counter % tiling_params['moly_interval'] == 0:
-                tiled_regions['fovs'].append(moly_point)
+                fov_regions['fovs'].append(moly_point)
 
         # append moly point to seperate runs if not last and if specified
         if tiling_params['moly_run'] == 'Y' and \
            region_index != len(tiling_params['region_params']) - 1:
-            tiled_regions['fovs'].append(moly_point)
+            fov_regions['fovs'].append(moly_point)
 
-    return tiled_regions
+    return fov_regions
 
 
 def convert_microns_to_pixels(coord):
@@ -524,33 +524,33 @@ def convert_microns_to_pixels(coord):
     return (int(pixel_coord_y), int(pixel_coord_x))
 
 
-def assign_closest_tiled_regions(tiled_regions_proposed, tiled_regions_auto, moly_point_name):
-    """For each tile in tiled_regions_proposed, map it to its closest tile in tiled_regions_auto
+def assign_closest_fovs(manual_fovs, auto_fovs, moly_point_name):
+    """For each fov in `manual_fovs`, map it to its closest fov in `auto_fovs`
 
     Args:
-        tiled_regions_proposed (dict):
-            The list of tiles proposed by the user.
-            Assumed to have the same tiled region dimension and the same Moly point
-            as tiled_regions_auto.
-        tiled_regions_auto (dict):
-            The list of tiles generated by `set_tiling_params` run in
+        manual_fovs (dict):
+            The list of fovs manual by the user.
+            Assumed to have the same region dimension and the same Moly point
+            as `auto_fov_regions`.
+        auto_fovs (dict):
+            The list of fovs generated by `set_tiling_params` run in
             `example_fov_grid_generate.ipynb`
         moly_point_name (str):
-            The name of the Moly point used in `tiled_regions_auto` and `tiled_regions_proposed`
+            The name of the Moly point used in `auto_fov_regions` and `manual_fov_regions`
 
     Returns:
         tuple:
 
-        - A dict defining the mapping of tile names between `tiled_regions_proposed` and
-          `tiled_regions_auto`
-        - A dict defining each tile in `tiled_regions_proposed` mapped to its centroid
+        - A dict defining the mapping of fov names between `manual_fovs` and
+          `auto_fovs`
+        - A dict defining each fov in `manual_fovs` mapped to its centroid
           coordinates and size
-        - A dict defining each tile in `tiled_regions_auto` mapped to its centroid
+        - A dict defining each fov in `auto_fovs` mapped to its centroid
           coordinates and size
     """
 
-    # define the centroid and size info for tiled_regions_proposed and tiled_regions_auto
-    proposed_tiles_info = {
+    # define the centroid and size info for manual_fovs and auto_fovs
+    manual_fovs_info = {
         fov['name']: {
             'centroid': convert_microns_to_pixels(
                 (fov['centerPointMicrons']['x'], fov['centerPointMicrons']['y'])
@@ -558,10 +558,10 @@ def assign_closest_tiled_regions(tiled_regions_proposed, tiled_regions_auto, mol
             'size': (fov['frameSizePixels']['width'], fov['frameSizePixels']['height'])
         }
 
-        for fov in tiled_regions_proposed['fovs'] if fov['name'] != moly_point_name
+        for fov in manual_fovs['fovs'] if fov['name'] != moly_point_name
     }
 
-    auto_tiles_info = {
+    auto_fovs_info = {
         fov['name']: {
             'centroid': convert_microns_to_pixels(
                 (fov['centerPointMicrons']['x'], fov['centerPointMicrons']['y'])
@@ -569,352 +569,299 @@ def assign_closest_tiled_regions(tiled_regions_proposed, tiled_regions_auto, mol
             'size': (fov['frameSizePixels']['width'], fov['frameSizePixels']['height'])
         }
 
-        for fov in tiled_regions_auto['fovs'] if fov['name'] != moly_point_name
+        for fov in auto_fovs['fovs'] if fov['name'] != moly_point_name
     }
 
-    # we define these "reverse" dicts to map from centroid back to tile name
-    # this makes it easier to use numpy broadcasting to help find the closest tile pairs
-    proposed_centroid_to_tile = {
-        (proposed_tiles_info[fov]['centroid'][0], proposed_tiles_info[fov]['centroid'][1]): fov
-        for fov in proposed_tiles_info
+    # we define these "reverse" dicts to map from centroid back to fov name
+    # this makes it easier to use numpy broadcasting to help find the closest fov pairs
+    manual_centroid_to_fov = {
+        (manual_fovs_info[fov]['centroid'][0], manual_fovs_info[fov]['centroid'][1]): fov
+        for fov in manual_fovs_info
     }
 
-    auto_centroid_to_tile = {
-        (auto_tiles_info[fov]['centroid'][0], auto_tiles_info[fov]['centroid'][1]): fov
-        for fov in auto_tiles_info
+    auto_centroid_to_fov = {
+        (auto_fovs_info[fov]['centroid'][0], auto_fovs_info[fov]['centroid'][1]): fov
+        for fov in auto_fovs_info
     }
 
-    # define numpy arrays of the proposed and auto centroids
-    proposed_centroids = np.array(
-        [list(centroid) for centroid in proposed_centroid_to_tile]
+    # define numpy arrays of the manual and auto centroids
+    manual_centroids = np.array(
+        [list(centroid) for centroid in manual_centroid_to_fov]
     )
 
-    # define numpy arrays of the proposed and auto centroids
+    # define numpy arrays of the manual and auto centroids
     auto_centroids = np.array(
-        [list(centroid) for centroid in auto_centroid_to_tile]
+        [list(centroid) for centroid in auto_centroid_to_fov]
     )
 
-    # define the mapping dict from proposed to auto
-    proposed_to_auto_map = {}
+    # define the mapping dict from manual to auto
+    manual_to_auto_map = {}
 
-    # compute the euclidean distances between the proposed and the auto centroids
-    proposed_auto_dist = np.linalg.norm(
-        proposed_centroids[:, np.newaxis] - auto_centroids, axis=2
+    # compute the euclidean distances between the manual and the auto centroids
+    manual_auto_dist = np.linalg.norm(
+        manual_centroids[:, np.newaxis] - auto_centroids, axis=2
     )
 
-    # for each proposed point, get the index of the auto point closest to it
+    # for each manual point, get the index of the auto point closest to it
     closest_auto_point_ind = np.argmin(
-        np.linalg.norm(proposed_centroids[:, np.newaxis] - auto_centroids, axis=2),
+        np.linalg.norm(manual_centroids[:, np.newaxis] - auto_centroids, axis=2),
         axis=1
     )
 
-    # assign the mapping in proposed_to_auto_map
-    for prop_index, auto_index in enumerate(closest_auto_point_ind):
-        # get the coordinates of the proposed point and its corresponding closest auto point
-        prop_coords = tuple(proposed_centroids[prop_index])
+    # assign the mapping in manual_to_auto_map
+    for manual_index, auto_index in enumerate(closest_auto_point_ind):
+        # get the coordinates of the manual point and its corresponding closest auto point
+        manual_coords = tuple(manual_centroids[manual_index])
         auto_coords = tuple(auto_centroids[auto_index])
 
-        # use the coordinates as keys to get the tile names
-        prop_name = proposed_centroid_to_tile[prop_coords]
-        auto_name = auto_centroid_to_tile[auto_coords]
+        # use the coordinates as keys to get the fov names
+        man_name = manual_centroid_to_fov[manual_coords]
+        auto_name = auto_centroid_to_fov[auto_coords]
 
-        # map the proposed tile name to its closest auto tile name
-        proposed_to_auto_map[prop_name] = auto_name
+        # map the manual fov name to its closest auto fov name
+        manual_to_auto_map[man_name] = auto_name
 
-    return proposed_to_auto_map, proposed_tiles_info, auto_tiles_info
+    return manual_to_auto_map, manual_fovs_info, auto_fovs_info
 
 
-def generate_tile_circles(proposed_to_auto_map, proposed_tiles_info, auto_tiles_info,
-                          slide_img, draw_radius=50):
-    """Draw the circles defining each tile (proposed and automatically-generated)
+def generate_fov_circles(manual_to_auto_map, manual_fovs_info, auto_fovs_info,
+                         manual_name, auto_name, slide_img, draw_radius=5):
+    """Draw the circles defining each fov (manually-specified and automatically-generated)
 
     Args:
-        proposed_to_auto_map (dict):
-            defines the mapping of proposed to auto tile names
-        proposed_tiles_info (dict):
-            maps each proposed tile to its centroid coordinates and size
-        auto_tiles_info (dict):
-            maps each automatically-generated tile to its centroid coordinates and size
+        manual_to_auto_map (dict):
+            defines the mapping of manual to auto fov names
+        manual_fovs_info (dict):
+            maps each manual fov to its centroid coordinates and size
+        auto_fovs_info (dict):
+            maps each automatically-generated fov to its centroid coordinates and size
+        manual_name (str):
+            the name of the manual fov to highlight
+        auto_name (str):
+            the name of the automatically-generated fov to highlight
         slide_img (numpy.ndarray):
             the image to overlay
         draw_radius (int):
-            the radius of the circle to overlay for each tile, will be centered at the centroid
+            the radius of the circle to overlay for each fov, will be centered at the centroid
 
     Returns:
         tuple:
 
-        - A numpy.ndarray containing the slide_img with circles defining each tile
-        - A dict mapping each proposed tile to its annotation coordinate
-        - A dict mapping each automatically-generated tile to its annotation coordinate
+        - A `numpy.ndarray` containing the slide_img with circles defining each fov
+        - A dict mapping each manual fov to its annotation coordinate
+        - A dict mapping each automatically-generated fov to its annotation coordinate
     """
 
-    # define dictionaries to hold the annotations
-    proposed_annot = {}
-    auto_annot = {}
+    # define dictionaries to hold the coordinates
+    manual_coords = {}
+    auto_coords = {}
 
-    # define the tile size boundaries, needed to prevent drawing a circle out of bounds
-    tile_size = slide_img.shape[:2]
+    # define the fov size boundaries, needed to prevent drawing a circle out of bounds
+    fov_size = slide_img.shape[:2]
 
-    # generate the regions for each proposed and mapped auto tile
-    for pti in proposed_tiles_info:
+    # generate the regions for each manual and mapped auto fov
+    for mfi in manual_fovs_info:
         # get the x- and y-coordinate of the centroid
-        proposed_x = int(proposed_tiles_info[pti]['centroid'][0])
-        proposed_y = int(proposed_tiles_info[pti]['centroid'][1])
+        manual_x = int(manual_fovs_info[mfi]['centroid'][0])
+        manual_y = int(manual_fovs_info[mfi]['centroid'][1])
 
         # define the circle coordinates for the region
-        pr_x, pr_y = ellipse(
-            proposed_x, proposed_y, draw_radius, draw_radius, shape=tile_size
+        mr_x, mr_y = ellipse(
+            manual_x, manual_y, draw_radius, draw_radius, shape=fov_size
         )
 
-        # color each tile red for proposed
-        slide_img[pr_x, pr_y, 0] = 238
-        slide_img[pr_x, pr_y, 1] = 75
-        slide_img[pr_x, pr_y, 2] = 43
+        # color the selected manual fov dark red, else bright red
+        if mfi == manual_name:
+            slide_img[mr_x, mr_y, 0] = 210
+            slide_img[mr_x, mr_y, 1] = 37
+            slide_img[mr_x, mr_y, 2] = 37
+        else:
+            slide_img[mr_x, mr_y, 0] = 255
+            slide_img[mr_x, mr_y, 1] = 133
+            slide_img[mr_x, mr_y, 2] = 133
 
         # define the annotations to place at each coordinate
-        proposed_annot[pti] = (proposed_x, proposed_y)
+        manual_coords[mfi] = (manual_x, manual_y)
 
     # repeat but for the automatically generated points
-    for ati in auto_tiles_info:
+    for afi in auto_fovs_info:
         # repeat the above for auto points
-        auto_x = int(auto_tiles_info[ati]['centroid'][0])
-        auto_y = int(auto_tiles_info[ati]['centroid'][1])
+        auto_x = int(auto_fovs_info[afi]['centroid'][0])
+        auto_y = int(auto_fovs_info[afi]['centroid'][1])
 
         # define the circle coordinates for the region
         ar_x, ar_y = ellipse(
-            auto_x, auto_y, draw_radius, draw_radius, shape=tile_size
+            auto_x, auto_y, draw_radius, draw_radius, shape=fov_size
         )
 
-        # color each tile blue for auto
-        slide_img[ar_x, ar_y, 0] = 135
-        slide_img[ar_x, ar_y, 1] = 206
-        slide_img[ar_x, ar_y, 2] = 250
+        # color the selected auto fov dark blue, else bright blue
+        if afi == auto_name:
+            slide_img[ar_x, ar_y, 0] = 50
+            slide_img[ar_x, ar_y, 1] = 115
+            slide_img[ar_x, ar_y, 2] = 229
+        else:
+            slide_img[ar_x, ar_y, 0] = 162
+            slide_img[ar_x, ar_y, 1] = 197
+            slide_img[ar_x, ar_y, 2] = 255
 
-        auto_annot[ati] = (auto_x, auto_y)
+        auto_coords[afi] = (auto_x, auto_y)
 
-    return slide_img, proposed_annot, auto_annot
-
-
-def generate_tile_annotations(proposed_annot, auto_annot, proposed_name, auto_name):
-    """Generates the initial set of annotations to display over each tile
-
-    Args:
-        proposed_annot (dict):
-            maps each proposed tile to its annotation
-        auto_annot (dict):
-            maps each automatically-generated tile to its annotation
-        proposed_name (str):
-            the name of the proposed tile to highlight
-        auto_name (str):
-            the name of the automatically-generated tile to highlight
-
-    Returns:
-        tuple:
-
-        - A dict mapping each proposed tile to its matplotlib annotation object
-        - A dict mapping each automatically-generated tile to its matplotlib annotation object
-    """
-
-    # define dicts to store the proposed and the auto annotations
-    pa_anns = {}
-    aa_anns = {}
-
-    # generate the annotation text for proposed tiles
-    for pa_text, pa_coord in proposed_annot.items():
-        # increase size of and bold the proposed tile name if that's the one selected
-        font_weight = 'bold' if pa_text == proposed_name else 'normal'
-        font_color = 'green' if pa_text == proposed_name else 'white'
-
-        # draw the proposed tile name
-        pa_ann = plt.annotate(
-            pa_text,
-            (pa_coord[1], pa_coord[0]),
-            color=font_color,
-            ha='center',
-            fontweight=font_weight,
-            fontsize=5
-        )
-
-        # add annotation to pa_anns
-        pa_anns[pa_text] = pa_ann
-
-    # generate the annotation text for auto tiles
-    for aa_text, aa_coord in auto_annot.items():
-        # increase size of and bold the auto tile name if that's the one selected
-        font_weight = 'bold' if aa_text == auto_name else 'normal'
-        font_color = 'green' if aa_text == auto_name else 'black'
-
-        # draw the auto tile name
-        aa_ann = plt.annotate(
-            aa_text,
-            (aa_coord[1], aa_coord[0]),
-            color=font_color,
-            ha='center',
-            fontweight=font_weight,
-            fontsize=5
-        )
-
-        # add annotation to aa_anns
-        aa_anns[aa_text] = aa_ann
-
-    return pa_anns, aa_anns
+    return slide_img, manual_coords, auto_coords
 
 
-def update_mapping_display(change, proposed_to_auto_map, proposed_annot, auto_annot,
-                           pa_anns, aa_anns, w_auto):
-    """Changes the bolded proposed to automatically-generated tile in the remapping visualization
-    based on change in proposed tile menu
+def update_mapping_display(change, w_auto, manual_to_auto_map, manual_coords, auto_coords,
+                           slide_img, draw_radius=7):
+    """Changes the selected pairs of circles on the image based on new selected manual fov
 
     Helper to `update_mapping` nested callback function in `interactive_remap`
 
     Args:
         change (dict):
-            defines the properties of the changed value of the proposed tile menu
-        proposed_to_auto_map (dict):
-            defines the mapping of proposed to auto tile names
-        proposed_annot (dict):
-            maps each proposed tile to its annotation coordinate
-        auto_annot (dict):
-            maps each automatically-generated tile to its annotation coordinate
-        pa_anns (dict):
-            maps each proposed tile to its matplotlib annotation object
-        aa_anns (dict):
-            maps each automatically-generated tile to its matplotlib annotation object
+            defines the properties of the changed value of the manual fov menu
         w_auto (ipywidgets.widgets.widget_selection.Dropdown):
-            the dropdown menu handler for the automatically-generated tiles
+            the dropdown menu handler for the automatically-generated fovs
+        manual_to_auto_map (dict):
+            defines the mapping of manual to auto fov names
+        manual_coords (dict):
+            a dict defining each fov in `manual_fov_regions` mapped to its centroid
+            coordinates
+        auto_coords (dict):
+            a dict defining each fov in `auto_fov_regions` mapped to its centroid
+            coordinates
+        slide_img (numpy.ndarray):
+            the image to overlay
+        draw_radius (int):
+            the radius to draw each circle on the slide
+
+    Returns:
+        numpy.ndarray:
+            `slide_img` with the updated circles after manual fov changed
     """
 
-    # remove annotations for the proposed annotations and the new auto annotation
-    pa_anns[change['old']].remove()
-    pa_anns[change['new']].remove()
-    aa_anns[proposed_to_auto_map[change['new']]].remove()
+    # define the fov size boundaries, needed to prevent drawing a circle out of bounds
+    fov_size = slide_img.shape[:2]
 
-    # only remove the old auto annotation if it doesn't match the new one
-    # otherwise we'll be removing the same text twice and it will fail
-    if w_auto.value != proposed_to_auto_map[change['new']]:
-        aa_anns[w_auto.value].remove()
+    # retrieve the old manual centroid
+    old_manual_x, old_manual_y = manual_coords[change['old']]
 
-    # create a new unbolded annotation for the proposed tile
-    old_pa_ann = plt.annotate(
-        change['old'],
-        (proposed_annot[change['old']][1], proposed_annot[change['old']][0]),
-        color='white',
-        ha='center',
-        fontweight='normal',
-        fontsize=5
+    # redraw the old manual centroid on the slide_img
+    old_mr_x, old_mr_y = ellipse(
+        old_manual_x, old_manual_y, draw_radius, draw_radius, shape=fov_size
     )
 
-    # update the annotation for the old proposed tile
-    pa_anns[change['old']] = old_pa_ann
+    slide_img[old_mr_x, old_mr_y, 0] = 255
+    slide_img[old_mr_x, old_mr_y, 1] = 133
+    slide_img[old_mr_x, old_mr_y, 2] = 133
 
-    # only create a new unbolded annotation for the old auto tile if it doesn't
-    # match the new one, otherwise both a normal and bold name will be drawn
-    if w_auto.value != proposed_to_auto_map[change['new']]:
-        old_aa_ann = plt.annotate(
-            w_auto.value,
-            (auto_annot[w_auto.value][1], auto_annot[w_auto.value][0]),
-            color='black',
-            ha='center',
-            fontweight='normal',
-            fontsize=5
-        )
+    # retrieve the old auto centroid
+    old_auto_x, old_auto_y = auto_coords[w_auto.value]
 
-        # update the annotation for the old auto tile
-        aa_anns[w_auto.value] = old_aa_ann
-
-    # create a new bolded annotation for the new pair
-    new_pa_ann = plt.annotate(
-        change['new'],
-        (proposed_annot[change['new']][1], proposed_annot[change['new']][0]),
-        color='green',
-        ha='center',
-        fontweight='bold',
-        fontsize=5
+    # redraw the old auto centroid on the slide_img
+    old_ar_x, old_ar_y = ellipse(
+        old_auto_x, old_auto_y, draw_radius, draw_radius, shape=fov_size
     )
 
-    # update the annotation for the new proposed tile
-    pa_anns[change['new']] = new_pa_ann
+    slide_img[old_ar_x, old_ar_y, 0] = 162
+    slide_img[old_ar_x, old_ar_y, 1] = 197
+    slide_img[old_ar_x, old_ar_y, 2] = 255
 
-    new_aa_ann = plt.annotate(
-        proposed_to_auto_map[change['new']],
-        (
-            auto_annot[proposed_to_auto_map[change['new']]][1],
-            auto_annot[proposed_to_auto_map[change['new']]][0]
-        ),
-        color='green',
-        ha='center',
-        fontweight='bold',
-        fontsize=5
+    # retrieve the new manual centroid
+    new_manual_x, new_manual_y = manual_coords[change['new']]
+
+    # redraw the new manual centroid on the slide_img
+    new_mr_x, new_mr_y = ellipse(
+        new_manual_x, new_manual_y, draw_radius, draw_radius, shape=fov_size
     )
 
-    # update the annotation for the new auto tile
-    aa_anns[proposed_to_auto_map[change['new']]] = new_aa_ann
+    slide_img[new_mr_x, new_mr_y, 0] = 210
+    slide_img[new_mr_x, new_mr_y, 1] = 37
+    slide_img[new_mr_x, new_mr_y, 2] = 37
 
-    # set the mapped auto value according to the new proposed value
-    w_auto.value = proposed_to_auto_map[change['new']]
+    # retrieve the new auto centroid
+    new_auto_x, new_auto_y = auto_coords[manual_to_auto_map[change['new']]]
+
+    # redraw the new auto centroid on the slide_img
+    new_ar_x, new_ar_y = ellipse(
+        new_auto_x, new_auto_y, draw_radius, draw_radius, shape=fov_size
+    )
+
+    slide_img[new_ar_x, new_ar_y, 0] = 50
+    slide_img[new_ar_x, new_ar_y, 1] = 115
+    slide_img[new_ar_x, new_ar_y, 2] = 229
+
+    # set the mapped auto value according to the new manual value
+    w_auto.value = manual_to_auto_map[change['new']]
+
+    return slide_img
 
 
-def remap_proposed_to_auto_display(change, proposed_to_auto_map, auto_annot, aa_anns, w_prop):
-    """Changes the bolded automatically-generated tile to new value selected for proposed tile
-    and updates the mapping in proposed_to_auto_map
+def remap_manual_to_auto_display(change, w_man, manual_to_auto_map, auto_coords,
+                                 slide_img, draw_radius=7):
+    """Changes the bolded automatically-generated fov to new value selected for manual fov
+    and updates the mapping in `manual_to_auto_map`
 
     Helper to `remap_values` nested callback function in `interactive_remap`
 
     Args:
         change (dict):
-            defines the properties of the changed value of the automatically-generated tile menu
-        proposed_to_auto_map (dict):
-            defines the mapping of proposed to auto tile names
-        auto_annot (dict):
-            maps each automatically-generated tile to its annotation coordinate
-        aa_anns (dict):
-            maps each automatically-generated tile to its matplotlib annotation object
-        w_prop (ipywidgets.widgets.widget_selection.Dropdown):
-            the dropdown menu handler for the proposed tiles
+            defines the properties of the changed value of the automatically-generated fov menu
+        w_man (ipywidgets.widgets.widget_selection.Dropdown):
+            the dropdown menu handler for the manual fovs
+        manual_to_auto_map (dict):
+            defines the mapping of manual to auto fov names
+        auto_coords (dict):
+            maps each automatically-generated fov to its annotation coordinate
+        slide_img (numpy.ndarray):
+            the image to overlay
+        draw_radius (int):
+            the radius to draw each circle on the slide
+
+    Returns:
+        numpy.ndarray:
+            `slide_img` with the updated circles after auto fov changed remapping the fovs
     """
 
-    # remove annotation for the old and new value w_prop maps to
-    aa_anns[change['old']].remove()
-    aa_anns[change['new']].remove()
+    # define the fov size boundaries, needed to prevent drawing a circle out of bounds
+    fov_size = slide_img.shape[:2]
 
-    # generate a new un-bolded annotation for the old value w_prop mapped to
-    old_aa_ann = plt.annotate(
-        change['old'],
-        (auto_annot[change['old']][1], auto_annot[change['old']][0]),
-        color='black',
-        ha='center',
-        fontweight='normal',
-        fontsize=5
+    # retrieve the coordinates for the old auto centroid w_prop mapped to
+    old_auto_x, old_auto_y = auto_coords[change['old']]
+
+    # redraw the old auto centroid on the slide_img
+    old_ar_x, old_ar_y = ellipse(
+        old_auto_x, old_auto_y, draw_radius, draw_radius, shape=fov_size
     )
 
-    # update the annotation of the old value w_prop mapped to
-    aa_anns[change['old']] = old_aa_ann
+    slide_img[old_ar_x, old_ar_y, 0] = 162
+    slide_img[old_ar_x, old_ar_y, 1] = 197
+    slide_img[old_ar_x, old_ar_y, 2] = 255
 
-    # generate a new bolded annotation for the new value w_prop mapped to
-    new_aa_ann = plt.annotate(
-        change['new'],
-        (auto_annot[change['new']][1], auto_annot[change['new']][0]),
-        color='green',
-        ha='center',
-        fontweight='bold',
-        fontsize=5
+    # retrieve the coordinates for the new auto centroid w_prop maps to
+    new_auto_x, new_auto_y = auto_coords[change['new']]
+
+    # redraw the new auto centroid on the slide_img
+    new_ar_x, new_ar_y = ellipse(
+        new_auto_x, new_auto_y, draw_radius, draw_radius, shape=fov_size
     )
 
-    # update the annotation of the new value w_prop maps to
-    aa_anns[change['new']] = new_aa_ann
+    slide_img[new_ar_x, new_ar_y, 0] = 50
+    slide_img[new_ar_x, new_ar_y, 1] = 115
+    slide_img[new_ar_x, new_ar_y, 2] = 229
 
-    # remap the proposed tile to the changed value
-    proposed_to_auto_map[w_prop.value] = change['new']
+    # remap the manual fov to the changed value
+    manual_to_auto_map[w_man.value] = change['new']
+
+    return slide_img
 
 
-def write_proposed_to_auto_map(proposed_to_auto_map, save_ann, mapping_path):
-    """Saves the proposed to automatically-generated tile map and notifies the user
+def write_manual_to_auto_map(manual_to_auto_map, save_ann, mapping_path):
+    """Saves the manually-defined to automatically-generated fov map and notifies the user
 
     Helper to `save_mapping` nested callback function in `interactive_remap`
 
     Args:
-        proposed_to_auto_map (dict):
-            defines the mapping of proposed to auto tile names
+        manual_to_auto_map (dict):
+            defines the mapping of manual to auto fov names
         save_ann (dict):
             contains the annotation object defining the save notification
         mapping_path (str):
@@ -927,7 +874,7 @@ def write_proposed_to_auto_map(proposed_to_auto_map, save_ann, mapping_path):
 
     # save the mapping
     with open(mapping_path, 'w') as mp:
-        json.dump(proposed_to_auto_map, mp)
+        json.dump(manual_to_auto_map, mp)
 
     # remove the save annotation if it already exists
     # clears up some space if the user decides to save several times
@@ -937,8 +884,8 @@ def write_proposed_to_auto_map(proposed_to_auto_map, save_ann, mapping_path):
     # display save annotation above the plot
     save_msg = plt.annotate(
         'Mapping saved!',
-        (0, -5),
-        color='black',
+        (0, 20),
+        color='white',
         fontweight='bold',
         annotation_clip=False
     )
@@ -947,18 +894,18 @@ def write_proposed_to_auto_map(proposed_to_auto_map, save_ann, mapping_path):
     save_ann['annotation'] = save_msg
 
 
-def interactive_remap(proposed_to_auto_map, proposed_tiles_info,
-                      auto_tiles_info, slide_img, mapping_path,
-                      draw_radius=5, figsize=(15, 15)):
+def interactive_remap(manual_to_auto_map, manual_fovs_info,
+                      auto_fovs_info, slide_img, mapping_path,
+                      draw_radius=7, figsize=(7, 7)):
     """Creates the remapping interactive interface
 
     Args:
-        proposed_to_auto_map (dict):
-            defines the mapping of proposed to auto tile names
-        proposed_tiles_info (dict):
-            maps each proposed tile to its centroid coordinates and size
-        auto_tiles_info (dict):
-            maps each automatically-generated tile to its centroid coordinates and size
+        manual_to_auto_map (dict):
+            defines the mapping of manual to auto fov names
+        manual_fovs_info (dict):
+            maps each manual fov to its centroid coordinates and size
+        auto_fovs_info (dict):
+            maps each automatically-generated fov to its centroid coordinates and size
         slide_img (numpy.ndarray):
             the image to overlay
         mapping_path (str):
@@ -976,26 +923,26 @@ def interactive_remap(proposed_to_auto_map, proposed_tiles_info,
             "please rename to a valid location" % os.path.split(mapping_path)[0]
         )
 
-    # get the first proposed tile
+    # get the first manual fov
     # this will define the initial default value to display
-    first_proposed = list(proposed_tiles_info.keys())[0]
+    first_manual = list(manual_fovs_info.keys())[0]
 
     # define the two drop down menus
-    # the first will define the proposed tile mappings
-    w_prop = widgets.Dropdown(
-        options=[pti for pti in list(proposed_tiles_info.keys())],
-        value=first_proposed,
-        description='Proposed tile',
+    # the first will define the manual fovs
+    w_man = widgets.Dropdown(
+        options=[mfi for mfi in list(manual_fovs_info.keys())],
+        value=first_manual,
+        description='Manually-defined FOV',
         layout=widgets.Layout(width='auto'),
         style={'description_width': 'initial'}
     )
 
-    # the second will define the automatically-generated tile mappings
-    # the default value should be set to the auto tile the initial proposed tile maps to
+    # the second will define the automatically-generated fovs
+    # the default value should be set to the auto fov the initial manual fov maps to
     w_auto = widgets.Dropdown(
-        options=[ati for ati in list(auto_tiles_info.keys())],
-        value=proposed_to_auto_map[first_proposed],
-        description='Automatically-generated tile',
+        options=[afi for afi in list(auto_fovs_info.keys())],
+        value=manual_to_auto_map[first_manual],
+        description='Automatically-generated FOV',
         layout=widgets.Layout(width='auto'),
         style={'description_width': 'initial'}
     )
@@ -1006,9 +953,9 @@ def interactive_remap(proposed_to_auto_map, proposed_tiles_info,
         style={'description_width': 'initial'}
     )
 
-    # define a box to hold w_prop and w_auto
+    # define a box to hold w_man and w_auto
     w_box = widgets.HBox(
-        [w_prop, w_auto, w_save],
+        [w_man, w_auto, w_save],
         layout=widgets.Layout(
             display='flex',
             flex_flow='row',
@@ -1017,7 +964,7 @@ def interactive_remap(proposed_to_auto_map, proposed_tiles_info,
         )
     )
 
-    # display the box with w_prop and w_auto dropdown menus
+    # display the box with w_man and w_auto dropdown menus
     display(w_box)
 
     # define an output context to display
@@ -1027,8 +974,9 @@ def interactive_remap(proposed_to_auto_map, proposed_tiles_info,
     fig, ax = plt.subplots(figsize=figsize)
 
     # generate the circles and annotations for each circle to display on the image
-    slide_img, proposed_annot, auto_annot = generate_tile_circles(
-        proposed_to_auto_map, proposed_tiles_info, auto_tiles_info, slide_img, draw_radius
+    slide_img, manual_coords, auto_coords = generate_fov_circles(
+        manual_to_auto_map, manual_fovs_info, auto_fovs_info, w_man.value, w_auto.value,
+        slide_img, draw_radius
     )
 
     # make sure the output gets displayed to the output widget so it displays properly
@@ -1037,24 +985,19 @@ def interactive_remap(proposed_to_auto_map, proposed_tiles_info,
         img_plot = ax.imshow(slide_img)
 
         # overwrite the default title
-        _ = plt.title('Proposed to automatically-generated tile map')
+        _ = plt.title('Manually-defined to automatically-generated FOV map')
 
         # remove massive padding
         _ = plt.tight_layout()
 
-        # generate the tile annotations
-        pa_anns, aa_anns = generate_tile_annotations(
-            proposed_annot, auto_annot, w_prop.value, w_auto.value
-        )
-
-        # define status of the save annotation, nitially None, updates when user clicks w_save
+        # define status of the save annotation, initially None, updates when user clicks w_save
         # NOTE: ipywidget callback functions can only access dicts defined in scope
         save_ann = {'annotation': None}
 
-    # a callback function for changing w_auto to the value w_prop maps to
-    # NOTE: needs to be here so it can easily access w_prop and w_auto
+    # a callback function for changing w_auto to the value w_man maps to
+    # NOTE: needs to be here so it can easily access w_man and w_auto
     def update_mapping(change):
-        """Updates w_auto and bolds a different proposed-auto pair when w_prop changes
+        """Updates w_auto and bolds a different manual-auto pair when w_prop changes
 
         Args:
             change (dict):
@@ -1062,21 +1005,25 @@ def interactive_remap(proposed_to_auto_map, proposed_tiles_info,
         """
 
         # only operate if w_prop actually changed
-        # prevents update if the user drops down w_prop but leaves it as the same proposed tile
+        # prevents update if the user drops down w_prop but leaves it as the same manual fov
         if change['name'] == 'value' and change['new'] != change['old']:
             # need to be in the output widget context to update
             with out:
-                # call the helper function to update annotations
-                update_mapping_display(
-                    change, proposed_to_auto_map, proposed_annot, auto_annot,
-                    pa_anns, aa_anns, w_auto
+                # call the helper function to redraw circles on the slide_img
+                new_slide_img = update_mapping_display(
+                    change, w_auto, manual_to_auto_map, manual_coords, auto_coords,
+                    slide_img, draw_radius
                 )
 
+                # set the new slide img in the plot
+                img_plot.set_data(new_slide_img)
+                fig.canvas.draw_idle()
+
     # a callback function for remapping when w_auto changes
-    # NOTE: needs to be here so it can easily access w_prop and w_auto
+    # NOTE: needs to be here so it can easily access w_man and w_auto
     def remap_values(change):
-        """Bolds the new w_auto and maps the selected tile in w_prop
-        to the new w_auto in `proposed_to_auto_amp`
+        """Bolds the new w_auto and maps the selected fov in w_man
+        to the new w_auto in `manual_to_auto_amp`
 
         Args:
             change (dict):
@@ -1084,18 +1031,23 @@ def interactive_remap(proposed_to_auto_map, proposed_tiles_info,
         """
 
         # only remap if the auto change as been updated
-        # prevents update if the user drops down w_auto but leaves it as the same auto tile
+        # prevents update if the user drops down w_auto but leaves it as the same auto fov
         if change['name'] == 'value' and change['new'] != change['old']:
             # need to be in the output widget context to update
             with out:
-                # call the helper function to remap and update annotations
-                remap_proposed_to_auto_display(
-                    change, proposed_to_auto_map, auto_annot, aa_anns, w_prop
+                # call the helper function to redraw the circles on the slide_img
+                # and update manual_to_auto_map with the new w_prop mapping
+                new_slide_img = remap_manual_to_auto_display(
+                    change, w_man, manual_to_auto_map, auto_coords, slide_img, draw_radius
                 )
 
-    # a callback function for saving proposed_to_auto_map to mapping_path if w_save clicked
+                # set the new slide img in the plot
+                img_plot.set_data(new_slide_img)
+                fig.canvas.draw_idle()
+
+    # a callback function for saving manual_to_auto_map to mapping_path if w_save clicked
     def save_mapping(b):
-        """Saves the mapping defined in `proposed_to_auto_map`
+        """Saves the mapping defined in `manual_to_auto_map`
 
         Args:
             b (ipywidgets.widgets.widget_button.Button):
@@ -1104,16 +1056,16 @@ def interactive_remap(proposed_to_auto_map, proposed_tiles_info,
 
         # need to be in the output widget context to display status
         with out:
-            # call the helper function to save proposed_to_auto_map and notify user
-            write_proposed_to_auto_map(
-                proposed_to_auto_map, save_ann, mapping_path
+            # call the helper function to save manual_to_auto_map and notify user
+            write_manual_to_auto_map(
+                manual_to_auto_map, save_ann, mapping_path
             )
 
-    # ensure a change to w_prop redraws the image due to a new proposed tile selected
-    w_prop.observe(update_mapping)
+    # ensure a change to w_man redraws the image due to a new manual fov selected
+    w_man.observe(update_mapping)
 
-    # ensure a change to w_auto redraws the image due to a new automatic tile
-    # mapped to the proposed tile
+    # ensure a change to w_auto redraws the image due to a new automatic fov
+    # mapped to the manual fov
     w_auto.observe(remap_values)
 
     # if w_save clicked, save the new mapping to the path defined in mapping_path
@@ -1123,42 +1075,71 @@ def interactive_remap(proposed_to_auto_map, proposed_tiles_info,
     display(out)
 
 
-def remap_and_reorder_tiles(tiled_regions_proposed, proposed_to_auto_map,
-                            moly_point, moly_interval=5):
-    """Runs 3 separate tasks on `tiled_regions_proposed`:
+def remap_and_reorder_fovs(manual_fov_regions, manual_to_auto_map,
+                           moly_point, randomize=False,
+                           moly_insert=False, moly_interval=5):
+    """Runs 3 separate tasks on `manual_fov_regions`:
 
-    - Uses proposed_to_auto_map to rename the FOVs
-    - Randomizes the order of the FOVs
-    - Inserts Moly points at the specified interval
+    - Uses `manual_to_auto_map` to rename the FOVs
+    - Randomizes the order of the FOVs if specified
+    - Inserts Moly points at the specified interval if specified
 
     Args:
-        tiled_regions_proposed (dict):
-            The list of tiles proposed by the user
-        proposed_to_auto_map (dict):
-            Defines the mapping of proposed to auto tile names
+        manual_fov_regions (dict):
+            The list of fovs manual by the user
+        manual_to_auto_map (dict):
+            Defines the mapping of manual to auto fov names
         moly_point (dict):
             The Moly point to insert
+        randomize (bool):
+            Whether to randomize the FOVs
+        moly_insert (bool):
+            Whether to insert Moly points between FOVs at the specified `moly_interval`
         moly_interval (int):
-            The interval in which to insert Moly points
+            The interval in which to insert Moly points.
+            Ignored if `moly_insert` is `False`.
 
     Returns:
         dict:
-            `tiled_regions_proposed` with new FOV names, randomized, and with Moly points
+            `manual_fov_regions` with new FOV names, randomized, and with Moly points
     """
 
     # error check: moly_interval cannot be less than or equal to 0
     if moly_interval <= 0:
         raise ValueError("moly_interval must be at least 1")
 
-    # rename the FOVs based on the mapping
-    for fov in tiled_regions_proposed['fovs']:
-        fov['name'] = proposed_to_auto_map[fov['name']]
+    # define a new fov regions dict for remapped names
+    remapped_fov_regions = {}
 
-    # randomize the order of the FOVs
-    tiled_regions_proposed['fovs'] = shuffle(tiled_regions_proposed['fovs'])
+    # get the metadata values to copy over
+    metadata_keys = list(manual_fov_regions.keys())
+    metadata_keys.remove('fovs')
 
-    # insert Moly points at the specified interval
-    for mi in range(moly_interval, len(tiled_regions_proposed['fovs']), moly_interval + 1):
-        tiled_regions_proposed['fovs'].insert(mi, moly_point)
+    # for simplicity's sake, copy over only the string, int, float, and bool values
+    for mk in metadata_keys:
+        if type(manual_fov_regions[mk]) in [str, int, float, bool]:
+            remapped_fov_regions[mk] = manual_fov_regions[mk]
 
-    return tiled_regions_proposed
+    # define a new FOVs list for fov_regions_remapped
+    remapped_fov_regions['fovs'] = []
+
+    # rename the FOVs based on the mapping and append to fov_regions_remapped
+    for fov in manual_fov_regions['fovs']:
+        # needed to prevent early saving since interactive visualization cannot stop this
+        # from running if a mapping_path provided already exists
+        fov_data = copy.deepcopy(fov)
+
+        # remap the name and append to fov_regions_remapped
+        fov_data['name'] = manual_to_auto_map[fov['name']]
+        remapped_fov_regions['fovs'].append(fov_data)
+
+    # randomize the order of the FOVs if specified
+    if randomize:
+        remapped_fov_regions['fovs'] = shuffle(remapped_fov_regions['fovs'])
+
+    # insert Moly points at the specified interval if specified
+    if moly_insert:
+        for mi in range(moly_interval, len(remapped_fov_regions['fovs']), moly_interval + 1):
+            remapped_fov_regions['fovs'].insert(mi, moly_point)
+
+    return remapped_fov_regions
