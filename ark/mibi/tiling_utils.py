@@ -84,7 +84,7 @@ def generate_region_info(region_params):
 
 
 def _read_tma_region_input(fov_tile_info, region_params):
-    """Reads input for TMAs from user and fov_tile_info.
+    """Reads input for TMAs from user and `fov_tile_info`.
 
     Updates all the tiling params inplace. Units used are pixels.
 
@@ -214,7 +214,7 @@ def _read_tma_region_input(fov_tile_info, region_params):
 
 
 def _read_non_tma_region_input(fov_tile_info, region_params):
-    """Reads input for non-TMAs from user and fov_tile_info
+    """Reads input for non-TMAs from user and `fov_tile_info`.
 
     Updates all the tiling params inplace. Units used are pixels.
 
@@ -410,9 +410,9 @@ def generate_fov_list(tiling_params, moly_point, tma=False):
 
     Args:
         tiling_params (dict):
-            The tiling parameters created by set_tiling_params
+            The tiling parameters created by `set_tiling_params`
         moly_point (dict):
-            The moly point to insert between fovs (and intervals if specified in tiling_params)
+            The moly point to insert between fovs (and intervals if specified in `tiling_params`)
         tma (bool):
             Whether the data in tiling_params is in TMA format or not
 
@@ -525,7 +525,7 @@ def convert_microns_to_pixels(coord):
 
 
 def assign_closest_fovs(manual_fovs, auto_fovs, moly_point_name):
-    """For each fov in `manual_fovs`, map it to its closest fov in tiled_regions_auto
+    """For each fov in `manual_fovs`, map it to its closest fov in `auto_fovs`
 
     Args:
         manual_fovs (dict):
@@ -723,10 +723,10 @@ def update_mapping_display(change, w_auto, manual_to_auto_map, manual_coords, au
         manual_to_auto_map (dict):
             defines the mapping of manual to auto fov names
         manual_coords (dict):
-            a dict defining each fov in `fov_regions_manual` mapped to its centroid
+            a dict defining each fov in `manual_fov_regions` mapped to its centroid
             coordinates
         auto_coords (dict):
-            a dict defining each fov in `fov_regions_auto` mapped to its centroid
+            a dict defining each fov in `auto_fov_regions` mapped to its centroid
             coordinates
         slide_img (numpy.ndarray):
             the image to overlay
@@ -1080,7 +1080,7 @@ def remap_and_reorder_fovs(manual_fov_regions, manual_to_auto_map,
                            moly_insert=False, moly_interval=5):
     """Runs 3 separate tasks on `manual_fov_regions`:
 
-    - Uses manual_to_auto_map to rename the FOVs
+    - Uses `manual_to_auto_map` to rename the FOVs
     - Randomizes the order of the FOVs if specified
     - Inserts Moly points at the specified interval if specified
 
