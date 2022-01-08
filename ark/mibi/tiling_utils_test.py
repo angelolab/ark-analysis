@@ -751,9 +751,6 @@ def test_generate_fov_circles():
             assert np.all(sample_slide_img[x, y, :] == np.array([162, 197, 255]))
 
 
-_REMAP_RANDOMIZE_TEST_CASES = [False, True]
-_REMAP_MOLY_INSERT_CASES = [False, True]
-_REMAP_MOLY_INTERVAL_CASES = [4, 2]
 @pytest.mark.parametrize('randomize_setting', _REMAP_RANDOMIZE_TEST_CASES)
 @pytest.mark.parametrize('moly_run', _REMAP_MOLY_INSERT_CASES)
 @pytest.mark.parametrize('moly_interval', _REMAP_MOLY_INTERVAL_CASES)

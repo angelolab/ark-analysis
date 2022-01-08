@@ -635,7 +635,7 @@ def generate_fov_circles(manual_to_auto_map, manual_fovs_info, auto_fovs_info,
             maps each manual fov to its centroid coordinates and size
         auto_fovs_info (dict):
             maps each automatically-generated fov to its centroid coordinates and size
-        proposed_name (str):
+        manual_name (str):
             the name of the manual fov to highlight
         auto_name (str):
             the name of the automatically-generated fov to highlight
