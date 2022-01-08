@@ -735,7 +735,7 @@ def update_mapping_display(change, w_auto, manual_to_auto_map, manual_coords, au
 
     Returns:
         numpy.ndarray:
-            the slide_img with the updated circles after manual fov changed
+            `slide_img` with the updated circles after manual fov changed
     """
 
     # define the fov size boundaries, needed to prevent drawing a circle out of bounds
@@ -818,7 +818,7 @@ def remap_manual_to_auto_display(change, w_man, manual_to_auto_map, auto_coords,
 
     Returns:
         numpy.ndarray:
-            the slide_img with the updated circles after auto fov changed remapping the fovs
+            `slide_img` with the updated circles after auto fov changed remapping the fovs
     """
 
     # define the fov size boundaries, needed to prevent drawing a circle out of bounds
