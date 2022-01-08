@@ -282,7 +282,14 @@ def compute_close_cell_num_random(marker_nums, mark_pos_labels, dist_mat, dist_l
 
     # sort marker_nums and save permutation
     # this can speed up compute_close_num_rand
-    marker_order = [(mn, np.array(mark_pos_labels[i], dtype=np.uint64), i) for i, mn in enumerate(marker_nums)]
+    marker_order = [
+        (
+            mn,
+            np.flatnonzero(dist_mat[dist_mat.dims[0]].isin(mark_pos_labels[i])),
+            i
+        )
+        for i, mn in enumerate(marker_nums)
+    ]
     marker_order.sort(key=lambda x: x[0])
     sorted_marker_nums, sorted_pos_labels, sort_permutation = zip(*marker_order)
     _marker_nums = np.array(sorted_marker_nums, dtype=np.uint16)
