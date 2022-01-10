@@ -121,7 +121,8 @@ def get_pos_cell_labels_cluster(pheno, current_fov_neighborhood_data,
 def compute_close_cell_num(dist_mat, dist_lim, analysis_type,
                            current_fov_data=None, current_fov_channel_data=None,
                            cluster_ids=None, cell_types_analyze=None, thresh_vec=None,
-                           cell_label_col=settings.CELL_LABEL, cell_type_col=settings.CLUSTER_ID):
+                           cell_label_col=settings.CELL_LABEL, cell_type_col=settings.CLUSTER_ID,
+                           count_self=False):
     """Finds positive cell labels and creates matrix with counts for cells positive for
     corresponding markers. Computes close_num matrix for both Cell Label and Threshold spatial
     analyses.
@@ -186,10 +187,9 @@ def compute_close_cell_num(dist_mat, dist_lim, analysis_type,
     mark1poslabels = []
 
     dist_mat_bin = xr.DataArray(
-        (dist_mat.values < dist_lim).astype(np.uint8),
+        (dist_mat.values < dist_lim & dist_mat.values > 0).astype(np.uint8),
         coords=dist_mat.coords
     )
-
     for j in range(num):
         if analysis_type == "cluster":
             mark1poslabels.append(
@@ -253,11 +253,8 @@ def compute_close_cell_num_random(marker_nums, mark_pos_labels, dist_mat, dist_l
     """
 
     # Generate binarized distance matrix
-    dist_mat_bin = (dist_mat.values < dist_lim).astype(np.uint16)
+    dist_mat_bin = (dist_mat.values < dist_lim & dist_mat.values > 0).astype(np.uint16)
     
-    # remove self counts
-    np.fill_diagonal(dist_mat_bin, 0)
-
     # assures that marker counts don't exceed number of cells
     for mn in marker_nums:
         if mn >= dist_mat_bin.shape[0]:
