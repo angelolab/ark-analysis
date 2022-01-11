@@ -56,7 +56,7 @@ cdef inline void _init_flag_table(UINT8_t* flags, const Py_ssize_t* perm,
 @wraparound(False)  # Deactivate negative indexing
 @cdivision(True)    # Ignore modulo/divide by zero warning
 cdef inline void _list_accum(DTYPE_t[:] close_num_rand_view,
-                             const DTYPE_t[:, :] dist_mat_bin, Py_ssize_t* rand_rows,
+                             const DTYPE_t[:, :] dist_mat_bin, MAXINDEX_t[:] pos_labels,
                              Py_ssize_t* rand_cols, Py_ssize_t num_choices, int m1n, int m2n,
                              int bootstrap_num):
     """ List based accumulation for small secondary marker size
@@ -73,8 +73,8 @@ cdef inline void _list_accum(DTYPE_t[:] close_num_rand_view,
             typed memory view of the close_num_rand_view datastructure
         dist_mat_bin (np.ndarray[np.uint16]):
             binarized distance matrix
-        rand_rows (Py_ssize_t*):
-            pointer to mutable row randomization memory block
+        pos_labels (np.ndarray[np.uint64]):
+            marker indices within dist_mat_bin    
         rand_cols (Py_ssize_t*):
             pointer to mutable column randomization memory block
         num_choices (Py_ssize_t):
@@ -95,9 +95,8 @@ cdef inline void _list_accum(DTYPE_t[:] close_num_rand_view,
 
     for r in range(bootstrap_num):
         accum = 0
-        _c_permutation(rand_rows, num_choices)
         _c_permutation(rand_cols, num_choices)
-        for m1_label in rand_rows[:m1n]:
+        for m1_label in pos_labels:
             for m2_label in rand_cols[:m2n]:
                 accum += dist_mat_bin[m1_label, m2_label]
         close_num_rand_view[r] = accum
@@ -107,7 +106,7 @@ cdef inline void _list_accum(DTYPE_t[:] close_num_rand_view,
 @cdivision(True)    # Ignore modulo/divide by zero warning
 cdef inline void _dict_accum(DTYPE_t[:] close_num_rand_view,
                              const DTYPE_t[:] cols_in_row_flat, const MAXINDEX_t[:] row_indicies,
-                             Py_ssize_t* rand_rows, Py_ssize_t* rand_cols,
+                             const MAXINDEX_t[:] pos_labels, Py_ssize_t* rand_cols,
                              UINT8_t* rand_cols_flags, Py_ssize_t num_choices, int m1n, int m2n,
                              int bootstrap_num):
     """ Dictionary based accumulation for large secondary marker size
@@ -127,8 +126,8 @@ cdef inline void _dict_accum(DTYPE_t[:] close_num_rand_view,
             flattened list-of-lists representation of binarized distance matrix
         row_indicies (np.ndarray[np.uint64]):
             'deflattening' index array for `cols_in_row_flat`
-        rand_rows (Py_ssize_t*):
-            pointer to mutable row randomization memory block
+        pos_labels (np.ndarray[np.uint64]):
+            marker indices within dist_mat_bin    
         rand_cols (Py_ssize_t*):
             pointer to mutable column randomization memory block
         rand_cols_flags (uint8_t*):
@@ -151,11 +150,10 @@ cdef inline void _dict_accum(DTYPE_t[:] close_num_rand_view,
 
     for r in range(bootstrap_num):   
         accum = 0
-        _c_permutation(rand_rows, num_choices)
         _c_permutation(rand_cols, num_choices)
         memset(rand_cols_flags, 0, num_choices * sizeof(UINT8_t))
         _init_flag_table(rand_cols_flags, rand_cols, m2n)
-        for m1_label in rand_rows[:m1n]:
+        for m1_label in pos_labels: 
             flat_start = row_indicies[m1_label]
             flat_end = row_indicies[m1_label + 1]
             for m2_idx in range(flat_start, flat_end):
@@ -169,7 +167,7 @@ cdef inline void _dict_accum(DTYPE_t[:] close_num_rand_view,
 @cdivision(True)    # Ignore modulo/divide by zero warning
 cdef _compute_close_num_rand(DTYPE_t[:, :] dist_mat_bin, DTYPE_t[:] cols_in_row_flat,
                              MAXINDEX_t[:] row_indicies, DTYPE_t[:] marker_nums,
-                             int bootstrap_num):
+                             dict pos_labels, int bootstrap_num):
     """ Cython implementation of the spatial enrichment bootstrapper
 
     Args:
@@ -183,6 +181,8 @@ cdef _compute_close_num_rand(DTYPE_t[:, :] dist_mat_bin, DTYPE_t[:] cols_in_row_
             that row.
         marker_nums (np.ndarray[np.uint16]):
             number of hits for each marker
+        pos_labels (dict):
+            marker indices within dist_mat_bin
         bootstrap_num (int):
             number of bootstrapping iterations to perform
 
@@ -200,10 +200,9 @@ cdef _compute_close_num_rand(DTYPE_t[:, :] dist_mat_bin, DTYPE_t[:] cols_in_row_
     cdef DTYPE_t[:, :, :] close_num_rand_view = close_num_rand
     
     # allocate marker_label randomization containers
-    cdef Py_ssize_t* rand_rows = <Py_ssize_t*> PyMem_Malloc(num_choices * sizeof(Py_ssize_t))
     cdef Py_ssize_t* rand_cols = <Py_ssize_t*> PyMem_Malloc(num_choices * sizeof(Py_ssize_t))
     cdef UINT8_t* rand_cols_flags = <UINT8_t*> PyMem_Malloc(num_choices * sizeof(UINT8_t))
-    if not rand_rows or not rand_cols or not rand_cols_flags:
+    if not rand_cols or not rand_cols_flags:
         raise MemoryError()
 
     # allocate 'm2n < avg_rowsize' memory
@@ -215,32 +214,31 @@ cdef _compute_close_num_rand(DTYPE_t[:, :] dist_mat_bin, DTYPE_t[:] cols_in_row_
     cdef int mn
     cdef DTYPE_t avg_rowsize
     for mn in range(num_choices):
-        rand_rows[mn] = mn
         rand_cols[mn] = mn
-        avg_rowsize = row_indicies[mn + 1] - row_indicies[mn]
+        avg_rowsize += row_indicies[mn + 1] - row_indicies[mn]
 
     avg_rowsize /= num_choices
     for mn in range(num_markers):
         m2n_small[mn] = (marker_nums[mn] < avg_rowsize)
 
-    cdef int j, k, m1n, m2n
+    cdef int j, k, row_ind, m1n, m2n, swap_buf
 
     # start main bootstrapping loop
+    # TODO: split randomization from row/column choice (recovers get m1n < m2n speed boost)
     for j in range(num_markers):
         m1n = marker_nums[j]
-        for k in range(j, num_markers):
+        for k in range(num_markers):
             m2n = marker_nums[k]
             if m2n_small[k]:
-                _list_accum(close_num_rand_view[j, k, :], dist_mat_bin, rand_rows, rand_cols,
-                            num_choices, m1n, m2n, bootstrap_num)
+                _list_accum(close_num_rand_view[j, k, :], dist_mat_bin,
+                            pos_labels[j], rand_cols, num_choices, m1n, m2n,
+                            bootstrap_num)
             else:
                 _dict_accum(close_num_rand_view[j, k, :], cols_in_row_flat, row_indicies,
-                            rand_rows, rand_cols, rand_cols_flags, num_choices, m1n, m2n,
-                            bootstrap_num)
-            close_num_rand_view[k, j, :] = close_num_rand_view[j, k, :]
+                            pos_labels[j], rand_cols, rand_cols_flags, num_choices, m1n,
+                            m2n, bootstrap_num)
 
     # free used memeory
-    PyMem_Free(rand_rows)
     PyMem_Free(rand_cols)
     PyMem_Free(rand_cols_flags)
     PyMem_Free(m2n_small)
@@ -248,7 +246,8 @@ cdef _compute_close_num_rand(DTYPE_t[:, :] dist_mat_bin, DTYPE_t[:] cols_in_row_
     return close_num_rand
 
 def compute_close_num_rand(DTYPE_t[:, :] dist_mat_bin, DTYPE_t[:] cols_in_row_flat,
-                           MAXINDEX_t[:] row_indicies, DTYPE_t[:] marker_nums, int bootstrap_num):
+                           MAXINDEX_t[:] row_indicies, DTYPE_t[:] marker_nums,
+                           dict pos_labels, int bootstrap_num):
     """ Python wrapper function for the cython implementation of the spatial enrichment
         bootstrapper
 
@@ -264,6 +263,8 @@ def compute_close_num_rand(DTYPE_t[:, :] dist_mat_bin, DTYPE_t[:] cols_in_row_fl
             that row.
         marker_nums (np.ndarray[np.uint16]):
             number of hits for each marker
+        pos_labels (dict):
+            marker indices within dist_mat_bin
         bootstrap_num (int):
             number of bootstrapping iterations to perform
 
@@ -272,4 +273,4 @@ def compute_close_num_rand(DTYPE_t[:, :] dist_mat_bin, DTYPE_t[:] cols_in_row_fl
             3d array containing the enrichment matrix for each bootstrap iteration
     """
     return _compute_close_num_rand(dist_mat_bin, cols_in_row_flat, row_indicies, marker_nums,
-                                   bootstrap_num)
+                                   pos_labels, bootstrap_num)

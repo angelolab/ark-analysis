@@ -186,10 +186,9 @@ def compute_close_cell_num(dist_mat, dist_lim, analysis_type,
     mark1poslabels = []
 
     dist_mat_bin = xr.DataArray(
-        (dist_mat.values < dist_lim).astype(np.uint8),
+        ((dist_mat.values < dist_lim) & (dist_mat.values > 0)).astype(np.uint8),
         coords=dist_mat.coords
     )
-
     for j in range(num):
         if analysis_type == "cluster":
             mark1poslabels.append(
@@ -205,13 +204,6 @@ def compute_close_cell_num(dist_mat, dist_lim, analysis_type,
                                             current_marker=current_fov_channel_data.columns[j]))
         mark1_num.append(len(mark1poslabels[j]))
 
-    # we'll need this because for cluster-based context-dependent randomization
-    # we need to facet our randomization of labels based on the cell_types and associated
-    # cell_ids the user specifies
-    mark1labels_per_id = None
-    if analysis_type == "cluster":
-        mark1labels_per_id = dict(zip(cluster_ids, mark1poslabels))
-
     # iterating k from [j, end] cuts out 1/2 the steps (while symmetric)
     for j, m1n in enumerate(mark1_num):
         for k, m2n in enumerate(mark1_num[j:], j):
@@ -225,18 +217,23 @@ def compute_close_cell_num(dist_mat, dist_lim, analysis_type,
             # symmetry :)
             close_num[k, j] = close_num[j, k]
 
-    return close_num, mark1_num, mark1labels_per_id
+    return close_num, mark1_num, mark1poslabels
 
 
-def compute_close_cell_num_random(marker_nums, dist_mat, dist_lim, bootstrap_num):
+# TODO: passing marker_nums and mark_pos_labels is redundant:
+#       marker_nums[j] = len(mark_pos_labels[j])
+def compute_close_cell_num_random(marker_nums, mark_pos_labels, dist_mat, dist_lim, bootstrap_num):
     """Uses bootstrapping to permute cell labels randomly and records the number of close cells
-    (within the dit_lim) in that random setup.
+    (within the dist_lim) in that random setup.
 
     Args:
         marker_nums (numpy.ndarray):
             list of cell counts of each marker type
-        dist_mat (numpy.ndarray):
-            cells x cells matrix with the euclidian distance between centers of corresponding cells
+        mark_pos_labels (list):
+            cell labels for each marker number
+        dist_mat (xr.DataArray):
+            cells x cells matrix with the euclidian distance between centers of corresponding
+            cells. This can be indexed by cell label
         dist_lim (int):
             threshold for spatial enrichment distance proximity
         bootstrap_num (int):
@@ -248,7 +245,7 @@ def compute_close_cell_num_random(marker_nums, dist_mat, dist_lim, bootstrap_num
     """
 
     # Generate binarized distance matrix
-    dist_mat_bin = (dist_mat.values < dist_lim).astype(np.uint16)
+    dist_mat_bin = ((dist_mat.values < dist_lim) & (dist_mat.values > 0)).astype(np.uint16)
 
     # assures that marker counts don't exceed number of cells
     for mn in marker_nums:
@@ -274,14 +271,22 @@ def compute_close_cell_num_random(marker_nums, dist_mat, dist_lim, bootstrap_num
 
     # sort marker_nums and save permutation
     # this can speed up compute_close_num_rand
-    marker_order = [(mn, i) for i, mn in enumerate(marker_nums)]
-    marker_order.sort()
-    sorted_marker_nums, sort_permutation = zip(*marker_order)
+    marker_order = [
+        (
+            mn,
+            np.flatnonzero(dist_mat[dist_mat.dims[0]].isin(mark_pos_labels[i])).astype(np.uint64),
+            i
+        )
+        for i, mn in enumerate(marker_nums)
+    ]
+    marker_order.sort(key=lambda x: x[0])
+    sorted_marker_nums, sorted_pos_labels, sort_permutation = zip(*marker_order)
     _marker_nums = np.array(sorted_marker_nums, dtype=np.uint16)
+    _pos_labels = {i: v for i, v in enumerate(sorted_pos_labels)}
 
     # performing bootstrapping
     close_num_rand = compute_close_num_rand(dist_mat_bin, cols_in_row_flat, _row_indicies,
-                                            _marker_nums, int(bootstrap_num))
+                                            _marker_nums, _pos_labels, int(bootstrap_num))
 
     # unpermute close_num_rand
     x_scramble = np.tile(np.argsort(sort_permutation), (len(sort_permutation), 1))
