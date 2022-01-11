@@ -165,6 +165,14 @@ def test_compute_close_cell_num_random():
 
     assert example_closenumrand.shape == (len(marker_nums), len(marker_nums), 100)
 
+    # bad marker nums
+    marker_nums[0] = example_distmat.shape[0] + 1
+
+    with pytest.raises(ValueError):
+        example_closenumrand = spatial_analysis_utils.compute_close_cell_num_random(
+            marker_nums, marker_pos_labels, example_distmat, dist_lim=100, bootstrap_num=100
+        )
+
 
 def test_calculate_enrichment_stats():
     # Positive enrichment
