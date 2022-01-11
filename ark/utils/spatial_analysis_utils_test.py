@@ -165,6 +165,9 @@ def test_compute_close_cell_num_random():
 
     assert example_closenumrand.shape == (len(marker_nums), len(marker_nums), 100)
 
+    # test asymmetry
+    assert (example_closenumrand[0, 1, :] != example_closenumrand[1, 0, :]).any()
+
     # bad marker nums
     marker_nums[0] = example_distmat.shape[0] + 1
 
