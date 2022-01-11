@@ -90,16 +90,11 @@ cdef inline void _list_accum(DTYPE_t[:] close_num_rand_view,
     cdef DTYPE_t accum
     cdef Py_ssize_t m1_label, m2_label
 
-    #print(m1n, m2n)
-
     if not m1n or not m2n:
         return
 
-    #print(pos_labels, m1n, m2n)
     for r in range(bootstrap_num):
-        #print(r)
         accum = 0
-        #_c_permutation(rand_rows, num_choices)
         _c_permutation(rand_cols, num_choices)
         for m1_label in pos_labels:
             for m2_label in rand_cols[:m2n]:
@@ -150,14 +145,11 @@ cdef inline void _dict_accum(DTYPE_t[:] close_num_rand_view,
     cdef MAXINDEX_t flat_start, flat_end, m2_idx
     cdef Py_ssize_t m1_label, m2_label
 
-    #print(m1n, m2n)
-
     if not m1n or not m2n:
         return
 
     for r in range(bootstrap_num):   
         accum = 0
-        #_c_permutation(rand_rows, num_choices)
         _c_permutation(rand_cols, num_choices)
         memset(rand_cols_flags, 0, num_choices * sizeof(UINT8_t))
         _init_flag_table(rand_cols_flags, rand_cols, m2n)
@@ -208,7 +200,6 @@ cdef _compute_close_num_rand(DTYPE_t[:, :] dist_mat_bin, DTYPE_t[:] cols_in_row_
     cdef DTYPE_t[:, :, :] close_num_rand_view = close_num_rand
     
     # allocate marker_label randomization containers
-    #cdef Py_ssize_t* rand_rows = <Py_ssize_t*> PyMem_Malloc(num_choices * sizeof(Py_ssize_t))
     cdef Py_ssize_t* rand_cols = <Py_ssize_t*> PyMem_Malloc(num_choices * sizeof(Py_ssize_t))
     cdef UINT8_t* rand_cols_flags = <UINT8_t*> PyMem_Malloc(num_choices * sizeof(UINT8_t))
     if not rand_cols or not rand_cols_flags:
@@ -239,20 +230,15 @@ cdef _compute_close_num_rand(DTYPE_t[:, :] dist_mat_bin, DTYPE_t[:] cols_in_row_
         for k in range(num_markers):
             m2n = marker_nums[k]
             if m2n_small[k]:
-                #print('_list_accum')
                 _list_accum(close_num_rand_view[j, k, :], dist_mat_bin,
                             pos_labels[j], rand_cols, num_choices, m1n, m2n,
                             bootstrap_num)
             else:
-                #print('_dict_accum')
                 _dict_accum(close_num_rand_view[j, k, :], cols_in_row_flat, row_indicies,
                             pos_labels[j], rand_cols, rand_cols_flags, num_choices, m1n,
                             m2n, bootstrap_num)
-            # goodbye symmetry :'(
-            # close_num_rand_view[k, j, :] = close_num_rand_view[j, k, :]
 
     # free used memeory
-    #PyMem_Free(rand_rows)
     PyMem_Free(rand_cols)
     PyMem_Free(rand_cols_flags)
     PyMem_Free(m2n_small)
