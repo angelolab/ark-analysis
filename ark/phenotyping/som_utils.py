@@ -1170,7 +1170,7 @@ def cluster_cells(base_dir, cluster_counts_norm_name='cluster_counts_norm.feathe
             print(output.strip())
 
     # compute the average pixel SOM/meta counts per cell SOM cluster
-    print("Computing the average number of pixel SOM/meta clustser counts per cell SOM cluster")
+    print("Computing the average number of pixel SOM/meta cluster counts per cell SOM cluster")
     cell_som_cluster_avgs_and_counts = compute_cell_cluster_count_avg(
         cell_cluster_path,
         pixel_cluster_col_prefix,
@@ -1189,9 +1189,9 @@ def cell_consensus_cluster(fovs, channels, base_dir, pixel_cluster_col, max_k=20
                            cell_cluster_name='cell_mat_clustered.feather',
                            cell_som_cluster_avgs_name='cell_som_cluster_avgs.csv',
                            cell_meta_cluster_avgs_name='cell_meta_cluster_avgs.csv',
-                           cell_cluster_col='cell_meta_cluster',
                            weighted_cell_channel_avg_name='weighted_cell_channel_avg.csv',
-                           cell_cluster_channel_avg_name='cell_cluster_channel_avg.csv',
+                           cell_som_cluster_channel_avg_name='cell_som_cluster_channel_avg.csv',
+                           cell_meta_cluster_channel_avg_name='cell_meta_cluster_channel_avg.csv',
                            clust_to_meta_name='cell_clust_to_meta.feather',
                            cell_consensus_name='cell_mat_consensus.feather', seed=42):
     """Run consensus clustering algorithm on cell-level data averaged across each cell SOM cluster
@@ -1220,9 +1220,6 @@ def cell_consensus_cluster(fovs, channels, base_dir, pixel_cluster_col, max_k=20
             Used to run consensus clustering on.
         cell_meta_cluster_avgs_name (str):
             Same as above except for cell meta clusters
-        cell_cluster_col (str):
-            The cell cluster column used to aggregate to compute cell_cluster_channel_avg.
-            Needs to be one of `'cell_som_cluster'` or `'cell_meta_cluster'`.
         weighted_cell_channel_avg_name (str):
             The name of the file containing the weighted channel expression table
         cell_cluster_channel_avg_name (str):
@@ -1257,12 +1254,6 @@ def cell_consensus_cluster(fovs, channels, base_dir, pixel_cluster_col, max_k=20
     misc_utils.verify_in_list(
         provided_cluster_col=[pixel_cluster_col],
         valid_cluster_cols=['pixel_som_cluster', 'pixel_meta_cluster']
-    )
-
-    # verify the cell_cluster_col provided is valid
-    misc_utils.verify_in_list(
-        provided_cluster_col=[cell_cluster_col],
-        valid_cluster_cols=['cell_som_cluster', 'cell_meta_cluster']
     )
 
     # run the consensus clustering process
@@ -1322,19 +1313,45 @@ def cell_consensus_cluster(fovs, channels, base_dir, pixel_cluster_col, max_k=20
         index=False
     )
 
-    # compute the weighted channel average expression per cell cluster
-    print("Compute average weighted channel expression across cell clusters")
-    cell_cluster_channel_avg = compute_cell_cluster_channel_avg(
+    # compute the weighted channel average expression per cell SOM cluster
+    print("Compute average weighted channel expression across cell SOM clusters")
+    cell_som_cluster_channel_avg = compute_cell_cluster_channel_avg(
         fovs,
         channels,
         base_dir,
         weighted_cell_channel_avg_name,
         cell_consensus_name,
-        cell_cluster_col
+        'cell_som_cluster'
+    )
+
+    # merge metacluster assignments into cell_som_cluster_channel_avg
+    print(
+        "Mapping meta cluster values onto average weighted channel expression"
+        "across cell SOM clusters"
+    )
+    cell_som_cluster_channel_avg = pd.merge_asof(
+        cell_som_cluster_channel_avg, som_to_meta_data, on='cell_som_cluster'
     )
 
     # save the weighted channel average expression per cell cluster
-    cell_cluster_channel_avg.to_csv(
-        os.path.join(base_dir, cell_cluster_channel_avg_name),
+    cell_som_cluster_channel_avg.to_csv(
+        os.path.join(base_dir, cell_som_cluster_channel_avg_name),
+        index=False
+    )
+
+    # compute the weighted channel average expression per cell meta cluster
+    print("Compute average weighted channel expression across cell meta clusters")
+    cell_meta_cluster_channel_avg = compute_cell_cluster_channel_avg(
+        fovs,
+        channels,
+        base_dir,
+        weighted_cell_channel_avg_name,
+        cell_consensus_name,
+        'cell_meta_cluster'
+    )
+
+    # save the weighted channel average expression per cell cluster
+    cell_meta_cluster_channel_avg.to_csv(
+        os.path.join(base_dir, cell_meta_cluster_channel_avg_name),
         index=False
     )
