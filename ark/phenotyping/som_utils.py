@@ -592,6 +592,8 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
             The proportion of pixels to take from each fov
         seed (int):
             The random seed to set for subsetting
+        dtype (type):
+            The type to load the image segmentation labels in
     """
 
     # if the subset_proportion specified is out of range
@@ -1222,8 +1224,12 @@ def cell_consensus_cluster(fovs, channels, base_dir, pixel_cluster_col, max_k=20
             Same as above except for cell meta clusters
         weighted_cell_channel_avg_name (str):
             The name of the file containing the weighted channel expression table
-        cell_cluster_channel_avg_name (str):
-            The name of the file to save the average weighted channel expression per cell cluster
+        cell_som_cluster_channel_avg_name (str):
+            The name of the file to save the average weighted channel expression
+            per cell SOM cluster
+        cell_meta_cluster_channel_avg_name (str):
+            The name of the file to save the average weighted channel expression
+            per cell meta cluster
         clust_to_meta_name (str):
             Name of file storing the SOM cluster to meta cluster mapping
         cell_consensus_name (str):
