@@ -9,6 +9,7 @@ import seaborn as sns
 from shutil import rmtree
 from skimage.io import imsave
 
+from ark.mibi.mibitracker_utils import MibiTrackerError
 from ark.mibi.mibitracker_utils import MibiRequests
 
 import ark.settings as settings
@@ -105,9 +106,13 @@ def download_mibitracker_data(email, password, run_name, run_label, base_dir, ti
         mibitracker_run_fovs=run_fov_names
     )
 
-    # extract the name of all the channels
-    # NOTE: this set of channels will be the same across all FOVs in the run
-    run_channels = run_info['results'][0]['imageset']['images'][0]['pngs']
+    # iterate through each fov and get the longest set of channels
+    # this is to prevent getting no channels if the first FOV is a Moly point or is incomplete
+    image_data = run_info['results'][0]['imageset']['images']
+    _, run_channels = max(
+        {i: image_data[i]['pngs'] for i in np.arange(len(image_data))}.items(),
+        key=lambda x: len(set(x[1]))
+    )
 
     # if channels is None, ensure all of the channels in run_channels are chosen
     if channels is None:
@@ -156,7 +161,20 @@ def download_mibitracker_data(email, password, run_name, run_label, base_dir, ti
         # iterate over each provided channel
         for chan in channels:
             # extract the channel data from MIBItracker as a numpy array
-            chan_data = mr.get_channel_data(img['id'], chan)
+            # fail on the whole FOV if the channel is not found (most likely a Moly point)
+            try:
+                chan_data = mr.get_channel_data(img['id'], chan)
+            except MibiTrackerError as mte:
+                print("On FOV %s, failed to download channel %s, moving on to the next FOV. "
+                      "If FOV %s is a Moly point, ignore. "
+                      "Otherwise, please ensure that channel %s exists on MibiTracker for FOV %s"
+                      % (img['number'], chan, img['number'], chan, img['number']))
+
+                # clean the FOV: we will not have a folder for it (in case of Moly point)
+                rmtree(os.path.join(base_dir, tiff_dir, img['number']))
+
+                # do not attempt to download any more channels
+                break
 
             # define the name of the channel file
             chan_file = '%s.tiff' % chan
