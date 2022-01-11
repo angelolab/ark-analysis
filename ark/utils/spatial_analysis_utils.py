@@ -204,13 +204,6 @@ def compute_close_cell_num(dist_mat, dist_lim, analysis_type,
                                             current_marker=current_fov_channel_data.columns[j]))
         mark1_num.append(len(mark1poslabels[j]))
 
-    # we'll need this because for cluster-based context-dependent randomization
-    # we need to facet our randomization of labels based on the cell_types and associated
-    # cell_ids the user specifies
-    mark1labels_per_id = None
-    if analysis_type == "cluster":
-        mark1labels_per_id = dict(zip(cluster_ids, mark1poslabels))
-
     # iterating k from [j, end] cuts out 1/2 the steps (while symmetric)
     for j, m1n in enumerate(mark1_num):
         for k, m2n in enumerate(mark1_num[j:], j):
@@ -224,7 +217,7 @@ def compute_close_cell_num(dist_mat, dist_lim, analysis_type,
             # symmetry :)
             close_num[k, j] = close_num[j, k]
 
-    return close_num, mark1_num, mark1poslabels 
+    return close_num, mark1_num, mark1poslabels
 
 
 # TODO: passing marker_nums and mark_pos_labels is redundant:
@@ -253,7 +246,7 @@ def compute_close_cell_num_random(marker_nums, mark_pos_labels, dist_mat, dist_l
 
     # Generate binarized distance matrix
     dist_mat_bin = ((dist_mat.values < dist_lim) & (dist_mat.values > 0)).astype(np.uint16)
-    
+
     # assures that marker counts don't exceed number of cells
     for mn in marker_nums:
         if mn >= dist_mat_bin.shape[0]:

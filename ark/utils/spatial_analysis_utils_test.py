@@ -4,7 +4,6 @@ import tempfile
 import numpy as np
 import pandas as pd
 import xarray as xr
-import random
 from ark.utils import spatial_analysis_utils
 
 import ark.settings as settings
