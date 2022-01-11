@@ -74,7 +74,7 @@ cdef inline void _list_accum(DTYPE_t[:] close_num_rand_view,
         dist_mat_bin (np.ndarray[np.uint16]):
             binarized distance matrix
         pos_labels (np.ndarray[np.uint64]):
-            marker indidcies within dist_mat_bin    
+            marker indices within dist_mat_bin    
         rand_cols (Py_ssize_t*):
             pointer to mutable column randomization memory block
         num_choices (Py_ssize_t):
@@ -127,7 +127,7 @@ cdef inline void _dict_accum(DTYPE_t[:] close_num_rand_view,
         row_indicies (np.ndarray[np.uint64]):
             'deflattening' index array for `cols_in_row_flat`
         pos_labels (np.ndarray[np.uint64]):
-            marker indidcies within dist_mat_bin    
+            marker indices within dist_mat_bin    
         rand_cols (Py_ssize_t*):
             pointer to mutable column randomization memory block
         rand_cols_flags (uint8_t*):
@@ -182,7 +182,7 @@ cdef _compute_close_num_rand(DTYPE_t[:, :] dist_mat_bin, DTYPE_t[:] cols_in_row_
         marker_nums (np.ndarray[np.uint16]):
             number of hits for each marker
         pos_labels (dict):
-            marker indicies within dist_mat_bin
+            marker indices within dist_mat_bin
         bootstrap_num (int):
             number of bootstrapping iterations to perform
 
@@ -264,7 +264,7 @@ def compute_close_num_rand(DTYPE_t[:, :] dist_mat_bin, DTYPE_t[:] cols_in_row_fl
         marker_nums (np.ndarray[np.uint16]):
             number of hits for each marker
         pos_labels (dict):
-            marker indicies within dist_mat_bin
+            marker indices within dist_mat_bin
         bootstrap_num (int):
             number of bootstrapping iterations to perform
 
