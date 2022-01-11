@@ -557,7 +557,7 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
                         img_sub_folder="TIFs", seg_suffix='_feature_0.tif',
                         pre_dir='pixel_mat_preprocessed',
                         subset_dir='pixel_mat_subsetted', is_mibitiff=False,
-                        blur_factor=2, subset_proportion=0.1, seed=42):
+                        blur_factor=2, subset_proportion=0.1, dtype="int16", seed=42):
     """For each fov, add a Gaussian blur to each channel and normalize channel sums for each pixel
 
     Saves data to pre_dir and subsetted data to subset_dir
@@ -618,11 +618,11 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
         # load img_xr from MIBITiff or directory with the fov
         if is_mibitiff:
             img_xr = load_utils.load_imgs_from_mibitiff(
-                tiff_dir, mibitiff_files=[fov], dtype="int16"
+                tiff_dir, mibitiff_files=[fov], dtype=dtype
             )
         else:
             img_xr = load_utils.load_imgs_from_tree(
-                tiff_dir, img_sub_folder=img_sub_folder, fovs=[fov], dtype="int16"
+                tiff_dir, img_sub_folder=img_sub_folder, fovs=[fov], dtype=dtype
             )
 
         # ensure the provided channels will actually exist in pixel_mat_subset
