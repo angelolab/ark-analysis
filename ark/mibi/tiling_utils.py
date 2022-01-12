@@ -101,15 +101,15 @@ def _read_non_tma_region_input(fov_list_info, region_params):
 
         # allow the user to specify the number of fovs along each dimension
         num_x = read_tiling_param(
-            "Enter number of x fovs for region %s: " % fov['name'],
-            "Error: number of x fovs must be positive",
+            "Enter number of x FOVs for region %s: " % fov['name'],
+            "Error: number of x FOVs must be positive",
             lambda nx: nx >= 1,
             dtype=int
         )
 
         num_y = read_tiling_param(
-            "Enter number of y fovs for region %s: " % fov['name'],
-            "Error: number of y fovs must be positive",
+            "Enter number of y FOVs for region %s: " % fov['name'],
+            "Error: number of y FOVs must be positive",
             lambda ny: ny >= 1,
             dtype=int
         )
