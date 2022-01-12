@@ -208,16 +208,16 @@ def set_tiling_params_non_tma(fov_list_path, moly_path):
     tiling_params['region_params'] = generate_region_info(region_params)
 
     # whether to insert moly points between runs
-    moly_run_insert = read_tiling_param(
-        "Insert moly points between runs? Y/N: ",
+    moly_region_insert = read_tiling_param(
+        "Insert moly points between regions? Y/N: ",
         "Error: moly point run parameter must be either Y or N",
         lambda mri: mri in ['Y', 'N', 'y', 'n'],
         dtype=str
     )
 
     # convert to uppercase to standardize
-    moly_run_insert = moly_run_insert.upper()
-    tiling_params['moly_run'] = moly_run_insert
+    moly_region_insert = moly_region_insert.upper()
+    tiling_params['moly_region'] = moly_region_insert
 
     # whether to insert moly points between fovs
     moly_interval_insert = read_tiling_param(
@@ -305,7 +305,7 @@ def generate_fov_list_non_tma(tiling_params, moly_point):
     metadata_keys = list(tiling_params.keys())
 
     # ignore keys set by set_tiling_params: we don't want to copy those over
-    keys_remove = ['region_params', 'moly_run', 'moly_interval']
+    keys_remove = ['region_params', 'moly_region', 'moly_interval']
 
     # for simplicity's sake, copy over only the string, int, float, and bool values
     for mk in metadata_keys:
@@ -371,7 +371,7 @@ def generate_fov_list_non_tma(tiling_params, moly_point):
                 fov_regions['fovs'].append(moly_point)
 
         # append Moly point to seperate runs if not last and if specified
-        if tiling_params['moly_run'] == 'Y' and \
+        if tiling_params['moly_region'] == 'Y' and \
            region_index != len(tiling_params['region_params']) - 1:
             fov_regions['fovs'].append(moly_point)
 

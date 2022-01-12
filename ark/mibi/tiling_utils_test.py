@@ -15,7 +15,7 @@ from ark.utils import test_utils
 # for script tiling
 _TMA_TEST_CASES = [False, True]
 _AUTO_RANDOMIZE_TEST_CASES = [['N', 'N'], ['N', 'Y'], ['Y', 'Y']]
-_AUTO_MOLY_RUN_CASES = ['N', 'Y']
+_AUTO_MOLY_REGION_CASES = ['N', 'Y']
 _AUTO_MOLY_INTERVAL_SETTING_CASES = [False, True]
 _AUTO_MOLY_INTERVAL_VALUE_CASES = [3, 4]
 
@@ -230,7 +230,7 @@ def test_set_tiling_params_non_tma(monkeypatch):
         )
 
         # assert moly run is set to Y
-        assert sample_tiling_params['moly_run'] == 'Y'
+        assert sample_tiling_params['moly_region'] == 'Y'
 
         # assert moly interval is set to 1
         assert sample_tiling_params['moly_interval'] == 1
@@ -248,10 +248,10 @@ def test_generate_x_y_fov_pairs():
 
 
 @pytest.mark.parametrize('randomize_setting', _AUTO_RANDOMIZE_TEST_CASES)
-@pytest.mark.parametrize('moly_run', _AUTO_MOLY_RUN_CASES)
+@pytest.mark.parametrize('moly_region', _AUTO_MOLY_REGION_CASES)
 @pytest.mark.parametrize('moly_interval_setting', _AUTO_MOLY_INTERVAL_SETTING_CASES)
 @pytest.mark.parametrize('moly_interval_value', _AUTO_MOLY_INTERVAL_VALUE_CASES)
-def test_generate_fov_list_non_tma(randomize_setting, moly_run,
+def test_generate_fov_list_non_tma(randomize_setting, moly_region,
                                    moly_interval_setting, moly_interval_value):
     sample_fovs_list = test_utils.generate_sample_fovs_list(
         fov_coords=[(0, 0), (100, 100)], fov_names=["TheFirstFOV", "TheSecondFOV"]
@@ -279,7 +279,7 @@ def test_generate_fov_list_non_tma(randomize_setting, moly_run,
         coord=(14540, -10830), name="MoQC"
     )
 
-    sample_tiling_params['moly_run'] = moly_run
+    sample_tiling_params['moly_region'] = moly_region
 
     sample_tiling_params['region_params'][0]['region_rand'] = randomize_setting[0]
     sample_tiling_params['region_params'][1]['region_rand'] = randomize_setting[1]
@@ -292,7 +292,7 @@ def test_generate_fov_list_non_tma(randomize_setting, moly_run,
     )
 
     # assert none of the metadata keys explicitly added by set_tiling_params appear
-    for k in ['region_params', 'moly_run', 'moly_interval']:
+    for k in ['region_params', 'moly_region', 'moly_interval']:
         assert k not in fov_regions
 
     # retrieve the center points
@@ -308,13 +308,13 @@ def test_generate_fov_list_non_tma(randomize_setting, moly_run,
         (x, y) for x in np.arange(50, 90, 10) for y in list(reversed(np.arange(145, 155, 5)))
     ]
 
-    # if moly_run is Y, add a point in between the two runs
-    if moly_run == 'Y':
+    # if moly_region is Y, add a point in between the two runs
+    if moly_region == 'Y':
         actual_center_points_sorted.insert(8, (14540, -10830))
 
     # add moly points in between if moly_interval_setting is set
     if moly_interval_setting:
-        if moly_run == 'N':
+        if moly_region == 'N':
             if moly_interval_value == 3:
                 moly_indices = [3, 7, 11, 15, 19]
             else:
@@ -334,13 +334,13 @@ def test_generate_fov_list_non_tma(randomize_setting, moly_run,
     # if there's any sort of randomization involved
     else:
         # need to define the end of region 1
-        if moly_run == 'N' and not moly_interval_setting:
+        if moly_region == 'N' and not moly_interval_setting:
             fov_1_end = 8
-        elif moly_run == 'N' and moly_interval_setting:
+        elif moly_region == 'N' and moly_interval_setting:
             fov_1_end = 10 if moly_interval_value == 3 else 9
-        elif moly_run == 'Y' and not moly_interval_setting:
+        elif moly_region == 'Y' and not moly_interval_setting:
             fov_1_end = 9
-        elif moly_run and moly_interval_setting:
+        elif moly_region and moly_interval_setting:
             fov_1_end = 11 if moly_interval_value == 3 else 10
 
         # only the second run is randomized
@@ -612,9 +612,9 @@ def test_generate_fov_circles():
 
 
 @pytest.mark.parametrize('randomize_setting', _REMAP_RANDOMIZE_TEST_CASES)
-@pytest.mark.parametrize('moly_run', _REMAP_MOLY_INSERT_CASES)
+@pytest.mark.parametrize('moly_insert', _REMAP_MOLY_INSERT_CASES)
 @pytest.mark.parametrize('moly_interval', _REMAP_MOLY_INTERVAL_CASES)
-def test_remap_and_reorder_fovs(randomize_setting, moly_run, moly_interval):
+def test_remap_and_reorder_fovs(randomize_setting, moly_insert, moly_interval):
     # error check: moly_path must exist
     with pytest.raises(FileNotFoundError):
         tiling_utils.remap_and_reorder_fovs({}, {}, 'bad_path.json')
@@ -662,7 +662,7 @@ def test_remap_and_reorder_fovs(randomize_setting, moly_run, moly_interval):
     # remap the FOVs
     new_manual_sample_fovs = tiling_utils.remap_and_reorder_fovs(
         manual_sample_fovs_copy, sample_mapping, 'sample_moly_point.json', randomize_setting,
-        moly_run, moly_interval
+        moly_insert, moly_interval
     )
 
     # assert id, name, and status are the same
@@ -697,7 +697,7 @@ def test_remap_and_reorder_fovs(randomize_setting, moly_run, moly_interval):
 
     # if Moly points will be inserted, assert they are in the right place at the right interval
     # otherwise, assert no MoQCs appear
-    if moly_run:
+    if moly_insert:
         # assert the moly_indices are inserted at the correct locations
         moly_indices = np.arange(
             moly_interval, len(new_manual_sample_fovs['fovs']), moly_interval + 1
