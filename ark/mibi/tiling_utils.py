@@ -82,7 +82,7 @@ def generate_region_info(region_params):
     return region_params_list
 
 
-def _read_non_tma_region_input(fov_list_info, region_params):
+def tiled_region_read_input(fov_list_info, region_params):
     """Reads input for non-TMAs from user and `fov_list_info`.
 
     Updates all the tiling params inplace. Units used are microns.
@@ -148,7 +148,7 @@ def _read_non_tma_region_input(fov_list_info, region_params):
         region_params['region_rand'].append(randomize)
 
 
-def set_tiling_params_non_tma(fov_list_path, moly_path):
+def tiled_region_set_params(fov_list_path, moly_path):
     """Given a file specifying FOV regions, set the MIBI tiling parameters
 
     User inputs will be required for many values. Also returns `moly_path` data.
@@ -199,7 +199,7 @@ def set_tiling_params_non_tma(fov_list_path, moly_path):
     # define the region_params dict
     region_params = {rpf: [] for rpf in settings.REGION_PARAM_FIELDS}
 
-    _read_non_tma_region_input(fov_list_info, region_params)
+    tiled_region_read_input(fov_list_info, region_params)
 
     # need to copy fov metadata over, needed for generate_fov_list
     tiling_params['fovs'] = copy.deepcopy(fov_list_info['fovs'])
@@ -271,11 +271,11 @@ def generate_x_y_fov_pairs(x_range, y_range):
     return all_pairs
 
 
-def generate_fov_list_non_tma(tiling_params, moly_point):
-    """Generate the list of FOVs on the image from the `tiling_params` set for non-TMAs
+def tiled_region_generate_fov_list(tiling_params, moly_point):
+    """Generate the list of FOVs on the image from the `tiling_params` set for non-TMA regions
 
     Moly point insertion: happens once every number of FOVs you specified in
-    `set_tiling_params_non_tma`. There are a couple caveats to keep in mind:
+    `tiled_region_set_params`. There are a couple caveats to keep in mind:
 
     - The interval specified will not reset between regions. In other words, if the interval is 3
       and the next set of FOVs contains 2 in region 1 and 1 in region 2, the next Moly point will
@@ -378,7 +378,7 @@ def generate_fov_list_non_tma(tiling_params, moly_point):
     return fov_regions
 
 
-def generate_fov_list_tma(fov_list_path, num_fov_x, num_fov_y):
+def tma_generate_fov_list(fov_list_path, num_fov_x, num_fov_y):
     """Generate the list of FOVs on the image using the TMA input file in `fov_list_path`
 
     NOTE: unlike non-TMAs, the returned list of FOVs is just an intermediate step to the

@@ -63,7 +63,7 @@ def test_read_tiling_param(monkeypatch):
     assert sample_tiling_param == 'Y'
 
 
-def test_read_non_tma_region_input(monkeypatch):
+def test_tiled_region_read_input(monkeypatch):
     # define a sample fovs list
     sample_fovs_list = test_utils.generate_sample_fovs_list(
         fov_coords=[(0, 0), (100, 100)], fov_names=["TheFirstFOV", "TheSecondFOV"]
@@ -79,7 +79,7 @@ def test_read_non_tma_region_input(monkeypatch):
     monkeypatch.setattr('builtins.input', lambda _: next(user_inputs))
 
     # use the dummy user data to read values into the params lists
-    tiling_utils._read_non_tma_region_input(
+    tiling_utils.tiled_region_read_input(
         sample_fovs_list, sample_region_params
     )
 
@@ -150,7 +150,7 @@ def test_generate_region_info():
     )
 
 
-def test_set_tiling_params_non_tma(monkeypatch):
+def test_tiled_region_set_params(monkeypatch):
     # define a sample set of fovs
     sample_fovs_list = test_utils.generate_sample_fovs_list(
         fov_coords=[(0, 0), (100, 100)], fov_names=["TheFirstFOV", "TheSecondFOV"]
@@ -168,7 +168,7 @@ def test_set_tiling_params_non_tma(monkeypatch):
 
     # bad fov list path provided
     with pytest.raises(FileNotFoundError):
-        tiling_utils.set_tiling_params_non_tma('bad_fov_list_path.json', 'bad_moly_path.json')
+        tiling_utils.tiled_region_set_params('bad_fov_list_path.json', 'bad_moly_path.json')
 
     with tempfile.TemporaryDirectory() as temp_dir:
         # write fov list
@@ -178,7 +178,7 @@ def test_set_tiling_params_non_tma(monkeypatch):
 
         # bad moly path provided
         with pytest.raises(FileNotFoundError):
-            tiling_utils.set_tiling_params_non_tma(sample_fov_list_path, 'bad_moly_path.json')
+            tiling_utils.tiled_region_set_params(sample_fov_list_path, 'bad_moly_path.json')
 
         # write moly point
         sample_moly_path = os.path.join(temp_dir, 'moly_point.json')
@@ -186,7 +186,7 @@ def test_set_tiling_params_non_tma(monkeypatch):
             json.dump(sample_moly_point, moly)
 
         # run tiling parameter setting process with predefined user inputs
-        sample_tiling_params, moly_point = tiling_utils.set_tiling_params_non_tma(
+        sample_tiling_params, moly_point = tiling_utils.tiled_region_set_params(
             sample_fov_list_path, sample_moly_path
         )
 
@@ -251,8 +251,8 @@ def test_generate_x_y_fov_pairs():
 @pytest.mark.parametrize('moly_region', _AUTO_MOLY_REGION_CASES)
 @pytest.mark.parametrize('moly_interval_setting', _AUTO_MOLY_INTERVAL_SETTING_CASES)
 @pytest.mark.parametrize('moly_interval_value', _AUTO_MOLY_INTERVAL_VALUE_CASES)
-def test_generate_fov_list_non_tma(randomize_setting, moly_region,
-                                   moly_interval_setting, moly_interval_value):
+def test_tiled_region_generate_fov_list(randomize_setting, moly_region,
+                                        moly_interval_setting, moly_interval_value):
     sample_fovs_list = test_utils.generate_sample_fovs_list(
         fov_coords=[(0, 0), (100, 100)], fov_names=["TheFirstFOV", "TheSecondFOV"]
     )
@@ -287,7 +287,7 @@ def test_generate_fov_list_non_tma(randomize_setting, moly_region,
     if moly_interval_setting:
         sample_tiling_params['moly_interval'] = moly_interval_value
 
-    fov_regions = tiling_utils.generate_fov_list_non_tma(
+    fov_regions = tiling_utils.tiled_region_generate_fov_list(
         sample_tiling_params, sample_moly_point
     )
 
@@ -383,10 +383,10 @@ def test_generate_fov_list_non_tma(randomize_setting, moly_region,
             assert center_points[fov_1_end:] != actual_center_points_sorted[fov_1_end:]
 
 
-def test_generate_fov_list_tma():
+def test_tma_generate_fov_list():
     # file path validation
     with pytest.raises(FileNotFoundError):
-        tiling_utils.generate_fov_list_tma(
+        tiling_utils.tma_generate_fov_list(
             'bad_path.json', 3, 3
         )
 
@@ -404,19 +404,19 @@ def test_generate_fov_list_tma():
 
     # too few x-fovs defined
     with pytest.raises(ValueError):
-        tiling_utils.generate_fov_list_tma(
+        tiling_utils.tma_generate_fov_list(
            'sample_fovs_list.json', 2, 3
         )
 
     # too few y-fovs defined
     with pytest.raises(ValueError):
-        tiling_utils.generate_fov_list_tma(
+        tiling_utils.tma_generate_fov_list(
             'sample_fovs_list.json', 3, 2
         )
 
     # the fovs list defined does not contain exactly 2 FOVs
     with pytest.raises(ValueError):
-        tiling_utils.generate_fov_list_tma(
+        tiling_utils.tma_generate_fov_list(
             'sample_fovs_list.json', 3, 3
         )
 
@@ -434,7 +434,7 @@ def test_generate_fov_list_tma():
 
     # assert test fails
     with pytest.raises(ValueError):
-        tiling_utils.generate_fov_list_tma(
+        tiling_utils.tma_generate_fov_list(
             'sample_fovs_list.json', 3, 4
         )
 
@@ -452,7 +452,7 @@ def test_generate_fov_list_tma():
 
     # assert test fails
     with pytest.raises(ValueError):
-        tiling_utils.generate_fov_list_tma(
+        tiling_utils.tma_generate_fov_list(
             'sample_fovs_list.json', 3, 4
         )
 
@@ -466,7 +466,7 @@ def test_generate_fov_list_tma():
 
     # create the FOV regions
     # use 3 and 4 since 3 divides into clean ints and 4 does not
-    fov_regions = tiling_utils.generate_fov_list_tma(
+    fov_regions = tiling_utils.tma_generate_fov_list(
         'sample_fovs_list.json', 3, 4
     )
 
