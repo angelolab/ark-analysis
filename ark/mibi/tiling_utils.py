@@ -277,15 +277,15 @@ def generate_fov_list_non_tma(tiling_params, moly_point):
     `set_tiling_params_non_tma`. There are a couple caveats to keep in mind:
 
     - The interval specified will not reset between regions. In other words, if the interval is 3
-    and the next set of FOVs contains 2 in region 1 and 1 in region 2, the next Moly point will be
-    placed after the 1st FOV in region 2 (not after the 3rd FOV in region 2).
-    Moly points between regions are ignored in this calculation.
+      and the next set of FOVs contains 2 in region 1 and 1 in region 2, the next Moly point will
+      be placed after the 1st FOV in region 2 (not after the 3rd FOV in region 2). Moly points
+      between regions are ignored in this calculation.
     - If the interval specified cleanly divides the number of FOVs in a region, a Moly point will
-    not be placed at the end of the region. Suppose 3 FOVs are defined along both the x- and y-axis
-    for region 1 (for a total of 9 FOVs) and a Moly point FOV interval of 3 is specified.
-    Without also setting Moly point insertion between different regions,
-    a Moly point will NOT be placed after the last FOV of region 1 (the next Moly point will appear
-    in region 2's FOVs).
+      not be placed at the end of the region. Suppose 3 FOVs are defined along both the x- and
+      y-axis for region 1 (for a total of 9 FOVs) and a Moly point FOV interval of 3 is specified.
+      Without also setting Moly point insertion between different regions,
+      a Moly point will NOT be placed after the last FOV of region 1 (the next Moly point will
+      appear in region 2's FOVs).
 
     Args:
         tiling_params (dict):
