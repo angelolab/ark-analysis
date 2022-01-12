@@ -1,20 +1,20 @@
 ## Windows configuration
 
-Our repository works best if run on a Linux-based machine (which includes Mac OS). If you want to run the processes in `ark-analysis` on a Windows machine, you'll have some extra considerations to take into account. Note that this documentation applies for Windows 10 and Windows 11 machines.
+Our repo works runs best on Linux-based systems (which includes Mac OS). If you need to run on Windows, you'll have some extra considerations to take into account. Note that this documentation applies for Windows 10 and Windows 11 machines.
 
 ### WSL 2
 
-In order to download Docker, you need to install WSL 2 if you don't already have it. **We find it best to download and configure WSL 2 before anything else**.
+In order to download Docker, you need to install WSL 2 if you don't already have it. **We find it best to download and configure WSL 2 before anything else**. 
 
-We recommend using the Command Prompt to run these commands.
+We recommend using the Command Prompt to run these commands. 
 
-The simplest way to install WSL 2 is to run `wsl --install`. If this works, great. Otherwise, you'll have to run these steps:
+The simplest way to install WSL 2 is to run `wsl --install`. If this works, great. Otherwise, you'll have to run these steps: 
 
 * Open `Windows Features`, you can do this by typing this in the search bar
 * Check both `Virtual Machine Platform` and `Windows Subsystem for Linux`
 * Restart your machine
 
-Now run the following steps:
+Now run the following steps: 
 
 * Download the Linux kernel update package. You can find it here: [Linux kernel update package](https://docs.microsoft.com/en-us/windows/wsl/install-manual#step-4---download-the-linux-kernel-update-package).
 * Set the version to WSL 2: `wsl --set-default-version 2`
@@ -25,17 +25,17 @@ Now run the following steps:
 
 Go to [git Windows install](https://git-scm.com/download/win) to download the Windows installer for `git`. 
 
-After finishing the installer guidelines, go to your Command Prompt and type `git`. If you get a list of commands you can use with `git`, the installation was successful.
+After finishing the installer guidelines, go to your Command Prompt and type `git`. If you get a list of commands you can use with `git`, the installation was successful. 
 
 ### Docker Desktop
 
-Go to [Docker for Windows install](https://docs.docker.com/desktop/windows/install) to download `Docker Desktop`.
+Go to [Docker for Windows install](https://docs.docker.com/desktop/windows/install) to download `Docker Desktop`. 
 
 Open the shortcut (which should be added to your Desktop after installation) and open `Docker Desktop`. If the engine starts up successfully Docker has been configured. Note that the engine may take a while to setup properly.
 
 ### Setting up the repo
 
-In your Command Prompt, clone the `ark-analysis` repo with `git clone` and build the Docker with `docker build` as outlined on our home page.
+In your Command Prompt, clone the `ark-analysis` repo with `git clone` and build the Docker with `docker build` as outlined on our home page. 
 
 To run the script, you have to use `bash start_docker.sh`. If you run into issues with invalid carriage returns (`\r`), please run the following before trying again:
 
