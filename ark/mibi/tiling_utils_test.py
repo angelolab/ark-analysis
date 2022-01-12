@@ -27,8 +27,8 @@ _REMAP_MOLY_INTERVAL_CASES = [4, 2]
 
 def test_read_tiling_param(monkeypatch):
     # test 1: int inputs
-    # test an incorrect response then a correct response
-    user_inputs_int = iter([0, 1])
+    # test an incorrect non-int, an incorrect int response, then a correct response
+    user_inputs_int = iter(['N', 0, 1])
 
     # make sure the function receives the incorrect input first then the correct input
     monkeypatch.setattr('builtins.input', lambda _: next(user_inputs_int))
@@ -45,8 +45,8 @@ def test_read_tiling_param(monkeypatch):
     assert sample_tiling_param == 1
 
     # test 2: str inputs
-    # test an incorrect response then a correct response
-    user_inputs_str = iter(['N', 'Y'])
+    # test an incorrect non-str response, then an incorrect str response, then a correct response
+    user_inputs_str = iter([1, 'N', 'Y'])
 
     # make sure the function receives the incorrect input first then the correct input
     monkeypatch.setattr('builtins.input', lambda _: next(user_inputs_str))
