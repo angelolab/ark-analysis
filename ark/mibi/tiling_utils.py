@@ -63,7 +63,7 @@ def generate_region_info(region_params):
 
     Returns:
         list:
-            The complete set of `region_params` sorted by run
+            The complete set of `region_params` sorted by region
     """
 
     # define the region params list
@@ -207,10 +207,10 @@ def set_tiling_params_non_tma(fov_list_path, moly_path):
     # store the read in parameters in the region_params key
     tiling_params['region_params'] = generate_region_info(region_params)
 
-    # whether to insert moly points between runs
+    # whether to insert moly points between regions
     moly_region_insert = read_tiling_param(
         "Insert moly points between regions? Y/N: ",
-        "Error: moly point run parameter must be either Y or N",
+        "Error: moly point region parameter must be either Y or N",
         lambda mri: mri in ['Y', 'N', 'y', 'n'],
         dtype=str
     )
@@ -370,7 +370,7 @@ def generate_fov_list_non_tma(tiling_params, moly_point):
                moly_counter < total_fovs:
                 fov_regions['fovs'].append(moly_point)
 
-        # append Moly point to seperate runs if not last and if specified
+        # append Moly point to seperate regions if not last and if specified
         if tiling_params['moly_region'] == 'Y' and \
            region_index != len(tiling_params['region_params']) - 1:
             fov_regions['fovs'].append(moly_point)
