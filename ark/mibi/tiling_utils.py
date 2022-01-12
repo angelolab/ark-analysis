@@ -94,7 +94,7 @@ def _read_non_tma_region_input(fov_list_info, region_params):
             A `dict` mapping each region-specific parameter to a list of values per FOV
     """
 
-    # read in the data for each fov (region_start from fov_list_path, fov_num from user)
+    # read in the data for each fov (region_start from fov_list_path, all others from user)
     for fov in fov_list_info['fovs']:
         region_params['region_start_x'].append(fov['centerPointMicrons']['x'])
         region_params['region_start_y'].append(fov['centerPointMicrons']['y'])
