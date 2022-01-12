@@ -55,7 +55,7 @@ def read_tiling_param(prompt, error_msg, cond, dtype):
 
 
 def generate_region_info(region_params):
-    """Generate the region_params list in the tiling parameter dict
+    """Generate the `region_params` list in the tiling parameter dict
 
     Args:
         region_params (dict):
@@ -85,13 +85,13 @@ def generate_region_info(region_params):
 def _read_non_tma_region_input(fov_list_info, region_params):
     """Reads input for non-TMAs from user and `fov_list_info`.
 
-    Updates all the tiling params inplace. Units used are pixels.
+    Updates all the tiling params inplace. Units used are microns.
 
     Args:
         fov_list_info (dict):
             The data containing the fovs used to define each tiled region
         region_params (dict):
-            A dictionary mapping each region-specific parameter to a list of values per fov
+            A `dict` mapping each region-specific parameter to a list of values per fov
     """
 
     # read in the data for each fov (region_start from fov_list_path, fov_num from user)
@@ -163,8 +163,8 @@ def set_tiling_params_non_tma(fov_list_path, moly_path):
         tuple:
             Contains:
 
-            - A dict containing the tiling parameters for each FOV
-            - A dict defining the moly points to insert if specified
+            - A `dict` containing the tiling parameters for each FOV
+            - A `dict` defining the moly points to insert if specified
     """
 
     # file path validation
@@ -245,7 +245,7 @@ def set_tiling_params_non_tma(fov_list_path, moly_path):
 
 
 def generate_x_y_fov_pairs(x_range, y_range):
-    """Given all x and y coordinates a FOV can take, generate all possible (x, y) pairings
+    """Given all x and y coordinates a FOV can take, generate all possible `(x, y)` pairings
 
     Args:
         x_range (list):
@@ -255,7 +255,7 @@ def generate_x_y_fov_pairs(x_range, y_range):
 
     Returns:
         list:
-            Every possible (x, y) pair for a FOV
+            Every possible `(x, y)` pair for a FOV
     """
 
     # define a list to hold all the (x, y) pairs
@@ -520,11 +520,11 @@ def assign_closest_fovs(manual_fovs, auto_fovs):
     Returns:
         tuple:
 
-        - A dict defining the mapping of FOV names between `manual_fovs` and
+        - A `dict` defining the mapping of FOV names between `manual_fovs` and
           `auto_fovs`
-        - A dict defining each FOV in `manual_fovs` mapped to its centroid
+        - A `dict` defining each FOV in `manual_fovs` mapped to its centroid
           coordinates and size
-        - A dict defining each FOV in `auto_fovs` mapped to its centroid
+        - A `dict` defining each FOV in `auto_fovs` mapped to its centroid
           coordinates and size
     """
 
@@ -870,7 +870,8 @@ def write_manual_to_auto_map(manual_to_auto_map, save_ann, mapping_path):
 def interactive_remap(manual_to_auto_map, manual_fovs_info,
                       auto_fovs_info, slide_img, mapping_path,
                       draw_radius=7, figsize=(7, 7)):
-    """Creates the remapping interactive interface
+    """Creates the remapping interactive interface for manually-defined
+    to automaticall-generated FOVs
 
     Args:
         manual_to_auto_map (dict):
