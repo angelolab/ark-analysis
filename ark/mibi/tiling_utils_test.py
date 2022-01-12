@@ -17,6 +17,7 @@ _TMA_TEST_CASES = [False, True]
 _AUTO_RANDOMIZE_TEST_CASES = [['N', 'N'], ['N', 'Y'], ['Y', 'Y']]
 _AUTO_MOLY_RUN_CASES = ['N', 'Y']
 _AUTO_MOLY_INTERVAL_SETTING_CASES = [False, True]
+_AUTO_MOLY_INTERVAL_VALUE_CASES = [3, 4]
 
 # for remapping
 _REMAP_RANDOMIZE_TEST_CASES = [False, True]
@@ -62,79 +63,6 @@ def test_read_tiling_param(monkeypatch):
     assert sample_tiling_param == 'Y'
 
 
-def test_read_tma_region_input(monkeypatch):
-    # define a sample fovs list
-    sample_fovs_list = test_utils.generate_sample_fovs_list(
-        fov_coords=[(0, 100), (100, 0), (100, 200), (200, 100)],
-        fov_names=["TheFirstFOV", "TheFirstFOV", "TheSecondFOV", "TheSecondFOV"]
-    )
-
-    # define sample region_params to read data into
-    sample_region_params = {rpf: [] for rpf in settings.REGION_PARAM_FIELDS}
-
-    # basic error check: odd number of FOVs provided
-    with pytest.raises(ValueError):
-        sample_fovs_list_bad = sample_fovs_list.copy()
-        sample_fovs_list_bad['fovs'] = sample_fovs_list_bad['fovs'][:3]
-
-        # use the dummy user data to read values into the params lists
-        tiling_utils._read_tma_region_input(
-            sample_fovs_list_bad, sample_region_params
-        )
-
-    # basic error check: start x-coordinate cannot be greater than end coordinate
-    with pytest.raises(ValueError):
-        # define a sample fovs list
-        sample_fovs_list_bad = test_utils.generate_sample_fovs_list(
-            fov_coords=[(100, 100), (0, 0), (0, 0), (100, 100)],
-            fov_names=["TheFirstFOV", "TheFirstFOV", "TheSecondFOV", "TheSecondFOV"]
-        )
-
-        # use the dummy user data to read values into the params lists
-        tiling_utils._read_tma_region_input(
-            sample_fovs_list_bad, sample_region_params
-        )
-
-    # basic error check: start y-coordinate cannot be less than end coordinate
-    with pytest.raises(ValueError):
-        # define a sample fovs list
-        sample_fovs_list_bad = test_utils.generate_sample_fovs_list(
-            fov_coords=[(0, 0), (100, 100), (100, 100), (200, 200)],
-            fov_names=["TheFirstFOV", "TheFirstFOV", "TheSecondFOV", "TheSecondFOV"]
-        )
-
-        # use the dummy user data to read values into the params lists
-        tiling_utils._read_tma_region_input(
-            sample_fovs_list_bad, sample_region_params
-        )
-
-    # set the user inputs, also tests the validation check for num and spacing vals for x and y
-    user_inputs = iter([300, 300, 100, 100, 3, 3, 1, 1, 'Y',
-                        300, 300, 100, 100, 3, 3, 1, 1, 'Y'])
-
-    # override the default functionality of the input function
-    monkeypatch.setattr('builtins.input', lambda _: next(user_inputs))
-
-    # use the dummy user data to read values into the params lists
-    tiling_utils._read_tma_region_input(
-        sample_fovs_list, sample_region_params
-    )
-
-    from pprint import pprint
-    pprint(sample_region_params)
-
-    # assert the values were set properly
-    assert sample_region_params['region_start_x'] == [0, 100]
-    assert sample_region_params['region_start_y'] == [100, 200]
-    assert sample_region_params['fov_num_x'] == [3, 3]
-    assert sample_region_params['fov_num_y'] == [3, 3]
-    assert sample_region_params['x_fov_size'] == [1, 1]
-    assert sample_region_params['y_fov_size'] == [1, 1]
-    assert sample_region_params['x_intervals'] == [[0, 50, 100], [100, 150, 200]]
-    assert sample_region_params['y_intervals'] == [[100, 50, 0], [200, 150, 100]]
-    assert sample_region_params['region_rand'] == ['Y', 'Y']
-
-
 def test_read_non_tma_region_input(monkeypatch):
     # define a sample fovs list
     sample_fovs_list = test_utils.generate_sample_fovs_list(
@@ -143,8 +71,6 @@ def test_read_non_tma_region_input(monkeypatch):
 
     # define sample region_params to read data into
     sample_region_params = {rpf: [] for rpf in settings.REGION_PARAM_FIELDS}
-    sample_region_params.pop('x_intervals')
-    sample_region_params.pop('y_intervals')
 
     # set the user inputs
     user_inputs = iter([3, 3, 1, 1, 'Y', 3, 3, 1, 1, 'Y'])
@@ -167,8 +93,7 @@ def test_read_non_tma_region_input(monkeypatch):
     assert sample_region_params['region_rand'] == ['Y', 'Y']
 
 
-@pytest.mark.parametrize('tma', _TMA_TEST_CASES)
-def test_generate_region_info(tma):
+def test_generate_region_info():
     sample_region_inputs = {
         'region_start_x': [1, 1],
         'region_start_y': [2, 2],
@@ -178,10 +103,6 @@ def test_generate_region_info(tma):
         'y_fov_size': [6, 6],
         'region_rand': ['Y', 'Y']
     }
-
-    if tma:
-        sample_region_inputs['x_interval'] = [[100, 200, 300], [100, 200, 300]]
-        sample_region_inputs['y_interval'] = [[200, 400, 600], [200, 400, 600]]
 
     # generate the region params
     sample_region_params = tiling_utils.generate_region_info(sample_region_inputs)
@@ -228,44 +149,12 @@ def test_generate_region_info(tma):
         range(len(sample_region_params))
     )
 
-    if tma:
-        # assert x_interval set properly for TMA
-        assert all(
-            sample_region_params[i]['x_interval'] == [100, 200, 300] for i in
-            range(len(sample_region_params))
-        )
 
-        # assert y_interval set properly for TMA
-        assert all(
-            sample_region_params[i]['x_interval'] == [100, 200, 300] for i in
-            range(len(sample_region_params))
-        )
-    else:
-        # assert x_interval not set for non-TMA
-        assert all(
-            'x_interval' not in sample_region_params[i] for i in
-            range(len(sample_region_params))
-        )
-
-        # assert y_interval not set for non-TMA
-        assert all(
-            'y_interval' not in sample_region_params[i] for i in
-            range(len(sample_region_params))
-        )
-
-
-@pytest.mark.parametrize('tma', _TMA_TEST_CASES)
-def test_set_tiling_params(monkeypatch, tma):
+def test_set_tiling_params_non_tma(monkeypatch):
     # define a sample set of fovs
-    if tma:
-        sample_fovs_list = test_utils.generate_sample_fovs_list(
-            fov_coords=[(0, 100), (100, 0), (100, 200), (200, 100)],
-            fov_names=["TheFirstFOV", "TheFirstFOV", "TheSecondFOV", "TheSecondFOV"]
-        )
-    else:
-        sample_fovs_list = test_utils.generate_sample_fovs_list(
-            fov_coords=[(0, 0), (100, 100)], fov_names=["TheFirstFOV", "TheSecondFOV"]
-        )
+    sample_fovs_list = test_utils.generate_sample_fovs_list(
+        fov_coords=[(0, 0), (100, 100)], fov_names=["TheFirstFOV", "TheSecondFOV"]
+    )
 
     sample_moly_point = test_utils.generate_sample_fov_tiling_entry(
         coord=(14540, -10830), name="MoQC"
@@ -279,7 +168,7 @@ def test_set_tiling_params(monkeypatch, tma):
 
     # bad fov list path provided
     with pytest.raises(FileNotFoundError):
-        tiling_utils.set_tiling_params('bad_fov_list_path.json', 'bad_moly_path.json')
+        tiling_utils.set_tiling_params_non_tma('bad_fov_list_path.json', 'bad_moly_path.json')
 
     with tempfile.TemporaryDirectory() as temp_dir:
         # write fov list
@@ -289,7 +178,7 @@ def test_set_tiling_params(monkeypatch, tma):
 
         # bad moly path provided
         with pytest.raises(FileNotFoundError):
-            tiling_utils.set_tiling_params(sample_fov_list_path, 'bad_moly_path.json')
+            tiling_utils.set_tiling_params_non_tma(sample_fov_list_path, 'bad_moly_path.json')
 
         # write moly point
         sample_moly_path = os.path.join(temp_dir, 'moly_point.json')
@@ -297,8 +186,8 @@ def test_set_tiling_params(monkeypatch, tma):
             json.dump(sample_moly_point, moly)
 
         # run tiling parameter setting process with predefined user inputs
-        sample_tiling_params, moly_point = tiling_utils.set_tiling_params(
-            sample_fov_list_path, sample_moly_path, tma=tma
+        sample_tiling_params, moly_point = tiling_utils.set_tiling_params_non_tma(
+            sample_fov_list_path, sample_moly_path
         )
 
         # assert the fovs in the tiling params are the same as in the original fovs list
@@ -307,7 +196,7 @@ def test_set_tiling_params(monkeypatch, tma):
         # assert region start x and region start y values are correct
         sample_region_params = sample_tiling_params['region_params']
         fov_0 = sample_fovs_list['fovs'][0]
-        fov_1 = sample_fovs_list['fovs'][2] if tma else sample_fovs_list['fovs'][1]
+        fov_1 = sample_fovs_list['fovs'][1]
 
         assert sample_region_params[0]['region_start_x'] == fov_0['centerPointMicrons']['x']
         assert sample_region_params[1]['region_start_x'] == fov_1['centerPointMicrons']['x']
@@ -346,16 +235,6 @@ def test_set_tiling_params(monkeypatch, tma):
         # assert moly interval is set to 1
         assert sample_tiling_params['moly_interval'] == 1
 
-        # for TMAs, assert that the x interval and y intervals were created properly
-        if tma:
-            # TheFirstFOV
-            assert sample_region_params[0]['x_intervals'] == [0, 50, 100]
-            assert sample_region_params[0]['y_intervals'] == [100, 50, 0]
-
-            # TheSecondFOV
-            assert sample_region_params[1]['x_intervals'] == [100, 150, 200]
-            assert sample_region_params[1]['y_intervals'] == [200, 150, 100]
-
 
 def test_generate_x_y_fov_pairs():
     # define sample x and y pair lists
@@ -371,7 +250,9 @@ def test_generate_x_y_fov_pairs():
 @pytest.mark.parametrize('randomize_setting', _AUTO_RANDOMIZE_TEST_CASES)
 @pytest.mark.parametrize('moly_run', _AUTO_MOLY_RUN_CASES)
 @pytest.mark.parametrize('moly_interval_setting', _AUTO_MOLY_INTERVAL_SETTING_CASES)
-def test_generate_fov_list_non_tma(randomize_setting, moly_run, moly_interval_setting):
+@pytest.mark.parametrize('moly_interval_value', _AUTO_MOLY_INTERVAL_VALUE_CASES)
+def test_generate_fov_list_non_tma(randomize_setting, moly_run,
+                                   moly_interval_setting, moly_interval_value):
     sample_fovs_list = test_utils.generate_sample_fovs_list(
         fov_coords=[(0, 0), (100, 100)], fov_names=["TheFirstFOV", "TheSecondFOV"]
     )
@@ -404,11 +285,15 @@ def test_generate_fov_list_non_tma(randomize_setting, moly_run, moly_interval_se
     sample_tiling_params['region_params'][1]['region_rand'] = randomize_setting[1]
 
     if moly_interval_setting:
-        sample_tiling_params['moly_interval'] = 3
+        sample_tiling_params['moly_interval'] = moly_interval_value
 
-    fov_regions = tiling_utils.generate_fov_list(
+    fov_regions = tiling_utils.generate_fov_list_non_tma(
         sample_tiling_params, sample_moly_point
     )
+
+    # assert none of the metadata keys explicitly added by set_tiling_params appear
+    for k in ['region_params', 'moly_run', 'moly_interval']:
+        assert k not in fov_regions
 
     # retrieve the center points
     center_points = [
@@ -418,9 +303,9 @@ def test_generate_fov_list_non_tma(randomize_setting, moly_run, moly_interval_se
 
     # define the center points sorted
     actual_center_points_sorted = [
-        (x, y) for x in np.arange(0, 10, 5) for y in list(reversed(np.arange(100, 140, 10)))
+        (x, y) for x in np.arange(0, 10, 5) for y in list(reversed(np.arange(70, 110, 10)))
     ] + [
-        (x, y) for x in np.arange(50, 90, 10) for y in list(reversed(np.arange(150, 160, 5)))
+        (x, y) for x in np.arange(50, 90, 10) for y in list(reversed(np.arange(145, 155, 5)))
     ]
 
     # if moly_run is Y, add a point in between the two runs
@@ -430,9 +315,15 @@ def test_generate_fov_list_non_tma(randomize_setting, moly_run, moly_interval_se
     # add moly points in between if moly_interval_setting is set
     if moly_interval_setting:
         if moly_run == 'N':
-            moly_indices = [3, 7, 11, 15, 19]
+            if moly_interval_value == 3:
+                moly_indices = [3, 7, 11, 15, 19]
+            else:
+                moly_indices = [4, 13]
         else:
-            moly_indices = [3, 7, 12, 16, 20]
+            if moly_interval_value == 3:
+                moly_indices = [3, 7, 12, 16, 20]
+            else:
+                moly_indices = [4, 14]
 
         for mi in moly_indices:
             actual_center_points_sorted.insert(mi, (14540, -10830))
@@ -442,10 +333,15 @@ def test_generate_fov_list_non_tma(randomize_setting, moly_run, moly_interval_se
         assert center_points == actual_center_points_sorted
     # if there's any sort of randomization involved
     else:
-        if moly_run == 'N':
-            fov_1_end = 10 if moly_interval_setting else 8
-        else:
-            fov_1_end = 11 if moly_interval_setting else 9
+        # need to define the end of region 1
+        if moly_run == 'N' and not moly_interval_setting:
+            fov_1_end = 8
+        elif moly_run == 'N' and moly_interval_setting:
+            fov_1_end = 10 if moly_interval_value == 3 else 9
+        elif moly_run == 'Y' and not moly_interval_setting:
+            fov_1_end = 9
+        elif moly_run and moly_interval_setting:
+            fov_1_end = 11 if moly_interval_value == 3 else 10
 
         # only the second run is randomized
         if randomize_setting == ['N', 'Y']:
@@ -487,128 +383,105 @@ def test_generate_fov_list_non_tma(randomize_setting, moly_run, moly_interval_se
             assert center_points[fov_1_end:] != actual_center_points_sorted[fov_1_end:]
 
 
-@pytest.mark.parametrize('randomize_setting', _AUTO_RANDOMIZE_TEST_CASES)
-@pytest.mark.parametrize('moly_run', _AUTO_MOLY_RUN_CASES)
-@pytest.mark.parametrize('moly_interval_setting', _AUTO_MOLY_INTERVAL_SETTING_CASES)
-def test_create_fov_regions_tma_test(randomize_setting, moly_run, moly_interval_setting):
+def test_generate_fov_list_tma():
+    # file path validation
+    with pytest.raises(FileNotFoundError):
+        tiling_utils.generate_fov_list_tma(
+            'bad_path.json', 3, 3
+        )
+
+    # generate a sample FOVs list
+    # NOTE: this intentionally contains more than 2 FOVs for now so it fails immediately
+    # we will trim it later on
     sample_fovs_list = test_utils.generate_sample_fovs_list(
         fov_coords=[(0, 0), (100, 100), (100, 100), (200, 200)],
         fov_names=["TheFirstFOV", "TheFirstFOV", "TheSecondFOV", "TheSecondFOV"]
     )
 
-    sample_region_inputs = {
-        'region_start_x': [0, 50],
-        'region_start_y': [100, 150],
-        'fov_num_x': [3, 3],
-        'fov_num_y': [3, 3],
-        'x_fov_size': [5, 10],
-        'y_fov_size': [10, 5],
-        'x_intervals': [[0, 50, 100], [100, 150, 200]],
-        'y_intervals': [[0, 50, 100], [100, 150, 200]],
-        'region_rand': ['N', 'N']
-    }
+    # save sample FOV
+    with open('sample_fovs_list.json', 'w') as sfl:
+        json.dump(sample_fovs_list, sfl)
 
-    sample_region_params = tiling_utils.generate_region_info(sample_region_inputs)
+    # too few x-fovs defined
+    with pytest.raises(ValueError):
+        tiling_utils.generate_fov_list_tma(
+           'sample_fovs_list.json', 2, 3
+        )
 
-    sample_tiling_params = {
-        'fovFormatVersion': '1.5',
-        'fovs': sample_fovs_list['fovs'],
-        'region_params': sample_region_params
-    }
+    # too few y-fovs defined
+    with pytest.raises(ValueError):
+        tiling_utils.generate_fov_list_tma(
+            'sample_fovs_list.json', 3, 2
+        )
 
-    sample_moly_point = test_utils.generate_sample_fov_tiling_entry(
-        coord=(14540, -10830), name="MoQC"
+    # the fovs list defined does not contain exactly 2 FOVs
+    with pytest.raises(ValueError):
+        tiling_utils.generate_fov_list_tma(
+            'sample_fovs_list.json', 3, 3
+        )
+
+    # trim sample_fovs_list so it only contains 2 FOVs
+    # one to define the upper-left corner, one to define the bottom-left corner
+    sample_fovs_list['fovs'] = sample_fovs_list['fovs'][:2]
+
+    # error checking, define the upper-left x-coord to be greater than the bottom-right
+    sample_fovs_list['fovs'][0]['centerPointMicrons']['x'] = 100
+    sample_fovs_list['fovs'][1]['centerPointMicrons']['x'] = 0
+
+    # resave the data
+    with open('sample_fovs_list.json', 'w') as sfl:
+        json.dump(sample_fovs_list, sfl)
+
+    # assert test fails
+    with pytest.raises(ValueError):
+        tiling_utils.generate_fov_list_tma(
+            'sample_fovs_list.json', 3, 4
+        )
+
+    # reset x values
+    sample_fovs_list['fovs'][0]['centerPointMicrons']['x'] = 0
+    sample_fovs_list['fovs'][1]['centerPointMicrons']['x'] = 100
+
+    # error checking, define the upper-left y-coord to be less than the bottom-right
+    sample_fovs_list['fovs'][0]['centerPointMicrons']['y'] = 0
+    sample_fovs_list['fovs'][1]['centerPointMicrons']['y'] = 100
+
+    # resave the data
+    with open('sample_fovs_list.json', 'w') as sfl:
+        json.dump(sample_fovs_list, sfl)
+
+    # assert test fails
+    with pytest.raises(ValueError):
+        tiling_utils.generate_fov_list_tma(
+            'sample_fovs_list.json', 3, 4
+        )
+
+    # reset y values
+    sample_fovs_list['fovs'][0]['centerPointMicrons']['y'] = 100
+    sample_fovs_list['fovs'][1]['centerPointMicrons']['y'] = 0
+
+    # resave the data
+    with open('sample_fovs_list.json', 'w') as sfl:
+        json.dump(sample_fovs_list, sfl)
+
+    # create the FOV regions
+    # use 3 and 4 since 3 divides into clean ints and 4 does not
+    fov_regions = tiling_utils.generate_fov_list_tma(
+        'sample_fovs_list.json', 3, 4
     )
 
-    sample_tiling_params['moly_run'] = moly_run
+    center_points = [fov_regions[fov] for fov in fov_regions]
 
-    sample_tiling_params['region_params'][0]['region_rand'] = randomize_setting[0]
-    sample_tiling_params['region_params'][1]['region_rand'] = randomize_setting[1]
-
-    if moly_interval_setting:
-        sample_tiling_params['moly_interval'] = 5
-
-    fov_regions = tiling_utils.generate_fov_list(
-        sample_tiling_params, sample_moly_point, tma=True
-    )
-
-    # retrieve the center points
-    center_points = [
-        (fov['centerPointMicrons']['x'], fov['centerPointMicrons']['y'])
-        for fov in fov_regions['fovs']
+    # define the actual center points created
+    # NOTE: y-coordinates are intentionally rounded
+    actual_x = [0, 50, 100]
+    actual_y = [100, 66, 33, 0]
+    actual_center_points = [
+        (x, y) for x in actual_x for y in actual_y
     ]
 
-    # define the center points sorted
-    actual_center_points_sorted = [
-        (x, y) for x in np.arange(0, 150, 50) for y in
-        np.arange(0, 150, 50)
-    ] + [
-        (x, y) for x in np.arange(100, 250, 50) for y in
-        np.arange(100, 250, 50)
-    ]
-
-    # if moly_run is Y, add a point in between the two runs
-    if moly_run == 'Y':
-        actual_center_points_sorted.insert(9, (14540, -10830))
-
-    # add moly points in between if moly_interval_setting is set
-    if moly_interval_setting:
-        if moly_run == 'N':
-            moly_indices = [5, 11, 17]
-        else:
-            moly_indices = [5, 12, 18]
-
-        for mi in moly_indices:
-            actual_center_points_sorted.insert(mi, (14540, -10830))
-
-    # easiest case: the center points should be sorted
-    if randomize_setting == ['N', 'N']:
-        assert center_points == actual_center_points_sorted
-    # if there's any sort of randomization involved
-    else:
-        if moly_run == 'N':
-            fov_1_end = 10 if moly_interval_setting else 9
-        else:
-            fov_1_end = 11 if moly_interval_setting else 10
-
-        # only the second run is randomized
-        if randomize_setting == ['N', 'Y']:
-            # ensure the fov 1 center points are the same for both sorted and random
-            assert center_points[:fov_1_end] == actual_center_points_sorted[:fov_1_end]
-
-            # ensure the random center points for fov 2 contain the same elements
-            # as its sorted version
-            misc_utils.verify_same_elements(
-                computed_center_points=center_points[fov_1_end:],
-                actual_center_points=actual_center_points_sorted[fov_1_end:]
-            )
-
-            # however, fov 2 sorted entries should NOT equal fov 2 random entries
-            # NOTE: due to randomization, this test will fail once in a blue moon
-            assert center_points[fov_1_end:] != actual_center_points_sorted[fov_1_end:]
-        # both runs are randomized
-        else:
-            # ensure the random center points for fov 1 contain the same elements
-            # as its sorted version
-            misc_utils.verify_same_elements(
-                computed_center_points=center_points[:fov_1_end],
-                actual_center_points=actual_center_points_sorted[:fov_1_end]
-            )
-
-            # however, fov 1 sorted entries should NOT equal fov 1 random entries
-            # NOTE: due to randomization, this test will fail once in a blue moon
-            assert center_points[:fov_1_end] != actual_center_points_sorted[:fov_1_end]
-
-            # ensure the random center points for fov 2 contain the same elements
-            # as its sorted version
-            misc_utils.verify_same_elements(
-                computed_center_points=center_points[fov_1_end:],
-                actual_center_points=actual_center_points_sorted[fov_1_end:]
-            )
-
-            # however, fov 2 sorted entries should NOT equal fov 2 random entries
-            # NOTE: due to randomization, this test will fail once in a blue moon
-            assert center_points[fov_1_end:] != actual_center_points_sorted[fov_1_end:]
+    # assert the centroids are the same
+    assert center_points == actual_center_points
 
 
 def test_convert_microns_to_pixels():
@@ -625,9 +498,7 @@ def test_assign_closest_fovs():
     auto_fov_names = ['row%d_col%d' % (x, y) for (x, y) in auto_coords]
 
     # generate the list of automatically-generated fovs
-    auto_sample_fovs = test_utils.generate_sample_fovs_list(
-        auto_coords, auto_fov_names
-    )
+    auto_sample_fovs = dict(zip(auto_fov_names, auto_coords))
 
     # define the coordinates and fov names proposed by the user
     manual_coords = [(0, 25), (50, 25), (50, 50), (75, 50), (100, 25)]
@@ -638,21 +509,10 @@ def test_assign_closest_fovs():
         manual_coords, manual_fov_names
     )
 
-    # define the sample Moly point
-    sample_moly_point = test_utils.generate_sample_fov_tiling_entry(
-        coord=(14540, -10830), name="MoQC"
-    )
-
-    # insert Moly point at every 2 fovs in both fov names list
-    moly_indices = [2, 4]
-    for mi in moly_indices:
-        auto_sample_fovs['fovs'].insert(mi, sample_moly_point)
-        manual_sample_fovs['fovs'].insert(mi, sample_moly_point)
-
     # generate the mapping from manual to automatically-generated
     manual_to_auto_map, manual_fovs_info, auto_fovs_info = \
         tiling_utils.assign_closest_fovs(
-            manual_sample_fovs, auto_sample_fovs, sample_moly_point['name']
+            manual_sample_fovs, auto_sample_fovs
         )
 
     # for each manual fov, ensure the centroids are the same in manual_fovs_info
@@ -663,16 +523,16 @@ def test_assign_closest_fovs():
                 tuple(fov['centerPointMicrons'].values())
             )
 
-            assert manual_fovs_info[fov['name']]['centroid'] == manual_centroid
+            assert manual_fovs_info[fov['name']] == manual_centroid
 
     # same for automatically-generated fovs
-    for fov in auto_sample_fovs['fovs']:
-        if fov['name'] != 'MoQC':
+    for fov in auto_sample_fovs:
+        if fov != 'MoQC':
             auto_centroid = tiling_utils.convert_microns_to_pixels(
-                tuple(fov['centerPointMicrons'].values())
+                auto_sample_fovs[fov]
             )
 
-            assert auto_fovs_info[fov['name']]['centroid'] == auto_centroid
+            assert auto_fovs_info[fov] == auto_centroid
 
     # assert the mapping is correct
     actual_map = {
@@ -697,20 +557,20 @@ def test_generate_fov_circles():
     }
 
     sample_manual_fovs_info = {
-        'row0_col25': {'centroid': (0, 25), 'size': (2048, 2048)},
-        'row50_col25': {'centroid': (50, 25), 'size': (2048, 2048)},
-        'row50_col50': {'centroid': (50, 50), 'size': (2048, 2048)},
-        'row75_col50': {'centroid': (75, 50), 'size': (2048, 2048)},
-        'row100_col25': {'centroid': (100, 25), 'size': (2048, 2048)}
+        'row0_col25': (0, 25),
+        'row50_col25': (50, 25),
+        'row50_col50': (50, 50),
+        'row75_col50': (75, 50),
+        'row100_col25': (100, 25)
     }
 
     sample_auto_fovs_info = {
-        'row0_col0': {'centroid': (0, 0), 'size': (2048, 2048)},
-        'row0_col50': {'centroid': (0, 50), 'size': (2048, 2048)},
-        'row0_col100': {'centroid': (0, 100), 'size': (2048, 2048)},
-        'row100_col0': {'centroid': (100, 0), 'size': (2048, 2048)},
-        'row100_col50': {'centroid': (100, 50), 'size': (2048, 2048)},
-        'row100_col100': {'centroid': (100, 100), 'size': (2048, 2048)}
+        'row0_col0': (0, 0),
+        'row0_col50': (0, 50),
+        'row0_col100': (0, 100),
+        'row100_col0': (100, 0),
+        'row100_col50': (100, 50),
+        'row100_col100': (100, 100)
     }
 
     # define the sample slide image
@@ -727,7 +587,7 @@ def test_generate_fov_circles():
     # assert the centroids are correct and they are filled in
     for pti in sample_manual_fovs_info:
         assert pti in sample_manual_coords
-        assert sample_manual_coords[pti] == sample_manual_fovs_info[pti]['centroid']
+        assert sample_manual_coords[pti] == sample_manual_fovs_info[pti]
 
         x, y = sample_manual_coords[pti]
 
@@ -740,7 +600,7 @@ def test_generate_fov_circles():
     # same for the auto annotations
     for ati in sample_auto_fovs_info:
         assert ati in sample_auto_coords
-        assert sample_auto_coords[ati] == sample_auto_fovs_info[ati]['centroid']
+        assert sample_auto_coords[ati] == sample_auto_fovs_info[ati]
 
         x, y = sample_auto_coords[ati]
 
@@ -755,9 +615,22 @@ def test_generate_fov_circles():
 @pytest.mark.parametrize('moly_run', _REMAP_MOLY_INSERT_CASES)
 @pytest.mark.parametrize('moly_interval', _REMAP_MOLY_INTERVAL_CASES)
 def test_remap_and_reorder_fovs(randomize_setting, moly_run, moly_interval):
+    # error check: moly_path must exist
+    with pytest.raises(FileNotFoundError):
+        tiling_utils.remap_and_reorder_fovs({}, {}, 'bad_path.json')
+
+    # define the sample Moly point
+    sample_moly_point = test_utils.generate_sample_fov_tiling_entry(
+        coord=(14540, -10830), name="MoQC"
+    )
+
+    # save the Moly point
+    with open('sample_moly_point.json', 'w') as smp:
+        json.dump(sample_moly_point, smp)
+
     # error check: moly_interval must be at least 1
     with pytest.raises(ValueError):
-        tiling_utils.remap_and_reorder_fovs({}, {}, {}, moly_interval=0)
+        tiling_utils.remap_and_reorder_fovs({}, {}, 'sample_moly_point.json', moly_interval=0)
 
     # define the coordinates and fov names manual by the user
     manual_coords = [(0, 25), (50, 25), (50, 50), (75, 50), (100, 25), (100, 75)]
@@ -766,11 +639,6 @@ def test_remap_and_reorder_fovs(randomize_setting, moly_run, moly_interval):
     # generate the list of manual fovs
     manual_sample_fovs = test_utils.generate_sample_fovs_list(
         manual_coords, manual_fov_names
-    )
-
-    # define the sample Moly point
-    sample_moly_point = test_utils.generate_sample_fov_tiling_entry(
-        coord=(14540, -10830), name="MoQC"
     )
 
     # define a sample mapping
@@ -793,7 +661,7 @@ def test_remap_and_reorder_fovs(randomize_setting, moly_run, moly_interval):
 
     # remap the FOVs
     new_manual_sample_fovs = tiling_utils.remap_and_reorder_fovs(
-        manual_sample_fovs_copy, sample_mapping, sample_moly_point, randomize_setting,
+        manual_sample_fovs_copy, sample_mapping, 'sample_moly_point.json', randomize_setting,
         moly_run, moly_interval
     )
 

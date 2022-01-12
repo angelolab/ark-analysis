@@ -14,7 +14,6 @@ import ark.settings as settings
 from ark.utils import misc_utils
 
 
-# helper function to reading in input
 def read_tiling_param(prompt, error_msg, cond, dtype):
     """A helper function to read in tiling input
 
@@ -60,7 +59,7 @@ def generate_region_info(region_params):
 
     Args:
         region_params (dict):
-            A dictionary mapping each region-specific parameter to a list of values per fov
+            A dictionary mapping each region-specific parameter to a list of values per FOV
 
     Returns:
         list:
@@ -72,7 +71,7 @@ def generate_region_info(region_params):
 
     # iterate over all the region parameters, all parameter lists are the same length
     for i in range(len(region_params['region_start_x'])):
-        # define a dict containing all the region info for the specific fov
+        # define a dict containing all the region info for the specific FOV
         region_info = {
             rp: region_params[rp][i] for rp in region_params
         }
@@ -81,136 +80,6 @@ def generate_region_info(region_params):
         region_params_list.append(region_info)
 
     return region_params_list
-
-
-def _read_tma_region_input(fov_list_info, region_params):
-    """Reads input for TMAs from user and `fov_list_info`.
-
-    Updates all the tiling params inplace. Units used are pixels.
-
-    Args:
-        fov_list_info (dict):
-            The data containing the fovs used to define each tiled region
-        region_params (dict):
-            A dictionary mapping each region-specific parameter to a list of values per fov
-    """
-
-    # there has to be a starting and ending fov for each region
-    if len(fov_list_info['fovs']) % 2 != 0:
-        raise ValueError(
-            "Data in fov_list_info needs to contain a start and end FOV for each region"
-        )
-
-    # every two fovs should define the start and end of the fov
-    for i in range(0, len(fov_list_info['fovs']), 2):
-        # define the current start and end fov
-        fov_batches = fov_list_info['fovs'][i:i + 2]
-        start_fov = fov_batches[0]
-        end_fov = fov_batches[1]
-
-        # define the start and end coordinates
-        start_fov_x = start_fov['centerPointMicrons']['x']
-        end_fov_x = end_fov['centerPointMicrons']['x']
-        start_fov_y = start_fov['centerPointMicrons']['y']
-        end_fov_y = end_fov['centerPointMicrons']['y']
-
-        # the coordinates have to be valid
-        if start_fov_x > end_fov_x:
-            err_msg = ("Coordinate error for region %s: start x coordinates cannot be"
-                       " greater than end coordinates")
-            raise ValueError(err_msg % start_fov['name'])
-
-        if start_fov_y < end_fov_y:
-            err_msg = ("Coordinate error for region %s: start y coordinates cannot be"
-                       " less than end coordinates")
-            raise ValueError(err_msg % start_fov['name'])
-
-        region_params['region_start_x'].append(start_fov_x)
-        region_params['region_start_y'].append(start_fov_y)
-
-        # the num_x, num_y, size_x, and size_y need additional validation
-        # since they may not be compatible with the starting and ending coordinates
-        while True:
-            # allow the user to specify the number of fovs along each dimension
-            num_x = read_tiling_param(
-                "Enter number of x FOVs for region %s (at least 3 required): " % start_fov['name'],
-                "Error: number of x FOVs must be a positive integer >=3",
-                lambda nx: nx >= 3,
-                dtype=int
-            )
-
-            num_y = read_tiling_param(
-                "Enter number of y FOVs for region %s (at least 3 required): " % start_fov['name'],
-                "Error: number of y FOVs must be a positive integer >=3",
-                lambda ny: ny >= 3,
-                dtype=int
-            )
-
-            # allow the user to specify the image size along each dimension
-            size_x = read_tiling_param(
-                "Enter the x image size for region %s (in microns): " % start_fov['name'],
-                "Error: x step size must be a positive integer",
-                lambda sx: sx >= 1,
-                dtype=int
-            )
-
-            size_y = read_tiling_param(
-                "Enter the y image size for region %s (in microns): " % start_fov['name'],
-                "Error: y step size must be a positive integer",
-                lambda sy: sy >= 1,
-                dtype=int
-            )
-
-            # find num_x/num_y even intervals between start and end fov_x/fov_y
-            # casted because indices cannot be floats
-            # need .item() cast to prevent int64 is not JSON serializable error
-            x_interval = [
-                x.item() for x in np.linspace(start_fov_x, end_fov_x, num_x).astype(int)
-            ]
-            y_interval = list(reversed([
-                y.item() for y in np.linspace(end_fov_y, start_fov_y, num_y).astype(int)
-            ]))
-
-            # get difference between x and y
-            x_spacing = x_interval[1] - x_interval[0]
-            y_spacing = y_interval[0] - y_interval[1]
-
-            # we're good to go if size_x is not greater than x_spacing and y_spacing
-            if size_x <= x_spacing and size_y <= y_spacing:
-                break
-
-            # otherwise throw errors for invalid num_x/num_y and size_x/size_y
-            if size_x > x_spacing:
-                err_msg = ("Provided params num_x = %d, size_x = %d are incompatible"
-                           " with x start = %d and x end = %d for region %s")
-                print(err_msg % (num_x, size_x, start_fov_x, end_fov_x, start_fov['name']))
-
-            if size_y > y_spacing:
-                err_msg = ("Provided params num_y = %d, size_y = %d are incompatible"
-                           " with y start = %d and y end = %d for region %s")
-                print(err_msg % (num_y, size_y, start_fov_y, end_fov_y, start_fov['name']))
-
-        region_params['fov_num_x'].append(num_x)
-        region_params['fov_num_y'].append(num_y)
-
-        region_params['x_fov_size'].append(size_x)
-        region_params['y_fov_size'].append(size_y)
-
-        region_params['x_intervals'].append(list(x_interval))
-        region_params['y_intervals'].append(list(y_interval))
-
-        # allow the user to specify if the FOVs should be randomized
-        randomize = read_tiling_param(
-            "Randomize FOVs for region %s? Y/N: " % start_fov['name'],
-            "Error: randomize parameter must Y or N",
-            lambda r: r in ['Y', 'N', 'y', 'n'],
-            dtype=str
-        )
-
-        # make sure randomize is uppercase
-        randomize = randomize.upper()
-
-        region_params['region_rand'].append(randomize)
 
 
 def _read_non_tma_region_input(fov_list_info, region_params):
@@ -250,14 +119,14 @@ def _read_non_tma_region_input(fov_list_info, region_params):
 
         # allow the user to specify the step size along each dimension
         size_x = read_tiling_param(
-            "Enter the x step size for region %s: " % fov['name'],
+            "Enter the x step size for region %s (in microns): " % fov['name'],
             "Error: x step size must be positive",
             lambda sx: sx >= 1,
             dtype=int
         )
 
         size_y = read_tiling_param(
-            "Enter the y step size for region %s: " % fov['name'],
+            "Enter the y step size for region %s (in microns): " % fov['name'],
             "Error: y step size must be positive",
             lambda sy: sy >= 1,
             dtype=int
@@ -279,24 +148,22 @@ def _read_non_tma_region_input(fov_list_info, region_params):
         region_params['region_rand'].append(randomize)
 
 
-def set_tiling_params(fov_list_path, moly_path, tma=False):
-    """Given a file specifying fov regions, set the MIBI tiling parameters
+def set_tiling_params_non_tma(fov_list_path, moly_path):
+    """Given a file specifying FOV regions, set the MIBI tiling parameters
 
-    User inputs will be required for many values. Also returns moly_path data.
+    User inputs will be required for many values. Also returns `moly_path` data.
 
     Args:
         fov_list_path (str):
-            Path to the JSON file containing the fovs used to define each tiled region
+            Path to the JSON file containing the FOVs used to define each tiled region
         moly_path (str):
-            Path to the JSON moly point file, needed to separate fovs
-        tma (bool):
-            Whether the data in fov_list_path is in TMA format or not
+            Path to the JSON moly point file, needed to separate FOVs
 
     Returns:
         tuple:
             Contains:
 
-            - A dict containing the tiling parameters for each fov
+            - A dict containing the tiling parameters for each FOV
             - A dict defining the moly points to insert if specified
     """
 
@@ -318,22 +185,21 @@ def set_tiling_params(fov_list_path, moly_path, tma=False):
     # define the parameter dict to return
     tiling_params = {}
 
-    # retrieve the format version
-    tiling_params['fovFormatVersion'] = fov_list_info['fovFormatVersion']
+    # get the metadata values to copy over
+    metadata_keys = list(fov_list_info.keys())
+
+    # remove anything set in fov_list_info
+    metadata_keys.remove('fovs')
+
+    # for simplicity's sake, copy over only the string, int, float, and bool values
+    for mk in metadata_keys:
+        if type(fov_list_info[mk]) in [str, int, float, bool]:
+            tiling_params[mk] = fov_list_info[mk]
 
     # define the region_params dict
     region_params = {rpf: [] for rpf in settings.REGION_PARAM_FIELDS}
 
-    # remove x and y interval keys if non-TMA is used
-    if not tma:
-        region_params.pop('x_intervals')
-        region_params.pop('y_intervals')
-
-    # read in the tma inputs
-    if tma:
-        _read_tma_region_input(fov_list_info, region_params)
-    else:
-        _read_non_tma_region_input(fov_list_info, region_params)
+    _read_non_tma_region_input(fov_list_info, region_params)
 
     # need to copy fov metadata over, needed for generate_fov_list
     tiling_params['fovs'] = copy.deepcopy(fov_list_info['fovs'])
@@ -364,7 +230,7 @@ def set_tiling_params(fov_list_path, moly_path, tma=False):
     moly_interval_insert = moly_interval_insert.upper()
 
     # if moly insert is set, we need to specify an additional moly_interval param
-    # NOTE: the interval applies regardless of if the fovs overlap runs or not
+    # NOTE: the interval applies regardless of if the fovs overlap regions or not
     if moly_interval_insert == 'Y':
         moly_interval = read_tiling_param(
             "Enter the FOV interval size to insert moly points: ",
@@ -378,19 +244,18 @@ def set_tiling_params(fov_list_path, moly_path, tma=False):
     return tiling_params, moly_point
 
 
-# helper function for creating all pairs between two lists
 def generate_x_y_fov_pairs(x_range, y_range):
-    """Given all x and y coordinates a fov can take, generate all possible (x, y) pairings
+    """Given all x and y coordinates a FOV can take, generate all possible (x, y) pairings
 
     Args:
         x_range (list):
-            Range of x values a fov can take
+            Range of x values a FOV can take
         y_range (list):
-            Range of y values a fov can take
+            Range of y values a FOV can take
 
     Returns:
         list:
-            Every possible (x, y) pair for a fov
+            Every possible (x, y) pair for a FOV
     """
 
     # define a list to hold all the (x, y) pairs
@@ -405,35 +270,57 @@ def generate_x_y_fov_pairs(x_range, y_range):
     return all_pairs
 
 
-def generate_fov_list(tiling_params, moly_point, tma=False):
-    """Generate the list of fovs on the image from the tiling_params set
+def generate_fov_list_non_tma(tiling_params, moly_point):
+    """Generate the list of FOVs on the image from the `tiling_params` set for non-TMAs
+
+    Moly point insertion: happens once every number of FOVs you specified in
+    `set_tiling_params_non_tma`. There are a couple caveats to keep in mind:
+
+    - The interval specified will not reset between regions. In other words, if the interval is 3
+    and the next set of FOVs contains 2 in region 1 and 1 in region 2, the next Moly point will be
+    placed after the 1st FOV in region 2 (not after the 3rd FOV in region 2).
+    Moly points between regions are ignored in this calculation.
+    - If the interval specified cleanly divides the number of FOVs in a region, a Moly point will
+    not be placed at the end of the region. Suppose 3 FOVs are defined along both the x- and y-axis
+    for region 1 (for a total of 9 FOVs) and a Moly point FOV interval of 3 is specified.
+    Without also setting Moly point insertion between different regions,
+    a Moly point will NOT be placed after the last FOV of region 1 (the next Moly point will appear
+    in region 2's FOVs).
 
     Args:
         tiling_params (dict):
             The tiling parameters created by `set_tiling_params`
         moly_point (dict):
-            The moly point to insert between fovs (and intervals if specified in `tiling_params`)
-        tma (bool):
-            Whether the data in tiling_params is in TMA format or not
+            The moly point to insert between FOVs (and intervals if specified in `tiling_params`)
 
     Returns:
         dict:
-            Data containing information about each fov, will be saved to JSON
+            Data containing information about each FOV
     """
 
-    # get the current time info
-    dt = datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
+    # define the fov_regions dict
+    fov_regions = {}
 
-    # define the fov info
-    fov_regions = {
-        'exportDateTime': dt,
-        'fovFormatVersion': tiling_params['fovFormatVersion'],
-        'fovs': []
-    }
+    # get the metadata values to copy over
+    metadata_keys = list(tiling_params.keys())
+
+    # ignore keys set by set_tiling_params: we don't want to copy those over
+    keys_remove = ['region_params', 'moly_run', 'moly_interval']
+
+    # for simplicity's sake, copy over only the string, int, float, and bool values
+    for mk in metadata_keys:
+        if mk not in keys_remove and type(tiling_params[mk]) in [str, int, float, bool]:
+            fov_regions[mk] = tiling_params[mk]
+
+    # define a specific FOVs field in fov_regions, this will contain the actual FOVs
+    fov_regions['fovs'] = []
 
     # define a counter to determine where to insert a moly point
     # only used if tiling_params['moly_interval'] is set
+    # NOTE: total_fovs is used to prevent moly_counter from initiating the addition of
+    # a Moly point at the end of a region
     moly_counter = 0
+    total_fovs = 0
 
     # iterate through each region and append created fovs to fov_regions['fovs']
     for region_index, region_info in enumerate(tiling_params['region_params']):
@@ -441,13 +328,8 @@ def generate_fov_list(tiling_params, moly_point, tma=False):
         start_x = region_info['region_start_x']
         start_y = region_info['region_start_y']
 
-        # generate range of x and y coordinates
-        if tma:
-            x_range = region_info['x_intervals']
-            y_range = region_info['y_intervals']
-        else:
-            x_range = range(region_info['fov_num_x'])
-            y_range = list(reversed(range(region_info['fov_num_y'])))
+        x_range = list(range(region_info['fov_num_x']))
+        y_range = list(range(region_info['fov_num_y']))
 
         # create all pairs between two lists
         x_y_pairs = generate_x_y_fov_pairs(x_range, y_range)
@@ -461,16 +343,15 @@ def generate_fov_list(tiling_params, moly_point, tma=False):
             # make sure the fov_names are set in the same shuffled indices for renaming
             x_y_pairs, fov_names = shuffle(x_y_pairs, fov_names)
 
-        for index, (xi, yi) in enumerate(x_y_pairs):
-            # set the current x and y coordinate
-            if tma:
-                cur_x = xi
-                cur_y = yi
-            else:
-                cur_x = start_x + xi * region_info['x_fov_size']
-                cur_y = start_y + yi * region_info['y_fov_size']
+        # update total_fovs, we'll prevent moly_counter from triggering the appending of
+        # a Moly point at the end of a region this way
+        total_fovs += len(x_y_pairs)
 
-            # copy the fov metadata over and add cur_x, cur_y, and identifier
+        for index, (xi, yi) in enumerate(x_y_pairs):
+            cur_x = start_x + xi * region_info['x_fov_size']
+            cur_y = start_y - yi * region_info['y_fov_size']
+
+            # copy the fov metadata over and add cur_x, cur_y, and name
             fov = copy.deepcopy(tiling_params['fovs'][region_index])
             fov['centerPointMicrons']['x'] = cur_x
             fov['centerPointMicrons']['y'] = cur_y
@@ -482,9 +363,11 @@ def generate_fov_list(tiling_params, moly_point, tma=False):
             # increment moly_counter as we've added another fov
             moly_counter += 1
 
-            # append a moly point if moly_interval is set and we've reached the interval threshold
+            # append a Moly point if moly_interval is set and we've reached the interval threshold
+            # the exception: don't insert a Moly point at the end of a region
             if 'moly_interval' in tiling_params and \
-               moly_counter % tiling_params['moly_interval'] == 0:
+               moly_counter % tiling_params['moly_interval'] == 0 and \
+               moly_counter < total_fovs:
                 fov_regions['fovs'].append(moly_point)
 
         # append moly point to seperate runs if not last and if specified
@@ -495,13 +378,105 @@ def generate_fov_list(tiling_params, moly_point, tma=False):
     return fov_regions
 
 
+def generate_fov_list_tma(fov_list_path, num_fov_x, num_fov_y):
+    """Generate the list of FOVs on the image from the tiling_params set for TMAs.
+
+    NOTE: unlike non-TMAs, this list of FOVs is just an intermediate step to the interactive
+    remapping process. So the result will just be each FOV name mapped to its centroid.
+
+    Args:
+        fov_list_path (dict):
+            Path to the JSON file containing the FOVs used to define each tiled region
+        num_fov_x (int):
+            Number of FOVs to define along the x-axis
+        num_fov_y (int):
+            Number of FOVs to define along the y-axis
+
+    Returns:
+        dict:
+            Data containing information about each FOV (just name mapped to centroid)
+    """
+
+    # file path validation
+    if not os.path.exists(fov_list_path):
+        raise FileNotFoundError("FOV region file %s does not exist" % fov_list_path)
+
+    # user needs to define at least 3 FOVs along the x- and y-axes
+    if num_fov_x < 3:
+        raise ValueError("Number of FOVs along x-axis must be at least 3")
+
+    if num_fov_y < 3:
+        raise ValueError("Number of FOVs along y-axis must be at least 3")
+
+    # read in fov_list_path
+    with open(fov_list_path, 'r') as flf:
+        fov_list_info = json.load(flf)
+
+    # a TMA can only be defined by 2 FOVs: an upper-left and a bottom-right
+    if len(fov_list_info['fovs']) != 2:
+        raise ValueError("Your FOV region file %s needs to contain only 2 FOVs" % fov_list_path)
+
+    # retrieve the corner FOVs
+    # NOTE: the upper-left should always be listed before the bottom-right
+    upper_left = fov_list_info['fovs'][0]
+    bottom_right = fov_list_info['fovs'][1]
+
+    # define the start and end coordinates
+    start_fov_x = upper_left['centerPointMicrons']['x']
+    end_fov_x = bottom_right['centerPointMicrons']['x']
+    start_fov_y = upper_left['centerPointMicrons']['y']
+    end_fov_y = bottom_right['centerPointMicrons']['y']
+
+    # the coordinates have to be valid
+    if start_fov_x > end_fov_x:
+        err_msg = ("Coordinate error for region %s: upper-left x coordinates cannot be"
+                   " greater than bottom-right coordinates")
+        raise ValueError(err_msg % upper_left['name'])
+
+    # NOTE: because ascending values on the y-axis go from bottom to top
+    # we need to enforce a < rather than > constraint
+    if start_fov_y < end_fov_y:
+        err_msg = ("Coordinate error for region %s: upper-left y coordinates cannot be"
+                   " less than bottom-right coordinates")
+        raise ValueError(err_msg % upper_left['name'])
+
+    # define each FOV along the x- and y-axis
+    # casted because indices cannot be floats
+    # need .item() cast to prevent int64 is not JSON serializable error
+    x_interval = [
+        x.item() for x in np.linspace(start_fov_x, end_fov_x, num_fov_x).astype(int)
+    ]
+    y_interval = list(reversed([
+        y.item() for y in np.linspace(end_fov_y, start_fov_y, num_fov_y).astype(int)
+    ]))
+
+    # create all pairs between two lists
+    x_y_pairs = generate_x_y_fov_pairs(x_interval, y_interval)
+
+    # name the FOVs according to MIBI conventions
+    fov_names = ['R%dC%d' % (y + 1, x + 1) for x in range(num_fov_x) for y in range(num_fov_y)]
+
+    # get the metadata values to copy over
+    metadata_keys = list(fov_list_info.keys())
+    metadata_keys.remove('fovs')
+
+    # define the fov_regions dict
+    fov_regions = {}
+
+    # map each name to its corresponding coordinate value
+    for index, (xi, yi) in enumerate(x_y_pairs):
+        fov_regions[fov_names[index]] = (xi, yi)
+
+    return fov_regions
+
+
 def convert_microns_to_pixels(coord):
     """Convert the coordinate in stage microns to optical pixels
 
     In other words, co-register using the centroid of a FOV.
 
     The values are coerced to ints to allow indexing into the slide.
-    Coordinates are also returned in (y, x) form to account for a different coordinate axis.
+    Coordinates are also returned in `(y, x)` form to account for a different coordinate axis.
 
     Args:
         coord (tuple):
@@ -514,73 +489,73 @@ def convert_microns_to_pixels(coord):
 
     # NOTE: all conversions are done using the fiducials
     # convert from microns to stage coordinates
-    stage_coord_x = (coord[0] * 0.001001 - 0.3116)
-    stage_coord_y = (coord[1] * 0.001018 - 0.6294)
+    stage_coord_x = (
+        coord[0] * settings.MICRON_TO_STAGE_X_MULTIPLIER - settings.MICRON_TO_STAGE_X_OFFSET
+    )
+    stage_coord_y = (
+        coord[1] * settings.MICRON_TO_STAGE_Y_MULTIPLIER - settings.MICRON_TO_STAGE_Y_OFFSET
+    )
 
     # convert from stage coordinates to pixels
-    pixel_coord_x = (stage_coord_x + 27.79) / 0.06887
-    pixel_coord_y = (stage_coord_y - 77.40) / -0.06926
+    pixel_coord_x = (
+        stage_coord_x + settings.STAGE_TO_PIXEL_X_OFFSET
+    ) * settings.STAGE_TO_PIXEL_X_MULTIPLIER
+    pixel_coord_y = (
+        stage_coord_y + settings.STAGE_TO_PIXEL_Y_OFFSET
+    ) * settings.STAGE_TO_PIXEL_Y_MULTIPLIER
 
     return (int(pixel_coord_y), int(pixel_coord_x))
 
 
-def assign_closest_fovs(manual_fovs, auto_fovs, moly_point_name):
-    """For each fov in `manual_fovs`, map it to its closest fov in `auto_fovs`
+def assign_closest_fovs(manual_fovs, auto_fovs):
+    """For each FOV in `manual_fovs`, map it to its closest FOV in `auto_fovs`
 
     Args:
         manual_fovs (dict):
-            The list of fovs manual by the user.
-            Assumed to have the same region dimension and the same Moly point
-            as `auto_fov_regions`.
+            The list of FOVs proposed by the user
         auto_fovs (dict):
             The list of fovs generated by `set_tiling_params` run in
             `example_fov_grid_generate.ipynb`
-        moly_point_name (str):
-            The name of the Moly point used in `auto_fov_regions` and `manual_fov_regions`
 
     Returns:
         tuple:
 
-        - A dict defining the mapping of fov names between `manual_fovs` and
+        - A dict defining the mapping of FOV names between `manual_fovs` and
           `auto_fovs`
-        - A dict defining each fov in `manual_fovs` mapped to its centroid
+        - A dict defining each FOV in `manual_fovs` mapped to its centroid
           coordinates and size
-        - A dict defining each fov in `auto_fovs` mapped to its centroid
+        - A dict defining each FOV in `auto_fovs` mapped to its centroid
           coordinates and size
     """
 
-    # define the centroid and size info for manual_fovs and auto_fovs
+    # define the converted centroid info for manual_fovs and auto_fovs
+    # NOTE: manual FOVs is defined as a normal run file would, but auto FOVs
+    # is defined as simply the FOV name to its centroid coordinate
     manual_fovs_info = {
-        fov['name']: {
-            'centroid': convert_microns_to_pixels(
-                (fov['centerPointMicrons']['x'], fov['centerPointMicrons']['y'])
-            ),
-            'size': (fov['frameSizePixels']['width'], fov['frameSizePixels']['height'])
-        }
+        fov['name']: convert_microns_to_pixels(
+            (fov['centerPointMicrons']['x'], fov['centerPointMicrons']['y'])
+        )
 
-        for fov in manual_fovs['fovs'] if fov['name'] != moly_point_name
+        for fov in manual_fovs['fovs']
     }
 
     auto_fovs_info = {
-        fov['name']: {
-            'centroid': convert_microns_to_pixels(
-                (fov['centerPointMicrons']['x'], fov['centerPointMicrons']['y'])
-            ),
-            'size': (fov['frameSizePixels']['width'], fov['frameSizePixels']['height'])
-        }
+        fov: convert_microns_to_pixels(
+            (auto_fovs[fov][0], auto_fovs[fov][1])
+        )
 
-        for fov in auto_fovs['fovs'] if fov['name'] != moly_point_name
+        for fov in auto_fovs
     }
 
     # we define these "reverse" dicts to map from centroid back to fov name
     # this makes it easier to use numpy broadcasting to help find the closest fov pairs
     manual_centroid_to_fov = {
-        (manual_fovs_info[fov]['centroid'][0], manual_fovs_info[fov]['centroid'][1]): fov
+        (manual_fovs_info[fov][0], manual_fovs_info[fov][1]): fov
         for fov in manual_fovs_info
     }
 
     auto_centroid_to_fov = {
-        (auto_fovs_info[fov]['centroid'][0], auto_fovs_info[fov]['centroid'][1]): fov
+        (auto_fovs_info[fov][0], auto_fovs_info[fov][1]): fov
         for fov in auto_fovs_info
     }
 
@@ -588,8 +563,6 @@ def assign_closest_fovs(manual_fovs, auto_fovs, moly_point_name):
     manual_centroids = np.array(
         [list(centroid) for centroid in manual_centroid_to_fov]
     )
-
-    # define numpy arrays of the manual and auto centroids
     auto_centroids = np.array(
         [list(centroid) for centroid in auto_centroid_to_fov]
     )
@@ -630,26 +603,26 @@ def generate_fov_circles(manual_to_auto_map, manual_fovs_info, auto_fovs_info,
 
     Args:
         manual_to_auto_map (dict):
-            defines the mapping of manual to auto fov names
+            defines the mapping of manual to auto FOV names
         manual_fovs_info (dict):
-            maps each manual fov to its centroid coordinates and size
+            maps each manual FOV to its centroid coordinates and size
         auto_fovs_info (dict):
-            maps each automatically-generated fov to its centroid coordinates and size
+            maps each automatically-generated FOV to its centroid coordinates and size
         manual_name (str):
-            the name of the manual fov to highlight
+            the name of the manual FOV to highlight
         auto_name (str):
-            the name of the automatically-generated fov to highlight
+            the name of the automatically-generated FOV to highlight
         slide_img (numpy.ndarray):
             the image to overlay
         draw_radius (int):
-            the radius of the circle to overlay for each fov, will be centered at the centroid
+            the radius of the circle to overlay for each FOV, will be centered at the centroid
 
     Returns:
         tuple:
 
-        - A `numpy.ndarray` containing the slide_img with circles defining each fov
-        - A dict mapping each manual fov to its annotation coordinate
-        - A dict mapping each automatically-generated fov to its annotation coordinate
+        - A `numpy.ndarray` containing the slide_img with circles defining each FOV
+        - A `dict` mapping each manual FOV to its annotation coordinate
+        - A `dict` mapping each automatically-generated FOV to its annotation coordinate
     """
 
     # define dictionaries to hold the coordinates
@@ -662,8 +635,8 @@ def generate_fov_circles(manual_to_auto_map, manual_fovs_info, auto_fovs_info,
     # generate the regions for each manual and mapped auto fov
     for mfi in manual_fovs_info:
         # get the x- and y-coordinate of the centroid
-        manual_x = int(manual_fovs_info[mfi]['centroid'][0])
-        manual_y = int(manual_fovs_info[mfi]['centroid'][1])
+        manual_x = int(manual_fovs_info[mfi][0])
+        manual_y = int(manual_fovs_info[mfi][1])
 
         # define the circle coordinates for the region
         mr_x, mr_y = ellipse(
@@ -686,8 +659,8 @@ def generate_fov_circles(manual_to_auto_map, manual_fovs_info, auto_fovs_info,
     # repeat but for the automatically generated points
     for afi in auto_fovs_info:
         # repeat the above for auto points
-        auto_x = int(auto_fovs_info[afi]['centroid'][0])
-        auto_y = int(auto_fovs_info[afi]['centroid'][1])
+        auto_x = int(auto_fovs_info[afi][0])
+        auto_y = int(auto_fovs_info[afi][1])
 
         # define the circle coordinates for the region
         ar_x, ar_y = ellipse(
@@ -711,22 +684,22 @@ def generate_fov_circles(manual_to_auto_map, manual_fovs_info, auto_fovs_info,
 
 def update_mapping_display(change, w_auto, manual_to_auto_map, manual_coords, auto_coords,
                            slide_img, draw_radius=7):
-    """Changes the selected pairs of circles on the image based on new selected manual fov
+    """Changes the selected pairs of circles on the image based on new selected manual FOV
 
     Helper to `update_mapping` nested callback function in `interactive_remap`
 
     Args:
         change (dict):
-            defines the properties of the changed value of the manual fov menu
+            defines the properties of the changed value of the manual FOV menu
         w_auto (ipywidgets.widgets.widget_selection.Dropdown):
-            the dropdown menu handler for the automatically-generated fovs
+            the dropdown menu handler for the automatically-generated FOVs
         manual_to_auto_map (dict):
-            defines the mapping of manual to auto fov names
+            defines the mapping of manual to auto FOV names
         manual_coords (dict):
-            a dict defining each fov in `manual_fov_regions` mapped to its centroid
+            a dict defining each FOV in `manual_fov_regions` mapped to its centroid
             coordinates
         auto_coords (dict):
-            a dict defining each fov in `auto_fov_regions` mapped to its centroid
+            a dict defining each FOV in `auto_fov_regions` mapped to its centroid
             coordinates
         slide_img (numpy.ndarray):
             the image to overlay
@@ -797,20 +770,20 @@ def update_mapping_display(change, w_auto, manual_to_auto_map, manual_coords, au
 
 def remap_manual_to_auto_display(change, w_man, manual_to_auto_map, auto_coords,
                                  slide_img, draw_radius=7):
-    """Changes the bolded automatically-generated fov to new value selected for manual fov
+    """Changes the bolded automatically-generated FOV to new value selected for manual FOV
     and updates the mapping in `manual_to_auto_map`
 
     Helper to `remap_values` nested callback function in `interactive_remap`
 
     Args:
         change (dict):
-            defines the properties of the changed value of the automatically-generated fov menu
+            defines the properties of the changed value of the automatically-generated FOV menu
         w_man (ipywidgets.widgets.widget_selection.Dropdown):
-            the dropdown menu handler for the manual fovs
+            the dropdown menu handler for the manual FOVs
         manual_to_auto_map (dict):
-            defines the mapping of manual to auto fov names
+            defines the mapping of manual to auto FOV names
         auto_coords (dict):
-            maps each automatically-generated fov to its annotation coordinate
+            maps each automatically-generated FOV to its annotation coordinate
         slide_img (numpy.ndarray):
             the image to overlay
         draw_radius (int):
@@ -855,13 +828,13 @@ def remap_manual_to_auto_display(change, w_man, manual_to_auto_map, auto_coords,
 
 
 def write_manual_to_auto_map(manual_to_auto_map, save_ann, mapping_path):
-    """Saves the manually-defined to automatically-generated fov map and notifies the user
+    """Saves the manually-defined to automatically-generated FOV map and notifies the user
 
     Helper to `save_mapping` nested callback function in `interactive_remap`
 
     Args:
         manual_to_auto_map (dict):
-            defines the mapping of manual to auto fov names
+            defines the mapping of manual to auto FOV names
         save_ann (dict):
             contains the annotation object defining the save notification
         mapping_path (str):
@@ -901,11 +874,11 @@ def interactive_remap(manual_to_auto_map, manual_fovs_info,
 
     Args:
         manual_to_auto_map (dict):
-            defines the mapping of manual to auto fov names
+            defines the mapping of manual to auto FOV names
         manual_fovs_info (dict):
-            maps each manual fov to its centroid coordinates and size
+            maps each manual FOV to its centroid coordinates and size
         auto_fovs_info (dict):
-            maps each automatically-generated fov to its centroid coordinates and size
+            maps each automatically-generated FOV to its centroid coordinates and size
         slide_img (numpy.ndarray):
             the image to overlay
         mapping_path (str):
@@ -1076,7 +1049,7 @@ def interactive_remap(manual_to_auto_map, manual_fovs_info,
 
 
 def remap_and_reorder_fovs(manual_fov_regions, manual_to_auto_map,
-                           moly_point, randomize=False,
+                           moly_path, randomize=False,
                            moly_insert=False, moly_interval=5):
     """Runs 3 separate tasks on `manual_fov_regions`:
 
@@ -1086,11 +1059,11 @@ def remap_and_reorder_fovs(manual_fov_regions, manual_to_auto_map,
 
     Args:
         manual_fov_regions (dict):
-            The list of fovs manual by the user
+            The list of FOVs proposed by the user
         manual_to_auto_map (dict):
-            Defines the mapping of manual to auto fov names
-        moly_point (dict):
-            The Moly point to insert
+            Defines the mapping of manual to auto FOV names
+        moly_point (str):
+            The path to the Moly point to insert
         randomize (bool):
             Whether to randomize the FOVs
         moly_insert (bool):
@@ -1103,6 +1076,14 @@ def remap_and_reorder_fovs(manual_fov_regions, manual_to_auto_map,
         dict:
             `manual_fov_regions` with new FOV names, randomized, and with Moly points
     """
+
+    # file path validation
+    if not os.path.exists(moly_path):
+        raise FileNotFoundError("Moly point %s does not exist" % moly_path)
+
+    # load the Moly point in
+    with open(moly_path, 'r') as mp:
+        moly_point = json.load(mp)
 
     # error check: moly_interval cannot be less than or equal to 0
     if moly_interval <= 0:
@@ -1139,7 +1120,10 @@ def remap_and_reorder_fovs(manual_fov_regions, manual_to_auto_map,
 
     # insert Moly points at the specified interval if specified
     if moly_insert:
-        for mi in range(moly_interval, len(remapped_fov_regions['fovs']), moly_interval + 1):
+        mi = moly_interval
+
+        while mi < len(remapped_fov_regions['fovs']):
             remapped_fov_regions['fovs'].insert(mi, moly_point)
+            mi += moly_interval + 1
 
     return remapped_fov_regions
