@@ -215,8 +215,8 @@ def set_tiling_params_non_tma(fov_list_path, moly_path):
         dtype=str
     )
 
+    # convert to uppercase to standardize
     moly_run_insert = moly_run_insert.upper()
-
     tiling_params['moly_run'] = moly_run_insert
 
     # whether to insert moly points between fovs
@@ -227,6 +227,7 @@ def set_tiling_params_non_tma(fov_list_path, moly_path):
         dtype=str
     )
 
+    # convert to uppercase to standardize
     moly_interval_insert = moly_interval_insert.upper()
 
     # if moly insert is set, we need to specify an additional moly_interval param
@@ -427,7 +428,7 @@ def generate_fov_list_tma(fov_list_path, num_fov_x, num_fov_y):
     start_fov_y = upper_left['centerPointMicrons']['y']
     end_fov_y = bottom_right['centerPointMicrons']['y']
 
-    # the coordinates have to be valid
+    # the coordinates have to be valid: upper-left cannot be below or to the right of bottom-right
     if start_fov_x > end_fov_x:
         err_msg = ("Coordinate error for region %s: upper-left x coordinates cannot be"
                    " greater than bottom-right coordinates")
@@ -440,9 +441,8 @@ def generate_fov_list_tma(fov_list_path, num_fov_x, num_fov_y):
                    " less than bottom-right coordinates")
         raise ValueError(err_msg % upper_left['name'])
 
-    # define each FOV along the x- and y-axis
-    # casted because indices cannot be floats
-    # need .item() cast to prevent int64 is not JSON serializable error
+    # define each FOV along the x- and y-axis, casted because indices cannot be floats
+    # need additional .item() cast to prevent int64 is not JSON serializable error
     x_interval = [
         x.item() for x in np.linspace(start_fov_x, end_fov_x, num_fov_x).astype(int)
     ]
@@ -625,7 +625,7 @@ def generate_fov_circles(manual_to_auto_map, manual_fovs_info, auto_fovs_info,
         - A `dict` mapping each automatically-generated FOV to its annotation coordinate
     """
 
-    # define dictionaries to hold the coordinates
+    # define dicts to hold the coordinates
     manual_coords = {}
     auto_coords = {}
 
@@ -677,6 +677,7 @@ def generate_fov_circles(manual_to_auto_map, manual_fovs_info, auto_fovs_info,
             slide_img[ar_x, ar_y, 1] = 197
             slide_img[ar_x, ar_y, 2] = 255
 
+        # define the annotations to place at each coordinate
         auto_coords[afi] = (auto_x, auto_y)
 
     return slide_img, manual_coords, auto_coords
