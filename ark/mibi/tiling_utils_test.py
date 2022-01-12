@@ -27,7 +27,7 @@ _REMAP_MOLY_INTERVAL_CASES = [4, 2]
 
 def test_read_tiling_param(monkeypatch):
     # test 1: int inputs
-    # test an incorrect non-int, an incorrect int response, then a correct response
+    # test an incorrect non-int response, an incorrect int response, then a correct response
     user_inputs_int = iter(['N', 0, 1])
 
     # make sure the function receives the incorrect input first then the correct input
