@@ -379,10 +379,10 @@ def generate_fov_list_non_tma(tiling_params, moly_point):
 
 
 def generate_fov_list_tma(fov_list_path, num_fov_x, num_fov_y):
-    """Generate the list of FOVs on the image from the tiling_params set for TMAs.
+    """Generate the list of FOVs on the image using the TMA input file in `fov_list_path`
 
-    NOTE: unlike non-TMAs, this list of FOVs is just an intermediate step to the interactive
-    remapping process. So the result will just be each FOV name mapped to its centroid.
+    NOTE: unlike non-TMAs, the returned list of FOVs is just an intermediate step to the
+    interactive remapping process. So the result will just be each FOV name mapped to its centroid.
 
     Args:
         fov_list_path (dict):
@@ -394,7 +394,7 @@ def generate_fov_list_tma(fov_list_path, num_fov_x, num_fov_y):
 
     Returns:
         dict:
-            Data containing information about each FOV (just name mapped to centroid)
+            Data containing information about each FOV (just FOV name mapped to centroid)
     """
 
     # file path validation
