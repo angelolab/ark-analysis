@@ -1062,7 +1062,7 @@ def remap_and_reorder_fovs(manual_fov_regions, manual_to_auto_map,
             The list of FOVs proposed by the user
         manual_to_auto_map (dict):
             Defines the mapping of manual to auto FOV names
-        moly_point (str):
+        moly_path (str):
             The path to the Moly point to insert
         randomize (bool):
             Whether to randomize the FOVs
