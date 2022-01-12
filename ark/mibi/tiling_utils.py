@@ -455,10 +455,6 @@ def generate_fov_list_tma(fov_list_path, num_fov_x, num_fov_y):
     # name the FOVs according to MIBI conventions
     fov_names = ['R%dC%d' % (y + 1, x + 1) for x in range(num_fov_x) for y in range(num_fov_y)]
 
-    # get the metadata values to copy over
-    metadata_keys = list(fov_list_info.keys())
-    metadata_keys.remove('fovs')
-
     # define the fov_regions dict
     fov_regions = {}
 
