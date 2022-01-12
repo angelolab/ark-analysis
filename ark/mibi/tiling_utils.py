@@ -102,14 +102,14 @@ def _read_non_tma_region_input(fov_list_info, region_params):
         # allow the user to specify the number of fovs along each dimension
         num_x = read_tiling_param(
             "Enter number of x FOVs for region %s: " % fov['name'],
-            "Error: number of x FOVs must be positive",
+            "Error: number of x FOVs must be a positive integer",
             lambda nx: nx >= 1,
             dtype=int
         )
 
         num_y = read_tiling_param(
             "Enter number of y FOVs for region %s: " % fov['name'],
-            "Error: number of y FOVs must be positive",
+            "Error: number of y FOVs must be a positive integer",
             lambda ny: ny >= 1,
             dtype=int
         )
@@ -120,14 +120,14 @@ def _read_non_tma_region_input(fov_list_info, region_params):
         # allow the user to specify the step size along each dimension
         size_x = read_tiling_param(
             "Enter the x step size for region %s (in microns): " % fov['name'],
-            "Error: x step size must be positive",
+            "Error: x step size must be a positive integer",
             lambda sx: sx >= 1,
             dtype=int
         )
 
         size_y = read_tiling_param(
             "Enter the y step size for region %s (in microns): " % fov['name'],
-            "Error: y step size must be positive",
+            "Error: y step size must be a positive integer",
             lambda sy: sy >= 1,
             dtype=int
         )
