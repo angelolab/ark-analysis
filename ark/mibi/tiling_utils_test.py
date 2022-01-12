@@ -229,7 +229,7 @@ def test_set_tiling_params_non_tma(monkeypatch):
             range(len(sample_region_params))
         )
 
-        # assert moly run is set to Y
+        # assert moly region is set to Y
         assert sample_tiling_params['moly_region'] == 'Y'
 
         # assert moly interval is set to 1
@@ -308,7 +308,7 @@ def test_generate_fov_list_non_tma(randomize_setting, moly_region,
         (x, y) for x in np.arange(50, 90, 10) for y in list(reversed(np.arange(145, 155, 5)))
     ]
 
-    # if moly_region is Y, add a point in between the two runs
+    # if moly_region is Y, add a point in between the two regions
     if moly_region == 'Y':
         actual_center_points_sorted.insert(8, (14540, -10830))
 
@@ -343,7 +343,7 @@ def test_generate_fov_list_non_tma(randomize_setting, moly_region,
         elif moly_region and moly_interval_setting:
             fov_1_end = 11 if moly_interval_value == 3 else 10
 
-        # only the second run is randomized
+        # only the second region is randomized
         if randomize_setting == ['N', 'Y']:
             # ensure the fov 1 center points are the same for both sorted and random
             assert center_points[:fov_1_end] == actual_center_points_sorted[:fov_1_end]
@@ -358,7 +358,7 @@ def test_generate_fov_list_non_tma(randomize_setting, moly_region,
             # however, fov 2 sorted entries should NOT equal fov 2 random entries
             # NOTE: due to randomization, this test will fail once in a blue moon
             assert center_points[fov_1_end:] != actual_center_points_sorted[fov_1_end:]
-        # both runs are randomized
+        # both regions are randomized
         else:
             # ensure the random center points for fov 1 contain the same elements
             # as its sorted version
