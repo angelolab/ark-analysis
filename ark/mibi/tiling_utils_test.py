@@ -25,6 +25,52 @@ _REMAP_MOLY_INSERT_CASES = [False, True]
 _REMAP_MOLY_INTERVAL_CASES = [4, 2]
 
 
+def test_assign_metadata_vals():
+    example_input_dict = {
+        1: 'hello',
+        2: False,
+        3: 5.1,
+        4: 7,
+        5: {'do': 'not copy'},
+        6: ['blah'],
+        7: None
+    }
+
+    example_output_dict = {
+        3: True,
+        4: 1,
+        5: {'hello': 'world'},
+        6: 3.14,
+        7: None
+    }
+
+    example_keys_ignore = [2, 4, 6]
+
+    # tests a few things
+    # 1. valid metadata keys are copied over from input_dict to output_dict
+    # 2. keys_ignore do not make it into output_dict
+    # 3. if a metadata key in input_dict exists in output_dict, it gets overwritten
+    # 4. everything in output_dict that shouldn't get overwritten stays the same
+    # 5. do not copy over non str, bool, int, or float values (ex. dict)
+    # 6. if a value in keys_ignore doesn't exist in input_dict, ignore
+    new_output_dict = tiling_utils.assign_metadata_vals(
+        example_input_dict, example_output_dict, example_keys_ignore
+    )
+
+    # assert the keys are correct
+    misc_utils.verify_same_elements(
+        new_output_keys=list(new_output_dict.keys()),
+        valid_keys=[1, 3, 4, 5, 6, 7]
+    )
+
+    # assert the values in each key is correct
+    assert new_output_dict[3] == 5.1
+    assert new_output_dict[4] == 1
+    assert 'hello' in new_output_dict[5] and new_output_dict[5]['hello'] == 'world'
+    assert new_output_dict[6] == 3.14
+    assert new_output_dict[7] is None
+
+
 def test_read_tiling_param(monkeypatch):
     # test 1: int inputs
     # test an incorrect non-int response, an incorrect int response, then a correct response

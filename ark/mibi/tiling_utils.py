@@ -14,6 +14,41 @@ import ark.settings as settings
 from ark.utils import misc_utils
 
 
+def assign_metadata_vals(input_dict, output_dict, keys_ignore):
+    """Copy the `str`, `int`, `float`, and `bool` metadata keys of
+    `input_dict` over to `output_dict`
+
+    Args:
+        input_dict (dict):
+            The `dict` to copy the metadata values over from
+        output_dict (dict):
+            The `dict` to copy the metadata values into.
+            Note that if a metadata key name in `input_dict` exists in `output_dict`,
+            the latter's will get overwritten
+        keys_ignore (list):
+            The list of keys in input_dict to ignore
+
+    Returns:
+        dict:
+            `output_dict` with the valid `metadata_keys` from `input_dict` copied over
+    """
+
+    # get the metadata values to copy over
+    metadata_keys = list(input_dict.keys())
+
+    # remove anything set in keys_ignore
+    for ki in keys_ignore:
+        if ki in input_dict:
+            metadata_keys.remove(ki)
+
+    # assign over the remaining metadata keys
+    for mk in metadata_keys:
+        if type(input_dict[mk]) in [str, int, float, bool, type(None)]:
+            output_dict[mk] = input_dict[mk]
+
+    return output_dict
+
+
 def read_tiling_param(prompt, error_msg, cond, dtype):
     """A helper function to read in tiling input
 
@@ -185,16 +220,8 @@ def tiled_region_set_params(fov_list_path, moly_path):
     # define the parameter dict to return
     tiling_params = {}
 
-    # get the metadata values to copy over
-    metadata_keys = list(fov_list_info.keys())
-
-    # remove anything set in fov_list_info
-    metadata_keys.remove('fovs')
-
-    # for simplicity's sake, copy over only the string, int, float, and bool values
-    for mk in metadata_keys:
-        if type(fov_list_info[mk]) in [str, int, float, bool]:
-            tiling_params[mk] = fov_list_info[mk]
+    # copy over the metadata values from fov_list_info to tiling_params
+    tiling_params = assign_metadata_vals(fov_list_info, tiling_params, ['fovs'])
 
     # define the region_params dict
     region_params = {rpf: [] for rpf in settings.REGION_PARAM_FIELDS}
@@ -301,16 +328,10 @@ def tiled_region_generate_fov_list(tiling_params, moly_point):
     # define the fov_regions dict
     fov_regions = {}
 
-    # get the metadata values to copy over
-    metadata_keys = list(tiling_params.keys())
-
-    # ignore keys set by set_tiling_params: we don't want to copy those over
-    keys_remove = ['region_params', 'moly_region', 'moly_interval']
-
-    # for simplicity's sake, copy over only the string, int, float, and bool values
-    for mk in metadata_keys:
-        if mk not in keys_remove and type(tiling_params[mk]) in [str, int, float, bool]:
-            fov_regions[mk] = tiling_params[mk]
+    # copy over the metadata values from tiling_params to fov_regions
+    fov_regions = assign_metadata_vals(
+        tiling_params, fov_regions, ['region_params', 'moly_region', 'moly_interval']
+    )
 
     # define a specific FOVs field in fov_regions, this will contain the actual FOVs
     fov_regions['fovs'] = []
@@ -1085,14 +1106,8 @@ def remap_and_reorder_fovs(manual_fov_regions, manual_to_auto_map,
     # define a new fov regions dict for remapped names
     remapped_fov_regions = {}
 
-    # get the metadata values to copy over
-    metadata_keys = list(manual_fov_regions.keys())
-    metadata_keys.remove('fovs')
-
-    # for simplicity's sake, copy over only the string, int, float, and bool values
-    for mk in metadata_keys:
-        if type(manual_fov_regions[mk]) in [str, int, float, bool]:
-            remapped_fov_regions[mk] = manual_fov_regions[mk]
+    # copy over the metadata values from manual_fov_regions to remapped_fov_regions
+    remapped_fov_regions = assign_metadata_vals(manual_fov_regions, remapped_fov_regions, ['fovs'])
 
     # define a new FOVs list for fov_regions_remapped
     remapped_fov_regions['fovs'] = []
