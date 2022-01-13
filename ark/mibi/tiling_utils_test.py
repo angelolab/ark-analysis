@@ -564,13 +564,6 @@ def test_assign_closest_fovs():
 
     # for each manual fov, ensure the centroids are the same in manual_fovs_info
     for fov in manual_sample_fovs['fovs']:
-        # skip the Moly points
-        # if fov['name'] != 'MoQC':
-        #     manual_centroid = tiling_utils.convert_microns_to_pixels(
-        #         tuple(fov['centerPointMicrons'].values())
-        #     )
-
-        #     assert manual_fovs_info[fov['name']] == manual_centroid
         manual_centroid = tiling_utils.convert_microns_to_pixels(
             tuple(fov['centerPointMicrons'].values())
         )
@@ -579,19 +572,15 @@ def test_assign_closest_fovs():
 
     # same for automatically-generated fovs
     for fov in auto_sample_fovs:
-        # if fov != 'MoQC':
-        #     auto_centroid = tiling_utils.convert_microns_to_pixels(
-        #         auto_sample_fovs[fov]
-        #     )
-
-        #     assert auto_fovs_info[fov] == auto_centroid
         auto_centroid = tiling_utils.convert_microns_to_pixels(
             auto_sample_fovs[fov]
         )
 
         assert auto_fovs_info[fov] == auto_centroid
 
-    # assert the mapping is correct
+    # assert the mapping is correct, this covers 2 other test cases:
+    # 1. Not all auto fovs (row150_col100 and row150_col150) will be mapped to
+    # 2. Multiple manual fovs can map to one auto fov (row0_col25 and row50_col25 to row0_col0)
     actual_map = {
         'row0_col25': 'row0_col0',
         'row50_col25': 'row0_col0',
@@ -717,32 +706,30 @@ def test_remap_and_reorder_fovs(randomize_setting, moly_insert, moly_interval):
     manual_sample_fovs_copy['status'] = 'all_systems_go'
 
     # remap the FOVs
-    new_manual_sample_fovs = tiling_utils.remap_and_reorder_fovs(
+    remapped_sample_fovs = tiling_utils.remap_and_reorder_fovs(
         manual_sample_fovs_copy, sample_mapping, 'sample_moly_point.json', randomize_setting,
         moly_insert, moly_interval
     )
 
     # assert id, name, and status are the same
-    assert new_manual_sample_fovs['id'] == manual_sample_fovs_copy['id']
-    assert new_manual_sample_fovs['name'] == manual_sample_fovs_copy['name']
-    assert new_manual_sample_fovs['status'] == manual_sample_fovs_copy['status']
+    assert remapped_sample_fovs['id'] == manual_sample_fovs_copy['id']
+    assert remapped_sample_fovs['name'] == manual_sample_fovs_copy['name']
+    assert remapped_sample_fovs['status'] == manual_sample_fovs_copy['status']
 
-    print(set([fov['name'] for fov in manual_sample_fovs['fovs']]))
-    print(set([fov['name'] for fov in new_manual_sample_fovs['fovs'] if fov['name'] != 'MoQC']))
-
-    # assert same number of FOVs exist in both original and scrambled (excluding Moly points)
-    assert set([fov['name'] for fov in manual_sample_fovs['fovs']]) == \
-           set([fov['name'] for fov in new_manual_sample_fovs['fovs'] if fov['name'] != 'MoQC'])
+    # assert the same number of FOVs exist in the original proposed list of FOVs
+    # and the list of FOVs after remapping
+    assert len(manual_sample_fovs['fovs']) == \
+        len([fov for fov in remapped_sample_fovs['fovs'] if fov['name'] != 'MoQC'])
 
     # assert the mapping was done correctly
-    scrambled_names = [fov['name'] for fov in new_manual_sample_fovs['fovs']]
+    scrambled_names = [fov['name'] for fov in remapped_sample_fovs['fovs']]
     for fov in manual_sample_fovs['fovs']:
         mapped_name = sample_mapping[fov['name']]
         assert mapped_name in scrambled_names
 
-    # assert the same FOV coords are contained in new_manual_sample_fovs as manual_fovs
+    # assert the same FOV coords are contained in remapped_sample_fovs as manual_fovs
     scrambled_coords = [(fov['centerPointMicrons']['x'], fov['centerPointMicrons']['y'])
-                        for fov in new_manual_sample_fovs['fovs'] if fov['name'] != 'MoQC']
+                        for fov in remapped_sample_fovs['fovs'] if fov['name'] != 'MoQC']
     misc_utils.verify_same_elements(
         scrambled_fov_coords=scrambled_coords,
         actual_coords=manual_coords
@@ -760,11 +747,11 @@ def test_remap_and_reorder_fovs(randomize_setting, moly_insert, moly_interval):
     if moly_insert:
         # assert the moly_indices are inserted at the correct locations
         moly_indices = np.arange(
-            moly_interval, len(new_manual_sample_fovs['fovs']), moly_interval + 1
+            moly_interval, len(remapped_sample_fovs['fovs']), moly_interval + 1
         )
         for mi in moly_indices:
-            assert new_manual_sample_fovs['fovs'][mi]['name'] == 'MoQC'
+            assert remapped_sample_fovs['fovs'][mi]['name'] == 'MoQC'
     else:
-        fov_names = [new_manual_sample_fovs['fovs'][i]['name']
-                     for i in range(len(new_manual_sample_fovs['fovs']))]
+        fov_names = [remapped_sample_fovs['fovs'][i]['name']
+                     for i in range(len(remapped_sample_fovs['fovs']))]
         assert 'MoQC' not in fov_names
