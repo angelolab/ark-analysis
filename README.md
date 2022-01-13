@@ -117,7 +117,7 @@ After updating, you can copy over any important paths or modifications from the 
 
 ## Running on Windows
 
-Our repo runs best on Linux-based systems (including MacOS). If you need to run on Windows, please consult https://ark-analysis.readthedocs.io/en/latest/_rtd/windows_setup.html for additional instructions.
+Our repo runs best on Linux-based systems (including MacOS). If you need to run on Windows, please consult our [Windows guide](https://ark-analysis.readthedocs.io/en/latest/_rtd/windows_setup.html) for additional instructions.
 
 ## Questions?
 

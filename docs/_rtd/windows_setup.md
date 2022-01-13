@@ -4,9 +4,7 @@ Our repo works runs best on Linux-based systems (which includes Mac OS). If you 
 
 ### WSL 2
 
-In order to download Docker, you need to install WSL 2 if you don't already have it. **We find it best to download and configure WSL 2 before anything else**. 
-
-We recommend using the Command Prompt to run these commands. 
+In order to download Docker, you need to install WSL 2 if you don't already have it. **We find it best to download and configure WSL 2 before anything else**. We recommend using the Command Prompt to run these commands (and later ones). 
 
 The simplest way to install WSL 2 is to run `wsl --install`. If this works, great. Otherwise, you'll have to run these steps: 
 
@@ -18,8 +16,8 @@ Now run the following steps:
 
 * Download the Linux kernel update package. You can find it here: [Linux kernel update package](https://docs.microsoft.com/en-us/windows/wsl/install-manual#step-4---download-the-linux-kernel-update-package).
 * Set the version to WSL 2: `wsl --set-default-version 2`
-* Type just `wsl` on the command line. If you get an error indicating no installed distributions, you'll need to associate one with your WSL backend. We recommend installing Ubuntu 20.04 LTS in the Microsoft Store.
-* Once Ubuntu is installed, open it (it will open the Ubuntu terminal) and set a username and password to finalize installation. Note that if using a VM or the Hyper-V backend, nested virtualization needs to be turned on. This process varies depending on which virtualization service you use: you'll have to consult their documentation for the how-tos.
+* Type just `wsl` on the command line. You'll likely get an error indicating no installed distributions, meaning you'll need to associate one with your WSL backend. We recommend installing Ubuntu 20.04 LTS in the Microsoft Store.
+* Once Ubuntu is installed, open it (it will open the Ubuntu terminal) and set a username and password to finalize installation. Note that if using a VM or the Hyper-V backend, nested virtualization needs to be turned on. This process varies depending on which virtualization platform you use: you'll have to consult their documentation for the how-tos. 
 
 ### Download git
 
@@ -35,7 +33,11 @@ Open the shortcut (which should be added to your Desktop after installation) and
 
 ### Setting up the repo
 
-In your Command Prompt, clone the `ark-analysis` repo with `git clone` and build the Docker with `docker build` as outlined on our home page. 
+In your Command Prompt, follow similar steps to clone the `ark-analysis` repo and build the Docker:
+
+* Run `git clone https://github.com/angelolab/ark-analysis.git` to clone the `ark-analysis` repo
+* Run `dir ark-analysis` to enter the cloned repo
+* Build the Docker by running `docker build -t ark-analysis .`. Note that the `.` following `ark-analysis` should not be quoted.
 
 To run the script, you have to use `bash start_docker.sh`. If you run into issues with invalid carriage returns (`\r`), please run the following before trying again:
 
