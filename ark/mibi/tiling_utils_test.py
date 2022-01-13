@@ -539,7 +539,9 @@ def test_convert_microns_to_pixels():
 
 
 def test_assign_closest_fovs():
-    # define the coordinates and fov names generated from the fovd script
+    # define the coordinates and fov names generated from the fov script
+    # note that we intentionally define more auto fovs than manual fovs
+    # to test that not all auto fovs necessarily get mapped to
     auto_coords = [(0, 0), (0, 50), (0, 100), (100, 0), (100, 50), (100, 100),
                    (150, 100), (150, 150)]
     auto_fov_names = ['row%d_col%d' % (x, y) for (x, y) in auto_coords]
@@ -579,8 +581,8 @@ def test_assign_closest_fovs():
         assert auto_fovs_info[fov] == auto_centroid
 
     # assert the mapping is correct, this covers 2 other test cases:
-    # 1. Not all auto fovs (row150_col100 and row150_col150) will be mapped to
-    # 2. Multiple manual fovs can map to one auto fov (row0_col25 and row50_col25 to row0_col0)
+    # 1. Not all auto fovs (ex. row150_col100 and row150_col150) will be mapped to
+    # 2. Multiple manual fovs can map to one auto fov (ex. row0_col25 and row50_col25 to row0_col0)
     actual_map = {
         'row0_col25': 'row0_col0',
         'row50_col25': 'row0_col0',
@@ -593,7 +595,7 @@ def test_assign_closest_fovs():
 
 
 def test_generate_fov_circles():
-    # we'll literally be copying the data generated from test_assign_closest_fov_regions
+    # we'll literally be copying the data generated from test_assign_closest_fovs
     sample_manual_to_auto_map = {
         'row0_col25': 'row0_col0',
         'row50_col25': 'row0_col0',
@@ -623,19 +625,15 @@ def test_generate_fov_circles():
     sample_slide_img = np.full((200, 200, 3), 255)
 
     # draw the circles
-    sample_slide_img, sample_manual_coords, sample_auto_coords = \
-        tiling_utils.generate_fov_circles(
-            sample_manual_to_auto_map, sample_manual_fovs_info,
-            sample_auto_fovs_info, 'row0_col25', 'row0_col0',
-            sample_slide_img, draw_radius=1
-        )
+    sample_slide_img = tiling_utils.generate_fov_circles(
+        sample_manual_to_auto_map, sample_manual_fovs_info,
+        sample_auto_fovs_info, 'row0_col25', 'row0_col0',
+        sample_slide_img, draw_radius=1
+    )
 
     # assert the centroids are correct and they are filled in
     for pti in sample_manual_fovs_info:
-        assert pti in sample_manual_coords
-        assert sample_manual_coords[pti] == sample_manual_fovs_info[pti]
-
-        x, y = sample_manual_coords[pti]
+        x, y = sample_manual_fovs_info[pti]
 
         # dark red if row0_col25, else bright red
         if pti == 'row0_col25':
@@ -645,10 +643,7 @@ def test_generate_fov_circles():
 
     # same for the auto annotations
     for ati in sample_auto_fovs_info:
-        assert ati in sample_auto_coords
-        assert sample_auto_coords[ati] == sample_auto_fovs_info[ati]
-
-        x, y = sample_auto_coords[ati]
+        x, y = sample_auto_fovs_info[ati]
 
         # dark blue if row0_col0, else bright blue
         if ati == 'row0_col0':
@@ -730,7 +725,7 @@ def test_remap_and_reorder_fovs(randomize_setting, moly_insert, moly_interval):
         mapped_name = sample_mapping[fov['name']]
         assert mapped_name in scrambled_names
 
-    # assert the same FOV coords are contained in remapped_sample_fovs as manual_fovs
+    # assert the same FOV coords are contained in remapped_sample_fovs as manual_sample_fovs
     scrambled_coords = [(fov['centerPointMicrons']['x'], fov['centerPointMicrons']['y'])
                         for fov in remapped_sample_fovs['fovs'] if fov['name'] != 'MoQC']
     misc_utils.verify_same_elements(
@@ -746,7 +741,7 @@ def test_remap_and_reorder_fovs(randomize_setting, moly_insert, moly_interval):
         assert scrambled_coords == manual_coords
 
     # if Moly points will be inserted, assert they are in the right place at the right interval
-    # otherwise, assert no MoQCs appear
+    # otherwise, assert no Moly points appear
     if moly_insert:
         # assert the moly_indices are inserted at the correct locations
         moly_indices = np.arange(

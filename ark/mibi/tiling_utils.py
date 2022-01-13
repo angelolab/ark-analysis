@@ -539,12 +539,9 @@ def assign_closest_fovs(manual_fovs, auto_fovs):
     Returns:
         tuple:
 
-        - A `dict` defining the mapping of FOV names between `manual_fovs` and
-          `auto_fovs`
-        - A `dict` defining each FOV in `manual_fovs` mapped to its centroid
-          coordinates and size
-        - A `dict` defining each FOV in `auto_fovs` mapped to its centroid
-          coordinates and size
+        - A `dict` defining the mapping of FOV names between `manual_fovs` and `auto_fovs`
+        - A `dict` defining each FOV in `manual_fovs` mapped to its centroid coordinates
+        - A `dict` defining each FOV in `auto_fovs` mapped to its centroid coordinates
     """
 
     # define the converted centroid info for manual_fovs and auto_fovs
@@ -637,11 +634,8 @@ def generate_fov_circles(manual_to_auto_map, manual_fovs_info, auto_fovs_info,
             the radius of the circle to overlay for each FOV, will be centered at the centroid
 
     Returns:
-        tuple:
-
-        - A `numpy.ndarray` containing the slide_img with circles defining each FOV
-        - A `dict` mapping each manual FOV to its annotation coordinate
-        - A `dict` mapping each automatically-generated FOV to its annotation coordinate
+        numpy.ndarray:
+            `slide_img` with defining each manually-defined and automatically-generated FOV
     """
 
     # define dicts to hold the coordinates
@@ -672,9 +666,6 @@ def generate_fov_circles(manual_to_auto_map, manual_fovs_info, auto_fovs_info,
             slide_img[mr_x, mr_y, 1] = 133
             slide_img[mr_x, mr_y, 2] = 133
 
-        # define the annotations to place at each coordinate
-        manual_coords[mfi] = (manual_x, manual_y)
-
     # repeat but for the automatically generated points
     for afi in auto_fovs_info:
         # repeat the above for auto points
@@ -696,10 +687,7 @@ def generate_fov_circles(manual_to_auto_map, manual_fovs_info, auto_fovs_info,
             slide_img[ar_x, ar_y, 1] = 197
             slide_img[ar_x, ar_y, 2] = 255
 
-        # define the annotations to place at each coordinate
-        auto_coords[afi] = (auto_x, auto_y)
-
-    return slide_img, manual_coords, auto_coords
+    return slide_img
 
 
 def update_mapping_display(change, w_auto, manual_to_auto_map, manual_coords, auto_coords,
@@ -893,9 +881,9 @@ def interactive_remap(manual_to_auto_map, manual_fovs_info,
         manual_to_auto_map (dict):
             defines the mapping of manual to auto FOV names
         manual_fovs_info (dict):
-            maps each manual FOV to its centroid coordinates and size
+            maps each manual FOV to its centroid coordinates
         auto_fovs_info (dict):
-            maps each automatically-generated FOV to its centroid coordinates and size
+            maps each automatically-generated FOV to its centroid coordinates
         slide_img (numpy.ndarray):
             the image to overlay
         mapping_path (str):
@@ -962,7 +950,7 @@ def interactive_remap(manual_to_auto_map, manual_fovs_info,
     fig, ax = plt.subplots(figsize=figsize)
 
     # generate the circles and annotations for each circle to display on the image
-    slide_img, manual_coords, auto_coords = generate_fov_circles(
+    slide_img = generate_fov_circles(
         manual_to_auto_map, manual_fovs_info, auto_fovs_info, w_man.value, w_auto.value,
         slide_img, draw_radius
     )
@@ -997,9 +985,8 @@ def interactive_remap(manual_to_auto_map, manual_fovs_info,
         if change['name'] == 'value' and change['new'] != change['old']:
             # need to be in the output widget context to update
             with out:
-                # call the helper function to redraw circles on the slide_img
                 new_slide_img = update_mapping_display(
-                    change, w_auto, manual_to_auto_map, manual_coords, auto_coords,
+                    change, w_auto, manual_to_auto_map, manual_fovs_info, auto_fovs_info,
                     slide_img, draw_radius
                 )
 
@@ -1023,10 +1010,8 @@ def interactive_remap(manual_to_auto_map, manual_fovs_info,
         if change['name'] == 'value' and change['new'] != change['old']:
             # need to be in the output widget context to update
             with out:
-                # call the helper function to redraw the circles on the slide_img
-                # and update manual_to_auto_map with the new w_prop mapping
                 new_slide_img = remap_manual_to_auto_display(
-                    change, w_man, manual_to_auto_map, auto_coords, slide_img, draw_radius
+                    change, w_man, manual_to_auto_map, auto_fovs_info, slide_img, draw_radius
                 )
 
                 # set the new slide img in the plot
