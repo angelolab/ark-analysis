@@ -130,4 +130,4 @@ If you would like to help make `ark` better, please take a look at our [contribu
 ## Citation
 Please cite our [paper](https://www.nature.com/articles/s41587-021-01094-0) if you found our repo useful! 
 
-[Greenwald, Miller et al. Whole-cell segmentation of tissue images with human-level performance using large-scale data annotation and deep learning](https://www.biorxiv.org/content/10.1101/2021.03.01.431313v2)
+[Greenwald, Miller et al. Whole-cell segmentation of tissue images with human-level performance using large-scale data annotation and deep learning](https://www.nature.com/articles/s41587-021-01094-0)
