@@ -4,12 +4,12 @@ Our repo works runs best on Linux-based systems (which includes Mac OS). If you 
 
 ### WSL 2
 
-In order to download Docker, you need to install WSL 2 if you don't already have it. **We find it best to download and configure WSL 2 before anything else**. We recommend using the Command Prompt to run these commands (and later ones). 
+In order to download Docker, you need to install WSL 2 if you don't already have it. **We find it best to download and configure WSL 2 before anything else**. We recommend using the [Command Prompt](https://en.wikipedia.org/wiki/Cmd.exe) to run these commands (and later ones). You can find it by typing `Command Prompt` in the Windows search bar. 
 
 The simplest way to install WSL 2 is to run `wsl --install`. If this works, great. Otherwise, you'll have to run these steps: 
 
-* Open `Windows Features`, you can do this by typing this in the search bar
-* Check both `Virtual Machine Platform` and `Windows Subsystem for Linux`
+* Open `Windows Features`, you can do this by typing this in the Windows search bar
+* Make sure the check box is selected for both `Virtual Machine Platform` and `Windows Subsystem for Linux`
 * Restart your machine
 
 Now run the following steps: 
@@ -29,7 +29,7 @@ After finishing the installer guidelines, go to your Command Prompt and type `gi
 
 Go to [Docker for Windows install](https://docs.docker.com/desktop/windows/install) to download `Docker Desktop`. 
 
-Open the shortcut (which should be added to your Desktop after installation) and open `Docker Desktop`. If the engine starts up successfully Docker has been configured. Note that the engine may take a while to setup properly.
+Open the shortcut (which should be added to your Desktop after installation) and open `Docker Desktop`. If the engine starts up successfully, Docker has been configured. Note that the engine may take a while to setup properly.
 
 ### Setting up the repo
 
@@ -47,4 +47,4 @@ To run the script, you have to use `bash start_docker.sh`. If you run into issue
 
 ### If you run into more Windows-specific issues
 
-Please open an [issue](https://github.com/angelolab/ark-analysis/issues) on the GitHub. Our codebase has unfortunately not been extensively tested on Windows yet, so we'd appreciate any feedback in this regard!
+Please open an [issue](https://github.com/angelolab/ark-analysis/issues) on our GitHub page. Our codebase has unfortunately not been extensively tested on Windows yet, so we'd appreciate any feedback in this regard!
