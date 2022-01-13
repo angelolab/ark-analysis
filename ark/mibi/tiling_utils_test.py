@@ -716,10 +716,13 @@ def test_remap_and_reorder_fovs(randomize_setting, moly_insert, moly_interval):
     assert remapped_sample_fovs['name'] == manual_sample_fovs_copy['name']
     assert remapped_sample_fovs['status'] == manual_sample_fovs_copy['status']
 
-    # assert the same number of FOVs exist in the original proposed list of FOVs
-    # and the list of FOVs after remapping
-    assert len(manual_sample_fovs['fovs']) == \
-        len([fov for fov in remapped_sample_fovs['fovs'] if fov['name'] != 'MoQC'])
+    # assert the same FOVs in the manual-to-auto map (sample_mapping)
+    # appear in remapped sample FOVs after the remapping process
+    misc_utils.verify_same_elements(
+        remapped_fov_names=[fov['name'] for fov in remapped_sample_fovs['fovs']
+                            if fov['name'] != 'MoQC'],
+        fovs_in_mapping=list(sample_mapping.values())
+    )
 
     # assert the mapping was done correctly
     scrambled_names = [fov['name'] for fov in remapped_sample_fovs['fovs']]
