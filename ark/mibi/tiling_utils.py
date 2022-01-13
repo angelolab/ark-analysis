@@ -118,7 +118,7 @@ def generate_region_info(region_params):
 
 
 def tiled_region_read_input(fov_list_info, region_params):
-    """Reads input for non-TMAs from user and `fov_list_info`.
+    """Reads input for tiled regions from user and `fov_list_info`.
 
     Updates all the tiling params inplace. Units used are microns.
 
@@ -300,7 +300,7 @@ def generate_x_y_fov_pairs(x_range, y_range):
 
 
 def tiled_region_generate_fov_list(tiling_params, moly_point):
-    """Generate the list of FOVs on the image from the `tiling_params` set for non-TMA regions
+    """Generate the list of FOVs on the image from the `tiling_params` set for tiled regions
 
     Moly point insertion: happens once every number of FOVs you specified in
     `tiled_region_set_params`. There are a couple caveats to keep in mind:
@@ -405,7 +405,7 @@ def tiled_region_generate_fov_list(tiling_params, moly_point):
 def tma_generate_fov_list(fov_list_path, num_fov_x, num_fov_y):
     """Generate the list of FOVs on the image using the TMA input file in `fov_list_path`
 
-    NOTE: unlike non-TMAs, the returned list of FOVs is just an intermediate step to the
+    NOTE: unlike tiled regions, the returned list of FOVs is just an intermediate step to the
     interactive remapping process. So the result will just be each FOV name mapped to its centroid.
 
     Args:

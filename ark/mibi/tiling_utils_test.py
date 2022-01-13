@@ -540,7 +540,8 @@ def test_convert_microns_to_pixels():
 
 def test_assign_closest_fovs():
     # define the coordinates and fov names generated from the fovd script
-    auto_coords = [(0, 0), (0, 50), (0, 100), (100, 0), (100, 50), (100, 100)]
+    auto_coords = [(0, 0), (0, 50), (0, 100), (100, 0), (100, 50), (100, 100),
+                   (150, 100), (150, 150)]
     auto_fov_names = ['row%d_col%d' % (x, y) for (x, y) in auto_coords]
 
     # generate the list of automatically-generated fovs
@@ -564,21 +565,31 @@ def test_assign_closest_fovs():
     # for each manual fov, ensure the centroids are the same in manual_fovs_info
     for fov in manual_sample_fovs['fovs']:
         # skip the Moly points
-        if fov['name'] != 'MoQC':
-            manual_centroid = tiling_utils.convert_microns_to_pixels(
-                tuple(fov['centerPointMicrons'].values())
-            )
+        # if fov['name'] != 'MoQC':
+        #     manual_centroid = tiling_utils.convert_microns_to_pixels(
+        #         tuple(fov['centerPointMicrons'].values())
+        #     )
 
-            assert manual_fovs_info[fov['name']] == manual_centroid
+        #     assert manual_fovs_info[fov['name']] == manual_centroid
+        manual_centroid = tiling_utils.convert_microns_to_pixels(
+            tuple(fov['centerPointMicrons'].values())
+        )
+
+        assert manual_fovs_info[fov['name']] == manual_centroid
 
     # same for automatically-generated fovs
     for fov in auto_sample_fovs:
-        if fov != 'MoQC':
-            auto_centroid = tiling_utils.convert_microns_to_pixels(
-                auto_sample_fovs[fov]
-            )
+        # if fov != 'MoQC':
+        #     auto_centroid = tiling_utils.convert_microns_to_pixels(
+        #         auto_sample_fovs[fov]
+        #     )
 
-            assert auto_fovs_info[fov] == auto_centroid
+        #     assert auto_fovs_info[fov] == auto_centroid
+        auto_centroid = tiling_utils.convert_microns_to_pixels(
+            auto_sample_fovs[fov]
+        )
+
+        assert auto_fovs_info[fov] == auto_centroid
 
     # assert the mapping is correct
     actual_map = {
@@ -716,9 +727,12 @@ def test_remap_and_reorder_fovs(randomize_setting, moly_insert, moly_interval):
     assert new_manual_sample_fovs['name'] == manual_sample_fovs_copy['name']
     assert new_manual_sample_fovs['status'] == manual_sample_fovs_copy['status']
 
+    print(set([fov['name'] for fov in manual_sample_fovs['fovs']]))
+    print(set([fov['name'] for fov in new_manual_sample_fovs['fovs'] if fov['name'] != 'MoQC']))
+
     # assert same number of FOVs exist in both original and scrambled (excluding Moly points)
-    assert len(manual_sample_fovs['fovs']) == \
-           len([fov for fov in new_manual_sample_fovs['fovs'] if fov['name'] != 'MoQC'])
+    assert set([fov['name'] for fov in manual_sample_fovs['fovs']]) == \
+           set([fov['name'] for fov in new_manual_sample_fovs['fovs'] if fov['name'] != 'MoQC'])
 
     # assert the mapping was done correctly
     scrambled_names = [fov['name'] for fov in new_manual_sample_fovs['fovs']]
