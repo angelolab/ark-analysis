@@ -289,7 +289,7 @@ def tiled_region_generate_fov_list(tiling_params, moly_point):
 
     Args:
         tiling_params (dict):
-            The tiling parameters created by `set_tiling_params`
+            The tiling parameters created by `tiled_region_set_params`
         moly_point (dict):
             The moly point to insert between FOVs (and intervals if specified in `tiling_params`)
 
@@ -328,6 +328,7 @@ def tiled_region_generate_fov_list(tiling_params, moly_point):
         start_x = region_info['region_start_x']
         start_y = region_info['region_start_y']
 
+        # define the range of x- and y-coordinates to use
         x_range = list(range(region_info['fov_num_x']))
         y_range = list(range(region_info['fov_num_y']))
 
@@ -348,6 +349,7 @@ def tiled_region_generate_fov_list(tiling_params, moly_point):
         total_fovs += len(x_y_pairs)
 
         for index, (xi, yi) in enumerate(x_y_pairs):
+            # use the fov size to scale to the current x- and y-coordinate
             cur_x = start_x + xi * region_info['x_fov_size']
             cur_y = start_y - yi * region_info['y_fov_size']
 
@@ -835,10 +837,6 @@ def write_manual_to_auto_map(manual_to_auto_map, save_ann, mapping_path):
             contains the annotation object defining the save notification
         mapping_path (str):
             the path to the file to save the mapping to
-
-    Returns:
-        ipywidgets:
-            the updated annotation contained in `save_ann`
     """
 
     # save the mapping
