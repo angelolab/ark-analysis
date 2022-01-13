@@ -63,6 +63,7 @@ for (i in 1:length(fovs)) {
     arrow::write_feather(as.data.table(fovPixelData), clusterPath)
 
     # print an update every 10 fovs
+    # TODO: find a way to capture sprintf to the console
     if (i %% 10 == 0) {
         print("# fovs clustered:")
         print(i)

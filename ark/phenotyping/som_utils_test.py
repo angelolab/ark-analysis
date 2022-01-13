@@ -125,7 +125,7 @@ def mocked_pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
                                                                  fov + '.feather'))
 
 
-def mocked_train_cell_som(fovs, base_dir, pixel_consensus_dir, cell_table_name,
+def mocked_train_cell_som(fovs, channels, base_dir, pixel_consensus_dir, cell_table_name,
                           cluster_counts_name='cluster_counts.feather',
                           cluster_counts_norm_name='cluster_counts_norm.feather',
                           pixel_cluster_col='pixel_meta_cluster',
@@ -220,7 +220,7 @@ def mocked_cell_consensus_cluster(fovs, channels, base_dir, pixel_cluster_col, m
 def test_normalize_rows():
     # define a list of channels and a subset of channels
     chans = ['chan0', 'chan1', 'chan2']
-    chan_sub = chans[:2]
+    chan_sub = chans[1:3]
 
     # create a dummy pixel matrix
     fov_pixel_matrix = pd.DataFrame(
@@ -249,7 +249,7 @@ def test_normalize_rows():
 
     # assert all the rows sum to 0.5, 0.5
     # this also checks that all the zero-sum rows have been removed
-    assert np.all(fov_pixel_matrix_sub.drop(columns=meta_cols).values == [0.5, 0.5])
+    assert np.all(fov_pixel_matrix_sub.drop(columns=meta_cols).values == [1 / 3, 2 / 3])
 
     # TEST 2: normalize the matrix and drop the segmentation_label column
     meta_cols.remove('segmentation_label')
@@ -266,7 +266,7 @@ def test_normalize_rows():
 
     # assert all the rows sum to 0.5, 0.5
     # this also checks that all the zero-sum rows have been removed
-    assert np.all(fov_pixel_matrix_sub.drop(columns=meta_cols).values == [0.5, 0.5])
+    assert np.all(fov_pixel_matrix_sub.drop(columns=meta_cols).values == [1 / 3, 2 / 3])
 
 
 def test_compute_pixel_cluster_channel_avg():
@@ -616,20 +616,20 @@ def test_compute_p2c_weighted_channel_avg():
             # error check: invalid fovs provided
             with pytest.raises(ValueError):
                 som_utils.compute_p2c_weighted_channel_avg(
-                    cluster_avg, cell_counts, fovs=['fov2', 'fov3']
+                    cluster_avg, chans, cell_counts, fovs=['fov2', 'fov3']
                 )
 
             # error check: invalid pixel_cluster_col provided
             with pytest.raises(ValueError):
                 som_utils.compute_p2c_weighted_channel_avg(
-                    cluster_avg, cell_counts, pixel_cluster_col='bad_cluster_col'
+                    cluster_avg, chans, cell_counts, pixel_cluster_col='bad_cluster_col'
                 )
 
             # test for all and some fovs
             for fov_list in [None, fovs[:1]]:
                 # test with som cluster counts and all fovs
                 channel_avg = som_utils.compute_p2c_weighted_channel_avg(
-                    cluster_avg, cell_counts, fovs=fov_list, pixel_cluster_col=cluster_col
+                    cluster_avg, chans, cell_counts, fovs=fov_list, pixel_cluster_col=cluster_col
                 )
 
                 # subset over just the marker values
@@ -788,7 +788,7 @@ def test_create_fov_pixel_data():
 
         seg_labels = sample_labels.loc[fov, ...].values.reshape(10, 10)
 
-        # TEST 1: run fov preprocessing for one fov with seg_labels
+        # TEST 1: run fov preprocessing for one fov with seg_labels and no blank pixels
         sample_pixel_mat, sample_pixel_mat_subset = som_utils.create_fov_pixel_data(
             fov=fov, channels=chans, img_data=sample_img_data, seg_labels=seg_labels
         )
@@ -805,7 +805,7 @@ def test_create_fov_pixel_data():
         # assert the size of the subsetted DataFrame is 0.1 of the preprocessed DataFrame
         assert sample_pixel_mat.shape[0] * 0.1 == sample_pixel_mat_subset.shape[0]
 
-        # TEST 2: run fov preprocessing for one fov without seg_labels
+        # TEST 2: run fov preprocessing for one fov without seg_labels and no blank pixels
         sample_pixel_mat, sample_pixel_mat_subset = som_utils.create_fov_pixel_data(
             fov=fov, channels=chans, img_data=sample_img_data, seg_labels=None
         )
@@ -821,6 +821,9 @@ def test_create_fov_pixel_data():
 
         # assert the size of the subsetted DataFrame is 0.1 of the preprocessed DataFrame
         assert sample_pixel_mat.shape[0] * 0.1 == sample_pixel_mat_subset.shape[0]
+
+        # TODO: add a test where after Gaussian blurring one or more rows in sample_pixel_mat
+        # are all 0 after, tested successfully via hard-coding values in create_fov_pixel_data
 
 
 # TODO: leaving out MIBItiff testing until someone needs it
@@ -894,10 +897,19 @@ def test_create_pixel_matrix():
                                 file_name = fov + "_feature_0.tif"
                                 io.imsave(os.path.join(seg_dir, file_name), rand_img)
 
-                            # pass invalid fov names
+                            # pass invalid fov names (fails in load_imgs_from_tree)
                             with pytest.raises(FileNotFoundError):
                                 som_utils.create_pixel_matrix(fovs=['fov1', 'fov2', 'fov3'],
                                                               channels=chans,
+                                                              base_dir=temp_dir,
+                                                              tiff_dir=tiff_dir,
+                                                              img_sub_folder=sub_dir,
+                                                              seg_dir=seg_dir)
+
+                            # pass invalid channel names
+                            with pytest.raises(ValueError):
+                                som_utils.create_pixel_matrix(fovs=fovs,
+                                                              channels=['chan1', 'chan2', 'chan3'],
                                                               base_dir=temp_dir,
                                                               tiff_dir=tiff_dir,
                                                               img_sub_folder=sub_dir,
@@ -1020,26 +1032,31 @@ def test_train_pixel_som(mocker):
 
 
 def test_cluster_pixels(mocker):
-    # basic error checks: bad path to preprocessed data, norm vals matrix, and weights matrix
+    # basic error checks: bad path to preprocessed data folder
+    # norm vals matrix, and weights matrix
     with tempfile.TemporaryDirectory() as temp_dir:
+        # bad path to preprocessed data folder
         with pytest.raises(FileNotFoundError):
             som_utils.cluster_pixels(
                 fovs=['fov0'], channels=['chan0'],
                 base_dir=temp_dir, pre_dir='bad_path'
             )
 
-        # create a preprocessed directory for the undefined weights test
+        # create a preprocessed directory for the undefined norm file test
         os.mkdir(os.path.join(temp_dir, 'pixel_mat_preprocessed'))
 
+        # bad path to norm file
         with pytest.raises(FileNotFoundError):
             som_utils.cluster_pixels(
                 fovs=['fov0'], channels=['chan0'],
                 base_dir=temp_dir, norm_vals_name='bad_path.feather'
             )
 
+        # create a norm file for the undefined weight matrix file test
         norm_vals = pd.DataFrame(np.random.rand(1, 2), columns=['Marker1', 'Marker2'])
         feather.write_dataframe(norm_vals, os.path.join(temp_dir, 'norm_vals.feather'))
 
+        # bad path to weight matrix file
         with pytest.raises(FileNotFoundError):
             som_utils.cluster_pixels(
                 fovs=['fov0'], channels=['chan0'],
@@ -1206,7 +1223,7 @@ def test_train_cell_som(mocker):
     # basic error check: bad path to cell table path
     with tempfile.TemporaryDirectory() as temp_dir:
         with pytest.raises(FileNotFoundError):
-            som_utils.train_cell_som(fovs=['fov0'], base_dir=temp_dir,
+            som_utils.train_cell_som(fovs=['fov0'], channels=['chan0'], base_dir=temp_dir,
                                      pixel_consensus_dir='consensus_dir',
                                      cell_table_name='cell_table.csv')
 
@@ -1219,7 +1236,7 @@ def test_train_cell_som(mocker):
         )
 
         with pytest.raises(FileNotFoundError):
-            som_utils.train_cell_som(fovs=['fov0'], base_dir=temp_dir,
+            som_utils.train_cell_som(fovs=['fov0'], channels=['chan0'], base_dir=temp_dir,
                                      pixel_consensus_dir='consensus_dir',
                                      cell_table_name='sample_cell_table.csv')
 
@@ -1276,7 +1293,7 @@ def test_train_cell_som(mocker):
         # bad cluster_col provided
         with pytest.raises(ValueError):
             som_utils.train_cell_som(
-                fovs, temp_dir, 'pixel_consensus_dir', 'cell_table_size_normalized.csv',
+                fovs, chan_list, temp_dir, 'pixel_consensus_dir', 'cell_table_size_normalized.csv',
                 pixel_cluster_col='bad_cluster'
             )
 
@@ -1298,7 +1315,8 @@ def test_train_cell_som(mocker):
 
         # "train" the cell SOM using mocked function
         som_utils.train_cell_som(
-            fovs=fovs, base_dir=temp_dir, pixel_consensus_dir='pixel_consensus_dir',
+            fovs=fovs, channels=chan_list, base_dir=temp_dir,
+            pixel_consensus_dir='pixel_consensus_dir',
             cell_table_name='cell_table_size_normalized.csv',
             pixel_cluster_col='pixel_som_cluster'
         )
@@ -1338,7 +1356,8 @@ def test_train_cell_som(mocker):
 
         # "train" the cell SOM using mocked function
         som_utils.train_cell_som(
-            fovs=fovs, base_dir=temp_dir, pixel_consensus_dir='pixel_consensus_dir',
+            fovs=fovs, channels=chan_list, base_dir=temp_dir,
+            pixel_consensus_dir='pixel_consensus_dir',
             cell_table_name='cell_table_size_normalized.csv',
             pixel_cluster_col='pixel_meta_cluster'
         )

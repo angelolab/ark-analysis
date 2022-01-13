@@ -20,12 +20,10 @@ from ark.utils import misc_utils
 def normalize_rows(pixel_data, channels, include_seg_label=True):
     """Normalizes the rows of a pixel matrix by their sum
 
-    Helper function to preprocess_row_sums
-
     Args:
         pixel_data (pandas.DataFrame):
             The dataframe containing the pixel data for a given fov
-            Includes channel and meta (fov, segmentation_label, etc.) columns
+            Includes channel and meta (`fov`, `segmentation_label`, etc.) columns
         channels (list):
             List of channels to subset over
         include_seg_label (bool):
@@ -72,7 +70,7 @@ def compute_pixel_cluster_channel_avg(fovs, channels, base_dir, pixel_cluster_co
             Name of the directory containing the pixel data with cluster labels
         keep_count (bool):
             Whether to keep the count column when aggregating or not
-            This should only be set to True for visualization purposes
+            This should only be set to `True` for visualization purposes
 
     Returns:
         pandas.DataFrame:
@@ -110,6 +108,9 @@ def compute_pixel_cluster_channel_avg(fovs, channels, base_dir, pixel_cluster_co
         # concat the results together
         cluster_avgs = pd.concat([cluster_avgs, agg_results])
 
+    # reset the index of cluster_avgs for consistency
+    cluster_avgs = cluster_avgs.reset_index(drop=True)
+
     # sum the counts and the channel sums
     sum_count_totals = cluster_avgs.groupby(
         pixel_cluster_col
@@ -120,13 +121,13 @@ def compute_pixel_cluster_channel_avg(fovs, channels, base_dir, pixel_cluster_co
 
     # z-score the mean channel expressions
     # replace NA's and infs with 0 as an extra precaution
-    # NOTE: z-scoring cluster avg data produces better clustering results
-    channels_z_score = stats.zscore(sum_count_totals[channels].values)
-    channels_z_score[np.isnan(channels_z_score)] = 0
-    channels_z_score[np.isinf(channels_z_score)] = 0
+    # NOTE: z-scoring channel avg data produces better clustering results
+    channels_z_scored = stats.zscore(sum_count_totals[channels].values)
+    channels_z_scored[np.isnan(channels_z_scored)] = 0
+    channels_z_scored[np.isinf(channels_z_scored)] = 0
 
     # assign z-scored values back
-    sum_count_totals[channels] = channels_z_score
+    sum_count_totals[channels] = channels_z_scored
 
     # convert cluster column to integer type
     sum_count_totals[pixel_cluster_col] = sum_count_totals[pixel_cluster_col].astype(int)
@@ -147,7 +148,7 @@ def compute_cell_cluster_count_avg(cell_cluster_path, pixel_cluster_col_prefix,
 
     Args:
         cell_cluster_path (str):
-            The path to the cell data with SOM labels, created by cluster_cells
+            The path to the cell data with SOM labels, created by `cluster_cells`
         pixel_cluster_col_prefix (str):
             The prefix of the columns to subset
             should be `'pixel_som_cluster'` or `'pixel_meta_cluster'`
@@ -156,7 +157,7 @@ def compute_cell_cluster_count_avg(cell_cluster_path, pixel_cluster_col_prefix,
             should be `'cell_som_cluster'` or `'cell_meta_cluster'`
         keep_count (bool):
             Whether to include the cell counts or not
-            This should only be set to True for visualization purposes
+            This should only be set to `True` for visualization purposes
 
     Returns:
         pandas.DataFrame:
@@ -246,6 +247,7 @@ def compute_cell_cluster_channel_avg(fovs, channels, base_dir,
         valid_cluster_cols=['cell_som_cluster', 'cell_meta_cluster']
     )
 
+    # read the weighted cell channel table in
     cell_table = pd.read_csv(os.path.join(base_dir, weighted_cell_channel_avg_name))
 
     # subset on only the fovs the user has specified
@@ -282,33 +284,42 @@ def compute_cell_cluster_channel_avg(fovs, channels, base_dir,
     cell_table = cell_table[channels + [cell_cluster_col]]
 
     # compute the mean channel expression across each cell cluster
-    cluster_avgs = cell_table.groupby(cell_cluster_col).mean().reset_index()
+    channel_avgs = cell_table.groupby(cell_cluster_col).mean().reset_index()
 
-    # z-score the cluster_avgs
-    cluster_avgs[channels] = stats.zscore(cluster_avgs[channels].values)
+    # z-score the weighted channel averages
+    # replace NA's and infs with 0 as an extra precaution
+    # NOTE: z-scoring cluster avg data produces better clustering results
+    channel_avgs_z_scored = stats.zscore(channel_avgs[channels].values)
+    channel_avgs_z_scored[np.isnan(channel_avgs_z_scored)] = 0
+    channel_avgs_z_scored[np.isinf(channel_avgs_z_scored)] = 0
 
-    return cluster_avgs
+    # assign z-scored values back
+    channel_avgs[channels] = channel_avgs_z_scored
+
+    return channel_avgs
 
 
-def compute_p2c_weighted_channel_avg(pixel_channel_avg, cell_counts,
+def compute_p2c_weighted_channel_avg(pixel_channel_avg, channels, cell_counts,
                                      fovs=None, pixel_cluster_col='pixel_meta_cluster'):
     """Compute the average marker expression for each cell weighted by pixel cluster
 
     This expression is weighted by the pixel SOM/meta cluster counts. So for each cell,
     marker expression vector is computed by:
 
-    pixel_cluster_n_count * avg_marker_exp_pixel_cluster_n + ...
+    `pixel_cluster_n_count * avg_marker_exp_pixel_cluster_n + ...`
 
     Note that this function will only be used to correct overlapping signal for visualization.
 
     Args:
         pixel_channel_avg (pandas.DataFrame):
             The average channel values for each pixel SOM/meta cluster
-            Computed by compute_pixel_cluster_channel_avg
+            Computed by `compute_pixel_cluster_channel_avg`
+        channels (list):
+            The list of channels to subset `pixel_channel_avg` by
         cell_counts (pandas.DataFrame):
             The dataframe listing the number of each type of pixel SOM/meta cluster per cell
         fovs (list):
-            The list of fovs to include, if None provided all are used
+            The list of fovs to include, if `None` provided all are used
         pixel_cluster_col (str):
             Name of the cell cluster column to group by
             Should be `'pixel_som_cluster'` or `'pixel_meta_cluster'`
@@ -365,8 +376,15 @@ def compute_p2c_weighted_channel_avg(pixel_channel_avg, cell_counts,
         pixel_channel_cluster_ids=pixel_channel_cluster_ids
     )
 
+    # assert that the channel subset provided is valid
+    # this should never fail, but who knows?
+    misc_utils.verify_in_list(
+        provided_channels=channels,
+        pixel_channel_avg_cols=pixel_channel_avg_sorted.columns.values
+    )
+
     # subset over just the markers of pixel_channel_avg
-    pixel_channel_avg_sub = pixel_channel_avg_sorted.drop(columns=pixel_cluster_col)
+    pixel_channel_avg_sub = pixel_channel_avg_sorted[channels]
 
     # broadcast multiply cell_counts_clusters and pixel_channel_avg to get weighted
     # average expression values for each cell
@@ -381,7 +399,7 @@ def compute_p2c_weighted_channel_avg(pixel_channel_avg, cell_counts,
 
     # add columns back
     meta_cols = ['cell_size', 'fov', 'segmentation_label']
-    weighted_cell_channel_avg[meta_cols] = cell_counts_sub[meta_cols]
+    weighted_cell_channel_avg[meta_cols] = cell_counts_sub.reset_index(drop=True)[meta_cols]
 
     return weighted_cell_channel_avg
 
@@ -395,9 +413,9 @@ def create_c2pc_data(fovs, pixel_consensus_path,
             The list of fovs to subset on
         pixel_consensus_path (str):
             Path to directory with the pixel SOM and meta labels
-            Created by pixel_consensus_cluster
+            Created by `pixel_consensus_cluster`
         cell_table_path (str):
-            Path to the cell table, needs to be created with Segment_Image_Data.ipynb
+            Path to the cell table, needs to be created with `Segment_Image_Data.ipynb`
         pixel_cluster_col (str):
             The name of the pixel cluster column to count per cell
             Should be `'pixel_som_cluster'` or `'pixel_meta_cluster'`
@@ -405,8 +423,8 @@ def create_c2pc_data(fovs, pixel_consensus_path,
     Returns:
         tuple:
 
-        - pandas.DataFrame: cell x cluster counts of each pixel SOM/meta cluster per each cell
-        - pandas.DataFrame: same as above, but normalized by cell_size
+        - `pandas.DataFrame`: cell x cluster counts of each pixel SOM/meta cluster per each cell
+        - `pandas.DataFrame`: same as above, but normalized by cell_size
     """
 
     # verify the pixel_cluster_col provided is valid
@@ -485,9 +503,14 @@ def create_c2pc_data(fovs, pixel_consensus_path,
 
     # also produce a cell table with counts normalized by cell_size
     cell_table_norm = cell_table.copy()
+
     count_cols = [c for c in cell_table_norm.columns if '%s_' % pixel_cluster_col in c]
     cell_table_norm[count_cols] = cell_table_norm[count_cols].div(cell_table_norm['cell_size'],
                                                                   axis=0)
+
+    # reset the indices of cell_table and cell_table_norm to make things consistent
+    cell_table = cell_table.reset_index(drop=True)
+    cell_table_norm = cell_table_norm.reset_index(drop=True)
 
     return cell_table, cell_table_norm
 
@@ -516,8 +539,8 @@ def create_fov_pixel_data(fov, channels, img_data, seg_labels,
         tuple:
             Contains the following:
 
-            - pandas.DataFrame: Gaussian blurred and channel sum normalized pixel data for a fov
-            - pandas.DataFrame: subset of the preprocessed pixel dataset for a fov
+            - `pandas.DataFrame`: Gaussian blurred and channel sum normalized pixel data for a fov
+            - `pandas.DataFrame`: subset of the preprocessed pixel dataset for a fov
     """
 
     # for each marker, compute the Gaussian blur
@@ -542,7 +565,7 @@ def create_fov_pixel_data(fov, channels, img_data, seg_labels,
         pixel_mat['segmentation_label'] = seg_labels_flat
 
     # remove any rows with channels that sum to zero prior to sampling
-    pixel_mat = pixel_mat.loc[(pixel_mat[channels] != 0).any(1), :]
+    pixel_mat = pixel_mat.loc[(pixel_mat[channels] != 0).any(1), :].reset_index(drop=True)
 
     # normalize the row sums of pixel mat
     pixel_mat = normalize_rows(pixel_mat, channels, seg_labels is not None)
@@ -560,26 +583,26 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
                         blur_factor=2, subset_proportion=0.1, dtype="int16", seed=42):
     """For each fov, add a Gaussian blur to each channel and normalize channel sums for each pixel
 
-    Saves data to pre_dir and subsetted data to subset_dir
+    Saves data to `pre_dir` and subsetted data to `subset_dir`
 
     Args:
         fovs (list):
             List of fovs to subset over
         channels (list):
-            List of channels to subset over, applies only to pixel_mat_subset
+            List of channels to subset over, applies only to `pixel_mat_subset`
         base_dir (str):
             The path to the data directories
         tiff_dir (str):
             Name of the directory containing the tiff files
         seg_dir (str):
             Name of the directory containing the segmented files.
-            Set to None if no segmentation directory is available or desired.
+            Set to `None` if no segmentation directory is available or desired.
         img_sub_folder (str):
-            Name of the subdirectory inside tiff_dir containing the tiff files.
-            Set to None if there isn't any.
+            Name of the subdirectory inside `tiff_dir` containing the tiff files.
+            Set to `None` if there isn't any.
         seg_suffix (str):
             The suffix that the segmentation images use.
-            Ignored if seg_dir is None.
+            Ignored if `seg_dir` is `None`.
         pre_dir (str):
             Name of the directory which contains the preprocessed pixel data
         subset_dir (str):
@@ -604,6 +627,7 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
     if not os.path.exists(base_dir):
         raise FileNotFoundError("base_dir %s does not exist" % base_dir)
 
+    # if the tiff dir doesn't exist
     if not os.path.exists(tiff_dir):
         raise FileNotFoundError("tiff_dir %s does not exist" % tiff_dir)
 
@@ -627,7 +651,7 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
                 tiff_dir, img_sub_folder=img_sub_folder, fovs=[fov], dtype=dtype
             )
 
-        # ensure the provided channels will actually exist in pixel_mat_subset
+        # ensure the provided channels will actually exist in img_xr
         misc_utils.verify_in_list(
             provided_chans=channels,
             pixel_mat_chans=img_xr.channels.values
@@ -670,7 +694,7 @@ def train_pixel_som(fovs, channels, base_dir,
                     lr_start=0.05, lr_end=0.01, num_passes=1, seed=42):
     """Run the SOM training on the subsetted pixel data.
 
-    Saves weights to base_dir/weights_name.
+    Saves weights to `base_dir/weights_name`.
 
     Args:
         fovs (list):
@@ -690,9 +714,9 @@ def train_pixel_som(fovs, channels, base_dir,
         ydim (int):
             The number of y nodes to use for the SOM
         lr_start (float):
-            The start learning rate for the SOM, decays to lr_end
+            The start learning rate for the SOM, decays to `lr_end`
         lr_end (float):
-            The end learning rate for the SOM, decays from lr_start
+            The end learning rate for the SOM, decays from `lr_start`
         num_passes (int):
             The number of training passes to make through the dataset
         seed (int):
@@ -744,7 +768,7 @@ def cluster_pixels(fovs, channels, base_dir, pre_dir='pixel_mat_preprocessed',
                    pc_chan_avg_som_cluster_name='pixel_channel_avg_som_cluster.csv'):
     """Uses trained weights to assign cluster labels on full pixel data
 
-    Saves data with cluster labels to cluster_dir. Computes and saves the average channel
+    Saves data with cluster labels to `cluster_dir`. Computes and saves the average channel
     expression across pixel SOM clusters.
 
     Args:
@@ -755,12 +779,11 @@ def cluster_pixels(fovs, channels, base_dir, pre_dir='pixel_mat_preprocessed',
         base_dir (str):
             The path to the data directory
         pre_dir (str):
-            Name of the directory which contains the preprocessed pixel data,
-            defaults to pixel_mat_preprocessed
+            Name of the directory which contains the preprocessed pixel data
         norm_vals_name (str):
-            The name of the file with the 99.9% normalized values, created by train_pixel_som
+            The name of the file with the 99.9% normalized values, created by `train_pixel_som`
         weights_name (str):
-            The name of the weights file created by train_pixel_som
+            The name of the weights file created by `train_pixel_som`
         cluster_dir (str):
             The name of the directory to write the clustered data
         pc_chan_avg_som_cluster_name (str):
@@ -773,11 +796,12 @@ def cluster_pixels(fovs, channels, base_dir, pre_dir='pixel_mat_preprocessed',
     weights_path = os.path.join(base_dir, weights_name)
     clustered_path = os.path.join(base_dir, cluster_dir)
 
-    # if path to the preprocessed file does not exist
+    # if path to the preprocessed directory does not exist
     if not os.path.exists(preprocessed_path):
         raise FileNotFoundError('Pixel preprocessed directory %s does not exist in base_dir %s' %
                                 (pre_dir, base_dir))
 
+    # if path to the normalized values file does not exist
     if not os.path.exists(norm_vals_path):
         raise FileNotFoundError('Normalized values file %s does not exist in base_dir %s' %
                                 (norm_vals_path, base_dir))
@@ -795,6 +819,8 @@ def cluster_pixels(fovs, channels, base_dir, pre_dir='pixel_mat_preprocessed',
     weights = feather.read_dataframe(os.path.join(base_dir, weights_name))
 
     # ensure the norm vals columns and the FOV data contain valid indexes
+    # ignoring metadata columns in the FOV data, the columns need to be in exactly
+    # the same order across both datasets (normalized values and FOV values)
     pre_files = io_utils.list_files(preprocessed_path, substrs='.feather')
     norm_vals = feather.read_dataframe(os.path.join(base_dir, norm_vals_name))
     sample_fov = feather.read_dataframe(os.path.join(base_dir, pre_dir, pre_files[0]))
@@ -867,9 +893,9 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
                             consensus_dir='pixel_mat_consensus', seed=42):
     """Run consensus clustering algorithm on pixel-level summed data across channels
 
-    Saves data with consensus cluster labels to consensus_dir. Computes and saves the
+    Saves data with consensus cluster labels to `consensus_dir`. Computes and saves the
     average channel expression across pixel meta clusters. Assigns meta cluster labels
-    to the data stored in pc_chan_avg_som_cluster_name.
+    to the data stored in `pc_chan_avg_som_cluster_name`.
 
     Args:
         fovs (list):
@@ -884,11 +910,13 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
             z-score cap to use when hierarchical clustering
         cluster_dir (str):
             Name of the file containing the pixel data with cluster labels
-            Created by cluster_pixels
+            Created by `cluster_pixels`
         pc_chan_avg_som_cluster_name (str):
-            Name of file to save the channel-averaged results across all SOM clusters to
+            Name of file to save the channel-averaged results across all SOM clusters to.
+            Note that these values are z-scored.
         pc_chan_avg_meta_cluster_name (str):
-            Name of file to save the channel-averaged results across all meta clusters to
+            Name of file to save the channel-averaged results across all meta clusters to.
+            Note that these values are z-scored.
         consensus_dir (str):
             Name of directory to save the consensus clustered results
         clust_to_meta_name (str):
@@ -897,18 +925,25 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
             The random seed to set for consensus clustering
     """
 
+    # define the paths to the data
     clustered_path = os.path.join(base_dir, cluster_dir)
     som_cluster_avg_path = os.path.join(base_dir, pc_chan_avg_som_cluster_name)
     consensus_path = os.path.join(base_dir, consensus_dir)
     clust_to_meta_path = os.path.join(base_dir, clust_to_meta_name)
 
+    # if the path to the SOM clustered data doesn't exist
     if not os.path.exists(clustered_path):
-        raise FileNotFoundError('Cluster dir %s does not exist in base_dir %s' %
-                                (cluster_dir, base_dir))
+        raise FileNotFoundError(
+            'Cluster dir %s does not exist in base_dir %s' %
+            (cluster_dir, base_dir)
+        )
 
+    # if the path to the average channel expression per SOM cluster doesn't exist
     if not os.path.exists(som_cluster_avg_path):
-        raise FileNotFoundError('Cluster avg file %s does not exist in base_dir %s' %
-                                (pc_chan_avg_som_cluster_name, base_dir))
+        raise FileNotFoundError(
+            'Channel avg per SOM cluster file %s does not exist in base_dir %s' %
+            (pc_chan_avg_som_cluster_name, base_dir)
+        )
 
     # make consensus_dir if it doesn't exist
     if not os.path.exists(consensus_path):
@@ -971,7 +1006,7 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
     )
 
 
-def train_cell_som(fovs, base_dir, pixel_consensus_dir, cell_table_name,
+def train_cell_som(fovs, channels, base_dir, pixel_consensus_dir, cell_table_name,
                    cluster_counts_name='cluster_counts.feather',
                    cluster_counts_norm_name='cluster_counts_norm.feather',
                    pixel_cluster_col='pixel_meta_cluster',
@@ -981,23 +1016,25 @@ def train_cell_som(fovs, base_dir, pixel_consensus_dir, cell_table_name,
                    xdim=10, ydim=10, lr_start=0.05, lr_end=0.01, num_passes=1, seed=42):
     """Run the SOM training on the number of pixel/meta clusters in each cell of each fov
 
-    Saves the weights to base_dir/weights_name. Computes and saves weighted
+    Saves the weights to `base_dir/weights_name`. Computes and saves weighted
     channel expression per cell.
 
     Args:
         fovs (list):
             The list of fovs to subset on
+        channels (list):
+            The list of channels used in pixel clustering
         base_dir (str):
             The path to the data directories
         pixel_consensus_dir (str):
             Name of directory which contains the pixel-level consensus data
-            Created by pixel_consensus_cluster
+            Created by `pixel_consensus_cluster`
         cell_table_name (str):
-            Name of the cell table, needs to be created with Segment_Image_Data.ipynb
+            Name of the cell table, needs to be created with `Segment_Image_Data.ipynb`
         cluster_counts_name (str):
             Name of the file to save the cluster counts of each cell
         cluster_counts_norm_name (str):
-            Same as cluster_counts_name, except the cluster columns are normalized by
+            Same as `cluster_counts_name`, except the cluster columns are normalized by
             cell size
         pixel_cluster_col (str):
             Name of the column with the pixel SOM cluster assignments.
@@ -1015,9 +1052,9 @@ def train_cell_som(fovs, base_dir, pixel_consensus_dir, cell_table_name,
         ydim (int):
             The number of y nodes to use for the SOM
         lr_start (float):
-            The start learning rate for the SOM, decays to lr_end
+            The start learning rate for the SOM, decays to `lr_end`
         lr_end (float):
-            The end learning rate for the SOM, decays from lr_start
+            The end learning rate for the SOM, decays from `lr_start`
         num_passes (int):
             The number of training passes to make through the dataset
         seed (int):
@@ -1031,12 +1068,14 @@ def train_cell_som(fovs, base_dir, pixel_consensus_dir, cell_table_name,
     cluster_counts_norm_path = os.path.join(base_dir, cluster_counts_norm_name)
     weights_path = os.path.join(base_dir, weights_name)
 
+    # if the cell table path does not exist
     if not os.path.exists(cell_table_path):
         raise FileNotFoundError('Cell table %s does not exist in base_dir %s' %
                                 (cell_table_name, base_dir))
 
+    # if the pixel data with the SOM and meta labels path does not exist
     if not os.path.exists(consensus_path):
-        raise FileNotFoundError('Consensus dir %s does not exist in base_dir %s' %
+        raise FileNotFoundError('Pixel consensus dir %s does not exist in base_dir %s' %
                                 (consensus_path, base_dir))
 
     # verify the cluster_col provided is valid
@@ -1086,7 +1125,7 @@ def train_cell_som(fovs, base_dir, pixel_consensus_dir, cell_table_name,
 
     # compute the weighted channel table
     weighted_cell_channel_avg = compute_p2c_weighted_channel_avg(
-        pixel_cluster_channel_avg, cluster_counts,
+        pixel_cluster_channel_avg, channels, cluster_counts,
         fovs=fovs, pixel_cluster_col=pixel_cluster_col
     )
 
@@ -1104,7 +1143,7 @@ def cluster_cells(base_dir, cluster_counts_norm_name='cluster_counts_norm.feathe
                   cell_som_cluster_avgs_name='cell_som_cluster_avgs.feather'):
     """Uses trained weights to assign cluster labels on full cell data
 
-    Saves data with cluster labels to cell_cluster_name. Computes and saves the average number
+    Saves data with cluster labels to `cell_cluster_name`. Computes and saves the average number
     of pixel SOM/meta clusters per cell.
 
     Args:
@@ -1113,7 +1152,7 @@ def cluster_cells(base_dir, cluster_counts_norm_name='cluster_counts_norm.feathe
         cluster_counts_norm_name (str):
             Name of the file with the cluster counts of each cell, normalized by cell size
         weights_name (str):
-            The name of the weights file, created by train_cell_som
+            The name of the weights file, created by `train_cell_som`
         cell_cluster_name (str):
             Name of the file to save the cell data with cluster labels
         pixel_cluster_col_prefix (str):
@@ -1128,10 +1167,14 @@ def cluster_cells(base_dir, cluster_counts_norm_name='cluster_counts_norm.feathe
     weights_path = os.path.join(base_dir, weights_name)
     cell_cluster_path = os.path.join(base_dir, cell_cluster_name)
 
+    # if the path to the normalized pixel cluster counts per cell doesn't exist
     if not os.path.exists(cluster_counts_norm_path):
-        raise FileNotFoundError('Cluster counts table %s does not exist in base_dir %s' %
-                                (cluster_counts_norm_name, base_dir))
+        raise FileNotFoundError(
+            'Normalized pixel cluster counts per cell file %s does not exist in base_dir %s' %
+            (cluster_counts_norm_name, base_dir)
+        )
 
+    # if the path to the weights file does not exist
     if not os.path.exists(weights_path):
         raise FileNotFoundError('Weights file %s does not exist in base_dir %s' %
                                 (weights_name, base_dir))
@@ -1142,7 +1185,9 @@ def cluster_cells(base_dir, cluster_counts_norm_name='cluster_counts_norm.feathe
         valid_cluster_cols=['pixel_som_cluster', 'pixel_meta_cluster']
     )
 
-    # ensure the weights columns are valid indexes
+    # ensure the weights columns are valid indexes, do so by ensuring
+    # the cluster_counts_norm and weights columns are the same
+    # minus the metadata columns that appear in cluster_counts_norm
     cluster_counts_norm = feather.read_dataframe(cluster_counts_norm_path)
     weights = feather.read_dataframe(os.path.join(base_dir, weights_name))
     cluster_counts_norm = cluster_counts_norm.drop(
@@ -1238,23 +1283,33 @@ def cell_consensus_cluster(fovs, channels, base_dir, pixel_cluster_col, max_k=20
             The random seed to set for consensus clustering
     """
 
+    # define the paths to the data
     clustered_path = os.path.join(base_dir, cell_cluster_name)
     cluster_avg_path = os.path.join(base_dir, cell_som_cluster_avgs_name)
     consensus_path = os.path.join(base_dir, cell_consensus_name)
     weighted_channel_path = os.path.join(base_dir, weighted_cell_channel_avg_name)
     clust_to_meta_path = os.path.join(base_dir, clust_to_meta_name)
 
+    # if the path to the SOM clustered data doesn't exist
     if not os.path.exists(clustered_path):
-        raise FileNotFoundError('Cluster table %s does not exist in base_dir %s' %
-                                (cell_cluster_name, base_dir))
+        raise FileNotFoundError(
+            'Cell SOM cluster data file %s does not exist in base_dir %s' %
+            (cell_cluster_name, base_dir)
+        )
 
+    # if the path to the average pixel cluster counts per cell cluster doesn't exist
     if not os.path.exists(cluster_avg_path):
-        raise FileNotFoundError('Cluster avg table %s does not exist in base_dir %s' %
-                                (cell_som_cluster_avgs_name, base_dir))
+        raise FileNotFoundError(
+            'Average pixel cluster count per cell cluster file %s does not exist in base_dir %s' %
+            (cell_som_cluster_avgs_name, base_dir)
+        )
 
+    # if the path to the weighted channel data doesn't exist
     if not os.path.exists(weighted_channel_path):
-        raise FileNotFoundError('Weighted channel table %s does not exist in base_dir %s' %
-                                (weighted_cell_channel_avg_name, base_dir))
+        raise FileNotFoundError(
+            'Weighted channel table %s does not exist in base_dir %s' %
+            (weighted_cell_channel_avg_name, base_dir)
+        )
 
     # verify the pixel_cluster_col provided is valid
     misc_utils.verify_in_list(
