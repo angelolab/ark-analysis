@@ -17,7 +17,10 @@ Now run the following steps:
 * Download the Linux kernel update package. You can find it here: [Linux kernel update package](https://docs.microsoft.com/en-us/windows/wsl/install-manual#step-4---download-the-linux-kernel-update-package).
 * Set the version to WSL 2: `wsl --set-default-version 2`
 * Type just `wsl` on the command line. You'll likely get an error indicating no installed distributions, meaning you'll need to associate one with your WSL backend. We recommend installing Ubuntu 20.04 LTS in the Microsoft Store.
-* Once Ubuntu is installed, open it (it will open the Ubuntu terminal) and set a username and password to finalize installation. Note that if using a VM or the Hyper-V backend, nested virtualization needs to be turned on. This process varies depending on which virtualization platform you use: you'll have to consult their documentation for the how-tos. 
+* Once Ubuntu is installed, open it (it will open the Ubuntu terminal) and set a username and password to finalize installation.
+* Run `sudo apt-get update` in the Ubuntu terminal (alternatively, you can run `wsl sudo apt-get update` in the Windows Command Prompt)
+
+Note that if using a VM or the Hyper-V backend, nested virtualization needs to be turned on. This process varies depending on which virtualization platform you use: you'll have to consult their documentation for the how-tos. 
 
 ### Download git
 
@@ -36,12 +39,11 @@ Open the shortcut (which should be added to your Desktop after installation) and
 In your Command Prompt, follow similar steps to clone the `ark-analysis` repo and build the Docker:
 
 * Run `git clone https://github.com/angelolab/ark-analysis.git` to clone the `ark-analysis` repo
-* Run `dir ark-analysis` to enter the cloned repo
+* Run `cd ark-analysis` to enter the cloned repo
 * Build the Docker by running `docker build -t ark-analysis .`. Note that the `.` following `ark-analysis` should not be quoted.
 
 To run the script, you have to use `bash start_docker.sh`. If you run into issues with invalid carriage returns (`\r`), please run the following before trying again:
 
-* Run `wsl sudo apt-get update`
 * Run `wsl sudo apt-get install dos2unix`
 * Run `wsl dos2unix start_docker.sh` and `wsl dos2unix update_notebooks.sh`
 
