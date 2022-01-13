@@ -1,6 +1,5 @@
 import copy
-import datetime
-from IPython.display import display, clear_output
+from IPython.display import display
 import ipywidgets as widgets
 from itertools import combinations, product
 import json
@@ -74,7 +73,8 @@ def read_tiling_param(prompt, error_msg, cond, dtype):
     )
 
     while True:
-        # read in the variable with correct dtype, print error message if cannot be coerced
+        # read in the variable with correct dtype
+        # print error message and re-prompt if cannot be coerced
         try:
             var = dtype(input(prompt))
         except ValueError:
@@ -226,6 +226,7 @@ def tiled_region_set_params(fov_list_path, moly_path):
     # define the region_params dict
     region_params = {rpf: [] for rpf in settings.REGION_PARAM_FIELDS}
 
+    # prompt the user for params associated with each tiled region
     tiled_region_read_input(fov_list_info, region_params)
 
     # need to copy fov metadata over, needed for generate_fov_list
@@ -409,7 +410,7 @@ def tma_generate_fov_list(fov_list_path, num_fov_x, num_fov_y):
 
     Args:
         fov_list_path (dict):
-            Path to the JSON file containing the FOVs used to define each tiled region
+            Path to the JSON file containing the FOVs used to define the tiled TMA region
         num_fov_x (int):
             Number of FOVs to define along the x-axis
         num_fov_y (int):
@@ -616,7 +617,7 @@ def assign_closest_fovs(manual_fovs, auto_fovs):
 
 
 def generate_fov_circles(manual_to_auto_map, manual_fovs_info, auto_fovs_info,
-                         manual_name, auto_name, slide_img, draw_radius=5):
+                         manual_name, auto_name, slide_img, draw_radius=7):
     """Draw the circles defining each FOV (manually-specified and automatically-generated)
 
     Args:
@@ -715,10 +716,10 @@ def update_mapping_display(change, w_auto, manual_to_auto_map, manual_coords, au
         manual_to_auto_map (dict):
             defines the mapping of manual to auto FOV names
         manual_coords (dict):
-            a dict defining each FOV in `manual_fov_regions` mapped to its centroid
+            a `dict` defining each FOV in `manual_fov_regions` mapped to its centroid
             coordinates
         auto_coords (dict):
-            a dict defining each FOV in `auto_fov_regions` mapped to its centroid
+            a `dict` defining each FOV in `auto_fov_regions` mapped to its centroid
             coordinates
         slide_img (numpy.ndarray):
             the image to overlay
