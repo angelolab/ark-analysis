@@ -44,3 +44,7 @@ To run the script, you have to use `bash start_docker.sh`. If you run into issue
 * Run `wsl sudo apt-get update`
 * Run `wsl sudo apt-get install dos2unix`
 * Run `wsl dos2unix start_docker.sh` and `wsl dos2unix update_notebooks.sh`
+
+### If you run into more Windows-specific issues
+
+Please open an [issue](https://github.com/angelolab/ark-analysis/issues) on the GitHub. Our codebase has unfortunately not been extensively tested on Windows yet, so we'd appreciate any feedback in this regard!
