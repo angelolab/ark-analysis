@@ -49,4 +49,4 @@ To run the script, you have to use `bash start_docker.sh`. If you run into issue
 
 ### If you run into more Windows-specific issues
 
-Please open an [issue](https://github.com/angelolab/ark-analysis/issues) on our GitHub page. Our codebase has unfortunately not been extensively tested on Windows yet, so we'd appreciate any feedback in this regard!
+Please open an [issue](https://github.com/angelolab/ark-analysis/issues) on our GitHub page. Note that our codebase has not been extensively tested on Windows.
