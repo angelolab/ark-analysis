@@ -23,7 +23,7 @@
       },
       "sectionId": 8201,
       "slideId": 5931,
-      "name": "TheFirstFOV",
+      "name": "TheFirst",
       "timingDescription": "1 ms"
     },
     {
@@ -47,7 +47,7 @@
       },
       "sectionId": 8201,
       "slideId": 5931,
-      "name": "TheSecondFOV",
+      "name": "TheSecond",
       "timingDescription": "1 ms"
     }
   ]
