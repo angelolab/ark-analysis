@@ -167,7 +167,8 @@ def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, channels=None,
             dtype = data_dtype
 
     if max_image_size is not None:
-        img_data = np.zeros((len(fovs), max_image_size, max_image_size, len(channels)), dtype=dtype)
+        img_data = np.zeros((len(fovs), max_image_size, max_image_size, len(channels)),
+                            dtype=dtype)
     else:
         img_data = np.zeros((len(fovs), test_img.shape[0], test_img.shape[1], len(channels)),
                             dtype=dtype)
