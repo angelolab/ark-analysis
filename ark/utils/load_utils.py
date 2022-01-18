@@ -89,7 +89,7 @@ def load_imgs_from_mibitiff(data_dir, mibitiff_files=None, channels=None, delimi
 
 
 def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, channels=None,
-                        dtype="int16", variable_sizes=False):
+                        dtype="int16", max_image_size=None):
     """Takes a set of imgs from a directory structure and loads them into an xarray.
 
     Args:
@@ -103,8 +103,9 @@ def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, channels=None,
             optional list of imgs to load, otherwise loads all imgs
         dtype (str/type):
             dtype of array which will be used to store values
-        variable_sizes (bool):
-            if true, will pad loaded images with zeros to fit into array
+        max_image_size (int or None):
+            The length (in pixels) of the largest image that will be loaded. All other images will
+            be padded to bring them up to the same size.
 
     Returns:
         xarray.DataArray:
@@ -165,15 +166,15 @@ def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, channels=None,
                           f"because the loaded images are floats")
             dtype = data_dtype
 
-    if variable_sizes:
-        img_data = np.zeros((len(fovs), 1024, 1024, len(channels)), dtype=dtype)
+    if max_image_size is not None:
+        img_data = np.zeros((len(fovs), max_image_size, max_image_size, len(channels)), dtype=dtype)
     else:
         img_data = np.zeros((len(fovs), test_img.shape[0], test_img.shape[1], len(channels)),
                             dtype=dtype)
 
     for fov in range(len(fovs)):
         for img in range(len(channels)):
-            if variable_sizes:
+            if max_image_size is not None:
                 temp_img = io.imread(
                     path_join(data_dir, fovs[fov], img_sub_folder, channels[img],
                               get_filehandle=True)
@@ -188,10 +189,7 @@ def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, channels=None,
     if np.min(img_data) < 0:
         raise ValueError("Integer overflow from loading TIF image, try a larger dtype")
 
-    if variable_sizes:
-        row_coords, col_coords = range(1024), range(1024)
-    else:
-        row_coords, col_coords = range(test_img.shape[0]), range(test_img.shape[1])
+    row_coords, col_coords = range(img_data.shape[1]), range(img_data.shape[2])
 
     # remove .tif or .tiff from image name
     img_names = [os.path.splitext(img)[0] for img in channels]
