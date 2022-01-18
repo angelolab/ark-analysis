@@ -217,6 +217,7 @@ def mocked_cell_consensus_cluster(fovs, channels, base_dir, pixel_cluster_col, m
     feather.write_dataframe(cell_data, os.path.join(base_dir, cell_consensus_name))
 
 
+# TODO: make the test data more diverse for every function
 def test_normalize_rows():
     # define a list of channels and a subset of channels
     chans = ['chan0', 'chan1', 'chan2']
@@ -314,10 +315,10 @@ def test_compute_pixel_cluster_channel_avg():
             # define the final result we should get
             if cluster_col == 'pixel_som_cluster':
                 num_repeats = 100
-                result = np.repeat(np.array([[1., 1., 1.]]), repeats=num_repeats, axis=0)
+                result = np.repeat(np.array([[0.1, 0.2, 0.3]]), repeats=num_repeats, axis=0)
             else:
                 num_repeats = 10
-                result = np.repeat(np.array([[-1., -1., -1.]]), repeats=num_repeats, axis=0)
+                result = np.repeat(np.array([[0.1, 0.2, 0.3]]), repeats=num_repeats, axis=0)
 
             for keep_count in [False, True]:
                 # compute pixel cluster average matrix
@@ -410,13 +411,14 @@ def test_compute_cell_cluster_count_avg():
                 # assert we have results for all 10 labels
                 assert cell_cluster_avg.shape[0] == 10
 
-                # assert the values are 0.1 across the board
+                # assert the values are [0.1, 0.2, 0.3] across the board
+                result = np.repeat(np.array([[0.1, 0.2, 0.3]]), repeats=10, axis=0)
                 cell_cluster_avg_sub = cell_cluster_avg.drop(columns=drop_cols)
 
                 # division causes tiny errors so round to 1 decimal place
                 cell_cluster_avg_sub = cell_cluster_avg_sub.round(decimals=1)
 
-                assert np.all(cell_cluster_avg_sub == -1.)
+                assert np.all(result == cell_cluster_avg_sub.values)
 
                 # assert that the counts are valid if keep_count set to True
                 if keep_count:
@@ -435,16 +437,12 @@ def test_compute_cell_cluster_count_avg():
                 # assert we have results for all 5 labels
                 assert cell_cluster_avg.shape[0] == 5
 
-                # assert the values are the same across the board
+                # assert the values are [0.1, 0.2, 0.3] across the board
+                result = np.repeat(np.array([[0.1, 0.2, 0.3]]), repeats=5, axis=0)
                 cell_cluster_avg_sub = cell_cluster_avg.drop(columns=drop_cols)
 
                 # division causes tiny errors so round to 1 decimal place
                 cell_cluster_avg_sub = cell_cluster_avg_sub.round(decimals=1)
-
-                # this particular result will contain a NaN, not abnormal
-                # these will be filled with 0 in the visualizations
-                cell_cluster_avg_sub = cell_cluster_avg_sub.fillna(0.)
-                result = np.repeat(np.array([[1., 1., 0.]]), repeats=5, axis=0)
 
                 assert np.all(result == cell_cluster_avg_sub.values)
 

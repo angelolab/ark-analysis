@@ -48,13 +48,14 @@ set.seed(seed)
 print("Reading cluster averaged data")
 clusterAvgs <- as.data.frame(read.csv(clusterAvgPath, check.names=FALSE))
 
-# scale and cap the data respectively
-# NOTE: z-scoring and capping cluster avg data produces better clustering results
+# z-score and cap the data respectively
+# NOTE: capping cluster avg data produces better clustering results
 # NOTE: need to cap with sapply because pmin sets out-of-range values to NA on non-vectors
 print("Scaling data")
 clusterCols <- colnames(clusterAvgs)[grepl(pattern=sprintf('%s_', pixelClusterCol),
                                      colnames(clusterAvgs))]
 clusterAvgsScale <- clusterAvgs[,clusterCols]
+clusterAvgsScale <- scale(clusterAvgs[,clusterCols])
 clusterAvgsScale <- sapply(as.data.frame(clusterAvgsScale), pmin, cap)
 clusterAvgsScale <- sapply(as.data.frame(clusterAvgsScale), pmax, -cap)
 

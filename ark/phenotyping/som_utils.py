@@ -6,7 +6,6 @@ import numpy as np
 import pandas as pd
 import re
 import scipy.ndimage as ndimage
-import scipy.stats as stats
 from skimage.io import imread
 import xarray as xr
 
@@ -119,16 +118,6 @@ def compute_pixel_cluster_channel_avg(fovs, channels, base_dir, pixel_cluster_co
     # now compute the means using the count column
     sum_count_totals[channels] = sum_count_totals[channels].div(sum_count_totals['count'], axis=0)
 
-    # z-score the mean channel expressions
-    # replace NA's and infs with 0 as an extra precaution
-    # NOTE: z-scoring channel avg data produces better clustering results
-    channels_z_scored = stats.zscore(sum_count_totals[channels].values)
-    channels_z_scored[np.isnan(channels_z_scored)] = 0
-    channels_z_scored[np.isinf(channels_z_scored)] = 0
-
-    # assign z-scored values back
-    sum_count_totals[channels] = channels_z_scored
-
     # convert cluster column to integer type
     sum_count_totals[pixel_cluster_col] = sum_count_totals[pixel_cluster_col].astype(int)
 
@@ -187,16 +176,6 @@ def compute_cell_cluster_count_avg(cell_cluster_path, pixel_cluster_col_prefix,
 
     # average each column grouped by the cell cluster column
     mean_count_totals = cluster_data_subset.groupby(cell_cluster_col).mean().reset_index()
-
-    # z-score the average pixel SOM/meta cluster counts
-    # replace NA's and infs with 0 as an extra precaution
-    # NOTE: z-scoring cluster avg data produces better clustering results
-    mean_count_z_scored = stats.zscore(mean_count_totals[column_subset])
-    mean_count_z_scored[np.isnan(mean_count_z_scored)] = 0
-    mean_count_z_scored[np.isinf(mean_count_z_scored)] = 0
-
-    # assign z-scored values back
-    mean_count_totals[column_subset] = mean_count_z_scored
 
     # if keep_count is included, add the count column to the cell table
     if keep_count:
@@ -286,16 +265,6 @@ def compute_cell_cluster_channel_avg(fovs, channels, base_dir,
     # compute the mean channel expression across each cell cluster
     channel_avgs = cell_table.groupby(cell_cluster_col).mean().reset_index()
 
-    # z-score the weighted channel averages
-    # replace NA's and infs with 0 as an extra precaution
-    # NOTE: z-scoring cluster avg data produces better clustering results
-    channel_avgs_z_scored = stats.zscore(channel_avgs[channels].values)
-    channel_avgs_z_scored[np.isnan(channel_avgs_z_scored)] = 0
-    channel_avgs_z_scored[np.isinf(channel_avgs_z_scored)] = 0
-
-    # assign z-scored values back
-    channel_avgs[channels] = channel_avgs_z_scored
-
     return channel_avgs
 
 
@@ -377,7 +346,7 @@ def compute_p2c_weighted_channel_avg(pixel_channel_avg, channels, cell_counts,
     )
 
     # assert that the channel subset provided is valid
-    # this should never fail, but who knows?
+    # this should never fail, just as an added protection
     misc_utils.verify_in_list(
         provided_channels=channels,
         pixel_channel_avg_cols=pixel_channel_avg_sorted.columns.values
