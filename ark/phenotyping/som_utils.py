@@ -189,7 +189,7 @@ def compute_cell_cluster_count_avg(cell_cluster_path, pixel_cluster_col_prefix,
 
 
 def compute_cell_cluster_channel_avg(fovs, channels, base_dir,
-                                     weighted_cell_channel_avg_name,
+                                     weighted_cell_channel_name,
                                      cell_cluster_name='cell_mat_clustered.feather',
                                      cell_cluster_col='cell_meta_cluster'):
     """Computes the average marker expression for each cell cluster
@@ -201,7 +201,7 @@ def compute_cell_cluster_channel_avg(fovs, channels, base_dir,
             The list of channels to subset on
         base_dir (str):
             The path to the data directory
-        weighted_cell_channel_avg_name (str):
+        weighted_cell_channel_name (str):
             The name of the weighted cell table, created in `example_cell_clustering.ipynb`
         cell_cluster_name (str):
             Name of the file containing the cell data with cluster labels
@@ -215,9 +215,9 @@ def compute_cell_cluster_channel_avg(fovs, channels, base_dir,
     """
 
     # verify the cell table actually exists
-    if not os.path.exists(os.path.join(base_dir, weighted_cell_channel_avg_name)):
+    if not os.path.exists(os.path.join(base_dir, weighted_cell_channel_name)):
         raise FileNotFoundError(
-            "Weighted cell table %s not found in %s" % (weighted_cell_channel_avg_name, base_dir)
+            "Weighted cell table %s not found in %s" % (weighted_cell_channel_name, base_dir)
         )
 
     # verify the cell cluster col specified is valid
@@ -227,7 +227,7 @@ def compute_cell_cluster_channel_avg(fovs, channels, base_dir,
     )
 
     # read the weighted cell channel table in
-    cell_table = pd.read_csv(os.path.join(base_dir, weighted_cell_channel_avg_name))
+    cell_table = pd.read_csv(os.path.join(base_dir, weighted_cell_channel_name))
 
     # subset on only the fovs the user has specified
     cell_table = cell_table[cell_table['fov'].isin(fovs)]
@@ -357,20 +357,20 @@ def compute_p2c_weighted_channel_avg(pixel_channel_avg, channels, cell_counts,
 
     # broadcast multiply cell_counts_clusters and pixel_channel_avg to get weighted
     # average expression values for each cell
-    weighted_cell_channel_avg = np.matmul(
+    weighted_cell_channel = np.matmul(
         cell_counts_clusters.values, pixel_channel_avg_sub.values
     )
 
     # convert back to dataframe
-    weighted_cell_channel_avg = pd.DataFrame(
-        weighted_cell_channel_avg, columns=pixel_channel_avg_sub.columns.values
+    weighted_cell_channel = pd.DataFrame(
+        weighted_cell_channel, columns=pixel_channel_avg_sub.columns.values
     )
 
     # add columns back
     meta_cols = ['cell_size', 'fov', 'segmentation_label']
-    weighted_cell_channel_avg[meta_cols] = cell_counts_sub.reset_index(drop=True)[meta_cols]
+    weighted_cell_channel[meta_cols] = cell_counts_sub.reset_index(drop=True)[meta_cols]
 
-    return weighted_cell_channel_avg
+    return weighted_cell_channel
 
 
 def create_c2pc_data(fovs, pixel_consensus_path,
@@ -881,13 +881,11 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
             Name of the file containing the pixel data with cluster labels
             Created by `cluster_pixels`
         pc_chan_avg_som_cluster_name (str):
-            Name of file to save the channel-averaged results across all SOM clusters to.
-            Note that these values are z-scored.
+            Name of file to save the channel-averaged results across all SOM clusters to
         pc_chan_avg_meta_cluster_name (str):
-            Name of file to save the channel-averaged results across all meta clusters to.
-            Note that these values are z-scored.
+            Name of file to save the channel-averaged results across all meta clusters to
         consensus_dir (str):
-            Name of directory to save the consensus clustered results
+            Name of directory to save the consensus clustered results (SOM and meta labels added)
         clust_to_meta_name (str):
             Name of file storing the SOM cluster to meta cluster mapping
         seed (int):
@@ -975,13 +973,123 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
     )
 
 
+def apply_pixel_meta_cluster_remapping(fovs, channels, base_dir,
+                                       pixel_consensus_dir,
+                                       pixel_remapped_name,
+                                       pc_chan_avg_som_cluster_name,
+                                       pc_chan_avg_meta_cluster_name):
+    """Apply the meta cluster remapping to the data in `pixel_consensus_dir`.
+
+    Resave the re-mapped consensus data to `pixel_consensus_dir` and re-runs the
+    average channel expression per pixel meta cluster computation.
+
+    Re-maps the pixel SOM clusters to meta clusters in `pc_chan_avg_som_cluster_name`.
+
+    Args:
+        fovs (list):
+            The list of fovs to subset on
+        channels (list):
+            The list of channels to subset on
+        base_dir (str):
+            The path to the data directories
+        pixel_consensus_dir (str):
+            Name of directory with the pixel-level consensus data (SOM and meta labels added)
+        pixel_remapped_name (str):
+            Name of the file containing the pixel SOM clusters to their remapped meta clusters
+        pc_chan_avg_som_cluster_name (str):
+            Name of the file containing the channel-averaged results across all SOM clusters
+        pc_chan_avg_meta_cluster_name (str):
+            Name of the file containing the channel-averaged results across all meta clusters
+    """
+
+    # define the data paths
+    pixel_consensus_path = os.path.join(base_dir, pixel_consensus_dir)
+    pixel_remapped_path = os.path.join(base_dir, pixel_remapped_name)
+    som_cluster_avg_path = os.path.join(base_dir, pc_chan_avg_som_cluster_name)
+    meta_cluster_avg_path = os.path.join(base_dir, pc_chan_avg_meta_cluster_name)
+
+    # file path validation
+    if not os.path.exists(pixel_consensus_path):
+        raise FileNotFoundError('Pixel consensus dir %s does not exist in base_dir %s' %
+                                (pixel_consensus_dir, base_dir))
+
+    if not os.path.exists(pixel_remapped_path):
+        raise FileNotFoundError('Pixel remapping file %s does not exist in base_dir %s' %
+                                (pixel_remapped_name, base_dir))
+
+    if not os.path.exists(som_cluster_avg_path):
+        raise FileNotFoundError(
+            'Channel average per SOM cluster file %s does not exist in base_dir %s' %
+            (pc_chan_avg_meta_cluster_name, base_dir))
+
+    if not os.path.exists(meta_cluster_avg_path):
+        raise FileNotFoundError(
+            'Channel average per meta cluster file %s does not exist in base_dir %s' %
+            (pc_chan_avg_meta_cluster_name, base_dir))
+
+    # read in the remapping
+    pixel_remapped_data = pd.read_csv(pixel_remapped_path)
+
+    # rename columns in pixel_remapped_data so it plays better with the existing
+    # pixel_som_cluster and pixel_meta_cluster
+    # TODO: Zak's visualization spits out duplicate meta label columns when I tested it
+    # need to take a look at this once merging that in
+    pixel_remapped_data.columns = [
+        'pixel_som_cluster', 'pixel_meta_cluster', 'pixel_meta_cluster_dup'
+    ]
+
+    # create the mapping
+    pixel_remapped_dict = dict(
+        pixel_remapped_data[['pixel_som_cluster', 'pixel_meta_cluster']].values
+    )
+
+    print("Using re-mapping scheme to re-label pixel meta clusters")
+    for fov in fovs:
+        # get the path to the fov
+        fov_path = os.path.join(pixel_consensus_path, fov + '.feather')
+
+        # read in the fov data with SOM and meta cluster labels
+        fov_data = feather.read_dataframe(fov_path)
+
+        # assign the new meta cluster labels
+        fov_data['pixel_meta_cluster'] = fov_data['pixel_som_cluster'].map(pixel_remapped_dict)
+
+        # resave the data with the new meta cluster lables
+        feather.write_dataframe(fov_data, fov_path, compression='uncompressed')
+
+    # re-compute average channel expression for each pixel meta cluster
+    # and the number of pixels per meta cluster
+    print("Re-computing average channel expression across pixel meta clusters")
+    pixel_channel_avg_meta_cluster = compute_pixel_cluster_channel_avg(
+        fovs,
+        channels,
+        base_dir,
+        'pixel_meta_cluster',
+        pixel_consensus_dir,
+        keep_count=True
+    )
+
+    # re-save the pixel channel average meta cluster table
+    pixel_channel_avg_meta_cluster.to_csv(meta_cluster_avg_path, index=False)
+
+    # re-assign pixel meta cluster labels back to the pixel channel average som cluster table
+    print("Re-assigning meta cluster column in pixel SOM cluster average channel expression table")
+    pixel_channel_avg_som_cluster = pd.read_csv(som_cluster_avg_path)
+
+    pixel_channel_avg_som_cluster['pixel_meta_cluster'] = \
+        pixel_channel_avg_som_cluster['pixel_som_cluster'].map(pixel_remapped_dict)
+
+    # re-save the pixel channel average som cluster table
+    pixel_channel_avg_som_cluster.to_csv(som_cluster_avg_path, index=False)
+
+
 def train_cell_som(fovs, channels, base_dir, pixel_consensus_dir, cell_table_name,
                    cluster_counts_name='cluster_counts.feather',
                    cluster_counts_norm_name='cluster_counts_norm.feather',
                    pixel_cluster_col='pixel_meta_cluster',
-                   pc_chan_avg_name='pc_chan_avg.feather',
+                   pc_chan_avg_name='pc_chan_avg.csv',
                    weights_name='cell_weights.feather',
-                   weighted_cell_channel_avg_name='weighted_cell_channel_avg.csv',
+                   weighted_cell_channel_name='weighted_cell_channel.csv',
                    xdim=10, ydim=10, lr_start=0.05, lr_end=0.01, num_passes=1, seed=42):
     """Run the SOM training on the number of pixel/meta clusters in each cell of each fov
 
@@ -996,7 +1104,7 @@ def train_cell_som(fovs, channels, base_dir, pixel_consensus_dir, cell_table_nam
         base_dir (str):
             The path to the data directories
         pixel_consensus_dir (str):
-            Name of directory which contains the pixel-level consensus data
+            Name of directory with the pixel-level consensus data (SOM and meta labels added)
             Created by `pixel_consensus_cluster`
         cell_table_name (str):
             Name of the cell table, needs to be created with `Segment_Image_Data.ipynb`
@@ -1014,7 +1122,7 @@ def train_cell_som(fovs, channels, base_dir, pixel_consensus_dir, cell_table_nam
             depending on the value of `pixel_cluster_col`
         weights_name (str):
             The name of the file to save the weights to
-        weighted_cell_channel_avg_name (str):
+        weighted_cell_channel_name (str):
             The name of the file to save the weighted channel expression table to
         xdim (int):
             The number of x nodes to use for the SOM
@@ -1093,14 +1201,14 @@ def train_cell_som(fovs, channels, base_dir, pixel_consensus_dir, cell_table_nam
     pixel_cluster_channel_avg = pd.read_csv(os.path.join(base_dir, pc_chan_avg_name))
 
     # compute the weighted channel table
-    weighted_cell_channel_avg = compute_p2c_weighted_channel_avg(
+    weighted_cell_channel = compute_p2c_weighted_channel_avg(
         pixel_cluster_channel_avg, channels, cluster_counts,
         fovs=fovs, pixel_cluster_col=pixel_cluster_col
     )
 
     # save the weighted channel table
-    weighted_cell_channel_avg.to_csv(
-        os.path.join(base_dir, weighted_cell_channel_avg_name),
+    weighted_cell_channel.to_csv(
+        os.path.join(base_dir, weighted_cell_channel_name),
         index=False
     )
 
@@ -1109,11 +1217,11 @@ def cluster_cells(base_dir, cluster_counts_norm_name='cluster_counts_norm.feathe
                   weights_name='cell_weights.feather',
                   cell_cluster_name='cell_mat_clustered.feather',
                   pixel_cluster_col_prefix='pixel_meta_cluster',
-                  cell_som_cluster_avgs_name='cell_som_cluster_avgs.feather'):
+                  cell_som_cluster_count_avgs_name='cell_som_cluster_count_avgs.csv'):
     """Uses trained weights to assign cluster labels on full cell data
 
     Saves data with cluster labels to `cell_cluster_name`. Computes and saves the average number
-    of pixel SOM/meta clusters per cell.
+    of pixel SOM/meta clusters per cell SOM cluster.
 
     Args:
         base_dir (str):
@@ -1127,7 +1235,7 @@ def cluster_cells(base_dir, cluster_counts_norm_name='cluster_counts_norm.feathe
         pixel_cluster_col_prefix (str):
             The name of the prefixes of each of the pixel SOM/meta columns
             Should be `'pixel_som_cluster'` or `'pixel_meta_cluster'`.
-        cell_som_cluster_avgs_name (str):
+        cell_som_cluster_count_avgs_name (str):
             The name of the file to write the clustered data
     """
 
@@ -1196,23 +1304,27 @@ def cluster_cells(base_dir, cluster_counts_norm_name='cluster_counts_norm.feathe
 
     # save the average pixel SOM/meta counts per cell SOM cluster
     cell_som_cluster_avgs_and_counts.to_csv(
-        os.path.join(base_dir, cell_som_cluster_avgs_name),
+        os.path.join(base_dir, cell_som_cluster_count_avgs_name),
         index=False
     )
 
 
 def cell_consensus_cluster(fovs, channels, base_dir, pixel_cluster_col, max_k=20, cap=3,
                            cell_cluster_name='cell_mat_clustered.feather',
-                           cell_som_cluster_avgs_name='cell_som_cluster_avgs.csv',
-                           cell_meta_cluster_avgs_name='cell_meta_cluster_avgs.csv',
-                           weighted_cell_channel_avg_name='weighted_cell_channel_avg.csv',
+                           cell_som_cluster_count_avgs_name='cell_som_cluster_avgs.csv',
+                           cell_meta_cluster_count_avgs_name='cell_meta_cluster_avgs.csv',
+                           weighted_cell_channel_name='weighted_cell_channel.csv',
                            cell_som_cluster_channel_avg_name='cell_som_cluster_channel_avg.csv',
                            cell_meta_cluster_channel_avg_name='cell_meta_cluster_channel_avg.csv',
                            clust_to_meta_name='cell_clust_to_meta.feather',
                            cell_consensus_name='cell_mat_consensus.feather', seed=42):
     """Run consensus clustering algorithm on cell-level data averaged across each cell SOM cluster
 
-    Saves data with consensus cluster labels to cell_consensus_name
+    Saves data with consensus cluster labels to cell_consensus_name. Computes and saves the
+    average number of pixel SOM/meta clusters per cell meta cluster. Assigns meta cluster labels
+    to the data stored in `cell_som_cluster_count_avgs_name`.
+
+    Computes and saves the average weighted cell channel expression per cell SOM and meta cluster.
 
     Args:
         fovs (list):
@@ -1231,12 +1343,12 @@ def cell_consensus_cluster(fovs, channels, base_dir, pixel_cluster_col, max_k=20
         cell_cluster_name (str):
             Name of the file containing the cell data with cluster labels
             Created by cluster_cells
-        cell_som_cluster_avgs_name (str):
+        cell_som_cluster_count_avgs_name (str):
             The average number of pixel SOM/meta clusters per cell SOM cluster.
             Used to run consensus clustering on.
-        cell_meta_cluster_avgs_name (str):
+        cell_meta_cluster_count_avgs_name (str):
             Same as above except for cell meta clusters
-        weighted_cell_channel_avg_name (str):
+        weighted_cell_channel_name (str):
             The name of the file containing the weighted channel expression table
         cell_som_cluster_channel_avg_name (str):
             The name of the file to save the average weighted channel expression
@@ -1247,16 +1359,16 @@ def cell_consensus_cluster(fovs, channels, base_dir, pixel_cluster_col, max_k=20
         clust_to_meta_name (str):
             Name of file storing the SOM cluster to meta cluster mapping
         cell_consensus_name (str):
-            Name of file to save the consensus clustered results
+            Name of file to save the consensus clustered results (SOM and meta labels added)
         seed (int):
             The random seed to set for consensus clustering
     """
 
     # define the paths to the data
     clustered_path = os.path.join(base_dir, cell_cluster_name)
-    cluster_avg_path = os.path.join(base_dir, cell_som_cluster_avgs_name)
+    som_cluster_counts_avg_path = os.path.join(base_dir, cell_som_cluster_count_avgs_name)
     consensus_path = os.path.join(base_dir, cell_consensus_name)
-    weighted_channel_path = os.path.join(base_dir, weighted_cell_channel_avg_name)
+    weighted_channel_path = os.path.join(base_dir, weighted_cell_channel_name)
     clust_to_meta_path = os.path.join(base_dir, clust_to_meta_name)
 
     # if the path to the SOM clustered data doesn't exist
@@ -1267,17 +1379,17 @@ def cell_consensus_cluster(fovs, channels, base_dir, pixel_cluster_col, max_k=20
         )
 
     # if the path to the average pixel cluster counts per cell cluster doesn't exist
-    if not os.path.exists(cluster_avg_path):
+    if not os.path.exists(som_cluster_counts_avg_path):
         raise FileNotFoundError(
-            'Average pixel cluster count per cell cluster file %s does not exist in base_dir %s' %
-            (cell_som_cluster_avgs_name, base_dir)
+            'Average pix clust count per cell SOM cluster file %s does not exist in base_dir %s' %
+            (cell_som_cluster_count_avgs_name, base_dir)
         )
 
     # if the path to the weighted channel data doesn't exist
     if not os.path.exists(weighted_channel_path):
         raise FileNotFoundError(
             'Weighted channel table %s does not exist in base_dir %s' %
-            (weighted_cell_channel_avg_name, base_dir)
+            (weighted_cell_channel_name, base_dir)
         )
 
     # verify the pixel_cluster_col provided is valid
@@ -1289,7 +1401,7 @@ def cell_consensus_cluster(fovs, channels, base_dir, pixel_cluster_col, max_k=20
     # run the consensus clustering process
     process_args = ['Rscript', '/cell_consensus_cluster.R', pixel_cluster_col,
                     str(max_k), str(cap), clustered_path,
-                    cluster_avg_path, consensus_path, clust_to_meta_path, str(seed)]
+                    som_cluster_counts_avg_path, consensus_path, clust_to_meta_path, str(seed)]
 
     process = subprocess.Popen(process_args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
@@ -1315,7 +1427,7 @@ def cell_consensus_cluster(fovs, channels, base_dir, pixel_cluster_col, max_k=20
 
     # save the average pixel SOM/meta counts per cell meta cluster
     cell_meta_cluster_avgs_and_counts.to_csv(
-        os.path.join(base_dir, cell_meta_cluster_avgs_name),
+        os.path.join(base_dir, cell_meta_cluster_count_avgs_name),
         index=False
     )
 
@@ -1329,7 +1441,7 @@ def cell_consensus_cluster(fovs, channels, base_dir, pixel_cluster_col, max_k=20
     ).astype(np.int64)
 
     # read in the average number of pixel/SOM clusters across all cell SOM clusters
-    cell_som_cluster_avgs_and_counts = pd.read_csv(cluster_avg_path)
+    cell_som_cluster_avgs_and_counts = pd.read_csv(som_cluster_counts_avg_path)
 
     # merge metacluster assignments in
     cell_som_cluster_avgs_and_counts = pd.merge_asof(
@@ -1339,7 +1451,7 @@ def cell_consensus_cluster(fovs, channels, base_dir, pixel_cluster_col, max_k=20
     # resave average number of pixel/SOM clusters across all cell SOM clusters
     # with metacluster assignments
     cell_som_cluster_avgs_and_counts.to_csv(
-        cluster_avg_path,
+        som_cluster_counts_avg_path,
         index=False
     )
 
@@ -1349,7 +1461,7 @@ def cell_consensus_cluster(fovs, channels, base_dir, pixel_cluster_col, max_k=20
         fovs,
         channels,
         base_dir,
-        weighted_cell_channel_avg_name,
+        weighted_cell_channel_name,
         cell_consensus_name,
         'cell_som_cluster'
     )
@@ -1375,7 +1487,7 @@ def cell_consensus_cluster(fovs, channels, base_dir, pixel_cluster_col, max_k=20
         fovs,
         channels,
         base_dir,
-        weighted_cell_channel_avg_name,
+        weighted_cell_channel_name,
         cell_consensus_name,
         'cell_meta_cluster'
     )
@@ -1385,3 +1497,182 @@ def cell_consensus_cluster(fovs, channels, base_dir, pixel_cluster_col, max_k=20
         os.path.join(base_dir, cell_meta_cluster_channel_avg_name),
         index=False
     )
+
+
+def apply_cell_meta_cluster_remapping(fovs, channels, base_dir, cell_consensus_name,
+                                      cell_remapped_name,
+                                      pixel_cluster_col,
+                                      cell_som_cluster_count_avgs_name,
+                                      cell_meta_cluster_count_avgs_name,
+                                      weighted_cell_channel_name,
+                                      cell_som_cluster_channel_avg_name,
+                                      cell_meta_cluster_channel_avg_name):
+    """Apply the meta cluster remapping to the data in `cell_consensus_name`.
+
+    Resave the re-mapped consensus data to `cell_consensus_name` and re-runs the
+    weighted channel expression and average pixel SOM/meta cluster counts per cell
+    SOM cluster.
+
+    Re-maps the pixel SOM clusters to meta clusters in `cell_som_cluster_count_avgs_name` and
+    `cell_som_cluster_channel_avg_name`
+
+    Args:
+        fovs (list):
+            The list of fovs to subset on
+        channels (list):
+            The list of channels to subset on
+        base_dir (str):
+            The path to the data directory
+        cell_consensus_name (str):
+            Name of file with the cell consensus clustered results
+        cell_remapped_name (str):
+            Name of the file containing the cell SOM clusters to their remapped meta clusters
+        pixel_cluster_col (str):
+            Name of the column used to generate the pixel SOM/meta cluster counts.
+            Should be `'pixel_som_cluster'` or `'pixel_meta_cluster'`.
+        cell_som_cluster_count_avgs_name (str):
+            The average number of pixel SOM/meta clusters per cell SOM cluster.
+            Used to run consensus clustering on.
+        cell_meta_cluster_count_avgs_name (str):
+            Same as above except for cell meta clusters
+        weighted_cell_channel_name (str):
+            The name of the file containing the weighted channel expression table
+        cell_som_cluster_channel_avg_name (str):
+            The name of the file to save the average weighted channel expression
+            per cell SOM cluster
+        cell_meta_cluster_channel_avg_name (str):
+            Same as above except for cell som clusters
+    """
+
+    # define the data paths
+    cell_consensus_path = os.path.join(base_dir, cell_consensus_name)
+    cell_remapped_path = os.path.join(base_dir, cell_remapped_name)
+    som_cluster_counts_avgs_path = os.path.join(base_dir, cell_som_cluster_count_avgs_name)
+    meta_cluster_counts_avgs_path = os.path.join(base_dir, cell_meta_cluster_count_avgs_name)
+    weighted_channel_path = os.path.join(base_dir, weighted_cell_channel_name)
+    som_cluster_channel_avgs_path = os.path.join(base_dir, cell_som_cluster_channel_avg_name)
+    meta_cluster_channel_avgs_path = os.path.join(base_dir, cell_meta_cluster_channel_avg_name)
+
+    # file path validation
+    if not os.path.exists(cell_consensus_path):
+        raise FileNotFoundError('Cell consensus file %s does not exist in base_dir %s' %
+                                (cell_consensus_name, base_dir))
+
+    if not os.path.exists(cell_remapped_path):
+        raise FileNotFoundError('Cell remapping file %s does not exist in base_dir %s' %
+                                (cell_remapped_name, base_dir))
+
+    if not os.path.exists(som_cluster_counts_avgs_path):
+        raise FileNotFoundError(
+            'Average pix clust count per cell SOM cluster file %s does not exist in base_dir %s' %
+            (cell_som_cluster_count_avgs_name, base_dir)
+        )
+
+    if not os.path.exists(meta_cluster_counts_avgs_path):
+        raise FileNotFoundError(
+            'Average pix clust count per cell meta cluster file %s does not exist in base_dir %s' %
+            (cell_meta_cluster_count_avgs_name, base_dir)
+        )
+
+    if not os.path.exists(weighted_channel_path):
+        raise FileNotFoundError('Weighted channel table %s does not exist in base_dir %s' %
+                                (weighted_cell_channel_name, base_dir))
+
+    if not os.path.exists(som_cluster_channel_avgs_path):
+        raise FileNotFoundError(
+            'Average weighted chan per cell SOM cluster file %s does not exist in base_dir %s' %
+            (cell_som_cluster_channel_avg_name, base_dir)
+        )
+
+    if not os.path.exists(meta_cluster_channel_avgs_path):
+        raise FileNotFoundError(
+            'Average weighted chan per cell meta cluster file %s does not exist in base_dir %s' %
+            (cell_meta_cluster_channel_avg_name, base_dir)
+        )
+
+    # verify the pixel_cluster_col provided is valid
+    misc_utils.verify_in_list(
+        provided_cluster_col=[pixel_cluster_col],
+        valid_cluster_cols=['pixel_som_cluster', 'pixel_meta_cluster']
+    )
+
+    # read in the remapping
+    cell_remapped_data = pd.read_csv(cell_remapped_path)
+
+    # rename columns in pixel_remapped_data so it plays better with the existing
+    # cell_som_cluster and cell_meta_cluster
+    # TODO: Zak's visualization spits out duplicate meta label columns when I tested it
+    # need to take a look at this once merging that in
+    cell_remapped_data.columns = [
+        'cell_som_cluster', 'cell_meta_cluster', 'cell_meta_cluster_dup'
+    ]
+
+    # create the mapping
+    cell_remapped_dict = dict(
+        cell_remapped_data[['cell_som_cluster', 'cell_meta_cluster']].values
+    )
+
+    # load the cell consensus data in
+    print("Using re-mapping scheme to re-label cell meta clusters")
+    cell_consensus_data = feather.read_dataframe(cell_consensus_path)
+
+    # assign the new meta cluster labels
+    cell_consensus_data['cell_meta_cluster'] = \
+        cell_consensus_data['cell_som_cluster'].map(cell_remapped_dict)
+
+    # resave the data with the new meta cluster lables
+    feather.write_dataframe(cell_consensus_data, cell_consensus_path, compression='uncompressed')
+
+    # re-compute the average number of pixel SOM/meta clusters per cell meta cluster
+    print("Re-compute pixel SOM/meta cluster count per cell meta cluster")
+    cell_meta_cluster_avgs_and_counts = compute_cell_cluster_count_avg(
+        cell_consensus_path,
+        pixel_cluster_col,
+        'cell_meta_cluster',
+        keep_count=True
+    )
+
+    # re-save the average number of pixel SOM/meta clusters per cell meta cluster
+    cell_meta_cluster_avgs_and_counts.to_csv(
+        meta_cluster_counts_avgs_path,
+        index=False
+    )
+
+    # re-compute the weighted channel average expression per cell meta cluster
+    print("Re-compute average weighted channel expression across cell meta clusters")
+    cell_meta_cluster_channel_avg = compute_cell_cluster_channel_avg(
+        fovs,
+        channels,
+        base_dir,
+        weighted_cell_channel_name,
+        cell_consensus_name,
+        'cell_meta_cluster'
+    )
+
+    # re-save the weighted channel average expression per cell cluster
+    cell_meta_cluster_channel_avg.to_csv(
+        meta_cluster_channel_avgs_path,
+        index=False
+    )
+
+    # re-assign cell meta cluster labels back to the average pixel cluster counts
+    # per cell SOM cluster table
+    print("Re-assigning meta cluster column in cell SOM cluster average pixel cluster counts data")
+    cell_som_cluster_avgs_and_counts = pd.read_csv(som_cluster_counts_avgs_path)
+
+    cell_som_cluster_avgs_and_counts['cell_meta_cluster'] = \
+        cell_som_cluster_avgs_and_counts['cell_meta_cluster'].map(cell_remapped_dict)
+
+    # re-save the cell SOM cluster average pixel cluster counts table
+    cell_som_cluster_avgs_and_counts.to_csv(som_cluster_counts_avgs_path, index=False)
+
+    # re-assign cell meta cluster labels back to the average weighted channel expression
+    # per cell SOM cluster table
+    print("Re-assigning meta cluster column in cell SOM cluster average weighted channel data")
+    cell_som_cluster_channel_avg = pd.read_csv(som_cluster_channel_avgs_path)
+
+    cell_som_cluster_channel_avg['cell_meta_cluster'] = \
+        cell_som_cluster_channel_avg['cell_meta_cluster'].map(cell_remapped_dict)
+
+    # re-save the cell SOM cluster average pixel cluster counts table
+    cell_som_cluster_channel_avg.to_csv(som_cluster_channel_avgs_path, index=False)
