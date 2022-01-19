@@ -48,7 +48,10 @@ def plot_clustering_result(img_xr, fovs, save_dir=None, cmap='viridis',
         plt.title(fov)
 
         # define the colormap
-        cmap = mpl.cm.get_cmap(cmap, len(tick_range))
+        if tick_range is not None:
+            cmap = mpl.cm.get_cmap(cmap, len(tick_range))
+        else:
+            cmap = mpl.cm.get_cmap(cmap)
 
         # show the image on the figure
         plt.imshow(img_xr[img_xr[fov_col] == fov].values.squeeze(), cmap=cmap)
