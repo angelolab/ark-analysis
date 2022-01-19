@@ -703,6 +703,18 @@ def test_create_c2pc_data():
             feather.write_dataframe(fov_table, os.path.join(pixel_consensus_path,
                                                             fov + '.feather'))
 
+        # error check: not all required columns provided in cell table
+        with pytest.raises(ValueError):
+            bad_cell_table = cell_table.copy()
+            bad_cell_table = bad_cell_table.rename({'cell_size': 'bad_col'}, axis=1)
+            bad_cell_table_path = os.path.join(temp_dir, 'bad_cell_table.csv')
+            bad_cell_table.to_csv(bad_cell_table_path, index=False)
+
+            cluster_counts, cluster_counts_norm = som_utils.create_c2pc_data(
+                fovs, pixel_consensus_path, bad_cell_table_path,
+                pixel_cluster_col='pixel_som_cluster'
+            )
+
         # test counts on the pixel cluster column
         cluster_counts, cluster_counts_norm = som_utils.create_c2pc_data(
             fovs, pixel_consensus_path, cell_table_path, pixel_cluster_col='pixel_som_cluster'
