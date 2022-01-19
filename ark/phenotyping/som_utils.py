@@ -26,7 +26,7 @@ def normalize_rows(pixel_data, channels, include_seg_label=True):
         channels (list):
             List of channels to subset over
         include_seg_label (bool):
-            Whether to include `'segmentation_label'` as a meta column
+            Whether to include `'segmentation_label'` as a metadata column
 
     Returns:
         pandas.DataFrame:
@@ -137,16 +137,16 @@ def compute_cell_cluster_count_avg(cell_cluster_path, pixel_cluster_col_prefix,
 
     Args:
         cell_cluster_path (str):
-            The path to the cell data with SOM labels, created by `cluster_cells`
+            The path to the cell data with SOM and/or meta labels, created by `cluster_cells`
         pixel_cluster_col_prefix (str):
-            The prefix of the columns to subset
+            The prefix of the pixel cluster count columns to subset,
             should be `'pixel_som_cluster'` or `'pixel_meta_cluster'`
         cell_cluster_col (str):
             Name of the cell cluster column to group by
             should be `'cell_som_cluster'` or `'cell_meta_cluster'`
         keep_count (bool):
-            Whether to include the cell counts or not
-            This should only be set to `True` for visualization purposes
+            Whether to include the cell counts or not,
+            this should only be set to `True` for visualization purposes
 
     Returns:
         pandas.DataFrame:
@@ -401,7 +401,7 @@ def create_c2pc_data(fovs, pixel_consensus_path,
         tuple:
 
         - `pandas.DataFrame`: cell x cluster counts of each pixel SOM/meta cluster per each cell
-        - `pandas.DataFrame`: same as above, but normalized by cell_size
+        - `pandas.DataFrame`: same as above, but normalized by `cell_size`
     """
 
     # verify the pixel_cluster_col provided is valid
@@ -412,6 +412,12 @@ def create_c2pc_data(fovs, pixel_consensus_path,
 
     # read the cell table data
     cell_table = pd.read_csv(cell_table_path)
+
+    # verify that the user has specified fov, label, and cell_size columns in their cell table
+    misc_utils.verify_in_list(
+        required_cell_table_cols=['fov', 'label', 'cell_size'],
+        provided_cell_table_cols=cell_table.columns.values
+    )
 
     # subset on fov, label, and cell size
     cell_table = cell_table[['fov', 'label', 'cell_size']]
