@@ -277,6 +277,8 @@ def compute_p2c_weighted_channel_avg(pixel_channel_avg, channels, cell_counts,
 
     `pixel_cluster_n_count * avg_marker_exp_pixel_cluster_n + ...`
 
+    These values are then normalized by the cell's respective size.
+
     Note that this function will only be used to correct overlapping signal for visualization.
 
     Args:
@@ -363,12 +365,18 @@ def compute_p2c_weighted_channel_avg(pixel_channel_avg, channels, cell_counts,
 
     # convert back to dataframe
     weighted_cell_channel = pd.DataFrame(
-        weighted_cell_channel, columns=pixel_channel_avg_sub.columns.values
+        weighted_cell_channel, columns=channels
     )
 
     # add columns back
     meta_cols = ['cell_size', 'fov', 'segmentation_label']
     weighted_cell_channel[meta_cols] = cell_counts_sub.reset_index(drop=True)[meta_cols]
+
+    # normalize the channel columns by the cell size
+    weighted_cell_channel[channels] = weighted_cell_channel[channels].div(
+        weighted_cell_channel['cell_size'],
+        axis=0
+    )
 
     return weighted_cell_channel
 

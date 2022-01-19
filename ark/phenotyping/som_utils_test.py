@@ -640,7 +640,7 @@ def test_compute_p2c_weighted_channel_avg():
                     num_repeats = 5
 
                 actual_markers = np.tile(
-                    np.array([1, 2, 4]), num_repeats
+                    np.array([0.2, 0.4, 0.8]), num_repeats
                 ).reshape(num_repeats, 3)
 
                 # assert the values are close enough
