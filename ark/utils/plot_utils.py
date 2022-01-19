@@ -14,7 +14,7 @@ from ark.utils import misc_utils
 from ark.utils.misc_utils import verify_in_list
 
 
-def plot_clustering_result(img_xr, fovs, save_dir=None, cmap='viridis',
+def plot_clustering_result(img_xr, fovs, save_dir=None, cmap='tab20',
                            fov_col='fovs', figsize=(10, 10), tick_range=None):
     """Takes an xarray containing labeled images and displays them.
     Args:
