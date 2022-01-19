@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import xarray as xr
@@ -13,7 +14,7 @@ from ark.utils import misc_utils
 from ark.utils.misc_utils import verify_in_list
 
 
-def plot_clustering_result(img_xr, fovs, save_dir=None, cmap='tab20',
+def plot_clustering_result(img_xr, fovs, save_dir=None, cmap='viridis',
                            fov_col='fovs', figsize=(10, 10), tick_range=None):
     """Takes an xarray containing labeled images and displays them.
     Args:
@@ -33,16 +34,33 @@ def plot_clustering_result(img_xr, fovs, save_dir=None, cmap='tab20',
             Set explicit ticks if specified
     """
 
+    # verify the fovs are valid
     verify_in_list(fov_names=fovs, unique_fovs=img_xr.fovs)
 
     for fov in fovs:
+        # define the figure
         plt.figure(figsize=figsize)
+
+        # define the axis
         ax = plt.gca()
+
+        # make the title
         plt.title(fov)
+
+        # define the colormap
+        cmap = mpl.cm.get_cmap(cmap, len(tick_range))
+
+        # show the image on the figure
         plt.imshow(img_xr[img_xr[fov_col] == fov].values.squeeze(), cmap=cmap)
+
+        # ensure the colorbar matches up with the margins on the right
         divider = make_axes_locatable(ax)
         cax = divider.append_axes("right", size="5%", pad=0.05)
+
+        # draw the colorbar
         plt.colorbar(cax=cax, ticks=tick_range)
+
+        # save if specified
         if save_dir:
             misc_utils.save_figure(save_dir, f'{fov}.png')
 

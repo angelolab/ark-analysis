@@ -1661,7 +1661,7 @@ def apply_cell_meta_cluster_remapping(fovs, channels, base_dir, cell_consensus_n
     cell_som_cluster_avgs_and_counts = pd.read_csv(som_cluster_counts_avgs_path)
 
     cell_som_cluster_avgs_and_counts['cell_meta_cluster'] = \
-        cell_som_cluster_avgs_and_counts['cell_meta_cluster'].map(cell_remapped_dict)
+        cell_som_cluster_avgs_and_counts['cell_som_cluster'].map(cell_remapped_dict)
 
     # re-save the cell SOM cluster average pixel cluster counts table
     cell_som_cluster_avgs_and_counts.to_csv(som_cluster_counts_avgs_path, index=False)
@@ -1672,7 +1672,7 @@ def apply_cell_meta_cluster_remapping(fovs, channels, base_dir, cell_consensus_n
     cell_som_cluster_channel_avg = pd.read_csv(som_cluster_channel_avgs_path)
 
     cell_som_cluster_channel_avg['cell_meta_cluster'] = \
-        cell_som_cluster_channel_avg['cell_meta_cluster'].map(cell_remapped_dict)
+        cell_som_cluster_channel_avg['cell_som_cluster'].map(cell_remapped_dict)
 
     # re-save the cell SOM cluster average pixel cluster counts table
     cell_som_cluster_channel_avg.to_csv(som_cluster_channel_avgs_path, index=False)
