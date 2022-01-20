@@ -21,3 +21,8 @@ env
 */_build
 */_markdown
 */visualizations
+
+*.c
+*.html
+*.so
+*.egg-info

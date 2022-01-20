@@ -11,6 +11,7 @@ from scipy.spatial.distance import cdist
 
 import ark.settings as settings
 from ark.utils import io_utils, misc_utils
+from ark.utils._bootstrapping import compute_close_num_rand
 
 
 def calc_dist_matrix(label_maps, save_path=None):
@@ -185,10 +186,9 @@ def compute_close_cell_num(dist_mat, dist_lim, analysis_type,
     mark1poslabels = []
 
     dist_mat_bin = xr.DataArray(
-        (dist_mat.values < dist_lim).astype(np.uint8),
+        ((dist_mat.values < dist_lim) & (dist_mat.values > 0)).astype(np.uint8),
         coords=dist_mat.coords
     )
-
     for j in range(num):
         if analysis_type == "cluster":
             mark1poslabels.append(
@@ -204,13 +204,6 @@ def compute_close_cell_num(dist_mat, dist_lim, analysis_type,
                                             current_marker=current_fov_channel_data.columns[j]))
         mark1_num.append(len(mark1poslabels[j]))
 
-    # we'll need this because for cluster-based context-dependent randomization
-    # we need to facet our randomization of labels based on the cell_types and associated
-    # cell_ids the user specifies
-    mark1labels_per_id = None
-    if analysis_type == "cluster":
-        mark1labels_per_id = dict(zip(cluster_ids, mark1poslabels))
-
     # iterating k from [j, end] cuts out 1/2 the steps (while symmetric)
     for j, m1n in enumerate(mark1_num):
         for k, m2n in enumerate(mark1_num[j:], j):
@@ -224,18 +217,23 @@ def compute_close_cell_num(dist_mat, dist_lim, analysis_type,
             # symmetry :)
             close_num[k, j] = close_num[j, k]
 
-    return close_num, mark1_num, mark1labels_per_id
+    return close_num, mark1_num, mark1poslabels
 
 
-def compute_close_cell_num_random(marker_nums, dist_mat, dist_lim, bootstrap_num):
+# TODO: passing marker_nums and mark_pos_labels is redundant:
+#       marker_nums[j] = len(mark_pos_labels[j])
+def compute_close_cell_num_random(marker_nums, mark_pos_labels, dist_mat, dist_lim, bootstrap_num):
     """Uses bootstrapping to permute cell labels randomly and records the number of close cells
-    (within the dit_lim) in that random setup.
+    (within the dist_lim) in that random setup.
 
     Args:
         marker_nums (numpy.ndarray):
             list of cell counts of each marker type
-        dist_mat (numpy.ndarray):
-            cells x cells matrix with the euclidian distance between centers of corresponding cells
+        mark_pos_labels (list):
+            cell labels for each marker number
+        dist_mat (xr.DataArray):
+            cells x cells matrix with the euclidian distance between centers of corresponding
+            cells. This can be indexed by cell label
         dist_lim (int):
             threshold for spatial enrichment distance proximity
         bootstrap_num (int):
@@ -246,33 +244,50 @@ def compute_close_cell_num_random(marker_nums, dist_mat, dist_lim, bootstrap_num
             Large matrix of random positive marker counts for every permutation in the bootstrap
     """
 
-    # Get marker counts
-    marker_count = len(marker_nums)
-
-    # Create close_num_rand
-    close_num_rand = np.zeros((
-        marker_count, marker_count, bootstrap_num), dtype=np.uint16)
-
     # Generate binarized distance matrix
-    dist_mat_bin = (dist_mat.values < dist_lim).astype(np.uint16)
+    dist_mat_bin = ((dist_mat.values < dist_lim) & (dist_mat.values > 0)).astype(np.uint16)
 
-    # static choice array
-    choice_ar = list(range(dist_mat.shape[0]))
+    # assures that marker counts don't exceed number of cells
+    for mn in marker_nums:
+        if mn >= dist_mat_bin.shape[0]:
+            raise ValueError('Marker number count can not be greater than number of cells...')
 
-    for j, m1n in enumerate(marker_nums):
-        for k, m2n in enumerate(marker_nums[j:], j):
-            for r in range(bootstrap_num):
-                # Select same amount of random cell labels as positive ones in close_num
-                marker1_labels_rand = np.random.choice(a=choice_ar, size=m1n, replace=False)
-                marker2_labels_rand = np.random.choice(a=choice_ar, size=m2n, replace=False)
+    # flattens list-of-list representation into 1D array and stores the index keys
+    row_indicies = [0]
+    cols_in_row_flat = []
 
-                # Record the number of interactions and store in close_num_rand in the index
-                # corresponding to both markers, for every permutation
-                close_num_rand[j, k, r] = \
-                    np.sum(dist_mat_bin[np.ix_(marker1_labels_rand, marker2_labels_rand)])
+    for row in range(dist_mat_bin.shape[0]):
+        cols = list(np.nonzero(dist_mat_bin[row, :])[0])
+        cols_in_row_flat.extend(cols)
+        row_indicies.append(len(cols) + row_indicies[row])
 
-            # System should be symetric
-            close_num_rand[k, j, :] = close_num_rand[j, k, :]
+    # formats list-of-list representation into cython compatable argument
+    cols_in_row_flat = np.array(cols_in_row_flat, dtype=np.uint16)
+    _row_indicies = np.array(row_indicies, dtype=np.uint64)
+
+    # sort marker_nums and save permutation
+    # this can speed up compute_close_num_rand
+    marker_order = [
+        (
+            mn,
+            np.flatnonzero(dist_mat[dist_mat.dims[0]].isin(mark_pos_labels[i])).astype(np.uint64),
+            i
+        )
+        for i, mn in enumerate(marker_nums)
+    ]
+    marker_order.sort(key=lambda x: x[0])
+    sorted_marker_nums, sorted_pos_labels, sort_permutation = zip(*marker_order)
+    _marker_nums = np.array(sorted_marker_nums, dtype=np.uint16)
+    _pos_labels = {i: v for i, v in enumerate(sorted_pos_labels)}
+
+    # performing bootstrapping
+    close_num_rand = compute_close_num_rand(dist_mat_bin, cols_in_row_flat, _row_indicies,
+                                            _marker_nums, _pos_labels, int(bootstrap_num))
+
+    # unpermute close_num_rand
+    x_scramble = np.tile(np.argsort(sort_permutation), (len(sort_permutation), 1))
+    y_scramble = x_scramble.T
+    close_num_rand = close_num_rand[x_scramble, y_scramble, :]
 
     return close_num_rand
 

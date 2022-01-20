@@ -23,6 +23,7 @@ cache: pip
 
 # command to run tests
 script:
+  - python -m pip install --editable .
   - python -m pytest --cov=ark --pycodestyle ark
 
 jobs:
