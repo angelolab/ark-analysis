@@ -1986,6 +1986,33 @@ def test_apply_cell_meta_cluster_remapping():
             index=False
         )
 
+        # error check: bad columns provided in the SOM to meta cluster map csv input
+        with pytest.raises(ValueError):
+            bad_sample_cell_remapping = sample_cell_remapping.copy()
+            bad_sample_cell_remapping = bad_sample_cell_remapping.rename(
+                {'mc_name': 'bad_col'},
+                axis=1
+            )
+            bad_sample_cell_remapping.to_csv(
+                os.path.join(temp_dir, 'bad_sample_cell_remapping.csv'),
+                index=False
+            )
+
+            # run the remapping process
+            som_utils.apply_cell_meta_cluster_remapping(
+                ['fov1', 'fov2'],
+                chans,
+                temp_dir,
+                'cell_mat_consensus.feather',
+                'bad_sample_cell_remapping.csv',
+                'pixel_meta_cluster',
+                'sample_cell_som_cluster_count_avgs.csv',
+                'sample_cell_meta_cluster_count_avgs.csv',
+                'weighted_cell_table.csv',
+                'sample_cell_som_cluster_chan_avgs.csv',
+                'sample_cell_meta_cluster_chan_avgs.csv'
+            )
+
         # run the remapping process
         som_utils.apply_cell_meta_cluster_remapping(
             ['fov1', 'fov2'],
@@ -2004,8 +2031,33 @@ def test_apply_cell_meta_cluster_remapping():
         # read remapped cell data in
         remapped_cell_data = feather.read_dataframe(clustered_path)
 
-        # assert the counts of each cell cluster is 20
+        # assert the counts of each cell cluster is 50
         assert np.all(remapped_cell_data['cell_meta_cluster'].value_counts().values == 50)
+
+        # used for mapping verification
+        actual_som_to_meta = sample_cell_remapping[
+            ['cluster', 'metacluster']
+        ].drop_duplicates().sort_values(by='cluster')
+        actual_meta_id_to_name = sample_cell_remapping[
+            ['metacluster', 'mc_name']
+        ].drop_duplicates().sort_values(by='metacluster')
+
+        # assert the mapping is the same for cell SOM to meta cluster
+        som_to_meta = remapped_cell_data[
+            ['cell_som_cluster', 'cell_meta_cluster']
+        ].drop_duplicates().sort_values(by='cell_som_cluster')
+
+        # NOTE: unlike pixel clustering, we test the mapping on the entire cell table
+        # rather than a FOV-by-FOV basis, so no need to ensure that some metaclusters
+        # don't exist in the cell table mapping
+        assert np.all(som_to_meta.values == actual_som_to_meta.values)
+
+        # asset the mapping is the same for cell meta cluster to renamed cell meta cluster
+        meta_id_to_name = remapped_cell_data[
+            ['cell_meta_cluster', 'cell_meta_cluster_rename']
+        ].drop_duplicates().sort_values(by='cell_meta_cluster')
+
+        assert np.all(meta_id_to_name.values == actual_meta_id_to_name.values)
 
         # load the re-computed average count table per cell meta cluster in
         sample_cell_meta_cluster_count_avg = pd.read_csv(
@@ -2019,7 +2071,7 @@ def test_apply_cell_meta_cluster_remapping():
         # assert the correct counts were added
         assert np.all(sample_cell_meta_cluster_count_avg['count'].values == 50)
 
-        # load the re-computed weighted average weighted channel table per cell meta clusterin
+        # load the re-computed weighted average weighted channel table per cell meta cluster in
         sample_cell_meta_cluster_channel_avg = pd.read_csv(
             os.path.join(temp_dir, 'sample_cell_meta_cluster_chan_avgs.csv')
         )
