@@ -1044,17 +1044,35 @@ def apply_pixel_meta_cluster_remapping(fovs, channels, base_dir,
     # read in the remapping
     pixel_remapped_data = pd.read_csv(pixel_remapped_path)
 
+    # assert the correct columns are contained
+    misc_utils.verify_same_elements(
+        remapped_data_cols=pixel_remapped_data.columns.values,
+        required_cols=['cluster', 'metacluster', 'mc_name']
+    )
+
     # rename columns in pixel_remapped_data so it plays better with the existing
     # pixel_som_cluster and pixel_meta_cluster
-    # TODO: Zak's visualization spits out duplicate meta label columns when I tested it
-    # need to take a look at this once merging that in
-    pixel_remapped_data.columns = [
-        'pixel_som_cluster', 'pixel_meta_cluster', 'pixel_meta_cluster_dup'
-    ]
+    pixel_remapped_data = pixel_remapped_data.rename(
+        {
+            'cluster': 'pixel_som_cluster',
+            'metacluster': 'pixel_meta_cluster',
+            'mc_name': 'pixel_meta_cluster_rename'
+        },
+        axis=1
+    )
 
-    # create the mapping
+    # create the mapping from pixel SOM to pixel meta cluster
     pixel_remapped_dict = dict(
-        pixel_remapped_data[['pixel_som_cluster', 'pixel_meta_cluster']].values
+        pixel_remapped_data[
+            ['pixel_som_cluster', 'pixel_meta_cluster']
+        ].values
+    )
+
+    # create the mapping from pixel meta cluster to renamed pixel meta cluster
+    pixel_renamed_meta_dict = dict(
+        pixel_remapped_data[
+            ['pixel_meta_cluster', 'pixel_meta_cluster_rename']
+        ].drop_duplicates().values
     )
 
     print("Using re-mapping scheme to re-label pixel meta clusters")
@@ -1066,13 +1084,20 @@ def apply_pixel_meta_cluster_remapping(fovs, channels, base_dir,
         fov_data = feather.read_dataframe(fov_path)
 
         # assign the new meta cluster labels
-        fov_data['pixel_meta_cluster'] = fov_data['pixel_som_cluster'].map(pixel_remapped_dict)
+        fov_data['pixel_meta_cluster'] = fov_data['pixel_som_cluster'].map(
+            pixel_remapped_dict
+        )
+
+        # assign the renamed meta cluster names
+        fov_data['pixel_meta_cluster_rename'] = fov_data['pixel_meta_cluster'].map(
+            pixel_renamed_meta_dict
+        )
 
         # resave the data with the new meta cluster lables
         feather.write_dataframe(fov_data, fov_path, compression='uncompressed')
 
     # re-compute average channel expression for each pixel meta cluster
-    # and the number of pixels per meta cluster
+    # and the number of pixels per meta cluster, add renamed meta cluster column in
     print("Re-computing average channel expression across pixel meta clusters")
     pixel_channel_avg_meta_cluster = compute_pixel_cluster_channel_avg(
         fovs,
@@ -1082,6 +1107,8 @@ def apply_pixel_meta_cluster_remapping(fovs, channels, base_dir,
         pixel_consensus_dir,
         keep_count=True
     )
+    pixel_channel_avg_meta_cluster['pixel_meta_cluster_rename'] = \
+        pixel_channel_avg_meta_cluster['pixel_meta_cluster'].map(pixel_renamed_meta_dict)
 
     # re-save the pixel channel average meta cluster table
     pixel_channel_avg_meta_cluster.to_csv(meta_cluster_avg_path, index=False)
@@ -1092,6 +1119,9 @@ def apply_pixel_meta_cluster_remapping(fovs, channels, base_dir,
 
     pixel_channel_avg_som_cluster['pixel_meta_cluster'] = \
         pixel_channel_avg_som_cluster['pixel_som_cluster'].map(pixel_remapped_dict)
+
+    pixel_channel_avg_som_cluster['pixel_meta_cluster_rename'] = \
+        pixel_channel_avg_som_cluster['pixel_meta_cluster'].map(pixel_renamed_meta_dict)
 
     # re-save the pixel channel average som cluster table
     pixel_channel_avg_som_cluster.to_csv(som_cluster_avg_path, index=False)
@@ -1613,17 +1643,35 @@ def apply_cell_meta_cluster_remapping(fovs, channels, base_dir, cell_consensus_n
     # read in the remapping
     cell_remapped_data = pd.read_csv(cell_remapped_path)
 
+    # assert the correct columns are contained
+    misc_utils.verify_same_elements(
+        remapped_data_cols=cell_remapped_data.columns.values,
+        required_cols=['cluster', 'metacluster', 'mc_name']
+    )
+
     # rename columns in pixel_remapped_data so it plays better with the existing
     # cell_som_cluster and cell_meta_cluster
-    # TODO: Zak's visualization spits out duplicate meta label columns when I tested it
-    # need to take a look at this once merging that in
-    cell_remapped_data.columns = [
-        'cell_som_cluster', 'cell_meta_cluster', 'cell_meta_cluster_dup'
-    ]
+    cell_remapped_data = cell_remapped_data.rename(
+        {
+            'cluster': 'cell_som_cluster',
+            'metacluster': 'cell_meta_cluster',
+            'mc_name': 'cell_meta_cluster_rename'
+        },
+        axis=1
+    )
 
-    # create the mapping
+    # create the mapping from cell SOM to cell meta cluster
     cell_remapped_dict = dict(
-        cell_remapped_data[['cell_som_cluster', 'cell_meta_cluster']].values
+        cell_remapped_data[
+            ['cell_som_cluster', 'cell_meta_cluster']
+        ].values
+    )
+
+    # create the mapping from cell meta cluster to cell renamed meta cluster
+    cell_remapped_meta_dict = dict(
+        cell_remapped_data[
+            ['cell_meta_cluster', 'cell_meta_cluster_rename']
+        ].drop_duplicates().values
     )
 
     # load the cell consensus data in
@@ -1634,10 +1682,16 @@ def apply_cell_meta_cluster_remapping(fovs, channels, base_dir, cell_consensus_n
     cell_consensus_data['cell_meta_cluster'] = \
         cell_consensus_data['cell_som_cluster'].map(cell_remapped_dict)
 
+    # assign the new renamed meta cluster names
+    # assign the new meta cluster labels
+    cell_consensus_data['cell_meta_cluster_rename'] = \
+        cell_consensus_data['cell_meta_cluster'].map(cell_remapped_meta_dict)
+
     # resave the data with the new meta cluster lables
     feather.write_dataframe(cell_consensus_data, cell_consensus_path, compression='uncompressed')
 
     # re-compute the average number of pixel SOM/meta clusters per cell meta cluster
+    # add renamed meta cluster in
     print("Re-compute pixel SOM/meta cluster count per cell meta cluster")
     cell_meta_cluster_avgs_and_counts = compute_cell_cluster_count_avg(
         cell_consensus_path,
@@ -1646,6 +1700,9 @@ def apply_cell_meta_cluster_remapping(fovs, channels, base_dir, cell_consensus_n
         keep_count=True
     )
 
+    cell_meta_cluster_avgs_and_counts['cell_meta_cluster_rename'] = \
+        cell_meta_cluster_avgs_and_counts['cell_meta_cluster'].map(cell_remapped_meta_dict)
+
     # re-save the average number of pixel SOM/meta clusters per cell meta cluster
     cell_meta_cluster_avgs_and_counts.to_csv(
         meta_cluster_counts_avgs_path,
@@ -1653,6 +1710,7 @@ def apply_cell_meta_cluster_remapping(fovs, channels, base_dir, cell_consensus_n
     )
 
     # re-compute the weighted channel average expression per cell meta cluster
+    # add renamed meta cluster in
     print("Re-compute average weighted channel expression across cell meta clusters")
     cell_meta_cluster_channel_avg = compute_cell_cluster_channel_avg(
         fovs,
@@ -1662,6 +1720,9 @@ def apply_cell_meta_cluster_remapping(fovs, channels, base_dir, cell_consensus_n
         cell_consensus_name,
         'cell_meta_cluster'
     )
+
+    cell_meta_cluster_channel_avg['cell_meta_cluster_rename'] = \
+        cell_meta_cluster_channel_avg['cell_meta_cluster'].map(cell_remapped_meta_dict)
 
     # re-save the weighted channel average expression per cell cluster
     cell_meta_cluster_channel_avg.to_csv(
@@ -1677,6 +1738,9 @@ def apply_cell_meta_cluster_remapping(fovs, channels, base_dir, cell_consensus_n
     cell_som_cluster_avgs_and_counts['cell_meta_cluster'] = \
         cell_som_cluster_avgs_and_counts['cell_som_cluster'].map(cell_remapped_dict)
 
+    cell_som_cluster_avgs_and_counts['cell_meta_cluster_rename'] = \
+        cell_som_cluster_avgs_and_counts['cell_meta_cluster'].map(cell_remapped_meta_dict)
+
     # re-save the cell SOM cluster average pixel cluster counts table
     cell_som_cluster_avgs_and_counts.to_csv(som_cluster_counts_avgs_path, index=False)
 
@@ -1687,6 +1751,9 @@ def apply_cell_meta_cluster_remapping(fovs, channels, base_dir, cell_consensus_n
 
     cell_som_cluster_channel_avg['cell_meta_cluster'] = \
         cell_som_cluster_channel_avg['cell_som_cluster'].map(cell_remapped_dict)
+
+    cell_som_cluster_channel_avg['cell_meta_cluster_rename'] = \
+        cell_som_cluster_channel_avg['cell_meta_cluster'].map(cell_remapped_meta_dict)
 
     # re-save the cell SOM cluster average pixel cluster counts table
     cell_som_cluster_channel_avg.to_csv(som_cluster_channel_avgs_path, index=False)

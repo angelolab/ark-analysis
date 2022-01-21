@@ -1306,9 +1306,9 @@ def test_apply_pixel_meta_cluster_remapping():
 
         # define a dummy remap scheme and save
         sample_pixel_remapping = {
-            'som_cluster': [i for i in np.arange(100)],
-            'meta_cluster': [int(i / 25) for i in np.arange(100)],
-            'meta_cluster_dup': [int(i / 25) for i in np.arange(100)]
+            'cluster': [i for i in np.arange(100)],
+            'metacluster': [int(i / 25) for i in np.arange(100)],
+            'mc_name': ['meta' + str(int(i / 25)) for i in np.arange(100)]
         }
         sample_pixel_remapping = pd.DataFrame.from_dict(sample_pixel_remapping)
         sample_pixel_remapping.to_csv(
@@ -1334,6 +1334,29 @@ def test_apply_pixel_meta_cluster_remapping():
             os.path.join(temp_dir, 'sample_pixel_meta_cluster_chan_avgs.csv'), index=False
         )
 
+        # error check: bad columns provided in the SOM to meta cluster map csv input
+        with pytest.raises(ValueError):
+            bad_sample_pixel_remapping = sample_pixel_remapping.copy()
+            bad_sample_pixel_remapping = bad_sample_pixel_remapping.rename(
+                {'mc_name': 'bad_col'},
+                axis=1
+            )
+            bad_sample_pixel_remapping.to_csv(
+                os.path.join(temp_dir, 'bad_sample_pixel_remapping.csv'),
+                index=False
+            )
+
+            # run the remapping process
+            som_utils.apply_pixel_meta_cluster_remapping(
+                fovs,
+                chans,
+                temp_dir,
+                'pixel_mat_consensus',
+                'bad_sample_pixel_remapping.csv',
+                'sample_pixel_som_cluster_chan_avgs.csv',
+                'sample_pixel_meta_cluster_chan_avgs.csv'
+            )
+
         # run the remapping process
         som_utils.apply_pixel_meta_cluster_remapping(
             fovs,
@@ -1345,6 +1368,14 @@ def test_apply_pixel_meta_cluster_remapping():
             'sample_pixel_meta_cluster_chan_avgs.csv'
         )
 
+        # used for mapping verification
+        actual_som_to_meta = sample_pixel_remapping[
+            ['cluster', 'metacluster']
+        ].drop_duplicates().sort_values(by='cluster')
+        actual_meta_id_to_name = sample_pixel_remapping[
+            ['metacluster', 'mc_name']
+        ].drop_duplicates().sort_values(by='metacluster')
+
         for fov in fovs:
             # read remapped fov data in
             remapped_fov_data = feather.read_dataframe(
@@ -1353,6 +1384,32 @@ def test_apply_pixel_meta_cluster_remapping():
 
             # assert the counts for each FOV on every meta cluster is 250
             assert np.all(remapped_fov_data['pixel_meta_cluster'].value_counts().values == 250)
+
+            # assert the mapping is the same for pixel SOM to meta cluster
+            som_to_meta = remapped_fov_data[
+                ['pixel_som_cluster', 'pixel_meta_cluster']
+            ].drop_duplicates().sort_values(by='pixel_som_cluster')
+
+            # this tests the case where a FOV doesn't necessarily need to have all the possible
+            # SOM clusters in it
+            actual_som_to_meta_subset = actual_som_to_meta[
+                actual_som_to_meta['cluster'].isin(som_to_meta['pixel_som_cluster'])
+            ]
+
+            assert np.all(som_to_meta.values == actual_som_to_meta_subset.values)
+
+            # assert the mapping is the same for pixel meta cluster to renamed pixel meta cluster
+            meta_id_to_name = remapped_fov_data[
+                ['pixel_meta_cluster', 'pixel_meta_cluster_rename']
+            ].drop_duplicates().sort_values(by='pixel_meta_cluster')
+
+            # this tests the case where a FOV doesn't necessarily need to have all the possible
+            # meta clusters in it
+            actual_meta_id_to_name_subset = actual_meta_id_to_name[
+                actual_meta_id_to_name['metacluster'].isin(meta_id_to_name['pixel_meta_cluster'])
+            ]
+
+            assert np.all(meta_id_to_name.values == actual_meta_id_to_name_subset.values)
 
         # read in the meta cluster channel average data
         sample_pixel_channel_avg_meta_cluster = pd.read_csv(
@@ -1919,9 +1976,9 @@ def test_apply_cell_meta_cluster_remapping():
 
         # define a dummy remap scheme and save
         sample_cell_remapping = {
-            'som_cluster': [i for i in np.arange(100)],
-            'meta_cluster': [int(i / 5) for i in np.arange(100)],
-            'meta_cluster_dup': [int(i / 5) for i in np.arange(100)]
+            'cluster': [i for i in np.arange(100)],
+            'metacluster': [int(i / 5) for i in np.arange(100)],
+            'mc_name': [int(i / 5) for i in np.arange(100)]
         }
         sample_cell_remapping = pd.DataFrame.from_dict(sample_cell_remapping)
         sample_cell_remapping.to_csv(
