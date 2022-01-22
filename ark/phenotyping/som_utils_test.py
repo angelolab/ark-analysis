@@ -1449,6 +1449,17 @@ def test_apply_pixel_meta_cluster_remapping():
         # assert the counts data has been updated correctly
         assert np.all(sample_pixel_channel_avg_meta_cluster['count'].values == 150)
 
+        # assert the correct metaclusters are contained
+        sample_pixel_channel_avg_meta_cluster = sample_pixel_channel_avg_meta_cluster.sort_values(
+            by='pixel_meta_cluster'
+        )
+        assert np.all(sample_pixel_channel_avg_meta_cluster[
+            'pixel_meta_cluster'
+        ].values == np.arange(20))
+        assert np.all(sample_pixel_channel_avg_meta_cluster[
+            'pixel_meta_cluster_rename'
+        ] == np.array(['meta' + str(i) for i in np.arange(20)]))
+
         # read in the som cluster channel average data
         sample_pixel_channel_avg_som_cluster = pd.read_csv(
             os.path.join(temp_dir, 'sample_pixel_som_cluster_chan_avgs.csv')
@@ -1459,6 +1470,18 @@ def test_apply_pixel_meta_cluster_remapping():
         assert np.all(
             sample_pixel_channel_avg_som_cluster['pixel_meta_cluster'].value_counts().values == 5
         )
+
+        # assert the correct metacluster labels are contained
+        sample_pixel_channel_avg_som_cluster = sample_pixel_channel_avg_som_cluster.sort_values(
+            by='pixel_meta_cluster'
+        )
+
+        assert np.all(sample_pixel_channel_avg_som_cluster[
+            'pixel_meta_cluster'
+        ].values == np.repeat(np.arange(20), repeats=5))
+        assert np.all(sample_pixel_channel_avg_som_cluster[
+            'pixel_meta_cluster_rename'
+        ].values == np.array(['meta' + str(i) for i in np.repeat(np.arange(20), repeats=5)]))
 
 
 def test_train_cell_som(mocker):
