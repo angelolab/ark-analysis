@@ -1162,14 +1162,14 @@ def train_cell_som(fovs, channels, base_dir, pixel_consensus_dir, cell_table_nam
             Name of the file to save the number of pixel SOM/meta cluster counts for each cell
         cluster_counts_norm_name (str):
             Same as `cluster_counts_name`, except the cluster columns are normalized by
-            `cell size`
+            `cell_size`
         pixel_cluster_col (str):
             Name of the column with the pixel SOM cluster assignments.
             Should be `'pixel_som_cluster'` or `'pixel_meta_cluster'`.
         pc_chan_avg_name (str):
             Name of the file containing the average channel expression per pixel cluster.
             Which one chosen (SOM or meta averages) is set in the cell clustering notebook
-            depending on the value of `pixel_cluster_col`
+            depending on the value of `pixel_cluster_col`.
         weights_name (str):
             The name of the file to save the weights to
         weighted_cell_channel_name (str):
@@ -1282,7 +1282,7 @@ def cluster_cells(base_dir, cluster_counts_norm_name='cluster_counts_norm.feathe
         weights_name (str):
             The name of the weights file, created by `train_cell_som`
         cell_cluster_name (str):
-            Name of the file to save the cell data with cluster labels
+            Name of the file to save the cell data with cell SOM cluster labels
         pixel_cluster_col_prefix (str):
             The name of the prefixes of each of the pixel SOM/meta columns
             Should be `'pixel_som_cluster'` or `'pixel_meta_cluster'`.
@@ -1392,7 +1392,7 @@ def cell_consensus_cluster(fovs, channels, base_dir, pixel_cluster_col, max_k=20
         cap (int):
             z-score cap to use when hierarchical clustering
         cell_cluster_name (str):
-            Name of the file containing the cell data with cluster labels
+            Name of the file containing the cell data with cell SOM cluster labels
             Created by cluster_cells
         cell_som_cluster_count_avgs_name (str):
             The average number of pixel SOM/meta clusters per cell SOM cluster.
@@ -1405,8 +1405,7 @@ def cell_consensus_cluster(fovs, channels, base_dir, pixel_cluster_col, max_k=20
             The name of the file to save the average weighted channel expression
             per cell SOM cluster
         cell_meta_cluster_channel_avg_name (str):
-            The name of the file to save the average weighted channel expression
-            per cell meta cluster
+            Same as above except for cell meta clusters
         clust_to_meta_name (str):
             Name of file storing the SOM cluster to meta cluster mapping
         cell_consensus_name (str):
@@ -1575,15 +1574,14 @@ def apply_cell_meta_cluster_remapping(fovs, channels, base_dir, cell_consensus_n
         base_dir (str):
             The path to the data directory
         cell_consensus_name (str):
-            Name of file with the cell consensus clustered results
+            Name of file with the cell consensus clustered results (both cell SOM and meta labels)
         cell_remapped_name (str):
             Name of the file containing the cell SOM clusters to their remapped meta clusters
         pixel_cluster_col (str):
             Name of the column used to generate the pixel SOM/meta cluster counts.
             Should be `'pixel_som_cluster'` or `'pixel_meta_cluster'`.
         cell_som_cluster_count_avgs_name (str):
-            The average number of pixel SOM/meta clusters per cell SOM cluster.
-            Used to run consensus clustering on.
+            The average number of pixel SOM/meta clusters per cell SOM cluster
         cell_meta_cluster_count_avgs_name (str):
             Same as above except for cell meta clusters
         weighted_cell_channel_name (str):
@@ -1592,7 +1590,7 @@ def apply_cell_meta_cluster_remapping(fovs, channels, base_dir, cell_consensus_n
             The name of the file to save the average weighted channel expression
             per cell SOM cluster
         cell_meta_cluster_channel_avg_name (str):
-            Same as above except for cell som clusters
+            Same as above except for cell meta clusters
     """
 
     # define the data paths
