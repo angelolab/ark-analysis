@@ -1449,7 +1449,7 @@ def test_apply_pixel_meta_cluster_remapping():
         # assert the counts data has been updated correctly
         assert np.all(sample_pixel_channel_avg_meta_cluster['count'].values == 150)
 
-        # assert the correct metaclusters are contained
+        # assert the correct metacluster labels are contained
         sample_pixel_channel_avg_meta_cluster = sample_pixel_channel_avg_meta_cluster.sort_values(
             by='pixel_meta_cluster'
         )
@@ -2028,7 +2028,7 @@ def test_apply_cell_meta_cluster_remapping():
         sample_cell_remapping = {
             'cluster': [i for i in np.arange(100)],
             'metacluster': [int(i / 5) for i in np.arange(100)],
-            'mc_name': [int(i / 5) for i in np.arange(100)]
+            'mc_name': ['meta' + str(int(i / 5)) for i in np.arange(100)]
         }
         sample_cell_remapping = pd.DataFrame.from_dict(sample_cell_remapping)
         sample_cell_remapping.to_csv(
@@ -2148,6 +2148,17 @@ def test_apply_cell_meta_cluster_remapping():
         # assert the correct counts were added
         assert np.all(sample_cell_meta_cluster_count_avg['count'].values == 50)
 
+        # assert the correct metacluster labels are contained
+        sample_cell_meta_cluster_count_avg = sample_cell_meta_cluster_count_avg.sort_values(
+            by='cell_meta_cluster'
+        )
+        assert np.all(sample_cell_meta_cluster_count_avg[
+            'cell_meta_cluster'
+        ].values == np.arange(20))
+        assert np.all(sample_cell_meta_cluster_count_avg[
+            'cell_meta_cluster_rename'
+        ].values == ['meta' + str(i) for i in np.arange(20)])
+
         # load the re-computed weighted average weighted channel table per cell meta cluster in
         sample_cell_meta_cluster_channel_avg = pd.read_csv(
             os.path.join(temp_dir, 'sample_cell_meta_cluster_chan_avgs.csv')
@@ -2156,6 +2167,17 @@ def test_apply_cell_meta_cluster_remapping():
         # assert the markers data has been updated correctly
         result = np.repeat([[0.1, 0.2, 0.3]], repeats=20, axis=0)
         assert np.all(np.round(sample_cell_meta_cluster_channel_avg[chans].values, 1) == result)
+
+        # assert the correct metacluster labels are contained
+        sample_cell_meta_cluster_channel_avg = sample_cell_meta_cluster_channel_avg.sort_values(
+            by='cell_meta_cluster'
+        )
+        assert np.all(sample_cell_meta_cluster_channel_avg[
+            'cell_meta_cluster'
+        ].values == np.arange(20))
+        assert np.all(sample_cell_meta_cluster_channel_avg[
+            'cell_meta_cluster_rename'
+        ].values == ['meta' + str(i) for i in np.arange(20)])
 
         # load the average count table per cell SOM cluster in
         sample_cell_som_cluster_count_avg = pd.read_csv(
@@ -2168,6 +2190,18 @@ def test_apply_cell_meta_cluster_remapping():
             sample_cell_som_cluster_count_avg['cell_meta_cluster'].value_counts().values == 5
         )
 
+        # assert the correct metacluster labels are contained
+        sample_cell_som_cluster_count_avg = sample_cell_som_cluster_count_avg.sort_values(
+            by='cell_meta_cluster'
+        )
+
+        assert np.all(sample_cell_som_cluster_count_avg[
+            'cell_meta_cluster'
+        ].values == np.repeat(np.arange(20), repeats=5))
+        assert np.all(sample_cell_som_cluster_count_avg[
+            'cell_meta_cluster_rename'
+        ].values == ['meta' + str(i) for i in np.repeat(np.arange(20), repeats=5)])
+
         # load the average weighted channel expression per cell SOM cluster in
         sample_cell_som_cluster_chan_avg = pd.read_csv(
             os.path.join(temp_dir, 'sample_cell_som_cluster_chan_avgs.csv')
@@ -2178,3 +2212,15 @@ def test_apply_cell_meta_cluster_remapping():
         assert np.all(
             sample_cell_som_cluster_chan_avg['cell_meta_cluster'].value_counts().values == 5
         )
+
+        # assert the correct metacluster labels are contained
+        sample_cell_som_cluster_chan_avg = sample_cell_som_cluster_chan_avg.sort_values(
+            by='cell_meta_cluster'
+        )
+
+        assert np.all(sample_cell_som_cluster_chan_avg[
+            'cell_meta_cluster'
+        ].values == np.repeat(np.arange(20), repeats=5))
+        assert np.all(sample_cell_som_cluster_chan_avg[
+            'cell_meta_cluster_rename'
+        ].values == ['meta' + str(i) for i in np.repeat(np.arange(20), repeats=5)])
