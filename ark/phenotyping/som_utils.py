@@ -1159,10 +1159,10 @@ def train_cell_som(fovs, channels, base_dir, pixel_consensus_dir, cell_table_nam
         cell_table_name (str):
             Name of the cell table, needs to be created with `Segment_Image_Data.ipynb`
         cluster_counts_name (str):
-            Name of the file to save the cluster counts of each cell
+            Name of the file to save the number of pixel SOM/meta cluster counts for each cell
         cluster_counts_norm_name (str):
             Same as `cluster_counts_name`, except the cluster columns are normalized by
-            cell size
+            `cell size`
         pixel_cluster_col (str):
             Name of the column with the pixel SOM cluster assignments.
             Should be `'pixel_som_cluster'` or `'pixel_meta_cluster'`.
@@ -1277,7 +1277,8 @@ def cluster_cells(base_dir, cluster_counts_norm_name='cluster_counts_norm.feathe
         base_dir (str):
             The path to the data directory
         cluster_counts_norm_name (str):
-            Name of the file with the cluster counts of each cell, normalized by cell size
+            Name of the file with the number of pixel SOM/meta cluster counts of each cell,
+            normalized by cell size
         weights_name (str):
             The name of the weights file, created by `train_cell_som`
         cell_cluster_name (str):
