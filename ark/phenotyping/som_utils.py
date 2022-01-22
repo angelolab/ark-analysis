@@ -1278,7 +1278,7 @@ def cluster_cells(base_dir, cluster_counts_norm_name='cluster_counts_norm.feathe
             The path to the data directory
         cluster_counts_norm_name (str):
             Name of the file with the number of pixel SOM/meta cluster counts of each cell,
-            normalized by cell size
+            normalized by `cell_size`
         weights_name (str):
             The name of the weights file, created by `train_cell_som`
         cell_cluster_name (str):
