@@ -1083,6 +1083,12 @@ def apply_pixel_meta_cluster_remapping(fovs, channels, base_dir,
         # read in the fov data with SOM and meta cluster labels
         fov_data = feather.read_dataframe(fov_path)
 
+        # ensure that no SOM clusters are missing from the mapping
+        misc_utils.verify_in_list(
+            fov_som_labels=fov_data['pixel_som_cluster'],
+            som_labels_in_mapping=list(pixel_remapped_dict.keys())
+        )
+
         # assign the new meta cluster labels
         fov_data['pixel_meta_cluster'] = fov_data['pixel_som_cluster'].map(
             pixel_remapped_dict
@@ -1668,7 +1674,7 @@ def apply_cell_meta_cluster_remapping(fovs, channels, base_dir, cell_consensus_n
     )
 
     # create the mapping from cell meta cluster to cell renamed meta cluster
-    cell_remapped_meta_dict = dict(
+    cell_renamed_meta_dict = dict(
         cell_remapped_data[
             ['cell_meta_cluster', 'cell_meta_cluster_rename']
         ].drop_duplicates().values
@@ -1678,6 +1684,12 @@ def apply_cell_meta_cluster_remapping(fovs, channels, base_dir, cell_consensus_n
     print("Using re-mapping scheme to re-label cell meta clusters")
     cell_consensus_data = feather.read_dataframe(cell_consensus_path)
 
+    # ensure that no SOM clusters are missing from the mapping
+    misc_utils.verify_in_list(
+        fov_som_labels=cell_consensus_data['cell_som_cluster'],
+        som_labels_in_mapping=list(cell_remapped_dict.keys())
+    )
+
     # assign the new meta cluster labels
     cell_consensus_data['cell_meta_cluster'] = \
         cell_consensus_data['cell_som_cluster'].map(cell_remapped_dict)
@@ -1685,7 +1697,7 @@ def apply_cell_meta_cluster_remapping(fovs, channels, base_dir, cell_consensus_n
     # assign the new renamed meta cluster names
     # assign the new meta cluster labels
     cell_consensus_data['cell_meta_cluster_rename'] = \
-        cell_consensus_data['cell_meta_cluster'].map(cell_remapped_meta_dict)
+        cell_consensus_data['cell_meta_cluster'].map(cell_renamed_meta_dict)
 
     # resave the data with the new meta cluster lables
     feather.write_dataframe(cell_consensus_data, cell_consensus_path, compression='uncompressed')
@@ -1701,7 +1713,7 @@ def apply_cell_meta_cluster_remapping(fovs, channels, base_dir, cell_consensus_n
     )
 
     cell_meta_cluster_avgs_and_counts['cell_meta_cluster_rename'] = \
-        cell_meta_cluster_avgs_and_counts['cell_meta_cluster'].map(cell_remapped_meta_dict)
+        cell_meta_cluster_avgs_and_counts['cell_meta_cluster'].map(cell_renamed_meta_dict)
 
     # re-save the average number of pixel SOM/meta clusters per cell meta cluster
     cell_meta_cluster_avgs_and_counts.to_csv(
@@ -1722,7 +1734,7 @@ def apply_cell_meta_cluster_remapping(fovs, channels, base_dir, cell_consensus_n
     )
 
     cell_meta_cluster_channel_avg['cell_meta_cluster_rename'] = \
-        cell_meta_cluster_channel_avg['cell_meta_cluster'].map(cell_remapped_meta_dict)
+        cell_meta_cluster_channel_avg['cell_meta_cluster'].map(cell_renamed_meta_dict)
 
     # re-save the weighted channel average expression per cell cluster
     cell_meta_cluster_channel_avg.to_csv(
@@ -1739,7 +1751,7 @@ def apply_cell_meta_cluster_remapping(fovs, channels, base_dir, cell_consensus_n
         cell_som_cluster_avgs_and_counts['cell_som_cluster'].map(cell_remapped_dict)
 
     cell_som_cluster_avgs_and_counts['cell_meta_cluster_rename'] = \
-        cell_som_cluster_avgs_and_counts['cell_meta_cluster'].map(cell_remapped_meta_dict)
+        cell_som_cluster_avgs_and_counts['cell_meta_cluster'].map(cell_renamed_meta_dict)
 
     # re-save the cell SOM cluster average pixel cluster counts table
     cell_som_cluster_avgs_and_counts.to_csv(som_cluster_counts_avgs_path, index=False)
@@ -1753,7 +1765,7 @@ def apply_cell_meta_cluster_remapping(fovs, channels, base_dir, cell_consensus_n
         cell_som_cluster_channel_avg['cell_som_cluster'].map(cell_remapped_dict)
 
     cell_som_cluster_channel_avg['cell_meta_cluster_rename'] = \
-        cell_som_cluster_channel_avg['cell_meta_cluster'].map(cell_remapped_meta_dict)
+        cell_som_cluster_channel_avg['cell_meta_cluster'].map(cell_renamed_meta_dict)
 
     # re-save the cell SOM cluster average pixel cluster counts table
     cell_som_cluster_channel_avg.to_csv(som_cluster_channel_avgs_path, index=False)

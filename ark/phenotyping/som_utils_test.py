@@ -1305,10 +1305,12 @@ def test_apply_pixel_meta_cluster_remapping():
                                                                      fov + '.feather'))
 
         # define a dummy remap scheme and save
+        # NOTE: we intentionally add more SOM cluster keys than necessary to show
+        # that certain FOVs don't need to contain every SOM cluster available
         sample_pixel_remapping = {
-            'cluster': [i for i in np.arange(100)],
-            'metacluster': [int(i / 25) for i in np.arange(100)],
-            'mc_name': ['meta' + str(int(i / 25)) for i in np.arange(100)]
+            'cluster': [i for i in np.arange(105)],
+            'metacluster': [int(i / 5) for i in np.arange(105)],
+            'mc_name': ['meta' + str(int(i / 5)) for i in np.arange(105)]
         }
         sample_pixel_remapping = pd.DataFrame.from_dict(sample_pixel_remapping)
         sample_pixel_remapping.to_csv(
@@ -1346,7 +1348,29 @@ def test_apply_pixel_meta_cluster_remapping():
                 index=False
             )
 
-            # run the remapping process
+            som_utils.apply_pixel_meta_cluster_remapping(
+                fovs,
+                chans,
+                temp_dir,
+                'pixel_mat_consensus',
+                'bad_sample_pixel_remapping.csv',
+                'sample_pixel_som_cluster_chan_avgs.csv',
+                'sample_pixel_meta_cluster_chan_avgs.csv'
+            )
+
+        # error check: mapping does not contain every SOM label
+        with pytest.raises(ValueError):
+            bad_sample_pixel_remapping = {
+                'cluster': [1, 2],
+                'metacluster': [1, 2],
+                'mc_name': ['m1', 'm2']
+            }
+            bad_sample_pixel_remapping = pd.DataFrame.from_dict(bad_sample_pixel_remapping)
+            bad_sample_pixel_remapping.to_csv(
+                os.path.join(temp_dir, 'bad_sample_pixel_remapping.csv'),
+                index=False
+            )
+
             som_utils.apply_pixel_meta_cluster_remapping(
                 fovs,
                 chans,
@@ -1382,8 +1406,8 @@ def test_apply_pixel_meta_cluster_remapping():
                 os.path.join(temp_dir, 'pixel_mat_consensus', fov + '.feather')
             )
 
-            # assert the counts for each FOV on every meta cluster is 250
-            assert np.all(remapped_fov_data['pixel_meta_cluster'].value_counts().values == 250)
+            # assert the counts for each FOV on every meta cluster is 50
+            assert np.all(remapped_fov_data['pixel_meta_cluster'].value_counts().values == 50)
 
             # assert the mapping is the same for pixel SOM to meta cluster
             som_to_meta = remapped_fov_data[
@@ -1417,13 +1441,13 @@ def test_apply_pixel_meta_cluster_remapping():
         )
 
         # assert the markers data has been updated correctly
-        result = np.repeat(np.array([[0.1, 0.2, 0.3, 0.4]]), repeats=4, axis=0)
+        result = np.repeat(np.array([[0.1, 0.2, 0.3, 0.4]]), repeats=20, axis=0)
         assert np.all(
             np.round(sample_pixel_channel_avg_meta_cluster[chans].values, 1) == result
         )
 
         # assert the counts data has been updated correctly
-        assert np.all(sample_pixel_channel_avg_meta_cluster['count'].values == 750)
+        assert np.all(sample_pixel_channel_avg_meta_cluster['count'].values == 150)
 
         # read in the som cluster channel average data
         sample_pixel_channel_avg_som_cluster = pd.read_csv(
@@ -1431,9 +1455,9 @@ def test_apply_pixel_meta_cluster_remapping():
         )
 
         # assert the correct number of meta clusters are in and the correct number of each
-        assert len(sample_pixel_channel_avg_som_cluster['pixel_meta_cluster'].value_counts()) == 4
+        assert len(sample_pixel_channel_avg_som_cluster['pixel_meta_cluster'].value_counts()) == 20
         assert np.all(
-            sample_pixel_channel_avg_som_cluster['pixel_meta_cluster'].value_counts().values == 25
+            sample_pixel_channel_avg_som_cluster['pixel_meta_cluster'].value_counts().values == 5
         )
 
 
@@ -1975,6 +1999,9 @@ def test_apply_cell_meta_cluster_remapping():
         )
 
         # define a dummy remap scheme and save
+        # NOTE: cell mappings don't have the same issue of having more SOM clusters defined
+        # than there are in the cell table there is only one cell table (as opposed to
+        # multiple pixel tabels per FOV)
         sample_cell_remapping = {
             'cluster': [i for i in np.arange(100)],
             'metacluster': [int(i / 5) for i in np.arange(100)],
@@ -1999,6 +2026,33 @@ def test_apply_cell_meta_cluster_remapping():
             )
 
             # run the remapping process
+            som_utils.apply_cell_meta_cluster_remapping(
+                ['fov1', 'fov2'],
+                chans,
+                temp_dir,
+                'cell_mat_consensus.feather',
+                'bad_sample_cell_remapping.csv',
+                'pixel_meta_cluster',
+                'sample_cell_som_cluster_count_avgs.csv',
+                'sample_cell_meta_cluster_count_avgs.csv',
+                'weighted_cell_table.csv',
+                'sample_cell_som_cluster_chan_avgs.csv',
+                'sample_cell_meta_cluster_chan_avgs.csv'
+            )
+
+        # error check: mapping does not contain every SOM label
+        with pytest.raises(ValueError):
+            bad_sample_cell_remapping = {
+                'cluster': [1, 2],
+                'metacluster': [1, 2],
+                'mc_name': ['m1', 'm2']
+            }
+            bad_sample_cell_remapping = pd.DataFrame.from_dict(bad_sample_cell_remapping)
+            bad_sample_cell_remapping.to_csv(
+                os.path.join(temp_dir, 'bad_sample_cell_remapping.csv'),
+                index=False
+            )
+
             som_utils.apply_cell_meta_cluster_remapping(
                 ['fov1', 'fov2'],
                 chans,
