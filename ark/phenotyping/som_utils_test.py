@@ -2015,7 +2015,7 @@ def test_apply_cell_meta_cluster_remapping():
             os.path.join(temp_dir, 'sample_cell_som_cluster_chan_avgs.csv'), index=False
         )
 
-        # since the equivalent weighted channel table for meta clusters will be overwritten
+        # since the equivalent average weighted channel table for meta clusters will be overwritten
         # just make it a blank slate
         pd.DataFrame().to_csv(
             os.path.join(temp_dir, 'sample_cell_meta_cluster_chan_avgs.csv'), index=False

@@ -102,7 +102,8 @@ def plot_pixel_cell_cluster_overlay(img_xr, fovs, cluster_id_to_name_path, metac
     # verify cluster_id_to_name_path exists
     if not os.path.exists(cluster_id_to_name_path):
         raise FileNotFoundError(
-            'Cluster to name mapping %s does not exist' % cluster_id_to_name_path
+            'Metacluster id to renamed metacluster mapping %s does not exist' %
+            cluster_id_to_name_path
         )
 
     # read the cluster to name mapping
@@ -127,11 +128,11 @@ def plot_pixel_cell_cluster_overlay(img_xr, fovs, cluster_id_to_name_path, metac
 
     # assert the metacluster index in colors matches with the ids in metacluster_id_to_name
     verify_same_elements(
-        colors_metacluster_index=list(metacluster_colors.keys()),
-        metacluster_ids=metacluster_id_to_name['metacluster'].values
+        metacluster_colors_ids=list(metacluster_colors.keys()),
+        metacluster_mapping_ids=metacluster_id_to_name['metacluster'].values
     )
 
-    # sort the colors Series so we can assign it directly to metacluster_id_to_name
+    # use metacluster_colors to add the colors to metacluster_id_to_name
     metacluster_id_to_name['color'] = metacluster_id_to_name['metacluster'].map(
         metacluster_colors
     )
@@ -154,7 +155,7 @@ def plot_pixel_cell_cluster_overlay(img_xr, fovs, cluster_id_to_name_path, metac
         unique_clusters = np.sort(np.unique(fov_img))
 
         # assign any metacluster id not in metacluster_id_to_name to 0 (not including 0 itself)
-        # done as a precaution
+        # done as a precaution, should not usually happen
         acceptable_cluster_ids = [0] + list(unique_clusters)
         fov_img[~np.isin(fov_img, acceptable_cluster_ids)] = 0
 
@@ -172,8 +173,7 @@ def plot_pixel_cell_cluster_overlay(img_xr, fovs, cluster_id_to_name_path, metac
             origin='upper'
         )
 
-        # define the colorbar
-        # TODO: make customizable?
+        # define the colorbar with annotations
         cax = fig.add_axes([0.9, 0.1, 0.01, 0.8])
         cbar = plt.colorbar(
             overlay,

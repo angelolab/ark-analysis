@@ -56,6 +56,7 @@ def test_plot_pixel_cell_cluster_overlay():
         )
 
     with tempfile.TemporaryDirectory() as td:
+        # define the path to the cluster map
         mapping_path = os.path.join(td, 'sample_mapping_path.csv')
 
         # invalid columns provided in mapping
@@ -75,7 +76,8 @@ def test_plot_pixel_cell_cluster_overlay():
         df = df.rename({'bad_cluster_col': 'cluster'}, axis=1)
         df.to_csv(mapping_path, index=False)
 
-        # invalid mapping provided
+        # invalid sample_mapping dict provided, metaclusters do not match
+        # those found in mapping_path
         bad_sample_mapping = {i + 2: (0.0, 0.0, 0.0) for i in np.arange(5)}
 
         with pytest.raises(ValueError):
