@@ -30,8 +30,8 @@ do
   esac
 done
 
-# if requirements.txt has been changed in the last day, automatically rebuild Docker first
-if [[ $(find . -mmin -1440 -type f -print | grep requirements.txt | wc -l) -eq 1 ]]
+# if requirements.txt has been changed in the last half hour, automatically rebuild Docker first
+if [[ $(find . -mmin -30 -type f -print | grep requirements.txt | wc -l) -eq 1 ]]
   then
     echo "New requirements.txt file detected, rebuilding Docker"
     docker build -t ark-analysis .
