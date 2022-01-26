@@ -25,17 +25,17 @@ def _exec_notebook(nb_filename):
         subprocess.check_call(args)
 
 
-# # test runs with default inputs
-# def test_segment_image_data():
-#     _exec_notebook('Segment_Image_Data.ipynb')
+# test runs with default inputs
+def test_segment_image_data():
+    _exec_notebook('Segment_Image_Data.ipynb')
 
 
-# def test_example_spatial_analysis():
-#     _exec_notebook('example_spatial_analysis_script.ipynb')
+def test_example_spatial_analysis():
+    _exec_notebook('example_spatial_analysis_script.ipynb')
 
 
-# def test_example_neighborhood_analysis():
-#     _exec_notebook('example_neighborhood_analysis_script.ipynb')
+def test_example_neighborhood_analysis():
+    _exec_notebook('example_neighborhood_analysis_script.ipynb')
 
 
 # test mibitiff segmentation
@@ -119,7 +119,7 @@ def test_segment_image_data_folder(tb):
 
 
 # # test mibitiff clustering
-# @testbook(FLOWSOM_CLUSTER_PATH, timeout=6000)
+# @testbook(PIXEL_CLUSTER_PATH, timeout=6000)
 # def test_pixel_clustering_mibitiff(tb):
 #     with tdir() as base_dir:
 #         # create input files

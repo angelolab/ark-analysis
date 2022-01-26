@@ -59,6 +59,8 @@ set.seed(seed)
 print("Reading the subsetted pixel matrix data for SOM training")
 pixelSubsetData <- NULL
 
+# TODO: use a combination of fread, rbindlist, lapply, and data.table to batch read (not urgent, more for readability)
+# TODO: include an error message to lower subset proportion if out-of-memory
 for (fov in fovs) {
     # subset each matrix with only the markers columns
     fileName <- file.path(fov, "feather", fsep=".")
@@ -79,16 +81,21 @@ normVals <- data.frame(matrix(NA, nrow=1, ncol=length(markers)))
 colnames(normVals) <- markers
 
 print("Performing 99.9% normalization")
-
 for (marker in markers) {
-    marker_quantile <- quantile(pixelSubsetData[, marker], 0.999)
+    # get the quantile of the marker data for the subsetted matrix
+    markerQuantile <- quantile(pixelSubsetData[,marker], 0.999)
 
     # this prevents all-zero columns from getting normalized and becoming NA/Inf
-    if (marker_quantile != 0) {
-        pixelSubsetData[, marker] = pixelSubsetData[, marker] / marker_quantile
+    # if 99.9% is 0, divide by the max value (100%) instead
+    if (markerQuantile == 0) {
+        markerQuantile <- quantile(pixelSubsetData[,marker], 1)
     }
 
-    normVals[marker] = marker_quantile
+    # run the normalization process
+    pixelSubsetData[,marker] = pixelSubsetData[,marker] / markerQuantile
+
+    # assign the markerQuantile to the normVals data frame
+    normVals[marker] = markerQuantile
 }
 
 # write 99.9% normalized values to feather
@@ -97,7 +104,7 @@ arrow::write_feather(as.data.table(normVals), normValsPath)
 
 # run the SOM training step
 print("Run the SOM training")
-somResults <- SOM(data=pixelSubsetData, rlen=numPasses,
+somResults <- SOM(data=as.matrix(pixelSubsetData), rlen=numPasses,
                   xdim=xdim, ydim=ydim, alpha=c(lr_start, lr_end))
 
 # write the weights to feather

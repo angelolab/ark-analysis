@@ -1,9 +1,8 @@
 # Assigns cluster labels to pixel data using a trained SOM weights matrix
 
-# Usage: Rscript run_pixel_som.R {fovs} {markers} {pixelMatDir} {normValsPath} {pixelWeightsPath} {pixelClusterDir}
+# Usage: Rscript run_pixel_som.R {fovs} {pixelMatDir} {normValsPath} {pixelWeightsPath} {pixelClusterDir}
 
 # - fovs: list of fovs to cluster
-# - markers: list of channel columns to use
 # - pixelMatDir: path to directory containing the complete pixel data
 # - normValsPath: path to the 99.9% normalized values file
 # - pixelWeightsPath: path to the SOM weights file
@@ -48,25 +47,23 @@ for (i in 1:length(fovs)) {
     matPath <- file.path(pixelMatDir, fileName)
     fovPixelData <- arrow::read_feather(matPath)
 
-    # 99.9% normalize pixel data
+    # 99.9% normalize pixel data based on values computed for subsetted pixel data in train_pixel_som
     for (marker in markers) {
-        # this prevents all- or mostly-zero columns from getting normalized and becoming NA/Inf
-        if (normVals[1, marker] != 0) {
-            fovPixelData[, marker] <- fovPixelData[, marker] / normVals[1, marker]
-        }
+        fovPixelData[,marker] <- fovPixelData[,marker] / normVals[1, marker]
     }
 
     # map FlowSOM data
     clusters <- FlowSOM:::MapDataToCodes(somWeights, as.matrix(fovPixelData[,markers]))
 
     # assign cluster labels column to pixel data
-    fovPixelData$cluster <- clusters[,1]
+    fovPixelData$pixel_som_cluster <- as.integer(clusters[,1])
 
     # write to feather
     clusterPath <- file.path(pixelClusterDir, fileName)
     arrow::write_feather(as.data.table(fovPixelData), clusterPath)
 
     # print an update every 10 fovs
+    # TODO: find a way to capture sprintf to the console
     if (i %% 10 == 0) {
         print("# fovs clustered:")
         print(i)

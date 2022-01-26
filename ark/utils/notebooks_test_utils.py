@@ -126,7 +126,8 @@ def flowsom_setup(tb, flowsom_dir, img_shape=(50, 50), num_fovs=3, num_chans=3,
                                                     return_imgs=False)
 
         filelocs, data_xr = test_utils.create_paired_xarray_fovs(
-            tiff_dir, fovs, chans, img_shape=img_shape, delimiter='_', fills=False, dtype=dtype)
+            tiff_dir, fovs, chans, img_shape=img_shape, delimiter='_', fills=False, dtype=dtype
+        )
 
     # generate sample segmentation labels so we can load them in
     seg_dir = os.path.join(flowsom_dir, "deepcell_output")
@@ -137,18 +138,13 @@ def flowsom_setup(tb, flowsom_dir, img_shape=(50, 50), num_fovs=3, num_chans=3,
     define_data_paths = """
         base_dir = "%s"
         tiff_dir = "%s"
+        img_sub_folder = None
         segmentation_dir = "%s"
-    """ % (flowsom_dir, tiff_dir, seg_dir)
+        seg_suffix = '_feature_0.tif'
+        MIBItiff = %s
+        mibitiff_suffix = '%s'
+    """ % (flowsom_dir, tiff_dir, seg_dir, is_mibitiff, mibitiff_suffix)
     tb.inject(define_data_paths, after='file_path')
-
-    # set the SOM preprocessed paths
-    tb.execute_cell('preprocess_path_set')
-
-    # will set MIBItiff and MIBItiff_suffix
-    tb.execute_cell('mibitiff_set')
-    if is_mibitiff:
-        # default setting is MIBItiff = False, change to True if user has mibitiff inputs
-        tb.inject("MIBItiff = True", after='mibitiff_set')
 
 
 def flowsom_pixel_run(tb, fovs, channels, cluster_prefix='test', is_mibitiff=False):
@@ -169,16 +165,32 @@ def flowsom_pixel_run(tb, fovs, channels, cluster_prefix='test', is_mibitiff=Fal
 
     if fovs is not None:
         # handles the case when the user assigns fovs to an explicit list
-        tb.inject("fovs = %s" % str(fovs), after='load_fovs')
+        tb.inject(
+            """
+                fovs = %s
+            """ % str(fovs),
+            after='load_fovs'
+        )
     else:
         # handles the case when the user allows list_files or list_folders to do the fov loading
         tb.execute_cell('load_fovs')
 
-    # sets the channels to include
-    tb.inject("channels = %s" % str(channels), after='channel_set')
+    # set the names of the preprocessed and segmented directories
+    set_pre_seg_dirs = """
+        preprocessed_dir = '%s_preprocessed_dir'
+        subsetted_dir = '%s_subsetted_dir'
+    """ % (cluster_prefix, cluster_prefix)
+    tb.inject(set_pre_seg_dirs, after='pre_sub_dir_set')
 
-    # set the preprocessing arguments
-    tb.execute_cell('preprocess_arg_set')
+    # sets the channels to include
+    tb.inject(
+        """
+            channels = %s
+            blur_factor = 2
+            subset_proportion = 0.1
+        """ % str(channels),
+        after='channel_set'
+    )
 
     # test the preprocessing works, we won't save nor run the actual FlowSOM clustering
     if is_mibitiff:
@@ -195,11 +207,14 @@ def flowsom_pixel_run(tb, fovs, channels, cluster_prefix='test', is_mibitiff=Fal
         tb.execute_cell('gen_pixel_mat')
 
     # define a custom prefix for the SOM and cell cluster assignments
-    prefix_set = "cluster_prefix = '%s'" % cluster_prefix
-    tb.inject(prefix_set, after='cluster_prefix_set')
+    prefix_set = """
+        cluster_prefix = '%s'
 
-    # set the paths to write pixel data to
-    tb.execute_cell('pixel_som_path_set')
+        pixel_clustered_dir = '%s_pixel_mat_clustered'
+        pixel_consensus_dir = '%s_pixel_mat_consensus'
+        pixel_weights_name = '%s_pixel_weights.feather'
+    """ % (cluster_prefix, cluster_prefix, cluster_prefix, cluster_prefix)
+    tb.inject(prefix_set, after='pixel_som_path_set')
 
     # create a dummy weights feather
     dummy_weights = """

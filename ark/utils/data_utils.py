@@ -81,6 +81,7 @@ def label_cells_by_cluster(fovs, all_data, label_maps, fov_col=settings.FOV_ID,
         df = all_data[all_data[fov_col] == fov]
         labels_dict = dict(zip(df[cell_label_column], df[cluster_column]))
         labeled_img_array = label_maps.loc[label_maps.fovs == fov].squeeze().values
+
         relabeled_img_array = relabel_segmentation(labeled_img_array, labels_dict)
         img_data.append(relabeled_img_array)
 
@@ -90,7 +91,7 @@ def label_cells_by_cluster(fovs, all_data, label_maps, fov_col=settings.FOV_ID,
 
 
 def generate_cell_cluster_mask(fovs, base_dir, seg_dir, cell_consensus_name,
-                               cluster_col='cluster'):
+                               cell_cluster_col='cell_meta_cluster', seg_suffix='_feature_0.tif'):
     """For each fov, create a mask labeling each cell with their SOM or meta cluster label
 
     Args:
@@ -102,8 +103,11 @@ def generate_cell_cluster_mask(fovs, base_dir, seg_dir, cell_consensus_name,
             The path to the segmentation data
         cell_consensus_name (str):
             The path to the data with both cell SOM and meta cluster assignments
-        cluster_col (str):
-            Whether to assign SOM or meta clusters, needs to be 'cluster' or 'hCluster_cap'
+        cell_cluster_col (str):
+            Whether to assign SOM or meta clusters.
+            Needs to be `'cell_som_cluster'` or `'cell_meta_cluster'`
+        seg_suffix (str):
+            The suffix that the segmentation images use
 
     Returns:
         xarray.DataArray:
@@ -121,12 +125,15 @@ def generate_cell_cluster_mask(fovs, base_dir, seg_dir, cell_consensus_name,
 
     # verify the cluster_col provided is valid
     verify_in_list(
-        provided_cluster_col=cluster_col,
-        valid_cluster_cols=['cluster', 'hCluster_cap']
+        provided_cluster_col=cell_cluster_col,
+        valid_cluster_cols=['cell_som_cluster', 'cell_meta_cluster']
     )
 
     # load the consensus data in
     cell_consensus_data = feather.read_dataframe(os.path.join(base_dir, cell_consensus_name))
+
+    # ensure the cluster col will be displayed as an integer and not a float
+    cell_consensus_data[cell_cluster_col] = cell_consensus_data[cell_cluster_col].astype(int)
 
     # verify all the fovs are valid
     verify_in_list(
@@ -135,27 +142,27 @@ def generate_cell_cluster_mask(fovs, base_dir, seg_dir, cell_consensus_name,
     )
 
     # define the files for whole cell and nuclear
-    whole_cell_files = [fov + '_feature_0.tif' for fov in fovs]
+    whole_cell_files = [fov + seg_suffix for fov in fovs]
 
     # load the segmentation labels in
     label_maps = load_utils.load_imgs_from_dir(data_dir=seg_dir,
                                                files=whole_cell_files,
                                                xr_dim_name='compartments',
                                                xr_channel_names=['whole_cell'],
-                                               trim_suffix='_feature_0',
+                                               trim_suffix=seg_suffix.split('.')[0],
                                                force_ints=True)
 
     # use label_cells_by_cluster to create cell masks
     img_data = label_cells_by_cluster(
         fovs, cell_consensus_data, label_maps, fov_col='fov',
-        cell_label_column='segmentation_label', cluster_column=cluster_col
+        cell_label_column='segmentation_label', cluster_column=cell_cluster_col
     )
 
     return img_data
 
 
-def generate_pixel_cluster_mask(fovs, base_dir, seg_dir, pixel_consensus_dir,
-                                cluster_col='cluster'):
+def generate_pixel_cluster_mask(fovs, base_dir, tiff_dir, chan_file,
+                                pixel_consensus_dir, pixel_cluster_col='pixel_meta_cluster'):
     """For each fov, create a mask labeling each pixel with their SOM or meta cluster label
 
     Args:
@@ -163,12 +170,16 @@ def generate_pixel_cluster_mask(fovs, base_dir, seg_dir, pixel_consensus_dir,
             List of fovs to relabel
         base_dir (str):
             The path to the data directory
-        seg_dir (str):
-            The path to the segmentation data
+        tiff_dir (str):
+            The path to the tiff data
+        chan_file (str):
+            The path to the sample channel file to load (assuming tiff_dir as root)
+            Only used to determine dimensions of the pixel mask.
         pixel_consensus_dir (str):
             The path to the data with both pixel SOM and meta cluster assignments
-        cluster_col (str):
-            Whether to assign SOM or meta clusters, needs to be 'cluster' or 'hCluster_cap'
+        pixel_cluster_col (str):
+            Whether to assign SOM or meta clusters
+            needs to be `'pixel_som_cluster'` or `'pixel_meta_cluster'`
 
     Returns:
         xarray.DataArray:
@@ -176,18 +187,21 @@ def generate_pixel_cluster_mask(fovs, base_dir, seg_dir, pixel_consensus_dir,
     """
 
     # path checking
-    if not os.path.exists(seg_dir):
-        raise FileNotFoundError("seg_dir %s does not exist")
+    if not os.path.exists(tiff_dir):
+        raise FileNotFoundError("tiff_dir %s does not exist")
+
+    if not os.path.exists(os.path.join(tiff_dir, chan_file)):
+        raise FileNotFoundError("chan_file %s does not exist in tiff_dir" % chan_file)
 
     if not os.path.exists(os.path.join(base_dir, pixel_consensus_dir)):
         raise FileNotFoundError(
             "consensus_dir %s does not exist in base_dir %s" % (pixel_consensus_dir, base_dir)
         )
 
-    # verify the cluster_col provided is valid
+    # verify the pixel_cluster_col provided is valid
     verify_in_list(
-        provided_cluster_col=cluster_col,
-        valid_cluster_cols=['cluster', 'hCluster_cap']
+        provided_cluster_col=[pixel_cluster_col],
+        valid_cluster_cols=['pixel_som_cluster', 'pixel_meta_cluster']
     )
 
     # verify all the fovs are valid
@@ -205,18 +219,21 @@ def generate_pixel_cluster_mask(fovs, base_dir, seg_dir, pixel_consensus_dir,
             os.path.join(base_dir, pixel_consensus_dir, fov + '.feather')
         )
 
-        # read the segmentation mask to determine size of pixel cluster mask
-        seg_mask = io.imread(os.path.join(seg_dir, fov + '_feature_0.tif'))
+        # ensure integer display and not float
+        fov_data[pixel_cluster_col] = fov_data[pixel_cluster_col].astype(int)
+
+        # read the sample channel file to determine size of pixel cluster mask
+        channel_data = np.squeeze(io.imread(os.path.join(tiff_dir, chan_file)))
 
         # define a pixel cluster mask with the same dimensions as seg_mask
-        pixel_cluster_mask = np.zeros(seg_mask.shape)
+        pixel_cluster_mask = np.zeros(channel_data.shape)
 
         # get the pixel coordinates
         x_coords = list(fov_data['row_index'])
         y_coords = list(fov_data['column_index'])
 
         # get the cooresponding cluster labels for each pixel
-        cluster_labels = list(fov_data[cluster_col])
+        cluster_labels = list(fov_data[pixel_cluster_col])
 
         # assign each coordinate in pixel_cluster_mask to its respective cluster label
         pixel_cluster_mask[x_coords, y_coords] = cluster_labels
