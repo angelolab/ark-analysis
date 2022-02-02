@@ -9,9 +9,9 @@ def metaclusterdata_from_files_old(cluster_io, pixelcount_io, metacluster_header
     """Read and validate raw CSVs and return an initialized MetaClusterData
 
         Args:
-            cluster_io (IO)):
+            cluster_io (str or IO):
                 file path or filelike object
-            pixelcount_io (IO)):
+            pixelcount_io (str or IO):
                 file path or filelike object
             metacluster_header (str):
                 alternate header which can contains the metacluster ids
@@ -51,25 +51,23 @@ def metaclusterdata_from_files_old(cluster_io, pixelcount_io, metacluster_header
     return MetaClusterData(clusters, pixelcounts)
 
 
-def metaclusterdata_from_files(cluster_io, cluster_type='pixel'):
+def metaclusterdata_from_files(cluster_path, cluster_type='pixel'):
     """Read and validate raw CSVs and return an initialized MetaClusterData
 
     Args:
-        cluster_io (IO):
+        cluster_path (str or IO):
             file path or filelike object
-        som_cluster_header (str):
-            the name of the SOM cluster, must be `'pixel_som_cluster'` or `'cell_som_cluster'`
-        meta_cluster_header (str):
-            the name of the meta cluster, must be `'pixel_meta_cluster'` or `'cell_som_cluster'`
+        cluster_type (str):
+            the type of cluster data to read, needs to be either `'pixel'` or `'cell'`
 
     Returns:
         MetaClusterData:
             fully initialized metacluster data
     """
 
-    # assert the path to the data is valid
-    if not os.path.exists(cluster_io):
-        raise FileNotFoundError('Path to clustering data %s does not exist' % cluster_io)
+    # assert the path to the data is valid if a string
+    if isinstance(cluster_path, str) and not os.path.exists(cluster_path):
+        raise FileNotFoundError('Path to clustering data %s does not exist' % cluster_path)
 
     # assert the cluster type provided is valid
     misc_utils.verify_in_list(
@@ -78,10 +76,10 @@ def metaclusterdata_from_files(cluster_io, cluster_type='pixel'):
     )
 
     # read in the cluster data
-    cluster_data = pd.read_csv(cluster_io)
+    cluster_data = pd.read_csv(cluster_path)
 
-    # TODO: we should remove this rename and standardize everything in metacluster_remap_gui
-    # with {cluster_type}_{som/meta}_cluster
+    # TODO: might want to rename and standardize everything in metacluster_remap_gui
+    # with {cluster_type}_{som/meta}_cluster, not high priority
     cluster_data = cluster_data.rename(columns={
         '%s_som_cluster' % cluster_type: 'cluster',
         '%s_meta_cluster' % cluster_type: 'metacluster'
@@ -89,6 +87,9 @@ def metaclusterdata_from_files(cluster_io, cluster_type='pixel'):
 
     if 'cluster' not in cluster_data.columns:
         raise ValueError("Cluster table must include column named \"cluster\"")
+
+    if 'metacluster' not in cluster_data.columns:
+        raise ValueError("Cluster table must include column named \"metacluster\"")
 
     if 'count' not in cluster_data.columns:
         raise ValueError("Cluster table must include column named \"count\"")

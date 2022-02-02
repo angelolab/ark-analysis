@@ -32,6 +32,19 @@ def simple_pixelcount_df():
 
 
 @pytest.fixture()
+def simple_full_cluster_data():
+    """Minimal example data for cluster data"""
+    clusters_headers = ['CD163', 'CD206', 'CD31', 'cluster', 'metacluster', 'count']
+    clusters_data = [
+        (0.1, 0.2, 0.1, 1, 1, 25),
+        (0.1, 0.1, 0.3, 2, 2, 10),
+        (0.5, 0.1, 0.1, 3, 3, 50),
+        (0.7, 0.2, 0.1, 4, 3, 77),
+    ]
+    return pd.DataFrame(data=clusters_data, columns=clusters_headers)
+
+
+@pytest.fixture()
 def simple_metaclusterdata(simple_clusters_df, simple_pixelcount_df):
     return MetaClusterData(simple_clusters_df, simple_pixelcount_df)
 
