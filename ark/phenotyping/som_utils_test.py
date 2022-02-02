@@ -2308,7 +2308,7 @@ def test_generate_weighted_channel_avg_heatmap():
             )
             som_utils.generate_weighted_channel_avg_heatmap(
                 os.path.join(temp_dir, 'sample_channel_avg.csv'),
-                'cell_som_cluster', [], {}, {}
+                'bad_cluster_col', [], {}, {}
             )
 
         # test 1: cell SOM cluster channel avg
@@ -2331,7 +2331,7 @@ def test_generate_weighted_channel_avg_heatmap():
         with pytest.raises(ValueError):
             som_utils.generate_weighted_channel_avg_heatmap(
                 os.path.join(temp_dir, 'sample_channel_avg.csv'),
-                'cell_som_cluster', ['chan1', 'chan4']
+                'cell_som_cluster', ['chan1', 'chan4'], {}, {}
             )
 
         # define a sample colormap (raw and renamed)
@@ -2354,7 +2354,17 @@ def test_generate_weighted_channel_avg_heatmap():
         # assert visualization runs
         som_utils.generate_weighted_channel_avg_heatmap(
             os.path.join(temp_dir, 'sample_channel_avg.csv'),
-            'cell_som_cluster', ['chan1', 'chan2']
+            'cell_som_cluster', ['chan1', 'chan2'], raw_cmap, renamed_cmap
         )
 
         # test 2: cell meta cluster channel avg
+        sample_channel_avg = sample_channel_avg.drop(columns='cell_som_cluster')
+        sample_channel_avg.to_csv(
+            os.path.join(temp_dir, 'sample_channel_avg.csv')
+        )
+
+        # assert visualization runs
+        som_utils.generate_weighted_channel_avg_heatmap(
+            os.path.join(temp_dir, 'sample_channel_avg.csv'),
+            'cell_meta_cluster', ['chan1', 'chan2'], raw_cmap, renamed_cmap
+        )
