@@ -412,7 +412,7 @@ class MetaClusterGui():
         for rect, h in zip(self.rects_cp, sorted_pixel_counts):
             rect.set_height(h)
         for label, y in zip(self.labels_cp, sorted_pixel_counts):
-            text = "{:0.0f}".format(y / 1000)
+            text = str(y)
             label_y_spacing = ax_cp_ymax * 0.05
             label.set_y(y + label_y_spacing)
             label.set_text(text)
