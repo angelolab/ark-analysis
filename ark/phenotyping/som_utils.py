@@ -1783,8 +1783,8 @@ def generate_meta_cluster_colormap_dict(meta_cluster_remap_path, cmap):
 
     Generate a separate one for the raw meta cluster labels and the renamed meta cluster labels.
 
-    Used in the pixel and cell meta cluster overlays,
-    as well as the average weighted channel expression visualizations for cell clustering
+    Used in the pixel and cell meta cluster overlays, as well as the
+    average weighted channel expression heatmaps for cell clustering
 
     Args:
         meta_cluster_remap_path (str):
@@ -1815,7 +1815,7 @@ def generate_meta_cluster_colormap_dict(meta_cluster_remap_path, cmap):
 
     # define the raw meta cluster colormap
     # NOTE: colormaps returned by interactive reclustering are zero-indexed
-    # need to subtarct 1 to account for that
+    # need to subtract 1 to account for that
     raw_colormap = {
         i: cmap(i - 1) for i in np.unique(remapping['metacluster'])
     }
