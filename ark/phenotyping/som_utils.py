@@ -1878,6 +1878,7 @@ def generate_weighted_channel_avg_heatmap(cell_cluster_channel_avg_path, cell_cl
     )
 
     # sort the data by the meta cluster value
+    # this ensures the meta clusters are grouped together when the colormap is displayed
     cell_cluster_channel_avgs = cell_cluster_channel_avgs.sort_values(by='cell_meta_cluster')
 
     # map raw_cmap onto cell_cluster_channel_avgs for the heatmap to display the side color bar
