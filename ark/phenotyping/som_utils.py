@@ -1814,8 +1814,10 @@ def generate_meta_cluster_colormap_dict(meta_cluster_remap_path, cmap):
     )
 
     # define the raw meta cluster colormap
+    # NOTE: colormaps returned by interactive reclustering are zero-indexed
+    # need to subtarct 1 to account for that
     raw_colormap = {
-        i: cmap(i) for i in np.unique(remapping['metacluster'])
+        i: cmap(i - 1) for i in np.unique(remapping['metacluster'])
     }
 
     # define the renamed meta cluster colormap
@@ -1875,6 +1877,9 @@ def generate_weighted_channel_avg_heatmap(cell_cluster_channel_avg_path, cell_cl
         channel_avg_cols=cell_cluster_channel_avgs.columns.values
     )
 
+    # sort the data by the meta cluster value
+    cell_cluster_channel_avgs = cell_cluster_channel_avgs.sort_values(by='cell_meta_cluster')
+
     # map raw_cmap onto cell_cluster_channel_avgs for the heatmap to display the side color bar
     meta_cluster_index = cell_cluster_channel_avgs[cell_cluster_col].values
     meta_cluster_mapping = pd.Series(cell_cluster_channel_avgs['cell_meta_cluster']).map(raw_cmap)
@@ -1890,6 +1895,7 @@ def generate_weighted_channel_avg_heatmap(cell_cluster_channel_avg_path, cell_cl
         max_val=max_val,
         cbar_ticks=np.arange(-3, 4),
         row_colors=meta_cluster_mapping,
+        row_cluster=False,
         colormap='vlag'
     )
 

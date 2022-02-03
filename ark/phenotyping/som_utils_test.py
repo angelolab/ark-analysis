@@ -2260,8 +2260,8 @@ def test_generate_meta_cluster_colormap_dict():
         # define a dummy remapping
         sample_remapping = {
             'cluster': [i for i in np.arange(100)],
-            'metacluster': [int(i / 50) for i in np.arange(100)],
-            'mc_name': ['meta' + str(int(i / 50)) for i in np.arange(100)]
+            'metacluster': [int(i / 50) + 1 for i in np.arange(100)],
+            'mc_name': ['meta' + str(int(i / 50) + 1) for i in np.arange(100)]
         }
 
         sample_remapping = pd.DataFrame.from_dict(sample_remapping)
@@ -2271,7 +2271,7 @@ def test_generate_meta_cluster_colormap_dict():
         )
 
         # define a sample ListedColormap
-        cmap = ListedColormap(['red', 'blue'])
+        cmap = ListedColormap(['red', 'blue', 'green'])
 
         raw_cmap, renamed_cmap = som_utils.generate_meta_cluster_colormap_dict(
             os.path.join(temp_dir, 'sample_remapping.csv'), cmap
@@ -2288,8 +2288,8 @@ def test_generate_meta_cluster_colormap_dict():
         )
 
         # assert the colors match up
-        assert raw_cmap[0] == renamed_cmap['meta0'] == (1.0, 0.0, 0.0, 1.0)
-        assert raw_cmap[1] == renamed_cmap['meta1'] == (0.0, 0.0, 1.0, 1.0)
+        assert raw_cmap[1] == renamed_cmap['meta1'] == (1.0, 0.0, 0.0, 1.0)
+        assert raw_cmap[2] == renamed_cmap['meta2'] == (0.0, 0.0, 1.0, 1.0)
 
 
 def test_generate_weighted_channel_avg_heatmap():

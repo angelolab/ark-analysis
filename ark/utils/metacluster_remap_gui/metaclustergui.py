@@ -179,7 +179,7 @@ class MetaClusterGui():
         # xaxis pixelcount graphs
         self.ax_cp.xaxis.set_tick_params(which='both', bottom=False, labelbottom=False)
         self.ax_cp.yaxis.set_tick_params(which='both', left=False, labelleft=False)
-        self.ax_cp.set_ylabel("Pixels (k)", rotation=90)
+        self.ax_cp.set_ylabel("Count (k)", rotation=90)
         self.ax_cp.set_xlim(0, self.mcd.cluster_count)
         self.rects_cp = self.ax_cp.bar(
             np.arange(self.mcd.cluster_count) + 0.5,
