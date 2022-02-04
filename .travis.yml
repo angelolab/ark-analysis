@@ -1,21 +1,31 @@
+os:
+  - linux
+  - osx
+
 include:
   jobs:
     -
+      name: "Ubuntu 16.04"
       os: linux
       dist: xenial  # Ubuntu 16.04
     -
+      name: "Ubuntu 18.04"
       os: linux
       dist: bionic  # Ubuntu 18.04
     -
+      name: "Ubuntu 20.04"
       os: linux
       dist: focal  # Ubuntu 20.04  
     -
+      name: "Monterey"
       os: osx
       osx_image: xcode13.2  # Monterey
     -
+      name: "Big Sur"
       os: osx
       osx_image: xcode13.1  # Big Sur
     -
+      name: "Catalina"
       os: osx
       osx_image: xcode12.2  # Catalina, last version still supported
 
