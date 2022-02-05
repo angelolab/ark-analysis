@@ -61,10 +61,10 @@ python:
   - 3.9  # latest version supported for now
 
 before_install:
-  - if [ "$TRAVIS_OS_NAME" != "linux" ]; then pip3 install -U pip
-  - if [ "$TRAVIS_OS_NAME" != "linux" ]; then pip3 install -U pytest
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then pip install -U pip
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then pip install -U pytest
+  - if [ "$TRAVIS_OS_NAME" != "linux" ]; then pip3 install -U pip; fi
+  - if [ "$TRAVIS_OS_NAME" != "linux" ]; then pip3 install -U pytest; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then pip install -U pip; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then pip install -U pytest; fi
 
 # before_install:
 #   - pip install -U pip
@@ -77,10 +77,10 @@ before_install:
 #   - travis_retry export PYTHONPATH=$PWD
 
 install:
-  - if [ "$TRAVIS_OS_NAME" != "linux" ]; then travis_retry pip3 install -r requirements.txt
-  - if [ "$TRAVIS_OS_NAME" != "linux" ]; then travis_retry pip3 install -r requirements-test.txt
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then travis_retry pip install -r requirements.txt
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then travis_retry pip install -r requirements-test.txt
+  - if [ "$TRAVIS_OS_NAME" != "linux" ]; then travis_retry pip3 install -r requirements.txt; fi
+  - if [ "$TRAVIS_OS_NAME" != "linux" ]; then travis_retry pip3 install -r requirements-test.txt; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then travis_retry pip install -r requirements.txt; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then travis_retry pip install -r requirements-test.txt; fi
   - travis_retry export PYTHONPATH=$PWD
 
 env:
@@ -90,8 +90,8 @@ cache: pip
 
 # command to run tests
 script:
-  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then python3 -m pytest --cov=ark --pycodestyle ark
-  - if [ "$TRAVIS_OS_NAME" != "osx" ]; then python -m pytest --cov=ark --pycodestyle ark
+  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then python3 -m pytest --cov=ark --pycodestyle ark; fi
+  - if [ "$TRAVIS_OS_NAME" != "osx" ]; then python -m pytest --cov=ark --pycodestyle ark; fi
 
 after_success:
   - coveralls
