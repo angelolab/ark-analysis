@@ -3,8 +3,8 @@ os:
   - osx
   - windows
 
-include:
-  jobs:
+jobs:
+  include:
     -
       name: "Ubuntu 16.04"
       os: linux
@@ -43,6 +43,13 @@ include:
         - choco install python3 3.6.8
         - python -m pip install --upgrade pip
         - pip3 install -U pytest
+    - stage: deploy
+      deploy:
+        provider: pypi
+        user: $PYPI_USERNAME
+        password: $PYPI_PASSWORD
+        on:
+          tags: true
 
 git:
   depth: false
@@ -85,16 +92,6 @@ cache: pip
 script:
   - if [ "$TRAVIS_OS_NAME" = "osx" ]; then python3 -m pytest --cov=ark --pycodestyle ark
   - if [ "$TRAVIS_OS_NAME" != "osx" ]; then python -m pytest --cov=ark --pycodestyle ark
-
-jobs:
-  include:
-    - stage: deploy
-      deploy:
-        provider: pypi
-        user: $PYPI_USERNAME
-        password: $PYPI_PASSWORD
-        on:
-          tags: true
 
 after_success:
   - coveralls
