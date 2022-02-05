@@ -1,6 +1,7 @@
 os:
   - linux
   - osx
+  - windows
 
 include:
   jobs:
@@ -8,47 +9,71 @@ include:
       name: "Ubuntu 16.04"
       os: linux
       dist: xenial  # Ubuntu 16.04
+      language: python
     -
       name: "Ubuntu 18.04"
       os: linux
       dist: bionic  # Ubuntu 18.04
+      language: python
     -
       name: "Ubuntu 20.04"
       os: linux
-      dist: focal  # Ubuntu 20.04  
+      dist: focal  # Ubuntu 20.04 
+      language: python 
     -
       name: "Monterey"
       os: osx
       osx_image: xcode13.2  # Monterey
+      language: shell
     -
       name: "Big Sur"
       os: osx
       osx_image: xcode13.1  # Big Sur
+      language: shell
     -
       name: "Catalina"
       os: osx
       osx_image: xcode12.2  # Catalina, last version still supported
+      language: shell
+    -
+      name: "Windows"
+      os: windows  # only Windows Server, version 1803
+      language: shell
+      before_install:
+        - choco install python3 3.6.8
+        - python -m pip install --upgrade pip
+        - pip3 install -U pytest
 
 git:
   depth: false
-
-language: python
 
 python:
   - 3.6
   - 3.7
   - 3.8
-  - 3.9
-  - 3.10
+  - 3.9  # latest version supported for now
 
 before_install:
-  - pip install -U pip
-  - pip install -U pytest
+  - if [ "$TRAVIS_OS_NAME" != "linux" ]; then pip3 install -U pip
+  - if [ "$TRAVIS_OS_NAME" != "linux" ]; then pip3 install -U pytest
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then pip install -U pip
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then pip install -U pytest
 
-# We add python path to enable testing jupyter notebooks
+# before_install:
+#   - pip install -U pip
+#   - pip install -U pytest
+
+# # We add python path to enable testing jupyter notebooks
+# install:
+#   - travis_retry pip install -r requirements.txt
+#   - travis_retry pip install -r requirements-test.txt
+#   - travis_retry export PYTHONPATH=$PWD
+
 install:
-  - travis_retry pip install -r requirements.txt
-  - travis_retry pip install -r requirements-test.txt
+  - if [ "$TRAVIS_OS_NAME" != "linux" ]; then travis_retry pip3 install -r requirements.txt
+  - if [ "$TRAVIS_OS_NAME" != "linux" ]; then travis_retry pip3 install -r requirements-test.txt
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then travis_retry pip install -r requirements.txt
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then travis_retry pip install -r requirements-test.txt
   - travis_retry export PYTHONPATH=$PWD
 
 env:
@@ -58,7 +83,8 @@ cache: pip
 
 # command to run tests
 script:
-  - python -m pytest --cov=ark --pycodestyle ark
+  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then python3 -m pytest --cov=ark --pycodestyle ark
+  - if [ "$TRAVIS_OS_NAME" != "osx" ]; then python -m pytest --cov=ark --pycodestyle ark
 
 jobs:
   include:
