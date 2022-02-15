@@ -33,7 +33,7 @@ jobs:
         on:
           tags: true  # with PyPI, deploy only on a tagged commit to master
     - stage: docker_deploy
-      if: branch = master  # with Docker, deploy every time on a commit to master
+      if: branch = master  # TODO: change to deploy only on tagged commits once this works
       python: 3.6
       script:
         - echo "$DOCKER_PASSWORD" | docker login -u "DOCKER_USERNAME" --password-stdin
