@@ -5,53 +5,7 @@ from ark.utils import misc_utils
 from .metaclusterdata import MetaClusterData
 
 
-def metaclusterdata_from_files_old(cluster_io, pixelcount_io, metacluster_header='metacluster'):
-    """Read and validate raw CSVs and return an initialized MetaClusterData
-
-        Args:
-            cluster_io (str or IO):
-                file path or filelike object
-            pixelcount_io (str or IO):
-                file path or filelike object
-            metacluster_header (str):
-                alternate header which can contains the metacluster ids
-        Returns:
-            MetaClusterData:
-                Fully initialized metacluster data
-    """
-    clusters = pd.read_csv(cluster_io)
-
-    if 'cluster' not in clusters.columns:
-        raise ValueError("cluster csv must include column named \"cluster\"")
-
-    if metacluster_header not in clusters.columns:
-        raise ValueError("cluster csv must include column named \"metacluster\", alternately specify the metacluster indexs using keyword `metacluster_index`")  # noqa
-
-    clusters = clusters.rename(columns={metacluster_header: 'metacluster'})
-    pixelcounts = pd.read_csv(pixelcount_io)
-
-    if 'cluster' not in pixelcounts.columns:
-        raise ValueError("pixelcounts csv must include column named \"cluster\"")
-
-    if 'count' not in pixelcounts.columns:
-        raise ValueError("pixelcounts csv must include column named \"count\"")
-
-    if len(set(clusters['cluster'].values)) != len(list(clusters['cluster'].values)):
-        raise ValueError("Cluster ids must be unique.")
-
-    if 1 not in clusters['cluster'].values:
-        raise ValueError("Cluster ids must be int type, starting with 1.")
-
-    if 0 in clusters['cluster'].values:
-        raise ValueError("Cluster ids start with 1, but a zero was detected.")
-
-    if set(clusters['cluster'].values) != set(pixelcounts['cluster'].values):
-        raise ValueError("Cluster ids in both files must match")
-
-    return MetaClusterData(clusters, pixelcounts)
-
-
-def metaclusterdata_from_files(cluster_path, cluster_type='pixel'):
+def metaclusterdata_from_files(cluster_path, cluster_type='pixel', prefix_trim=None):
     """Read and validate raw CSVs and return an initialized MetaClusterData
 
     Args:
@@ -59,6 +13,8 @@ def metaclusterdata_from_files(cluster_path, cluster_type='pixel'):
             file path or filelike object
         cluster_type (str):
             the type of cluster data to read, needs to be either `'pixel'` or `'cell'`
+        prefix_trim (str):
+            If set, remove this prefix from each column of the data in `cluster_path`
 
     Returns:
         MetaClusterData:
@@ -77,6 +33,11 @@ def metaclusterdata_from_files(cluster_path, cluster_type='pixel'):
 
     # read in the cluster data
     cluster_data = pd.read_csv(cluster_path)
+
+    if prefix_trim is not None:
+        cluster_data = cluster_data.rename(columns={
+            col: col.replace(prefix_trim, '') for col in cluster_data.columns.values
+        })
 
     # TODO: might want to rename and standardize everything in metacluster_remap_gui
     # with {cluster_type}_{som/meta}_cluster, not high priority
