@@ -17,7 +17,15 @@ def as_csv(df):
 
 
 def test_can_read_csvs(simple_full_cluster_data):
-    metaclusterdata_from_files(as_csv(simple_full_cluster_data))
+    md = metaclusterdata_from_files(as_csv(simple_full_cluster_data))
+    assert list(md.cluster_pixelcounts.columns.values) == ['count']
+
+
+def test_can_read_csvs_prefix_trim(simple_full_cluster_data):
+    simple_full_cluster_data.rename(columns={'count': 'prefix_count'}, inplace=True)
+
+    md = metaclusterdata_from_files(as_csv(simple_full_cluster_data), prefix_trim='prefix_')
+    assert list(md.cluster_pixelcounts.columns.values) == ['count']
 
 
 def test_requires_valid_path(simple_full_cluster_data):
