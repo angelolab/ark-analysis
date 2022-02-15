@@ -25,15 +25,15 @@ script:
 
 jobs:
   include:
-    - stage: deploy
+    - stage: pypi_deploy
       deploy:
         provider: pypi
         user: $PYPI_USERNAME
         password: $PYPI_PASSWORD
         on:
-          tags: true
-    - stage: docker_push
-      if: tag IS present
+          tags: true  # with PyPI, deploy only on a tagged commit to master
+    - stage: docker_deploy
+      if: branch = master  # with Docker, deploy every time on a commit to master
       python: 3.6
       script:
         - echo "$DOCKER_PASSWORD" | docker login -u "DOCKER_USERNAME" --password-stdin
