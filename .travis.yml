@@ -26,6 +26,7 @@ script:
 jobs:
   include:
     - stage: pypi_deploy
+      python: 3.6
       deploy:
         provider: pypi
         user: $PYPI_USERNAME
