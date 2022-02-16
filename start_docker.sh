@@ -63,7 +63,7 @@ if [ ! -z "$external" ]
       -v "$PWD/data:/data" \
       -v "$external:/data/external" \
       -v "$PWD/.toks:/home/.toks" \
-      ark-analysis:latest
+      angelolab/ark-analysis
   else
     docker run -it \
       -p $PORT:$PORT \
@@ -73,5 +73,5 @@ if [ ! -z "$external" ]
       -v "$PWD/$JUPYTER_DIR:/$JUPYTER_DIR" \
       -v "$PWD/data:/data" \
       -v "$PWD/.toks:/home/.toks" \
-      ark-analysis:latest
+      angelolab/ark-analysis
 fi
