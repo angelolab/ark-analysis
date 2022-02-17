@@ -21,14 +21,14 @@ Then input the command:
 git clone https://github.com/angelolab/ark-analysis.git
 ```
 
-Next, you'll need to set up a docker image with all of the required dependencies.
- - First, [download](https://hub.docker.com/?overlay=onboarding) docker desktop. 
- - Once it's sucessfully installed, make sure it is running by looking in toolbar for the Docker whale.
+Next, you'll need to set up the Docker image with all of the required dependencies:
+ - First, [download](https://hub.docker.com/?overlay=onboarding) Docker Desktop. 
+ - Once it's sucessfully installed, make sure it is running by looking in toolbar for the Docker whale. 
  - Once it's running, enter the following commands into terminal 
 
 ```
 cd ark-analysis
-docker build -t ark-analysis '.'
+docker pull angelolab/ark-analysis:latest
 ``` 
 
 You've now installed the code base. 
