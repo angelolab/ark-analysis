@@ -42,7 +42,6 @@ In your Command Prompt, follow similar steps to clone the `ark-analysis` repo an
 * Run `git clone https://github.com/angelolab/ark-analysis.git` to clone the `ark-analysis` repo
 * Run `cd ark-analysis` to enter the cloned repo
 * Pull the latest Docker image by running `docker pull angelolab/ark-analysis:latest`
-* Build the Docker by running `docker build -t ark-analysis .`. Note that the `.` following `ark-analysis` should not be quoted.
 
 To run the script, you have to use `bash start_docker.sh`. If you run into issues with invalid carriage returns (`\r`), please run the following before trying again:
 
