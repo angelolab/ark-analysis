@@ -18,8 +18,8 @@ Now run the following steps:
 * Set the version to WSL 2: `wsl --set-default-version 2`
 * Type just `wsl` on the command line. You'll likely get an error indicating no installed distributions, meaning you'll need to associate one with your WSL backend. We recommend installing Ubuntu 20.04 LTS in the Microsoft Store.
 * Once Ubuntu is installed, open it (it will open the Ubuntu terminal) and set a username and password to finalize installation.
-* Run `sudo apt-get update` in the Ubuntu terminal to view all the necessary updates. (alternatively, you can run `wsl sudo apt-get update` in the Windows Command Prompt)
-* Run `sudo apt-get upgrade` to download and install the necessary updates. (alternatively, you can run `wsl sudo apt-get upgrade`).
+* Run `sudo apt-get update` in the Ubuntu terminal to view all the necessary updates (alternatively, you can run `wsl sudo apt-get update` in the Windows Command Prompt).
+* Run `sudo apt-get upgrade` to download and install the necessary updates (alternatively, you can run `wsl sudo apt-get upgrade`).
 
 Note that if using a VM or the Hyper-V backend, nested virtualization needs to be turned on. This process varies depending on which virtualization platform you use: you'll have to consult their documentation for the how-tos. 
 
