@@ -17,6 +17,7 @@ COPY ark /opt/ark-analysis/ark
 RUN pip install /opt/ark-analysis
 
 # Install R dependency packages
+RUN R -e "install.packages('https://cran.r-project.org/src/contrib/Archive/BH/BH_1.75.0-0.tar.gz', repos=NULL, type='source')"
 RUN R -e "install.packages('arrow')"
 RUN R -e "install.packages('data.table')"
 RUN R -e "install.packages('BiocManager')"

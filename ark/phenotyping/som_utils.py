@@ -2,15 +2,18 @@ import os
 import subprocess
 
 import feather
+import matplotlib.patches as patches
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import re
 import scipy.ndimage as ndimage
+import scipy.stats as stats
 from skimage.io import imread
 import xarray as xr
 
-import ark.settings as settings
 from ark.analysis import visualize
+import ark.settings as settings
 from ark.utils import io_utils
 from ark.utils import load_utils
 from ark.utils import misc_utils
@@ -156,7 +159,7 @@ def compute_cell_cluster_count_avg(cell_cluster_path, pixel_cluster_col_prefix,
     # verify the pixel cluster col prefix specified is valid
     misc_utils.verify_in_list(
         provided_cluster_col=[pixel_cluster_col_prefix],
-        valid_cluster_cols=['pixel_som_cluster', 'pixel_meta_cluster']
+        valid_cluster_cols=['pixel_som_cluster', 'pixel_meta_cluster_rename']
     )
 
     # verify the cell cluster col prefix specified is valid
@@ -269,7 +272,7 @@ def compute_cell_cluster_channel_avg(fovs, channels, base_dir,
 
 
 def compute_p2c_weighted_channel_avg(pixel_channel_avg, channels, cell_counts,
-                                     fovs=None, pixel_cluster_col='pixel_meta_cluster'):
+                                     fovs=None, pixel_cluster_col='pixel_meta_cluster_rename'):
     """Compute the average marker expression for each cell weighted by pixel cluster
 
     This expression is weighted by the pixel SOM/meta cluster counts. So for each cell,
@@ -293,7 +296,7 @@ def compute_p2c_weighted_channel_avg(pixel_channel_avg, channels, cell_counts,
             The list of fovs to include, if `None` provided all are used
         pixel_cluster_col (str):
             Name of the cell cluster column to group by
-            Should be `'pixel_som_cluster'` or `'pixel_meta_cluster'`
+            Should be `'pixel_som_cluster'` or `'pixel_meta_cluster_rename'`
 
     Returns:
         pandas.DataFrame:
@@ -313,7 +316,7 @@ def compute_p2c_weighted_channel_avg(pixel_channel_avg, channels, cell_counts,
     # verify the pixel_cluster_col provided is valid
     misc_utils.verify_in_list(
         provided_cluster_col=[pixel_cluster_col],
-        valid_cluster_cols=['pixel_som_cluster', 'pixel_meta_cluster']
+        valid_cluster_cols=['pixel_som_cluster', 'pixel_meta_cluster_rename']
     )
 
     # subset over the provided fovs
@@ -324,22 +327,26 @@ def compute_p2c_weighted_channel_avg(pixel_channel_avg, channels, cell_counts,
     cell_counts_clusters = cell_counts_sub[cluster_cols].copy()
 
     # sort the columns of cell_counts_clusters in ascending cluster order
-    # sort by int value, not string value
     cell_counts_clusters = cell_counts_clusters.reindex(
-        sorted(cell_counts_clusters.columns.values,
-               key=lambda x: int(x.replace(pixel_cluster_col + '_', ''))),
+        sorted(cell_counts_clusters.columns.values),
         axis=1
     )
 
     # sort the pixel_channel_avg table by pixel_cluster_col in ascending cluster order
+    # NOTE: to handle numeric cluster names types, we need to cast the pixel_cluster_col values
+    # to str to ensure the same sorting is used
+    if pixel_channel_avg[pixel_cluster_col].dtype == int:
+        pixel_channel_avg[pixel_cluster_col] = pixel_channel_avg[pixel_cluster_col].astype(str)
+
     pixel_channel_avg_sorted = pixel_channel_avg.sort_values(by=pixel_cluster_col)
 
     # check that the same clusters are in both cell_counts_clusters and pixel_channel_avg_sorted
     # the matrix multiplication will fail if this is not caught
     cell_counts_cluster_ids = [
-        int(x.replace(pixel_cluster_col + '_', '')) for x in cell_counts_clusters.columns.values
+        x.replace(pixel_cluster_col + '_', '') for x in cell_counts_clusters.columns.values
     ]
-    pixel_channel_cluster_ids = pixel_channel_avg[pixel_cluster_col].values
+
+    pixel_channel_cluster_ids = pixel_channel_avg_sorted[pixel_cluster_col].values
 
     misc_utils.verify_same_elements(
         enforce_order=True,
@@ -382,7 +389,7 @@ def compute_p2c_weighted_channel_avg(pixel_channel_avg, channels, cell_counts,
 
 
 def create_c2pc_data(fovs, pixel_consensus_path,
-                     cell_table_path, pixel_cluster_col='pixel_meta_cluster'):
+                     cell_table_path, pixel_cluster_col='pixel_meta_cluster_rename'):
     """Create a matrix with each fov-cell label pair and their SOM pixel/meta cluster counts
 
     Args:
@@ -395,7 +402,7 @@ def create_c2pc_data(fovs, pixel_consensus_path,
             Path to the cell table, needs to be created with `Segment_Image_Data.ipynb`
         pixel_cluster_col (str):
             The name of the pixel cluster column to count per cell
-            Should be `'pixel_som_cluster'` or `'pixel_meta_cluster'`
+            Should be `'pixel_som_cluster'` or `'pixel_meta_cluster_rename'`
 
     Returns:
         tuple:
@@ -407,7 +414,7 @@ def create_c2pc_data(fovs, pixel_consensus_path,
     # verify the pixel_cluster_col provided is valid
     misc_utils.verify_in_list(
         provided_cluster_col=[pixel_cluster_col],
-        valid_cluster_cols=['pixel_som_cluster', 'pixel_meta_cluster']
+        valid_cluster_cols=['pixel_som_cluster', 'pixel_meta_cluster_rename']
     )
 
     # read the cell table data
@@ -446,17 +453,18 @@ def create_c2pc_data(fovs, pixel_consensus_path,
             ['segmentation_label', pixel_cluster_col]
         ).size().reset_index(name='count')
 
-        # make sure all cluster labels are of type int
-        group_by_cluster_col[pixel_cluster_col] = group_by_cluster_col[
-            pixel_cluster_col
-        ].astype(int)
+        # if cluster labels end up as float (can happen with numeric types), convert to int
+        if group_by_cluster_col[pixel_cluster_col].dtype == float:
+            group_by_cluster_col[pixel_cluster_col] = group_by_cluster_col[
+                pixel_cluster_col
+            ].astype(int)
 
         # counts number of pixel SOM/meta clusters per cell
         num_cluster_per_seg_label = group_by_cluster_col.pivot(
             index='segmentation_label', columns=pixel_cluster_col, values='count'
         ).fillna(0).astype(int)
 
-        # renames the columns to have 'pixel_som_cluster_' or 'pixel_meta_cluster_' prefix
+        # renames the columns to have 'pixel_som_cluster_' or 'pixel_meta_cluster_rename_' prefix
         new_columns = [
             '%s_' % pixel_cluster_col + str(c) for c in num_cluster_per_seg_label.columns
         ]
@@ -1136,7 +1144,7 @@ def apply_pixel_meta_cluster_remapping(fovs, channels, base_dir,
 def train_cell_som(fovs, channels, base_dir, pixel_consensus_dir, cell_table_name,
                    cluster_counts_name='cluster_counts.feather',
                    cluster_counts_norm_name='cluster_counts_norm.feather',
-                   pixel_cluster_col='pixel_meta_cluster',
+                   pixel_cluster_col='pixel_meta_cluster_rename',
                    pc_chan_avg_name='pc_chan_avg.csv',
                    weights_name='cell_weights.feather',
                    weighted_cell_channel_name='weighted_cell_channel.csv',
@@ -1165,7 +1173,7 @@ def train_cell_som(fovs, channels, base_dir, pixel_consensus_dir, cell_table_nam
             `cell_size`
         pixel_cluster_col (str):
             Name of the column with the pixel SOM cluster assignments.
-            Should be `'pixel_som_cluster'` or `'pixel_meta_cluster'`.
+            Should be `'pixel_som_cluster'` or `'pixel_meta_cluster_rename'`.
         pc_chan_avg_name (str):
             Name of the file containing the average channel expression per pixel cluster.
             Which one chosen (SOM or meta averages) is set in the cell clustering notebook
@@ -1208,13 +1216,13 @@ def train_cell_som(fovs, channels, base_dir, pixel_consensus_dir, cell_table_nam
     # verify the cluster_col provided is valid
     misc_utils.verify_in_list(
         provided_cluster_col=[pixel_cluster_col],
-        valid_cluster_cols=['pixel_som_cluster', 'pixel_meta_cluster']
+        valid_cluster_cols=['pixel_som_cluster', 'pixel_meta_cluster_rename']
     )
 
     # generate matrices with each fov/cell label pair with their pixel SOM/meta cluster counts
     # NOTE: a normalized and an un-normalized matrix (by cell size) will be created
     # NOTE: we'll need the un-normalized matrix to compute weighted channel average
-    # but the normalized matrix will be used to train, cluster, and consensus cluster
+    # but the normalized matrix will be used to train, SOM cluster, and consensus cluster
     print("Counting the number of pixel SOM/meta cluster counts for each fov/cell pair")
     cluster_counts, cluster_counts_norm = create_c2pc_data(
         fovs, consensus_path, cell_table_path, pixel_cluster_col
@@ -1266,7 +1274,7 @@ def train_cell_som(fovs, channels, base_dir, pixel_consensus_dir, cell_table_nam
 def cluster_cells(base_dir, cluster_counts_norm_name='cluster_counts_norm.feather',
                   weights_name='cell_weights.feather',
                   cell_cluster_name='cell_mat_clustered.feather',
-                  pixel_cluster_col_prefix='pixel_meta_cluster',
+                  pixel_cluster_col_prefix='pixel_meta_cluster_rename',
                   cell_som_cluster_count_avgs_name='cell_som_cluster_count_avgs.csv'):
     """Uses trained weights to assign cluster labels on full cell data
 
@@ -1285,7 +1293,7 @@ def cluster_cells(base_dir, cluster_counts_norm_name='cluster_counts_norm.feathe
             Name of the file to save the cell data with cell SOM cluster labels
         pixel_cluster_col_prefix (str):
             The name of the prefixes of each of the pixel SOM/meta columns
-            Should be `'pixel_som_cluster'` or `'pixel_meta_cluster'`.
+            Should be `'pixel_som_cluster'` or `'pixel_meta_cluster_rename'`.
         cell_som_cluster_count_avgs_name (str):
             The name of the file to write the clustered data
     """
@@ -1310,7 +1318,7 @@ def cluster_cells(base_dir, cluster_counts_norm_name='cluster_counts_norm.feathe
     # verify the pixel_cluster_col_prefix provided is valid
     misc_utils.verify_in_list(
         provided_cluster_col=[pixel_cluster_col_prefix],
-        valid_cluster_cols=['pixel_som_cluster', 'pixel_meta_cluster']
+        valid_cluster_cols=['pixel_som_cluster', 'pixel_meta_cluster_rename']
     )
 
     # ensure the weights columns are valid indexes, do so by ensuring
@@ -1386,7 +1394,7 @@ def cell_consensus_cluster(fovs, channels, base_dir, pixel_cluster_col, max_k=20
             The path to the data directory
         pixel_cluster_col (str):
             Name of the column used to generate the pixel SOM/meta cluster counts.
-            Should be `'pixel_som_cluster'` or `'pixel_meta_cluster'`.
+            Should be `'pixel_som_cluster'` or `'pixel_meta_cluster_rename'`.
         max_k (int):
             The number of consensus clusters
         cap (int):
@@ -1445,7 +1453,7 @@ def cell_consensus_cluster(fovs, channels, base_dir, pixel_cluster_col, max_k=20
     # verify the pixel_cluster_col provided is valid
     misc_utils.verify_in_list(
         provided_cluster_col=[pixel_cluster_col],
-        valid_cluster_cols=['pixel_som_cluster', 'pixel_meta_cluster']
+        valid_cluster_cols=['pixel_som_cluster', 'pixel_meta_cluster_rename']
     )
 
     # run the consensus clustering process
@@ -1579,7 +1587,7 @@ def apply_cell_meta_cluster_remapping(fovs, channels, base_dir, cell_consensus_n
             Name of the file containing the cell SOM clusters to their remapped meta clusters
         pixel_cluster_col (str):
             Name of the column used to generate the pixel SOM/meta cluster counts.
-            Should be `'pixel_som_cluster'` or `'pixel_meta_cluster'`.
+            Should be `'pixel_som_cluster'` or `'pixel_meta_cluster_rename'`.
         cell_som_cluster_count_avgs_name (str):
             The average number of pixel SOM/meta clusters per cell SOM cluster
         cell_meta_cluster_count_avgs_name (str):
@@ -1642,7 +1650,7 @@ def apply_cell_meta_cluster_remapping(fovs, channels, base_dir, cell_consensus_n
     # verify the pixel_cluster_col provided is valid
     misc_utils.verify_in_list(
         provided_cluster_col=[pixel_cluster_col],
-        valid_cluster_cols=['pixel_som_cluster', 'pixel_meta_cluster']
+        valid_cluster_cols=['pixel_som_cluster', 'pixel_meta_cluster_rename']
     )
 
     # read in the remapping
@@ -1768,3 +1776,137 @@ def apply_cell_meta_cluster_remapping(fovs, channels, base_dir, cell_consensus_n
 
     # re-save the cell SOM cluster average pixel cluster counts table
     cell_som_cluster_channel_avg.to_csv(som_cluster_channel_avgs_path, index=False)
+
+
+def generate_meta_cluster_colormap_dict(meta_cluster_remap_path, cmap):
+    """Returns a compact version of the colormap used in the interactive reclustering processes.
+
+    Generate a separate one for the raw meta cluster labels and the renamed meta cluster labels.
+
+    Used in the pixel and cell meta cluster overlays, as well as the
+    average weighted channel expression heatmaps for cell clustering
+
+    Args:
+        meta_cluster_remap_path (str):
+            Path to the file storing the mapping from SOM to meta clusters (raw and renamed)
+        cmap (matplotlib.colors.ListedColormap):
+            The colormap generated by the interactive reclustering process
+
+    Returns:
+        tuple:
+
+        - A `dict` containing the raw meta cluster labels mapped to their respective colors
+        - A `dict` containing the renamed meta cluster labels mapped to their respective colors
+    """
+
+    # file path validation
+    if not os.path.exists(meta_cluster_remap_path):
+        raise FileNotFoundError('Remapping path %s does not exist' %
+                                meta_cluster_remap_path)
+
+    # read the remapping
+    remapping = pd.read_csv(meta_cluster_remap_path)
+
+    # assert the correct columns are contained
+    misc_utils.verify_same_elements(
+        remapping_cols=remapping.columns.values,
+        required_cols=['cluster', 'metacluster', 'mc_name']
+    )
+
+    # define the raw meta cluster colormap
+    # NOTE: colormaps returned by interactive reclustering are zero-indexed
+    # need to subtract 1 to account for that
+    raw_colormap = {
+        i: cmap(i - 1) for i in np.unique(remapping['metacluster'])
+    }
+
+    # define the renamed meta cluster colormap
+    meta_id_to_name = dict(zip(remapping['metacluster'], remapping['mc_name']))
+    renamed_colormap = {
+        meta_id_to_name[meta_id]: meta_id_color
+        for (meta_id, meta_id_color) in raw_colormap.items()
+    }
+
+    return raw_colormap, renamed_colormap
+
+
+def generate_weighted_channel_avg_heatmap(cell_cluster_channel_avg_path, cell_cluster_col,
+                                          channels, raw_cmap, renamed_cmap,
+                                          center_val=0, min_val=-3, max_val=3):
+    """Generates a z-scored heatmap of the average weighted channel expression per cell cluster
+
+    Args:
+        cell_cluster_channel_avg_path (str):
+            Path to the file containing the average weighted channel expression per cell cluster
+        cell_cluster_col (str):
+            The name of the cell cluster col,
+            needs to be either 'cell_som_cluster' or 'cell_meta_cluster'
+        channels (str):
+            The list of channels to visualize
+        raw_cmap (dict):
+            Maps the raw meta cluster labels to their respective colors,
+            created by `generate_meta_cluster_colormap_dict`
+        renamed_cmap (dict):
+            Maps the renamed meta cluster labels to their respective colors,
+            created by `generate_meta_cluster_colormap_dict`
+        center_val (float):
+            value at which to center the heatmap
+        min_val (float):
+            minimum value the heatmap should take
+        max_val (float):
+            maximum value the heatmap should take
+    """
+
+    # file path validation
+    if not os.path.exists(cell_cluster_channel_avg_path):
+        raise FileNotFoundError('Channel average path %s does not exist' %
+                                cell_cluster_channel_avg_path)
+
+    # verify the cell_cluster_col provided is valid
+    misc_utils.verify_in_list(
+        provided_cluster_col=[cell_cluster_col],
+        valid_cluster_cols=['cell_som_cluster', 'cell_meta_cluster']
+    )
+
+    # read the channel average path
+    cell_cluster_channel_avgs = pd.read_csv(cell_cluster_channel_avg_path)
+
+    # assert the channels provided are valid
+    misc_utils.verify_in_list(
+        provided_channels=channels,
+        channel_avg_cols=cell_cluster_channel_avgs.columns.values
+    )
+
+    # sort the data by the meta cluster value
+    # this ensures the meta clusters are grouped together when the colormap is displayed
+    cell_cluster_channel_avgs = cell_cluster_channel_avgs.sort_values(by='cell_meta_cluster')
+
+    # map raw_cmap onto cell_cluster_channel_avgs for the heatmap to display the side color bar
+    meta_cluster_index = cell_cluster_channel_avgs[cell_cluster_col].values
+    meta_cluster_mapping = pd.Series(cell_cluster_channel_avgs['cell_meta_cluster']).map(raw_cmap)
+    meta_cluster_mapping.index = meta_cluster_index
+
+    # draw the heatmap
+    visualize.draw_heatmap(
+        data=stats.zscore(cell_cluster_channel_avgs[channels].values),
+        x_labels=cell_cluster_channel_avgs[cell_cluster_col],
+        y_labels=channels,
+        center_val=center_val,
+        min_val=min_val,
+        max_val=max_val,
+        cbar_ticks=np.arange(-3, 4),
+        row_colors=meta_cluster_mapping,
+        row_cluster=False,
+        colormap='vlag'
+    )
+
+    # add the legend
+    handles = [patches.Patch(facecolor=raw_cmap[mc]) for mc in raw_cmap]
+    _ = plt.legend(
+        handles,
+        renamed_cmap,
+        title='Meta cluster',
+        bbox_to_anchor=(1.1, 1),
+        bbox_transform=plt.gcf().transFigure,
+        loc='upper right'
+    )

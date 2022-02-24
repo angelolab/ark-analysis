@@ -1,7 +1,9 @@
 import io
-from tempfile import tempdir
-
+import numpy as np
+import os
+import pandas as pd
 import pytest
+import tempfile
 
 from . import metaclusterdata_from_files
 
@@ -14,60 +16,73 @@ def as_csv(df):
     return f
 
 
-def test_can_read_csvs(simple_clusters_df, simple_pixelcount_df):
-    metaclusterdata_from_files(as_csv(simple_clusters_df), as_csv(simple_pixelcount_df))
+def test_can_read_csvs(simple_full_cluster_data):
+    md = metaclusterdata_from_files(as_csv(simple_full_cluster_data))
+    assert list(md.cluster_pixelcounts.columns.values) == ['count']
 
 
-def test_requires_cluster_column(simple_clusters_df, simple_pixelcount_df):
-    simple_clusters_df.rename(columns={'cluster': 'wrongname'}, inplace=True)
+def test_can_read_csvs_prefix_trim(simple_full_cluster_data):
+    simple_full_cluster_data.rename(columns={'count': 'prefix_count'}, inplace=True)
+
+    md = metaclusterdata_from_files(as_csv(simple_full_cluster_data), prefix_trim='prefix_')
+    assert list(md.cluster_pixelcounts.columns.values) == ['count']
+
+
+def test_requires_valid_path(simple_full_cluster_data):
+    with tempfile.TemporaryDirectory() as temp_dir:
+        simple_full_cluster_data.to_csv('sample.csv', index=False)
+
+        with pytest.raises(FileNotFoundError):
+            metaclusterdata_from_files(os.path.join(temp_dir, 'bad_sample.csv'))
+
+
+def test_requires_valid_cluster_type(simple_full_cluster_data):
     with pytest.raises(ValueError):
-        metaclusterdata_from_files(as_csv(simple_clusters_df), as_csv(simple_pixelcount_df))
+        metaclusterdata_from_files(as_csv(simple_full_cluster_data), 'bad_cluster_type')
 
 
-def test_pixelcounts_requires_cluster_column(simple_clusters_df, simple_pixelcount_df):
-    simple_pixelcount_df.rename(columns={'cluster': 'wrongname'}, inplace=True)
+def test_pixelcounts_requires_cluster_column(simple_full_cluster_data):
+    simple_full_cluster_data.rename(columns={'cluster': 'wrongname'}, inplace=True)
     with pytest.raises(ValueError):
-        metaclusterdata_from_files(as_csv(simple_clusters_df), as_csv(simple_pixelcount_df))
+        metaclusterdata_from_files(as_csv(simple_full_cluster_data))
 
 
-def test_pixelcounts_requires_count_column(simple_clusters_df, simple_pixelcount_df):
-    simple_pixelcount_df.rename(columns={'count': 'wrongname'}, inplace=True)
+def test_pixelcounts_requires_count_column(simple_full_cluster_data):
+    simple_full_cluster_data.rename(columns={'count': 'wrongname'}, inplace=True)
     with pytest.raises(ValueError):
-        metaclusterdata_from_files(as_csv(simple_clusters_df), as_csv(simple_pixelcount_df))
+        metaclusterdata_from_files(as_csv(simple_full_cluster_data))
 
 
-def test_requires_metacluster_column(simple_clusters_df, simple_pixelcount_df):
-    simple_clusters_df.rename(columns={'metacluster': 'wrongname'}, inplace=True)
+def test_requires_metacluster_column(simple_full_cluster_data):
+    simple_full_cluster_data.rename(columns={'metacluster': 'wrongname'}, inplace=True)
     with pytest.raises(ValueError):
-        metaclusterdata_from_files(as_csv(simple_clusters_df), as_csv(simple_pixelcount_df))
+        metaclusterdata_from_files(as_csv(simple_full_cluster_data))
 
 
-def test_requires_rows_match(simple_clusters_df, simple_pixelcount_df):
-    simple_pixelcount_df.drop(1, inplace=True)
+def test_requires_int_cluster_ids(simple_full_cluster_data):
+    simple_full_cluster_data = simple_clusters_data.astype({'cluster': str})
+    simple_full_cluster_data.at[1, 'cluster'] = 'd'
     with pytest.raises(ValueError):
-        metaclusterdata_from_files(as_csv(simple_clusters_df), as_csv(simple_pixelcount_df))
+        metaclusterdata_from_files(as_csv(simple_full_cluster_data))
 
 
-def test_requires_int_cluster_ids(simple_clusters_df, simple_pixelcount_df):
-    simple_clusters_df = simple_clusters_df.astype({'cluster': str})
-    simple_clusters_df.at[1, 'cluster'] = 'd'
+def test_requires_unique_clusterid(simple_full_cluster_data):
+    simple_full_cluster_data.at[1, 'cluster'] = 3
     with pytest.raises(ValueError):
-        metaclusterdata_from_files(as_csv(simple_clusters_df), as_csv(simple_pixelcount_df))
+        metaclusterdata_from_files(as_csv(simple_full_cluster_data))
 
 
-def test_requires_unique_clusterid(simple_clusters_df, simple_pixelcount_df):
-    simple_clusters_df.at[1, 'cluster'] = 3
+def test_requires_int_cluster_ids(simple_full_cluster_data):
+    simple_full_cluster_data['cluster'] = [
+        f"X{id}" for id in simple_full_cluster_data['cluster'].values
+    ]
     with pytest.raises(ValueError):
-        metaclusterdata_from_files(as_csv(simple_clusters_df), as_csv(simple_pixelcount_df))
+        metaclusterdata_from_files(as_csv(simple_full_cluster_data))
 
 
-def test_requires_int_cluster_ids(simple_clusters_df, simple_pixelcount_df):
-    simple_clusters_df['cluster'] = [f"X{id}" for id in simple_clusters_df['cluster'].values]
+def test_requires_ids_to_not_start_at_0(simple_full_cluster_data):
+    simple_full_cluster_data['cluster'] = [
+        id - 1 for id in simple_full_cluster_data['cluster'].values
+    ]
     with pytest.raises(ValueError):
-        metaclusterdata_from_files(as_csv(simple_clusters_df), as_csv(simple_pixelcount_df))
-
-
-def test_requires_ids_to_not_start_at_0(simple_clusters_df, simple_pixelcount_df):
-    simple_clusters_df['cluster'] = [id - 1 for id in simple_clusters_df['cluster'].values]
-    with pytest.raises(ValueError):
-        metaclusterdata_from_files(as_csv(simple_clusters_df), as_csv(simple_pixelcount_df))
+        metaclusterdata_from_files(as_csv(simple_full_cluster_data))

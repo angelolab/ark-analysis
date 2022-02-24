@@ -173,7 +173,7 @@ def generate_pixel_cluster_mask(fovs, base_dir, tiff_dir, chan_file,
         tiff_dir (str):
             The path to the tiff data
         chan_file (str):
-            The path to the sample channel file to load (assuming tiff_dir as root)
+            The path to the sample channel file to load (assuming `tiff_dir` as root)
             Only used to determine dimensions of the pixel mask.
         pixel_consensus_dir (str):
             The path to the data with both pixel SOM and meta cluster assignments
@@ -191,7 +191,8 @@ def generate_pixel_cluster_mask(fovs, base_dir, tiff_dir, chan_file,
         raise FileNotFoundError("tiff_dir %s does not exist")
 
     if not os.path.exists(os.path.join(tiff_dir, chan_file)):
-        raise FileNotFoundError("chan_file %s does not exist in tiff_dir" % chan_file)
+        raise FileNotFoundError("chan_file %s does not exist in tiff_dir %s"
+                                % (chan_file, tiff_dir))
 
     if not os.path.exists(os.path.join(base_dir, pixel_consensus_dir)):
         raise FileNotFoundError(

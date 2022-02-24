@@ -54,7 +54,6 @@ clusterAvgs <- as.data.frame(read.csv(clusterAvgPath, check.names=FALSE))
 print("Scaling data")
 clusterCols <- colnames(clusterAvgs)[grepl(pattern=sprintf('%s_', pixelClusterCol),
                                      colnames(clusterAvgs))]
-clusterAvgsScale <- clusterAvgs[,clusterCols]
 clusterAvgsScale <- scale(clusterAvgs[,clusterCols])
 clusterAvgsScale <- sapply(as.data.frame(clusterAvgsScale), pmin, cap)
 clusterAvgsScale <- sapply(as.data.frame(clusterAvgsScale), pmax, -cap)
