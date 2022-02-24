@@ -216,17 +216,7 @@ def test_list_folders():
 
         # test substrs is None (default)
         get_all = iou.list_folders(temp_dir, exact_match=True)
-        print(get_all.sort())
         assert sorted(get_all) == dirnames
-
-        # test substrs is not list (single string)
-        get_txt = iou.list_folders(temp_dir, substrs='_txt', exact_match=True)
-        assert len(get_txt) == 0
-
-        # test substrs is list
-        get_test_and_other = iou.list_folders(temp_dir, substrs=['test_', 'other'],
-                                              exact_match=True)
-        assert len(get_test_and_other) == 0
 
         # test substrs is list (exact)
         get_exact_n_substrs = iou.list_folders(temp_dir, substrs=['tf_txt', 'othertf_txt'])
@@ -235,10 +225,6 @@ def test_list_folders():
         # Test exact substr is not list (single string)
         get_othertf_txt = iou.list_folders(temp_dir, substrs='othertf_txt', exact_match=True)
         assert get_othertf_txt[0] == dirnames[0]
-
-        # Test exact substr DNE (single string)
-        get_test_c = iou.list_folders(temp_dir, substrs='test_c', exact_match=True)
-        assert len(get_test_c) == 0
 
         # Test exact substr is not list (single string)
         get_test_o = iou.list_folders(temp_dir, substrs='test_out', exact_match=True)
