@@ -193,7 +193,8 @@ def test_list_folders():
         assert sorted(get_txt) == sorted(dirnames[0:2])
 
         # test substrs is list
-        get_test_and_other = iou.list_folders(temp_dir, substrs=['test_', 'other'], exact_match=False)
+        get_test_and_other = iou.list_folders(temp_dir, substrs=['test_', 'other'],
+                                              exact_match=False)
         assert sorted(get_test_and_other) == sorted(dirnames[1:])
         
         
@@ -224,7 +225,8 @@ def test_list_folders():
         assert len(get_txt) == 0
 
         # test substrs is list
-        get_test_and_other = iou.list_folders(temp_dir, substrs=['test_', 'other'], exact_match=True)
+        get_test_and_other = iou.list_folders(temp_dir, substrs=['test_', 'other'],
+                                              exact_match=True)
         assert len(get_test_and_other) == 0
         
         # test substrs is list (exact)

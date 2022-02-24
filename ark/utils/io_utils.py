@@ -77,8 +77,8 @@ def list_files(dir_name, substrs=None, exact_match=False):
         matches = [file
                    for file in files
                    if any([
-                        substr == os.path.splitext(file)[0]
-                        for substr in substrs
+                       substr == os.path.splitext(file)[0]
+                       for substr in substrs
                    ])]
     else:
         matches = [file
@@ -186,7 +186,7 @@ def list_folders(dir_name, substrs=None, exact_match=False):
             Substring matching criteria, defaults to None (all folders)
         exact_match (bool):
             If True, will match exact folder names (so 'C' will match only 'C/').
-            If False, will match substr pattern in folder (so 'C' will match 'C/' and 'C_DIREC/').
+            If False, will match substr pattern in folder (so 'C' will match 'C/' & 'C_DIREC/').
 
     Returns:
         list:
@@ -207,14 +207,13 @@ def list_folders(dir_name, substrs=None, exact_match=False):
     if type(substrs) is not list:
         substrs = [substrs]
 
-    
     # Exact match case
     if exact_match:
         matches = [folder
                    for folder in folders
                    if any([
-                        substr == os.path.splitext(folder)[0]
-                        for substr in substrs
+                       substr == os.path.splitext(folder)[0]
+                       for substr in substrs
                    ])]
     else:
         matches = [folder
