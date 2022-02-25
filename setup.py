@@ -3,7 +3,7 @@ from os import path
 from distutils.command.build_ext import build_ext as DistUtilsBuildExt
 from setuptools import setup, find_packages
 
-VERSION = '0.2.9'
+VERSION = '0.2.10'
 
 # set a long description which is basically the README
 with open(path.join(path.abspath(path.dirname(__file__)), 'README.md')) as f:
@@ -23,6 +23,7 @@ setup(
                       'google-api-python-client>=2.7.0,<3',
                       'google-auth-httplib2>=0.1.0,<1',
                       'google-auth-oauthlib>=0.4.4,<1',
+                      'ipympl>=0.7.0,<0.8.0',
                       'jupyter>=1.0.0,<2',
                       'jupyter_contrib_nbextensions>=0.5.1,<1',
                       'jupyterlab>=3.1.5,<4',

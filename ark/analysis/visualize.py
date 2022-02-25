@@ -211,7 +211,7 @@ def plot_barchart(data, title, x_label, y_label, color_map="jet", is_stacked=Tru
         plt.legend(loc=legend_loc, bbox_to_anchor=bbox_to_anchor)
 
     if save_dir is not None:
-        misc_utils.save_figure(save_dir, save_file)
+        misc_utils.save_figure(save_dir, save_file, dpi=dpi)
 
 
 def visualize_patient_population_distribution(cell_data, patient_col_name, population_col_name,

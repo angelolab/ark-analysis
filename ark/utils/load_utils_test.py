@@ -168,9 +168,9 @@ def test_load_imgs_from_tree():
 
         loaded_xr = \
             load_utils.load_imgs_from_tree(temp_dir, img_sub_folder="TIFs", dtype="int16",
-                                           variable_sizes=True)
+                                           max_image_size=12)
 
-        assert loaded_xr.shape == (3, 1024, 1024, 3)
+        assert loaded_xr.shape == (3, 12, 12, 3)
 
 
 def test_load_imgs_from_dir():

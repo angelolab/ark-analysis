@@ -9,15 +9,19 @@ from ark.utils import notebooks_test_utils
 
 
 SEGMENT_IMAGE_DATA_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                       '..', '..', 'templates', 'Segment_Image_Data.ipynb')
+                                       '..', '..', 'templates_ark',
+                                       'Segment_Image_Data.ipynb')
+QC_METRIC_COMP_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                                   '..', '..', 'templates_qc',
+                                   'example_qc_metric_eval.ipynb')
 
 PIXEL_CLUSTER_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                   '..', '..', 'templates', 'example_pixel_clustering.ipynb')
 
 
-def _exec_notebook(nb_filename):
+def _exec_notebook(nb_filename, base_folder):
     path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                        '..', '..', 'templates', nb_filename)
+                        '..', '..', base_folder, nb_filename)
     with tempfile.NamedTemporaryFile(suffix=".ipynb") as fout:
         args = ["jupyter", "nbconvert", "--to", "notebook", "--execute",
                 "--ExecutePreprocessor.timeout=1000",
@@ -27,18 +31,23 @@ def _exec_notebook(nb_filename):
 
 # test runs with default inputs
 def test_segment_image_data():
-    _exec_notebook('Segment_Image_Data.ipynb')
+    _exec_notebook('Segment_Image_Data.ipynb', 'templates_ark')
 
 
 def test_example_spatial_analysis():
-    _exec_notebook('example_spatial_analysis_script.ipynb')
+    _exec_notebook('example_spatial_analysis_script.ipynb', 'templates_ark')
 
 
 def test_example_neighborhood_analysis():
-    _exec_notebook('example_neighborhood_analysis_script.ipynb')
+    _exec_notebook('example_neighborhood_analysis_script.ipynb', 'templates_ark')
 
 
-# test mibitiff segmentation
+def test_example_qc_metrics_comp():
+    _exec_notebook('example_qc_metric_eval.ipynb', 'templates_qc')
+
+
+# test mibitiff inputs for image segmentation
+# NOTE: 6000 seconds = default timeout on Travis
 @testbook(SEGMENT_IMAGE_DATA_PATH, timeout=6000)
 def test_segment_image_data_mibitiff(tb):
     with tdir() as tiff_dir, tdir() as input_dir, tdir() as output_dir, \
@@ -79,7 +88,7 @@ def test_segment_image_data_mibitiff(tb):
         notebooks_test_utils.create_exp_mat(tb, is_mibitiff=True, nuclear_counts=True)
 
 
-# test folder segmentation
+# test folder inputs for image segmentation
 @testbook(SEGMENT_IMAGE_DATA_PATH, timeout=6000)
 def test_segment_image_data_folder(tb):
     with tdir() as tiff_dir, tdir() as input_dir, tdir() as output_dir, \
@@ -152,3 +161,17 @@ def test_pixel_clustering_folder(tb):
         )
 
         # TODO: see what Brian discovers about R testing, then add cell clustering tests
+
+
+# test for qc metric computation
+@testbook(QC_METRIC_COMP_PATH, timeout=6000)
+def test_qc_metric_comp(tb):
+    with tdir() as base_dir:
+        # define QC metric notebook params
+        notebooks_test_utils.qc_notebook_setup(
+            tb, base_dir, 'sample_tiff_dir',
+            fovs=['Point1', 'Point2'], chans=['Au', 'Ca']
+        )
+
+        # run QC metric process (MIBItracker download and QC metric analysis)
+        notebooks_test_utils.run_qc_comp(tb, gauss_blur=True)

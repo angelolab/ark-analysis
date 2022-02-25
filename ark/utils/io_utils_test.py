@@ -7,9 +7,9 @@ from ark.utils import io_utils as iou
 
 
 def test_validate_paths():
-
     # change cwd to /scripts for more accurate testing
-    os.chdir('templates')
+    # we'll ignore templates_qc because that is only run on the commercial MIBI computer
+    os.chdir('templates_ark')
 
     # make a tempdir for testing
     with tempfile.TemporaryDirectory(dir='../data') as valid_path:

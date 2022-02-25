@@ -8,7 +8,7 @@ while test $# -gt 0
 do
   case "$1" in
     -d|--develop-notebook-templates)
-      JUPYTER_DIR='templates'
+      JUPYTER_DIR='templates_ark'
       shift
       ;;
     -u|--update)
@@ -68,7 +68,7 @@ if [ ! -z "$external" ]
       -v "$PWD/ark/phenotyping/run_cell_som.R:/run_cell_som.R" \
       -v "$PWD/ark/phenotyping/cell_consensus_cluster.R:/cell_consensus_cluster.R" \
       -v "$PWD/.toks:/home/.toks" \
-      ark-analysis:latest
+      angelolab/ark-analysis
   else
     docker run -it \
       -p $PORT:$PORT \
@@ -83,5 +83,5 @@ if [ ! -z "$external" ]
       -v "$PWD/ark/phenotyping/run_cell_som.R:/run_cell_som.R" \
       -v "$PWD/ark/phenotyping/cell_consensus_cluster.R:/cell_consensus_cluster.R" \
       -v "$PWD/.toks:/home/.toks" \
-      ark-analysis:latest
+      angelolab/ark-analysis
 fi
