@@ -11,9 +11,9 @@ from ark.utils import notebooks_test_utils
 SEGMENT_IMAGE_DATA_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                        '..', '..', 'templates_ark',
                                        'Segment_Image_Data.ipynb')
-QC_METRIC_COMP_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                   '..', '..', 'templates_qc',
-                                   'example_qc_metric_eval.ipynb')
+# QC_METRIC_COMP_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+#                                    '..', '..', 'templates_qc',
+#                                    'example_qc_metric_eval.ipynb')
 
 
 def _exec_notebook(nb_filename, base_folder):
@@ -39,8 +39,8 @@ def test_example_neighborhood_analysis():
     _exec_notebook('example_neighborhood_analysis_script.ipynb', 'templates_ark')
 
 
-def test_example_qc_metrics_comp():
-    _exec_notebook('example_qc_metric_eval.ipynb', 'templates_qc')
+# def test_example_qc_metrics_comp():
+#     _exec_notebook('example_qc_metric_eval.ipynb', 'templates_qc')
 
 
 # test mibitiff inputs for image segmentation
@@ -124,14 +124,14 @@ def test_segment_image_data_folder(tb):
 
 
 # test for qc metric computation
-@testbook(QC_METRIC_COMP_PATH, timeout=6000)
-def test_qc_metric_comp(tb):
-    with tdir() as base_dir:
-        # define QC metric notebook params
-        notebooks_test_utils.qc_notebook_setup(
-            tb, base_dir, 'sample_tiff_dir',
-            fovs=['Point1', 'Point2'], chans=['Au', 'Ca']
-        )
+# @testbook(QC_METRIC_COMP_PATH, timeout=6000)
+# def test_qc_metric_comp(tb):
+#     with tdir() as base_dir:
+#         # define QC metric notebook params
+#         notebooks_test_utils.qc_notebook_setup(
+#             tb, base_dir, 'sample_tiff_dir',
+#             fovs=['Point1', 'Point2'], chans=['Au', 'Ca']
+#         )
 
-        # run QC metric process (MIBItracker download and QC metric analysis)
-        notebooks_test_utils.run_qc_comp(tb, gauss_blur=True)
+#         # run QC metric process (MIBItracker download and QC metric analysis)
+#         notebooks_test_utils.run_qc_comp(tb, gauss_blur=True)
