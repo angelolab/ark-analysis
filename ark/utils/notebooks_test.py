@@ -11,12 +11,13 @@ from ark.utils import notebooks_test_utils
 SEGMENT_IMAGE_DATA_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                        '..', '..', 'templates_ark',
                                        'Segment_Image_Data.ipynb')
+PIXEL_CLUSTER_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                                  '..', '..', 'templates_ark', 'example_pixel_clustering.ipynb')
+CELL_CLUSTER_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                                 '..', '..', 'templates_ark', 'example_cell_clustering.ipynb')
 QC_METRIC_COMP_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                    '..', '..', 'templates_qc',
                                    'example_qc_metric_eval.ipynb')
-
-PIXEL_CLUSTER_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                  '..', '..', 'templates', 'example_pixel_clustering.ipynb')
 
 
 def _exec_notebook(nb_filename, base_folder):
