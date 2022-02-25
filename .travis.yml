@@ -34,7 +34,7 @@ jobs:
         on:
           tags: true
     - stage: docker_deploy
-      if: branch = master
+      if: tag IS present
       python: 3.6
       script:
         - "travis_wait 20 sleep 1200 &"
