@@ -7,7 +7,8 @@ from ark.utils import test_utils
 
 
 def create_tiff_files(num_fovs, num_chans, tiff_dir, sub_dir="TIFs", is_mibitiff=False,
-                      mibitiff_suffix="-MassCorrected-Filtered", dtype=np.uint16):
+                      mibitiff_suffix="-MassCorrected-Filtered", img_shape=(50, 50),
+                      dtype=np.uint16):
     """Creates the desired input tiff data for testing a notebook
 
     Args:
@@ -22,6 +23,8 @@ def create_tiff_files(num_fovs, num_chans, tiff_dir, sub_dir="TIFs", is_mibitiff
         mibitiff_suffix (str):
             If is_mibitiff = True, the suffix to append to each fov.
             Ignored if is_mibitiff = False.
+        img_shape (tuple):
+            The shape of the image to generate
         dtype (numpy.dtype):
             The datatype of each test image generated
 
@@ -39,7 +42,7 @@ def create_tiff_files(num_fovs, num_chans, tiff_dir, sub_dir="TIFs", is_mibitiff
         fovs = [f + mibitiff_suffix for f in fovs]
 
         filelocs, data_xr = test_utils.create_paired_xarray_fovs(
-            tiff_dir, fovs, chans, img_shape=(1024, 1024), mode='mibitiff',
+            tiff_dir, fovs, chans, img_shape=(50, 50), mode='mibitiff',
             delimiter='_', fills=False, dtype=dtype
         )
     else:
@@ -48,7 +51,7 @@ def create_tiff_files(num_fovs, num_chans, tiff_dir, sub_dir="TIFs", is_mibitiff
                                                     return_imgs=False)
 
         filelocs, data_xr = test_utils.create_paired_xarray_fovs(
-            tiff_dir, fovs, chans, img_shape=(1024, 1024), delimiter='_', fills=False,
+            tiff_dir, fovs, chans, img_shape=(50, 50), delimiter='_', fills=False,
             sub_dir=sub_dir, dtype=dtype
         )
 
@@ -91,9 +94,12 @@ def segment_notebook_setup(tb, deepcell_tiff_dir, deepcell_input_dir, deepcell_o
             The datatype of each test image generated
     """
 
+    # import modules and define file paths
+    tb.execute_cell('import')
+
     # create the input tiff files
     create_tiff_files(num_fovs, num_chans, deepcell_tiff_dir, sub_dir, is_mibitiff,
-                      mibitiff_suffix, dtype)
+                      mibitiff_suffix, img_shape, dtype)
 
     # define custom paths, leave base_dir and input_dir for simplicity
     define_paths = """
@@ -165,7 +171,7 @@ def flowsom_setup(tb, flowsom_dir, img_shape=(50, 50), num_fovs=3, num_chans=3,
     # generate sample segmentation labels so we can load them in
     seg_dir = os.path.join(flowsom_dir, "deepcell_output")
     os.mkdir(seg_dir)
-    generate_sample_feature_tifs(fovs, seg_dir)
+    generate_sample_feature_tifs(fovs, seg_dir, img_shape)
 
     # define custom data paths
     define_data_paths = """
@@ -441,7 +447,7 @@ def run_qc_comp(tb, gauss_blur=False):
     tb.execute_cell('viz_99_9')
 
 
-def generate_sample_feature_tifs(fovs, deepcell_output_dir):
+def generate_sample_feature_tifs(fovs, deepcell_output_dir, img_shape=(50, 50)):
     """Generate a sample _feature_0 tif file for each fov
 
     Done to bypass the bottleneck of create_deepcell_output, for testing purposes we don't care
