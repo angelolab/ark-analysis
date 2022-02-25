@@ -168,35 +168,9 @@ def test_list_folders():
             'othertf_txt',
             'test_csv',
             'test_out',
-        ]
-        for dirname in dirnames:
-            os.mkdir(os.path.join(temp_dir, dirname))
-
-        # add extra file
-        pathlib.Path(os.path.join(temp_dir, 'test_badfile.txt')).touch()
-
-        # test substrs is None (default)
-        get_all = iou.list_folders(temp_dir, exact_match=False)
-        assert sorted(get_all) == sorted(dirnames)
-
-        # test substrs is not list (single string)
-        get_txt = iou.list_folders(temp_dir, substrs='_txt', exact_match=False)
-        assert sorted(get_txt) == sorted(dirnames[0:2])
-
-        # test substrs is list
-        get_test_and_other = iou.list_folders(
-            temp_dir, substrs=['test_', 'other'], exact_match=False
-        )
-        assert sorted(get_test_and_other) == sorted(dirnames[1:])
-
-    # Tests "Exact Substring Matching", `exact_match` = True
-    with tempfile.TemporaryDirectory() as temp_dir:
-        # set up temp_dir subdirs
-        dirnames = [
-            'tf_txt',
-            'othertf_txt',
-            'test_csv',
-            'test_out',
+            'test_csv1',
+            'test_csv2',
+            'Ntest_csv',
         ]
 
         dirnames.sort()
@@ -207,17 +181,39 @@ def test_list_folders():
         pathlib.Path(os.path.join(temp_dir, 'test_badfile.txt')).touch()
 
         # test substrs is None (default)
-        get_all = iou.list_folders(temp_dir, exact_match=True)
+        get_all = iou.list_folders(temp_dir, exact_match=False)
         assert sorted(get_all) == dirnames
 
-        # test substrs is list (exact)
-        get_exact_n_substrs = iou.list_folders(temp_dir, substrs=['tf_txt', 'othertf_txt'])
-        assert sorted(get_exact_n_substrs) == ['othertf_txt', 'tf_txt']
+        # test substrs is not list (single string)
+        get_txt = iou.list_folders(temp_dir, substrs='_txt', exact_match=False)
+        assert sorted(get_txt) == sorted(['othertf_txt', 'tf_txt'])
+
+        # test substrs is list
+        get_test_and_other = iou.list_folders(
+            temp_dir, substrs=['test_', 'other'], exact_match=False
+        )
+        assert sorted(get_test_and_other) == sorted(
+            ['Ntest_csv', 'test_csv', 'test_csv1', 'test_csv2', 'test_out', 'othertf_txt']
+        )
+
+        # Tests "Exact Substring Matching", `exact_match` = True
+
+        # Test substrs is None (default)
+        get_all = iou.list_folders(temp_dir, exact_match=True)
+        assert sorted(get_all) == sorted(dirnames)
 
         # Test exact substr is not list (single string)
         get_othertf_txt = iou.list_folders(temp_dir, substrs='othertf_txt', exact_match=True)
-        assert get_othertf_txt[0] == dirnames[0]
+        assert get_othertf_txt == [dirnames[1]]
 
-        # Test exact substr is not list (single string)
-        get_test_o = iou.list_folders(temp_dir, substrs='test_out', exact_match=True)
-        assert get_test_o[0] == dirnames[2]
+        # Test substrs, querying two folders (exactly)
+        get_exact_n_substrs = iou.list_folders(
+            temp_dir, substrs=['tf_txt', 'othertf_txt'], exact_match=True
+        )
+        assert sorted(get_exact_n_substrs) == ['othertf_txt', 'tf_txt']
+
+        # Test the substr that the user specifies which is contained within multiple folders,
+        # and only the folder that exactly matches the substring, not the one that contains it,
+        # is returned when `exact_match=True`
+        get_test_o = iou.list_folders(temp_dir, substrs='test_csv', exact_match=True)
+        assert get_test_o == ["test_csv"]
