@@ -103,11 +103,7 @@ def test_list_files():
 
     # test file name exact matching
     with tempfile.TemporaryDirectory() as temp_dir:
-        filenames = [
-            'chan0.tif',
-            'chan.tif',
-            'c.tif'
-        ]
+        filenames = ['chan0.tif', 'chan.tif', 'c.tif']
         for filename in filenames:
             pathlib.Path(os.path.join(temp_dir, filename)).touch()
 
@@ -129,12 +125,7 @@ def test_list_files():
 
 def test_remove_file_extensions():
     # test a mixture of file paths and extensions
-    files = [
-        'fov1.tiff',
-        'fov2.tif',
-        'fov3.png',
-        'fov4.jpg'
-    ]
+    files = ['fov1.tiff', 'fov2.tif', 'fov3.png', 'fov4.jpg']
 
     assert iou.remove_file_extensions(None) is None
     assert iou.remove_file_extensions([]) == []
@@ -193,8 +184,9 @@ def test_list_folders():
         assert sorted(get_txt) == sorted(dirnames[0:2])
 
         # test substrs is list
-        get_test_and_other = iou.list_folders(temp_dir, substrs=['test_', 'other'],
-                                              exact_match=False)
+        get_test_and_other = iou.list_folders(
+            temp_dir, substrs=['test_', 'other'], exact_match=False
+        )
         assert sorted(get_test_and_other) == sorted(dirnames[1:])
 
     # Tests "Exact Substring Matching", `exact_match` = True
