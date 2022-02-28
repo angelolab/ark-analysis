@@ -117,6 +117,34 @@ def save_figure(save_dir, save_file, dpi=None):
     plt.savefig(os.path.join(save_dir, save_file), dpi=dpi)
 
 
+def create_invalid_data_str(invalid_data):
+    """Creates a easy to read string for ValueError statements.
+
+    _extended_summary_
+
+    Args:
+        invalid_data (list[str]): A list of strings containing the invalid / missing data
+
+    Returns:
+        str: Returns a formatted string for more detailed ValueError outputs.
+    """
+    # Holder for the error string
+    err_str_data = ""
+
+    # Adding up to 10 invalid values to the err_str_data.
+    for idx, data in enumerate(invalid_data[:10], start=1):
+        err_msg = "{idx:{fill}{align}{width}} {message}\n".format(
+            idx=idx,
+            message=data,
+            fill=" ",
+            align="<",
+            width=12,
+        )
+        err_str_data += err_msg
+
+    return err_str_data
+
+
 def verify_in_list(**kwargs):
     """Verify at least whether the values in the first list exist in the second
 
@@ -124,7 +152,7 @@ def verify_in_list(**kwargs):
         **kwargs (list, list):
             Two lists, but will work for single elements as well.
             The first list specified will be tested to see
-            if all its elements are contained in the second.```
+            if all its elements are contained in the second.
 
     Raises:
         ValueError:
@@ -137,15 +165,22 @@ def verify_in_list(**kwargs):
     test_list, good_values = kwargs.values()
 
     if not np.isin(test_list, good_values).all():
-        bad_vals = ','.join([str(val) for val in test_list if val not in good_values])
         test_list_name, good_values_name = kwargs.keys()
-        test_list_name = test_list_name.replace('_', ' ')
-        good_values_name = good_values_name.replace('_', ' ')
+        test_list_name = test_list_name.replace("_", " ")
+        good_values_name = good_values_name.replace("_", " ")
 
-        err_str = ("Invalid value(s) provided for %s variable: value(s) %s not found"
-                   " in %s list")
+        # Calculate the difference between the `test_list` and the `good_values`
+        difference = [str(val) for val in test_list if val not in good_values]
 
-        raise ValueError(err_str % (test_list_name, bad_vals, good_values_name))
+        # Only printing up to the first 10 invalid values.
+        err_str_1 = ("Displaying {0} of {1} invalid value(s) provided for list {2:^}.\n").format(
+            min(len(difference), 10), len(difference), test_list_name
+        )
+
+        err_str_3 = create_invalid_data_str(difference)
+
+        err_str = err_str_1 + err_str_3
+        raise ValueError(err_str)
 
 
 def verify_same_elements(**kwargs):
@@ -172,12 +207,39 @@ def verify_same_elements(**kwargs):
         raise ValueError("Both arguments provided must be lists or list types")
 
     if not np.all(set(list_one_cast) == set(list_two_cast)):
-        bad_vals = ','.join([str(val) for val in set(list_one_cast) ^ set(list_two_cast)])
         list_one_name, list_two_name = kwargs.keys()
-        list_one_name = list_one_name.replace('_', ' ')
-        list_two_name = list_two_name.replace('_', ' ')
+        list_one_name = list_one_name.replace("_", " ")
+        list_two_name = list_two_name.replace("_", " ")
 
-        err_str = ("Invalid value(s) provided in both %s and %s variables: value(s)"
-                   " %s not found in both lists")
+        # Values in list one that are not in list two
+        missing_vals_1 = [str(val) for val in (set(list_one_cast) - set(list_two_cast))]
 
-        raise ValueError(err_str % (list_one_name, list_two_name, bad_vals))
+        # Values in list two that are not in list one
+        missing_vals_2 = [str(val) for val in (set(list_two_cast) - set(list_one_cast))]
+
+        # Total missing values
+        missing_vals_total = [str(val) for val in set(list_one_cast) ^ set(list_two_cast)]
+
+        err_str_1 = (
+            "{0} value(s) provided for list {1:^} and list {2:^} are not found in both lists.\n"
+        ).format(len(missing_vals_total), list_one_name, list_two_name)
+
+        # Only printing up to the first 10 invalid values for list one.
+        err_str_2 = ("{0:>13} \n").format(
+            "Displaying {0} of {1} missing value(s) for list {2}\n".format(
+                min(len(missing_vals_1), 10), len(missing_vals_2), list_one_name
+            )
+        )
+        err_str_3 = create_invalid_data_str(missing_vals_1) + "\n"
+
+        # Only printing up to the first 10 invalid values for list two
+        err_str_4 = ("{0:>13} \n").format(
+            "Displaying {0} of {1} missing value(s) for list {2}\n".format(
+                min(len(missing_vals_2), 10), len(missing_vals_2), list_two_name
+            )
+        )
+        err_str_5 = create_invalid_data_str(missing_vals_2) + "\n"
+
+        err_str = err_str_1 + err_str_2 + err_str_3 + err_str_4 + err_str_5
+
+        raise ValueError(err_str)

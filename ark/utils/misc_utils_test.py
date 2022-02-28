@@ -91,3 +91,29 @@ def test_verify_same_elements():
         # the two lists provided do not contain the same elements
         misc_utils.verify_same_elements(one=['elem1', 'elem2', 'elem2'],
                                         two=['elem2', 'elem2', 'elem4'])
+
+
+def test_create_invalid_data_str():
+    invalid_data = ["data_" + str(i) for i in range(20)]
+
+    # Test to make sure the case of 10 invalid values creates a proper string.
+    invalid_data_str1 = misc_utils.create_invalid_data_str(invalid_data=invalid_data[:10])
+    result1 = []
+    for id in invalid_data[:10]:
+        result1.append(invalid_data_str1.find(id))
+    assert -1 not in result1
+
+    # Test to make sure cases of less than 10 invalid values creates a proper string.
+    invalid_data_str2 = misc_utils.create_invalid_data_str(invalid_data=invalid_data[:3])
+    result2 = []
+    for id in invalid_data[:3]:
+        result2.append(invalid_data_str2.find(id))
+    assert -1 not in result2
+
+    # Test to make sure cases of more than 10 invalid values creates a proper string
+    # capping out at 10 values.
+    invalid_data_str3 = misc_utils.create_invalid_data_str(invalid_data=invalid_data)
+    result3 = []
+    for id in invalid_data[:10]:
+        result3.append(invalid_data_str3.find(id))
+    assert -1 not in result3
