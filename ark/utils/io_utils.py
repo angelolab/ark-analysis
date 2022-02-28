@@ -77,8 +77,8 @@ def list_files(dir_name, substrs=None, exact_match=False):
         matches = [file
                    for file in files
                    if any([
-                        substr == os.path.splitext(file)[0]
-                        for substr in substrs
+                       substr == os.path.splitext(file)[0]
+                       for substr in substrs
                    ])]
     else:
         matches = [file
@@ -176,7 +176,7 @@ def extract_delimited_names(names, delimiter='_', delimiter_optional=True):
     return names
 
 
-def list_folders(dir_name, substrs=None):
+def list_folders(dir_name, substrs=None, exact_match=False):
     """ List all folders in a directory containing at least one given substring
 
     Args:
@@ -184,6 +184,9 @@ def list_folders(dir_name, substrs=None):
             Parent directory for folders of interest
         substrs (str or list):
             Substring matching criteria, defaults to None (all folders)
+        exact_match (bool):
+            If True, will match exact folder names (so 'C' will match only 'C/').
+            If False, will match substr pattern in folder (so 'C' will match 'C/' & 'C_DIREC/').
 
     Returns:
         list:
@@ -204,12 +207,21 @@ def list_folders(dir_name, substrs=None):
     if type(substrs) is not list:
         substrs = [substrs]
 
-    matches = [folder
-               for folder in folders
-               if any([
-                   substr in folder
-                   for substr in substrs
-               ])]
+    # Exact match case
+    if exact_match:
+        matches = [folder
+                   for folder in folders
+                   if any([
+                       substr == os.path.splitext(folder)[0]
+                       for substr in substrs
+                   ])]
+    else:
+        matches = [folder
+                   for folder in folders
+                   if any([
+                       substr in folder
+                       for substr in substrs
+                   ])]
 
     return matches
 
