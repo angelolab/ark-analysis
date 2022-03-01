@@ -171,13 +171,12 @@ def verify_in_list(**kwargs):
         difference = [str(val) for val in test_list if val not in good_values]
 
         # Only printing up to the first 10 invalid values.
-        err_str_1 = ("Displaying {0} of {1} invalid value(s) provided for list {2:^}.\n").format(
+        err_str = ("Displaying {0} of {1} invalid value(s) provided for list {2:^}.\n").format(
             min(len(difference), 10), len(difference), test_list_name
         )
 
-        err_str_3 = create_invalid_data_str(difference)
+        err_str += create_invalid_data_str(difference)
 
-        err_str = err_str_1 + err_str_3
         raise ValueError(err_str)
 
 
@@ -218,26 +217,24 @@ def verify_same_elements(**kwargs):
         # Total missing values
         missing_vals_total = [str(val) for val in set(list_one_cast) ^ set(list_two_cast)]
 
-        err_str_1 = (
+        err_str = (
             "{0} value(s) provided for list {1:^} and list {2:^} are not found in both lists.\n"
         ).format(len(missing_vals_total), list_one_name, list_two_name)
 
         # Only printing up to the first 10 invalid values for list one.
-        err_str_2 = ("{0:>13} \n").format(
+        err_str += ("{0:>13} \n").format(
             "Displaying {0} of {1} missing value(s) for list {2}\n".format(
                 min(len(missing_vals_1), 10), len(missing_vals_2), list_one_name
             )
         )
-        err_str_3 = create_invalid_data_str(missing_vals_1) + "\n"
+        err_str += create_invalid_data_str(missing_vals_1) + "\n"
 
         # Only printing up to the first 10 invalid values for list two
-        err_str_4 = ("{0:>13} \n").format(
+        err_str += ("{0:>13} \n").format(
             "Displaying {0} of {1} missing value(s) for list {2}\n".format(
                 min(len(missing_vals_2), 10), len(missing_vals_2), list_two_name
             )
         )
-        err_str_5 = create_invalid_data_str(missing_vals_2) + "\n"
-
-        err_str = err_str_1 + err_str_2 + err_str_3 + err_str_4 + err_str_5
+        err_str += create_invalid_data_str(missing_vals_2) + "\n"
 
         raise ValueError(err_str)
