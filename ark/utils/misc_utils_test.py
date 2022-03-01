@@ -98,22 +98,16 @@ def test_create_invalid_data_str():
 
     # Test to make sure the case of 10 invalid values creates a proper string.
     invalid_data_str1 = misc_utils.create_invalid_data_str(invalid_data=invalid_data[:10])
-    result1 = []
     for id in invalid_data[:10]:
-        result1.append(invalid_data_str1.find(id))
-    assert -1 not in result1
+        assert invalid_data_str1.find(id) != -1
 
     # Test to make sure cases of less than 10 invalid values creates a proper string.
     invalid_data_str2 = misc_utils.create_invalid_data_str(invalid_data=invalid_data[:3])
-    result2 = []
     for id in invalid_data[:3]:
-        result2.append(invalid_data_str2.find(id))
-    assert -1 not in result2
+        assert invalid_data_str2.find(id) != -1
 
     # Test to make sure cases of more than 10 invalid values creates a proper string
     # capping out at 10 values.
     invalid_data_str3 = misc_utils.create_invalid_data_str(invalid_data=invalid_data)
-    result3 = []
     for id in invalid_data[:10]:
-        result3.append(invalid_data_str3.find(id))
-    assert -1 not in result3
+        assert invalid_data_str3.find(id) != -1

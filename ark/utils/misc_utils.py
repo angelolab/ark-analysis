@@ -120,8 +120,6 @@ def save_figure(save_dir, save_file, dpi=None):
 def create_invalid_data_str(invalid_data):
     """Creates a easy to read string for ValueError statements.
 
-    _extended_summary_
-
     Args:
         invalid_data (list[str]): A list of strings containing the invalid / missing data
 
