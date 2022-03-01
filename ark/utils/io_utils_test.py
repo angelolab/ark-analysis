@@ -93,7 +93,7 @@ def test_list_files():
 
         # test substrs is None (default)
         get_all = iou.list_files(temp_dir)
-        assert sorted(get_all) == sorted([file for file in filenames if not file.startswith('.')])
+        assert sorted(get_all) == sorted(['tf.txt', 'othertf.txt', 'test.out', 'test.csv'])
 
         # test substrs is not list (single string)
         get_txt = iou.list_files(temp_dir, substrs='.txt')
@@ -120,7 +120,7 @@ def test_list_files():
 
         # test substrs is None (default)
         get_all = iou.list_files(temp_dir, exact_match=True)
-        assert sorted(get_all) == sorted([file for file in filenames if not file.startswith('.')])
+        assert sorted(get_all) == sorted(['chan0.tif', 'chan.tif', 'c.tif'])
 
         # test substrs is not list (single string)
         get_txt = iou.list_files(temp_dir, substrs='c', exact_match=True)
@@ -196,7 +196,8 @@ def test_list_folders():
 
         # test substrs is None (default)
         get_all = iou.list_folders(temp_dir, exact_match=False)
-        assert sorted(get_all) == sorted([dir for dir in dirnames if not dir.startswith('.')])
+        assert sorted(get_all) == sorted(['tf_txt', 'othertf_txt', 'test_csv', 'test_out',
+                                          'test_csv1', 'test_csv2', 'Ntest_csv'])
 
         # test substrs is not list (single string)
         get_txt = iou.list_folders(temp_dir, substrs='_txt', exact_match=False)
@@ -219,8 +220,8 @@ def test_list_folders():
 
         # Test substrs is None (default)
         get_all = iou.list_folders(temp_dir, exact_match=True)
-        assert sorted(get_all) == sorted([dir for dir in dirnames if not dir.startswith('.')])
-
+        assert sorted(get_all) == sorted(['tf_txt', 'othertf_txt', 'test_csv', 'test_out',
+                                          'test_csv1', 'test_csv2', 'Ntest_csv'])
         # Test exact substr is not list (single string)
         get_othertf_txt = iou.list_folders(temp_dir, substrs='othertf_txt', exact_match=True)
         assert get_othertf_txt == [dirnames[2]]
