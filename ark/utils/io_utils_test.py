@@ -82,6 +82,8 @@ def test_list_files():
             'othertf.txt',
             'test.out',
             'test.csv',
+            '._fov-1-scan-1.json',
+            '._fov-1-scan-1_pulse_heights.csv'
         ]
         for filename in filenames:
             pathlib.Path(os.path.join(temp_dir, filename)).touch()
@@ -91,19 +93,25 @@ def test_list_files():
 
         # test substrs is None (default)
         get_all = iou.list_files(temp_dir)
-        assert sorted(get_all) == sorted(filenames)
+        assert sorted(get_all) == sorted(['tf.txt', 'othertf.txt', 'test.out', 'test.csv'])
 
         # test substrs is not list (single string)
         get_txt = iou.list_files(temp_dir, substrs='.txt')
-        assert sorted(get_txt) == sorted(filenames[0:2])
+        assert sorted(get_txt) == sorted(['othertf.txt', 'tf.txt'])
 
         # test substrs is list
         get_test_and_other = iou.list_files(temp_dir, substrs=['.txt', '.out'])
-        assert sorted(get_test_and_other) == sorted(filenames[:3])
+        assert sorted(get_test_and_other) == sorted(['tf.txt', 'othertf.txt', 'test.out'])
+
+        # Test hidden files
+        get_hidden_files = iou.list_files(temp_dir, substrs=['fov-1'], exact_match=False,
+                                          ignore_hidden=False)
+        assert sorted(get_hidden_files) == sorted(['._fov-1-scan-1.json',
+                                                   '._fov-1-scan-1_pulse_heights.csv'])
 
     # test file name exact matching
     with tempfile.TemporaryDirectory() as temp_dir:
-        filenames = ['chan0.tif', 'chan.tif', 'c.tif']
+        filenames = ['.chan-metadata.tif', 'chan0.tif', 'chan.tif', 'c.tif']
         for filename in filenames:
             pathlib.Path(os.path.join(temp_dir, filename)).touch()
 
@@ -112,15 +120,20 @@ def test_list_files():
 
         # test substrs is None (default)
         get_all = iou.list_files(temp_dir, exact_match=True)
-        assert sorted(get_all) == sorted(filenames)
+        assert sorted(get_all) == sorted(['chan0.tif', 'chan.tif', 'c.tif'])
 
         # test substrs is not list (single string)
         get_txt = iou.list_files(temp_dir, substrs='c', exact_match=True)
-        assert sorted(get_txt) == [filenames[2]]
+        assert sorted(get_txt) == [filenames[3]]
 
         # test substrs is list
         get_test_and_other = iou.list_files(temp_dir, substrs=['c', 'chan'], exact_match=True)
-        assert sorted(get_test_and_other) == sorted(filenames[1:])
+        assert sorted(get_test_and_other) == sorted(['chan.tif', 'c.tif'])
+
+        # Test hidden files
+        get_hidden_files = iou.list_files(temp_dir, substrs=['.chan-metadata'], exact_match=True,
+                                          ignore_hidden=False)
+        assert sorted(get_hidden_files) == ['.chan-metadata.tif']
 
 
 def test_remove_file_extensions():
@@ -171,6 +184,7 @@ def test_list_folders():
             'test_csv1',
             'test_csv2',
             'Ntest_csv',
+            '.hidden_dir'
         ]
 
         dirnames.sort()
@@ -182,7 +196,8 @@ def test_list_folders():
 
         # test substrs is None (default)
         get_all = iou.list_folders(temp_dir, exact_match=False)
-        assert sorted(get_all) == dirnames
+        assert sorted(get_all) == sorted(['tf_txt', 'othertf_txt', 'test_csv', 'test_out',
+                                          'test_csv1', 'test_csv2', 'Ntest_csv'])
 
         # test substrs is not list (single string)
         get_txt = iou.list_folders(temp_dir, substrs='_txt', exact_match=False)
@@ -196,15 +211,20 @@ def test_list_folders():
             ['Ntest_csv', 'test_csv', 'test_csv1', 'test_csv2', 'test_out', 'othertf_txt']
         )
 
+        # Test hidden files
+        get_hidden_dirs = iou.list_folders(
+            temp_dir, substrs="hidden", exact_match=False, ignore_hidden=False)
+        assert get_hidden_dirs == [".hidden_dir"]
+
         # Tests "Exact Substring Matching", `exact_match` = True
 
         # Test substrs is None (default)
         get_all = iou.list_folders(temp_dir, exact_match=True)
-        assert sorted(get_all) == sorted(dirnames)
-
+        assert sorted(get_all) == sorted(['tf_txt', 'othertf_txt', 'test_csv', 'test_out',
+                                          'test_csv1', 'test_csv2', 'Ntest_csv'])
         # Test exact substr is not list (single string)
         get_othertf_txt = iou.list_folders(temp_dir, substrs='othertf_txt', exact_match=True)
-        assert get_othertf_txt == [dirnames[1]]
+        assert get_othertf_txt == [dirnames[2]]
 
         # Test substrs, querying two folders (exactly)
         get_exact_n_substrs = iou.list_folders(
@@ -217,3 +237,8 @@ def test_list_folders():
         # is returned when `exact_match=True`
         get_test_o = iou.list_folders(temp_dir, substrs='test_csv', exact_match=True)
         assert get_test_o == ["test_csv"]
+
+        # Test hidden files
+        get_hidden_dirs = iou.list_folders(
+            temp_dir, substrs=".hidden_dir", exact_match=True, ignore_hidden=False)
+        assert get_hidden_dirs == [".hidden_dir"]
