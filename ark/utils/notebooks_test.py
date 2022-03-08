@@ -15,9 +15,6 @@ PIXEL_CLUSTER_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                   '..', '..', 'templates_ark', 'example_pixel_clustering.ipynb')
 CELL_CLUSTER_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                  '..', '..', 'templates_ark', 'example_cell_clustering.ipynb')
-QC_METRIC_COMP_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                   '..', '..', 'templates_qc',
-                                   'example_qc_metric_eval.ipynb')
 
 
 def _exec_notebook(nb_filename, base_folder):
@@ -130,7 +127,7 @@ def test_segment_image_data_folder(tb):
 # def test_pixel_clustering_mibitiff(tb):
 #     with tdir() as base_dir:
 #         # create input files
-#         notebooks_test_utils.flowsom_setup(tb, flowsom_dir=base_dir, is_mibitiff=True)
+#         notebooks_test_utils.flowsom_pixel_setup(tb, flowsom_dir=base_dir, is_mibitiff=True)
 
 #         # load img data in
 #         notebooks_test_utils.flowsom_set_fovs_channels(tb,
@@ -151,7 +148,7 @@ def test_segment_image_data_folder(tb):
 def test_pixel_clustering_folder(tb):
     with tdir() as base_dir:
         # create input files
-        notebooks_test_utils.flowsom_setup(tb, flowsom_dir=base_dir)
+        notebooks_test_utils.flowsom_pixel_setup(tb, flowsom_dir=base_dir)
 
         # run the FlowSOM preprocessing and clustering
         notebooks_test_utils.flowsom_pixel_run(
@@ -161,15 +158,7 @@ def test_pixel_clustering_folder(tb):
         # TODO: see what Brian discovers about R testing, then add cell clustering tests
 
 
-# test for qc metric computation
-@testbook(QC_METRIC_COMP_PATH, timeout=6000)
-def test_qc_metric_comp(tb):
+@testbook(CELL_CLUSTER_PATH, timeout=6000)
+def test_cell_clustering(tb):
     with tdir() as base_dir:
-        # define QC metric notebook params
-        notebooks_test_utils.qc_notebook_setup(
-            tb, base_dir, 'sample_tiff_dir',
-            fovs=['Point1', 'Point2'], chans=['Au', 'Ca']
-        )
-
-        # run QC metric process (MIBItracker download and QC metric analysis)
-        notebooks_test_utils.run_qc_comp(tb, gauss_blur=True)
+        pass
