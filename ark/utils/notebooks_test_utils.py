@@ -118,10 +118,10 @@ def segment_notebook_setup(tb, deepcell_tiff_dir, deepcell_input_dir, deepcell_o
         tb.inject("MIBItiff = True", after='mibitiff_set')
 
 
-def flowsom_setup(tb, flowsom_dir, img_shape=(50, 50), num_fovs=3, num_chans=3,
-                  is_mibitiff=False, mibitiff_suffix="-MassCorrected-Filtered",
-                  dtype=np.uint16):
-    """Creates the directories, data, and MIBItiff settings for testing FlowSOM clustering
+def flowsom_pixel_setup(tb, flowsom_dir, img_shape=(50, 50), num_fovs=3, num_chans=3,
+                        is_mibitiff=False, mibitiff_suffix="-MassCorrected-Filtered",
+                        dtype=np.uint16):
+    """Creates the directories, data, and MIBItiff settings for testing pixel clustering
 
     Args:
         tb (testbook.testbook):
@@ -184,6 +184,31 @@ def flowsom_setup(tb, flowsom_dir, img_shape=(50, 50), num_fovs=3, num_chans=3,
         mibitiff_suffix = '%s'
     """ % (flowsom_dir, tiff_dir, seg_dir, is_mibitiff, mibitiff_suffix)
     tb.inject(define_data_paths, after='file_path')
+
+
+def flowsom_cell_setup(tb, flowsom_dir, ):
+    """Creates the directories, data, and MIBItiff settings for testing cell clustering
+
+    Args:
+        tb (testbook.testbook):
+            The testbook runner instance
+        flowsom_dir (str):
+            The path to the FlowSOM data directory
+        img_shape (tuple):
+            The shape of the image to generate
+        num_fovs (int):
+            The number of test fovs to generate
+        num_chans (int):
+            The number of test channels to generate
+        is_mibitiff (bool):
+            Whether we're working with mibitiff files or not
+        mibitiff_suffix (str):
+            If is_mibitiff = True, the suffix to append to each fov.
+            Ignored if is_mibitiff = False.
+        dtype (numpy.dtype):
+            The datatype of each test image generated
+    """
+    pass
 
 
 def flowsom_pixel_run(tb, fovs, channels, cluster_prefix='test', is_mibitiff=False):
@@ -305,6 +330,10 @@ def flowsom_pixel_run(tb, fovs, channels, cluster_prefix='test', is_mibitiff=Fal
         """ % fov
 
         tb.inject(dummy_consensus_cmd, after='pixel_consensus_cluster')
+
+
+def flowsom_cell_run(tb):
+    pass
 
 
 def qc_notebook_setup(tb, base_dir, tiff_dir, sub_dir=None, fovs=None, chans=None):

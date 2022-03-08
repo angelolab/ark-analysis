@@ -83,6 +83,7 @@ def test_segment_image_data_mibitiff(tb):
         # create the expression matrix with nuclear counts
         notebooks_test_utils.create_exp_mat(tb, is_mibitiff=True, nuclear_counts=True)
 
+
 # test folder inputs for image segmentation
 @testbook(SEGMENT_IMAGE_DATA_PATH, timeout=6000)
 def test_segment_image_data_folder(tb):
@@ -161,4 +162,4 @@ def test_pixel_clustering_folder(tb):
 @testbook(CELL_CLUSTER_PATH, timeout=6000)
 def test_cell_clustering(tb):
     with tdir() as base_dir:
-        pass
+        notebooks_test_utils.flowsom_cell_setup(tb, flowsom_dir=base_dir)

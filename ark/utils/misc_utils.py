@@ -244,7 +244,7 @@ def verify_same_elements(enforce_order=False, **kwargs):
         first_bad_index = next(i for i, (l1, l2) in enumerate(
             zip(list_one_cast, list_two_cast)) if l1 != l2
         )
-        
+
         err_str = ("Lists %s and %s ordered differently: values %s and %s do not match"
                    " at index %d")
         raise ValueError(err_str % (list_one_name, list_two_name,
