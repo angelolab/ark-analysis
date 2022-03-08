@@ -26,7 +26,7 @@ def save_fov_images(fovs, data_dir, img_xr, name_suffix=''):
     """
 
     if not os.path.exists(data_dir):
-        raise FileNotFoundError("data_dir %s does not exist")
+        raise FileNotFoundError("data_dir %s does not exist" % data_dir)
 
     # verify that the fovs provided are valid
     verify_in_list(

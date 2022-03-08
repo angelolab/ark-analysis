@@ -123,40 +123,24 @@ def test_segment_image_data_folder(tb):
         notebooks_test_utils.create_exp_mat(tb, nuclear_counts=True)
 
 
-# # test mibitiff clustering
-# @testbook(PIXEL_CLUSTER_PATH, timeout=6000)
-# def test_pixel_clustering_mibitiff(tb):
-#     with tdir() as base_dir:
-#         # create input files
-#         notebooks_test_utils.flowsom_pixel_setup(tb, flowsom_dir=base_dir, is_mibitiff=True)
-
-#         # load img data in
-#         notebooks_test_utils.flowsom_set_fovs_channels(tb,
-#                                                        channels=['chan0', 'chan1'],
-#                                                        fovs=['fov0_otherinfo-MassCorrected-Filtered.tiff',
-#                                                              'fov1-MassCorrected-Filtered.tiff'])
-
-#         # run the FlowSOM preprocessing and clustering
-#         notebooks_test_utils.flowsom_run(tb,
-#                                          fovs=['fov0_otherinfo-MassCorrected-Filtered.tiff',
-#                                                'fov1-MassCorrected-Filtered.tiff'],
-#                                          channels=['chan0', 'chan1'],
-#                                          is_mibitiff=True)
-
-
-# test folder clustering
+# TODO: if needed, add MIBItiff tests
 @testbook(PIXEL_CLUSTER_PATH, timeout=6000)
-def test_pixel_clustering_folder(tb):
+@parametrize('create_seg_dir', [True, False])
+def test_pixel_clustering_folder(tb, create_seg_dir):
     with tdir() as base_dir:
-        # create input files
-        notebooks_test_utils.flowsom_pixel_setup(tb, flowsom_dir=base_dir)
-
-        # run the FlowSOM preprocessing and clustering
-        notebooks_test_utils.flowsom_pixel_run(
-            tb, fovs=['fov0', 'fov1'], channels=['chan0', 'chan1']
+        # setup the clustering process (also runs preprocessing)
+        fovs, chans = notebooks_test_utils.flowsom_pixel_setup(
+            tb, base_dir, create_seg_dir=create_seg_dir
         )
 
-        # TODO: see what Brian discovers about R testing, then add cell clustering tests
+        # mock the clustering process
+        notebooks_test_utils.flowsom_pixel_cluster(
+            tb, base_dir, fovs, chans, create_seg_dir=create_seg_dir
+        )
+
+        notebooks_test_utils.flowsom_pixel_visualize(
+            tb, base_dir, fovs
+        )
 
 
 @testbook(CELL_CLUSTER_PATH, timeout=6000)
@@ -168,7 +152,7 @@ def test_cell_clustering(tb, pixel_cluster_col):
             tb, base_dir, 'sample_pixel_dir', pixel_cluster_col=pixel_cluster_col
         )
 
-        # run the clustering process
+        # mock the clustering process
         notebooks_test_utils.flowsom_cell_cluster(
             tb, base_dir, fovs, chans, pixel_cluster_col=pixel_cluster_col
         )

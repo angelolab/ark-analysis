@@ -121,16 +121,19 @@ def segment_notebook_setup(tb, deepcell_tiff_dir, deepcell_input_dir, deepcell_o
         tb.inject("MIBItiff = True", after='mibitiff_set')
 
 
-def flowsom_pixel_setup(tb, flowsom_dir, img_shape=(50, 50), num_fovs=3, num_chans=3,
-                        is_mibitiff=False, mibitiff_suffix="-MassCorrected-Filtered",
-                        dtype=np.uint16):
+def flowsom_pixel_setup(tb, flowsom_dir, create_seg_dir=True, img_shape=(50, 50),
+                        num_fovs=3, num_chans=3, is_mibitiff=False,
+                        mibitiff_suffix="-MassCorrected-Filtered",
+                        dtype=np.uint16, pixel_prefix='test'):
     """Creates the directories, data, and MIBItiff settings for testing pixel clustering
 
     Args:
         tb (testbook.testbook):
             The testbook runner instance
         flowsom_dir (str):
-            The path to the FlowSOM data directory
+            The base directory containing the pixel data
+        create_seg_dir (bool):
+            Whether to include segmentation labels
         img_shape (tuple):
             The shape of the image to generate
         num_fovs (int):
@@ -144,6 +147,8 @@ def flowsom_pixel_setup(tb, flowsom_dir, img_shape=(50, 50), num_fovs=3, num_cha
             Ignored if is_mibitiff = False.
         dtype (numpy.dtype):
             The datatype of each test image generated
+        pixel_prefix (str):
+            The prefix to place before each pixel clustering directory/file
     """
 
     # import packages
@@ -173,38 +178,26 @@ def flowsom_pixel_setup(tb, flowsom_dir, img_shape=(50, 50), num_fovs=3, num_cha
         )
 
     # generate sample segmentation labels so we can load them in
-    seg_dir = os.path.join(flowsom_dir, 'deepcell_output')
-    os.mkdir(seg_dir)
-    generate_sample_feature_tifs(fovs, seg_dir, img_shape)
+    if create_seg_dir:
+        seg_dir = os.path.join(flowsom_dir, 'deepcell_output')
+        os.mkdir(seg_dir)
+        generate_sample_feature_tifs(fovs, seg_dir, img_shape)
+
+        seg_dir = "\"%s\"" % seg_dir
+    else:
+        seg_dir = None
 
     # define custom data paths
     define_data_paths = """
         base_dir = "%s"
         tiff_dir = "%s"
         img_sub_folder = None
-        segmentation_dir = "%s"
+        segmentation_dir = %s
         seg_suffix = '_feature_0.tif'
         MIBItiff = %s
         mibitiff_suffix = '%s'
-    """ % (flowsom_dir, tiff_dir, seg_dir, is_mibitiff, mibitiff_suffix)
+    """ % (flowsom_dir, tiff_dir, str(seg_dir), is_mibitiff, mibitiff_suffix)
     tb.inject(define_data_paths, after='file_path')
-
-
-def flowsom_pixel_run(tb, fovs, channels, cluster_prefix='test', is_mibitiff=False):
-    """Run the FlowSOM pixel-level clustering
-
-    Args:
-        tb (testbook.testbook):
-            The testbook runner instance
-        fovs (list):
-            The list of fovs
-        channels (list):
-            The list of channels
-        cluster_prefix (str):
-            The name of the prefix to use for each directory/file created by pixel/cell clustering
-        is_mibitiff (bool):
-            Whether we're working with mibitiff images
-    """
 
     if fovs is not None:
         # handles the case when the user assigns fovs to an explicit list
@@ -218,12 +211,11 @@ def flowsom_pixel_run(tb, fovs, channels, cluster_prefix='test', is_mibitiff=Fal
         # handles the case when the user allows list_files or list_folders to do the fov loading
         tb.execute_cell('load_fovs')
 
-    # set the names of the preprocessed and segmented directories
-    set_pre_seg_dirs = """
-        preprocessed_dir = '%s_preprocessed_dir'
-        subsetted_dir = '%s_subsetted_dir'
-    """ % (cluster_prefix, cluster_prefix)
-    tb.inject(set_pre_seg_dirs, after='pre_sub_dir_set')
+    # define the pixel cluster prefix
+    tb.inject("pixel_cluster_prefix = '%s'" % pixel_prefix, after='pixel_prefix')
+
+    # define the main pixel output dir, the preprocessed dir, and the subsetted dir
+    tb.execute_cell('dir_set')
 
     # sets the channels to include
     tb.inject(
@@ -231,84 +223,171 @@ def flowsom_pixel_run(tb, fovs, channels, cluster_prefix='test', is_mibitiff=Fal
             channels = %s
             blur_factor = 2
             subset_proportion = 0.1
-        """ % str(channels),
+        """ % str(chans),
         after='channel_set'
     )
 
-    # test the preprocessing works, we won't save nor run the actual FlowSOM clustering
-    if is_mibitiff:
-        mibitiff_preprocess = """
-            som_utils.create_pixel_matrix(
-                fovs, channels, base_dir, tiff_dir, segmentation_dir,
-                pre_dir=preprocessed_dir, sub_dir=subsetted_dir, is_mibitiff=True,
-                blur_factor=blur_factor, subset_proportion=subset_proportion, seed=seed
-            )
-        """
+    # run the pixel preprocessing step
+    tb.execute_cell('gen_pixel_mat')
 
-        tb.inject(mibitiff_preprocess, after='gen_pixel_mat')
+    # define the pixel clustering file names to create
+    tb.execute_cell('pixel_som_path_set')
+
+    return fovs, chans
+
+
+def flowsom_pixel_cluster(tb, flowsom_dir, fovs, channels,
+                          create_seg_dir=True, pixel_prefix='test'):
+    """Mock the creation of files needed for cell clustering visualization:
+
+    * Pixel consensus data
+    * Average channel expression per pixel SOM cluster
+    * Average channel expression per pixel meta cluster
+
+    Args:
+        tb (testbook.testbook):
+            The testbook runner instance
+        flowsom_dir (str):
+            The base directory containing the pixel data
+        fovs (list):
+            The list of fovs
+        channels (list):
+            The list of channels
+        create_seg_dir (bool):
+            Whether to include segmentation labels
+        pixel_prefix (str):
+            The prefix to place before each pixel clustering directory/file
+    """
+
+    # create sample consensus dir
+    consensus_path = os.path.join(flowsom_dir,
+                                  '%s_pixel_output_dir' % pixel_prefix,
+                                  '%s_pixel_mat_consensus' % pixel_prefix)
+    os.mkdir(consensus_path)
+
+    # make sample consensus data for each fov
+    for fov in fovs:
+        fov_data = pd.DataFrame(
+            np.random.rand(2500, len(channels)),
+            columns=channels
+        )
+
+        fov_data['fov'] = fov
+        fov_data['row_index'] = np.repeat(range(50), 50)
+        fov_data['column_index'] = np.tile(range(50), 50)
+
+        if create_seg_dir:
+            fov_data['segmentation_label'] = range(1, 2501)
+
+        fov_data['pixel_som_cluster'] = np.repeat(range(1, 101), 25)
+        fov_data['pixel_meta_cluster'] = np.repeat(range(1, 21), 125)
+
+        feather.write_dataframe(
+            fov_data,
+            os.path.join(consensus_path, '%s.feather' % fov),
+            compression='uncompressed'
+        )
+
+    # define the average channel expression per pixel SOM cluster
+    avg_channels_som = np.random.rand(100, len(channels) + 3)
+    avg_channels_som_cols = ['pixel_som_cluster'] + channels + ['count', 'pixel_meta_cluster']
+    avg_channels_som = pd.DataFrame(
+        avg_channels_som,
+        columns=avg_channels_som_cols
+    )
+    avg_channels_som['pixel_som_cluster'] = range(1, 101)
+    avg_channels_som['pixel_meta_cluster'] = np.repeat(range(1, 21), 5)
+    avg_channels_som.to_csv(
+        os.path.join(flowsom_dir,
+                     '%s_pixel_output_dir' % pixel_prefix,
+                     '%s_pixel_channel_avg_som_cluster.csv' % pixel_prefix),
+        index=False
+    )
+
+    # define the average channel expression per pixel meta cluster
+    avg_channels_meta = np.random.rand(20, len(channels) + 2)
+    avg_channels_meta_cols = ['pixel_meta_cluster'] + channels + ['count']
+    avg_channels_meta = pd.DataFrame(
+        avg_channels_meta,
+        columns=avg_channels_meta_cols
+    )
+    avg_channels_meta['pixel_meta_cluster'] = range(1, 21)
+    avg_channels_meta.to_csv(
+        os.path.join(flowsom_dir,
+                     '%s_pixel_output_dir' % pixel_prefix,
+                     '%s_pixel_channel_avg_meta_cluster.csv' % pixel_prefix),
+        index=False
+    )
+
+
+def flowsom_pixel_visualize(tb, flowsom_dir, fovs, pixel_prefix='test'):
+    """Visualize the pixel cluster data
+
+    Args:
+        tb (testbook.testbook):
+            The testbook runner instance
+        flowsom_dir (str):
+            The base directory containing the pixel data
+        fovs (list):
+            The list of fovs to use
+        pixel_prefix (str):
+            The prefix to place before each pixel clustering directory/file
+
+    """
+
+    # run the interactive visualization
+    tb.execute_cell('pixel_interactive')
+
+    # define the remapping file
+    remap_data = pd.DataFrame(
+        np.random.rand(100, 3),
+        columns=['cluster', 'metacluster', 'mc_name']
+    )
+    remap_data['cluster'] = range(1, 101)
+    remap_data['metacluster'] = np.repeat(range(1, 11), 10)
+    remap_data['mc_name'] = np.repeat(['meta_' + str(i) for i in range(1, 11)], 10)
+    remap_data.to_csv(
+        os.path.join(flowsom_dir,
+                     '%s_pixel_output_dir' % pixel_prefix,
+                     '%s_pixel_meta_cluster_mapping.csv' % pixel_prefix),
+        index=False
+    )
+
+    # apply remapping
+    tb.execute_cell('pixel_apply_remap')
+
+    # generate the colormap to use
+    tb.execute_cell('pixel_cmap_gen')
+
+    # define the FOVs to use for the cpixelell overlay
+    if len(fovs) <= 2:
+        fovs_overlay = fovs
     else:
-        tb.execute_cell('gen_pixel_mat')
+        fovs_overlay = fovs[:2]
 
-    # define a custom prefix for the SOM and cell cluster assignments
-    prefix_set = """
-        cluster_prefix = '%s'
+    cell_overlay_fovs = "pixel_fovs = %s" % str(fovs_overlay)
+    tb.inject(cell_overlay_fovs, after='pixel_overlay_fovs')
 
-        pixel_clustered_dir = '%s_pixel_mat_clustered'
-        pixel_consensus_dir = '%s_pixel_mat_consensus'
-        pixel_weights_name = '%s_pixel_weights.feather'
-    """ % (cluster_prefix, cluster_prefix, cluster_prefix, cluster_prefix)
-    tb.inject(prefix_set, after='pixel_som_path_set')
+    # generate the pixel cluster masks
+    tb.execute_cell('pixel_mask_gen')
 
-    # create a dummy weights feather
-    dummy_weights = """
-        import feather
-        weights = pd.DataFrame(np.random.rand(100, len(channels)), columns=channels)
-
-        feather.write_dataframe(weights, os.path.join(base_dir, pixel_weights_name))
+    # test the saving of pixel masks
+    # NOTE: no point testing save_pixel_masks = False since that doesn't run anything
+    cell_mask_save = """
+        data_utils.save_fov_images(
+            pixel_fovs,
+            os.path.join(base_dir, pixel_output_dir),
+            pixel_cluster_masks,
+            name_suffix='_pixel_mask'
+        )
     """
-    tb.inject(dummy_weights, after='train_pixel_som')
+    tb.inject(cell_mask_save, 'pixel_mask_save')
 
-    # create dummy clustered feathers for each fov
-    cluster_setup = """
-        if not os.path.exists(os.path.join(base_dir, pixel_clustered_dir)):
-            os.mkdir(os.path.join(base_dir, pixel_clustered_dir))
-    """
-    tb.inject(cluster_setup, after='cluster_pixel_mat')
+    # run the cell mask overlay
+    tb.execute_cell('pixel_overlay_gen')
 
-    for fov in fovs:
-        dummy_cluster_cmd = """
-            sample_df = pd.DataFrame(np.random.rand(100, 6),
-                                     columns=%s +
-                                     ['fov', 'row_index', 'col_index', 'segmentation_label'])
-            sample_df['fov'] = '%s'
-            sample_df['clusters'] = np.random.randint(0, 100, size=100)
-
-            feather.write_dataframe(sample_df, os.path.join(base_dir,
-                                                            pixel_clustered_dir,
-                                                            '%s' + '.feather'))
-        """ % (str(channels), fov, fov)
-
-        tb.inject(dummy_cluster_cmd, after='cluster_pixel_mat')
-
-    # create dummy clustered feathers for each fov
-    consensus_setup = """
-        if not os.path.exists(os.path.join(base_dir, pixel_consensus_dir)):
-            os.mkdir(os.path.join(base_dir, pixel_consensus_dir))
-    """
-    tb.inject(consensus_setup, after='pixel_consensus_cluster')
-
-    for fov in fovs:
-        dummy_consensus_cmd = """
-            sample_consensus = pd.DataFrame(np.random.rand(100, len(channels)), columns=channels)
-            sample_consensus['clusters'] = np.arange(100)
-            sample_consensus['hCluster_cap'] = np.repeat(np.arange(20), repeats=5)
-
-            feather.write_dataframe(sample_consensus, os.path.join(base_dir,
-                                                                   pixel_consensus_dir,
-                                                                   '%s' + '.feather'))
-        """ % fov
-
-        tb.inject(dummy_consensus_cmd, after='pixel_consensus_cluster')
+    # save the pixel clustering parameter names for cell clustering
+    tb.execute_cell('cell_param_save')
 
 
 def flowsom_cell_setup(tb, flowsom_dir, pixel_dir, pixel_cluster_col='pixel_meta_cluster_rename',
@@ -377,7 +456,7 @@ def flowsom_cell_setup(tb, flowsom_dir, pixel_dir, pixel_cluster_col='pixel_meta
     # set cell_cluster_prefix
     tb.inject("cell_cluster_prefix = '%s'" % cell_prefix, after='cluster_prefix')
 
-    # create the cell output directory and define the file names to create
+    # create the cell output directory and define the cell clustering file names to create
     tb.execute_cell('cell_cluster_files')
 
     # define the pixel cluster column to aggregate on, and corresponding marker aggregate file
@@ -398,6 +477,8 @@ def flowsom_cell_cluster(tb, flowsom_dir, fovs, channels,
                          pixel_cluster_col='pixel_meta_cluster_rename', cell_prefix='test'):
     """Mock the creation of files needed for cell clustering visualization:
 
+    * Cell consensus data
+    * Weighted channel table
     * Average number of pixel clusters per cell SOM and meta cluster
     * Average weighted channel expression per cell SOM and meta cluster
 
@@ -575,7 +656,7 @@ def flowsom_cell_visualize(tb, flowsom_dir, fovs,
         index=False
     )
 
-    # execute remapping
+    # apply remapping
     tb.execute_cell('cell_apply_remap')
 
     # generate the colormap to use
@@ -604,7 +685,7 @@ def flowsom_cell_visualize(tb, flowsom_dir, fovs,
     cell_mask_save = """
         data_utils.save_fov_images(
             cell_fovs,
-            base_dir,
+            os.path.join(base_dir, cell_output_dir),
             cell_cluster_masks,
             name_suffix='_cell_mask'
         )
