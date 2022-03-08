@@ -42,7 +42,7 @@ def save_fov_images(fovs, data_dir, img_xr, name_suffix=''):
         fov_file = fov + name_suffix + '.tiff'
 
         # save the image to data_dir
-        io.imsave(os.path.join(data_dir, fov_file), fov_img_data)
+        io.imsave(os.path.join(data_dir, fov_file), fov_img_data, check_contrast=False)
 
 
 def label_cells_by_cluster(fovs, all_data, label_maps, fov_col=settings.FOV_ID,
@@ -424,5 +424,5 @@ def split_img_stack(stack_dir, output_dir, stack_list, indices, names, channels_
                 channel = img_stack[..., indices[i]]
             drive_write_out(
                 path_join(img_dir, names[i]),
-                lambda x: io.imsave(x, channel, plugin='tifffile')
+                lambda x: io.imsave(x, channel, plugin='tifffile', check_contrast=False)
             )
