@@ -7,6 +7,9 @@ from tempfile import TemporaryDirectory as tdir
 
 from ark.utils import notebooks_test_utils
 
+import pytest
+parametrize = pytest.mark.parametrize
+
 
 SEGMENT_IMAGE_DATA_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                        '..', '..', 'templates_ark',
@@ -26,24 +29,21 @@ def _exec_notebook(nb_filename, base_folder):
                 "--output", fout.name, path]
         subprocess.check_call(args)
 
-# test runs with default inputs
+
+# # test runs with default inputs
+# def test_segment_image_data():
+#     _exec_notebook('Segment_Image_Data.ipynb', 'templates_ark')
 
 
-def test_segment_image_data():
-    _exec_notebook('Segment_Image_Data.ipynb', 'templates_ark')
+# def test_example_spatial_analysis():
+#     _exec_notebook('example_spatial_analysis_script.ipynb', 'templates_ark')
 
 
-def test_example_spatial_analysis():
-    _exec_notebook('example_spatial_analysis_script.ipynb', 'templates_ark')
-
-
-def test_example_neighborhood_analysis():
-    _exec_notebook('example_neighborhood_analysis_script.ipynb', 'templates_ark')
+# def test_example_neighborhood_analysis():
+#     _exec_notebook('example_neighborhood_analysis_script.ipynb', 'templates_ark')
 
 # test mibitiff inputs for image segmentation
 # NOTE: 6000 seconds = default timeout on Travis
-
-
 @testbook(SEGMENT_IMAGE_DATA_PATH, timeout=6000)
 def test_segment_image_data_mibitiff(tb):
     with tdir() as tiff_dir, tdir() as input_dir, tdir() as output_dir, \
@@ -160,6 +160,20 @@ def test_pixel_clustering_folder(tb):
 
 
 @testbook(CELL_CLUSTER_PATH, timeout=6000)
-def test_cell_clustering(tb):
+@parametrize('pixel_cluster_col', ['pixel_meta_cluster_rename', 'pixel_som_cluster'])
+def test_cell_clustering(tb, pixel_cluster_col):
     with tdir() as base_dir:
-        notebooks_test_utils.flowsom_cell_setup(tb, flowsom_dir=base_dir)
+        # setup the clustering process
+        fovs, chans = notebooks_test_utils.flowsom_cell_setup(
+            tb, base_dir, 'sample_pixel_dir', pixel_cluster_col=pixel_cluster_col
+        )
+
+        # run the clustering process
+        notebooks_test_utils.flowsom_cell_cluster(
+            tb, base_dir, fovs, chans, pixel_cluster_col=pixel_cluster_col
+        )
+
+        # run the visualization and remapping process
+        notebooks_test_utils.flowsom_cell_visualize(
+            tb, base_dir, fovs, pixel_cluster_col=pixel_cluster_col
+        )

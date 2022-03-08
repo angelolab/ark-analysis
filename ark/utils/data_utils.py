@@ -116,7 +116,7 @@ def generate_cell_cluster_mask(fovs, base_dir, seg_dir, cell_consensus_name,
 
     # path checking
     if not os.path.exists(seg_dir):
-        raise FileNotFoundError("seg_dir %s does not exist")
+        raise FileNotFoundError("seg_dir %s does not exist" % seg_dir)
 
     if not os.path.exists(os.path.join(base_dir, cell_consensus_name)):
         raise FileNotFoundError(
