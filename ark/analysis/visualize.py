@@ -7,7 +7,8 @@ import seaborn as sns
 from ark.utils import misc_utils
 
 
-def draw_boxplot(cell_data, col_name, col_split=None, split_vals=None, dpi=None, save_dir=None):
+def draw_boxplot(cell_data, col_name, col_split=None,
+                 split_vals=None, dpi=None, save_dir=None, save_file=None):
     """Draws a boxplot for a given column, optionally with help from a split column
 
     Args:
@@ -23,6 +24,9 @@ def draw_boxplot(cell_data, col_name, col_split=None, split_vals=None, dpi=None,
             The resolution of the image to save, ignored if save_dir is None
         save_dir (str):
             If specified, a directory where we will save the plot
+        save_file (str):
+            If save_dir specified, specify a file name you wish to save to.
+            Ignored if save_dir is None
     """
 
     # the col_name must be valid
@@ -61,11 +65,12 @@ def draw_boxplot(cell_data, col_name, col_split=None, split_vals=None, dpi=None,
 
     # save visualization to a directory if specified
     if save_dir is not None:
-        misc_utils.save_figure(save_dir, "boxplot_viz.png", dpi=dpi)
+        misc_utils.save_figure(save_dir, save_file, dpi=dpi)
 
 
-def draw_heatmap(data, x_labels, y_labels, dpi=None, center_val=None,
-                 overlay_values=False, colormap="vlag", save_dir=None):
+def draw_heatmap(data, x_labels, y_labels, dpi=None, center_val=None, min_val=None, max_val=None,
+                 cbar_ticks=None, colormap="vlag", row_colors=None, row_cluster=True,
+                 col_colors=None, col_cluster=True, save_dir=None, save_file=None):
     """Plots the z scores between all phenotypes as a clustermap.
 
     Args:
@@ -79,12 +84,27 @@ def draw_heatmap(data, x_labels, y_labels, dpi=None, center_val=None,
             The resolution of the image to save, ignored if save_dir is None
         center_val (float):
             value at which to center the heatmap
-        overlay_values (bool):
-            whether to overlay the raw heatmap values on top
+        min_val (float):
+            minimum value the heatmap should take
+        max_val (float):
+            maximum value the heatmap should take
+        cbar_ticks (int):
+            list of values containing tick labels for the heatmap colorbar
         colormap (str):
             color scheme for visualization
+        row_colors (list):
+            Include these values as an additional color-coded cluster bar for row values
+        row_cluster (bool):
+            Whether to include dendrogram clustering for the rows
+        col_colors (list):
+            Include these values as an additional color-coded cluster bar for column values
+        col_cluster (bool):
+            Whether to include dendrogram clustering for the columns
         save_dir (str):
             If specified, a directory where we will save the plot
+        save_file (str):
+            If save_dir specified, specify a file name you wish to save to.
+            Ignored if save_dir is None
     """
 
     # Replace the NA's and inf values with 0s
@@ -95,13 +115,14 @@ def draw_heatmap(data, x_labels, y_labels, dpi=None, center_val=None,
     data_df = pd.DataFrame(data, index=x_labels, columns=y_labels)
     sns.set(font_scale=.7)
 
-    if overlay_values:
-        sns.clustermap(data_df, cmap=colormap, annot=data, center=center_val)
-    else:
-        sns.clustermap(data_df, cmap=colormap, center=center_val)
+    sns.clustermap(
+        data_df, cmap=colormap, center=center_val,
+        vmin=min_val, vmax=max_val, row_colors=row_colors, row_cluster=row_cluster,
+        col_colors=col_colors, col_cluster=col_cluster, cbar_kws={'ticks': cbar_ticks}
+    )
 
     if save_dir is not None:
-        misc_utils.save_figure(save_dir, "z_score_viz.png", dpi=dpi)
+        misc_utils.save_figure(save_dir, save_file, dpi=dpi)
 
 
 def get_sorted_data(cell_data, sort_by_first, sort_by_second, is_normalized=False):

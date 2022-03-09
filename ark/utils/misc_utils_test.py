@@ -92,6 +92,18 @@ def test_verify_same_elements():
         misc_utils.verify_same_elements(one=['elem1', 'elem2', 'elem2'],
                                         two=['elem2', 'elem2', 'elem4'])
 
+    with pytest.raises(ValueError):
+        # the two lists provided differ in length (ordered checking)
+        misc_utils.verify_same_elements(enforce_order=True,
+                                        one=['elem1'],
+                                        two=['elem1', 'elem2'])
+
+    with pytest.raises(ValueError):
+        # the two lists are ordered differently
+        misc_utils.verify_same_elements(enforce_order=True,
+                                        one=['elem1', 'elem2'],
+                                        two=['elem2', 'elem1'])
+
 
 def test_create_invalid_data_str():
     invalid_data = ["data_" + str(i) for i in range(20)]
