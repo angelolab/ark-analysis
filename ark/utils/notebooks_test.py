@@ -30,17 +30,18 @@ def _exec_notebook(nb_filename, base_folder):
         subprocess.check_call(args)
 
 
-# # test runs with default inputs
-# def test_segment_image_data():
-#     _exec_notebook('Segment_Image_Data.ipynb', 'templates_ark')
+# test runs with default inputs
+def test_segment_image_data():
+    _exec_notebook('Segment_Image_Data.ipynb', 'templates_ark')
 
 
-# def test_example_spatial_analysis():
-#     _exec_notebook('example_spatial_analysis_script.ipynb', 'templates_ark')
+def test_example_spatial_analysis():
+    _exec_notebook('example_spatial_analysis_script.ipynb', 'templates_ark')
 
 
-# def test_example_neighborhood_analysis():
-#     _exec_notebook('example_neighborhood_analysis_script.ipynb', 'templates_ark')
+def test_example_neighborhood_analysis():
+    _exec_notebook('example_neighborhood_analysis_script.ipynb', 'templates_ark')
+
 
 # test mibitiff inputs for image segmentation
 # NOTE: 6000 seconds = default timeout on Travis
