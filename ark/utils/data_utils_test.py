@@ -304,7 +304,8 @@ def test_generate_cell_cluster_mask():
 
         for fov in range(cell_masks.shape[0]):
             fov_whole_cell = cell_masks[fov, :, :, 0]
-            io.imsave(os.path.join(temp_dir, 'fov%d_feature_0.tif' % fov), fov_whole_cell)
+            io.imsave(os.path.join(temp_dir, 'fov%d_feature_0.tif' % fov), fov_whole_cell,
+                      check_contrast=False)
 
         # bad consensus path passed
         with pytest.raises(FileNotFoundError):
@@ -407,7 +408,8 @@ def test_generate_pixel_cluster_mask():
         # generate sample fov folder with one channel value, no sub folder
         channel_data = np.random.randint(low=0, high=5, size=(40, 40), dtype="int16")
         os.mkdir(os.path.join(temp_dir, 'fov0'))
-        io.imsave(os.path.join(temp_dir, 'fov0', 'chan0.tif'), channel_data)
+        io.imsave(os.path.join(temp_dir, 'fov0', 'chan0.tif'), channel_data,
+                  check_contrast=False)
 
         # bad consensus path passed
         with pytest.raises(FileNotFoundError):

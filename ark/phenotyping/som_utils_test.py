@@ -909,7 +909,8 @@ def test_create_pixel_matrix():
                             for fov in fovs:
                                 rand_img = np.random.randint(0, 16, size=(10, 10))
                                 file_name = fov + "_feature_0.tif"
-                                io.imsave(os.path.join(seg_dir, file_name), rand_img)
+                                io.imsave(os.path.join(seg_dir, file_name), rand_img,
+                                          check_contrast=False)
 
                             # pass invalid fov names (fails in load_imgs_from_tree)
                             with pytest.raises(FileNotFoundError):
