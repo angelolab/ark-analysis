@@ -21,3 +21,4 @@ tables>=3.6.1,<4
 umap-learn>=0.4.6,<1
 xarray>=0.12.3,<1
 tqdm>=4.54.1,<5
+imageio>=2.3.0
