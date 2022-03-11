@@ -1,4 +1,4 @@
-# hope u liek capital letters
+# hope u like capital letters
 
 # default segmented csv column names
 CELL_SIZE = 'cell_size'                     # cell size
