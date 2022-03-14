@@ -557,8 +557,10 @@ def test_generate_cell_data_tree_loading():
         for fov in range(cell_masks.shape[0]):
             fov_whole_cell = cell_masks[fov, :, :, 0]
             fov_nuclear = cell_masks[fov, :, :, 1]
-            io.imsave(os.path.join(temp_dir, 'fov%d_feature_0.tif' % fov), fov_whole_cell)
-            io.imsave(os.path.join(temp_dir, 'fov%d_feature_1.tif' % fov), fov_nuclear)
+            io.imsave(os.path.join(temp_dir, 'fov%d_feature_0.tif' % fov), fov_whole_cell,
+                      check_contrast=False)
+            io.imsave(os.path.join(temp_dir, 'fov%d_feature_1.tif' % fov), fov_nuclear,
+                      check_contrast=False)
 
         with pytest.raises(FileNotFoundError):
             # specifying fovs not in the original segmentation mask
@@ -648,8 +650,10 @@ def test_generate_cell_data_mibitiff_loading():
         for fov in range(cell_masks.shape[0]):
             fov_whole_cell = cell_masks[fov, :, :, 0]
             fov_nuclear = cell_masks[fov, :, :, 1]
-            io.imsave(os.path.join(temp_dir, 'fov%d_feature_0.tif' % fov), fov_whole_cell)
-            io.imsave(os.path.join(temp_dir, 'fov%d_feature_1.tif' % fov), fov_nuclear)
+            io.imsave(os.path.join(temp_dir, 'fov%d_feature_0.tif' % fov), fov_whole_cell,
+                      check_contrast=False)
+            io.imsave(os.path.join(temp_dir, 'fov%d_feature_1.tif' % fov), fov_nuclear,
+                      check_contrast=False)
 
         # generate sample norm and arcsinh data for all fovs
         norm_data_all_fov, arcsinh_data_all_fov = marker_quantification.generate_cell_table(
@@ -725,8 +729,10 @@ def test_generate_cell_data_extractions():
         for fov in range(cell_masks.shape[0]):
             fov_whole_cell = cell_masks[fov, :, :, 0]
             fov_nuclear = cell_masks[fov, :, :, 1]
-            io.imsave(os.path.join(temp_dir, 'fov%d_feature_0.tif' % fov), fov_whole_cell)
-            io.imsave(os.path.join(temp_dir, 'fov%d_feature_1.tif' % fov), fov_nuclear)
+            io.imsave(os.path.join(temp_dir, 'fov%d_feature_0.tif' % fov), fov_whole_cell,
+                      check_contrast=False)
+            io.imsave(os.path.join(temp_dir, 'fov%d_feature_1.tif' % fov), fov_nuclear,
+                      check_contrast=False)
 
         default_norm_data, _ = marker_quantification.generate_cell_table(
             segmentation_dir=temp_dir, tiff_dir=tiff_dir,

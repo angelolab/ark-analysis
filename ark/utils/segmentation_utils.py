@@ -221,7 +221,8 @@ def save_segmentation_labels(segmentation_dir, data_dir, output_dir,
         # save the labels respectively
         drive_write_out(
             path_join(output_dir, f'{fov}_segmentation_labels.tiff'),
-            lambda x: io.imsave(x, labels, plugin='tifffile')
+            lambda x: io.imsave(x, labels, plugin='tifffile',
+                                check_contrast=False)
         )
 
         # define borders of cells in mask
@@ -231,7 +232,8 @@ def save_segmentation_labels(segmentation_dir, data_dir, output_dir,
         # save the cell border image
         drive_write_out(
             path_join(output_dir, f'{fov}_segmentation_borders.tiff'),
-            lambda x: io.imsave(x, contour_mask, plugin='tifffile')
+            lambda x: io.imsave(x, contour_mask, plugin='tifffile',
+                                check_contrast=False)
         )
 
         # generate the channel overlay if specified
@@ -249,5 +251,6 @@ def save_segmentation_labels(segmentation_dir, data_dir, output_dir,
             save_path = '_'.join([f'{fov}', *chans.astype('str'), 'overlay.tiff'])
             drive_write_out(
                 path_join(output_dir, save_path),
-                lambda x: io.imsave(x, channel_overlay, plugin='tifffile')
+                lambda x: io.imsave(x, channel_overlay, plugin='tifffile',
+                                    check_contrast=False)
             )

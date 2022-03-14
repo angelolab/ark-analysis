@@ -179,13 +179,16 @@ def test_create_overlay():
 
     with tempfile.TemporaryDirectory() as temp_dir:
         # create the whole cell and nuclear segmentation label compartments
-        io.imsave(os.path.join(temp_dir, '%s_feature_0.tif' % fov), example_labels)
-        io.imsave(os.path.join(temp_dir, '%s_feature_1.tif' % fov), example_labels)
+        io.imsave(os.path.join(temp_dir, '%s_feature_0.tif' % fov), example_labels,
+                  check_contrast=False)
+        io.imsave(os.path.join(temp_dir, '%s_feature_1.tif' % fov), example_labels,
+                  check_contrast=False)
 
         # save the cell image
         img_dir = os.path.join(temp_dir, 'img_dir')
         os.mkdir(img_dir)
-        io.imsave(os.path.join(img_dir, '%s.tif' % fov), example_images)
+        io.imsave(os.path.join(img_dir, '%s.tif' % fov), example_images,
+                  check_contrast=False)
 
         # test with both nuclear and membrane specified
         contour_mask = plot_utils.create_overlay(
