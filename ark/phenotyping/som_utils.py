@@ -568,7 +568,7 @@ def create_fov_pixel_data(fov, channels, img_data, seg_labels,
 def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
                         img_sub_folder="TIFs", seg_suffix='_feature_0.tif',
                         pre_dir='pixel_mat_preprocessed',
-                        subset_dir='pixel_mat_subsetted', 
+                        subset_dir='pixel_mat_subsetted',
                         norm_vals_name='norm_vals.feather', is_mibitiff=False,
                         blur_factor=2, subset_proportion=0.1, dtype="int16", seed=42):
     """For each fov, add a Gaussian blur to each channel and normalize channel sums for each pixel
@@ -690,7 +690,7 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
 
     # get mean 99.9% across all fovs for all markers
     mean_quant = pd.DataFrame(quant_dat.mean(axis=1))
- 
+
     # save 99.9% normalization values
     feather.write_dataframe(mean_quant.T,
                             os.path.join(base_dir, norm_vals_name),
