@@ -56,8 +56,8 @@ if [ ! -z "$external" ]
   then
     docker run -it \
       -p $PORT:$PORT \
-      -e JUPYTER_PORT=$PORT\
-      -e JUPYTER_DIR=$JUPYTER_DIR\
+      -e JUPYTER_PORT=$PORT \
+      -e JUPYTER_DIR=$JUPYTER_DIR \
       -v "$PWD/ark:/usr/local/lib/python3.6/site-packages/ark" \
       -v "$PWD/scripts:/scripts" \
       -v "$PWD/data:/data" \
@@ -73,8 +73,8 @@ if [ ! -z "$external" ]
   else
     docker run -it \
       -p $PORT:$PORT \
-      -e JUPYTER_PORT=$PORT\
-      -e JUPYTER_DIR=$JUPYTER_DIR\
+      -e JUPYTER_PORT=$PORT \
+      -e JUPYTER_DIR=$JUPYTER_DIR \
       -v "$PWD/ark:/usr/local/lib/python3.6/site-packages/ark" \
       -v "$PWD/scripts:/scripts" \
       -v "$PWD/data:/data" \
