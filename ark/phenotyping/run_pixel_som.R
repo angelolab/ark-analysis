@@ -4,7 +4,7 @@
 
 # - fovs: list of fovs to cluster
 # - pixelMatDir: path to directory containing the complete pixel data
-# - normValsPath: path to the 99.9% normalized values file
+# - normValsPath: path to the 99.9% normalization values file (created during preprocessing)
 # - pixelWeightsPath: path to the SOM weights file
 # - pixelClusterDir: path to directory where the clustered data will be written to
 
@@ -34,26 +34,32 @@ pixelClusterDir <- args[5]
 somWeights <- as.matrix(arrow::read_feather(pixelWeightsPath))
 
 # read the normalization values
-normVals <- as.matrix(arrow::read_feather(normValsPath))
+normVals <- data.table(arrow::read_feather(normValsPath))
 
 # get the marker names from the weights matrix
 markers <- colnames(somWeights)
+
+# set order of normVals to make sure they match with weights
+normVals <- normVals[,..markers]
 
 # using trained SOM, batch cluster the original dataset by fov
 print("Mapping data to cluster labels")
 for (i in 1:length(fovs)) {
     # read in pixel data
-    fileName <- file.path(fovs[i], "feather", fsep=".")
+    fileName <- paste0(fovs[i], ".feather")
     matPath <- file.path(pixelMatDir, fileName)
-    fovPixelData <- arrow::read_feather(matPath)
+    fovPixelData_all <- data.table(arrow::read_feather(matPath))
 
-    # 99.9% normalize pixel data based on values computed for subsetted pixel data in train_pixel_som
-    for (marker in markers) {
-        fovPixelData[,marker] <- fovPixelData[,marker] / normVals[1, marker]
-    }
+    # 99.9% normalization
+    fovPixelData <- fovPixelData_all[,..markers]
+    fovPixelData <- fovPixelData[,Map(`/`,.SD,normVals)]
 
     # map FlowSOM data
-    clusters <- FlowSOM:::MapDataToCodes(somWeights, as.matrix(fovPixelData[,markers]))
+    clusters <- FlowSOM:::MapDataToCodes(somWeights, as.matrix(fovPixelData))
+
+    # add back other columns
+    to_add <- colnames(fovPixelData_all)[!colnames(fovPixelData_all) %in% markers]
+    fovPixelData <- cbind(fovPixelData_all[,..to_add],fovPixelData)
 
     # assign cluster labels column to pixel data
     fovPixelData$pixel_som_cluster <- as.integer(clusters[,1])

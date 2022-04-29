@@ -568,7 +568,8 @@ def create_fov_pixel_data(fov, channels, img_data, seg_labels,
 def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
                         img_sub_folder="TIFs", seg_suffix='_feature_0.tif',
                         pre_dir='pixel_mat_preprocessed',
-                        subset_dir='pixel_mat_subsetted', is_mibitiff=False,
+                        subset_dir='pixel_mat_subsetted', 
+                        norm_vals_name='norm_vals.feather', is_mibitiff=False,
                         blur_factor=2, subset_proportion=0.1, dtype="int16", seed=42):
     """For each fov, add a Gaussian blur to each channel and normalize channel sums for each pixel
 
@@ -596,6 +597,8 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
             Name of the directory which contains the preprocessed pixel data
         subset_dir (str):
             The name of the directory containing the subsetted pixel data
+        norm_vals_name (str):
+            The name of the file to store the 99.9% normalization values
         is_mibitiff (bool):
             Whether to load the images from MIBITiff
         blur_factor (int):
@@ -627,6 +630,9 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
     # create subset_dir if it doesn't already exist
     if not os.path.exists(os.path.join(base_dir, subset_dir)):
         os.mkdir(os.path.join(base_dir, subset_dir))
+
+    # create variable for storing 99.9% values
+    quant_dat = pd.DataFrame()
 
     # set seed for subsetting
     np.random.seed(seed)
@@ -665,6 +671,9 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
             blur_factor=blur_factor, subset_proportion=subset_proportion
         )
 
+        # get 99.9% of the full fov matrix
+        quant_dat[fov] = pixel_mat[channels].replace(0, np.nan).quantile(q=0.999, axis=0)
+
         # write complete dataset to feather, needed for cluster assignment
         feather.write_dataframe(pixel_mat,
                                 os.path.join(base_dir,
@@ -679,11 +688,19 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
                                              fov + ".feather"),
                                 compression='uncompressed')
 
+    # get mean 99.9% across all fovs for all markers
+    mean_quant = pd.DataFrame(quant_dat.mean(axis=1))
+ 
+    # save 99.9% normalization values
+    feather.write_dataframe(mean_quant.T,
+                            os.path.join(base_dir, norm_vals_name),
+                            compression='uncompressed')
+
 
 def train_pixel_som(fovs, channels, base_dir,
                     subset_dir='pixel_mat_subsetted', norm_vals_name='norm_vals.feather',
                     weights_name='pixel_weights.feather', xdim=10, ydim=10,
-                    lr_start=0.05, lr_end=0.01, num_passes=1, seed=42):
+                    lr_start=0.05, lr_end=0.01, num_passes=1, seed=42, batch_size=1):
     """Run the SOM training on the subsetted pixel data.
 
     Saves weights to `base_dir/weights_name`.
@@ -698,7 +715,7 @@ def train_pixel_som(fovs, channels, base_dir,
         subset_dir (str):
             The name of the subsetted data directory
         norm_vals_name (str):
-            The name of the file to store the 99.9% normalized values
+            The name of the file to store the 99.9% normalization values
         weights_name (str):
             The name of the file to save the weights to
         xdim (int):
@@ -713,6 +730,8 @@ def train_pixel_som(fovs, channels, base_dir,
             The number of training passes to make through the dataset
         seed (int):
             The random seed to set for training
+        batch_size(int):
+            The number of fovs that will be run through the SOM at once
     """
 
     # define the paths to the data
@@ -738,7 +757,7 @@ def train_pixel_som(fovs, channels, base_dir,
     # run the SOM training process
     process_args = ['Rscript', '/create_pixel_som.R', ','.join(fovs), ','.join(channels),
                     str(xdim), str(ydim), str(lr_start), str(lr_end), str(num_passes),
-                    subsetted_path, norm_vals_path, weights_path, str(seed)]
+                    subsetted_path, norm_vals_path, weights_path, str(seed), str(batch_size)]
 
     process = subprocess.Popen(process_args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
