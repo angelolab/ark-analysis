@@ -507,7 +507,7 @@ def create_c2pc_data(fovs, pixel_consensus_path,
 
 
 def create_fov_pixel_data(fov, channels, img_data, seg_labels,
-                          blur_factor=2, subset_proportion=0.1, seed=42):
+                          blur_factor=2, subset_proportion=0.1):
     """Preprocess pixel data for one fov
 
     Args:
@@ -523,8 +523,6 @@ def create_fov_pixel_data(fov, channels, img_data, seg_labels,
             The sigma to set for the Gaussian blur
         subset_proportion (float):
             The proportion of pixels to take from each fov
-        seed (int):
-            The random seed to set for subsetting
 
     Returns:
         tuple:
@@ -562,7 +560,7 @@ def create_fov_pixel_data(fov, channels, img_data, seg_labels,
     pixel_mat = normalize_rows(pixel_mat, channels, seg_labels is not None)
 
     # subset the pixel matrix for training
-    pixel_mat_subset = pixel_mat.sample(frac=subset_proportion, random_state=seed)
+    pixel_mat_subset = pixel_mat.sample(frac=subset_proportion)
 
     return pixel_mat, pixel_mat_subset
 
@@ -630,6 +628,9 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
     if not os.path.exists(os.path.join(base_dir, subset_dir)):
         os.mkdir(os.path.join(base_dir, subset_dir))
 
+    # set seed for subsetting
+    np.random.seed(seed)
+
     # iterate over fov_batches
     for fov in fovs:
         # load img_xr from MIBITiff or directory with the fov
@@ -661,7 +662,7 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
         # create the full and subsetted fov matrices
         pixel_mat, pixel_mat_subset = create_fov_pixel_data(
             fov=fov, channels=channels, img_data=img_data, seg_labels=seg_labels,
-            blur_factor=blur_factor, subset_proportion=subset_proportion, seed=seed
+            blur_factor=blur_factor, subset_proportion=subset_proportion
         )
 
         # write complete dataset to feather, needed for cluster assignment
