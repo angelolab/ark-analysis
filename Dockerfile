@@ -2,14 +2,27 @@ FROM python:3.6
 
 # system maintenance
 RUN apt-get update
+
+# install dependencies needed for setting up R
 RUN apt-get install -y lsb-release dirmngr gnupg apt-transport-https ca-certificates software-properties-common
+
+# get the Linux distro info, use this to set the right R download
 RUN lsb_release -a
-RUN apt-get install -y libcurl4
+
+# set up the key for adding the R repo
 RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E298A3A825C0D65DFD57CBB651716619E084DAB9
+
+# add the correct Linux R repo
 RUN add-apt-repository 'deb https://cloud.r-project.org/bin/linux/ubuntu bullseye-cran40/'
+
+# ensure the previous command added the right line to the sources.list files
 RUN cat /etc/apt/sources.list
 RUN cat /etc/apt/sources.list.d
+
+# re-update based on previous setup
 RUN apt-get update && apt-get -y upgrade
+
+# install gcc and R
 RUN apt-get install -y gcc r-base
 
 WORKDIR /scripts
