@@ -5,10 +5,11 @@ import skimage.io as io
 import numpy as np
 import xarray as xr
 
+from pathlib import Path
 from ark import settings
 from ark.utils import load_utils
 from ark.utils.misc_utils import verify_in_list
-from ark.utils.google_drive_utils import GoogleDrivePath, drive_write_out, path_join
+# from ark.utils.google_drive_utils import GoogleDrivePath, drive_write_out, path_join
 
 
 def save_fov_images(fovs, data_dir, img_xr, name_suffix=''):
@@ -340,12 +341,16 @@ def generate_deepcell_input(data_dir, tiff_dir, nuc_channels, mem_channels, fovs
                 out[0] = np.sum(data_xr.loc[fov, :, :, nuc_channels].values, axis=2)
             if mem_channels:
                 out[1] = np.sum(data_xr.loc[fov, :, :, mem_channels].values, axis=2)
-
-            save_path = path_join(data_dir, f'{fov}.tif')
-            drive_write_out(
-                save_path,
-                lambda x: io.imsave(x, out, plugin='tifffile', check_contrast=False)
-            )
+           
+            # ! Deprecated
+            # save_path = path_join(data_dir, f'{fov}.tif')
+            # drive_write_out(
+            #     save_path,
+            #     lambda x: io.imsave(x, out, plugin='tifffile', check_contrast=False)
+            # )
+            
+            save_path = Path(data_dir, f'{fov}.tif')
+            io.imsave(save_path, out, plugin='tifffile', check_contrast=False)
 
 
 def stitch_images(data_xr, num_cols):
@@ -410,19 +415,26 @@ def split_img_stack(stack_dir, output_dir, stack_list, indices, names, channels_
     """
 
     for stack_name in stack_list:
-        img_stack = io.imread(path_join(stack_dir, stack_name))
-        img_dir = path_join(output_dir, os.path.splitext(stack_name)[0])
-        if type(img_dir) is GoogleDrivePath:
-            img_dir.mkdir()
-        else:
-            os.makedirs(img_dir)
+        # ! Deprecated
+        # img_stack = io.imread(path_join(stack_dir, stack_name))
+        # img_dir = path_join(output_dir, os.path.splitext(stack_name)[0])
+        # if type(img_dir) is GoogleDrivePath:
+        #     img_dir.mkdir()
+        # else:
+        img_stack = io.imread(Path(stack_dir, stack_name))
+        img_dir = Path(output_dir, os.path.splittext(stack_name)[0])
+        os.makedirs(img_dir)
 
         for i in range(len(indices)):
             if channels_first:
                 channel = img_stack[indices[i], ...]
             else:
                 channel = img_stack[..., indices[i]]
-            drive_write_out(
-                path_join(img_dir, names[i]),
-                lambda x: io.imsave(x, channel, plugin='tifffile', check_contrast=False)
-            )
+            # ! Deprecated
+            # drive_write_out(
+            #     path_join(img_dir, names[i]),
+            #     lambda x: io.imsave(x, channel, plugin='tifffile', check_contrast=False)
+            # )
+            
+            save_path = Path(img_dir, names[i])
+            io.imsave(save_path, channel, plugin="tifffile", check_contrast=False)

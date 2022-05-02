@@ -2,7 +2,7 @@ import os
 import pathlib
 import warnings
 
-from ark.utils.google_drive_utils import GoogleDrivePath
+# from ark.utils.google_drive_utils import GoogleDrivePath
 
 
 def validate_paths(paths, data_prefix=True):
@@ -24,8 +24,9 @@ def validate_paths(paths, data_prefix=True):
         paths = [paths]
 
     for path in paths:
-        if type(path) is GoogleDrivePath:
-            continue
+        # ! Deprecated
+        # if type(path) is GoogleDrivePath:
+        #     continue
         if not os.path.exists(path):
             if str(path).startswith('../data') or not data_prefix:
                 for parent in reversed(pathlib.Path(path).parents):
@@ -61,12 +62,14 @@ def list_files(dir_name, substrs=None, exact_match=False, ignore_hidden=True):
         list:
             List of files containing at least one of the substrings
     """
-
-    if type(dir_name) is not GoogleDrivePath:
-        files = os.listdir(dir_name)
-        files = [file for file in files if not os.path.isdir(os.path.join(dir_name, file))]
-    else:
-        files = dir_name.lsfiles()
+    # ! Deprecated
+    # if type(dir_name) is not GoogleDrivePath:
+    #     files = os.listdir(dir_name)
+    #     files = [file for file in files if not os.path.isdir(os.path.join(dir_name, file))]
+    # else:
+    #     files = dir_name.lsfiles()
+    files = os.listdir(dir_name)
+    files = [file for file in files if not os.path.isdir(os.path.join(dir_name, file))]
 
     # Filter out hidden files
     if ignore_hidden:
@@ -202,12 +205,14 @@ def list_folders(dir_name, substrs=None, exact_match=False, ignore_hidden=True):
         list:
             List of folders containing at least one of the substrings
     """
-
-    if type(dir_name) is not GoogleDrivePath:
-        files = os.listdir(dir_name)
-        folders = [file for file in files if os.path.isdir(os.path.join(dir_name, file))]
-    else:
-        folders = dir_name.lsdirs()
+    # ! Deprecated
+    # if type(dir_name) is not GoogleDrivePath:
+    #     files = os.listdir(dir_name)
+    #     files = [file for file in files if not os.path.isdir(os.path.join(dir_name, file))]
+    # else:
+    #     files = dir_name.lsfiles()
+    files = os.listdir(dir_name)
+    files = [file for file in files if not os.path.isdir(os.path.join(dir_name, file))]
 
     # Filter out hidden directories
     if ignore_hidden:
@@ -251,4 +256,6 @@ def getmtime(filepath):
         int:
             Last modified time
     """
-    return filepath.getmtime() if type(filepath) is GoogleDrivePath else os.path.getmtime(filepath)
+    # ! Deprecated
+    # return filepath.getmtime() if type(filepath) is GoogleDrivePath else os.path.getmtime(filepath)
+    return os.path.getmtime(filepath)
