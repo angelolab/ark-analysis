@@ -3,7 +3,7 @@ FROM python:3.6
 # system maintenance
 RUN apt-get update
 RUN apt-get install -y dirmngr gnupg apt-transport-https ca-certificates software-properties-common
-RUN apt-get install libc6 libcurl4 libicu60-dev libreadline7
+RUN apt-get install libcurl3 libjpeg8 libpng12 libreadline6
 RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E298A3A825C0D65DFD57CBB651716619E084DAB9
 RUN add-apt-repository 'deb https://cloud.r-project.org/bin/linux/ubuntu xenial-cran40/'
 RUN cat /etc/apt/sources.list
