@@ -17,7 +17,6 @@ RUN add-apt-repository 'deb https://cloud.r-project.org/bin/linux/ubuntu bullsey
 
 # ensure the previous command added the right line to the sources.list files
 RUN cat /etc/apt/sources.list
-RUN cat /etc/apt/sources.list.d
 
 # re-update based on previous setup
 RUN apt-get update && apt-get -y upgrade
