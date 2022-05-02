@@ -6,7 +6,7 @@ RUN apt-get install -y lsb-release dirmngr gnupg apt-transport-https ca-certific
 RUN lsb_release -a
 RUN apt-get install -y libcurl4
 RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E298A3A825C0D65DFD57CBB651716619E084DAB9
-RUN add-apt-repository 'deb https://cloud.r-project.org/bin/linux/ubuntu xenial-cran40/'
+RUN add-apt-repository 'deb https://cloud.r-project.org/bin/linux/ubuntu bullseye-cran40/'
 RUN cat /etc/apt/sources.list
 RUN cat /etc/apt/sources.list.d
 RUN apt-get update && apt-get -y upgrade
