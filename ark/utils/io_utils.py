@@ -257,5 +257,6 @@ def getmtime(filepath):
             Last modified time
     """
     # ! Deprecated
-    # return filepath.getmtime() if type(filepath) is GoogleDrivePath else os.path.getmtime(filepath)
+    # return filepath.getmtime() if type(filepath) /
+    # is GoogleDrivePath else os.path.getmtime(filepath)
     return os.path.getmtime(filepath)

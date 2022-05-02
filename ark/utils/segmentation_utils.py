@@ -261,8 +261,7 @@ def save_segmentation_labels(segmentation_dir, data_dir, output_dir,
             #     lambda x: io.imsave(x, channel_overlay, plugin='tifffile',
             #                         check_contrast=False)
             # )
-            
+
             save_path = '_'.join([f'{fov}', *chans.astype('str'), 'overlay.tiff'])
             save_path_channel = Path(output_dir, save_path)
             io.imsave(save_path_channel, channel_overlay, plugin="tifffile", check_contrast=False)
-            

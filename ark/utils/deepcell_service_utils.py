@@ -100,7 +100,7 @@ def create_deepcell_output(
 
     # partition fovs for smaller zip file batching
     fov_groups = [
-        fovs[zip_size * i : zip_size * (i + 1)]
+        fovs[zip_size * i: zip_size * (i + 1)]
         for i in range(((len(fovs) + zip_size - 1) // zip_size))
     ]
 

@@ -147,8 +147,8 @@ def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, channels=None,
 
         all_channels = iou.list_files(
             # ! Deprecated
-            # path_join(data_dir, fovs[0], img_sub_folder), 
-            dir_name = Path(data_dir, fovs[0], img_sub_folder),
+            # path_join(data_dir, fovs[0], img_sub_folder),
+            dir_name=Path(data_dir, fovs[0], img_sub_folder),
             substrs=channels_no_delim,
             exact_match=True
         )
@@ -284,7 +284,7 @@ def load_imgs_from_dir(data_dir, files=None, match_substring=None, trim_suffix=N
         raise ValueError(f"No images found in directory, {data_dir}")
 
     test_img = io.imread(
-        # ! Deprecated 
+        # ! Deprecated
         Path(data_dir, imgs[0])
         # path_join(data_dir, imgs[0], get_filehandle=True)
         )
