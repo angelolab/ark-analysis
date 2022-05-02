@@ -6,7 +6,7 @@ RUN apt-get install -y dirmngr gnupg apt-transport-https ca-certificates softwar
 RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E298A3A825C0D65DFD57CBB651716619E084DAB9
 RUN add-apt-repository 'deb https://cloud.r-project.org/bin/linux/ubuntu xenial-cran40/'
 RUN cat /etc/apt/sources.list
-RUN apt-get update && apt-get upgrade
+RUN apt-get update && apt-get -y upgrade
 RUN apt-get install -y gcc r-base
 
 WORKDIR /scripts
