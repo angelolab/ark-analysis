@@ -39,7 +39,7 @@ jobs:
       script:
         - "travis_wait 20 sleep 1200 &"
         - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin 
-        - docker build -t "$TRAVIS_REPO_SLUG" . 1> /dev/null
+        - travis_wait 60 docker build -t "$TRAVIS_REPO_SLUG" . 1> /dev/null
         - docker tag "$TRAVIS_REPO_SLUG" "$TRAVIS_REPO_SLUG":latest
         - docker tag "$TRAVIS_REPO_SLUG" "$TRAVIS_REPO_SLUG":"${TRAVIS_TAG}"
         - docker push "$TRAVIS_REPO_SLUG"
