@@ -263,11 +263,11 @@ def verify_same_elements(enforce_order=False, warn=False, **kwargs):
 
         if warn:
             warnings.warn(err_str % (list_one_name, list_two_name,
-                                    list_one_cast[first_bad_index],
-                                    list_two_cast[first_bad_index],
-                                    first_bad_index))
+                                     list_one_cast[first_bad_index],
+                                     list_two_cast[first_bad_index],
+                                     first_bad_index))
         else:
             raise ValueError(err_str % (list_one_name, list_two_name,
-                                    list_one_cast[first_bad_index],
-                                    list_two_cast[first_bad_index],
-                                    first_bad_index))
+                                        list_one_cast[first_bad_index],
+                                        list_two_cast[first_bad_index],
+                                        first_bad_index))
