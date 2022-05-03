@@ -2,10 +2,13 @@ FROM python:3.6
 FROM ubuntu:16.04
 
 # system maintenance
-# RUN apt-get update
+RUN apt-get update
 
 # install dependencies needed for setting up R
 # RUN apt-get install -y lsb-release dirmngr gnupg apt-transport-https ca-certificates software-properties-common
+
+# install the package needed for add-apt-repository
+RUN apt-get install software-properties-common
 
 # get the Linux distro info, use this to set the right R download
 # RUN lsb_release -a
