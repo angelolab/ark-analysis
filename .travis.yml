@@ -37,7 +37,6 @@ jobs:
       if: branch = master
       python: 3.6
       script:
-        - "travis_wait 20 sleep 1200 &"
         - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin 
         - travis_wait 60 docker build -t "$TRAVIS_REPO_SLUG" . 1> /dev/null
         - docker tag "$TRAVIS_REPO_SLUG" "$TRAVIS_REPO_SLUG":latest
