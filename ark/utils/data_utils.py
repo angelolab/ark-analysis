@@ -1,5 +1,6 @@
 import os
 import math
+import feather
 import skimage.io as io
 import numpy as np
 import xarray as xr
@@ -8,6 +9,40 @@ from ark import settings
 from ark.utils import load_utils
 from ark.utils.misc_utils import verify_in_list
 from ark.utils.google_drive_utils import GoogleDrivePath, drive_write_out, path_join
+
+
+def save_fov_images(fovs, data_dir, img_xr, name_suffix=''):
+    """Given an xarray of images per fov, saves each image separately
+
+    Args:
+        fovs (list):
+            List of fovs to save in img_xr
+        data_dir (str):
+            The directory to save the images
+        img_xr (xarray.DataArray):
+            The array of images per fov
+        name_suffix (str):
+            Specify what to append at the end of every fov
+    """
+
+    if not os.path.exists(data_dir):
+        raise FileNotFoundError("data_dir %s does not exist" % data_dir)
+
+    # verify that the fovs provided are valid
+    verify_in_list(
+        provided_fovs=fovs,
+        img_xr_fovs=img_xr.fovs.values
+    )
+
+    for fov in fovs:
+        # retrieve the image for the fov
+        fov_img_data = img_xr.loc[fov, ...].values
+
+        # define the file name as the fov name with the name suffix appended
+        fov_file = fov + name_suffix + '.tiff'
+
+        # save the image to data_dir
+        io.imsave(os.path.join(data_dir, fov_file), fov_img_data, check_contrast=False)
 
 
 def label_cells_by_cluster(fovs, all_data, label_maps, fov_col=settings.FOV_ID,
@@ -23,7 +58,7 @@ def label_cells_by_cluster(fovs, all_data, label_maps, fov_col=settings.FOV_ID,
             List of fovs to relabel.
         all_data (pandas.DataFrame):
             data including fovs, cell labels, and cell expression matrix for all markers.
-        label_maps (xr.DataArray):
+        label_maps (xarray.DataArray):
             xarray of label maps for multiple fovs
         fov_col (str):
             column with the fovs names in all_data.
@@ -31,8 +66,9 @@ def label_cells_by_cluster(fovs, all_data, label_maps, fov_col=settings.FOV_ID,
             column with the cell labels in all_data.
         cluster_column (str):
             column with the cluster labels in all_data.
+
     Returns:
-        xr.DataArray:
+        xarray.DataArray:
             The relabeled images (dims: ["fovs", "rows", "cols"]).
     """
 
@@ -45,9 +81,168 @@ def label_cells_by_cluster(fovs, all_data, label_maps, fov_col=settings.FOV_ID,
         df = all_data[all_data[fov_col] == fov]
         labels_dict = dict(zip(df[cell_label_column], df[cluster_column]))
         labeled_img_array = label_maps.loc[label_maps.fovs == fov].squeeze().values
+
         relabeled_img_array = relabel_segmentation(labeled_img_array, labels_dict)
         img_data.append(relabeled_img_array)
-    np.stack(img_data, axis=0)
+
+    return xr.DataArray(img_data, coords=[fovs, range(img_data[0].shape[0]),
+                                          range(img_data[0].shape[1])],
+                        dims=["fovs", "rows", "cols"])
+
+
+def generate_cell_cluster_mask(fovs, base_dir, seg_dir, cell_consensus_name,
+                               cell_cluster_col='cell_meta_cluster', seg_suffix='_feature_0.tif'):
+    """For each fov, create a mask labeling each cell with their SOM or meta cluster label
+
+    Args:
+        fovs (list):
+            List of fovs to relabel
+        base_dir (str):
+            The path to the data directory
+        seg_dir (str):
+            The path to the segmentation data
+        cell_consensus_name (str):
+            The path to the data with both cell SOM and meta cluster assignments
+        cell_cluster_col (str):
+            Whether to assign SOM or meta clusters.
+            Needs to be `'cell_som_cluster'` or `'cell_meta_cluster'`
+        seg_suffix (str):
+            The suffix that the segmentation images use
+
+    Returns:
+        xarray.DataArray:
+            The labeled images (dims: ["fovs", "rows", "cols"])
+    """
+
+    # path checking
+    if not os.path.exists(seg_dir):
+        raise FileNotFoundError("seg_dir %s does not exist" % seg_dir)
+
+    if not os.path.exists(os.path.join(base_dir, cell_consensus_name)):
+        raise FileNotFoundError(
+            "consensus_dir %s does not exist in base_dir %s" % (cell_consensus_name, base_dir)
+        )
+
+    # verify the cluster_col provided is valid
+    verify_in_list(
+        provided_cluster_col=cell_cluster_col,
+        valid_cluster_cols=['cell_som_cluster', 'cell_meta_cluster']
+    )
+
+    # load the consensus data in
+    cell_consensus_data = feather.read_dataframe(os.path.join(base_dir, cell_consensus_name))
+
+    # ensure the cluster col will be displayed as an integer and not a float
+    cell_consensus_data[cell_cluster_col] = cell_consensus_data[cell_cluster_col].astype(int)
+
+    # verify all the fovs are valid
+    verify_in_list(
+        provided_fovs=fovs,
+        consensus_fovs=cell_consensus_data['fov']
+    )
+
+    # define the files for whole cell and nuclear
+    whole_cell_files = [fov + seg_suffix for fov in fovs]
+
+    # load the segmentation labels in
+    label_maps = load_utils.load_imgs_from_dir(data_dir=seg_dir,
+                                               files=whole_cell_files,
+                                               xr_dim_name='compartments',
+                                               xr_channel_names=['whole_cell'],
+                                               trim_suffix=seg_suffix.split('.')[0],
+                                               force_ints=True)
+
+    # use label_cells_by_cluster to create cell masks
+    img_data = label_cells_by_cluster(
+        fovs, cell_consensus_data, label_maps, fov_col='fov',
+        cell_label_column='segmentation_label', cluster_column=cell_cluster_col
+    )
+
+    return img_data
+
+
+def generate_pixel_cluster_mask(fovs, base_dir, tiff_dir, chan_file,
+                                pixel_consensus_dir, pixel_cluster_col='pixel_meta_cluster'):
+    """For each fov, create a mask labeling each pixel with their SOM or meta cluster label
+
+    Args:
+        fovs (list):
+            List of fovs to relabel
+        base_dir (str):
+            The path to the data directory
+        tiff_dir (str):
+            The path to the tiff data
+        chan_file (str):
+            The path to the sample channel file to load (assuming `tiff_dir` as root)
+            Only used to determine dimensions of the pixel mask.
+        pixel_consensus_dir (str):
+            The path to the data with both pixel SOM and meta cluster assignments
+        pixel_cluster_col (str):
+            Whether to assign SOM or meta clusters
+            needs to be `'pixel_som_cluster'` or `'pixel_meta_cluster'`
+
+    Returns:
+        xarray.DataArray:
+            The labeled images (dims: ["fovs", "rows", "cols"])
+    """
+
+    # path checking
+    if not os.path.exists(tiff_dir):
+        raise FileNotFoundError("tiff_dir %s does not exist")
+
+    if not os.path.exists(os.path.join(tiff_dir, chan_file)):
+        raise FileNotFoundError("chan_file %s does not exist in tiff_dir %s"
+                                % (chan_file, tiff_dir))
+
+    if not os.path.exists(os.path.join(base_dir, pixel_consensus_dir)):
+        raise FileNotFoundError(
+            "consensus_dir %s does not exist in base_dir %s" % (pixel_consensus_dir, base_dir)
+        )
+
+    # verify the pixel_cluster_col provided is valid
+    verify_in_list(
+        provided_cluster_col=[pixel_cluster_col],
+        valid_cluster_cols=['pixel_som_cluster', 'pixel_meta_cluster']
+    )
+
+    # verify all the fovs are valid
+    verify_in_list(
+        provided_fov_files=[fov + '.feather' for fov in fovs],
+        consensus_fov_files=os.listdir(os.path.join(base_dir, pixel_consensus_dir))
+    )
+
+    # define a list to hold the overlays for each fov
+    img_data = []
+
+    for fov in fovs:
+        # read the pixel data for the fov
+        fov_data = feather.read_dataframe(
+            os.path.join(base_dir, pixel_consensus_dir, fov + '.feather')
+        )
+
+        # ensure integer display and not float
+        fov_data[pixel_cluster_col] = fov_data[pixel_cluster_col].astype(int)
+
+        # read the sample channel file to determine size of pixel cluster mask
+        channel_data = np.squeeze(io.imread(os.path.join(tiff_dir, chan_file)))
+
+        # define a pixel cluster mask with the same dimensions as seg_mask
+        pixel_cluster_mask = np.zeros(channel_data.shape)
+
+        # get the pixel coordinates
+        x_coords = list(fov_data['row_index'])
+        y_coords = list(fov_data['column_index'])
+
+        # get the cooresponding cluster labels for each pixel
+        cluster_labels = list(fov_data[pixel_cluster_col])
+
+        # assign each coordinate in pixel_cluster_mask to its respective cluster label
+        pixel_cluster_mask[x_coords, y_coords] = cluster_labels
+
+        # add the processed fov to the data
+        img_data.append(pixel_cluster_mask)
+
+    # create the stacked img_data xarray and return
     return xr.DataArray(img_data, coords=[fovs, range(img_data[0].shape[0]),
                                           range(img_data[0].shape[1])],
                         dims=["fovs", "rows", "cols"])
@@ -229,5 +424,5 @@ def split_img_stack(stack_dir, output_dir, stack_list, indices, names, channels_
                 channel = img_stack[..., indices[i]]
             drive_write_out(
                 path_join(img_dir, names[i]),
-                lambda x: io.imsave(x, channel, plugin='tifffile')
+                lambda x: io.imsave(x, channel, plugin='tifffile', check_contrast=False)
             )

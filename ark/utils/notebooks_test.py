@@ -7,13 +7,17 @@ from tempfile import TemporaryDirectory as tdir
 
 from ark.utils import notebooks_test_utils
 
+import pytest
+parametrize = pytest.mark.parametrize
+
 
 SEGMENT_IMAGE_DATA_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                        '..', '..', 'templates_ark',
                                        'Segment_Image_Data.ipynb')
-QC_METRIC_COMP_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                   '..', '..', 'templates_qc',
-                                   'example_qc_metric_eval.ipynb')
+PIXEL_CLUSTER_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                                  '..', '..', 'templates_ark', 'example_pixel_clustering.ipynb')
+CELL_CLUSTER_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                                 '..', '..', 'templates_ark', 'example_cell_clustering.ipynb')
 
 
 def _exec_notebook(nb_filename, base_folder):
@@ -39,16 +43,12 @@ def test_example_neighborhood_analysis():
     _exec_notebook('example_neighborhood_analysis_script.ipynb', 'templates_ark')
 
 
-def test_example_qc_metrics_comp():
-    _exec_notebook('example_qc_metric_eval.ipynb', 'templates_qc')
-
-
 # test mibitiff inputs for image segmentation
 # NOTE: 6000 seconds = default timeout on Travis
 @testbook(SEGMENT_IMAGE_DATA_PATH, timeout=6000)
 def test_segment_image_data_mibitiff(tb):
     with tdir() as tiff_dir, tdir() as input_dir, tdir() as output_dir, \
-         tdir() as single_cell_dir, tdir() as viz_dir:
+            tdir() as single_cell_dir, tdir() as viz_dir:
         # create input files
         notebooks_test_utils.segment_notebook_setup(tb,
                                                     deepcell_tiff_dir=tiff_dir,
@@ -89,7 +89,7 @@ def test_segment_image_data_mibitiff(tb):
 @testbook(SEGMENT_IMAGE_DATA_PATH, timeout=6000)
 def test_segment_image_data_folder(tb):
     with tdir() as tiff_dir, tdir() as input_dir, tdir() as output_dir, \
-         tdir() as single_cell_dir, tdir() as viz_dir:
+            tdir() as single_cell_dir, tdir() as viz_dir:
         # create input files
         notebooks_test_utils.segment_notebook_setup(tb,
                                                     deepcell_tiff_dir=tiff_dir,
@@ -108,7 +108,8 @@ def test_segment_image_data_folder(tb):
         # generate _feature_0 and _feature_1 tif files normally handled by create_deepcell_output
         notebooks_test_utils.generate_sample_feature_tifs(
             fovs=['fov0', 'fov1'],
-            deepcell_output_dir=output_dir)
+            deepcell_output_dir=output_dir
+        )
 
         # saves the segmentation mask overlay without channels
         notebooks_test_utils.overlay_mask(tb)
@@ -123,15 +124,41 @@ def test_segment_image_data_folder(tb):
         notebooks_test_utils.create_exp_mat(tb, nuclear_counts=True)
 
 
-# test for qc metric computation
-@testbook(QC_METRIC_COMP_PATH, timeout=6000)
-def test_qc_metric_comp(tb):
+# TODO: if needed, add MIBItiff tests
+@testbook(PIXEL_CLUSTER_PATH, timeout=6000)
+@parametrize('create_seg_dir', [True, False])
+def test_pixel_clustering_folder(tb, create_seg_dir):
     with tdir() as base_dir:
-        # define QC metric notebook params
-        notebooks_test_utils.qc_notebook_setup(
-            tb, base_dir, 'sample_tiff_dir',
-            fovs=['Point1', 'Point2'], chans=['Au', 'Ca']
+        # setup the clustering process (also runs preprocessing)
+        fovs, chans = notebooks_test_utils.flowsom_pixel_setup(
+            tb, base_dir, create_seg_dir=create_seg_dir
         )
 
-        # run QC metric process (MIBItracker download and QC metric analysis)
-        notebooks_test_utils.run_qc_comp(tb, gauss_blur=True)
+        # mock the clustering process
+        notebooks_test_utils.flowsom_pixel_cluster(
+            tb, base_dir, fovs, chans, create_seg_dir=create_seg_dir
+        )
+
+        notebooks_test_utils.flowsom_pixel_visualize(
+            tb, base_dir, fovs
+        )
+
+
+@testbook(CELL_CLUSTER_PATH, timeout=6000)
+@parametrize('pixel_cluster_col', ['pixel_meta_cluster_rename', 'pixel_som_cluster'])
+def test_cell_clustering(tb, pixel_cluster_col):
+    with tdir() as base_dir:
+        # setup the clustering process
+        fovs, chans = notebooks_test_utils.flowsom_cell_setup(
+            tb, base_dir, 'sample_pixel_dir', pixel_cluster_col=pixel_cluster_col
+        )
+
+        # mock the clustering process
+        notebooks_test_utils.flowsom_cell_cluster(
+            tb, base_dir, fovs, chans, pixel_cluster_col=pixel_cluster_col
+        )
+
+        # run the visualization and remapping process
+        notebooks_test_utils.flowsom_cell_visualize(
+            tb, base_dir, fovs, pixel_cluster_col=pixel_cluster_col
+        )

@@ -5,11 +5,9 @@ from setuptools import setup, find_packages
 
 VERSION = '0.2.10'
 
-
 # set a long description which is basically the README
 with open(path.join(path.abspath(path.dirname(__file__)), 'README.md')) as f:
     long_description = f.read()
-
 
 setup(
     name='ark-analysis',
@@ -21,13 +19,14 @@ setup(
     url='https://github.com/angelolab/ark-analysis',
     download_url='https://github.com/angelolab/ark-analysis/archive/v{}.tar.gz'.format(VERSION),
     install_requires=['cryptography>=3.4.8,<4',
+                      'feather_format>=0.4.1,<1',
                       'google-api-python-client>=2.7.0,<3',
                       'google-auth-httplib2>=0.1.0,<1',
                       'google-auth-oauthlib>=0.4.4,<1',
                       'ipympl>=0.7.0,<0.8.0',
                       'jupyter>=1.0.0,<2',
                       'jupyter_contrib_nbextensions>=0.5.1,<1',
-                      'jupyterlab>=3.1.9,<4',
+                      'jupyterlab>=3.1.5,<4',
                       'matplotlib>=2.2.2,<3',
                       'numpy>=1.16.3,<2',
                       'pandas>=0.23.3,<1',
