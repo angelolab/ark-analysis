@@ -94,3 +94,34 @@ Finally, to save an `xarray` to a file, use:
 You can load the `xarray` back in using:
 
 `arr = xr.load_dataarray(path)`
+
+
+### Building Docker Images Locally
+
+Open terminal and navigate to where you want the code stored.
+
+Then input the command:
+
+```
+git clone https://github.com/angelolab/ark-analysis.git
+```
+
+Next, you'll need to set up the Docker image with all of the required dependencies:
+ - First, [download](https://hub.docker.com/?overlay=onboarding) Docker Desktop. 
+ - Once it's sucessfully installed, make sure it is running by looking in toolbar for the Docker whale. 
+ - Once it's running, change directory into `ark-analysis`.
+
+```
+cd ark-analysis
+```
+
+Once you are in `ark-analysis`, the docker image can be built with the following command.
+```
+docker build -t ark-analysis
+``` 
+
+The docker image will now build. Note, the `R` scripts take a significant amount of time to compile. The docker image can then be started with:
+
+```
+./start_docker.sh
+```
