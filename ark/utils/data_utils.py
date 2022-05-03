@@ -393,7 +393,7 @@ def generate_deepcell_input(
             # )
 
             save_path = Path(data_dir, f"{fov}.tif")
-            io.imsave(save_path, out, plugin="tifffile", check_contrast=False)
+            io.imsave(save_path.as_posix(), out, plugin="tifffile", check_contrast=False)
 
 
 def stitch_images(data_xr, num_cols):
