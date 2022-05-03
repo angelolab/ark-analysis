@@ -10,10 +10,10 @@ RUN apt-get install -y lsb-release dirmngr gnupg apt-transport-https ca-certific
 RUN lsb_release -a
 
 # set up the key for adding the R repo
-RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E298A3A825C0D65DFD57CBB651716619E084DAB9
+RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 95C0FAF38DB3CCAD0C080A7BDC78B2DDEABC47B7
 
 # add the correct Linux R repo
-RUN add-apt-repository 'deb https://cloud.r-project.org/bin/linux/ubuntu bullseye-cran40/'
+RUN add-apt-repository 'deb https://cloud.r-project.org/bin/linux/debian bullseye-cran40/'
 
 # ensure the previous command added the right line to the sources.list files
 RUN cat /etc/apt/sources.list
