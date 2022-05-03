@@ -1,4 +1,4 @@
-FROM python:3.6
+# FROM python:3.6
 FROM ubuntu:16.04
 
 # system maintenance
@@ -8,7 +8,9 @@ RUN apt-get update
 # RUN apt-get install -y lsb-release dirmngr gnupg apt-transport-https ca-certificates software-properties-common
 
 # install the package needed for add-apt-repository
-RUN apt-get install -y apt-transport-https ca-certificates software-properties-common
+RUN apt-get update && apt-get install -y software-properties-common apt-transport-https ca-certificates gcc && \
+    add-apt-repository -y ppa:deadsnakes/ppa
+# RUN apt-get install -y apt-transport-https ca-certificates software-properties-common
 
 # get the Linux distro info, use this to set the right R download
 # RUN lsb_release -a
@@ -24,6 +26,9 @@ RUN cat /etc/apt/sources.list
 
 # re-update based on previous setup
 RUN apt-get update && apt-get -y upgrade
+
+# install Python
+RUN apt-get install -y build-essential python3.6 python3.6-dev python3-pip python3.6-venv
 
 # install gcc and R
 RUN apt-get install -y --allow-unauthenticated gcc r-base
