@@ -15,6 +15,9 @@ RUN apt-get update && apt-get install -y software-properties-common apt-transpor
 # get the Linux distro info, use this to set the right R download
 # RUN lsb_release -a
 
+# install Python
+RUN apt-get update && apt-get install -y python3.6 python3-distutils python3-pip python3-apt
+
 # set up the key for adding the R repo
 # RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E298A3A825C0D65DFD57CBB651716619E084DAB9
 
@@ -26,9 +29,6 @@ RUN cat /etc/apt/sources.list
 
 # re-update based on previous setup
 RUN apt-get update && apt-get -y upgrade
-
-# install Python
-RUN apt-get install -y build-essential python3.6 python3.6-dev python3-pip python3.6-venv
 
 # install gcc and R
 RUN apt-get install -y --allow-unauthenticated gcc r-base
