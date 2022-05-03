@@ -116,9 +116,9 @@ def test_verify_same_elements():
 
     with pytest.warns(UserWarning):
         # issues a warning instead of raising an error for ordered
-        misc_utils.verify_in_list(enforce_order=True, warn=True,
-                                  one=['elem1', 'elem2'],
-                                  two=['elem2', 'elem1'])
+        misc_utils.verify_same_elements(enforce_order=True, warn=True,
+                                        one=['elem1', 'elem2'],
+                                        two=['elem2', 'elem1'])
 
 
 def test_create_invalid_data_str():
