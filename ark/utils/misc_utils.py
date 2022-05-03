@@ -236,7 +236,7 @@ def verify_same_elements(enforce_order=False, warn=False, **kwargs):
         # Only printing up to the first 10 invalid values for list one.
         err_str += ("{0:>13} \n").format(
             "Displaying {0} of {1} missing value(s) for list {2}\n".format(
-                min(len(missing_vals_1), 10), len(missing_vals_2), list_one_name
+                min(len(missing_vals_1), 10), len(missing_vals_1), list_one_name
             )
         )
         err_str += create_invalid_data_str(missing_vals_1) + "\n"
