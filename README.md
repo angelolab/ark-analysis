@@ -54,7 +54,7 @@ Copy the URL listed after `Enter this URL instead to access the notebooks:`
 You will need to authenticate. Note the last URL (the one with `127.0.0.1:8888` at the beginning), copy the token that appears there (it will be after `token=` in the URL), paste it into the password prompt of the Jupyter notebook, and log in.
 
 ## Using the example notebooks:
-- The Segment_Image_Data notebook walks you through the appropriate steps to format your data, run the data through deepcell, extracts the counts for each marker in each cell, and creats a csv file with the normalized counts
+- The Segment_Image_Data notebook walks you through the appropriate steps to format your data, run the data through deepcell, extracts the counts for each marker in each cell, and creates a csv file with the normalized counts
 - The spatial_analysis notebook contains code for performing cluster- and channel-based randomization, as well as neighborhood analysis. 
 - The example_visualization notebooks contains code for basic plotting functions and visualizations
 
