@@ -8,7 +8,7 @@ RUN apt-get update
 # RUN apt-get install -y lsb-release dirmngr gnupg apt-transport-https ca-certificates software-properties-common
 
 # install the package needed for add-apt-repository
-RUN apt-get install -y software-properties-common
+RUN apt-get install -y apt-transport-https ca-certificates software-properties-common
 
 # get the Linux distro info, use this to set the right R download
 # RUN lsb_release -a
