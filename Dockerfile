@@ -1,28 +1,19 @@
-# FROM python:3.6
-FROM ubuntu:16.04
+FROM python:3.6
 
 # system maintenance
 RUN apt-get update
 
 # install dependencies needed for setting up R
-# RUN apt-get install -y lsb-release dirmngr gnupg apt-transport-https ca-certificates software-properties-common
-
-# install the package needed for add-apt-repository
-RUN apt-get update && apt-get install -y software-properties-common apt-transport-https ca-certificates gcc && \
-    add-apt-repository -y ppa:deadsnakes/ppa
-# RUN apt-get install -y apt-transport-https ca-certificates software-properties-common
+RUN apt-get install -y lsb-release dirmngr gnupg apt-transport-https ca-certificates software-properties-common
 
 # get the Linux distro info, use this to set the right R download
-# RUN lsb_release -a
-
-# install Python
-RUN apt-get update && apt-get install -y python3.6 python3-distutils python3-pip python3-apt
+RUN lsb_release -a
 
 # set up the key for adding the R repo
-# RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E298A3A825C0D65DFD57CBB651716619E084DAB9
+RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 95C0FAF38DB3CCAD0C080A7BDC78B2DDEABC47B7
 
 # add the correct Linux R repo
-RUN add-apt-repository 'deb https://cloud.r-project.org/bin/linux/ubuntu xenial-cran40/'
+RUN add-apt-repository 'deb https://cloud.r-project.org/bin/linux/debian bullseye-cran40/'
 
 # ensure the previous command added the right line to the sources.list files
 RUN cat /etc/apt/sources.list
@@ -31,7 +22,7 @@ RUN cat /etc/apt/sources.list
 RUN apt-get update && apt-get -y upgrade
 
 # install gcc and R
-RUN apt-get install -y --allow-unauthenticated gcc r-base
+RUN apt-get install -y gcc r-base
 
 WORKDIR /scripts
 
