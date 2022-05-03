@@ -149,7 +149,7 @@ def verify_in_list(warn=False, **kwargs):
 
     Args:
         warn (bool):
-            whether to issue warning instead of error, defaults to False
+            Whether to issue warning instead of error, defaults to False
         **kwargs (list, list):
             Two lists, but will work for single elements as well.
             The first list specified will be tested to see
@@ -183,17 +183,19 @@ def verify_in_list(warn=False, **kwargs):
         err_str += create_invalid_data_str(difference)
 
         if warn:
-           warnings.warn(err_str)
+            warnings.warn(err_str)
         else:
             raise ValueError(err_str)
 
 
-def verify_same_elements(enforce_order=False, **kwargs):
+def verify_same_elements(enforce_order=False, warn=False, **kwargs):
     """Verify if two lists contain the same elements regardless of count
 
     Args:
         enforce_order (bool):
             Whether to also check for the same ordering between the two lists
+        warn (bool):
+            Whether to issue warning instead of error, defaults to False
         **kwargs (list, list):
             Two lists
 
@@ -247,7 +249,10 @@ def verify_same_elements(enforce_order=False, **kwargs):
         )
         err_str += create_invalid_data_str(missing_vals_2) + "\n"
 
-        raise ValueError(err_str)
+        if warn:
+            warnings.warn(err_str)
+        else:
+            raise ValueError(err_str)
     elif enforce_order and list_one_cast != list_two_cast:
         first_bad_index = next(i for i, (l1, l2) in enumerate(
             zip(list_one_cast, list_two_cast)) if l1 != l2
@@ -255,7 +260,14 @@ def verify_same_elements(enforce_order=False, **kwargs):
 
         err_str = ("Lists %s and %s ordered differently: values %s and %s do not match"
                    " at index %d")
-        raise ValueError(err_str % (list_one_name, list_two_name,
+
+        if warn:
+            warnings.warn(err_str % (list_one_name, list_two_name,
+                                    list_one_cast[first_bad_index],
+                                    list_two_cast[first_bad_index],
+                                    first_bad_index))
+        else:
+            raise ValueError(err_str % (list_one_name, list_two_name,
                                     list_one_cast[first_bad_index],
                                     list_two_cast[first_bad_index],
                                     first_bad_index))
