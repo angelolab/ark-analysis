@@ -1,4 +1,5 @@
 import os
+import warnings
 
 import numpy as np
 import xarray as xr
@@ -143,10 +144,12 @@ def create_invalid_data_str(invalid_data):
     return err_str_data
 
 
-def verify_in_list(**kwargs):
+def verify_in_list(warn=False, **kwargs):
     """Verify at least whether the values in the first list exist in the second
 
     Args:
+        warn (bool):
+            whether to issue warning instead of error, defaults to False
         **kwargs (list, list):
             Two lists, but will work for single elements as well.
             The first list specified will be tested to see
@@ -155,6 +158,8 @@ def verify_in_list(**kwargs):
     Raises:
         ValueError:
             if not all values in the first list are found in the second
+        Warning:
+            if not all values are found and warn is True
     """
 
     if len(kwargs) != 2:
@@ -177,7 +182,10 @@ def verify_in_list(**kwargs):
 
         err_str += create_invalid_data_str(difference)
 
-        raise ValueError(err_str)
+        if warn:
+           warnings.warn(err_str)
+        else:
+            raise ValueError(err_str)
 
 
 def verify_same_elements(enforce_order=False, **kwargs):
