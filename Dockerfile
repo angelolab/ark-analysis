@@ -26,7 +26,7 @@ RUN cat /etc/apt/sources.list
 RUN apt-get update && apt-get -y upgrade
 
 # install gcc and R
-RUN apt-get install -y gcc r-base
+RUN apt-get install -y --allow-unauthenticated gcc r-base
 
 WORKDIR /scripts
 
