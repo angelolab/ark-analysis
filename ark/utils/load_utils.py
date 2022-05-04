@@ -53,7 +53,7 @@ def load_imgs_from_mibitiff(data_dir, mibitiff_files=None, channels=None, delimi
     mibitiff_files = [
         # ! Deprecated
         # path_join(data_dir, mt_file, get_filehandle=True)
-        Path(data_dir, mt_file).as_posix()
+        os.path.join(data_dir, mt_file)
         for mt_file in mibitiff_files
     ]
 

@@ -115,7 +115,7 @@ def create_deepcell_output(
         # ! Deprecated
         # zip_path = path_join(deepcell_input_dir, f'fovs_batch_{group_index + 1}.zip')
 
-        zip_path = Path(deepcell_input_dir, f"fovs_batch_{group_index + 1}.zip")
+        zip_path = os.path.join(deepcell_input_dir, f"fovs_batch_{group_index + 1}.zip")
 
         # ! Deprecated
         # if not is_drive_path and os.path.isfile(zip_path):
@@ -137,7 +137,7 @@ def create_deepcell_output(
                     #     with filename.read() as f:
                     #         zipObj.writestr(basename, f.getvalue())
                     # else:
-                    filename = Path(deepcell_input_dir, basename)
+                    filename = os.path.join(deepcell_input_dir, basename)
                     zipObj.write(filename, basename)
 
         # ! Deprecated
@@ -156,7 +156,7 @@ def create_deepcell_output(
 
         # ! Deprecated
         # zip_files = [path_join(deepcell_output_dir, name) for name in zip_names]
-        zip_files = [Path(deepcell_output_dir, name) for name in zip_names]
+        zip_files = [os.path.join(deepcell_output_dir, name) for name in zip_names]
 
         # sort by newest added
         zip_files.sort(key=io_utils.getmtime)
@@ -171,7 +171,7 @@ def create_deepcell_output(
                 # ! Deprecated
                 # with DriveOpen(path_join(deepcell_output_dir, name), mode="wb") as f:
                 #     f.write(zipObj.read(name))
-                with open(Path(deepcell_output_dir, name), mode="wb") as f:
+                with open(os.path.join(deepcell_output_dir, name), mode="wb") as f:
                     f.write(zipObj.read(name))
             # zipObj.extractall(deepcell_output_dir)
             for fov in fov_group:
@@ -302,7 +302,7 @@ def run_deepcell_direct(
     # ! Deprecated
     # with DriveOpen(path_join(output_dir, "deepcell_response.zip"), mode="wb") as f:
     #     f.write(deepcell_output.content)
-    with open(Path(output_dir, "deepcell_response.zip"), mode="wb") as f:
+    with open(os.path.join(output_dir, "deepcell_response.zip"), mode="wb") as f:
         f.write(deepcell_output.content)
 
     # being kind and sending an expire signal to deepcell
