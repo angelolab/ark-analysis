@@ -392,8 +392,8 @@ def generate_deepcell_input(
             #     lambda x: io.imsave(x, out, plugin='tifffile', check_contrast=False)
             # )
 
-            save_path = Path(data_dir, f"{fov}.tif")
-            io.imsave(save_path.as_posix(), out, plugin="tifffile", check_contrast=False)
+            save_path = os.path.join(data_dir, f"{fov}.tif")
+            io.imsave(save_path, out, plugin="tifffile", check_contrast=False)
 
 
 def stitch_images(data_xr, num_cols):
@@ -479,7 +479,7 @@ def split_img_stack(
         #     img_dir.mkdir()
         # else:
         img_stack = io.imread(Path(stack_dir, stack_name))
-        img_dir = Path(output_dir, os.path.splittext(stack_name)[0])
+        img_dir = os.path.join(output_dir, os.path.splittext(stack_name)[0])
         os.makedirs(img_dir)
 
         for i in range(len(indices)):
@@ -493,5 +493,5 @@ def split_img_stack(
             #     lambda x: io.imsave(x, channel, plugin='tifffile', check_contrast=False)
             # )
 
-            save_path = Path(img_dir, names[i])
+            save_path = os.path.join(img_dir, names[i])
             io.imsave(save_path, channel, plugin="tifffile", check_contrast=False)
