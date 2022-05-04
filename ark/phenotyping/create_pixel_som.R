@@ -1,6 +1,6 @@
 # Trains a SOM (self-organizing map) using subsetted pixel data
 
-# Usage: Rscript create_pixel_som.R {fovs} {markers} {xdim} {ydim} {lr_start} {lr_end} {numPasses} {pixelSubsetDir} {normValsPath} {pixelWeightsPath} {seed} {batchSize}
+# Usage: Rscript create_pixel_som.R {fovs} {markers} {xdim} {ydim} {lr_start} {lr_end} {numPasses} {pixelSubsetDir} {normValsPath} {pixelWeightsPath} {seed}
 
 # - fovs: list of fovs to cluster
 # - markers: list of channel columns to use
@@ -13,7 +13,6 @@
 # - normValsPath: path to the 99.9% normalization values file (created during preprocessing)
 # - pixelWeightsPath: path to the SOM weights file
 # - seed: the random seed to use for training
-# - batchSize: the number of fovs that will be run through the SOM at once
 
 library(arrow)
 library(data.table)
@@ -56,38 +55,26 @@ pixelWeightsPath <- args[10]
 seed <- strtoi(args[11])
 set.seed(seed)
 
-# get the batch size
-batchSize <- strtoi(args[12])
-
 # get normalization values
 normVals <- data.table(arrow::read_feather(normValsPath))
 normVals <- normVals[,..markers]
 
-# initialize node centers for the SOM
-node_centers <- NULL
-
-# get batches of points
-batches <- split(sample(fovs), ceiling(seq_along(fovs)/batchSize))
-
 # train the som
-print("Reading the subsetted pixel matrix data and training the SOM")
-for (batch in batches) {
-    pixelSubsetData <- rbindlist(lapply(batch, function(x) {
-                                               one_tab = data.table(read_feather(
-                                               file.path(pixelSubsetDir, paste0(x,".feather"))))
-                                               return(one_tab[,..markers])}))
+print("Reading the subsetted pixel matrix data")
+pixelSubsetData <- rbindlist(lapply(fovs, function(x) {
+                                          one_tab = data.table(read_feather(
+                                          file.path(pixelSubsetDir, paste0(x,".feather"))))
+                                          return(one_tab[,..markers])}))
 
-    # perform 99.9% normalization on the subsetted data
-    pixelSubsetData <- pixelSubsetData[,Map(`/`,.SD,normVals)]
+# perform 99.9% normalization on the subsetted data
+print("Performing 99.9% normalization")
+pixelSubsetData <- pixelSubsetData[,Map(`/`,.SD,normVals)]
 
-    # run the SOM training step
-    somResults <- SOM(data=as.matrix(pixelSubsetData), rlen=numPasses,
-                      xdim=xdim, ydim=ydim, alpha=c(lr_start, lr_end), codes=node_centers)
-
-    # update SOM node centers
-    node_centers <- somResults$codes
-}
+# run the SOM training step
+print("Training the SOM")
+somResults <- SOM(data=as.matrix(pixelSubsetData), rlen=numPasses,
+                  xdim=xdim, ydim=ydim, alpha=c(lr_start, lr_end))
 
 # write the weights to feather
 print("Save trained weights")
-arrow::write_feather(as.data.table(node_centers), pixelWeightsPath)
+arrow::write_feather(as.data.table(somResults$codes), pixelWeightsPath)
