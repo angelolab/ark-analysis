@@ -134,7 +134,7 @@ def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, channels=None,
         channels = iou.list_files(
             # ! Deprecated
             # path_join(data_dir, fovs[0], img_sub_folder),
-            dir_name=Path(data_dir, fovs[0], img_sub_folder),
+            dir_name=os.path.join(data_dir, fovs[0], img_sub_folder),
             substrs=['.tif', '.jpg', '.png']
         )
 
@@ -148,7 +148,7 @@ def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, channels=None,
         all_channels = iou.list_files(
             # ! Deprecated
             # path_join(data_dir, fovs[0], img_sub_folder),
-            dir_name=Path(data_dir, fovs[0], img_sub_folder),
+            dir_name=os.path.join(data_dir, fovs[0], img_sub_folder),
             substrs=channels_no_delim,
             exact_match=True
         )
@@ -165,7 +165,7 @@ def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, channels=None,
     test_img = io.imread(
         # ! Deprecated
         # path_join(data_dir, fovs[0], img_sub_folder, channels[0], get_filehandle=True)
-        Path(data_dir, fovs[0], img_sub_folder, channels[0])
+        os.path.join(data_dir, fovs[0], img_sub_folder, channels[0])
     )
 
     # check to make sure that float dtype was supplied if image data is float
@@ -190,7 +190,7 @@ def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, channels=None,
                     # ! Deprecated
                     # path_join(data_dir, fovs[fov], img_sub_folder, channels[img],
                     #           get_filehandle=True)
-                    Path(data_dir, fovs[fov], img_sub_folder, channels[img])
+                    os.path.join(data_dir, fovs[fov], img_sub_folder, channels[img])
                 )
                 img_data[fov, :temp_img.shape[0], :temp_img.shape[1], img] = temp_img
             else:
@@ -199,7 +199,7 @@ def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, channels=None,
                     # path_join(data_dir, fovs[fov],
                     #     img_sub_folder, channels[img],
                     #     get_filehandle=True)
-                    Path(data_dir, fovs[fov], img_sub_folder, channels[img])
+                    os.path.join(data_dir, fovs[fov], img_sub_folder, channels[img])
                     )
 
     # check to make sure that dtype wasn't too small for range of data
@@ -285,7 +285,7 @@ def load_imgs_from_dir(data_dir, files=None, match_substring=None, trim_suffix=N
 
     test_img = io.imread(
         # ! Deprecated
-        Path(data_dir, imgs[0])
+        os.path.join(data_dir, imgs[0])
         # path_join(data_dir, imgs[0], get_filehandle=True)
         )
 
@@ -325,7 +325,7 @@ def load_imgs_from_dir(data_dir, files=None, match_substring=None, trim_suffix=N
         v = io.imread(
             # ! Deprecated
             # path_join(data_dir, img, get_filehandle=True)
-            Path(data_dir, img)
+            os.path.join(data_dir, img)
             )
         if not multitiff:
             v = np.expand_dims(v, axis=2)
