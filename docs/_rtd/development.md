@@ -50,6 +50,21 @@ To enable, pass the either `-d` or  `--develop-notebook-templates` to `start_doc
 
 Now notebooks can be `git diff`ed and `git commit`ed without having to copy changed notedbooks between `./scripts` and `./templates`.
 
+### Building Docker Images Locally
+
+It may be useful to be able to manually build a new Docker Image as features get added, changes made and libraries updated. This
+will allow you to test and experience bleeding edge changes, as they can't necessarily be adjusted in the `requirements.txt` file.
+Specifically, updating Python libraries requires building a new docker image from scratch. 
+
+
+Once you are in `ark-analysis`, the Docker Image can be built with the following command.
+```
+docker build -t ark-analysis .
+``` 
+
+The docker image will now build and this process can take some time.
+
+
 ### More on xarrays
 
 One type of N-D array we use frequently is `xarray` ([documentation](http://xarray.pydata.org/en/stable/)). The main advantages `xarray` offers are:
@@ -94,3 +109,4 @@ Finally, to save an `xarray` to a file, use:
 You can load the `xarray` back in using:
 
 `arr = xr.load_dataarray(path)`
+
