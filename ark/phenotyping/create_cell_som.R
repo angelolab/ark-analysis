@@ -19,7 +19,7 @@ library(FlowSOM)
 # a helper function for computing 99.9%
 percentile_99_9_helper <- function(x) {
     if (quantile(as.numeric(x[x > 0]), 0.999) == 0) {
-        return(quantile(as.numeric(x[x > 0], 0.999), 1))
+        return(quantile(as.numeric(x[x > 0], 1))
     }
 
     return(quantile(as.numeric(x[x > 0]), 0.999))

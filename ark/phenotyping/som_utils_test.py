@@ -18,7 +18,7 @@ import ark.utils.test_utils as test_utils
 def mocked_train_pixel_som(fovs, channels, base_dir,
                            subset_dir='pixel_mat_subsetted', norm_vals_name='norm_vals.feather',
                            weights_name='pixel_weights.feather', xdim=10, ydim=10,
-                           lr_start=0.05, lr_end=0.01, num_passes=1, seed=42, batch_size=1):
+                           lr_start=0.05, lr_end=0.01, num_passes=1, seed=42):
     # define the matrix we'll be training on
     pixel_mat_sub = pd.DataFrame(columns=channels)
 
