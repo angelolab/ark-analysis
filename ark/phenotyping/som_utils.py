@@ -700,7 +700,7 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
 def train_pixel_som(fovs, channels, base_dir,
                     subset_dir='pixel_mat_subsetted', norm_vals_name='norm_vals.feather',
                     weights_name='pixel_weights.feather', xdim=10, ydim=10,
-                    lr_start=0.05, lr_end=0.01, num_passes=1, seed=42, batch_size=1):
+                    lr_start=0.05, lr_end=0.01, num_passes=1, seed=42):
     """Run the SOM training on the subsetted pixel data.
 
     Saves weights to `base_dir/weights_name`.
@@ -730,8 +730,6 @@ def train_pixel_som(fovs, channels, base_dir,
             The number of training passes to make through the dataset
         seed (int):
             The random seed to set for training
-        batch_size(int):
-            The number of fovs that will be run through the SOM at once
     """
 
     # define the paths to the data
@@ -757,7 +755,7 @@ def train_pixel_som(fovs, channels, base_dir,
     # run the SOM training process
     process_args = ['Rscript', '/create_pixel_som.R', ','.join(fovs), ','.join(channels),
                     str(xdim), str(ydim), str(lr_start), str(lr_end), str(num_passes),
-                    subsetted_path, norm_vals_path, weights_path, str(seed), str(batch_size)]
+                    subsetted_path, norm_vals_path, weights_path, str(seed)]
 
     process = subprocess.Popen(process_args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
