@@ -507,7 +507,7 @@ def create_c2pc_data(fovs, pixel_consensus_path,
 
 
 def create_fov_pixel_data(fov, channels, img_data, seg_labels,
-                          blur_factor=2, subset_proportion=0.1, seed=42):
+                          blur_factor=2, subset_proportion=0.1):
     """Preprocess pixel data for one fov
 
     Args:
@@ -523,8 +523,6 @@ def create_fov_pixel_data(fov, channels, img_data, seg_labels,
             The sigma to set for the Gaussian blur
         subset_proportion (float):
             The proportion of pixels to take from each fov
-        seed (int):
-            The random seed to set for subsetting
 
     Returns:
         tuple:
@@ -562,7 +560,7 @@ def create_fov_pixel_data(fov, channels, img_data, seg_labels,
     pixel_mat = normalize_rows(pixel_mat, channels, seg_labels is not None)
 
     # subset the pixel matrix for training
-    pixel_mat_subset = pixel_mat.sample(frac=subset_proportion, random_state=seed)
+    pixel_mat_subset = pixel_mat.sample(frac=subset_proportion)
 
     return pixel_mat, pixel_mat_subset
 
@@ -570,7 +568,8 @@ def create_fov_pixel_data(fov, channels, img_data, seg_labels,
 def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
                         img_sub_folder="TIFs", seg_suffix='_feature_0.tif',
                         pre_dir='pixel_mat_preprocessed',
-                        subset_dir='pixel_mat_subsetted', is_mibitiff=False,
+                        subset_dir='pixel_mat_subsetted',
+                        norm_vals_name='norm_vals.feather', is_mibitiff=False,
                         blur_factor=2, subset_proportion=0.1, dtype="int16", seed=42):
     """For each fov, add a Gaussian blur to each channel and normalize channel sums for each pixel
 
@@ -598,6 +597,8 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
             Name of the directory which contains the preprocessed pixel data
         subset_dir (str):
             The name of the directory containing the subsetted pixel data
+        norm_vals_name (str):
+            The name of the file to store the 99.9% normalization values
         is_mibitiff (bool):
             Whether to load the images from MIBITiff
         blur_factor (int):
@@ -630,6 +631,12 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
     if not os.path.exists(os.path.join(base_dir, subset_dir)):
         os.mkdir(os.path.join(base_dir, subset_dir))
 
+    # create variable for storing 99.9% values
+    quant_dat = pd.DataFrame()
+
+    # set seed for subsetting
+    np.random.seed(seed)
+
     # iterate over fov_batches
     for fov in fovs:
         # load img_xr from MIBITiff or directory with the fov
@@ -661,8 +668,11 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
         # create the full and subsetted fov matrices
         pixel_mat, pixel_mat_subset = create_fov_pixel_data(
             fov=fov, channels=channels, img_data=img_data, seg_labels=seg_labels,
-            blur_factor=blur_factor, subset_proportion=subset_proportion, seed=seed
+            blur_factor=blur_factor, subset_proportion=subset_proportion
         )
+
+        # get 99.9% of the full fov matrix
+        quant_dat[fov] = pixel_mat[channels].replace(0, np.nan).quantile(q=0.999, axis=0)
 
         # write complete dataset to feather, needed for cluster assignment
         feather.write_dataframe(pixel_mat,
@@ -677,6 +687,14 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
                                              subset_dir,
                                              fov + ".feather"),
                                 compression='uncompressed')
+
+    # get mean 99.9% across all fovs for all markers
+    mean_quant = pd.DataFrame(quant_dat.mean(axis=1))
+
+    # save 99.9% normalization values
+    feather.write_dataframe(mean_quant.T,
+                            os.path.join(base_dir, norm_vals_name),
+                            compression='uncompressed')
 
 
 def train_pixel_som(fovs, channels, base_dir,
@@ -697,7 +715,7 @@ def train_pixel_som(fovs, channels, base_dir,
         subset_dir (str):
             The name of the subsetted data directory
         norm_vals_name (str):
-            The name of the file to store the 99.9% normalized values
+            The name of the file to store the 99.9% normalization values
         weights_name (str):
             The name of the file to save the weights to
         xdim (int):

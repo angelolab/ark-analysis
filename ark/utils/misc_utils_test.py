@@ -77,6 +77,11 @@ def test_verify_in_list():
         misc_utils.verify_in_list(one=['hello', 'world'],
                                   two=['hello', 'goodbye'])
 
+    with pytest.warns(UserWarning):
+        # issues a warning instead of raising an error
+        misc_utils.verify_in_list(warn=True, one=['hello', 'world'],
+                                  two=['hello', 'goodbye'])
+
 
 def test_verify_same_elements():
     with pytest.raises(ValueError):
@@ -101,6 +106,17 @@ def test_verify_same_elements():
     with pytest.raises(ValueError):
         # the two lists are ordered differently
         misc_utils.verify_same_elements(enforce_order=True,
+                                        one=['elem1', 'elem2'],
+                                        two=['elem2', 'elem1'])
+
+    with pytest.warns(UserWarning):
+        # issues a warning instead of raising an error
+        misc_utils.verify_same_elements(warn=True, one=['elem1', 'elem2', 'elem2'],
+                                        two=['elem2', 'elem2', 'elem4'])
+
+    with pytest.warns(UserWarning):
+        # issues a warning instead of raising an error for ordered
+        misc_utils.verify_same_elements(enforce_order=True, warn=True,
                                         one=['elem1', 'elem2'],
                                         two=['elem2', 'elem1'])
 

@@ -37,9 +37,9 @@ jobs:
       if: tag IS present
       python: 3.6
       script:
-        - "travis_wait 20 sleep 1200 &"
+        - "travis_wait 120 sleep 7200 &"
         - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin 
-        - docker build -t "$TRAVIS_REPO_SLUG" .
+        - docker build -t "$TRAVIS_REPO_SLUG" . 1> /dev/null
         - docker tag "$TRAVIS_REPO_SLUG" "$TRAVIS_REPO_SLUG":latest
         - docker tag "$TRAVIS_REPO_SLUG" "$TRAVIS_REPO_SLUG":"${TRAVIS_TAG}"
         - docker push "$TRAVIS_REPO_SLUG"

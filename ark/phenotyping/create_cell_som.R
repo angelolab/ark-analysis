@@ -16,6 +16,15 @@ library(arrow)
 library(data.table)
 library(FlowSOM)
 
+# a helper function for computing 99.9%
+percentile_99_9_helper <- function(x) {
+    if (quantile(as.numeric(x[x > 0]), 0.999) == 0) {
+        return(quantile(as.numeric(x), 1))
+    }
+
+    return(quantile(as.numeric(x[x > 0]), 0.999))
+}
+
 # get the command line arguments
 args <- commandArgs(trailingOnly=TRUE)
 
@@ -56,20 +65,13 @@ clusterCols <- colnames(clusterCountsNorm)[grepl(pattern="pixel_som_cluster_|pix
                                            colnames(clusterCountsNorm))]
 
 # keep just the cluster columns
-clusterCountsNormSub <- as.matrix(clusterCountsNorm[,clusterCols])
+clusterCountsNormSub <- clusterCountsNorm[,clusterCols]
 
-# 99.9% normalize
-# normalize by max (100%) instead of 99.9% if 99.9% = 0
-print("Perform 99.9% normalization")
-for (clusterCol in clusterCols) {
-    normVal <- quantile(clusterCountsNormSub[,clusterCol], 0.999)
+# get the 99.9% normalized values
+clusterCountsNormVals <- sapply(clusterCountsNormSub, percentile_99_9_helper)
 
-    if (normVal == 0) {
-        normVal <- quantile(clusterCountsNormSub[,clusterCol], 1)
-    }
-
-    clusterCountsNormSub[,clusterCol] <- clusterCountsNormSub[,clusterCol] / normVal
-}
+# 99.9% normalize the values
+clusterCountsNormSub <- as.matrix(sweep(clusterCountsNormSub, 2, clusterCountsNormVals, '/'))
 
 # create the cell SOM
 print("Run the SOM training")
