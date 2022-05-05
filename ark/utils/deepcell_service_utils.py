@@ -121,6 +121,9 @@ def create_deepcell_output(
         # if not is_drive_path and os.path.isfile(zip_path):
         #     warnings.warn(f'{zip_path} will be overwritten')
 
+        if os.path.isfile(zip_path):
+            warnings.warn(f'{zip_path} will be overwritten')
+
         # write all files to the zip file
         print("Zipping preprocessed tif files.")
 
@@ -229,7 +232,7 @@ def run_deepcell_direct(
     #         "file": (filename, f.read(), "application/zip"),
     #     }
     #     f.seek(0)
-    with open(Path(input_dir), mode="rb") as f:
+    with open(input_dir, mode="rb") as f:
         upload_fields = {
             "file": (filename, f.read(), "application/zip"),
         }

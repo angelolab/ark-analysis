@@ -478,8 +478,9 @@ def split_img_stack(
         # if type(img_dir) is GoogleDrivePath:
         #     img_dir.mkdir()
         # else:
-        img_stack = io.imread(Path(stack_dir, stack_name))
-        img_dir = os.path.join(output_dir, os.path.splittext(stack_name)[0])
+        stack_name = str(stack_name)
+        img_stack = io.imread(os.path.join(stack_dir, stack_name))
+        img_dir = os.path.join(output_dir, os.path.splitext(stack_name)[0])
         os.makedirs(img_dir)
 
         for i in range(len(indices)):
