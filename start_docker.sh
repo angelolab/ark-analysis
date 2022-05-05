@@ -30,20 +30,6 @@ do
   esac
 done
 
-# if requirements.txt has been changed in the last half hour, automatically rebuild Docker first
-if [[ $(find . -mmin -30 -type f -print | grep requirements.txt | wc -l) -eq 1 ]]
-  then
-    echo "New requirements.txt file detected, rebuilding Docker"
-    docker build -t ark-analysis .
-fi
-
-if [ $update -ne 0 ]
-  then
-    bash update_notebooks.sh -u
-  else
-    bash update_notebooks.sh
-fi
-
 # find lowest open port available
 PORT=8888
 
@@ -56,7 +42,8 @@ if [ ! -z "$external" ]
   then
     docker run -it \
       -p $PORT:$PORT \
-      -e JUPYTER_PORT=$PORT\
+      -e JUPYTER_PORT=$PORT \
+      -e JUPYTER_DIR=$JUPYTER_DIR \
       -v "$PWD/ark:/usr/local/lib/python3.6/site-packages/ark" \
       -v "$PWD/scripts:/scripts" \
       -v "$PWD/data:/data" \
@@ -72,7 +59,8 @@ if [ ! -z "$external" ]
   else
     docker run -it \
       -p $PORT:$PORT \
-      -e JUPYTER_PORT=$PORT\
+      -e JUPYTER_PORT=$PORT \
+      -e JUPYTER_DIR=$JUPYTER_DIR \
       -v "$PWD/ark:/usr/local/lib/python3.6/site-packages/ark" \
       -v "$PWD/scripts:/scripts" \
       -v "$PWD/data:/data" \
