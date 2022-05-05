@@ -178,7 +178,8 @@ def verify_in_list(warn=False, **kwargs):
         # Only printing up to the first 10 invalid values.
         err_str = ("Not all values given in list {0:^} were found in list {1:^}.\n "
                    "Displaying {2} of {3} invalid value(s) for list {4:^}\n").format(
-            test_list_name, good_values_name, min(len(difference), 10), len(difference), test_list_name
+            test_list_name, good_values_name,
+            min(len(difference), 10), len(difference), test_list_name
         )
 
         err_str += create_invalid_data_str(difference)
@@ -237,15 +238,16 @@ def verify_same_elements(enforce_order=False, warn=False, **kwargs):
         # Only printing up to the first 10 invalid values for list one.
         err_str += ("{0:>13} \n").format(
             "Displaying {0} of {1} value(s) in list {2} that are missing from list {3}\n".format(
-                min(len(missing_vals_1), 10), len(missing_vals_1), list_one_name, list_two_name
-            )
+                min(len(missing_vals_1), 10), len(missing_vals_1),
+                list_one_name, list_two_name)
         )
         err_str += create_invalid_data_str(missing_vals_1) + "\n"
 
         # Only printing up to the first 10 invalid values for list two
         err_str += ("{0:>13} \n").format(
             "Displaying {0} of {1} value(s) in list {2} that are missing from list {3}\n".format(
-                min(len(missing_vals_2), 10), len(missing_vals_2), list_two_name, list_one_name
+                min(len(missing_vals_2), 10), len(missing_vals_2),
+                list_two_name, list_one_name
             )
         )
         err_str += create_invalid_data_str(missing_vals_2) + "\n"
