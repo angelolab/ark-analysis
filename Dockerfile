@@ -1,7 +1,25 @@
 FROM python:3.6
 
 # system maintenance
-RUN apt-get update && apt-get install -y gcc r-base
+RUN apt-get update
+
+# install dependencies needed for setting up R
+RUN apt-get install -y lsb-release dirmngr gnupg apt-transport-https ca-certificates software-properties-common
+
+# set up the key for adding the R repo
+RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 95C0FAF38DB3CCAD0C080A7BDC78B2DDEABC47B7
+
+# add the correct Linux R repo
+RUN add-apt-repository 'deb https://cloud.r-project.org/bin/linux/debian bullseye-cran40/'
+
+# re-update based on previous setup
+RUN apt-get update && apt-get -y upgrade
+
+# install gcc and R
+RUN apt-get install -y gcc r-base
+
+# install cmake (needed for nloptr)
+RUN apt-get install -y cmake
 
 WORKDIR /scripts
 
@@ -17,7 +35,6 @@ COPY ark /opt/ark-analysis/ark
 RUN pip install /opt/ark-analysis
 
 # Install R dependency packages
-RUN R -e "install.packages('https://cran.r-project.org/src/contrib/Archive/BH/BH_1.75.0-0.tar.gz', repos=NULL, type='source')"
 RUN R -e "install.packages('arrow')"
 RUN R -e "install.packages('data.table')"
 RUN R -e "install.packages('BiocManager')"

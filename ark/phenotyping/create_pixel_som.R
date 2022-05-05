@@ -1,4 +1,4 @@
-# Trains a SOM matrix using subsetted pixel data
+# Trains a SOM (self-organizing map) using subsetted pixel data
 
 # Usage: Rscript create_pixel_som.R {fovs} {markers} {xdim} {ydim} {lr_start} {lr_end} {numPasses} {pixelSubsetDir} {normValsPath} {pixelWeightsPath} {seed}
 
@@ -10,7 +10,7 @@
 # - lr_end: the end learning rate
 # - numPasses: passes to make through dataset for training
 # - pixelSubsetDir: path to directory containing the subsetted pixel data
-# - normValsPath: path to the 99.9% normalized values file
+# - normValsPath: path to the 99.9% normalization values file (created during preprocessing)
 # - pixelWeightsPath: path to the SOM weights file
 # - seed: the random seed to use for training
 
@@ -45,7 +45,7 @@ numPasses <- strtoi(args[7])
 # get path to subsetted mat directory
 pixelSubsetDir <- args[8]
 
-# get the normalized values write path
+# get the normalization values path
 normValsPath <- args[9]
 
 # get the weights write path
@@ -55,55 +55,23 @@ pixelWeightsPath <- args[10]
 seed <- strtoi(args[11])
 set.seed(seed)
 
-# read the subsetted pixel mat data for training
-print("Reading the subsetted pixel matrix data for SOM training")
-pixelSubsetData <- NULL
+# get normalization values
+normVals <- data.table(arrow::read_feather(normValsPath))
+normVals <- normVals[,..markers]
 
-# TODO: use a combination of fread, rbindlist, lapply, and data.table to batch read (not urgent, more for readability)
-# TODO: include an error message to lower subset proportion if out-of-memory
-for (fov in fovs) {
-    # subset each matrix with only the markers columns
-    fileName <- file.path(fov, "feather", fsep=".")
-    subPath <- file.path(pixelSubsetDir, fileName)
-    fovSubsetData <- arrow::read_feather(subPath, col_select=all_of(markers))
-
-    # attach each fov's dataset to pixelSubsetData
-    if (is.null(pixelSubsetData)) {
-        pixelSubsetData <- as.matrix(fovSubsetData)
-    }
-    else {
-        pixelSubsetData <- rbind(pixelSubsetData, as.matrix(fovSubsetData))
-    }
-}
+# train the som
+print("Reading the subsetted pixel matrix data")
+pixelSubsetData <- rbindlist(lapply(fovs, function(x) {
+                                          one_tab = data.table(read_feather(
+                                          file.path(pixelSubsetDir, paste0(x,".feather"))))
+                                          return(one_tab[,..markers])}))
 
 # perform 99.9% normalization on the subsetted data
-normVals <- data.frame(matrix(NA, nrow=1, ncol=length(markers)))
-colnames(normVals) <- markers
-
 print("Performing 99.9% normalization")
-for (marker in markers) {
-    # get the quantile of the marker data for the subsetted matrix
-    markerQuantile <- quantile(pixelSubsetData[,marker], 0.999)
-
-    # this prevents all-zero columns from getting normalized and becoming NA/Inf
-    # if 99.9% is 0, divide by the max value (100%) instead
-    if (markerQuantile == 0) {
-        markerQuantile <- quantile(pixelSubsetData[,marker], 1)
-    }
-
-    # run the normalization process
-    pixelSubsetData[,marker] = pixelSubsetData[,marker] / markerQuantile
-
-    # assign the markerQuantile to the normVals data frame
-    normVals[marker] = markerQuantile
-}
-
-# write 99.9% normalized values to feather
-print("Save 99.9% normalized values for each marker")
-arrow::write_feather(as.data.table(normVals), normValsPath)
+pixelSubsetData <- pixelSubsetData[,Map(`/`,.SD,normVals)]
 
 # run the SOM training step
-print("Run the SOM training")
+print("Training the SOM")
 somResults <- SOM(data=as.matrix(pixelSubsetData), rlen=numPasses,
                   xdim=xdim, ydim=ydim, alpha=c(lr_start, lr_end))
 
