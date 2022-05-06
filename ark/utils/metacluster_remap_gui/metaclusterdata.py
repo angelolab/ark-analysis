@@ -22,6 +22,18 @@ class MetaClusterData():
         self._clusters = sorted_clusters_df.set_index('cluster').drop(columns='metacluster')
         self.mapping = sorted_clusters_df[['cluster', 'metacluster']].set_index('cluster')
         self._metacluster_displaynames_map = {}
+
+        # need to prefill the displaynames_map with the already renamed meta clusters
+        # on subsequent runs after the first to prevent automatic incremental rewriting
+        if 'metacluster_rename' in sorted_clusters_df.columns:
+            unique_mappings = sorted_clusters_df[
+                ['metacluster', 'metacluster_rename']
+            ].drop_duplicates()
+
+            self._metacluster_displaynames_map = {
+                mc['metacluster']: mc['metacluster_rename'] for _, mc in unique_mappings.iterrows()
+            }
+
         self._marker_order = list(range(len(self._clusters.columns)))
         self._output_mapping_filename = None
         self._cached_metaclusters = None
@@ -37,11 +49,25 @@ class MetaClusterData():
     @property
     def clusters_with_metaclusters(self):
         df = self._clusters.join(self.mapping).sort_values(by='metacluster')
-        return df.iloc[:, self._marker_order + [max(self._marker_order) + 1]]
+
+        # NOTE: this method takes into account both the initial run (without _rename column)
+        # and subsequent runs (with _rename columns)
+        return df.iloc[:, self._marker_order + list(
+            range(max(self._marker_order) + 1, len(df.columns.values))
+        )]
 
     @property
     def clusters(self):
-        return self.clusters_with_metaclusters.drop(columns='metacluster')
+        # maintain old clusters_with_metaclusters
+        clusters_data = self.clusters_with_metaclusters.copy()
+
+        # we need to drop the rename column on subsequent runs after the first
+        # NOTE: this only happens on subsequent runs after the first
+        if 'metacluster_rename' in self.clusters_with_metaclusters.columns:
+            clusters_data = clusters_data.drop(columns='metacluster_rename')
+
+        # metacluster column needs to be dropped regardless of run
+        return clusters_data.drop(columns='metacluster')
 
     @property
     def metacluster_displaynames(self):

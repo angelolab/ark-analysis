@@ -49,7 +49,6 @@ class MetaClusterGui():
     """
     def __init__(self, metaclusterdata, heatmapcolors=DEFAULT_HEATMAP,
                  width=17.0, debug=False, enable_throttle=True):
-
         self.width: float = width
         self.heatmapcolors: str = heatmapcolors
         self.mcd: MetaClusterData = metaclusterdata
@@ -174,7 +173,7 @@ class MetaClusterGui():
             picker=True,
             vmin=-0.3,
             vmax=1,
-            )
+        )
 
         # xaxis pixelcount graphs
         self.ax_cp.xaxis.set_tick_params(which='both', bottom=False, labelbottom=False)
@@ -259,7 +258,7 @@ class MetaClusterGui():
             button_style='warning',
             tooltip='Clear currently selected clusters',
             icon='ban',
-            )
+        )
         self.clear_selection_button.on_click(self.clear_selection)
 
         # new metacluster button
@@ -269,7 +268,7 @@ class MetaClusterGui():
             button_style='success',
             tooltip='Create new metacluster from current selection',
             icon='plus',
-            )
+        )
         self.new_metacluster_button.on_click(self.new_metacluster)
 
         # metacluster metadata
@@ -277,34 +276,37 @@ class MetaClusterGui():
             value=self.mcd.metaclusters.index[0],
             options=list(zip(self.mcd.metacluster_displaynames, self.mcd.metaclusters.index)),
             description='MetaCluster:',
-            )
+        )
         self.current_metacluster.observe(
-            self.update_current_metacluster_handler, type="change", names="value")
+            self.update_current_metacluster_handler, type="change", names="value"
+        )
 
         self.current_metacluster_displayname = widgets.Text(
             value=self.mcd.get_metacluster_displayname(self.current_metacluster.value),
             placeholder='Metacluster Displayname',
             description='Edit Name:',
             disabled=False,
-            )
+        )
         self.current_metacluster_displayname.observe(
             self.update_current_metacluster_displayname,
             type="change",
-            names="value")
+            names="value"
+        )
 
         # group widgets to look nice
         self.metacluster_info = widgets.VBox([
             self.current_metacluster,
-            self.current_metacluster_displayname])
+            self.current_metacluster_displayname
+        ])
         self.tools = widgets.HBox([
             self.zscore_clamp_slider,
             self.clear_selection_button,
             self.new_metacluster_button,
-            ])
+        ])
         self.toolbar = widgets.HBox([
             self.tools,
             self.metacluster_info,
-            ])
+        ])
         self.toolbar.layout.justify_content = 'space-between'
         self.plot_output = widgets.Output()
         self.gui = widgets.VBox([self.plot_output, self.toolbar])
@@ -393,8 +395,8 @@ class MetaClusterGui():
         self.im_m.set_clim(self.normalizer.vmin, self.normalizer.vmax)
 
         # xaxis metacluster color labels
-        assert max(self.mcd.metaclusters.index) <= self.mcd.cluster_count, \
-            "Can't support metaclusters idx > cluster count"
+        assert len(self.mcd.metaclusters.index) <= self.mcd.cluster_count, \
+            "Can't support num metaclusters > cluster count"
         mc_cmap = distinct_cmap(self.mcd.cluster_count)  # metaclusters < clusters
         self.im_cl.set_data([self.mcd.clusters_with_metaclusters['metacluster']])
         self.im_cl.set_extent((0, self.mcd.cluster_count, 0, 1))
@@ -480,7 +482,8 @@ class MetaClusterGui():
         old_current_metacluster = self.current_metacluster.value
 
         self.current_metacluster.unobserve(
-            self.update_current_metacluster_handler, type="change", names="value")
+            self.update_current_metacluster_handler, type="change", names="value"
+        )
 
         self.current_metacluster.options = \
             list(zip(self.mcd.metacluster_displaynames, self.mcd.metaclusters.index))

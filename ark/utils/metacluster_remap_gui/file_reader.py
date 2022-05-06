@@ -43,7 +43,8 @@ def metaclusterdata_from_files(cluster_path, cluster_type='pixel', prefix_trim=N
     # with {cluster_type}_{som/meta}_cluster, not high priority
     cluster_data = cluster_data.rename(columns={
         '%s_som_cluster' % cluster_type: 'cluster',
-        '%s_meta_cluster' % cluster_type: 'metacluster'
+        '%s_meta_cluster' % cluster_type: 'metacluster',
+        '%s_meta_cluster_rename' % cluster_type: 'metacluster_rename'
     })
 
     if 'cluster' not in cluster_data.columns:
