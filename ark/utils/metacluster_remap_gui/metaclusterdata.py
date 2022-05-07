@@ -31,7 +31,8 @@ class MetaClusterData():
             ].drop_duplicates()
 
             self._metacluster_displaynames_map = {
-                mc['metacluster']: mc['metacluster_rename'] for _, mc in unique_mappings.iterrows()
+                mc['metacluster']: str(mc['metacluster_rename'])
+                for _, mc in unique_mappings.iterrows()
             }
 
         self._marker_order = list(range(len(self._clusters.columns)))
