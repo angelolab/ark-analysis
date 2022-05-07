@@ -63,7 +63,6 @@ class MetaClusterData():
         clusters_data = self.clusters_with_metaclusters.copy()
 
         # we need to drop the rename column on subsequent runs after the first
-        # NOTE: this only happens on subsequent runs after the first
         if 'metacluster_rename' in self.clusters_with_metaclusters.columns:
             clusters_data = clusters_data.drop(columns='metacluster_rename')
 
