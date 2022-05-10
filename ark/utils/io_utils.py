@@ -212,7 +212,7 @@ def list_folders(dir_name, substrs=None, exact_match=False, ignore_hidden=True):
     # else:
     #     folders = dir_name.lsdirs()
     files = os.listdir(dir_name)
-    folders = [file for file in files if not os.path.isdir(os.path.join(dir_name, file))]
+    folders = [file for file in files if os.path.isdir(os.path.join(dir_name, file))]
 
     # Filter out hidden directories
     if ignore_hidden:
