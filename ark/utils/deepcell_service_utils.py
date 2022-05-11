@@ -13,48 +13,46 @@ from ark.utils import misc_utils
 
 
 def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
-                           suffix='_feature_0', host='https://deepcell.org', job_type='mesmer',
-                           scale=1.0, timeout=3600, zip_size=100, parallel=False):
-    """Handles all of the necessary data manipulation for running deepcell tasks.
-
-    Creates .zip files (to be used as input for DeepCell),
-    calls run_deepcell_task method,
-    and extracts zipped output files to the specified output location
-
-    Args:
-        deepcell_input_dir (str):
-            Location of preprocessed files (assume deepcell_input_dir contains <fov>.tif
-            for each fov in fovs list).
-        deepcell_output_dir (str):
-            Location to save DeepCell output (as .tif)
-        fovs (list):
-            List of fovs in preprocessing pipeline. if None, all .tif files
-            in deepcell_input_dir will be considered as input fovs. Default: None
-        suffix (str):
-            Suffix for DeepCell output filename. e.g. for fovX, DeepCell output
-            should be <fovX>+suffix.tif. Default: '_feature_0'
-        host (str):
-            Hostname and port for the kiosk-frontend API server
-            Default: 'https://deepcell.org'
-        job_type (str):
-            Name of job workflow (multiplex, segmentation, tracking)
-            Default: 'multiplex'
-        scale (float):
-            Value to rescale data by
-            Default: 1.0
-        timeout (int):
-            Approximate seconds until timeout.
-            Default: 1 hour (3600)
-        zip_size (int):
-            Maximum number of files to include in zip.
-            Default: 100
-        parallel (bool):
-            Tries to zip, upload, and extract zip files in parallel
-            Default: False
-    Raises:
-        ValueError:
-            Raised if there is some fov X (from fovs list) s.t.
-            the file <deepcell_input_dir>/fovX.tif does not exist
+                        suffix='_feature_0', host='https://deepcell.org', job_type='mesmer',
+                        scale=1.0, timeout=3600, zip_size=100, parallel=False):
+    """ Handles all of the necessary data manipulation for running deepcell tasks.
+        Creates .zip files (to be used as input for DeepCell),
+        calls run_deepcell_task method,
+        and extracts zipped output files to the specified output location
+        Args:
+            deepcell_input_dir (str):
+                Location of preprocessed files (assume deepcell_input_dir contains <fov>.tif
+                for each fov in fovs list).  This should not be a GoogleDrivePath.
+            deepcell_output_dir (str):
+                Location to save DeepCell output (as .tif)
+            fovs (list):
+                List of fovs in preprocessing pipeline. if None, all .tif files
+                in deepcell_input_dir will be considered as input fovs. Default: None
+            suffix (str):
+                Suffix for DeepCell output filename. e.g. for fovX, DeepCell output
+                should be <fovX>+suffix.tif. Default: '_feature_0'
+            host (str):
+                Hostname and port for the kiosk-frontend API server
+                Default: 'https://deepcell.org'
+            job_type (str):
+                Name of job workflow (multiplex, segmentation, tracking)
+                Default: 'multiplex'
+            scale (float):
+                Value to rescale data by
+                Default: 1.0
+            timeout (int):
+                Approximate seconds until timeout.
+                Default: 1 hour (3600)
+            zip_size (int):
+                Maximum number of files to include in zip.
+                Default: 100
+            parallel (bool):
+                Tries to zip, upload, and extract zip files in parallel
+                Default: False
+        Raises:
+            ValueError:
+                Raised if there is some fov X (from fovs list) s.t.
+                the file <deepcell_input_dir>/fovX.tif does not exist
     """
     # check that scale arg can be converted to a float
     try:
