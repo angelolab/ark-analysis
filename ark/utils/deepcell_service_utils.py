@@ -77,12 +77,6 @@ def create_deepcell_output(
     except ValueError:
         raise ValueError("Scale argument must be a number")
 
-    # ! Deprecated
-    # is_drive_path = False
-    # if type(deepcell_input_dir) is GoogleDrivePath:
-    #     warnings.warn("Consider saving preprocessed deepcell input tifs locally...", UserWarning)
-    #     is_drive_path = True
-
     # extract all the files from deepcell_input_dir
     input_files = io_utils.list_files(deepcell_input_dir, substrs=[".tif"])
 
@@ -111,15 +105,7 @@ def create_deepcell_output(
     # i.e easier to map fov_groups
     def _zip_run_extract(fov_group, group_index):
         # define the location of the zip file for our fovs
-
-        # ! Deprecated
-        # zip_path = path_join(deepcell_input_dir, f'fovs_batch_{group_index + 1}.zip')
-
         zip_path = os.path.join(deepcell_input_dir, f"fovs_batch_{group_index + 1}.zip")
-
-        # ! Deprecated
-        # if not is_drive_path and os.path.isfile(zip_path):
-        #     warnings.warn(f'{zip_path} will be overwritten')
 
         if os.path.isfile(zip_path):
             warnings.warn(f'{zip_path} will be overwritten')
@@ -134,17 +120,10 @@ def create_deepcell_output(
                     basename = fov + ".tif"
                     if basename not in input_files:
                         basename = basename + "f"
-                    # ! Deprecated
-                    # filename = path_join(deepcell_input_dir, basename)
-                    # if is_drive_path:
-                    #     with filename.read() as f:
-                    #         zipObj.writestr(basename, f.getvalue())
-                    # else:
+
                     filename = os.path.join(deepcell_input_dir, basename)
                     zipObj.write(filename, basename)
 
-        # ! Deprecated
-        # drive_write_out(zip_path, zip_write)
         zip_write(zip_path)
 
         # pass the zip file to deepcell.org
@@ -157,26 +136,15 @@ def create_deepcell_output(
         print("Extracting tif files from DeepCell response.")
         zip_names = io_utils.list_files(deepcell_output_dir, substrs=[".zip"])
 
-        # ! Deprecated
-        # zip_files = [path_join(deepcell_output_dir, name) for name in zip_names]
         zip_files = [os.path.join(deepcell_output_dir, name) for name in zip_names]
 
         # sort by newest added
         zip_files.sort(key=io_utils.getmtime)
 
-        # generalize for str/filehandle input to ZipFile call
-        # ! Deprecated
-        # if type(deepcell_output_dir) is GoogleDrivePath:
-        #     zip_files = [zf.read() for zf in zip_files]
-
         with ZipFile(zip_files[-1], "r") as zipObj:
             for name in zipObj.namelist():
-                # ! Deprecated
-                # with DriveOpen(path_join(deepcell_output_dir, name), mode="wb") as f:
-                #     f.write(zipObj.read(name))
                 with open(os.path.join(deepcell_output_dir, name), mode="wb") as f:
                     f.write(zipObj.read(name))
-            # zipObj.extractall(deepcell_output_dir)
             for fov in fov_group:
                 if fov + suffix + ".tif" not in zipObj.namelist():
                     warnings.warn(f"Deep Cell output file was not found for {fov}.")
@@ -220,18 +188,8 @@ def run_deepcell_direct(
 
     # upload zip file
     upload_url = host + "/api/upload"
-
-    # ! Deprecated
-    # is_drive_path = type(input_dir) is GoogleDrivePath
-    # filename = input_dir.filename() if is_drive_path else Path(input_dir).name
     filename = Path(input_dir).name
 
-    # ! Deprecated
-    # with DriveOpen(input_dir, mode="rb") as f:
-    #     upload_fields = {
-    #         "file": (filename, f.read(), "application/zip"),
-    #     }
-    #     f.seek(0)
     with open(input_dir, mode="rb") as f:
         upload_fields = {
             "file": (filename, f.read(), "application/zip"),
@@ -302,9 +260,6 @@ def run_deepcell_direct(
 
     deepcell_output = requests.get(redis_response["value"][2], allow_redirects=True)
 
-    # ! Deprecated
-    # with DriveOpen(path_join(output_dir, "deepcell_response.zip"), mode="wb") as f:
-    #     f.write(deepcell_output.content)
     with open(os.path.join(output_dir, "deepcell_response.zip"), mode="wb") as f:
         f.write(deepcell_output.content)
 

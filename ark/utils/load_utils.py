@@ -51,8 +51,6 @@ def load_imgs_from_mibitiff(data_dir, mibitiff_files=None, channels=None, delimi
     fovs = iou.extract_delimited_names(fovs, delimiter=delimiter)
 
     mibitiff_files = [
-        # ! Deprecated
-        # path_join(data_dir, mt_file, get_filehandle=True)
         os.path.join(data_dir, mt_file)
         for mt_file in mibitiff_files
     ]
@@ -132,8 +130,6 @@ def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, channels=None,
     # get imgs from first fov if no img names supplied
     if channels is None:
         channels = iou.list_files(
-            # ! Deprecated
-            # path_join(data_dir, fovs[0], img_sub_folder),
             dir_name=os.path.join(data_dir, fovs[0], img_sub_folder),
             substrs=['.tif', '.jpg', '.png']
         )
@@ -146,8 +142,6 @@ def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, channels=None,
         channels_no_delim = [img.split('.')[0] for img in channels]
 
         all_channels = iou.list_files(
-            # ! Deprecated
-            # path_join(data_dir, fovs[0], img_sub_folder),
             dir_name=os.path.join(data_dir, fovs[0], img_sub_folder),
             substrs=channels_no_delim,
             exact_match=True
@@ -163,8 +157,6 @@ def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, channels=None,
         raise ValueError("No images found in designated folder")
 
     test_img = io.imread(
-        # ! Deprecated
-        # path_join(data_dir, fovs[0], img_sub_folder, channels[0], get_filehandle=True)
         os.path.join(data_dir, fovs[0], img_sub_folder, channels[0])
     )
 
@@ -187,18 +179,11 @@ def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, channels=None,
         for img in range(len(channels)):
             if max_image_size is not None:
                 temp_img = io.imread(
-                    # ! Deprecated
-                    # path_join(data_dir, fovs[fov], img_sub_folder, channels[img],
-                    #           get_filehandle=True)
                     os.path.join(data_dir, fovs[fov], img_sub_folder, channels[img])
                 )
                 img_data[fov, :temp_img.shape[0], :temp_img.shape[1], img] = temp_img
             else:
                 img_data[fov, :, :, img] = io.imread(
-                    # ! Deprecated
-                    # path_join(data_dir, fovs[fov],
-                    #     img_sub_folder, channels[img],
-                    #     get_filehandle=True)
                     os.path.join(data_dir, fovs[fov], img_sub_folder, channels[img])
                     )
 
@@ -284,9 +269,7 @@ def load_imgs_from_dir(data_dir, files=None, match_substring=None, trim_suffix=N
         raise ValueError(f"No images found in directory, {data_dir}")
 
     test_img = io.imread(
-        # ! Deprecated
         os.path.join(data_dir, imgs[0])
-        # path_join(data_dir, imgs[0], get_filehandle=True)
         )
 
     # check data format
@@ -323,8 +306,6 @@ def load_imgs_from_dir(data_dir, files=None, match_substring=None, trim_suffix=N
     img_data = []
     for img in imgs:
         v = io.imread(
-            # ! Deprecated
-            # path_join(data_dir, img, get_filehandle=True)
             os.path.join(data_dir, img)
             )
         if not multitiff:

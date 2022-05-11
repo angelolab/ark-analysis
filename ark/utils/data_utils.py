@@ -385,13 +385,6 @@ def generate_deepcell_input(
             if mem_channels:
                 out[1] = np.sum(data_xr.loc[fov, :, :, mem_channels].values, axis=2)
 
-            # ! Deprecated
-            # save_path = path_join(data_dir, f'{fov}.tif')
-            # drive_write_out(
-            #     save_path,
-            #     lambda x: io.imsave(x, out, plugin='tifffile', check_contrast=False)
-            # )
-
             save_path = os.path.join(data_dir, f"{fov}.tif")
             io.imsave(save_path, out, plugin="tifffile", check_contrast=False)
 
@@ -472,12 +465,6 @@ def split_img_stack(
     """
 
     for stack_name in stack_list:
-        # ! Deprecated
-        # img_stack = io.imread(path_join(stack_dir, stack_name))
-        # img_dir = path_join(output_dir, os.path.splitext(stack_name)[0])
-        # if type(img_dir) is GoogleDrivePath:
-        #     img_dir.mkdir()
-        # else:
         img_stack = io.imread(os.path.join(stack_dir, stack_name))
         img_dir = os.path.join(output_dir, os.path.splitext(stack_name)[0])
         os.makedirs(img_dir)
@@ -487,11 +474,6 @@ def split_img_stack(
                 channel = img_stack[indices[i], ...]
             else:
                 channel = img_stack[..., indices[i]]
-            # ! Deprecated
-            # drive_write_out(
-            #     path_join(img_dir, names[i]),
-            #     lambda x: io.imsave(x, channel, plugin='tifffile', check_contrast=False)
-            # )
 
             save_path = os.path.join(img_dir, names[i])
             io.imsave(save_path, channel, plugin="tifffile", check_contrast=False)
