@@ -1,6 +1,5 @@
 import os
 import copy
-from tabnanny import check
 import numpy as np
 import pandas as pd
 import skimage.io as io
