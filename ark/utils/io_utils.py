@@ -226,17 +226,3 @@ def list_folders(dir_name, substrs=None, exact_match=False, ignore_hidden=True):
                    ])]
 
     return matches
-
-
-def getmtime(filepath):
-    """ Generalizes os.path.getmtime for paths
-
-    Args:
-        filepath (PathLike):
-            Path to file of interest
-
-    Returns:
-        int:
-            Last modified time
-    """
-    return os.path.getmtime(filepath)

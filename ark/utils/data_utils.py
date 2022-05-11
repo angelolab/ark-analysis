@@ -5,13 +5,12 @@ import skimage.io as io
 import numpy as np
 import xarray as xr
 
-from pathlib import Path
 from ark import settings
 from ark.utils import load_utils
 from ark.utils.misc_utils import verify_in_list
 
 
-def save_fov_images(fovs, data_dir, img_xr, name_suffix=""):
+def save_fov_images(fovs, data_dir, img_xr, name_suffix=''):
     """Given an xarray of images per fov, saves each image separately
 
     Args:
@@ -91,7 +90,7 @@ def label_cells_by_cluster(fovs, all_data, label_maps, fov_col=settings.FOV_ID,
 
 
 def generate_cell_cluster_mask(fovs, base_dir, seg_dir, cell_consensus_name,
-                               cell_cluster_col="cell_meta_cluster", seg_suffix="_feature_0.tif"):
+                               cell_cluster_col='cell_meta_cluster', seg_suffix='_feature_0.tif'):
     """For each fov, create a mask labeling each cell with their SOM or meta cluster label
 
     Args:
@@ -125,7 +124,7 @@ def generate_cell_cluster_mask(fovs, base_dir, seg_dir, cell_consensus_name,
     # verify the cluster_col provided is valid
     verify_in_list(
         provided_cluster_col=cell_cluster_col,
-        valid_cluster_cols=['cell_som_cluster', 'cell_meta_cluster'],
+        valid_cluster_cols=['cell_som_cluster', 'cell_meta_cluster']
     )
 
     # load the consensus data in
@@ -190,9 +189,8 @@ def generate_pixel_cluster_mask(fovs, base_dir, tiff_dir, chan_file,
         raise FileNotFoundError("tiff_dir %s does not exist")
 
     if not os.path.exists(os.path.join(tiff_dir, chan_file)):
-        raise FileNotFoundError(
-            "chan_file %s does not exist in tiff_dir %s"
-            % (chan_file, tiff_dir))
+         raise FileNotFoundError("chan_file %s does not exist in tiff_dir %s"
+                                 % (chan_file, tiff_dir))
 
     if not os.path.exists(os.path.join(base_dir, pixel_consensus_dir)):
         raise FileNotFoundError(
@@ -208,7 +206,7 @@ def generate_pixel_cluster_mask(fovs, base_dir, tiff_dir, chan_file,
     # verify all the fovs are valid
     verify_in_list(
         provided_fov_files=[fov + '.feather' for fov in fovs],
-        consensus_fov_files=os.listdir(os.path.join(base_dir, pixel_consensus_dir)),
+        consensus_fov_files=os.listdir(os.path.join(base_dir, pixel_consensus_dir))
     )
 
     # define a list to hold the overlays for each fov
@@ -312,9 +310,7 @@ def generate_deepcell_input(data_dir, tiff_dir, nuc_channels, mem_channels, fovs
         raise ValueError('Either nuc_channels or mem_channels should be non-empty.')
 
     # define the channels list by combining nuc_channels and mem_channels
-    channels = (nuc_channels if nuc_channels else []) + (
-        mem_channels if mem_channels else []
-    )
+    channels = (nuc_channels if nuc_channels else []) + (mem_channels if mem_channels else [])
 
     # filter channels for None (just in case)
     channels = [channel for channel in channels if channel is not None]

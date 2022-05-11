@@ -96,15 +96,15 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
             warnings.warn(f'{zip_path} will be overwritten')
 
         # write all files to the zip file
-        print("Zipping preprocessed tif files.")
+        print('Zipping preprocessed tif files.')
 
         def zip_write(zip_path):
             with ZipFile(zip_path, 'w', compression=ZIP_DEFLATED) as zipObj:
                 for fov in fov_group:
                     # file has .tif extension
-                    basename = fov + ".tif"
+                    basename = fov + '.tif'
                     if basename not in input_files:
-                        basename = basename + "f"
+                        basename = basename + 'f'
 
                     filename = os.path.join(deepcell_input_dir, basename)
                     zipObj.write(filename, basename)
@@ -124,7 +124,7 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
         zip_files = [os.path.join(deepcell_output_dir, name) for name in zip_names]
 
         # sort by newest added
-        zip_files.sort(key=io_utils.getmtime)
+        zip_files.sort(key=os.path.getmtime())
 
         with ZipFile(zip_files[-1], "r") as zipObj:
             for name in zipObj.namelist():
@@ -169,14 +169,16 @@ def run_deepcell_direct(input_dir, output_dir, host='https://deepcell.org',
     upload_url = host + "/api/upload"
     filename = Path(input_dir).name
 
-    with open(input_dir, mode="rb") as f:
+    with open(input_dir, mode='rb') as f:
         upload_fields = {
             'file': (filename, f.read(), 'application/zip'),
         }
         f.seek(0)
 
     upload_response = requests.post(
-        upload_url, timeout=timeout, files=upload_fields
+        upload_url,
+        timeout=timeout,
+        files=upload_fields
     ).json()
 
     # call prediction
@@ -231,7 +233,8 @@ def run_deepcell_direct(input_dir, output_dir, host='https://deepcell.org',
     progress_bar.close()
 
     # when done, download result or examine errors
-    if len(redis_response['value'][4]) > 0:        # error happened
+    if len(redis_response['value'][4]) > 0:
+        # error happened
         print(f"Encountered Failure(s): {unquote_plus(redis_response['value'][4])}")
 
     deepcell_output = requests.get(redis_response['value'][2], allow_redirects=True)
