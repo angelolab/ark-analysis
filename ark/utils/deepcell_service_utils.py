@@ -13,8 +13,8 @@ from ark.utils import misc_utils
 
 
 def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
-                        suffix='_feature_0', host='https://deepcell.org', job_type='mesmer',
-                        scale=1.0, timeout=3600, zip_size=100, parallel=False):
+                           suffix='_feature_0', host='https://deepcell.org', job_type='mesmer',
+                           scale=1.0, timeout=3600, zip_size=100, parallel=False):
     """ Handles all of the necessary data manipulation for running deepcell tasks.
         Creates .zip files (to be used as input for DeepCell),
         calls run_deepcell_task method,
