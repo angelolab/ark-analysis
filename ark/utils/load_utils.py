@@ -7,8 +7,6 @@ import xarray as xr
 
 from ark.utils.tiff_utils import read_mibitiff
 from ark.utils import io_utils as iou
-# from ark.utils.google_drive_utils import path_join
-from pathlib import Path
 
 
 def load_imgs_from_mibitiff(data_dir, mibitiff_files=None, channels=None, delimiter=None,
@@ -142,8 +140,7 @@ def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, channels=None,
         channels_no_delim = [img.split('.')[0] for img in channels]
 
         all_channels = iou.list_files(
-            dir_name=os.path.join(data_dir, fovs[0], img_sub_folder),
-            substrs=channels_no_delim,
+            dir_name=os.path.join(data_dir, fovs[0], img_sub_folder), substrs=channels_no_delim,
             exact_match=True
         )
 
@@ -185,7 +182,7 @@ def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, channels=None,
             else:
                 img_data[fov, :, :, img] = io.imread(
                     os.path.join(data_dir, fovs[fov], img_sub_folder, channels[img])
-                    )
+                )
 
     # check to make sure that dtype wasn't too small for range of data
     if np.min(img_data) < 0:
@@ -268,9 +265,7 @@ def load_imgs_from_dir(data_dir, files=None, match_substring=None, trim_suffix=N
     if len(imgs) == 0:
         raise ValueError(f"No images found in directory, {data_dir}")
 
-    test_img = io.imread(
-        os.path.join(data_dir, imgs[0])
-        )
+    test_img = io.imread(os.path.join(data_dir, imgs[0]))
 
     # check data format
     multitiff = test_img.ndim == 3
@@ -305,9 +300,7 @@ def load_imgs_from_dir(data_dir, files=None, match_substring=None, trim_suffix=N
     # extract data
     img_data = []
     for img in imgs:
-        v = io.imread(
-            os.path.join(data_dir, img)
-            )
+        v = io.imread(os.path.join(data_dir, img))
         if not multitiff:
             v = np.expand_dims(v, axis=2)
         elif channels_first:

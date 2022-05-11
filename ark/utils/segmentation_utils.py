@@ -9,8 +9,6 @@ from skimage.segmentation import find_boundaries
 import xarray as xr
 
 from ark.utils import load_utils, plot_utils, io_utils, misc_utils
-# from ark.utils.google_drive_utils import drive_write_out, path_join
-from pathlib import Path
 import ark.settings as settings
 
 
@@ -220,7 +218,7 @@ def save_segmentation_labels(segmentation_dir, data_dir, output_dir,
 
         # save the labels respectively
         save_path_seg_labels = os.path.join(output_dir, f'{fov}_segmentation_labels.tiff')
-        io.imsave(save_path_seg_labels, labels, plugin="tifffile", check_contrast=False)
+        io.imsave(save_path_seg_labels, labels, plugin='tifffile', check_contrast=False)
 
         # define borders of cells in mask
         contour_mask = find_boundaries(labels, connectivity=1, mode='inner').astype(np.uint8)

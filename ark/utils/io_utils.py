@@ -2,8 +2,6 @@ import os
 import pathlib
 import warnings
 
-# from ark.utils.google_drive_utils import GoogleDrivePath
-
 
 def validate_paths(paths, data_prefix=True):
     """Verifys that paths exist and don't leave Docker's scope
@@ -231,10 +229,10 @@ def list_folders(dir_name, substrs=None, exact_match=False, ignore_hidden=True):
 
 
 def getmtime(filepath):
-    """ Generalizes os.path.getmtime for google drive paths
+    """ Generalizes os.path.getmtime for paths
 
     Args:
-        filepath (PathLike or GoogleDrivePath):
+        filepath (PathLike):
             Path to file of interest
 
     Returns:

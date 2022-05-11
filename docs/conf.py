@@ -66,8 +66,6 @@ napoleon_google_docstring = True
 autodoc_mock_imports = ['cryptography',
                         'feather',
                         'google',
-                        # 'googleapiclient',
-                        # 'google_auth_oauthlib',
                         'h5py',
                         'ipywidgets',
                         'numpy',
