@@ -98,7 +98,8 @@ def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, channels=None,
         img_sub_folder (str):
             optional name of image sub-folder within each fov
         fovs (str, list):
-            optional list of folders to load imgs from, or the name of a single folder. Default loads all folders
+            optional list of folders to load imgs from, or the name of a single folder. Default
+            loads all folders
         channels (list):
             optional list of imgs to load, otherwise loads all imgs
         dtype (str/type):
@@ -124,8 +125,8 @@ def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, channels=None,
 
     # If the fov provided is a single string (`fov_1` instead of [`fov_1`])
     if isinstance(fovs, str):
-        fovs = [fovs]    
-    
+        fovs = [fovs]
+
     if img_sub_folder is None:
         # no img_sub_folder, change to empty string to read directly from base folder
         img_sub_folder = ""
@@ -151,10 +152,10 @@ def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, channels=None,
 
         # get the corresponding indices found in channels_no_delim
         channels_indices = [channels_no_delim.index(chan.split('.')[0]) for chan in all_channels]
-        
+
         # verify if all channels in `channels` are present in `all_channels`
-        misc_utils.verify_same_elements(channels, all_channels)
-        
+        misc_utils.verify_same_elements(channels=channels, all_channels=all_channels)
+
         # reorder back to original
         channels = [chan for _, chan in sorted(zip(channels_indices, all_channels))]
 

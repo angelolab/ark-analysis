@@ -136,14 +136,14 @@ def test_load_imgs_from_tree():
                                                      for i in range(3)])
 
         assert loaded_xr.equals(data_xr)
-        
+
         # check when fov is a single string
         loaded_xr = \
             load_utils.load_imgs_from_tree(temp_dir, img_sub_folder="TIFS", dtype="int16",
                                            fovs='fov0', channels=some_chans)
-        
+
         assert loaded_xr.equals(data_xr[:1, :, :, :1])
-        
+
         # check that an error raises when a channel provided does not exist
         with pytest.raises(ValueError):
             loaded_xr = \
