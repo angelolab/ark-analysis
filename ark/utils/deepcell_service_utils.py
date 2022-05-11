@@ -122,7 +122,7 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
         zip_files = [os.path.join(deepcell_output_dir, name) for name in zip_names]
 
         # sort by newest added
-        zip_files.sort(key=os.path.getmtime())
+        zip_files.sort(key=os.path.getmtime)
 
         with ZipFile(zip_files[-1], "r") as zipObj:
             for name in zipObj.namelist():
