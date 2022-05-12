@@ -54,7 +54,7 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
             Raised if there is some fov X (from fovs list) s.t.
             the file <deepcell_input_dir>/fovX.tif does not exist
     """
-    
+
     # check that scale arg can be converted to a float
     try:
         scale = float(scale)
