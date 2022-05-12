@@ -154,7 +154,7 @@ def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, channels=None,
         channels_indices = [channels_no_delim.index(chan.split('.')[0]) for chan in all_channels]
 
         # verify if all channels in `channels` are present in `all_channels`
-        misc_utils.verify_same_elements(channels=channels, all_channels=all_channels)
+        misc_utils.verify_same_elements(channels=channels_no_delim, all_channels=all_channels)
 
         # reorder back to original
         channels = [chan for _, chan in sorted(zip(channels_indices, all_channels))]
