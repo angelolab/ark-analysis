@@ -19,6 +19,7 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
     Creates .zip files (to be used as input for DeepCell),
     calls run_deepcell_task method,
     and extracts zipped output files to the specified output location
+
     Args:
         deepcell_input_dir (str):
             Location of preprocessed files (assume deepcell_input_dir contains <fov>.tif
