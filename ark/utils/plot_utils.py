@@ -140,6 +140,13 @@ def plot_pixel_cell_cluster_overlay(img_xr, fovs, cluster_id_to_name_path, metac
     # need to add black to denote a pixel with no clusters
     mc_colors = [(0.0, 0.0, 0.0)] + list(metacluster_id_to_name['color'].values)
 
+    # map each metacluster_id_to_name to its index + 1
+    # NOTE: explicitly needed to ensure correct colormap colors are drawn and colorbar
+    # is indexed correctly when plotted
+    metacluster_to_index = {}
+    for index, row in metacluster_id_to_name.reset_index(drop=True).iterrows():
+        metacluster_to_index[row['metacluster']] = index + 1
+
     # generate the colormap
     cmap = colors.ListedColormap(mc_colors)
     norm = colors.BoundaryNorm(
@@ -151,13 +158,17 @@ def plot_pixel_cell_cluster_overlay(img_xr, fovs, cluster_id_to_name_path, metac
         # retrieve the image associated with the FOV
         fov_img = img_xr[img_xr[fov_col] == fov].values
 
-        # get the unique cluster ids associated with the FOV
-        unique_clusters = np.sort(np.unique(fov_img))
-
         # assign any metacluster id not in metacluster_id_to_name to 0 (not including 0 itself)
         # done as a precaution, should not usually happen
-        acceptable_cluster_ids = [0] + list(unique_clusters)
+        acceptable_cluster_ids = [0] + list(metacluster_id_to_name['metacluster'])
         fov_img[~np.isin(fov_img, acceptable_cluster_ids)] = 0
+
+        # explicitly relabel each value in fov_img with its index in mc_colors
+        # to ensure proper indexing into colormap
+        for mc, mc_index in metacluster_to_index.items():
+            fov_img[fov_img == mc] = mc_index
+
+        names, counts = np.unique(fov_img, return_counts=True)
 
         # define the figure
         fig = plt.figure(figsize=figsize)
@@ -167,7 +178,7 @@ def plot_pixel_cell_cluster_overlay(img_xr, fovs, cluster_id_to_name_path, metac
 
         # display the image
         overlay = plt.imshow(
-            img_xr[img_xr[fov_col] == fov].values.squeeze(),
+            fov_img.squeeze(),
             cmap=cmap,
             norm=norm,
             origin='upper'
