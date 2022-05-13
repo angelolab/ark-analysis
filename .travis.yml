@@ -34,7 +34,7 @@ jobs:
         on:
           tags: true
     - stage: docker_deploy
-      if: branch = remove_googledrivepath_dead_code
+      if: tag = remove_googledrivepath_dead_code
       python: 3.6
       script:
         - "travis_wait 120 sleep 7200 &"
