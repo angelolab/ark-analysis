@@ -29,7 +29,7 @@ setup(
                       'scikit-learn>=0.19.1,<1',
                       'scipy>=1.1.0,<2',
                       'seaborn>=0.10.1,<1',
-                      'spatial-lda>=0.1.2,<0.1.3',
+                      'spatial-lda>=0.1.3,<1',
                       'statsmodels>=0.11.1,<1',
                       'umap-learn>=0.4.6,<1',
                       'xarray>=0.12.3,<1',
