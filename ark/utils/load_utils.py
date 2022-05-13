@@ -124,7 +124,7 @@ def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, channels=None,
         raise ValueError(f"No fovs found in directory, {data_dir}")
 
     # If the fov provided is a single string (`fov_1` instead of [`fov_1`])
-    if isinstance(fovs, str):
+    if type(fovs) is str:
         fovs = [fovs]
 
     if img_sub_folder is None:
@@ -154,7 +154,9 @@ def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, channels=None,
         channels_indices = [channels_no_delim.index(chan.split('.')[0]) for chan in all_channels]
 
         # verify if channels from user input are present in `all_channels`
-        misc_utils.verify_same_elements(channels=channels, channels_no_delim=channels_no_delim)
+        all_channels_no_delim = [channel.split('.')[0] for channel in all_channels]
+        misc_utils.verify_same_elements(channels=all_channels_no_delim,
+                                        channels_no_delim=channels_no_delim)
 
         # reorder back to original
         channels = [chan for _, chan in sorted(zip(channels_indices, all_channels))]
