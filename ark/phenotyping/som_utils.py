@@ -1858,7 +1858,7 @@ def generate_weighted_channel_avg_heatmap(cell_cluster_channel_avg_path, cell_cl
             Path to the file containing the average weighted channel expression per cell cluster
         cell_cluster_col (str):
             The name of the cell cluster col,
-            needs to be either 'cell_som_cluster' or 'cell_meta_cluster'
+            needs to be either 'cell_som_cluster' or 'cell_meta_cluster_rename'
         channels (str):
             The list of channels to visualize
         raw_cmap (dict):
@@ -1883,7 +1883,7 @@ def generate_weighted_channel_avg_heatmap(cell_cluster_channel_avg_path, cell_cl
     # verify the cell_cluster_col provided is valid
     misc_utils.verify_in_list(
         provided_cluster_col=[cell_cluster_col],
-        valid_cluster_cols=['cell_som_cluster', 'cell_meta_cluster']
+        valid_cluster_cols=['cell_som_cluster', 'cell_meta_cluster_rename']
     )
 
     # read the channel average path
@@ -1897,11 +1897,15 @@ def generate_weighted_channel_avg_heatmap(cell_cluster_channel_avg_path, cell_cl
 
     # sort the data by the meta cluster value
     # this ensures the meta clusters are grouped together when the colormap is displayed
-    cell_cluster_channel_avgs = cell_cluster_channel_avgs.sort_values(by='cell_meta_cluster')
+    cell_cluster_channel_avgs = cell_cluster_channel_avgs.sort_values(
+        by='cell_meta_cluster_rename'
+    )
 
     # map raw_cmap onto cell_cluster_channel_avgs for the heatmap to display the side color bar
     meta_cluster_index = cell_cluster_channel_avgs[cell_cluster_col].values
-    meta_cluster_mapping = pd.Series(cell_cluster_channel_avgs['cell_meta_cluster']).map(raw_cmap)
+    meta_cluster_mapping = pd.Series(
+        cell_cluster_channel_avgs['cell_meta_cluster_rename']
+    ).map(renamed_cmap)
     meta_cluster_mapping.index = meta_cluster_index
 
     # draw the heatmap
@@ -1915,6 +1919,9 @@ def generate_weighted_channel_avg_heatmap(cell_cluster_channel_avg_path, cell_cl
         cbar_ticks=np.arange(-3, 4),
         row_colors=meta_cluster_mapping,
         row_cluster=False,
+        left_start=0.0,
+        right_start=0.85,
+        w_spacing=0.2,
         colormap='vlag'
     )
 
@@ -1924,7 +1931,7 @@ def generate_weighted_channel_avg_heatmap(cell_cluster_channel_avg_path, cell_cl
         handles,
         renamed_cmap,
         title='Meta cluster',
-        bbox_to_anchor=(1.1, 1),
+        bbox_to_anchor=(1, 1),
         bbox_transform=plt.gcf().transFigure,
         loc='upper right'
     )

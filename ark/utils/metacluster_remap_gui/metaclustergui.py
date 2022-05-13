@@ -131,7 +131,7 @@ class MetaClusterGui():
                 cmap=self.heatmapcolors,
                 aspect='auto',
                 picker=True,
-                )
+            )
         self.im_c = _heatmap(self.ax_c, self.mcd.cluster_count)
         self.im_m = _heatmap(self.ax_m, self.mcd.metacluster_count)
 
