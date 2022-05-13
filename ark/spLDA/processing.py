@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import spatial_lda.featurization as ft
 from scipy.spatial.distance import pdist
-from sklearn.cluster import KMeans
+from sklearn.cluster import MiniBatchKMeans
 from sklearn.metrics import silhouette_score
 from sklearn.model_selection import train_test_split
 
@@ -224,7 +224,7 @@ def gap_stat(features, k, clust_inertia, num_boots=25):
     # Cluster each bootstrapped sample to get the inertia
     for b in range(num_boots):
         boot_array = np.random.uniform(low=mins, high=maxs, size=(n, p))
-        boot_clust = KMeans(n_clusters=k).fit(boot_array)
+        boot_clust = MiniBatchKMeans(n_clusters=k, batch_size=1024).fit(boot_array)
         within_cluster = spu.within_cluster_sums(data=boot_array, labels=boot_clust.labels_)
         w_kb.append(within_cluster)
     # Gap statistic and standard error
@@ -282,7 +282,7 @@ def compute_topic_eda(features, featurization, topics, num_boots=25):
     total_ss = np.sum(pdist(features) ** 2) / features.shape[0]
     for k in topics:
         # cluster with KMeans
-        cluster_fit = KMeans(n_clusters=k).fit(features)
+        cluster_fit = MiniBatchKMeans(n_clusters=k, batch_size=1024).fit(features)
         # cell feature count per cluster
         feature_copy = copy.deepcopy(features)
         cell_count = {}
@@ -292,7 +292,8 @@ def compute_topic_eda(features, featurization, topics, num_boots=25):
         # pooled within cluster sum of squares
         pooled_within_ss = spu.within_cluster_sums(data=features, labels=cluster_fit.labels_)
         stats['inertia'][k] = cluster_fit.inertia_
-        stats['silhouette'][k] = silhouette_score(features, cluster_fit.labels_, 'euclidean')
+        stats['silhouette'][k] = silhouette_score(features, cluster_fit.labels_,
+                                                  metric='euclidean')
         stats['gap_stat'][k], stats['gap_sds'][k] = gap_stat(features, k, pooled_within_ss,
                                                              num_boots)
         stats['percent_var_exp'][k] = (total_ss - cluster_fit.inertia_) / total_ss
