@@ -1,6 +1,4 @@
-import setuptools
 from os import path
-from distutils.command.build_ext import build_ext as DistUtilsBuildExt
 from setuptools import setup, find_packages
 
 VERSION = '0.2.9'
@@ -31,11 +29,14 @@ setup(
                       'scikit-learn>=0.19.1,<1',
                       'scipy>=1.1.0,<2',
                       'seaborn>=0.10.1,<1',
-                      'git+git://github.com/calico/spatial_lda.git@primary',
+                      'spatial-lda>=0.1.2,<0.1.3',
                       'statsmodels>=0.11.1,<1',
                       'umap-learn>=0.4.6,<1',
                       'xarray>=0.12.3,<1',
                       'tqdm>=4.54.1,<5'],
+    dependency_links=[
+        'git+git://github.com/calico/spatial_lda.git@primary',
+    ],
     extras_require={
         'tests': ['pytest',
                   'pytest-cov',
