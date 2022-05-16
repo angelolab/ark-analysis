@@ -209,10 +209,13 @@ def generate_pixel_cluster_mask(fovs, base_dir, tiff_dir, chan_file,
         consensus_fov_files=os.listdir(os.path.join(base_dir, pixel_consensus_dir))
     )
 
-    # define a list to hold the overlays for each fov
-    img_data = []
+    # read the sample channel file to determine size of pixel cluster mask
+    channel_data = np.squeeze(io.imread(os.path.join(tiff_dir, chan_file)))
 
-    for fov in fovs:
+    # define a list to hold the overlays for each fov
+    img_data = np.zeros((len(fovs), channel_data.shape[0], channel_data.shape[1]))
+
+    for i, fov in enumerate(fovs):
         # read the pixel data for the fov
         fov_data = feather.read_dataframe(
             os.path.join(base_dir, pixel_consensus_dir, fov + '.feather')
@@ -221,24 +224,20 @@ def generate_pixel_cluster_mask(fovs, base_dir, tiff_dir, chan_file,
         # ensure integer display and not float
         fov_data[pixel_cluster_col] = fov_data[pixel_cluster_col].astype(int)
 
-        # read the sample channel file to determine size of pixel cluster mask
-        channel_data = np.squeeze(io.imread(os.path.join(tiff_dir, chan_file)))
-
-        # define a pixel cluster mask with the same dimensions as seg_mask
-        pixel_cluster_mask = np.zeros(channel_data.shape)
-
         # get the pixel coordinates
-        x_coords = list(fov_data['row_index'])
-        y_coords = list(fov_data['column_index'])
+        x_coords = fov_data['row_index'].values
+        y_coords = fov_data['column_index'].values
+
+        # convert to 1D indexing
+        coordinates = x_coords * img_data.shape[1] + y_coords
 
         # get the cooresponding cluster labels for each pixel
         cluster_labels = list(fov_data[pixel_cluster_col])
 
         # assign each coordinate in pixel_cluster_mask to its respective cluster label
-        pixel_cluster_mask[x_coords, y_coords] = cluster_labels
-
-        # add the processed fov to the data
-        img_data.append(pixel_cluster_mask)
+        img_subset = img_data[i, ...].ravel()
+        img_subset[coordinates] = cluster_labels
+        img_data[i, ...] = img_subset.reshape(img_data[i, ...].shape)
 
     # create the stacked img_data xarray and return
     return xr.DataArray(img_data, coords=[fovs, range(img_data[0].shape[0]),
