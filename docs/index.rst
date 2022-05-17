@@ -8,7 +8,6 @@
    Home <self>
    About MIBI Pipeline <_rtd/pipeline>
    Data Type Info <_rtd/data_types>
-   Google Drive Info <_rtd/google_drive_usage>
    Developer Info <_rtd/development>
    Windows Configuration Info <_rtd/windows_setup>
    Contributing Guidelines <_rtd/contributing>
