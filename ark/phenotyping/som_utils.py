@@ -770,6 +770,12 @@ def train_pixel_som(fovs, channels, base_dir,
         if output:
             print(output.strip())
 
+    if process.returncode != 0:
+        raise MemoryError(
+            "Process terminated: you likely have a memory-related error. Try increasing "
+            "your Docker memory limit."
+        )
+
 
 def cluster_pixels(fovs, channels, base_dir, pre_dir='pixel_mat_preprocessed',
                    norm_vals_name='norm_vals.feather', weights_name='pixel_weights.feather',
@@ -875,6 +881,12 @@ def cluster_pixels(fovs, channels, base_dir, pre_dir='pixel_mat_preprocessed',
         if output:
             print(output.strip())
 
+    if process.returncode != 0:
+        raise MemoryError(
+            "Process terminated: you likely have a memory-related error. Try increasing "
+            "your Docker memory limit."
+        )
+
     # compute average channel expression for each pixel SOM cluster
     # and the number of pixels per SOM cluster
     print("Computing average channel expression across pixel SOM clusters")
@@ -973,6 +985,12 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
             break
         if output:
             print(output.strip())
+
+    if process.returncode != 0:
+        raise MemoryError(
+            "Process terminated: you likely have a memory-related error. Try increasing "
+            "your Docker memory limit."
+        )
 
     # compute average channel expression for each pixel meta cluster
     # and the number of pixels per meta cluster
@@ -1272,6 +1290,12 @@ def train_cell_som(fovs, channels, base_dir, pixel_consensus_dir, cell_table_nam
         if output:
             print(output.strip())
 
+    if process.returncode != 0:
+        raise MemoryError(
+            "Process terminated: you likely have a memory-related error. Try increasing "
+            "your Docker memory limit."
+        )
+
     # read in the pixel channel averages table
     print("Computing the weighted channel expression per cell")
     pixel_cluster_channel_avg = pd.read_csv(os.path.join(base_dir, pc_chan_avg_name))
@@ -1369,6 +1393,12 @@ def cluster_cells(base_dir, cluster_counts_norm_name='cluster_counts_norm.feathe
             break
         if output:
             print(output.strip())
+
+    if process.returncode != 0:
+        raise MemoryError(
+            "Process terminated: you likely have a memory-related error. Try increasing "
+            "your Docker memory limit."
+        )
 
     # compute the average pixel SOM/meta counts per cell SOM cluster
     print("Computing the average number of pixel SOM/meta cluster counts per cell SOM cluster")
@@ -1491,6 +1521,12 @@ def cell_consensus_cluster(fovs, channels, base_dir, pixel_cluster_col, max_k=20
             break
         if output:
             print(output.strip())
+
+    if process.returncode != 0:
+        raise MemoryError(
+            "Process terminated: you likely have a memory-related error. Try increasing "
+            "your Docker memory limit."
+        )
 
     # compute the average pixel SOM/meta counts per cell meta cluster
     print("Compute the average number of pixel SOM/meta cluster counts per cell meta cluster")
