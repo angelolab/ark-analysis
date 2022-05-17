@@ -285,17 +285,16 @@ def compute_topic_eda(features, featurization, topics, num_boots=None):
         # cluster with KMeans
         cluster_fit = KMeans(n_clusters=k).fit(features)
         # cell feature count per cluster
-        feature_copy = copy.deepcopy(features)
         cell_count = {}
         for i in range(k):
-            cell_count[i] = feature_copy[cluster_fit.labels_ == i].sum(axis=0)
+            cell_count[i] = features[cluster_fit.labels_ == i].sum(axis=0)
         cell_count = pd.DataFrame.from_dict(cell_count)
         # pooled within cluster sum of squares
-        pooled_within_ss = spu.within_cluster_sums(data=features, labels=cluster_fit.labels_)
         stats['inertia'][k] = cluster_fit.inertia_
         stats['silhouette'][k] = silhouette_score(features, cluster_fit.labels_,
                                                   metric='euclidean')
         if num_boots is not None:
+            pooled_within_ss = spu.within_cluster_sums(data=features, labels=cluster_fit.labels_)
             stats['gap_stat'][k], stats['gap_sds'][k] = gap_stat(features, k, pooled_within_ss,
                                                                  num_boots)
         stats['percent_var_exp'][k] = (total_ss - cluster_fit.inertia_) / total_ss
