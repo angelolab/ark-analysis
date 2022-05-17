@@ -4,7 +4,6 @@ import functools
 import numpy as np
 import pandas as pd
 import spatial_lda.featurization as ft
-from scipy.spatial.distance import pdist
 from sklearn.cluster import KMeans, MiniBatchKMeans
 from sklearn.metrics import silhouette_score
 from sklearn.model_selection import train_test_split
@@ -233,7 +232,7 @@ def gap_stat(features, k, clust_inertia, num_boots=25):
     return gap, s
 
 
-def compute_topic_eda(features, featurization, topics, num_boots=None):
+def compute_topic_eda(features, featurization, topics, silhouette=False, num_boots=None):
     """Computes five metrics for k-means clustering models to help determine an
     appropriate number of topics for use in spatial-LDA analysis.  The five metrics are:
         * Inertia: the total sum of within-cluster variance for all clusters.
@@ -246,8 +245,6 @@ def compute_topic_eda(features, featurization, topics, num_boots=None):
         The optimal number of clusters :math:`k` is the smallest :math:`k` for which :math:`Gap(
         k) > Gap(k+1) - s_{k+1}` where :math:`s_{k+1}` is a scaled estimate of the standard
         error of :math:`Gap(k+1)`.
-        * Percent of Variance Explained: The percent of total variance in the data explained by
-        the clustering.
         * Cell Count: the distribution of cell features within each cluster.
 
     Args:
@@ -259,6 +256,9 @@ def compute_topic_eda(features, featurization, topics, num_boots=None):
         topics (list):
             A list of integers corresponding to the different number of possible topics to
             investigate.
+        silhouette (bool):
+            Whether or not the silhouette score should be computed. This metric can take some time
+            to compute so it is False by default.
         num_boots (int | None):
             The number of bootstrap samples to use when calculating the Gap-statistic. If None,
             the gap stat will not be computed.
@@ -279,25 +279,26 @@ def compute_topic_eda(features, featurization, topics, num_boots=None):
     stat_names = ['inertia', 'silhouette', 'gap_stat', 'gap_sds', 'percent_var_exp', "cell_counts"]
     stats = dict(zip(stat_names, [{} for name in stat_names]))
 
-    # Compute the total sum of squared pairwise distances between all observations
-    total_ss = np.sum(pdist(features) ** 2) / features.shape[0]
+    # iterative over topic number candidates
     for k in topics:
         # cluster with KMeans
         cluster_fit = KMeans(n_clusters=k).fit(features)
+
         # cell feature count per cluster
         cell_count = {}
         for i in range(k):
             cell_count[i] = features[cluster_fit.labels_ == i].sum(axis=0)
         cell_count = pd.DataFrame.from_dict(cell_count)
-        # pooled within cluster sum of squares
+
+        # compute stats
         stats['inertia'][k] = cluster_fit.inertia_
-        stats['silhouette'][k] = silhouette_score(features, cluster_fit.labels_,
-                                                  metric='euclidean')
+        if silhouette:
+            stats['silhouette'][k] = \
+                silhouette_score(features, cluster_fit.labels_, metric='euclidean')
         if num_boots is not None:
             pooled_within_ss = spu.within_cluster_sums(data=features, labels=cluster_fit.labels_)
             stats['gap_stat'][k], stats['gap_sds'][k] = gap_stat(features, k, pooled_within_ss,
                                                                  num_boots)
-        stats['percent_var_exp'][k] = (total_ss - cluster_fit.inertia_) / total_ss
         stats['cell_counts'][k] = cell_count
 
     stats["featurization"] = featurization
