@@ -212,7 +212,7 @@ def generate_pixel_cluster_mask(fovs, base_dir, tiff_dir, chan_file,
     # read the sample channel file to determine size of pixel cluster mask
     channel_data = np.squeeze(io.imread(os.path.join(tiff_dir, chan_file)))
 
-    # define a list to hold the overlays for each fov
+    # define an array to hold the overlays for each fov
     img_data = np.zeros((len(fovs), channel_data.shape[0], channel_data.shape[1]))
 
     for i, fov in enumerate(fovs):
