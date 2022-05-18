@@ -131,9 +131,15 @@ def draw_heatmap(data, x_labels, y_labels, dpi=None, center_val=None, min_val=No
         cbar_kws={'ticks': cbar_ticks}
     )
 
+    # ensure the row color axis doesn't have a label attacked to it
+    _ = heatmap.ax_row_colors.xaxis.set_visible(False)
+
+    # update the figure dimensions to accommodate widget backend
     _ = heatmap.gs.update(
         left=left_start, right=right_start, wspace=w_spacing, hspace=h_spacing
     )
+
+    # ensure the y-axis labels are horizontal, will be misaligned if vertical
     _ = plt.setp(heatmap.ax_heatmap.get_yticklabels(), rotation=0)
 
     if save_dir is not None:
