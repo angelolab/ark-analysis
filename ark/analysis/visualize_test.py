@@ -46,6 +46,13 @@ def test_draw_heatmap():
         )
         assert os.path.exists(os.path.join(temp_dir, "z_score_viz.png"))
 
+        # test row_colors and col_colors
+        visualize.draw_heatmap(
+            z, pheno_titles, pheno_titles, row_colors=row_colors,
+            col_colors=col_colors, save_file="z_score_viz.png"
+        )
+        assert os.path.exists(os.path.join(temp_dir, "z_score_viz.png"))
+
 
 def test_draw_boxplot():
     # trim random data so we don't have to visualize as many facets
