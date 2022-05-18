@@ -32,6 +32,20 @@ def test_draw_heatmap():
                                save_dir=temp_dir, save_file="z_score_viz.png")
         assert os.path.exists(os.path.join(temp_dir, "z_score_viz.png"))
 
+        # test row_colors drawing functionality
+        row_colors = [(0.0, 0.0, 0.0, 0.0) for i in np.arange(26)]
+        visualize.draw_heatmap(
+            z, pheno_titles, pheno_titles, row_colors=row_colors, save_file="z_score_viz.png"
+        )
+        assert os.path.exists(os.path.join(temp_dir, "z_score_viz.png"))
+
+        # test col_colors drawing functionality
+        col_colors = [(0.0, 0.0, 0.0, 0.0) for i in np.arange(26)]
+        visualize.draw_heatmap(
+            z, pheno_titles, pheno_titles, col_colors=col_colors, save_file="z_score_viz.png"
+        )
+        assert os.path.exists(os.path.join(temp_dir, "z_score_viz.png"))
+
 
 def test_draw_boxplot():
     # trim random data so we don't have to visualize as many facets

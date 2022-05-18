@@ -132,9 +132,13 @@ def draw_heatmap(data, x_labels, y_labels, dpi=None, center_val=None, min_val=No
     )
 
     # ensure the row color axis doesn't have a label attacked to it
-    _ = heatmap.ax_row_colors.xaxis.set_visible(False)
+    if row_colors:
+        _ = heatmap.ax_row_colors.xaxis.set_visible(False)
 
-    # update the figure dimensions to accommodate widget backend
+    if col_colors:
+        _ = heatmap.ax_col_colors.yaxis.set_visible(False)
+
+    # update the figure dimensions to accommodate Jupyter widget backend
     _ = heatmap.gs.update(
         left=left_start, right=right_start, wspace=w_spacing, hspace=h_spacing
     )
