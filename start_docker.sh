@@ -33,6 +33,13 @@ done
 # find lowest open port available
 PORT=8888
 
+if [ $update -ne 0 ]
+  then
+    bash update_notebooks.sh -u
+  else
+    bash update_notebooks.sh
+fi
+
 until [[ $(docker container ls | grep 0.0.0.0:$PORT | wc -l) -eq 0 ]]
   do
     ((PORT=$PORT+1))
