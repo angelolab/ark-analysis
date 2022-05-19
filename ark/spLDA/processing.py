@@ -1,5 +1,6 @@
 import copy
 import functools
+import warnings
 
 import numpy as np
 import pandas as pd
@@ -125,14 +126,16 @@ def featurize_cell_table(cell_table, featurization="cluster", radius=100, cell_i
 
     # Featurize FOVs
     feature_sample = {k: v for (k, v) in cell_table.items() if k in cell_table["fovs"].tolist()}
-    featurized_fovs = ft.featurize_samples(feature_sample,
-                                           neighborhood_feature_fn,
-                                           radius=radius,
-                                           is_anchor_col=cell_index,
-                                           x_col='x',
-                                           y_col='y',
-                                           n_processes=n_processes,
-                                           include_anchors=True)
+    with warnings.catch_warnings():
+        warnings.simplefilter(action='ignore', category=FutureWarning)
+        featurized_fovs = ft.featurize_samples(feature_sample,
+                                               neighborhood_feature_fn,
+                                               radius=radius,
+                                               is_anchor_col=cell_index,
+                                               x_col='x',
+                                               y_col='y',
+                                               n_processes=n_processes,
+                                               include_anchors=True)
     # Extract training data sample
     all_sample_idxs = featurized_fovs.index.map(lambda x: x[0])
     train_features_fraction, _ = train_test_split(featurized_fovs, test_size=1. - train_frac,
