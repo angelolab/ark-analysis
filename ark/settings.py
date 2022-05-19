@@ -5,9 +5,9 @@ CELL_SIZE = 'cell_size'  # cell size (number of pixels in the cell)
 CELL_LABEL = 'label'  # cell label number (regionprops)
 FOV_ID = 'SampleID'  # cell's fov name
 CELL_TYPE = 'cell_type'  # cell type name (flowsom)
-CLUSTER_ID = 'FlowSOM_ID'  # cell cluster id (flowsom)
+CLUSTER_ID = 'cell_meta_cluster'  # cell cluster id (flowsom)
 PATIENT_ID = 'PatientID'  # cell's patient id
-KMEANS_CLUSTER = 'cluster_labels'  # generated cluster column name
+KMEANS_CLUSTER = 'cell_meta_cluster_rename'  # generated cluster column name
 CENTROID_0 = 'centroid-0'  # cell centroid x-coordinate
 CENTROID_1 = 'centroid-1'  # cell centroid y-coordinate
 
