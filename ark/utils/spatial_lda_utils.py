@@ -2,7 +2,7 @@ import os
 import pickle
 
 import numpy as np
-import palettable.cartocolors.qualitative as qual_palettes
+import palettable.colorbrewer.qualitative as qual_palettes
 import pandas as pd
 import spatial_lda.online_lda
 from scipy.spatial.distance import pdist
@@ -86,7 +86,8 @@ def within_cluster_sums(data, labels):
     return wk
 
 
-def plot_fovs_with_topics(ax, fov_idx, topic_weights, cell_table):
+def plot_fovs_with_topics(ax, fov_idx, topic_weights, cell_table,
+                          color_palette=qual_palettes.Set3_12.mpl_colors):
     """Helper function for plotting outputs from a fitted spatial-LDA model.
 
     Args:
@@ -98,12 +99,13 @@ def plot_fovs_with_topics(ax, fov_idx, topic_weights, cell_table):
             The data frame of cell topic weights from a fitted spatial-LDA model.
         cell_table (dict):
             A formatted cell table
+        color_palette (List[Tuple[float, float, float]]):
+            Color palette in mpl format
 
     Returns:
 
         - A scatter plot of cell locations and topic assignments for a particular field of view.
     """
-    color_palette = qual_palettes.Bold_10.mpl_colors
     colors = np.array(color_palette[:topic_weights.shape[1]])
     cell_coords = cell_table[fov_idx]
     immune_coords = cell_coords[cell_coords.isimmune]
@@ -113,12 +115,13 @@ def plot_fovs_with_topics(ax, fov_idx, topic_weights, cell_table):
                s=5, c='k', label='Immune', alpha=0.1)
     ax.scatter(coords['y'], -coords['x'], s=2,
                c=colors[np.argmax(np.array(topic_weights), axis=1), :])
-    ax.set_title("FOV %d" % fov_idx)
+    ax.set_title(f"FOV {fov_idx}")
     ax.axes.get_yaxis().set_visible(False)
     ax.axes.get_xaxis().set_visible(False)
 
 
-def make_plot_fn(plot="adjacency", difference_matrices=None, topic_weights=None, cell_table=None):
+def make_plot_fn(plot="adjacency", difference_matrices=None, topic_weights=None, cell_table=None,
+                 color_palette=qual_palettes.Set3_12.mpl_colors):
     """Helper function for making plots using the spatial-lda library.
 
     Args:
@@ -130,6 +133,8 @@ def make_plot_fn(plot="adjacency", difference_matrices=None, topic_weights=None,
             The data frame of cell topic weights from a fitted spatial-LDA model.
         cell_table (dict):
             A formatted cell table
+        color_palette (List[Tuple[float, float, float]]):
+            Color palette in mpl format (list of rgb tuples)
 
     Returns:
         function:
@@ -150,7 +155,7 @@ def make_plot_fn(plot="adjacency", difference_matrices=None, topic_weights=None,
             raise ValueError("Must provide cell_table and topic_weights")
 
         def plot_fn(ax, sample_idx, features_df=topic_weights, fov_df=cell_table):
-            plot_fovs_with_topics(ax, sample_idx, features_df, fov_df)
+            plot_fovs_with_topics(ax, sample_idx, features_df, fov_df, color_palette=color_palette)
 
     return plot_fn
 
