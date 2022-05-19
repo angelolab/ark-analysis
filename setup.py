@@ -35,7 +35,7 @@ setup(
                       'xarray>=0.12.3,<1',
                       'tqdm>=4.54.1,<5'],
     dependency_links=[
-        'git+git://github.com/calico/spatial_lda.git@primary',
+        'git+https://github.com/calico/spatial_lda.git@primary',
     ],
     extras_require={
         'tests': ['pytest',
