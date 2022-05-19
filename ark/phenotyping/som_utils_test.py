@@ -2367,5 +2367,5 @@ def test_generate_weighted_channel_avg_heatmap():
         # assert visualization runs
         som_utils.generate_weighted_channel_avg_heatmap(
             os.path.join(temp_dir, 'sample_channel_avg.csv'),
-            'cell_meta_cluster', ['chan1', 'chan2'], raw_cmap, renamed_cmap
+            'cell_meta_cluster_rename', ['chan1', 'chan2'], raw_cmap, renamed_cmap
         )

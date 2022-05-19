@@ -70,7 +70,8 @@ def draw_boxplot(cell_data, col_name, col_split=None,
 
 def draw_heatmap(data, x_labels, y_labels, dpi=None, center_val=None, min_val=None, max_val=None,
                  cbar_ticks=None, colormap="vlag", row_colors=None, row_cluster=True,
-                 col_colors=None, col_cluster=True, save_dir=None, save_file=None):
+                 col_colors=None, col_cluster=True, left_start=None, right_start=None,
+                 w_spacing=None, h_spacing=None, save_dir=None, save_file=None):
     """Plots the z scores between all phenotypes as a clustermap.
 
     Args:
@@ -100,6 +101,14 @@ def draw_heatmap(data, x_labels, y_labels, dpi=None, center_val=None, min_val=No
             Include these values as an additional color-coded cluster bar for column values
         col_cluster (bool):
             Whether to include dendrogram clustering for the columns
+        left_start (float):
+            The position to set the left edge of the figure to (from 0-1)
+        right_start (float):
+            The position to set the right edge of the figure to (from 0-1)
+        w_spacing (float):
+            The amount of spacing to put between the subplots width-wise (from 0-1)
+        h_spacing (float):
+            The amount of spacing to put between the subplots height-wise (from 0-1)
         save_dir (str):
             If specified, a directory where we will save the plot
         save_file (str):
@@ -115,11 +124,27 @@ def draw_heatmap(data, x_labels, y_labels, dpi=None, center_val=None, min_val=No
     data_df = pd.DataFrame(data, index=x_labels, columns=y_labels)
     sns.set(font_scale=.7)
 
-    sns.clustermap(
+    heatmap = sns.clustermap(
         data_df, cmap=colormap, center=center_val,
         vmin=min_val, vmax=max_val, row_colors=row_colors, row_cluster=row_cluster,
-        col_colors=col_colors, col_cluster=col_cluster, cbar_kws={'ticks': cbar_ticks}
+        col_colors=col_colors, col_cluster=col_cluster,
+        cbar_kws={'ticks': cbar_ticks}
     )
+
+    # ensure the row color axis doesn't have a label attacked to it
+    if row_colors is not None:
+        _ = heatmap.ax_row_colors.xaxis.set_visible(False)
+
+    if col_colors is not None:
+        _ = heatmap.ax_col_colors.yaxis.set_visible(False)
+
+    # update the figure dimensions to accommodate Jupyter widget backend
+    _ = heatmap.gs.update(
+        left=left_start, right=right_start, wspace=w_spacing, hspace=h_spacing
+    )
+
+    # ensure the y-axis labels are horizontal, will be misaligned if vertical
+    _ = plt.setp(heatmap.ax_heatmap.get_yticklabels(), rotation=0)
 
     if save_dir is not None:
         misc_utils.save_figure(save_dir, save_file, dpi=dpi)
