@@ -110,6 +110,12 @@ def compute_pixel_cluster_channel_avg(fovs, channels, base_dir, pixel_cluster_co
         # concat the results together
         cluster_avgs = pd.concat([cluster_avgs, agg_results])
 
+        # free memory because these can get very large
+        del fov_pixel_data
+        del sum_by_cluster
+        del count_by_cluster
+        del agg_results
+
     # reset the index of cluster_avgs for consistency
     cluster_avgs = cluster_avgs.reset_index(drop=True)
 
