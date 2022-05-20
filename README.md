@@ -103,8 +103,6 @@ or
 ./start_docker.sh -u
 ```
 
-If the requirements.txt has changed, Docker will rebuild with the new dependencies first.
-
 ### WARNING
 
 If you didn't change the name of any of the notebooks within the `scripts` folder, they will be overwritten by the command above! 
