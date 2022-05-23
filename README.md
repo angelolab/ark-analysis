@@ -94,7 +94,13 @@ First, get the latest version of the code
 git pull
 ```
 
-Then, run the command below to update the jupyter notebooks to the latest version
+Check for Docker updates by running:
+
+```
+docker pull angelolab/ark-analysis:latest
+```
+
+Then, run the command below to update the Jupyter notebooks to the latest version
 ```
 ./start_docker.sh --update
 ```
