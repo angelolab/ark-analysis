@@ -710,7 +710,7 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
         del pixel_mat
         del pixel_mat_subset
 
-        if seg_labels:
+        if seg_labels is not None:
             del seg_labels
 
     # get mean 99.9% across all fovs for all markers
