@@ -74,6 +74,11 @@ for (i in 1:length(fovs)) {
         print("# fovs clustered:")
         print(i)
     }
+
+    # free memory
+    rm(fovPixelData_all)
+    rm(fovPixelData)
+    rm(clusters)
 }
 
 print("Done!")

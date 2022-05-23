@@ -110,7 +110,7 @@ def compute_pixel_cluster_channel_avg(fovs, channels, base_dir, pixel_cluster_co
         # concat the results together
         cluster_avgs = pd.concat([cluster_avgs, agg_results])
 
-        # free memory because these can get very large
+        # free memory
         del fov_pixel_data
         del sum_by_cluster
         del count_by_cluster
@@ -495,6 +495,16 @@ def create_c2pc_data(fovs, pixel_consensus_path,
         num_cluster_per_seg_label = num_cluster_per_seg_label.set_index(cell_table_indices)
         cell_table = cell_table.combine_first(num_cluster_per_seg_label)
 
+        # free memory
+        del fov_pixel_data
+        del group_by_cluster_col
+        del num_cluster_per_seg_label
+        del new_columns
+        del cell_table_labels
+        del cluster_labels
+        del label_intersection
+        del cell_table_indices
+
     # NaN means the cluster wasn't found in the specified fov-cell pair
     cell_table = cell_table.fillna(0)
 
@@ -693,6 +703,15 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
                                              subset_dir,
                                              fov + ".feather"),
                                 compression='uncompressed')
+
+        # free memory
+        del img_xr
+        del img_data
+        del pixel_mat
+        del pixel_mat_subset
+
+        if seg_labels:
+            del seg_labels
 
     # get mean 99.9% across all fovs for all markers
     mean_quant = pd.DataFrame(quant_dat.mean(axis=1))
@@ -1133,6 +1152,9 @@ def apply_pixel_meta_cluster_remapping(fovs, channels, base_dir,
 
         # resave the data with the new meta cluster lables
         feather.write_dataframe(fov_data, fov_path, compression='uncompressed')
+
+        # free memory
+        del fov_data
 
     # re-compute average channel expression for each pixel meta cluster
     # and the number of pixels per meta cluster, add renamed meta cluster column in
