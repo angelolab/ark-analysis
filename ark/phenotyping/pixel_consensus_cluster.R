@@ -85,9 +85,6 @@ for (i in 1:length(fovs)) {
         print("# fovs clustered:")
         print(i)
     }
-
-    # free memory
-    rm(fovPixelData)
 }
 
 # save the mapping from pixel_som_cluster to pixel_meta_cluster
@@ -98,7 +95,3 @@ som_to_meta_map <- as.data.table(som_to_meta_map)
 som_to_meta_map$pixel_som_cluster <- as.integer(rownames(som_to_meta_map))
 som_to_meta_map <- setnames(som_to_meta_map, "som_to_meta_map", "pixel_meta_cluster")
 arrow::write_feather(som_to_meta_map, clustToMeta)
-
-# free memory
-rm(consensusClusterResults)
-rm(som_to_meta_map)
