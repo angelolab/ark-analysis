@@ -60,9 +60,8 @@ clusterAvgsScale <- sapply(as.data.frame(clusterAvgsScale), pmin, cap)
 clusterAvgsScale <- sapply(as.data.frame(clusterAvgsScale), pmax, -cap)
 
 # run the consensus clustering
-# TODO: look into suppressing output for Rs (invisible), not urgent
 print("Running consensus clustering")
-consensusClusterResults <- ConsensusClusterPlus(t(clusterAvgsScale), maxK=maxK, seed=seed)
+suppressMessages(consensusClusterResults <- ConsensusClusterPlus(t(clusterAvgsScale), maxK=maxK, seed=seed))
 som_to_meta_map <- consensusClusterResults[[maxK]]$consensusClass
 names(som_to_meta_map) <- clusterAvgs$pixel_som_cluster
 
