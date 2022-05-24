@@ -154,8 +154,12 @@ def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, channels=None,
 
         # verify if channels from user input are present in `all_channels`
         all_channels_no_delim = [channel.split('.')[0] for channel in all_channels]
-        misc_utils.verify_same_elements(channels=all_channels_no_delim,
-                                        channels_no_delim=channels_no_delim)
+        try:
+            misc_utils.verify_same_elements(all_channels_in_folder=all_channels_no_delim,
+                                            all_channels_detected=channels_no_delim)
+        except ValueError as _:
+            channels_dne = list(set(all_channels_no_delim) - set(channels_no_delim))
+            raise ValueError(f"One, or more channels provided do not exist: {channels_dne}")
 
         # reorder back to original
         channels = [chan for _, chan in sorted(zip(channels_indices, all_channels))]
