@@ -111,7 +111,7 @@ def plot_topics_heatmap(topics, features, normalizer=None, transpose=False, scal
         transpose (bool):
             swap topic and features axes. helpful when the number of features is larger than the
             number of topics.
-        scale (int):
+        scale (float):
             plot to text size scaling. for smaller text/larger label gaps, increase this value.
     """
     n_topics = topics.shape[0]
