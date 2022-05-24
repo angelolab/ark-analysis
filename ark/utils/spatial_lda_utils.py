@@ -4,9 +4,11 @@ import pickle
 import numpy as np
 import palettable.colorbrewer.qualitative as qual_palettes
 import pandas as pd
+import matplotlib.pyplot as plt
 import spatial_lda.online_lda
 from scipy.spatial.distance import pdist
-from spatial_lda.visualization import plot_adjacency_graph
+from spatial_lda.visualization import plot_adjacency_graph, _standardize_topics
+import seaborn as sns
 
 from ark.settings import BASE_COLS, CLUSTER_ID, LDA_PLOT_TYPES
 from ark.utils.misc_utils import verify_in_list
@@ -94,6 +96,37 @@ def within_cluster_sums(data, labels):
         cluster_sums.append(cluster_ss)
     wk = np.sum(cluster_sums)
     return wk
+
+
+def plot_topics_heatmap(topics, features, normalizer=None, transpose=False, scale=0.4):
+    """ Plots topic heatmap. Topics will be displayed on lower axis by default.
+
+    Args:
+        topics (pd.DataFrame | np.ndarray):
+            topic assignments based off of trained featurization
+        features (list | np.ndarray):
+            feature names for display
+        normalizer (Callable[(np.ndarray,), np.ndarray]):
+            topic normalization for easier visualization. Default is standardization.
+        transpose (bool):
+            swap topic and features axes. helpful when the number of features is larger than the
+            number of topics.
+        scale (int):
+            plot to text size scaling. for smaller text/larger label gaps, increase this value.
+    """
+    n_topics = topics.shape[0]
+    if normalizer is not None:
+        topics = normalizer(topics)
+    else:
+        topics = _standardize_topics(topics)
+
+    topics = pd.DataFrame(topics, index=features,
+                          columns=['Topic %d' % x for x in range(n_topics)])
+    if transpose:
+        topics = topics.T
+
+    plt.subplots(figsize=(scale*topics.shape[1], scale*topics.shape[0]))
+    sns.heatmap(topics, square=True, cmap='RdBu')
 
 
 def plot_fovs_with_topics(ax, fov_idx, topic_weights, cell_table,
