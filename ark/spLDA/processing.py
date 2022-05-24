@@ -10,7 +10,7 @@ from sklearn.metrics import silhouette_score
 from sklearn.model_selection import train_test_split
 
 import ark.utils.spatial_lda_utils as spu
-from ark.settings import BASE_COLS
+from ark import settings
 
 
 def format_cell_table(cell_table, markers=None, clusters=None):
@@ -38,7 +38,7 @@ def format_cell_table(cell_table, markers=None, clusters=None):
     spu.check_format_cell_table_args(cell_table=cell_table, markers=markers, clusters=clusters)
 
     # Only keep columns relevant for spatial-LDA
-    keep_cols = copy.deepcopy(BASE_COLS)
+    keep_cols = copy.deepcopy(settings.BASE_COLS)
     if markers is not None:
         keep_cols += markers
 
@@ -48,19 +48,19 @@ def format_cell_table(cell_table, markers=None, clusters=None):
     # Rename columns
     cell_table_drop = cell_table_drop.rename(
         columns={
-            "centroid-0": "x",
-            "centroid-1": "y",
-            "FlowSOM_ID": "cluster_id",
-            "cluster_labels": "cluster"
+            settings.CENTROID_0: "x",
+            settings.CENTROID_1: "y",
+            settings.CLUSTER_ID: "cluster_id",
+            settings.KMEANS_CLUSTER: "cluster"
         })
 
     # Create dictionary of FOVs
-    fovs = np.unique(cell_table_drop["SampleID"])
+    fovs = np.unique(cell_table_drop[settings.FOV_ID])
 
     fov_dict = {}
     for i in fovs:
-        df = cell_table_drop[cell_table_drop["SampleID"] == i].drop(
-            columns=["SampleID", "label"])
+        df = cell_table_drop[cell_table_drop[settings.FOV_ID] == i].drop(
+            columns=[settings.FOV_ID, settings.CELL_LABEL])
         if clusters is not None:
             df = df[df["cluster_id"].isin(clusters)]
         df["is_index"] = True
