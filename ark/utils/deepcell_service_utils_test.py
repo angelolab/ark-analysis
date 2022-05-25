@@ -3,6 +3,7 @@ import os
 import tempfile
 from zipfile import ZipFile
 import pytest
+from pytest_mock import MockerFixture
 
 from ark.utils.deepcell_service_utils import create_deepcell_output
 
@@ -26,7 +27,7 @@ def mocked_run_deepcell(in_zip_path, output_dir, host, job_type, scale, timeout)
             os.remove(filename)
 
 
-def test_create_deepcell_output(mocker):
+def test_create_deepcell_output(mocker: MockerFixture):
     with tempfile.TemporaryDirectory() as temp_dir:
         mocker.patch('ark.utils.deepcell_service_utils.run_deepcell_direct', mocked_run_deepcell)
 

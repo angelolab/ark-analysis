@@ -1,6 +1,5 @@
 import os
 import copy
-import warnings
 import numpy as np
 import pandas as pd
 import skimage.io as io
@@ -10,7 +9,6 @@ from skimage.segmentation import find_boundaries
 import xarray as xr
 
 from ark.utils import load_utils, plot_utils, io_utils, misc_utils
-
 import ark.settings as settings
 
 
@@ -219,14 +217,16 @@ def save_segmentation_labels(segmentation_dir, data_dir, output_dir,
         labels = labels.loc[fov, :, :, 'whole_cell'].values
 
         # save the labels respectively
-        io.imsave(os.path.join(output_dir, f'{fov}_segmentation_labels.tiff'), labels)
+        save_path_seg_labels = os.path.join(output_dir, f'{fov}_segmentation_labels.tiff')
+        io.imsave(save_path_seg_labels, labels, plugin='tifffile', check_contrast=False)
 
         # define borders of cells in mask
         contour_mask = find_boundaries(labels, connectivity=1, mode='inner').astype(np.uint8)
         contour_mask[contour_mask > 0] = 255
 
         # save the cell border image
-        io.imsave(os.path.join(output_dir, f'{fov}_segmentation_borders.tiff'), contour_mask)
+        save_path_seg_borders = os.path.join(output_dir, f'{fov}_segmentation_borders.tiff')
+        io.imsave(save_path_seg_borders, labels, plugin="tifffile", check_contrast=False)
 
         # generate the channel overlay if specified
         if channels is not None:
@@ -240,5 +240,7 @@ def save_segmentation_labels(segmentation_dir, data_dir, output_dir,
             )
 
             # save the channel overlay
+
             save_path = '_'.join([f'{fov}', *chans.astype('str'), 'overlay.tiff'])
-            io.imsave(os.path.join(output_dir, save_path), channel_overlay)
+            save_path_channel = os.path.join(output_dir, save_path)
+            io.imsave(save_path_channel, channel_overlay, plugin="tifffile", check_contrast=False)

@@ -38,7 +38,7 @@ def validate_paths(paths, data_prefix=True):
                     f'and to reference as \'../data/path_to_data/myfile.tif\'')
 
 
-def list_files(dir_name, substrs=None, exact_match=False):
+def list_files(dir_name, substrs=None, exact_match=False, ignore_hidden=True):
     """ List all files in a directory containing at least one given substring
 
     Args:
@@ -49,14 +49,20 @@ def list_files(dir_name, substrs=None, exact_match=False):
         exact_match (bool):
             If True, will match exact file names (so 'C' will match only 'C.tif')
             If False, will match substr pattern in file (so 'C' will match 'C.tif' and 'CD30.tif')
+        ignore_hidden (bool):
+            If True, will ignore hidden files. If False, will allow hidden files to be
+            matched against the search substring.
 
     Returns:
         list:
             List of files containing at least one of the substrings
     """
-
     files = os.listdir(dir_name)
     files = [file for file in files if not os.path.isdir(os.path.join(dir_name, file))]
+
+    # Filter out hidden files
+    if ignore_hidden:
+        files = [file for file in files if not file.startswith('.')]
 
     # default to return all files
     if substrs is None:
@@ -70,8 +76,8 @@ def list_files(dir_name, substrs=None, exact_match=False):
         matches = [file
                    for file in files
                    if any([
-                        substr == os.path.splitext(file)[0]
-                        for substr in substrs
+                       substr == os.path.splitext(file)[0]
+                       for substr in substrs
                    ])]
     else:
         matches = [file
@@ -169,7 +175,7 @@ def extract_delimited_names(names, delimiter='_', delimiter_optional=True):
     return names
 
 
-def list_folders(dir_name, substrs=None):
+def list_folders(dir_name, substrs=None, exact_match=False, ignore_hidden=True):
     """ List all folders in a directory containing at least one given substring
 
     Args:
@@ -177,14 +183,23 @@ def list_folders(dir_name, substrs=None):
             Parent directory for folders of interest
         substrs (str or list):
             Substring matching criteria, defaults to None (all folders)
+        exact_match (bool):
+            If True, will match exact folder names (so 'C' will match only 'C/').
+            If False, will match substr pattern in folder (so 'C' will match 'C/' & 'C_DIREC/').
+        ignore_hidden (bool):
+            If True, will ignore hidden directories. If False, will allow hidden directories to
+            be matched against the search substring.
 
     Returns:
         list:
             List of folders containing at least one of the substrings
     """
-
     files = os.listdir(dir_name)
     folders = [file for file in files if os.path.isdir(os.path.join(dir_name, file))]
+
+    # Filter out hidden directories
+    if ignore_hidden:
+        folders = [folder for folder in folders if not folder.startswith('.')]
 
     # default to return all files
     if substrs is None:
@@ -194,11 +209,20 @@ def list_folders(dir_name, substrs=None):
     if type(substrs) is not list:
         substrs = [substrs]
 
-    matches = [folder
-               for folder in folders
-               if any([
-                   substr in folder
-                   for substr in substrs
-               ])]
+    # Exact match case
+    if exact_match:
+        matches = [folder
+                   for folder in folders
+                   if any([
+                       substr == os.path.splitext(folder)[0]
+                       for substr in substrs
+                   ])]
+    else:
+        matches = [folder
+                   for folder in folders
+                   if any([
+                       substr in folder
+                       for substr in substrs
+                   ])]
 
     return matches

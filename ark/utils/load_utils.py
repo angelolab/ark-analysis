@@ -6,7 +6,7 @@ import numpy as np
 import xarray as xr
 
 from ark.utils.tiff_utils import read_mibitiff
-from ark.utils import io_utils as iou
+from ark.utils import io_utils as iou, misc_utils
 
 
 def load_imgs_from_mibitiff(data_dir, mibitiff_files=None, channels=None, delimiter=None,
@@ -48,8 +48,10 @@ def load_imgs_from_mibitiff(data_dir, mibitiff_files=None, channels=None, delimi
     fovs = iou.remove_file_extensions(mibitiff_files)
     fovs = iou.extract_delimited_names(fovs, delimiter=delimiter)
 
-    mibitiff_files = [os.path.join(data_dir, mt_file)
-                      for mt_file in mibitiff_files]
+    mibitiff_files = [
+        os.path.join(data_dir, mt_file)
+        for mt_file in mibitiff_files
+    ]
 
     test_img = io.imread(mibitiff_files[0], plugin='tifffile')
 
@@ -86,7 +88,7 @@ def load_imgs_from_mibitiff(data_dir, mibitiff_files=None, channels=None, delimi
 
 
 def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, channels=None,
-                        dtype="int16", variable_sizes=False):
+                        dtype="int16", max_image_size=None):
     """Takes a set of imgs from a directory structure and loads them into an xarray.
 
     Args:
@@ -94,14 +96,16 @@ def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, channels=None,
             directory containing folders of images
         img_sub_folder (str):
             optional name of image sub-folder within each fov
-        fovs (list):
-            optional list of folders to load imgs from. Default loads all folders
+        fovs (str, list):
+            optional list of folders to load imgs from, or the name of a single folder. Default
+            loads all folders
         channels (list):
             optional list of imgs to load, otherwise loads all imgs
         dtype (str/type):
             dtype of array which will be used to store values
-        variable_sizes (bool):
-            if true, will pad loaded images with zeros to fit into array
+        max_image_size (int or None):
+            The length (in pixels) of the largest image that will be loaded. All other images will
+            be padded to bring them up to the same size.
 
     Returns:
         xarray.DataArray:
@@ -118,14 +122,20 @@ def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, channels=None,
     if len(fovs) == 0:
         raise ValueError(f"No fovs found in directory, {data_dir}")
 
+    # If the fov provided is a single string (`fov_1` instead of [`fov_1`])
+    if type(fovs) is str:
+        fovs = [fovs]
+
     if img_sub_folder is None:
         # no img_sub_folder, change to empty string to read directly from base folder
         img_sub_folder = ""
 
     # get imgs from first fov if no img names supplied
     if channels is None:
-        channels = iou.list_files(os.path.join(data_dir, fovs[0], img_sub_folder),
-                                  substrs=['.tif', '.jpg', '.png'])
+        channels = iou.list_files(
+            dir_name=os.path.join(data_dir, fovs[0], img_sub_folder),
+            substrs=['.tif', '.jpg', '.png']
+        )
 
         # if taking all channels from directory, sort them alphabetically
         channels.sort()
@@ -135,20 +145,27 @@ def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, channels=None,
         channels_no_delim = [img.split('.')[0] for img in channels]
 
         all_channels = iou.list_files(
-            os.path.join(data_dir, fovs[0], img_sub_folder),
-            substrs=channels_no_delim, exact_match=True
+            dir_name=os.path.join(data_dir, fovs[0], img_sub_folder), substrs=channels_no_delim,
+            exact_match=True
         )
 
         # get the corresponding indices found in channels_no_delim
         channels_indices = [channels_no_delim.index(chan.split('.')[0]) for chan in all_channels]
 
+        # verify if channels from user input are present in `all_channels`
+        all_channels_no_delim = [channel.split('.')[0] for channel in all_channels]
+
+        misc_utils.verify_same_elements(all_channels_in_folder=all_channels_no_delim,
+                                        all_channels_detected=channels_no_delim)
         # reorder back to original
         channels = [chan for _, chan in sorted(zip(channels_indices, all_channels))]
 
     if len(channels) == 0:
         raise ValueError("No images found in designated folder")
 
-    test_img = io.imread(os.path.join(data_dir, fovs[0], img_sub_folder, channels[0]))
+    test_img = io.imread(
+        os.path.join(data_dir, fovs[0], img_sub_folder, channels[0])
+    )
 
     # check to make sure that float dtype was supplied if image data is float
     data_dtype = test_img.dtype
@@ -158,31 +175,30 @@ def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, channels=None,
                           f"because the loaded images are floats")
             dtype = data_dtype
 
-    if variable_sizes:
-        img_data = np.zeros((len(fovs), 1024, 1024, len(channels)), dtype=dtype)
+    if max_image_size is not None:
+        img_data = np.zeros((len(fovs), max_image_size, max_image_size, len(channels)),
+                            dtype=dtype)
     else:
         img_data = np.zeros((len(fovs), test_img.shape[0], test_img.shape[1], len(channels)),
                             dtype=dtype)
 
     for fov in range(len(fovs)):
         for img in range(len(channels)):
-            if variable_sizes:
+            if max_image_size is not None:
                 temp_img = io.imread(
                     os.path.join(data_dir, fovs[fov], img_sub_folder, channels[img])
                 )
                 img_data[fov, :temp_img.shape[0], :temp_img.shape[1], img] = temp_img
             else:
-                img_data[fov, :, :, img] = io.imread(os.path.join(data_dir, fovs[fov],
-                                                                  img_sub_folder, channels[img]))
+                img_data[fov, :, :, img] = io.imread(
+                    os.path.join(data_dir, fovs[fov], img_sub_folder, channels[img])
+                )
 
     # check to make sure that dtype wasn't too small for range of data
     if np.min(img_data) < 0:
         raise ValueError("Integer overflow from loading TIF image, try a larger dtype")
 
-    if variable_sizes:
-        row_coords, col_coords = range(1024), range(1024)
-    else:
-        row_coords, col_coords = range(test_img.shape[0]), range(test_img.shape[1])
+    row_coords, col_coords = range(img_data.shape[1]), range(img_data.shape[2])
 
     # remove .tif or .tiff from image name
     img_names = [os.path.splitext(img)[0] for img in channels]

@@ -31,7 +31,28 @@ def test_draw_heatmap():
 
         # test that with save_dir, we do save
         visualize.draw_heatmap(z, pheno_titles, pheno_titles,
-                               save_dir=temp_dir)
+                               save_dir=temp_dir, save_file="z_score_viz.png")
+        assert os.path.exists(os.path.join(temp_dir, "z_score_viz.png"))
+
+        # test row_colors drawing functionality
+        row_colors = [(0.0, 0.0, 0.0, 0.0) for i in np.arange(26)]
+        visualize.draw_heatmap(
+            z, pheno_titles, pheno_titles, row_colors=row_colors, save_file="z_score_viz.png"
+        )
+        assert os.path.exists(os.path.join(temp_dir, "z_score_viz.png"))
+
+        # test col_colors drawing functionality
+        col_colors = [(0.0, 0.0, 0.0, 0.0) for i in np.arange(26)]
+        visualize.draw_heatmap(
+            z, pheno_titles, pheno_titles, col_colors=col_colors, save_file="z_score_viz.png"
+        )
+        assert os.path.exists(os.path.join(temp_dir, "z_score_viz.png"))
+
+        # test row_colors and col_colors
+        visualize.draw_heatmap(
+            z, pheno_titles, pheno_titles, row_colors=row_colors,
+            col_colors=col_colors, save_file="z_score_viz.png"
+        )
         assert os.path.exists(os.path.join(temp_dir, "z_score_viz.png"))
 
 
@@ -68,7 +89,7 @@ def test_draw_boxplot():
     with tempfile.TemporaryDirectory() as temp_dir:
         visualize.draw_boxplot(cell_data=random_data, col_name="A",
                                col_split=settings.PATIENT_ID, split_vals=[1, 2],
-                               save_dir=temp_dir)
+                               save_dir=temp_dir, save_file="boxplot_viz.png")
         assert os.path.exists(os.path.join(temp_dir, "boxplot_viz.png"))
 
 

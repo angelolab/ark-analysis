@@ -176,7 +176,8 @@ def _write_tifs(base_dir, fov_names, img_names, shape, sub_dir, fills, dtype):
         fov_path = os.path.join(base_dir, fov, sub_dir)
         os.makedirs(fov_path)
         for j, name in enumerate(img_names):
-            io.imsave(os.path.join(fov_path, f'{name}.tiff'), tif_data[i, :, :, j])
+            io.imsave(os.path.join(fov_path, f'{name}.tiff'), tif_data[i, :, :, j],
+                      check_contrast=False)
             filelocs[fov].append(os.path.join(fov_path, name))
 
     return filelocs, tif_data
@@ -221,7 +222,8 @@ def _write_multitiff(base_dir, fov_names, channel_names, shape, sub_dir, fills,
         v = tif_data[i, :, :, :]
         if channels_first:
             v = np.moveaxis(v, -1, 0)
-        io.imsave(tiffpath, v, plugin='tifffile')
+        io.imsave(tiffpath, v, plugin='tifffile',
+                  check_contrast=False)
         filelocs[fov] = tiffpath
 
     return filelocs, tif_data
@@ -304,7 +306,8 @@ def _write_reverse_multitiff(base_dir, fov_names, channel_names, shape, sub_dir,
 
     for i, fov in enumerate(fov_names):
         tiffpath = os.path.join(base_dir, f'{fov}.tiff')
-        io.imsave(tiffpath, tif_data[:, :, :, i], plugin='tifffile')
+        io.imsave(tiffpath, tif_data[:, :, :, i], plugin='tifffile',
+                  check_contrast=False)
         filelocs[fov] = tiffpath
 
     tif_data = np.swapaxes(tif_data, 0, -1)
@@ -343,7 +346,8 @@ def _write_labels(base_dir, fov_names, comp_names, shape, sub_dir, fills, dtype)
 
     for i, fov in enumerate(fov_names):
         tiffpath = os.path.join(base_dir, f'{fov}.tiff')
-        io.imsave(tiffpath, label_data[i, :, :, 0], plugin='tifffile')
+        io.imsave(tiffpath, label_data[i, :, :, 0], plugin='tifffile',
+                  check_contrast=False)
         filelocs[fov] = tiffpath
 
     return filelocs, label_data
@@ -1033,3 +1037,73 @@ def _make_dist_exp_mats_spatial_utils_test():
     dist_mat = _make_dist_mat_sa_utils()
 
     return all_data, dist_mat
+
+
+def generate_sample_fov_tiling_entry(coord, name):
+    """Generates a sample fov entry to put in a sample fovs list for tiling
+
+    Args:
+        coord (tuple):
+            Defines the starting x and y point for the fov
+        name (str):
+            Defines the name of the fov
+
+    Returns:
+        dict:
+            An entry to be placed in the fovs list with provided coordinate and name
+    """
+
+    sample_fov_tiling_entry = {
+        "scanCount": 1,
+        "centerPointMicrons": {
+            "x": coord[0],
+            "y": coord[1]
+        },
+        "timingChoice": 7,
+        "frameSizePixels": {
+            "width": 2048,
+            "height": 2048
+        },
+        "imagingPreset": {
+            "preset": "Normal",
+            "aperture": "2",
+            "displayName": "Fine",
+            "defaults": {
+              "timingChoice": 7
+            }
+        },
+        "sectionId": 8201,
+        "slideId": 5931,
+        "name": name,
+        "timingDescription": "1 ms"
+    }
+
+    return sample_fov_tiling_entry
+
+
+def generate_sample_fovs_list(fov_coords, fov_names):
+    """Generate a sample dictionary of fovs for tiling
+
+    Args:
+        fov_coords (list):
+            A list of tuples listing the starting x and y coordinates of each fov
+        fov_names (list):
+            A list of strings identifying the name of each fov
+
+    Returns:
+        dict:
+            A dummy fovs list with starting x and y set to the provided coordinates and name
+    """
+
+    sample_fovs_list = {
+        "exportDateTime": "2021-03-12T19:02:37.920Z",
+        "fovFormatVersion": "1.5",
+        "fovs": []
+    }
+
+    for coord, name in zip(fov_coords, fov_names):
+        sample_fovs_list["fovs"].append(
+            generate_sample_fov_tiling_entry(coord, name)
+        )
+
+    return sample_fovs_list
