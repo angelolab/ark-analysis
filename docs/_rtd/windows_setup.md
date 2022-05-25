@@ -48,6 +48,23 @@ To run the script, you have to use `bash start_docker.sh`. If you run into issue
 * Run `wsl sudo apt-get install dos2unix`
 * Run `wsl dos2unix start_docker.sh` and `wsl dos2unix update_notebooks.sh`
 
+
+### Mounting External Drives
+
+If you wish to mount an external drive to the Docker instance you may do so by adding an argument to the execution of the `start_docker.sh` script.
+
+If, for example the data is stored on `X:/path/to/external/data/` where `X:/` is your external drive name, you will need to add:
+
+```bash
+bash start_docker.sh --external "/mnt/x/path/to/external/data"
+```
+
+`X:/` has to be swapped with `/mnt/x/` to be a valid path on WSL. In addition `--external` has a shorthand notation: `-e`.
+```bash
+bash start_docker.sh -e "/mnt/x/path/to/external/data"
+```
+
+
 ### If you run into more Windows-specific issues
 
 Please open an [issue](https://github.com/angelolab/ark-analysis/issues) on our GitHub page. Note that our codebase has not been extensively tested on Windows.
