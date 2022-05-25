@@ -1,16 +1,16 @@
 import copy
 import functools
+import warnings
 
 import numpy as np
 import pandas as pd
 import spatial_lda.featurization as ft
-from scipy.spatial.distance import pdist
-from sklearn.cluster import MiniBatchKMeans
+from sklearn.cluster import KMeans, MiniBatchKMeans
 from sklearn.metrics import silhouette_score
 from sklearn.model_selection import train_test_split
 
 import ark.utils.spatial_lda_utils as spu
-from ark.settings import BASE_COLS
+from ark import settings
 
 
 def format_cell_table(cell_table, markers=None, clusters=None):
@@ -38,7 +38,7 @@ def format_cell_table(cell_table, markers=None, clusters=None):
     spu.check_format_cell_table_args(cell_table=cell_table, markers=markers, clusters=clusters)
 
     # Only keep columns relevant for spatial-LDA
-    keep_cols = copy.deepcopy(BASE_COLS)
+    keep_cols = copy.deepcopy(settings.BASE_COLS)
     if markers is not None:
         keep_cols += markers
 
@@ -48,23 +48,23 @@ def format_cell_table(cell_table, markers=None, clusters=None):
     # Rename columns
     cell_table_drop = cell_table_drop.rename(
         columns={
-            "centroid-0": "x",
-            "centroid-1": "y",
-            "FlowSOM_ID": "cluster_id",
-            "cluster_labels": "cluster"
+            settings.CENTROID_0: "x",
+            settings.CENTROID_1: "y",
+            settings.CLUSTER_ID: "cluster_id",
+            settings.KMEANS_CLUSTER: "cluster"
         })
 
     # Create dictionary of FOVs
-    fovs = np.unique(cell_table_drop["SampleID"])
+    fovs = np.unique(cell_table_drop[settings.FOV_ID])
 
     fov_dict = {}
     for i in fovs:
-        df = cell_table_drop[cell_table_drop["SampleID"] == i].drop(
-            columns=["SampleID", "label"])
+        df = cell_table_drop[cell_table_drop[settings.FOV_ID] == i].drop(
+            columns=[settings.FOV_ID, settings.CELL_LABEL])
         if clusters is not None:
             df = df[df["cluster_id"].isin(clusters)]
         df["is_index"] = True
-        df["is_immune"] = True  # might remove this
+        df["isimmune"] = True  # might remove this
         fov_dict[i] = df.reset_index(drop=True)
 
     # Save Arguments
@@ -126,14 +126,16 @@ def featurize_cell_table(cell_table, featurization="cluster", radius=100, cell_i
 
     # Featurize FOVs
     feature_sample = {k: v for (k, v) in cell_table.items() if k in cell_table["fovs"].tolist()}
-    featurized_fovs = ft.featurize_samples(feature_sample,
-                                           neighborhood_feature_fn,
-                                           radius=radius,
-                                           is_anchor_col=cell_index,
-                                           x_col='x',
-                                           y_col='y',
-                                           n_processes=n_processes,
-                                           include_anchors=True)
+    with warnings.catch_warnings():
+        warnings.simplefilter(action='ignore', category=FutureWarning)
+        featurized_fovs = ft.featurize_samples(feature_sample,
+                                               neighborhood_feature_fn,
+                                               radius=radius,
+                                               is_anchor_col=cell_index,
+                                               x_col='x',
+                                               y_col='y',
+                                               n_processes=n_processes,
+                                               include_anchors=True)
     # Extract training data sample
     all_sample_idxs = featurized_fovs.index.map(lambda x: x[0])
     train_features_fraction, _ = train_test_split(featurized_fovs, test_size=1. - train_frac,
@@ -233,7 +235,7 @@ def gap_stat(features, k, clust_inertia, num_boots=25):
     return gap, s
 
 
-def compute_topic_eda(features, featurization, topics, num_boots=25):
+def compute_topic_eda(features, featurization, topics, silhouette=False, num_boots=None):
     """Computes five metrics for k-means clustering models to help determine an
     appropriate number of topics for use in spatial-LDA analysis.  The five metrics are:
         * Inertia: the total sum of within-cluster variance for all clusters.
@@ -246,8 +248,6 @@ def compute_topic_eda(features, featurization, topics, num_boots=25):
         The optimal number of clusters :math:`k` is the smallest :math:`k` for which :math:`Gap(
         k) > Gap(k+1) - s_{k+1}` where :math:`s_{k+1}` is a scaled estimate of the standard
         error of :math:`Gap(k+1)`.
-        * Percent of Variance Explained: The percent of total variance in the data explained by
-        the clustering.
         * Cell Count: the distribution of cell features within each cluster.
 
     Args:
@@ -259,8 +259,12 @@ def compute_topic_eda(features, featurization, topics, num_boots=25):
         topics (list):
             A list of integers corresponding to the different number of possible topics to
             investigate.
-        num_boots (int):
-            The number of bootstrap samples to use when calculating the Gap-statistic.
+        silhouette (bool):
+            Whether or not the silhouette score should be computed. This metric can take some time
+            to compute so it is False by default.
+        num_boots (int | None):
+            The number of bootstrap samples to use when calculating the Gap-statistic. If None,
+            the gap stat will not be computed.
 
     Returns:
         dict:
@@ -270,7 +274,7 @@ def compute_topic_eda(features, featurization, topics, num_boots=25):
 
     """
     # Check inputs
-    if num_boots < 25:
+    if num_boots is not None and num_boots < 25:
         raise ValueError("Number of bootstrap samples must be at least 25")
     if min(topics) <= 2 or max(topics) >= features.shape[0] - 1:
         raise ValueError("Number of topics must be in [2, %d]" % (features.shape[0] - 1))
@@ -278,25 +282,26 @@ def compute_topic_eda(features, featurization, topics, num_boots=25):
     stat_names = ['inertia', 'silhouette', 'gap_stat', 'gap_sds', 'percent_var_exp', "cell_counts"]
     stats = dict(zip(stat_names, [{} for name in stat_names]))
 
-    # Compute the total sum of squared pairwise distances between all observations
-    total_ss = np.sum(pdist(features) ** 2) / features.shape[0]
+    # iterative over topic number candidates
     for k in topics:
         # cluster with KMeans
-        cluster_fit = MiniBatchKMeans(n_clusters=k, batch_size=1024).fit(features)
+        cluster_fit = KMeans(n_clusters=k).fit(features)
+
         # cell feature count per cluster
-        feature_copy = copy.deepcopy(features)
         cell_count = {}
         for i in range(k):
-            cell_count[i] = feature_copy[cluster_fit.labels_ == i].sum(axis=0)
+            cell_count[i] = features[cluster_fit.labels_ == i].sum(axis=0)
         cell_count = pd.DataFrame.from_dict(cell_count)
-        # pooled within cluster sum of squares
-        pooled_within_ss = spu.within_cluster_sums(data=features, labels=cluster_fit.labels_)
+
+        # compute stats
         stats['inertia'][k] = cluster_fit.inertia_
-        stats['silhouette'][k] = silhouette_score(features, cluster_fit.labels_,
-                                                  metric='euclidean')
-        stats['gap_stat'][k], stats['gap_sds'][k] = gap_stat(features, k, pooled_within_ss,
-                                                             num_boots)
-        stats['percent_var_exp'][k] = (total_ss - cluster_fit.inertia_) / total_ss
+        if silhouette:
+            stats['silhouette'][k] = \
+                silhouette_score(features, cluster_fit.labels_, metric='euclidean')
+        if num_boots is not None:
+            pooled_within_ss = spu.within_cluster_sums(data=features, labels=cluster_fit.labels_)
+            stats['gap_stat'][k], stats['gap_sds'][k] = gap_stat(features, k, pooled_within_ss,
+                                                                 num_boots)
         stats['cell_counts'][k] = cell_count
 
     stats["featurization"] = featurization

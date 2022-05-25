@@ -105,6 +105,13 @@ def test_within_cluster_sums():
     assert wk >= 0
 
 
+def test_make_plot_fn():
+    with pytest.raises(ValueError, match="Must provide difference_matrices"):
+        spu.make_plot_fn(plot="adjacency")
+    with pytest.raises(ValueError, match="Must provide cell_table and topic_weights"):
+        spu.make_plot_fn(plot="topic_assignment")
+
+
 def test_save_spatial_lda_data():
     cell_table = make_cell_table(num_cells=1000)
     all_clusters = list(np.unique(cell_table[settings.CLUSTER_ID]))
@@ -132,3 +139,14 @@ def test_save_spatial_lda_data():
         with pytest.raises(ValueError, match="'data' is of type"):
             spu.save_spatial_lda_file(data=cell_table_format, dir=temp_dir, file_name="dict",
                                       format="csv")
+
+
+def test_read_spatial_lda_file():
+    with tempfile.TemporaryDirectory() as temp_dir:
+        file_path = os.path.join(temp_dir, "fake_file.txt")
+        with open(file_path, "w") as f:
+            f.write("content")
+        with pytest.raises(FileNotFoundError, match="No file named"):
+            spu.read_spatial_lda_file(dir=temp_dir, file_name="bad_file")
+        with pytest.raises(ValueError, match="format must be either"):
+            spu.read_spatial_lda_file(dir=temp_dir, file_name="fake_file", format="txt")

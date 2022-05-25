@@ -279,7 +279,8 @@ def visualize_neighbor_cluster_metrics(neighbor_cluster_stats, dpi=None, save_di
         misc_utils.save_figure(save_dir, "neighborhood_cluster_scores.png", dpi=dpi)
 
 
-def visualize_topic_eda(data, metric="gap_stat", gap_sd=True, k=None, dpi=None, save_dir=None):
+def visualize_topic_eda(data, metric="gap_stat", gap_sd=True, k=None, transpose=False, scale=0.5,
+                        dpi=None, save_dir=None):
     """Visualize the exploratory metrics for spatial-LDA topics
 
     Args:
@@ -293,6 +294,10 @@ def visualize_topic_eda(data, metric="gap_stat", gap_sd=True, k=None, dpi=None, 
         k (int):
             References a specific KMeans clustering with k clusters for visualizing the cell count
             heatmap.
+        transpose (bool):
+            Swap axes for cell_counts heatmap
+        scale (float):
+            Plot size scaling for cell_counts heatmap
         dpi (float):
             The resolution of the image to save, ignored if save_dir is None
         save_dir (str):
@@ -324,8 +329,13 @@ def visualize_topic_eda(data, metric="gap_stat", gap_sd=True, k=None, dpi=None, 
     elif metric == "cell_counts":
         if k is None:
             raise ValueError("Must provide number of clusters for k value.")
-        sns.heatmap(data["cell_counts"][k], vmin=0, square=True, xticklabels=True,
-                    yticklabels=True, cmap="viridis")
+        cell_counts = data["cell_counts"][k]
+        if transpose:
+            cell_counts = cell_counts.T
+
+        plt.subplots(figsize=(scale * cell_counts.shape[1], scale * cell_counts.shape[0]))
+        sns.heatmap(cell_counts, vmin=0, square=True, xticklabels=True,
+                    yticklabels=True, cmap="mako")
         plt.xlabel("KMeans Cluster Label")
         if featurization == "cluster":
             plt.ylabel("Cell Cluster")
@@ -402,7 +412,7 @@ def visualize_fov_graphs(cell_table, features, diff_mats, fovs, dpi=None, save_d
         save_dir (str):
             Directory to save plots, default is None
     """
-    _plot_fn = make_plot_fn(diff_mats["train_diff_mat"])
+    _plot_fn = make_plot_fn(plot="adjacency", difference_matrices=diff_mats["train_diff_mat"])
     sv.plot_samples_in_a_row(features["train_features"], _plot_fn, cell_table, tumor_set=fovs)
     if save_dir is not None:
         fovs_str = "_".join([str(x) for x in fovs])

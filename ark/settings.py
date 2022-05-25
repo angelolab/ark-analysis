@@ -5,9 +5,9 @@ CELL_SIZE = 'cell_size'  # cell size (number of pixels in the cell)
 CELL_LABEL = 'label'  # cell label number (regionprops)
 FOV_ID = 'SampleID'  # cell's fov name
 CELL_TYPE = 'cell_type'  # cell type name (flowsom)
-CLUSTER_ID = 'FlowSOM_ID'  # cell cluster id (flowsom)
+CLUSTER_ID = 'cell_meta_cluster'  # cell cluster id (flowsom)
 PATIENT_ID = 'PatientID'  # cell's patient id
-KMEANS_CLUSTER = 'cluster_labels'  # generated cluster column name
+KMEANS_CLUSTER = 'cell_meta_cluster_rename'  # generated cluster column name
 CENTROID_0 = 'centroid-0'  # cell centroid x-coordinate
 CENTROID_1 = 'centroid-1'  # cell centroid y-coordinate
 
@@ -30,3 +30,4 @@ BASE_COLS = [FOV_ID, CELL_LABEL, CELL_SIZE, CENTROID_0, CENTROID_1, CLUSTER_ID, 
 # spatial_lda topic EDA key names
 EDA_KEYS = ['inertia', 'silhouette', 'gap_stat', 'gap_sds', 'percent_var_exp', 'cell_counts',
             "featurization"]
+LDA_PLOT_TYPES = ["adjacency", "topic_assignment"]

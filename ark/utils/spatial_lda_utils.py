@@ -2,10 +2,15 @@ import os
 import pickle
 
 import numpy as np
-from spatial_lda.visualization import plot_adjacency_graph
+import palettable.colorbrewer.qualitative as qual_palettes
+import pandas as pd
+import matplotlib.pyplot as plt
+import spatial_lda.online_lda
 from scipy.spatial.distance import pdist
+from spatial_lda.visualization import plot_adjacency_graph, _standardize_topics
+import seaborn as sns
 
-from ark.settings import BASE_COLS, CLUSTER_ID
+from ark.settings import BASE_COLS, CLUSTER_ID, LDA_PLOT_TYPES
 from ark.utils.misc_utils import verify_in_list
 
 
@@ -56,6 +61,16 @@ def check_featurize_cell_table_args(cell_table, featurization, radius, cell_inde
 
     verify_in_list(featurization=[featurization],
                    featurization_options=["cluster", "marker", "avg_marker", "count"])
+
+    if featurization in ["cluster"] and cell_table["clusters"] is None:
+        raise ValueError(
+            "Cannot featurize clusters, because none were used for cell table formatting"
+        )
+    if featurization in ["marker", "avg_marker"] and cell_table["markers"] is None:
+        raise ValueError(
+            "Cannont featurize markers, because none were used for cell table formatting"
+        )
+
     key = list(cell_table.keys())[0]
     verify_in_list(cell_index=[cell_index], cell_table_columns=cell_table[key].columns.to_list())
 
@@ -83,21 +98,107 @@ def within_cluster_sums(data, labels):
     return wk
 
 
-def make_plot_fn(difference_matrices):
+def plot_topics_heatmap(topics, features, normalizer=None, transpose=False, scale=0.4):
+    """ Plots topic heatmap. Topics will be displayed on lower axis by default.
+
+    Args:
+        topics (pd.DataFrame | np.ndarray):
+            topic assignments based off of trained featurization
+        features (list | np.ndarray):
+            feature names for display
+        normalizer (Callable[(np.ndarray,), np.ndarray]):
+            topic normalization for easier visualization. Default is standardization.
+        transpose (bool):
+            swap topic and features axes. helpful when the number of features is larger than the
+            number of topics.
+        scale (float):
+            plot to text size scaling. for smaller text/larger label gaps, increase this value.
+    """
+    n_topics = topics.shape[0]
+    if normalizer is not None:
+        topics = normalizer(topics)
+    else:
+        topics = _standardize_topics(topics)
+
+    topics = pd.DataFrame(topics, index=features,
+                          columns=['Topic %d' % x for x in range(n_topics)])
+    if transpose:
+        topics = topics.T
+
+    plt.subplots(figsize=(scale*topics.shape[1], scale*topics.shape[0]))
+    sns.heatmap(topics, square=True, cmap='RdBu')
+
+
+def plot_fovs_with_topics(ax, fov_idx, topic_weights, cell_table,
+                          color_palette=qual_palettes.Set3_12.mpl_colors):
+    """Helper function for plotting outputs from a fitted spatial-LDA model.
+
+    Args:
+        ax:
+            Plot axis
+        fov_idx (int):
+            The index of the field of view to plot
+        topic_weights (pandas.DataFrame):
+            The data frame of cell topic weights from a fitted spatial-LDA model.
+        cell_table (dict):
+            A formatted cell table
+        color_palette (List[Tuple[float, float, float]]):
+            Color palette in mpl format
+
+    Returns:
+
+        - A scatter plot of cell locations and topic assignments for a particular field of view.
+    """
+    colors = np.array(color_palette[:topic_weights.shape[1]])
+    cell_coords = cell_table[fov_idx]
+    immune_coords = cell_coords[cell_coords.isimmune]
+    cell_indices = topic_weights.index.map(lambda x: x[1])
+    coords = cell_table[fov_idx].loc[cell_indices]
+    ax.scatter(immune_coords['y'], -immune_coords['x'],
+               s=5, c='k', label='Immune', alpha=0.1)
+    ax.scatter(coords['y'], -coords['x'], s=2,
+               c=colors[np.argmax(np.array(topic_weights), axis=1), :])
+    ax.set_title(f"FOV {fov_idx}")
+    ax.axes.get_yaxis().set_visible(False)
+    ax.axes.get_xaxis().set_visible(False)
+
+
+def make_plot_fn(plot="adjacency", difference_matrices=None, topic_weights=None, cell_table=None,
+                 color_palette=qual_palettes.Set3_12.mpl_colors):
     """Helper function for making plots using the spatial-lda library.
 
     Args:
+        plot (str):
+            Which plot function to return.  One of "adjacency" or "topic_assignment"
         difference_matrices (dict):
             A dictionary of featurized difference matrices for each field of view.
+        topic_weights (pandas.DataFrame):
+            The data frame of cell topic weights from a fitted spatial-LDA model.
+        cell_table (dict):
+            A formatted cell table
+        color_palette (List[Tuple[float, float, float]]):
+            Color palette in mpl format (list of rgb tuples)
 
     Returns:
         function:
 
-        - A function for plotting the adjacency network for each field of view..
+        - A function for plotting spatial-LDA data.
     """
+    # check args
+    verify_in_list(plot=[plot], plot_options=LDA_PLOT_TYPES)
 
-    def plot_fn(ax, sample_idx, features_df, fov_df):
-        plot_adjacency_graph(ax, sample_idx, features_df, fov_df, difference_matrices)
+    if plot == "adjacency":
+        if difference_matrices is None:
+            raise ValueError("Must provide difference_matrices")
+
+        def plot_fn(ax, sample_idx, features_df, fov_df):
+            plot_adjacency_graph(ax, sample_idx, features_df, fov_df, difference_matrices)
+    else:
+        if topic_weights is None or cell_table is None:
+            raise ValueError("Must provide cell_table and topic_weights")
+
+        def plot_fn(ax, sample_idx, features_df=topic_weights, fov_df=cell_table):
+            plot_fovs_with_topics(ax, sample_idx, features_df, fov_df, color_palette=color_palette)
 
     return plot_fn
 
@@ -126,7 +227,39 @@ def save_spatial_lda_file(data, dir, file_name, format="pkl"):
     elif format == "csv":
         if type(data) == dict:
             raise ValueError("'data' is of type dict.  Use format='pkl' instead.")
+        elif type(data) == spatial_lda.online_lda.LatentDirichletAllocation:
+            raise ValueError("'data' is a spatial_lda model.  Use format='pkl' instead.")
         else:
             data.to_csv(file_path)
     else:
         raise ValueError("format must be either 'csv' or 'pkl'.")
+
+
+def read_spatial_lda_file(dir, file_name, format="pkl"):
+    """Helper function reading spatial-LDA objects.
+
+    Args:
+        dir (str):
+            The directory where the data is located.
+        file_name (str):
+            Name of the data file.
+        format (str):
+            The designated file extension.  Must be one of either 'pkl' or 'csv'.
+
+    Returns:
+        Either an individual data frame, a dictionary, or a spatial_lda model.
+    """
+    file_name += "." + format
+    file_path = os.path.join(dir, file_name)
+    if not os.path.exists(file_path):
+        raise FileNotFoundError("No file named '{}'.".format(file_path))
+
+    if format == "pkl":
+        with open(file_path, "rb") as f:
+            data = pickle.load(f)
+    elif format == "csv":
+        data = pd.read_csv(file_path)
+    else:
+        raise ValueError("format must be either 'csv' or 'pkl'.")
+
+    return data
