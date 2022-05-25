@@ -94,16 +94,16 @@ class MetaClusterGui():
         width_ratios = [
             int(self.mcd.cluster_count / 7),
             self.mcd.cluster_count,
-            self.mcd.metacluster_count,
+            self.mcd.metacluster_count * 2,
             ]
-        height_ratios = [6, self.mcd.marker_count, 1, 1]
+        height_ratios = [12, self.mcd.marker_count * 2, 3, 3]
 
         subplots = plt.subplots(
             4, 3,
             gridspec_kw={
                 'width_ratios': width_ratios,
                 'height_ratios': height_ratios},
-            figsize=(self.width, 6),
+            figsize=(self.width, 12),
             )
         with self.plot_output:
             plt.show()
