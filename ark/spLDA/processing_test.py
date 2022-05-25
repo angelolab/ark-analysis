@@ -56,7 +56,7 @@ def test_featurize_cell_table():
     # call formatting function
     all_clusters = list(np.unique(TEST_CELL_TABLE[settings.CLUSTER_ID]))
     all_markers = ['A', 'B', 'C', 'D', 'E', 'F', 'G']
-    cluster_names = list(np.unique(TEST_CELL_TABLE["cluster_labels"]))
+    cluster_names = list(np.unique(TEST_CELL_TABLE[settings.KMEANS_CLUSTER]))
     cell_table_format = pros.format_cell_table(cell_table=TEST_CELL_TABLE, clusters=all_clusters,
                                                markers=all_markers)
 

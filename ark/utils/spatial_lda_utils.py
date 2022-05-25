@@ -62,11 +62,11 @@ def check_featurize_cell_table_args(cell_table, featurization, radius, cell_inde
     verify_in_list(featurization=[featurization],
                    featurization_options=["cluster", "marker", "avg_marker", "count"])
 
-    if featurization in ["cluster"] and cell_table["clusters"] is None:
+    if featurization in ["cluster"] and "clusters" not in cell_table:
         raise ValueError(
             "Cannot featurize clusters, because none were used for cell table formatting"
         )
-    if featurization in ["marker", "avg_marker"] and cell_table["markers"] is None:
+    if featurization in ["marker", "avg_marker"] and "markers" not in cell_table:
         raise ValueError(
             "Cannont featurize markers, because none were used for cell table formatting"
         )
