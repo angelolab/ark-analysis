@@ -1935,3 +1935,58 @@ def generate_weighted_channel_avg_heatmap(cell_cluster_channel_avg_path, cell_cl
         bbox_transform=plt.gcf().transFigure,
         loc='upper right'
     )
+
+
+def add_consensus_labels_cell_table(base_dir, cell_table_name, cell_consensus_name):
+    """Adds the consensus cluster labels to the cell table,
+    then resaves data to `base_dir/cell_table_name`
+
+
+    Args:
+        base_dir (str):
+            The path to the data directory
+        cell_table_name (str):
+            Name of the cell table, needs to be created with `Segment_Image_Data.ipynb`
+        cell_consensus_name (str):
+            Name of file with the cell consensus clustered results (both cell SOM and meta labels)
+    """
+
+    # define the data paths
+    cell_table_path = os.path.join(base_dir, cell_table_name)
+    cell_consensus_path = os.path.join(base_dir, cell_consensus_name)
+
+    # file path validation
+    if not os.path.exists(cell_table_path):
+        raise FileNotFoundError('Cell table file %s does not exist in base_dir %s' %
+                                (cell_table_path, base_dir))
+
+    if not os.path.exists(cell_consensus_path):
+        raise FileNotFoundError('Cell consensus file %s does not exist in base_dir %s' %
+                                (cell_consensus_name, base_dir))
+
+    # read in the data, ensure sorted by FOV column just in case
+    cell_table = pd.read_csv(cell_table_path)
+    consensus_data = feather.read_dataframe(cell_consensus_path)
+
+    # ensure the data are sorted by fov and segmentation_label for consistency
+    cell_table = cell_table.sort_values(by=['fov', 'label'])
+    consensus_data = consensus_data.sort_values(by=['fov', 'segmentation_label'])
+
+    # sanity check: assert that the FOV labels and segmentation_labels are equivalent
+    # otherwise, the wrong cell table and/or consensus data has been passed in
+    misc_utils.verify_same_elements(
+        cell_table_fovs=cell_table['fov'].values,
+        consensus_data_fovs=consensus_data['fov'].values,
+        enforce_order=True
+    )
+    misc_utils.verify_same_elements(
+        cell_table_labels=cell_table['label'].values,
+        consensus_data_labels=consensus_data['segmentation_label'].values,
+        enforce_order=True
+    )
+
+    # append the consensus SOM cluster values to the cell table
+    cell_table['cell_meta_cluster'] = consensus_data['cell_meta_cluster_rename'].copy()
+
+    # resave cell table with new meta cluster column
+    cell_table.to_csv(cell_table_path, index=False)

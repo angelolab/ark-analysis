@@ -2369,3 +2369,103 @@ def test_generate_weighted_channel_avg_heatmap():
             os.path.join(temp_dir, 'sample_channel_avg.csv'),
             'cell_meta_cluster_rename', ['chan1', 'chan2'], raw_cmap, renamed_cmap
         )
+
+
+def test_add_consensus_labels_cell_table():
+    with tempfile.TemporaryDirectory() as temp_dir:
+        # basic error check: cell table path does not exist
+        with pytest.raises(FileNotFoundError):
+            som_utils.add_consensus_labels_cell_table(
+                temp_dir, 'bad_cell_table_name', ''
+            )
+
+        # create a basic cell table
+        fovs = ['fov0', 'fov1', 'fov2']
+        chans = ['chan0', 'chan1', 'chan2']
+        cell_table_data = {
+            'cell_size': np.repeat(1, 300),
+            'fov': np.repeat(['fov0', 'fov1', 'fov2'], 100),
+            'chan0': np.random.rand(300),
+            'chan1': np.random.rand(300),
+            'chan2': np.random.rand(300),
+            'label': np.tile(np.arange(1, 101), 3)
+        }
+        cell_table = pd.DataFrame.from_dict(cell_table_data)
+        cell_table.to_csv(os.path.join(temp_dir, 'cell_table.csv'))
+
+        # basic error check: cell consensus data does not exist
+        with pytest.raises(FileNotFoundError):
+            som_utils.add_consensus_labels_cell_table(
+                temp_dir, 'cell_table.csv', 'bad_cell_consensus_name'
+            )
+
+        cell_consensus_data = {
+            'cell_size': cell_table['cell_size'].values,
+            'fov': cell_table['fov'].values,
+            'pixel_meta_cluster_rename_1': np.random.rand(300),
+            'pixel_meta_cluster_rename_2': np.random.rand(300),
+            'pixel_meta_cluster_rename_3': np.random.rand(300),
+            'segmentation_label': cell_table['label'].values,
+            'cell_som_cluster': np.tile(np.arange(1, 101), 3),
+            'cell_meta_cluster': np.tile(np.arange(1, 21), 15),
+            'cell_meta_cluster_rename': np.tile(
+                ['cell_meta_%d' % i for i in np.arange(1, 21)], 15
+            )
+        }
+
+        # test bad fov values
+        with pytest.raises(ValueError):
+            cell_consensus_data['fov'] = np.repeat(['fov0', 'fov1'], 150)
+            cell_consensus = pd.DataFrame.from_dict(cell_consensus_data)
+            feather.write_dataframe(
+                cell_consensus,
+                os.path.join(temp_dir, 'cell_consensus.feather'),
+                compression='uncompressed'
+            )
+            som_utils.add_consensus_labels_cell_table(
+                temp_dir, 'cell_table.csv', 'cell_consensus.feather'
+            )
+
+        # test bad segmentation label values
+        with pytest.raises(ValueError):
+            cell_consensus_data['fov'] = cell_table['fov'].values
+            cell_consensus_data['segmentation_label'] = np.tile(np.arange(1, 151), 2)
+            cell_consensus = pd.DataFrame.from_dict(cell_consensus_data)
+            feather.write_dataframe(
+                cell_consensus,
+                os.path.join(temp_dir, 'cell_consensus.feather'),
+                compression='uncompressed'
+            )
+            som_utils.add_consensus_labels_cell_table(
+                temp_dir, 'cell_table.csv', 'cell_consensus.feather'
+            )
+
+        # create  a valid consensus table
+        cell_consensus_data['fov'] = cell_table['fov'].values
+        cell_consensus_data['segmentation_label'] = cell_table['label'].values
+        cell_consensus = pd.DataFrame.from_dict(cell_consensus_data)
+        feather.write_dataframe(
+            cell_consensus,
+            os.path.join(temp_dir, 'cell_consensus.feather'),
+            compression='uncompressed'
+        )
+
+        # generate the new cell table
+        som_utils.add_consensus_labels_cell_table(
+            temp_dir, 'cell_table.csv', 'cell_consensus.feather'
+        )
+
+        # assert cell_table.csv still exists
+        assert os.path.exists(os.path.join(temp_dir, 'cell_table.csv'))
+
+        # read in the new cell table
+        cell_table_with_labels = pd.read_csv(os.path.join(temp_dir, 'cell_table.csv'))
+
+        # assert cell_meta_cluster column added
+        assert 'cell_meta_cluster' in cell_table_with_labels.columns.values
+
+        # assert new cell table meta cluster labels same as rename column in consensus data
+        assert np.all(
+            cell_table_with_labels['cell_meta_cluster'].values ==
+            cell_consensus['cell_meta_cluster_rename'].values
+        )
