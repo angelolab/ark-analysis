@@ -13,6 +13,7 @@ import skimage.io as io
 from ark.utils.data_utils import relabel_segmentation, label_cells_by_cluster
 from ark import settings
 
+
 def test_save_fov_images():
     # define the full set of fovs as well as a subset of fovs
     fovs = ['fov0', 'fov1', 'fov2']
