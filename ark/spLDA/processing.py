@@ -231,9 +231,9 @@ def gap_stat(features, k, clust_inertia, num_boots=25):
 
 
 def compute_topic_eda(features, featurization, topics, silhouette=False, num_boots=None):
-    """Computes five metrics for k-means clustering models to help determine an appropriate number 
+    """Computes five metrics for k-means clustering models to help determine an appropriate number
     of topics for use in spatial-LDA analysis.
-    
+
     The five metrics are:
     - Inertia: the total sum of within-cluster variance for all clusters.
     - Silhouette Score: the silhouette score is a goodness-of-fit measurement for
