@@ -29,9 +29,8 @@ def format_cell_table(cell_table, markers=None, clusters=None):
 
     Returns:
         dict:
-
-        - A dictionary of formatted cell tables for use in spatial-LDA analysis.  Each element
-        in the dictionary is a Dataframe corresponding to a single field of view.
+            A dictionary of formatted cell tables for use in spatial-LDA analysis.  Each element
+            in the dictionary is a Dataframe corresponding to a single field of view.
     """
 
     # Check function arguments
@@ -86,13 +85,13 @@ def featurize_cell_table(cell_table, featurization="cluster", radius=100, cell_i
             output from :func:`~ark.spLDA.processing.format_cell_table`.
         featurization (str):
             One of four choices of featurization method, defaults to "cluster" if not provided:
-                * marker: for each marker, count the total number of cells within a ``radius``
-                *r* from cell *i* having marker expression greater than 0.5.
-                * avg_marker: for each marker, compute the average marker expression of all
-                cells within a ``radius`` *r* from cell *i*.
-                * cluster: for each cluster, count the total number of cells within a ``radius``
-                *r* from cell *i* belonging to that cell cluster.
-                * count: counts the total number of cells within a ``radius`` *r* from cell *i*.
+        - marker: for each marker, count the total number of cells within a ``radius``
+            *r* from cell *i* having marker expression greater than 0.5.
+        - avg_marker: for each marker, compute the average marker expression of all
+            cells within a ``radius`` *r* from cell *i*.
+        - cluster: for each cluster, count the total number of cells within a ``radius``
+            *r* from cell *i* belonging to that cell cluster.
+        - count: counts the total number of cells within a ``radius`` *r* from cell *i*.
         radius (int):
             Size of the radius, in pixels, used to featurize cellular neighborhoods.
         cell_index (str):
@@ -105,10 +104,9 @@ def featurize_cell_table(cell_table, featurization="cluster", radius=100, cell_i
 
     Returns:
         dict:
-
-        - A dictionary containing a DataFrame of featurized cellular neighborhoods and a
-        separate DataFrame for designated training data.  Also returns the featurization method
-        to be used in later functions.
+            A dictionary containing a DataFrame of featurized cellular neighborhoods and a
+            separate DataFrame for designated training data.  Also returns the featurization method
+            to be used in later functions.
     """
 
     # Check arguments
@@ -167,8 +165,7 @@ def create_difference_matrices(cell_table, features, training=True, inference=Tr
 
     Returns:
         dict:
-
-        - A dictionary containing the difference matrices used for training and inference.
+            A dictionary containing the difference matrices used for training and inference.
     """
     if not training and not inference:
         raise ValueError("One or both of 'training' or 'inference' must be True")
@@ -211,13 +208,11 @@ def gap_stat(features, k, clust_inertia, num_boots=25):
             The number of bootstrap reference samples to generate.
 
     Returns:
-        tuple (float, float)
-
+        tuple (float, float):
         - Estimated difference between the the expected log within-cluster sum of squares and
-        the observed log within-cluster sum of squares (a.k.a. the Gap-statistic).
+          the observed log within-cluster sum of squares (a.k.a. the Gap-statistic).
         - A scaled estimate of the standard error of the expected log
-        within-cluster sum of squares.
-
+          within-cluster sum of squares.
     """
     # Calculate the range of each feature column
     mins, maxs = features.apply(min, axis=0), features.apply(max, axis=0)
@@ -236,19 +231,21 @@ def gap_stat(features, k, clust_inertia, num_boots=25):
 
 
 def compute_topic_eda(features, featurization, topics, silhouette=False, num_boots=None):
-    """Computes five metrics for k-means clustering models to help determine an
-    appropriate number of topics for use in spatial-LDA analysis.  The five metrics are:
-        * Inertia: the total sum of within-cluster variance for all clusters.
-        * Silhouette Score: the silhouette score is a goodness-of-fit measurement for
-        clustering.  Values closer to 1 indicate that most observations are well-matched to
-        their cluster, while values closer to -1 indicate poorly matched observations.
-        * Gap Statistic: the gap statistic, :math:`Gap(k)`, is a re-sampling based measure which
-        computes the difference between the log of the pooled within-cluster sum of squares (
-        :math:`logW_k` ) to its expected value ( :math:`E(logW_k)` ) under a null distribution.
-        The optimal number of clusters :math:`k` is the smallest :math:`k` for which :math:`Gap(
-        k) > Gap(k+1) - s_{k+1}` where :math:`s_{k+1}` is a scaled estimate of the standard
-        error of :math:`Gap(k+1)`.
-        * Cell Count: the distribution of cell features within each cluster.
+    """Computes five metrics for k-means clustering models to help determine an appropriate number 
+    of topics for use in spatial-LDA analysis.
+    
+    The five metrics are:
+    - Inertia: the total sum of within-cluster variance for all clusters.
+    - Silhouette Score: the silhouette score is a goodness-of-fit measurement for
+    clustering.  Values closer to 1 indicate that most observations are well-matched to
+    their cluster, while values closer to -1 indicate poorly matched observations.
+    - Gap Statistic: the gap statistic, :math:`Gap(k)`, is a re-sampling based measure which
+    computes the difference between the log of the pooled within-cluster sum of squares (
+    :math:`logW_k` ) to its expected value ( :math:`E(logW_k)` ) under a null distribution.
+    The optimal number of clusters :math:`k` is the smallest :math:`k` for which :math:`Gap(
+    k) > Gap(k+1) - s_{k+1}` where :math:`s_{k+1}` is a scaled estimate of the standard
+    error of :math:`Gap(k+1)`.
+    - Cell Count: the distribution of cell features within each cluster.
 
     Args:
         features (pandas.DataFrame):
@@ -268,10 +265,8 @@ def compute_topic_eda(features, featurization, topics, silhouette=False, num_boo
 
     Returns:
         dict:
-
-        - A dictionary of dictionaries containing the corresponding metrics for each topic value
-        provided.
-
+            A dictionary of dictionaries containing the corresponding metrics for each topic value
+            provided.
     """
     # Check inputs
     if num_boots is not None and num_boots < 25:
@@ -322,10 +317,9 @@ def fov_density(cell_table, total_pix=1024 ** 2):
 
     Returns:
         dict:
-
-        - A dictionary containing the average cell size, cellular density, and total cell count
-        for each field of view.  Cellular density is calculated by summing the total number of
-        pixels occupied by cells divided by the total number of pixels in each field of view.
+            A dictionary containing the average cell size, cellular density, and total cell count
+            for each field of view.  Cellular density is calculated by summing the total number of
+            pixels occupied by cells divided by the total number of pixels in each field of view.
 
     """
     average_area = {}
