@@ -694,6 +694,9 @@ def flowsom_cell_visualize(tb, flowsom_dir, fovs,
     # run the cell mask overlay
     tb.execute_cell('cell_overlay_gen')
 
+    # save the meta labels to the cell table
+    tb.execute_cell('cell_append_meta')
+
 
 def qc_notebook_setup(tb, base_dir, tiff_dir, sub_dir=None, fovs=None, chans=None):
     """Explicitly set the file parameters and desired fovs and channels needed
