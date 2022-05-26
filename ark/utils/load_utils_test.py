@@ -137,6 +137,19 @@ def test_load_imgs_from_tree():
 
         assert loaded_xr.equals(data_xr)
 
+        # check when fov is a single string
+        loaded_xr = \
+            load_utils.load_imgs_from_tree(temp_dir, img_sub_folder="TIFs", dtype="int16",
+                                           fovs='fov0', channels=some_chans)
+
+        assert loaded_xr.equals(data_xr[:1, :, :, :2])
+
+        # check that an error raises when a channel provided does not exist
+        with pytest.raises(ValueError):
+            loaded_xr = \
+                load_utils.load_imgs_from_tree(temp_dir, img_sub_folder="TIFs", dtype="int16",
+                                               channels=['chan4'])
+
     # test loading with data_xr containing float values
     with tempfile.TemporaryDirectory() as temp_dir:
         fovs, chans, imgs = test_utils.gen_fov_chan_names(num_fovs=1, num_chans=2,
@@ -168,9 +181,9 @@ def test_load_imgs_from_tree():
 
         loaded_xr = \
             load_utils.load_imgs_from_tree(temp_dir, img_sub_folder="TIFs", dtype="int16",
-                                           variable_sizes=True)
+                                           max_image_size=12)
 
-        assert loaded_xr.shape == (3, 1024, 1024, 3)
+        assert loaded_xr.shape == (3, 12, 12, 3)
 
 
 def test_load_imgs_from_dir():

@@ -175,7 +175,8 @@ def _write_tifs(base_dir, fov_names, img_names, shape, sub_dir, fills, dtype):
         fov_path = os.path.join(base_dir, fov, sub_dir)
         os.makedirs(fov_path)
         for j, name in enumerate(img_names):
-            io.imsave(os.path.join(fov_path, f'{name}.tiff'), tif_data[i, :, :, j])
+            io.imsave(os.path.join(fov_path, f'{name}.tiff'), tif_data[i, :, :, j],
+                      check_contrast=False)
             filelocs[fov].append(os.path.join(fov_path, name))
 
     return filelocs, tif_data
@@ -220,7 +221,8 @@ def _write_multitiff(base_dir, fov_names, channel_names, shape, sub_dir, fills,
         v = tif_data[i, :, :, :]
         if channels_first:
             v = np.moveaxis(v, -1, 0)
-        io.imsave(tiffpath, v, plugin='tifffile')
+        io.imsave(tiffpath, v, plugin='tifffile',
+                  check_contrast=False)
         filelocs[fov] = tiffpath
 
     return filelocs, tif_data
@@ -303,7 +305,8 @@ def _write_reverse_multitiff(base_dir, fov_names, channel_names, shape, sub_dir,
 
     for i, fov in enumerate(fov_names):
         tiffpath = os.path.join(base_dir, f'{fov}.tiff')
-        io.imsave(tiffpath, tif_data[:, :, :, i], plugin='tifffile')
+        io.imsave(tiffpath, tif_data[:, :, :, i], plugin='tifffile',
+                  check_contrast=False)
         filelocs[fov] = tiffpath
 
     tif_data = np.swapaxes(tif_data, 0, -1)

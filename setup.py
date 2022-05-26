@@ -1,4 +1,3 @@
-import setuptools
 from os import path
 from setuptools import setup, find_packages, Extension
 import numpy as np
@@ -15,7 +14,7 @@ if CYTHON_DEBUG:
 
 CYTHON_MACROS = [('CYTHON_TRACE', '1')] if CYTHON_DEBUG else None
 
-VERSION = '0.2.9'
+VERSION = '0.2.10'
 
 with open(path.abspath(path.join(path.dirname(__file__), 'requirements.txt'))) as req_file:
     requirements = req_file.read().splitlines()
