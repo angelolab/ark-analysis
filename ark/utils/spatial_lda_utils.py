@@ -86,8 +86,7 @@ def within_cluster_sums(data, labels):
 
     Returns:
         float:
-
-        - The pooled within-cluster sum of squares for a given clustering iteration.
+            The pooled within-cluster sum of squares for a given clustering iteration.
     """
     cluster_sums = []
     for x in np.unique(labels):
@@ -144,10 +143,6 @@ def plot_fovs_with_topics(ax, fov_idx, topic_weights, cell_table,
             A formatted cell table
         color_palette (List[Tuple[float, float, float]]):
             Color palette in mpl format
-
-    Returns:
-
-        - A scatter plot of cell locations and topic assignments for a particular field of view.
     """
     colors = np.array(color_palette[:topic_weights.shape[1]])
     cell_coords = cell_table[fov_idx]
@@ -180,9 +175,8 @@ def make_plot_fn(plot="adjacency", difference_matrices=None, topic_weights=None,
             Color palette in mpl format (list of rgb tuples)
 
     Returns:
-        function:
-
-        - A function for plotting spatial-LDA data.
+        Callable:
+            A function for plotting spatial-LDA data.
     """
     # check args
     verify_in_list(plot=[plot], plot_options=LDA_PLOT_TYPES)
@@ -247,7 +241,8 @@ def read_spatial_lda_file(dir, file_name, format="pkl"):
             The designated file extension.  Must be one of either 'pkl' or 'csv'.
 
     Returns:
-        Either an individual data frame, a dictionary, or a spatial_lda model.
+        pd.DataFrame | dict | spatial_lda.online_lda.LatentDirchletAllocation:
+            Either an individual data frame, a dictionary, or a spatial_lda model.
     """
     file_name += "." + format
     file_path = os.path.join(dir, file_name)
