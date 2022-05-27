@@ -128,7 +128,7 @@ def plot_topics_heatmap(topics, features, normalizer=None, transpose=False, scal
     sns.heatmap(topics, square=True, cmap='RdBu')
 
 
-def plot_fovs_with_topics(ax, fov_idx, topic_weights, cell_table,
+def plot_fovs_with_topics(ax, fov_idx, topic_weights, cell_table, uncolor_subset=None,
                           color_palette=qual_palettes.Set3_12.mpl_colors):
     """Helper function for plotting outputs from a fitted spatial-LDA model.
 
@@ -141,16 +141,20 @@ def plot_fovs_with_topics(ax, fov_idx, topic_weights, cell_table,
             The data frame of cell topic weights from a fitted spatial-LDA model.
         cell_table (dict):
             A formatted cell table
+        uncolor_subset (str | None):
+            Name of cell type to leave uncolored
         color_palette (List[Tuple[float, float, float]]):
             Color palette in mpl format
     """
     colors = np.array(color_palette[:topic_weights.shape[1]])
     cell_coords = cell_table[fov_idx]
-    immune_coords = cell_coords[cell_coords.isimmune]
     cell_indices = topic_weights.index.map(lambda x: x[1])
     coords = cell_table[fov_idx].loc[cell_indices]
-    ax.scatter(immune_coords['y'], -immune_coords['x'],
-               s=5, c='k', label='Immune', alpha=0.1)
+    if uncolor_subset is not None:
+        immune_coords = cell_coords[cell_coords[uncolor_subset]]
+        ax.scatter(immune_coords['y'], -immune_coords['x'],
+                   s=5, c='k', label=uncolor_subset, alpha=0.1)
+
     ax.scatter(coords['y'], -coords['x'], s=2,
                c=colors[np.argmax(np.array(topic_weights), axis=1), :])
     ax.set_title(f"FOV {fov_idx}")

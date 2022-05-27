@@ -4,6 +4,7 @@ import tempfile
 
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 import pytest
 from sklearn.cluster import KMeans
 
@@ -110,6 +111,19 @@ def test_make_plot_fn():
         spu.make_plot_fn(plot="adjacency")
     with pytest.raises(ValueError, match="Must provide cell_table and topic_weights"):
         spu.make_plot_fn(plot="topic_assignment")
+
+
+def test_plot_topics_heatmap():
+    topics = np.array([[1, 2, 3], [2, 3, 4]])
+    features = ['f1', 'f2', 'f3']
+    spu.plot_topics_heatmap(topics, features)
+
+
+def test_plot_fovs_with_topics():
+    fig, ax = plt.subplots(1, 1)
+    valid_cell_table = {1: pd.DataFrame([[1, 1, 1], ], columns=["x", "y", "is_index"])}
+    topic_weights = pd.DataFrame([1], index=[(1, 0)], columns=["Topic-1"])
+    spu.plot_fovs_with_topics(ax, 1, topic_weights, valid_cell_table)
 
 
 def test_save_spatial_lda_data():
