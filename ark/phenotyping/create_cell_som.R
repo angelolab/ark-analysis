@@ -76,7 +76,7 @@ clusterCountsNormSub <- as.matrix(sweep(clusterCountsNormSub, 2, clusterCountsNo
 # create the cell SOM
 print("Run the SOM training")
 somResults <- SOM(data=as.matrix(clusterCountsNormSub), xdim=xdim, ydim=ydim,
-                  rlen=numPasses, alpha=c(lr_start, lr_end))
+                  rlen=numPasses, alpha=c(lr_start, lr_end), map=FALSE)
 
 # write the weights to feather
 print("Save trained weights")
