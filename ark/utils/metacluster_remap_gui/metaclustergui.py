@@ -96,8 +96,10 @@ class MetaClusterGui():
             self.mcd.cluster_count,
             self.mcd.metacluster_count * 2,
         ]
-        marker_ratio = self.mcd.marker_count / 20
-        height_ratios = [6, self.mcd.marker_count * marker_ratio, marker_ratio, marker_ratio]
+        marker_ratio = max(self.mcd.marker_count / 20, 1)
+        height_ratios = [
+            6 * marker_ratio, self.mcd.marker_count * marker_ratio, marker_ratio, marker_ratio
+        ]
 
         subplots = plt.subplots(
             4, 3,
