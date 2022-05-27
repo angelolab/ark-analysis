@@ -15,17 +15,55 @@ from skimage.exposure import equalize_adapthist
 from ark import settings
 
 
-# TODO: debug outputs
 def segment_fibers(data_xr, fiber_channel, out_dir, blur=2, contrast_scaling_divisor=128,
-                   fiber_widths=(2, 4, 6), ridge_cutoff=0.1, sobel_blur=1, min_fiber_size=15,
+                   fiber_widths=(2, 4), ridge_cutoff=0.1, sobel_blur=1, min_fiber_size=15,
                    object_properties=None, debug=False):
-    """
+    """ Segments fiber objects from image data
+
+    Args:
+        data_xr (xr.DataArray):
+            Multiplexed image data in (fov, x, y, channel) format
+        fiber_channel (str):
+            Channel for fiber segmentation, e.g collagen.
+        out_dir (str | PathLike):
+            Directory to save fiber object labels and table.
+        blur (float):
+            Preprocessing gaussian blur radius
+        contrast_scaling_divisor (int):
+            Roughly speaking, the average side length of a fibers bounding box.  This argument
+            controls the local contrast enhancement operation, which helps differentiate dim
+            fibers from only slightly more dim backgrounds.  This should always be a power of two.
+        fiber_widths (Iterable):
+            Widths of fibers to filter for.  Be aware that adding larger fiber widths can join
+            close, narrow branches into one thicker fiber.
+        ridge_cutoff (float):
+            Threshold for ridge inclusion post-meijering filtering.
+        sobel_blur (float):
+            Gaussian blur radius for sobel driven elevation map creation
+        min_fiber_size (int):
+            Minimum area of fiber object
+        object_properties (TBD):
+            TBD
+        debug (bool):
+            Save intermediate preprocessing steps
+
+    Returns:
+        pd.DataFrame, Dict[str, np.ndarray]:
+         - Dataframe containing the fiber objects and their properties
+         - Dictionary mapping fov names to their fiber label images
     """
     channel_xr = data_xr.loc[:, :, :, fiber_channel]
     fov_len = channel_xr.shape[1]
 
     fiber_label_images = {}
     fiber_object_table = []
+
+    if not os.path.exists(out_dir):
+        raise FileNotFoundError(f"{out_dir} doesn't exist...")
+
+    if debug:
+        debug_path = os.path.join(out_dir, '_debug')
+        os.makedirs(debug_path)
 
     for fov in channel_xr.fovs:
         fiber_channel_data = channel_xr.loc[fov, :, :].values.astype('float')
@@ -62,6 +100,13 @@ def segment_fibers(data_xr, fiber_channel, out_dir, blur=2, contrast_scaling_div
         labeled, _ = ndi.label(segmentation)
 
         labeled_filtered = remove_small_objects(labeled, min_size=min_fiber_size) * segmentation
+
+        if debug:
+            imsave(os.path.join(debug_path, f'{fov}_thresholded.tiff'), threshed)
+            imsave(os.path.join(debug_path, f'{fov}_ridges_thresholded.tiff'),
+                   distance_transformed)
+            imsave(os.path.join(debug_path, f'{fov}_meijering_filter.tiff'), ridges)
+            imsave(os.path.join(debug_path, f'{fov}_contrast_adjusted.tiff'), contrast_adjusted)
 
         imsave(os.path.join(out_dir, f'{fov}_fiber_labels.tiff'), labeled_filtered)
 
