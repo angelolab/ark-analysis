@@ -2004,26 +2004,37 @@ def add_consensus_labels_cell_table(base_dir, cell_table_name, cell_consensus_na
     cell_table = pd.read_csv(cell_table_path)
     consensus_data = feather.read_dataframe(cell_consensus_path)
 
-    # ensure the data are sorted by fov and segmentation_label for consistency
-    cell_table = cell_table.sort_values(by=['fov', 'label'])
-    consensus_data = consensus_data.sort_values(by=['fov', 'segmentation_label'])
-
-    # sanity check: assert that the FOV labels and segmentation_labels are equivalent
-    # otherwise, the wrong cell table and/or consensus data has been passed in
-    misc_utils.verify_same_elements(
-        cell_table_fovs=cell_table['fov'].values,
-        consensus_data_fovs=consensus_data['fov'].values,
-        enforce_order=True
-    )
-    misc_utils.verify_same_elements(
-        cell_table_labels=cell_table['label'].values,
-        consensus_data_labels=consensus_data['segmentation_label'].values,
-        enforce_order=True
+    # for a simpler merge, rename segmentation_label to label in consensus_data
+    consensus_data = consensus_data.rename(
+        {'segmentation_label': 'label'}, axis=1
     )
 
-    # append the consensus cluster values to the cell table
-    cell_table['cell_meta_cluster'] = consensus_data['cell_meta_cluster_rename'].copy()
+    # merge the cell table with the consensus data to retrieve the meta clusters
+    cell_table_merged = cell_table.merge(
+        consensus_data, how='left', on=['fov', 'label']
+    )
+
+    # adjust column names and drop consensus data-specific columns
+    cell_table_merged = cell_table_merged.drop(columns=['cell_size_y'])
+    cell_table_merged = cell_table_merged.rename(
+        {'cell_size_x': 'cell_size'}, axis=1
+    )
+
+    # subset on just the cell table columns plus the meta cluster rename column
+    # NOTE: rename cell_meta_cluster_rename to just cell_meta_cluster for simplicity
+    cell_table_merged = cell_table_merged[
+        list(cell_table.columns.values) + ['cell_meta_cluster_rename']
+    ]
+    cell_table_merged = cell_table_merged.rename(
+        {'cell_meta_cluster_rename': 'cell_meta_cluster'}, axis=1
+    )
+
+    # fill any N/A cell_meta_cluster values with 'Unassigned'
+    # NOTE: this happens when a cell is so small no pixel clusters are detected inside of them
+    cell_table_merged['cell_meta_cluster'] = cell_table_merged['cell_meta_cluster'].fillna(
+        'Unassigned'
+    )
 
     # resave cell table with new meta cluster column
     new_cell_table_path = os.path.splitext(cell_table_path)[0] + '_cell_labels.csv'
-    cell_table.to_csv(new_cell_table_path, index=False)
+    cell_table_merged.to_csv(new_cell_table_path, index=False)

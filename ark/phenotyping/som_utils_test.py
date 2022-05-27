@@ -7,6 +7,7 @@ from matplotlib.colors import ListedColormap
 import numpy as np
 import pandas as pd
 import skimage.io as io
+from sklearn.utils import shuffle
 import xarray as xr
 
 import ark.phenotyping.som_utils as som_utils
@@ -2380,6 +2381,7 @@ def test_add_consensus_labels_cell_table():
             )
 
         # create a basic cell table
+        # NOTE: randomize the rows a bit to fully test merge functionality
         fovs = ['fov0', 'fov1', 'fov2']
         chans = ['chan0', 'chan1', 'chan2']
         cell_table_data = {
@@ -2391,7 +2393,8 @@ def test_add_consensus_labels_cell_table():
             'label': np.tile(np.arange(1, 101), 3)
         }
         cell_table = pd.DataFrame.from_dict(cell_table_data)
-        cell_table.to_csv(os.path.join(temp_dir, 'cell_table.csv'))
+        cell_table = shuffle(cell_table).reset_index(drop=True)
+        cell_table.to_csv(os.path.join(temp_dir, 'cell_table.csv'), index=False)
 
         # basic error check: cell consensus data does not exist
         with pytest.raises(FileNotFoundError):
@@ -2400,12 +2403,12 @@ def test_add_consensus_labels_cell_table():
             )
 
         cell_consensus_data = {
-            'cell_size': cell_table['cell_size'].values,
-            'fov': cell_table['fov'].values,
+            'cell_size': np.repeat(1, 300),
+            'fov': np.repeat(['fov0', 'fov1', 'fov2'], 100),
             'pixel_meta_cluster_rename_1': np.random.rand(300),
             'pixel_meta_cluster_rename_2': np.random.rand(300),
             'pixel_meta_cluster_rename_3': np.random.rand(300),
-            'segmentation_label': cell_table['label'].values,
+            'segmentation_label': np.tile(np.arange(1, 101), 3),
             'cell_som_cluster': np.tile(np.arange(1, 101), 3),
             'cell_meta_cluster': np.tile(np.arange(1, 21), 15),
             'cell_meta_cluster_rename': np.tile(
@@ -2413,36 +2416,6 @@ def test_add_consensus_labels_cell_table():
             )
         }
 
-        # test bad fov values
-        with pytest.raises(ValueError):
-            cell_consensus_data['fov'] = np.repeat(['fov0', 'fov1'], 150)
-            cell_consensus = pd.DataFrame.from_dict(cell_consensus_data)
-            feather.write_dataframe(
-                cell_consensus,
-                os.path.join(temp_dir, 'cell_consensus.feather'),
-                compression='uncompressed'
-            )
-            som_utils.add_consensus_labels_cell_table(
-                temp_dir, 'cell_table.csv', 'cell_consensus.feather'
-            )
-
-        # test bad segmentation label values
-        with pytest.raises(ValueError):
-            cell_consensus_data['fov'] = cell_table['fov'].values
-            cell_consensus_data['segmentation_label'] = np.tile(np.arange(1, 151), 2)
-            cell_consensus = pd.DataFrame.from_dict(cell_consensus_data)
-            feather.write_dataframe(
-                cell_consensus,
-                os.path.join(temp_dir, 'cell_consensus.feather'),
-                compression='uncompressed'
-            )
-            som_utils.add_consensus_labels_cell_table(
-                temp_dir, 'cell_table.csv', 'cell_consensus.feather'
-            )
-
-        # create  a valid consensus table
-        cell_consensus_data['fov'] = cell_table['fov'].values
-        cell_consensus_data['segmentation_label'] = cell_table['label'].values
         cell_consensus = pd.DataFrame.from_dict(cell_consensus_data)
         feather.write_dataframe(
             cell_consensus,
@@ -2465,7 +2438,55 @@ def test_add_consensus_labels_cell_table():
         assert 'cell_meta_cluster' in cell_table_with_labels.columns.values
 
         # assert new cell table meta cluster labels same as rename column in consensus data
+        # NOTE: make sure to sort cell table values since it was randomized to test merging
         assert np.all(
-            cell_table_with_labels['cell_meta_cluster'].values ==
-            cell_consensus['cell_meta_cluster_rename'].values
+            cell_table_with_labels.sort_values(
+                by=['fov', 'label']
+            )['cell_meta_cluster'].values == cell_consensus['cell_meta_cluster_rename'].values
+        )
+
+        # now test a cell table that has more cells than usual
+        cell_table_data = {
+            'cell_size': np.repeat(1, 600),
+            'fov': np.repeat(['fov0', 'fov1', 'fov2'], 200),
+            'chan0': np.random.rand(600),
+            'chan1': np.random.rand(600),
+            'chan2': np.random.rand(600),
+            'label': np.tile(np.arange(1, 201), 3)
+        }
+        cell_table = pd.DataFrame.from_dict(cell_table_data)
+        cell_table = shuffle(cell_table).reset_index(drop=True)
+        cell_table.to_csv(os.path.join(temp_dir, 'cell_table.csv'), index=False)
+
+        # generate the new cell table
+        som_utils.add_consensus_labels_cell_table(
+            temp_dir, 'cell_table.csv', 'cell_consensus.feather'
+        )
+
+        # assert cell_table.csv still exists
+        assert os.path.exists(os.path.join(temp_dir, 'cell_table_cell_labels.csv'))
+
+        # read in the new cell table
+        cell_table_with_labels = pd.read_csv(os.path.join(temp_dir, 'cell_table_cell_labels.csv'))
+
+        # assert cell_meta_cluster column added
+        assert 'cell_meta_cluster' in cell_table_with_labels.columns.values
+
+        # assert that for labels 1-100 per FOV, the meta_cluster_labels are the same
+        # NOTE: make sure to sort cell table values since it was randomized to test merging
+        cell_table_with_labeled_cells = cell_table_with_labels[
+            cell_table_with_labels['label'] <= 100
+        ]
+        assert np.all(
+            cell_table_with_labeled_cells.sort_values(
+                by=['fov', 'label']
+            )['cell_meta_cluster'].values == cell_consensus['cell_meta_cluster_rename'].values
+        )
+
+        # assert that for labels 101-200 per FOV, the meta_cluster_labels are set to 'Unassigned'
+        cell_table_with_unlabeled_cells = cell_table_with_labels[
+            cell_table_with_labels['label'] > 100
+        ]
+        assert np.all(
+            cell_table_with_unlabeled_cells['cell_meta_cluster'].values == 'Unassigned'
         )
