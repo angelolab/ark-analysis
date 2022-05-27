@@ -452,6 +452,13 @@ def flowsom_cell_setup(tb, flowsom_dir, pixel_dir, pixel_cluster_col='pixel_meta
     # extract the parameters from the cell params JSON
     tb.execute_cell('param_load')
 
+    # assert the cell table path is set accordingly
+    tb.inject(
+        """
+        cell_table_path = os.path.join('%s', 'cell_table_size_normalized.csv')
+        """ % flowsom_dir, after='param_load'
+    )
+
     # set cell_cluster_prefix
     tb.inject("cell_cluster_prefix = '%s'" % cell_prefix, after='cluster_prefix')
 
