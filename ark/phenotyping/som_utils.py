@@ -1939,7 +1939,7 @@ def generate_weighted_channel_avg_heatmap(cell_cluster_channel_avg_path, cell_cl
 
 def add_consensus_labels_cell_table(base_dir, cell_table_name, cell_consensus_name):
     """Adds the consensus cluster labels to the cell table,
-    then resaves data to `base_dir/cell_table_name`
+    then resaves data to `base_dir/{cell_table_name}_phenotyping.csv`
 
 
     Args:
@@ -1985,8 +1985,9 @@ def add_consensus_labels_cell_table(base_dir, cell_table_name, cell_consensus_na
         enforce_order=True
     )
 
-    # append the consensus SOM cluster values to the cell table
+    # append the consensus cluster values to the cell table
     cell_table['cell_meta_cluster'] = consensus_data['cell_meta_cluster_rename'].copy()
 
     # resave cell table with new meta cluster column
-    cell_table.to_csv(cell_table_path, index=False)
+    new_cell_table_path = os.path.splitext(cell_table_path)[0] + '_phenotyping.csv'
+    cell_table.to_csv(new_cell_table_path, index=False)

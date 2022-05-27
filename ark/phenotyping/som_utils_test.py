@@ -2456,10 +2456,10 @@ def test_add_consensus_labels_cell_table():
         )
 
         # assert cell_table.csv still exists
-        assert os.path.exists(os.path.join(temp_dir, 'cell_table.csv'))
+        assert os.path.exists(os.path.join(temp_dir, 'cell_table_phenotyping.csv'))
 
         # read in the new cell table
-        cell_table_with_labels = pd.read_csv(os.path.join(temp_dir, 'cell_table.csv'))
+        cell_table_with_labels = pd.read_csv(os.path.join(temp_dir, 'cell_table_phenotyping.csv'))
 
         # assert cell_meta_cluster column added
         assert 'cell_meta_cluster' in cell_table_with_labels.columns.values
