@@ -127,7 +127,7 @@ def mocked_pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
                                                                  fov + '.feather'))
 
 
-def mocked_train_cell_som(fovs, channels, base_dir, pixel_consensus_dir, cell_table_name,
+def mocked_train_cell_som(fovs, channels, base_dir, pixel_consensus_dir, cell_table_path,
                           cluster_counts_name='cluster_counts.feather',
                           cluster_counts_norm_name='cluster_counts_norm.feather',
                           pixel_cluster_col='pixel_meta_cluster_rename',
@@ -1494,9 +1494,10 @@ def test_train_cell_som(mocker):
     # basic error check: bad path to cell table path
     with tempfile.TemporaryDirectory() as temp_dir:
         with pytest.raises(FileNotFoundError):
-            som_utils.train_cell_som(fovs=['fov0'], channels=['chan0'], base_dir=temp_dir,
-                                     pixel_consensus_dir='consensus_dir',
-                                     cell_table_name='cell_table.csv')
+            som_utils.train_cell_som(
+                fovs=['fov0'], channels=['chan0'], base_dir=temp_dir,
+                pixel_consensus_dir='consensus_dir', cell_table_path='bad_cell_table.csv'
+            )
 
     # basic error check: bad path to consensus dir
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -1507,9 +1508,11 @@ def test_train_cell_som(mocker):
         )
 
         with pytest.raises(FileNotFoundError):
-            som_utils.train_cell_som(fovs=['fov0'], channels=['chan0'], base_dir=temp_dir,
-                                     pixel_consensus_dir='consensus_dir',
-                                     cell_table_name='sample_cell_table.csv')
+            som_utils.train_cell_som(
+                fovs=['fov0'], channels=['chan0'], base_dir=temp_dir,
+                pixel_consensus_dir='consensus_dir',
+                cell_table_path=os.path.join(temp_dir, 'sample_cell_table.csv')
+            )
 
     with tempfile.TemporaryDirectory() as temp_dir:
         # create list of markeres and fovs we want to use
@@ -1564,7 +1567,7 @@ def test_train_cell_som(mocker):
         # bad cluster_col provided
         with pytest.raises(ValueError):
             som_utils.train_cell_som(
-                fovs, chan_list, temp_dir, 'pixel_consensus_dir', 'cell_table_size_normalized.csv',
+                fovs, chan_list, temp_dir, 'pixel_consensus_dir', cell_table_path,
                 pixel_cluster_col='bad_cluster'
             )
 
@@ -1588,7 +1591,7 @@ def test_train_cell_som(mocker):
         som_utils.train_cell_som(
             fovs=fovs, channels=chan_list, base_dir=temp_dir,
             pixel_consensus_dir='pixel_consensus_dir',
-            cell_table_name='cell_table_size_normalized.csv',
+            cell_table_path=cell_table_path,
             pixel_cluster_col='pixel_som_cluster'
         )
 
@@ -1629,7 +1632,7 @@ def test_train_cell_som(mocker):
         som_utils.train_cell_som(
             fovs=fovs, channels=chan_list, base_dir=temp_dir,
             pixel_consensus_dir='pixel_consensus_dir',
-            cell_table_name='cell_table_size_normalized.csv',
+            cell_table_path=cell_table_path,
             pixel_cluster_col='pixel_meta_cluster_rename'
         )
 
@@ -2377,7 +2380,7 @@ def test_add_consensus_labels_cell_table():
         # basic error check: cell table path does not exist
         with pytest.raises(FileNotFoundError):
             som_utils.add_consensus_labels_cell_table(
-                temp_dir, 'bad_cell_table_name', ''
+                temp_dir, 'bad_cell_table_path', ''
             )
 
         # create a basic cell table
@@ -2399,7 +2402,7 @@ def test_add_consensus_labels_cell_table():
         # basic error check: cell consensus data does not exist
         with pytest.raises(FileNotFoundError):
             som_utils.add_consensus_labels_cell_table(
-                temp_dir, 'cell_table.csv', 'bad_cell_consensus_name'
+                temp_dir, os.path.join(temp_dir, 'cell_table.csv'), 'bad_cell_consensus_name'
             )
 
         cell_consensus_data = {
@@ -2425,7 +2428,7 @@ def test_add_consensus_labels_cell_table():
 
         # generate the new cell table
         som_utils.add_consensus_labels_cell_table(
-            temp_dir, 'cell_table.csv', 'cell_consensus.feather'
+            temp_dir, os.path.join(temp_dir, 'cell_table.csv'), 'cell_consensus.feather'
         )
 
         # assert cell_table.csv still exists
@@ -2460,7 +2463,7 @@ def test_add_consensus_labels_cell_table():
 
         # generate the new cell table
         som_utils.add_consensus_labels_cell_table(
-            temp_dir, 'cell_table.csv', 'cell_consensus.feather'
+            temp_dir, os.path.join(temp_dir, 'cell_table.csv'), 'cell_consensus.feather'
         )
 
         # assert cell_table.csv still exists
