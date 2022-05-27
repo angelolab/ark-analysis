@@ -1200,7 +1200,7 @@ def train_cell_som(fovs, channels, base_dir, pixel_consensus_dir, cell_table_pat
         pixel_consensus_dir (str):
             Name of directory with the pixel-level consensus data (SOM and meta labels added)
             Created by `pixel_consensus_cluster`
-        cell_table path (str):
+        cell_table_path (str):
             Path of the cell table, needs to be created with `Segment_Image_Data.ipynb`
         cluster_counts_name (str):
             Name of the file to save the number of pixel SOM/meta cluster counts for each cell
