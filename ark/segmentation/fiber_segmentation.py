@@ -17,7 +17,7 @@ from ark import settings
 
 def segment_fibers(data_xr, fiber_channel, out_dir, blur=2, contrast_scaling_divisor=128,
                    fiber_widths=(2, 4), ridge_cutoff=0.1, sobel_blur=1, min_fiber_size=15,
-                   object_properties=None, debug=False):
+                   object_properties=settings.FIBER_OBJECT_PROPS, debug=False):
     """ Segments fiber objects from image data
 
     Args:
@@ -112,16 +112,7 @@ def segment_fibers(data_xr, fiber_channel, out_dir, blur=2, contrast_scaling_div
 
         fiber_label_images[fov] = labeled_filtered
 
-        # TODO: object_properties argument
-        fov_table = regionprops_table(labeled_filtered, properties=[
-            'major_axis_length',
-            'minor_axis_length',
-            'orientation',
-            'centroid',
-            'label',
-            'eccentricity',
-            'euler_number'
-        ])
+        fov_table = regionprops_table(labeled_filtered, properties=object_properties)
 
         fov_table = pd.DataFrame(fov_table)
         fov_table[settings.FOV_ID] = fov

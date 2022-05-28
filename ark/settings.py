@@ -34,5 +34,16 @@ REGIONPROPS_SINGLE_COMP = ['major_minor_axis_ratio', 'perim_square_over_area',
                            'centroid_dif', 'num_concavities']
 REGIONPROPS_MULTI_COMP = ['nc_ratio']
 
+# fiber segmentation regionprops extraction
+FIBER_OBJECT_PROPS = (
+    'major_axis_length',
+    'minor_axis_length',
+    'orientation',
+    'centroid',
+    'label',
+    'eccentricity',
+    'euler_number'
+)
+
 # mibitracker
 MIBITRACKER_BACKEND = 'https://backend-dot-mibitracker-angelolab.appspot.com'
