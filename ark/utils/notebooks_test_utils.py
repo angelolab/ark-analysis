@@ -452,6 +452,13 @@ def flowsom_cell_setup(tb, flowsom_dir, pixel_dir, pixel_cluster_col='pixel_meta
     # extract the parameters from the cell params JSON
     tb.execute_cell('param_load')
 
+    # assert the cell table path is set accordingly
+    tb.inject(
+        """
+        cell_table_path = os.path.join('%s', 'cell_table_size_normalized.csv')
+        """ % flowsom_dir, after='param_load'
+    )
+
     # set cell_cluster_prefix
     tb.inject("cell_cluster_prefix = '%s'" % cell_prefix, after='cluster_prefix')
 
@@ -476,6 +483,7 @@ def flowsom_cell_cluster(tb, flowsom_dir, fovs, channels,
                          pixel_cluster_col='pixel_meta_cluster_rename', cell_prefix='test'):
     """Mock the creation of files needed for cell clustering visualization:
 
+    * Cell table
     * Cell consensus data
     * Weighted channel table
     * Average number of pixel clusters per cell SOM and meta cluster
@@ -498,11 +506,22 @@ def flowsom_cell_cluster(tb, flowsom_dir, fovs, channels,
             The number of test channels to generate
     """
 
-    # define the cell consensus data and weighted channel tables
+    # define the cell table, cell consensus data, and weighted channel tables
+    cell_table = pd.DataFrame()
     cell_consensus_data = pd.DataFrame()
     weighted_channel_exp = pd.DataFrame()
 
     for fov in fovs:
+        cell_table_fov = np.random.rand(1000, len(channels) + 3)
+        cell_table_fov_cols = ['cell_size'] + channels + ['label', 'fov']
+        cell_table_fov = pd.DataFrame(
+            cell_table_fov,
+            columns=cell_table_fov_cols
+        )
+        cell_table_fov['label'] = range(1, 1001)
+        cell_table_fov['fov'] = fov
+        cell_table = pd.concat([cell_table, cell_table_fov])
+
         cell_consensus_fov = np.random.rand(1000, 25)
         cell_consensus_fov_cols = ['cell_size', 'fov'] + \
             ['%s_' % pixel_cluster_col + str(i) for i in range(1, 21)] + \
@@ -527,6 +546,11 @@ def flowsom_cell_cluster(tb, flowsom_dir, fovs, channels,
         weighted_channel_fov['segmentation_label'] = range(1, 1001)
         weighted_channel_exp = pd.concat([weighted_channel_exp, weighted_channel_fov])
 
+    cell_table.to_csv(
+        os.path.join(flowsom_dir,
+                     'cell_table_size_normalized.csv'),
+        index=False
+    )
     feather.write_dataframe(
         cell_consensus_data,
         os.path.join(flowsom_dir,
@@ -693,6 +717,9 @@ def flowsom_cell_visualize(tb, flowsom_dir, fovs,
 
     # run the cell mask overlay
     tb.execute_cell('cell_overlay_gen')
+
+    # save the meta labels to the cell table
+    tb.execute_cell('cell_append_meta')
 
 
 def qc_notebook_setup(tb, base_dir, tiff_dir, sub_dir=None, fovs=None, chans=None):
