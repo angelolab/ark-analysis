@@ -376,8 +376,8 @@ def visualize_topic_eda(data, metric="gap_stat", gap_sd=True, k=None, transpose=
         if k is None:
             raise ValueError("Must provide number of clusters for k value.")
         cell_counts = data["cell_counts"][k]
-        cell_counts = cell_counts.T / cell_counts.T.sum(axis=0)
-        if not transpose:
+        cell_counts = cell_counts / cell_counts.sum(axis=0)
+        if transpose:
             cell_counts = cell_counts.T
 
         plt.subplots(figsize=(scale * cell_counts.shape[1], scale * cell_counts.shape[0]))
