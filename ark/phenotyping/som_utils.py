@@ -535,6 +535,7 @@ def create_fov_pixel_data(fov, channels, img_data, seg_labels,
     """
 
     # for each marker, compute the Gaussian blur
+    print("Gaussian blurring for fov %s" % fov)
     for marker in range(len(channels)):
         img_data[:, :, marker] = ndimage.gaussian_filter(img_data[:, :, marker],
                                                          sigma=blur_factor)
@@ -556,19 +557,23 @@ def create_fov_pixel_data(fov, channels, img_data, seg_labels,
         pixel_mat['segmentation_label'] = seg_labels_flat
 
     # remove any rows with channels that sum to zero prior to sampling
+    print("Removing 0-pixels for fov %s" % fov)
     pixel_mat = pixel_mat.loc[(pixel_mat[channels] != 0).any(1), :].reset_index(drop=True)
 
     # normalize the row sums of pixel mat
+    print("Normalizing rows for fov %s" % fov)
     pixel_mat = normalize_rows(pixel_mat, channels, seg_labels is not None)
 
     # subset the pixel matrix for training
+    print("Creating subsetted matrix for fov %s" % fov)
     pixel_mat_subset = pixel_mat.sample(frac=subset_proportion)
 
     return pixel_mat, pixel_mat_subset
 
 
-def create_fov_pixel_data_parallel(channels, tiff_dir, seg_dir, img_sub_folder, is_mibitiff,
-                                   blur_factor, subset_proportion, dtype, fov):
+def create_fov_pixel_data_parallel(base_dir, tiff_dir, pre_dir, subset_dir, seg_dir, seg_suffix,
+                                   img_sub_folder, is_mibitiff, channels, blur_factor,
+                                   subset_proportion, dtype, fov):
     print("Processing FOV %s" % fov)
     # load img_xr from MIBITiff or directory with the fov
     if is_mibitiff:
@@ -697,68 +702,20 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
     # define the multiprocessing object, and the partial function to iterate over
     fov_data_pool = multiprocessing.Pool()
     fov_data_func = partial(
-        create_fov_pixel_data_parallel, channels, tiff_dir, seg_dir, img_sub_folder,
-        is_mibitiff, blur_factor, subset_proportion, dtype
+        create_fov_pixel_data_parallel, base_dir, tiff_dir, pre_dir, subset_dir,
+        seg_dir, seg_suffix, img_sub_folder, is_mibitiff, channels, blur_factor,
+        subset_proportion, dtype
     )
 
     # asynchronously generate and save the pixel matrices per FOV
     # NOTE: this should NOT operate on quant_dat since that is a shared resource
-    fov_data = fov_data_pool.map(fov_data_func, fovs)
+    for fov_batch in [fovs[i:(i + 5)] for i in range(0, len(fovs), 5)]:
+        fov_data_batch = fov_data_pool.map(fov_data_func, fov_batch)
 
-    # now iteratively compute quant_dat
-    for pixel_mat_data in fov_data:
-        quant_dat[fov] = pixel_mat_data[0].replace(0, np.nan).quantile(q=0.999, axis=0)
-
-    # # iterate over fov_batches
-    # for fov in fovs:
-    #     # load img_xr from MIBITiff or directory with the fov
-    #     if is_mibitiff:
-    #         img_xr = load_utils.load_imgs_from_mibitiff(
-    #             tiff_dir, mibitiff_files=[fov], dtype=dtype
-    #         )
-    #     else:
-    #         img_xr = load_utils.load_imgs_from_tree(
-    #             tiff_dir, img_sub_folder=img_sub_folder, fovs=[fov], dtype=dtype
-    #         )
-
-    #     # ensure the provided channels will actually exist in img_xr
-    #     misc_utils.verify_in_list(
-    #         provided_chans=channels,
-    #         pixel_mat_chans=img_xr.channels.values
-    #     )
-
-    #     # if seg_dir is None, leave seg_labels as None
-    #     seg_labels = None
-
-    #     # otherwise, load segmentation labels in for fov
-    #     if seg_dir is not None:
-    #         seg_labels = imread(os.path.join(seg_dir, fov + seg_suffix))
-
-    #     # subset for the channel data
-    #     img_data = img_xr.loc[fov, :, :, channels].values.astype(np.float32)
-
-    #     # create the full and subsetted fov matrices
-    #     pixel_mat, pixel_mat_subset = create_fov_pixel_data(
-    #         fov=fov, channels=channels, img_data=img_data, seg_labels=seg_labels,
-    #         blur_factor=blur_factor, subset_proportion=subset_proportion
-    #     )
-
-    #     # get 99.9% of the full fov matrix
-    #     quant_dat[fov] = pixel_mat[channels].replace(0, np.nan).quantile(q=0.999, axis=0)
-
-    #     # write complete dataset to feather, needed for cluster assignment
-    #     feather.write_dataframe(pixel_mat,
-    #                             os.path.join(base_dir,
-    #                                          pre_dir,
-    #                                          fov + ".feather"),
-    #                             compression='uncompressed')
-
-    #     # write subseted dataset to feather, needed for training
-    #     feather.write_dataframe(pixel_mat_subset,
-    #                             os.path.join(base_dir,
-    #                                          subset_dir,
-    #                                          fov + ".feather"),
-    #                             compression='uncompressed')
+        for pixel_mat_data in fov_data_batch:
+            assert len(pixel_mat_data[0]['fov'].unique()) == 1
+            fov = pixel_mat_data[0]['fov'].unique()[0]
+            quant_dat[fov] = pixel_mat_data[0].replace(0, np.nan).quantile(q=0.999, axis=0)
 
     # get mean 99.9% across all fovs for all markers
     mean_quant = pd.DataFrame(quant_dat.mean(axis=1))
