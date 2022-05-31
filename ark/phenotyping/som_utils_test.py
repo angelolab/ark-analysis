@@ -876,8 +876,8 @@ def test_create_fov_pixel_data():
 
         # TEST 1: run fov preprocessing for one fov with seg_labels and no blank pixels
         sample_pixel_mat, sample_pixel_mat_subset = som_utils.create_fov_pixel_data(
-            fov=fov, channels=chans, img_data=sample_img_data, seg_labels=seg_labels
-        )
+            fov=fov, channels=chans, img_data=sample_img_data, seg_labels=seg_labels,
+            pixel_norm_val=1)
 
         # assert the channel names are the same
         misc_utils.verify_same_elements(flowsom_chans=sample_pixel_mat.columns.values[:-4],
@@ -893,7 +893,7 @@ def test_create_fov_pixel_data():
 
         # TEST 2: run fov preprocessing for one fov without seg_labels and no blank pixels
         sample_pixel_mat, sample_pixel_mat_subset = som_utils.create_fov_pixel_data(
-            fov=fov, channels=chans, img_data=sample_img_data, seg_labels=None
+            fov=fov, channels=chans, img_data=sample_img_data, seg_labels=None, pixel_norm_val=1
         )
 
         # assert the channel names are the same
