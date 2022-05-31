@@ -623,8 +623,9 @@ def create_fov_pixel_data(fov, channels, img_data, seg_labels, pixel_norm_val,
         seg_labels_flat = seg_labels.flatten()
         pixel_mat['segmentation_label'] = seg_labels_flat
 
-    # remove any rows with channels that sum to zero prior to sampling
-    pixel_mat = pixel_mat.loc[(pixel_mat[channels] != 0).any(1), :].reset_index(drop=True)
+    # remove any rows with channels with a sum below the threshold
+    rowsums = pixel_mat[channels].sum(axis=1)
+    pixel_mat = pixel_mat.loc[rowsums > pixel_norm_val, :].reset_index(drop=True)
 
     # normalize the row sums of pixel mat
     pixel_mat = normalize_rows(pixel_mat, channels, seg_labels is not None)
