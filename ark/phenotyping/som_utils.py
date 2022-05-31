@@ -80,6 +80,8 @@ def calculate_pixel_intensity_percentile(tiff_dir, fovs, channels, img_sub_folde
         channel_percentiles (dict):
             The mapping between each channel and its normalization value
             Computed by `calculate_channel_percentiles`
+        percentile (float):
+            The pixel intensity percentile per FOV to average over
 
     Returns:
         float:
