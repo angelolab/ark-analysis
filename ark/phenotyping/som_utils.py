@@ -54,7 +54,8 @@ def calculate_channel_percentiles(tiff_dir, fovs, channels, img_sub_folder, perc
             img = img[img > 0]
 
             # record and store percentile
-            img_percentile = np.quantile(img, percentile)
+            # NOTE: if there are no non-zero pixels, assign directly to 0 to avoid empty list error
+            img_percentile = np.quantile(img, percentile) if len(img) > 0 else 0
             percentile_list.append(img_percentile)
 
         # save channel-wide average
