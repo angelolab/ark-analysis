@@ -734,10 +734,11 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
     pixel_norm_path = os.path.join(base_dir, pre_dir, 'pixel_norm.json')
     if not os.path.exists(pixel_norm_path):
         # compute pixel percentiles
-        pixel_norm_val = calculate_pixel_intensity_percentile(tiff_dir=tiff_dir, fovs=fovs,
-                                                              channels=channels,
-                                                              img_sub_folder=img_sub_folder,
-                                                              channel_percentiles=channel_norm_dict)
+        pixel_norm_val = calculate_pixel_intensity_percentile(
+            tiff_dir=tiff_dir, fovs=fovs, channels=channels,
+            img_sub_folder=img_sub_folder, channel_percentiles=channel_norm_dict
+        )
+
         with open(pixel_norm_path, 'w') as pn:
             json.dump({'pixel_norm_val': pixel_norm_val}, pn)
     else:

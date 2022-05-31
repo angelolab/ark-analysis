@@ -1,3 +1,4 @@
+import json
 import os
 import pytest
 import tempfile
@@ -14,6 +15,8 @@ import ark.phenotyping.som_utils as som_utils
 import ark.utils.io_utils as io_utils
 import ark.utils.misc_utils as misc_utils
 import ark.utils.test_utils as test_utils
+
+parametrize = pytest.mark.parametrize
 
 
 def mocked_train_pixel_som(fovs, channels, base_dir,
@@ -261,7 +264,7 @@ def test_calculate_channel_percentiles():
             assert predicted_percentiles[chan] == np.mean(percentile_dict[chan][:-1])
 
 
-def test_calculate_rowsum_percentile():
+def test_calculate_pixel_intensity_percentile():
     with tempfile.TemporaryDirectory() as temp_dir:
         fovs, chans, imgs = test_utils.gen_fov_chan_names(num_fovs=3, num_chans=3,
                                                           return_imgs=True)
@@ -282,11 +285,13 @@ def test_calculate_rowsum_percentile():
                     divisor = 100
                 # saved modified channel
                 io.imsave(chan_path, img / divisor)
+
         channel_percentiles = {'chan0': 1, 'chan1': 1, 'chan2': 1}
-        percentile = som_utils.calculate_pixel_intensity_percentile(tiff_dir=temp_dir, fovs=fovs,
-                                                                    channels=chans,
-                                                                    img_sub_folder='TIFs',
-                                                                    channel_percentiles=channel_percentiles)
+        percentile = som_utils.calculate_pixel_intensity_percentile(
+            tiff_dir=temp_dir, fovs=fovs, channels=chans,
+            img_sub_folder='TIFs', channel_percentiles=channel_percentiles
+        )
+
         assert percentile < 15
 
 
@@ -877,7 +882,8 @@ def test_create_fov_pixel_data():
         # TEST 1: run fov preprocessing for one fov with seg_labels and no blank pixels
         sample_pixel_mat, sample_pixel_mat_subset = som_utils.create_fov_pixel_data(
             fov=fov, channels=chans, img_data=sample_img_data, seg_labels=seg_labels,
-            pixel_norm_val=1)
+            pixel_norm_val=1
+        )
 
         # assert the channel names are the same
         misc_utils.verify_same_elements(flowsom_chans=sample_pixel_mat.columns.values[:-4],
@@ -889,7 +895,8 @@ def test_create_fov_pixel_data():
         assert np.all(sample_pixel_mat.loc[:, ['chan0', 'chan1']].sum(axis=1).values != 0)
 
         # assert the size of the subsetted DataFrame is 0.1 of the preprocessed DataFrame
-        assert sample_pixel_mat.shape[0] * 0.1 == sample_pixel_mat_subset.shape[0]
+        # NOTE: need to account for rounding if multiplying by 0.1 leads to non-int
+        assert round(sample_pixel_mat.shape[0] * 0.1) == sample_pixel_mat_subset.shape[0]
 
         # TEST 2: run fov preprocessing for one fov without seg_labels and no blank pixels
         sample_pixel_mat, sample_pixel_mat_subset = som_utils.create_fov_pixel_data(
@@ -906,31 +913,55 @@ def test_create_fov_pixel_data():
         assert np.all(sample_pixel_mat.loc[:, ['chan0', 'chan1']].sum(axis=1).values != 0)
 
         # assert the size of the subsetted DataFrame is 0.1 of the preprocessed DataFrame
-        assert sample_pixel_mat.shape[0] * 0.1 == sample_pixel_mat_subset.shape[0]
+        # NOTE: need to account for rounding if multiplying by 0.1 leads to non-int
+        assert round(sample_pixel_mat.shape[0] * 0.1) == sample_pixel_mat_subset.shape[0]
+
+        # TEST 3: run fov preprocessing with a custom pixel_norm_val (between 0 and 1)
+        # NOTE: divide by 1000 and set pixel_norm_val to 0.1475 to ensure rows get removed
+        sample_pixel_mat, sample_pixel_mat_subset = som_utils.create_fov_pixel_data(
+            fov=fov, channels=chans, img_data=sample_img_data / 1000, seg_labels=seg_labels,
+            pixel_norm_val=0.1475
+        )
+
+        # assert the channel names are the same
+        misc_utils.verify_same_elements(flowsom_chans=sample_pixel_mat.columns.values[:-4],
+                                        provided_chans=chans)
+        misc_utils.verify_same_elements(flowsom_chans=sample_pixel_mat_subset.columns.values[:-4],
+                                        provided_chans=chans)
+
+        # assert no rows sum to 0
+        assert np.all(sample_pixel_mat.loc[:, ['chan0', 'chan1']].sum(axis=1).values != 0)
+
+        # assert the size of the subsetted DataFrame is less than 0.1 of the preprocessed DataFrame
+        # NOTE: need to account for rounding if multiplying by 0.1 leads to non-int
+        assert round(sample_pixel_mat.shape[0] * 0.1) == sample_pixel_mat_subset.shape[0]
 
         # TODO: add a test where after Gaussian blurring one or more rows in sample_pixel_mat
         # are all 0 after, tested successfully via hard-coding values in create_fov_pixel_data
 
 
 # TODO: leaving out MIBItiff testing until someone needs it
-def test_create_pixel_matrix():
-    # tests for all fovs and some fovs, and all chans and some chans
-    fov_lists = [['fov0', 'fov1', 'fov2'], ['fov0', 'fov1'], ['fov0']]
-    chan_lists = [['chans0', 'chans1', 'chans2'], ['chans0', 'chans1'], ['chans0']]
+@parametrize('fovs', [['fov0', 'fov1', 'fov2'], ['fov0', 'fov1'], ['fov0']])
+@parametrize('chans', [['chan0', 'chan1', 'chan2'], ['chan0', 'chan1'], ['chan0']])
+@parametrize('sub_dir', [None, 'TIFs'])
+@parametrize('seg_dir_include', [True, False])
+@parametrize('channel_norm_include', [True, False])
+@parametrize('pixel_norm_include', [True, False])
+def test_create_pixel_matrix(fovs, chans, sub_dir, seg_dir_include,
+                             channel_norm_include, pixel_norm_include):
+    # # tests for all fovs and some fovs, and all chans and some chans
+    # fov_lists = [['fov0', 'fov1', 'fov2'], ['fov0', 'fov1'], ['fov0']]
+    # chan_lists = [['chans0', 'chans1', 'chans2'], ['chans0', 'chans1'], ['chans0']]
 
     sample_labels = test_utils.make_labels_xarray(label_data=None,
-                                                  fov_ids=fov_lists[0],
+                                                  fov_ids=['fov0', 'fov1', 'fov2'],
                                                   compartment_names=['whole_cell'])
 
     # basic error checking
     with tempfile.TemporaryDirectory() as temp_dir:
-        # create a dummy tiff_dir
-        tiff_dir = os.path.join(temp_dir, 'TIFs')
+        # create a directory to store the image data
+        tiff_dir = os.path.join(temp_dir, 'sample_image_data')
         os.mkdir(tiff_dir)
-
-        # create a dummy seg_dir
-        seg_dir = os.path.join(temp_dir, 'segmentation')
-        os.mkdir(seg_dir)
 
         # invalid subset proportion specified
         with pytest.raises(ValueError):
@@ -938,7 +969,7 @@ def test_create_pixel_matrix():
                                           channels=['chan1'],
                                           base_dir=temp_dir,
                                           tiff_dir=tiff_dir,
-                                          seg_dir=seg_dir,
+                                          seg_dir=None,
                                           subset_proportion=1.1)
 
         # pass invalid base directory
@@ -947,7 +978,7 @@ def test_create_pixel_matrix():
                                           channels=['chan1'],
                                           base_dir='bad_base_dir',
                                           tiff_dir=tiff_dir,
-                                          seg_dir=seg_dir)
+                                          seg_dir=None)
 
         # pass invalid tiff directory
         with pytest.raises(FileNotFoundError):
@@ -955,102 +986,129 @@ def test_create_pixel_matrix():
                                           channels=['chan1'],
                                           base_dir=temp_dir,
                                           tiff_dir='bad_tiff_dir',
+                                          seg_dir=None)
+
+        # create a dummy seg_dir with data if we're on a test thaat requires segmentation labels
+        if seg_dir_include:
+            seg_dir = os.path.join(temp_dir, 'segmentation')
+            os.mkdir(seg_dir)
+
+            # create sample segmentation data
+            for fov in fovs:
+                rand_img = np.random.randint(0, 16, size=(10, 10))
+                file_name = fov + "_feature_0.tif"
+                io.imsave(os.path.join(seg_dir, file_name), rand_img,
+                          check_contrast=False)
+        # otherwise, set seg_dir to None
+        else:
+            seg_dir = None
+
+        # create sample image data
+        test_utils.create_paired_xarray_fovs(
+            base_dir=tiff_dir, fov_names=fovs,
+            channel_names=['chan0', 'chan1', 'chan2'], sub_dir=sub_dir, img_shape=(10, 10)
+        )
+
+        # pass invalid fov names (fails in load_imgs_from_tree)
+        with pytest.raises(FileNotFoundError):
+            som_utils.create_pixel_matrix(fovs=['fov1', 'fov2', 'fov3'],
+                                          channels=chans,
+                                          base_dir=temp_dir,
+                                          tiff_dir=tiff_dir,
+                                          img_sub_folder=sub_dir,
                                           seg_dir=seg_dir)
 
-        # test all fovs and channels as well as subsets of fovs and/or channels
-        for fovs in fov_lists:
-            for chans in chan_lists:
-                for sub_dir in [None, 'TIFs']:
-                    for seg_dir in [None, temp_dir]:
-                        with tempfile.TemporaryDirectory() as temp_dir:
-                            # create a directory to store the image data
-                            tiff_dir = os.path.join(temp_dir, 'TIFs')
-                            os.mkdir(tiff_dir)
+        # pass invalid channel names
+        with pytest.raises(ValueError):
+            som_utils.create_pixel_matrix(fovs=fovs,
+                                          channels=['chan1', 'chan2', 'chan3'],
+                                          base_dir=temp_dir,
+                                          tiff_dir=tiff_dir,
+                                          img_sub_folder=sub_dir,
+                                          seg_dir=seg_dir)
 
-                            # create a dummy seg_dir
-                            seg_dir = os.path.join(temp_dir, 'segmentation')
-                            os.mkdir(seg_dir)
+        # make the channel_norm.json file if the test requires it
+        # NOTE: pixel_mat_preprocessed already created in the previous validation tests
+        if channel_norm_include:
+            # requires the pixel_mat_preprocessed directory
+            pre_dir = os.path.join(temp_dir, 'pixel_mat_preprocessed')
 
-                            # create sample image data
-                            test_utils.create_paired_xarray_fovs(
-                                base_dir=tiff_dir, fov_names=fovs,
-                                channel_names=chan_lists[0], sub_dir=sub_dir, img_shape=(10, 10)
-                            )
+            # generate the data
+            sample_channel_norm_dict = {chan: np.random.rand() for chan in chans}
+            with open(os.path.join(pre_dir, 'channel_norm.json'), 'w') as cn:
+                json.dump(sample_channel_norm_dict, cn)
 
-                            # create sample segmentation data
-                            for fov in fovs:
-                                rand_img = np.random.randint(0, 16, size=(10, 10))
-                                file_name = fov + "_feature_0.tif"
-                                io.imsave(os.path.join(seg_dir, file_name), rand_img,
-                                          check_contrast=False)
+        # make the pixel_norm.json file if the test requires it
+        if pixel_norm_include:
+            # requires the pixel_mat_preprocessed directory
+            pre_dir = os.path.join(temp_dir, 'pixel_mat_preprocessed')
 
-                            # pass invalid fov names (fails in load_imgs_from_tree)
-                            with pytest.raises(FileNotFoundError):
-                                som_utils.create_pixel_matrix(fovs=['fov1', 'fov2', 'fov3'],
-                                                              channels=chans,
-                                                              base_dir=temp_dir,
-                                                              tiff_dir=tiff_dir,
-                                                              img_sub_folder=sub_dir,
-                                                              seg_dir=seg_dir)
+            # generate the data
+            sample_pixel_norm_dict = {'pixel_norm_val': np.random.rand()}
+            with open(os.path.join(pre_dir, 'pixel_norm.json'), 'w') as pn:
+                json.dump(sample_pixel_norm_dict, pn)
 
-                            # pass invalid channel names
-                            with pytest.raises(ValueError):
-                                som_utils.create_pixel_matrix(fovs=fovs,
-                                                              channels=['chan1', 'chan2', 'chan3'],
-                                                              base_dir=temp_dir,
-                                                              tiff_dir=tiff_dir,
-                                                              img_sub_folder=sub_dir,
-                                                              seg_dir=seg_dir)
+        # create the pixel matrices
+        som_utils.create_pixel_matrix(fovs=fovs,
+                                      channels=chans,
+                                      base_dir=temp_dir,
+                                      tiff_dir=tiff_dir,
+                                      img_sub_folder=sub_dir,
+                                      seg_dir=seg_dir)
 
-                            # create the pixel matrices
-                            som_utils.create_pixel_matrix(fovs=fovs,
-                                                          channels=chans,
-                                                          base_dir=temp_dir,
-                                                          tiff_dir=tiff_dir,
-                                                          img_sub_folder=sub_dir,
-                                                          seg_dir=seg_dir)
+        # check that we actually created a preprocessed directory
+        assert os.path.exists(os.path.join(temp_dir, 'pixel_mat_preprocessed'))
 
-                            # check that we actually created a preprocessed directory
-                            assert os.path.exists(os.path.join(temp_dir, 'pixel_mat_preprocessed'))
+        # check that we actually created a subsetted directory
+        assert os.path.exists(os.path.join(temp_dir, 'pixel_mat_subsetted'))
 
-                            # check that we actually created a subsetted directory
-                            assert os.path.exists(os.path.join(temp_dir, 'pixel_mat_subsetted'))
+        # if there wasn't originally a channel_norm.json, assert one was created
+        if not channel_norm_include:
+            assert os.path.exists(
+                os.path.join(temp_dir, 'pixel_mat_preprocessed', 'channel_norm.json')
+            )
 
-                            for fov in fovs:
-                                fov_pre_path = os.path.join(
-                                    temp_dir, 'pixel_mat_preprocessed', fov + '.feather'
-                                )
-                                fov_sub_path = os.path.join(
-                                    temp_dir, 'pixel_mat_subsetted', fov + '.feather'
-                                )
+        # if there wasn't originally a pixel_norm.json, assert one was created
+        if not pixel_norm_include:
+            assert os.path.exists(
+                os.path.join(temp_dir, 'pixel_mat_preprocessed', 'pixel_norm.json')
+            )
 
-                                # assert we actually created a .feather preprocessed file
-                                # for each fov
-                                assert os.path.exists(fov_pre_path)
+        for fov in fovs:
+            fov_pre_path = os.path.join(
+                temp_dir, 'pixel_mat_preprocessed', fov + '.feather'
+            )
+            fov_sub_path = os.path.join(
+                temp_dir, 'pixel_mat_subsetted', fov + '.feather'
+            )
 
-                                # assert that we actually created a .feather subsetted file
-                                # for each fov
-                                assert os.path.exists(fov_sub_path)
+            # assert we actually created a .feather preprocessed file
+            # for each fov
+            assert os.path.exists(fov_pre_path)
 
-                                # get the data for the specific fov
-                                flowsom_pre_fov = feather.read_dataframe(fov_pre_path)
-                                flowsom_sub_fov = feather.read_dataframe(fov_sub_path)
+            # assert that we actually created a .feather subsetted file
+            # for each fov
+            assert os.path.exists(fov_sub_path)
 
-                                # assert the channel names are the same
-                                chan_index_stop = -3 if seg_dir is None else -4
-                                misc_utils.verify_same_elements(
-                                    flowsom_chans=flowsom_pre_fov.columns.values[:chan_index_stop],
-                                    provided_chans=chans
-                                )
+            # get the data for the specific fov
+            flowsom_pre_fov = feather.read_dataframe(fov_pre_path)
+            flowsom_sub_fov = feather.read_dataframe(fov_sub_path)
 
-                                # assert no rows sum to 0
-                                assert np.all(flowsom_pre_fov.loc[:, chans].sum(
-                                    axis=1
-                                ).values != 0)
+            # assert the channel names are the same
+            chan_index_stop = -3 if seg_dir is None else -4
+            misc_utils.verify_same_elements(
+                flowsom_chans=flowsom_pre_fov.columns.values[:chan_index_stop],
+                provided_chans=chans
+            )
 
-                                # assert the subsetted DataFrame size is 0.1
-                                # of the preprocessed DataFrame
-                                assert flowsom_pre_fov.shape[0] * 0.1 == flowsom_sub_fov.shape[0]
+            # assert no rows sum to 0
+            assert np.all(flowsom_pre_fov.loc[:, chans].sum(
+                axis=1
+            ).values != 0)
+
+            # assert the subsetted DataFrame size is 0.1 of the preprocessed DataFrame
+            # NOTE: need to account for rounding if multiplying by 0.1 leads to non-int
+            assert round(flowsom_pre_fov.shape[0] * 0.1) == flowsom_sub_fov.shape[0]
 
 
 def test_train_pixel_som(mocker):
