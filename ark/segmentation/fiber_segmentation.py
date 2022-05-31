@@ -13,12 +13,14 @@ from skimage.morphology import remove_small_objects
 from skimage.measure import regionprops_table
 from skimage.exposure import equalize_adapthist
 
+from ark.utils.plot_utils import set_minimum_color_for_colormap
 from ark import settings
 
 
 def plot_fiber_segmentation_steps(data_xr, fov_name, fiber_channel, blur=2,
                                   contrast_scaling_divisor=128, fiber_widths=(2, 4),
-                                  ridge_cutoff=0.1, sobel_blur=1, min_fiber_size=15):
+                                  ridge_cutoff=0.1, sobel_blur=1, min_fiber_size=15,
+                                  img_cmap=plt.cm.bone, labels_cmap=plt.cm.cool):
     """Plots output from each fiber segmentation step for single FoV
 
     Args:
@@ -49,29 +51,29 @@ def plot_fiber_segmentation_steps(data_xr, fov_name, fiber_channel, blur=2,
 
     _, axes = plt.subplots(3, 3)
 
-    axes[0, 0].imshow(channel_data)
+    axes[0, 0].imshow(channel_data, cmap=img_cmap)
     axes[0, 0].set_title(f"{fov_name} {fiber_channel} raw image")
 
     blurred = ndi.gaussian_filter(channel_data.astype('float'), sigma=blur)
-    axes[0, 1].imshow(blurred)
+    axes[0, 1].imshow(blurred, cmap=img_cmap)
     axes[0, 1].set_title(f"Gaussian Blur, sigma={blur}")
 
     contrast_adjusted = equalize_adapthist(
         blurred / np.max(blurred),
         kernel_size=channel_data.shape[0] / contrast_scaling_divisor
     )
-    axes[0, 2].imshow(contrast_adjusted)
+    axes[0, 2].imshow(contrast_adjusted, cmap=img_cmap)
     axes[0, 2].set_title(f"Contrast Adjuisted, CSD={contrast_scaling_divisor}")
 
     ridges = meijering(contrast_adjusted, sigmas=fiber_widths, black_ridges=False)
-    axes[1, 0].imshow(ridges)
+    axes[1, 0].imshow(ridges, cmap=img_cmap)
     axes[1, 0].set_title(f"Meijering Filter, fiber_widths={fiber_widths}")
 
     distance_transformed = ndi.gaussian_filter(
         distance_transform_edt(ridges > ridge_cutoff),
         sigma=1
     )
-    axes[1, 1].imshow(distance_transformed)
+    axes[1, 1].imshow(distance_transformed, cmap=img_cmap)
     axes[1, 1].set_title(f"Ridges Filtered, ridge_cutoff={ridge_cutoff}")
 
     # watershed setup
@@ -80,24 +82,30 @@ def plot_fiber_segmentation_steps(data_xr, fov_name, fiber_channel, blur=2,
 
     threshed[distance_transformed < thresholds[0]] = 1
     threshed[distance_transformed > thresholds[1]] = 2
-    axes[1, 2].imshow(threshed)
+    axes[1, 2].imshow(threshed, cmap=img_cmap)
     axes[1, 2].set_title("Watershed thresholding")
 
     elevation_map = sobel(
         ndi.gaussian_filter(distance_transformed, sigma=sobel_blur)
     )
-    axes[2, 0].imshow(elevation_map)
+    axes[2, 0].imshow(elevation_map, cmap=img_cmap)
     axes[2, 0].set_title(f"Sobel elevation map, sobel_blur={sobel_blur}")
+
+    # build label color map
+    transparent_cmap = set_minimum_color_for_colormap(labels_cmap)
 
     segmentation = watershed(elevation_map, threshed) - 1
 
     labeled, _ = ndi.label(segmentation)
-    axes[2, 1].imshow(labeled)
+    axes[2, 1].imshow(labeled, cmap=transparent_cmap)
     axes[2, 1].set_title("Unfiltered segmentation")
 
     labeled_filtered = remove_small_objects(labeled, min_size=min_fiber_size) * segmentation
-    axes[2, 2].imshow(labeled_filtered)
+    axes[2, 2].imshow(labeled_filtered, cmap=transparent_cmap)
     axes[2, 2].set_title(f"Filtered segmentation, min_fiber_size={min_fiber_size}")
+
+    for ax in axes.reshape(-1):
+        ax.axis('off')
 
 
 def segment_fibers(data_xr, fiber_channel, out_dir, blur=2, contrast_scaling_divisor=128,

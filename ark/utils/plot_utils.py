@@ -363,3 +363,25 @@ def create_overlay(fov, segmentation_dir, data_dir,
         rescaled[alternate_contour_mask > 0, 1:] = 0
 
     return rescaled
+
+
+def set_minimum_color_for_colormap(cmap, default=(0, 0, 0, 1)):
+    """ Changes minimum value in provided colormap to black (#000000) or provided color
+
+    This is useful for instances where zero-valued regions of an image should be
+    distinct from positive regions (i.e transparent or non-colormap member color)
+
+    Args:
+        cmap (matplotlib.colors.Colormap):
+            matplotlib color map
+        default (Iterable):
+            RGBA color values for minimum color. Default is black, (0, 0, 0, 1).
+
+    Returns:
+        matplotlib.colors.Colormap:
+            corrected colormap
+    """
+    cmapN = cmap.N
+    corrected = cmap(np.arange(cmapN))
+    corrected[0, :] = list(default)
+    return colors.ListedColormap(corrected)
