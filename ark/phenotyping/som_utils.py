@@ -31,12 +31,13 @@ def calculate_channel_percentiles(tiff_dir, fovs, channels, img_sub_folder, perc
         channels (list):
             List of channels to include
         img_sub_folder (str):
-            sub folder within each FOV containing image data
+            Sub folder within each FOV containing image data
         percentile (float):
-            the specific percentile to compute
+            The specific percentile to compute
 
     Returns:
-        dict: the mapping between each channel and its normalization value
+        dict:
+            The mapping between each channel and its normalization value
     """
 
     # create dict to hold all percentiles
@@ -64,7 +65,25 @@ def calculate_channel_percentiles(tiff_dir, fovs, channels, img_sub_folder, perc
 
 def calculate_pixel_intensity_percentile(tiff_dir, fovs, channels, img_sub_folder,
                                          channel_percentiles, percentile=0.05):
-    """Calculates average percentile per FOV for total signal in each pixel"""
+    """Calculates average percentile per FOV for total signal in each pixel
+
+    Args:
+        tiff_dir (str):
+            Name of the directory containing the tiff files
+        fovs (list):
+            List of fovs to include
+        channels (list):
+            List of channels to include
+        img_sub_folder (str):
+            Sub folder within each FOV containing image data
+        channel_percentiles (dict):
+            The mapping between each channel and its normalization value
+            Computed by `calculate_channel_percentiles`
+
+    Returns:
+        float:
+            The average percentile per FOV for total signal in each pixel
+    """
 
     # create vector of channel percentiles to enable broadcasting
     norm_vect = np.array([channel_percentiles[chan] for chan in channels])
