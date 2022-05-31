@@ -1,4 +1,5 @@
 import os
+import json
 import subprocess
 
 import feather
@@ -17,6 +18,73 @@ import ark.settings as settings
 from ark.utils import io_utils
 from ark.utils import load_utils
 from ark.utils import misc_utils
+
+
+def calculate_channel_percentiles(tiff_dir, fovs, channels, img_sub_folder, percentile):
+    """Calculates average percentile for each channel in the dataset
+
+    Args:
+        tiff_dir (str):
+            Name of the directory containing the tiff files
+        fovs (list):
+            List of fovs to include
+        channels (list):
+            List of channels to include
+        img_sub_folder (str):
+            sub folder within each FOV containing image data
+        percentile (float):
+            the specific percentile to compute
+
+    Returns:
+        dict: the mapping between each channel and its normalization value
+    """
+
+    # create dict to hold all percentiles
+    percentile_dict = {}
+
+    # loop over channels and FOVs
+    for channel in channels:
+        percentile_list = []
+        for fov in fovs:
+
+            # load image data and remove 0 valued pixels
+            img = load_utils.load_imgs_from_tree(data_dir=tiff_dir, img_sub_folder=img_sub_folder,
+                                                 channels=[channel], fovs=[fov]).values[0, :, :, 0]
+            img = img[img > 0]
+
+            # record and store percentile
+            img_percentile = np.quantile(img, percentile)
+            percentile_list.append(img_percentile)
+
+        # save channel-wide average
+        percentile_dict[channel] = np.mean(percentile_list)
+
+    return percentile_dict
+
+
+def calculate_pixel_intensity_percentile(tiff_dir, fovs, channels, img_sub_folder,
+                                         channel_percentiles, percentile=0.05):
+    """Calculates average percentile per FOV for total signal in each pixel"""
+
+    # create vector of channel percentiles to enable broadcasting
+    norm_vect = np.array([channel_percentiles[chan] for chan in channels])
+    norm_vect = norm_vect.reshape([1, 1, len(norm_vect)])
+
+    intensity_percentile_list = []
+
+    for fov in fovs:
+        # load image data
+        img_data = load_utils.load_imgs_from_tree(data_dir=tiff_dir, fovs=[fov],
+                                                  channels=channels, img_sub_folder=img_sub_folder)
+
+        # normalize each channel by its percentile value
+        norm_data = img_data[0].values / norm_vect
+
+        # sum channels together to determine total intensity
+        summed_data = np.sum(norm_data, axis=-1)
+        intensity_percentile_list.append(np.quantile(summed_data, percentile))
+
+    return np.mean(intensity_percentile_list)
 
 
 def normalize_rows(pixel_data, channels, include_seg_label=True):
@@ -506,7 +574,7 @@ def create_c2pc_data(fovs, pixel_consensus_path,
     return cell_table, cell_table_norm
 
 
-def create_fov_pixel_data(fov, channels, img_data, seg_labels,
+def create_fov_pixel_data(fov, channels, img_data, seg_labels, pixel_norm_val,
                           blur_factor=2, subset_proportion=0.1):
     """Preprocess pixel data for one fov
 
@@ -519,6 +587,8 @@ def create_fov_pixel_data(fov, channels, img_data, seg_labels,
             Array representing image data for one fov
         seg_labels (numpy.ndarray):
             Array representing segmentation labels for one fov
+        pixel_norm_val (float):
+            value used to determine per-pixel cutoff for total signal inclusion
         blur_factor (int):
             The sigma to set for the Gaussian blur
         subset_proportion (float):
@@ -570,7 +640,8 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
                         pre_dir='pixel_mat_preprocessed',
                         subset_dir='pixel_mat_subsetted',
                         norm_vals_name='norm_vals.feather', is_mibitiff=False,
-                        blur_factor=2, subset_proportion=0.1, dtype="int16", seed=42):
+                        blur_factor=2, subset_proportion=0.1, dtype="int16", seed=42,
+                        channel_percentile=0.99):
     """For each fov, add a Gaussian blur to each channel and normalize channel sums for each pixel
 
     Saves data to `pre_dir` and subsetted data to `subset_dir`
@@ -609,6 +680,8 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
             The random seed to set for subsetting
         dtype (type):
             The type to load the image segmentation labels in
+        channel_percentile (float):
+            percentile used to normalize channels to same range
     """
 
     # if the subset_proportion specified is out of range
@@ -636,6 +709,39 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
 
     # set seed for subsetting
     np.random.seed(seed)
+
+    # create path for channel normalization values
+    channel_norm_path = os.path.join(base_dir, pre_dir, 'channel_norm.json')
+
+    if not os.path.exists(channel_norm_path):
+
+        # compute channel percentiles
+        channel_norm_dict = calculate_channel_percentiles(tiff_dir=tiff_dir, fovs=fovs,
+                                                          channels=channels,
+                                                          img_sub_folder=img_sub_folder,
+                                                          percentile=channel_percentile)
+        # save output
+        with open(channel_norm_path, 'w') as cn:
+            json.dump(channel_norm_dict, cn)
+
+    else:
+        # load previously generated output
+        with open(channel_norm_path, 'r') as cn:
+            channel_norm_dict = json.load(cn)
+
+    # create path for pixel normalization values
+    pixel_norm_path = os.path.join(base_dir, pre_dir, 'pixel_norm.json')
+    if not os.path.exists(pixel_norm_path):
+        # compute pixel percentiles
+        pixel_norm_val = calculate_pixel_intensity_percentile(tiff_dir=tiff_dir, fovs=fovs,
+                                                              channels=channels,
+                                                              img_sub_folder=img_sub_folder,
+                                                              channel_percentiles=channel_norm_dict)
+        with open(pixel_norm_path, 'w') as pn:
+            json.dump({'pixel_norm_val': pixel_norm_val}, pn)
+    else:
+        with open(pixel_norm_path, 'r') as pn:
+            pixel_norm_val = json.load(pn)['pixel_norm_val']
 
     # iterate over fov_batches
     for fov in fovs:
@@ -665,10 +771,18 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
         # subset for the channel data
         img_data = img_xr.loc[fov, :, :, channels].values.astype(np.float32)
 
+        # create vector for normalizing image data
+        norm_vect = [channel_norm_dict[chan] for chan in channels]
+        norm_vect = np.array(norm_vect).reshape([1, 1, len(norm_vect)])
+
+        # normalize image data
+        img_data = img_data / norm_vect
+
         # create the full and subsetted fov matrices
         pixel_mat, pixel_mat_subset = create_fov_pixel_data(
             fov=fov, channels=channels, img_data=img_data, seg_labels=seg_labels,
-            blur_factor=blur_factor, subset_proportion=subset_proportion
+            blur_factor=blur_factor, subset_proportion=subset_proportion,
+            pixel_norm_val=pixel_norm_val
         )
 
         # get 99.9% of the full fov matrix

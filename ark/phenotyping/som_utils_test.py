@@ -219,6 +219,77 @@ def mocked_cell_consensus_cluster(fovs, channels, base_dir, pixel_cluster_col, m
     feather.write_dataframe(cell_data, os.path.join(base_dir, cell_consensus_name))
 
 
+def test_calculate_channel_percentiles():
+    with tempfile.TemporaryDirectory() as temp_dir:
+        fovs, chans, imgs = test_utils.gen_fov_chan_names(num_fovs=3, num_chans=3,
+                                                          return_imgs=True)
+
+        filelocs, data_xr = test_utils.create_paired_xarray_fovs(
+            temp_dir, fovs, chans, img_shape=(10, 10), sub_dir="TIFs"
+        )
+
+        percentile = 0.5
+
+        # calculate true percentiles
+        percentile_dict = {}
+        for idx, chan in enumerate(chans):
+            chan_vals = []
+            for fov in range(len(fovs)):
+                current_chan = data_xr[fov, :, :, idx].values
+                current_chan = current_chan[current_chan > 0]
+                chan_vals.append(np.quantile(current_chan, percentile))
+
+            percentile_dict[chan] = chan_vals
+
+        predicted_percentiles = som_utils.calculate_channel_percentiles(tiff_dir=temp_dir,
+                                                                        channels=chans,
+                                                                        fovs=fovs,
+                                                                        img_sub_folder='TIFS',
+                                                                        percentile=percentile)
+        # test equality when all channels and all FOVs are included
+        for chan in chans:
+            assert predicted_percentiles[chan] == np.mean(percentile_dict[chan])
+
+        # include only a subset of channels and fovs
+        predicted_percentiles = som_utils.calculate_channel_percentiles(tiff_dir=temp_dir,
+                                                                        channels=chans[1:],
+                                                                        fovs=fovs[:-1],
+                                                                        img_sub_folder='TIFS',
+                                                                        percentile=percentile)
+        # test equality for specific chans and FOVs
+        for chan in chans[1:]:
+            assert predicted_percentiles[chan] == np.mean(percentile_dict[chan][:-1])
+
+
+def test_calculate_rowsum_percentile():
+    with tempfile.TemporaryDirectory() as temp_dir:
+        fovs, chans, imgs = test_utils.gen_fov_chan_names(num_fovs=3, num_chans=3,
+                                                          return_imgs=True)
+
+        filelocs, data_xr = test_utils.create_paired_xarray_fovs(
+            temp_dir, fovs, chans, img_shape=(100, 100), sub_dir="TIFs", dtype='float32'
+        )
+
+        # make one channel 10x smaller and the other 100x smaller
+        for fov in fovs:
+            for chan in chans[1:]:
+                chan_path = os.path.join(temp_dir, fov, 'TIFs', chan + '.tiff')
+                img = io.imread(chan_path)
+
+                if chan == 'chan1':
+                    divisor = 10
+                else:
+                    divisor = 100
+                # saved modified channel
+                io.imsave(chan_path, img / divisor)
+        channel_percentiles = {'chan0': 1, 'chan1': 1, 'chan2': 1}
+        percentile = som_utils.calculate_pixel_intensity_percentile(tiff_dir=temp_dir, fovs=fovs,
+                                                                    channels=chans,
+                                                                    img_sub_folder='TIFs',
+                                                                    channel_percentiles=channel_percentiles)
+        assert percentile < 15
+
+
 # TODO: make the test data more diverse for every function
 def test_normalize_rows():
     # define a list of channels and a subset of channels
