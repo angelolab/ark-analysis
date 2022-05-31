@@ -34,7 +34,7 @@ jobs:
         on:
           tags: true
     - stage: docker_deploy
-      if: tag IS present
+      if: branch = flex_som_map
       python: 3.6
       script:
         - "travis_wait 120 sleep 7200 &"
