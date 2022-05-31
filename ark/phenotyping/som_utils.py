@@ -9,7 +9,7 @@ import pandas as pd
 import re
 import scipy.ndimage as ndimage
 import scipy.stats as stats
-from skimage.io import imread
+from skimage.io import imread, imsave
 import xarray as xr
 
 from ark.analysis import visualize
@@ -53,6 +53,37 @@ def normalize_rows(pixel_data, channels, include_seg_label=True):
     pixel_data_sub[meta_cols] = pixel_data.loc[pixel_data_sub.index.values, meta_cols]
 
     return pixel_data_sub
+
+
+def smooth_channels(fovs, tiff_dir, img_sub_folder, channels, smooth_vals):
+    """Adds additional smoothing for selected channels as a preprocessing step
+    Args:
+        fovs (list):
+            List of fovs to process
+        tiff_dir (str):
+            Name of the directory containing the tiff files
+        img_sub_folder (str): sub-folder within each FOV containing image data
+        channels (list): list of channels to apply smoothing to
+        smooth_vals (list or int): amount to smooth channels. If a single int, applies
+            to all channels. Otherwise, a custom value per channel can be supplied
+    """
+    # convert int to list of same length
+    if type(smooth_vals) is int:
+        smooth_vals = [smooth_vals for _ in range(len(channels))]
+    elif type(smooth_vals) is list:
+        if len(smooth_vals) != len(channels):
+            raise ValueError("A list was provided for variable smooth_vals, but it does not"
+                             "have the same length as the list of channels provided")
+    else:
+        raise ValueError("Variable smooth_vals must be either a single integer or a list")
+
+    for fov in fovs:
+        for idx, chan in enumerate(channels):
+            img = load_utils.load_imgs_from_tree(data_dir=tiff_dir, img_sub_folder=img_sub_folder,
+                                                 fovs=[fov], channels=[chan]).values[0, :, :, 0]
+            chan_out = ndimage.gaussian_filter(img, sigma=smooth_vals[idx])
+            imsave(os.path.join(tiff_dir, fov, img_sub_folder, chan + '_smoothed.tiff'),
+                   chan_out, check_contrast=False)
 
 
 def compute_pixel_cluster_channel_avg(fovs, channels, base_dir, pixel_cluster_col,
