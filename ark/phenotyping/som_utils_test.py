@@ -340,6 +340,10 @@ def test_smooth_channels(smooth_vals):
             som_utils.smooth_channels(fovs=fovs, tiff_dir=temp_dir, img_sub_folder='TIFs',
                                       channels=smooth_channels, smooth_vals=1.5)
 
+        # check that empty list doesn't raise an error
+        som_utils.smooth_channels(fovs=fovs, tiff_dir=temp_dir, img_sub_folder='TIFs',
+                                  channels=[], smooth_vals=smooth_vals)
+
 
 def test_compute_pixel_cluster_channel_avg():
     # define list of fovs and channels

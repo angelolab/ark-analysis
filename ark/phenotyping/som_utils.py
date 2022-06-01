@@ -68,6 +68,10 @@ def check_for_modified_channels(tiff_dir, test_fov, img_sub_folder, channels):
             sub-folder within each FOV containing image data
         channels (list): list of channels to use for analysis"""
 
+    # convert to path-compatible format
+    if img_sub_folder is None:
+        img_sub_folder = ''
+
     # get all channels within example FOV
     all_channels = io_utils.list_files(os.path.join(tiff_dir, test_fov, img_sub_folder))
 
@@ -94,12 +98,20 @@ def smooth_channels(fovs, tiff_dir, img_sub_folder, channels, smooth_vals):
         smooth_vals (list or int): amount to smooth channels. If a single int, applies
             to all channels. Otherwise, a custom value per channel can be supplied
     """
+    # no output if no channels specified
+    if channels is None or len(channels) == 0:
+        return
+
+    # convert to path-compatible format
+    if img_sub_folder is None:
+        img_sub_folder = ''
+
     # convert int to list of same length
     if type(smooth_vals) is int:
         smooth_vals = [smooth_vals for _ in range(len(channels))]
     elif type(smooth_vals) is list:
         if len(smooth_vals) != len(channels):
-            raise ValueError("A list was provided for variable smooth_vals, but it does not"
+            raise ValueError("A list was provided for variable smooth_vals, but it does not "
                              "have the same length as the list of channels provided")
     else:
         raise ValueError("Variable smooth_vals must be either a single integer or a list")
@@ -688,6 +700,10 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
     # create subset_dir if it doesn't already exist
     if not os.path.exists(os.path.join(base_dir, subset_dir)):
         os.mkdir(os.path.join(base_dir, subset_dir))
+
+    # check to make sure correct channels were specified
+    check_for_modified_channels(tiff_dir=tiff_dir, test_fov=fovs[0], img_sub_folder=img_sub_folder,
+                                channels=channels)
 
     # create variable for storing 99.9% values
     quant_dat = pd.DataFrame()
