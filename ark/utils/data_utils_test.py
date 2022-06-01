@@ -60,8 +60,8 @@ def test_save_fov_images():
 
     # test 4: name suffix not provided, sub_dir provided
     with tempfile.TemporaryDirectory() as temp_dir:
-        data_utils.save_fov_images(fovs_sub, temp_dir, sample_img_xr, sub_dir="_test")
-        save_dir = os.path.join(temp_dir, "_test")
+        data_utils.save_fov_images(fovs_sub, temp_dir, sample_img_xr, sub_dir="sub_directory")
+        save_dir = os.path.join(temp_dir, "sub_directory")
         for fov in fovs_sub:
             assert os.path.exists(os.path.join(save_dir, fov + ".tiff"))
 
