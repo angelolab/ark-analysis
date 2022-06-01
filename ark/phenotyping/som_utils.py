@@ -1,5 +1,6 @@
 import os
 import subprocess
+import warnings
 
 import feather
 import matplotlib.patches as patches
@@ -53,6 +54,32 @@ def normalize_rows(pixel_data, channels, include_seg_label=True):
     pixel_data_sub[meta_cols] = pixel_data.loc[pixel_data_sub.index.values, meta_cols]
 
     return pixel_data_sub
+
+
+def check_for_modified_channels(tiff_dir, test_fov, img_sub_folder, channels):
+    """Checks to make sure the user selected newly modified channels
+
+    Args:
+        tiff_dir (str):
+            Name of the directory containing the tiff files
+        test_fov (str):
+            example fov used to check channel names
+        img_sub_folder (str):
+            sub-folder within each FOV containing image data
+        channels (list): list of channels to use for analysis"""
+
+    # get all channels within example FOV
+    all_channels = io_utils.list_files(os.path.join(tiff_dir, test_fov, img_sub_folder))
+
+    # loop over each user-provided channel
+    for channel in channels:
+        # check for substring matching
+        matches = [match for match in all_channels if channel in match]
+
+        if len(matches) > 1:
+            warnings.warn('You selected {} as the channel to analyze, but there were multiple '
+                          'close matches: {}. Make sure you selected the correct version of the '
+                          'channel for inclusion in clustering'.format(channel, matches))
 
 
 def smooth_channels(fovs, tiff_dir, img_sub_folder, channels, smooth_vals):

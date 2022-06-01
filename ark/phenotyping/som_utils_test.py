@@ -275,6 +275,23 @@ def test_normalize_rows():
     assert np.all(fov_pixel_matrix_sub.drop(columns=meta_cols).values == [1 / 3, 2 / 3])
 
 
+def test_check_for_modified_channels():
+    with tempfile.TemporaryDirectory() as temp_dir:
+        chan_names = ['CK17', 'CK18', 'CK18_smoothed']
+        test_fov = 'fov1'
+
+        test_fov_path = os.path.join(temp_dir, test_fov)
+        os.makedirs(test_fov_path)
+        for chan in chan_names:
+            test_utils._make_blank_file(test_fov_path, chan + '.tiff')
+
+        selected_chans = ['CK18', 'CK17']
+
+        with pytest.warns(UserWarning, match='selected CK18'):
+            som_utils.check_for_modified_channels(tiff_dir=temp_dir, test_fov=test_fov,
+                                                  img_sub_folder='', channels=selected_chans)
+
+
 @parametrize('smooth_vals', [2, [1, 3]])
 def test_smooth_channels(smooth_vals):
     with tempfile.TemporaryDirectory() as temp_dir:
