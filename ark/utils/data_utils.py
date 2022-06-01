@@ -22,7 +22,7 @@ def save_fov_images(fovs, data_dir, img_xr, sub_dir=None, name_suffix=''):
             The array of images per fov
         sub_dir (Optional[str]):
             The subdirectory to save the images in. If specified images are saved to
-            "data_dir/sub_dir". If `sub_dir = None` the images are saved to "data/dir". Defaults
+            "data_dir/sub_dir". If `sub_dir = None` the images are saved to "data_dir". Defaults
             to None.
         name_suffix (str):
             Specify what to append at the end of every fov.
