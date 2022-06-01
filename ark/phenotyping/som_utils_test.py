@@ -247,7 +247,7 @@ def test_calculate_channel_percentiles():
         predicted_percentiles = som_utils.calculate_channel_percentiles(tiff_dir=temp_dir,
                                                                         channels=chans,
                                                                         fovs=fovs,
-                                                                        img_sub_folder='TIFS',
+                                                                        img_sub_folder='TIFs',
                                                                         percentile=percentile)
         # test equality when all channels and all FOVs are included
         for chan in chans:
@@ -257,7 +257,7 @@ def test_calculate_channel_percentiles():
         predicted_percentiles = som_utils.calculate_channel_percentiles(tiff_dir=temp_dir,
                                                                         channels=chans[1:],
                                                                         fovs=fovs[:-1],
-                                                                        img_sub_folder='TIFS',
+                                                                        img_sub_folder='TIFs',
                                                                         percentile=percentile)
         # test equality for specific chans and FOVs
         for chan in chans[1:]:
