@@ -96,8 +96,8 @@ def smooth_channels(fovs, tiff_dir, img_sub_folder, channels, smooth_vals):
         img_sub_folder (str): sub-folder within each FOV containing image data
         channels (list): list of channels to apply smoothing to
         smooth_vals (list or int): amount to smooth channels. If a single int, applies
-            to all channels. Otherwise, a custom value per channel can be supplied
-    """
+            to all channels. Otherwise, a custom value per channel can be supplied"""
+
     # no output if no channels specified
     if channels is None or len(channels) == 0:
         return
