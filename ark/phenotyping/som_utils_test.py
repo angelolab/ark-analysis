@@ -949,10 +949,6 @@ def test_create_fov_pixel_data():
 @parametrize('pixel_norm_include', [True, False])
 def test_create_pixel_matrix(fovs, chans, sub_dir, seg_dir_include,
                              channel_norm_include, pixel_norm_include):
-    # # tests for all fovs and some fovs, and all chans and some chans
-    # fov_lists = [['fov0', 'fov1', 'fov2'], ['fov0', 'fov1'], ['fov0']]
-    # chan_lists = [['chans0', 'chans1', 'chans2'], ['chans0', 'chans1'], ['chans0']]
-
     sample_labels = test_utils.make_labels_xarray(label_data=None,
                                                   fov_ids=['fov0', 'fov1', 'fov2'],
                                                   compartment_names=['whole_cell'])
