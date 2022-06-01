@@ -140,28 +140,31 @@ def batch_segment_fibers(data_dir, fiber_channel, out_dir, img_sub_folder=None, 
     """
 
     fovs = io_utils.list_folders(data_dir)
-    batching_strategry = \
+    batching_strategy = \
         [fovs[i:i + batch_size] for i in range(0, len(fovs), batch_size)]
 
     fiber_label_images = {}
     fiber_object_table = []
 
-    for batch in batching_strategry:
+    for batch_idx, batch in enumerate(batching_strategy):
+        print(f'\rStarting batch {batch_idx + 1} of {len(batching_strategy)}...', end='')
         subset_xr = load_utils.load_imgs_from_tree(
             data_dir, img_sub_folder, fovs=batch, channels=[fiber_channel]
         )
-        subtable, sublabel = segment_fibers(subset_xr, fiber_channel, out_dir, **kwargs)
+        subtable, sublabel = segment_fibers(subset_xr, fiber_channel, out_dir, save_csv=False,
+                                            **kwargs)
         fiber_label_images.update(sublabel)
         fiber_object_table.append(subtable)
 
     fiber_object_table = pd.concat(fiber_object_table)
+    fiber_object_table.to_csv(os.path.join(out_dir, 'fiber_object_table.csv'), index=False)
 
     return fiber_object_table, fiber_label_images
 
 
 def segment_fibers(data_xr, fiber_channel, out_dir, blur=2, contrast_scaling_divisor=128,
                    fiber_widths=(2, 4), ridge_cutoff=0.1, sobel_blur=1, min_fiber_size=15,
-                   object_properties=settings.FIBER_OBJECT_PROPS, debug=False):
+                   object_properties=settings.FIBER_OBJECT_PROPS, save_csv=True, debug=False):
     """ Segments fiber objects from image data
 
     Args:
@@ -195,6 +198,8 @@ def segment_fibers(data_xr, fiber_channel, out_dir, blur=2, contrast_scaling_div
              - label
              - eccentricity
              - euler_number
+        save_csv (bool):
+            Whether or not to save csv of fiber objects
         debug (bool):
             Save intermediate preprocessing steps
 
@@ -214,9 +219,10 @@ def segment_fibers(data_xr, fiber_channel, out_dir, blur=2, contrast_scaling_div
 
     if debug:
         debug_path = os.path.join(out_dir, '_debug')
-        os.makedirs(debug_path)
+        if not os.path.exists(debug_path):
+            os.makedirs(debug_path)
 
-    for fov in channel_xr.fovs:
+    for fov in channel_xr.fovs.values:
         fiber_channel_data = channel_xr.loc[fov, :, :].values.astype('float')
         blurred = ndi.gaussian_filter(fiber_channel_data, sigma=blur)
 
@@ -253,13 +259,17 @@ def segment_fibers(data_xr, fiber_channel, out_dir, blur=2, contrast_scaling_div
         labeled_filtered = remove_small_objects(labeled, min_size=min_fiber_size) * segmentation
 
         if debug:
-            imsave(os.path.join(debug_path, f'{fov}_thresholded.tiff'), threshed)
+            imsave(os.path.join(debug_path, f'{fov}_thresholded.tiff'), threshed,
+                   check_contrast=False)
             imsave(os.path.join(debug_path, f'{fov}_ridges_thresholded.tiff'),
-                   distance_transformed)
-            imsave(os.path.join(debug_path, f'{fov}_meijering_filter.tiff'), ridges)
-            imsave(os.path.join(debug_path, f'{fov}_contrast_adjusted.tiff'), contrast_adjusted)
+                   distance_transformed, check_contrast=False)
+            imsave(os.path.join(debug_path, f'{fov}_meijering_filter.tiff'), ridges,
+                   check_contrast=False)
+            imsave(os.path.join(debug_path, f'{fov}_contrast_adjusted.tiff'), contrast_adjusted,
+                   check_contrast=False)
 
-        imsave(os.path.join(out_dir, f'{fov}_fiber_labels.tiff'), labeled_filtered)
+        imsave(os.path.join(out_dir, f'{fov}_fiber_labels.tiff'), labeled_filtered,
+               check_contrast=False)
 
         fiber_label_images[fov] = labeled_filtered
 
@@ -270,6 +280,7 @@ def segment_fibers(data_xr, fiber_channel, out_dir, blur=2, contrast_scaling_div
         fiber_object_table.append(fov_table)
 
     fiber_object_table = pd.concat(fiber_object_table)
-    fiber_object_table.to_csv(os.path.join(out_dir, 'fiber_object_table.csv'))
+    if save_csv:
+        fiber_object_table.to_csv(os.path.join(out_dir, 'fiber_object_table.csv'))
 
     return fiber_object_table, fiber_label_images
