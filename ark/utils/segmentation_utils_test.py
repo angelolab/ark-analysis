@@ -296,8 +296,8 @@ def test_save_segmentation_labels():
 
 def test_concatenate_csv():
     # create sample data
-    test_data_1 = test_utils.make_segmented_csv(num_cells=10)
-    test_data_2 = test_utils.make_segmented_csv(num_cells=20)
+    test_data_1 = test_utils.make_cell_table(num_cells=10)
+    test_data_2 = test_utils.make_cell_table(num_cells=20)
 
     with pytest.raises(ValueError):
         # attempt to pass column_values list with different length than number of csv files
