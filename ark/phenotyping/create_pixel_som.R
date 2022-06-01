@@ -73,7 +73,7 @@ pixelSubsetData <- pixelSubsetData[,Map(`/`,.SD,normVals)]
 # run the SOM training step
 print("Training the SOM")
 somResults <- SOM(data=as.matrix(pixelSubsetData), rlen=numPasses,
-                  xdim=xdim, ydim=ydim, alpha=c(lr_start, lr_end))
+                  xdim=xdim, ydim=ydim, alpha=c(lr_start, lr_end), map=FALSE)
 
 # write the weights to feather
 print("Save trained weights")
