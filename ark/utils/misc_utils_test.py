@@ -84,6 +84,12 @@ def test_verify_in_list():
         misc_utils.verify_in_list(warn=True, one=['hello', 'world'],
                                   two=['hello', 'goodbye'])
 
+    # test unwrapped string
+    misc_utils.verify_in_list(
+        one='hello',
+        two=['hello', 'world']
+    )
+
     # test numpy array allowance
     misc_utils.verify_in_list(
         one=np.array(['hello', 'world']),
