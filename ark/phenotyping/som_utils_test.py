@@ -876,7 +876,6 @@ def test_create_fov_pixel_data():
     # test for each fov
     for fov in fovs:
         sample_img_data = sample_img_xr.loc[fov, ...].values.astype(np.float32)
-
         seg_labels = sample_labels.loc[fov, ...].values.reshape(10, 10)
 
         # TEST 1: run fov preprocessing for one fov with seg_labels and no blank pixels
@@ -891,8 +890,8 @@ def test_create_fov_pixel_data():
         misc_utils.verify_same_elements(flowsom_chans=sample_pixel_mat_subset.columns.values[:-4],
                                         provided_chans=chans)
 
-        # assert no rows sum to 0
-        assert np.all(sample_pixel_mat.loc[:, ['chan0', 'chan1']].sum(axis=1).values != 0)
+        # assert all rows sum to 1 (within tolerance because of floating-point errors)
+        assert np.all(np.allclose(sample_pixel_mat.loc[:, chans].sum(axis=1).values, 1))
 
         # assert the size of the subsetted DataFrame is 0.1 of the preprocessed DataFrame
         # NOTE: need to account for rounding if multiplying by 0.1 leads to non-int
@@ -909,8 +908,8 @@ def test_create_fov_pixel_data():
         misc_utils.verify_same_elements(flowsom_chans=sample_pixel_mat_subset.columns.values[:-3],
                                         provided_chans=chans)
 
-        # assert no rows sum to 0
-        assert np.all(sample_pixel_mat.loc[:, ['chan0', 'chan1']].sum(axis=1).values != 0)
+        # assert all rows sum to 1 (within tolerance because of floating-point errors)
+        assert np.all(np.allclose(sample_pixel_mat.loc[:, chans].sum(axis=1).values, 1))
 
         # assert the size of the subsetted DataFrame is 0.1 of the preprocessed DataFrame
         # NOTE: need to account for rounding if multiplying by 0.1 leads to non-int
@@ -929,8 +928,8 @@ def test_create_fov_pixel_data():
         misc_utils.verify_same_elements(flowsom_chans=sample_pixel_mat_subset.columns.values[:-4],
                                         provided_chans=chans)
 
-        # assert no rows sum to 0
-        assert np.all(sample_pixel_mat.loc[:, ['chan0', 'chan1']].sum(axis=1).values != 0)
+        # assert all rows sum to 1 (within tolerance because of floating-point errors)
+        assert np.all(np.allclose(sample_pixel_mat.loc[:, chans].sum(axis=1).values, 1))
 
         # assert the size of the subsetted DataFrame is less than 0.1 of the preprocessed DataFrame
         # NOTE: need to account for rounding if multiplying by 0.1 leads to non-int
