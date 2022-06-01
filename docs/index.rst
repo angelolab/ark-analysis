@@ -21,4 +21,5 @@
    analysis <_markdown/ark.analysis>
    phenotyping <_markdown/ark.phenotyping>
    segmentation <_markdown/ark.segmentation>
+   spLDA <_markdown/ark.spLDA>
    utils <_markdown/ark.utils>
