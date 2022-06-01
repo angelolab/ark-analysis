@@ -5,7 +5,6 @@ import numpy as np
 import xarray as xr
 
 import matplotlib.pyplot as plt
-import seaborn as sns
 
 
 def combine_xarrays(xarrays, axis):
@@ -167,9 +166,9 @@ def verify_in_list(warn=False, **kwargs):
 
     test_list, good_values = kwargs.values()
     if not isinstance(test_list, list):
-        test_list = [test_list]
+        test_list = list(test_list)
     if not isinstance(good_values, list):
-        good_values = [good_values]
+        good_values = list(good_values)
 
     for v in [test_list, good_values]:
         if len(v) == 0:
