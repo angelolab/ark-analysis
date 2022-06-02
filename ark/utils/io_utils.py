@@ -115,7 +115,7 @@ def remove_file_extensions(files):
     # remove the file extension
     names = [os.path.splitext(name) for name in files]
     names_corrected = []
-    extension_types = ["tiff", "tif", "png", "jpg", "jpeg", "tar", "gz", "csv"]
+    extension_types = ["tiff", "tif", "png", "jpg", "jpeg", "tar", "gz", "csv", "feather"]
     for name in names:
         # We want everything after the "." for the extension
         ext = name[-1][1:]
