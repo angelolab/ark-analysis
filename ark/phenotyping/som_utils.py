@@ -20,6 +20,8 @@ from ark.utils import io_utils
 from ark.utils import load_utils
 from ark.utils import misc_utils
 
+multiprocessing.set_start_method('spawn', force=True)
+
 
 def normalize_rows(pixel_data, channels, include_seg_label=True):
     """Normalizes the rows of a pixel matrix by their sum
@@ -711,7 +713,7 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
     # NOTE: this should NOT operate on quant_dat since that is a shared resource
     import timeit
     start_time = timeit.default_timer()
-    for fov_batch in [fovs[i:(i + 5)] for i in range(0, len(fovs), 5)]:
+    for fov_batch in [fovs[i:(i + 10)] for i in range(0, len(fovs), 10)]:
         fov_data_batch = fov_data_pool.map(fov_data_func, fov_batch)
 
         for pixel_mat_data in fov_data_batch:
