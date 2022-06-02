@@ -120,11 +120,11 @@ def remove_file_extensions(files):
         # We want everything after the "." for the extension
         ext = name[-1][1:]
         if (ext in extension_types) or (len(ext) == 0):
-            # If it is one of he extension types, only keep the filename.
-            # Or There is no extension, the names are similar to ["fov1", "fov2", "fov3", ...]
+            # If it is one of the extension types, only keep the filename.
+            # Or there is no extension and the names are similar to ["fov1", "fov2", "fov3", ...]
             names_corrected.append(name[:-1][0])
         else:
-            # If it's not one of the specified file types, keep the value after the "."
+            # If `ext` not one of the specified file types, keep the value after the "."
             names_corrected.append(name[:-1][0] + "." + name[-1][1])
 
     # identify names with '.' in them: these may not be processed correctly.
