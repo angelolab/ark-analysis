@@ -929,8 +929,6 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
             Name of file to save the channel-averaged results across all SOM clusters to
         pc_chan_avg_meta_cluster_name (str):
             Name of file to save the channel-averaged results across all meta clusters to
-        consensus_dir (str):
-            Name of directory to save the consensus clustered results (SOM and meta labels added)
         clust_to_meta_name (str):
             Name of file storing the SOM cluster to meta cluster mapping
         seed (int):
