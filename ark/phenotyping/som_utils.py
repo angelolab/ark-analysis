@@ -56,7 +56,7 @@ def normalize_rows(pixel_data, channels, include_seg_label=True):
 
 
 def compute_pixel_cluster_channel_avg(fovs, channels, base_dir, pixel_cluster_col,
-                                      pixel_cluster_dir='pixel_mat_clustered', keep_count=False):
+                                      pixel_data_dir='pixel_mat_data', keep_count=False):
     """Compute the average channel values across each pixel SOM cluster
 
     Args:
@@ -68,7 +68,7 @@ def compute_pixel_cluster_channel_avg(fovs, channels, base_dir, pixel_cluster_co
             The path to the data directories
         pixel_cluster_col (str):
             Name of the column to group by
-        pixel_cluster_dir (str):
+        pixel_data_dir (str):
             Name of the directory containing the pixel data with cluster labels
         keep_count (bool):
             Whether to keep the count column when aggregating or not
@@ -91,7 +91,7 @@ def compute_pixel_cluster_channel_avg(fovs, channels, base_dir, pixel_cluster_co
     for fov in fovs:
         # read in the fovs data
         fov_pixel_data = feather.read_dataframe(
-            os.path.join(base_dir, pixel_cluster_dir, fov + '.feather')
+            os.path.join(base_dir, pixel_data_dir, fov + '.feather')
         )
 
         # aggregate the sums and counts
