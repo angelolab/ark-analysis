@@ -37,14 +37,11 @@ pixelClusterDir <- args[5]
 # get path to the averaged channel data
 clusterAvgPath <- args[6]
 
-# get consensus clustered write path
-pixelMatConsensus <- args[7]
-
 # get the clust to meta write path
-clustToMeta <- args[8]
+clustToMeta <- args[7]
 
 # set the random seed
-seed <- strtoi(args[9])
+seed <- strtoi(args[8])
 set.seed(seed)
 
 # read cluster averaged data
@@ -76,9 +73,8 @@ for (i in 1:length(fovs)) {
     # assign hierarchical cluster labels
     fovPixelData$pixel_meta_cluster <- som_to_meta_map[as.character(fovPixelData$pixel_som_cluster)]
 
-    # write consensus clustered data
-    clusterPath <- file.path(pixelMatConsensus, fileName)
-    arrow::write_feather(as.data.table(fovPixelData), clusterPath)
+    # write consensus clustered data, overwrite original data with the same data with meta cluster label
+    arrow::write_feather(as.data.table(fovPixelData), matPath)
 
     # print an update every 10 fovs
     if (i %% 10 == 0) {

@@ -27,9 +27,6 @@ normValsPath <- args[3]
 # get path to the weights
 pixelWeightsPath <- args[4]
 
-# get the cluster write path directory
-pixelClusterDir <- args[5]
-
 # read the weights
 somWeights <- as.matrix(arrow::read_feather(pixelWeightsPath))
 
@@ -64,9 +61,8 @@ for (i in 1:length(fovs)) {
     # assign cluster labels column to pixel data
     fovPixelData$pixel_som_cluster <- as.integer(clusters[,1])
 
-    # write to feather
-    clusterPath <- file.path(pixelClusterDir, fileName)
-    arrow::write_feather(as.data.table(fovPixelData), clusterPath)
+    # write to feather, overwrite original data with the same data with SOM cluster label
+    arrow::write_feather(as.data.table(fovPixelData), matPath)
 
     # print an update every 10 fovs
     # TODO: find a way to capture sprintf to the console

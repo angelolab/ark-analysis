@@ -567,7 +567,7 @@ def create_fov_pixel_data(fov, channels, img_data, seg_labels,
 
 def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
                         img_sub_folder="TIFs", seg_suffix='_feature_0.tif',
-                        pre_dir='pixel_mat_preprocessed',
+                        data_dir='pixel_mat_data',
                         subset_dir='pixel_mat_subsetted',
                         norm_vals_name='norm_vals.feather', is_mibitiff=False,
                         blur_factor=2, subset_proportion=0.1, dtype="int16", seed=42):
@@ -593,8 +593,8 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
         seg_suffix (str):
             The suffix that the segmentation images use.
             Ignored if `seg_dir` is `None`.
-        pre_dir (str):
-            Name of the directory which contains the preprocessed pixel data
+        data_dir (str):
+            Name of the directory which contains the full preprocessed pixel data
         subset_dir (str):
             The name of the directory containing the subsetted pixel data
         norm_vals_name (str):
@@ -623,9 +623,9 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
     if not os.path.exists(tiff_dir):
         raise FileNotFoundError("tiff_dir %s does not exist" % tiff_dir)
 
-    # create pre_dir if it doesn't already exist
-    if not os.path.exists(os.path.join(base_dir, pre_dir)):
-        os.mkdir(os.path.join(base_dir, pre_dir))
+    # create data_dir if it doesn't already exist
+    if not os.path.exists(os.path.join(base_dir, data_dir)):
+        os.mkdir(os.path.join(base_dir, data_dir))
 
     # create subset_dir if it doesn't already exist
     if not os.path.exists(os.path.join(base_dir, subset_dir)):
@@ -677,7 +677,7 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
         # write complete dataset to feather, needed for cluster assignment
         feather.write_dataframe(pixel_mat,
                                 os.path.join(base_dir,
-                                             pre_dir,
+                                             data_dir,
                                              fov + ".feather"),
                                 compression='uncompressed')
 
@@ -777,9 +777,8 @@ def train_pixel_som(fovs, channels, base_dir,
         )
 
 
-def cluster_pixels(fovs, channels, base_dir, pre_dir='pixel_mat_preprocessed',
+def cluster_pixels(fovs, channels, base_dir, data_dir='pixel_mat_data',
                    norm_vals_name='norm_vals.feather', weights_name='pixel_weights.feather',
-                   cluster_dir='pixel_mat_clustered',
                    pc_chan_avg_som_cluster_name='pixel_channel_avg_som_cluster.csv'):
     """Uses trained weights to assign cluster labels on full pixel data
 
@@ -793,28 +792,25 @@ def cluster_pixels(fovs, channels, base_dir, pre_dir='pixel_mat_preprocessed',
             The list of channels to subset on
         base_dir (str):
             The path to the data directory
-        pre_dir (str):
-            Name of the directory which contains the preprocessed pixel data
+        data_dir (str):
+            Name of the directory which contains the full preprocessed pixel data
         norm_vals_name (str):
             The name of the file with the 99.9% normalized values, created by `train_pixel_som`
         weights_name (str):
             The name of the weights file created by `train_pixel_som`
-        cluster_dir (str):
-            The name of the directory to write the clustered data
         pc_chan_avg_som_cluster_name (str):
             The name of the file to save the average channel expression across all SOM clusters
     """
 
     # define the paths to the data
-    preprocessed_path = os.path.join(base_dir, pre_dir)
+    data_path = os.path.join(base_dir, data_dir)
     norm_vals_path = os.path.join(base_dir, norm_vals_name)
     weights_path = os.path.join(base_dir, weights_name)
-    clustered_path = os.path.join(base_dir, cluster_dir)
 
     # if path to the preprocessed directory does not exist
-    if not os.path.exists(preprocessed_path):
-        raise FileNotFoundError('Pixel preprocessed directory %s does not exist in base_dir %s' %
-                                (pre_dir, base_dir))
+    if not os.path.exists(data_path):
+        raise FileNotFoundError('Pixel data directory %s does not exist in base_dir %s' %
+                                (data_dir, base_dir))
 
     # if path to the normalized values file does not exist
     if not os.path.exists(norm_vals_path):
@@ -827,18 +823,17 @@ def cluster_pixels(fovs, channels, base_dir, pre_dir='pixel_mat_preprocessed',
                                 (weights_name, base_dir))
 
     # verify that all provided fovs exist in the folder
-    files = io_utils.list_files(preprocessed_path, substrs='.feather')
+    data_files = io_utils.list_files(data_path, substrs='.feather')
     misc_utils.verify_in_list(provided_fovs=fovs,
-                              subsetted_fovs=io_utils.remove_file_extensions(files))
+                              subsetted_fovs=io_utils.remove_file_extensions(data_files))
 
     weights = feather.read_dataframe(os.path.join(base_dir, weights_name))
 
     # ensure the norm vals columns and the FOV data contain valid indexes
     # ignoring metadata columns in the FOV data, the columns need to be in exactly
     # the same order across both datasets (normalized values and FOV values)
-    pre_files = io_utils.list_files(preprocessed_path, substrs='.feather')
     norm_vals = feather.read_dataframe(os.path.join(base_dir, norm_vals_name))
-    sample_fov = feather.read_dataframe(os.path.join(base_dir, pre_dir, pre_files[0]))
+    sample_fov = feather.read_dataframe(os.path.join(base_dir, data_dir, data_files[0]))
 
     cols_to_drop = ['fov', 'row_index', 'column_index']
     if 'segmentation_label' in sample_fov.columns.values:
@@ -860,13 +855,9 @@ def cluster_pixels(fovs, channels, base_dir, pre_dir='pixel_mat_preprocessed',
         pixel_data_columns=sample_fov.columns.values
     )
 
-    # make the clustered dir if it does not exist
-    if not os.path.exists(clustered_path):
-        os.mkdir(clustered_path)
-
     # run the trained SOM on the dataset, assigning clusters
     process_args = ['Rscript', '/run_pixel_som.R', ','.join(fovs),
-                    preprocessed_path, norm_vals_path, weights_path, clustered_path]
+                    data_path, norm_vals_path, weights_path]
 
     process = subprocess.Popen(process_args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
@@ -895,7 +886,7 @@ def cluster_pixels(fovs, channels, base_dir, pre_dir='pixel_mat_preprocessed',
         channels,
         base_dir,
         'pixel_som_cluster',
-        cluster_dir,
+        data_dir,
         keep_count=True
     )
 
@@ -907,11 +898,10 @@ def cluster_pixels(fovs, channels, base_dir, pre_dir='pixel_mat_preprocessed',
 
 
 def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
-                            cluster_dir='pixel_mat_clustered',
+                            data_dir='pixel_mat_data',
                             pc_chan_avg_som_cluster_name='pixel_channel_avg_som_cluster.csv',
                             pc_chan_avg_meta_cluster_name='pixel_channel_avg_meta_cluster.csv',
-                            clust_to_meta_name='pixel_clust_to_meta.feather',
-                            consensus_dir='pixel_mat_consensus', seed=42):
+                            clust_to_meta_name='pixel_clust_to_meta.feather', seed=42):
     """Run consensus clustering algorithm on pixel-level summed data across channels
 
     Saves data with consensus cluster labels to `consensus_dir`. Computes and saves the
@@ -929,9 +919,9 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
             The number of consensus clusters
         cap (int):
             z-score cap to use when hierarchical clustering
-        cluster_dir (str):
-            Name of the file containing the pixel data with cluster labels
-            Created by `cluster_pixels`
+        data_dir (str):
+            Name of the directory which contains the full preprocessed pixel data.
+            This data should also have the SOM cluster labels appended from `cluster_pixels`.
         pc_chan_avg_som_cluster_name (str):
             Name of file to save the channel-averaged results across all SOM clusters to
         pc_chan_avg_meta_cluster_name (str):
@@ -945,16 +935,15 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
     """
 
     # define the paths to the data
-    clustered_path = os.path.join(base_dir, cluster_dir)
+    data_path = os.path.join(base_dir, data_dir)
     som_cluster_avg_path = os.path.join(base_dir, pc_chan_avg_som_cluster_name)
-    consensus_path = os.path.join(base_dir, consensus_dir)
     clust_to_meta_path = os.path.join(base_dir, clust_to_meta_name)
 
     # if the path to the SOM clustered data doesn't exist
-    if not os.path.exists(clustered_path):
+    if not os.path.exists(data_path):
         raise FileNotFoundError(
-            'Cluster dir %s does not exist in base_dir %s' %
-            (cluster_dir, base_dir)
+            'Data dir %s does not exist in base_dir %s' %
+            (data_dir, base_dir)
         )
 
     # if the path to the average channel expression per SOM cluster doesn't exist
@@ -964,13 +953,9 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
             (pc_chan_avg_som_cluster_name, base_dir)
         )
 
-    # make consensus_dir if it doesn't exist
-    if not os.path.exists(consensus_path):
-        os.mkdir(consensus_path)
-
     # run the consensus clustering process
     process_args = ['Rscript', '/pixel_consensus_cluster.R', ','.join(fovs), ','.join(channels),
-                    str(max_k), str(cap), clustered_path, som_cluster_avg_path, consensus_path,
+                    str(max_k), str(cap), data_path, som_cluster_avg_path,
                     clust_to_meta_path, str(seed)]
 
     process = subprocess.Popen(process_args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
@@ -1000,7 +985,7 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
         channels,
         base_dir,
         'pixel_meta_cluster',
-        consensus_dir,
+        data_dir,
         keep_count=True
     )
 
@@ -1032,7 +1017,7 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
 
 
 def apply_pixel_meta_cluster_remapping(fovs, channels, base_dir,
-                                       pixel_consensus_dir,
+                                       pixel_data_dir,
                                        pixel_remapped_name,
                                        pc_chan_avg_som_cluster_name,
                                        pc_chan_avg_meta_cluster_name):
@@ -1050,8 +1035,10 @@ def apply_pixel_meta_cluster_remapping(fovs, channels, base_dir,
             The list of channels to subset on
         base_dir (str):
             The path to the data directories
-        pixel_consensus_dir (str):
-            Name of directory with the pixel-level consensus data (SOM and meta labels added)
+        pixel_data_dir (str):
+            Name of directory with the full pixel data.
+            This data should also have the SOM cluster labels appended from `cluster_pixels`
+            and the meta cluster labels appended from `pixel_consensus_cluster`.
         pixel_remapped_name (str):
             Name of the file containing the pixel SOM clusters to their remapped meta clusters
         pc_chan_avg_som_cluster_name (str):
@@ -1061,15 +1048,15 @@ def apply_pixel_meta_cluster_remapping(fovs, channels, base_dir,
     """
 
     # define the data paths
-    pixel_consensus_path = os.path.join(base_dir, pixel_consensus_dir)
+    pixel_data_path = os.path.join(base_dir, pixel_data_dir)
     pixel_remapped_path = os.path.join(base_dir, pixel_remapped_name)
     som_cluster_avg_path = os.path.join(base_dir, pc_chan_avg_som_cluster_name)
     meta_cluster_avg_path = os.path.join(base_dir, pc_chan_avg_meta_cluster_name)
 
     # file path validation
-    if not os.path.exists(pixel_consensus_path):
-        raise FileNotFoundError('Pixel consensus dir %s does not exist in base_dir %s' %
-                                (pixel_consensus_dir, base_dir))
+    if not os.path.exists(pixel_data_path):
+        raise FileNotFoundError('Pixel data dir %s does not exist in base_dir %s' %
+                                (pixel_data_dir, base_dir))
 
     if not os.path.exists(pixel_remapped_path):
         raise FileNotFoundError('Pixel remapping file %s does not exist in base_dir %s' %
@@ -1122,7 +1109,7 @@ def apply_pixel_meta_cluster_remapping(fovs, channels, base_dir,
     print("Using re-mapping scheme to re-label pixel meta clusters")
     for fov in fovs:
         # get the path to the fov
-        fov_path = os.path.join(pixel_consensus_path, fov + '.feather')
+        fov_path = os.path.join(pixel_data_path, fov + '.feather')
 
         # read in the fov data with SOM and meta cluster labels
         fov_data = feather.read_dataframe(fov_path)
@@ -1154,7 +1141,7 @@ def apply_pixel_meta_cluster_remapping(fovs, channels, base_dir,
         channels,
         base_dir,
         'pixel_meta_cluster',
-        pixel_consensus_dir,
+        pixel_data_dir,
         keep_count=True
     )
     pixel_channel_avg_meta_cluster['pixel_meta_cluster_rename'] = \
