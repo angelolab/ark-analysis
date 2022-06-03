@@ -184,14 +184,13 @@ def mocked_cluster_cells(base_dir, cluster_counts_norm_name='cluster_counts_norm
 
 
 def mocked_cell_consensus_cluster(fovs, channels, base_dir, pixel_cluster_col, max_k=20, cap=3,
-                                  cell_cluster_name='cell_mat_clustered.feather',
+                                  cell_data_name='cell_mat.feather',
                                   cell_som_cluster_avgs_name='cell_som_cluster_avgs.csv',
                                   cell_meta_cluster_avgs_name='cell_meta_cluster_avgs.csv',
                                   cell_cluster_col='cell_meta_cluster',
                                   weighted_cell_channel_name='weighted_cell_channel.csv',
                                   cell_cluster_channel_avg_name='cell_cluster_channel_avg.csv',
-                                  clust_to_meta_name='cell_clust_to_meta.feather',
-                                  cell_consensus_name='cell_mat_consensus.feather', seed=42):
+                                  clust_to_meta_name='cell_clust_to_meta.feather', seed=42):
     # read in the cluster averages
     cluster_avg = pd.read_csv(os.path.join(base_dir, cell_som_cluster_avgs_name))
 
@@ -208,13 +207,13 @@ def mocked_cell_consensus_cluster(fovs, channels, base_dir, pixel_cluster_col, m
     cluster_ids = cluster_ids.astype(int) % 2
 
     # read in the original cell data
-    cell_data = feather.read_dataframe(os.path.join(base_dir, cell_cluster_name))
+    cell_data = feather.read_dataframe(os.path.join(base_dir, cell_data_name))
 
     # add hCluster_cap labels
     cell_data['cell_meta_cluster'] = np.repeat(cluster_ids.values, 10)
 
     # write cell_data
-    feather.write_dataframe(cell_data, os.path.join(base_dir, cell_consensus_name))
+    feather.write_dataframe(cell_data, os.path.join(base_dir, cell_data_name))
 
 
 # TODO: make the test data more diverse for every function
@@ -1732,12 +1731,12 @@ def test_cluster_cells(mocker):
 
 
 def test_cell_consensus_cluster(mocker):
-    # basic error check: path to cell clustered does not exist
+    # basic error check: path to cell data does not exist
     with tempfile.TemporaryDirectory() as temp_dir:
         with pytest.raises(FileNotFoundError):
             som_utils.cell_consensus_cluster(
                 fovs=[], channels=[], base_dir=temp_dir,
-                cell_cluster_name='bad_path', pixel_cluster_col='blah'
+                cell_data_name='bad_path', pixel_cluster_col='blah'
             )
 
     # basic error check: cell cluster avg table not found
@@ -1745,7 +1744,7 @@ def test_cell_consensus_cluster(mocker):
         with pytest.raises(FileNotFoundError):
             cell_cluster_data = pd.DataFrame()
             feather.write_dataframe(
-                cell_cluster_data, os.path.join(temp_dir, 'cell_mat_clustered.feather')
+                cell_cluster_data, os.path.join(temp_dir, 'cell_mat.feather')
             )
 
             som_utils.cell_consensus_cluster(
@@ -1758,7 +1757,7 @@ def test_cell_consensus_cluster(mocker):
             cell_cluster_data = pd.DataFrame()
             cell_cluster_avg_data = pd.DataFrame()
             feather.write_dataframe(
-                cell_cluster_data, os.path.join(temp_dir, 'cell_mat_clustered.feather')
+                cell_cluster_data, os.path.join(temp_dir, 'cell_mat.feather')
             )
             cell_cluster_avg_data.to_csv(
                 os.path.join(temp_dir, 'cell_som_cluster_avgs.csv'),
@@ -1782,7 +1781,7 @@ def test_cell_consensus_cluster(mocker):
             cluster_data['cell_som_cluster'] = np.repeat(np.arange(10), 10)
 
             # write clustered data
-            clustered_path = os.path.join(temp_dir, 'cell_mat_clustered.feather')
+            clustered_path = os.path.join(temp_dir, 'cell_mat.feather')
             feather.write_dataframe(cluster_data, clustered_path)
 
             # compute average counts of each pixel SOM/meta cluster across all cell SOM clusters
@@ -1813,14 +1812,17 @@ def test_cell_consensus_cluster(mocker):
                 fovs=[], channels=[], base_dir=temp_dir, pixel_cluster_col=cluster_prefix
             )
 
-            # assert the consensus feather file has been created
-            assert os.path.exists(os.path.join(temp_dir, 'cell_mat_consensus.feather'))
-
-            # assert we idn't assign any cluster 2 or above
             cell_consensus_data = feather.read_dataframe(
-                os.path.join(temp_dir, 'cell_mat_consensus.feather')
+                os.path.join(temp_dir, 'cell_mat.feather')
             )
 
+            # assert the cell_som_cluster labels are intact
+            assert np.all(
+                cluster_data['cell_som_cluster'].values ==
+                cell_consensus_data['cell_som_cluster'].values
+            )
+
+            # assert we idn't assign any cluster 2 or above
             cluster_ids = cell_consensus_data['cell_meta_cluster']
             assert np.all(cluster_ids < 2)
 
