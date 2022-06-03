@@ -1360,6 +1360,7 @@ def cluster_cells(base_dir, cluster_counts_norm_name='cluster_counts_norm.feathe
     cluster_counts_norm = cluster_counts_norm.drop(
         columns=['fov', 'segmentation_label', 'cell_size']
     )
+
     misc_utils.verify_same_elements(
         enforce_order=True,
         cluster_counts_norm_columns=cluster_counts_norm.columns.values,
@@ -1452,8 +1453,6 @@ def cell_consensus_cluster(fovs, channels, base_dir, pixel_cluster_col, max_k=20
             Same as above except for cell meta clusters
         clust_to_meta_name (str):
             Name of file storing the SOM cluster to meta cluster mapping
-        cell_consensus_name (str):
-            Name of file to save the consensus clustered results (SOM and meta labels added)
         seed (int):
             The random seed to set for consensus clustering
     """
