@@ -1,14 +1,13 @@
 # Runs consensus clustering on the pixel data averaged across all channels
 
-# Usage: Rscript {fovs} {markers} {maxK} {cap} {pixelClusterDir} {clusterAvgPath} {pixelMatConsensus} {clustToMeta} {seed}
+# Usage: Rscript {fovs} {markers} {maxK} {cap} {pixelMatDir} {clusterAvgPath} {clustToMeta} {seed}
 
 # - fovs: list of fovs to cluster
 # - markers: list of channel columns to use
 # - maxK: number of consensus clusters
 # - cap: max z-score cutoff
-# - pixelClusterDir: path to the pixel data with SOM clusters
+# - pixelMatDir: path to the pixel data with SOM clusters
 # - clusterAvgPath: path to the averaged cluster data
-# - pixelMatConsensus: path to file where the consensus cluster results will be written
 # - clustToMeta: path to file where the SOM cluster to meta cluster mapping will be written
 # - seed: random factor
 
@@ -31,8 +30,8 @@ maxK <- strtoi(args[3])
 # get z-score scaling factor
 cap <- strtoi(args[4])
 
-# get path to the clustered pixel data
-pixelClusterDir <- args[5]
+# get path to the pixel data
+pixelMatDir <- args[5]
 
 # get path to the averaged channel data
 clusterAvgPath <- args[6]
@@ -67,7 +66,7 @@ print("Writing consensus clustering results")
 for (i in 1:length(fovs)) {
     # read in pixel data, we'll need the cluster column for mapping
     fileName <- file.path(fovs[i], "feather", fsep=".")
-    matPath <- file.path(pixelClusterDir, fileName)
+    matPath <- file.path(pixelMatDir, fileName)
     fovPixelData <- arrow::read_feather(matPath)
 
     # assign hierarchical cluster labels

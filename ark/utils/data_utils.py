@@ -89,7 +89,7 @@ def label_cells_by_cluster(fovs, all_data, label_maps, fov_col=settings.FOV_ID,
                         dims=["fovs", "rows", "cols"])
 
 
-def generate_cell_cluster_mask(fovs, base_dir, seg_dir, cell_consensus_name,
+def generate_cell_cluster_mask(fovs, base_dir, seg_dir, cell_data_name,
                                cell_cluster_col='cell_meta_cluster', seg_suffix='_feature_0.tif'):
     """For each fov, create a mask labeling each cell with their SOM or meta cluster label
 
@@ -100,8 +100,8 @@ def generate_cell_cluster_mask(fovs, base_dir, seg_dir, cell_consensus_name,
             The path to the data directory
         seg_dir (str):
             The path to the segmentation data
-        cell_consensus_name (str):
-            The path to the data with both cell SOM and meta cluster assignments
+        cell_data_name (str):
+            The path to the cell data with both cell SOM and meta cluster assignments
         cell_cluster_col (str):
             Whether to assign SOM or meta clusters.
             Needs to be `'cell_som_cluster'` or `'cell_meta_cluster'`
@@ -117,9 +117,9 @@ def generate_cell_cluster_mask(fovs, base_dir, seg_dir, cell_consensus_name,
     if not os.path.exists(seg_dir):
         raise FileNotFoundError("seg_dir %s does not exist" % seg_dir)
 
-    if not os.path.exists(os.path.join(base_dir, cell_consensus_name)):
+    if not os.path.exists(os.path.join(base_dir, cell_data_name)):
         raise FileNotFoundError(
-            "consensus_dir %s does not exist in base_dir %s" % (cell_consensus_name, base_dir))
+            "Cell data file %s does not exist in base_dir %s" % (cell_data_name, base_dir))
 
     # verify the cluster_col provided is valid
     verify_in_list(
@@ -128,7 +128,7 @@ def generate_cell_cluster_mask(fovs, base_dir, seg_dir, cell_consensus_name,
     )
 
     # load the consensus data in
-    cell_consensus_data = feather.read_dataframe(os.path.join(base_dir, cell_consensus_name))
+    cell_consensus_data = feather.read_dataframe(os.path.join(base_dir, cell_data_name))
 
     # ensure the cluster col will be displayed as an integer and not a float
     cell_consensus_data[cell_cluster_col] = cell_consensus_data[cell_cluster_col].astype(int)

@@ -835,9 +835,12 @@ def cluster_pixels(fovs, channels, base_dir, data_dir='pixel_mat_data',
     norm_vals = feather.read_dataframe(os.path.join(base_dir, norm_vals_name))
     sample_fov = feather.read_dataframe(os.path.join(base_dir, data_dir, data_files[0]))
 
+    # for verification purposes, drop the metadata columns
     cols_to_drop = ['fov', 'row_index', 'column_index']
-    if 'segmentation_label' in sample_fov.columns.values:
-        cols_to_drop.append('segmentation_label')
+    for col in ['segmentation_label', 'pixel_som_cluster',
+                'pixel_meta_cluster', 'pixel_meta_cluster_rename']:
+        if col in sample_fov.columns.values:
+            cols_to_drop.append(col)
 
     sample_fov = sample_fov.drop(
         columns=cols_to_drop
@@ -1164,7 +1167,7 @@ def apply_pixel_meta_cluster_remapping(fovs, channels, base_dir,
     pixel_channel_avg_som_cluster.to_csv(som_cluster_avg_path, index=False)
 
 
-def train_cell_som(fovs, channels, base_dir, pixel_consensus_dir, cell_table_path,
+def train_cell_som(fovs, channels, base_dir, pixel_data_dir, cell_table_path,
                    cluster_counts_name='cluster_counts.feather',
                    cluster_counts_norm_name='cluster_counts_norm.feather',
                    pixel_cluster_col='pixel_meta_cluster_rename',
@@ -1184,9 +1187,9 @@ def train_cell_som(fovs, channels, base_dir, pixel_consensus_dir, cell_table_pat
             The list of channels used in pixel clustering
         base_dir (str):
             The path to the data directories
-        pixel_consensus_dir (str):
-            Name of directory with the pixel-level consensus data (SOM and meta labels added)
-            Created by `pixel_consensus_cluster`
+        pixel_data_dir (str):
+            Name of directory with the pixel data with SOM and meta cluster labels added.
+            Created by `pixel_consensus_cluster`.
         cell_table_path (str):
             Path of the cell table, needs to be created with `Segment_Image_Data.ipynb`
         cluster_counts_name (str):
@@ -1220,7 +1223,7 @@ def train_cell_som(fovs, channels, base_dir, pixel_consensus_dir, cell_table_pat
     """
 
     # define the data paths
-    consensus_path = os.path.join(base_dir, pixel_consensus_dir)
+    pixel_data_path = os.path.join(base_dir, pixel_data_dir)
     cluster_counts_path = os.path.join(base_dir, cluster_counts_name)
     cluster_counts_norm_path = os.path.join(base_dir, cluster_counts_norm_name)
     weights_path = os.path.join(base_dir, weights_name)
@@ -1231,9 +1234,9 @@ def train_cell_som(fovs, channels, base_dir, pixel_consensus_dir, cell_table_pat
                                 cell_table_path)
 
     # if the pixel data with the SOM and meta labels path does not exist
-    if not os.path.exists(consensus_path):
-        raise FileNotFoundError('Pixel consensus dir %s does not exist in base_dir %s' %
-                                (consensus_path, base_dir))
+    if not os.path.exists(pixel_data_path):
+        raise FileNotFoundError('Pixel data dir %s does not exist in base_dir %s' %
+                                (pixel_data_path, base_dir))
 
     # verify the cluster_col provided is valid
     misc_utils.verify_in_list(
@@ -1247,7 +1250,7 @@ def train_cell_som(fovs, channels, base_dir, pixel_consensus_dir, cell_table_pat
     # but the normalized matrix will be used to train, SOM cluster, and consensus cluster
     print("Counting the number of pixel SOM/meta cluster counts for each fov/cell pair")
     cluster_counts, cluster_counts_norm = create_c2pc_data(
-        fovs, consensus_path, cell_table_path, pixel_cluster_col
+        fovs, pixel_data_path, cell_table_path, pixel_cluster_col
     )
 
     # write the created matrices
@@ -1301,7 +1304,7 @@ def train_cell_som(fovs, channels, base_dir, pixel_consensus_dir, cell_table_pat
 
 def cluster_cells(base_dir, cluster_counts_norm_name='cluster_counts_norm.feather',
                   weights_name='cell_weights.feather',
-                  cell_cluster_name='cell_mat_clustered.feather',
+                  cell_data_name='cell_mat.feather',
                   pixel_cluster_col_prefix='pixel_meta_cluster_rename',
                   cell_som_cluster_count_avgs_name='cell_som_cluster_count_avgs.csv'):
     """Uses trained weights to assign cluster labels on full cell data
@@ -1317,7 +1320,7 @@ def cluster_cells(base_dir, cluster_counts_norm_name='cluster_counts_norm.feathe
             normalized by `cell_size`
         weights_name (str):
             The name of the weights file, created by `train_cell_som`
-        cell_cluster_name (str):
+        cell_data_name (str):
             Name of the file to save the cell data with cell SOM cluster labels
         pixel_cluster_col_prefix (str):
             The name of the prefixes of each of the pixel SOM/meta columns
@@ -1329,7 +1332,7 @@ def cluster_cells(base_dir, cluster_counts_norm_name='cluster_counts_norm.feathe
     # define the paths to the data
     cluster_counts_norm_path = os.path.join(base_dir, cluster_counts_norm_name)
     weights_path = os.path.join(base_dir, weights_name)
-    cell_cluster_path = os.path.join(base_dir, cell_cluster_name)
+    cell_data_path = os.path.join(base_dir, cell_data_name)
 
     # if the path to the normalized pixel cluster counts per cell doesn't exist
     if not os.path.exists(cluster_counts_norm_path):
@@ -1365,7 +1368,7 @@ def cluster_cells(base_dir, cluster_counts_norm_name='cluster_counts_norm.feathe
 
     # run the trained SOM on the dataset, assigning clusters
     process_args = ['Rscript', '/run_cell_som.R', cluster_counts_norm_path,
-                    weights_path, cell_cluster_path]
+                    weights_path, cell_data_path]
 
     process = subprocess.Popen(process_args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
@@ -1389,7 +1392,7 @@ def cluster_cells(base_dir, cluster_counts_norm_name='cluster_counts_norm.feathe
     # compute the average pixel SOM/meta counts per cell SOM cluster
     print("Computing the average number of pixel SOM/meta cluster counts per cell SOM cluster")
     cell_som_cluster_avgs_and_counts = compute_cell_cluster_count_avg(
-        cell_cluster_path,
+        cell_data_path,
         pixel_cluster_col_prefix,
         'cell_som_cluster',
         keep_count=True
@@ -1403,14 +1406,13 @@ def cluster_cells(base_dir, cluster_counts_norm_name='cluster_counts_norm.feathe
 
 
 def cell_consensus_cluster(fovs, channels, base_dir, pixel_cluster_col, max_k=20, cap=3,
-                           cell_cluster_name='cell_mat_clustered.feather',
+                           cell_data_name='cell_mat.feather',
                            cell_som_cluster_count_avgs_name='cell_som_cluster_avgs.csv',
                            cell_meta_cluster_count_avgs_name='cell_meta_cluster_avgs.csv',
                            weighted_cell_channel_name='weighted_cell_channel.csv',
                            cell_som_cluster_channel_avg_name='cell_som_cluster_channel_avg.csv',
                            cell_meta_cluster_channel_avg_name='cell_meta_cluster_channel_avg.csv',
-                           clust_to_meta_name='cell_clust_to_meta.feather',
-                           cell_consensus_name='cell_mat_consensus.feather', seed=42):
+                           clust_to_meta_name='cell_clust_to_meta.feather', seed=42):
     """Run consensus clustering algorithm on cell-level data averaged across each cell SOM cluster
 
     Saves data with consensus cluster labels to cell_consensus_name. Computes and saves the
@@ -1433,9 +1435,9 @@ def cell_consensus_cluster(fovs, channels, base_dir, pixel_cluster_col, max_k=20
             The number of consensus clusters
         cap (int):
             z-score cap to use when hierarchical clustering
-        cell_cluster_name (str):
-            Name of the file containing the cell data with cell SOM cluster labels
-            Created by cluster_cells
+        cell_data_name (str):
+            Name of the file containing the cell data with cell SOM cluster labels.
+            Created by cluster_cells.
         cell_som_cluster_count_avgs_name (str):
             The average number of pixel SOM/meta clusters per cell SOM cluster.
             Used to run consensus clustering on.
@@ -1457,17 +1459,16 @@ def cell_consensus_cluster(fovs, channels, base_dir, pixel_cluster_col, max_k=20
     """
 
     # define the paths to the data
-    clustered_path = os.path.join(base_dir, cell_cluster_name)
+    cell_data_path = os.path.join(base_dir, cell_data_name)
     som_cluster_counts_avg_path = os.path.join(base_dir, cell_som_cluster_count_avgs_name)
-    consensus_path = os.path.join(base_dir, cell_consensus_name)
     weighted_channel_path = os.path.join(base_dir, weighted_cell_channel_name)
     clust_to_meta_path = os.path.join(base_dir, clust_to_meta_name)
 
     # if the path to the SOM clustered data doesn't exist
-    if not os.path.exists(clustered_path):
+    if not os.path.exists(cell_data_path):
         raise FileNotFoundError(
-            'Cell SOM cluster data file %s does not exist in base_dir %s' %
-            (cell_cluster_name, base_dir)
+            'Cell data file %s does not exist in base_dir %s' %
+            (cell_data_name, base_dir)
         )
 
     # if the path to the average pixel cluster counts per cell cluster doesn't exist
@@ -1492,8 +1493,8 @@ def cell_consensus_cluster(fovs, channels, base_dir, pixel_cluster_col, max_k=20
 
     # run the consensus clustering process
     process_args = ['Rscript', '/cell_consensus_cluster.R', pixel_cluster_col,
-                    str(max_k), str(cap), clustered_path,
-                    som_cluster_counts_avg_path, consensus_path, clust_to_meta_path, str(seed)]
+                    str(max_k), str(cap), cell_data_path,
+                    som_cluster_counts_avg_path, clust_to_meta_path, str(seed)]
 
     process = subprocess.Popen(process_args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
@@ -1517,7 +1518,7 @@ def cell_consensus_cluster(fovs, channels, base_dir, pixel_cluster_col, max_k=20
     # compute the average pixel SOM/meta counts per cell meta cluster
     print("Compute the average number of pixel SOM/meta cluster counts per cell meta cluster")
     cell_meta_cluster_avgs_and_counts = compute_cell_cluster_count_avg(
-        consensus_path,
+        cell_data_path,
         pixel_cluster_col,
         'cell_meta_cluster',
         keep_count=True
@@ -1560,7 +1561,7 @@ def cell_consensus_cluster(fovs, channels, base_dir, pixel_cluster_col, max_k=20
         channels,
         base_dir,
         weighted_cell_channel_name,
-        cell_consensus_name,
+        cell_data_name,
         'cell_som_cluster'
     )
 
@@ -1586,7 +1587,7 @@ def cell_consensus_cluster(fovs, channels, base_dir, pixel_cluster_col, max_k=20
         channels,
         base_dir,
         weighted_cell_channel_name,
-        cell_consensus_name,
+        cell_data_name,
         'cell_meta_cluster'
     )
 
@@ -1959,7 +1960,7 @@ def generate_weighted_channel_avg_heatmap(cell_cluster_channel_avg_path, cell_cl
     )
 
 
-def add_consensus_labels_cell_table(base_dir, cell_table_path, cell_consensus_name):
+def add_consensus_labels_cell_table(base_dir, cell_table_path, cell_data_name):
     """Adds the consensus cluster labels to the cell table,
     then resaves data to `{cell_table_path}_cell_labels.csv`
 
@@ -1969,25 +1970,25 @@ def add_consensus_labels_cell_table(base_dir, cell_table_path, cell_consensus_na
             The path to the data directory
         cell_table_path (str):
             Path of the cell table, needs to be created with `Segment_Image_Data.ipynb`
-        cell_consensus_name (str):
+        cell_data_name (str):
             Name of file with the cell consensus clustered results (both cell SOM and meta labels)
     """
 
     # define the data paths
-    cell_consensus_path = os.path.join(base_dir, cell_consensus_name)
+    cell_data_path = os.path.join(base_dir, cell_data_name)
 
     # file path validation
     if not os.path.exists(cell_table_path):
         raise FileNotFoundError('Cell table file %s does not exist' %
                                 cell_table_path)
 
-    if not os.path.exists(cell_consensus_path):
-        raise FileNotFoundError('Cell consensus file %s does not exist in base_dir %s' %
-                                (cell_consensus_name, base_dir))
+    if not os.path.exists(cell_data_path):
+        raise FileNotFoundError('Cell data file %s does not exist in base_dir %s' %
+                                (cell_data_name, base_dir))
 
     # read in the data, ensure sorted by FOV column just in case
     cell_table = pd.read_csv(cell_table_path)
-    consensus_data = feather.read_dataframe(cell_consensus_path)
+    consensus_data = feather.read_dataframe(cell_data_path)
 
     # for a simpler merge, rename segmentation_label to label in consensus_data
     consensus_data = consensus_data.rename(

@@ -1,12 +1,11 @@
 # Assigns cluster labels to pixel data using a trained SOM weights matrix
 
-# Usage: Rscript run_pixel_som.R {fovs} {pixelMatDir} {normValsPath} {pixelWeightsPath} {pixelClusterDir}
+# Usage: Rscript run_pixel_som.R {fovs} {pixelMatDir} {normValsPath} {pixelWeightsPath}
 
 # - fovs: list of fovs to cluster
 # - pixelMatDir: path to directory containing the complete pixel data
 # - normValsPath: path to the 99.9% normalization values file (created during preprocessing)
 # - pixelWeightsPath: path to the SOM weights file
-# - pixelClusterDir: path to directory where the clustered data will be written to
 
 library(arrow)
 library(data.table)
