@@ -1,6 +1,7 @@
 import os
 import pytest
 import tempfile
+import warnings
 
 import feather
 from matplotlib.colors import ListedColormap
@@ -275,9 +276,10 @@ def test_normalize_rows():
     assert np.all(fov_pixel_matrix_sub.drop(columns=meta_cols).values == [1 / 3, 2 / 3])
 
 
-def test_check_for_modified_channels():
+@parametrize('chan_names, err_str', [(['CK18', 'CK17', 'CK18_smoothed'], 'selected CK18'),
+                                     (['CK17', 'CK18', 'CK17_nuc_include'], 'selected CK17')])
+def test_check_for_modified_channels(chan_names, err_str):
     with tempfile.TemporaryDirectory() as temp_dir:
-        chan_names = ['CK17', 'CK18', 'CK18_smoothed']
         test_fov = 'fov1'
 
         test_fov_path = os.path.join(temp_dir, test_fov)
@@ -285,9 +287,17 @@ def test_check_for_modified_channels():
         for chan in chan_names:
             test_utils._make_blank_file(test_fov_path, chan + '.tiff')
 
-        selected_chans = ['CK18', 'CK17']
+        selected_chans = chan_names[:-1]
 
-        with pytest.warns(UserWarning, match='selected CK18'):
+        with pytest.warns(UserWarning, match=err_str):
+            som_utils.check_for_modified_channels(tiff_dir=temp_dir, test_fov=test_fov,
+                                                  img_sub_folder='', channels=selected_chans)
+
+        # check that no warning is raised
+        selected_chans = chan_names[1:]
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
             som_utils.check_for_modified_channels(tiff_dir=temp_dir, test_fov=test_fov,
                                                   img_sub_folder='', channels=selected_chans)
 

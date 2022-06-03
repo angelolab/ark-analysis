@@ -74,16 +74,23 @@ def check_for_modified_channels(tiff_dir, test_fov, img_sub_folder, channels):
 
     # get all channels within example FOV
     all_channels = io_utils.list_files(os.path.join(tiff_dir, test_fov, img_sub_folder))
+    all_channels = io_utils.remove_file_extensions(all_channels
+                                                   )
+    # define potential modifications to channel names
+    mods = ['_smoothed', '_nuc_include', '_nuc_exclude']
 
     # loop over each user-provided channel
     for channel in channels:
-        # check for substring matching
-        matches = [match for match in all_channels if channel in match]
-
-        if len(matches) > 1:
-            warnings.warn('You selected {} as the channel to analyze, but there were multiple '
-                          'close matches: {}. Make sure you selected the correct version of the '
-                          'channel for inclusion in clustering'.format(channel, matches))
+        for mod in mods:
+            # check for substring matching
+            chan_mod = channel + mod
+            if chan_mod in all_channels:
+                warnings.warn('You selected {} as the channel to analyze, but there were potential'
+                              ' modified channels found: {}. Make sure you selected the correct '
+                              'version of the channel for inclusion in '
+                              'clustering'.format(channel, chan_mod))
+            else:
+                print(chan_mod, all_channels)
 
 
 def smooth_channels(fovs, tiff_dir, img_sub_folder, channels, smooth_vals):
