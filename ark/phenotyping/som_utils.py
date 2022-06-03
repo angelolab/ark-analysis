@@ -95,14 +95,18 @@ def check_for_modified_channels(tiff_dir, test_fov, img_sub_folder, channels):
 
 def smooth_channels(fovs, tiff_dir, img_sub_folder, channels, smooth_vals):
     """Adds additional smoothing for selected channels as a preprocessing step
+
     Args:
         fovs (list):
             List of fovs to process
         tiff_dir (str):
             Name of the directory containing the tiff files
-        img_sub_folder (str): sub-folder within each FOV containing image data
-        channels (list): list of channels to apply smoothing to
-        smooth_vals (list or int): amount to smooth channels. If a single int, applies
+        img_sub_folder (str):
+            sub-folder within each FOV containing image data
+        channels (list):
+            list of channels to apply smoothing to
+        smooth_vals (list or int):
+            amount to smooth channels. If a single int, applies
             to all channels. Otherwise, a custom value per channel can be supplied
     """
 
