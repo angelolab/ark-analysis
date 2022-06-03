@@ -258,11 +258,10 @@ def flowsom_pixel_cluster(tb, flowsom_dir, fovs, channels,
             The prefix to place before each pixel clustering directory/file
     """
 
-    # create sample consensus dir
-    consensus_path = os.path.join(flowsom_dir,
-                                  '%s_pixel_output_dir' % pixel_prefix,
-                                  '%s_pixel_mat_consensus' % pixel_prefix)
-    os.mkdir(consensus_path)
+    # get path to the data
+    data_path = os.path.join(flowsom_dir,
+                             '%s_pixel_output_dir' % pixel_prefix,
+                             '%s_pixel_mat_data' % pixel_prefix)
 
     # make sample consensus data for each fov
     for fov in fovs:
@@ -283,7 +282,7 @@ def flowsom_pixel_cluster(tb, flowsom_dir, fovs, channels,
 
         feather.write_dataframe(
             fov_data,
-            os.path.join(consensus_path, '%s.feather' % fov),
+            os.path.join(data_path, '%s.feather' % fov),
             compression='uncompressed'
         )
 
@@ -433,7 +432,7 @@ def flowsom_cell_setup(tb, flowsom_dir, pixel_dir, pixel_cluster_col='pixel_meta
         'channels': chans,
         'segmentation_dir': os.path.join(flowsom_dir, 'deepcell_output'),
         'seg_suffix': '_feature_0.tif',
-        'pixel_consensus_dir': os.path.join(pixel_dir, 'sample_consensus_dir'),
+        'pixel_data_dir': os.path.join(pixel_dir, 'sample_data_dir'),
         'pc_chan_avg_som_cluster_name': os.path.join(pixel_dir, 'sample_pixel_som_chan_exp.csv'),
         'pc_chan_avg_meta_cluster_name': os.path.join(pixel_dir, 'sample_pixel_meta_chan_exp.csv')
     }
@@ -555,7 +554,7 @@ def flowsom_cell_cluster(tb, flowsom_dir, fovs, channels,
         cell_consensus_data,
         os.path.join(flowsom_dir,
                      '%s_cell_output_dir' % cell_prefix,
-                     '%s_cell_mat_consensus.feather' % cell_prefix),
+                     '%s_cell_mat.feather' % cell_prefix),
         compression='uncompressed'
     )
     weighted_channel_exp.to_csv(
