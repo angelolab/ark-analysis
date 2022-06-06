@@ -40,7 +40,7 @@ def plot_clustering_result(img_xr, fovs, save_dir=None, cmap='tab20',
     """
 
     # verify the fovs are valid
-    verify_in_list(fov_names=fovs, unique_fovs=img_xr.fovs)
+    verify_in_list(fov_names=fovs, unique_fovs=img_xr.fovs.values)
 
     for fov in fovs:
         # define the figure
@@ -97,7 +97,7 @@ def plot_pixel_cell_cluster_overlay(img_xr, fovs, cluster_id_to_name_path, metac
     """
 
     # verify the fovs are valid
-    verify_in_list(fov_names=fovs, unique_fovs=img_xr.fovs)
+    verify_in_list(fov_names=fovs, unique_fovs=img_xr.fovs.values)
 
     # verify cluster_id_to_name_path exists
     if not os.path.exists(cluster_id_to_name_path):
