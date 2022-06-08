@@ -1,12 +1,14 @@
 import os
 import pytest
 import tempfile
+import warnings
 
 import feather
 from matplotlib.colors import ListedColormap
 import numpy as np
 import pandas as pd
 import skimage.io as io
+import scipy.ndimage as ndimage
 from sklearn.utils import shuffle
 import xarray as xr
 
@@ -14,6 +16,8 @@ import ark.phenotyping.som_utils as som_utils
 import ark.utils.io_utils as io_utils
 import ark.utils.misc_utils as misc_utils
 import ark.utils.test_utils as test_utils
+
+parametrize = pytest.mark.parametrize
 
 
 def mocked_train_pixel_som(fovs, channels, base_dir,
@@ -270,6 +274,85 @@ def test_normalize_rows():
     # assert all the rows sum to 0.5, 0.5
     # this also checks that all the zero-sum rows have been removed
     assert np.all(fov_pixel_matrix_sub.drop(columns=meta_cols).values == [1 / 3, 2 / 3])
+
+
+@parametrize('chan_names, err_str', [(['CK18', 'CK17', 'CK18_smoothed'], 'selected CK18'),
+                                     (['CK17', 'CK18', 'CK17_nuc_include'], 'selected CK17')])
+def test_check_for_modified_channels(chan_names, err_str):
+    with tempfile.TemporaryDirectory() as temp_dir:
+        test_fov = 'fov1'
+
+        test_fov_path = os.path.join(temp_dir, test_fov)
+        os.makedirs(test_fov_path)
+        for chan in chan_names:
+            test_utils._make_blank_file(test_fov_path, chan + '.tiff')
+
+        selected_chans = chan_names[:-1]
+
+        with pytest.warns(UserWarning, match=err_str):
+            som_utils.check_for_modified_channels(tiff_dir=temp_dir, test_fov=test_fov,
+                                                  img_sub_folder='', channels=selected_chans)
+
+        # check that no warning is raised
+        selected_chans = chan_names[1:]
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            som_utils.check_for_modified_channels(tiff_dir=temp_dir, test_fov=test_fov,
+                                                  img_sub_folder='', channels=selected_chans)
+
+
+@parametrize('smooth_vals', [2, [1, 3]])
+def test_smooth_channels(smooth_vals):
+    with tempfile.TemporaryDirectory() as temp_dir:
+        fovs, chans, imgs = test_utils.gen_fov_chan_names(num_fovs=3, num_chans=3,
+                                                          return_imgs=True)
+
+        filelocs, data_xr = test_utils.create_paired_xarray_fovs(
+            temp_dir, fovs, chans, img_shape=(10, 10), sub_dir="TIFs"
+        )
+        smooth_channels = ['chan0', 'chan1']
+
+        som_utils.smooth_channels(fovs=fovs, tiff_dir=temp_dir, img_sub_folder='TIFs',
+                                  channels=smooth_channels, smooth_vals=smooth_vals)
+
+        # check that correct value was applied
+        for fov in fovs:
+            for idx, chan in enumerate(chans):
+
+                # get correct image name
+                if chan in smooth_channels:
+                    suffix = '_smoothed'
+                else:
+                    suffix = ''
+                img = io.imread(os.path.join(temp_dir, fov, 'TIFs', chan + suffix + '.tiff'))
+
+                original_img = data_xr.loc[fov, :, :, chan].values
+
+                # for channels that were smoothed, get correct smooth based on parametrized values
+                if chan in smooth_channels:
+                    if type(smooth_vals) is int:
+                        current_smooth = smooth_vals
+                    else:
+                        current_smooth = smooth_vals[idx]
+                    original_img = ndimage.gaussian_filter(original_img, sigma=current_smooth)
+
+                # check that all channels match expected values
+                assert np.array_equal(img, original_img)
+
+        # check that mismatch in list length is caught
+        with pytest.raises(ValueError, match='same length'):
+            som_utils.smooth_channels(fovs=fovs, tiff_dir=temp_dir, img_sub_folder='TIFs',
+                                      channels=smooth_channels, smooth_vals=[1, 2, 3])
+
+        # check that wrong float is caught
+        with pytest.raises(ValueError, match='single integer'):
+            som_utils.smooth_channels(fovs=fovs, tiff_dir=temp_dir, img_sub_folder='TIFs',
+                                      channels=smooth_channels, smooth_vals=1.5)
+
+        # check that empty list doesn't raise an error
+        som_utils.smooth_channels(fovs=fovs, tiff_dir=temp_dir, img_sub_folder='TIFs',
+                                  channels=[], smooth_vals=smooth_vals)
 
 
 def test_compute_pixel_cluster_channel_avg():
