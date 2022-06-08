@@ -222,6 +222,19 @@ def mocked_cell_consensus_cluster(fovs, channels, base_dir, pixel_cluster_col, m
     feather.write_dataframe(cell_data, os.path.join(base_dir, cell_consensus_name))
 
 
+def mocked_create_fov_pixel_data(fov, channels, img_data, seg_labels, blur_factor,
+                                 subset_proportion, pixel_norm_val):
+    # create fake data to be compatible with downstream functions
+    data = np.random.rand(len(channels) * 5).reshape(5, len(channels))
+    df = pd.DataFrame(data, columns=channels)
+
+    # verify that each channel is 2x the previous
+    for i in range(len(channels) - 1):
+        assert np.allclose(img_data[..., i] * 2, img_data[..., i + 1])
+
+    return df, df
+
+
 def test_calculate_channel_percentiles():
     with tempfile.TemporaryDirectory() as temp_dir:
         fovs, chans, imgs = test_utils.gen_fov_chan_names(num_fovs=3, num_chans=3,
@@ -956,7 +969,7 @@ def test_create_fov_pixel_data():
 @parametrize('channel_norm_include', [True, False])
 @parametrize('pixel_norm_include', [True, False])
 def test_create_pixel_matrix(fovs, chans, sub_dir, seg_dir_include,
-                             channel_norm_include, pixel_norm_include):
+                             channel_norm_include, pixel_norm_include, mocker):
     sample_labels = test_utils.make_labels_xarray(label_data=None,
                                                   fov_ids=['fov0', 'fov1', 'fov2'],
                                                   compartment_names=['whole_cell'])
@@ -1113,6 +1126,41 @@ def test_create_pixel_matrix(fovs, chans, sub_dir, seg_dir_include,
             # assert the subsetted DataFrame size is 0.1 of the preprocessed DataFrame
             # NOTE: need to account for rounding if multiplying by 0.1 leads to non-int
             assert round(flowsom_pre_fov.shape[0] * 0.1) == flowsom_sub_fov.shape[0]
+
+        # check that correct values are passed to helper function
+        mocker.patch('ark.phenotyping.som_utils.create_fov_pixel_data',
+                     mocked_create_fov_pixel_data)
+
+        if sub_dir is None:
+            sub_dir = ''
+
+        # create fake data where all channels in each fov are the same
+        new_tiff_dir = os.path.join(temp_dir, 'new_tiff_dir')
+        os.makedirs(new_tiff_dir)
+        for fov in fovs:
+            img = np.random.rand(100).reshape((10, 10))
+            fov_dir = os.path.join(new_tiff_dir, fov, sub_dir)
+            os.makedirs(fov_dir)
+            for chan in chans:
+                io.imsave(os.path.join(fov_dir, chan + '.tiff'), img)
+
+        # create normalization file
+        pre_dir = os.path.join(temp_dir, 'pixel_mat_preprocessed')
+
+        # generate the data
+        mults = [1 * (1 / 2) ** i for i in range(len(chans))]
+
+        sample_channel_norm_dict = {chans[i]: mults[i] for i in range(len(chans))}
+        with open(os.path.join(pre_dir, 'channel_norm.json'), 'w') as cn:
+            json.dump(sample_channel_norm_dict, cn)
+
+        som_utils.create_pixel_matrix(fovs=fovs,
+                                      channels=chans,
+                                      base_dir=temp_dir,
+                                      tiff_dir=new_tiff_dir,
+                                      img_sub_folder=sub_dir,
+                                      seg_dir=seg_dir,
+                                      dtype='float32')
 
 
 def test_train_pixel_som(mocker):
