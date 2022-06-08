@@ -1,5 +1,6 @@
 import os
 import subprocess
+import warnings
 
 import feather
 import matplotlib.patches as patches
@@ -9,7 +10,7 @@ import pandas as pd
 import re
 import scipy.ndimage as ndimage
 import scipy.stats as stats
-from skimage.io import imread
+from skimage.io import imread, imsave
 import xarray as xr
 
 from ark.analysis import visualize
@@ -53,6 +54,87 @@ def normalize_rows(pixel_data, channels, include_seg_label=True):
     pixel_data_sub[meta_cols] = pixel_data.loc[pixel_data_sub.index.values, meta_cols]
 
     return pixel_data_sub
+
+
+def check_for_modified_channels(tiff_dir, test_fov, img_sub_folder, channels):
+    """Checks to make sure the user selected newly modified channels
+
+    Args:
+        tiff_dir (str):
+            Name of the directory containing the tiff files
+        test_fov (str):
+            example fov used to check channel names
+        img_sub_folder (str):
+            sub-folder within each FOV containing image data
+        channels (list): list of channels to use for analysis"""
+
+    # convert to path-compatible format
+    if img_sub_folder is None:
+        img_sub_folder = ''
+
+    # get all channels within example FOV
+    all_channels = io_utils.list_files(os.path.join(tiff_dir, test_fov, img_sub_folder))
+    all_channels = io_utils.remove_file_extensions(all_channels
+                                                   )
+    # define potential modifications to channel names
+    mods = ['_smoothed', '_nuc_include', '_nuc_exclude']
+
+    # loop over each user-provided channel
+    for channel in channels:
+        for mod in mods:
+            # check for substring matching
+            chan_mod = channel + mod
+            if chan_mod in all_channels:
+                warnings.warn('You selected {} as the channel to analyze, but there were potential'
+                              ' modified channels found: {}. Make sure you selected the correct '
+                              'version of the channel for inclusion in '
+                              'clustering'.format(channel, chan_mod))
+            else:
+                print(chan_mod, all_channels)
+
+
+def smooth_channels(fovs, tiff_dir, img_sub_folder, channels, smooth_vals):
+    """Adds additional smoothing for selected channels as a preprocessing step
+
+    Args:
+        fovs (list):
+            List of fovs to process
+        tiff_dir (str):
+            Name of the directory containing the tiff files
+        img_sub_folder (str):
+            sub-folder within each FOV containing image data
+        channels (list):
+            list of channels to apply smoothing to
+        smooth_vals (list or int):
+            amount to smooth channels. If a single int, applies
+            to all channels. Otherwise, a custom value per channel can be supplied
+    """
+
+    # no output if no channels specified
+    if channels is None or len(channels) == 0:
+        return
+
+    # convert to path-compatible format
+    if img_sub_folder is None:
+        img_sub_folder = ''
+
+    # convert int to list of same length
+    if type(smooth_vals) is int:
+        smooth_vals = [smooth_vals for _ in range(len(channels))]
+    elif type(smooth_vals) is list:
+        if len(smooth_vals) != len(channels):
+            raise ValueError("A list was provided for variable smooth_vals, but it does not "
+                             "have the same length as the list of channels provided")
+    else:
+        raise ValueError("Variable smooth_vals must be either a single integer or a list")
+
+    for fov in fovs:
+        for idx, chan in enumerate(channels):
+            img = load_utils.load_imgs_from_tree(data_dir=tiff_dir, img_sub_folder=img_sub_folder,
+                                                 fovs=[fov], channels=[chan]).values[0, :, :, 0]
+            chan_out = ndimage.gaussian_filter(img, sigma=smooth_vals[idx])
+            imsave(os.path.join(tiff_dir, fov, img_sub_folder, chan + '_smoothed.tiff'),
+                   chan_out, check_contrast=False)
 
 
 def compute_pixel_cluster_channel_avg(fovs, channels, base_dir, pixel_cluster_col,
@@ -630,6 +712,10 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
     # create subset_dir if it doesn't already exist
     if not os.path.exists(os.path.join(base_dir, subset_dir)):
         os.mkdir(os.path.join(base_dir, subset_dir))
+
+    # check to make sure correct channels were specified
+    check_for_modified_channels(tiff_dir=tiff_dir, test_fov=fovs[0], img_sub_folder=img_sub_folder,
+                                channels=channels)
 
     # create variable for storing 99.9% values
     quant_dat = pd.DataFrame()
