@@ -265,18 +265,20 @@ def test_calculate_channel_percentiles():
                                                                         img_sub_folder='TIFs',
                                                                         percentile=percentile)
         # test equality when all channels and all FOVs are included
-        for chan in chans:
-            assert predicted_percentiles[chan] == np.mean(percentile_dict[chan])
+        for idx, chan in enumerate(chans):
+            assert predicted_percentiles['norm_val'].values[idx] == np.mean(percentile_dict[chan])
 
         # include only a subset of channels and fovs
+        chans = chans[1:]
+        fovs = fovs[:-1]
         predicted_percentiles = som_utils.calculate_channel_percentiles(tiff_dir=temp_dir,
-                                                                        channels=chans[1:],
-                                                                        fovs=fovs[:-1],
+                                                                        channels=chans,
+                                                                        fovs=fovs,
                                                                         img_sub_folder='TIFs',
                                                                         percentile=percentile)
         # test equality for specific chans and FOVs
-        for chan in chans[1:]:
-            assert predicted_percentiles[chan] == np.mean(percentile_dict[chan][:-1])
+        for idx, chan in enumerate(chans):
+            assert predicted_percentiles['norm_val'].values[idx] == np.mean(percentile_dict[chan])
 
 
 def test_calculate_pixel_intensity_percentile():

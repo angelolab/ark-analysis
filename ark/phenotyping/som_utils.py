@@ -37,12 +37,12 @@ def calculate_channel_percentiles(tiff_dir, fovs, channels, img_sub_folder, perc
             The specific percentile to compute
 
     Returns:
-        dict:
+        pd.DataFrame:
             The mapping between each channel and its normalization value
     """
 
-    # create dict to hold all percentiles
-    percentile_dict = {}
+    # create list to hold percentiles
+    percentile_means = []
 
     # loop over channels and FOVs
     for channel in channels:
@@ -60,9 +60,11 @@ def calculate_channel_percentiles(tiff_dir, fovs, channels, img_sub_folder, perc
                 percentile_list.append(img_percentile)
 
         # save channel-wide average
-        percentile_dict[channel] = np.mean(percentile_list)
+        percentile_means.append(np.mean(percentile_list))
 
-    return percentile_dict
+    percentile_df = pd.DataFrame({'channel': channels, 'norm_val': percentile_means})
+
+    return percentile_df
 
 
 def calculate_pixel_intensity_percentile(tiff_dir, fovs, channels, img_sub_folder,
@@ -820,7 +822,7 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
     np.random.seed(seed)
 
     # create path for channel normalization values
-    channel_norm_path = os.path.join(base_dir, pre_dir, 'channel_norm.json')
+    channel_norm_path = os.path.join(base_dir, pre_dir, 'channel_norm.feather')
 
     if not os.path.exists(channel_norm_path):
 
