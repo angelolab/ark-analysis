@@ -13,6 +13,11 @@ from ark.utils import synthetic_spatial_datagen
 from ark.utils.tiff_utils import write_mibitiff
 
 
+def _make_blank_file(folder, name):
+    with open(os.path.join(folder, name), 'w'):
+        pass
+
+
 def gen_fov_chan_names(num_fovs, num_chans, return_imgs=False, use_delimiter=False):
     """Generate fov and channel names
 
