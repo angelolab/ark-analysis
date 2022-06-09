@@ -746,7 +746,7 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
                         img_sub_folder="TIFs", seg_suffix='_feature_0.tif',
                         pre_dir='pixel_mat_preprocessed',
                         subset_dir='pixel_mat_subsetted',
-                        norm_vals_name='norm_vals.feather', is_mibitiff=False,
+                        norm_vals_name='post_rowsum_chan_norm.feather', is_mibitiff=False,
                         blur_factor=2, subset_proportion=0.1, dtype="int16", seed=42,
                         channel_percentile=0.99):
     """For each fov, add a Gaussian blur to each channel and normalize channel sums for each pixel
@@ -923,7 +923,8 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
 
 
 def train_pixel_som(fovs, channels, base_dir,
-                    subset_dir='pixel_mat_subsetted', norm_vals_name='norm_vals.feather',
+                    subset_dir='pixel_mat_subsetted',
+                    norm_vals_name='post_rowsum_chan_norm.feather',
                     weights_name='pixel_weights.feather', xdim=10, ydim=10,
                     lr_start=0.05, lr_end=0.01, num_passes=1, seed=42):
     """Run the SOM training on the subsetted pixel data.
@@ -1003,8 +1004,8 @@ def train_pixel_som(fovs, channels, base_dir,
 
 
 def cluster_pixels(fovs, channels, base_dir, pre_dir='pixel_mat_preprocessed',
-                   norm_vals_name='norm_vals.feather', weights_name='pixel_weights.feather',
-                   cluster_dir='pixel_mat_clustered',
+                   norm_vals_name='post_rowsum_chan_norm.feather',
+                   weights_name='pixel_weights.feather', cluster_dir='pixel_mat_clustered',
                    pc_chan_avg_som_cluster_name='pixel_channel_avg_som_cluster.csv'):
     """Uses trained weights to assign cluster labels on full pixel data
 

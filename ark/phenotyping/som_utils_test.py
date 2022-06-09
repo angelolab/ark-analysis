@@ -22,7 +22,8 @@ parametrize = pytest.mark.parametrize
 
 
 def mocked_train_pixel_som(fovs, channels, base_dir,
-                           subset_dir='pixel_mat_subsetted', norm_vals_name='norm_vals.feather',
+                           subset_dir='pixel_mat_subsetted',
+                           norm_vals_name='post_rowsum_chan_norm.feather',
                            weights_name='pixel_weights.feather', xdim=10, ydim=10,
                            lr_start=0.05, lr_end=0.01, num_passes=1, seed=42):
     # define the matrix we'll be training on
@@ -59,7 +60,8 @@ def mocked_train_pixel_som(fovs, channels, base_dir,
 
 
 def mocked_cluster_pixels(fovs, channels, base_dir, pre_dir='pixel_mat_preprocessed',
-                          norm_vals_name='norm_vals.feather', weights_name='pixel_weights.feather',
+                          norm_vals_name='post_rowsum_chan_norm.feather',
+                          weights_name='pixel_weights.feather',
                           cluster_dir='pixel_mat_clustered',
                           pc_chan_avg_som_cluster_name='pixel_channel_avg_som_cluster.csv'):
     # read in the norm_vals matrix
@@ -1308,10 +1310,10 @@ def test_train_pixel_som(mocker):
                                         provided_channels=chan_list)
 
         # assert that the normalized file has been created
-        assert os.path.exists(os.path.join(temp_dir, 'norm_vals.feather'))
+        assert os.path.exists(os.path.join(temp_dir, 'post_rowsum_chan_norm.feather'))
 
         # assert the shape of norm_vals contains 1 row and number of columns = len(chan_list)
-        norm_vals = feather.read_dataframe(os.path.join(temp_dir, 'norm_vals.feather'))
+        norm_vals = feather.read_dataframe(os.path.join(temp_dir, 'post_rowsum_chan_norm.feather'))
         assert norm_vals.shape == (1, 4)
 
         # assert the the norm_vals columns are the same as chan_list
@@ -1342,7 +1344,7 @@ def test_cluster_pixels(mocker):
 
         # create a norm file for the undefined weight matrix file test
         norm_vals = pd.DataFrame(np.random.rand(1, 2), columns=['Marker1', 'Marker2'])
-        feather.write_dataframe(norm_vals, os.path.join(temp_dir, 'norm_vals.feather'))
+        feather.write_dataframe(norm_vals, os.path.join(temp_dir, 'post_rowsum_chan_norm.feather'))
 
         # bad path to weight matrix file
         with pytest.raises(FileNotFoundError):
@@ -1376,7 +1378,8 @@ def test_cluster_pixels(mocker):
                 np.random.rand(1, 4),
                 columns=['Marker2', 'Marker3', 'Marker4', 'Marker5']
             )
-            feather.write_dataframe(norm_vals, os.path.join(temp_dir, 'norm_vals.feather'))
+            feather.write_dataframe(norm_vals, os.path.join(temp_dir,
+                                                            'post_rowsum_chan_norm.feather'))
 
             weights = pd.DataFrame(
                 np.random.rand(100, 4), columns=['Marker2', 'Marker3', 'Marker4', 'Marker1']
@@ -1394,7 +1397,7 @@ def test_cluster_pixels(mocker):
 
         # create a dummy normalized values matrix and write to feather
         norm_vals = pd.DataFrame(np.ones((1, 4)), columns=chan_list)
-        feather.write_dataframe(norm_vals, os.path.join(temp_dir, 'norm_vals.feather'))
+        feather.write_dataframe(norm_vals, os.path.join(temp_dir, 'post_rowsum_chan_norm.feather'))
 
         # create a dummy weights matrix and write to feather
         weights = pd.DataFrame(np.random.rand(100, 4), columns=chan_list)
