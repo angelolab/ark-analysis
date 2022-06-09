@@ -36,6 +36,7 @@ RUN pip install /opt/ark-analysis
 # Install R dependency packages
 RUN R -e "install.packages('arrow')"
 RUN R -e "install.packages('data.table')"
+RUN R -e "install.packages('doParallel')"
 RUN R -e "install.packages('BiocManager')"
 RUN R -e "BiocManager::install('FlowSOM')"
 RUN R -e "BiocManager::install('ConsensusClusterPlus')"

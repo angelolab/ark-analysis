@@ -10,7 +10,38 @@
 
 library(arrow)
 library(data.table)
+library(doParallel)
 library(FlowSOM)
+library(foreach)
+library(parallel)
+
+# helper function to map a FOV to its SOM labels
+mapFov <- function(fov) {
+    fileName <- paste0(fovs[i], ".feather")
+    matPath <- file.path(pixelMatDir, fileName)
+    fovPixelData_all <- data.table(arrow::read_feather(matPath))
+
+    # 99.9% normalization
+    fovPixelData <- fovPixelData_all[,..markers]
+    fovPixelData <- fovPixelData[,Map(`/`,.SD,normVals)]
+
+    # map FlowSOM data
+    clusters <- FlowSOM:::MapDataToCodes(somWeights, as.matrix(fovPixelData))
+
+    # add back other columns
+    to_add <- colnames(fovPixelData_all)[!colnames(fovPixelData_all) %in% markers]
+    fovPixelData <- cbind(fovPixelData_all[,..to_add],fovPixelData)
+
+    # assign cluster labels column to pixel data
+    fovPixelData$pixel_som_cluster <- as.integer(clustrs[,1])
+
+    # write to feather
+    clusterPath <- file.path(pixelClusterDir, fileName)
+    arrow::write_feather(as.data.table(fovPixelData), clusterPath)
+}
+
+# get the number of cores on the Docker
+nCores <- parallel::detectCores() - 1
 
 # get the command line arguments
 args <- commandArgs(trailingOnly=TRUE)
@@ -30,6 +61,9 @@ pixelWeightsPath <- args[4]
 # get the cluster write path directory
 pixelClusterDir <- args[5]
 
+# TODO: set batch size to be customizable by user with default arg
+batchSize <- args[6]
+
 # read the weights
 somWeights <- as.matrix(arrow::read_feather(pixelWeightsPath))
 
@@ -44,36 +78,58 @@ normVals <- normVals[,..markers]
 
 # using trained SOM, batch cluster the original dataset by fov
 print("Mapping data to cluster labels")
-for (i in 1:length(fovs)) {
-    # read in pixel data
-    fileName <- paste0(fovs[i], ".feather")
-    matPath <- file.path(pixelMatDir, fileName)
-    fovPixelData_all <- data.table(arrow::read_feather(matPath))
+for (batchStart in seq(1, length(fovs), batchSize)) {
+    # define the parallel cluster for this batch of fovs
+    parallelCluster <- parallel::makeCluster(nCores, type="FORK")
 
-    # 99.9% normalization
-    fovPixelData <- fovPixelData_all[,..markers]
-    fovPixelData <- fovPixelData[,Map(`/`,.SD,normVals)]
+    # register cluster for dopar
+    doParallel::registerDoParallel(cl=parallelCluster)
 
-    # map FlowSOM data
-    clusters <- FlowSOM:::MapDataToCodes(somWeights, as.matrix(fovPixelData))
+    # need to prevent overshooting end of fovs list when batching
+    batchEnd <- min(batchStart + batchSize - 1, length(fovs))
 
-    # add back other columns
-    to_add <- colnames(fovPixelData_all)[!colnames(fovPixelData_all) %in% markers]
-    fovPixelData <- cbind(fovPixelData_all[,..to_add],fovPixelData)
-
-    # assign cluster labels column to pixel data
-    fovPixelData$pixel_som_cluster <- as.integer(clusters[,1])
-
-    # write to feather
-    clusterPath <- file.path(pixelClusterDir, fileName)
-    arrow::write_feather(as.data.table(fovPixelData), clusterPath)
-
-    # print an update every 10 fovs
-    # TODO: find a way to capture sprintf to the console
-    if (i %% 10 == 0) {
-        print("# fovs clustered:")
-        print(i)
+    # run the batch process for mapping to SOM labels and saving
+    foreach(
+        i=batchStart:batchEnd,
+        .combine='c'
+    ) %dopar% {
+        mapFov(fovs[i])
     }
+
+    # unregister the cluster
+    parallel::stopCluster(cl=parallelCluster)
 }
+
+# for (i in 1:length(fovs)) {
+#     # read in pixel data
+#     fileName <- paste0(fovs[i], ".feather")
+#     matPath <- file.path(pixelMatDir, fileName)
+#     fovPixelData_all <- data.table(arrow::read_feather(matPath))
+
+#     # 99.9% normalization
+#     fovPixelData <- fovPixelData_all[,..markers]
+#     fovPixelData <- fovPixelData[,Map(`/`,.SD,normVals)]
+
+#     # map FlowSOM data
+#     clusters <- FlowSOM:::MapDataToCodes(somWeights, as.matrix(fovPixelData))
+
+#     # add back other columns
+#     to_add <- colnames(fovPixelData_all)[!colnames(fovPixelData_all) %in% markers]
+#     fovPixelData <- cbind(fovPixelData_all[,..to_add],fovPixelData)
+
+#     # assign cluster labels column to pixel data
+#     fovPixelData$pixel_som_cluster <- as.integer(clusters[,1])
+
+#     # write to feather
+#     clusterPath <- file.path(pixelClusterDir, fileName)
+#     arrow::write_feather(as.data.table(fovPixelData), clusterPath)
+
+#     # print an update every 10 fovs
+#     # TODO: find a way to capture sprintf to the console
+#     if (i %% 10 == 0) {
+#         print("# fovs clustered:")
+#         print(i)
+#     }
+# }
 
 print("Done!")
