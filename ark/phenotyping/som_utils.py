@@ -80,7 +80,7 @@ def calculate_pixel_intensity_percentile(tiff_dir, fovs, channels, img_sub_folde
             List of channels to include
         img_sub_folder (str):
             Sub folder within each FOV containing image data
-        channel_percentiles (dict):
+        channel_percentiles (pd.DataFrame):
             The mapping between each channel and its normalization value
             Computed by `calculate_channel_percentiles`
         percentile (float):
@@ -92,7 +92,7 @@ def calculate_pixel_intensity_percentile(tiff_dir, fovs, channels, img_sub_folde
     """
 
     # create vector of channel percentiles to enable broadcasting
-    norm_vect = np.array([channel_percentiles[chan] for chan in channels])
+    norm_vect = channel_percentiles['norm_val'].values
     norm_vect = norm_vect.reshape([1, 1, len(norm_vect)])
 
     intensity_percentile_list = []
@@ -182,7 +182,7 @@ def check_for_modified_channels(tiff_dir, test_fov, img_sub_folder, channels):
                               'version of the channel for inclusion in '
                               'clustering'.format(channel, chan_mod))
             else:
-                print(chan_mod, all_channels)
+                pass
 
 
 def smooth_channels(fovs, tiff_dir, img_sub_folder, channels, smooth_vals):
@@ -827,33 +827,32 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
     if not os.path.exists(channel_norm_path):
 
         # compute channel percentiles
-        channel_norm_dict = calculate_channel_percentiles(tiff_dir=tiff_dir, fovs=fovs,
-                                                          channels=channels,
-                                                          img_sub_folder=img_sub_folder,
-                                                          percentile=channel_percentile)
+        channel_norm_df = calculate_channel_percentiles(tiff_dir=tiff_dir, fovs=fovs,
+                                                        channels=channels,
+                                                        img_sub_folder=img_sub_folder,
+                                                        percentile=channel_percentile)
         # save output
-        with open(channel_norm_path, 'w') as cn:
-            json.dump(channel_norm_dict, cn)
+        feather.write_dataframe(channel_norm_df, channel_norm_path, compression='uncompressed')
 
     else:
         # load previously generated output
-        with open(channel_norm_path, 'r') as cn:
-            channel_norm_dict = json.load(cn)
+        channel_norm_df = feather.read_dataframe(channel_norm_path)
 
     # create path for pixel normalization values
-    pixel_norm_path = os.path.join(base_dir, pre_dir, 'pixel_norm.json')
+    pixel_norm_path = os.path.join(base_dir, pre_dir, 'pixel_norm.feather')
     if not os.path.exists(pixel_norm_path):
         # compute pixel percentiles
         pixel_norm_val = calculate_pixel_intensity_percentile(
             tiff_dir=tiff_dir, fovs=fovs, channels=channels,
-            img_sub_folder=img_sub_folder, channel_percentiles=channel_norm_dict
+            img_sub_folder=img_sub_folder, channel_percentiles=channel_norm_df
         )
 
-        with open(pixel_norm_path, 'w') as pn:
-            json.dump({'pixel_norm_val': pixel_norm_val}, pn)
+        pixel_norm_df = pd.DataFrame({'pixel_norm_val': [pixel_norm_val]})
+        feather.write_dataframe(pixel_norm_df, pixel_norm_path, compression='uncompressed')
+
     else:
-        with open(pixel_norm_path, 'r') as pn:
-            pixel_norm_val = json.load(pn)['pixel_norm_val']
+        pixel_norm_df = feather.read_dataframe(pixel_norm_path)
+        pixel_norm_val = pixel_norm_df['pixel_norm_val'].values[0]
 
     # iterate over fov_batches
     for fov in fovs:
@@ -884,7 +883,7 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
         img_data = img_xr.loc[fov, :, :, channels].values.astype(np.float32)
 
         # create vector for normalizing image data
-        norm_vect = [channel_norm_dict[chan] for chan in channels]
+        norm_vect = channel_norm_df['norm_val'].values
         norm_vect = np.array(norm_vect).reshape([1, 1, len(norm_vect)])
 
         # normalize image data

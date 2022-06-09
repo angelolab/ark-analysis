@@ -278,7 +278,8 @@ def test_calculate_channel_percentiles():
                                                                         percentile=percentile)
         # test equality for specific chans and FOVs
         for idx, chan in enumerate(chans):
-            assert predicted_percentiles['norm_val'].values[idx] == np.mean(percentile_dict[chan])
+            assert predicted_percentiles['norm_val'].values[idx] == \
+                   np.mean(percentile_dict[chan][:-1])
 
 
 def test_calculate_pixel_intensity_percentile():
@@ -303,7 +304,8 @@ def test_calculate_pixel_intensity_percentile():
                 # saved modified channel
                 io.imsave(chan_path, img / divisor)
 
-        channel_percentiles = {'chan0': 1, 'chan1': 1, 'chan2': 1}
+        channel_percentiles = pd.DataFrame({'channel': ['chan1', 'chan2', 'chan3'],
+                                            'norm_val': [1, 1, 1]})
         percentile = som_utils.calculate_pixel_intensity_percentile(
             tiff_dir=temp_dir, fovs=fovs, channels=chans,
             img_sub_folder='TIFs', channel_percentiles=channel_percentiles
@@ -1088,7 +1090,7 @@ def test_create_pixel_matrix(fovs, chans, sub_dir, seg_dir_include,
                                           tiff_dir='bad_tiff_dir',
                                           seg_dir=None)
 
-        # create a dummy seg_dir with data if we're on a test thaat requires segmentation labels
+        # create a dummy seg_dir with data if we're on a test that requires segmentation labels
         if seg_dir_include:
             seg_dir = os.path.join(temp_dir, 'segmentation')
             os.mkdir(seg_dir)
@@ -1134,9 +1136,12 @@ def test_create_pixel_matrix(fovs, chans, sub_dir, seg_dir_include,
             pre_dir = os.path.join(temp_dir, 'pixel_mat_preprocessed')
 
             # generate the data
-            sample_channel_norm_dict = {chan: np.random.rand() for chan in chans}
-            with open(os.path.join(pre_dir, 'channel_norm.json'), 'w') as cn:
-                json.dump(sample_channel_norm_dict, cn)
+            sample_channel_norm_df = pd.DataFrame({'channel': chans,
+                                                  'norm_val': np.random.rand(len(chans))})
+
+            feather.write_dataframe(sample_channel_norm_df,
+                                    os.path.join(pre_dir, 'channel_norm.feather'),
+                                    compression='uncompressed')
 
         # make the pixel_norm.json file if the test requires it
         if pixel_norm_include:
@@ -1144,9 +1149,10 @@ def test_create_pixel_matrix(fovs, chans, sub_dir, seg_dir_include,
             pre_dir = os.path.join(temp_dir, 'pixel_mat_preprocessed')
 
             # generate the data
-            sample_pixel_norm_dict = {'pixel_norm_val': np.random.rand()}
-            with open(os.path.join(pre_dir, 'pixel_norm.json'), 'w') as pn:
-                json.dump(sample_pixel_norm_dict, pn)
+            sample_pixel_norm_df = pd.DataFrame({'pixel_norm_val': np.random.rand(1)})
+            feather.write_dataframe(sample_pixel_norm_df,
+                                    os.path.join(pre_dir, 'pixel_norm.feather'),
+                                    compression='uncompressed')
 
         # create the pixel matrices
         som_utils.create_pixel_matrix(fovs=fovs,
@@ -1165,13 +1171,13 @@ def test_create_pixel_matrix(fovs, chans, sub_dir, seg_dir_include,
         # if there wasn't originally a channel_norm.json, assert one was created
         if not channel_norm_include:
             assert os.path.exists(
-                os.path.join(temp_dir, 'pixel_mat_preprocessed', 'channel_norm.json')
+                os.path.join(temp_dir, 'pixel_mat_preprocessed', 'channel_norm.feather')
             )
 
         # if there wasn't originally a pixel_norm.json, assert one was created
         if not pixel_norm_include:
             assert os.path.exists(
-                os.path.join(temp_dir, 'pixel_mat_preprocessed', 'pixel_norm.json')
+                os.path.join(temp_dir, 'pixel_mat_preprocessed', 'pixel_norm.feather')
             )
 
         for fov in fovs:
@@ -1233,9 +1239,11 @@ def test_create_pixel_matrix(fovs, chans, sub_dir, seg_dir_include,
         # generate the data
         mults = [1 * (1 / 2) ** i for i in range(len(chans))]
 
-        sample_channel_norm_dict = {chans[i]: mults[i] for i in range(len(chans))}
-        with open(os.path.join(pre_dir, 'channel_norm.json'), 'w') as cn:
-            json.dump(sample_channel_norm_dict, cn)
+        sample_channel_norm_df = pd.DataFrame({'channel': chans,
+                                               'norm_val': mults})
+        feather.write_dataframe(sample_channel_norm_df,
+                                os.path.join(pre_dir, 'channel_norm.feather'),
+                                compression='uncompressed')
 
         som_utils.create_pixel_matrix(fovs=fovs,
                                       channels=chans,
