@@ -1021,11 +1021,10 @@ def test_create_fov_pixel_data():
         # NOTE: need to account for rounding if multiplying by 0.1 leads to non-int
         assert round(sample_pixel_mat.shape[0] * 0.1) == sample_pixel_mat_subset.shape[0]
 
-        # TEST 3: run fov preprocessing with a custom pixel_norm_val (between 0 and 1)
-        # NOTE: divide by 1000 and set pixel_norm_val to 0.1475 to ensure rows get removed
+        # TEST 3: run fov preprocessing with a pixel_norm_val to ensure rows get removed
         sample_pixel_mat, sample_pixel_mat_subset = som_utils.create_fov_pixel_data(
             fov=fov, channels=chans, img_data=sample_img_data / 1000, seg_labels=seg_labels,
-            pixel_norm_val=0.1475
+            pixel_norm_val=0.5
         )
 
         # assert the channel names are the same
