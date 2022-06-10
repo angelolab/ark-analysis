@@ -1,12 +1,11 @@
 # Assigns cluster labels to pixel data using a trained SOM weights matrix
 
-# Usage: Rscript run_pixel_som.R {fovs} {pixelMatDir} {normValsPath} {pixelWeightsPath} {pixelClusterDir}
+# Usage: Rscript run_pixel_som.R {fovs} {pixelMatDir} {normValsPath} {pixelWeightsPath}
 
 # - fovs: list of fovs to cluster
 # - pixelMatDir: path to directory containing the complete pixel data
 # - normValsPath: path to the 99.9% normalization values file (created during preprocessing)
 # - pixelWeightsPath: path to the SOM weights file
-# - pixelClusterDir: path to directory where the clustered data will be written to
 
 library(arrow)
 library(data.table)
@@ -26,9 +25,6 @@ normValsPath <- args[3]
 
 # get path to the weights
 pixelWeightsPath <- args[4]
-
-# get the cluster write path directory
-pixelClusterDir <- args[5]
 
 # read the weights
 somWeights <- as.matrix(arrow::read_feather(pixelWeightsPath))
@@ -64,9 +60,8 @@ for (i in 1:length(fovs)) {
     # assign cluster labels column to pixel data
     fovPixelData$pixel_som_cluster <- as.integer(clusters[,1])
 
-    # write to feather
-    clusterPath <- file.path(pixelClusterDir, fileName)
-    arrow::write_feather(as.data.table(fovPixelData), clusterPath)
+    # write to feather, overwrite original data with the same data with SOM cluster label
+    arrow::write_feather(as.data.table(fovPixelData), matPath)
 
     # print an update every 10 fovs
     # TODO: find a way to capture sprintf to the console

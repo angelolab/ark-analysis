@@ -59,10 +59,9 @@ def mocked_train_pixel_som(fovs, channels, base_dir,
     feather.write_dataframe(weights, os.path.join(base_dir, weights_name))
 
 
-def mocked_cluster_pixels(fovs, channels, base_dir, pre_dir='pixel_mat_preprocessed',
+def mocked_cluster_pixels(fovs, channels, base_dir, data_dir='pixel_mat_data',
                           norm_vals_name='post_rowsum_chan_norm.feather',
                           weights_name='pixel_weights.feather',
-                          cluster_dir='pixel_mat_clustered',
                           pc_chan_avg_som_cluster_name='pixel_channel_avg_som_cluster.csv'):
     # read in the norm_vals matrix
     norm_vals = feather.read_dataframe(os.path.join(base_dir, norm_vals_name))
@@ -72,7 +71,7 @@ def mocked_cluster_pixels(fovs, channels, base_dir, pre_dir='pixel_mat_preproces
 
     for fov in fovs:
         # read the specific fov from the preprocessed feather
-        fov_mat_pre = feather.read_dataframe(os.path.join(base_dir, pre_dir, fov + '.feather'))
+        fov_mat_pre = feather.read_dataframe(os.path.join(base_dir, data_dir, fov + '.feather'))
 
         # only take the specified channel columns
         fov_mat_channels = fov_mat_pre[weights.columns.values].copy()
@@ -92,16 +91,15 @@ def mocked_cluster_pixels(fovs, channels, base_dir, pre_dir='pixel_mat_preproces
 
         # write clustered data to feather
         feather.write_dataframe(fov_mat_pre, os.path.join(base_dir,
-                                                          cluster_dir,
+                                                          data_dir,
                                                           fov + '.feather'))
 
 
 def mocked_pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
-                                   cluster_dir='pixel_mat_clustered',
+                                   data_dir='pixel_mat_data',
                                    pc_chan_avg_som_cluster_name='pixel_chan_avg_som_cluster.csv',
                                    pc_chan_avg_meta_cluster_name='pixel_chan_avg_meta_cluster.csv',
-                                   clust_to_meta_name='pixel_clust_to_meta.feather',
-                                   consensus_dir='pixel_mat_consensus', seed=42):
+                                   clust_to_meta_name='pixel_clust_to_meta.feather', seed=42):
     # read the cluster average
     cluster_avg = pd.read_csv(os.path.join(base_dir, pc_chan_avg_som_cluster_name))
 
@@ -122,7 +120,7 @@ def mocked_pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
     for fov in fovs:
         # read fov pixel data with clusters
         fov_cluster_matrix = feather.read_dataframe(os.path.join(base_dir,
-                                                                 cluster_dir,
+                                                                 data_dir,
                                                                  fov + '.feather'))
 
         # use mapping to assign hierarchical cluster ids
@@ -130,11 +128,11 @@ def mocked_pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
 
         # write consensus cluster results to feather
         feather.write_dataframe(fov_cluster_matrix, os.path.join(base_dir,
-                                                                 consensus_dir,
+                                                                 data_dir,
                                                                  fov + '.feather'))
 
 
-def mocked_train_cell_som(fovs, channels, base_dir, pixel_consensus_dir, cell_table_path,
+def mocked_train_cell_som(fovs, channels, base_dir, pixel_data_dir, cell_table_path,
                           cluster_counts_name='cluster_counts.feather',
                           cluster_counts_norm_name='cluster_counts_norm.feather',
                           pixel_cluster_col='pixel_meta_cluster_rename',
@@ -193,14 +191,13 @@ def mocked_cluster_cells(base_dir, cluster_counts_norm_name='cluster_counts_norm
 
 
 def mocked_cell_consensus_cluster(fovs, channels, base_dir, pixel_cluster_col, max_k=20, cap=3,
-                                  cell_cluster_name='cell_mat_clustered.feather',
+                                  cell_data_name='cell_mat.feather',
                                   cell_som_cluster_avgs_name='cell_som_cluster_avgs.csv',
                                   cell_meta_cluster_avgs_name='cell_meta_cluster_avgs.csv',
                                   cell_cluster_col='cell_meta_cluster',
                                   weighted_cell_channel_name='weighted_cell_channel.csv',
                                   cell_cluster_channel_avg_name='cell_cluster_channel_avg.csv',
-                                  clust_to_meta_name='cell_clust_to_meta.feather',
-                                  cell_consensus_name='cell_mat_consensus.feather', seed=42):
+                                  clust_to_meta_name='cell_clust_to_meta.feather', seed=42):
     # read in the cluster averages
     cluster_avg = pd.read_csv(os.path.join(base_dir, cell_som_cluster_avgs_name))
 
@@ -217,13 +214,13 @@ def mocked_cell_consensus_cluster(fovs, channels, base_dir, pixel_cluster_col, m
     cluster_ids = cluster_ids.astype(int) % 2
 
     # read in the original cell data
-    cell_data = feather.read_dataframe(os.path.join(base_dir, cell_cluster_name))
+    cell_data = feather.read_dataframe(os.path.join(base_dir, cell_data_name))
 
     # add hCluster_cap labels
     cell_data['cell_meta_cluster'] = np.repeat(cluster_ids.values, 10)
 
     # write cell_data
-    feather.write_dataframe(cell_data, os.path.join(base_dir, cell_consensus_name))
+    feather.write_dataframe(cell_data, os.path.join(base_dir, cell_data_name))
 
 
 def mocked_create_fov_pixel_data(fov, channels, img_data, seg_labels, blur_factor,
@@ -462,6 +459,8 @@ def test_compute_pixel_cluster_channel_avg():
             )
 
         # create a dummy pixel and meta clustered matrix
+        # NOTE: while the actual pipeline condenses these into one pixel_mat_data,
+        # for this test consider these as the same directory but at different points of the run
         os.mkdir(os.path.join(temp_dir, 'pixel_mat_clustered'))
         os.mkdir(os.path.join(temp_dir, 'pixel_mat_consensus'))
 
@@ -1131,28 +1130,28 @@ def test_create_pixel_matrix(fovs, chans, sub_dir, seg_dir_include,
                                           seg_dir=seg_dir)
 
         # make the channel_norm.json file if the test requires it
-        # NOTE: pixel_mat_preprocessed already created in the previous validation tests
+        # NOTE: pixel_mat_data already created in the previous validation tests
         if channel_norm_include:
-            # requires the pixel_mat_preprocessed directory
-            pre_dir = os.path.join(temp_dir, 'pixel_mat_preprocessed')
+            # requires the pixel_mat_data directory
+            data_dir = os.path.join(temp_dir, 'pixel_mat_data')
 
             # generate the data
             sample_channel_norm_df = pd.DataFrame({'channel': chans,
                                                   'norm_val': np.random.rand(len(chans))})
 
             feather.write_dataframe(sample_channel_norm_df,
-                                    os.path.join(pre_dir, 'channel_norm.feather'),
+                                    os.path.join(data_dir, 'channel_norm.feather'),
                                     compression='uncompressed')
 
         # make the pixel_norm.json file if the test requires it
         if pixel_norm_include:
             # requires the pixel_mat_preprocessed directory
-            pre_dir = os.path.join(temp_dir, 'pixel_mat_preprocessed')
+            data_dir = os.path.join(temp_dir, 'pixel_mat_data')
 
             # generate the data
             sample_pixel_norm_df = pd.DataFrame({'pixel_norm_val': np.random.rand(1)})
             feather.write_dataframe(sample_pixel_norm_df,
-                                    os.path.join(pre_dir, 'pixel_norm.feather'),
+                                    os.path.join(data_dir, 'pixel_norm.feather'),
                                     compression='uncompressed')
 
         # create the pixel matrices
@@ -1163,8 +1162,8 @@ def test_create_pixel_matrix(fovs, chans, sub_dir, seg_dir_include,
                                       img_sub_folder=sub_dir,
                                       seg_dir=seg_dir)
 
-        # check that we actually created a preprocessed directory
-        assert os.path.exists(os.path.join(temp_dir, 'pixel_mat_preprocessed'))
+        # check that we actually created a data directory
+        assert os.path.exists(os.path.join(temp_dir, 'pixel_mat_data'))
 
         # check that we actually created a subsetted directory
         assert os.path.exists(os.path.join(temp_dir, 'pixel_mat_subsetted'))
@@ -1172,18 +1171,18 @@ def test_create_pixel_matrix(fovs, chans, sub_dir, seg_dir_include,
         # if there wasn't originally a channel_norm.json, assert one was created
         if not channel_norm_include:
             assert os.path.exists(
-                os.path.join(temp_dir, 'pixel_mat_preprocessed', 'channel_norm.feather')
+                os.path.join(temp_dir, 'pixel_mat_data', 'channel_norm.feather')
             )
 
         # if there wasn't originally a pixel_norm.json, assert one was created
         if not pixel_norm_include:
             assert os.path.exists(
-                os.path.join(temp_dir, 'pixel_mat_preprocessed', 'pixel_norm.feather')
+                os.path.join(temp_dir, 'pixel_mat_data', 'pixel_norm.feather')
             )
 
         for fov in fovs:
-            fov_pre_path = os.path.join(
-                temp_dir, 'pixel_mat_preprocessed', fov + '.feather'
+            fov_data_path = os.path.join(
+                temp_dir, 'pixel_mat_data', fov + '.feather'
             )
             fov_sub_path = os.path.join(
                 temp_dir, 'pixel_mat_subsetted', fov + '.feather'
@@ -1191,31 +1190,31 @@ def test_create_pixel_matrix(fovs, chans, sub_dir, seg_dir_include,
 
             # assert we actually created a .feather preprocessed file
             # for each fov
-            assert os.path.exists(fov_pre_path)
+            assert os.path.exists(fov_data_path)
 
             # assert that we actually created a .feather subsetted file
             # for each fov
             assert os.path.exists(fov_sub_path)
 
             # get the data for the specific fov
-            flowsom_pre_fov = feather.read_dataframe(fov_pre_path)
+            flowsom_data_fov = feather.read_dataframe(fov_data_path)
             flowsom_sub_fov = feather.read_dataframe(fov_sub_path)
 
             # assert the channel names are the same
             chan_index_stop = -3 if seg_dir is None else -4
             misc_utils.verify_same_elements(
-                flowsom_chans=flowsom_pre_fov.columns.values[:chan_index_stop],
+                flowsom_chans=flowsom_data_fov.columns.values[:chan_index_stop],
                 provided_chans=chans
             )
 
             # assert no rows sum to 0
-            assert np.all(flowsom_pre_fov.loc[:, chans].sum(
+            assert np.all(flowsom_data_fov.loc[:, chans].sum(
                 axis=1
             ).values != 0)
 
             # assert the subsetted DataFrame size is 0.1 of the preprocessed DataFrame
             # NOTE: need to account for rounding if multiplying by 0.1 leads to non-int
-            assert round(flowsom_pre_fov.shape[0] * 0.1) == flowsom_sub_fov.shape[0]
+            assert round(flowsom_data_fov.shape[0] * 0.1) == flowsom_sub_fov.shape[0]
 
         # check that correct values are passed to helper function
         mocker.patch('ark.phenotyping.som_utils.create_fov_pixel_data',
@@ -1235,7 +1234,7 @@ def test_create_pixel_matrix(fovs, chans, sub_dir, seg_dir_include,
                 io.imsave(os.path.join(fov_dir, chan + '.tiff'), img)
 
         # create normalization file
-        pre_dir = os.path.join(temp_dir, 'pixel_mat_preprocessed')
+        data_dir = os.path.join(temp_dir, 'pixel_mat_data')
 
         # generate the data
         mults = [1 * (1 / 2) ** i for i in range(len(chans))]
@@ -1243,7 +1242,7 @@ def test_create_pixel_matrix(fovs, chans, sub_dir, seg_dir_include,
         sample_channel_norm_df = pd.DataFrame({'channel': chans,
                                                'norm_val': mults})
         feather.write_dataframe(sample_channel_norm_df,
-                                os.path.join(pre_dir, 'channel_norm.feather'),
+                                os.path.join(data_dir, 'channel_norm.feather'),
                                 compression='uncompressed')
 
         som_utils.create_pixel_matrix(fovs=fovs,
@@ -1328,7 +1327,7 @@ def test_cluster_pixels(mocker):
         with pytest.raises(FileNotFoundError):
             som_utils.cluster_pixels(
                 fovs=['fov0'], channels=['chan0'],
-                base_dir=temp_dir, pre_dir='bad_path'
+                base_dir=temp_dir, data_dir='bad_path'
             )
 
         # create a preprocessed directory for the undefined norm file test
@@ -1361,7 +1360,7 @@ def test_cluster_pixels(mocker):
         colnames = chan_list + ['fov', 'row_index', 'column_index', 'segmentation_label']
 
         # make a dummy pre dir
-        os.mkdir(os.path.join(temp_dir, 'pixel_mat_preprocessed'))
+        os.mkdir(os.path.join(temp_dir, 'pixel_mat_data'))
 
         for fov in fovs:
             # create dummy preprocessed data for each fov
@@ -1369,7 +1368,7 @@ def test_cluster_pixels(mocker):
 
             # write the dummy data to the preprocessed data dir
             feather.write_dataframe(fov_pre_matrix, os.path.join(temp_dir,
-                                                                 'pixel_mat_preprocessed',
+                                                                 'pixel_mat_data',
                                                                  fov + '.feather'))
 
         with pytest.raises(ValueError):
@@ -1402,21 +1401,15 @@ def test_cluster_pixels(mocker):
         weights = pd.DataFrame(np.random.rand(100, 4), columns=chan_list)
         feather.write_dataframe(weights, os.path.join(temp_dir, 'pixel_weights.feather'))
 
-        # make a dummy cluster dir
-        os.mkdir(os.path.join(temp_dir, 'pixel_mat_clustered'))
-
         # add mocked function to "cluster" preprocessed data based on dummy weights
         mocker.patch('ark.phenotyping.som_utils.cluster_pixels', mocked_cluster_pixels)
 
         # run "clustering" using mocked function
         som_utils.cluster_pixels(fovs=fovs, channels=chan_list, base_dir=temp_dir)
 
-        # assert the clustered directory has been created
-        assert os.path.exists(os.path.join(temp_dir, 'pixel_mat_clustered'))
-
         for fov in fovs:
             fov_cluster_data = feather.read_dataframe(os.path.join(temp_dir,
-                                                                   'pixel_mat_clustered',
+                                                                   'pixel_mat_data',
                                                                    fov + '.feather'))
 
             # assert we didn't assign any cluster 100 or above
@@ -1425,11 +1418,11 @@ def test_cluster_pixels(mocker):
 
 
 def test_pixel_consensus_cluster(mocker):
-    # basic error check: bad path to clustered dir
+    # basic error check: bad path to data dir
     with tempfile.TemporaryDirectory() as temp_dir:
         with pytest.raises(FileNotFoundError):
             som_utils.pixel_consensus_cluster(fovs=['fov0'], channels=['chan0'],
-                                              base_dir=temp_dir, cluster_dir='bad_path')
+                                              base_dir=temp_dir, data_dir='bad_path')
 
     with tempfile.TemporaryDirectory() as temp_dir:
         # define fovs and channels
@@ -1440,7 +1433,10 @@ def test_pixel_consensus_cluster(mocker):
         meta_colnames = ['fov', 'row_index', 'column_index', 'segmentation_label']
 
         # create a dummy clustered matrix
-        os.mkdir(os.path.join(temp_dir, 'pixel_mat_clustered'))
+        os.mkdir(os.path.join(temp_dir, 'pixel_mat_data'))
+
+        # store the intermediate FOV data in a dict for future comparison
+        fov_data = {}
 
         # write dummy clustered data for each fov
         for fov in fovs:
@@ -1459,10 +1455,12 @@ def test_pixel_consensus_cluster(mocker):
             # assign dummy cluster labels
             fov_cluster_matrix['pixel_som_cluster'] = np.repeat(np.arange(100), repeats=10)
 
-            # write the dummy data to pixel_mat_clustered
+            # write the dummy data to pixel_mat_data
             feather.write_dataframe(fov_cluster_matrix, os.path.join(temp_dir,
-                                                                     'pixel_mat_clustered',
+                                                                     'pixel_mat_data',
                                                                      fov + '.feather'))
+
+            fov_data[fov] = fov_cluster_matrix
 
         # compute averages by cluster, this happens before call to R
         cluster_avg = som_utils.compute_pixel_cluster_channel_avg(
@@ -1475,9 +1473,6 @@ def test_pixel_consensus_cluster(mocker):
             index=False
         )
 
-        # make a dummy consensus dir
-        os.mkdir(os.path.join(temp_dir, 'pixel_mat_consensus'))
-
         # add mocked function to "consensus cluster" data averaged by cluster
         mocker.patch(
             'ark.phenotyping.som_utils.pixel_consensus_cluster',
@@ -1487,26 +1482,20 @@ def test_pixel_consensus_cluster(mocker):
         # run "consensus clustering" using mocked function
         som_utils.pixel_consensus_cluster(fovs=fovs, channels=chans, base_dir=temp_dir)
 
-        # assert the final consensus cluster directory has been created
-        assert os.path.exists(os.path.join(temp_dir, 'pixel_mat_consensus'))
-
         for fov in fovs:
-            fov_cluster_data = feather.read_dataframe(os.path.join(temp_dir,
-                                                                   'pixel_mat_clustered',
-                                                                   fov + '.feather'))
-
             fov_consensus_data = feather.read_dataframe(os.path.join(temp_dir,
-                                                                     'pixel_mat_consensus',
+                                                                     'pixel_mat_data',
                                                                      fov + '.feather'))
 
             # assert we didn't modify the cluster column in the consensus clustered results
             assert np.all(
-                fov_cluster_data['pixel_som_cluster'].values ==
+                fov_data[fov]['pixel_som_cluster'].values ==
                 fov_consensus_data['pixel_som_cluster'].values
             )
 
             # assert we didn't assign any cluster 20 or above
             consensus_cluster_ids = fov_consensus_data['pixel_meta_cluster']
+            assert np.all(consensus_cluster_ids <= 20)
 
 
 def test_apply_pixel_meta_cluster_remapping():
@@ -1770,10 +1759,10 @@ def test_train_cell_som(mocker):
         with pytest.raises(FileNotFoundError):
             som_utils.train_cell_som(
                 fovs=['fov0'], channels=['chan0'], base_dir=temp_dir,
-                pixel_consensus_dir='consensus_dir', cell_table_path='bad_cell_table.csv'
+                pixel_data_dir='data_dir', cell_table_path='bad_cell_table.csv'
             )
 
-    # basic error check: bad path to consensus dir
+    # basic error check: bad path to pixel data dir
     with tempfile.TemporaryDirectory() as temp_dir:
         blank_cell_table = pd.DataFrame()
         blank_cell_table.to_csv(
@@ -1784,7 +1773,7 @@ def test_train_cell_som(mocker):
         with pytest.raises(FileNotFoundError):
             som_utils.train_cell_som(
                 fovs=['fov0'], channels=['chan0'], base_dir=temp_dir,
-                pixel_consensus_dir='consensus_dir',
+                pixel_data_dir='data_dir',
                 cell_table_path=os.path.join(temp_dir, 'sample_cell_table.csv')
             )
 
@@ -1811,9 +1800,9 @@ def test_train_cell_som(mocker):
         cell_table_path = os.path.join(temp_dir, 'cell_table_size_normalized.csv')
         cell_table.to_csv(cell_table_path, index=False)
 
-        # define a consensus clustered directory
-        pixel_consensus_path = os.path.join(temp_dir, 'pixel_consensus_dir')
-        os.mkdir(pixel_consensus_path)
+        # define a pixel data directory with SOM and meta cluster labels
+        pixel_data_path = os.path.join(temp_dir, 'pixel_data_dir')
+        os.mkdir(pixel_data_path)
 
         # create dummy data for each fov
         for fov in fovs:
@@ -1835,20 +1824,20 @@ def test_train_cell_som(mocker):
             fov_table['pixel_meta_cluster_rename'] = np.repeat(np.arange(2), 500)
 
             # write fov data to feather
-            feather.write_dataframe(fov_table, os.path.join(pixel_consensus_path,
+            feather.write_dataframe(fov_table, os.path.join(pixel_data_path,
                                                             fov + '.feather'))
 
         # bad cluster_col provided
         with pytest.raises(ValueError):
             som_utils.train_cell_som(
-                fovs, chan_list, temp_dir, 'pixel_consensus_dir', cell_table_path,
+                fovs, chan_list, temp_dir, 'pixel_data_dir', cell_table_path,
                 pixel_cluster_col='bad_cluster'
             )
 
         # TEST 1: computing weights using pixel clusters
         # compute cluster counts
         _, cluster_counts_norm = som_utils.create_c2pc_data(
-            fovs, pixel_consensus_path, cell_table_path, 'pixel_som_cluster'
+            fovs, pixel_data_path, cell_table_path, 'pixel_som_cluster'
         )
 
         # write cluster count
@@ -1864,7 +1853,7 @@ def test_train_cell_som(mocker):
         # "train" the cell SOM using mocked function
         som_utils.train_cell_som(
             fovs=fovs, channels=chan_list, base_dir=temp_dir,
-            pixel_consensus_dir='pixel_consensus_dir',
+            pixel_data_dir='pixel_data_dir',
             cell_table_path=cell_table_path,
             pixel_cluster_col='pixel_som_cluster'
         )
@@ -1889,7 +1878,7 @@ def test_train_cell_som(mocker):
 
         # TEST 2: computing weights using hierarchical clusters
         _, cluster_counts_norm = som_utils.create_c2pc_data(
-            fovs, pixel_consensus_path, cell_table_path, 'pixel_meta_cluster_rename'
+            fovs, pixel_data_path, cell_table_path, 'pixel_meta_cluster_rename'
         )
 
         # write cluster count
@@ -1905,7 +1894,7 @@ def test_train_cell_som(mocker):
         # "train" the cell SOM using mocked function
         som_utils.train_cell_som(
             fovs=fovs, channels=chan_list, base_dir=temp_dir,
-            pixel_consensus_dir='pixel_consensus_dir',
+            pixel_data_dir='pixel_data_dir',
             cell_table_path=cell_table_path,
             pixel_cluster_col='pixel_meta_cluster_rename'
         )
@@ -2016,12 +2005,12 @@ def test_cluster_cells(mocker):
 
 
 def test_cell_consensus_cluster(mocker):
-    # basic error check: path to cell clustered does not exist
+    # basic error check: path to cell data does not exist
     with tempfile.TemporaryDirectory() as temp_dir:
         with pytest.raises(FileNotFoundError):
             som_utils.cell_consensus_cluster(
                 fovs=[], channels=[], base_dir=temp_dir,
-                cell_cluster_name='bad_path', pixel_cluster_col='blah'
+                cell_data_name='bad_path', pixel_cluster_col='blah'
             )
 
     # basic error check: cell cluster avg table not found
@@ -2029,7 +2018,7 @@ def test_cell_consensus_cluster(mocker):
         with pytest.raises(FileNotFoundError):
             cell_cluster_data = pd.DataFrame()
             feather.write_dataframe(
-                cell_cluster_data, os.path.join(temp_dir, 'cell_mat_clustered.feather')
+                cell_cluster_data, os.path.join(temp_dir, 'cell_mat.feather')
             )
 
             som_utils.cell_consensus_cluster(
@@ -2042,7 +2031,7 @@ def test_cell_consensus_cluster(mocker):
             cell_cluster_data = pd.DataFrame()
             cell_cluster_avg_data = pd.DataFrame()
             feather.write_dataframe(
-                cell_cluster_data, os.path.join(temp_dir, 'cell_mat_clustered.feather')
+                cell_cluster_data, os.path.join(temp_dir, 'cell_mat.feather')
             )
             cell_cluster_avg_data.to_csv(
                 os.path.join(temp_dir, 'cell_som_cluster_avgs.csv'),
@@ -2066,7 +2055,7 @@ def test_cell_consensus_cluster(mocker):
             cluster_data['cell_som_cluster'] = np.repeat(np.arange(10), 10)
 
             # write clustered data
-            clustered_path = os.path.join(temp_dir, 'cell_mat_clustered.feather')
+            clustered_path = os.path.join(temp_dir, 'cell_mat.feather')
             feather.write_dataframe(cluster_data, clustered_path)
 
             # compute average counts of each pixel SOM/meta cluster across all cell SOM clusters
@@ -2097,14 +2086,17 @@ def test_cell_consensus_cluster(mocker):
                 fovs=[], channels=[], base_dir=temp_dir, pixel_cluster_col=cluster_prefix
             )
 
-            # assert the consensus feather file has been created
-            assert os.path.exists(os.path.join(temp_dir, 'cell_mat_consensus.feather'))
-
-            # assert we idn't assign any cluster 2 or above
             cell_consensus_data = feather.read_dataframe(
-                os.path.join(temp_dir, 'cell_mat_consensus.feather')
+                os.path.join(temp_dir, 'cell_mat.feather')
             )
 
+            # assert the cell_som_cluster labels are intact
+            assert np.all(
+                cluster_data['cell_som_cluster'].values ==
+                cell_consensus_data['cell_som_cluster'].values
+            )
+
+            # assert we idn't assign any cluster 2 or above
             cluster_ids = cell_consensus_data['cell_meta_cluster']
             assert np.all(cluster_ids < 2)
 
