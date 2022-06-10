@@ -32,7 +32,7 @@ mapSOMLabels <- function(fov, somWeights, pixelMatDir) {
     fovPixelData <- cbind(fovPixelData_all[,..to_add],fovPixelData)
 
     # assign cluster labels column to pixel data
-    fovPixelData$pixel_som_cluster <- as.integer(clustrs[,1])
+    fovPixelData$pixel_som_cluster <- as.integer(clusters[,1])
 
     # write to feather
     arrow::write_feather(as.data.table(fovPixelData),  matPath)
@@ -61,6 +61,7 @@ pixelWeightsPath <- args[4]
 
 # TODO: set batch size to be customizable by user with default arg
 # batchSize <- args[6]
+batchSize <- 5
 
 # read the weights
 somWeights <- as.matrix(arrow::read_feather(pixelWeightsPath))

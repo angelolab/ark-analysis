@@ -932,9 +932,18 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
         fov_data_batch = fov_data_pool.map(fov_data_func, fov_batch)
 
         for pixel_mat_data in fov_data_batch:
+            # retrieve the FOV name
             assert len(pixel_mat_data[0]['fov'].unique()) == 1
             fov = pixel_mat_data[0]['fov'].unique()[0]
-            quant_dat[fov] = pixel_mat_data[0].replace(0, np.nan).quantile(q=0.999, axis=0)
+
+            # before taking the 99.9% quantile, drop the unneeded metadata columns
+            cols_to_drop = ['fov', 'row_index', 'column_index']
+            if 'segmentation_label' in pixel_mat_data[0].columns.values:
+                cols_to_drop.append('segmentation_label')
+
+            # drop the metadata columns and generate the 99.9% quantile values for the FOV
+            fov_full_pixel_data = pixel_mat_data[0].drop(columns=cols_to_drop)
+            quant_dat[fov] = fov_full_pixel_data.replace(0, np.nan).quantile(q=0.999, axis=0)
 
     end_time = timeit.default_timer()
     print("Total time: %.2f" % (end_time - start_time))
@@ -1075,7 +1084,11 @@ def cluster_pixels(fovs, channels, base_dir, data_dir='pixel_mat_data',
                                 (weights_name, base_dir))
 
     # verify that all provided fovs exist in the folder
+    # NOTE: remove the channel and pixel normalization files as those are not pixel data
     data_files = io_utils.list_files(data_path, substrs='.feather')
+    data_files.remove('channel_norm.feather')
+    data_files.remove('pixel_norm.feather')
+
     misc_utils.verify_in_list(provided_fovs=fovs,
                               subsetted_fovs=io_utils.remove_file_extensions(data_files))
 
