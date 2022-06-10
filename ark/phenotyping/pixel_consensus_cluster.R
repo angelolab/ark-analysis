@@ -53,7 +53,7 @@ maxK <- strtoi(args[3])
 # get z-score scaling factor
 cap <- strtoi(args[4])
 
-# get path to pixel data
+# get path to the pixel data
 pixelMatDir <- args[5]
 
 # get path to the averaged channel data
@@ -85,6 +85,7 @@ som_to_meta_map <- consensusClusterResults[[maxK]]$consensusClass
 names(som_to_meta_map) <- clusterAvgs$pixel_som_cluster
 
 # append pixel_meta_cluster to each fov's data
+print("Mapping pixel data to consensus cluster labels")
 for (batchStart in seq(1, length(fovs), batchSize)) {
     # define the parallel cluster for this batch of fovs
     parallelCluster <- parallel::makeCluster(nCores, type="FORK")

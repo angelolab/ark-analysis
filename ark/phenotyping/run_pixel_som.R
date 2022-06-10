@@ -75,7 +75,7 @@ markers <- colnames(somWeights)
 normVals <- normVals[,..markers]
 
 # using trained SOM, assign SOM labels to each fov
-print("Mapping data to cluster labels")
+print("Mapping pixel data to SOM cluster labels")
 for (batchStart in seq(1, length(fovs), batchSize)) {
     # define the parallel cluster for this batch of fovs
     parallelCluster <- parallel::makeCluster(nCores, type="FORK")
