@@ -678,9 +678,9 @@ def test_create_c2pc_data():
         cell_table_path = os.path.join(temp_dir, 'cell_table_size_normalized.csv')
         cell_table.to_csv(cell_table_path, index=False)
 
-        # define a consensus clustered directory
-        pixel_consensus_path = os.path.join(temp_dir, 'pixel_consensus_path')
-        os.mkdir(pixel_consensus_path)
+        # define a pixel data directory
+        pixel_data_path = os.path.join(temp_dir, 'pixel_data_path')
+        os.mkdir(pixel_data_path)
 
         # create dummy data for each fov
         for fov in ['fov1', 'fov2']:
@@ -702,7 +702,7 @@ def test_create_c2pc_data():
             fov_table['pixel_meta_cluster_rename'] = np.repeat(np.arange(2), 25)
 
             # write fov data to feather
-            feather.write_dataframe(fov_table, os.path.join(pixel_consensus_path,
+            feather.write_dataframe(fov_table, os.path.join(pixel_data_path,
                                                             fov + '.feather'))
 
         # error check: not all required columns provided in cell table
@@ -713,13 +713,13 @@ def test_create_c2pc_data():
             bad_cell_table.to_csv(bad_cell_table_path, index=False)
 
             cluster_counts, cluster_counts_norm = som_utils.create_c2pc_data(
-                fovs, pixel_consensus_path, bad_cell_table_path,
+                fovs, pixel_data_path, bad_cell_table_path,
                 pixel_cluster_col='pixel_som_cluster'
             )
 
         # test counts on the pixel cluster column
         cluster_counts, cluster_counts_norm = som_utils.create_c2pc_data(
-            fovs, pixel_consensus_path, cell_table_path, pixel_cluster_col='pixel_som_cluster'
+            fovs, pixel_data_path, cell_table_path, pixel_cluster_col='pixel_som_cluster'
         )
 
         # assert we actually created the cluster_cols
@@ -751,7 +751,7 @@ def test_create_c2pc_data():
 
         # test counts on the consensus cluster column
         cluster_counts, cluster_counts_norm = som_utils.create_c2pc_data(
-            fovs, pixel_consensus_path, cell_table_path,
+            fovs, pixel_data_path, cell_table_path,
             pixel_cluster_col='pixel_meta_cluster_rename'
         )
 
