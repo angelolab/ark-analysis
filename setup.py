@@ -33,7 +33,6 @@ setup(
                       'seaborn>=0.11.2,<1',
                       'spatial-lda>=0.1.3,<1',
                       'statsmodels>=0.13.2,<1',
-                      'tables>=3.7.0,<4',
                       'umap-learn>=0.5.3,<1',
                       'xarray>=0.17.0,<1',
                       'tqdm>=4.64.0,<5'],
