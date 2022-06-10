@@ -139,6 +139,7 @@ def test_list_files():
 def test_remove_file_extensions():
     # test a mixture of file paths and extensions
     files = ['fov1.tiff', 'fov2.tif', 'fov3.png', 'fov4.jpg']
+    files2 = ['fov.1.tiff', 'fov.2.tiff', 'fov.3.png', 'fov.4']
 
     assert iou.remove_file_extensions(None) is None
     assert iou.remove_file_extensions([]) == []
@@ -152,6 +153,10 @@ def test_remove_file_extensions():
     with pytest.warns(UserWarning):
         new_files = iou.remove_file_extensions(['fov5.tar.gz', 'fov6.sample.csv'])
         assert new_files == ['fov5.tar', 'fov6.sample']
+
+    with pytest.warns(UserWarning):
+        new_files = iou.remove_file_extensions(files2)
+        assert new_files == ['fov.1', 'fov.2', 'fov.3', 'fov.4']
 
 
 def test_extract_delimited_names():

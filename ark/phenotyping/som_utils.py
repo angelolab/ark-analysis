@@ -1259,7 +1259,7 @@ def apply_pixel_meta_cluster_remapping(fovs, channels, base_dir,
     pixel_channel_avg_som_cluster.to_csv(som_cluster_avg_path, index=False)
 
 
-def train_cell_som(fovs, channels, base_dir, pixel_consensus_dir, cell_table_name,
+def train_cell_som(fovs, channels, base_dir, pixel_consensus_dir, cell_table_path,
                    cluster_counts_name='cluster_counts.feather',
                    cluster_counts_norm_name='cluster_counts_norm.feather',
                    pixel_cluster_col='pixel_meta_cluster_rename',
@@ -1282,8 +1282,8 @@ def train_cell_som(fovs, channels, base_dir, pixel_consensus_dir, cell_table_nam
         pixel_consensus_dir (str):
             Name of directory with the pixel-level consensus data (SOM and meta labels added)
             Created by `pixel_consensus_cluster`
-        cell_table_name (str):
-            Name of the cell table, needs to be created with `Segment_Image_Data.ipynb`
+        cell_table_path (str):
+            Path of the cell table, needs to be created with `Segment_Image_Data.ipynb`
         cluster_counts_name (str):
             Name of the file to save the number of pixel SOM/meta cluster counts for each cell
         cluster_counts_norm_name (str):
@@ -1315,7 +1315,6 @@ def train_cell_som(fovs, channels, base_dir, pixel_consensus_dir, cell_table_nam
     """
 
     # define the data paths
-    cell_table_path = os.path.join(base_dir, cell_table_name)
     consensus_path = os.path.join(base_dir, pixel_consensus_dir)
     cluster_counts_path = os.path.join(base_dir, cluster_counts_name)
     cluster_counts_norm_path = os.path.join(base_dir, cluster_counts_norm_name)
@@ -1323,8 +1322,8 @@ def train_cell_som(fovs, channels, base_dir, pixel_consensus_dir, cell_table_nam
 
     # if the cell table path does not exist
     if not os.path.exists(cell_table_path):
-        raise FileNotFoundError('Cell table %s does not exist in base_dir %s' %
-                                (cell_table_name, base_dir))
+        raise FileNotFoundError('Cell table path %s does not exist' %
+                                cell_table_path)
 
     # if the pixel data with the SOM and meta labels path does not exist
     if not os.path.exists(consensus_path):
@@ -2053,3 +2052,69 @@ def generate_weighted_channel_avg_heatmap(cell_cluster_channel_avg_path, cell_cl
         bbox_transform=plt.gcf().transFigure,
         loc='upper right'
     )
+
+
+def add_consensus_labels_cell_table(base_dir, cell_table_path, cell_consensus_name):
+    """Adds the consensus cluster labels to the cell table,
+    then resaves data to `{cell_table_path}_cell_labels.csv`
+
+
+    Args:
+        base_dir (str):
+            The path to the data directory
+        cell_table_path (str):
+            Path of the cell table, needs to be created with `Segment_Image_Data.ipynb`
+        cell_consensus_name (str):
+            Name of file with the cell consensus clustered results (both cell SOM and meta labels)
+    """
+
+    # define the data paths
+    cell_consensus_path = os.path.join(base_dir, cell_consensus_name)
+
+    # file path validation
+    if not os.path.exists(cell_table_path):
+        raise FileNotFoundError('Cell table file %s does not exist' %
+                                cell_table_path)
+
+    if not os.path.exists(cell_consensus_path):
+        raise FileNotFoundError('Cell consensus file %s does not exist in base_dir %s' %
+                                (cell_consensus_name, base_dir))
+
+    # read in the data, ensure sorted by FOV column just in case
+    cell_table = pd.read_csv(cell_table_path)
+    consensus_data = feather.read_dataframe(cell_consensus_path)
+
+    # for a simpler merge, rename segmentation_label to label in consensus_data
+    consensus_data = consensus_data.rename(
+        {'segmentation_label': 'label'}, axis=1
+    )
+
+    # merge the cell table with the consensus data to retrieve the meta clusters
+    cell_table_merged = cell_table.merge(
+        consensus_data, how='left', on=['fov', 'label']
+    )
+
+    # adjust column names and drop consensus data-specific columns
+    cell_table_merged = cell_table_merged.drop(columns=['cell_size_y'])
+    cell_table_merged = cell_table_merged.rename(
+        {'cell_size_x': 'cell_size'}, axis=1
+    )
+
+    # subset on just the cell table columns plus the meta cluster rename column
+    # NOTE: rename cell_meta_cluster_rename to just cell_meta_cluster for simplicity
+    cell_table_merged = cell_table_merged[
+        list(cell_table.columns.values) + ['cell_meta_cluster_rename']
+    ]
+    cell_table_merged = cell_table_merged.rename(
+        {'cell_meta_cluster_rename': 'cell_meta_cluster'}, axis=1
+    )
+
+    # fill any N/A cell_meta_cluster values with 'Unassigned'
+    # NOTE: this happens when a cell is so small no pixel clusters are detected inside of them
+    cell_table_merged['cell_meta_cluster'] = cell_table_merged['cell_meta_cluster'].fillna(
+        'Unassigned'
+    )
+
+    # resave cell table with new meta cluster column
+    new_cell_table_path = os.path.splitext(cell_table_path)[0] + '_cell_labels.csv'
+    cell_table_merged.to_csv(new_cell_table_path, index=False)
