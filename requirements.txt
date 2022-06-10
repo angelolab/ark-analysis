@@ -7,12 +7,14 @@ jupyterlab>=3.4.3,<4
 jedi>=0.17.2,<0.18
 matplotlib>=2.2.2,<3
 numpy>=1.21.6,<2
+palettable>=3.3.0,<4
 pandas>=1.3.5,<2
 requests>=2.27.1,<3
 scikit-image>=0.16.2,<=0.19.2
 scikit-learn>=0.24.2,<1
 scipy>=1.7.3,<2
 seaborn>=0.11.2,<1
+git+https://github.com/calico/spatial_lda.git@primary
 statsmodels>=0.13.2,<1
 tables>=3.7.0,<4
 umap-learn>=0.5.3,<1
