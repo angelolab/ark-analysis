@@ -9,6 +9,8 @@ python:
   - 3.7
 
 before_install:
+  - pip install -U importlib_metadata
+  - pip install -U setuptools
   - pip show setuptools
   - pip show importlib-metadata
 # We add python path to enable testing jupyter notebooks
