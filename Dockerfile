@@ -37,8 +37,11 @@ RUN pip install /opt/ark-analysis
 RUN R -e "install.packages('arrow')"
 RUN R -e "install.packages('data.table')"
 RUN R -e "install.packages('doParallel')"
+RUN R -e "install.packages('foreach')"
 RUN R -e "install.packages('BiocManager')"
 RUN R -e "BiocManager::install('FlowSOM')"
+RUN R -e "install.packages('devtools')"
+RUN R -e "library(devtools); devtools::install_github('angelolab/FlowSOM')"
 RUN R -e "BiocManager::install('ConsensusClusterPlus')"
 
 # jupyter lab

@@ -16,8 +16,8 @@ library(foreach)
 library(parallel)
 
 # helper function to map a FOV to its SOM labels
-mapFov <- function(fov) {
-    fileName <- paste0(fovs[i], ".feather")
+mapSOMLabels <- function(fov, somWeights, pixelMatDir, pixelClusterDir) {
+    fileName <- paste0(fov, ".feather")
     matPath <- file.path(pixelMatDir, fileName)
     fovPixelData_all <- data.table(arrow::read_feather(matPath))
 
@@ -38,9 +38,12 @@ mapFov <- function(fov) {
     # write to feather
     clusterPath <- file.path(pixelClusterDir, fileName)
     arrow::write_feather(as.data.table(fovPixelData), clusterPath)
+
+    # inform user that a fov has been processed
+    print(paste("Processed fov:", fov))
 }
 
-# get the number of cores on the Docker
+# get the number of cores
 nCores <- parallel::detectCores() - 1
 
 # get the command line arguments
@@ -76,27 +79,27 @@ markers <- colnames(somWeights)
 # set order of normVals to make sure they match with weights
 normVals <- normVals[,..markers]
 
-# using trained SOM, batch cluster the original dataset by fov
+# using trained SOM, assign SOM labels to each fov
 print("Mapping data to cluster labels")
 for (batchStart in seq(1, length(fovs), batchSize)) {
     # define the parallel cluster for this batch of fovs
     parallelCluster <- parallel::makeCluster(nCores, type="FORK")
 
-    # register cluster for dopar
+    # register parallel cluster for dopar
     doParallel::registerDoParallel(cl=parallelCluster)
 
     # need to prevent overshooting end of fovs list when batching
     batchEnd <- min(batchStart + batchSize - 1, length(fovs))
 
-    # run the batch process for mapping to SOM labels and saving
+    # run the multithreaded batch process for mapping to SOM labels and saving
     foreach(
         i=batchStart:batchEnd,
         .combine='c'
     ) %dopar% {
-        mapFov(fovs[i])
+        mapSOMLabels(fovs[i], somWeights, pixelMatDir, pixelClusterDir)
     }
 
-    # unregister the cluster
+    # unregister the parallel cluster
     parallel::stopCluster(cl=parallelCluster)
 }
 
