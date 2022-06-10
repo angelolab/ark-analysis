@@ -107,13 +107,17 @@ def assign_single_compartment_features(marker_counts, compartment, cell_props, c
     cell_counts = EXTRACTION_FUNCTION[extraction](cell_coords, input_images, **kwargs)
 
     # get morphology metrics
-    current_cell_props = cell_props.loc[cell_props['label'] == label_id, regionprops_names]
+    # Filter regionprops_names to only those in cell_props.columns
+    filtered_regionprops_names = [rp_name for rp_name in regionprops_names if rp_name in cell_props.columns]
+    current_cell_props = cell_props.loc[cell_props['label'] == label_id, filtered_regionprops_names]
 
     # combine marker counts and morphology metrics together
     cell_features = np.concatenate((cell_counts, current_cell_props), axis=None)
 
     # add counts of each marker to appropriate column
-    marker_counts.loc[compartment, cell_id, marker_counts.features[1]:] = cell_features
+    # Only include the marker_count features up to the last filtered feature.
+    marker_counts.loc[compartment, cell_id, 
+                      marker_counts.features[1]:filtered_regionprops_names[-1]] = cell_features
 
     # add cell size to first column
     marker_counts.loc[compartment, cell_id, marker_counts.features[0]] = cell_coords.shape[0]
