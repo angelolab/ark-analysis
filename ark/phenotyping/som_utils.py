@@ -1050,7 +1050,10 @@ def cluster_pixels(fovs, channels, base_dir, data_dir='pixel_mat_data',
                                 (weights_name, base_dir))
 
     # verify that all provided fovs exist in the folder
+    # ensure that channel_norm and pixel_norm files are ignored
     data_files = io_utils.list_files(data_path, substrs='.feather')
+    data_files.remove('channel_norm.feather')
+    data_files.remove('pixel_norm.feather')
     misc_utils.verify_in_list(provided_fovs=fovs,
                               subsetted_fovs=io_utils.remove_file_extensions(data_files))
 
