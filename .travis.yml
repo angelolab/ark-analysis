@@ -6,7 +6,7 @@ git:
 language: python
 
 python:
-  - 3.7
+  - 3.7.12
 
 # We add python path to enable testing jupyter notebooks
 install:
@@ -26,7 +26,7 @@ script:
 jobs:
   include:
     - stage: pypi_deploy
-      python: 3.7
+      python: 3.7.12
       deploy:
         provider: pypi
         user: $PYPI_USERNAME
@@ -35,7 +35,7 @@ jobs:
           tags: true
     - stage: docker_deploy
       if: tag IS present
-      python: 3.7
+      python: 3.7.12
       script:
         - "travis_wait 120 sleep 7200 &"
         - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin 
