@@ -24,6 +24,7 @@ setup(
                       'jupyterlab>=3.4.3,<4',
                       'matplotlib>=2.2.2,<3',
                       'numpy>=1.21.6,<2',
+                      'palettable>=3.3.0,<4',
                       'pandas>=1.3.5,<2',
                       'requests>=2.27.1,<3',
                       'scikit-image>=0.16.2,<=0.19.2',
