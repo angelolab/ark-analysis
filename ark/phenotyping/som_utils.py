@@ -921,7 +921,7 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
     fov_data_func = partial(
         create_fov_pixel_data_parallel, base_dir, tiff_dir, data_dir, subset_dir,
         seg_dir, seg_suffix, img_sub_folder, is_mibitiff, channels, blur_factor,
-        subset_proportion, pixel_nrom_val, dtype
+        subset_proportion, pixel_norm_val, dtype
     )
 
     # asynchronously generate and save the pixel matrices per FOV
