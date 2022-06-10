@@ -99,36 +99,4 @@ for (batchStart in seq(1, length(fovs), batchSize)) {
     parallel::stopCluster(cl=parallelCluster)
 }
 
-# for (i in 1:length(fovs)) {
-#     # read in pixel data
-#     fileName <- paste0(fovs[i], ".feather")
-#     matPath <- file.path(pixelMatDir, fileName)
-#     fovPixelData_all <- data.table(arrow::read_feather(matPath))
-
-#     # 99.9% normalization
-#     fovPixelData <- fovPixelData_all[,..markers]
-#     fovPixelData <- fovPixelData[,Map(`/`,.SD,normVals)]
-
-#     # map FlowSOM data
-#     clusters <- FlowSOM:::MapDataToCodes(somWeights, as.matrix(fovPixelData))
-
-#     # add back other columns
-#     to_add <- colnames(fovPixelData_all)[!colnames(fovPixelData_all) %in% markers]
-#     fovPixelData <- cbind(fovPixelData_all[,..to_add],fovPixelData)
-
-#     # assign cluster labels column to pixel data
-#     fovPixelData$pixel_som_cluster <- as.integer(clusters[,1])
-
-#     # write to feather
-#     clusterPath <- file.path(pixelClusterDir, fileName)
-#     arrow::write_feather(as.data.table(fovPixelData), clusterPath)
-
-#     # print an update every 10 fovs
-#     # TODO: find a way to capture sprintf to the console
-#     if (i %% 10 == 0) {
-#         print("# fovs clustered:")
-#         print(i)
-#     }
-# }
-
 print("Done!")

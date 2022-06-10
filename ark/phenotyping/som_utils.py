@@ -926,8 +926,6 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
 
     # asynchronously generate and save the pixel matrices per FOV
     # NOTE: this should NOT operate on quant_dat since that is a shared resource
-    import timeit
-    start_time = timeit.default_timer()
     for fov_batch in [fovs[i:(i + 10)] for i in range(0, len(fovs), 10)]:
         fov_data_batch = fov_data_pool.map(fov_data_func, fov_batch)
 
@@ -944,9 +942,6 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
             # drop the metadata columns and generate the 99.9% quantile values for the FOV
             fov_full_pixel_data = pixel_mat_data[0].drop(columns=cols_to_drop)
             quant_dat[fov] = fov_full_pixel_data.replace(0, np.nan).quantile(q=0.999, axis=0)
-
-    end_time = timeit.default_timer()
-    print("Total time: %.2f" % (end_time - start_time))
 
     # get mean 99.9% across all fovs for all markers
     mean_quant = pd.DataFrame(quant_dat.mean(axis=1))
@@ -1408,42 +1403,11 @@ def apply_pixel_meta_cluster_remapping(fovs, channels, base_dir,
 
     # asynchronously generate and save the pixel matrices per FOV
     # NOTE: this should NOT operate on quant_dat since that is a shared resource
-    import timeit
-    start_time = timeit.default_timer()
     print("Using re-mapping scheme to re-label pixel meta clusters")
     for fov_batch in [fovs[i:(i + 10)] for i in range(0, len(fovs), 10)]:
         # NOTE: we don't need a return value since we're just resaving
         # and not computing intermediate data frames
         fov_data_pool.map(fov_data_func, fov_batch)
-    end_time = timeit.default_timer()
-    print("Total time: %.2f" % (end_time - start_time))
-
-    # print("Using re-mapping scheme to re-label pixel meta clusters")
-    # for fov in fovs:
-    #     # get the path to the fov
-    #     fov_path = os.path.join(pixel_consensus_path, fov + '.feather')
-
-    #     # read in the fov data with SOM and meta cluster labels
-    #     fov_data = feather.read_dataframe(fov_path)
-
-    #     # ensure that no SOM clusters are missing from the mapping
-    #     misc_utils.verify_in_list(
-    #         fov_som_labels=fov_data['pixel_som_cluster'],
-    #         som_labels_in_mapping=list(pixel_remapped_dict.keys())
-    #     )
-
-    #     # assign the new meta cluster labels
-    #     fov_data['pixel_meta_cluster'] = fov_data['pixel_som_cluster'].map(
-    #         pixel_remapped_dict
-    #     )
-
-    #     # assign the renamed meta cluster names
-    #     fov_data['pixel_meta_cluster_rename'] = fov_data['pixel_meta_cluster'].map(
-    #         pixel_renamed_meta_dict
-    #     )
-
-    #     # resave the data with the new meta cluster lables
-    #     feather.write_dataframe(fov_data, fov_path, compression='uncompressed')
 
     # re-compute average channel expression for each pixel meta cluster
     # and the number of pixels per meta cluster, add renamed meta cluster column in

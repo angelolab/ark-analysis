@@ -19,7 +19,7 @@ library(foreach)
 library(parallel)
 
 # helper function to map a FOV to its consensus labels
-mapConsensusLabels <- function(fov, pixelMatDir) {
+mapConsensusLabels <- function(fov, pixelMatDir, som_to_meta_map) {
     # read in pixel data, we'll need the cluster column for mapping
     fileName <- file.path(fov, "feather", fsep=".")
     matPath <- file.path(pixelMatDir, fileName)
@@ -29,7 +29,7 @@ mapConsensusLabels <- function(fov, pixelMatDir) {
     fovPixelData$pixel_meta_cluster <- som_to_meta_map[as.character(fovPixelData$pixel_som_cluster)]
 
     # write data with consensus labels
-    arrow::write_feather(as.data.table(fovPixelData), pixelMatDir)
+    arrow::write_feather(as.data.table(fovPixelData), matPath)
 
     # inform user that a fov has been processed
     print(paste("Processed fov:", fov))
@@ -66,6 +66,10 @@ clustToMeta <- args[7]
 seed <- strtoi(args[8])
 set.seed(seed)
 
+# TODO: set batch size to be customizable by user with default arg
+# batchSize <- args[6]
+batchSize <- 5
+
 # read cluster averaged data
 print("Reading cluster averaged data")
 clusterAvgs <- as.data.frame(read.csv(clusterAvgPath, check.names=FALSE))
@@ -101,34 +105,12 @@ for (batchStart in seq(1, length(fovs), batchSize)) {
         i=batchStart:batchEnd,
         .combine='c'
     ) %dopar% {
-        mapConsensusLabels(fovs[i], pixelMatDir)
+        mapConsensusLabels(fovs[i], pixelMatDir, som_to_meta_map)
     }
 
     # unregister the parallel cluster
     parallel::stopCluster(cl=parallelCluster)
 }
-
-# # append pixel_meta_cluster to each fov's data
-# print("Writing consensus clustering results")
-# for (i in 1:length(fovs)) {
-#     # read in pixel data, we'll need the cluster column for mapping
-#     fileName <- file.path(fovs[i], "feather", fsep=".")
-#     matPath <- file.path(pixelClusterDir, fileName)
-#     fovPixelData <- arrow::read_feather(matPath)
-
-#     # assign hierarchical cluster labels
-#     fovPixelData$pixel_meta_cluster <- som_to_meta_map[as.character(fovPixelData$pixel_som_cluster)]
-
-#     # write consensus clustered data
-#     clusterPath <- file.path(pixelMatConsensus, fileName)
-#     arrow::write_feather(as.data.table(fovPixelData), clusterPath)
-
-#     # print an update every 10 fovs
-#     if (i %% 10 == 0) {
-#         print("# fovs clustered:")
-#         print(i)
-#     }
-# }
 
 # save the mapping from pixel_som_cluster to pixel_meta_cluster
 print("Writing SOM to meta cluster mapping table")
