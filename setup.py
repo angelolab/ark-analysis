@@ -18,6 +18,7 @@ setup(
     download_url='https://github.com/angelolab/ark-analysis/archive/v{}.tar.gz'.format(VERSION),
     install_requires=['cryptography>=3.4.8,<4',
                       'feather_format>=0.4.1,<1',
+                      'importlib-metadata>=3.6,<4',
                       'ipympl>=0.7.0,<0.8.0',
                       'jupyter>=1.0.0,<2',
                       'jupyter_contrib_nbextensions>=0.5.1,<1',

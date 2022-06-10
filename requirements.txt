@@ -1,6 +1,7 @@
 cryptography>=3.4.8,<4
 feather-format>=0.4.1,<1
 jupyter>=1.0.0,<2
+importlib-metadata>=3.6,<4
 ipympl==0.7.0
 jupyter_contrib_nbextensions>=0.5.1,<1
 jupyterlab>=3.4.3,<4
