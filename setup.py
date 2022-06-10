@@ -1,6 +1,4 @@
-import setuptools
 from os import path
-from distutils.command.build_ext import build_ext as DistUtilsBuildExt
 from setuptools import setup, find_packages
 
 VERSION = '0.2.10'
@@ -37,6 +35,9 @@ setup(
 											'umap-learn>=0.5.3,<1',
 											'xarray>=0.17.0,<1',
 											'tqdm>=4.64.0,<5'],
+    dependency_links=[
+        'git+https://github.com/calico/spatial_lda.git@primary',
+    ],
     extras_require={
         'tests': ['pytest',
                   'pytest-cov',

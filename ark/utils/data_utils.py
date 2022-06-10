@@ -10,7 +10,7 @@ from ark.utils import load_utils
 from ark.utils.misc_utils import verify_in_list
 
 
-def save_fov_images(fovs, data_dir, img_xr, name_suffix=''):
+def save_fov_images(fovs, data_dir, img_xr, sub_dir=None, name_suffix=''):
     """Given an xarray of images per fov, saves each image separately
 
     Args:
@@ -20,8 +20,12 @@ def save_fov_images(fovs, data_dir, img_xr, name_suffix=''):
             The directory to save the images
         img_xr (xarray.DataArray):
             The array of images per fov
+        sub_dir (Optional[str]):
+            The subdirectory to save the images in. If specified images are saved to
+            "data_dir/sub_dir". If `sub_dir = None` the images are saved to "data_dir". Defaults
+            to None.
         name_suffix (str):
-            Specify what to append at the end of every fov
+            Specify what to append at the end of every fov.
     """
 
     if not os.path.exists(data_dir):
@@ -33,6 +37,15 @@ def save_fov_images(fovs, data_dir, img_xr, name_suffix=''):
         img_xr_fovs=img_xr.fovs.values
     )
 
+    if sub_dir is not None:
+        # Save the fovs in the directory `data_dir/sub_dir/`
+        save_dir = os.path.join(data_dir, sub_dir)
+        if not os.path.exists(save_dir):
+            os.makedirs(save_dir)
+    else:
+        # Save the fovs in the directory `data_dir`
+        save_dir = data_dir
+
     for fov in fovs:
         # retrieve the image for the fov
         fov_img_data = img_xr.loc[fov, ...].values
@@ -41,7 +54,7 @@ def save_fov_images(fovs, data_dir, img_xr, name_suffix=''):
         fov_file = fov + name_suffix + '.tiff'
 
         # save the image to data_dir
-        io.imsave(os.path.join(data_dir, fov_file), fov_img_data, check_contrast=False)
+        io.imsave(os.path.join(save_dir, fov_file), fov_img_data, check_contrast=False)
 
 
 def label_cells_by_cluster(fovs, all_data, label_maps, fov_col=settings.FOV_ID,

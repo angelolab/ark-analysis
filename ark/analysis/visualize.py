@@ -1,10 +1,11 @@
-import os
-import pandas as pd
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
 import seaborn as sns
+import spatial_lda.visualization as sv
 
 from ark.utils import misc_utils
+from ark.utils.spatial_lda_utils import make_plot_fn
 
 
 def draw_boxplot(cell_data, col_name, col_split=None,
@@ -322,3 +323,145 @@ def visualize_neighbor_cluster_metrics(neighbor_cluster_stats, dpi=None, save_di
     # save if desired
     if save_dir is not None:
         misc_utils.save_figure(save_dir, "neighborhood_cluster_scores.png", dpi=dpi)
+
+
+def visualize_topic_eda(data, metric="gap_stat", gap_sd=True, k=None, transpose=False, scale=0.5,
+                        dpi=None, save_dir=None):
+    """Visualize the exploratory metrics for spatial-LDA topics
+
+    Args:
+        data (dict):
+            The dictionary of exploratory metrics produced by
+            :func:`~ark.spLDA.processing.compute_topic_eda`.
+        metric (str):
+            One of "gap_stat", "inertia", "silhouette", "percent_var_exp", or "cell_counts".
+        gap_sd (bool):
+            If True, the standard error of the gap statistic is included in the plot.
+        k (int):
+            References a specific KMeans clustering with k clusters for visualizing the cell count
+            heatmap.
+        transpose (bool):
+            Swap axes for cell_counts heatmap
+        scale (float):
+            Plot size scaling for cell_counts heatmap
+        dpi (float):
+            The resolution of the image to save, ignored if save_dir is None
+        save_dir (str):
+            Directory to save plots, default is None
+    """
+    valid_metrics = ["gap_stat", "inertia", "silhouette", "percent_var_exp", "cell_counts"]
+    misc_utils.verify_in_list(actual=[metric], expected=valid_metrics)
+    featurization = data["featurization"]
+    data_k = {k: v for k, v in data.items() if k != "featurization"}
+    df = pd.DataFrame.from_dict(data_k)
+    df['num_clusters'] = df.index
+
+    if metric == "gap_stat":
+        if gap_sd:
+            plt.plot()
+            plt.errorbar(x=df["num_clusters"], y=df["gap_stat"], yerr=df["gap_sds"])
+        else:
+            sns.relplot(x=df["num_clusters"], y=df["gap_stat"])
+        plt.xlabel("Number of Clusters")
+        plt.ylabel("Gap")
+    elif metric == "inertia":
+        sns.relplot(x=df["num_clusters"], y=df["inertia"], kind="line")
+        plt.xlabel("Number of Clusters")
+        plt.ylabel("Inertia")
+    elif metric == "silhouette":
+        sns.relplot(x=df["num_clusters"], y=df["silhouette"], kind="line")
+        plt.xlabel("Number of Clusters")
+        plt.ylabel("Silhouette Score")
+    elif metric == "cell_counts":
+        if k is None:
+            raise ValueError("Must provide number of clusters for k value.")
+        cell_counts = data["cell_counts"][k]
+        cell_counts = cell_counts / cell_counts.sum(axis=0)
+        if transpose:
+            cell_counts = cell_counts.T
+
+        plt.subplots(figsize=(scale * cell_counts.shape[1], scale * cell_counts.shape[0]))
+        sns.heatmap(cell_counts, vmin=0, square=True, xticklabels=True,
+                    yticklabels=True, cmap="mako")
+        plt.xlabel("KMeans Cluster Label")
+        if featurization == "cluster":
+            plt.ylabel("Cell Cluster")
+        elif featurization == "marker" or featurization == "avg_marker":
+            plt.ylabel("Channel Marker")
+        else:
+            plt.ylabel("Cell Counts")
+    else:
+        sns.relplot(x=df["num_clusters"], y=df["percent_var_exp"] * 100, kind="line")
+        plt.xlabel("Number of Clusters")
+        plt.ylabel("% of Total Variance Explained")
+
+    if save_dir is not None:
+        clust_label = ""
+        if metric == "cell_counts":
+            clust_label = "_k_{}".format(str(k))
+        file_name = "topic_eda_" + metric + clust_label + ".png"
+        misc_utils.save_figure(save_dir, file_name, dpi=dpi)
+
+
+def visualize_fov_stats(data, metric="cellular_density", dpi=None, save_dir=None):
+    """Visualize area and cell count distributions for all field of views.
+
+    Args:
+        data (dict):
+            The dictionary of field of view metrics produced by
+            :func:`~ark.spLDA.processing.fov_density`.
+        metric (str):
+            One of "cellular_density", "average_area", or "total_cells".  See
+            documentation of :func:`~ark.spLDA.processing.fov_density` for details.
+        dpi (float):
+            The resolution of the image to save, ignored if save_dir is None
+        save_dir (str):
+            Directory to save plots, default is None
+    """
+    df = pd.DataFrame.from_dict(data)
+    df['fov'] = df.index
+
+    if metric == "cellular_density":
+        sns.histplot(data=df, x="cellular_density")
+        plt.xlabel("FOV Cellular Density")
+        plt.ylabel("Count")
+    elif metric == "average_area":
+        sns.histplot(data=df, x="average_area")
+        plt.xlabel("FOV Average Cell Area")
+        plt.ylabel("Count")
+    else:
+        sns.histplot(data=df, x="total_cells")
+        plt.xlabel("FOV Total Cell Count")
+        plt.ylabel("Count")
+
+    if save_dir is not None:
+        file_name = "fov_metrics_" + metric + ".png"
+        misc_utils.save_figure(save_dir, file_name, dpi=dpi)
+
+
+def visualize_fov_graphs(cell_table, features, diff_mats, fovs, dpi=None, save_dir=None):
+    """Visualize the adjacency graph used to define neighboring environments in each field of view.
+
+    Args:
+        cell_table (dict):
+            A formatted cell table for use in spatial-LDA analysis. Specifically, this is the
+            output from :func:`~ark.spLDA.processing.format_cell_table`.
+        features (dict):
+            A featurized cell table.  Specifically, this is the output from
+            :func:`~ark.spLDA.processing.featurize_cell_table`.
+        diff_mats (dict):
+            The difference matrices produced by
+            :func:`~ark.spLDA.processing.create_difference_matrices`.
+        fovs (list):
+            A list of field of view IDs to plot.
+        dpi (float):
+            The resolution of the image to save, ignored if save_dir is None.
+        save_dir (str):
+            Directory to save plots, default is None
+    """
+    _plot_fn = make_plot_fn(plot="adjacency", difference_matrices=diff_mats["train_diff_mat"])
+    sv.plot_samples_in_a_row(features["train_features"], _plot_fn, cell_table, tumor_set=fovs)
+    if save_dir is not None:
+        fovs_str = "_".join([str(x) for x in fovs])
+        file_name = "adjacency_graph_fovs_" + fovs_str + ".png"
+        misc_utils.save_figure(save_dir, file_name, dpi=dpi)
