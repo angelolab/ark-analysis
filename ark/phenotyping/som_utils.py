@@ -822,7 +822,7 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
     np.random.seed(seed)
 
     # create path for channel normalization values
-    channel_norm_path = os.path.join(base_dir, data_dir, 'channel_norm.feather')
+    channel_norm_path = os.path.join(base_dir, 'channel_norm.feather')
 
     if not os.path.exists(channel_norm_path):
 
@@ -839,7 +839,7 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
         channel_norm_df = feather.read_dataframe(channel_norm_path)
 
     # create path for pixel normalization values
-    pixel_norm_path = os.path.join(base_dir, data_dir, 'pixel_norm.feather')
+    pixel_norm_path = os.path.join(base_dir, 'pixel_norm.feather')
     if not os.path.exists(pixel_norm_path):
         # compute pixel percentiles
         pixel_norm_val = calculate_pixel_intensity_percentile(
@@ -1050,10 +1050,7 @@ def cluster_pixels(fovs, channels, base_dir, data_dir='pixel_mat_data',
                                 (weights_name, base_dir))
 
     # verify that all provided fovs exist in the folder
-    # ensure that channel_norm and pixel_norm files are ignored
     data_files = io_utils.list_files(data_path, substrs='.feather')
-    data_files.remove('channel_norm.feather')
-    data_files.remove('pixel_norm.feather')
     misc_utils.verify_in_list(provided_fovs=fovs,
                               subsetted_fovs=io_utils.remove_file_extensions(data_files))
 
