@@ -31,6 +31,7 @@ setup(
                       'scikit-learn>=0.24.2,<1',
                       'scipy>=1.7.3,<2',
                       'seaborn>=0.11.2,<1',
+                      'setuptools==60.8.2',
                       'spatial-lda>=0.1.3,<1',
                       'statsmodels>=0.13.2,<1',
                       'umap-learn>=0.5.3,<1',
