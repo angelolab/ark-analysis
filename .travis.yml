@@ -8,6 +8,9 @@ language: python
 python:
   - 3.7
 
+before_install:
+  - pip show setuptools
+  - pip show importlib-metadata
 # We add python path to enable testing jupyter notebooks
 install:
   - travis_retry pip install -r requirements.txt

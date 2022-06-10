@@ -1,4 +1,3 @@
-setuptools==60.8.2
 cryptography>=3.4.8,<4
 feather-format>=0.4.1,<1
 jupyter>=1.0.0,<2
