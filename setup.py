@@ -27,7 +27,7 @@ setup(
                       'palettable>=3.3.0,<4',
                       'pandas>=1.3.5,<2',
                       'requests>=2.27.1,<3',
-                      'scikit-image>=0.16.2,<0.19.2',
+                      'scikit-image>=0.14.3,<=0.16.2',
                       'scikit-learn>=0.24.2,<1',
                       'scipy>=1.7.3,<2',
                       'seaborn>=0.11.2,<1',
