@@ -51,7 +51,7 @@ To verify installation, activate your `conda` environment with `conda activate <
 
 **Apple Silicon Installation**
 
-Currently there is not a native M1 implementation of ark-analysis for development, so it will to go through Rosetta 2 (the Intel to Arm transition layer). Luckily, this isn't something you'll have to deal with, as `conda` makes it straightforward.
+Currently there is not a native M1 implementation of ark-analysis for development, so it will need to go through Rosetta 2 (the Intel to Arm transition layer). Luckily, this isn't something you'll have to deal with, as `conda` makes it straightforward.
 
 1. Create a Python 3.6 `conda` environment called `my_env` using osx-64 (compiled binaries for Intel Macs as the default installation type)
     ```sh
