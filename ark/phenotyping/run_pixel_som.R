@@ -59,9 +59,8 @@ normValsPath <- args[3]
 # get path to the weights
 pixelWeightsPath <- args[4]
 
-# TODO: set batch size to be customizable by user with default arg
-# batchSize <- args[6]
-batchSize <- 5
+# retrieve the batch size to determine number of threads to run in parallel
+batchSize <- strtoi(args[5])
 
 # read the weights
 somWeights <- as.matrix(arrow::read_feather(pixelWeightsPath))

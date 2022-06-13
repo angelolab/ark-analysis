@@ -62,13 +62,12 @@ clusterAvgPath <- args[6]
 # get the clust to meta write path
 clustToMeta <- args[7]
 
-# set the random seed
-seed <- strtoi(args[8])
-set.seed(seed)
+# retrieve the batch size to determine number of threads to run in parallel
+batchSize <- strtoi(args[8])
 
-# TODO: set batch size to be customizable by user with default arg
-# batchSize <- args[6]
-batchSize <- 5
+# set the random seed
+seed <- strtoi(args[9])
+set.seed(seed)
 
 # read cluster averaged data
 print("Reading cluster averaged data")

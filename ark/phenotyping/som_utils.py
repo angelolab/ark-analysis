@@ -810,7 +810,7 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
                         subset_dir='pixel_mat_subsetted',
                         norm_vals_name='post_rowsum_chan_norm.feather', is_mibitiff=False,
                         blur_factor=2, subset_proportion=0.1, dtype="int16", seed=42,
-                        channel_percentile=0.99):
+                        channel_percentile=0.99, batch_size=5):
     """For each fov, add a Gaussian blur to each channel and normalize channel sums for each pixel
 
     Saves data to `data_dir` and subsetted data to `subset_dir`
@@ -850,7 +850,9 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
         dtype (type):
             The type to load the image segmentation labels in
         channel_percentile (float):
-            percentile used to normalize channels to same range
+            Percentile used to normalize channels to same range
+        batch_size (int):
+            The number of FOVs to process in parallel
     """
 
     # if the subset_proportion specified is out of range
@@ -916,40 +918,44 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
         pixel_norm_df = feather.read_dataframe(pixel_norm_path)
         pixel_norm_val = pixel_norm_df['pixel_norm_val'].values[0]
 
-    # define the multiprocessing object, and the partial function to iterate over
-    fov_data_pool = multiprocessing.Pool()
+    # define the partial function to iterate over
     fov_data_func = partial(
         create_fov_pixel_data_parallel, base_dir, tiff_dir, data_dir, subset_dir,
         seg_dir, seg_suffix, img_sub_folder, is_mibitiff, channels, blur_factor,
         subset_proportion, pixel_norm_val, dtype
     )
 
-    # asynchronously generate and save the pixel matrices per FOV
-    # NOTE: this should NOT operate on quant_dat since that is a shared resource
-    for fov_batch in [fovs[i:(i + 10)] for i in range(0, len(fovs), 10)]:
-        fov_data_batch = fov_data_pool.map(fov_data_func, fov_batch)
+    # define the multiprocessing context
+    import timeit
+    start_time = timeit.default_timer()
+    with multiprocessing.get_context('spawn').Pool(batch_size) as fov_data_pool:
+        # asynchronously generate and save the pixel matrices per FOV
+        # NOTE: fov_data_pool should NOT operate on quant_dat since that is a shared resource
+        for fov_batch in [fovs[i:(i + batch_size)] for i in range(0, len(fovs), batch_size)]:
+            fov_data_batch = fov_data_pool.map(fov_data_func, fov_batch)
 
-        for pixel_mat_data in fov_data_batch:
-            # retrieve the FOV name
-            assert len(pixel_mat_data[0]['fov'].unique()) == 1
-            fov = pixel_mat_data[0]['fov'].unique()[0]
+            for pixel_mat_data in fov_data_batch:
+                # retrieve the FOV name, note that there will only be one per FOV DataFrame
+                fov = pixel_mat_data[0]['fov'].unique()[0]
 
-            # before taking the 99.9% quantile, drop the unneeded metadata columns
-            cols_to_drop = ['fov', 'row_index', 'column_index']
-            if 'segmentation_label' in pixel_mat_data[0].columns.values:
-                cols_to_drop.append('segmentation_label')
+                # before taking the 99.9% quantile, drop the unneeded metadata columns
+                cols_to_drop = ['fov', 'row_index', 'column_index']
+                if 'segmentation_label' in pixel_mat_data[0].columns.values:
+                    cols_to_drop.append('segmentation_label')
 
-            # drop the metadata columns and generate the 99.9% quantile values for the FOV
-            fov_full_pixel_data = pixel_mat_data[0].drop(columns=cols_to_drop)
-            quant_dat[fov] = fov_full_pixel_data.replace(0, np.nan).quantile(q=0.999, axis=0)
+                # drop the metadata columns and generate the 99.9% quantile values for the FOV
+                fov_full_pixel_data = pixel_mat_data[0].drop(columns=cols_to_drop)
+                quant_dat[fov] = fov_full_pixel_data.replace(0, np.nan).quantile(q=0.999, axis=0)
 
-    # get mean 99.9% across all fovs for all markers
-    mean_quant = pd.DataFrame(quant_dat.mean(axis=1))
+        # get mean 99.9% across all fovs for all markers
+        mean_quant = pd.DataFrame(quant_dat.mean(axis=1))
 
-    # save 99.9% normalization values
-    feather.write_dataframe(mean_quant.T,
-                            os.path.join(base_dir, norm_vals_name),
-                            compression='uncompressed')
+        # save 99.9% normalization values
+        feather.write_dataframe(mean_quant.T,
+                                os.path.join(base_dir, norm_vals_name),
+                                compression='uncompressed')
+    end_time = timeit.default_timer()
+    print("Total time: %.2f" % (end_time - start_time))
 
 
 def train_pixel_som(fovs, channels, base_dir,
@@ -1036,7 +1042,8 @@ def train_pixel_som(fovs, channels, base_dir,
 def cluster_pixels(fovs, channels, base_dir, data_dir='pixel_mat_data',
                    norm_vals_name='post_rowsum_chan_norm.feather',
                    weights_name='pixel_weights.feather',
-                   pc_chan_avg_som_cluster_name='pixel_channel_avg_som_cluster.csv'):
+                   pc_chan_avg_som_cluster_name='pixel_channel_avg_som_cluster.csv',
+                   batch_size=5):
     """Uses trained weights to assign cluster labels on full pixel data
     Saves data with cluster labels to `cluster_dir`. Computes and saves the average channel
     expression across pixel SOM clusters.
@@ -1056,6 +1063,8 @@ def cluster_pixels(fovs, channels, base_dir, data_dir='pixel_mat_data',
             The name of the weights file created by `train_pixel_som`
         pc_chan_avg_som_cluster_name (str):
             The name of the file to save the average channel expression across all SOM clusters
+        batch_size (int):
+            The number of FOVs to process in parallel
     """
 
     # define the paths to the data
@@ -1120,7 +1129,7 @@ def cluster_pixels(fovs, channels, base_dir, data_dir='pixel_mat_data',
 
     # run the trained SOM on the dataset, assigning clusters
     process_args = ['Rscript', '/run_pixel_som.R', ','.join(fovs),
-                    data_path, norm_vals_path, weights_path]
+                    data_path, norm_vals_path, weights_path, str(batch_size)]
 
     process = subprocess.Popen(process_args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
@@ -1164,7 +1173,8 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
                             data_dir='pixel_mat_data',
                             pc_chan_avg_som_cluster_name='pixel_channel_avg_som_cluster.csv',
                             pc_chan_avg_meta_cluster_name='pixel_channel_avg_meta_cluster.csv',
-                            clust_to_meta_name='pixel_clust_to_meta.feather', seed=42):
+                            clust_to_meta_name='pixel_clust_to_meta.feather',
+                            batch_size=5, seed=42):
     """Run consensus clustering algorithm on pixel-level summed data across channels
     Saves data with consensus cluster labels to `consensus_dir`. Computes and saves the
     average channel expression across pixel meta clusters. Assigns meta cluster labels
@@ -1190,6 +1200,8 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
             Name of file to save the channel-averaged results across all meta clusters to
         clust_to_meta_name (str):
             Name of file storing the SOM cluster to meta cluster mapping
+        batch_size (int):
+            The number of FOVs to process in parallel
         seed (int):
             The random seed to set for consensus clustering
     """
@@ -1216,7 +1228,7 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
     # run the consensus clustering process
     process_args = ['Rscript', '/pixel_consensus_cluster.R', ','.join(fovs), ','.join(channels),
                     str(max_k), str(cap), data_path, som_cluster_avg_path,
-                    clust_to_meta_path, str(seed)]
+                    clust_to_meta_path, str(batch_size), str(seed)]
 
     process = subprocess.Popen(process_args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
