@@ -23,11 +23,11 @@ You will need to install [*miniforge*](https://github.com/conda-forge/miniforge)
 Miniforge contains conda with native Apple Silicon support. There are a few installation options available, all generally work the same way. Consult the documentation if you wish to read about them (using Mamba vs Conda for example).
 
 1. Getting Miniforge
-   1. Install via homebrew (recommended):
+   * **Option 1: (recommended)** Install via homebrew
        ```sh
        brew install miniforge
        ```
-   2. Download and Install via the Unix-like platform commands
+   * **Option 2:** Download and Install via the terminal
         ```sh
         curl -L -O "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge-$(uname)-$(uname -m).sh"
         ```
