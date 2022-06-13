@@ -1320,7 +1320,8 @@ def apply_pixel_meta_cluster_remapping(fovs, channels, base_dir,
                                        pixel_data_dir,
                                        pixel_remapped_name,
                                        pc_chan_avg_som_cluster_name,
-                                       pc_chan_avg_meta_cluster_name):
+                                       pc_chan_avg_meta_cluster_name,
+                                       batch_size=5):
     """Apply the meta cluster remapping to the data in `pixel_consensus_dir`.
 
     Resave the re-mapped consensus data to `pixel_consensus_dir` and re-runs the
@@ -1345,6 +1346,8 @@ def apply_pixel_meta_cluster_remapping(fovs, channels, base_dir,
             Name of the file containing the channel-averaged results across all SOM clusters
         pc_chan_avg_meta_cluster_name (str):
             Name of the file containing the channel-averaged results across all meta clusters
+        batch_size (int):
+            The number of FOVs to process in parallel
     """
 
     # define the data paths
@@ -1406,20 +1409,20 @@ def apply_pixel_meta_cluster_remapping(fovs, channels, base_dir,
         ].drop_duplicates().values
     )
 
-    # define the multiprocessing object, and the partial function to iterate over
-    fov_data_pool = multiprocessing.Pool()
+    # define the partial function to iterate over
     fov_data_func = partial(
         update_pixel_meta_labels, pixel_data_path,
         pixel_remapped_dict, pixel_renamed_meta_dict
     )
 
-    # asynchronously generate and save the pixel matrices per FOV
-    # NOTE: this should NOT operate on quant_dat since that is a shared resource
-    print("Using re-mapping scheme to re-label pixel meta clusters")
-    for fov_batch in [fovs[i:(i + 10)] for i in range(0, len(fovs), 10)]:
-        # NOTE: we don't need a return value since we're just resaving
-        # and not computing intermediate data frames
-        fov_data_pool.map(fov_data_func, fov_batch)
+    # define the multiprocessing context
+    with multiprocessing.get_context('spawn').Pool(batch_size) as fov_data_pool:
+        # asynchronously generate and save the pixel matrices per FOV
+        print("Using re-mapping scheme to re-label pixel meta clusters")
+        for fov_batch in [fovs[i:(i + batch_size)] for i in range(0, len(fovs), batch_size)]:
+            # NOTE: we don't need a return value since we're just resaving
+            # and not computing intermediate data frames
+            fov_data_pool.map(fov_data_func, fov_batch)
 
     # re-compute average channel expression for each pixel meta cluster
     # and the number of pixels per meta cluster, add renamed meta cluster column in
