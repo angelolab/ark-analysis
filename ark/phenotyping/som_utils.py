@@ -884,7 +884,7 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
     np.random.seed(seed)
 
     # create path for channel normalization values
-    channel_norm_path = os.path.join(base_dir, data_dir, 'channel_norm.feather')
+    channel_norm_path = os.path.join(base_dir, 'channel_norm.feather')
 
     if not os.path.exists(channel_norm_path):
 
@@ -901,7 +901,7 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
         channel_norm_df = feather.read_dataframe(channel_norm_path)
 
     # create path for pixel normalization values
-    pixel_norm_path = os.path.join(base_dir, data_dir, 'pixel_norm.feather')
+    pixel_norm_path = os.path.join(base_dir, 'pixel_norm.feather')
     if not os.path.exists(pixel_norm_path):
         # compute pixel percentiles
         pixel_norm_val = calculate_pixel_intensity_percentile(
