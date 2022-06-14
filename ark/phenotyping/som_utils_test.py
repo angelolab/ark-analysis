@@ -1607,6 +1607,71 @@ def test_pixel_consensus_cluster(mocker):
             assert np.all(consensus_cluster_ids <= 20)
 
 
+def test_update_pixel_meta_labels():
+    with tempfile.TemporaryDirectory() as temp_dir:
+        # define fovs and channels
+        fovs = ['fov0', 'fov1', 'fov2']
+        chans = ['Marker1', 'Marker2', 'Marker3', 'Marker4']
+
+        # make it easy to name metadata columns
+        meta_colnames = ['fov', 'row_index', 'column_index', 'segmentation_label']
+
+        # create a dummy data directory
+        os.mkdir(os.path.join(temp_dir, 'pixel_mat_data'))
+
+        # write dummy clustered data for two fovs
+        for fov in ['fov0', 'fov1']:
+            # create dummy preprocessed data for each fov
+            fov_cluster_matrix = pd.DataFrame(
+                np.repeat(np.array([[0.1, 0.2, 0.3, 0.4]]), repeats=1000, axis=0),
+                columns=chans
+            )
+
+            # add metadata
+            fov_cluster_matrix = pd.concat(
+                [fov_cluster_matrix, pd.DataFrame(np.random.rand(1000, 4), columns=meta_colnames)],
+                axis=1
+            )
+
+            # assign dummy SOM cluster labels
+            fov_cluster_matrix['pixel_som_cluster'] = np.repeat(np.arange(100), repeats=10)
+
+            # assign dummy meta cluster labels
+            fov_cluster_matrix['pixel_meta_cluster'] = np.repeat(np.arange(10), repeats=100)
+
+            # write the dummy data to pixel_mat_clustered
+            feather.write_dataframe(fov_cluster_matrix, os.path.join(temp_dir,
+                                                                     'pixel_mat_data',
+                                                                     fov + '.feather'))
+
+        # define dummy remap schemes
+        sample_pixel_remapped_dict = {i: int(i / 5) for i in np.arange(100)}
+        sample_pixel_renamed_meta_dict = {i: 'meta_' + str(i) for i in sample_pixel_remapped_dict}
+
+        # run remapping for fov0
+        som_utils.update_pixel_meta_labels(
+            os.path.join(temp_dir, 'pixel_mat_data'), sample_pixel_remapped_dict,
+            sample_pixel_renamed_meta_dict, 'fov0'
+        )
+
+        # read remapped fov0 data in
+        remapped_fov_data = feather.read_dataframe(
+            os.path.join(temp_dir, 'pixel_mat_data', 'fov0.feather')
+        )
+
+        # assert the value counts of all renamed meta labels is 20
+        assert np.all(remapped_fov_data['pixel_meta_cluster_rename'].value_counts().values == 50)
+
+        # assert each meta cluster label maps to the right renamed cluster
+        remapped_meta_info = dict(
+            remapped_fov_data[
+                ['pixel_meta_cluster', 'pixel_meta_cluster_rename']
+            ].drop_duplicates().values
+        )
+        for meta_cluster in remapped_meta_info:
+            assert remapped_meta_info[meta_cluster] == sample_pixel_renamed_meta_dict[meta_cluster]
+
+
 def test_apply_pixel_meta_cluster_remapping():
     with tempfile.TemporaryDirectory() as temp_dir:
         # basic error check: bad path to pixel consensus dir
@@ -1654,8 +1719,8 @@ def test_apply_pixel_meta_cluster_remapping():
         # make it easy to name metadata columns
         meta_colnames = ['fov', 'row_index', 'column_index', 'segmentation_label']
 
-        # create a dummy consensus directory
-        os.mkdir(os.path.join(temp_dir, 'pixel_mat_consensus'))
+        # create a dummy data directory
+        os.mkdir(os.path.join(temp_dir, 'pixel_mat_data'))
 
         # write dummy clustered data for each fov
         for fov in fovs:
@@ -1679,7 +1744,7 @@ def test_apply_pixel_meta_cluster_remapping():
 
             # write the dummy data to pixel_mat_clustered
             feather.write_dataframe(fov_cluster_matrix, os.path.join(temp_dir,
-                                                                     'pixel_mat_consensus',
+                                                                     'pixel_mat_data',
                                                                      fov + '.feather'))
 
         # define a dummy remap scheme and save
@@ -1730,7 +1795,7 @@ def test_apply_pixel_meta_cluster_remapping():
                 fovs,
                 chans,
                 temp_dir,
-                'pixel_mat_consensus',
+                'pixel_mat_data',
                 'bad_sample_pixel_remapping.csv',
                 'sample_pixel_som_cluster_chan_avgs.csv',
                 'sample_pixel_meta_cluster_chan_avgs.csv'
@@ -1753,7 +1818,7 @@ def test_apply_pixel_meta_cluster_remapping():
                 fovs,
                 chans,
                 temp_dir,
-                'pixel_mat_consensus',
+                'pixel_mat_data',
                 'bad_sample_pixel_remapping.csv',
                 'sample_pixel_som_cluster_chan_avgs.csv',
                 'sample_pixel_meta_cluster_chan_avgs.csv'
@@ -1764,7 +1829,7 @@ def test_apply_pixel_meta_cluster_remapping():
             fovs,
             chans,
             temp_dir,
-            'pixel_mat_consensus',
+            'pixel_mat_data',
             'sample_pixel_remapping.csv',
             'sample_pixel_som_cluster_chan_avgs.csv',
             'sample_pixel_meta_cluster_chan_avgs.csv'
@@ -1781,7 +1846,7 @@ def test_apply_pixel_meta_cluster_remapping():
         for fov in fovs:
             # read remapped fov data in
             remapped_fov_data = feather.read_dataframe(
-                os.path.join(temp_dir, 'pixel_mat_consensus', fov + '.feather')
+                os.path.join(temp_dir, 'pixel_mat_data', fov + '.feather')
             )
 
             # assert the counts for each FOV on every meta cluster is 50
