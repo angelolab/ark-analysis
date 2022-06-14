@@ -782,6 +782,8 @@ def preprocess_fov(base_dir, tiff_dir, data_dir, subset_dir, seg_dir, seg_suffix
             The value to normalize the pixels by
         dtype (type):
             The type to load the image segmentation labels in
+        seed (int):
+            The random seed to set for subsetting
         fov (str):
             The name of the FOV to preprocess
 
