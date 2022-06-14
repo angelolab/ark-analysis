@@ -1173,29 +1173,21 @@ def test_create_pixel_matrix(fovs, chans, sub_dir, seg_dir_include,
                                           img_sub_folder=sub_dir,
                                           seg_dir=seg_dir)
 
-        # make the channel_norm.json file if the test requires it
+        # make the channel_norm.feather file if the test requires it
         # NOTE: pixel_mat_data already created in the previous validation tests
         if channel_norm_include:
-            # requires the pixel_mat_data directory
-            data_dir = os.path.join(temp_dir, 'pixel_mat_data')
-
-            # generate the data
             sample_channel_norm_df = pd.DataFrame({'channel': chans,
                                                   'norm_val': np.random.rand(len(chans))})
 
             feather.write_dataframe(sample_channel_norm_df,
-                                    os.path.join(data_dir, 'channel_norm.feather'),
+                                    os.path.join(temp_dir, 'channel_norm.feather'),
                                     compression='uncompressed')
 
-        # make the pixel_norm.json file if the test requires it
+        # make the pixel_norm.feather file if the test requires it
         if pixel_norm_include:
-            # requires the pixel_mat_preprocessed directory
-            data_dir = os.path.join(temp_dir, 'pixel_mat_data')
-
-            # generate the data
             sample_pixel_norm_df = pd.DataFrame({'pixel_norm_val': np.random.rand(1)})
             feather.write_dataframe(sample_pixel_norm_df,
-                                    os.path.join(data_dir, 'pixel_norm.feather'),
+                                    os.path.join(temp_dir, 'pixel_norm.feather'),
                                     compression='uncompressed')
 
         # create the pixel matrices
@@ -1215,13 +1207,13 @@ def test_create_pixel_matrix(fovs, chans, sub_dir, seg_dir_include,
         # if there wasn't originally a channel_norm.json, assert one was created
         if not channel_norm_include:
             assert os.path.exists(
-                os.path.join(temp_dir, 'pixel_mat_data', 'channel_norm.feather')
+                os.path.join(temp_dir, 'channel_norm.feather')
             )
 
         # if there wasn't originally a pixel_norm.json, assert one was created
         if not pixel_norm_include:
             assert os.path.exists(
-                os.path.join(temp_dir, 'pixel_mat_data', 'pixel_norm.feather')
+                os.path.join(temp_dir, 'pixel_norm.feather')
             )
 
         for fov in fovs:
@@ -1286,7 +1278,7 @@ def test_create_pixel_matrix(fovs, chans, sub_dir, seg_dir_include,
         sample_channel_norm_df = pd.DataFrame({'channel': chans,
                                                'norm_val': mults})
         feather.write_dataframe(sample_channel_norm_df,
-                                os.path.join(data_dir, 'channel_norm.feather'),
+                                os.path.join(temp_dir, 'channel_norm.feather'),
                                 compression='uncompressed')
 
         som_utils.create_pixel_matrix(fovs=fovs,
