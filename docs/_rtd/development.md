@@ -20,7 +20,7 @@ To test if `conda` has been added to your path, run `conda info` in your Termina
 
 Now that Anaconda is installed, you can now create a `conda` environment. 
  
-To do so, on your command line, type `conda create -n <my_env> python=3.7`, where `<my_env>` is a name you set. Our codebase only supports Python 3.6, so please do not change the `python=3.7` flag when creating your environment. 
+To do so, on your command line, type `conda create -n <my_env> python=3.7`, where `<my_env>` is a name you set. Our codebase only supports Python 3.7, so please do not change the `python=3.7` flag when creating your environment. 
  
 Say yes to any prompts and your `conda` environment will be created! 
  
