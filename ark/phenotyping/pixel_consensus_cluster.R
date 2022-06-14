@@ -87,6 +87,9 @@ suppressMessages(consensusClusterResults <- ConsensusClusterPlus(t(clusterAvgsSc
 som_to_meta_map <- consensusClusterResults[[maxK]]$consensusClass
 names(som_to_meta_map) <- clusterAvgs$pixel_som_cluster
 
+# define variable to keep track of number of fovs processed
+fovsProcessed <- 0
+
 # append pixel_meta_cluster to each fov's data
 print("Mapping pixel data to consensus cluster labels")
 for (batchStart in seq(1, length(fovs), batchSize)) {
@@ -109,6 +112,12 @@ for (batchStart in seq(1, length(fovs), batchSize)) {
 
     # unregister the parallel cluster
     parallel::stopCluster(cl=parallelCluster)
+
+    # update number of fovs processed
+    fovsProcessed <- fovsProcessed + (batchEnd - batchStart + 1)
+
+    # inform user that batchSize fovs have been processed
+    print(paste("Processed", as.character(fovsProcessed), "fovs"))
 }
 
 # save the mapping from pixel_som_cluster to pixel_meta_cluster

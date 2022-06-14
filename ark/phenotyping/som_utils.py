@@ -713,7 +713,6 @@ def create_fov_pixel_data(fov, channels, img_data, seg_labels, pixel_norm_val,
     """
 
     # for each marker, compute the Gaussian blur
-    print("Gaussian blurring for fov %s" % fov)
     for marker in range(len(channels)):
         img_data[:, :, marker] = ndimage.gaussian_filter(img_data[:, :, marker],
                                                          sigma=blur_factor)
@@ -739,11 +738,9 @@ def create_fov_pixel_data(fov, channels, img_data, seg_labels, pixel_norm_val,
     pixel_mat = pixel_mat.loc[rowsums > pixel_norm_val, :].reset_index(drop=True)
 
     # normalize the row sums of pixel mat
-    print("Normalizing rows for fov %s" % fov)
     pixel_mat = normalize_rows(pixel_mat, channels, seg_labels is not None)
 
     # subset the pixel matrix for training
-    print("Creating subsetted matrix for fov %s" % fov)
     pixel_mat_subset = pixel_mat.sample(frac=subset_proportion)
 
     return pixel_mat, pixel_mat_subset
@@ -751,7 +748,7 @@ def create_fov_pixel_data(fov, channels, img_data, seg_labels, pixel_norm_val,
 
 def preprocess_fov(base_dir, tiff_dir, data_dir, subset_dir, seg_dir, seg_suffix,
                    img_sub_folder, is_mibitiff, channels, blur_factor,
-                   subset_proportion, pixel_norm_val, dtype, fov):
+                   subset_proportion, pixel_norm_val, dtype, seed, fov):
     """Helper function to read in the FOV-level pixel data, run `create_fov_pixel_data`,
     and save the preprocessed data.
 
@@ -820,8 +817,10 @@ def preprocess_fov(base_dir, tiff_dir, data_dir, subset_dir, seg_dir, seg_suffix
     # subset for the channel data
     img_data = img_xr.loc[fov, :, :, channels].values.astype(np.float32)
 
+    # set seed for subsetting
+    np.random.seed(seed)
+
     # create the full and subsetted fov matrices
-    print("Creating FOV pixel data for FOV %s" % fov)
     pixel_mat, pixel_mat_subset = create_fov_pixel_data(
         fov=fov, channels=channels, img_data=img_data, seg_labels=seg_labels,
         pixel_norm_val=pixel_norm_val, blur_factor=blur_factor,
@@ -841,8 +840,6 @@ def preprocess_fov(base_dir, tiff_dir, data_dir, subset_dir, seg_dir, seg_suffix
                                          subset_dir,
                                          fov + ".feather"),
                             compression='uncompressed')
-
-    print("Processed FOV %s" % fov)
 
     return pixel_mat, pixel_mat_subset
 
@@ -925,9 +922,6 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
     # create variable for storing 99.9% values
     quant_dat = pd.DataFrame()
 
-    # set seed for subsetting
-    np.random.seed(seed)
-
     # create path for channel normalization values
     channel_norm_path = os.path.join(base_dir, 'channel_norm.feather')
 
@@ -965,11 +959,14 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
     fov_data_func = partial(
         preprocess_fov, base_dir, tiff_dir, data_dir, subset_dir,
         seg_dir, seg_suffix, img_sub_folder, is_mibitiff, channels, blur_factor,
-        subset_proportion, pixel_norm_val, dtype
+        subset_proportion, pixel_norm_val, dtype, seed
     )
 
     # define the multiprocessing context
     with multiprocessing.get_context('spawn').Pool(batch_size) as fov_data_pool:
+        # define variable to keep track of number of fovs processed
+        fovs_processed = 0
+
         # asynchronously generate and save the pixel matrices per FOV
         # NOTE: fov_data_pool should NOT operate on quant_dat since that is a shared resource
         for fov_batch in [fovs[i:(i + batch_size)] for i in range(0, len(fovs), batch_size)]:
@@ -987,6 +984,11 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
                 # drop the metadata columns and generate the 99.9% quantile values for the FOV
                 fov_full_pixel_data = pixel_mat_data[0].drop(columns=cols_to_drop)
                 quant_dat[fov] = fov_full_pixel_data.replace(0, np.nan).quantile(q=0.999, axis=0)
+
+            # update number of fovs processed
+            fovs_processed += len(fov_batch)
+
+            print("Processed %d fovs" % fovs_processed)
 
         # get mean 99.9% across all fovs for all markers
         mean_quant = pd.DataFrame(quant_dat.mean(axis=1))
@@ -1129,9 +1131,6 @@ def cluster_pixels(fovs, channels, base_dir, data_dir='pixel_mat_data',
     # verify that all provided fovs exist in the folder
     # NOTE: remove the channel and pixel normalization files as those are not pixel data
     data_files = io_utils.list_files(data_path, substrs='.feather')
-    data_files.remove('channel_norm.feather')
-    data_files.remove('pixel_norm.feather')
-
     misc_utils.verify_in_list(provided_fovs=fovs,
                               subsetted_fovs=io_utils.remove_file_extensions(data_files))
 
@@ -1469,12 +1468,20 @@ def apply_pixel_meta_cluster_remapping(fovs, channels, base_dir,
 
     # define the multiprocessing context
     with multiprocessing.get_context('spawn').Pool(batch_size) as fov_data_pool:
+        # define variable to keep track of number of fovs processed
+        fovs_processed = 0
+
         # asynchronously generate and save the pixel matrices per FOV
         print("Using re-mapping scheme to re-label pixel meta clusters")
         for fov_batch in [fovs[i:(i + batch_size)] for i in range(0, len(fovs), batch_size)]:
             # NOTE: we don't need a return value since we're just resaving
             # and not computing intermediate data frames
             fov_data_pool.map(fov_data_func, fov_batch)
+
+            # update number of fovs processed
+            fovs_processed += len(fov_batch)
+
+            print("Processed %d fovs" % fovs_processed)
 
     # re-compute average channel expression for each pixel meta cluster
     # and the number of pixels per meta cluster, add renamed meta cluster column in

@@ -1128,7 +1128,7 @@ def test_preprocess_fov():
         pixel_mat, pixel_mat_subset = som_utils.preprocess_fov(
             temp_dir, tiff_dir, 'pixel_mat_data', 'pixel_mat_subsetted',
             seg_dir, '_feature_0.tif', 'TIFs', False, ['chan0', 'chan1', 'chan2'],
-            2, 0.1, 1, 'int16', 'fov0'
+            2, 0.1, 1, 'int16', 42, 'fov0'
         )
 
         fov_data_path = os.path.join(

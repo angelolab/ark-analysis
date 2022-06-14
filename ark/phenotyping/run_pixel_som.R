@@ -36,9 +36,6 @@ mapSOMLabels <- function(fov, somWeights, pixelMatDir) {
 
     # write to feather
     arrow::write_feather(as.data.table(fovPixelData),  matPath)
-
-    # inform user that a fov has been processed
-    print(paste("Processed fov:", fov))
 }
 
 # get the number of cores
@@ -74,6 +71,9 @@ markers <- colnames(somWeights)
 # set order of normVals to make sure they match with weights
 normVals <- normVals[,..markers]
 
+# define variable to keep track of number of fovs processed
+fovsProcessed <- 0
+
 # using trained SOM, assign SOM labels to each fov
 print("Mapping pixel data to SOM cluster labels")
 for (batchStart in seq(1, length(fovs), batchSize)) {
@@ -96,6 +96,12 @@ for (batchStart in seq(1, length(fovs), batchSize)) {
 
     # unregister the parallel cluster
     parallel::stopCluster(cl=parallelCluster)
+
+    # update number of fovs processed
+    fovsProcessed <- fovsProcessed + (batchEnd - batchStart + 1)
+
+    # inform user that batchSize fovs have been processed
+    print(paste("Processed", as.character(fovsProcessed), "fovs"))
 }
 
 print("Done!")
