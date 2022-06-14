@@ -10,9 +10,15 @@ on:
     # Only following types are handled by the action, but one can default to all as well
     types: [opened, reopened, synchronize]
 
+permissions:
+  contents: read
+
 jobs:
   update_release_draft:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # for release-drafter/release-drafter to create a github release
+      pull-requests: write # for release-drafter/release-drafter to add label to PR
     steps:
 
       # Drafts your next Release notes as Pull Requests are merged into "master"
