@@ -236,6 +236,7 @@ def smooth_channels(fovs, tiff_dir, img_sub_folder, channels, smooth_vals):
 def compute_pixel_cluster_channel_avg(fovs, channels, base_dir, pixel_cluster_col,
                                       pixel_data_dir='pixel_mat_data', keep_count=False):
     """Compute the average channel values across each pixel SOM cluster
+
     Args:
         fovs (list):
             The list of fovs to subset on
@@ -250,6 +251,7 @@ def compute_pixel_cluster_channel_avg(fovs, channels, base_dir, pixel_cluster_co
         keep_count (bool):
             Whether to keep the count column when aggregating or not
             This should only be set to `True` for visualization purposes
+
     Returns:
         pandas.DataFrame:
             Contains the average channel values for each pixel SOM/meta cluster
@@ -1645,9 +1647,11 @@ def cluster_cells(base_dir, cluster_counts_norm_name='cluster_counts_norm.feathe
                   cell_data_name='cell_mat.feather',
                   pixel_cluster_col_prefix='pixel_meta_cluster_rename',
                   cell_som_cluster_count_avgs_name='cell_som_cluster_count_avgs.csv'):
-    """Uses trained weights to assign cluster labels on full cell data
+    """Uses trained weights to assign cluster labels on full cell data.
+
     Saves data with cluster labels to `cell_cluster_name`. Computes and saves the average number
     of pixel SOM/meta clusters per cell SOM cluster.
+
     Args:
         base_dir (str):
             The path to the data directory
@@ -1750,11 +1754,14 @@ def cell_consensus_cluster(fovs, channels, base_dir, pixel_cluster_col, max_k=20
                            cell_som_cluster_channel_avg_name='cell_som_cluster_channel_avg.csv',
                            cell_meta_cluster_channel_avg_name='cell_meta_cluster_channel_avg.csv',
                            clust_to_meta_name='cell_clust_to_meta.feather', seed=42):
-    """Run consensus clustering algorithm on cell-level data averaged across each cell SOM cluster
+    """Run consensus clustering algorithm on cell-level data averaged across each cell SOM cluster.
+
     Saves data with consensus cluster labels to cell_consensus_name. Computes and saves the
     average number of pixel SOM/meta clusters per cell meta cluster. Assigns meta cluster labels
     to the data stored in `cell_som_cluster_count_avgs_name`.
+
     Computes and saves the average weighted cell channel expression per cell SOM and meta cluster.
+
     Args:
         fovs (list):
             The list of fovs to subset on (from pixel clustering)
@@ -1942,8 +1949,10 @@ def apply_cell_meta_cluster_remapping(fovs, channels, base_dir, cell_consensus_n
     Resave the re-mapped consensus data to `cell_consensus_name` and re-runs the
     weighted channel expression and average pixel SOM/meta cluster counts per cell
     SOM cluster.
+
     Re-maps the pixel SOM clusters to meta clusters in `cell_som_cluster_count_avgs_name` and
     `cell_som_cluster_channel_avg_name`
+
     Args:
         fovs (list):
             The list of fovs to subset on

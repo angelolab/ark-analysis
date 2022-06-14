@@ -1092,6 +1092,80 @@ def test_create_fov_pixel_data():
         # are all 0 after, tested successfully via hard-coding values in create_fov_pixel_data
 
 
+def test_preprocess_fov():
+    with tempfile.TemporaryDirectory() as temp_dir:
+        # define the channel names
+        chans = ['chan0', 'chan1', 'chan2']
+
+        # define sample data_dir and subset_dir paths, and make them
+        data_dir = os.path.join(temp_dir, 'pixel_mat_data')
+        subset_dir = os.path.join(temp_dir, 'pixel_mat_subsetted')
+        os.mkdir(data_dir)
+        os.mkdir(subset_dir)
+
+        # create sample image data
+        # NOTE: test_create_pixel_matrix tests if the sub_dir is None
+        tiff_dir = os.path.join(temp_dir, 'sample_image_data')
+        os.mkdir(tiff_dir)
+        test_utils.create_paired_xarray_fovs(
+            base_dir=tiff_dir, fov_names=['fov0', 'fov1'],
+            channel_names=chans, sub_dir='TIFs', img_shape=(10, 10)
+        )
+
+        # create a dummy segmentation directory
+        # NOTE: test_create_pixel_matrix handles the case with no segmentation labels provided
+        seg_dir = os.path.join(temp_dir, 'segmentation')
+        os.mkdir(seg_dir)
+
+        # create sample segmentation data
+        for fov in ['fov0', 'fov1']:
+            rand_img = np.random.randint(0, 16, size=(10, 10))
+            file_name = fov + "_feature_0.tif"
+            io.imsave(os.path.join(seg_dir, file_name), rand_img,
+                      check_contrast=False)
+
+        # run the preprocessing for fov0
+        pixel_mat, pixel_mat_subset = som_utils.preprocess_fov(
+            temp_dir, tiff_dir, 'pixel_mat_data', 'pixel_mat_subsetted',
+            seg_dir, '_feature_0.tif', 'TIFs', False, ['chan0', 'chan1', 'chan2'],
+            2, 0.1, 1, 'int16', 'fov0'
+        )
+
+        fov_data_path = os.path.join(
+            temp_dir, 'pixel_mat_data', 'fov0.feather'
+        )
+        fov_sub_path = os.path.join(
+            temp_dir, 'pixel_mat_subsetted', 'fov0.feather'
+        )
+
+        # assert we actually created a .feather preprocessed file
+        # for each fov
+        assert os.path.exists(fov_data_path)
+
+        # assert that we actually created a .feather subsetted file
+        # for each fov
+        assert os.path.exists(fov_sub_path)
+
+        # get the data for the specific fov
+        flowsom_data_fov = feather.read_dataframe(fov_data_path)
+        flowsom_sub_fov = feather.read_dataframe(fov_sub_path)
+
+        # assert the channel names are the same
+        misc_utils.verify_same_elements(
+            flowsom_chans=flowsom_data_fov.columns.values[:-4],
+            provided_chans=chans
+        )
+
+        # assert no rows sum to 0
+        assert np.all(flowsom_data_fov.loc[:, chans].sum(
+            axis=1
+        ).values != 0)
+
+        # assert the subsetted DataFrame size is 0.1 of the preprocessed DataFrame
+        # NOTE: need to account for rounding if multiplying by 0.1 leads to non-int
+        assert round(flowsom_data_fov.shape[0] * 0.1) == flowsom_sub_fov.shape[0]
+
+
 # TODO: leaving out MIBItiff testing until someone needs it
 @parametrize_with_cases(
     'fovs,chans,sub_dir,seg_dir_include,channel_norm_include,pixel_norm_include',
@@ -1099,11 +1173,10 @@ def test_create_fov_pixel_data():
 )
 def test_create_pixel_matrix(fovs, chans, sub_dir, seg_dir_include,
                              channel_norm_include, pixel_norm_include, mocker):
-    sample_labels = test_utils.make_labels_xarray(label_data=None,
-                                                  fov_ids=['fov0', 'fov1', 'fov2'],
-                                                  compartment_names=['whole_cell'])
+    # sample_labels = test_utils.make_labels_xarray(label_data=None,
+    #                                               fov_ids=['fov0', 'fov1', 'fov2'],
+    #                                               compartment_names=['whole_cell'])
 
-    # basic error checking
     with tempfile.TemporaryDirectory() as temp_dir:
         # create a directory to store the image data
         tiff_dir = os.path.join(temp_dir, 'sample_image_data')
