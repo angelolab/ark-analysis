@@ -733,7 +733,6 @@ def create_fov_pixel_data(fov, channels, img_data, seg_labels, pixel_norm_val,
         pixel_mat['segmentation_label'] = seg_labels_flat
 
     # remove any rows with channels with a sum below the threshold
-    print("Removing rows with channel sum below threshold %f" % pixel_norm_val)
     rowsums = pixel_mat[channels].sum(axis=1)
     pixel_mat = pixel_mat.loc[rowsums > pixel_norm_val, :].reset_index(drop=True)
 
@@ -748,9 +747,51 @@ def create_fov_pixel_data(fov, channels, img_data, seg_labels, pixel_norm_val,
     return pixel_mat, pixel_mat_subset
 
 
-def create_fov_pixel_data_parallel(base_dir, tiff_dir, data_dir, subset_dir, seg_dir, seg_suffix,
-                                   img_sub_folder, is_mibitiff, channels, blur_factor,
-                                   subset_proportion, pixel_norm_val, dtype, fov):
+def preprocess_fov(base_dir, tiff_dir, data_dir, subset_dir, seg_dir, seg_suffix,
+                   img_sub_folder, is_mibitiff, channels, blur_factor,
+                   subset_proportion, pixel_norm_val, dtype, fov):
+    """Helper function to read in the FOV-level pixel data, run `create_fov_pixel_data`,
+    and save the preprocessed data.
+
+    Args:
+        base_dir (str):
+            The path to the data directories
+        tiff_dir (str):
+            Name of the directory containing the tiff files
+        data_dir (str):
+            Name of the directory which contains the full preprocessed pixel data
+        subset_dir (str):
+            The name of the directory containing the subsetted pixel data
+        seg_dir (str):
+            Name of the directory containing the segmented files.
+            Set to `None` if no segmentation directory is available or desired.
+        seg_suffix (str):
+            The suffix that the segmentation images use.
+            Ignored if `seg_dir` is `None`.
+        img_sub_folder (str):
+            Name of the subdirectory inside `tiff_dir` containing the tiff files.
+            Set to `None` if there isn't any.
+        is_mibitiff (bool):
+            Whether to load the images from MIBITiff
+        channels (list):
+            List of channels to subset over, applies only to `pixel_mat_subset`
+        blur_factor (int):
+            The sigma to set for the Gaussian blur
+        subset_proportion (float):
+            The proportion of pixels to take from each fov
+        pixel_norm_val (float):
+            The value to normalize the pixels by
+        dtype (type):
+            The type to load the image segmentation labels in
+        fov (str):
+            The name of the FOV to preprocess
+
+    Returns:
+        pandas.DataFrame:
+            The full preprocessed pixel dataset, needed for computing
+            99.9% normalized values in `create_pixel_matrix`
+    """
+
     # load img_xr from MIBITiff or directory with the fov
     if is_mibitiff:
         img_xr = load_utils.load_imgs_from_mibitiff(
@@ -920,14 +961,12 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
 
     # define the partial function to iterate over
     fov_data_func = partial(
-        create_fov_pixel_data_parallel, base_dir, tiff_dir, data_dir, subset_dir,
+        preprocess_fov, base_dir, tiff_dir, data_dir, subset_dir,
         seg_dir, seg_suffix, img_sub_folder, is_mibitiff, channels, blur_factor,
         subset_proportion, pixel_norm_val, dtype
     )
 
     # define the multiprocessing context
-    import timeit
-    start_time = timeit.default_timer()
     with multiprocessing.get_context('spawn').Pool(batch_size) as fov_data_pool:
         # asynchronously generate and save the pixel matrices per FOV
         # NOTE: fov_data_pool should NOT operate on quant_dat since that is a shared resource
@@ -954,8 +993,6 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
         feather.write_dataframe(mean_quant.T,
                                 os.path.join(base_dir, norm_vals_name),
                                 compression='uncompressed')
-    end_time = timeit.default_timer()
-    print("Total time: %.2f" % (end_time - start_time))
 
 
 def train_pixel_som(fovs, channels, base_dir,
@@ -1290,6 +1327,19 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
 
 def update_pixel_meta_labels(pixel_data_path, pixel_remapped_dict,
                              pixel_renamed_meta_dict, fov):
+    """Helper function to reassign meta cluster names based on remapping scheme to a FOV
+
+    Args:
+        pixel_data_path (str):
+            The path to the pixel data drectory
+        pixel_remapped_dict (dict):
+            The mapping from pixel SOM cluster to pixel meta cluster label (not renamed)
+        pixel_renamed_meta_dict (dict):
+            The mapping from pixel meta cluster label to renamed pixel meta cluster name
+        fov (str):
+            The name of the FOV to process
+    """
+
     # get the path to the fov
     fov_path = os.path.join(pixel_data_path, fov + '.feather')
 

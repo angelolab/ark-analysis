@@ -1,6 +1,7 @@
 import json
 import os
 import pytest
+from pytest_cases import parametrize_with_cases
 import tempfile
 import warnings
 
@@ -15,10 +16,35 @@ import xarray as xr
 
 import ark.phenotyping.som_utils as som_utils
 import ark.utils.io_utils as io_utils
+import ark.utils.load_utils as load_utils
 import ark.utils.misc_utils as misc_utils
 import ark.utils.test_utils as test_utils
 
 parametrize = pytest.mark.parametrize
+
+
+PIXEL_MATRIX_FOVS = ['fov0', 'fov1', 'fov2']
+PIXEL_MATRIX_CHANS = ['chan0', 'chan1', 'chan2']
+
+
+class CreatePixelMatrixCases:
+    def case_all_fovs_all_chans(self):
+        return PIXEL_MATRIX_FOVS, PIXEL_MATRIX_CHANS, 'TIFs', True, False, False
+
+    def case_some_fovs_some_chans(self):
+        return PIXEL_MATRIX_FOVS[:2], PIXEL_MATRIX_CHANS[:2], 'TIFs', True, False, False
+
+    def case_no_sub_dir(self):
+        return PIXEL_MATRIX_FOVS, PIXEL_MATRIX_CHANS, None, True, False, False
+
+    def case_no_seg_dir(self):
+        return PIXEL_MATRIX_FOVS, PIXEL_MATRIX_CHANS, 'TIFs', False, False, False
+
+    def case_existing_channel_norm(self):
+        return PIXEL_MATRIX_FOVS, PIXEL_MATRIX_CHANS, 'TIFs', True, True, False
+
+    def case_existing_pixel_norm(self):
+        return PIXEL_MATRIX_FOVS, PIXEL_MATRIX_CHANS, 'TIFs', True, False, True
 
 
 def mocked_train_pixel_som(fovs, channels, base_dir,
@@ -62,7 +88,8 @@ def mocked_train_pixel_som(fovs, channels, base_dir,
 def mocked_cluster_pixels(fovs, channels, base_dir, data_dir='pixel_mat_data',
                           norm_vals_name='post_rowsum_chan_norm.feather',
                           weights_name='pixel_weights.feather',
-                          pc_chan_avg_som_cluster_name='pixel_channel_avg_som_cluster.csv'):
+                          pc_chan_avg_som_cluster_name='pixel_channel_avg_som_cluster.csv',
+                          batch_size=5):
     # read in the norm_vals matrix
     norm_vals = feather.read_dataframe(os.path.join(base_dir, norm_vals_name))
 
@@ -99,7 +126,8 @@ def mocked_pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
                                    data_dir='pixel_mat_data',
                                    pc_chan_avg_som_cluster_name='pixel_chan_avg_som_cluster.csv',
                                    pc_chan_avg_meta_cluster_name='pixel_chan_avg_meta_cluster.csv',
-                                   clust_to_meta_name='pixel_clust_to_meta.feather', seed=42):
+                                   clust_to_meta_name='pixel_clust_to_meta.feather',
+                                   batch_size=5, seed=42):
     # read the cluster average
     cluster_avg = pd.read_csv(os.path.join(base_dir, pc_chan_avg_som_cluster_name))
 
@@ -225,6 +253,7 @@ def mocked_cell_consensus_cluster(fovs, channels, base_dir, pixel_cluster_col, m
 
 def mocked_create_fov_pixel_data(fov, channels, img_data, seg_labels, blur_factor,
                                  subset_proportion, pixel_norm_val):
+    print("CALLING MOCKED CREATE FOV PIXEL DATA")
     # create fake data to be compatible with downstream functions
     data = np.random.rand(len(channels) * 5).reshape(5, len(channels))
     df = pd.DataFrame(data, columns=channels)
@@ -234,6 +263,23 @@ def mocked_create_fov_pixel_data(fov, channels, img_data, seg_labels, blur_facto
         assert np.allclose(img_data[..., i] * 2, img_data[..., i + 1])
 
     return df, df
+
+
+def mocked_preprocess_fov(base_dir, tiff_dir, data_dir, subset_dir, seg_dir, seg_suffix,
+                          img_sub_folder, is_mibitiff, channels, blur_factor,
+                          subset_proportion, pixel_norm_val, dtype, fov):
+    # load img_xr from MIBITiff or directory with the fov
+    if is_mibitiff:
+        img_data = load_utils.load_imgs_from_mibitiff(
+            tiff_dir, mibitiff_files=[fov], dtype=dtype
+        )
+    else:
+        img_data = load_utils.load_imgs_from_tree(
+            tiff_dir, img_sub_folder=img_sub_folder, fovs=[fov], dtype=dtype
+        )
+
+    mocked_create_fov_pixel_data(base_dir, channels, img_data.values, np.random.rand(),
+                                 blur_factor, subset_proportion, np.random.rand())
 
 
 def test_calculate_channel_percentiles():
@@ -1047,12 +1093,10 @@ def test_create_fov_pixel_data():
 
 
 # TODO: leaving out MIBItiff testing until someone needs it
-@parametrize('fovs', [['fov0', 'fov1', 'fov2'], ['fov0', 'fov1'], ['fov0']])
-@parametrize('chans', [['chan0', 'chan1', 'chan2'], ['chan0', 'chan1'], ['chan0']])
-@parametrize('sub_dir', [None, 'TIFs'])
-@parametrize('seg_dir_include', [True, False])
-@parametrize('channel_norm_include', [True, False])
-@parametrize('pixel_norm_include', [True, False])
+@parametrize_with_cases(
+    'fovs,chans,sub_dir,seg_dir_include,channel_norm_include,pixel_norm_include',
+    cases=CreatePixelMatrixCases
+)
 def test_create_pixel_matrix(fovs, chans, sub_dir, seg_dir_include,
                              channel_norm_include, pixel_norm_include, mocker):
     sample_labels = test_utils.make_labels_xarray(label_data=None,
@@ -1227,7 +1271,7 @@ def test_create_pixel_matrix(fovs, chans, sub_dir, seg_dir_include,
         new_tiff_dir = os.path.join(temp_dir, 'new_tiff_dir')
         os.makedirs(new_tiff_dir)
         for fov in fovs:
-            img = np.random.rand(100).reshape((10, 10))
+            img = (np.random.rand(100) * 100).reshape((10, 10))
             fov_dir = os.path.join(new_tiff_dir, fov, sub_dir)
             os.makedirs(fov_dir)
             for chan in chans:
