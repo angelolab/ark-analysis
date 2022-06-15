@@ -787,9 +787,9 @@ def test_compute_p2c_weighted_channel_avg():
         cell_table_path = os.path.join(temp_dir, 'cell_table_size_normalized.csv')
         cell_table.to_csv(cell_table_path, index=False)
 
-        # define a consensus clustered directory
-        pixel_consensus_path = os.path.join(temp_dir, 'pixel_consensus_path')
-        os.mkdir(pixel_consensus_path)
+        # define a pixel data directory
+        pixel_data_path = os.path.join(temp_dir, 'pixel_data_path')
+        os.mkdir(pixel_data_path)
 
         # create dummy data for each fov
         for fov in ['fov1', 'fov2']:
@@ -815,14 +815,14 @@ def test_compute_p2c_weighted_channel_avg():
             fov_table['pixel_meta_cluster_rename'] = np.repeat(np.arange(2), 25)
 
             # write fov data to feather
-            feather.write_dataframe(fov_table, os.path.join(pixel_consensus_path,
+            feather.write_dataframe(fov_table, os.path.join(pixel_data_path,
                                                             fov + '.feather'))
 
         # iterate over both cluster col vals
         for cluster_col in ['pixel_som_cluster', 'pixel_meta_cluster_rename']:
             # count number of clusters for each cell
             cell_counts, _ = som_utils.create_c2pc_data(
-                fovs, pixel_consensus_path, cell_table_path, pixel_cluster_col=cluster_col
+                fovs, pixel_data_path, cell_table_path, pixel_cluster_col=cluster_col
             )
 
             # define a sample cluster_avgs table
