@@ -34,7 +34,7 @@ jobs:
         on:
           tags: true
     - stage: docker_deploy
-      if: branch = parallel_som
+      if: tag IS present
       python: 3.6
       script:
         - "travis_wait 120 sleep 7200 &"
