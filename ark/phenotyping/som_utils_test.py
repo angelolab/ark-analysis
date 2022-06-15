@@ -1125,7 +1125,8 @@ def test_preprocess_fov():
                       check_contrast=False)
 
         # run the preprocessing for fov0
-        pixel_mat, pixel_mat_subset = som_utils.preprocess_fov(
+        # NOTE: don't test the return value, leave that for test_create_pixel_matrix
+        som_utils.preprocess_fov(
             temp_dir, tiff_dir, 'pixel_mat_data', 'pixel_mat_subsetted',
             seg_dir, '_feature_0.tif', 'TIFs', False, ['chan0', 'chan1', 'chan2'],
             2, 0.1, 1, 'int16', 42, 'fov0'

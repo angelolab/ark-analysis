@@ -843,7 +843,7 @@ def preprocess_fov(base_dir, tiff_dir, data_dir, subset_dir, seg_dir, seg_suffix
                                          fov + ".feather"),
                             compression='uncompressed')
 
-    return pixel_mat, pixel_mat_subset
+    return pixel_mat
 
 
 def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
@@ -976,15 +976,15 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
 
             for pixel_mat_data in fov_data_batch:
                 # retrieve the FOV name, note that there will only be one per FOV DataFrame
-                fov = pixel_mat_data[0]['fov'].unique()[0]
+                fov = pixel_mat_data['fov'].unique()[0]
 
                 # before taking the 99.9% quantile, drop the unneeded metadata columns
                 cols_to_drop = ['fov', 'row_index', 'column_index']
-                if 'segmentation_label' in pixel_mat_data[0].columns.values:
+                if 'segmentation_label' in pixel_mat_data.columns.values:
                     cols_to_drop.append('segmentation_label')
 
                 # drop the metadata columns and generate the 99.9% quantile values for the FOV
-                fov_full_pixel_data = pixel_mat_data[0].drop(columns=cols_to_drop)
+                fov_full_pixel_data = pixel_mat_data.drop(columns=cols_to_drop)
                 quant_dat[fov] = fov_full_pixel_data.replace(0, np.nan).quantile(q=0.999, axis=0)
 
             # update number of fovs processed
