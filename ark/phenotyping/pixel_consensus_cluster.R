@@ -30,9 +30,6 @@ mapConsensusLabels <- function(fov, pixelMatDir, som_to_meta_map) {
 
     # write data with consensus labels
     arrow::write_feather(as.data.table(fovPixelData), matPath)
-
-    # inform user that a fov has been processed
-    print(paste("Processed fov:", fov))
 }
 
 # get the number of cores
