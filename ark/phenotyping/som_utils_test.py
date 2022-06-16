@@ -1,6 +1,7 @@
 import json
 import os
 import pytest
+from pytest_cases import parametrize_with_cases
 import tempfile
 import warnings
 
@@ -15,10 +16,35 @@ import xarray as xr
 
 import ark.phenotyping.som_utils as som_utils
 import ark.utils.io_utils as io_utils
+import ark.utils.load_utils as load_utils
 import ark.utils.misc_utils as misc_utils
 import ark.utils.test_utils as test_utils
 
 parametrize = pytest.mark.parametrize
+
+
+PIXEL_MATRIX_FOVS = ['fov0', 'fov1', 'fov2']
+PIXEL_MATRIX_CHANS = ['chan0', 'chan1', 'chan2']
+
+
+class CreatePixelMatrixCases:
+    def case_all_fovs_all_chans(self):
+        return PIXEL_MATRIX_FOVS, PIXEL_MATRIX_CHANS, 'TIFs', True, False, False
+
+    def case_some_fovs_some_chans(self):
+        return PIXEL_MATRIX_FOVS[:2], PIXEL_MATRIX_CHANS[:2], 'TIFs', True, False, False
+
+    def case_no_sub_dir(self):
+        return PIXEL_MATRIX_FOVS, PIXEL_MATRIX_CHANS, None, True, False, False
+
+    def case_no_seg_dir(self):
+        return PIXEL_MATRIX_FOVS, PIXEL_MATRIX_CHANS, 'TIFs', False, False, False
+
+    def case_existing_channel_norm(self):
+        return PIXEL_MATRIX_FOVS, PIXEL_MATRIX_CHANS, 'TIFs', True, True, False
+
+    def case_existing_pixel_norm(self):
+        return PIXEL_MATRIX_FOVS, PIXEL_MATRIX_CHANS, 'TIFs', True, False, True
 
 
 def mocked_train_pixel_som(fovs, channels, base_dir,
@@ -62,7 +88,8 @@ def mocked_train_pixel_som(fovs, channels, base_dir,
 def mocked_cluster_pixels(fovs, channels, base_dir, data_dir='pixel_mat_data',
                           norm_vals_name='post_rowsum_chan_norm.feather',
                           weights_name='pixel_weights.feather',
-                          pc_chan_avg_som_cluster_name='pixel_channel_avg_som_cluster.csv'):
+                          pc_chan_avg_som_cluster_name='pixel_channel_avg_som_cluster.csv',
+                          batch_size=5):
     # read in the norm_vals matrix
     norm_vals = feather.read_dataframe(os.path.join(base_dir, norm_vals_name))
 
@@ -99,7 +126,8 @@ def mocked_pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
                                    data_dir='pixel_mat_data',
                                    pc_chan_avg_som_cluster_name='pixel_chan_avg_som_cluster.csv',
                                    pc_chan_avg_meta_cluster_name='pixel_chan_avg_meta_cluster.csv',
-                                   clust_to_meta_name='pixel_clust_to_meta.feather', seed=42):
+                                   clust_to_meta_name='pixel_clust_to_meta.feather',
+                                   batch_size=5, seed=42):
     # read the cluster average
     cluster_avg = pd.read_csv(os.path.join(base_dir, pc_chan_avg_som_cluster_name))
 
@@ -225,6 +253,7 @@ def mocked_cell_consensus_cluster(fovs, channels, base_dir, pixel_cluster_col, m
 
 def mocked_create_fov_pixel_data(fov, channels, img_data, seg_labels, blur_factor,
                                  subset_proportion, pixel_norm_val):
+    print("CALLING MOCKED CREATE FOV PIXEL DATA")
     # create fake data to be compatible with downstream functions
     data = np.random.rand(len(channels) * 5).reshape(5, len(channels))
     df = pd.DataFrame(data, columns=channels)
@@ -234,6 +263,23 @@ def mocked_create_fov_pixel_data(fov, channels, img_data, seg_labels, blur_facto
         assert np.allclose(img_data[..., i] * 2, img_data[..., i + 1])
 
     return df, df
+
+
+def mocked_preprocess_fov(base_dir, tiff_dir, data_dir, subset_dir, seg_dir, seg_suffix,
+                          img_sub_folder, is_mibitiff, channels, blur_factor,
+                          subset_proportion, pixel_norm_val, dtype, fov):
+    # load img_xr from MIBITiff or directory with the fov
+    if is_mibitiff:
+        img_data = load_utils.load_imgs_from_mibitiff(
+            tiff_dir, mibitiff_files=[fov], dtype=dtype
+        )
+    else:
+        img_data = load_utils.load_imgs_from_tree(
+            tiff_dir, img_sub_folder=img_sub_folder, fovs=[fov], dtype=dtype
+        )
+
+    mocked_create_fov_pixel_data(base_dir, channels, img_data.values, np.random.rand(),
+                                 blur_factor, subset_proportion, np.random.rand())
 
 
 def test_calculate_channel_percentiles():
@@ -741,9 +787,9 @@ def test_compute_p2c_weighted_channel_avg():
         cell_table_path = os.path.join(temp_dir, 'cell_table_size_normalized.csv')
         cell_table.to_csv(cell_table_path, index=False)
 
-        # define a consensus clustered directory
-        pixel_consensus_path = os.path.join(temp_dir, 'pixel_consensus_path')
-        os.mkdir(pixel_consensus_path)
+        # define a pixel data directory
+        pixel_data_path = os.path.join(temp_dir, 'pixel_data_path')
+        os.mkdir(pixel_data_path)
 
         # create dummy data for each fov
         for fov in ['fov1', 'fov2']:
@@ -769,14 +815,14 @@ def test_compute_p2c_weighted_channel_avg():
             fov_table['pixel_meta_cluster_rename'] = np.repeat(np.arange(2), 25)
 
             # write fov data to feather
-            feather.write_dataframe(fov_table, os.path.join(pixel_consensus_path,
+            feather.write_dataframe(fov_table, os.path.join(pixel_data_path,
                                                             fov + '.feather'))
 
         # iterate over both cluster col vals
         for cluster_col in ['pixel_som_cluster', 'pixel_meta_cluster_rename']:
             # count number of clusters for each cell
             cell_counts, _ = som_utils.create_c2pc_data(
-                fovs, pixel_consensus_path, cell_table_path, pixel_cluster_col=cluster_col
+                fovs, pixel_data_path, cell_table_path, pixel_cluster_col=cluster_col
             )
 
             # define a sample cluster_avgs table
@@ -853,9 +899,9 @@ def test_create_c2pc_data():
         cell_table_path = os.path.join(temp_dir, 'cell_table_size_normalized.csv')
         cell_table.to_csv(cell_table_path, index=False)
 
-        # define a consensus clustered directory
-        pixel_consensus_path = os.path.join(temp_dir, 'pixel_consensus_path')
-        os.mkdir(pixel_consensus_path)
+        # define a pixel data directory
+        pixel_data_path = os.path.join(temp_dir, 'pixel_data_path')
+        os.mkdir(pixel_data_path)
 
         # create dummy data for each fov
         for fov in ['fov1', 'fov2']:
@@ -877,7 +923,7 @@ def test_create_c2pc_data():
             fov_table['pixel_meta_cluster_rename'] = np.repeat(np.arange(2), 25)
 
             # write fov data to feather
-            feather.write_dataframe(fov_table, os.path.join(pixel_consensus_path,
+            feather.write_dataframe(fov_table, os.path.join(pixel_data_path,
                                                             fov + '.feather'))
 
         # error check: not all required columns provided in cell table
@@ -888,13 +934,13 @@ def test_create_c2pc_data():
             bad_cell_table.to_csv(bad_cell_table_path, index=False)
 
             cluster_counts, cluster_counts_norm = som_utils.create_c2pc_data(
-                fovs, pixel_consensus_path, bad_cell_table_path,
+                fovs, pixel_data_path, bad_cell_table_path,
                 pixel_cluster_col='pixel_som_cluster'
             )
 
         # test counts on the pixel cluster column
         cluster_counts, cluster_counts_norm = som_utils.create_c2pc_data(
-            fovs, pixel_consensus_path, cell_table_path, pixel_cluster_col='pixel_som_cluster'
+            fovs, pixel_data_path, cell_table_path, pixel_cluster_col='pixel_som_cluster'
         )
 
         # assert we actually created the cluster_cols
@@ -926,7 +972,7 @@ def test_create_c2pc_data():
 
         # test counts on the consensus cluster column
         cluster_counts, cluster_counts_norm = som_utils.create_c2pc_data(
-            fovs, pixel_consensus_path, cell_table_path,
+            fovs, pixel_data_path, cell_table_path,
             pixel_cluster_col='pixel_meta_cluster_rename'
         )
 
@@ -1046,20 +1092,92 @@ def test_create_fov_pixel_data():
         # are all 0 after, tested successfully via hard-coding values in create_fov_pixel_data
 
 
+def test_preprocess_fov():
+    with tempfile.TemporaryDirectory() as temp_dir:
+        # define the channel names
+        chans = ['chan0', 'chan1', 'chan2']
+
+        # define sample data_dir and subset_dir paths, and make them
+        data_dir = os.path.join(temp_dir, 'pixel_mat_data')
+        subset_dir = os.path.join(temp_dir, 'pixel_mat_subsetted')
+        os.mkdir(data_dir)
+        os.mkdir(subset_dir)
+
+        # create sample image data
+        # NOTE: test_create_pixel_matrix tests if the sub_dir is None
+        tiff_dir = os.path.join(temp_dir, 'sample_image_data')
+        os.mkdir(tiff_dir)
+        test_utils.create_paired_xarray_fovs(
+            base_dir=tiff_dir, fov_names=['fov0', 'fov1'],
+            channel_names=chans, sub_dir='TIFs', img_shape=(10, 10)
+        )
+
+        # create a dummy segmentation directory
+        # NOTE: test_create_pixel_matrix handles the case with no segmentation labels provided
+        seg_dir = os.path.join(temp_dir, 'segmentation')
+        os.mkdir(seg_dir)
+
+        # create sample segmentation data
+        for fov in ['fov0', 'fov1']:
+            rand_img = np.random.randint(0, 16, size=(10, 10))
+            file_name = fov + "_feature_0.tif"
+            io.imsave(os.path.join(seg_dir, file_name), rand_img,
+                      check_contrast=False)
+
+        # run the preprocessing for fov0
+        # NOTE: don't test the return value, leave that for test_create_pixel_matrix
+        som_utils.preprocess_fov(
+            temp_dir, tiff_dir, 'pixel_mat_data', 'pixel_mat_subsetted',
+            seg_dir, '_feature_0.tif', 'TIFs', False, ['chan0', 'chan1', 'chan2'],
+            2, 0.1, 1, 'int16', 42, 'fov0'
+        )
+
+        fov_data_path = os.path.join(
+            temp_dir, 'pixel_mat_data', 'fov0.feather'
+        )
+        fov_sub_path = os.path.join(
+            temp_dir, 'pixel_mat_subsetted', 'fov0.feather'
+        )
+
+        # assert we actually created a .feather preprocessed file
+        # for each fov
+        assert os.path.exists(fov_data_path)
+
+        # assert that we actually created a .feather subsetted file
+        # for each fov
+        assert os.path.exists(fov_sub_path)
+
+        # get the data for the specific fov
+        flowsom_data_fov = feather.read_dataframe(fov_data_path)
+        flowsom_sub_fov = feather.read_dataframe(fov_sub_path)
+
+        # assert the channel names are the same
+        misc_utils.verify_same_elements(
+            flowsom_chans=flowsom_data_fov.columns.values[:-4],
+            provided_chans=chans
+        )
+
+        # assert no rows sum to 0
+        assert np.all(flowsom_data_fov.loc[:, chans].sum(
+            axis=1
+        ).values != 0)
+
+        # assert the subsetted DataFrame size is 0.1 of the preprocessed DataFrame
+        # NOTE: need to account for rounding if multiplying by 0.1 leads to non-int
+        assert round(flowsom_data_fov.shape[0] * 0.1) == flowsom_sub_fov.shape[0]
+
+
 # TODO: leaving out MIBItiff testing until someone needs it
-@parametrize('fovs', [['fov0', 'fov1', 'fov2'], ['fov0', 'fov1'], ['fov0']])
-@parametrize('chans', [['chan0', 'chan1', 'chan2'], ['chan0', 'chan1'], ['chan0']])
-@parametrize('sub_dir', [None, 'TIFs'])
-@parametrize('seg_dir_include', [True, False])
-@parametrize('channel_norm_include', [True, False])
-@parametrize('pixel_norm_include', [True, False])
+@parametrize_with_cases(
+    'fovs,chans,sub_dir,seg_dir_include,channel_norm_include,pixel_norm_include',
+    cases=CreatePixelMatrixCases
+)
 def test_create_pixel_matrix(fovs, chans, sub_dir, seg_dir_include,
                              channel_norm_include, pixel_norm_include, mocker):
-    sample_labels = test_utils.make_labels_xarray(label_data=None,
-                                                  fov_ids=['fov0', 'fov1', 'fov2'],
-                                                  compartment_names=['whole_cell'])
+    # sample_labels = test_utils.make_labels_xarray(label_data=None,
+    #                                               fov_ids=['fov0', 'fov1', 'fov2'],
+    #                                               compartment_names=['whole_cell'])
 
-    # basic error checking
     with tempfile.TemporaryDirectory() as temp_dir:
         # create a directory to store the image data
         tiff_dir = os.path.join(temp_dir, 'sample_image_data')
@@ -1219,7 +1337,7 @@ def test_create_pixel_matrix(fovs, chans, sub_dir, seg_dir_include,
         new_tiff_dir = os.path.join(temp_dir, 'new_tiff_dir')
         os.makedirs(new_tiff_dir)
         for fov in fovs:
-            img = np.random.rand(100).reshape((10, 10))
+            img = (np.random.rand(100) * 100).reshape((10, 10))
             fov_dir = os.path.join(new_tiff_dir, fov, sub_dir)
             os.makedirs(fov_dir)
             for chan in chans:
@@ -1490,6 +1608,71 @@ def test_pixel_consensus_cluster(mocker):
             assert np.all(consensus_cluster_ids <= 20)
 
 
+def test_update_pixel_meta_labels():
+    with tempfile.TemporaryDirectory() as temp_dir:
+        # define fovs and channels
+        fovs = ['fov0', 'fov1', 'fov2']
+        chans = ['Marker1', 'Marker2', 'Marker3', 'Marker4']
+
+        # make it easy to name metadata columns
+        meta_colnames = ['fov', 'row_index', 'column_index', 'segmentation_label']
+
+        # create a dummy data directory
+        os.mkdir(os.path.join(temp_dir, 'pixel_mat_data'))
+
+        # write dummy clustered data for two fovs
+        for fov in ['fov0', 'fov1']:
+            # create dummy preprocessed data for each fov
+            fov_cluster_matrix = pd.DataFrame(
+                np.repeat(np.array([[0.1, 0.2, 0.3, 0.4]]), repeats=1000, axis=0),
+                columns=chans
+            )
+
+            # add metadata
+            fov_cluster_matrix = pd.concat(
+                [fov_cluster_matrix, pd.DataFrame(np.random.rand(1000, 4), columns=meta_colnames)],
+                axis=1
+            )
+
+            # assign dummy SOM cluster labels
+            fov_cluster_matrix['pixel_som_cluster'] = np.repeat(np.arange(100), repeats=10)
+
+            # assign dummy meta cluster labels
+            fov_cluster_matrix['pixel_meta_cluster'] = np.repeat(np.arange(10), repeats=100)
+
+            # write the dummy data to pixel_mat_clustered
+            feather.write_dataframe(fov_cluster_matrix, os.path.join(temp_dir,
+                                                                     'pixel_mat_data',
+                                                                     fov + '.feather'))
+
+        # define dummy remap schemes
+        sample_pixel_remapped_dict = {i: int(i / 5) for i in np.arange(100)}
+        sample_pixel_renamed_meta_dict = {i: 'meta_' + str(i) for i in sample_pixel_remapped_dict}
+
+        # run remapping for fov0
+        som_utils.update_pixel_meta_labels(
+            os.path.join(temp_dir, 'pixel_mat_data'), sample_pixel_remapped_dict,
+            sample_pixel_renamed_meta_dict, 'fov0'
+        )
+
+        # read remapped fov0 data in
+        remapped_fov_data = feather.read_dataframe(
+            os.path.join(temp_dir, 'pixel_mat_data', 'fov0.feather')
+        )
+
+        # assert the value counts of all renamed meta labels is 20
+        assert np.all(remapped_fov_data['pixel_meta_cluster_rename'].value_counts().values == 50)
+
+        # assert each meta cluster label maps to the right renamed cluster
+        remapped_meta_info = dict(
+            remapped_fov_data[
+                ['pixel_meta_cluster', 'pixel_meta_cluster_rename']
+            ].drop_duplicates().values
+        )
+        for meta_cluster in remapped_meta_info:
+            assert remapped_meta_info[meta_cluster] == sample_pixel_renamed_meta_dict[meta_cluster]
+
+
 def test_apply_pixel_meta_cluster_remapping():
     with tempfile.TemporaryDirectory() as temp_dir:
         # basic error check: bad path to pixel consensus dir
@@ -1537,8 +1720,8 @@ def test_apply_pixel_meta_cluster_remapping():
         # make it easy to name metadata columns
         meta_colnames = ['fov', 'row_index', 'column_index', 'segmentation_label']
 
-        # create a dummy consensus directory
-        os.mkdir(os.path.join(temp_dir, 'pixel_mat_consensus'))
+        # create a dummy data directory
+        os.mkdir(os.path.join(temp_dir, 'pixel_mat_data'))
 
         # write dummy clustered data for each fov
         for fov in fovs:
@@ -1562,7 +1745,7 @@ def test_apply_pixel_meta_cluster_remapping():
 
             # write the dummy data to pixel_mat_clustered
             feather.write_dataframe(fov_cluster_matrix, os.path.join(temp_dir,
-                                                                     'pixel_mat_consensus',
+                                                                     'pixel_mat_data',
                                                                      fov + '.feather'))
 
         # define a dummy remap scheme and save
@@ -1613,7 +1796,7 @@ def test_apply_pixel_meta_cluster_remapping():
                 fovs,
                 chans,
                 temp_dir,
-                'pixel_mat_consensus',
+                'pixel_mat_data',
                 'bad_sample_pixel_remapping.csv',
                 'sample_pixel_som_cluster_chan_avgs.csv',
                 'sample_pixel_meta_cluster_chan_avgs.csv'
@@ -1636,7 +1819,7 @@ def test_apply_pixel_meta_cluster_remapping():
                 fovs,
                 chans,
                 temp_dir,
-                'pixel_mat_consensus',
+                'pixel_mat_data',
                 'bad_sample_pixel_remapping.csv',
                 'sample_pixel_som_cluster_chan_avgs.csv',
                 'sample_pixel_meta_cluster_chan_avgs.csv'
@@ -1647,7 +1830,7 @@ def test_apply_pixel_meta_cluster_remapping():
             fovs,
             chans,
             temp_dir,
-            'pixel_mat_consensus',
+            'pixel_mat_data',
             'sample_pixel_remapping.csv',
             'sample_pixel_som_cluster_chan_avgs.csv',
             'sample_pixel_meta_cluster_chan_avgs.csv'
@@ -1664,7 +1847,7 @@ def test_apply_pixel_meta_cluster_remapping():
         for fov in fovs:
             # read remapped fov data in
             remapped_fov_data = feather.read_dataframe(
-                os.path.join(temp_dir, 'pixel_mat_consensus', fov + '.feather')
+                os.path.join(temp_dir, 'pixel_mat_data', fov + '.feather')
             )
 
             # assert the counts for each FOV on every meta cluster is 50
