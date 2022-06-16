@@ -1,4 +1,5 @@
 import os
+from typing import Any
 import warnings
 
 import numpy as np
@@ -143,8 +144,8 @@ def create_invalid_data_str(invalid_data):
     return err_str_data
 
 
-def make_iterable(a, ignore_str=True):
-    """ Convert noniterable type to singelton in list
+def make_iterable(a: Any, ignore_str: bool = True):
+    """ Convert noniterable type to singleton in list
 
     Args:
         a (T | Iterable[T]):
@@ -156,7 +157,8 @@ def make_iterable(a, ignore_str=True):
         List[T]:
             a as singleton in list, or a if a was already iterable.
     """
-    return a if hasattr(a, '__iter__') and not (isinstance(a, str) and ignore_str) else [a]
+    return a if hasattr(a, '__iter__') and not ((isinstance(a, str) and ignore_str) or
+                                                isinstance(a, type)) else [a]
 
 
 def verify_in_list(warn=False, **kwargs):
