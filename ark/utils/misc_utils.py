@@ -1,6 +1,6 @@
 import os
 import warnings
-
+from collections.abc import Iterable
 import numpy as np
 import xarray as xr
 
@@ -156,8 +156,8 @@ def make_iterable(a, ignore_str=True):
         List[T]:
             a as singleton in list, or a if a was already iterable.
     """
-    return a if hasattr(a, '__iter__') and not ((isinstance(a, str) and ignore_str) or
-                                                 isinstance(a, type)) else [a]
+    return a if isinstance(a, Iterable) and not ((isinstance(a, str) and ignore_str) or
+                                                isinstance(a, type)) else [a]
 
 def verify_in_list(warn=False, **kwargs):
     """Verify at least whether the values in the first list exist in the second
