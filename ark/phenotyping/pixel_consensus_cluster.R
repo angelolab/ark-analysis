@@ -12,8 +12,28 @@
 # - seed: random factor
 
 library(arrow)
-library(data.table)
 library(ConsensusClusterPlus)
+library(data.table)
+library(doParallel)
+library(foreach)
+library(parallel)
+
+# helper function to map a FOV to its consensus labels
+mapConsensusLabels <- function(fov, pixelMatDir, som_to_meta_map) {
+    # read in pixel data, we'll need the cluster column for mapping
+    fileName <- file.path(fov, "feather", fsep=".")
+    matPath <- file.path(pixelMatDir, fileName)
+    fovPixelData <- arrow::read_feather(matPath)
+
+    # assign hierarchical cluster labels
+    fovPixelData$pixel_meta_cluster <- som_to_meta_map[as.character(fovPixelData$pixel_som_cluster)]
+
+    # write data with consensus labels
+    arrow::write_feather(as.data.table(fovPixelData), matPath)
+}
+
+# get the number of cores
+nCores <- parallel::detectCores() - 1
 
 # get the command line arguments
 args <- commandArgs(trailingOnly=TRUE)
@@ -39,8 +59,11 @@ clusterAvgPath <- args[6]
 # get the clust to meta write path
 clustToMeta <- args[7]
 
+# retrieve the batch size to determine number of threads to run in parallel
+batchSize <- strtoi(args[8])
+
 # set the random seed
-seed <- strtoi(args[8])
+seed <- strtoi(args[9])
 set.seed(seed)
 
 # read cluster averaged data
@@ -61,25 +84,37 @@ suppressMessages(consensusClusterResults <- ConsensusClusterPlus(t(clusterAvgsSc
 som_to_meta_map <- consensusClusterResults[[maxK]]$consensusClass
 names(som_to_meta_map) <- clusterAvgs$pixel_som_cluster
 
+# define variable to keep track of number of fovs processed
+fovsProcessed <- 0
+
 # append pixel_meta_cluster to each fov's data
-print("Writing consensus clustering results")
-for (i in 1:length(fovs)) {
-    # read in pixel data, we'll need the cluster column for mapping
-    fileName <- file.path(fovs[i], "feather", fsep=".")
-    matPath <- file.path(pixelMatDir, fileName)
-    fovPixelData <- arrow::read_feather(matPath)
+print("Mapping pixel data to consensus cluster labels")
+for (batchStart in seq(1, length(fovs), batchSize)) {
+    # define the parallel cluster for this batch of fovs
+    parallelCluster <- parallel::makeCluster(nCores, type="FORK")
 
-    # assign hierarchical cluster labels
-    fovPixelData$pixel_meta_cluster <- som_to_meta_map[as.character(fovPixelData$pixel_som_cluster)]
+    # register parallel cluster for dopar
+    doParallel::registerDoParallel(cl=parallelCluster)
 
-    # write consensus clustered data, overwrite original data with the same data with meta cluster label
-    arrow::write_feather(as.data.table(fovPixelData), matPath)
+    # need to prevent overshooting end of fovs list when batching
+    batchEnd <- min(batchStart + batchSize - 1, length(fovs))
 
-    # print an update every 10 fovs
-    if (i %% 10 == 0) {
-        print("# fovs clustered:")
-        print(i)
+    # run the multithreaded batch process for mapping to SOM labels and saving
+    foreach(
+        i=batchStart:batchEnd,
+        .combine='c'
+    ) %dopar% {
+        mapConsensusLabels(fovs[i], pixelMatDir, som_to_meta_map)
     }
+
+    # unregister the parallel cluster
+    parallel::stopCluster(cl=parallelCluster)
+
+    # update number of fovs processed
+    fovsProcessed <- fovsProcessed + (batchEnd - batchStart + 1)
+
+    # inform user that batchSize fovs have been processed
+    print(paste("Processed", as.character(fovsProcessed), "fovs"))
 }
 
 # save the mapping from pixel_som_cluster to pixel_meta_cluster
