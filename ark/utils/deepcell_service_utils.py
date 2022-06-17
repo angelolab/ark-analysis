@@ -1,15 +1,17 @@
-from ark.utils import io_utils
-import requests
+from concurrent.futures import ThreadPoolExecutor
+from json import JSONDecodeError
+import os
 from pathlib import Path
+import requests
+from requests.adapters import HTTPAdapter
+from requests.packages.urllib3.util.retry import Retry
 import time
 from tqdm.notebook import tqdm
 from urllib.parse import unquote_plus
-import os
-from zipfile import ZipFile, ZIP_DEFLATED
 import warnings
-from concurrent.futures import ThreadPoolExecutor
+from zipfile import ZipFile, ZIP_DEFLATED
 
-from ark.utils import misc_utils
+from ark.utils import io_utils, misc_utils
 
 
 def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
@@ -144,7 +146,7 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
 
 
 def run_deepcell_direct(input_dir, output_dir, host='https://deepcell.org',
-                        job_type='mesmer', scale=1.0, timeout=3600):
+                        job_type='mesmer', scale=1.0, timeout=3600, num_retries=5):
     """Uses direct calls to DeepCell API and saves output to output_dir.
 
     Args:
@@ -163,6 +165,8 @@ def run_deepcell_direct(input_dir, output_dir, host='https://deepcell.org',
         timeout (int):
             Approximate seconds until timeout.
             Default: 1 hour (3600)
+        num_retries (int):
+            The maximum number of times to call the Deepcell API in case of failure
     """
 
     # upload zip file
@@ -175,11 +179,30 @@ def run_deepcell_direct(input_dir, output_dir, host='https://deepcell.org',
         }
         f.seek(0)
 
-    upload_response = requests.post(
-        upload_url,
-        timeout=timeout,
-        files=upload_fields
-    ).json()
+    # define and mount a retry instance to call the Deepcell API again if needed
+    retry_strategy = Retry(
+        total=num_retries,
+        status_forcelist=[500, 502, 503, 504],
+        method_whitelist=['HEAD', 'GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'TRACE']
+    )
+    adapter = HTTPAdapter(max_retries=retry_strategy)
+
+    http = requests.Session()
+    http.mount('https://', adapter)
+    http.mount('http://', adapter)
+
+    try:
+        # attempt to contact Deepcell
+        upload_response = http.post(
+            upload_url,
+            timeout=timeout,
+            files=upload_fields
+        )
+
+        # decode the JSON response
+        upload_response = upload_response.json()
+    except JSONDecodeError as jde:
+        print("Error decoding upload response: Deepcell server is likely down")
 
     # call prediction
     predict_url = host + '/api/predict'
