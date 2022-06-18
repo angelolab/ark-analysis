@@ -1,9 +1,9 @@
 from concurrent.futures import ThreadPoolExecutor
-from json import JSONDecodeError
 import os
 from pathlib import Path
 import requests
 from requests.adapters import HTTPAdapter
+from requests.exceptions import RetryError
 from requests.packages.urllib3.util.retry import Retry
 import time
 from tqdm.notebook import tqdm
@@ -115,9 +115,13 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
 
         # pass the zip file to deepcell.org
         print('Uploading files to DeepCell server.')
-        run_deepcell_direct(
+        status = run_deepcell_direct(
             zip_path, deepcell_output_dir, host, job_type, scale, timeout
         )
+
+        # ensure execution is halted if run_deepcell_direct returned non-zero exit code
+        if status != 0:
+            return
 
         # extract the .tif output
         print("Extracting tif files from DeepCell response.")
@@ -201,9 +205,11 @@ def run_deepcell_direct(input_dir, output_dir, host='https://deepcell.org',
 
         # decode the JSON response
         upload_response = upload_response.json()
-    except JSONDecodeError as jde:
-        print("Failed to reach Deepcell: the server is likely down")
-        return
+    # this should prevent an invalid upload_response from being decoded
+    except RetryError as re:
+        print("Failed to reach Deepcell after %d attempts: "
+              "the server is likely down" % num_retries)
+        return 1
 
     # call prediction
     predict_url = host + '/api/predict'
@@ -276,4 +282,4 @@ def run_deepcell_direct(input_dir, output_dir, host='https://deepcell.org',
         }
     )
 
-    return
+    return 0
