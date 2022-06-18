@@ -202,7 +202,8 @@ def run_deepcell_direct(input_dir, output_dir, host='https://deepcell.org',
         # decode the JSON response
         upload_response = upload_response.json()
     except JSONDecodeError as jde:
-        print("Error decoding upload response: Deepcell server is likely down")
+        print("Failed to reach Deepcell: the server is likely down")
+        return
 
     # call prediction
     predict_url = host + '/api/predict'
