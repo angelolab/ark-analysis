@@ -1,4 +1,5 @@
 from concurrent.futures import ThreadPoolExecutor
+from json import JSONDecodeError
 import os
 from pathlib import Path
 import requests
@@ -205,10 +206,15 @@ def run_deepcell_direct(input_dir, output_dir, host='https://deepcell.org',
 
         # decode the JSON response
         upload_response = upload_response.json()
-    # this should prevent an invalid upload_response from being decoded
+    # in case the Deepcell endpoint cannot be reached
     except RetryError as re:
         print("Failed to reach Deepcell after %d attempts: "
               "the server is likely down" % num_retries)
+        return 1
+    # in case the Deepcell endpoint returns an invalid JSON object indicating server error
+    except JSONDecodeError as jde:
+        print("Unable to process Deepcell response: "
+              "the server is likely down")
         return 1
 
     # call prediction
