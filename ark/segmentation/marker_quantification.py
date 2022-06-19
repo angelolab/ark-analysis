@@ -41,6 +41,12 @@ def get_single_compartment_props(segmentation_labels, regionprops_base,
         props_options=list(REGIONPROPS_FUNCTION.keys())
     )
 
+    # if image is just background, return empty df
+    if len(np.unique(segmentation_labels)) < 2:
+        output_list = regionprops_base + regionprops_single_comp
+        blank_df = pd.DataFrame(columns=output_list)
+        return blank_df
+
     # get the base features
     cell_props = pd.DataFrame(regionprops_table(segmentation_labels,
                                                 properties=regionprops_base))

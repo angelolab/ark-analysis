@@ -41,6 +41,17 @@ def test_get_single_compartment_props():
         cell_props_columns=cell_props.columns.values
     )
 
+    # test that blank segmentation mask is handled appropriately
+    cell_props_blank = marker_quantification.get_single_compartment_props(
+        np.zeros((40, 40), dtype='int'),
+        regionprops_base,
+        regionprops_single_comp)
+
+    misc_utils.verify_same_elements(
+        all_features=copy.deepcopy(regionprops_base) + regionprops_single_comp,
+        cell_props_columns=cell_props_blank.columns.values
+    )
+
 
 def test_assign_single_compartment_props():
     cell_mask, channel_data = test_utils.create_test_extraction_data()
