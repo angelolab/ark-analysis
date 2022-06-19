@@ -250,13 +250,13 @@ def test_compute_marker_counts_base():
         > center_extraction.loc['whole_cell', :, 'chan0'].values
     )
 
-    # blank segmentation mask results in an empty df
+    # blank segmentation mask results in the cells column of length 0
     blank_labels = test_utils.make_labels_xarray(label_data=np.zeros((1, 40, 40, 1), dtype='int'),
                                                  compartment_names=['whole_cell'])
 
     blank_output = marker_quantification.compute_marker_counts(input_images=input_images,
                                                                segmentation_labels=blank_labels[0])
-    assert len(blank_output) == 0
+    assert blank_output.shape[1] == 0
 
 
 def test_compute_marker_counts_equal_masks():
@@ -460,6 +460,11 @@ def test_create_marker_count_matrices_base():
 
     assert np.array_equal(normalized['chan0'], np.repeat(1, len(normalized)))
     assert np.array_equal(normalized['chan1'], np.repeat(5, len(normalized)))
+
+    # blank image doesn't cause any issues
+    segmentation_labels.values[1, ...] = 0
+    _ = marker_quantification.create_marker_count_matrices(segmentation_labels,
+                                                           channel_data)
 
     # error checking
     with pytest.raises(ValueError):

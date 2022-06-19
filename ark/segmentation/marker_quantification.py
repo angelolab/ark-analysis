@@ -239,10 +239,6 @@ def compute_marker_counts(input_images, segmentation_labels, nuclear_counts=Fals
     unique_cell_ids = np.unique(segmentation_labels[..., 0].values)
     unique_cell_ids = unique_cell_ids[np.nonzero(unique_cell_ids)]
 
-    # if no cells in the image, skip processing and return blank df
-    if len(unique_cell_ids) < 1:
-        return pd.DataFrame({})
-
     # create labels for array holding channel counts and morphology metrics
     feature_names = np.concatenate((np.array(settings.PRE_CHANNEL_COL), input_images.channels,
                                     regionprops_names), axis=None)
