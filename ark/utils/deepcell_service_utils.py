@@ -187,7 +187,7 @@ def run_deepcell_direct(input_dir, output_dir, host='https://deepcell.org',
     # define and mount a retry instance to call the Deepcell API again if needed
     retry_strategy = Retry(
         total=num_retries,
-        status_forcelist=[500, 502, 503, 504],
+        status_forcelist=[404, 500, 502, 503, 504],
         method_whitelist=['HEAD', 'GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'TRACE']
     )
     adapter = HTTPAdapter(max_retries=retry_strategy)
@@ -196,25 +196,35 @@ def run_deepcell_direct(input_dir, output_dir, host='https://deepcell.org',
     http.mount('https://', adapter)
     http.mount('http://', adapter)
 
-    try:
-        # attempt to contact Deepcell
-        upload_response = http.post(
-            upload_url,
-            timeout=timeout,
-            files=upload_fields
-        )
+    total_retries = 0
+    while total_retries < num_retries:
+        # handles the case if the main endpoint can't be reached
+        try:
+            upload_response = http.post(
+                upload_url,
+                timeout=timeout,
+                files=upload_fields
+            )
+        except RetryError as re:
+            print("Failed to reached Deepcell after %d attempts: "
+                  "the server is likely down" % num_retries)
+            return 1
 
-        # decode the JSON response
-        upload_response = upload_response.json()
-    # in case the Deepcell endpoint cannot be reached
-    except RetryError as re:
-        print("Failed to reach Deepcell after %d attempts: "
-              "the server is likely down" % num_retries)
-        return 1
-    # in case the Deepcell endpoint returns an invalid JSON object indicating server error
-    except JSONDecodeError as jde:
-        print("Unable to process Deepcell response: "
-              "the server is likely down")
+        # handles the case if the endpoint returns an invalid JSON
+        # indicating an internal API error
+        try:
+            upload_response = upload_response.json()
+        except JSONDecodeError as jde:
+            total_retries += 1
+            continue
+
+        # if we reach the end no errors were encountered on this attempt
+        break
+
+    # if the JSON could not be decoded num_retries number of times
+    if total_retries == num_retries:
+        print("Unable to process Deepcell response after %d attempts: "
+              "an internal server is likely down" % num_retries)
         return 1
 
     # call prediction
