@@ -250,6 +250,14 @@ def test_compute_marker_counts_base():
         > center_extraction.loc['whole_cell', :, 'chan0'].values
     )
 
+    # blank segmentation mask results in an empty df
+    blank_labels = test_utils.make_labels_xarray(label_data=np.zeros((1, 40, 40, 1), dtype='int'),
+                                                 compartment_names=['whole_cell'])
+
+    blank_output = marker_quantification.compute_marker_counts(input_images=input_images,
+                                                               segmentation_labels=blank_labels[0])
+    assert len(blank_output) == 0
+
 
 def test_compute_marker_counts_equal_masks():
     cell_mask, channel_data = test_utils.create_test_extraction_data()
