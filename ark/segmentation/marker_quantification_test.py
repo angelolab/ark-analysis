@@ -543,6 +543,11 @@ def test_create_marker_count_matrices_multiple_compartments():
     normalized_with_nuc = normalized.loc[normalized['label'] != 2, ['label', 'label_nuclear']]
     assert np.array_equal(normalized_with_nuc['label'] * 2, normalized_with_nuc['label_nuclear'])
 
+    # blank nuclear segmentation mask doesn't cause any issues
+    segmentation_labels_unequal.values[1, ..., 1] = 0
+    _ = marker_quantification.create_marker_count_matrices(segmentation_labels_unequal,
+                                                           channel_data, nuclear_counts=True)
+
 
 def test_generate_cell_data_tree_loading():
     # is_mibitiff False case, load from directory tree

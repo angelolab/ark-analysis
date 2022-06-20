@@ -1,4 +1,5 @@
 import copy
+import warnings
 
 import numpy as np
 import pandas as pd
@@ -261,6 +262,10 @@ def compute_marker_counts(input_images, segmentation_labels, nuclear_counts=Fals
                                               regionprops_base, regionprops_single_comp,
                                               **reg_props)
 
+    if len(unique_cell_ids) == 0:
+        fov_name = str(segmentation_labels.fovs.values)
+        warnings.warn("No cells found in the following image: {}".format(fov_name))
+
     if nuclear_counts:
         nuc_labels = segmentation_labels.loc[:, :, 'nuclear'].values
 
@@ -274,6 +279,9 @@ def compute_marker_counts(input_images, segmentation_labels, nuclear_counts=Fals
         nuc_props = get_single_compartment_props(nuc_labels,
                                                  regionprops_base, regionprops_single_comp,
                                                  **reg_props)
+        if len(nuc_props) == 0:
+            fov_name = str(segmentation_labels.fovs.values)
+            warnings.warn("No nuclei found in the following image: {}".format(fov_name))
 
     # get the signal kwargs
     sig_kwargs = kwargs.get('signal_kwargs', {})
