@@ -10,7 +10,7 @@ from ark.utils import io_utils as iou, misc_utils
 
 
 def load_imgs_from_mibitiff(data_dir, mibitiff_files=None, channels=None, delimiter=None,
-                            dtype='int16'):
+                            dtype='float64'):
     """Load images from a series of MIBItiff files.
 
     This function takes a set of MIBItiff files and load the images into an xarray. The type used
@@ -28,7 +28,8 @@ def load_imgs_from_mibitiff(data_dir, mibitiff_files=None, channels=None, delimi
             optional delimiter-character/string which separate fov names from the rest of the file
             name. Defaults to None
         dtype (str/type):
-            optional specifier of image type.  Overwritten with warning for float images
+            optional specifier of image type.  Overwritten with warning for float images.
+            Defaults to `float64`
 
     Returns:
         xarray.DataArray:
@@ -88,7 +89,7 @@ def load_imgs_from_mibitiff(data_dir, mibitiff_files=None, channels=None, delimi
 
 
 def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, channels=None,
-                        dtype="int16", max_image_size=None):
+                        dtype="float32", max_image_size=None):
     """Takes a set of imgs from a directory structure and loads them into an xarray.
 
     Args:
@@ -210,7 +211,7 @@ def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, channels=None,
 
 
 def load_imgs_from_dir(data_dir, files=None, match_substring=None, trim_suffix=None,
-                       xr_dim_name='compartments', xr_channel_names=None, dtype="int16",
+                       xr_dim_name='compartments', xr_channel_names=None, dtype="float32",
                        force_ints=False, channel_indices=None):
     """Takes a set of images (possibly multitiffs) from a directory and loads them into an xarray.
 
@@ -297,14 +298,29 @@ def load_imgs_from_dir(data_dir, files=None, match_substring=None, trim_suffix=N
 
     # check to make sure that float dtype was supplied if image data is float
     data_dtype = test_img.dtype
-    if force_ints and np.issubdtype(dtype, np.integer):
-        if not np.issubdtype(data_dtype, np.integer):
+
+    if force_ints:
+        # The user knows they are forcing the type of the image to be converted to `int16`
+        # No need to issue a warning
+        # always set the dtype to `int16`
+        if not np.issubdtype(dtype, np.integer):
+            dtype = "int16"
+    if (not force_ints) and (np.issubdtype(dtype, np.integer)):
+        # Issue a warning if the user does not want to force ints, the desired type is an integer,
+        # and the image dtype is an np.floating
+        if np.issubdtype(data_dtype, np.floating):
             warnings.warn(f"The loaded {data_dtype} images were forcefully "
-                          f"overwritten with the supplied integer dtype {dtype}")
-    elif np.issubdtype(data_dtype, np.floating):
-        if not np.issubdtype(dtype, np.floating):
-            warnings.warn(f"The supplied non-float dtype {dtype} was overwritten to {data_dtype}, "
-                          f"because the loaded images are floats")
+                          f"overwritten with the supplied integer dtype {dtype}."
+                          f" If this is the desired conversion, set `force_ints` as `True`"
+                          f" to not see this warning.")
+        else:
+            dtype = "int16"
+    if np.issubdtype(dtype, np.floating):
+        # Issue a warning if the user wants the desired type to be an np.floating,
+        # however the original image is an np.integer.
+        if np.issubdtype(data_dtype, np.integer):
+            warnings.warn(f"The loaded {data_dtype} images were forcefully "
+                          f"overwritten with the supplied integer dtype {dtype}.")
             dtype = data_dtype
 
     # extract data
