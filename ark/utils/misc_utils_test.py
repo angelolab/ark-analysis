@@ -153,3 +153,40 @@ def test_create_invalid_data_str():
     invalid_data_str3 = misc_utils.create_invalid_data_str(invalid_data=invalid_data)
     for id in invalid_data[:10]:
         assert invalid_data_str3.find(id) != -1
+
+
+def test_make_iterable():
+
+    # Input is string, ignore_str = True
+    input_str = "test"
+    assert misc_utils.make_iterable(input_str, ignore_str=True) == ["test"]
+
+    # Input is string, ignore_str = False
+    assert misc_utils.make_iterable(input_str, ignore_str=False) == "test"
+
+    # Input is a list of objects, ignore_str = True
+    input_list = [1, 2, 3, 4]
+    assert misc_utils.make_iterable(input_list, ignore_str=True) == [1, 2, 3, 4]
+
+    # Input is a list of objects, ignore_str = False
+    assert misc_utils.make_iterable(input_list, ignore_str=False) == [1, 2, 3, 4]
+
+    # Input is of type(<...>) = type (a fundamental data type such as str, int, bool)
+    assert misc_utils.make_iterable(str, ignore_str=True) == [str]
+
+    assert misc_utils.make_iterable(str, ignore_str=False) == [str]
+
+    assert misc_utils.make_iterable(int, ignore_str=True) == [int]
+
+    assert misc_utils.make_iterable(int, ignore_str=False) == [int]
+
+    assert misc_utils.make_iterable(bool, ignore_str=True) == [bool]
+
+    assert misc_utils.make_iterable(bool, ignore_str=False) == [bool]
+
+    # Input is a numpy array
+    input_np_arr = np.array([1, 2, 3, 4, 5])
+    np.testing.assert_equal(misc_utils.make_iterable(input_np_arr, ignore_str=True),
+                            np.array([1, 2, 3, 4, 5]))
+    np.testing.assert_equal(misc_utils.make_iterable(input_np_arr, ignore_str=False),
+                            np.array([1, 2, 3, 4, 5]))
