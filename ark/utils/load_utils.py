@@ -306,8 +306,10 @@ def load_imgs_from_dir(data_dir, files=None, match_substring=None, trim_suffix=N
         if not np.issubdtype(dtype, np.integer):
             dtype = "int16"
     if (not force_ints) and (np.issubdtype(dtype, np.integer)):
-        # Issue a warning if the user does not want to force ints, the desired type is an integer,
-        # and the image dtype is an np.floating
+        # Issue a warning if (all conditions):
+        #   1. the user does not want to force ints
+        #   2. the desired type is an integer,
+        #   3. the image dtype is an np.floating
         if np.issubdtype(data_dtype, np.floating):
             warnings.warn(f"The loaded {data_dtype} images were forcefully "
                           f"overwritten with the supplied integer dtype {dtype}."
@@ -315,13 +317,11 @@ def load_imgs_from_dir(data_dir, files=None, match_substring=None, trim_suffix=N
                           f" to not see this warning.")
         else:
             dtype = "int16"
-    if np.issubdtype(dtype, np.floating):
-        # Issue a warning if the user wants the desired type to be an np.floating,
-        # however the original image is an np.integer.
-        if np.issubdtype(data_dtype, np.integer):
-            warnings.warn(f"The loaded {data_dtype} images were forcefully "
-                          f"overwritten with the supplied integer dtype {dtype}.")
-            dtype = data_dtype
+    elif np.issubdtype(data_dtype, np.floating):
+         if not np.issubdtype(dtype, np.floating):
+             warnings.warn(f"The supplied non-float dtype {dtype} was overwritten to {data_dtype}, "
+                           f"because the loaded images are floats")
+             dtype = data_dtype
 
     # extract data
     img_data = []

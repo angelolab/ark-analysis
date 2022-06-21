@@ -245,22 +245,29 @@ def test_load_imgs_from_dir():
                                           trim_suffix='_', xr_dim_name='compartments',
                                           dtype=np.float32)
 
-        # test swap float -> int16
+        # test swap float32 -> int16, force_ints = True
+        loaded_xr = load_utils.load_imgs_from_dir(temp_dir, trim_suffix='_', force_ints=True,
+                                                    xr_dim_name='compartments', dtype="int16")
+
+        assert loaded_xr.equals(data_xr)
+        assert loaded_xr.dtype == 'int16'
+        
+        # test swap float32 -> int16, force_ints = False
         with pytest.warns(UserWarning):
-            loaded_xr = load_utils.load_imgs_from_dir(temp_dir, trim_suffix='_', force_ints=True,
-                                                      xr_dim_name='compartments', dtype="int16")
+            loaded_xr = load_utils.load_imgs_from_dir(temp_dir, trim_suffix='_', force_ints=False,
+                                                        xr_dim_name='compartments', dtype="int16")
 
             assert loaded_xr.equals(data_xr)
             assert loaded_xr.dtype == 'int16'
 
-        # test swap int16 -> float
-        with pytest.warns(UserWarning):
-            loaded_xr = load_utils.load_imgs_from_dir(temp_dir, trim_suffix='_',
-                                                      xr_dim_name='compartments', dtype="int16")
+            # test swap int16 -> float32
+            with pytest.warns(UserWarning):
+                loaded_xr = load_utils.load_imgs_from_dir(temp_dir, trim_suffix='_',
+                                                        xr_dim_name='compartments', dtype="int16")
 
-            assert loaded_xr.equals(data_xr)
-            assert np.issubdtype(loaded_xr.dtype, np.floating)
-
+                assert loaded_xr.equals(data_xr)
+                assert np.issubdtype(loaded_xr.dtype, np.floating)        
+    
     # test multitiff input
     with tempfile.TemporaryDirectory() as temp_dir:
         fovs, channels = test_utils.gen_fov_chan_names(num_fovs=2, num_chans=3, use_delimiter=True)
