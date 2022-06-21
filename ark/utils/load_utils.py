@@ -211,8 +211,7 @@ def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, channels=None,
 
 
 def load_imgs_from_dir(data_dir, files=None, match_substring=None, trim_suffix=None,
-                       xr_dim_name='compartments', xr_channel_names=None, dtype="float32",
-                       force_ints=False, channel_indices=None):
+                       xr_dim_name='compartments', xr_channel_names=None, channel_indices=None):
     """Takes a set of images (possibly multitiffs) from a directory and loads them into an xarray.
 
     Args:
@@ -233,10 +232,6 @@ def load_imgs_from_dir(data_dir, files=None, match_substring=None, trim_suffix=N
             Default: 'compartments'
         xr_channel_names (list):
             sets the name of the coordinates in the last dimension of the output xarray.
-        dtype (str/type):
-            data type to load/store
-        force_ints (bool):
-            If dtype is an integer, forcefully convert float imgs to ints. Default is False.
         channel_indices (list):
             optional list of indices specifying which channels to load (by their indices).
             if None or empty, the function loads all channels.
@@ -253,7 +248,6 @@ def load_imgs_from_dir(data_dir, files=None, match_substring=None, trim_suffix=N
             - data_dir is not a directory, <data_dir>/img is
               not a file for some img in the input 'files' list, or no images are found.
             - channels_indices are invalid according to the shape of the images.
-            - the provided dtype is too small to represent the data.
             - The length of xr_channel_names (if provided) does not match the number
               of channels in the input.
     """
@@ -296,32 +290,8 @@ def load_imgs_from_dir(data_dir, files=None, match_substring=None, trim_suffix=N
                          f' length should be {n_channels}, as the number of channels'
                          f' in the input data.')
 
-    # check to make sure that float dtype was supplied if image data is float
-    data_dtype = test_img.dtype
-
-    if force_ints:
-        # The user knows they are forcing the type of the image to be converted to `int16`
-        # No need to issue a warning
-        # always set the dtype to `int16`
-        if not np.issubdtype(dtype, np.integer):
-            dtype = "int16"
-    if (not force_ints) and (np.issubdtype(dtype, np.integer)):
-        # Issue a warning if (all conditions):
-        #   1. the user does not want to force ints
-        #   2. the desired type is an integer,
-        #   3. the image dtype is an np.floating
-        if np.issubdtype(data_dtype, np.floating):
-            warnings.warn(f"The loaded {data_dtype} images were forcefully "
-                          f"overwritten with the supplied integer dtype {dtype}."
-                          f" If this is the desired conversion, set `force_ints` as `True`"
-                          f" to not see this warning.")
-        else:
-            dtype = "int16"
-    elif np.issubdtype(data_dtype, np.floating):
-         if not np.issubdtype(dtype, np.floating):
-             warnings.warn(f"The supplied non-float dtype {dtype} was overwritten to {data_dtype}, "
-                           f"because the loaded images are floats")
-             dtype = data_dtype
+    # The dtype is always the type of the image being loaded in.
+    dtype = test_img.dtype
 
     # extract data
     img_data = []
@@ -340,9 +310,9 @@ def load_imgs_from_dir(data_dir, files=None, match_substring=None, trim_suffix=N
     if channel_indices and multitiff:
         img_data = img_data[:, :, :, channel_indices]
 
-    # check to make sure that dtype wasn't too small for range of data
-    if np.min(img_data) < 0:
-        raise ValueError("Integer overflow from loading TIF image, try a larger dtype")
+    # # check to make sure that dtype wasn't too small for range of data
+    # if np.min(img_data) < 0:
+    #     raise ValueError("Integer overflow from loading TIF image, try a larger dtype")
 
     if channels_first:
         row_coords, col_coords = range(test_img.shape[1]), range(test_img.shape[2])
