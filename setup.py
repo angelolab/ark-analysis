@@ -1,7 +1,7 @@
 from os import path, pardir
 from setuptools import setup, find_packages
 
-VERSION = '0.2.10'
+VERSION = '0.3.00'
 
 PKG_FOLDER = path.abspath(path.join(__file__, pardir))
 
