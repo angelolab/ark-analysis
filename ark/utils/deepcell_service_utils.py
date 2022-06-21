@@ -130,10 +130,6 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
 
         with ZipFile(zip_files[-1], "r") as zipObj:
             for name in zipObj.namelist():
-                # with open(os.path.join(deepcell_output_dir, name), mode='wb') as f:
-                #     ranked_segmentation_mask = _convert_deepcell_seg_masks(zipObj.read(name))
-                    
-                #     f.write(zipObj.read(name))
                 mask_path = os.path.join(deepcell_output_dir, name)
                 ranked_segmentation_mask = _convert_deepcell_seg_masks(zipObj.read(name))
                 io.imsave(mask_path, ranked_segmentation_mask, check_contrast=False)

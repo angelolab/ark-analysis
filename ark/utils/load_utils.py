@@ -9,8 +9,7 @@ from ark.utils.tiff_utils import read_mibitiff
 from ark.utils import io_utils as iou, misc_utils
 
 
-def load_imgs_from_mibitiff(data_dir, mibitiff_files=None, channels=None, delimiter=None,
-                            dtype='float64'):
+def load_imgs_from_mibitiff(data_dir, mibitiff_files=None, channels=None, delimiter=None):
     """Load images from a series of MIBItiff files.
 
     This function takes a set of MIBItiff files and load the images into an xarray. The type used
@@ -26,10 +25,7 @@ def load_imgs_from_mibitiff(data_dir, mibitiff_files=None, channels=None, delimi
             the first MIBItiff are used.
         delimiter (str):
             optional delimiter-character/string which separate fov names from the rest of the file
-            name. Defaults to None
-        dtype (str/type):
-            optional specifier of image type.  Overwritten with warning for float images.
-            Defaults to `float64`
+            name. Defaults to None.
 
     Returns:
         xarray.DataArray:
@@ -56,13 +52,8 @@ def load_imgs_from_mibitiff(data_dir, mibitiff_files=None, channels=None, delimi
 
     test_img = io.imread(mibitiff_files[0], plugin='tifffile')
 
-    # check to make sure that float dtype was supplied if image data is float
-    data_dtype = test_img.dtype
-    if np.issubdtype(data_dtype, np.floating):
-        if not np.issubdtype(dtype, np.floating):
-            warnings.warn(f"The supplied non-float dtype {dtype} was overwritten to {data_dtype}, "
-                          f"because the loaded images are floats")
-            dtype = data_dtype
+    # The dtype is always the type of the image being loaded in.
+    dtype = test_img.dtype
 
     # if no channels specified, get them from first MIBItiff file
     if channels is None:
@@ -89,7 +80,7 @@ def load_imgs_from_mibitiff(data_dir, mibitiff_files=None, channels=None, delimi
 
 
 def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, channels=None,
-                        dtype="float32", max_image_size=None):
+                        max_image_size=None):
     """Takes a set of imgs from a directory structure and loads them into an xarray.
 
     Args:
@@ -102,8 +93,6 @@ def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, channels=None,
             loads all folders
         channels (list):
             optional list of imgs to load, otherwise loads all imgs
-        dtype (str/type):
-            dtype of array which will be used to store values
         max_image_size (int or None):
             The length (in pixels) of the largest image that will be loaded. All other images will
             be padded to bring them up to the same size.
@@ -168,13 +157,8 @@ def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, channels=None,
         os.path.join(data_dir, fovs[0], img_sub_folder, channels[0])
     )
 
-    # check to make sure that float dtype was supplied if image data is float
-    data_dtype = test_img.dtype
-    if np.issubdtype(data_dtype, np.floating):
-        if not np.issubdtype(dtype, np.floating):
-            warnings.warn(f"The supplied non-float dtype {dtype} was overwritten to {data_dtype}, "
-                          f"because the loaded images are floats")
-            dtype = data_dtype
+    # The dtype is always the type of the image being loaded in.
+    dtype = test_img.dtype
 
     if max_image_size is not None:
         img_data = np.zeros((len(fovs), max_image_size, max_image_size, len(channels)),
@@ -309,10 +293,6 @@ def load_imgs_from_dir(data_dir, files=None, match_substring=None, trim_suffix=N
 
     if channel_indices and multitiff:
         img_data = img_data[:, :, :, channel_indices]
-
-    # # check to make sure that dtype wasn't too small for range of data
-    # if np.min(img_data) < 0:
-    #     raise ValueError("Integer overflow from loading TIF image, try a larger dtype")
 
     if channels_first:
         row_coords, col_coords = range(test_img.shape[1]), range(test_img.shape[2])
