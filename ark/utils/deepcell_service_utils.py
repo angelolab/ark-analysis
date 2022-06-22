@@ -11,6 +11,7 @@ from concurrent.futures import ThreadPoolExecutor
 import numpy as np
 from scipy import stats
 from skimage import io
+from io import BytesIO
 from ark.utils import misc_utils
 
 
@@ -131,7 +132,8 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
         with ZipFile(zip_files[-1], "r") as zipObj:
             for name in zipObj.namelist():
                 mask_path = os.path.join(deepcell_output_dir, name)
-                ranked_segmentation_mask = _convert_deepcell_seg_masks(zipObj.read(name))
+                byte_repr = BytesIO(zipObj.read(name))
+                ranked_segmentation_mask = _convert_deepcell_seg_masks(byte_repr.getbuffer())
                 io.imsave(mask_path, ranked_segmentation_mask, check_contrast=False)
                 
             for fov in fov_group:
@@ -259,7 +261,7 @@ def run_deepcell_direct(input_dir, output_dir, host='https://deepcell.org',
     return
 
 
-def _convert_deepcell_seg_masks(seg_mask: bytes) -> np.ndarray:
+def _convert_deepcell_seg_masks(seg_mask) -> np.ndarray:
     """Converts the segmentation masks provided by deepcell from `float32` to `int16`
     (via assigning ranks to data, dealing with ties appropriately)
     as segmentation masks need to be integers in order to work as intended with 
@@ -272,8 +274,7 @@ def _convert_deepcell_seg_masks(seg_mask: bytes) -> np.ndarray:
         np.ndarray: The segmentation masks, converted from floating point 32-bit to integer
         16-bit via `scipy.stats.rankdata`
     """
-    float_mask: np.ndarray = np.frombuffer(seg_mask, dtype="float32")
-    
+    float_mask: np.ndarray = np.frombuffer(seg_mask, dtype="float32", count=-1)
     ranked_mask: np.ndarray = stats.rankdata(float_mask).astype(dtype = "int16")
     return ranked_mask
     

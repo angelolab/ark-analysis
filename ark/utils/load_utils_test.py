@@ -64,16 +64,6 @@ def test_load_imgs_from_mibitiff():
         assert loaded_xr.equals(data_xr)
         assert np.issubdtype(loaded_xr.dtype, np.floating)
 
-        # test float overwrite
-        with pytest.warns(UserWarning):
-            loaded_xr = load_utils.load_imgs_from_mibitiff(temp_dir,
-                                                           mibitiff_files=[fovnames[-1]],
-                                                           channels=channels,
-                                                           delimiter='_')
-
-            assert loaded_xr.equals(data_xr.loc[[fovs[-1]], :, :, :])
-            assert np.issubdtype(loaded_xr.dtype, np.floating)
-
 
 def test_load_imgs_from_tree():
     # invalid directory is provided
@@ -155,14 +145,10 @@ def test_load_imgs_from_tree():
             dtype=np.float32
         )
 
-        with pytest.warns(UserWarning):
-            loaded_xr = \
-                load_utils.load_imgs_from_tree(temp_dir, img_sub_folder="TIFs")
+        loaded_xr = load_utils.load_imgs_from_tree(temp_dir, img_sub_folder="TIFs")
 
-            assert loaded_xr.equals(data_xr)
-
-            # test swap int16 -> float
-            assert np.issubdtype(loaded_xr.dtype, np.floating)
+        assert loaded_xr.equals(data_xr)
+        assert np.issubdtype(loaded_xr.dtype, np.floating)
 
     # test loading with variable sizes
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -248,7 +234,7 @@ def test_load_imgs_from_dir():
         loaded_xr = load_utils.load_imgs_from_dir(temp_dir, trim_suffix='_', xr_dim_name='compartments')
 
         assert loaded_xr.equals(data_xr)
-        assert np.issubtype(loaded_xr.dtype, np.floating)
+        assert np.issubdtype(loaded_xr.dtype, np.floating)
         assert loaded_xr.dtype == 'float32'
         
     # Test integer xarray type consistency (i.e. creation type == load_imgs type)
@@ -264,7 +250,7 @@ def test_load_imgs_from_dir():
         loaded_xr = load_utils.load_imgs_from_dir(temp_dir, trim_suffix='_', xr_dim_name='compartments')
 
         assert loaded_xr.equals(data_xr)
-        assert np.issubtype(loaded_xr.dtype, np.integer)      
+        assert np.issubdtype(loaded_xr.dtype, np.integer)      
         assert loaded_xr.dtype == 'int16'
     
     # test multitiff input
