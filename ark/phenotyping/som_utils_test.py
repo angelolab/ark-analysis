@@ -1124,12 +1124,18 @@ def test_preprocess_fov():
             io.imsave(os.path.join(seg_dir, file_name), rand_img,
                       check_contrast=False)
 
+        # generate sample channel normalization values
+        channel_norm_df = pd.DataFrame.from_dict({
+            'channel': chans,
+            'norm_val': np.repeat(10, repeats=len(chans))
+        })
+
         # run the preprocessing for fov0
         # NOTE: don't test the return value, leave that for test_create_pixel_matrix
         som_utils.preprocess_fov(
             temp_dir, tiff_dir, 'pixel_mat_data', 'pixel_mat_subsetted',
             seg_dir, '_feature_0.tif', 'TIFs', False, ['chan0', 'chan1', 'chan2'],
-            2, 0.1, 1, 'int16', 42, 'fov0'
+            2, 0.1, 1, 'int16', 42, channel_norm_df, 'fov0'
         )
 
         fov_data_path = os.path.join(

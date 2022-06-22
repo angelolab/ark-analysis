@@ -748,7 +748,7 @@ def create_fov_pixel_data(fov, channels, img_data, seg_labels, pixel_norm_val,
 
 def preprocess_fov(base_dir, tiff_dir, data_dir, subset_dir, seg_dir, seg_suffix,
                    img_sub_folder, is_mibitiff, channels, blur_factor,
-                   subset_proportion, pixel_norm_val, dtype, seed, channel_norm_path, fov):
+                   subset_proportion, pixel_norm_val, dtype, seed, channel_norm_df, fov):
     """Helper function to read in the FOV-level pixel data, run `create_fov_pixel_data`,
     and save the preprocessed data.
 
@@ -784,8 +784,8 @@ def preprocess_fov(base_dir, tiff_dir, data_dir, subset_dir, seg_dir, seg_suffix
             The type to load the image segmentation labels in
         seed (int):
             The random seed to set for subsetting
-        channel_norm_path (str):
-            The path to channel normalization values
+        channel_norm_df (pandas.DataFrame):
+            The channel normalization values to use
         fov (str):
             The name of the FOV to preprocess
 
@@ -822,7 +822,6 @@ def preprocess_fov(base_dir, tiff_dir, data_dir, subset_dir, seg_dir, seg_suffix
     img_data = img_xr.loc[fov, :, :, channels].values.astype(np.float32)
 
     # create vector for normalizing image data
-    channel_norm_df = feather.read_dataframe(channel_norm_path)
     norm_vect = channel_norm_df['norm_val'].values
     norm_vect = np.array(norm_vect).reshape([1, 1, len(norm_vect)])
 
@@ -938,7 +937,6 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
     channel_norm_path = os.path.join(base_dir, 'channel_norm.feather')
 
     if not os.path.exists(channel_norm_path):
-
         # compute channel percentiles
         channel_norm_df = calculate_channel_percentiles(tiff_dir=tiff_dir, fovs=fovs,
                                                         channels=channels,
@@ -971,7 +969,7 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
     fov_data_func = partial(
         preprocess_fov, base_dir, tiff_dir, data_dir, subset_dir,
         seg_dir, seg_suffix, img_sub_folder, is_mibitiff, channels, blur_factor,
-        subset_proportion, pixel_norm_val, dtype, seed, channel_norm_path
+        subset_proportion, pixel_norm_val, dtype, seed, channel_norm_df
     )
 
     # define the multiprocessing context
