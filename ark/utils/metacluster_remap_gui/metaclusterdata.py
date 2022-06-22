@@ -7,8 +7,6 @@ from sklearn.metrics.pairwise import cosine_similarity
 class MetaClusterData():
     """Store the state of the clusters and metaclusters
 
-    Full input file specification in templates/example_manually_adjust_metaclusters.ipynb
-
     Args:
         raw_clusters_df (pd.Dataframe):
             validated and initialized clusters dataframe.
