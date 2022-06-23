@@ -141,7 +141,7 @@ html_static_path = ['_static']
 # intersphinx mapping, for when there is a cross-reference that has no matching target
 # in the current documentation
 intersphinx_mapping = {
-    'python': ('https://docs.python.org/3.7', None),
+    'python': ('https://docs.python.org/3.6', None),
     'numpy': ('https://numpy.org/doc/stable', None),
     'matplotlib': ('https://matplotlib.org/3.2.1', None),
     'xarray': ('https://xarray.pydata.org/en/stable', None),
