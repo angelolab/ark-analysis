@@ -256,16 +256,70 @@ def mocked_cell_consensus_cluster(fovs, channels, base_dir, pixel_cluster_col, m
 def mocked_create_fov_pixel_data(fov, channels, img_data, seg_labels, blur_factor,
                                  subset_proportion, pixel_norm_val):
     # create fake data to be compatible with downstream functions
-    print("ENTERING MOCKED CREATE FOV PIXEL DATA")
     data = np.random.rand(len(channels) * 5).reshape(5, len(channels))
     df = pd.DataFrame(data, columns=channels)
 
     # verify that each channel is 2x the previous
     for i in range(len(channels) - 1):
-        print("On channel %d" % i)
         assert np.allclose(img_data[..., i] * 2, img_data[..., i + 1])
 
     return df, df
+
+
+def mocked_preprocess_fov(base_dir, tiff_dir, data_dir, subset_dir, seg_dir, seg_suffix,
+                          img_sub_folder, is_mibitiff, channels, blur_factor,
+                          subset_proportion, pixel_norm_val, dtype, seed, fov):
+    # load img_xr from MIBITiff or directory with the fov
+    if is_mibitiff:
+        img_xr = load_utils.load_imgs_from_mibitiff(
+            tiff_dir, mibitiff_files=[fov], dtype=dtype
+        )
+    else:
+        img_xr = load_utils.load_imgs_from_tree(
+            tiff_dir, img_sub_folder=img_sub_folder, fovs=[fov], dtype=dtype
+        )
+
+    # ensure the provided channels will actually exist in img_xr
+    misc_utils.verify_in_list(
+        provided_chans=channels,
+        pixel_mat_chans=img_xr.channels.values
+    )
+
+    # if seg_dir is None, leave seg_labels as None
+    seg_labels = None
+
+    # otherwise, load segmentation labels in for fov
+    if seg_dir is not None:
+        seg_labels = io.imread(os.path.join(seg_dir, fov + seg_suffix))
+
+    # subset for the channel data
+    img_data = img_xr.loc[fov, :, :, channels].values.astype(np.float32)
+
+    # set seed for subsetting
+    np.random.seed(seed)
+
+    # create the full and subsetted fov matrices
+    pixel_mat, pixel_mat_subset = mocked_create_fov_pixel_data(
+        fov=fov, channels=channels, img_data=img_data, seg_labels=seg_labels,
+        pixel_norm_val=pixel_norm_val, blur_factor=blur_factor,
+        subset_proportion=subset_proportion
+    )
+
+    # write complete dataset to feather, needed for cluster assignment
+    feather.write_dataframe(pixel_mat,
+                            os.path.join(base_dir,
+                                         data_dir,
+                                         fov + ".feather"),
+                            compression='uncompressed')
+
+    # write subseted dataset to feather, needed for training
+    feather.write_dataframe(pixel_mat_subset,
+                            os.path.join(base_dir,
+                                         subset_dir,
+                                         fov + ".feather"),
+                            compression='uncompressed')
+
+    return pixel_mat
 
 
 def test_calculate_channel_percentiles():
@@ -1152,18 +1206,6 @@ def test_preprocess_fov(mocker):
         # NOTE: need to account for rounding if multiplying by 0.1 leads to non-int
         assert round(flowsom_data_fov.shape[0] * 0.1) == flowsom_sub_fov.shape[0]
 
-        # check that correct values are passed to helper function
-        mocker.patch(
-            'ark.phenotyping.som_utils.create_fov_pixel_data',
-            mocked_create_fov_pixel_data
-        )
-
-        som_utils.preprocess_fov(
-            temp_dir, tiff_dir, 'pixel_mat_data', 'pixel_mat_subsetted',
-            seg_dir, '_feature_0.tif', 'TIFs', False, ['chan0', 'chan1', 'chan2'],
-            2, 0.1, 1, 'int16', 42, 'fov0'
-        )
-
 
 # TODO: leaving out MIBItiff testing until someone needs it
 @parametrize_with_cases(
@@ -1338,10 +1380,9 @@ def test_create_pixel_matrix(fovs, chans, sub_dir, seg_dir_include,
             # NOTE: need to account for rounding if multiplying by 0.1 leads to non-int
             assert round(flowsom_data_fov.shape[0] * 0.1) == flowsom_sub_fov.shape[0]
 
-        # check that correct values are passed to helper function
         mocker.patch(
-            'ark.phenotyping.som_utils.create_fov_pixel_data',
-            mocked_create_fov_pixel_data
+            'ark.phenotyping.som_utils.preprocess_fov',
+            mocked_preprocess_fov
         )
 
         if sub_dir is None:
