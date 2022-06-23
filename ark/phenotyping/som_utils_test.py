@@ -16,6 +16,7 @@ from sklearn.utils import shuffle
 import xarray as xr
 
 import ark.phenotyping.som_utils as som_utils
+from ark.phenotyping.som_utils import create_fov_pixel_data
 import ark.utils.io_utils as io_utils
 import ark.utils.load_utils as load_utils
 import ark.utils.misc_utils as misc_utils
@@ -255,11 +256,13 @@ def mocked_cell_consensus_cluster(fovs, channels, base_dir, pixel_cluster_col, m
 def mocked_create_fov_pixel_data(fov, channels, img_data, seg_labels, blur_factor,
                                  subset_proportion, pixel_norm_val):
     # create fake data to be compatible with downstream functions
+    print("ENTERING MOCKED CREATE FOV PIXEL DATA")
     data = np.random.rand(len(channels) * 5).reshape(5, len(channels))
     df = pd.DataFrame(data, columns=channels)
 
     # verify that each channel is 2x the previous
     for i in range(len(channels) - 1):
+        print("On channel %d" % i)
         assert np.allclose(img_data[..., i] * 2, img_data[..., i + 1])
 
     return df, df
@@ -1075,7 +1078,7 @@ def test_create_fov_pixel_data():
         # are all 0 after, tested successfully via hard-coding values in create_fov_pixel_data
 
 
-def test_preprocess_fov():
+def test_preprocess_fov(mocker):
     with tempfile.TemporaryDirectory() as temp_dir:
         # define the channel names
         chans = ['chan0', 'chan1', 'chan2']
@@ -1148,6 +1151,18 @@ def test_preprocess_fov():
         # assert the subsetted DataFrame size is 0.1 of the preprocessed DataFrame
         # NOTE: need to account for rounding if multiplying by 0.1 leads to non-int
         assert round(flowsom_data_fov.shape[0] * 0.1) == flowsom_sub_fov.shape[0]
+
+        # check that correct values are passed to helper function
+        mocker.patch(
+            'ark.phenotyping.som_utils.create_fov_pixel_data',
+            mocked_create_fov_pixel_data
+        )
+
+        som_utils.preprocess_fov(
+            temp_dir, tiff_dir, 'pixel_mat_data', 'pixel_mat_subsetted',
+            seg_dir, '_feature_0.tif', 'TIFs', False, ['chan0', 'chan1', 'chan2'],
+            2, 0.1, 1, 'int16', 42, 'fov0'
+        )
 
 
 # TODO: leaving out MIBItiff testing until someone needs it
@@ -1324,8 +1339,10 @@ def test_create_pixel_matrix(fovs, chans, sub_dir, seg_dir_include,
             assert round(flowsom_data_fov.shape[0] * 0.1) == flowsom_sub_fov.shape[0]
 
         # check that correct values are passed to helper function
-        mocker.patch('ark.phenotyping.som_utils.create_fov_pixel_data',
-                     mocked_create_fov_pixel_data)
+        mocker.patch(
+            'ark.phenotyping.som_utils.create_fov_pixel_data',
+            mocked_create_fov_pixel_data
+        )
 
         if sub_dir is None:
             sub_dir = ''
