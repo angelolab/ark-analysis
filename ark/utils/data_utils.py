@@ -160,9 +160,7 @@ def generate_cell_cluster_mask(fovs, base_dir, seg_dir, cell_data_name,
                                                files=whole_cell_files,
                                                xr_dim_name='compartments',
                                                xr_channel_names=['whole_cell'],
-                                               trim_suffix=seg_suffix.split('.')[0],
-                                               force_ints=True)
-
+                                               trim_suffix=seg_suffix.split('.')[0])
     # use label_cells_by_cluster to create cell masks
     img_data = label_cells_by_cluster(
         fovs, cell_consensus_data, label_maps, fov_col='fov',
@@ -335,12 +333,10 @@ def generate_deepcell_input(data_dir, tiff_dir, nuc_channels, mem_channels, fovs
         # load the images in the current fov batch
         if is_mibitiff:
             data_xr = load_utils.load_imgs_from_mibitiff(
-                tiff_dir, mibitiff_files=fovs, channels=channels, dtype=dtype
-            )
+                tiff_dir, mibitiff_files=fovs, channels=channels)
         else:
             data_xr = load_utils.load_imgs_from_tree(
-                tiff_dir, img_sub_folder=img_sub_folder, fovs=fovs, channels=channels, dtype=dtype
-            )
+                tiff_dir, img_sub_folder=img_sub_folder, fovs=fovs, channels=channels)
 
         # write each fov data to data_dir
         for fov in data_xr.fovs.values:

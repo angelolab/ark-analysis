@@ -243,8 +243,7 @@ def tif_overlay_preprocess(segmentation_labels, plotting_tif):
 
 
 def create_overlay(fov, segmentation_dir, data_dir,
-                   img_overlay_chans, seg_overlay_comp, alternate_segmentation=None,
-                   dtype='int16', force_ints: bool = False):
+                   img_overlay_chans, seg_overlay_comp, alternate_segmentation=None):
     """Take in labeled contour data, along with optional mibi tif and second contour,
     and overlay them for comparison"
     Generates the outline(s) of the mask(s) as well as intensity from plotting tif. Predicted
@@ -263,8 +262,6 @@ def create_overlay(fov, segmentation_dir, data_dir,
             The segmentted compartment the user will overlay
         alternate_segmentation (numpy.ndarray):
             2D numpy array of labeled cell objects
-        dtype (str/type):
-            optional specifier of image type.  Overwritten with warning for float images
     Returns:
         numpy.ndarray:
             The image with the channel overlay
@@ -275,9 +272,7 @@ def create_overlay(fov, segmentation_dir, data_dir,
         data_dir=data_dir,
         files=[fov + '.tif'],
         xr_dim_name='channels',
-        xr_channel_names=['nuclear_channel', 'membrane_channel'],
-        dtype=dtype,
-        force_ints=True
+        xr_channel_names=['nuclear_channel', 'membrane_channel']
     )
 
     # verify that the provided image channels exist in plotting_tif
@@ -295,16 +290,13 @@ def create_overlay(fov, segmentation_dir, data_dir,
                                                              xr_dim_name='compartments',
                                                              xr_channel_names=['whole_cell'],
                                                              trim_suffix='_feature_0',
-                                                             match_substring='_feature_0',
-                                                             force_ints=True)
-
+                                                             match_substring='_feature_0')
     segmentation_labels_nuc = load_utils.load_imgs_from_dir(data_dir=segmentation_dir,
                                                             files=[fov + '_feature_1.tif'],
                                                             xr_dim_name='compartments',
                                                             xr_channel_names=['nuclear'],
                                                             trim_suffix='_feature_1',
-                                                            match_substring='_feature_1',
-                                                            force_ints=True)
+                                                            match_substring='_feature_1')
 
     segmentation_labels = xr.DataArray(np.concatenate((segmentation_labels_cell.values,
                                                       segmentation_labels_nuc.values),

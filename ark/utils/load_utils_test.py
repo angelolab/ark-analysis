@@ -124,7 +124,7 @@ def test_load_imgs_from_tree():
 
         # check when fov is a single string
         loaded_xr = \
-            load_utils.load_imgs_from_tree(temp_dir, img_sub_folder="TIFs",fovs='fov0',
+            load_utils.load_imgs_from_tree(temp_dir, img_sub_folder="TIFs", fovs='fov0',
                                            channels=some_chans)
 
         assert loaded_xr.equals(data_xr[:1, :, :, :2])
@@ -223,36 +223,36 @@ def test_load_imgs_from_dir():
 
     # Test floating point xarray type consistency (i.e. creation type == load_imgs type)
     with tempfile.TemporaryDirectory() as temp_dir:
-        
+
         fovs, _ = test_utils.gen_fov_chan_names(num_fovs=3, num_chans=0, use_delimiter=True)
         filelocs, data_xr = test_utils.create_paired_xarray_fovs(temp_dir, fovs, [0],
                                                                  img_shape=(10, 10), mode='labels',
                                                                  delimiter='_', dtype=np.float32)
-        
-        
+
         # test to make sure that types stay consistent.
-        loaded_xr = load_utils.load_imgs_from_dir(temp_dir, trim_suffix='_', xr_dim_name='compartments')
+        loaded_xr = load_utils.load_imgs_from_dir(temp_dir, trim_suffix='_',
+                                                  xr_dim_name='compartments')
 
         assert loaded_xr.equals(data_xr)
         assert np.issubdtype(loaded_xr.dtype, np.floating)
         assert loaded_xr.dtype == 'float32'
-        
+
     # Test integer xarray type consistency (i.e. creation type == load_imgs type)
     with tempfile.TemporaryDirectory() as temp_dir:
-        
+
         fovs, _ = test_utils.gen_fov_chan_names(num_fovs=3, num_chans=0, use_delimiter=True)
         filelocs, data_xr = test_utils.create_paired_xarray_fovs(temp_dir, fovs, [0],
                                                                  img_shape=(10, 10), mode='labels',
                                                                  delimiter='_', dtype=np.int16)
-        
-        
+
         # test to make sure that types stay consistent.
-        loaded_xr = load_utils.load_imgs_from_dir(temp_dir, trim_suffix='_', xr_dim_name='compartments')
+        loaded_xr = load_utils.load_imgs_from_dir(temp_dir, trim_suffix='_',
+                                                  xr_dim_name='compartments')
 
         assert loaded_xr.equals(data_xr)
-        assert np.issubdtype(loaded_xr.dtype, np.integer)      
+        assert np.issubdtype(loaded_xr.dtype, np.integer)
         assert loaded_xr.dtype == 'int16'
-    
+
     # test multitiff input
     with tempfile.TemporaryDirectory() as temp_dir:
         fovs, channels = test_utils.gen_fov_chan_names(num_fovs=2, num_chans=3, use_delimiter=True)

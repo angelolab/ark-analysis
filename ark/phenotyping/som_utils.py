@@ -798,12 +798,10 @@ def preprocess_fov(base_dir, tiff_dir, data_dir, subset_dir, seg_dir, seg_suffix
     # load img_xr from MIBITiff or directory with the fov
     if is_mibitiff:
         img_xr = load_utils.load_imgs_from_mibitiff(
-            tiff_dir, mibitiff_files=[fov], dtype=dtype
-        )
+            tiff_dir, mibitiff_files=[fov])
     else:
         img_xr = load_utils.load_imgs_from_tree(
-            tiff_dir, img_sub_folder=img_sub_folder, fovs=[fov], dtype=dtype
-        )
+            tiff_dir, img_sub_folder=img_sub_folder, fovs=[fov])
 
     # ensure the provided channels will actually exist in img_xr
     misc_utils.verify_in_list(

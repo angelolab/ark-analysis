@@ -1,17 +1,25 @@
 import pathlib
 import os
+from sys import byteorder
+from tabnanny import check
 import tempfile
 from zipfile import ZipFile
 import pytest
 from pytest_mock import MockerFixture
-
-from ark.utils.deepcell_service_utils import create_deepcell_output
+import numpy as np
+from skimage import io, external
+from ark.utils.deepcell_service_utils import create_deepcell_output, _convert_deepcell_seg_masks
 
 
 def mocked_run_deepcell(in_zip_path, output_dir, host, job_type, scale, timeout):
-    pathlib.Path(os.path.join(output_dir, 'fov1_feature_0.tif')).touch()
-    pathlib.Path(os.path.join(output_dir, 'fov2_feature_0.tif')).touch()
-    pathlib.Path(os.path.join(output_dir, 'fov3_feature_0.tif')).touch()
+
+    fov_data = np.ones(shape=(10, 10), dtype="float32")
+    io.imsave(os.path.join(output_dir, 'fov1_feature_0.tif'),
+              fov_data, plugin="tifffile", check_contrast=False)
+    io.imsave(os.path.join(output_dir, 'fov2_feature_0.tif'),
+              fov_data, plugin="tifffile", check_contrast=False)
+    io.imsave(os.path.join(output_dir, 'fov3_feature_0.tif'),
+              fov_data, plugin="tifffile", check_contrast=False)
 
     batch_num = int(in_zip_path.split('.')[0].split('_')[-1])
     if batch_num < 2:
@@ -33,9 +41,14 @@ def test_create_deepcell_output(mocker: MockerFixture):
 
         input_dir = os.path.join(temp_dir, 'input_dir')
         os.makedirs(input_dir)
-        pathlib.Path(os.path.join(input_dir, 'fov1.tif')).touch()
-        pathlib.Path(os.path.join(input_dir, 'fov2.tif')).touch()
-        pathlib.Path(os.path.join(input_dir, 'fov3.tiff')).touch()
+
+        fov_data = np.ones(shape=(10, 10), dtype="float32")
+        io.imsave(os.path.join(input_dir, 'fov1.tif'),
+                  fov_data, plugin="tifffile", check_contrast=False)
+        io.imsave(os.path.join(input_dir, 'fov2.tif'),
+                  fov_data, plugin="tifffile", check_contrast=False)
+        io.imsave(os.path.join(input_dir, 'fov3.tiff'),
+                  fov_data, plugin="tifffile", check_contrast=False)
 
         with tempfile.TemporaryDirectory() as output_dir:
 
