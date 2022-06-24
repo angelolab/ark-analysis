@@ -1,6 +1,6 @@
 # Runs consensus clustering on the pixel data averaged across all channels
 
-# Usage: Rscript {fovs} {markers} {maxK} {cap} {pixelMatDir} {clusterAvgPath} {clustToMeta} {seed}
+# Usage: Rscript {fovs} {markers} {maxK} {cap} {pixelMatDir} {clusterAvgPath} {clustToMetaPath} {seed}
 
 # - fovs: list of fovs to cluster
 # - markers: list of channel columns to use
@@ -8,7 +8,7 @@
 # - cap: max z-score cutoff
 # - pixelMatDir: path to the pixel data with SOM clusters
 # - clusterAvgPath: path to the averaged cluster data
-# - clustToMeta: path to file where the SOM cluster to meta cluster mapping will be written
+# - clustToMetaPath: path to file where the SOM cluster to meta cluster mapping will be written
 # - seed: random factor
 
 library(arrow)
@@ -17,6 +17,7 @@ library(data.table)
 library(doParallel)
 library(foreach)
 library(parallel)
+library(stringi)
 
 # helper function to map a FOV to its consensus labels
 mapConsensusLabels <- function(fov, pixelMatDir, som_to_meta_map) {
@@ -57,7 +58,7 @@ pixelMatDir <- args[5]
 clusterAvgPath <- args[6]
 
 # get the clust to meta write path
-clustToMeta <- args[7]
+clustToMetaPath <- args[7]
 
 # retrieve the batch size to determine number of threads to run in parallel
 batchSize <- strtoi(args[8])
@@ -78,11 +79,24 @@ clusterAvgsScale <- scale(clusterAvgs[,markers])
 clusterAvgsScale <- sapply(as.data.frame(clusterAvgsScale), pmin, cap)
 clusterAvgsScale <- sapply(as.data.frame(clusterAvgsScale), pmax, -cap)
 
-# run the consensus clustering
-print("Running consensus clustering")
-suppressMessages(consensusClusterResults <- ConsensusClusterPlus(t(clusterAvgsScale), maxK=maxK, seed=seed))
-som_to_meta_map <- consensusClusterResults[[maxK]]$consensusClass
-names(som_to_meta_map) <- clusterAvgs$pixel_som_cluster
+# define a temporary som_to_meta_map .feather path, used for checkpointing
+clustToMetaTempPath <- stri_replace(clustToMetaPath, '_temp.feather', '.feather')
+
+# if this temp path doesn't exist, run consensus clustering because no checkpoint saved
+if (!file.exists(clustToMetaTempPath)) {
+    # run the consensus clustering
+    print("Running consensus clustering")
+    suppressMessages(consensusClusterResults <- ConsensusClusterPlus(t(clusterAvgsScale), maxK=maxK, seed=seed))
+    som_to_meta_map <- consensusClusterResults[[maxK]]$consensusClass
+    names(som_to_meta_map) <- clusterAvgs$pixel_som_cluster
+
+    # generate a temporary som_to_meta_map .feather file for checkpointing
+    arrow::write_feather(som_to_meta_map, clustToMetaTempPath)
+}
+# otherwise, read checkpointed som_to_meta_map for assignment on remaining fovs
+else {
+    som_to_meta_map <- arrow::read_feather(clustToMetaTempPath)
+}
 
 # define variable to keep track of number of fovs processed
 fovsProcessed <- 0
@@ -119,9 +133,12 @@ for (batchStart in seq(1, length(fovs), batchSize)) {
 
 # save the mapping from pixel_som_cluster to pixel_meta_cluster
 print("Writing SOM to meta cluster mapping table")
-som_to_meta_map <- as.data.table(som_to_meta_map)
+som_to_meta_map_table <- as.data.table(som_to_meta_map)
 
 # assign pixel_som_cluster column, then rename som_to_meta_map to pixel_meta_cluster
-som_to_meta_map$pixel_som_cluster <- as.integer(rownames(som_to_meta_map))
-som_to_meta_map <- setnames(som_to_meta_map, "som_to_meta_map", "pixel_meta_cluster")
-arrow::write_feather(som_to_meta_map, clustToMeta)
+som_to_meta_map_table$pixel_som_cluster <- as.integer(rownames(som_to_meta_map_table))
+som_to_meta_map_table <- setnames(som_to_meta_map_table, "som_to_meta_map", "pixel_meta_cluster")
+arrow::write_feather(som_to_meta_map_table, clustToMetaPath)
+
+# remove the temporary .feather file
+unlink(stri_replace())
