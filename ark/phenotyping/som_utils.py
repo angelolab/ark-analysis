@@ -931,10 +931,6 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
     fovs_sub = io_utils.list_files(os.path.join(base_dir, subset_dir), substrs='.feather')
     fovs_comb = io_utils.remove_file_extensions(set(fovs_data).intersection(set(fovs_sub)))
     fovs_list = list(set(fovs).difference(set(fovs_comb)))
-    print(fovs_data)
-    print(fovs_sub)
-    print(fovs_comb)
-    print(fovs_list)
 
     # if there are no FOVs left to preprocess don't run function
     if len(fovs_list) == 0:
@@ -942,7 +938,7 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
         return
 
     # if the process is only partially complete, inform the user of restart
-    if len(fovs_list) < len(fovs_sub):
+    if len(fovs_list) < len(fovs):
         print("Restarting preprocessing from fov %s, "
               "%d fovs left to process" % (fovs_list[0], len(fovs_list)))
     else:
