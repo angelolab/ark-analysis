@@ -1060,7 +1060,7 @@ def find_fovs_missing_col(base_dir, data_dir, missing_col):
     for fov in fov_files:
         # attempt to read the column, if it doesn't exist then the FOV needs to be processed
         try:
-            feather.read_dataframe(os.path.join(data_dir, fov), columns=[missing_col])
+            feather.read_dataframe(os.path.join(data_path, fov), columns=[missing_col])
         except ArrowInvalid:
             fovs.append(fov)
 

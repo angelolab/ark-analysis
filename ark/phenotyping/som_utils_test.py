@@ -2,6 +2,7 @@ import json
 import os
 import pytest
 from pytest_cases import parametrize_with_cases
+from shutil import rmtree
 import tempfile
 import warnings
 
@@ -15,6 +16,7 @@ from sklearn.utils import shuffle
 import xarray as xr
 
 import ark.phenotyping.som_utils as som_utils
+from ark.phenotyping.som_utils import create_fov_pixel_data
 import ark.utils.io_utils as io_utils
 import ark.utils.load_utils as load_utils
 import ark.utils.misc_utils as misc_utils
@@ -29,32 +31,22 @@ PIXEL_MATRIX_CHANS = ['chan0', 'chan1', 'chan2']
 
 class CreatePixelMatrixCases:
     def case_all_fovs_all_chans(self):
-        return PIXEL_MATRIX_FOVS, [], PIXEL_MATRIX_CHANS, 'TIFs', True, False, False
+        return PIXEL_MATRIX_FOVS, PIXEL_MATRIX_CHANS, 'TIFs', True, False, False
 
     def case_some_fovs_some_chans(self):
-        return PIXEL_MATRIX_FOVS[:2], [], PIXEL_MATRIX_CHANS[:2], 'TIFs', True, False, False
+        return PIXEL_MATRIX_FOVS[:2], PIXEL_MATRIX_CHANS[:2], 'TIFs', True, False, False
 
     def case_no_sub_dir(self):
-        return PIXEL_MATRIX_FOVS, [], PIXEL_MATRIX_CHANS, None, True, False, False
+        return PIXEL_MATRIX_FOVS, PIXEL_MATRIX_CHANS, None, True, False, False
 
     def case_no_seg_dir(self):
-        return PIXEL_MATRIX_FOVS, [], PIXEL_MATRIX_CHANS, 'TIFs', False, False, False
+        return PIXEL_MATRIX_FOVS, PIXEL_MATRIX_CHANS, 'TIFs', False, False, False
 
     def case_existing_channel_norm(self):
-        return PIXEL_MATRIX_FOVS, [], PIXEL_MATRIX_CHANS, 'TIFs', True, True, False
+        return PIXEL_MATRIX_FOVS, PIXEL_MATRIX_CHANS, 'TIFs', True, True, False
 
     def case_existing_pixel_norm(self):
-        return PIXEL_MATRIX_FOVS, [], PIXEL_MATRIX_CHANS, 'TIFs', True, False, True
-
-    # NOTE: if at least some FOVs have existing data,
-    # the channel and pixel norm files have also been created
-    def case_partial_fov_completion(self):
-        return (PIXEL_MATRIX_FOVS, PIXEL_MATRIX_FOVS[:2], PIXEL_MATRIX_CHANS, 'TIFs',
-                True, True, True)
-
-    def case_full_fov_completion(self):
-        return (PIXEL_MATRIX_FOVS, PIXEL_MATRIX_FOVS, PIXEL_MATRIX_CHANS, 'TIFs',
-                True, True, True)
+        return PIXEL_MATRIX_FOVS, PIXEL_MATRIX_CHANS, 'TIFs', True, False, True
 
 
 def mocked_train_pixel_som(fovs, channels, base_dir,
@@ -1154,7 +1146,7 @@ def test_create_fov_pixel_data():
         # are all 0 after, tested successfully via hard-coding values in create_fov_pixel_data
 
 
-def test_preprocess_fov():
+def test_preprocess_fov(mocker):
     with tempfile.TemporaryDirectory() as temp_dir:
         # define the channel names
         chans = ['chan0', 'chan1', 'chan2']
@@ -1191,14 +1183,6 @@ def test_preprocess_fov():
             'channel': chans,
             'norm_val': np.repeat(10, repeats=len(chans))
         })
-
-        # pass invalid channel names
-        with pytest.raises(ValueError):
-            som_utils.preprocess_fov(
-                temp_dir, tiff_dir, 'pixel_mat_data', 'pixel_mat_subsetted',
-                seg_dir, '_feature_0.tif', 'TIFs', False, ['chan2', 'chan3'],
-                2, 0.1, 1, 'int16', 42, channel_norm_df, 'fov0'
-            )
 
         # run the preprocessing for fov0
         # NOTE: don't test the return value, leave that for test_create_pixel_matrix
@@ -1245,10 +1229,10 @@ def test_preprocess_fov():
 
 # TODO: leaving out MIBItiff testing until someone needs it
 @parametrize_with_cases(
-    'fovs,fovs_write,chans,sub_dir,seg_dir_include,channel_norm_include,pixel_norm_include',
+    'fovs,chans,sub_dir,seg_dir_include,channel_norm_include,pixel_norm_include',
     cases=CreatePixelMatrixCases
 )
-def test_create_pixel_matrix(fovs, fovs_write, chans, sub_dir, seg_dir_include,
+def test_create_pixel_matrix(fovs, chans, sub_dir, seg_dir_include,
                              channel_norm_include, pixel_norm_include, mocker):
     with tempfile.TemporaryDirectory() as temp_dir:
         # create a directory to store the image data
@@ -1310,50 +1294,14 @@ def test_create_pixel_matrix(fovs, fovs_write, chans, sub_dir, seg_dir_include,
                                           img_sub_folder=sub_dir,
                                           seg_dir=seg_dir)
 
-        # create FOVs that have already been written if provided by fovs_write
-        if len(fovs_write) > 0:
-            # use these dicts to test values, tests already-written FOVs are not overwritten
-            fov_data_written = {}
-            fov_sub_written = {}
-
-            # NOTE: this includes test case where a FOV has the full but not the subsetted data
-            fovs_sub = fovs_write
-            if len(fovs_write) < len(fovs):
-                fovs_sub = fovs_write[1:]
-
-            # make sure to add metadata columns correctly
-            num_metadata_cols = 4 if seg_dir_include else 3
-
-            # and to name the columns correct
-            pixel_cols = chans + ['fov', 'row_index', 'column_index']
-            if seg_dir_include:
-                pixel_cols += ['segmentation_label']
-
-            # write dummy fov pixel data for existing fovs (full)
-            for fov in fovs_write:
-                random_fov_data = pd.DataFrame(
-                    np.random.rand(100, len(chans) + num_metadata_cols),
-                    columns=pixel_cols
-                )
-                feather.write_dataframe(
-                    random_fov_data,
-                    os.path.join(os.path.join(temp_dir, 'pixel_mat_data', fov + '.feather'))
-                )
-
-                fov_data_written[fov] = random_fov_data
-
-            # write dummy fov pixel data for existing fovs (subsetted)
-            for fov in fovs_sub:
-                random_fov_data = pd.DataFrame(
-                    np.random.rand(10, len(chans) + num_metadata_cols),
-                    columns=pixel_cols
-                )
-                feather.write_dataframe(
-                    random_fov_data,
-                    os.path.join(os.path.join(temp_dir, 'pixel_mat_subsetted', fov + '.feather'))
-                )
-
-                fov_sub_written[fov] = random_fov_data
+        # pass invalid channel names
+        with pytest.raises(ValueError):
+            som_utils.create_pixel_matrix(fovs=fovs,
+                                          channels=['chan1', 'chan2', 'chan3'],
+                                          base_dir=temp_dir,
+                                          tiff_dir=tiff_dir,
+                                          img_sub_folder=sub_dir,
+                                          seg_dir=seg_dir)
 
         # make the channel_norm.feather file if the test requires it
         # NOTE: pixel_mat_data already created in the previous validation tests
@@ -1361,16 +1309,20 @@ def test_create_pixel_matrix(fovs, fovs_write, chans, sub_dir, seg_dir_include,
             sample_channel_norm_df = pd.DataFrame({'channel': chans,
                                                   'norm_val': np.random.rand(len(chans))})
 
-            feather.write_dataframe(sample_channel_norm_df,
-                                    os.path.join(temp_dir, 'channel_norm.feather'),
-                                    compression='uncompressed')
+            feather.write_dataframe(
+                sample_channel_norm_df,
+                os.path.join(temp_dir, 'test_channel_norm.feather'),
+                compression='uncompressed'
+            )
 
         # make the pixel_norm.feather file if the test requires it
         if pixel_norm_include:
             sample_pixel_norm_df = pd.DataFrame({'pixel_norm_val': np.random.rand(1)})
-            feather.write_dataframe(sample_pixel_norm_df,
-                                    os.path.join(temp_dir, 'pixel_norm.feather'),
-                                    compression='uncompressed')
+            feather.write_dataframe(
+                sample_pixel_norm_df,
+                os.path.join(temp_dir, 'test_pixel_norm.feather'),
+                compression='uncompressed'
+            )
 
         # create the pixel matrices
         som_utils.create_pixel_matrix(fovs=fovs,
@@ -1397,26 +1349,6 @@ def test_create_pixel_matrix(fovs, fovs_write, chans, sub_dir, seg_dir_include,
             assert os.path.exists(
                 os.path.join(temp_dir, 'pixel_norm.feather')
             )
-
-        if len(fovs_write) > 0:
-            # for fovs with existing preprocessed and subsetted data values,
-            # need to verify the existing values did not change
-            for fov in fovs_sub:
-                fov_data_path = os.path.join(
-                    temp_dir, 'pixel_mat_data', fov + '.feather'
-                )
-
-                flowsom_data_fov = feather.read_dataframe(fov_data_path)
-
-                assert np.all(flowsom_data_fov.values == fov_data_written[fov].values)
-
-                fov_sub_path = os.path.join(
-                    temp_dir, 'pixel_mat_subsetted', fov + '.feather'
-                )
-
-                flowsom_sub_fov = feather.read_dataframe(fov_sub_path)
-
-                assert np.all(flowsom_sub_fov.values == fov_sub_written[fov].values)
 
         for fov in fovs:
             fov_data_path = os.path.join(
@@ -1481,9 +1413,11 @@ def test_create_pixel_matrix(fovs, fovs_write, chans, sub_dir, seg_dir_include,
 
         sample_channel_norm_df = pd.DataFrame({'channel': chans,
                                                'norm_val': mults})
-        feather.write_dataframe(sample_channel_norm_df,
-                                os.path.join(temp_dir, 'channel_norm.feather'),
-                                compression='uncompressed')
+        feather.write_dataframe(
+            sample_channel_norm_df,
+            os.path.join(temp_dir, 'channel_norm.feather'),
+            compression='uncompressed'
+        )
 
         som_utils.create_pixel_matrix(fovs=fovs,
                                       channels=chans,
@@ -1492,6 +1426,44 @@ def test_create_pixel_matrix(fovs, fovs_write, chans, sub_dir, seg_dir_include,
                                       img_sub_folder=sub_dir,
                                       seg_dir=seg_dir,
                                       dtype='float32')
+
+
+def test_find_fovs_missing_col():
+    with tempfile.TemporaryDirectory() as temp_dir:
+        # basic error check: provided data path does not exist
+        with pytest.raises(FileNotFoundError):
+            som_utils.find_fovs_missing_col(temp_dir, 'bad_data_dir', 'random_col')
+
+        # define a sample data path
+        data_path = os.path.join(temp_dir, 'data_dir')
+        os.mkdir(data_path)
+
+        # define the fovs, but only add the desired pixel_som_cluster column to some
+        fovs = ['fov0', 'fov1', 'fov2', 'fov3']
+        fovs_som_labels = fovs[:2]
+
+        for fov in fovs:
+            fov_data = pd.DataFrame(
+                np.random.rand(100, 2),
+                columns=['chan0', 'chan1']
+            )
+
+            if fov in fovs_som_labels:
+                fov_data['pixel_som_cluster'] = -1
+
+            feather.write_dataframe(
+                fov_data,
+                os.path.join(data_path, fov + '.feather')
+            )
+
+        # search for the fovs with the missing pixel_som_cluster column
+        fovs_missing = som_utils.find_fovs_missing_col(temp_dir, 'data_dir', 'pixel_som_cluster')
+
+        # assert only fov2 and fov3 are contained in the returned list
+        misc_utils.verify_same_elements(
+            missing_fovs_returned=fovs_missing,
+            fovs_without_som=['fov2', 'fov3']
+        )
 
 
 def test_train_pixel_som(mocker):
