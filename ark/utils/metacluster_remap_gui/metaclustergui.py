@@ -24,8 +24,6 @@ DEFAULT_HEATMAP = sns.diverging_palette(240, 10, n=3, as_cmap=True)
 class MetaClusterGui():
     """Coordinate and present the metacluster Graphical User Interface
 
-    Example usage in templates/example_manually_adjust_metaclusters.ipynb
-
     Attributes:
         mcd (MetaClusterData)):
             State of the actual clusters at any point in time
