@@ -259,6 +259,13 @@ def mocked_create_fov_pixel_data(fov, channels, img_data, seg_labels, blur_facto
     data = np.random.rand(len(channels) * 5).reshape(5, len(channels))
     df = pd.DataFrame(data, columns=channels)
 
+    # hard code the metadata columns
+    df['fov'] = fov
+    df['row_index'] = -1
+    df['column_index'] = -1
+    if seg_labels is not None:
+        df['seg_labels'] = -1
+
     # verify that each channel is 2x the previous
     for i in range(len(channels) - 1):
         assert np.allclose(img_data[..., i] * 2, img_data[..., i + 1])
@@ -268,7 +275,7 @@ def mocked_create_fov_pixel_data(fov, channels, img_data, seg_labels, blur_facto
 
 def mocked_preprocess_fov(base_dir, tiff_dir, data_dir, subset_dir, seg_dir, seg_suffix,
                           img_sub_folder, is_mibitiff, channels, blur_factor,
-                          subset_proportion, pixel_norm_val, dtype, seed, fov):
+                          subset_proportion, pixel_norm_val, dtype, seed, channel_norm_df, fov):
     # load img_xr from MIBITiff or directory with the fov
     if is_mibitiff:
         img_xr = load_utils.load_imgs_from_mibitiff(
@@ -294,6 +301,13 @@ def mocked_preprocess_fov(base_dir, tiff_dir, data_dir, subset_dir, seg_dir, seg
 
     # subset for the channel data
     img_data = img_xr.loc[fov, :, :, channels].values.astype(np.float32)
+
+    # create vector for normalizing image data
+    norm_vect = channel_norm_df['norm_val'].values
+    norm_vect = np.array(norm_vect).reshape([1, 1, len(norm_vect)])
+
+    # normalize image data
+    img_data = img_data / norm_vect
 
     # set seed for subsetting
     np.random.seed(seed)
@@ -1164,12 +1178,18 @@ def test_preprocess_fov(mocker):
             io.imsave(os.path.join(seg_dir, file_name), rand_img,
                       check_contrast=False)
 
+        # generate sample channel normalization values
+        channel_norm_df = pd.DataFrame.from_dict({
+            'channel': chans,
+            'norm_val': np.repeat(10, repeats=len(chans))
+        })
+
         # run the preprocessing for fov0
         # NOTE: don't test the return value, leave that for test_create_pixel_matrix
         som_utils.preprocess_fov(
             temp_dir, tiff_dir, 'pixel_mat_data', 'pixel_mat_subsetted',
             seg_dir, '_feature_0.tif', 'TIFs', False, ['chan0', 'chan1', 'chan2'],
-            2, 0.1, 1, 'int16', 42, 'fov0'
+            2, 0.1, 1, 'int16', 42, channel_norm_df, 'fov0'
         )
 
         fov_data_path = os.path.join(
@@ -1380,6 +1400,7 @@ def test_create_pixel_matrix(fovs, chans, sub_dir, seg_dir_include,
             # NOTE: need to account for rounding if multiplying by 0.1 leads to non-int
             assert round(flowsom_data_fov.shape[0] * 0.1) == flowsom_sub_fov.shape[0]
 
+        # check that correct values are passed to helper function
         mocker.patch(
             'ark.phenotyping.som_utils.preprocess_fov',
             mocked_preprocess_fov
