@@ -1208,19 +1208,6 @@ def cluster_pixels(fovs, channels, base_dir, data_dir='pixel_mat_data',
     misc_utils.verify_in_list(provided_fovs=fovs,
                               subsetted_fovs=io_utils.remove_file_extensions(data_files))
 
-    # only assign SOM clusters to FOVs that don't already have them
-    fovs_list = find_fovs_missing_col(base_dir, data_dir, 'pixel_som_cluster')
-
-    # if there are no FOVs left without SOM labels don't run function
-    if len(fovs_list) == 0:
-        print("There are no more FOVs to assign SOM labels to, skipping")
-        return
-
-    # if SOM cluster labeling is only partially complete, inform the user of restart
-    if len(fovs_list) < len(fovs):
-        print("Restarting SOM label assignment from fov %s, "
-              "%d fovs left to process" % (fovs_list[0], len(fovs_list)))
-
     weights = feather.read_dataframe(os.path.join(base_dir, weights_name))
 
     # ensure the norm vals columns and the FOV data contain valid indexes
@@ -1251,6 +1238,19 @@ def cluster_pixels(fovs, channels, base_dir, data_dir='pixel_mat_data',
         pixel_weights_columns=weights.columns.values,
         pixel_data_columns=sample_fov.columns.values
     )
+
+    # only assign SOM clusters to FOVs that don't already have them
+    fovs_list = find_fovs_missing_col(base_dir, data_dir, 'pixel_som_cluster')
+
+    # if there are no FOVs left without SOM labels don't run function
+    if len(fovs_list) == 0:
+        print("There are no more FOVs to assign SOM labels to, skipping")
+        return
+
+    # if SOM cluster labeling is only partially complete, inform the user of restart
+    if len(fovs_list) < len(fovs):
+        print("Restarting SOM label assignment from fov %s, "
+              "%d fovs left to process" % (fovs_list[0], len(fovs_list)))
 
     # run the trained SOM on the dataset, assigning clusters
     process_args = ['Rscript', '/run_pixel_som.R', ','.join(fovs_list),
