@@ -80,7 +80,7 @@ clusterAvgsScale <- sapply(as.data.frame(clusterAvgsScale), pmin, cap)
 clusterAvgsScale <- sapply(as.data.frame(clusterAvgsScale), pmax, -cap)
 
 # define a temporary som_to_meta_map .feather path, used for checkpointing
-clustToMetaTempPath <- stri_replace(clustToMetaPath, '_temp.feather', '.feather')
+clustToMetaTempPath <- stri_replace(clustToMetaPath, '_temp.feather', fixed='.feather')
 
 # if this temp path doesn't exist, run consensus clustering because no checkpoint saved
 if (!file.exists(clustToMetaTempPath)) {
@@ -91,11 +91,13 @@ if (!file.exists(clustToMetaTempPath)) {
     names(som_to_meta_map) <- clusterAvgs$pixel_som_cluster
 
     # generate a temporary som_to_meta_map .feather file for checkpointing
-    arrow::write_feather(som_to_meta_map, clustToMetaTempPath)
-}
+    som_to_meta_map_temp = data.frame(as.list(som_to_meta_map))
+    arrow::write_feather(as.data.table(som_to_meta_map_temp), clustToMetaTempPath)
 # otherwise, read checkpointed som_to_meta_map for assignment on remaining fovs
-else {
-    som_to_meta_map <- arrow::read_feather(clustToMetaTempPath)
+} else {
+    som_to_meta_map_temp <- arrow::read_feather(clustToMetaTempPath)
+    som_to_meta_map <- as.numeric(as.vector(som_to_meta_map_temp[1, ]))
+    names(som_to_meta_map) <- clusterAvgs$pixel_som_cluster
 }
 
 # define variable to keep track of number of fovs processed
@@ -140,5 +142,5 @@ som_to_meta_map_table$pixel_som_cluster <- as.integer(rownames(som_to_meta_map_t
 som_to_meta_map_table <- setnames(som_to_meta_map_table, "som_to_meta_map", "pixel_meta_cluster")
 arrow::write_feather(som_to_meta_map_table, clustToMetaPath)
 
-# remove the temporary .feather file
-unlink(stri_replace())
+# remove the temp som_to_meta_map file
+unlink(clustToMetaTempPath)
