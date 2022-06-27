@@ -52,7 +52,6 @@ def calculate_channel_percentiles(tiff_dir, fovs, channels, img_sub_folder, perc
     for channel in channels:
         percentile_list = []
         for fov in fovs:
-
             # load image data and remove 0 valued pixels
             img = load_utils.load_imgs_from_tree(data_dir=tiff_dir, img_sub_folder=img_sub_folder,
                                                  channels=[channel], fovs=[fov]).values[0, :, :, 0]
@@ -748,7 +747,7 @@ def create_fov_pixel_data(fov, channels, img_data, seg_labels, pixel_norm_val,
 
 def preprocess_fov(base_dir, tiff_dir, data_dir, subset_dir, seg_dir, seg_suffix,
                    img_sub_folder, is_mibitiff, channels, blur_factor,
-                   subset_proportion, pixel_norm_val, dtype, seed, fov):
+                   subset_proportion, pixel_norm_val, dtype, seed, channel_norm_df, fov):
     """Helper function to read in the FOV-level pixel data, run `create_fov_pixel_data`,
     and save the preprocessed data.
 
@@ -784,6 +783,8 @@ def preprocess_fov(base_dir, tiff_dir, data_dir, subset_dir, seg_dir, seg_suffix
             The type to load the image segmentation labels in
         seed (int):
             The random seed to set for subsetting
+        channel_norm_df (pandas.DataFrame):
+            The channel normalization values to use
         fov (str):
             The name of the FOV to preprocess
 
@@ -819,6 +820,13 @@ def preprocess_fov(base_dir, tiff_dir, data_dir, subset_dir, seg_dir, seg_suffix
     # subset for the channel data
     img_data = img_xr.loc[fov, :, :, channels].values.astype(np.float32)
 
+    # create vector for normalizing image data
+    norm_vect = channel_norm_df['norm_val'].values
+    norm_vect = np.array(norm_vect).reshape([1, 1, len(norm_vect)])
+
+    # normalize image data
+    img_data = img_data / norm_vect
+
     # set seed for subsetting
     np.random.seed(seed)
 
@@ -848,6 +856,8 @@ def preprocess_fov(base_dir, tiff_dir, data_dir, subset_dir, seg_dir, seg_suffix
 
 def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
                         img_sub_folder="TIFs", seg_suffix='_feature_0.tif',
+                        pixel_cluster_prefix='pixel_cluster_prefix',
+                        pixel_output_dir='pixel_output_dir',
                         data_dir='pixel_mat_data',
                         subset_dir='pixel_mat_subsetted',
                         norm_vals_name='post_rowsum_chan_norm.feather', is_mibitiff=False,
@@ -875,10 +885,18 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
         seg_suffix (str):
             The suffix that the segmentation images use.
             Ignored if `seg_dir` is `None`.
+        pixel_cluster_prefix (str):
+            The name of the prefix to append before each pixel clustering directory/file,
+            needed to name the channel and pixel norm files
+        pixel_output_dir (str):
+            The name of the data directory containing the pixel data to use for the
+            clustering pipeline. `data_dir` and `subset_dir` should be placed here.
         data_dir (str):
-            Name of the directory which contains the full preprocessed pixel data
+            Name of the directory which contains the full preprocessed pixel data.
+            Should be placed in `pixel_output_dir`.
         subset_dir (str):
-            The name of the directory containing the subsetted pixel data
+            The name of the directory containing the subsetted pixel data.
+            Should be placed in `pixel_output_dir`.
         norm_vals_name (str):
             The name of the file to store the 99.9% normalization values
         is_mibitiff (bool):
@@ -909,6 +927,10 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
     if not os.path.exists(tiff_dir):
         raise FileNotFoundError("tiff_dir %s does not exist" % tiff_dir)
 
+    # if the pixel output dir doesn't exist
+    if not os.path.exists(os.path.join(base_dir, pixel_output_dir)):
+        raise FileNotFoundError("pixel_output_dir %s does not exist" % pixel_output_dir)
+
     # create data_dir if it doesn't already exist
     if not os.path.exists(os.path.join(base_dir, data_dir)):
         os.mkdir(os.path.join(base_dir, data_dir))
@@ -925,10 +947,11 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
     quant_dat = pd.DataFrame()
 
     # create path for channel normalization values
-    channel_norm_path = os.path.join(base_dir, 'channel_norm.feather')
+    channel_norm_path = os.path.join(
+        base_dir, pixel_output_dir, '%s_channel_norm.feather' % pixel_cluster_prefix
+    )
 
     if not os.path.exists(channel_norm_path):
-
         # compute channel percentiles
         channel_norm_df = calculate_channel_percentiles(tiff_dir=tiff_dir, fovs=fovs,
                                                         channels=channels,
@@ -942,7 +965,10 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
         channel_norm_df = feather.read_dataframe(channel_norm_path)
 
     # create path for pixel normalization values
-    pixel_norm_path = os.path.join(base_dir, 'pixel_norm.feather')
+    pixel_norm_path = os.path.join(
+        base_dir, pixel_output_dir, '%s_pixel_norm.feather' % pixel_cluster_prefix
+    )
+
     if not os.path.exists(pixel_norm_path):
         # compute pixel percentiles
         pixel_norm_val = calculate_pixel_intensity_percentile(
@@ -961,7 +987,7 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
     fov_data_func = partial(
         preprocess_fov, base_dir, tiff_dir, data_dir, subset_dir,
         seg_dir, seg_suffix, img_sub_folder, is_mibitiff, channels, blur_factor,
-        subset_proportion, pixel_norm_val, dtype, seed
+        subset_proportion, pixel_norm_val, dtype, seed, channel_norm_df
     )
 
     # define the multiprocessing context

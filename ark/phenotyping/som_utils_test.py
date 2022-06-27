@@ -2,6 +2,7 @@ import json
 import os
 import pytest
 from pytest_cases import parametrize_with_cases
+from shutil import rmtree
 import tempfile
 import warnings
 
@@ -15,6 +16,7 @@ from sklearn.utils import shuffle
 import xarray as xr
 
 import ark.phenotyping.som_utils as som_utils
+from ark.phenotyping.som_utils import create_fov_pixel_data
 import ark.utils.io_utils as io_utils
 import ark.utils.load_utils as load_utils
 import ark.utils.misc_utils as misc_utils
@@ -253,10 +255,16 @@ def mocked_cell_consensus_cluster(fovs, channels, base_dir, pixel_cluster_col, m
 
 def mocked_create_fov_pixel_data(fov, channels, img_data, seg_labels, blur_factor,
                                  subset_proportion, pixel_norm_val):
-    print("CALLING MOCKED CREATE FOV PIXEL DATA")
     # create fake data to be compatible with downstream functions
     data = np.random.rand(len(channels) * 5).reshape(5, len(channels))
     df = pd.DataFrame(data, columns=channels)
+
+    # hard code the metadata columns
+    df['fov'] = fov
+    df['row_index'] = -1
+    df['column_index'] = -1
+    if seg_labels is not None:
+        df['seg_labels'] = -1
 
     # verify that each channel is 2x the previous
     for i in range(len(channels) - 1):
@@ -267,19 +275,65 @@ def mocked_create_fov_pixel_data(fov, channels, img_data, seg_labels, blur_facto
 
 def mocked_preprocess_fov(base_dir, tiff_dir, data_dir, subset_dir, seg_dir, seg_suffix,
                           img_sub_folder, is_mibitiff, channels, blur_factor,
-                          subset_proportion, pixel_norm_val, dtype, fov):
+                          subset_proportion, pixel_norm_val, dtype, seed, channel_norm_df, fov):
     # load img_xr from MIBITiff or directory with the fov
     if is_mibitiff:
-        img_data = load_utils.load_imgs_from_mibitiff(
+        img_xr = load_utils.load_imgs_from_mibitiff(
             tiff_dir, mibitiff_files=[fov], dtype=dtype
         )
     else:
-        img_data = load_utils.load_imgs_from_tree(
+        img_xr = load_utils.load_imgs_from_tree(
             tiff_dir, img_sub_folder=img_sub_folder, fovs=[fov], dtype=dtype
         )
 
-    mocked_create_fov_pixel_data(base_dir, channels, img_data.values, np.random.rand(),
-                                 blur_factor, subset_proportion, np.random.rand())
+    # ensure the provided channels will actually exist in img_xr
+    misc_utils.verify_in_list(
+        provided_chans=channels,
+        pixel_mat_chans=img_xr.channels.values
+    )
+
+    # if seg_dir is None, leave seg_labels as None
+    seg_labels = None
+
+    # otherwise, load segmentation labels in for fov
+    if seg_dir is not None:
+        seg_labels = io.imread(os.path.join(seg_dir, fov + seg_suffix))
+
+    # subset for the channel data
+    img_data = img_xr.loc[fov, :, :, channels].values.astype(np.float32)
+
+    # create vector for normalizing image data
+    norm_vect = channel_norm_df['norm_val'].values
+    norm_vect = np.array(norm_vect).reshape([1, 1, len(norm_vect)])
+
+    # normalize image data
+    img_data = img_data / norm_vect
+
+    # set seed for subsetting
+    np.random.seed(seed)
+
+    # create the full and subsetted fov matrices
+    pixel_mat, pixel_mat_subset = mocked_create_fov_pixel_data(
+        fov=fov, channels=channels, img_data=img_data, seg_labels=seg_labels,
+        pixel_norm_val=pixel_norm_val, blur_factor=blur_factor,
+        subset_proportion=subset_proportion
+    )
+
+    # write complete dataset to feather, needed for cluster assignment
+    feather.write_dataframe(pixel_mat,
+                            os.path.join(base_dir,
+                                         data_dir,
+                                         fov + ".feather"),
+                            compression='uncompressed')
+
+    # write subseted dataset to feather, needed for training
+    feather.write_dataframe(pixel_mat_subset,
+                            os.path.join(base_dir,
+                                         subset_dir,
+                                         fov + ".feather"),
+                            compression='uncompressed')
+
+    return pixel_mat
 
 
 def test_calculate_channel_percentiles():
@@ -1092,7 +1146,7 @@ def test_create_fov_pixel_data():
         # are all 0 after, tested successfully via hard-coding values in create_fov_pixel_data
 
 
-def test_preprocess_fov():
+def test_preprocess_fov(mocker):
     with tempfile.TemporaryDirectory() as temp_dir:
         # define the channel names
         chans = ['chan0', 'chan1', 'chan2']
@@ -1124,12 +1178,18 @@ def test_preprocess_fov():
             io.imsave(os.path.join(seg_dir, file_name), rand_img,
                       check_contrast=False)
 
+        # generate sample channel normalization values
+        channel_norm_df = pd.DataFrame.from_dict({
+            'channel': chans,
+            'norm_val': np.repeat(10, repeats=len(chans))
+        })
+
         # run the preprocessing for fov0
         # NOTE: don't test the return value, leave that for test_create_pixel_matrix
         som_utils.preprocess_fov(
             temp_dir, tiff_dir, 'pixel_mat_data', 'pixel_mat_subsetted',
             seg_dir, '_feature_0.tif', 'TIFs', False, ['chan0', 'chan1', 'chan2'],
-            2, 0.1, 1, 'int16', 42, 'fov0'
+            2, 0.1, 1, 'int16', 42, channel_norm_df, 'fov0'
         )
 
         fov_data_path = os.path.join(
@@ -1174,10 +1234,6 @@ def test_preprocess_fov():
 )
 def test_create_pixel_matrix(fovs, chans, sub_dir, seg_dir_include,
                              channel_norm_include, pixel_norm_include, mocker):
-    # sample_labels = test_utils.make_labels_xarray(label_data=None,
-    #                                               fov_ids=['fov0', 'fov1', 'fov2'],
-    #                                               compartment_names=['whole_cell'])
-
     with tempfile.TemporaryDirectory() as temp_dir:
         # create a directory to store the image data
         tiff_dir = os.path.join(temp_dir, 'sample_image_data')
@@ -1207,6 +1263,19 @@ def test_create_pixel_matrix(fovs, chans, sub_dir, seg_dir_include,
                                           base_dir=temp_dir,
                                           tiff_dir='bad_tiff_dir',
                                           seg_dir=None)
+
+        # pass invalid pixel output directory
+        with pytest.raises(FileNotFoundError):
+            som_utils.create_pixel_matrix(fovs=['fov1', 'fov2'],
+                                          channels=['chan1'],
+                                          base_dir=temp_dir,
+                                          tiff_dir=temp_dir,
+                                          seg_dir=None,
+                                          pixel_output_dir='bad_output_dir')
+
+        # make a dummy pixel_output_dir
+        sample_pixel_output_dir = os.path.join(temp_dir, 'pixel_output_dir')
+        os.mkdir(sample_pixel_output_dir)
 
         # create a dummy seg_dir with data if we're on a test that requires segmentation labels
         if seg_dir_include:
@@ -1253,16 +1322,20 @@ def test_create_pixel_matrix(fovs, chans, sub_dir, seg_dir_include,
             sample_channel_norm_df = pd.DataFrame({'channel': chans,
                                                   'norm_val': np.random.rand(len(chans))})
 
-            feather.write_dataframe(sample_channel_norm_df,
-                                    os.path.join(temp_dir, 'channel_norm.feather'),
-                                    compression='uncompressed')
+            feather.write_dataframe(
+                sample_channel_norm_df,
+                os.path.join(temp_dir, sample_pixel_output_dir, 'test_channel_norm.feather'),
+                compression='uncompressed'
+            )
 
         # make the pixel_norm.feather file if the test requires it
         if pixel_norm_include:
             sample_pixel_norm_df = pd.DataFrame({'pixel_norm_val': np.random.rand(1)})
-            feather.write_dataframe(sample_pixel_norm_df,
-                                    os.path.join(temp_dir, 'pixel_norm.feather'),
-                                    compression='uncompressed')
+            feather.write_dataframe(
+                sample_pixel_norm_df,
+                os.path.join(temp_dir, sample_pixel_output_dir, 'test_pixel_norm.feather'),
+                compression='uncompressed'
+            )
 
         # create the pixel matrices
         som_utils.create_pixel_matrix(fovs=fovs,
@@ -1270,7 +1343,8 @@ def test_create_pixel_matrix(fovs, chans, sub_dir, seg_dir_include,
                                       base_dir=temp_dir,
                                       tiff_dir=tiff_dir,
                                       img_sub_folder=sub_dir,
-                                      seg_dir=seg_dir)
+                                      seg_dir=seg_dir,
+                                      pixel_cluster_prefix='test')
 
         # check that we actually created a data directory
         assert os.path.exists(os.path.join(temp_dir, 'pixel_mat_data'))
@@ -1281,13 +1355,13 @@ def test_create_pixel_matrix(fovs, chans, sub_dir, seg_dir_include,
         # if there wasn't originally a channel_norm.json, assert one was created
         if not channel_norm_include:
             assert os.path.exists(
-                os.path.join(temp_dir, 'channel_norm.feather')
+                os.path.join(temp_dir, sample_pixel_output_dir, 'test_channel_norm.feather')
             )
 
         # if there wasn't originally a pixel_norm.json, assert one was created
         if not pixel_norm_include:
             assert os.path.exists(
-                os.path.join(temp_dir, 'pixel_norm.feather')
+                os.path.join(temp_dir, sample_pixel_output_dir, 'test_pixel_norm.feather')
             )
 
         for fov in fovs:
@@ -1327,8 +1401,10 @@ def test_create_pixel_matrix(fovs, chans, sub_dir, seg_dir_include,
             assert round(flowsom_data_fov.shape[0] * 0.1) == flowsom_sub_fov.shape[0]
 
         # check that correct values are passed to helper function
-        mocker.patch('ark.phenotyping.som_utils.create_fov_pixel_data',
-                     mocked_create_fov_pixel_data)
+        mocker.patch(
+            'ark.phenotyping.som_utils.preprocess_fov',
+            mocked_preprocess_fov
+        )
 
         if sub_dir is None:
             sub_dir = ''
@@ -1343,6 +1419,10 @@ def test_create_pixel_matrix(fovs, chans, sub_dir, seg_dir_include,
             for chan in chans:
                 io.imsave(os.path.join(fov_dir, chan + '.tiff'), img)
 
+        # recreate the output directory
+        rmtree(sample_pixel_output_dir)
+        os.mkdir(sample_pixel_output_dir)
+
         # create normalization file
         data_dir = os.path.join(temp_dir, 'pixel_mat_data')
 
@@ -1351,9 +1431,11 @@ def test_create_pixel_matrix(fovs, chans, sub_dir, seg_dir_include,
 
         sample_channel_norm_df = pd.DataFrame({'channel': chans,
                                                'norm_val': mults})
-        feather.write_dataframe(sample_channel_norm_df,
-                                os.path.join(temp_dir, 'channel_norm.feather'),
-                                compression='uncompressed')
+        feather.write_dataframe(
+            sample_channel_norm_df,
+            os.path.join(temp_dir, sample_pixel_output_dir, 'test_channel_norm.feather'),
+            compression='uncompressed'
+        )
 
         som_utils.create_pixel_matrix(fovs=fovs,
                                       channels=chans,
@@ -1361,7 +1443,8 @@ def test_create_pixel_matrix(fovs, chans, sub_dir, seg_dir_include,
                                       tiff_dir=new_tiff_dir,
                                       img_sub_folder=sub_dir,
                                       seg_dir=seg_dir,
-                                      dtype='float32')
+                                      dtype='float32',
+                                      pixel_cluster_prefix='test')
 
 
 def test_train_pixel_som(mocker):

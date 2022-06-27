@@ -1,4 +1,5 @@
 import copy
+import warnings
 
 import numpy as np
 import pandas as pd
@@ -40,6 +41,12 @@ def get_single_compartment_props(segmentation_labels, regionprops_base,
         extras_props=regionprops_single_comp,
         props_options=list(REGIONPROPS_FUNCTION.keys())
     )
+
+    # if image is just background, return empty df
+    if len(np.unique(segmentation_labels)) < 2:
+        output_list = regionprops_base + regionprops_single_comp
+        blank_df = pd.DataFrame(columns=output_list)
+        return blank_df
 
     # get the base features
     cell_props = pd.DataFrame(regionprops_table(segmentation_labels,
@@ -107,13 +114,19 @@ def assign_single_compartment_features(marker_counts, compartment, cell_props, c
     cell_counts = EXTRACTION_FUNCTION[extraction](cell_coords, input_images, **kwargs)
 
     # get morphology metrics
-    current_cell_props = cell_props.loc[cell_props['label'] == label_id, regionprops_names]
+    # Filter regionprops_names to only those in cell_props.columns
+    filtered_regionprops_names = [rp_name for rp_name in regionprops_names if rp_name in
+                                  cell_props.columns]
+    current_cell_props = cell_props.loc[cell_props['label'] == label_id,
+                                        filtered_regionprops_names]
 
     # combine marker counts and morphology metrics together
     cell_features = np.concatenate((cell_counts, current_cell_props), axis=None)
 
     # add counts of each marker to appropriate column
-    marker_counts.loc[compartment, cell_id, marker_counts.features[1]:] = cell_features
+    # Only include the marker_count features up to the last filtered feature.
+    marker_counts.loc[compartment, cell_id,
+                      marker_counts.features[1]:filtered_regionprops_names[-1]] = cell_features
 
     # add cell size to first column
     marker_counts.loc[compartment, cell_id, marker_counts.features[0]] = cell_coords.shape[0]
@@ -255,6 +268,10 @@ def compute_marker_counts(input_images, segmentation_labels, nuclear_counts=Fals
                                               regionprops_base, regionprops_single_comp,
                                               **reg_props)
 
+    if len(unique_cell_ids) == 0:
+        fov_name = str(segmentation_labels.fovs.values)
+        warnings.warn("No cells found in the following image: {}".format(fov_name))
+
     if nuclear_counts:
         nuc_labels = segmentation_labels.loc[:, :, 'nuclear'].values
 
@@ -268,6 +285,9 @@ def compute_marker_counts(input_images, segmentation_labels, nuclear_counts=Fals
         nuc_props = get_single_compartment_props(nuc_labels,
                                                  regionprops_base, regionprops_single_comp,
                                                  **reg_props)
+        if len(nuc_props) == 0:
+            fov_name = str(segmentation_labels.fovs.values)
+            warnings.warn("No nuclei found in the following image: {}".format(fov_name))
 
     # get the signal kwargs
     sig_kwargs = kwargs.get('signal_kwargs', {})
