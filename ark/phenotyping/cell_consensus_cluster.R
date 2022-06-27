@@ -64,7 +64,7 @@ names(som_to_meta_map) <- clusterAvgs$cell_som_cluster
 print("Writing consensus clustering")
 cellClusterData <- arrow::read_feather(cellMatPath)
 cellClusterData$cell_meta_cluster <- som_to_meta_map[as.character(cellClusterData$cell_som_cluster)]
-arrow::write_feather(as.data.table(cellClusterData), cellMatPath)
+arrow::write_feather(as.data.table(cellClusterData), cellMatPath, compression='uncompressed')
 
 # save the mapping from cell_som_cluster to cell_meta_cluster
 print("Writing SOM to meta cluster mapping table")
@@ -73,4 +73,4 @@ som_to_meta_map <- as.data.table(som_to_meta_map)
 # assign cell_som_cluster column, then rename som_to_meta_map to cell_meta_cluster
 som_to_meta_map$cell_som_cluster <- as.integer(rownames(som_to_meta_map))
 som_to_meta_map <- setnames(som_to_meta_map, "som_to_meta_map", "cell_meta_cluster")
-arrow::write_feather(som_to_meta_map, clustToMeta)
+arrow::write_feather(som_to_meta_map, clustToMeta, compression='uncompressed')

@@ -77,4 +77,4 @@ somResults <- SOM(data=as.matrix(pixelSubsetData), rlen=numPasses,
 
 # write the weights to feather
 print("Save trained weights")
-arrow::write_feather(as.data.table(somResults$codes), pixelWeightsPath)
+arrow::write_feather(as.data.table(somResults$codes), pixelWeightsPath, compression='uncompressed')

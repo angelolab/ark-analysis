@@ -80,4 +80,4 @@ somResults <- SOM(data=as.matrix(clusterCountsNormSub), xdim=xdim, ydim=ydim,
 
 # write the weights to feather
 print("Save trained weights")
-arrow::write_feather(as.data.table(somResults$codes), cellWeightsPath)
+arrow::write_feather(as.data.table(somResults$codes), cellWeightsPath, compression='uncompressed')
