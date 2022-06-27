@@ -20,7 +20,7 @@ setup(
     description='Toolbox for analysis on segmented images from MIBI',
     author='Angelo Lab',
     url='https://github.com/angelolab/ark-analysis',
-    download_url='https://github.com/angelolab/ark-analysis/archive/v{}.tar.gz'.format(VERSION),
+    download_url='https://github.com/angelolab/ark-analysis/archive/{}.tar.gz'.format(VERSION),
     install_requires=requirements,
     extras_require={
         'tests': ['pytest',
