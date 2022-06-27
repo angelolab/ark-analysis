@@ -927,9 +927,23 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
     if not os.path.exists(os.path.join(base_dir, subset_dir)):
         os.mkdir(os.path.join(base_dir, subset_dir))
 
+    # find all the FOV files in the data and subsetted directories
     fovs_data = io_utils.list_files(os.path.join(base_dir, data_dir), substrs='.feather')
     fovs_sub = io_utils.list_files(os.path.join(base_dir, subset_dir), substrs='.feather')
+
+    # need to handle the case where the data file but not the subset file was written
     fovs_comb = io_utils.remove_file_extensions(set(fovs_data).intersection(set(fovs_sub)))
+
+    # if one of the existing FOVs is corrupted, remove it from fovs_comb to preprocess again
+    fovs_comb_iter = fovs_comb[:]
+    for fov in fovs_comb_iter:
+        try:
+            feather.read_dataframe(os.path.join(base_dir, data_dir, fov + '.feather'))
+        except ArrowInvalid:
+            print("The data for FOV %s has become corrupted, re-running preprocessing on it" % fov)
+            fovs_comb.remove(fov)
+
+    # define the list of FOVs for preprocessing
     fovs_list = list(set(fovs).difference(set(fovs_comb)))
 
     # if there are no FOVs left to preprocess don't run function
