@@ -25,7 +25,8 @@ from ark.utils import misc_utils
 multiprocessing.set_start_method('spawn', force=True)
 
 
-def calculate_channel_percentiles(tiff_dir, fovs, channels, img_sub_folder, percentile):
+def calculate_channel_percentiles(tiff_dir, fovs, channels, img_sub_folder,
+                                  percentile, dtype="int16"):
     """Calculates average percentile for each channel in the dataset
 
     Args:
@@ -39,6 +40,8 @@ def calculate_channel_percentiles(tiff_dir, fovs, channels, img_sub_folder, perc
             Sub folder within each FOV containing image data
         percentile (float):
             The specific percentile to compute
+        dtype (type):
+            The type to use for loading the image data in
 
     Returns:
         pd.DataFrame:
@@ -54,7 +57,8 @@ def calculate_channel_percentiles(tiff_dir, fovs, channels, img_sub_folder, perc
         for fov in fovs:
             # load image data and remove 0 valued pixels
             img = load_utils.load_imgs_from_tree(data_dir=tiff_dir, img_sub_folder=img_sub_folder,
-                                                 channels=[channel], fovs=[fov]).values[0, :, :, 0]
+                                                 channels=[channel], fovs=[fov],
+                                                 dtype=dtype).values[0, :, :, 0]
             img = img[img > 0]
 
             # record and store percentile, skip if no non-zero pixels
@@ -71,7 +75,7 @@ def calculate_channel_percentiles(tiff_dir, fovs, channels, img_sub_folder, perc
 
 
 def calculate_pixel_intensity_percentile(tiff_dir, fovs, channels, img_sub_folder,
-                                         channel_percentiles, percentile=0.05):
+                                         channel_percentiles, percentile=0.05, dtype="int16"):
     """Calculates average percentile per FOV for total signal in each pixel
 
     Args:
@@ -88,6 +92,8 @@ def calculate_pixel_intensity_percentile(tiff_dir, fovs, channels, img_sub_folde
             Computed by `calculate_channel_percentiles`
         percentile (float):
             The pixel intensity percentile per FOV to average over
+        dtype (type):
+            The type to use for loading the image data in
 
     Returns:
         float:
@@ -103,7 +109,8 @@ def calculate_pixel_intensity_percentile(tiff_dir, fovs, channels, img_sub_folde
     for fov in fovs:
         # load image data
         img_data = load_utils.load_imgs_from_tree(data_dir=tiff_dir, fovs=[fov],
-                                                  channels=channels, img_sub_folder=img_sub_folder)
+                                                  channels=channels, img_sub_folder=img_sub_folder,
+                                                  dtype=dtype)
 
         # normalize each channel by its percentile value
         norm_data = img_data[0].values / norm_vect
@@ -908,7 +915,7 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
         seed (int):
             The random seed to set for subsetting
         dtype (type):
-            The type to load the image segmentation labels in
+            The type to use for loading the image data in
         channel_percentile (float):
             Percentile used to normalize channels to same range
         batch_size (int):
@@ -953,10 +960,12 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
 
     if not os.path.exists(channel_norm_path):
         # compute channel percentiles
-        channel_norm_df = calculate_channel_percentiles(tiff_dir=tiff_dir, fovs=fovs,
+        channel_norm_df = calculate_channel_percentiles(tiff_dir=tiff_dir,
+                                                        fovs=fovs,
                                                         channels=channels,
                                                         img_sub_folder=img_sub_folder,
-                                                        percentile=channel_percentile)
+                                                        percentile=channel_percentile,
+                                                        dtype=dtype)
         # save output
         feather.write_dataframe(channel_norm_df, channel_norm_path, compression='uncompressed')
 
@@ -973,7 +982,8 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
         # compute pixel percentiles
         pixel_norm_val = calculate_pixel_intensity_percentile(
             tiff_dir=tiff_dir, fovs=fovs, channels=channels,
-            img_sub_folder=img_sub_folder, channel_percentiles=channel_norm_df
+            img_sub_folder=img_sub_folder, channel_percentiles=channel_norm_df,
+            dtype=dtype
         )
 
         pixel_norm_df = pd.DataFrame({'pixel_norm_val': [pixel_norm_val]})
