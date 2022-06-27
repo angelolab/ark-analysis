@@ -1072,6 +1072,7 @@ def find_fovs_missing_col(base_dir, data_dir, missing_col):
         except ArrowInvalid:
             fovs_corrupted.append(fov)
 
+    # immediately raise an error if there are corrupted FOV files
     if len(fovs_corrupted) > 0:
         raise ValueError("The data for the following FOVs have been corrupted: %s. "
                          "Please re-run the preceeding processes for these FOVs." %
@@ -1464,8 +1465,16 @@ def update_pixel_meta_labels(pixel_data_path, pixel_remapped_dict,
     # get the path to the fov
     fov_path = os.path.join(pixel_data_path, fov + '.feather')
 
+    # define a list of corrupted fovs
+    fovs_corrupted = []
+
     # read in the fov data with SOM and meta cluster labels
-    fov_data = feather.read_dataframe(fov_path)
+    try:
+        fov_data = feather.read_dataframe(fov_path)
+    # this indicates this fov file is corrupted
+    except ArrowInvalid:
+        raise ValueError("The data for the FOV %s has been corrupted. "
+                         "Please re-run the preceeding process for this FOV.")
 
     # ensure that no SOM clusters are missing from the mapping
     misc_utils.verify_in_list(
