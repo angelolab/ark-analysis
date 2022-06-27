@@ -1055,14 +1055,27 @@ def find_fovs_missing_col(base_dir, data_dir, missing_col):
     # list all the FOV files
     fov_files = io_utils.list_files(data_path)
 
-    # define the list of FOVs to return for processing
+    # define the list of fovs to return for processing
     fovs = []
+
+    # define a list of corrupted fovs
+    fovs_corrupted = []
+
     for fov in fov_files:
         # attempt to read the column, if it doesn't exist then the FOV needs to be processed
         try:
-            feather.read_dataframe(os.path.join(data_path, fov), columns=[missing_col])
+            fov_data = feather.read_dataframe(os.path.join(data_path, fov))
+
+            if missing_col not in fov_data.columns.values:
+                fovs.append(fov)
+        # this indicates this fov file is corrupted
         except ArrowInvalid:
-            fovs.append(fov)
+            fovs_corrupted.append(fov)
+
+    if len(fovs_corrupted) > 0:
+        raise ValueError("The data for the following FOVs have been corrupted: %s. "
+                         "Please re-run the preceeding processes for these FOVs." %
+                         ','.join(io_utils.remove_file_extensions(fovs_corrupted)))
 
     return io_utils.remove_file_extensions(fovs)
 
