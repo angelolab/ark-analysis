@@ -26,7 +26,7 @@ multiprocessing.set_start_method('spawn', force=True)
 
 
 def calculate_channel_percentiles(tiff_dir, fovs, channels, img_sub_folder,
-                                  percentile, dtype="int16"):
+                                  percentile, dtype="float32"):
     """Calculates average percentile for each channel in the dataset
 
     Args:
@@ -75,7 +75,7 @@ def calculate_channel_percentiles(tiff_dir, fovs, channels, img_sub_folder,
 
 
 def calculate_pixel_intensity_percentile(tiff_dir, fovs, channels, img_sub_folder,
-                                         channel_percentiles, percentile=0.05, dtype="int16"):
+                                         channel_percentiles, percentile=0.05, dtype="float32"):
     """Calculates average percentile per FOV for total signal in each pixel
 
     Args:
@@ -197,7 +197,7 @@ def check_for_modified_channels(tiff_dir, test_fov, img_sub_folder, channels):
                 pass
 
 
-def smooth_channels(fovs, tiff_dir, img_sub_folder, channels, smooth_vals, dtype="int16"):
+def smooth_channels(fovs, tiff_dir, img_sub_folder, channels, smooth_vals, dtype="float32"):
     """Adds additional smoothing for selected channels as a preprocessing step
 
     Args:
@@ -873,7 +873,7 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
                         data_dir='pixel_mat_data',
                         subset_dir='pixel_mat_subsetted',
                         norm_vals_name='post_rowsum_chan_norm.feather', is_mibitiff=False,
-                        blur_factor=2, subset_proportion=0.1, dtype="int16", seed=42,
+                        blur_factor=2, subset_proportion=0.1, dtype="float32", seed=42,
                         channel_percentile=0.99, batch_size=5):
     """For each fov, add a Gaussian blur to each channel and normalize channel sums for each pixel
 
