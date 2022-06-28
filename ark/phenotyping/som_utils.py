@@ -168,7 +168,9 @@ def check_for_modified_channels(tiff_dir, test_fov, img_sub_folder, channels):
             example fov used to check channel names
         img_sub_folder (str):
             sub-folder within each FOV containing image data
-        channels (list): list of channels to use for analysis"""
+        channels (list):
+            list of channels to use for analysis
+    """
 
     # convert to path-compatible format
     if img_sub_folder is None:
@@ -195,7 +197,7 @@ def check_for_modified_channels(tiff_dir, test_fov, img_sub_folder, channels):
                 pass
 
 
-def smooth_channels(fovs, tiff_dir, img_sub_folder, channels, smooth_vals):
+def smooth_channels(fovs, tiff_dir, img_sub_folder, channels, smooth_vals, dtype="int16"):
     """Adds additional smoothing for selected channels as a preprocessing step
 
     Args:
@@ -210,6 +212,8 @@ def smooth_channels(fovs, tiff_dir, img_sub_folder, channels, smooth_vals):
         smooth_vals (list or int):
             amount to smooth channels. If a single int, applies
             to all channels. Otherwise, a custom value per channel can be supplied
+        dtype (type):
+            the type to use for loading the image data in
     """
 
     # no output if no channels specified
@@ -233,7 +237,8 @@ def smooth_channels(fovs, tiff_dir, img_sub_folder, channels, smooth_vals):
     for fov in fovs:
         for idx, chan in enumerate(channels):
             img = load_utils.load_imgs_from_tree(data_dir=tiff_dir, img_sub_folder=img_sub_folder,
-                                                 fovs=[fov], channels=[chan]).values[0, :, :, 0]
+                                                 fovs=[fov], channels=[chan],
+                                                 dtype=dtype).values[0, :, :, 0]
             chan_out = ndimage.gaussian_filter(img, sigma=smooth_vals[idx])
             imsave(os.path.join(tiff_dir, fov, img_sub_folder, chan + '_smoothed.tiff'),
                    chan_out, check_contrast=False)
