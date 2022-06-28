@@ -199,6 +199,7 @@ def run_deepcell_direct(input_dir, output_dir, host='https://deepcell.org',
     total_retries = 0
     while total_retries < num_retries:
         # handles the case if the main endpoint can't be reached
+        print("total number of retries is {}".format(total_retries))
         try:
             upload_response = http.post(
                 upload_url,
@@ -216,6 +217,7 @@ def run_deepcell_direct(input_dir, output_dir, host='https://deepcell.org',
             upload_response = upload_response.json()
         except JSONDecodeError as jde:
             total_retries += 1
+            print("retrying, total is {}".format(total_retries))
             continue
 
         # if we reach the end no errors were encountered on this attempt
