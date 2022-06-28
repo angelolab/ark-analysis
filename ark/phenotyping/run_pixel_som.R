@@ -35,7 +35,7 @@ mapSOMLabels <- function(fov, somWeights, pixelMatDir) {
     fovPixelData$pixel_som_cluster <- as.integer(clusters[,1])
 
     # write to feather
-    arrow::write_feather(as.data.table(fovPixelData),  matPath)
+    arrow::write_feather(as.data.table(fovPixelData),  matPath, compression='uncompressed')
 }
 
 # get the number of cores

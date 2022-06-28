@@ -62,4 +62,4 @@ clusterCountsNorm$cell_som_cluster <- as.integer(clusters[,1])
 
 # write to feather
 print("Writing clustered data")
-arrow::write_feather(as.data.table(clusterCountsNorm), cellMatPathNorm)
+arrow::write_feather(as.data.table(clusterCountsNorm), cellMatPathNorm, compression='uncompressed')
