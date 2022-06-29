@@ -1,16 +1,16 @@
 from os import path, pardir
 from setuptools import setup, find_packages
 
-VERSION = '0.3.1'
+VERSION = '0.3.2'
 
 PKG_FOLDER = path.abspath(path.join(__file__, pardir))
 
-# set a long description which is basically the README
-with open(path.join(path.abspath(path.dirname(__file__)), 'README.md')) as f:
-    long_description = f.read()
-
 with open(path.join(PKG_FOLDER, 'requirements.txt')) as req_file:
     requirements = req_file.read().splitlines()
+    
+# set a long description which is basically the README
+with open(path.join(PKG_FOLDER, 'README.md')) as f:
+    long_description = f.read()
 
 setup(
     name='ark-analysis',
