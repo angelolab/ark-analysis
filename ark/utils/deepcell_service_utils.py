@@ -17,7 +17,7 @@ from ark.utils import io_utils, misc_utils
 
 def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
                            suffix='_feature_0', host='https://deepcell.org', job_type='mesmer',
-                           scale=1.0, timeout=3600, zip_size=10, parallel=False):
+                           scale=1.0, timeout=3600, zip_size=5, parallel=False):
     """Handles all of the necessary data manipulation for running deepcell tasks.
     Creates .zip files (to be used as input for DeepCell),
     calls run_deepcell_task method,
@@ -199,7 +199,6 @@ def run_deepcell_direct(input_dir, output_dir, host='https://deepcell.org',
     total_retries = 0
     while total_retries < num_retries:
         # handles the case if the main endpoint can't be reached
-        print("total number of retries is {}".format(total_retries))
         try:
             upload_response = http.post(
                 upload_url,
@@ -207,8 +206,7 @@ def run_deepcell_direct(input_dir, output_dir, host='https://deepcell.org',
                 files=upload_fields
             )
         except RetryError as re:
-            print("Failed to reached Deepcell after %d attempts: "
-                  "the server is likely down" % num_retries)
+            print(re)
             return 1
 
         # handles the case if the endpoint returns an invalid JSON
@@ -217,7 +215,6 @@ def run_deepcell_direct(input_dir, output_dir, host='https://deepcell.org',
             upload_response = upload_response.json()
         except JSONDecodeError as jde:
             total_retries += 1
-            print("retrying, total is {}".format(total_retries))
             continue
 
         # if we reach the end no errors were encountered on this attempt
@@ -225,8 +222,8 @@ def run_deepcell_direct(input_dir, output_dir, host='https://deepcell.org',
 
     # if the JSON could not be decoded num_retries number of times
     if total_retries == num_retries:
-        print("Unable to process Deepcell response after %d attempts: "
-              "an internal server is likely down" % num_retries)
+        print("The JSON response from DeepCell could not be decoded after %d attempts" %
+              num_retries)
         return 1
 
     # call prediction
