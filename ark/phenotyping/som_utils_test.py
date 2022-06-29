@@ -504,7 +504,8 @@ def test_smooth_channels(smooth_vals):
         smooth_channels = ['chan0', 'chan1']
 
         som_utils.smooth_channels(fovs=fovs, tiff_dir=temp_dir, img_sub_folder='TIFs',
-                                  channels=smooth_channels, smooth_vals=smooth_vals)
+                                  channels=smooth_channels, smooth_vals=smooth_vals,
+                                  dtype="int16")
 
         # check that correct value was applied
         for fov in fovs:
