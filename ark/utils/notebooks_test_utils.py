@@ -216,6 +216,22 @@ def flowsom_pixel_setup(tb, flowsom_dir, create_seg_dir=True, img_shape=(50, 50)
     # define the main pixel output dir, the preprocessed dir, and the subsetted dir
     tb.execute_cell('dir_set')
 
+    # runs the blurring process for the first channel
+    run_chan_smoothing = """
+        blurred_channels = %s
+        smooth_vals = 6
+
+        som_utils.smooth_channels(
+            fovs=fovs,
+            tiff_dir=tiff_dir,
+            img_sub_folder=img_sub_folder,
+            channels=blurred_channels,
+            smooth_vals=smooth_vals,
+            dtype="int16"
+        )
+    """ % [chans[0]]
+    tb.inject(run_chan_smoothing, 'smooth_channels')
+
     # sets the channels to include
     tb.inject(
         """
