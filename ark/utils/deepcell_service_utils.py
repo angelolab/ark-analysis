@@ -122,6 +122,7 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
 
         # ensure execution is halted if run_deepcell_direct returned non-zero exit code
         if status != 0:
+            print("The following FOVs could not be processed: %s" % ','.join(fov_group))
             return
 
         # extract the .tif output
