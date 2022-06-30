@@ -275,7 +275,7 @@ def mocked_create_fov_pixel_data(fov, channels, img_data, seg_labels, blur_facto
 
 def mocked_preprocess_fov(base_dir, tiff_dir, data_dir, subset_dir, seg_dir, seg_suffix,
                           img_sub_folder, is_mibitiff, channels, blur_factor,
-                          subset_proportion, pixel_norm_val, dtype, seed, channel_norm_df, fov):
+                          subset_proportion, pixel_norm_val, seed, channel_norm_df, fov):
     # load img_xr from MIBITiff or directory with the fov
     if is_mibitiff:
         img_xr = load_utils.load_imgs_from_mibitiff(
@@ -502,8 +502,7 @@ def test_smooth_channels(smooth_vals):
         smooth_channels = ['chan0', 'chan1']
 
         som_utils.smooth_channels(fovs=fovs, tiff_dir=temp_dir, img_sub_folder='TIFs',
-                                  channels=smooth_channels, smooth_vals=smooth_vals,
-                                  dtype="int16")
+                                  channels=smooth_channels, smooth_vals=smooth_vals)
 
         # check that correct value was applied
         for fov in fovs:
@@ -1188,7 +1187,7 @@ def test_preprocess_fov(mocker):
         som_utils.preprocess_fov(
             temp_dir, tiff_dir, 'pixel_mat_data', 'pixel_mat_subsetted',
             seg_dir, '_feature_0.tif', 'TIFs', False, ['chan0', 'chan1', 'chan2'],
-            2, 0.1, 1, 'int16', 42, channel_norm_df, 'fov0'
+            2, 0.1, 1, 42, channel_norm_df, 'fov0'
         )
 
         fov_data_path = os.path.join(
@@ -1442,7 +1441,6 @@ def test_create_pixel_matrix(fovs, chans, sub_dir, seg_dir_include,
                                       tiff_dir=new_tiff_dir,
                                       img_sub_folder=sub_dir,
                                       seg_dir=seg_dir,
-                                      dtype='float32',
                                       pixel_cluster_prefix='test')
 
 
