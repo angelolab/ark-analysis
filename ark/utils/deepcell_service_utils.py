@@ -276,6 +276,9 @@ def _convert_deepcell_seg_masks(seg_mask: bytes) -> np.ndarray:
         16-bit via `scipy.stats.rankdata`
     """
     float_mask = external.tifffile.imread(BytesIO(seg_mask))
-
     ranked_mask: np.ndarray = stats.rankdata(float_mask).astype(dtype="int16")
-    return ranked_mask
+
+    # Reshape as ranked_mask returns a 1D numpy array, dims: n^2 x 1 -> n x n
+    mask_shape = (int(np.sqrt(ranked_mask.shape[0])), -1)
+
+    return ranked_mask.reshape(mask_shape)

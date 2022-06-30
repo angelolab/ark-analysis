@@ -282,10 +282,6 @@ def load_imgs_from_dir(data_dir, files=None, match_substring=None, trim_suffix=N
     for img in imgs:
         v = io.imread(os.path.join(data_dir, img))
         if not multitiff:
-            # if `v` is n by 1
-            if len(v.shape) == 1:
-                dim = v.shape[0]
-                v = np.reshape(v, newshape=(np.sqrt(dim), -1))
             v = np.expand_dims(v, axis=2)
         elif channels_first:
             # covert channels_first to be channels_last
