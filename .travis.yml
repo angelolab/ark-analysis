@@ -32,7 +32,7 @@ jobs:
         user: $PYPI_USERNAME
         password: $PYPI_PASSWORD
         on:
-          tags: false
+          tags: true
     - stage: docker_deploy
       if: tag IS present
       python: 3.6
@@ -40,9 +40,8 @@ jobs:
         - "travis_wait 120 sleep 7200 &"
         - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin 
         - docker build -t "$TRAVIS_REPO_SLUG" . 1> /dev/null
-        # - docker tag "$TRAVIS_REPO_SLUG" "$TRAVIS_REPO_SLUG":3.6
         - docker tag "$TRAVIS_REPO_SLUG" "$TRAVIS_REPO_SLUG":"${TRAVIS_TAG}"
-        - docker push "$TRAVIS_REPO_SLUG"
+        - docker push "$TRAVIS_REPO_SLUG":"${TRAVIS_TAG}"
 
 after_success:
   - coveralls
