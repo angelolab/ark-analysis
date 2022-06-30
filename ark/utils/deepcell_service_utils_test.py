@@ -26,6 +26,8 @@ def mocked_run_deepcell(in_zip_path, output_dir, host, job_type, scale, timeout)
             zipObj.write(filename, os.path.basename(filename))
             os.remove(filename)
 
+    return 0
+
 
 def test_create_deepcell_output(mocker: MockerFixture):
     with tempfile.TemporaryDirectory() as temp_dir:
