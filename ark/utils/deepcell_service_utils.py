@@ -306,8 +306,8 @@ def run_deepcell_direct(input_dir, output_dir, host='https://deepcell.org',
             'expireIn': 3600,
         }
     )
-    
-    return
+
+    return 0
 
 
 def _convert_deepcell_seg_masks(seg_mask: bytes) -> np.ndarray:
@@ -320,13 +320,15 @@ def _convert_deepcell_seg_masks(seg_mask: bytes) -> np.ndarray:
         seg_mask (bytes): The output of deep cell's segmentation algorithm as file bytes.
 
     Returns:
-        np.ndarray: The segmentation masks, converted from floating point 32-bit to integer
+        np.ndarray: The segmentation masks, converted from floating point 64-bit to integer
         16-bit via `scipy.stats.rankdata`
     """
     float_mask = external.tifffile.imread(BytesIO(seg_mask))
-    ranked_mask: np.ndarray = stats.rankdata(float_mask).astype(dtype="int16")
 
-    # Reshape as ranked_mask returns a 1D numpy array, dims: n^2 x 1 -> n x n
-    mask_shape = (int(np.sqrt(ranked_mask.shape[0])), -1)
+    # Reshape as ranked_mask returns a 1D numpy array, dims:  n^2 x 1 -> 1 x n x n
+    shape = float_mask.shape
 
-    return ranked_mask.reshape(mask_shape)
+    # Create the ranked mask
+    ranked_mask: np.ndarray = stats.rankdata(float_mask).astype(dtype="int16").reshape(shape)
+
+    return ranked_mask

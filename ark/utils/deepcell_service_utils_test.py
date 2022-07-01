@@ -1,14 +1,12 @@
 import pathlib
 import os
-from sys import byteorder
-from tabnanny import check
 import tempfile
 from zipfile import ZipFile
 import pytest
 from pytest_mock import MockerFixture
 import numpy as np
-from skimage import io, external
-from ark.utils.deepcell_service_utils import create_deepcell_output, _convert_deepcell_seg_masks
+from skimage import io
+from ark.utils.deepcell_service_utils import create_deepcell_output
 
 
 def mocked_run_deepcell(in_zip_path, output_dir, host, job_type, scale, timeout):
