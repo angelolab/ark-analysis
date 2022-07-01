@@ -354,7 +354,6 @@ def calculate_cluster_spatial_enrichment(all_data, dist_matrices_dict, included_
             current_fov_data=current_fov_pheno_data, cluster_ids=cluster_ids)
 
         # subset distance matrix with context
-        # TODO: add asymmetry!!
         if context_col is not None:
             close_num_rand = np.zeros((*close_num, bootstrap_num), dtype=np.uint16)
 
@@ -376,21 +375,20 @@ def calculate_cluster_spatial_enrichment(all_data, dist_matrices_dict, included_
 
                 context_dist_mat = dist_mat.loc[context_cell_labels, context_cell_labels]
 
-                # TODO: real big todo here
-                # bad! need to pass label information
-                # further, since the randomization is asymmetric now, the randomization domain
-                # needs to be known/tracked for both passed contexts!
+                context_pos_labels = [
+                    np.intersect1d(mark_pos_label, context_cell_labels)
+                    for mark_pos_label in mark_pos_labels
+                ]
+
                 close_num_rand = close_num_rand + \
                     spatial_analysis_utils.compute_close_cell_num_random(
-                        context_pheno_nums, context_dist_mat, dist_lim, bootstrap_num
+                        context_pheno_nums, context_pos_labels, context_dist_mat, dist_lim,
+                        bootstrap_num
                     )
 
         else:
             close_num_rand = spatial_analysis_utils.compute_close_cell_num_random(
                 pheno_nums, mark_pos_labels, dist_mat, dist_lim, bootstrap_num)
-
-        # close_num_rand_context = spatial_analysis_utils.compute_close_cell_num_random(
-        #     pheno_nums_per_id, dist_mat, dist_lim, bootstrap_num)
 
         values.append((close_num, close_num_rand))
 
