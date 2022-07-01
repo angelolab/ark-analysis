@@ -109,7 +109,7 @@ def test_compute_close_cell_num():
     thresh_vec = example_thresholds.iloc[0:20, 1].values
 
     # not taking into account mark1labels_per_id return value
-    example_closenum, m1 = spatial_analysis_utils.compute_close_cell_num(
+    example_closenum, m1, _ = spatial_analysis_utils.compute_close_cell_num(
         dist_mat=example_dist_mat, dist_lim=100, analysis_type="channel",
         current_fov_data=all_data, current_fov_channel_data=fov_channel_data,
         thresh_vec=thresh_vec)
@@ -126,7 +126,7 @@ def test_compute_close_cell_num():
     # Subsetting threshold matrix to only include column with threshold values
     thresh_vec = example_thresholds.iloc[0:20, 1].values
 
-    example_closenum, m1 = spatial_analysis_utils.compute_close_cell_num(
+    example_closenum, m1, _ = spatial_analysis_utils.compute_close_cell_num(
         dist_mat=example_dist_mat, dist_lim=100, analysis_type="channel",
         current_fov_data=all_data, current_fov_channel_data=fov_channel_data,
         thresh_vec=thresh_vec)
@@ -139,7 +139,7 @@ def test_compute_close_cell_num():
     all_data, example_dist_mat = test_utils._make_dist_exp_mats_spatial_utils_test()
     cluster_ids = all_data.loc[:, settings.CLUSTER_ID].drop_duplicates().values
 
-    example_closenum, m1 = spatial_analysis_utils.compute_close_cell_num(
+    example_closenum, m1, _ = spatial_analysis_utils.compute_close_cell_num(
         dist_mat=example_dist_mat, dist_lim=100, analysis_type="cluster",
         current_fov_data=all_data, cluster_ids=cluster_ids)
 
