@@ -28,6 +28,9 @@ mapConsensusLabels <- function(fov, pixelMatDir, som_to_meta_map) {
     # assign hierarchical cluster labels
     fovPixelData$pixel_meta_cluster <- som_to_meta_map[as.character(fovPixelData$pixel_som_cluster)]
 
+    # delete previous feather file
+    unlink(matPath)
+
     # write data with consensus labels
     arrow::write_feather(as.data.table(fovPixelData), matPath)
 }

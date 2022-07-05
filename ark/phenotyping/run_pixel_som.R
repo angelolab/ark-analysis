@@ -34,6 +34,9 @@ mapSOMLabels <- function(fov, somWeights, pixelMatDir) {
     # assign cluster labels column to pixel data
     fovPixelData$pixel_som_cluster <- as.integer(clusters[,1])
 
+    # delete existing feather file
+    unlink(matPath)
+
     # write to feather
     arrow::write_feather(as.data.table(fovPixelData),  matPath)
 }

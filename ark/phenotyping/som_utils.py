@@ -1406,7 +1406,10 @@ def update_pixel_meta_labels(pixel_data_path, pixel_remapped_dict,
         pixel_renamed_meta_dict
     )
 
-    # resave the data with the new meta cluster lables
+    # remove previous feather file
+    os.remove(fov_path)
+
+    # resave the data with the new meta cluster labels
     feather.write_dataframe(fov_data, fov_path, compression='uncompressed')
 
 
