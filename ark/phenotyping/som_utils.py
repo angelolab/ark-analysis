@@ -1210,7 +1210,7 @@ def cluster_pixels(fovs, channels, base_dir, data_dir='pixel_mat_data',
 
     # run the trained SOM on the dataset, assigning clusters
     process_args = ['Rscript', '/run_pixel_som.R', ','.join(fovs),
-                    data_path, norm_vals_path, weights_path, str(batch_size)]
+                    data_path, norm_vals_path, weights_path, str(batch_size), out_path]
 
     process = subprocess.Popen(process_args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 

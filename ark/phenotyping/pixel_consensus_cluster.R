@@ -19,17 +19,19 @@ library(foreach)
 library(parallel)
 
 # helper function to map a FOV to its consensus labels
-mapConsensusLabels <- function(fov, pixelMatDir, som_to_meta_map) {
+mapConsensusLabels <- function(fov, pixelMatDir, som_to_meta_map, pixelOutDir) {
     # read in pixel data, we'll need the cluster column for mapping
     fileName <- file.path(fov, "feather", fsep=".")
     matPath <- file.path(pixelMatDir, fileName)
+    matOutPath <- file.path(pixelOutDir, fileName)
+
     fovPixelData <- arrow::read_feather(matPath)
 
     # assign hierarchical cluster labels
     fovPixelData$pixel_meta_cluster <- som_to_meta_map[as.character(fovPixelData$pixel_som_cluster)]
 
     # write data with consensus labels
-    arrow::write_feather(as.data.table(fovPixelData), matPath)
+    arrow::write_feather(as.data.table(fovPixelData), matOutPath)
 }
 
 # get the number of cores
@@ -65,6 +67,8 @@ batchSize <- strtoi(args[8])
 # set the random seed
 seed <- strtoi(args[9])
 set.seed(seed)
+
+pixelOutDir <- args[10]
 
 # read cluster averaged data
 print("Reading cluster averaged data")
@@ -104,7 +108,7 @@ for (batchStart in seq(1, length(fovs), batchSize)) {
         i=batchStart:batchEnd,
         .combine='c'
     ) %dopar% {
-        mapConsensusLabels(fovs[i], pixelMatDir, som_to_meta_map)
+        mapConsensusLabels(fovs[i], pixelMatDir, som_to_meta_map, pixelOutDir)
     }
 
     # unregister the parallel cluster

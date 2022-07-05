@@ -15,9 +15,10 @@ library(foreach)
 library(parallel)
 
 # helper function to map a FOV to its SOM labels
-mapSOMLabels <- function(fov, somWeights, pixelMatDir) {
+mapSOMLabels <- function(fov, somWeights, pixelMatDir, pixelOutDir) {
     fileName <- paste0(fov, ".feather")
     matPath <- file.path(pixelMatDir, fileName)
+    matOutPath <- file.path(pixelOutDir, fileName)
     fovPixelData_all <- data.table(arrow::read_feather(matPath))
 
     # 99.9% normalization
@@ -35,7 +36,7 @@ mapSOMLabels <- function(fov, somWeights, pixelMatDir) {
     fovPixelData$pixel_som_cluster <- as.integer(clusters[,1])
 
     # write to feather
-    arrow::write_feather(as.data.table(fovPixelData),  matPath)
+    arrow::write_feather(as.data.table(fovPixelData), matOutPath)
 }
 
 # get the number of cores
@@ -58,6 +59,9 @@ pixelWeightsPath <- args[4]
 
 # retrieve the batch size to determine number of threads to run in parallel
 batchSize <- strtoi(args[5])
+
+# get new output directory
+pixelOutDir <- args[6]
 
 # read the weights
 somWeights <- as.matrix(arrow::read_feather(pixelWeightsPath))
@@ -91,7 +95,7 @@ for (batchStart in seq(1, length(fovs), batchSize)) {
         i=batchStart:batchEnd,
         .combine='c'
     ) %dopar% {
-        mapSOMLabels(fovs[i], somWeights, pixelMatDir)
+        mapSOMLabels(fovs[i], somWeights, pixelMatDir, pixelOutDir)
     }
 
     # unregister the parallel cluster
