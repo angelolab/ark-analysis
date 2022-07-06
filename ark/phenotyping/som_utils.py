@@ -1416,7 +1416,7 @@ def apply_pixel_meta_cluster_remapping(fovs, channels, base_dir,
                                        pixel_remapped_name,
                                        pc_chan_avg_som_cluster_name,
                                        pc_chan_avg_meta_cluster_name,
-                                       batch_size=5, output_dir):
+                                       output_dir, batch_size=5):
     """Apply the meta cluster remapping to the data in `pixel_consensus_dir`.
 
     Resave the re-mapped consensus data to `pixel_consensus_dir` and re-runs the
