@@ -1370,7 +1370,7 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
 
 
 def update_pixel_meta_labels(pixel_data_path, pixel_remapped_dict,
-                             pixel_renamed_meta_dict, fov, output_path):
+                             pixel_renamed_meta_dict, output_path, fov):
     """Helper function to reassign meta cluster names based on remapping scheme to a FOV
 
     Args:
