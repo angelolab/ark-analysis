@@ -1370,7 +1370,7 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
 
 
 def update_pixel_meta_labels(pixel_data_path, pixel_remapped_dict,
-                             pixel_renamed_meta_dict, fov):
+                             pixel_renamed_meta_dict, fov, output_path):
     """Helper function to reassign meta cluster names based on remapping scheme to a FOV
 
     Args:
@@ -1386,6 +1386,7 @@ def update_pixel_meta_labels(pixel_data_path, pixel_remapped_dict,
 
     # get the path to the fov
     fov_path = os.path.join(pixel_data_path, fov + '.feather')
+    fov_output_path = os.path.join(output_path, fov + '.feather')
 
     # read in the fov data with SOM and meta cluster labels
     fov_data = feather.read_dataframe(fov_path)
@@ -1407,7 +1408,7 @@ def update_pixel_meta_labels(pixel_data_path, pixel_remapped_dict,
     )
 
     # resave the data with the new meta cluster lables
-    feather.write_dataframe(fov_data, fov_path, compression='uncompressed')
+    feather.write_dataframe(fov_data, fov_output_path, compression='uncompressed')
 
 
 def apply_pixel_meta_cluster_remapping(fovs, channels, base_dir,
@@ -1415,7 +1416,7 @@ def apply_pixel_meta_cluster_remapping(fovs, channels, base_dir,
                                        pixel_remapped_name,
                                        pc_chan_avg_som_cluster_name,
                                        pc_chan_avg_meta_cluster_name,
-                                       batch_size=5):
+                                       batch_size=5, output_dir):
     """Apply the meta cluster remapping to the data in `pixel_consensus_dir`.
 
     Resave the re-mapped consensus data to `pixel_consensus_dir` and re-runs the
@@ -1449,6 +1450,11 @@ def apply_pixel_meta_cluster_remapping(fovs, channels, base_dir,
     pixel_remapped_path = os.path.join(base_dir, pixel_remapped_name)
     som_cluster_avg_path = os.path.join(base_dir, pc_chan_avg_som_cluster_name)
     meta_cluster_avg_path = os.path.join(base_dir, pc_chan_avg_meta_cluster_name)
+
+    output_path = os.path.join(base_dir, output_dir)
+
+    if not os.path.exists(output_path):
+        os.makedirs(output_path)
 
     # file path validation
     if not os.path.exists(pixel_data_path):
@@ -1506,7 +1512,7 @@ def apply_pixel_meta_cluster_remapping(fovs, channels, base_dir,
     # define the partial function to iterate over
     fov_data_func = partial(
         update_pixel_meta_labels, pixel_data_path,
-        pixel_remapped_dict, pixel_renamed_meta_dict
+        pixel_remapped_dict, pixel_renamed_meta_dict, output_path
     )
 
     # define the multiprocessing context
