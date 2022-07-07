@@ -68,6 +68,10 @@ def load_imgs_from_mibitiff(data_dir, mibitiff_files=None, channels=None, delimi
     for mibitiff_file in mibitiff_files:
         img_data.append(read_mibitiff(mibitiff_file, channels)[0])
     img_data = np.stack(img_data, axis=0)
+    
+    if np.min(img_data) < 0:
+        warnings.warn("You have images with negative values loaded in.")
+
     img_data = img_data.astype(dtype)
 
     # create xarray with image data
@@ -181,7 +185,7 @@ def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, channels=None,
 
     # check to make sure that dtype wasn't too small for range of data
     if np.min(img_data) < 0:
-        raise ValueError("Integer overflow from loading TIF image, try a larger dtype")
+        warnings.warn("You have images with negative values loaded in.")
 
     row_coords, col_coords = range(img_data.shape[1]), range(img_data.shape[2])
 
@@ -293,6 +297,9 @@ def load_imgs_from_dir(data_dir, files=None, match_substring=None, trim_suffix=N
 
     if channel_indices and multitiff:
         img_data = img_data[:, :, :, channel_indices]
+
+    if np.min(img_data) < 0:
+        warnings.warn("You have images with negative values loaded in.")
 
     if channels_first:
         row_coords, col_coords = range(test_img.shape[1]), range(test_img.shape[2])
