@@ -68,7 +68,7 @@ def load_imgs_from_mibitiff(data_dir, mibitiff_files=None, channels=None, delimi
     for mibitiff_file in mibitiff_files:
         img_data.append(read_mibitiff(mibitiff_file, channels)[0])
     img_data = np.stack(img_data, axis=0)
-    
+
     if np.min(img_data) < 0:
         warnings.warn("You have images with negative values loaded in.")
 
