@@ -1540,7 +1540,7 @@ def apply_pixel_meta_cluster_remapping(fovs, channels, base_dir,
         channels,
         base_dir,
         'pixel_meta_cluster',
-        pixel_data_dir,
+        output_dir,
         keep_count=True
     )
     pixel_channel_avg_meta_cluster['pixel_meta_cluster_rename'] = \
