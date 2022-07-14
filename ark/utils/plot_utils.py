@@ -4,14 +4,14 @@ import matplotlib.colors as colors
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import os
+import shutil
 import pandas as pd
 import xarray as xr
-
+from pathlib import Path
 from skimage.segmentation import find_boundaries
 from skimage.exposure import rescale_intensity
 
-from ark.utils import load_utils
-from ark.utils import misc_utils
+from ark.utils import load_utils, misc_utils, io_utils
 
 # plotting functions
 from ark.utils.misc_utils import verify_in_list, verify_same_elements
@@ -363,3 +363,54 @@ def create_overlay(fov, segmentation_dir, data_dir,
         rescaled[alternate_contour_mask > 0, 1:] = 0
 
     return rescaled
+
+def create_mantis_project(mantis_project_path: Path, img_data_path: Path, mask_output_dir: Path,
+                          mask_suffix: Path, mapping_path: Path, seg_dir: Path,
+                          img_sub_folder: Path='normalized'):
+
+    if not os.path.exists(mantis_project_path):
+        os.makedirs(mantis_project_path)
+
+    # create key from cluster number to cluster name
+    map_df = pd.read_csv(mapping_path)
+    map_df = map_df.loc[:, ['metacluster', 'mc_name']]
+
+    # remove duplicates from df
+    map_df = map_df.drop_duplicates()
+    map_df = map_df.sort_values(by=['metacluster'])
+
+    # rename for mantis names
+    map_df = map_df.rename({'metacluster': 'region_id', 'mn_name': 'region_name'}, axis=1)
+
+    # get names of fovs with masks
+    mask_names = io_utils.list_files(mask_output_dir, mask_suffix)
+    fov_names = io_utils.extract_delimited_names(mask_names, delimiter=mask_suffix)
+
+    # create a folder with image data, pixel masks, and segmentation mask
+    for idx, val in enumerate(fov_names):
+
+        # set up paths
+        img_source_dir = os.path.join(img_data_path, val, img_sub_folder)
+        output_dir = os.path.join(mantis_project_path, val)
+
+        # copy image data if not already copied in from previous round of clustering
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+
+            # copy all channels into new folder
+            chans = io_utils.list_files(img_source_dir, '.tiff')
+            for chan in chans:
+                shutil.copy(os.path.join(img_source_dir, chan), os.path.join(output_dir, chan))
+
+        # copy mask into new folder
+        mask_name = mask_names[idx]
+        shutil.copy(os.path.join(mask_output_dir, mask_name), 
+                    os.path.join(output_dir, 'population{}.tiff'.format(mask_suffix)))
+
+        # copy segmentations into directory
+        seg_name = val + '_feature_0.tif'
+        shutil.copy(os.path.join(seg_dir, seg_name), 
+                    os.path.join(output_dir, 'cell_segmentation.tiff'))
+
+        # copy mapping into directory
+        map_df.to_csv(os.path.join(output_dir, 'population{}.csv'.format(mask_suffix)), index=False)
