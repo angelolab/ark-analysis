@@ -1641,8 +1641,10 @@ def apply_pixel_meta_cluster_remapping(fovs, channels, base_dir,
         fov_list = fovs
     # otherwise, re-run only for unprocessed FOVs
     else:
-        # NOTE: this will only test the else statement
+        # NOTE: this will only test the else statement in find_fovs_missing_col
         fov_list = find_fovs_missing_col(base_dir, pixel_data_dir, 'pixel_meta_cluster_rename')
+        print("Restarting meta cluster remapping assignment from %s, "
+              "%d fovs left to process" % (fov_list[0], len(fov_list)))
 
     # define the multiprocessing context
     with multiprocessing.get_context('spawn').Pool(batch_size) as fov_data_pool:
@@ -1659,7 +1661,8 @@ def apply_pixel_meta_cluster_remapping(fovs, channels, base_dir,
 
             for fs in fov_statuses:
                 if fs[1] == 1:
-                    print("The data for the FOV %s has been corrupted, skipping" % fov)
+                    print("The data for FOV %s has been corrupted, skipping" % fs[0])
+                    fovs_processed -= 1
 
             # update number of fovs processed
             fovs_processed += len(fov_batch)

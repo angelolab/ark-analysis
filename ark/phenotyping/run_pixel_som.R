@@ -112,6 +112,7 @@ for (batchStart in seq(1, length(fovs), batchSize)) {
     for (i in 1:nrow(fovStatuses)) {
         if (fovStatuses[i, 'status'] == 1) {
             print(paste("The data for FOV", fovStatuses[i, 'fov'], "has been corrupted, skipping"))
+            fovsProcessed <- fovsProcessed - 1
         }
     }
 
