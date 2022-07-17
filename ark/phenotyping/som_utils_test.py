@@ -627,9 +627,9 @@ def test_compute_pixel_cluster_channel_avg(cluster_col, keep_count, corrupt):
         # NOTE: subtract out the corrupted counts if specified
         if keep_count:
             if cluster_col == 'pixel_som_cluster':
-                counts = 20 if corrupt == True else 30
+                counts = 20 if corrupt else 30
             else:
-                counts = 200 if corrupt == True else 300
+                counts = 200 if corrupt else 300
 
             count_col = np.expand_dims(np.repeat(counts, repeats=result.shape[0]), axis=1)
             result = np.append(result, count_col, 1)
