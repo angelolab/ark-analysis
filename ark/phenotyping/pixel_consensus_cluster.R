@@ -21,16 +21,29 @@ library(stringi)
 
 # helper function to map a FOV to its consensus labels
 mapConsensusLabels <- function(fov, pixelMatDir, som_to_meta_map) {
-    # read in pixel data, we'll need the cluster column for mapping
+    # define paths to the pixel data, we'll need the cluster column for mapping
     fileName <- file.path(fov, "feather", fsep=".")
     matPath <- file.path(pixelMatDir, fileName)
-    fovPixelData <- arrow::read_feather(matPath)
+
+    # ensure if the FOV cannot be read in to kill this process
+    tryCatch(
+        {
+            fovPixelData <- arrow::read_feather(matPath)
+        },
+        error=function(cond) {
+            # print(paste("The data for FOV", fov, "has been corrupted, skipping"))
+            return(data.frame(fov=fov, status=1))
+        }
+    )
 
     # assign hierarchical cluster labels
     fovPixelData$pixel_meta_cluster <- som_to_meta_map[as.character(fovPixelData$pixel_som_cluster)]
 
     # write data with consensus labels
-    arrow::write_feather(as.data.table(fovPixelData), matPath, compression='uncompressed')
+    tempPath <- file.path(paste0(pixelMatDir, '_temp'), fileName)
+    arrow::write_feather(as.data.table(fovPixelData), tempPath, compression='uncompressed')
+
+    return(data.frame(fov=fov, status=0))
 }
 
 # get the number of cores
@@ -119,11 +132,18 @@ for (batchStart in seq(1, length(fovs), batchSize)) {
     batchEnd <- min(batchStart + batchSize - 1, length(fovs))
 
     # run the multithreaded batch process for mapping to SOM labels and saving
-    foreach(
+    fovStatuses <- foreach(
         i=batchStart:batchEnd,
-        .combine='c'
+        .combine='rbind'
     ) %dopar% {
         mapConsensusLabels(fovs[i], pixelMatDir, som_to_meta_map)
+    }
+
+    # report any erroneous feather files
+    for (i in 1:nrow(fovStatuses)) {
+        if (fovStatuses[i, 'status'] == 1) {
+            print(paste("The data for FOV", fovStatuses[i, 'fov'], "has been corrupted, skipping"))
+        }
     }
 
     # unregister the parallel cluster

@@ -16,9 +16,20 @@ library(parallel)
 
 # helper function to map a FOV to its SOM labels
 mapSOMLabels <- function(fov, somWeights, pixelMatDir) {
+    # define paths to the pixel data
     fileName <- paste0(fov, ".feather")
     matPath <- file.path(pixelMatDir, fileName)
-    fovPixelData_all <- data.table(arrow::read_feather(matPath))
+
+    # ensure if the FOV cannot be read in to kill this process
+    tryCatch(
+        {
+            fovPixelData_all <- data.table(arrow::read_feather(matPath))
+        },
+        error=function(cond) {
+            # print(paste("The data for FOV", fov, "has been corrupted, skipping"))
+            return(data.frame(fov=fov, status=1))
+        }
+    )
 
     # 99.9% normalization
     fovPixelData <- fovPixelData_all[,..markers]
@@ -34,8 +45,11 @@ mapSOMLabels <- function(fov, somWeights, pixelMatDir) {
     # assign cluster labels column to pixel data
     fovPixelData$pixel_som_cluster <- as.integer(clusters[,1])
 
-    # write to feather
-    arrow::write_feather(as.data.table(fovPixelData),  matPath, compression='uncompressed')
+    # write data with SOM labels
+    tempPath <- file.path(paste0(pixelMatDir, '_temp'), fileName)
+    arrow::write_feather(as.data.table(fovPixelData), tempPath, compression='uncompressed')
+
+    return(data.frame(index=fov, status=0))
 }
 
 # get the number of cores
@@ -87,11 +101,18 @@ for (batchStart in seq(1, length(fovs), batchSize)) {
     batchEnd <- min(batchStart + batchSize - 1, length(fovs))
 
     # run the multithreaded batch process for mapping to SOM labels and saving
-    foreach(
+    fovStatuses <- foreach(
         i=batchStart:batchEnd,
-        .combine='c'
+        .combine='rbind'
     ) %dopar% {
         mapSOMLabels(fovs[i], somWeights, pixelMatDir)
+    }
+
+    # report any erroneous feather files
+    for (i in 1:nrow(fovStatuses)) {
+        if (fovStatuses[i, 'status'] == 1) {
+            print(paste("The data for FOV", fovStatuses[i, 'fov'], "has been corrupted, skipping"))
+        }
     }
 
     # unregister the parallel cluster
@@ -103,5 +124,3 @@ for (batchStart in seq(1, length(fovs), batchSize)) {
     # inform user that batchSize fovs have been processed
     print(paste("Processed", as.character(fovsProcessed), "fovs"))
 }
-
-print("Done!")
