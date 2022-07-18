@@ -26,27 +26,27 @@ mapConsensusLabels <- function(fov, pixelMatDir, som_to_meta_map) {
     # define paths to the pixel data, we'll need the cluster column for mapping
     fileName <- file.path(fov, "feather", fsep=".")
     matPath <- file.path(pixelMatDir, fileName)
+    status <- 0
 
     # ensure if the FOV cannot be read in to kill this process
     tryCatch(
         {
             fovPixelData <- arrow::read_feather(matPath)
+
+            # assign hierarchical cluster labels
+            fovPixelData$pixel_meta_cluster <- som_to_meta_map[as.character(fovPixelData$pixel_som_cluster)]
+
+            # write data with consensus labels
+            tempPath <- file.path(paste0(pixelMatDir, '_temp'), fileName)
+            arrow::write_feather(as.data.table(fovPixelData), tempPath, compression='uncompressed')
         },
         error=function(cond) {
-            return(data.frame(fov=fov, status=1))
+            # return(data.frame(fov=fov, status=1))
+            status <- 1
         }
     )
 
-    # assign hierarchical cluster labels
-    if (exists('fovPixelData')) {
-        fovPixelData$pixel_meta_cluster <- som_to_meta_map[as.character(fovPixelData$pixel_som_cluster)]
-
-        # write data with consensus labels
-        tempPath <- file.path(paste0(pixelMatDir, '_temp'), fileName)
-        arrow::write_feather(as.data.table(fovPixelData), tempPath, compression='uncompressed')
-
-        return(data.frame(fov=fov, status=0))
-    }
+    return(data.frame(fov=fov, status=status))
 }
 
 # get the number of cores
@@ -145,7 +145,7 @@ for (batchStart in seq(1, length(fovs), batchSize)) {
     # report any erroneous feather files
     for (i in 1:nrow(fovStatuses)) {
         if (fovStatuses[i, 'status'] == 1) {
-            print(paste("The data for FOV", fovStatuses[i, 'fov'], "has been corrupted, skipping"))
+            print(paste("The data for FOV", fovStatuses[i, 'fov'], "has been corrupted, removing"))
             fovsProcessed <- fovsProcessed - 1
         }
     }
