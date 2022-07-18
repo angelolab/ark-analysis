@@ -7,12 +7,14 @@
 # - normValsPath: path to the 99.9% normalization values file (created during preprocessing)
 # - pixelWeightsPath: path to the SOM weights file
 
-library(arrow)
-library(data.table)
-library(doParallel)
-library(FlowSOM)
-library(foreach)
-library(parallel)
+suppressPackageStartupMessages({
+    library(arrow)
+    library(data.table)
+    library(doParallel)
+    library(FlowSOM)
+    library(foreach)
+    library(parallel)
+})
 
 # helper function to map a FOV to its SOM labels
 mapSOMLabels <- function(fov, somWeights, pixelMatDir) {
@@ -26,30 +28,31 @@ mapSOMLabels <- function(fov, somWeights, pixelMatDir) {
             fovPixelData_all <- data.table(arrow::read_feather(matPath))
         },
         error=function(cond) {
-            # print(paste("The data for FOV", fov, "has been corrupted, skipping"))
             return(data.frame(fov=fov, status=1))
         }
     )
 
     # 99.9% normalization
-    fovPixelData <- fovPixelData_all[,..markers]
-    fovPixelData <- fovPixelData[,Map(`/`,.SD,normVals)]
+    if (exists('fovPixelData_all')) {
+        fovPixelData <- fovPixelData_all[,..markers]
+        fovPixelData <- fovPixelData[,Map(`/`,.SD,normVals)]
 
-    # map FlowSOM data
-    clusters <- FlowSOM:::MapDataToCodes(somWeights, as.matrix(fovPixelData))
+        # map FlowSOM data
+        clusters <- FlowSOM:::MapDataToCodes(somWeights, as.matrix(fovPixelData))
 
-    # add back other columns
-    to_add <- colnames(fovPixelData_all)[!colnames(fovPixelData_all) %in% markers]
-    fovPixelData <- cbind(fovPixelData_all[,..to_add],fovPixelData)
+        # add back other columns
+        to_add <- colnames(fovPixelData_all)[!colnames(fovPixelData_all) %in% markers]
+        fovPixelData <- cbind(fovPixelData_all[,..to_add],fovPixelData)
 
-    # assign cluster labels column to pixel data
-    fovPixelData$pixel_som_cluster <- as.integer(clusters[,1])
+        # assign cluster labels column to pixel data
+        fovPixelData$pixel_som_cluster <- as.integer(clusters[,1])
 
-    # write data with SOM labels
-    tempPath <- file.path(paste0(pixelMatDir, '_temp'), fileName)
-    arrow::write_feather(as.data.table(fovPixelData), tempPath, compression='uncompressed')
+        # write data with SOM labels
+        tempPath <- file.path(paste0(pixelMatDir, '_temp'), fileName)
+        arrow::write_feather(as.data.table(fovPixelData), tempPath, compression='uncompressed')
 
-    return(data.frame(index=fov, status=0))
+        return(data.frame(index=fov, status=0))
+    }
 }
 
 # get the number of cores

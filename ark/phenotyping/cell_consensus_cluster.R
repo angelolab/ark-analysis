@@ -12,9 +12,11 @@
 # - clustToMeta: path to file where the SOM cluster to meta cluster mapping will be written
 # - seed: random factor
 
-library(arrow)
-library(data.table)
-library(ConsensusClusterPlus)
+suppressPackageStartupMessages({
+    library(arrow)
+    library(data.table)
+    library(ConsensusClusterPlus)
+})
 
 # get the command line arguments
 args <- commandArgs(trailingOnly=TRUE)

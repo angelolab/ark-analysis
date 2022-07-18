@@ -12,9 +12,11 @@
 # - cellWeightsPath: path to the SOM weights file
 # - seed: the random seed to use for training
 
-library(arrow)
-library(data.table)
-library(FlowSOM)
+suppressPackageStartupMessages({
+    library(arrow)
+    library(data.table)
+    library(FlowSOM)
+})
 
 # a helper function for computing 99.9%
 percentile_99_9_helper <- function(x) {

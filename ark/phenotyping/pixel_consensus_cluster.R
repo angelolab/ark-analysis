@@ -11,13 +11,15 @@
 # - clustToMetaPath: path to file where the SOM cluster to meta cluster mapping will be written
 # - seed: random factor
 
-library(arrow)
-library(ConsensusClusterPlus)
-library(data.table)
-library(doParallel)
-library(foreach)
-library(parallel)
-library(stringi)
+suppressPackageStartupMessages({
+    library(arrow)
+    library(ConsensusClusterPlus)
+    library(data.table)
+    library(doParallel)
+    library(foreach)
+    library(parallel)
+    library(stringi)
+})
 
 # helper function to map a FOV to its consensus labels
 mapConsensusLabels <- function(fov, pixelMatDir, som_to_meta_map) {
@@ -31,19 +33,20 @@ mapConsensusLabels <- function(fov, pixelMatDir, som_to_meta_map) {
             fovPixelData <- arrow::read_feather(matPath)
         },
         error=function(cond) {
-            # print(paste("The data for FOV", fov, "has been corrupted, skipping"))
             return(data.frame(fov=fov, status=1))
         }
     )
 
     # assign hierarchical cluster labels
-    fovPixelData$pixel_meta_cluster <- som_to_meta_map[as.character(fovPixelData$pixel_som_cluster)]
+    if (exists('fovPixelData')) {
+        fovPixelData$pixel_meta_cluster <- som_to_meta_map[as.character(fovPixelData$pixel_som_cluster)]
 
-    # write data with consensus labels
-    tempPath <- file.path(paste0(pixelMatDir, '_temp'), fileName)
-    arrow::write_feather(as.data.table(fovPixelData), tempPath, compression='uncompressed')
+        # write data with consensus labels
+        tempPath <- file.path(paste0(pixelMatDir, '_temp'), fileName)
+        arrow::write_feather(as.data.table(fovPixelData), tempPath, compression='uncompressed')
 
-    return(data.frame(fov=fov, status=0))
+        return(data.frame(fov=fov, status=0))
+    }
 }
 
 # get the number of cores

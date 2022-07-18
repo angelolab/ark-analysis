@@ -14,9 +14,11 @@
 # - pixelWeightsPath: path to the SOM weights file
 # - seed: the random seed to use for training
 
-library(arrow)
-library(data.table)
-library(FlowSOM)
+suppressPackageStartupMessages({
+    library(arrow)
+    library(data.table)
+    library(FlowSOM)
+})
 
 # get the command line arguments
 args <- commandArgs(trailingOnly=TRUE)
