@@ -24,7 +24,7 @@ suppressPackageStartupMessages({
 # helper function to map a FOV to its consensus labels
 mapConsensusLabels <- function(fov, pixelMatDir, som_to_meta_map) {
     # define paths to the pixel data, we'll need the cluster column for mapping
-    fileName <- file.path(fov, "feather", fsep=".")
+    fileName <- file.path(fov, ".feather", fsep=".")
     matPath <- file.path(pixelMatDir, fileName)
     status <- 0
 
