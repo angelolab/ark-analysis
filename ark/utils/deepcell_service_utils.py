@@ -1,20 +1,28 @@
-from ark.utils import io_utils
-import requests
+from concurrent.futures import ThreadPoolExecutor
+from json import JSONDecodeError
+import os
 from pathlib import Path
+import requests
+from requests.adapters import HTTPAdapter
+from requests.exceptions import RetryError
+from requests.packages.urllib3.util.retry import Retry
 import time
 from tqdm.notebook import tqdm
 from urllib.parse import unquote_plus
-import os
-from zipfile import ZipFile, ZIP_DEFLATED
 import warnings
 from concurrent.futures import ThreadPoolExecutor
-
+import numpy as np
+from scipy import stats
+from skimage import io, external
+from io import BytesIO
 from ark.utils import misc_utils
+from zipfile import ZipFile, ZIP_DEFLATED
+from ark.utils import io_utils, misc_utils
 
 
 def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
                            suffix='_feature_0', host='https://deepcell.org', job_type='mesmer',
-                           scale=1.0, timeout=3600, zip_size=10, parallel=False):
+                           scale=1.0, timeout=3600, zip_size=5, parallel=False):
     """Handles all of the necessary data manipulation for running deepcell tasks.
     Creates .zip files (to be used as input for DeepCell),
     calls run_deepcell_task method,
@@ -113,9 +121,14 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
 
         # pass the zip file to deepcell.org
         print('Uploading files to DeepCell server.')
-        run_deepcell_direct(
+        status = run_deepcell_direct(
             zip_path, deepcell_output_dir, host, job_type, scale, timeout
         )
+
+        # ensure execution is halted if run_deepcell_direct returned non-zero exit code
+        if status != 0:
+            print("The following FOVs could not be processed: %s" % ','.join(fov_group))
+            return
 
         # extract the .tif output
         print("Extracting tif files from DeepCell response.")
@@ -128,8 +141,12 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
 
         with ZipFile(zip_files[-1], "r") as zipObj:
             for name in zipObj.namelist():
-                with open(os.path.join(deepcell_output_dir, name), mode='wb') as f:
-                    f.write(zipObj.read(name))
+                mask_path = os.path.join(deepcell_output_dir, name)
+                byte_repr = zipObj.read(name)
+                ranked_segmentation_mask = _convert_deepcell_seg_masks(byte_repr)
+                io.imsave(mask_path, ranked_segmentation_mask, plugin="tifffile",
+                          check_contrast=False)
+
             for fov in fov_group:
                 if fov + suffix + '.tif' not in zipObj.namelist():
                     warnings.warn(f'Deep Cell output file was not found for {fov}.')
@@ -144,7 +161,7 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
 
 
 def run_deepcell_direct(input_dir, output_dir, host='https://deepcell.org',
-                        job_type='mesmer', scale=1.0, timeout=3600):
+                        job_type='mesmer', scale=1.0, timeout=3600, num_retries=5):
     """Uses direct calls to DeepCell API and saves output to output_dir.
 
     Args:
@@ -163,6 +180,8 @@ def run_deepcell_direct(input_dir, output_dir, host='https://deepcell.org',
         timeout (int):
             Approximate seconds until timeout.
             Default: 1 hour (3600)
+        num_retries (int):
+            The maximum number of times to call the Deepcell API in case of failure
     """
 
     # upload zip file
@@ -175,11 +194,47 @@ def run_deepcell_direct(input_dir, output_dir, host='https://deepcell.org',
         }
         f.seek(0)
 
-    upload_response = requests.post(
-        upload_url,
-        timeout=timeout,
-        files=upload_fields
-    ).json()
+    # define and mount a retry instance to call the Deepcell API again if needed
+    retry_strategy = Retry(
+        total=num_retries,
+        status_forcelist=[404, 500, 502, 503, 504],
+        method_whitelist=['HEAD', 'GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'TRACE']
+    )
+    adapter = HTTPAdapter(max_retries=retry_strategy)
+
+    http = requests.Session()
+    http.mount('https://', adapter)
+    http.mount('http://', adapter)
+
+    total_retries = 0
+    while total_retries < num_retries:
+        # handles the case if the main endpoint can't be reached
+        try:
+            upload_response = http.post(
+                upload_url,
+                timeout=timeout,
+                files=upload_fields
+            )
+        except RetryError as re:
+            print(re)
+            return 1
+
+        # handles the case if the endpoint returns an invalid JSON
+        # indicating an internal API error
+        try:
+            upload_response = upload_response.json()
+        except JSONDecodeError as jde:
+            total_retries += 1
+            continue
+
+        # if we reach the end no errors were encountered on this attempt
+        break
+
+    # if the JSON could not be decoded num_retries number of times
+    if total_retries == num_retries:
+        print("The JSON response from DeepCell could not be decoded after %d attempts" %
+              num_retries)
+        return 1
 
     # call prediction
     predict_url = host + '/api/predict'
@@ -252,4 +307,28 @@ def run_deepcell_direct(input_dir, output_dir, host='https://deepcell.org',
         }
     )
 
-    return
+    return 0
+
+
+def _convert_deepcell_seg_masks(seg_mask: bytes) -> np.ndarray:
+    """Converts the segmentation masks provided by deepcell from `float32` to `int16`
+    (via assigning ranks to data, dealing with ties appropriately)
+    as segmentation masks need to be integers in order to work as intended with
+    scikit-image.
+
+    Args:
+        seg_mask (bytes): The output of deep cell's segmentation algorithm as file bytes.
+
+    Returns:
+        np.ndarray: The segmentation masks, converted from floating point 64-bit to integer
+        16-bit via `scipy.stats.rankdata`
+    """
+    float_mask = external.tifffile.imread(BytesIO(seg_mask))
+
+    # Reshape as ranked_mask returns a 1D numpy array, dims:  n^2 x 1 -> 1 x n x n
+    shape = float_mask.shape
+
+    # Create the ranked mask
+    ranked_mask: np.ndarray = stats.rankdata(float_mask).astype(dtype="int16").reshape(shape)
+
+    return ranked_mask

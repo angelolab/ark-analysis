@@ -507,14 +507,11 @@ def generate_cell_table(segmentation_dir, tiff_dir, img_sub_folder="TIFs",
         # and extract the image data for each batch
         if is_mibitiff:
             image_data = load_utils.load_imgs_from_mibitiff(data_dir=tiff_dir,
-                                                            mibitiff_files=batch_files,
-                                                            dtype=dtype)
+                                                            mibitiff_files=batch_files)
         else:
             image_data = load_utils.load_imgs_from_tree(data_dir=tiff_dir,
                                                         img_sub_folder=img_sub_folder,
-                                                        fovs=batch_names,
-                                                        dtype=dtype)
-
+                                                        fovs=batch_names)
         # define the files for whole cell and nuclear
         whole_cell_files = [fov + '_feature_0.tif' for fov in batch_names]
         nuclear_files = [fov + '_feature_1.tif' for fov in batch_names]
@@ -524,16 +521,12 @@ def generate_cell_table(segmentation_dir, tiff_dir, img_sub_folder="TIFs",
                                                             files=whole_cell_files,
                                                             xr_dim_name='compartments',
                                                             xr_channel_names=['whole_cell'],
-                                                            trim_suffix='_feature_0',
-                                                            force_ints=True)
-
+                                                            trim_suffix='_feature_0')
         current_labels_nuc = load_utils.load_imgs_from_dir(data_dir=segmentation_dir,
                                                            files=nuclear_files,
                                                            xr_dim_name='compartments',
                                                            xr_channel_names=['nuclear'],
-                                                           trim_suffix='_feature_1',
-                                                           force_ints=True)
-
+                                                           trim_suffix='_feature_1')
         current_labels = xr.DataArray(np.concatenate((current_labels_cell.values,
                                                       current_labels_nuc.values),
                                                      axis=-1),

@@ -276,16 +276,14 @@ def mocked_create_fov_pixel_data(fov, channels, img_data, seg_labels, blur_facto
 
 def mocked_preprocess_fov(base_dir, tiff_dir, data_dir, subset_dir, seg_dir, seg_suffix,
                           img_sub_folder, is_mibitiff, channels, blur_factor,
-                          subset_proportion, pixel_norm_val, dtype, seed, channel_norm_df, fov):
+                          subset_proportion, pixel_norm_val, seed, channel_norm_df, fov):
     # load img_xr from MIBITiff or directory with the fov
     if is_mibitiff:
         img_xr = load_utils.load_imgs_from_mibitiff(
-            tiff_dir, mibitiff_files=[fov], dtype=dtype
-        )
+            tiff_dir, mibitiff_files=[fov])
     else:
         img_xr = load_utils.load_imgs_from_tree(
-            tiff_dir, img_sub_folder=img_sub_folder, fovs=[fov], dtype=dtype
-        )
+            tiff_dir, img_sub_folder=img_sub_folder, fovs=[fov])
 
     # ensure the provided channels will actually exist in img_xr
     misc_utils.verify_in_list(
@@ -1198,7 +1196,7 @@ def test_preprocess_fov(mocker):
         som_utils.preprocess_fov(
             temp_dir, tiff_dir, 'pixel_mat_data', 'pixel_mat_subsetted',
             seg_dir, '_feature_0.tif', 'TIFs', False, ['chan0', 'chan1', 'chan2'],
-            2, 0.1, 1, 'int16', 42, channel_norm_df, 'fov0'
+            2, 0.1, 1, 42, channel_norm_df, 'fov0'
         )
 
         fov_data_path = os.path.join(
@@ -1273,6 +1271,19 @@ def test_create_pixel_matrix_base(fovs, chans, sub_dir, seg_dir_include,
                                           tiff_dir='bad_tiff_dir',
                                           seg_dir=None)
 
+        # pass invalid pixel output directory
+        with pytest.raises(FileNotFoundError):
+            som_utils.create_pixel_matrix(fovs=['fov1', 'fov2'],
+                                          channels=['chan1'],
+                                          base_dir=temp_dir,
+                                          tiff_dir=temp_dir,
+                                          seg_dir=None,
+                                          pixel_output_dir='bad_output_dir')
+
+        # make a dummy pixel_output_dir
+        sample_pixel_output_dir = os.path.join(temp_dir, 'pixel_output_dir')
+        os.mkdir(sample_pixel_output_dir)
+
         # create a dummy seg_dir with data if we're on a test that requires segmentation labels
         if seg_dir_include:
             seg_dir = os.path.join(temp_dir, 'segmentation')
@@ -1320,7 +1331,7 @@ def test_create_pixel_matrix_base(fovs, chans, sub_dir, seg_dir_include,
 
             feather.write_dataframe(
                 sample_channel_norm_df,
-                os.path.join(temp_dir, 'test_channel_norm.feather'),
+                os.path.join(temp_dir, sample_pixel_output_dir, 'test_channel_norm.feather'),
                 compression='uncompressed'
             )
 
@@ -1329,7 +1340,7 @@ def test_create_pixel_matrix_base(fovs, chans, sub_dir, seg_dir_include,
             sample_pixel_norm_df = pd.DataFrame({'pixel_norm_val': np.random.rand(1)})
             feather.write_dataframe(
                 sample_pixel_norm_df,
-                os.path.join(temp_dir, 'test_pixel_norm.feather'),
+                os.path.join(temp_dir, sample_pixel_output_dir, 'test_pixel_norm.feather'),
                 compression='uncompressed'
             )
 
@@ -1339,7 +1350,8 @@ def test_create_pixel_matrix_base(fovs, chans, sub_dir, seg_dir_include,
                                       base_dir=temp_dir,
                                       tiff_dir=tiff_dir,
                                       img_sub_folder=sub_dir,
-                                      seg_dir=seg_dir)
+                                      seg_dir=seg_dir,
+                                      pixel_cluster_prefix='test')
 
         # check that we actually created a data directory
         assert os.path.exists(os.path.join(temp_dir, 'pixel_mat_data'))
@@ -1350,13 +1362,13 @@ def test_create_pixel_matrix_base(fovs, chans, sub_dir, seg_dir_include,
         # if there wasn't originally a channel_norm.json, assert one was created
         if not channel_norm_include:
             assert os.path.exists(
-                os.path.join(temp_dir, 'channel_norm.feather')
+                os.path.join(temp_dir, sample_pixel_output_dir, 'test_channel_norm.feather')
             )
 
         # if there wasn't originally a pixel_norm.json, assert one was created
         if not pixel_norm_include:
             assert os.path.exists(
-                os.path.join(temp_dir, 'pixel_norm.feather')
+                os.path.join(temp_dir, sample_pixel_output_dir, 'test_pixel_norm.feather')
             )
 
         for fov in fovs:
@@ -1414,6 +1426,10 @@ def test_create_pixel_matrix_base(fovs, chans, sub_dir, seg_dir_include,
             for chan in chans:
                 io.imsave(os.path.join(fov_dir, chan + '.tiff'), img)
 
+        # recreate the output directory
+        rmtree(sample_pixel_output_dir)
+        os.mkdir(sample_pixel_output_dir)
+
         # create normalization file
         data_dir = os.path.join(temp_dir, 'pixel_mat_data')
 
@@ -1424,7 +1440,7 @@ def test_create_pixel_matrix_base(fovs, chans, sub_dir, seg_dir_include,
                                                'norm_val': mults})
         feather.write_dataframe(
             sample_channel_norm_df,
-            os.path.join(temp_dir, 'channel_norm.feather'),
+            os.path.join(temp_dir, sample_pixel_output_dir, 'test_channel_norm.feather'),
             compression='uncompressed'
         )
 
@@ -1434,7 +1450,7 @@ def test_create_pixel_matrix_base(fovs, chans, sub_dir, seg_dir_include,
                                       tiff_dir=new_tiff_dir,
                                       img_sub_folder=sub_dir,
                                       seg_dir=seg_dir,
-                                      dtype='float32')
+                                      pixel_cluster_prefix='test')
 
 
 # TODO: clean up the following tests
