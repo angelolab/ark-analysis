@@ -28,24 +28,28 @@ mapConsensusLabels <- function(fov, pixelMatDir, som_to_meta_map) {
     matPath <- file.path(pixelMatDir, fileName)
     status <- 0
 
-    # ensure if the FOV cannot be read in to kill this process
-    tryCatch(
+    fovPixelData <- tryCatch(
         {
-            fovPixelData <- arrow::read_feather(matPath)
-
-            # assign hierarchical cluster labels
-            fovPixelData$pixel_meta_cluster <- som_to_meta_map[as.character(fovPixelData$pixel_som_cluster)]
-
-            # write data with consensus labels
-            tempPath <- file.path(paste0(pixelMatDir, '_temp'), fileName)
-            arrow::write_feather(as.data.table(fovPixelData), tempPath, compression='uncompressed')
+            arrow::read_feather(matPath)
         },
         error=function(cond) {
-            status <- 1
+            -1
         }
     )
 
-    return(data.frame(fov=fov, status=status))
+    if (typeof(fovPixelData) == 'double') {
+        status <- 1
+    }
+    else {
+        # assign hierarchical cluster labels
+        fovPixelData$pixel_meta_cluster <- som_to_meta_map[as.character(fovPixelData$pixel_som_cluster)]
+
+        # write data with consensus labels
+        tempPath <- file.path(paste0(pixelMatDir, '_temp'), fileName)
+        arrow::write_feather(as.data.table(fovPixelData), tempPath, compression='uncompressed')
+    }
+
+    data.frame(fov=fov, status=status)
 }
 
 # get the number of cores
@@ -136,9 +140,31 @@ for (batchStart in seq(1, length(fovs), batchSize)) {
     # run the multithreaded batch process for mapping to SOM labels and saving
     fovStatuses <- foreach(
         i=batchStart:batchEnd,
-        .combine='rbind'
+        .combine=rbind
     ) %dopar% {
-        mapConsensusLabels(fovs[i], pixelMatDir, som_to_meta_map)
+        # mapConsensusLabels(fovs[i], pixelMatDir, som_to_meta_map)
+        fileName <- paste0(fovs[i], '.feather')
+        matPath <- file.path(pixelMatDir, fileName)
+
+        status <- tryCatch(
+            {
+                fovPixelData <- arrow::read_feather(matPath)
+
+                # assign hierarchical cluster labels
+                fovPixelData$pixel_meta_cluster <- som_to_meta_map[as.character(fovPixelData$pixel_som_cluster)]
+
+                # write data with consensus labels
+                tempPath <- file.path(paste0(pixelMatDir, '_temp'), fileName)
+                arrow::write_feather(as.data.table(fovPixelData), tempPath, compression='uncompressed')
+
+                data.frame(fov=fovs[i], status=0)
+            },
+            error=function(cond) {
+                data.frame(fov=fovs[i], status=1)
+            }
+        )
+
+        status
     }
 
     # report any erroneous feather files

@@ -16,42 +16,6 @@ suppressPackageStartupMessages({
     library(parallel)
 })
 
-# helper function to map a FOV to its SOM labels
-mapSOMLabels <- function(fov, markers, somWeights, pixelMatDir) {
-    # define paths to the pixel data
-    fileName <- paste0(fov, ".feather")
-    matPath <- file.path(pixelMatDir, fileName)
-    status <- 0
-
-    # ensure if the FOV cannot be read in to kill this process
-    tryCatch(
-        {
-            fovPixelData_all <- data.table(arrow::read_feather(matPath))
-            fovPixelData <- fovPixelData_all[,..markers]
-            fovPixelData <- fovPixelData[,Map(`/`,.SD,normVals)]
-
-            # map FlowSOM data
-            clusters <- FlowSOM:::MapDataToCodes(somWeights, as.matrix(fovPixelData))
-
-            # add back other columns
-            to_add <- colnames(fovPixelData_all)[!colnames(fovPixelData_all) %in% markers]
-            fovPixelData <- cbind(fovPixelData_all[,..to_add],fovPixelData)
-
-            # assign cluster labels column to pixel data
-            fovPixelData$pixel_som_cluster <- as.integer(clusters[,1])
-
-            # write data with SOM labels
-            tempPath <- file.path(paste0(pixelMatDir, '_temp'), fileName)
-            arrow::write_feather(as.data.table(fovPixelData), tempPath, compression='uncompressed')
-        },
-        error=function(cond) {
-            status <- 1
-        }
-    )
-
-    return(data.frame(fov=fov, status=status))
-}
-
 # get the number of cores
 nCores <- parallel::detectCores() - 1
 
@@ -103,9 +67,39 @@ for (batchStart in seq(1, length(fovs), batchSize)) {
     # run the multithreaded batch process for mapping to SOM labels and saving
     fovStatuses <- foreach(
         i=batchStart:batchEnd,
-        .combine='rbind'
+        .combine=rbind
     ) %dopar% {
-        mapSOMLabels(fovs[i], markers, somWeights, pixelMatDir)
+        fileName <- paste0(fovs[i], ".feather")
+        matPath <- file.path(pixelMatDir, fileName)
+
+        status <- tryCatch(
+            {
+                fovPixelData_all <- data.table(arrow::read_feather(matPath))
+                fovPixelData <- fovPixelData_all[,..markers]
+                fovPixelData <- fovPixelData[,Map(`/`,.SD,normVals)]
+
+                # map FlowSOM data
+                clusters <- FlowSOM:::MapDataToCodes(somWeights, as.matrix(fovPixelData))
+
+                # add back other columns
+                to_add <- colnames(fovPixelData_all)[!colnames(fovPixelData_all) %in% markers]
+                fovPixelData <- cbind(fovPixelData_all[,..to_add], fovPixelData)
+
+                # assign cluster labels column to pixel data
+                fovPixelData$pixel_som_cluster <- as.integer(clusters[,1])
+
+                # write data with SOM labels
+                tempPath <- file.path(paste0(pixelMatDir, '_temp'), fileName)
+                arrow::write_feather(as.data.table(fovPixelData), tempPath, compression='uncompressed')
+
+                data.frame(fov=fovs[i], status=0)
+            },
+            error=function(cond) {
+                data.frame(fov=fovs[i], status=1)
+            }
+        )
+
+        status
     }
 
     # report any erroneous feather files
