@@ -1465,6 +1465,9 @@ def generate_create_pixel_matrix_test_data(temp_dir):
         channel_names=PIXEL_MATRIX_CHANS, sub_dir=None, img_shape=(10, 10)
     )
 
+    # make a sample pixel_output_dir
+    os.mkdir(os.path.join(temp_dir, 'pixel_output_dir'))
+
     # create the data, this is just for generation
     som_utils.create_pixel_matrix(fovs=PIXEL_MATRIX_FOVS,
                                   channels=PIXEL_MATRIX_CHANS,
@@ -1492,7 +1495,10 @@ def test_create_pixel_matrix_missing_fov(capsys):
             index=PIXEL_MATRIX_CHANS,
             columns=['fov0', 'fov2']
         )
-        feather.write_dataframe(sample_quant_data, os.path.join(temp_dir, 'quant_dat.feather'))
+        feather.write_dataframe(
+            sample_quant_data,
+            os.path.join(temp_dir, 'pixel_output_dir', 'quant_dat.feather')
+        )
 
         som_utils.create_pixel_matrix(fovs=PIXEL_MATRIX_FOVS,
                                       channels=PIXEL_MATRIX_CHANS,
@@ -1520,7 +1526,10 @@ def test_create_pixel_matrix_missing_fov(capsys):
         # test the case where we've written a FOV to data but not subset
         # NOTE: in this case, the value in quant_dat will also not have been written
         os.remove(os.path.join(temp_dir, 'pixel_mat_subsetted', 'fov1.feather'))
-        feather.write_dataframe(sample_quant_data, os.path.join(temp_dir, 'quant_dat.feather'))
+        feather.write_dataframe(
+            sample_quant_data,
+            os.path.join(temp_dir, 'pixel_output_dir', 'quant_dat.feather')
+        )
 
         som_utils.create_pixel_matrix(fovs=PIXEL_MATRIX_FOVS,
                                       channels=PIXEL_MATRIX_CHANS,
@@ -1591,7 +1600,10 @@ def test_create_pixel_matrix_missing_quant(capsys):
             index=PIXEL_MATRIX_CHANS,
             columns=['fov0']
         )
-        feather.write_dataframe(sample_quant_data, os.path.join(temp_dir, 'quant_dat.feather'))
+        feather.write_dataframe(
+            sample_quant_data,
+            os.path.join(temp_dir, 'pixel_output_dir', 'quant_dat.feather')
+        )
 
         som_utils.create_pixel_matrix(fovs=PIXEL_MATRIX_FOVS,
                                       channels=PIXEL_MATRIX_CHANS,

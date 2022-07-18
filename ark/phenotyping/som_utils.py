@@ -948,7 +948,7 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
 
     # define a path for storing the intermediate quant_dat values, needed in case of restart
     # TODO: change this to saving in the pixel_output_dir after merging in master
-    quant_dat_path = os.path.join(base_dir, 'quant_dat.feather')
+    quant_dat_path = os.path.join(base_dir, pixel_output_dir, 'quant_dat.feather')
 
     # find all the FOV files in the subsetted directory
     # NOTE: this handles the case where the data file was written, but not the subset file
