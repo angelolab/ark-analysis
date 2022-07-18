@@ -21,37 +21,6 @@ suppressPackageStartupMessages({
     library(stringi)
 })
 
-# helper function to map a FOV to its consensus labels
-mapConsensusLabels <- function(fov, pixelMatDir, som_to_meta_map) {
-    # define paths to the pixel data, we'll need the cluster column for mapping
-    fileName <- file.path(fov, "feather", fsep=".")
-    matPath <- file.path(pixelMatDir, fileName)
-    status <- 0
-
-    fovPixelData <- tryCatch(
-        {
-            arrow::read_feather(matPath)
-        },
-        error=function(cond) {
-            -1
-        }
-    )
-
-    if (typeof(fovPixelData) == 'double') {
-        status <- 1
-    }
-    else {
-        # assign hierarchical cluster labels
-        fovPixelData$pixel_meta_cluster <- som_to_meta_map[as.character(fovPixelData$pixel_som_cluster)]
-
-        # write data with consensus labels
-        tempPath <- file.path(paste0(pixelMatDir, '_temp'), fileName)
-        arrow::write_feather(as.data.table(fovPixelData), tempPath, compression='uncompressed')
-    }
-
-    data.frame(fov=fov, status=status)
-}
-
 # get the number of cores
 nCores <- parallel::detectCores() - 1
 
