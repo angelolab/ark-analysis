@@ -41,7 +41,6 @@ mapConsensusLabels <- function(fov, pixelMatDir, som_to_meta_map) {
             arrow::write_feather(as.data.table(fovPixelData), tempPath, compression='uncompressed')
         },
         error=function(cond) {
-            # return(data.frame(fov=fov, status=1))
             status <- 1
         }
     )

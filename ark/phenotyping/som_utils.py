@@ -275,7 +275,7 @@ def compute_pixel_cluster_channel_avg(fovs, channels, base_dir, pixel_cluster_co
                 os.path.join(base_dir, pixel_data_dir, fov + '.feather')
             )
         except (ArrowInvalid, OSError, IOError):
-            print("The data for FOV %s has been corrupted, skipping" % fov)
+            print("The data for FOV %s has been corrupted, removing" % fov)
             continue
 
         # aggregate the sums and counts
@@ -932,25 +932,32 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
     if not os.path.exists(os.path.join(base_dir, subset_dir)):
         os.mkdir(os.path.join(base_dir, subset_dir))
 
-    # find all the FOV files in the data and subsetted directories
-    fovs_data = io_utils.list_files(os.path.join(base_dir, data_dir), substrs='.feather')
+    # create variable for storing 99.9% values
+    quant_dat = pd.DataFrame()
+
+    # define a path for storing the intermediate quant_dat values, needed in case of restart
+    # TODO: change this to saving in the pixel_output_dir after merging in master
+    quant_dat_path = os.path.join(base_dir, 'quant_dat.feather')
+
+    # find all the FOV files in the subsetted directory
+    # NOTE: this handles the case where the data file was written, but not the subset file
     fovs_sub = io_utils.list_files(os.path.join(base_dir, subset_dir), substrs='.feather')
 
-    # need to handle the case where the data file but not the subset file was written
-    fovs_comb = io_utils.remove_file_extensions(set(fovs_data).intersection(set(fovs_sub)))
+    # trim the .feather suffix
+    fovs_comb = io_utils.remove_file_extensions(fovs_sub)
 
-    # if one of the existing FOVs is corrupted, remove it from fovs_comb to preprocess again
-    # TODO: this will also re-preprocess FOVs that get corrupted later down in the pipeline
-    # and propagate those changes to the SOM and meta cluster assignment steps
-    fovs_comb_iter = fovs_comb[:]
-    for fov in fovs_comb_iter:
-        try:
-            feather.read_dataframe(os.path.join(base_dir, data_dir, fov + '.feather'))
-        except (ArrowInvalid, OSError, IOError):
-            print("The data for fov %s has become corrupted, re-running preprocessing on it" % fov)
-            fovs_comb.remove(fov)
+    # if the quant_dat path already exists, we need to check if a failure happened in appending
+    # a fov's normalized data to the table, if so need to regenerate
+    if os.path.exists(quant_dat_path):
+        quant_dat = feather.read_dataframe(quant_dat_path)
+        fovs_quant = quant_dat.columns.values
+
+        # this ensures that FOVs which exist in the subset dir but not the quant table
+        # get regenerated
+        fovs_comb = list(set(fovs_comb).intersection(fovs_quant))
 
     # define the list of FOVs for preprocessing
+    # NOTE: if an existing FOV is already corrupted, future steps will discard it
     fovs_list = list(set(fovs).difference(set(fovs_comb)))
 
     # if there are no FOVs left to preprocess don't run function
@@ -968,9 +975,6 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
     # check to make sure correct channels were specified
     check_for_modified_channels(tiff_dir=tiff_dir, test_fov=fovs[0], img_sub_folder=img_sub_folder,
                                 channels=channels)
-
-    # create variable for storing 99.9% values
-    quant_dat = pd.DataFrame()
 
     # create path for channel normalization values
     channel_norm_path = os.path.join(base_dir, 'channel_norm.feather')
@@ -1022,6 +1026,15 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
                           for i in range(0, len(fovs_list), batch_size)]:
             fov_data_batch = fov_data_pool.map(fov_data_func, fov_batch)
 
+            # if there is an existing quant_dat save state, read it in
+            if os.path.exists(quant_dat_path):
+                quant_dat = feather.read_dataframe(quant_dat_path)
+
+                # because .feather doesn't retain index, need to force rename it
+                rename_dict = {i: chan for i, chan in enumerate(channels)}
+                quant_dat = quant_dat.rename(rename_dict, axis=0)
+
+            # compute the 99.9% quantile values for each FOV
             for pixel_mat_data in fov_data_batch:
                 # retrieve the FOV name, note that there will only be one per FOV DataFrame
                 fov = pixel_mat_data['fov'].unique()[0]
@@ -1033,15 +1046,31 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
 
                 # drop the metadata columns and generate the 99.9% quantile values for the FOV
                 fov_full_pixel_data = pixel_mat_data.drop(columns=cols_to_drop)
+
                 quant_dat[fov] = fov_full_pixel_data.replace(0, np.nan).quantile(q=0.999, axis=0)
+
+            # re-save quant_dat state, delete old file first if needed to avoid corruption
+            if os.path.exists(quant_dat_path):
+                os.remove(quant_dat_path)
+            feather.write_dataframe(quant_dat, quant_dat_path)
 
             # update number of fovs processed
             fovs_processed += len(fov_batch)
 
             print("Processed %d fovs" % fovs_processed)
 
+        # read the quant_dat data in
+        quant_dat = feather.read_dataframe(quant_dat_path)
+
+        # because .feather doesn't retain index, need to force rename it
+        rename_dict = {i: chan for i, chan in enumerate(channels)}
+        quant_dat = quant_dat.rename(rename_dict, axis=0)
+
         # get mean 99.9% across all fovs for all markers
         mean_quant = pd.DataFrame(quant_dat.mean(axis=1))
+
+        # remove quant_dat save state
+        os.remove(quant_dat_path)
 
         # save 99.9% normalization values
         feather.write_dataframe(mean_quant.T,
@@ -1510,7 +1539,6 @@ def update_pixel_meta_labels(pixel_data_path, pixel_remapped_dict,
         fov_data = feather.read_dataframe(fov_path)
     # this indicates this fov file is corrupted
     except (ArrowInvalid, OSError, IOError):
-        # print("The data for the FOV %s has been corrupted, skipping" % fov, flush=True)
         return fov, 1
 
     # ensure that no SOM clusters are missing from the mapping
@@ -1661,7 +1689,7 @@ def apply_pixel_meta_cluster_remapping(fovs, channels, base_dir,
 
             for fs in fov_statuses:
                 if fs[1] == 1:
-                    print("The data for FOV %s has been corrupted, skipping" % fs[0])
+                    print("The data for FOV %s has been corrupted, removing" % fs[0])
                     fovs_processed -= 1
 
             # update number of fovs processed

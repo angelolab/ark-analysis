@@ -1468,8 +1468,16 @@ def test_create_pixel_matrix_missing_fov(capsys):
         tiff_dir = os.path.join(temp_dir, 'sample_image_data')
 
         # test the case where we've already written FOVs to both data and subset folder
+        # TODO: place quant_dat.feather in pixel_output_dir after merging in master
         os.remove(os.path.join(temp_dir, 'pixel_mat_data', 'fov1.feather'))
         os.remove(os.path.join(temp_dir, 'pixel_mat_subsetted', 'fov1.feather'))
+        sample_quant_data = pd.DataFrame(
+            np.random.rand(3, 2),
+            index=PIXEL_MATRIX_CHANS,
+            columns=['fov0', 'fov2']
+        )
+        feather.write_dataframe(sample_quant_data, os.path.join(temp_dir, 'quant_dat.feather'))
+
         som_utils.create_pixel_matrix(fovs=PIXEL_MATRIX_FOVS,
                                       channels=PIXEL_MATRIX_CHANS,
                                       base_dir=temp_dir,
@@ -1494,7 +1502,10 @@ def test_create_pixel_matrix_missing_fov(capsys):
         capsys.readouterr()
 
         # test the case where we've written a FOV to data but not subset
+        # NOTE: in this case, the value in quant_dat will also not have been written
         os.remove(os.path.join(temp_dir, 'pixel_mat_subsetted', 'fov1.feather'))
+        feather.write_dataframe(sample_quant_data, os.path.join(temp_dir, 'quant_dat.feather'))
+
         som_utils.create_pixel_matrix(fovs=PIXEL_MATRIX_FOVS,
                                       channels=PIXEL_MATRIX_CHANS,
                                       base_dir=temp_dir,
@@ -1526,7 +1537,6 @@ def test_create_pixel_matrix_all_fovs(capsys):
 
         tiff_dir = os.path.join(temp_dir, 'sample_image_data')
 
-        # try re-running preprocessing with all the FOVs already written
         som_utils.create_pixel_matrix(fovs=PIXEL_MATRIX_FOVS,
                                       channels=PIXEL_MATRIX_CHANS,
                                       base_dir=temp_dir,
@@ -1546,7 +1556,7 @@ def test_create_pixel_matrix_all_fovs(capsys):
         )
 
 
-def test_create_pixel_matrix_corrupted_fov(capsys):
+def test_create_pixel_matrix_missing_quant(capsys):
     fov_files = [fov + '.feather' for fov in PIXEL_MATRIX_FOVS]
 
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -1555,11 +1565,18 @@ def test_create_pixel_matrix_corrupted_fov(capsys):
 
         tiff_dir = os.path.join(temp_dir, 'sample_image_data')
 
-        # now intentionally corrupt a FOV
-        with open(os.path.join(temp_dir, 'pixel_mat_data', 'fov0.feather'), 'w') as outfile:
-            outfile.write('baddatabaddatabaddata')
+        # add a missing FOV
+        os.remove(os.path.join(temp_dir, 'pixel_mat_data', 'fov1.feather'))
+        os.remove(os.path.join(temp_dir, 'pixel_mat_subsetted', 'fov1.feather'))
 
-        # re-run preprocessing with this corrupted FOV
+        # add a FOV (fov2) that was written to data and subsetted, but not quant_dat
+        sample_quant_data = pd.DataFrame(
+            np.random.rand(3, 1),
+            index=PIXEL_MATRIX_CHANS,
+            columns=['fov0']
+        )
+        feather.write_dataframe(sample_quant_data, os.path.join(temp_dir, 'quant_dat.feather'))
+
         som_utils.create_pixel_matrix(fovs=PIXEL_MATRIX_FOVS,
                                       channels=PIXEL_MATRIX_CHANS,
                                       base_dir=temp_dir,
@@ -1568,11 +1585,9 @@ def test_create_pixel_matrix_corrupted_fov(capsys):
                                       seg_dir=None)
 
         output_capture = capsys.readouterr().out
-        assert output_capture == (
-            "The data for fov fov0 has become corrupted, re-running preprocessing on it\n"
-            "Restarting preprocessing from fov fov0, 1 fovs left to process\n"
-            "Processed 1 fovs\n"
-        )
+        assert "fov0" not in output_capture
+        assert "2 fovs left to process\nProcessed 2 fovs\n" in output_capture
+
         misc_utils.verify_same_elements(
             data_files=io_utils.list_files(os.path.join(temp_dir, 'pixel_mat_data')),
             written_files=fov_files
@@ -2087,6 +2102,7 @@ def generate_test_apply_pixel_meta_cluster_remapping_data(temp_dir, fovs, chans,
     )
 
 
+# TODO: split up this test function
 def test_apply_pixel_meta_cluster_remapping_base():
     with tempfile.TemporaryDirectory() as temp_dir:
         # basic error check: bad path to pixel consensus dir
@@ -2320,11 +2336,10 @@ def test_apply_pixel_meta_cluster_remapping_temp_corrupt(capsys):
         assert not os.path.exists(os.path.join(temp_dir, 'pixel_mat_data_temp'))
 
         output = capsys.readouterr().out
-        assert textwrap.dedent("""
-            Using re-mapping scheme to re-label pixel meta clusters
-            The data for FOV fov1 has been corrupted, skipping
-            Processed 1 fovs
-        """) in output
+        desired_status_updates = "Using re-mapping scheme to re-label pixel meta clusters\n"
+        desired_status_updates += "The data for FOV fov1 has been corrupted, removing\n"
+        desired_status_updates += "Processed 1 fovs\n"
+        assert desired_status_updates in output
 
         # verify that the FOVs in pixel_mat_data are correct
         # NOTE: fov1 should not be written because it was corrupted
