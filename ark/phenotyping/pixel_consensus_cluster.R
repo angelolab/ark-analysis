@@ -67,29 +67,11 @@ clusterAvgsScale <- scale(clusterAvgs[,markers])
 clusterAvgsScale <- sapply(as.data.frame(clusterAvgsScale), pmin, cap)
 clusterAvgsScale <- sapply(as.data.frame(clusterAvgsScale), pmax, -cap)
 
-# define a temporary som_to_meta_map .feather path, used for checkpointing
-clustToMetaTempPath <- stri_replace(clustToMetaPath, '_temp.feather', fixed='.feather')
-
-# if this temp path doesn't exist, run consensus clustering because no checkpoint saved
-if (!file.exists(clustToMetaTempPath)) {
-    # run the consensus clustering
-    suppressMessages(consensusClusterResults <- ConsensusClusterPlus(t(clusterAvgsScale), maxK=maxK, seed=seed))
-    som_to_meta_map <- consensusClusterResults[[maxK]]$consensusClass
-    names(som_to_meta_map) <- clusterAvgs$pixel_som_cluster
-
-    # generate a temporary som_to_meta_map .feather file for checkpointing
-    som_to_meta_map_temp = data.frame(
-        pixel_som_cluster=names(som_to_meta_map),
-        pixel_meta_cluster=som_to_meta_map
-    )
-
-    arrow::write_feather(as.data.table(som_to_meta_map_temp), clustToMetaTempPath, compression='uncompressed')
-# otherwise, read checkpointed som_to_meta_map for assignment on remaining fovs
-} else {
-    som_to_meta_map_temp <- arrow::read_feather(clustToMetaTempPath)
-    som_to_meta_map <- as.numeric(as.vector(som_to_meta_map_temp$pixel_meta_cluster))
-    names(som_to_meta_map) <- as.character(as.vector(som_to_meta_map_temp$pixel_som_cluster))
-}
+# run the consensus clustering
+print("Running consensus clustering")
+suppressMessages(consensusClusterResults <- ConsensusClusterPlus(t(clusterAvgsScale), maxK=maxK, seed=seed))
+som_to_meta_map <- consensusClusterResults[[maxK]]$consensusClass
+names(som_to_meta_map) <- clusterAvgs$pixel_som_cluster
 
 # define variable to keep track of number of fovs processed
 fovsProcessed <- 0
@@ -172,6 +154,3 @@ som_to_meta_map_table <- as.data.table(som_to_meta_map)
 som_to_meta_map_table$pixel_som_cluster <- as.integer(rownames(som_to_meta_map_table))
 som_to_meta_map_table <- setnames(som_to_meta_map_table, "som_to_meta_map", "pixel_meta_cluster")
 arrow::write_feather(som_to_meta_map_table, clustToMetaPath, compression='uncompressed')
-
-# remove the temp som_to_meta_map file
-unlink(clustToMetaTempPath)
