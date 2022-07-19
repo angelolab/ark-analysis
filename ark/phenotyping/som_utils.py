@@ -278,7 +278,7 @@ def compute_pixel_cluster_channel_avg(fovs, channels, base_dir, pixel_cluster_co
                 os.path.join(base_dir, pixel_data_dir, fov + '.feather')
             )
         except (ArrowInvalid, OSError, IOError):
-            print("The data for FOV %s has been corrupted, removing" % fov)
+            print("The data for FOV %s has been corrupted, skipping" % fov)
             continue
 
         # aggregate the sums and counts
@@ -1487,18 +1487,8 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
         os.path.join(base_dir, clust_to_meta_name)
     ).astype(np.int64)
 
-    # because FOVs may become corrupted, we also need to re-compute average channel expression
-    # for each pixel SOM cluster to ensure consistency with meta cluster results
-    pixel_channel_avg_som_cluster = compute_pixel_cluster_channel_avg(
-        fovs,
-        channels,
-        base_dir,
-        'pixel_som_cluster',
-        data_dir,
-        keep_count=True
-    )
-
     # merge metacluster assignments in
+    pixel_channel_avg_som_cluster = pd.read_csv(som_cluster_avg_path)
     pixel_channel_avg_som_cluster = pd.merge_asof(
         pixel_channel_avg_som_cluster, som_to_meta_data, on='pixel_som_cluster'
     )
@@ -1683,7 +1673,7 @@ def apply_pixel_meta_cluster_remapping(fovs, channels, base_dir,
 
             for fs in fov_statuses:
                 if fs[1] == 1:
-                    print("The data for FOV %s has been corrupted, removing" % fs[0])
+                    print("The data for FOV %s has been corrupted, skipping" % fs[0])
                     fovs_processed -= 1
 
             # update number of fovs processed
@@ -1712,19 +1702,9 @@ def apply_pixel_meta_cluster_remapping(fovs, channels, base_dir,
     # re-save the pixel channel average meta cluster table
     pixel_channel_avg_meta_cluster.to_csv(meta_cluster_avg_path, index=False)
 
-    # because FOVs may become corrupted, we also need to re-compute average channel expression
-    # for each pixel SOM cluster to ensure consistency with meta cluster results
-    print("Re-computing average channel expression across pixel SOM clusters")
-    pixel_channel_avg_som_cluster = compute_pixel_cluster_channel_avg(
-        fovs,
-        channels,
-        base_dir,
-        'pixel_som_cluster',
-        pixel_data_dir,
-        keep_count=True
-    )
-
     # re-assign pixel meta cluster labels back to the pixel channel average som cluster table
+    pixel_channel_avg_som_cluster = pd.read_csv(som_cluster_avg_path)
+
     print("Re-assigning meta cluster column in pixel SOM cluster average channel expression table")
     pixel_channel_avg_som_cluster['pixel_meta_cluster'] = \
         pixel_channel_avg_som_cluster['pixel_som_cluster'].map(pixel_remapped_dict)

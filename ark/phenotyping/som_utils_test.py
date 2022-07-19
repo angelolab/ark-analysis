@@ -2320,7 +2320,7 @@ def test_apply_pixel_meta_cluster_remapping_temp_corrupt(capsys):
 
         output = capsys.readouterr().out
         desired_status_updates = "Using re-mapping scheme to re-label pixel meta clusters\n"
-        desired_status_updates += "The data for FOV fov1 has been corrupted, removing\n"
+        desired_status_updates += "The data for FOV fov1 has been corrupted, skipping\n"
         desired_status_updates += "Processed 1 fovs\n"
         assert desired_status_updates in output
 
