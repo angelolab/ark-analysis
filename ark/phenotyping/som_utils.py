@@ -946,26 +946,12 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
     # create variable for storing 99.9% values
     quant_dat = pd.DataFrame()
 
-    # define a path for storing the intermediate quant_dat values, needed in case of restart
-    # TODO: change this to saving in the pixel_output_dir after merging in master
-    quant_dat_path = os.path.join(base_dir, pixel_output_dir, 'quant_dat.feather')
-
     # find all the FOV files in the subsetted directory
     # NOTE: this handles the case where the data file was written, but not the subset file
     fovs_sub = io_utils.list_files(os.path.join(base_dir, subset_dir), substrs='.feather')
 
-    # trim the .feather suffix
+    # trim the .feather suffix from the fovs
     fovs_comb = io_utils.remove_file_extensions(fovs_sub)
-
-    # if the quant_dat path already exists, we need to check if a failure happened in appending
-    # a fov's normalized data to the table, if so need to regenerate
-    if os.path.exists(quant_dat_path):
-        quant_dat = feather.read_dataframe(quant_dat_path)
-        fovs_quant = quant_dat.columns.values
-
-        # this ensures that FOVs which exist in the subset dir but not the quant table
-        # get regenerated
-        fovs_comb = list(set(fovs_comb).intersection(fovs_quant))
 
     # define the list of FOVs for preprocessing
     # NOTE: if an existing FOV is already corrupted, future steps will discard it
@@ -1042,14 +1028,6 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
                           for i in range(0, len(fovs_list), batch_size)]:
             fov_data_batch = fov_data_pool.map(fov_data_func, fov_batch)
 
-            # if there is an existing quant_dat save state, read it in
-            if os.path.exists(quant_dat_path):
-                quant_dat = feather.read_dataframe(quant_dat_path)
-
-                # because .feather doesn't retain index, need to force rename it
-                rename_dict = {i: chan for i, chan in enumerate(channels)}
-                quant_dat = quant_dat.rename(rename_dict, axis=0)
-
             # compute the 99.9% quantile values for each FOV
             for pixel_mat_data in fov_data_batch:
                 # retrieve the FOV name, note that there will only be one per FOV DataFrame
@@ -1062,31 +1040,14 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
 
                 # drop the metadata columns and generate the 99.9% quantile values for the FOV
                 fov_full_pixel_data = pixel_mat_data.drop(columns=cols_to_drop)
-
                 quant_dat[fov] = fov_full_pixel_data.replace(0, np.nan).quantile(q=0.999, axis=0)
-
-            # re-save quant_dat state, delete old file first if needed to avoid corruption
-            if os.path.exists(quant_dat_path):
-                os.remove(quant_dat_path)
-            feather.write_dataframe(quant_dat, quant_dat_path)
 
             # update number of fovs processed
             fovs_processed += len(fov_batch)
-
             print("Processed %d fovs" % fovs_processed)
-
-        # read the quant_dat data in
-        quant_dat = feather.read_dataframe(quant_dat_path)
-
-        # because .feather doesn't retain index, need to force rename it
-        rename_dict = {i: chan for i, chan in enumerate(channels)}
-        quant_dat = quant_dat.rename(rename_dict, axis=0)
 
         # get mean 99.9% across all fovs for all markers
         mean_quant = pd.DataFrame(quant_dat.mean(axis=1))
-
-        # remove quant_dat save state
-        os.remove(quant_dat_path)
 
         # save 99.9% normalization values
         feather.write_dataframe(mean_quant.T,
