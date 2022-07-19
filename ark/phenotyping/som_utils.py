@@ -1526,8 +1526,16 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
         os.path.join(base_dir, clust_to_meta_name)
     ).astype(np.int64)
 
-    # read in the channel-averaged results across all pixel SOM clusters
-    pixel_channel_avg_som_cluster = pd.read_csv(som_cluster_avg_path)
+    # because FOVs may become corrupted, we also need to re-compute average channel expression
+    # for each pixel SOM cluster to ensure consistency with meta cluster results
+    pixel_channel_avg_meta_cluster = compute_pixel_cluster_channel_avg(
+        fovs,
+        channels,
+        base_dir,
+        'pixel_som_cluster',
+        data_dir,
+        keep_count=True
+    )
 
     # merge metacluster assignments in
     pixel_channel_avg_som_cluster = pd.merge_asof(
@@ -1744,7 +1752,7 @@ def apply_pixel_meta_cluster_remapping(fovs, channels, base_dir,
     pixel_channel_avg_meta_cluster.to_csv(meta_cluster_avg_path, index=False)
 
     # because FOVs may become corrupted, we also need to re-compute average channel expression
-    # for each pixel SOM cluster
+    # for each pixel SOM cluster to ensure consistency with meta cluster results
     print("Re-computing average channel expression across pixel SOM clusters")
     pixel_channel_avg_som_cluster = compute_pixel_cluster_channel_avg(
         fovs,
@@ -1757,7 +1765,6 @@ def apply_pixel_meta_cluster_remapping(fovs, channels, base_dir,
 
     # re-assign pixel meta cluster labels back to the pixel channel average som cluster table
     print("Re-assigning meta cluster column in pixel SOM cluster average channel expression table")
-
     pixel_channel_avg_som_cluster['pixel_meta_cluster'] = \
         pixel_channel_avg_som_cluster['pixel_som_cluster'].map(pixel_remapped_dict)
 
