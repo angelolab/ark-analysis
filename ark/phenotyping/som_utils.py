@@ -1528,7 +1528,7 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
 
     # because FOVs may become corrupted, we also need to re-compute average channel expression
     # for each pixel SOM cluster to ensure consistency with meta cluster results
-    pixel_channel_avg_meta_cluster = compute_pixel_cluster_channel_avg(
+    pixel_channel_avg_som_cluster = compute_pixel_cluster_channel_avg(
         fovs,
         channels,
         base_dir,
