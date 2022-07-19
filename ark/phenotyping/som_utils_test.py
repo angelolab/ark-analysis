@@ -1650,7 +1650,7 @@ def test_create_pixel_matrix_corrupted_fov(capsys):
         # even though there's a corrupted fov, the function should skip it
         # this will be handled by later functions
         output_capture = capsys.readouterr().out
-        assert capsys == 'There are no more FOVs to preprocess, skipping'
+        assert output_capture == 'There are no more FOVs to preprocess, skipping\n'
 
         misc_utils.verify_same_elements(
             data_files=io_utils.list_files(os.path.join(temp_dir, 'pixel_mat_data')),
