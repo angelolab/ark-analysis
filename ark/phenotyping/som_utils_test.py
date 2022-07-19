@@ -1626,6 +1626,42 @@ def test_create_pixel_matrix_missing_quant(capsys):
         )
 
 
+def test_create_pixel_matrix_corrupted_fov(capsys):
+    fov_files = [fov + '.feather' for fov in PIXEL_MATRIX_FOVS]
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        generate_create_pixel_matrix_test_data(temp_dir)
+        capsys.readouterr()
+
+        tiff_dir = os.path.join(temp_dir, 'sample_image_data')
+
+        # now intentionally corrupt a FOV
+        with open(os.path.join(temp_dir, 'pixel_mat_data', 'fov0.feather'), 'w') as outfile:
+            outfile.write('baddatabaddatabaddata')
+
+        # re-run preprocessing with this corrupted FOV
+        som_utils.create_pixel_matrix(fovs=PIXEL_MATRIX_FOVS,
+                                      channels=PIXEL_MATRIX_CHANS,
+                                      base_dir=temp_dir,
+                                      tiff_dir=tiff_dir,
+                                      img_sub_folder=None,
+                                      seg_dir=None)
+
+        # even though there's a corrupted fov, the function should skip it
+        # this will be handled by later functions
+        output_capture = capsys.readouterr().out
+        assert capsys == 'There are no more FOVs to preprocess, skipping'
+
+        misc_utils.verify_same_elements(
+            data_files=io_utils.list_files(os.path.join(temp_dir, 'pixel_mat_data')),
+            written_files=fov_files
+        )
+        misc_utils.verify_same_elements(
+            data_files=io_utils.list_files(os.path.join(temp_dir, 'pixel_mat_subsetted')),
+            written_files=fov_files
+        )
+
+
 def test_find_fovs_missing_col_no_temp():
     with tempfile.TemporaryDirectory() as temp_dir:
         # basic error check: provided data path does not exist
