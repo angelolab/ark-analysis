@@ -1305,7 +1305,16 @@ def cluster_pixels(fovs, channels, base_dir, data_dir='pixel_mat_data',
     # ignoring metadata columns in the FOV data, the columns need to be in exactly
     # the same order across both datasets (normalized values and FOV values)
     norm_vals = feather.read_dataframe(os.path.join(base_dir, norm_vals_name))
-    sample_fov = feather.read_dataframe(os.path.join(base_dir, data_dir, data_files[0]))
+
+    # this will prevent reading in a corrupted sample_fov
+    i = 0
+    while i < len(data_files):
+        try:
+            sample_fov = feather.read_dataframe(os.path.join(base_dir, data_dir, data_files[i]))
+        except (ArrowInvalid, OSError, IOError):
+            i += 1
+            continue
+        break
 
     # for verification purposes, drop the metadata columns
     cols_to_drop = ['fov', 'row_index', 'column_index']

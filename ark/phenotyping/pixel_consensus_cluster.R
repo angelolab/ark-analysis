@@ -98,7 +98,9 @@ fovsProcessed <- 0
 print("Mapping pixel data to consensus cluster labels")
 for (batchStart in seq(1, length(fovs), batchSize)) {
     # define the parallel cluster for this batch of fovs
-    parallelCluster <- parallel::makeCluster(nCores, type="FORK")
+    # NOTE: to prevent the occassional hanging first FOV issue, we need to log to an outfile
+    # to "force" a return out of the foreach loop in this case
+    parallelCluster <- parallel::makeCluster(nCores, type="FORK", outfile='log.txt')
 
     # register parallel cluster for dopar
     doParallel::registerDoParallel(cl=parallelCluster)
@@ -111,7 +113,6 @@ for (batchStart in seq(1, length(fovs), batchSize)) {
         i=batchStart:batchEnd,
         .combine=rbind
     ) %dopar% {
-        # mapConsensusLabels(fovs[i], pixelMatDir, som_to_meta_map)
         fileName <- paste0(fovs[i], '.feather')
         matPath <- file.path(pixelMatDir, fileName)
 
@@ -126,14 +127,20 @@ for (batchStart in seq(1, length(fovs), batchSize)) {
                 tempPath <- file.path(paste0(pixelMatDir, '_temp'), fileName)
                 arrow::write_feather(as.data.table(fovPixelData), tempPath, compression='uncompressed')
 
-                data.frame(fov=fovs[i], status=0)
+                # this won't be displayed to the user but is used as a helper to break out
+                # in the rare first FOV hang issue
+                print(paste('Done writing fov', fovs[i]))
+                0
             },
             error=function(cond) {
-                data.frame(fov=fovs[i], status=1)
+                # this won't be displayed to the user but is used as a helper to break out
+                # in the rare first FOV hang issue
+                print(paste('Error encountered for fov', fovs[i]))
+                1
             }
         )
 
-        status
+        data.frame(fov=fovs[i], status=status)
     }
 
     # report any erroneous feather files
@@ -152,6 +159,9 @@ for (batchStart in seq(1, length(fovs), batchSize)) {
 
     # inform user that batchSize fovs have been processed
     print(paste("Processed", as.character(fovsProcessed), "fovs"))
+
+    # remove log.txt
+    unlink('log.txt')
 }
 
 # save the mapping from pixel_som_cluster to pixel_meta_cluster
