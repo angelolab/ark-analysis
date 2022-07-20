@@ -10,8 +10,13 @@ import time
 from tqdm.notebook import tqdm
 from urllib.parse import unquote_plus
 import warnings
+from concurrent.futures import ThreadPoolExecutor
+import numpy as np
+from scipy import stats
+from skimage import io, external
+from io import BytesIO
+from ark.utils import misc_utils
 from zipfile import ZipFile, ZIP_DEFLATED
-
 from ark.utils import io_utils, misc_utils
 
 
@@ -136,8 +141,12 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
 
         with ZipFile(zip_files[-1], "r") as zipObj:
             for name in zipObj.namelist():
-                with open(os.path.join(deepcell_output_dir, name), mode='wb') as f:
-                    f.write(zipObj.read(name))
+                mask_path = os.path.join(deepcell_output_dir, name)
+                byte_repr = zipObj.read(name)
+                ranked_segmentation_mask = _convert_deepcell_seg_masks(byte_repr)
+                io.imsave(mask_path, ranked_segmentation_mask, plugin="tifffile",
+                          check_contrast=False)
+
             for fov in fov_group:
                 if fov + suffix + '.tif' not in zipObj.namelist():
                     warnings.warn(f'Deep Cell output file was not found for {fov}.')
@@ -299,3 +308,27 @@ def run_deepcell_direct(input_dir, output_dir, host='https://deepcell.org',
     )
 
     return 0
+
+
+def _convert_deepcell_seg_masks(seg_mask: bytes) -> np.ndarray:
+    """Converts the segmentation masks provided by deepcell from `float32` to `int16`
+    (via assigning ranks to data, dealing with ties appropriately)
+    as segmentation masks need to be integers in order to work as intended with
+    scikit-image.
+
+    Args:
+        seg_mask (bytes): The output of deep cell's segmentation algorithm as file bytes.
+
+    Returns:
+        np.ndarray: The segmentation masks, converted from floating point 64-bit to integer
+        16-bit via `scipy.stats.rankdata`
+    """
+    float_mask = external.tifffile.imread(BytesIO(seg_mask))
+
+    # Reshape as ranked_mask returns a 1D numpy array, dims:  n^2 x 1 -> 1 x n x n
+    shape = float_mask.shape
+
+    # Create the ranked mask
+    ranked_mask: np.ndarray = stats.rankdata(float_mask).astype(dtype="int16").reshape(shape)
+
+    return ranked_mask
