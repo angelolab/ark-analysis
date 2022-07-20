@@ -10,9 +10,11 @@ import matplotlib.patches as patches
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from pyarrow.lib import ArrowInvalid
 import re
 import scipy.ndimage as ndimage
 import scipy.stats as stats
+from shutil import rmtree
 from skimage.io import imread, imsave
 import xarray as xr
 
@@ -271,9 +273,13 @@ def compute_pixel_cluster_channel_avg(fovs, channels, base_dir, pixel_cluster_co
 
     for fov in fovs:
         # read in the fovs data
-        fov_pixel_data = feather.read_dataframe(
-            os.path.join(base_dir, pixel_data_dir, fov + '.feather')
-        )
+        try:
+            fov_pixel_data = feather.read_dataframe(
+                os.path.join(base_dir, pixel_data_dir, fov + '.feather')
+            )
+        except (ArrowInvalid, OSError, IOError):
+            print("The data for FOV %s has been corrupted, skipping" % fov)
+            continue
 
         # aggregate the sums and counts
         sum_by_cluster = fov_pixel_data.groupby(
@@ -937,12 +943,35 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
     if not os.path.exists(os.path.join(base_dir, subset_dir)):
         os.mkdir(os.path.join(base_dir, subset_dir))
 
+    # create variable for storing 99.9% values
+    quant_dat = pd.DataFrame()
+
+    # find all the FOV files in the subsetted directory
+    # NOTE: this handles the case where the data file was written, but not the subset file
+    fovs_sub = io_utils.list_files(os.path.join(base_dir, subset_dir), substrs='.feather')
+
+    # trim the .feather suffix from the fovs
+    fovs_comb = io_utils.remove_file_extensions(fovs_sub)
+
+    # define the list of FOVs for preprocessing
+    # NOTE: if an existing FOV is already corrupted, future steps will discard it
+    fovs_list = list(set(fovs).difference(set(fovs_comb)))
+
+    # if there are no FOVs left to preprocess don't run function
+    if len(fovs_list) == 0:
+        print("There are no more FOVs to preprocess, skipping")
+        return
+
+    # if the process is only partially complete, inform the user of restart
+    if len(fovs_list) < len(fovs):
+        print("Restarting preprocessing from fov %s, "
+              "%d fovs left to process" % (fovs_list[0], len(fovs_list)))
+    else:
+        fovs_list = fovs
+
     # check to make sure correct channels were specified
     check_for_modified_channels(tiff_dir=tiff_dir, test_fov=fovs[0], img_sub_folder=img_sub_folder,
                                 channels=channels)
-
-    # create variable for storing 99.9% values
-    quant_dat = pd.DataFrame()
 
     # create path for channel normalization values
     channel_norm_path = os.path.join(
@@ -995,9 +1024,11 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
 
         # asynchronously generate and save the pixel matrices per FOV
         # NOTE: fov_data_pool should NOT operate on quant_dat since that is a shared resource
-        for fov_batch in [fovs[i:(i + batch_size)] for i in range(0, len(fovs), batch_size)]:
+        for fov_batch in [fovs_list[i:(i + batch_size)]
+                          for i in range(0, len(fovs_list), batch_size)]:
             fov_data_batch = fov_data_pool.map(fov_data_func, fov_batch)
 
+            # compute the 99.9% quantile values for each FOV
             for pixel_mat_data in fov_data_batch:
                 # retrieve the FOV name, note that there will only be one per FOV DataFrame
                 fov = pixel_mat_data['fov'].unique()[0]
@@ -1013,7 +1044,6 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
 
             # update number of fovs processed
             fovs_processed += len(fov_batch)
-
             print("Processed %d fovs" % fovs_processed)
 
         # get mean 99.9% across all fovs for all markers
@@ -1023,6 +1053,70 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
         feather.write_dataframe(mean_quant.T,
                                 os.path.join(base_dir, norm_vals_name),
                                 compression='uncompressed')
+
+
+def find_fovs_missing_col(base_dir, data_dir, missing_col):
+    """Identify FOV names in `data_dir` without `missing_col`
+
+    Args:
+        base_dir (str):
+            The path to the data directories
+        data_dir (str):
+            Name of the directory which contains the full preprocessed pixel data
+        missing_col (str):
+            Name of the column to identify
+
+    Returns:
+        list:
+            List of FOVs without `missing_col`
+    """
+
+    # define the main data path
+    data_path = os.path.join(base_dir, data_dir)
+
+    # define the temp data path
+    temp_path = os.path.join(base_dir, data_dir + '_temp')
+
+    # verify the data path exists
+    if not os.path.exists(data_path):
+        raise FileNotFoundError('Data directory %s does not exist in base_dir %s' %
+                                (data_dir, base_dir))
+
+    # if the temp path does not exist, either all the FOVs need to be run or none of them do
+    if not os.path.exists(temp_path):
+        # read in one of the FOV files in data_path
+        fov_files = io_utils.list_files(data_path, substrs='.feather')
+
+        # read in a sample FOV, do it this way to avoid potentially corrupted files
+        # NOTE: this assumes only a few files get corrupted each run per MIBIAN runs
+        # NOTE: handling of corrupted files gets propagated to respective R script
+        i = 0
+        while i < len(fov_files):
+            try:
+                fov_data = feather.read_dataframe(os.path.join(data_path, fov_files[i]))
+            except (ArrowInvalid, OSError, IOError):
+                i += 1
+                continue
+            break
+
+        # if the missing_col is not found in fov_data, we need to run all the FOVs
+        if missing_col not in fov_data.columns.values:
+            # we will also make the temp directory to store the new files
+            os.mkdir(temp_path)
+            return io_utils.remove_file_extensions(fov_files)
+        # otherwise, the column has already been assigned for this cohort, no need to run anything
+        else:
+            return []
+    # if the temp path does exist, we have FOVs that need further processing
+    else:
+        # retrieve the FOV file names from both data_path and temp_path
+        data_files = set(io_utils.list_files(data_path, substrs='.feather'))
+        temp_files = set(io_utils.list_files(temp_path, substrs='.feather'))
+
+        # get the difference between the two of these to determine which ones are valid
+        leftover_files = list(data_files.difference(temp_files))
+
+        return io_utils.remove_file_extensions(leftover_files)
 
 
 def train_pixel_som(fovs, channels, base_dir,
@@ -1065,6 +1159,12 @@ def train_pixel_som(fovs, channels, base_dir,
     subsetted_path = os.path.join(base_dir, subset_dir)
     norm_vals_path = os.path.join(base_dir, norm_vals_name)
     weights_path = os.path.join(base_dir, weights_name)
+
+    # if path to weights file already exists, don't run the process
+    if os.path.exists(weights_path):
+        print("Weights file %s already exists in base_dir %s, skipping SOM training" %
+              (weights_name, base_dir))
+        return
 
     # if path to the subsetted file does not exist
     if not os.path.exists(subsetted_path):
@@ -1166,7 +1266,16 @@ def cluster_pixels(fovs, channels, base_dir, data_dir='pixel_mat_data',
     # ignoring metadata columns in the FOV data, the columns need to be in exactly
     # the same order across both datasets (normalized values and FOV values)
     norm_vals = feather.read_dataframe(os.path.join(base_dir, norm_vals_name))
-    sample_fov = feather.read_dataframe(os.path.join(base_dir, data_dir, data_files[0]))
+
+    # this will prevent reading in a corrupted sample_fov
+    i = 0
+    while i < len(data_files):
+        try:
+            sample_fov = feather.read_dataframe(os.path.join(base_dir, data_dir, data_files[i]))
+        except (ArrowInvalid, OSError, IOError):
+            i += 1
+            continue
+        break
 
     # for verification purposes, drop the metadata columns
     cols_to_drop = ['fov', 'row_index', 'column_index']
@@ -1191,8 +1300,21 @@ def cluster_pixels(fovs, channels, base_dir, data_dir='pixel_mat_data',
         pixel_data_columns=sample_fov.columns.values
     )
 
+    # only assign SOM clusters to FOVs that don't already have them
+    fovs_list = find_fovs_missing_col(base_dir, data_dir, 'pixel_som_cluster')
+
+    # if there are no FOVs left without SOM labels don't run function
+    if len(fovs_list) == 0:
+        print("There are no more FOVs to assign SOM labels to, skipping")
+        return
+
+    # if SOM cluster labeling is only partially complete, inform the user of restart
+    if len(fovs_list) < len(fovs):
+        print("Restarting SOM label assignment from fov %s, "
+              "%d fovs left to process" % (fovs_list[0], len(fovs_list)))
+
     # run the trained SOM on the dataset, assigning clusters
-    process_args = ['Rscript', '/run_pixel_som.R', ','.join(fovs),
+    process_args = ['Rscript', '/run_pixel_som.R', ','.join(fovs_list),
                     data_path, norm_vals_path, weights_path, str(batch_size)]
 
     process = subprocess.Popen(process_args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
@@ -1213,6 +1335,10 @@ def cluster_pixels(fovs, channels, base_dir, data_dir='pixel_mat_data',
             "Process terminated: you likely have a memory-related error. Try increasing "
             "your Docker memory limit."
         )
+
+    # remove the data directory and rename the temp directory to the data directory
+    rmtree(data_path)
+    os.rename(data_path + '_temp', data_path)
 
     # compute average channel expression for each pixel SOM cluster
     # and the number of pixels per SOM cluster
@@ -1289,8 +1415,28 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
             (pc_chan_avg_som_cluster_name, base_dir)
         )
 
+    # if the path mapping SOM to meta clusters exists, don't re-run consensus clustering
+    if os.path.exists(clust_to_meta_path):
+        print("SOM to consensus cluster mapping exists at %s in base_dir %s, "
+              "skipping consensus clustering" % (clust_to_meta_name, base_dir))
+        return
+
+    # only assign meta clusters to FOVs that don't already have them
+    fovs_list = find_fovs_missing_col(base_dir, data_dir, 'pixel_meta_cluster')
+
+    # if there are no FOVs left without meta labels don't run function
+    if len(fovs_list) == 0:
+        print("There are no more FOVs to assign meta labels to, skipping")
+        return
+
+    # if meta cluster labeling is only partially complete, inform the user of restart
+    if len(fovs_list) < len(fovs):
+        print("Restarting meta cluster label assignment from fov %s, "
+              "%d fovs left to process" % (fovs_list[0], len(fovs_list)))
+
     # run the consensus clustering process
-    process_args = ['Rscript', '/pixel_consensus_cluster.R', ','.join(fovs), ','.join(channels),
+    process_args = ['Rscript', '/pixel_consensus_cluster.R',
+                    ','.join(fovs_list), ','.join(channels),
                     str(max_k), str(cap), data_path, som_cluster_avg_path,
                     clust_to_meta_path, str(batch_size), str(seed)]
 
@@ -1312,6 +1458,10 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
             "Process terminated: you likely have a memory-related error. Try increasing "
             "your Docker memory limit."
         )
+
+    # remove the data directory and rename the temp directory to the data directory
+    rmtree(data_path)
+    os.rename(data_path + '_temp', data_path)
 
     # compute average channel expression for each pixel meta cluster
     # and the number of pixels per meta cluster
@@ -1337,10 +1487,8 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
         os.path.join(base_dir, clust_to_meta_name)
     ).astype(np.int64)
 
-    # read in the channel-averaged results across all pixel SOM clusters
-    pixel_channel_avg_som_cluster = pd.read_csv(som_cluster_avg_path)
-
     # merge metacluster assignments in
+    pixel_channel_avg_som_cluster = pd.read_csv(som_cluster_avg_path)
     pixel_channel_avg_som_cluster = pd.merge_asof(
         pixel_channel_avg_som_cluster, som_to_meta_data, on='pixel_som_cluster'
     )
@@ -1371,7 +1519,11 @@ def update_pixel_meta_labels(pixel_data_path, pixel_remapped_dict,
     fov_path = os.path.join(pixel_data_path, fov + '.feather')
 
     # read in the fov data with SOM and meta cluster labels
-    fov_data = feather.read_dataframe(fov_path)
+    try:
+        fov_data = feather.read_dataframe(fov_path)
+    # this indicates this fov file is corrupted
+    except (ArrowInvalid, OSError, IOError):
+        return fov, 1
 
     # ensure that no SOM clusters are missing from the mapping
     misc_utils.verify_in_list(
@@ -1390,7 +1542,10 @@ def update_pixel_meta_labels(pixel_data_path, pixel_remapped_dict,
     )
 
     # resave the data with the new meta cluster lables
-    feather.write_dataframe(fov_data, fov_path, compression='uncompressed')
+    temp_path = os.path.join(pixel_data_path + '_temp', fov + '.feather')
+    feather.write_dataframe(fov_data, temp_path, compression='uncompressed')
+
+    return fov, 0
 
 
 def apply_pixel_meta_cluster_remapping(fovs, channels, base_dir,
@@ -1492,6 +1647,17 @@ def apply_pixel_meta_cluster_remapping(fovs, channels, base_dir,
         pixel_remapped_dict, pixel_renamed_meta_dict
     )
 
+    # if it doesn't already exist, create a temporary directory to write the data
+    if not os.path.exists(pixel_data_path + '_temp'):
+        os.mkdir(pixel_data_path + '_temp')
+        fov_list = fovs
+    # otherwise, re-run only for unprocessed FOVs
+    else:
+        # NOTE: this will only test the else statement in find_fovs_missing_col
+        fov_list = find_fovs_missing_col(base_dir, pixel_data_dir, 'pixel_meta_cluster_rename')
+        print("Restarting meta cluster remapping assignment from %s, "
+              "%d fovs left to process" % (fov_list[0], len(fov_list)))
+
     # define the multiprocessing context
     with multiprocessing.get_context('spawn').Pool(batch_size) as fov_data_pool:
         # define variable to keep track of number of fovs processed
@@ -1499,15 +1665,25 @@ def apply_pixel_meta_cluster_remapping(fovs, channels, base_dir,
 
         # asynchronously generate and save the pixel matrices per FOV
         print("Using re-mapping scheme to re-label pixel meta clusters")
-        for fov_batch in [fovs[i:(i + batch_size)] for i in range(0, len(fovs), batch_size)]:
+        for fov_batch in [fov_list[i:(i + batch_size)]
+                          for i in range(0, len(fov_list), batch_size)]:
             # NOTE: we don't need a return value since we're just resaving
             # and not computing intermediate data frames
-            fov_data_pool.map(fov_data_func, fov_batch)
+            fov_statuses = fov_data_pool.map(fov_data_func, fov_batch)
+
+            for fs in fov_statuses:
+                if fs[1] == 1:
+                    print("The data for FOV %s has been corrupted, skipping" % fs[0])
+                    fovs_processed -= 1
 
             # update number of fovs processed
             fovs_processed += len(fov_batch)
 
             print("Processed %d fovs" % fovs_processed)
+
+    # remove the data directory and rename the temp directory to the data directory
+    rmtree(pixel_data_path)
+    os.rename(pixel_data_path + '_temp', pixel_data_path)
 
     # re-compute average channel expression for each pixel meta cluster
     # and the number of pixels per meta cluster, add renamed meta cluster column in
@@ -1527,9 +1703,9 @@ def apply_pixel_meta_cluster_remapping(fovs, channels, base_dir,
     pixel_channel_avg_meta_cluster.to_csv(meta_cluster_avg_path, index=False)
 
     # re-assign pixel meta cluster labels back to the pixel channel average som cluster table
-    print("Re-assigning meta cluster column in pixel SOM cluster average channel expression table")
     pixel_channel_avg_som_cluster = pd.read_csv(som_cluster_avg_path)
 
+    print("Re-assigning meta cluster column in pixel SOM cluster average channel expression table")
     pixel_channel_avg_som_cluster['pixel_meta_cluster'] = \
         pixel_channel_avg_som_cluster['pixel_som_cluster'].map(pixel_remapped_dict)
 
