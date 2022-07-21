@@ -138,13 +138,13 @@ def test_list_files():
 
 def test_remove_file_extensions():
     # test a mixture of file paths and extensions
-    files = ['fov1.tiff', 'fov2.tif', 'fov3.png', 'fov4.jpg']
+    files = ['fov1.tiff', 'fov2.tif', 'fov3.png', 'fov4.jpg', 'fov5.bin', 'fov6.json']
     files2 = ['fov.1.tiff', 'fov.2.tiff', 'fov.3.png', 'fov.4']
 
     assert iou.remove_file_extensions(None) is None
     assert iou.remove_file_extensions([]) == []
 
-    files_sans_ext = ['fov1', 'fov2', 'fov3', 'fov4']
+    files_sans_ext = ['fov1', 'fov2', 'fov3', 'fov4', 'fov5', 'fov6']
 
     new_files = iou.remove_file_extensions(files)
 
