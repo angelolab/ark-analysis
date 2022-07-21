@@ -377,7 +377,7 @@ def create_mantis_project(mantis_project_path: Union[str, pathlib.Path],
     Here is how the contents of the mantis project folder will look like.
 
     ```
-    mantis/
+    mantis_project_path/
         ├── fov0/
         │   ├── cell_segmentation.tiff
         │   ├── chan0.tiff
@@ -403,10 +403,10 @@ def create_mantis_project(mantis_project_path: Union[str, pathlib.Path],
         create a project from.
         mask_output_dir (Union[str, pathlib.Path]): The folder containing all the masks of the
         fovs.
-        mask_suffix (str, optional): The suffix used to find the mask tiffs. Defaults to '_mask'.
         mapping_path (Union[str, pathlib.Path]): The location of the mapping path.
         seg_dir (Union[str, pathlib.Path]): The location of the segmentation directory for the
         fovs.
+        mask_suffix (str, optional): The suffix used to find the mask tiffs. Defaults to '_mask'.
         img_sub_folder (str, optional): The subfolder where the channels exist within the
         `img_data_path`. Defaults to 'normalized'.
     """
