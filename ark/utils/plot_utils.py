@@ -1,3 +1,4 @@
+from typing import Union
 import numpy as np
 import matplotlib.cm as cm
 import matplotlib.colors as colors
@@ -6,8 +7,8 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 import os
 import shutil
 import pandas as pd
+import pathlib
 import xarray as xr
-from pathlib import Path
 from skimage.segmentation import find_boundaries
 from skimage.exposure import rescale_intensity
 
@@ -364,9 +365,51 @@ def create_overlay(fov, segmentation_dir, data_dir,
 
     return rescaled
 
-def create_mantis_project(mantis_project_path: Path, img_data_path: Path, mask_output_dir: Path,
-                          mask_suffix: Path, mapping_path: Path, seg_dir: Path,
-                          img_sub_folder: Path='normalized'):
+
+def create_mantis_project(mantis_project_path: Union[str, pathlib.Path],
+                          img_data_path: Union[str, pathlib.Path],
+                          mask_output_dir: Union[str, pathlib.Path],
+                          mapping_path: Union[str, pathlib.Path],
+                          seg_dir: Union[str, pathlib.Path],
+                          mask_suffix: str = "_mask", img_sub_folder: str = 'normalized'):
+    """Creates a mantis project directory so that it can be opened by the mantis viewer.
+    Copies fovs, segmentation files, masks, and mapping csv's into a new directory structure.
+    Here is how the contents of the mantis project folder will look like.
+
+    ```
+    mantis/
+        ├── fov0/
+        │   ├── cell_segmentation.tiff
+        │   ├── chan0.tiff
+        │   ├── chan1.tiff
+        │   ├── chan2.tiff
+        │   ├── ...
+        │   ├── population_mask.csv
+        │   └── population_mask.tiff
+        └── fov1/
+        │   ├── cell_segmentation.tiff
+        │   ├── chan0.tiff
+        │   ├── chan1.tiff
+        │   ├── chan2.tiff
+        │   ├── ...
+        │   ├── population_mask.csv
+        │   └── population_mask.tiff
+        └── .../
+    ```
+    Args:
+        mantis_project_path (Union[str, pathlib.Path]): The folder where the mantis project
+        will be created.
+        img_data_path (Union[str, pathlib.Path]): The location of the all the fovs you wish to
+        create a project from.
+        mask_output_dir (Union[str, pathlib.Path]): The folder containing all the masks of the
+        fovs.
+        mask_suffix (str, optional): The suffix used to find the mask tiffs. Defaults to '_mask'.
+        mapping_path (Union[str, pathlib.Path]): The location of the mapping path.
+        seg_dir (Union[str, pathlib.Path]): The location of the segmentation directory for the
+        fovs.
+        img_sub_folder (str, optional): The subfolder where the channels exist within the
+        `img_data_path`. Defaults to 'normalized'.
+    """
 
     if not os.path.exists(mantis_project_path):
         os.makedirs(mantis_project_path)
@@ -380,7 +423,7 @@ def create_mantis_project(mantis_project_path: Path, img_data_path: Path, mask_o
     map_df = map_df.sort_values(by=['metacluster'])
 
     # rename for mantis names
-    map_df = map_df.rename({'metacluster': 'region_id', 'mn_name': 'region_name'}, axis=1)
+    map_df = map_df.rename({'metacluster': 'region_id', 'mc_name': 'region_name'}, axis=1)
 
     # get names of fovs with masks
     mask_names = io_utils.list_files(mask_output_dir, mask_suffix)
@@ -388,7 +431,6 @@ def create_mantis_project(mantis_project_path: Path, img_data_path: Path, mask_o
 
     # create a folder with image data, pixel masks, and segmentation mask
     for idx, val in enumerate(fov_names):
-
         # set up paths
         img_source_dir = os.path.join(img_data_path, val, img_sub_folder)
         output_dir = os.path.join(mantis_project_path, val)
@@ -404,13 +446,14 @@ def create_mantis_project(mantis_project_path: Path, img_data_path: Path, mask_o
 
         # copy mask into new folder
         mask_name = mask_names[idx]
-        shutil.copy(os.path.join(mask_output_dir, mask_name), 
+        shutil.copy(os.path.join(mask_output_dir, mask_name),
                     os.path.join(output_dir, 'population{}.tiff'.format(mask_suffix)))
 
-        # copy segmentations into directory
-        seg_name = val + '_feature_0.tif'
-        shutil.copy(os.path.join(seg_dir, seg_name), 
+        # copy the segmentation files into the output directory
+        seg_name = val + '_feature_0.tiff'
+        shutil.copy(os.path.join(seg_dir, seg_name),
                     os.path.join(output_dir, 'cell_segmentation.tiff'))
 
         # copy mapping into directory
-        map_df.to_csv(os.path.join(output_dir, 'population{}.csv'.format(mask_suffix)), index=False)
+        map_df.to_csv(os.path.join(output_dir, 'population{}.csv'.format(mask_suffix)),
+                      index=False)
