@@ -236,7 +236,7 @@ def test_create_overlay():
 def test_create_mantis_project():
 
     # Initial data
-    example_labels = _generate_segmentation_labels((1024, 1024, 1))
+    example_labels = _generate_segmentation_labels((1024, 1024))
     example_masks = _generate_image_data((1024, 1024, 1))
 
     # Misc paths used
