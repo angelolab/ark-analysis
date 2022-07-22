@@ -403,7 +403,8 @@ def test_generate_cell_cluster_mask():
 
 
 def test_generate_pixel_cluster_mask():
-    fovs = ['fov0', 'fov1', 'fov2']
+    fov_count = 7
+    fovs = ['fov{}'.format(i) for i in range(fov_count)]
     chans = ['chan0', 'chan1', 'chan2', 'chan3']
 
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -456,30 +457,34 @@ def test_generate_pixel_cluster_mask():
         # bad fovs provided
         with pytest.raises(ValueError):
             data_utils.generate_pixel_cluster_mask(
-                ['fov1', 'fov2', 'fov3'], temp_dir, temp_dir, os.path.join('fov0', 'chan0.tif'),
+                ['fov1', 'fov2', 'fov_bad'], temp_dir, temp_dir, os.path.join('fov0', 'chan0.tif'),
                 'pixel_mat_consensus', 'pixel_som_cluster'
             )
 
         # test on SOM assignments
-        pixel_masks = data_utils.generate_pixel_cluster_mask(
-            fovs, temp_dir, temp_dir, os.path.join('fov0', 'chan0.tif'),
-            'pixel_mat_consensus', 'pixel_som_cluster'
-        )
+        # Test various values of `batch_sizes`
+        batch_sizes = [1, 2, 3, 4, 5, 10]
 
-        # assert we have 3 fovs and the image size is the same as the mask (40, 40)
-        assert pixel_masks.shape == (3, 40, 40)
+        for batch_size in batch_sizes:
+            pixel_masks = data_utils.generate_pixel_cluster_mask(
+                fovs, temp_dir, temp_dir, os.path.join('fov0', 'chan0.tif'),
+                'pixel_mat_consensus', 'pixel_som_cluster', batch_size=batch_size
+            )
 
-        # assert no value is greater than the highest SOM cluster value (10)
-        assert np.all(pixel_masks <= 10)
+            # assert we have 3 fovs and the image size is the same as the mask (40, 40)
+            assert pixel_masks.shape == (fov_count, 40, 40)
 
-        # test on meta assignments
-        pixel_masks = data_utils.generate_pixel_cluster_mask(
-            fovs, temp_dir, temp_dir, os.path.join('fov0', 'chan0.tif'),
-            'pixel_mat_consensus', 'pixel_meta_cluster'
-        )
+            # assert no value is greater than the highest SOM cluster value (10)
+            assert np.all(pixel_masks <= 10)
 
-        # assert we have 3 fovs and the image size is the same as the mask (40, 40)
-        assert pixel_masks.shape == (3, 40, 40)
+            # test on meta assignments
+            pixel_masks = data_utils.generate_pixel_cluster_mask(
+                fovs, temp_dir, temp_dir, os.path.join('fov0', 'chan0.tif'),
+                'pixel_mat_consensus', 'pixel_meta_cluster'
+            )
 
-        # assert no value is greater than the highest meta cluster value (5)
-        assert np.all(pixel_masks <= 5)
+            # assert we have 3 fovs and the image size is the same as the mask (40, 40)
+            assert pixel_masks.shape == (fov_count, 40, 40)
+
+            # assert no value is greater than the highest meta cluster value (5)
+            assert np.all(pixel_masks <= 5)

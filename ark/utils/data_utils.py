@@ -171,7 +171,8 @@ def generate_cell_cluster_mask(fovs, base_dir, seg_dir, cell_data_name,
 
 
 def generate_pixel_cluster_mask(fovs, base_dir, tiff_dir, chan_file,
-                                pixel_data_dir, pixel_cluster_col='pixel_meta_cluster'):
+                                pixel_data_dir, pixel_cluster_col='pixel_meta_cluster',
+                                batch_size=5):
     """For each fov, create a mask labeling each pixel with their SOM or meta cluster label
 
     Args:
@@ -190,6 +191,8 @@ def generate_pixel_cluster_mask(fovs, base_dir, tiff_dir, chan_file,
         pixel_cluster_col (str):
             Whether to assign SOM or meta clusters
             needs to be `'pixel_som_cluster'` or `'pixel_meta_cluster'`
+        batch_size (int):
+            The number of fovs to process at once for each batch. Defaults to 5.
 
     Returns:
         xarray.DataArray:
@@ -227,29 +230,33 @@ def generate_pixel_cluster_mask(fovs, base_dir, tiff_dir, chan_file,
     # define an array to hold the overlays for each fov
     img_data = np.zeros((len(fovs), channel_data.shape[0], channel_data.shape[1]))
 
-    for i, fov in enumerate(fovs):
-        # read the pixel data for the fov
-        fov_data = feather.read_dataframe(
-            os.path.join(base_dir, pixel_data_dir, fov + '.feather')
-        )
+    # define a list of fov batches to process over
+    fov_batches = [fovs[i:i + batch_size] for i in range(0, len(fovs), batch_size)]
 
-        # ensure integer display and not float
-        fov_data[pixel_cluster_col] = fov_data[pixel_cluster_col].astype(int)
+    for fov_batch_idx, fov_batch in enumerate(fov_batches):
+        for i, fov in enumerate(fov_batch, start=fov_batch_idx*batch_size):
+            # read the pixel data for the fov
+            fov_data = feather.read_dataframe(
+                os.path.join(base_dir, pixel_data_dir, fov + '.feather')
+            )
 
-        # get the pixel coordinates
-        x_coords = fov_data['row_index'].values
-        y_coords = fov_data['column_index'].values
+            # ensure integer display and not float
+            fov_data[pixel_cluster_col] = fov_data[pixel_cluster_col].astype(int)
 
-        # convert to 1D indexing
-        coordinates = x_coords * img_data.shape[1] + y_coords
+            # get the pixel coordinates
+            x_coords = fov_data['row_index'].values
+            y_coords = fov_data['column_index'].values
 
-        # get the cooresponding cluster labels for each pixel
-        cluster_labels = list(fov_data[pixel_cluster_col])
+            # convert to 1D indexing
+            coordinates = x_coords * img_data.shape[1] + y_coords
 
-        # assign each coordinate in pixel_cluster_mask to its respective cluster label
-        img_subset = img_data[i, ...].ravel()
-        img_subset[coordinates] = cluster_labels
-        img_data[i, ...] = img_subset.reshape(img_data[i, ...].shape)
+            # get the cooresponding cluster labels for each pixel
+            cluster_labels = list(fov_data[pixel_cluster_col])
+
+            # assign each coordinate in pixel_cluster_mask to its respective cluster label
+            img_subset = img_data[i, ...].ravel()
+            img_subset[coordinates] = cluster_labels
+            img_data[i, ...] = img_subset.reshape(img_data[i, ...].shape)
 
     # create the stacked img_data xarray and return
     return xr.DataArray(img_data, coords=[fovs, range(img_data[0].shape[0]),
