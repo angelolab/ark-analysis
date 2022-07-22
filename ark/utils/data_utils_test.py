@@ -16,7 +16,8 @@ from ark import settings
 
 def test_save_fov_images():
     # define the full set of fovs as well as a subset of fovs
-    fovs = ['fov0', 'fov1', 'fov2']
+    fov_count = 7
+    fovs = ['fov{}'.format(i) for i in range(fov_count)]
     fovs_sub = fovs[:2]
 
     # generate a random img_xr
@@ -65,6 +66,17 @@ def test_save_fov_images():
         save_dir = os.path.join(temp_dir, "sub_directory")
         for fov in fovs_sub:
             assert os.path.exists(os.path.join(save_dir, fov + ".tiff"))
+
+    # test 5: test various batch_sizes
+    with tempfile.TemporaryDirectory() as temp_dir:
+        batch_sizes = [1, 2, 3, 4, 5, 10]
+
+        for batch_size in batch_sizes:
+            data_utils.save_fov_images(fovs_sub, temp_dir, sample_img_xr,
+                                       sub_dir="sub_directory", batch_size=batch_size)
+            save_dir = os.path.join(temp_dir, "sub_directory")
+            for fov in fovs_sub:
+                assert os.path.exists(os.path.join(save_dir, fov + ".tiff"))
 
 
 def test_generate_deepcell_input():
@@ -471,7 +483,7 @@ def test_generate_pixel_cluster_mask():
                 'pixel_mat_consensus', 'pixel_som_cluster', batch_size=batch_size
             )
 
-            # assert we have 3 fovs and the image size is the same as the mask (40, 40)
+            # assert we have 7 fovs and the image size is the same as the mask (40, 40)
             assert pixel_masks.shape == (fov_count, 40, 40)
 
             # assert no value is greater than the highest SOM cluster value (10)
@@ -483,7 +495,7 @@ def test_generate_pixel_cluster_mask():
                 'pixel_mat_consensus', 'pixel_meta_cluster'
             )
 
-            # assert we have 3 fovs and the image size is the same as the mask (40, 40)
+            # assert we have 7 fovs and the image size is the same as the mask (40, 40)
             assert pixel_masks.shape == (fov_count, 40, 40)
 
             # assert no value is greater than the highest meta cluster value (5)

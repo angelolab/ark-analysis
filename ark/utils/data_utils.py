@@ -10,7 +10,7 @@ from ark.utils import load_utils
 from ark.utils.misc_utils import verify_in_list
 
 
-def save_fov_images(fovs, data_dir, img_xr, sub_dir=None, name_suffix=''):
+def save_fov_images(fovs, data_dir, img_xr, sub_dir=None, name_suffix='', batch_size=5):
     """Given an xarray of images per fov, saves each image separately
 
     Args:
@@ -26,6 +26,8 @@ def save_fov_images(fovs, data_dir, img_xr, sub_dir=None, name_suffix=''):
             to None.
         name_suffix (str):
             Specify what to append at the end of every fov.
+        batch_size (int):
+            The number of fovs to process at once for each batch. Defaults to 5.
     """
 
     if not os.path.exists(data_dir):
@@ -46,15 +48,19 @@ def save_fov_images(fovs, data_dir, img_xr, sub_dir=None, name_suffix=''):
         # Save the fovs in the directory `data_dir`
         save_dir = data_dir
 
-    for fov in fovs:
-        # retrieve the image for the fov
-        fov_img_data = img_xr.loc[fov, ...].values
+    # define a list of fov batches to process over
+    fov_batches = [fovs[i:i + batch_size] for i in range(0, len(fovs), batch_size)]
 
-        # define the file name as the fov name with the name suffix appended
-        fov_file = fov + name_suffix + '.tiff'
+    for for_batch in fov_batches:
+        for fov in fov_batches:
+            # retrieve the image for the fov
+            fov_img_data = img_xr.loc[fov, ...].values
 
-        # save the image to data_dir
-        io.imsave(os.path.join(save_dir, fov_file), fov_img_data, check_contrast=False)
+            # define the file name as the fov name with the name suffix appended
+            fov_file = fov + name_suffix + '.tiff'
+
+            # save the image to data_dir
+            io.imsave(os.path.join(save_dir, fov_file), fov_img_data, check_contrast=False)
 
 
 def label_cells_by_cluster(fovs, all_data, label_maps, fov_col=settings.FOV_ID,
