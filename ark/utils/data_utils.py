@@ -51,8 +51,8 @@ def save_fov_images(fovs, data_dir, img_xr, sub_dir=None, name_suffix='', batch_
     # define a list of fov batches to process over
     fov_batches = [fovs[i:i + batch_size] for i in range(0, len(fovs), batch_size)]
 
-    for for_batch in fov_batches:
-        for fov in fov_batches:
+    for fov_batch in fov_batches:
+        for fov in fov_batch:
             # retrieve the image for the fov
             fov_img_data = img_xr.loc[fov, ...].values
 

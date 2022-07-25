@@ -22,7 +22,7 @@ def test_save_fov_images():
 
     # generate a random img_xr
     sample_img_xr = xr.DataArray(
-        np.random.rand(3, 40, 40),
+        np.random.rand(fov_count, 40, 40),
         coords=[fovs, np.arange(40), np.arange(40)],
         dims=['fovs', 'x', 'y']
     )
@@ -35,7 +35,7 @@ def test_save_fov_images():
 
         # invalid fovs provided
         with pytest.raises(ValueError):
-            data_utils.save_fov_images(['fov1', 'fov2', 'fov3'], temp_dir, sample_img_xr)
+            data_utils.save_fov_images(['fov1', 'fov2', 'fov_bad'], temp_dir, sample_img_xr)
 
     # test 1: all fovs provided
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -72,7 +72,7 @@ def test_save_fov_images():
         batch_sizes = [1, 2, 3, 4, 5, 10]
 
         for batch_size in batch_sizes:
-            data_utils.save_fov_images(fovs_sub, temp_dir, sample_img_xr,
+            data_utils.save_fov_images(fovs, temp_dir, sample_img_xr,
                                        sub_dir="sub_directory", batch_size=batch_size)
             save_dir = os.path.join(temp_dir, "sub_directory")
             for fov in fovs_sub:
