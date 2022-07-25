@@ -1988,6 +1988,8 @@ def cell_consensus_cluster(fovs, channels, base_dir, pixel_cluster_col, max_k=20
         index=False
     )
 
+    os.remove('Rplots.pdf')
+
 
 def apply_cell_meta_cluster_remapping(fovs, channels, base_dir, cell_consensus_name,
                                       cell_remapped_name,
