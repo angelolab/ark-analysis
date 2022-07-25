@@ -210,8 +210,7 @@ def save_segmentation_labels(segmentation_dir, data_dir, output_dir,
                                                xr_dim_name='compartments',
                                                xr_channel_names=['whole_cell'],
                                                trim_suffix='_feature_0',
-                                               match_substring='_feature_0',
-                                               force_ints=True)
+                                               match_substring='_feature_0')
 
         # generates segmentation borders and labels
         labels = labels.loc[fov, :, :, 'whole_cell'].values

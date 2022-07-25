@@ -14,9 +14,11 @@
 # - pixelWeightsPath: path to the SOM weights file
 # - seed: the random seed to use for training
 
-library(arrow)
-library(data.table)
-library(FlowSOM)
+suppressPackageStartupMessages({
+    library(arrow)
+    library(data.table)
+    library(FlowSOM)
+})
 
 # get the command line arguments
 args <- commandArgs(trailingOnly=TRUE)
@@ -77,4 +79,4 @@ somResults <- SOM(data=as.matrix(pixelSubsetData), rlen=numPasses,
 
 # write the weights to feather
 print("Save trained weights")
-arrow::write_feather(as.data.table(somResults$codes), pixelWeightsPath)
+arrow::write_feather(as.data.table(somResults$codes), pixelWeightsPath, compression='uncompressed')
