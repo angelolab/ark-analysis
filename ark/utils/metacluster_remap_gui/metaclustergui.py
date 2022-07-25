@@ -306,9 +306,10 @@ class MetaClusterGui():
         ])
         self.toolbar = widgets.HBox([
             self.tools,
-            self.metacluster_info,
+            self.metacluster_info
         ])
-        self.toolbar.layout.justify_content = 'space-between'
+
+        self.toolbar.layout.justify_content = 'center'
         self.plot_output = widgets.Output()
         self.gui = widgets.VBox([self.plot_output, self.toolbar])
 

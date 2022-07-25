@@ -1499,6 +1499,8 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
         index=False
     )
 
+    os.remove('Rplots.pdf')
+
 
 def update_pixel_meta_labels(pixel_data_path, pixel_remapped_dict,
                              pixel_renamed_meta_dict, fov):
@@ -2144,6 +2146,8 @@ def cell_consensus_cluster(fovs, channels, base_dir, pixel_cluster_col, max_k=20
         os.path.join(base_dir, cell_meta_cluster_channel_avg_name),
         index=False
     )
+
+    os.remove('Rplots.pdf')
 
 
 def apply_cell_meta_cluster_remapping(fovs, channels, base_dir, cell_consensus_name,
