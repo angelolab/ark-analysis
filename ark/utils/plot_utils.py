@@ -370,7 +370,7 @@ def create_mantis_project(mantis_project_path: Union[str, pathlib.Path],
     Here is how the contents of the mantis project folder will look like.
 
     ```
-    mantis_project_path/
+    mantis_project/
         ├── fov0/
         │   ├── cell_segmentation.tiff
         │   ├── chan0.tiff
@@ -391,18 +391,21 @@ def create_mantis_project(mantis_project_path: Union[str, pathlib.Path],
     ```
 
     Args:
-        mantis_project_path (Union[str, pathlib.Path]): The folder where the mantis project
-        will be created.
-        img_data_path (Union[str, pathlib.Path]): The location of the all the fovs you wish to
-        create a project from.
-        mask_output_dir (Union[str, pathlib.Path]): The folder containing all the masks of the
-        fovs.
-        mapping_path (Union[str, pathlib.Path]): The location of the mapping path file.
-        seg_dir (Union[str, pathlib.Path]): The location of the segmentation directory for the
-        fovs.
-        mask_suffix (str, optional): The suffix used to find the mask tiffs. Defaults to "_mask".
-        img_sub_folder (str, optional): The subfolder where the channels exist within the
-        `img_data_path`. Defaults to 'normalized'.
+        mantis_project_path (Union[str, pathlib.Path]):
+            The folder where the mantis project will be created.
+        img_data_path (Union[str, pathlib.Path]):
+            The location of the all the fovs you wish to create a project from.
+        mask_output_dir (Union[str, pathlib.Path]):
+            The folder containing all the masks of the fovs.
+        mapping_path (Union[str, pathlib.Path]):
+            The location of the mapping path file.
+        seg_dir (Union[str, pathlib.Path]):
+            The location of the segmentation directory for the fovs.
+        mask_suffix (str, optional):
+            The suffix used to find the mask tiffs. Defaults to "_mask".
+        img_sub_folder (str, optional):
+            The subfolder where the channels exist within the `img_data_path`.
+            Defaults to 'normalized'.
     """
 
     if not os.path.exists(mantis_project_path):
