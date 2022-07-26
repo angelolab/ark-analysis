@@ -43,6 +43,8 @@ def test_save_fov_images():
 
         for fov in fovs:
             assert os.path.exists(os.path.join(temp_dir, fov + '.tiff'))
+            temp_img = io.imread(os.path.join(temp_dir, fov + '.tiff'))
+            assert temp_img.dtype == 'int16'
 
     # test 2: fov subset provided
     with tempfile.TemporaryDirectory() as temp_dir:

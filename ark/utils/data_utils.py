@@ -29,6 +29,7 @@ def save_fov_images(fovs, data_dir, img_xr, sub_dir=None, name_suffix='', batch_
         batch_size (int):
             The number of fovs to process at once for each batch. Defaults to 5.
     """
+    img_xr = img_xr.astype('int16')
 
     if not os.path.exists(data_dir):
         raise FileNotFoundError("data_dir %s does not exist" % data_dir)
