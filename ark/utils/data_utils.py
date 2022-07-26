@@ -27,6 +27,7 @@ def save_fov_images(fovs, data_dir, img_xr, sub_dir=None, name_suffix=''):
         name_suffix (str):
             Specify what to append at the end of every fov.
     """
+    img_xr = img_xr.astype('int16')
 
     if not os.path.exists(data_dir):
         raise FileNotFoundError("data_dir %s does not exist" % data_dir)
