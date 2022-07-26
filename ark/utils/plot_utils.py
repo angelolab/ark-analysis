@@ -389,6 +389,7 @@ def create_mantis_project(mantis_project_path: Union[str, pathlib.Path],
         │   └── population_mask.tiff
         └── .../
     ```
+
     Args:
         mantis_project_path (Union[str, pathlib.Path]): The folder where the mantis project
         will be created.
@@ -396,10 +397,10 @@ def create_mantis_project(mantis_project_path: Union[str, pathlib.Path],
         create a project from.
         mask_output_dir (Union[str, pathlib.Path]): The folder containing all the masks of the
         fovs.
-        mapping_path (Union[str, pathlib.Path]): The location of the mapping path.
+        mapping_path (Union[str, pathlib.Path]): The location of the mapping path file.
         seg_dir (Union[str, pathlib.Path]): The location of the segmentation directory for the
         fovs.
-        mask_suffix (str, optional): The suffix used to find the mask tiffs. Defaults to '_mask'.
+        mask_suffix (str, optional): The suffix used to find the mask tiffs. Defaults to "_mask".
         img_sub_folder (str, optional): The subfolder where the channels exist within the
         `img_data_path`. Defaults to 'normalized'.
     """
