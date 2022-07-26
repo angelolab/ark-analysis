@@ -1,6 +1,6 @@
 # Runs consensus clustering on the pixel data averaged across all channels
 
-# Usage: Rscript {fovs} {markers} {maxK} {cap} {pixelMatDir} {clusterAvgPath} {clustToMeta} {seed}
+# Usage: Rscript {fovs} {markers} {maxK} {cap} {pixelMatDir} {clusterAvgPath} {clustToMetaPath} {seed}
 
 # - fovs: list of fovs to cluster
 # - markers: list of channel columns to use
@@ -8,29 +8,18 @@
 # - cap: max z-score cutoff
 # - pixelMatDir: path to the pixel data with SOM clusters
 # - clusterAvgPath: path to the averaged cluster data
-# - clustToMeta: path to file where the SOM cluster to meta cluster mapping will be written
+# - clustToMetaPath: path to file where the SOM cluster to meta cluster mapping will be written
 # - seed: random factor
 
-library(arrow)
-library(ConsensusClusterPlus)
-library(data.table)
-library(doParallel)
-library(foreach)
-library(parallel)
-
-# helper function to map a FOV to its consensus labels
-mapConsensusLabels <- function(fov, pixelMatDir, som_to_meta_map) {
-    # read in pixel data, we'll need the cluster column for mapping
-    fileName <- file.path(fov, "feather", fsep=".")
-    matPath <- file.path(pixelMatDir, fileName)
-    fovPixelData <- arrow::read_feather(matPath)
-
-    # assign hierarchical cluster labels
-    fovPixelData$pixel_meta_cluster <- som_to_meta_map[as.character(fovPixelData$pixel_som_cluster)]
-
-    # write data with consensus labels
-    arrow::write_feather(as.data.table(fovPixelData), matPath)
-}
+suppressPackageStartupMessages({
+    library(arrow)
+    library(ConsensusClusterPlus)
+    library(data.table)
+    library(doParallel)
+    library(foreach)
+    library(parallel)
+    library(stringi)
+})
 
 # get the number of cores
 nCores <- parallel::detectCores() - 1
@@ -57,7 +46,7 @@ pixelMatDir <- args[5]
 clusterAvgPath <- args[6]
 
 # get the clust to meta write path
-clustToMeta <- args[7]
+clustToMetaPath <- args[7]
 
 # retrieve the batch size to determine number of threads to run in parallel
 batchSize <- strtoi(args[8])
@@ -91,7 +80,9 @@ fovsProcessed <- 0
 print("Mapping pixel data to consensus cluster labels")
 for (batchStart in seq(1, length(fovs), batchSize)) {
     # define the parallel cluster for this batch of fovs
-    parallelCluster <- parallel::makeCluster(nCores, type="FORK")
+    # NOTE: to prevent the occassional hanging first FOV issue, we need to log to an outfile
+    # to "force" a return out of the foreach loop in this case
+    parallelCluster <- parallel::makeCluster(nCores, type="FORK", outfile='log.txt')
 
     # register parallel cluster for dopar
     doParallel::registerDoParallel(cl=parallelCluster)
@@ -100,11 +91,46 @@ for (batchStart in seq(1, length(fovs), batchSize)) {
     batchEnd <- min(batchStart + batchSize - 1, length(fovs))
 
     # run the multithreaded batch process for mapping to SOM labels and saving
-    foreach(
+    fovStatuses <- foreach(
         i=batchStart:batchEnd,
-        .combine='c'
+        .combine=rbind
     ) %dopar% {
-        mapConsensusLabels(fovs[i], pixelMatDir, som_to_meta_map)
+        fileName <- paste0(fovs[i], '.feather')
+        matPath <- file.path(pixelMatDir, fileName)
+
+        status <- tryCatch(
+            {
+                fovPixelData <- arrow::read_feather(matPath)
+
+                # assign hierarchical cluster labels
+                fovPixelData$pixel_meta_cluster <- som_to_meta_map[as.character(fovPixelData$pixel_som_cluster)]
+
+                # write data with consensus labels
+                tempPath <- file.path(paste0(pixelMatDir, '_temp'), fileName)
+                arrow::write_feather(as.data.table(fovPixelData), tempPath, compression='uncompressed')
+
+                # this won't be displayed to the user but is used as a helper to break out
+                # in the rare first FOV hang issue
+                print(paste('Done writing fov', fovs[i]))
+                0
+            },
+            error=function(cond) {
+                # this won't be displayed to the user but is used as a helper to break out
+                # in the rare first FOV hang issue
+                print(paste('Error encountered for fov', fovs[i]))
+                1
+            }
+        )
+
+        data.frame(fov=fovs[i], status=status)
+    }
+
+    # report any erroneous feather files
+    for (i in 1:nrow(fovStatuses)) {
+        if (fovStatuses[i, 'status'] == 1) {
+            print(paste("The data for FOV", fovStatuses[i, 'fov'], "has been corrupted, removing"))
+            fovsProcessed <- fovsProcessed - 1
+        }
     }
 
     # unregister the parallel cluster
@@ -115,13 +141,16 @@ for (batchStart in seq(1, length(fovs), batchSize)) {
 
     # inform user that batchSize fovs have been processed
     print(paste("Processed", as.character(fovsProcessed), "fovs"))
+
+    # remove log.txt
+    unlink('log.txt')
 }
 
 # save the mapping from pixel_som_cluster to pixel_meta_cluster
 print("Writing SOM to meta cluster mapping table")
-som_to_meta_map <- as.data.table(som_to_meta_map)
+som_to_meta_map_table <- as.data.table(som_to_meta_map)
 
 # assign pixel_som_cluster column, then rename som_to_meta_map to pixel_meta_cluster
-som_to_meta_map$pixel_som_cluster <- as.integer(rownames(som_to_meta_map))
-som_to_meta_map <- setnames(som_to_meta_map, "som_to_meta_map", "pixel_meta_cluster")
-arrow::write_feather(som_to_meta_map, clustToMeta)
+som_to_meta_map_table$pixel_som_cluster <- as.integer(rownames(som_to_meta_map_table))
+som_to_meta_map_table <- setnames(som_to_meta_map_table, "som_to_meta_map", "pixel_meta_cluster")
+arrow::write_feather(som_to_meta_map_table, clustToMetaPath, compression='uncompressed')
