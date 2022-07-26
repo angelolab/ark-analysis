@@ -364,12 +364,11 @@ def create_mantis_project(mantis_project_path: Union[str, pathlib.Path],
                           mask_output_dir: Union[str, pathlib.Path],
                           mapping_path: Union[str, pathlib.Path],
                           seg_dir: Union[str, pathlib.Path],
-                          mask_suffix: str = "_mask", img_sub_folder: str = 'normalized'):
+                          mask_suffix: str = "_mask", img_sub_folder: str = "normalized"):
     """Creates a mantis project directory so that it can be opened by the mantis viewer.
     Copies fovs, segmentation files, masks, and mapping csv's into a new directory structure.
     Here is how the contents of the mantis project folder will look like.
-
-    ```
+    ```{code-block} sh
     mantis_project/
         ├── fov0/
         │   ├── cell_segmentation.tiff
@@ -405,7 +404,7 @@ def create_mantis_project(mantis_project_path: Union[str, pathlib.Path],
             The suffix used to find the mask tiffs. Defaults to "_mask".
         img_sub_folder (str, optional):
             The subfolder where the channels exist within the `img_data_path`.
-            Defaults to 'normalized'.
+            Defaults to "normalized".
     """
 
     if not os.path.exists(mantis_project_path):
