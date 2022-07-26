@@ -368,6 +368,7 @@ def create_mantis_project(mantis_project_path: Union[str, pathlib.Path],
     """Creates a mantis project directory so that it can be opened by the mantis viewer.
     Copies fovs, segmentation files, masks, and mapping csv's into a new directory structure.
     Here is how the contents of the mantis project folder will look like.
+
     ```{code-block} sh
     mantis_project/
         ├── fov0/
