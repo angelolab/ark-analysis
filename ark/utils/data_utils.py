@@ -1,5 +1,6 @@
 import os
 import pathlib
+from time import sleep
 from typing import Optional, Union
 import math
 import feather
@@ -301,9 +302,8 @@ def generate_and_save_pixel_cluster_masks(fovs: Union[pathlib.Path, str],
     fov_batches = [fovs[i:i + batch_size] for i in range(0, len(fovs), batch_size)]
 
     # create the pixel cluster masks over each fov batch.
-    with tqdm(total=len(fovs), desc="Pixel Cluster Mask Generation") as progress_bar:
+    with tqdm(total=len(fovs), desc="Pixel Cluster Mask Generation") as pixel_mask_progress:
         for fov_batch in fov_batches:
-            progress_bar.t.set_description("text", refresh=True)
             pixel_masks: xr.DataArray =\
                 generate_pixel_cluster_mask(fovs=fov_batch, base_dir=base_dir, tiff_dir=tiff_dir,
                                             chan_file=chan_file, pixel_data_dir=pixel_data_dir,
@@ -312,7 +312,7 @@ def generate_and_save_pixel_cluster_masks(fovs: Union[pathlib.Path, str],
             save_fov_images(fov_batch, data_dir=save_dir, img_xr=pixel_masks, sub_dir=sub_dir,
                             name_suffix=name_suffix)
 
-            progress_bar.update(len(fov_batch))
+            pixel_mask_progress.update(len(fov_batch))
 
 
 def generate_and_save_cell_cluster_masks(fovs: Union[pathlib.Path, str],
@@ -355,17 +355,18 @@ def generate_and_save_cell_cluster_masks(fovs: Union[pathlib.Path, str],
     fov_batches = [fovs[i:i + batch_size] for i in range(0, len(fovs), batch_size)]
 
     # create the pixel cluster masks over each fov batch.
-    with tqdm(total=len(fovs), desc="Cell Cluster Mask Generation") as progress_bar:
+    with tqdm(total=len(fovs), desc="Cell Cluster Mask Generation") as cell_mask_progress:
         for fov_batch in fov_batches:
-            progress_bar.t.set_description("text", refresh=True)
-            cell_mask: xr.DataArray =\
+            cell_masks: xr.DataArray =\
                 generate_cell_cluster_mask(fovs=fov_batch, base_dir=base_dir, seg_dir=seg_dir,
-                                           cell_data_name=cell_data_name, seg_suffix=seg_suffix)
+                                           cell_data_name=cell_data_name, 
+                                           cell_cluster_col=cell_cluster_col,
+                                           seg_suffix=seg_suffix)
 
-            save_fov_images(fov_batch, data_dir=save_dir, img_xr=cell_mask, sub_dir=sub_dir,
+            save_fov_images(fov_batch, data_dir=save_dir, img_xr=cell_masks, sub_dir=sub_dir,
                             name_suffix=name_suffix)
 
-            progress_bar.update(len(fov_batch))
+            cell_mask_progress.update(len(fov_batch))
 
 
 def relabel_segmentation(labeled_image, labels_dict):
