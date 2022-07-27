@@ -1,6 +1,5 @@
 import os
 import pathlib
-from time import sleep
 from typing import Optional, Union
 import math
 import feather
@@ -293,7 +292,7 @@ def generate_and_save_pixel_cluster_masks(fovs: Union[pathlib.Path, str],
             "data_dir/sub_dir". If `sub_dir = None` the images are saved to "data_dir". Defaults
             to None.
         name_suffix (str, optional):
-            Specify what to append at the end of every fov. Defaults to ''.
+            Specify what to append at the end of every pixel mask. Defaults to ''.
         batch_size (int, optional):
             The number of fovs to process at once for each batch. Defaults to 5.
     """
@@ -326,7 +325,7 @@ def generate_and_save_cell_cluster_masks(fovs: Union[pathlib.Path, str],
                                          name_suffix: str = '',
                                          batch_size=5):
     """Generates cell cluster masks and saves them in batches for downstream analysis.
-    
+
     Args:
         fovs (Union[pathlib.Path, str]):
             A set of fovs to generate and save pixel masks for.
@@ -347,6 +346,8 @@ def generate_and_save_cell_cluster_masks(fovs: Union[pathlib.Path, str],
             The subdirectory to save the images in. If specified images are saved to
             "data_dir/sub_dir". If `sub_dir = None` the images are saved to "data_dir".
             Defaults to None.
+        name_suffix (str, optional):
+            Specify what to append at the end of every cell mask. Defaults to ''.
         batch_size (int, optional):
             The number of fovs to process at once for each batch. Defaults to 5.
     """
@@ -359,7 +360,7 @@ def generate_and_save_cell_cluster_masks(fovs: Union[pathlib.Path, str],
         for fov_batch in fov_batches:
             cell_masks: xr.DataArray =\
                 generate_cell_cluster_mask(fovs=fov_batch, base_dir=base_dir, seg_dir=seg_dir,
-                                           cell_data_name=cell_data_name, 
+                                           cell_data_name=cell_data_name,
                                            cell_cluster_col=cell_cluster_col,
                                            seg_suffix=seg_suffix)
 
