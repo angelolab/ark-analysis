@@ -16,13 +16,12 @@ from ark import settings
 
 def test_save_fov_images():
     # define the full set of fovs as well as a subset of fovs
-    fov_count = 7
-    fovs = ['fov{}'.format(i) for i in range(fov_count)]
+    fovs = ['fov0', 'fov1', 'fov2']
     fovs_sub = fovs[:2]
 
     # generate a random img_xr
     sample_img_xr = xr.DataArray(
-        np.random.rand(fov_count, 40, 40),
+        np.random.rand(3, 40, 40),
         coords=[fovs, np.arange(40), np.arange(40)],
         dims=['fovs', 'x', 'y']
     )
@@ -35,7 +34,7 @@ def test_save_fov_images():
 
         # invalid fovs provided
         with pytest.raises(ValueError):
-            data_utils.save_fov_images(['fov1', 'fov2', 'fov_bad'], temp_dir, sample_img_xr)
+            data_utils.save_fov_images(['fov1', 'fov2', 'fov3'], temp_dir, sample_img_xr)
 
     # test 1: all fovs provided
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -68,17 +67,6 @@ def test_save_fov_images():
         save_dir = os.path.join(temp_dir, "sub_directory")
         for fov in fovs_sub:
             assert os.path.exists(os.path.join(save_dir, fov + ".tiff"))
-
-    # test 5: test various batch_sizes
-    with tempfile.TemporaryDirectory() as temp_dir:
-        batch_sizes = [1, 2, 3, 4, 5, 10]
-
-        for batch_size in batch_sizes:
-            data_utils.save_fov_images(fovs, temp_dir, sample_img_xr,
-                                       sub_dir="sub_directory", batch_size=batch_size)
-            save_dir = os.path.join(temp_dir, "sub_directory")
-            for fov in fovs_sub:
-                assert os.path.exists(os.path.join(save_dir, fov + ".tiff"))
 
 
 def test_generate_deepcell_input():
@@ -417,8 +405,7 @@ def test_generate_cell_cluster_mask():
 
 
 def test_generate_pixel_cluster_mask():
-    fov_count = 7
-    fovs = ['fov{}'.format(i) for i in range(fov_count)]
+    fovs = ['fov0', 'fov1', 'fov2']
     chans = ['chan0', 'chan1', 'chan2', 'chan3']
 
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -471,34 +458,36 @@ def test_generate_pixel_cluster_mask():
         # bad fovs provided
         with pytest.raises(ValueError):
             data_utils.generate_pixel_cluster_mask(
-                ['fov1', 'fov2', 'fov_bad'], temp_dir, temp_dir, os.path.join('fov0', 'chan0.tif'),
+                ['fov1', 'fov2', 'fov3'], temp_dir, temp_dir, os.path.join('fov0', 'chan0.tif'),
                 'pixel_mat_consensus', 'pixel_som_cluster'
             )
 
         # test on SOM assignments
-        # Test various values of `batch_sizes`
-        batch_sizes = [1, 2, 3, 4, 5, 10]
+        pixel_masks = data_utils.generate_pixel_cluster_mask(
+            fovs, temp_dir, temp_dir, os.path.join('fov0', 'chan0.tif'),
+            'pixel_mat_consensus', 'pixel_som_cluster'
+        )
 
-        for batch_size in batch_sizes:
-            pixel_masks = data_utils.generate_pixel_cluster_mask(
-                fovs, temp_dir, temp_dir, os.path.join('fov0', 'chan0.tif'),
-                'pixel_mat_consensus', 'pixel_som_cluster', batch_size=batch_size
-            )
+        # assert we have 3 fovs and the image size is the same as the mask (40, 40)
+        assert pixel_masks.shape == (3, 40, 40)
 
-            # assert we have 7 fovs and the image size is the same as the mask (40, 40)
-            assert pixel_masks.shape == (fov_count, 40, 40)
+        # assert no value is greater than the highest SOM cluster value (10)
+        assert np.all(pixel_masks <= 10)
 
-            # assert no value is greater than the highest SOM cluster value (10)
-            assert np.all(pixel_masks <= 10)
+        # test on meta assignments
+        pixel_masks = data_utils.generate_pixel_cluster_mask(
+            fovs, temp_dir, temp_dir, os.path.join('fov0', 'chan0.tif'),
+            'pixel_mat_consensus', 'pixel_meta_cluster'
+        )
 
-            # test on meta assignments
-            pixel_masks = data_utils.generate_pixel_cluster_mask(
-                fovs, temp_dir, temp_dir, os.path.join('fov0', 'chan0.tif'),
-                'pixel_mat_consensus', 'pixel_meta_cluster'
-            )
+        # assert we have 3 fovs and the image size is the same as the mask (40, 40)
+        assert pixel_masks.shape == (3, 40, 40)
 
-            # assert we have 7 fovs and the image size is the same as the mask (40, 40)
-            assert pixel_masks.shape == (fov_count, 40, 40)
+        # assert no value is greater than the highest meta cluster value (5)
+        assert np.all(pixel_masks <= 5)
 
-            # assert no value is greater than the highest meta cluster value (5)
-            assert np.all(pixel_masks <= 5)
+def test_generate_and_save_pixel_cluster_masks():
+    pass
+
+def test_generate_and_save_cell_cluster_masks():
+    pass
