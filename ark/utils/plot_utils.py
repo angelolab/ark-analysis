@@ -370,24 +370,24 @@ def create_mantis_project(mantis_project_path: Union[str, pathlib.Path],
     Here is how the contents of the mantis project folder will look like.
 
     ```{code-block} sh
-    mantis_project/
-        ├── fov0/
-        │   ├── cell_segmentation.tiff
-        │   ├── chan0.tiff
-        │   ├── chan1.tiff
-        │   ├── chan2.tiff
-        │   ├── ...
-        │   ├── population_mask.csv
-        │   └── population_mask.tiff
-        └── fov1/
-        │   ├── cell_segmentation.tiff
-        │   ├── chan0.tiff
-        │   ├── chan1.tiff
-        │   ├── chan2.tiff
-        │   ├── ...
-        │   ├── population_mask.csv
-        │   └── population_mask.tiff
-        └── .../
+    mantis_project
+    ├── fov0
+    │   ├── cell_segmentation.tiff
+    │   ├── chan0.tiff
+    │   ├── chan1.tiff
+    │   ├── chan2.tiff
+    │   ├── ...
+    │   ├── population_mask.csv
+    │   └── population_mask.tiff
+    └── fov1
+    │   ├── cell_segmentation.tiff
+    │   ├── chan0.tiff
+    │   ├── chan1.tiff
+    │   ├── chan2.tiff
+    │   ├── ...
+    │   ├── population_mask.csv
+    │   └── population_mask.tiff
+    └── ...
     ```
 
     Args:
