@@ -266,35 +266,19 @@ def generate_and_save_pixel_cluster_masks(fovs: Union[pathlib.Path, str],
                                           sub_dir: str = None,
                                           name_suffix: str = '',
                                           batch_size=5):
-    """Generates pixel cluster masks and saves them in batches for downstream analysis.
+    """_summary_
 
     Args:
-        fovs (Union[pathlib.Path, str]):
-            A set of fovs to generate and save pixel masks for.
-        base_dir (Union[pathlib.Path, str]):
-            The path to the data directory.
-        save_dir (Union[pathlib.Path, str]):
-            The directory to save the generated pixel cluster masks.
-        tiff_dir (Union[pathlib.Path, str]):
-            The path to the directory with the tiff data.
-        chan_file (Union[pathlib.Path, str]):
-            The path to the sample channel file to load (assuming `tiff_dir` as root)
-            Only used to determine dimensions of the pixel mask.
-        pixel_data_dir (Union[pathlib.Path, str]):
-            The path to the data with full pixel data.
-            This data should also have the SOM and meta cluster labels appended.
-        pixel_cluster_col (str, optional):
-            The path to the data with full pixel data.
-            This data should also have the SOM and meta cluster labels appended.
-            Defaults to 'pixel_meta_cluster'.
-        sub_dir (str, optional):
-            The subdirectory to save the images in. If specified images are saved to
-            "data_dir/sub_dir". If `sub_dir = None` the images are saved to "data_dir". Defaults
-            to None.
-        name_suffix (str, optional):
-            Specify what to append at the end of every pixel mask. Defaults to ''.
-        batch_size (int, optional):
-            The number of fovs to process at once for each batch. Defaults to 5.
+        fovs (Union[pathlib.Path, str]): _description_
+        base_dir (Union[pathlib.Path, str]): _description_
+        save_dir (Union[pathlib.Path, str]): _description_
+        tiff_dir (Union[pathlib.Path, str]): _description_
+        chan_file (Union[pathlib.Path, str]): _description_
+        pixel_data_dir (Union[pathlib.Path, str]): _description_
+        pixel_cluster_col (str, optional): _description_. Defaults to 'pixel_meta_cluster'.
+        sub_dir (str, optional): _description_. Defaults to None.
+        name_suffix (str, optional): _description_. Defaults to ''.
+        batch_size (int, optional): _description_. Defaults to 5.
     """
 
     # define a list of fov batches to process over
@@ -324,32 +308,19 @@ def generate_and_save_cell_cluster_masks(fovs: Union[pathlib.Path, str],
                                          sub_dir: Optional[str] = None,
                                          name_suffix: str = '',
                                          batch_size=5):
-    """Generates cell cluster masks and saves them in batches for downstream analysis.
+    """_summary_
 
     Args:
-        fovs (Union[pathlib.Path, str]):
-            A set of fovs to generate and save pixel masks for.
-        base_dir (Union[pathlib.Path, str]):
-            The path to the data directory.
-        save_dir (Union[pathlib.Path, str]):
-            The directory to save the generated cell cluster masks.
-        seg_dir (Union[pathlib.Path, str]):
-            The path to the segmentation data.
-        cell_data_name (Union[pathlib.Path, str]):
-            The path to the cell data with both cell SOM and meta cluster assignments
-        cell_cluster_col (str, optional):
-            Whether to assign SOM or meta clusters. Needs to be `'cell_som_cluster'` or
-            `'cell_meta_cluster'`. Defaults to 'cell_meta_cluster'.
-        seg_suffix (str, optional):
-            The suffix that the segmentation images use. Defaults to '_feature_0.tif'.
-        sub_dir (str, optional):
-            The subdirectory to save the images in. If specified images are saved to
-            "data_dir/sub_dir". If `sub_dir = None` the images are saved to "data_dir".
-            Defaults to None.
-        name_suffix (str, optional):
-            Specify what to append at the end of every cell mask. Defaults to ''.
-        batch_size (int, optional):
-            The number of fovs to process at once for each batch. Defaults to 5.
+        fovs (Union[pathlib.Path, str]): _description_
+        base_dir (Union[pathlib.Path, str]): _description_
+        save_dir (Union[pathlib.Path, str]): _description_
+        seg_dir (Union[pathlib.Path, str]): _description_
+        cell_data_name (Union[pathlib.Path, str]): _description_
+        cell_cluster_col (str, optional): _description_. Defaults to 'cell_meta_cluster'.
+        seg_suffix (str, optional): _description_. Defaults to '_feature_0.tif'.
+        sub_dir (Optional[str], optional): _description_. Defaults to None.
+        name_suffix (str, optional): _description_. Defaults to ''.
+        batch_size (int, optional): _description_. Defaults to 5.
     """
 
     # define a list of fov batches to process over
