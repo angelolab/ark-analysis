@@ -305,7 +305,7 @@ def generate_and_save_cell_cluster_masks(fovs: Union[pathlib.Path, str],
                                          cell_data_name: Union[pathlib.Path, str],
                                          cell_cluster_col: str = 'cell_meta_cluster',
                                          seg_suffix: str = '_feature_0.tif',
-                                         sub_dir: Optional[str] = None,
+                                         sub_dir: str = None,
                                          name_suffix: str = '',
                                          batch_size=5):
     """_summary_
@@ -318,7 +318,7 @@ def generate_and_save_cell_cluster_masks(fovs: Union[pathlib.Path, str],
         cell_data_name (Union[pathlib.Path, str]): _description_
         cell_cluster_col (str, optional): _description_. Defaults to 'cell_meta_cluster'.
         seg_suffix (str, optional): _description_. Defaults to '_feature_0.tif'.
-        sub_dir (Optional[str], optional): _description_. Defaults to None.
+        sub_dir (str, optional): _description_. Defaults to None.
         name_suffix (str, optional): _description_. Defaults to ''.
         batch_size (int, optional): _description_. Defaults to 5.
     """
