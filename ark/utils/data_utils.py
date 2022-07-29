@@ -342,7 +342,7 @@ def generate_and_save_cell_cluster_masks(fovs: Union[pathlib.Path, str],
             `'cell_meta_cluster'`. Defaults to 'cell_meta_cluster'.
         seg_suffix (str, optional):
             The suffix that the segmentation images use. Defaults to '_feature_0.tif'.
-        sub_dir (Optional[str], optional):
+        sub_dir (str, optional):
             The subdirectory to save the images in. If specified images are saved to
             "data_dir/sub_dir". If `sub_dir = None` the images are saved to "data_dir".
             Defaults to None.
