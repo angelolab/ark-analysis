@@ -385,7 +385,6 @@ def relabel_segmentation(labeled_image, labels_dict):
             2D numpy array of labeled cell objects.
         labels_dict (dict):
             a mapping between labeled cells and their clusters.
-
     Returns:
         numpy.ndarray:
             The relabeled array.
@@ -430,7 +429,6 @@ def generate_deepcell_input(data_dir, tiff_dir, nuc_channels, mem_channels, fovs
             the number of fovs to process at once for each batch
         dtype (str/type):
             optional specifier of image type.  Overwritten with warning for float images
-
     Raises:
         ValueError:
             Raised if nuc_channels and mem_channels are both None or empty
