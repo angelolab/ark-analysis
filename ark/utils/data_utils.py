@@ -109,7 +109,7 @@ def label_cells_by_cluster(fovs, all_data, label_maps, fov_col=settings.FOV_ID,
 def generate_cell_cluster_mask(fovs, base_dir, seg_dir, cell_data_name,
                                cell_cluster_col='cell_meta_cluster', seg_suffix='_feature_0.tif'):
     """For each fov, create a mask labeling each cell with their SOM or meta cluster label
-    
+
     Args:
         fovs (list):
             List of fovs to relabel
@@ -177,7 +177,7 @@ def generate_cell_cluster_mask(fovs, base_dir, seg_dir, cell_data_name,
 def generate_pixel_cluster_mask(fovs, base_dir, tiff_dir, chan_file,
                                 pixel_data_dir, pixel_cluster_col='pixel_meta_cluster'):
     """For each fov, create a mask labeling each pixel with their SOM or meta cluster label
-    
+
     Args:
         fovs (list):
             List of fovs to relabel
