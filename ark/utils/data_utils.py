@@ -339,9 +339,9 @@ def generate_and_save_cell_cluster_masks(fovs: Union[pathlib.Path, str],
             The path to the cell data with both cell SOM and meta cluster assignments
         cell_cluster_col (str, optional):
             Whether to assign SOM or meta clusters. Needs to be `'cell_som_cluster'` or
-            `'cell_meta_cluster'`. Defaults to 'cell_meta_cluster'.
+            `'cell_meta_cluster'`. Defaults to `'cell_meta_cluster'`.
         seg_suffix (str, optional):
-            The suffix that the segmentation images use. Defaults to '_feature_0.tif'.
+            The suffix that the segmentation images use. Defaults to `'_feature_0.tif'`.
         sub_dir (str, optional):
             The subdirectory to save the images in. If specified images are saved to
             "data_dir/sub_dir". If `sub_dir = None` the images are saved to "data_dir".
