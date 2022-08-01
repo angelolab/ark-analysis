@@ -1,6 +1,6 @@
 import os
 import pathlib
-from typing import Union
+from typing import List, Union
 import math
 import feather
 import skimage.io as io
@@ -261,7 +261,7 @@ def generate_pixel_cluster_mask(fovs, base_dir, tiff_dir, chan_file,
                         dims=["fovs", "rows", "cols"])
 
 
-def generate_and_save_pixel_cluster_masks(fovs: Union[pathlib.Path, str],
+def generate_and_save_pixel_cluster_masks(fovs: List[str],
                                           base_dir: Union[pathlib.Path, str],
                                           save_dir: Union[pathlib.Path, str],
                                           tiff_dir: Union[pathlib.Path, str],
@@ -274,8 +274,8 @@ def generate_and_save_pixel_cluster_masks(fovs: Union[pathlib.Path, str],
     """Generates pixel cluster masks and saves them in batches for downstream analysis.
 
     Args:
-        fovs (Union[pathlib.Path, str]):
-            A set of fovs to generate and save pixel masks for.
+        fovs (List[str]):
+            A list of fovs to generate and save pixel masks for.
         base_dir (Union[pathlib.Path, str]):
             The path to the data directory.
         save_dir (Union[pathlib.Path, str]):
@@ -319,7 +319,7 @@ def generate_and_save_pixel_cluster_masks(fovs: Union[pathlib.Path, str],
             pixel_mask_progress.update(len(fov_batch))
 
 
-def generate_and_save_cell_cluster_masks(fovs: Union[pathlib.Path, str],
+def generate_and_save_cell_cluster_masks(fovs: List[str],
                                          base_dir: Union[pathlib.Path, str],
                                          save_dir: Union[pathlib.Path, str],
                                          seg_dir: Union[pathlib.Path, str],
@@ -332,8 +332,8 @@ def generate_and_save_cell_cluster_masks(fovs: Union[pathlib.Path, str],
     """Generates cell cluster masks and saves them in batches for downstream analysis.
 
     Args:
-        fovs (Union[pathlib.Path, str]):
-            A set of fovs to generate and save pixel masks for.
+        fovs (List[str]):
+            A list of fovs to generate and save pixel masks for.
         base_dir (Union[pathlib.Path, str]):
             The path to the data directory.
         save_dir (Union[pathlib.Path, str]):
