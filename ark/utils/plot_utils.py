@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Union, List
 import numpy as np
 import matplotlib.cm as cm
 import matplotlib.colors as colors
@@ -359,7 +359,7 @@ def create_overlay(fov, segmentation_dir, data_dir,
     return rescaled
 
 
-def create_mantis_project(mantis_project_path: Union[str, pathlib.Path],
+def create_mantis_project(fovs: List[str], mantis_project_path: Union[str, pathlib.Path],
                           img_data_path: Union[str, pathlib.Path],
                           mask_output_dir: Union[str, pathlib.Path],
                           mapping_path: Union[str, pathlib.Path],
@@ -391,6 +391,8 @@ def create_mantis_project(mantis_project_path: Union[str, pathlib.Path],
     ```
 
     Args:
+        fovs (List[str]):
+            A list of FOVs to create a Mantis Project for.
         mantis_project_path (Union[str, pathlib.Path]):
             The folder where the mantis project will be created.
         img_data_path (Union[str, pathlib.Path]):
@@ -424,10 +426,13 @@ def create_mantis_project(mantis_project_path: Union[str, pathlib.Path],
 
     # get names of fovs with masks
     mask_names = io_utils.list_files(mask_output_dir, mask_suffix)
-    fov_names = io_utils.extract_delimited_names(mask_names, delimiter=mask_suffix)
+    total_fov_names = io_utils.extract_delimited_names(mask_names, delimiter=mask_suffix)
+    
+    # use `fovs`, a subset of the FOVs in `total_fov_names` which is a list of FOVs in `img_data_path`
+    verify_in_list(fovs=fovs, img_data_fovs=total_fov_names)
 
     # create a folder with image data, pixel masks, and segmentation mask
-    for idx, val in enumerate(fov_names):
+    for idx, val in enumerate(fovs):
         # set up paths
         img_source_dir = os.path.join(img_data_path, val, img_sub_folder)
         output_dir = os.path.join(mantis_project_path, val)

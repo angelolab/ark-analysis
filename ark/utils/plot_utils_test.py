@@ -11,7 +11,6 @@ import pytest
 from ark.utils import plot_utils, test_utils
 from skimage.draw import circle
 
-from ark.utils.plot_utils import plot_clustering_result
 from pathlib import Path
 
 
@@ -261,7 +260,7 @@ def test_create_mantis_project():
         mask_output_dir = os.path.join(temp_dir, cell_output_dir, mask_dir)
 
         # image data path, create 2 fovs, with 4 channels each
-        fovs, channels = test_utils.gen_fov_chan_names(num_fovs=2, num_chans=4,
+        fovs, channels = test_utils.gen_fov_chan_names(num_fovs=6, num_chans=4,
                                                        use_delimiter=False, return_imgs=False)
 
         fov_path = os.path.join(temp_dir, img_data_path)
@@ -272,7 +271,10 @@ def test_create_mantis_project():
 
         # Loop over the xarray, save each fov's channels,
         # segmentation label compartments, and sample masks
-        for fov in data_xr.fovs.values:
+        fovs = data_xr.fovs.values
+        fovs_subset = fovs[:3]
+
+        for fov in fovs:
 
             # Save the segmentation label compartments for each fov
             io.imsave(os.path.join(temp_dir, segmentation_dir, '%s_feature_0.tiff' % fov),
@@ -304,6 +306,7 @@ def test_create_mantis_project():
         image_segmentation_full_path = os.path.join(temp_dir, segmentation_dir)
 
         plot_utils.create_mantis_project(
+            fovs=fovs_subset,
             mantis_project_path=mantis_project_path,
             img_data_path=fov_path,
             mask_output_dir=mask_output_dir,
@@ -314,7 +317,7 @@ def test_create_mantis_project():
         )
 
         # Testing file existence and correctness
-        for fov in data_xr.fovs.values:
+        for fov in fovs_subset:
             # output path for testing
             output_path = os.path.join(mantis_project_path, fov)
 
@@ -335,6 +338,7 @@ def test_create_mantis_project():
             original_cell_seg_img = io.imread(original_cell_seg_path)
             np.testing.assert_equal(cell_seg_img, original_cell_seg_img)
 
+            # Assert that the mask is the same file
             mask_img = io.imread(mask_path)
             original_mask_img = io.imread(original_mask_path)
             np.testing.assert_equal(mask_img, original_mask_img)
@@ -357,7 +361,7 @@ def test_create_mantis_project():
             mantis_fov_channels = sorted(list(Path(output_path).glob("chan*.tiff")))
 
             # Test that all fov channels exist and are correct
-            for idx, chan_path in enumerate(mantis_fov_channels):
+            for chan_path in mantis_fov_channels:
                 new_chan = io.imread(chan_path)
 
                 # get the channel name
