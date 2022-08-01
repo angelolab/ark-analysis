@@ -1,6 +1,6 @@
 import os
 import pathlib
-from typing import Optional, Union
+from typing import Union
 import math
 import feather
 import skimage.io as io
@@ -15,6 +15,7 @@ from tqdm.notebook import tqdm_notebook as tqdm
 
 def save_fov_images(fovs, data_dir, img_xr, sub_dir=None, name_suffix=''):
     """Given an xarray of images per fov, saves each image separately
+
     Args:
         fovs (list):
             List of fovs to save in img_xr
@@ -108,6 +109,7 @@ def label_cells_by_cluster(fovs, all_data, label_maps, fov_col=settings.FOV_ID,
 def generate_cell_cluster_mask(fovs, base_dir, seg_dir, cell_data_name,
                                cell_cluster_col='cell_meta_cluster', seg_suffix='_feature_0.tif'):
     """For each fov, create a mask labeling each cell with their SOM or meta cluster label
+    
     Args:
         fovs (list):
             List of fovs to relabel
@@ -122,6 +124,7 @@ def generate_cell_cluster_mask(fovs, base_dir, seg_dir, cell_data_name,
             Needs to be `'cell_som_cluster'` or `'cell_meta_cluster'`
         seg_suffix (str):
             The suffix that the segmentation images use
+
     Returns:
         xarray.DataArray:
             The labeled images (dims: ["fovs", "rows", "cols"])
@@ -174,6 +177,7 @@ def generate_cell_cluster_mask(fovs, base_dir, seg_dir, cell_data_name,
 def generate_pixel_cluster_mask(fovs, base_dir, tiff_dir, chan_file,
                                 pixel_data_dir, pixel_cluster_col='pixel_meta_cluster'):
     """For each fov, create a mask labeling each pixel with their SOM or meta cluster label
+    
     Args:
         fovs (list):
             List of fovs to relabel
@@ -190,6 +194,7 @@ def generate_pixel_cluster_mask(fovs, base_dir, tiff_dir, chan_file,
         pixel_cluster_col (str):
             Whether to assign SOM or meta clusters
             needs to be `'pixel_som_cluster'` or `'pixel_meta_cluster'`
+
     Returns:
         xarray.DataArray:
             The labeled images (dims: ["fovs", "rows", "cols"])
@@ -380,6 +385,7 @@ def relabel_segmentation(labeled_image, labels_dict):
             2D numpy array of labeled cell objects.
         labels_dict (dict):
             a mapping between labeled cells and their clusters.
+
     Returns:
         numpy.ndarray:
             The relabeled array.
@@ -424,6 +430,7 @@ def generate_deepcell_input(data_dir, tiff_dir, nuc_channels, mem_channels, fovs
             the number of fovs to process at once for each batch
         dtype (str/type):
             optional specifier of image type.  Overwritten with warning for float images
+
     Raises:
         ValueError:
             Raised if nuc_channels and mem_channels are both None or empty
