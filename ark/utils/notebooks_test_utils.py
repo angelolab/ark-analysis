@@ -381,20 +381,20 @@ def flowsom_pixel_visualize(tb, flowsom_dir, fovs, pixel_prefix='test'):
     cell_overlay_fovs = "pixel_fovs = %s" % str(fovs_overlay)
     tb.inject(cell_overlay_fovs, after='pixel_overlay_fovs')
 
-    # generate the pixel cluster masks
-    tb.execute_cell('pixel_mask_gen')
+    # generate the pixel cluster masks, and save them
+    tb.execute_cell('pixel_mask_gen_save')
 
     # test the saving of pixel masks
     # NOTE: no point testing save_pixel_masks = False since that doesn't run anything
-    cell_mask_save = """
-        data_utils.save_fov_images(
-            pixel_fovs,
-            os.path.join(base_dir, pixel_output_dir),
-            pixel_cluster_masks,
-            name_suffix='_pixel_mask'
-        )
-    """
-    tb.inject(cell_mask_save, 'pixel_mask_save')
+    # cell_mask_save = """
+    #     data_utils.save_fov_images(
+    #         pixel_fovs,
+    #         os.path.join(base_dir, pixel_output_dir),
+    #         pixel_cluster_masks,
+    #         name_suffix='_pixel_mask'
+    #     )
+    # """
+    # tb.inject(cell_mask_save, 'pixel_mask_save')
 
     # run the cell mask overlay
     tb.execute_cell('pixel_overlay_gen')
