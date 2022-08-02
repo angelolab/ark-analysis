@@ -427,8 +427,9 @@ def create_mantis_project(fovs: List[str], mantis_project_path: Union[str, pathl
     # get names of fovs with masks
     mask_names = io_utils.list_files(mask_output_dir, mask_suffix)
     total_fov_names = io_utils.extract_delimited_names(mask_names, delimiter=mask_suffix)
-    
-    # use `fovs`, a subset of the FOVs in `total_fov_names` which is a list of FOVs in `img_data_path`
+
+    # use `fovs`, a subset of the FOVs in `total_fov_names` which
+    # is a list of FOVs in `img_data_path`
     verify_in_list(fovs=fovs, img_data_fovs=total_fov_names)
 
     # create a folder with image data, pixel masks, and segmentation mask
