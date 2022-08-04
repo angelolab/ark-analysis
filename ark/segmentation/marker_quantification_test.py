@@ -41,6 +41,17 @@ def test_get_single_compartment_props():
         cell_props_columns=cell_props.columns.values
     )
 
+    # test that blank segmentation mask is handled appropriately
+    cell_props_blank = marker_quantification.get_single_compartment_props(
+        np.zeros((40, 40), dtype='int'),
+        regionprops_base,
+        regionprops_single_comp)
+
+    misc_utils.verify_same_elements(
+        all_features=copy.deepcopy(regionprops_base) + regionprops_single_comp,
+        cell_props_columns=cell_props_blank.columns.values
+    )
+
 
 def test_assign_single_compartment_props():
     cell_mask, channel_data = test_utils.create_test_extraction_data()
@@ -238,6 +249,14 @@ def test_compute_marker_counts_base():
         segmentation_output.loc['whole_cell', :, 'chan0'].values
         > center_extraction.loc['whole_cell', :, 'chan0'].values
     )
+
+    # blank segmentation mask results in the cells column of length 0
+    blank_labels = test_utils.make_labels_xarray(label_data=np.zeros((1, 40, 40, 1), dtype='int'),
+                                                 compartment_names=['whole_cell'])
+
+    blank_output = marker_quantification.compute_marker_counts(input_images=input_images,
+                                                               segmentation_labels=blank_labels[0])
+    assert blank_output.shape[1] == 0
 
 
 def test_compute_marker_counts_equal_masks():
@@ -442,6 +461,11 @@ def test_create_marker_count_matrices_base():
     assert np.array_equal(normalized['chan0'], np.repeat(1, len(normalized)))
     assert np.array_equal(normalized['chan1'], np.repeat(5, len(normalized)))
 
+    # blank image doesn't cause any issues
+    segmentation_labels.values[1, ...] = 0
+    _ = marker_quantification.create_marker_count_matrices(segmentation_labels,
+                                                           channel_data)
+
     # error checking
     with pytest.raises(ValueError):
         # attempt to pass non-xarray for segmentation_labels
@@ -519,6 +543,11 @@ def test_create_marker_count_matrices_multiple_compartments():
     normalized_with_nuc = normalized.loc[normalized['label'] != 2, ['label', 'label_nuclear']]
     assert np.array_equal(normalized_with_nuc['label'] * 2, normalized_with_nuc['label_nuclear'])
 
+    # blank nuclear segmentation mask doesn't cause any issues
+    segmentation_labels_unequal.values[1, ..., 1] = 0
+    _ = marker_quantification.create_marker_count_matrices(segmentation_labels_unequal,
+                                                           channel_data, nuclear_counts=True)
+
 
 def test_generate_cell_data_tree_loading():
     # is_mibitiff False case, load from directory tree
@@ -548,19 +577,19 @@ def test_generate_cell_data_tree_loading():
         fovs_subset_ext[1] = str(fovs_subset_ext[1]) + ".tiff"
 
         # generate a sample segmentation_mask
-        cell_mask, _ = test_utils.create_test_extraction_data()
-
-        cell_masks = np.zeros((3, 40, 40, 2), dtype="int16")
-        cell_masks[0, :, :, 0] = cell_mask[0, :, :, 0]
-        cell_masks[1, 5:, 5:, 0] = cell_mask[0, :-5, :-5, 0]
-        cell_masks[2, 10:, 10:, 0] = cell_mask[0, :-10, :-10, 0] / 2
+        cell_masks = np.random.randint(low=0, high=5, size=(3, 40, 40, 2), dtype="int16")
+        cell_masks[0, :, :, 0] = cell_masks[0, :, :, 0]
+        cell_masks[1, 5:, 5:, 0] = cell_masks[0, :-5, :-5, 0]
+        cell_masks[2, 10:, 10:, 0] = cell_masks[0, :-10, :-10, 0] / 2
         cell_masks[..., 1] = cell_masks[..., 0]
 
         for fov in range(cell_masks.shape[0]):
             fov_whole_cell = cell_masks[fov, :, :, 0]
             fov_nuclear = cell_masks[fov, :, :, 1]
-            io.imsave(os.path.join(temp_dir, 'fov%d_feature_0.tif' % fov), fov_whole_cell)
-            io.imsave(os.path.join(temp_dir, 'fov%d_feature_1.tif' % fov), fov_nuclear)
+            io.imsave(os.path.join(temp_dir, 'fov%d_feature_0.tif' % fov), fov_whole_cell,
+                      check_contrast=False)
+            io.imsave(os.path.join(temp_dir, 'fov%d_feature_1.tif' % fov), fov_nuclear,
+                      check_contrast=False)
 
         with pytest.raises(FileNotFoundError):
             # specifying fovs not in the original segmentation mask
@@ -641,18 +670,19 @@ def test_generate_cell_data_mibitiff_loading():
         )
 
         # generate a sample segmentation_mask
-        cell_mask, _ = test_utils.create_test_extraction_data()
-        cell_masks = np.zeros((3, 40, 40, 2), dtype="int16")
-        cell_masks[0, :, :, 0] = cell_mask[0, :, :, 0]
-        cell_masks[1, 5:, 5:, 0] = cell_mask[0, :-5, :-5, 0]
-        cell_masks[2, 10:, 10:, 0] = cell_mask[0, :-10, :-10, 0]
+        cell_masks = np.random.randint(low=0, high=5, size=(3, 40, 40, 2), dtype="int16")
+        cell_masks[0, :, :, 0] = cell_masks[0, :, :, 0]
+        cell_masks[1, 5:, 5:, 0] = cell_masks[0, :-5, :-5, 0]
+        cell_masks[2, 10:, 10:, 0] = cell_masks[0, :-10, :-10, 0]
         cell_masks[..., 1] = cell_masks[..., 0]
 
         for fov in range(cell_masks.shape[0]):
             fov_whole_cell = cell_masks[fov, :, :, 0]
             fov_nuclear = cell_masks[fov, :, :, 1]
-            io.imsave(os.path.join(temp_dir, 'fov%d_feature_0.tif' % fov), fov_whole_cell)
-            io.imsave(os.path.join(temp_dir, 'fov%d_feature_1.tif' % fov), fov_nuclear)
+            io.imsave(os.path.join(temp_dir, 'fov%d_feature_0.tif' % fov), fov_whole_cell,
+                      check_contrast=False)
+            io.imsave(os.path.join(temp_dir, 'fov%d_feature_1.tif' % fov), fov_nuclear,
+                      check_contrast=False)
 
         # generate sample norm and arcsinh data for all fovs
         norm_data_all_fov, arcsinh_data_all_fov = marker_quantification.generate_cell_table(
@@ -719,19 +749,19 @@ def test_generate_cell_data_extractions():
         )
 
         # generate a sample segmentation_mask
-        cell_mask, _ = test_utils.create_test_extraction_data()
-
-        cell_masks = np.zeros((3, 40, 40, 2), dtype="int16")
-        cell_masks[0, :, :, 0] = cell_mask[0, :, :, 0]
-        cell_masks[1, 5:, 5:, 0] = cell_mask[0, :-5, :-5, 0]
-        cell_masks[2, 10:, 10:, 0] = cell_mask[0, :-10, :-10, 0]
+        cell_masks = np.random.randint(low=0, high=5, size=(3, 40, 40, 2), dtype="int16")
+        cell_masks[0, :, :, 0] = cell_masks[0, :, :, 0]
+        cell_masks[1, 5:, 5:, 0] = cell_masks[0, :-5, :-5, 0]
+        cell_masks[2, 10:, 10:, 0] = cell_masks[0, :-10, :-10, 0]
         cell_masks[..., 1] = cell_masks[..., 0]
 
         for fov in range(cell_masks.shape[0]):
             fov_whole_cell = cell_masks[fov, :, :, 0]
             fov_nuclear = cell_masks[fov, :, :, 1]
-            io.imsave(os.path.join(temp_dir, 'fov%d_feature_0.tif' % fov), fov_whole_cell)
-            io.imsave(os.path.join(temp_dir, 'fov%d_feature_1.tif' % fov), fov_nuclear)
+            io.imsave(os.path.join(temp_dir, 'fov%d_feature_0.tif' % fov), fov_whole_cell,
+                      check_contrast=False)
+            io.imsave(os.path.join(temp_dir, 'fov%d_feature_1.tif' % fov), fov_nuclear,
+                      check_contrast=False)
 
         default_norm_data, _ = marker_quantification.generate_cell_table(
             segmentation_dir=temp_dir, tiff_dir=tiff_dir,

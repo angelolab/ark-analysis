@@ -64,18 +64,21 @@ napoleon_google_docstring = True
 # contains list of modules to be marked up
 # will ensure 'clean' imports of all the following libraries
 autodoc_mock_imports = ['cryptography',
+                        'feather',
                         'google',
-                        'googleapiclient',
-                        'google_auth_oauthlib',
                         'h5py',
+                        'ipywidgets',
                         'numpy',
                         'matplotlib',
+                        'palettable',
                         'pandas',
+                        'pyarrow',
                         'skimage',
                         'sklearn',
                         'scipy',
                         'seaborn',
                         'statsmodels',
+                        'spatial_lda',
                         'tables',
                         'umap',
                         'xarray',
@@ -140,7 +143,7 @@ html_static_path = ['_static']
 # intersphinx mapping, for when there is a cross-reference that has no matching target
 # in the current documentation
 intersphinx_mapping = {
-    'python': ('https://docs.python.org/3.6', None),
+    'python': ('https://docs.python.org/3.7', None),
     'numpy': ('https://numpy.org/doc/stable', None),
     'matplotlib': ('https://matplotlib.org/3.2.1', None),
     'xarray': ('https://xarray.pydata.org/en/stable', None),
@@ -168,6 +171,14 @@ def append_readme():
 
             # append line to landing.md
             if seen_heading:
+                # reconfigure relative paths in README.md to be relative to _rtd/landing.md
+                match = re.search(r"!\[\]\((?:(?<!\bhttp).)+\b\W*\)", line)
+                if match:
+                    match_str = match.string[match.start():match.end()]
+                    match_path = match_str[4:-1]
+                    adjusted_path = os.path.join('..', match_path)
+                    line = match_str[:4] + adjusted_path + match_str[-1]
+
                 fout.write(line)
 
 

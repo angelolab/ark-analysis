@@ -1,5 +1,4 @@
-import setuptools
-from os import path
+from os import path, pardir
 from setuptools import setup, find_packages, Extension
 import numpy as np
 from Cython.Build import cythonize
@@ -15,13 +14,15 @@ if CYTHON_DEBUG:
 
 CYTHON_MACROS = [('CYTHON_TRACE', '1')] if CYTHON_DEBUG else None
 
-VERSION = '0.2.9'
+VERSION = '0.3.2'
 
-with open(path.abspath(path.join(path.dirname(__file__), 'requirements.txt'))) as req_file:
+PKG_FOLDER = path.abspath(path.join(__file__, pardir))
+
+with open(path.join(PKG_FOLDER, 'requirements.txt')) as req_file:
     requirements = req_file.read().splitlines()
 
 # set a long description which is basically the README
-with open(path.join(path.abspath(path.dirname(__file__)), 'README.md')) as f:
+with open(path.join(PKG_FOLDER, 'README.md')) as f:
     long_description = f.read()
 
 extensions = [Extension(
@@ -53,5 +54,5 @@ setup(
     classifiers=['License :: OSI Approved :: Apache Software License',
                  'Development Status :: 4 - Beta',
                  'Programming Language :: Python :: 3',
-                 'Programming Language :: Python :: 3.6']
+                 'Programming Language :: Python :: 3.7']
 )

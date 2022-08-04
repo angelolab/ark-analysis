@@ -359,7 +359,7 @@ def test_generate_cluster_matrix_results():
         )
 
     # make sure we created a cluster_labels column
-    assert 'cluster_labels' in all_data_markers_clusters.columns.values
+    assert settings.KMEANS_CLUSTER in all_data_markers_clusters.columns.values
 
     # can't really assert specific locations of values because cluster assignment stochastic
     # check just indexes and shapes

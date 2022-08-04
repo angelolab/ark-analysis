@@ -3,6 +3,7 @@ env
 .ipynb_checkpoints
 .pytest_cache
 *cache*
+*.egg-info
 
 */.coverage
 */.DS_Store
@@ -26,3 +27,9 @@ env
 *.html
 *.so
 *.egg-info
+data/example_dataset/metaclustering/*output*.csv
+data/example_dataset/metaclustering/example_manually_adjust_metaclusters.ipynb
+Pipfile
+Pipfile.lock
+.coverage
+.python-version

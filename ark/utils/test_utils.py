@@ -2,14 +2,20 @@ import os
 from copy import deepcopy
 from random import choices
 from string import ascii_lowercase
+
 import numpy as np
 import pandas as pd
-import xarray as xr
 import skimage.io as io
+import xarray as xr
 
 import ark.settings as settings
 from ark.utils import synthetic_spatial_datagen
 from ark.utils.tiff_utils import write_mibitiff
+
+
+def _make_blank_file(folder, name):
+    with open(os.path.join(folder, name), 'w'):
+        pass
 
 
 def gen_fov_chan_names(num_fovs, num_chans, return_imgs=False, use_delimiter=False):
@@ -175,7 +181,8 @@ def _write_tifs(base_dir, fov_names, img_names, shape, sub_dir, fills, dtype):
         fov_path = os.path.join(base_dir, fov, sub_dir)
         os.makedirs(fov_path)
         for j, name in enumerate(img_names):
-            io.imsave(os.path.join(fov_path, f'{name}.tiff'), tif_data[i, :, :, j])
+            io.imsave(os.path.join(fov_path, f'{name}.tiff'), tif_data[i, :, :, j],
+                      check_contrast=False)
             filelocs[fov].append(os.path.join(fov_path, name))
 
     return filelocs, tif_data
@@ -220,7 +227,8 @@ def _write_multitiff(base_dir, fov_names, channel_names, shape, sub_dir, fills,
         v = tif_data[i, :, :, :]
         if channels_first:
             v = np.moveaxis(v, -1, 0)
-        io.imsave(tiffpath, v, plugin='tifffile')
+        io.imsave(tiffpath, v, plugin='tifffile',
+                  check_contrast=False)
         filelocs[fov] = tiffpath
 
     return filelocs, tif_data
@@ -303,7 +311,8 @@ def _write_reverse_multitiff(base_dir, fov_names, channel_names, shape, sub_dir,
 
     for i, fov in enumerate(fov_names):
         tiffpath = os.path.join(base_dir, f'{fov}.tiff')
-        io.imsave(tiffpath, tif_data[:, :, :, i], plugin='tifffile')
+        io.imsave(tiffpath, tif_data[:, :, :, i], plugin='tifffile',
+                  check_contrast=False)
         filelocs[fov] = tiffpath
 
     tif_data = np.swapaxes(tif_data, 0, -1)
@@ -535,28 +544,60 @@ def make_labels_xarray(label_data, fov_ids=None, compartment_names=None, row_siz
 TEST_MARKERS = list('ABCDEFG')
 
 
-def make_segmented_csv(num_cells, extra_cols=None):
-    """ Generate segmented 'csv' file
+def make_cell_table(num_cells, extra_cols=None):
+    """ Generate a cell table with default column names for testing purposes.
 
     Args:
         num_cells (int):
-            Number of rows (cells) in csv
+            Number of rows (cells) in the cell table
         extra_cols (dict):
             Extra columns to add in the format ``{'Column_Name' : data_1D, ...}``
 
     Returns:
         pandas.DataFrame:
-            segmented csv data
+            A structural example of a cell table containing simulated marker expressions,
+            cluster labels, centroid coordinates, and more.
 
     """
-    cell_data = pd.DataFrame(
-        np.random.random(size=(num_cells, len(TEST_MARKERS))),
-        columns=TEST_MARKERS
-    )
-    cell_data[settings.CELL_TYPE] = choices(ascii_lowercase, k=num_cells)
-    cell_data[settings.PATIENT_ID] = choices(range(1, 10), k=num_cells)
+    # columns from regionprops extraction
+    region_cols = [x for x in settings.REGIONPROPS_BASE if
+                   x not in ['label', 'area', 'centroid']] + settings.REGIONPROPS_SINGLE_COMP
+    region_cols += settings.REGIONPROPS_MULTI_COMP
+    # consistent ordering of column names
+    column_names = [settings.FOV_ID,
+                    settings.PATIENT_ID,
+                    settings.CLUSTER_ID,
+                    settings.KMEANS_CLUSTER,
+                    settings.CELL_LABEL,
+                    settings.CELL_TYPE,
+                    settings.CELL_SIZE] + TEST_MARKERS + region_cols + ['centroid-0', 'centroid-1']
+
+    if extra_cols is not None:
+        column_names += list(extra_cols.values())
+
+    # random filler data
+    cell_data = pd.DataFrame(np.random.random(size=(num_cells, len(column_names))),
+                             columns=column_names)
+    # not-so-random filler data
+    cluster_id = choices(range(1, 21), k=num_cells)
+    centroids = pd.DataFrame(np.array([(x, y) for x in range(1024) for y in range(1024)]))
+    centroid_loc = np.random.choice(range(1024 ** 2), size=num_cells, replace=False)
+    fields = [(settings.FOV_ID, choices(range(1, 5), k=num_cells)),
+              (settings.PATIENT_ID, choices(range(1, 10), k=num_cells)),
+              (settings.CLUSTER_ID, cluster_id),
+              (settings.KMEANS_CLUSTER, [ascii_lowercase[i] for i in cluster_id]),
+              (settings.CELL_LABEL, list(range(num_cells))),
+              (settings.CELL_TYPE, choices(ascii_lowercase, k=num_cells)),
+              (settings.CELL_SIZE, np.random.uniform(100, 300, size=num_cells)),
+              (settings.CENTROID_0, np.array(centroids.iloc[centroid_loc, 0])),
+              (settings.CENTROID_1, np.array(centroids.iloc[centroid_loc, 1]))
+              ]
+
+    for name, col in fields:
+        cell_data[name] = col
 
     return cell_data
+
 
 # TODO: Use these below
 

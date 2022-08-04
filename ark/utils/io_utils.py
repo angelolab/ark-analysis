@@ -1,8 +1,7 @@
+from argparse import Namespace
 import os
 import pathlib
 import warnings
-
-from ark.utils.google_drive_utils import GoogleDrivePath
 
 
 def validate_paths(paths, data_prefix=True):
@@ -24,8 +23,6 @@ def validate_paths(paths, data_prefix=True):
         paths = [paths]
 
     for path in paths:
-        if type(path) is GoogleDrivePath:
-            continue
         if not os.path.exists(path):
             if str(path).startswith('../data') or not data_prefix:
                 for parent in reversed(pathlib.Path(path).parents):
@@ -42,7 +39,7 @@ def validate_paths(paths, data_prefix=True):
                     f'and to reference as \'../data/path_to_data/myfile.tif\'')
 
 
-def list_files(dir_name, substrs=None, exact_match=False):
+def list_files(dir_name, substrs=None, exact_match=False, ignore_hidden=True):
     """ List all files in a directory containing at least one given substring
 
     Args:
@@ -53,17 +50,20 @@ def list_files(dir_name, substrs=None, exact_match=False):
         exact_match (bool):
             If True, will match exact file names (so 'C' will match only 'C.tif')
             If False, will match substr pattern in file (so 'C' will match 'C.tif' and 'CD30.tif')
+        ignore_hidden (bool):
+            If True, will ignore hidden files. If False, will allow hidden files to be
+            matched against the search substring.
 
     Returns:
         list:
             List of files containing at least one of the substrings
     """
+    files = os.listdir(dir_name)
+    files = [file for file in files if not os.path.isdir(os.path.join(dir_name, file))]
 
-    if type(dir_name) is not GoogleDrivePath:
-        files = os.listdir(dir_name)
-        files = [file for file in files if not os.path.isdir(os.path.join(dir_name, file))]
-    else:
-        files = dir_name.lsfiles()
+    # Filter out hidden files
+    if ignore_hidden:
+        files = [file for file in files if not file.startswith('.')]
 
     # default to return all files
     if substrs is None:
@@ -77,8 +77,8 @@ def list_files(dir_name, substrs=None, exact_match=False):
         matches = [file
                    for file in files
                    if any([
-                        substr == os.path.splitext(file)[0]
-                        for substr in substrs
+                       substr == os.path.splitext(file)[0]
+                       for substr in substrs
                    ])]
     else:
         matches = [file
@@ -113,16 +113,29 @@ def remove_file_extensions(files):
         return
 
     # remove the file extension
-    names = [os.path.splitext(name)[0] for name in files]
+    names = [os.path.splitext(name) for name in files]
+    names_corrected = []
+    extension_types = ["tiff", "tif", "png", "jpg", "jpeg", "tar", "gz", "csv", "feather",
+                       "bin", "json"]
+    for name in names:
+        # We want everything after the "." for the extension
+        ext = name[-1][1:]
+        if (ext in extension_types) or (len(ext) == 0):
+            # If it is one of the extension types, only keep the filename.
+            # Or there is no extension and the names are similar to ["fov1", "fov2", "fov3", ...]
+            names_corrected.append(name[:-1][0])
+        else:
+            # If `ext` not one of the specified file types, keep the value after the "."
+            names_corrected.append(name[:-1][0] + "." + name[-1][1])
 
-    # identify names with '.' in them: these may not be processed correctly
-    bad_names = [name for name in names if '.' in name]
+    # identify names with '.' in them: these may not be processed correctly.
+    bad_names = [name for name in names_corrected if '.' in name]
     if len(bad_names) > 0:
         warnings.warn(f"These files still have \".\" in them after file extension removal: "
                       f"{','.join(bad_names)}, "
                       f"please double check that these are the correct names")
 
-    return names
+    return names_corrected
 
 
 def extract_delimited_names(names, delimiter='_', delimiter_optional=True):
@@ -176,7 +189,7 @@ def extract_delimited_names(names, delimiter='_', delimiter_optional=True):
     return names
 
 
-def list_folders(dir_name, substrs=None):
+def list_folders(dir_name, substrs=None, exact_match=False, ignore_hidden=True):
     """ List all folders in a directory containing at least one given substring
 
     Args:
@@ -184,17 +197,23 @@ def list_folders(dir_name, substrs=None):
             Parent directory for folders of interest
         substrs (str or list):
             Substring matching criteria, defaults to None (all folders)
+        exact_match (bool):
+            If True, will match exact folder names (so 'C' will match only 'C/').
+            If False, will match substr pattern in folder (so 'C' will match 'C/' & 'C_DIREC/').
+        ignore_hidden (bool):
+            If True, will ignore hidden directories. If False, will allow hidden directories to
+            be matched against the search substring.
 
     Returns:
         list:
             List of folders containing at least one of the substrings
     """
+    files = os.listdir(dir_name)
+    folders = [file for file in files if os.path.isdir(os.path.join(dir_name, file))]
 
-    if type(dir_name) is not GoogleDrivePath:
-        files = os.listdir(dir_name)
-        folders = [file for file in files if os.path.isdir(os.path.join(dir_name, file))]
-    else:
-        folders = dir_name.lsdirs()
+    # Filter out hidden directories
+    if ignore_hidden:
+        folders = [folder for folder in folders if not folder.startswith('.')]
 
     # default to return all files
     if substrs is None:
@@ -204,25 +223,20 @@ def list_folders(dir_name, substrs=None):
     if type(substrs) is not list:
         substrs = [substrs]
 
-    matches = [folder
-               for folder in folders
-               if any([
-                   substr in folder
-                   for substr in substrs
-               ])]
+    # Exact match case
+    if exact_match:
+        matches = [folder
+                   for folder in folders
+                   if any([
+                       substr == os.path.splitext(folder)[0]
+                       for substr in substrs
+                   ])]
+    else:
+        matches = [folder
+                   for folder in folders
+                   if any([
+                       substr in folder
+                       for substr in substrs
+                   ])]
 
     return matches
-
-
-def getmtime(filepath):
-    """ Generalizes os.path.getmtime for google drive paths
-
-    Args:
-        filepath (PathLike or GoogleDrivePath):
-            Path to file of interest
-
-    Returns:
-        int:
-            Last modified time
-    """
-    return filepath.getmtime() if type(filepath) is GoogleDrivePath else os.path.getmtime(filepath)

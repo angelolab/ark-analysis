@@ -2,6 +2,7 @@ import subprocess
 import tempfile
 import os
 import pathlib
+import sys
 
 TEMPLATES = [
     ('a.ipynb', 'a'),
@@ -22,14 +23,34 @@ def _exec_update_notebooks(base_path, update_flag=True, bad_flag=False):
     if bad_flag:
         args.append("-g")
 
-    # run subprocess from base_dir
-    subprocess.check_call(args, cwd=base_path)
+    # attempt to copy files from base_path/templates_ark to scripts
+    try:
+        # we have to append /private ahead of the base_path due to the
+        # way the temp_dir gets configured
+        # also, to ensure wild card * gets read properly, use shell=True
+        subprocess.check_output(
+            ' '.join(args),
+            cwd=os.path.join('/private', base_path),
+            stderr=subprocess.PIPE,
+            shell=True
+        )
+    except subprocess.CalledProcessError as e:
+        # some systems return a non-zero exit code with no stderr if cp -n
+        # doesn't copy certain files due to already existing in scripts
+        # you can see the output returned if you add the -v flag to cp -n command
+        # we don't want to fail in that case...
+        stderr = e.stderr.decode(sys.getfilesystemencoding())
+
+        # ...unless there indeed is an error message, in which case, we re-raise
+        # the subprocess error (unfortunately, not very informative...)
+        if len(stderr) > 0:
+            raise subprocess.CalledProcessError(1, ' '.join(args))
 
 
 def _make_dir_and_exec(base_dir, templates, scripts=None, update_flag=True, bad_flag=False):
-    os.mkdir(os.path.join(base_dir, "templates"))
+    os.mkdir(os.path.join(base_dir, "templates_ark"))
     for template in templates:
-        pathlib.Path(os.path.join(base_dir, "templates", template[0])).write_text(template[1])
+        pathlib.Path(os.path.join(base_dir, "templates_ark", template[0])).write_text(template[1])
 
     if scripts is not None:
         os.mkdir(os.path.join(base_dir, "scripts"))

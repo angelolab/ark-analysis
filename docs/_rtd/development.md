@@ -7,7 +7,8 @@ If you wish to do higher-level development on top of `ark`, we recommend setting
 #### Installing Anaconda
 
 For a step-by-step guide of how to install Anaconda, please refer to these links:
-* https://docs.anaconda.com/anaconda/install/mac-os/ for Mac users
+* https://docs.anaconda.com/anaconda/install/mac-os/ for Mac (x86_64 / Intel) users
+* https://github.com/conda-forge/miniforge/releases for Mac (arm64 / Apple Silicon) users
 * https://docs.anaconda.com/anaconda/install/windows/ for Windows users
 
 ##### Notes for Mac users
@@ -16,15 +17,60 @@ We recommend following the command line installer instructions as users have rep
  
 To test if `conda` has been added to your path, run `conda info` in your Terminal. If you get an error message, it means `conda` has not been added to your `PATH` environment variable yet. To fix, run `export PATH="/Users/yourname/anaconda3/bin:$PATH"`.
 
+**Apple Silicon Installation**
+
+You will need to install [*miniforge*](https://github.com/conda-forge/miniforge) first.
+Miniforge contains conda with native Apple Silicon support. There are a few installation options available, all generally work the same way. Consult the documentation if you wish to read about them (using Mamba vs Conda for example).
+
+1. Getting Miniforge
+   * **Option 1: (recommended)** Install via homebrew
+       ```sh
+       brew install miniforge
+       ```
+   * **Option 2:** Download and Install via the terminal
+        ```sh
+        curl -L -O "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge-$(uname)-$(uname -m).sh"
+        ```
+        ```sh
+        bash Miniforge-$(uname)-$(uname -m).sh
+        ```
+2. Initialize it for shell
+    ```sh
+    conda init
+    ```
+
 #### Creating a virtual environment
 
 Now that Anaconda is installed, you can now create a `conda` environment. 
  
-To do so, on your command line, type `conda create -n <my_env> python=3.6`, where `<my_env>` is a name you set. Our codebase only supports Python 3.6, so please do not change the `python=3.6` flag when creating your environment. 
+To do so, on your command line, type `conda create -n <my_env> python=3.7`, where `<my_env>` is a name you set. Our codebase only supports Python 3.7, so please do not change the `python=3.7` flag when creating your environment. 
  
 Say yes to any prompts and your `conda` environment will be created! 
  
 To verify installation, activate your `conda` environment with `conda activate <my_env>`. If you see `(<my_env>)` on the far left of the command prompt, you have successfully created and activated your environment. Type `conda deactivate` to exit at any time.
+
+**Apple Silicon Installation**
+
+Currently there is not a native M1 implementation of ark-analysis for development, so it will need to go through Rosetta 2 (the Intel to Arm transition layer). Luckily, this isn't something you'll have to deal with, as `conda` makes it straightforward.
+
+1. Create a Python 3.6 `conda` environment called `my_env` using osx-64 (compiled binaries for Intel Macs as the default installation type)
+    ```sh
+    CONDA_SUBDIR=osx-64 conda create -n <my_env> python=3.6
+    ```
+
+2. Test to make sure the `platform.machine()` function reports `x86_64` in the terminal.
+    ```
+    conda activate <my_env>
+    python -c "import platform;print(platform.machine())"
+    ```
+
+3. Force `conda` commands to use Intel Mac packages.
+    ```
+    conda config --env --set subdir osx-64
+    ```
+4. The prompt may ask you to deactivate and reactivate the environment as well.
+
+Now any package that is installed in `my_env` will targeted for `x86_64`.
 
 ### Setting up ark-analysis for development
 
@@ -37,6 +83,33 @@ You're now set to start working with `ark-analysis`! Please look at [our contrib
 #### Using ark functions directly
 
 If you will only be using functions in `ark` without developing on top of it, do not clone the repo. Simply run `pip install ark-analysis` inside the virtual environment to gain access to our functions. To verify installation, type `conda list ark-analysis` after completion. If `ark-analysis` is listed, the installation was successful. You can now access the `ark` library with `import ark`.
+
+### Developing template notebooks via Docker
+
+If you are using docker for your virtual environment, and plan to develop and commit template notebooks, then you should use the `--develop-notebook-templates` flag for `start_docker.sh`.
+
+Typically, the `./templates` folder is copied into `./scripts` before starting docker and Jupyter is started within `./scripts`. This enables users of `ark-analysis` to use the notebooks without dirtying the git working directory—doing so would cause merge conflicts on pull. When using `--develop-notebook-templates`, `./templates` is used directly, so changes are changes reflected directly.
+
+To enable, pass the either `-d` or  `--develop-notebook-templates` to `start_docker.sh`
+
+    $ ./start_docker -d
+
+Now notebooks can be `git diff`ed and `git commit`ed without having to copy changed notedbooks between `./scripts` and `./templates`.
+
+### Building Docker Images Locally
+
+It may be useful to be able to manually build a new Docker Image as features get added, changes made and libraries updated. This
+will allow you to test and experience bleeding edge changes, as they can't necessarily be adjusted in the `requirements.txt` file.
+Specifically, updating Python libraries requires building a new docker image from scratch. 
+
+
+Once you are in `ark-analysis`, the Docker Image can be built with the following command.
+```
+docker build -t ark-analysis .
+``` 
+
+The docker image will now build and this process can take some time.
+
 
 ### More on xarrays
 
@@ -82,3 +155,4 @@ Finally, to save an `xarray` to a file, use:
 You can load the `xarray` back in using:
 
 `arr = xr.load_dataarray(path)`
+
