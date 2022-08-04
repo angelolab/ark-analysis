@@ -406,17 +406,13 @@ def calculate_cluster_spatial_enrichment(all_data, dist_matrices_dict, included_
                 current_fov_pheno_data.groupby(context_col)[cell_label_col].apply(list).to_dict()
 
             for name_i, name_j in context_pairings:
-                context_cell_labels = context_nums_per_id[name_i]
-                context_cell_labels.extend(context_nums_per_id[name_j])
-                context_cell_labels = set(context_cell_labels)
+                try:
+                    context_cell_labels = context_nums_per_id[name_i]
+                    context_cell_labels.extend(context_nums_per_id[name_j])
+                except KeyError:
+                    continue
 
-                context_pheno_nums = current_fov_pheno_data.loc[
-                    current_fov_pheno_data[cell_label_col].isin(context_cell_labels),
-                    cluster_id_col
-                ].value_counts()
-
-                # guarentees same ordering as pheno_nums
-                context_pheno_nums = [context_pheno_nums[cluster_id] for cluster_id in cluster_ids]
+                context_cell_labels = np.unique(context_cell_labels)
 
                 context_dist_mat = dist_mat.loc[context_cell_labels, context_cell_labels]
 
@@ -425,6 +421,17 @@ def calculate_cluster_spatial_enrichment(all_data, dist_matrices_dict, included_
                     for mark_pos_label in mark_pos_labels
                 ]
 
+                context_pheno_nums = [len(cpl) for cpl in context_pos_labels]
+
+                """
+                context_pheno_nums = current_fov_pheno_data.loc[
+                    current_fov_pheno_data[cell_label_col].isin(context_cell_labels),
+                    cluster_id_col
+                ].value_counts()
+
+                # guarentees same ordering as pheno_nums
+                context_pheno_nums = [context_pheno_nums[cluster_id] for cluster_id in cluster_ids]
+                """
                 close_num_rand = close_num_rand + \
                     spatial_analysis_utils.compute_close_cell_num_random(
                         context_pheno_nums, context_pos_labels, context_dist_mat, dist_lim,

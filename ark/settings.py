@@ -10,8 +10,8 @@ PATIENT_ID = 'PatientID'                    # cell's patient id
 KMEANS_CLUSTER = 'cluster_labels'           # generated cluster column name
 
 # standardized columns surrounding channel data
-PRE_CHANNEL_COL = 'cellSize'                # last column before channel data
-POST_CHANNEL_COL = 'Tissue'                 # first column after channel data
+PRE_CHANNEL_COL = CELL_SIZE                 # last column before channel data
+POST_CHANNEL_COL = CELL_LABEL               # first column after channel data
 
 # MIBI tiling parameters
 REGION_PARAM_FIELDS = ['region_start_x', 'region_start_y', 'fov_num_x', 'fov_num_y',
