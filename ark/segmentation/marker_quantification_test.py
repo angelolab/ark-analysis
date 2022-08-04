@@ -41,6 +41,17 @@ def test_get_single_compartment_props():
         cell_props_columns=cell_props.columns.values
     )
 
+    # test that blank segmentation mask is handled appropriately
+    cell_props_blank = marker_quantification.get_single_compartment_props(
+        np.zeros((40, 40), dtype='int'),
+        regionprops_base,
+        regionprops_single_comp)
+
+    misc_utils.verify_same_elements(
+        all_features=copy.deepcopy(regionprops_base) + regionprops_single_comp,
+        cell_props_columns=cell_props_blank.columns.values
+    )
+
 
 def test_assign_single_compartment_props():
     cell_mask, channel_data = test_utils.create_test_extraction_data()
@@ -238,6 +249,14 @@ def test_compute_marker_counts_base():
         segmentation_output.loc['whole_cell', :, 'chan0'].values
         > center_extraction.loc['whole_cell', :, 'chan0'].values
     )
+
+    # blank segmentation mask results in the cells column of length 0
+    blank_labels = test_utils.make_labels_xarray(label_data=np.zeros((1, 40, 40, 1), dtype='int'),
+                                                 compartment_names=['whole_cell'])
+
+    blank_output = marker_quantification.compute_marker_counts(input_images=input_images,
+                                                               segmentation_labels=blank_labels[0])
+    assert blank_output.shape[1] == 0
 
 
 def test_compute_marker_counts_equal_masks():
@@ -442,6 +461,11 @@ def test_create_marker_count_matrices_base():
     assert np.array_equal(normalized['chan0'], np.repeat(1, len(normalized)))
     assert np.array_equal(normalized['chan1'], np.repeat(5, len(normalized)))
 
+    # blank image doesn't cause any issues
+    segmentation_labels.values[1, ...] = 0
+    _ = marker_quantification.create_marker_count_matrices(segmentation_labels,
+                                                           channel_data)
+
     # error checking
     with pytest.raises(ValueError):
         # attempt to pass non-xarray for segmentation_labels
@@ -518,6 +542,11 @@ def test_create_marker_count_matrices_multiple_compartments():
     # check that correct nuclear label is assigned to all cells
     normalized_with_nuc = normalized.loc[normalized['label'] != 2, ['label', 'label_nuclear']]
     assert np.array_equal(normalized_with_nuc['label'] * 2, normalized_with_nuc['label_nuclear'])
+
+    # blank nuclear segmentation mask doesn't cause any issues
+    segmentation_labels_unequal.values[1, ..., 1] = 0
+    _ = marker_quantification.create_marker_count_matrices(segmentation_labels_unequal,
+                                                           channel_data, nuclear_counts=True)
 
 
 def test_generate_cell_data_tree_loading():

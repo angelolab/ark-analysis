@@ -24,8 +24,6 @@ DEFAULT_HEATMAP = sns.diverging_palette(240, 10, n=3, as_cmap=True)
 class MetaClusterGui():
     """Coordinate and present the metacluster Graphical User Interface
 
-    Example usage in templates/example_manually_adjust_metaclusters.ipynb
-
     Attributes:
         mcd (MetaClusterData)):
             State of the actual clusters at any point in time
@@ -94,17 +92,20 @@ class MetaClusterGui():
         width_ratios = [
             int(self.mcd.cluster_count / 7),
             self.mcd.cluster_count,
-            self.mcd.metacluster_count,
-            ]
-        height_ratios = [6, self.mcd.marker_count, 1, 1]
+            self.mcd.metacluster_count * 2,
+        ]
+        marker_ratio = max(self.mcd.marker_count / 20, 1)
+        height_ratios = [
+            6 * marker_ratio, self.mcd.marker_count * marker_ratio, marker_ratio, marker_ratio
+        ]
 
         subplots = plt.subplots(
             4, 3,
             gridspec_kw={
                 'width_ratios': width_ratios,
                 'height_ratios': height_ratios},
-            figsize=(self.width, 6),
-            )
+            figsize=(self.width, 6 * marker_ratio),
+        )
         with self.plot_output:
             plt.show()
 
@@ -305,9 +306,10 @@ class MetaClusterGui():
         ])
         self.toolbar = widgets.HBox([
             self.tools,
-            self.metacluster_info,
+            self.metacluster_info
         ])
-        self.toolbar.layout.justify_content = 'space-between'
+
+        self.toolbar.layout.justify_content = 'center'
         self.plot_output = widgets.Output()
         self.gui = widgets.VBox([self.plot_output, self.toolbar])
 

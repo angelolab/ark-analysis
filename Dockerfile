@@ -1,4 +1,4 @@
-FROM python:3.6
+FROM python:3.7
 
 # system maintenance
 RUN apt-get update
@@ -37,8 +37,12 @@ RUN cd /opt/ark-analysis && python -m pip install .
 # Install R dependency packages
 RUN R -e "install.packages('arrow')"
 RUN R -e "install.packages('data.table')"
+RUN R -e "install.packages('doParallel')"
+RUN R -e "install.packages('foreach')"
 RUN R -e "install.packages('BiocManager')"
 RUN R -e "BiocManager::install('FlowSOM')"
+RUN R -e "install.packages('devtools')"
+RUN R -e "library(devtools); devtools::install_github('angelolab/FlowSOM')" # overwrite base FlowSOM with forked FlowSOM
 RUN R -e "BiocManager::install('ConsensusClusterPlus')"
 
 # jupyter lab
