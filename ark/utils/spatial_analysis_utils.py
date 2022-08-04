@@ -252,18 +252,14 @@ def compute_close_cell_num_random(marker_nums, mark_pos_labels, dist_mat, dist_l
         if mn > dist_mat_bin.shape[0]:
             raise ValueError('Marker number count can not be greater than number of cells...')
 
-    # creates list-of-lists sparse matrix-representation of binarized distance matrix
-    rows, cols = np.nonzero(dist_mat_bin)
-    cols_in_row = [[] for i in range(dist_mat_bin.shape[0])]
-    for pair_idx, row in enumerate(rows):
-        cols_in_row[row].append(cols[pair_idx])
-
     # flattens list-of-list representation into 1D array and stores the index keys
     row_indicies = [0]
     cols_in_row_flat = []
-    for cell_indx, row in enumerate(range(dist_mat_bin.shape[0])):
-        row_indicies.append(len(cols_in_row[row]) + row_indicies[cell_indx])
-        cols_in_row_flat.extend(cols_in_row[row])
+
+    for row in range(dist_mat_bin.shape[0]):
+        cols = list(np.nonzero(dist_mat_bin[row, :])[0])
+        cols_in_row_flat.extend(cols)
+        row_indicies.append(len(cols) + row_indicies[row])
 
     # formats list-of-list representation into cython compatable argument
     cols_in_row_flat = np.array(cols_in_row_flat, dtype=np.uint16)
