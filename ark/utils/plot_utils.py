@@ -362,7 +362,7 @@ def create_overlay(fov, segmentation_dir, data_dir,
 def create_mantis_project(fovs: List[str], mantis_project_path: Union[str, pathlib.Path],
                           img_data_path: Union[str, pathlib.Path],
                           mask_output_dir: Union[str, pathlib.Path],
-                          mapping_path: Union[str, pathlib.Path],
+                          mapping: Union[str, pathlib.Path, pd.DataFrame],
                           seg_dir: Union[str, pathlib.Path],
                           mask_suffix: str = "_mask", img_sub_folder: str = "normalized"):
     """Creates a mantis project directory so that it can be opened by the mantis viewer.
@@ -399,8 +399,8 @@ def create_mantis_project(fovs: List[str], mantis_project_path: Union[str, pathl
             The location of the all the fovs you wish to create a project from.
         mask_output_dir (Union[str, pathlib.Path]):
             The folder containing all the masks of the fovs.
-        mapping_path (Union[str, pathlib.Path]):
-            The location of the mapping path file.
+        mapping (Union[str, pathlib.Path, pd.DataFrame]):
+            The location of the mapping file, or the mapping Pandas DataFrame itself.
         seg_dir (Union[str, pathlib.Path]):
             The location of the segmentation directory for the fovs.
         mask_suffix (str, optional):
@@ -414,9 +414,15 @@ def create_mantis_project(fovs: List[str], mantis_project_path: Union[str, pathl
         os.makedirs(mantis_project_path)
 
     # create key from cluster number to cluster name
-    map_df = pd.read_csv(mapping_path)
-    map_df = map_df.loc[:, ['metacluster', 'mc_name']]
+    if type(mapping) in {pathlib.Path, str}:
+        map_df = pd.read_csv(mapping)
+    elif type(mapping) is pd.DataFrame:
+        map_df = mapping
+    else:
+        ValueError("Mapping must either be a path to an already saved mapping csv, \
+                   or a DataFrame that is already loaded in.")
 
+    map_df = map_df.loc[:, ['metacluster', 'mc_name']]
     # remove duplicates from df
     map_df = map_df.drop_duplicates()
     map_df = map_df.sort_values(by=['metacluster'])

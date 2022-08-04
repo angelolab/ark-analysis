@@ -305,66 +305,71 @@ def test_create_mantis_project():
         # Image segmentation full path
         image_segmentation_full_path = os.path.join(temp_dir, segmentation_dir)
 
-        plot_utils.create_mantis_project(
-            fovs=fovs_subset,
-            mantis_project_path=mantis_project_path,
-            img_data_path=fov_path,
-            mask_output_dir=mask_output_dir,
-            mask_suffix=mask_suffix,
-            mapping_path=mapping_path,
-            seg_dir=image_segmentation_full_path,
-            img_sub_folder=img_sub_folder
-        )
+        # Test mapping csv, and df
+        for mapping in [df, mapping_path]:
+            plot_utils.create_mantis_project(
+                fovs=fovs_subset,
+                mantis_project_path=mantis_project_path,
+                img_data_path=fov_path,
+                mask_output_dir=mask_output_dir,
+                mask_suffix=mask_suffix,
+                mapping=mapping,
+                seg_dir=image_segmentation_full_path,
+                img_sub_folder=img_sub_folder
+            )
 
-        # Testing file existence and correctness
-        for fov in fovs_subset:
-            # output path for testing
-            output_path = os.path.join(mantis_project_path, fov)
+            # Testing file existence and correctness
+            for fov in fovs_subset:
+                # output path for testing
+                output_path = os.path.join(mantis_project_path, fov)
 
-            # Mask tiff tests
-            mask_path = os.path.join(output_path, "population{}.tiff".format(mask_suffix))
-            original_mask_path = os.path.join(mask_output_dir, '%s_mask.tiff' % fov)
-            assert os.path.exists(mask_path)
+                # Mask tiff tests
+                mask_path = os.path.join(output_path, "population{}.tiff".format(mask_suffix))
+                original_mask_path = os.path.join(mask_output_dir, '%s_mask.tiff' % fov)
+                assert os.path.exists(mask_path)
 
-            # Cell Segmentation tiff tests
-            cell_seg_path = os.path.join(output_path, "cell_segmentation.tiff")
-            # Assert that the segmentation label compartments exist in the new directory
-            assert os.path.exists(cell_seg_path)
+                # Cell Segmentation tiff tests
+                cell_seg_path = os.path.join(output_path, "cell_segmentation.tiff")
+                # Assert that the segmentation label compartments exist in the new directory
+                assert os.path.exists(cell_seg_path)
 
-            # Assert that the `cell_segmentation` file is equal to `fov8_feature_0`
-            original_cell_seg_path = os.path.join(temp_dir, segmentation_dir,
-                                                  '%s_feature_0.tiff' % fov)
-            cell_seg_img = io.imread(cell_seg_path)
-            original_cell_seg_img = io.imread(original_cell_seg_path)
-            np.testing.assert_equal(cell_seg_img, original_cell_seg_img)
+                # Assert that the `cell_segmentation` file is equal to `fov8_feature_0`
+                original_cell_seg_path = os.path.join(temp_dir, segmentation_dir,
+                                                      '%s_feature_0.tiff' % fov)
+                cell_seg_img = io.imread(cell_seg_path)
+                original_cell_seg_img = io.imread(original_cell_seg_path)
+                np.testing.assert_equal(cell_seg_img, original_cell_seg_img)
 
-            # Assert that the mask is the same file
-            mask_img = io.imread(mask_path)
-            original_mask_img = io.imread(original_mask_path)
-            np.testing.assert_equal(mask_img, original_mask_img)
+                # Assert that the mask is the same file
+                mask_img = io.imread(mask_path)
+                original_mask_img = io.imread(original_mask_path)
+                np.testing.assert_equal(mask_img, original_mask_img)
 
-            # mapping csv tests
-            original_mapping_df = pd.read_csv(mapping_path)
-            new_mapping_df = pd.read_csv(
-                os.path.join(output_path, "population{}.csv".format(mask_suffix)))
+                # mapping csv tests
+                if type(mapping) is pd.DataFrame:
+                    original_mapping_df = df
+                else:
+                    original_mapping_df = pd.read_csv(mapping_path)
+                new_mapping_df = pd.read_csv(
+                    os.path.join(output_path, "population{}.csv".format(mask_suffix)))
 
-            # Assert that metacluster col equals the region_id col
-            metacluster_col = original_mapping_df[["metacluster"]]
-            region_id_col = new_mapping_df[["region_id"]]
-            metacluster_col.eq(region_id_col)
+                # Assert that metacluster col equals the region_id col
+                metacluster_col = original_mapping_df[["metacluster"]]
+                region_id_col = new_mapping_df[["region_id"]]
+                metacluster_col.eq(region_id_col)
 
-            # Assert that mc_name col equals the region_name col
-            mc_name_col = original_mapping_df[["mc_name"]]
-            region_name = new_mapping_df[["region_name"]]
-            mc_name_col.eq(region_name)
+                # Assert that mc_name col equals the region_name col
+                mc_name_col = original_mapping_df[["mc_name"]]
+                region_name = new_mapping_df[["region_name"]]
+                mc_name_col.eq(region_name)
 
-            mantis_fov_channels = sorted(list(Path(output_path).glob("chan*.tiff")))
+                mantis_fov_channels = sorted(list(Path(output_path).glob("chan*.tiff")))
 
-            # Test that all fov channels exist and are correct
-            for chan_path in mantis_fov_channels:
-                new_chan = io.imread(chan_path)
+                # Test that all fov channels exist and are correct
+                for chan_path in mantis_fov_channels:
+                    new_chan = io.imread(chan_path)
 
-                # get the channel name
-                chan, _ = chan_path.name.split('.')
-                original_chan = data_xr.loc[fov, :, :, chan].values
-                np.testing.assert_equal(new_chan, original_chan)
+                    # get the channel name
+                    chan, _ = chan_path.name.split('.')
+                    original_chan = data_xr.loc[fov, :, :, chan].values
+                    np.testing.assert_equal(new_chan, original_chan)
