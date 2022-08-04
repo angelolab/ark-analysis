@@ -249,7 +249,7 @@ def compute_close_cell_num_random(marker_nums, mark_pos_labels, dist_mat, dist_l
 
     # assures that marker counts don't exceed number of cells
     for mn in marker_nums:
-        if mn >= dist_mat_bin.shape[0]:
+        if mn > dist_mat_bin.shape[0]:
             raise ValueError('Marker number count can not be greater than number of cells...')
 
     # creates list-of-lists sparse matrix-representation of binarized distance matrix
