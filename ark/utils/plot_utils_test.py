@@ -277,7 +277,7 @@ def test_create_mantis_project():
         for fov in fovs:
 
             # Save the segmentation label compartments for each fov
-            io.imsave(os.path.join(temp_dir, segmentation_dir, '%s_feature_0.tiff' % fov),
+            io.imsave(os.path.join(temp_dir, segmentation_dir, '%s_feature_0.tif' % fov),
                       example_labels, check_contrast=False)
 
             # Save the sample masks
@@ -335,7 +335,7 @@ def test_create_mantis_project():
 
                 # Assert that the `cell_segmentation` file is equal to `fov8_feature_0`
                 original_cell_seg_path = os.path.join(temp_dir, segmentation_dir,
-                                                      '%s_feature_0.tiff' % fov)
+                                                      '%s_feature_0.tif' % fov)
                 cell_seg_img = io.imread(cell_seg_path)
                 original_cell_seg_img = io.imread(original_cell_seg_path)
                 np.testing.assert_equal(cell_seg_img, original_cell_seg_img)
