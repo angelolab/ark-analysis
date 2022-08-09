@@ -197,6 +197,17 @@ def test_calculate_channel_spatial_enrichment():
     assert stats_no_enrich.loc["fov9", "p_neg", 3, 2] > .05
     assert abs(stats_no_enrich.loc["fov9", "z", 3, 2]) < 2
 
+    # run basic coverage check on context dependence code
+    all_data_context, dist_mat_context = \
+        test_utils._make_context_dist_exp_mats_spatial_test(dist_lim)
+
+    _, _ = \
+        spatial_analysis.calculate_channel_spatial_enrichment(
+            dist_mat_context, marker_thresholds, all_data_context,
+            excluded_channels=EXCLUDE_CHANNELS, bootstrap_num=100, dist_lim=dist_lim,
+            context_col='context_col'
+        )
+
     # error checking
     with pytest.raises(ValueError):
         # attempt to exclude a column name that doesn't appear in the expression matrix
@@ -286,6 +297,16 @@ def test_calculate_cluster_spatial_enrichment():
     assert stats_no_enrich.loc["fov9", "p_pos", "Pheno2", "Pheno1"] > .05
     assert stats_no_enrich.loc["fov9", "p_neg", "Pheno2", "Pheno1"] > .05
     assert abs(stats_no_enrich.loc["fov9", "z", "Pheno2", "Pheno1"]) < 2
+
+    # run basic coverage check on context dependence code
+    all_data_context, dist_mat_context = \
+        test_utils._make_context_dist_exp_mats_spatial_test(dist_lim)
+
+    _, _ = \
+        spatial_analysis.calculate_cluster_spatial_enrichment(
+            all_data_context, dist_mat_context,
+            bootstrap_num=dist_lim, dist_lim=dist_lim, context_col='context_col'
+        )
 
     # error checking
     with pytest.raises(ValueError):
