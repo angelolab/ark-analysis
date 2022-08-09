@@ -25,7 +25,7 @@ WORKDIR /scripts
 
 # copy over the requirements.txt, install dependencies, and README
 COPY setup.py pyproject.toml requirements.txt README.md /opt/ark-analysis/
-RUN pip install -r /opt/ark-analysis/requirements.txt
+RUN python -m pip install -r /opt/ark-analysis/requirements.txt
 
 # copy the scripts over
 # this should catch changes to the scripts from updates

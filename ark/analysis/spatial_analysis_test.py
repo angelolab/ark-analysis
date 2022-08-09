@@ -2,8 +2,6 @@ import tempfile
 import pytest
 import numpy as np
 import pandas as pd
-import xarray as xr
-import random
 
 from ark.analysis import spatial_analysis
 

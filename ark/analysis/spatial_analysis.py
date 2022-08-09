@@ -1,6 +1,7 @@
 import pandas as pd
 import xarray as xr
 import numpy as np
+from itertools import combinations_with_replacement
 from ark.utils import spatial_analysis_utils, misc_utils, load_utils, io_utils
 
 import ark.settings as settings
@@ -83,7 +84,8 @@ def batch_channel_spatial_enrichment(label_dir, marker_thresholds, all_data, bat
 def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, all_data,
                                          excluded_channels=None, included_fovs=None,
                                          dist_lim=100, bootstrap_num=1000,
-                                         fov_col=settings.FOV_ID):
+                                         fov_col=settings.FOV_ID,
+                                         cell_label_col=settings.CELL_LABEL, context_col=None):
     """Spatial enrichment analysis to find significant interactions between cells expressing
     different markers. Uses bootstrapping to permute cell labels randomly.
 
@@ -105,6 +107,10 @@ def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, 
             number of permutations for bootstrap. Default is 1000.
         fov_col (str):
             column with the cell fovs.
+        cell_label_col (str):
+            cell label column name.
+        context_col (str):
+            column with context label.
 
     Returns:
         tuple (list, xarray.DataArray):
@@ -161,6 +167,11 @@ def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, 
     # Subsetting threshold matrix to only include column with threshold values
     thresh_vec = marker_thresholds.iloc[:, 1].values
 
+    # Only include the columns with the patient label, cell label, and cell phenotype
+    if context_col is not None:
+        context_names = all_data[context_col].unique()
+        context_pairings = combinations_with_replacement(context_names, 2)
+
     for fov in included_fovs:
         # Subsetting expression matrix to only include patients with correct fov label
         current_fov_idx = all_data[fov_col] == fov
@@ -176,7 +187,37 @@ def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, 
         close_num, channel_nums, mark_pos_labels = spatial_analysis_utils.compute_close_cell_num(
             dist_mat=dist_matrix, dist_lim=100, analysis_type="channel",
             current_fov_data=current_fov_data, current_fov_channel_data=current_fov_channel_data,
-            thresh_vec=thresh_vec)
+            thresh_vec=thresh_vec, cell_label_col=cell_label_col)
+
+        if context_col is not None:
+            close_num_rand = np.zeros((*close_num.shape, bootstrap_num), dtype=np.uint16)
+
+            context_nums_per_id = \
+                current_fov_data.groupby(context_col)[cell_label_col].apply(list).to_dict()
+
+            for name_i, name_j in context_pairings:
+                # some FoVs may not have cells with a certain context, so they are skipped here
+                try:
+                    context_cell_labels = context_nums_per_id[name_i]
+                    context_cell_labels.extend(context_nums_per_id[name_j])
+                except KeyError:
+                    continue
+                context_cell_labels = np.unique(context_cell_labels)
+
+                context_dist_mat = dist_matrix.loc[context_cell_labels, context_cell_labels]
+
+                context_pos_labels = [
+                    np.intersect1d(mark_pos_label, context_cell_labels)
+                    for mark_pos_label in mark_pos_labels
+                ]
+
+                context_mark_nums = [len(cpl) for cpl in context_pos_labels]
+
+                close_num_rand = close_num_rand + \
+                    spatial_analysis_utils.compute_close_cell_num_random(
+                        context_mark_nums, context_pos_labels, context_dist_mat, dist_lim,
+                        bootstrap_num
+                    )
 
         close_num_rand = spatial_analysis_utils.compute_close_cell_num_random(
             channel_nums, mark_pos_labels, dist_matrix, dist_lim, bootstrap_num)
@@ -264,7 +305,7 @@ def calculate_cluster_spatial_enrichment(all_data, dist_matrices_dict, included_
                                          bootstrap_num=1000, dist_lim=100, fov_col=settings.FOV_ID,
                                          cluster_name_col=settings.CELL_TYPE,
                                          cluster_id_col=settings.CLUSTER_ID,
-                                         cell_label_col=settings.CELL_LABEL, context_labels=None):
+                                         cell_label_col=settings.CELL_LABEL, context_col=None):
     """Spatial enrichment analysis based on cell phenotypes to find significant interactions
     between different cell types, looking for both positive and negative enrichment. Uses
     bootstrapping to permute cell labels randomly.
@@ -289,9 +330,8 @@ def calculate_cluster_spatial_enrichment(all_data, dist_matrices_dict, included_
             column with the cell phenotype IDs.
         cell_label_col (str):
             column with the cell labels.
-        context_labels (dict):
-            A dict that contains which specific types of cells we want to consider.
-            If argument is None, we will not run context-dependent spatial analysis
+        context_col (str):
+            column with context labels. If None, no context is assumed.
 
     Returns:
         tuple (list, xarray.DataArray):
@@ -324,7 +364,14 @@ def calculate_cluster_spatial_enrichment(all_data, dist_matrices_dict, included_
     cluster_num = len(cluster_ids)
 
     # Only include the columns with the patient label, cell label, and cell phenotype
-    all_pheno_data = all_data[[fov_col, cell_label_col, cluster_id_col]]
+    all_pheno_data_cols = [fov_col, cell_label_col, cluster_id_col]
+    all_pheno_data_cols += [] if context_col is None else [context_col]
+
+    all_pheno_data = all_data[all_pheno_data_cols]
+
+    if context_col is not None:
+        context_names = all_data[context_col].unique()
+        context_pairings = combinations_with_replacement(context_names, 2)
 
     # Create stats Xarray with the dimensions (fovs, stats variables, num_markers, num_markers)
     stats_raw_data = np.zeros((num_fovs, 7, cluster_num, cluster_num))
@@ -344,13 +391,44 @@ def calculate_cluster_spatial_enrichment(all_data, dist_matrices_dict, included_
         # Get close_num and close_num_rand
         close_num, pheno_nums, mark_pos_labels = spatial_analysis_utils.compute_close_cell_num(
             dist_mat=dist_mat, dist_lim=dist_lim, analysis_type="cluster",
-            current_fov_data=current_fov_pheno_data, cluster_ids=cluster_ids)
+            current_fov_data=current_fov_pheno_data, cluster_ids=cluster_ids,
+            cell_label_col=cell_label_col)
 
-        close_num_rand = spatial_analysis_utils.compute_close_cell_num_random(
-            pheno_nums, mark_pos_labels, dist_mat, dist_lim, bootstrap_num)
+        # subset distance matrix with context
+        if context_col is not None:
+            close_num_rand = np.zeros((*close_num.shape, bootstrap_num), dtype=np.uint16)
 
-        # close_num_rand_context = spatial_analysis_utils.compute_close_cell_num_random(
-        #     pheno_nums_per_id, dist_mat, dist_lim, bootstrap_num)
+            context_nums_per_id = \
+                current_fov_pheno_data.groupby(context_col)[cell_label_col].apply(list).to_dict()
+
+            for name_i, name_j in context_pairings:
+                # some FoVs may not have cells with a certain context, so they are skipped here
+                try:
+                    context_cell_labels = context_nums_per_id[name_i]
+                    context_cell_labels.extend(context_nums_per_id[name_j])
+                except KeyError:
+                    continue
+
+                context_cell_labels = np.unique(context_cell_labels)
+
+                context_dist_mat = dist_mat.loc[context_cell_labels, context_cell_labels]
+
+                context_pos_labels = [
+                    np.intersect1d(mark_pos_label, context_cell_labels)
+                    for mark_pos_label in mark_pos_labels
+                ]
+
+                context_pheno_nums = [len(cpl) for cpl in context_pos_labels]
+
+                close_num_rand = close_num_rand + \
+                    spatial_analysis_utils.compute_close_cell_num_random(
+                        context_pheno_nums, context_pos_labels, context_dist_mat, dist_lim,
+                        bootstrap_num
+                    )
+
+        else:
+            close_num_rand = spatial_analysis_utils.compute_close_cell_num_random(
+                pheno_nums, mark_pos_labels, dist_mat, dist_lim, bootstrap_num)
 
         values.append((close_num, close_num_rand))
 
