@@ -213,9 +213,6 @@ def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, 
                 ]
 
                 context_mark_nums = [len(cpl) for cpl in context_pos_labels]
-                # print(context_mark_nums)
-                # print(context_pos_labels)
-                # print(context_dist_mat.shape)
 
                 close_num_rand = close_num_rand + \
                     spatial_analysis_utils.compute_close_cell_num_random(
@@ -423,15 +420,6 @@ def calculate_cluster_spatial_enrichment(all_data, dist_matrices_dict, included_
 
                 context_pheno_nums = [len(cpl) for cpl in context_pos_labels]
 
-                """
-                context_pheno_nums = current_fov_pheno_data.loc[
-                    current_fov_pheno_data[cell_label_col].isin(context_cell_labels),
-                    cluster_id_col
-                ].value_counts()
-
-                # guarentees same ordering as pheno_nums
-                context_pheno_nums = [context_pheno_nums[cluster_id] for cluster_id in cluster_ids]
-                """
                 close_num_rand = close_num_rand + \
                     spatial_analysis_utils.compute_close_cell_num_random(
                         context_pheno_nums, context_pos_labels, context_dist_mat, dist_lim,
