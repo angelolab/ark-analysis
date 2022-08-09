@@ -196,7 +196,6 @@ def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, 
                 current_fov_data.groupby(context_col)[cell_label_col].apply(list).to_dict()
 
             for name_i, name_j in context_pairings:
-                print(f'Context pair: {name_i}, {name_j}')
                 # some FoVs may not have cells with a certain context, so they are skipped here
                 try:
                     context_cell_labels = context_nums_per_id[name_i]
@@ -403,6 +402,7 @@ def calculate_cluster_spatial_enrichment(all_data, dist_matrices_dict, included_
                 current_fov_pheno_data.groupby(context_col)[cell_label_col].apply(list).to_dict()
 
             for name_i, name_j in context_pairings:
+                # some FoVs may not have cells with a certain context, so they are skipped here
                 try:
                     context_cell_labels = context_nums_per_id[name_i]
                     context_cell_labels.extend(context_nums_per_id[name_j])
