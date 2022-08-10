@@ -5,7 +5,7 @@ from pathlib import Path
 import requests
 from requests.adapters import HTTPAdapter
 from requests.exceptions import RetryError
-from requests.packages.urllib3.util.retry import Retry
+from requests.packages.urllib3.util import Retry
 import time
 from tqdm.notebook import tqdm
 from urllib.parse import unquote_plus
@@ -13,7 +13,8 @@ import warnings
 from concurrent.futures import ThreadPoolExecutor
 import numpy as np
 from scipy import stats
-from skimage import io, external
+from skimage import io
+from tifffile import imread
 from io import BytesIO
 from ark.utils import misc_utils
 from zipfile import ZipFile, ZIP_DEFLATED
@@ -323,7 +324,7 @@ def _convert_deepcell_seg_masks(seg_mask: bytes) -> np.ndarray:
         np.ndarray: The segmentation masks, converted from floating point 64-bit to integer
         16-bit via `scipy.stats.rankdata`
     """
-    float_mask = external.tifffile.imread(BytesIO(seg_mask))
+    float_mask = imread(BytesIO(seg_mask))
 
     # Reshape as ranked_mask returns a 1D numpy array, dims:  n^2 x 1 -> 1 x n x n
     shape = float_mask.shape

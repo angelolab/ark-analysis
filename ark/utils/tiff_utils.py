@@ -115,7 +115,7 @@ def write_mibitiff(filepath, img_data, channel_tuples, metadata):
         if key in _PREFIXED_METADATA_ATTRIBUTES:
             description[f'mibi.{key}'] = value
 
-    with TiffWriter(filepath, software="IonpathMIBIv1.0") as infile:
+    with TiffWriter(filepath) as infile:
         for index, channel_tuple in enumerate(channel_tuples):
             mass, target = channel_tuple
             _metadata = description.copy()
@@ -132,9 +132,13 @@ def write_mibitiff(filepath, img_data, channel_tuples, metadata):
             max_value = (341, range_dtype, 1, ranges[index][1])
             page_tags = coordinates + [page_name, min_value, max_value]
 
-            infile.save(
-                img_data[:, :, index], compress=6, resolution=resolution,
-                extratags=page_tags, metadata=_metadata,
+            infile.write(
+                data=img_data[:, :, index],
+                compress=6,
+                resolution=resolution,
+                software="IonpathMIBIv1.0",
+                extratags=page_tags,
+                metadata=_metadata,
                 datetime=datetime.datetime.strptime(metadata['date'], '%Y-%m-%dT%H:%M:%S')
             )
 
