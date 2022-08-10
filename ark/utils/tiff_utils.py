@@ -1,6 +1,6 @@
 from fractions import Fraction
 import numpy as np
-from skimage.external.tifffile import TiffFile, TiffWriter
+from tifffile import TiffFile, TiffWriter
 import json
 import datetime
 from itertools import compress
