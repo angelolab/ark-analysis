@@ -7,9 +7,25 @@ Toolbox for analyzing multiplexed imaging data
 
 Full documentation for the project can be found [here](https://ark-analysis.readthedocs.io/en/latest/)
 
-## Info
+## Table of contents
+TODO
 
-This project contains code and example scripts for analyzing multiplexed imaging data
+
+## Overview
+This repo contains tools for analyzing multiplexed imaging data. The assumption is that you've already performed any necessary image processing on your data (such as denoising, background subtraction, autofluorescence correction, etc), and that it is ready to be analyzed. For MIBI data, we recommend using the [toffy](link) processing pipeline.
+
+1. Segmentation
+The [segmentation notebook](add link) will walk you through the process of using [Mesmer](link to paper) to segment your image data. This includes selecting the appropriate channel(s) for segmentation, running your data through the network, and then extracting single-cell statistics from the resulting segmentation mask. 
+
+2. Pixel clustering with Pixie
+The first step in the [Pixie](link to preprint) pipeline is to run the [pixel clustering notebook](link). The notebook walks you through the process of generating pixel clusters for your data, and lets you specify what markers to use for the clustering, train a model, and use it to classify your entire dataset.
+
+3. Cell clustering with Pixie
+The second step in the Pixie pipeline is to run the [cell clustering notebook](link). This notebook will use the pixel clusters generated in the first notebook to cluster the cells in your dataset. 
+
+4. Spatial analysis:
+TBD once notebooks are finished
+
 
 ## To install the project:
 
@@ -52,11 +68,6 @@ If you already have a Jupyter session open when you run `./start_docker.sh`, you
 Copy the URL listed after `Enter this URL instead to access the notebooks:` 
 
 You will need to authenticate. Note the last URL (the one with `127.0.0.1:8888` at the beginning), copy the token that appears there (it will be after `token=` in the URL), paste it into the password prompt of the Jupyter notebook, and log in.
-
-## Using the example notebooks:
-- The Segment_Image_Data notebook walks you through the appropriate steps to format your data, run the data through deepcell, extracts the counts for each marker in each cell, and creates a csv file with the normalized counts
-- The spatial_analysis notebook contains code for performing cluster- and channel-based randomization, as well as neighborhood analysis. 
-- The example_visualization notebooks contains code for basic plotting functions and visualizations
 
 
 ## Once you are finished
