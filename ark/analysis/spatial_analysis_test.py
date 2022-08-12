@@ -308,6 +308,16 @@ def test_calculate_cluster_spatial_enrichment():
             bootstrap_num=dist_lim, dist_lim=dist_lim, context_col='context_col'
         )
 
+    # run basic coverage check on feature distance
+    all_data_hack, dist_mat_hack = \
+        test_utils._make_dist_exp_mats_dist_feature_spatial_test(dist_lim)
+
+    _, _ = \
+        spatial_analysis.calculate_cluster_spatial_enrichment(
+            all_data_hack, dist_mat_hack,
+            bootstrap_num=dist_lim, dist_lim=dist_lim, distance_cols=['dist_feature_0']
+        )
+
     # error checking
     with pytest.raises(ValueError):
         # attempt to include fovs that do not exist
