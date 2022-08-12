@@ -48,6 +48,44 @@ def test_calc_dist_matrix():
         assert os.path.exists(os.path.join(data_path, "dist_matrices.npz"))
 
 
+def test_append_distance_features_to_dataset():
+    all_data, dist_mat = test_utils._make_dist_exp_mats_spatial_utils_test()
+
+    feat_dist = 300
+
+    all_data['dist_feature_0'] = feat_dist * np.ones(all_data.shape[0])
+
+    num_labels = max(all_data[settings.CELL_LABEL].unique())
+    num_cell_types = max(all_data[settings.CLUSTER_ID].unique())
+    dist_mats = {'fov8': dist_mat}
+
+    all_data, dist_mats = spatial_analysis_utils.append_distance_features_to_dataset(
+        dist_mats, all_data, ['dist_feature_0']
+    )
+
+    appended_cell_row = all_data.iloc[-1, :][[
+        settings.CELL_LABEL,
+        settings.FOV_ID,
+        settings.CELL_TYPE,
+        settings.CLUSTER_ID,
+    ]]
+    pd.testing.assert_series_equal(appended_cell_row, pd.Series({
+        settings.CELL_LABEL: num_labels + 1,
+        settings.FOV_ID: 'fov8',
+        settings.CELL_TYPE: 'dist_feature_0',
+        settings.CLUSTER_ID: num_cell_types + 1,
+    }), check_names=False)
+
+    dist_mat_new_row = dist_mats['fov8'].values[-1, :]
+    dist_mat_new_col = dist_mats['fov8'].values[:, -1]
+
+    expected = feat_dist * np.ones(all_data.shape[0])
+    expected[-1] = np.nan
+
+    np.testing.assert_equal(dist_mat_new_row, expected)
+    np.testing.assert_equal(dist_mat_new_col, expected)
+
+
 def test_get_pos_cell_labels_channel():
     all_data, _ = test_utils._make_dist_exp_mats_spatial_utils_test()
     example_thresholds = test_utils._make_threshold_mat(in_utils=True)
