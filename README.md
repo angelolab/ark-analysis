@@ -14,16 +14,16 @@ TODO
 ## Overview
 This repo contains tools for analyzing multiplexed imaging data. The assumption is that you've already performed any necessary image processing on your data (such as denoising, background subtraction, autofluorescence correction, etc), and that it is ready to be analyzed. For MIBI data, we recommend using the [toffy](link) processing pipeline.
 
-1. Segmentation
+1. Segmentation  
 The [segmentation notebook](add link) will walk you through the process of using [Mesmer](link to paper) to segment your image data. This includes selecting the appropriate channel(s) for segmentation, running your data through the network, and then extracting single-cell statistics from the resulting segmentation mask. 
 
-2. Pixel clustering with Pixie
-The first step in the [Pixie](link to preprint) pipeline is to run the [pixel clustering notebook](link). The notebook walks you through the process of generating pixel clusters for your data, and lets you specify what markers to use for the clustering, train a model, and use it to classify your entire dataset.
+2. Pixel clustering with Pixie  
+The first step in the [Pixie](link to preprint) pipeline is to run the [pixel clustering notebook](link). The notebook walks you through the process of generating pixel clusters for your data, and lets you specify what markers to use for the clustering, train a model, use it to classify your entire dataset, and generate pixel cluster overlays. The notebook includes a GUI for manual cluster adjustment and annotation.
 
-3. Cell clustering with Pixie
-The second step in the Pixie pipeline is to run the [cell clustering notebook](link). This notebook will use the pixel clusters generated in the first notebook to cluster the cells in your dataset. 
+3. Cell clustering with Pixie  
+The second step in the Pixie pipeline is to run the [cell clustering notebook](link). This notebook will use the pixel clusters generated in the first notebook to cluster the cells in your dataset. The notebook walks you through generating cell clusters for your data and generates cell cluster overlays. The notebook includes a GUI for manual cluster adjustment and annotation.
 
-4. Spatial analysis:
+4. Spatial analysis  
 TBD once notebooks are finished
 
 
