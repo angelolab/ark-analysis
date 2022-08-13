@@ -231,13 +231,51 @@ def flowsom_pixel_setup(tb, flowsom_dir, create_seg_dir=True, img_shape=(50, 50)
     """ % [chans[0]]
     tb.inject(run_chan_smoothing, 'smooth_channels')
 
+    # if seg_dir is set, test filtering with exclude = True for the second channel,
+    # and exclude = False for the third channel
+    if seg_dir:
+        run_chan_filtering_exclude = """
+            filter_channel = '%s'
+            nuclear_exclude = True
+
+            som_utils.filter_with_nuclear_mask(
+                fovs,
+                tiff_dir,
+                segmentation_dir,
+                filter_channel,
+                img_sub_folder,
+                nuclear_exclude
+            )
+        """ % chans[1]
+        tb.inject(run_chan_filtering_exclude, 'filter_channels')
+
+        run_chan_filtering_include = """
+            filter_channel = '%s'
+            nuclear_exclude = False
+
+            som_utils.filter_with_nuclear_mask(
+                fovs,
+                tiff_dir,
+                segmentation_dir,
+                filter_channel,
+                img_sub_folder,
+                nuclear_exclude
+            )
+        """ % chans[2]
+        tb.inject(run_chan_filtering_include, 'filter_channels')
+
     # sets the channels to include
+    # NOTE: need to take into account the renamed channels
+    if seg_dir:
+        renamed_chans = ['chan0_smoothed', 'chan1_nuc_exclude', 'chan2_nuc_include']
+    else:
+        renamed_chans = ['chan0_smoothed', 'chan1', 'chan2']
     tb.inject(
         """
             channels = %s
             blur_factor = 2
             subset_proportion = 0.1
-        """ % str(chans),
+        """ % str(renamed_chans),
         after='channel_set'
     )
 
@@ -247,7 +285,7 @@ def flowsom_pixel_setup(tb, flowsom_dir, create_seg_dir=True, img_shape=(50, 50)
     # define the pixel clustering file names to create
     tb.execute_cell('pixel_som_path_set')
 
-    return fovs, chans
+    return fovs, renamed_chans
 
 
 def flowsom_pixel_cluster(tb, flowsom_dir, fovs, channels,

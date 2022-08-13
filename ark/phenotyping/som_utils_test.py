@@ -547,7 +547,8 @@ def test_smooth_channels(smooth_vals):
 
 @parametrize('sub_dir', [None, 'TIFs'])
 @parametrize('exclude', [False, True])
-def test_filter_with_nuclear_mask(sub_dir, exclude):
+@parametrize('chan_filter', [None, 'chan0'])
+def test_filter_with_nuclear_mask(sub_dir, exclude, chan_filter):
     # define the fovs to use
     fovs = ['fov0', 'fov1', 'fov2']
 
@@ -555,6 +556,12 @@ def test_filter_with_nuclear_mask(sub_dir, exclude):
     chans = ['chan0', 'chan1']
 
     with tempfile.TemporaryDirectory() as temp_dir:
+        # test seg_dir is None
+        with pytest.raises(ValueError):
+            som_utils.filter_with_nuclear_mask(
+                fovs, '', None, chans[0], ''
+            )
+
         # create a directory to store the image data
         tiff_dir = os.path.join(temp_dir, 'sample_image_data')
         os.mkdir(tiff_dir)
@@ -594,20 +601,26 @@ def test_filter_with_nuclear_mask(sub_dir, exclude):
 
         # run filtering on channel 0
         som_utils.filter_with_nuclear_mask(
-            fovs, tiff_dir, seg_dir, 'chan0',
+            fovs, tiff_dir, seg_dir, chan_filter,
             img_sub_folder=sub_dir, exclude=exclude
         )
 
         # use the correct suffix depending on the exclude arg setting
         suffix = '_nuc_exclude.tiff' if exclude else '_nuc_include.tiff'
 
+        # ensure path correctness if sub_dir is None
+        if sub_dir is None:
+            sub_dir = ''
+
+        # if no channel was specified for filtering, ensure no new channel file was created
+        if chan_filter is None:
+            assert not os.path.exists(os.path.join(tiff_dir, fov, sub_dir, 'chan0' + suffix))
+            assert not os.path.exists(os.path.join(tiff_dir, fov, sub_dir, 'chan1' + suffix))
+            return
+
         # for each fov, verify that either the nucleus or membrane is all 0
         # depending on exclude arg setting
         for fov in fovs:
-            # ensure path correctness if sub_dir is None
-            if sub_dir is None:
-                sub_dir = ''
-
             # first assert new channel file was created for channel 0, but not channel 1
             assert os.path.exists(os.path.join(tiff_dir, fov, sub_dir, 'chan0' + suffix))
             assert not os.path.exists(os.path.join(tiff_dir, fov, sub_dir, 'chan1' + suffix))

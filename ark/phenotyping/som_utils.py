@@ -238,7 +238,7 @@ def smooth_channels(fovs, tiff_dir, img_sub_folder, channels, smooth_vals):
                    chan_out, check_contrast=False)
 
 
-def filter_with_nuclear_mask(fovs, tiff_dir, seg_dir, channel,
+def filter_with_nuclear_mask(fovs, tiff_dir, seg_dir, channel=None,
                              img_sub_folder=None, exclude=True):
     """Filters out background staining using subcellular marker localization.
 
@@ -260,6 +260,15 @@ def filter_with_nuclear_mask(fovs, tiff_dir, seg_dir, channel,
             Whether to filter out nuclear or membrane signal
     """
 
+    # if seg_dir is None, the user cannot run filtering
+    if seg_dir is None:
+        raise ValueError('seg_dir cannot be set to None for nuclear filtering')
+
+    # if the user doesn't specify a channel, return
+    if channel is None:
+        print("No channel specified for nuclear filtering, skipping")
+        return
+
     # convert to path-compatible format
     if img_sub_folder is None:
         img_sub_folder = ''
@@ -272,8 +281,6 @@ def filter_with_nuclear_mask(fovs, tiff_dir, seg_dir, channel,
         # load the segmented image in
         seg_img = imread(os.path.join(seg_dir, fov + '_feature_1.tif'))[0, ...]
 
-        # print(seg_img)
-
         # mask out the nucleus
         if exclude:
             suffix = '_nuc_exclude.tiff'
@@ -283,12 +290,8 @@ def filter_with_nuclear_mask(fovs, tiff_dir, seg_dir, channel,
             suffix = '_nuc_include.tiff'
             seg_mask = seg_img == 0
 
-        # print(img)
-        # print(seg_mask)
-
         # filter out the nucleus or membrane depending on exclude parameter
         img[seg_mask] = 0
-        # print(img)
 
         # save filtered image
         imsave(os.path.join(tiff_dir, fov, img_sub_folder, channel + suffix), img,
