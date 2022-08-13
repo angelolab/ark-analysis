@@ -20,7 +20,8 @@ def test_major_minor_axis_ratio():
     prop_info = regionprops(sample_arr)[0]
 
     major_minor_rat = regionprops_extraction.major_minor_axis_ratio(prop_info)
-    assert np.round(major_minor_rat, 4) == 1.1524
+    desired_value = 1.1524
+    np.testing.assert_allclose(actual=major_minor_rat, desired=desired_value, rtol=0.1, atol=1e-5)
 
     class Regionprop(object):
         pass
