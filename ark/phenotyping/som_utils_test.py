@@ -1355,7 +1355,6 @@ def test_create_pixel_matrix_base(fovs, chans, sub_dir, seg_dir_include,
             )
 
         # create the pixel matrices
-        capsys.readouterr()
         som_utils.create_pixel_matrix(fovs=fovs,
                                       channels=chans,
                                       base_dir=temp_dir,
