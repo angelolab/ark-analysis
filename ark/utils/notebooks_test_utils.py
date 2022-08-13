@@ -419,30 +419,22 @@ def flowsom_pixel_visualize(tb, flowsom_dir, fovs, pixel_prefix='test'):
     cell_overlay_fovs = "pixel_fovs = %s" % str(fovs_overlay)
     tb.inject(cell_overlay_fovs, after='pixel_overlay_fovs')
 
-    # generate the pixel cluster masks
-    tb.execute_cell('pixel_mask_gen')
-
-    # test the saving of pixel masks
-    # NOTE: no point testing save_pixel_masks = False since that doesn't run anything
-    cell_mask_save = """
-        data_utils.save_fov_images(
-            pixel_fovs,
-            os.path.join(base_dir, pixel_output_dir),
-            pixel_cluster_masks,
-            name_suffix='_pixel_mask'
-        )
-    """
-    tb.inject(cell_mask_save, 'pixel_mask_save')
+    # generate the pixel cluster masks, and save them
+    tb.execute_cell('pixel_mask_gen_save')
 
     # run the cell mask overlay
     tb.execute_cell('pixel_overlay_gen')
+
+    # run the mantis project maker function
+    tb.execute_cell('pixel_mantis_project')
 
     # save the pixel clustering parameter names for cell clustering
     tb.execute_cell('cell_param_save')
 
 
 def flowsom_cell_setup(tb, flowsom_dir, pixel_dir, pixel_cluster_col='pixel_meta_cluster_rename',
-                       cell_prefix='test', num_fovs=3, num_chans=3, img_shape=(50, 50)):
+                       cell_prefix='test', num_fovs=3, num_chans=3, img_shape=(50, 50),
+                       dtype=np.uint16):
     """Creates the directories, data, and parameter settings for testing cell clustering
 
     Args:
@@ -462,10 +454,16 @@ def flowsom_cell_setup(tb, flowsom_dir, pixel_dir, pixel_cluster_col='pixel_meta
             The number of test channels to generate
         img_shape (tuple):
             The shape of the image to generate
+        dtype (numpy.dtype):
+            The datatype of each test image generated
     """
 
     # import packages
     tb.execute_cell('import')
+
+    # create data which will be loaded into img_xr -- ONLY FOR MANTIS PROJECT CREATION
+    tiff_dir = os.path.join(flowsom_dir, "input_data")
+    os.mkdir(tiff_dir)
 
     # create sample pixel output dir
     os.mkdir(os.path.join(flowsom_dir, pixel_dir))
@@ -473,7 +471,13 @@ def flowsom_cell_setup(tb, flowsom_dir, pixel_dir, pixel_cluster_col='pixel_meta
     # create sample segmentations
     fovs, chans = test_utils.gen_fov_chan_names(num_fovs=num_fovs,
                                                 num_chans=num_chans,
-                                                use_delimiter=True)
+                                                use_delimiter=False)
+
+    # Create the fovs for the mantis project.
+    filelocs, data_xr = test_utils.create_paired_xarray_fovs(
+        tiff_dir, fovs, chans, img_shape=img_shape, delimiter='_', fills=False, dtype=dtype
+    )
+
     seg_dir = os.path.join(flowsom_dir, 'deepcell_output')
     os.mkdir(seg_dir)
     generate_sample_feature_tifs(fovs, seg_dir, img_shape)
@@ -498,7 +502,8 @@ def flowsom_cell_setup(tb, flowsom_dir, pixel_dir, pixel_cluster_col='pixel_meta
         base_dir = "%s"
         pixel_output_dir = "%s"
         cell_clustering_params_name = "sample_cell_params.json"
-    """ % (flowsom_dir, pixel_dir)
+        tiff_dir = "%s"
+    """ % (flowsom_dir, pixel_dir, tiff_dir)
     tb.inject(set_cell_dirs, after='dir_set')
 
     # extract the parameters from the cell params JSON
@@ -753,25 +758,16 @@ def flowsom_cell_visualize(tb, flowsom_dir, fovs,
     tb.inject(cell_overlay_fovs, after='cell_overlay_fovs')
 
     # generate the cell cluster masks
-    tb.execute_cell('cell_mask_gen')
-
-    # test the saving of cell masks
-    # NOTE: no point testing save_cell_masks = False since that doesn't run anything
-    cell_mask_save = """
-        data_utils.save_fov_images(
-            cell_fovs,
-            os.path.join(base_dir, cell_output_dir),
-            cell_cluster_masks,
-            name_suffix='_cell_mask'
-        )
-    """
-    tb.inject(cell_mask_save, 'cell_mask_save')
+    tb.execute_cell('cell_mask_gen_save')
 
     # run the cell mask overlay
     tb.execute_cell('cell_overlay_gen')
 
     # save the meta labels to the cell table
     tb.execute_cell('cell_append_meta')
+
+    # run the mantis project maker function
+    tb.execute_cell('cell_mantis_project')
 
 
 def qc_notebook_setup(tb, base_dir, tiff_dir, sub_dir=None, fovs=None, chans=None):
