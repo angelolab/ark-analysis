@@ -978,6 +978,9 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
         base_dir, pixel_output_dir, '%s_channel_norm.feather' % pixel_cluster_prefix
     )
 
+    # whether or not to overwrite channel_norm.feather or pixel_norm.feather
+    norm_overwrite = False
+
     if not os.path.exists(channel_norm_path):
         # compute channel percentiles
         channel_norm_df = calculate_channel_percentiles(tiff_dir=tiff_dir,
@@ -987,25 +990,42 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
                                                         percentile=channel_percentile)
         # save output
         feather.write_dataframe(channel_norm_df, channel_norm_path, compression='uncompressed')
-
     else:
         # load previously generated output
         channel_norm_df = feather.read_dataframe(channel_norm_path)
+
+        # if the channels are not the same as the existing channel_norm_df, overwrite
+        if set(channel_norm_df['channel']) != set(channels):
+            print("New channels provided: overwriting original channel_norm.feather")
+
+            # change flag to overwrite pixel_norm.feather too
+            norm_overwrite = True
+
+            channel_norm_df = calculate_channel_percentiles(tiff_dir=tiff_dir,
+                                                            fovs=fovs,
+                                                            channels=channels,
+                                                            img_sub_folder=img_sub_folder,
+                                                            percentile=channel_percentile)
+            feather.write_dataframe(channel_norm_df, channel_norm_path, compression='uncompressed')
 
     # create path for pixel normalization values
     pixel_norm_path = os.path.join(
         base_dir, pixel_output_dir, '%s_pixel_norm.feather' % pixel_cluster_prefix
     )
 
-    if not os.path.exists(pixel_norm_path):
+    # also need to overwrite if a new set of channels is provided
+    if not os.path.exists(pixel_norm_path) or norm_overwrite:
+        if norm_overwrite:
+            print("New channels provided: overwriting original pixel_norm.feather")
+
         # compute pixel percentiles
         pixel_norm_val = calculate_pixel_intensity_percentile(
             tiff_dir=tiff_dir, fovs=fovs, channels=channels,
-            img_sub_folder=img_sub_folder, channel_percentiles=channel_norm_df)
+            img_sub_folder=img_sub_folder, channel_percentiles=channel_norm_df
+        )
 
         pixel_norm_df = pd.DataFrame({'pixel_norm_val': [pixel_norm_val]})
         feather.write_dataframe(pixel_norm_df, pixel_norm_path, compression='uncompressed')
-
     else:
         pixel_norm_df = feather.read_dataframe(pixel_norm_path)
         pixel_norm_val = pixel_norm_df['pixel_norm_val'].values[0]
