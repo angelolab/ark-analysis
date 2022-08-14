@@ -3,6 +3,7 @@ import pytest
 
 import numpy as np
 import pandas as pd
+import skimage.io as io
 
 from ark.phenotyping import post_cluster_utils
 
@@ -36,9 +37,23 @@ def test_plot_hist_thresholds():
                                             marker='marker_1')
 
 
-def test_create_updated_cell_masks(tmp_dir):
-    seg_dir = os.path.join(tmp_dir, 'seg')
+def test_create_updated_cell_masks(tmp_path):
+    seg_dir = os.path.join(tmp_path, 'seg')
+    os.makedirs(seg_dir)
+
+    mask_dir = os.path.join(tmp_path, 'mask')
     fovs = ['fov1', 'fov2', 'fov3']
 
     for fov in fovs:
-        data = np.random.randint(10, 1, 20).reshape(10, 10)
+        data = np.random.randint(1, 5, 100).reshape(10, 10)
+        io.imsave(os.path.join(seg_dir, fov + '_feature_0.tif'), data)
+
+    cell_label = np.tile(np.arange(1, 5), len(fovs))
+    cell_clusters = np.tile(['cluster1', 'cluster2'], 6)
+    fov_list = np.repeat(fovs, 4)
+
+    cell_table = pd.DataFrame({'fov': fov_list, 'label': cell_label, 'clusters': cell_clusters})
+
+    post_cluster_utils.create_updated_cell_masks(cell_table=cell_table, fovs=fovs,
+                                                 seg_dir=seg_dir, pop_col='clusters',
+                                                 mask_dir=mask_dir)

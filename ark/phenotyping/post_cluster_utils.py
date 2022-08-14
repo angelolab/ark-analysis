@@ -66,8 +66,10 @@ def plot_hist_thresholds(cell_table, populations, marker, pop_col='cell_meta_clu
 # cell_table.loc[cell_table['cell_meta_cluster'] == 'noise', 'cell_meta_cluster'] = 'tumor_other'
 
 
-def create_updated_cell_masks(cell_table, fovs, seg_dir, pop_col):
+def create_updated_cell_masks(cell_table, fovs, seg_dir, pop_col, mask_dir):
     """Creates masks with the updated cell labels"""
+
+    os.makedirs(mask_dir)
 
     # create small df compatible with FOV function
     small_table = cell_table.loc[:, [pop_col, 'label', 'fov']]
@@ -75,7 +77,7 @@ def create_updated_cell_masks(cell_table, fovs, seg_dir, pop_col):
     # generate unique numeric value for each population
     unique_pops = small_table[pop_col].unique()
     small_table['pop_vals'] = small_table[pop_col].replace(to_replace=unique_pops,
-                                                            value=list(range(1, len(unique_pops))))
+                                                            value=list(range(1, len(unique_pops) + 1)))
 
     # define the file names for segmentation masks
     whole_cell_files = [fov + '_feature_0.tif' for fov in fovs]
@@ -86,16 +88,16 @@ def create_updated_cell_masks(cell_table, fovs, seg_dir, pop_col):
                                                xr_dim_name='compartments',
                                                xr_channel_names=['whole_cell'],
                                                trim_suffix='_feature_0')
+
     # use label_cells_by_cluster to create cell masks
     img_data = data_utils.label_cells_by_cluster(
         fovs, small_table, label_maps, fov_col='fov',
-        cell_label_column='label', cluster_column=pop_col
+        cell_label_column='label', cluster_column='pop_vals'
     )
-
 
     data_utils.save_fov_images(
             fovs,
-            '/Volumes/Noah/cell_masks',
+            mask_dir,
             img_data,
             sub_dir=None,
             name_suffix='_cell_mask'
