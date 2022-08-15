@@ -80,7 +80,7 @@ autodoc_mock_imports = ['cryptography',
                         'statsmodels',
                         'spatial_lda',
                         'tables',
-                        'tifffile'
+                        'tifffile',
                         'umap',
                         'xarray',
                         'twisted',
