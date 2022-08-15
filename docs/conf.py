@@ -80,6 +80,7 @@ autodoc_mock_imports = ['cryptography',
                         'statsmodels',
                         'spatial_lda',
                         'tables',
+                        'tifffile'
                         'umap',
                         'xarray',
                         'twisted',
@@ -142,9 +143,9 @@ html_static_path = ['_static']
 # intersphinx mapping, for when there is a cross-reference that has no matching target
 # in the current documentation
 intersphinx_mapping = {
-    'python': ('https://docs.python.org/3.7', None),
+    'python': ('https://docs.python.org/3.8', None),
     'numpy': ('https://numpy.org/doc/stable', None),
-    'matplotlib': ('https://matplotlib.org/3.2.1', None),
+    'matplotlib': ('https://matplotlib.org/3.4.3', None),
     'xarray': ('https://xarray.pydata.org/en/stable', None),
     'pandas': ('https://pandas.pydata.org/docs/', None)
 }
