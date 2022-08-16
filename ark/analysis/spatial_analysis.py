@@ -1,6 +1,7 @@
 import pandas as pd
 import xarray as xr
 import numpy as np
+from tqdm.auto import tqdm
 from itertools import combinations_with_replacement
 from ark.utils import spatial_analysis_utils, misc_utils, load_utils, io_utils
 
@@ -54,7 +55,7 @@ def batch_channel_spatial_enrichment(label_dir, marker_thresholds, all_data, bat
     values = []
     stats_datasets = []
 
-    for batch_names in batching_strategy:
+    for batch_names in tqdm(batching_strategy, desc="Batch Completion", unit="batch"):
         label_maps = load_utils.load_imgs_from_dir(label_dir, files=batch_names,
                                                    xr_channel_names=[xr_channel_name],
                                                    trim_suffix=suffix)
@@ -274,7 +275,7 @@ def batch_cluster_spatial_enrichment(label_dir, all_data, batch_size=5, suffix='
     values = []
     stats_datasets = []
 
-    for batch_names in batching_strategy:
+    for batch_names in tqdm(batching_strategy, desc="Batch Completion", unit="batch"):
         label_maps = load_utils.load_imgs_from_dir(label_dir, files=batch_names,
                                                    xr_channel_names=[xr_channel_name],
                                                    trim_suffix=suffix)
