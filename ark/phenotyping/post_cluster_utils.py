@@ -4,7 +4,7 @@ import os
 import pandas as pd
 import shutil
 
-from ark.utils import io_utils, data_utils, load_utils
+from ark.utils import io_utils, data_utils, load_utils, plot_utils
 
 
 def plot_hist_thresholds(cell_table, populations, marker, pop_col='cell_meta_cluster',
@@ -39,7 +39,7 @@ def plot_hist_thresholds(cell_table, populations, marker, pop_col='cell_meta_clu
 
     # plot each pop histogram
     pop_num = len(populations)
-    fig, ax = plt.subplots(pop_num, 1)
+    fig, ax = plt.subplots(pop_num, 1, figsize=[6.4, 2.2 * pop_num])
     for i in range(pop_num):
         plot_vals = cell_table.loc[cell_table[pop_col] == populations[i], marker].values
         ax[i].hist(plot_vals, 50, density=True, facecolor='g', alpha=0.75, range=(0, x_max))
@@ -66,10 +66,11 @@ def plot_hist_thresholds(cell_table, populations, marker, pop_col='cell_meta_clu
 # cell_table.loc[cell_table['cell_meta_cluster'] == 'noise', 'cell_meta_cluster'] = 'tumor_other'
 
 
-def create_updated_cell_masks(cell_table, fovs, seg_dir, pop_col, mask_dir):
+def update_mantis_dir(cell_table, fovs, seg_dir, pop_col, mask_dir, image_dir, mantis_dir):
     """Creates masks with the updated cell labels"""
 
-    os.makedirs(mask_dir)
+    if not os.path.exists(mask_dir):
+        os.makedirs(mask_dir)
 
     # create small df compatible with FOV function
     small_table = cell_table.loc[:, [pop_col, 'label', 'fov']]
@@ -103,10 +104,25 @@ def create_updated_cell_masks(cell_table, fovs, seg_dir, pop_col, mask_dir):
             name_suffix='_cell_mask'
         )
 
-#
+    mantis_df = small_table.rename({'pop_vals': 'metacluster', pop_col: 'mc_name'},
+                                 axis=1)
+
+    create_mantis_project(mantis_project_path=mantis_dir,
+                          img_data_path=image_dir,
+                          mask_output_dir=mask_dir,
+                          mask_suffix='_cell_mask',
+                          map_df=mantis_df,
+                          seg_dir=seg_dir,
+                          img_sub_folder='')
+
+
+# fovs = io_utils.list_folders('/Volumes/Noah/mantis_cell_first20')
+# create_updated_cell_masks(cell_table=cell_table, fovs=fovs, seg_dir='/Volumes/Noah/segmentation_masks',
+#                           pop_col='cell_meta_cluster', mask_dir='/Volumes/Noah/cell_masks')
+# #
 # unique_vals = cell_table['cell_meta_cluster'].unique()
 # cell_table['unique_vals'] = cell_table['cell_meta_cluster'].replace(to_replace=unique_vals, value=list(range(len(unique_vals))))
-# cell_table = cell_table.rename(columns={'label': 'segmentation_label'})
+#cell_table = cell_table.rename(columns={'segmentation_label': 'label'})
 # masks = data_utils.generate_cell_cluster_mask(fovs=fovs, seg_dir='/Volumes/Noah/segmentation_masks/',
 #                                              cell_data=cell_table, cell_cluster_col='unique_vals')
 #
@@ -119,9 +135,9 @@ def create_updated_cell_masks(cell_table, fovs, seg_dir, pop_col, mask_dir):
 #         name_suffix='_cell_mask'
 #     )
 #
-# mantis_df = cell_table.loc[:, ['cell_meta_cluster', 'unique_vals']]
+# mantis_df = small_table.loc[:, ['cell_meta_cluster', 'pop_vals']]
 # mantis_df = mantis_df.drop_duplicates()
-# mantis_df = mantis_df.rename({'unique_vals': 'metacluster', 'cell_meta_cluster': 'mc_name'}, axis=1)
+# mantis_df = mantis_df.rename({'pop_vals': 'metacluster', 'cell_meta_cluster': 'mc_name'}, axis=1)
 #
 # create_mantis_project(mantis_project_path='/Volumes/Noah/mantis_cell_first20',
 #                       img_data_path='blank',
@@ -129,10 +145,14 @@ def create_updated_cell_masks(cell_table, fovs, seg_dir, pop_col, mask_dir):
 #                       mask_suffix='_cell_mask',
 #                       map_df=mantis_df,
 #                       seg_dir='/Volumes/Noah/segmentation_masks')
-#
+
 # # save updated cell table
-# cell_table = pd.read_csv('/Users/noahgreenwald/Documents/Grad_School/Lab/TNBC/Data/combined_cell_table_normalized_cell_labels_updated.csv')
-#
+#cell_table = pd.read_csv('/Users/noahgreenwald/Documents/Grad_School/Lab/TNBC/Data/combined_cell_table_normalized_cell_labels_updated.csv')
+
+# update_mantis_dir(cell_table=cell_table, fovs=fovs, seg_dir='/Volumes/Noah/segmentation_masks',
+#                           pop_col='cell_meta_cluster', mask_dir='/Volumes/Noah/cell_masks',
+#                           mantis_dir='/Volumes/Noah/mantis_cell_first20', image_dir='blank')
+
 #
 # # find functional marker threshold cutoffs
 # identify_thresholds(cell_table=cell_table, top_populations=['CD8T', 'CD163', 'CD4T'],
@@ -190,3 +210,52 @@ def create_updated_cell_masks(cell_table, fovs, seg_dir, pop_col, mask_dir):
 # 'IDO', 'IDO', 'Ki67', 'LAG3', 'PD1', 'PDL1', 'TBET', 'TCF1', 'TIM3',
 # mantis_feature_df.to_csv('/Volumes/Noah/mantis_cell_first20/HLADR_feature_df.csv', index=False)
 #
+
+def create_mantis_project(mantis_project_path, img_data_path, mask_output_dir, mask_suffix,
+                          map_df,
+                          seg_dir, img_sub_folder='normalized'):
+    if not os.path.exists(mantis_project_path):
+        os.makedirs(mantis_project_path)
+
+    # create key from cluster number to cluster name
+    map_df = map_df.loc[:, ['metacluster', 'mc_name']]
+
+    # remove duplicates from df
+    map_df = map_df.drop_duplicates()
+    map_df = map_df.sort_values(by=['metacluster'])
+
+    # rename for mantis names
+    map_df = map_df.rename({'metacluster': 'region_id', 'mn_name': 'region_name'}, axis=1)
+
+    # get names of fovs with masks
+    mask_names = io_utils.list_files(mask_output_dir, mask_suffix)
+    fov_names = io_utils.extract_delimited_names(mask_names, delimiter=mask_suffix)
+
+    # create a folder with image data, pixel masks, and segmentation mask
+    for idx, val in enumerate(fov_names):
+
+        # set up paths
+        img_source_dir = os.path.join(img_data_path, val, img_sub_folder)
+        output_dir = os.path.join(mantis_project_path, val)
+
+        # copy image data if not already copied in from previous round of clustering
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+
+            # copy all channels into new folder
+            chans = io_utils.list_files(img_source_dir, '.tiff')
+            for chan in chans:
+                shutil.copy(os.path.join(img_source_dir, chan), os.path.join(output_dir, chan))
+
+        # copy mask into new folder
+        mask_name = mask_names[idx]
+        shutil.copy(os.path.join(mask_output_dir, mask_name),
+                    os.path.join(output_dir, 'population{}.tiff'.format(mask_suffix)))
+
+        # copy segmentations into directory
+        seg_name = val + '_feature_0.tif'
+        shutil.copy(os.path.join(seg_dir, seg_name),
+                    os.path.join(output_dir, 'cell_segmentation.tiff'))
+
+        # copy mapping into directory
+        map_df.to_csv(os.path.join(output_dir, 'population{}.csv'.format(mask_suffix)), index=False)

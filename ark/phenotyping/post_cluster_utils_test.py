@@ -6,6 +6,7 @@ import pandas as pd
 import skimage.io as io
 
 from ark.phenotyping import post_cluster_utils
+from ark.utils import test_utils
 
 
 def test_plot_hist_thresholds():
@@ -37,23 +38,42 @@ def test_plot_hist_thresholds():
                                             marker='marker_1')
 
 
-def test_create_updated_cell_masks(tmp_path):
+def test_update_mantis_dir(tmp_path):
     seg_dir = os.path.join(tmp_path, 'seg')
     os.makedirs(seg_dir)
 
+    image_dir = os.path.join(tmp_path, 'images')
+    os.makedirs((image_dir))
+
+    mantis_dir = os.path.join(tmp_path, 'mantis')
+    os.makedirs((mantis_dir))
+
     mask_dir = os.path.join(tmp_path, 'mask')
-    fovs = ['fov1', 'fov2', 'fov3']
+
+    fovs, channels = test_utils.gen_fov_chan_names(num_fovs=3, num_chans=4,
+                                                   use_delimiter=False, return_imgs=False)
+    test_utils._write_tifs(image_dir, fovs, channels, (10, 10), '', False, int)
 
     for fov in fovs:
-        data = np.random.randint(1, 5, 100).reshape(10, 10)
-        io.imsave(os.path.join(seg_dir, fov + '_feature_0.tif'), data)
+        data = np.random.randint(0, 5, 100).reshape(10, 10)
+        io.imsave(os.path.join(seg_dir, fov + '_feature_0.tif'), data, check_contrast=False)
 
     cell_label = np.tile(np.arange(1, 5), len(fovs))
     cell_clusters = np.tile(['cluster1', 'cluster2'], 6)
     fov_list = np.repeat(fovs, 4)
 
-    cell_table = pd.DataFrame({'fov': fov_list, 'label': cell_label, 'clusters': cell_clusters})
+    cell_table = pd.DataFrame({'fov': fov_list, 'label': cell_label,
+                               'cell_meta_cluster': cell_clusters})
 
-    post_cluster_utils.create_updated_cell_masks(cell_table=cell_table, fovs=fovs,
-                                                 seg_dir=seg_dir, pop_col='clusters',
-                                                 mask_dir=mask_dir)
+    post_cluster_utils.update_mantis_dir(cell_table=cell_table, fovs=fovs,
+                                                 seg_dir=seg_dir, pop_col='cell_meta_cluster',
+                                                 mask_dir=mask_dir, image_dir=image_dir,
+                                         mantis_dir=mantis_dir)
+
+    for fov in fovs:
+        mask = io.imread(os.path.join(mask_dir, fov + '_cell_mask.tiff'))
+        assert set(np.unique(mask)) == set([0, 1, 2])
+
+        seg = io.imread(os.path.join(seg_dir, fov + '_feature_0.tif'))
+
+        assert np.array_equal(mask > 0, seg > 0)
