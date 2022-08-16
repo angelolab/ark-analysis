@@ -7,36 +7,14 @@
 # - normValsPath: path to the 99.9% normalization values file (created during preprocessing)
 # - pixelWeightsPath: path to the SOM weights file
 
-library(arrow)
-library(data.table)
-library(doParallel)
-library(FlowSOM)
-library(foreach)
-library(parallel)
-
-# helper function to map a FOV to its SOM labels
-mapSOMLabels <- function(fov, somWeights, pixelMatDir) {
-    fileName <- paste0(fov, ".feather")
-    matPath <- file.path(pixelMatDir, fileName)
-    fovPixelData_all <- data.table(arrow::read_feather(matPath))
-
-    # 99.9% normalization
-    fovPixelData <- fovPixelData_all[,..markers]
-    fovPixelData <- fovPixelData[,Map(`/`,.SD,normVals)]
-
-    # map FlowSOM data
-    clusters <- FlowSOM:::MapDataToCodes(somWeights, as.matrix(fovPixelData))
-
-    # add back other columns
-    to_add <- colnames(fovPixelData_all)[!colnames(fovPixelData_all) %in% markers]
-    fovPixelData <- cbind(fovPixelData_all[,..to_add],fovPixelData)
-
-    # assign cluster labels column to pixel data
-    fovPixelData$pixel_som_cluster <- as.integer(clusters[,1])
-
-    # write to feather
-    arrow::write_feather(as.data.table(fovPixelData),  matPath)
-}
+suppressPackageStartupMessages({
+    library(arrow)
+    library(data.table)
+    library(doParallel)
+    library(FlowSOM)
+    library(foreach)
+    library(parallel)
+})
 
 # get the number of cores
 nCores <- parallel::detectCores() - 1
@@ -78,7 +56,9 @@ fovsProcessed <- 0
 print("Mapping pixel data to SOM cluster labels")
 for (batchStart in seq(1, length(fovs), batchSize)) {
     # define the parallel cluster for this batch of fovs
-    parallelCluster <- parallel::makeCluster(nCores, type="FORK")
+    # NOTE: to prevent the occassional hanging first FOV issue, we need to log to an outfile
+    # to "force" a return out of the foreach loop in this case
+    parallelCluster <- parallel::makeCluster(nCores, type="FORK", outfile='log.txt')
 
     # register parallel cluster for dopar
     doParallel::registerDoParallel(cl=parallelCluster)
@@ -87,11 +67,55 @@ for (batchStart in seq(1, length(fovs), batchSize)) {
     batchEnd <- min(batchStart + batchSize - 1, length(fovs))
 
     # run the multithreaded batch process for mapping to SOM labels and saving
-    foreach(
+    fovStatuses <- foreach(
         i=batchStart:batchEnd,
-        .combine='c'
+        .combine=rbind
     ) %dopar% {
-        mapSOMLabels(fovs[i], somWeights, pixelMatDir)
+        fileName <- paste0(fovs[i], ".feather")
+        matPath <- file.path(pixelMatDir, fileName)
+
+        status <- tryCatch(
+            {
+                fovPixelData_all <- data.table(arrow::read_feather(matPath))
+                fovPixelData <- fovPixelData_all[,..markers]
+                fovPixelData <- fovPixelData[,Map(`/`,.SD,normVals)]
+
+                # map FlowSOM data
+                clusters <- FlowSOM:::MapDataToCodes(somWeights, as.matrix(fovPixelData))
+
+                # add back other columns
+                to_add <- colnames(fovPixelData_all)[!colnames(fovPixelData_all) %in% markers]
+                fovPixelData <- cbind(fovPixelData_all[,..to_add], fovPixelData)
+
+                # assign cluster labels column to pixel data
+                fovPixelData$pixel_som_cluster <- as.integer(clusters[,1])
+
+                # write data with SOM labels
+                tempPath <- file.path(paste0(pixelMatDir, '_temp'), fileName)
+                arrow::write_feather(as.data.table(fovPixelData), tempPath, compression='uncompressed')
+
+                # this won't be displayed to the user but is used as a helper to break out
+                # in the rare first FOV hang issue
+                print(paste('Done writing fov', fovs[i]))
+                0
+            },
+            error=function(cond) {
+                # this won't be displayed to the user but is used as a helper to break out
+                # in the rare first FOV hang issue
+                print(paste('Error encountered for fov', fovs[i]))
+                1
+            }
+        )
+
+        data.frame(fov=fovs[i], status=status)
+    }
+
+    # report any erroneous feather files
+    for (i in 1:nrow(fovStatuses)) {
+        if (fovStatuses[i, 'status'] == 1) {
+            print(paste("The data for FOV", fovStatuses[i, 'fov'], "has been corrupted, removing"))
+            fovsProcessed <- fovsProcessed - 1
+        }
     }
 
     # unregister the parallel cluster
@@ -102,6 +126,7 @@ for (batchStart in seq(1, length(fovs), batchSize)) {
 
     # inform user that batchSize fovs have been processed
     print(paste("Processed", as.character(fovsProcessed), "fovs"))
-}
 
-print("Done!")
+    # remove log.txt
+    unlink('log.txt')
+}

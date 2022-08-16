@@ -6,9 +6,11 @@
 # - cellWeightsPath: path to the SOM weights file
 # - cellMatNormPath: the path to write the normalized pixel SOM/meta cluster count data (normalized) with cell SOM labelss. This will be used for consensus clustering.
 
-library(arrow)
-library(data.table)
-library(FlowSOM)
+suppressPackageStartupMessages({
+    library(arrow)
+    library(data.table)
+    library(FlowSOM)
+})
 
 # get the command line arguments
 args <- commandArgs(trailingOnly=TRUE)
@@ -62,4 +64,4 @@ clusterCountsNorm$cell_som_cluster <- as.integer(clusters[,1])
 
 # write to feather
 print("Writing clustered data")
-arrow::write_feather(as.data.table(clusterCountsNorm), cellMatPathNorm)
+arrow::write_feather(as.data.table(clusterCountsNorm), cellMatPathNorm, compression='uncompressed')

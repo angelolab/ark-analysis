@@ -1,4 +1,6 @@
 import os
+import pathlib
+from typing import List, Union
 import math
 import feather
 import skimage.io as io
@@ -8,6 +10,7 @@ import xarray as xr
 from ark import settings
 from ark.utils import load_utils
 from ark.utils.misc_utils import verify_in_list
+from tqdm.notebook import tqdm_notebook as tqdm
 
 
 def save_fov_images(fovs, data_dir, img_xr, sub_dir=None, name_suffix=''):
@@ -27,6 +30,7 @@ def save_fov_images(fovs, data_dir, img_xr, sub_dir=None, name_suffix=''):
         name_suffix (str):
             Specify what to append at the end of every fov.
     """
+    img_xr = img_xr.astype('int16')
 
     if not os.path.exists(data_dir):
         raise FileNotFoundError("data_dir %s does not exist" % data_dir)
@@ -255,6 +259,120 @@ def generate_pixel_cluster_mask(fovs, base_dir, tiff_dir, chan_file,
     return xr.DataArray(img_data, coords=[fovs, range(img_data[0].shape[0]),
                                           range(img_data[0].shape[1])],
                         dims=["fovs", "rows", "cols"])
+
+
+def generate_and_save_pixel_cluster_masks(fovs: List[str],
+                                          base_dir: Union[pathlib.Path, str],
+                                          save_dir: Union[pathlib.Path, str],
+                                          tiff_dir: Union[pathlib.Path, str],
+                                          chan_file: Union[pathlib.Path, str],
+                                          pixel_data_dir: Union[pathlib.Path, str],
+                                          pixel_cluster_col: str = 'pixel_meta_cluster',
+                                          sub_dir: str = None,
+                                          name_suffix: str = '',
+                                          batch_size=5):
+    """Generates pixel cluster masks and saves them in batches for downstream analysis.
+
+    Args:
+        fovs (List[str]):
+            A list of fovs to generate and save pixel masks for.
+        base_dir (Union[pathlib.Path, str]):
+            The path to the data directory.
+        save_dir (Union[pathlib.Path, str]):
+            The directory to save the generated pixel cluster masks.
+        tiff_dir (Union[pathlib.Path, str]):
+            The path to the directory with the tiff data.
+        chan_file (Union[pathlib.Path, str]):
+            The path to the sample channel file to load (assuming `tiff_dir` as root)
+            Only used to determine dimensions of the pixel mask.
+        pixel_data_dir (Union[pathlib.Path, str]):
+            The path to the data with full pixel data.
+            This data should also have the SOM and meta cluster labels appended.
+        pixel_cluster_col (str, optional):
+            The path to the data with full pixel data.
+            This data should also have the SOM and meta cluster labels appended.
+            Defaults to 'pixel_meta_cluster'.
+        sub_dir (str, optional):
+            The subdirectory to save the images in. If specified images are saved to
+            "data_dir/sub_dir". If `sub_dir = None` the images are saved to "data_dir". Defaults
+            to None.
+        name_suffix (str, optional):
+            Specify what to append at the end of every pixel mask. Defaults to ''.
+        batch_size (int, optional):
+            The number of fovs to process at once for each batch. Defaults to 5.
+    """
+
+    # define a list of fov batches to process over
+    fov_batches = [fovs[i:i + batch_size] for i in range(0, len(fovs), batch_size)]
+
+    # create the pixel cluster masks over each fov batch.
+    with tqdm(total=len(fovs), desc="Pixel Cluster Mask Generation") as pixel_mask_progress:
+        for fov_batch in fov_batches:
+            pixel_masks: xr.DataArray =\
+                generate_pixel_cluster_mask(fovs=fov_batch, base_dir=base_dir, tiff_dir=tiff_dir,
+                                            chan_file=chan_file, pixel_data_dir=pixel_data_dir,
+                                            pixel_cluster_col=pixel_cluster_col)
+
+            save_fov_images(fov_batch, data_dir=save_dir, img_xr=pixel_masks, sub_dir=sub_dir,
+                            name_suffix=name_suffix)
+
+            pixel_mask_progress.update(len(fov_batch))
+
+
+def generate_and_save_cell_cluster_masks(fovs: List[str],
+                                         base_dir: Union[pathlib.Path, str],
+                                         save_dir: Union[pathlib.Path, str],
+                                         seg_dir: Union[pathlib.Path, str],
+                                         cell_data_name: Union[pathlib.Path, str],
+                                         cell_cluster_col: str = 'cell_meta_cluster',
+                                         seg_suffix: str = '_feature_0.tif',
+                                         sub_dir: str = None,
+                                         name_suffix: str = '',
+                                         batch_size=5):
+    """Generates cell cluster masks and saves them in batches for downstream analysis.
+
+    Args:
+        fovs (List[str]):
+            A list of fovs to generate and save pixel masks for.
+        base_dir (Union[pathlib.Path, str]):
+            The path to the data directory.
+        save_dir (Union[pathlib.Path, str]):
+            The directory to save the generated cell cluster masks.
+        seg_dir (Union[pathlib.Path, str]):
+            The path to the segmentation data.
+        cell_data_name (Union[pathlib.Path, str]):
+            The path to the cell data with both cell SOM and meta cluster assignments
+        cell_cluster_col (str, optional):
+            Whether to assign SOM or meta clusters. Needs to be `'cell_som_cluster'` or
+            `'cell_meta_cluster'`. Defaults to `'cell_meta_cluster'`.
+        seg_suffix (str, optional):
+            The suffix that the segmentation images use. Defaults to `'_feature_0.tif'`.
+        sub_dir (str, optional):
+            The subdirectory to save the images in. If specified images are saved to
+            "data_dir/sub_dir". If `sub_dir = None` the images are saved to "data_dir".
+            Defaults to None.
+        name_suffix (str, optional):
+            Specify what to append at the end of every cell mask. Defaults to ''.
+        batch_size (int, optional):
+            The number of fovs to process at once for each batch. Defaults to 5.
+    """
+
+    # define a list of fov batches to process over
+    fov_batches = [fovs[i:i + batch_size] for i in range(0, len(fovs), batch_size)]
+
+    # create the pixel cluster masks over each fov batch.
+    with tqdm(total=len(fovs), desc="Cell Cluster Mask Generation") as cell_mask_progress:
+        for fov_batch in fov_batches:
+            cell_masks: xr.DataArray =\
+                generate_cell_cluster_mask(fovs=fov_batch, base_dir=base_dir, seg_dir=seg_dir,
+                                           cell_data_name=cell_data_name,
+                                           cell_cluster_col=cell_cluster_col,
+                                           seg_suffix=seg_suffix)
+
+            save_fov_images(fov_batch, data_dir=save_dir, img_xr=cell_masks, sub_dir=sub_dir,
+                            name_suffix=name_suffix)
+
+            cell_mask_progress.update(len(fov_batch))
 
 
 def relabel_segmentation(labeled_image, labels_dict):

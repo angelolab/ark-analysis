@@ -126,17 +126,16 @@ def test_segment_image_data_folder(tb):
 
 # TODO: if needed, add MIBItiff tests
 @testbook(PIXEL_CLUSTER_PATH, timeout=6000)
-@parametrize('create_seg_dir', [True, False])
-def test_pixel_clustering_folder(tb, create_seg_dir):
+def test_pixel_clustering_folder(tb):
     with tdir() as base_dir:
         # setup the clustering process (also runs preprocessing)
         fovs, chans = notebooks_test_utils.flowsom_pixel_setup(
-            tb, base_dir, create_seg_dir=create_seg_dir
+            tb, base_dir, create_seg_dir=True
         )
 
         # mock the clustering process
         notebooks_test_utils.flowsom_pixel_cluster(
-            tb, base_dir, fovs, chans, create_seg_dir=create_seg_dir
+            tb, base_dir, fovs, chans, create_seg_dir=True
         )
 
         notebooks_test_utils.flowsom_pixel_visualize(

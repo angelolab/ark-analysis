@@ -12,9 +12,11 @@
 # - cellWeightsPath: path to the SOM weights file
 # - seed: the random seed to use for training
 
-library(arrow)
-library(data.table)
-library(FlowSOM)
+suppressPackageStartupMessages({
+    library(arrow)
+    library(data.table)
+    library(FlowSOM)
+})
 
 # a helper function for computing 99.9%
 percentile_99_9_helper <- function(x) {
@@ -80,4 +82,4 @@ somResults <- SOM(data=as.matrix(clusterCountsNormSub), xdim=xdim, ydim=ydim,
 
 # write the weights to feather
 print("Save trained weights")
-arrow::write_feather(as.data.table(somResults$codes), cellWeightsPath)
+arrow::write_feather(as.data.table(somResults$codes), cellWeightsPath, compression='uncompressed')

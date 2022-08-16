@@ -1,17 +1,18 @@
+from typing import Union, List
 import numpy as np
 import matplotlib.cm as cm
 import matplotlib.colors as colors
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import os
+import shutil
 import pandas as pd
+import pathlib
 import xarray as xr
-
 from skimage.segmentation import find_boundaries
 from skimage.exposure import rescale_intensity
 
-from ark.utils import load_utils
-from ark.utils import misc_utils
+from ark.utils import load_utils, misc_utils, io_utils
 
 # plotting functions
 from ark.utils.misc_utils import verify_in_list, verify_same_elements
@@ -356,3 +357,112 @@ def create_overlay(fov, segmentation_dir, data_dir,
         rescaled[alternate_contour_mask > 0, 1:] = 0
 
     return rescaled
+
+
+def create_mantis_project(fovs: List[str], mantis_project_path: Union[str, pathlib.Path],
+                          img_data_path: Union[str, pathlib.Path],
+                          mask_output_dir: Union[str, pathlib.Path],
+                          mapping: Union[str, pathlib.Path, pd.DataFrame],
+                          seg_dir: Union[str, pathlib.Path],
+                          mask_suffix: str = "_mask", img_sub_folder: str = "normalized"):
+    """Creates a mantis project directory so that it can be opened by the mantis viewer.
+    Copies fovs, segmentation files, masks, and mapping csv's into a new directory structure.
+    Here is how the contents of the mantis project folder will look like.
+
+    ```{code-block} sh
+    mantis_project
+    ├── fov0
+    │   ├── cell_segmentation.tiff
+    │   ├── chan0.tiff
+    │   ├── chan1.tiff
+    │   ├── chan2.tiff
+    │   ├── ...
+    │   ├── population_mask.csv
+    │   └── population_mask.tiff
+    └── fov1
+    │   ├── cell_segmentation.tiff
+    │   ├── chan0.tiff
+    │   ├── chan1.tiff
+    │   ├── chan2.tiff
+    │   ├── ...
+    │   ├── population_mask.csv
+    │   └── population_mask.tiff
+    └── ...
+    ```
+
+    Args:
+        fovs (List[str]):
+            A list of FOVs to create a Mantis Project for.
+        mantis_project_path (Union[str, pathlib.Path]):
+            The folder where the mantis project will be created.
+        img_data_path (Union[str, pathlib.Path]):
+            The location of the all the fovs you wish to create a project from.
+        mask_output_dir (Union[str, pathlib.Path]):
+            The folder containing all the masks of the fovs.
+        mapping (Union[str, pathlib.Path, pd.DataFrame]):
+            The location of the mapping file, or the mapping Pandas DataFrame itself.
+        seg_dir (Union[str, pathlib.Path]):
+            The location of the segmentation directory for the fovs.
+        mask_suffix (str, optional):
+            The suffix used to find the mask tiffs. Defaults to "_mask".
+        img_sub_folder (str, optional):
+            The subfolder where the channels exist within the `img_data_path`.
+            Defaults to "normalized".
+    """
+
+    if not os.path.exists(mantis_project_path):
+        os.makedirs(mantis_project_path)
+
+    # create key from cluster number to cluster name
+    if type(mapping) in {pathlib.Path, str}:
+        map_df = pd.read_csv(mapping)
+    elif type(mapping) is pd.DataFrame:
+        map_df = mapping
+    else:
+        ValueError("Mapping must either be a path to an already saved mapping csv, \
+                   or a DataFrame that is already loaded in.")
+
+    map_df = map_df.loc[:, ['metacluster', 'mc_name']]
+    # remove duplicates from df
+    map_df = map_df.drop_duplicates()
+    map_df = map_df.sort_values(by=['metacluster'])
+
+    # rename for mantis names
+    map_df = map_df.rename({'metacluster': 'region_id', 'mc_name': 'region_name'}, axis=1)
+
+    # get names of fovs with masks
+    mask_names = io_utils.list_files(mask_output_dir, mask_suffix)
+    total_fov_names = io_utils.extract_delimited_names(mask_names, delimiter=mask_suffix)
+
+    # use `fovs`, a subset of the FOVs in `total_fov_names` which
+    # is a list of FOVs in `img_data_path`
+    verify_in_list(fovs=fovs, img_data_fovs=total_fov_names)
+
+    # create a folder with image data, pixel masks, and segmentation mask
+    for idx, val in enumerate(fovs):
+        # set up paths
+        img_source_dir = os.path.join(img_data_path, val, img_sub_folder)
+        output_dir = os.path.join(mantis_project_path, val)
+
+        # copy image data if not already copied in from previous round of clustering
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+
+            # copy all channels into new folder
+            chans = io_utils.list_files(img_source_dir, '.tiff')
+            for chan in chans:
+                shutil.copy(os.path.join(img_source_dir, chan), os.path.join(output_dir, chan))
+
+        # copy mask into new folder
+        mask_name = mask_names[idx]
+        shutil.copy(os.path.join(mask_output_dir, mask_name),
+                    os.path.join(output_dir, 'population{}.tiff'.format(mask_suffix)))
+
+        # copy the segmentation files into the output directory
+        seg_name = val + '_feature_0.tif'
+        shutil.copy(os.path.join(img_source_dir, seg_dir, seg_name),
+                    os.path.join(output_dir, 'cell_segmentation.tiff'))
+
+        # copy mapping into directory
+        map_df.to_csv(os.path.join(output_dir, 'population{}.csv'.format(mask_suffix)),
+                      index=False)
