@@ -3,25 +3,35 @@
 
 # ark-analysis
 
-Toolbox for analyzing multiplexed imaging data 
+Toolbox for analyzing multiplexed imaging data.
 
 Full documentation for the project can be found [here](https://ark-analysis.readthedocs.io/en/latest/)
 
-## Table of contents
-TODO
-
+## Table of Contents
+- [Overview](#overview)
+- [To install the project:](#to-install-the-project)
+- [Whenever you want to run the scripts:](#whenever-you-want-to-run-the-scripts)
+- [Once you are finished](#once-you-are-finished)
+  - [Mantis Viewer](#mantis-viewer)
+- [External Hard Drives and Google File Stream](#external-hard-drives-and-google-file-stream)
+- [Updates](#updates)
+  - [REMEMBER TO DUPLICATE AND RENAME NOTEBOOKS](#remember-to-duplicate-and-rename-notebooks)
+- [Running on Windows](#running-on-windows)
+- [Questions?](#questions)
+- [Want to contribute?](#want-to-contribute)
+- [Citation](#citation)
 
 ## Overview
-This repo contains tools for analyzing multiplexed imaging data. The assumption is that you've already performed any necessary image processing on your data (such as denoising, background subtraction, autofluorescence correction, etc), and that it is ready to be analyzed. For MIBI data, we recommend using the [toffy](link) processing pipeline.
+This repo contains tools for analyzing multiplexed imaging data. The assumption is that you've already performed any necessary image processing on - [ark-analysis]your data (such as denoising, background subtraction, autofluorescence correction, etc), and that it is ready to be analyzed. For MIBI data, we recommend using the [toffy](https://github.com/angelolab/toffy) processing pipeline.
 
 1. Segmentation  
-The [segmentation notebook](add link) will walk you through the process of using [Mesmer](link to paper) to segment your image data. This includes selecting the appropriate channel(s) for segmentation, running your data through the network, and then extracting single-cell statistics from the resulting segmentation mask. 
+The **[segmentation notebook](./templates_ark/1_Segment_Image_Data.ipynb)** will walk you through the process of using [Mesmer](https://www.nature.com/articles/s41587-021-01094-0) to segment your image data. This includes selecting the appropriate channel(s) for segmentation, running your data through the network, and then extracting single-cell statistics from the resulting segmentation mask. 
 
-2. Pixel clustering with Pixie  
-The first step in the [Pixie](link to preprint) pipeline is to run the [pixel clustering notebook](link). The notebook walks you through the process of generating pixel clusters for your data, and lets you specify what markers to use for the clustering, train a model, use it to classify your entire dataset, and generate pixel cluster overlays. The notebook includes a GUI for manual cluster adjustment and annotation.
+1. Pixel clustering with Pixie  
+The first step in the [Pixie](link to preprint) pipeline is to run the **[pixel clustering notebook](./templates_ark/2_Cluster_Pixels.ipynb)**. The notebook walks you through the process of generating pixel clusters for your data, and lets you specify what markers to use for the clustering, train a model, use it to classify your entire dataset, and generate pixel cluster overlays. The notebook includes a GUI for manual cluster adjustment and annotation.
 
 3. Cell clustering with Pixie  
-The second step in the Pixie pipeline is to run the [cell clustering notebook](link). This notebook will use the pixel clusters generated in the first notebook to cluster the cells in your dataset. The notebook walks you through generating cell clusters for your data and generates cell cluster overlays. The notebook includes a GUI for manual cluster adjustment and annotation.
+The second step in the Pixie pipeline is to run the **[cell clustering notebook](./templates_ark/3_Cluster_Cells.ipynb)**. This notebook will use the pixel clusters generated in the first notebook to cluster the cells in your dataset. The notebook walks you through generating cell clusters for your data and generates cell cluster overlays. The notebook includes a GUI for manual cluster adjustment and annotation.
 
 4. Spatial analysis  
 TBD once notebooks are finished
@@ -61,7 +71,7 @@ This will generate a link to a jupyter notebook. Copy the last URL (the one with
 
 Be sure to keep this terminal open.  **Do not exit the terminal or enter control-c until you are finished with the notebooks**. 
 
-### NOTE
+**NOTE**
 
 If you already have a Jupyter session open when you run `./start_docker.sh`, you will receive a couple additional prompts. 
 
@@ -144,7 +154,7 @@ or
 ./start_docker.sh -u
 ```
 
-### WARNING
+### REMEMBER TO DUPLICATE AND RENAME NOTEBOOKS
 
 If you didn't change the name of any of the notebooks within the `scripts` folder, they will be overwritten by the command above! 
 
