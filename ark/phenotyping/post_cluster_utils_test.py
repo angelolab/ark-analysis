@@ -66,9 +66,9 @@ def test_create_mantis_project(tmp_path):
                                'cell_meta_cluster': cell_clusters})
 
     post_cluster_utils.create_mantis_project(cell_table=cell_table, fovs=fovs,
-                                                 seg_dir=seg_dir, pop_col='cell_meta_cluster',
-                                                 mask_dir=mask_dir, image_dir=image_dir,
-                                         mantis_dir=mantis_dir)
+                                             seg_dir=seg_dir, pop_col='cell_meta_cluster',
+                                             mask_dir=mask_dir, image_dir=image_dir,
+                                             mantis_dir=mantis_dir)
 
     for fov in fovs:
         mask = io.imread(os.path.join(mask_dir, fov + '_cell_mask.tiff'))

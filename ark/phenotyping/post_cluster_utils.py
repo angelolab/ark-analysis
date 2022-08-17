@@ -2,9 +2,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 import pandas as pd
-import shutil
 
-from ark.utils import io_utils, data_utils, load_utils, plot_utils
+from ark.utils import data_utils, load_utils, plot_utils
 
 
 def plot_hist_thresholds(cell_table, populations, marker, pop_col='cell_meta_cluster',
@@ -62,7 +61,8 @@ def create_mantis_project(cell_table, fovs, seg_dir, pop_col, mask_dir, image_di
     # generate unique numeric value for each population
     unique_pops = small_table[pop_col].unique()
     small_table['pop_vals'] = small_table[pop_col].replace(to_replace=unique_pops,
-                                                            value=list(range(1, len(unique_pops) + 1)))
+                                                           value=list(
+                                                               range(1, len(unique_pops) + 1)))
 
     # define the file names for segmentation masks
     whole_cell_files = [fov + '_feature_0.tif' for fov in fovs]
@@ -88,8 +88,7 @@ def create_mantis_project(cell_table, fovs, seg_dir, pop_col, mask_dir, image_di
             name_suffix='_cell_mask'
         )
 
-    mantis_df = small_table.rename({'pop_vals': 'metacluster', pop_col: 'mc_name'},
-                                 axis=1)
+    mantis_df = small_table.rename({'pop_vals': 'metacluster', pop_col: 'mc_name'}, axis=1)
 
     plot_utils.create_mantis_dir(fovs=fovs, mantis_project_path=mantis_dir,
                                  img_data_path=image_dir, mask_output_dir=mask_dir,

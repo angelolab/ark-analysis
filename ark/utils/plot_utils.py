@@ -360,11 +360,11 @@ def create_overlay(fov, segmentation_dir, data_dir,
 
 
 def create_mantis_dir(fovs: List[str], mantis_project_path: Union[str, pathlib.Path],
-                          img_data_path: Union[str, pathlib.Path],
-                          mask_output_dir: Union[str, pathlib.Path],
-                          mapping: Union[str, pathlib.Path, pd.DataFrame],
-                          seg_dir: Union[str, pathlib.Path],
-                          mask_suffix: str = "_mask", img_sub_folder: str = ""):
+                      img_data_path: Union[str, pathlib.Path],
+                      mask_output_dir: Union[str, pathlib.Path],
+                      mapping: Union[str, pathlib.Path, pd.DataFrame],
+                      seg_dir: Union[str, pathlib.Path],
+                      mask_suffix: str = "_mask", img_sub_folder: str = ""):
     """Creates a mantis project directory so that it can be opened by the mantis viewer.
     Copies fovs, segmentation files, masks, and mapping csv's into a new directory structure.
     Here is how the contents of the mantis project folder will look like.
