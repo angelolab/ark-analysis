@@ -11,6 +11,7 @@ import feather
 from matplotlib.colors import ListedColormap
 import numpy as np
 import pandas as pd
+from skimage.draw import circle
 import skimage.io as io
 import scipy.ndimage as ndimage
 from sklearn.utils import shuffle
@@ -542,6 +543,110 @@ def test_smooth_channels(smooth_vals):
         # check that empty list doesn't raise an error
         som_utils.smooth_channels(fovs=fovs, tiff_dir=temp_dir, img_sub_folder='TIFs',
                                   channels=[], smooth_vals=smooth_vals)
+
+
+@parametrize('sub_dir', [None, 'TIFs'])
+@parametrize('exclude', [False, True])
+def test_filter_with_nuclear_mask(sub_dir, exclude, capsys):
+    # define the fovs to use
+    fovs = ['fov0', 'fov1', 'fov2']
+
+    # define the channels to use
+    chans = ['chan0', 'chan1']
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        # test seg_dir is None
+        som_utils.filter_with_nuclear_mask(
+            fovs, '', None, chans[0], ''
+        )
+
+        output = capsys.readouterr().out
+        assert output == 'No seg_dir provided, you must provide one to run nuclear filtering\n'
+
+        # test invalid seg_dir
+        with pytest.raises(FileNotFoundError):
+            som_utils.filter_with_nuclear_mask(
+                fovs, '', 'bad_seg_path', chans[0], ''
+            )
+
+        # create a directory to store the image data
+        tiff_dir = os.path.join(temp_dir, 'sample_image_data')
+        os.mkdir(tiff_dir)
+
+        # create a segmentation dir
+        seg_dir = os.path.join(temp_dir, 'segmentation')
+        os.mkdir(seg_dir)
+
+        # define the base ellipse center and radius for the dummy nucleus
+        base_center = (4, 4)
+        base_radius = 2
+
+        # store the created nuclear centers for future reference
+        nuclear_coords = {}
+
+        for offset, fov in enumerate(['fov0', 'fov1', 'fov2']):
+            # generate a random segmented image
+            rand_img = np.random.randint(1, 16, size=(1, 10, 10))
+
+            # draw a dummy nucleus and store the coords
+            nuclear_x, nuclear_y = circle(
+                base_center[0] + offset, base_center[1] + offset, base_radius
+            )
+            rand_img[0, nuclear_x, nuclear_y] = 0
+            nuclear_coords[fov] = (nuclear_x, nuclear_y)
+
+            # save the nuclear segmetation
+            file_name = fov + "_feature_1.tif"
+            io.imsave(os.path.join(seg_dir, file_name), rand_img,
+                      check_contrast=False)
+
+        # create sample image data
+        test_utils.create_paired_xarray_fovs(
+            base_dir=tiff_dir, fov_names=fovs,
+            channel_names=chans, sub_dir=sub_dir, img_shape=(10, 10)
+        )
+
+        # run filtering on channel 0
+        som_utils.filter_with_nuclear_mask(
+            fovs, tiff_dir, seg_dir, 'chan0',
+            img_sub_folder=sub_dir, exclude=exclude
+        )
+
+        # use the correct suffix depending on the exclude arg setting
+        suffix = '_nuc_exclude.tiff' if exclude else '_nuc_include.tiff'
+
+        # ensure path correctness if sub_dir is None
+        if sub_dir is None:
+            sub_dir = ''
+
+        # for each fov, verify that either the nucleus or membrane is all 0
+        # depending on exclude arg setting
+        for fov in fovs:
+            # first assert new channel file was created for channel 0, but not channel 1
+            assert os.path.exists(os.path.join(tiff_dir, fov, sub_dir, 'chan0' + suffix))
+            assert not os.path.exists(os.path.join(tiff_dir, fov, sub_dir, 'chan1' + suffix))
+
+            # load in the created channel file
+            chan_img = io.imread(os.path.join(tiff_dir, fov, sub_dir, 'chan0' + suffix))
+
+            # retrieve the nuclear coords for the fov
+            fov_nuclear_x, fov_nuclear_y = nuclear_coords[fov]
+
+            # extract the nuclear and membrane values
+            nuclear_vals = chan_img[fov_nuclear_x, fov_nuclear_y]
+
+            mask_arr = np.ones((10, 10), dtype=bool)
+            mask_arr[fov_nuclear_x, fov_nuclear_y] = False
+            membrane_vals = chan_img[mask_arr]
+
+            # assert the nuclear or membrane channel has been filtered out correctly
+            # and the other one is untouched
+            if exclude:
+                assert not np.all(nuclear_vals == 0)
+                assert np.all(membrane_vals == 0)
+            else:
+                assert np.all(nuclear_vals == 0)
+                assert not np.all(membrane_vals == 0)
 
 
 @parametrize('cluster_col', ['pixel_som_cluster', 'pixel_meta_cluster'])
@@ -1487,7 +1592,6 @@ def test_create_pixel_matrix_missing_fov(capsys):
         tiff_dir = os.path.join(temp_dir, 'sample_image_data')
 
         # test the case where we've already written FOVs to both data and subset folder
-        # TODO: place quant_dat.feather in pixel_output_dir after merging in master
         os.remove(os.path.join(temp_dir, 'pixel_mat_data', 'fov1.feather'))
         os.remove(os.path.join(temp_dir, 'pixel_mat_subsetted', 'fov1.feather'))
         sample_quant_data = pd.DataFrame(
