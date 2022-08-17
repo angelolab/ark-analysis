@@ -1472,8 +1472,7 @@ def test_create_pixel_matrix_base(fovs, chans, sub_dir, seg_dir_include,
         # if new set of channels provided
         if norm_diff_chan:
             output_capture = capsys.readouterr().out
-            assert 'overwriting original channel_norm.feather' in output_capture
-            assert 'overwriting original pixel_norm.feather' in output_capture
+            assert 'New channels provided: overwriting whole cohort' in output_capture
 
         # check that we actually created a data directory
         assert os.path.exists(os.path.join(temp_dir, 'pixel_mat_data'))
@@ -1481,14 +1480,14 @@ def test_create_pixel_matrix_base(fovs, chans, sub_dir, seg_dir_include,
         # check that we actually created a subsetted directory
         assert os.path.exists(os.path.join(temp_dir, 'pixel_mat_subsetted'))
 
-        # if there wasn't originally a channel_norm.json, assert one was created
-        if not channel_norm_include:
+        # if there wasn't originally a channel_norm.feather or if overwritten, assert one created
+        if not channel_norm_include or norm_diff_chan:
             assert os.path.exists(
                 os.path.join(temp_dir, sample_pixel_output_dir, 'test_channel_norm.feather')
             )
 
-        # if there wasn't originally a pixel_norm.json, assert one was created
-        if not pixel_norm_include:
+        # if there wasn't originally a pixel_norm.feather or if overwritten, assert one created
+        if not pixel_norm_include or norm_diff_chan:
             assert os.path.exists(
                 os.path.join(temp_dir, sample_pixel_output_dir, 'test_pixel_norm.feather')
             )
@@ -1501,12 +1500,10 @@ def test_create_pixel_matrix_base(fovs, chans, sub_dir, seg_dir_include,
                 temp_dir, 'pixel_mat_subsetted', fov + '.feather'
             )
 
-            # assert we actually created a .feather preprocessed file
-            # for each fov
+            # assert we actually created a .feather preprocessed file for each fov
             assert os.path.exists(fov_data_path)
 
-            # assert that we actually created a .feather subsetted file
-            # for each fov
+            # assert that we actually created a .feather subsetted file for each fov
             assert os.path.exists(fov_sub_path)
 
             # get the data for the specific fov
@@ -1556,7 +1553,7 @@ def test_create_pixel_matrix_base(fovs, chans, sub_dir, seg_dir_include,
         data_dir = os.path.join(temp_dir, 'pixel_mat_data')
 
         # generate the data
-        mults = [1 * (1 / 2) ** i for i in range(len(chans))]
+        mults = [(1 / 2) ** i for i in range(len(chans))]
 
         sample_channel_norm_df = pd.DataFrame({'channel': chans,
                                                'norm_val': mults})
@@ -1630,7 +1627,7 @@ def test_create_pixel_matrix_missing_fov(capsys):
 
         output_capture = capsys.readouterr().out
         assert output_capture == (
-            "Restarting preprocessing from fov fov1, 1 fovs left to process\n"
+            "Restarting preprocessing from FOV fov1, 1 fovs left to process\n"
             "Processed 1 fovs\n"
         )
         misc_utils.verify_same_elements(
@@ -1661,7 +1658,7 @@ def test_create_pixel_matrix_missing_fov(capsys):
 
         output_capture = capsys.readouterr().out
         assert output_capture == (
-            "Restarting preprocessing from fov fov1, 1 fovs left to process\n"
+            "Restarting preprocessing from FOV fov1, 1 fovs left to process\n"
             "Processed 1 fovs\n"
         )
         misc_utils.verify_same_elements(
