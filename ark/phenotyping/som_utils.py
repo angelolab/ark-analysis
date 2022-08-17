@@ -262,12 +262,12 @@ def filter_with_nuclear_mask(fovs, tiff_dir, seg_dir, channel=None,
 
     # if seg_dir is None, the user cannot run filtering
     if seg_dir is None:
-        raise ValueError('seg_dir cannot be set to None for nuclear filtering')
-
-    # if the user doesn't specify a channel, return
-    if channel is None:
-        print("No channel specified for nuclear filtering, skipping")
+        print('No seg_dir provided, you must provide one to run nuclear filtering')
         return
+
+    # raise an error if the provided seg_dir does not exist
+    if not os.path.exists(seg_dir):
+        raise FileNotFoundError('seg_dir %s does not exist' % seg_dir)
 
     # convert to path-compatible format
     if img_sub_folder is None:

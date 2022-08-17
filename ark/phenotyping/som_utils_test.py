@@ -547,8 +547,7 @@ def test_smooth_channels(smooth_vals):
 
 @parametrize('sub_dir', [None, 'TIFs'])
 @parametrize('exclude', [False, True])
-@parametrize('chan_filter', [None, 'chan0'])
-def test_filter_with_nuclear_mask(sub_dir, exclude, chan_filter):
+def test_filter_with_nuclear_mask(sub_dir, exclude, capsys):
     # define the fovs to use
     fovs = ['fov0', 'fov1', 'fov2']
 
@@ -557,9 +556,17 @@ def test_filter_with_nuclear_mask(sub_dir, exclude, chan_filter):
 
     with tempfile.TemporaryDirectory() as temp_dir:
         # test seg_dir is None
-        with pytest.raises(ValueError):
+        som_utils.filter_with_nuclear_mask(
+            fovs, '', None, chans[0], ''
+        )
+
+        output = capsys.readouterr().out
+        assert output == 'No seg_dir provided, you must provide one to run nuclear filtering\n'
+
+        # test invalid seg_dir
+        with pytest.raises(FileNotFoundError):
             som_utils.filter_with_nuclear_mask(
-                fovs, '', None, chans[0], ''
+                fovs, '', 'bad_seg_path', chans[0], ''
             )
 
         # create a directory to store the image data
@@ -601,7 +608,7 @@ def test_filter_with_nuclear_mask(sub_dir, exclude, chan_filter):
 
         # run filtering on channel 0
         som_utils.filter_with_nuclear_mask(
-            fovs, tiff_dir, seg_dir, chan_filter,
+            fovs, tiff_dir, seg_dir, 'chan0',
             img_sub_folder=sub_dir, exclude=exclude
         )
 
@@ -611,12 +618,6 @@ def test_filter_with_nuclear_mask(sub_dir, exclude, chan_filter):
         # ensure path correctness if sub_dir is None
         if sub_dir is None:
             sub_dir = ''
-
-        # if no channel was specified for filtering, ensure no new channel file was created
-        if chan_filter is None:
-            assert not os.path.exists(os.path.join(tiff_dir, fov, sub_dir, 'chan0' + suffix))
-            assert not os.path.exists(os.path.join(tiff_dir, fov, sub_dir, 'chan1' + suffix))
-            return
 
         # for each fov, verify that either the nucleus or membrane is all 0
         # depending on exclude arg setting
