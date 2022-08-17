@@ -232,7 +232,7 @@ def test_create_overlay():
                 alternate_segmentation=alternate_labels[:100, :100])
 
 
-def test_create_mantis_project():
+def test_create_mantis_dir():
 
     # Initial data
     example_labels = _generate_segmentation_labels((1024, 1024))
@@ -307,7 +307,7 @@ def test_create_mantis_project():
 
         # Test mapping csv, and df
         for mapping in [df, mapping_path]:
-            plot_utils.create_mantis_project(
+            plot_utils.create_mantis_dir(
                 fovs=fovs_subset,
                 mantis_project_path=mantis_project_path,
                 img_data_path=fov_path,

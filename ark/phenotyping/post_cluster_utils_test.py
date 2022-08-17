@@ -38,7 +38,7 @@ def test_plot_hist_thresholds():
                                             marker='marker_1')
 
 
-def test_update_mantis_dir(tmp_path):
+def test_create_mantis_project(tmp_path):
     seg_dir = os.path.join(tmp_path, 'seg')
     os.makedirs(seg_dir)
 
@@ -65,7 +65,7 @@ def test_update_mantis_dir(tmp_path):
     cell_table = pd.DataFrame({'fov': fov_list, 'label': cell_label,
                                'cell_meta_cluster': cell_clusters})
 
-    post_cluster_utils.update_mantis_dir(cell_table=cell_table, fovs=fovs,
+    post_cluster_utils.create_mantis_project(cell_table=cell_table, fovs=fovs,
                                                  seg_dir=seg_dir, pop_col='cell_meta_cluster',
                                                  mask_dir=mask_dir, image_dir=image_dir,
                                          mantis_dir=mantis_dir)

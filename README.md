@@ -74,7 +74,7 @@ with a unique folder for each FOV and all channels as individual tifs within tha
 
 Mantis Project Structure:
 ```sh
-mantis_project_folder
+mantis
 │ 
 ├── fov0
 │   ├── cell_segmentation.tiff
@@ -116,6 +116,14 @@ information, such as the average expression of a given marker, across all the ce
 ![](docs/mantis_feature_file.png)
 
 Or they can be loaded into an existing project via Import -> Segment Features -> For project from CSV
+
+
+### View cell features
+Once you have loaded the project-wide files into Mantis, you'll need to decide which of the features you want to view. 
+Click on `Show Plot Plane` at the bottom right, then select the marker you want to assess. This will then allow you to view
+the cell expression of that marker when you mouse over the cell in Mantis. 
+
+![](docs/mantis_feature_view.png)
 
 ## External Hard Drives and Google File Stream
 
