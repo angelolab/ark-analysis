@@ -238,6 +238,66 @@ def smooth_channels(fovs, tiff_dir, img_sub_folder, channels, smooth_vals):
                    chan_out, check_contrast=False)
 
 
+def filter_with_nuclear_mask(fovs, tiff_dir, seg_dir, channel,
+                             img_sub_folder=None, exclude=True):
+    """Filters out background staining using subcellular marker localization.
+
+    Non-nuclear signal is removed from nuclear markers and vice-versa for membrane markers.
+
+    Args:
+        fovs (list):
+            The list of fovs to filter
+        tiff_dir (str):
+            Name of the directory containing the tiff files
+        seg_dir (str):
+            Name of the directory containing the segmented files
+        channel (str):
+            Channel to apply filtering to
+        img_sub_folder (str):
+            Name of the subdirectory inside `tiff_dir` containing the tiff files.
+            Set to `None` if there isn't any.
+        exclude (bool):
+            Whether to filter out nuclear or membrane signal
+    """
+
+    # if seg_dir is None, the user cannot run filtering
+    if seg_dir is None:
+        print('No seg_dir provided, you must provide one to run nuclear filtering')
+        return
+
+    # raise an error if the provided seg_dir does not exist
+    if not os.path.exists(seg_dir):
+        raise FileNotFoundError('seg_dir %s does not exist' % seg_dir)
+
+    # convert to path-compatible format
+    if img_sub_folder is None:
+        img_sub_folder = ''
+
+    for fov in fovs:
+        # load the channel image in
+        img = load_utils.load_imgs_from_tree(data_dir=tiff_dir, img_sub_folder=img_sub_folder,
+                                             fovs=[fov], channels=[channel]).values[0, :, :, 0]
+
+        # load the segmented image in
+        seg_img = imread(os.path.join(seg_dir, fov + '_feature_1.tif'))[0, ...]
+
+        # mask out the nucleus
+        if exclude:
+            suffix = '_nuc_exclude.tiff'
+            seg_mask = seg_img > 0
+        # mask out the membrane
+        else:
+            suffix = '_nuc_include.tiff'
+            seg_mask = seg_img == 0
+
+        # filter out the nucleus or membrane depending on exclude parameter
+        img[seg_mask] = 0
+
+        # save filtered image
+        imsave(os.path.join(tiff_dir, fov, img_sub_folder, channel + suffix), img,
+               check_contrast=False)
+
+
 def compute_pixel_cluster_channel_avg(fovs, channels, base_dir, pixel_cluster_col,
                                       pixel_data_dir='pixel_mat_data', keep_count=False):
     """Compute the average channel values across each pixel SOM cluster
