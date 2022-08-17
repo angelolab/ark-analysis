@@ -628,7 +628,6 @@ def test_filter_with_nuclear_mask(sub_dir, exclude, capsys):
 
             # load in the created channel file
             chan_img = io.imread(os.path.join(tiff_dir, fov, sub_dir, 'chan0' + suffix))
-            # print(chan_img)
 
             # retrieve the nuclear coords for the fov
             fov_nuclear_x, fov_nuclear_y = nuclear_coords[fov]
