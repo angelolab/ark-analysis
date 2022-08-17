@@ -50,7 +50,16 @@ def plot_hist_thresholds(cell_table, populations, marker, pop_col='cell_meta_clu
 
 
 def create_mantis_project(cell_table, fovs, seg_dir, pop_col, mask_dir, image_dir, mantis_dir):
-    """Creates masks with the updated cell labels"""
+    """Create a complete Mantis project for viewing cell labels
+
+    Args:
+        cell_table (pd.DataFrame): dataframe of extracted cell features and subtypes
+        fovs (list): list of FOVs to use for creating the project
+        seg_dir (path): path to the directory containing the segmentations
+        pop_col (str): the column containing the distinct cell populations
+        mask_dir (path): path to the directory where the masks will be stored
+        image_dir (path): path to the directory containing the raw image data
+        mantis_dir (path): path to the directory where the mantis project will be created """
 
     if not os.path.exists(mask_dir):
         os.makedirs(mask_dir)
@@ -59,10 +68,7 @@ def create_mantis_project(cell_table, fovs, seg_dir, pop_col, mask_dir, image_di
     small_table = cell_table.loc[:, [pop_col, 'label', 'fov']]
 
     # generate unique numeric value for each population
-    unique_pops = small_table[pop_col].unique()
-    small_table['pop_vals'] = small_table[pop_col].replace(to_replace=unique_pops,
-                                                           value=list(
-                                                               range(1, len(unique_pops) + 1)))
+    small_table['pop_vals'] = pd.factorize(small_table[pop_col].tolist())[0] + 1
 
     # define the file names for segmentation masks
     whole_cell_files = [fov + '_feature_0.tif' for fov in fovs]

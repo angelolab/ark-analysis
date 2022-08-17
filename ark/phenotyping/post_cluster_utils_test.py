@@ -39,6 +39,7 @@ def test_plot_hist_thresholds():
 
 
 def test_create_mantis_project(tmp_path):
+    # create necessary directories
     seg_dir = os.path.join(tmp_path, 'seg')
     os.makedirs(seg_dir)
 
@@ -50,14 +51,17 @@ def test_create_mantis_project(tmp_path):
 
     mask_dir = os.path.join(tmp_path, 'mask')
 
+    # create images
     fovs, channels = test_utils.gen_fov_chan_names(num_fovs=3, num_chans=4,
                                                    use_delimiter=False, return_imgs=False)
     test_utils._write_tifs(image_dir, fovs, channels, (10, 10), '', False, int)
 
+    # create random segmentation masks
     for fov in fovs:
         data = np.random.randint(0, 5, 100).reshape(10, 10)
         io.imsave(os.path.join(seg_dir, fov + '_feature_0.tif'), data, check_contrast=False)
 
+    # create cell table with two clusters
     cell_label = np.tile(np.arange(1, 5), len(fovs))
     cell_clusters = np.tile(['cluster1', 'cluster2'], 6)
     fov_list = np.repeat(fovs, 4)
@@ -70,10 +74,12 @@ def test_create_mantis_project(tmp_path):
                                              mask_dir=mask_dir, image_dir=image_dir,
                                              mantis_dir=mantis_dir)
 
+    # make sure that the mask found in each mantis directory is correct
     for fov in fovs:
+        # mask should only include 0, 1, and 2 for background, population_1, and population_2
         mask = io.imread(os.path.join(mask_dir, fov + '_cell_mask.tiff'))
         assert set(np.unique(mask)) == set([0, 1, 2])
 
+        # mask should be non-zero in the same places as original
         seg = io.imread(os.path.join(seg_dir, fov + '_feature_0.tif'))
-
         assert np.array_equal(mask > 0, seg > 0)
