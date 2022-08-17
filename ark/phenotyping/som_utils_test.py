@@ -33,22 +33,28 @@ PIXEL_MATRIX_CHANS = ['chan0', 'chan1', 'chan2']
 
 class CreatePixelMatrixBaseCases:
     def case_all_fovs_all_chans(self):
-        return PIXEL_MATRIX_FOVS, PIXEL_MATRIX_CHANS, 'TIFs', True, False, False
+        return PIXEL_MATRIX_FOVS, PIXEL_MATRIX_CHANS, 'TIFs', True, False, False, False
 
     def case_some_fovs_some_chans(self):
-        return PIXEL_MATRIX_FOVS[:2], PIXEL_MATRIX_CHANS[:2], 'TIFs', True, False, False
+        return PIXEL_MATRIX_FOVS[:2], PIXEL_MATRIX_CHANS[:2], 'TIFs', True, False, False, False
 
     def case_no_sub_dir(self):
-        return PIXEL_MATRIX_FOVS, PIXEL_MATRIX_CHANS, None, True, False, False
+        return PIXEL_MATRIX_FOVS, PIXEL_MATRIX_CHANS, None, True, False, False, False
 
     def case_no_seg_dir(self):
-        return PIXEL_MATRIX_FOVS, PIXEL_MATRIX_CHANS, 'TIFs', False, False, False
+        return PIXEL_MATRIX_FOVS, PIXEL_MATRIX_CHANS, 'TIFs', False, False, False, False
 
     def case_existing_channel_norm(self):
-        return PIXEL_MATRIX_FOVS, PIXEL_MATRIX_CHANS, 'TIFs', True, True, False
+        return PIXEL_MATRIX_FOVS, PIXEL_MATRIX_CHANS, 'TIFs', True, True, False, False
 
     def case_existing_pixel_norm(self):
-        return PIXEL_MATRIX_FOVS, PIXEL_MATRIX_CHANS, 'TIFs', True, False, True
+        return PIXEL_MATRIX_FOVS, PIXEL_MATRIX_CHANS, 'TIFs', True, False, True, False
+
+    def case_existing_pixel_and_channel_norm(self):
+        return PIXEL_MATRIX_FOVS, PIXEL_MATRIX_CHANS, 'TIFs', True, True, True, False
+
+    def case_new_channels_norm(self):
+        return PIXEL_MATRIX_FOVS, PIXEL_MATRIX_CHANS, 'TIFs', True, True, True, True
 
 
 def mocked_train_pixel_som(fovs, channels, base_dir,
@@ -363,6 +369,7 @@ def test_calculate_channel_percentiles():
                                                                         fovs=fovs,
                                                                         img_sub_folder='TIFs',
                                                                         percentile=percentile)
+
         # test equality when all channels and all FOVs are included
         for idx, chan in enumerate(chans):
             assert predicted_percentiles['norm_val'].values[idx] == np.mean(percentile_dict[chan])
@@ -1341,11 +1348,12 @@ def test_preprocess_fov(mocker):
 
 # TODO: leaving out MIBItiff testing until someone needs it
 @parametrize_with_cases(
-    'fovs,chans,sub_dir,seg_dir_include,channel_norm_include,pixel_norm_include',
+    'fovs,chans,sub_dir,seg_dir_include,channel_norm_include,pixel_norm_include,norm_diff_chan',
     cases=CreatePixelMatrixBaseCases
 )
 def test_create_pixel_matrix_base(fovs, chans, sub_dir, seg_dir_include,
-                                  channel_norm_include, pixel_norm_include, mocker):
+                                  channel_norm_include, pixel_norm_include,
+                                  norm_diff_chan, mocker, capsys):
     with tempfile.TemporaryDirectory() as temp_dir:
         # create a directory to store the image data
         tiff_dir = os.path.join(temp_dir, 'sample_image_data')
@@ -1431,8 +1439,10 @@ def test_create_pixel_matrix_base(fovs, chans, sub_dir, seg_dir_include,
         # make the channel_norm.feather file if the test requires it
         # NOTE: pixel_mat_data already created in the previous validation tests
         if channel_norm_include:
-            sample_channel_norm_df = pd.DataFrame({'channel': chans,
-                                                  'norm_val': np.random.rand(len(chans))})
+            # helps test if channel_norm.feather contains a different set of channels
+            norm_chans = [chans[0]] if norm_diff_chan else chans
+            sample_channel_norm_df = pd.DataFrame({'channel': norm_chans,
+                                                  'norm_val': np.random.rand(len(norm_chans))})
 
             feather.write_dataframe(
                 sample_channel_norm_df,
@@ -1458,20 +1468,26 @@ def test_create_pixel_matrix_base(fovs, chans, sub_dir, seg_dir_include,
                                       seg_dir=seg_dir,
                                       pixel_cluster_prefix='test')
 
+        # assert we overwrote the original channel_norm and pixel_norm files
+        # if new set of channels provided
+        if norm_diff_chan:
+            output_capture = capsys.readouterr().out
+            assert 'New channels provided: overwriting whole cohort' in output_capture
+
         # check that we actually created a data directory
         assert os.path.exists(os.path.join(temp_dir, 'pixel_mat_data'))
 
         # check that we actually created a subsetted directory
         assert os.path.exists(os.path.join(temp_dir, 'pixel_mat_subsetted'))
 
-        # if there wasn't originally a channel_norm.json, assert one was created
-        if not channel_norm_include:
+        # if there wasn't originally a channel_norm.feather or if overwritten, assert one created
+        if not channel_norm_include or norm_diff_chan:
             assert os.path.exists(
                 os.path.join(temp_dir, sample_pixel_output_dir, 'test_channel_norm.feather')
             )
 
-        # if there wasn't originally a pixel_norm.json, assert one was created
-        if not pixel_norm_include:
+        # if there wasn't originally a pixel_norm.feather or if overwritten, assert one created
+        if not pixel_norm_include or norm_diff_chan:
             assert os.path.exists(
                 os.path.join(temp_dir, sample_pixel_output_dir, 'test_pixel_norm.feather')
             )
@@ -1484,12 +1500,10 @@ def test_create_pixel_matrix_base(fovs, chans, sub_dir, seg_dir_include,
                 temp_dir, 'pixel_mat_subsetted', fov + '.feather'
             )
 
-            # assert we actually created a .feather preprocessed file
-            # for each fov
+            # assert we actually created a .feather preprocessed file for each fov
             assert os.path.exists(fov_data_path)
 
-            # assert that we actually created a .feather subsetted file
-            # for each fov
+            # assert that we actually created a .feather subsetted file for each fov
             assert os.path.exists(fov_sub_path)
 
             # get the data for the specific fov
@@ -1539,7 +1553,7 @@ def test_create_pixel_matrix_base(fovs, chans, sub_dir, seg_dir_include,
         data_dir = os.path.join(temp_dir, 'pixel_mat_data')
 
         # generate the data
-        mults = [1 * (1 / 2) ** i for i in range(len(chans))]
+        mults = [(1 / 2) ** i for i in range(len(chans))]
 
         sample_channel_norm_df = pd.DataFrame({'channel': chans,
                                                'norm_val': mults})
@@ -1613,7 +1627,7 @@ def test_create_pixel_matrix_missing_fov(capsys):
 
         output_capture = capsys.readouterr().out
         assert output_capture == (
-            "Restarting preprocessing from fov fov1, 1 fovs left to process\n"
+            "Restarting preprocessing from FOV fov1, 1 fovs left to process\n"
             "Processed 1 fovs\n"
         )
         misc_utils.verify_same_elements(
@@ -1644,7 +1658,7 @@ def test_create_pixel_matrix_missing_fov(capsys):
 
         output_capture = capsys.readouterr().out
         assert output_capture == (
-            "Restarting preprocessing from fov fov1, 1 fovs left to process\n"
+            "Restarting preprocessing from FOV fov1, 1 fovs left to process\n"
             "Processed 1 fovs\n"
         )
         misc_utils.verify_same_elements(

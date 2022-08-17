@@ -1003,6 +1003,34 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
     if not os.path.exists(os.path.join(base_dir, subset_dir)):
         os.mkdir(os.path.join(base_dir, subset_dir))
 
+    # define path to channel normalization values
+    channel_norm_path = os.path.join(
+        base_dir, pixel_output_dir, '%s_channel_norm.feather' % pixel_cluster_prefix
+    )
+
+    # define path to pixel normalization values
+    pixel_norm_path = os.path.join(
+        base_dir, pixel_output_dir, '%s_pixel_norm.feather' % pixel_cluster_prefix
+    )
+
+    # reset entire cohort if channels provided are different from ones in existing channel_norm
+    if os.path.exists(channel_norm_path):
+        channel_norm_df = feather.read_dataframe(channel_norm_path)
+
+        if set(channel_norm_df['channel']) != set(channels):
+            print("New channels provided: overwriting whole cohort")
+
+            # delete the existing data in data_dir and subset_dir
+            rmtree(os.path.join(base_dir, data_dir))
+            os.mkdir(os.path.join(base_dir, data_dir))
+
+            rmtree(os.path.join(base_dir, subset_dir))
+            os.mkdir(os.path.join(base_dir, subset_dir))
+
+            # delete the existing channel_norm.feather and pixel_norm.feather
+            os.remove(channel_norm_path)
+            os.remove(pixel_norm_path)
+
     # create variable for storing 99.9% values
     quant_dat = pd.DataFrame()
 
@@ -1010,12 +1038,12 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
     # NOTE: this handles the case where the data file was written, but not the subset file
     fovs_sub = io_utils.list_files(os.path.join(base_dir, subset_dir), substrs='.feather')
 
-    # trim the .feather suffix from the fovs
-    fovs_comb = io_utils.remove_file_extensions(fovs_sub)
+    # trim the .feather suffix from the fovs in the subsetted directory
+    fovs_sub = io_utils.remove_file_extensions(fovs_sub)
 
     # define the list of FOVs for preprocessing
     # NOTE: if an existing FOV is already corrupted, future steps will discard it
-    fovs_list = list(set(fovs).difference(set(fovs_comb)))
+    fovs_list = list(set(fovs).difference(set(fovs_sub)))
 
     # if there are no FOVs left to preprocess don't run function
     if len(fovs_list) == 0:
@@ -1024,20 +1052,14 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
 
     # if the process is only partially complete, inform the user of restart
     if len(fovs_list) < len(fovs):
-        print("Restarting preprocessing from fov %s, "
+        print("Restarting preprocessing from FOV %s, "
               "%d fovs left to process" % (fovs_list[0], len(fovs_list)))
-    else:
-        fovs_list = fovs
 
     # check to make sure correct channels were specified
     check_for_modified_channels(tiff_dir=tiff_dir, test_fov=fovs[0], img_sub_folder=img_sub_folder,
                                 channels=channels)
 
-    # create path for channel normalization values
-    channel_norm_path = os.path.join(
-        base_dir, pixel_output_dir, '%s_channel_norm.feather' % pixel_cluster_prefix
-    )
-
+    # load existing channel_norm_path if exists, otherwise generate
     if not os.path.exists(channel_norm_path):
         # compute channel percentiles
         channel_norm_df = calculate_channel_percentiles(tiff_dir=tiff_dir,
@@ -1047,25 +1069,20 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
                                                         percentile=channel_percentile)
         # save output
         feather.write_dataframe(channel_norm_df, channel_norm_path, compression='uncompressed')
-
     else:
         # load previously generated output
         channel_norm_df = feather.read_dataframe(channel_norm_path)
 
-    # create path for pixel normalization values
-    pixel_norm_path = os.path.join(
-        base_dir, pixel_output_dir, '%s_pixel_norm.feather' % pixel_cluster_prefix
-    )
-
+    # load existing pixel_norm_path if exists, otherwise generate
     if not os.path.exists(pixel_norm_path):
         # compute pixel percentiles
         pixel_norm_val = calculate_pixel_intensity_percentile(
             tiff_dir=tiff_dir, fovs=fovs, channels=channels,
-            img_sub_folder=img_sub_folder, channel_percentiles=channel_norm_df)
+            img_sub_folder=img_sub_folder, channel_percentiles=channel_norm_df
+        )
 
         pixel_norm_df = pd.DataFrame({'pixel_norm_val': [pixel_norm_val]})
         feather.write_dataframe(pixel_norm_df, pixel_norm_path, compression='uncompressed')
-
     else:
         pixel_norm_df = feather.read_dataframe(pixel_norm_path)
         pixel_norm_val = pixel_norm_df['pixel_norm_val'].values[0]
