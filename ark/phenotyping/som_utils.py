@@ -238,7 +238,7 @@ def smooth_channels(fovs, tiff_dir, img_sub_folder, channels, smooth_vals):
                    chan_out, check_contrast=False)
 
 
-def filter_with_nuclear_mask(fovs, tiff_dir, seg_dir, channel=None,
+def filter_with_nuclear_mask(fovs, tiff_dir, seg_dir, channel,
                              img_sub_folder=None, exclude=True):
     """Filters out background staining using subcellular marker localization.
 
