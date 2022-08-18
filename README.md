@@ -13,7 +13,7 @@ This project contains code and example scripts for analyzing multiplexed imaging
 
 ## Pipeline Flowchart
 
-![flow-chart](templates_ark/imgs/ark_processing.png)
+![flow-chart](docs/ark_processing.png)
 
 ## To install the project:
 
