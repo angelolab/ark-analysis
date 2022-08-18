@@ -177,6 +177,7 @@ If you run into trouble, please first refer to our [FAQ](https://ark-analysis.re
 If you would like to help make `ark` better, please take a look at our [contributing guidelines](https://ark-analysis.readthedocs.io/en/latest/_rtd/contributing.html). 
 
 ## Citation
-Please cite our paper if you found our repo useful! 
+Please cite the following papers if you found our repo useful!
 
-[Greenwald, Miller et al. Whole-cell segmentation of tissue images with human-level performance using large-scale data annotation and deep learning](https://www.nature.com/articles/s41587-021-01094-0)
+1. [Greenwald, Miller et al. Whole-cell segmentation of tissue images with human-level performance using large-scale data annotation and deep learning](https://www.nature.com/articles/s41587-021-01094-0)
+2. [Liu, Greenwald et al. Robust phenotyping of highly multiplexed tissue imaging data using pixel-level clustering](https://www.biorxiv.org/content/10.1101/2022.08.16.504171v1)
