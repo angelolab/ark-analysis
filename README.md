@@ -22,7 +22,7 @@ Full documentation for the project can be found [here](https://ark-analysis.read
 - [Citation](#citation)
 
 ## Overview
-This repo contains tools for analyzing multiplexed imaging data. The assumption is that you've already performed any necessary image processing on - [ark-analysis]your data (such as denoising, background subtraction, autofluorescence correction, etc), and that it is ready to be analyzed. For MIBI data, we recommend using the [toffy](https://github.com/angelolab/toffy) processing pipeline.
+This repo contains tools for analyzing multiplexed imaging data. The assumption is that you've already performed any necessary image processing on your data (such as denoising, background subtraction, autofluorescence correction, etc), and that it is ready to be analyzed. For MIBI data, we recommend using the [toffy](https://github.com/angelolab/toffy) processing pipeline.
 
 1. Segmentation  
 The **[segmentation notebook](./templates_ark/1_Segment_Image_Data.ipynb)** will walk you through the process of using [Mesmer](https://www.nature.com/articles/s41587-021-01094-0) to segment your image data. This includes selecting the appropriate channel(s) for segmentation, running your data through the network, and then extracting single-cell statistics from the resulting segmentation mask. 
