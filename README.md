@@ -9,7 +9,11 @@ Full documentation for the project can be found [here](https://ark-analysis.read
 
 ## Info
 
-This project contains code and example scripts for analyzing multiplexed imaging data
+This project contains code and example scripts for analyzing multiplexed imaging data.
+
+## Pipeline Flowchart
+
+![ark-processing-pipeline](templates_ark/imgs/ark_processing.png)
 
 ## To install the project:
 
