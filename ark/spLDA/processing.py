@@ -8,6 +8,7 @@ import spatial_lda.featurization as ft
 from sklearn.cluster import KMeans, MiniBatchKMeans
 from sklearn.metrics import silhouette_score
 from sklearn.model_selection import train_test_split
+from tqdm import tqdm
 
 import ark.utils.spatial_lda_utils as spu
 from ark import settings
@@ -278,7 +279,8 @@ def compute_topic_eda(features, featurization, topics, silhouette=False, num_boo
     stats = dict(zip(stat_names, [{} for name in stat_names]))
 
     # iterative over topic number candidates
-    for k in topics:
+    pb_format = '{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}]'
+    for k in tqdm(topics, bar_format=pb_format):
         # cluster with KMeans
         cluster_fit = KMeans(n_clusters=k).fit(features)
 
