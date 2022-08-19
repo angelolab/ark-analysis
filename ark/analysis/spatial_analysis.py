@@ -306,7 +306,8 @@ def calculate_cluster_spatial_enrichment(all_data, dist_matrices_dict, included_
                                          bootstrap_num=1000, dist_lim=100, fov_col=settings.FOV_ID,
                                          cluster_name_col=settings.CELL_TYPE,
                                          cluster_id_col=settings.CLUSTER_ID,
-                                         cell_label_col=settings.CELL_LABEL, context_col=None):
+                                         cell_label_col=settings.CELL_LABEL, context_col=None,
+                                         distance_cols=None):
     """Spatial enrichment analysis based on cell phenotypes to find significant interactions
     between different cell types, looking for both positive and negative enrichment. Uses
     bootstrapping to permute cell labels randomly.
@@ -333,6 +334,8 @@ def calculate_cluster_spatial_enrichment(all_data, dist_matrices_dict, included_
             column with the cell labels.
         context_col (str):
             column with context labels. If None, no context is assumed.
+        distance_cols (str):
+            column names of feature distances to include in analysis.
 
     Returns:
         tuple (list, xarray.DataArray):
@@ -356,6 +359,11 @@ def calculate_cluster_spatial_enrichment(all_data, dist_matrices_dict, included_
     # check if included fovs found in fov_col
     misc_utils.verify_in_list(fov_names=included_fovs,
                               unique_fovs=all_data[fov_col].unique())
+
+    if distance_cols:
+        all_data, dist_matrices_dict = spatial_analysis_utils.append_distance_features_to_dataset(
+            dist_matrices_dict, all_data, distance_cols
+        )
 
     # Extract the names of the cell phenotypes
     cluster_names = all_data[cluster_name_col].drop_duplicates()

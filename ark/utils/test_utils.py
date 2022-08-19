@@ -985,6 +985,14 @@ def _make_context_dist_exp_mats_spatial_test(dist_lim):
     return all_data, dist_mat
 
 
+def _make_dist_exp_mats_dist_feature_spatial_test(dist_lim):
+    all_data = _make_expression_mat_sa("none")
+    dist_mat = _make_dist_mat_sa("none", dist_lim)
+
+    all_data['dist_feature_0'] = (dist_lim / 2) * np.ones(all_data.shape[0])
+    return all_data, dist_mat
+
+
 def _make_dist_mat_sa_utils():
     """Generate a sample distance matrix to test spatial_analysis_utils
 
