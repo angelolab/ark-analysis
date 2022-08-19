@@ -1244,7 +1244,9 @@ def test_find_fovs_missing_col_no_temp():
 
         # test the case where none of the FOVs have the pixel_som_cluster column
         # all the FOVs should be returned and the _temp dir should be created
-        fovs_missing = pixel_cluster_utils.find_fovs_missing_col(temp_dir, 'data_dir', 'pixel_som_cluster')
+        fovs_missing = pixel_cluster_utils.find_fovs_missing_col(
+            temp_dir, 'data_dir', 'pixel_som_cluster'
+        )
         assert os.path.exists(os.path.join(temp_dir, 'data_dir_temp'))
         misc_utils.verify_same_elements(
             missing_fovs_returned=fovs_missing,
@@ -1269,7 +1271,9 @@ def test_find_fovs_missing_col_no_temp():
 
         # no FOVs should be removed, no _temp dir should be created
         # NOTE: handling of corrupted FOVs gets passed to the channel averaging and later steps
-        fovs_missing = pixel_cluster_utils.find_fovs_missing_col(temp_dir, 'data_dir', 'pixel_som_cluster')
+        fovs_missing = pixel_cluster_utils.find_fovs_missing_col(
+            temp_dir, 'data_dir', 'pixel_som_cluster'
+        )
         assert not os.path.exists(os.path.join(temp_dir, 'data_dir_temp'))
         assert fovs_missing == []
 
