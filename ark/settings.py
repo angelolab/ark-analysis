@@ -15,6 +15,9 @@ CENTROID_1 = 'centroid-1'  # cell centroid y-coordinate
 PRE_CHANNEL_COL = CELL_SIZE  # last column before channel data
 POST_CHANNEL_COL = CELL_LABEL  # first column after channel data
 
+# standardized segmentation label channel dimension names
+SEG_LABEL_CHANNELS = ['nuclear_channel', 'membrane_channel']
+
 # MIBI tiling parameters
 REGION_PARAM_FIELDS = ['region_start_x', 'region_start_y', 'fov_num_x', 'fov_num_y',
                        'x_fov_size', 'y_fov_size', 'region_rand']
