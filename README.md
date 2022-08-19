@@ -14,7 +14,7 @@ Full documentation for the project can be found [here](https://ark-analysis.read
     - [2. Pixel clustering with Pixie](#2-pixel-clustering-with-pixie)
     - [3. Cell clustering with Pixie](#3-cell-clustering-with-pixie)
     - [4. Spatial analysis](#4-spatial-analysis)
-  - [Installation Steps](#installation)
+  - [Installation Steps](#installation-steps)
     - [Download the Repo](#download-the-repo)
     - [Getting the Docker Image](#getting-the-docker-image)
     - [Running on Windows](#running-on-windows)
