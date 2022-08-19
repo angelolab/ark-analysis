@@ -725,7 +725,7 @@ def test_cluster_cells(mocker):
 
         with pytest.raises(FileNotFoundError):
             cell_cluster_utils.cluster_cells(base_dir=temp_dir,
-                                    weights_name='bad_path')
+                                             weights_name='bad_path')
 
     with tempfile.TemporaryDirectory() as temp_dir:
         # define the cluster column names
