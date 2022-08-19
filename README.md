@@ -20,7 +20,7 @@ Full documentation for the project can be found [here](https://ark-analysis.read
     - [Running on Windows](#running-on-windows)
     - [Using the Repository (Running the Docker)](#using-the-repository-running-the-docker)
 - [External Tools](#external-tools)
-  - [Mantis Viewer](#mantis-viewer)
+  - [Mantis](#mantis)
   - [External Hard Drives and Google File Stream](#external-hard-drives-and-google-file-stream)
 - [Updating the Repository](#updating-the-repository)
 - [Questions?](#questions)
@@ -104,7 +104,7 @@ If you didn't change the name of any of the notebooks within the `templates_ark`
 
 ## External Tools
 
-### Mantis Viewer
+### Mantis
 
 We use [Mantis Viewer](https://mantis.parkerici.org) to visualize the segmented images. 
 Below you can see the structure of a Mantis project in order to open it in the visualization tool.
