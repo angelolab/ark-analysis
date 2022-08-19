@@ -56,6 +56,7 @@ class CreatePixelMatrixBaseCases:
     def case_new_channels_norm(self):
         return PIXEL_MATRIX_FOVS, PIXEL_MATRIX_CHANS, 'TIFs', True, True, True, True
 
+
 def mocked_train_pixel_som(fovs, channels, base_dir,
                            subset_dir='pixel_mat_subsetted',
                            norm_vals_name='post_rowsum_chan_norm.feather',
@@ -272,11 +273,13 @@ def test_calculate_channel_percentiles():
 
             percentile_dict[chan] = chan_vals
 
-        predicted_percentiles = pixel_cluster_utils.calculate_channel_percentiles(tiff_dir=temp_dir,
-                                                                        channels=chans,
-                                                                        fovs=fovs,
-                                                                        img_sub_folder='TIFs',
-                                                                        percentile=percentile)
+        predicted_percentiles = pixel_cluster_utils.calculate_channel_percentiles(
+            tiff_dir=temp_dir,
+            channels=chans,
+            fovs=fovs,
+            img_sub_folder='TIFs',
+            percentile=percentile
+        )
 
         # test equality when all channels and all FOVs are included
         for idx, chan in enumerate(chans):
@@ -285,11 +288,13 @@ def test_calculate_channel_percentiles():
         # include only a subset of channels and fovs
         chans = chans[1:]
         fovs = fovs[:-1]
-        predicted_percentiles = pixel_cluster_utils.calculate_channel_percentiles(tiff_dir=temp_dir,
-                                                                        channels=chans,
-                                                                        fovs=fovs,
-                                                                        img_sub_folder='TIFs',
-                                                                        percentile=percentile)
+        predicted_percentiles = pixel_cluster_utils.calculate_channel_percentiles(
+            tiff_dir=temp_dir,
+            channels=chans,
+            fovs=fovs,
+            img_sub_folder='TIFs',
+            percentile=percentile
+        )
         # test equality for specific chans and FOVs
         for idx, chan in enumerate(chans):
             assert predicted_percentiles['norm_val'].values[idx] == \
@@ -395,16 +400,18 @@ def test_check_for_modified_channels(chan_names, err_str):
         selected_chans = chan_names[:-1]
 
         with pytest.warns(UserWarning, match=err_str):
-            pixel_cluster_utils.check_for_modified_channels(tiff_dir=temp_dir, test_fov=test_fov,
-                                                  img_sub_folder='', channels=selected_chans)
+            pixel_cluster_utils.check_for_modified_channels(
+                tiff_dir=temp_dir, test_fov=test_fov, img_sub_folder='', channels=selected_chans
+            )
 
         # check that no warning is raised
         selected_chans = chan_names[1:]
 
         with warnings.catch_warnings():
             warnings.simplefilter("error")
-            pixel_cluster_utils.check_for_modified_channels(tiff_dir=temp_dir, test_fov=test_fov,
-                                                  img_sub_folder='', channels=selected_chans)
+            pixel_cluster_utils.check_for_modified_channels(
+                tiff_dir=temp_dir, test_fov=test_fov, img_sub_folder='', channels=selected_chans
+            )
 
 
 @parametrize('smooth_vals', [2, [1, 3]])
@@ -418,8 +425,10 @@ def test_smooth_channels(smooth_vals):
         )
         smooth_channels = ['chan0', 'chan1']
 
-        pixel_cluster_utils.smooth_channels(fovs=fovs, tiff_dir=temp_dir, img_sub_folder='TIFs',
-                                  channels=smooth_channels, smooth_vals=smooth_vals)
+        pixel_cluster_utils.smooth_channels(
+            fovs=fovs, tiff_dir=temp_dir, img_sub_folder='TIFs',
+            channels=smooth_channels, smooth_vals=smooth_vals
+        )
 
         # check that correct value was applied
         for fov in fovs:
@@ -447,17 +456,23 @@ def test_smooth_channels(smooth_vals):
 
         # check that mismatch in list length is caught
         with pytest.raises(ValueError, match='same length'):
-            pixel_cluster_utils.smooth_channels(fovs=fovs, tiff_dir=temp_dir, img_sub_folder='TIFs',
-                                      channels=smooth_channels, smooth_vals=[1, 2, 3])
+            pixel_cluster_utils.smooth_channels(
+                fovs=fovs, tiff_dir=temp_dir, img_sub_folder='TIFs',
+                channels=smooth_channels, smooth_vals=[1, 2, 3]
+            )
 
         # check that wrong float is caught
         with pytest.raises(ValueError, match='single integer'):
-            pixel_cluster_utils.smooth_channels(fovs=fovs, tiff_dir=temp_dir, img_sub_folder='TIFs',
-                                      channels=smooth_channels, smooth_vals=1.5)
+            pixel_cluster_utils.smooth_channels(
+                fovs=fovs, tiff_dir=temp_dir, img_sub_folder='TIFs',
+                channels=smooth_channels, smooth_vals=1.5
+            )
 
         # check that empty list doesn't raise an error
-        pixel_cluster_utils.smooth_channels(fovs=fovs, tiff_dir=temp_dir, img_sub_folder='TIFs',
-                                  channels=[], smooth_vals=smooth_vals)
+        pixel_cluster_utils.smooth_channels(
+            fovs=fovs, tiff_dir=temp_dir, img_sub_folder='TIFs',
+            channels=[], smooth_vals=smooth_vals
+        )
 
 
 @parametrize('sub_dir', [None, 'TIFs'])
@@ -840,37 +855,45 @@ def test_create_pixel_matrix_base(fovs, chans, sub_dir, seg_dir_include,
 
         # invalid subset proportion specified
         with pytest.raises(ValueError):
-            pixel_cluster_utils.create_pixel_matrix(fovs=['fov1', 'fov2'],
-                                          channels=['chan1'],
-                                          base_dir=temp_dir,
-                                          tiff_dir=tiff_dir,
-                                          seg_dir=None,
-                                          subset_proportion=1.1)
+            pixel_cluster_utils.create_pixel_matrix(
+                fovs=['fov1', 'fov2'],
+                channels=['chan1'],
+                base_dir=temp_dir,
+                tiff_dir=tiff_dir,
+                seg_dir=None,
+                subset_proportion=1.1
+            )
 
         # pass invalid base directory
         with pytest.raises(FileNotFoundError):
-            pixel_cluster_utils.create_pixel_matrix(fovs=['fov1', 'fov2'],
-                                          channels=['chan1'],
-                                          base_dir='bad_base_dir',
-                                          tiff_dir=tiff_dir,
-                                          seg_dir=None)
+            pixel_cluster_utils.create_pixel_matrix(
+                fovs=['fov1', 'fov2'],
+                channels=['chan1'],
+                base_dir='bad_base_dir',
+                tiff_dir=tiff_dir,
+                seg_dir=None
+            )
 
         # pass invalid tiff directory
         with pytest.raises(FileNotFoundError):
-            pixel_cluster_utils.create_pixel_matrix(fovs=['fov1', 'fov2'],
-                                          channels=['chan1'],
-                                          base_dir=temp_dir,
-                                          tiff_dir='bad_tiff_dir',
-                                          seg_dir=None)
+            pixel_cluster_utils.create_pixel_matrix(
+                fovs=['fov1', 'fov2'],
+                channels=['chan1'],
+                base_dir=temp_dir,
+                tiff_dir='bad_tiff_dir',
+                seg_dir=None
+            )
 
         # pass invalid pixel output directory
         with pytest.raises(FileNotFoundError):
-            pixel_cluster_utils.create_pixel_matrix(fovs=['fov1', 'fov2'],
-                                          channels=['chan1'],
-                                          base_dir=temp_dir,
-                                          tiff_dir=temp_dir,
-                                          seg_dir=None,
-                                          pixel_output_dir='bad_output_dir')
+            pixel_cluster_utils.create_pixel_matrix(
+                fovs=['fov1', 'fov2'],
+                channels=['chan1'],
+                base_dir=temp_dir,
+                tiff_dir=temp_dir,
+                seg_dir=None,
+                pixel_output_dir='bad_output_dir'
+            )
 
         # make a dummy pixel_output_dir
         sample_pixel_output_dir = os.path.join(temp_dir, 'pixel_output_dir')
@@ -899,21 +922,25 @@ def test_create_pixel_matrix_base(fovs, chans, sub_dir, seg_dir_include,
 
         # pass invalid fov names (fails in load_imgs_from_tree)
         with pytest.raises(FileNotFoundError):
-            pixel_cluster_utils.create_pixel_matrix(fovs=['fov1', 'fov2', 'fov3'],
-                                          channels=chans,
-                                          base_dir=temp_dir,
-                                          tiff_dir=tiff_dir,
-                                          img_sub_folder=sub_dir,
-                                          seg_dir=seg_dir)
+            pixel_cluster_utils.create_pixel_matrix(
+                fovs=['fov1', 'fov2', 'fov3'],
+                channels=chans,
+                base_dir=temp_dir,
+                tiff_dir=tiff_dir,
+                img_sub_folder=sub_dir,
+                seg_dir=seg_dir
+            )
 
         # pass invalid channel names
         with pytest.raises(ValueError):
-            pixel_cluster_utils.create_pixel_matrix(fovs=fovs,
-                                          channels=['chan1', 'chan2', 'chan3'],
-                                          base_dir=temp_dir,
-                                          tiff_dir=tiff_dir,
-                                          img_sub_folder=sub_dir,
-                                          seg_dir=seg_dir)
+            pixel_cluster_utils.create_pixel_matrix(
+                fovs=fovs,
+                channels=['chan1', 'chan2', 'chan3'],
+                base_dir=temp_dir,
+                tiff_dir=tiff_dir,
+                img_sub_folder=sub_dir,
+                seg_dir=seg_dir
+            )
 
         # make the channel_norm.feather file if the test requires it
         # NOTE: pixel_mat_data already created in the previous validation tests
@@ -939,13 +966,15 @@ def test_create_pixel_matrix_base(fovs, chans, sub_dir, seg_dir_include,
             )
 
         # create the pixel matrices
-        pixel_cluster_utils.create_pixel_matrix(fovs=fovs,
-                                      channels=chans,
-                                      base_dir=temp_dir,
-                                      tiff_dir=tiff_dir,
-                                      img_sub_folder=sub_dir,
-                                      seg_dir=seg_dir,
-                                      pixel_cluster_prefix='test')
+        pixel_cluster_utils.create_pixel_matrix(
+            fovs=fovs,
+            channels=chans,
+            base_dir=temp_dir,
+            tiff_dir=tiff_dir,
+            img_sub_folder=sub_dir,
+            seg_dir=seg_dir,
+            pixel_cluster_prefix='test'
+        )
 
         # assert we overwrote the original channel_norm and pixel_norm files
         # if new set of channels provided
@@ -1042,13 +1071,15 @@ def test_create_pixel_matrix_base(fovs, chans, sub_dir, seg_dir_include,
             compression='uncompressed'
         )
 
-        pixel_cluster_utils.create_pixel_matrix(fovs=fovs,
-                                      channels=chans,
-                                      base_dir=temp_dir,
-                                      tiff_dir=new_tiff_dir,
-                                      img_sub_folder=sub_dir,
-                                      seg_dir=seg_dir,
-                                      pixel_cluster_prefix='test')
+        pixel_cluster_utils.create_pixel_matrix(
+            fovs=fovs,
+            channels=chans,
+            base_dir=temp_dir,
+            tiff_dir=new_tiff_dir,
+            img_sub_folder=sub_dir,
+            seg_dir=seg_dir,
+            pixel_cluster_prefix='test'
+        )
 
 
 # TODO: clean up the following tests
@@ -1067,12 +1098,14 @@ def generate_create_pixel_matrix_test_data(temp_dir):
     os.mkdir(os.path.join(temp_dir, 'pixel_output_dir'))
 
     # create the data, this is just for generation
-    pixel_cluster_utils.create_pixel_matrix(fovs=PIXEL_MATRIX_FOVS,
-                                  channels=PIXEL_MATRIX_CHANS,
-                                  base_dir=temp_dir,
-                                  tiff_dir=tiff_dir,
-                                  img_sub_folder=None,
-                                  seg_dir=None)
+    pixel_cluster_utils.create_pixel_matrix(
+        fovs=PIXEL_MATRIX_FOVS,
+        channels=PIXEL_MATRIX_CHANS,
+        base_dir=temp_dir,
+        tiff_dir=tiff_dir,
+        img_sub_folder=None,
+        seg_dir=None
+    )
 
 
 def test_create_pixel_matrix_missing_fov(capsys):
@@ -1097,12 +1130,14 @@ def test_create_pixel_matrix_missing_fov(capsys):
             os.path.join(temp_dir, 'pixel_output_dir', 'quant_dat.feather')
         )
 
-        pixel_cluster_utils.create_pixel_matrix(fovs=PIXEL_MATRIX_FOVS,
-                                      channels=PIXEL_MATRIX_CHANS,
-                                      base_dir=temp_dir,
-                                      tiff_dir=tiff_dir,
-                                      img_sub_folder=None,
-                                      seg_dir=None)
+        pixel_cluster_utils.create_pixel_matrix(
+            fovs=PIXEL_MATRIX_FOVS,
+            channels=PIXEL_MATRIX_CHANS,
+            base_dir=temp_dir,
+            tiff_dir=tiff_dir,
+            img_sub_folder=None,
+            seg_dir=None
+        )
 
         output_capture = capsys.readouterr().out
         assert output_capture == (
@@ -1128,12 +1163,14 @@ def test_create_pixel_matrix_missing_fov(capsys):
             os.path.join(temp_dir, 'pixel_output_dir', 'quant_dat.feather')
         )
 
-        pixel_cluster_utils.create_pixel_matrix(fovs=PIXEL_MATRIX_FOVS,
-                                      channels=PIXEL_MATRIX_CHANS,
-                                      base_dir=temp_dir,
-                                      tiff_dir=tiff_dir,
-                                      img_sub_folder=None,
-                                      seg_dir=None)
+        pixel_cluster_utils.create_pixel_matrix(
+            fovs=PIXEL_MATRIX_FOVS,
+            channels=PIXEL_MATRIX_CHANS,
+            base_dir=temp_dir,
+            tiff_dir=tiff_dir,
+            img_sub_folder=None,
+            seg_dir=None
+        )
 
         output_capture = capsys.readouterr().out
         assert output_capture == (
@@ -1159,12 +1196,14 @@ def test_create_pixel_matrix_all_fovs(capsys):
 
         tiff_dir = os.path.join(temp_dir, 'sample_image_data')
 
-        pixel_cluster_utils.create_pixel_matrix(fovs=PIXEL_MATRIX_FOVS,
-                                      channels=PIXEL_MATRIX_CHANS,
-                                      base_dir=temp_dir,
-                                      tiff_dir=tiff_dir,
-                                      img_sub_folder=None,
-                                      seg_dir=None)
+        pixel_cluster_utils.create_pixel_matrix(
+            fovs=PIXEL_MATRIX_FOVS,
+            channels=PIXEL_MATRIX_CHANS,
+            base_dir=temp_dir,
+            tiff_dir=tiff_dir,
+            img_sub_folder=None,
+            seg_dir=None
+        )
 
         output_capture = capsys.readouterr().out
         assert output_capture == "There are no more FOVs to preprocess, skipping\n"
@@ -1267,7 +1306,9 @@ def test_find_fovs_missing_col_temp_present():
             )
 
         # search for the fovs with the missing pixel_som_cluster column
-        fovs_missing = pixel_cluster_utils.find_fovs_missing_col(temp_dir, 'data_dir', 'pixel_som_cluster')
+        fovs_missing = pixel_cluster_utils.find_fovs_missing_col(
+            temp_dir, 'data_dir', 'pixel_som_cluster'
+        )
 
         # assert only fov2 and fov3 are contained in the returned list
         misc_utils.verify_same_elements(
@@ -1280,8 +1321,10 @@ def test_train_pixel_som(mocker):
     # basic error check: bad path to subsetted matrix
     with tempfile.TemporaryDirectory() as temp_dir:
         with pytest.raises(FileNotFoundError):
-            pixel_cluster_utils.train_pixel_som(fovs=['fov0'], channels=['Marker1'],
-                                      base_dir=temp_dir, subset_dir='bad_path')
+            pixel_cluster_utils.train_pixel_som(
+                fovs=['fov0'], channels=['Marker1'],
+                base_dir=temp_dir, subset_dir='bad_path'
+            )
 
     with tempfile.TemporaryDirectory() as temp_dir:
         # create list of markers and fovs we want to use
@@ -1305,12 +1348,16 @@ def test_train_pixel_som(mocker):
 
         # not all of the provided fovs exist
         with pytest.raises(ValueError):
-            pixel_cluster_utils.train_pixel_som(fovs=['fov2', 'fov3'], channels=chan_list, base_dir=temp_dir)
+            pixel_cluster_utils.train_pixel_som(
+                fovs=['fov2', 'fov3'], channels=chan_list, base_dir=temp_dir
+            )
 
         # column mismatch between provided channels and subsetted data
         with pytest.raises(ValueError):
-            pixel_cluster_utils.train_pixel_som(fovs=fovs, channels=['Marker3', 'Marker4', 'MarkerBad'],
-                                      base_dir=temp_dir)
+            pixel_cluster_utils.train_pixel_som(
+                fovs=fovs, channels=['Marker3', 'Marker4', 'MarkerBad'],
+                base_dir=temp_dir
+            )
 
         # add mocked function to "train" the SOM based on dummy subsetted data
         mocker.patch('ark.phenotyping.pixel_cluster_utils.train_pixel_som', mocked_train_pixel_som)
@@ -1413,7 +1460,9 @@ def test_cluster_pixels(mocker):
             pixel_cluster_utils.cluster_pixels(fovs=fovs, channels=chan_list, base_dir=temp_dir)
 
             # not all the provided fovs exist
-            pixel_cluster_utils.cluster_pixels(fovs=['fov2', 'fov3'], channels=chan_list, base_dir=temp_dir)
+            pixel_cluster_utils.cluster_pixels(
+                fovs=['fov2', 'fov3'], channels=chan_list, base_dir=temp_dir
+            )
 
         # create a dummy normalized values matrix and write to feather
         norm_vals = pd.DataFrame(np.ones((1, 4)), columns=chan_list)
@@ -1443,8 +1492,10 @@ def test_pixel_consensus_cluster(mocker):
     # basic error check: bad path to data dir
     with tempfile.TemporaryDirectory() as temp_dir:
         with pytest.raises(FileNotFoundError):
-            pixel_cluster_utils.pixel_consensus_cluster(fovs=['fov0'], channels=['chan0'],
-                                              base_dir=temp_dir, data_dir='bad_path')
+            pixel_cluster_utils.pixel_consensus_cluster(
+                fovs=['fov0'], channels=['chan0'],
+                base_dir=temp_dir, data_dir='bad_path'
+            )
 
     with tempfile.TemporaryDirectory() as temp_dir:
         # define fovs and channels
