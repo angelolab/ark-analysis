@@ -65,6 +65,17 @@ bash start_docker.sh -e "/mnt/x/path/to/external/data"
 ```
 
 
+### Mounting Issues
+
+If Jupyter cannot locate the path to a certain external drive, that likely means WSL failed to mount it correctly. You'll need to restart WSL to force remount all external drives.
+
+To do so, run the following steps:
+
+* Run `wsl --shutdown`
+* Docker Desktop will prompt you in the bottom right to Restart the service. Click `Restart`.
+* After a few seconds, run `wsl -l -v`. All 3 Linux distros (Ubuntu 20.04, docker-desktop, and docker-desktop-data) should be running.
+
+
 ### If you run into more Windows-specific issues
 
 Please open an [issue](https://github.com/angelolab/ark-analysis/issues) on our GitHub page. Note that our codebase has not been extensively tested on Windows.
