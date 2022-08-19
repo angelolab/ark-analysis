@@ -35,8 +35,8 @@ def test_segment_image_data():
     _exec_notebook('Segment_Image_Data.ipynb', 'templates_ark')
 
 
-def test_example_spatial_analysis():
-    _exec_notebook('example_spatial_analysis_script.ipynb', 'templates_ark')
+def test_example_pairwise_spatial_enrichment():
+    _exec_notebook('example_pairwise_spatial_enrichment.ipynb', 'templates_ark')
 
 
 def test_example_neighborhood_analysis():
