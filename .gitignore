@@ -29,3 +29,4 @@ Pipfile
 Pipfile.lock
 .coverage
 .python-version
+.coverage.*

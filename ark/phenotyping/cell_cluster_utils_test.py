@@ -11,7 +11,7 @@ import feather
 from matplotlib.colors import ListedColormap
 import numpy as np
 import pandas as pd
-from skimage.draw import circle
+from skimage.draw import disk
 import skimage.io as io
 import scipy.ndimage as ndimage
 from sklearn.utils import shuffle
