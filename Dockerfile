@@ -6,8 +6,6 @@ RUN apt-get update
 # install dependencies needed for setting up R
 RUN apt-get install -y lsb-release dirmngr gnupg apt-transport-https ca-certificates software-properties-common
 RUN apt-get install -y libharfbuzz-dev libfribidi-dev
-
-# RUN apt-get -y build-dep libcurl4-gnutls-dev
 RUN apt-get -y install libcurl4-gnutls-dev
 
 # set up the key for adding the R repo
