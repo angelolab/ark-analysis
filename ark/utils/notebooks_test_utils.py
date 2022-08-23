@@ -221,7 +221,7 @@ def flowsom_pixel_setup(tb, flowsom_dir, create_seg_dir=True, img_shape=(50, 50)
         blurred_channels = %s
         smooth_vals = 6
 
-        som_utils.smooth_channels(
+        pixel_cluster_utils.smooth_channels(
             fovs=fovs,
             tiff_dir=tiff_dir,
             img_sub_folder=img_sub_folder,
@@ -238,7 +238,7 @@ def flowsom_pixel_setup(tb, flowsom_dir, create_seg_dir=True, img_shape=(50, 50)
             filter_channel = '%s'
             nuclear_exclude = True
 
-            som_utils.filter_with_nuclear_mask(
+            pixel_cluster_utils.filter_with_nuclear_mask(
                 fovs,
                 tiff_dir,
                 segmentation_dir,
@@ -253,7 +253,7 @@ def flowsom_pixel_setup(tb, flowsom_dir, create_seg_dir=True, img_shape=(50, 50)
             filter_channel = '%s'
             nuclear_exclude = False
 
-            som_utils.filter_with_nuclear_mask(
+            pixel_cluster_utils.filter_with_nuclear_mask(
                 fovs,
                 tiff_dir,
                 segmentation_dir,
