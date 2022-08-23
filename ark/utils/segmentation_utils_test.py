@@ -212,6 +212,7 @@ def test_save_segmentation_labels():
     )
     segmentation_labels_xr = test_utils.make_labels_xarray(np.zeros((2, 50, 50, 2)))
     fov_sub = segmentation_labels_xr.fovs.values[:1]
+    chan_sub = channel_xr.channels.values[:2]
 
     # test saving without channel overlay
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -236,7 +237,7 @@ def test_save_segmentation_labels():
         # test segmentation without channel overlay
         segmentation_utils.save_segmentation_labels(
             segmentation_dir=temp_dir, data_dir=img_dir, output_dir=temp_dir,
-            fovs=fov_sub, channels=None
+            fovs=fov_sub
         )
 
         # make sure all files except overlay.tiff exists
@@ -275,7 +276,7 @@ def test_save_segmentation_labels():
         # test segmentation with channel overlay
         segmentation_utils.save_segmentation_labels(
             segmentation_dir=temp_dir, data_dir=img_dir, output_dir=temp_dir,
-            fovs=fov_sub
+            fovs=fov_sub, channels=chan_sub
         )
 
         # make sure all files and overlay.tiff exists

@@ -183,8 +183,7 @@ def concatenate_csv(base_dir, csv_files, column_name="fov", column_values=None):
     combined_data.to_csv(os.path.join(base_dir, "combined_data.csv"), index=False)
 
 
-def save_segmentation_labels(segmentation_dir, data_dir, output_dir,
-                             fovs, channels=copy.deepcopy(settings.SEG_LABEL_CHANNELS)):
+def save_segmentation_labels(segmentation_dir, data_dir, output_dir, fovs, channels=None):
     """For each fov, generates segmentation borders and overlays
     over the channels if specified.
 
@@ -198,9 +197,9 @@ def save_segmentation_labels(segmentation_dir, data_dir, output_dir,
         output_dir (str):
             path to directory where the output will be saved
         fovs (list):
-            list of FOVs to subset in `segmentation_labels_xr`
+            list of FOVs to include
         channels (list):
-            list of channels to subset in `segmentation_labels_xr`
+            list of channels to include
     """
 
     for fov in fovs:
@@ -221,7 +220,7 @@ def save_segmentation_labels(segmentation_dir, data_dir, output_dir,
 
         # save the cell border image
         save_path_seg_borders = os.path.join(output_dir, f'{fov}_segmentation_borders.tiff')
-        io.imsave(save_path_seg_borders, labels, plugin="tifffile", check_contrast=False)
+        io.imsave(save_path_seg_borders, contour_mask, plugin="tifffile", check_contrast=False)
 
         # generate the channel overlay if specified
         if channels is not None:
