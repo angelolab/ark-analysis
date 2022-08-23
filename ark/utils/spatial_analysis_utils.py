@@ -63,6 +63,52 @@ def calc_dist_matrix(label_maps, save_path=None):
         np.savez(os.path.join(save_path, "dist_matrices.npz"), **dist_matrices)
 
 
+def append_distance_features_to_dataset(dist_mats, cell_table, distance_columns):
+    """Appends selected distance features as 'cells' in distance matrix and cell table
+
+    Args:
+        dist_mats (dict):
+            Distance matricies as output by `calc_dist_matrix`, indexed by fov name
+        cell_table (pd.DataFrame):
+            Table of cell features. Must contain provided distance columns
+        distance_columns (List[str]):
+            List of column names which store feature distance.  These must exist in cell_table
+
+    Returns:
+        (pd.DataFrame, dict):
+            Updated cell_table, and distance matricie indexed by fov name
+    """
+
+    misc_utils.verify_in_list(distance_columns=distance_columns, valid_columns=cell_table.columns)
+
+    num_cell_types = max(cell_table[settings.CLUSTER_ID].unique())
+
+    for fov in dist_mats.keys():
+        fov_cells = cell_table.loc[cell_table[settings.FOV_ID] == fov]
+        num_labels = max(fov_cells[settings.CELL_LABEL])
+        for i, dist_col in enumerate(distance_columns):
+            cell_table = cell_table.append(pd.DataFrame([{
+                settings.FOV_ID: fov,
+                settings.CELL_LABEL: num_labels + i + 1,
+                settings.CELL_TYPE: dist_col,
+                settings.CLUSTER_ID: num_cell_types + i + 1,
+            }]))
+            coords = (
+                [max(dist_mats[fov].dim_0.values) + i + 1],
+                fov_cells[settings.CELL_LABEL].values[:]
+            )
+
+            dist_mats[fov] = xr.concat([dist_mats[fov], xr.DataArray(
+                fov_cells[dist_col].values[np.newaxis, :], coords=coords
+            )], dim='dim_0')
+
+            dist_mats[fov] = xr.concat([dist_mats[fov], xr.DataArray(
+                fov_cells[dist_col].values[:, np.newaxis], coords=(coords[1], coords[0])
+            )], dim='dim_1')
+
+    return cell_table, dist_mats
+
+
 def get_pos_cell_labels_channel(thresh, current_fov_channel_data, cell_labels, current_marker):
     """For channel enrichment, finds positive labels that match the current phenotype
     or identifies cells with positive expression values for the current marker
