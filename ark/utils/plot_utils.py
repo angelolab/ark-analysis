@@ -13,7 +13,7 @@ from skimage.segmentation import find_boundaries
 from skimage.exposure import rescale_intensity
 
 from ark.utils import load_utils, misc_utils, io_utils
-
+import natsort
 # plotting functions
 from ark.utils.misc_utils import verify_in_list, verify_same_elements
 
@@ -431,11 +431,13 @@ def create_mantis_project(fovs: List[str], mantis_project_path: Union[str, pathl
     map_df = map_df.rename({'metacluster': 'region_id', 'mc_name': 'region_name'}, axis=1)
 
     # get names of fovs with masks
-    mask_names = io_utils.list_files(mask_output_dir, mask_suffix)
+    mask_names = natsort.natsorted((io_utils.list_files(mask_output_dir, mask_suffix)))
+    # mask_names = io_utils.list_files(mask_output_dir, mask_suffix)
     total_fov_names = io_utils.extract_delimited_names(mask_names, delimiter=mask_suffix)
 
     # use `fovs`, a subset of the FOVs in `total_fov_names` which
     # is a list of FOVs in `img_data_path`
+    fovs = natsort.natsorted(fovs)
     verify_in_list(fovs=fovs, img_data_fovs=total_fov_names)
 
     # create a folder with image data, pixel masks, and segmentation mask

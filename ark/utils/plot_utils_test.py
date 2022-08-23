@@ -233,10 +233,13 @@ def test_create_overlay():
 
 
 def test_create_mantis_project():
+    
+    # Number of FOVs
+    fov_count = 6
 
     # Initial data
-    example_labels = _generate_segmentation_labels((1024, 1024))
-    example_masks = _generate_image_data((1024, 1024, 1))
+    example_labels = np.concatenate([_generate_segmentation_labels((1024, 1024)) for _ in range(fov_count)])
+    example_masks = _generate_image_data((1024, 1024, fov_count))
 
     # Misc paths used
     segmentation_dir = "seg_dir"
@@ -260,7 +263,7 @@ def test_create_mantis_project():
         mask_output_dir = os.path.join(temp_dir, cell_output_dir, mask_dir)
 
         # image data path, create 2 fovs, with 4 channels each
-        fovs, channels = test_utils.gen_fov_chan_names(num_fovs=6, num_chans=4,
+        fovs, channels = test_utils.gen_fov_chan_names(num_fovs=fov_count, num_chans=4,
                                                        use_delimiter=False, return_imgs=False)
 
         fov_path = os.path.join(temp_dir, img_data_path)
@@ -272,17 +275,17 @@ def test_create_mantis_project():
         # Loop over the xarray, save each fov's channels,
         # segmentation label compartments, and sample masks
         fovs = data_xr.fovs.values
-        fovs_subset = fovs[:3]
+        fovs_subset = fovs[1:4]
 
-        for fov in fovs:
+        for idx, fov in enumerate(fovs):
 
             # Save the segmentation label compartments for each fov
             io.imsave(os.path.join(temp_dir, segmentation_dir, '%s_feature_0.tif' % fov),
-                      example_labels, check_contrast=False)
+                      example_labels[...,idx], check_contrast=False)
 
             # Save the sample masks
             io.imsave(os.path.join(mask_output_dir, '%s_mask.tiff' % fov),
-                      example_masks, check_contrast=False)
+                      example_masks[...,idx], check_contrast=False)
 
             # Save each channel per fov
             for idx, chan in enumerate(channels):
