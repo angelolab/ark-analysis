@@ -36,7 +36,7 @@ def test_segment_image_data():
 
 
 def test_example_pairwise_spatial_enrichment():
-    _exec_notebook('example_pairwise_spatial_enrichment.ipynb', 'templates_ark')
+    _exec_notebook('example_pairwise_spatial_enrichment_script.ipynb', 'templates_ark')
 
 
 def test_example_neighborhood_analysis():
