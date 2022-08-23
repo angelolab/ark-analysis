@@ -221,7 +221,7 @@ def flowsom_pixel_setup(tb, flowsom_dir, create_seg_dir=True, img_shape=(50, 50)
         blurred_channels = %s
         smooth_vals = 6
 
-        som_utils.smooth_channels(
+        pixel_cluster_utils.smooth_channels(
             fovs=fovs,
             tiff_dir=tiff_dir,
             img_sub_folder=img_sub_folder,
@@ -231,13 +231,51 @@ def flowsom_pixel_setup(tb, flowsom_dir, create_seg_dir=True, img_shape=(50, 50)
     """ % [chans[0]]
     tb.inject(run_chan_smoothing, 'smooth_channels')
 
+    # if seg_dir is set, test filtering with exclude = True for the second channel,
+    # and exclude = False for the third channel
+    if seg_dir:
+        run_chan_filtering_exclude = """
+            filter_channel = '%s'
+            nuclear_exclude = True
+
+            pixel_cluster_utils.filter_with_nuclear_mask(
+                fovs,
+                tiff_dir,
+                segmentation_dir,
+                filter_channel,
+                img_sub_folder,
+                nuclear_exclude
+            )
+        """ % chans[1]
+        tb.inject(run_chan_filtering_exclude, 'filter_channels')
+
+        run_chan_filtering_include = """
+            filter_channel = '%s'
+            nuclear_exclude = False
+
+            pixel_cluster_utils.filter_with_nuclear_mask(
+                fovs,
+                tiff_dir,
+                segmentation_dir,
+                filter_channel,
+                img_sub_folder,
+                nuclear_exclude
+            )
+        """ % chans[2]
+        tb.inject(run_chan_filtering_include, 'filter_channels')
+
     # sets the channels to include
+    # NOTE: need to take into account the renamed channels
+    if seg_dir:
+        renamed_chans = ['chan0_smoothed', 'chan1_nuc_exclude', 'chan2_nuc_include']
+    else:
+        renamed_chans = ['chan0_smoothed', 'chan1', 'chan2']
     tb.inject(
         """
             channels = %s
             blur_factor = 2
             subset_proportion = 0.1
-        """ % str(chans),
+        """ % str(renamed_chans),
         after='channel_set'
     )
 
@@ -247,7 +285,7 @@ def flowsom_pixel_setup(tb, flowsom_dir, create_seg_dir=True, img_shape=(50, 50)
     # define the pixel clustering file names to create
     tb.execute_cell('pixel_som_path_set')
 
-    return fovs, chans
+    return fovs, renamed_chans
 
 
 def flowsom_pixel_cluster(tb, flowsom_dir, fovs, channels,
@@ -381,30 +419,22 @@ def flowsom_pixel_visualize(tb, flowsom_dir, fovs, pixel_prefix='test'):
     cell_overlay_fovs = "pixel_fovs = %s" % str(fovs_overlay)
     tb.inject(cell_overlay_fovs, after='pixel_overlay_fovs')
 
-    # generate the pixel cluster masks
-    tb.execute_cell('pixel_mask_gen')
-
-    # test the saving of pixel masks
-    # NOTE: no point testing save_pixel_masks = False since that doesn't run anything
-    cell_mask_save = """
-        data_utils.save_fov_images(
-            pixel_fovs,
-            os.path.join(base_dir, pixel_output_dir),
-            pixel_cluster_masks,
-            name_suffix='_pixel_mask'
-        )
-    """
-    tb.inject(cell_mask_save, 'pixel_mask_save')
+    # generate the pixel cluster masks, and save them
+    tb.execute_cell('pixel_mask_gen_save')
 
     # run the cell mask overlay
     tb.execute_cell('pixel_overlay_gen')
+
+    # run the mantis project maker function
+    tb.execute_cell('pixel_mantis_project')
 
     # save the pixel clustering parameter names for cell clustering
     tb.execute_cell('cell_param_save')
 
 
 def flowsom_cell_setup(tb, flowsom_dir, pixel_dir, pixel_cluster_col='pixel_meta_cluster_rename',
-                       cell_prefix='test', num_fovs=3, num_chans=3, img_shape=(50, 50)):
+                       cell_prefix='test', num_fovs=3, num_chans=3, img_shape=(50, 50),
+                       dtype=np.uint16):
     """Creates the directories, data, and parameter settings for testing cell clustering
 
     Args:
@@ -424,10 +454,16 @@ def flowsom_cell_setup(tb, flowsom_dir, pixel_dir, pixel_cluster_col='pixel_meta
             The number of test channels to generate
         img_shape (tuple):
             The shape of the image to generate
+        dtype (numpy.dtype):
+            The datatype of each test image generated
     """
 
     # import packages
     tb.execute_cell('import')
+
+    # create data which will be loaded into img_xr -- ONLY FOR MANTIS PROJECT CREATION
+    tiff_dir = os.path.join(flowsom_dir, "input_data")
+    os.mkdir(tiff_dir)
 
     # create sample pixel output dir
     os.mkdir(os.path.join(flowsom_dir, pixel_dir))
@@ -435,7 +471,13 @@ def flowsom_cell_setup(tb, flowsom_dir, pixel_dir, pixel_cluster_col='pixel_meta
     # create sample segmentations
     fovs, chans = test_utils.gen_fov_chan_names(num_fovs=num_fovs,
                                                 num_chans=num_chans,
-                                                use_delimiter=True)
+                                                use_delimiter=False)
+
+    # Create the fovs for the mantis project.
+    filelocs, data_xr = test_utils.create_paired_xarray_fovs(
+        tiff_dir, fovs, chans, img_shape=img_shape, delimiter='_', fills=False, dtype=dtype
+    )
+
     seg_dir = os.path.join(flowsom_dir, 'deepcell_output')
     os.mkdir(seg_dir)
     generate_sample_feature_tifs(fovs, seg_dir, img_shape)
@@ -460,7 +502,8 @@ def flowsom_cell_setup(tb, flowsom_dir, pixel_dir, pixel_cluster_col='pixel_meta
         base_dir = "%s"
         pixel_output_dir = "%s"
         cell_clustering_params_name = "sample_cell_params.json"
-    """ % (flowsom_dir, pixel_dir)
+        tiff_dir = "%s"
+    """ % (flowsom_dir, pixel_dir, tiff_dir)
     tb.inject(set_cell_dirs, after='dir_set')
 
     # extract the parameters from the cell params JSON
@@ -715,25 +758,16 @@ def flowsom_cell_visualize(tb, flowsom_dir, fovs,
     tb.inject(cell_overlay_fovs, after='cell_overlay_fovs')
 
     # generate the cell cluster masks
-    tb.execute_cell('cell_mask_gen')
-
-    # test the saving of cell masks
-    # NOTE: no point testing save_cell_masks = False since that doesn't run anything
-    cell_mask_save = """
-        data_utils.save_fov_images(
-            cell_fovs,
-            os.path.join(base_dir, cell_output_dir),
-            cell_cluster_masks,
-            name_suffix='_cell_mask'
-        )
-    """
-    tb.inject(cell_mask_save, 'cell_mask_save')
+    tb.execute_cell('cell_mask_gen_save')
 
     # run the cell mask overlay
     tb.execute_cell('cell_overlay_gen')
 
     # save the meta labels to the cell table
     tb.execute_cell('cell_append_meta')
+
+    # run the mantis project maker function
+    tb.execute_cell('cell_mantis_project')
 
 
 def qc_notebook_setup(tb, base_dir, tiff_dir, sub_dir=None, fovs=None, chans=None):

@@ -63,6 +63,30 @@ You will need to authenticate. Note the last URL (the one with `127.0.0.1:8888` 
 
 You can shut down the notebooks and close docker by entering control-c in the terminal window.
 
+### Mantis Viewer
+
+Mantis Project Structure:
+```sh
+mantis_project
+├── fov0
+│   ├── cell_segmentation.tiff
+│   ├── chan0.tiff
+│   ├── chan1.tiff
+│   ├── chan2.tiff
+│   ├── ...
+│   ├── population_mask.csv
+│   └── population_mask.tiff
+└── fov1
+│   ├── cell_segmentation.tiff
+│   ├── chan0.tiff
+│   ├── chan1.tiff
+│   ├── chan2.tiff
+│   ├── ...
+│   ├── population_mask.csv
+│   └── population_mask.tiff
+└── ...
+```
+
 ## External Hard Drives and Google File Stream
 
 To configure external hard drive (or google file stream) access, you will have to add this to Dockers file paths in the Preferences menu. 
