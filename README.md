@@ -13,7 +13,7 @@ This project contains code and example scripts for analyzing multiplexed imaging
 
 ## Pipeline Flowchart
 
-![flow-chart](docs/ark_processing.png)
+![flow-chart](docs/images/ark_processing.png)
 
 ## To install the project:
 
@@ -99,7 +99,7 @@ On Docker for macOS, this can be found in Preferences -> Resources -> File Shari
 
 On Docker for Windows with the WSL2 backend, no paths need to be added.  However, if using the Hyper-V backend, these paths will need to be added as in the macOS case.
 
-![](docs/docker_preferences.png)
+![docker-figure](docs/images/docker_preferences.png)
 
 Once the path is added, you can run:
 ```
