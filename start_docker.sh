@@ -62,7 +62,7 @@ if [ ! -z "$external" ]
       -v "$PWD/ark/phenotyping/run_cell_som.R:/run_cell_som.R" \
       -v "$PWD/ark/phenotyping/cell_consensus_cluster.R:/cell_consensus_cluster.R" \
       -v "$PWD/.toks:/home/.toks" \
-      angelolab/ark-analysis:python-3.7
+      angelolab/ark-analysis
   else
     docker run -it \
       -p $PORT:$PORT \
@@ -77,5 +77,5 @@ if [ ! -z "$external" ]
       -v "$PWD/ark/phenotyping/create_cell_som.R:/create_cell_som.R" \
       -v "$PWD/ark/phenotyping/run_cell_som.R:/run_cell_som.R" \
       -v "$PWD/ark/phenotyping/cell_consensus_cluster.R:/cell_consensus_cluster.R" \
-      angelolab/ark-analysis:python-3.7
+      angelolab/ark-analysis
 fi
