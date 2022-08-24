@@ -29,7 +29,6 @@ def calc_dist_matrix(label_maps, save_path=None):
     """
 
     # Check that file path exists, if given
-
     if save_path is not None:
         io_utils.validate_paths(save_path, data_prefix=False)
 
@@ -333,22 +332,25 @@ def calculate_enrichment_stats(close_num, close_num_rand):
 
 
 def compute_neighbor_counts(current_fov_neighborhood_data, dist_matrix, distlim,
-                            self_neighbor=True, cell_label_col=settings.CELL_LABEL):
+                            self_neighbor=False, cell_label_col=settings.CELL_LABEL,
+                            cluster_name_col=settings.CELL_TYPE):
     """Calculates the number of neighbor phenotypes for each cell. The cell counts itself as a
-    neighbor.
+    neighbor if self_neighbor=True.
 
     Args:
         current_fov_neighborhood_data (pandas.DataFrame):
             data for the current fov, including the cell labels, cell phenotypes, and cell
-            phenotype ID
+            phenotype
         dist_matrix (numpy.ndarray):
             cells x cells matrix with the euclidian distance between centers of corresponding cells
         distlim (int):
-            threshold for spatial enrichment distance proximity
+            threshold for distance proximity
         self_neighbor (bool):
             If true, cell counts itself as a neighbor in the analysis.
         cell_label_col (str):
             Column name with the cell labels
+        cluster_name_col (str):
+            Column name with the cell types
     Returns:
         tuple (pandas.DataFrame, pandas.DataFrame):
             - phenotype counts per cell
@@ -363,7 +365,7 @@ def compute_neighbor_counts(current_fov_neighborhood_data, dist_matrix, distlim,
     cell_dist_mat_bin = np.zeros(cell_dist_mat.shape)
     cell_dist_mat_bin[cell_dist_mat < distlim] = 1
 
-    # default is that cell counts itself as a matrix
+    # remove cell as it's own neighbor
     if not self_neighbor:
         cell_dist_mat_bin[cell_dist_mat == 0] = 0
 
@@ -371,21 +373,31 @@ def compute_neighbor_counts(current_fov_neighborhood_data, dist_matrix, distlim,
     num_neighbors = np.sum(cell_dist_mat_bin, axis=0)
 
     # create the 'phenotype has cell?' matrix, excluding non cell-label rows
-    pheno_has_cell = pd.get_dummies(current_fov_neighborhood_data.iloc[:, 2]).to_numpy().T
+    pheno_has_cell_pd = pd.get_dummies(current_fov_neighborhood_data.loc[:, cluster_name_col])
+    pheno_names_from_tab = pheno_has_cell_pd.columns.values
+    pheno_has_cell = pheno_has_cell_pd.to_numpy().T
 
     # dot binarized 'is neighbor?' matrix with pheno_has_cell to get counts
     counts = pheno_has_cell.dot(cell_dist_mat_bin).T
+    counts_pd = pd.DataFrame(counts, columns=pheno_names_from_tab)
+    counts_pd = counts_pd.set_index(current_fov_neighborhood_data.index.copy())
+
+    # there may be errors if num_neighbors = 0, suppress these warnings
+    np.seterr(invalid='ignore')
 
     # compute freqs with num_neighbors
     freqs = counts.T / num_neighbors
+    freqs_pd = pd.DataFrame(freqs.T, columns=pheno_names_from_tab)
+    freqs_pd = freqs_pd.set_index(current_fov_neighborhood_data.index.copy())
+    # change na's to 0, will remove these cells before clustering
+    freqs_pd = freqs_pd.fillna(0)
 
-    return counts, freqs.T
+    return counts_pd, freqs_pd
 
 
-def compute_kmeans_cluster_metric(neighbor_mat_data, max_k=10):
-    """For a given neighborhood matrix, cluster and compute metric scores using k-means clustering.
-
-    Currently only supporting silhouette score as a cluster metric.
+def compute_kmeans_inertia(neighbor_mat_data, max_k=10):
+    """For a given neighborhood matrix, cluster and compute inertia using k-means clustering
+       from the range of k=2 to max_k
 
     Args:
         neighbor_mat_data (pandas.DataFrame):
@@ -395,7 +407,40 @@ def compute_kmeans_cluster_metric(neighbor_mat_data, max_k=10):
 
     Returns:
         xarray.DataArray:
-            contains a single dimension, cluster_num, which determines the metric score
+            contains a single dimension, cluster_num, which indicates the inertia
+            when cluster_num was set as k for k-means clustering
+    """
+
+    # create array we can store the results of each k for clustering
+    coords = [np.arange(2, max_k + 1)]
+    dims = ["cluster_num"]
+    stats_raw_data = np.zeros(max_k - 1)
+    cluster_stats = xr.DataArray(stats_raw_data, coords=coords, dims=dims)
+
+    for n in range(2, max_k + 1):
+        cluster_fit = KMeans(n_clusters=n).fit(neighbor_mat_data)
+        cluster_stats.loc[n] = cluster_fit.inertia_
+
+    return cluster_stats
+
+
+def compute_kmeans_silhouette(neighbor_mat_data, max_k=10, subsample=None):
+    """For a given neighborhood matrix, cluster and compute Silhouette score using k-means clustering
+       from the range of k=2 to max_k
+
+    Args:
+        neighbor_mat_data (pandas.DataFrame):
+            neighborhood matrix data with only the desired fovs
+        max_k (int):
+            the maximum k we want to generate cluster statistics for, must be at least 2
+        subsample (int):
+            the number of cells that will be sampled from each neighborhood cluster for
+            calculating Silhouette score
+            If None, all cells will be used
+
+    Returns:
+        xarray.DataArray:
+            contains a single dimension, cluster_num, which indicates the Silhouette score
             when cluster_num was set as k for k-means clustering
     """
 
@@ -408,15 +453,25 @@ def compute_kmeans_cluster_metric(neighbor_mat_data, max_k=10):
     for n in range(2, max_k + 1):
         cluster_fit = KMeans(n_clusters=n).fit(neighbor_mat_data)
         cluster_labels = cluster_fit.labels_
-        cluster_score = sklearn.metrics.silhouette_score(neighbor_mat_data, cluster_labels,
-                                                         metric='euclidean')
+        neighbor_mat_data["cluster"] = cluster_labels
+
+        if subsample is None:
+            cluster_score = sklearn.metrics.silhouette_score(neighbor_mat_data, cluster_labels,
+                                                             metric="euclidean")
+        else:
+            # Subsample each cluster
+            sub_dat = neighbor_mat_data.groupby("cluster").apply(
+                lambda x: x.sample(subsample, replace=len(x) < subsample)).reset_index(drop=True)
+            cluster_score = sklearn.metrics.silhouette_score(sub_dat.drop("cluster",axis=1),
+                sub_dat["cluster"], metric="euclidean")
+
         cluster_stats.loc[n] = cluster_score
 
     return cluster_stats
 
 
 def generate_cluster_labels(neighbor_mat_data, cluster_num):
-    """Run k-means clustering with k=cluster_num on each channel column
+    """Run k-means clustering with k=cluster_num
 
     Give the same data, given several runs the clusters will always be the same,
     but the labels assigned will likely be different
@@ -429,7 +484,7 @@ def generate_cluster_labels(neighbor_mat_data, cluster_num):
 
     Returns:
         numpy.ndarray:
-            the cluster labels we will be assigning to each cell in the neighborhood matrix
+            the neighborhood cluster labels assigned to each cell in neighbor_mat_data
     """
 
     cluster_fit = KMeans(n_clusters=cluster_num).fit(neighbor_mat_data)
