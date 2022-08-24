@@ -460,7 +460,7 @@ def create_mantis_dir(fovs: List[str], mantis_project_path: Union[str, pathlib.P
 
         # copy the segmentation files into the output directory
         seg_name = val + '_feature_0.tif'
-        shutil.copy(os.path.join(img_source_dir, seg_dir, seg_name),
+        shutil.copy(os.path.join(seg_dir, seg_name),
                     os.path.join(output_dir, 'cell_segmentation.tiff'))
 
         # copy mapping into directory
