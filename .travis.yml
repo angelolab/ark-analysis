@@ -6,10 +6,10 @@ git:
 language: python
 
 python:
-  - 3.7
+  - 3.8
 
-# Install the updated versions of importlib-metadata and setuptools, as Travis 3.7 environments
-# contains a very old version of importlib-metadata which is incompatible for 3.7+
+# Install the updated versions of importlib-metadata and setuptools, as Travis 3.8 environments
+# contains a very old version of importlib-metadata which is incompatible for 3.8+
 # We add python path to enable testing jupyter notebooks
 install:
   - pip install -U importlib_metadata setuptools
@@ -30,7 +30,7 @@ script:
 jobs:
   include:
     - stage: pypi_deploy
-      python: 3.7
+      python: 3.8
       deploy:
         provider: pypi
         user: $PYPI_USERNAME
@@ -39,7 +39,7 @@ jobs:
           tags: true
     - stage: docker_deploy
       if: tag IS present
-      python: 3.7
+      python: 3.8
       script:
         - "travis_wait 120 sleep 7200 &"
         - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin

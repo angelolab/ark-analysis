@@ -54,5 +54,5 @@ setup(
     classifiers=['License :: OSI Approved :: Apache Software License',
                  'Development Status :: 4 - Beta',
                  'Programming Language :: Python :: 3',
-                 'Programming Language :: Python :: 3.7']
+                 'Programming Language :: Python :: 3.8']
 )

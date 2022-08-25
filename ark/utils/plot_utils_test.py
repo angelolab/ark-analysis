@@ -9,7 +9,7 @@ import xarray as xr
 import pytest
 
 from ark.utils import plot_utils, test_utils
-from skimage.draw import circle
+from skimage.draw import disk
 
 from pathlib import Path
 import natsort
@@ -23,7 +23,7 @@ def _generate_segmentation_labels(img_dims, num_cells=20):
 
     for i in range(num_cells):
         r, c = np.random.randint(radius, img_dims[0] - radius, 2)
-        rr, cc = circle(r, c, radius)
+        rr, cc = disk((r, c), radius)
         labels[rr, cc] = i
 
     return labels

@@ -20,7 +20,8 @@ def test_major_minor_axis_ratio():
     prop_info = regionprops(sample_arr)[0]
 
     major_minor_rat = regionprops_extraction.major_minor_axis_ratio(prop_info)
-    assert np.round(major_minor_rat, 4) == 1.1524
+    desired_value = 1.1524
+    np.testing.assert_allclose(actual=major_minor_rat, desired=desired_value, rtol=0.1, atol=1e-5)
 
     class Regionprop(object):
         pass
@@ -42,7 +43,8 @@ def test_perim_square_over_area():
     prop_info = regionprops(sample_arr)[0]
 
     perim_area_rat = regionprops_extraction.perim_square_over_area(prop_info)
-    assert np.round(perim_area_rat, 4) == 39.3630
+    desired_value = 39.3630
+    np.testing.assert_allclose(actual=perim_area_rat, desired=desired_value, rtol=0.1, atol=1e-5)
 
 
 def test_major_axis_equiv_diam_ratio():
@@ -54,7 +56,8 @@ def test_major_axis_equiv_diam_ratio():
     prop_info = regionprops(sample_arr)[0]
 
     major_diam_rat = regionprops_extraction.major_axis_equiv_diam_ratio(prop_info)
-    assert np.round(major_diam_rat, 4) == 1.7664
+    desired_value = 1.7664
+    np.testing.assert_allclose(actual=major_diam_rat, desired=desired_value, rtol=0.1, atol=1e-5)
 
 
 def test_convex_hull_resid():
@@ -66,7 +69,8 @@ def test_convex_hull_resid():
     prop_info = regionprops(sample_arr)[0]
 
     convex_res = regionprops_extraction.convex_hull_resid(prop_info)
-    assert np.round(convex_res, 4) == 0.6605
+    desired_value = 0.6605
+    np.testing.assert_allclose(actual=convex_res, desired=desired_value, rtol=0.1, atol=1e-5)
 
 
 def test_nc_ratio():
@@ -115,7 +119,8 @@ def test_centroid_dif():
     prop_info = regionprops(sample_arr)[0]
 
     centroid_dist = regionprops_extraction.centroid_dif(prop_info)
-    assert np.round(centroid_dist, 4) == 0.3562
+    desired_value = 0.3562
+    np.testing.assert_allclose(actual=centroid_dist, desired=desired_value, rtol=0.1, atol=1e-5)
 
 
 def test_num_concavities():

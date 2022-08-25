@@ -11,7 +11,7 @@ import feather
 from matplotlib.colors import ListedColormap
 import numpy as np
 import pandas as pd
-from skimage.draw import circle
+from skimage.draw import disk
 import skimage.io as io
 import scipy.ndimage as ndimage
 from sklearn.utils import shuffle
@@ -519,8 +519,8 @@ def test_filter_with_nuclear_mask(sub_dir, exclude, capsys):
             rand_img = np.random.randint(1, 16, size=(1, 10, 10))
 
             # draw a dummy nucleus and store the coords
-            nuclear_x, nuclear_y = circle(
-                base_center[0] + offset, base_center[1] + offset, base_radius
+            nuclear_x, nuclear_y = disk(
+                (base_center[0] + offset, base_center[1] + offset), base_radius
             )
             rand_img[0, nuclear_x, nuclear_y] = 0
             nuclear_coords[fov] = (nuclear_x, nuclear_y)
