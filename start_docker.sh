@@ -51,7 +51,6 @@ if [ ! -z "$external" ]
       -p $PORT:$PORT \
       -e JUPYTER_PORT=$PORT \
       -e JUPYTER_DIR=$JUPYTER_DIR \
-      -v "$PWD/ark:/usr/local/lib/python3.7/site-packages/ark" \
       -v "$PWD/scripts:/scripts" \
       -v "$PWD/data:/data" \
       -v "$external:/data/external" \
@@ -68,7 +67,6 @@ if [ ! -z "$external" ]
       -p $PORT:$PORT \
       -e JUPYTER_PORT=$PORT \
       -e JUPYTER_DIR=$JUPYTER_DIR \
-      -v "$PWD/ark:/usr/local/lib/python3.7/site-packages/ark" \
       -v "$PWD/scripts:/scripts" \
       -v "$PWD/data:/data" \
       -v "$PWD/ark/phenotyping/create_pixel_som.R:/create_pixel_som.R" \
