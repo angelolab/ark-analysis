@@ -71,6 +71,7 @@ autodoc_mock_imports = ['cryptography',
                         'natsort',
                         'numpy',
                         'matplotlib',
+                        'natsort',
                         'palettable',
                         'pandas',
                         'pyarrow',
@@ -87,7 +88,8 @@ autodoc_mock_imports = ['cryptography',
                         'twisted',
                         'kiosk_client',
                         'mpl_toolkits',
-                        'tqdm']
+                        'tqdm',
+                        'ark.utils._bootstrapping']
 
 # prefix each section label with the name of the document it is in, followed by a colon
 # autosection_label_prefix_document = True

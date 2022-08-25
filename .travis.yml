@@ -24,6 +24,7 @@ cache: pip
 
 # command to run tests
 script:
+  - python -m pip install --editable .
   - python -m pytest --cov=ark --pycodestyle ark
 
 jobs:
@@ -43,8 +44,11 @@ jobs:
         - "travis_wait 120 sleep 7200 &"
         - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
         # Tag the image with a version such as vX.Y.Z,
-        - docker build -t "$TRAVIS_REPO_SLUG":"$TRAVIS_TAG" . 1> /dev/null
+        - docker build -t "$TRAVIS_REPO_SLUG":"$TRAVIS_TAG" . 1> out.log
         - docker push --all-tags "$TRAVIS_REPO_SLUG"
+
+after_failure:
+  - cat out.log
 
 after_success:
   - coveralls

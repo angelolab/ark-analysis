@@ -320,7 +320,7 @@ def _write_reverse_multitiff(base_dir, fov_names, channel_names, shape, sub_dir,
     return filelocs, tif_data
 
 
-def _write_labels(base_dir, fov_names, comp_names, shape, sub_dir, fills, dtype):
+def _write_labels(base_dir, fov_names, comp_names, shape, sub_dir, fills, dtype, suffix=''):
     """Generates and writes label maps to into base_dir
 
     Args:
@@ -338,6 +338,8 @@ def _write_labels(base_dir, fov_names, comp_names, shape, sub_dir, fills, dtype)
             Ignored.
         dtype (type):
             Data type for generated labels
+        suffix (str):
+            Suffix for label datafiles
 
     Returns:
         tuple (dict, numpy.ndarray):
@@ -350,9 +352,8 @@ def _write_labels(base_dir, fov_names, comp_names, shape, sub_dir, fills, dtype)
     filelocs = {}
 
     for i, fov in enumerate(fov_names):
-        tiffpath = os.path.join(base_dir, f'{fov}.tiff')
-        io.imsave(tiffpath, label_data[i, :, :, 0], plugin='tifffile',
-                  check_contrast=False)
+        tiffpath = os.path.join(base_dir, f'{fov}{suffix}.tiff')
+        io.imsave(tiffpath, label_data[i, :, :, 0], plugin='tifffile')
         filelocs[fov] = tiffpath
 
     return filelocs, label_data
@@ -779,6 +780,53 @@ def _make_dist_mat_sa(enrichment_type, dist_lim):
         return dist_mat_neg
 
 
+def spoof_cell_table_from_labels(labels, cell_count=4, positive_population_ratio=1/4):
+    """Generates example cell table from label images to test spatial_analysis batching
+
+    Args:
+        labels (xr.DataArray):
+            data array with segmentation labels
+        cell_count (int):
+            number of cells per fov
+        positive_population_ration (float):
+            fraction of cells per fov to assign unique trait to.  This is performed twice for two
+            unique populations, so it must be smaller than 1/2.
+
+    Returns:
+        pandas.DataFrame:
+            cell table which matches the provided label images
+    """
+    num_fovs = len(labels.fovs.values)
+
+    if positive_population_ratio > 1/2:
+        raise ValueError('population_ratio must be less than 1/2')
+
+    cell_table = pd.DataFrame(np.zeros((num_fovs * cell_count, 33)))
+    for i, fov in enumerate(labels.fovs.values):
+        fov_rows = np.arange(start=i * cell_count, stop=(i + 1) * cell_count)
+
+        pop_count = int(cell_count * positive_population_ratio)
+
+        cell_table.loc[fov_rows, 30] = fov
+
+        cell_table.loc[fov_rows, 24] = np.unique(labels.loc[fov, :, :, :])[1:]
+
+        # create unique populations
+        cell_table.iloc[fov_rows[0:pop_count], (i % 2) + 2] = 1
+        cell_table.iloc[fov_rows[pop_count:2 * pop_count], ((i + 1) % 2) + 2] = 1
+
+        cell_table.iloc[fov_rows[0:pop_count], 31] = 1 + (i % 2)
+        cell_table.iloc[fov_rows[0:pop_count], 32] = f"Pheno{1 + (i % 2)}"
+        cell_table.iloc[fov_rows[pop_count:2 * pop_count], 31] = 1 + ((i + 1) % 2)
+        cell_table.iloc[fov_rows[pop_count:2 * pop_count], 32] = f"Pheno{1 + ((i + 1) % 2)}"
+
+    cell_table = cell_table.rename(DEFAULT_COLUMNS, axis=1)
+
+    cell_table.loc[cell_table.iloc[:, 31] == 0, settings.CELL_TYPE] = "Pheno3"
+
+    return cell_table
+
+
 def _make_expression_mat_sa(enrichment_type):
     """Generate a sample expression matrix to test spatial_analysis
 
@@ -926,6 +974,22 @@ def _make_dist_exp_mats_spatial_test(enrichment_type, dist_lim):
     all_data = _make_expression_mat_sa(enrichment_type=enrichment_type)
     dist_mat = _make_dist_mat_sa(enrichment_type=enrichment_type, dist_lim=dist_lim)
 
+    return all_data, dist_mat
+
+
+def _make_context_dist_exp_mats_spatial_test(dist_lim):
+    all_data = _make_expression_mat_sa("none")
+    dist_mat = _make_dist_mat_sa("none", dist_lim)
+
+    all_data['context_col'] = (['context_A', ] * 60) + (['context_B', ] * 60)
+    return all_data, dist_mat
+
+
+def _make_dist_exp_mats_dist_feature_spatial_test(dist_lim):
+    all_data = _make_expression_mat_sa("none")
+    dist_mat = _make_dist_mat_sa("none", dist_lim)
+
+    all_data['dist_feature_0'] = (dist_lim / 2) * np.ones(all_data.shape[0])
     return all_data, dist_mat
 
 

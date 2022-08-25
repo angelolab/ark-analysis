@@ -23,6 +23,10 @@ env
 */_markdown
 */visualizations
 
+*.c
+*.html
+*.so
+*.egg-info
 data/example_dataset/metaclustering/*output*.csv
 data/example_dataset/metaclustering/example_manually_adjust_metaclusters.ipynb
 Pipfile
