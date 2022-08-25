@@ -4,7 +4,6 @@ import tempfile
 import numpy as np
 import pandas as pd
 import xarray as xr
-import random
 from ark.utils import spatial_analysis_utils
 
 import ark.settings as settings
@@ -47,6 +46,44 @@ def test_calc_dist_matrix():
         spatial_analysis_utils.calc_dist_matrix(test_mat, save_path=data_path)
 
         assert os.path.exists(os.path.join(data_path, "dist_matrices.npz"))
+
+
+def test_append_distance_features_to_dataset():
+    all_data, dist_mat = test_utils._make_dist_exp_mats_spatial_utils_test()
+
+    feat_dist = 300
+
+    all_data['dist_feature_0'] = feat_dist * np.ones(all_data.shape[0])
+
+    num_labels = max(all_data[settings.CELL_LABEL].unique())
+    num_cell_types = max(all_data[settings.CLUSTER_ID].unique())
+    dist_mats = {'fov8': dist_mat}
+
+    all_data, dist_mats = spatial_analysis_utils.append_distance_features_to_dataset(
+        dist_mats, all_data, ['dist_feature_0']
+    )
+
+    appended_cell_row = all_data.iloc[-1, :][[
+        settings.CELL_LABEL,
+        settings.FOV_ID,
+        settings.CELL_TYPE,
+        settings.CLUSTER_ID,
+    ]]
+    pd.testing.assert_series_equal(appended_cell_row, pd.Series({
+        settings.CELL_LABEL: num_labels + 1,
+        settings.FOV_ID: 'fov8',
+        settings.CELL_TYPE: 'dist_feature_0',
+        settings.CLUSTER_ID: num_cell_types + 1,
+    }), check_names=False)
+
+    dist_mat_new_row = dist_mats['fov8'].values[-1, :]
+    dist_mat_new_col = dist_mats['fov8'].values[:, -1]
+
+    expected = feat_dist * np.ones(all_data.shape[0])
+    expected[-1] = np.nan
+
+    np.testing.assert_equal(dist_mat_new_row, expected)
+    np.testing.assert_equal(dist_mat_new_col, expected)
 
 
 def test_get_pos_cell_labels_channel():
@@ -115,9 +152,9 @@ def test_compute_close_cell_num():
         current_fov_data=all_data, current_fov_channel_data=fov_channel_data,
         thresh_vec=thresh_vec)
 
-    assert (example_closenum[:2, :2] == 16).all()
-    assert (example_closenum[3:5, 3:5] == 25).all()
-    assert (example_closenum[5:7, 5:7] == 1).all()
+    assert (example_closenum[:2, :2] == 12).all()
+    assert (example_closenum[3:5, 3:5] == 20).all()
+    assert (example_closenum[5:7, 5:7] == 0).all()
 
     # Now test indexing with cell labels by removing a cell label from the expression matrix but
     # not the distance matrix
@@ -132,9 +169,9 @@ def test_compute_close_cell_num():
         current_fov_data=all_data, current_fov_channel_data=fov_channel_data,
         thresh_vec=thresh_vec)
 
-    assert (example_closenum[:2, :2] == 9).all()
-    assert (example_closenum[3:5, 3:5] == 25).all()
-    assert (example_closenum[5:7, 5:7] == 1).all()
+    assert (example_closenum[:2, :2] == 6).all()
+    assert (example_closenum[3:5, 3:5] == 20).all()
+    assert (example_closenum[5:7, 5:7] == 0).all()
 
     # now, test for cluster enrichment
     all_data, example_dist_mat = test_utils._make_dist_exp_mats_spatial_utils_test()
@@ -144,22 +181,38 @@ def test_compute_close_cell_num():
         dist_mat=example_dist_mat, dist_lim=100, analysis_type="cluster",
         current_fov_data=all_data, cluster_ids=cluster_ids)
 
-    assert example_closenum[0, 0] == 16
-    assert example_closenum[1, 1] == 25
-    assert example_closenum[2, 2] == 1
+    assert example_closenum[0, 0] == 12
+    assert example_closenum[1, 1] == 20
+    assert example_closenum[2, 2] == 0
 
 
 def test_compute_close_cell_num_random():
     data_markers, example_distmat = test_utils._make_dist_exp_mats_spatial_utils_test()
 
+    marker_pos_labels = [
+        data_markers[data_markers[settings.CELL_TYPE] == lineage][settings.CELL_LABEL]
+        for lineage in data_markers[settings.CELL_TYPE].unique()
+    ]
+
     # Generate random inputs to test shape
-    marker_nums = [random.randrange(0, 10) for i in range(20)]
+    marker_nums = [len(marker_labels) for marker_labels in marker_pos_labels]
 
     example_closenumrand = spatial_analysis_utils.compute_close_cell_num_random(
-        marker_nums, example_distmat, dist_lim=100, bootstrap_num=100
+        marker_nums, marker_pos_labels, example_distmat, dist_lim=100, bootstrap_num=100
     )
 
-    assert example_closenumrand.shape == (20, 20, 100)
+    assert example_closenumrand.shape == (len(marker_nums), len(marker_nums), 100)
+
+    # test asymmetry
+    assert (example_closenumrand[0, 1, :] != example_closenumrand[1, 0, :]).any()
+
+    # bad marker nums
+    marker_nums[0] = example_distmat.shape[0] + 1
+
+    with pytest.raises(ValueError):
+        example_closenumrand = spatial_analysis_utils.compute_close_cell_num_random(
+            marker_nums, marker_pos_labels, example_distmat, dist_lim=100, bootstrap_num=100
+        )
 
 
 def test_calculate_enrichment_stats():
