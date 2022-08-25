@@ -12,6 +12,7 @@ from ark.utils import plot_utils, test_utils
 from skimage.draw import disk
 
 from pathlib import Path
+import natsort
 
 
 def _generate_segmentation_labels(img_dims, num_cells=20):
@@ -234,9 +235,18 @@ def test_create_overlay():
 
 def test_create_mantis_project():
 
+    # Number of FOVs
+    fov_count = 6
+
     # Initial data
-    example_labels = _generate_segmentation_labels((1024, 1024))
-    example_masks = _generate_image_data((1024, 1024, 1))
+
+    example_labels = xr.DataArray([_generate_segmentation_labels((1024, 1024))
+                                   for _ in range(fov_count)],
+                                  coords=[range(fov_count), range(1024), range(1024)],
+                                  dims=["labels", "rows", "cols"])
+    example_masks = xr.DataArray(_generate_image_data((1024, 1024, fov_count)),
+                                 coords=[range(1024), range(1024), range(fov_count)],
+                                 dims=["rows", "cols", "masks"])
 
     # Misc paths used
     segmentation_dir = "seg_dir"
@@ -260,7 +270,7 @@ def test_create_mantis_project():
         mask_output_dir = os.path.join(temp_dir, cell_output_dir, mask_dir)
 
         # image data path, create 2 fovs, with 4 channels each
-        fovs, channels = test_utils.gen_fov_chan_names(num_fovs=6, num_chans=4,
+        fovs, channels = test_utils.gen_fov_chan_names(num_fovs=fov_count, num_chans=4,
                                                        use_delimiter=False, return_imgs=False)
 
         fov_path = os.path.join(temp_dir, img_data_path)
@@ -272,22 +282,22 @@ def test_create_mantis_project():
         # Loop over the xarray, save each fov's channels,
         # segmentation label compartments, and sample masks
         fovs = data_xr.fovs.values
-        fovs_subset = fovs[:3]
+        fovs_subset = fovs[1:4]
 
-        for fov in fovs:
+        for idx, fov in enumerate(fovs):
 
             # Save the segmentation label compartments for each fov
             io.imsave(os.path.join(temp_dir, segmentation_dir, '%s_feature_0.tif' % fov),
-                      example_labels, check_contrast=False)
+                      example_labels.loc[idx, ...].values, check_contrast=False)
 
             # Save the sample masks
             io.imsave(os.path.join(mask_output_dir, '%s_mask.tiff' % fov),
-                      example_masks, check_contrast=False)
+                      example_masks.loc[..., idx].values, check_contrast=False)
 
             # Save each channel per fov
             for idx, chan in enumerate(channels):
                 io.imsave(filelocs[fov][idx] + ".tiff",
-                          data_xr.loc[fov, :, :, chan], check_contrast=False)
+                          data_xr.loc[fov, :, :, chan].values, check_contrast=False)
 
         # create the mapping path, and the sample mapping file
         mapping_path = os.path.join(temp_dir, cell_output_dir, 'sample_mapping_path.csv')
@@ -319,33 +329,34 @@ def test_create_mantis_project():
             )
 
             # Testing file existence and correctness
-            for fov in fovs_subset:
+            for idx, fov in enumerate(fovs_subset, start=1):
                 # output path for testing
                 output_path = os.path.join(mantis_project_path, fov)
 
-                # Mask tiff tests
+                # 1. Mask tiff tests
                 mask_path = os.path.join(output_path, "population{}.tiff".format(mask_suffix))
                 original_mask_path = os.path.join(mask_output_dir, '%s_mask.tiff' % fov)
+
+                # 1.a. Assert that the mast path exists
                 assert os.path.exists(mask_path)
+                mask_img = io.imread(mask_path)
+                # original_mask_img = io.imread(original_mask_path)
+                original_mask_img = example_masks.loc[..., idx].values
+                # 1.b. Assert that the mask is the same as the original mask
+                np.testing.assert_equal(mask_img, original_mask_img)
 
-                # Cell Segmentation tiff tests
+                # 2. Cell Segmentation tiff tests
                 cell_seg_path = os.path.join(output_path, "cell_segmentation.tiff")
-                # Assert that the segmentation label compartments exist in the new directory
+                # 2.a. Assert that the segmentation label compartments exist in the new directory
                 assert os.path.exists(cell_seg_path)
-
-                # Assert that the `cell_segmentation` file is equal to `fov8_feature_0`
                 original_cell_seg_path = os.path.join(temp_dir, segmentation_dir,
                                                       '%s_feature_0.tif' % fov)
                 cell_seg_img = io.imread(cell_seg_path)
                 original_cell_seg_img = io.imread(original_cell_seg_path)
+                # 2.b. Assert that the `cell_segmentation` file is equal to `fov#_feature_0`
                 np.testing.assert_equal(cell_seg_img, original_cell_seg_img)
 
-                # Assert that the mask is the same file
-                mask_img = io.imread(mask_path)
-                original_mask_img = io.imread(original_mask_path)
-                np.testing.assert_equal(mask_img, original_mask_img)
-
-                # mapping csv tests
+                # 3. mapping csv tests
                 if type(mapping) is pd.DataFrame:
                     original_mapping_df = df
                 else:
@@ -353,19 +364,19 @@ def test_create_mantis_project():
                 new_mapping_df = pd.read_csv(
                     os.path.join(output_path, "population{}.csv".format(mask_suffix)))
 
-                # Assert that metacluster col equals the region_id col
+                # 3.a. Assert that metacluster col equals the region_id col
                 metacluster_col = original_mapping_df[["metacluster"]]
                 region_id_col = new_mapping_df[["region_id"]]
                 metacluster_col.eq(region_id_col)
 
-                # Assert that mc_name col equals the region_name col
+                # 3.b. Assert that mc_name col equals the region_name col
                 mc_name_col = original_mapping_df[["mc_name"]]
                 region_name = new_mapping_df[["region_name"]]
                 mc_name_col.eq(region_name)
 
-                mantis_fov_channels = sorted(list(Path(output_path).glob("chan*.tiff")))
+                mantis_fov_channels = natsort.natsorted(list(Path(output_path).glob("chan*.tiff")))
 
-                # Test that all fov channels exist and are correct
+                # 4. Test that all fov channels exist and are correct
                 for chan_path in mantis_fov_channels:
                     new_chan = io.imread(chan_path)
 
