@@ -174,7 +174,7 @@ For example, suppose that the current version is `A.B.C`, and we need to create 
 next_release_vX.Y.Z
 ```
 **In that branch:**
-1. Set the label for the PR to `enhancement`.
+1. Set the label for the PR to `dependencies`.
 1. Bump the `VERSION` Variable in `setup.py` to `X.Y.Z`. View the [draft release notes](https://github.com/angelolab/ark-analysis/releases) to read the current bugfixes, enhancements and more.
    1. If, in the release notes draft there are PRs that are not categorized, label them appropriately (usually based on the label of their respective Issue).
 2. Test the effects that changes in `Ark` have on `toffy` locally.
