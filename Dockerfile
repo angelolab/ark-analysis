@@ -23,8 +23,6 @@ RUN apt-get install -y gcc r-base
 # install cmake (needed for nloptr)
 RUN apt-get install -y cmake
 
-WORKDIR /scripts
-
 # Install R dependency packages
 RUN R -e "install.packages('arrow')"
 RUN R -e "install.packages('data.table')"
@@ -46,6 +44,8 @@ COPY ark /opt/ark-analysis/ark
 
 # Install the package via setup.py
 RUN cd /opt/ark-analysis && python -m pip install .
+
+WORKDIR /scripts
 
 # jupyter lab
 CMD jupyter lab --ip=0.0.0.0 --allow-root --no-browser --port=$JUPYTER_PORT --notebook-dir=/$JUPYTER_DIR
