@@ -66,8 +66,10 @@ Next, you'll need to set up the Docker image with all of the required dependenci
 
 ```
 cd ark-analysis
-docker pull angelolab/ark-analysis:latest
+docker pull angelolab/ark-analysis:{tag-name}
 ``` 
+
+`{tag-name}` should be set to `v4.0.1`. 
 
 You can now start to analyze your multiplexed imaging data!
 
@@ -163,11 +165,15 @@ First, get the latest version of the repository.
 git pull
 ```
 
-Check for Docker updates by running:
+Check for Docker updates by referring to the [Docker Image](https://github.com/angelolab/ark-analysis#getting-the-docker-image) section for the latest `{tag-name}`, then running:
 
 ```
-docker pull angelolab/ark-analysis:latest
+docker pull angelolab/ark-analysis:{tag-name}
 ```
+
+with the current `{tag-name}` specified. 
+
+Then, run the command below to update the Jupyter notebooks to the latest version.
 
 Then, run the command below to update the Jupyter notebooks to the latest version
 ```
