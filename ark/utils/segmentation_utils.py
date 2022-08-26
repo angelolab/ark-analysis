@@ -183,12 +183,11 @@ def concatenate_csv(base_dir, csv_files, column_name="fov", column_values=None):
     combined_data.to_csv(os.path.join(base_dir, "combined_data.csv"), index=False)
 
 
-def save_segmentation_labels(segmentation_dir, data_dir, output_dir,
-                             fovs, channels=None):
-    """For each fov, generates segmentation labels, segmentation borders, and overlays
+def save_segmentation_labels(segmentation_dir, data_dir, output_dir, fovs, channels=None):
+    """For each fov, generates segmentation borders and overlays
     over the channels if specified.
 
-    Saves overlay images to output directory
+    Saves overlay images to output directory.
 
     Args:
         segmentation_dir (str):
@@ -198,9 +197,9 @@ def save_segmentation_labels(segmentation_dir, data_dir, output_dir,
         output_dir (str):
             path to directory where the output will be saved
         fovs (list):
-            list of FOVs to subset in segmentation_labels_xr
+            list of FOVs to include
         channels (list):
-            list of channels to subset in segmentation_labels_xr
+            list of channels to include
     """
 
     for fov in fovs:
@@ -215,17 +214,13 @@ def save_segmentation_labels(segmentation_dir, data_dir, output_dir,
         # generates segmentation borders and labels
         labels = labels.loc[fov, :, :, 'whole_cell'].values
 
-        # save the labels respectively
-        save_path_seg_labels = os.path.join(output_dir, f'{fov}_segmentation_labels.tiff')
-        io.imsave(save_path_seg_labels, labels, plugin='tifffile', check_contrast=False)
-
         # define borders of cells in mask
         contour_mask = find_boundaries(labels, connectivity=1, mode='inner').astype(np.uint8)
         contour_mask[contour_mask > 0] = 255
 
         # save the cell border image
         save_path_seg_borders = os.path.join(output_dir, f'{fov}_segmentation_borders.tiff')
-        io.imsave(save_path_seg_borders, labels, plugin="tifffile", check_contrast=False)
+        io.imsave(save_path_seg_borders, contour_mask, plugin="tifffile", check_contrast=False)
 
         # generate the channel overlay if specified
         if channels is not None:
@@ -239,7 +234,6 @@ def save_segmentation_labels(segmentation_dir, data_dir, output_dir,
             )
 
             # save the channel overlay
-
             save_path = '_'.join([f'{fov}', *chans.astype('str'), 'overlay.tiff'])
             save_path_channel = os.path.join(output_dir, save_path)
             io.imsave(save_path_channel, channel_overlay, plugin="tifffile", check_contrast=False)
