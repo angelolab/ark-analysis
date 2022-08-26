@@ -116,7 +116,7 @@ If you didn't change the name of any of the notebooks within the `templates_ark`
 ## External Tools
 
 ### Mantis Viewer
-The [Parker Institute for Cancer Immunotherapy's Mantis Viewer](https://mantis.parkerici.org/) is a multiplexed image viewer developed by the Parker Institute. It has built in functionality for easily
+[Mantis](https://mantis.parkerici.org/) is a multiplexed image viewer developed by the Parker Institute. It has built in functionality for easily
 viewing multichannel images, creating overlays, and concurrently displaying image features alongisde raw channels. We have found it to be extremely useful for analying the output of our analysis pipeline. There are detailed instructions on 
 their [download page](https://github.com/ParkerICI/mantis-viewer/releases) for how to install and use the tool. Below are some details specifically related to how we use it in `ark`.
 
