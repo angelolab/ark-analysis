@@ -16,7 +16,7 @@ Full documentation for the project can be found [here](https://ark-analysis.read
     - [4. Spatial analysis](#4-spatial-analysis)
   - [Installation Steps](#installation-steps)
     - [Download the Repo](#download-the-repo)
-    - [Getting the Docker Image](#getting-the-docker-image)
+    - [Setting up Docker](#setting-up-docker)
     - [Running on Windows](#running-on-windows)
     - [Using the Repository (Running the Docker)](#using-the-repository-running-the-docker)
 - [External Tools](#external-tools)
@@ -57,19 +57,11 @@ Then input the command:
 git clone https://github.com/angelolab/ark-analysis.git
 ```
 
-#### Getting the Docker Image
+#### Setting up Docker
 
-Next, you'll need to set up the Docker image with all of the required dependencies:
+Next, you'll need to download Docker Desktop:
  - First, [download](https://hub.docker.com/?overlay=onboarding) Docker Desktop. 
  - Once it's sucessfully installed, make sure it is running by looking in toolbar for the Docker whale icon. 
- - Once it's running, enter the following commands into terminal 
-
-```
-cd ark-analysis
-docker pull angelolab/ark-analysis:latest
-``` 
-
-You can now start to analyze your multiplexed imaging data!
 
 
 #### Running on Windows
@@ -84,7 +76,9 @@ Enter the following command into terminal from the same directory you ran the ab
 ./start_docker.sh
 ``` 
 
-This will generate a link to a jupyter notebook. Copy the last URL (the one with `127.0.0.1:8888` at the beginning) into your web browser. 
+If running for the first time, or if our Docker image has updated, it may take a while to build and setup before completion. 
+
+This will generate a link to a Jupyter notebook. Copy the last URL (the one with `127.0.0.1:8888` at the beginning) into your web browser. 
 
 Be sure to keep this terminal open.  **Do not exit the terminal or enter `control-c` until you are finished with the notebooks**. 
 
@@ -196,12 +190,6 @@ First, get the latest version of the repository.
 
 ```
 git pull
-```
-
-Check for Docker updates by running:
-
-```
-docker pull angelolab/ark-analysis:latest
 ```
 
 Then, run the command below to update the Jupyter notebooks to the latest version
