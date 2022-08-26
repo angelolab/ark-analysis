@@ -84,7 +84,7 @@ def batch_channel_spatial_enrichment(label_dir, marker_thresholds, all_data, bat
 
 def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, all_data,
                                          excluded_channels=None, included_fovs=None,
-                                         dist_lim=100, bootstrap_num=1000,
+                                         dist_lim=100, bootstrap_num=100,
                                          fov_col=settings.FOV_ID,
                                          cell_label_col=settings.CELL_LABEL, context_col=None):
     """Spatial enrichment analysis to find significant interactions between cells expressing
@@ -186,7 +186,7 @@ def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, 
 
         # Get close_num and close_num_rand
         close_num, channel_nums, mark_pos_labels = spatial_analysis_utils.compute_close_cell_num(
-            dist_mat=dist_matrix, dist_lim=100, analysis_type="channel",
+            dist_mat=dist_matrix, dist_lim=dist_lim, analysis_type="channel",
             current_fov_data=current_fov_data, current_fov_channel_data=current_fov_channel_data,
             thresh_vec=thresh_vec, cell_label_col=cell_label_col)
 
@@ -303,7 +303,7 @@ def batch_cluster_spatial_enrichment(label_dir, all_data, batch_size=5, suffix='
 
 
 def calculate_cluster_spatial_enrichment(all_data, dist_matrices_dict, included_fovs=None,
-                                         bootstrap_num=1000, dist_lim=100, fov_col=settings.FOV_ID,
+                                         bootstrap_num=100, dist_lim=100, fov_col=settings.FOV_ID,
                                          cluster_name_col=settings.CELL_TYPE,
                                          cluster_id_col=settings.CLUSTER_ID,
                                          cell_label_col=settings.CELL_LABEL, context_col=None,
