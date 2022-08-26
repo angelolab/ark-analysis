@@ -1,6 +1,6 @@
 from fractions import Fraction
 import numpy as np
-from skimage.external.tifffile import TiffFile, TiffWriter
+from tifffile import TiffFile, TiffWriter
 import json
 import datetime
 from itertools import compress
@@ -33,7 +33,8 @@ def read_mibitiff(file, channels=None):
 
             # get tags as json
             description = json.loads(
-                page.tags['image_description'].value.decode('utf-8')
+                # `ImageDescription` tag code is 270
+                page.tags[270].value
             )
 
             # only load supplied channels
@@ -69,8 +70,8 @@ def _check_version(file):
     Raises:
         ValueError
     """
-    filetype = file.pages[0].tags.get('software')
-    if not (filetype and filetype.value.decode('utf-8').startswith('IonpathMIBI')):
+    filetype = file.pages[0].tags.get('Software')
+    if not (filetype and filetype.value.startswith('IonpathMIBI')):
         raise ValueError('File is not of type IonpathMIBI...')
 
 
@@ -106,16 +107,22 @@ def write_mibitiff(filepath, img_data, channel_tuples, metadata):
         (286, '2i', 1, _micron_to_cm(metadata['coordinates'][0])),
         (287, '2i', 1, _micron_to_cm(metadata['coordinates'][1]))
     ]
-    resolution = (img_data.shape[0] * 1e4 / float(metadata['size']),
-                  img_data.shape[1] * 1e4 / float(metadata['size']),
-                  'cm')
+    _resolution = (img_data.shape[0] * 1e4 / float(metadata['size']),
+                   img_data.shape[1] * 1e4 / float(metadata['size']))
+
+    # resolutionunit / RESUNIT = 3 is "CENTIMETER"
+    _resolutionunit = 3
+
+    # Compression uses ZLIB, with level 6
+    _compression = "zlib"
+    _compressionargs = {"level": 6}
 
     description = {}
     for key, value in metadata.items():
         if key in _PREFIXED_METADATA_ATTRIBUTES:
             description[f'mibi.{key}'] = value
 
-    with TiffWriter(filepath, software="IonpathMIBIv1.0") as infile:
+    with TiffWriter(filepath) as infile:
         for index, channel_tuple in enumerate(channel_tuples):
             mass, target = channel_tuple
             _metadata = description.copy()
@@ -132,9 +139,15 @@ def write_mibitiff(filepath, img_data, channel_tuples, metadata):
             max_value = (341, range_dtype, 1, ranges[index][1])
             page_tags = coordinates + [page_name, min_value, max_value]
 
-            infile.save(
-                img_data[:, :, index], compress=6, resolution=resolution,
-                extratags=page_tags, metadata=_metadata,
+            infile.write(
+                data=img_data[:, :, index],
+                compression=_compression,
+                compressionargs=_compressionargs,
+                resolution=_resolution,
+                resolutionunit=_resolutionunit,
+                software="IonpathMIBIv1.0",
+                extratags=page_tags,
+                metadata=_metadata,
                 datetime=datetime.datetime.strptime(metadata['date'], '%Y-%m-%dT%H:%M:%S')
             )
 
