@@ -56,8 +56,8 @@ The second step in the [Pixie](https://www.biorxiv.org/content/10.1101/2022.08.1
 TBD once notebooks are finished
 
 
-### Installation Steps.
-s
+### Installation Steps
+
 #### Download the Repo
 
 Open terminal and navigate to where you want the code stored. 
