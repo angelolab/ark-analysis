@@ -78,7 +78,7 @@ Enter the following command into terminal from the same directory you ran the ab
 
 If running for the first time, or if our Docker image has updated, it may take a while to build and setup before completion. 
 
-This will generate a link to a jupyter notebook. Copy the last URL (the one with `127.0.0.1:8888` at the beginning) into your web browser. 
+This will generate a link to a Jupyter notebook. Copy the last URL (the one with `127.0.0.1:8888` at the beginning) into your web browser. 
 
 Be sure to keep this terminal open.  **Do not exit the terminal or enter `control-c` until you are finished with the notebooks**. 
 
