@@ -8,7 +8,7 @@ import spatial_lda.featurization as ft
 from sklearn.cluster import KMeans, MiniBatchKMeans
 from sklearn.metrics import silhouette_score
 from sklearn.model_selection import train_test_split
-from tqdm import tqdm
+from tqdm.notebook import tqdm
 
 import ark.utils.spatial_lda_utils as spu
 from ark import settings
