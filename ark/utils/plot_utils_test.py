@@ -9,7 +9,7 @@ import xarray as xr
 import pytest
 
 from ark.utils import plot_utils, test_utils
-from skimage.draw import circle
+from skimage.draw import disk
 
 from pathlib import Path
 import natsort
@@ -23,7 +23,7 @@ def _generate_segmentation_labels(img_dims, num_cells=20):
 
     for i in range(num_cells):
         r, c = np.random.randint(radius, img_dims[0] - radius, 2)
-        rr, cc = circle(r, c, radius)
+        rr, cc = disk((r, c), radius)
         labels[rr, cc] = i
 
     return labels
@@ -233,7 +233,7 @@ def test_create_overlay():
                 alternate_segmentation=alternate_labels[:100, :100])
 
 
-def test_create_mantis_project():
+def test_create_mantis_dir():
 
     # Number of FOVs
     fov_count = 6
@@ -317,7 +317,7 @@ def test_create_mantis_project():
 
         # Test mapping csv, and df
         for mapping in [df, mapping_path]:
-            plot_utils.create_mantis_project(
+            plot_utils.create_mantis_dir(
                 fovs=fovs_subset,
                 mantis_project_path=mantis_project_path,
                 img_data_path=fov_path,
