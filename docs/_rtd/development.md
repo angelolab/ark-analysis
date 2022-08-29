@@ -180,7 +180,19 @@ next_release_vX.Y.Z
 1. Set the label for the PR to `dependencies`.
 1. Bump the `VERSION` Variable in `setup.py` to `X.Y.Z`. View the [draft release notes](https://github.com/angelolab/ark-analysis/releases) to read the current bugfixes, enhancements and more.
    1. If, in the release notes draft there are PRs that are not categorized, label them appropriately (usually based on the label of their respective Issue).
-2. Test the effects that changes in `Ark` have on `toffy` locally.
+2. Make sure that all tests pass for `Ark` on Travis-CI. 
+3. In the `ark-analysis/start_docker.sh` script, change the image tag from 
+    ```
+    angelolab/ark-analysis:vA.B.C -> angelolab/ark-analysis:vX.Y.Z
+    ```
+4. Request a review and merge the `Ark` branch.
+5. Next head to the most recent Drafted Release Notes:
+   1. Double check that the tag is the appropriate version name.
+   2. Publish the Release.
+   3. Next the `Ark` will be pushed to PyPI and the Docker Image will be built on Travis CI. 
+
+**Test Changes on Toffy**
+1. Test the effects that changes in `Ark` have on `toffy` locally.
    1. Install the new branch of `Ark` in your Python environment with 
     ```
     pip install -e <location/to/ark>
@@ -196,17 +208,5 @@ next_release_vX.Y.Z
         ```
         git+https://github.com/angelolab/ark-analysis.git@vA.B.C -> git+https://github.com/angelolab/ark-analysis.git@vX.Y.Z
         ```
-3. Once all errors have been ironed out create PRs for the respective changes in the effected repositories, and label them as `dependencies`.
-4. Make sure that all tests pass for `Ark` on Travis-CI. 
-5. In the `ark-analysis/start_docker.sh` script, change the image tag from 
-    ```
-    angelolab/ark-analysis:vA.B.C -> angelolab/ark-analysis:vX.Y.Z
-    ```
-6. Request a review and merge the `Ark` branch.
-7. Next head to the most recent Drafted Release Notes:
-   1. Double check that the tag is the appropriate version name.
-   2. Publish the Release.
-   3. Next the `Ark` will be pushed to PyPI and the Docker Image will be built on Travis CI. 
-8. Merge the compatibility PRs if they exist.
-
-
+2. Once all errors have been ironed out create PRs for the respective changes in the effected repositories, and label them as `dependencies`.
+3. Merge the compatibility PRs.
