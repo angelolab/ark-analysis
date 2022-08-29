@@ -8,29 +8,40 @@ Toolbox for analyzing multiplexed imaging data.
 Full documentation for the project can be found [here](https://ark-analysis.readthedocs.io/en/latest/).
 
 ## Table of Contents
+- [Pipeline Flowchart](#pipeline-flowchart)
 - [Getting Started](#getting-started)
   - [Overview](#overview)
     - [1. Segmentation](#1-segmentation)
     - [2. Pixel clustering with Pixie](#2-pixel-clustering-with-pixie)
     - [3. Cell clustering with Pixie](#3-cell-clustering-with-pixie)
     - [4. Spatial analysis](#4-spatial-analysis)
-  - [Installation Steps](#installation-steps)
+  - [Installation Steps.](#installation-steps)
     - [Download the Repo](#download-the-repo)
-    - [Getting the Docker Image](#getting-the-docker-image)
+    - [Setting up Docker](#setting-up-docker)
     - [Running on Windows](#running-on-windows)
     - [Using the Repository (Running the Docker)](#using-the-repository-running-the-docker)
 - [External Tools](#external-tools)
-  - [Mantis](#mantis)
+  - [Mantis Viewer](#mantis-viewer)
+    - [Mantis directory structure](#mantis-directory-structure)
+    - [Loading image-specific files](#loading-image-specific-files)
+    - [Loading project-wide files](#loading-project-wide-files)
+    - [View cell features](#view-cell-features)
   - [External Hard Drives and Google File Stream](#external-hard-drives-and-google-file-stream)
 - [Updating the Repository](#updating-the-repository)
 - [Questions?](#questions)
 - [Want to contribute?](#want-to-contribute)
 - [How to Cite](#how-to-cite)
 
+
+## Pipeline Flowchart
+
+![](docs/_images/ark_processing.png)
+
 ## Getting Started
 
 ### Overview
 This repo contains tools for analyzing multiplexed imaging data. The assumption is that you've already performed any necessary image processing on your data (such as denoising, background subtraction, autofluorescence correction, etc), and that it is ready to be analyzed. For MIBI data, we recommend using the [toffy](https://github.com/angelolab/toffy) processing pipeline.
+
 
 #### 1. Segmentation  
 The [**segmentation notebook**](./templates_ark/1_Segment_Image_Data.ipynb) will walk you through the process of using [Mesmer](https://www.nature.com/articles/s41587-021-01094-0) to segment your image data. This includes selecting the appropriate channel(s) for segmentation, running your data through the network, and then extracting single-cell statistics from the resulting segmentation mask. 
@@ -57,19 +68,11 @@ Then input the command:
 git clone https://github.com/angelolab/ark-analysis.git
 ```
 
-#### Getting the Docker Image
+#### Setting up Docker
 
-Next, you'll need to set up the Docker image with all of the required dependencies:
+Next, you'll need to download Docker Desktop:
  - First, [download](https://hub.docker.com/?overlay=onboarding) Docker Desktop. 
  - Once it's sucessfully installed, make sure it is running by looking in toolbar for the Docker whale icon. 
- - Once it's running, enter the following commands into terminal 
-
-```
-cd ark-analysis
-docker pull angelolab/ark-analysis:latest
-``` 
-
-You can now start to analyze your multiplexed imaging data!
 
 
 #### Running on Windows
@@ -84,7 +87,9 @@ Enter the following command into terminal from the same directory you ran the ab
 ./start_docker.sh
 ``` 
 
-This will generate a link to a jupyter notebook. Copy the last URL (the one with `127.0.0.1:8888` at the beginning) into your web browser. 
+If running for the first time, or if our Docker image has updated, it may take a while to build and setup before completion. 
+
+This will generate a link to a Jupyter notebook. Copy the last URL (the one with `127.0.0.1:8888` at the beginning) into your web browser. 
 
 Be sure to keep this terminal open.  **Do not exit the terminal or enter `control-c` until you are finished with the notebooks**. 
 
@@ -105,11 +110,11 @@ If you didn't change the name of any of the notebooks within the `templates_ark`
 ## External Tools
 
 ### Mantis Viewer
-[Mantis Viewer](https://mantis.parkerici.org/) is a multiplexed image viewer developed by the Parker Institute. It has built in functionality for easily
+[Mantis](https://mantis.parkerici.org/) is a multiplexed image viewer developed by the Parker Institute. It has built in functionality for easily
 viewing multichannel images, creating overlays, and concurrently displaying image features alongisde raw channels. We have found it to be extremely useful for analying the output of our analysis pipeline. There are detailed instructions on 
 their [download page](https://github.com/ParkerICI/mantis-viewer/releases) for how to install and use the tool. Below are some details specifically related to how we use it in `ark`.
 
-### Mantis directory structure
+#### Mantis directory structure
 Mantis expects image data to have a specific organization in order to display it. It is quite similar to how MIBI data is already stored, 
 with a unique folder for each FOV and all channels as individual tifs within that folder. Any notebooks that suggest using Mantis Viewer to inspect results
 will automatically format the data in the format shown below. 
@@ -138,7 +143,7 @@ mantis
 
 ```
 
-### Loading image-specific files
+#### Loading image-specific files
 In addition to the images, there are additional files in the directory structure which can be read into mantis.  
 
 `cell_segmentation`: This file contains the predicted segmentation for each cell in the image, and allows mantis to identify individual cells.
@@ -149,23 +154,23 @@ In addition to the images, there are additional files in the directory structure
 
 These files should be specified when first initializing a project in mantis as indicated below:
 
-![](docs/mantis_loading.png)
+![](docs/_images/mantis_loading.png)
 
-### Loading project-wide files
+#### Loading project-wide files
 When inspecting the output of the clustering notebooks, it is often useful to add project-wide .csv files, such as `marker_counts.csv`. These files contain 
 information, such as the average expression of a given marker, across all the cells in the project. Project-wide files can either be loaded at project initialization, as shown below:
 
-![](docs/mantis_feature_file.png)
+![](docs/_images/mantis_feature_file.png)
 
 Or they can be loaded into an existing project via Import -> Segment Features -> For project from CSV
 
 
-### View cell features
+#### View cell features
 Once you have loaded the project-wide files into Mantis, you'll need to decide which of the features you want to view. 
 Click on `Show Plot Plane` at the bottom right, then select the marker you want to assess. This will then allow you to view
 the cell expression of that marker when you mouse over the cell in Mantis. 
 
-![](docs/mantis_feature_view.png)
+![](docs/_images/mantis_feature_view.png)
 
 ### External Hard Drives and Google File Stream
 
@@ -175,7 +180,7 @@ On Docker for macOS, this can be found in Preferences -> Resources -> File Shari
 
 On Docker for Windows with the WSL2 backend, no paths need to be added.  However, if using the Hyper-V backend, these paths will need to be added as in the macOS case.
 
-![](docs/docker_preferences.png)
+![](docs/_images/docker_preferences.png)
 
 Once the path is added, you can run:
 ```
@@ -196,12 +201,6 @@ First, get the latest version of the repository.
 
 ```
 git pull
-```
-
-Check for Docker updates by running:
-
-```
-docker pull angelolab/ark-analysis:latest
 ```
 
 Then, run the command below to update the Jupyter notebooks to the latest version
