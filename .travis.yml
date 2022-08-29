@@ -25,7 +25,7 @@ cache: pip
 # command to run tests
 script:
   - python -m pip install --editable .
-  - python -m pytest --randomly-seed=42 --randomly-dont-reorganize --cov=ark --pycodestyle ark
+  - python -m pytest --randomly-seed=24 --randomly-dont-reorganize --cov=ark --pycodestyle ark
 
 jobs:
   include:
