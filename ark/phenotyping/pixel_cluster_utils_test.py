@@ -1675,21 +1675,21 @@ def generate_test_apply_pixel_meta_cluster_remapping_data(temp_dir, fovs, chans,
     for fov in fovs:
         # create dummy preprocessed data for each fov
         fov_cluster_matrix = pd.DataFrame(
-            np.repeat(np.array([[0.1, 0.2, 0.3, 0.4]]), repeats=1000, axis=0),
+            np.repeat(np.array([[0.1, 0.2, 0.3, 0.4]]), repeats=100, axis=0),
             columns=chans
         )
 
         # add metadata
         fov_cluster_matrix = pd.concat(
-            [fov_cluster_matrix, pd.DataFrame(np.random.rand(1000, 4), columns=meta_colnames)],
+            [fov_cluster_matrix, pd.DataFrame(np.random.rand(100, 4), columns=meta_colnames)],
             axis=1
         )
 
         # assign dummy SOM cluster labels
-        fov_cluster_matrix['pixel_som_cluster'] = np.repeat(np.arange(100), repeats=10)
+        fov_cluster_matrix['pixel_som_cluster'] = np.repeat(np.arange(10), repeats=10)
 
         # assign dummy meta cluster labels
-        fov_cluster_matrix['pixel_meta_cluster'] = np.repeat(np.arange(10), repeats=100)
+        fov_cluster_matrix['pixel_meta_cluster'] = np.repeat(np.arange(5), repeats=20)
 
         # write the dummy data to pixel_mat_data
         feather.write_dataframe(fov_cluster_matrix, os.path.join(temp_dir,
@@ -1699,7 +1699,7 @@ def generate_test_apply_pixel_meta_cluster_remapping_data(temp_dir, fovs, chans,
         # if specified, write just fov0 to pixel_mat_data_temp
         if generate_temp and fov == 'fov0':
             # append a dummy rename column
-            fov_cluster_matrix['pixel_meta_cluster_rename'] = np.repeat(np.arange(10), repeats=100)
+            fov_cluster_matrix['pixel_meta_cluster_rename'] = np.repeat(np.arange(5), repeats=20)
             feather.write_dataframe(fov_cluster_matrix, os.path.join(temp_dir,
                                                                      'pixel_mat_data_temp',
                                                                      fov + '.feather'))
@@ -1708,9 +1708,9 @@ def generate_test_apply_pixel_meta_cluster_remapping_data(temp_dir, fovs, chans,
     # NOTE: we intentionally add more SOM cluster keys than necessary to show
     # that certain FOVs don't need to contain every SOM cluster available
     sample_pixel_remapping = {
-        'cluster': [i for i in np.arange(105)],
-        'metacluster': [int(i / 5) for i in np.arange(105)],
-        'mc_name': ['meta' + str(int(i / 5)) for i in np.arange(105)]
+        'cluster': [i for i in np.arange(15)],
+        'metacluster': [int(i / 5) for i in np.arange(15)],
+        'mc_name': ['meta' + str(int(i / 5)) for i in np.arange(15)]
     }
     sample_pixel_remapping = pd.DataFrame.from_dict(sample_pixel_remapping)
     sample_pixel_remapping.to_csv(
@@ -1720,11 +1720,11 @@ def generate_test_apply_pixel_meta_cluster_remapping_data(temp_dir, fovs, chans,
 
     # make a basic average channel per SOM cluster file
     pixel_som_cluster_channel_avgs = pd.DataFrame(
-        np.repeat(np.array([[0.1, 0.2, 0.3, 0.4]]), repeats=100, axis=0)
+        np.repeat(np.array([[0.1, 0.2, 0.3, 0.4]]), repeats=10, axis=0)
     )
-    pixel_som_cluster_channel_avgs['pixel_som_cluster'] = np.arange(100)
+    pixel_som_cluster_channel_avgs['pixel_som_cluster'] = np.arange(10)
     pixel_som_cluster_channel_avgs['pixel_meta_cluster'] = np.repeat(
-        np.arange(10), repeats=10
+        np.arange(5), repeats=2
     )
     pixel_som_cluster_channel_avgs.to_csv(
         os.path.join(temp_dir, 'sample_pixel_som_cluster_chan_avgs.csv'), index=False
@@ -1896,7 +1896,7 @@ def test_apply_pixel_meta_cluster_remapping_base():
         )
 
         # assert the markers data has been updated correctly
-        result = np.repeat(np.array([[0.1, 0.2, 0.3, 0.4]]), repeats=20, axis=0)
+        result = np.repeat(np.array([[0.1, 0.2, 0.3, 0.4]]), repeats=2, axis=0)
         assert np.all(
             np.round(sample_pixel_channel_avg_meta_cluster[chans].values, 1) == result
         )
@@ -1910,10 +1910,10 @@ def test_apply_pixel_meta_cluster_remapping_base():
         )
         assert np.all(sample_pixel_channel_avg_meta_cluster[
             'pixel_meta_cluster'
-        ].values == np.arange(20))
+        ].values == np.arange(2))
         assert np.all(sample_pixel_channel_avg_meta_cluster[
             'pixel_meta_cluster_rename'
-        ] == np.array(['meta' + str(i) for i in np.arange(20)]))
+        ] == np.array(['meta' + str(i) for i in np.arange(2)]))
 
         # read in the som cluster channel average data
         sample_pixel_channel_avg_som_cluster = pd.read_csv(
@@ -1921,7 +1921,7 @@ def test_apply_pixel_meta_cluster_remapping_base():
         )
 
         # assert the correct number of meta clusters are in and the correct number of each
-        assert len(sample_pixel_channel_avg_som_cluster['pixel_meta_cluster'].value_counts()) == 20
+        assert len(sample_pixel_channel_avg_som_cluster['pixel_meta_cluster'].value_counts()) == 2
         assert np.all(
             sample_pixel_channel_avg_som_cluster['pixel_meta_cluster'].value_counts().values == 5
         )
@@ -1933,10 +1933,10 @@ def test_apply_pixel_meta_cluster_remapping_base():
 
         assert np.all(sample_pixel_channel_avg_som_cluster[
             'pixel_meta_cluster'
-        ].values == np.repeat(np.arange(20), repeats=5))
+        ].values == np.repeat(np.arange(2), repeats=5))
         assert np.all(sample_pixel_channel_avg_som_cluster[
             'pixel_meta_cluster_rename'
-        ].values == np.array(['meta' + str(i) for i in np.repeat(np.arange(20), repeats=5)]))
+        ].values == np.array(['meta' + str(i) for i in np.repeat(np.arange(2), repeats=5)]))
 
 
 def test_apply_pixel_meta_cluster_remapping_temp_corrupt(capsys):

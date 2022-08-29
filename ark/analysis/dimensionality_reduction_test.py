@@ -32,7 +32,7 @@ def test_plot_dim_reduced_data():
                                                        save_dir=".")
 
 
-def test_dimensionality_reduction():
+def test_visualize_dimensionality_reduction():
     random_cell_data = test_utils.make_cell_table(300)
     test_cols = test_utils.TEST_MARKERS
 
@@ -47,13 +47,6 @@ def test_dimensionality_reduction():
 
     with tempfile.TemporaryDirectory() as temp_dir:
         for alg in test_algorithms:
-            # test without saving, assert that the path does not exist
-            dimensionality_reduction.visualize_dimensionality_reduction(random_cell_data,
-                                                                        test_cols,
-                                                                        settings.CELL_TYPE,
-                                                                        algorithm=alg)
-            assert not os.path.exists(os.path.join(temp_dir, alg + 'Visualization.png'))
-
             # test with saving, assert that the path does exist
             dimensionality_reduction.visualize_dimensionality_reduction(random_cell_data,
                                                                         test_cols,

@@ -9,7 +9,7 @@ from ark.utils import test_utils
 
 
 def create_tiff_files(num_fovs, num_chans, tiff_dir, sub_dir="TIFs", is_mibitiff=False,
-                      mibitiff_suffix="-MassCorrected-Filtered", img_shape=(50, 50),
+                      mibitiff_suffix="-MassCorrected-Filtered", img_shape=(10, 10),
                       dtype=np.uint16):
     """Creates the desired input tiff data for testing a notebook
 
@@ -44,7 +44,7 @@ def create_tiff_files(num_fovs, num_chans, tiff_dir, sub_dir="TIFs", is_mibitiff
         fovs = [f + mibitiff_suffix for f in fovs]
 
         filelocs, data_xr = test_utils.create_paired_xarray_fovs(
-            tiff_dir, fovs, chans, img_shape=(50, 50), mode='mibitiff',
+            tiff_dir, fovs, chans, img_shape=img_shape, mode='mibitiff',
             delimiter='_', fills=False, dtype=dtype
         )
     else:
@@ -53,7 +53,7 @@ def create_tiff_files(num_fovs, num_chans, tiff_dir, sub_dir="TIFs", is_mibitiff
                                                     return_imgs=False)
 
         filelocs, data_xr = test_utils.create_paired_xarray_fovs(
-            tiff_dir, fovs, chans, img_shape=(50, 50), delimiter='_', fills=False,
+            tiff_dir, fovs, chans, img_shape=img_shape, delimiter='_', fills=False,
             sub_dir=sub_dir, dtype=dtype
         )
 
@@ -63,7 +63,7 @@ def create_tiff_files(num_fovs, num_chans, tiff_dir, sub_dir="TIFs", is_mibitiff
 def segment_notebook_setup(tb, deepcell_tiff_dir, deepcell_input_dir, deepcell_output_dir,
                            single_cell_dir, viz_dir, sub_dir="TIFs", is_mibitiff=False,
                            mibitiff_suffix="-MassCorrected-Filtered",
-                           img_shape=(50, 50), num_fovs=3, num_chans=3, dtype=np.uint16):
+                           img_shape=(10, 10), num_fovs=3, num_chans=3, dtype=np.uint16):
     """Creates the directories, data, and MIBItiff settings for testing segmentation process
 
     Args:
@@ -120,7 +120,7 @@ def segment_notebook_setup(tb, deepcell_tiff_dir, deepcell_input_dir, deepcell_o
         tb.inject("MIBItiff = True", after='mibitiff_set')
 
 
-def flowsom_pixel_setup(tb, flowsom_dir, create_seg_dir=True, img_shape=(50, 50),
+def flowsom_pixel_setup(tb, flowsom_dir, create_seg_dir=True, img_shape=(10, 10),
                         num_fovs=3, num_chans=3, is_mibitiff=False,
                         mibitiff_suffix="-MassCorrected-Filtered",
                         dtype=np.uint16, pixel_prefix='test'):
@@ -319,19 +319,19 @@ def flowsom_pixel_cluster(tb, flowsom_dir, fovs, channels,
     # make sample consensus data for each fov
     for fov in fovs:
         fov_data = pd.DataFrame(
-            np.random.rand(2500, len(channels)),
+            np.random.rand(100, len(channels)),
             columns=channels
         )
 
         fov_data['fov'] = fov
-        fov_data['row_index'] = np.repeat(range(50), 50)
-        fov_data['column_index'] = np.tile(range(50), 50)
+        fov_data['row_index'] = np.repeat(range(10), 10)
+        fov_data['column_index'] = np.tile(range(10), 10)
 
         if create_seg_dir:
-            fov_data['segmentation_label'] = range(1, 2501)
+            fov_data['segmentation_label'] = range(1, 101)
 
-        fov_data['pixel_som_cluster'] = np.repeat(range(1, 101), 25)
-        fov_data['pixel_meta_cluster'] = np.repeat(range(1, 21), 125)
+        fov_data['pixel_som_cluster'] = np.repeat(range(1, 11), 10)
+        fov_data['pixel_meta_cluster'] = np.repeat(range(1, 6), 20)
 
         feather.write_dataframe(
             fov_data,
@@ -340,14 +340,14 @@ def flowsom_pixel_cluster(tb, flowsom_dir, fovs, channels,
         )
 
     # define the average channel expression per pixel SOM cluster
-    avg_channels_som = np.random.rand(100, len(channels) + 3)
+    avg_channels_som = np.random.rand(10, len(channels) + 3)
     avg_channels_som_cols = ['pixel_som_cluster'] + channels + ['count', 'pixel_meta_cluster']
     avg_channels_som = pd.DataFrame(
         avg_channels_som,
         columns=avg_channels_som_cols
     )
-    avg_channels_som['pixel_som_cluster'] = range(1, 101)
-    avg_channels_som['pixel_meta_cluster'] = np.repeat(range(1, 21), 5)
+    avg_channels_som['pixel_som_cluster'] = range(1, 11)
+    avg_channels_som['pixel_meta_cluster'] = np.repeat(range(1, 6), 2)
     avg_channels_som.to_csv(
         os.path.join(flowsom_dir,
                      '%s_pixel_output_dir' % pixel_prefix,
@@ -356,13 +356,13 @@ def flowsom_pixel_cluster(tb, flowsom_dir, fovs, channels,
     )
 
     # define the average channel expression per pixel meta cluster
-    avg_channels_meta = np.random.rand(20, len(channels) + 2)
+    avg_channels_meta = np.random.rand(5, len(channels) + 2)
     avg_channels_meta_cols = ['pixel_meta_cluster'] + channels + ['count']
     avg_channels_meta = pd.DataFrame(
         avg_channels_meta,
         columns=avg_channels_meta_cols
     )
-    avg_channels_meta['pixel_meta_cluster'] = range(1, 21)
+    avg_channels_meta['pixel_meta_cluster'] = range(1, 6)
     avg_channels_meta.to_csv(
         os.path.join(flowsom_dir,
                      '%s_pixel_output_dir' % pixel_prefix,
@@ -391,12 +391,12 @@ def flowsom_pixel_visualize(tb, flowsom_dir, fovs, pixel_prefix='test'):
 
     # define the remapping file
     remap_data = pd.DataFrame(
-        np.random.rand(100, 3),
+        np.random.rand(10, 3),
         columns=['cluster', 'metacluster', 'mc_name']
     )
-    remap_data['cluster'] = range(1, 101)
-    remap_data['metacluster'] = np.repeat(range(1, 11), 10)
-    remap_data['mc_name'] = np.repeat(['meta_' + str(i) for i in range(1, 11)], 10)
+    remap_data['cluster'] = range(1, 11)
+    remap_data['metacluster'] = np.repeat(range(1, 6), 2)
+    remap_data['mc_name'] = np.repeat(['meta_' + str(i) for i in range(1, 6)], 2)
     remap_data.to_csv(
         os.path.join(flowsom_dir,
                      '%s_pixel_output_dir' % pixel_prefix,
@@ -433,7 +433,7 @@ def flowsom_pixel_visualize(tb, flowsom_dir, fovs, pixel_prefix='test'):
 
 
 def flowsom_cell_setup(tb, flowsom_dir, pixel_dir, pixel_cluster_col='pixel_meta_cluster_rename',
-                       cell_prefix='test', num_fovs=3, num_chans=3, img_shape=(50, 50),
+                       cell_prefix='test', num_fovs=3, num_chans=3, img_shape=(10, 10),
                        dtype=np.uint16):
     """Creates the directories, data, and parameter settings for testing cell clustering
 
@@ -569,38 +569,38 @@ def flowsom_cell_cluster(tb, flowsom_dir, fovs, channels,
     weighted_channel_exp = pd.DataFrame()
 
     for fov in fovs:
-        cell_table_fov = np.random.rand(1000, len(channels) + 3)
+        cell_table_fov = np.random.rand(100, len(channels) + 3)
         cell_table_fov_cols = ['cell_size'] + channels + ['label', 'fov']
         cell_table_fov = pd.DataFrame(
             cell_table_fov,
             columns=cell_table_fov_cols
         )
-        cell_table_fov['label'] = range(1, 1001)
+        cell_table_fov['label'] = range(1, 101)
         cell_table_fov['fov'] = fov
         cell_table = pd.concat([cell_table, cell_table_fov])
 
-        cell_consensus_fov = np.random.rand(1000, 25)
+        cell_consensus_fov = np.random.rand(100, 8)
         cell_consensus_fov_cols = ['cell_size', 'fov'] + \
-            ['%s_' % pixel_cluster_col + str(i) for i in range(1, 21)] + \
+            ['%s_' % pixel_cluster_col + str(i) for i in range(1, 4)] + \
             ['segmentation_label', 'cell_som_cluster', 'cell_meta_cluster']
         cell_consensus_fov = pd.DataFrame(
             cell_consensus_fov,
             columns=cell_consensus_fov_cols
         )
         cell_consensus_fov['fov'] = fov
-        cell_consensus_fov['segmentation_label'] = range(1, 1001)
-        cell_consensus_fov['cell_som_cluster'] = np.repeat(range(1, 101), 10)
-        cell_consensus_fov['cell_meta_cluster'] = np.repeat(range(1, 21), 50)
+        cell_consensus_fov['segmentation_label'] = range(1, 101)
+        cell_consensus_fov['cell_som_cluster'] = np.repeat(range(1, 11), 10)
+        cell_consensus_fov['cell_meta_cluster'] = np.repeat(range(1, 6), 20)
         cell_consensus_data = pd.concat([cell_consensus_data, cell_consensus_fov])
 
-        weighted_channel_fov = np.random.rand(1000, len(channels) + 3)
+        weighted_channel_fov = np.random.rand(100, len(channels) + 3)
         weighted_channel_fov_cols = channels + ['cell_size', 'fov', 'segmentation_label']
         weighted_channel_fov = pd.DataFrame(
             weighted_channel_fov,
             columns=weighted_channel_fov_cols
         )
         weighted_channel_fov['fov'] = fov
-        weighted_channel_fov['segmentation_label'] = range(1, 1001)
+        weighted_channel_fov['segmentation_label'] = range(1, 101)
         weighted_channel_exp = pd.concat([weighted_channel_exp, weighted_channel_fov])
 
     cell_table.to_csv(
@@ -623,16 +623,16 @@ def flowsom_cell_cluster(tb, flowsom_dir, fovs, channels,
     )
 
     # define the average pixel count expresssion per cell SOM cluster
-    avg_clusters_som = np.random.randint(1, 64, (100, 23))
+    avg_clusters_som = np.random.randint(1, 64, (10, 6))
     avg_clusters_som_cols = ['cell_som_cluster'] + \
-        ['%s_' % pixel_cluster_col + str(i) for i in range(1, 21)] + \
+        ['%s_' % pixel_cluster_col + str(i) for i in range(1, 4)] + \
         ['count', 'cell_meta_cluster']
     avg_clusters_som = pd.DataFrame(
         avg_clusters_som,
         columns=avg_clusters_som_cols
     )
-    avg_clusters_som['cell_som_cluster'] = range(1, 101)
-    avg_clusters_som['cell_meta_cluster'] = np.repeat(range(1, 21), 5)
+    avg_clusters_som['cell_som_cluster'] = range(1, 11)
+    avg_clusters_som['cell_meta_cluster'] = np.repeat(range(1, 6), 2)
     avg_clusters_som.to_csv(
         os.path.join(flowsom_dir,
                      '%s_cell_output_dir' % cell_prefix,
@@ -641,15 +641,15 @@ def flowsom_cell_cluster(tb, flowsom_dir, fovs, channels,
     )
 
     # define the average pixel count expresssion per cell meta cluster
-    avg_clusters_meta = np.random.randint(1, 64, (20, 22))
+    avg_clusters_meta = np.random.randint(1, 64, (5, 5))
     avg_clusters_meta_cols = ['cell_meta_cluster'] + \
-        ['%s_' % pixel_cluster_col + str(i) for i in range(1, 21)] + \
+        ['%s_' % pixel_cluster_col + str(i) for i in range(1, 4)] + \
         ['count']
     avg_clusters_meta = pd.DataFrame(
         avg_clusters_meta,
         columns=avg_clusters_meta_cols
     )
-    avg_clusters_meta['cell_meta_cluster'] = range(1, 21)
+    avg_clusters_meta['cell_meta_cluster'] = range(1, 6)
     avg_clusters_meta.to_csv(
         os.path.join(flowsom_dir,
                      '%s_cell_output_dir' % cell_prefix,
@@ -658,14 +658,14 @@ def flowsom_cell_cluster(tb, flowsom_dir, fovs, channels,
     )
 
     # define the average weighted channel expression per cell SOM cluster
-    avg_channels_som = np.random.rand(100, len(channels) + 2)
+    avg_channels_som = np.random.rand(10, len(channels) + 2)
     avg_channels_som_cols = ['cell_som_cluster'] + channels + ['cell_meta_cluster']
     avg_channels_som = pd.DataFrame(
         avg_clusters_som,
         columns=avg_channels_som_cols
     )
-    avg_channels_som['cell_som_cluster'] = range(1, 101)
-    avg_channels_som['cell_meta_cluster'] = np.repeat(range(1, 21), 5)
+    avg_channels_som['cell_som_cluster'] = range(1, 11)
+    avg_channels_som['cell_meta_cluster'] = np.repeat(range(1, 6), 2)
     avg_channels_som.to_csv(
         os.path.join(flowsom_dir,
                      '%s_cell_output_dir' % cell_prefix,
@@ -674,13 +674,13 @@ def flowsom_cell_cluster(tb, flowsom_dir, fovs, channels,
     )
 
     # define the average weighted channel expression per cell meta cluster
-    avg_channels_meta = np.random.rand(20, len(channels) + 2)
+    avg_channels_meta = np.random.rand(5, len(channels) + 2)
     avg_channels_meta_cols = ['cell_meta_cluster'] + channels
     avg_channels_meta = pd.DataFrame(
         avg_clusters_meta,
         columns=avg_channels_meta_cols
     )
-    avg_channels_meta['cell_meta_cluster'] = range(1, 21)
+    avg_channels_meta['cell_meta_cluster'] = range(1, 6)
     avg_channels_meta.to_csv(
         os.path.join(flowsom_dir,
                      '%s_cell_output_dir' % cell_prefix,
@@ -723,12 +723,12 @@ def flowsom_cell_visualize(tb, flowsom_dir, fovs,
 
     # define the remapping file
     remap_data = pd.DataFrame(
-        np.random.rand(100, 3),
+        np.random.rand(10, 3),
         columns=['cluster', 'metacluster', 'mc_name']
     )
-    remap_data['cluster'] = range(1, 101)
-    remap_data['metacluster'] = np.repeat(range(1, 11), 10)
-    remap_data['mc_name'] = np.repeat(['meta_' + str(i) for i in range(1, 11)], 10)
+    remap_data['cluster'] = range(1, 11)
+    remap_data['metacluster'] = np.repeat(range(1, 6), 2)
+    remap_data['mc_name'] = np.repeat(['meta_' + str(i) for i in range(1, 6)], 2)
     remap_data.to_csv(
         os.path.join(flowsom_dir,
                      '%s_cell_output_dir' % cell_prefix,
@@ -862,7 +862,7 @@ def fov_channel_input_set(tb, fovs=None, nucs_list=None, mems_list=None, is_mibi
     tb.inject(mibitiff_deepcell, after='gen_input')
 
 
-def generate_sample_feature_tifs(fovs, deepcell_output_dir, img_shape=(50, 50)):
+def generate_sample_feature_tifs(fovs, deepcell_output_dir, img_shape=(10, 10)):
     """Generate a sample _feature_0 tif file for each fov
 
     Done to bypass the bottleneck of create_deepcell_output, for testing purposes we don't care
