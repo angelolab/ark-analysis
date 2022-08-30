@@ -1,4 +1,5 @@
 cryptography>=3.4.8,<4
+datasets>=2.4.0,<3.0
 feather-format>=0.4.1,<1
 jupyter>=1.0.0,<2
 importlib-metadata>=4.11.4,<5.0
