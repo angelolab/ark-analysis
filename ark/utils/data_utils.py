@@ -1,16 +1,18 @@
+from optparse import Option
 import os
 import pathlib
-from typing import List, Union
+from typing import List, Optional, Union
 import math
 import feather
 import skimage.io as io
 import numpy as np
 import xarray as xr
+from tqdm.notebook import tqdm_notebook as tqdm
+import datasets
 
 from ark import settings
 from ark.utils import load_utils
 from ark.utils.misc_utils import verify_in_list
-from tqdm.notebook import tqdm_notebook as tqdm
 
 
 def save_fov_images(fovs, data_dir, img_xr, sub_dir=None, name_suffix=''):
@@ -544,3 +546,29 @@ def split_img_stack(stack_dir, output_dir, stack_list, indices, names, channels_
 
             save_path = os.path.join(img_dir, names[i])
             io.imsave(save_path, channel, plugin='tifffile', check_contrast=False)
+
+
+def download_example_data(save_dir: Union[str, pathlib.Path],
+                          get_data_path: bool = True) -> Optional[pathlib.Path]:
+    """Downloads the example dataset from Hugging Face Hub.
+    The following is a link to the dataset used:
+    https://huggingface.co/datasets/angelolab/ark_example
+
+    The dataset will be saved in `save_dir/example_dataset/raw`.
+
+    Args:
+        save_dir (Union[str, pathlib.Path]): The directory to save the example in
+        get_data_path (bool): Returns the path of the dataset directory in order to load the
+            example data. Defaults to True.
+
+    Returns:
+        Optional[pathlib.Path]: Returns the path where the dataset is saved.
+    """
+    cache_dir = pathlib.Path(save_dir) / "example_dataset" / "raw"
+
+    # Downloads the dataset
+    ds = datasets.load_dataset("angelolab/ark_example", cache_dir=cache_dir)
+
+    if get_data_path:
+        data_path = ds["base_dataset"]["Data Path"][0]
+        return data_path
