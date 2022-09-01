@@ -34,3 +34,5 @@ Pipfile.lock
 .coverage
 .python-version
 .coverage.*
+
+data/
