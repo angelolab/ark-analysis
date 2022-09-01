@@ -64,7 +64,8 @@ def test_segment_image_data_mibitiff(tb):
                   'fov1-MassCorrected-Filtered.tiff'],
             nucs_list=['chan0'],
             mems_list=['chan1', 'chan2'],
-            is_mibitiff=True)
+            is_mibitiff=True
+        )
 
         # generate _feature_0 and _feature_1 tif files normally handled by create_deepcell_output
         notebooks_test_utils.generate_sample_feature_tifs(
@@ -102,7 +103,8 @@ def test_segment_image_data_folder(tb):
             tb,
             fovs=['fov0', 'fov1'],
             nucs_list=['chan0'],
-            mems_list=['chan1', 'chan2'])
+            mems_list=['chan1', 'chan2']
+        )
 
         # generate _feature_0 and _feature_1 tif files normally handled by create_deepcell_output
         notebooks_test_utils.generate_sample_feature_tifs(
