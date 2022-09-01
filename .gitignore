@@ -34,5 +34,7 @@ Pipfile.lock
 .coverage
 .python-version
 .coverage.*
+.DS_Store
 
-data/
+data/example_dataset/raw/
+data/example_dataset/processed/
