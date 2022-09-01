@@ -113,12 +113,6 @@ def segment_notebook_setup(tb, deepcell_tiff_dir, deepcell_input_dir, deepcell_o
     """ % (deepcell_tiff_dir, deepcell_input_dir, deepcell_output_dir, single_cell_dir, viz_dir)
     tb.inject(define_paths, after='file_path')
 
-    # will set MIBItiff and MIBItiff_suffix
-    tb.execute_cell('mibitiff_set')
-    if is_mibitiff:
-        # default setting is MIBItiff = False, change to True if user has mibitiff inputs
-        tb.inject("MIBItiff = True", after='mibitiff_set')
-
 
 def flowsom_pixel_setup(tb, flowsom_dir, create_seg_dir=True, img_shape=(50, 50),
                         num_fovs=3, num_chans=3, is_mibitiff=False,
