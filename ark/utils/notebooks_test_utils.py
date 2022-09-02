@@ -308,7 +308,7 @@ def flowsom_pixel_cluster(tb, flowsom_dir, fovs, channels,
     # get path to the data
     data_path = os.path.join(flowsom_dir,
                              '%s_pixel_output_dir' % pixel_prefix,
-                             '%s_pixel_mat_data' % pixel_prefix)
+                             'pixel_mat_data')
 
     # make sample consensus data for each fov
     for fov in fovs:
