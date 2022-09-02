@@ -37,4 +37,5 @@ Pipfile.lock
 .DS_Store
 
 data/example_dataset/raw/
-data/example_dataset/processed/
+data/example_dataset/segmentation/
+data/example_dataset/pixie/
