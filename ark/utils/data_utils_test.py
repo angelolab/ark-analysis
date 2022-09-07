@@ -7,9 +7,10 @@ import feather
 import pandas as pd
 import xarray as xr
 import skimage.io as io
-
+import pathlib
 from ark.utils import data_utils, test_utils
 from ark.utils.data_utils import (
+    download_example_data,
     generate_and_save_cell_cluster_masks,
     generate_and_save_pixel_cluster_masks,
     relabel_segmentation,
@@ -624,3 +625,18 @@ def test_generate_and_save_cell_cluster_masks():
                 pixel_mask = io.imread(os.path.join(temp_dir, 'cell_masks', fov_name))
                 assert pixel_mask.shape == (40, 40)
                 assert np.all(pixel_mask <= 5)
+
+
+def test_download_example_data():
+    with tempfile.TemporaryDirectory() as temp_dir:
+        download_path = download_example_data(save_dir=temp_dir, get_data_path=True)
+
+        # Assert that the dataset downloaded
+        assert os.path.exists(pathlib.Path(download_path))
+
+        fov_names = [f"fov{i}" for i in range(11)]
+        input_data_path = pathlib.Path(download_path) / "input_data"
+        downloaded_fovs = [f.stem for f in input_data_path.glob("*")]
+
+        # Assert that all the fovs exist
+        assert set(fov_names) == set(downloaded_fovs)
