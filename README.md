@@ -43,22 +43,22 @@ Full documentation for the project can be found [here](https://ark-analysis.read
 ### Overview
 This repo contains tools for analyzing multiplexed imaging data. The assumption is that you've already performed any necessary image processing on your data (such as denoising, background subtraction, autofluorescence correction, etc), and that it is ready to be analyzed. For MIBI data, we recommend using the [toffy](https://github.com/angelolab/toffy) processing pipeline.
 
-You can find a link to all the recorded MIBI Workshop talks [here](https://youtube.com/playlist?list=PLjNbkEm4vA26o5YvWKeyHXF8HjTJc7yB0).
+We have recorded workshop talks which complement the repository. [MIBI Workshop Playlist](https://youtube.com/playlist?list=PLjNbkEm4vA26o5YvWKeyHXF8HjTJc7yB0).
 
 #### 1. Segmentation  
-The [**segmentation notebook**](./templates_ark/1_Segment_Image_Data.ipynb) will walk you through the process of using [Mesmer](https://www.nature.com/articles/s41587-021-01094-0) to segment your image data. This includes selecting the appropriate channel(s) for segmentation, running your data through the network, and then extracting single-cell statistics from the resulting segmentation mask. [Workshop Talk](https://youtu.be/4_AJxrxPYlk?t=231)
+The [**segmentation notebook**](./templates_ark/1_Segment_Image_Data.ipynb) will walk you through the process of using [Mesmer](https://www.nature.com/articles/s41587-021-01094-0) to segment your image data. This includes selecting the appropriate channel(s) for segmentation, running your data through the network, and then extracting single-cell statistics from the resulting segmentation mask. [Workshop Talk - Session V - Part 1: Segmentation](https://youtu.be/4_AJxrxPYlk?t=231)
 
 #### 2. Pixel clustering with Pixie  
-The first step in the [Pixie](https://www.biorxiv.org/content/10.1101/2022.08.16.504171v1) pipeline is to run the [**pixel clustering notebook**](./templates_ark/2_Cluster_Pixels.ipynb). The notebook walks you through the process of generating pixel clusters for your data, and lets you specify what markers to use for the clustering, train a model, use it to classify your entire dataset, and generate pixel cluster overlays. The notebook includes a GUI for manual cluster adjustment and annotation. [Workshop Talk](https://youtu.be/4_AJxrxPYlk?t=2704)
+The first step in the [Pixie](https://www.biorxiv.org/content/10.1101/2022.08.16.504171v1) pipeline is to run the [**pixel clustering notebook**](./templates_ark/2_Cluster_Pixels.ipynb). The notebook walks you through the process of generating pixel clusters for your data, and lets you specify what markers to use for the clustering, train a model, use it to classify your entire dataset, and generate pixel cluster overlays. The notebook includes a GUI for manual cluster adjustment and annotation. [Workshop Talk - Session IV - Pixel Level Analysis](https://youtu.be/e7C1NvaPLaY)
 
 #### 3. Cell clustering with Pixie  
-The second step in the [Pixie](https://www.biorxiv.org/content/10.1101/2022.08.16.504171v1) pipeline is to run the [**cell clustering notebook**](./templates_ark/3_Cluster_Cells.ipynb). This notebook will use the pixel clusters generated in the first notebook to cluster the cells in your dataset. The notebook walks you through generating cell clusters for your data and generates cell cluster overlays. The notebook includes a GUI for manual cluster adjustment and annotation. [Workshop Talk](https://youtu.be/4_AJxrxPYlk?t=2704)
+The second step in the [Pixie](https://www.biorxiv.org/content/10.1101/2022.08.16.504171v1) pipeline is to run the [**cell clustering notebook**](./templates_ark/3_Cluster_Cells.ipynb). This notebook will use the pixel clusters generated in the first notebook to cluster the cells in your dataset. The notebook walks you through generating cell clusters for your data and generates cell cluster overlays. The notebook includes a GUI for manual cluster adjustment and annotation. [Workshop Talk - Session V - Cell-level Analysis - Part 2: Cell Clustering](https://youtu.be/4_AJxrxPYlk?t=2704)
 
 #### 4. Post Clustering Tasks
-After the Pixie Pipeline, the user can inspect and fine tune their results. This notebook will go over cleaning up artifacts left from clustering, and working with functional markers. [Workshop Talk](https://youtu.be/4_AJxrxPYlk?t=4639)
+After the Pixie Pipeline, the user can inspect and fine tune their results with the [**post clustering notebook**](./templates_ark/4_Post_Clustering.ipynb). This notebook will go over cleaning up artifacts left from clustering, and working with functional markers.
 
-#### 5. Spatial analysis  
-TBD once notebooks are finished
+#### 5. Spatial Analysis  
+TBD once notebooks are finished. [Workshop Talk - Session VI - Spatial Analysis](https://youtu.be/HQAkS7kbzH8).
 
 
 ### Installation Steps
@@ -75,7 +75,7 @@ git clone https://github.com/angelolab/ark-analysis.git
 
 #### Setting up Docker
 
-There is a complementary setup video [here](https://youtu.be/EXMGdi_Izdw).
+There is a complementary [setup video](https://youtu.be/EXMGdi_Izdw).
 
 Next, you'll need to download Docker Desktop:
  - First, [download](https://hub.docker.com/?overlay=onboarding) Docker Desktop. 
@@ -119,7 +119,7 @@ If you didn't change the name of any of the notebooks within the `templates_ark`
 ### Mantis Viewer
 [Mantis](https://mantis.parkerici.org/) is a multiplexed image viewer developed by the Parker Institute. It has built in functionality for easily
 viewing multichannel images, creating overlays, and concurrently displaying image features alongisde raw channels. We have found it to be extremely useful for analying the output of our analysis pipeline. There are detailed instructions on 
-their [download page](https://github.com/ParkerICI/mantis-viewer/releases) for how to install and use the tool. Below are some details specifically related to how we use it in `ark`. [Workshop Talk](https://youtu.be/4_AJxrxPYlk?t=4639)
+their [download page](https://github.com/ParkerICI/mantis-viewer/releases) for how to install and use the tool. Below are some details specifically related to how we use it in `ark`. [Workshop Talk - Session V - Cell-level Analysis - Part 3: Assessing Accuracy with Mantis Viewer](https://youtu.be/4_AJxrxPYlk?t=4639).
 
 #### Mantis directory structure
 Mantis expects image data to have a specific organization in order to display it. It is quite similar to how MIBI data is already stored, 
