@@ -899,7 +899,7 @@ def overlay_mask(tb, channels=None):
             segmentation_utils.save_segmentation_labels(
                 segmentation_dir=deepcell_output_dir,
                 data_dir=deepcell_input_dir,
-                output_dir=viz_dir,
+                output_dir=deepcell_visualization_dir,
                 fovs=io_utils.remove_file_extensions(fovs),
                 channels=%s
             )
