@@ -108,8 +108,8 @@ def segment_notebook_setup(tb, deepcell_tiff_dir, deepcell_input_dir, deepcell_o
         tiff_dir = "%s"
         deepcell_input_dir = "%s"
         deepcell_output_dir = "%s"
-        cell_table_dir = "%s"
-        deepcell_visualization_dir = "%s"
+        single_cell_dir = "%s"
+        viz_dir = "%s"
     """ % (deepcell_tiff_dir, deepcell_input_dir, deepcell_output_dir, single_cell_dir, viz_dir)
     tb.inject(define_paths, after='file_path')
 
@@ -308,7 +308,7 @@ def flowsom_pixel_cluster(tb, flowsom_dir, fovs, channels,
     # get path to the data
     data_path = os.path.join(flowsom_dir,
                              '%s_pixel_output_dir' % pixel_prefix,
-                             'pixel_mat_data')
+                             '%s_pixel_mat_data' % pixel_prefix)
 
     # make sample consensus data for each fov
     for fov in fovs:
@@ -899,7 +899,7 @@ def overlay_mask(tb, channels=None):
             segmentation_utils.save_segmentation_labels(
                 segmentation_dir=deepcell_output_dir,
                 data_dir=deepcell_input_dir,
-                output_dir=deepcell_visualization_dir,
+                output_dir=viz_dir,
                 fovs=io_utils.remove_file_extensions(fovs),
                 channels=%s
             )
