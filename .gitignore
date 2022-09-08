@@ -34,3 +34,7 @@ Pipfile.lock
 .coverage
 .python-version
 .coverage.*
+.DS_Store
+
+data/example_dataset/image_data/
+data/example_dataset/segmentation/

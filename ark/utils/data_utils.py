@@ -1,16 +1,18 @@
+from optparse import Option
 import os
 import pathlib
-from typing import List, Union
+from typing import List, Optional, Union
 import math
 import feather
 import skimage.io as io
 import numpy as np
 import xarray as xr
-
+from tqdm.notebook import tqdm_notebook as tqdm
+import datasets
+import shutil
 from ark import settings
 from ark.utils import load_utils
 from ark.utils.misc_utils import verify_in_list
-from tqdm.notebook import tqdm_notebook as tqdm
 
 
 def save_fov_images(fovs, data_dir, img_xr, sub_dir=None, name_suffix=''):
@@ -544,3 +546,23 @@ def split_img_stack(stack_dir, output_dir, stack_list, indices, names, channels_
 
             save_path = os.path.join(img_dir, names[i])
             io.imsave(save_path, channel, plugin='tifffile', check_contrast=False)
+
+
+def download_example_data(save_dir: Union[str, pathlib.Path]):
+    """Downloads the example dataset from Hugging Face Hub.
+    The following is a link to the dataset used:
+    https://huggingface.co/datasets/angelolab/ark_example
+
+    The dataset will be saved in `{save_dir}/example_dataset/image_data`.
+
+    Args:
+        save_dir (Union[str, pathlib.Path]): The directory to save the example dataset in.
+    """
+
+    # Downloads the dataset
+    ds = datasets.load_dataset("angelolab/ark_example")
+
+    data_path = pathlib.Path(ds["base_dataset"]["Data Path"][0]) / "input_data"
+
+    shutil.copytree(data_path, pathlib.Path(save_dir) / "image_data",
+                    dirs_exist_ok=True, ignore=shutil.ignore_patterns('._*'))

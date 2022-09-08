@@ -7,9 +7,10 @@ import feather
 import pandas as pd
 import xarray as xr
 import skimage.io as io
-
+import pathlib
 from ark.utils import data_utils, test_utils
 from ark.utils.data_utils import (
+    download_example_data,
     generate_and_save_cell_cluster_masks,
     generate_and_save_pixel_cluster_masks,
     relabel_segmentation,
@@ -624,3 +625,28 @@ def test_generate_and_save_cell_cluster_masks():
                 pixel_mask = io.imread(os.path.join(temp_dir, 'cell_masks', fov_name))
                 assert pixel_mask.shape == (40, 40)
                 assert np.all(pixel_mask <= 5)
+
+
+def test_download_example_data():
+    with tempfile.TemporaryDirectory() as temp_dir:
+        download_example_data(save_dir=pathlib.Path(temp_dir) / "example_dataset")
+
+        fov_names = [f"fov{i}" for i in range(11)]
+        input_data_path = pathlib.Path(temp_dir) / "example_dataset/image_data"
+
+        # Get downloaded + moved fov names.
+        downloaded_fovs = list(input_data_path.glob("*"))
+        print(downloaded_fovs)
+        downloaded_fov_names = [f.stem for f in downloaded_fovs]
+
+        # Assert that all the fovs exist after copying the data to "image_data/input_data"
+        assert set(fov_names) == set(downloaded_fov_names)
+
+        channel_names = ["CD3", "CD4", "CD8", "CD14", "CD20", "CD31", "CD45", "CD68", "CD163",
+                         "CK17", "Collagen1", "ECAD", "Fibronectin", "GLUT1", "H3K9ac",
+                         "H3K27me3", "HLADR", "IDO", "Ki67", "PD1", "SMA", "Vim"]
+
+        # Assert that for each fov, all 22 channels exist
+        for fov in downloaded_fovs:
+            c_names = [c.stem for c in fov.rglob("*")]
+            assert set(channel_names) == set(c_names)
