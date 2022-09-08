@@ -564,5 +564,5 @@ def download_example_data(save_dir: Union[str, pathlib.Path]):
 
     data_path = pathlib.Path(ds["base_dataset"]["Data Path"][0]) / "input_data"
 
-    shutil.copytree(data_path, pathlib.Path(save_dir) / "input_data",
+    shutil.copytree(data_path, pathlib.Path(save_dir) / "image_data",
                     dirs_exist_ok=True, ignore=shutil.ignore_patterns('._*'))
