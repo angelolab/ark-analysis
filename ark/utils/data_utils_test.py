@@ -629,14 +629,22 @@ def test_generate_and_save_cell_cluster_masks():
 
 def test_download_example_data():
     with tempfile.TemporaryDirectory() as temp_dir:
-        download_path = download_example_data(save_dir=temp_dir, get_data_path=True)
-
-        # Assert that the dataset downloaded
-        assert os.path.exists(pathlib.Path(download_path))
+        download_example_data(save_dir=temp_dir, get_data_path=True)
 
         fov_names = [f"fov{i}" for i in range(11)]
-        input_data_path = pathlib.Path(download_path) / "input_data"
-        downloaded_fovs = [f.stem for f in input_data_path.glob("*")]
+        input_data_path = pathlib.Path(temp_dir) / "image_data/input_data"
 
-        # Assert that all the fovs exist
-        assert set(fov_names) == set(downloaded_fovs)
+        downloaded_fovs = list(input_data_path.glob("*"))
+        downloaded_fov_names = [f.stem for f in downloaded_fovs]
+
+        # Assert that all the fovs exist after copying the data to "image_data/input_data"
+        assert set(fov_names) == set(downloaded_fov_names)
+
+        channel_names = ["CD3", "CD4", "CD8", "CD14", "CD20", "CD31", "CD45", "CD68", "CD163",
+                         "CK17", "Collagen1", "ECAD", "Fibronectin", "GLUT1", "H3K9ac",
+                         "H3K27me3", "HLADR", "IDO", "Ki67", "PD1", "SMA", "Vim"]
+
+        # Assert that for each fov, all 22 channels exist
+        for fov in downloaded_fovs:
+            c_names = [c.stem for c in fov.rglob("*")]
+            assert set(channel_names) == set(c_names)

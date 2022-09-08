@@ -9,7 +9,7 @@ import numpy as np
 import xarray as xr
 from tqdm.notebook import tqdm_notebook as tqdm
 import datasets
-
+import shutil
 from ark import settings
 from ark.utils import load_utils
 from ark.utils.misc_utils import verify_in_list
@@ -549,7 +549,7 @@ def split_img_stack(stack_dir, output_dir, stack_list, indices, names, channels_
 
 
 def download_example_data(save_dir: Union[str, pathlib.Path],
-                          get_data_path: bool = True) -> Optional[pathlib.Path]:
+                          get_data_path: bool = True):
     """Downloads the example dataset from Hugging Face Hub.
     The following is a link to the dataset used:
     https://huggingface.co/datasets/angelolab/ark_example
@@ -560,15 +560,12 @@ def download_example_data(save_dir: Union[str, pathlib.Path],
         save_dir (Union[str, pathlib.Path]): The directory to save the example dataset in.
         get_data_path (bool): Returns the path of the dataset directory in order to load the
             example data. Defaults to True.
-
-    Returns:
-        Optional[pathlib.Path]: Returns the path where the dataset is saved.
     """
-    cache_dir = pathlib.Path(save_dir)
 
     # Downloads the dataset
-    ds = datasets.load_dataset("angelolab/ark_example", cache_dir=cache_dir)
+    ds = datasets.load_dataset("angelolab/ark_example")
 
-    if get_data_path:
-        data_path = ds["base_dataset"]["Data Path"][0]
-        return data_path
+    data_path = pathlib.Path(ds["base_dataset"]["Data Path"][0]) / "input_data"
+
+    shutil.copytree(data_path, pathlib.Path(save_dir) / "input_data",
+                    dirs_exist_ok=True, ignore=shutil.ignore_patterns('._*'))
