@@ -629,12 +629,14 @@ def test_generate_and_save_cell_cluster_masks():
 
 def test_download_example_data():
     with tempfile.TemporaryDirectory() as temp_dir:
-        download_example_data(save_dir=temp_dir, get_data_path=True)
+        download_example_data(save_dir=pathlib.Path(temp_dir) / "example_dataset/image_data")
 
         fov_names = [f"fov{i}" for i in range(11)]
-        input_data_path = pathlib.Path(temp_dir) / "image_data/input_data"
+        input_data_path = pathlib.Path(temp_dir) / "example_dataset/image_data/input_data"
 
+        # Get downloaded + moved fov names.
         downloaded_fovs = list(input_data_path.glob("*"))
+        print(downloaded_fovs)
         downloaded_fov_names = [f.stem for f in downloaded_fovs]
 
         # Assert that all the fovs exist after copying the data to "image_data/input_data"

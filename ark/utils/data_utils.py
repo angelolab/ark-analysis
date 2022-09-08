@@ -548,18 +548,15 @@ def split_img_stack(stack_dir, output_dir, stack_list, indices, names, channels_
             io.imsave(save_path, channel, plugin='tifffile', check_contrast=False)
 
 
-def download_example_data(save_dir: Union[str, pathlib.Path],
-                          get_data_path: bool = True):
+def download_example_data(save_dir: Union[str, pathlib.Path]):
     """Downloads the example dataset from Hugging Face Hub.
     The following is a link to the dataset used:
     https://huggingface.co/datasets/angelolab/ark_example
 
-    The dataset will be saved in `save_dir/example_dataset/raw`.
+    The dataset will be saved in `{save_dir}/example_dataset/image_data`.
 
     Args:
         save_dir (Union[str, pathlib.Path]): The directory to save the example dataset in.
-        get_data_path (bool): Returns the path of the dataset directory in order to load the
-            example data. Defaults to True.
     """
 
     # Downloads the dataset
