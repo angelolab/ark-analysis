@@ -1,7 +1,4 @@
 import os
-import pathlib
-from typing import List, Optional, Union
-import glob
 import warnings
 
 import skimage.io as io

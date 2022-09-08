@@ -6,7 +6,6 @@ import skimage.io as io
 from skimage.measure import regionprops_table
 from skimage.morphology import remove_small_objects
 from skimage.segmentation import find_boundaries
-import xarray as xr
 
 from ark.utils import load_utils, plot_utils, io_utils, misc_utils
 import ark.settings as settings

@@ -1,13 +1,11 @@
 import copy
 
 import numpy as np
-import pandas as pd
 import xarray as xr
 
 from skimage.draw import ellipse
-from skimage.measure import moments, regionprops, regionprops_table
+from skimage.measure import regionprops
 
-import ark.settings as settings
 import ark.segmentation.regionprops_extraction as regionprops_extraction
 
 

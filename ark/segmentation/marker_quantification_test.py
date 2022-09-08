@@ -8,7 +8,6 @@ import xarray as xr
 
 import skimage.morphology as morph
 from skimage.morphology import erosion
-from skimage.measure import regionprops
 
 from ark.segmentation import marker_quantification
 from ark.utils import misc_utils

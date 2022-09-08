@@ -4,7 +4,6 @@ from sklearn.manifold import TSNE
 import matplotlib.pyplot as plt
 import seaborn as sns
 import umap
-import os
 
 from ark.utils import misc_utils
 
