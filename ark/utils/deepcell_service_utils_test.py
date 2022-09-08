@@ -5,10 +5,12 @@ from zipfile import ZipFile
 
 import numpy as np
 import pytest
+import tifffile
 from pytest_mock import MockerFixture
 from skimage import io
-import tifffile
-from ark.utils.deepcell_service_utils import create_deepcell_output, _convert_deepcell_seg_masks
+
+from ark.utils.deepcell_service_utils import (_convert_deepcell_seg_masks,
+                                              create_deepcell_output)
 
 
 def mocked_run_deepcell(in_zip_path, output_dir, host, job_type, scale, timeout):

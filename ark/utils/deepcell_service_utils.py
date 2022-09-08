@@ -13,7 +13,6 @@ import requests
 from requests.adapters import HTTPAdapter
 from requests.exceptions import RetryError
 from requests.packages.urllib3.util import Retry
-from scipy import stats
 from skimage import io
 from tifffile import imread
 from tqdm.notebook import tqdm
