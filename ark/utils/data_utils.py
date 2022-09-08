@@ -1,16 +1,17 @@
+import math
 import os
 import pathlib
 from typing import List, Union
-import math
+
 import feather
-import skimage.io as io
 import numpy as np
+import skimage.io as io
 import xarray as xr
+from tqdm.notebook import tqdm_notebook as tqdm
 
 from ark import settings
 from ark.utils import load_utils
 from ark.utils.misc_utils import verify_in_list
-from tqdm.notebook import tqdm_notebook as tqdm
 
 
 def save_fov_images(fovs, data_dir, img_xr, sub_dir=None, name_suffix=''):

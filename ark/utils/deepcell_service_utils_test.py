@@ -1,11 +1,13 @@
-import pathlib
 import os
+import pathlib
 import tempfile
 from zipfile import ZipFile
+
+import numpy as np
 import pytest
 from pytest_mock import MockerFixture
-import numpy as np
 from skimage import io
+
 from ark.utils.deepcell_service_utils import create_deepcell_output
 
 

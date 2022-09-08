@@ -2,7 +2,6 @@ import copy
 
 import numpy as np
 import xarray as xr
-
 from skimage.draw import ellipse
 from skimage.measure import regionprops
 

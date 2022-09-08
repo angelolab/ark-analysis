@@ -1,19 +1,17 @@
 import copy
-import numpy as np
 import os
+import tempfile
+
+import numpy as np
 import pytest
 import skimage.io as io
-import tempfile
-import xarray as xr
-
 import skimage.morphology as morph
+import xarray as xr
 from skimage.morphology import erosion
 
-from ark.segmentation import marker_quantification
-from ark.utils import misc_utils
-from ark.utils import test_utils
-
 import ark.settings as settings
+from ark.segmentation import marker_quantification
+from ark.utils import misc_utils, test_utils
 
 
 def test_get_single_compartment_props():

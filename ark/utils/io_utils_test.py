@@ -1,6 +1,7 @@
 import os
-import tempfile
 import pathlib
+import tempfile
+
 import pytest
 
 from ark.utils import io_utils as iou

@@ -1,7 +1,8 @@
 import io
 import os
-import pytest
 import tempfile
+
+import pytest
 
 from . import metaclusterdata_from_files
 

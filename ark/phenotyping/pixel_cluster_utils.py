@@ -1,20 +1,18 @@
-from functools import partial
 import multiprocessing
 import os
 import subprocess
 import warnings
+from functools import partial
+from shutil import rmtree
 
 import feather
 import numpy as np
 import pandas as pd
-from pyarrow.lib import ArrowInvalid
 import scipy.ndimage as ndimage
-from shutil import rmtree
+from pyarrow.lib import ArrowInvalid
 from skimage.io import imread, imsave
 
-from ark.utils import io_utils
-from ark.utils import load_utils
-from ark.utils import misc_utils
+from ark.utils import io_utils, load_utils, misc_utils
 
 multiprocessing.set_start_method('spawn', force=True)
 

@@ -1,13 +1,13 @@
-import subprocess
 import os
+import subprocess
 import tempfile
-
-from testbook import testbook
 from tempfile import TemporaryDirectory as tdir
+
+import pytest
+from testbook import testbook
 
 from ark.utils import notebooks_test_utils
 
-import pytest
 parametrize = pytest.mark.parametrize
 
 

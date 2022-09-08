@@ -1,16 +1,16 @@
 import os
-import pytest
-from pytest_cases import parametrize_with_cases
-from shutil import rmtree
 import tempfile
 import warnings
+from shutil import rmtree
 
 import feather
 import numpy as np
 import pandas as pd
-from skimage.draw import disk
-import skimage.io as io
+import pytest
 import scipy.ndimage as ndimage
+import skimage.io as io
+from pytest_cases import parametrize_with_cases
+from skimage.draw import disk
 
 import ark.phenotyping.pixel_cluster_utils as pixel_cluster_utils
 import ark.utils.io_utils as io_utils

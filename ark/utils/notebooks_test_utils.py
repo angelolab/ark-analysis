@@ -1,6 +1,7 @@
-import feather
 import json
 import os
+
+import feather
 import numpy as np
 import pandas as pd
 import skimage.io as io

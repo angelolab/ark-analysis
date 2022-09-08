@@ -1,9 +1,9 @@
-from sklearn.preprocessing import StandardScaler
-from sklearn.decomposition import PCA
-from sklearn.manifold import TSNE
 import matplotlib.pyplot as plt
 import seaborn as sns
 import umap
+from sklearn.decomposition import PCA
+from sklearn.manifold import TSNE
+from sklearn.preprocessing import StandardScaler
 
 from ark.utils import misc_utils
 

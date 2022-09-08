@@ -1,21 +1,19 @@
-import numpy as np
 import os
 import tempfile
 from shutil import rmtree
-import pytest
-import feather
-import pandas as pd
-import xarray as xr
-import skimage.io as io
 
-from ark.utils import data_utils, test_utils
-from ark.utils.data_utils import (
-    generate_and_save_cell_cluster_masks,
-    generate_and_save_pixel_cluster_masks,
-    relabel_segmentation,
-    label_cells_by_cluster
-)
+import feather
+import numpy as np
+import pandas as pd
+import pytest
+import skimage.io as io
+import xarray as xr
+
 from ark import settings
+from ark.utils import data_utils, test_utils
+from ark.utils.data_utils import (generate_and_save_cell_cluster_masks,
+                                  generate_and_save_pixel_cluster_masks,
+                                  label_cells_by_cluster, relabel_segmentation)
 
 
 def test_save_fov_images():

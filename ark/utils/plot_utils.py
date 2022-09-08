@@ -1,20 +1,21 @@
-from typing import Union, List
-import numpy as np
+import os
+import pathlib
+import shutil
+from operator import contains
+from typing import List, Union
+
 import matplotlib.cm as cm
 import matplotlib.colors as colors
 import matplotlib.pyplot as plt
-from mpl_toolkits.axes_grid1 import make_axes_locatable
-import os
-import shutil
-import pandas as pd
-import pathlib
-import xarray as xr
-from skimage.segmentation import find_boundaries
-from skimage.exposure import rescale_intensity
-
-from ark.utils import load_utils, misc_utils, io_utils
 import natsort
-from operator import contains
+import numpy as np
+import pandas as pd
+import xarray as xr
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+from skimage.exposure import rescale_intensity
+from skimage.segmentation import find_boundaries
+
+from ark.utils import io_utils, load_utils, misc_utils
 # plotting functions
 from ark.utils.misc_utils import verify_in_list, verify_same_elements
 
