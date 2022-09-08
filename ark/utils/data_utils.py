@@ -557,14 +557,14 @@ def download_example_data(save_dir: Union[str, pathlib.Path],
     The dataset will be saved in `save_dir/example_dataset/raw`.
 
     Args:
-        save_dir (Union[str, pathlib.Path]): The directory to save the example in
+        save_dir (Union[str, pathlib.Path]): The directory to save the example dataset in.
         get_data_path (bool): Returns the path of the dataset directory in order to load the
             example data. Defaults to True.
 
     Returns:
         Optional[pathlib.Path]: Returns the path where the dataset is saved.
     """
-    cache_dir = pathlib.Path(save_dir) / "example_dataset" / "raw"
+    cache_dir = pathlib.Path(save_dir)
 
     # Downloads the dataset
     ds = datasets.load_dataset("angelolab/ark_example", cache_dir=cache_dir)

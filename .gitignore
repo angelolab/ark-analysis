@@ -36,6 +36,5 @@ Pipfile.lock
 .coverage.*
 .DS_Store
 
-data/example_dataset/raw/
+data/example_dataset/image_data/
 data/example_dataset/segmentation/
-data/example_dataset/pixie/
