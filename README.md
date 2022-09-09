@@ -58,7 +58,21 @@ The second step in the [Pixie](https://www.biorxiv.org/content/10.1101/2022.08.1
 After the Pixie Pipeline, the user can inspect and fine tune their results with the [**post clustering notebook**](./templates_ark/4_Post_Clustering.ipynb). This notebook will go over cleaning up artifacts left from clustering, and working with functional markers.
 
 #### 5. Spatial Analysis  
-TBD once notebooks are finished. [Workshop Talk - Session VI - Spatial Analysis](https://youtu.be/HQAkS7kbzH8).
+[Workshop Talk - Session VI - Spatial Analysis - Part 1: Choosing the Right Analysis Tool](https://youtu.be/HQAkS7kbzH8).
+
+  1. **Pairwise Enrichment Analysis**
+
+     The [**pairwise enrichment notebook**](templates_ark/example_pairwise_spatial_enrichment.ipynb) allows the user to investigate the
+     interaction between the phenotypes present in their data. In addition users can
+     cluster based on phenotypes around a particular feature such as *artery* or *gland*. [Workshop Talk - Session VI - Spatial Analysis - Part 2: Pairwise Spatial Enrichment](https://youtu.be/HQAkS7kbzH8?t=619).
+
+  2. **K-means Neighborhood Analysis**
+
+     The [**neighborhood analysis notebook**](templates_ark/example_neighborhood_analysis_script.ipynb) sheds light on neighborhoods made of micro-environments which consist of a collection of cell phenotypes. [Workshop Talk - Session VI - Spatial Analysis - Part 3: K-means Neighborhood Analysis](https://youtu.be/HQAkS7kbzH8?t=2117).
+
+  1. **Spatial LDA**
+
+     The [**preprocessing**](templates_ark/LDA_Preprocessing.ipynb) and [**training / inference**](templates_ark/LDA_Training_and_Inference.ipynb) draws from language analysis, specifically topic modelling. Spatial LDA overlays a probability distribution on cells belonging to a any particular micro-environment. [Workshop Talk - Session VI - Spatial Analysis - Part 4: Spatial LDA](https://youtu.be/HQAkS7kbzH8?t=3087).
 
 
 ### Installation Steps
