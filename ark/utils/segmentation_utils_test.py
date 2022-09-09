@@ -1,16 +1,15 @@
 import os
+import os.path
+import tempfile
+
 import numpy as np
 import pytest
-import tempfile
-import xarray as xr
-import os.path
-from skimage.measure import regionprops
 import skimage.io as io
-import tempfile
-
-from ark.utils import segmentation_utils, test_utils
+import xarray as xr
+from skimage.measure import regionprops
 
 import ark.settings as settings
+from ark.utils import segmentation_utils, test_utils
 
 
 def test_find_nuclear_mask_id():

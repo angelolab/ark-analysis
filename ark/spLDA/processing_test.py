@@ -5,8 +5,9 @@ from sklearn.cluster import KMeans
 import ark.settings as settings
 import ark.spLDA.processing as pros
 from ark.utils.misc_utils import verify_in_list
-from ark.utils.test_utils import make_cell_table
 from ark.utils.spatial_lda_utils import within_cluster_sums
+from ark.utils.test_utils import make_cell_table
+
 # Generate a test cell table
 N_CELLS = 1000
 TEST_CELL_TABLE = make_cell_table(N_CELLS)

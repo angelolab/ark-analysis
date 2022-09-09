@@ -1,11 +1,11 @@
 import os
-from typing import Any
 import warnings
 from collections.abc import Iterable
-import numpy as np
-import xarray as xr
+from typing import Any
 
 import matplotlib.pyplot as plt
+import numpy as np
+import xarray as xr
 
 
 def combine_xarrays(xarrays, axis):
