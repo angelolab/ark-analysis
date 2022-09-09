@@ -1,15 +1,15 @@
-import os
 import copy
+import os
+
 import numpy as np
 import pandas as pd
 import skimage.io as io
 from skimage.measure import regionprops_table
 from skimage.morphology import remove_small_objects
 from skimage.segmentation import find_boundaries
-import xarray as xr
 
-from ark.utils import load_utils, plot_utils, io_utils, misc_utils
 import ark.settings as settings
+from ark.utils import io_utils, load_utils, misc_utils, plot_utils
 
 
 def find_nuclear_label_id(nuc_segmentation_labels, cell_coords):

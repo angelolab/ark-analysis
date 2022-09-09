@@ -1,14 +1,14 @@
 import os
 import pickle
 
+import matplotlib.pyplot as plt
 import numpy as np
 import palettable.colorbrewer.qualitative as qual_palettes
 import pandas as pd
-import matplotlib.pyplot as plt
+import seaborn as sns
 import spatial_lda.online_lda
 from scipy.spatial.distance import pdist
-from spatial_lda.visualization import plot_adjacency_graph, _standardize_topics
-import seaborn as sns
+from spatial_lda.visualization import _standardize_topics, plot_adjacency_graph
 
 from ark.settings import BASE_COLS, CLUSTER_ID, LDA_PLOT_TYPES
 from ark.utils.misc_utils import verify_in_list

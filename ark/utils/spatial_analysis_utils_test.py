@@ -1,13 +1,13 @@
 import os
-import pytest
 import tempfile
+
 import numpy as np
 import pandas as pd
+import pytest
 import xarray as xr
-from ark.utils import spatial_analysis_utils
 
 import ark.settings as settings
-from ark.utils import test_utils
+from ark.utils import spatial_analysis_utils, test_utils
 
 
 def test_calc_dist_matrix():

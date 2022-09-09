@@ -1,15 +1,16 @@
-from optparse import Option
+import math
 import os
 import pathlib
-from typing import List, Optional, Union
-import math
+import shutil
+from typing import List, Union
+
+import datasets
 import feather
-import skimage.io as io
 import numpy as np
+import skimage.io as io
 import xarray as xr
 from tqdm.notebook import tqdm_notebook as tqdm
-import datasets
-import shutil
+
 from ark import settings
 from ark.utils import load_utils
 from ark.utils.misc_utils import verify_in_list
