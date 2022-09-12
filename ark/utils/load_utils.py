@@ -337,6 +337,8 @@ def get_tiled_fov_names(fov_names):
 
     # get tiled image dimensions
     for fov in fov_names:
+        if fov[0] != 'R':
+            raise ValueError("Image directory names should have the form RnCm.")
         fov_digits = re.findall(r'\d+', fov)
         rows.append(int(fov_digits[0]))
         cols.append(int(fov_digits[1]))
@@ -353,7 +355,7 @@ def get_tiled_fov_names(fov_names):
     return expected_fovs
 
 
-def get_max_img_size(image_dir, img_sub_folder):
+def get_max_img_size(image_dir, img_sub_folder=''):
     """Retrieves the maximum FOV image size listed in the run file, or for the given FOVs
     Args:
         image_dir (str): path to the extracted images for the specific run

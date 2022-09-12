@@ -311,6 +311,49 @@ def test_load_imgs_from_dir():
         assert loaded_xr.equals(data_xr)
 
 
+def test_get_tiled_fov_names():
+    # incorrect directory names should raise an error
+    bad_fov_names = ['fov1', 'fov2', 'fov3']
+    with pytest.raises(ValueError, match="Image directory names should have the form RnCm."):
+        expected_fovs = load_utils.get_tiled_fov_names(bad_fov_names)
+
+    # check no missing fovs
+    fov_names = ['R1C1', 'R1C2', 'R2C1', 'R2C2']
+    # should return a list with all fovs for a 3x4 tiled image
+    expected_fovs = load_utils.get_tiled_fov_names(fov_names)
+    assert expected_fovs == ['R1C1', 'R1C2', 'R2C1', 'R2C2']
+
+    # check missing fovs
+    fov_names = ['R1C1', 'R1C2', 'R2C1', 'R2C4', 'RC3C1']
+
+    # should return a list with all fovs for a 3x4 tiled image
+    expected_fovs = load_utils.get_tiled_fov_names(fov_names)
+    assert expected_fovs == ['R1C1', 'R1C2', 'R1C3', 'R1C4', 'R2C1', 'R2C2', 'R2C3', 'R2C4',
+                             'R3C1', 'R3C2', 'R3C3', 'R3C4']
+
+
+def test_get_max_img_size():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        channel_list = ['Au', 'CD3', 'CD4', 'CD8', 'CD11c']
+        fov_list = ['fov-1-scan-1', 'fov-2-scan-1']
+        larger_fov = ['fov-3-scan-1']
+
+        test_utils._write_tifs(tmpdir, fov_list, channel_list, (16, 16), '', False, int)
+        test_utils._write_tifs(tmpdir, larger_fov, channel_list, (32, 32), '', False, int)
+
+        # test success
+        max_img_size = load_utils.get_max_img_size(tmpdir)
+        assert max_img_size == 32
+
+        # write images to subfolder
+        test_utils._write_tifs(tmpdir, fov_list, channel_list, (16, 16), 'TIFs', False, int)
+        test_utils._write_tifs(tmpdir, larger_fov, channel_list, (32, 32), 'TIFs', False, int)
+
+        # test success with subfolder
+        max_img_size = load_utils.get_max_img_size(tmpdir, img_sub_folder='TIFs')
+        assert max_img_size == 32
+
+
 def test_load_tiled_img_data():
     # invalid directory is provided
     with pytest.raises(ValueError):
