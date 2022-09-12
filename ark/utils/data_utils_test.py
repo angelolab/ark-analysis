@@ -3,12 +3,13 @@ import os
 import tempfile
 from shutil import rmtree
 import pytest
+import shutil
 import feather
 import pandas as pd
 import xarray as xr
 import skimage.io as io
 import pathlib
-from ark.utils import data_utils, test_utils
+from ark.utils import data_utils, test_utils, io_utils, load_utils
 from ark.utils.data_utils import (
     download_example_data,
     generate_and_save_cell_cluster_masks,
@@ -650,3 +651,71 @@ def test_download_example_data():
         for fov in downloaded_fovs:
             c_names = [c.stem for c in fov.rglob("*")]
             assert set(channel_names) == set(c_names)
+
+
+def test_stitch_tiled_images():
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        # no fov dirs should raise an error
+        with pytest.raises(ValueError, match="No FOVs found in directory"):
+            data_utils.stitch_tiled_images(temp_dir)
+
+        for fov in ['fov1', 'fov2']:
+            os.makedirs(os.path.join(temp_dir, fov))
+
+        # bad fov names should raise error
+        with pytest.raises(ValueError, match="Invalid FOVs found in directory"):
+            data_utils.stitch_tiled_images(temp_dir)
+
+        # one valid fov name but not all should raise error
+        os.makedirs(os.path.join(temp_dir, 'R1C1'))
+        with pytest.raises(ValueError, match="Invalid FOVs found in directory"):
+            data_utils.stitch_tiled_images(temp_dir)
+
+        # check for existing previous tiled image stitching
+        os.makedirs(os.path.join(temp_dir, 'tiled_images'))
+        with pytest.raises(ValueError, match="The tiled_images subdirectory already exists"):
+            data_utils.stitch_tiled_images(temp_dir)
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        fovs = ['R1C1', 'R2C2', 'R3C1']
+        larger_fov = ['R4C2']
+        chans = [f'chan{i}' for i in range(5)]
+
+        test_utils._write_tifs(temp_dir, fovs, chans, (10, 10), '', False, int)
+        test_utils._write_tifs(temp_dir, larger_fov, chans, (12, 12), '', False, int)
+
+        # bad channel name should raise an error
+        with pytest.raises(ValueError, match="Not all values given in list"):
+            data_utils.stitch_tiled_images(temp_dir, channels='bad_channel')
+
+        # test successful tiling
+        data_utils.stitch_tiled_images(temp_dir)
+        assert sorted(io_utils.list_files(os.path.join(temp_dir, 'tiled_images'))) == \
+               [chan + '_tiled.tiff' for chan in chans]
+
+        # tiled image is 4 x 2 fovs with max_img_size = 12
+        tiled_data = load_utils.load_imgs_from_dir(os.path.join(temp_dir, 'tiled_images'),
+                                                   files=['chan0_tiled.tiff'])
+        assert tiled_data.shape == (1, 48, 24, 1)
+        shutil.rmtree(os.path.join(temp_dir, 'tiled_images'))
+
+        # test successful tiling for select channels
+        data_utils.stitch_tiled_images(temp_dir, channels=['chan1', 'chan3'])
+        assert sorted(io_utils.list_files(os.path.join(temp_dir, 'tiled_images'))) == \
+               ['chan1_tiled.tiff', 'chan3_tiled.tiff']
+
+    # test with subdir
+    with tempfile.TemporaryDirectory() as temp_dir:
+        fovs = ['R1C1', 'R2C2', 'R3C1']
+        test_utils._write_tifs(temp_dir, fovs, chans, (10, 10), 'sub_dir', False, int)
+
+        # test successful tiling
+        data_utils.stitch_tiled_images(temp_dir, img_sub_folder='sub_dir')
+        assert sorted(io_utils.list_files(os.path.join(temp_dir, 'tiled_images'))) == \
+               [chan + '_tiled.tiff' for chan in chans]
+
+        # tiled image is 3 x 2 fovs with max_img_size = 10
+        tiled_data = load_utils.load_imgs_from_dir(os.path.join(temp_dir, 'tiled_images'),
+                                                   files=['chan0_tiled.tiff'])
+        assert tiled_data.shape == (1, 30, 20, 1)

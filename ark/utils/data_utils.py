@@ -7,11 +7,13 @@ import feather
 import skimage.io as io
 import numpy as np
 import xarray as xr
+import natsort as ns
 from tqdm.notebook import tqdm_notebook as tqdm
 import datasets
 import shutil
 from ark import settings
-from ark.utils import load_utils
+from ark.utils import load_utils, io_utils
+from ark.utils.load_utils import load_tiled_img_data
 from ark.utils.misc_utils import verify_in_list
 
 
@@ -566,3 +568,59 @@ def download_example_data(save_dir: Union[str, pathlib.Path]):
 
     shutil.copytree(data_path, pathlib.Path(save_dir) / "image_data",
                     dirs_exist_ok=True, ignore=shutil.ignore_patterns('._*'))
+
+
+def stitch_tiled_images(data_dir, img_sub_folder=None, channels=None):
+    """
+    Args:
+        data_dir (string):
+            path to directory containing images
+        img_sub_folder (str):
+            optional name of image sub-folder within each fov
+        channels (list):
+            optional list of imgs to load, otherwise loads all imgs
+
+    Returns:
+        saves each tiled array to a channel_tiled.tiff image file in a new tiled_images subdir
+    """
+
+    # check for previous stitching
+    tiled_dir = os.path.join(data_dir, 'tiled_images')
+
+    if os.path.exists(tiled_dir):
+        raise ValueError(f"The tiled_images subdirectory already exists in {data_dir}")
+
+    # retrieve valid folder names
+    folders = ns.natsorted(io_utils.list_folders(data_dir, substrs='R'))
+
+    if len(folders) != len(io_utils.list_folders(data_dir)):
+        raise ValueError(f"Invalid FOVs found in directory, {data_dir}. FOV folder names should "
+                         f"have the form RnCm.")
+    elif len(folders) == 0:
+        raise ValueError(f"No FOVs found in directory, {data_dir}.")
+
+    _, num_rows, num_cols = load_utils.get_tiled_fov_names(folders, return_dims=True)
+
+    # no img_sub_folder, change to empty string to read directly from base folder
+    if img_sub_folder is None:
+        img_sub_folder = ""
+
+    # retrieve all extracted channel names, or verify the list provided
+    if channels is None:
+        channels = io_utils.remove_file_extensions(io_utils.list_files(
+            dir_name=os.path.join(data_dir, folders[0], img_sub_folder), substrs='.tiff'))
+    else:
+        verify_in_list(channel_inputs=channels, valid_channels=io_utils.remove_file_extensions(
+            io_utils.list_files(dir_name=os.path.join(data_dir, folders[0], img_sub_folder),
+                                substrs='.tiff')))
+
+    # make tiled subdir
+    os.makedirs(tiled_dir)
+
+    # save the tiled images to the tiled_images subdir, one channel at a time
+    for chan in channels:
+        image_data = load_tiled_img_data(data_dir, img_sub_folder, channels=[chan])
+        tiled_data = stitch_images(image_data, num_cols)
+        current_img = tiled_data.loc['stitched_image', :, :, chan].values
+        io.imsave(os.path.join(tiled_dir, chan + '_tiled.tiff'), current_img.astype('float32'),
+                  check_contrast=False)
