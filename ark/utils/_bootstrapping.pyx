@@ -1,9 +1,9 @@
-from cython cimport cdivision, boundscheck, wraparound
-from cpython.mem cimport PyMem_Malloc, PyMem_Free
+from cpython.mem cimport PyMem_Free, PyMem_Malloc
+from cython cimport boundscheck, cdivision, wraparound
 
 import numpy as np
-cimport numpy as np
 
+cimport numpy as np
 from libc.stdlib cimport rand
 from libc.string cimport memset
 

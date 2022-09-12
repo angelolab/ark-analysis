@@ -1,8 +1,8 @@
 import os
-import pytest
 import tempfile
 
 import numpy as np
+import pytest
 
 from ark.utils import misc_utils, test_utils
 

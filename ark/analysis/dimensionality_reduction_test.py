@@ -1,10 +1,11 @@
-import tempfile
 import os
+import tempfile
+
 import pytest
 
+import ark.settings as settings
 from ark.analysis import dimensionality_reduction
 from ark.utils import test_utils
-import ark.settings as settings
 
 
 def test_plot_dim_reduced_data():

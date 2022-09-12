@@ -1,6 +1,7 @@
-import feather
 import json
 import os
+
+import feather
 import numpy as np
 import pandas as pd
 import skimage.io as io
@@ -106,18 +107,12 @@ def segment_notebook_setup(tb, deepcell_tiff_dir, deepcell_input_dir, deepcell_o
     # define custom paths, leave base_dir and input_dir for simplicity
     define_paths = """
         tiff_dir = "%s"
+        cell_table_dir = "%s"
         deepcell_input_dir = "%s"
         deepcell_output_dir = "%s"
-        single_cell_dir = "%s"
-        viz_dir = "%s"
-    """ % (deepcell_tiff_dir, deepcell_input_dir, deepcell_output_dir, single_cell_dir, viz_dir)
+        deepcell_visualization_dir = "%s"
+    """ % (deepcell_tiff_dir, single_cell_dir, deepcell_input_dir, deepcell_output_dir, viz_dir)
     tb.inject(define_paths, after='file_path')
-
-    # will set MIBItiff and MIBItiff_suffix
-    tb.execute_cell('mibitiff_set')
-    if is_mibitiff:
-        # default setting is MIBItiff = False, change to True if user has mibitiff inputs
-        tb.inject("MIBItiff = True", after='mibitiff_set')
 
 
 def flowsom_pixel_setup(tb, flowsom_dir, create_seg_dir=True, img_shape=(50, 50),
@@ -905,7 +900,7 @@ def overlay_mask(tb, channels=None):
             segmentation_utils.save_segmentation_labels(
                 segmentation_dir=deepcell_output_dir,
                 data_dir=deepcell_input_dir,
-                output_dir=viz_dir,
+                output_dir=deepcell_visualization_dir,
                 fovs=io_utils.remove_file_extensions(fovs),
                 channels=%s
             )

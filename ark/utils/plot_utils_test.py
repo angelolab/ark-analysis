@@ -1,18 +1,16 @@
 import os
-import pytest
 import tempfile
+from pathlib import Path
 
+import natsort
 import numpy as np
 import pandas as pd
+import pytest
 import skimage.io as io
 import xarray as xr
-import pytest
-
-from ark.utils import plot_utils, test_utils
 from skimage.draw import disk
 
-from pathlib import Path
-import natsort
+from ark.utils import plot_utils, test_utils
 
 
 def _generate_segmentation_labels(img_dims, num_cells=20):

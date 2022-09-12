@@ -1,8 +1,8 @@
-import subprocess
-import tempfile
 import os
 import pathlib
+import subprocess
 import sys
+import tempfile
 
 TEMPLATES = [
     ('a.ipynb', 'a'),
