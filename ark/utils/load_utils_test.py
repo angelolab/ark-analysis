@@ -312,11 +312,6 @@ def test_load_imgs_from_dir():
 
 
 def test_get_tiled_fov_names():
-    # incorrect directory names should raise an error
-    bad_fov_names = ['fov1', 'fov2', 'fov3']
-    with pytest.raises(ValueError, match="Image directory names should have the form RnCm."):
-        expected_fovs = load_utils.get_tiled_fov_names(bad_fov_names)
-
     # check no missing fovs
     fov_names = ['R1C1', 'R1C2', 'R2C1', 'R2C2']
     # should return a list with all fovs for a 3x4 tiled image
@@ -327,9 +322,10 @@ def test_get_tiled_fov_names():
     fov_names = ['R1C1', 'R1C2', 'R2C1', 'R2C4', 'RC3C1']
 
     # should return a list with all fovs for a 3x4 tiled image
-    expected_fovs = load_utils.get_tiled_fov_names(fov_names)
+    expected_fovs, rows, cols = load_utils.get_tiled_fov_names(fov_names, return_dims=True)
     assert expected_fovs == ['R1C1', 'R1C2', 'R1C3', 'R1C4', 'R2C1', 'R2C2', 'R2C3', 'R2C4',
                              'R3C1', 'R3C2', 'R3C3', 'R3C4']
+    assert (rows, cols) == (3, 4)
 
 
 def test_get_max_img_size():
@@ -359,6 +355,16 @@ def test_load_tiled_img_data():
     with pytest.raises(ValueError):
         loaded_xr = \
             load_utils.load_tiled_img_data('not_a_dir', img_sub_folder="TIFs")
+
+    # bad FOV name structure should raise an error
+    with tempfile.TemporaryDirectory() as temp_dir:
+        fovs = ['fov-1', 'fov-2', 'fov-3']
+        for fov in fovs:
+            os.makedirs(os.path.join(temp_dir, fov))
+
+        with pytest.raises(ValueError):
+            loaded_xr = \
+                load_utils.load_tiled_img_data(temp_dir)
 
     # check with no missing FOVS
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -423,6 +429,7 @@ def test_load_tiled_img_data():
             load_utils.load_tiled_img_data(temp_dir, img_sub_folder="TIFs", channels=some_chans)
 
         assert loaded_xr.equals(data_xr[:, :, :, :2])
+        assert loaded_xr.shape == (4, 10, 10, 2)
 
         # check mixed extension presence
         loaded_xr = \

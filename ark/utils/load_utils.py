@@ -325,10 +325,11 @@ def load_imgs_from_dir(data_dir, files=None, match_substring=None, trim_suffix=N
     return img_xr
 
 
-def get_tiled_fov_names(fov_names):
+def get_tiled_fov_names(fov_names, return_dims=False):
     """Generates the complete tiling fov list when given a list of fov image folders
     Args:
         fov_names (list): path to the extracted images for the specific run
+        return_dims (bool): whether to also return row and col dimensions
     Returns:
         list: names of all fovs expected for tiled image shape """
 
@@ -337,8 +338,6 @@ def get_tiled_fov_names(fov_names):
 
     # get tiled image dimensions
     for fov in fov_names:
-        if fov[0] != 'R':
-            raise ValueError("Image directory names should have the form RnCm.")
         fov_digits = re.findall(r'\d+', fov)
         rows.append(int(fov_digits[0]))
         cols.append(int(fov_digits[1]))
@@ -351,8 +350,10 @@ def get_tiled_fov_names(fov_names):
     for n in range(row_num):
         for m in range(col_num):
             expected_fovs.append(f"R{n + 1}C{m + 1}")
-
-    return expected_fovs
+    if return_dims:
+        return expected_fovs, row_num, col_num
+    else:
+        return expected_fovs
 
 
 def get_max_img_size(image_dir, img_sub_folder=''):
@@ -364,7 +365,7 @@ def get_max_img_size(image_dir, img_sub_folder=''):
         value of max image size"""
 
     img_sizes = []
-    fov_list = iou.list_folders(image_dir)
+    fov_list = iou.list_folders(image_dir, substrs='R')
     channels = iou.list_files(os.path.join(image_dir, fov_list[0], img_sub_folder))
 
     # check image size for each fov
@@ -400,15 +401,16 @@ def load_tiled_img_data(data_dir, img_sub_folder=None, channels=None, max_image_
         # no img_sub_folder, change to empty string to read directly from base folder
         img_sub_folder = ''
 
-    fov_list = ns.natsorted(iou.list_folders(data_dir))
+    fov_list = ns.natsorted(iou.list_folders(data_dir, substrs='R'))
     if len(fov_list) == 0:
-        raise ValueError(f"No fovs found in directory, {data_dir}")
+        raise ValueError(f"No FOVs found in directory, {data_dir}. FOV folder names should "
+                         f"have the form RnCm.")
+
+    expected_fovs = get_tiled_fov_names(fov_list)
 
     # get image size if not provided
     if not max_image_size:
         max_image_size = get_max_img_size(data_dir, img_sub_folder)
-
-    expected_fovs = get_tiled_fov_names(fov_list)
 
     # get imgs from first fov if no img names supplied
     if channels is None:
