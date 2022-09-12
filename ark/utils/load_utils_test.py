@@ -428,5 +428,5 @@ def test_load_tiled_img_data():
         shutil.rmtree(os.path.join(temp_dir, 'R2C1'))
 
         loaded_xr = \
-            load_utils.load_tiled_img_data(temp_dir, img_sub_folder="TIFs", max_img_size=12)
+            load_utils.load_tiled_img_data(temp_dir, img_sub_folder="TIFs", max_image_size=12)
         assert loaded_xr.shape == (4, 12, 12, 4)
