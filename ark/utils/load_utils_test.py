@@ -1,9 +1,9 @@
-import shutil
 import os
+import tempfile
+import shutil
 
 import numpy as np
 import pytest
-import tempfile
 
 from ark.utils import load_utils, test_utils
 

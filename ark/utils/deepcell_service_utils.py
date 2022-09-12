@@ -1,23 +1,22 @@
-from concurrent.futures import ThreadPoolExecutor
-from json import JSONDecodeError
 import os
+import time
+import warnings
+from concurrent.futures import ThreadPoolExecutor
+from io import BytesIO
+from json import JSONDecodeError
 from pathlib import Path
+from urllib.parse import unquote_plus
+from zipfile import ZIP_DEFLATED, ZipFile
+
+import numpy as np
 import requests
 from requests.adapters import HTTPAdapter
 from requests.exceptions import RetryError
 from requests.packages.urllib3.util import Retry
-import time
-from tqdm.notebook import tqdm
-from urllib.parse import unquote_plus
-import warnings
-from concurrent.futures import ThreadPoolExecutor
-import numpy as np
-from scipy import stats
 from skimage import io
 from tifffile import imread
-from io import BytesIO
-from ark.utils import misc_utils
-from zipfile import ZipFile, ZIP_DEFLATED
+from tqdm.notebook import tqdm
+
 from ark.utils import io_utils, misc_utils
 
 

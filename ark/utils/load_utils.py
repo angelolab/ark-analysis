@@ -1,17 +1,15 @@
 import os
-import pathlib
-from typing import List, Optional, Union
-import glob
 import warnings
 import re
 
-import skimage.io as io
 import numpy as np
+import skimage.io as io
 import xarray as xr
 import natsort as ns
 
+from ark.utils import io_utils as iou
+from ark.utils import misc_utils
 from ark.utils.tiff_utils import read_mibitiff
-from ark.utils import io_utils as iou, misc_utils
 
 
 def load_imgs_from_mibitiff(data_dir, mibitiff_files=None, channels=None, delimiter=None):
