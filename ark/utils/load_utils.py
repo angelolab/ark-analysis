@@ -329,7 +329,7 @@ def get_tiled_fov_names(fov_names, return_dims=False):
         fov_names (list): path to the extracted images for the specific run
         return_dims (bool): whether to also return row and col dimensions
     Returns:
-        list: names of all fovs expected for tiled image shape """
+        tuple: names of all fovs expected for tiled image shape, and dimensions if return_dims"""
 
     rows = []
     cols = []
@@ -361,7 +361,7 @@ def get_max_img_size(image_dir, img_sub_folder='', fov_list=None):
         img_sub_folder (str): optional name of image sub-folder within each fov
         fov_list (list): list of fovs to check max size for, default none will check all fovs
     Returns:
-        value of max image size"""
+        int: value of max image size"""
 
     img_sizes = []
     if not fov_list:
@@ -392,7 +392,8 @@ def load_tiled_img_data(data_dir, img_sub_folder=None, channels=None, max_image_
             be padded to bring them up to the same size.
 
     Returns:
-        xarray.DataArray: xarray with shape [fovs, x_dim, y_dim, tifs]
+        xarray.DataArray:
+            xarray with shape [fovs, x_dim, y_dim, tifs]
         """
 
     iou.validate_paths(data_dir, data_prefix=False)
