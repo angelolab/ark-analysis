@@ -325,11 +325,13 @@ def load_imgs_from_dir(data_dir, files=None, match_substring=None, trim_suffix=N
 
 def get_tiled_fov_names(fov_names, return_dims=False):
     """Generates the complete tiling fov list when given a list of fov image folders
+
     Args:
         fov_names (list): path to the extracted images for the specific run
         return_dims (bool): whether to also return row and col dimensions
     Returns:
-        tuple: names of all fovs expected for tiled image shape, and dimensions if return_dims"""
+        tuple: names of all fovs expected for tiled image shape, and dimensions if return_dims
+    """
 
     rows = []
     cols = []
@@ -356,12 +358,14 @@ def get_tiled_fov_names(fov_names, return_dims=False):
 
 def get_max_img_size(image_dir, img_sub_folder='', fov_list=None):
     """Retrieves the maximum FOV image size listed in the run file, or for the given FOVs
+
     Args:
         image_dir (str): path to the extracted images for the specific run
         img_sub_folder (str): optional name of image sub-folder within each fov
         fov_list (list): list of fovs to check max size for, default none will check all fovs
     Returns:
-        int: value of max image size"""
+        int: value of max image size
+    """
 
     img_sizes = []
     if not fov_list:
@@ -380,6 +384,7 @@ def get_max_img_size(image_dir, img_sub_folder='', fov_list=None):
 
 def load_tiled_img_data(data_dir, img_sub_folder=None, channels=None, max_image_size=None):
     """Takes a set of (tiled) imgs from a directory structure and loads them into an xarray.
+
     Args:
         data_dir (str):
             directory containing folders of images
@@ -403,8 +408,11 @@ def load_tiled_img_data(data_dir, img_sub_folder=None, channels=None, max_image_
         img_sub_folder = ''
 
     fov_list = ns.natsorted(iou.list_folders(data_dir, substrs='R'))
+    folders = iou.list_folders(data_dir)
+    if 'tiled_images' in folders:
+        folders.remove('tiled_images')
 
-    if len(fov_list) != len(iou.list_folders(data_dir)):
+    if len(fov_list) != len(folders):
         raise ValueError(f"Invalid FOVs found in directory, {data_dir}. FOV folder names should "
                          f"have the form RnCm.")
     elif len(fov_list) == 0:
