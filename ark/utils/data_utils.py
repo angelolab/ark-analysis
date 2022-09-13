@@ -572,7 +572,7 @@ def download_example_data(save_dir: Union[str, pathlib.Path]):
 
 
 def stitch_tiled_images(data_dir, img_sub_folder=None, channels=None):
-    """
+    """ Creates tiled images for the specified channels based on the FOV folder names
     Args:
         data_dir (string):
             path to directory containing images
