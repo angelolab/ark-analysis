@@ -394,7 +394,7 @@ def load_tiled_img_data(data_dir, img_sub_folder=None, channels=None, max_image_
     Returns:
         xarray.DataArray:
             xarray with shape [fovs, x_dim, y_dim, tifs]
-        """
+    """
 
     iou.validate_paths(data_dir, data_prefix=False)
 
