@@ -423,8 +423,8 @@ def load_tiled_img_data(data_dir, img_sub_folder=None, channels=None, max_image_
         channels_no_delim = [img.split('.')[0] for img in channels]
 
         all_channels = iou.list_files(
-            dir_name=os.path.join(data_dir, fov_list[0], img_sub_folder), substrs=channels_no_delim,
-            exact_match=True
+            dir_name=os.path.join(data_dir, fov_list[0], img_sub_folder),
+            substrs=channels_no_delim, exact_match=True
         )
 
         # get the corresponding indices found in channels_no_delim
@@ -462,7 +462,8 @@ def load_tiled_img_data(data_dir, img_sub_folder=None, channels=None, max_image_
             start_col = (int(fov_digits[1]) - 1) * max_image_size
 
             for img in range(len(channels)):
-                temp_img = io.imread(os.path.join(data_dir, expected_fovs[fov], img_sub_folder, channels[img]))
+                temp_img = io.imread(os.path.join(data_dir, expected_fovs[fov], img_sub_folder,
+                                                  channels[img]))
                 # fill in specific spot in array
                 img_data[fov, :temp_img.shape[0], :temp_img.shape[1], img] = temp_img
 

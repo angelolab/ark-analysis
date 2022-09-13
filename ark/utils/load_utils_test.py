@@ -374,7 +374,7 @@ def test_load_tiled_img_data():
                 load_utils.load_tiled_img_data(temp_dir, img_sub_folder="TIFs")
 
         _, chans, imgs = test_utils.gen_fov_chan_names(num_fovs=3, num_chans=3,
-                                                          return_imgs=True)
+                                                       return_imgs=True)
 
         fovs = ['R1C1', 'R1C2', 'R1C3']
 
