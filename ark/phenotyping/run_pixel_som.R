@@ -16,9 +16,6 @@ suppressPackageStartupMessages({
     library(parallel)
 })
 
-# get the number of cores
-nCores <- parallel::detectCores() - 1
-
 # get the command line arguments
 args <- commandArgs(trailingOnly=TRUE)
 
@@ -36,6 +33,9 @@ pixelWeightsPath <- args[4]
 
 # retrieve the batch size to determine number of threads to run in parallel
 batchSize <- strtoi(args[5])
+
+# get the number of cores
+nCores <- strtoi(args[6]) - 1
 
 # read the weights
 somWeights <- as.matrix(arrow::read_feather(pixelWeightsPath))

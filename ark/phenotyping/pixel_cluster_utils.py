@@ -905,7 +905,7 @@ def cluster_pixels(fovs, channels, base_dir, data_dir='pixel_mat_data',
                    norm_vals_name='post_rowsum_chan_norm.feather',
                    weights_name='pixel_weights.feather',
                    pc_chan_avg_som_cluster_name='pixel_channel_avg_som_cluster.csv',
-                   batch_size=5):
+                   batch_size=5, ncores=multiprocessing.cpu_count()):
     """Uses trained weights to assign cluster labels on full pixel data
     Saves data with cluster labels to `cluster_dir`. Computes and saves the average channel
     expression across pixel SOM clusters.
@@ -927,6 +927,8 @@ def cluster_pixels(fovs, channels, base_dir, data_dir='pixel_mat_data',
             The name of the file to save the average channel expression across all SOM clusters
         batch_size (int):
             The number of FOVs to process in parallel
+        ncores (int):
+            The number of cores desired for multiprocessing
     """
 
     # define the paths to the data
@@ -1010,7 +1012,7 @@ def cluster_pixels(fovs, channels, base_dir, data_dir='pixel_mat_data',
 
     # run the trained SOM on the dataset, assigning clusters
     process_args = ['Rscript', '/run_pixel_som.R', ','.join(fovs_list),
-                    data_path, norm_vals_path, weights_path, str(batch_size)]
+                    data_path, norm_vals_path, weights_path, str(batch_size), str(ncores)]
 
     process = subprocess.Popen(process_args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
@@ -1059,7 +1061,7 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
                             pc_chan_avg_som_cluster_name='pixel_channel_avg_som_cluster.csv',
                             pc_chan_avg_meta_cluster_name='pixel_channel_avg_meta_cluster.csv',
                             clust_to_meta_name='pixel_clust_to_meta.feather',
-                            batch_size=5, seed=42):
+                            batch_size=5, ncores=multiprocessing.cpu_count() - 1, seed=42):
     """Run consensus clustering algorithm on pixel-level summed data across channels
     Saves data with consensus cluster labels to `consensus_dir`. Computes and saves the
     average channel expression across pixel meta clusters. Assigns meta cluster labels
@@ -1087,6 +1089,8 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
             Name of file storing the SOM cluster to meta cluster mapping
         batch_size (int):
             The number of FOVs to process in parallel
+        ncores (int):
+            The number of cores desired for multiprocessing
         seed (int):
             The random seed to set for consensus clustering
     """
@@ -1133,7 +1137,7 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
     process_args = ['Rscript', '/pixel_consensus_cluster.R',
                     ','.join(fovs_list), ','.join(channels),
                     str(max_k), str(cap), data_path, som_cluster_avg_path,
-                    clust_to_meta_path, str(batch_size), str(seed)]
+                    clust_to_meta_path, str(batch_size), str(ncores), str(seed)]
 
     process = subprocess.Popen(process_args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 

@@ -51,8 +51,11 @@ clustToMetaPath <- args[7]
 # retrieve the batch size to determine number of threads to run in parallel
 batchSize <- strtoi(args[8])
 
+# get the number of cores
+nCores <- strtoi(args[9]) - 1
+
 # set the random seed
-seed <- strtoi(args[9])
+seed <- strtoi(args[10])
 set.seed(seed)
 
 # read cluster averaged data
