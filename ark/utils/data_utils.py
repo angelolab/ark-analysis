@@ -432,6 +432,7 @@ def generate_deepcell_input(data_dir, tiff_dir, nuc_channels, mem_channels, fovs
             the number of fovs to process at once for each batch
         dtype (str/type):
             optional specifier of image type.  Overwritten with warning for float images
+
     Raises:
         ValueError:
             Raised if nuc_channels and mem_channels are both None or empty
@@ -447,17 +448,14 @@ def generate_deepcell_input(data_dir, tiff_dir, nuc_channels, mem_channels, fovs
     # filter channels for None (just in case)
     channels = [channel for channel in channels if channel is not None]
 
-    # define a list of fov batches to process over
-    fov_batches = [fovs[i:i + batch_size] for i in range(0, len(fovs), batch_size)]
-
-    for fovs in fov_batches:
+    for fov in fovs:
         # load the images in the current fov batch
         if is_mibitiff:
             data_xr = load_utils.load_imgs_from_mibitiff(
-                tiff_dir, mibitiff_files=fovs, channels=channels)
+                tiff_dir, mibitiff_files=[fov], channels=channels)
         else:
             data_xr = load_utils.load_imgs_from_tree(
-                tiff_dir, img_sub_folder=img_sub_folder, fovs=fovs, channels=channels)
+                tiff_dir, img_sub_folder=img_sub_folder, fovs=[fov], channels=channels)
 
         # write each fov data to data_dir
         for fov in data_xr.fovs.values:
