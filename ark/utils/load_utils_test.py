@@ -327,6 +327,14 @@ def test_get_tiled_fov_names():
                              'R3C1', 'R3C2', 'R3C3', 'R3C4']
     assert (rows, cols) == (3, 4)
 
+    # check missing fovs with run name attached
+    fov_names = ['run_1_R1C1', 'run_2_R1C3']
+
+    # should return a list with all fovs for a 3x4 tiled image
+    expected_fovs, rows, cols = load_utils.get_tiled_fov_names(fov_names, return_dims=True)
+    assert expected_fovs == ['R1C1', 'R1C2', 'R1C3']
+    assert (rows, cols) == (1, 3)
+
 
 def test_get_max_img_size():
     with tempfile.TemporaryDirectory() as tmpdir:

@@ -335,6 +335,8 @@ def get_tiled_fov_names(fov_names, return_dims=False):
 
     rows = []
     cols = []
+    if fov_names[0][0] != 'R':
+        fov_names = [dims.split("_R", 1)[1] for dims in fov_names]
 
     # get tiled image dimensions
     for fov in fov_names:

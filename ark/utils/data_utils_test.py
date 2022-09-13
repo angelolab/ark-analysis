@@ -704,9 +704,9 @@ def test_stitch_tiled_images():
         assert sorted(io_utils.list_files(os.path.join(temp_dir, 'tiled_images'))) == \
                ['chan1_tiled.tiff', 'chan3_tiled.tiff']
 
-    # test with subdir
+    # test with subdir and run name
     with tempfile.TemporaryDirectory() as temp_dir:
-        fovs = ['R1C1', 'R2C2', 'R3C1']
+        fovs = ['run_1_R1C1', 'run_1_R2C2', 'run_2_R3C1']
         test_utils._write_tifs(temp_dir, fovs, chans, (10, 10), 'sub_dir', False, int)
 
         # test successful tiling
