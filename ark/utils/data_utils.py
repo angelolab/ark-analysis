@@ -580,9 +580,6 @@ def stitch_tiled_images(data_dir, img_sub_folder=None, channels=None):
             optional name of image sub-folder within each fov
         channels (list):
             optional list of imgs to load, otherwise loads all imgs
-
-    Returns:
-        saves each tiled array to a channel_tiled.tiff image file in a new tiled_images subdir
     """
 
     # check for previous stitching
