@@ -334,20 +334,25 @@ def test_get_max_img_size():
         fov_list = ['fov-1-scan-1', 'fov-2-scan-1']
         larger_fov = ['fov-3-scan-1']
 
-        test_utils._write_tifs(tmpdir, fov_list, channel_list, (16, 16), '', False, int)
-        test_utils._write_tifs(tmpdir, larger_fov, channel_list, (32, 32), '', False, int)
+        test_utils._write_tifs(tmpdir, fov_list, channel_list, (10, 10), '', False, int)
+        test_utils._write_tifs(tmpdir, larger_fov, channel_list, (12, 12), '', False, int)
 
-        # test success
+        # test success for all fovs
         max_img_size = load_utils.get_max_img_size(tmpdir)
-        assert max_img_size == 32
+        assert max_img_size == 12
 
         # write images to subfolder
-        test_utils._write_tifs(tmpdir, fov_list, channel_list, (16, 16), 'TIFs', False, int)
-        test_utils._write_tifs(tmpdir, larger_fov, channel_list, (32, 32), 'TIFs', False, int)
+        test_utils._write_tifs(tmpdir, fov_list, channel_list, (10, 10), 'TIFs', False, int)
+        test_utils._write_tifs(tmpdir, larger_fov, channel_list, (12, 12), 'TIFs', False, int)
 
         # test success with subfolder
         max_img_size = load_utils.get_max_img_size(tmpdir, img_sub_folder='TIFs')
-        assert max_img_size == 32
+        assert max_img_size == 12
+
+        # test success for subset of fovs
+        max_img_size = load_utils.get_max_img_size(tmpdir, img_sub_folder='TIFs',
+                                                   fov_list=fov_list)
+        assert max_img_size == 10
 
 
 def test_load_tiled_img_data():

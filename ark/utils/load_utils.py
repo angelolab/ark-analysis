@@ -354,16 +354,18 @@ def get_tiled_fov_names(fov_names, return_dims=False):
         return expected_fovs
 
 
-def get_max_img_size(image_dir, img_sub_folder=''):
+def get_max_img_size(image_dir, img_sub_folder='', fov_list=None):
     """Retrieves the maximum FOV image size listed in the run file, or for the given FOVs
     Args:
         image_dir (str): path to the extracted images for the specific run
         img_sub_folder (str): optional name of image sub-folder within each fov
+        fov_list (list): list of fovs to check max size for, default none will check all fovs
     Returns:
         value of max image size"""
 
     img_sizes = []
-    fov_list = iou.list_folders(image_dir, substrs='R')
+    if not fov_list:
+        fov_list = iou.list_folders(image_dir)
     channels = iou.list_files(os.path.join(image_dir, fov_list[0], img_sub_folder))
 
     # check image size for each fov
@@ -408,7 +410,7 @@ def load_tiled_img_data(data_dir, img_sub_folder=None, channels=None, max_image_
 
     # get image size if not provided
     if not max_image_size:
-        max_image_size = get_max_img_size(data_dir, img_sub_folder)
+        max_image_size = get_max_img_size(data_dir, img_sub_folder, fov_list)
 
     # get imgs from first fov if no img names supplied
     if channels is None:
