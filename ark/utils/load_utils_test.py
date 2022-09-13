@@ -358,39 +358,34 @@ def test_get_max_img_size():
 def test_load_tiled_img_data():
     # invalid directory is provided
     with pytest.raises(ValueError):
-        loaded_xr = \
-            load_utils.load_tiled_img_data('not_a_dir', img_sub_folder="TIFs")
+        loaded_xr = load_utils.load_tiled_img_data('not_a_dir')
 
     # bad FOV name structure should raise an error
     with tempfile.TemporaryDirectory() as temp_dir:
-        fovs = ['fov-1', 'fov-2', 'fov-3']
-        for fov in fovs:
+        # temp_dir contains no image folders
+        with pytest.raises(ValueError, match="No FOVs found in directory"):
+            loaded_xr = load_utils.load_tiled_img_data(temp_dir)
+
+        for fov in ['fov-1', 'fov-2', 'fov-3']:
             os.makedirs(os.path.join(temp_dir, fov))
 
-        with pytest.raises(ValueError):
-            loaded_xr = \
-                load_utils.load_tiled_img_data(temp_dir)
+        # check bad fov namees
+        with pytest.raises(ValueError, match="Invalid FOVs found in directory"):
+            loaded_xr = load_utils.load_tiled_img_data(temp_dir)
 
     # check with no missing FOVS
     with tempfile.TemporaryDirectory() as temp_dir:
-        # temp_dir contains no images
-        with pytest.raises(ValueError):
-            loaded_xr = \
-                load_utils.load_tiled_img_data(temp_dir, img_sub_folder="TIFs")
-
         _, chans, imgs = test_utils.gen_fov_chan_names(num_fovs=3, num_chans=3,
                                                        return_imgs=True)
 
         fovs = ['R1C1', 'R1C2', 'R1C3']
-
         filelocs, data_xr = test_utils.create_paired_xarray_fovs(
             temp_dir, fovs, chans, img_shape=(10, 10), delimiter='_', fills=True, sub_dir="TIFs",
             dtype="int16"
         )
 
         # check default loading of all files
-        loaded_xr = \
-            load_utils.load_tiled_img_data(temp_dir, img_sub_folder="TIFs")
+        loaded_xr = load_utils.load_tiled_img_data(temp_dir, img_sub_folder="TIFs")
 
         assert loaded_xr.equals(data_xr)
         assert loaded_xr.shape == (3, 10, 10, 3)
@@ -407,7 +402,6 @@ def test_load_tiled_img_data():
         _, chans, imgs = test_utils.gen_fov_chan_names(num_fovs=4, num_chans=4, return_imgs=True)
 
         fovs = ['R1C1', 'R1C2', 'R2C1', 'R2C2']
-
         filelocs, data_xr = test_utils.create_paired_xarray_fovs(
             temp_dir, fovs, chans, img_shape=(10, 10), delimiter='_', fills=True, sub_dir="TIFs",
             dtype="int16"
@@ -437,24 +431,21 @@ def test_load_tiled_img_data():
         assert loaded_xr.shape == (4, 10, 10, 2)
 
         # check mixed extension presence
-        loaded_xr = \
-            load_utils.load_tiled_img_data(temp_dir, img_sub_folder="TIFs",
-                                           channels=[chans[i] if i % 2 else imgs[i]
-                                                     for i in range(4)])
+        loaded_xr = load_utils.load_tiled_img_data(temp_dir, img_sub_folder="TIFs",
+                                                   channels=[chans[i] if i % 2 else imgs[i]
+                                                             for i in range(4)])
         assert loaded_xr.equals(data_xr)
 
         # check that an error raises when a channel provided does not exist
         with pytest.raises(ValueError):
-            loaded_xr = \
-                load_utils.load_tiled_img_data(temp_dir, img_sub_folder="TIFs",
-                                               channels=['chan4'])
+            loaded_xr = load_utils.load_tiled_img_data(temp_dir, img_sub_folder="TIFs",
+                                                       channels=['chan4'])
 
     # test loading with data_xr containing float values
     with tempfile.TemporaryDirectory() as temp_dir:
         _, chans, imgs = test_utils.gen_fov_chan_names(num_fovs=4, num_chans=4, return_imgs=True)
 
         fovs = ['R1C1', 'R1C2', 'R2C1', 'R2C2']
-
         filelocs, data_xr = test_utils.create_paired_xarray_fovs(
             temp_dir, fovs, chans, img_shape=(10, 10), delimiter='_', fills=True, sub_dir="TIFs",
             dtype=np.float32
@@ -473,7 +464,6 @@ def test_load_tiled_img_data():
         _, chans, imgs = test_utils.gen_fov_chan_names(num_fovs=4, num_chans=4, return_imgs=True)
 
         fovs = ['R1C1', 'R1C2', 'R2C1', 'R2C2']
-
         filelocs, data_xr = test_utils.create_paired_xarray_fovs(
             temp_dir, fovs, chans, img_shape=(10, 10), delimiter='_', fills=True, sub_dir="TIFs",
             dtype="int16"

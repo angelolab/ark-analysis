@@ -403,9 +403,12 @@ def load_tiled_img_data(data_dir, img_sub_folder=None, channels=None, max_image_
         img_sub_folder = ''
 
     fov_list = ns.natsorted(iou.list_folders(data_dir, substrs='R'))
-    if len(fov_list) == 0:
-        raise ValueError(f"No FOVs found in directory, {data_dir}. FOV folder names should "
+
+    if len(fov_list) != len(iou.list_folders(data_dir)):
+        raise ValueError(f"Invalid FOVs found in directory, {data_dir}. FOV folder names should "
                          f"have the form RnCm.")
+    elif len(fov_list) == 0:
+        raise ValueError(f"No FOVs found in directory, {data_dir}.")
 
     expected_fovs = get_tiled_fov_names(fov_list)
 
