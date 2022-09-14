@@ -895,9 +895,9 @@ def train_pixel_som(fovs, channels, base_dir,
             print(output.strip())
 
     if process.returncode != 0:
-        raise MemoryError(
-            "Process terminated: you likely have a memory-related error. Try increasing "
-            "your Docker memory limit."
+        raise OSError(
+            "Process terminated: please view error messages displayed above for debugging. "
+            "For pixel SOM training, you will likely need to decrease the pixel subset proportion."
         )
 
 
@@ -1028,9 +1028,8 @@ def cluster_pixels(fovs, channels, base_dir, data_dir='pixel_mat_data',
             print(output.strip())
 
     if process.returncode != 0:
-        raise MemoryError(
-            "Process terminated: you likely have a memory-related error. Try increasing "
-            "your Docker memory limit."
+        raise OSError(
+            "Process terminated: please view error messages displayed above for debugging."
         )
 
     # remove the data directory and rename the temp directory to the data directory
@@ -1153,9 +1152,8 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
             print(output.strip())
 
     if process.returncode != 0:
-        raise MemoryError(
-            "Process terminated: you likely have a memory-related error. Try increasing "
-            "your Docker memory limit."
+        raise OSError(
+            "Process terminated: please view error messages displayed above for debugging."
         )
 
     # remove the data directory and rename the temp directory to the data directory
