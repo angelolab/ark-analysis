@@ -497,7 +497,7 @@ def compute_kmeans_inertia(neighbor_mat_data, max_k=10):
 
 
 def compute_kmeans_silhouette(neighbor_mat_data, max_k=10, subsample=None):
-    """For a given neighborhood matrix, cluster and compute Silhouette score using k-means clustering
+    """For a given neighborhood matrix, cluster and compute Silhouette score using k-means
        from the range of k=2 to max_k
 
     Args:
@@ -534,8 +534,9 @@ def compute_kmeans_silhouette(neighbor_mat_data, max_k=10, subsample=None):
             # Subsample each cluster
             sub_dat = neighbor_mat_data.groupby("cluster").apply(
                 lambda x: x.sample(subsample, replace=len(x) < subsample)).reset_index(drop=True)
-            cluster_score = sklearn.metrics.silhouette_score(sub_dat.drop("cluster",axis=1),
-                sub_dat["cluster"], metric="euclidean")
+            cluster_score = sklearn.metrics.silhouette_score(sub_dat.drop("cluster", axis=1),
+                                                             sub_dat["cluster"],
+                                                             metric="euclidean")
 
         cluster_stats.loc[n] = cluster_score
 

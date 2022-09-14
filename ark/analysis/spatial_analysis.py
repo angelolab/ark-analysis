@@ -530,9 +530,9 @@ def create_neighborhood_matrix(all_data, dist_matrices_dict, included_fovs=None,
 
     # Remove cells that have no neighbors within the distlim
     cell_neighbor_counts = cell_neighbor_counts.loc[cell_neighbor_counts.drop(
-        [fov_col, cell_label_col],axis=1).sum(axis=1) != 0].reset_index(drop=True)
+        [fov_col, cell_label_col], axis=1).sum(axis=1) != 0].reset_index(drop=True)
     cell_neighbor_freqs = cell_neighbor_freqs.loc[cell_neighbor_freqs.drop(
-        [fov_col, cell_label_col],axis=1).sum(axis=1) != 0].reset_index(drop=True)
+        [fov_col, cell_label_col], axis=1).sum(axis=1) != 0].reset_index(drop=True)
 
     return cell_neighbor_counts, cell_neighbor_freqs
 
@@ -541,8 +541,8 @@ def generate_cluster_matrix_results(all_data, neighbor_mat, cluster_num, exclude
                                     included_fovs=None, cluster_label_col=settings.KMEANS_CLUSTER,
                                     fov_col=settings.FOV_ID, cell_type_col=settings.CELL_TYPE,
                                     label_col=settings.CELL_LABEL,
-                                    pre_channel_col = settings.PRE_CHANNEL_COL,
-                                    post_channel_col = settings.POST_CHANNEL_COL):
+                                    pre_channel_col=settings.PRE_CHANNEL_COL,
+                                    post_channel_col=settings.POST_CHANNEL_COL):
     """Generate the cluster info on all_data using k-means clustering on neighbor_mat.
 
     cluster_num has to be picked based on visualizations from compute_cluster_metrics.
@@ -603,7 +603,7 @@ def generate_cluster_matrix_results(all_data, neighbor_mat, cluster_num, exclude
 
     # subset neighbor mat
     neighbor_mat_data_all = neighbor_mat[neighbor_mat[fov_col].isin(included_fovs)]
-    neighbor_mat_data = neighbor_mat_data_all.drop([fov_col,label_col], axis=1)
+    neighbor_mat_data = neighbor_mat_data_all.drop([fov_col, label_col], axis=1)
 
     # generate cluster labels
     cluster_labels = spatial_analysis_utils.generate_cluster_labels(
@@ -617,7 +617,7 @@ def generate_cluster_matrix_results(all_data, neighbor_mat, cluster_num, exclude
 
     # combine with neighborhood data
     all_data_clusters = all_data_clusters.merge(
-        neighbor_mat_data_all[[fov_col,label_col,cluster_label_col]], on=[fov_col,label_col])
+        neighbor_mat_data_all[[fov_col, label_col, cluster_label_col]], on=[fov_col, label_col])
 
     # create a count pivot table with cluster_label_col as row and cell_type_col as column
     group_by_cell_type = all_data_clusters.groupby(
@@ -686,7 +686,7 @@ def compute_cluster_metrics_inertia(neighbor_mat, max_k=10, included_fovs=None,
 
     # subset neighbor_mat accordingly, and drop the columns we don't need
     neighbor_mat_data = neighbor_mat[neighbor_mat[fov_col].isin(included_fovs)]
-    neighbor_mat_data = neighbor_mat_data.drop([fov_col,label_col], axis=1)
+    neighbor_mat_data = neighbor_mat_data.drop([fov_col, label_col], axis=1)
 
     # generate the cluster score information
     neighbor_cluster_stats = spatial_analysis_utils.compute_kmeans_inertia(
@@ -737,7 +737,7 @@ def compute_cluster_metrics_silhouette(neighbor_mat, max_k=10, included_fovs=Non
 
     # subset neighbor_mat accordingly, and drop the columns we don't need
     neighbor_mat_data = neighbor_mat[neighbor_mat[fov_col].isin(included_fovs)]
-    neighbor_mat_data = neighbor_mat_data.drop([fov_col,label_col], axis=1)
+    neighbor_mat_data = neighbor_mat_data.drop([fov_col, label_col], axis=1)
 
     # generate the cluster score information
     neighbor_cluster_stats = spatial_analysis_utils.compute_kmeans_silhouette(
