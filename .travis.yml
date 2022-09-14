@@ -43,8 +43,8 @@ jobs:
       script:
         - "travis_wait 120 sleep 7200 &"
         - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
-        # Tag the image with a version such as vX.Y.Z,
-        - docker build -t "$TRAVIS_REPO_SLUG":"$TRAVIS_TAG" . 1> out.log
+        - docker buildx create --name arkbuilder --use
+        - TAG=$TRAVIS_TAG docker buildx bake build .1> out.log
         - docker push --all-tags "$TRAVIS_REPO_SLUG"
 
 after_failure:
