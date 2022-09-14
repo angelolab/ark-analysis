@@ -35,7 +35,7 @@ pixelWeightsPath <- args[4]
 batchSize <- strtoi(args[5])
 
 # get the number of cores
-nCores <- strtoi(args[6]) - 1
+nCores <- strtoi(args[6])
 
 # read the weights
 somWeights <- as.matrix(arrow::read_feather(pixelWeightsPath))

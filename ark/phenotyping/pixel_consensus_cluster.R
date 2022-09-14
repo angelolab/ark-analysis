@@ -52,7 +52,7 @@ clustToMetaPath <- args[7]
 batchSize <- strtoi(args[8])
 
 # get the number of cores
-nCores <- strtoi(args[9]) - 1
+nCores <- strtoi(args[9])
 
 # set the random seed
 seed <- strtoi(args[10])
