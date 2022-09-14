@@ -1,5 +1,5 @@
 variable "TAG" {
-  default = "v0.4.1"
+  default = "v0.4.2"
 }
 
 target "ark-analysis" {
