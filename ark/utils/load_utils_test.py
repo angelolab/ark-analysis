@@ -332,7 +332,7 @@ def test_get_tiled_fov_names():
 
     # should return a list with all fovs for a 3x4 tiled image
     expected_fovs, rows, cols = load_utils.get_tiled_fov_names(fov_names, return_dims=True)
-    assert expected_fovs == ['R1C1', 'R1C2', 'R1C3']
+    assert expected_fovs == ['run_1_R1C1', 'R1C2', 'run_2_R1C3']
     assert (rows, cols) == (1, 3)
 
 

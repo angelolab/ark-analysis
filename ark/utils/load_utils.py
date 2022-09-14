@@ -323,11 +323,11 @@ def load_imgs_from_dir(data_dir, files=None, match_substring=None, trim_suffix=N
     return img_xr
 
 
-def get_tiled_fov_names(fov_names, return_dims=False):
-    """Generates the complete tiling fov list when given a list of fov image folders
+def get_tiled_fov_names(folders, return_dims=False):
+    """Generates the complete tiled fov list when given a list of fov image folders
 
     Args:
-        fov_names (list): path to the extracted images for the specific run
+        folders (list): list of fov folders
         return_dims (bool): whether to also return row and col dimensions
     Returns:
         tuple: names of all fovs expected for tiled image shape, and dimensions if return_dims
@@ -335,8 +335,20 @@ def get_tiled_fov_names(fov_names, return_dims=False):
 
     rows = []
     cols = []
-    if fov_names[0][0] != 'R':
-        fov_names = [dims.split("_R", 1)[1] for dims in fov_names]
+    names = {}
+    prefix = False
+
+    if folders[0][0] != 'R':
+        prefix = True
+        for folder in folders:
+            dim = ''.join(folder.split("_")[-1:])
+            prefix = '_'.join(folder.split("_")[:-1])
+            names[dim] = prefix
+        fov_names = list(names.keys())
+    else:
+        fov_names = folders
+        #prefixes = [dims.split("_R", 1)[0] for dims in fov_names]
+        #fov_names = [dims.split("_R", 1)[1] for dims in fov_names]
 
     # get tiled image dimensions
     for fov in fov_names:
@@ -351,7 +363,11 @@ def get_tiled_fov_names(fov_names, return_dims=False):
     expected_fovs = []
     for n in range(row_num):
         for m in range(col_num):
-            expected_fovs.append(f"R{n + 1}C{m + 1}")
+            dim = f'R{n + 1}C{m + 1}'
+            if prefix and dim in fov_names:
+                expected_fovs.append(f"{names[dim]}_" + dim)
+            else:
+                expected_fovs.append(dim)
     if return_dims:
         return expected_fovs, row_num, col_num
     else:
