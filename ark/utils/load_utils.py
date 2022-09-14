@@ -409,15 +409,16 @@ def load_tiled_img_data(data_dir, img_sub_folder=None, channels=None, max_image_
         # no img_sub_folder, change to empty string to read directly from base folder
         img_sub_folder = ''
 
-    fov_list = ns.natsorted(iou.list_folders(data_dir, substrs='R'))
-    folders = iou.list_folders(data_dir)
-    if 'tiled_images' in folders:
-        folders.remove('tiled_images')
+    fov_list = ns.natsorted(iou.list_folders(data_dir))
+    if 'tiled_images' in fov_list:
+        fov_list.remove('tiled_images')
 
-    if len(fov_list) != len(folders):
-        raise ValueError(f"Invalid FOVs found in directory, {data_dir}. FOV folder names should "
-                         f"have the form RnCm.")
-    elif len(fov_list) == 0:
+    for dir in fov_list:
+        r = re.compile('.*R.*C.*')
+        if r.match(dir) is None:
+            raise ValueError(f"Invalid FOVs found in directory, {data_dir}. FOV folder names "
+                             f"should have the form RnCm.")
+    if len(fov_list) == 0:
         raise ValueError(f"No FOVs found in directory, {data_dir}.")
 
     expected_fovs = get_tiled_fov_names(fov_list)

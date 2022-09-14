@@ -467,18 +467,18 @@ def test_load_tiled_img_data():
         assert loaded_xr.equals(data_xr)
         assert np.issubdtype(loaded_xr.dtype, np.floating)
 
-    # test loading with variable sizes
+    # test loading with variable sizes and run name prepend
     with tempfile.TemporaryDirectory() as temp_dir:
         _, chans, imgs = test_utils.gen_fov_chan_names(num_fovs=4, num_chans=4, return_imgs=True)
 
-        fovs = ['R1C1', 'R1C2', 'R2C1', 'R2C2']
+        fovs = ['run_1_R1C1', 'run_1_R1C2', 'run_2_R2C1', 'run_2_R2C2']
         filelocs, data_xr = test_utils.create_paired_xarray_fovs(
             temp_dir, fovs, chans, img_shape=(10, 10), delimiter='_', fills=True, sub_dir="TIFs",
             dtype="int16"
         )
         # missing fov data
         data_xr[2, :, :, :] = np.zeros((10, 10, 4), dtype='int16')
-        shutil.rmtree(os.path.join(temp_dir, 'R2C1'))
+        shutil.rmtree(os.path.join(temp_dir, 'run_2_R2C1'))
 
         loaded_xr = \
             load_utils.load_tiled_img_data(temp_dir, img_sub_folder="TIFs", max_image_size=12)

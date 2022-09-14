@@ -4,6 +4,7 @@ import pathlib
 import shutil
 from typing import List, Union
 
+import re
 import datasets
 import feather
 import numpy as np
@@ -590,12 +591,14 @@ def stitch_tiled_images(data_dir, img_sub_folder=None, channels=None):
         raise ValueError(f"The tiled_images subdirectory already exists in {data_dir}")
 
     # retrieve valid folder names
-    folders = ns.natsorted(io_utils.list_folders(data_dir, substrs='R'))
+    folders = ns.natsorted(io_utils.list_folders(data_dir))
 
-    if len(folders) != len(io_utils.list_folders(data_dir)):
-        raise ValueError(f"Invalid FOVs found in directory, {data_dir}. FOV folder names should "
-                         f"have the form RnCm.")
-    elif len(folders) == 0:
+    for dir in folders:
+        r = re.compile('.*R.*C.*')
+        if r.match(dir) is None:
+            raise ValueError(f"Invalid FOVs found in directory, {data_dir}. FOV folder names "
+                             f"should have the form RnCm.")
+    if len(folders) == 0:
         raise ValueError(f"No FOVs found in directory, {data_dir}.")
 
     _, num_rows, num_cols = load_utils.get_tiled_fov_names(folders, return_dims=True)
