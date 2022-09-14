@@ -905,7 +905,7 @@ def cluster_pixels(fovs, channels, base_dir, data_dir='pixel_mat_data',
                    norm_vals_name='post_rowsum_chan_norm.feather',
                    weights_name='pixel_weights.feather',
                    pc_chan_avg_som_cluster_name='pixel_channel_avg_som_cluster.csv',
-                   batch_size=5, ncores=multiprocessing.cpu_count()):
+                   batch_size=5, ncores=multiprocessing.cpu_count() - 1):
     """Uses trained weights to assign cluster labels on full pixel data
     Saves data with cluster labels to `cluster_dir`. Computes and saves the average channel
     expression across pixel SOM clusters.
