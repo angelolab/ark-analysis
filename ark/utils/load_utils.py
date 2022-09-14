@@ -333,22 +333,21 @@ def get_tiled_fov_names(folders, return_dims=False):
         tuple: names of all fovs expected for tiled image shape, and dimensions if return_dims
     """
 
-    rows = []
-    cols = []
+    rows, cols = [], []
     names = {}
     prefix = False
 
+    # check for run name prefix
     if folders[0][0] != 'R':
         prefix = True
+        # dict containing fov name and run name
         for folder in folders:
-            dim = ''.join(folder.split("_")[-1:])
+            fov = ''.join(folder.split("_")[-1:])
             prefix = '_'.join(folder.split("_")[:-1])
-            names[dim] = prefix
+            names[fov] = prefix
         fov_names = list(names.keys())
     else:
         fov_names = folders
-        #prefixes = [dims.split("_R", 1)[0] for dims in fov_names]
-        #fov_names = [dims.split("_R", 1)[1] for dims in fov_names]
 
     # get tiled image dimensions
     for fov in fov_names:
@@ -364,10 +363,12 @@ def get_tiled_fov_names(folders, return_dims=False):
     for n in range(row_num):
         for m in range(col_num):
             dim = f'R{n + 1}C{m + 1}'
+            # prepend run name if had one before
             if prefix and dim in fov_names:
                 expected_fovs.append(f"{names[dim]}_" + dim)
             else:
                 expected_fovs.append(dim)
+
     if return_dims:
         return expected_fovs, row_num, col_num
     else:
