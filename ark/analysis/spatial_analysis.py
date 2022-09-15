@@ -705,6 +705,8 @@ def compute_cluster_metrics_silhouette(neighbor_mat, max_k=10, included_fovs=Non
         neighbor_mat (pandas.DataFrame):
             a neighborhood matrix, created from create_neighborhood_matrix
             the maximum k we want to generate cluster statistics for, must be at least 2
+        max_k (int):
+            the maximum k we want to generate cluster statistics for, must be at least 2
         included_fovs (list):
             fovs to include in analysis. If argument is none, default is all fovs used.
         fov_col (str):
