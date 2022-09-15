@@ -519,18 +519,23 @@ def generate_cell_table(segmentation_dir, tiff_dir, img_sub_folder="TIFs",
                                                             xr_dim_name='compartments',
                                                             xr_channel_names=['whole_cell'],
                                                             trim_suffix='_feature_0')
-        current_labels_nuc = load_utils.load_imgs_from_dir(data_dir=segmentation_dir,
-                                                           files=nuclear_files,
-                                                           xr_dim_name='compartments',
-                                                           xr_channel_names=['nuclear'],
-                                                           trim_suffix='_feature_1')
-        current_labels = xr.DataArray(np.concatenate((current_labels_cell.values,
-                                                      current_labels_nuc.values),
-                                                     axis=-1),
+        if nuclear_counts:
+            current_labels_nuc = load_utils.load_imgs_from_dir(data_dir=segmentation_dir,
+                                                               files=nuclear_files,
+                                                               xr_dim_name='compartments',
+                                                               xr_channel_names=['nuclear'],
+                                                               trim_suffix='_feature_1')
+            compartments = ['whole_cell', 'nuclear']
+            segmentation_labels = np.concatenate((current_labels_cell.values,
+                                                  current_labels_nuc.values), axis=-1)
+        else:
+            compartments = ['whole_cell']
+            segmentation_labels = current_labels_cell.values
+        current_labels = xr.DataArray(segmentation_labels,
                                       coords=[current_labels_cell.fovs,
                                               current_labels_cell.rows,
                                               current_labels_cell.cols,
-                                              ['whole_cell', 'nuclear']],
+                                              compartments],
                                       dims=current_labels_cell.dims)
 
         # segment the imaging data
