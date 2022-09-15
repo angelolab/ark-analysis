@@ -405,8 +405,7 @@ def relabel_segmentation(labeled_image, labels_dict):
 
 # TODO: Add metadata for channel name (eliminates need for fixed-order channels)
 def generate_deepcell_input(data_dir, tiff_dir, nuc_channels, mem_channels, fovs,
-                            is_mibitiff=False, img_sub_folder="TIFs", batch_size=5,
-                            dtype="int16"):
+                            is_mibitiff=False, img_sub_folder="TIFs", dtype="int16"):
     """Saves nuclear and membrane channels into deepcell input format.
     Either nuc_channels or mem_channels should be specified.
 
@@ -428,8 +427,6 @@ def generate_deepcell_input(data_dir, tiff_dir, nuc_channels, mem_channels, fovs
         img_sub_folder (str):
             if is_mibitiff is False, define the image subfolder for each fov
             ignored if is_mibitiff is True
-        batch_size (int):
-            the number of fovs to process at once for each batch
         dtype (str/type):
             optional specifier of image type.  Overwritten with warning for float images
 
