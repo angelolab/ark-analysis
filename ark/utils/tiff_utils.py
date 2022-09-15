@@ -1,9 +1,9 @@
+import datetime
+import json
 from fractions import Fraction
+
 import numpy as np
 from tifffile import TiffFile, TiffWriter
-import json
-import datetime
-from itertools import compress
 
 from ark.utils.misc_utils import verify_in_list
 

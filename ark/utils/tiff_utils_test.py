@@ -1,9 +1,10 @@
 import os
-import numpy as np
 import tempfile
+
+import numpy as np
 import pytest
 
-from ark.utils import tiff_utils, test_utils
+from ark.utils import test_utils, tiff_utils
 
 EXAMPLE_MIBITIFF_PATH = os.path.join(
     os.path.dirname(os.path.realpath(__file__)), '..', '..',

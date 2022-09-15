@@ -1,24 +1,18 @@
-import json
 import os
-import pytest
-from pytest_cases import parametrize_with_cases
-from shutil import rmtree
 import tempfile
-import textwrap
 import warnings
+from shutil import rmtree
 
 import feather
-from matplotlib.colors import ListedColormap
 import numpy as np
 import pandas as pd
-from skimage.draw import disk
-import skimage.io as io
+import pytest
 import scipy.ndimage as ndimage
-from sklearn.utils import shuffle
-import xarray as xr
+import skimage.io as io
+from pytest_cases import parametrize_with_cases
+from skimage.draw import disk
 
 import ark.phenotyping.pixel_cluster_utils as pixel_cluster_utils
-from ark.phenotyping.pixel_cluster_utils import create_fov_pixel_data
 import ark.utils.io_utils as io_utils
 import ark.utils.load_utils as load_utils
 import ark.utils.misc_utils as misc_utils
