@@ -46,5 +46,7 @@ COPY ark /opt/ark-analysis/ark
 # Install the package via setup.py
 RUN cd /opt/ark-analysis && python -m pip install .
 
+WORKDIR /opt/ark-analysis
+
 # jupyter lab
 CMD bash start_jupyter.sh
