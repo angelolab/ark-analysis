@@ -50,6 +50,11 @@ run_params = (\
   -e JUPYTER_PORT=$PORT \
   -e JUPYTER_DIR=$JUPYTER_DIR \
   -e UPDATE_ARK=$update \
+  -v "$PWD/README.md:/opt/ark-analysis/README.md" \
+  -v "$PWD/setup.py:/opt/ark-analysis/setup.py" \
+  -v "$PWD/requirements.txt:/opt/ark-analysis/requirements.txt" \
+  -v "$PWD/pyproject.toml/opt/ark-analysis/pyproject.toml" \
+  -v "$PWD/ark:/opt/ark-analysis/ark" \
   -v "$PWD/scripts:/scripts" \
   -v "$PWD/data:/data" \
   -v "$PWD/ark/phenotyping/create_pixel_som.R:/create_pixel_som.R" \
@@ -61,12 +66,5 @@ run_params = (\
   -v "$PWD/.toks:/home/.toks" \
 )
 [[ ! -z "$external"]] && run_params+=(-v "$external:/data/external")
-[[ $update -ne 0]] && run_params+=(\
-  -v "$PWD/README.md:/opt/ark-analysis/README.md" \
-  -v "$PWD/setup.py:/opt/ark-analysis/setup.py" \
-  -v "$PWD/requirements.txt:/opt/ark-analysis/requirements.txt" \
-  -v "$PWD/pyproject.toml/opt/ark-analysis/pyproject.toml" \
-  -v "$PWD/ark:/opt/ark-analysis/ark" \
-)
 
 docker run -it "${run_params[@]}" angelolab/ark-analysis:v0.4.1
