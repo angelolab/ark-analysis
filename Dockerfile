@@ -36,7 +36,7 @@ RUN R -e "BiocManager::install('ConsensusClusterPlus')"
 
 # Install ark-analysis
 # copy over the requirements.txt, install dependencies, and README
-COPY setup.py pyproject.toml requirements.txt README.md /opt/ark-analysis/
+COPY setup.py pyproject.toml requirements.txt README.md start_jupyter.sh /opt/ark-analysis/
 RUN python -m pip install -r /opt/ark-analysis/requirements.txt
 
 # copy the scripts over
@@ -46,7 +46,5 @@ COPY ark /opt/ark-analysis/ark
 # Install the package via setup.py
 RUN cd /opt/ark-analysis && python -m pip install .
 
-WORKDIR /scripts
-
 # jupyter lab
-CMD jupyter lab --ip=0.0.0.0 --allow-root --no-browser --port=$JUPYTER_PORT --notebook-dir=/$JUPYTER_DIR
+CMD bash start_jupyter.sh
