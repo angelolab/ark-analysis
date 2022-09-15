@@ -427,8 +427,6 @@ def load_tiled_img_data(data_dir, img_sub_folder=None, channels=None, max_image_
         img_sub_folder = ''
 
     fov_list = ns.natsorted(iou.list_folders(data_dir))
-    if 'tiled_images' in fov_list:
-        fov_list.remove('tiled_images')
 
     for dir in fov_list:
         r = re.compile('.*R.*C.*')

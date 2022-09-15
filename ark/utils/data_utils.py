@@ -572,12 +572,14 @@ def download_example_data(save_dir: Union[str, pathlib.Path]):
                     dirs_exist_ok=True, ignore=shutil.ignore_patterns('._*'))
 
 
-def stitch_tiled_images(data_dir, img_sub_folder=None, channels=None):
+def stitch_tiled_images(data_dir, tiled_folder_name, img_sub_folder=None, channels=None):
     """ Creates tiled images for the specified channels based on the FOV folder names
 
     Args:
         data_dir (string):
             path to directory containing images
+        tiled_folder_name (str):
+            name of dir to save tiled images to
         img_sub_folder (str):
             optional name of image sub-folder within each fov
         channels (list):
@@ -585,10 +587,11 @@ def stitch_tiled_images(data_dir, img_sub_folder=None, channels=None):
     """
 
     # check for previous stitching
-    tiled_dir = os.path.join(data_dir, 'tiled_images')
+    base_dir = os.path.abspath(os.path.join(data_dir, os.pardir))
+    tiled_dir = os.path.join(base_dir, tiled_folder_name)
 
     if os.path.exists(tiled_dir):
-        raise ValueError(f"The tiled_images subdirectory already exists in {data_dir}")
+        raise ValueError(f"The {tiled_dir} directory already exists.")
 
     # retrieve valid folder names
     folders = ns.natsorted(io_utils.list_folders(data_dir))
