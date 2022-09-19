@@ -56,6 +56,10 @@ def test_validate_paths():
     # make tempdir for testing outside of docker
     with tempfile.TemporaryDirectory() as valid_path:
 
+        # check valid path but no data prefix
+        with pytest.raises(ValueError, match=r".*is not prefixed with.*"):
+            iou.validate_paths(valid_path, data_prefix=True)
+
         # make valid subdirectory
         valid_parts = [p for p in pathlib.Path(valid_path).parts]
         valid_parts[0] = 'not_a_real_directory'
