@@ -1,12 +1,12 @@
 import tempfile
-import pytest
+
 import numpy as np
 import pandas as pd
-
-from ark.analysis import spatial_analysis
+import pytest
 
 import ark.settings as settings
-from ark.utils import spatial_analysis_utils, load_utils, test_utils
+from ark.analysis import spatial_analysis
+from ark.utils import load_utils, spatial_analysis_utils, test_utils
 
 EXCLUDE_CHANNELS = [
     "Background",

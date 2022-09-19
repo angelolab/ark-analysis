@@ -1,10 +1,9 @@
 import numpy as np
 import xarray as xr
+from skimage.measure import regionprops
 
 from ark.segmentation import signal_extraction
 from ark.utils import synthetic_spatial_datagen
-
-from skimage.measure import regionprops
 
 
 def test_positive_pixels_extraction():

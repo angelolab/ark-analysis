@@ -1,11 +1,12 @@
+from itertools import combinations_with_replacement
+
+import numpy as np
 import pandas as pd
 import xarray as xr
-import numpy as np
 from tqdm.auto import tqdm
-from itertools import combinations_with_replacement
-from ark.utils import spatial_analysis_utils, misc_utils, load_utils, io_utils
 
 import ark.settings as settings
+from ark.utils import io_utils, load_utils, misc_utils, spatial_analysis_utils
 
 
 def batch_channel_spatial_enrichment(label_dir, marker_thresholds, all_data, batch_size=5,

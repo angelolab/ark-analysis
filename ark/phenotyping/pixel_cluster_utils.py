@@ -1,28 +1,18 @@
-from functools import partial
 import multiprocessing
 import os
-import json
 import subprocess
 import warnings
+from functools import partial
+from shutil import rmtree
 
 import feather
-import matplotlib.patches as patches
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from pyarrow.lib import ArrowInvalid
-import re
 import scipy.ndimage as ndimage
-import scipy.stats as stats
-from shutil import rmtree
+from pyarrow.lib import ArrowInvalid
 from skimage.io import imread, imsave
-import xarray as xr
 
-from ark.analysis import visualize
-import ark.settings as settings
-from ark.utils import io_utils
-from ark.utils import load_utils
-from ark.utils import misc_utils
+from ark.utils import io_utils, load_utils, misc_utils
 
 multiprocessing.set_start_method('spawn', force=True)
 
@@ -905,9 +895,9 @@ def train_pixel_som(fovs, channels, base_dir,
             print(output.strip())
 
     if process.returncode != 0:
-        raise MemoryError(
-            "Process terminated: you likely have a memory-related error. Try increasing "
-            "your Docker memory limit."
+        raise OSError(
+            "Process terminated: please view error messages displayed above for debugging. "
+            "For pixel SOM training, you will likely need to decrease the pixel subset proportion."
         )
 
 
@@ -915,7 +905,7 @@ def cluster_pixels(fovs, channels, base_dir, data_dir='pixel_mat_data',
                    norm_vals_name='post_rowsum_chan_norm.feather',
                    weights_name='pixel_weights.feather',
                    pc_chan_avg_som_cluster_name='pixel_channel_avg_som_cluster.csv',
-                   batch_size=5):
+                   batch_size=5, ncores=multiprocessing.cpu_count() - 1):
     """Uses trained weights to assign cluster labels on full pixel data
     Saves data with cluster labels to `cluster_dir`. Computes and saves the average channel
     expression across pixel SOM clusters.
@@ -937,6 +927,8 @@ def cluster_pixels(fovs, channels, base_dir, data_dir='pixel_mat_data',
             The name of the file to save the average channel expression across all SOM clusters
         batch_size (int):
             The number of FOVs to process in parallel
+        ncores (int):
+            The number of cores desired for multiprocessing
     """
 
     # define the paths to the data
@@ -1020,7 +1012,7 @@ def cluster_pixels(fovs, channels, base_dir, data_dir='pixel_mat_data',
 
     # run the trained SOM on the dataset, assigning clusters
     process_args = ['Rscript', '/run_pixel_som.R', ','.join(fovs_list),
-                    data_path, norm_vals_path, weights_path, str(batch_size)]
+                    data_path, norm_vals_path, weights_path, str(batch_size), str(ncores)]
 
     process = subprocess.Popen(process_args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
@@ -1036,9 +1028,8 @@ def cluster_pixels(fovs, channels, base_dir, data_dir='pixel_mat_data',
             print(output.strip())
 
     if process.returncode != 0:
-        raise MemoryError(
-            "Process terminated: you likely have a memory-related error. Try increasing "
-            "your Docker memory limit."
+        raise OSError(
+            "Process terminated: please view error messages displayed above for debugging."
         )
 
     # remove the data directory and rename the temp directory to the data directory
@@ -1069,7 +1060,7 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
                             pc_chan_avg_som_cluster_name='pixel_channel_avg_som_cluster.csv',
                             pc_chan_avg_meta_cluster_name='pixel_channel_avg_meta_cluster.csv',
                             clust_to_meta_name='pixel_clust_to_meta.feather',
-                            batch_size=5, seed=42):
+                            batch_size=5, ncores=multiprocessing.cpu_count() - 1, seed=42):
     """Run consensus clustering algorithm on pixel-level summed data across channels
     Saves data with consensus cluster labels to `consensus_dir`. Computes and saves the
     average channel expression across pixel meta clusters. Assigns meta cluster labels
@@ -1097,6 +1088,8 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
             Name of file storing the SOM cluster to meta cluster mapping
         batch_size (int):
             The number of FOVs to process in parallel
+        ncores (int):
+            The number of cores desired for multiprocessing
         seed (int):
             The random seed to set for consensus clustering
     """
@@ -1143,7 +1136,7 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
     process_args = ['Rscript', '/pixel_consensus_cluster.R',
                     ','.join(fovs_list), ','.join(channels),
                     str(max_k), str(cap), data_path, som_cluster_avg_path,
-                    clust_to_meta_path, str(batch_size), str(seed)]
+                    clust_to_meta_path, str(batch_size), str(ncores), str(seed)]
 
     process = subprocess.Popen(process_args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
@@ -1159,9 +1152,8 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
             print(output.strip())
 
     if process.returncode != 0:
-        raise MemoryError(
-            "Process terminated: you likely have a memory-related error. Try increasing "
-            "your Docker memory limit."
+        raise OSError(
+            "Process terminated: please view error messages displayed above for debugging."
         )
 
     # remove the data directory and rename the temp directory to the data directory

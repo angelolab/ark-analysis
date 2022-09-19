@@ -48,6 +48,14 @@ To run the script, you have to use `bash start_docker.sh`. If you run into issue
 * Run `wsl sudo apt-get install dos2unix`
 * Run `wsl dos2unix start_docker.sh` and `wsl dos2unix update_notebooks.sh`
 
+### Addressing `docker` not found
+
+If you run into this issue, or if you notice `wsl` commands are not displaying any output, it's likely that you will need to adjust the default Linux distribution WSL is pointing to.
+
+* Run `wsl -l -v`. You should be seeing 3 distros: `Ubuntu-20.04`, `docker-desktop`, and `docker-desktop-data`
+* Make sure `Ubuntu-20.04` is starred (`*` to the left) and running. If not, run `wsl --setdefault Ubuntu-20.04` to change the default version. Run `wsl -l -v` again to double check that the changes took effect.
+* Restart Docker Desktop by opening the application, clicking the bug logo at the top-right, then clicking `Restart`.
+* Run `wsl -l -v` to see if all 3 distros are running. If Ubuntu 20.04 is not running, run `wsl -d Ubuntu-20.04`, then `logout`.
 
 ### Mounting External Drives
 
@@ -63,7 +71,6 @@ bash start_docker.sh --external "/mnt/x/path/to/external/data"
 ```bash
 bash start_docker.sh -e "/mnt/x/path/to/external/data"
 ```
-
 
 ### Mounting Issues
 
