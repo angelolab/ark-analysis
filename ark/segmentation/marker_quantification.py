@@ -519,6 +519,10 @@ def generate_cell_table(segmentation_dir, tiff_dir, img_sub_folder="TIFs",
                                                             xr_dim_name='compartments',
                                                             xr_channel_names=['whole_cell'],
                                                             trim_suffix='_feature_0')
+
+        compartments = ['whole_cell']
+        segmentation_labels = current_labels_cell.values
+
         if nuclear_counts:
             current_labels_nuc = load_utils.load_imgs_from_dir(data_dir=segmentation_dir,
                                                                files=nuclear_files,
@@ -528,9 +532,7 @@ def generate_cell_table(segmentation_dir, tiff_dir, img_sub_folder="TIFs",
             compartments = ['whole_cell', 'nuclear']
             segmentation_labels = np.concatenate((current_labels_cell.values,
                                                   current_labels_nuc.values), axis=-1)
-        else:
-            compartments = ['whole_cell']
-            segmentation_labels = current_labels_cell.values
+
         current_labels = xr.DataArray(segmentation_labels,
                                       coords=[current_labels_cell.fovs,
                                               current_labels_cell.rows,
