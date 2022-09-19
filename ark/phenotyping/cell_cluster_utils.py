@@ -497,9 +497,8 @@ def train_cell_som(fovs, channels, base_dir, pixel_data_dir, cell_table_path,
             print(output.strip())
 
     if process.returncode != 0:
-        raise MemoryError(
-            "Process terminated: you likely have a memory-related error. Try increasing "
-            "your Docker memory limit."
+        raise OSError(
+            "Process terminated: please view error messages displayed above for debugging."
         )
 
     # read in the pixel channel averages table
@@ -602,9 +601,8 @@ def cluster_cells(base_dir, cluster_counts_norm_name='cluster_counts_norm.feathe
             print(output.strip())
 
     if process.returncode != 0:
-        raise MemoryError(
-            "Process terminated: you likely have a memory-related error. Try increasing "
-            "your Docker memory limit."
+        raise OSError(
+            "Process terminated: please view error messages displayed above for debugging."
         )
 
     # compute the average pixel SOM/meta counts per cell SOM cluster
@@ -726,9 +724,8 @@ def cell_consensus_cluster(fovs, channels, base_dir, pixel_cluster_col, max_k=20
             print(output.strip())
 
     if process.returncode != 0:
-        raise MemoryError(
-            "Process terminated: you likely have a memory-related error. Try increasing "
-            "your Docker memory limit."
+        raise OSError(
+            "Process terminated: please view error messages displayed above for debugging."
         )
 
     # compute the average pixel SOM/meta counts per cell meta cluster
