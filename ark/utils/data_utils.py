@@ -611,13 +611,16 @@ def stitch_tiled_images(data_dir, tiled_folder_name, img_sub_folder=None, channe
         img_sub_folder = ""
 
     # retrieve all extracted channel names, or verify the list provided
+    channel_imgs = io_utils.list_files(
+        dir_name=os.path.join(data_dir, folders[0], img_sub_folder), substrs='.tif')
     if channels is None:
-        channels = io_utils.remove_file_extensions(io_utils.list_files(
-            dir_name=os.path.join(data_dir, folders[0], img_sub_folder), substrs='.tiff'))
+        channels = io_utils.remove_file_extensions(channel_imgs)
     else:
-        verify_in_list(channel_inputs=channels, valid_channels=io_utils.remove_file_extensions(
-            io_utils.list_files(dir_name=os.path.join(data_dir, folders[0], img_sub_folder),
-                                substrs='.tiff')))
+        verify_in_list(channel_inputs=channels,
+                       valid_channels=io_utils.remove_file_extensions(channel_imgs))
+
+    # get file extension
+    file_ext = channel_imgs[0].split('.')[1]
 
     # make tiled subdir
     os.makedirs(tiled_dir)
@@ -627,5 +630,5 @@ def stitch_tiled_images(data_dir, tiled_folder_name, img_sub_folder=None, channe
         image_data = load_tiled_img_data(data_dir, img_sub_folder, channels=[chan])
         tiled_data = stitch_images(image_data, num_cols)
         current_img = tiled_data.loc['stitched_image', :, :, chan].values
-        io.imsave(os.path.join(tiled_dir, chan + '_tiled.tiff'), current_img.astype('float32'),
-                  check_contrast=False)
+        io.imsave(os.path.join(tiled_dir, chan + '_tiled.' + file_ext),
+                  current_img.astype('float32'), check_contrast=False)
