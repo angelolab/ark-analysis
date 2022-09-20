@@ -387,8 +387,13 @@ def get_max_img_size(image_dir, img_sub_folder='', fov_list=None):
     """
 
     img_sizes = []
+
+    # get folder names
     if not fov_list:
         fov_list = iou.list_folders(image_dir)
+        if 'stitched_images' in fov_list:
+            fov_list.remove('stitched_images')
+
     channels = iou.list_files(os.path.join(image_dir, fov_list[0], img_sub_folder))
 
     # check image size for each fov
@@ -427,7 +432,10 @@ def load_tiled_img_data(data_dir, img_sub_folder=None, channels=None, max_image_
         img_sub_folder = ''
 
     fov_list = ns.natsorted(iou.list_folders(data_dir))
+    if 'stitched_images' in fov_list:
+        fov_list.remove('stitched_images')
 
+    # check for RnCm folder naming
     for dir in fov_list:
         r = re.compile('.*R.*C.*')
         if r.match(dir) is None:
@@ -471,11 +479,11 @@ def load_tiled_img_data(data_dir, img_sub_folder=None, channels=None, max_image_
         channels = [chan for _, chan in sorted(zip(channels_indices, all_channels))]
 
     if len(channels) == 0:
-        raise ValueError("No images found in designated folder")
+        raise ValueError("No images found.")
 
     # no missing fov images, load data normally
     if len(fov_list) == len(expected_fovs):
-        img_xr = load_imgs_from_tree(data_dir, img_sub_folder, channels=channels,
+        img_xr = load_imgs_from_tree(data_dir, img_sub_folder, fovs=fov_list, channels=channels,
                                      max_image_size=max_image_size)
         return img_xr
     # missing fov directories

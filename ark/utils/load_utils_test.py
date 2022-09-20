@@ -340,12 +340,19 @@ def test_get_max_img_size():
     with tempfile.TemporaryDirectory() as tmpdir:
         channel_list = ['Au', 'CD3', 'CD4', 'CD8', 'CD11c']
         fov_list = ['fov-1-scan-1', 'fov-2-scan-1']
+        stitched_dir = ['stitched_images']
         larger_fov = ['fov-3-scan-1']
 
         test_utils._write_tifs(tmpdir, fov_list, channel_list, (10, 10), '', False, int)
+        test_utils._write_tifs(tmpdir, stitched_dir, channel_list, (12, 12), '', False, int)
+
+        # test success excluding stitched dir
+        max_img_size = load_utils.get_max_img_size(tmpdir)
+        assert max_img_size == 10
+
         test_utils._write_tifs(tmpdir, larger_fov, channel_list, (12, 12), '', False, int)
 
-        # test success for all fovs
+        # test success for all fovs with larger images
         max_img_size = load_utils.get_max_img_size(tmpdir)
         assert max_img_size == 12
 
@@ -391,6 +398,7 @@ def test_load_tiled_img_data():
             temp_dir, fovs, chans, img_shape=(10, 10), delimiter='_', fills=True, sub_dir="TIFs",
             dtype="int16"
         )
+        os.makedirs(os.path.join(temp_dir, 'stitched_images'))
 
         # check default loading of all files
         loaded_xr = load_utils.load_tiled_img_data(temp_dir, img_sub_folder="TIFs")
@@ -417,6 +425,7 @@ def test_load_tiled_img_data():
         # missing fov data
         data_xr[2, :, :, :] = np.zeros((10, 10, 4), dtype='int16')
         shutil.rmtree(os.path.join(temp_dir, 'R2C1'))
+        os.makedirs(os.path.join(temp_dir, 'stitched_images'))
 
         with pytest.raises(ValueError):
             # attempt to pass an empty channels list
