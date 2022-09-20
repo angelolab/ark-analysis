@@ -609,8 +609,8 @@ def generate_cluster_matrix_results(all_data, neighbor_mat, cluster_num, exclude
     cluster_labels = spatial_analysis_utils.generate_cluster_labels(
         neighbor_mat_data, cluster_num)
 
-    # add labels to neighbor mat, add 1 to avoid cluster number 0
-    neighbor_mat_data_all[cluster_label_col] = [x+1 for x in cluster_labels]
+    # add labels to neighbor mat
+    neighbor_mat_data_all[cluster_label_col] = cluster_labels
 
     # subset for data in cell table we want to keep
     all_data_clusters = all_data[all_data[fov_col].isin(included_fovs)]
