@@ -1,8 +1,6 @@
-import copy
 
 import numpy as np
 import pandas as pd
-
 from skimage.measure import label, moments, regionprops_table
 
 
@@ -124,7 +122,7 @@ def num_concavities(prop, **kwargs):
     diff_img = convex_image ^ cell_image
 
     if np.sum(diff_img) > 0:
-        labeled_diff_img = label(diff_img)
+        labeled_diff_img = label(diff_img, connectivity=1)
         hull_prop_df = pd.DataFrame(regionprops_table(labeled_diff_img,
                                                       properties=['area', 'perimeter']))
         hull_prop_df['compactness'] = np.square(hull_prop_df['perimeter']) / hull_prop_df['area']

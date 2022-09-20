@@ -1,16 +1,15 @@
 import os
+import os.path
+import tempfile
+
 import numpy as np
 import pytest
-import tempfile
-import xarray as xr
-import os.path
-from skimage.measure import regionprops
 import skimage.io as io
-import tempfile
-
-from ark.utils import segmentation_utils, test_utils
+import xarray as xr
+from skimage.measure import regionprops
 
 import ark.settings as settings
+from ark.utils import segmentation_utils, test_utils
 
 
 def test_find_nuclear_mask_id():
@@ -210,9 +209,9 @@ def test_save_segmentation_labels():
     channel_xr = test_utils.make_images_xarray(
         np.zeros((2, 50, 50, 2)), channel_names=['nuclear_channel', 'membrane_channel']
     )
-    chan_sub = channel_xr.channels.values[:2]
     segmentation_labels_xr = test_utils.make_labels_xarray(np.zeros((2, 50, 50, 2)))
     fov_sub = segmentation_labels_xr.fovs.values[:1]
+    chan_sub = channel_xr.channels.values[:2]
 
     # test saving without channel overlay
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -236,13 +235,11 @@ def test_save_segmentation_labels():
 
         # test segmentation without channel overlay
         segmentation_utils.save_segmentation_labels(
-            segmentation_dir=temp_dir, data_dir=img_dir, output_dir=temp_dir, fovs=fov_sub
+            segmentation_dir=temp_dir, data_dir=img_dir, output_dir=temp_dir,
+            fovs=fov_sub
         )
 
         # make sure all files except overlay.tiff exists
-        assert os.path.exists(os.path.join(temp_dir,
-                                           f'{fov_sub[0]}'
-                                           f'_segmentation_labels.tiff'))
         assert os.path.exists(os.path.join(temp_dir,
                                            f'{fov_sub[0]}'
                                            f'_segmentation_borders.tiff'))
@@ -284,20 +281,17 @@ def test_save_segmentation_labels():
         # make sure all files and overlay.tiff exists
         assert os.path.exists(os.path.join(temp_dir,
                                            f'{fov_sub[0]}'
-                                           f'_segmentation_labels.tiff'))
-        assert os.path.exists(os.path.join(temp_dir,
-                                           f'{fov_sub[0]}'
                                            f'_segmentation_borders.tiff'))
         assert os.path.exists(os.path.join(temp_dir,
                                            '_'.join([f'{fov_sub[0]}',
-                                                     *chan_sub,
+                                                     *channel_xr.channels.values[:2],
                                                      'overlay.tiff'])))
 
 
 def test_concatenate_csv():
     # create sample data
-    test_data_1 = test_utils.make_segmented_csv(num_cells=10)
-    test_data_2 = test_utils.make_segmented_csv(num_cells=20)
+    test_data_1 = test_utils.make_cell_table(num_cells=10)
+    test_data_2 = test_utils.make_cell_table(num_cells=20)
 
     with pytest.raises(ValueError):
         # attempt to pass column_values list with different length than number of csv files

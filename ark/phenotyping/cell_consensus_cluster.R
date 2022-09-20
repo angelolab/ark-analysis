@@ -2,20 +2,21 @@
 # defined as the mean counts of each SOM pixel/meta cluster across all cell SOM clusters in each fov
 # (m x n table, where m is the number of cell SOM/meta clusters and n is the number of pixel SOM/meta clusters).
 
-# Usage: Rscript {pixelClusterCol} {maxK} {cap} {cellClusterPath} {clusterAvgPath} {cellConsensusPath} {clustToMeta} {seed}
+# Usage: Rscript {pixelClusterCol} {maxK} {cap} {cellMatPath} {clusterAvgPath} {clustToMeta} {seed}
 
 # - pixelClusterCol: the prefix of the columns defining pixel SOM/meta cluster counts per cell
 # - maxK: number of consensus clusters
 # - cap: maximum z-score cutoff
-# - cellClusterPath: path to the cell-level data containing the counts of each SOM pixel/meta clusters per cell, labeled with cell SOM clusters
+# - cellMatPath: path to the cell-level data containing the counts of each SOM pixel/meta clusters per cell, labeled with cell SOM clusters
 # - clusterAvgPath: path to the averaged cell data table (as defined above)
-# - cellConsensusPath: path to file where the cell consensus cluster results will be written
 # - clustToMeta: path to file where the SOM cluster to meta cluster mapping will be written
 # - seed: random factor
 
-library(arrow)
-library(data.table)
-library(ConsensusClusterPlus)
+suppressPackageStartupMessages({
+    library(arrow)
+    library(data.table)
+    library(ConsensusClusterPlus)
+})
 
 # get the command line arguments
 args <- commandArgs(trailingOnly=TRUE)
@@ -29,20 +30,17 @@ maxK <- strtoi(args[2])
 # get z-score scaling factor
 cap <- strtoi(args[3])
 
-# get the cell cluster path
-cellClusterPath <- args[4]
+# get the path to the cell data (with SOM labels)
+cellMatPath <- args[4]
 
 # get path to the averaged cluster data
 clusterAvgPath <- args[5]
 
-# get consensus cluster write path
-cellConsensusPath <- args[6]
-
 # get the clust to meta write path
-clustToMeta <- args[7]
+clustToMeta <- args[6]
 
 # set the random seed
-seed <- strtoi(args[8])
+seed <- strtoi(args[7])
 set.seed(seed)
 
 print("Reading cluster averaged data")
@@ -66,9 +64,9 @@ names(som_to_meta_map) <- clusterAvgs$cell_som_cluster
 
 # append cell_meta_cluster to data
 print("Writing consensus clustering")
-cellClusterData <- arrow::read_feather(cellClusterPath)
+cellClusterData <- arrow::read_feather(cellMatPath)
 cellClusterData$cell_meta_cluster <- som_to_meta_map[as.character(cellClusterData$cell_som_cluster)]
-arrow::write_feather(as.data.table(cellClusterData), cellConsensusPath)
+arrow::write_feather(as.data.table(cellClusterData), cellMatPath, compression='uncompressed')
 
 # save the mapping from cell_som_cluster to cell_meta_cluster
 print("Writing SOM to meta cluster mapping table")
@@ -77,4 +75,4 @@ som_to_meta_map <- as.data.table(som_to_meta_map)
 # assign cell_som_cluster column, then rename som_to_meta_map to cell_meta_cluster
 som_to_meta_map$cell_som_cluster <- as.integer(rownames(som_to_meta_map))
 som_to_meta_map <- setnames(som_to_meta_map, "som_to_meta_map", "cell_meta_cluster")
-arrow::write_feather(som_to_meta_map, clustToMeta)
+arrow::write_feather(som_to_meta_map, clustToMeta, compression='uncompressed')

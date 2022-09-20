@@ -1,6 +1,7 @@
+import tempfile
+
 import numpy as np
 import pytest
-import tempfile
 
 from ark.utils import load_utils, test_utils
 
@@ -51,8 +52,7 @@ def test_load_imgs_from_mibitiff():
 
         # test automatic all channels loading
         loaded_xr = load_utils.load_imgs_from_mibitiff(temp_dir,
-                                                       delimiter='_',
-                                                       dtype=np.float32)
+                                                       delimiter='_')
 
         assert loaded_xr.equals(data_xr)
 
@@ -60,36 +60,24 @@ def test_load_imgs_from_mibitiff():
         loaded_xr = load_utils.load_imgs_from_mibitiff(temp_dir,
                                                        mibitiff_files=fovnames,
                                                        channels=channels,
-                                                       delimiter='_',
-                                                       dtype=np.float32)
+                                                       delimiter='_')
 
         assert loaded_xr.equals(data_xr)
         assert np.issubdtype(loaded_xr.dtype, np.floating)
-
-        # test float overwrite
-        with pytest.warns(UserWarning):
-            loaded_xr = load_utils.load_imgs_from_mibitiff(temp_dir,
-                                                           mibitiff_files=[fovnames[-1]],
-                                                           channels=channels,
-                                                           delimiter='_',
-                                                           dtype='int16')
-
-            assert loaded_xr.equals(data_xr.loc[[fovs[-1]], :, :, :])
-            assert np.issubdtype(loaded_xr.dtype, np.floating)
 
 
 def test_load_imgs_from_tree():
     # invalid directory is provided
     with pytest.raises(ValueError):
         loaded_xr = \
-            load_utils.load_imgs_from_tree('not_a_dir', img_sub_folder="TIFs", dtype="int16")
+            load_utils.load_imgs_from_tree('not_a_dir', img_sub_folder="TIFs")
 
     # test loading from within fov directories
     with tempfile.TemporaryDirectory() as temp_dir:
         # temp_dir contains no images
         with pytest.raises(ValueError):
             loaded_xr = \
-                load_utils.load_imgs_from_tree(temp_dir, img_sub_folder="TIFs", dtype="int16")
+                load_utils.load_imgs_from_tree(temp_dir, img_sub_folder="TIFs")
 
         fovs, chans, imgs = test_utils.gen_fov_chan_names(num_fovs=3, num_chans=3,
                                                           return_imgs=True)
@@ -102,12 +90,11 @@ def test_load_imgs_from_tree():
         with pytest.raises(ValueError):
             # attempt to pass an empty channels list
             loaded_xr = \
-                load_utils.load_imgs_from_tree(temp_dir, img_sub_folder="TIFs",
-                                               dtype="int16", channels=[])
+                load_utils.load_imgs_from_tree(temp_dir, img_sub_folder="TIFs", channels=[])
 
         # check default loading of all files
         loaded_xr = \
-            load_utils.load_imgs_from_tree(temp_dir, img_sub_folder="TIFs", dtype="int16")
+            load_utils.load_imgs_from_tree(temp_dir, img_sub_folder="TIFs")
 
         assert loaded_xr.equals(data_xr)
 
@@ -117,21 +104,20 @@ def test_load_imgs_from_tree():
         some_chans = chans[:2]
 
         loaded_xr = \
-            load_utils.load_imgs_from_tree(temp_dir, img_sub_folder="TIFs", dtype="int16",
-                                           fovs=some_fovs, channels=some_imgs)
+            load_utils.load_imgs_from_tree(temp_dir, img_sub_folder="TIFs", fovs=some_fovs,
+                                           channels=some_imgs)
 
         assert loaded_xr.equals(data_xr[:2, :, :, :2])
 
         # check loading w/o file extension
         loaded_xr = \
-            load_utils.load_imgs_from_tree(temp_dir, img_sub_folder="TIFs", dtype="int16",
-                                           channels=some_chans)
+            load_utils.load_imgs_from_tree(temp_dir, img_sub_folder="TIFs", channels=some_chans)
 
         assert loaded_xr.equals(data_xr[:, :, :, :2])
 
         # check mixed extension presence
         loaded_xr = \
-            load_utils.load_imgs_from_tree(temp_dir, img_sub_folder="TIFs", dtype="int16",
+            load_utils.load_imgs_from_tree(temp_dir, img_sub_folder="TIFs",
                                            channels=[chans[i] if i % 2 else imgs[i]
                                                      for i in range(3)])
 
@@ -139,15 +125,15 @@ def test_load_imgs_from_tree():
 
         # check when fov is a single string
         loaded_xr = \
-            load_utils.load_imgs_from_tree(temp_dir, img_sub_folder="TIFs", dtype="int16",
-                                           fovs='fov0', channels=some_chans)
+            load_utils.load_imgs_from_tree(temp_dir, img_sub_folder="TIFs", fovs='fov0',
+                                           channels=some_chans)
 
         assert loaded_xr.equals(data_xr[:1, :, :, :2])
 
         # check that an error raises when a channel provided does not exist
         with pytest.raises(ValueError):
             loaded_xr = \
-                load_utils.load_imgs_from_tree(temp_dir, img_sub_folder="TIFs", dtype="int16",
+                load_utils.load_imgs_from_tree(temp_dir, img_sub_folder="TIFs",
                                                channels=['chan4'])
 
     # test loading with data_xr containing float values
@@ -160,14 +146,10 @@ def test_load_imgs_from_tree():
             dtype=np.float32
         )
 
-        with pytest.warns(UserWarning):
-            loaded_xr = \
-                load_utils.load_imgs_from_tree(temp_dir, img_sub_folder="TIFs", dtype="int16")
+        loaded_xr = load_utils.load_imgs_from_tree(temp_dir, img_sub_folder="TIFs")
 
-            assert loaded_xr.equals(data_xr)
-
-            # test swap int16 -> float
-            assert np.issubdtype(loaded_xr.dtype, np.floating)
+        assert loaded_xr.equals(data_xr)
+        assert np.issubdtype(loaded_xr.dtype, np.floating)
 
     # test loading with variable sizes
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -180,8 +162,7 @@ def test_load_imgs_from_tree():
         )
 
         loaded_xr = \
-            load_utils.load_imgs_from_tree(temp_dir, img_sub_folder="TIFs", dtype="int16",
-                                           max_image_size=12)
+            load_utils.load_imgs_from_tree(temp_dir, img_sub_folder="TIFs", max_image_size=12)
 
         assert loaded_xr.shape == (3, 12, 12, 3)
 
@@ -190,13 +171,13 @@ def test_load_imgs_from_dir():
     # invalid directory is provided
     with pytest.raises(ValueError):
         loaded_xr = \
-            load_utils.load_imgs_from_dir('not_a_dir', trim_suffix='_', dtype=np.float32)
+            load_utils.load_imgs_from_dir('not_a_dir', trim_suffix='_')
 
     # test loading from 'free' directory
     with tempfile.TemporaryDirectory() as temp_dir:
         # input directory contains no images
         with pytest.raises(ValueError):
-            load_utils.load_imgs_from_dir(temp_dir, trim_suffix='_', dtype=np.float32)
+            load_utils.load_imgs_from_dir(temp_dir, trim_suffix='_')
 
         fovs, _ = test_utils.gen_fov_chan_names(num_fovs=3, num_chans=0, use_delimiter=True)
         filelocs, data_xr = test_utils.create_paired_xarray_fovs(temp_dir, fovs, [0],
@@ -206,60 +187,58 @@ def test_load_imgs_from_dir():
         # invalid list of files is provided
         with pytest.raises(ValueError):
             load_utils.load_imgs_from_dir(temp_dir, files=fovs + ['not_an_image'],
-                                          trim_suffix='_', dtype=np.float32)
+                                          trim_suffix='_')
         with pytest.raises(ValueError):
-            load_utils.load_imgs_from_dir(temp_dir, files=['not_an_image'],
-                                          trim_suffix='_', dtype=np.float32)
+            load_utils.load_imgs_from_dir(temp_dir, files=['not_an_image'], trim_suffix='_')
 
         # check default loading
         loaded_xr = load_utils.load_imgs_from_dir(temp_dir, trim_suffix='_',
-                                                  xr_dim_name='compartments', dtype=np.float32)
+                                                  xr_dim_name='compartments')
 
         assert loaded_xr.equals(data_xr)
 
         # check suffix matched loading:
         loaded_xr = load_utils.load_imgs_from_dir(temp_dir, match_substring='_otherinfo',
-                                                  trim_suffix='_', xr_dim_name='compartments',
-                                                  dtype=np.float32)
-
+                                                  trim_suffix='_', xr_dim_name='compartments')
         assert loaded_xr.equals(data_xr.loc[['fov0'], :, :, :])
 
         fovnames = [f'{fov}.tiff' for fov in fovs]
 
         # check general substring matched loading
         loaded_xr = load_utils.load_imgs_from_dir(temp_dir, match_substring='ov', trim_suffix='_',
-                                                  xr_dim_name='compartments', dtype=np.float32)
+                                                  xr_dim_name='compartments')
 
         assert loaded_xr.equals(data_xr)
 
         # check provided file overruling of match_substring
         loaded_xr = load_utils.load_imgs_from_dir(temp_dir, files=fovnames,
                                                   match_substring='_otherinfo', trim_suffix='_',
-                                                  xr_dim_name='compartments', dtype=np.float32)
+                                                  xr_dim_name='compartments')
 
         assert loaded_xr.equals(data_xr)
 
         # test error on no matched suffix
         with pytest.raises(ValueError):
             load_utils.load_imgs_from_dir(temp_dir, match_substring='not_a_real_suffix',
-                                          trim_suffix='_', xr_dim_name='compartments',
-                                          dtype=np.float32)
+                                          trim_suffix='_', xr_dim_name='compartments')
 
-        # test swap float -> int16
-        with pytest.warns(UserWarning):
-            loaded_xr = load_utils.load_imgs_from_dir(temp_dir, trim_suffix='_', force_ints=True,
-                                                      xr_dim_name='compartments', dtype="int16")
+    # Test floating point xarray type consistency and integer xarray type consistency
+    # i.e. creation type == load_imgs type
+    for dtype in [np.float32, np.int16]:
+        with tempfile.TemporaryDirectory() as temp_dir:
 
-            assert loaded_xr.equals(data_xr)
-            assert loaded_xr.dtype == 'int16'
+            fovs, _ = test_utils.gen_fov_chan_names(num_fovs=3, num_chans=0, use_delimiter=True)
+            filelocs, data_xr = test_utils.create_paired_xarray_fovs(temp_dir, fovs, [0],
+                                                                     img_shape=(10, 10),
+                                                                     mode='labels',
+                                                                     delimiter='_',
+                                                                     dtype=dtype)
 
-        # test swap int16 -> float
-        with pytest.warns(UserWarning):
+            # test to make sure that types stay consistent.
             loaded_xr = load_utils.load_imgs_from_dir(temp_dir, trim_suffix='_',
-                                                      xr_dim_name='compartments', dtype="int16")
-
+                                                      xr_dim_name='compartments')
             assert loaded_xr.equals(data_xr)
-            assert np.issubdtype(loaded_xr.dtype, np.floating)
+            assert loaded_xr.dtype == dtype
 
     # test multitiff input
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -274,22 +253,18 @@ def test_load_imgs_from_dir():
 
         # test all channels loading w/ specified file
         loaded_xr = load_utils.load_imgs_from_dir(temp_dir, files=[fovnames[-1]],
-                                                  xr_dim_name='channels', trim_suffix='_',
-                                                  dtype=np.float32)
-
+                                                  xr_dim_name='channels', trim_suffix='_')
         assert loaded_xr.equals(data_xr.loc[[fovs[-1]], :, :, :])
 
         # indices should be between 0-2
         with pytest.raises(ValueError):
             load_utils.load_imgs_from_dir(temp_dir, files=[fovnames[-1]], xr_dim_name='channels',
-                                          trim_suffix='_', dtype=np.float32,
-                                          channel_indices=[0, 1, 4])
+                                          trim_suffix='_', channel_indices=[0, 1, 4])
 
         # xr_channel_names should contain 3 names (as there are 3 channels)
         with pytest.raises(ValueError):
             load_utils.load_imgs_from_dir(temp_dir, files=[fovnames[-1]], xr_dim_name='channels',
-                                          trim_suffix='_', dtype=np.float32,
-                                          xr_channel_names=['A', 'B'])
+                                          trim_suffix='_', xr_channel_names=['A', 'B'])
 
         # test all channels w/ unspecified files + trim_suffix agnosticism
         loaded_xr = load_utils.load_imgs_from_dir(temp_dir,
@@ -314,16 +289,14 @@ def test_load_imgs_from_dir():
 
         _, data_xr = test_utils.create_paired_xarray_fovs(
             temp_dir, fovs, channels, img_shape=(10, 10), mode='multitiff', delimiter='_',
-            fills=True, dtype=np.float32, channels_first=True
+            fills=True, channels_first=True
         )
 
         fovnames = [f'{fov}.tiff' for fov in fovs]
 
         # test all channels loading w/ specified file
         loaded_xr = load_utils.load_imgs_from_dir(temp_dir, files=[fovnames[-1]],
-                                                  xr_dim_name='channels', trim_suffix='_',
-                                                  dtype=np.float32)
-
+                                                  xr_dim_name='channels', trim_suffix='_')
         assert loaded_xr.equals(data_xr.loc[[fovs[-1]], :, :, :])
 
         # test all channels w/ unspecified files + trim_suffix agnosticism

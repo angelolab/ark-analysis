@@ -1,11 +1,11 @@
 import os
 import warnings
-
-import numpy as np
-import xarray as xr
+from collections.abc import Iterable
+from typing import Any
 
 import matplotlib.pyplot as plt
-import seaborn as sns
+import numpy as np
+import xarray as xr
 
 
 def combine_xarrays(xarrays, axis):
@@ -144,6 +144,23 @@ def create_invalid_data_str(invalid_data):
     return err_str_data
 
 
+def make_iterable(a: Any, ignore_str: bool = True):
+    """ Convert noniterable type to singleton in list
+
+    Args:
+        a (T | Iterable[T]):
+            value or iterable of type T
+        ignore_str (bool):
+            whether to ignore the iterability of the str type
+
+    Returns:
+        List[T]:
+            a as singleton in list, or a if a was already iterable.
+    """
+    return a if isinstance(a, Iterable) and not ((isinstance(a, str) and ignore_str) or
+                                                 isinstance(a, type)) else [a]
+
+
 def verify_in_list(warn=False, **kwargs):
     """Verify at least whether the values in the first list exist in the second
 
@@ -166,6 +183,12 @@ def verify_in_list(warn=False, **kwargs):
         raise ValueError("You must provide 2 arguments to verify_in_list")
 
     test_list, good_values = kwargs.values()
+    test_list = list(make_iterable(test_list))
+    good_values = list(make_iterable(good_values))
+
+    for v in [test_list, good_values]:
+        if len(v) == 0:
+            raise ValueError("List arguments cannot be empty")
 
     if not np.isin(test_list, good_values).all():
         test_list_name, good_values_name = kwargs.keys()

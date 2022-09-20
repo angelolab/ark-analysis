@@ -1,18 +1,21 @@
-import numpy as np
+import os
+import pathlib
+import shutil
+from operator import contains
+from typing import List, Union
+
 import matplotlib.cm as cm
 import matplotlib.colors as colors
 import matplotlib.pyplot as plt
-from mpl_toolkits.axes_grid1 import make_axes_locatable
-import os
+import natsort
+import numpy as np
 import pandas as pd
 import xarray as xr
-
-from skimage.segmentation import find_boundaries
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 from skimage.exposure import rescale_intensity
+from skimage.segmentation import find_boundaries
 
-from ark.utils import load_utils
-from ark.utils import misc_utils
-
+from ark.utils import io_utils, load_utils, misc_utils
 # plotting functions
 from ark.utils.misc_utils import verify_in_list, verify_same_elements
 
@@ -40,7 +43,7 @@ def plot_clustering_result(img_xr, fovs, save_dir=None, cmap='tab20',
     """
 
     # verify the fovs are valid
-    verify_in_list(fov_names=fovs, unique_fovs=img_xr.fovs)
+    verify_in_list(fov_names=fovs, unique_fovs=img_xr.fovs.values)
 
     for fov in fovs:
         # define the figure
@@ -97,7 +100,7 @@ def plot_pixel_cell_cluster_overlay(img_xr, fovs, cluster_id_to_name_path, metac
     """
 
     # verify the fovs are valid
-    verify_in_list(fov_names=fovs, unique_fovs=img_xr.fovs)
+    verify_in_list(fov_names=fovs, unique_fovs=img_xr.fovs.values)
 
     # verify cluster_id_to_name_path exists
     if not os.path.exists(cluster_id_to_name_path):
@@ -243,8 +246,7 @@ def tif_overlay_preprocess(segmentation_labels, plotting_tif):
 
 
 def create_overlay(fov, segmentation_dir, data_dir,
-                   img_overlay_chans, seg_overlay_comp, alternate_segmentation=None,
-                   dtype='int16'):
+                   img_overlay_chans, seg_overlay_comp, alternate_segmentation=None):
     """Take in labeled contour data, along with optional mibi tif and second contour,
     and overlay them for comparison"
     Generates the outline(s) of the mask(s) as well as intensity from plotting tif. Predicted
@@ -263,8 +265,6 @@ def create_overlay(fov, segmentation_dir, data_dir,
             The segmentted compartment the user will overlay
         alternate_segmentation (numpy.ndarray):
             2D numpy array of labeled cell objects
-        dtype (str/type):
-            optional specifier of image type.  Overwritten with warning for float images
     Returns:
         numpy.ndarray:
             The image with the channel overlay
@@ -275,8 +275,7 @@ def create_overlay(fov, segmentation_dir, data_dir,
         data_dir=data_dir,
         files=[fov + '.tif'],
         xr_dim_name='channels',
-        xr_channel_names=['nuclear_channel', 'membrane_channel'],
-        dtype=dtype
+        xr_channel_names=['nuclear_channel', 'membrane_channel']
     )
 
     # verify that the provided image channels exist in plotting_tif
@@ -294,16 +293,13 @@ def create_overlay(fov, segmentation_dir, data_dir,
                                                              xr_dim_name='compartments',
                                                              xr_channel_names=['whole_cell'],
                                                              trim_suffix='_feature_0',
-                                                             match_substring='_feature_0',
-                                                             force_ints=True)
-
+                                                             match_substring='_feature_0')
     segmentation_labels_nuc = load_utils.load_imgs_from_dir(data_dir=segmentation_dir,
                                                             files=[fov + '_feature_1.tif'],
                                                             xr_dim_name='compartments',
                                                             xr_channel_names=['nuclear'],
                                                             trim_suffix='_feature_1',
-                                                            match_substring='_feature_1',
-                                                            force_ints=True)
+                                                            match_substring='_feature_1')
 
     segmentation_labels = xr.DataArray(np.concatenate((segmentation_labels_cell.values,
                                                       segmentation_labels_nuc.values),
@@ -385,3 +381,118 @@ def set_minimum_color_for_colormap(cmap, default=(0, 0, 0, 1)):
     corrected = cmap(np.arange(cmapN))
     corrected[0, :] = list(default)
     return colors.ListedColormap(corrected)
+
+
+def create_mantis_dir(fovs: List[str], mantis_project_path: Union[str, pathlib.Path],
+                      img_data_path: Union[str, pathlib.Path],
+                      mask_output_dir: Union[str, pathlib.Path],
+                      mapping: Union[str, pathlib.Path, pd.DataFrame],
+                      seg_dir: Union[str, pathlib.Path],
+                      mask_suffix: str = "_mask", img_sub_folder: str = ""):
+    """Creates a mantis project directory so that it can be opened by the mantis viewer.
+    Copies fovs, segmentation files, masks, and mapping csv's into a new directory structure.
+    Here is how the contents of the mantis project folder will look like.
+
+    ```{code-block} sh
+    mantis_project
+    ├── fov0
+    │   ├── cell_segmentation.tiff
+    │   ├── chan0.tiff
+    │   ├── chan1.tiff
+    │   ├── chan2.tiff
+    │   ├── ...
+    │   ├── population_mask.csv
+    │   └── population_mask.tiff
+    └── fov1
+    │   ├── cell_segmentation.tiff
+    │   ├── chan0.tiff
+    │   ├── chan1.tiff
+    │   ├── chan2.tiff
+    │   ├── ...
+    │   ├── population_mask.csv
+    │   └── population_mask.tiff
+    └── ...
+    ```
+
+    Args:
+        fovs (List[str]):
+            A list of FOVs to create a Mantis Project for.
+        mantis_project_path (Union[str, pathlib.Path]):
+            The folder where the mantis project will be created.
+        img_data_path (Union[str, pathlib.Path]):
+            The location of the all the fovs you wish to create a project from.
+        mask_output_dir (Union[str, pathlib.Path]):
+            The folder containing all the masks of the fovs.
+        mapping (Union[str, pathlib.Path, pd.DataFrame]):
+            The location of the mapping file, or the mapping Pandas DataFrame itself.
+        seg_dir (Union[str, pathlib.Path]):
+            The location of the segmentation directory for the fovs.
+        mask_suffix (str, optional):
+            The suffix used to find the mask tiffs. Defaults to "_mask".
+        img_sub_folder (str, optional):
+            The subfolder where the channels exist within the `img_data_path`.
+            Defaults to "normalized".
+    """
+
+    if not os.path.exists(mantis_project_path):
+        os.makedirs(mantis_project_path)
+
+    # create key from cluster number to cluster name
+    if type(mapping) in {pathlib.Path, str}:
+        map_df = pd.read_csv(mapping)
+    elif type(mapping) is pd.DataFrame:
+        map_df = mapping
+    else:
+        ValueError("Mapping must either be a path to an already saved mapping csv, \
+                   or a DataFrame that is already loaded in.")
+
+    map_df = map_df.loc[:, ['metacluster', 'mc_name']]
+    # remove duplicates from df
+    map_df = map_df.drop_duplicates()
+    map_df = map_df.sort_values(by=['metacluster'])
+
+    # rename for mantis names
+    map_df = map_df.rename({'metacluster': 'region_id', 'mc_name': 'region_name'}, axis=1)
+
+    # get names of fovs with masks
+    mask_names_loaded = (io_utils.list_files(mask_output_dir, mask_suffix))
+    mask_names_delimited = io_utils.extract_delimited_names(mask_names_loaded,
+                                                            delimiter=mask_suffix)
+    mask_names_sorted = natsort.natsorted(mask_names_delimited)
+
+    # use `fovs`, a subset of the FOVs in `total_fov_names` which
+    # is a list of FOVs in `img_data_path`
+    fovs = natsort.natsorted(fovs)
+    verify_in_list(fovs=fovs, img_data_fovs=mask_names_delimited)
+
+    # Filter out the masks that do not have an associated FOV.
+    mask_names = filter(lambda mn: any(contains(mn, f) for f in fovs), mask_names_sorted)
+
+    # create a folder with image data, pixel masks, and segmentation mask
+    for fov, mn in zip(fovs, mask_names):
+        # set up paths
+        img_source_dir = os.path.join(img_data_path, fov, img_sub_folder)
+        output_dir = os.path.join(mantis_project_path, fov)
+
+        # copy image data if not already copied in from previous round of clustering
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+
+            # copy all channels into new folder
+            chans = io_utils.list_files(img_source_dir, '.tiff')
+            for chan in chans:
+                shutil.copy(os.path.join(img_source_dir, chan), os.path.join(output_dir, chan))
+
+        # copy mask into new folder
+        mask_name = mn + mask_suffix + '.tiff'
+        shutil.copy(os.path.join(mask_output_dir, mask_name),
+                    os.path.join(output_dir, 'population{}.tiff'.format(mask_suffix)))
+
+        # copy the segmentation files into the output directory
+        seg_name = fov + '_feature_0.tif'
+        shutil.copy(os.path.join(seg_dir, seg_name),
+                    os.path.join(output_dir, 'cell_segmentation.tiff'))
+
+        # copy mapping into directory
+        map_df.to_csv(os.path.join(output_dir, 'population{}.csv'.format(mask_suffix)),
+                      index=False)

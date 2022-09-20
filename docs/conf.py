@@ -64,25 +64,33 @@ napoleon_google_docstring = True
 # contains list of modules to be marked up
 # will ensure 'clean' imports of all the following libraries
 autodoc_mock_imports = ['cryptography',
+                        'datasets',
                         'feather',
                         'google',
                         'h5py',
                         'ipywidgets',
+                        'natsort',
                         'numpy',
                         'matplotlib',
+                        'natsort',
+                        'palettable',
                         'pandas',
+                        'pyarrow',
                         'skimage',
                         'sklearn',
                         'scipy',
                         'seaborn',
                         'statsmodels',
+                        'spatial_lda',
                         'tables',
+                        'tifffile',
                         'umap',
                         'xarray',
                         'twisted',
                         'kiosk_client',
                         'mpl_toolkits',
-                        'tqdm']
+                        'tqdm',
+                        'ark.utils._bootstrapping']
 
 # prefix each section label with the name of the document it is in, followed by a colon
 # autosection_label_prefix_document = True
@@ -139,9 +147,9 @@ html_static_path = ['_static']
 # intersphinx mapping, for when there is a cross-reference that has no matching target
 # in the current documentation
 intersphinx_mapping = {
-    'python': ('https://docs.python.org/3.6', None),
+    'python': ('https://docs.python.org/3.8', None),
     'numpy': ('https://numpy.org/doc/stable', None),
-    'matplotlib': ('https://matplotlib.org/3.2.1', None),
+    'matplotlib': ('https://matplotlib.org/3.4.3', None),
     'xarray': ('https://xarray.pydata.org/en/stable', None),
     'pandas': ('https://pandas.pydata.org/docs/', None)
 }

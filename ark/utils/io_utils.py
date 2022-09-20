@@ -112,16 +112,29 @@ def remove_file_extensions(files):
         return
 
     # remove the file extension
-    names = [os.path.splitext(name)[0] for name in files]
+    names = [os.path.splitext(name) for name in files]
+    names_corrected = []
+    extension_types = ["tiff", "tif", "png", "jpg", "jpeg", "tar", "gz", "csv", "feather",
+                       "bin", "json"]
+    for name in names:
+        # We want everything after the "." for the extension
+        ext = name[-1][1:]
+        if (ext in extension_types) or (len(ext) == 0):
+            # If it is one of the extension types, only keep the filename.
+            # Or there is no extension and the names are similar to ["fov1", "fov2", "fov3", ...]
+            names_corrected.append(name[:-1][0])
+        else:
+            # If `ext` not one of the specified file types, keep the value after the "."
+            names_corrected.append(name[:-1][0] + "." + name[-1][1])
 
-    # identify names with '.' in them: these may not be processed correctly
-    bad_names = [name for name in names if '.' in name]
+    # identify names with '.' in them: these may not be processed correctly.
+    bad_names = [name for name in names_corrected if '.' in name]
     if len(bad_names) > 0:
         warnings.warn(f"These files still have \".\" in them after file extension removal: "
                       f"{','.join(bad_names)}, "
                       f"please double check that these are the correct names")
 
-    return names
+    return names_corrected
 
 
 def extract_delimited_names(names, delimiter='_', delimiter_optional=True):

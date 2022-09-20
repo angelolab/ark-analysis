@@ -1,6 +1,7 @@
-import feather
 import json
 import os
+
+import feather
 import numpy as np
 import pandas as pd
 import skimage.io as io
@@ -106,18 +107,12 @@ def segment_notebook_setup(tb, deepcell_tiff_dir, deepcell_input_dir, deepcell_o
     # define custom paths, leave base_dir and input_dir for simplicity
     define_paths = """
         tiff_dir = "%s"
+        cell_table_dir = "%s"
         deepcell_input_dir = "%s"
         deepcell_output_dir = "%s"
-        single_cell_dir = "%s"
-        viz_dir = "%s"
-    """ % (deepcell_tiff_dir, deepcell_input_dir, deepcell_output_dir, single_cell_dir, viz_dir)
+        deepcell_visualization_dir = "%s"
+    """ % (deepcell_tiff_dir, single_cell_dir, deepcell_input_dir, deepcell_output_dir, viz_dir)
     tb.inject(define_paths, after='file_path')
-
-    # will set MIBItiff and MIBItiff_suffix
-    tb.execute_cell('mibitiff_set')
-    if is_mibitiff:
-        # default setting is MIBItiff = False, change to True if user has mibitiff inputs
-        tb.inject("MIBItiff = True", after='mibitiff_set')
 
 
 def flowsom_pixel_setup(tb, flowsom_dir, create_seg_dir=True, img_shape=(50, 50),
@@ -216,13 +211,66 @@ def flowsom_pixel_setup(tb, flowsom_dir, create_seg_dir=True, img_shape=(50, 50)
     # define the main pixel output dir, the preprocessed dir, and the subsetted dir
     tb.execute_cell('dir_set')
 
+    # runs the blurring process for the first channel
+    run_chan_smoothing = """
+        blurred_channels = %s
+        smooth_vals = 6
+
+        pixel_cluster_utils.smooth_channels(
+            fovs=fovs,
+            tiff_dir=tiff_dir,
+            img_sub_folder=img_sub_folder,
+            channels=blurred_channels,
+            smooth_vals=smooth_vals,
+        )
+    """ % [chans[0]]
+    tb.inject(run_chan_smoothing, 'smooth_channels')
+
+    # if seg_dir is set, test filtering with exclude = True for the second channel,
+    # and exclude = False for the third channel
+    if seg_dir:
+        run_chan_filtering_exclude = """
+            filter_channel = '%s'
+            nuclear_exclude = True
+
+            pixel_cluster_utils.filter_with_nuclear_mask(
+                fovs,
+                tiff_dir,
+                segmentation_dir,
+                filter_channel,
+                img_sub_folder,
+                nuclear_exclude
+            )
+        """ % chans[1]
+        tb.inject(run_chan_filtering_exclude, 'filter_channels')
+
+        run_chan_filtering_include = """
+            filter_channel = '%s'
+            nuclear_exclude = False
+
+            pixel_cluster_utils.filter_with_nuclear_mask(
+                fovs,
+                tiff_dir,
+                segmentation_dir,
+                filter_channel,
+                img_sub_folder,
+                nuclear_exclude
+            )
+        """ % chans[2]
+        tb.inject(run_chan_filtering_include, 'filter_channels')
+
     # sets the channels to include
+    # NOTE: need to take into account the renamed channels
+    if seg_dir:
+        renamed_chans = ['chan0_smoothed', 'chan1_nuc_exclude', 'chan2_nuc_include']
+    else:
+        renamed_chans = ['chan0_smoothed', 'chan1', 'chan2']
     tb.inject(
         """
             channels = %s
             blur_factor = 2
             subset_proportion = 0.1
-        """ % str(chans),
+        """ % str(renamed_chans),
         after='channel_set'
     )
 
@@ -232,7 +280,7 @@ def flowsom_pixel_setup(tb, flowsom_dir, create_seg_dir=True, img_shape=(50, 50)
     # define the pixel clustering file names to create
     tb.execute_cell('pixel_som_path_set')
 
-    return fovs, chans
+    return fovs, renamed_chans
 
 
 def flowsom_pixel_cluster(tb, flowsom_dir, fovs, channels,
@@ -258,11 +306,10 @@ def flowsom_pixel_cluster(tb, flowsom_dir, fovs, channels,
             The prefix to place before each pixel clustering directory/file
     """
 
-    # create sample consensus dir
-    consensus_path = os.path.join(flowsom_dir,
-                                  '%s_pixel_output_dir' % pixel_prefix,
-                                  '%s_pixel_mat_consensus' % pixel_prefix)
-    os.mkdir(consensus_path)
+    # get path to the data
+    data_path = os.path.join(flowsom_dir,
+                             '%s_pixel_output_dir' % pixel_prefix,
+                             '%s_pixel_mat_data' % pixel_prefix)
 
     # make sample consensus data for each fov
     for fov in fovs:
@@ -283,7 +330,7 @@ def flowsom_pixel_cluster(tb, flowsom_dir, fovs, channels,
 
         feather.write_dataframe(
             fov_data,
-            os.path.join(consensus_path, '%s.feather' % fov),
+            os.path.join(data_path, '%s.feather' % fov),
             compression='uncompressed'
         )
 
@@ -367,30 +414,22 @@ def flowsom_pixel_visualize(tb, flowsom_dir, fovs, pixel_prefix='test'):
     cell_overlay_fovs = "pixel_fovs = %s" % str(fovs_overlay)
     tb.inject(cell_overlay_fovs, after='pixel_overlay_fovs')
 
-    # generate the pixel cluster masks
-    tb.execute_cell('pixel_mask_gen')
-
-    # test the saving of pixel masks
-    # NOTE: no point testing save_pixel_masks = False since that doesn't run anything
-    cell_mask_save = """
-        data_utils.save_fov_images(
-            pixel_fovs,
-            os.path.join(base_dir, pixel_output_dir),
-            pixel_cluster_masks,
-            name_suffix='_pixel_mask'
-        )
-    """
-    tb.inject(cell_mask_save, 'pixel_mask_save')
+    # generate the pixel cluster masks, and save them
+    tb.execute_cell('pixel_mask_gen_save')
 
     # run the cell mask overlay
     tb.execute_cell('pixel_overlay_gen')
+
+    # run the mantis project maker function
+    tb.execute_cell('pixel_mantis_project')
 
     # save the pixel clustering parameter names for cell clustering
     tb.execute_cell('cell_param_save')
 
 
 def flowsom_cell_setup(tb, flowsom_dir, pixel_dir, pixel_cluster_col='pixel_meta_cluster_rename',
-                       cell_prefix='test', num_fovs=3, num_chans=3, img_shape=(50, 50)):
+                       cell_prefix='test', num_fovs=3, num_chans=3, img_shape=(50, 50),
+                       dtype=np.uint16):
     """Creates the directories, data, and parameter settings for testing cell clustering
 
     Args:
@@ -410,10 +449,16 @@ def flowsom_cell_setup(tb, flowsom_dir, pixel_dir, pixel_cluster_col='pixel_meta
             The number of test channels to generate
         img_shape (tuple):
             The shape of the image to generate
+        dtype (numpy.dtype):
+            The datatype of each test image generated
     """
 
     # import packages
     tb.execute_cell('import')
+
+    # create data which will be loaded into img_xr -- ONLY FOR MANTIS PROJECT CREATION
+    tiff_dir = os.path.join(flowsom_dir, "input_data")
+    os.mkdir(tiff_dir)
 
     # create sample pixel output dir
     os.mkdir(os.path.join(flowsom_dir, pixel_dir))
@@ -421,7 +466,13 @@ def flowsom_cell_setup(tb, flowsom_dir, pixel_dir, pixel_cluster_col='pixel_meta
     # create sample segmentations
     fovs, chans = test_utils.gen_fov_chan_names(num_fovs=num_fovs,
                                                 num_chans=num_chans,
-                                                use_delimiter=True)
+                                                use_delimiter=False)
+
+    # Create the fovs for the mantis project.
+    filelocs, data_xr = test_utils.create_paired_xarray_fovs(
+        tiff_dir, fovs, chans, img_shape=img_shape, delimiter='_', fills=False, dtype=dtype
+    )
+
     seg_dir = os.path.join(flowsom_dir, 'deepcell_output')
     os.mkdir(seg_dir)
     generate_sample_feature_tifs(fovs, seg_dir, img_shape)
@@ -433,7 +484,7 @@ def flowsom_cell_setup(tb, flowsom_dir, pixel_dir, pixel_cluster_col='pixel_meta
         'channels': chans,
         'segmentation_dir': os.path.join(flowsom_dir, 'deepcell_output'),
         'seg_suffix': '_feature_0.tif',
-        'pixel_consensus_dir': os.path.join(pixel_dir, 'sample_consensus_dir'),
+        'pixel_data_dir': os.path.join(pixel_dir, 'sample_data_dir'),
         'pc_chan_avg_som_cluster_name': os.path.join(pixel_dir, 'sample_pixel_som_chan_exp.csv'),
         'pc_chan_avg_meta_cluster_name': os.path.join(pixel_dir, 'sample_pixel_meta_chan_exp.csv')
     }
@@ -446,11 +497,19 @@ def flowsom_cell_setup(tb, flowsom_dir, pixel_dir, pixel_cluster_col='pixel_meta
         base_dir = "%s"
         pixel_output_dir = "%s"
         cell_clustering_params_name = "sample_cell_params.json"
-    """ % (flowsom_dir, pixel_dir)
+        tiff_dir = "%s"
+    """ % (flowsom_dir, pixel_dir, tiff_dir)
     tb.inject(set_cell_dirs, after='dir_set')
 
     # extract the parameters from the cell params JSON
     tb.execute_cell('param_load')
+
+    # assert the cell table path is set accordingly
+    tb.inject(
+        """
+        cell_table_path = os.path.join('%s', 'cell_table_size_normalized.csv')
+        """ % flowsom_dir, after='param_load'
+    )
 
     # set cell_cluster_prefix
     tb.inject("cell_cluster_prefix = '%s'" % cell_prefix, after='cluster_prefix')
@@ -476,6 +535,7 @@ def flowsom_cell_cluster(tb, flowsom_dir, fovs, channels,
                          pixel_cluster_col='pixel_meta_cluster_rename', cell_prefix='test'):
     """Mock the creation of files needed for cell clustering visualization:
 
+    * Cell table
     * Cell consensus data
     * Weighted channel table
     * Average number of pixel clusters per cell SOM and meta cluster
@@ -498,11 +558,22 @@ def flowsom_cell_cluster(tb, flowsom_dir, fovs, channels,
             The number of test channels to generate
     """
 
-    # define the cell consensus data and weighted channel tables
+    # define the cell table, cell consensus data, and weighted channel tables
+    cell_table = pd.DataFrame()
     cell_consensus_data = pd.DataFrame()
     weighted_channel_exp = pd.DataFrame()
 
     for fov in fovs:
+        cell_table_fov = np.random.rand(1000, len(channels) + 3)
+        cell_table_fov_cols = ['cell_size'] + channels + ['label', 'fov']
+        cell_table_fov = pd.DataFrame(
+            cell_table_fov,
+            columns=cell_table_fov_cols
+        )
+        cell_table_fov['label'] = range(1, 1001)
+        cell_table_fov['fov'] = fov
+        cell_table = pd.concat([cell_table, cell_table_fov])
+
         cell_consensus_fov = np.random.rand(1000, 25)
         cell_consensus_fov_cols = ['cell_size', 'fov'] + \
             ['%s_' % pixel_cluster_col + str(i) for i in range(1, 21)] + \
@@ -527,11 +598,16 @@ def flowsom_cell_cluster(tb, flowsom_dir, fovs, channels,
         weighted_channel_fov['segmentation_label'] = range(1, 1001)
         weighted_channel_exp = pd.concat([weighted_channel_exp, weighted_channel_fov])
 
+    cell_table.to_csv(
+        os.path.join(flowsom_dir,
+                     'cell_table_size_normalized.csv'),
+        index=False
+    )
     feather.write_dataframe(
         cell_consensus_data,
         os.path.join(flowsom_dir,
                      '%s_cell_output_dir' % cell_prefix,
-                     '%s_cell_mat_consensus.feather' % cell_prefix),
+                     '%s_cell_mat.feather' % cell_prefix),
         compression='uncompressed'
     )
     weighted_channel_exp.to_csv(
@@ -677,22 +753,16 @@ def flowsom_cell_visualize(tb, flowsom_dir, fovs,
     tb.inject(cell_overlay_fovs, after='cell_overlay_fovs')
 
     # generate the cell cluster masks
-    tb.execute_cell('cell_mask_gen')
-
-    # test the saving of cell masks
-    # NOTE: no point testing save_cell_masks = False since that doesn't run anything
-    cell_mask_save = """
-        data_utils.save_fov_images(
-            cell_fovs,
-            os.path.join(base_dir, cell_output_dir),
-            cell_cluster_masks,
-            name_suffix='_cell_mask'
-        )
-    """
-    tb.inject(cell_mask_save, 'cell_mask_save')
+    tb.execute_cell('cell_mask_gen_save')
 
     # run the cell mask overlay
     tb.execute_cell('cell_overlay_gen')
+
+    # save the meta labels to the cell table
+    tb.execute_cell('cell_append_meta')
+
+    # run the mantis project maker function
+    tb.execute_cell('cell_mantis_project')
 
 
 def qc_notebook_setup(tb, base_dir, tiff_dir, sub_dir=None, fovs=None, chans=None):
@@ -781,7 +851,7 @@ def fov_channel_input_set(tb, fovs=None, nucs_list=None, mems_list=None, is_mibi
     mibitiff_deepcell = """
         data_utils.generate_deepcell_input(
             deepcell_input_dir, tiff_dir, nucs, mems, fovs,
-            is_mibitiff=%s, img_sub_folder="TIFs", batch_size=5
+            is_mibitiff=%s, img_sub_folder="TIFs"
         )
     """ % str(is_mibitiff)
     tb.inject(mibitiff_deepcell, after='gen_input')
@@ -830,7 +900,7 @@ def overlay_mask(tb, channels=None):
             segmentation_utils.save_segmentation_labels(
                 segmentation_dir=deepcell_output_dir,
                 data_dir=deepcell_input_dir,
-                output_dir=viz_dir,
+                output_dir=deepcell_visualization_dir,
                 fovs=io_utils.remove_file_extensions(fovs),
                 channels=%s
             )

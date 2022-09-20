@@ -2,14 +2,20 @@ import os
 from copy import deepcopy
 from random import choices
 from string import ascii_lowercase
+
 import numpy as np
 import pandas as pd
-import xarray as xr
 import skimage.io as io
+import xarray as xr
 
 import ark.settings as settings
 from ark.utils import synthetic_spatial_datagen
 from ark.utils.tiff_utils import write_mibitiff
+
+
+def _make_blank_file(folder, name):
+    with open(os.path.join(folder, name), 'w'):
+        pass
 
 
 def gen_fov_chan_names(num_fovs, num_chans, return_imgs=False, use_delimiter=False):
@@ -314,7 +320,7 @@ def _write_reverse_multitiff(base_dir, fov_names, channel_names, shape, sub_dir,
     return filelocs, tif_data
 
 
-def _write_labels(base_dir, fov_names, comp_names, shape, sub_dir, fills, dtype):
+def _write_labels(base_dir, fov_names, comp_names, shape, sub_dir, fills, dtype, suffix=''):
     """Generates and writes label maps to into base_dir
 
     Args:
@@ -332,6 +338,8 @@ def _write_labels(base_dir, fov_names, comp_names, shape, sub_dir, fills, dtype)
             Ignored.
         dtype (type):
             Data type for generated labels
+        suffix (str):
+            Suffix for label datafiles
 
     Returns:
         tuple (dict, numpy.ndarray):
@@ -344,9 +352,8 @@ def _write_labels(base_dir, fov_names, comp_names, shape, sub_dir, fills, dtype)
     filelocs = {}
 
     for i, fov in enumerate(fov_names):
-        tiffpath = os.path.join(base_dir, f'{fov}.tiff')
-        io.imsave(tiffpath, label_data[i, :, :, 0], plugin='tifffile',
-                  check_contrast=False)
+        tiffpath = os.path.join(base_dir, f'{fov}{suffix}.tiff')
+        io.imsave(tiffpath, label_data[i, :, :, 0], plugin='tifffile')
         filelocs[fov] = tiffpath
 
     return filelocs, label_data
@@ -537,28 +544,60 @@ def make_labels_xarray(label_data, fov_ids=None, compartment_names=None, row_siz
 TEST_MARKERS = list('ABCDEFG')
 
 
-def make_segmented_csv(num_cells, extra_cols=None):
-    """ Generate segmented 'csv' file
+def make_cell_table(num_cells, extra_cols=None):
+    """ Generate a cell table with default column names for testing purposes.
 
     Args:
         num_cells (int):
-            Number of rows (cells) in csv
+            Number of rows (cells) in the cell table
         extra_cols (dict):
             Extra columns to add in the format ``{'Column_Name' : data_1D, ...}``
 
     Returns:
         pandas.DataFrame:
-            segmented csv data
+            A structural example of a cell table containing simulated marker expressions,
+            cluster labels, centroid coordinates, and more.
 
     """
-    cell_data = pd.DataFrame(
-        np.random.random(size=(num_cells, len(TEST_MARKERS))),
-        columns=TEST_MARKERS
-    )
-    cell_data[settings.CELL_TYPE] = choices(ascii_lowercase, k=num_cells)
-    cell_data[settings.PATIENT_ID] = choices(range(1, 10), k=num_cells)
+    # columns from regionprops extraction
+    region_cols = [x for x in settings.REGIONPROPS_BASE if
+                   x not in ['label', 'area', 'centroid']] + settings.REGIONPROPS_SINGLE_COMP
+    region_cols += settings.REGIONPROPS_MULTI_COMP
+    # consistent ordering of column names
+    column_names = [settings.FOV_ID,
+                    settings.PATIENT_ID,
+                    settings.CLUSTER_ID,
+                    settings.KMEANS_CLUSTER,
+                    settings.CELL_LABEL,
+                    settings.CELL_TYPE,
+                    settings.CELL_SIZE] + TEST_MARKERS + region_cols + ['centroid-0', 'centroid-1']
+
+    if extra_cols is not None:
+        column_names += list(extra_cols.values())
+
+    # random filler data
+    cell_data = pd.DataFrame(np.random.random(size=(num_cells, len(column_names))),
+                             columns=column_names)
+    # not-so-random filler data
+    cluster_id = choices(range(1, 21), k=num_cells)
+    centroids = pd.DataFrame(np.array([(x, y) for x in range(1024) for y in range(1024)]))
+    centroid_loc = np.random.choice(range(1024 ** 2), size=num_cells, replace=False)
+    fields = [(settings.FOV_ID, choices(range(1, 5), k=num_cells)),
+              (settings.PATIENT_ID, choices(range(1, 10), k=num_cells)),
+              (settings.CLUSTER_ID, cluster_id),
+              (settings.KMEANS_CLUSTER, [ascii_lowercase[i] for i in cluster_id]),
+              (settings.CELL_LABEL, list(range(num_cells))),
+              (settings.CELL_TYPE, choices(ascii_lowercase, k=num_cells)),
+              (settings.CELL_SIZE, np.random.uniform(100, 300, size=num_cells)),
+              (settings.CENTROID_0, np.array(centroids.iloc[centroid_loc, 0])),
+              (settings.CENTROID_1, np.array(centroids.iloc[centroid_loc, 1]))
+              ]
+
+    for name, col in fields:
+        cell_data[name] = col
 
     return cell_data
+
 
 # TODO: Use these below
 
@@ -741,6 +780,53 @@ def _make_dist_mat_sa(enrichment_type, dist_lim):
         return dist_mat_neg
 
 
+def spoof_cell_table_from_labels(labels, cell_count=4, positive_population_ratio=1/4):
+    """Generates example cell table from label images to test spatial_analysis batching
+
+    Args:
+        labels (xr.DataArray):
+            data array with segmentation labels
+        cell_count (int):
+            number of cells per fov
+        positive_population_ration (float):
+            fraction of cells per fov to assign unique trait to.  This is performed twice for two
+            unique populations, so it must be smaller than 1/2.
+
+    Returns:
+        pandas.DataFrame:
+            cell table which matches the provided label images
+    """
+    num_fovs = len(labels.fovs.values)
+
+    if positive_population_ratio > 1/2:
+        raise ValueError('population_ratio must be less than 1/2')
+
+    cell_table = pd.DataFrame(np.zeros((num_fovs * cell_count, 33)))
+    for i, fov in enumerate(labels.fovs.values):
+        fov_rows = np.arange(start=i * cell_count, stop=(i + 1) * cell_count)
+
+        pop_count = int(cell_count * positive_population_ratio)
+
+        cell_table.loc[fov_rows, 30] = fov
+
+        cell_table.loc[fov_rows, 24] = np.unique(labels.loc[fov, :, :, :])[1:]
+
+        # create unique populations
+        cell_table.iloc[fov_rows[0:pop_count], (i % 2) + 2] = 1
+        cell_table.iloc[fov_rows[pop_count:2 * pop_count], ((i + 1) % 2) + 2] = 1
+
+        cell_table.iloc[fov_rows[0:pop_count], 31] = 1 + (i % 2)
+        cell_table.iloc[fov_rows[0:pop_count], 32] = f"Pheno{1 + (i % 2)}"
+        cell_table.iloc[fov_rows[pop_count:2 * pop_count], 31] = 1 + ((i + 1) % 2)
+        cell_table.iloc[fov_rows[pop_count:2 * pop_count], 32] = f"Pheno{1 + ((i + 1) % 2)}"
+
+    cell_table = cell_table.rename(DEFAULT_COLUMNS, axis=1)
+
+    cell_table.loc[cell_table.iloc[:, 31] == 0, settings.CELL_TYPE] = "Pheno3"
+
+    return cell_table
+
+
 def _make_expression_mat_sa(enrichment_type):
     """Generate a sample expression matrix to test spatial_analysis
 
@@ -888,6 +974,22 @@ def _make_dist_exp_mats_spatial_test(enrichment_type, dist_lim):
     all_data = _make_expression_mat_sa(enrichment_type=enrichment_type)
     dist_mat = _make_dist_mat_sa(enrichment_type=enrichment_type, dist_lim=dist_lim)
 
+    return all_data, dist_mat
+
+
+def _make_context_dist_exp_mats_spatial_test(dist_lim):
+    all_data = _make_expression_mat_sa("none")
+    dist_mat = _make_dist_mat_sa("none", dist_lim)
+
+    all_data['context_col'] = (['context_A', ] * 60) + (['context_B', ] * 60)
+    return all_data, dist_mat
+
+
+def _make_dist_exp_mats_dist_feature_spatial_test(dist_lim):
+    all_data = _make_expression_mat_sa("none")
+    dist_mat = _make_dist_mat_sa("none", dist_lim)
+
+    all_data['dist_feature_0'] = (dist_lim / 2) * np.ones(all_data.shape[0])
     return all_data, dist_mat
 
 

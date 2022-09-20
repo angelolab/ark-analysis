@@ -1,9 +1,10 @@
 import os
-import numpy as np
 import tempfile
+
+import numpy as np
 import pytest
 
-from ark.utils import tiff_utils, test_utils
+from ark.utils import test_utils, tiff_utils
 
 EXAMPLE_MIBITIFF_PATH = os.path.join(
     os.path.dirname(os.path.realpath(__file__)), '..', '..',
@@ -17,16 +18,16 @@ EXAMPLE_MIBITIFF_PATH = os.path.join(
 def test_read_mibitiff():
     img_data, all_channels = tiff_utils.read_mibitiff(EXAMPLE_MIBITIFF_PATH)
 
-    assert(img_data.shape == (1024, 1024, len(all_channels)))
+    assert img_data.shape == (1024, 1024, len(all_channels))
 
     channel_names = [chan_tup[1] for chan_tup in all_channels]
 
     subset_imgdata, subset_chan = tiff_utils.read_mibitiff(EXAMPLE_MIBITIFF_PATH,
                                                            channels=channel_names[:3])
 
-    assert(subset_chan == all_channels[:3])
+    assert subset_chan == all_channels[:3]
 
-    assert(np.all(img_data[:, :, :3] == subset_imgdata))
+    assert np.all(img_data[:, :, :3] == subset_imgdata)
 
     # should throw error on standard tif load
     with pytest.raises(ValueError):
@@ -61,4 +62,4 @@ def test_write_mibitiff():
         # validate correct tiff writeout via read_mibitiff
         load_data, chan_tups = tiff_utils.read_mibitiff(filepaths[fovs[0]])
 
-        assert(np.all(true_data[0, :, :, :].values == load_data))
+        assert np.all(true_data[0, :, :, :].values == load_data)

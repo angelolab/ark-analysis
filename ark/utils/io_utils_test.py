@@ -1,6 +1,7 @@
 import os
-import tempfile
 import pathlib
+import tempfile
+
 import pytest
 
 from ark.utils import io_utils as iou
@@ -138,12 +139,13 @@ def test_list_files():
 
 def test_remove_file_extensions():
     # test a mixture of file paths and extensions
-    files = ['fov1.tiff', 'fov2.tif', 'fov3.png', 'fov4.jpg']
+    files = ['fov1.tiff', 'fov2.tif', 'fov3.png', 'fov4.jpg', 'fov5.bin', 'fov6.json']
+    files2 = ['fov.1.tiff', 'fov.2.tiff', 'fov.3.png', 'fov.4']
 
     assert iou.remove_file_extensions(None) is None
     assert iou.remove_file_extensions([]) == []
 
-    files_sans_ext = ['fov1', 'fov2', 'fov3', 'fov4']
+    files_sans_ext = ['fov1', 'fov2', 'fov3', 'fov4', 'fov5', 'fov6']
 
     new_files = iou.remove_file_extensions(files)
 
@@ -152,6 +154,10 @@ def test_remove_file_extensions():
     with pytest.warns(UserWarning):
         new_files = iou.remove_file_extensions(['fov5.tar.gz', 'fov6.sample.csv'])
         assert new_files == ['fov5.tar', 'fov6.sample']
+
+    with pytest.warns(UserWarning):
+        new_files = iou.remove_file_extensions(files2)
+        assert new_files == ['fov.1', 'fov.2', 'fov.3', 'fov.4']
 
 
 def test_extract_delimited_names():

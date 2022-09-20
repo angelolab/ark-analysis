@@ -1,13 +1,36 @@
-import setuptools
-from os import path
-from distutils.command.build_ext import build_ext as DistUtilsBuildExt
-from setuptools import setup, find_packages
+from os import path, pardir
+from setuptools import setup, find_packages, Extension
+import numpy as np
+from Cython.Build import cythonize
 
-VERSION = '0.2.10'
+CYTHON_DEBUG = False
+
+if CYTHON_DEBUG:
+    from Cython.Compiler.Options import get_directive_defaults
+    directive_defaults = get_directive_defaults()
+
+    directive_defaults['linetrace'] = True
+    directive_defaults['binding'] = True
+
+CYTHON_MACROS = [('CYTHON_TRACE', '1')] if CYTHON_DEBUG else None
+
+VERSION = '0.4.1'
+
+PKG_FOLDER = path.abspath(path.join(__file__, pardir))
+
+with open(path.join(PKG_FOLDER, 'requirements.txt')) as req_file:
+    requirements = req_file.read().splitlines()
 
 # set a long description which is basically the README
-with open(path.join(path.abspath(path.dirname(__file__)), 'README.md')) as f:
+with open(path.join(PKG_FOLDER, 'README.md')) as f:
     long_description = f.read()
+
+extensions = [Extension(
+    name="ark.utils._bootstrapping",
+    sources=["ark/utils/_bootstrapping.pyx"],
+    include_dirs=[np.get_include()],
+    define_macros=CYTHON_MACROS
+)]
 
 setup(
     name='ark-analysis',
@@ -18,24 +41,8 @@ setup(
     author='Angelo Lab',
     url='https://github.com/angelolab/ark-analysis',
     download_url='https://github.com/angelolab/ark-analysis/archive/v{}.tar.gz'.format(VERSION),
-    install_requires=['cryptography>=3.4.8,<4',
-                      'feather_format>=0.4.1,<1',
-                      'ipympl>=0.7.0,<0.8.0',
-                      'jupyter>=1.0.0,<2',
-                      'jupyter_contrib_nbextensions>=0.5.1,<1',
-                      'jupyterlab>=3.1.5,<4',
-                      'matplotlib>=2.2.2,<3',
-                      'numpy>=1.16.3,<2',
-                      'pandas>=0.23.3,<1',
-                      'requests>=2.25.1,<3',
-                      'scikit-image>=0.14.3,<=0.16.2',
-                      'scikit-learn>=0.19.1,<1',
-                      'scipy>=1.1.0,<2',
-                      'seaborn>=0.10.1,<1',
-                      'statsmodels>=0.11.1,<1',
-                      'umap-learn>=0.4.6,<1',
-                      'xarray>=0.12.3,<1',
-                      'tqdm>=4.54.1,<5'],
+    ext_modules=cythonize(extensions, compiler_directives={'language_level': "3"}),
+    install_requires=requirements,
     extras_require={
         'tests': ['pytest',
                   'pytest-cov',
@@ -47,5 +54,5 @@ setup(
     classifiers=['License :: OSI Approved :: Apache Software License',
                  'Development Status :: 4 - Beta',
                  'Programming Language :: Python :: 3',
-                 'Programming Language :: Python :: 3.6']
+                 'Programming Language :: Python :: 3.8']
 )

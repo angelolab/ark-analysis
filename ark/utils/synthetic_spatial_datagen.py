@@ -1,8 +1,8 @@
+from copy import deepcopy
+
 import numpy as np
 import xarray as xr
-
-from copy import deepcopy
-from skimage.draw import circle
+from skimage.draw import disk
 
 
 def generate_test_dist_matrix(num_A=100, num_B=100, num_C=100,
@@ -263,10 +263,9 @@ def generate_two_cell_seg_mask(size_img=(1024, 1024), cell_radius=10):
     center_2 = (size_img[0] // 2, size_img[0] // 2 + cell_radius * 2 - 1)
 
     # generate the coordinates of each nuclear disk
-    cell_region_1_x, cell_region_1_y = circle(center_1[0], center_1[1], cell_radius,
-                                              shape=size_img)
-    cell_region_2_x, cell_region_2_y = circle(center_2[0], center_2[1], cell_radius,
-                                              shape=size_img)
+    cell_region_1_x, cell_region_1_y = disk(center=center_1, radius=cell_radius, shape=size_img)
+
+    cell_region_2_x, cell_region_2_y = disk(center=center_2, radius=cell_radius, shape=size_img)
 
     # assign the respective cells value according to their label
     sample_segmentation_mask[cell_region_1_x, cell_region_1_y] = 1
@@ -314,8 +313,9 @@ def generate_two_cell_nuc_signal(segmentation_mask, cell_centers,
         center = cell_centers[cell]
 
         # generate nuclear region
-        nuc_region_x, nuc_region_y = circle(center[0], center[1],
-                                            nuc_radius + nuc_uncertainty_length, shape=size_img)
+        nuc_region_x, nuc_region_y = disk(center=center,
+                                          radius=nuc_radius + nuc_uncertainty_length,
+                                          shape=size_img)
 
         # set nuclear signal
         sample_nuclear_signal[nuc_region_x, nuc_region_y] = nuc_signal_strength
@@ -364,14 +364,14 @@ def generate_two_cell_memb_signal(segmentation_mask, cell_centers,
         center = cell_centers[cell]
 
         # generate coordinates of the cell region
-        cell_region_x, cell_region_y = circle(center[0], center[1],
-                                              cell_radius + memb_uncertainty_length,
-                                              shape=size_img)
+        cell_region_x, cell_region_y = disk(center=center,
+                                            radius=cell_radius + memb_uncertainty_length,
+                                            shape=size_img)
 
         # generate coordinates of the non-membrane region
-        non_memb_region_x, non_memb_region_y = circle(center[0], center[1],
-                                                      cell_radius - memb_thickness,
-                                                      shape=size_img)
+        non_memb_region_x, non_memb_region_y = disk(center=center,
+                                                    radius=cell_radius - memb_thickness,
+                                                    shape=size_img)
 
         # perform circle subtraction to generate membrane region
         sample_membrane_signal[cell_region_x, cell_region_y] = memb_signal_strength

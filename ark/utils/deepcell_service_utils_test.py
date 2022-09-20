@@ -1,17 +1,27 @@
-import pathlib
 import os
+import pathlib
 import tempfile
 from zipfile import ZipFile
-import pytest
-from pytest_mock import MockerFixture
 
-from ark.utils.deepcell_service_utils import create_deepcell_output
+import numpy as np
+import pytest
+import tifffile
+from pytest_mock import MockerFixture
+from skimage import io
+
+from ark.utils.deepcell_service_utils import (_convert_deepcell_seg_masks,
+                                              create_deepcell_output)
 
 
 def mocked_run_deepcell(in_zip_path, output_dir, host, job_type, scale, timeout):
-    pathlib.Path(os.path.join(output_dir, 'fov1_feature_0.tif')).touch()
-    pathlib.Path(os.path.join(output_dir, 'fov2_feature_0.tif')).touch()
-    pathlib.Path(os.path.join(output_dir, 'fov3_feature_0.tif')).touch()
+
+    fov_data = np.ones(shape=(10, 10), dtype="float32")
+    io.imsave(os.path.join(output_dir, 'fov1_feature_0.tif'),
+              fov_data, plugin="tifffile", check_contrast=False)
+    io.imsave(os.path.join(output_dir, 'fov2_feature_0.tif'),
+              fov_data, plugin="tifffile", check_contrast=False)
+    io.imsave(os.path.join(output_dir, 'fov3_feature_0.tif'),
+              fov_data, plugin="tifffile", check_contrast=False)
 
     batch_num = int(in_zip_path.split('.')[0].split('_')[-1])
     if batch_num < 2:
@@ -26,6 +36,8 @@ def mocked_run_deepcell(in_zip_path, output_dir, host, job_type, scale, timeout)
             zipObj.write(filename, os.path.basename(filename))
             os.remove(filename)
 
+    return 0
+
 
 def test_create_deepcell_output(mocker: MockerFixture):
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -33,9 +45,14 @@ def test_create_deepcell_output(mocker: MockerFixture):
 
         input_dir = os.path.join(temp_dir, 'input_dir')
         os.makedirs(input_dir)
-        pathlib.Path(os.path.join(input_dir, 'fov1.tif')).touch()
-        pathlib.Path(os.path.join(input_dir, 'fov2.tif')).touch()
-        pathlib.Path(os.path.join(input_dir, 'fov3.tiff')).touch()
+
+        fov_data = np.ones(shape=(10, 10), dtype="float32")
+        io.imsave(os.path.join(input_dir, 'fov1.tif'),
+                  fov_data, plugin="tifffile", check_contrast=False)
+        io.imsave(os.path.join(input_dir, 'fov2.tif'),
+                  fov_data, plugin="tifffile", check_contrast=False)
+        io.imsave(os.path.join(input_dir, 'fov3.tiff'),
+                  fov_data, plugin="tifffile", check_contrast=False)
 
         with tempfile.TemporaryDirectory() as output_dir:
 
@@ -130,3 +147,24 @@ def test_create_deepcell_output(mocker: MockerFixture):
             with pytest.raises(ValueError):
                 create_deepcell_output(deepcell_input_dir=input_dir,
                                        deepcell_output_dir=output_dir, fovs=['fov1', 'fov5'])
+
+
+def test_convert_deepcell_seg_masks():
+    with tempfile.TemporaryDirectory() as temp_dir:
+
+        # Initialize a new generator - set seed for reproducibility
+        rng = np.random.default_rng(12345)
+
+        # Create a test mask with integers and cast them to floating point.
+        true_test_mask = np.array([[4, 1, 5, 2, 1], [5, 4, 4, 6, 2], [5, 2, 3, 4, 1],
+                                   [1, 1, 4, 4, 6], [4, 1, 6, 6, 5]], dtype="int32")
+
+        test_mask = rng.integers(low=0, high=7, size=(5, 5)).astype("float32")
+
+        tifffile.imwrite(f"{temp_dir}/test_mask.tiff", data=test_mask)
+
+        with open(f"{temp_dir}/test_mask.tiff", 'r+b') as test_mask_bytes:
+            processed_mask = _convert_deepcell_seg_masks(test_mask_bytes.read())
+
+            assert np.issubdtype(processed_mask.dtype, np.integer)
+            np.testing.assert_equal(true_test_mask, processed_mask)
