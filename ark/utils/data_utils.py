@@ -408,8 +408,7 @@ def relabel_segmentation(labeled_image, labels_dict):
 
 # TODO: Add metadata for channel name (eliminates need for fixed-order channels)
 def generate_deepcell_input(data_dir, tiff_dir, nuc_channels, mem_channels, fovs,
-                            is_mibitiff=False, img_sub_folder="TIFs", batch_size=5,
-                            dtype="int16"):
+                            is_mibitiff=False, img_sub_folder="TIFs", dtype="int16"):
     """Saves nuclear and membrane channels into deepcell input format.
     Either nuc_channels or mem_channels should be specified.
 
@@ -431,10 +430,9 @@ def generate_deepcell_input(data_dir, tiff_dir, nuc_channels, mem_channels, fovs
         img_sub_folder (str):
             if is_mibitiff is False, define the image subfolder for each fov
             ignored if is_mibitiff is True
-        batch_size (int):
-            the number of fovs to process at once for each batch
         dtype (str/type):
             optional specifier of image type.  Overwritten with warning for float images
+
     Raises:
         ValueError:
             Raised if nuc_channels and mem_channels are both None or empty
@@ -450,30 +448,28 @@ def generate_deepcell_input(data_dir, tiff_dir, nuc_channels, mem_channels, fovs
     # filter channels for None (just in case)
     channels = [channel for channel in channels if channel is not None]
 
-    # define a list of fov batches to process over
-    fov_batches = [fovs[i:i + batch_size] for i in range(0, len(fovs), batch_size)]
-
-    for fovs in fov_batches:
+    for fov in fovs:
         # load the images in the current fov batch
         if is_mibitiff:
             data_xr = load_utils.load_imgs_from_mibitiff(
-                tiff_dir, mibitiff_files=fovs, channels=channels)
+                tiff_dir, mibitiff_files=[fov], channels=channels
+            )
         else:
             data_xr = load_utils.load_imgs_from_tree(
-                tiff_dir, img_sub_folder=img_sub_folder, fovs=fovs, channels=channels)
+                tiff_dir, img_sub_folder=img_sub_folder, fovs=[fov], channels=channels
+            )
 
-        # write each fov data to data_dir
-        for fov in data_xr.fovs.values:
-            out = np.zeros((2, data_xr.shape[1], data_xr.shape[2]), dtype=data_xr.dtype)
+        fov_name = data_xr.fovs.values[0]
+        out = np.zeros((2, data_xr.shape[1], data_xr.shape[2]), dtype=data_xr.dtype)
 
-            # sum over channels and add to output
-            if nuc_channels:
-                out[0] = np.sum(data_xr.loc[fov, :, :, nuc_channels].values, axis=2)
-            if mem_channels:
-                out[1] = np.sum(data_xr.loc[fov, :, :, mem_channels].values, axis=2)
+        # sum over channels and add to output
+        if nuc_channels:
+            out[0] = np.sum(data_xr.loc[fov_name, :, :, nuc_channels].values, axis=2)
+        if mem_channels:
+            out[1] = np.sum(data_xr.loc[fov_name, :, :, mem_channels].values, axis=2)
 
-            save_path = os.path.join(data_dir, f"{fov}.tif")
-            io.imsave(save_path, out, plugin='tifffile', check_contrast=False)
+        save_path = os.path.join(data_dir, f"{fov_name}.tif")
+        io.imsave(save_path, out, plugin='tifffile', check_contrast=False)
 
 
 def stitch_images(data_xr, num_cols):
