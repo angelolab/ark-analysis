@@ -467,13 +467,15 @@ def compute_neighbor_counts(current_fov_neighborhood_data, dist_matrix, distlim,
     return counts_pd, freqs_pd
 
 
-def compute_kmeans_inertia(neighbor_mat_data, max_k=10):
+def compute_kmeans_inertia(neighbor_mat_data, min_k=2, max_k=10):
     """For a given neighborhood matrix, cluster and compute inertia using k-means clustering
-       from the range of k=2 to max_k
+       from the range of k=min_k to max_k
 
     Args:
         neighbor_mat_data (pandas.DataFrame):
             neighborhood matrix data with only the desired fovs
+        min_k (int):
+            the minimum k we want to generate cluster statistics for, must be at least 2
         max_k (int):
             the maximum k we want to generate cluster statistics for, must be at least 2
 
@@ -484,25 +486,27 @@ def compute_kmeans_inertia(neighbor_mat_data, max_k=10):
     """
 
     # create array we can store the results of each k for clustering
-    coords = [np.arange(2, max_k + 1)]
+    coords = [np.arange(min_k, max_k + 1)]
     dims = ["cluster_num"]
     stats_raw_data = np.zeros(max_k - 1)
     cluster_stats = xr.DataArray(stats_raw_data, coords=coords, dims=dims)
 
-    for n in range(2, max_k + 1):
+    for n in range(min_k, max_k + 1):
         cluster_fit = KMeans(n_clusters=n).fit(neighbor_mat_data)
         cluster_stats.loc[n] = cluster_fit.inertia_
 
     return cluster_stats
 
 
-def compute_kmeans_silhouette(neighbor_mat_data, max_k=10, subsample=None):
+def compute_kmeans_silhouette(neighbor_mat_data, min_k=2, max_k=10, subsample=None):
     """For a given neighborhood matrix, cluster and compute Silhouette score using k-means
-       from the range of k=2 to max_k
+       from the range of k=min_k to max_k
 
     Args:
         neighbor_mat_data (pandas.DataFrame):
             neighborhood matrix data with only the desired fovs
+        min_k (int):
+            the minimum k we want to generate cluster statistics for, must be at least 2
         max_k (int):
             the maximum k we want to generate cluster statistics for, must be at least 2
         subsample (int):
@@ -517,12 +521,12 @@ def compute_kmeans_silhouette(neighbor_mat_data, max_k=10, subsample=None):
     """
 
     # create array we can store the results of each k for clustering
-    coords = [np.arange(2, max_k + 1)]
+    coords = [np.arange(min_k, max_k + 1)]
     dims = ["cluster_num"]
     stats_raw_data = np.zeros(max_k - 1)
     cluster_stats = xr.DataArray(stats_raw_data, coords=coords, dims=dims)
 
-    for n in range(2, max_k + 1):
+    for n in range(min_k, max_k + 1):
         cluster_fit = KMeans(n_clusters=n).fit(neighbor_mat_data)
         cluster_labels = cluster_fit.labels_
         neighbor_mat_data["cluster"] = cluster_labels

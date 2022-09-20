@@ -648,7 +648,7 @@ def generate_cluster_matrix_results(all_data, neighbor_mat, cluster_num, exclude
     return all_data_clusters, num_cell_type_per_cluster, mean_marker_exp_per_cluster
 
 
-def compute_cluster_metrics_inertia(neighbor_mat, max_k=10, included_fovs=None,
+def compute_cluster_metrics_inertia(neighbor_mat, min_k=2, max_k=10, included_fovs=None,
                                     fov_col=settings.FOV_ID, label_col=settings.CELL_LABEL):
     """Produce k-means clustering metrics to help identify optimal number of clusters using
        inertia
@@ -656,6 +656,8 @@ def compute_cluster_metrics_inertia(neighbor_mat, max_k=10, included_fovs=None,
     Args:
         neighbor_mat (pandas.DataFrame):
             a neighborhood matrix, created from create_neighborhood_matrix
+        min_k (int):
+            the minimum k we want to generate cluster statistics for, must be at least 2
         max_k (int):
             the maximum k we want to generate cluster statistics for, must be at least 2
         included_fovs (list):
@@ -690,12 +692,12 @@ def compute_cluster_metrics_inertia(neighbor_mat, max_k=10, included_fovs=None,
 
     # generate the cluster score information
     neighbor_cluster_stats = spatial_analysis_utils.compute_kmeans_inertia(
-        neighbor_mat_data=neighbor_mat_data, max_k=max_k)
+        neighbor_mat_data=neighbor_mat_data, min_k=min_k, max_k=max_k)
 
     return neighbor_cluster_stats
 
 
-def compute_cluster_metrics_silhouette(neighbor_mat, max_k=10, included_fovs=None,
+def compute_cluster_metrics_silhouette(neighbor_mat, min_k=2, max_k=10, included_fovs=None,
                                        fov_col=settings.FOV_ID, label_col=settings.CELL_LABEL,
                                        subsample=None):
     """Produce k-means clustering metrics to help identify optimal number of clusters using
@@ -704,7 +706,8 @@ def compute_cluster_metrics_silhouette(neighbor_mat, max_k=10, included_fovs=Non
     Args:
         neighbor_mat (pandas.DataFrame):
             a neighborhood matrix, created from create_neighborhood_matrix
-            the maximum k we want to generate cluster statistics for, must be at least 2
+        min_k (int):
+            the minimum k we want to generate cluster statistics for, must be at least 2
         max_k (int):
             the maximum k we want to generate cluster statistics for, must be at least 2
         included_fovs (list):
@@ -743,7 +746,7 @@ def compute_cluster_metrics_silhouette(neighbor_mat, max_k=10, included_fovs=Non
 
     # generate the cluster score information
     neighbor_cluster_stats = spatial_analysis_utils.compute_kmeans_silhouette(
-        neighbor_mat_data=neighbor_mat_data, max_k=max_k, subsample=subsample
+        neighbor_mat_data=neighbor_mat_data, min_k=min_k, max_k=max_k, subsample=subsample
     )
 
     return neighbor_cluster_stats
