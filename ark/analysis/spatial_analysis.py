@@ -529,10 +529,9 @@ def create_neighborhood_matrix(all_data, dist_matrices_dict, included_fovs=None,
         cell_neighbor_freqs.loc[current_fov_neighborhood_data.index, fov_cluster_names] = freqs
 
     # Remove cells that have no neighbors within the distlim
-    cell_neighbor_counts = cell_neighbor_counts.loc[cell_neighbor_counts.drop(
-        [fov_col, cell_label_col], axis=1).sum(axis=1) != 0].reset_index(drop=True)
-    cell_neighbor_freqs = cell_neighbor_freqs.loc[cell_neighbor_freqs.drop(
-        [fov_col, cell_label_col], axis=1).sum(axis=1) != 0].reset_index(drop=True)
+    keep_cells = cell_neighbor_counts.drop([fov_col, cell_label_col], axis=1).sum(axis=1) != 0
+    cell_neighbor_counts = cell_neighbor_counts.loc[keep_cells].reset_index(drop=True)
+    cell_neighbor_freqs = cell_neighbor_freqs.loc[keep_cells].reset_index(drop=True)
 
     return cell_neighbor_counts, cell_neighbor_freqs
 
