@@ -591,6 +591,8 @@ def stitch_tiled_images(data_dir, tiled_folder_name, img_sub_folder=None, channe
 
     # retrieve valid folder names
     folders = ns.natsorted(io_utils.list_folders(data_dir))
+    if 'stitched_images' in folders:
+        folders.remove('stitched_images')
 
     for dir in folders:
         r = re.compile('.*R.*C.*')

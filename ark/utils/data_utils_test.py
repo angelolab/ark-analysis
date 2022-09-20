@@ -682,7 +682,7 @@ def test_stitch_tiled_images():
         data_dir = os.path.join(temp_dir, 'images')
         os.makedirs(data_dir)
 
-        fovs = ['R1C1', 'R2C2', 'R3C1']
+        fovs = ['R1C1', 'R2C2', 'R3C1', 'stitched_images']
         larger_fov = ['R4C2']
         chans = [f'chan{i}' for i in range(5)]
 

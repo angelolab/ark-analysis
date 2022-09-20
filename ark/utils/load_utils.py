@@ -333,9 +333,7 @@ def get_tiled_fov_names(folders, return_dims=False):
         tuple: names of all fovs expected for tiled image shape, and dimensions if return_dims
     """
 
-    rows, cols = [], []
-    names = {}
-    prefix = False
+    rows, cols, names, prefix = [], [], {}, False
 
     # check for run name prefix
     if folders[0][0] != 'R':
@@ -355,8 +353,7 @@ def get_tiled_fov_names(folders, return_dims=False):
         rows.append(int(fov_digits[0]))
         cols.append(int(fov_digits[1]))
 
-    row_num = max(rows)
-    col_num = max(cols)
+    row_num, col_num = max(rows), max(cols)
 
     # create list of expected fov names
     expected_fovs = []
