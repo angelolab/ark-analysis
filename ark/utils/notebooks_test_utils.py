@@ -939,3 +939,27 @@ def create_exp_mat(tb, is_mibitiff=False, batch_size=5, nuclear_counts=False):
 
     # save expression matrices
     tb.execute_cell('save_exp_mat')
+
+
+def fib_seg_run(tb, base_dir):
+    """
+    Args:
+        tb (testbook.testbook):
+            The testbook runner instance
+        base_dir (str):
+            Path to base dir
+    """
+    tb.execute_cell("imports")
+
+    # define custom paths, leave base_dir and input_dir for simplicity
+    define_paths = """
+        base_dir = "%s"
+        input_dir = "%s"
+    """ % (base_dir, os.path.join(base_dir, 'image_data'))
+    tb.inject(define_paths, after='filepaths')
+
+    tb.execute_cell("ex_download")
+
+    tb.execute_cell("params")
+
+    tb.execute_cell("ex_fov")

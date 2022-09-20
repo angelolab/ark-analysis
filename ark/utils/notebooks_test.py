@@ -10,13 +10,17 @@ from ark.utils import notebooks_test_utils
 
 parametrize = pytest.mark.parametrize
 
+def _make_nb_path(nb_name):
+    TEMPLATES_ARK_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', '..',
+                                                      'templates_ark')
+    nb_path = os.path.join(TEMPLATES_ARK_PATH, nb_name)
+    assert(os.path.exists(nb_path))
+    return nb_path
 
-SEGMENT_IMAGE_DATA_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                       '..', '..', 'templates_ark', '1_Segment_Image_Data.ipynb')
-PIXEL_CLUSTER_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                  '..', '..', 'templates_ark', '2_Cluster_Pixels.ipynb')
-CELL_CLUSTER_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                 '..', '..', 'templates_ark', '3_Cluster_Cells.ipynb')
+SEGMENT_IMAGE_DATA_PATH = _make_nb_path('1_Segment_Image_Data.ipynb')
+PIXEL_CLUSTER_PATH = _make_nb_path('2_Cluster_Pixels.ipynb')
+CELL_CLUSTER_PATH = _make_nb_path('3_Cluster_Cells.ipynb')
+FIB_SEG_PATH = _make_nb_path('example_fiber_segmentation.ipynb')
 
 
 def _exec_notebook(nb_filename, base_folder):
@@ -118,4 +122,11 @@ def test_cell_clustering(tb, pixel_cluster_col):
         # run the visualization and remapping process
         notebooks_test_utils.flowsom_cell_visualize(
             tb, base_dir, fovs, pixel_cluster_col=pixel_cluster_col
+        )
+
+@testbook(FIB_SEG_PATH, timeout=6000)
+def test_fib_seg(tb):
+    with tdir() as base_dir:
+        notebooks_test_utils.fib_seg_run(
+            tb, base_dir
         )
