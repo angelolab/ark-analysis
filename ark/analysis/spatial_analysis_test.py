@@ -433,12 +433,20 @@ def test_compute_cluster_metrics_inertia():
     # error checking
     with pytest.raises(ValueError):
         # pass an invalid k
+        spatial_analysis.compute_cluster_metrics_inertia(neighbor_mat=neighbor_mat, min_k=1)
+
+    with pytest.raises(ValueError):
+        # pass an invalid k
         spatial_analysis.compute_cluster_metrics_inertia(neighbor_mat=neighbor_mat, max_k=1)
 
     with pytest.raises(ValueError):
         # pass invalid fovs
         spatial_analysis.compute_cluster_metrics_inertia(neighbor_mat=neighbor_mat,
                                                          included_fovs=["fov3"])
+
+    # explicitly include fovs
+    neighbor_cluster_stats = spatial_analysis.compute_cluster_metrics_inertia(
+        neighbor_mat=neighbor_mat, max_k=3, included_fovs=["fov1", "fov2"])
 
     neighbor_cluster_stats = spatial_analysis.compute_cluster_metrics_inertia(
         neighbor_mat=neighbor_mat, max_k=3)
@@ -459,12 +467,24 @@ def test_compute_cluster_metrics_silhouette():
     # error checking
     with pytest.raises(ValueError):
         # pass an invalid k
+        spatial_analysis.compute_cluster_metrics_silhouette(neighbor_mat=neighbor_mat, min_k=1)
+
+    with pytest.raises(ValueError):
+        # pass an invalid k
         spatial_analysis.compute_cluster_metrics_silhouette(neighbor_mat=neighbor_mat, max_k=1)
 
     with pytest.raises(ValueError):
         # pass invalid fovs
         spatial_analysis.compute_cluster_metrics_silhouette(neighbor_mat=neighbor_mat,
                                                             included_fovs=["fov3"])
+
+    # explicitly include fovs
+    neighbor_cluster_stats = spatial_analysis.compute_cluster_metrics_silhouette(
+        neighbor_mat=neighbor_mat, max_k=3, included_fovs=["fov1", "fov2"])
+
+    # test subsampling
+    neighbor_cluster_stats = spatial_analysis.compute_cluster_metrics_silhouette(
+        neighbor_mat=neighbor_mat, max_k=3, subsample=10)
 
     neighbor_cluster_stats = spatial_analysis.compute_cluster_metrics_silhouette(
         neighbor_mat=neighbor_mat, max_k=3)
