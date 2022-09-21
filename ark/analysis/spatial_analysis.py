@@ -678,7 +678,7 @@ def compute_cluster_metrics_inertia(neighbor_mat, min_k=2, max_k=10, included_fo
         included_fovs = neighbor_mat[fov_col].unique()
 
     # make sure the user specifies a positive k
-    if max_k < 2:
+    if min_k < 2 or max_k < 2:
         raise ValueError("Invalid k provided for clustering")
 
     # check if included fovs found in fov_col
@@ -732,7 +732,7 @@ def compute_cluster_metrics_silhouette(neighbor_mat, min_k=2, max_k=10, included
         included_fovs = neighbor_mat[fov_col].unique()
 
     # make sure the user specifies a positive k
-    if max_k < 2:
+    if min_k < 2 or max_k < 2:
         raise ValueError("Invalid k provided for clustering")
 
     # check if included fovs found in fov_col
