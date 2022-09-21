@@ -16,9 +16,6 @@ suppressPackageStartupMessages({
     library(parallel)
 })
 
-# get the number of cores
-nCores <- parallel::detectCores() - 1
-
 # get the command line arguments
 args <- commandArgs(trailingOnly=TRUE)
 
@@ -36,6 +33,9 @@ pixelWeightsPath <- args[4]
 
 # retrieve the batch size to determine number of threads to run in parallel
 batchSize <- strtoi(args[5])
+
+# get the number of cores
+nCores <- strtoi(args[6])
 
 # read the weights
 somWeights <- as.matrix(arrow::read_feather(pixelWeightsPath))
@@ -58,7 +58,20 @@ for (batchStart in seq(1, length(fovs), batchSize)) {
     # define the parallel cluster for this batch of fovs
     # NOTE: to prevent the occassional hanging first FOV issue, we need to log to an outfile
     # to "force" a return out of the foreach loop in this case
-    parallelCluster <- parallel::makeCluster(nCores, type="FORK", outfile='log.txt')
+    parallelStatus <- tryCatch(
+        {
+            parallelCluster <- parallel::makeCluster(nCores, type="FORK", outfile='log.txt')
+            0
+        },
+        error=function(cond) {
+            1
+        }
+    )
+
+    if (parallelStatus == 1) {
+        print(paste0("Too many cores (", nCores, ") specified, reduce this using the ncores parameter"))
+        quit(status=1)
+    }
 
     # register parallel cluster for dopar
     doParallel::registerDoParallel(cl=parallelCluster)
@@ -97,23 +110,24 @@ for (batchStart in seq(1, length(fovs), batchSize)) {
                 # this won't be displayed to the user but is used as a helper to break out
                 # in the rare first FOV hang issue
                 print(paste('Done writing fov', fovs[i]))
-                0
+                c(0, '')
             },
             error=function(cond) {
                 # this won't be displayed to the user but is used as a helper to break out
                 # in the rare first FOV hang issue
                 print(paste('Error encountered for fov', fovs[i]))
-                1
+                c(1, cond)
             }
         )
 
-        data.frame(fov=fovs[i], status=status)
+        data.frame(fov=fovs[i], status=status[1], errCond=status[2])
     }
 
     # report any erroneous feather files
     for (i in 1:nrow(fovStatuses)) {
         if (fovStatuses[i, 'status'] == 1) {
-            print(paste("The data for FOV", fovStatuses[i, 'fov'], "has been corrupted, removing"))
+            print(paste("Processing for FOV", fovStatuses[i, 'fov'], "failed, removing from pipeline. Error message:"))
+            print(fovStatuses[i, 'errCond'])
             fovsProcessed <- fovsProcessed - 1
         }
     }
