@@ -36,7 +36,7 @@ jobs:
         user: $PYPI_USERNAME
         password: $PYPI_PASSWORD
         on:
-          tags: true
+          tags: false
     - stage: docker_deploy
       if: tag IS present
       python: 3.8
