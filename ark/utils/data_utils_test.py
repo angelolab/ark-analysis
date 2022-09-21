@@ -651,35 +651,37 @@ def test_download_example_data():
             assert set(channel_names) == set(c_names)
 
 
-def test_stitch_tiled_images():
+def test_create_tiled_image():
 
     with tempfile.TemporaryDirectory() as temp_dir:
         data_dir = os.path.join(temp_dir, 'images')
+        tiled_dir = os.path.join(temp_dir, 'tiled_images')
         os.makedirs(data_dir)
 
         # no fov dirs should raise an error
         with pytest.raises(ValueError, match="No FOVs found in directory"):
-            data_utils.stitch_tiled_images(data_dir, 'tiled_images')
+            data_utils.create_tiled_image(data_dir, tiled_dir)
 
         for fov in ['fov1', 'fov2']:
             os.makedirs(os.path.join(data_dir, fov))
 
         # bad fov names should raise error
         with pytest.raises(ValueError, match="Invalid FOVs found in directory"):
-            data_utils.stitch_tiled_images(data_dir, 'tiled_images')
+            data_utils.create_tiled_image(data_dir, tiled_dir)
 
         # one valid fov name but not all should raise error
         os.makedirs(os.path.join(temp_dir, 'R1C1'))
         with pytest.raises(ValueError, match="Invalid FOVs found in directory"):
-            data_utils.stitch_tiled_images(data_dir, 'tiled_images')
+            data_utils.create_tiled_image(data_dir, tiled_dir)
 
         # check for existing previous tiled image stitching
-        os.makedirs(os.path.join(temp_dir, 'tiled_images'))
+        os.makedirs(os.path.join(tiled_dir))
         with pytest.raises(ValueError, match="already exists"):
-            data_utils.stitch_tiled_images(data_dir, 'tiled_images')
+            data_utils.create_tiled_image(data_dir, tiled_dir)
 
     with tempfile.TemporaryDirectory() as temp_dir:
         data_dir = os.path.join(temp_dir, 'images')
+        tiled_dir = os.path.join(temp_dir, 'tiled_images')
         os.makedirs(data_dir)
 
         fovs = ['R1C1', 'R2C2', 'R3C1', 'stitched_images']
@@ -691,38 +693,40 @@ def test_stitch_tiled_images():
 
         # bad channel name should raise an error
         with pytest.raises(ValueError, match="Not all values given in list"):
-            data_utils.stitch_tiled_images(data_dir, 'tiled_images', channels='bad_channel')
+            data_utils.create_tiled_image(data_dir, tiled_dir, channels='bad_channel')
 
         # test successful tiling
-        data_utils.stitch_tiled_images(data_dir, 'tiled_images')
-        assert sorted(io_utils.list_files(os.path.join(temp_dir, 'tiled_images'))) == \
+        data_utils.create_tiled_image(data_dir, tiled_dir)
+        print(sorted(io_utils.list_files(tiled_dir)))
+        assert sorted(io_utils.list_files(tiled_dir)) == \
                [chan + '_tiled.tiff' for chan in chans]
 
         # tiled image is 4 x 2 fovs with max_img_size = 12
-        tiled_data = load_utils.load_imgs_from_dir(os.path.join(temp_dir, 'tiled_images'),
+        tiled_data = load_utils.load_imgs_from_dir(os.path.join(temp_dir, tiled_dir),
                                                    files=['chan0_tiled.tiff'])
         assert tiled_data.shape == (1, 48, 24, 1)
-        shutil.rmtree(os.path.join(temp_dir, 'tiled_images'))
+        shutil.rmtree(os.path.join(temp_dir, tiled_dir))
 
         # test successful tiling for select channels
-        data_utils.stitch_tiled_images(data_dir, 'tiled_images', channels=['chan1', 'chan3'])
-        assert sorted(io_utils.list_files(os.path.join(temp_dir, 'tiled_images'))) == \
+        data_utils.create_tiled_image(data_dir, tiled_dir, channels=['chan1', 'chan3'])
+        assert sorted(io_utils.list_files(tiled_dir)) == \
                ['chan1_tiled.tiff', 'chan3_tiled.tiff']
 
     # test with subdir and run name
     with tempfile.TemporaryDirectory() as temp_dir:
         data_dir = os.path.join(temp_dir, 'images')
+        tiled_dir = os.path.join(temp_dir, 'tiled_images')
         os.makedirs(data_dir)
 
         fovs = ['run_1_R1C1', 'run_1_R2C2', 'run_2_R3C1']
         test_utils._write_tifs(data_dir, fovs, chans, (10, 10), 'sub_dir', False, int)
 
         # test successful tiling
-        data_utils.stitch_tiled_images(data_dir, 'tiled_images', img_sub_folder='sub_dir')
-        assert sorted(io_utils.list_files(os.path.join(temp_dir, 'tiled_images'))) == \
+        data_utils.create_tiled_image(data_dir, tiled_dir, img_sub_folder='sub_dir')
+        assert sorted(io_utils.list_files(tiled_dir)) == \
                [chan + '_tiled.tiff' for chan in chans]
 
         # tiled image is 3 x 2 fovs with max_img_size = 10
-        tiled_data = load_utils.load_imgs_from_dir(os.path.join(temp_dir, 'tiled_images'),
+        tiled_data = load_utils.load_imgs_from_dir(tiled_dir,
                                                    files=['chan0_tiled.tiff'])
         assert tiled_data.shape == (1, 30, 20, 1)

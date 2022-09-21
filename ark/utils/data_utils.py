@@ -568,13 +568,13 @@ def download_example_data(save_dir: Union[str, pathlib.Path]):
                     dirs_exist_ok=True, ignore=shutil.ignore_patterns('._*'))
 
 
-def stitch_tiled_images(data_dir, tiled_folder_name, img_sub_folder=None, channels=None):
+def create_tiled_image(data_dir, tiled_dir, img_sub_folder=None, channels=None):
     """ Creates tiled images for the specified channels based on the FOV folder names
 
     Args:
-        data_dir (string):
+        data_dir (str):
             path to directory containing images
-        tiled_folder_name (str):
+        tiled_dir (str):
             name of dir to save tiled images to
         img_sub_folder (str):
             optional name of image sub-folder within each fov
@@ -582,10 +582,11 @@ def stitch_tiled_images(data_dir, tiled_folder_name, img_sub_folder=None, channe
             optional list of imgs to load, otherwise loads all imgs
     """
 
-    # check for previous stitching
-    base_dir = os.path.abspath(os.path.join(data_dir, os.pardir))
-    tiled_dir = os.path.join(base_dir, tiled_folder_name)
+    # no img_sub_folder, change to empty string to read directly from base folder
+    if img_sub_folder is None:
+        img_sub_folder = ""
 
+    # check previous tiling
     if os.path.exists(tiled_dir):
         raise ValueError(f"The {tiled_dir} directory already exists.")
 
@@ -602,30 +603,24 @@ def stitch_tiled_images(data_dir, tiled_folder_name, img_sub_folder=None, channe
     if len(folders) == 0:
         raise ValueError(f"No FOVs found in directory, {data_dir}.")
 
-    _, num_rows, num_cols = load_utils.get_tiled_fov_names(folders, return_dims=True)
-
-    # no img_sub_folder, change to empty string to read directly from base folder
-    if img_sub_folder is None:
-        img_sub_folder = ""
-
     # retrieve all extracted channel names, or verify the list provided
-    channel_imgs = io_utils.list_files(
-        dir_name=os.path.join(data_dir, folders[0], img_sub_folder), substrs='.tif')
+    channel_imgs = io_utils.list_files(dir_name=os.path.join(data_dir, folders[0], img_sub_folder),
+                                       substrs=['.tif', '.jpg', '.png'])
     if channels is None:
         channels = io_utils.remove_file_extensions(channel_imgs)
     else:
         verify_in_list(channel_inputs=channels,
                        valid_channels=io_utils.remove_file_extensions(channel_imgs))
 
-    # get file extension
-    file_ext = channel_imgs[0].split('.')[1]
-
     # make tiled subdir
     os.makedirs(tiled_dir)
 
+    file_ext = channel_imgs[0].split('.')[1]
+    _, num_rows, num_cols = load_utils.get_tiled_fov_names(folders, return_dims=True)
+
     # save the tiled images to the tiled_images subdir, one channel at a time
     for chan in channels:
-        image_data = load_tiled_img_data(data_dir, img_sub_folder, channels=[chan])
+        image_data = load_tiled_img_data(data_dir, folders, chan, file_ext, img_sub_folder)
         tiled_data = stitch_images(image_data, num_cols)
         current_img = tiled_data.loc['stitched_image', :, :, chan].values
         io.imsave(os.path.join(tiled_dir, chan + '_tiled.' + file_ext),

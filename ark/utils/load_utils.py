@@ -403,23 +403,26 @@ def get_max_img_size(image_dir, img_sub_folder='', fov_list=None):
     return max_img_size
 
 
-def load_tiled_img_data(data_dir, img_sub_folder=None, channels=None, max_image_size=None):
-    """Takes a set of (tiled) imgs from a directory structure and loads them into an xarray.
+def load_tiled_img_data(data_dir, fov_list, channel, file_ext='tiff', img_sub_folder=None,
+                        max_image_size=None):
+    """Takes a set of imgs from a directory structure and loads them into a tiled xarray.
 
     Args:
         data_dir (str):
             directory containing folders of images
+        file_ext (str):
+            the file type of existing images
+        channel (str):
+            image names to load
         img_sub_folder (str):
             optional name of image sub-folder within each fov
-        channels (list):
-            optional list of imgs to load, otherwise loads all imgs
         max_image_size (int or None):
             The length (in pixels) of the largest image that will be loaded. All other images will
             be padded to bring them up to the same size.
 
     Returns:
         xarray.DataArray:
-            xarray with shape [fovs, x_dim, y_dim, tifs]
+            xarray with shape [fovs, x_dim, y_dim, channel]
     """
 
     iou.validate_paths(data_dir, data_prefix=False)
@@ -427,10 +430,6 @@ def load_tiled_img_data(data_dir, img_sub_folder=None, channels=None, max_image_
     if img_sub_folder is None:
         # no img_sub_folder, change to empty string to read directly from base folder
         img_sub_folder = ''
-
-    fov_list = ns.natsorted(iou.list_folders(data_dir))
-    if 'stitched_images' in fov_list:
-        fov_list.remove('stitched_images')
 
     # check for RnCm folder naming
     for dir in fov_list:
@@ -447,62 +446,26 @@ def load_tiled_img_data(data_dir, img_sub_folder=None, channels=None, max_image_
     if not max_image_size:
         max_image_size = get_max_img_size(data_dir, img_sub_folder, fov_list)
 
-    # get imgs from first fov if no img names supplied
-    if channels is None:
-        channels = iou.list_files(
-            dir_name=os.path.join(data_dir, fov_list[0], img_sub_folder),
-            substrs=['.tif', '.jpg', '.png']
-        )
-        channels.sort()
-    # otherwise, fill channel names with correct file extension
-    elif not all([img.endswith(("tif", "tiff", "jpg", "png")) for img in channels]):
-        # need this to reorder channels back because list_files may mess up the ordering
-        channels_no_delim = [img.split('.')[0] for img in channels]
-
-        all_channels = iou.list_files(
-            dir_name=os.path.join(data_dir, fov_list[0], img_sub_folder),
-            substrs=channels_no_delim, exact_match=True
-        )
-
-        # get the corresponding indices found in channels_no_delim
-        channels_indices = [channels_no_delim.index(chan.split('.')[0]) for chan in all_channels]
-
-        # verify if channels from user input are present in `all_channels`
-        all_channels_no_delim = [channel.split('.')[0] for channel in all_channels]
-
-        misc_utils.verify_same_elements(all_channels_in_folder=all_channels_no_delim,
-                                        all_channels_detected=channels_no_delim)
-        # reorder back to original
-        channels = [chan for _, chan in sorted(zip(channels_indices, all_channels))]
-
-    if len(channels) == 0:
-        raise ValueError("No images found.")
-
     # no missing fov images, load data normally
     if len(fov_list) == len(expected_fovs):
-        img_xr = load_imgs_from_tree(data_dir, img_sub_folder, fovs=fov_list, channels=channels,
+        img_xr = load_imgs_from_tree(data_dir, img_sub_folder, fovs=fov_list, channels=[channel],
                                      max_image_size=max_image_size)
         return img_xr
     # missing fov directories
     else:
-        test_img = io.imread(os.path.join(data_dir, fov_list[0], img_sub_folder, channels[0]))
+        test_img = io.imread(os.path.join(data_dir, fov_list[0], img_sub_folder,
+                                          channel + '.' + file_ext))
         dtype = test_img.dtype
 
-    img_data = np.zeros((len(expected_fovs), max_image_size, max_image_size, len(channels)),
-                        dtype=dtype)
+    img_data = np.zeros((len(expected_fovs), max_image_size, max_image_size, 1), dtype=dtype)
 
     for fov, fov_name in enumerate(expected_fovs):
         # load in fov data for images, leave missing fovs as zeros
         if fov_name in fov_list:
-            fov_digits = re.findall(r'\d+', fov_name)
-            start_row = (int(fov_digits[0]) - 1) * max_image_size
-            start_col = (int(fov_digits[1]) - 1) * max_image_size
-
-            for img in range(len(channels)):
-                temp_img = io.imread(os.path.join(data_dir, expected_fovs[fov], img_sub_folder,
-                                                  channels[img]))
-                # fill in specific spot in array
-                img_data[fov, :temp_img.shape[0], :temp_img.shape[1], img] = temp_img
+            temp_img = io.imread(os.path.join(data_dir, expected_fovs[fov], img_sub_folder,
+                                              channel + '.' + file_ext))
+            # fill in specific spot in array
+            img_data[fov, :temp_img.shape[0], :temp_img.shape[1], 0] = temp_img
 
     # check to make sure that dtype wasn't too small for range of data
     if np.min(img_data) < 0:
@@ -510,8 +473,6 @@ def load_tiled_img_data(data_dir, img_sub_folder=None, channels=None, max_image_
 
     row_coords, col_coords = range(img_data.shape[1]), range(img_data.shape[2])
 
-    # remove .tiff from image name
-    img_names = [os.path.splitext(img)[0] for img in channels]
-    img_xr = xr.DataArray(img_data, coords=[expected_fovs, row_coords, col_coords, img_names],
+    img_xr = xr.DataArray(img_data, coords=[expected_fovs, row_coords, col_coords, [channel]],
                           dims=["fovs", "rows", "cols", "channels"])
     return img_xr
