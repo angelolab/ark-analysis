@@ -311,6 +311,21 @@ def test_load_imgs_from_dir():
         assert loaded_xr.equals(data_xr)
 
 
+def test_check_fov_name_prefix():
+    # check no prefix
+    prefix, fovs = load_utils.check_fov_name_prefix(['R1C1', 'R1C2', 'R1C3'])
+    assert prefix is False and fovs == ['R1C1', 'R1C2', 'R1C3']
+
+    # check all fovs have prefix
+    prefix, fovs = load_utils.check_fov_name_prefix(['Run_1_R1C1', 'Run_2_R1C2', 'Run_1_R1C3'])
+    assert prefix is True and fovs == {'R1C1': 'Run_1', 'R1C2': 'Run_2', 'R1C3': 'Run_1'}
+
+    # check some fovs have prefix
+    prefix, fovs = load_utils.check_fov_name_prefix(['R1C1', 'R1C2', 'run1_R1C3'])
+    assert prefix is True and fovs == {'R1C1': '', 'R1C2': '', 'R1C3': 'run1'}
+
+
+
 def test_get_tiled_fov_names():
     # check no missing fovs
     fov_names = ['R1C1', 'R1C2', 'R2C1', 'R2C2']
@@ -328,11 +343,11 @@ def test_get_tiled_fov_names():
     assert (rows, cols) == (3, 4)
 
     # check missing fovs with run name attached
-    fov_names = ['run_1_R1C1', 'run_2_R1C3']
+    fov_names = ['Run_10_R1C1', 'Run_20_R1C3']
 
     # should return a list with all fovs for a 3x4 tiled image
     expected_fovs, rows, cols = load_utils.get_tiled_fov_names(fov_names, return_dims=True)
-    assert expected_fovs == ['run_1_R1C1', 'R1C2', 'run_2_R1C3']
+    assert expected_fovs == ['Run_10_R1C1', 'R1C2', 'Run_20_R1C3']
     assert (rows, cols) == (1, 3)
 
 
@@ -374,17 +389,6 @@ def test_load_tiled_img_data():
     # invalid directory is provided
     with pytest.raises(ValueError):
         loaded_xr = load_utils.load_tiled_img_data('not_a_dir', [], 'chan1')
-
-    # bad FOV name structure should raise an error
-    with tempfile.TemporaryDirectory() as temp_dir:
-        # temp_dir contains no image folders
-        with pytest.raises(ValueError, match="No FOVs found in directory"):
-            loaded_xr = load_utils.load_tiled_img_data(temp_dir, [], 'chan1')
-
-        # check bad fov names
-        with pytest.raises(ValueError, match="Invalid FOVs found in directory"):
-            loaded_xr = load_utils.load_tiled_img_data(temp_dir, ['fov-1', 'fov-2', 'fov-3'],
-                                                       'chan1')
 
     # check with no missing FOVS
     with tempfile.TemporaryDirectory() as temp_dir:

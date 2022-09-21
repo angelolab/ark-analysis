@@ -575,7 +575,7 @@ def create_tiled_image(data_dir, tiled_dir, img_sub_folder=None, channels=None):
         data_dir (str):
             path to directory containing images
         tiled_dir (str):
-            name of dir to save tiled images to
+            path to directory to save tiled images to
         img_sub_folder (str):
             optional name of image sub-folder within each fov
         channels (list):
@@ -586,22 +586,26 @@ def create_tiled_image(data_dir, tiled_dir, img_sub_folder=None, channels=None):
     if img_sub_folder is None:
         img_sub_folder = ""
 
-    # check previous tiling
-    if os.path.exists(tiled_dir):
-        raise ValueError(f"The {tiled_dir} directory already exists.")
-
     # retrieve valid folder names
     folders = ns.natsorted(io_utils.list_folders(data_dir))
     if 'stitched_images' in folders:
         folders.remove('stitched_images')
 
-    for dir in folders:
-        r = re.compile('.*R.*C.*')
-        if r.match(dir) is None:
-            raise ValueError(f"Invalid FOVs found in directory, {data_dir}. FOV folder names "
-                             f"should have the form RnCm.")
     if len(folders) == 0:
         raise ValueError(f"No FOVs found in directory, {data_dir}.")
+
+    # check previous tiling
+    if os.path.exists(tiled_dir):
+        raise ValueError(f"The {tiled_dir} directory already exists.")
+
+    bad_dirs = []
+    for folder in folders:
+        r = re.compile('.*R.*C.*')
+        if r.match(folder) is None:
+            bad_dirs.append(dir)
+    if len(bad_dirs) > 0:
+        raise ValueError(f"Invalid FOVs found in directory, {data_dir}. FOV folder names "
+                         f"{bad_dirs} should have the form RnCm.")
 
     # retrieve all extracted channel names, or verify the list provided
     channel_imgs = io_utils.list_files(dir_name=os.path.join(data_dir, folders[0], img_sub_folder),

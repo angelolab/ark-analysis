@@ -323,46 +323,68 @@ def load_imgs_from_dir(data_dir, files=None, match_substring=None, trim_suffix=N
     return img_xr
 
 
+def check_fov_name_prefix(folders):
+    """Checks for a prefix (usually detailing a run name) in any of the provided FOV folder names
+
+        Args:
+            folders (list): list of fov folders
+        Returns:
+            tuple: (bool) whether at least one folder name has a prefix,
+                   (list / dict) if prefix, dictionary with fov name as keys and prefixes as values
+                    otherwise return a simple list of the fov names
+        """
+
+    # check for prefix in any of the folder names
+    prefix = False
+    for folder in folders:
+        if re.search('R.{1,3}C.{1,3}', folder).start() != 0:
+            prefix = True
+
+    if prefix:
+        # dict containing fov name and run name
+        fov_names = {}
+        for folder in folders:
+            fov = ''.join(folder.split("_")[-1:])
+            prefix_name = '_'.join(folder.split("_")[:-1])
+            fov_names[fov] = prefix_name
+    else:
+        # original list of folder names
+        fov_names = folders
+
+    return prefix, fov_names
+
+
 def get_tiled_fov_names(folders, return_dims=False):
     """Generates the complete tiled fov list when given a list of fov image folders
 
     Args:
-        folders (list): list of fov folders
-        return_dims (bool): whether to also return row and col dimensions
+        folders (list):
+            list of fov folders
+        return_dims (bool):
+            whether to also return row and col dimensions
     Returns:
         tuple: names of all fovs expected for tiled image shape, and dimensions if return_dims
     """
 
-    rows, cols, names, prefix = [], [], {}, False
+    rows, cols, expected_fovs = [], [], []
 
     # check for run name prefix
-    if folders[0][0] != 'R':
-        prefix = True
-        # dict containing fov name and run name
-        for folder in folders:
-            fov = ''.join(folder.split("_")[-1:])
-            prefix = '_'.join(folder.split("_")[:-1])
-            names[fov] = prefix
-        fov_names = list(names.keys())
-    else:
-        fov_names = folders
+    prefix, fov_names = check_fov_name_prefix(folders)
 
     # get tiled image dimensions
     for fov in fov_names:
         fov_digits = re.findall(r'\d+', fov)
         rows.append(int(fov_digits[0]))
         cols.append(int(fov_digits[1]))
-
     row_num, col_num = max(rows), max(cols)
 
-    # create list of expected fov names
-    expected_fovs = []
+    # fill list of expected fov names
     for n in range(row_num):
         for m in range(col_num):
             dim = f'R{n + 1}C{m + 1}'
-            # prepend run name if had one before
-            if prefix and dim in fov_names:
-                expected_fovs.append(f"{names[dim]}_" + dim)
+            # prepend run names
+            if prefix and dim in list(fov_names.keys()):
+                expected_fovs.append(f"{fov_names[dim]}_" + dim)
             else:
                 expected_fovs.append(dim)
 
@@ -373,12 +395,14 @@ def get_tiled_fov_names(folders, return_dims=False):
 
 
 def get_max_img_size(image_dir, img_sub_folder='', fov_list=None):
-    """Retrieves the maximum FOV image size listed in the run file, or for the given FOVs
-
+    """Retrieves the maximum FOV image size using test images from each folder
     Args:
-        image_dir (str): path to the extracted images for the specific run
-        img_sub_folder (str): optional name of image sub-folder within each fov
-        fov_list (list): list of fovs to check max size for, default none will check all fovs
+        image_dir (str):
+            path to the extracted images for the specific run
+        img_sub_folder (str):
+            optional name of image sub-folder within each fov
+        fov_list (list):
+            list of fovs to check max size for, default none will check all fovs
     Returns:
         int: value of max image size
     """
@@ -405,15 +429,17 @@ def get_max_img_size(image_dir, img_sub_folder='', fov_list=None):
 
 def load_tiled_img_data(data_dir, fov_list, channel, file_ext='tiff', img_sub_folder=None,
                         max_image_size=None):
-    """Takes a set of imgs from a directory structure and loads them into a tiled xarray.
+    """Takes a set of images from a directory structure and loads them into a tiled xarray.
 
     Args:
         data_dir (str):
             directory containing folders of images
-        file_ext (str):
-            the file type of existing images
+        fov_list (list):
+            list of fovs to to load data for
         channel (str):
             image names to load
+        file_ext (str):
+            the file type of existing images
         img_sub_folder (str):
             optional name of image sub-folder within each fov
         max_image_size (int or None):
@@ -431,19 +457,10 @@ def load_tiled_img_data(data_dir, fov_list, channel, file_ext='tiff', img_sub_fo
         # no img_sub_folder, change to empty string to read directly from base folder
         img_sub_folder = ''
 
-    # check for RnCm folder naming
-    for dir in fov_list:
-        r = re.compile('.*R.*C.*')
-        if r.match(dir) is None:
-            raise ValueError(f"Invalid FOVs found in directory, {data_dir}. FOV folder names "
-                             f"should have the form RnCm.")
-    if len(fov_list) == 0:
-        raise ValueError(f"No FOVs found in directory, {data_dir}.")
-
     expected_fovs = get_tiled_fov_names(fov_list)
 
     # get image size if not provided
-    if not max_image_size:
+    if max_image_size is None:
         max_image_size = get_max_img_size(data_dir, img_sub_folder, fov_list)
 
     # no missing fov images, load data normally
