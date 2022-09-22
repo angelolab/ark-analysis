@@ -564,9 +564,7 @@ def generate_cluster_labels(neighbor_mat_data, cluster_num):
     """
 
     cluster_fit = KMeans(n_clusters=cluster_num).fit(neighbor_mat_data)
-    cluster_labels = cluster_fit.labels_
-
     # Add 1 to avoid cluster number 0
-    cluster_labels = [x+1 for x in cluster_labels]
+    cluster_labels = cluster_fit.labels_ + 1
 
     return cluster_labels
