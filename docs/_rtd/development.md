@@ -83,6 +83,21 @@ Note that you will not have access to `ark` or the other libraries inside `requi
  
 You're now set to start working with `ark-analysis`! Please look at [our contributing guidelines](contributing.html) for more information about development. For detailed explanations of the functions available to you in `ark`, please consult the Libraries section of this documentation. 
 
+
+### Updating Ark Analysis in the Docker
+
+**Note** that code changes aren't automatically propagated into the Docker Image.
+However there may be times where you would like to work with and test out new changes and features.
+
+You may update the current version of `ark-analysis` by running the following commands
+in the Jupyter Lab terminal.
+
+```sh
+cd /opt/ark-analysis
+git pull
+pip install .
+```
+
 #### Using ark functions directly
 
 If you will only be using functions in `ark` without developing on top of it, do not clone the repo. Simply run `pip install ark-analysis` inside the virtual environment to gain access to our functions. To verify installation, type `conda list ark-analysis` after completion. If `ark-analysis` is listed, the installation was successful. You can now access the `ark` library with `import ark`.
@@ -182,8 +197,14 @@ next_release_vX.Y.Z
    1. If, in the release notes draft there are PRs that are not categorized, label them appropriately (usually based on the label of their respective Issue).
 2. Make sure that all tests pass for `Ark` on Travis-CI. 
 3. In the `ark-analysis/start_docker.sh` script, change the image tag from 
+    ```sh
+    docker run -it "${run_params[@]}" angelolab/ark-analysis:vA.B.C
     ```
-    angelolab/ark-analysis:vA.B.C -> angelolab/ark-analysis:vX.Y.Z
+
+    to
+
+    ```sh
+    docker run -it "${run_params[@]}" angelolab/ark-analysis:vX.Y.Z
     ```
 4. Request a review and merge the `Ark` branch.
 5. Next head to the most recent Drafted Release Notes:
