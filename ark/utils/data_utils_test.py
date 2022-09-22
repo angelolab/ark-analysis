@@ -637,7 +637,7 @@ def test_download_example_data():
         print(downloaded_fovs)
         downloaded_fov_names = [f.stem for f in downloaded_fovs]
 
-        # Assert that all the fovs exist after copying the data to "image_data/input_data"
+        # Assert that all the fovs exist after copying the data to "image_data/image_data"
         assert set(fov_names) == set(downloaded_fov_names)
 
         channel_names = ["CD3", "CD4", "CD8", "CD14", "CD20", "CD31", "CD45", "CD68", "CD163",
