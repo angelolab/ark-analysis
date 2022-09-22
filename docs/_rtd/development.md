@@ -83,7 +83,6 @@ Note that you will not have access to `ark` or the other libraries inside `requi
  
 You're now set to start working with `ark-analysis`! Please look at [our contributing guidelines](contributing.html) for more information about development. For detailed explanations of the functions available to you in `ark`, please consult the Libraries section of this documentation. 
 
-
 ### Updating Ark Analysis in the Docker
 
 **Note** that code changes aren't automatically propagated into the Docker Image.
@@ -199,12 +198,7 @@ next_release_vX.Y.Z
 3. In the `ark-analysis/start_docker.sh` script, change the image tag from 
     ```sh
     docker run -it "${run_params[@]}" angelolab/ark-analysis:vA.B.C
-    ```
-
-    to
-
-    ```sh
-    docker run -it "${run_params[@]}" angelolab/ark-analysis:vX.Y.Z
+    -> docker run -it "${run_params[@]}" angelolab/ark-analysis:vX.Y.Z
     ```
 4. Request a review and merge the `Ark` branch.
 5. Next head to the most recent Drafted Release Notes:
