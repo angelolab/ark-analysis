@@ -472,7 +472,7 @@ def test_generate_pixel_cluster_mask():
         )
 
         # assert we have 3 fovs and the image size is the same as the mask (40, 40)
-        assert pixel_masks.shape == (3, 40, 40)
+        assert pixel_masks.shape == (3, 40, 20)
 
         # assert no value is greater than the highest SOM cluster value (10)
         assert np.all(pixel_masks <= 10)
@@ -484,7 +484,7 @@ def test_generate_pixel_cluster_mask():
         )
 
         # assert we have 3 fovs and the image size is the same as the mask (40, 40)
-        assert pixel_masks.shape == (3, 40, 40)
+        assert pixel_masks.shape == (3, 40, 20)
 
         # assert no value is greater than the highest meta cluster value (5)
         assert np.all(pixel_masks <= 5)
