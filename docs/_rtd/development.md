@@ -215,19 +215,20 @@ next_release_vX.Y.Z
 **Test Changes on Toffy**
 1. Test the effects that changes in `Ark` have on `toffy` locally.
    1. Install the new branch of `Ark` in your Python environment with 
-    ```
-    pip install -e <location/to/ark>
-    ```
+       ```
+       pip install -e <location/to/ark>
+       ```
    2. **As needed**, sync with `toffy` and `mibi-bin-tools`
       1. Update relevant packages in these repos, such as `scikit-image` or `xarray`.
       2. Locally, test that the new version works with `toffy`
       3. If there are errors in `toffy` fix them in a separate branch named:
-        ```
-        ark_vX.Y.Z_compatibility
-        ```
+         ```
+         ark_vX.Y.Z_compatibility
+         ```
    3. If necessary, change the version of ark-analysis in `toffy/requirements.txt`:
-        ```
-        git+https://github.com/angelolab/ark-analysis.git@vA.B.C -> git+https://github.com/angelolab/ark-analysis.git@vX.Y.Z
-        ```
+      ```
+      git+https://github.com/angelolab/ark-analysis.git@vA.B.C -> git+https://github.com/angelolab/ark-analysis.git@vX.Y.Z
+      ```
+
 2. Once all errors have been ironed out create PRs for the respective changes in the effected repositories, and label them as `dependencies`.
 3. Merge the compatibility PRs.
