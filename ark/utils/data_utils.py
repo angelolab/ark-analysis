@@ -550,7 +550,7 @@ def download_example_data(save_dir: Union[str, pathlib.Path]):
     The following is a link to the dataset used:
     https://huggingface.co/datasets/angelolab/ark_example
 
-    The dataset will be saved in `{save_dir}/example_dataset/input_data`.
+    The dataset will be saved in `{save_dir}/example_dataset/image_data`.
 
     Args:
         save_dir (Union[str, pathlib.Path]): The directory to save the example dataset in.
@@ -559,7 +559,7 @@ def download_example_data(save_dir: Union[str, pathlib.Path]):
     # Downloads the dataset
     ds = datasets.load_dataset("angelolab/ark_example")
 
-    data_path = pathlib.Path(ds["base_dataset"]["Data Path"][0]) / "input_data"
+    data_path = pathlib.Path(ds["base_dataset"]["Data Path"][0]) / "image_data"
 
-    shutil.copytree(data_path, pathlib.Path(save_dir) / "input_data",
+    shutil.copytree(data_path, pathlib.Path(save_dir) / "image_data",
                     dirs_exist_ok=True, ignore=shutil.ignore_patterns('._*'))

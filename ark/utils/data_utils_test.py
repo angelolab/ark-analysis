@@ -630,13 +630,13 @@ def test_download_example_data():
         download_example_data(save_dir=pathlib.Path(temp_dir) / "example_dataset")
 
         fov_names = [f"fov{i}" for i in range(11)]
-        input_data_path = pathlib.Path(temp_dir) / "example_dataset/input_data"
+        input_data_path = pathlib.Path(temp_dir) / "example_dataset/image_data"
 
         # Get downloaded + moved fov names.
         downloaded_fovs = list(input_data_path.glob("*"))
         downloaded_fov_names = [f.stem for f in downloaded_fovs]
 
-        # Assert that all the fovs exist after copying the data to "image_data/input_data"
+        # Assert that all the fovs exist after copying the data to "example_dataset/image_data"
         assert set(fov_names) == set(downloaded_fov_names)
 
         channel_names = ["CD3", "CD4", "CD8", "CD14", "CD20", "CD31", "CD45", "CD68", "CD163",
