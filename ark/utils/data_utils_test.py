@@ -634,7 +634,6 @@ def test_download_example_data():
 
         # Get downloaded + moved fov names.
         downloaded_fovs = list(input_data_path.glob("*"))
-        print(downloaded_fovs)
         downloaded_fov_names = [f.stem for f in downloaded_fovs]
 
         # Assert that all the fovs exist after copying the data to "image_data/input_data"
