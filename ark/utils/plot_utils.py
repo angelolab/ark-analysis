@@ -78,7 +78,7 @@ def plot_neighborhood_cluster_result(img_xr, fovs, k, save_dir=None, cmap_name='
         tick_names = ['Cluster'+str(x) for x in range(1, k+1)]
         tick_names = ['Empty'] + tick_names
         cbar = plt.colorbar(im, cax=cax, ticks=np.arange(len(tick_names)))
-        cbar.ax.set_yticks(cbar.ax.get_yticks())
+        cbar.set_ticks(cbar.ax.get_yticks())
         cbar.ax.set_yticklabels(tick_names)
 
         # save if specified
