@@ -248,7 +248,7 @@ def generate_pixel_cluster_mask(fovs, base_dir, tiff_dir, chan_file,
         y_coords = fov_data['column_index'].values
 
         # convert to 1D indexing
-        coordinates = x_coords * img_data.shape[1] + y_coords
+        coordinates = x_coords * img_data.shape[2] + y_coords
 
         # get the cooresponding cluster labels for each pixel
         cluster_labels = list(fov_data[pixel_cluster_col])
@@ -559,7 +559,7 @@ def download_example_data(save_dir: Union[str, pathlib.Path]):
     # Downloads the dataset
     ds = datasets.load_dataset("angelolab/ark_example")
 
-    data_path = pathlib.Path(ds["base_dataset"]["Data Path"][0]) / "input_data"
+    data_path = pathlib.Path(ds["base_dataset"]["Data Path"][0]) / "image_data"
 
     shutil.copytree(data_path, pathlib.Path(save_dir) / "image_data",
                     dirs_exist_ok=True, ignore=shutil.ignore_patterns('._*'))
