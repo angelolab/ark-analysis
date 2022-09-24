@@ -480,23 +480,24 @@ def generate_cell_table(segmentation_dir, tiff_dir, img_sub_folder="TIFs",
     )
 
     # get full filenames from given fovs
+    # TODO: deprecate filenames support as part of MIBItiff phasing out
     filenames = io_utils.list_files(tiff_dir, substrs=fovs, exact_match=True)
 
     # sort the fovs
     fovs.sort()
     filenames.sort()
 
-    # defined some vars for batch processing
+    # define number of FOVs for batch processing
     cohort_len = len(fovs)
 
     # create the final dfs to store the processed data
     combined_cell_table_size_normalized = pd.DataFrame()
     combined_cell_table_arcsinh_transformed = pd.DataFrame()
 
-    for fov_name, fov_file in zip(fovs, filenames):
+    for fov_index, fov_name in enumerate(fovs):
         if is_mibitiff:
             image_data = load_utils.load_imgs_from_mibitiff(data_dir=tiff_dir,
-                                                            mibitiff_files=[fov_file])
+                                                            mibitiff_files=[filenames[fov_index]])
         else:
             image_data = load_utils.load_imgs_from_tree(data_dir=tiff_dir,
                                                         img_sub_folder=img_sub_folder,
