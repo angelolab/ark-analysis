@@ -546,7 +546,7 @@ def test_create_marker_count_matrices_multiple_compartments():
                                                            channel_data, nuclear_counts=True)
 
 
-def test_generate_cell_data_tree_loading():
+def test_generate_cell_table_tree_loading():
     # is_mibitiff False case, load from directory tree
     with tempfile.TemporaryDirectory() as temp_dir:
         # define 3 fovs and 3 imgs per fov
@@ -592,13 +592,12 @@ def test_generate_cell_data_tree_loading():
             # specifying fovs not in the original segmentation mask
             marker_quantification.generate_cell_table(
                 segmentation_dir=temp_dir, tiff_dir=tiff_dir,
-                img_sub_folder=img_sub_folder, is_mibitiff=False, fovs=["fov2", "fov3"],
-                batch_size=5)
+                img_sub_folder=img_sub_folder, is_mibitiff=False, fovs=["fov2", "fov3"])
 
         # generate sample norm and arcsinh data for all fovs
         norm_data_all_fov, arcsinh_data_all_fov = marker_quantification.generate_cell_table(
             segmentation_dir=temp_dir, tiff_dir=tiff_dir,
-            img_sub_folder=img_sub_folder, is_mibitiff=False, fovs=None, batch_size=2)
+            img_sub_folder=img_sub_folder, is_mibitiff=False, fovs=None)
 
         assert norm_data_all_fov.shape[0] > 0 and norm_data_all_fov.shape[1] > 0
         assert arcsinh_data_all_fov.shape[0] > 0 and arcsinh_data_all_fov.shape[1] > 0
@@ -606,7 +605,7 @@ def test_generate_cell_data_tree_loading():
         # generate sample norm and arcsinh data for a subset of fovs
         norm_data_fov_sub, arcsinh_data_fov_sub = marker_quantification.generate_cell_table(
             segmentation_dir=temp_dir, tiff_dir=tiff_dir,
-            img_sub_folder=img_sub_folder, is_mibitiff=False, fovs=fovs_subset, batch_size=2)
+            img_sub_folder=img_sub_folder, is_mibitiff=False, fovs=fovs_subset)
 
         assert norm_data_fov_sub.shape[0] > 0 and norm_data_fov_sub.shape[1] > 0
         assert arcsinh_data_fov_sub.shape[0] > 0 and arcsinh_data_fov_sub.shape[1] > 0
@@ -614,7 +613,7 @@ def test_generate_cell_data_tree_loading():
         # generate sample norm and arcsinh data for a subset of fovs with extensions
         norm_data_fov_ext, arcsinh_data_fov_ext = marker_quantification.generate_cell_table(
             segmentation_dir=temp_dir, tiff_dir=tiff_dir,
-            img_sub_folder=img_sub_folder, is_mibitiff=False, fovs=fovs_subset_ext, batch_size=2)
+            img_sub_folder=img_sub_folder, is_mibitiff=False, fovs=fovs_subset_ext)
 
         assert norm_data_fov_ext.shape[0] > 0 and norm_data_fov_ext.shape[1] > 0
         assert arcsinh_data_fov_ext.shape[0] > 0 and arcsinh_data_fov_ext.shape[1] > 0
@@ -623,7 +622,7 @@ def test_generate_cell_data_tree_loading():
         norm_data_nuc, arcsinh_data_nuc = marker_quantification.generate_cell_table(
             segmentation_dir=temp_dir, tiff_dir=tiff_dir,
             img_sub_folder=img_sub_folder, is_mibitiff=False, fovs=fovs_subset,
-            batch_size=2, nuclear_counts=True)
+            nuclear_counts=True)
 
         assert norm_data_nuc.shape[0] == norm_data_fov_sub.shape[0]
         assert norm_data_nuc.shape[1] == norm_data_fov_sub.shape[1] * 2 + 1
@@ -640,7 +639,8 @@ def test_generate_cell_data_tree_loading():
         )
 
 
-def test_generate_cell_data_mibitiff_loading():
+# TODO: consider removing since MIBItiffs are being phased out
+def test_generate_cell_table_loading():
     # is_mibitiff True case, load from mibitiff file structure
     with tempfile.TemporaryDirectory() as temp_dir:
         # define 3 fovs and 2 mibitiff_imgs
@@ -684,7 +684,7 @@ def test_generate_cell_data_mibitiff_loading():
         # generate sample norm and arcsinh data for all fovs
         norm_data_all_fov, arcsinh_data_all_fov = marker_quantification.generate_cell_table(
             segmentation_dir=temp_dir, tiff_dir=tiff_dir,
-            img_sub_folder=tiff_dir, is_mibitiff=True, fovs=None, batch_size=2)
+            img_sub_folder=tiff_dir, is_mibitiff=True, fovs=None)
 
         assert norm_data_all_fov.shape[0] > 0 and norm_data_all_fov.shape[1] > 0
         assert arcsinh_data_all_fov.shape[0] > 0 and arcsinh_data_all_fov.shape[1] > 0
@@ -692,7 +692,7 @@ def test_generate_cell_data_mibitiff_loading():
         # generate sample norm and arcsinh data for a subset of fovs
         norm_data_fov_sub, arcsinh_data_fov_sub = marker_quantification.generate_cell_table(
             segmentation_dir=temp_dir, tiff_dir=tiff_dir,
-            img_sub_folder=tiff_dir, is_mibitiff=True, fovs=fovs_subset, batch_size=2)
+            img_sub_folder=tiff_dir, is_mibitiff=True, fovs=fovs_subset)
 
         assert norm_data_fov_sub.shape[0] > 0 and norm_data_fov_sub.shape[1] > 0
         assert arcsinh_data_fov_sub.shape[0] > 0 and arcsinh_data_fov_sub.shape[1] > 0
@@ -700,7 +700,7 @@ def test_generate_cell_data_mibitiff_loading():
         # generate sample norm and arcsinh data for a subset of fovs with extensions
         norm_data_fov_ext, arcsinh_data_fov_ext = marker_quantification.generate_cell_table(
             segmentation_dir=temp_dir, tiff_dir=tiff_dir,
-            img_sub_folder=tiff_dir, is_mibitiff=True, fovs=fovs_subset_ext, batch_size=2)
+            img_sub_folder=tiff_dir, is_mibitiff=True, fovs=fovs_subset_ext)
 
         assert norm_data_fov_ext.shape[0] > 0 and norm_data_fov_ext.shape[1] > 0
         assert arcsinh_data_fov_ext.shape[0] > 0 and arcsinh_data_fov_ext.shape[1] > 0
@@ -709,7 +709,7 @@ def test_generate_cell_data_mibitiff_loading():
         norm_data_nuc, arcsinh_data_nuc = marker_quantification.generate_cell_table(
             segmentation_dir=temp_dir, tiff_dir=tiff_dir,
             img_sub_folder=tiff_dir, is_mibitiff=True, fovs=fovs_subset,
-            batch_size=2, nuclear_counts=True)
+            nuclear_counts=True)
 
         assert norm_data_nuc.shape[0] == norm_data_fov_sub.shape[0]
         assert norm_data_nuc.shape[1] == norm_data_fov_sub.shape[1] * 2 + 1
@@ -726,7 +726,7 @@ def test_generate_cell_data_mibitiff_loading():
         )
 
 
-def test_generate_cell_data_extractions():
+def test_generate_cell_table_extractions():
     with tempfile.TemporaryDirectory() as temp_dir:
         # define 3 fovs and 3 imgs per fov
         fovs, chans = test_utils.gen_fov_chan_names(3, 3)
@@ -762,7 +762,7 @@ def test_generate_cell_data_extractions():
 
         default_norm_data, _ = marker_quantification.generate_cell_table(
             segmentation_dir=temp_dir, tiff_dir=tiff_dir,
-            img_sub_folder=img_sub_folder, is_mibitiff=False, batch_size=2,
+            img_sub_folder=img_sub_folder, is_mibitiff=False
         )
 
         # verify total intensity extraction
@@ -782,7 +782,7 @@ def test_generate_cell_data_extractions():
         # verify thresh kwarg passes through
         positive_pixel_data, _ = marker_quantification.generate_cell_table(
             segmentation_dir=temp_dir, tiff_dir=tiff_dir,
-            img_sub_folder=img_sub_folder, is_mibitiff=False, batch_size=2,
+            img_sub_folder=img_sub_folder, is_mibitiff=False,
             extraction='positive_pixel', **thresh_kwargs
         )
 
@@ -792,7 +792,7 @@ def test_generate_cell_data_extractions():
         # verify thresh kwarg passes through and nuclear counts True
         positive_pixel_data_nuc, _ = marker_quantification.generate_cell_table(
             segmentation_dir=temp_dir, tiff_dir=tiff_dir,
-            img_sub_folder=img_sub_folder, is_mibitiff=False, batch_size=2,
+            img_sub_folder=img_sub_folder, is_mibitiff=False,
             extraction='positive_pixel', nuclear_counts=True, **thresh_kwargs
         )
 

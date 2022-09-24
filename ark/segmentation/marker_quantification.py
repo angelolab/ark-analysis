@@ -503,17 +503,17 @@ def generate_cell_table(segmentation_dir, tiff_dir, img_sub_folder="TIFs",
                                                         fovs=[fov_name])
 
         # define the files for whole cell and nuclear
-        whole_cell_file = [fov_name + '_feature_0.tif']
-        nuclear_file = [fov_name + '_feature_1.tif']
+        whole_cell_file = fov_name + '_feature_0.tif'
+        nuclear_file = fov_name + '_feature_1.tif'
 
         # load the segmentation labels in
         current_labels_cell = load_utils.load_imgs_from_dir(data_dir=segmentation_dir,
-                                                            files=whole_cell_files,
+                                                            files=[whole_cell_file],
                                                             xr_dim_name='compartments',
                                                             xr_channel_names=['whole_cell'],
                                                             trim_suffix='_feature_0')
         current_labels_nuc = load_utils.load_imgs_from_dir(data_dir=segmentation_dir,
-                                                           files=nuclear_files,
+                                                           files=[nuclear_file],
                                                            xr_dim_name='compartments',
                                                            xr_channel_names=['nuclear'],
                                                            trim_suffix='_feature_1')
