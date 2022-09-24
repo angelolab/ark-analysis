@@ -450,18 +450,23 @@ def test_create_marker_count_matrices_base():
 
     channel_data = test_utils.make_images_xarray(tif_data)
 
-    normalized, _ = marker_quantification.create_marker_count_matrices(segmentation_labels,
-                                                                       channel_data)
+    # NOTE: use 0:1 instead of 0 to ensure dimension doesn't collapse
+    normalized, _ = marker_quantification.create_marker_count_matrices(
+        segmentation_labels[0:1, ...],
+        channel_data[0:1, ...]
+    )
 
-    assert normalized.shape[0] == 7
+    assert normalized.shape[0] == 4
 
     assert np.array_equal(normalized['chan0'], np.repeat(1, len(normalized)))
     assert np.array_equal(normalized['chan1'], np.repeat(5, len(normalized)))
 
     # blank image doesn't cause any issues
     segmentation_labels.values[1, ...] = 0
-    _ = marker_quantification.create_marker_count_matrices(segmentation_labels,
-                                                           channel_data)
+    _ = marker_quantification.create_marker_count_matrices(
+        segmentation_labels[1:2, ...],
+        channel_data[1:2, ...]
+    )
 
     # error checking
     with pytest.raises(ValueError):
@@ -514,14 +519,15 @@ def test_create_marker_count_matrices_multiple_compartments():
 
     channel_data = test_utils.make_images_xarray(channel_datas)
 
+    # NOTE: use 0:1 instead of 0 to prevent dimension from collapsing
     normalized, arcsinh = marker_quantification.create_marker_count_matrices(
-        segmentation_labels_unequal,
-        channel_data,
+        segmentation_labels_unequal[0:1, ...],
+        channel_data[0:1, ...],
         nuclear_counts=True
     )
 
-    # 7 total cells
-    assert normalized.shape[0] == 7
+    # 4 total cells
+    assert normalized.shape[0] == 4
 
     # channel 0 has a constant value of 1
     assert np.array_equal(normalized['chan0'], np.repeat(1, len(normalized)))
@@ -542,8 +548,11 @@ def test_create_marker_count_matrices_multiple_compartments():
 
     # blank nuclear segmentation mask doesn't cause any issues
     segmentation_labels_unequal.values[1, ..., 1] = 0
-    _ = marker_quantification.create_marker_count_matrices(segmentation_labels_unequal,
-                                                           channel_data, nuclear_counts=True)
+    _ = marker_quantification.create_marker_count_matrices(
+        segmentation_labels_unequal[0:1, ...],
+        channel_data[0:1, ...],
+        nuclear_counts=True
+    )
 
 
 def test_generate_cell_table_tree_loading():
@@ -556,11 +565,22 @@ def test_generate_cell_table_tree_loading():
         img_sub_folder = "TIFs"
 
         os.mkdir(tiff_dir)
+
+        # this function should work on FOVs with varying sizes
+        fov_size_split = 2
         test_utils.create_paired_xarray_fovs(
             base_dir=tiff_dir,
-            fov_names=fovs,
+            fov_names=fovs[0:fov_size_split],
             channel_names=chans,
             img_shape=(40, 40),
+            sub_dir=img_sub_folder,
+            dtype="int16"
+        )
+        test_utils.create_paired_xarray_fovs(
+            base_dir=tiff_dir,
+            fov_names=fovs[fov_size_split:],
+            channel_names=chans,
+            img_shape=(20, 20),
             sub_dir=img_sub_folder,
             dtype="int16"
         )
@@ -573,19 +593,41 @@ def test_generate_cell_table_tree_loading():
         fovs_subset_ext[0] = str(fovs_subset_ext[0]) + ".tif"
         fovs_subset_ext[1] = str(fovs_subset_ext[1]) + ".tiff"
 
-        # generate a sample segmentation_mask
-        cell_masks = np.random.randint(low=0, high=5, size=(3, 40, 40, 2), dtype="int16")
-        cell_masks[0, :, :, 0] = cell_masks[0, :, :, 0]
-        cell_masks[1, 5:, 5:, 0] = cell_masks[0, :-5, :-5, 0]
-        cell_masks[2, 10:, 10:, 0] = cell_masks[0, :-10, :-10, 0] / 2
-        cell_masks[..., 1] = cell_masks[..., 0]
+        # generate sample segmentation_masks
+        cell_masks_40 = np.random.randint(
+            low=0, high=5, size=(fov_size_split, 40, 40, 2), dtype="int16"
+        )
 
-        for fov in range(cell_masks.shape[0]):
-            fov_whole_cell = cell_masks[fov, :, :, 0]
-            fov_nuclear = cell_masks[fov, :, :, 1]
-            io.imsave(os.path.join(temp_dir, 'fov%d_feature_0.tif' % fov), fov_whole_cell,
+        # TODO: condense cell mask generation and saving into a helper function
+        for i in np.arange(1, cell_masks_40.shape[0]):
+            cell_masks_40[i, (5 * i):, (5 * i):, 0] = cell_masks_40[i, :-(5 * i), :-(5 * i), 0]
+        cell_masks_40[..., 1] = cell_masks_40[..., 0]
+
+        cell_masks_20 = np.random.randint(
+            low=0, high=5, size=(len(fovs) - fov_size_split, 20, 20, 2), dtype="int16"
+        )
+        for i in np.arange(1, cell_masks_20.shape[0]):
+            cell_masks_20[i, (5 * i):, (5 * i):, 0] = cell_masks_20[i, :-(5 * i), :-(5 * i), 0]
+        cell_masks_20[..., 1] = cell_masks_20[..., 0]
+
+        for fov in range(cell_masks_40.shape[0]):
+            fov_whole_cell = cell_masks_40[fov, :, :, 0]
+            fov_nuclear = cell_masks_40[fov, :, :, 1]
+            io.imsave(os.path.join(temp_dir, 'fov%d_feature_0.tif' % fov),
+                      fov_whole_cell,
                       check_contrast=False)
-            io.imsave(os.path.join(temp_dir, 'fov%d_feature_1.tif' % fov), fov_nuclear,
+            io.imsave(os.path.join(temp_dir, 'fov%d_feature_1.tif' % fov),
+                      fov_nuclear,
+                      check_contrast=False)
+
+        for fov in range(cell_masks_20.shape[0]):
+            fov_whole_cell = cell_masks_20[fov, :, :, 0]
+            fov_nuclear = cell_masks_20[fov, :, :, 1]
+            io.imsave(os.path.join(temp_dir, 'fov%d_feature_0.tif' % (fov + fov_size_split)),
+                      fov_whole_cell,
+                      check_contrast=False)
+            io.imsave(os.path.join(temp_dir, 'fov%d_feature_1.tif' % (fov + fov_size_split)),
+                      fov_nuclear,
                       check_contrast=False)
 
         with pytest.raises(FileNotFoundError):

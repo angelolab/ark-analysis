@@ -378,54 +378,54 @@ def create_marker_count_matrices(segmentation_labels, image_data, nuclear_counts
     normalized_data = pd.DataFrame()
     arcsinh_data = pd.DataFrame()
 
-    # loop over each fov in the dataset
-    for fov in segmentation_labels.fovs.values:
-        print("extracting data from {}".format(fov))
+    # define the FOV associated with this segmentation label
+    fov = segmentation_labels.fovs.values[0]
+    print("extracting data from {}".format(fov))
 
-        # current mask
-        segmentation_label = segmentation_labels.loc[fov, :, :, :]
+    # current mask
+    segmentation_label = segmentation_labels.loc[fov, :, :, :]
 
-        # extract the counts per cell for each marker
-        marker_counts = compute_marker_counts(image_data.loc[fov, :, :, :], segmentation_label,
-                                              nuclear_counts=nuclear_counts,
-                                              split_large_nuclei=split_large_nuclei,
-                                              extraction=extraction, **kwargs)
+    # extract the counts per cell for each marker
+    marker_counts = compute_marker_counts(image_data.loc[fov, :, :, :], segmentation_label,
+                                          nuclear_counts=nuclear_counts,
+                                          split_large_nuclei=split_large_nuclei,
+                                          extraction=extraction, **kwargs)
 
-        # normalize counts by cell size
-        marker_counts_norm = segmentation_utils.transform_expression_matrix(marker_counts,
-                                                                            transform='size_norm')
+    # normalize counts by cell size
+    marker_counts_norm = segmentation_utils.transform_expression_matrix(marker_counts,
+                                                                        transform='size_norm')
 
-        # arcsinh transform the data
-        marker_counts_arcsinh = segmentation_utils.transform_expression_matrix(marker_counts_norm,
-                                                                               transform='arcsinh')
+    # arcsinh transform the data
+    marker_counts_arcsinh = segmentation_utils.transform_expression_matrix(marker_counts_norm,
+                                                                           transform='arcsinh')
 
-        # add data from each fov to array
-        normalized = pd.DataFrame(data=marker_counts_norm.loc['whole_cell', :, :].values,
-                                  columns=marker_counts_norm.features)
+    # add data from each fov to array
+    normalized = pd.DataFrame(data=marker_counts_norm.loc['whole_cell', :, :].values,
+                              columns=marker_counts_norm.features)
 
-        arcsinh = pd.DataFrame(data=marker_counts_arcsinh.values[0, :, :],
-                               columns=marker_counts_arcsinh.features)
+    arcsinh = pd.DataFrame(data=marker_counts_arcsinh.values[0, :, :],
+                           columns=marker_counts_arcsinh.features)
 
-        if nuclear_counts:
-            # append nuclear counts pandas array with modified column name
-            nuc_column_names = [feature + '_nuclear' for feature in marker_counts.features.values]
+    if nuclear_counts:
+        # append nuclear counts pandas array with modified column name
+        nuc_column_names = [feature + '_nuclear' for feature in marker_counts.features.values]
 
-            # add nuclear counts to size normalized data
-            normalized_nuc = pd.DataFrame(data=marker_counts_norm.loc['nuclear', :, :].values,
-                                          columns=nuc_column_names)
-            normalized = pd.concat((normalized, normalized_nuc), axis=1)
+        # add nuclear counts to size normalized data
+        normalized_nuc = pd.DataFrame(data=marker_counts_norm.loc['nuclear', :, :].values,
+                                      columns=nuc_column_names)
+        normalized = pd.concat((normalized, normalized_nuc), axis=1)
 
-            # add nuclear counts to arcsinh transformed data
-            arcsinh_nuc = pd.DataFrame(data=marker_counts_arcsinh.loc['nuclear', :, :].values,
-                                       columns=nuc_column_names)
-            arcsinh = pd.concat((arcsinh, arcsinh_nuc), axis=1)
+        # add nuclear counts to arcsinh transformed data
+        arcsinh_nuc = pd.DataFrame(data=marker_counts_arcsinh.loc['nuclear', :, :].values,
+                                   columns=nuc_column_names)
+        arcsinh = pd.concat((arcsinh, arcsinh_nuc), axis=1)
 
-        # add column for current fov
-        normalized['fov'] = fov
-        normalized_data = normalized_data.append(normalized)
+    # add column for current fov
+    normalized['fov'] = fov
+    normalized_data = normalized_data.append(normalized)
 
-        arcsinh['fov'] = fov
-        arcsinh_data = arcsinh_data.append(arcsinh)
+    arcsinh['fov'] = fov
+    arcsinh_data = arcsinh_data.append(arcsinh)
 
     return normalized_data, arcsinh_data
 

@@ -933,7 +933,7 @@ def create_exp_mat(tb, is_mibitiff=False, nuclear_counts=False):
                                                       is_mibitiff=%s,
                                                       fovs=fovs,
                                                       nuclear_counts=%s)
-    """ % (is_mibitiff, str(batch_size), nuclear_counts)
+    """ % (is_mibitiff, nuclear_counts)
     tb.inject(exp_mat_gen, after='create_exp_mat')
 
     # save expression matrices
