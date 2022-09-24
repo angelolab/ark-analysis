@@ -431,7 +431,7 @@ def create_marker_count_matrices(segmentation_labels, image_data, nuclear_counts
 
 
 def generate_cell_table(segmentation_dir, tiff_dir, img_sub_folder="TIFs",
-                        is_mibitiff=False, fovs=None, batch_size=5, dtype="int16",
+                        is_mibitiff=False, fovs=None, dtype="int16",
                         extraction='total_intensity', nuclear_counts=False, **kwargs):
     """This function takes the segmented data and computes the expression matrices batch-wise
     while also validating inputs
@@ -448,9 +448,6 @@ def generate_cell_table(segmentation_dir, tiff_dir, img_sub_folder="TIFs",
             a list of fovs we wish to analyze, if None will default to all fovs
         is_mibitiff (bool):
             a flag to indicate whether or not the base images are MIBItiffs
-        batch_size (int):
-            how large we want each of the batches of fovs to be when computing, adjust as
-            necessary for speed and memory considerations
         dtype (str/type):
             data type of base images
         extraction (str):
@@ -496,22 +493,18 @@ def generate_cell_table(segmentation_dir, tiff_dir, img_sub_folder="TIFs",
     combined_cell_table_size_normalized = pd.DataFrame()
     combined_cell_table_arcsinh_transformed = pd.DataFrame()
 
-    # iterate over all the batches
-    for batch_names, batch_files in zip(
-        [fovs[i:i + batch_size] for i in range(0, cohort_len, batch_size)],
-        [filenames[i:i + batch_size] for i in range(0, cohort_len, batch_size)]
-    ):
-        # and extract the image data for each batch
+    for fov_name, fov_file in zip(fovs, filenames):
         if is_mibitiff:
             image_data = load_utils.load_imgs_from_mibitiff(data_dir=tiff_dir,
-                                                            mibitiff_files=batch_files)
+                                                            mibitiff_files=[fov_file])
         else:
             image_data = load_utils.load_imgs_from_tree(data_dir=tiff_dir,
                                                         img_sub_folder=img_sub_folder,
-                                                        fovs=batch_names)
+                                                        fovs=[fov_name])
+
         # define the files for whole cell and nuclear
-        whole_cell_files = [fov + '_feature_0.tif' for fov in batch_names]
-        nuclear_files = [fov + '_feature_1.tif' for fov in batch_names]
+        whole_cell_file = [fov_name + '_feature_0.tif']
+        nuclear_file = [fov_name + '_feature_1.tif']
 
         # load the segmentation labels in
         current_labels_cell = load_utils.load_imgs_from_dir(data_dir=segmentation_dir,
@@ -519,25 +512,18 @@ def generate_cell_table(segmentation_dir, tiff_dir, img_sub_folder="TIFs",
                                                             xr_dim_name='compartments',
                                                             xr_channel_names=['whole_cell'],
                                                             trim_suffix='_feature_0')
-
-        compartments = ['whole_cell']
-        segmentation_labels = current_labels_cell.values
-
-        if nuclear_counts:
-            current_labels_nuc = load_utils.load_imgs_from_dir(data_dir=segmentation_dir,
-                                                               files=nuclear_files,
-                                                               xr_dim_name='compartments',
-                                                               xr_channel_names=['nuclear'],
-                                                               trim_suffix='_feature_1')
-            compartments = ['whole_cell', 'nuclear']
-            segmentation_labels = np.concatenate((current_labels_cell.values,
-                                                  current_labels_nuc.values), axis=-1)
-
-        current_labels = xr.DataArray(segmentation_labels,
+        current_labels_nuc = load_utils.load_imgs_from_dir(data_dir=segmentation_dir,
+                                                           files=nuclear_files,
+                                                           xr_dim_name='compartments',
+                                                           xr_channel_names=['nuclear'],
+                                                           trim_suffix='_feature_1')
+        current_labels = xr.DataArray(np.concatenate((current_labels_cell.values,
+                                                      current_labels_nuc.values),
+                                                     axis=-1),
                                       coords=[current_labels_cell.fovs,
                                               current_labels_cell.rows,
                                               current_labels_cell.cols,
-                                              compartments],
+                                              ['whole_cell', 'nuclear']],
                                       dims=current_labels_cell.dims)
 
         # segment the imaging data
