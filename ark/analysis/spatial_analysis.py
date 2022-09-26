@@ -450,25 +450,24 @@ def calculate_cluster_spatial_enrichment(all_data, dist_matrices_dict, included_
 
 
 def create_neighborhood_matrix(all_data, dist_matrices_dict, included_fovs=None, distlim=50,
-                               fov_col=settings.FOV_ID, cluster_id_col=settings.CLUSTER_ID,
+                               self_neighbor=False, fov_col=settings.FOV_ID,
                                cell_label_col=settings.CELL_LABEL,
                                cluster_name_col=settings.CELL_TYPE):
     """Calculates the number of neighbor phenotypes for each cell.
 
     Args:
         all_data (pandas.DataFrame):
-            data for all fovs. Includes the columns SampleID (fovs), cellLabelInImage (the cell
-            label), FlowSOM_ID (the cell phenotype id)
+            data for all fovs. Includes the columns for fov, label, and cell phenotype.
         dist_matrices_dict (dict):
-            Contains a cells x cells centroid-distance matrix for every fov.  Keys are fov names
+            contains a cells x cells centroid-distance matrix for every fov.  Keys are fov names
         included_fovs (list):
-            patient labels to include in analysis. If argument is none, default is all labels used.
+            fovs to include in analysis. If argument is none, default is all fovs used.
         distlim (int):
             cell proximity threshold. Default is 50.
+        self_neighbor (bool):
+            If true, cell counts itself as a neighbor in the analysis. Default is False.
         fov_col (str):
             column with the cell fovs.
-        cluster_id_col (str):
-            column with the cell phenotype IDs.
         cell_label_col (str):
             column with the cell labels.
         cluster_name_col (str):
@@ -480,25 +479,22 @@ def create_neighborhood_matrix(all_data, dist_matrices_dict, included_fovs=None,
             phenotype frequencies of counts per phenotype/total phenotypes for each cell
     """
 
-    # Setup input and parameters
+    # Set up input and parameters
     if included_fovs is None:
         included_fovs = all_data[fov_col].unique()
 
-    # check if included fovs found in fov_col
+    # Check if included fovs found in fov_col
     misc_utils.verify_in_list(fov_names=included_fovs,
                               unique_fovs=all_data[fov_col].unique())
 
-    # Get the phenotypes
-    cluster_names = all_data[cluster_name_col].drop_duplicates()
-
-    # Subset just the sampleID, cellLabelInImage, and FlowSOMID, and cell phenotype
-    all_neighborhood_data = all_data[[fov_col, cell_label_col, cluster_id_col, cluster_name_col]]
-    # Extract the columns with the cell phenotype codes
-    cluster_ids = all_neighborhood_data[cluster_id_col].drop_duplicates()
+    # Subset just the fov, label, and cell phenotype columns
+    all_neighborhood_data = all_data[[fov_col, cell_label_col, cluster_name_col]]
+    # Extract the cell phenotypes
+    cluster_names = all_neighborhood_data[cluster_name_col].drop_duplicates()
     # Get the total number of phenotypes
-    cluster_num = len(cluster_ids)
+    cluster_num = len(cluster_names)
 
-    # initiate empty matrices for cell neighborhood data
+    # Initialize empty matrices for cell neighborhood data
     cell_neighbor_counts = pd.DataFrame(
         np.zeros((all_neighborhood_data.shape[0], cluster_num + 2))
     )
@@ -525,22 +521,27 @@ def create_neighborhood_matrix(all_data, dist_matrices_dict, included_fovs=None,
 
         # Get cell_neighbor_counts and cell_neighbor_freqs for fovs
         counts, freqs = spatial_analysis_utils.compute_neighbor_counts(
-            current_fov_neighborhood_data, dist_matrix, distlim)
+            current_fov_neighborhood_data, dist_matrix, distlim, self_neighbor,
+            cell_label_col=cell_label_col, cluster_name_col=cluster_name_col)
 
-        # add to neighbor counts + freqs for only the matching phenos between fov and whole dataset
+        # Add to neighbor counts + freqs for only the matching phenos between fov and whole dataset
         cell_neighbor_counts.loc[current_fov_neighborhood_data.index, fov_cluster_names] = counts
         cell_neighbor_freqs.loc[current_fov_neighborhood_data.index, fov_cluster_names] = freqs
 
-    # drop label column, as this interferes with the neighborhood clustering step
-    cell_neighbor_counts = cell_neighbor_counts.drop(columns=cell_label_col)
-    cell_neighbor_freqs = cell_neighbor_freqs.drop(columns=cell_label_col)
+    # Remove cells that have no neighbors within the distlim
+    keep_cells = cell_neighbor_counts.drop([fov_col, cell_label_col], axis=1).sum(axis=1) != 0
+    cell_neighbor_counts = cell_neighbor_counts.loc[keep_cells].reset_index(drop=True)
+    cell_neighbor_freqs = cell_neighbor_freqs.loc[keep_cells].reset_index(drop=True)
 
     return cell_neighbor_counts, cell_neighbor_freqs
 
 
 def generate_cluster_matrix_results(all_data, neighbor_mat, cluster_num, excluded_channels=None,
                                     included_fovs=None, cluster_label_col=settings.KMEANS_CLUSTER,
-                                    fov_col=settings.FOV_ID, cell_type_col=settings.CELL_TYPE):
+                                    fov_col=settings.FOV_ID, cell_type_col=settings.CELL_TYPE,
+                                    label_col=settings.CELL_LABEL,
+                                    pre_channel_col=settings.PRE_CHANNEL_COL,
+                                    post_channel_col=settings.POST_CHANNEL_COL):
     """Generate the cluster info on all_data using k-means clustering on neighbor_mat.
 
     cluster_num has to be picked based on visualizations from compute_cluster_metrics.
@@ -556,18 +557,25 @@ def generate_cluster_matrix_results(all_data, neighbor_mat, cluster_num, exclude
         excluded_channels (list):
             all channel names to be excluded from analysis
         included_fovs (list):
-            patient labels to include in analysis. If argument is None, default is all labels used
+            fovs to include in analysis. If argument is None, default is all fovs used
         cluster_label_col (str):
-            the name of the cluster label col we will create
+            the name of the cluster label col we will create for neighborhood clusters
         fov_col (str):
-            the name of the column in all_data and neighbor_mat determining the fov
+            the name of the column in all_data and neighbor_mat indicating the fov
         cell_type_col (str):
-            the name of the column in all_data determining the cell type
+            the name of the column in all_data indicating the cell type
+        label_col (str):
+            the name of the column in all_data indicating cell label
+        pre_channel_col (str):
+            the name of the column in all_data right before the first channel column
+        post_channel_col (str):
+            the name of the column in all_data right after the last channel column
 
     Returns:
         tuple (pandas.DataFrame, pandas.DataFrame, pandas.DataFrame):
 
-        - the expression matrix with the corresponding cluster labels attached
+        - the expression matrix with the corresponding cluster labels attached,
+          will only include fovs included in the analysis
         - an a x b count matrix (a = # of clusters, b = # of cell types) with
           cluster ids indexed row-wise and cell types indexed column-wise,
           indicates number of cell types that are within each cluster
@@ -576,7 +584,7 @@ def generate_cluster_matrix_results(all_data, neighbor_mat, cluster_num, exclude
           indicates the mean marker expression for each cluster id
     """
 
-    # error checking
+    # get fovs
     if included_fovs is None:
         included_fovs = neighbor_mat[fov_col].unique()
 
@@ -593,17 +601,22 @@ def generate_cluster_matrix_results(all_data, neighbor_mat, cluster_num, exclude
         raise ValueError("Invalid k provided for clustering")
 
     # subset neighbor mat
-    neighbor_mat_data = neighbor_mat[neighbor_mat[fov_col].isin(included_fovs)]
-    neighbor_mat_data = neighbor_mat_data.drop(fov_col, axis=1)
+    neighbor_mat_data_all = neighbor_mat[neighbor_mat[fov_col].isin(included_fovs)]
+    neighbor_mat_data = neighbor_mat_data_all.drop([fov_col, label_col], axis=1)
 
     # generate cluster labels
     cluster_labels = spatial_analysis_utils.generate_cluster_labels(
         neighbor_mat_data, cluster_num)
 
-    all_data_clusters = all_data.copy()
+    # add labels to neighbor mat
+    neighbor_mat_data_all[cluster_label_col] = cluster_labels
 
-    # add labels to all_data
-    all_data_clusters[cluster_label_col] = cluster_labels
+    # subset for data in cell table we want to keep
+    all_data_clusters = all_data[all_data[fov_col].isin(included_fovs)]
+
+    # combine with neighborhood data
+    all_data_clusters = all_data_clusters.merge(
+        neighbor_mat_data_all[[fov_col, label_col, cluster_label_col]], on=[fov_col, label_col])
 
     # create a count pivot table with cluster_label_col as row and cell_type_col as column
     group_by_cell_type = all_data_clusters.groupby(
@@ -616,8 +629,8 @@ def generate_cluster_matrix_results(all_data, neighbor_mat, cluster_num, exclude
                                        for c in num_cell_type_per_cluster.index]
 
     # Subsets the expression matrix to only have channel columns
-    channel_start = np.where(all_data_clusters.columns == settings.PRE_CHANNEL_COL)[0][0] + 1
-    channel_end = np.where(all_data_clusters.columns == settings.POST_CHANNEL_COL)[0][0]
+    channel_start = np.where(all_data_clusters.columns == pre_channel_col)[0][0] + 1
+    channel_end = np.where(all_data_clusters.columns == post_channel_col)[0][0]
     cluster_label_colnum = np.where(all_data_clusters.columns == cluster_label_col)[0][0]
 
     all_data_markers_clusters = \
@@ -634,20 +647,24 @@ def generate_cluster_matrix_results(all_data, neighbor_mat, cluster_num, exclude
     return all_data_clusters, num_cell_type_per_cluster, mean_marker_exp_per_cluster
 
 
-def compute_cluster_metrics(neighbor_mat, max_k=10, included_fovs=None,
-                            fov_col='SampleID'):
-    """Produce k-means clustering metrics to help identify optimal number of clusters
+def compute_cluster_metrics_inertia(neighbor_mat, min_k=2, max_k=10, included_fovs=None,
+                                    fov_col=settings.FOV_ID, label_col=settings.CELL_LABEL):
+    """Produce k-means clustering metrics to help identify optimal number of clusters using
+       inertia
 
     Args:
         neighbor_mat (pandas.DataFrame):
             a neighborhood matrix, created from create_neighborhood_matrix
-            the matrix should have the label col droppped
+        min_k (int):
+            the minimum k we want to generate cluster statistics for, must be at least 2
         max_k (int):
             the maximum k we want to generate cluster statistics for, must be at least 2
         included_fovs (list):
-            patient labels to include in analysis. If argument is none, default is all labels used.
+            fovs to include in analysis. If argument is none, default is all fovs used.
         fov_col (str):
-            the name of the column in neighbor_mat determining the fov
+            the name of the column in neighbor_mat indicating the fov
+        label_col (str):
+            the name of the column in neighbor_mat indicating the label
 
     Returns:
         xarray.DataArray:
@@ -661,7 +678,7 @@ def compute_cluster_metrics(neighbor_mat, max_k=10, included_fovs=None,
         included_fovs = neighbor_mat[fov_col].unique()
 
     # make sure the user specifies a positive k
-    if max_k < 2:
+    if min_k < 2 or max_k < 2:
         raise ValueError("Invalid k provided for clustering")
 
     # check if included fovs found in fov_col
@@ -670,11 +687,65 @@ def compute_cluster_metrics(neighbor_mat, max_k=10, included_fovs=None,
 
     # subset neighbor_mat accordingly, and drop the columns we don't need
     neighbor_mat_data = neighbor_mat[neighbor_mat[fov_col].isin(included_fovs)]
-    neighbor_mat_data = neighbor_mat_data.drop(fov_col, axis=1)
+    neighbor_mat_data = neighbor_mat_data.drop([fov_col, label_col], axis=1)
 
     # generate the cluster score information
-    neighbor_cluster_stats = spatial_analysis_utils.compute_kmeans_cluster_metric(
-        neighbor_mat_data=neighbor_mat_data, max_k=max_k
+    neighbor_cluster_stats = spatial_analysis_utils.compute_kmeans_inertia(
+        neighbor_mat_data=neighbor_mat_data, min_k=min_k, max_k=max_k)
+
+    return neighbor_cluster_stats
+
+
+def compute_cluster_metrics_silhouette(neighbor_mat, min_k=2, max_k=10, included_fovs=None,
+                                       fov_col=settings.FOV_ID, label_col=settings.CELL_LABEL,
+                                       subsample=None):
+    """Produce k-means clustering metrics to help identify optimal number of clusters using
+       Silhouette score
+
+    Args:
+        neighbor_mat (pandas.DataFrame):
+            a neighborhood matrix, created from create_neighborhood_matrix
+        min_k (int):
+            the minimum k we want to generate cluster statistics for, must be at least 2
+        max_k (int):
+            the maximum k we want to generate cluster statistics for, must be at least 2
+        included_fovs (list):
+            fovs to include in analysis. If argument is none, default is all fovs used.
+        fov_col (str):
+            the name of the column in neighbor_mat indicating the fov
+        label_col (str):
+            the name of the column in neighbor_mat indicating the label
+        subsample (int):
+            the number of cells that will be sampled from each neighborhood cluster for
+            calculating Silhouette score
+            If None, all cells will be used
+
+    Returns:
+        xarray.DataArray:
+            an xarray with dimensions (num_k_values) where num_k_values is the range
+            of integers from 2 to max_k included, contains the metric scores for each value
+            in num_k_values
+    """
+
+    # set included_fovs to everything if not set
+    if included_fovs is None:
+        included_fovs = neighbor_mat[fov_col].unique()
+
+    # make sure the user specifies a positive k
+    if min_k < 2 or max_k < 2:
+        raise ValueError("Invalid k provided for clustering")
+
+    # check if included fovs found in fov_col
+    misc_utils.verify_in_list(fov_names=included_fovs,
+                              unique_fovs=neighbor_mat[fov_col].unique())
+
+    # subset neighbor_mat accordingly, and drop the columns we don't need
+    neighbor_mat_data = neighbor_mat[neighbor_mat[fov_col].isin(included_fovs)]
+    neighbor_mat_data = neighbor_mat_data.drop([fov_col, label_col], axis=1)
+
+    # generate the cluster score information
+    neighbor_cluster_stats = spatial_analysis_utils.compute_kmeans_silhouette(
+        neighbor_mat_data=neighbor_mat_data, min_k=min_k, max_k=max_k, subsample=subsample
     )
 
     return neighbor_cluster_stats
