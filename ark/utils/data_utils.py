@@ -180,7 +180,7 @@ def generate_cell_cluster_mask(fov, base_dir, seg_dir, cell_data_name,
     return img_data
 
 
-def generate_pixel_cluster_mask(fov, base_dir, tiff_dir, chan_file,
+def generate_pixel_cluster_mask(fov, base_dir, tiff_dir, chan_file_path,
                                 pixel_data_dir, pixel_cluster_col='pixel_meta_cluster'):
     """For a fov, create a mask labeling each pixel with their SOM or meta cluster label
 
@@ -191,9 +191,9 @@ def generate_pixel_cluster_mask(fov, base_dir, tiff_dir, chan_file,
             The path to the data directory
         tiff_dir (str):
             The path to the tiff data
-        chan_file (str):
-            The path to the sample channel file to load (assuming `tiff_dir` as root)
-            Only used to determine dimensions of the pixel mask.
+        chan_file_path (str):
+            The path to the sample channel file to load (assuming `tiff_dir` as root).
+            Used to determine dimensions of the pixel mask.
         pixel_data_dir (str):
             The path to the data with full pixel data.
             This data should also have the SOM and meta cluster labels appended.
@@ -210,9 +210,9 @@ def generate_pixel_cluster_mask(fov, base_dir, tiff_dir, chan_file,
     if not os.path.exists(tiff_dir):
         raise FileNotFoundError("tiff_dir %s does not exist")
 
-    if not os.path.exists(os.path.join(tiff_dir, chan_file)):
-        raise FileNotFoundError("chan_file %s does not exist in tiff_dir %s"
-                                % (chan_file, tiff_dir))
+    if not os.path.exists(os.path.join(tiff_dir, chan_file_path)):
+        raise FileNotFoundError("chan_file_path %s does not exist in tiff_dir %s"
+                                % (chan_file_path, tiff_dir))
 
     if not os.path.exists(os.path.join(base_dir, pixel_data_dir)):
         raise FileNotFoundError(
@@ -232,7 +232,7 @@ def generate_pixel_cluster_mask(fov, base_dir, tiff_dir, chan_file,
     )
 
     # read the sample channel file to determine size of pixel cluster mask
-    channel_data = np.squeeze(io.imread(os.path.join(tiff_dir, chan_file)))
+    channel_data = np.squeeze(io.imread(os.path.join(tiff_dir, chan_file_path)))
 
     # define an array to hold the overlays for the fov
     img_data = np.zeros((1, channel_data.shape[0], channel_data.shape[1]))
@@ -286,8 +286,8 @@ def generate_and_save_pixel_cluster_masks(fovs: List[str],
         tiff_dir (Union[pathlib.Path, str]):
             The path to the directory with the tiff data.
         chan_file (Union[pathlib.Path, str]):
-            The path to the sample channel file to load (assuming `tiff_dir` as root)
-            Only used to determine dimensions of the pixel mask.
+            The path to the channel file inside each FOV folder (assuming `tiff_dir` as root).
+            Used to determine dimensions of the pixel mask.
         pixel_data_dir (Union[pathlib.Path, str]):
             The path to the data with full pixel data.
             This data should also have the SOM and meta cluster labels appended.
@@ -306,9 +306,13 @@ def generate_and_save_pixel_cluster_masks(fovs: List[str],
     # create the pixel cluster masks over each fov batch.
     with tqdm(total=len(fovs), desc="Pixel Cluster Mask Generation") as pixel_mask_progress:
         for fov in fovs:
+            # define the path to provided channel file in base_dir, used to calculate dimensions
+            chan_file_path = os.path.join(fov, chan_file)
+
             pixel_masks: xr.DataArray =\
                 generate_pixel_cluster_mask(fov=fov, base_dir=base_dir, tiff_dir=tiff_dir,
-                                            chan_file=chan_file, pixel_data_dir=pixel_data_dir,
+                                            chan_file_path=chan_file_path,
+                                            pixel_data_dir=pixel_data_dir,
                                             pixel_cluster_col=pixel_cluster_col)
 
             save_fov_images([fov], data_dir=save_dir, img_xr=pixel_masks, sub_dir=sub_dir,
