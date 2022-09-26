@@ -851,7 +851,7 @@ def fov_channel_input_set(tb, fovs=None, nucs_list=None, mems_list=None, is_mibi
     mibitiff_deepcell = """
         data_utils.generate_deepcell_input(
             deepcell_input_dir, tiff_dir, nucs, mems, fovs,
-            is_mibitiff=%s, img_sub_folder="TIFs"
+            is_mibitiff=%s, img_sub_folder="TIFs", batch_size=5
         )
     """ % str(is_mibitiff)
     tb.inject(mibitiff_deepcell, after='gen_input')
