@@ -325,7 +325,6 @@ def test_check_fov_name_prefix():
     assert prefix is True and fovs == {'R1C1': '', 'R1C2': '', 'R1C3': 'run1'}
 
 
-
 def test_get_tiled_fov_names():
     # check no missing fovs
     fov_names = ['R1C1', 'R1C2', 'R2C1', 'R2C2']
