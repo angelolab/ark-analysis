@@ -545,21 +545,83 @@ def split_img_stack(stack_dir, output_dir, stack_list, indices, names, channels_
             io.imsave(save_path, channel, plugin='tifffile', check_contrast=False)
 
 
-def download_example_data(save_dir: Union[str, pathlib.Path]):
-    """Downloads the example dataset from Hugging Face Hub.
-    The following is a link to the dataset used:
-    https://huggingface.co/datasets/angelolab/ark_example
+class ExampleDataset():
+    def __init__(self, dataset, cache_dir=None, revision=None) -> None:
+        self.dataset = dataset
+        self.cache_dir = cache_dir
+        self.revision = revision
 
-    The dataset will be saved in `{save_dir}/example_dataset/image_data`.
+        self.path_suffixes = {
+            "image_data": "image_data",
+            "cell_table": "segmentation/cell_table",
+            "deepcell_output": "segmentation/deepcell_output"
+        }
+        """
+        Path suffixes for mapping each downloaded dataset partition to it's appropriate
+        relative save directory.
+        """
+
+    def download_example_dataset(self):
+        """Downloads the example dataset from Hugging Face Hub.
+        The following is a link to the dataset used:
+        https://huggingface.co/datasets/angelolab/ark_example
+
+        The dataset will be downloaded to the Hugging Face default cache `~/.cache/huggingface/datasets`.
+
+        Args:
+            dataset (str): The dataset to download for a particular notebook.
+            save_dir (Union[str, pathlib.Path]): The directory to save / move the example dataset in.
+        """
+
+        # Downloads the dataset
+        self.dataset_paths = datasets.load_dataset(path="angelolab/ark_example",
+                                                   revision=self.revision,
+                                                   name=self.dataset,
+                                                   cache_dir=self.cache_dir,
+                                                   use_auth_token=True)
+
+    def move_example_dataset(self, save_dir: Union[str, pathlib.Path]):
+        """
+        Moves the downloaded example data from the cache_dir
+
+        Args:
+            save_dir (Union[str, pathlib.Path]): _description_
+        """
+        if type(save_dir) is not pathlib.Path:
+            save_dir = pathlib.Path(save_dir)
+
+        dataset_names = list(self.dataset_paths[self.dataset].features.keys())
+
+        for ds_n in dataset_names:
+            ds_n_suffix = self.path_suffixes[ds_n]
+
+            # The path where the dataset is saved in the Hugging Face Cache post-download,
+            # Necessary to copy + move the data from the cache to the user specified `save_dir`.
+            dataset_cache_path, = pathlib.Path(self.dataset_paths[self.dataset][ds_n][0])
+
+            src_path = dataset_cache_path / ds_n
+            dst_path = save_dir / "example_dataset" / ds_n_suffix
+            shutil.copytree(src_path, dst_path, dirs_exist_ok=True,
+                            ignore=shutil.ignore_patterns('._*'))
+
+
+def get_example_dataset(dataset: str, save_dir: Union[str, pathlib.Path]):
+    """A user facing wrapper function for acquiring the dataset.
 
     Args:
-        save_dir (Union[str, pathlib.Path]): The directory to save the example dataset in.
+        dataset (str): The dataset to download for a particular notebook.
     """
+    valid_datasets = ["nb1", "nb2", "nb3", "nb4"]
 
-    # Downloads the dataset
-    ds = datasets.load_dataset("angelolab/ark_example")
+    # Check the appropriate dataset name
+    if dataset not in valid_datasets:
+        ValueError(f"The dataset {dataset} is not one of the valid datasets available.")
 
-    data_path = pathlib.Path(ds["base_dataset"]["Data Path"][0]) / "input_data"
+    example_dataset = ExampleDataset(dataset=dataset, cache_dir=None,
+                                     revision="1fdc7ac3aab0f254169c0a596d0abc4a1facacd0")
 
-    shutil.copytree(data_path, pathlib.Path(save_dir) / "image_data",
-                    dirs_exist_ok=True, ignore=shutil.ignore_patterns('._*'))
+    # Download the dataset
+    example_dataset.download_example_dataset()
+
+    # Move the dataset over to the save_dir from the user.
+    example_dataset.move_example_dataset(save_dir=save_dir)

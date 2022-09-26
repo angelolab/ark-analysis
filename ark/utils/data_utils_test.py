@@ -2,6 +2,7 @@ import os
 import pathlib
 import tempfile
 from shutil import rmtree
+from typing import Callable
 
 import feather
 import numpy as np
@@ -12,9 +13,10 @@ import xarray as xr
 
 from ark import settings
 from ark.utils import data_utils, test_utils
-from ark.utils.data_utils import (download_example_data,
+from ark.utils.data_utils import (ExampleDataset,
                                   generate_and_save_cell_cluster_masks,
                                   generate_and_save_pixel_cluster_masks,
+                                  get_example_dataset,
                                   label_cells_by_cluster, relabel_segmentation)
 
 
@@ -625,6 +627,7 @@ def test_generate_and_save_cell_cluster_masks():
                 assert np.all(pixel_mask <= 5)
 
 
+@pytest.mark.skip(reason="Deprecated in favor of TestExampleDataset")
 def test_download_example_data():
     with tempfile.TemporaryDirectory() as temp_dir:
         download_example_data(save_dir=pathlib.Path(temp_dir) / "example_dataset")
@@ -634,7 +637,6 @@ def test_download_example_data():
 
         # Get downloaded + moved fov names.
         downloaded_fovs = list(input_data_path.glob("*"))
-        print(downloaded_fovs)
         downloaded_fov_names = [f.stem for f in downloaded_fovs]
 
         # Assert that all the fovs exist after copying the data to "image_data/input_data"
@@ -648,3 +650,86 @@ def test_download_example_data():
         for fov in downloaded_fovs:
             c_names = [c.stem for c in fov.rglob("*")]
             assert set(channel_names) == set(c_names)
+
+
+# Only download the dataset once, and use it for the remaining tests?
+@pytest.fixture(scope="session", params=["nb1", "nb2"])
+def dataset_download(tmp_path_factory, request) -> ExampleDataset:
+
+    # Set up temp path factory
+    cache_dir = tmp_path_factory.mktemp("example_dataset")
+
+    # Set up ExampleDataset class
+    example_dataset: ExampleDataset = ExampleDataset(
+        dataset=request.param,
+        cache_dir=cache_dir,
+        revision="1fdc7ac3aab0f254169c0a596d0abc4a1facacd0"
+    )
+    # Download example data for a particular notebook.
+    example_dataset.download_example_dataset()
+    yield example_dataset
+
+
+class TestExampleDataset:
+    @pytest.fixture(autouse=True)
+    def _setup(self):
+        """
+        Sets up necessary data.
+        """
+        self.fov_names = [f"fov{i}" for i in range(11)]
+        self.channel_names = ["CD3", "CD4", "CD8", "CD14", "CD20", "CD31", "CD45", "CD68",
+                              "CD163", "CK17", "Collagen1", "ECAD", "Fibronectin", "GLUT1",
+                              "H3K9ac", "H3K27me3", "HLADR", "IDO", "Ki67", "PD1", "SMA", "Vim"]
+
+        self.dataset_test_fns: dict[str, Callable] = {
+            "image_data": self._image_data_check,
+            "cell_table": self._cell_table_check,
+            "deepcell_output": self._deepcell_output_check
+        }
+        """
+        Mapping the datasets to their respective test functions.
+        """
+
+    def test_download_example_dataset(self, dataset_download):
+        """
+        Tests to make sure the proper files are downloaded from Hugging Face.
+
+        Args:
+            dataset_download (_type_): _description_
+        """
+        dataset_names = list(
+            dataset_download.dataset_paths[dataset_download.dataset].features.keys())
+
+        for ds_n in dataset_names:
+            dataset_cache_path = pathlib.Path(
+                dataset_download.dataset_paths[dataset_download.dataset][ds_n][0])
+            self.dataset_test_fns[ds_n](dir=dataset_cache_path / ds_n)
+
+    def test_move_example_dataset(self, dataset_download):
+        """
+        Tests to make sure the proper files are moved to the correct directories.
+
+        Args:
+            dataset_download (_type_): _description_
+        """
+        pass
+
+    def test_get_example_dataset(self, dataset_download):
+        pass
+
+    def _image_data_check(self, dir: pathlib.Path):
+        # Check to make sure all the FOVs exist
+        downloaded_fovs = list(dir.glob("*"))
+        downloaded_fov_names = [f.stem for f in downloaded_fovs]
+        assert set(self.fov_names) == set(downloaded_fov_names)
+
+        # Check to make sure all 22 channels exist
+        for fov in downloaded_fovs:
+            c_names = [c.stem for c in fov.rglob("*")]
+            assert set(self.channel_names) == set(c_names)
+
+    def _cell_table_check(self, dir: pathlib.Path):
+        pass
+
+    def _deepcell_output_check(self, dir: pathlib.Path):
+        pass
