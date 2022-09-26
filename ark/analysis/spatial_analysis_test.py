@@ -332,16 +332,38 @@ def test_create_neighborhood_matrix():
     all_data_pos, dist_mat_pos = test_utils._make_dist_exp_mats_spatial_test(
         enrichment_type="positive", dist_lim=51)
 
+    # test if self_neighbor is False (default)
     counts, freqs = spatial_analysis.create_neighborhood_matrix(
         all_data_pos, dist_mat_pos, distlim=51
     )
 
-    # Test the counts values for both fovs
-    assert (counts.loc[:9, "Pheno2"] == 8).all()
-    assert (counts.loc[10:19, "Pheno3"] == 8).all()
+    # test the counts values
+    assert (counts[(counts[settings.FOV_ID] == "fov8") &
+                   (counts[settings.CELL_LABEL].isin(range(1, 9)))]["Pheno1"] == 0).all()
+    assert (counts[(counts[settings.FOV_ID] == "fov8") &
+                   (counts[settings.CELL_LABEL].isin(range(1, 11)))]["Pheno2"] == 8).all()
+    assert (counts[(counts[settings.FOV_ID] == "fov8") &
+                   (counts[settings.CELL_LABEL].isin(range(11, 21)))]["Pheno1"] == 8).all()
+    assert (counts[(counts[settings.FOV_ID] == "fov9") &
+                   (counts[settings.CELL_LABEL].isin(range(1, 11)))]["Pheno3"] == 2).all()
+    assert (counts[(counts[settings.FOV_ID] == "fov9") &
+                   (counts[settings.CELL_LABEL].isin(range(11, 21)))]["Pheno1"] == 0).all()
+    # test that cells with only itself as neighbor were removed from the table
+    assert (len(counts[(counts[settings.FOV_ID] == "fov8") &
+                       (counts[settings.CELL_LABEL].isin(range(21, 80)))]) == 0)
 
-    assert (counts.loc[80:89, "Pheno3"] == 8).all()
-    assert (counts.loc[90:99, "Pheno1"] == 8).all()
+    # test if self_neighbor is True
+    counts, freqs = spatial_analysis.create_neighborhood_matrix(
+        all_data_pos, dist_mat_pos, distlim=51, self_neighbor=True
+    )
+
+    # test the counts values
+    assert (counts[(counts[settings.FOV_ID] == "fov8") &
+                   (counts[settings.CELL_LABEL].isin(range(1, 9)))]["Pheno1"] == 1).all()
+    assert (counts[(counts[settings.FOV_ID] == "fov9") &
+                   (counts[settings.CELL_LABEL].isin(range(1, 9)))]["Pheno3"] == 2).all()
+    assert (counts[(counts[settings.FOV_ID] == "fov9") &
+                   (counts[settings.CELL_LABEL].isin(range(11, 19)))]["Pheno1"] == 1).all()
 
     # error checking
     with pytest.raises(ValueError):
@@ -368,13 +390,13 @@ def test_generate_cluster_matrix_results():
     with pytest.raises(ValueError):
         # pass bad columns
         spatial_analysis.generate_cluster_matrix_results(
-            all_data_pos, neighbor_counts, cluster_num=3, excluded_channels=["bad_col"]
+            all_data_pos, neighbor_counts, cluster_num=2, excluded_channels=["bad_col"]
         )
 
     with pytest.raises(ValueError):
         # include bad fovs
         spatial_analysis.generate_cluster_matrix_results(
-            all_data_pos, neighbor_counts, cluster_num=3, excluded_channels=excluded_channels,
+            all_data_pos, neighbor_counts, cluster_num=2, excluded_channels=excluded_channels,
             included_fovs=[1000]
         )
 
@@ -386,7 +408,7 @@ def test_generate_cluster_matrix_results():
 
     all_data_markers_clusters, num_cell_type_per_cluster, mean_marker_exp_per_cluster = \
         spatial_analysis.generate_cluster_matrix_results(
-            all_data_pos, neighbor_counts, cluster_num=3, excluded_channels=excluded_channels
+            all_data_pos, neighbor_counts, cluster_num=2, excluded_channels=excluded_channels
         )
 
     # make sure we created a cluster_labels column
@@ -394,32 +416,77 @@ def test_generate_cluster_matrix_results():
 
     # can't really assert specific locations of values because cluster assignment stochastic
     # check just indexes and shapes
-    assert num_cell_type_per_cluster.shape == (3, 3)
-    assert list(num_cell_type_per_cluster.index.values) == ["Cluster0", "Cluster1", "Cluster2"]
+    assert num_cell_type_per_cluster.shape == (2, 3)
+    assert list(num_cell_type_per_cluster.index.values) == ["Cluster1", "Cluster2"]
     assert list(num_cell_type_per_cluster.columns.values) == ["Pheno1", "Pheno2", "Pheno3"]
 
-    assert mean_marker_exp_per_cluster.shape == (3, 20)
-    assert list(mean_marker_exp_per_cluster.index.values) == ["Cluster0", "Cluster1", "Cluster2"]
+    assert mean_marker_exp_per_cluster.shape == (2, 20)
+    assert list(mean_marker_exp_per_cluster.index.values) == ["Cluster1", "Cluster2"]
     assert list(mean_marker_exp_per_cluster.columns.values) == \
         list(np.arange(2, 14)) + list(np.arange(15, 23))
 
 
-def test_compute_cluster_metrics():
+def test_compute_cluster_metrics_inertia():
     # get an example neighborhood matrix
     neighbor_mat = test_utils._make_neighborhood_matrix()
-    neighbor_mat = neighbor_mat.drop(settings.CELL_LABEL, axis=1)
 
     # error checking
     with pytest.raises(ValueError):
         # pass an invalid k
-        spatial_analysis.compute_cluster_metrics(neighbor_mat=neighbor_mat, max_k=1)
+        spatial_analysis.compute_cluster_metrics_inertia(neighbor_mat=neighbor_mat, min_k=1)
+
+    with pytest.raises(ValueError):
+        # pass an invalid k
+        spatial_analysis.compute_cluster_metrics_inertia(neighbor_mat=neighbor_mat, max_k=1)
 
     with pytest.raises(ValueError):
         # pass invalid fovs
-        spatial_analysis.compute_cluster_metrics(neighbor_mat=neighbor_mat,
-                                                 included_fovs=["fov3"])
+        spatial_analysis.compute_cluster_metrics_inertia(neighbor_mat=neighbor_mat,
+                                                         included_fovs=["fov3"])
 
-    neighbor_cluster_stats = spatial_analysis.compute_cluster_metrics(
+    # explicitly include fovs
+    neighbor_cluster_stats = spatial_analysis.compute_cluster_metrics_inertia(
+        neighbor_mat=neighbor_mat, max_k=3, included_fovs=["fov1", "fov2"])
+
+    neighbor_cluster_stats = spatial_analysis.compute_cluster_metrics_inertia(
+        neighbor_mat=neighbor_mat, max_k=3)
+
+    # assert dimensions are correct
+    assert len(neighbor_cluster_stats.values) == 2
+    assert list(neighbor_cluster_stats.coords["cluster_num"]) == [2, 3]
+
+    # assert k=3 produces the best inertia score
+    last_k = neighbor_cluster_stats.loc[3].values
+    assert np.all(last_k <= neighbor_cluster_stats.values)
+
+
+def test_compute_cluster_metrics_silhouette():
+    # get an example neighborhood matrix
+    neighbor_mat = test_utils._make_neighborhood_matrix()
+
+    # error checking
+    with pytest.raises(ValueError):
+        # pass an invalid k
+        spatial_analysis.compute_cluster_metrics_silhouette(neighbor_mat=neighbor_mat, min_k=1)
+
+    with pytest.raises(ValueError):
+        # pass an invalid k
+        spatial_analysis.compute_cluster_metrics_silhouette(neighbor_mat=neighbor_mat, max_k=1)
+
+    with pytest.raises(ValueError):
+        # pass invalid fovs
+        spatial_analysis.compute_cluster_metrics_silhouette(neighbor_mat=neighbor_mat,
+                                                            included_fovs=["fov3"])
+
+    # explicitly include fovs
+    neighbor_cluster_stats = spatial_analysis.compute_cluster_metrics_silhouette(
+        neighbor_mat=neighbor_mat, max_k=3, included_fovs=["fov1", "fov2"])
+
+    # test subsampling
+    neighbor_cluster_stats = spatial_analysis.compute_cluster_metrics_silhouette(
+        neighbor_mat=neighbor_mat, max_k=3, subsample=10)
+
+    neighbor_cluster_stats = spatial_analysis.compute_cluster_metrics_silhouette(
         neighbor_mat=neighbor_mat, max_k=3)
 
     # assert dimensions are correct
@@ -427,8 +494,5 @@ def test_compute_cluster_metrics():
     assert list(neighbor_cluster_stats.coords["cluster_num"]) == [2, 3]
 
     # assert k=3 produces the best silhouette score for both fov1 and fov2
-    last_k = neighbor_cluster_stats.loc[3].values
-    assert np.all(last_k >= neighbor_cluster_stats.values)
-
     last_k = neighbor_cluster_stats.loc[3].values
     assert np.all(last_k >= neighbor_cluster_stats.values)
