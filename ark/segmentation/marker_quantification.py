@@ -333,10 +333,10 @@ def create_marker_count_matrices(segmentation_labels, image_data, nuclear_counts
 
     Args:
         segmentation_labels (xarray.DataArray):
-            xarray of shape [fovs, rows, cols, compartment] containing segmentation masks for each
-            fov, potentially across multiple cell compartments
+            xarray of shape [fovs, rows, cols, compartment] containing segmentation masks for one
+            FOV, potentially across multiple cell compartments
         image_data (xarray.DataArray):
-            xarray containing all of the channel data across all FOVs
+            xarray containing all of the channel data across one FOV
         nuclear_counts (bool):
             boolean flag to determine whether nuclear counts are returned, note that if
             set to True, the compartments coordinate in segmentation_labels must contain 'nuclear'
