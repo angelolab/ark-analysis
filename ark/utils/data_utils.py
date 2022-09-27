@@ -546,7 +546,21 @@ def split_img_stack(stack_dir, output_dir, stack_list, indices, names, channels_
 
 
 class ExampleDataset():
-    def __init__(self, dataset, cache_dir=None, revision=None) -> None:
+    def __init__(self, dataset: str, cache_dir: str = None, revision: str = None) -> None:
+        """
+        Constructs a utility class for downloading and moving the dataset with respect to it's
+        various partitions on Hugging Face: https://huggingface.co/datasets/angelolab/ark_example.
+
+        Args:
+            dataset (str): The name of the dataset to download. Can be one of `nb1`, `nb2`, `nb3`, `nb4`.
+            cache_dir (str, optional): The directory to save the cache dir. Defaults to `None`, which
+                internally in Hugging Face defaults to `~/.cache/huggingface/datasets`.
+            revision (str, optional): The commit ID from Hugging Face for the dataset. Used for 
+                internal development only. Allows the user to fetch a commit from a particular 
+                `revision` (Hugging Face's terminology for branch). Defaults to `None`. This 
+                defaults to the latest version in the `main` branch 
+                (https://huggingface.co/datasets/angelolab/ark_example/tree/main).
+        """
         self.dataset = dataset
         self.cache_dir = cache_dir
         self.revision = revision
@@ -567,13 +581,7 @@ class ExampleDataset():
         https://huggingface.co/datasets/angelolab/ark_example
 
         The dataset will be downloaded to the Hugging Face default cache `~/.cache/huggingface/datasets`.
-
-        Args:
-            dataset (str): The dataset to download for a particular notebook.
-            save_dir (Union[str, pathlib.Path]): The directory to save / move the example dataset in.
         """
-
-        # Downloads the dataset
         self.dataset_paths = datasets.load_dataset(path="angelolab/ark_example",
                                                    revision=self.revision,
                                                    name=self.dataset,
@@ -597,12 +605,12 @@ class ExampleDataset():
 
             # The path where the dataset is saved in the Hugging Face Cache post-download,
             # Necessary to copy + move the data from the cache to the user specified `save_dir`.
-            dataset_cache_path, = pathlib.Path(self.dataset_paths[self.dataset][ds_n][0])
-
+            dataset_cache_path = pathlib.Path(self.dataset_paths[self.dataset][ds_n][0])
             src_path = dataset_cache_path / ds_n
             dst_path = save_dir / "example_dataset" / ds_n_suffix
+
             shutil.copytree(src_path, dst_path, dirs_exist_ok=True,
-                            ignore=shutil.ignore_patterns('._*'))
+                            ignore=shutil.ignore_patterns("._*"))
 
 
 def get_example_dataset(dataset: str, save_dir: Union[str, pathlib.Path]):
@@ -615,7 +623,7 @@ def get_example_dataset(dataset: str, save_dir: Union[str, pathlib.Path]):
 
     # Check the appropriate dataset name
     if dataset not in valid_datasets:
-        ValueError(f"The dataset {dataset} is not one of the valid datasets available.")
+        ValueError(f"The dataset <{dataset}> is not one of the valid datasets available.")
 
     example_dataset = ExampleDataset(dataset=dataset, cache_dir=None,
                                      revision="1fdc7ac3aab0f254169c0a596d0abc4a1facacd0")

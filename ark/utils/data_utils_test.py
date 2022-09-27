@@ -3,6 +3,8 @@ import pathlib
 import tempfile
 from shutil import rmtree
 from typing import Callable
+import logging
+import datasets;datasets.disable_progress_bar()
 
 import feather
 import numpy as np
@@ -655,7 +657,6 @@ def test_download_example_data():
 # Only download the dataset once, and use it for the remaining tests?
 @pytest.fixture(scope="session", params=["nb1", "nb2"])
 def dataset_download(tmp_path_factory, request) -> ExampleDataset:
-
     # Set up temp path factory
     cache_dir = tmp_path_factory.mktemp("example_dataset")
 
@@ -680,22 +681,27 @@ class TestExampleDataset:
         self.channel_names = ["CD3", "CD4", "CD8", "CD14", "CD20", "CD31", "CD45", "CD68",
                               "CD163", "CK17", "Collagen1", "ECAD", "Fibronectin", "GLUT1",
                               "H3K9ac", "H3K27me3", "HLADR", "IDO", "Ki67", "PD1", "SMA", "Vim"]
-
+        self.cell_table_names = ["cell_table_arcsinh_transformed", "cell_table_size_normalized"]
+        self.deepcell_output_names = [f"fov{i}_feature_0" for i in range(11)]
         self.dataset_test_fns: dict[str, Callable] = {
             "image_data": self._image_data_check,
             "cell_table": self._cell_table_check,
             "deepcell_output": self._deepcell_output_check
         }
-        """
-        Mapping the datasets to their respective test functions.
-        """
+        
+        # Mapping the datasets to their respective test functions.
+        self.move_path_suffixes = {
+            "image_data": "image_data",
+            "cell_table": "segmentation/cell_table",
+            "deepcell_output": "segmentation/deepcell_output"
+        }
 
-    def test_download_example_dataset(self, dataset_download):
+    def test_download_example_dataset(self, dataset_download: ExampleDataset):
         """
         Tests to make sure the proper files are downloaded from Hugging Face.
 
         Args:
-            dataset_download (_type_): _description_
+            dataset_download (ExampleDataset): _description_
         """
         dataset_names = list(
             dataset_download.dataset_paths[dataset_download.dataset].features.keys())
@@ -703,23 +709,39 @@ class TestExampleDataset:
         for ds_n in dataset_names:
             dataset_cache_path = pathlib.Path(
                 dataset_download.dataset_paths[dataset_download.dataset][ds_n][0])
-            self.dataset_test_fns[ds_n](dir=dataset_cache_path / ds_n)
+            self.dataset_test_fns[ds_n](dir_p=dataset_cache_path / ds_n)
 
-    def test_move_example_dataset(self, dataset_download):
+    def test_move_example_dataset(self, tmp_path_factory, dataset_download: ExampleDataset):
         """
         Tests to make sure the proper files are moved to the correct directories.
 
         Args:
-            dataset_download (_type_): _description_
+            dataset_download (ExampleDataset): _description_
         """
-        pass
+        move_dir = tmp_path_factory.mktemp("move_example_data")
+        dataset_download.move_example_dataset(save_dir=move_dir)
+
+        dataset_names = list(
+            dataset_download.dataset_paths[dataset_download.dataset].features.keys())
+
+        for ds_n in dataset_names:
+            ds_n_suffix = self.move_path_suffixes[ds_n]
+            
+            dir_p = move_dir / "example_dataset" / ds_n_suffix
+            self.dataset_test_fns[ds_n](dir_p)
 
     def test_get_example_dataset(self, dataset_download):
         pass
 
-    def _image_data_check(self, dir: pathlib.Path):
+    def _image_data_check(self, dir_p: pathlib.Path):
+        """
+        Checks to make sure that all the FOVs exist.
+
+        Args:
+            dir (pathlib.Path): The directory to check.
+        """
         # Check to make sure all the FOVs exist
-        downloaded_fovs = list(dir.glob("*"))
+        downloaded_fovs = list(dir_p.glob("*"))
         downloaded_fov_names = [f.stem for f in downloaded_fovs]
         assert set(self.fov_names) == set(downloaded_fov_names)
 
@@ -728,8 +750,27 @@ class TestExampleDataset:
             c_names = [c.stem for c in fov.rglob("*")]
             assert set(self.channel_names) == set(c_names)
 
-    def _cell_table_check(self, dir: pathlib.Path):
-        pass
+    def _cell_table_check(self, dir_p: pathlib.Path):
+        """
+        Checks to make sure that the following cell tables exist:
+            * `cell_table_arcsinh_transformed.csv`
+            * `cell_table_size_normalized.csv`
 
-    def _deepcell_output_check(self, dir: pathlib.Path):
-        pass
+        Args:
+            dir_p (pathlib.Path): The directory to check.
+        """
+
+        downloaded_cell_tables = list(dir_p.glob("*.csv"))
+        downloaded_cell_table_names = [f.stem for f in downloaded_cell_tables]
+        assert set(self.cell_table_names) == set(downloaded_cell_table_names)
+
+    def _deepcell_output_check(self, dir_p: pathlib.Path):
+        """
+        Checks to make sure that all 11 feature masks exist from deepcell output.
+
+        Args:
+            dir_p (pathlib.Path): The directory to check.
+        """
+        downloaded_deepcell_output = list(dir_p.glob("*.tif"))
+        downloaded_deepcell_output_names = [f.stem for f in downloaded_deepcell_output]
+        assert set(self.deepcell_output_names) == set(downloaded_deepcell_output_names)
