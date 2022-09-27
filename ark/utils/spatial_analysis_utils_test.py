@@ -1,13 +1,13 @@
 import os
-import pytest
 import tempfile
+
 import numpy as np
 import pandas as pd
+import pytest
 import xarray as xr
-from ark.utils import spatial_analysis_utils
 
 import ark.settings as settings
-from ark.utils import test_utils
+from ark.utils import spatial_analysis_utils, test_utils
 
 
 def test_calc_dist_matrix():
@@ -282,8 +282,9 @@ def test_compute_neighbor_counts():
 
     cell_neighbor_freqs = cell_neighbor_counts.copy(deep=True)
 
+    # first test for self_neighbor is True
     counts, freqs = spatial_analysis_utils.compute_neighbor_counts(
-        fov_data, dist_matrix, distlim)
+        fov_data, dist_matrix, distlim, self_neighbor=True)
 
     # add to neighbor counts/freqs for only matched phenos between the fov and the whole dataset
     cell_neighbor_counts.loc[fov_data.index, cluster_names] = counts
@@ -315,21 +316,27 @@ def test_compute_neighbor_counts():
 
     assert (cell_neighbor_freqs.loc[:3, "Pheno1"] == 1).all()
     assert (cell_neighbor_freqs.loc[4:8, "Pheno2"] == 1).all()
-    assert (np.isnan(cell_neighbor_freqs.loc[9, "Pheno3"])).all()
+    assert (cell_neighbor_freqs.loc[9, "Pheno3"] == 0).all()
 
 
-def test_generate_cluster_labels():
-    neighbor_mat = test_utils._make_neighborhood_matrix()[['feature1', 'feature2']]
-    neighbor_cluster_labels = spatial_analysis_utils.generate_cluster_labels(neighbor_mat,
-                                                                             cluster_num=3)
-
-    assert len(np.unique(neighbor_cluster_labels) == 3)
-
-
-def test_compute_kmeans_cluster_metric():
+def test_compute_kmeans_inertia():
     neighbor_mat = test_utils._make_neighborhood_matrix()[['feature1', 'feature2']]
 
-    neighbor_cluster_stats = spatial_analysis_utils.compute_kmeans_cluster_metric(
+    neighbor_cluster_stats = spatial_analysis_utils.compute_kmeans_inertia(
+        neighbor_mat, max_k=3)
+
+    # assert we have the right cluster_num values
+    assert list(neighbor_cluster_stats.coords["cluster_num"].values) == [2, 3]
+
+    # assert k=3 produces the best inertia
+    three_cluster_score = neighbor_cluster_stats.loc[3].values
+    assert np.all(three_cluster_score <= neighbor_cluster_stats.values)
+
+
+def test_compute_kmeans_silhouette():
+    neighbor_mat = test_utils._make_neighborhood_matrix()[['feature1', 'feature2']]
+
+    neighbor_cluster_stats = spatial_analysis_utils.compute_kmeans_silhouette(
         neighbor_mat, max_k=3)
 
     # assert we have the right cluster_num values
@@ -338,3 +345,11 @@ def test_compute_kmeans_cluster_metric():
     # assert k=3 produces the best silhouette score
     three_cluster_score = neighbor_cluster_stats.loc[3].values
     assert np.all(three_cluster_score >= neighbor_cluster_stats.values)
+
+
+def test_generate_cluster_labels():
+    neighbor_mat = test_utils._make_neighborhood_matrix()[['feature1', 'feature2']]
+    neighbor_cluster_labels = spatial_analysis_utils.generate_cluster_labels(neighbor_mat,
+                                                                             cluster_num=3)
+
+    assert len(np.unique(neighbor_cluster_labels) == 3)

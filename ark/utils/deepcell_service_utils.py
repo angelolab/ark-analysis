@@ -1,23 +1,22 @@
-from concurrent.futures import ThreadPoolExecutor
-from json import JSONDecodeError
 import os
+import time
+import warnings
+from concurrent.futures import ThreadPoolExecutor
+from io import BytesIO
+from json import JSONDecodeError
 from pathlib import Path
+from urllib.parse import unquote_plus
+from zipfile import ZIP_DEFLATED, ZipFile
+
+import numpy as np
 import requests
 from requests.adapters import HTTPAdapter
 from requests.exceptions import RetryError
 from requests.packages.urllib3.util import Retry
-import time
-from tqdm.notebook import tqdm
-from urllib.parse import unquote_plus
-import warnings
-from concurrent.futures import ThreadPoolExecutor
-import numpy as np
-from scipy import stats
 from skimage import io
 from tifffile import imread
-from io import BytesIO
-from ark.utils import misc_utils
-from zipfile import ZipFile, ZIP_DEFLATED
+from tqdm.notebook import tqdm
+
 from ark.utils import io_utils, misc_utils
 
 
@@ -312,24 +311,15 @@ def run_deepcell_direct(input_dir, output_dir, host='https://deepcell.org',
 
 
 def _convert_deepcell_seg_masks(seg_mask: bytes) -> np.ndarray:
-    """Converts the segmentation masks provided by deepcell from `float32` to `int16`
-    (via assigning ranks to data, dealing with ties appropriately)
-    as segmentation masks need to be integers in order to work as intended with
-    scikit-image.
+    """Converts the segmentation masks provided by deepcell from `np.float32` to `inp.nt32`.
 
     Args:
         seg_mask (bytes): The output of deep cell's segmentation algorithm as file bytes.
 
     Returns:
-        np.ndarray: The segmentation masks, converted from floating point 64-bit to integer
-        16-bit via `scipy.stats.rankdata`
+        np.ndarray: The segmentation masks as `np.int32`
     """
     float_mask = imread(BytesIO(seg_mask))
+    int_mask = float_mask.astype("int32")
 
-    # Reshape as ranked_mask returns a 1D numpy array, dims:  n^2 x 1 -> 1 x n x n
-    shape = float_mask.shape
-
-    # Create the ranked mask
-    ranked_mask: np.ndarray = stats.rankdata(float_mask).astype(dtype="int16").reshape(shape)
-
-    return ranked_mask
+    return int_mask

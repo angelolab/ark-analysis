@@ -1,11 +1,15 @@
-from ark.utils import misc_utils
-from .colormap_helper import distinct_cmap, distinct_rgbs, generate_meta_cluster_colormap_dict
-from matplotlib.colors import ListedColormap
-import numpy as np
 import os
+import tempfile
+
+import numpy as np
 import pandas as pd
 import pytest
-import tempfile
+from matplotlib.colors import ListedColormap
+
+from ark.utils import misc_utils
+
+from .colormap_helper import (distinct_cmap, distinct_rgbs,
+                              generate_meta_cluster_colormap_dict)
 
 
 def test_colormap_is_distinct():

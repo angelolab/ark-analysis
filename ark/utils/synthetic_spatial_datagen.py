@@ -1,7 +1,7 @@
+from copy import deepcopy
+
 import numpy as np
 import xarray as xr
-
-from copy import deepcopy
 from skimage.draw import disk
 
 

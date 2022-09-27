@@ -14,7 +14,7 @@ if CYTHON_DEBUG:
 
 CYTHON_MACROS = [('CYTHON_TRACE', '1')] if CYTHON_DEBUG else None
 
-VERSION = '0.3.2'
+VERSION = '0.4.1'
 
 PKG_FOLDER = path.abspath(path.join(__file__, pardir))
 

@@ -1,6 +1,7 @@
-import feather
 import json
 import os
+
+import feather
 import numpy as np
 import pandas as pd
 import skimage.io as io
@@ -106,18 +107,12 @@ def segment_notebook_setup(tb, deepcell_tiff_dir, deepcell_input_dir, deepcell_o
     # define custom paths, leave base_dir and input_dir for simplicity
     define_paths = """
         tiff_dir = "%s"
+        cell_table_dir = "%s"
         deepcell_input_dir = "%s"
         deepcell_output_dir = "%s"
-        single_cell_dir = "%s"
-        viz_dir = "%s"
-    """ % (deepcell_tiff_dir, deepcell_input_dir, deepcell_output_dir, single_cell_dir, viz_dir)
+        deepcell_visualization_dir = "%s"
+    """ % (deepcell_tiff_dir, single_cell_dir, deepcell_input_dir, deepcell_output_dir, viz_dir)
     tb.inject(define_paths, after='file_path')
-
-    # will set MIBItiff and MIBItiff_suffix
-    tb.execute_cell('mibitiff_set')
-    if is_mibitiff:
-        # default setting is MIBItiff = False, change to True if user has mibitiff inputs
-        tb.inject("MIBItiff = True", after='mibitiff_set')
 
 
 def flowsom_pixel_setup(tb, flowsom_dir, create_seg_dir=True, img_shape=(50, 50),
@@ -856,7 +851,7 @@ def fov_channel_input_set(tb, fovs=None, nucs_list=None, mems_list=None, is_mibi
     mibitiff_deepcell = """
         data_utils.generate_deepcell_input(
             deepcell_input_dir, tiff_dir, nucs, mems, fovs,
-            is_mibitiff=%s, img_sub_folder="TIFs", batch_size=5
+            is_mibitiff=%s, img_sub_folder="TIFs"
         )
     """ % str(is_mibitiff)
     tb.inject(mibitiff_deepcell, after='gen_input')
@@ -905,7 +900,7 @@ def overlay_mask(tb, channels=None):
             segmentation_utils.save_segmentation_labels(
                 segmentation_dir=deepcell_output_dir,
                 data_dir=deepcell_input_dir,
-                output_dir=viz_dir,
+                output_dir=deepcell_visualization_dir,
                 fovs=io_utils.remove_file_extensions(fovs),
                 channels=%s
             )
@@ -915,7 +910,7 @@ def overlay_mask(tb, channels=None):
         tb.execute_cell('save_mask')
 
 
-def create_exp_mat(tb, is_mibitiff=False, batch_size=5, nuclear_counts=False):
+def create_exp_mat(tb, is_mibitiff=False, nuclear_counts=False):
     """Creates the expression matrices from the generated segmentation labels
 
     Args:
@@ -937,9 +932,8 @@ def create_exp_mat(tb, is_mibitiff=False, batch_size=5, nuclear_counts=False):
                                                       img_sub_folder="TIFs",
                                                       is_mibitiff=%s,
                                                       fovs=fovs,
-                                                      batch_size=%s,
                                                       nuclear_counts=%s)
-    """ % (is_mibitiff, str(batch_size), nuclear_counts)
+    """ % (is_mibitiff, nuclear_counts)
     tb.inject(exp_mat_gen, after='create_exp_mat')
 
     # save expression matrices

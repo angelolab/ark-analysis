@@ -159,3 +159,54 @@ You can load the `xarray` back in using:
 
 `arr = xr.load_dataarray(path)`
 
+
+### Creating a New Release:
+
+There are several steps for creating a new Release of `Ark`. 
+The versioning format is:
+
+```
+MAJOR.MINOR.PATCH
+```
+
+For example, suppose that the current version is `A.B.C`, and we need to create a new release `X.Y.Z`. The following instructions describe this procedure.
+
+**Create a new PR with the following format as the branch name:**
+
+```
+next_release_vX.Y.Z
+```
+**In that branch:**
+1. Set the label for the PR to `dependencies`.
+1. Bump the `VERSION` Variable in `setup.py` to `X.Y.Z`. View the [draft release notes](https://github.com/angelolab/ark-analysis/releases) to read the current bugfixes, enhancements and more.
+   1. If, in the release notes draft there are PRs that are not categorized, label them appropriately (usually based on the label of their respective Issue).
+2. Make sure that all tests pass for `Ark` on Travis-CI. 
+3. In the `ark-analysis/start_docker.sh` script, change the image tag from 
+    ```
+    angelolab/ark-analysis:vA.B.C -> angelolab/ark-analysis:vX.Y.Z
+    ```
+4. Request a review and merge the `Ark` branch.
+5. Next head to the most recent Drafted Release Notes:
+   1. Double check that the tag is the appropriate version name.
+   2. Publish the Release.
+   3. Next the `Ark` will be pushed to PyPI and the Docker Image will be built on Travis CI. 
+
+**Test Changes on Toffy**
+1. Test the effects that changes in `Ark` have on `toffy` locally.
+   1. Install the new branch of `Ark` in your Python environment with 
+    ```
+    pip install -e <location/to/ark>
+    ```
+   2. **As needed**, sync with `toffy` and `mibi-bin-tools`
+      1. Update relevant packages in these repos, such as `scikit-image` or `xarray`.
+      2. Locally, test that the new version works with `toffy`
+      3. If there are errors in `toffy` fix them in a separate branch named:
+        ```
+        ark_vX.Y.Z_compatibility
+        ```
+   3. If necessary, change the version of ark-analysis in `toffy/requirements.txt`:
+        ```
+        git+https://github.com/angelolab/ark-analysis.git@vA.B.C -> git+https://github.com/angelolab/ark-analysis.git@vX.Y.Z
+        ```
+2. Once all errors have been ironed out create PRs for the respective changes in the effected repositories, and label them as `dependencies`.
+3. Merge the compatibility PRs.

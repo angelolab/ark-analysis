@@ -1,8 +1,6 @@
-import copy
 
 import numpy as np
 import pandas as pd
-
 from skimage.measure import label, moments, regionprops_table
 
 
