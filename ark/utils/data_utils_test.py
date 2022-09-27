@@ -102,10 +102,9 @@ def test_generate_deepcell_input():
             fov2path = os.path.join(temp_dir, 'fov2.tif')
             fov3path = os.path.join(temp_dir, 'fov3.tif')
 
-            # by setting batch_size=2, we test a batch size with a remainder
             data_utils.generate_deepcell_input(
                 data_dir=temp_dir, tiff_dir=tiff_dir, nuc_channels=nucs, mem_channels=mems,
-                fovs=fovs, is_mibitiff=is_mibitiff, img_sub_folder='TIFs', batch_size=2
+                fovs=fovs, is_mibitiff=is_mibitiff, img_sub_folder='TIFs'
             )
 
             fov1 = np.moveaxis(io.imread(fov1path), 0, -1)
@@ -122,7 +121,7 @@ def test_generate_deepcell_input():
 
             data_utils.generate_deepcell_input(
                 data_dir=temp_dir, tiff_dir=tiff_dir, nuc_channels=nucs, mem_channels=mems,
-                fovs=fovs, is_mibitiff=is_mibitiff, img_sub_folder='TIFs', batch_size=2
+                fovs=fovs, is_mibitiff=is_mibitiff, img_sub_folder='TIFs'
             )
 
             nuc_sums = data_xr.loc[:, :, :, nucs].sum(dim='channels').values
@@ -144,7 +143,7 @@ def test_generate_deepcell_input():
 
             data_utils.generate_deepcell_input(
                 data_dir=temp_dir, tiff_dir=tiff_dir, nuc_channels=nucs, mem_channels=mems,
-                fovs=fovs, is_mibitiff=is_mibitiff, img_sub_folder='TIFs', batch_size=2
+                fovs=fovs, is_mibitiff=is_mibitiff, img_sub_folder='TIFs'
             )
 
             fov1 = np.moveaxis(io.imread(fov1path), 0, -1)
@@ -164,7 +163,7 @@ def test_generate_deepcell_input():
 
             data_utils.generate_deepcell_input(
                 data_dir=temp_dir, tiff_dir=tiff_dir, nuc_channels=nucs, mem_channels=mems,
-                fovs=fovs, is_mibitiff=is_mibitiff, img_sub_folder='TIFs', batch_size=2
+                fovs=fovs, is_mibitiff=is_mibitiff, img_sub_folder='TIFs'
             )
 
             fov1 = np.moveaxis(io.imread(fov1path), 0, -1)
@@ -426,7 +425,7 @@ def test_generate_pixel_cluster_mask():
             )
 
         # generate sample fov folder with one channel value, no sub folder
-        channel_data = np.random.randint(low=0, high=5, size=(40, 40), dtype="int16")
+        channel_data = np.random.randint(low=0, high=5, size=(40, 20), dtype="int16")
         os.mkdir(os.path.join(temp_dir, 'fov0'))
         io.imsave(os.path.join(temp_dir, 'fov0', 'chan0.tif'), channel_data,
                   check_contrast=False)
@@ -446,7 +445,7 @@ def test_generate_pixel_cluster_mask():
             consensus_data['pixel_som_cluster'] = np.tile(np.arange(1, 11), 10)
             consensus_data['pixel_meta_cluster'] = np.tile(np.arange(1, 6), 20)
             consensus_data['row_index'] = np.random.randint(low=0, high=40, size=100)
-            consensus_data['column_index'] = np.random.randint(low=0, high=40, size=100)
+            consensus_data['column_index'] = np.random.randint(low=0, high=20, size=100)
 
             feather.write_dataframe(
                 consensus_data, os.path.join(temp_dir, 'pixel_mat_consensus', fov + '.feather')
@@ -473,7 +472,7 @@ def test_generate_pixel_cluster_mask():
         )
 
         # assert we have 3 fovs and the image size is the same as the mask (40, 40)
-        assert pixel_masks.shape == (3, 40, 40)
+        assert pixel_masks.shape == (3, 40, 20)
 
         # assert no value is greater than the highest SOM cluster value (10)
         assert np.all(pixel_masks <= 10)
@@ -485,7 +484,7 @@ def test_generate_pixel_cluster_mask():
         )
 
         # assert we have 3 fovs and the image size is the same as the mask (40, 40)
-        assert pixel_masks.shape == (3, 40, 40)
+        assert pixel_masks.shape == (3, 40, 20)
 
         # assert no value is greater than the highest meta cluster value (5)
         assert np.all(pixel_masks <= 5)
@@ -638,7 +637,7 @@ def test_download_example_data():
         print(downloaded_fovs)
         downloaded_fov_names = [f.stem for f in downloaded_fovs]
 
-        # Assert that all the fovs exist after copying the data to "image_data/input_data"
+        # Assert that all the fovs exist after copying the data to "image_data/image_data"
         assert set(fov_names) == set(downloaded_fov_names)
 
         channel_names = ["CD3", "CD4", "CD8", "CD14", "CD20", "CD31", "CD45", "CD68", "CD163",
