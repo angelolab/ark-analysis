@@ -7,7 +7,9 @@ from typing import List, Union
 import datasets
 import feather
 import numpy as np
+import pandas as pd
 import skimage.io as io
+from skimage.measure import regionprops_table
 import xarray as xr
 from tqdm.notebook import tqdm_notebook as tqdm
 
@@ -393,14 +395,54 @@ def relabel_segmentation(labeled_image, labels_dict):
             The relabeled array.
     """
 
+    # print("Copying image")
+    # img = np.copy(labeled_image)
+    # print("Getting unique cell IDs")
+    # unique_cell_ids = np.unique(labeled_image)
+    # print("Keeping just non-zero cell IDs")
+    # unique_cell_ids = unique_cell_ids[np.nonzero(unique_cell_ids)]
+    # print("Generating regionprops_table")
+    # cell_props = pd.DataFrame(regionprops_table(labeled_image,
+    #                                             properties=['label', 'coords']))
+
+    # print("Assigning default_label")
+    # default_label = max(labels_dict.values()) + 1
+    # for cell_id in unique_cell_ids:
+    #     print("Processing cell_id %d" % cell_id)
+    #     coords = cell_props.loc[cell_props['label'] == cell_id, 'coords'].values[0]
+    #     img[coords] = labels_dict.get(cell_id, default_label)
+    #     img[labeled_image == cell_id] = labels_dict.get(cell_id, default_label)
+    # return img
+
+    # print("Copying image")
+    # img = np.copy(labeled_image)
+    # print("Getting unique cell IDs")
+    # unique_cell_ids = np.unique(labeled_image)
+    # print("Keeping just non-zero cell IDs")
+    # unique_cell_ids = unique_cell_ids[np.nonzero(unique_cell_ids)]
+
+    # print("Assigning default_label")
+    # default_label = max(labels_dict.values()) + 1
+    # for cell_id in unique_cell_ids:
+    #     print("Processing cell_id %d" % cell_id)
+    #     img[labeled_image == cell_id] = labels_dict.get(cell_id, default_label)
+    # return img
+
     img = np.copy(labeled_image)
     unique_cell_ids = np.unique(labeled_image)
     unique_cell_ids = unique_cell_ids[np.nonzero(unique_cell_ids)]
 
     default_label = max(labels_dict.values()) + 1
-    for cell_id in unique_cell_ids:
-        img[labeled_image == cell_id] = labels_dict.get(cell_id, default_label)
-    return img
+
+    def relabel(x):
+        return labels_dict.get(x, default_label)
+
+    relabeled_img = np.vectorize(relabel)(img)
+
+    # relabel_func = relabel
+    # relabeled_img = relabel_func(img)
+
+    return relabeled_img
 
 
 # TODO: Add metadata for channel name (eliminates need for fixed-order channels)
