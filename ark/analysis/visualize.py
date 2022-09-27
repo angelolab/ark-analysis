@@ -297,13 +297,16 @@ def visualize_patient_population_distribution(cell_data, patient_col_name, popul
                       dpi=dpi, save_dir=save_dir, save_file="PopulationProportion.png")
 
 
-def visualize_neighbor_cluster_metrics(neighbor_cluster_stats, dpi=None, save_dir=None):
+def visualize_neighbor_cluster_metrics(neighbor_cluster_stats, metric_name,
+                                       dpi=None, save_dir=None):
     """Visualize the cluster performance results of a neighborhood matrix
 
     Args:
         neighbor_cluster_stats (xarray.DataArray):
             contains the desired statistic we wish to visualize, should have one
             coordinate called cluster_num labeled starting from 2
+        metric_name (str):
+            name of metric
         dpi (float):
             The resolution of the image to save, ignored if save_dir is None
         save_dir (str):
@@ -316,13 +319,13 @@ def visualize_neighbor_cluster_metrics(neighbor_cluster_stats, dpi=None, save_di
 
     # plot the results
     plt.plot(x_coords, scores)
-    plt.title("silhouette score vs number of clusters")
+    plt.title(metric_name+" vs number of clusters")
     plt.xlabel("Number of clusters")
-    plt.ylabel("silhouette score")
+    plt.ylabel(metric_name)
 
     # save if desired
     if save_dir is not None:
-        misc_utils.save_figure(save_dir, "neighborhood_cluster_scores.png", dpi=dpi)
+        misc_utils.save_figure(save_dir, "neighborhood_"+metric_name+"_scores.png", dpi=dpi)
 
 
 def visualize_topic_eda(data, metric="gap_stat", gap_sd=True, k=None, transpose=False, scale=0.5,
