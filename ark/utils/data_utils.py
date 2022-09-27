@@ -17,7 +17,7 @@ from ark.utils.misc_utils import verify_in_list
 
 
 def save_fov_images(fovs, data_dir, img_xr, sub_dir=None, name_suffix=''):
-    """Given an xarray of a fov image, saves it
+    """Given an `xarray` of FOVs, saves them
 
     Args:
         fovs (list):
