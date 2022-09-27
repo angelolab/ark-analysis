@@ -192,7 +192,7 @@ def generate_pixel_cluster_mask(fov, base_dir, tiff_dir, chan_file_path,
         tiff_dir (str):
             The path to the tiff data
         chan_file_path (str):
-            The path to the sample channel file to load (assuming `tiff_dir` as root).
+            The path to the sample channel file to load (`tiff_dir` as root).
             Used to determine dimensions of the pixel mask.
         pixel_data_dir (str):
             The path to the data with full pixel data.
@@ -286,7 +286,7 @@ def generate_and_save_pixel_cluster_masks(fovs: List[str],
         tiff_dir (Union[pathlib.Path, str]):
             The path to the directory with the tiff data.
         chan_file (Union[pathlib.Path, str]):
-            The path to the channel file inside each FOV folder (assuming `tiff_dir` as root).
+            The path to the channel file inside each FOV folder (FOV folder as root).
             Used to determine dimensions of the pixel mask.
         pixel_data_dir (Union[pathlib.Path, str]):
             The path to the data with full pixel data.
