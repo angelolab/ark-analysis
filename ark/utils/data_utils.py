@@ -157,7 +157,7 @@ def generate_cell_cluster_mask(fov, base_dir, seg_dir, cell_data_name,
 
     # verify the fov is valid
     verify_in_list(
-        provided_fovs=fov,
+        provided_fov=[fov],
         consensus_fovs=cell_consensus_data['fov']
     )
 
