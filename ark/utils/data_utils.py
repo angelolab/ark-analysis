@@ -39,7 +39,7 @@ def save_fov_images(fovs, data_dir, img_xr, sub_dir=None, name_suffix=''):
     if not os.path.exists(data_dir):
         raise FileNotFoundError("data_dir %s does not exist" % data_dir)
 
-    # verify that the fov provided is valid
+    # verify that the fovs provided are valid
     verify_in_list(
         provided_fovs=fovs,
         img_xr_fovs=img_xr.fovs.values
@@ -55,7 +55,7 @@ def save_fov_images(fovs, data_dir, img_xr, sub_dir=None, name_suffix=''):
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
 
-    # retrieve the image for the fov
+    # retrieve the image for each fov
     for fov in fovs:
         fov_img_data = img_xr.loc[fov, ...].values
 
