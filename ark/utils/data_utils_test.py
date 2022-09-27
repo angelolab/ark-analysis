@@ -17,6 +17,8 @@ from ark.utils.data_utils import (download_example_data,
                                   generate_and_save_pixel_cluster_masks,
                                   label_cells_by_cluster, relabel_segmentation)
 
+parametrize = pytest.mark.parametrize
+
 
 def test_save_fov_images():
     # define the full set of fovs as well as a subset of fovs
@@ -307,7 +309,7 @@ def test_label_cells_by_cluster():
 
 
 def test_generate_cell_cluster_mask():
-    fovs = ['fov0', 'fov1', 'fov2']
+    fov = 'fov0'
     som_cluster_cols = ['pixel_som_cluster_%d' % i for i in np.arange(5)]
     meta_cluster_cols = ['pixel_meta_cluster_%d' % i for i in np.arange(3)]
 
@@ -315,54 +317,41 @@ def test_generate_cell_cluster_mask():
         # bad segmentation path passed
         with pytest.raises(FileNotFoundError):
             data_utils.generate_cell_cluster_mask(
-                fovs, temp_dir, 'bad_seg_dir', 'bad_consensus_path'
+                fov, temp_dir, 'bad_seg_dir', 'bad_consensus_path'
             )
 
-        # generate sample segmentation masks
-        cell_masks = np.random.randint(low=0, high=5, size=(3, 40, 40, 1), dtype="int16")
-
-        for fov in range(cell_masks.shape[0]):
-            fov_whole_cell = cell_masks[fov, :, :, 0]
-            io.imsave(os.path.join(temp_dir, 'fov%d_feature_0.tif' % fov), fov_whole_cell,
-                      check_contrast=False)
+        # generate a sample segmentation mask
+        cell_mask = np.random.randint(low=0, high=5, size=(40, 40), dtype="int16")
+        io.imsave(os.path.join(temp_dir, '%s_feature_0.tif' % fov), cell_mask,
+                  check_contrast=False)
 
         # bad consensus path passed
         with pytest.raises(FileNotFoundError):
             data_utils.generate_cell_cluster_mask(
-                fovs, temp_dir, temp_dir, 'bad_consensus_path'
+                fov, temp_dir, temp_dir, 'bad_consensus_path'
             )
 
         # create a sample cell consensus file based on SOM cluster assignments
-        consensus_data_som = pd.DataFrame()
+        consensus_data_som = pd.DataFrame(
+            np.random.randint(low=0, high=100, size=(20, 5)), columns=som_cluster_cols
+        )
+
+        consensus_data_som['fov'] = fov
+        consensus_data_som['segmentation_label'] = consensus_data_som.index.values + 1
+        consensus_data_som['cell_som_cluster'] = np.tile(np.arange(1, 6), 4)
+        consensus_data_som['cell_meta_cluster'] = np.tile(np.arange(1, 3), 10)
 
         # create a sample cell consensus file based on meta cluster assignments
-        consensus_data_meta = pd.DataFrame()
+        consensus_data_meta = pd.DataFrame(
+            np.random.randint(low=0, high=100, size=(20, 3)), columns=meta_cluster_cols
+        )
 
-        # generate sample cell data with SOM and meta cluster assignments for each fov
-        for fov in fovs:
-            som_data_fov = pd.DataFrame(
-                np.random.randint(low=0, high=100, size=(20, 5)), columns=som_cluster_cols
-            )
+        consensus_data_meta['fov'] = fov
+        consensus_data_meta['segmentation_label'] = consensus_data_meta.index.values + 1
+        consensus_data_meta['cell_som_cluster'] = np.tile(np.arange(1, 6), 4)
+        consensus_data_meta['cell_meta_cluster'] = np.tile(np.arange(1, 3), 10)
 
-            som_data_fov['fov'] = fov
-            som_data_fov['segmentation_label'] = som_data_fov.index.values + 1
-            som_data_fov['cell_som_cluster'] = np.tile(np.arange(1, 6), 4)
-            som_data_fov['cell_meta_cluster'] = np.tile(np.arange(1, 3), 10)
-
-            consensus_data_som = pd.concat([consensus_data_som, som_data_fov])
-
-            meta_data_fov = pd.DataFrame(
-                np.random.randint(low=0, high=100, size=(20, 3)), columns=meta_cluster_cols
-            )
-
-            meta_data_fov['fov'] = fov
-            meta_data_fov['segmentation_label'] = meta_data_fov.index.values + 1
-            meta_data_fov['cell_som_cluster'] = np.tile(np.arange(1, 6), 4)
-            meta_data_fov['cell_meta_cluster'] = np.tile(np.arange(1, 3), 10)
-
-            consensus_data_meta = pd.concat([consensus_data_meta, meta_data_fov])
-
-        # wrote both consensus DataFrames
+        # write both som and meta DataFrames
         feather.write_dataframe(
             consensus_data_som, os.path.join(temp_dir, 'cluster_consensus_som.feather')
         )
@@ -374,58 +363,58 @@ def test_generate_cell_cluster_mask():
         # bad cluster column provided
         with pytest.raises(ValueError):
             data_utils.generate_cell_cluster_mask(
-                fovs, temp_dir, temp_dir, 'cluster_consensus_som.feather', 'bad_cluster'
+                fov, temp_dir, temp_dir, 'cluster_consensus_som.feather', 'bad_cluster'
             )
 
-        # bad fovs provided
+        # bad fov provided
         with pytest.raises(ValueError):
             data_utils.generate_cell_cluster_mask(
-                ['fov1', 'fov2', 'fov3'], temp_dir, temp_dir,
+                'fov1', temp_dir, temp_dir,
                 'cluster_consensus_som.feather', 'cell_som_cluster'
             )
 
         # test on SOM assignments
         cell_masks = data_utils.generate_cell_cluster_mask(
-            fovs, temp_dir, temp_dir, 'cluster_consensus_som.feather', 'cell_som_cluster'
+            fov, temp_dir, temp_dir, 'cluster_consensus_som.feather', 'cell_som_cluster'
         )
 
-        # assert we have 3 fovs and the image size is the same as the mask (40, 40)
-        assert cell_masks.shape == (3, 40, 40)
+        # assert we have 1 fovs and the image size is the same as the mask (40, 40)
+        assert cell_masks.shape == (1, 40, 40)
 
         # assert no value is greater than the highest SOM cluster value (5)
         assert np.all(cell_masks <= 5)
 
         # test on meta assignments
         cell_masks = data_utils.generate_cell_cluster_mask(
-            fovs, temp_dir, temp_dir, 'cluster_consensus_meta.feather', 'cell_meta_cluster'
+            fov, temp_dir, temp_dir, 'cluster_consensus_meta.feather', 'cell_meta_cluster'
         )
 
-        # assert we have 3 fovs and the image size is the same as the mask (40, 40)
-        assert cell_masks.shape == (3, 40, 40)
+        # assert we have 1 fovs and the image size is the same as the mask (40, 40)
+        assert cell_masks.shape == (1, 40, 40)
 
         # assert no value is greater than the highest SOM cluster value (2)
         assert np.all(cell_masks <= 2)
 
 
 def test_generate_pixel_cluster_mask():
-    fovs = ['fov0', 'fov1', 'fov2']
+    fov = 'fov0'
     chans = ['chan0', 'chan1', 'chan2', 'chan3']
 
     with tempfile.TemporaryDirectory() as temp_dir:
         # bad segmentation path passed
         with pytest.raises(FileNotFoundError):
             data_utils.generate_pixel_cluster_mask(
-                fovs, temp_dir, 'bad_tiff_dir', 'bad_chan_file', 'bad_consensus_path'
+                fov, temp_dir, 'bad_tiff_dir', 'bad_chan_file', 'bad_consensus_path'
             )
 
         # bad channel file path passed
         with pytest.raises(FileNotFoundError):
             data_utils.generate_pixel_cluster_mask(
-                fovs, temp_dir, temp_dir, 'bad_chan_file', 'bad_consensus_path'
+                fov, temp_dir, temp_dir, 'bad_chan_file', 'bad_consensus_path'
             )
 
         # generate sample fov folder with one channel value, no sub folder
-        channel_data = np.random.randint(low=0, high=5, size=(40, 20), dtype="int16")
+        channel_data = np.random.randint(low=0, high=5, size=(40, 40), dtype="int16")
         os.mkdir(os.path.join(temp_dir, 'fov0'))
         io.imsave(os.path.join(temp_dir, 'fov0', 'chan0.tif'), channel_data,
                   check_contrast=False)
@@ -433,69 +422,69 @@ def test_generate_pixel_cluster_mask():
         # bad consensus path passed
         with pytest.raises(FileNotFoundError):
             data_utils.generate_pixel_cluster_mask(
-                fovs, temp_dir, temp_dir, os.path.join('fov0', 'chan0.tif'), 'bad_consensus_path'
+                fov, temp_dir, temp_dir, os.path.join('fov0', 'chan0.tif'), 'bad_consensus_path'
             )
 
         # create a dummy consensus directory
         os.mkdir(os.path.join(temp_dir, 'pixel_mat_consensus'))
 
-        # create dummy data containing SOM and consensus labels for each fov
-        for fov in fovs:
-            consensus_data = pd.DataFrame(np.random.rand(100, 4), columns=chans)
-            consensus_data['pixel_som_cluster'] = np.tile(np.arange(1, 11), 10)
-            consensus_data['pixel_meta_cluster'] = np.tile(np.arange(1, 6), 20)
-            consensus_data['row_index'] = np.random.randint(low=0, high=40, size=100)
-            consensus_data['column_index'] = np.random.randint(low=0, high=20, size=100)
+        # create dummy data containing SOM and consensus labels for the fov
+        consensus_data = pd.DataFrame(np.random.rand(100, 4), columns=chans)
+        consensus_data['pixel_som_cluster'] = np.tile(np.arange(1, 11), 10)
+        consensus_data['pixel_meta_cluster'] = np.tile(np.arange(1, 6), 20)
+        consensus_data['row_index'] = np.random.randint(low=0, high=40, size=100)
+        consensus_data['column_index'] = np.random.randint(low=0, high=40, size=100)
 
-            feather.write_dataframe(
-                consensus_data, os.path.join(temp_dir, 'pixel_mat_consensus', fov + '.feather')
-            )
+        feather.write_dataframe(
+            consensus_data, os.path.join(temp_dir, 'pixel_mat_consensus', fov + '.feather')
+        )
 
         # bad cluster column provided
         with pytest.raises(ValueError):
             data_utils.generate_pixel_cluster_mask(
-                fovs, temp_dir, temp_dir, os.path.join('fov0', 'chan0.tif'),
+                fov, temp_dir, temp_dir, os.path.join('fov0', 'chan0.tif'),
                 'pixel_mat_consensus', 'bad_cluster'
             )
 
-        # bad fovs provided
+        # bad fov provided
         with pytest.raises(ValueError):
             data_utils.generate_pixel_cluster_mask(
-                ['fov1', 'fov2', 'fov3'], temp_dir, temp_dir, os.path.join('fov0', 'chan0.tif'),
+                'fov1', temp_dir, temp_dir, os.path.join('fov0', 'chan0.tif'),
                 'pixel_mat_consensus', 'pixel_som_cluster'
             )
 
         # test on SOM assignments
         pixel_masks = data_utils.generate_pixel_cluster_mask(
-            fovs, temp_dir, temp_dir, os.path.join('fov0', 'chan0.tif'),
+            fov, temp_dir, temp_dir, os.path.join('fov0', 'chan0.tif'),
             'pixel_mat_consensus', 'pixel_som_cluster'
         )
 
-        # assert we have 3 fovs and the image size is the same as the mask (40, 40)
-        assert pixel_masks.shape == (3, 40, 20)
+        # assert we have 1 fov and the image size is the same as the mask (40, 40)
+        assert pixel_masks.shape == (1, 40, 40)
 
         # assert no value is greater than the highest SOM cluster value (10)
         assert np.all(pixel_masks <= 10)
 
         # test on meta assignments
         pixel_masks = data_utils.generate_pixel_cluster_mask(
-            fovs, temp_dir, temp_dir, os.path.join('fov0', 'chan0.tif'),
+            fov, temp_dir, temp_dir, os.path.join('fov0', 'chan0.tif'),
             'pixel_mat_consensus', 'pixel_meta_cluster'
         )
 
-        # assert we have 3 fovs and the image size is the same as the mask (40, 40)
-        assert pixel_masks.shape == (3, 40, 20)
+        # assert we have 1 fov and the image size is the same as the mask (40, 40)
+        assert pixel_masks.shape == (1, 40, 40)
 
         # assert no value is greater than the highest meta cluster value (5)
         assert np.all(pixel_masks <= 5)
 
 
-def test_generate_and_save_pixel_cluster_masks():
+@parametrize('sub_dir', [None, 'sub_dir'])
+@parametrize('name_suffix', ['', 'sample_suffix'])
+def test_generate_and_save_pixel_cluster_masks(sub_dir, name_suffix):
     fov_count = 7
     fovs = [f"fov{i}" for i in range(fov_count)]
     chans = ['chan0', 'chan1', 'chan2', 'chan3']
-
-    batch_sizes = [1, 2, 3, 5, 10]
+    fov_size_split = 4
 
     with tempfile.TemporaryDirectory() as temp_dir:
         # create a dummy consensus directory
@@ -507,61 +496,83 @@ def test_generate_and_save_pixel_cluster_masks():
         # Name suffix
         name_suffix = ''
 
-        # generate sample fov folder with one channel value, no sub folder
-        channel_data = np.random.randint(low=0, high=5, size=(40, 40), dtype="int16")
-        os.mkdir(os.path.join(temp_dir, 'fov0'))
-        io.imsave(os.path.join(temp_dir, 'fov0', 'chan0.tif'), channel_data, check_contrast=False)
+        # set sub_dir to empty string if None
+        if sub_dir is None:
+            sub_dir = ''
 
-        # create dummy data containing SOM and consensus labels for each fov
-        for fov in fovs:
+        # generate sample fov folders each with one channel value, no sub folder
+        # NOTE: this function should work on variable image sizes
+        for i, fov in enumerate(fovs):
+            chan_dims = (40, 40) if i < fov_size_split else (20, 20)
+            channel_data = np.random.randint(low=0, high=5, size=chan_dims, dtype="int16")
+            os.mkdir(os.path.join(temp_dir, fov))
+
+            if not os.path.exists(os.path.join(temp_dir, fov, sub_dir)):
+                os.mkdir(os.path.join(temp_dir, fov, sub_dir))
+
+            io.imsave(
+                os.path.join(temp_dir, fov, sub_dir, 'chan0.tif'),
+                channel_data,
+                check_contrast=False
+            )
+
             consensus_data = pd.DataFrame(np.random.rand(100, 4), columns=chans)
             consensus_data['pixel_som_cluster'] = np.tile(np.arange(1, 11), 10)
             consensus_data['pixel_meta_cluster'] = np.tile(np.arange(1, 6), 20)
-            consensus_data['row_index'] = np.random.randint(low=0, high=40, size=100)
-            consensus_data['column_index'] = np.random.randint(low=0, high=40, size=100)
+            consensus_data['row_index'] = np.random.randint(low=0, high=chan_dims[0], size=100)
+            consensus_data['column_index'] = np.random.randint(low=0, high=chan_dims[1], size=100)
 
             feather.write_dataframe(
                 consensus_data, os.path.join(temp_dir, 'pixel_mat_consensus', fov + '.feather')
             )
 
-        # Test various batch_sizes, no sub_dir, name_suffix = ''.
-        for batch_size in batch_sizes:
-            generate_and_save_pixel_cluster_masks(fovs=fovs,
-                                                  base_dir=temp_dir,
-                                                  save_dir=os.path.join(temp_dir, 'pixel_masks'),
-                                                  tiff_dir=temp_dir,
-                                                  chan_file=os.path.join('fov0', 'chan0.tif'),
-                                                  pixel_data_dir='pixel_mat_consensus',
-                                                  pixel_cluster_col='pixel_meta_cluster',
-                                                  sub_dir=None,
-                                                  name_suffix=name_suffix,
-                                                  batch_size=batch_size)
+        generate_and_save_pixel_cluster_masks(fovs=fovs,
+                                              base_dir=temp_dir,
+                                              save_dir=os.path.join(temp_dir, 'pixel_masks'),
+                                              tiff_dir=temp_dir,
+                                              chan_file=os.path.join(sub_dir, 'chan0.tif'),
+                                              pixel_data_dir='pixel_mat_consensus',
+                                              pixel_cluster_col='pixel_meta_cluster',
+                                              sub_dir=sub_dir,
+                                              name_suffix=name_suffix)
 
-            # Open each pixel mask and make sure the shape and values are valid.
-            for fov in fovs:
-                fov_name = fov + name_suffix + ".tiff"
-                pixel_mask = io.imread(os.path.join(temp_dir, 'pixel_masks', fov_name))
-                assert pixel_mask.shape == (40, 40)
-                assert np.all(pixel_mask <= 5)
+        # open each pixel mask and make sure the shape and values are valid
+        for i, fov in enumerate(fovs):
+            fov_name = fov + name_suffix + ".tiff"
+            pixel_mask = io.imread(os.path.join(temp_dir, 'pixel_masks', sub_dir, fov_name))
+            actual_img_dims = (40, 40) if i < fov_size_split else (20, 20)
+            assert pixel_mask.shape == actual_img_dims
+            assert np.all(pixel_mask <= 5)
 
 
-def test_generate_and_save_cell_cluster_masks():
+@parametrize('sub_dir', [None, 'sub_dir'])
+@parametrize('name_suffix', ['', 'sample_suffix'])
+def test_generate_and_save_cell_cluster_masks(sub_dir, name_suffix):
     fov_count = 7
     fovs = [f"fov{i}" for i in range(fov_count)]
     som_cluster_cols = ['pixel_som_cluster_%d' % i for i in np.arange(5)]
     meta_cluster_cols = ['pixel_meta_cluster_%d' % i for i in np.arange(3)]
-
-    batch_sizes = [1, 2, 3, 5, 10]
+    fov_size_split = 4
 
     with tempfile.TemporaryDirectory() as temp_dir:
         # Create a save directory
         os.mkdir(os.path.join(temp_dir, 'cell_masks'))
 
         # generate sample segmentation masks
-        cell_masks = np.random.randint(low=0, high=5, size=(fov_count, 40, 40, 1), dtype="int16")
+        # NOTE: this function should work on variable image sizes
+        # TODO: condense cell mask generation into a helper function
+        cell_masks_40 = np.random.randint(
+            low=0, high=5, size=(fov_size_split, 40, 40, 1), dtype="int16"
+        )
 
-        for fov in range(cell_masks.shape[0]):
-            fov_whole_cell = cell_masks[fov, :, :, 0]
+        cell_masks_20 = np.random.randint(
+            low=0, high=5, size=(fov_count - fov_size_split, 20, 20, 1), dtype="int16"
+        )
+
+        for fov in range(fov_count):
+            fov_index = fov if fov < fov_size_split else fov_size_split - fov
+            fov_mask = cell_masks_40 if fov < fov_size_split else cell_masks_20
+            fov_whole_cell = fov_mask[fov_index, :, :, 0]
             io.imsave(os.path.join(temp_dir, 'fov%d_feature_0.tif' % fov), fov_whole_cell,
                       check_contrast=False)
 
@@ -604,25 +615,28 @@ def test_generate_and_save_cell_cluster_masks():
             consensus_data_som, os.path.join(temp_dir, 'cluster_consensus_meta.feather')
         )
 
-        # Test various batch_sizes, no sub_dir, name_suffix = ''.
-        for batch_size in batch_sizes:
-            generate_and_save_cell_cluster_masks(fovs=fovs,
-                                                 base_dir=temp_dir,
-                                                 save_dir=os.path.join(temp_dir, 'cell_masks'),
-                                                 seg_dir=temp_dir,
-                                                 cell_data_name='cluster_consensus_som.feather',
-                                                 cell_cluster_col='cell_som_cluster',
-                                                 seg_suffix='_feature_0.tif',
-                                                 sub_dir=None,
-                                                 batch_size=batch_size
-                                                 )
+        # test various batch_sizes, no sub_dir, name_suffix = ''.
+        generate_and_save_cell_cluster_masks(fovs=fovs,
+                                             base_dir=temp_dir,
+                                             save_dir=os.path.join(temp_dir, 'cell_masks'),
+                                             seg_dir=temp_dir,
+                                             cell_data_name='cluster_consensus_som.feather',
+                                             cell_cluster_col='cell_som_cluster',
+                                             seg_suffix='_feature_0.tif',
+                                             sub_dir=sub_dir,
+                                             name_suffix=name_suffix
+                                             )
 
-            # Open each pixel mask and make sure the shape and values are valid.
-            for fov in fovs:
-                fov_name = fov + ".tiff"
-                pixel_mask = io.imread(os.path.join(temp_dir, 'cell_masks', fov_name))
-                assert pixel_mask.shape == (40, 40)
-                assert np.all(pixel_mask <= 5)
+        # open each cell mask and make sure the shape and values are valid
+        if sub_dir is None:
+            sub_dir = ''
+
+        for i, fov in enumerate(fovs):
+            fov_name = fov + name_suffix + ".tiff"
+            cell_mask = io.imread(os.path.join(temp_dir, 'cell_masks', sub_dir, fov_name))
+            actual_img_dims = (40, 40) if i < fov_size_split else (20, 20)
+            assert cell_mask.shape == actual_img_dims
+            assert np.all(cell_mask <= 5)
 
 
 def test_download_example_data():
@@ -634,10 +648,9 @@ def test_download_example_data():
 
         # Get downloaded + moved fov names.
         downloaded_fovs = list(input_data_path.glob("*"))
-        print(downloaded_fovs)
         downloaded_fov_names = [f.stem for f in downloaded_fovs]
 
-        # Assert that all the fovs exist after copying the data to "image_data/image_data"
+        # Assert that all the fovs exist after copying the data to "example_dataset/image_data"
         assert set(fov_names) == set(downloaded_fov_names)
 
         channel_names = ["CD3", "CD4", "CD8", "CD14", "CD20", "CD31", "CD45", "CD68", "CD163",
