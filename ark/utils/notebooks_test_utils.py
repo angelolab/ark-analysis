@@ -851,7 +851,7 @@ def fov_channel_input_set(tb, fovs=None, nucs_list=None, mems_list=None, is_mibi
     mibitiff_deepcell = """
         data_utils.generate_deepcell_input(
             deepcell_input_dir, tiff_dir, nucs, mems, fovs,
-            is_mibitiff=%s, img_sub_folder="TIFs", batch_size=5
+            is_mibitiff=%s, img_sub_folder="TIFs"
         )
     """ % str(is_mibitiff)
     tb.inject(mibitiff_deepcell, after='gen_input')
@@ -918,8 +918,6 @@ def create_exp_mat(tb, is_mibitiff=False, nuclear_counts=False):
             The testbook runner instance
         is_mibitiff (bool):
             Whether we're working with mibitiff images
-        batch_size (int):
-            The number of fovs we want to process at a time
         nuclear_counts (bool):
             Whether to include nuclear properties in the cell table
     """
