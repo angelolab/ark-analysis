@@ -333,10 +333,10 @@ def create_marker_count_matrices(segmentation_labels, image_data, nuclear_counts
 
     Args:
         segmentation_labels (xarray.DataArray):
-            xarray of shape [fovs, rows, cols, compartment] containing segmentation masks for each
-            fov, potentially across multiple cell compartments
+            xarray of shape [fovs, rows, cols, compartment] containing segmentation masks for one
+            FOV, potentially across multiple cell compartments
         image_data (xarray.DataArray):
-            xarray containing all of the channel data across all FOVs
+            xarray containing all of the channel data across one FOV
         nuclear_counts (bool):
             boolean flag to determine whether nuclear counts are returned, note that if
             set to True, the compartments coordinate in segmentation_labels must contain 'nuclear'
@@ -378,60 +378,60 @@ def create_marker_count_matrices(segmentation_labels, image_data, nuclear_counts
     normalized_data = pd.DataFrame()
     arcsinh_data = pd.DataFrame()
 
-    # loop over each fov in the dataset
-    for fov in segmentation_labels.fovs.values:
-        print("extracting data from {}".format(fov))
+    # define the FOV associated with this segmentation label
+    fov = segmentation_labels.fovs.values[0]
+    print("extracting data from {}".format(fov))
 
-        # current mask
-        segmentation_label = segmentation_labels.loc[fov, :, :, :]
+    # current mask
+    segmentation_label = segmentation_labels.loc[fov, :, :, :]
 
-        # extract the counts per cell for each marker
-        marker_counts = compute_marker_counts(image_data.loc[fov, :, :, :], segmentation_label,
-                                              nuclear_counts=nuclear_counts,
-                                              split_large_nuclei=split_large_nuclei,
-                                              extraction=extraction, **kwargs)
+    # extract the counts per cell for each marker
+    marker_counts = compute_marker_counts(image_data.loc[fov, :, :, :], segmentation_label,
+                                          nuclear_counts=nuclear_counts,
+                                          split_large_nuclei=split_large_nuclei,
+                                          extraction=extraction, **kwargs)
 
-        # normalize counts by cell size
-        marker_counts_norm = segmentation_utils.transform_expression_matrix(marker_counts,
-                                                                            transform='size_norm')
+    # normalize counts by cell size
+    marker_counts_norm = segmentation_utils.transform_expression_matrix(marker_counts,
+                                                                        transform='size_norm')
 
-        # arcsinh transform the data
-        marker_counts_arcsinh = segmentation_utils.transform_expression_matrix(marker_counts_norm,
-                                                                               transform='arcsinh')
+    # arcsinh transform the data
+    marker_counts_arcsinh = segmentation_utils.transform_expression_matrix(marker_counts_norm,
+                                                                           transform='arcsinh')
 
-        # add data from each fov to array
-        normalized = pd.DataFrame(data=marker_counts_norm.loc['whole_cell', :, :].values,
-                                  columns=marker_counts_norm.features)
+    # add data from each fov to array
+    normalized = pd.DataFrame(data=marker_counts_norm.loc['whole_cell', :, :].values,
+                              columns=marker_counts_norm.features)
 
-        arcsinh = pd.DataFrame(data=marker_counts_arcsinh.values[0, :, :],
-                               columns=marker_counts_arcsinh.features)
+    arcsinh = pd.DataFrame(data=marker_counts_arcsinh.values[0, :, :],
+                           columns=marker_counts_arcsinh.features)
 
-        if nuclear_counts:
-            # append nuclear counts pandas array with modified column name
-            nuc_column_names = [feature + '_nuclear' for feature in marker_counts.features.values]
+    if nuclear_counts:
+        # append nuclear counts pandas array with modified column name
+        nuc_column_names = [feature + '_nuclear' for feature in marker_counts.features.values]
 
-            # add nuclear counts to size normalized data
-            normalized_nuc = pd.DataFrame(data=marker_counts_norm.loc['nuclear', :, :].values,
-                                          columns=nuc_column_names)
-            normalized = pd.concat((normalized, normalized_nuc), axis=1)
+        # add nuclear counts to size normalized data
+        normalized_nuc = pd.DataFrame(data=marker_counts_norm.loc['nuclear', :, :].values,
+                                      columns=nuc_column_names)
+        normalized = pd.concat((normalized, normalized_nuc), axis=1)
 
-            # add nuclear counts to arcsinh transformed data
-            arcsinh_nuc = pd.DataFrame(data=marker_counts_arcsinh.loc['nuclear', :, :].values,
-                                       columns=nuc_column_names)
-            arcsinh = pd.concat((arcsinh, arcsinh_nuc), axis=1)
+        # add nuclear counts to arcsinh transformed data
+        arcsinh_nuc = pd.DataFrame(data=marker_counts_arcsinh.loc['nuclear', :, :].values,
+                                   columns=nuc_column_names)
+        arcsinh = pd.concat((arcsinh, arcsinh_nuc), axis=1)
 
-        # add column for current fov
-        normalized['fov'] = fov
-        normalized_data = normalized_data.append(normalized)
+    # add column for current fov
+    normalized['fov'] = fov
+    normalized_data = normalized_data.append(normalized)
 
-        arcsinh['fov'] = fov
-        arcsinh_data = arcsinh_data.append(arcsinh)
+    arcsinh['fov'] = fov
+    arcsinh_data = arcsinh_data.append(arcsinh)
 
     return normalized_data, arcsinh_data
 
 
 def generate_cell_table(segmentation_dir, tiff_dir, img_sub_folder="TIFs",
-                        is_mibitiff=False, fovs=None, batch_size=5, dtype="int16",
+                        is_mibitiff=False, fovs=None, dtype="int16",
                         extraction='total_intensity', nuclear_counts=False, **kwargs):
     """This function takes the segmented data and computes the expression matrices batch-wise
     while also validating inputs
@@ -448,9 +448,6 @@ def generate_cell_table(segmentation_dir, tiff_dir, img_sub_folder="TIFs",
             a list of fovs we wish to analyze, if None will default to all fovs
         is_mibitiff (bool):
             a flag to indicate whether or not the base images are MIBItiffs
-        batch_size (int):
-            how large we want each of the batches of fovs to be when computing, adjust as
-            necessary for speed and memory considerations
         dtype (str/type):
             data type of base images
         extraction (str):
@@ -483,39 +480,36 @@ def generate_cell_table(segmentation_dir, tiff_dir, img_sub_folder="TIFs",
     )
 
     # get full filenames from given fovs
+    # TODO: deprecate filenames support as part of MIBItiff phasing out
     filenames = io_utils.list_files(tiff_dir, substrs=fovs, exact_match=True)
 
     # sort the fovs
     fovs.sort()
     filenames.sort()
 
-    # defined some vars for batch processing
+    # define number of FOVs for batch processing
     cohort_len = len(fovs)
 
     # create the final dfs to store the processed data
     combined_cell_table_size_normalized = pd.DataFrame()
     combined_cell_table_arcsinh_transformed = pd.DataFrame()
 
-    # iterate over all the batches
-    for batch_names, batch_files in zip(
-        [fovs[i:i + batch_size] for i in range(0, cohort_len, batch_size)],
-        [filenames[i:i + batch_size] for i in range(0, cohort_len, batch_size)]
-    ):
-        # and extract the image data for each batch
+    for fov_index, fov_name in enumerate(fovs):
         if is_mibitiff:
             image_data = load_utils.load_imgs_from_mibitiff(data_dir=tiff_dir,
-                                                            mibitiff_files=batch_files)
+                                                            mibitiff_files=[filenames[fov_index]])
         else:
             image_data = load_utils.load_imgs_from_tree(data_dir=tiff_dir,
                                                         img_sub_folder=img_sub_folder,
-                                                        fovs=batch_names)
+                                                        fovs=[fov_name])
+
         # define the files for whole cell and nuclear
-        whole_cell_files = [fov + '_feature_0.tif' for fov in batch_names]
-        nuclear_files = [fov + '_feature_1.tif' for fov in batch_names]
+        whole_cell_file = fov_name + '_feature_0.tif'
+        nuclear_file = fov_name + '_feature_1.tif'
 
         # load the segmentation labels in
         current_labels_cell = load_utils.load_imgs_from_dir(data_dir=segmentation_dir,
-                                                            files=whole_cell_files,
+                                                            files=[whole_cell_file],
                                                             xr_dim_name='compartments',
                                                             xr_channel_names=['whole_cell'],
                                                             trim_suffix='_feature_0')
@@ -525,7 +519,7 @@ def generate_cell_table(segmentation_dir, tiff_dir, img_sub_folder="TIFs",
 
         if nuclear_counts:
             current_labels_nuc = load_utils.load_imgs_from_dir(data_dir=segmentation_dir,
-                                                               files=nuclear_files,
+                                                               files=[nuclear_file],
                                                                xr_dim_name='compartments',
                                                                xr_channel_names=['nuclear'],
                                                                trim_suffix='_feature_1')

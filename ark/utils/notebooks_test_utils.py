@@ -910,7 +910,7 @@ def overlay_mask(tb, channels=None):
         tb.execute_cell('save_mask')
 
 
-def create_exp_mat(tb, is_mibitiff=False, batch_size=5, nuclear_counts=False):
+def create_exp_mat(tb, is_mibitiff=False, nuclear_counts=False):
     """Creates the expression matrices from the generated segmentation labels
 
     Args:
@@ -932,9 +932,8 @@ def create_exp_mat(tb, is_mibitiff=False, batch_size=5, nuclear_counts=False):
                                                       img_sub_folder="TIFs",
                                                       is_mibitiff=%s,
                                                       fovs=fovs,
-                                                      batch_size=%s,
                                                       nuclear_counts=%s)
-    """ % (is_mibitiff, str(batch_size), nuclear_counts)
+    """ % (is_mibitiff, nuclear_counts)
     tb.inject(exp_mat_gen, after='create_exp_mat')
 
     # save expression matrices
