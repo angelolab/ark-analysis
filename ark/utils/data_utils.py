@@ -306,7 +306,7 @@ def generate_and_save_pixel_cluster_masks(fovs: List[str],
     # create the pixel cluster masks over each fov batch.
     with tqdm(total=len(fovs), desc="Pixel Cluster Mask Generation") as pixel_mask_progress:
         for fov in fovs:
-            # define the path to provided channel file in base_dir, used to calculate dimensions
+            # define the path to provided channel file in the fov dir, used to calculate dimensions
             chan_file_path = os.path.join(fov, chan_file)
 
             pixel_masks: xr.DataArray =\
