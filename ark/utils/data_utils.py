@@ -607,7 +607,7 @@ class ExampleDataset():
             # Necessary to copy + move the data from the cache to the user specified `save_dir`.
             dataset_cache_path = pathlib.Path(self.dataset_paths[self.dataset][ds_n][0])
             src_path = dataset_cache_path / ds_n
-            dst_path = save_dir / "example_dataset" / ds_n_suffix
+            dst_path = save_dir / ds_n_suffix
 
             shutil.copytree(src_path, dst_path, dirs_exist_ok=True,
                             ignore=shutil.ignore_patterns("._*"))

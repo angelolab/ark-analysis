@@ -1,26 +1,21 @@
-import os
-import pathlib
-import tempfile
-from shutil import rmtree
-from typing import Callable
-import logging
-import datasets;datasets.disable_progress_bar()
-
-import feather
-import numpy as np
-import pandas as pd
-import pytest
-import skimage.io as io
-import xarray as xr
-
-from ark import settings
-from ark.utils import data_utils, test_utils
 from ark.utils.data_utils import (ExampleDataset,
                                   generate_and_save_cell_cluster_masks,
                                   generate_and_save_pixel_cluster_masks,
                                   get_example_dataset,
                                   label_cells_by_cluster, relabel_segmentation)
-
+from ark.utils import data_utils, test_utils
+from ark import settings
+import xarray as xr
+import skimage.io as io
+import pytest
+import pandas as pd
+import numpy as np
+import feather
+import os
+import pathlib
+import tempfile
+from shutil import rmtree
+from typing import Callable
 
 def test_save_fov_images():
     # define the full set of fovs as well as a subset of fovs
@@ -688,7 +683,7 @@ class TestExampleDataset:
             "cell_table": self._cell_table_check,
             "deepcell_output": self._deepcell_output_check
         }
-        
+
         # Mapping the datasets to their respective test functions.
         self.move_path_suffixes = {
             "image_data": "image_data",
@@ -701,7 +696,8 @@ class TestExampleDataset:
         Tests to make sure the proper files are downloaded from Hugging Face.
 
         Args:
-            dataset_download (ExampleDataset): _description_
+            dataset_download (ExampleDataset): Fixture for the dataset, respective to each
+            partition (`nb1`, `nb2`, `nb3`, `nb4`).
         """
         dataset_names = list(
             dataset_download.dataset_paths[dataset_download.dataset].features.keys())
@@ -716,9 +712,10 @@ class TestExampleDataset:
         Tests to make sure the proper files are moved to the correct directories.
 
         Args:
-            dataset_download (ExampleDataset): _description_
+            dataset_download (ExampleDataset): Fixture for the dataset, respective to each
+            partition (`nb1`, `nb2`, `nb3`, `nb4`).
         """
-        move_dir = tmp_path_factory.mktemp("move_example_data")
+        move_dir = tmp_path_factory.mktemp("move_example_data/example_dataset")
         dataset_download.move_example_dataset(save_dir=move_dir)
 
         dataset_names = list(
@@ -726,12 +723,17 @@ class TestExampleDataset:
 
         for ds_n in dataset_names:
             ds_n_suffix = self.move_path_suffixes[ds_n]
-            
-            dir_p = move_dir / "example_dataset" / ds_n_suffix
+
+            dir_p = move_dir / ds_n_suffix
             self.dataset_test_fns[ds_n](dir_p)
 
-    def test_get_example_dataset(self, dataset_download):
-        pass
+    def test_get_example_dataset(self):
+        """
+        Tests to make sure that the `data_utils.py::get_example_dataset`
+        """
+
+        with pytest.raises(ValueError):
+            get_example_dataset("incorrect_dataset", save_dir=None)
 
     def _image_data_check(self, dir_p: pathlib.Path):
         """
