@@ -552,13 +552,14 @@ class ExampleDataset():
         various partitions on Hugging Face: https://huggingface.co/datasets/angelolab/ark_example.
 
         Args:
-            dataset (str): The name of the dataset to download. Can be one of `nb1`, `nb2`, `nb3`, `nb4`.
-            cache_dir (str, optional): The directory to save the cache dir. Defaults to `None`, which
-                internally in Hugging Face defaults to `~/.cache/huggingface/datasets`.
-            revision (str, optional): The commit ID from Hugging Face for the dataset. Used for 
-                internal development only. Allows the user to fetch a commit from a particular 
-                `revision` (Hugging Face's terminology for branch). Defaults to `None`. This 
-                defaults to the latest version in the `main` branch 
+            dataset (str): The name of the dataset to download. Can be one of `nb1`, `nb2`,
+                `nb3`, `nb4`.
+            cache_dir (str, optional): The directory to save the cache dir. Defaults to `None`,
+                which internally in Hugging Face defaults to `~/.cache/huggingface/datasets`.
+            revision (str, optional): The commit ID from Hugging Face for the dataset. Used for
+                internal development only. Allows the user to fetch a commit from a particular
+                `revision` (Hugging Face's terminology for branch). Defaults to `None`. This
+                defaults to the latest version in the `main` branch.
                 (https://huggingface.co/datasets/angelolab/ark_example/tree/main).
         """
         self.dataset = dataset
@@ -580,7 +581,8 @@ class ExampleDataset():
         The following is a link to the dataset used:
         https://huggingface.co/datasets/angelolab/ark_example
 
-        The dataset will be downloaded to the Hugging Face default cache `~/.cache/huggingface/datasets`.
+        The dataset will be downloaded to the Hugging Face default cache
+        `~/.cache/huggingface/datasets`.
         """
         self.dataset_paths = datasets.load_dataset(path="angelolab/ark_example",
                                                    revision=self.revision,

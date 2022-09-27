@@ -17,6 +17,7 @@ import tempfile
 from shutil import rmtree
 from typing import Callable
 
+
 def test_save_fov_images():
     # define the full set of fovs as well as a subset of fovs
     fovs = ['fov0', 'fov1', 'fov2']
