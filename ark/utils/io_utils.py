@@ -3,7 +3,7 @@ import pathlib
 import warnings
 
 
-def validate_paths(paths, data_prefix=True):
+def validate_paths(paths, data_prefix=False):
     """Verifys that paths exist and don't leave Docker's scope
 
     Args:
