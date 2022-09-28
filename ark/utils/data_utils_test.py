@@ -246,21 +246,6 @@ def test_split_img_stack():
         assert np.array_equal(sample_chan_2, data_xr[0, :, :, 1].values)
 
 
-def test_relabel_segmentation_xtreme():
-    x = y = 10000
-    print("Generating img_arr")
-    img_arr = np.arange(1, x * y + 1).reshape((x, y))
-    print("Generating labels_dict")
-    d = {i: i + 1 for i in range(1, x * y + 1)}
-
-    import timeit
-    print("Starting relabeling")
-    start = timeit.default_timer()
-    res = relabel_segmentation(img_arr, d)
-    end = timeit.default_timer()
-    print("Total time to relabel: %.2f" % (end - start))
-
-
 def test_relabel_segmentation():
     x = y = 5
     img_arr = np.arange(1, x * y + 1).reshape((x, y))
