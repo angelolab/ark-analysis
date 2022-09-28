@@ -1,4 +1,3 @@
-from genericpath import exists
 from ark.utils.data_utils import (ExampleDataset,
                                   generate_and_save_cell_cluster_masks,
                                   generate_and_save_pixel_cluster_masks,
@@ -638,31 +637,6 @@ def test_generate_and_save_cell_cluster_masks(sub_dir, name_suffix):
             actual_img_dims = (40, 40) if i < fov_size_split else (20, 20)
             assert cell_mask.shape == actual_img_dims
             assert np.all(cell_mask <= 5)
-
-
-@pytest.mark.skip(reason="Deprecated in favor of TestExampleDataset")
-def test_download_example_data():
-    with tempfile.TemporaryDirectory() as temp_dir:
-        download_example_data(save_dir=pathlib.Path(temp_dir) / "example_dataset")
-
-        fov_names = [f"fov{i}" for i in range(11)]
-        input_data_path = pathlib.Path(temp_dir) / "example_dataset/image_data"
-
-        # Get downloaded + moved fov names.
-        downloaded_fovs = list(input_data_path.glob("*"))
-        downloaded_fov_names = [f.stem for f in downloaded_fovs]
-
-        # Assert that all the fovs exist after copying the data to "example_dataset/image_data"
-        assert set(fov_names) == set(downloaded_fov_names)
-
-        channel_names = ["CD3", "CD4", "CD8", "CD14", "CD20", "CD31", "CD45", "CD68", "CD163",
-                         "CK17", "Collagen1", "ECAD", "Fibronectin", "GLUT1", "H3K9ac",
-                         "H3K27me3", "HLADR", "IDO", "Ki67", "PD1", "SMA", "Vim"]
-
-        # Assert that for each fov, all 22 channels exist
-        for fov in downloaded_fovs:
-            c_names = [c.stem for c in fov.rglob("*")]
-            assert set(channel_names) == set(c_names)
 
 
 # Only download the dataset once, and use it for the remaining tests?
