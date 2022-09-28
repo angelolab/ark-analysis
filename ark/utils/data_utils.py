@@ -394,13 +394,9 @@ def relabel_segmentation(labeled_image, labels_dict):
 
     default_label = max(labels_dict.values()) + 1
 
-    def relabel(x):
-        if x == 0:
-            return 0
-
-        return labels_dict.get(x, default_label)
-
-    relabeled_img = np.vectorize(relabel)(img)
+    relabeled_img = np.vectorize(
+        lambda x: labels_dict.get(x, default_label) if x != 0 else 0
+    )(img)
 
     return relabeled_img
 
