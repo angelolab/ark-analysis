@@ -608,11 +608,13 @@ class ExampleDataset():
 
 
 def get_example_dataset(dataset: str, save_dir: Union[str, pathlib.Path]):
-    """A user facing wrapper function for acquiring the dataset.
+    """_summary_
 
     Args:
         dataset (str): The dataset to download for a particular notebook.
+        save_dir (Union[str, pathlib.Path]): The path to save the dataset files in.
     """
+
     valid_datasets = ["nb1", "nb2", "nb3", "nb4"]
 
     # Check the appropriate dataset name
