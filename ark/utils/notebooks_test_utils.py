@@ -173,11 +173,14 @@ def flowsom_pixel_setup(tb, flowsom_dir, create_seg_dir=True, img_shape=(50, 50)
 
     # generate sample segmentation labels so we can load them in
     if create_seg_dir:
-        seg_dir = os.path.join(flowsom_dir, "segmentation/deepcell_output")
+        seg_dir = os.path.join(flowsom_dir, "segmentation")
+        deepcell_output_dir = os.path.join(seg_dir, "deepcell_output")
         os.makedirs(seg_dir)
-        generate_sample_feature_tifs(fovs, seg_dir, img_shape)
+        os.makedirs(deepcell_output_dir)
+        generate_sample_feature_tifs(fovs, deepcell_output_dir, img_shape)
 
         seg_dir = "\"%s\"" % seg_dir
+        deepcell_output_dir = "\"%s\"" % deepcell_output_dir
     else:
         seg_dir = None
 
@@ -187,10 +190,12 @@ def flowsom_pixel_setup(tb, flowsom_dir, create_seg_dir=True, img_shape=(50, 50)
         tiff_dir = "%s"
         img_sub_folder = None
         segmentation_dir = %s
+        deepcell_output_dir = %s
         seg_suffix = '_feature_0.tif'
         MIBItiff = %s
         mibitiff_suffix = '%s'
-    """ % (flowsom_dir, tiff_dir, str(seg_dir), is_mibitiff, mibitiff_suffix)
+    """ % (flowsom_dir, tiff_dir, str(seg_dir), str(deepcell_output_dir), is_mibitiff,
+           mibitiff_suffix)
     tb.inject(define_data_paths, after='file_path')
 
     if fovs is not None:
@@ -228,7 +233,7 @@ def flowsom_pixel_setup(tb, flowsom_dir, create_seg_dir=True, img_shape=(50, 50)
 
     # if seg_dir is set, test filtering with exclude = True for the second channel,
     # and exclude = False for the third channel
-    if seg_dir:
+    if deepcell_output_dir:
         run_chan_filtering_exclude = """
             filter_channel = '%s'
             nuclear_exclude = True
@@ -236,7 +241,7 @@ def flowsom_pixel_setup(tb, flowsom_dir, create_seg_dir=True, img_shape=(50, 50)
             pixel_cluster_utils.filter_with_nuclear_mask(
                 fovs,
                 tiff_dir,
-                segmentation_dir,
+                deepcell_output_dir,
                 filter_channel,
                 img_sub_folder,
                 nuclear_exclude
@@ -251,7 +256,7 @@ def flowsom_pixel_setup(tb, flowsom_dir, create_seg_dir=True, img_shape=(50, 50)
             pixel_cluster_utils.filter_with_nuclear_mask(
                 fovs,
                 tiff_dir,
-                segmentation_dir,
+                deepcell_output_dir,
                 filter_channel,
                 img_sub_folder,
                 nuclear_exclude
@@ -405,7 +410,7 @@ def flowsom_pixel_visualize(tb, flowsom_dir, fovs, pixel_prefix='test'):
     # generate the colormap to use
     tb.execute_cell('pixel_cmap_gen')
 
-    # define the FOVs to use for the cpixelell overlay
+    # define the FOVs to use for the cell-pixel overlay
     if len(fovs) <= 2:
         fovs_overlay = fovs
     else:
