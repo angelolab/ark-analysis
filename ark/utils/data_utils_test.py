@@ -1,3 +1,4 @@
+from genericpath import exists
 from ark.utils.data_utils import (ExampleDataset,
                                   generate_and_save_cell_cluster_masks,
                                   generate_and_save_pixel_cluster_masks,
@@ -716,7 +717,8 @@ class TestExampleDataset:
             dataset_download (ExampleDataset): Fixture for the dataset, respective to each
             partition (`nb1`, `nb2`, `nb3`, `nb4`).
         """
-        move_dir = tmp_path_factory.mktemp("move_example_data/example_dataset")
+        tmp_dir = tmp_path_factory.mktemp("move_example_data")
+        move_dir = tmp_dir / "example_dataset"
         dataset_download.move_example_dataset(save_dir=move_dir)
 
         dataset_names = list(
