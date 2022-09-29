@@ -15,6 +15,7 @@ from ark.utils import data_utils, test_utils
 from ark.utils.data_utils import (download_example_data,
                                   generate_and_save_cell_cluster_masks,
                                   generate_and_save_pixel_cluster_masks,
+                                  generate_and_save_neighborhood_cluster_masks,
                                   label_cells_by_cluster, relabel_segmentation)
 
 parametrize = pytest.mark.parametrize
@@ -400,22 +401,18 @@ def test_generate_and_save_pixel_cluster_masks(sub_dir, name_suffix):
         # Name suffix
         name_suffix = ''
 
-        # set sub_dir to empty string if None
-        if sub_dir is None:
-            sub_dir = ''
-
-        # generate sample fov folders each with one channel value, no sub folder
+        # generate sample fov folders each with one channel value, no sub_dir
         # NOTE: this function should work on variable image sizes
         for i, fov in enumerate(fovs):
             chan_dims = (40, 40) if i < fov_size_split else (20, 20)
             channel_data = np.random.randint(low=0, high=5, size=chan_dims, dtype="int16")
             os.mkdir(os.path.join(temp_dir, fov))
 
-            if not os.path.exists(os.path.join(temp_dir, fov, sub_dir)):
-                os.mkdir(os.path.join(temp_dir, fov, sub_dir))
+            if not os.path.exists(os.path.join(temp_dir, fov)):
+                os.mkdir(os.path.join(temp_dir, fov))
 
             io.imsave(
-                os.path.join(temp_dir, fov, sub_dir, 'chan0.tif'),
+                os.path.join(temp_dir, fov, 'chan0.tif'),
                 channel_data,
                 check_contrast=False
             )
@@ -434,11 +431,15 @@ def test_generate_and_save_pixel_cluster_masks(sub_dir, name_suffix):
                                               base_dir=temp_dir,
                                               save_dir=os.path.join(temp_dir, 'pixel_masks'),
                                               tiff_dir=temp_dir,
-                                              chan_file=os.path.join(sub_dir, 'chan0.tif'),
+                                              chan_file='chan0.tif',
                                               pixel_data_dir='pixel_mat_consensus',
                                               pixel_cluster_col='pixel_meta_cluster',
                                               sub_dir=sub_dir,
                                               name_suffix=name_suffix)
+
+        # set sub_dir to empty string if None
+        if sub_dir is None:
+            sub_dir = ''
 
         # open each pixel mask and make sure the shape and values are valid
         for i, fov in enumerate(fovs):
@@ -447,6 +448,53 @@ def test_generate_and_save_pixel_cluster_masks(sub_dir, name_suffix):
             actual_img_dims = (40, 40) if i < fov_size_split else (20, 20)
             assert pixel_mask.shape == actual_img_dims
             assert np.all(pixel_mask <= 5)
+
+
+@parametrize('sub_dir', [None, 'sub_dir'])
+@parametrize('name_suffix', ['', 'sample_suffix'])
+def test_generate_and_save_neighborhood_cluster_masks(sub_dir, name_suffix):
+    fov_count = 5
+    fovs = [f"fov{i}" for i in range(fov_count)]
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        # create a save directory
+        os.mkdir(os.path.join(temp_dir, 'neighborhood_masks'))
+
+        # generate a neighborhood cluster DataFrame
+        labels = np.arange(1, 6)
+        sample_neighborhood_data = pd.DataFrame.from_dict(
+            {'label': np.repeat(labels, 5),
+             'cell_meta_cluster_rename': np.repeat([i * 10 for i in labels], 5),
+             'SampleID': np.tile(fovs, 5)}
+        )
+
+        # generate sample label map
+        sample_label_maps = xr.DataArray(
+            np.random.randint(low=0, high=5, size=(5, 40, 40), dtype="int16"),
+            coords=[fovs, np.arange(40), np.arange(40)],
+            dims=['fovs', 'rows', 'cols']
+        )
+
+        generate_and_save_neighborhood_cluster_masks(
+            fovs=fovs,
+            save_dir=os.path.join(temp_dir, 'neighborhood_masks'),
+            neighborhood_data=sample_neighborhood_data,
+            label_maps=sample_label_maps,
+            sub_dir=sub_dir,
+            name_suffix=name_suffix
+        )
+
+        # set sub_dir to empty string if None
+        if sub_dir is None:
+            sub_dir = ''
+
+        for i, fov in enumerate(fovs):
+            fov_name = fov + name_suffix + ".tiff"
+            neighborhood_mask = io.imread(
+                os.path.join(temp_dir, 'neighborhood_masks', sub_dir, fov_name)
+            )
+            assert neighborhood_mask.shape == (40, 40)
+            assert np.all(np.isin(neighborhood_mask, np.array([10 * i for i in np.arange(6)])))
 
 
 def test_generate_deepcell_input():

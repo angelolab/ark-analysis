@@ -230,12 +230,14 @@ def generate_and_save_cell_cluster_masks(fovs: List[str],
     # create the pixel cluster masks across each fov
     with tqdm(total=len(fovs), desc="Cell Cluster Mask Generation") as cell_mask_progress:
         for fov in fovs:
+            # generate the cell mask for the FOV
             cell_mask: np.ndarray =\
                 generate_cell_cluster_mask(fov=fov, base_dir=base_dir, seg_dir=seg_dir,
                                            cell_data_name=cell_data_name,
                                            cell_cluster_col=cell_cluster_col,
                                            seg_suffix=seg_suffix)
 
+            # save the cell mask generated
             save_fov_image(fov, data_dir=save_dir, img_data=cell_mask, sub_dir=sub_dir,
                            name_suffix=name_suffix)
 
@@ -411,9 +413,11 @@ def generate_and_save_neighborhood_cluster_masks(fovs: List[str],
     with tqdm(total=len(fovs), desc="Neighborhood Cluster Mask Generation") as neigh_mask_progress:
         # generate the mask for each FOV
         for fov in fovs:
+            # generate the neighborhood mask for the FOV
             neighborhood_mask: np.ndarray =\
                 label_cells_by_cluster(fov, neighborhood_data, label_maps.loc[fov, ...])
 
+            # save the neighborhood mask generated
             save_fov_image(fov, data_dir=save_dir, img_data=neighborhood_mask, sub_dir=sub_dir,
                            name_suffix=name_suffix)
 
