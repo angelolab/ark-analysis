@@ -391,7 +391,7 @@ def generate_neighborhood_cluster_masks(fovs: List[str],
     """Generates neighborhood cluster masks and saves them for downstream analysis
 
     Args:
-        fov (List[str]):
+        fovs (List[str]):
             A list of fovs to generate and save neighborhood masks for.
         save_dir (Union[pathlib.Path, str]):
             The directory to save the generated pixel cluster masks.
