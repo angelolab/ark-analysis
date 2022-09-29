@@ -382,12 +382,12 @@ def generate_and_save_pixel_cluster_masks(fovs: List[str],
             pixel_mask_progress.update(1)
 
 
-def generate_neighborhood_cluster_masks(fovs: List[str],
-                                        save_dir: Union[pathlib.Path, str],
-                                        neighborhood_data: pd.DataFrame,
-                                        label_maps: xr.DataArray,
-                                        sub_dir: str = None,
-                                        name_suffix: str = ''):
+def generate_and_save_neighborhood_cluster_masks(fovs: List[str],
+                                                 save_dir: Union[pathlib.Path, str],
+                                                 neighborhood_data: pd.DataFrame,
+                                                 label_maps: xr.DataArray,
+                                                 sub_dir: str = None,
+                                                 name_suffix: str = ''):
     """Generates neighborhood cluster masks and saves them for downstream analysis
 
     Args:
