@@ -71,32 +71,35 @@ def create_mantis_project(cell_table, fovs, seg_dir, pop_col, mask_dir, image_di
     # generate unique numeric value for each population
     small_table['pop_vals'] = pd.factorize(small_table[pop_col].tolist())[0] + 1
 
-    # define the file names for segmentation masks
-    whole_cell_files = [fov + '_feature_0.tif' for fov in fovs]
+    # label and save the cell mask for each FOV
+    for fov in fovs:
+        whole_cell_file = [fov + '_feature_0.tif' for fov in fovs]
 
-    # load the segmentation labels in
-    label_maps = load_utils.load_imgs_from_dir(data_dir=seg_dir,
-                                               files=whole_cell_files,
-                                               xr_dim_name='compartments',
-                                               xr_channel_names=['whole_cell'],
-                                               trim_suffix='_feature_0')
+        # load the segmentation labels in for the FOV
+        label_map = load_utils.load_imgs_from_dir(
+            data_dir=seg_dir, files=whole_cell_file, xr_dim_name='compartments',
+            xr_channel_names=['whole_cell'], trim_suffix='_feature_0'
+        ).loc[fov, ...]
 
-    # use label_cells_by_cluster to create cell masks
-    img_data = data_utils.label_cells_by_cluster(
-        fovs, small_table, label_maps, fov_col='fov',
-        cell_label_column='label', cluster_column='pop_vals'
-    )
+        # use label_cells_by_cluster to create cell masks
+        img_data = data_utils.label_cells_by_cluster(
+            fov, small_table, label_map, fov_col='fov',
+            cell_label_column='label', cluster_column='pop_vals'
+        )
 
-    data_utils.save_fov_images(
-            fovs,
+        # save the relabeled image for each FOV
+        data_utils.save_fov_image(
+            fov,
             mask_dir,
             img_data,
             sub_dir=None,
             name_suffix='_cell_mask'
         )
 
+    # rename the columns of small_table
     mantis_df = small_table.rename({'pop_vals': 'metacluster', pop_col: 'mc_name'}, axis=1)
 
+    # create the mantis project
     plot_utils.create_mantis_dir(fovs=fovs, mantis_project_path=mantis_dir,
                                  img_data_path=image_dir, mask_output_dir=mask_dir,
                                  mask_suffix='_cell_mask', mapping=mantis_df,
