@@ -419,7 +419,7 @@ def generate_neighborhood_cluster_masks(fovs: List[str],
             save_fov_image(fov, data_dir=save_dir, img_data=neighborhood_mask, sub_dir=sub_dir,
                            name_suffix=name_suffix)
 
-            neighborhood_mask_progress.update(1)
+            neigh_mask_progress.update(1)
 
 
 # TODO: Add metadata for channel name (eliminates need for fixed-order channels)
