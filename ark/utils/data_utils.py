@@ -383,7 +383,7 @@ def generate_and_save_pixel_cluster_masks(fovs: List[str],
 
 def generate_neighborhood_cluster_masks(fovs: List[str],
                                         save_dir: Union[pathlib.Path, str],
-                                        neighborhood_data: pandas.DataFrame,
+                                        neighborhood_data: pd.DataFrame,
                                         label_maps: xarray.DataArray,
                                         sub_dir: str = None,
                                         name_suffix: str = ''):
