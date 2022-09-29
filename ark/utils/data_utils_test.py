@@ -1,7 +1,5 @@
-from ark.utils.data_utils import (ExampleDataset,
-                                  generate_and_save_cell_cluster_masks,
+from ark.utils.data_utils import (generate_and_save_cell_cluster_masks,
                                   generate_and_save_pixel_cluster_masks,
-                                  get_example_dataset,
                                   label_cells_by_cluster, relabel_segmentation)
 from ark.utils import data_utils, test_utils
 from ark import settings

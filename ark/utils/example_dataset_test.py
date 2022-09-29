@@ -1,7 +1,9 @@
-import pytest
 import pathlib
-from example_dataset import ExampleDataset, get_example_dataset
 from typing import Callable, Iterator
+
+import pytest
+
+from ark.utils.example_dataset import ExampleDataset, get_example_dataset
 
 
 # Sets the example dataset path once: Will not cause duplicate downloads

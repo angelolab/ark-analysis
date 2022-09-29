@@ -1,7 +1,8 @@
-import datasets
 import pathlib
 import shutil
 from typing import Union
+
+import datasets
 
 
 class ExampleDataset():
