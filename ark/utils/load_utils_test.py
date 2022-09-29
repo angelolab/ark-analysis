@@ -366,7 +366,7 @@ def test_get_max_img_size():
 
         test_utils._write_tifs(tmpdir, larger_fov, channel_list, (12, 12), '', False, int)
 
-        # test success for all fovs with larger images
+        # test success for all fovs
         max_img_size = load_utils.get_max_img_size(tmpdir)
         assert max_img_size == 12
 
@@ -378,51 +378,75 @@ def test_get_max_img_size():
         max_img_size = load_utils.get_max_img_size(tmpdir, img_sub_folder='TIFs')
         assert max_img_size == 12
 
-        # test success for subset of fovs
-        max_img_size = load_utils.get_max_img_size(tmpdir, img_sub_folder='TIFs',
-                                                   fov_list=fov_list)
-        assert max_img_size == 10
+    with tempfile.TemporaryDirectory() as tmpdir:
+        fovs = ['fov1_feature_0', 'fov1_feature_1', 'fov2_feature_0', 'fov2_feature_1']
+        larger_fov = ['fov3_feature_0', 'fov3_feature_1']
+
+        test_utils._write_tifs(tmpdir, ['deepcell_output'], fovs, (10, 10), '', False, int)
+        test_utils._write_tifs(tmpdir, ['temp_fov_dir'], larger_fov, (12, 12), '', False, int)
+
+        for img in larger_fov:
+            shutil.copy(os.path.join(tmpdir, 'temp_fov_dir', img + '.tiff'),
+                        os.path.join(tmpdir, 'deepcell_output', img + '.tiff'))
+
+        # test success for all fovs in single dir
+        max_img_size = load_utils.get_max_img_size(os.path.join(tmpdir, 'deepcell_output'),
+                                                   single_dir=True)
+        assert max_img_size == 12
 
 
-def test_load_tiled_img_data():
+@pytest.mark.parametrize('single_dir', [False, True])
+def test_load_tiled_img_data(single_dir):
     # invalid directory is provided
     with pytest.raises(ValueError):
-        loaded_xr = load_utils.load_tiled_img_data('not_a_dir', [], 'chan1')
+        loaded_xr = load_utils.load_tiled_img_data('not_a_dir', [], 'chan1', max_image_size=10,
+                                                   single_dir=False,)
+    if single_dir:
+        img_sub_folder = ''
+    else:
+        img_sub_folder = 'TIFs'
 
     # check with no missing FOVS
     with tempfile.TemporaryDirectory() as temp_dir:
 
         fovs = ['R1C1', 'R1C2', 'R1C3']
+        channels = ['chan1', 'chan2']
+
         filelocs, data_xr = test_utils.create_paired_xarray_fovs(
-            temp_dir, fovs, ['chan1'], img_shape=(10, 10), delimiter='_', fills=True,
-            sub_dir="TIFs", dtype="int16"
+            temp_dir, fovs, channels, img_shape=(10, 10), delimiter='_', fills=True,
+            sub_dir=img_sub_folder, dtype="int16", single_dir=single_dir
         )
 
-        # check default loading of all files
-        loaded_xr = load_utils.load_tiled_img_data(temp_dir, ['R1C1', 'R1C2', 'R1C3'], 'chan1',
-                                                   img_sub_folder="TIFs")
+        # check default loading of chan1 images
+        loaded_xr = load_utils.load_tiled_img_data(temp_dir, fovs, 'chan1', max_image_size=10,
+                                                   single_dir=single_dir,
+                                                   img_sub_folder=img_sub_folder)
 
-        assert loaded_xr.equals(data_xr)
+        assert loaded_xr.equals(data_xr[:, :, :, :-1])
         assert loaded_xr.shape == (3, 10, 10, 1)
 
-    # check missing FOV images
+    # check loading with missing FOV images
     with tempfile.TemporaryDirectory() as temp_dir:
 
         fovs = ['R1C1', 'R1C2', 'R2C1', 'R2C2']
         filelocs, data_xr = test_utils.create_paired_xarray_fovs(
-            temp_dir, fovs, ['chan1'], img_shape=(10, 10), delimiter='_', fills=True,
-            sub_dir="TIFs", dtype="int16"
+            temp_dir, fovs, ['chan1', 'chan2'], img_shape=(10, 10), delimiter='_', fills=True,
+            sub_dir=img_sub_folder, dtype="int16", single_dir=single_dir
         )
         # missing fov data
         data_xr[2, :, :, :] = np.zeros((10, 10, 1), dtype='int16')
-        shutil.rmtree(os.path.join(temp_dir, 'R2C1'))
+        if single_dir:
+            os.remove(os.path.join(temp_dir, 'R2C1_chan1.tiff'))
+        else:
+            shutil.rmtree(os.path.join(temp_dir, 'R2C1'))
 
-        # check default loading of all files
+        # check successful loading for one channel
         loaded_xr = \
             load_utils.load_tiled_img_data(temp_dir, ['R1C1', 'R1C2', 'R2C2'], 'chan1',
-                                           img_sub_folder="TIFs")
+                                           max_image_size=10, single_dir=single_dir,
+                                           img_sub_folder=img_sub_folder)
 
-        assert loaded_xr.equals(data_xr)
+        assert loaded_xr.equals(data_xr[:, :, :, :-1])
         assert loaded_xr.shape == (4, 10, 10, 1)
 
     # test loading with data_xr containing float values
@@ -431,31 +455,40 @@ def test_load_tiled_img_data():
         fovs = ['R1C1', 'R1C2', 'R2C1', 'R2C2']
         filelocs, data_xr = test_utils.create_paired_xarray_fovs(
             temp_dir, fovs, ['chan1'], img_shape=(10, 10), delimiter='_', fills=True,
-            sub_dir="TIFs", dtype=np.float32
+            sub_dir=img_sub_folder, dtype=np.float32, single_dir=single_dir
         )
         # missing fov data
         data_xr[2, :, :, :] = np.zeros((10, 10, 1), dtype='int16')
-        shutil.rmtree(os.path.join(temp_dir, 'R2C1'))
+        if single_dir:
+            os.remove(os.path.join(temp_dir, 'R2C1_chan1.tiff'))
+        else:
+            shutil.rmtree(os.path.join(temp_dir, 'R2C1'))
 
         loaded_xr = load_utils.load_tiled_img_data(temp_dir, ['R1C1', 'R1C2', 'R2C2'], 'chan1',
-                                                   img_sub_folder="TIFs")
+                                                   max_image_size=10, single_dir=single_dir,
+                                                   img_sub_folder=img_sub_folder)
 
         assert loaded_xr.equals(data_xr)
         assert np.issubdtype(loaded_xr.dtype, np.floating)
 
-    # test loading with variable sizes and run name prepend
+    # test loading with run name prepend and image padding
     with tempfile.TemporaryDirectory() as temp_dir:
 
         fovs = ['run_1_R1C1', 'run_1_R1C2', 'run_2_R2C1', 'run_2_R2C2']
         filelocs, data_xr = test_utils.create_paired_xarray_fovs(
             temp_dir, fovs, ['chan1'], img_shape=(10, 10), delimiter='_', fills=True,
-            sub_dir="TIFs", dtype="int16"
+            sub_dir=img_sub_folder, dtype="int16", single_dir=single_dir
         )
+        
         # missing fov data
         data_xr[2, :, :, :] = np.zeros((10, 10, 1), dtype='int16')
-        shutil.rmtree(os.path.join(temp_dir, 'run_2_R2C1'))
+        if single_dir:
+            os.remove(os.path.join(temp_dir, 'run_2_R2C1_chan1.tiff'))
+        else:
+            shutil.rmtree(os.path.join(temp_dir, 'run_2_R2C1'))
 
         loaded_xr = \
             load_utils.load_tiled_img_data(temp_dir, ['run_1_R1C1', 'run_1_R1C2', 'run_2_R2C2'],
-                                           'chan1', img_sub_folder="TIFs", max_image_size=12)
+                                           'chan1', max_image_size=12, single_dir=single_dir,
+                                           img_sub_folder=img_sub_folder)
         assert loaded_xr.shape == (4, 12, 12, 1)

@@ -568,64 +568,95 @@ def download_example_data(save_dir: Union[str, pathlib.Path]):
                     dirs_exist_ok=True, ignore=shutil.ignore_patterns('._*'))
 
 
-def create_tiled_image(data_dir, tiled_dir, img_sub_folder=None, channels=None):
-    """ Creates tiled images for the specified channels based on the FOV folder names
+def stitch_images_by_shape(data_dir, stitched_dir, img_sub_folder=None, channels=None,
+                           max_img_size=None, segmentation_dir=False, pixie_dir=False):
+    """ Creates stitched images for the specified channels based on the FOV folder names
 
     Args:
         data_dir (str):
             path to directory containing images
-        tiled_dir (str):
-            path to directory to save tiled images to
+        stitched_dir (str):
+            path to directory to save stitched images to
         img_sub_folder (str):
             optional name of image sub-folder within each fov
         channels (list):
             optional list of imgs to load, otherwise loads all imgs
+        max_img_size (int or None):
+            The length (in pixels) of the largest image that will be loaded. All other images will
+            be padded to bring them up to the same size.
+        segmentation_dir (bool):
+            if stitching images from the single segemenation dir
+        pixie_dir (bool / str):
+            if stitching images from the single pixel or cell mask dir, specify 'pixel' / 'cell'
     """
 
     # no img_sub_folder, change to empty string to read directly from base folder
     if img_sub_folder is None:
         img_sub_folder = ""
 
-    # retrieve valid folder names
-    folders = ns.natsorted(io_utils.list_folders(data_dir))
-    if 'stitched_images' in folders:
-        folders.remove('stitched_images')
+    if pixie_dir and pixie_dir not in ['pixel', 'cell']:
+        raise ValueError('If stitching images from the pixie pipeline, the pixie_dir arg must be '
+                         'set to either \"pixel\" or \"cell\".')
 
-    if len(folders) == 0:
+    # retrieve valid fov names
+    if segmentation_dir:
+        fovs = ns.natsorted(io_utils.list_files(data_dir, substrs='_feature_0.tif'))
+        fovs = io_utils.extract_delimited_names(fovs, delimiter='_feature_0.tif')
+    elif pixie_dir:
+        fovs = ns.natsorted(io_utils.list_files(data_dir, substrs=f'_{pixie_dir}_mask.tif'))
+        fovs = io_utils.extract_delimited_names(fovs, delimiter=f'_{pixie_dir}_mask.tif')
+    else:
+        fovs = ns.natsorted(io_utils.list_folders(data_dir))
+        if 'stitched_images' in fovs:
+            fovs.remove('stitched_images')
+
+    if len(fovs) == 0:
         raise ValueError(f"No FOVs found in directory, {data_dir}.")
 
     # check previous tiling
-    if os.path.exists(tiled_dir):
-        raise ValueError(f"The {tiled_dir} directory already exists.")
+    if os.path.exists(stitched_dir):
+        raise ValueError(f"The {stitched_dir} directory already exists.")
 
     bad_dirs = []
-    for folder in folders:
+    for fov in fovs:
         r = re.compile('.*R.*C.*')
-        if r.match(folder) is None:
-            bad_dirs.append(dir)
+        if r.match(fov) is None:
+            bad_dirs.append(fov)
     if len(bad_dirs) > 0:
-        raise ValueError(f"Invalid FOVs found in directory, {data_dir}. FOV folder names "
+        raise ValueError(f"Invalid FOVs found in directory, {data_dir}. FOV names "
                          f"{bad_dirs} should have the form RnCm.")
 
     # retrieve all extracted channel names, or verify the list provided
-    channel_imgs = io_utils.list_files(dir_name=os.path.join(data_dir, folders[0], img_sub_folder),
-                                       substrs=['.tif', '.jpg', '.png'])
+    if not segmentation_dir and not pixie_dir:
+        channel_imgs = io_utils.list_files(
+            dir_name=os.path.join(data_dir, fovs[0], img_sub_folder),
+            substrs=['.tif', '.jpg', '.png'])
+    else:
+        channel_imgs = io_utils.list_files(data_dir, substrs=fovs[0])
+        channel_imgs = [chan.split(fovs[0] + '_')[1] for chan in channel_imgs]
+
     if channels is None:
         channels = io_utils.remove_file_extensions(channel_imgs)
     else:
         verify_in_list(channel_inputs=channels,
                        valid_channels=io_utils.remove_file_extensions(channel_imgs))
 
-    # make tiled subdir
-    os.makedirs(tiled_dir)
+    # make stitched subdir
+    os.makedirs(stitched_dir)
+    if max_img_size is None:
+        max_img_size = load_utils.get_max_img_size(data_dir, img_sub_folder,
+                                                   single_dir=any([segmentation_dir, pixie_dir]))
 
     file_ext = channel_imgs[0].split('.')[1]
-    _, num_rows, num_cols = load_utils.get_tiled_fov_names(folders, return_dims=True)
+    _, num_rows, num_cols = load_utils.get_tiled_fov_names(fovs, return_dims=True)
 
-    # save the tiled images to the tiled_images subdir, one channel at a time
+    # save the stitched images to the stitched_images subdir, one channel at a time
     for chan in channels:
-        image_data = load_tiled_img_data(data_dir, folders, chan, file_ext, img_sub_folder)
-        tiled_data = stitch_images(image_data, num_cols)
-        current_img = tiled_data.loc['stitched_image', :, :, chan].values
-        io.imsave(os.path.join(tiled_dir, chan + '_tiled.' + file_ext),
+        image_data = load_tiled_img_data(data_dir, fovs, chan,
+                                         single_dir=any([segmentation_dir, pixie_dir]),
+                                         max_image_size=max_img_size,
+                                         file_ext=file_ext, img_sub_folder=img_sub_folder)
+        stitched_data = stitch_images(image_data, num_cols)
+        current_img = stitched_data.loc['stitched_image', :, :, chan].values
+        io.imsave(os.path.join(stitched_dir, chan + '_stitched.' + file_ext),
                   current_img.astype('float32'), check_contrast=False)
