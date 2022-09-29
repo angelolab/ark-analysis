@@ -651,9 +651,9 @@ def test_download_example_data():
             assert set(channel_names) == set(c_names)
 
 
-@pytest.mark.parametrize('segmentation_dir, pixie_dir',
+@pytest.mark.parametrize('segmentation, clustering',
                          [(True, False), (False, 'cell'), (False, 'pixel')])
-def test_stitch_images_by_shape(segmentation_dir, pixie_dir):
+def test_stitch_images_by_shape(segmentation, clustering):
 
     # validation checks
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -734,7 +734,7 @@ def test_stitch_images_by_shape(segmentation_dir, pixie_dir):
                                                       files=['chan0_stitched.tiff'])
         assert stitched_data.shape == (1, 30, 20, 1)
 
-    if segmentation_dir:
+    if segmentation:
         channels = ['feature_0', 'feature_1']
     else:
         channels = ['cell_mask', 'pixel_mask']
@@ -753,32 +753,29 @@ def test_stitch_images_by_shape(segmentation_dir, pixie_dir):
         # bad fov names should raise error
         with pytest.raises(ValueError, match="Invalid FOVs found in directory"):
             data_utils.stitch_images_by_shape(image_dir, stitched_dir,
-                                              segmentation_dir=segmentation_dir,
-                                              pixie_dir=pixie_dir)
+                                              segmentation=segmentation, clustering=clustering)
         for chan in channels:
             os.remove(os.path.join(image_dir, 'bad_fov_' + chan + '.tiff'))
 
         # bad channel name should raise an error
         with pytest.raises(ValueError, match="Not all values given in list"):
             data_utils.stitch_images_by_shape(image_dir, stitched_dir, channels=['bad_channel'],
-                                              segmentation_dir=segmentation_dir,
-                                              pixie_dir=pixie_dir)
+                                              segmentation=segmentation, clustering=clustering)
 
         # bad pixie_dir arg should raise an error
         with pytest.raises(ValueError, match="If stitching images from the pixie pipeline"):
             data_utils.stitch_images_by_shape(image_dir, stitched_dir,
-                                              segmentation_dir=segmentation_dir,
-                                              pixie_dir='not_cell')
+                                              segmentation=segmentation, clustering='not_cell')
 
         # test successful stitching
-        data_utils.stitch_images_by_shape(image_dir, stitched_dir, segmentation_dir=segmentation_dir,
-                                          pixie_dir=pixie_dir)
+        data_utils.stitch_images_by_shape(image_dir, stitched_dir, segmentation=segmentation,
+                                          clustering=clustering)
         assert sorted(io_utils.list_files(stitched_dir)) == \
                [chan + '_stitched.tiff' for chan in channels]
 
         # stitched image is 4 x 2 fovs with max_img_size = 10
         stitched_data = load_utils.load_imgs_from_dir(os.path.join(temp_dir, stitched_dir),
-                                                   files=[channels[0] + '_stitched.tiff'])
+                                                      files=[channels[0] + '_stitched.tiff'])
         assert stitched_data.shape == (1, 40, 20, 1)
 
     # test single dir for select channels and run name prepended
@@ -796,7 +793,6 @@ def test_stitch_images_by_shape(segmentation_dir, pixie_dir):
 
         for chan in channels:
             data_utils.stitch_images_by_shape(image_dir, stitched_dir, channels=[chan],
-                                              segmentation_dir=segmentation_dir,
-                                              pixie_dir=pixie_dir)
+                                              segmentation=segmentation, clustering=clustering)
             assert sorted(io_utils.list_files(stitched_dir)) == [chan + '_stitched.tiff']
             shutil.rmtree(os.path.join(temp_dir, stitched_dir))

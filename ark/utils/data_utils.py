@@ -569,7 +569,7 @@ def download_example_data(save_dir: Union[str, pathlib.Path]):
 
 
 def stitch_images_by_shape(data_dir, stitched_dir, img_sub_folder=None, channels=None,
-                           max_img_size=None, segmentation_dir=False, pixie_dir=False):
+                           max_img_size=None, segmentation=False, clustering=False):
     """ Creates stitched images for the specified channels based on the FOV folder names
 
     Args:
@@ -584,9 +584,9 @@ def stitch_images_by_shape(data_dir, stitched_dir, img_sub_folder=None, channels
         max_img_size (int or None):
             The length (in pixels) of the largest image that will be loaded. All other images will
             be padded to bring them up to the same size.
-        segmentation_dir (bool):
-            if stitching images from the single segemenation dir
-        pixie_dir (bool / str):
+        segmentation (bool):
+            if stitching images from the single segmentation dir
+        clustering (bool or str):
             if stitching images from the single pixel or cell mask dir, specify 'pixel' / 'cell'
     """
 
@@ -594,17 +594,17 @@ def stitch_images_by_shape(data_dir, stitched_dir, img_sub_folder=None, channels
     if img_sub_folder is None:
         img_sub_folder = ""
 
-    if pixie_dir and pixie_dir not in ['pixel', 'cell']:
+    if clustering and clustering not in ['pixel', 'cell']:
         raise ValueError('If stitching images from the pixie pipeline, the pixie_dir arg must be '
                          'set to either \"pixel\" or \"cell\".')
 
     # retrieve valid fov names
-    if segmentation_dir:
+    if segmentation:
         fovs = ns.natsorted(io_utils.list_files(data_dir, substrs='_feature_0.tif'))
         fovs = io_utils.extract_delimited_names(fovs, delimiter='_feature_0.tif')
-    elif pixie_dir:
-        fovs = ns.natsorted(io_utils.list_files(data_dir, substrs=f'_{pixie_dir}_mask.tif'))
-        fovs = io_utils.extract_delimited_names(fovs, delimiter=f'_{pixie_dir}_mask.tif')
+    elif clustering:
+        fovs = ns.natsorted(io_utils.list_files(data_dir, substrs=f'_{clustering}_mask.tif'))
+        fovs = io_utils.extract_delimited_names(fovs, delimiter=f'_{clustering}_mask.tif')
     else:
         fovs = ns.natsorted(io_utils.list_folders(data_dir))
         if 'stitched_images' in fovs:
@@ -627,7 +627,7 @@ def stitch_images_by_shape(data_dir, stitched_dir, img_sub_folder=None, channels
                          f"{bad_dirs} should have the form RnCm.")
 
     # retrieve all extracted channel names, or verify the list provided
-    if not segmentation_dir and not pixie_dir:
+    if not segmentation and not clustering:
         channel_imgs = io_utils.list_files(
             dir_name=os.path.join(data_dir, fovs[0], img_sub_folder),
             substrs=['.tif', '.jpg', '.png'])
@@ -645,7 +645,7 @@ def stitch_images_by_shape(data_dir, stitched_dir, img_sub_folder=None, channels
     os.makedirs(stitched_dir)
     if max_img_size is None:
         max_img_size = load_utils.get_max_img_size(data_dir, img_sub_folder,
-                                                   single_dir=any([segmentation_dir, pixie_dir]))
+                                                   single_dir=any([segmentation, clustering]))
 
     file_ext = channel_imgs[0].split('.')[1]
     _, num_rows, num_cols = load_utils.get_tiled_fov_names(fovs, return_dims=True)
@@ -653,7 +653,7 @@ def stitch_images_by_shape(data_dir, stitched_dir, img_sub_folder=None, channels
     # save the stitched images to the stitched_images subdir, one channel at a time
     for chan in channels:
         image_data = load_tiled_img_data(data_dir, fovs, chan,
-                                         single_dir=any([segmentation_dir, pixie_dir]),
+                                         single_dir=any([segmentation, clustering]),
                                          max_image_size=max_img_size,
                                          file_ext=file_ext, img_sub_folder=img_sub_folder)
         stitched_data = stitch_images(image_data, num_cols)
