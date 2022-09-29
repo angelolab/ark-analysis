@@ -409,8 +409,6 @@ def generate_neighborhood_cluster_masks(fovs: List[str],
 
     # create the neighborhood cluster masks across each fov
     with tqdm(total=len(fovs), desc="Neighborhood Cluster Mask Generation") as neigh_mask_progress:
-        # define the set of clusters to use
-
         # generate the mask for each FOV
         for fov in fovs:
             neighborhood_mask: np.ndarray =\
