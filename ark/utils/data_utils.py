@@ -9,6 +9,7 @@ import feather
 import numpy as np
 import pandas as pd
 import skimage.io as io
+from skimage.measure import regionprops_table
 import xarray as xr
 from tqdm.notebook import tqdm_notebook as tqdm
 
@@ -69,9 +70,10 @@ def relabel_segmentation(labeled_image, labels_dict):
             2D numpy array of labeled cell objects.
         labels_dict (dict):
             a mapping between labeled cells and their clusters.
+
     Returns:
         numpy.ndarray:
-            The image mapped to the designated new labels.
+            The relabeled array.
     """
 
     img = np.copy(labeled_image)
@@ -79,9 +81,12 @@ def relabel_segmentation(labeled_image, labels_dict):
     unique_cell_ids = unique_cell_ids[np.nonzero(unique_cell_ids)]
 
     default_label = max(labels_dict.values()) + 1
-    for cell_id in unique_cell_ids:
-        img[labeled_image == cell_id] = labels_dict.get(cell_id, default_label)
-    return img
+
+    relabeled_img = np.vectorize(
+        lambda x: labels_dict.get(x, default_label) if x != 0 else 0
+    )(img)
+
+    return relabeled_img
 
 
 def label_cells_by_cluster(fov, all_data, label_map, fov_col=settings.FOV_ID,
