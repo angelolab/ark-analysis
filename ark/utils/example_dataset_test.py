@@ -1,9 +1,11 @@
+from doctest import Example
 import pathlib
 from typing import Callable, Iterator
 
 import pytest
 
 from ark.utils.example_dataset import ExampleDataset, get_example_dataset
+from ark.utils import test_utils
 
 
 # Sets the example dataset path once: Will not cause duplicate downloads
@@ -104,7 +106,7 @@ class TestExampleDataset:
         """
         tmp_dir = tmp_path_factory.mktemp("move_example_data")
         move_dir = tmp_dir / "example_dataset"
-        dataset_download.move_example_dataset(save_dir=move_dir)
+        dataset_download.move_example_dataset(move_dir=move_dir)
 
         dataset_names = list(
             dataset_download.dataset_paths[dataset_download.dataset].features.keys())
@@ -115,14 +117,33 @@ class TestExampleDataset:
             dir_p = move_dir / ds_n_suffix
             self.dataset_test_fns[ds_n](dir_p)
 
+    # Will cause duplicate downloads
     def test_get_example_dataset(self):
         """
-        Tests to make sure that the `data_utils.py::get_example_dataset` works.
-        #! Only tests for incorrect `dataset` value.
+        #! TODO
         """
 
         with pytest.raises(ValueError):
             get_example_dataset("incorrect_dataset", save_dir=None)
+
+    def test_check_downloaded(self, tmp_path):
+        """
+        Tests to make sure that `ExampleDataset.get_example_dataset()` accurately
+        reports if a directory contains files or not.
+        """
+
+        example_dataset = ExampleDataset(None)
+        empty_data_dir: pathlib.Path = tmp_path / "empty_dst_dir"
+        packed_data_dir: pathlib.Path = tmp_path / "packed_dst_dir"
+        empty_data_dir.mkdir(parents=True)
+        packed_data_dir.mkdir(parents=True)
+
+        # Empty directory has no files
+        assert example_dataset.check_downloaded(empty_data_dir) is False
+
+        # Directory has files
+        test_utils._make_blank_file(packed_data_dir, "data_test.txt")
+        assert example_dataset.check_downloaded(packed_data_dir) is True
 
     def _image_data_check(self, dir_p: pathlib.Path):
         """

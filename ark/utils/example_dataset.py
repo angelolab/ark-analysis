@@ -6,7 +6,8 @@ import datasets
 
 
 class ExampleDataset():
-    def __init__(self, dataset: str, overwrite_existing: bool = True, cache_dir: str = None, revision: str = None) -> None:
+    def __init__(self, dataset: str, overwrite_existing: bool = True, cache_dir: str = None,
+                 revision: str = None) -> None:
         """
         Constructs a utility class for downloading and moving the dataset with respect to it's
         various partitions on Hugging Face: https://huggingface.co/datasets/angelolab/ark_example.
@@ -14,7 +15,7 @@ class ExampleDataset():
         Args:
             dataset (str): The name of the dataset to download. Can be one of `nb1`, `nb2`,
                 `nb3`, `nb4`.
-            overwrite_existing (bool): 
+            overwrite_existing (bool): A flag to overwrite existing data. Defaults to `True`.
             cache_dir (str, optional): The directory to save the cache dir. Defaults to `None`,
                 which internally in Hugging Face defaults to `~/.cache/huggingface/datasets`.
             revision (str, optional): The commit ID from Hugging Face for the dataset. Used for
@@ -71,15 +72,15 @@ class ExampleDataset():
         else:
             return True
 
-    def move_example_dataset(self, save_dir: Union[str, pathlib.Path]):
+    def move_example_dataset(self, move_dir: Union[str, pathlib.Path]):
         """
-        Moves the downloaded example data from the cache_dir
+        Moves the downloaded example data from the `cache_dir` to the `save_dir`.
 
         Args:
             save_dir (Union[str, pathlib.Path]): The path to save the dataset files in.
         """
-        if type(save_dir) is not pathlib.Path:
-            save_dir = pathlib.Path(save_dir)
+        if type(move_dir) is not pathlib.Path:
+            move_dir = pathlib.Path(move_dir)
 
         dataset_names = list(self.dataset_paths[self.dataset].features.keys())
 
@@ -87,10 +88,10 @@ class ExampleDataset():
             ds_n_suffix = self.path_suffixes[ds_n]
 
             # The path where the dataset is saved in the Hugging Face Cache post-download,
-            # Necessary to copy + move the data from the cache to the user specified `save_dir`.
+            # Necessary to copy + move the data from the cache to the user specified `move_dir`.
             dataset_cache_path = pathlib.Path(self.dataset_paths[self.dataset][ds_n][0])
             src_path = dataset_cache_path / ds_n
-            dst_path = save_dir / ds_n_suffix
+            dst_path = move_dir / ds_n_suffix
 
             # Overwrite the existing dataset if specified, or if there is no dataset.
             if self.overwrite_existing or self.check_downloaded(dst_path=dst_path):
@@ -110,7 +111,7 @@ def get_example_dataset(dataset: str, save_dir: Union[str, pathlib.Path],
     Args:
         dataset (str): The dataset to download for a particular notebook.
         save_dir (Union[str, pathlib.Path]): The path to save the dataset files in.
-        overwrite_existing (bool): The option to overwrite existing configs of the `dataset` 
+        overwrite_existing (bool): The option to overwrite existing configs of the `dataset`
             downloaded. Defaults to True.
     """
 
@@ -128,4 +129,4 @@ def get_example_dataset(dataset: str, save_dir: Union[str, pathlib.Path],
     example_dataset.download_example_dataset()
 
     # Move the dataset over to the save_dir from the user.
-    example_dataset.move_example_dataset(save_dir=save_dir)
+    example_dataset.move_example_dataset(move_dir=save_dir)
