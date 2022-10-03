@@ -23,21 +23,21 @@ parametrize = pytest.mark.parametrize
 
 @parametrize('sub_dir', [None, 'test_sub_dir'])
 @parametrize('name_suffix', ['', 'test_name_suffix'])
-def test_save_fov_image(sub_dir, name_suffix):
+def test_save_fov_mask(sub_dir, name_suffix):
     # define a sample FOV name
     fov = 'fov0'
 
     # generate sample image data
-    sample_img_data = np.random.rand(40, 40)
+    sample_mask_data = np.random.randint(low=0, high=16, size=(40, 40), dtype='int16')
 
     # bad data_dir path provided
     with pytest.raises(FileNotFoundError):
-        data_utils.save_fov_image(fov, 'bad_data_path', sample_img_data)
+        data_utils.save_fov_mask(fov, 'bad_data_path', sample_mask_data)
 
     with tempfile.TemporaryDirectory() as temp_dir:
         # test image saving
-        data_utils.save_fov_image(
-            fov, temp_dir, sample_img_data, sub_dir=sub_dir, name_suffix=name_suffix
+        data_utils.save_fov_mask(
+            fov, temp_dir, sample_mask_data, sub_dir=sub_dir, name_suffix=name_suffix
         )
 
         # sub_dir gets set to empty string if left None
@@ -53,6 +53,9 @@ def test_save_fov_image(sub_dir, name_suffix):
 
         # assert image was saved as np.int16
         assert fov_img.dtype == np.dtype('int16')
+
+        # assert the image dimensions are correct
+        assert fov_img.shape == (40, 40)
 
 
 def test_relabel_segmentation():

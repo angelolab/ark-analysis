@@ -18,20 +18,20 @@ from ark.utils import load_utils
 from ark.utils.misc_utils import verify_in_list
 
 
-def save_fov_image(fov, data_dir, img_data, sub_dir=None, name_suffix=''):
-    """Saves the provided image data for a FOV
+def save_fov_mask(fov, data_dir, mask_data, sub_dir=None, name_suffix=''):
+    """Saves the provided mask data for a FOV
 
     Args:
         fov (str):
             The FOV to save
         data_dir (str):
-            The directory to save the images
-        img_data (numpy.ndarray):
-            The image data for the FOV
+            The directory to save the masks
+        mask_data (numpy.ndarray):
+            The mask data for the FOV
         sub_dir (Optional[str]):
-            The subdirectory to save the images in. If specified images are saved to
-            "data_dir/sub_dir". If `sub_dir = None` the images are saved to "data_dir". Defaults
-            to None.
+            The subdirectory to save the masks in. If specified images are saved to
+            "data_dir/sub_dir". If `sub_dir = None` the images are saved to `"data_dir"`.
+            Defaults to `None`.
         name_suffix (str):
             Specify what to append at the end of every fov.
     """
@@ -39,9 +39,6 @@ def save_fov_image(fov, data_dir, img_data, sub_dir=None, name_suffix=''):
     # data_dir validation
     if not os.path.exists(data_dir):
         raise FileNotFoundError("data_dir %s does not exist" % data_dir)
-
-    # convert image data to int16
-    img_data = img_data.astype('int16')
 
     # ensure None is handled correctly in file path generation
     if sub_dir is None:
@@ -57,7 +54,7 @@ def save_fov_image(fov, data_dir, img_data, sub_dir=None, name_suffix=''):
     fov_file = fov + name_suffix + '.tiff'
 
     # save the image to data_dir
-    io.imsave(os.path.join(save_dir, fov_file), img_data, check_contrast=False)
+    io.imsave(os.path.join(save_dir, fov_file), mask_data, check_contrast=False)
 
 
 def relabel_segmentation(labeled_image, labels_dict):
@@ -82,9 +79,10 @@ def relabel_segmentation(labeled_image, labels_dict):
 
     default_label = max(labels_dict.values()) + 1
 
+    # cast to int16 to allow for Photoshop loading
     relabeled_img = np.vectorize(
         lambda x: labels_dict.get(x, default_label) if x != 0 else 0
-    )(img)
+    )(img).astype('int16')
 
     return relabeled_img
 
@@ -243,8 +241,8 @@ def generate_and_save_cell_cluster_masks(fovs: List[str],
                                            seg_suffix=seg_suffix)
 
             # save the cell mask generated
-            save_fov_image(fov, data_dir=save_dir, img_data=cell_mask, sub_dir=sub_dir,
-                           name_suffix=name_suffix)
+            save_fov_mask(fov, data_dir=save_dir, mask_data=cell_mask, sub_dir=sub_dir,
+                          name_suffix=name_suffix)
 
             cell_mask_progress.update(1)
 
@@ -304,7 +302,8 @@ def generate_pixel_cluster_mask(fov, base_dir, tiff_dir, chan_file_path,
     channel_data = np.squeeze(io.imread(os.path.join(tiff_dir, chan_file_path)))
 
     # define an array to hold the overlays for the fov
-    img_data = np.zeros((channel_data.shape[0], channel_data.shape[1]))
+    # use int16 to allow for Photoshop loading
+    img_data = np.zeros((channel_data.shape[0], channel_data.shape[1]), dtype='int16')
 
     fov_data = feather.read_dataframe(
         os.path.join(base_dir, pixel_data_dir, fov + '.feather')
@@ -383,8 +382,8 @@ def generate_and_save_pixel_cluster_masks(fovs: List[str],
                                             pixel_cluster_col=pixel_cluster_col)
 
             # save the pixel mask generated
-            save_fov_image(fov, data_dir=save_dir, img_data=pixel_mask, sub_dir=sub_dir,
-                           name_suffix=name_suffix)
+            save_fov_mask(fov, data_dir=save_dir, mask_data=pixel_mask, sub_dir=sub_dir,
+                          name_suffix=name_suffix)
 
             pixel_mask_progress.update(1)
 
@@ -420,11 +419,13 @@ def generate_and_save_neighborhood_cluster_masks(fovs: List[str],
         for fov in fovs:
             # generate the neighborhood mask for the FOV
             neighborhood_mask: np.ndarray =\
-                label_cells_by_cluster(fov, neighborhood_data, label_maps.loc[fov, ...])
+                label_cells_by_cluster(
+                    fov, neighborhood_data, label_maps.loc[fov, ...]
+                )
 
             # save the neighborhood mask generated
-            save_fov_image(fov, data_dir=save_dir, img_data=neighborhood_mask, sub_dir=sub_dir,
-                           name_suffix=name_suffix)
+            save_fov_mask(fov, data_dir=save_dir, mask_data=neighborhood_mask, sub_dir=sub_dir,
+                          name_suffix=name_suffix)
 
             neigh_mask_progress.update(1)
 
