@@ -12,11 +12,11 @@ parametrize = pytest.mark.parametrize
 
 
 SEGMENT_IMAGE_DATA_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                       '..', '..', 'templates_ark', '1_Segment_Image_Data.ipynb')
+                                       '..', '..', 'templates', '1_Segment_Image_Data.ipynb')
 PIXEL_CLUSTER_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                  '..', '..', 'templates_ark', '2_Cluster_Pixels.ipynb')
+                                  '..', '..', 'templates', '2_Cluster_Pixels.ipynb')
 CELL_CLUSTER_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                 '..', '..', 'templates_ark', '3_Cluster_Cells.ipynb')
+                                 '..', '..', 'templates', '3_Cluster_Cells.ipynb')
 
 
 def _exec_notebook(nb_filename, base_folder):
@@ -31,15 +31,15 @@ def _exec_notebook(nb_filename, base_folder):
 
 # test runs with default inputs
 def test_segment_image_data():
-    _exec_notebook('1_Segment_Image_Data.ipynb', 'templates_ark')
+    _exec_notebook('1_Segment_Image_Data.ipynb', 'templates')
 
 
 def test_example_pairwise_spatial_enrichment():
-    _exec_notebook('example_pairwise_spatial_enrichment.ipynb', 'templates_ark')
+    _exec_notebook('example_pairwise_spatial_enrichment.ipynb', 'templates')
 
 
 def test_example_neighborhood_analysis():
-    _exec_notebook('example_neighborhood_analysis_script.ipynb', 'templates_ark')
+    _exec_notebook('example_neighborhood_analysis_script.ipynb', 'templates')
 
 
 # test folder inputs for image segmentation
