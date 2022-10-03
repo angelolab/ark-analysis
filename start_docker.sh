@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# define the version number
+VERSION='v0.4.1'
+
 # check for template developer flag
 JUPYTER_DIR='scripts'
 update=0
@@ -50,6 +53,7 @@ run_params=(
   -e JUPYTER_PORT=$PORT
   -e JUPYTER_DIR=$JUPYTER_DIR
   -e UPDATE_ARK=$update
+  -v "$PWD/ark:/usr/local/lib/python3.8/site-packages/ark"
   -v "$PWD/README.md:/opt/ark-analysis/README.md"
   -v "$PWD/setup.py:/opt/ark-analysis/setup.py"
   -v "$PWD/requirements.txt:/opt/ark-analysis/requirements.txt"
@@ -68,4 +72,13 @@ run_params=(
 )
 [[ ! -z "$external" ]] && run_params+=(-v "$external:/data/external")
 
-docker run -it "${run_params[@]}" angelolab/ark-analysis:v0.4.1
+# docker run -it "${run_params[@]}" angelolab/ark-analysis:$VERSION
+
+if [[ $(docker ps -a --format "{{.Names}}" | grep $VERSION | wc -l) -eq 0 ]]
+  then
+    echo "Pulling new version"
+    docker run --name $VERSION -it "${run_params[@]}" angelolab/ark-analysis:$VERSION
+  else
+    echo "Starting existing version"
+    docker start -it "${run_params[@]}" $VERSION
+fi
