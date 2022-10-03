@@ -82,16 +82,16 @@ def create_mantis_project(cell_table, fovs, seg_dir, pop_col, mask_dir, image_di
         ).loc[fov, ...]
 
         # use label_cells_by_cluster to create cell masks
-        img_data = data_utils.label_cells_by_cluster(
+        mask_data = data_utils.label_cells_by_cluster(
             fov, small_table, label_map, fov_col='fov',
             cell_label_column='label', cluster_column='pop_vals'
         )
 
-        # save the relabeled image for each FOV
-        data_utils.save_fov_image(
+        # save the cell mask for each FOV
+        data_utils.save_fov_mask(
             fov,
             mask_dir,
-            img_data,
+            mask_data,
             sub_dir=None,
             name_suffix='_cell_mask'
         )
