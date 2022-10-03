@@ -19,15 +19,15 @@ from ark.utils.misc_utils import verify_in_list
 
 
 def save_fov_mask(fov, data_dir, mask_data, sub_dir=None, name_suffix=''):
-    """Saves the provided mask data for a FOV
+    """Saves a provided cluster label mask overlay for a FOV.
 
     Args:
         fov (str):
             The FOV to save
         data_dir (str):
-            The directory to save the masks
+            The directory to save the cluster mask
         mask_data (numpy.ndarray):
-            The mask data for the FOV
+            The cluster mask data for the FOV
         sub_dir (Optional[str]):
             The subdirectory to save the masks in. If specified images are saved to
             "data_dir/sub_dir". If `sub_dir = None` the images are saved to `"data_dir"`.
