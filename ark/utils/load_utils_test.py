@@ -395,25 +395,20 @@ def test_get_max_img_size():
         assert max_img_size == 12
 
 
-@pytest.mark.parametrize('single_dir', [False, True])
-def test_load_tiled_img_data(single_dir):
+@pytest.mark.parametrize('single_dir, img_sub_folder', [(False, 'TIFs'), (True, '')])
+def test_load_tiled_img_data(single_dir, img_sub_folder):
     # invalid directory is provided
     with pytest.raises(ValueError):
         loaded_xr = load_utils.load_tiled_img_data('not_a_dir', [], 'chan1', max_image_size=10,
                                                    single_dir=False,)
-    if single_dir:
-        img_sub_folder = ''
-    else:
-        img_sub_folder = 'TIFs'
 
     # check with no missing FOVS
     with tempfile.TemporaryDirectory() as temp_dir:
 
         fovs = ['R1C1', 'R1C2', 'R1C3']
-        channels = ['chan1', 'chan2']
 
         filelocs, data_xr = test_utils.create_paired_xarray_fovs(
-            temp_dir, fovs, channels, img_shape=(10, 10), delimiter='_', fills=True,
+            temp_dir, fovs, ['chan1', 'chan2'], img_shape=(10, 10), fills=True,
             sub_dir=img_sub_folder, dtype="int16", single_dir=single_dir
         )
 
@@ -429,6 +424,7 @@ def test_load_tiled_img_data(single_dir):
     with tempfile.TemporaryDirectory() as temp_dir:
 
         fovs = ['R1C1', 'R1C2', 'R2C1', 'R2C2']
+
         filelocs, data_xr = test_utils.create_paired_xarray_fovs(
             temp_dir, fovs, ['chan1', 'chan2'], img_shape=(10, 10), delimiter='_', fills=True,
             sub_dir=img_sub_folder, dtype="int16", single_dir=single_dir
