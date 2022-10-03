@@ -187,11 +187,11 @@ def _write_tifs(base_dir, fov_names, img_names, shape, sub_dir, fills, dtype, si
         for j, name in enumerate(img_names):
             # prepend fov name to single directory images
             if single_dir:
-                img_path = os.path.join(base_dir, f'{fov}_{name}.tiff')
+                img_path = os.path.join(base_dir, f'{fov}_{name}')
             else:
-                img_path = os.path.join(fov_path, f'{name}.tiff')
+                img_path = os.path.join(fov_path, f'{name}')
 
-            io.imsave(img_path, tif_data[i, :, :, j],
+            io.imsave(img_path + '.tiff', tif_data[i, :, :, j],
                       check_contrast=False)
             filelocs[fov].append(img_path)
 

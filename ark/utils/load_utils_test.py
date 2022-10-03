@@ -475,7 +475,6 @@ def test_load_tiled_img_data(single_dir, img_sub_folder):
             temp_dir, fovs, ['chan1'], img_shape=(10, 10), delimiter='_', fills=True,
             sub_dir=img_sub_folder, dtype="int16", single_dir=single_dir
         )
-        
         # missing fov data
         data_xr[2, :, :, :] = np.zeros((10, 10, 1), dtype='int16')
         if single_dir:
