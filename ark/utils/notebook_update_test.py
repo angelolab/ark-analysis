@@ -23,7 +23,7 @@ def _exec_update_notebooks(base_path, update_flag=True, bad_flag=False):
     if bad_flag:
         args.append("-g")
 
-    # attempt to copy files from base_path/templates_ark to scripts
+    # attempt to copy files from base_path/templates to scripts
     try:
         # we have to append /private ahead of the base_path due to the
         # way the temp_dir gets configured
@@ -48,9 +48,9 @@ def _exec_update_notebooks(base_path, update_flag=True, bad_flag=False):
 
 
 def _make_dir_and_exec(base_dir, templates, scripts=None, update_flag=True, bad_flag=False):
-    os.mkdir(os.path.join(base_dir, "templates_ark"))
+    os.mkdir(os.path.join(base_dir, "templates"))
     for template in templates:
-        pathlib.Path(os.path.join(base_dir, "templates_ark", template[0])).write_text(template[1])
+        pathlib.Path(os.path.join(base_dir, "templates", template[0])).write_text(template[1])
 
     if scripts is not None:
         os.mkdir(os.path.join(base_dir, "scripts"))
