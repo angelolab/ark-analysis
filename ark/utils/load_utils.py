@@ -323,39 +323,39 @@ def load_imgs_from_dir(data_dir, files=None, match_substring=None, trim_suffix=N
     return img_xr
 
 
-def check_fov_name_prefix(folders):
-    """Checks for a prefix (usually detailing a run name) in any of the provided FOV folder names
+def check_fov_name_prefix(fov_list):
+    """Checks for a prefix (usually detailing a run name) in any of the provided FOV names
 
         Args:
-            folders (list): list of fov folders
+            fov_list (list): list of fov name
         Returns:
-            tuple: (bool) whether at least one folder name has a prefix,
+            tuple: (bool) whether at least one fov names has a prefix,
                    (list / dict) if prefix, dictionary with fov name as keys and prefixes as values
                     otherwise return a simple list of the fov names
         """
 
-    # check for prefix in any of the folder names
+    # check for prefix in any of the fov names
     prefix = False
-    for folder in folders:
+    for folder in fov_list:
         if re.search('R.{1,3}C.{1,3}', folder).start() != 0:
             prefix = True
 
     if prefix:
         # dict containing fov name and run name
         fov_names = {}
-        for folder in folders:
+        for folder in fov_list:
             fov = ''.join(folder.split("_")[-1:])
             prefix_name = '_'.join(folder.split("_")[:-1])
             fov_names[fov] = prefix_name
     else:
-        # original list of folder names
-        fov_names = folders
+        # original list of fov names
+        fov_names = fov_list
 
     return prefix, fov_names
 
 
 def get_tiled_fov_names(fov_list, return_dims=False):
-    """Generates the complete tiled fov list when given a list of fov image folders
+    """Generates the complete tiled fov list when given a list of fov names
 
     Args:
         fov_list (list):
@@ -381,12 +381,12 @@ def get_tiled_fov_names(fov_list, return_dims=False):
     # fill list of expected fov names
     for n in range(row_num):
         for m in range(col_num):
-            dim = f'R{n + 1}C{m + 1}'
+            fov = f'R{n + 1}C{m + 1}'
             # prepend run names
-            if prefix and dim in list(fov_names.keys()):
-                expected_fovs.append(f"{fov_names[dim]}_" + dim)
+            if prefix and fov in list(fov_names.keys()):
+                expected_fovs.append(f"{fov_names[fov]}_" + fov)
             else:
-                expected_fovs.append(dim)
+                expected_fovs.append(fov)
 
     if return_dims:
         return expected_fovs, row_num, col_num
@@ -402,7 +402,7 @@ def get_max_img_size(image_dir, img_sub_folder='', single_dir=False):
         img_sub_folder (str):
             optional name of image sub-folder within each fov
         single_dir (bool):
-            whether the images are stored in a single directory rather than within fov subdir
+            whether the images are stored in a single directory rather than within fov subdirs
 
     Returns:
         int: value of max image size
@@ -418,7 +418,8 @@ def get_max_img_size(image_dir, img_sub_folder='', single_dir=False):
         fov_list = iou.list_folders(image_dir)
         if 'stitched_images' in fov_list:
             fov_list.remove('stitched_images')
-        channels = iou.list_files(os.path.join(image_dir, fov_list[0], img_sub_folder))
+        channels = iou.list_files(os.path.join(image_dir, fov_list[0], img_sub_folder),
+                                  substrs='.tif')
 
     # check image size for each fov
     for fov in fov_list:
@@ -443,7 +444,7 @@ def load_tiled_img_data(data_dir, fov_list, channel, single_dir, max_image_size,
         fov_list (list):
             list of fovs to load data for
         channel (str):
-            image names to load
+            single name to load images for
         single_dir (bool):
             whether the images are stored in a single directory rather than within fov subdirs
         max_image_size (int):
@@ -508,4 +509,5 @@ def load_tiled_img_data(data_dir, fov_list, channel, single_dir, max_image_size,
 
     img_xr = xr.DataArray(img_data, coords=[expected_fovs, row_coords, col_coords, [channel]],
                           dims=["fovs", "rows", "cols", "channels"])
+
     return img_xr

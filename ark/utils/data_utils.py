@@ -592,7 +592,7 @@ def stitch_images_by_shape(data_dir, stitched_dir, img_sub_folder=None, channels
         img_sub_folder = ""
 
     if clustering and clustering not in ['pixel', 'cell']:
-        raise ValueError('If stitching images from the pixie pipeline, the pixie_dir arg must be '
+        raise ValueError('If stitching images from the pixie pipeline, the clustering arg must be '
                          'set to either \"pixel\" or \"cell\".')
 
     # retrieve valid fov names
@@ -606,11 +606,12 @@ def stitch_images_by_shape(data_dir, stitched_dir, img_sub_folder=None, channels
         fovs = ns.natsorted(io_utils.list_folders(data_dir))
         if 'stitched_images' in fovs:
             fovs.remove('stitched_images')
+        print(fovs)
 
     if len(fovs) == 0:
         raise ValueError(f"No FOVs found in directory, {data_dir}.")
 
-    # check previous tiling
+    # check previous stitching
     if os.path.exists(stitched_dir):
         raise ValueError(f"The {stitched_dir} directory already exists.")
 
@@ -656,4 +657,4 @@ def stitch_images_by_shape(data_dir, stitched_dir, img_sub_folder=None, channels
         stitched_data = stitch_images(image_data, num_cols)
         current_img = stitched_data.loc['stitched_image', :, :, chan].values
         io.imsave(os.path.join(stitched_dir, chan + '_stitched.' + file_ext),
-                  current_img.astype('float32'), check_contrast=False)
+                  current_img, check_contrast=False)

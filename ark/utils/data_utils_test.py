@@ -10,6 +10,7 @@ import pandas as pd
 import pytest
 import skimage.io as io
 import xarray as xr
+from random import randint
 
 from ark import settings
 from ark.utils import data_utils, test_utils, io_utils, load_utils
@@ -664,148 +665,110 @@ def test_download_example_data():
             assert set(channel_names) == set(c_names)
 
 
-@pytest.mark.parametrize('segmentation, clustering',
-                         [(True, False), (False, 'cell'), (False, 'pixel')])
-def test_stitch_images_by_shape(segmentation, clustering):
+@pytest.mark.parametrize('segmentation, clustering, subdir',
+                         [(False, False, 'TIFs'), (True, False, ''), (False, 'cell', ''),
+                          (False, 'pixel', '')])
+@pytest.mark.parametrize('fovs', [['R1C1', 'R2C2', 'R3C1'],
+                         ['run_1_R1C1', 'run_1_R2C2', 'run_2_R3C1']])
+def test_stitch_images_by_shape(segmentation, clustering, subdir, fovs):
 
-    # validation checks
+    # validation checks (only once)
+    if clustering == 'pixel':
+        with tempfile.TemporaryDirectory() as temp_dir:
+            data_dir = os.path.join(temp_dir, 'images')
+            stitched_dir = os.path.join(temp_dir, 'stitched_images')
+            os.makedirs(data_dir)
+
+            # no fov dirs should raise an error
+            with pytest.raises(ValueError, match="No FOVs found in directory"):
+                data_utils.stitch_images_by_shape(data_dir, stitched_dir)
+
+            for fov in ['fov1', 'fov2']:
+                os.makedirs(os.path.join(data_dir, fov))
+
+            # bad fov names should raise error
+            with pytest.raises(ValueError, match="Invalid FOVs found in directory"):
+                data_utils.stitch_images_by_shape(data_dir, stitched_dir)
+
+            # one valid fov name but not all should raise error
+            os.makedirs(os.path.join(temp_dir, 'R1C1'))
+            with pytest.raises(ValueError, match="Invalid FOVs found in directory"):
+                data_utils.stitch_images_by_shape(data_dir, stitched_dir)
+
+            # check for existing previous stitched images
+            os.makedirs(os.path.join(stitched_dir))
+            with pytest.raises(ValueError, match="already exists"):
+                data_utils.stitch_images_by_shape(data_dir, stitched_dir)
+
+            # bad clustering arg should raise an error
+            with pytest.raises(ValueError, match="If stitching images from the pixie pipeline"):
+                data_utils.stitch_images_by_shape(data_dir, stitched_dir,
+                                                  segmentation=segmentation, clustering='not_cell')
+
+    # test with varying image sizes
+    if not segmentation and not clustering:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            data_dir = os.path.join(temp_dir, 'images')
+            stitched_dir = os.path.join(temp_dir, 'stitched_images')
+            os.makedirs(data_dir)
+
+            test_utils._write_tifs(data_dir, fovs, ['chan1'], (10, 10), subdir, False, int)
+            test_utils._write_tifs(data_dir, ['R2C1'], ['chan1'], (12, 12), subdir, False, int)
+
+            # bad channel name should raise an error
+            with pytest.raises(ValueError, match="Not all values given in list"):
+                data_utils.stitch_images_by_shape(data_dir, stitched_dir, channels='bad_channel',
+                                                  img_sub_folder=subdir)
+
+            # test successful stitching
+            data_utils.stitch_images_by_shape(data_dir, stitched_dir, img_sub_folder=subdir)
+            assert sorted(io_utils.list_files(stitched_dir)) == \
+                   ['chan1_stitched.tiff']
+
+            # stitched image is 3 x 2 fovs with max_img_size = 12
+            stitched_data = load_utils.load_imgs_from_dir(os.path.join(temp_dir, stitched_dir),
+                                                          files=['chan1_stitched.tiff'])
+            assert stitched_data.shape == (1, 36, 24, 1)
+
+    # test success for specific directory cases
     with tempfile.TemporaryDirectory() as temp_dir:
         data_dir = os.path.join(temp_dir, 'images')
         stitched_dir = os.path.join(temp_dir, 'stitched_images')
         os.makedirs(data_dir)
 
-        # no fov dirs should raise an error
-        with pytest.raises(ValueError, match="No FOVs found in directory"):
-            data_utils.stitch_images_by_shape(data_dir, stitched_dir)
+        if segmentation:
+            chans = ['feature_0', 'feature_1']
+        elif clustering:
+            chans = [clustering + '_mask']
+        else:
+            chans = [f'chan{i}' for i in range(5)]
 
-        for fov in ['fov1', 'fov2']:
-            os.makedirs(os.path.join(data_dir, fov))
+        # check doesn't read toffy stitched_images dir
+        prefix = load_utils.get_tiled_fov_names(fovs)
+        if not prefix:
+            fovs.append('stitched_images')
 
-        # bad fov names should raise error
-        with pytest.raises(ValueError, match="Invalid FOVs found in directory"):
-            data_utils.stitch_images_by_shape(data_dir, stitched_dir)
-
-        # one valid fov name but not all should raise error
-        os.makedirs(os.path.join(temp_dir, 'R1C1'))
-        with pytest.raises(ValueError, match="Invalid FOVs found in directory"):
-            data_utils.stitch_images_by_shape(data_dir, stitched_dir)
-
-        # check for existing previous stitched images
-        os.makedirs(os.path.join(stitched_dir))
-        with pytest.raises(ValueError, match="already exists"):
-            data_utils.stitch_images_by_shape(data_dir, stitched_dir)
-
-    # test with fov dirs
-    with tempfile.TemporaryDirectory() as temp_dir:
-        data_dir = os.path.join(temp_dir, 'images')
-        stitched_dir = os.path.join(temp_dir, 'stitched_images')
-        os.makedirs(data_dir)
-
-        fovs = ['R1C1', 'R2C2', 'R3C1', 'stitched_images']
-        larger_fov = ['R4C2']
-        chans = [f'chan{i}' for i in range(5)]
-
-        test_utils._write_tifs(data_dir, fovs, chans, (10, 10), '', False, int)
-        test_utils._write_tifs(data_dir, larger_fov, chans, (12, 12), '', False, int)
-
-        # bad channel name should raise an error
-        with pytest.raises(ValueError, match="Not all values given in list"):
-            data_utils.stitch_images_by_shape(data_dir, stitched_dir, channels='bad_channel')
+        filelocs, data_xr = test_utils.create_paired_xarray_fovs(
+            data_dir, fovs, chans,
+            img_shape=(10, 10), fills=True, sub_dir=subdir, dtype=np.float32,
+            single_dir=any([segmentation, clustering])
+        )
 
         # test successful stitching
-        data_utils.stitch_images_by_shape(data_dir, stitched_dir)
-        assert sorted(io_utils.list_files(stitched_dir)) == \
-               [chan + '_stitched.tiff' for chan in chans]
-
-        # stitched image is 4 x 2 fovs with max_img_size = 12
-        stitched_data = load_utils.load_imgs_from_dir(os.path.join(temp_dir, stitched_dir),
-                                                      files=['chan0_stitched.tiff'])
-        assert stitched_data.shape == (1, 48, 24, 1)
-        shutil.rmtree(os.path.join(temp_dir, stitched_dir))
-
-        # test successful stitching for select channels
-        data_utils.stitch_images_by_shape(data_dir, stitched_dir, channels=['chan1', 'chan3'])
-        assert sorted(io_utils.list_files(stitched_dir)) == \
-               ['chan1_stitched.tiff', 'chan3_stitched.tiff']
-
-    # test with subdir and run name
-    with tempfile.TemporaryDirectory() as temp_dir:
-        data_dir = os.path.join(temp_dir, 'images')
-        stitched_dir = os.path.join(temp_dir, 'stitched_images')
-        os.makedirs(data_dir)
-
-        fovs = ['run_1_R1C1', 'run_1_R2C2', 'run_2_R3C1']
-        test_utils._write_tifs(data_dir, fovs, chans, (10, 10), 'sub_dir', False, int)
-
-        # test successful stitching
-        data_utils.stitch_images_by_shape(data_dir, stitched_dir, img_sub_folder='sub_dir')
+        data_utils.stitch_images_by_shape(data_dir, stitched_dir, img_sub_folder=subdir,
+                                          segmentation=segmentation, clustering=clustering)
         assert sorted(io_utils.list_files(stitched_dir)) == \
                [chan + '_stitched.tiff' for chan in chans]
 
         # stitched image is 3 x 2 fovs with max_img_size = 10
         stitched_data = load_utils.load_imgs_from_dir(stitched_dir,
-                                                      files=['chan0_stitched.tiff'])
+                                                      files=[chans[0] + '_stitched.tiff'])
         assert stitched_data.shape == (1, 30, 20, 1)
+        shutil.rmtree(stitched_dir)
 
-    if segmentation:
-        channels = ['feature_0', 'feature_1']
-    else:
-        channels = ['cell_mask', 'pixel_mask']
-
-    # test with single dir
-    with tempfile.TemporaryDirectory() as temp_dir:
-        image_dir = os.path.join(temp_dir, 'image_dir')
-        stitched_dir = os.path.join(temp_dir, 'stitched_images')
-        os.makedirs(image_dir)
-
-        filelocs, data_xr = test_utils.create_paired_xarray_fovs(
-            image_dir, ['R1C1', 'R2C2', 'R3C1', 'R4C2', 'bad_fov'], channels, img_shape=(10, 10),
-            delimiter='_', fills=True, sub_dir='', dtype=np.float32, single_dir=True
-        )
-
-        # bad fov names should raise error
-        with pytest.raises(ValueError, match="Invalid FOVs found in directory"):
-            data_utils.stitch_images_by_shape(image_dir, stitched_dir,
-                                              segmentation=segmentation, clustering=clustering)
-        for chan in channels:
-            os.remove(os.path.join(image_dir, 'bad_fov_' + chan + '.tiff'))
-
-        # bad channel name should raise an error
-        with pytest.raises(ValueError, match="Not all values given in list"):
-            data_utils.stitch_images_by_shape(image_dir, stitched_dir, channels=['bad_channel'],
-                                              segmentation=segmentation, clustering=clustering)
-
-        # bad pixie_dir arg should raise an error
-        with pytest.raises(ValueError, match="If stitching images from the pixie pipeline"):
-            data_utils.stitch_images_by_shape(image_dir, stitched_dir,
-                                              segmentation=segmentation, clustering='not_cell')
-
-        # test successful stitching
-        data_utils.stitch_images_by_shape(image_dir, stitched_dir, segmentation=segmentation,
+        # test successful stitching for select channels
+        random_channel = chans[randint(0, len(chans)-1)]
+        data_utils.stitch_images_by_shape(data_dir, stitched_dir, img_sub_folder=subdir,
+                                          channels=[random_channel], segmentation=segmentation,
                                           clustering=clustering)
-        assert sorted(io_utils.list_files(stitched_dir)) == \
-               [chan + '_stitched.tiff' for chan in channels]
-
-        # stitched image is 4 x 2 fovs with max_img_size = 10
-        stitched_data = load_utils.load_imgs_from_dir(os.path.join(temp_dir, stitched_dir),
-                                                      files=[channels[0] + '_stitched.tiff'])
-        assert stitched_data.shape == (1, 40, 20, 1)
-
-    # test single dir for select channels and run name prepended
-    with tempfile.TemporaryDirectory() as temp_dir:
-        image_dir = os.path.join(temp_dir, 'image_dir')
-        stitched_dir = os.path.join(temp_dir, 'stitched_images')
-        os.makedirs(image_dir)
-
-        # test successful stitching for select channels and run name prepended
-        filelocs, data_xr = test_utils.create_paired_xarray_fovs(
-            image_dir, ['run_1_R1C1', 'run_2_R2C2', 'run_1_R3C1', 'run_3_R4C2'], channels,
-            img_shape=(10, 10), delimiter='_', fills=True, sub_dir='', dtype=np.float32,
-            single_dir=True
-        )
-
-        for chan in channels:
-            data_utils.stitch_images_by_shape(image_dir, stitched_dir, channels=[chan],
-                                              segmentation=segmentation, clustering=clustering)
-            assert sorted(io_utils.list_files(stitched_dir)) == [chan + '_stitched.tiff']
-            shutil.rmtree(os.path.join(temp_dir, stitched_dir))
+        assert sorted(io_utils.list_files(stitched_dir)) == [random_channel + '_stitched.tiff']
