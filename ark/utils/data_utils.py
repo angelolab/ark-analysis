@@ -595,7 +595,7 @@ def download_example_data(save_dir: Union[str, pathlib.Path]):
 
 
 def stitch_images_by_shape(data_dir, stitched_dir, img_sub_folder=None, channels=None,
-                           max_img_size=None, segmentation=False, clustering=False):
+                           segmentation=False, clustering=False):
     """ Creates stitched images for the specified channels based on the FOV folder names
 
     Args:
@@ -607,9 +607,6 @@ def stitch_images_by_shape(data_dir, stitched_dir, img_sub_folder=None, channels
             optional name of image sub-folder within each fov
         channels (list):
             optional list of imgs to load, otherwise loads all imgs
-        max_img_size (int or None):
-            The length (in pixels) of the largest image that will be loaded. All other images will
-            be padded to bring them up to the same size.
         segmentation (bool):
             if stitching images from the single segmentation dir
         clustering (bool or str):
@@ -671,9 +668,6 @@ def stitch_images_by_shape(data_dir, stitched_dir, img_sub_folder=None, channels
                        valid_channels=io_utils.remove_file_extensions(channel_imgs))
 
     os.makedirs(stitched_dir)
-    if max_img_size is None:
-        max_img_size = load_utils.get_max_img_size(data_dir, img_sub_folder,
-                                                   single_dir=any([segmentation, clustering]))
 
     file_ext = channel_imgs[0].split('.')[1]
     _, num_rows, num_cols = load_utils.get_tiled_fov_names(fovs, return_dims=True)
@@ -682,7 +676,6 @@ def stitch_images_by_shape(data_dir, stitched_dir, img_sub_folder=None, channels
     for chan in channels:
         image_data = load_tiled_img_data(data_dir, fovs, chan,
                                          single_dir=any([segmentation, clustering]),
-                                         max_image_size=max_img_size,
                                          file_ext=file_ext, img_sub_folder=img_sub_folder)
         stitched_data = stitch_images(image_data, num_cols)
         current_img = stitched_data.loc['stitched_image', :, :, chan].values

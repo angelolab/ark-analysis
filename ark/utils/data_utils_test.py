@@ -741,30 +741,6 @@ def test_stitch_images_by_shape(segmentation, clustering, subdir, fovs):
             with pytest.raises(ValueError, match="already exists"):
                 data_utils.stitch_images_by_shape(data_dir, stitched_dir)
 
-    # test with varying image sizes
-    if not segmentation and not clustering:
-        with tempfile.TemporaryDirectory() as temp_dir:
-            data_dir = os.path.join(temp_dir, 'images')
-            stitched_dir = os.path.join(temp_dir, 'stitched_images')
-            os.makedirs(data_dir)
-
-            test_utils._write_tifs(data_dir, fovs, ['chan1'], (10, 10), subdir, False, int)
-            test_utils._write_tifs(data_dir, ['R2C1'], ['chan1'], (12, 12), subdir, False, int)
-
-            # bad channel name should raise an error
-            with pytest.raises(ValueError, match="Not all values given in list"):
-                data_utils.stitch_images_by_shape(data_dir, stitched_dir, channels='bad_channel',
-                                                  img_sub_folder=subdir)
-
-            # test successful stitching
-            data_utils.stitch_images_by_shape(data_dir, stitched_dir, img_sub_folder=subdir)
-            assert sorted(io_utils.list_files(stitched_dir)) == ['chan1_stitched.tiff']
-
-            # stitched image is 3 x 2 fovs with max_img_size = 12
-            stitched_data = load_utils.load_imgs_from_dir(os.path.join(temp_dir, stitched_dir),
-                                                          files=['chan1_stitched.tiff'])
-            assert stitched_data.shape == (1, 36, 24, 1)
-
     # test success for various directory cases
     with tempfile.TemporaryDirectory() as temp_dir:
         data_dir = os.path.join(temp_dir, 'images')
@@ -785,6 +761,12 @@ def test_stitch_images_by_shape(segmentation, clustering, subdir, fovs):
             img_shape=(10, 10), fills=True, sub_dir=subdir, dtype=np.float32,
             single_dir=any([segmentation, clustering])
         )
+
+        # bad channel name should raise an error
+        with pytest.raises(ValueError, match="Not all values given in list"):
+            data_utils.stitch_images_by_shape(data_dir, stitched_dir, channels='bad_channel',
+                                              img_sub_folder=subdir, segmentation=segmentation,
+                                              clustering=clustering)
 
         # test successful stitching
         data_utils.stitch_images_by_shape(data_dir, stitched_dir, img_sub_folder=subdir,

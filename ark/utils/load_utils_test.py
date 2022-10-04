@@ -398,7 +398,7 @@ def test_get_max_img_size(subdir):
 def test_load_tiled_img_data(single_dir, img_sub_folder):
     # invalid directory is provided
     with pytest.raises(ValueError):
-        loaded_xr = load_utils.load_tiled_img_data('not_a_dir', [], 'chan1', max_image_size=10,
+        loaded_xr = load_utils.load_tiled_img_data('not_a_dir', [], 'chan1',
                                                    single_dir=False,)
 
     # check with no missing FOVS
@@ -411,7 +411,7 @@ def test_load_tiled_img_data(single_dir, img_sub_folder):
         )
 
         # check default loading of chan1 images
-        loaded_xr = load_utils.load_tiled_img_data(temp_dir, fovs, 'chan1', max_image_size=10,
+        loaded_xr = load_utils.load_tiled_img_data(temp_dir, fovs, 'chan1',
                                                    single_dir=single_dir,
                                                    img_sub_folder=img_sub_folder)
 
@@ -436,13 +436,12 @@ def test_load_tiled_img_data(single_dir, img_sub_folder):
         # check successful loading for one channel
         loaded_xr = \
             load_utils.load_tiled_img_data(temp_dir, ['R1C1', 'R1C2', 'R2C2'], 'chan1',
-                                           max_image_size=10, single_dir=single_dir,
-                                           img_sub_folder=img_sub_folder)
+                                           single_dir=single_dir, img_sub_folder=img_sub_folder)
 
         assert loaded_xr.equals(data_xr[:, :, :, :-1])
         assert loaded_xr.shape == (4, 10, 10, 1)
 
-    # test loading with data_xr containing float values and image padding
+    # test loading with data_xr containing float values
     with tempfile.TemporaryDirectory() as temp_dir:
 
         fovs = ['R1C1', 'R1C2', 'R2C1', 'R2C2']
@@ -458,9 +457,9 @@ def test_load_tiled_img_data(single_dir, img_sub_folder):
             shutil.rmtree(os.path.join(temp_dir, 'R2C1'))
 
         loaded_xr = load_utils.load_tiled_img_data(temp_dir, ['R1C1', 'R1C2', 'R2C2'], 'chan1',
-                                                   max_image_size=12, single_dir=single_dir,
+                                                   single_dir=single_dir,
                                                    img_sub_folder=img_sub_folder)
-        assert loaded_xr.shape == (4, 12, 12, 1)
+        assert loaded_xr.shape == (4, 10, 10, 1)
         assert np.issubdtype(loaded_xr.dtype, np.floating)
 
     # test loading with run name prepend
@@ -480,7 +479,7 @@ def test_load_tiled_img_data(single_dir, img_sub_folder):
 
         loaded_xr = \
             load_utils.load_tiled_img_data(temp_dir, ['run_1_R1C1', 'run_1_R1C2', 'run_2_R2C2'],
-                                           'chan1', max_image_size=10, single_dir=single_dir,
+                                           'chan1', single_dir=single_dir,
                                            img_sub_folder=img_sub_folder)
         assert loaded_xr.equals(data_xr)
         assert loaded_xr.shape == (4, 10, 10, 1)

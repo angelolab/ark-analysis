@@ -434,7 +434,7 @@ def get_max_img_size(image_dir, img_sub_folder='', single_dir=False):
     return max_img_size
 
 
-def load_tiled_img_data(data_dir, fov_list, channel, single_dir, max_image_size, file_ext='tiff',
+def load_tiled_img_data(data_dir, fov_list, channel, single_dir, file_ext='tiff',
                         img_sub_folder=''):
     """Takes a set of images from a directory structure and loads them into a tiled xarray.
 
@@ -447,9 +447,6 @@ def load_tiled_img_data(data_dir, fov_list, channel, single_dir, max_image_size,
             single image name to load
         single_dir (bool):
             whether the images are stored in a single directory rather than within fov subdirs
-        max_image_size (int):
-            The length (in pixels) of the largest image that will be loaded. All other images will
-            be padded to bring them up to the same size.
         file_ext (str):
             the file type of existing images
         img_sub_folder (str):
@@ -471,7 +468,7 @@ def load_tiled_img_data(data_dir, fov_list, channel, single_dir, max_image_size,
                                         trim_suffix='_' + channel, xr_channel_names=[channel])
         else:
             img_xr = load_imgs_from_tree(data_dir, img_sub_folder, fovs=fov_list,
-                                         channels=[channel], max_image_size=max_image_size)
+                                         channels=[channel])
         return img_xr
 
     # missing fov directories, read in a test image to get data type
@@ -481,7 +478,7 @@ def load_tiled_img_data(data_dir, fov_list, channel, single_dir, max_image_size,
         test_path = os.path.join(os.path.join(data_dir, fov_list[0], img_sub_folder, channel + '.'
                                               + file_ext))
     test_img = io.imread(test_path)
-    img_data = np.zeros((len(expected_fovs), max_image_size, max_image_size, 1),
+    img_data = np.zeros((len(expected_fovs), test_img.shape[0], test_img.shape[1], 1),
                         dtype=test_img.dtype)
 
     for fov, fov_name in enumerate(expected_fovs):
