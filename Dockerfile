@@ -19,8 +19,12 @@ RUN add-apt-repository 'deb https://cloud.r-project.org/bin/linux/debian bullsey
 RUN apt-get update && apt-get -y upgrade
 
 # install gcc and R
-RUN apt-get install -y gcc r-base
-
+ARG rversion=4.1.2-1
+RUN apt-get install -y \
+    r-base-core=${rversion} \
+    r-base-dev=${rversion} \
+    r-base-html=${rversion} \
+    r-doc-html=${rversion}
 # install cmake (needed for nloptr)
 RUN apt-get install -y cmake
 
