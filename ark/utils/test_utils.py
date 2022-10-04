@@ -577,7 +577,6 @@ def make_cell_table(num_cells, extra_cols=None):
     cell_data = pd.DataFrame(np.random.random(size=(num_cells, len(column_names))),
                              columns=column_names)
     # not-so-random filler data
-    cluster_id = choices(range(1, 21), k=num_cells)
     centroids = pd.DataFrame(np.array([(x, y) for x in range(1024) for y in range(1024)]))
     centroid_loc = np.random.choice(range(1024 ** 2), size=num_cells, replace=False)
     fields = [(settings.FOV_ID, choices(range(1, 5), k=num_cells)),
@@ -783,7 +782,7 @@ def spoof_cell_table_from_labels(labels, cell_count=4, positive_population_ratio
             data array with segmentation labels
         cell_count (int):
             number of cells per fov
-        positive_population_ration (float):
+        positive_population_ratio (float):
             fraction of cells per fov to assign unique trait to.  This is performed twice for two
             unique populations, so it must be smaller than 1/2.
 
@@ -855,14 +854,14 @@ def _make_expression_mat_sa(enrichment_type):
         all_data.iloc[60:80, 3] = 1
         all_data.iloc[80:100, 2] = 1
         # We assign the two populations of cells different cell phenotypes
-        #all_data.iloc[0:20, 31] = 1
+        # all_data.iloc[0:20, 31] = 1
         all_data.iloc[0:20, 31] = "Pheno1"
-        #all_data.iloc[60:80, 31] = 2
+        # all_data.iloc[60:80, 31] = 2
         all_data.iloc[60:80, 31] = "Pheno2"
 
-        #all_data.iloc[20:40, 31] = 2
+        # all_data.iloc[20:40, 31] = 2
         all_data.iloc[20:40, 31] = "Pheno2"
-        #all_data.iloc[80:100, 31] = 1
+        # all_data.iloc[80:100, 31] = 1
         all_data.iloc[80:100, 31] = "Pheno1"
 
         # Assign column names to columns not for markers (columns to be excluded)
@@ -885,14 +884,14 @@ def _make_expression_mat_sa(enrichment_type):
         all_data_pos.iloc[80:88, 3] = 1
         all_data_pos.iloc[90:98, 2] = 1
         # We assign the two populations of cells different cell phenotypes
-        #all_data_pos.iloc[0:8, 31] = 1
+        # all_data_pos.iloc[0:8, 31] = 1
         all_data_pos.iloc[0:8, 31] = "Pheno1"
-        #all_data_pos.iloc[80:88, 31] = 2
+        # all_data_pos.iloc[80:88, 31] = 2
         all_data_pos.iloc[80:88, 31] = "Pheno2"
 
-        #all_data_pos.iloc[10:18, 31] = 2
+        # all_data_pos.iloc[10:18, 31] = 2
         all_data_pos.iloc[10:18, 31] = "Pheno2"
-        #all_data_pos.iloc[90:98, 31] = 1
+        # all_data_pos.iloc[90:98, 31] = 1
         all_data_pos.iloc[90:98, 31] = "Pheno1"
         # We create 4 cells in column index 2 and column index 3 that are also positive
         # for their respective markers.
@@ -901,14 +900,14 @@ def _make_expression_mat_sa(enrichment_type):
         all_data_pos.iloc[108:112, 3] = 1
         all_data_pos.iloc[112:116, 2] = 1
         # We assign the two populations of cells different cell phenotypes
-        #all_data_pos.iloc[28:32, 31] = 1
+        # all_data_pos.iloc[28:32, 31] = 1
         all_data_pos.iloc[28:32, 31] = "Pheno1"
-        #all_data_pos.iloc[108:112, 31] = 2
+        # all_data_pos.iloc[108:112, 31] = 2
         all_data_pos.iloc[108:112, 31] = "Pheno2"
 
-        #all_data_pos.iloc[32:36, 31] = 2
+        # all_data_pos.iloc[32:36, 31] = 2
         all_data_pos.iloc[32:36, 31] = "Pheno2"
-        #all_data_pos.iloc[112:116, 31] = 1
+        # all_data_pos.iloc[112:116, 31] = 1
         all_data_pos.iloc[112:116, 31] = "Pheno1"
 
         # Assign column names to columns not for markers (columns to be excluded)
@@ -933,14 +932,14 @@ def _make_expression_mat_sa(enrichment_type):
         all_data_neg.iloc[60:80, 3] = 1
         all_data_neg.iloc[80:100, 2] = 1
         # We assign the two populations of cells different cell phenotypes
-        #all_data_neg.iloc[0:20, 31] = 1
+        # all_data_neg.iloc[0:20, 31] = 1
         all_data_neg.iloc[0:20, 31] = "Pheno1"
-        #all_data_neg.iloc[60:80, 31] = 2
+        # all_data_neg.iloc[60:80, 31] = 2
         all_data_neg.iloc[60:80, 31] = "Pheno2"
 
-        #all_data_neg.iloc[20:40, 31] = 2
+        # all_data_neg.iloc[20:40, 31] = 2
         all_data_neg.iloc[20:40, 31] = "Pheno2"
-        #all_data_neg.iloc[80:100, 31] = 1
+        # all_data_neg.iloc[80:100, 31] = 1
         all_data_neg.iloc[80:100, 31] = "Pheno1"
 
         # Assign column names to columns not for markers (columns to be excluded)
@@ -1062,7 +1061,7 @@ def _make_expression_mat_sa_utils():
         0: settings.CELL_SIZE,
         24: settings.CELL_LABEL,
         30: settings.FOV_ID,
-        #31: settings.CELL_NUM,
+        # 31: settings.CELL_NUM,
         31: settings.CELL_TYPE,
     }
     all_data = all_data.rename(colnames, axis=1)
@@ -1078,11 +1077,11 @@ def _make_expression_mat_sa_utils():
 
     # 4 cells assigned one phenotype, 5 cells assigned another phenotype,
     # and the last cell assigned a different phenotype
-    #all_data.iloc[0:4, 31] = 1
+    # all_data.iloc[0:4, 31] = 1
     all_data.iloc[0:4, 31] = "Pheno1"
-    #all_data.iloc[4:9, 31] = 2
+    # all_data.iloc[4:9, 31] = 2
     all_data.iloc[4:9, 31] = "Pheno2"
-    #all_data.iloc[9, 31] = 3
+    # all_data.iloc[9, 31] = 3
     all_data.iloc[9, 31] = "Pheno3"
 
     return all_data
