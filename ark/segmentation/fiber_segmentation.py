@@ -2,6 +2,7 @@ import os
 
 import numpy as np
 import pandas as pd
+import natsort as ns
 import matplotlib.pyplot as plt
 import scipy.ndimage as ndi
 from scipy.ndimage.morphology import distance_transform_edt
@@ -13,9 +14,11 @@ from skimage.morphology import remove_small_objects
 from skimage.measure import regionprops_table
 from skimage.exposure import equalize_adapthist
 
-from ark.utils import io_utils, load_utils
-from ark.utils.plot_utils import set_minimum_color_for_colormap
 from ark import settings
+from ark.utils import load_utils
+from ark.utils.plot_utils import set_minimum_color_for_colormap
+from ark.utils.misc_utils import verify_in_list
+from ark.utils.io_utils import list_files, list_folders, validate_paths, remove_file_extensions
 
 
 def plot_fiber_segmentation_steps(data_dir, fov_name, fiber_channel, img_sub_folder=None, blur=2,
@@ -54,6 +57,8 @@ def plot_fiber_segmentation_steps(data_dir, fov_name, fiber_channel, img_sub_fol
             Base matplotlib colormap to use for labeled images.  This will only be applied to the
             non-zero labels, with the zero-region being colored black.
     """
+
+    validate_paths(data_dir)
 
     data_xr = load_utils.load_imgs_from_tree(
         data_dir, img_sub_folder, fovs=[fov_name], channels=[fiber_channel]
@@ -120,9 +125,8 @@ def plot_fiber_segmentation_steps(data_dir, fov_name, fiber_channel, img_sub_fol
         ax.axis('off')
 
 
-def batch_segment_fibers(data_dir, fiber_channel, out_dir, img_sub_folder=None, batch_size=5,
-                         **kwargs):
-    """Segments fiber objects in batches
+def run_fiber_segmentation(data_dir, fiber_channel, out_dir, img_sub_folder=None, **kwargs):
+    """Segments fibers one FOV at a time
 
     Args:
         data_dir (str | PathLike):
@@ -133,23 +137,23 @@ def batch_segment_fibers(data_dir, fiber_channel, out_dir, img_sub_folder=None, 
             Directory to save fiber object labels and table.
         img_sub_folder (str | NoneType):
             Image subfolder name in `data_dir`. If there is not subfolder, set this to None.
-        batch_size (int):
-            Number of FoVs to load/process at a time
         **kwargs:
             Keyword arguments for `segment_fibers`
     """
 
-    fovs = io_utils.list_folders(data_dir)
-    batching_strategy = \
-        [fovs[i:i + batch_size] for i in range(0, len(fovs), batch_size)]
+    validate_paths([data_dir, out_dir])
+
+    fovs = ns.natsorted(list_folders(data_dir))
+    verify_in_list(fiber_channel=[fiber_channel],
+                   all_channel=remove_file_extensions(list_files(os.path.join(data_dir, fovs[0]))))
 
     fiber_label_images = {}
     fiber_object_table = []
 
-    for batch_idx, batch in enumerate(batching_strategy):
-        print(f'\rStarting batch {batch_idx + 1} of {len(batching_strategy)}...', end='')
+    for fov in fovs:
+        print(f'Processing FOV: {fov}')
         subset_xr = load_utils.load_imgs_from_tree(
-            data_dir, img_sub_folder, fovs=batch, channels=[fiber_channel]
+            data_dir, img_sub_folder, fovs=fov, channels=[fiber_channel]
         )
         subtable, sublabel = segment_fibers(subset_xr, fiber_channel, out_dir, save_csv=False,
                                             **kwargs)
@@ -213,9 +217,6 @@ def segment_fibers(data_xr, fiber_channel, out_dir, blur=2, contrast_scaling_div
 
     fiber_label_images = {}
     fiber_object_table = []
-
-    if not os.path.exists(out_dir):
-        raise FileNotFoundError(f"{out_dir} doesn't exist...")
 
     if debug:
         debug_path = os.path.join(out_dir, '_debug')
