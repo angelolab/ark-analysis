@@ -24,7 +24,7 @@ then
   if [ $update -ne 0 ]
   then
     # check for each template's existance
-    for f in "$PWD"/templates_ark/*.ipynb
+    for f in "$PWD"/templates/*.ipynb
     do
       # get basename of notebook
       name=$(basename "$f")
@@ -55,10 +55,10 @@ then
       fi
     done
   else
-    cp -n "$PWD/templates_ark"/*\.ipynb "$PWD/scripts/."
+    cp -n "$PWD/templates"/*\.ipynb "$PWD/scripts/."
   fi
 else
   # since there is no scripts directory, just make one and copy from templates
   mkdir "$PWD/scripts"
-  cp "$PWD"/templates_ark/*\.ipynb "$PWD/scripts/."
+  cp "$PWD"/templates/*\.ipynb "$PWD/scripts/."
 fi

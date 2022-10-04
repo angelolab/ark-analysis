@@ -20,4 +20,4 @@ help:
 %: Makefile
 	@$(SPHINXAPIDOC) $(MISCDOCFLAGS) -s $(DOCOUTPUT) -o $(OUTPUTDIR) $(SRCPROJECT) $(IGNORE)
 	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
-	git checkout master -- _rtd/landing.md
+	git checkout main -- _rtd/landing.md
