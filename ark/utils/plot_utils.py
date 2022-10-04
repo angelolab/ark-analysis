@@ -20,30 +20,35 @@ from ark.utils import io_utils, load_utils, misc_utils
 from ark.utils.misc_utils import verify_in_list, verify_same_elements
 
 
-# TODO: if we can leave this and plot_pixel_cell_cluster_overlay separated
-# rename this to plot_neighborhood_clustering_result
-def plot_clustering_result(img_xr, fovs, save_dir=None, cmap='tab20',
-                           fov_col='fovs', figsize=(10, 10), tick_range=None):
+def plot_neighborhood_cluster_result(img_xr, fovs, k, save_dir=None, cmap_name='tab20',
+                                     fov_col='fovs', figsize=(10, 10)):
     """Takes an xarray containing labeled images and displays them.
     Args:
         img_xr (xarray.DataArray):
             xarray containing labeled cell objects.
         fovs (list):
             list of fovs to display.
+        k (int):
+            number of clusters (neighborhoods)
         save_dir (str):
             If provided, the image will be saved to this location.
-        cmap (str):
+        cmap_name (str):
             Cmap to use for the image that will be displayed.
         fov_col (str):
             column with the fovs names in `img_xr`.
         figsize (tuple):
             Size of the image that will be displayed.
-        tick_range (list):
-            Set explicit ticks if specified
     """
 
     # verify the fovs are valid
     verify_in_list(fov_names=fovs, unique_fovs=img_xr.fovs.values)
+
+    # define the colormap, add black for empty slide
+    mycols = cm.get_cmap(cmap_name, k).colors
+    mycols = np.vstack(([0, 0, 0, 1], mycols))
+    cmap = colors.ListedColormap(mycols)
+    bounds = [i-0.5 for i in np.linspace(0, k+1, k+2)]
+    norm = colors.BoundaryNorm(bounds, cmap.N)
 
     for fov in fovs:
         # define the figure
@@ -55,28 +60,33 @@ def plot_clustering_result(img_xr, fovs, save_dir=None, cmap='tab20',
         # make the title
         plt.title(fov)
 
-        # define the colormap
-        if tick_range is not None:
-            cmap = cm.get_cmap(cmap, len(tick_range))
-        else:
-            cmap = cm.get_cmap(cmap)
-
         # show the image on the figure
-        plt.imshow(img_xr[img_xr[fov_col] == fov].values.squeeze(), cmap=cmap)
+        im = plt.imshow(img_xr[img_xr[fov_col] == fov].values.squeeze(),
+                        cmap=cmap, norm=norm)
+
+        # remove the axes
+        plt.axis('off')
+
+        # remove the gridlines
+        plt.grid(visible=None)
 
         # ensure the colorbar matches up with the margins on the right
         divider = make_axes_locatable(ax)
         cax = divider.append_axes("right", size="5%", pad=0.05)
 
         # draw the colorbar
-        plt.colorbar(cax=cax, ticks=tick_range)
+        tick_names = ['Cluster'+str(x) for x in range(1, k+1)]
+        tick_names = ['Empty'] + tick_names
+        cbar = plt.colorbar(im, cax=cax, ticks=np.arange(len(tick_names)))
+        cbar.set_ticks(cbar.ax.get_yticks())
+        cbar.ax.set_yticklabels(tick_names)
 
         # save if specified
         if save_dir:
             misc_utils.save_figure(save_dir, f'{fov}.png')
 
 
-# TODO: possibly need to merge this with plot_clustering_result
+# TODO: possibly need to merge this with plot_neighborhood_cluster_result
 def plot_pixel_cell_cluster_overlay(img_xr, fovs, cluster_id_to_name_path, metacluster_colors,
                                     save_dir=None, fov_col='fovs', figsize=(10, 10)):
     """Overlays the pixel and cell clusters on an image

@@ -11,19 +11,14 @@ from ark.utils import notebooks_test_utils
 parametrize = pytest.mark.parametrize
 
 
-def _make_nb_path(nb_name):
-    TEMPLATES_ARK_PATH = \
-        os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', '..', 'templates_ark')
-
-    nb_path = os.path.join(TEMPLATES_ARK_PATH, nb_name)
-    assert os.path.exists(nb_path)
-    return nb_path
-
-
-SEGMENT_IMAGE_DATA_PATH = _make_nb_path('1_Segment_Image_Data.ipynb')
-PIXEL_CLUSTER_PATH = _make_nb_path('2_Cluster_Pixels.ipynb')
-CELL_CLUSTER_PATH = _make_nb_path('3_Cluster_Cells.ipynb')
-FIB_SEG_PATH = _make_nb_path('example_fiber_segmentation.ipynb')
+SEGMENT_IMAGE_DATA_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                                       '..', '..', 'templates', '1_Segment_Image_Data.ipynb')
+PIXEL_CLUSTER_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                                  '..', '..', 'templates', '2_Cluster_Pixels.ipynb')
+CELL_CLUSTER_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                                 '..', '..', 'templates', '3_Cluster_Cells.ipynb')
+FIB_SEG_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                                 '..', '..', 'templates', 'example_fiber_segmentation.ipynb')
 
 
 def _exec_notebook(nb_filename, base_folder):
@@ -38,15 +33,15 @@ def _exec_notebook(nb_filename, base_folder):
 
 # test runs with default inputs
 def test_segment_image_data():
-    _exec_notebook('1_Segment_Image_Data.ipynb', 'templates_ark')
+    _exec_notebook('1_Segment_Image_Data.ipynb', 'templates')
 
 
 def test_example_pairwise_spatial_enrichment():
-    _exec_notebook('example_pairwise_spatial_enrichment.ipynb', 'templates_ark')
+    _exec_notebook('example_pairwise_spatial_enrichment.ipynb', 'templates')
 
 
 def test_example_neighborhood_analysis():
-    _exec_notebook('example_neighborhood_analysis_script.ipynb', 'templates_ark')
+    _exec_notebook('example_neighborhood_analysis_script.ipynb', 'templates')
 
 
 # test folder inputs for image segmentation
