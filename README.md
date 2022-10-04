@@ -1,5 +1,5 @@
-[![Build Status](https://travis-ci.com/angelolab/ark-analysis.svg?branch=master)](https://travis-ci.com/angelolab/ark-analysis)
-[![Coverage Status](https://coveralls.io/repos/github/angelolab/ark-analysis/badge.svg?branch=master)](https://coveralls.io/github/angelolab/ark-analysis?branch=master)
+[![Build Status](https://travis-ci.com/angelolab/ark-analysis.svg?branch=main)](https://travis-ci.com/angelolab/ark-analysis)
+[![Coverage Status](https://coveralls.io/repos/github/angelolab/ark-analysis/badge.svg?branch=main)](https://coveralls.io/github/angelolab/ark-analysis?branch=main)
 ![Docker Image Version (latest by date)](https://img.shields.io/docker/v/angelolab/ark-analysis?arch=amd64&color=%23469ae5&label=Docker%20Version&sort=date)
 
 # ark-analysis
@@ -47,33 +47,33 @@ This repo contains tools for analyzing multiplexed imaging data. The assumption 
 We have recorded workshop talks which complement the repository. [MIBI Workshop Playlist](https://youtube.com/playlist?list=PLjNbkEm4vA26o5YvWKeyHXF8HjTJc7yB0).
 
 #### 1. Segmentation  
-The [**segmentation notebook**](./templates_ark/1_Segment_Image_Data.ipynb) will walk you through the process of using [Mesmer](https://www.nature.com/articles/s41587-021-01094-0) to segment your image data. This includes selecting the appropriate channel(s) for segmentation, running your data through the network, and then extracting single-cell statistics from the resulting segmentation mask. [Workshop Talk - Session V - Part 1: Segmentation](https://youtu.be/4_AJxrxPYlk?t=231)
+The [**segmentation notebook**](./templates/1_Segment_Image_Data.ipynb) will walk you through the process of using [Mesmer](https://www.nature.com/articles/s41587-021-01094-0) to segment your image data. This includes selecting the appropriate channel(s) for segmentation, running your data through the network, and then extracting single-cell statistics from the resulting segmentation mask. [Workshop Talk - Session V - Part 1: Segmentation](https://youtu.be/4_AJxrxPYlk?t=231)
 
 #### 2. Pixel clustering with Pixie  
-The first step in the [Pixie](https://www.biorxiv.org/content/10.1101/2022.08.16.504171v1) pipeline is to run the [**pixel clustering notebook**](./templates_ark/2_Cluster_Pixels.ipynb). The notebook walks you through the process of generating pixel clusters for your data, and lets you specify what markers to use for the clustering, train a model, use it to classify your entire dataset, and generate pixel cluster overlays. The notebook includes a GUI for manual cluster adjustment and annotation. [Workshop Talk - Session IV - Pixel Level Analysis](https://youtu.be/e7C1NvaPLaY)
+The first step in the [Pixie](https://www.biorxiv.org/content/10.1101/2022.08.16.504171v1) pipeline is to run the [**pixel clustering notebook**](./templates/2_Cluster_Pixels.ipynb). The notebook walks you through the process of generating pixel clusters for your data, and lets you specify what markers to use for the clustering, train a model, use it to classify your entire dataset, and generate pixel cluster overlays. The notebook includes a GUI for manual cluster adjustment and annotation. [Workshop Talk - Session IV - Pixel Level Analysis](https://youtu.be/e7C1NvaPLaY)
 
 #### 3. Cell clustering with Pixie  
-The second step in the [Pixie](https://www.biorxiv.org/content/10.1101/2022.08.16.504171v1) pipeline is to run the [**cell clustering notebook**](./templates_ark/3_Cluster_Cells.ipynb). This notebook will use the pixel clusters generated in the first notebook to cluster the cells in your dataset. The notebook walks you through generating cell clusters for your data and generates cell cluster overlays. The notebook includes a GUI for manual cluster adjustment and annotation. [Workshop Talk - Session V - Cell-level Analysis - Part 2: Cell Clustering](https://youtu.be/4_AJxrxPYlk?t=2704)
+The second step in the [Pixie](https://www.biorxiv.org/content/10.1101/2022.08.16.504171v1) pipeline is to run the [**cell clustering notebook**](./templates/3_Cluster_Cells.ipynb). This notebook will use the pixel clusters generated in the first notebook to cluster the cells in your dataset. The notebook walks you through generating cell clusters for your data and generates cell cluster overlays. The notebook includes a GUI for manual cluster adjustment and annotation. [Workshop Talk - Session V - Cell-level Analysis - Part 2: Cell Clustering](https://youtu.be/4_AJxrxPYlk?t=2704)
 
 #### 4. Post Clustering Tasks
-After the Pixie Pipeline, the user can inspect and fine tune their results with the [**post clustering notebook**](./templates_ark/4_Post_Clustering.ipynb). This notebook will go over cleaning up artifacts left from clustering, and working with functional markers.
+After the Pixie Pipeline, the user can inspect and fine tune their results with the [**post clustering notebook**](./templates/4_Post_Clustering.ipynb). This notebook will go over cleaning up artifacts left from clustering, and working with functional markers.
 
 #### 5. Spatial Analysis  
 [Workshop Talk - Session VI - Spatial Analysis - Part 1: Choosing the Right Analysis Tool](https://youtu.be/HQAkS7kbzH8).
 
   1. **Pairwise Enrichment Analysis**
 
-     The [**pairwise enrichment notebook**](templates_ark/example_pairwise_spatial_enrichment.ipynb) allows the user to investigate the
+     The [**pairwise enrichment notebook**](templates/example_pairwise_spatial_enrichment.ipynb) allows the user to investigate the
      interaction between the phenotypes present in their data. In addition users can
      cluster based on phenotypes around a particular feature such as *artery* or *gland*. [Workshop Talk - Session VI - Spatial Analysis - Part 2: Pairwise Spatial Enrichment](https://youtu.be/HQAkS7kbzH8?t=619).
 
   2. **K-means Neighborhood Analysis**
 
-     The [**neighborhood analysis notebook**](templates_ark/example_neighborhood_analysis_script.ipynb) sheds light on neighborhoods made of micro-environments which consist of a collection of cell phenotypes. [Workshop Talk - Session VI - Spatial Analysis - Part 3: K-means Neighborhood Analysis](https://youtu.be/HQAkS7kbzH8?t=2117).
+     The [**neighborhood analysis notebook**](templates/example_neighborhood_analysis_script.ipynb) sheds light on neighborhoods made of micro-environments which consist of a collection of cell phenotypes. [Workshop Talk - Session VI - Spatial Analysis - Part 3: K-means Neighborhood Analysis](https://youtu.be/HQAkS7kbzH8?t=2117).
 
   1. **Spatial LDA**
 
-     The [**preprocessing**](templates_ark/LDA_Preprocessing.ipynb) and [**training / inference**](templates_ark/LDA_Training_and_Inference.ipynb) draws from language analysis, specifically topic modelling. Spatial LDA overlays a probability distribution on cells belonging to a any particular micro-environment. [Workshop Talk - Session VI - Spatial Analysis - Part 4: Spatial LDA](https://youtu.be/HQAkS7kbzH8?t=3087).
+     The [**preprocessing**](templates/LDA_Preprocessing.ipynb) and [**training / inference**](templates/LDA_Training_and_Inference.ipynb) draws from language analysis, specifically topic modelling. Spatial LDA overlays a probability distribution on cells belonging to a any particular micro-environment. [Workshop Talk - Session VI - Spatial Analysis - Part 4: Spatial LDA](https://youtu.be/HQAkS7kbzH8?t=3087).
 
 
 ### Installation Steps
@@ -127,7 +127,7 @@ You can shut down the notebooks and close docker by entering `control-c` in the 
 
 **REMEMBER TO DUPLICATE AND RENAME NOTEBOOKS**
 
-If you didn't change the name of any of the notebooks within the `templates_ark` folder, they will be overwritten when you decide to update the repo. Read about updating Ark [here](#updating-the-repository)
+If you didn't change the name of any of the notebooks within the `templates` folder, they will be overwritten when you decide to update the repo. Read about updating Ark [here](#updating-the-repository)
 
 ## External Tools
 

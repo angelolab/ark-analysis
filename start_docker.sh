@@ -8,7 +8,7 @@ while test $# -gt 0
 do
   case "$1" in
     -n|--develop-notebook-templates)
-      JUPYTER_DIR='templates_ark'
+      JUPYTER_DIR='templates'
       shift
       ;;
     -u|--update)
@@ -68,4 +68,4 @@ run_params=(
 )
 [[ ! -z "$external" ]] && run_params+=(-v "$external:/data/external")
 
-docker run -it "${run_params[@]}" angelolab/ark-analysis:v0.4.1
+docker run -it "${run_params[@]}" angelolab/ark-analysis:v0.4.2

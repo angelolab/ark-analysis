@@ -149,16 +149,18 @@ def test_visualize_neighbor_cluster_metrics():
     # error checking
     with pytest.raises(FileNotFoundError):
         # specifying a non-existent directory to save to
-        visualize.visualize_neighbor_cluster_metrics(random_data, save_dir="bad_dir")
+        visualize.visualize_neighbor_cluster_metrics(random_data, metric_name="silhouette",
+                                                     save_dir="bad_dir")
 
     with tempfile.TemporaryDirectory() as temp_dir:
         # test that without save_dir, we do not save
-        visualize.visualize_neighbor_cluster_metrics(random_data)
-        assert not os.path.exists(os.path.join(temp_dir, "neighborhood_cluster_scores.png"))
+        visualize.visualize_neighbor_cluster_metrics(random_data, metric_name="silhouette")
+        assert not os.path.exists(os.path.join(temp_dir, "neighborhood_silhouette_scores.png"))
 
         # test that with save_dir, we do save
-        visualize.visualize_neighbor_cluster_metrics(random_data, save_dir=temp_dir)
-        assert os.path.exists(os.path.join(temp_dir, "neighborhood_cluster_scores.png"))
+        visualize.visualize_neighbor_cluster_metrics(random_data, metric_name="silhouette",
+                                                     save_dir=temp_dir)
+        assert os.path.exists(os.path.join(temp_dir, "neighborhood_silhouette_scores.png"))
 
 
 def test_visualize_topic_eda():

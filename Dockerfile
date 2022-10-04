@@ -7,23 +7,19 @@ RUN apt-get update
 # install dependencies needed for setting up R
 RUN apt-get install -y lsb-release dirmngr gnupg apt-transport-https ca-certificates software-properties-common
 RUN apt-get install -y libharfbuzz-dev libfribidi-dev
-RUN apt-get install -y libcurl4-openssl-dev libssl-dev
-RUN apt-get install -y libcurl4-gnutls-dev
-RUN apt-get install -y libopenblas-base libgit2-dev
+RUN apt-get -y install libcurl4-gnutls-dev
 
-# add the correct Debian R repo
-RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys '95C0FAF38DB3CCAD0C080A7BDC78B2DDEABC47B7'
-RUN add-apt-repository 'deb http://cloud.r-project.org/bin/linux/debian bullseye-cran40/'
+# set up the key for adding the R repo
+RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 95C0FAF38DB3CCAD0C080A7BDC78B2DDEABC47B7
+
+# add the correct Linux R repo
+RUN add-apt-repository 'deb https://cloud.r-project.org/bin/linux/debian bullseye-cran40/'
+
 # re-update based on previous setup
-RUN apt-get update && apt -y upgrade
+RUN apt-get update && apt-get -y upgrade
 
-# install R
-ARG rversion=4.0.4-1
-RUN apt-get install -y \
-    r-base-core=${rversion} \
-    r-base-dev=${rversion} \
-    r-base-html=${rversion} \
-    r-doc-html=${rversion}
+# install gcc and R
+RUN apt-get install -y gcc r-base
 
 # install cmake (needed for nloptr)
 RUN apt-get install -y cmake
