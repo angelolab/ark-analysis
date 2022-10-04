@@ -56,7 +56,7 @@ def test_append_distance_features_to_dataset():
     all_data['dist_feature_0'] = feat_dist * np.ones(all_data.shape[0])
 
     num_labels = max(all_data[settings.CELL_LABEL].unique())
-    num_cell_types = max(all_data[settings.CLUSTER_ID].unique())
+    num_cell_types = max(list(all_data[settings.CELL_TYPE].astype("category").cat.codes)) + 1
     dist_mats = {'fov8': dist_mat}
 
     all_data, dist_mats = spatial_analysis_utils.append_distance_features_to_dataset(
@@ -67,13 +67,13 @@ def test_append_distance_features_to_dataset():
         settings.CELL_LABEL,
         settings.FOV_ID,
         settings.CELL_TYPE,
-        settings.CLUSTER_ID,
+        settings.CELL_NUM,
     ]]
     pd.testing.assert_series_equal(appended_cell_row, pd.Series({
         settings.CELL_LABEL: num_labels + 1,
         settings.FOV_ID: 'fov8',
         settings.CELL_TYPE: 'dist_feature_0',
-        settings.CLUSTER_ID: num_cell_types + 1,
+        settings.CELL_NUM: num_cell_types + 1,
     }), check_names=False)
 
     dist_mat_new_row = dist_mats['fov8'].values[-1, :]
@@ -111,20 +111,20 @@ def test_get_pos_cell_labels_channel():
 
 def test_get_pos_cell_labels_cluster():
     all_data, _ = test_utils._make_dist_exp_mats_spatial_utils_test()
-
+    all_data[settings.CELL_NUM] = list(all_data[settings.CELL_TYPE].astype('category').cat.codes)
     excluded_channels = [0, 13, 22]
 
     # Subsets the expression matrix to only have channel columns
     channel_start = np.where(all_data.columns == settings.PRE_CHANNEL_COL)[0][0] + 1
     channel_end = np.where(all_data.columns == settings.POST_CHANNEL_COL)[0][0]
 
-    fov_channel_data = all_data.iloc[:, list(range(channel_start, channel_end + 1)) + [31]]
+    fov_channel_data = all_data.iloc[:, list(range(channel_start, channel_end + 1)) + [32]]
     fov_channel_data = fov_channel_data.drop(fov_channel_data.columns[excluded_channels], axis=1)
 
-    cluster_ids = all_data.loc[:, settings.CLUSTER_ID].drop_duplicates()
+    cluster_ids = all_data.loc[:, settings.CELL_NUM].drop_duplicates()
 
     pos_cell_labels = spatial_analysis_utils.get_pos_cell_labels_cluster(
-        cluster_ids.iloc[0], fov_channel_data, settings.CELL_LABEL, settings.CLUSTER_ID)
+        cluster_ids.iloc[0], fov_channel_data, settings.CELL_LABEL, settings.CELL_NUM)
 
     assert len(pos_cell_labels) == 4
 
@@ -133,6 +133,8 @@ def test_compute_close_cell_num():
     # Test the closenum function
     all_data, example_dist_mat = test_utils._make_dist_exp_mats_spatial_utils_test()
     example_thresholds = test_utils._make_threshold_mat(in_utils=True)
+
+    all_data[settings.CELL_NUM] = list(all_data[settings.CELL_TYPE].astype('category').cat.codes)
 
     excluded_channels = [0, 13, 22]
 
@@ -175,7 +177,8 @@ def test_compute_close_cell_num():
 
     # now, test for cluster enrichment
     all_data, example_dist_mat = test_utils._make_dist_exp_mats_spatial_utils_test()
-    cluster_ids = all_data.loc[:, settings.CLUSTER_ID].drop_duplicates().values
+    all_data[settings.CELL_NUM] = list(all_data[settings.CELL_TYPE].astype('category').cat.codes)
+    cluster_ids = all_data.loc[:, settings.CELL_NUM].drop_duplicates().values
 
     example_closenum, m1, _ = spatial_analysis_utils.compute_close_cell_num(
         dist_mat=example_dist_mat, dist_lim=100, analysis_type="cluster",
@@ -261,12 +264,13 @@ def test_calculate_enrichment_stats():
 
 def test_compute_neighbor_counts():
     fov_col = settings.FOV_ID
-    cluster_id_col = settings.CLUSTER_ID
+    cluster_id_col = settings.CELL_NUM
     cell_label_col = settings.CELL_LABEL
     cluster_name_col = settings.CELL_TYPE
     distlim = 100
 
     fov_data, dist_matrix = test_utils._make_dist_exp_mats_spatial_utils_test()
+    fov_data[cluster_id_col] = list(fov_data[settings.CELL_TYPE].astype('category').cat.codes)
 
     cluster_names = fov_data[cluster_name_col].drop_duplicates()
     fov_data = fov_data[[fov_col, cell_label_col, cluster_id_col, cluster_name_col]]

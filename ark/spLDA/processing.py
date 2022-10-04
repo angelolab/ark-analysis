@@ -25,8 +25,8 @@ def format_cell_table(cell_table, markers=None, clusters=None):
             A list of strings corresponding to the markers in cell_table which will be used to
             train the spatial LDA model.  Either markers or clusters must be provided.
         clusters (list):
-            A list of integers corresponding to cluster ids in cell_table which will be used to
-            train the spatial LDA model.
+            A list of cluster names in cell_table which will be used to train the
+            spatial LDA model.
 
     Returns:
         dict:
@@ -46,23 +46,22 @@ def format_cell_table(cell_table, markers=None, clusters=None):
     cell_table_drop = cell_table.drop(columns=drop_columns)
 
     # Rename columns
+    # cell_table_drop["cluster_num"] = list(cell_table[settings.CLUSTER_NAME].astype('category').cat.codes)
     cell_table_drop = cell_table_drop.rename(
         columns={
             settings.CENTROID_0: "x",
             settings.CENTROID_1: "y",
-            settings.CLUSTER_ID: "cluster_id",
-            settings.KMEANS_CLUSTER: "cluster"
+            settings.CELL_TYPE: "cluster",
         })
 
     # Create dictionary of FOVs
     fovs = np.unique(cell_table_drop[settings.FOV_ID])
-
     fov_dict = {}
     for i in fovs:
         df = cell_table_drop[cell_table_drop[settings.FOV_ID] == i].drop(
             columns=[settings.FOV_ID, settings.CELL_LABEL])
         if clusters is not None:
-            df = df[df["cluster_id"].isin(clusters)]
+            df = df[df["cluster"].isin(clusters)]
         df["is_index"] = True
         df["isimmune"] = True  # might remove this
         fov_dict[i] = df.reset_index(drop=True)

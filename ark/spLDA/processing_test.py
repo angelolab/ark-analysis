@@ -15,7 +15,7 @@ TEST_CELL_TABLE = make_cell_table(N_CELLS)
 
 def test_format_cell_table():
     # call formatting function
-    all_clusters = list(np.unique(TEST_CELL_TABLE[settings.CLUSTER_ID]))
+    all_clusters = list(np.unique(list(TEST_CELL_TABLE[settings.CELL_TYPE])))
     all_markers = ['A', 'B', 'C', 'D', 'E', 'F', 'G']
     some_clusters = all_clusters[2:]
     some_markers = all_markers[2:]
@@ -37,11 +37,14 @@ def test_format_cell_table():
         fovs1=list(np.unique(TEST_CELL_TABLE[settings.FOV_ID])), fovs2=marker_fovs)
 
     # Check that columns were retained/renamed
+    # verify_in_list(
+        # cols1=["x", "y", "cluster_num", "cluster", "is_index"],
+        # cols2=list(all_clusters_format[1].columns))
     verify_in_list(
-        cols1=["x", "y", "cluster_id", "cluster", "is_index"],
+        cols1=["x", "y", "cluster", "is_index"],
         cols2=list(all_clusters_format[1].columns))
     verify_in_list(
-        cols1=["x", "y", "cluster_id", "cluster", "is_index"],
+        cols1=["x", "y", "cluster", "is_index"],
         cols2=list(all_markers_format[1].columns))
 
     # Check that columns were dropped
@@ -49,15 +52,15 @@ def test_format_cell_table():
     assert len(TEST_CELL_TABLE.columns) > len(all_markers_format[1].columns)
 
     # check that only specified clusters and markers are kept
-    assert not np.isin(all_clusters[:2], np.unique(some_clusters_format[1].cluster_id)).any()
+    assert not np.isin(all_clusters[:2], np.unique(some_clusters_format[1].cluster)).any()
     assert not np.isin(all_markers[:2], np.unique(some_markers_format[1].columns)).any()
 
 
 def test_featurize_cell_table():
     # call formatting function
-    all_clusters = list(np.unique(TEST_CELL_TABLE[settings.CLUSTER_ID]))
+    all_clusters = list(np.unique(TEST_CELL_TABLE[settings.CELL_TYPE]))
     all_markers = ['A', 'B', 'C', 'D', 'E', 'F', 'G']
-    cluster_names = list(np.unique(TEST_CELL_TABLE[settings.KMEANS_CLUSTER]))
+    cluster_names = list(np.unique(TEST_CELL_TABLE[settings.CELL_TYPE]))
     cell_table_format = pros.format_cell_table(cell_table=TEST_CELL_TABLE, clusters=all_clusters,
                                                markers=all_markers)
 
@@ -86,7 +89,7 @@ def test_featurize_cell_table():
 
 def test_gap_stat():
     # call formatting & featurization - only test on clusters to avoid repetition
-    all_clusters = list(np.unique(TEST_CELL_TABLE[settings.CLUSTER_ID]))
+    all_clusters = list(np.unique(TEST_CELL_TABLE[settings.CELL_TYPE]))
     all_clusters_format = pros.format_cell_table(cell_table=TEST_CELL_TABLE, clusters=all_clusters)
     features = pros.featurize_cell_table(cell_table=all_clusters_format, featurization='cluster')
     clust_labs = KMeans(n_clusters=5).fit(features['featurized_fovs']).labels_
@@ -104,7 +107,7 @@ def test_gap_stat():
 
 def test_compute_topic_eda():
     # Format & featurize cell table. Only test on clusters and 0.75 train frac to avoid repetition
-    all_clusters = list(np.unique(TEST_CELL_TABLE[settings.CLUSTER_ID]))
+    all_clusters = list(np.unique(TEST_CELL_TABLE[settings.CELL_TYPE]))
     all_clusters_format = pros.format_cell_table(cell_table=TEST_CELL_TABLE, clusters=all_clusters)
     features = pros.featurize_cell_table(cell_table=all_clusters_format, featurization='cluster')
     # at least 25 bootstrap iterations
@@ -127,7 +130,7 @@ def test_compute_topic_eda():
 
 def test_create_difference_matrices():
     # Format & featurize cell table. Only test on clusters and 0.75 train frac to avoid repetition
-    all_clusters = list(np.unique(TEST_CELL_TABLE[settings.CLUSTER_ID]))
+    all_clusters = list(np.unique(TEST_CELL_TABLE[settings.CELL_TYPE]))
     all_clusters_format = pros.format_cell_table(cell_table=TEST_CELL_TABLE, clusters=all_clusters)
     features = pros.featurize_cell_table(cell_table=all_clusters_format, featurization='cluster')
 
@@ -156,7 +159,7 @@ def test_create_difference_matrices():
 
 def test_fov_density():
     # Format cell table
-    all_clusters = list(np.unique(TEST_CELL_TABLE[settings.CLUSTER_ID]))
+    all_clusters = list(np.unique(TEST_CELL_TABLE[settings.CELL_TYPE]))
     all_clusters_format = pros.format_cell_table(cell_table=TEST_CELL_TABLE, clusters=all_clusters)
     cell_dens = pros.fov_density(all_clusters_format)
 
