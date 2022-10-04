@@ -77,7 +77,7 @@ run_params=(
 if [[ ! -z "$external" ]]
   then
     # this prevents script from failing in case the container does not already exist
-    docker rm $VERSION || true 2>&1 /dev/null
+    docker rm -f $VERSION > /dev/null 2>&1 || true
 fi
 
 # if no Docker container found named $VERSION, create it, otherwise boot it up
