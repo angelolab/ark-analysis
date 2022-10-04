@@ -1,3 +1,4 @@
+# NOTE, a new release needs to be made every time a package gets updated.
 cryptography>=3.4.8,<4
 Cython>=0.29.24,<1
 datasets>=2.4.0,<3.0
