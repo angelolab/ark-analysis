@@ -435,7 +435,7 @@ def get_max_img_size(image_dir, img_sub_folder='', single_dir=False):
 
 
 def load_tiled_img_data(data_dir, fov_list, channel, single_dir, max_image_size, file_ext='tiff',
-                        img_sub_folder=None):
+                        img_sub_folder=''):
     """Takes a set of images from a directory structure and loads them into a tiled xarray.
 
     Args:
@@ -444,7 +444,7 @@ def load_tiled_img_data(data_dir, fov_list, channel, single_dir, max_image_size,
         fov_list (list):
             list of fovs to load data for
         channel (str):
-            single name to load images for
+            single image name to load
         single_dir (bool):
             whether the images are stored in a single directory rather than within fov subdirs
         max_image_size (int):
@@ -462,10 +462,6 @@ def load_tiled_img_data(data_dir, fov_list, channel, single_dir, max_image_size,
 
     iou.validate_paths(data_dir, data_prefix=False)
 
-    if img_sub_folder is None:
-        # no img_sub_folder, change to empty string to read directly from base folder
-        img_sub_folder = ''
-
     expected_fovs = get_tiled_fov_names(fov_list)
 
     # no missing fov images, load data normally and return array
@@ -480,12 +476,11 @@ def load_tiled_img_data(data_dir, fov_list, channel, single_dir, max_image_size,
 
     # missing fov directories, read in a test image to get data type
     if single_dir:
-        test_img = io.imread(os.path.join(data_dir, expected_fovs[0] + '_' + channel + '.'
-                                          + file_ext))
+        test_path = os.path.join(data_dir, expected_fovs[0] + '_' + channel + '.' + file_ext)
     else:
-        test_img = io.imread(os.path.join(data_dir, fov_list[0], img_sub_folder, channel + '.'
-                                          + file_ext))
-
+        test_path = os.path.join(os.path.join(data_dir, fov_list[0], img_sub_folder, channel + '.'
+                                              + file_ext))
+    test_img = io.imread(test_path)
     img_data = np.zeros((len(expected_fovs), max_image_size, max_image_size, 1),
                         dtype=test_img.dtype)
 

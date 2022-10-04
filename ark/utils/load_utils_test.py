@@ -332,6 +332,13 @@ def test_get_tiled_fov_names():
     expected_fovs = load_utils.get_tiled_fov_names(fov_names)
     assert expected_fovs == ['R1C1', 'R1C2', 'R2C1', 'R2C2']
 
+    # check no missing fovs and run name attached, should return a list for 1x3 tiling
+    fov_names = ['Run_10_R1C1', 'Run_10_R1C2', 'Run_20_R1C3']
+
+    expected_fovs, rows, cols = load_utils.get_tiled_fov_names(fov_names, return_dims=True)
+    assert expected_fovs == ['Run_10_R1C1', 'Run_10_R1C2', 'Run_20_R1C3']
+    assert (rows, cols) == (1, 3)
+
     # check missing fovs, should return a list with all fovs for a 3x4 tiling
     fov_names = ['R1C1', 'R1C2', 'R2C1', 'R2C4', 'RC3C1']
 
@@ -359,7 +366,7 @@ def test_get_max_img_size(subdir):
         test_utils._write_tifs(tmpdir, fov_list, channel_list, (10, 10), subdir, False, int)
         test_utils._write_tifs(tmpdir, stitched_dir, channel_list, (20, 20), subdir, False, int)
 
-        # test success excluding stitched dir
+        # test success which ignores stitched dir
         max_img_size = load_utils.get_max_img_size(tmpdir, img_sub_folder=subdir)
         assert max_img_size == 10
 

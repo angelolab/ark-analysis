@@ -679,6 +679,10 @@ def test_stitch_images_by_shape(segmentation, clustering, subdir, fovs):
             stitched_dir = os.path.join(temp_dir, 'stitched_images')
             os.makedirs(data_dir)
 
+            # invalid directory is provided
+            with pytest.raises(ValueError):
+                data_utils.stitch_images_by_shape('not_a_dir', stitched_dir)
+
             # no fov dirs should raise an error
             with pytest.raises(ValueError, match="No FOVs found in directory"):
                 data_utils.stitch_images_by_shape(data_dir, stitched_dir)
@@ -695,15 +699,15 @@ def test_stitch_images_by_shape(segmentation, clustering, subdir, fovs):
             with pytest.raises(ValueError, match="Invalid FOVs found in directory"):
                 data_utils.stitch_images_by_shape(data_dir, stitched_dir)
 
-            # check for existing previous stitched images
-            os.makedirs(os.path.join(stitched_dir))
-            with pytest.raises(ValueError, match="already exists"):
-                data_utils.stitch_images_by_shape(data_dir, stitched_dir)
-
             # bad clustering arg should raise an error
             with pytest.raises(ValueError, match="If stitching images from the pixie pipeline"):
                 data_utils.stitch_images_by_shape(data_dir, stitched_dir,
                                                   segmentation=segmentation, clustering='not_cell')
+
+            # check for existing previous stitched images
+            os.makedirs(os.path.join(stitched_dir))
+            with pytest.raises(ValueError, match="already exists"):
+                data_utils.stitch_images_by_shape(data_dir, stitched_dir)
 
     # test with varying image sizes
     if not segmentation and not clustering:
@@ -722,15 +726,14 @@ def test_stitch_images_by_shape(segmentation, clustering, subdir, fovs):
 
             # test successful stitching
             data_utils.stitch_images_by_shape(data_dir, stitched_dir, img_sub_folder=subdir)
-            assert sorted(io_utils.list_files(stitched_dir)) == \
-                   ['chan1_stitched.tiff']
+            assert sorted(io_utils.list_files(stitched_dir)) == ['chan1_stitched.tiff']
 
             # stitched image is 3 x 2 fovs with max_img_size = 12
             stitched_data = load_utils.load_imgs_from_dir(os.path.join(temp_dir, stitched_dir),
                                                           files=['chan1_stitched.tiff'])
             assert stitched_data.shape == (1, 36, 24, 1)
 
-    # test success for specific directory cases
+    # test success for various directory cases
     with tempfile.TemporaryDirectory() as temp_dir:
         data_dir = os.path.join(temp_dir, 'images')
         stitched_dir = os.path.join(temp_dir, 'stitched_images')
@@ -742,10 +745,7 @@ def test_stitch_images_by_shape(segmentation, clustering, subdir, fovs):
             chans = [clustering + '_mask']
         else:
             chans = [f'chan{i}' for i in range(5)]
-
-        # check doesn't read toffy stitched_images dir
-        prefix = load_utils.get_tiled_fov_names(fovs)
-        if not prefix:
+            # check that ignores toffy stitching in fov level dir
             fovs.append('stitched_images')
 
         filelocs, data_xr = test_utils.create_paired_xarray_fovs(
@@ -772,3 +772,7 @@ def test_stitch_images_by_shape(segmentation, clustering, subdir, fovs):
                                           channels=[random_channel], segmentation=segmentation,
                                           clustering=clustering)
         assert sorted(io_utils.list_files(stitched_dir)) == [random_channel + '_stitched.tiff']
+
+        # remove stitched_images from fov list
+        if not segmentation and not clustering:
+            fovs.pop()
