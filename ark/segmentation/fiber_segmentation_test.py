@@ -21,7 +21,7 @@ def test_plot_fiber_segmentation_steps():
         _, _ = fiber_segmentation.plot_fiber_segmentation_steps(img_dir, 'fov1', 'bad_channel')
 
     # bad subdirectory should raise an errors
-    with pytest.raises(ValueError):
+    with pytest.raises(FileNotFoundError):
         _, _ = fiber_segmentation.plot_fiber_segmentation_steps(
             img_dir, 'fov1', 'Collagen1', img_sub_folder='bad_subdir')
 
@@ -43,7 +43,7 @@ def test_run_fiber_segmentation():
             _, _ = fiber_segmentation.run_fiber_segmentation(img_dir, 'Collagen1', 'bad_path')
 
         # bad subdirectory should raise an errors
-        with pytest.raises(ValueError):
+        with pytest.raises(FileNotFoundError):
             _, _ = fiber_segmentation.plot_fiber_segmentation_steps(
                 img_dir, 'fov1', 'Collagen1', img_sub_folder='bad_subdir')
 

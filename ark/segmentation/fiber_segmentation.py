@@ -61,7 +61,7 @@ def plot_fiber_segmentation_steps(data_dir, fov_name, fiber_channel, img_sub_fol
     if img_sub_folder is None:
         img_sub_folder = ""
 
-    validate_paths(os.path.join(data_dir, img_sub_folder))
+    validate_paths(data_dir)
     verify_in_list(fiber_channel=[fiber_channel],
                    all_channels=remove_file_extensions(list_files(os.path.join(
                        data_dir, fov_name, img_sub_folder))))
@@ -151,7 +151,7 @@ def run_fiber_segmentation(data_dir, fiber_channel, out_dir, img_sub_folder=None
     if img_sub_folder is None:
         img_sub_folder = ""
 
-    validate_paths([os.path.join(data_dir, img_sub_folder), out_dir])
+    validate_paths([data_dir, out_dir])
 
     fovs = ns.natsorted(list_folders(data_dir))
     verify_in_list(fiber_channel=[fiber_channel],
