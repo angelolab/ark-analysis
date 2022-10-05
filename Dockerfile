@@ -28,17 +28,34 @@ RUN apt-get install -y cmake
 # install base r requirements
 RUN apt-get install -y r-cran-data.table r-cran-doparallel r-cran-foreach r-cran-biocmanager r-cran-devtools
 
-# Install arrow from rspm
-RUN R -e "options(BioC_mirror = 'https://packagemanager.rstudio.com/all/__linux__/bullseye/latest', HTTPUserAgent = sprintf(\"R/%s R (%s)\", getRversion(), paste(getRversion(), R.version[\"platform\"], R.version[\"arch\"], R.version[\"os\"])))"
-RUN R -e "install.packages('arrow', repos = 'https://packagemanager.rstudio.com/all/__linux__/bullseye/latest')"
+# terminate Docker build if doParallel, data.table, devtools, or foreach fail to import
+RUN R -e "library(data.table)"
+RUN R -e "library(devtools)"
+RUN R -e "library(doParallel)"
+RUN R -e "library(foreach)"
 
-#install flowsom requirements
+# install arrow from rspm
+RUN R -e "options(BioC_mirror = 'https://packagemanager.rstudio.com/all/__linux__/bullseye/latest', HTTPUserAgent = sprintf(\"R/%s R (%s)\", getRversion(), paste(getRversion(), R.version[\"platform\"], R.version[\"arch\"], R.version[\"os\"])))"
+RUN R -e "install.packages('arrow')"
+
+# terminate Docker build if arrow fails to import
+RUN R -e "library(arrow)"
+
+# install flowsom requirements
 RUN apt-get install -y r-cran-igraph r-bioc-biocgenerics r-bioc-consensusclusterplus r-cran-dplyr r-cran-ggforce r-cran-ggplot2 r-cran-ggpubr r-cran-ggrepel r-cran-magrittr r-cran-pheatmap r-cran-rlang r-cran-rtsne r-cran-tidyr r-cran-xml r-cran-scattermore
-#install flowsom dependency requirements (eye-roll)
+
+# termiante Docker build if ConsensusClusterPlus fails to import
+RUN R -e "library(ConsensusClusterPlus)"
+
+# install flowsom dependency requirements (eye-roll)
 RUN apt-get install -y r-cran-rcppparallel r-bioc-biobase r-cran-matrixstats r-cran-png r-cran-jpeg r-cran-interp r-cran-mass r-bioc-graph r-bioc-rbgl r-cran-scales r-cran-digest r-cran-bh r-cran-rcpparmadillo r-cran-jsonlite r-cran-base64enc r-cran-plyr r-bioc-zlibbioc r-cran-hexbin r-cran-gridextra r-cran-yaml r-bioc-rhdf5lib r-cran-corpcor r-cran-runit r-cran-tibble r-cran-xml2 r-cran-tweenr r-cran-gtable r-cran-polyclip r-cran-tidyselect r-cran-withr r-cran-lifecycle r-cran-rcppeigen
 
-#RUN R -e "library(BiocManager); BiocManager::install('FlowSOM')"
+# install flowsom
+# RUN R -e "library(BiocManager); BiocManager::install('FlowSOM')"
 RUN R -e "library(devtools); devtools::install_github('angelolab/FlowSOM', upgrade = FALSE, upgrade_dependencies = FALSE)"
+
+# terminate Docker build if FlowSOM fails to import
+RUN R -e "library(FlowSOM)"
 
 # Install ark-analysis
 # copy over the requirements.txt, install dependencies, and README
