@@ -12,8 +12,6 @@ def test_plot_fiber_segmentation_steps():
     img_dir = os.path.join(Path(__file__).parent.parent.parent,
                            "data", "example_dataset", "fiber_segmentation")
 
-    fiber_segmentation.plot_fiber_segmentation_steps(img_dir, 'fov1', 'Collagen1')
-
     # bad directory should raise an errors
     with pytest.raises(ValueError):
         _, _ = fiber_segmentation.plot_fiber_segmentation_steps('bad_dir', 'fov1', 'Collagen1')
@@ -26,6 +24,9 @@ def test_plot_fiber_segmentation_steps():
     with pytest.raises(ValueError):
         _, _ = fiber_segmentation.plot_fiber_segmentation_steps(
             img_dir, 'fov1', 'Collagen1', img_sub_folder='bad_subdir')
+
+    # test success
+    fiber_segmentation.plot_fiber_segmentation_steps(img_dir, 'fov1', 'Collagen1')
 
 
 def test_run_fiber_segmentation():

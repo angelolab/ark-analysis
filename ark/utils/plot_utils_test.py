@@ -9,6 +9,7 @@ import pytest
 import skimage.io as io
 import xarray as xr
 from skimage.draw import disk
+import matplotlib.colors as colors
 
 from ark.utils import plot_utils, test_utils
 
@@ -229,6 +230,20 @@ def test_create_overlay():
                 img_overlay_chans=['nuclear_channel', 'membrane_channel'],
                 seg_overlay_comp='whole_cell',
                 alternate_segmentation=alternate_labels[:100, :100])
+
+
+def test_set_minimum_color_for_colormap():
+
+    cols = ["green", "orange", "gold", "blue"]
+    color_map = colors.ListedColormap(cols)
+
+    # check minimum color is defaulted to black
+    default_color_map = plot_utils.set_minimum_color_for_colormap(color_map)
+    assert default_color_map(0.0) == (0.0, 0.0, 0.0, 1.0)
+
+    # check for specific min color
+    new_color_map = plot_utils.set_minimum_color_for_colormap(color_map, (0.1, 0.2, 0.5, 0.3))
+    assert new_color_map(0.0) == (0.1, 0.2, 0.5, 0.3)
 
 
 def test_create_mantis_dir():
