@@ -199,7 +199,7 @@ def compute_close_cell_num(dist_mat, dist_lim, analysis_type,
         cell_label_col (str):
             the name of the column containing the cell labels
         cell_type_col (str):
-            the name of the column containing the cell types
+            the name of the column containing the cell type numbers
 
     Returns:
         numpy.ndarray:

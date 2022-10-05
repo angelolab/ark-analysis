@@ -25,7 +25,7 @@ def format_cell_table(cell_table, markers=None, clusters=None):
             A list of strings corresponding to the markers in cell_table which will be used to
             train the spatial LDA model.  Either markers or clusters must be provided.
         clusters (list):
-            A list of cluster names in cell_table which will be used to train the
+            A list of cell cluster names in cell_table which will be used to train the
             spatial LDA model.
 
     Returns:
@@ -88,7 +88,7 @@ def featurize_cell_table(cell_table, featurization="cluster", radius=100, cell_i
             *r* from cell *i* having marker expression greater than 0.5.
         - avg_marker: for each marker, compute the average marker expression of all
             cells within a ``radius`` *r* from cell *i*.
-        - cluster: for each cluster, count the total number of cells within a ``radius``
+        - cluster: for each cell cluster, count the total number of cells within a ``radius``
             *r* from cell *i* belonging to that cell cluster.
         - count: counts the total number of cells within a ``radius`` *r* from cell *i*.
         radius (int):

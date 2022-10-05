@@ -23,7 +23,7 @@ def check_format_cell_table_args(cell_table, markers, clusters):
         markers (list):
             A list of strings corresponding to marker names.
         clusters (list):
-            A list of cluster names.
+            A list of cell cluster names.
     """
 
     # Check cell table columns
