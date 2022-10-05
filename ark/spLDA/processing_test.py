@@ -37,9 +37,6 @@ def test_format_cell_table():
         fovs1=list(np.unique(TEST_CELL_TABLE[settings.FOV_ID])), fovs2=marker_fovs)
 
     # Check that columns were retained/renamed
-    # verify_in_list(
-    # cols1=["x", "y", "cluster_num", "cluster", "is_index"],
-    # cols2=list(all_clusters_format[1].columns))
     verify_in_list(
         cols1=["x", "y", "cluster", "is_index"],
         cols2=list(all_clusters_format[1].columns))

@@ -306,7 +306,7 @@ def batch_cluster_spatial_enrichment(label_dir, all_data, batch_size=5, suffix='
 def calculate_cluster_spatial_enrichment(all_data, dist_matrices_dict, included_fovs=None,
                                          bootstrap_num=100, dist_lim=100, fov_col=settings.FOV_ID,
                                          cluster_name_col=settings.CELL_TYPE,
-                                         cluster_id_col=settings.CELL_NUM,
+                                         cluster_id_col=settings.CELL_TYPE_NUM,
                                          cell_label_col=settings.CELL_LABEL, context_col=None,
                                          distance_cols=None):
     """Spatial enrichment analysis based on cell phenotypes to find significant interactions
@@ -330,7 +330,7 @@ def calculate_cluster_spatial_enrichment(all_data, dist_matrices_dict, included_
         cluster_name_col (str):
             column with the cell types.
         cluster_id_col (str):
-            column with the cell phenotype IDs.
+            column with the cell phenotype number.
         cell_label_col (str):
             column with the cell labels.
         context_col (str):

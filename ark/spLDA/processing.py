@@ -46,8 +46,6 @@ def format_cell_table(cell_table, markers=None, clusters=None):
     cell_table_drop = cell_table.drop(columns=drop_columns)
 
     # Rename columns
-    # cell_table_drop["cluster_num"] =
-    # list(cell_table[settings.CLUSTER_NAME].astype('category').cat.codes)
     cell_table_drop = cell_table_drop.rename(
         columns={
             settings.CENTROID_0: "x",
