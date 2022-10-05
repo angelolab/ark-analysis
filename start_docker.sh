@@ -73,17 +73,5 @@ run_params=(
 )
 [[ ! -z "$external" ]] && run_params+=(-v "$external:/data/external")
 
-# remove container if -e set, need to rebuild container if potential new volumes set
-if [[ ! -z "$external" ]]
-  then
-    # this prevents script from failing in case the container does not already exist
-    docker rm -f $VERSION > /dev/null 2>&1 || true
-fi
-
-# if no Docker container found named $VERSION, create it, otherwise boot it up
-if [[ $(docker ps -a --format "{{.Names}}" | grep $VERSION | wc -l) -eq 0 ]]
-  then
-    docker run -it "${run_params[@]}" --name $VERSION angelolab/ark-analysis:$VERSION
-  else
-    docker start $VERSION
-fi
+docker rm -f $VERSION > /dev/null 2>&1 || true
+docker run -it "${run_params[@]}" --name $VERSION angelolab/ark-analysis:$VERSION
