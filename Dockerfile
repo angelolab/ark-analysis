@@ -28,7 +28,7 @@ RUN apt-get install -y cmake
 # install base r requirements
 RUN apt-get install -y r-cran-data.table r-cran-doparallel r-cran-foreach r-cran-biocmanager r-cran-devtools
 
-# terminate Docker build if doParallel, data.table, devtools, or foreach fail to import
+# terminate Docker build if data.table, devtools, doParallel, or foreach fail to import
 RUN R -e "library(data.table)"
 RUN R -e "library(devtools)"
 RUN R -e "library(doParallel)"
