@@ -73,5 +73,8 @@ run_params=(
 )
 [[ ! -z "$external" ]] && run_params+=(-v "$external:/data/external")
 
+# remove the old Docker container if one exists, as it may contain different external volumes
 docker rm -f $VERSION > /dev/null 2>&1 || true
+
+# create the Docker container
 docker run -it "${run_params[@]}" --name $VERSION angelolab/ark-analysis:$VERSION
