@@ -57,8 +57,14 @@ def plot_fiber_segmentation_steps(data_dir, fov_name, fiber_channel, img_sub_fol
             Base matplotlib colormap to use for labeled images.  This will only be applied to the
             non-zero labels, with the zero-region being colored black.
     """
+    # no img_sub_folder, change to empty string to read directly from base folder
+    if img_sub_folder is None:
+        img_sub_folder = ""
 
-    validate_paths(data_dir)
+    validate_paths(os.path.join(data_dir, img_sub_folder))
+    verify_in_list(fiber_channel=[fiber_channel],
+                   all_channels=remove_file_extensions(list_files(os.path.join(
+                       data_dir, fov_name, img_sub_folder))))
 
     data_xr = load_utils.load_imgs_from_tree(
         data_dir, img_sub_folder, fovs=[fov_name], channels=[fiber_channel]
@@ -141,11 +147,16 @@ def run_fiber_segmentation(data_dir, fiber_channel, out_dir, img_sub_folder=None
             Keyword arguments for `segment_fibers`
     """
 
-    validate_paths([data_dir, out_dir])
+    # no img_sub_folder, change to empty string to read directly from base folder
+    if img_sub_folder is None:
+        img_sub_folder = ""
+
+    validate_paths([os.path.join(data_dir, img_sub_folder), out_dir])
 
     fovs = ns.natsorted(list_folders(data_dir))
     verify_in_list(fiber_channel=[fiber_channel],
-                   all_channel=remove_file_extensions(list_files(os.path.join(data_dir, fovs[0]))))
+                   all_channels=remove_file_extensions(
+                       list_files(os.path.join(data_dir, fovs[0], img_sub_folder))))
 
     fiber_label_images = {}
     fiber_object_table = []

@@ -18,7 +18,7 @@ PIXEL_CLUSTER_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
 CELL_CLUSTER_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                  '..', '..', 'templates', '3_Cluster_Cells.ipynb')
 FIB_SEG_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                 '..', '..', 'templates', 'example_fiber_segmentation.ipynb')
+                            '..', '..', 'templates', 'example_fiber_segmentation.ipynb')
 
 
 def _exec_notebook(nb_filename, base_folder):
