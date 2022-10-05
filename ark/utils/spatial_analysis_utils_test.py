@@ -111,7 +111,8 @@ def test_get_pos_cell_labels_channel():
 
 def test_get_pos_cell_labels_cluster():
     all_data, _ = test_utils._make_dist_exp_mats_spatial_utils_test()
-    all_data[settings.CELL_TYPE_NUM] = list(all_data[settings.CELL_TYPE].astype('category').cat.codes)
+    all_data[settings.CELL_TYPE_NUM] = list(all_data[settings.CELL_TYPE].
+                                            astype('category').cat.codes)
     excluded_channels = [0, 13, 22]
 
     # Subsets the expression matrix to only have channel columns
@@ -134,7 +135,8 @@ def test_compute_close_cell_num():
     all_data, example_dist_mat = test_utils._make_dist_exp_mats_spatial_utils_test()
     example_thresholds = test_utils._make_threshold_mat(in_utils=True)
 
-    all_data[settings.CELL_TYPE_NUM] = list(all_data[settings.CELL_TYPE].astype('category').cat.codes)
+    all_data[settings.CELL_TYPE_NUM] = list(all_data[settings.CELL_TYPE].
+                                            astype('category').cat.codes)
 
     excluded_channels = [0, 13, 22]
 
@@ -177,7 +179,8 @@ def test_compute_close_cell_num():
 
     # now, test for cluster enrichment
     all_data, example_dist_mat = test_utils._make_dist_exp_mats_spatial_utils_test()
-    all_data[settings.CELL_TYPE_NUM] = list(all_data[settings.CELL_TYPE].astype('category').cat.codes)
+    all_data[settings.CELL_TYPE_NUM] = list(all_data[settings.CELL_TYPE].
+                                            astype('category').cat.codes)
     cluster_ids = all_data.loc[:, settings.CELL_TYPE_NUM].drop_duplicates().values
 
     example_closenum, m1, _ = spatial_analysis_utils.compute_close_cell_num(
