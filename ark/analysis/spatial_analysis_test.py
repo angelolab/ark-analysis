@@ -52,7 +52,7 @@ def test_generate_channel_spatial_enrichment_stats():
 
         vals_pos, stats_pos = \
             spatial_analysis.generate_channel_spatial_enrichment_stats(
-                dist_mats, marker_thresholds, all_data, excluded_channels=EXCLUDE_CHANNELS,
+                label_dir, marker_thresholds, all_data, excluded_channels=EXCLUDE_CHANNELS,
                 bootstrap_num=100, dist_lim=100
             )
 
@@ -89,7 +89,7 @@ def test_generate_cluster_spatial_enrichment_stats():
 
         vals_pos, stats_pos = \
             spatial_analysis.generate_cluster_spatial_enrichment_stats(
-                all_data, dist_mats, bootstrap_num=100, dist_lim=100
+                label_dir, all_data, bootstrap_num=100, dist_lim=100
             )
 
         # both fov8 and fov9 should be returned
