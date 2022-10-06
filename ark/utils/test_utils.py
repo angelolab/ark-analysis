@@ -838,7 +838,6 @@ def _make_expression_mat_sa(enrichment_type):
 
     if enrichment_type == "none":
         all_data = pd.DataFrame(np.zeros((120, 32)))
-
         # Assigning values to the patient label and cell label columns
         # We create data for two fovs, with the second fov being the same as the first but the
         # cell expression data for marker 1 and marker 2 are inverted. cells 0-59 are fov8 and
@@ -853,7 +852,6 @@ def _make_expression_mat_sa(enrichment_type):
 
         all_data.iloc[60:80, 3] = 1
         all_data.iloc[80:100, 2] = 1
-
         # We assign the two populations of cells different cell phenotypes
         all_data.iloc[0:20, 31] = "Pheno1"
         all_data.iloc[60:80, 31] = "Pheno2"
@@ -890,7 +888,6 @@ def _make_expression_mat_sa(enrichment_type):
         # for their respective markers.
         all_data_pos.iloc[28:32, 2] = 1
         all_data_pos.iloc[32:36, 3] = 1
-
         all_data_pos.iloc[108:112, 3] = 1
         all_data_pos.iloc[112:116, 2] = 1
         # We assign the two populations of cells different cell phenotypes

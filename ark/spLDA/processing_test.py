@@ -15,7 +15,7 @@ TEST_CELL_TABLE = make_cell_table(N_CELLS)
 
 def test_format_cell_table():
     # call formatting function
-    all_clusters = list(np.unique(list(TEST_CELL_TABLE[settings.CELL_TYPE])))
+    all_clusters = list(np.unique(TEST_CELL_TABLE[settings.CELL_TYPE]))
     all_markers = ['A', 'B', 'C', 'D', 'E', 'F', 'G']
     some_clusters = all_clusters[2:]
     some_markers = all_markers[2:]
