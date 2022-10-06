@@ -34,9 +34,8 @@ list(map(
 
 
 def test_batch_channel_spatial_enrichment():
-
-    # since the functionality if channel spatial enrichment is tested later,
-    # only the batching needs to be tested
+    # since the functionality of channel spatial enrichment is tested later,
+    # only the number of elements returned and the included_fovs argument needs testing
     marker_thresholds = test_utils._make_threshold_mat(in_utils=False)
 
     with tempfile.TemporaryDirectory() as label_dir:
@@ -54,40 +53,29 @@ def test_batch_channel_spatial_enrichment():
         vals_pos, stats_pos = \
             spatial_analysis.calculate_channel_spatial_enrichment(
                 dist_mats, marker_thresholds, all_data, excluded_channels=EXCLUDE_CHANNELS,
-                bootstrap_num=100, dist_lim=100)
-
-        vals_pos_batch, stats_pos_batch = \
-            spatial_analysis.batch_channel_spatial_enrichment(
-                label_dir, marker_thresholds, all_data, excluded_channels=EXCLUDE_CHANNELS,
-                bootstrap_num=100, dist_lim=100, batch_size=5)
-
-        vals_pos_batch_2, stats_pos_batch_2 = \
-            spatial_analysis.batch_channel_spatial_enrichment(
-                label_dir, marker_thresholds, all_data, excluded_channels=EXCLUDE_CHANNELS,
-                bootstrap_num=100, dist_lim=100, batch_size=1
+                bootstrap_num=100, dist_lim=100
             )
 
-        np.testing.assert_equal(vals_pos[0][0], vals_pos_batch[0][0])
-        np.testing.assert_equal(vals_pos[1][0], vals_pos_batch[1][0])
-
-        # batch function should match for multi batch process
-        np.testing.assert_equal(vals_pos[0][0], vals_pos_batch_2[0][0])
-        np.testing.assert_equal(vals_pos[1][0], vals_pos_batch_2[1][0])
+        # both fov8 and fov9 should be returned
+        assert len(vals_pos) == 2
 
         vals_pos_fov8, stats_pos_fov8 = \
             spatial_analysis.batch_channel_spatial_enrichment(
                 label_dir, marker_thresholds, all_data, excluded_channels=EXCLUDE_CHANNELS,
-                bootstrap_num=100, dist_lim=100, batch_size=5, included_fovs=["fov8"]
+                bootstrap_num=100, dist_lim=100, included_fovs=["fov8"]
             )
 
+        # the fov8 values in vals_pos_fov8 should be the same as in vals_pos
         np.testing.assert_equal(vals_pos_fov8[0][0], vals_pos[0][0])
+
+        # only fov8 should be returned
         assert len(vals_pos_fov8) == 1
 
 
 def test_batch_cluster_spatial_enrichment():
 
     # since the functionality if channel spatial enrichment is tested later,
-    # only the batching needs to be tested
+    # only the number of elements returned and the included_fovs argument needs testing
     with tempfile.TemporaryDirectory() as label_dir:
         test_utils._write_labels(label_dir, ["fov8", "fov9"], ["segmentation_label"], (10, 10),
                                  '', True, np.uint8, suffix='_feature_0')
@@ -101,29 +89,21 @@ def test_batch_cluster_spatial_enrichment():
 
         vals_pos, stats_pos = \
             spatial_analysis.calculate_cluster_spatial_enrichment(
-                all_data, dist_mats, bootstrap_num=100, dist_lim=100)
+                all_data, dist_mats, bootstrap_num=100, dist_lim=100
+            )
 
-        vals_pos_batch, stats_pos_batch = \
-            spatial_analysis.batch_cluster_spatial_enrichment(
-                label_dir, all_data, bootstrap_num=100, dist_lim=100, batch_size=5)
-
-        vals_pos_batch_2, stats_pos_batch_2 = \
-            spatial_analysis.batch_cluster_spatial_enrichment(
-                label_dir, all_data, bootstrap_num=100, dist_lim=100, batch_size=1)
-
-        np.testing.assert_equal(vals_pos[0][0], vals_pos_batch[0][0])
-        np.testing.assert_equal(vals_pos[1][0], vals_pos_batch[1][0])
-
-        # batch function should match for multi batch process
-        np.testing.assert_equal(vals_pos[0][0], vals_pos_batch_2[0][0])
-        np.testing.assert_equal(vals_pos[1][0], vals_pos_batch_2[1][0])
+        # both fov8 and fov9 should be returned
+        assert len(vals_pos) == 2
 
         vals_pos_fov8, stats_pos_fov8 = \
             spatial_analysis.batch_cluster_spatial_enrichment(
-                label_dir, all_data, bootstrap_num=100, dist_lim=100, batch_size=5,
-                included_fovs=["fov8"])
+                label_dir, all_data, bootstrap_num=100, dist_lim=100, included_fovs=["fov8"]
+            )
 
+        # the fov8 values in vals_pos_fov8 should be the same as in vals_pos
         np.testing.assert_equal(vals_pos_fov8[0][0], vals_pos[0][0])
+
+        # only fov8 should be returned
         assert len(vals_pos_fov8) == 1
 
 

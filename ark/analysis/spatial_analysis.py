@@ -9,9 +9,8 @@ import ark.settings as settings
 from ark.utils import io_utils, load_utils, misc_utils, spatial_analysis_utils
 
 
-def batch_channel_spatial_enrichment(label_dir, marker_thresholds, all_data, batch_size=5,
-                                     suffix='_feature_0', xr_channel_name='segmentation_label',
-                                     **kwargs):
+def batch_channel_spatial_enrichment(label_dir, marker_thresholds, all_data, suffix='_feature_0',
+                                     xr_channel_name='segmentation_label', **kwargs):
     """Wrapper function for batching calls to `calculate_channel_spatial_enrichment` over fovs
 
     Args:
@@ -21,8 +20,6 @@ def batch_channel_spatial_enrichment(label_dir, marker_thresholds, all_data, bat
             threshold values for positive marker expression
         all_data (pandas.DataFrame):
             data including fovs, cell labels, and cell expression matrix for all markers
-        batch_size (int):
-            fov count to load into memory at a time
         suffix (str):
             suffix for tif file names
         xr_channel_name (str):
@@ -49,15 +46,12 @@ def batch_channel_spatial_enrichment(label_dir, marker_thresholds, all_data, bat
         all_label_names = \
             [all_label_names[i] for i, fov in enumerate(label_fovs) if fov in included_fovs]
 
-    batching_strategy = \
-        [all_label_names[i:i + batch_size] for i in range(0, len(all_label_names), batch_size)]
-
     # create containers for batched return values
     values = []
     stats_datasets = []
 
-    for batch_names in tqdm(batching_strategy, desc="Batch Completion", unit="batch"):
-        label_maps = load_utils.load_imgs_from_dir(label_dir, files=batch_names,
+    for label_name in tqdm(all_label_names, desc="Batch Completion", unit="batch"):
+        label_maps = load_utils.load_imgs_from_dir(label_dir, files=[label_name],
                                                    xr_channel_names=[xr_channel_name],
                                                    trim_suffix=suffix)
 
@@ -232,7 +226,7 @@ def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, 
     return values, stats
 
 
-def batch_cluster_spatial_enrichment(label_dir, all_data, batch_size=5, suffix='_feature_0',
+def batch_cluster_spatial_enrichment(label_dir, all_data, suffix='_feature_0',
                                      xr_channel_name='segmentation_label', **kwargs):
     """ Wrapper function for batching calls to `calculate_cluster_spatial_enrichment` over fovs
 
@@ -241,8 +235,6 @@ def batch_cluster_spatial_enrichment(label_dir, all_data, batch_size=5, suffix='
             directory containing labeled tiffs
         all_data (pandas.DataFrame):
             data including fovs, cell labels, and cell expression matrix for all markers
-        batch_size (int):
-            fov count to load into memory at a time
         suffix (str):
             suffix for tif file names
         xr_channel_name (str):
@@ -269,15 +261,12 @@ def batch_cluster_spatial_enrichment(label_dir, all_data, batch_size=5, suffix='
         all_label_names = \
             [all_label_names[i] for i, fov in enumerate(label_fovs) if fov in included_fovs]
 
-    batching_strategy = \
-        [all_label_names[i:i + batch_size] for i in range(0, len(all_label_names), batch_size)]
-
     # create containers for batched return values
     values = []
     stats_datasets = []
 
-    for batch_names in tqdm(batching_strategy, desc="Batch Completion", unit="batch"):
-        label_maps = load_utils.load_imgs_from_dir(label_dir, files=batch_names,
+    for label_name in tqdm(all_label_names, desc="Batch Completion", unit="batch"):
+        label_maps = load_utils.load_imgs_from_dir(label_dir, files=[label_name],
                                                    xr_channel_names=[xr_channel_name],
                                                    trim_suffix=suffix)
 
