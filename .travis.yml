@@ -29,6 +29,16 @@ script:
 
 jobs:
   include:
+    - stage: test_pypi_deploy
+      python: 3.8
+      deploy:
+        provide: pypi
+        user: angelolab
+        password: preparetobeblownaway!
+        server: https://test.pypi.org/legacy/
+        distributions: "sdist bdist_wheel"
+        on:
+          branch = $TRAVIS_BRANCH
     - stage: pypi_deploy
       python: 3.8
       deploy:

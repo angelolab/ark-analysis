@@ -18,7 +18,7 @@ VERSION = '0.4.2'
 
 PKG_FOLDER = path.abspath(path.join(__file__, pardir))
 
-with open(path.join(PKG_FOLDER, 'ark_analysis.egg-info', 'requires.txt')) as req_file:
+with open(path.join(PKG_FOLDER, 'requirements.txt')) as req_file:
     requirements = req_file.read().splitlines()
 
     # anything at the empty string onward are test specifications and need to be removed
@@ -31,7 +31,7 @@ with open(path.join(PKG_FOLDER, 'README.md')) as f:
 
 extensions = [Extension(
     name="ark.utils._bootstrapping",
-    sources=[path.join(PKG_FOLDER, 'ark', 'utils', '_bootstrapping.c')],
+    sources=[path.join(PKG_FOLDER, 'ark', 'utils', '_bootstrapping.pyx')],
     include_dirs=[np.get_include()],
     define_macros=CYTHON_MACROS
 )]
