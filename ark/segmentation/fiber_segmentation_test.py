@@ -37,22 +37,22 @@ def test_run_fiber_segmentation():
 
         # bad directories should raise an error
         with pytest.raises(ValueError):
-            _, _ = fiber_segmentation.run_fiber_segmentation('bad_path', 'Collagen1', temp_dir)
+            _ = fiber_segmentation.run_fiber_segmentation('bad_path', 'Collagen1', temp_dir)
 
         with pytest.raises(ValueError):
-            _, _ = fiber_segmentation.run_fiber_segmentation(img_dir, 'Collagen1', 'bad_path')
+            _ = fiber_segmentation.run_fiber_segmentation(img_dir, 'Collagen1', 'bad_path')
 
         # bad subdirectory should raise an errors
         with pytest.raises(FileNotFoundError):
-            _, _ = fiber_segmentation.plot_fiber_segmentation_steps(
+            _ = fiber_segmentation.plot_fiber_segmentation_steps(
                 img_dir, 'fov1', 'Collagen1', img_sub_folder='bad_subdir')
 
         # bad channel should raise an errors
         with pytest.raises(ValueError):
-            _, _ = fiber_segmentation.run_fiber_segmentation(img_dir, 'bad_channel', temp_dir)
+            _ = fiber_segmentation.run_fiber_segmentation(img_dir, 'bad_channel', temp_dir)
 
         # test success
-        fiber_object_table, fiber_label_images = fiber_segmentation.run_fiber_segmentation(
+        fiber_object_table = fiber_segmentation.run_fiber_segmentation(
             img_dir, 'Collagen1', temp_dir)
 
         # check all fovs are processed
@@ -65,7 +65,7 @@ def test_run_fiber_segmentation():
         assert os.path.exists(os.path.join(temp_dir, 'fiber_object_table.csv'))
 
         # test success with debugging
-        fiber_object_table, fiber_label_images = fiber_segmentation.run_fiber_segmentation(
+        fiber_object_table = fiber_segmentation.run_fiber_segmentation(
             img_dir, 'Collagen1', temp_dir, debug=True)
 
         # check debug output files

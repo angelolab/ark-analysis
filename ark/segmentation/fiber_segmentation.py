@@ -145,6 +145,10 @@ def run_fiber_segmentation(data_dir, fiber_channel, out_dir, img_sub_folder=None
             Image subfolder name in `data_dir`. If there is not subfolder, set this to None.
         **kwargs:
             Keyword arguments for `segment_fibers`
+
+    Returns:
+        pd.DataFrame:
+         - Dataframe containing the fiber objects and their properties
     """
 
     # no img_sub_folder, change to empty string to read directly from base folder
@@ -158,7 +162,6 @@ def run_fiber_segmentation(data_dir, fiber_channel, out_dir, img_sub_folder=None
                    all_channels=remove_file_extensions(
                        list_files(os.path.join(data_dir, fovs[0], img_sub_folder))))
 
-    fiber_label_images = {}
     fiber_object_table = []
 
     for fov in fovs:
@@ -166,18 +169,17 @@ def run_fiber_segmentation(data_dir, fiber_channel, out_dir, img_sub_folder=None
         subset_xr = load_utils.load_imgs_from_tree(
             data_dir, img_sub_folder, fovs=fov, channels=[fiber_channel]
         )
-        subtable, sublabel = segment_fibers(subset_xr, fiber_channel, out_dir, save_csv=False,
-                                            **kwargs)
-        fiber_label_images.update(sublabel)
+        subtable = segment_fibers(subset_xr, fiber_channel, out_dir, fov, save_csv=False,
+                                  **kwargs)
         fiber_object_table.append(subtable)
 
     fiber_object_table = pd.concat(fiber_object_table)
     fiber_object_table.to_csv(os.path.join(out_dir, 'fiber_object_table.csv'), index=False)
 
-    return fiber_object_table, fiber_label_images
+    return fiber_object_table
 
 
-def segment_fibers(data_xr, fiber_channel, out_dir, blur=2, contrast_scaling_divisor=128,
+def segment_fibers(data_xr, fiber_channel, out_dir, fov, blur=2, contrast_scaling_divisor=128,
                    fiber_widths=(2, 4), ridge_cutoff=0.1, sobel_blur=1, min_fiber_size=15,
                    object_properties=settings.FIBER_OBJECT_PROPS, save_csv=True, debug=False):
     """ Segments fiber objects from image data
@@ -189,6 +191,8 @@ def segment_fibers(data_xr, fiber_channel, out_dir, blur=2, contrast_scaling_div
             Channel for fiber segmentation, e.g collagen.
         out_dir (str | PathLike):
             Directory to save fiber object labels and table.
+        fov (str):
+            name of the fov being processed
         blur (float):
             Preprocessing gaussian blur radius
         contrast_scaling_divisor (int):
@@ -219,9 +223,8 @@ def segment_fibers(data_xr, fiber_channel, out_dir, blur=2, contrast_scaling_div
             Save intermediate preprocessing steps
 
     Returns:
-        pd.DataFrame, Dict[str, np.ndarray]:
+        pd.DataFrame:
          - Dataframe containing the fiber objects and their properties
-         - Dictionary mapping fov names to their fiber label images
     """
     channel_xr = data_xr.loc[:, :, :, fiber_channel]
     fov_len = channel_xr.shape[1]
@@ -234,65 +237,61 @@ def segment_fibers(data_xr, fiber_channel, out_dir, blur=2, contrast_scaling_div
         if not os.path.exists(debug_path):
             os.makedirs(debug_path)
 
-    for fov in channel_xr.fovs.values:
-        fiber_channel_data = channel_xr.loc[fov, :, :].values.astype('float')
-        blurred = ndi.gaussian_filter(fiber_channel_data, sigma=blur)
+    fiber_channel_data = channel_xr.loc[fov, :, :].values.astype('float')
 
-        # local contrast enhancement
-        contrast_adjusted = equalize_adapthist(
-            blurred / np.max(blurred),
-            kernel_size=fov_len / contrast_scaling_divisor
-        )
+    blurred = ndi.gaussian_filter(fiber_channel_data, sigma=blur)
 
-        # meijering filtering
-        ridges = meijering(contrast_adjusted, sigmas=fiber_widths, black_ridges=False)
+    # local contrast enhancement
+    contrast_adjusted = equalize_adapthist(
+        blurred / np.max(blurred),
+        kernel_size=fov_len / contrast_scaling_divisor
+    )
 
-        # remove image intensity influence for watershed setup
-        distance_transformed = ndi.gaussian_filter(
-            distance_transform_edt(ridges > ridge_cutoff),
-            sigma=1
-        )
+    # meijering filtering
+    ridges = meijering(contrast_adjusted, sigmas=fiber_widths, black_ridges=False)
 
-        # watershed setup
-        threshed = np.zeros_like(distance_transformed)
-        thresholds = threshold_multiotsu(distance_transformed, classes=3)
+    # remove image intensity influence for watershed setup
+    distance_transformed = ndi.gaussian_filter(
+        distance_transform_edt(ridges > ridge_cutoff),
+        sigma=1
+    )
 
-        threshed[distance_transformed < thresholds[0]] = 1
-        threshed[distance_transformed > thresholds[1]] = 2
+    # watershed setup
+    threshed = np.zeros_like(distance_transformed)
+    thresholds = threshold_multiotsu(distance_transformed, classes=3)
 
-        elevation_map = sobel(
-            ndi.gaussian_filter(distance_transformed, sigma=sobel_blur)
-        )
+    threshed[distance_transformed < thresholds[0]] = 1
+    threshed[distance_transformed > thresholds[1]] = 2
 
-        segmentation = watershed(elevation_map, threshed) - 1
+    elevation_map = sobel(
+        ndi.gaussian_filter(distance_transformed, sigma=sobel_blur)
+    )
 
-        labeled, _ = ndi.label(segmentation)
+    segmentation = watershed(elevation_map, threshed) - 1
 
-        labeled_filtered = remove_small_objects(labeled, min_size=min_fiber_size) * segmentation
+    labeled, _ = ndi.label(segmentation)
 
-        if debug:
-            imsave(os.path.join(debug_path, f'{fov}_thresholded.tiff'), threshed,
-                   check_contrast=False)
-            imsave(os.path.join(debug_path, f'{fov}_ridges_thresholded.tiff'),
-                   distance_transformed, check_contrast=False)
-            imsave(os.path.join(debug_path, f'{fov}_meijering_filter.tiff'), ridges,
-                   check_contrast=False)
-            imsave(os.path.join(debug_path, f'{fov}_contrast_adjusted.tiff'), contrast_adjusted,
-                   check_contrast=False)
+    labeled_filtered = remove_small_objects(labeled, min_size=min_fiber_size) * segmentation
 
-        imsave(os.path.join(out_dir, f'{fov}_fiber_labels.tiff'), labeled_filtered,
+    if debug:
+        imsave(os.path.join(debug_path, f'{fov}_thresholded.tiff'), threshed,
+               check_contrast=False)
+        imsave(os.path.join(debug_path, f'{fov}_ridges_thresholded.tiff'),
+               distance_transformed, check_contrast=False)
+        imsave(os.path.join(debug_path, f'{fov}_meijering_filter.tiff'), ridges,
+               check_contrast=False)
+        imsave(os.path.join(debug_path, f'{fov}_contrast_adjusted.tiff'), contrast_adjusted,
                check_contrast=False)
 
-        fiber_label_images[fov] = labeled_filtered
+    imsave(os.path.join(out_dir, f'{fov}_fiber_labels.tiff'), labeled_filtered,
+           check_contrast=False)
 
-        fov_table = regionprops_table(labeled_filtered, properties=object_properties)
+    fiber_object_table = regionprops_table(labeled_filtered, properties=object_properties)
 
-        fov_table = pd.DataFrame(fov_table)
-        fov_table[settings.FOV_ID] = fov
-        fiber_object_table.append(fov_table)
+    fiber_object_table = pd.DataFrame(fiber_object_table)
+    fiber_object_table[settings.FOV_ID] = fov
 
-    fiber_object_table = pd.concat(fiber_object_table)
     if save_csv:
         fiber_object_table.to_csv(os.path.join(out_dir, 'fiber_object_table.csv'))
 
-    return fiber_object_table, fiber_label_images
+    return fiber_object_table
