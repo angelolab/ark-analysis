@@ -68,4 +68,4 @@ run_params=(
 )
 [[ ! -z "$external" ]] && run_params+=(-v "$external:/data/external")
 
-docker run -it "${run_params[@]}" angelolab/ark-analysis:v0.4.2
+docker run -it "${run_params[@]}" angelolab/ark-analysis:v0.4.1
