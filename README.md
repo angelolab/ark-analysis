@@ -1,6 +1,7 @@
 [![Build Status](https://travis-ci.com/angelolab/ark-analysis.svg?branch=main)](https://travis-ci.com/angelolab/ark-analysis)
 [![Coverage Status](https://coveralls.io/repos/github/angelolab/ark-analysis/badge.svg?branch=main)](https://coveralls.io/github/angelolab/ark-analysis?branch=main)
 ![Docker Image Version (latest by date)](https://img.shields.io/docker/v/angelolab/ark-analysis?arch=amd64&color=%23469ae5&label=Docker%20Version&sort=date)
+[![Read the Docs](https://readthedocs.org/projects/ark-analysis/badge/?version=stable)](https://ark-analysis.readthedocs.io/en/stable/)
 
 # ark-analysis
 
