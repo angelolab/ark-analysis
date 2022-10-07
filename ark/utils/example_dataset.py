@@ -51,7 +51,7 @@ class ExampleDataset():
                                                    revision=self.revision,
                                                    name=self.dataset,
                                                    cache_dir=self.cache_dir,
-                                                   use_auth_token=True)
+                                                   use_auth_token=False)
 
     def check_downloaded(self, dst_path: pathlib.Path) -> bool:
         """
