@@ -195,11 +195,7 @@ next_release_vX.Y.Z
 1. Bump the `VERSION` Variable in `setup.py` to `X.Y.Z`. View the [draft release notes](https://github.com/angelolab/ark-analysis/releases) to read the current bugfixes, enhancements and more.
    1. If, in the release notes draft there are PRs that are not categorized, label them appropriately (usually based on the label of their respective Issue).
 2. Make sure that all tests pass for `Ark` on Travis-CI. 
-3. In the `ark-analysis/start_docker.sh` script, change the image tag from 
-    ```sh
-    docker run -it "${run_params[@]}" angelolab/ark-analysis:vA.B.C
-    -> docker run -it "${run_params[@]}" angelolab/ark-analysis:vX.Y.Z
-    ```
+3. In the `ark-analysis/start_docker.sh` script, change the `VERSION` variable from `vA.B.C` to `vX.Y.Z`
 4. Request a review and merge the `Ark` branch.
 5. Next head to the most recent Drafted Release Notes:
    1. Double check that the tag is the appropriate version name.
