@@ -1,4 +1,4 @@
-from doctest import Example
+import glob
 import pathlib
 from typing import Callable, Iterator
 
@@ -28,7 +28,7 @@ def setup_temp_path_factory(tmp_path_factory) -> Iterator[pathlib.Path]:
 
 # Only download the dataset configs required per tests w.r.t the notebooks.
 # Will not download reused dataset configs.
-@pytest.fixture(scope="session", params=["nb1", "nb2"])
+@pytest.fixture(scope="session", params=["nb3"])
 def dataset_download(setup_temp_path_factory, request) -> Iterator[ExampleDataset]:
     """
     A Fixture which instantiates and downloads the dataset with respect to each
@@ -47,7 +47,7 @@ def dataset_download(setup_temp_path_factory, request) -> Iterator[ExampleDatase
     example_dataset: ExampleDataset = ExampleDataset(
         dataset=request.param,
         cache_dir=setup_temp_path_factory,
-        revision="9fecc0ccbb8f2cf1b33172b827f51dfdcf11c149"
+        revision="d047ac0f69e882a339ce28f5f70fc435aaea6d96"
     )
     # Download example data for a particular notebook
     example_dataset.download_example_dataset()
@@ -67,17 +67,30 @@ class TestExampleDataset:
                               "H3K9ac", "H3K27me3", "HLADR", "IDO", "Ki67", "PD1", "SMA", "Vim"]
         self.cell_table_names = ["cell_table_arcsinh_transformed", "cell_table_size_normalized"]
         self.deepcell_output_names = [f"fov{i}_feature_{j}" for i in range(11) for j in range(2)]
+        self._example_pixel_output_dir_names = {
+            "root_files": ["cell_clustering_params", "example_channel_norm", "example_pixel_norm",
+                           "pixel_channel_avg_meta_cluster", "pixel_channel_avg_som_cluster", 
+                           "pixel_meta_cluster_mapping", "pixel_som_to_meta", "pixel_weights"
+                           ,"post_rowsum_chan_norm"],
+            "pixel_mat_data": [f"fov{i}" for i in range(11)],
+            "pixel_mat_subset": [f"fov{i}" for i in range(11)],
+            "pixel_masks": [f"fov{i}_pixel_mask" for i in range(2)]
+        }
+        
         self.dataset_test_fns: dict[str, Callable] = {
             "image_data": self._image_data_check,
             "cell_table": self._cell_table_check,
-            "deepcell_output": self._deepcell_output_check
+            "deepcell_output": self._deepcell_output_check,
+            "example_pixel_output_dir": self._example_pixel_output_dir_check
         }
+
 
         # Mapping the datasets to their respective test functions.
         self.move_path_suffixes = {
             "image_data": "image_data",
             "cell_table": "segmentation/cell_table",
-            "deepcell_output": "segmentation/deepcell_output"
+            "deepcell_output": "segmentation/deepcell_output",
+            "example_pixel_output_dir": "segmentation/example_pixel_output_dir"
         }
 
     def test_download_example_dataset(self, dataset_download: ExampleDataset):
@@ -109,7 +122,8 @@ class TestExampleDataset:
         dataset_download.move_example_dataset(move_dir=move_dir)
 
         dataset_names = list(
-            dataset_download.dataset_paths[dataset_download.dataset].features.keys())
+            dataset_download.dataset_paths[dataset_download.dataset].features.keys()
+        )
 
         for ds_n in dataset_names:
             ds_n_suffix = self.move_path_suffixes[ds_n]
@@ -118,13 +132,13 @@ class TestExampleDataset:
             self.dataset_test_fns[ds_n](dir_p)
 
     # Will cause duplicate downloads
-    def test_get_example_dataset(self):
+    def test_get_example_dataset(self, tmp_path_factory):
         """
         #! TODO
         """
 
         with pytest.raises(ValueError):
-            get_example_dataset("incorrect_dataset", save_dir=None)
+            get_example_dataset("incorrect_dataset", save_dir = tmp_path_factory)
 
     def test_check_downloaded(self, tmp_path):
         """
@@ -187,3 +201,59 @@ class TestExampleDataset:
         downloaded_deepcell_output = list(dir_p.glob("*.tif"))
         downloaded_deepcell_output_names = [f.stem for f in downloaded_deepcell_output]
         assert set(self.deepcell_output_names) == set(downloaded_deepcell_output_names)
+
+    def _example_pixel_output_dir_check(self, dir_p: pathlib.Path):
+        """
+        Checks to make sure that the following files exist w.r.t the 
+        `example_pixel_output_dir`.
+        
+        ```
+        example_pixel_output_dir/
+            ├── cell_clustering_params.json
+            ├── example_channel_norm.feather
+            ├── example_pixel_norm.feather
+            ├── pixel_channel_avg_meta_cluster.csv
+            ├── pixel_channel_avg_som_cluster.csv
+            ├── pixel_masks/
+            │  ├── fov0_pixel_mask.tiff
+            │  └── fov1_pixel_mask.tiff
+            ├── pixel_mat_data/
+            │  ├── fov0.feather
+            │  ├── fov1.feather
+            │  ├── ...
+            │  └── fov10.feather
+            ├── pixel_mat_subset/
+            │  ├── fov0.feather
+            │  ├── fov1.feather
+            │  ├── ...
+            │  └── fov10.feather
+            ├── pixel_meta_cluster_mapping.csv
+            ├── pixel_som_to_meta.feather
+            ├── pixel_weights.feather
+            └── post_rowsum_chan_norm.feather
+        ```
+        Args:
+            dir_p (pathlib.Path): The directory to check.
+        """
+        # Root Files
+        root_files = list(dir_p.glob("*.json")) + \
+            list(dir_p.glob("*feather")) + \
+            list(dir_p.glob("*csv"))
+        root_file_names = [f.stem for f in root_files]
+        assert set(self._example_pixel_output_dir_names["root_files"]) == set(root_file_names)
+
+        # Pixel Mat Data
+        pixel_mat_files = list((dir_p / "pixel_mat_data").glob("*.feather"))
+        pixel_mat_files_names = [f.stem for f in pixel_mat_files]
+        assert set(self._example_pixel_output_dir_names["pixel_mat_data"]) == set(pixel_mat_files_names)
+        
+        # Pixel Mat Subset
+        pixel_mat_subset_files = list((dir_p / "pixel_mat_subset").glob("*.feather"))
+        pixel_mat_subset_names = [f.stem for f in pixel_mat_subset_files]
+        assert set(self._example_pixel_output_dir_names["pixel_mat_subset"]) == set(pixel_mat_subset_names)
+
+        # Pixel Masks
+        pixel_mask_files = list((dir_p / "pixel_masks").glob("*.tiff"))
+        pixel_mask_names = [f.stem for f in pixel_mask_files]
+        assert set(self._example_pixel_output_dir_names["pixel_masks"]) == set(pixel_mask_names)
+
