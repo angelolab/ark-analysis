@@ -1,4 +1,4 @@
-from doctest import Example
+import glob
 import pathlib
 from typing import Callable, Iterator
 
@@ -28,7 +28,7 @@ def setup_temp_path_factory(tmp_path_factory) -> Iterator[pathlib.Path]:
 
 # Only download the dataset configs required per tests w.r.t the notebooks.
 # Will not download reused dataset configs.
-@pytest.fixture(scope="session", params=["nb1", "nb2"])
+@pytest.fixture(scope="session", params=["cluster_pixels"])
 def dataset_download(setup_temp_path_factory, request) -> Iterator[ExampleDataset]:
     """
     A Fixture which instantiates and downloads the dataset with respect to each
@@ -47,7 +47,7 @@ def dataset_download(setup_temp_path_factory, request) -> Iterator[ExampleDatase
     example_dataset: ExampleDataset = ExampleDataset(
         dataset=request.param,
         cache_dir=setup_temp_path_factory,
-        revision="9fecc0ccbb8f2cf1b33172b827f51dfdcf11c149"
+        revision="14323a93e417562698a28bcd15481fad2422c878"
     )
     # Download example data for a particular notebook
     example_dataset.download_example_dataset()
@@ -65,19 +65,23 @@ class TestExampleDataset:
         self.channel_names = ["CD3", "CD4", "CD8", "CD14", "CD20", "CD31", "CD45", "CD68",
                               "CD163", "CK17", "Collagen1", "ECAD", "Fibronectin", "GLUT1",
                               "H3K9ac", "H3K27me3", "HLADR", "IDO", "Ki67", "PD1", "SMA", "Vim"]
-        self.cell_table_names = ["cell_table_arcsinh_transformed", "cell_table_size_normalized"]
+        self.cell_table_names = ["cell_table_arcsinh_transformed", "cell_table_size_normalized",
+                                 "cell_table_size_normalized_cell_labels"]
         self.deepcell_output_names = [f"fov{i}_feature_{j}" for i in range(11) for j in range(2)]
+
         self.dataset_test_fns: dict[str, Callable] = {
             "image_data": self._image_data_check,
             "cell_table": self._cell_table_check,
-            "deepcell_output": self._deepcell_output_check
+            "deepcell_output": self._deepcell_output_check,
+            "example_pixel_output_dir": self._example_pixel_output_dir_check
         }
 
         # Mapping the datasets to their respective test functions.
         self.move_path_suffixes = {
             "image_data": "image_data",
             "cell_table": "segmentation/cell_table",
-            "deepcell_output": "segmentation/deepcell_output"
+            "deepcell_output": "segmentation/deepcell_output",
+            "example_pixel_output_dir": "segmentation/example_pixel_output_dir"
         }
 
     def test_download_example_dataset(self, dataset_download: ExampleDataset):
@@ -86,7 +90,8 @@ class TestExampleDataset:
 
         Args:
             dataset_download (ExampleDataset): Fixture for the dataset, respective to each
-            partition (`nb1`, `nb2`, `nb3`, `nb4`).
+            partition (`segment_image_data`, `cluster_pixels`, `cluster_cells`,
+            `post_clustering`).
         """
         dataset_names = list(
             dataset_download.dataset_paths[dataset_download.dataset].features.keys())
@@ -102,14 +107,16 @@ class TestExampleDataset:
 
         Args:
             dataset_download (ExampleDataset): Fixture for the dataset, respective to each
-            partition (`nb1`, `nb2`, `nb3`, `nb4`).
+            partition (`segment_image_data`, `cluster_pixels`, `cluster_cells`,
+            `post_clustering`).
         """
         tmp_dir = tmp_path_factory.mktemp("move_example_data")
         move_dir = tmp_dir / "example_dataset"
         dataset_download.move_example_dataset(move_dir=move_dir)
 
         dataset_names = list(
-            dataset_download.dataset_paths[dataset_download.dataset].features.keys())
+            dataset_download.dataset_paths[dataset_download.dataset].features.keys()
+        )
 
         for ds_n in dataset_names:
             ds_n_suffix = self.move_path_suffixes[ds_n]
@@ -118,13 +125,13 @@ class TestExampleDataset:
             self.dataset_test_fns[ds_n](dir_p)
 
     # Will cause duplicate downloads
-    def test_get_example_dataset(self):
+    def test_get_example_dataset(self, tmp_path_factory):
         """
         #! TODO
         """
 
         with pytest.raises(ValueError):
-            get_example_dataset("incorrect_dataset", save_dir=None)
+            get_example_dataset("incorrect_dataset", save_dir=tmp_path_factory)
 
     def test_check_downloaded(self, tmp_path):
         """
