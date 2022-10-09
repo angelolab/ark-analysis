@@ -116,7 +116,7 @@ def get_example_dataset(dataset: str, save_dir: Union[str, pathlib.Path],
             downloaded. Defaults to True.
     """
 
-    valid_datasets = ["nb1", "nb2", "nb3", "nb4"]
+    valid_datasets = ["segment_image_data", "cluster_pixels", "cluster_cells", "post_clustering"]
 
     # Check the appropriate dataset name
     if dataset not in valid_datasets:
@@ -124,7 +124,7 @@ def get_example_dataset(dataset: str, save_dir: Union[str, pathlib.Path],
 
     example_dataset = ExampleDataset(dataset=dataset, overwrite_existing=overwrite_existing,
                                      cache_dir=None,
-                                     revision="d047ac0f69e882a339ce28f5f70fc435aaea6d96")
+                                     revision="14323a93e417562698a28bcd15481fad2422c878")
 
     # Download the dataset
     example_dataset.download_example_dataset()

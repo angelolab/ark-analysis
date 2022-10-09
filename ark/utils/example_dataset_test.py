@@ -28,7 +28,7 @@ def setup_temp_path_factory(tmp_path_factory) -> Iterator[pathlib.Path]:
 
 # Only download the dataset configs required per tests w.r.t the notebooks.
 # Will not download reused dataset configs.
-@pytest.fixture(scope="session", params=["nb3"])
+@pytest.fixture(scope="session", params=["cluster_cells"])
 def dataset_download(setup_temp_path_factory, request) -> Iterator[ExampleDataset]:
     """
     A Fixture which instantiates and downloads the dataset with respect to each
@@ -47,7 +47,7 @@ def dataset_download(setup_temp_path_factory, request) -> Iterator[ExampleDatase
     example_dataset: ExampleDataset = ExampleDataset(
         dataset=request.param,
         cache_dir=setup_temp_path_factory,
-        revision="d047ac0f69e882a339ce28f5f70fc435aaea6d96"
+        revision="14323a93e417562698a28bcd15481fad2422c878"
     )
     # Download example data for a particular notebook
     example_dataset.download_example_dataset()
@@ -65,7 +65,8 @@ class TestExampleDataset:
         self.channel_names = ["CD3", "CD4", "CD8", "CD14", "CD20", "CD31", "CD45", "CD68",
                               "CD163", "CK17", "Collagen1", "ECAD", "Fibronectin", "GLUT1",
                               "H3K9ac", "H3K27me3", "HLADR", "IDO", "Ki67", "PD1", "SMA", "Vim"]
-        self.cell_table_names = ["cell_table_arcsinh_transformed", "cell_table_size_normalized"]
+        self.cell_table_names = ["cell_table_arcsinh_transformed", "cell_table_size_normalized",
+                                 "cell_table_size_normalized_cell_labels"]
         self.deepcell_output_names = [f"fov{i}_feature_{j}" for i in range(11) for j in range(2)]
         self._example_pixel_output_dir_names = {
             "root_files": ["cell_clustering_params", "example_channel_norm", "example_pixel_norm",
@@ -98,7 +99,8 @@ class TestExampleDataset:
 
         Args:
             dataset_download (ExampleDataset): Fixture for the dataset, respective to each
-            partition (`nb1`, `nb2`, `nb3`, `nb4`).
+            partition (`segment_image_data`, `cluster_pixels`, `cluster_cells`,
+            `post_clustering`).
         """
         dataset_names = list(
             dataset_download.dataset_paths[dataset_download.dataset].features.keys())
@@ -114,7 +116,8 @@ class TestExampleDataset:
 
         Args:
             dataset_download (ExampleDataset): Fixture for the dataset, respective to each
-            partition (`nb1`, `nb2`, `nb3`, `nb4`).
+            partition (`segment_image_data`, `cluster_pixels`, `cluster_cells`,
+            `post_clustering`).
         """
         tmp_dir = tmp_path_factory.mktemp("move_example_data")
         move_dir = tmp_dir / "example_dataset"
