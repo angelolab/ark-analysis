@@ -229,9 +229,6 @@ def segment_fibers(data_xr, fiber_channel, out_dir, fov, blur=2, contrast_scalin
     channel_xr = data_xr.loc[:, :, :, fiber_channel]
     fov_len = channel_xr.shape[1]
 
-    fiber_label_images = {}
-    fiber_object_table = []
-
     if debug:
         debug_path = os.path.join(out_dir, '_debug')
         if not os.path.exists(debug_path):

@@ -1,59 +1,71 @@
 import os
+import shutil
 import tempfile
 import pytest
 from pathlib import Path
 
 import ark.settings as settings
+import ark.utils.data_utils
 from ark.utils import io_utils
 from ark.segmentation import fiber_segmentation
 
 
 def test_plot_fiber_segmentation_steps():
-    img_dir = os.path.join(Path(__file__).parent.parent.parent,
-                           "data", "example_dataset", "fiber_segmentation")
 
-    # bad directory should raise an errors
-    with pytest.raises(ValueError):
-        _, _ = fiber_segmentation.plot_fiber_segmentation_steps('bad_dir', 'fov1', 'Collagen1')
+    with tempfile.TemporaryDirectory() as temp_dir:
+        # download example data, keep only 3 fovs for testing
+        ark.utils.data_utils.download_example_data(temp_dir)
+        img_dir = os.path.join(temp_dir, 'image_data')
+        for fov in ['fov3', 'fov4', 'fov5', 'fov6', 'fov7', 'fov8', 'fov9', 'fov10']:
+            shutil.rmtree(os.path.join(temp_dir, 'image_data', fov))
 
-    # bad channel should raise an errors
-    with pytest.raises(ValueError):
-        _, _ = fiber_segmentation.plot_fiber_segmentation_steps(img_dir, 'fov1', 'bad_channel')
+        # bad directory should raise an errors
+        with pytest.raises(ValueError):
+            _, _ = fiber_segmentation.plot_fiber_segmentation_steps('bad_dir', 'fov1', 'Collagen1')
 
-    # bad subdirectory should raise an errors
-    with pytest.raises(FileNotFoundError):
-        _, _ = fiber_segmentation.plot_fiber_segmentation_steps(
-            img_dir, 'fov1', 'Collagen1', img_sub_folder='bad_subdir')
+        # bad channel should raise an errors
+        with pytest.raises(ValueError):
+            _, _ = fiber_segmentation.plot_fiber_segmentation_steps(img_dir, 'fov1', 'bad_channel')
 
-    # test success
-    fiber_segmentation.plot_fiber_segmentation_steps(img_dir, 'fov1', 'Collagen1')
+        # bad subdirectory should raise an errors
+        with pytest.raises(FileNotFoundError):
+            _, _ = fiber_segmentation.plot_fiber_segmentation_steps(
+                img_dir, 'fov1', 'Collagen1', img_sub_folder='bad_subdir')
+
+        # test success
+        fiber_segmentation.plot_fiber_segmentation_steps(img_dir, 'fov1', 'Collagen1')
 
 
 def test_run_fiber_segmentation():
     with tempfile.TemporaryDirectory() as temp_dir:
 
-        img_dir = os.path.join(Path(__file__).parent.parent.parent,
-                               "data", "example_dataset", "fiber_segmentation")
+        # download example data, keep only 3 fovs for testing
+        ark.utils.data_utils.download_example_data(temp_dir)
+        img_dir = os.path.join(temp_dir, 'image_data')
+        for fov in ['fov3', 'fov4', 'fov5', 'fov6', 'fov7', 'fov8', 'fov9', 'fov10']:
+            shutil.rmtree(os.path.join(temp_dir, 'image_data', fov))
+        out_dir = os.path.join(temp_dir, 'fiber_segmentation')
+        os.makedirs(out_dir)
 
         # bad directories should raise an error
         with pytest.raises(ValueError):
-            _ = fiber_segmentation.run_fiber_segmentation('bad_path', 'Collagen1', temp_dir)
+            _ = fiber_segmentation.run_fiber_segmentation('bad_path', 'Collagen1', out_dir)
 
         with pytest.raises(ValueError):
             _ = fiber_segmentation.run_fiber_segmentation(img_dir, 'Collagen1', 'bad_path')
 
         # bad subdirectory should raise an errors
         with pytest.raises(FileNotFoundError):
-            _ = fiber_segmentation.plot_fiber_segmentation_steps(
-                img_dir, 'fov1', 'Collagen1', img_sub_folder='bad_subdir')
+            _ = fiber_segmentation.run_fiber_segmentation(img_dir, 'Collagen1', out_dir,
+                                                          img_sub_folder='bad_folder')
 
         # bad channel should raise an errors
         with pytest.raises(ValueError):
-            _ = fiber_segmentation.run_fiber_segmentation(img_dir, 'bad_channel', temp_dir)
+            _ = fiber_segmentation.run_fiber_segmentation(img_dir, 'bad_channel', out_dir)
 
         # test success
         fiber_object_table = fiber_segmentation.run_fiber_segmentation(
-            img_dir, 'Collagen1', temp_dir)
+            img_dir, 'Collagen1', out_dir)
 
         # check all fovs are processed
         assert fiber_object_table[settings.FOV_ID].unique().sort() == \
@@ -61,16 +73,16 @@ def test_run_fiber_segmentation():
 
         # check output files
         for fov in io_utils.list_files(img_dir):
-            assert os.path.exists(os.path.join(temp_dir, f'{fov}_fiber_labels.tiff'))
-        assert os.path.exists(os.path.join(temp_dir, 'fiber_object_table.csv'))
+            assert os.path.exists(os.path.join(out_dir, f'{fov}_fiber_labels.tiff'))
+        assert os.path.exists(os.path.join(out_dir, 'fiber_object_table.csv'))
 
         # test success with debugging
         fiber_object_table = fiber_segmentation.run_fiber_segmentation(
-            img_dir, 'Collagen1', temp_dir, debug=True)
+            img_dir, 'Collagen1', out_dir, debug=True)
 
         # check debug output files
         intermediate_imgs = ['fov1_thresholded.tiff', 'fov1_ridges_thresholded.tiff',
                              'fov1_meijering_filter.tiff', 'fov1_contrast_adjusted.tiff']
         for img in intermediate_imgs:
-            img_path = os.path.join(temp_dir, '_debug', img)
+            img_path = os.path.join(out_dir, '_debug', img)
             assert os.path.exists(img_path)
