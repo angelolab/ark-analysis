@@ -28,7 +28,7 @@ def setup_temp_path_factory(tmp_path_factory) -> Iterator[pathlib.Path]:
 
 # Only download the dataset configs required per tests w.r.t the notebooks.
 # Will not download reused dataset configs.
-@pytest.fixture(scope="session", params=["cluster_pixels"])
+@pytest.fixture(scope="session", params=["segment_image_data, cluster_pixels"])
 def dataset_download(setup_temp_path_factory, request) -> Iterator[ExampleDataset]:
     """
     A Fixture which instantiates and downloads the dataset with respect to each
