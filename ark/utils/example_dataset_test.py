@@ -79,7 +79,7 @@ class TestExampleDataset:
             "pixel_mat_subset": [f"fov{i}" for i in range(11)],
             "pixel_masks": [f"fov{i}_pixel_mask" for i in range(2)]
         }
-        
+
         self._example_cell_output_dir_names = {
             "root_files": ["example_cell_clust_to_meta", "example_cell_mat",
                            "example_cell_meta_cluster_channel_avg",
@@ -278,7 +278,7 @@ class TestExampleDataset:
         pixel_mask_names = [f.stem for f in pixel_mask_files]
         assert set(self._example_pixel_output_dir_names["pixel_masks"]) \
             == set(pixel_mask_names)
-            
+
     def _example_cell_output_dir_check(self, dir_p: pathlib.Path):
         """
         Checks to make sure that the following files exist w.r.t the
@@ -305,12 +305,12 @@ class TestExampleDataset:
         Args:
             dir_p (pathlib.Path): The directory to check.
         """
-        
+
         # Root Files
         root_files = list(dir_p.glob("*.feather")) + list(dir_p.glob("*.csv"))
         root_file_names = [f.stem for f in root_files]
         assert set(self._example_cell_output_dir_names["root_files"]) == set(root_file_names)
-        
+
         # Cell Masks
         cell_mask_files = list((dir_p / "cell_masks").glob("*.tiff"))
         cell_mask_names = [f.stem for f in cell_mask_files]
