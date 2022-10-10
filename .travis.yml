@@ -30,6 +30,7 @@ script:
 jobs:
   include:
     - stage: test_pypi_deploy
+      if: type IN (pull_request)
       python: 3.8
       deploy:
         provider: pypi
@@ -37,8 +38,6 @@ jobs:
         password: $TEST_PYPI_PASSWORD
         server: https://test.pypi.org/legacy/
         distributions: "sdist bdist_wheel"
-        on:
-          branch = $TRAVIS_BRANCH
     - stage: pypi_deploy
       python: 3.8
       deploy:
