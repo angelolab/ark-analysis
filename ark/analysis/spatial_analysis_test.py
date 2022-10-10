@@ -308,87 +308,98 @@ def test_calculate_cluster_spatial_enrichment():
 
 
 def test_create_neighborhood_matrix():
-    # get positive expression and distance matrices
-    all_data_pos, dist_mat_pos = test_utils._make_dist_exp_mats_spatial_test(
-        enrichment_type="positive", dist_lim=51)
+    with tempfile.TemporaryDirectory() as label_dir:
+        # generate sample label data
+        test_utils._write_labels(label_dir, ["fov8", "fov9"], ["segmentation_label"], (10, 10),
+                                 '', True, np.uint8, suffix='_feature_0')
 
-    # test if self_neighbor is False (default)
-    counts, freqs = spatial_analysis.create_neighborhood_matrix(
-        all_data_pos, dist_mat_pos, distlim=51
-    )
+        label_maps = load_utils.load_imgs_from_dir(label_dir, trim_suffix="_feature_0",
+                                                   xr_channel_names=["segmentation_label"])
+        dist_mats = spatial_analysis_utils.calc_dist_matrix(label_maps)
+        all_data = test_utils.spoof_cell_table_from_labels(label_maps)
 
-    # test the counts values
-    assert (counts[(counts[settings.FOV_ID] == "fov8") &
-                   (counts[settings.CELL_LABEL].isin(range(1, 9)))]["Pheno1"] == 0).all()
-    assert (counts[(counts[settings.FOV_ID] == "fov8") &
-                   (counts[settings.CELL_LABEL].isin(range(1, 11)))]["Pheno2"] == 8).all()
-    assert (counts[(counts[settings.FOV_ID] == "fov8") &
-                   (counts[settings.CELL_LABEL].isin(range(11, 21)))]["Pheno1"] == 8).all()
-    assert (counts[(counts[settings.FOV_ID] == "fov9") &
-                   (counts[settings.CELL_LABEL].isin(range(1, 11)))]["Pheno3"] == 2).all()
-    assert (counts[(counts[settings.FOV_ID] == "fov9") &
-                   (counts[settings.CELL_LABEL].isin(range(11, 21)))]["Pheno1"] == 0).all()
-    # test that cells with only itself as neighbor were removed from the table
-    assert (len(counts[(counts[settings.FOV_ID] == "fov8") &
-                       (counts[settings.CELL_LABEL].isin(range(21, 80)))]) == 0)
+        # error checking
+        with pytest.raises(ValueError):
+            # attempt to include fovs that do not exist
+            counts, freqs = spatial_analysis.create_neighborhood_matrix(
+                label_dir, all_data, included_fovs=[1, 100000], distlim=10
+            )
 
-    # test if self_neighbor is True
-    counts, freqs = spatial_analysis.create_neighborhood_matrix(
-        all_data_pos, dist_mat_pos, distlim=51, self_neighbor=True
-    )
-
-    # test the counts values
-    assert (counts[(counts[settings.FOV_ID] == "fov8") &
-                   (counts[settings.CELL_LABEL].isin(range(1, 9)))]["Pheno1"] == 1).all()
-    assert (counts[(counts[settings.FOV_ID] == "fov9") &
-                   (counts[settings.CELL_LABEL].isin(range(1, 9)))]["Pheno3"] == 2).all()
-    assert (counts[(counts[settings.FOV_ID] == "fov9") &
-                   (counts[settings.CELL_LABEL].isin(range(11, 19)))]["Pheno1"] == 1).all()
-
-    # error checking
-    with pytest.raises(ValueError):
-        # attempt to include fovs that do not exist
+        # test if self_neighbor is False (default)
         counts, freqs = spatial_analysis.create_neighborhood_matrix(
-            all_data_pos, dist_mat_pos, included_fovs=[1, 100000], distlim=51
+            label_dir, all_data, distlim=10
         )
+
+        # verify fov8 Pheno1, Pheno2, and Pheno3 counts
+        fov8_counts = counts[counts[settings.FOV_ID] == "fov8"].copy()
+        assert np.all(fov8_counts['Pheno1'].values == [0, 1, 1, 1])
+        assert np.all(fov8_counts['Pheno2'].values == [1, 0, 1, 1])
+        assert np.all(fov8_counts['Pheno3'].values == [2, 2, 1, 1])
+
+        # ditto for fov 9
+        fov8_counts = counts[counts[settings.FOV_ID] == "fov9"].copy()
+        assert np.all(fov8_counts['Pheno1'] == [1, 0, 1, 1])
+        assert np.all(fov8_counts['Pheno2'] == [0, 1, 1, 1])
+        assert np.all(fov8_counts['Pheno3'] == [2, 2, 1, 1])
+
+        # test if self_neighbor is True
+        counts, freqs = spatial_analysis.create_neighborhood_matrix(
+            label_dir, all_data, distlim=5, self_neighbor=True
+        )
+
+        # verify fov8 Pheno1, Pheno2, and Pheno3 counts
+        fov8_counts = counts[counts[settings.FOV_ID] == "fov8"].copy()
+        assert np.all(fov8_counts['Pheno1'].values == [1, 0, 0, 0])
+        assert np.all(fov8_counts['Pheno2'].values == [0, 1, 0, 0])
+        assert np.all(fov8_counts['Pheno3'].values == [0, 0, 1, 1])
+
+        # ditto for fov 9
+        fov8_counts = counts[counts[settings.FOV_ID] == "fov9"].copy()
+        assert np.all(fov8_counts['Pheno1'] == [0, 1, 0, 0])
+        assert np.all(fov8_counts['Pheno2'] == [1, 0, 0, 0])
+        assert np.all(fov8_counts['Pheno3'] == [0, 0, 1, 1])
 
 
 def test_generate_cluster_matrix_results():
     excluded_channels = ["Background", "HH3", "summed_channel"]
 
-    all_data_pos, dist_mat_pos = test_utils._make_dist_exp_mats_spatial_test(
-        enrichment_type="positive", dist_lim=50
-    )
+    with tempfile.TemporaryDirectory() as label_dir:
+        # generate sample label data
+        test_utils._write_labels(label_dir, ["fov8", "fov9"], ["segmentation_label"], (10, 10),
+                                 '', True, np.uint8, suffix='_feature_0')
+        label_maps = load_utils.load_imgs_from_dir(label_dir, trim_suffix="_feature_0",
+                                                   xr_channel_names=["segmentation_label"])
+        dist_mats = spatial_analysis_utils.calc_dist_matrix(label_maps)
+        all_data = test_utils.spoof_cell_table_from_labels(label_maps)
 
-    # we need corresponding dimensions, so use this method to generate
-    # the neighborhood matrix
-    neighbor_counts, neighbor_freqs = spatial_analysis.create_neighborhood_matrix(
-        all_data_pos, dist_mat_pos, distlim=51
-    )
+        # generate sample neighbor counts
+        neighbor_counts, neighbor_freqs = spatial_analysis.create_neighborhood_matrix(
+            label_dir, all_data, distlim=10
+        )
 
     # error checking
     with pytest.raises(ValueError):
         # pass bad columns
         spatial_analysis.generate_cluster_matrix_results(
-            all_data_pos, neighbor_counts, cluster_num=2, excluded_channels=["bad_col"]
+            all_data, neighbor_counts, cluster_num=2, excluded_channels=["bad_col"]
         )
 
     with pytest.raises(ValueError):
         # include bad fovs
         spatial_analysis.generate_cluster_matrix_results(
-            all_data_pos, neighbor_counts, cluster_num=2, excluded_channels=excluded_channels,
+            all_data, neighbor_counts, cluster_num=2, excluded_channels=excluded_channels,
             included_fovs=[1000]
         )
 
     with pytest.raises(ValueError):
         # specify bad k for clustering
         spatial_analysis.generate_cluster_matrix_results(
-            all_data_pos, neighbor_counts, cluster_num=1, excluded_channels=excluded_channels
+            all_data, neighbor_counts, cluster_num=1, excluded_channels=excluded_channels
         )
 
     all_data_markers_clusters, num_cell_type_per_cluster, mean_marker_exp_per_cluster = \
         spatial_analysis.generate_cluster_matrix_results(
-            all_data_pos, neighbor_counts, cluster_num=2, excluded_channels=excluded_channels
+            all_data, neighbor_counts, cluster_num=2, excluded_channels=excluded_channels
         )
 
     # make sure we created a cluster_labels column

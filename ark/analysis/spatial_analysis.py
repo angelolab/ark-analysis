@@ -439,15 +439,23 @@ def calculate_cluster_spatial_enrichment(all_data, dist_matrices_dict, included_
     return values, stats
 
 
-def create_neighborhood_matrix(all_data, dist_matrices_dict, included_fovs=None, distlim=50,
+def create_neighborhood_matrix(label_dir, all_data, suffix='_feature_0',
+                               xr_channel_name='segmentation_label',
+                               included_fovs=None, distlim=50,
                                self_neighbor=False, fov_col=settings.FOV_ID,
                                cell_label_col=settings.CELL_LABEL,
                                cluster_name_col=settings.CELL_TYPE):
     """Calculates the number of neighbor phenotypes for each cell.
 
     Args:
+        label_dir (str):
+            Directory containing labeled tiffs.
         all_data (pandas.DataFrame):
             data for all fovs. Includes the columns for fov, label, and cell phenotype.
+        suffix (str):
+            Suffix for tif file names.
+        xr_channel_name (str):
+            Channel name for labeled data array.
         dist_matrices_dict (dict):
             contains a cells x cells centroid-distance matrix for every fov.  Keys are fov names
         included_fovs (list):
@@ -498,7 +506,12 @@ def create_neighborhood_matrix(all_data, dist_matrices_dict, included_fovs=None,
 
     cell_neighbor_freqs = cell_neighbor_counts.copy(deep=True)
 
-    for fov in included_fovs:
+    for fov in tqdm(included_fovs, desc="Batch Completion", unit="batch"):
+        label_maps = load_utils.load_imgs_from_dir(label_dir, files=[fov + suffix + '.tiff'],
+                                                   xr_channel_names=[xr_channel_name],
+                                                   trim_suffix=suffix)
+        dist_mats = spatial_analysis_utils.calc_dist_matrix(label_maps)
+
         # Subsetting expression matrix to only include patients with correct fov label
         current_fov_idx = all_neighborhood_data.loc[:, fov_col] == fov
         current_fov_neighborhood_data = all_neighborhood_data[current_fov_idx]
@@ -506,13 +519,14 @@ def create_neighborhood_matrix(all_data, dist_matrices_dict, included_fovs=None,
         # Get the subset of phenotypes included in the current fov
         fov_cluster_names = current_fov_neighborhood_data[cluster_name_col].drop_duplicates()
 
-        # Retrieve fov-specific distance matrix from distance matrix dictionary
-        dist_matrix = dist_matrices_dict[fov]
+        # Extract the raw `numpy` distance matrix
+        dist_matrix = dist_mats[fov]
 
         # Get cell_neighbor_counts and cell_neighbor_freqs for fovs
         counts, freqs = spatial_analysis_utils.compute_neighbor_counts(
             current_fov_neighborhood_data, dist_matrix, distlim, self_neighbor,
-            cell_label_col=cell_label_col, cluster_name_col=cluster_name_col)
+            cell_label_col=cell_label_col, cluster_name_col=cluster_name_col
+        )
 
         # Add to neighbor counts + freqs for only the matching phenos between fov and whole dataset
         cell_neighbor_counts.loc[current_fov_neighborhood_data.index, fov_cluster_names] = counts
