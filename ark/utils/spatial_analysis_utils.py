@@ -82,12 +82,13 @@ def append_distance_features_to_dataset(dist_mats, cell_table, distance_columns)
     misc_utils.verify_in_list(distance_columns=distance_columns, valid_columns=cell_table.columns)
 
     num_cell_types = max(cell_table[settings.CLUSTER_ID].unique())
+    dist_list = []
 
     for fov in dist_mats.keys():
         fov_cells = cell_table.loc[cell_table[settings.FOV_ID] == fov]
         num_labels = max(fov_cells[settings.CELL_LABEL])
         for i, dist_col in enumerate(distance_columns):
-            cell_table = cell_table.append(pd.DataFrame([{
+            dist_list.append(pd.DataFrame([{
                 settings.FOV_ID: fov,
                 settings.CELL_LABEL: num_labels + i + 1,
                 settings.CELL_TYPE: dist_col,
@@ -105,6 +106,9 @@ def append_distance_features_to_dataset(dist_mats, cell_table, distance_columns)
             dist_mats[fov] = xr.concat([dist_mats[fov], xr.DataArray(
                 fov_cells[dist_col].values[:, np.newaxis], coords=(coords[1], coords[0])
             )], dim='dim_1')
+
+    distance_features = pd.concat(dist_list)
+    cell_table = pd.concat([cell_table, distance_features])
 
     return cell_table, dist_mats
 
