@@ -456,8 +456,6 @@ def create_neighborhood_matrix(label_dir, all_data, suffix='_feature_0',
             Suffix for tif file names.
         xr_channel_name (str):
             Channel name for labeled data array.
-        dist_matrices_dict (dict):
-            contains a cells x cells centroid-distance matrix for every fov.  Keys are fov names
         included_fovs (list):
             fovs to include in analysis. If argument is none, default is all fovs used.
         distlim (int):
