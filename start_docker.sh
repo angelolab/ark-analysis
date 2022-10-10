@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# define the version number, this needs to be updated every new Docker release
+VERSION='v0.4.3'
+
 # check for template developer flag
 JUPYTER_DIR='scripts'
 update=0
@@ -30,9 +33,7 @@ do
   esac
 done
 
-# find lowest open port available
-PORT=8888
-
+# update the notebooks in the scripts folder if flag set
 if [ $update -ne 0 ]
   then
     bash update_notebooks.sh -u
@@ -40,11 +41,15 @@ if [ $update -ne 0 ]
     bash update_notebooks.sh
 fi
 
+# find lowest open port available
+PORT=8888
+
 until [[ $(docker container ls | grep 0.0.0.0:$PORT | wc -l) -eq 0 ]]
   do
     ((PORT=$PORT+1))
 done
 
+# define the run parameters
 run_params=(
   -p $PORT:$PORT
   -e JUPYTER_PORT=$PORT
@@ -68,4 +73,8 @@ run_params=(
 )
 [[ ! -z "$external" ]] && run_params+=(-v "$external:/data/external")
 
-docker run -it "${run_params[@]}" angelolab/ark-analysis:v0.4.2
+# remove the old Docker container if one exists, as it may contain different external volumes
+docker rm -f $VERSION > /dev/null 2>&1 || true
+
+# create the Docker container
+docker run -it "${run_params[@]}" --name $VERSION angelolab/ark-analysis:$VERSION
