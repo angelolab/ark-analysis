@@ -13,8 +13,12 @@ class ExampleDataset():
         various partitions on Hugging Face: https://huggingface.co/datasets/angelolab/ark_example.
 
         Args:
-            dataset (str): The name of the dataset to download. Can be one of `nb1`, `nb2`,
-                `nb3`, `nb4`.
+            dataset (str): The name of the dataset to download. Can be one of 
+
+                    * `"segment_image_data"`
+                    * `"cluster_pixels"`
+                    * `"cluster_cells"`
+                    * `"post_clustering"`
             overwrite_existing (bool): A flag to overwrite existing data. Defaults to `True`.
             cache_dir (str, optional): The directory to save the cache dir. Defaults to `None`,
                 which internally in Hugging Face defaults to `~/.cache/huggingface/datasets`.
@@ -40,7 +44,8 @@ class ExampleDataset():
         """
 
     def download_example_dataset(self):
-        """Downloads the example dataset from Hugging Face Hub.
+        """
+        Downloads the example dataset from Hugging Face Hub.
         The following is a link to the dataset used:
         https://huggingface.co/datasets/angelolab/ark_example
 
@@ -60,10 +65,12 @@ class ExampleDataset():
         there are no contents, then it'll return True, False otherwise.
 
         Args:
-            dst_path (pathlib.Path): _description_
+            dst_path (pathlib.Path): The destination directory to check to see if 
+            files exist in it..
 
         Returns:
-            bool: _description_
+            bool: Returns `False` if there are no files in the directory `dst_path`.
+            Returns `True` if there are files in that directory `dst_path`.
         """
         dst_files = list(dst_path.rglob("*"))
 
