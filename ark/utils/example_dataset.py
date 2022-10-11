@@ -62,10 +62,12 @@ class ExampleDataset():
         there are no contents, then it'll return True, False otherwise.
 
         Args:
-            dst_path (pathlib.Path): _description_
+            dst_path (pathlib.Path): The destination directory to check to see if 
+            files exist in it..
 
         Returns:
-            bool: _description_
+            bool: Returns `False` if there are no files in the directory `dst_path`.
+            Returns `True` if there are files in that directory `dst_path`.
         """
         dst_files = list(dst_path.rglob("*"))
 
