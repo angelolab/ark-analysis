@@ -97,7 +97,7 @@ def test_check_featurize_cell_table_args():
 
 def test_within_cluster_sums():
     cell_table = make_cell_table(num_cells=1000)
-    all_clusters = list(np.unique(cell_table[settings.CLUSTER_ID]))
+    all_clusters = list(np.unique(cell_table[settings.CELL_TYPE]))
     formatted_table = pros.format_cell_table(cell_table, clusters=all_clusters)
     featurized_table = pros.featurize_cell_table(formatted_table)
     k_means = KMeans(n_clusters=5).fit(featurized_table["featurized_fovs"])
@@ -128,7 +128,7 @@ def test_plot_fovs_with_topics():
 
 def test_save_spatial_lda_data():
     cell_table = make_cell_table(num_cells=1000)
-    all_clusters = list(np.unique(cell_table[settings.CLUSTER_ID]))
+    all_clusters = list(np.unique(cell_table[settings.CELL_TYPE]))
     cell_table_format = pros.format_cell_table(cell_table, clusters=all_clusters)
     # test for non-existent directory
     with pytest.raises(ValueError, match="'dir' must be a valid directory."):
