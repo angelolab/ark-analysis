@@ -25,8 +25,8 @@ def format_cell_table(cell_table, markers=None, clusters=None):
             A list of strings corresponding to the markers in cell_table which will be used to
             train the spatial LDA model.  Either markers or clusters must be provided.
         clusters (list):
-            A list of integers corresponding to cluster ids in cell_table which will be used to
-            train the spatial LDA model.
+            A list of cell cluster names in cell_table which will be used to train the
+            spatial LDA model.
 
     Returns:
         dict:
@@ -50,19 +50,17 @@ def format_cell_table(cell_table, markers=None, clusters=None):
         columns={
             settings.CENTROID_0: "x",
             settings.CENTROID_1: "y",
-            settings.CLUSTER_ID: "cluster_id",
-            settings.KMEANS_CLUSTER: "cluster"
+            settings.CELL_TYPE: "cluster",
         })
 
     # Create dictionary of FOVs
     fovs = np.unique(cell_table_drop[settings.FOV_ID])
-
     fov_dict = {}
     for i in fovs:
         df = cell_table_drop[cell_table_drop[settings.FOV_ID] == i].drop(
             columns=[settings.FOV_ID, settings.CELL_LABEL])
         if clusters is not None:
-            df = df[df["cluster_id"].isin(clusters)]
+            df = df[df["cluster"].isin(clusters)]
         df["is_index"] = True
         df["isimmune"] = True  # might remove this
         fov_dict[i] = df.reset_index(drop=True)
@@ -90,7 +88,7 @@ def featurize_cell_table(cell_table, featurization="cluster", radius=100, cell_i
             *r* from cell *i* having marker expression greater than 0.5.
         - avg_marker: for each marker, compute the average marker expression of all
             cells within a ``radius`` *r* from cell *i*.
-        - cluster: for each cluster, count the total number of cells within a ``radius``
+        - cluster: for each cell cluster, count the total number of cells within a ``radius``
             *r* from cell *i* belonging to that cell cluster.
         - count: counts the total number of cells within a ``radius`` *r* from cell *i*.
         radius (int):
@@ -278,7 +276,7 @@ def compute_topic_eda(features, featurization, topics, silhouette=False, num_boo
     stat_names = ['inertia', 'silhouette', 'gap_stat', 'gap_sds', 'percent_var_exp', "cell_counts"]
     stats = dict(zip(stat_names, [{} for name in stat_names]))
 
-    # iterative over topic number candidates
+    # iterate over topic number candidates
     pb_format = '{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}]'
     for k in tqdm(topics, bar_format=pb_format):
         # cluster with KMeans
