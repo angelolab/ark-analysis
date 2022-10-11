@@ -82,7 +82,7 @@ def append_distance_features_to_dataset(dist_mats, cell_table, distance_columns)
 
     misc_utils.verify_in_list(distance_columns=distance_columns, valid_columns=cell_table.columns)
 
-    num_cell_types = max(cell_table[settings.CLUSTER_ID].unique())
+    num_cell_types = max(list(cell_table[settings.CELL_TYPE].astype("category").cat.codes)) + 1
 
     for fov in dist_mats.keys():
         fov_cells = cell_table.loc[cell_table[settings.FOV_ID] == fov]
@@ -92,7 +92,7 @@ def append_distance_features_to_dataset(dist_mats, cell_table, distance_columns)
                 settings.FOV_ID: fov,
                 settings.CELL_LABEL: num_labels + i + 1,
                 settings.CELL_TYPE: dist_col,
-                settings.CLUSTER_ID: num_cell_types + i + 1,
+                settings.CELL_TYPE_NUM: num_cell_types + i + 1,
             }]))
             coords = (
                 [max(dist_mats[fov].dim_0.values) + i + 1],
@@ -168,7 +168,8 @@ def get_pos_cell_labels_cluster(pheno, current_fov_neighborhood_data,
 def compute_close_cell_num(dist_mat, dist_lim, analysis_type,
                            current_fov_data=None, current_fov_channel_data=None,
                            cluster_ids=None, cell_types_analyze=None, thresh_vec=None,
-                           cell_label_col=settings.CELL_LABEL, cell_type_col=settings.CLUSTER_ID):
+                           cell_label_col=settings.CELL_LABEL,
+                           cell_type_col=settings.CELL_TYPE_NUM):
     """Finds positive cell labels and creates matrix with counts for cells positive for
     corresponding markers. Computes close_num matrix for both Cell Label and Threshold spatial
     analyses.
@@ -199,7 +200,7 @@ def compute_close_cell_num(dist_mat, dist_lim, analysis_type,
         cell_label_col (str):
             the name of the column containing the cell labels
         cell_type_col (str):
-            the name of the column containing the cell types
+            the name of the column containing the cell type numbers
 
     Returns:
         numpy.ndarray:
