@@ -374,10 +374,6 @@ def create_marker_count_matrices(segmentation_labels, image_data, nuclear_counts
     misc_utils.verify_same_elements(segmentation_labels_fovs=segmentation_labels.fovs.values,
                                     img_data_fovs=image_data.fovs.values)
 
-    # initialize data frames
-    normalized_data = pd.DataFrame()
-    arcsinh_data = pd.DataFrame()
-
     # define the FOV associated with this segmentation label
     fov = segmentation_labels.fovs.values[0]
     print("extracting data from {}".format(fov))
@@ -422,12 +418,9 @@ def create_marker_count_matrices(segmentation_labels, image_data, nuclear_counts
 
     # add column for current fov
     normalized['fov'] = fov
-    normalized_data = normalized_data.append(normalized)
-
     arcsinh['fov'] = fov
-    arcsinh_data = arcsinh_data.append(arcsinh)
 
-    return normalized_data, arcsinh_data
+    return normalized, arcsinh
 
 
 def generate_cell_table(segmentation_dir, tiff_dir, img_sub_folder="TIFs",
