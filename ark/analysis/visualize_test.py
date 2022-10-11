@@ -166,7 +166,7 @@ def test_visualize_neighbor_cluster_metrics():
 def test_visualize_topic_eda():
     # Create/format/featurize testing cell table
     cell_table = make_cell_table(num_cells=1000)
-    all_clusters = list(np.unique(cell_table[settings.CLUSTER_ID]))
+    all_clusters = list(np.unique(cell_table[settings.CELL_TYPE]))
     cell_table_format = pros.format_cell_table(cell_table, clusters=all_clusters)
     cell_table_features = pros.featurize_cell_table(cell_table_format)
 
@@ -202,7 +202,7 @@ def test_visualize_topic_eda():
 def test_visualize_fov_stats():
     # Create/format/featurize testing cell table
     cell_table = make_cell_table(num_cells=1000)
-    all_clusters = list(np.unique(cell_table[settings.CLUSTER_ID]))
+    all_clusters = list(np.unique(cell_table[settings.CELL_TYPE]))
     cell_table_format = pros.format_cell_table(cell_table, clusters=all_clusters)
 
     # Run topic EDA
@@ -227,7 +227,7 @@ def test_visualize_fov_stats():
 
 def test_visualize_fov_graphs():
     cell_table = make_cell_table(num_cells=1000)
-    all_clusters = list(np.unique(cell_table[settings.CLUSTER_ID]))
+    all_clusters = list(np.unique(cell_table[settings.CELL_TYPE]))
     cell_table_format = pros.format_cell_table(cell_table, clusters=all_clusters)
     cell_table_features = pros.featurize_cell_table(cell_table_format)
     diff_mats = pros.create_difference_matrices(cell_table_format, cell_table_features)

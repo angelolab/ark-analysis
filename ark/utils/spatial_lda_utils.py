@@ -10,7 +10,7 @@ import spatial_lda.online_lda
 from scipy.spatial.distance import pdist
 from spatial_lda.visualization import _standardize_topics, plot_adjacency_graph
 
-from ark.settings import BASE_COLS, CLUSTER_ID, LDA_PLOT_TYPES
+from ark.settings import BASE_COLS, LDA_PLOT_TYPES, CELL_TYPE
 from ark.utils.misc_utils import verify_in_list
 
 
@@ -23,7 +23,7 @@ def check_format_cell_table_args(cell_table, markers, clusters):
         markers (list):
             A list of strings corresponding to marker names.
         clusters (list):
-            A list of integers corresponding to cluster ids.
+            A list of cell cluster names.
     """
 
     # Check cell table columns
@@ -35,7 +35,7 @@ def check_format_cell_table_args(cell_table, markers, clusters):
     if markers is not None:
         verify_in_list(markers=markers, cell_table_columns=cell_table.columns.to_list())
     if clusters is not None:
-        cell_table_clusters = cell_table[CLUSTER_ID].unique().tolist()
+        cell_table_clusters = cell_table[CELL_TYPE].unique().tolist()
         verify_in_list(clusters=clusters, cell_table_clusters=cell_table_clusters)
 
 
@@ -68,7 +68,7 @@ def check_featurize_cell_table_args(cell_table, featurization, radius, cell_inde
         )
     if featurization in ["marker", "avg_marker"] and "markers" not in cell_table:
         raise ValueError(
-            "Cannont featurize markers, because none were used for cell table formatting"
+            "Cannot featurize markers, because none were used for cell table formatting"
         )
 
     key = list(cell_table.keys())[0]
