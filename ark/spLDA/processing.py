@@ -278,7 +278,7 @@ def compute_topic_eda(features, featurization, topics, silhouette=False, num_boo
     stat_names = ['inertia', 'silhouette', 'gap_stat', 'gap_sds', 'percent_var_exp', "cell_counts"]
     stats = dict(zip(stat_names, [{} for name in stat_names]))
 
-    # iterative over topic number candidates
+    # iterate over topic number candidates
     pb_format = '{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}]'
     for k in tqdm(topics, bar_format=pb_format):
         # cluster with KMeans
