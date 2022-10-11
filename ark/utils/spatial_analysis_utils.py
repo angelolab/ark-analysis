@@ -9,6 +9,7 @@ import xarray as xr
 from scipy.spatial.distance import cdist
 from sklearn.cluster import KMeans
 from statsmodels.stats.multitest import multipletests
+from tqdm.notebook import tqdm
 
 import ark.settings as settings
 from ark.utils import io_utils, misc_utils
@@ -482,8 +483,8 @@ def compute_kmeans_inertia(neighbor_mat_data, min_k=2, max_k=10):
 
     Returns:
         xarray.DataArray:
-            contains a single dimension, cluster_num, which indicates the inertia
-            when cluster_num was set as k for k-means clustering
+            contains a single dimension, `cluster_num`, which indicates the inertia
+            when `cluster_num` was set as k for k-means clustering
     """
 
     # create array we can store the results of each k for clustering
@@ -492,7 +493,9 @@ def compute_kmeans_inertia(neighbor_mat_data, min_k=2, max_k=10):
     stats_raw_data = np.zeros(max_k - 1)
     cluster_stats = xr.DataArray(stats_raw_data, coords=coords, dims=dims)
 
-    for n in range(min_k, max_k + 1):
+    # iterate over each k value
+    pb_format = '{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}]'
+    for n in tqdm(range(min_k, max_k + 1), bar_format=pb_format):
         cluster_fit = KMeans(n_clusters=n).fit(neighbor_mat_data)
         cluster_stats.loc[n] = cluster_fit.inertia_
 
@@ -517,8 +520,8 @@ def compute_kmeans_silhouette(neighbor_mat_data, min_k=2, max_k=10, subsample=No
 
     Returns:
         xarray.DataArray:
-            contains a single dimension, cluster_num, which indicates the Silhouette score
-            when cluster_num was set as k for k-means clustering
+            contains a single dimension, `cluster_num`, which indicates the Silhouette score
+            when `cluster_num` was set as k for k-means clustering
     """
 
     # create array we can store the results of each k for clustering
@@ -527,7 +530,9 @@ def compute_kmeans_silhouette(neighbor_mat_data, min_k=2, max_k=10, subsample=No
     stats_raw_data = np.zeros(max_k - 1)
     cluster_stats = xr.DataArray(stats_raw_data, coords=coords, dims=dims)
 
-    for n in range(min_k, max_k + 1):
+    # iterate over each k value
+    pb_format = '{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}]'
+    for n in tqdm(range(min_k, max_k + 1), bar_format=pb_format):
         cluster_fit = KMeans(n_clusters=n).fit(neighbor_mat_data)
         cluster_labels = cluster_fit.labels_
 
