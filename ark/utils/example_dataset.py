@@ -62,7 +62,7 @@ class ExampleDataset():
         there are no contents, then it'll return True, False otherwise.
 
         Args:
-            dst_path (pathlib.Path): The destination directory to check to see if 
+            dst_path (pathlib.Path): The destination directory to check to see if
             files exist in it..
 
         Returns:
