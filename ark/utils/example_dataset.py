@@ -126,7 +126,8 @@ def get_example_dataset(dataset: str, save_dir: Union[str, pathlib.Path],
 
     # Check the appropriate dataset name
     if dataset not in valid_datasets:
-        ValueError(f"The dataset <{dataset}> is not one of the valid datasets available.")
+        ValueError(f"The dataset <{dataset}> is not one of the valid datasets available. \
+                    The following are available: { {*valid_datasets} }")
 
     example_dataset = ExampleDataset(dataset=dataset, overwrite_existing=overwrite_existing,
                                      cache_dir=None,

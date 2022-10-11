@@ -125,12 +125,13 @@ class TestExampleDataset:
     # Will cause duplicate downloads
     def test_get_example_dataset(self, tmp_path_factory):
         """
-        #! TODO
+        Tests to make sure that if an incorrect `dataset` is provided, the function
+        errors out with the appropriate error message for the user.
         """
 
         with pytest.raises(ValueError):
             get_example_dataset("incorrect_dataset", save_dir=tmp_path_factory)
-
+        
     def test_check_downloaded(self, tmp_path):
         """
         Tests to make sure that `ExampleDataset.get_example_dataset()` accurately
