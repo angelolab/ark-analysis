@@ -13,7 +13,7 @@ class ExampleDataset():
         various partitions on Hugging Face: https://huggingface.co/datasets/angelolab/ark_example.
 
         Args:
-            dataset (str): The name of the dataset to download. Can be one of 
+            dataset (str): The name of the dataset to download. Can be one of
 
                     * `"segment_image_data"`
                     * `"cluster_pixels"`
@@ -65,7 +65,7 @@ class ExampleDataset():
         there are no contents, then it'll return True, False otherwise.
 
         Args:
-            dst_path (pathlib.Path): The destination directory to check to see if 
+            dst_path (pathlib.Path): The destination directory to check to see if
             files exist in it..
 
         Returns:
