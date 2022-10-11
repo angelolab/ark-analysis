@@ -35,6 +35,7 @@ jobs:
       script:
         - "travis_wait 120 sleep 7200 &"
         - python setup.py bdist_wheel
+        - auditwheel repair dist/*.whl
         - twine upload --repository testpypi dist/* -u "$TEST_PYPI_USERNAME" -p "$TEST_PYPI_PASSWORD"
     - stage: pypi_deploy
       python: 3.8
