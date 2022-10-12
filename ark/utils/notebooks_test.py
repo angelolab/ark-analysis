@@ -31,11 +31,6 @@ def _exec_notebook(nb_filename, base_folder):
         subprocess.check_call(args)
 
 
-# test runs with default inputs
-def test_segment_image_data():
-    _exec_notebook('1_Segment_Image_Data.ipynb', 'templates')
-
-
 def test_example_pairwise_spatial_enrichment():
     _exec_notebook('example_pairwise_spatial_enrichment.ipynb', 'templates')
 
