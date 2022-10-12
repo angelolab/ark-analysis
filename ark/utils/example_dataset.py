@@ -20,7 +20,6 @@ class ExampleDataset():
                     * `"cluster_pixels"`
                     * `"cluster_cells"`
                     * `"post_clustering"`
-
             overwrite_existing (bool): A flag to overwrite existing data. Defaults to `True`.
             cache_dir (str, optional): The directory to save the cache dir. Defaults to `None`,
                 which internally in Hugging Face defaults to `~/.cache/huggingface/datasets`.
