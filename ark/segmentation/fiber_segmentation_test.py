@@ -2,11 +2,12 @@ import os
 import shutil
 import tempfile
 import pytest
-from pathlib import Path
+import pathlib
+from typing import Callable, Iterator
+
 
 import ark.settings as settings
-import ark.utils.data_utils
-from ark.utils import io_utils
+from ark.utils import io_utils, example_dataset
 from ark.segmentation import fiber_segmentation
 
 
@@ -14,7 +15,7 @@ def test_plot_fiber_segmentation_steps():
 
     with tempfile.TemporaryDirectory() as temp_dir:
         # download example data, keep only 3 fovs for testing
-        ark.utils.data_utils.download_example_data(temp_dir)
+        example_dataset.get_example_dataset(dataset="segment_image_data", save_dir=temp_dir)
         img_dir = os.path.join(temp_dir, 'image_data')
         for fov in ['fov3', 'fov4', 'fov5', 'fov6', 'fov7', 'fov8', 'fov9', 'fov10']:
             shutil.rmtree(os.path.join(temp_dir, 'image_data', fov))
@@ -40,7 +41,7 @@ def test_run_fiber_segmentation():
     with tempfile.TemporaryDirectory() as temp_dir:
 
         # download example data, keep only 3 fovs for testing
-        ark.utils.data_utils.download_example_data(temp_dir)
+        example_dataset.get_example_dataset(dataset="segment_image_data", save_dir=temp_dir)
         img_dir = os.path.join(temp_dir, 'image_data')
         for fov in ['fov3', 'fov4', 'fov5', 'fov6', 'fov7', 'fov8', 'fov9', 'fov10']:
             shutil.rmtree(os.path.join(temp_dir, 'image_data', fov))
