@@ -1,3 +1,4 @@
+from email.generator import Generator
 import pathlib
 from typing import Callable, Iterator
 import itertools
@@ -24,13 +25,8 @@ def setup_temp_path_factory(tmp_path_factory) -> Iterator[pathlib.Path]:
     yield cache_dir
 
 
-# Only download the dataset configs required per tests w.r.t the notebooks.
-# Will not download reused dataset configs.
-data_tests = ["segment_image_data", "cluster_pixels", "cluster_cells", "post_clustering"]
-# We get [(True, segment_image_data), (False, segment_image_data), (True, cluster_pixels), ...]
-dataset_download_fixture_params = list(itertools.product([True, False], data_tests))
-
-@pytest.fixture(scope="session", params=dataset_download_fixture_params)
+@pytest.fixture(scope="session", params=["segment_image_data", "cluster_pixels",
+                                         "cluster_cells", "post_clustering"])
 def dataset_download(setup_temp_path_factory, request) -> Iterator[ExampleDataset]:
     """
     A Fixture which instantiates and downloads the dataset with respect to each
@@ -47,8 +43,7 @@ def dataset_download(setup_temp_path_factory, request) -> Iterator[ExampleDatase
     """
     # Set up ExampleDataset class
     example_dataset: ExampleDataset = ExampleDataset(
-        overwrite_existing=request.param[0],
-        dataset=request.param[1],
+        dataset=request.param,
         cache_dir=setup_temp_path_factory,
         revision="a3b0db4fa93c194bfcaf5d4daccbe6573c6a6f7c"
     )
@@ -131,28 +126,83 @@ class TestExampleDataset:
                 dataset_download.dataset_paths[dataset_download.dataset][ds_n][0])
             self.dataset_test_fns[ds_n](dir_p=dataset_cache_path / ds_n)
 
-    def test_move_example_dataset(self, tmp_path_factory, dataset_download: ExampleDataset):
+    @pytest.mark.parametrize("_overwrite_existing", [True, False])
+    def test_move_example_dataset(self, tmp_path_factory, dataset_download: ExampleDataset,
+                                  _overwrite_existing: bool):
         """
         Tests to make sure the proper files are moved to the correct directories.
 
         Args:
+            tmp_path_factory (pytest.TempPathFactory): Factory for temporary directories under the
+                common base temp directory.
             dataset_download (ExampleDataset): Fixture for the dataset, respective to each
-            partition (`segment_image_data`, `cluster_pixels`, `cluster_cells`,
-            `post_clustering`).
+                partition (`segment_image_data`, `cluster_pixels`, `cluster_cells`,
+                `post_clustering`).
+            _overwrite_existing (bool): If `True` the dataset will be overwritten. If `False` it
+                will not be.
         """
-        tmp_dir = tmp_path_factory.mktemp("move_example_data")
-        move_dir = tmp_dir / "example_dataset"
-        dataset_download.move_example_dataset(move_dir=move_dir)
+        dataset_download.overwrite_existing = _overwrite_existing
 
-        dataset_names = list(
-            dataset_download.dataset_paths[dataset_download.dataset].features.keys()
-        )
+        # Move data if _overwrite_existing is `True`
+        if _overwrite_existing:
 
-        for ds_n in dataset_names:
-            ds_n_suffix = self.move_path_suffixes[ds_n]
+            # Case 1: Move Path is empty
+            tmp_dir_c1 = tmp_path_factory.mktemp("move_example_data_c1")
+            move_dir_c1 = tmp_dir_c1 / "example_dataset"
+            dataset_download.move_example_dataset(move_dir=move_dir_c1)
 
-            dir_p = move_dir / ds_n_suffix
-            self.dataset_test_fns[ds_n](dir_p)
+            for dir_p, ds_n in self._suffix_paths(dataset_download, parent_dir=move_dir_c1):
+                self.dataset_test_fns[ds_n](dir_p)
+
+            # Case 2: Move Path contains files
+            tmp_dir_c2 = tmp_path_factory.mktemp("move_example_data_c2")
+            move_dir_c2 = tmp_dir_c2 / "example_dataset"
+
+            # Add files for each config to test moving with files
+            for dir_p, ds_n in self._suffix_paths(dataset_download, parent_dir=move_dir_c2):
+                # make directory
+                dir_p.mkdir(parents=True, exist_ok=False)
+                # make blank file
+                test_utils._make_blank_file(dir_p, "data_test.txt")
+
+            # Move files to directory which has existing files
+            # Make sure warning is raised
+            with pytest.warns(UserWarning):
+                dataset_download.move_example_dataset(move_dir=move_dir_c2)
+                for dir_p, ds_n in self._suffix_paths(dataset_download, parent_dir=move_dir_c2):
+                    self.dataset_test_fns[ds_n](dir_p)
+
+        # Move data if _overwrite_existing is `False`
+        else:
+            # Case 1: Move Path is empty
+            tmp_dir_c1 = tmp_path_factory.mktemp("move_example_data_c1")
+            move_dir_c1 = tmp_dir_c1 / "example_dataset"
+
+            # Check that the files were moved to the empty directory
+            # Make sure warning is raised
+            with pytest.warns(UserWarning):
+                dataset_download.move_example_dataset(move_dir=move_dir_c1)
+
+                for dir_p, ds_n in self._suffix_paths(dataset_download, parent_dir=move_dir_c1):
+                    self.dataset_test_fns[ds_n](dir_p)
+
+            # Case 2: Move Path contains files
+            tmp_dir_c2 = tmp_path_factory.mktemp("move_example_data_c2")
+            move_dir_c2 = tmp_dir_c2 / "example_dataset"
+
+            # Add files for each config to test moving with files
+            for dir_p, ds_n in self._suffix_paths(dataset_download, parent_dir=move_dir_c2):
+                # make directory
+                dir_p.mkdir(parents=True, exist_ok=False)
+                # make blank file
+                test_utils._make_blank_file(dir_p, "data_test.txt")
+
+            # Do not move files to directory containing files
+            # Make sure warning is raised.
+            with pytest.warns(UserWarning):
+                dataset_download.move_example_dataset(move_dir=move_dir_c2)
+                for dir_p, ds_n in self._suffix_paths(dataset_download, parent_dir=move_dir_c2):
+                    assert len(list(dir_p.rglob("*"))) == 1
 
     # Will cause duplicate downloads
     def test_get_example_dataset(self, tmp_path_factory):
@@ -164,9 +214,10 @@ class TestExampleDataset:
         with pytest.raises(ValueError):
             get_example_dataset("incorrect_dataset", save_dir=tmp_path_factory)
 
-    def test_check_downloaded(self, tmp_path):
+    def test_check_empty_dst(self, tmp_path):
         """
-        Tests to make sure that `ExampleDataset.get_example_dataset()` accurately
+        Tests to make sure that `ExampleDataset.check_empty_dst
+        ()` accurately
         reports if a directory contains files or not.
         """
 
@@ -177,11 +228,11 @@ class TestExampleDataset:
         packed_data_dir.mkdir(parents=True)
 
         # Empty directory has no files
-        assert example_dataset.check_downloaded(empty_data_dir) is True
+        assert example_dataset.check_empty_dst(empty_data_dir) is True
 
         # Directory has files
         test_utils._make_blank_file(packed_data_dir, "data_test.txt")
-        assert example_dataset.check_downloaded(packed_data_dir) is False
+        assert example_dataset.check_empty_dst(packed_data_dir) is False
 
     def _image_data_check(self, dir_p: pathlib.Path):
         """
@@ -321,3 +372,26 @@ class TestExampleDataset:
         cell_mask_names = [f.stem for f in cell_mask_files]
         assert set(self._example_cell_output_dir_names["cell_masks"]) \
             == set(cell_mask_names)
+
+    def _suffix_paths(self, dataset_download: ExampleDataset,
+                      parent_dir: pathlib.Path) -> Generator:
+        """
+        Creates a generator where each element is a tuple of the data directory
+        and the dataset name.
+
+        Args:
+            dataset_download (ExampleDataset): Fixture for the dataset, respective to each
+            partition (`segment_image_data`, `cluster_pixels`, `cluster_cells`,
+            `post_clustering`).
+            parent_dir (pathlib.Path): The path where the example dataset will be saved.
+
+        Yields:
+            Generator: Yields the data directory for the files to be moved, and the dataset name.
+        """
+        dataset_names = list(
+            dataset_download.dataset_paths[dataset_download.dataset].features.keys()
+        )
+
+        ds_n_suffixes = [self.move_path_suffixes[ds_n] for ds_n in dataset_names]
+        for ds_n_suffix, ds_n in zip(ds_n_suffixes, dataset_names):
+            yield (parent_dir / ds_n_suffix, ds_n)

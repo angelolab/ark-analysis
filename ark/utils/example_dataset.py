@@ -61,7 +61,7 @@ class ExampleDataset():
                                                    cache_dir=self.cache_dir,
                                                    use_auth_token=False)
 
-    def check_downloaded(self, dst_path: pathlib.Path) -> bool:
+    def check_empty_dst(self, dst_path: pathlib.Path) -> bool:
         """
         Checks to see if the folder for a dataset config already exists in the `save_dir`
         (i.e. `dst_path` is the specific folder for the config.). If the folder exists, and
@@ -105,22 +105,29 @@ class ExampleDataset():
 
             # Overwrite the existing dataset when `overwrite_existing` == `True`
             # and when the `dst_path` is empty.
-            
+
             # `True` if `dst_path` is empty, `False` if data exists in `dst_path`
-            empty_dst_path = self.check_downloaded(dst_path=dst_path)
-            
+            empty_dst_path = self.check_empty_dst(dst_path=dst_path)
+
             if self.overwrite_existing:
                 if not empty_dst_path:
-                    warnings.WarningMessage(f"Files exist in {dst_path}. \
-                        They will be overwritten by the downloaded example dataset.")
-                    shutil.copytree(src_path, dst_path, dirs_exist_ok=True,
-                                    ignore=shutil.ignore_patterns("._*"))
+                    warnings.warn(UserWarning(f"Files exist in {dst_path}. \
+                        They will be overwritten by the downloaded example dataset."))
+
+                # Remove files in the destination path
+                [f.unlink() for f in dst_path.glob("*") if f.is_file()]
+                # Fill destination path
+                shutil.copytree(src_path, dst_path, dirs_exist_ok=True,
+                                ignore=shutil.ignore_patterns("._*"))
             else:
                 if empty_dst_path:
-                    warnings.WarningMessage(f"Files do not exist in {dst_path}. \
-                        The example dataset will be added in.")
+                    warnings.warn(UserWarning(f"Files do not exist in {dst_path}. \
+                        The example dataset will be added in."))
                     shutil.copytree(src_path, dst_path, dirs_exist_ok=True,
                                     ignore=shutil.ignore_patterns("._*"))
+                else:
+                    warnings.warn(UserWarning(f"Files exist in {dst_path}. \
+                        They will not be overwritten."))
 
 
 def get_example_dataset(dataset: str, save_dir: Union[str, pathlib.Path],
