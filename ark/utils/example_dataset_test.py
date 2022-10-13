@@ -1,5 +1,5 @@
 import pathlib
-from typing import Callable, Iterator
+from typing import Callable, Iterator, Generator
 import os
 import pytest
 from ark.utils.example_dataset import ExampleDataset, get_example_dataset
