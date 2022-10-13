@@ -1,6 +1,7 @@
 import pathlib
 import shutil
 from typing import Union
+import warnings
 
 import datasets
 
@@ -13,14 +14,18 @@ class ExampleDataset():
         various partitions on Hugging Face: https://huggingface.co/datasets/angelolab/ark_example.
 
         Args:
-            dataset (str): The name of the dataset to download. Can be one of `nb1`, `nb2`,
-                `nb3`, `nb4`.
+            dataset (str): The name of the dataset to download. Can be one of
+
+                    * `"segment_image_data"`
+                    * `"cluster_pixels"`
+                    * `"cluster_cells"`
+                    * `"post_clustering"`
             overwrite_existing (bool): A flag to overwrite existing data. Defaults to `True`.
             cache_dir (str, optional): The directory to save the cache dir. Defaults to `None`,
                 which internally in Hugging Face defaults to `~/.cache/huggingface/datasets`.
             revision (str, optional): The commit ID from Hugging Face for the dataset. Used for
                 internal development only. Allows the user to fetch a commit from a particular
-                `revision` (Hugging Face's terminology for branch). Defaults to `None`. This
+                `revision` (Hugging Face's terminology for branch). Defaults to `None`. Which
                 defaults to the latest version in the `main` branch.
                 (https://huggingface.co/datasets/angelolab/ark_example/tree/main).
         """
@@ -33,7 +38,7 @@ class ExampleDataset():
             "image_data": "image_data",
             "cell_table": "segmentation/cell_table",
             "deepcell_output": "segmentation/deepcell_output",
-            "example_pixel_output_dir": "segmentation/example_pixel_output_dir"
+            "example_pixel_output_dir": "segmentation/example_pixel_output_dir",
         }
         """
         Path suffixes for mapping each downloaded dataset partition to it's appropriate
@@ -41,7 +46,8 @@ class ExampleDataset():
         """
 
     def download_example_dataset(self):
-        """Downloads the example dataset from Hugging Face Hub.
+        """
+        Downloads the example dataset from Hugging Face Hub.
         The following is a link to the dataset used:
         https://huggingface.co/datasets/angelolab/ark_example
 
@@ -54,26 +60,26 @@ class ExampleDataset():
                                                    cache_dir=self.cache_dir,
                                                    use_auth_token=False)
 
-    def check_downloaded(self, dst_path: pathlib.Path) -> bool:
+    def check_empty_dst(self, dst_path: pathlib.Path) -> bool:
         """
         Checks to see if the folder for a dataset config already exists in the `save_dir`
-        (i.e. `dst_path` is the specific folder for the config.). If the folder exists, and it
+        (i.e. `dst_path` is the specific folder for the config.). If the folder exists, and
         there are no contents, then it'll return True, False otherwise.
 
         Args:
             dst_path (pathlib.Path): The destination directory to check to see if
-            files exist in it..
+            files exist in it.
 
         Returns:
-            bool: Returns `False` if there are no files in the directory `dst_path`.
-            Returns `True` if there are files in that directory `dst_path`.
+            bool: Returns `True` if there are no files in the directory `dst_path`.
+                Returns `False` if there are files in that directory `dst_path`.
         """
         dst_files = list(dst_path.rglob("*"))
 
         if len(dst_files) == 0:
-            return False
-        else:
             return True
+        else:
+            return False
 
     def move_example_dataset(self, move_dir: Union[str, pathlib.Path]):
         """
@@ -96,11 +102,31 @@ class ExampleDataset():
             src_path = dataset_cache_path / ds_n
             dst_path = move_dir / ds_n_suffix
 
-            # Overwrite the existing dataset if specified, or if there is no dataset.
-            if self.overwrite_existing or self.check_downloaded(dst_path=dst_path):
+            # Overwrite the existing dataset when `overwrite_existing` == `True`
+            # and when the `dst_path` is empty.
 
+            # `True` if `dst_path` is empty, `False` if data exists in `dst_path`
+            empty_dst_path = self.check_empty_dst(dst_path=dst_path)
+
+            if self.overwrite_existing:
+                if not empty_dst_path:
+                    warnings.warn(UserWarning(f"Files exist in {dst_path}. \
+                        They will be overwritten by the downloaded example dataset."))
+
+                # Remove files in the destination path
+                [f.unlink() for f in dst_path.glob("*") if f.is_file()]
+                # Fill destination path
                 shutil.copytree(src_path, dst_path, dirs_exist_ok=True,
                                 ignore=shutil.ignore_patterns("._*"))
+            else:
+                if empty_dst_path:
+                    warnings.warn(UserWarning(f"Files do not exist in {dst_path}. \
+                        The example dataset will be added in."))
+                    shutil.copytree(src_path, dst_path, dirs_exist_ok=True,
+                                    ignore=shutil.ignore_patterns("._*"))
+                else:
+                    warnings.warn(UserWarning(f"Files exist in {dst_path}. \
+                        They will not be overwritten."))
 
 
 def get_example_dataset(dataset: str, save_dir: Union[str, pathlib.Path],
@@ -122,11 +148,12 @@ def get_example_dataset(dataset: str, save_dir: Union[str, pathlib.Path],
 
     # Check the appropriate dataset name
     if dataset not in valid_datasets:
-        ValueError(f"The dataset <{dataset}> is not one of the valid datasets available.")
+        ValueError(f"The dataset <{dataset}> is not one of the valid datasets available. \
+                    The following are available: { {*valid_datasets} }")
 
     example_dataset = ExampleDataset(dataset=dataset, overwrite_existing=overwrite_existing,
                                      cache_dir=None,
-                                     revision="14323a93e417562698a28bcd15481fad2422c878")
+                                     revision="a3b0db4fa93c194bfcaf5d4daccbe6573c6a6f7c")
 
     # Download the dataset
     example_dataset.download_example_dataset()
