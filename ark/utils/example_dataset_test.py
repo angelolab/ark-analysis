@@ -1,7 +1,6 @@
-from email.generator import Generator
 import pathlib
 from typing import Callable, Iterator
-import itertools
+import os
 import pytest
 from ark.utils.example_dataset import ExampleDataset, get_example_dataset
 from ark.utils import test_utils
@@ -9,25 +8,28 @@ from ark.utils import test_utils
 
 # Sets the example dataset path once: Will not cause duplicate downloads
 @pytest.fixture(scope="session")
-def setup_temp_path_factory(tmp_path_factory) -> Iterator[pathlib.Path]:
+def cache_path() -> Iterator[pathlib.Path]:
     """
-    A Fixture which creates the directory where the dataset is saved.
-    Downloads the dataset once per session, instead of once per notebook.
-
-    Args:
-        tmp_path_factory (pytest.TempPathFactory): Factory for temporary directories under the
-            common base temp directory.
+    A Fixture which gets the path where the Dataset is saved. If on TRAVIS-CI the
+    dataset is cached in `$HOME/./cache/huggingface/datasets`.
+    Locally, HuggingFace will use the default location `~/.cache/huggingface/datasets`.
 
     Yields:
         Iterator[pathlib.Path]: The iterable path containing the location of the dataset.
     """
-    cache_dir = tmp_path_factory.mktemp("example_dataset")
+    # If the tests are on TRAVIS CI, use Travis' default cache directory
+    if os.environ.get("TRAVIS", 0):
+        cache_dir = pathlib.Path(os.environ.get("HOME", 0)) / ".cache/huggingface/datasets"
+
+    # If the tests are on a Local Machine, use HuggingFace's default cache directory.
+    else:
+        cache_dir = None
     yield cache_dir
 
 
 @pytest.fixture(scope="session", params=["segment_image_data", "cluster_pixels",
                                          "cluster_cells", "post_clustering"])
-def dataset_download(setup_temp_path_factory, request) -> Iterator[ExampleDataset]:
+def dataset_download(request, cache_path) -> Iterator[ExampleDataset]:
     """
     A Fixture which instantiates and downloads the dataset with respect to each
     notebook.
@@ -44,7 +46,7 @@ def dataset_download(setup_temp_path_factory, request) -> Iterator[ExampleDatase
     # Set up ExampleDataset class
     example_dataset: ExampleDataset = ExampleDataset(
         dataset=request.param,
-        cache_dir=setup_temp_path_factory,
+        cache_dir=cache_path,
         revision="a3b0db4fa93c194bfcaf5d4daccbe6573c6a6f7c"
     )
     # Download example data for a particular notebook
@@ -208,7 +210,7 @@ class TestExampleDataset:
     def test_get_example_dataset(self, tmp_path_factory):
         """
         Tests to make sure that if an incorrect `dataset` is provided, the function
-        errors out with the appropriate error message for the user.
+        errors out with an appropriate error message for the user.
         """
 
         with pytest.raises(ValueError):
@@ -216,8 +218,7 @@ class TestExampleDataset:
 
     def test_check_empty_dst(self, tmp_path):
         """
-        Tests to make sure that `ExampleDataset.check_empty_dst
-        ()` accurately
+        Tests to make sure that `ExampleDataset.check_empty_dst()` accurately
         reports if a directory contains files or not.
         """
 
@@ -267,8 +268,8 @@ class TestExampleDataset:
 
     def _deepcell_output_check(self, dir_p: pathlib.Path):
         """
-        Checks to make sure that all cell nucleus (feature 0) and cell membrane masks (feature 1)
-        exist from deepcell output.
+        Checks to make sure that all cell nucleus (feature 0) and cell membrane masks
+        (feature 1) exist from deepcell output.
 
         Args:
             dir_p (pathlib.Path): The directory to check.
@@ -279,7 +280,7 @@ class TestExampleDataset:
 
     def _example_pixel_output_dir_check(self, dir_p: pathlib.Path):
         """
-        Checks to make sure that the following files exist w.r.t the
+        Checks to make sure that the following files exist with respect to the
         `example_pixel_output_dir`.
 
         ```
