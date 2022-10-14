@@ -6,7 +6,7 @@ from ark.utils.example_dataset import ExampleDataset, get_example_dataset
 from ark.utils import test_utils
 
 
-# Sets the example dataset path once: Will not cause duplicate downloads
+# Sets the example dataset path once: Will not cause duplicate downloads, loads from cache.
 @pytest.fixture(scope="session")
 def cache_path() -> Iterator[pathlib.Path]:
     """
