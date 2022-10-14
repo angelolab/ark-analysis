@@ -30,7 +30,6 @@ script:
 jobs:
   include:
     - stage: test_pypi_deploy
-      if: type = pull_request
       python: 3.8
       script:
         - "travis_wait 120 sleep 7200 &"
