@@ -9,6 +9,7 @@ import xarray as xr
 from scipy.spatial.distance import cdist
 from sklearn.cluster import KMeans
 from statsmodels.stats.multitest import multipletests
+from tqdm.notebook import tqdm
 
 import ark.settings as settings
 from ark.utils import io_utils, misc_utils
@@ -81,17 +82,18 @@ def append_distance_features_to_dataset(dist_mats, cell_table, distance_columns)
 
     misc_utils.verify_in_list(distance_columns=distance_columns, valid_columns=cell_table.columns)
 
-    num_cell_types = max(cell_table[settings.CLUSTER_ID].unique())
+    num_cell_types = max(list(cell_table[settings.CELL_TYPE].astype("category").cat.codes)) + 1
+    dist_list = []
 
     for fov in dist_mats.keys():
         fov_cells = cell_table.loc[cell_table[settings.FOV_ID] == fov]
         num_labels = max(fov_cells[settings.CELL_LABEL])
         for i, dist_col in enumerate(distance_columns):
-            cell_table = cell_table.append(pd.DataFrame([{
+            dist_list.append(pd.DataFrame([{
                 settings.FOV_ID: fov,
                 settings.CELL_LABEL: num_labels + i + 1,
                 settings.CELL_TYPE: dist_col,
-                settings.CLUSTER_ID: num_cell_types + i + 1,
+                settings.CELL_TYPE_NUM: num_cell_types + i + 1,
             }]))
             coords = (
                 [max(dist_mats[fov].dim_0.values) + i + 1],
@@ -105,6 +107,9 @@ def append_distance_features_to_dataset(dist_mats, cell_table, distance_columns)
             dist_mats[fov] = xr.concat([dist_mats[fov], xr.DataArray(
                 fov_cells[dist_col].values[:, np.newaxis], coords=(coords[1], coords[0])
             )], dim='dim_1')
+
+    distance_features = pd.concat(dist_list)
+    cell_table = pd.concat([cell_table, distance_features])
 
     return cell_table, dist_mats
 
@@ -167,7 +172,8 @@ def get_pos_cell_labels_cluster(pheno, current_fov_neighborhood_data,
 def compute_close_cell_num(dist_mat, dist_lim, analysis_type,
                            current_fov_data=None, current_fov_channel_data=None,
                            cluster_ids=None, cell_types_analyze=None, thresh_vec=None,
-                           cell_label_col=settings.CELL_LABEL, cell_type_col=settings.CLUSTER_ID):
+                           cell_label_col=settings.CELL_LABEL,
+                           cell_type_col=settings.CELL_TYPE_NUM):
     """Finds positive cell labels and creates matrix with counts for cells positive for
     corresponding markers. Computes close_num matrix for both Cell Label and Threshold spatial
     analyses.
@@ -198,7 +204,7 @@ def compute_close_cell_num(dist_mat, dist_lim, analysis_type,
         cell_label_col (str):
             the name of the column containing the cell labels
         cell_type_col (str):
-            the name of the column containing the cell types
+            the name of the column containing the cell type numbers
 
     Returns:
         numpy.ndarray:
@@ -481,8 +487,8 @@ def compute_kmeans_inertia(neighbor_mat_data, min_k=2, max_k=10):
 
     Returns:
         xarray.DataArray:
-            contains a single dimension, cluster_num, which indicates the inertia
-            when cluster_num was set as k for k-means clustering
+            contains a single dimension, `cluster_num`, which indicates the inertia
+            when `cluster_num` was set as k for k-means clustering
     """
 
     # create array we can store the results of each k for clustering
@@ -491,7 +497,9 @@ def compute_kmeans_inertia(neighbor_mat_data, min_k=2, max_k=10):
     stats_raw_data = np.zeros(max_k - 1)
     cluster_stats = xr.DataArray(stats_raw_data, coords=coords, dims=dims)
 
-    for n in range(min_k, max_k + 1):
+    # iterate over each k value
+    pb_format = '{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}]'
+    for n in tqdm(range(min_k, max_k + 1), bar_format=pb_format):
         cluster_fit = KMeans(n_clusters=n).fit(neighbor_mat_data)
         cluster_stats.loc[n] = cluster_fit.inertia_
 
@@ -516,8 +524,8 @@ def compute_kmeans_silhouette(neighbor_mat_data, min_k=2, max_k=10, subsample=No
 
     Returns:
         xarray.DataArray:
-            contains a single dimension, cluster_num, which indicates the Silhouette score
-            when cluster_num was set as k for k-means clustering
+            contains a single dimension, `cluster_num`, which indicates the Silhouette score
+            when `cluster_num` was set as k for k-means clustering
     """
 
     # create array we can store the results of each k for clustering
@@ -526,7 +534,9 @@ def compute_kmeans_silhouette(neighbor_mat_data, min_k=2, max_k=10, subsample=No
     stats_raw_data = np.zeros(max_k - 1)
     cluster_stats = xr.DataArray(stats_raw_data, coords=coords, dims=dims)
 
-    for n in range(min_k, max_k + 1):
+    # iterate over each k value
+    pb_format = '{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}]'
+    for n in tqdm(range(min_k, max_k + 1), bar_format=pb_format):
         cluster_fit = KMeans(n_clusters=n).fit(neighbor_mat_data)
         cluster_labels = cluster_fit.labels_
 

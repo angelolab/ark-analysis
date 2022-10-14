@@ -17,6 +17,8 @@ PIXEL_CLUSTER_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                   '..', '..', 'templates', '2_Cluster_Pixels.ipynb')
 CELL_CLUSTER_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                  '..', '..', 'templates', '3_Cluster_Cells.ipynb')
+FIB_SEG_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                            '..', '..', 'templates', 'example_fiber_segmentation.ipynb')
 
 
 def _exec_notebook(nb_filename, base_folder):
@@ -118,4 +120,12 @@ def test_cell_clustering(tb, pixel_cluster_col):
         # run the visualization and remapping process
         notebooks_test_utils.flowsom_cell_visualize(
             tb, base_dir, fovs, pixel_cluster_col=pixel_cluster_col
+        )
+
+
+@testbook(FIB_SEG_PATH, timeout=6000)
+def test_fib_seg(tb):
+    with tdir() as base_dir:
+        notebooks_test_utils.fib_seg_run(
+            tb, base_dir
         )
