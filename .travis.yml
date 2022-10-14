@@ -8,27 +8,25 @@ language: python
 python:
   - 3.8
 
-# Install the updated versions of importlib-metadata and setuptools, as Travis 3.8 environments
-# contains a very old version of importlib-metadata which is incompatible for 3.8+
-# We add python path to enable testing jupyter notebooks
-install:
-  - pip install -U importlib_metadata setuptools
-  - travis_retry pip install -r requirements.txt
-  - travis_retry pip install -r requirements-test.txt
-  - travis_retry export PYTHONPATH=$PWD
-
-env:
-  - MPLBACKEND=Agg
-
-cache: pip
-
-# command to run tests
-script:
-  - python -m pip install --editable .
-  - python -m pytest --cov=ark --pycodestyle ark
-
 jobs:
   include:
+    - stage: pytest
+      python: 3.8
+      # Install the updated versions of importlib-metadata and setuptools, as Travis 3.8 environments
+      # contains a very old version of importlib-metadata which is incompatible for 3.8+
+      # We add python path to enable testing jupyter notebooks
+      install:
+        - pip install -U importlib_metadata setuptools
+        - travis_retry pip install -r requirements.txt
+        - travis_retry pip install -r requirements-test.txt
+        - travis_retry export PYTHONPATH=$PWD
+      env:
+        - MPLBACKEND=Agg
+      cache: pip
+      # command to run tests
+      script:
+        - python -m pip install --editable .
+        - python -m pytest --cov=ark --pycodestyle ark
     - stage: test_pypi_deploy
       python: 3.8
       script:
