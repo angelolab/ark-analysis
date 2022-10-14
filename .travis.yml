@@ -23,7 +23,7 @@ env:
 cache: 
   directories:
     - $HOME/.cache/pip
-    - $HOME/.cache/huggingface/datasets
+    - $HOME/.cache/huggingface/datasets/
 
 # command to run tests
 script:
