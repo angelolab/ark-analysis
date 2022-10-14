@@ -394,46 +394,6 @@ def get_tiled_fov_names(fov_list, return_dims=False):
         return expected_fovs
 
 
-def get_max_img_size(image_dir, img_sub_folder='', single_dir=False):
-    """Retrieves the maximum FOV image size using test images for each FOV
-    Args:
-        image_dir (str):
-            path to the extracted images for the specific run
-        img_sub_folder (str):
-            optional name of image sub-folder within each fov
-        single_dir (bool):
-            whether the images are stored in a single directory rather than within fov subdirs
-
-    Returns:
-        int: value of max image size
-    """
-
-    img_sizes = []
-
-    # get fov files
-    if single_dir:
-        fov_list = iou.list_files(image_dir, substrs='.tif')
-    # get folder names
-    else:
-        fov_list = iou.list_folders(image_dir)
-        if 'stitched_images' in fov_list:
-            fov_list.remove('stitched_images')
-        channels = iou.list_files(os.path.join(image_dir, fov_list[0], img_sub_folder),
-                                  substrs='.tif')
-
-    # check image size for each fov
-    for fov in fov_list:
-        if single_dir:
-            test_file = io.imread(os.path.join(image_dir, fov))
-        else:
-            test_file = io.imread(os.path.join(image_dir, fov, img_sub_folder, channels[0]))
-        img_sizes.append(test_file.shape[1])
-
-    # largest in run
-    max_img_size = max(img_sizes)
-    return max_img_size
-
-
 def load_tiled_img_data(data_dir, fov_list, channel, single_dir, file_ext='tiff',
                         img_sub_folder=''):
     """Takes a set of images from a directory structure and loads them into a tiled xarray.

@@ -355,45 +355,6 @@ def test_get_tiled_fov_names():
     assert (rows, cols) == (1, 3)
 
 
-@pytest.mark.parametrize('subdir', ['TIFs', ''])
-def test_get_max_img_size(subdir):
-    with tempfile.TemporaryDirectory() as tmpdir:
-        channel_list = ['Au', 'CD3', 'CD4', 'CD8', 'CD11c']
-        fov_list = ['fov-1-scan-1', 'fov-2-scan-1']
-        stitched_dir = ['stitched_images']
-        larger_fov = ['fov-3-scan-1']
-
-        test_utils._write_tifs(tmpdir, fov_list, channel_list, (10, 10), subdir, False, int)
-        test_utils._write_tifs(tmpdir, stitched_dir, channel_list, (20, 20), subdir, False, int)
-
-        # test success which ignores stitched dir
-        max_img_size = load_utils.get_max_img_size(tmpdir, img_sub_folder=subdir)
-        assert max_img_size == 10
-
-        test_utils._write_tifs(tmpdir, larger_fov, channel_list, (12, 12), subdir, False, int)
-
-        # test success for all fovs
-        max_img_size = load_utils.get_max_img_size(tmpdir, img_sub_folder=subdir)
-        assert max_img_size == 12
-
-    # single directory
-    with tempfile.TemporaryDirectory() as tmpdir:
-        fovs = ['fov1_feature_0', 'fov1_feature_1', 'fov2_feature_0', 'fov2_feature_1']
-        larger_fov = ['fov3_feature_0', 'fov3_feature_1']
-
-        test_utils._write_tifs(tmpdir, ['deepcell_output'], fovs, (10, 10), '', False, int)
-        test_utils._write_tifs(tmpdir, ['temp_fov_dir'], larger_fov, (12, 12), '', False, int)
-
-        for img in larger_fov:
-            shutil.copy(os.path.join(tmpdir, 'temp_fov_dir', img + '.tiff'),
-                        os.path.join(tmpdir, 'deepcell_output', img + '.tiff'))
-
-        # test success for all fovs in single dir
-        max_img_size = load_utils.get_max_img_size(os.path.join(tmpdir, 'deepcell_output'),
-                                                   single_dir=True)
-        assert max_img_size == 12
-
-
 @pytest.mark.parametrize('single_dir, img_sub_folder', [(False, 'TIFs'), (True, '')])
 def test_load_tiled_img_data(single_dir, img_sub_folder):
     # invalid directory is provided
