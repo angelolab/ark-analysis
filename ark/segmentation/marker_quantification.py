@@ -374,10 +374,6 @@ def create_marker_count_matrices(segmentation_labels, image_data, nuclear_counts
     misc_utils.verify_same_elements(segmentation_labels_fovs=segmentation_labels.fovs.values,
                                     img_data_fovs=image_data.fovs.values)
 
-    # initialize data frames
-    normalized_data = pd.DataFrame()
-    arcsinh_data = pd.DataFrame()
-
     # define the FOV associated with this segmentation label
     fov = segmentation_labels.fovs.values[0]
     print("extracting data from {}".format(fov))
@@ -422,12 +418,9 @@ def create_marker_count_matrices(segmentation_labels, image_data, nuclear_counts
 
     # add column for current fov
     normalized['fov'] = fov
-    normalized_data = normalized_data.append(normalized)
-
     arcsinh['fov'] = fov
-    arcsinh_data = arcsinh_data.append(arcsinh)
 
-    return normalized_data, arcsinh_data
+    return normalized, arcsinh
 
 
 def generate_cell_table(segmentation_dir, tiff_dir, img_sub_folder="TIFs",
@@ -491,8 +484,8 @@ def generate_cell_table(segmentation_dir, tiff_dir, img_sub_folder="TIFs",
     cohort_len = len(fovs)
 
     # create the final dfs to store the processed data
-    combined_cell_table_size_normalized = pd.DataFrame()
-    combined_cell_table_arcsinh_transformed = pd.DataFrame()
+    normalized_tables = []
+    arcsinh_tables = []
 
     for fov_index, fov_name in enumerate(fovs):
         if is_mibitiff:
@@ -543,12 +536,11 @@ def generate_cell_table(segmentation_dir, tiff_dir, img_sub_folder="TIFs",
             **kwargs
         )
 
-        # now append to the final dfs to return
-        combined_cell_table_size_normalized = combined_cell_table_size_normalized.append(
-            cell_table_size_normalized
-        )
-        combined_cell_table_arcsinh_transformed = combined_cell_table_arcsinh_transformed.append(
-            cell_table_arcsinh_transformed
-        )
+        normalized_tables.append(cell_table_size_normalized)
+        arcsinh_tables.append(cell_table_arcsinh_transformed)
+
+    # now append to the final dfs to return
+    combined_cell_table_size_normalized = pd.concat(normalized_tables)
+    combined_cell_table_arcsinh_transformed = pd.concat(arcsinh_tables)
 
     return combined_cell_table_size_normalized, combined_cell_table_arcsinh_transformed
