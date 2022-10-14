@@ -466,9 +466,9 @@ def test_generate_and_save_neighborhood_cluster_masks(sub_dir, name_suffix):
         # generate a neighborhood cluster DataFrame
         labels = np.arange(1, 6)
         sample_neighborhood_data = pd.DataFrame.from_dict(
-            {'label': np.repeat(labels, 5),
-             'cell_meta_cluster_rename': np.repeat([i * 10 for i in labels], 5),
-             'SampleID': np.tile(fovs, 5)}
+            {settings.CELL_LABEL: np.repeat(labels, 5),
+             settings.KMEANS_CLUSTER: np.repeat([i * 10 for i in labels], 5),
+             settings.FOV_ID: np.tile(fovs, 5)}
         )
 
         # generate sample label map

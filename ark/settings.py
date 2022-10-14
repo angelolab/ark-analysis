@@ -3,11 +3,11 @@
 # default cell table column names
 CELL_SIZE = 'cell_size'  # cell size (number of pixels in the cell)
 CELL_LABEL = 'label'  # cell label number (regionprops)
-FOV_ID = 'SampleID'  # cell's fov name
-CELL_TYPE = 'cell_type'  # cell type name (flowsom)
-CLUSTER_ID = 'cell_meta_cluster'  # cell cluster id (flowsom)
+FOV_ID = 'fov'  # cell's fov name
+CELL_TYPE = 'cell_meta_cluster'  # cell cluster name
+CELL_TYPE_NUM = 'cell_num'   # int cell cluster identifier
 PATIENT_ID = 'PatientID'  # cell's patient id
-KMEANS_CLUSTER = 'cell_meta_cluster_rename'  # generated cluster column name
+KMEANS_CLUSTER = 'kmeans_neighborhood'  # neighborhood which cells belong to
 CENTROID_0 = 'centroid-0'  # cell centroid x-coordinate
 CENTROID_1 = 'centroid-1'  # cell centroid y-coordinate
 
@@ -36,8 +36,19 @@ REGIONPROPS_SINGLE_COMP = ['major_minor_axis_ratio', 'perim_square_over_area',
                            'centroid_dif', 'num_concavities']
 REGIONPROPS_MULTI_COMP = ['nc_ratio']
 
+# fiber segmentation regionprops extraction
+FIBER_OBJECT_PROPS = (
+    'major_axis_length',
+    'minor_axis_length',
+    'orientation',
+    'centroid',
+    'label',
+    'eccentricity',
+    'euler_number'
+)
+
 # spatial-LDA minimum required columns
-BASE_COLS = [FOV_ID, CELL_LABEL, CELL_SIZE, CENTROID_0, CENTROID_1, CLUSTER_ID, KMEANS_CLUSTER]
+BASE_COLS = [FOV_ID, CELL_LABEL, CELL_SIZE, CENTROID_0, CENTROID_1, CELL_TYPE]
 
 # spatial_lda topic EDA key names
 EDA_KEYS = ['inertia', 'silhouette', 'gap_stat', 'gap_sds', 'percent_var_exp', 'cell_counts',

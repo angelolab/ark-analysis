@@ -25,7 +25,6 @@ DEFAULT_COLUMNS = \
         'min_axis_length',
         'perimiter',
         settings.FOV_ID,
-        settings.CLUSTER_ID,
         settings.CELL_TYPE,
     ]
 list(map(
