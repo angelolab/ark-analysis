@@ -149,7 +149,7 @@ def flowsom_pixel_setup(tb, flowsom_dir, create_seg_dir=True, img_shape=(50, 50)
     tb.execute_cell('import')
 
     # create data which will be loaded into img_xr
-    tiff_dir = os.path.join(flowsom_dir, "image_data")
+    tiff_dir = os.path.join(flowsom_dir, "input_data")
     os.mkdir(tiff_dir)
 
     if is_mibitiff:
@@ -173,14 +173,11 @@ def flowsom_pixel_setup(tb, flowsom_dir, create_seg_dir=True, img_shape=(50, 50)
 
     # generate sample segmentation labels so we can load them in
     if create_seg_dir:
-        seg_dir = os.path.join(flowsom_dir, "segmentation")
-        deepcell_output_dir = os.path.join(seg_dir, "deepcell_output")
-        os.makedirs(seg_dir)
-        os.makedirs(deepcell_output_dir)
-        generate_sample_feature_tifs(fovs, deepcell_output_dir, img_shape)
+        seg_dir = os.path.join(flowsom_dir, 'deepcell_output')
+        os.mkdir(seg_dir)
+        generate_sample_feature_tifs(fovs, seg_dir, img_shape)
 
         seg_dir = "\"%s\"" % seg_dir
-        deepcell_output_dir = "\"%s\"" % deepcell_output_dir
     else:
         seg_dir = None
 
@@ -190,12 +187,10 @@ def flowsom_pixel_setup(tb, flowsom_dir, create_seg_dir=True, img_shape=(50, 50)
         tiff_dir = "%s"
         img_sub_folder = None
         segmentation_dir = %s
-        deepcell_output_dir = %s
         seg_suffix = '_feature_0.tif'
         MIBItiff = %s
         mibitiff_suffix = '%s'
-    """ % (flowsom_dir, tiff_dir, str(seg_dir), str(deepcell_output_dir), is_mibitiff,
-           mibitiff_suffix)
+    """ % (flowsom_dir, tiff_dir, str(seg_dir), is_mibitiff, mibitiff_suffix)
     tb.inject(define_data_paths, after='file_path')
 
     if fovs is not None:
@@ -233,7 +228,7 @@ def flowsom_pixel_setup(tb, flowsom_dir, create_seg_dir=True, img_shape=(50, 50)
 
     # if seg_dir is set, test filtering with exclude = True for the second channel,
     # and exclude = False for the third channel
-    if deepcell_output_dir:
+    if seg_dir:
         run_chan_filtering_exclude = """
             filter_channel = '%s'
             nuclear_exclude = True
@@ -241,7 +236,7 @@ def flowsom_pixel_setup(tb, flowsom_dir, create_seg_dir=True, img_shape=(50, 50)
             pixel_cluster_utils.filter_with_nuclear_mask(
                 fovs,
                 tiff_dir,
-                deepcell_output_dir,
+                segmentation_dir,
                 filter_channel,
                 img_sub_folder,
                 nuclear_exclude
@@ -256,7 +251,7 @@ def flowsom_pixel_setup(tb, flowsom_dir, create_seg_dir=True, img_shape=(50, 50)
             pixel_cluster_utils.filter_with_nuclear_mask(
                 fovs,
                 tiff_dir,
-                deepcell_output_dir,
+                segmentation_dir,
                 filter_channel,
                 img_sub_folder,
                 nuclear_exclude
@@ -312,9 +307,9 @@ def flowsom_pixel_cluster(tb, flowsom_dir, fovs, channels,
     """
 
     # get path to the data
-    data_path = os.path.join(flowsom_dir + "/segmentation/",
+    data_path = os.path.join(flowsom_dir,
                              '%s_pixel_output_dir' % pixel_prefix,
-                             'pixel_mat_data')
+                             '%s_pixel_mat_data' % pixel_prefix)
 
     # make sample consensus data for each fov
     for fov in fovs:
@@ -349,9 +344,9 @@ def flowsom_pixel_cluster(tb, flowsom_dir, fovs, channels,
     avg_channels_som['pixel_som_cluster'] = range(1, 101)
     avg_channels_som['pixel_meta_cluster'] = np.repeat(range(1, 21), 5)
     avg_channels_som.to_csv(
-        os.path.join(flowsom_dir + "/segmentation/",
+        os.path.join(flowsom_dir,
                      '%s_pixel_output_dir' % pixel_prefix,
-                     'pixel_channel_avg_som_cluster.csv'),
+                     '%s_pixel_channel_avg_som_cluster.csv' % pixel_prefix),
         index=False
     )
 
@@ -364,9 +359,9 @@ def flowsom_pixel_cluster(tb, flowsom_dir, fovs, channels,
     )
     avg_channels_meta['pixel_meta_cluster'] = range(1, 21)
     avg_channels_meta.to_csv(
-        os.path.join(flowsom_dir + "/segmentation/",
+        os.path.join(flowsom_dir,
                      '%s_pixel_output_dir' % pixel_prefix,
-                     'pixel_channel_avg_meta_cluster.csv'),
+                     '%s_pixel_channel_avg_meta_cluster.csv' % pixel_prefix),
         index=False
     )
 
@@ -398,9 +393,9 @@ def flowsom_pixel_visualize(tb, flowsom_dir, fovs, pixel_prefix='test'):
     remap_data['metacluster'] = np.repeat(range(1, 11), 10)
     remap_data['mc_name'] = np.repeat(['meta_' + str(i) for i in range(1, 11)], 10)
     remap_data.to_csv(
-        os.path.join(flowsom_dir + "/segmentation/",
+        os.path.join(flowsom_dir,
                      '%s_pixel_output_dir' % pixel_prefix,
-                     'pixel_meta_cluster_mapping.csv'),
+                     '%s_pixel_meta_cluster_mapping.csv' % pixel_prefix),
         index=False
     )
 
@@ -410,7 +405,7 @@ def flowsom_pixel_visualize(tb, flowsom_dir, fovs, pixel_prefix='test'):
     # generate the colormap to use
     tb.execute_cell('pixel_cmap_gen')
 
-    # define the FOVs to use for the cell-pixel overlay
+    # define the FOVs to use for the cpixelell overlay
     if len(fovs) <= 2:
         fovs_overlay = fovs
     else:
@@ -462,11 +457,11 @@ def flowsom_cell_setup(tb, flowsom_dir, pixel_dir, pixel_cluster_col='pixel_meta
     tb.execute_cell('import')
 
     # create data which will be loaded into img_xr -- ONLY FOR MANTIS PROJECT CREATION
-    tiff_dir = os.path.join(flowsom_dir, "image_data")
-    os.makedirs(tiff_dir)
+    tiff_dir = os.path.join(flowsom_dir, "input_data")
+    os.mkdir(tiff_dir)
 
     # create sample pixel output dir
-    os.makedirs(os.path.join(flowsom_dir, "segmentation", pixel_dir))
+    os.mkdir(os.path.join(flowsom_dir, pixel_dir))
 
     # create sample segmentations
     fovs, chans = test_utils.gen_fov_chan_names(num_fovs=num_fovs,
@@ -478,8 +473,8 @@ def flowsom_cell_setup(tb, flowsom_dir, pixel_dir, pixel_cluster_col='pixel_meta
         tiff_dir, fovs, chans, img_shape=img_shape, delimiter='_', fills=False, dtype=dtype
     )
 
-    seg_dir = os.path.join(flowsom_dir, 'segmentation/deepcell_output')
-    os.makedirs(seg_dir)
+    seg_dir = os.path.join(flowsom_dir, 'deepcell_output')
+    os.mkdir(seg_dir)
     generate_sample_feature_tifs(fovs, seg_dir, img_shape)
 
     # save a sample set of cell clustering parameters
@@ -487,24 +482,20 @@ def flowsom_cell_setup(tb, flowsom_dir, pixel_dir, pixel_cluster_col='pixel_meta
     cell_clustering_params = {
         'fovs': fovs,
         'channels': chans,
-        'segmentation_dir': os.path.join('deepcell_output'),
+        'segmentation_dir': os.path.join(flowsom_dir, 'deepcell_output'),
         'seg_suffix': '_feature_0.tif',
-        'pixel_data_dir': os.path.join("segmentation", pixel_dir, 'sample_data_dir'),
-        'pc_chan_avg_som_cluster_name': os.path.join("segmentation", pixel_dir,
-                                                     'sample_pixel_som_chan_exp.csv'),
-        'pc_chan_avg_meta_cluster_name': os.path.join("segmentation", pixel_dir,
-                                                      'sample_pixel_meta_chan_exp.csv')
+        'pixel_data_dir': os.path.join(pixel_dir, 'sample_data_dir'),
+        'pc_chan_avg_som_cluster_name': os.path.join(pixel_dir, 'sample_pixel_som_chan_exp.csv'),
+        'pc_chan_avg_meta_cluster_name': os.path.join(pixel_dir, 'sample_pixel_meta_chan_exp.csv')
     }
 
-    with open(os.path.join(flowsom_dir, "segmentation", pixel_dir,
-                           'sample_cell_params.json'), 'w') as fw:
+    with open(os.path.join(flowsom_dir, pixel_dir, 'sample_cell_params.json'), 'w') as fw:
         json.dump(cell_clustering_params, fw)
 
     # define the home directory and cell clustering param info
     set_cell_dirs = """
         base_dir = "%s"
         pixel_output_dir = "%s"
-        segmentation_dir = 'segmentation'
         cell_clustering_params_name = "sample_cell_params.json"
         tiff_dir = "%s"
     """ % (flowsom_dir, pixel_dir, tiff_dir)
@@ -614,13 +605,13 @@ def flowsom_cell_cluster(tb, flowsom_dir, fovs, channels,
     )
     feather.write_dataframe(
         cell_consensus_data,
-        os.path.join(flowsom_dir, "segmentation",
+        os.path.join(flowsom_dir,
                      '%s_cell_output_dir' % cell_prefix,
                      '%s_cell_mat.feather' % cell_prefix),
         compression='uncompressed'
     )
     weighted_channel_exp.to_csv(
-        os.path.join(flowsom_dir, "segmentation",
+        os.path.join(flowsom_dir,
                      '%s_cell_output_dir' % cell_prefix,
                      '%s_weighted_cell_channel.csv' % cell_prefix),
         index=False
@@ -638,7 +629,7 @@ def flowsom_cell_cluster(tb, flowsom_dir, fovs, channels,
     avg_clusters_som['cell_som_cluster'] = range(1, 101)
     avg_clusters_som['cell_meta_cluster'] = np.repeat(range(1, 21), 5)
     avg_clusters_som.to_csv(
-        os.path.join(flowsom_dir, "segmentation",
+        os.path.join(flowsom_dir,
                      '%s_cell_output_dir' % cell_prefix,
                      '%s_cell_som_cluster_count_avgs.csv' % cell_prefix),
         index=False
@@ -655,7 +646,7 @@ def flowsom_cell_cluster(tb, flowsom_dir, fovs, channels,
     )
     avg_clusters_meta['cell_meta_cluster'] = range(1, 21)
     avg_clusters_meta.to_csv(
-        os.path.join(flowsom_dir, "segmentation",
+        os.path.join(flowsom_dir,
                      '%s_cell_output_dir' % cell_prefix,
                      '%s_cell_meta_cluster_count_avgs.csv' % cell_prefix),
         index=False
@@ -671,7 +662,7 @@ def flowsom_cell_cluster(tb, flowsom_dir, fovs, channels,
     avg_channels_som['cell_som_cluster'] = range(1, 101)
     avg_channels_som['cell_meta_cluster'] = np.repeat(range(1, 21), 5)
     avg_channels_som.to_csv(
-        os.path.join(flowsom_dir, "segmentation",
+        os.path.join(flowsom_dir,
                      '%s_cell_output_dir' % cell_prefix,
                      '%s_cell_som_cluster_channel_avg.csv' % cell_prefix),
         index=False
@@ -686,7 +677,7 @@ def flowsom_cell_cluster(tb, flowsom_dir, fovs, channels,
     )
     avg_channels_meta['cell_meta_cluster'] = range(1, 21)
     avg_channels_meta.to_csv(
-        os.path.join(flowsom_dir, "segmentation",
+        os.path.join(flowsom_dir,
                      '%s_cell_output_dir' % cell_prefix,
                      '%s_cell_meta_cluster_channel_avg.csv' % cell_prefix),
         index=False
@@ -734,7 +725,7 @@ def flowsom_cell_visualize(tb, flowsom_dir, fovs,
     remap_data['metacluster'] = np.repeat(range(1, 11), 10)
     remap_data['mc_name'] = np.repeat(['meta_' + str(i) for i in range(1, 11)], 10)
     remap_data.to_csv(
-        os.path.join(flowsom_dir, "segmentation",
+        os.path.join(flowsom_dir,
                      '%s_cell_output_dir' % cell_prefix,
                      '%s_cell_meta_cluster_mapping.csv' % cell_prefix),
         index=False
