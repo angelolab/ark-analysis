@@ -40,6 +40,7 @@ jobs:
         distributions: "sdist bdist_wheel"
         skip_existing: true
         on:
+          type: pull_request
           tags: false
       # script:
       #   - "travis_wait 120 sleep 7200 &"
@@ -49,13 +50,14 @@ jobs:
       #   - auditwheel repair dist/*.whl --plat manylinux_2_17_x86_64
       #   - twine upload -r testpypi --skip-existing /home/travis/build/"$TRAVIS_REPO_SLUG"/wheelhouse/*.whl -u "$TEST_PYPI_USERNAME" -p "$TEST_PYPI_PASSWORD"
     - stage: pypi_deploy
-      if: tag IS present
       deploy:
         provider: pypi
         user: $PYPI_USERNAME
         password: $PYPI_PASSWORD
         distributions: "sdist bdist_wheel"
         skip_existing: true
+        on:
+          tags: true
       python: 3.8
       # script:
       #   - "travis_wait 120 sleep 7200 &"
