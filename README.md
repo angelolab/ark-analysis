@@ -246,7 +246,7 @@ After updating, you can copy over any important paths or modifications from the 
 
 If you would like to test out the pipeline, then we have incorporated an example dataset within the notebooks. Currently the dataset contains 11 FOVs with 22 channels (CD3, CD4, CD8, CD14, CD20, CD31, CD45, CD68, CD163, CK17, Collagen1, ECAD, Fibronectin, GLUT1, H3K9ac, H3K27me3, HLADR, IDO, Ki67, PD1, SMA, Vim), and intermediate data necessary for each notebook in the pipeline.
 
-The dataset is split into several smaller components, with each Jupyter Notebook using a combination of those components. We utilize [**Hugging Face**](https://huggingface.co) for storing the dataset and using their API's for creating these configurations. You can view the dataset [here](https://huggingface.co/datasets/angelolab/ark_example).
+The dataset is split into several smaller components, with each Jupyter Notebook using a combination of those components. We utilize [**Hugging Face**](https://huggingface.co) for storing the dataset and using their API's for creating these configurations. You can view the [dataset](https://huggingface.co/datasets/angelolab/ark_example)'s repository as well.
 
 ### Dataset Compartments
 
