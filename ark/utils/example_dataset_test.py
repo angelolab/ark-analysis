@@ -43,7 +43,7 @@ def dataset_download(setup_temp_path_factory, request) -> Iterator[ExampleDatase
     example_dataset: ExampleDataset = ExampleDataset(
         dataset=request.param,
         cache_dir=setup_temp_path_factory,
-        revision="a3b0db4fa93c194bfcaf5d4daccbe6573c6a6f7c"
+        revision="0f5a19ebbb9f9c650e036b6e811b1479812a2f72"
     )
     # Download example data for a particular notebook
     example_dataset.download_example_dataset()
@@ -89,7 +89,7 @@ class TestExampleDataset:
             "image_data": "image_data",
             "cell_table": "segmentation/cell_table",
             "deepcell_output": "segmentation/deepcell_output",
-            "example_pixel_output_dir": "segmentation/example_pixel_output_dir",
+            "example_pixel_output_dir": "pixie/example_pixel_output_dir",
         }
 
     def test_download_example_dataset(self, dataset_download: ExampleDataset):
