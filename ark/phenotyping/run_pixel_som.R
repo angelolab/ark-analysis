@@ -1,11 +1,14 @@
 # Assigns cluster labels to pixel data using a trained SOM weights matrix
 
-# Usage: Rscript run_pixel_som.R {fovs} {pixelMatDir} {normValsPath} {pixelWeightsPath}
+# Usage: Rscript run_pixel_som.R {fovs} {pixelMatDir} {normValsPath} {pixelWeightsPath} {multiprocess} {batchSize} {nCores}
 
 # - fovs: list of fovs to cluster
 # - pixelMatDir: path to directory containing the complete pixel data
 # - normValsPath: path to the 99.9% normalization values file (created during preprocessing)
 # - pixelWeightsPath: path to the SOM weights file
+# - multiprocess: whether to run cluster assignment using multiprocessing
+# - batchSize: if multiprocess is TRUE, the number of FOVs to process at once
+# - nCores: if multiprocess is TRUE, the number of Docker CPUs to use
 
 suppressPackageStartupMessages({
     library(arrow)
@@ -16,8 +19,8 @@ suppressPackageStartupMessages({
     library(parallel)
 })
 
-# helper function for processing fov data
-assignSOMLabels <- function(pixelMatDir, fileName, matPath, markers, normVals, somWeights) {
+# helper function for assigning SOM cluster labels
+assignSOMLabels <- function(fov, pixelMatDir, fileName, matPath, markers, normVals, somWeights) {
     status <- tryCatch(
         {
             fovPixelData_all <- data.table(arrow::read_feather(matPath))
@@ -34,19 +37,19 @@ assignSOMLabels <- function(pixelMatDir, fileName, matPath, markers, normVals, s
             # assign cluster labels column to pixel data
             fovPixelData$pixel_som_cluster <- as.integer(clusters[,1])
 
-            # write data with SOM labels
+            # write data with SOM cluster labels
             tempPath <- file.path(paste0(pixelMatDir, '_temp'), fileName)
             arrow::write_feather(as.data.table(fovPixelData), tempPath, compression='uncompressed')
 
             # this won't be displayed to the user but is used as a helper to break out
             # in the rare first FOV hang issue
-            print(paste('Done writing fov', fovs[i]))
+            print(paste('Done writing fov', fov))
             c(0, '')
         },
         error=function(cond) {
             # this won't be displayed to the user but is used as a helper to break out
             # in the rare first FOV hang issue
-            print(paste('Error encountered for fov', fovs[i]))
+            print(paste('Error encountered for fov', fov))
             c(1, cond)
         }
     )
@@ -93,7 +96,7 @@ normVals <- normVals[,..markers]
 # define variable to keep track of number of fovs processed
 fovsProcessed <- 0
 
-# using trained SOM, assign SOM labels to each fov
+# using trained SOM, assign SOM cluster labels to each fov
 print("Mapping pixel data to SOM cluster labels")
 
 # handle multiprocess passed in as a string argument
@@ -123,7 +126,7 @@ if (isTrue(multiprocess)) {
         # need to prevent overshooting end of fovs list when batching
         batchEnd <- min(batchStart + batchSize - 1, length(fovs))
 
-        # run the multithreaded batch process for mapping to SOM labels and saving
+        # run the multithreaded batch process for mapping to SOM cluster labels and saving
         fovStatuses <- foreach(
             i=batchStart:batchEnd,
             .combine=rbind
@@ -131,8 +134,8 @@ if (isTrue(multiprocess)) {
             fileName <- paste0(fovs[i], ".feather")
             matPath <- file.path(pixelMatDir, fileName)
 
-            # generate the SOM labels
-            status <- assignSOMLabels(pixelMatDir, fileName, matPath, markers, normVals, somWeights)
+            # generate the SOM cluster labels
+            status <- assignSOMLabels(fovs[i], pixelMatDir, fileName, matPath, markers, normVals, somWeights)
 
             # append to data frame status checker
             data.frame(fov=fovs[i], status=status[1], errCond=status[2])
@@ -164,8 +167,8 @@ if (isTrue(multiprocess)) {
         fileName <- paste0(fovs[i], ".feather")
         matPath <- file.path(pixelMatDir, fileName)
 
-        # generate the SOM labels
-        status <- assignSOMLabels(pixelMatDir, fileName, matPath, markers, normVals, somWeights)
+        # generate the SOM cluster labels
+        status <- assignSOMLabels(fovs[i], pixelMatDir, fileName, matPath, markers, normVals, somWeights)
 
         # report any erroneous feather files
         if (status[1] == 1) {

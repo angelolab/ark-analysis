@@ -1082,7 +1082,8 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
                             pc_chan_avg_som_cluster_name='pixel_channel_avg_som_cluster.csv',
                             pc_chan_avg_meta_cluster_name='pixel_channel_avg_meta_cluster.csv',
                             clust_to_meta_name='pixel_clust_to_meta.feather',
-                            batch_size=5, ncores=multiprocessing.cpu_count() - 1, seed=42):
+                            multiprocess=False, batch_size=5, ncores=multiprocessing.cpu_count() - 1,
+                            seed=42):
     """Run consensus clustering algorithm on pixel-level summed data across channels
     Saves data with consensus cluster labels to `consensus_dir`. Computes and saves the
     average channel expression across pixel meta clusters. Assigns meta cluster labels
@@ -1108,10 +1109,12 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
             Name of file to save the channel-averaged results across all meta clusters to
         clust_to_meta_name (str):
             Name of file storing the SOM cluster to meta cluster mapping
+        multiprocess (bool):
+            Whether to use multiprocessing or not
         batch_size (int):
-            The number of FOVs to process in parallel
+            The number of FOVs to process in parallel, ignored if `multiprocess` is `False`
         ncores (int):
-            The number of cores desired for multiprocessing
+            The number of cores desired for multiprocessing, ignored if `multiprocess` is `False`
         seed (int):
             The random seed to set for consensus clustering
     """
@@ -1158,7 +1161,8 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
     process_args = ['Rscript', '/pixel_consensus_cluster.R',
                     ','.join(fovs_list), ','.join(channels),
                     str(max_k), str(cap), data_path, som_cluster_avg_path,
-                    clust_to_meta_path, str(batch_size), str(ncores), str(seed)]
+                    clust_to_meta_path, str(multiprocess), str(batch_size),
+                    str(ncores), str(seed)]
 
     process = subprocess.Popen(process_args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
