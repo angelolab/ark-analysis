@@ -10,6 +10,50 @@ import ark.settings as settings
 from ark.utils import spatial_analysis_utils, test_utils
 
 
+def test_calc_dist_matrix_new():
+    with tempfile.TemporaryDirectory() as base_dir:
+        # create sample label_dir and save_path folders
+        label_dir = os.path.join(base_dir, 'sample_label_dir')
+        save_path = os.path.join(base_dir, 'sample_save_path')
+        os.mkdir(label_dir)
+        os.mkdir(save_path)
+
+        # generate sample label data
+        # NOTE: this function should support varying FOV sizes
+        test_utils._write_labels(label_dir, ["fov8"], ["segmentation_label"], (10, 10),
+                                 '', True, np.uint8, suffix='_feature_0')
+        test_utils._write_labels(label_dir, ["fov9"], ["segmentation_label"], (5, 5),
+                                 '', True, np.uint8, suffix='_feature_0')
+
+
+        # generate the distance matrices
+        spatial_analysis_utils.calc_dist_matrix_new(label_dir, save_path)
+
+        # assert the fov8 and fov9 .xr files exist
+        assert os.path.exists(os.path.join(save_path, 'fov8_dist_mat.xr'))
+        assert os.path.exists(os.path.join(save_path, 'fov9_dist_mat.xr'))
+
+        # verify fov8, use isclose to prevent float tolerance errors
+        fov8_data = xr.load_dataarray(os.path.join(save_path, 'fov8_dist_mat.xr'))
+        actual8_data = np.array([
+            [0, 6, 6, np.sqrt(72)],
+            [6, 0, np.sqrt(72), 6],
+            [6, np.sqrt(72), 0, 6],
+            [np.sqrt(72), 6, 6, 0]
+        ])
+        assert np.all(np.isclose(fov8_data, actual8_data))
+
+        # verify fov9, use isclose to prevent float tolerance errors
+        fov9_data = xr.load_dataarray(os.path.join(save_path, 'fov9_dist_mat.xr'))
+        actual9_data = np.array([
+            [0, 3, 3, np.sqrt(18)],
+            [3, 0, np.sqrt(18), 3],
+            [3, np.sqrt(18), 0, 3],
+            [np.sqrt(18), 3, 3, 0]
+        ])
+        assert np.all(np.isclose(fov9_data, actual9_data))
+
+
 def test_calc_dist_matrix():
     test_mat_data = np.zeros((2, 512, 512, 1), dtype="int")
     # Create pythagorean triple to test euclidian distance

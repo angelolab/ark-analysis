@@ -3,6 +3,7 @@ import os
 import numpy as np
 import pandas as pd
 import scipy
+import skimage.io as io
 import skimage.measure
 import sklearn.metrics
 import xarray as xr
@@ -12,8 +13,55 @@ from statsmodels.stats.multitest import multipletests
 from tqdm.notebook import tqdm
 
 import ark.settings as settings
-from ark.utils import io_utils, misc_utils
+from ark.utils import io_utils, load_utils, misc_utils
 from ark.utils._bootstrapping import compute_close_num_rand
+
+
+def calc_dist_matrix_new(label_dir, save_path, prefix='_feature_0'):
+    """Generate matrix of distances between center of pairs of cells.
+
+    Saves each one individually to `save_path`.
+
+    Args:
+        label_dir (str):
+            path to segmentation masks indexed by `(fov, cell_id, cell_id, segmentation_label)`
+        save_path (str):
+            path to save file
+        prefix (str):
+            the prefix used to identify label map files in `label_dir`
+    """
+
+    # check that both label_dir and save_path exist
+    io_utils.validate_paths([label_dir, save_path])
+
+    # load all the file names in label_dir
+    fov_files = io_utils.list_files(label_dir, substrs=prefix + '.tiff')
+
+    # iterate for each fov
+    for fov_file in fov_files:
+        # retrieve the fov name
+        fov_name = fov_file.replace(prefix + '.tiff', '')
+
+        # load in the data
+        fov_data = load_utils.load_imgs_from_dir(
+            label_dir, [fov_file], match_substring='_feature_0',
+            trim_suffix='_feature_0', xr_channel_names=['segmentation_label']
+        )
+
+        # keep just the middle two dimensions
+        fov_data = fov_data.loc[fov_name, :, :, 'segmentation_label'].values
+
+        # extract region properties of label map, then just get centroids
+        props = skimage.measure.regionprops(fov_data)
+        centroids = [prop.centroid for prop in props]
+        centroid_labels = [prop.label for prop in props]
+
+        # generate the distance matrix, then assign centroid_labels as coords
+        dist_matrix = cdist(centroids, centroids).astype(np.float32)
+        dist_mat_xarr = xr.DataArray(dist_matrix, coords=[centroid_labels, centroid_labels])
+
+        # save the distance matrix to save_path
+        dist_mat_xarr.to_netcdf(os.path.join(save_path, fov_name + '_dist_mat.xr'))
 
 
 def calc_dist_matrix(label_maps, save_path=None):
