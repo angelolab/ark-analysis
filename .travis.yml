@@ -22,13 +22,13 @@ env:
 
 cache: pip
 
-# command to run tests
-script:
-  - python -m pip install --editable .
-  - python -m pytest --cov=ark --pycodestyle ark
-
 jobs:
   include:
+    - stage: pytest_run
+      python: 3.8
+      script:
+        - python -m pip install --editable .
+        - python -m pytest --cov=ark --pycodestyle ark
     - stage: test_pypi_deploy
       python: 3.8
       script:
