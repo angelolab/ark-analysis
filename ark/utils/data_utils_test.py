@@ -10,12 +10,10 @@ import pandas as pd
 import pytest
 import skimage.io as io
 import xarray as xr
-from random import randint
 
 from ark import settings
 from ark.utils import data_utils, test_utils, io_utils, load_utils
-from ark.utils.data_utils import (download_example_data,
-                                  generate_and_save_cell_cluster_masks,
+from ark.utils.data_utils import (generate_and_save_cell_cluster_masks,
                                   generate_and_save_pixel_cluster_masks,
                                   generate_and_save_neighborhood_cluster_masks,
                                   label_cells_by_cluster, relabel_segmentation)
@@ -671,30 +669,6 @@ def test_split_img_stack():
 
         assert np.array_equal(sample_chan_1, data_xr[0, :, :, 0].values)
         assert np.array_equal(sample_chan_2, data_xr[0, :, :, 1].values)
-
-
-def test_download_example_data():
-    with tempfile.TemporaryDirectory() as temp_dir:
-        download_example_data(save_dir=pathlib.Path(temp_dir) / "example_dataset")
-
-        fov_names = [f"fov{i}" for i in range(11)]
-        input_data_path = pathlib.Path(temp_dir) / "example_dataset/image_data"
-
-        # Get downloaded + moved fov names.
-        downloaded_fovs = list(input_data_path.glob("*"))
-        downloaded_fov_names = [f.stem for f in downloaded_fovs]
-
-        # Assert that all the fovs exist after copying the data to "example_dataset/image_data"
-        assert set(fov_names) == set(downloaded_fov_names)
-
-        channel_names = ["CD3", "CD4", "CD8", "CD14", "CD20", "CD31", "CD45", "CD68", "CD163",
-                         "CK17", "Collagen1", "ECAD", "Fibronectin", "GLUT1", "H3K9ac",
-                         "H3K27me3", "HLADR", "IDO", "Ki67", "PD1", "SMA", "Vim"]
-
-        # Assert that for each fov, all 22 channels exist
-        for fov in downloaded_fovs:
-            c_names = [c.stem for c in fov.rglob("*")]
-            assert set(channel_names) == set(c_names)
 
 
 @pytest.mark.parametrize('segmentation, clustering, subdir',
