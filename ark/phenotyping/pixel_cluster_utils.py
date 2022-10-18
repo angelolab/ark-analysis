@@ -546,7 +546,7 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
                         subset_dir='pixel_mat_subsetted',
                         norm_vals_name='post_rowsum_chan_norm.feather', is_mibitiff=False,
                         blur_factor=2, subset_proportion=0.1, seed=42,
-                        channel_percentile=0.99, batch_size=5):
+                        channel_percentile=0.99, multiprocess=False, batch_size=5):
     """For each fov, add a Gaussian blur to each channel and normalize channel sums for each pixel
 
     Saves data to `data_dir` and subsetted data to `subset_dir`
@@ -593,8 +593,10 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
             The random seed to set for subsetting
         channel_percentile (float):
             Percentile used to normalize channels to same range
+        multiprocess (bool):
+            Whether to use multiprocessing or not
         batch_size (int):
-            The number of FOVs to process in parallel
+            The number of FOVs to process in parallel, ignored if `multiprocess` is `False`
     """
 
     # if the subset_proportion specified is out of range
@@ -712,42 +714,59 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
         subset_proportion, pixel_norm_val, seed, channel_norm_df
     )
 
-    # define the multiprocessing context
-    with multiprocessing.get_context('spawn').Pool(batch_size) as fov_data_pool:
-        # define variable to keep track of number of fovs processed
-        fovs_processed = 0
+    # define variable to keep track of number of fovs processed
+    fovs_processed = 0
 
-        # asynchronously generate and save the pixel matrices per FOV
-        # NOTE: fov_data_pool should NOT operate on quant_dat since that is a shared resource
-        for fov_batch in [fovs_list[i:(i + batch_size)]
-                          for i in range(0, len(fovs_list), batch_size)]:
-            fov_data_batch = fov_data_pool.map(fov_data_func, fov_batch)
+    # define the columns to drop for 99.9% normalization
+    cols_to_drop = ['fov', 'row_index', 'column_index']
 
-            # compute the 99.9% quantile values for each FOV
-            for pixel_mat_data in fov_data_batch:
-                # retrieve the FOV name, note that there will only be one per FOV DataFrame
-                fov = pixel_mat_data['fov'].unique()[0]
+    # account for segmentation_label if seg_dir is set
+    if seg_dir:
+        cols_to_drop.append('segmentation_label')
 
-                # before taking the 99.9% quantile, drop the unneeded metadata columns
-                cols_to_drop = ['fov', 'row_index', 'column_index']
-                if 'segmentation_label' in pixel_mat_data.columns.values:
-                    cols_to_drop.append('segmentation_label')
+    if multiprocess:
+        # define the multiprocessing context
+        with multiprocessing.get_context('spawn').Pool(batch_size) as fov_data_pool:
+            # asynchronously generate and save the pixel matrices per FOV
+            # NOTE: fov_data_pool should NOT operate on quant_dat since that is a shared resource
+            for fov_batch in [fovs_list[i:(i + batch_size)]
+                              for i in range(0, len(fovs_list), batch_size)]:
+                fov_data_batch = fov_data_pool.map(fov_data_func, fov_batch)
 
-                # drop the metadata columns and generate the 99.9% quantile values for the FOV
-                fov_full_pixel_data = pixel_mat_data.drop(columns=cols_to_drop)
-                quant_dat[fov] = fov_full_pixel_data.replace(0, np.nan).quantile(q=0.999, axis=0)
+                # compute the 99.9% quantile values for each FOV
+                for pixel_mat_data in fov_data_batch:
+                    # retrieve the FOV name, note that there will only be one per FOV DataFrame
+                    fov = pixel_mat_data['fov'].unique()[0]
+
+                    # drop the metadata columns and generate the 99.9% quantile values for the FOV
+                    fov_full_pixel_data = pixel_mat_data.drop(columns=cols_to_drop)
+                    quant_dat[fov] = fov_full_pixel_data.replace(0, np.nan).quantile(q=0.999, axis=0)
+
+                # update number of fovs processed
+                fovs_processed += len(fov_batch)
+                print("Processed %d fovs" % fovs_processed)
+    else:
+        for fov in fovs_list:
+            pixel_mat_data = fov_data_func(fov)
+
+            # drop the metadata columns and generate the 99.9% quantile values for the FOV
+            fov_full_pixel_data = pixel_mat_data.drop(columns=cols_to_drop)
+            quant_dat[fov] = fov_full_pixel_data.replace(0, np.nan).quantile(q=0.999, axis=0)
 
             # update number of fovs processed
-            fovs_processed += len(fov_batch)
-            print("Processed %d fovs" % fovs_processed)
+            fovs_processed += 1
 
-        # get mean 99.9% across all fovs for all markers
-        mean_quant = pd.DataFrame(quant_dat.mean(axis=1))
+            # update every 10 FOVs, or at the very end
+            if fovs_processed % 10 == 0 or fovs_processed == len(fovs_list):
+                print("Processed %d fovs" % fovs_processed)
 
-        # save 99.9% normalization values
-        feather.write_dataframe(mean_quant.T,
-                                os.path.join(base_dir, norm_vals_name),
-                                compression='uncompressed')
+    # get mean 99.9% across all fovs for all markers
+    mean_quant = pd.DataFrame(quant_dat.mean(axis=1))
+
+    # save 99.9% normalization values
+    feather.write_dataframe(mean_quant.T,
+                            os.path.join(base_dir, norm_vals_name),
+                            compression='uncompressed')
 
 
 def find_fovs_missing_col(base_dir, data_dir, missing_col):
@@ -1252,7 +1271,7 @@ def apply_pixel_meta_cluster_remapping(fovs, channels, base_dir,
                                        pixel_remapped_name,
                                        pc_chan_avg_som_cluster_name,
                                        pc_chan_avg_meta_cluster_name,
-                                       batch_size=5):
+                                       multiprocess=False, batch_size=5):
     """Apply the meta cluster remapping to the data in `pixel_consensus_dir`.
 
     Resave the re-mapped consensus data to `pixel_consensus_dir` and re-runs the
@@ -1277,6 +1296,8 @@ def apply_pixel_meta_cluster_remapping(fovs, channels, base_dir,
             Name of the file containing the channel-averaged results across all SOM clusters
         pc_chan_avg_meta_cluster_name (str):
             Name of the file containing the channel-averaged results across all meta clusters
+        multiprocess (bool):
+            Whether to use multiprocessing or not
         batch_size (int):
             The number of FOVs to process in parallel
     """
@@ -1357,28 +1378,43 @@ def apply_pixel_meta_cluster_remapping(fovs, channels, base_dir,
         print("Restarting meta cluster remapping assignment from %s, "
               "%d fovs left to process" % (fov_list[0], len(fov_list)))
 
-    # define the multiprocessing context
-    with multiprocessing.get_context('spawn').Pool(batch_size) as fov_data_pool:
-        # define variable to keep track of number of fovs processed
-        fovs_processed = 0
+    # define variable to keep track of number of fovs processed
+    fovs_processed = 0
 
-        # asynchronously generate and save the pixel matrices per FOV
-        print("Using re-mapping scheme to re-label pixel meta clusters")
-        for fov_batch in [fov_list[i:(i + batch_size)]
-                          for i in range(0, len(fov_list), batch_size)]:
-            # NOTE: we don't need a return value since we're just resaving
-            # and not computing intermediate data frames
-            fov_statuses = fov_data_pool.map(fov_data_func, fov_batch)
+    print("Using re-mapping scheme to re-label pixel meta clusters")
+    if multiprocess:
+        # define the multiprocessing context
+        with multiprocessing.get_context('spawn').Pool(batch_size) as fov_data_pool:
+            # asynchronously generate and save the pixel matrices per FOV
+            for fov_batch in [fov_list[i:(i + batch_size)]
+                              for i in range(0, len(fov_list), batch_size)]:
+                # NOTE: we don't need a return value since we're just resaving
+                # and not computing intermediate data frames
+                fov_statuses = fov_data_pool.map(fov_data_func, fov_batch)
 
-            for fs in fov_statuses:
-                if fs[1] == 1:
-                    print("The data for FOV %s has been corrupted, skipping" % fs[0])
-                    fovs_processed -= 1
+                for fs in fov_statuses:
+                    if fs[1] == 1:
+                        print("The data for FOV %s has been corrupted, skipping" % fs[0])
+                        fovs_processed -= 1
+
+                # update number of fovs processed
+                fovs_processed += len(fov_batch)
+
+                print("Processed %d fovs" % fovs_processed)
+    else:
+        for fov in fov_list:
+            fov_status = fov_data_func(fov)
+
+            if fov_status[1] == 1:
+                print("The data for FOV %s has been corrupted, skipping" % fov_status[0])
+                fovs_processed -= 1
 
             # update number of fovs processed
-            fovs_processed += len(fov_batch)
+            fovs_processed += 1
 
-            print("Processed %d fovs" % fovs_processed)
+            # update every 10 FOVs, or at the very end
+            if fovs_processed % 10 == 0 or fovs_processed == len(fov_list):
+                print("Processed %d fovs" % fovs_processed)
 
     # remove the data directory and rename the temp directory to the data directory
     rmtree(pixel_data_path)
