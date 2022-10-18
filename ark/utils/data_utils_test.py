@@ -1,15 +1,15 @@
 import os
-import pathlib
 import shutil
 import tempfile
-from shutil import rmtree
-
 import feather
 import numpy as np
 import pandas as pd
 import pytest
 import skimage.io as io
 import xarray as xr
+
+from shutil import rmtree
+from random import randint
 
 from ark import settings
 from ark.utils import data_utils, test_utils, io_utils, load_utils
