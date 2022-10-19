@@ -43,13 +43,13 @@ assignSOMLabels <- function(fov, pixelMatDir, fileName, matPath, markers, normVa
 
             # this won't be displayed to the user but is used as a helper to break out
             # in the rare first FOV hang issue
-            print(paste('Done writing fov', fov))
+            # print(paste('Done writing fov', fov))
             c(0, '')
         },
         error=function(cond) {
             # this won't be displayed to the user but is used as a helper to break out
             # in the rare first FOV hang issue
-            print(paste('Error encountered for fov', fov))
+            # print(paste('Error encountered for fov', fov))
             c(1, cond)
         }
     )
@@ -73,7 +73,7 @@ normValsPath <- args[3]
 pixelWeightsPath <- args[4]
 
 # define if multiprocessing should be turned on
-multiprocess <- strtoi(args[5])
+multiprocess <- args[5]
 
 # retrieve the batch size to determine number of threads to run in parallel
 batchSize <- strtoi(args[6])
@@ -100,7 +100,7 @@ fovsProcessed <- 0
 print("Mapping pixel data to SOM cluster labels")
 
 # handle multiprocess passed in as a string argument
-if (isTrue(multiprocess)) {
+if (isTRUE(multiprocess)) {
     for (batchStart in seq(1, length(fovs), batchSize)) {
         # define the parallel cluster for this batch of fovs
         # NOTE: to prevent the occassional hanging first FOV issue, we need to log to an outfile
@@ -163,7 +163,7 @@ if (isTrue(multiprocess)) {
         unlink('log.txt')
     }
 } else {
-    for (i in 1:len(fovs)) {
+    for (i in 1:length(fovs)) {
         fileName <- paste0(fovs[i], ".feather")
         matPath <- file.path(pixelMatDir, fileName)
 
@@ -181,7 +181,7 @@ if (isTrue(multiprocess)) {
         fovsProcessed <- fovsProcessed + 1
 
         # inform user every 10 fovs that get processed
-        if (fovsProcessed %% 10 == 0) {
+        if (fovsProcessed %% 10 == 0 | fovsProcessed == length(fovs)) {
             print(paste("Processed", as.character(fovsProcessed), "fovs"))
         }
     }

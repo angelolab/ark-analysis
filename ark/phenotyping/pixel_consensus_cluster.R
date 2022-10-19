@@ -37,13 +37,11 @@ assignMetaLabels <- function(fov, pixelMatDir, matPath) {
 
             # this won't be displayed to the user but is used as a helper to break out
             # in the rare first FOV hang issue
-            print(paste('Done writing fov', fov))
             c(0, '')
         },
         error=function(cond) {
             # this won't be displayed to the user but is used as a helper to break out
             # in the rare first FOV hang issue
-            print(paste('Error encountered for fov', fov))
             c(1, cond)
         }
     )
@@ -79,7 +77,7 @@ clusterAvgPath <- args[6]
 clustToMetaPath <- args[7]
 
 # define if multiprocessing should be turned on
-multiprocess <- strtoi(args[8])
+multiprocess <- args[8]
 
 # retrieve the batch size to determine number of threads to run in parallel
 batchSize <- strtoi(args[9])
@@ -116,7 +114,7 @@ fovsProcessed <- 0
 print("Mapping pixel data to consensus cluster labels")
 
 # handle multiprocess passed in as a string argument
-if (isTrue(multiprocess)) {
+if (isTRUE(multiprocess)) {
     for (batchStart in seq(1, length(fovs), batchSize)) {
         # define the parallel cluster for this batch of fovs
         # NOTE: to prevent the occassional hanging first FOV issue, we need to log to an outfile
@@ -178,7 +176,7 @@ if (isTrue(multiprocess)) {
         unlink('log.txt')
     }
 } else {
-    for (i in 1:len(fovs)) {
+    for (i in 1:length(fovs)) {
         fileName <- paste0(fovs[i], ".feather")
         matPath <- file.path(pixelMatDir, fileName)
 
