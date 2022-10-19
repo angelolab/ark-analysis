@@ -4,6 +4,7 @@ import pathlib
 import shutil
 from typing import List, Union
 
+import re
 import datasets
 import feather
 import numpy as np
@@ -11,10 +12,12 @@ import pandas as pd
 import skimage.io as io
 from skimage.measure import regionprops_table
 import xarray as xr
+import natsort as ns
 from tqdm.notebook import tqdm_notebook as tqdm
 
 from ark import settings
-from ark.utils import load_utils
+from ark.utils import load_utils, io_utils
+from ark.utils.load_utils import load_tiled_img_data
 from ark.utils.misc_utils import verify_in_list
 
 
@@ -569,3 +572,92 @@ def split_img_stack(stack_dir, output_dir, stack_list, indices, names, channels_
 
             save_path = os.path.join(img_dir, names[i])
             io.imsave(save_path, channel, plugin='tifffile', check_contrast=False)
+
+
+def stitch_images_by_shape(data_dir, stitched_dir, img_sub_folder=None, channels=None,
+                           segmentation=False, clustering=False):
+    """ Creates stitched images for the specified channels based on the FOV folder names
+
+    Args:
+        data_dir (str):
+            path to directory containing images
+        stitched_dir (str):
+            path to directory to save stitched images to
+        img_sub_folder (str):
+            optional name of image sub-folder within each fov
+        channels (list):
+            optional list of imgs to load, otherwise loads all imgs
+        segmentation (bool):
+            if stitching images from the single segmentation dir
+        clustering (bool or str):
+            if stitching images from the single pixel or cell mask dir, specify 'pixel' / 'cell'
+    """
+
+    io_utils.validate_paths(data_dir, data_prefix=False)
+
+    # no img_sub_folder, change to empty string to read directly from base folder
+    if img_sub_folder is None:
+        img_sub_folder = ""
+
+    if clustering and clustering not in ['pixel', 'cell']:
+        raise ValueError('If stitching images from the pixie pipeline, the clustering arg must be '
+                         'set to either \"pixel\" or \"cell\".')
+
+    # retrieve valid fov names
+    if segmentation:
+        fovs = ns.natsorted(io_utils.list_files(data_dir, substrs='_feature_0.tif'))
+        fovs = io_utils.extract_delimited_names(fovs, delimiter='_feature_0.tif')
+    elif clustering:
+        fovs = ns.natsorted(io_utils.list_files(data_dir, substrs=f'_{clustering}_mask.tif'))
+        fovs = io_utils.extract_delimited_names(fovs, delimiter=f'_{clustering}_mask.tif')
+    else:
+        fovs = ns.natsorted(io_utils.list_folders(data_dir))
+        # ignore previous toffy stitching in fov directory
+        if 'stitched_images' in fovs:
+            fovs.remove('stitched_images')
+
+    if len(fovs) == 0:
+        raise ValueError(f"No FOVs found in directory, {data_dir}.")
+
+    # check previous stitching
+    if os.path.exists(stitched_dir):
+        raise ValueError(f"The {stitched_dir} directory already exists.")
+
+    bad_fov_names = []
+    for fov in fovs:
+        r = re.compile('.*R.*C.*')
+        if r.match(fov) is None:
+            bad_fov_names.append(fov)
+    if len(bad_fov_names) > 0:
+        raise ValueError(f"Invalid FOVs found in directory, {data_dir}. FOV names "
+                         f"{bad_fov_names} should have the form RnCm.")
+
+    # retrieve all extracted channel names and verify list if provided
+    if not segmentation and not clustering:
+        channel_imgs = io_utils.list_files(
+            dir_name=os.path.join(data_dir, fovs[0], img_sub_folder),
+            substrs=['.tif', '.jpg', '.png'])
+    else:
+        channel_imgs = io_utils.list_files(data_dir, substrs=fovs[0])
+        channel_imgs = [chan.split(fovs[0] + '_')[1] for chan in channel_imgs]
+
+    if channels is None:
+        channels = io_utils.remove_file_extensions(channel_imgs)
+    else:
+        verify_in_list(channel_inputs=channels,
+                       valid_channels=io_utils.remove_file_extensions(channel_imgs))
+
+    os.makedirs(stitched_dir)
+
+    file_ext = channel_imgs[0].split('.')[1]
+    _, num_rows, num_cols = load_utils.get_tiled_fov_names(fovs, return_dims=True)
+
+    # save new images to the stitched_images, one channel at a time
+    for chan in channels:
+        image_data = load_tiled_img_data(data_dir, fovs, chan,
+                                         single_dir=any([segmentation, clustering]),
+                                         file_ext=file_ext, img_sub_folder=img_sub_folder)
+        stitched_data = stitch_images(image_data, num_cols)
+        current_img = stitched_data.loc['stitched_image', :, :, chan].values
+        io.imsave(os.path.join(stitched_dir, chan + '_stitched.' + file_ext),
+                  current_img, check_contrast=False)

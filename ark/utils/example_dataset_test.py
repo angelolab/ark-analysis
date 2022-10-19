@@ -1,7 +1,5 @@
-from email.generator import Generator
 import pathlib
-from typing import Callable, Iterator
-import itertools
+from typing import Callable, Iterator, Generator
 import pytest
 from ark.utils.example_dataset import ExampleDataset, get_example_dataset
 from ark.utils import test_utils

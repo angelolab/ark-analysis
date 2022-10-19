@@ -79,7 +79,6 @@ def test_segment_image_data_folder(tb):
         notebooks_test_utils.create_exp_mat(tb, nuclear_counts=True)
 
 
-# TODO: if needed, add MIBItiff tests
 @testbook(PIXEL_CLUSTER_PATH, timeout=6000)
 def test_pixel_clustering_folder(tb):
     with tdir() as base_dir:

@@ -27,7 +27,7 @@ with open(path.join(PKG_FOLDER, 'README.md')) as f:
 
 extensions = [Extension(
     name="ark.utils._bootstrapping",
-    sources=["ark/utils/_bootstrapping.pyx"],
+    sources=[path.join(PKG_FOLDER, 'ark', 'utils', '_bootstrapping.pyx')],
     include_dirs=[np.get_include()],
     define_macros=CYTHON_MACROS
 )]
