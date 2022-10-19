@@ -23,7 +23,8 @@ def setup_temp_path_factory(tmp_path_factory) -> Iterator[pathlib.Path]:
     yield cache_dir
 
 
-@pytest.fixture(scope="session", params=["post_clustering"])
+@pytest.fixture(scope="session", params=["segment_image_data", "cluster_pixels",
+                                         "cluster_cells", "post_clustering"])
 def dataset_download(setup_temp_path_factory, request) -> Iterator[ExampleDataset]:
     """
     A Fixture which instantiates and downloads the dataset with respect to each
@@ -42,7 +43,7 @@ def dataset_download(setup_temp_path_factory, request) -> Iterator[ExampleDatase
     example_dataset: ExampleDataset = ExampleDataset(
         dataset=request.param,
         cache_dir=setup_temp_path_factory,
-        revision="a3b0db4fa93c194bfcaf5d4daccbe6573c6a6f7c"
+        revision="f3b76074a5f9dec69e8ebc6f957c36da4dd7008a"
     )
     # Download example data for a particular notebook
     example_dataset.download_example_dataset()
@@ -102,8 +103,8 @@ class TestExampleDataset:
             "image_data": "image_data",
             "cell_table": "segmentation/cell_table",
             "deepcell_output": "segmentation/deepcell_output",
-            "example_pixel_output_dir": "segmentation/example_pixel_output_dir",
-            "example_cell_output_dir": "segmentation/example_cell_output_dir",
+            "example_pixel_output_dir": "pixie/example_pixel_output_dir",
+            "example_cell_output_dir": "pixie/example_cell_output_dir",
         }
 
     def test_download_example_dataset(self, dataset_download: ExampleDataset):
