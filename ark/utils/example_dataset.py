@@ -38,6 +38,7 @@ class ExampleDataset():
             "image_data": "image_data",
             "cell_table": "segmentation/cell_table",
             "deepcell_output": "segmentation/deepcell_output",
+            "example_pixel_output_dir": "pixie/example_pixel_output_dir",
         }
         """
         Path suffixes for mapping each downloaded dataset partition to it's appropriate
@@ -152,7 +153,7 @@ def get_example_dataset(dataset: str, save_dir: Union[str, pathlib.Path],
 
     example_dataset = ExampleDataset(dataset=dataset, overwrite_existing=overwrite_existing,
                                      cache_dir=None,
-                                     revision="a3b0db4fa93c194bfcaf5d4daccbe6573c6a6f7c")
+                                     revision="f3b76074a5f9dec69e8ebc6f957c36da4dd7008a")
 
     # Download the dataset
     example_dataset.download_example_dataset()

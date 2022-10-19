@@ -2,8 +2,6 @@ import os
 import shutil
 import tempfile
 import pytest
-import pathlib
-from typing import Callable, Iterator
 
 
 import ark.settings as settings
