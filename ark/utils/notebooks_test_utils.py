@@ -210,6 +210,9 @@ def flowsom_pixel_setup(tb, flowsom_dir, create_seg_dir=True, img_shape=(50, 50)
         # handles the case when the user allows list_files or list_folders to do the fov loading
         tb.execute_cell('load_fovs')
 
+    # set the multiprocess variables
+    tb.execute_cell('set_multi')
+
     # define the pixel cluster prefix
     tb.inject("pixel_cluster_prefix = '%s'" % pixel_prefix, after='pixel_prefix')
 
