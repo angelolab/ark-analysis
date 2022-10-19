@@ -1,6 +1,5 @@
-from email.generator import Generator
 import pathlib
-from typing import Callable, Iterator
+from typing import Callable, Iterator, Generator
 import itertools
 import pytest
 from ark.utils.example_dataset import ExampleDataset, get_example_dataset
@@ -25,7 +24,7 @@ def setup_temp_path_factory(tmp_path_factory) -> Iterator[pathlib.Path]:
     yield cache_dir
 
 
-@pytest.fixture(scope="session", params=["segment_image_data", "cluster_pixels"])
+@pytest.fixture(scope="session", params=["cluster_cells"])
 def dataset_download(setup_temp_path_factory, request) -> Iterator[ExampleDataset]:
     """
     A Fixture which instantiates and downloads the dataset with respect to each
@@ -44,7 +43,7 @@ def dataset_download(setup_temp_path_factory, request) -> Iterator[ExampleDatase
     example_dataset: ExampleDataset = ExampleDataset(
         dataset=request.param,
         cache_dir=setup_temp_path_factory,
-        revision="a3b0db4fa93c194bfcaf5d4daccbe6573c6a6f7c"
+        revision="f3b76074a5f9dec69e8ebc6f957c36da4dd7008a"
     )
     # Download example data for a particular notebook
     example_dataset.download_example_dataset()
@@ -68,10 +67,21 @@ class TestExampleDataset:
 
         self.deepcell_output_names = [f"fov{i}_feature_{j}" for i in range(11) for j in range(2)]
 
+        self._example_pixel_output_dir_names = {
+            "root_files": ["cell_clustering_params", "example_channel_norm", "example_pixel_norm",
+                           "pixel_channel_avg_meta_cluster", "pixel_channel_avg_som_cluster",
+                           "pixel_meta_cluster_mapping", "pixel_som_to_meta", "pixel_weights",
+                           "post_rowsum_chan_norm"],
+            "pixel_mat_data": [f"fov{i}" for i in range(11)],
+            "pixel_mat_subset": [f"fov{i}" for i in range(11)],
+            "pixel_masks": [f"fov{i}_pixel_mask" for i in range(2)]
+        }
+
         self.dataset_test_fns: dict[str, Callable] = {
             "image_data": self._image_data_check,
             "cell_table": self._cell_table_check,
             "deepcell_output": self._deepcell_output_check,
+            "example_pixel_output_dir": self._example_pixel_output_dir_check,
         }
 
         # Mapping the datasets to their respective test functions.
@@ -79,6 +89,7 @@ class TestExampleDataset:
             "image_data": "image_data",
             "cell_table": "segmentation/cell_table",
             "deepcell_output": "segmentation/deepcell_output",
+            "example_pixel_output_dir": "pixie/example_pixel_output_dir",
         }
 
     def test_download_example_dataset(self, dataset_download: ExampleDataset):
@@ -248,6 +259,64 @@ class TestExampleDataset:
         downloaded_deepcell_output = list(dir_p.glob("*.tif"))
         downloaded_deepcell_output_names = [f.stem for f in downloaded_deepcell_output]
         assert set(self.deepcell_output_names) == set(downloaded_deepcell_output_names)
+
+    def _example_pixel_output_dir_check(self, dir_p: pathlib.Path):
+        """
+        Checks to make sure that the following files exist w.r.t the
+        `example_pixel_output_dir`.
+
+        ```
+        example_pixel_output_dir/
+            ├── cell_clustering_params.json
+            ├── example_channel_norm.feather
+            ├── example_pixel_norm.feather
+            ├── pixel_channel_avg_meta_cluster.csv
+            ├── pixel_channel_avg_som_cluster.csv
+            ├── pixel_masks/
+            │  ├── fov0_pixel_mask.tiff
+            │  └── fov1_pixel_mask.tiff
+            ├── pixel_mat_data/
+            │  ├── fov0.feather
+            │  ├── fov1.feather
+            │  ├── ...
+            │  └── fov10.feather
+            ├── pixel_mat_subset/
+            │  ├── fov0.feather
+            │  ├── fov1.feather
+            │  ├── ...
+            │  └── fov10.feather
+            ├── pixel_meta_cluster_mapping.csv
+            ├── pixel_som_to_meta.feather
+            ├── pixel_weights.feather
+            └── post_rowsum_chan_norm.feather
+        ```
+        Args:
+            dir_p (pathlib.Path): The directory to check.
+        """
+        # Root Files
+        root_files = list(dir_p.glob("*.json")) + \
+            list(dir_p.glob("*feather")) + \
+            list(dir_p.glob("*csv"))
+        root_file_names = [f.stem for f in root_files]
+        assert set(self._example_pixel_output_dir_names["root_files"]) == set(root_file_names)
+
+        # Pixel Mat Data
+        pixel_mat_files = list((dir_p / "pixel_mat_data").glob("*.feather"))
+        pixel_mat_files_names = [f.stem for f in pixel_mat_files]
+        assert set(self._example_pixel_output_dir_names["pixel_mat_data"]) \
+            == set(pixel_mat_files_names)
+
+        # Pixel Mat Subset
+        pixel_mat_subset_files = list((dir_p / "pixel_mat_subset").glob("*.feather"))
+        pixel_mat_subset_names = [f.stem for f in pixel_mat_subset_files]
+        assert set(self._example_pixel_output_dir_names["pixel_mat_subset"]) \
+            == set(pixel_mat_subset_names)
+
+        # Pixel Masks
+        pixel_mask_files = list((dir_p / "pixel_masks").glob("*.tiff"))
+        pixel_mask_names = [f.stem for f in pixel_mask_files]
+        assert set(self._example_pixel_output_dir_names["pixel_masks"]) \
+            == set(pixel_mask_names)
 
     def _suffix_paths(self, dataset_download: ExampleDataset,
                       parent_dir: pathlib.Path) -> Generator:
