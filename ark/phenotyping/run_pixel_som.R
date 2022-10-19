@@ -100,7 +100,8 @@ fovsProcessed <- 0
 print("Mapping pixel data to SOM cluster labels")
 
 # handle multiprocess passed in as a string argument
-if (isTRUE(multiprocess)) {
+if (multiprocess == "True") {
+    print("Running multiprocessing")
     for (batchStart in seq(1, length(fovs), batchSize)) {
         # define the parallel cluster for this batch of fovs
         # NOTE: to prevent the occassional hanging first FOV issue, we need to log to an outfile
