@@ -740,7 +740,9 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
 
                     # drop the metadata columns and generate the 99.9% quantile values for the FOV
                     fov_full_pixel_data = pixel_mat_data.drop(columns=cols_to_drop)
-                    quant_dat[fov] = fov_full_pixel_data.replace(0, np.nan).quantile(q=0.999, axis=0)
+                    quant_dat[fov] = fov_full_pixel_data.replace(
+                        0, np.nan
+                    ).quantile(q=0.999, axis=0)
 
                 # update number of fovs processed
                 fovs_processed += len(fov_batch)
@@ -1082,8 +1084,8 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
                             pc_chan_avg_som_cluster_name='pixel_channel_avg_som_cluster.csv',
                             pc_chan_avg_meta_cluster_name='pixel_channel_avg_meta_cluster.csv',
                             clust_to_meta_name='pixel_clust_to_meta.feather',
-                            multiprocess=False, batch_size=5, ncores=multiprocessing.cpu_count() - 1,
-                            seed=42):
+                            multiprocess=False, batch_size=5,
+                            ncores=multiprocessing.cpu_count() - 1, seed=42):
     """Run consensus clustering algorithm on pixel-level summed data across channels
     Saves data with consensus cluster labels to `consensus_dir`. Computes and saves the
     average channel expression across pixel meta clusters. Assigns meta cluster labels
