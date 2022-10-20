@@ -3,7 +3,6 @@ import shutil
 import tempfile
 import pytest
 
-
 import ark.settings as settings
 from ark.utils import io_utils, example_dataset
 from ark.segmentation import fiber_segmentation
