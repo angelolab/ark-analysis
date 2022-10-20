@@ -839,9 +839,10 @@ def test_preprocess_fov(mocker):
     'fovs,chans,sub_dir,seg_dir_include,channel_norm_include,pixel_norm_include,norm_diff_chan',
     cases=CreatePixelMatrixBaseCases
 )
+@parametrize('multiprocess', [True, False])
 def test_create_pixel_matrix_base(fovs, chans, sub_dir, seg_dir_include,
                                   channel_norm_include, pixel_norm_include,
-                                  norm_diff_chan, mocker, capsys):
+                                  norm_diff_chan, multiprocess, mocker, capsys):
     with tempfile.TemporaryDirectory() as temp_dir:
         # create a directory to store the image data
         tiff_dir = os.path.join(temp_dir, 'sample_image_data')
@@ -967,7 +968,8 @@ def test_create_pixel_matrix_base(fovs, chans, sub_dir, seg_dir_include,
             tiff_dir=tiff_dir,
             img_sub_folder=sub_dir,
             seg_dir=seg_dir,
-            pixel_cluster_prefix='test'
+            pixel_cluster_prefix='test',
+            multiprocess=multiprocess
         )
 
         # assert we overwrote the original channel_norm and pixel_norm files
@@ -1072,7 +1074,8 @@ def test_create_pixel_matrix_base(fovs, chans, sub_dir, seg_dir_include,
             tiff_dir=new_tiff_dir,
             img_sub_folder=sub_dir,
             seg_dir=seg_dir,
-            pixel_cluster_prefix='test'
+            pixel_cluster_prefix='test',
+            multiprocess=multiprocess
         )
 
 
@@ -1102,7 +1105,8 @@ def generate_create_pixel_matrix_test_data(temp_dir):
     )
 
 
-def test_create_pixel_matrix_missing_fov(capsys):
+@parametrize('multiprocess', [True, False])
+def test_create_pixel_matrix_missing_fov(multiprocess, capsys):
     fov_files = [fov + '.feather' for fov in PIXEL_MATRIX_FOVS]
 
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -1130,7 +1134,8 @@ def test_create_pixel_matrix_missing_fov(capsys):
             base_dir=temp_dir,
             tiff_dir=tiff_dir,
             img_sub_folder=None,
-            seg_dir=None
+            seg_dir=None,
+            multiprocess=multiprocess
         )
 
         output_capture = capsys.readouterr().out
@@ -1163,7 +1168,8 @@ def test_create_pixel_matrix_missing_fov(capsys):
             base_dir=temp_dir,
             tiff_dir=tiff_dir,
             img_sub_folder=None,
-            seg_dir=None
+            seg_dir=None,
+            multiprocess=multiprocess
         )
 
         output_capture = capsys.readouterr().out
@@ -1732,7 +1738,8 @@ def generate_test_apply_pixel_meta_cluster_remapping_data(temp_dir, fovs, chans,
 
 
 # TODO: split up this test function
-def test_apply_pixel_meta_cluster_remapping_base():
+@parametrize('multiprocess', [True, False])
+def test_apply_pixel_meta_cluster_remapping_base(multiprocess):
     with tempfile.TemporaryDirectory() as temp_dir:
         # basic error check: bad path to pixel consensus dir
         with pytest.raises(FileNotFoundError):
@@ -1835,7 +1842,8 @@ def test_apply_pixel_meta_cluster_remapping_base():
             'pixel_mat_data',
             'sample_pixel_remapping.csv',
             'sample_pixel_som_cluster_chan_avgs.csv',
-            'sample_pixel_meta_cluster_chan_avgs.csv'
+            'sample_pixel_meta_cluster_chan_avgs.csv',
+            multiprocess=multiprocess
         )
 
         # assert _temp dir no longer exists (pixel_mat_data_temp should be renamed pixel_mat_data)
@@ -1933,7 +1941,8 @@ def test_apply_pixel_meta_cluster_remapping_base():
         ].values == np.array(['meta' + str(i) for i in np.repeat(np.arange(20), repeats=5)]))
 
 
-def test_apply_pixel_meta_cluster_remapping_temp_corrupt(capsys):
+@parametrize('multiprocess', [True, False])
+def test_apply_pixel_meta_cluster_remapping_temp_corrupt(multiprocess, capsys):
     with tempfile.TemporaryDirectory() as temp_dir:
         # define fovs and channels
         fovs = ['fov0', 'fov1', 'fov2']
@@ -1958,16 +1967,17 @@ def test_apply_pixel_meta_cluster_remapping_temp_corrupt(capsys):
             'pixel_mat_data',
             'sample_pixel_remapping.csv',
             'sample_pixel_som_cluster_chan_avgs.csv',
-            'sample_pixel_meta_cluster_chan_avgs.csv'
+            'sample_pixel_meta_cluster_chan_avgs.csv',
+            multiprocess=multiprocess
         )
 
         # assert the _temp folder is now gone
         assert not os.path.exists(os.path.join(temp_dir, 'pixel_mat_data_temp'))
 
         output = capsys.readouterr().out
+        print(output)
         desired_status_updates = "Using re-mapping scheme to re-label pixel meta clusters\n"
         desired_status_updates += "The data for FOV fov1 has been corrupted, skipping\n"
-        desired_status_updates += "Processed 1 fovs\n"
         assert desired_status_updates in output
 
         # verify that the FOVs in pixel_mat_data are correct

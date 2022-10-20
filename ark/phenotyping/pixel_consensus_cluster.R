@@ -21,6 +21,34 @@ suppressPackageStartupMessages({
     library(stringi)
 })
 
+# helper function for assigning meta cluster labels
+assignMetaLabels <- function(fov, pixelMatDir, matPath) {
+    status <- tryCatch(
+        {
+            # generate the meta cluster labels
+            fovPixelData <- arrow::read_feather(matPath)
+
+            # assign hierarchical cluster labels
+            fovPixelData$pixel_meta_cluster <- som_to_meta_map[as.character(fovPixelData$pixel_som_cluster)]
+
+            # write data with consensus labels
+            tempPath <- file.path(paste0(pixelMatDir, '_temp'), fileName)
+            arrow::write_feather(as.data.table(fovPixelData), tempPath, compression='uncompressed')
+
+            # this won't be displayed to the user but is used as a helper to break out
+            # in the rare first FOV hang issue
+            c(0, '')
+        },
+        error=function(cond) {
+            # this won't be displayed to the user but is used as a helper to break out
+            # in the rare first FOV hang issue
+            c(1, cond)
+        }
+    )
+
+    return(status)
+}
+
 # get the number of cores
 nCores <- parallel::detectCores() - 1
 
@@ -48,14 +76,17 @@ clusterAvgPath <- args[6]
 # get the clust to meta write path
 clustToMetaPath <- args[7]
 
+# define if multiprocessing should be turned on
+multiprocess <- args[8]
+
 # retrieve the batch size to determine number of threads to run in parallel
-batchSize <- strtoi(args[8])
+batchSize <- strtoi(args[9])
 
 # get the number of cores
-nCores <- strtoi(args[9])
+nCores <- strtoi(args[10])
 
 # set the random seed
-seed <- strtoi(args[10])
+seed <- strtoi(args[11])
 set.seed(seed)
 
 # read cluster averaged data
@@ -81,86 +112,92 @@ fovsProcessed <- 0
 
 # append pixel_meta_cluster to each fov's data
 print("Mapping pixel data to consensus cluster labels")
-for (batchStart in seq(1, length(fovs), batchSize)) {
-    # define the parallel cluster for this batch of fovs
-    # NOTE: to prevent the occassional hanging first FOV issue, we need to log to an outfile
-    # to "force" a return out of the foreach loop in this case
-    parallelStatus <- tryCatch(
-        {
-            parallelCluster <- parallel::makeCluster(nCores, type="FORK", outfile='log.txt')
-            0
-        },
-        error=function(cond) {
-            1
-        }
-    )
 
-    if (parallelStatus == 1) {
-        print(paste0("Too many cores (", nCores, ") specifed, reduce this using the ncores parameter"))
-        quit(status=1)
-    }
-
-    # register parallel cluster for dopar
-    doParallel::registerDoParallel(cl=parallelCluster)
-
-    # need to prevent overshooting end of fovs list when batching
-    batchEnd <- min(batchStart + batchSize - 1, length(fovs))
-
-    # run the multithreaded batch process for mapping to SOM labels and saving
-    fovStatuses <- foreach(
-        i=batchStart:batchEnd,
-        .combine=rbind
-    ) %dopar% {
-        fileName <- paste0(fovs[i], '.feather')
-        matPath <- file.path(pixelMatDir, fileName)
-
-        status <- tryCatch(
+# handle multiprocess passed in as a string argument
+if (multiprocess == "True") {
+    for (batchStart in seq(1, length(fovs), batchSize)) {
+        # define the parallel cluster for this batch of fovs
+        # NOTE: to prevent the occassional hanging first FOV issue, we need to log to an outfile
+        # to "force" a return out of the foreach loop in this case
+        parallelStatus <- tryCatch(
             {
-                fovPixelData <- arrow::read_feather(matPath)
-
-                # assign hierarchical cluster labels
-                fovPixelData$pixel_meta_cluster <- som_to_meta_map[as.character(fovPixelData$pixel_som_cluster)]
-
-                # write data with consensus labels
-                tempPath <- file.path(paste0(pixelMatDir, '_temp'), fileName)
-                arrow::write_feather(as.data.table(fovPixelData), tempPath, compression='uncompressed')
-
-                # this won't be displayed to the user but is used as a helper to break out
-                # in the rare first FOV hang issue
-                print(paste('Done writing fov', fovs[i]))
-                c(0, '')
+                parallelCluster <- parallel::makeCluster(nCores, type="FORK", outfile='log.txt')
+                0
             },
             error=function(cond) {
-                # this won't be displayed to the user but is used as a helper to break out
-                # in the rare first FOV hang issue
-                print(paste('Error encountered for fov', fovs[i]))
-                c(1, cond)
+                1
             }
         )
 
-        data.frame(fov=fovs[i], status=status[1], errCond=status[2])
-    }
+        if (parallelStatus == 1) {
+            print(paste0("Too many cores (", nCores, ") specifed, reduce this using the ncores parameter"))
+            quit(status=1)
+        }
 
-    # report any erroneous feather files
-    for (i in 1:nrow(fovStatuses)) {
-        if (fovStatuses[i, 'status'] == 1) {
-            print(paste("Processing for FOV", fovStatuses[i, 'fov'], "failed, removing from pipeline. Error message:"))
-            print(fovStatuses[i, 'errCond'])
+        # register parallel cluster for dopar
+        doParallel::registerDoParallel(cl=parallelCluster)
+
+        # need to prevent overshooting end of fovs list when batching
+        batchEnd <- min(batchStart + batchSize - 1, length(fovs))
+
+        # run the multithreaded batch process for mapping to meta cluster labels and saving
+        fovStatuses <- foreach(
+            i=batchStart:batchEnd,
+            .combine=rbind
+        ) %dopar% {
+            fileName <- paste0(fovs[i], '.feather')
+            matPath <- file.path(pixelMatDir, fileName)
+
+            # generate the SOM cluster labels
+            status <- assignMetaLabels(fovs[i], pixelMatDir, matPath)
+
+            data.frame(fov=fovs[i], status=status[1], errCond=status[2])
+        }
+
+        # report any erroneous feather files
+        for (i in 1:nrow(fovStatuses)) {
+            if (fovStatuses[i, 'status'] == 1) {
+                print(paste("Processing for FOV", fovStatuses[i, 'fov'], "failed, removing from pipeline. Error message:"))
+                print(fovStatuses[i, 'errCond'])
+                fovsProcessed <- fovsProcessed - 1
+            }
+        }
+
+        # unregister the parallel cluster
+        parallel::stopCluster(cl=parallelCluster)
+
+        # update number of fovs processed
+        fovsProcessed <- fovsProcessed + (batchEnd - batchStart + 1)
+
+        # inform user that batchSize fovs have been processed
+        print(paste("Processed", as.character(fovsProcessed), "fovs"))
+
+        # remove log.txt
+        unlink('log.txt')
+    }
+} else {
+    for (i in 1:length(fovs)) {
+        fileName <- paste0(fovs[i], ".feather")
+        matPath <- file.path(pixelMatDir, fileName)
+
+        # generate the SOM cluster labels
+        status <- assignMetaLabels(fovs[i], pixelMatDir, matPath)
+
+        # report any erroneous feather files
+        if (status[1] == 1) {
+            print(paste("Processing for FOV", fovs[i], "failed, removing from pipeline. Error message:"))
+            print(status[2])
             fovsProcessed <- fovsProcessed - 1
         }
+
+        # update number of fovs processed
+        fovsProcessed <- fovsProcessed + 1
+
+        # inform user every 10 fovs that get processed
+        if (fovsProcessed %% 10 == 0) {
+            print(paste("Processed", as.character(fovsProcessed), "fovs"))
+        }
     }
-
-    # unregister the parallel cluster
-    parallel::stopCluster(cl=parallelCluster)
-
-    # update number of fovs processed
-    fovsProcessed <- fovsProcessed + (batchEnd - batchStart + 1)
-
-    # inform user that batchSize fovs have been processed
-    print(paste("Processed", as.character(fovsProcessed), "fovs"))
-
-    # remove log.txt
-    unlink('log.txt')
 }
 
 # save the mapping from pixel_som_cluster to pixel_meta_cluster
