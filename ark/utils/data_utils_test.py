@@ -12,7 +12,7 @@ from shutil import rmtree
 from random import randint
 
 from ark import settings
-from ark.utils import data_utils, test_utils, io_utils, load_utils
+from ark.utils import data_utils, test_utils, load_utils, io_utils
 from ark.utils.data_utils import (generate_and_save_cell_cluster_masks,
                                   generate_and_save_pixel_cluster_masks,
                                   generate_and_save_neighborhood_cluster_masks,

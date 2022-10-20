@@ -20,7 +20,10 @@ install:
 env:
   - MPLBACKEND=Agg
 
-cache: pip
+cache: 
+  directories:
+    - $HOME/.cache/pip
+    - $HOME/.cache/huggingface/datasets/
 
 jobs:
   include:
