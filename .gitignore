@@ -39,3 +39,4 @@ Pipfile.lock
 data/example_dataset/image_data/
 data/example_dataset/segmentation/
 data/example_dataset/pixie/
+data/example_dataset/post_clustering/

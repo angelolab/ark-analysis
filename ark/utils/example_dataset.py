@@ -39,6 +39,7 @@ class ExampleDataset():
             "cell_table": "segmentation/cell_table",
             "deepcell_output": "segmentation/deepcell_output",
             "example_pixel_output_dir": "pixie/example_pixel_output_dir",
+            "example_cell_output_dir": "pixie/example_cell_output_dir",
         }
         """
         Path suffixes for mapping each downloaded dataset partition to it's appropriate

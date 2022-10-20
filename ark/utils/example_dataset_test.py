@@ -1,6 +1,5 @@
 import pathlib
 from typing import Callable, Iterator, Generator
-import itertools
 import pytest
 from ark.utils.example_dataset import ExampleDataset, get_example_dataset
 from ark.utils import test_utils
@@ -24,7 +23,8 @@ def setup_temp_path_factory(tmp_path_factory) -> Iterator[pathlib.Path]:
     yield cache_dir
 
 
-@pytest.fixture(scope="session", params=["cluster_cells"])
+@pytest.fixture(scope="session", params=["segment_image_data", "cluster_pixels",
+                                         "cluster_cells", "post_clustering"])
 def dataset_download(setup_temp_path_factory, request) -> Iterator[ExampleDataset]:
     """
     A Fixture which instantiates and downloads the dataset with respect to each
@@ -77,11 +77,25 @@ class TestExampleDataset:
             "pixel_masks": [f"fov{i}_pixel_mask" for i in range(2)]
         }
 
+        self._example_cell_output_dir_names = {
+            "root_files": ["example_cell_clust_to_meta", "example_cell_mat",
+                           "example_cell_meta_cluster_channel_avg",
+                           "example_cell_meta_cluster_count_avgs",
+                           "example_cell_som_cluster_channel_avg",
+                           "example_cell_meta_cluster_mapping",
+                           "example_cell_som_cluster_channel_avg",
+                           "example_cell_som_cluster_count_avgs",
+                           "example_cell_weights", "example_cluster_counts",
+                           "example_cluster_counts_norm", "example_weighted_cell_channel"],
+            "cell_masks": [f"fov{i}_cell_mask" for i in range(2)]
+        }
+
         self.dataset_test_fns: dict[str, Callable] = {
             "image_data": self._image_data_check,
             "cell_table": self._cell_table_check,
             "deepcell_output": self._deepcell_output_check,
             "example_pixel_output_dir": self._example_pixel_output_dir_check,
+            "example_cell_output_dir": self._example_cell_output_dir_check,
         }
 
         # Mapping the datasets to their respective test functions.
@@ -90,6 +104,7 @@ class TestExampleDataset:
             "cell_table": "segmentation/cell_table",
             "deepcell_output": "segmentation/deepcell_output",
             "example_pixel_output_dir": "pixie/example_pixel_output_dir",
+            "example_cell_output_dir": "pixie/example_cell_output_dir",
         }
 
     def test_download_example_dataset(self, dataset_download: ExampleDataset):
@@ -317,6 +332,44 @@ class TestExampleDataset:
         pixel_mask_names = [f.stem for f in pixel_mask_files]
         assert set(self._example_pixel_output_dir_names["pixel_masks"]) \
             == set(pixel_mask_names)
+
+    def _example_cell_output_dir_check(self, dir_p: pathlib.Path):
+        """
+        Checks to make sure that the following files exist w.r.t the
+        `example_cell_output_dir`.
+
+        ```
+        example_cell_output_dir/
+        ├── cell_masks/
+        │  ├── fov0_cell_mask.tiff
+        │  └── fov1_cell_mask.tiff
+        ├── example_cell_clust_to_meta.feather
+        ├── example_cell_mat.feather
+        ├── example_cell_meta_cluster_channel_avg.csv
+        ├── example_cell_meta_cluster_count_avgs.csv
+        ├── example_cell_meta_cluster_mapping.csv
+        ├── example_cell_som_cluster_channel_avg.csv
+        ├── example_cell_som_cluster_count_avgs.csv
+        ├── example_cell_weights.feather
+        ├── example_cluster_counts.feather
+        ├── example_cluster_counts_norm.feather
+        └── example_weighted_cell_channel.csv
+        ```
+
+        Args:
+            dir_p (pathlib.Path): The directory to check.
+        """
+
+        # Root Files
+        root_files = list(dir_p.glob("*.feather")) + list(dir_p.glob("*.csv"))
+        root_file_names = [f.stem for f in root_files]
+        assert set(self._example_cell_output_dir_names["root_files"]) == set(root_file_names)
+
+        # Cell Masks
+        cell_mask_files = list((dir_p / "cell_masks").glob("*.tiff"))
+        cell_mask_names = [f.stem for f in cell_mask_files]
+        assert set(self._example_cell_output_dir_names["cell_masks"]) \
+            == set(cell_mask_names)
 
     def _suffix_paths(self, dataset_download: ExampleDataset,
                       parent_dir: pathlib.Path) -> Generator:
