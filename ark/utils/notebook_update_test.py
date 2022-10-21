@@ -17,7 +17,7 @@ def _exec_update_notebooks(base_path, update_flag=True, bad_flag=False):
                         '..', '..', 'update_notebooks.sh')
 
     # configure args
-    args = ["bash", os.path.abspath(path)]
+    args = ["bash", f'"{os.path.abspath(path)}"']
     if update_flag:
         args.append("--update")
     if bad_flag:
