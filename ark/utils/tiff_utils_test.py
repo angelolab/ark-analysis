@@ -64,5 +64,6 @@ def test_write_mibitiff():
 
         assert np.all(true_data[0, :, :, :].values == load_data)
 
+
 def test_add_cache_test():
-    assert tiff_utils._add_cache_test(1,2) == 3
+    assert tiff_utils._add_cache_test(1, 2) == 3
