@@ -294,7 +294,7 @@ def test_calculate_cluster_spatial_enrichment():
     _, _ = \
         spatial_analysis.calculate_cluster_spatial_enrichment(
             all_data_hack, dist_mat_hack,
-            bootstrap_num=dist_lim, dist_lim=dist_lim, distance_cols=['dist_feature_0']
+            bootstrap_num=dist_lim, dist_lim=dist_lim, distance_cols=['dist_whole_cell']
         )
 
     # error checking
