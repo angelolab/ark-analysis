@@ -40,9 +40,9 @@ def test_generate_channel_spatial_enrichment_stats():
     with tempfile.TemporaryDirectory() as label_dir:
 
         test_utils._write_labels(label_dir, ["fov8", "fov9"], ["segmentation_label"], (10, 10),
-                                 '', True, np.uint8, suffix='_feature_0')
+                                 '', True, np.uint8, suffix='_whole_cell')
 
-        label_maps = load_utils.load_imgs_from_dir(label_dir, trim_suffix="_feature_0",
+        label_maps = load_utils.load_imgs_from_dir(label_dir, trim_suffix="_whole_cell",
                                                    xr_channel_names=["segmentation_label"])
 
         dist_mats = spatial_analysis_utils.calc_dist_matrix(label_maps)
@@ -77,9 +77,9 @@ def test_generate_cluster_spatial_enrichment_stats():
     # only the number of elements returned and the included_fovs argument needs testing
     with tempfile.TemporaryDirectory() as label_dir:
         test_utils._write_labels(label_dir, ["fov8", "fov9"], ["segmentation_label"], (10, 10),
-                                 '', True, np.uint8, suffix='_feature_0')
+                                 '', True, np.uint8, suffix='_whole_cell')
 
-        label_maps = load_utils.load_imgs_from_dir(label_dir, trim_suffix="_feature_0",
+        label_maps = load_utils.load_imgs_from_dir(label_dir, trim_suffix="_whole_cell",
                                                    xr_channel_names=["segmentation_label"])
 
         dist_mats = spatial_analysis_utils.calc_dist_matrix(label_maps)
