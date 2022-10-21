@@ -17,8 +17,7 @@ install:
   - travis_retry pip install -r requirements-test.txt
   - travis_retry export PYTHONPATH=$PWD
 env:
-  - MPLBACKEND=Agg
-  - TESTMON_DATAFILE= $HOME/.cache/testmon/.testmondata
+  - MPLBACKEND=Agg TESTMON_DATAFILE=$HOME/.cache/testmon/.testmondata
 
 cache: 
   directories:
