@@ -17,7 +17,10 @@ install:
   - travis_retry pip install -r requirements-test.txt
   - travis_retry export PYTHONPATH=$PWD
 env:
-  - MPLBACKEND=Agg TESTMON_DATAFILE=$HOME/.cache/testmon/.testmondata
+  global:
+    - MPLBACKEND=Agg
+  jobs:
+    - TESTMON_DATAFILE=$HOME/.cache/testmon/.testmondata DURATIONS_PATH=$HOME/.cache/split_durations/.test_durations
 
 cache: 
   directories:
@@ -36,10 +39,20 @@ jobs:
 
     - stage: merge_test
       if: branch = main
+    - name: "Test Group 1"
+      script:
+      - pip install --editable .
+      - pytest ---store-durations --durations-path DURATIONS_PATH
+      - pytest --splits 3 --group 1 --cov=ark --pycodestyle
+    - name: "Test Group 2"
       script:
         - pip install --editable .
-        - python -m pytest --cov=ark --pycodestyle
-    
+        - pytest --splits 3 --group 2 --cov=ark --pycodestyle
+    - name: "Test Group 3"
+      script:
+        - pytest --splits 3 --group 3 --cov=ark --pycodestyle
+
+
     - stage: test_pypi_deploy
       script:
         - "travis_wait 120 sleep 7200 &"
