@@ -33,25 +33,22 @@ jobs:
   include:
     - stage: branch_test
       if: NOT (branch = main)
-    - script:
+      script:
         - pip install --editable .
         - python -m pytest --testmon --pycodestyle
 
     - stage: merge_test
       if: branch = main
     - name: "Test Group 1"
-      if: branch = main
     - script:
       - pip install --editable .
       - pytest --store-durations --durations-path DURATIONS_PATH
       - pytest --splits 3 --group 1 --cov=ark --pycodestyle
     - name: "Test Group 2"
-      if: branch = main
     - script:
         - pip install --editable .
         - pytest --splits 3 --group 2 --cov=ark --pycodestyle
     - name: "Test Group 3"
-      if: branch = main
     - script:
         - pytest --splits 3 --group 3 --cov=ark --pycodestyle
 
