@@ -32,7 +32,7 @@ jobs:
       if: NOT (branch = main)
       script:
         - pip install --editable .
-        - python -m pytest --testmon --cov=ark --pycodestyle
+        - python -m pytest --testmon --pycodestyle
 
     - stage: merge_test
       if: branch = main
