@@ -18,12 +18,13 @@ install:
   - travis_retry export PYTHONPATH=$PWD
 env:
   - MPLBACKEND=Agg
+  - TESTMON_DATAFILE= $HOME/.cache/testmon/.testmondata
 
 cache: 
   directories:
     - $HOME/.cache/pip
     - $HOME/.cache/huggingface/datasets/
-    - .testmondata
+    - $HOME/.cache/testmon/
 
 
 jobs:
@@ -41,7 +42,6 @@ jobs:
         - python -m pytest --cov=ark --pycodestyle
     
     - stage: test_pypi_deploy
-      if: tag IS present
       script:
         - "travis_wait 120 sleep 7200 &"
         - python setup.py bdist_wheel
