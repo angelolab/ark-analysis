@@ -10,7 +10,7 @@ from ark.utils import io_utils, load_utils, misc_utils, spatial_analysis_utils
 
 
 def generate_channel_spatial_enrichment_stats(label_dir, marker_thresholds, all_data,
-                                              suffix='_feature_0',
+                                              suffix='_whole_cell',
                                               xr_channel_name='segmentation_label', **kwargs):
     """Wrapper function for batching calls to `calculate_channel_spatial_enrichment` over fovs
 
@@ -227,7 +227,7 @@ def calculate_channel_spatial_enrichment(dist_matrices_dict, marker_thresholds, 
     return values, stats
 
 
-def generate_cluster_spatial_enrichment_stats(label_dir, all_data, suffix='_feature_0',
+def generate_cluster_spatial_enrichment_stats(label_dir, all_data, suffix='_whole_cell',
                                               xr_channel_name='segmentation_label', **kwargs):
     """ Wrapper function for batching calls to `calculate_cluster_spatial_enrichment` over fovs
 

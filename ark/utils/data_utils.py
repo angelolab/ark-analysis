@@ -137,7 +137,7 @@ def label_cells_by_cluster(fov, all_data, label_map, fov_col=settings.FOV_ID,
 
 
 def generate_cell_cluster_mask(fov, base_dir, seg_dir, cell_data_name,
-                               cell_cluster_col='cell_meta_cluster', seg_suffix='_feature_0.tif'):
+                               cell_cluster_col='cell_meta_cluster', seg_suffix='_whole_cell.tif'):
     """For a fov, create a mask labeling each cell with their SOM or meta cluster label
 
     Args:
@@ -204,7 +204,7 @@ def generate_and_save_cell_cluster_masks(fovs: List[str],
                                          seg_dir: Union[pathlib.Path, str],
                                          cell_data_name: Union[pathlib.Path, str],
                                          cell_cluster_col: str = 'cell_meta_cluster',
-                                         seg_suffix: str = '_feature_0.tif',
+                                         seg_suffix: str = '_whole_cell.tif',
                                          sub_dir: str = None,
                                          name_suffix: str = ''):
     """Generates cell cluster masks and saves them for downstream analysis.
@@ -224,7 +224,7 @@ def generate_and_save_cell_cluster_masks(fovs: List[str],
             Whether to assign SOM or meta clusters. Needs to be `'cell_som_cluster'` or
             `'cell_meta_cluster'`. Defaults to `'cell_meta_cluster'`.
         seg_suffix (str, optional):
-            The suffix that the segmentation images use. Defaults to `'_feature_0.tif'`.
+            The suffix that the segmentation images use. Defaults to `'_whole_cell.tif'`.
         sub_dir (str, optional):
             The subdirectory to save the images in. If specified images are saved to
             `"data_dir/sub_dir"`. If `sub_dir = None` the images are saved to `"data_dir"`.
@@ -605,8 +605,8 @@ def stitch_images_by_shape(data_dir, stitched_dir, img_sub_folder=None, channels
 
     # retrieve valid fov names
     if segmentation:
-        fovs = ns.natsorted(io_utils.list_files(data_dir, substrs='_feature_0.tif'))
-        fovs = io_utils.extract_delimited_names(fovs, delimiter='_feature_0.tif')
+        fovs = ns.natsorted(io_utils.list_files(data_dir, substrs='_whole_cell.tif'))
+        fovs = io_utils.extract_delimited_names(fovs, delimiter='_whole_cell.tif')
     elif clustering:
         fovs = ns.natsorted(io_utils.list_files(data_dir, substrs=f'_{clustering}_mask.tif'))
         fovs = io_utils.extract_delimited_names(fovs, delimiter=f'_{clustering}_mask.tif')

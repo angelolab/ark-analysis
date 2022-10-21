@@ -191,7 +191,7 @@ def flowsom_pixel_setup(tb, flowsom_dir, create_seg_dir=True, img_shape=(50, 50)
         img_sub_folder = None
         segmentation_dir = %s
         deepcell_output_dir = %s
-        seg_suffix = '_feature_0.tif'
+        seg_suffix = '_whole_cell.tif'
         MIBItiff = %s
         mibitiff_suffix = '%s'
     """ % (flowsom_dir, tiff_dir, str(seg_dir), str(deepcell_output_dir), is_mibitiff,
@@ -491,7 +491,7 @@ def flowsom_cell_setup(tb, flowsom_dir, pixel_dir, pixel_cluster_col='pixel_meta
         'fovs': fovs,
         'channels': chans,
         'segmentation_dir': os.path.join('deepcell_output'),
-        'seg_suffix': '_feature_0.tif',
+        'seg_suffix': '_whole_cell.tif',
         'pixel_data_dir': os.path.join("pixie", pixel_dir, 'sample_data_dir'),
         'pc_chan_avg_som_cluster_name': os.path.join("pixie", pixel_dir,
                                                      'test_pixel_som_chan_exp.csv'),
@@ -874,14 +874,14 @@ def fov_channel_input_set(tb, fovs=None, nucs_list=None, mems_list=None, is_mibi
 
 
 def generate_sample_feature_tifs(fovs, deepcell_output_dir, img_shape=(50, 50)):
-    """Generate a sample _feature_0 tif file for each fov
+    """Generate a sample _whole_cell tif file for each fov
 
     Done to bypass the bottleneck of create_deepcell_output, for testing purposes we don't care
     about correct segmentation labels.
 
     Args:
         fovs (list):
-            The list of fovs to generate sample _feature_0 tif files for
+            The list of fovs to generate sample _whole_cell tif files for
         deepcell_output_dir (str):
             The path to the output directory
         img_shape (tuple):
@@ -891,9 +891,9 @@ def generate_sample_feature_tifs(fovs, deepcell_output_dir, img_shape=(50, 50)):
     # generate a random image for each fov, set as both whole cell and nuclear
     for fov in fovs:
         rand_img = np.random.randint(0, 16, size=img_shape)
-        io.imsave(os.path.join(deepcell_output_dir, fov + "_feature_0.tif"), rand_img,
+        io.imsave(os.path.join(deepcell_output_dir, fov + "_whole_cell.tif"), rand_img,
                   check_contrast=False)
-        io.imsave(os.path.join(deepcell_output_dir, fov + "_feature_1.tif"), rand_img,
+        io.imsave(os.path.join(deepcell_output_dir, fov + "_nuclear.tif"), rand_img,
                   check_contrast=False)
 
 

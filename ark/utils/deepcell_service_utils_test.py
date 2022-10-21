@@ -16,11 +16,11 @@ from ark.utils.deepcell_service_utils import (_convert_deepcell_seg_masks,
 def mocked_run_deepcell(in_zip_path, output_dir, host, job_type, scale, timeout):
 
     fov_data = np.ones(shape=(10, 10), dtype="float32")
-    io.imsave(os.path.join(output_dir, 'fov1_feature_0.tif'),
+    io.imsave(os.path.join(output_dir, 'fov1_whole_cell.tif'),
               fov_data, plugin="tifffile", check_contrast=False)
-    io.imsave(os.path.join(output_dir, 'fov2_feature_0.tif'),
+    io.imsave(os.path.join(output_dir, 'fov2_whole_cell.tif'),
               fov_data, plugin="tifffile", check_contrast=False)
-    io.imsave(os.path.join(output_dir, 'fov3_feature_0.tif'),
+    io.imsave(os.path.join(output_dir, 'fov3_whole_cell.tif'),
               fov_data, plugin="tifffile", check_contrast=False)
 
     batch_num = int(in_zip_path.split('.')[0].split('_')[-1])
@@ -32,7 +32,7 @@ def mocked_run_deepcell(in_zip_path, output_dir, host, job_type, scale, timeout)
         if batch_num > 1:
             return
         for i in range(1, 4):
-            filename = os.path.join(output_dir, f'fov{i}_feature_0.tif')
+            filename = os.path.join(output_dir, f'fov{i}_whole_cell.tif')
             zipObj.write(filename, os.path.basename(filename))
             os.remove(filename)
 
@@ -75,8 +75,8 @@ def test_create_deepcell_output(mocker: MockerFixture):
             assert os.path.exists(os.path.join(output_dir, 'example_output.zip'))
 
             # DeepCell output .zip file should be extracted
-            assert os.path.exists(os.path.join(output_dir, 'fov1_feature_0.tif'))
-            assert os.path.exists(os.path.join(output_dir, 'fov2_feature_0.tif'))
+            assert os.path.exists(os.path.join(output_dir, 'fov1_whole_cell.tif'))
+            assert os.path.exists(os.path.join(output_dir, 'fov2_whole_cell.tif'))
 
         with tempfile.TemporaryDirectory() as output_dir:
 
@@ -98,9 +98,9 @@ def test_create_deepcell_output(mocker: MockerFixture):
             assert os.path.exists(os.path.join(output_dir, 'example_output.zip'))
 
             # DeepCell output .zip file should be extracted
-            assert os.path.exists(os.path.join(output_dir, 'fov1_feature_0.tif'))
-            assert os.path.exists(os.path.join(output_dir, 'fov2_feature_0.tif'))
-            assert os.path.exists(os.path.join(output_dir, 'fov3_feature_0.tif'))
+            assert os.path.exists(os.path.join(output_dir, 'fov1_whole_cell.tif'))
+            assert os.path.exists(os.path.join(output_dir, 'fov2_whole_cell.tif'))
+            assert os.path.exists(os.path.join(output_dir, 'fov3_whole_cell.tif'))
 
         with tempfile.TemporaryDirectory() as output_dir:
 
@@ -110,9 +110,9 @@ def test_create_deepcell_output(mocker: MockerFixture):
             # make sure DeepCell (.zip) output exists
             assert os.path.exists(os.path.join(output_dir, 'example_output.zip'))
 
-            assert os.path.exists(os.path.join(output_dir, 'fov1_feature_0.tif'))
-            assert os.path.exists(os.path.join(output_dir, 'fov2_feature_0.tif'))
-            assert os.path.exists(os.path.join(output_dir, 'fov3_feature_0.tif'))
+            assert os.path.exists(os.path.join(output_dir, 'fov1_whole_cell.tif'))
+            assert os.path.exists(os.path.join(output_dir, 'fov2_whole_cell.tif'))
+            assert os.path.exists(os.path.join(output_dir, 'fov3_whole_cell.tif'))
 
             pathlib.Path(os.path.join(input_dir, 'fovs.zip')).touch()
 

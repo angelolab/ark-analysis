@@ -21,7 +21,7 @@ from ark.utils import io_utils, misc_utils
 
 
 def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
-                           suffix='_feature_0', host='https://deepcell.org', job_type='mesmer',
+                           suffix='_whole_cell', host='https://deepcell.org', job_type='mesmer',
                            scale=1.0, timeout=3600, zip_size=5, parallel=False):
     """Handles all of the necessary data manipulation for running deepcell tasks.
     Creates .zip files (to be used as input for DeepCell),
@@ -39,7 +39,7 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
             in deepcell_input_dir will be considered as input fovs. Default: None
         suffix (str):
             Suffix for DeepCell output filename. e.g. for fovX, DeepCell output
-            should be <fovX>+suffix.tif. Default: '_feature_0'
+            should be <fovX>+suffix.tif. Default: '_whole_cell'
         host (str):
             Hostname and port for the kiosk-frontend API server
             Default: 'https://deepcell.org'
