@@ -722,7 +722,7 @@ def test_stitch_images_by_shape(segmentation, clustering, subdir, fovs):
         os.makedirs(data_dir)
 
         if segmentation:
-            chans = ['feature_0', 'feature_1']
+            chans = ['nuclear', 'whole_cell']
         elif clustering:
             chans = [clustering + '_mask']
         else:
