@@ -40,16 +40,16 @@ jobs:
     - stage: merge_test
       if: branch = main
     - name: "Test Group 1"
-    - script:
+      script:
       - pip install --editable .
       - pytest --store-durations --durations-path DURATIONS_PATH
       - pytest --splits 3 --group 1 --cov=ark --pycodestyle
     - name: "Test Group 2"
-    - script:
+      script:
         - pip install --editable .
         - pytest --splits 3 --group 2 --cov=ark --pycodestyle
     - name: "Test Group 3"
-    - script:
+      script:
         - pytest --splits 3 --group 3 --cov=ark --pycodestyle
 
 
