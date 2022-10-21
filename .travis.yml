@@ -25,18 +25,20 @@ cache:
     - $HOME/.cache/huggingface/datasets/
     - .testmondata
 
+
 jobs:
   include:
-    - stage: build
-      script: python -m pip install --editable .
-
     - stage: branch_test
-      if: NOT (branch = main) 
-      script: python -m pytest --testmon --cov=ark --pycodestyle
+      if: NOT (branch = main)
+      script:
+        - pip install --editable .
+        - python -m pytest --testmon --cov=ark --pycodestyle
 
     - stage: merge_test
       if: branch = main
-      script: python -m pytest
+      script:
+        - pip install --editable .
+        - python -m pytest --cov=ark --pycodestyle
     
     - stage: test_pypi_deploy
       script:
