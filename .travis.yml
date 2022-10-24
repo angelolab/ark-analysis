@@ -28,6 +28,7 @@ cache:
     - $HOME/.cache/pip
     - $HOME/.cache/huggingface/datasets/
     - $HOME/.cache/testmon/
+    - $HOME/.cache/split_durations/
 
 
 jobs:
@@ -42,12 +43,15 @@ jobs:
       if: branch = main
       script:
       - pip install --editable .
+      - python -m pytest --store-durations --durations-path $DURATIONS_PATH
       - pytest --splits 3 --group 1 --cov=ark --pycodestyle
     -
+      if: branch = main
       script:
         - pip install --editable .
         - pytest --splits 3 --group 2 --cov=ark --pycodestyle
     -
+      if: branch = main
       script:
         - pip install --editable .
         - pytest --splits 3 --group 3 --cov=ark --pycodestyle
