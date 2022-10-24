@@ -43,9 +43,11 @@ jobs:
       script:
       - pip install --editable .
       - pytest --splits 3 --group 1 --cov=ark --pycodestyle
+    -
       script:
         - pip install --editable .
         - pytest --splits 3 --group 2 --cov=ark --pycodestyle
+    -
       script:
         - pip install --editable .
         - pytest --splits 3 --group 3 --cov=ark --pycodestyle
