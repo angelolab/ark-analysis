@@ -19,8 +19,9 @@ install:
 env:
   global:
     - MPLBACKEND=Agg
+    - DURATIONS_PATH=$HOME/.cache/split_durations/.test_durations
   jobs:
-    - TESTMON_DATAFILE=$HOME/.cache/testmon/.testmondata DURATIONS_PATH=$HOME/.cache/split_durations/.test_durations
+    - TESTMON_DATAFILE=$HOME/.cache/testmon/.testmondata
 
 cache: 
   directories:
@@ -39,17 +40,14 @@ jobs:
 
     - stage: merge_test
       if: branch = main
-    - name: "Test Group 1"
       script:
       - pip install --editable .
-      - pytest --store-durations --durations-path DURATIONS_PATH
       - pytest --splits 3 --group 1 --cov=ark --pycodestyle
-    - name: "Test Group 2"
       script:
         - pip install --editable .
         - pytest --splits 3 --group 2 --cov=ark --pycodestyle
-    - name: "Test Group 3"
       script:
+        - pip install --editable .
         - pytest --splits 3 --group 3 --cov=ark --pycodestyle
 
 
