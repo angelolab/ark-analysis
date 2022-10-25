@@ -10,7 +10,7 @@ import ark.settings as settings
 from ark.utils import spatial_analysis_utils, test_utils
 
 
-def test_calc_dist_matrix_new():
+def test_calc_dist_matrix():
     with tempfile.TemporaryDirectory() as base_dir:
         # create sample label_dir and save_path folders
         label_dir = os.path.join(base_dir, 'sample_label_dir')
@@ -52,44 +52,6 @@ def test_calc_dist_matrix_new():
             [np.sqrt(18), 3, 3, 0]
         ])
         assert np.all(np.isclose(fov9_data, actual9_data))
-
-
-def test_calc_dist_matrix():
-    test_mat_data = np.zeros((2, 512, 512, 1), dtype="int")
-    # Create pythagorean triple to test euclidian distance
-    test_mat_data[0, 0, 20] = 1
-    test_mat_data[0, 4, 17] = 2
-    test_mat_data[0, 0, 17] = 3
-    test_mat_data[1, 5, 25] = 1
-    test_mat_data[1, 9, 22] = 2
-    test_mat_data[1, 5, 22] = 3
-
-    coords = [["1", "2"], range(test_mat_data[0].data.shape[0]),
-              range(test_mat_data[0].data.shape[1]), ["segmentation_label"]]
-    dims = ["fovs", "rows", "cols", "channels"]
-    test_mat = xr.DataArray(test_mat_data, coords=coords, dims=dims)
-
-    distance_mat = spatial_analysis_utils.calc_dist_matrix(test_mat)
-
-    real_mat = np.array([[0, 5, 3], [5, 0, 4], [3, 4, 0]])
-
-    assert np.array_equal(distance_mat["1"].loc[range(1, 4), range(1, 4)], real_mat)
-    assert np.array_equal(distance_mat["2"].loc[range(1, 4), range(1, 4)], real_mat)
-
-    # file save testing
-    with pytest.raises(ValueError):
-        # trying to save to a non-existent directory
-        distance_mat = spatial_analysis_utils.calc_dist_matrix(test_mat, save_path="bad_path")
-
-    with tempfile.TemporaryDirectory() as temp_dir:
-        # validate_paths requires data as a prefix, so add one
-        data_path = os.path.join(temp_dir, "data_dir")
-        os.mkdir(data_path)
-
-        # assert we actually save and save to the correct path if specified
-        spatial_analysis_utils.calc_dist_matrix(test_mat, save_path=data_path)
-
-        assert os.path.exists(os.path.join(data_path, "dist_matrices.npz"))
 
 
 def test_append_distance_features_to_dataset():

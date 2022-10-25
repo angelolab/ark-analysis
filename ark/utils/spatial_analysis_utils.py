@@ -17,7 +17,7 @@ from ark.utils import io_utils, load_utils, misc_utils
 from ark.utils._bootstrapping import compute_close_num_rand
 
 
-def calc_dist_matrix_new(label_dir, save_path, prefix='_feature_0'):
+def calc_dist_matrix(label_dir, save_path, prefix='_feature_0'):
     """Generate matrix of distances between center of pairs of cells.
 
     Saves each one individually to `save_path`.
@@ -65,54 +65,6 @@ def calc_dist_matrix_new(label_dir, save_path, prefix='_feature_0'):
             os.path.join(save_path, fov_name + '_dist_mat.xr'),
             format='NETCDF3_64BIT'
         )
-
-
-def calc_dist_matrix(label_maps, save_path=None):
-    """Generate matrix of distances between center of pairs of cells
-
-    Args:
-        label_maps (xarray.DataArray):
-            array of segmentation masks indexed by (fov, cell_id, cell_id, segmentation_label)
-        save_path (str):
-            path to save file. If None, then will directly return
-    Returns:
-        dict:
-            Contains a cells x cells matrix with the euclidian
-            distance between centers of corresponding cells for every fov,
-            note that each distance matrix is of type xarray
-    """
-
-    # Check that file path exists, if given
-    if save_path is not None:
-        io_utils.validate_paths(save_path, data_prefix=False)
-
-    dist_mats_list = []
-
-    # Extract list of fovs
-    fovs = label_maps.coords['fovs'].values
-
-    for fov in fovs:
-        # extract region properties of label map, then just get centroids
-        props = skimage.measure.regionprops(label_maps.loc[fov, :, :, 'segmentation_label'].values)
-        centroids = [prop.centroid for prop in props]
-        centroid_labels = [prop.label for prop in props]
-
-        # generate the distance matrix, then assign centroid_labels as coords
-        dist_matrix = cdist(centroids, centroids).astype(np.float32)
-        dist_mat_xarr = xr.DataArray(dist_matrix, coords=[centroid_labels, centroid_labels])
-
-        # append final result to dist_mats_list
-        dist_mats_list.append(dist_mat_xarr)
-
-    # Create dictionary to store distance matrices per fov
-    dist_matrices = dict(zip(fovs, dist_mats_list))
-
-    # If save_path is None, function will directly return the dictionary
-    # else it will save it as a file with location specified by save_path
-    if save_path is None:
-        return dist_matrices
-    else:
-        np.savez(os.path.join(save_path, "dist_matrices.npz"), **dist_matrices)
 
 
 def append_distance_features_to_dataset(dist_mats, cell_table, distance_columns):
