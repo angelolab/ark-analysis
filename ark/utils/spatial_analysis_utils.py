@@ -61,7 +61,10 @@ def calc_dist_matrix_new(label_dir, save_path, prefix='_feature_0'):
         dist_mat_xarr = xr.DataArray(dist_matrix, coords=[centroid_labels, centroid_labels])
 
         # save the distance matrix to save_path
-        dist_mat_xarr.to_netcdf(os.path.join(save_path, fov_name + '_dist_mat.xr'))
+        dist_mat_xarr.to_netcdf(
+            os.path.join(save_path, fov_name + '_dist_mat.xr'),
+            format='NETCDF3_64BIT'
+        )
 
 
 def calc_dist_matrix(label_maps, save_path=None):
