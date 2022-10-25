@@ -430,7 +430,7 @@ def calculate_cluster_spatial_enrichment(fov, all_data, dist_matrix, included_fo
     return values, stats
 
 
-def create_neighborhood_matrix(all_data, dist_matrices_dict, included_fovs=None, distlim=50,
+def create_neighborhood_matrix(all_data, dist_mat_dir, included_fovs=None, distlim=50,
                                self_neighbor=False, fov_col=settings.FOV_ID,
                                cell_label_col=settings.CELL_LABEL,
                                cluster_name_col=settings.CELL_TYPE):
@@ -439,8 +439,8 @@ def create_neighborhood_matrix(all_data, dist_matrices_dict, included_fovs=None,
     Args:
         all_data (pandas.DataFrame):
             data for all fovs. Includes the columns for fov, label, and cell phenotype.
-        dist_matrices_dict (dict):
-            contains a cells x cells centroid-distance matrix for every fov.  Keys are fov names
+        dist_mat_dir (str):
+            directory containing the distance matrices
         included_fovs (list):
             fovs to include in analysis. If argument is none, default is all fovs used.
         distlim (int):
@@ -498,7 +498,7 @@ def create_neighborhood_matrix(all_data, dist_matrices_dict, included_fovs=None,
         fov_cluster_names = current_fov_neighborhood_data[cluster_name_col].drop_duplicates()
 
         # Retrieve fov-specific distance matrix from distance matrix dictionary
-        dist_matrix = dist_matrices_dict[fov]
+        dist_matrix = xr.load_dataarray(os.path.join(dist_mat_dir, fov + '_dist_mat.xr'))
 
         # Get cell_neighbor_counts and cell_neighbor_freqs for fovs
         counts, freqs = spatial_analysis_utils.compute_neighbor_counts(
