@@ -27,7 +27,7 @@ def test_calc_dist_matrix():
 
 
         # generate the distance matrices
-        spatial_analysis_utils.calc_dist_matrix_new(label_dir, save_path)
+        spatial_analysis_utils.calc_dist_matrix(label_dir, save_path)
 
         # assert the fov8 and fov9 .xr files exist
         assert os.path.exists(os.path.join(save_path, 'fov8_dist_mat.xr'))
@@ -63,10 +63,9 @@ def test_append_distance_features_to_dataset():
 
     num_labels = max(all_data[settings.CELL_LABEL].unique())
     num_cell_types = max(list(all_data[settings.CELL_TYPE].astype("category").cat.codes)) + 1
-    dist_mats = {'fov8': dist_mat}
 
-    all_data, dist_mats = spatial_analysis_utils.append_distance_features_to_dataset(
-        dist_mats, all_data, ['dist_feature_0']
+    all_data, dist_mat = spatial_analysis_utils.append_distance_features_to_dataset(
+        'fov8', dist_mat, all_data, ['dist_feature_0']
     )
 
     appended_cell_row = all_data.iloc[-1, :][[
@@ -82,8 +81,8 @@ def test_append_distance_features_to_dataset():
         settings.CELL_TYPE_NUM: num_cell_types + 1,
     }), check_names=False)
 
-    dist_mat_new_row = dist_mats['fov8'].values[-1, :]
-    dist_mat_new_col = dist_mats['fov8'].values[:, -1]
+    dist_mat_new_row = dist_mat.values[-1, :]
+    dist_mat_new_col = dist_mat.values[:, -1]
 
     expected = feat_dist * np.ones(all_data.shape[0])
     expected[-1] = np.nan

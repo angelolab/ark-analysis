@@ -42,7 +42,7 @@ def generate_channel_spatial_enrichment_stats(label_dir, dist_mat_dir, marker_th
     """
 
     # parse files in label_dir
-    all_label_names = io_utils.list_files(label_dir, substrs=['.tif'])
+    all_label_names = io_utils.list_files(label_dir, substrs=[suffix + '.tif'])
 
     included_fovs = kwargs.get('included_fovs', None)
     if included_fovs:
@@ -50,22 +50,30 @@ def generate_channel_spatial_enrichment_stats(label_dir, dist_mat_dir, marker_th
         all_label_names = \
             [all_label_names[i] for i, fov in enumerate(label_fovs) if fov in included_fovs]
 
+    # extra sanity check to ensure all_label_names fovs actually contained in all_dist_mat_fovs
+    all_label_fovs = [os.path.splitext(f)[0].replace(suffix, '') for f in all_label_names]
+    all_dist_mat_names = io_utils.list_files(dist_mat_dir, substrs=['.xr'])
+    all_dist_mat_fovs = [f.replace('_dist_mat.xr', '') for f in all_dist_mat_names]
+
+    misc_utils.verify_in_list(
+        all_label_fovs=all_label_fovs,
+        all_dist_mat_fovs=all_dist_mat_fovs
+    )
+
+    # pop the included_fovs key if specified, this won't be needed with a per-FOV iteration
+    kwargs.pop('included_fovs', None)
+
     # create containers for batched return values
     values = []
     stats_datasets = []
 
-    for label_name in tqdm(all_label_names, desc="Batch Completion", unit="batch"):
-        label_maps = load_utils.load_imgs_from_dir(label_dir, files=[label_name],
+    for fov_name, label_file in tqdm(
+        zip(all_label_fovs, all_label_names), desc="Batch Completion", unit="batch"
+    ):
+        label_maps = load_utils.load_imgs_from_dir(label_dir, files=[label_file],
                                                    xr_channel_names=[xr_channel_name],
                                                    trim_suffix=suffix)
-
-        fov_name = label_name.replace(suffix + '.tiff', '')
         dist_mat = xr.load_dataarray(os.path.join(dist_mat_dir, fov_name + '_dist_mat.xr'))
-
-        # filter 'included_fovs'
-        if included_fovs:
-            filtered_includes = set(dist_mats.keys()).intersection(included_fovs)
-            kwargs['included_fovs'] = list(filtered_includes)
 
         batch_vals, batch_stats = \
             calculate_channel_spatial_enrichment(
@@ -85,7 +93,7 @@ def generate_channel_spatial_enrichment_stats(label_dir, dist_mat_dir, marker_th
 
 
 def calculate_channel_spatial_enrichment(fov, dist_matrix, marker_thresholds, all_data,
-                                         excluded_channels=None, included_fovs=None,
+                                         excluded_channels=None,
                                          dist_lim=100, bootstrap_num=100,
                                          fov_col=settings.FOV_ID,
                                          cell_label_col=settings.CELL_LABEL, context_col=None):
@@ -104,8 +112,6 @@ def calculate_channel_spatial_enrichment(fov, dist_matrix, marker_thresholds, al
             data including fovs, cell labels, and cell expression matrix for all markers
         excluded_channels (list):
             channels to be excluded from the analysis.  Default is None.
-        included_fovs (list):
-            patient labels to include in analysis. If argument is none, default is all labels used.
         dist_lim (int):
             cell proximity threshold. Default is 100.
         bootstrap_num (int):
@@ -253,7 +259,7 @@ def generate_cluster_spatial_enrichment_stats(label_dir, dist_mat_dir, all_data,
     """
 
     # parse files in label_dir
-    all_label_names = io_utils.list_files(label_dir, substrs=['.tif'])
+    all_label_names = io_utils.list_files(label_dir, substrs=[suffix + '.tif'])
 
     included_fovs = kwargs.get('included_fovs', None)
     if included_fovs:
@@ -261,22 +267,30 @@ def generate_cluster_spatial_enrichment_stats(label_dir, dist_mat_dir, all_data,
         all_label_names = \
             [all_label_names[i] for i, fov in enumerate(label_fovs) if fov in included_fovs]
 
+    # extra sanity check to ensure all_label_names fovs actually contained in all_dist_mat_fovs
+    all_label_fovs = [os.path.splitext(f)[0].replace(suffix, '') for f in all_label_names]
+    all_dist_mat_names = io_utils.list_files(dist_mat_dir, substrs=['.xr'])
+    all_dist_mat_fovs = [f.replace('_dist_mat.xr', '') for f in all_dist_mat_names]
+
+    misc_utils.verify_in_list(
+        all_label_fovs=all_label_fovs,
+        all_dist_mat_fovs=all_dist_mat_fovs
+    )
+
+    # pop the included_fovs key if specified, this won't be needed with a per-FOV iteration
+    kwargs.pop('included_fovs', None)
+
     # create containers for batched return values
     values = []
     stats_datasets = []
 
-    for label_name in tqdm(all_label_names, desc="Batch Completion", unit="batch"):
-        label_maps = load_utils.load_imgs_from_dir(label_dir, files=[label_name],
+    for fov_name, label_file in tqdm(
+        zip(all_label_fovs, all_label_names), desc="Batch Completion", unit="batch"
+    ):
+        label_maps = load_utils.load_imgs_from_dir(label_dir, files=[label_file],
                                                    xr_channel_names=[xr_channel_name],
                                                    trim_suffix=suffix)
-
-        fov_name = label_name.replace(suffix + '.tiff', '')
         dist_mat = xr.load_dataarray(os.path.join(dist_mat_dir, fov_name + '_dist_mat.xr'))
-
-        # filter 'included_fovs'
-        if included_fovs:
-            filtered_includes = set(dist_mats.keys()).intersection(included_fovs)
-            kwargs['included_fovs'] = list(filtered_includes)
 
         batch_vals, batch_stats = \
             calculate_cluster_spatial_enrichment(fov_name, all_data, dist_mat, **kwargs)
@@ -345,8 +359,8 @@ def calculate_cluster_spatial_enrichment(fov, all_data, dist_matrix, included_fo
 
     all_data[cluster_id_col] = list(all_data[cluster_name_col].astype("category").cat.codes)
     if distance_cols:
-        all_data, dist_matrices_dict = spatial_analysis_utils.append_distance_features_to_dataset(
-            dist_matrices_dict, all_data, distance_cols
+        all_data, dist_matrix = spatial_analysis_utils.append_distance_features_to_dataset(
+            fov, dist_matrix, all_data, distance_cols
         )
 
     # Extract the names of the cell phenotypes
