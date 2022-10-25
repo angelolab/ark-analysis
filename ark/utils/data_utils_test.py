@@ -686,7 +686,7 @@ def test_stitch_images_by_shape(segmentation, clustering, subdir, fovs):
             os.makedirs(data_dir)
 
             # invalid directory is provided
-            with pytest.raises(ValueError):
+            with pytest.raises(FileNotFoundError):
                 data_utils.stitch_images_by_shape('not_a_dir', stitched_dir)
 
             # no fov dirs should raise an error
