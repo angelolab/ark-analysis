@@ -40,8 +40,7 @@ def save_fov_mask(fov, data_dir, mask_data, sub_dir=None, name_suffix=''):
     """
 
     # data_dir validation
-    if not os.path.exists(data_dir):
-        raise FileNotFoundError("data_dir %s does not exist" % data_dir)
+    io_utils.validate_paths(data_dir)
 
     # ensure None is handled correctly in file path generation
     if sub_dir is None:
@@ -161,12 +160,8 @@ def generate_cell_cluster_mask(fov, base_dir, seg_dir, cell_data_name,
     """
 
     # path checking
-    if not os.path.exists(seg_dir):
-        raise FileNotFoundError("seg_dir %s does not exist" % seg_dir)
-
-    if not os.path.exists(os.path.join(base_dir, cell_data_name)):
-        raise FileNotFoundError(
-            "Cell data file %s does not exist in base_dir %s" % (cell_data_name, base_dir))
+    cell_data_path = os.path.join(os.path.join(base_dir, cell_data_name))
+    io_utils.validate_paths([seg_dir, cell_data_path])
 
     # verify the cluster_col provided is valid
     verify_in_list(
@@ -584,7 +579,7 @@ def stitch_images_by_shape(data_dir, stitched_dir, img_sub_folder=None, channels
         stitched_dir (str):
             path to directory to save stitched images to
         img_sub_folder (str):
-            optional name of image sub-folder within each fov
+            optional name of image sub-foldexr within each fov
         channels (list):
             optional list of imgs to load, otherwise loads all imgs
         segmentation (bool):

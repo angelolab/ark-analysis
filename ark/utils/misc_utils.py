@@ -7,6 +7,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import xarray as xr
 
+from ark.utils import io_utils
+
 
 def combine_xarrays(xarrays, axis):
     """Combines a number of xarrays together
@@ -107,13 +109,8 @@ def save_figure(save_dir, save_file, dpi=None):
             the resolution of the figure
     """
 
-    # verify save_dir exists
-    if not os.path.exists(save_dir):
-        raise FileNotFoundError("save_dir %s does not exist" % save_dir)
-
-    # verify that if save_dir specified, save_file must also be specified
-    if save_file is None:
-        raise FileNotFoundError("save_dir specified but no save_file specified")
+    # path validation
+    io_utils.validate_paths([save_dir, save_file])
 
     plt.savefig(os.path.join(save_dir, save_file), dpi=dpi)
 
