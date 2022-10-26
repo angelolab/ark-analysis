@@ -164,3 +164,6 @@ def _range_dtype_map(dtype):
         return 'd'
     else:
         return 'I'
+
+def add_vec(x: np.ndarray, y: np.ndarray) -> np.ndarray:
+    return x + y
