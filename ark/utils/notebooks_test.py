@@ -118,6 +118,7 @@ def nb4_context(templates_dir, base_dir_generator) -> Iterator[ContextManager]:
         yield nb_context_manager, base_dir_generator / "nb4"
 
 
+@pytest.fixture(scope="class")
 def nbfib_seg_context(templates_dir, base_dir_generator) -> Iterator[ContextManager]:
     """
     Creates a testbook context manager for the fiber segmentation notebook.
