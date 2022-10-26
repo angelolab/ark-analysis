@@ -528,6 +528,11 @@ class Test_4_Post_Clustering:
 
 @pytest.mark.order(4)
 class Test_Fiber_Segmentation():
+    """
+    Tests Example Fiber Segmentation for completion.
+    NOTE: When modifying the tests, make sure the test are in the
+    same order as the tagged cells in the notebook.
+    """
     @pytest.fixture(autouse=True, scope="function")
     def _setup(self, nbfib_seg_context):
         """
