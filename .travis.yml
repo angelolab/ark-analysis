@@ -35,13 +35,13 @@ jobs:
       if: NOT (branch = main)
       script:
         - pip install --editable .
-        - python -m pytest --testmon --pycodestyle
+        - python -m pytest --testmon --pycodestyle ark/
 
     - stage: pull_request
       if: branch = main
       script:
       - pip install --editable .
-      - python -m pytest --pycodestyle --cov=ark ark/
+      - python -m pytest -p no:testmon --pycodestyle --cov=ark ark/
 
     - stage: test_pypi_deploy
       script:
