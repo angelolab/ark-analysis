@@ -19,7 +19,6 @@ install:
 env:
   global:
     - MPLBACKEND=Agg
-    - DURATIONS_PATH=$HOME/.cache/split_durations/.test_durations
   jobs:
     - TESTMON_DATAFILE=$HOME/.cache/testmon/.testmondata
 
@@ -28,7 +27,6 @@ cache:
     - $HOME/.cache/pip
     - $HOME/.cache/huggingface/datasets/
     - $HOME/.cache/testmon/
-    - $HOME/.cache/split_durations/
 
 
 jobs:
@@ -39,23 +37,11 @@ jobs:
         - pip install --editable .
         - python -m pytest --testmon --pycodestyle
 
-    - stage: merge_test
+    - stage: pull_request
       if: branch = main
       script:
       - pip install --editable .
-      - python -m pytest --store-durations --durations-path $DURATIONS_PATH
-      - pytest --splits 3 --group 1 --cov=ark --pycodestyle
-    -
-      if: branch = main
-      script:
-        - pip install --editable .
-        - pytest --splits 3 --group 2 --cov=ark --pycodestyle
-    -
-      if: branch = main
-      script:
-        - pip install --editable .
-        - pytest --splits 3 --group 3 --cov=ark --pycodestyle
-
+      - python -m pytest --pycodestyle --cov=ark ark/
 
     - stage: test_pypi_deploy
       script:
