@@ -585,8 +585,8 @@ def generate_cluster_matrix_results(all_data, neighbor_mat, cluster_num, exclude
 
     # check if all excluded column names found in all_data
     if excluded_channels is not None:
-         misc_utils.verify_in_list(columns_to_exclude=excluded_channels,
-                                   column_names=all_data.columns)
+        misc_utils.verify_in_list(columns_to_exclude=excluded_channels,
+                                  column_names=all_data.columns)
 
     # make sure number of clusters specified is valid
     if cluster_num < 2:
@@ -627,6 +627,7 @@ def generate_cluster_matrix_results(all_data, neighbor_mat, cluster_num, exclude
 
     all_data_markers_clusters = \
         all_data_clusters.iloc[:, list(range(channel_start, channel_end)) + [cluster_label_colnum]]
+
     # drop excluded channels
     if excluded_channels is not None:
         all_data_markers_clusters = all_data_markers_clusters.drop(excluded_channels, axis=1)
