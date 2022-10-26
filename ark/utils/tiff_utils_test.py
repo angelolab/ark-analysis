@@ -63,7 +63,3 @@ def test_write_mibitiff():
         load_data, chan_tups = tiff_utils.read_mibitiff(filepaths[fovs[0]])
 
         assert np.all(true_data[0, :, :, :].values == load_data)
-
-
-def test_add_cache_test():
-    assert tiff_utils._add_cache_test(1, 2) == 3
