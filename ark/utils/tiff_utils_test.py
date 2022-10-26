@@ -68,5 +68,6 @@ def test_write_mibitiff():
 def test_add_vec():
     a = np.array([1, 2, 3])
     b = np.array([4, 5, 6])
-    result = np.array([5, 7, 9])
-    assert tiff_utils.add_vec(a, b) == result
+    result = a + b
+    true = np.array([5, 7, 9])
+    np.testing.assert_array_equal(result, true)
