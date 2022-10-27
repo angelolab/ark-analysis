@@ -272,17 +272,8 @@ def generate_pixel_cluster_mask(fov, base_dir, tiff_dir, chan_file_path,
     """
 
     # path checking
-    if not os.path.exists(tiff_dir):
-        raise FileNotFoundError("tiff_dir %s does not exist")
-
-    if not os.path.exists(os.path.join(tiff_dir, chan_file_path)):
-        raise FileNotFoundError("chan_file_path %s does not exist in tiff_dir %s"
-                                % (chan_file_path, tiff_dir))
-
-    if not os.path.exists(os.path.join(base_dir, pixel_data_dir)):
-        raise FileNotFoundError(
-            "Pixel data dir %s does not exist in base_dir %s" % (pixel_data_dir, base_dir)
-        )
+    io_utils.validate_paths([tiff_dir, os.path.join(tiff_dir, chan_file_path),
+                             os.path.join(base_dir, pixel_data_dir)])
 
     # verify the pixel_cluster_col provided is valid
     verify_in_list(
