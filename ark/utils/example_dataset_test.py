@@ -1,42 +1,18 @@
 import pathlib
 from typing import Callable, Iterator, Generator
-import os
 import pytest
 from ark.utils.example_dataset import ExampleDataset, get_example_dataset
 from ark.utils import test_utils
 
 
-# Sets the example dataset path once: Will not cause duplicate downloads, loads from cache.
-@pytest.fixture(scope="session")
-def cache_path() -> Iterator[pathlib.Path]:
-    """
-    A Fixture which gets the path where the Dataset is saved. If on TRAVIS-CI the
-    dataset is cached in `$HOME/./cache/huggingface/datasets`.
-    Locally, HuggingFace will use the default location `~/.cache/huggingface/datasets`.
-
-    Yields:
-        Iterator[pathlib.Path]: The iterable path containing the location of the dataset.
-    """
-    # If the tests are on TRAVIS CI, use Travis' default cache directory
-    if os.environ.get("TRAVIS", 0):
-        cache_dir = pathlib.Path(os.environ.get("HOME", 0)) / ".cache/huggingface/datasets"
-
-    # If the tests are on a Local Machine, use HuggingFace's default cache directory.
-    else:
-        cache_dir = None
-    yield cache_dir
-
-
 @pytest.fixture(scope="session", params=["segment_image_data", "cluster_pixels",
                                          "cluster_cells", "post_clustering"])
-def dataset_download(request, cache_path) -> Iterator[ExampleDataset]:
+def dataset_download(request) -> Iterator[ExampleDataset]:
     """
     A Fixture which instantiates and downloads the dataset with respect to each
     notebook.
 
     Args:
-        setup_temp_path_factory (pytest.Fixture): Factory for temporary directories under the
-            common base temp directory.
         request (pytest.FixtureRequest): The parameter, in this case it is the notebook to
             download the dataset for.
 
@@ -46,7 +22,7 @@ def dataset_download(request, cache_path) -> Iterator[ExampleDataset]:
     # Set up ExampleDataset class
     example_dataset: ExampleDataset = ExampleDataset(
         dataset=request.param,
-        cache_dir=cache_path,
+        cache_dir=None,
         revision="main"
     )
     # Download example data for a particular notebook
