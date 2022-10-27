@@ -3,6 +3,7 @@ from testbook import testbook
 from typing import ContextManager, Iterator
 import pathlib
 from ark.utils import notebooks_test_utils
+from pytest_cases import fixture, parametrize
 
 
 # Sets a shared notebook testing temporary directory. Saves all notebook related files in a
@@ -133,8 +134,8 @@ def nbfib_seg_context(templates_dir, base_dir_generator) -> Iterator[ContextMana
         Iterator[ContextManager]: The testbook context manager which will get cleaned up
             afterwords.
     """
-    POST_CLUSTERING: pathlib.Path = templates_dir / "example_fiber_segmentation.ipynb"
-    with testbook(POST_CLUSTERING, timeout=6000, execute=False) as nb_context_manager:
+    EXAMPLE_FIBER_SEGMENTATION: pathlib.Path = templates_dir / "example_fiber_segmentation.ipynb"
+    with testbook(EXAMPLE_FIBER_SEGMENTATION, timeout=6000, execute=False) as nb_context_manager:
         yield nb_context_manager, base_dir_generator / "efs"
 
 

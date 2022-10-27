@@ -184,9 +184,6 @@ def create_cell_som_files(base_dir,
 
     cell_table.to_csv(os.path.join(base_dir, cell_table_path), index=False)
 
-    # os.makedirs(os.path.join(base_dir, "pixie", '%s_cell_output_dir' % cell_prefix),
-    #             exist_ok=True)
-
     feather.write_dataframe(
         cell_consensus_data,
         os.path.join(base_dir, cell_data),
