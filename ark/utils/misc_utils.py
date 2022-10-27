@@ -110,7 +110,11 @@ def save_figure(save_dir, save_file, dpi=None):
     """
 
     # path validation
-    io_utils.validate_paths([save_dir, save_file])
+    io_utils.validate_paths(save_dir)
+
+    # verify that if save_dir specified, save_file must also be specified
+    if save_file is None:
+        raise FileNotFoundError("save_dir specified but no save_file specified")
 
     plt.savefig(os.path.join(save_dir, save_file), dpi=dpi)
 
