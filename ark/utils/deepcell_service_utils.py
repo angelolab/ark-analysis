@@ -141,12 +141,18 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
 
         with ZipFile(zip_files[-1], "r") as zipObj:
             for name in zipObj.namelist():
+                # generate the path to save the segmentation mask
+                # append extra f to support standardized .tiff file format
                 mask_path = os.path.join(deepcell_output_dir, name)
+                mask_path += 'f'
+
+                # read the file from the .zip file and save as segmentation mask
                 byte_repr = zipObj.read(name)
                 ranked_segmentation_mask = _convert_deepcell_seg_masks(byte_repr)
                 io.imsave(mask_path, ranked_segmentation_mask, plugin="tifffile",
                           check_contrast=False)
 
+            # verify that all the files were extracted
             for fov in fov_group:
                 if fov + suffix + '.tif' not in zipObj.namelist():
                     warnings.warn(f'Deep Cell output file was not found for {fov}.')

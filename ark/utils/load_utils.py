@@ -131,7 +131,7 @@ def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, channels=None,
     if channels is None:
         channels = iou.list_files(
             dir_name=os.path.join(data_dir, fovs[0], img_sub_folder),
-            substrs=['.tif', '.jpg', '.png']
+            substrs=['.tif', '.tiff', '.jpg', '.png']
         )
 
         # if taking all channels from directory, sort them alphabetically
@@ -209,8 +209,8 @@ def load_imgs_from_dir(data_dir, files=None, match_substring=None, trim_suffix=N
         data_dir (str):
             directory containing images
         files (list):
-            list of files (e.g. ['fov1.tif'. 'fov2.tif'] to load.
-            If None, all (.tif, .jpg, .png) files in data_dir are loaded.
+            list of files (e.g. ['fov1.tiff'. 'fov2.tiff'] to load.
+            If None, all (.tif, .tiff, .jpg, .png) files in data_dir are loaded.
         match_substring (str):
             a filename substring that all loaded images must contain. Ignored if files argument is
             not None.  If None, no matching is performed.
@@ -246,7 +246,7 @@ def load_imgs_from_dir(data_dir, files=None, match_substring=None, trim_suffix=N
     iou.validate_paths(data_dir, data_prefix=False)
 
     if files is None:
-        imgs = iou.list_files(data_dir, substrs=['.tif', '.jpg', '.png'])
+        imgs = iou.list_files(data_dir, substrs=['.tif', '.tiff', '.jpg', '.png'])
         if match_substring is not None:
             filenames = iou.remove_file_extensions(imgs)
             imgs = [imgs[i] for i, name in enumerate(filenames) if match_substring in name]

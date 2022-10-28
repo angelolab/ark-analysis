@@ -525,9 +525,9 @@ def test_generate_deepcell_input():
             nucs = ['nuc2']
             mems = ['mem2']
 
-            fov1path = os.path.join(temp_dir, 'fov1.tif')
-            fov2path = os.path.join(temp_dir, 'fov2.tif')
-            fov3path = os.path.join(temp_dir, 'fov3.tif')
+            fov1path = os.path.join(temp_dir, 'fov1.tiff')
+            fov2path = os.path.join(temp_dir, 'fov2.tiff')
+            fov3path = os.path.join(temp_dir, 'fov3.tiff')
 
             data_utils.generate_deepcell_input(
                 data_dir=temp_dir, tiff_dir=tiff_dir, nuc_channels=nucs, mem_channels=mems,
