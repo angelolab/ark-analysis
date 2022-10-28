@@ -43,7 +43,7 @@ def dataset_download(setup_temp_path_factory, request) -> Iterator[ExampleDatase
     example_dataset: ExampleDataset = ExampleDataset(
         dataset=request.param,
         cache_dir=setup_temp_path_factory,
-        revision="f3b76074a5f9dec69e8ebc6f957c36da4dd7008a"
+        revision="7326f44493580e80234a017bb93cffeb3df5023b"
     )
     # Download example data for a particular notebook
     example_dataset.download_example_dataset()
