@@ -113,11 +113,7 @@ def plot_pixel_cell_cluster_overlay(img_xr, fovs, cluster_id_to_name_path, metac
     verify_in_list(fov_names=fovs, unique_fovs=img_xr.fovs.values)
 
     # verify cluster_id_to_name_path exists
-    if not os.path.exists(cluster_id_to_name_path):
-        raise FileNotFoundError(
-            'Metacluster id to renamed metacluster mapping %s does not exist' %
-            cluster_id_to_name_path
-        )
+    io_utils.validate_paths(cluster_id_to_name_path)
 
     # read the cluster to name mapping
     cluster_id_to_name = pd.read_csv(cluster_id_to_name_path)

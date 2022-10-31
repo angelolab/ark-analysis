@@ -2,7 +2,7 @@ import os
 
 import pandas as pd
 
-from ark.utils import misc_utils
+from ark.utils import misc_utils, io_utils
 
 from .metaclusterdata import MetaClusterData
 
@@ -24,8 +24,8 @@ def metaclusterdata_from_files(cluster_path, cluster_type='pixel', prefix_trim=N
     """
 
     # assert the path to the data is valid if a string
-    if isinstance(cluster_path, str) and not os.path.exists(cluster_path):
-        raise FileNotFoundError('Path to clustering data %s does not exist' % cluster_path)
+    if isinstance(cluster_path, str):
+        io_utils.validate_paths(cluster_path)
 
     # assert the cluster type provided is valid
     misc_utils.verify_in_list(
