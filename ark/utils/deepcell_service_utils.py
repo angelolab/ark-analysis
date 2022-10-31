@@ -109,11 +109,8 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
         def zip_write(zip_path):
             with ZipFile(zip_path, 'w', compression=ZIP_DEFLATED) as zipObj:
                 for fov in fov_group:
-                    # file has .tif extension
-                    basename = fov + '.tif'
-                    if basename not in input_files:
-                        basename = basename + 'f'
-
+                    # file has .tiff extension
+                    basename = fov + '.tiff'
                     filename = os.path.join(deepcell_input_dir, basename)
                     zipObj.write(filename, basename)
 
@@ -144,9 +141,8 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
                 # generate the path to save the segmentation mask
                 mask_path = os.path.join(deepcell_output_dir, name)
 
-                # append an extra f at the end if the extension is .tif
-                if os.path.splitext(mask_path)[-1] == '.tif':
-                    mask_path += 'f'
+                # make sure to append an extra f at the end to account for .tiff standard
+                mask_path += 'f'
 
                 # read the file from the .zip file and save as segmentation mask
                 byte_repr = zipObj.read(name)
