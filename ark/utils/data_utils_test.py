@@ -136,7 +136,7 @@ def test_generate_cell_cluster_mask():
 
         # generate a sample segmentation mask
         cell_mask = np.random.randint(low=0, high=5, size=(40, 40), dtype="int16")
-        io.imsave(os.path.join(temp_dir, '%s_feature_0.tif' % fov), cell_mask,
+        io.imsave(os.path.join(temp_dir, '%s_feature_0.tiff' % fov), cell_mask,
                   check_contrast=False)
 
         # bad consensus path passed

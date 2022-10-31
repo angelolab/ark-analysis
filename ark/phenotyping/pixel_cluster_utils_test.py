@@ -520,7 +520,7 @@ def test_filter_with_nuclear_mask(sub_dir, exclude, capsys):
             nuclear_coords[fov] = (nuclear_x, nuclear_y)
 
             # save the nuclear segmetation
-            file_name = fov + "_feature_1.tif"
+            file_name = fov + "_feature_1.tiff"
             io.imsave(os.path.join(seg_dir, file_name), rand_img,
                       check_contrast=False)
 
@@ -902,7 +902,7 @@ def test_create_pixel_matrix_base(fovs, chans, sub_dir, seg_dir_include,
             # create sample segmentation data
             for fov in fovs:
                 rand_img = np.random.randint(0, 16, size=(10, 10))
-                file_name = fov + "_feature_0.tif"
+                file_name = fov + "_feature_0.tiff"
                 io.imsave(os.path.join(seg_dir, file_name), rand_img,
                           check_contrast=False)
         # otherwise, set seg_dir to None
