@@ -570,7 +570,7 @@ def stitch_images_by_shape(data_dir, stitched_dir, img_sub_folder=None, channels
         stitched_dir (str):
             path to directory to save stitched images to
         img_sub_folder (str):
-            optional name of image sub-foldexr within each fov
+            optional name of image sub-folder within each fov
         channels (list):
             optional list of imgs to load, otherwise loads all imgs
         segmentation (bool):
