@@ -273,13 +273,13 @@ def create_cell_remap_files(base_dir,  cell_meta_cluster_remap):
 
 
 def generate_sample_feature_tifs(fovs, deepcell_output_dir, img_shape=(50, 50)):
-    """Generate a sample _feature_0 tif file for each fov.
+    """Generate a sample _feature_0 and _feature_1 tiff file for each fov.
 
     Done to bypass the bottleneck of create_deepcell_output, for testing purposes we don't care
     about correct segmentation labels.
 
     Args:
-        fovs (list): The list of fovs to generate sample _feature_0 tif files for
+        fovs (list): The list of fovs to generate sample tiff files for
         deepcell_output_dir (str): The path to the output directory
         img_shape (tuple): Dimensions of the tifs to create
     """

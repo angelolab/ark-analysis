@@ -30,16 +30,16 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
 
     Args:
         deepcell_input_dir (str):
-            Location of preprocessed files (assume deepcell_input_dir contains <fov>.tif
+            Location of preprocessed files (assume deepcell_input_dir contains <fov>.tiff
             for each fov in fovs list).  This should not be a GoogleDrivePath.
         deepcell_output_dir (str):
-            Location to save DeepCell output (as .tif)
+            Location to save DeepCell output (as .tiff)
         fovs (list):
-            List of fovs in preprocessing pipeline. if None, all .tif files
+            List of fovs in preprocessing pipeline. if None, all .tiff files
             in deepcell_input_dir will be considered as input fovs. Default: None
         suffix (str):
             Suffix for DeepCell output filename. e.g. for fovX, DeepCell output
-            should be <fovX>+suffix.tif. Default: '_feature_0'
+            should be <fovX>+suffix.tiff. Default: '_feature_0'
         host (str):
             Hostname and port for the kiosk-frontend API server
             Default: 'https://deepcell.org'
@@ -61,7 +61,7 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
     Raises:
         ValueError:
             Raised if there is some fov X (from fovs list) s.t.
-            the file <deepcell_input_dir>/fovX.tif does not exist
+            the file <deepcell_input_dir>/fovX.tiff does not exist
     """
 
     # check that scale arg can be converted to a float
@@ -71,7 +71,7 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
         raise ValueError("Scale argument must be a number")
 
     # extract all the files from deepcell_input_dir
-    input_files = io_utils.list_files(deepcell_input_dir, substrs=['.tif'])
+    input_files = io_utils.list_files(deepcell_input_dir, substrs=['.tiff'])
 
     # set fovs equal to input_files it not already set
     if fovs is None:

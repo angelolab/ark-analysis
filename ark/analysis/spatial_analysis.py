@@ -22,7 +22,7 @@ def generate_channel_spatial_enrichment_stats(label_dir, marker_thresholds, all_
         all_data (pandas.DataFrame):
             data including fovs, cell labels, and cell expression matrix for all markers
         suffix (str):
-            suffix for tif file names
+            suffix for tiff file names
         xr_channel_name (str):
             channel name for label data array
         **kwargs (dict):
@@ -237,7 +237,7 @@ def generate_cluster_spatial_enrichment_stats(label_dir, all_data, suffix='_feat
         all_data (pandas.DataFrame):
             data including fovs, cell labels, and cell expression matrix for all markers
         suffix (str):
-            suffix for tif file names
+            suffix for tiff file names
         xr_channel_name (str):
             channel name for label data array
         **kwargs (dict):
