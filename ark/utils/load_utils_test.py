@@ -10,7 +10,7 @@ from ark.utils import load_utils, test_utils
 
 def test_load_imgs_from_mibitiff():
     # invalid directory is provided
-    with pytest.raises(ValueError):
+    with pytest.raises(FileNotFoundError):
         loaded_xr = \
             load_utils.load_imgs_from_mibitiff('not_a_dir', channels=None, delimiter='_')
 
@@ -70,7 +70,7 @@ def test_load_imgs_from_mibitiff():
 
 def test_load_imgs_from_tree():
     # invalid directory is provided
-    with pytest.raises(ValueError):
+    with pytest.raises(FileNotFoundError):
         loaded_xr = \
             load_utils.load_imgs_from_tree('not_a_dir', img_sub_folder="TIFs")
 
@@ -171,7 +171,7 @@ def test_load_imgs_from_tree():
 
 def test_load_imgs_from_dir():
     # invalid directory is provided
-    with pytest.raises(ValueError):
+    with pytest.raises(FileNotFoundError):
         loaded_xr = \
             load_utils.load_imgs_from_dir('not_a_dir', trim_suffix='_')
 
@@ -358,7 +358,7 @@ def test_get_tiled_fov_names():
 @pytest.mark.parametrize('single_dir, img_sub_folder', [(False, 'TIFs'), (True, '')])
 def test_load_tiled_img_data(single_dir, img_sub_folder):
     # invalid directory is provided
-    with pytest.raises(ValueError):
+    with pytest.raises(FileNotFoundError):
         loaded_xr = load_utils.load_tiled_img_data('not_a_dir', [], [], 'chan1',
                                                    single_dir=False,)
 

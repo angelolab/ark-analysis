@@ -24,7 +24,7 @@ def validate_paths(paths, data_prefix=False):
     for path in paths:
         # check data prefix
         if data_prefix and not str(path).startswith('../data'):
-            raise ValueError(
+            raise FileNotFoundError(
                 f'The path, {path}, is not prefixed with \'../data\'.\n'
                 f'Be sure to add all images/files/data to the \'data\' folder, '
                 f'and to reference as \'../data/path_to_data/myfile.tif\'')
@@ -32,10 +32,10 @@ def validate_paths(paths, data_prefix=False):
         if not os.path.exists(path):
             for parent in reversed(pathlib.Path(path).parents):
                 if not os.path.exists(parent):
-                    raise ValueError(
+                    raise FileNotFoundError(
                         f'A bad path, {path}, was provided.\n'
                         f'The folder, {parent.name}, could not be found...')
-            raise ValueError(
+            raise FileNotFoundError(
                 f'The file/path, {pathlib.Path(path).name}, could not be found...')
 
 

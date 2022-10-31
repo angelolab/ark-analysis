@@ -9,7 +9,7 @@ import skimage.io as io
 import xarray as xr
 
 import ark.settings as settings
-from ark.utils import synthetic_spatial_datagen
+from ark.utils import synthetic_spatial_datagen, io_utils
 from ark.utils.tiff_utils import write_mibitiff
 
 
@@ -428,8 +428,8 @@ def create_paired_xarray_fovs(base_dir, fov_names, channel_names, img_shape=(10,
           (num_fovs, im_shape[0], shape[1], num_channels)
     """
 
-    if not os.path.isdir(base_dir):
-        raise FileNotFoundError(f'{base_dir} is not a directory')
+    # validation checks
+    io_utils.validate_paths(base_dir)
 
     if fov_names is None or fov_names is []:
         raise ValueError('No fov names were given...')
