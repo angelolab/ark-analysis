@@ -187,7 +187,7 @@ def test_create_overlay():
         # save the cell image
         img_dir = os.path.join(temp_dir, 'img_dir')
         os.mkdir(img_dir)
-        io.imsave(os.path.join(img_dir, '%s.tif' % fov), example_images,
+        io.imsave(os.path.join(img_dir, '%s.tiff' % fov), example_images,
                   check_contrast=False)
 
         # test with both nuclear and membrane specified

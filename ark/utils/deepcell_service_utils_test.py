@@ -16,11 +16,11 @@ from ark.utils.deepcell_service_utils import (_convert_deepcell_seg_masks,
 def mocked_run_deepcell(in_zip_path, output_dir, host, job_type, scale, timeout):
 
     fov_data = np.ones(shape=(10, 10), dtype="float32")
-    io.imsave(os.path.join(output_dir, 'fov1_feature_0.tiff'),
+    io.imsave(os.path.join(output_dir, 'fov1_feature_0.tif'),
               fov_data, plugin="tifffile", check_contrast=False)
-    io.imsave(os.path.join(output_dir, 'fov2_feature_0.tiff'),
+    io.imsave(os.path.join(output_dir, 'fov2_feature_0.tif'),
               fov_data, plugin="tifffile", check_contrast=False)
-    io.imsave(os.path.join(output_dir, 'fov3_feature_0.tiff'),
+    io.imsave(os.path.join(output_dir, 'fov3_feature_0.tif'),
               fov_data, plugin="tifffile", check_contrast=False)
 
     batch_num = int(in_zip_path.split('.')[0].split('_')[-1])
@@ -32,7 +32,7 @@ def mocked_run_deepcell(in_zip_path, output_dir, host, job_type, scale, timeout)
         if batch_num > 1:
             return
         for i in range(1, 4):
-            filename = os.path.join(output_dir, f'fov{i}_feature_0.tiff')
+            filename = os.path.join(output_dir, f'fov{i}_feature_0.tif')
             zipObj.write(filename, os.path.basename(filename))
             os.remove(filename)
 
