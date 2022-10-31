@@ -1,4 +1,5 @@
 import os
+from typing import Dict, Optional
 
 import numpy as np
 import pandas as pd
@@ -131,7 +132,8 @@ def plot_fiber_segmentation_steps(data_dir, fov_name, fiber_channel, img_sub_fol
         ax.axis('off')
 
 
-def run_fiber_segmentation(data_dir, fiber_channel, out_dir, img_sub_folder=None, **kwargs):
+def run_fiber_segmentation(data_dir, fiber_channel, out_dir, img_sub_folder=None,
+                           csv_compression: Optional[Dict[str, str]] = None, **kwargs):
     """Segments fibers one FOV at a time
 
     Args:
@@ -143,6 +145,8 @@ def run_fiber_segmentation(data_dir, fiber_channel, out_dir, img_sub_folder=None
             Directory to save fiber object labels and table.
         img_sub_folder (str | NoneType):
             Image subfolder name in `data_dir`. If there is not subfolder, set this to None.
+        csv_compression (Optional[Dict[str, str]]): Dictionary of compression arguments to pass
+            when saving csvs. See :meth:`to_csv <pandas.DataFrame.to_csv>` for details.
         **kwargs:
             Keyword arguments for `segment_fibers`
 
@@ -174,7 +178,8 @@ def run_fiber_segmentation(data_dir, fiber_channel, out_dir, img_sub_folder=None
         fiber_object_table.append(subtable)
 
     fiber_object_table = pd.concat(fiber_object_table)
-    fiber_object_table.to_csv(os.path.join(out_dir, 'fiber_object_table.csv'), index=False)
+    fiber_object_table.to_csv(os.path.join(out_dir, 'fiber_object_table.csv'), index=False,
+                              compression=csv_compression)
 
     return fiber_object_table
 
