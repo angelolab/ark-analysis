@@ -6,7 +6,7 @@ import matplotlib
 import numpy as np
 import pandas as pd
 
-from ark.utils import misc_utils
+from ark.utils import misc_utils, io_utils
 
 
 def distinct_cmap(n=33):
@@ -80,9 +80,7 @@ def generate_meta_cluster_colormap_dict(meta_cluster_remap_path, cmap):
     """
 
     # file path validation
-    if not os.path.exists(meta_cluster_remap_path):
-        raise FileNotFoundError('Remapping path %s does not exist' %
-                                meta_cluster_remap_path)
+    io_utils.validate_paths(meta_cluster_remap_path)
 
     # read the remapping
     remapping = pd.read_csv(meta_cluster_remap_path)

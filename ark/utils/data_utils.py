@@ -40,8 +40,7 @@ def save_fov_mask(fov, data_dir, mask_data, sub_dir=None, name_suffix=''):
     """
 
     # data_dir validation
-    if not os.path.exists(data_dir):
-        raise FileNotFoundError("data_dir %s does not exist" % data_dir)
+    io_utils.validate_paths(data_dir)
 
     # ensure None is handled correctly in file path generation
     if sub_dir is None:
@@ -161,12 +160,8 @@ def generate_cell_cluster_mask(fov, base_dir, seg_dir, cell_data_name,
     """
 
     # path checking
-    if not os.path.exists(seg_dir):
-        raise FileNotFoundError("seg_dir %s does not exist" % seg_dir)
-
-    if not os.path.exists(os.path.join(base_dir, cell_data_name)):
-        raise FileNotFoundError(
-            "Cell data file %s does not exist in base_dir %s" % (cell_data_name, base_dir))
+    cell_data_path = os.path.join(os.path.join(base_dir, cell_data_name))
+    io_utils.validate_paths([seg_dir, cell_data_path])
 
     # verify the cluster_col provided is valid
     verify_in_list(
@@ -277,17 +272,8 @@ def generate_pixel_cluster_mask(fov, base_dir, tiff_dir, chan_file_path,
     """
 
     # path checking
-    if not os.path.exists(tiff_dir):
-        raise FileNotFoundError("tiff_dir %s does not exist")
-
-    if not os.path.exists(os.path.join(tiff_dir, chan_file_path)):
-        raise FileNotFoundError("chan_file_path %s does not exist in tiff_dir %s"
-                                % (chan_file_path, tiff_dir))
-
-    if not os.path.exists(os.path.join(base_dir, pixel_data_dir)):
-        raise FileNotFoundError(
-            "Pixel data dir %s does not exist in base_dir %s" % (pixel_data_dir, base_dir)
-        )
+    io_utils.validate_paths([tiff_dir, os.path.join(tiff_dir, chan_file_path),
+                             os.path.join(base_dir, pixel_data_dir)])
 
     # verify the pixel_cluster_col provided is valid
     verify_in_list(

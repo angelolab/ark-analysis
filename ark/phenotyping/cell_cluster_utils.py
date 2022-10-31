@@ -9,7 +9,7 @@ import pandas as pd
 import scipy.stats as stats
 
 from ark.analysis import visualize
-from ark.utils import misc_utils
+from ark.utils import misc_utils, io_utils
 
 
 def compute_cell_cluster_count_avg(cell_cluster_path, pixel_cluster_col_prefix,
@@ -96,10 +96,7 @@ def compute_cell_cluster_channel_avg(fovs, channels, base_dir,
     """
 
     # verify the cell table actually exists
-    if not os.path.exists(os.path.join(base_dir, weighted_cell_channel_name)):
-        raise FileNotFoundError(
-            "Weighted cell table %s not found in %s" % (weighted_cell_channel_name, base_dir)
-        )
+    io_utils.validate_paths(os.path.join(base_dir, weighted_cell_channel_name))
 
     # verify the cell cluster col specified is valid
     misc_utils.verify_in_list(
@@ -445,15 +442,8 @@ def train_cell_som(fovs, channels, base_dir, pixel_data_dir, cell_table_path,
     cluster_counts_norm_path = os.path.join(base_dir, cluster_counts_norm_name)
     weights_path = os.path.join(base_dir, weights_name)
 
-    # if the cell table path does not exist
-    if not os.path.exists(cell_table_path):
-        raise FileNotFoundError('Cell table path %s does not exist' %
-                                cell_table_path)
-
-    # if the pixel data with the SOM and meta labels path does not exist
-    if not os.path.exists(pixel_data_path):
-        raise FileNotFoundError('Pixel data dir %s does not exist in base_dir %s' %
-                                (pixel_data_path, base_dir))
+    # check the cell table path and pixel data path exist
+    io_utils.validate_paths([cell_table_path, pixel_data_path])
 
     # verify the cluster_col provided is valid
     misc_utils.verify_in_list(
@@ -550,17 +540,8 @@ def cluster_cells(base_dir, cluster_counts_norm_name='cluster_counts_norm.feathe
     weights_path = os.path.join(base_dir, weights_name)
     cell_data_path = os.path.join(base_dir, cell_data_name)
 
-    # if the path to the normalized pixel cluster counts per cell doesn't exist
-    if not os.path.exists(cluster_counts_norm_path):
-        raise FileNotFoundError(
-            'Normalized pixel cluster counts per cell file %s does not exist in base_dir %s' %
-            (cluster_counts_norm_name, base_dir)
-        )
-
-    # if the path to the weights file does not exist
-    if not os.path.exists(weights_path):
-        raise FileNotFoundError('Weights file %s does not exist in base_dir %s' %
-                                (weights_name, base_dir))
+    # check the path to the normalized pixel cluster counts per cell and weights file exists
+    io_utils.validate_paths([cluster_counts_norm_path, weights_path])
 
     # verify the pixel_cluster_col_prefix provided is valid
     misc_utils.verify_in_list(
@@ -678,26 +659,8 @@ def cell_consensus_cluster(fovs, channels, base_dir, pixel_cluster_col, max_k=20
     weighted_channel_path = os.path.join(base_dir, weighted_cell_channel_name)
     clust_to_meta_path = os.path.join(base_dir, clust_to_meta_name)
 
-    # if the path to the SOM clustered data doesn't exist
-    if not os.path.exists(cell_data_path):
-        raise FileNotFoundError(
-            'Cell data file %s does not exist in base_dir %s' %
-            (cell_data_name, base_dir)
-        )
-
-    # if the path to the average pixel cluster counts per cell cluster doesn't exist
-    if not os.path.exists(som_cluster_counts_avg_path):
-        raise FileNotFoundError(
-            'Average pix clust count per cell SOM cluster file %s does not exist in base_dir %s' %
-            (cell_som_cluster_count_avgs_name, base_dir)
-        )
-
-    # if the path to the weighted channel data doesn't exist
-    if not os.path.exists(weighted_channel_path):
-        raise FileNotFoundError(
-            'Weighted channel table %s does not exist in base_dir %s' %
-            (weighted_cell_channel_name, base_dir)
-        )
+    # check paths
+    io_utils.validate_paths([cell_data_path, som_cluster_counts_avg_path, weighted_channel_path])
 
     # verify the pixel_cluster_col provided is valid
     misc_utils.verify_in_list(
@@ -866,41 +829,10 @@ def apply_cell_meta_cluster_remapping(fovs, channels, base_dir, cell_consensus_n
     meta_cluster_channel_avgs_path = os.path.join(base_dir, cell_meta_cluster_channel_avg_name)
 
     # file path validation
-    if not os.path.exists(cell_consensus_path):
-        raise FileNotFoundError('Cell consensus file %s does not exist in base_dir %s' %
-                                (cell_consensus_name, base_dir))
-
-    if not os.path.exists(cell_remapped_path):
-        raise FileNotFoundError('Cell remapping file %s does not exist in base_dir %s' %
-                                (cell_remapped_name, base_dir))
-
-    if not os.path.exists(som_cluster_counts_avgs_path):
-        raise FileNotFoundError(
-            'Average pix clust count per cell SOM cluster file %s does not exist in base_dir %s' %
-            (cell_som_cluster_count_avgs_name, base_dir)
-        )
-
-    if not os.path.exists(meta_cluster_counts_avgs_path):
-        raise FileNotFoundError(
-            'Average pix clust count per cell meta cluster file %s does not exist in base_dir %s' %
-            (cell_meta_cluster_count_avgs_name, base_dir)
-        )
-
-    if not os.path.exists(weighted_channel_path):
-        raise FileNotFoundError('Weighted channel table %s does not exist in base_dir %s' %
-                                (weighted_cell_channel_name, base_dir))
-
-    if not os.path.exists(som_cluster_channel_avgs_path):
-        raise FileNotFoundError(
-            'Average weighted chan per cell SOM cluster file %s does not exist in base_dir %s' %
-            (cell_som_cluster_channel_avg_name, base_dir)
-        )
-
-    if not os.path.exists(meta_cluster_channel_avgs_path):
-        raise FileNotFoundError(
-            'Average weighted chan per cell meta cluster file %s does not exist in base_dir %s' %
-            (cell_meta_cluster_channel_avg_name, base_dir)
-        )
+    io_utils.validate_paths([cell_consensus_path, cell_remapped_path,
+                             som_cluster_counts_avgs_path, meta_cluster_counts_avgs_path,
+                             weighted_channel_path, som_cluster_channel_avgs_path,
+                             meta_cluster_channel_avgs_path])
 
     # verify the pixel_cluster_col provided is valid
     misc_utils.verify_in_list(
@@ -1061,9 +993,7 @@ def generate_weighted_channel_avg_heatmap(cell_cluster_channel_avg_path, cell_cl
     """
 
     # file path validation
-    if not os.path.exists(cell_cluster_channel_avg_path):
-        raise FileNotFoundError('Channel average path %s does not exist' %
-                                cell_cluster_channel_avg_path)
+    io_utils.validate_paths(cell_cluster_channel_avg_path)
 
     # verify the cell_cluster_col provided is valid
     misc_utils.verify_in_list(
@@ -1138,13 +1068,7 @@ def add_consensus_labels_cell_table(base_dir, cell_table_path, cell_data_name):
     cell_data_path = os.path.join(base_dir, cell_data_name)
 
     # file path validation
-    if not os.path.exists(cell_table_path):
-        raise FileNotFoundError('Cell table file %s does not exist' %
-                                cell_table_path)
-
-    if not os.path.exists(cell_data_path):
-        raise FileNotFoundError('Cell data file %s does not exist in base_dir %s' %
-                                (cell_data_name, base_dir))
+    io_utils.validate_paths([cell_data_path, cell_data_path])
 
     # read in the data, ensure sorted by FOV column just in case
     cell_table = pd.read_csv(cell_table_path)
