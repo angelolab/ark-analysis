@@ -104,7 +104,7 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
             warnings.warn(f'{zip_path} will be overwritten')
 
         # write all files to the zip file
-        print('Zipping preprocessed tif files.')
+        print('Zipping preprocessed tiff files.')
 
         def zip_write(zip_path):
             with ZipFile(zip_path, 'w', compression=ZIP_DEFLATED) as zipObj:
