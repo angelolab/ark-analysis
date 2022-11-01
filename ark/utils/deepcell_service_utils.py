@@ -141,7 +141,7 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
                 # generate the path to save the segmentation mask
                 mask_path = os.path.join(deepcell_output_dir, name)
 
-                # make sure to append an extra f at the end to account for .tiff standard
+                # DeepCell uses .tif extension, append extra f to account for .tiff standard
                 mask_path += 'f'
 
                 # read the file from the .zip file and save as segmentation mask
