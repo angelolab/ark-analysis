@@ -383,13 +383,16 @@ def test_load_tiled_img_data(single_dir, img_sub_folder):
         if not single_dir:
             toffy_fovs = {'R1C1': 'fov-1', 'R1C2': 'fov-3', 'R1C3': 'fov-2'}
             fovs = list(toffy_fovs.values())
+            expected_fovs = load_utils.get_tiled_fov_names(list(toffy_fovs.keys()))
+
             filelocs, data_xr = test_utils.create_paired_xarray_fovs(
                 temp_dir, fovs, ['chan1', 'chan2'], img_shape=(10, 10), fills=True,
                 sub_dir=img_sub_folder, dtype="int16", single_dir=single_dir
             )
 
             # check default loading of chan1 images
-            loaded_xr = load_utils.load_tiled_img_data(temp_dir, toffy_fovs, expected_fovs=fovs,
+            loaded_xr = load_utils.load_tiled_img_data(temp_dir, toffy_fovs,
+                                                       expected_fovs=expected_fovs,
                                                        channel='chan1', single_dir=single_dir,
                                                        img_sub_folder=img_sub_folder)
 
@@ -415,7 +418,6 @@ def test_load_tiled_img_data(single_dir, img_sub_folder):
         loaded_xr = \
             load_utils.load_tiled_img_data(temp_dir, ['R1C1', 'R1C2', 'R2C2'], fovs, 'chan1',
                                            single_dir=single_dir, img_sub_folder=img_sub_folder)
-
         assert loaded_xr.equals(data_xr[:, :, :, :-1])
         assert loaded_xr.shape == (4, 10, 10, 1)
 
@@ -423,18 +425,22 @@ def test_load_tiled_img_data(single_dir, img_sub_folder):
         if not single_dir:
             toffy_fovs = {'R1C1': 'fov-3', 'R1C2': 'fov-1', 'R2C1': 'fov-4', 'R2C2': 'fov-2'}
             fovs = list(toffy_fovs.values())
+            expected_fovs = load_utils.get_tiled_fov_names(list(toffy_fovs.keys()))
 
             filelocs, data_xr = test_utils.create_paired_xarray_fovs(
                 temp_dir, fovs, ['chan1', 'chan2'], img_shape=(10, 10), delimiter='_', fills=True,
                 sub_dir=img_sub_folder, dtype="int16", single_dir=single_dir
             )
+            data_xr['fovs'] = list(toffy_fovs.keys())
+
             # remove images and expected data for one fov
             data_xr[2, :, :, :] = np.zeros((10, 10, 1), dtype='int16')
             shutil.rmtree(os.path.join(temp_dir, 'fov-4'))
+            toffy_fovs.pop('R2C1')
 
             # check successful loading for one channel
             loaded_xr = \
-                load_utils.load_tiled_img_data(temp_dir, ['fov-3', 'fov-1', 'fov-2'], fovs,
+                load_utils.load_tiled_img_data(temp_dir, toffy_fovs, expected_fovs,
                                                'chan1', single_dir=single_dir,
                                                img_sub_folder=img_sub_folder)
 
