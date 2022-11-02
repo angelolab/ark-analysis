@@ -279,7 +279,7 @@ def create_overlay(fov, segmentation_dir, data_dir,
     # load the specified fov data in
     plotting_tif = load_utils.load_imgs_from_dir(
         data_dir=data_dir,
-        files=[fov + '.tif'],
+        files=[fov + '.tiff'],
         xr_dim_name='channels',
         xr_channel_names=['nuclear_channel', 'membrane_channel']
     )
@@ -295,13 +295,13 @@ def create_overlay(fov, segmentation_dir, data_dir,
 
     # read the segmentation data in
     segmentation_labels_cell = load_utils.load_imgs_from_dir(data_dir=segmentation_dir,
-                                                             files=[fov + '_feature_0.tif'],
+                                                             files=[fov + '_feature_0.tiff'],
                                                              xr_dim_name='compartments',
                                                              xr_channel_names=['whole_cell'],
                                                              trim_suffix='_feature_0',
                                                              match_substring='_feature_0')
     segmentation_labels_nuc = load_utils.load_imgs_from_dir(data_dir=segmentation_dir,
-                                                            files=[fov + '_feature_1.tif'],
+                                                            files=[fov + '_feature_1.tiff'],
                                                             xr_dim_name='compartments',
                                                             xr_channel_names=['nuclear'],
                                                             trim_suffix='_feature_1',
@@ -495,7 +495,7 @@ def create_mantis_dir(fovs: List[str], mantis_project_path: Union[str, pathlib.P
                     os.path.join(output_dir, 'population{}.tiff'.format(mask_suffix)))
 
         # copy the segmentation files into the output directory
-        seg_name = fov + '_feature_0.tif'
+        seg_name = fov + '_feature_0.tiff'
         shutil.copy(os.path.join(seg_dir, seg_name),
                     os.path.join(output_dir, 'cell_segmentation.tiff'))
 

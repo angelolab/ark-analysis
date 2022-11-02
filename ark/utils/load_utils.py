@@ -38,7 +38,7 @@ def load_imgs_from_mibitiff(data_dir, mibitiff_files=None, channels=None, delimi
     iou.validate_paths(data_dir, data_prefix=False)
 
     if not mibitiff_files:
-        mibitiff_files = iou.list_files(data_dir, substrs=['.tif'])
+        mibitiff_files = iou.list_files(data_dir, substrs=['.tiff'])
         mibitiff_files.sort()
 
     if len(mibitiff_files) == 0:
@@ -131,13 +131,13 @@ def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, channels=None,
     if channels is None:
         channels = iou.list_files(
             dir_name=os.path.join(data_dir, fovs[0], img_sub_folder),
-            substrs=['.tif', '.jpg', '.png']
+            substrs=['.tiff', '.jpg', '.png']
         )
 
         # if taking all channels from directory, sort them alphabetically
         channels.sort()
     # otherwise, fill channel names with correct file extension
-    elif not all([img.endswith(("tif", "tiff", "jpg", "png")) for img in channels]):
+    elif not all([img.endswith(("tiff", "jpg", "png")) for img in channels]):
         # need this to reorder channels back because list_files may mess up the ordering
         channels_no_delim = [img.split('.')[0] for img in channels]
 
@@ -192,7 +192,7 @@ def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, channels=None,
 
     row_coords, col_coords = range(img_data.shape[1]), range(img_data.shape[2])
 
-    # remove .tif or .tiff from image name
+    # remove .tiff from image name
     img_names = [os.path.splitext(img)[0] for img in channels]
 
     img_xr = xr.DataArray(img_data, coords=[fovs, row_coords, col_coords, img_names],
@@ -209,8 +209,8 @@ def load_imgs_from_dir(data_dir, files=None, match_substring=None, trim_suffix=N
         data_dir (str):
             directory containing images
         files (list):
-            list of files (e.g. ['fov1.tif'. 'fov2.tif'] to load.
-            If None, all (.tif, .jpg, .png) files in data_dir are loaded.
+            list of files (e.g. ['fov1.tiff'. 'fov2.tiff'] to load.
+            If None, all (.tiff, .jpg, .png) files in data_dir are loaded.
         match_substring (str):
             a filename substring that all loaded images must contain. Ignored if files argument is
             not None.  If None, no matching is performed.
@@ -246,7 +246,7 @@ def load_imgs_from_dir(data_dir, files=None, match_substring=None, trim_suffix=N
     iou.validate_paths(data_dir, data_prefix=False)
 
     if files is None:
-        imgs = iou.list_files(data_dir, substrs=['.tif', '.jpg', '.png'])
+        imgs = iou.list_files(data_dir, substrs=['.tiff', '.jpg', '.png'])
         if match_substring is not None:
             filenames = iou.remove_file_extensions(imgs)
             imgs = [imgs[i] for i, name in enumerate(filenames) if match_substring in name]

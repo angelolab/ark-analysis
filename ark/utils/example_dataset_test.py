@@ -250,7 +250,7 @@ class TestExampleDataset:
         Args:
             dir_p (pathlib.Path): The directory to check.
         """
-        downloaded_deepcell_output = list(dir_p.glob("*.tif"))
+        downloaded_deepcell_output = list(dir_p.glob("*.tiff"))
         downloaded_deepcell_output_names = [f.stem for f in downloaded_deepcell_output]
         assert set(self.deepcell_output_names) == set(downloaded_deepcell_output_names)
 

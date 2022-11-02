@@ -136,7 +136,7 @@ def label_cells_by_cluster(fov, all_data, label_map, fov_col=settings.FOV_ID,
 
 
 def generate_cell_cluster_mask(fov, base_dir, seg_dir, cell_data_name,
-                               cell_cluster_col='cell_meta_cluster', seg_suffix='_feature_0.tif'):
+                               cell_cluster_col='cell_meta_cluster', seg_suffix='_feature_0.tiff'):
     """For a fov, create a mask labeling each cell with their SOM or meta cluster label
 
     Args:
@@ -152,7 +152,7 @@ def generate_cell_cluster_mask(fov, base_dir, seg_dir, cell_data_name,
             Whether to assign SOM or meta clusters.
             Needs to be `'cell_som_cluster'` or `'cell_meta_cluster'`
         seg_suffix (str):
-            The suffix that the segmentation images use
+            The suffix that the segmentation images use. Defaults to `'_feature_0.tiff'`.
 
     Returns:
         numpy.ndarray:
@@ -199,7 +199,7 @@ def generate_and_save_cell_cluster_masks(fovs: List[str],
                                          seg_dir: Union[pathlib.Path, str],
                                          cell_data_name: Union[pathlib.Path, str],
                                          cell_cluster_col: str = 'cell_meta_cluster',
-                                         seg_suffix: str = '_feature_0.tif',
+                                         seg_suffix: str = '_feature_0.tiff',
                                          sub_dir: str = None,
                                          name_suffix: str = ''):
     """Generates cell cluster masks and saves them for downstream analysis.
@@ -219,7 +219,7 @@ def generate_and_save_cell_cluster_masks(fovs: List[str],
             Whether to assign SOM or meta clusters. Needs to be `'cell_som_cluster'` or
             `'cell_meta_cluster'`. Defaults to `'cell_meta_cluster'`.
         seg_suffix (str, optional):
-            The suffix that the segmentation images use. Defaults to `'_feature_0.tif'`.
+            The suffix that the segmentation images use. Defaults to `'_feature_0.tiff'`.
         sub_dir (str, optional):
             The subdirectory to save the images in. If specified images are saved to
             `"data_dir/sub_dir"`. If `sub_dir = None` the images are saved to `"data_dir"`.
@@ -480,7 +480,7 @@ def generate_deepcell_input(data_dir, tiff_dir, nuc_channels, mem_channels, fovs
         if mem_channels:
             out[1] = np.sum(data_xr.loc[fov_name, :, :, mem_channels].values, axis=2)
 
-        save_path = os.path.join(data_dir, f"{fov_name}.tif")
+        save_path = os.path.join(data_dir, f"{fov_name}.tiff")
         io.imsave(save_path, out, plugin='tifffile', check_contrast=False)
 
 
@@ -591,11 +591,11 @@ def stitch_images_by_shape(data_dir, stitched_dir, img_sub_folder=None, channels
 
     # retrieve valid fov names
     if segmentation:
-        fovs = ns.natsorted(io_utils.list_files(data_dir, substrs='_feature_0.tif'))
-        fovs = io_utils.extract_delimited_names(fovs, delimiter='_feature_0.tif')
+        fovs = ns.natsorted(io_utils.list_files(data_dir, substrs='_feature_0.tiff'))
+        fovs = io_utils.extract_delimited_names(fovs, delimiter='_feature_0.tiff')
     elif clustering:
-        fovs = ns.natsorted(io_utils.list_files(data_dir, substrs=f'_{clustering}_mask.tif'))
-        fovs = io_utils.extract_delimited_names(fovs, delimiter=f'_{clustering}_mask.tif')
+        fovs = ns.natsorted(io_utils.list_files(data_dir, substrs=f'_{clustering}_mask.tiff'))
+        fovs = io_utils.extract_delimited_names(fovs, delimiter=f'_{clustering}_mask.tiff')
     else:
         fovs = ns.natsorted(io_utils.list_folders(data_dir))
         # ignore previous toffy stitching in fov directory
@@ -622,7 +622,7 @@ def stitch_images_by_shape(data_dir, stitched_dir, img_sub_folder=None, channels
     if not segmentation and not clustering:
         channel_imgs = io_utils.list_files(
             dir_name=os.path.join(data_dir, fovs[0], img_sub_folder),
-            substrs=['.tif', '.jpg', '.png'])
+            substrs=['.tiff', '.jpg', '.png'])
     else:
         channel_imgs = io_utils.list_files(data_dir, substrs=fovs[0])
         channel_imgs = [chan.split(fovs[0] + '_')[1] for chan in channel_imgs]

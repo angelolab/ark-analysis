@@ -22,7 +22,7 @@ def generate_channel_spatial_enrichment_stats(label_dir, marker_thresholds, all_
         all_data (pandas.DataFrame):
             data including fovs, cell labels, and cell expression matrix for all markers
         suffix (str):
-            suffix for tif file names
+            suffix for tiff file names
         xr_channel_name (str):
             channel name for label data array
         **kwargs (dict):
@@ -39,7 +39,7 @@ def generate_channel_spatial_enrichment_stats(label_dir, marker_thresholds, all_
     """
 
     # parse files in label_dir
-    all_label_names = io_utils.list_files(label_dir, substrs=['.tif'])
+    all_label_names = io_utils.list_files(label_dir, substrs=['.tiff'])
 
     included_fovs = kwargs.get('included_fovs', None)
     if included_fovs:
@@ -237,7 +237,7 @@ def generate_cluster_spatial_enrichment_stats(label_dir, all_data, suffix='_feat
         all_data (pandas.DataFrame):
             data including fovs, cell labels, and cell expression matrix for all markers
         suffix (str):
-            suffix for tif file names
+            suffix for tiff file names
         xr_channel_name (str):
             channel name for label data array
         **kwargs (dict):
@@ -254,7 +254,7 @@ def generate_cluster_spatial_enrichment_stats(label_dir, all_data, suffix='_feat
     """
 
     # parse files in label_dir
-    all_label_names = io_utils.list_files(label_dir, substrs=['.tif'])
+    all_label_names = io_utils.list_files(label_dir, substrs=['.tiff'])
 
     included_fovs = kwargs.get('included_fovs', None)
     if included_fovs:
