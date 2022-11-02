@@ -38,7 +38,7 @@ def load_imgs_from_mibitiff(data_dir, mibitiff_files=None, channels=None, delimi
     iou.validate_paths(data_dir, data_prefix=False)
 
     if not mibitiff_files:
-        mibitiff_files = iou.list_files(data_dir, substrs=['.tif'])
+        mibitiff_files = iou.list_files(data_dir, substrs=['.tiff'])
         mibitiff_files.sort()
 
     if len(mibitiff_files) == 0:
@@ -192,7 +192,7 @@ def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, channels=None,
 
     row_coords, col_coords = range(img_data.shape[1]), range(img_data.shape[2])
 
-    # remove .tif or .tiff from image name
+    # remove .tiff from image name
     img_names = [os.path.splitext(img)[0] for img in channels]
 
     img_xr = xr.DataArray(img_data, coords=[fovs, row_coords, col_coords, img_names],
@@ -210,7 +210,7 @@ def load_imgs_from_dir(data_dir, files=None, match_substring=None, trim_suffix=N
             directory containing images
         files (list):
             list of files (e.g. ['fov1.tiff'. 'fov2.tiff'] to load.
-            If None, all (.tif, .tiff, .jpg, .png) files in data_dir are loaded.
+            If None, all (.tiff, .jpg, .png) files in data_dir are loaded.
         match_substring (str):
             a filename substring that all loaded images must contain. Ignored if files argument is
             not None.  If None, no matching is performed.

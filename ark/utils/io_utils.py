@@ -27,7 +27,7 @@ def validate_paths(paths, data_prefix=False):
             raise FileNotFoundError(
                 f'The path, {path}, is not prefixed with \'../data\'.\n'
                 f'Be sure to add all images/files/data to the \'data\' folder, '
-                f'and to reference as \'../data/path_to_data/myfile.tif\'')
+                f'and to reference as \'../data/path_to_data/myfile.tiff\'')
 
         if not os.path.exists(path):
             for parent in reversed(pathlib.Path(path).parents):
@@ -48,8 +48,8 @@ def list_files(dir_name, substrs=None, exact_match=False, ignore_hidden=True):
         substrs (str or list):
             Substring matching criteria, defaults to None (all files)
         exact_match (bool):
-            If True, will match exact file names (so 'C' will match only 'C.tif')
-            If False, will match substr pattern in file (so 'C' will match 'C.tif' and 'CD30.tif')
+            If True, will match exact file names ('C' will match only 'C.tiff')
+            If False, will match substr pattern in file ('C' will match 'C.tiff' and 'CD30.tiff')
         ignore_hidden (bool):
             If True, will ignore hidden files. If False, will allow hidden files to be
             matched against the search substring.

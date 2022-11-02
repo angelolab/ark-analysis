@@ -92,7 +92,7 @@ def test_create_deepcell_output(mocker: MockerFixture):
 
             # test with mixed fov/file list
             create_deepcell_output(deepcell_input_dir=input_dir, deepcell_output_dir=output_dir,
-                                   fovs=['fov1', 'fov2.tif', 'fov3.tiff'])
+                                   fovs=['fov1', 'fov2.tiff', 'fov3.tiff'])
 
             # make sure DeepCell (.zip) output exists
             assert os.path.exists(os.path.join(output_dir, 'example_output.zip'))
@@ -104,7 +104,7 @@ def test_create_deepcell_output(mocker: MockerFixture):
 
         with tempfile.TemporaryDirectory() as output_dir:
 
-            # if fovs is None, all .tif files in input dir should be taken
+            # if fovs is None, all .tiff files in input dir should be taken
             create_deepcell_output(deepcell_input_dir=input_dir, deepcell_output_dir=output_dir)
 
             # make sure DeepCell (.zip) output exists
@@ -143,7 +143,7 @@ def test_create_deepcell_output(mocker: MockerFixture):
             with ZipFile(os.path.join(input_dir, 'fovs_batch_2.zip'), 'r') as zip_batch2:
                 assert zip_batch2.namelist() == ['fov4.tiff']
 
-            # ValueError should be raised if .tif file does not exists for some fov in fovs
+            # ValueError should be raised if .tiff file does not exists for some fov in fovs
             with pytest.raises(ValueError):
                 create_deepcell_output(deepcell_input_dir=input_dir,
                                        deepcell_output_dir=output_dir, fovs=['fov1', 'fov5'])

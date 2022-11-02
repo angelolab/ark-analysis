@@ -592,7 +592,7 @@ def stitch_images_by_shape(data_dir, stitched_dir, img_sub_folder=None, channels
     # retrieve valid fov names
     if segmentation:
         fovs = ns.natsorted(io_utils.list_files(data_dir, substrs='_feature_0.tiff'))
-        fovs = io_utils.extract_delimited_names(fovs, delimiter='_feature_0.tif')
+        fovs = io_utils.extract_delimited_names(fovs, delimiter='_feature_0.tiff')
     elif clustering:
         fovs = ns.natsorted(io_utils.list_files(data_dir, substrs=f'_{clustering}_mask.tiff'))
         fovs = io_utils.extract_delimited_names(fovs, delimiter=f'_{clustering}_mask.tiff')
@@ -622,7 +622,7 @@ def stitch_images_by_shape(data_dir, stitched_dir, img_sub_folder=None, channels
     if not segmentation and not clustering:
         channel_imgs = io_utils.list_files(
             dir_name=os.path.join(data_dir, fovs[0], img_sub_folder),
-            substrs=['.tif', '.tiff', '.jpg', '.png'])
+            substrs=['.tiff', '.jpg', '.png'])
     else:
         channel_imgs = io_utils.list_files(data_dir, substrs=fovs[0])
         channel_imgs = [chan.split(fovs[0] + '_')[1] for chan in channel_imgs]

@@ -781,7 +781,7 @@ def test_preprocess_fov(mocker):
         # create sample segmentation data
         for fov in ['fov0', 'fov1']:
             rand_img = np.random.randint(0, 16, size=(10, 10))
-            file_name = fov + "_feature_0.tif"
+            file_name = fov + "_feature_0.tiff"
             io.imsave(os.path.join(seg_dir, file_name), rand_img,
                       check_contrast=False)
 
@@ -795,7 +795,7 @@ def test_preprocess_fov(mocker):
         # NOTE: don't test the return value, leave that for test_create_pixel_matrix
         pixel_cluster_utils.preprocess_fov(
             temp_dir, tiff_dir, 'pixel_mat_data', 'pixel_mat_subsetted',
-            seg_dir, '_feature_0.tif', 'TIFs', False, ['chan0', 'chan1', 'chan2'],
+            seg_dir, '_feature_0.tiff', 'TIFs', False, ['chan0', 'chan1', 'chan2'],
             2, 0.1, 1, 42, channel_norm_df, 'fov0'
         )
 

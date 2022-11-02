@@ -238,7 +238,7 @@ def test_generate_and_save_cell_cluster_masks(sub_dir, name_suffix):
             fov_index = fov if fov < fov_size_split else fov_size_split - fov
             fov_mask = cell_masks_40 if fov < fov_size_split else cell_masks_20
             fov_whole_cell = fov_mask[fov_index, :, :, 0]
-            io.imsave(os.path.join(temp_dir, 'fov%d_feature_0.tif' % fov), fov_whole_cell,
+            io.imsave(os.path.join(temp_dir, 'fov%d_feature_0.tiff' % fov), fov_whole_cell,
                       check_contrast=False)
 
         # create a sample cell consensus file based on SOM cluster assignments
@@ -287,7 +287,7 @@ def test_generate_and_save_cell_cluster_masks(sub_dir, name_suffix):
                                              seg_dir=temp_dir,
                                              cell_data_name='cluster_consensus_som.feather',
                                              cell_cluster_col='cell_som_cluster',
-                                             seg_suffix='_feature_0.tif',
+                                             seg_suffix='_feature_0.tiff',
                                              sub_dir=sub_dir,
                                              name_suffix=name_suffix
                                              )
@@ -324,13 +324,13 @@ def test_generate_pixel_cluster_mask():
         # generate sample fov folder with one channel value, no sub folder
         channel_data = np.random.randint(low=0, high=5, size=(40, 40), dtype="int16")
         os.mkdir(os.path.join(temp_dir, 'fov0'))
-        io.imsave(os.path.join(temp_dir, 'fov0', 'chan0.tif'), channel_data,
+        io.imsave(os.path.join(temp_dir, 'fov0', 'chan0.tiff'), channel_data,
                   check_contrast=False)
 
         # bad consensus path passed
         with pytest.raises(FileNotFoundError):
             data_utils.generate_pixel_cluster_mask(
-                fov, temp_dir, temp_dir, os.path.join('fov0', 'chan0.tif'), 'bad_consensus_path'
+                fov, temp_dir, temp_dir, os.path.join('fov0', 'chan0.tiff'), 'bad_consensus_path'
             )
 
         # create a dummy consensus directory
@@ -350,20 +350,20 @@ def test_generate_pixel_cluster_mask():
         # bad cluster column provided
         with pytest.raises(ValueError):
             data_utils.generate_pixel_cluster_mask(
-                fov, temp_dir, temp_dir, os.path.join('fov0', 'chan0.tif'),
+                fov, temp_dir, temp_dir, os.path.join('fov0', 'chan0.tiff'),
                 'pixel_mat_consensus', 'bad_cluster'
             )
 
         # bad fov provided
         with pytest.raises(ValueError):
             data_utils.generate_pixel_cluster_mask(
-                'fov1', temp_dir, temp_dir, os.path.join('fov0', 'chan0.tif'),
+                'fov1', temp_dir, temp_dir, os.path.join('fov0', 'chan0.tiff'),
                 'pixel_mat_consensus', 'pixel_som_cluster'
             )
 
         # test on SOM assignments
         pixel_masks = data_utils.generate_pixel_cluster_mask(
-            fov, temp_dir, temp_dir, os.path.join('fov0', 'chan0.tif'),
+            fov, temp_dir, temp_dir, os.path.join('fov0', 'chan0.tiff'),
             'pixel_mat_consensus', 'pixel_som_cluster'
         )
 
@@ -375,7 +375,7 @@ def test_generate_pixel_cluster_mask():
 
         # test on meta assignments
         pixel_masks = data_utils.generate_pixel_cluster_mask(
-            fov, temp_dir, temp_dir, os.path.join('fov0', 'chan0.tif'),
+            fov, temp_dir, temp_dir, os.path.join('fov0', 'chan0.tiff'),
             'pixel_mat_consensus', 'pixel_meta_cluster'
         )
 
@@ -415,7 +415,7 @@ def test_generate_and_save_pixel_cluster_masks(sub_dir, name_suffix):
                 os.mkdir(os.path.join(temp_dir, fov))
 
             io.imsave(
-                os.path.join(temp_dir, fov, 'chan0.tif'),
+                os.path.join(temp_dir, fov, 'chan0.tiff'),
                 channel_data,
                 check_contrast=False
             )
@@ -434,7 +434,7 @@ def test_generate_and_save_pixel_cluster_masks(sub_dir, name_suffix):
                                               base_dir=temp_dir,
                                               save_dir=os.path.join(temp_dir, 'pixel_masks'),
                                               tiff_dir=temp_dir,
-                                              chan_file='chan0.tif',
+                                              chan_file='chan0.tiff',
                                               pixel_data_dir='pixel_mat_consensus',
                                               pixel_cluster_col='pixel_meta_cluster',
                                               sub_dir=sub_dir,
