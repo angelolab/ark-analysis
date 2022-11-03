@@ -397,7 +397,7 @@ def generate_and_save_neighborhood_cluster_masks(fovs: List[str],
         seg_dir (str):
             The path to the segmentation data.
         seg_suffix (str):
-            The suffix that the segmentation images use. Defaults to `'_feature_0.tif'`.
+            The suffix that the segmentation images use. Defaults to `'_feature_0.tiff'`.
         xr_channel_name (str):
             Channel name for segmented data array.
         sub_dir (str, optional):
