@@ -29,11 +29,11 @@ jobs:
         - python -m pip install --editable .
         - python -m pytest --cov=ark --pycodestyle ark
     - stage: test_pypi_deploy
-      if: tag IS present
+      # if: tag IS prese
       script:
         - "travis_wait 120 sleep 7200 &"
-        - python setup.py bdist_wheel
         - sudo apt-get install patchelf
+        - python setup.py bdist_wheel
         - auditwheel-symbols --manylinux 2_24 dist/*.whl
         - auditwheel repair dist/*.whl --plat manylinux_2_17_x86_64
         - twine upload -r testpypi --skip-existing /home/travis/build/"$TRAVIS_REPO_SLUG"/wheelhouse/*.whl -u "$TEST_PYPI_USERNAME" -p "$TEST_PYPI_PASSWORD"
@@ -41,8 +41,8 @@ jobs:
       if: tag IS present
       script:
         - "travis_wait 120 sleep 7200 &"
-        - python setup.py bdist_wheel
         - sudo apt-get install patchelf
+        - python setup.py bdist_wheel
         - auditwheel-symbols --manylinux 2_24 dist/*.whl
         - auditwheel repair dist/*.whl --plat manylinux_2_17_x86_64
         - twine upload --skip-existing /home/travis/build/"$TRAVIS_REPO_SLUG"/wheelhouse/*.whl -u "$PYPI_USERNAME" -p "$PYPI_PASSWORD"
