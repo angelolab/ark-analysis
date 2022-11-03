@@ -381,7 +381,7 @@ def generate_and_save_neighborhood_cluster_masks(fovs: List[str],
                                                  save_dir: Union[pathlib.Path, str],
                                                  neighborhood_data: pd.DataFrame,
                                                  seg_dir: str,
-                                                 seg_suffix: str = '_feature_0.tif',
+                                                 seg_suffix: str = '_feature_0.tiff',
                                                  xr_channel_name='segmentation_label',
                                                  sub_dir: str = None,
                                                  name_suffix: str = ''):
@@ -415,7 +415,7 @@ def generate_and_save_neighborhood_cluster_masks(fovs: List[str],
             # load in the label map for the FOV
             label_map = load_utils.load_imgs_from_dir(
                 seg_dir, files=[fov + seg_suffix], xr_channel_names=[xr_channel_name],
-                trim_suffix=seg_suffix
+                trim_suffix=seg_suffix.split('.')[0]
             ).loc[fov, ..., :]
 
             # generate the neighborhood mask for the FOV
