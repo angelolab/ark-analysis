@@ -1,9 +1,11 @@
 import os
 import warnings
+import re
 
 import numpy as np
 import skimage.io as io
 import xarray as xr
+import natsort as ns
 
 from ark.utils import io_utils as iou
 from ark.utils import misc_utils
@@ -36,7 +38,7 @@ def load_imgs_from_mibitiff(data_dir, mibitiff_files=None, channels=None, delimi
     iou.validate_paths(data_dir, data_prefix=False)
 
     if not mibitiff_files:
-        mibitiff_files = iou.list_files(data_dir, substrs=['.tif'])
+        mibitiff_files = iou.list_files(data_dir, substrs=['.tiff'])
         mibitiff_files.sort()
 
     if len(mibitiff_files) == 0:
@@ -129,13 +131,13 @@ def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, channels=None,
     if channels is None:
         channels = iou.list_files(
             dir_name=os.path.join(data_dir, fovs[0], img_sub_folder),
-            substrs=['.tif', '.jpg', '.png']
+            substrs=['.tiff', '.jpg', '.png']
         )
 
         # if taking all channels from directory, sort them alphabetically
         channels.sort()
     # otherwise, fill channel names with correct file extension
-    elif not all([img.endswith(("tif", "tiff", "jpg", "png")) for img in channels]):
+    elif not all([img.endswith(("tiff", "jpg", "png")) for img in channels]):
         # need this to reorder channels back because list_files may mess up the ordering
         channels_no_delim = [img.split('.')[0] for img in channels]
 
@@ -190,7 +192,7 @@ def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, channels=None,
 
     row_coords, col_coords = range(img_data.shape[1]), range(img_data.shape[2])
 
-    # remove .tif or .tiff from image name
+    # remove .tiff from image name
     img_names = [os.path.splitext(img)[0] for img in channels]
 
     img_xr = xr.DataArray(img_data, coords=[fovs, row_coords, col_coords, img_names],
@@ -207,8 +209,8 @@ def load_imgs_from_dir(data_dir, files=None, match_substring=None, trim_suffix=N
         data_dir (str):
             directory containing images
         files (list):
-            list of files (e.g. ['fov1.tif'. 'fov2.tif'] to load.
-            If None, all (.tif, .jpg, .png) files in data_dir are loaded.
+            list of files (e.g. ['fov1.tiff'. 'fov2.tiff'] to load.
+            If None, all (.tiff, .jpg, .png) files in data_dir are loaded.
         match_substring (str):
             a filename substring that all loaded images must contain. Ignored if files argument is
             not None.  If None, no matching is performed.
@@ -244,7 +246,7 @@ def load_imgs_from_dir(data_dir, files=None, match_substring=None, trim_suffix=N
     iou.validate_paths(data_dir, data_prefix=False)
 
     if files is None:
-        imgs = iou.list_files(data_dir, substrs=['.tif', '.jpg', '.png'])
+        imgs = iou.list_files(data_dir, substrs=['.tiff', '.jpg', '.png'])
         if match_substring is not None:
             filenames = iou.remove_file_extensions(imgs)
             imgs = [imgs[i] for i, name in enumerate(filenames) if match_substring in name]
@@ -317,5 +319,163 @@ def load_imgs_from_dir(data_dir, files=None, match_substring=None, trim_suffix=N
                                   xr_channel_names if xr_channel_names
                                   else range(img_data.shape[3])],
                           dims=["fovs", "rows", "cols", xr_dim_name])
+
+    return img_xr
+
+
+def check_fov_name_prefix(fov_list):
+    """Checks for a prefix (usually detailing a run name) in any of the provided FOV names
+
+        Args:
+            fov_list (list): list of fov name
+        Returns:
+            tuple: (bool) whether at least one fov names has a prefix,
+                   (list / dict) if prefix, dictionary with fov name as keys and prefixes as values
+                    otherwise return a simple list of the fov names
+        """
+
+    # check for prefix in any of the fov names
+    prefix = False
+    for folder in fov_list:
+        if re.search('R.{1,3}C.{1,3}', folder).start() != 0:
+            prefix = True
+
+    if prefix:
+        # dict containing fov name and run name
+        fov_names = {}
+        for folder in fov_list:
+            fov = ''.join(folder.split("_")[-1:])
+            prefix_name = '_'.join(folder.split("_")[:-1])
+            fov_names[fov] = prefix_name
+    else:
+        # original list of fov names
+        fov_names = fov_list
+
+    return prefix, fov_names
+
+
+def get_tiled_fov_names(fov_list, return_dims=False):
+    """Generates the complete tiled fov list when given a list of fov names
+
+    Args:
+        fov_list (list):
+            list of fov names
+        return_dims (bool):
+            whether to also return row and col dimensions
+    Returns:
+        tuple: names of all fovs expected for tiled image shape, and dimensions if return_dims
+    """
+
+    rows, cols, expected_fovs = [], [], []
+
+    # check for run name prefix
+    prefix, fov_names = check_fov_name_prefix(fov_list)
+
+    # get tiled image dimensions
+    for fov in fov_names:
+        fov_digits = re.findall(r'\d+', fov)
+        rows.append(int(fov_digits[0]))
+        cols.append(int(fov_digits[1]))
+    row_num, col_num = max(rows), max(cols)
+
+    # fill list of expected fov names
+    for n in range(row_num):
+        for m in range(col_num):
+            fov = f'R{n + 1}C{m + 1}'
+            # prepend run names
+            if prefix and fov in list(fov_names.keys()):
+                expected_fovs.append(f"{fov_names[fov]}_" + fov)
+            else:
+                expected_fovs.append(fov)
+
+    if return_dims:
+        return expected_fovs, row_num, col_num
+    else:
+        return expected_fovs
+
+
+def load_tiled_img_data(data_dir, fovs, expected_fovs, channel, single_dir, file_ext='tiff',
+                        img_sub_folder=''):
+    """Takes a set of images from a directory structure and loads them into a tiled xarray.
+
+    Args:
+        data_dir (str):
+            directory containing folders of images
+        fovs (list/dict):
+            list of fovs (or dictionary with folder and RnCm names) to load data for
+        expected_fovs (list):
+            list of all expected RnCm fovs names in the tiled grid
+        channel (str):
+            single image name to load
+        single_dir (bool):
+            whether the images are stored in a single directory rather than within fov subdirs
+        file_ext (str):
+            the file type of existing images
+        img_sub_folder (str):
+            optional name of image sub-folder within each fov
+
+    Returns:
+        xarray.DataArray:
+            xarray with shape [fovs, x_dim, y_dim, channel]
+    """
+
+    iou.validate_paths(data_dir, data_prefix=False)
+
+    # check for toffy fovs
+    if type(fovs) is dict:
+        fov_list = list(fovs.values())
+        tiled_names = list(fovs.keys())
+    else:
+        fov_list = fovs
+        tiled_names = []
+
+    # no missing fov images, load data normally and return array
+    if len(fov_list) == len(expected_fovs):
+        if single_dir:
+            img_xr = load_imgs_from_dir(data_dir, match_substring=channel, xr_dim_name='channels',
+                                        trim_suffix='_' + channel, xr_channel_names=[channel])
+        else:
+            img_xr = load_imgs_from_tree(data_dir, img_sub_folder, fovs=fov_list,
+                                         channels=[channel])
+        return img_xr
+
+    # missing fov directories, read in a test image to get data type
+    if single_dir:
+        test_path = os.path.join(data_dir, expected_fovs[0] + '_' + channel + '.' + file_ext)
+    else:
+        test_path = os.path.join(os.path.join(data_dir, fov_list[0], img_sub_folder, channel + '.'
+                                              + file_ext))
+    test_img = io.imread(test_path)
+    img_data = np.zeros((len(expected_fovs), test_img.shape[0], test_img.shape[1], 1),
+                        dtype=test_img.dtype)
+
+    for fov, fov_name in enumerate(expected_fovs):
+        # load in fov data for images, leave missing fovs as zeros
+        if fov_name in fov_list:
+            if single_dir:
+                temp_img = io.imread(os.path.join(data_dir, fov_name + '_' +
+                                                  channel + '.' + file_ext))
+            else:
+                temp_img = io.imread(os.path.join(data_dir, fov_name, img_sub_folder,
+                                                  channel + '.' + file_ext))
+            # fill in specific spot in array
+            img_data[fov, :temp_img.shape[0], :temp_img.shape[1], 0] = temp_img
+
+        # check against tiled_names from dict for toffy dirs
+        elif fov_name in tiled_names:
+            folder_name = fovs[fov_name]
+            temp_img = io.imread(os.path.join(data_dir, folder_name, img_sub_folder,
+                                              channel + '.' + file_ext))
+            # fill in specific spot in array
+            img_data[fov, :temp_img.shape[0], :temp_img.shape[1], 0] = temp_img
+
+    # check to make sure that dtype wasn't too small for range of data
+    if np.min(img_data) < 0:
+        warnings.warn("You have images with negative values loaded in.")
+
+    row_coords, col_coords = range(img_data.shape[1]), range(img_data.shape[2])
+
+    img_xr = xr.DataArray(img_data, coords=[expected_fovs, row_coords, col_coords, [channel]],
+                          dims=["fovs", "rows", "cols", "channels"])
 
     return img_xr

@@ -25,7 +25,7 @@ def generate_channel_spatial_enrichment_stats(label_dir, dist_mat_dir, marker_th
         all_data (pandas.DataFrame):
             data including fovs, cell labels, and cell expression matrix for all markers
         suffix (str):
-            suffix for tif file names
+            suffix for tiff file names
         xr_channel_name (str):
             channel name for label data array
         **kwargs (dict):
@@ -42,7 +42,7 @@ def generate_channel_spatial_enrichment_stats(label_dir, dist_mat_dir, marker_th
     """
 
     # parse files in label_dir
-    all_label_names = io_utils.list_files(label_dir, substrs=[suffix + '.tif'])
+    all_label_names = io_utils.list_files(label_dir, substrs=[suffix + '.tiff'])
 
     included_fovs = kwargs.get('included_fovs', None)
     if included_fovs:
@@ -242,7 +242,7 @@ def generate_cluster_spatial_enrichment_stats(label_dir, dist_mat_dir, all_data,
         all_data (pandas.DataFrame):
             data including fovs, cell labels, and cell expression matrix for all markers
         suffix (str):
-            suffix for tif file names
+            suffix for tiff file names
         xr_channel_name (str):
             channel name for label data array
         **kwargs (dict):
@@ -259,7 +259,7 @@ def generate_cluster_spatial_enrichment_stats(label_dir, dist_mat_dir, all_data,
     """
 
     # parse files in label_dir
-    all_label_names = io_utils.list_files(label_dir, substrs=[suffix + '.tif'])
+    all_label_names = io_utils.list_files(label_dir, substrs=[suffix + '.tiff'])
 
     included_fovs = kwargs.get('included_fovs', None)
     if included_fovs:
@@ -588,8 +588,9 @@ def generate_cluster_matrix_results(all_data, neighbor_mat, cluster_num, exclude
                               unique_fovs=all_data[fov_col].unique())
 
     # check if all excluded column names found in all_data
-    misc_utils.verify_in_list(columns_to_exclude=excluded_channels,
-                              column_names=all_data.columns)
+    if excluded_channels is not None:
+        misc_utils.verify_in_list(columns_to_exclude=excluded_channels,
+                                  column_names=all_data.columns)
 
     # make sure number of clusters specified is valid
     if cluster_num < 2:
@@ -623,14 +624,17 @@ def generate_cluster_matrix_results(all_data, neighbor_mat, cluster_num, exclude
     num_cell_type_per_cluster.index = ["Cluster" + str(c)
                                        for c in num_cell_type_per_cluster.index]
 
-    # Subsets the expression matrix to only have channel columns
+    # subsets the expression matrix to only have channel columns
     channel_start = np.where(all_data_clusters.columns == pre_channel_col)[0][0] + 1
     channel_end = np.where(all_data_clusters.columns == post_channel_col)[0][0]
     cluster_label_colnum = np.where(all_data_clusters.columns == cluster_label_col)[0][0]
 
     all_data_markers_clusters = \
         all_data_clusters.iloc[:, list(range(channel_start, channel_end)) + [cluster_label_colnum]]
-    all_data_markers_clusters = all_data_markers_clusters.drop(excluded_channels, axis=1)
+
+    # drop excluded channels
+    if excluded_channels is not None:
+        all_data_markers_clusters = all_data_markers_clusters.drop(excluded_channels, axis=1)
 
     # create a mean pivot table with cluster_label_col as row and channels as column
     mean_marker_exp_per_cluster = all_data_markers_clusters.groupby([cluster_label_col]).mean()

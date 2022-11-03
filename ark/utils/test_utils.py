@@ -9,7 +9,7 @@ import skimage.io as io
 import xarray as xr
 
 import ark.settings as settings
-from ark.utils import synthetic_spatial_datagen
+from ark.utils import synthetic_spatial_datagen, io_utils
 from ark.utils.tiff_utils import write_mibitiff
 
 
@@ -142,7 +142,7 @@ def _gen_label_data(fov_number, comp_number, img_shape, dtype):
     return label_data
 
 
-def _write_tifs(base_dir, fov_names, img_names, shape, sub_dir, fills, dtype):
+def _write_tifs(base_dir, fov_names, img_names, shape, sub_dir, fills, dtype, single_dir=False):
     """Generates and writes single tifs to into base_dir/fov_name/sub_dir
 
     Args:
@@ -162,6 +162,8 @@ def _write_tifs(base_dir, fov_names, img_names, shape, sub_dir, fills, dtype):
             value is one less than that of the first channel in the next fov.
         dtype (type):
             Data type for generated images
+        single_dir (bool):
+            whether to create single image dir with fov names prepended to image file
 
     Returns:
         tuple (dict, numpy.ndarray):
@@ -178,12 +180,20 @@ def _write_tifs(base_dir, fov_names, img_names, shape, sub_dir, fills, dtype):
 
     for i, fov in enumerate(fov_names):
         filelocs[fov] = []
-        fov_path = os.path.join(base_dir, fov, sub_dir)
-        os.makedirs(fov_path)
+        # write to individual fov folders
+        if not single_dir:
+            fov_path = os.path.join(base_dir, fov, sub_dir)
+            os.makedirs(fov_path)
         for j, name in enumerate(img_names):
-            io.imsave(os.path.join(fov_path, f'{name}.tiff'), tif_data[i, :, :, j],
+            # prepend fov name to single directory images
+            if single_dir:
+                img_path = os.path.join(base_dir, f'{fov}_{name}')
+            else:
+                img_path = os.path.join(fov_path, name)
+
+            io.imsave(img_path + '.tiff', tif_data[i, :, :, j],
                       check_contrast=False)
-            filelocs[fov].append(os.path.join(fov_path, name))
+            filelocs[fov].append(img_path)
 
     return filelocs, tif_data
 
@@ -370,7 +380,7 @@ TIFFMAKERS = {
 
 def create_paired_xarray_fovs(base_dir, fov_names, channel_names, img_shape=(10, 10),
                               mode='tiff', delimiter=None, sub_dir=None, fills=False,
-                              dtype="int8", channels_first=False):
+                              dtype="int8", channels_first=False, single_dir=False):
     """Writes data to file system (images or labels) and creates expected xarray for reloading
     data from said file system.
 
@@ -407,6 +417,8 @@ def create_paired_xarray_fovs(base_dir, fov_names, channel_names, img_shape=(10,
         channels_first (bool):
             Indicates whether the data should be saved in channels_first format when
             mode is 'multitiff'. Default: False
+        single_dir (bool):
+            whether to create single image dir with fov names prepended to image file
 
     Returns:
         tuple (dict, xarray.DataArray):
@@ -416,8 +428,8 @@ def create_paired_xarray_fovs(base_dir, fov_names, channel_names, img_shape=(10,
           (num_fovs, im_shape[0], shape[1], num_channels)
     """
 
-    if not os.path.isdir(base_dir):
-        raise FileNotFoundError(f'{base_dir} is not a directory')
+    # validation checks
+    io_utils.validate_paths(base_dir)
 
     if fov_names is None or fov_names is []:
         raise ValueError('No fov names were given...')
@@ -435,6 +447,9 @@ def create_paired_xarray_fovs(base_dir, fov_names, channel_names, img_shape=(10,
         filelocs, tif_data = TIFFMAKERS[mode](base_dir, fov_names, channel_names,
                                               img_shape, sub_dir, fills, dtype,
                                               channels_first=channels_first)
+    elif mode == 'tiff':
+        filelocs, tif_data = TIFFMAKERS[mode](base_dir, fov_names, channel_names,
+                                              img_shape, sub_dir, fills, dtype, single_dir)
     else:
         filelocs, tif_data = TIFFMAKERS[mode](base_dir, fov_names, channel_names,
                                               img_shape, sub_dir, fills, dtype)

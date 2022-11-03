@@ -1,8 +1,6 @@
 import os
-import pathlib
+import shutil
 import tempfile
-from shutil import rmtree
-
 import feather
 import numpy as np
 import pandas as pd
@@ -10,8 +8,11 @@ import pytest
 import skimage.io as io
 import xarray as xr
 
+from shutil import rmtree
+from random import randint
+
 from ark import settings
-from ark.utils import data_utils, test_utils
+from ark.utils import data_utils, test_utils, io_utils, load_utils
 from ark.utils.data_utils import (generate_and_save_cell_cluster_masks,
                                   generate_and_save_pixel_cluster_masks,
                                   generate_and_save_neighborhood_cluster_masks,
@@ -135,7 +136,7 @@ def test_generate_cell_cluster_mask():
 
         # generate a sample segmentation mask
         cell_mask = np.random.randint(low=0, high=5, size=(40, 40), dtype="int16")
-        io.imsave(os.path.join(temp_dir, '%s_feature_0.tif' % fov), cell_mask,
+        io.imsave(os.path.join(temp_dir, '%s_feature_0.tiff' % fov), cell_mask,
                   check_contrast=False)
 
         # bad consensus path passed
@@ -237,7 +238,7 @@ def test_generate_and_save_cell_cluster_masks(sub_dir, name_suffix):
             fov_index = fov if fov < fov_size_split else fov_size_split - fov
             fov_mask = cell_masks_40 if fov < fov_size_split else cell_masks_20
             fov_whole_cell = fov_mask[fov_index, :, :, 0]
-            io.imsave(os.path.join(temp_dir, 'fov%d_feature_0.tif' % fov), fov_whole_cell,
+            io.imsave(os.path.join(temp_dir, 'fov%d_feature_0.tiff' % fov), fov_whole_cell,
                       check_contrast=False)
 
         # create a sample cell consensus file based on SOM cluster assignments
@@ -286,7 +287,7 @@ def test_generate_and_save_cell_cluster_masks(sub_dir, name_suffix):
                                              seg_dir=temp_dir,
                                              cell_data_name='cluster_consensus_som.feather',
                                              cell_cluster_col='cell_som_cluster',
-                                             seg_suffix='_feature_0.tif',
+                                             seg_suffix='_feature_0.tiff',
                                              sub_dir=sub_dir,
                                              name_suffix=name_suffix
                                              )
@@ -323,13 +324,13 @@ def test_generate_pixel_cluster_mask():
         # generate sample fov folder with one channel value, no sub folder
         channel_data = np.random.randint(low=0, high=5, size=(40, 40), dtype="int16")
         os.mkdir(os.path.join(temp_dir, 'fov0'))
-        io.imsave(os.path.join(temp_dir, 'fov0', 'chan0.tif'), channel_data,
+        io.imsave(os.path.join(temp_dir, 'fov0', 'chan0.tiff'), channel_data,
                   check_contrast=False)
 
         # bad consensus path passed
         with pytest.raises(FileNotFoundError):
             data_utils.generate_pixel_cluster_mask(
-                fov, temp_dir, temp_dir, os.path.join('fov0', 'chan0.tif'), 'bad_consensus_path'
+                fov, temp_dir, temp_dir, os.path.join('fov0', 'chan0.tiff'), 'bad_consensus_path'
             )
 
         # create a dummy consensus directory
@@ -349,20 +350,20 @@ def test_generate_pixel_cluster_mask():
         # bad cluster column provided
         with pytest.raises(ValueError):
             data_utils.generate_pixel_cluster_mask(
-                fov, temp_dir, temp_dir, os.path.join('fov0', 'chan0.tif'),
+                fov, temp_dir, temp_dir, os.path.join('fov0', 'chan0.tiff'),
                 'pixel_mat_consensus', 'bad_cluster'
             )
 
         # bad fov provided
         with pytest.raises(ValueError):
             data_utils.generate_pixel_cluster_mask(
-                'fov1', temp_dir, temp_dir, os.path.join('fov0', 'chan0.tif'),
+                'fov1', temp_dir, temp_dir, os.path.join('fov0', 'chan0.tiff'),
                 'pixel_mat_consensus', 'pixel_som_cluster'
             )
 
         # test on SOM assignments
         pixel_masks = data_utils.generate_pixel_cluster_mask(
-            fov, temp_dir, temp_dir, os.path.join('fov0', 'chan0.tif'),
+            fov, temp_dir, temp_dir, os.path.join('fov0', 'chan0.tiff'),
             'pixel_mat_consensus', 'pixel_som_cluster'
         )
 
@@ -374,7 +375,7 @@ def test_generate_pixel_cluster_mask():
 
         # test on meta assignments
         pixel_masks = data_utils.generate_pixel_cluster_mask(
-            fov, temp_dir, temp_dir, os.path.join('fov0', 'chan0.tif'),
+            fov, temp_dir, temp_dir, os.path.join('fov0', 'chan0.tiff'),
             'pixel_mat_consensus', 'pixel_meta_cluster'
         )
 
@@ -414,7 +415,7 @@ def test_generate_and_save_pixel_cluster_masks(sub_dir, name_suffix):
                 os.mkdir(os.path.join(temp_dir, fov))
 
             io.imsave(
-                os.path.join(temp_dir, fov, 'chan0.tif'),
+                os.path.join(temp_dir, fov, 'chan0.tiff'),
                 channel_data,
                 check_contrast=False
             )
@@ -433,7 +434,7 @@ def test_generate_and_save_pixel_cluster_masks(sub_dir, name_suffix):
                                               base_dir=temp_dir,
                                               save_dir=os.path.join(temp_dir, 'pixel_masks'),
                                               tiff_dir=temp_dir,
-                                              chan_file='chan0.tif',
+                                              chan_file='chan0.tiff',
                                               pixel_data_dir='pixel_mat_consensus',
                                               pixel_cluster_col='pixel_meta_cluster',
                                               sub_dir=sub_dir,
@@ -524,9 +525,9 @@ def test_generate_deepcell_input():
             nucs = ['nuc2']
             mems = ['mem2']
 
-            fov1path = os.path.join(temp_dir, 'fov1.tif')
-            fov2path = os.path.join(temp_dir, 'fov2.tif')
-            fov3path = os.path.join(temp_dir, 'fov3.tif')
+            fov1path = os.path.join(temp_dir, 'fov1.tiff')
+            fov2path = os.path.join(temp_dir, 'fov2.tiff')
+            fov3path = os.path.join(temp_dir, 'fov3.tiff')
 
             data_utils.generate_deepcell_input(
                 data_dir=temp_dir, tiff_dir=tiff_dir, nuc_channels=nucs, mem_channels=mems,
@@ -668,3 +669,98 @@ def test_split_img_stack():
 
         assert np.array_equal(sample_chan_1, data_xr[0, :, :, 0].values)
         assert np.array_equal(sample_chan_2, data_xr[0, :, :, 1].values)
+
+
+@pytest.mark.parametrize('segmentation, clustering, subdir',
+                         [(False, False, 'TIFs'), (True, False, ''), (False, 'cell', ''),
+                          (False, 'pixel', '')])
+@pytest.mark.parametrize('fovs', [['R1C1', 'R2C2', 'R3C1'],
+                         ['run_1_R1C1', 'run_1_R2C2', 'run_2_R3C1']])
+def test_stitch_images_by_shape(segmentation, clustering, subdir, fovs):
+
+    # validation checks (only once)
+    if clustering == 'pixel':
+        with tempfile.TemporaryDirectory() as temp_dir:
+            data_dir = os.path.join(temp_dir, 'images')
+            stitched_dir = os.path.join(temp_dir, 'stitched_images')
+            os.makedirs(data_dir)
+
+            # invalid directory is provided
+            with pytest.raises(FileNotFoundError):
+                data_utils.stitch_images_by_shape('not_a_dir', stitched_dir)
+
+            # no fov dirs should raise an error
+            with pytest.raises(ValueError, match="No FOVs found in directory"):
+                data_utils.stitch_images_by_shape(data_dir, stitched_dir)
+
+            for fov in ['fov1', 'fov2']:
+                os.makedirs(os.path.join(data_dir, fov))
+
+            # bad fov names should raise error
+            with pytest.raises(ValueError, match="Invalid FOVs found in directory"):
+                data_utils.stitch_images_by_shape(data_dir, stitched_dir)
+
+            # one valid fov name but not all should raise error
+            os.makedirs(os.path.join(temp_dir, 'R1C1'))
+            with pytest.raises(ValueError, match="Invalid FOVs found in directory"):
+                data_utils.stitch_images_by_shape(data_dir, stitched_dir)
+
+            # bad clustering arg should raise an error
+            with pytest.raises(ValueError, match="If stitching images from the pixie pipeline"):
+                data_utils.stitch_images_by_shape(data_dir, stitched_dir,
+                                                  segmentation=segmentation, clustering='not_cell')
+
+            # check for existing previous stitched images
+            os.makedirs(os.path.join(stitched_dir))
+            with pytest.raises(ValueError, match="already exists"):
+                data_utils.stitch_images_by_shape(data_dir, stitched_dir)
+
+    # test success for various directory cases
+    with tempfile.TemporaryDirectory() as temp_dir:
+        data_dir = os.path.join(temp_dir, 'images')
+        stitched_dir = os.path.join(temp_dir, 'stitched_images')
+        os.makedirs(data_dir)
+
+        if segmentation:
+            chans = ['feature_0', 'feature_1']
+        elif clustering:
+            chans = [clustering + '_mask']
+        else:
+            chans = [f'chan{i}' for i in range(5)]
+            # check that ignores toffy stitching in fov level dir
+            fovs.append('stitched_images')
+
+        filelocs, data_xr = test_utils.create_paired_xarray_fovs(
+            data_dir, fovs, chans,
+            img_shape=(10, 10), fills=True, sub_dir=subdir, dtype=np.float32,
+            single_dir=any([segmentation, clustering])
+        )
+
+        # bad channel name should raise an error
+        with pytest.raises(ValueError, match="Not all values given in list"):
+            data_utils.stitch_images_by_shape(data_dir, stitched_dir, channels='bad_channel',
+                                              img_sub_folder=subdir, segmentation=segmentation,
+                                              clustering=clustering)
+
+        # test successful stitching
+        data_utils.stitch_images_by_shape(data_dir, stitched_dir, img_sub_folder=subdir,
+                                          segmentation=segmentation, clustering=clustering)
+        assert sorted(io_utils.list_files(stitched_dir)) == \
+               [chan + '_stitched.tiff' for chan in chans]
+
+        # stitched image is 3 x 2 fovs with max_img_size = 10
+        stitched_data = load_utils.load_imgs_from_dir(stitched_dir,
+                                                      files=[chans[0] + '_stitched.tiff'])
+        assert stitched_data.shape == (1, 30, 20, 1)
+        shutil.rmtree(stitched_dir)
+
+        # test successful stitching for select channels
+        random_channel = chans[randint(0, len(chans)-1)]
+        data_utils.stitch_images_by_shape(data_dir, stitched_dir, img_sub_folder=subdir,
+                                          channels=[random_channel], segmentation=segmentation,
+                                          clustering=clustering)
+        assert sorted(io_utils.list_files(stitched_dir)) == [random_channel + '_stitched.tiff']
+
+        # remove stitched_images from fov list
+        if not segmentation and not clustering:
+            fovs.pop()

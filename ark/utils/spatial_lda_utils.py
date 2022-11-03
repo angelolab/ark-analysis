@@ -12,6 +12,7 @@ from spatial_lda.visualization import _standardize_topics, plot_adjacency_graph
 
 from ark.settings import BASE_COLS, LDA_PLOT_TYPES, CELL_TYPE
 from ark.utils.misc_utils import verify_in_list
+from ark.utils.io_utils import validate_paths
 
 
 def check_format_cell_table_args(cell_table, markers, clusters):
@@ -250,8 +251,7 @@ def read_spatial_lda_file(dir, file_name, format="pkl"):
     """
     file_name += "." + format
     file_path = os.path.join(dir, file_name)
-    if not os.path.exists(file_path):
-        raise FileNotFoundError("No file named '{}'.".format(file_path))
+    validate_paths(file_path)
 
     if format == "pkl":
         with open(file_path, "rb") as f:

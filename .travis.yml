@@ -29,6 +29,7 @@ jobs:
         - python -m pip install --editable .
         - python -m pytest --cov=ark --pycodestyle ark
     - stage: test_pypi_deploy
+      if: tag IS present
       script:
         - "travis_wait 120 sleep 7200 &"
         - python setup.py bdist_wheel

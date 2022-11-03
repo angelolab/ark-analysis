@@ -471,6 +471,13 @@ def test_generate_cluster_matrix_results():
     assert list(mean_marker_exp_per_cluster.columns.values) == \
         list(np.arange(2, 14)) + list(np.arange(15, 23))
 
+    # test excluded_channels=None
+    all_data_markers_clusters, num_cell_type_per_cluster, mean_marker_exp_per_cluster = \
+        spatial_analysis.generate_cluster_matrix_results(
+            all_data_pos, neighbor_counts, cluster_num=2, excluded_channels=None
+        )
+    assert all(x in mean_marker_exp_per_cluster.columns.values for x in excluded_channels)
+
 
 def test_compute_cluster_metrics_inertia():
     # get an example neighborhood matrix

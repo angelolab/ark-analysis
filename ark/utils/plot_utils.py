@@ -113,11 +113,7 @@ def plot_pixel_cell_cluster_overlay(img_xr, fovs, cluster_id_to_name_path, metac
     verify_in_list(fov_names=fovs, unique_fovs=img_xr.fovs.values)
 
     # verify cluster_id_to_name_path exists
-    if not os.path.exists(cluster_id_to_name_path):
-        raise FileNotFoundError(
-            'Metacluster id to renamed metacluster mapping %s does not exist' %
-            cluster_id_to_name_path
-        )
+    io_utils.validate_paths(cluster_id_to_name_path)
 
     # read the cluster to name mapping
     cluster_id_to_name = pd.read_csv(cluster_id_to_name_path)
@@ -283,7 +279,7 @@ def create_overlay(fov, segmentation_dir, data_dir,
     # load the specified fov data in
     plotting_tif = load_utils.load_imgs_from_dir(
         data_dir=data_dir,
-        files=[fov + '.tif'],
+        files=[fov + '.tiff'],
         xr_dim_name='channels',
         xr_channel_names=['nuclear_channel', 'membrane_channel']
     )
@@ -299,13 +295,13 @@ def create_overlay(fov, segmentation_dir, data_dir,
 
     # read the segmentation data in
     segmentation_labels_cell = load_utils.load_imgs_from_dir(data_dir=segmentation_dir,
-                                                             files=[fov + '_feature_0.tif'],
+                                                             files=[fov + '_feature_0.tiff'],
                                                              xr_dim_name='compartments',
                                                              xr_channel_names=['whole_cell'],
                                                              trim_suffix='_feature_0',
                                                              match_substring='_feature_0')
     segmentation_labels_nuc = load_utils.load_imgs_from_dir(data_dir=segmentation_dir,
-                                                            files=[fov + '_feature_1.tif'],
+                                                            files=[fov + '_feature_1.tiff'],
                                                             xr_dim_name='compartments',
                                                             xr_channel_names=['nuclear'],
                                                             trim_suffix='_feature_1',
@@ -499,7 +495,7 @@ def create_mantis_dir(fovs: List[str], mantis_project_path: Union[str, pathlib.P
                     os.path.join(output_dir, 'population{}.tiff'.format(mask_suffix)))
 
         # copy the segmentation files into the output directory
-        seg_name = fov + '_feature_0.tif'
+        seg_name = fov + '_feature_0.tiff'
         shutil.copy(os.path.join(seg_dir, seg_name),
                     os.path.join(output_dir, 'cell_segmentation.tiff'))
 
