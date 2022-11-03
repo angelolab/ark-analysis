@@ -25,7 +25,6 @@ def test_calc_dist_matrix():
         test_utils._write_labels(label_dir, ["fov9"], ["segmentation_label"], (5, 5),
                                  '', True, np.uint8, suffix='_feature_0')
 
-
         # generate the distance matrices
         spatial_analysis_utils.calc_dist_matrix(label_dir, save_path)
 
