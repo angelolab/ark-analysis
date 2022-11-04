@@ -13,7 +13,7 @@ jupyter_contrib_nbextensions>=0.5.1,<1
 jupyterlab>=3.4.3,<4
 jedi>=0.18.1,<0.19
 matplotlib==3.4.3
-multiprocess==0.70.14
+multiprocess==0.70.13
 natsort>=8.1.0,<9
 numpy>=1.21.6,<2
 palettable>=3.3.0,<4
