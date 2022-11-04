@@ -33,7 +33,7 @@ jobs:
       script:
         - "travis_wait 120 sleep 7200 &"
         - apt-cache madison patchelf
-        # - sudo apt-get install patchelf=0.16.0
+        - sudo apt-get install patchelf
         - python setup.py bdist_wheel
         - auditwheel-symbols --manylinux 2_24 dist/*.whl
         - auditwheel repair dist/*.whl --plat manylinux_2_17_x86_64
