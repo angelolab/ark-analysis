@@ -26,7 +26,7 @@ def calc_dist_matrix(label_dir, save_path, prefix='_feature_0'):
         label_dir (str):
             path to segmentation masks indexed by `(fov, cell_id, cell_id, segmentation_label)`
         save_path (str):
-            path to save file
+            path to save the distance matrices
         prefix (str):
             the prefix used to identify label map files in `label_dir`
     """
