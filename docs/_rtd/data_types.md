@@ -26,8 +26,7 @@ Description: This holds the extracted single cell data. Each row is a unique cel
 
 The default columns of the cell table include:
 
-| cell_size | channel_1 | channel_2 | ... | channel_n | label | area | eccentricity | major_axis_length | minor_axis_length | perimeter | convex_area | equivalent_diameter | centroid-0 | centroid-1 | major_minor_axis_ratio | perim_square_over_area | major_axis_equiv_diam_ratio | convex_hull_resid | centroid_dif | num_concavities | fov | cell_metacluster |   |
-|-----------|-----------|-----------|-----|-----------|-------|------|--------------|-------------------|-------------------|-----------|-------------|---------------------|------------|------------|------------------------|------------------------|-----------------------------|-------------------|--------------|-----------------|-----|------------------|---|
+| cell_size | channel_1 | channel_2 | ... | channel_n | label | area | eccentricity | major_axis_length | minor_axis_length | perimeter | convex_area | equivalent_diameter | centroid-0 | centroid-1 | major_minor_axis_ratio | perim_square_over_area | major_axis_equiv_diam_ratio | convex_hull_resid | centroid_dif | num_concavities | fov | cell_metacluster |
 
 
 For each cell, the following morphology features calculated from `skimage.measure.regionprops` are included:
