@@ -29,7 +29,7 @@ jobs:
         - python -m pip install --editable .
         - python -m pytest --cov=ark --pycodestyle ark
     - stage: test_pypi_deploy
-      # if: tag IS present
+      if: tag IS present
       script:
         - "travis_wait 120 sleep 7200 &"
         - sudo apt-get install patchelf
@@ -38,7 +38,7 @@ jobs:
         - auditwheel repair dist/*.whl --plat manylinux_2_17_x86_64
         - twine upload -r testpypi --skip-existing /home/travis/build/"$TRAVIS_REPO_SLUG"/wheelhouse/*.whl -u "$TEST_PYPI_USERNAME" -p "$TEST_PYPI_PASSWORD"
     - stage: pypi_deploy
-      # if: tag IS present
+      if: tag IS present
       script:
         - "travis_wait 120 sleep 7200 &"
         - sudo apt-get install patchelf
@@ -52,7 +52,7 @@ jobs:
         - "travis_wait 120 sleep 7200 &"
         - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
         # Tag the image with a version such as vX.Y.Z,
-        - docker build -t "$TRAVIS_REPO_SLUG":"v0.4.4" . 1> out.log
+        - docker build -t "$TRAVIS_REPO_SLUG":v0.4.4 . 1> out.log
         - docker push --all-tags "$TRAVIS_REPO_SLUG"
 
 after_failure:
