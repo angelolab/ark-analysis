@@ -44,8 +44,8 @@ def calc_dist_matrix(label_dir, save_path, prefix='_feature_0'):
 
         # load in the data
         fov_data = load_utils.load_imgs_from_dir(
-            label_dir, [fov_file], match_substring='_feature_0',
-            trim_suffix='_feature_0', xr_channel_names=['segmentation_label']
+            label_dir, [fov_file], match_substring=prefix,
+            trim_suffix=prefix, xr_channel_names=['segmentation_label']
         )
 
         # keep just the middle two dimensions
