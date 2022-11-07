@@ -216,10 +216,10 @@ def calculate_channel_spatial_enrichment(fov, dist_matrix, marker_thresholds, al
                     context_mark_nums, context_pos_labels, context_dist_mat, dist_lim,
                     bootstrap_num
                 )
-
-    close_num_rand = spatial_analysis_utils.compute_close_cell_num_random(
-        channel_nums, mark_pos_labels, dist_matrix, dist_lim, bootstrap_num
-    )
+    else:
+        close_num_rand = spatial_analysis_utils.compute_close_cell_num_random(
+            channel_nums, mark_pos_labels, dist_matrix, dist_lim, bootstrap_num
+        )
 
     values = (close_num, close_num_rand)
 
