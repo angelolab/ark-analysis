@@ -4,7 +4,7 @@ import os
 import numpy as np
 import pandas as pd
 import xarray as xr
-from tqdm.auto import tqdm
+from tqdm.notebook import tqdm
 
 import ark.settings as settings
 from ark.utils import io_utils, load_utils, misc_utils, spatial_analysis_utils
@@ -67,24 +67,25 @@ def generate_channel_spatial_enrichment_stats(label_dir, dist_mat_dir, marker_th
     values = []
     stats_datasets = []
 
-    for fov_name, label_file in tqdm(
-        zip(all_label_fovs, all_label_names), desc="Batch Completion", unit="batch"
-    ):
-        label_maps = load_utils.load_imgs_from_dir(label_dir, files=[label_file],
-                                                   xr_channel_names=[xr_channel_name],
-                                                   trim_suffix=suffix)
-        dist_mat = xr.load_dataarray(os.path.join(dist_mat_dir, fov_name + '_dist_mat.xr'))
+    with tqdm(total=len(all_label_fovs), desc="Channel Spatial Enrichment") as chan_progress:
+        for fov_name, label_file in zip(all_label_fovs, all_label_names):
+            label_maps = load_utils.load_imgs_from_dir(label_dir, files=[label_file],
+                                                       xr_channel_names=[xr_channel_name],
+                                                       trim_suffix=suffix)
+            dist_mat = xr.load_dataarray(os.path.join(dist_mat_dir, fov_name + '_dist_mat.xr'))
 
-        batch_vals, batch_stats = \
-            calculate_channel_spatial_enrichment(
-                fov_name, dist_mat, marker_thresholds, all_data, **kwargs
-            )
+            batch_vals, batch_stats = \
+                calculate_channel_spatial_enrichment(
+                    fov_name, dist_mat, marker_thresholds, all_data, **kwargs
+                )
 
-        # append new values
-        values = values + [batch_vals]
+            # append new values
+            values = values + [batch_vals]
 
-        # append new data array (easier than iteratively combining)
-        stats_datasets.append(batch_stats)
+            # append new data array (easier than iteratively combining)
+            stats_datasets.append(batch_stats)
+
+            chan_progress.update(1)
 
     # combine list of data arrays into one
     stats = xr.concat(stats_datasets, dim="fovs")
@@ -287,22 +288,23 @@ def generate_cluster_spatial_enrichment_stats(label_dir, dist_mat_dir, all_data,
     values = []
     stats_datasets = []
 
-    for fov_name, label_file in tqdm(
-        zip(all_label_fovs, all_label_names), desc="Batch Completion", unit="batch"
-    ):
-        label_maps = load_utils.load_imgs_from_dir(label_dir, files=[label_file],
-                                                   xr_channel_names=[xr_channel_name],
-                                                   trim_suffix=suffix)
-        dist_mat = xr.load_dataarray(os.path.join(dist_mat_dir, fov_name + '_dist_mat.xr'))
+    with tqdm(total=len(all_label_fovs), desc="Cluster Spatial Enrichment") as clust_progress:
+        for fov_name, label_file in zip(all_label_fovs, all_label_names):
+            label_maps = load_utils.load_imgs_from_dir(label_dir, files=[label_file],
+                                                       xr_channel_names=[xr_channel_name],
+                                                       trim_suffix=suffix)
+            dist_mat = xr.load_dataarray(os.path.join(dist_mat_dir, fov_name + '_dist_mat.xr'))
 
-        batch_vals, batch_stats = \
-            calculate_cluster_spatial_enrichment(fov_name, all_data, dist_mat, **kwargs)
+            batch_vals, batch_stats = \
+                calculate_cluster_spatial_enrichment(fov_name, all_data, dist_mat, **kwargs)
 
-        # append new values
-        values = values + [batch_vals]
+            # append new values
+            values = values + [batch_vals]
 
-        # append new data array (easier than iteratively combining)
-        stats_datasets.append(batch_stats)
+            # append new data array (easier than iteratively combining)
+            stats_datasets.append(batch_stats)
+
+            clust_progress.update(1)
 
     # combine list of data arrays into one
     stats = xr.concat(stats_datasets, dim="fovs")
