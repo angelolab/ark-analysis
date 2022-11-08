@@ -137,15 +137,17 @@ def calculate_channel_spatial_enrichment(fov, dist_matrix, marker_thresholds, al
                               unique_fovs=all_data[fov_col].unique())
 
     # check if all excluded column names found in all_data
-    misc_utils.verify_in_list(columns_to_exclude=excluded_channels,
-                              column_names=all_data.columns)
+    if excluded_channels is not None:
+        misc_utils.verify_in_list(columns_to_exclude=excluded_channels,
+                                  column_names=all_data.columns)
 
     # Subsets the expression matrix to only have channel columns
     channel_start = np.where(all_data.columns == settings.PRE_CHANNEL_COL)[0][0] + 1
     channel_end = np.where(all_data.columns == settings.POST_CHANNEL_COL)[0][0]
 
     all_channel_data = all_data.iloc[:, channel_start:channel_end]
-    all_channel_data = all_channel_data.drop(excluded_channels, axis=1)
+    if excluded_channels is not None:
+        all_channel_data = all_channel_data.drop(excluded_channels, axis=1)
 
     # check that the markers are the same in marker_thresholdsa and all_channel_data
     misc_utils.verify_same_elements(markers_to_threshold=marker_thresholds.iloc[:, 0].values,
