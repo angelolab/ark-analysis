@@ -31,7 +31,7 @@ The default columns of the cell table include:
 
 For each cell, the following morphology features calculated from `skimage.measure.regionprops` are included:
 * `cell_size`: number of coordinates (pixels) in the cell
-* `channel_1` -> `channel_n`: The unique channels for each marker used. 
+* `channel_1` -> `channel_n`: The amount of signal from that channel in the given cell. The way this is calculated depends on how the cell table was generated. The default is that this is the size-normalized counts, but there is also the option for this to be arcsin-h transformed. 
 * `label`: A unique numerical label for each cell (row in the cell table). 
 * `area`: area of the cell. 
 * `eccentricity`: eccentricity of the ellipse that has the same second-moments as the region. The eccentricity is the ratio of the focal distance (distance between focal points) over the major axis length. The value is in the interval [0, 1). When it is 0, the ellipse becomes a circle. 
