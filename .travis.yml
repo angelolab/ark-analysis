@@ -52,7 +52,9 @@ jobs:
         - "travis_wait 120 sleep 7200 &"
         - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
         # Tag the image with a version such as vX.Y.Z,
-        - docker build -t "$TRAVIS_REPO_SLUG":v0.4.4 . 1> out.log
+        # - docker build -t "$TRAVIS_REPO_SLUG":v0.4.4 . 1> out.log
+        - docker pull "$TRAVIS_REPO_SLUG":latest
+        - docker tag "$TRAVIS_REPO_SLUG":latest "$TRAVIS_REPO_SLUG":v0.4.4
         - docker push --all-tags "$TRAVIS_REPO_SLUG"
 
 after_failure:
