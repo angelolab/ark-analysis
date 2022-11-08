@@ -38,7 +38,7 @@ def calc_dist_matrix(label_dir, save_path, prefix='_feature_0'):
     fov_files = io_utils.list_files(label_dir, substrs=prefix + '.tiff')
 
     # iterate for each fov
-    with tqdm(total=len(fovs), desc="Distance Matrix Generation") as dist_mat_progress:
+    with tqdm(total=len(fov_files), desc="Distance Matrix Generation") as dist_mat_progress:
         for fov_file in fov_files:
             # retrieve the fov name
             fov_name = fov_file.replace(prefix + '.tiff', '')
