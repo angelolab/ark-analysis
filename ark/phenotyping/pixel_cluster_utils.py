@@ -256,8 +256,7 @@ def filter_with_nuclear_mask(fovs, tiff_dir, seg_dir, channel,
         return
 
     # raise an error if the provided seg_dir does not exist
-    if not os.path.exists(seg_dir):
-        raise FileNotFoundError('seg_dir %s does not exist' % seg_dir)
+    io_utils.validate_paths(seg_dir)
 
     # convert to path-compatible format
     if img_sub_folder is None:
@@ -269,7 +268,7 @@ def filter_with_nuclear_mask(fovs, tiff_dir, seg_dir, channel,
                                              fovs=[fov], channels=[channel]).values[0, :, :, 0]
 
         # load the segmented image in
-        seg_img = imread(os.path.join(seg_dir, fov + '_nuclear.tif'))[0, ...]
+        seg_img = imread(os.path.join(seg_dir, fov + '_nuclear.tiff'))[0, ...]
 
         # mask out the nucleus
         if exclude:
@@ -539,7 +538,7 @@ def preprocess_fov(base_dir, tiff_dir, data_dir, subset_dir, seg_dir, seg_suffix
 
 
 def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
-                        img_sub_folder="TIFs", seg_suffix='_whole_cell.tif',
+                        img_sub_folder="TIFs", seg_suffix='_whole_cell.tiff',
                         pixel_cluster_prefix='pixel_cluster_prefix',
                         pixel_output_dir='pixel_output_dir',
                         data_dir='pixel_mat_data',
@@ -603,17 +602,8 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
     if subset_proportion <= 0 or subset_proportion > 1:
         raise ValueError('Invalid subset percentage entered: must be in (0, 1]')
 
-    # if the base directory doesn't exist
-    if not os.path.exists(base_dir):
-        raise FileNotFoundError("base_dir %s does not exist" % base_dir)
-
-    # if the tiff dir doesn't exist
-    if not os.path.exists(tiff_dir):
-        raise FileNotFoundError("tiff_dir %s does not exist" % tiff_dir)
-
-    # if the pixel output dir doesn't exist
-    if not os.path.exists(os.path.join(base_dir, pixel_output_dir)):
-        raise FileNotFoundError("pixel_output_dir %s does not exist" % pixel_output_dir)
+    # path validation
+    io_utils.validate_paths([base_dir, tiff_dir, os.path.join(base_dir, pixel_output_dir)])
 
     # create data_dir if it doesn't already exist
     if not os.path.exists(os.path.join(base_dir, data_dir)):
@@ -794,9 +784,7 @@ def find_fovs_missing_col(base_dir, data_dir, missing_col):
     temp_path = os.path.join(base_dir, data_dir + '_temp')
 
     # verify the data path exists
-    if not os.path.exists(data_path):
-        raise FileNotFoundError('Data directory %s does not exist in base_dir %s' %
-                                (data_dir, base_dir))
+    io_utils.validate_paths(data_path)
 
     # if the temp path does not exist, either all the FOVs need to be run or none of them do
     if not os.path.exists(temp_path):
@@ -883,9 +871,7 @@ def train_pixel_som(fovs, channels, base_dir,
         return
 
     # if path to the subsetted file does not exist
-    if not os.path.exists(subsetted_path):
-        raise FileNotFoundError('Pixel subsetted directory %s does not exist in base_dir %s' %
-                                (subset_dir, base_dir))
+    io_utils.validate_paths(subsetted_path)
 
     # verify that all provided fovs exist in the folder
     files = io_utils.list_files(subsetted_path, substrs='.feather')
@@ -959,20 +945,8 @@ def cluster_pixels(fovs, channels, base_dir, data_dir='pixel_mat_data',
     norm_vals_path = os.path.join(base_dir, norm_vals_name)
     weights_path = os.path.join(base_dir, weights_name)
 
-    # if path to the preprocessed directory does not exist
-    if not os.path.exists(data_path):
-        raise FileNotFoundError('Pixel data directory %s does not exist in base_dir %s' %
-                                (data_dir, base_dir))
-
-    # if path to the normalized values file does not exist
-    if not os.path.exists(norm_vals_path):
-        raise FileNotFoundError('Normalized values file %s does not exist in base_dir %s' %
-                                (norm_vals_path, base_dir))
-
-    # if path to the weights file does not exist
-    if not os.path.exists(weights_path):
-        raise FileNotFoundError('Weights file %s does not exist in base_dir %s' %
-                                (weights_name, base_dir))
+    # path validation
+    io_utils.validate_paths([data_path, norm_vals_path, weights_path])
 
     # verify that all provided fovs exist in the folder
     # NOTE: remove the channel and pixel normalization files as those are not pixel data
@@ -1126,19 +1100,8 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
     som_cluster_avg_path = os.path.join(base_dir, pc_chan_avg_som_cluster_name)
     clust_to_meta_path = os.path.join(base_dir, clust_to_meta_name)
 
-    # if the path to the SOM clustered data doesn't exist
-    if not os.path.exists(data_path):
-        raise FileNotFoundError(
-            'Data dir %s does not exist in base_dir %s' %
-            (data_dir, base_dir)
-        )
-
-    # if the path to the average channel expression per SOM cluster doesn't exist
-    if not os.path.exists(som_cluster_avg_path):
-        raise FileNotFoundError(
-            'Channel avg per SOM cluster file %s does not exist in base_dir %s' %
-            (pc_chan_avg_som_cluster_name, base_dir)
-        )
+    # path validation
+    io_utils.validate_paths([data_path, som_cluster_avg_path])
 
     # if the path mapping SOM to meta clusters exists, don't re-run consensus clustering
     if os.path.exists(clust_to_meta_path):
@@ -1318,23 +1281,8 @@ def apply_pixel_meta_cluster_remapping(fovs, channels, base_dir,
     meta_cluster_avg_path = os.path.join(base_dir, pc_chan_avg_meta_cluster_name)
 
     # file path validation
-    if not os.path.exists(pixel_data_path):
-        raise FileNotFoundError('Pixel data dir %s does not exist in base_dir %s' %
-                                (pixel_data_dir, base_dir))
-
-    if not os.path.exists(pixel_remapped_path):
-        raise FileNotFoundError('Pixel remapping file %s does not exist in base_dir %s' %
-                                (pixel_remapped_name, base_dir))
-
-    if not os.path.exists(som_cluster_avg_path):
-        raise FileNotFoundError(
-            'Channel average per SOM cluster file %s does not exist in base_dir %s' %
-            (pc_chan_avg_meta_cluster_name, base_dir))
-
-    if not os.path.exists(meta_cluster_avg_path):
-        raise FileNotFoundError(
-            'Channel average per meta cluster file %s does not exist in base_dir %s' %
-            (pc_chan_avg_meta_cluster_name, base_dir))
+    io_utils.validate_paths([pixel_data_path, pixel_remapped_path, som_cluster_avg_path,
+                             meta_cluster_avg_path])
 
     # read in the remapping
     pixel_remapped_data = pd.read_csv(pixel_remapped_path)

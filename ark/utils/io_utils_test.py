@@ -42,22 +42,22 @@ def test_validate_paths():
                            data_prefix=True)
 
         # test out-of-scope
-        with pytest.raises(ValueError, match=r".*not_a_real_directory.*prefixed.*"):
+        with pytest.raises(FileNotFoundError, match=r".*not_a_real_directory.*prefixed.*"):
             iou.validate_paths(starts_out_of_scope, data_prefix=True)
 
         # test mid-directory existence
-        with pytest.raises(ValueError, match=r".*bad path.*not_a_real_subdirectory.*"):
+        with pytest.raises(FileNotFoundError, match=r".*bad path.*not_a_real_subdirectory.*"):
             iou.validate_paths(bad_middle_path, data_prefix=True)
 
         # test file existence
-        with pytest.raises(ValueError, match=r".*The file/path.*not_a_real_file.*"):
+        with pytest.raises(FileNotFoundError, match=r".*The file/path.*not_a_real_file.*"):
             iou.validate_paths(wrong_file, data_prefix=True)
 
     # make tempdir for testing outside of docker
     with tempfile.TemporaryDirectory() as valid_path:
 
         # check valid path but no data prefix
-        with pytest.raises(ValueError, match=r".*is not prefixed with.*"):
+        with pytest.raises(FileNotFoundError, match=r".*is not prefixed with.*"):
             iou.validate_paths(valid_path, data_prefix=True)
 
         # make valid subdirectory
@@ -68,10 +68,10 @@ def test_validate_paths():
         starts_out_of_scope = os.path.join(*valid_parts)
 
         # test out of scope when specifying out of scope
-        with pytest.raises(ValueError, match=r".*not_a_real_directory*"):
+        with pytest.raises(FileNotFoundError, match=r".*not_a_real_directory*"):
             iou.validate_paths(starts_out_of_scope, data_prefix=False)
 
-        with pytest.raises(ValueError, match=r".*is not prefixed with.*"):
+        with pytest.raises(FileNotFoundError, match=r".*is not prefixed with.*"):
             iou.validate_paths(starts_out_of_scope, data_prefix=True)
 
     # reset cwd after testing
@@ -116,7 +116,7 @@ def test_list_files():
 
     # test file name exact matching
     with tempfile.TemporaryDirectory() as temp_dir:
-        filenames = ['.chan-metadata.tif', 'chan0.tif', 'chan.tif', 'c.tif']
+        filenames = ['.chan-metadata.tiff', 'chan0.tiff', 'chan.tiff', 'c.tiff']
         for filename in filenames:
             pathlib.Path(os.path.join(temp_dir, filename)).touch()
 
@@ -125,7 +125,7 @@ def test_list_files():
 
         # test substrs is None (default)
         get_all = iou.list_files(temp_dir, exact_match=True)
-        assert sorted(get_all) == sorted(['chan0.tif', 'chan.tif', 'c.tif'])
+        assert sorted(get_all) == sorted(['chan0.tiff', 'chan.tiff', 'c.tiff'])
 
         # test substrs is not list (single string)
         get_txt = iou.list_files(temp_dir, substrs='c', exact_match=True)
@@ -133,17 +133,17 @@ def test_list_files():
 
         # test substrs is list
         get_test_and_other = iou.list_files(temp_dir, substrs=['c', 'chan'], exact_match=True)
-        assert sorted(get_test_and_other) == sorted(['chan.tif', 'c.tif'])
+        assert sorted(get_test_and_other) == sorted(['chan.tiff', 'c.tiff'])
 
         # Test hidden files
         get_hidden_files = iou.list_files(temp_dir, substrs=['.chan-metadata'], exact_match=True,
                                           ignore_hidden=False)
-        assert sorted(get_hidden_files) == ['.chan-metadata.tif']
+        assert sorted(get_hidden_files) == ['.chan-metadata.tiff']
 
 
 def test_remove_file_extensions():
     # test a mixture of file paths and extensions
-    files = ['fov1.tiff', 'fov2.tif', 'fov3.png', 'fov4.jpg', 'fov5.bin', 'fov6.json']
+    files = ['fov1.tiff', 'fov2.tiff', 'fov3.png', 'fov4.jpg', 'fov5.bin', 'fov6.json']
     files2 = ['fov.1.tiff', 'fov.2.tiff', 'fov.3.png', 'fov.4']
 
     assert iou.remove_file_extensions(None) is None

@@ -179,15 +179,15 @@ def test_create_overlay():
 
     with tempfile.TemporaryDirectory() as temp_dir:
         # create the whole cell and nuclear segmentation label compartments
-        io.imsave(os.path.join(temp_dir, '%s_whole_cell.tif' % fov), example_labels,
+        io.imsave(os.path.join(temp_dir, '%s_whole_cell.tiff' % fov), example_labels,
                   check_contrast=False)
-        io.imsave(os.path.join(temp_dir, '%s_nuclear.tif' % fov), example_labels,
+        io.imsave(os.path.join(temp_dir, '%s_nuclear.tiff' % fov), example_labels,
                   check_contrast=False)
 
         # save the cell image
         img_dir = os.path.join(temp_dir, 'img_dir')
         os.mkdir(img_dir)
-        io.imsave(os.path.join(img_dir, '%s.tif' % fov), example_images,
+        io.imsave(os.path.join(img_dir, '%s.tiff' % fov), example_images,
                   check_contrast=False)
 
         # test with both nuclear and membrane specified
@@ -298,9 +298,8 @@ def test_create_mantis_dir():
         fovs_subset = fovs[1:4]
 
         for idx, fov in enumerate(fovs):
-
             # Save the segmentation label compartments for each fov
-            io.imsave(os.path.join(temp_dir, segmentation_dir, '%s_whole_cell.tif' % fov),
+            io.imsave(os.path.join(temp_dir, segmentation_dir, '%s_whole_cell.tiff' % fov),
                       example_labels.loc[idx, ...].values, check_contrast=False)
 
             # Save the sample masks
@@ -363,7 +362,7 @@ def test_create_mantis_dir():
                 # 2.a. Assert that the segmentation label compartments exist in the new directory
                 assert os.path.exists(cell_seg_path)
                 original_cell_seg_path = os.path.join(temp_dir, segmentation_dir,
-                                                      '%s_whole_cell.tif' % fov)
+                                                      '%s_whole_cell.tiff' % fov)
                 cell_seg_img = io.imread(cell_seg_path)
                 original_cell_seg_img = io.imread(original_cell_seg_path)
                 # 2.b. Assert that the `cell_segmentation` file is equal to `fov#_whole_cell`

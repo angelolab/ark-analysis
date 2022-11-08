@@ -160,7 +160,7 @@ def test_read_spatial_lda_file():
         file_path = os.path.join(temp_dir, "fake_file.txt")
         with open(file_path, "w") as f:
             f.write("content")
-        with pytest.raises(FileNotFoundError, match="No file named"):
+        with pytest.raises(FileNotFoundError):
             spu.read_spatial_lda_file(dir=temp_dir, file_name="bad_file")
         with pytest.raises(ValueError, match="format must be either"):
             spu.read_spatial_lda_file(dir=temp_dir, file_name="fake_file", format="txt")

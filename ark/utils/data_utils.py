@@ -40,8 +40,7 @@ def save_fov_mask(fov, data_dir, mask_data, sub_dir=None, name_suffix=''):
     """
 
     # data_dir validation
-    if not os.path.exists(data_dir):
-        raise FileNotFoundError("data_dir %s does not exist" % data_dir)
+    io_utils.validate_paths(data_dir)
 
     # ensure None is handled correctly in file path generation
     if sub_dir is None:
@@ -137,7 +136,7 @@ def label_cells_by_cluster(fov, all_data, label_map, fov_col=settings.FOV_ID,
 
 
 def generate_cell_cluster_mask(fov, base_dir, seg_dir, cell_data_name,
-                               cell_cluster_col='cell_meta_cluster', seg_suffix='_whole_cell.tif'):
+                               cell_cluster_col='cell_meta_cluster', seg_suffix='_whole_cell.tiff'):
     """For a fov, create a mask labeling each cell with their SOM or meta cluster label
 
     Args:
@@ -153,7 +152,7 @@ def generate_cell_cluster_mask(fov, base_dir, seg_dir, cell_data_name,
             Whether to assign SOM or meta clusters.
             Needs to be `'cell_som_cluster'` or `'cell_meta_cluster'`
         seg_suffix (str):
-            The suffix that the segmentation images use
+            The suffix that the segmentation images use. Defaults to `'_whole_cell.tiff'`.
 
     Returns:
         numpy.ndarray:
@@ -161,12 +160,8 @@ def generate_cell_cluster_mask(fov, base_dir, seg_dir, cell_data_name,
     """
 
     # path checking
-    if not os.path.exists(seg_dir):
-        raise FileNotFoundError("seg_dir %s does not exist" % seg_dir)
-
-    if not os.path.exists(os.path.join(base_dir, cell_data_name)):
-        raise FileNotFoundError(
-            "Cell data file %s does not exist in base_dir %s" % (cell_data_name, base_dir))
+    cell_data_path = os.path.join(os.path.join(base_dir, cell_data_name))
+    io_utils.validate_paths([seg_dir, cell_data_path])
 
     # verify the cluster_col provided is valid
     verify_in_list(
@@ -204,7 +199,7 @@ def generate_and_save_cell_cluster_masks(fovs: List[str],
                                          seg_dir: Union[pathlib.Path, str],
                                          cell_data_name: Union[pathlib.Path, str],
                                          cell_cluster_col: str = 'cell_meta_cluster',
-                                         seg_suffix: str = '_whole_cell.tif',
+                                         seg_suffix: str = '_whole_cell.tiff',
                                          sub_dir: str = None,
                                          name_suffix: str = ''):
     """Generates cell cluster masks and saves them for downstream analysis.
@@ -224,7 +219,7 @@ def generate_and_save_cell_cluster_masks(fovs: List[str],
             Whether to assign SOM or meta clusters. Needs to be `'cell_som_cluster'` or
             `'cell_meta_cluster'`. Defaults to `'cell_meta_cluster'`.
         seg_suffix (str, optional):
-            The suffix that the segmentation images use. Defaults to `'_whole_cell.tif'`.
+            The suffix that the segmentation images use. Defaults to `'_whole_cell.tiff'`.
         sub_dir (str, optional):
             The subdirectory to save the images in. If specified images are saved to
             `"data_dir/sub_dir"`. If `sub_dir = None` the images are saved to `"data_dir"`.
@@ -277,17 +272,8 @@ def generate_pixel_cluster_mask(fov, base_dir, tiff_dir, chan_file_path,
     """
 
     # path checking
-    if not os.path.exists(tiff_dir):
-        raise FileNotFoundError("tiff_dir %s does not exist")
-
-    if not os.path.exists(os.path.join(tiff_dir, chan_file_path)):
-        raise FileNotFoundError("chan_file_path %s does not exist in tiff_dir %s"
-                                % (chan_file_path, tiff_dir))
-
-    if not os.path.exists(os.path.join(base_dir, pixel_data_dir)):
-        raise FileNotFoundError(
-            "Pixel data dir %s does not exist in base_dir %s" % (pixel_data_dir, base_dir)
-        )
+    io_utils.validate_paths([tiff_dir, os.path.join(tiff_dir, chan_file_path),
+                             os.path.join(base_dir, pixel_data_dir)])
 
     # verify the pixel_cluster_col provided is valid
     verify_in_list(
@@ -494,7 +480,7 @@ def generate_deepcell_input(data_dir, tiff_dir, nuc_channels, mem_channels, fovs
         if mem_channels:
             out[1] = np.sum(data_xr.loc[fov_name, :, :, mem_channels].values, axis=2)
 
-        save_path = os.path.join(data_dir, f"{fov_name}.tif")
+        save_path = os.path.join(data_dir, f"{fov_name}.tiff")
         io.imsave(save_path, out, plugin='tifffile', check_contrast=False)
 
 
@@ -605,11 +591,11 @@ def stitch_images_by_shape(data_dir, stitched_dir, img_sub_folder=None, channels
 
     # retrieve valid fov names
     if segmentation:
-        fovs = ns.natsorted(io_utils.list_files(data_dir, substrs='_whole_cell.tif'))
-        fovs = io_utils.extract_delimited_names(fovs, delimiter='_whole_cell.tif')
+        fovs = ns.natsorted(io_utils.list_files(data_dir, substrs='_whole_cell.tiff'))
+        fovs = io_utils.extract_delimited_names(fovs, delimiter='_whole_cell.tiff')
     elif clustering:
-        fovs = ns.natsorted(io_utils.list_files(data_dir, substrs=f'_{clustering}_mask.tif'))
-        fovs = io_utils.extract_delimited_names(fovs, delimiter=f'_{clustering}_mask.tif')
+        fovs = ns.natsorted(io_utils.list_files(data_dir, substrs=f'_{clustering}_mask.tiff'))
+        fovs = io_utils.extract_delimited_names(fovs, delimiter=f'_{clustering}_mask.tiff')
     else:
         fovs = ns.natsorted(io_utils.list_folders(data_dir))
         # ignore previous toffy stitching in fov directory
@@ -636,7 +622,7 @@ def stitch_images_by_shape(data_dir, stitched_dir, img_sub_folder=None, channels
     if not segmentation and not clustering:
         channel_imgs = io_utils.list_files(
             dir_name=os.path.join(data_dir, fovs[0], img_sub_folder),
-            substrs=['.tif', '.jpg', '.png'])
+            substrs=['.tiff', '.jpg', '.png'])
     else:
         channel_imgs = io_utils.list_files(data_dir, substrs=fovs[0])
         channel_imgs = [chan.split(fovs[0] + '_')[1] for chan in channel_imgs]
@@ -650,11 +636,11 @@ def stitch_images_by_shape(data_dir, stitched_dir, img_sub_folder=None, channels
     os.makedirs(stitched_dir)
 
     file_ext = channel_imgs[0].split('.')[1]
-    _, num_rows, num_cols = load_utils.get_tiled_fov_names(fovs, return_dims=True)
+    expected_fovs, num_rows, num_cols = load_utils.get_tiled_fov_names(fovs, return_dims=True)
 
     # save new images to the stitched_images, one channel at a time
     for chan in channels:
-        image_data = load_tiled_img_data(data_dir, fovs, chan,
+        image_data = load_tiled_img_data(data_dir, fovs, expected_fovs, chan,
                                          single_dir=any([segmentation, clustering]),
                                          file_ext=file_ext, img_sub_folder=img_sub_folder)
         stitched_data = stitch_images(image_data, num_cols)

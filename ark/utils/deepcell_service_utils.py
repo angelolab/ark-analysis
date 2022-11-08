@@ -31,12 +31,12 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
 
     Args:
         deepcell_input_dir (str):
-            Location of preprocessed files (assume deepcell_input_dir contains <fov>.tif
+            Location of preprocessed files (assume deepcell_input_dir contains <fov>.tiff
             for each fov in fovs list).  This should not be a GoogleDrivePath.
         deepcell_output_dir (str):
-            Location to save DeepCell output (as .tif)
+            Location to save DeepCell output (as .tiff)
         fovs (list):
-            List of fovs in preprocessing pipeline. if None, all .tif files
+            List of fovs in preprocessing pipeline. if None, all .tiff files
             in deepcell_input_dir will be considered as input fovs. Default: None
         wc_suffix (str):
             Suffix for whole cell DeepCell output filename. e.g. for fovX, DeepCell output
@@ -69,7 +69,7 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
     Raises:
         ValueError:
             Raised if there is some fov X (from fovs list) s.t.
-            the file <deepcell_input_dir>/fovX.tif does not exist
+            the file <deepcell_input_dir>/fovX.tiff does not exist
     """
 
     # check that scale arg can be converted to a float
@@ -79,7 +79,7 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
         raise ValueError("Scale argument must be a number")
 
     # extract all the files from deepcell_input_dir
-    input_files = io_utils.list_files(deepcell_input_dir, substrs=['.tif'])
+    input_files = io_utils.list_files(deepcell_input_dir, substrs=['.tiff'])
 
     # set fovs equal to input_files it not already set
     if fovs is None:
@@ -112,16 +112,13 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
             warnings.warn(f'{zip_path} will be overwritten')
 
         # write all files to the zip file
-        print('Zipping preprocessed tif files.')
+        print('Zipping preprocessed tiff files.')
 
         def zip_write(zip_path):
             with ZipFile(zip_path, 'w', compression=ZIP_DEFLATED) as zipObj:
                 for fov in fov_group:
-                    # file has .tif extension
-                    basename = fov + '.tif'
-                    if basename not in input_files:
-                        basename = basename + 'f'
-
+                    # file has .tiff extension
+                    basename = fov + '.tiff'
                     filename = os.path.join(deepcell_input_dir, basename)
                     zipObj.write(filename, basename)
 
@@ -149,22 +146,28 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
 
         with ZipFile(zip_files[-1], "r") as zipObj:
             for name in zipObj.namelist():
-                # this files will only ever be suffixed with feature_0.tif or feature_1.tif
+                # this files will only ever be suffixed with feature_0.tiff or feature_1.tiff
                 if '_feature_0.tif' in name:
                     resuffixed_name = name.replace('_feature_0', wc_suffix)
                 else:
                     resuffixed_name = name.replace('_feature_1', nuc_suffix)
 
                 mask_path = os.path.join(deepcell_output_dir, resuffixed_name)
+
+                # DeepCell uses .tif extension, append extra f to account for .tiff standard
+                mask_path += 'f'
+
+                # read the file from the .zip file and save as segmentation mask
                 byte_repr = zipObj.read(name)
                 ranked_segmentation_mask = _convert_deepcell_seg_masks(byte_repr)
                 io.imsave(mask_path, ranked_segmentation_mask, plugin="tifffile",
                           check_contrast=False)
 
+            # verify that all the files were extracted
             for fov in fov_group:
-                if fov + '_feature_0.tif' not in zipObj.namelist():
+                if fov + '_feature_0.tiff' not in zipObj.namelist():
                     warnings.warn(f'Deep Cell whole cell output file was not found for {fov}.')
-                if fov + '_feature_1.tif' not in zipObj.namelist():
+                if fov + '_feature_1.tiff' not in zipObj.namelist():
                     warnings.warn(f'Deep Cell nuclear output file was not found for {fov}.')
 
     # make calls in parallel

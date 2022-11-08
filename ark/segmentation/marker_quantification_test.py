@@ -590,7 +590,7 @@ def test_generate_cell_table_tree_loading():
 
         # define a subset of fovs with file extensions
         fovs_subset_ext = fovs[:2]
-        fovs_subset_ext[0] = str(fovs_subset_ext[0]) + ".tif"
+        fovs_subset_ext[0] = str(fovs_subset_ext[0]) + ".tiff"
         fovs_subset_ext[1] = str(fovs_subset_ext[1]) + ".tiff"
 
         # generate sample segmentation_masks
@@ -613,20 +613,20 @@ def test_generate_cell_table_tree_loading():
         for fov in range(cell_masks_40.shape[0]):
             fov_whole_cell = cell_masks_40[fov, :, :, 0]
             fov_nuclear = cell_masks_40[fov, :, :, 1]
-            io.imsave(os.path.join(temp_dir, 'fov%d_whole_cell.tif' % fov),
+            io.imsave(os.path.join(temp_dir, 'fov%d_whole_cell.tiff' % fov),
                       fov_whole_cell,
                       check_contrast=False)
-            io.imsave(os.path.join(temp_dir, 'fov%d_nuclear.tif' % fov),
+            io.imsave(os.path.join(temp_dir, 'fov%d_nuclear.tiff' % fov),
                       fov_nuclear,
                       check_contrast=False)
 
         for fov in range(cell_masks_20.shape[0]):
             fov_whole_cell = cell_masks_20[fov, :, :, 0]
             fov_nuclear = cell_masks_20[fov, :, :, 1]
-            io.imsave(os.path.join(temp_dir, 'fov%d_whole_cell.tif' % (fov + fov_size_split)),
+            io.imsave(os.path.join(temp_dir, 'fov%d_whole_cell.tiff' % (fov + fov_size_split)),
                       fov_whole_cell,
                       check_contrast=False)
-            io.imsave(os.path.join(temp_dir, 'fov%d_nuclear.tif' % (fov + fov_size_split)),
+            io.imsave(os.path.join(temp_dir, 'fov%d_nuclear.tiff' % (fov + fov_size_split)),
                       fov_nuclear,
                       check_contrast=False)
 
@@ -693,7 +693,7 @@ def test_generate_cell_table_mibitiff_loading():
 
         # define a subset of fovs with file extensions
         fovs_subset_ext = fovs[:2]
-        fovs_subset_ext[0] = str(fovs_subset_ext[0]) + ".tif"
+        fovs_subset_ext[0] = str(fovs_subset_ext[0]) + ".tiff"
         fovs_subset_ext[1] = str(fovs_subset_ext[1]) + ".tiff"
 
         tiff_dir = os.path.join(temp_dir, "mibitiff_inputs")
@@ -718,9 +718,9 @@ def test_generate_cell_table_mibitiff_loading():
         for fov in range(cell_masks.shape[0]):
             fov_whole_cell = cell_masks[fov, :, :, 0]
             fov_nuclear = cell_masks[fov, :, :, 1]
-            io.imsave(os.path.join(temp_dir, 'fov%d_whole_cell.tif' % fov), fov_whole_cell,
+            io.imsave(os.path.join(temp_dir, 'fov%d_whole_cell.tiff' % fov), fov_whole_cell,
                       check_contrast=False)
-            io.imsave(os.path.join(temp_dir, 'fov%d_nuclear.tif' % fov), fov_nuclear,
+            io.imsave(os.path.join(temp_dir, 'fov%d_nuclear.tiff' % fov), fov_nuclear,
                       check_contrast=False)
 
         # generate sample norm and arcsinh data for all fovs
@@ -797,9 +797,9 @@ def test_generate_cell_table_extractions():
         for fov in range(cell_masks.shape[0]):
             fov_whole_cell = cell_masks[fov, :, :, 0]
             fov_nuclear = cell_masks[fov, :, :, 1]
-            io.imsave(os.path.join(temp_dir, 'fov%d_whole_cell.tif' % fov), fov_whole_cell,
+            io.imsave(os.path.join(temp_dir, 'fov%d_whole_cell.tiff' % fov), fov_whole_cell,
                       check_contrast=False)
-            io.imsave(os.path.join(temp_dir, 'fov%d_nuclear.tif' % fov), fov_nuclear,
+            io.imsave(os.path.join(temp_dir, 'fov%d_nuclear.tiff' % fov), fov_nuclear,
                       check_contrast=False)
 
         default_norm_data, _ = marker_quantification.generate_cell_table(

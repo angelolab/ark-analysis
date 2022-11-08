@@ -5,34 +5,14 @@ from ark.utils.example_dataset import ExampleDataset, get_example_dataset
 from ark.utils import test_utils
 
 
-# Sets the example dataset path once: Will not cause duplicate downloads
-@pytest.fixture(scope="session")
-def setup_temp_path_factory(tmp_path_factory) -> Iterator[pathlib.Path]:
-    """
-    A Fixture which creates the directory where the dataset is saved.
-    Downloads the dataset once per session, instead of once per notebook.
-
-    Args:
-        tmp_path_factory (pytest.TempPathFactory): Factory for temporary directories under the
-            common base temp directory.
-
-    Yields:
-        Iterator[pathlib.Path]: The iterable path containing the location of the dataset.
-    """
-    cache_dir = tmp_path_factory.mktemp("example_dataset")
-    yield cache_dir
-
-
 @pytest.fixture(scope="session", params=["segment_image_data", "cluster_pixels",
                                          "cluster_cells", "post_clustering"])
-def dataset_download(setup_temp_path_factory, request) -> Iterator[ExampleDataset]:
+def dataset_download(request) -> Iterator[ExampleDataset]:
     """
     A Fixture which instantiates and downloads the dataset with respect to each
     notebook.
 
     Args:
-        setup_temp_path_factory (pytest.Fixture): Factory for temporary directories under the
-            common base temp directory.
         request (pytest.FixtureRequest): The parameter, in this case it is the notebook to
             download the dataset for.
 
@@ -42,8 +22,8 @@ def dataset_download(setup_temp_path_factory, request) -> Iterator[ExampleDatase
     # Set up ExampleDataset class
     example_dataset: ExampleDataset = ExampleDataset(
         dataset=request.param,
-        cache_dir=setup_temp_path_factory,
-        revision="f3b76074a5f9dec69e8ebc6f957c36da4dd7008a"
+        cache_dir=None,
+        revision="main"
     )
     # Download example data for a particular notebook
     example_dataset.download_example_dataset()
@@ -207,7 +187,7 @@ class TestExampleDataset:
     def test_get_example_dataset(self, tmp_path_factory):
         """
         Tests to make sure that if an incorrect `dataset` is provided, the function
-        errors out with the appropriate error message for the user.
+        errors out with an appropriate error message for the user.
         """
 
         with pytest.raises(ValueError):
@@ -215,8 +195,7 @@ class TestExampleDataset:
 
     def test_check_empty_dst(self, tmp_path):
         """
-        Tests to make sure that `ExampleDataset.check_empty_dst
-        ()` accurately
+        Tests to make sure that `ExampleDataset.check_empty_dst()` accurately
         reports if a directory contains files or not.
         """
 
@@ -272,17 +251,13 @@ class TestExampleDataset:
         Args:
             dir_p (pathlib.Path): The directory to check.
         """
-        downloaded_deepcell_output = list(dir_p.glob("*.tif"))
+        downloaded_deepcell_output = list(dir_p.glob("*.tiff"))
         downloaded_deepcell_output_names = [f.stem for f in downloaded_deepcell_output]
         assert set(self.deepcell_output_names) == set(downloaded_deepcell_output_names)
 
     def _example_pixel_output_dir_check(self, dir_p: pathlib.Path):
         """
-        Checks to make sure that the following files exist w.r.t the
         `example_pixel_output_dir`.
-
-        ```
-        example_pixel_output_dir/
             ├── cell_clustering_params.json
             ├── example_channel_norm.feather
             ├── example_pixel_norm.feather

@@ -497,8 +497,8 @@ def generate_cell_table(segmentation_dir, tiff_dir, img_sub_folder="TIFs",
                                                         fovs=[fov_name])
 
         # define the files for whole cell and nuclear
-        whole_cell_file = fov_name + '_whole_cell.tif'
-        nuclear_file = fov_name + '_nuclear.tif'
+        whole_cell_file = fov_name + '_whole_cell.tiff'
+        nuclear_file = fov_name + '_nuclear.tiff'
 
         # load the segmentation labels in
         current_labels_cell = load_utils.load_imgs_from_dir(data_dir=segmentation_dir,

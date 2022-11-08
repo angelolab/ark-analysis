@@ -6,29 +6,10 @@ import pytest
 
 from ark.utils import test_utils, tiff_utils
 
-EXAMPLE_MIBITIFF_PATH = os.path.join(
-    os.path.dirname(os.path.realpath(__file__)), '..', '..',
-    'data/example_dataset/input_data/mibitiff_inputs',
-    'fov8_RowNumber0_Depth_Profile0-MassCorrected-Filtered.tiff'
-)
-
 
 # test read_mibitiff on static tiff file
 # shouldn't use test_utils here since it uses write_mibitiff
 def test_read_mibitiff():
-    img_data, all_channels = tiff_utils.read_mibitiff(EXAMPLE_MIBITIFF_PATH)
-
-    assert img_data.shape == (1024, 1024, len(all_channels))
-
-    channel_names = [chan_tup[1] for chan_tup in all_channels]
-
-    subset_imgdata, subset_chan = tiff_utils.read_mibitiff(EXAMPLE_MIBITIFF_PATH,
-                                                           channels=channel_names[:3])
-
-    assert subset_chan == all_channels[:3]
-
-    assert np.all(img_data[:, :, :3] == subset_imgdata)
-
     # should throw error on standard tif load
     with pytest.raises(ValueError):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -47,6 +28,26 @@ def test_read_mibitiff():
             img_data, all_channels = tiff_utils.read_mibitiff(
                 filepaths['test_fov'], channels=['chan2']
             )
+
+    fovs, chans = test_utils.gen_fov_chan_names(1, 10)
+    with tempfile.TemporaryDirectory() as temp_dir:
+        # create dummy data to load
+        filepaths, true_data = test_utils.create_paired_xarray_fovs(temp_dir, fov_names=fovs,
+                                                                    img_shape=(1024, 1024),
+                                                                    channel_names=chans,
+                                                                    mode='mibitiff', fills=True)
+
+        # load in all the channels
+        img_data, chan_tups = tiff_utils.read_mibitiff(filepaths[fovs[0]])
+        assert img_data.shape == (1024, 1024, len(chan_tups))
+
+        # load in a subset of channels
+        chan_names = [chan_tup[1] for chan_tup in chan_tups]
+        subset_img_data, subset_chan = tiff_utils.read_mibitiff(filepaths[fovs[0]],
+                                                                channels=chan_names[:3])
+
+        assert subset_chan == chan_tups[:3]
+        assert np.all(img_data[:, :, :3] == subset_img_data)
 
 
 # test write_mibitiff and verify with read_mibitiff

@@ -18,7 +18,7 @@ def test_plot_fiber_segmentation_steps():
             shutil.rmtree(os.path.join(temp_dir, 'image_data', fov))
 
         # bad directory should raise an errors
-        with pytest.raises(ValueError):
+        with pytest.raises(FileNotFoundError):
             _, _ = fiber_segmentation.plot_fiber_segmentation_steps('bad_dir', 'fov1', 'Collagen1')
 
         # bad channel should raise an errors
@@ -46,10 +46,10 @@ def test_run_fiber_segmentation():
         os.makedirs(out_dir)
 
         # bad directories should raise an error
-        with pytest.raises(ValueError):
+        with pytest.raises(FileNotFoundError):
             _ = fiber_segmentation.run_fiber_segmentation('bad_path', 'Collagen1', out_dir)
 
-        with pytest.raises(ValueError):
+        with pytest.raises(FileNotFoundError):
             _ = fiber_segmentation.run_fiber_segmentation(img_dir, 'Collagen1', 'bad_path')
 
         # bad subdirectory should raise an errors
