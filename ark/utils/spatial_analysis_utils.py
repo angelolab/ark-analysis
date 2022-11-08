@@ -38,33 +38,36 @@ def calc_dist_matrix(label_dir, save_path, prefix='_feature_0'):
     fov_files = io_utils.list_files(label_dir, substrs=prefix + '.tiff')
 
     # iterate for each fov
-    for fov_file in fov_files:
-        # retrieve the fov name
-        fov_name = fov_file.replace(prefix + '.tiff', '')
+    with tqdm(total=len(fovs), desc="Distance Matrix Generation") as dist_mat_progress:
+        for fov_file in fov_files:
+            # retrieve the fov name
+            fov_name = fov_file.replace(prefix + '.tiff', '')
 
-        # load in the data
-        fov_data = load_utils.load_imgs_from_dir(
-            label_dir, [fov_file], match_substring=prefix,
-            trim_suffix=prefix, xr_channel_names=['segmentation_label']
-        )
+            # load in the data
+            fov_data = load_utils.load_imgs_from_dir(
+                label_dir, [fov_file], match_substring=prefix,
+                trim_suffix=prefix, xr_channel_names=['segmentation_label']
+            )
 
-        # keep just the middle two dimensions
-        fov_data = fov_data.loc[fov_name, :, :, 'segmentation_label'].values
+            # keep just the middle two dimensions
+            fov_data = fov_data.loc[fov_name, :, :, 'segmentation_label'].values
 
-        # extract region properties of label map, then just get centroids
-        props = skimage.measure.regionprops(fov_data)
-        centroids = [prop.centroid for prop in props]
-        centroid_labels = [prop.label for prop in props]
+            # extract region properties of label map, then just get centroids
+            props = skimage.measure.regionprops(fov_data)
+            centroids = [prop.centroid for prop in props]
+            centroid_labels = [prop.label for prop in props]
 
-        # generate the distance matrix, then assign centroid_labels as coords
-        dist_matrix = cdist(centroids, centroids).astype(np.float32)
-        dist_mat_xarr = xr.DataArray(dist_matrix, coords=[centroid_labels, centroid_labels])
+            # generate the distance matrix, then assign centroid_labels as coords
+            dist_matrix = cdist(centroids, centroids).astype(np.float32)
+            dist_mat_xarr = xr.DataArray(dist_matrix, coords=[centroid_labels, centroid_labels])
 
-        # save the distance matrix to save_path
-        dist_mat_xarr.to_netcdf(
-            os.path.join(save_path, fov_name + '_dist_mat.xr'),
-            format='NETCDF3_64BIT'
-        )
+            # save the distance matrix to save_path
+            dist_mat_xarr.to_netcdf(
+                os.path.join(save_path, fov_name + '_dist_mat.xr'),
+                format='NETCDF3_64BIT'
+            )
+
+            dist_mat_progress.update(1)
 
 
 def append_distance_features_to_dataset(fov, dist_matrix, cell_table, distance_columns):
