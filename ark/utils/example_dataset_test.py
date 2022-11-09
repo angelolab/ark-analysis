@@ -23,7 +23,7 @@ def dataset_download(request) -> Iterator[ExampleDataset]:
     example_dataset: ExampleDataset = ExampleDataset(
         dataset=request.param,
         cache_dir=None,
-        revision="2e8b5d9e8d6b7c82ac3e13531b370ceb72d51e7a"
+        revision="5db23d178f266fdd9bdc8db637f287eb9eb4224d"
     )
     # Download example data for a particular notebook
     example_dataset.download_example_dataset()
@@ -45,7 +45,7 @@ class TestExampleDataset:
         self.cell_table_names = ["cell_table_arcsinh_transformed", "cell_table_size_normalized",
                                  "cell_table_size_normalized_cell_labels"]
 
-        self.deepcell_output_names = [f"fov{i}_feature_{j}" for i in range(11)
+        self.deepcell_output_names = [f"fov{i}_{j}" for i in range(11)
                                       for j in ['whole_cell', 'nuclear']]
 
         self._example_pixel_output_dir_names = {
@@ -245,7 +245,7 @@ class TestExampleDataset:
 
     def _deepcell_output_check(self, dir_p: pathlib.Path):
         """
-        Checks to make sure that all cell nucleus (feature 0) and cell membrane masks (feature 1)
+        Checks to make sure that all cell nucleus (nuclear) and cell membrane masks (whole_cell)
         exist from deepcell output.
 
         Args:
