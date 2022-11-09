@@ -34,6 +34,9 @@ RUN R -e "library(devtools)"
 RUN R -e "library(doParallel)"
 RUN R -e "library(foreach)"
 
+# Install `rlang` for updated syntax and tidyverse compatibility
+RUN R -e "install.packages('rlang')"
+
 # install arrow from rspm
 RUN R -e "options(BioC_mirror = 'https://packagemanager.rstudio.com/all/__linux__/bullseye/latest', HTTPUserAgent = sprintf(\"R/%s R (%s)\", getRversion(), paste(getRversion(), R.version[\"platform\"], R.version[\"arch\"], R.version[\"os\"])))"
 RUN R -e "install.packages('arrow')"
