@@ -136,7 +136,8 @@ def label_cells_by_cluster(fov, all_data, label_map, fov_col=settings.FOV_ID,
 
 
 def generate_cell_cluster_mask(fov, base_dir, seg_dir, cell_data_name,
-                               cell_cluster_col='cell_meta_cluster', seg_suffix='_whole_cell.tiff'):
+                               cell_cluster_col='cell_meta_cluster',
+                               seg_suffix='_whole_cell.tiff'):
     """For a fov, create a mask labeling each cell with their SOM or meta cluster label
 
     Args:
