@@ -463,6 +463,9 @@ def test_generate_and_save_neighborhood_cluster_masks(sub_dir, name_suffix):
         # create a save directory
         os.mkdir(os.path.join(temp_dir, 'neighborhood_masks'))
 
+        # create a segmentation dir
+        os.mkdir(os.path.join(temp_dir, 'seg_dir'))
+
         # generate a neighborhood cluster DataFrame
         labels = np.arange(1, 6)
         sample_neighborhood_data = pd.DataFrame.from_dict(
@@ -478,11 +481,17 @@ def test_generate_and_save_neighborhood_cluster_masks(sub_dir, name_suffix):
             dims=['fovs', 'rows', 'cols']
         )
 
+        for fov in fovs:
+            io.imsave(
+                os.path.join(temp_dir, 'seg_dir', fov + '_feature_0.tiff'),
+                sample_label_maps.loc[fov, ...].values
+            )
+
         generate_and_save_neighborhood_cluster_masks(
             fovs=fovs,
             save_dir=os.path.join(temp_dir, 'neighborhood_masks'),
             neighborhood_data=sample_neighborhood_data,
-            label_maps=sample_label_maps,
+            seg_dir=os.path.join(temp_dir, 'seg_dir'),
             sub_dir=sub_dir,
             name_suffix=name_suffix
         )
