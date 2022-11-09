@@ -1,8 +1,5 @@
 #!/usr/bin/env bash
 
-# define the version number, this needs to be updated every new Docker release
-VERSION='v0.4.4'
-
 # check for template developer flag
 JUPYTER_DIR='scripts'
 update=0
@@ -74,7 +71,7 @@ run_params=(
 [[ ! -z "$external" ]] && run_params+=(-v "$external:/data/external")
 
 # remove the old Docker container if one exists, as it may contain different external volumes
-docker rm -f $VERSION > /dev/null 2>&1 || true
+docker rm -f ark-analysis > /dev/null 2>&1 || true
 
 # create the Docker container
-docker run -it "${run_params[@]}" --name $VERSION angelolab/ark-analysis:$VERSION
+docker run -it "${run_params[@]}" --name ark-analysis chrischeshire/ark-analysis:latest
