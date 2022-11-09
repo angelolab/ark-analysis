@@ -3,6 +3,7 @@ import os
 import numpy as np
 import pandas as pd
 import scipy
+import skimage.io as io
 import skimage.measure
 import sklearn.metrics
 import xarray as xr
@@ -12,64 +13,72 @@ from statsmodels.stats.multitest import multipletests
 from tqdm.notebook import tqdm
 
 import ark.settings as settings
-from ark.utils import io_utils, misc_utils
+from ark.utils import io_utils, load_utils, misc_utils
 from ark.utils._bootstrapping import compute_close_num_rand
 
 
-def calc_dist_matrix(label_maps, save_path=None):
-    """Generate matrix of distances between center of pairs of cells
+def calc_dist_matrix(label_dir, save_path, prefix='_feature_0'):
+    """Generate matrix of distances between center of pairs of cells.
+
+    Saves each one individually to `save_path`.
 
     Args:
-        label_maps (xarray.DataArray):
-            array of segmentation masks indexed by (fov, cell_id, cell_id, segmentation_label)
+        label_dir (str):
+            path to segmentation masks indexed by `(fov, cell_id, cell_id, segmentation_label)`
         save_path (str):
-            path to save file. If None, then will directly return
-    Returns:
-        dict:
-            Contains a cells x cells matrix with the euclidian
-            distance between centers of corresponding cells for every fov,
-            note that each distance matrix is of type xarray
+            path to save the distance matrices
+        prefix (str):
+            the prefix used to identify label map files in `label_dir`
     """
 
-    # Check that file path exists, if given
-    if save_path is not None:
-        io_utils.validate_paths(save_path, data_prefix=False)
+    # check that both label_dir and save_path exist
+    io_utils.validate_paths([label_dir, save_path])
 
-    dist_mats_list = []
+    # load all the file names in label_dir
+    fov_files = io_utils.list_files(label_dir, substrs=prefix + '.tiff')
 
-    # Extract list of fovs
-    fovs = label_maps.coords['fovs'].values
+    # iterate for each fov
+    with tqdm(total=len(fov_files), desc="Distance Matrix Generation") as dist_mat_progress:
+        for fov_file in fov_files:
+            # retrieve the fov name
+            fov_name = fov_file.replace(prefix + '.tiff', '')
 
-    for fov in fovs:
-        # extract region properties of label map, then just get centroids
-        props = skimage.measure.regionprops(label_maps.loc[fov, :, :, 'segmentation_label'].values)
-        centroids = [prop.centroid for prop in props]
-        centroid_labels = [prop.label for prop in props]
+            # load in the data
+            fov_data = load_utils.load_imgs_from_dir(
+                label_dir, [fov_file], match_substring=prefix,
+                trim_suffix=prefix, xr_channel_names=['segmentation_label']
+            )
 
-        # generate the distance matrix, then assign centroid_labels as coords
-        dist_matrix = cdist(centroids, centroids).astype(np.float32)
-        dist_mat_xarr = xr.DataArray(dist_matrix, coords=[centroid_labels, centroid_labels])
+            # keep just the middle two dimensions
+            fov_data = fov_data.loc[fov_name, :, :, 'segmentation_label'].values
 
-        # append final result to dist_mats_list
-        dist_mats_list.append(dist_mat_xarr)
+            # extract region properties of label map, then just get centroids
+            props = skimage.measure.regionprops(fov_data)
+            centroids = [prop.centroid for prop in props]
+            centroid_labels = [prop.label for prop in props]
 
-    # Create dictionary to store distance matrices per fov
-    dist_matrices = dict(zip(fovs, dist_mats_list))
+            # generate the distance matrix, then assign centroid_labels as coords
+            dist_matrix = cdist(centroids, centroids).astype(np.float32)
+            dist_mat_xarr = xr.DataArray(dist_matrix, coords=[centroid_labels, centroid_labels])
 
-    # If save_path is None, function will directly return the dictionary
-    # else it will save it as a file with location specified by save_path
-    if save_path is None:
-        return dist_matrices
-    else:
-        np.savez(os.path.join(save_path, "dist_matrices.npz"), **dist_matrices)
+            # save the distance matrix to save_path
+            dist_mat_xarr.to_netcdf(
+                os.path.join(save_path, fov_name + '_dist_mat.xr'),
+                format='NETCDF3_64BIT'
+            )
+
+            dist_mat_progress.update(1)
 
 
-def append_distance_features_to_dataset(dist_mats, cell_table, distance_columns):
+def append_distance_features_to_dataset(fov, dist_matrix, cell_table, distance_columns):
     """Appends selected distance features as 'cells' in distance matrix and cell table
 
     Args:
-        dist_mats (dict):
-            Distance matricies as output by `calc_dist_matrix`, indexed by fov name
+        fov (str):
+            the name of the FOV
+        dist_matrix (xarray.DataArray):
+            a cells x cells matrix with the euclidian distance between centers of
+            corresponding cells for the FOV
         cell_table (pd.DataFrame):
             Table of cell features. Must contain provided distance columns
         distance_columns (List[str]):
@@ -85,33 +94,32 @@ def append_distance_features_to_dataset(dist_mats, cell_table, distance_columns)
     num_cell_types = max(list(cell_table[settings.CELL_TYPE].astype("category").cat.codes)) + 1
     dist_list = []
 
-    for fov in dist_mats.keys():
-        fov_cells = cell_table.loc[cell_table[settings.FOV_ID] == fov]
-        num_labels = max(fov_cells[settings.CELL_LABEL])
-        for i, dist_col in enumerate(distance_columns):
-            dist_list.append(pd.DataFrame([{
-                settings.FOV_ID: fov,
-                settings.CELL_LABEL: num_labels + i + 1,
-                settings.CELL_TYPE: dist_col,
-                settings.CELL_TYPE_NUM: num_cell_types + i + 1,
-            }]))
-            coords = (
-                [max(dist_mats[fov].dim_0.values) + i + 1],
-                fov_cells[settings.CELL_LABEL].values[:]
-            )
+    fov_cells = cell_table.loc[cell_table[settings.FOV_ID] == fov]
+    num_labels = max(fov_cells[settings.CELL_LABEL])
+    for i, dist_col in enumerate(distance_columns):
+        dist_list.append(pd.DataFrame([{
+            settings.FOV_ID: fov,
+            settings.CELL_LABEL: num_labels + i + 1,
+            settings.CELL_TYPE: dist_col,
+            settings.CELL_TYPE_NUM: num_cell_types + i + 1,
+        }]))
+        coords = (
+            [max(dist_matrix.dim_0.values) + i + 1],
+            fov_cells[settings.CELL_LABEL].values[:]
+        )
 
-            dist_mats[fov] = xr.concat([dist_mats[fov], xr.DataArray(
-                fov_cells[dist_col].values[np.newaxis, :], coords=coords
-            )], dim='dim_0')
+        dist_matrix = xr.concat([dist_matrix, xr.DataArray(
+            fov_cells[dist_col].values[np.newaxis, :], coords=coords
+        )], dim='dim_0')
 
-            dist_mats[fov] = xr.concat([dist_mats[fov], xr.DataArray(
-                fov_cells[dist_col].values[:, np.newaxis], coords=(coords[1], coords[0])
-            )], dim='dim_1')
+        dist_matrix = xr.concat([dist_matrix, xr.DataArray(
+            fov_cells[dist_col].values[:, np.newaxis], coords=(coords[1], coords[0])
+        )], dim='dim_1')
 
     distance_features = pd.concat(dist_list)
     cell_table = pd.concat([cell_table, distance_features])
 
-    return cell_table, dist_mats
+    return cell_table, dist_matrix
 
 
 def get_pos_cell_labels_channel(thresh, current_fov_channel_data, cell_labels, current_marker):

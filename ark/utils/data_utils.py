@@ -380,7 +380,9 @@ def generate_and_save_pixel_cluster_masks(fovs: List[str],
 def generate_and_save_neighborhood_cluster_masks(fovs: List[str],
                                                  save_dir: Union[pathlib.Path, str],
                                                  neighborhood_data: pd.DataFrame,
-                                                 label_maps: xr.DataArray,
+                                                 seg_dir: str,
+                                                 seg_suffix: str = '_feature_0.tiff',
+                                                 xr_channel_name='segmentation_label',
                                                  sub_dir: str = None,
                                                  name_suffix: str = ''):
     """Generates neighborhood cluster masks and saves them for downstream analysis
@@ -392,8 +394,12 @@ def generate_and_save_neighborhood_cluster_masks(fovs: List[str],
             The directory to save the generated pixel cluster masks.
         neighborhood_data (pandas.DataFrame):
             Contains the neighborhood cluster assignments for each cell.
-        label_maps (xarray.DataArray):
-            Defines the cell IDs overlaid on the image for each FOV.
+        seg_dir (str):
+            The path to the segmentation data.
+        seg_suffix (str):
+            The suffix that the segmentation images use. Defaults to `'_feature_0.tiff'`.
+        xr_channel_name (str):
+            Channel name for segmented data array.
         sub_dir (str, optional):
             The subdirectory to save the images in. If specified images are saved to
             `"data_dir/sub_dir"`. If `sub_dir = None` the images are saved to `"data_dir"`.
@@ -406,10 +412,16 @@ def generate_and_save_neighborhood_cluster_masks(fovs: List[str],
     with tqdm(total=len(fovs), desc="Neighborhood Cluster Mask Generation") as neigh_mask_progress:
         # generate the mask for each FOV
         for fov in fovs:
+            # load in the label map for the FOV
+            label_map = load_utils.load_imgs_from_dir(
+                seg_dir, files=[fov + seg_suffix], xr_channel_names=[xr_channel_name],
+                trim_suffix=seg_suffix.split('.')[0]
+            ).loc[fov, ..., :]
+
             # generate the neighborhood mask for the FOV
             neighborhood_mask: np.ndarray =\
                 label_cells_by_cluster(
-                    fov, neighborhood_data, label_maps.loc[fov, ...]
+                    fov, neighborhood_data, label_map
                 )
 
             # save the neighborhood mask generated
