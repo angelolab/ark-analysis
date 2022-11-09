@@ -11,41 +11,46 @@ from ark.utils import spatial_analysis_utils, test_utils
 
 
 def test_calc_dist_matrix():
-    test_mat_data = np.zeros((2, 512, 512, 1), dtype="int")
-    # Create pythagorean triple to test euclidian distance
-    test_mat_data[0, 0, 20] = 1
-    test_mat_data[0, 4, 17] = 2
-    test_mat_data[0, 0, 17] = 3
-    test_mat_data[1, 5, 25] = 1
-    test_mat_data[1, 9, 22] = 2
-    test_mat_data[1, 5, 22] = 3
+    with tempfile.TemporaryDirectory() as base_dir:
+        # create sample label_dir and save_path folders
+        label_dir = os.path.join(base_dir, 'sample_label_dir')
+        save_path = os.path.join(base_dir, 'sample_save_path')
+        os.mkdir(label_dir)
+        os.mkdir(save_path)
 
-    coords = [["1", "2"], range(test_mat_data[0].data.shape[0]),
-              range(test_mat_data[0].data.shape[1]), ["segmentation_label"]]
-    dims = ["fovs", "rows", "cols", "channels"]
-    test_mat = xr.DataArray(test_mat_data, coords=coords, dims=dims)
+        # generate sample label data
+        # NOTE: this function should support varying FOV sizes
+        test_utils._write_labels(label_dir, ["fov8"], ["segmentation_label"], (10, 10),
+                                 '', True, np.uint8, suffix='_feature_0')
+        test_utils._write_labels(label_dir, ["fov9"], ["segmentation_label"], (5, 5),
+                                 '', True, np.uint8, suffix='_feature_0')
 
-    distance_mat = spatial_analysis_utils.calc_dist_matrix(test_mat)
+        # generate the distance matrices
+        spatial_analysis_utils.calc_dist_matrix(label_dir, save_path)
 
-    real_mat = np.array([[0, 5, 3], [5, 0, 4], [3, 4, 0]])
+        # assert the fov8 and fov9 .xr files exist
+        assert os.path.exists(os.path.join(save_path, 'fov8_dist_mat.xr'))
+        assert os.path.exists(os.path.join(save_path, 'fov9_dist_mat.xr'))
 
-    assert np.array_equal(distance_mat["1"].loc[range(1, 4), range(1, 4)], real_mat)
-    assert np.array_equal(distance_mat["2"].loc[range(1, 4), range(1, 4)], real_mat)
+        # verify fov8, use isclose to prevent float tolerance errors
+        fov8_data = xr.load_dataarray(os.path.join(save_path, 'fov8_dist_mat.xr'))
+        actual8_data = np.array([
+            [0, 6, 6, np.sqrt(72)],
+            [6, 0, np.sqrt(72), 6],
+            [6, np.sqrt(72), 0, 6],
+            [np.sqrt(72), 6, 6, 0]
+        ])
+        assert np.all(np.isclose(fov8_data, actual8_data))
 
-    # file save testing
-    with pytest.raises(FileNotFoundError):
-        # trying to save to a non-existent directory
-        distance_mat = spatial_analysis_utils.calc_dist_matrix(test_mat, save_path="bad_path")
-
-    with tempfile.TemporaryDirectory() as temp_dir:
-        # validate_paths requires data as a prefix, so add one
-        data_path = os.path.join(temp_dir, "data_dir")
-        os.mkdir(data_path)
-
-        # assert we actually save and save to the correct path if specified
-        spatial_analysis_utils.calc_dist_matrix(test_mat, save_path=data_path)
-
-        assert os.path.exists(os.path.join(data_path, "dist_matrices.npz"))
+        # verify fov9, use isclose to prevent float tolerance errors
+        fov9_data = xr.load_dataarray(os.path.join(save_path, 'fov9_dist_mat.xr'))
+        actual9_data = np.array([
+            [0, 3, 3, np.sqrt(18)],
+            [3, 0, np.sqrt(18), 3],
+            [3, np.sqrt(18), 0, 3],
+            [np.sqrt(18), 3, 3, 0]
+        ])
+        assert np.all(np.isclose(fov9_data, actual9_data))
 
 
 def test_append_distance_features_to_dataset():
@@ -57,10 +62,9 @@ def test_append_distance_features_to_dataset():
 
     num_labels = max(all_data[settings.CELL_LABEL].unique())
     num_cell_types = max(list(all_data[settings.CELL_TYPE].astype("category").cat.codes)) + 1
-    dist_mats = {'fov8': dist_mat}
 
-    all_data, dist_mats = spatial_analysis_utils.append_distance_features_to_dataset(
-        dist_mats, all_data, ['dist_feature_0']
+    all_data, dist_mat = spatial_analysis_utils.append_distance_features_to_dataset(
+        'fov8', dist_mat, all_data, ['dist_feature_0']
     )
 
     appended_cell_row = all_data.iloc[-1, :][[
@@ -76,8 +80,8 @@ def test_append_distance_features_to_dataset():
         settings.CELL_TYPE_NUM: num_cell_types + 1,
     }), check_names=False)
 
-    dist_mat_new_row = dist_mats['fov8'].values[-1, :]
-    dist_mat_new_col = dist_mats['fov8'].values[:, -1]
+    dist_mat_new_row = dist_mat.values[-1, :]
+    dist_mat_new_col = dist_mat.values[:, -1]
 
     expected = feat_dist * np.ones(all_data.shape[0])
     expected[-1] = np.nan
