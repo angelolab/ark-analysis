@@ -21,9 +21,9 @@ def test_calc_dist_matrix():
         # generate sample label data
         # NOTE: this function should support varying FOV sizes
         test_utils._write_labels(label_dir, ["fov8"], ["segmentation_label"], (10, 10),
-                                 '', True, np.uint8, suffix='_feature_0')
+                                 '', True, np.uint8, suffix='_whole_cell')
         test_utils._write_labels(label_dir, ["fov9"], ["segmentation_label"], (5, 5),
-                                 '', True, np.uint8, suffix='_feature_0')
+                                 '', True, np.uint8, suffix='_whole_cell')
 
         # generate the distance matrices
         spatial_analysis_utils.calc_dist_matrix(label_dir, save_path)
@@ -58,13 +58,13 @@ def test_append_distance_features_to_dataset():
 
     feat_dist = 300
 
-    all_data['dist_feature_0'] = feat_dist * np.ones(all_data.shape[0])
+    all_data['dist_whole_cell'] = feat_dist * np.ones(all_data.shape[0])
 
     num_labels = max(all_data[settings.CELL_LABEL].unique())
     num_cell_types = max(list(all_data[settings.CELL_TYPE].astype("category").cat.codes)) + 1
 
     all_data, dist_mat = spatial_analysis_utils.append_distance_features_to_dataset(
-        'fov8', dist_mat, all_data, ['dist_feature_0']
+        'fov8', dist_mat, all_data, ['dist_whole_cell']
     )
 
     appended_cell_row = all_data.iloc[-1, :][[
@@ -76,7 +76,7 @@ def test_append_distance_features_to_dataset():
     pd.testing.assert_series_equal(appended_cell_row, pd.Series({
         settings.CELL_LABEL: num_labels + 1,
         settings.FOV_ID: 'fov8',
-        settings.CELL_TYPE: 'dist_feature_0',
+        settings.CELL_TYPE: 'dist_whole_cell',
         settings.CELL_TYPE_NUM: num_cell_types + 1,
     }), check_names=False)
 
