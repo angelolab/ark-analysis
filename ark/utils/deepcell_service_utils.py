@@ -165,9 +165,9 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
 
             # verify that all the files were extracted
             for fov in fov_group:
-                if fov + '_feature_0.tiff' not in zipObj.namelist():
+                if fov + '_feature_0.tif' not in zipObj.namelist():
                     warnings.warn(f'Deep Cell whole cell output file was not found for {fov}.')
-                if fov + '_feature_1.tiff' not in zipObj.namelist():
+                if fov + '_feature_1.tif' not in zipObj.namelist():
                     warnings.warn(f'Deep Cell nuclear output file was not found for {fov}.')
 
     # make calls in parallel
