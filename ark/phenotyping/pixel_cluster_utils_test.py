@@ -639,7 +639,7 @@ def test_compute_pixel_cluster_channel_avg(cluster_col, keep_count, corrupt):
             'pixel_mat_consensus', keep_count=keep_count
         )
 
-        # define the columns to check in cluster_avg, count may also be included
+        # define the columns to check in cluster_avg
         cluster_avg_cols = chans[:]
 
         # verify the provided channels and the channels in cluster_avg are exactly the same
@@ -648,20 +648,13 @@ def test_compute_pixel_cluster_channel_avg(cluster_col, keep_count, corrupt):
             provided_chans=chans
         )
 
-        # if keep_count is true then add the counts
-        # NOTE: subtract out the corrupted counts if specified
+        # assert count column adds up to 0.1 of the subsetted number of pixels
         if keep_count:
-            if cluster_col == 'pixel_som_cluster':
-                counts = 20 if corrupt else 30
-            else:
-                counts = 200 if corrupt else 300
+            assert cluster_avg['count'].sum() == 200 if corrupt else 300
 
-            count_col = np.expand_dims(np.repeat(counts, repeats=result.shape[0]), axis=1)
-            result = np.append(result, count_col, 1)
-
-            cluster_avg_cols.append('count')
-
-        # assert all elements of cluster_avg and the actual result are equal
+        # assert all the rows equal [0.1, 0.2, 0.3]
+        num_repeats = cluster_avg.shape[0]
+        result = np.repeat(np.array([[0.1, 0.2, 0.3]]), repeats=num_repeats, axis=0)
         assert np.array_equal(result, np.round(cluster_avg[cluster_avg_cols].values, 1))
 
 

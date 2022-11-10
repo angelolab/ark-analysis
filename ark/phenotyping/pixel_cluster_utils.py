@@ -288,7 +288,8 @@ def filter_with_nuclear_mask(fovs, tiff_dir, seg_dir, channel,
 
 
 def compute_pixel_cluster_channel_avg(fovs, channels, base_dir, pixel_cluster_col,
-                                      pixel_data_dir='pixel_mat_data', keep_count=False):
+                                      pixel_data_dir='pixel_mat_data',
+                                      subset_proportion=0.1, keep_count=False):
     """Compute the average channel values across each pixel SOM cluster
 
     Args:
@@ -302,6 +303,8 @@ def compute_pixel_cluster_channel_avg(fovs, channels, base_dir, pixel_cluster_co
             Name of the column to group by
         pixel_data_dir (str):
             Name of the directory containing the pixel data with cluster labels
+        subset_proportion (float):
+            The proportion of pixels to take from each fov prior to averaging
         keep_count (bool):
             Whether to keep the count column when aggregating or not
             This should only be set to `True` for visualization purposes
@@ -317,8 +320,8 @@ def compute_pixel_cluster_channel_avg(fovs, channels, base_dir, pixel_cluster_co
         valid_cluster_cols=['pixel_som_cluster', 'pixel_meta_cluster']
     )
 
-    # define the cluster averages DataFrame
-    cluster_avgs = pd.DataFrame()
+    # define a list to hold the cluster averages for each FOV
+    fov_cluster_avgs = []
 
     for fov in fovs:
         # read in the fovs data
@@ -329,6 +332,9 @@ def compute_pixel_cluster_channel_avg(fovs, channels, base_dir, pixel_cluster_co
         except (ArrowInvalid, OSError, IOError):
             print("The data for FOV %s has been corrupted, skipping" % fov)
             continue
+
+        # subset fov_pixel_data by the subset_proportion
+        fov_pixel_data = fov_pixel_data.sample(frac=subset_proportion)
 
         # aggregate the sums and counts
         sum_by_cluster = fov_pixel_data.groupby(
@@ -343,8 +349,10 @@ def compute_pixel_cluster_channel_avg(fovs, channels, base_dir, pixel_cluster_co
             sum_by_cluster, count_by_cluster, left_index=True, right_index=True
         ).reset_index()
 
-        # concat the results together
-        cluster_avgs = pd.concat([cluster_avgs, agg_results])
+        # append the result to cluster_avgs
+        fov_cluster_avgs.append(agg_results)
+
+    cluster_avgs = pd.concat(fov_cluster_avgs)
 
     # reset the index of cluster_avgs for consistency
     cluster_avgs = cluster_avgs.reset_index(drop=True)
@@ -366,6 +374,9 @@ def compute_pixel_cluster_channel_avg(fovs, channels, base_dir, pixel_cluster_co
     # drop the count column if specified
     if not keep_count:
         sum_count_totals = sum_count_totals.drop('count', axis=1)
+
+    print("sum_count_totals prior to returning")
+    print(sum_count_totals)
 
     return sum_count_totals
 
