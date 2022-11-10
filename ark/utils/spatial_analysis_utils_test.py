@@ -333,29 +333,29 @@ def test_compute_neighbor_counts():
 def test_compute_kmeans_inertia():
     neighbor_mat = test_utils._make_neighborhood_matrix()[['feature1', 'feature2']]
 
-    neighbor_cluster_stats = spatial_analysis_utils.compute_kmeans_inertia(
-        neighbor_mat, max_k=3)
+    neighbor_inertia_stats = spatial_analysis_utils.compute_kmeans_inertia(
+        neighbor_mat, min_k=3, max_k=6)
 
     # assert we have the right cluster_num values
-    assert list(neighbor_cluster_stats.coords["cluster_num"].values) == [2, 3]
+    assert list(neighbor_inertia_stats.coords["cluster_num"].values) == list(range(3, 7))
 
-    # assert k=3 produces the best inertia
-    three_cluster_score = neighbor_cluster_stats.loc[3].values
-    assert np.all(three_cluster_score <= neighbor_cluster_stats.values)
+    # assert k=6 produces the best inertia
+    best_inertia_score = neighbor_inertia_stats.loc[6].values
+    assert np.all(best_inertia_score <= neighbor_inertia_stats.values)
 
 
 def test_compute_kmeans_silhouette():
     neighbor_mat = test_utils._make_neighborhood_matrix()[['feature1', 'feature2']]
 
-    neighbor_cluster_stats = spatial_analysis_utils.compute_kmeans_silhouette(
-        neighbor_mat, max_k=3)
+    neighbor_silhouette_stats = spatial_analysis_utils.compute_kmeans_silhouette(
+        neighbor_mat, min_k=3, max_k=6)
 
     # assert we have the right cluster_num values
-    assert list(neighbor_cluster_stats.coords["cluster_num"].values) == [2, 3]
+    assert list(neighbor_silhouette_stats.coords["cluster_num"].values) == list(range(3, 7))
 
     # assert k=3 produces the best silhouette score
-    three_cluster_score = neighbor_cluster_stats.loc[3].values
-    assert np.all(three_cluster_score >= neighbor_cluster_stats.values)
+    best_silhouette_score = neighbor_silhouette_stats.loc[3].values
+    assert np.all(best_silhouette_score >= neighbor_silhouette_stats.values)
 
 
 def test_generate_cluster_labels():
