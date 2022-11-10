@@ -1,11 +1,16 @@
 import os
-import warnings
+import pathlib
 import re
+import warnings
+from typing import List, OrderedDict, Union
 
+import natsort as ns
 import numpy as np
 import skimage.io as io
 import xarray as xr
-import natsort as ns
+import xmltodict
+from tifffile import TiffFile, TiffWriter
+from tmi import image_utils
 
 from ark.utils import io_utils as iou
 from ark.utils import misc_utils
@@ -122,7 +127,6 @@ def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, channels=None,
     # If the fov provided is a single string (`fov_1` instead of [`fov_1`])
     if type(fovs) is str:
         fovs = [fovs]
-
     if img_sub_folder is None:
         # no img_sub_folder, change to empty string to read directly from base folder
         img_sub_folder = ""
@@ -479,3 +483,92 @@ def load_tiled_img_data(data_dir, fovs, expected_fovs, channel, single_dir, file
                           dims=["fovs", "rows", "cols", "channels"])
 
     return img_xr
+
+
+def fov_to_ome(data_dir: Union[str, pathlib.Path], ome_save_dir: Union[str, pathlib.Path],
+               fovs: List[str] = None, channels: List[str] = None) -> None:
+    """
+    Converts a folder of FOVs into an OME-TIFF per FOV. This can be filtered out by
+    FOV and channel name.
+
+    Args:
+        data_dir (Union[str, pathlib.Path]):
+            Directory containing a folder of images for each the FOVs.
+        ome_save_dir (Union[str, pathlib.Path]):
+            The directory to save the OME-TIFF file to.
+        fovs (List[str]):
+            A list of FOVs to gather and save as an OME-TIFF file. Defaults to None
+            (Converts all FOVs in `data_dir` to OME-TIFFs).
+        channels (List[str], optional):
+            A list of channels to convert to an OME-TIFF. Defaults to None (Converts all channels
+            as channels in an OME-TIFF.)
+    """
+    iou.validate_paths([data_dir, ome_save_dir], data_prefix=False)
+
+    # Reorder the DataArray as OME-TIFFs require [Channel, Y, X]
+    fov_xr: xr.DataArray = load_imgs_from_tree(
+        data_dir=data_dir,
+        fovs=fovs,
+        channels=channels).transpose("fovs", "channels", "cols", "rows")
+
+    _compression: dict = {
+        "algorithm": "zlib",
+        "args": {"level": 6}
+    }
+
+    for fov in fov_xr:
+        fov_name: str = fov.fovs.values
+        ome_file_path: pathlib.Path = pathlib.Path(ome_save_dir) / f"{fov_name}.ome.tiff"
+
+        # Set metadata for the OME-TIFF
+        _metadata = {
+            "axes": "CYX",
+            "Channel": {"Name": fov.channels.values.tolist()},
+            "Name": fov_name
+        }
+
+        # Write the OME-TIFF
+        with TiffWriter(ome_file_path, ome=True) as ome_tiff:
+            ome_tiff.write(
+                data=fov.values,
+                photometric="minisblack",
+                compression=_compression["algorithm"],
+                compressionargs=_compression["args"],
+                metadata=_metadata
+            )
+
+
+def ome_to_fov(ome: Union[str, pathlib.Path], data_dir: Union[str, pathlib.Path]) -> None:
+    """
+    Converts an OME-TIFF with n channels to a FOV (A folder consisting of those n channels).
+    The folder's name is given by the Image `@Name` in the xml metadata.
+
+    Args:
+        ome (Union[str, pathlib.Path]): The path to the OME-TIFF file.
+        data_dir (Union[str, pathlib.Path]): The path where the FOV will be saved.
+    """
+    iou.validate_paths([ome, data_dir], data_prefix=False)
+
+    with TiffFile(ome, is_ome=True) as ome_tiff:
+        # String representation of the OME-XML metadata & convert to dictionary
+        ome_xml_metadata: OrderedDict = xmltodict.parse(ome_tiff.ome_metadata.encode())
+
+        # Get the OME-XML image name and channel data
+        image_name = ome_xml_metadata["OME"]["Image"]["@Name"]
+        channel_metadata = ome_xml_metadata["OME"]["Image"]["Pixels"]["Channel"]
+        save_dir: pathlib.Path = pathlib.Path(data_dir) / image_name
+
+        # Corner case when only one channel. (OME-XML is a dict instead of a list of dicts)
+        if isinstance(channel_metadata, dict):
+            channel_metadata = [channel_metadata]
+
+        # Get the channel names. Ex: {"DAPI", "CD3", "CD8"}.
+        # No need to check for ordering, as the OME-TIFF Channel data is ordered.
+        channels = map(lambda x: x["@Name"], channel_metadata)
+
+        for page, chan in zip(ome_tiff.pages, channels):
+            save_dir.mkdir(parents=True, exist_ok=True)
+            _data: np.ndarray = page.asarray().transpose()
+
+            # Save the image as a TIFF
+            image_utils.save_image(fname=save_dir / f"{chan}.tiff", data=_data)

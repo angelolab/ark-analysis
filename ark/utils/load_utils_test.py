@@ -1,9 +1,15 @@
 import os
-import tempfile
+import pathlib
 import shutil
+import tempfile
+from typing import Iterator, List, OrderedDict, Tuple
 
 import numpy as np
 import pytest
+import xarray as xr
+import xmltodict
+from skimage import io
+from tifffile import TiffFile, TiffWriter
 
 from ark.utils import load_utils, test_utils
 
@@ -489,3 +495,123 @@ def test_load_tiled_img_data(single_dir, img_sub_folder):
                                            img_sub_folder=img_sub_folder)
         assert loaded_xr.equals(data_xr)
         assert loaded_xr.shape == (4, 10, 10, 1)
+
+
+@pytest.fixture(scope="module")
+def create_img_data(tmp_path_factory) -> Iterator[Tuple[pathlib.Path, xr.DataArray]]:
+    """
+    A Fixture which creates a temporary directory, FOVs for testing, and OME-TIFFs for testing.
+
+    Args:
+        tmp_path_factory (pytest.TempPathFactory): Factory for temporary directories under the
+            common base temp directory.
+
+    Yields:
+        Iterator[Tuple[pathlib.Path, xr.DataArray]]: A tuple of the temporary directory path
+        which contains the FOVs and OME-TIFFs and the xarray containing the image data.
+    """
+
+    # Create a temporary directory for the FOVs
+    test_dir = tmp_path_factory.mktemp("ome_tests")
+    # Create 3 FOVs, 10 channels each
+    _, data_xr = test_utils.create_paired_xarray_fovs(
+        base_dir=test_dir,
+        fov_names=[f"fov{i}" for i in range(3)],
+        channel_names=[f"chan{i}" for i in range(10)],
+        mode='tiff', fills=False
+        )
+
+    # Create OME-TIFFs
+    _compression: dict = {
+        "algorithm": "zlib",
+        "args": {"level": 6}
+    }
+    data_xr_transposed = data_xr.transpose("fovs", "channels", "cols", "rows")
+    for fov in data_xr_transposed:
+        fov_name: str = fov.fovs.values
+        ome_file_path: pathlib.Path = pathlib.Path(test_dir) / f"{fov_name}.ome.tiff"
+
+        _metadata = {
+            "axes": "CYX",
+            "Channel": {"Name": fov.channels.values.tolist()},
+            "Name": fov_name
+        }
+
+        with TiffWriter(ome_file_path, ome=True) as ome_tiff:
+            ome_tiff.write(
+                data=fov.values,
+                photometric="minisblack",
+                compression=_compression["algorithm"],
+                compressionargs=_compression["args"],
+                metadata=_metadata
+            )
+
+    yield (test_dir, data_xr)
+
+
+class TestOMEConversion:
+    @pytest.fixture(autouse=True)
+    def _setup(self, create_img_data, tmp_path):
+        self.test_dir, self.data_xr = create_img_data
+        self.save_path = tmp_path / "conversion_dir"
+        self.save_path.mkdir()
+
+    @pytest.mark.parametrize("fovs", [["fov0"], ["fov0", "fov1"], None],
+                             ids=["single_fov", "multiple_fovs", "all_fovs"])
+    @pytest.mark.parametrize("channels", [["chan0"], ["chan0", "chan1", "chan3"], None],
+                             ids=["single_channel", "multiple_channels", "all_channels"])
+    def test_fov_to_ome(self, fovs, channels) -> None:
+
+        load_utils.fov_to_ome(data_dir=self.test_dir, ome_save_dir=self.save_path,
+                              fovs=fovs, channels=channels)
+
+        # Gather the correct FOV names
+        fovs = fovs if fovs else self.data_xr.fovs.values
+        channels = channels if channels else self.data_xr.channels.values
+
+        # Assert that the OME-TIFF filenames exist and are correct
+        for fov_name in fovs:
+            assert os.path.exists(self.save_path / f"{fov_name}.ome.tiff")
+
+        # Assert that the OME-TIFF files contain the correct data / metadata
+        for fov_name in fovs:
+            with TiffFile(self.save_path / f"{fov_name}.ome.tiff") as ome_tiff:
+                _image_name, _channels = self._get_ome_metadata(ome_tiff)
+
+                # Assert that the image name in the metadata is correct
+                assert _image_name == fov_name
+
+                # Assert that the channel values in the OME-TIFF are correct.
+                for page, chan in zip(ome_tiff.pages, channels):
+                    actual_data = page.asarray().transpose()
+                    desired_data = self.data_xr.sel(fovs=fov_name, channels=chan).values
+                    np.testing.assert_equal(actual_data, desired_data)
+
+    def test_ome_to_fov(self) -> None:
+        # Only need to test for 1 FOV / 1 OME-TIFF b/c `ome_to_fov` is `1-to-1'
+        load_utils.ome_to_fov(ome=self.test_dir / "fov0.ome.tiff", data_dir=self.save_path)
+
+        # Assert that the FOV directory exists
+        os.path.exists(self.save_path / "fov0")
+
+        # Assert that the FOV channels exist
+        for chan in self.data_xr.channels.values:
+            assert os.path.exists(self.save_path / "fov0" / f"{chan}.tiff")
+
+        # Assert that the channel values are correct
+        for chan in self.data_xr.channels.values:
+            # Read in the channel data
+            actual_data: np.ndarray = io.imread(self.save_path / "fov0" / f"{chan}.tiff")
+            desired_data: np.ndarray = self.data_xr.sel(fovs="fov0", channels=chan).values
+            np.testing.assert_equal(actual_data, desired_data)
+
+    def _get_ome_metadata(self, ome_tiff: TiffFile) -> Tuple[str, List[str]]:
+        ome_xml_metadata = xmltodict.parse(ome_tiff.ome_metadata)
+        image_name = ome_xml_metadata["OME"]["Image"]["@Name"]
+        channel_metadata: OrderedDict = ome_xml_metadata["OME"]["Image"]["Pixels"]["Channel"]
+
+        if isinstance(channel_metadata, dict):
+            channel_metadata = [channel_metadata]
+        channels = list(map(lambda x: x["@Name"], channel_metadata))
+
+        return (image_name, channels)
