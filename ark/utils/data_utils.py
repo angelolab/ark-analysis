@@ -382,7 +382,7 @@ def generate_and_save_neighborhood_cluster_masks(fovs: List[str],
                                                  save_dir: Union[pathlib.Path, str],
                                                  neighborhood_data: pd.DataFrame,
                                                  seg_dir: str,
-                                                 seg_suffix: str = '_feature_0.tiff',
+                                                 seg_suffix: str = '_whole_cell.tiff',
                                                  xr_channel_name='segmentation_label',
                                                  sub_dir: str = None,
                                                  name_suffix: str = ''):
