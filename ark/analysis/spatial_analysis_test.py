@@ -391,6 +391,9 @@ def test_create_neighborhood_matrix():
         assert (len(counts[(counts[settings.FOV_ID] == "fov8") &
                            (counts[settings.CELL_LABEL].isin(range(21, 80)))]) == 0)
 
+        # check that cell type is in matrix
+        assert settings.CELL_TYPE in counts.columns
+
         # test if self_neighbor is True
         counts, freqs = spatial_analysis.create_neighborhood_matrix(
             all_data_pos, dist_mat_dir, distlim=51, self_neighbor=True

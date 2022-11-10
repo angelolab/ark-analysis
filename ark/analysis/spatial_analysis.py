@@ -496,14 +496,15 @@ def create_neighborhood_matrix(all_data, dist_mat_dir, included_fovs=None, distl
 
     # Initialize empty matrices for cell neighborhood data
     cell_neighbor_counts = pd.DataFrame(
-        np.zeros((all_neighborhood_data.shape[0], cluster_num + 2))
+        np.zeros((all_neighborhood_data.shape[0], cluster_num + 3))
     )
 
     # Replace the first, second columns of cell_neighbor_counts w/ fovs, cell-labels respectively
-    cell_neighbor_counts[[0, 1]] = all_neighborhood_data[[fov_col, cell_label_col]]
+    cell_neighbor_counts[[0, 1, 2]] = all_neighborhood_data[[fov_col, cell_label_col,
+                                                             cluster_name_col]]
 
     # Rename the columns to match cell phenotypes
-    cols = [fov_col, cell_label_col] + list(cluster_names)
+    cols = [fov_col, cell_label_col, cluster_name_col] + list(cluster_names)
     cell_neighbor_counts.columns = cols
 
     cell_neighbor_freqs = cell_neighbor_counts.copy(deep=True)
@@ -603,7 +604,7 @@ def generate_cluster_matrix_results(all_data, neighbor_mat, cluster_num, exclude
 
     # subset neighbor mat
     neighbor_mat_data_all = neighbor_mat[neighbor_mat[fov_col].isin(included_fovs)]
-    neighbor_mat_data = neighbor_mat_data_all.drop([fov_col, label_col], axis=1)
+    neighbor_mat_data = neighbor_mat_data_all.drop([fov_col, label_col, cell_type_col], axis=1)
 
     # generate cluster labels
     cluster_labels = spatial_analysis_utils.generate_cluster_labels(
