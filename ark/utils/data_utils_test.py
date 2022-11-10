@@ -483,7 +483,7 @@ def test_generate_and_save_neighborhood_cluster_masks(sub_dir, name_suffix):
 
         for fov in fovs:
             io.imsave(
-                os.path.join(temp_dir, 'seg_dir', fov + '_feature_0.tiff'),
+                os.path.join(temp_dir, 'seg_dir', fov + '_whole_cell.tiff'),
                 sample_label_maps.loc[fov, ...].values
             )
 
