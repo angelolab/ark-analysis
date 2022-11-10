@@ -375,9 +375,6 @@ def compute_pixel_cluster_channel_avg(fovs, channels, base_dir, pixel_cluster_co
     if not keep_count:
         sum_count_totals = sum_count_totals.drop('count', axis=1)
 
-    print("sum_count_totals prior to returning")
-    print(sum_count_totals)
-
     return sum_count_totals
 
 

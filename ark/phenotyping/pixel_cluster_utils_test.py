@@ -1557,10 +1557,11 @@ def test_pixel_consensus_cluster(mocker):
                                                                      'pixel_mat_data',
                                                                      fov + '.feather'))
 
-            # assert we didn't modify the cluster column in the consensus clustered results
-            assert np.all(
-                fov_data[fov]['pixel_som_cluster'].values ==
-                fov_consensus_data['pixel_som_cluster'].values
+            # assert all assigned SOM cluster values contained in original fov-data
+            # NOTE: can't test exact values because of randomization of channel averaging
+            misc_utils.verify_in_list(
+                assigned_som_values=fov_consensus_data['pixel_som_cluster'].unique(),
+                valid_som_values=fov_data[fov]['pixel_som_cluster']
             )
 
             # assert we didn't assign any cluster 20 or above
@@ -1896,8 +1897,9 @@ def test_apply_pixel_meta_cluster_remapping_base(multiprocess):
             np.round(sample_pixel_channel_avg_meta_cluster[chans].values, 1) == result
         )
 
-        # assert the counts data has been updated correctly
-        assert np.all(sample_pixel_channel_avg_meta_cluster['count'].values == 150)
+        # assert the total counts add up to 300 (10% of the number of pixels used)
+        # NOTE: we can't test specific count values due to randomization of channel averaging
+        assert sample_pixel_channel_avg_meta_cluster['count'].sum() == 300
 
         # assert the correct metacluster labels are contained
         sample_pixel_channel_avg_meta_cluster = sample_pixel_channel_avg_meta_cluster.sort_values(
