@@ -30,4 +30,5 @@ tifffile>=2022.8.12,<2023
 umap-learn>=0.5.3,<1
 xarray>=2022.6.0,<2023
 tqdm>=4.64.0,<5
+xmltodict>=0.13.0,<1
 zstandard>=0.19.0,<1
