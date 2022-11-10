@@ -290,7 +290,10 @@ def filter_with_nuclear_mask(fovs, tiff_dir, seg_dir, channel,
 def compute_pixel_cluster_channel_avg(fovs, channels, base_dir, pixel_cluster_col,
                                       pixel_data_dir='pixel_mat_data',
                                       subset_proportion=0.1, keep_count=False):
-    """Compute the average channel values across each pixel SOM cluster
+    """Compute the average channel values across each pixel SOM cluster.
+
+    To improve performance, each FOV is subsetted using a fraction
+    set with `subset_proportion` prior to averaging.
 
     Args:
         fovs (list):
