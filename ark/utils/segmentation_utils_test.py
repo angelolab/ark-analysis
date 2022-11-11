@@ -228,9 +228,9 @@ def test_save_segmentation_labels():
         for fov in segmentation_labels_xr.fovs.values:
             fov_whole_cell = segmentation_labels_xr.loc[fov, :, :, 'whole_cell'].values
             fov_nuclear = segmentation_labels_xr.loc[fov, :, :, 'nuclear'].values
-            io.imsave(os.path.join(temp_dir, '%s_feature_0.tiff' % fov), fov_whole_cell,
+            io.imsave(os.path.join(temp_dir, '%s_whole_cell.tiff' % fov), fov_whole_cell,
                       check_contrast=False)
-            io.imsave(os.path.join(temp_dir, '%s_feature_1.tiff' % fov), fov_nuclear,
+            io.imsave(os.path.join(temp_dir, '%s_nuclear.tiff' % fov), fov_nuclear,
                       check_contrast=False)
 
         # test segmentation without channel overlay
@@ -260,9 +260,9 @@ def test_save_segmentation_labels():
         for fov in segmentation_labels_xr.fovs.values:
             fov_whole_cell = segmentation_labels_xr.loc[fov, :, :, 'whole_cell'].values
             fov_nuclear = segmentation_labels_xr.loc[fov, :, :, 'nuclear'].values
-            io.imsave(os.path.join(temp_dir, '%s_feature_0.tiff' % fov), fov_whole_cell,
+            io.imsave(os.path.join(temp_dir, '%s_whole_cell.tiff' % fov), fov_whole_cell,
                       check_contrast=False)
-            io.imsave(os.path.join(temp_dir, '%s_feature_1.tiff' % fov), fov_nuclear,
+            io.imsave(os.path.join(temp_dir, '%s_nuclear.tiff' % fov), fov_nuclear,
                       check_contrast=False)
 
         # invalid channel values passed
