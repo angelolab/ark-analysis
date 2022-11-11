@@ -205,11 +205,11 @@ def save_segmentation_labels(segmentation_dir, data_dir, output_dir, fovs, chann
     for fov in fovs:
         # read the segmentation data in
         labels = load_utils.load_imgs_from_dir(data_dir=segmentation_dir,
-                                               files=[fov + '_feature_0.tiff'],
+                                               files=[fov + '_whole_cell.tiff'],
                                                xr_dim_name='compartments',
                                                xr_channel_names=['whole_cell'],
-                                               trim_suffix='_feature_0',
-                                               match_substring='_feature_0')
+                                               trim_suffix='_whole_cell',
+                                               match_substring='_whole_cell')
 
         # generates segmentation borders and labels
         labels = labels.loc[fov, :, :, 'whole_cell'].values

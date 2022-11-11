@@ -268,7 +268,7 @@ def filter_with_nuclear_mask(fovs, tiff_dir, seg_dir, channel,
                                              fovs=[fov], channels=[channel]).values[0, :, :, 0]
 
         # load the segmented image in
-        seg_img = imread(os.path.join(seg_dir, fov + '_feature_1.tiff'))[0, ...]
+        seg_img = imread(os.path.join(seg_dir, fov + '_nuclear.tiff'))[0, ...]
 
         # mask out the nucleus
         if exclude:
@@ -549,7 +549,7 @@ def preprocess_fov(base_dir, tiff_dir, data_dir, subset_dir, seg_dir, seg_suffix
 
 
 def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
-                        img_sub_folder="TIFs", seg_suffix='_feature_0.tiff',
+                        img_sub_folder="TIFs", seg_suffix='_whole_cell.tiff',
                         pixel_cluster_prefix='pixel_cluster_prefix',
                         pixel_output_dir='pixel_output_dir',
                         data_dir='pixel_mat_data',
