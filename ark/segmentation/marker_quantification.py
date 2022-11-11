@@ -497,15 +497,15 @@ def generate_cell_table(segmentation_dir, tiff_dir, img_sub_folder="TIFs",
                                                         fovs=[fov_name])
 
         # define the files for whole cell and nuclear
-        whole_cell_file = fov_name + '_feature_0.tiff'
-        nuclear_file = fov_name + '_feature_1.tiff'
+        whole_cell_file = fov_name + '_whole_cell.tiff'
+        nuclear_file = fov_name + '_nuclear.tiff'
 
         # load the segmentation labels in
         current_labels_cell = load_utils.load_imgs_from_dir(data_dir=segmentation_dir,
                                                             files=[whole_cell_file],
                                                             xr_dim_name='compartments',
                                                             xr_channel_names=['whole_cell'],
-                                                            trim_suffix='_feature_0')
+                                                            trim_suffix='_whole_cell')
 
         compartments = ['whole_cell']
         segmentation_labels = current_labels_cell.values
@@ -515,7 +515,7 @@ def generate_cell_table(segmentation_dir, tiff_dir, img_sub_folder="TIFs",
                                                                files=[nuclear_file],
                                                                xr_dim_name='compartments',
                                                                xr_channel_names=['nuclear'],
-                                                               trim_suffix='_feature_1')
+                                                               trim_suffix='_nuclear')
             compartments = ['whole_cell', 'nuclear']
             segmentation_labels = np.concatenate((current_labels_cell.values,
                                                   current_labels_nuc.values), axis=-1)

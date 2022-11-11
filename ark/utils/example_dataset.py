@@ -118,13 +118,13 @@ class ExampleDataset():
                 [f.unlink() for f in dst_path.glob("*") if f.is_file()]
                 # Fill destination path
                 shutil.copytree(src_path, dst_path, dirs_exist_ok=True,
-                                ignore=shutil.ignore_patterns("._*"))
+                                ignore=shutil.ignore_patterns(r".!*"))
             else:
                 if empty_dst_path:
                     warnings.warn(UserWarning(f"Files do not exist in {dst_path}. \
                         The example dataset will be added in."))
                     shutil.copytree(src_path, dst_path, dirs_exist_ok=True,
-                                    ignore=shutil.ignore_patterns("._*"))
+                                    ignore=shutil.ignore_patterns(r"\.\!*"))
                 else:
                     warnings.warn(UserWarning(f"Files exist in {dst_path}. \
                         They will not be overwritten."))
