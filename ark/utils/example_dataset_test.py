@@ -45,7 +45,8 @@ class TestExampleDataset:
         self.cell_table_names = ["cell_table_arcsinh_transformed", "cell_table_size_normalized",
                                  "cell_table_size_normalized_cell_labels"]
 
-        self.deepcell_output_names = [f"fov{i}_feature_{j}" for i in range(11) for j in range(2)]
+        self.deepcell_output_names = [f"fov{i}_{j}" for i in range(11)
+                                      for j in ['whole_cell', 'nuclear']]
 
         self._example_pixel_output_dir_names = {
             "root_files": ["cell_clustering_params", "example_channel_norm", "example_pixel_norm",
@@ -244,7 +245,7 @@ class TestExampleDataset:
 
     def _deepcell_output_check(self, dir_p: pathlib.Path):
         """
-        Checks to make sure that all cell nucleus (feature 0) and cell membrane masks (feature 1)
+        Checks to make sure that all cell nucleus (nuclear) and cell membrane masks (whole_cell)
         exist from deepcell output.
 
         Args:

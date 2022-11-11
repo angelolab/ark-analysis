@@ -136,7 +136,7 @@ def test_generate_cell_cluster_mask():
 
         # generate a sample segmentation mask
         cell_mask = np.random.randint(low=0, high=5, size=(40, 40), dtype="int16")
-        io.imsave(os.path.join(temp_dir, '%s_feature_0.tiff' % fov), cell_mask,
+        io.imsave(os.path.join(temp_dir, '%s_whole_cell.tiff' % fov), cell_mask,
                   check_contrast=False)
 
         # bad consensus path passed
@@ -238,7 +238,7 @@ def test_generate_and_save_cell_cluster_masks(sub_dir, name_suffix):
             fov_index = fov if fov < fov_size_split else fov_size_split - fov
             fov_mask = cell_masks_40 if fov < fov_size_split else cell_masks_20
             fov_whole_cell = fov_mask[fov_index, :, :, 0]
-            io.imsave(os.path.join(temp_dir, 'fov%d_feature_0.tiff' % fov), fov_whole_cell,
+            io.imsave(os.path.join(temp_dir, 'fov%d_whole_cell.tiff' % fov), fov_whole_cell,
                       check_contrast=False)
 
         # create a sample cell consensus file based on SOM cluster assignments
@@ -287,7 +287,7 @@ def test_generate_and_save_cell_cluster_masks(sub_dir, name_suffix):
                                              seg_dir=temp_dir,
                                              cell_data_name='cluster_consensus_som.feather',
                                              cell_cluster_col='cell_som_cluster',
-                                             seg_suffix='_feature_0.tiff',
+                                             seg_suffix='_whole_cell.tiff',
                                              sub_dir=sub_dir,
                                              name_suffix=name_suffix
                                              )
@@ -483,7 +483,7 @@ def test_generate_and_save_neighborhood_cluster_masks(sub_dir, name_suffix):
 
         for fov in fovs:
             io.imsave(
-                os.path.join(temp_dir, 'seg_dir', fov + '_feature_0.tiff'),
+                os.path.join(temp_dir, 'seg_dir', fov + '_whole_cell.tiff'),
                 sample_label_maps.loc[fov, ...].values
             )
 
@@ -731,7 +731,7 @@ def test_stitch_images_by_shape(segmentation, clustering, subdir, fovs):
         os.makedirs(data_dir)
 
         if segmentation:
-            chans = ['feature_0', 'feature_1']
+            chans = ['nuclear', 'whole_cell']
         elif clustering:
             chans = [clustering + '_mask']
         else:

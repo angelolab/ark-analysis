@@ -273,7 +273,7 @@ def create_cell_remap_files(base_dir,  cell_meta_cluster_remap):
 
 
 def generate_sample_feature_tifs(fovs, deepcell_output_dir, img_shape=(50, 50)):
-    """Generate a sample _feature_0 and _feature_1 tiff file for each fov.
+    """Generate a sample _whole_cell and _nuclear tiff file for each fov
 
     Done to bypass the bottleneck of create_deepcell_output, for testing purposes we don't care
     about correct segmentation labels.
@@ -287,7 +287,7 @@ def generate_sample_feature_tifs(fovs, deepcell_output_dir, img_shape=(50, 50)):
     # generate a random image for each fov, set as both whole cell and nuclear
     for fov in fovs:
         rand_img = np.random.randint(0, 16, size=img_shape)
-        io.imsave(os.path.join(deepcell_output_dir, fov + "_feature_0.tiff"), rand_img,
+        io.imsave(os.path.join(deepcell_output_dir, fov + "_whole_cell.tiff"), rand_img,
                   check_contrast=False)
-        io.imsave(os.path.join(deepcell_output_dir, fov + "_feature_1.tiff"), rand_img,
+        io.imsave(os.path.join(deepcell_output_dir, fov + "_nuclear.tiff"), rand_img,
                   check_contrast=False)
