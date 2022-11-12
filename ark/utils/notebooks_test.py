@@ -1,9 +1,10 @@
+import pathlib
+from typing import ContextManager, Iterator
+
 import pytest
 from testbook import testbook
-from typing import ContextManager, Iterator
-import pathlib
+
 from ark.utils import notebooks_test_utils
-from pytest_cases import fixture, parametrize
 
 
 # Sets a shared notebook testing temporary directory. Saves all notebook related files in a

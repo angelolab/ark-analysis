@@ -6,9 +6,9 @@ import numpy as np
 import pandas as pd
 import pytest
 from sklearn.utils import shuffle
+from tmi import misc_utils
 
 import ark.phenotyping.cell_cluster_utils as cell_cluster_utils
-import ark.utils.misc_utils as misc_utils
 
 parametrize = pytest.mark.parametrize
 

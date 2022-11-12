@@ -2,6 +2,7 @@ import os
 import tempfile
 from pathlib import Path
 
+import matplotlib.colors as colors
 import natsort
 import numpy as np
 import pandas as pd
@@ -9,9 +10,9 @@ import pytest
 import skimage.io as io
 import xarray as xr
 from skimage.draw import disk
-import matplotlib.colors as colors
+from tmi import image_utils, test_utils
 
-from ark.utils import plot_utils, test_utils
+from ark.utils import plot_utils
 
 
 def _generate_segmentation_labels(img_dims, num_cells=20):
@@ -179,16 +180,13 @@ def test_create_overlay():
 
     with tempfile.TemporaryDirectory() as temp_dir:
         # create the whole cell and nuclear segmentation label compartments
-        io.imsave(os.path.join(temp_dir, '%s_whole_cell.tiff' % fov), example_labels,
-                  check_contrast=False)
-        io.imsave(os.path.join(temp_dir, '%s_nuclear.tiff' % fov), example_labels,
-                  check_contrast=False)
+        image_utils.save_image(os.path.join(temp_dir, '%s_whole_cell.tiff' % fov), example_labels)
+        image_utils.save_image(os.path.join(temp_dir, '%s_nuclear.tiff' % fov), example_labels)
 
         # save the cell image
         img_dir = os.path.join(temp_dir, 'img_dir')
         os.mkdir(img_dir)
-        io.imsave(os.path.join(img_dir, '%s.tiff' % fov), example_images,
-                  check_contrast=False)
+        image_utils.save_image(os.path.join(img_dir, '%s.tiff' % fov), example_images)
 
         # test with both nuclear and membrane specified
         contour_mask = plot_utils.create_overlay(
@@ -299,17 +297,23 @@ def test_create_mantis_dir():
 
         for idx, fov in enumerate(fovs):
             # Save the segmentation label compartments for each fov
-            io.imsave(os.path.join(temp_dir, segmentation_dir, '%s_whole_cell.tiff' % fov),
-                      example_labels.loc[idx, ...].values, check_contrast=False)
+            image_utils.save_image(
+                os.path.join(temp_dir, segmentation_dir, '%s_whole_cell.tiff' % fov),
+                example_labels.loc[idx, ...].values
+            )
 
             # Save the sample masks
-            io.imsave(os.path.join(mask_output_dir, '%s_mask.tiff' % fov),
-                      example_masks.loc[..., idx].values, check_contrast=False)
+            image_utils.save_image(
+                os.path.join(mask_output_dir, '%s_mask.tiff' % fov),
+                example_masks.loc[..., idx].values
+            )
 
             # Save each channel per fov
             for idx, chan in enumerate(channels):
-                io.imsave(filelocs[fov][idx] + ".tiff",
-                          data_xr.loc[fov, :, :, chan].values, check_contrast=False)
+                image_utils.save_image(
+                    filelocs[fov][idx] + ".tiff",
+                    data_xr.loc[fov, :, :, chan].values
+                )
 
         # create the mapping path, and the sample mapping file
         mapping_path = os.path.join(temp_dir, cell_output_dir, 'sample_mapping_path.csv')

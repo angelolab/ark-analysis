@@ -4,9 +4,9 @@ import numpy as np
 import pandas as pd
 import pytest
 import skimage.io as io
+from tmi import image_utils, test_utils
 
 from ark.phenotyping import post_cluster_utils
-from ark.utils import test_utils
 
 
 def test_plot_hist_thresholds():
@@ -59,7 +59,7 @@ def test_create_mantis_project(tmp_path):
     # create random segmentation masks
     for fov in fovs:
         data = np.random.randint(0, 5, 100).reshape(10, 10)
-        io.imsave(os.path.join(seg_dir, fov + '_whole_cell.tiff'), data, check_contrast=False)
+        image_utils.save_image(os.path.join(seg_dir, fov + '_whole_cell.tiff'), data)
 
     # create cell table with two clusters
     cell_label = np.tile(np.arange(1, 5), len(fovs))

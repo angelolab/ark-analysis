@@ -1,8 +1,10 @@
 import pathlib
-from typing import Callable, Iterator, Generator
+from typing import Callable, Generator, Iterator
+
 import pytest
+from tmi import test_utils
+
 from ark.utils.example_dataset import ExampleDataset, get_example_dataset
-from ark.utils import test_utils
 
 
 @pytest.fixture(scope="session", params=["segment_image_data", "cluster_pixels",

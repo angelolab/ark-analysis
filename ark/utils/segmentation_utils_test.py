@@ -7,6 +7,8 @@ import pytest
 import skimage.io as io
 import xarray as xr
 from skimage.measure import regionprops
+from tmi import image_utils
+from tmi.test_utils import make_images_xarray, make_labels_xarray
 
 import ark.settings as settings
 from ark.utils import segmentation_utils, test_utils
@@ -206,10 +208,10 @@ def test_transform_expression_matrix_multiple_compartments():
 
 
 def test_save_segmentation_labels():
-    channel_xr = test_utils.make_images_xarray(
+    channel_xr = make_images_xarray(
         np.zeros((2, 50, 50, 2)), channel_names=['nuclear_channel', 'membrane_channel']
     )
-    segmentation_labels_xr = test_utils.make_labels_xarray(np.zeros((2, 50, 50, 2)))
+    segmentation_labels_xr = make_labels_xarray(np.zeros((2, 50, 50, 2)))
     fov_sub = segmentation_labels_xr.fovs.values[:1]
     chan_sub = channel_xr.channels.values[:2]
 
@@ -221,17 +223,16 @@ def test_save_segmentation_labels():
 
         for fov in channel_xr.fovs.values:
             fov_channel_vals = channel_xr.loc[fov, ...].values
-            io.imsave(os.path.join(img_dir, '%s.tiff' % fov), fov_channel_vals,
-                      check_contrast=False)
+            image_utils.save_image(os.path.join(img_dir, '%s.tiff' % fov), fov_channel_vals)
 
         # save the segmentation labels
         for fov in segmentation_labels_xr.fovs.values:
             fov_whole_cell = segmentation_labels_xr.loc[fov, :, :, 'whole_cell'].values
             fov_nuclear = segmentation_labels_xr.loc[fov, :, :, 'nuclear'].values
-            io.imsave(os.path.join(temp_dir, '%s_whole_cell.tiff' % fov), fov_whole_cell,
-                      check_contrast=False)
-            io.imsave(os.path.join(temp_dir, '%s_nuclear.tiff' % fov), fov_nuclear,
-                      check_contrast=False)
+            image_utils.save_image(os.path.join(temp_dir, '%s_whole_cell.tiff' % fov),
+                                   fov_whole_cell)
+            image_utils.save_image(os.path.join(temp_dir, '%s_nuclear.tiff' % fov),
+                                   fov_nuclear)
 
         # test segmentation without channel overlay
         segmentation_utils.save_segmentation_labels(
@@ -253,17 +254,16 @@ def test_save_segmentation_labels():
 
         for fov in channel_xr.fovs.values:
             fov_channel_vals = channel_xr.loc[fov, ...].values
-            io.imsave(os.path.join(img_dir, '%s.tiff' % fov), fov_channel_vals,
-                      check_contrast=False)
+            image_utils.save_image(os.path.join(img_dir, '%s.tiff' % fov), fov_channel_vals)
 
         # save the segmentation labels
         for fov in segmentation_labels_xr.fovs.values:
             fov_whole_cell = segmentation_labels_xr.loc[fov, :, :, 'whole_cell'].values
             fov_nuclear = segmentation_labels_xr.loc[fov, :, :, 'nuclear'].values
-            io.imsave(os.path.join(temp_dir, '%s_whole_cell.tiff' % fov), fov_whole_cell,
-                      check_contrast=False)
-            io.imsave(os.path.join(temp_dir, '%s_nuclear.tiff' % fov), fov_nuclear,
-                      check_contrast=False)
+            image_utils.save_image(os.path.join(temp_dir, '%s_whole_cell.tiff' % fov),
+                                   fov_whole_cell)
+            image_utils.save_image(os.path.join(temp_dir, '%s_nuclear.tiff' % fov),
+                                   fov_nuclear)
 
         # invalid channel values passed
         with pytest.raises(ValueError):

@@ -8,17 +8,20 @@ import skimage.io as io
 import skimage.morphology as morph
 import xarray as xr
 from skimage.morphology import erosion
+from tmi import image_utils, misc_utils
+from tmi.test_utils import (create_paired_xarray_fovs, gen_fov_chan_names,
+                            make_images_xarray, make_labels_xarray)
 
 import ark.settings as settings
 from ark.segmentation import marker_quantification
-from ark.utils import misc_utils, test_utils
+from ark.utils import test_utils
 
 
 def test_get_single_compartment_props():
     cell_mask, channel_data = test_utils.create_test_extraction_data()
 
-    segmentation_labels = test_utils.make_labels_xarray(label_data=cell_mask,
-                                                        compartment_names=['whole_cell'])
+    segmentation_labels = make_labels_xarray(label_data=cell_mask,
+                                             compartment_names=['whole_cell'])
 
     regionprops_base = copy.deepcopy(settings.REGIONPROPS_BASE)
 
@@ -53,12 +56,12 @@ def test_get_single_compartment_props():
 def test_assign_single_compartment_props():
     cell_mask, channel_data = test_utils.create_test_extraction_data()
 
-    segmentation_labels = test_utils.make_labels_xarray(
+    segmentation_labels = make_labels_xarray(
         label_data=cell_mask,
         compartment_names=['whole_cell']
     )
 
-    input_images = test_utils.make_images_xarray(channel_data)
+    input_images = make_images_xarray(channel_data)
 
     # define the names of the base features that can be computed directly from regionprops
     regionprops_base = copy.deepcopy(settings.REGIONPROPS_BASE) + ['coords']
@@ -137,7 +140,7 @@ def test_assign_multi_compartment_features():
     cell_mask, channel_data = test_utils.create_test_extraction_data()
 
     # test whole_cell and nuclear compartments with same data
-    segmentation_labels_equal = test_utils.make_labels_xarray(
+    segmentation_labels_equal = make_labels_xarray(
         label_data=np.concatenate((cell_mask, cell_mask), axis=-1),
         compartment_names=['whole_cell', 'nuclear']
     )
@@ -189,10 +192,10 @@ def test_assign_multi_compartment_features():
 def test_compute_marker_counts_base():
     cell_mask, channel_data = test_utils.create_test_extraction_data()
 
-    segmentation_labels = test_utils.make_labels_xarray(label_data=cell_mask,
-                                                        compartment_names=['whole_cell'])
+    segmentation_labels = make_labels_xarray(label_data=cell_mask,
+                                             compartment_names=['whole_cell'])
 
-    input_images = test_utils.make_images_xarray(channel_data)
+    input_images = make_images_xarray(channel_data)
 
     # test utils output is 4D but tests require 3D
     segmentation_labels, input_images = segmentation_labels[0], input_images[0]
@@ -248,8 +251,8 @@ def test_compute_marker_counts_base():
     )
 
     # blank segmentation mask results in the cells column of length 0
-    blank_labels = test_utils.make_labels_xarray(label_data=np.zeros((1, 40, 40, 1), dtype='int'),
-                                                 compartment_names=['whole_cell'])
+    blank_labels = make_labels_xarray(label_data=np.zeros((1, 40, 40, 1), dtype='int'),
+                                      compartment_names=['whole_cell'])
 
     blank_output = marker_quantification.compute_marker_counts(input_images=input_images,
                                                                segmentation_labels=blank_labels[0])
@@ -260,12 +263,12 @@ def test_compute_marker_counts_equal_masks():
     cell_mask, channel_data = test_utils.create_test_extraction_data()
 
     # test whole_cell and nuclear compartments with same data
-    segmentation_labels_equal = test_utils.make_labels_xarray(
+    segmentation_labels_equal = make_labels_xarray(
         label_data=np.concatenate((cell_mask, cell_mask), axis=-1),
         compartment_names=['whole_cell', 'nuclear']
     )
 
-    input_images = test_utils.make_images_xarray(channel_data)
+    input_images = make_images_xarray(channel_data)
 
     # test utils output is 4D but tests require 3D
     segmentation_labels_equal, input_images = segmentation_labels_equal[0], input_images[0]
@@ -283,16 +286,16 @@ def test_compute_marker_counts_nuc_whole_cell_diff():
 
     # nuclear mask is smaller
     nuc_mask = \
-        np.expand_dims(erosion(cell_mask[0, :, :, 0], selem=morph.disk(1)), axis=0)
+        np.expand_dims(erosion(cell_mask[0, :, :, 0], footprint=morph.disk(1)), axis=0)
     nuc_mask = np.expand_dims(nuc_mask, axis=-1)
 
     unequal_masks = np.concatenate((cell_mask, nuc_mask), axis=-1)
-    segmentation_labels_unequal = test_utils.make_labels_xarray(
+    segmentation_labels_unequal = make_labels_xarray(
         label_data=unequal_masks,
         compartment_names=['whole_cell', 'nuclear']
     )
 
-    input_images = test_utils.make_images_xarray(channel_data)
+    input_images = make_images_xarray(channel_data)
 
     # test utils output is 4D but tests require 3D
     segmentation_labels_unequal, input_images = segmentation_labels_unequal[0], input_images[0]
@@ -339,7 +342,7 @@ def test_compute_marker_counts_nuc_whole_cell_diff():
 
     # swap nuclear and cell masks so that nuc is bigger
     big_nuc_masks = np.concatenate((nuc_mask, cell_mask), axis=-1)
-    segmentation_labels_big_nuc = test_utils.make_labels_xarray(
+    segmentation_labels_big_nuc = make_labels_xarray(
         label_data=big_nuc_masks,
         compartment_names=['whole_cell', 'nuclear']
     )
@@ -359,12 +362,12 @@ def test_compute_marker_counts_no_coords():
     cell_mask, channel_data = test_utils.create_test_extraction_data()
 
     # test whole_cell and nuclear compartments with same data
-    segmentation_labels_equal = test_utils.make_labels_xarray(
+    segmentation_labels_equal = make_labels_xarray(
         label_data=np.concatenate((cell_mask, cell_mask), axis=-1),
         compartment_names=['whole_cell', 'nuclear']
     )
 
-    input_images = test_utils.make_images_xarray(channel_data)
+    input_images = make_images_xarray(channel_data)
 
     segmentation_labels_equal, input_images = segmentation_labels_equal[0], input_images[0]
 
@@ -397,12 +400,12 @@ def test_compute_marker_counts_no_labels():
     cell_mask, channel_data = test_utils.create_test_extraction_data()
 
     # test whole_cell and nuclear compartments with same data
-    segmentation_labels_equal = test_utils.make_labels_xarray(
+    segmentation_labels_equal = make_labels_xarray(
         label_data=np.concatenate((cell_mask, cell_mask), axis=-1),
         compartment_names=['whole_cell', 'nuclear']
     )
 
-    input_images = test_utils.make_images_xarray(channel_data)
+    input_images = make_images_xarray(channel_data)
 
     segmentation_labels_equal, input_images = segmentation_labels_equal[0], input_images[0]
 
@@ -443,12 +446,12 @@ def test_create_marker_count_matrices_base():
     tif_data[0, :, :, :] = channel_data[0, :, :, :]
     tif_data[1, 5:, 5:, :] = channel_data[0, :-5, :-5, :]
 
-    segmentation_labels = test_utils.make_labels_xarray(
+    segmentation_labels = make_labels_xarray(
         label_data=cell_masks,
         compartment_names=['whole_cell']
     )
 
-    channel_data = test_utils.make_images_xarray(tif_data)
+    channel_data = make_images_xarray(tif_data)
 
     # NOTE: use 0:1 instead of 0 to ensure dimension doesn't collapse
     normalized, _ = marker_quantification.create_marker_count_matrices(
@@ -501,8 +504,8 @@ def test_create_marker_count_matrices_multiple_compartments():
 
     # generate a second set of nuclear masks that are smaller than cell masks
     nuc_masks = np.zeros_like(cell_masks)
-    nuc_masks[0, :, :, 0] = erosion(cell_masks[0, :, :, 0], selem=morph.disk(1))
-    nuc_masks[1, :, :, 0] = erosion(cell_masks[1, :, :, 0], selem=morph.disk(1))
+    nuc_masks[0, :, :, 0] = erosion(cell_masks[0, :, :, 0], footprint=morph.disk(1))
+    nuc_masks[1, :, :, 0] = erosion(cell_masks[1, :, :, 0], footprint=morph.disk(1))
 
     # cell 2 in fov0 has no nucleus
     nuc_masks[0, nuc_masks[0, :, :, 0] == 2, 0] = 0
@@ -512,12 +515,12 @@ def test_create_marker_count_matrices_multiple_compartments():
 
     unequal_masks = np.concatenate((cell_masks, nuc_masks), axis=-1)
 
-    segmentation_labels_unequal = test_utils.make_labels_xarray(
+    segmentation_labels_unequal = make_labels_xarray(
         label_data=unequal_masks,
         compartment_names=['whole_cell', 'nuclear']
     )
 
-    channel_data = test_utils.make_images_xarray(channel_datas)
+    channel_data = make_images_xarray(channel_datas)
 
     # NOTE: use 0:1 instead of 0 to prevent dimension from collapsing
     normalized, arcsinh = marker_quantification.create_marker_count_matrices(
@@ -559,7 +562,7 @@ def test_generate_cell_table_tree_loading():
     # is_mibitiff False case, load from directory tree
     with tempfile.TemporaryDirectory() as temp_dir:
         # define 3 fovs and 3 imgs per fov
-        fovs, chans = test_utils.gen_fov_chan_names(3, 3)
+        fovs, chans = gen_fov_chan_names(3, 3)
 
         tiff_dir = os.path.join(temp_dir, "single_channel_inputs")
         img_sub_folder = "TIFs"
@@ -568,7 +571,7 @@ def test_generate_cell_table_tree_loading():
 
         # this function should work on FOVs with varying sizes
         fov_size_split = 2
-        test_utils.create_paired_xarray_fovs(
+        create_paired_xarray_fovs(
             base_dir=tiff_dir,
             fov_names=fovs[0:fov_size_split],
             channel_names=chans,
@@ -576,7 +579,7 @@ def test_generate_cell_table_tree_loading():
             sub_dir=img_sub_folder,
             dtype="int16"
         )
-        test_utils.create_paired_xarray_fovs(
+        create_paired_xarray_fovs(
             base_dir=tiff_dir,
             fov_names=fovs[fov_size_split:],
             channel_names=chans,
@@ -613,22 +616,22 @@ def test_generate_cell_table_tree_loading():
         for fov in range(cell_masks_40.shape[0]):
             fov_whole_cell = cell_masks_40[fov, :, :, 0]
             fov_nuclear = cell_masks_40[fov, :, :, 1]
-            io.imsave(os.path.join(temp_dir, 'fov%d_whole_cell.tiff' % fov),
-                      fov_whole_cell,
-                      check_contrast=False)
-            io.imsave(os.path.join(temp_dir, 'fov%d_nuclear.tiff' % fov),
-                      fov_nuclear,
-                      check_contrast=False)
+            image_utils.save_image(os.path.join(temp_dir, 'fov%d_whole_cell.tiff' % fov),
+                                   fov_whole_cell)
+            image_utils.save_image(os.path.join(temp_dir, 'fov%d_nuclear.tiff' % fov),
+                                   fov_nuclear)
 
         for fov in range(cell_masks_20.shape[0]):
             fov_whole_cell = cell_masks_20[fov, :, :, 0]
             fov_nuclear = cell_masks_20[fov, :, :, 1]
-            io.imsave(os.path.join(temp_dir, 'fov%d_whole_cell.tiff' % (fov + fov_size_split)),
-                      fov_whole_cell,
-                      check_contrast=False)
-            io.imsave(os.path.join(temp_dir, 'fov%d_nuclear.tiff' % (fov + fov_size_split)),
-                      fov_nuclear,
-                      check_contrast=False)
+            image_utils.save_image(
+                os.path.join(temp_dir, 'fov%d_whole_cell.tiff' % (fov + fov_size_split)),
+                fov_whole_cell
+            )
+            image_utils.save_image(
+                os.path.join(temp_dir, 'fov%d_nuclear.tiff' % (fov + fov_size_split)),
+                fov_nuclear
+            )
 
         with pytest.raises(FileNotFoundError):
             # specifying fovs not in the original segmentation mask
@@ -686,7 +689,7 @@ def test_generate_cell_table_mibitiff_loading():
     # is_mibitiff True case, load from mibitiff file structure
     with tempfile.TemporaryDirectory() as temp_dir:
         # define 3 fovs and 2 mibitiff_imgs
-        fovs, channels = test_utils.gen_fov_chan_names(3, 2)
+        fovs, channels = gen_fov_chan_names(3, 2)
 
         # define a subset of fovs
         fovs_subset = fovs[:2]
@@ -699,7 +702,7 @@ def test_generate_cell_table_mibitiff_loading():
         tiff_dir = os.path.join(temp_dir, "mibitiff_inputs")
 
         os.mkdir(tiff_dir)
-        test_utils.create_paired_xarray_fovs(
+        create_paired_xarray_fovs(
             base_dir=tiff_dir,
             fov_names=fovs,
             channel_names=channels,
@@ -718,10 +721,10 @@ def test_generate_cell_table_mibitiff_loading():
         for fov in range(cell_masks.shape[0]):
             fov_whole_cell = cell_masks[fov, :, :, 0]
             fov_nuclear = cell_masks[fov, :, :, 1]
-            io.imsave(os.path.join(temp_dir, 'fov%d_whole_cell.tiff' % fov), fov_whole_cell,
-                      check_contrast=False)
-            io.imsave(os.path.join(temp_dir, 'fov%d_nuclear.tiff' % fov), fov_nuclear,
-                      check_contrast=False)
+            image_utils.save_image(os.path.join(temp_dir, 'fov%d_whole_cell.tiff' % fov),
+                                   fov_whole_cell)
+            image_utils.save_image(os.path.join(temp_dir, 'fov%d_nuclear.tiff' % fov),
+                                   fov_nuclear)
 
         # generate sample norm and arcsinh data for all fovs
         norm_data_all_fov, arcsinh_data_all_fov = marker_quantification.generate_cell_table(
@@ -771,13 +774,13 @@ def test_generate_cell_table_mibitiff_loading():
 def test_generate_cell_table_extractions():
     with tempfile.TemporaryDirectory() as temp_dir:
         # define 3 fovs and 3 imgs per fov
-        fovs, chans = test_utils.gen_fov_chan_names(3, 3)
+        fovs, chans = gen_fov_chan_names(3, 3)
 
         tiff_dir = os.path.join(temp_dir, "single_channel_inputs")
         img_sub_folder = "TIFs"
 
         os.mkdir(tiff_dir)
-        test_utils.create_paired_xarray_fovs(
+        create_paired_xarray_fovs(
             base_dir=tiff_dir,
             fov_names=fovs,
             channel_names=chans,
@@ -797,10 +800,10 @@ def test_generate_cell_table_extractions():
         for fov in range(cell_masks.shape[0]):
             fov_whole_cell = cell_masks[fov, :, :, 0]
             fov_nuclear = cell_masks[fov, :, :, 1]
-            io.imsave(os.path.join(temp_dir, 'fov%d_whole_cell.tiff' % fov), fov_whole_cell,
-                      check_contrast=False)
-            io.imsave(os.path.join(temp_dir, 'fov%d_nuclear.tiff' % fov), fov_nuclear,
-                      check_contrast=False)
+            image_utils.save_image(os.path.join(temp_dir, 'fov%d_whole_cell.tiff' % fov),
+                                   fov_whole_cell)
+            image_utils.save_image(os.path.join(temp_dir, 'fov%d_nuclear.tiff' % fov),
+                                   fov_nuclear)
 
         default_norm_data, _ = marker_quantification.generate_cell_table(
             segmentation_dir=temp_dir, tiff_dir=tiff_dir,

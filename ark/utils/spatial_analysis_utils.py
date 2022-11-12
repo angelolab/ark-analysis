@@ -3,17 +3,16 @@ import os
 import numpy as np
 import pandas as pd
 import scipy
-import skimage.io as io
 import skimage.measure
 import sklearn.metrics
 import xarray as xr
 from scipy.spatial.distance import cdist
 from sklearn.cluster import KMeans
 from statsmodels.stats.multitest import multipletests
+from tmi import io_utils, load_utils, misc_utils
 from tqdm.notebook import tqdm
 
 import ark.settings as settings
-from ark.utils import io_utils, load_utils, misc_utils
 from ark.utils._bootstrapping import compute_close_num_rand
 
 

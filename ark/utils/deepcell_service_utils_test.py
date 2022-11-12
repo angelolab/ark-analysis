@@ -8,7 +8,7 @@ import numpy as np
 import pytest
 import tifffile
 from pytest_mock import MockerFixture
-from skimage import io
+from tmi import image_utils
 
 from ark.utils.deepcell_service_utils import (_convert_deepcell_seg_masks,
                                               create_deepcell_output)
@@ -19,8 +19,7 @@ def mocked_run_deepcell(in_zip_path, output_dir, host, job_type, scale, timeout)
     fov_seg_pairs = list(itertools.product(range(1, 4), ['feature_0', 'feature_1']))
 
     for i, seg_type in fov_seg_pairs:
-        io.imsave(os.path.join(output_dir, f'fov{i}_{seg_type}.tif'),
-                  fov_data, plugin="tifffile", check_contrast=False)
+        image_utils.save_image(os.path.join(output_dir, f'fov{i}_{seg_type}.tif'), fov_data)
 
     batch_num = int(in_zip_path.split('.')[0].split('_')[-1])
     if batch_num < 2:
@@ -46,12 +45,9 @@ def test_create_deepcell_output(mocker: MockerFixture):
         os.makedirs(input_dir)
 
         fov_data = np.ones(shape=(10, 10), dtype="float32")
-        io.imsave(os.path.join(input_dir, 'fov1.tiff'),
-                  fov_data, plugin="tifffile", check_contrast=False)
-        io.imsave(os.path.join(input_dir, 'fov2.tiff'),
-                  fov_data, plugin="tifffile", check_contrast=False)
-        io.imsave(os.path.join(input_dir, 'fov3.tiff'),
-                  fov_data, plugin="tifffile", check_contrast=False)
+        image_utils.save_image(os.path.join(input_dir, 'fov1.tiff'), fov_data)
+        image_utils.save_image(os.path.join(input_dir, 'fov2.tiff'), fov_data)
+        image_utils.save_image(os.path.join(input_dir, 'fov3.tiff'), fov_data)
 
         with tempfile.TemporaryDirectory() as output_dir:
 

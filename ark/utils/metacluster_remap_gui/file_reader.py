@@ -1,8 +1,6 @@
-import os
 
 import pandas as pd
-
-from ark.utils import misc_utils, io_utils
+from tmi import io_utils, misc_utils
 
 from .metaclusterdata import MetaClusterData
 

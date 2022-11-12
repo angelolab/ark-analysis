@@ -7,9 +7,10 @@ import skimage.io as io
 from skimage.measure import regionprops_table
 from skimage.morphology import remove_small_objects
 from skimage.segmentation import find_boundaries
+from tmi import image_utils, io_utils, load_utils, misc_utils
 
 import ark.settings as settings
-from ark.utils import io_utils, load_utils, misc_utils, plot_utils
+from ark.utils import plot_utils
 
 
 def find_nuclear_label_id(nuc_segmentation_labels, cell_coords):
@@ -220,7 +221,7 @@ def save_segmentation_labels(segmentation_dir, data_dir, output_dir, fovs, chann
 
         # save the cell border image
         save_path_seg_borders = os.path.join(output_dir, f'{fov}_segmentation_borders.tiff')
-        io.imsave(save_path_seg_borders, contour_mask, plugin="tifffile", check_contrast=False)
+        image_utils.save_image(save_path_seg_borders, contour_mask)
 
         # generate the channel overlay if specified
         if channels is not None:
@@ -236,4 +237,4 @@ def save_segmentation_labels(segmentation_dir, data_dir, output_dir, fovs, chann
             # save the channel overlay
             save_path = '_'.join([f'{fov}', *chans.astype('str'), 'overlay.tiff'])
             save_path_channel = os.path.join(output_dir, save_path)
-            io.imsave(save_path_channel, channel_overlay, plugin="tifffile", check_contrast=False)
+            image_utils.save_image(save_path_channel, channel_overlay)

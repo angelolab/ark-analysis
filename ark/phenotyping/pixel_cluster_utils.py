@@ -11,8 +11,7 @@ import pandas as pd
 import scipy.ndimage as ndimage
 from pyarrow.lib import ArrowInvalid
 from skimage.io import imread, imsave
-
-from ark.utils import io_utils, load_utils, misc_utils
+from tmi import io_utils, load_utils, misc_utils
 
 multiprocessing.set_start_method('spawn', force=True)
 
@@ -225,7 +224,7 @@ def smooth_channels(fovs, tiff_dir, img_sub_folder, channels, smooth_vals):
                                                  fovs=[fov], channels=[chan]).values[0, :, :, 0]
             chan_out = ndimage.gaussian_filter(img, sigma=smooth_vals[idx])
             imsave(os.path.join(tiff_dir, fov, img_sub_folder, chan + '_smoothed.tiff'),
-                   chan_out, check_contrast=False)
+                   chan_out, )
 
 
 def filter_with_nuclear_mask(fovs, tiff_dir, seg_dir, channel,
@@ -284,7 +283,7 @@ def filter_with_nuclear_mask(fovs, tiff_dir, seg_dir, channel,
 
         # save filtered image
         imsave(os.path.join(tiff_dir, fov, img_sub_folder, channel + suffix), img,
-               check_contrast=False)
+               )
 
 
 def compute_pixel_cluster_channel_avg(fovs, channels, base_dir, pixel_cluster_col,

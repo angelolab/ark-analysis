@@ -1,10 +1,9 @@
-import json
 import os
 
 import feather
 import numpy as np
 import pandas as pd
-import skimage.io as io
+from tmi import image_utils
 
 
 def create_pixel_som_files(base_dir,
@@ -287,7 +286,7 @@ def generate_sample_feature_tifs(fovs, deepcell_output_dir, img_shape=(50, 50)):
     # generate a random image for each fov, set as both whole cell and nuclear
     for fov in fovs:
         rand_img = np.random.randint(0, 16, size=img_shape)
-        io.imsave(os.path.join(deepcell_output_dir, fov + "_whole_cell.tiff"), rand_img,
-                  check_contrast=False)
-        io.imsave(os.path.join(deepcell_output_dir, fov + "_nuclear.tiff"), rand_img,
-                  check_contrast=False)
+        image_utils.save_image(os.path.join(deepcell_output_dir, fov + "_whole_cell.tiff"),
+                               rand_img)
+        image_utils.save_image(os.path.join(deepcell_output_dir, fov + "_nuclear.tiff"),
+                               rand_img)

@@ -1,7 +1,7 @@
 import pathlib
 import shutil
-from typing import Union
 import warnings
+from typing import Union
 
 import datasets
 

@@ -5,11 +5,12 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 from skimage.measure import regionprops, regionprops_table
+from tmi import io_utils, load_utils, misc_utils
 
 import ark.settings as settings
 from ark.segmentation.regionprops_extraction import REGIONPROPS_FUNCTION
 from ark.segmentation.signal_extraction import EXTRACTION_FUNCTION
-from ark.utils import io_utils, load_utils, misc_utils, segmentation_utils
+from ark.utils import segmentation_utils
 
 
 def get_single_compartment_props(segmentation_labels, regionprops_base,
