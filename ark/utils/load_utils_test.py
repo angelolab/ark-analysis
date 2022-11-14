@@ -519,7 +519,7 @@ def create_img_data(tmp_path_factory) -> Iterator[Tuple[pathlib.Path, xr.DataArr
         fov_names=[f"fov{i}" for i in range(3)],
         channel_names=[f"chan{i}" for i in range(10)],
         mode='tiff', fills=False
-        )
+    )
 
     # Create OME-TIFFs
     _compression: dict = {
@@ -612,6 +612,6 @@ class TestOMEConversion:
 
         if isinstance(channel_metadata, dict):
             channel_metadata = [channel_metadata]
-        channels = list(map(lambda x: x["@Name"], channel_metadata))
+        channels: List[str] = [c["@Name"] for c in channel_metadata]
 
         return (image_name, channels)
