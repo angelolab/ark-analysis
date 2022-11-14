@@ -17,7 +17,7 @@ from ark.utils import io_utils, load_utils, misc_utils
 from ark.utils._bootstrapping import compute_close_num_rand
 
 
-def calc_dist_matrix(label_dir, save_path, prefix='_feature_0'):
+def calc_dist_matrix(label_dir, save_path, prefix='_whole_cell'):
     """Generate matrix of distances between center of pairs of cells.
 
     Saves each one individually to `save_path`.

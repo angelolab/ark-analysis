@@ -295,17 +295,17 @@ def create_overlay(fov, segmentation_dir, data_dir,
 
     # read the segmentation data in
     segmentation_labels_cell = load_utils.load_imgs_from_dir(data_dir=segmentation_dir,
-                                                             files=[fov + '_feature_0.tiff'],
+                                                             files=[fov + '_whole_cell.tiff'],
                                                              xr_dim_name='compartments',
                                                              xr_channel_names=['whole_cell'],
-                                                             trim_suffix='_feature_0',
-                                                             match_substring='_feature_0')
+                                                             trim_suffix='_whole_cell',
+                                                             match_substring='_whole_cell')
     segmentation_labels_nuc = load_utils.load_imgs_from_dir(data_dir=segmentation_dir,
-                                                            files=[fov + '_feature_1.tiff'],
+                                                            files=[fov + '_nuclear.tiff'],
                                                             xr_dim_name='compartments',
                                                             xr_channel_names=['nuclear'],
-                                                            trim_suffix='_feature_1',
-                                                            match_substring='_feature_1')
+                                                            trim_suffix='_nuclear',
+                                                            match_substring='_nuclear')
 
     segmentation_labels = xr.DataArray(np.concatenate((segmentation_labels_cell.values,
                                                       segmentation_labels_nuc.values),
@@ -495,7 +495,7 @@ def create_mantis_dir(fovs: List[str], mantis_project_path: Union[str, pathlib.P
                     os.path.join(output_dir, 'population{}.tiff'.format(mask_suffix)))
 
         # copy the segmentation files into the output directory
-        seg_name = fov + '_feature_0.tiff'
+        seg_name = fov + '_whole_cell.tiff'
         shutil.copy(os.path.join(seg_dir, seg_name),
                     os.path.join(output_dir, 'cell_segmentation.tiff'))
 

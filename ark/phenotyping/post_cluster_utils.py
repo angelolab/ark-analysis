@@ -73,12 +73,12 @@ def create_mantis_project(cell_table, fovs, seg_dir, pop_col, mask_dir, image_di
 
     # label and save the cell mask for each FOV
     for fov in fovs:
-        whole_cell_file = [fov + '_feature_0.tiff' for fov in fovs]
+        whole_cell_file = [fov + '_whole_cell.tiff' for fov in fovs]
 
         # load the segmentation labels in for the FOV
         label_map = load_utils.load_imgs_from_dir(
             data_dir=seg_dir, files=whole_cell_file, xr_dim_name='compartments',
-            xr_channel_names=['whole_cell'], trim_suffix='_feature_0'
+            xr_channel_names=['whole_cell'], trim_suffix='_whole_cell'
         ).loc[fov, ...]
 
         # use label_cells_by_cluster to create cell masks
