@@ -9,11 +9,10 @@ import scipy.ndimage as ndi
 from scipy.ndimage.morphology import distance_transform_edt
 from skimage.exposure import equalize_adapthist
 from skimage.filters import meijering, sobel, threshold_multiotsu
-from skimage.io import imsave
 from skimage.measure import regionprops_table
 from skimage.morphology import remove_small_objects
 from skimage.segmentation import watershed
-from tmi import io_utils, load_utils, misc_utils
+from tmi import image_utils, io_utils, load_utils, misc_utils
 
 from ark import settings
 from ark.utils.plot_utils import set_minimum_color_for_colormap
@@ -281,17 +280,16 @@ def segment_fibers(data_xr, fiber_channel, out_dir, fov, blur=2, contrast_scalin
     labeled_filtered = remove_small_objects(labeled, min_size=min_fiber_size) * segmentation
 
     if debug:
-        imsave(os.path.join(debug_path, f'{fov}_thresholded.tiff'), threshed,
-               )
-        imsave(os.path.join(debug_path, f'{fov}_ridges_thresholded.tiff'),
-               distance_transformed, )
-        imsave(os.path.join(debug_path, f'{fov}_meijering_filter.tiff'), ridges,
-               )
-        imsave(os.path.join(debug_path, f'{fov}_contrast_adjusted.tiff'), contrast_adjusted,
-               )
+        image_utils.save_image(os.path.join(debug_path, f'{fov}_thresholded.tiff'),
+                               threshed)
+        image_utils.save_image(os.path.join(debug_path, f'{fov}_ridges_thresholded.tiff'),
+                               distance_transformed)
+        image_utils.save_image(os.path.join(debug_path, f'{fov}_meijering_filter.tiff'),
+                               ridges)
+        image_utils.save_image(os.path.join(debug_path, f'{fov}_contrast_adjusted.tiff'),
+                               contrast_adjusted)
 
-    imsave(os.path.join(out_dir, f'{fov}_fiber_labels.tiff'), labeled_filtered,
-           )
+    image_utils.save_image(os.path.join(out_dir, f'{fov}_fiber_labels.tiff'), labeled_filtered)
 
     fiber_object_table = regionprops_table(labeled_filtered, properties=object_properties)
 
