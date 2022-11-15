@@ -21,7 +21,8 @@ from ark.utils import io_utils, misc_utils
 
 
 def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
-                           suffix='_feature_0', host='https://deepcell.org', job_type='mesmer',
+                           wc_suffix='_whole_cell', nuc_suffix='_nuclear',
+                           host='https://deepcell.org', job_type='mesmer',
                            scale=1.0, timeout=3600, zip_size=5, parallel=False):
     """Handles all of the necessary data manipulation for running deepcell tasks.
     Creates .zip files (to be used as input for DeepCell),
@@ -37,9 +38,16 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
         fovs (list):
             List of fovs in preprocessing pipeline. if None, all .tiff files
             in deepcell_input_dir will be considered as input fovs. Default: None
-        suffix (str):
-            Suffix for DeepCell output filename. e.g. for fovX, DeepCell output
-            should be <fovX>+suffix.tiff. Default: '_feature_0'
+        wc_suffix (str):
+            Suffix for whole cell DeepCell output filename. e.g. for fovX, DeepCell output
+            should be `<fovX>+suffix.tif`.
+            Whole cell DeepCell files by default get suffixed with `'feature_0'`,
+            it will be renamed to this arg.
+        nuc_suffix (str):
+            Suffix for nuclear DeepCell output filename. e.g. for fovX, DeepCell output
+            should be `<fovX>+suffix.tif`.
+            Nuclear DeepCell files by default get suffixed with `'feature_1'`,
+            it will be renamed to this arg.
         host (str):
             Hostname and port for the kiosk-frontend API server
             Default: 'https://deepcell.org'
@@ -138,8 +146,13 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
 
         with ZipFile(zip_files[-1], "r") as zipObj:
             for name in zipObj.namelist():
-                # generate the path to save the segmentation mask
-                mask_path = os.path.join(deepcell_output_dir, name)
+                # this files will only ever be suffixed with feature_0.tiff or feature_1.tiff
+                if '_feature_0.tif' in name:
+                    resuffixed_name = name.replace('_feature_0', wc_suffix)
+                else:
+                    resuffixed_name = name.replace('_feature_1', nuc_suffix)
+
+                mask_path = os.path.join(deepcell_output_dir, resuffixed_name)
 
                 # DeepCell uses .tif extension, append extra f to account for .tiff standard
                 mask_path += 'f'
@@ -152,8 +165,10 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
 
             # verify that all the files were extracted
             for fov in fov_group:
-                if fov + suffix + '.tif' not in zipObj.namelist():
-                    warnings.warn(f'Deep Cell output file was not found for {fov}.')
+                if fov + '_feature_0.tif' not in zipObj.namelist():
+                    warnings.warn(f'Deep Cell whole cell output file was not found for {fov}.')
+                if fov + '_feature_1.tif' not in zipObj.namelist():
+                    warnings.warn(f'Deep Cell nuclear output file was not found for {fov}.')
 
     # make calls in parallel
     if parallel:

@@ -59,7 +59,7 @@ def test_create_mantis_project(tmp_path):
     # create random segmentation masks
     for fov in fovs:
         data = np.random.randint(0, 5, 100).reshape(10, 10)
-        io.imsave(os.path.join(seg_dir, fov + '_feature_0.tiff'), data, check_contrast=False)
+        io.imsave(os.path.join(seg_dir, fov + '_whole_cell_test.tiff'), data, check_contrast=False)
 
     # create cell table with two clusters
     cell_label = np.tile(np.arange(1, 5), len(fovs))
@@ -72,7 +72,8 @@ def test_create_mantis_project(tmp_path):
     post_cluster_utils.create_mantis_project(cell_table=cell_table, fovs=fovs,
                                              seg_dir=seg_dir, pop_col='cell_meta_cluster',
                                              mask_dir=mask_dir, image_dir=image_dir,
-                                             mantis_dir=mantis_dir)
+                                             mantis_dir=mantis_dir,
+                                             seg_suffix_name="_whole_cell_test")
 
     # make sure that the mask found in each mantis directory is correct
     for fov in fovs:
@@ -81,5 +82,5 @@ def test_create_mantis_project(tmp_path):
         assert set(np.unique(mask)) == set([0, 1, 2])
 
         # mask should be non-zero in the same places as original
-        seg = io.imread(os.path.join(seg_dir, fov + '_feature_0.tiff'))
+        seg = io.imread(os.path.join(seg_dir, fov + '_whole_cell_test.tiff'))
         assert np.array_equal(mask > 0, seg > 0)
