@@ -754,3 +754,67 @@ def compute_cluster_metrics_silhouette(neighbor_mat, min_k=2, max_k=10, included
     )
 
     return neighbor_cluster_stats
+
+
+def compute_cell_neighbors(all_data, dist_mat_dir, cell_neighbors_dir, neighbors_radius=100,
+                           included_fovs=None, fov_col=settings.FOV_ID):
+    """
+    Args:
+        all_data (pandas.DataFrame):
+            data for all fovs. Includes the columns for fov, label, and cell phenotype.
+        dist_mat_dir (str):
+            directory containing the distance matrices
+        cell_neighbors_dir (str):
+            directory to save cell neighbor tables to
+        neighbors_radius (int):
+            cell proximity threshold. Default is 100.
+        included_fovs (list):
+            fovs to include in analysis. If argument is none, default is all fovs used.
+        fov_col (str):
+            column with the cell fovs.
+
+    """
+
+    # get all fovs
+    if included_fovs is None:
+        included_fovs = all_data[fov_col].unique()
+
+    # find only close neighboring cells, save to csv file
+    for fov in included_fovs:
+        cell_neighbors, _ = create_neighborhood_matrix(all_data, dist_mat_dir, [fov],
+                                                    distlim=neighbors_radius)
+        save_path = os.path.join(cell_neighbors_dir, f"{fov}_cell_neighbors.csv")
+        cell_neighbors.to_csv(save_path, index=False)
+
+
+def compute_mixing_score(cell_neighbors_dir, fov, target_cell, reference_cell):
+    """
+    Args:
+        cell_neighbors_dir (str):
+            directory to save cell neighbor tables to
+        fov (str):
+            single fov to compute mixing score for
+        target_cell (str):
+            invading cell phenotype
+        reference_cell (str):
+            expected cell phenotype
+
+    Returns:
+        integer indicating the mixing score for the FOV
+
+    """
+
+    # read in fov cell neighbors, drop fov and cell label columns
+    neighbors_mat = pd.read_csv(os.path.join(cell_neighbors_dir, f"{fov}_cell_neighbors.csv"))
+    neighbors_mat = neighbors_mat.drop([0, 1])
+
+    # condense to total number of cell type interactions
+    interactions_mat = neighbors_mat.groupby(by=[settings.CELL_TYPE]).sum()
+
+    # example mixing calc based on Leeat's paper
+    reference_target = interactions_mat.loc[target_cell, reference_cell]
+    reference_reference = interactions_mat.loc[reference_cell, reference_cell]
+
+    mixing_score = (reference_target / 2) / (reference_reference / 2)
+
+    return mixing_score
