@@ -633,6 +633,13 @@ def test_compute_pixel_cluster_channel_avg(cluster_col, keep_count, corrupt):
             num_repeats = 10
             result = np.repeat(np.array([[0.1, 0.2, 0.3]]), repeats=num_repeats, axis=0)
 
+        # test fov_subset_proportion too low
+        with pytest.raises(ValueError):
+            pixel_cluster_utils.compute_pixel_cluster_channel_avg(
+                fovs, chans, temp_dir, cluster_col,
+                'pixel_mat_consensus', fov_subset_proportion=1 / 10, keep_count=keep_count
+            )
+
         # compute pixel cluster average matrix
         cluster_avg = pixel_cluster_utils.compute_pixel_cluster_channel_avg(
             fovs, chans, temp_dir, cluster_col,

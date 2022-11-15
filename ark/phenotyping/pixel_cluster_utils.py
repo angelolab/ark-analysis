@@ -329,6 +329,9 @@ def compute_pixel_cluster_channel_avg(fovs, channels, base_dir, pixel_cluster_co
     # subset number of FOVs per fov_subset_proportion
     fovs_sub = random.sample(fovs, int(len(fovs) * fov_subset_proportion))
 
+    if len(fovs_sub) == 0:
+        raise ValueError("fov_subset_proportion is too low, please increase")
+
     for fov in fovs_sub:
         # read in the fovs data
         try:
