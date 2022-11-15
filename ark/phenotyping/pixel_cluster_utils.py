@@ -948,7 +948,8 @@ def cluster_pixels(fovs, channels, base_dir, data_dir='pixel_mat_data',
         pc_chan_avg_som_cluster_name (str):
             The name of the file to save the average channel expression across all SOM clusters
         fov_subset_proportion (float):
-            The proportion of FOVs to take for SOM cluster channel averaging, truncated to nearest int
+            The proportion of FOVs to take for SOM cluster channel averaging,
+            truncated to nearest int
         multiprocess (bool):
             Whether to use multiprocessing or not
         batch_size (int):
@@ -1105,9 +1106,8 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
         clust_to_meta_name (str):
             Name of file storing the SOM cluster to meta cluster mapping
         fov_subset_proportion (float):
-            The proportion of FOVs to take for meta cluster channel averaging, truncated to nearest int
-        fov_subset_proportion (float):
-            The proportion of FOVs to take for SOM cluster channel averaging, truncated to nearest int
+            The proportion of FOVs to take for meta cluster channel averaging,
+            truncated to nearest int
         multiprocess (bool):
             Whether to use multiprocessing or not
         batch_size (int):
@@ -1294,7 +1294,8 @@ def apply_pixel_meta_cluster_remapping(fovs, channels, base_dir,
         pc_chan_avg_meta_cluster_name (str):
             Name of the file containing the channel-averaged results across all meta clusters
         fov_subset_proportion (float):
-            The proportion of FOVs to take for SOM cluster channel averaging, truncated to nearest int
+            The proportion of FOVs to take for SOM cluster channel averaging,
+            truncated to nearest int
         multiprocess (bool):
             Whether to use multiprocessing or not
         batch_size (int):

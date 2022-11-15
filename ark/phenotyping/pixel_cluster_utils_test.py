@@ -1971,7 +1971,7 @@ def test_apply_pixel_meta_cluster_remapping_temp_corrupt(multiprocess, capsys):
             'sample_pixel_remapping.csv',
             'sample_pixel_som_cluster_chan_avgs.csv',
             'sample_pixel_meta_cluster_chan_avgs.csv',
-            fov_subset_proportion=1 / 3,
+            fov_subset_proportion=1 / 2,
             multiprocess=multiprocess
         )
 
