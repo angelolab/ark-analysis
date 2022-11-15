@@ -636,7 +636,7 @@ def test_compute_pixel_cluster_channel_avg(cluster_col, keep_count, corrupt):
         # compute pixel cluster average matrix
         cluster_avg = pixel_cluster_utils.compute_pixel_cluster_channel_avg(
             fovs, chans, temp_dir, cluster_col,
-            'pixel_mat_consensus', keep_count=keep_count
+            'pixel_mat_consensus', fov_subset_proportion=1 / 3, keep_count=keep_count
         )
 
         # define the columns to check in cluster_avg
@@ -648,9 +648,9 @@ def test_compute_pixel_cluster_channel_avg(cluster_col, keep_count, corrupt):
             provided_chans=chans
         )
 
-        # assert count column adds up to 0.1 of the subsetted number of pixels
+        # assert count column adds up to just one FOV sampled
         if keep_count:
-            assert cluster_avg['count'].sum() == 200 if corrupt else 300
+            assert cluster_avg['count'].sum() == 1000
 
         # assert all the rows equal [0.1, 0.2, 0.3]
         num_repeats = cluster_avg.shape[0]
@@ -1534,7 +1534,7 @@ def test_pixel_consensus_cluster(mocker):
 
         # compute averages by cluster, this happens before call to R
         cluster_avg = pixel_cluster_utils.compute_pixel_cluster_channel_avg(
-            fovs, chans, temp_dir, 'pixel_som_cluster'
+            fovs, chans, temp_dir, 'pixel_som_cluster', fov_subset_proportion=1 / 3
         )
 
         # save the DataFrame
@@ -1837,6 +1837,7 @@ def test_apply_pixel_meta_cluster_remapping_base(multiprocess):
             'sample_pixel_remapping.csv',
             'sample_pixel_som_cluster_chan_avgs.csv',
             'sample_pixel_meta_cluster_chan_avgs.csv',
+            fov_subset_proportion=1 / 3,
             multiprocess=multiprocess
         )
 
@@ -1897,9 +1898,9 @@ def test_apply_pixel_meta_cluster_remapping_base(multiprocess):
             np.round(sample_pixel_channel_avg_meta_cluster[chans].values, 1) == result
         )
 
-        # assert the total counts add up to 300 (10% of the number of pixels used)
+        # assert the total counts add up to 1000 (number in 1 FOV)
         # NOTE: we can't test specific count values due to randomization of channel averaging
-        assert sample_pixel_channel_avg_meta_cluster['count'].sum() == 300
+        assert sample_pixel_channel_avg_meta_cluster['count'].sum() == 1000
 
         # assert the correct metacluster labels are contained
         sample_pixel_channel_avg_meta_cluster = sample_pixel_channel_avg_meta_cluster.sort_values(
@@ -1963,6 +1964,7 @@ def test_apply_pixel_meta_cluster_remapping_temp_corrupt(multiprocess, capsys):
             'sample_pixel_remapping.csv',
             'sample_pixel_som_cluster_chan_avgs.csv',
             'sample_pixel_meta_cluster_chan_avgs.csv',
+            fov_subset_proportion=1 / 3,
             multiprocess=multiprocess
         )
 
