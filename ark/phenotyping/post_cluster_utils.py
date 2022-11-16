@@ -50,7 +50,9 @@ def plot_hist_thresholds(cell_table, populations, marker, pop_col='cell_meta_clu
     plt.tight_layout()
 
 
-def create_mantis_project(cell_table, fovs, seg_dir, pop_col, mask_dir, image_dir, mantis_dir):
+def create_mantis_project(cell_table, fovs, seg_dir, pop_col,
+                          mask_dir, image_dir, mantis_dir,
+                          seg_suffix_name: str = "_whole_cell") -> None:
     """Create a complete Mantis project for viewing cell labels
 
     Args:
@@ -60,7 +62,10 @@ def create_mantis_project(cell_table, fovs, seg_dir, pop_col, mask_dir, image_di
         pop_col (str): the column containing the distinct cell populations
         mask_dir (path): path to the directory where the masks will be stored
         image_dir (path): path to the directory containing the raw image data
-        mantis_dir (path): path to the directory where the mantis project will be created """
+        mantis_dir (path): path to the directory where the mantis project will be created
+        seg_suffix_name (str, optional):
+            The suffix of the segmentation file. Defaults to "_whole_cell".
+    """
 
     if not os.path.exists(mask_dir):
         os.makedirs(mask_dir)
@@ -73,12 +78,12 @@ def create_mantis_project(cell_table, fovs, seg_dir, pop_col, mask_dir, image_di
 
     # label and save the cell mask for each FOV
     for fov in fovs:
-        whole_cell_file = [fov + '_whole_cell.tiff' for fov in fovs]
+        whole_cell_file = [fov + seg_suffix_name + '.tiff' for fov in fovs]
 
         # load the segmentation labels in for the FOV
         label_map = load_utils.load_imgs_from_dir(
             data_dir=seg_dir, files=whole_cell_file, xr_dim_name='compartments',
-            xr_channel_names=['whole_cell'], trim_suffix='_whole_cell'
+            xr_channel_names=[seg_suffix_name], trim_suffix=seg_suffix_name
         ).loc[fov, ...]
 
         # use label_cells_by_cluster to create cell masks
@@ -103,4 +108,5 @@ def create_mantis_project(cell_table, fovs, seg_dir, pop_col, mask_dir, image_di
     plot_utils.create_mantis_dir(fovs=fovs, mantis_project_path=mantis_dir,
                                  img_data_path=image_dir, mask_output_dir=mask_dir,
                                  mask_suffix='_cell_mask', mapping=mantis_df,
-                                 seg_dir=seg_dir, img_sub_folder='')
+                                 seg_dir=seg_dir, img_sub_folder='',
+                                 seg_suffix_name=seg_suffix_name)
