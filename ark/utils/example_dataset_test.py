@@ -1,12 +1,21 @@
 import pathlib
-from typing import Callable, Iterator, Generator
+from typing import Callable, Generator, Iterator
+
 import pytest
-from ark.utils.example_dataset import ExampleDataset, get_example_dataset
+
 from ark.utils import test_utils
+from ark.utils.example_dataset import ExampleDataset, get_example_dataset
 
 
-@pytest.fixture(scope="session", params=["segment_image_data", "cluster_pixels",
-                                         "cluster_cells", "post_clustering"])
+@pytest.fixture(scope="session", params=["segment_image_data",
+                                         "cluster_pixels",
+                                         "cluster_cells",
+                                         "post_clustering",
+                                         "fiber_segmentation",
+                                         "LDA_preprocessing",
+                                         "LDA_training_inference",
+                                         "neighborhood_analysis",
+                                         "pairwise_spatial_enrichment"])
 def dataset_download(request) -> Iterator[ExampleDataset]:
     """
     A Fixture which instantiates and downloads the dataset with respect to each
@@ -23,7 +32,7 @@ def dataset_download(request) -> Iterator[ExampleDataset]:
     example_dataset: ExampleDataset = ExampleDataset(
         dataset=request.param,
         cache_dir=None,
-        revision="main"
+        revision="27560f4f4131d66aa0cb1beeb680ab47f9a6cbfa"
     )
     # Download example data for a particular notebook
     example_dataset.download_example_dataset()
@@ -71,21 +80,36 @@ class TestExampleDataset:
             "cell_masks": [f"fov{i}_cell_mask" for i in range(2)]
         }
 
+        self._spatial_analysis_lda_preprocessed_files = [
+            "difference_mats",
+            "featurized_cell_table",
+            "formatted_cell_table",
+            "fov_stats",
+            "topic_eda"]
+
+        self._post_clustering_files = ["cell_table_thresholded",
+                                       "marker_thresholds", "updated_cell_table"]
+
         self.dataset_test_fns: dict[str, Callable] = {
             "image_data": self._image_data_check,
             "cell_table": self._cell_table_check,
             "deepcell_output": self._deepcell_output_check,
             "example_pixel_output_dir": self._example_pixel_output_dir_check,
             "example_cell_output_dir": self._example_cell_output_dir_check,
+            "spatial_lda": self._spatial_lda_output_dir_check,
+            "post_clustering": self._post_clustering_output_dir_check
         }
 
         # Mapping the datasets to their respective test functions.
+        # Should be the same as `example_dataset.ExampleDataset.path_suffixes`
         self.move_path_suffixes = {
             "image_data": "image_data",
             "cell_table": "segmentation/cell_table",
             "deepcell_output": "segmentation/deepcell_output",
             "example_pixel_output_dir": "pixie/example_pixel_output_dir",
             "example_cell_output_dir": "pixie/example_cell_output_dir",
+            "spatial_lda": "spatial_analysis/spatial_lda",
+            "post_clustering": "post_clustering",
         }
 
     def test_download_example_dataset(self, dataset_download: ExampleDataset):
@@ -346,6 +370,30 @@ class TestExampleDataset:
         cell_mask_names = [f.stem for f in cell_mask_files]
         assert set(self._example_cell_output_dir_names["cell_masks"]) \
             == set(cell_mask_names)
+
+    def _spatial_lda_output_dir_check(self, dir_p: pathlib.Path):
+        """
+        Checks to make sure that the correct files exist w.r.t the `spatial_lda` output dir
+        `spatial_analysis/spatial_lda/preprocessed`.
+
+        Args:
+            dir_p (pathlib.Path): The directory to check.
+        """
+        downloaded_lda_preprocessed = list((dir_p / "preprocessed").glob("*.pkl"))
+        downloaded_lda_preprocessed_names = [f.stem for f in downloaded_lda_preprocessed]
+        assert set(self._spatial_analysis_lda_preprocessed_files) == set(
+            downloaded_lda_preprocessed_names)
+
+    def _post_clustering_output_dir_check(self, dir_p: pathlib.Path):
+        """
+        Checks to make sure that the correct files exist w.r.t the `post_clustering` output dir
+
+        Args:
+            dir_p (pathlib.Path): The directory to check.
+        """
+        downloaded_post_cluster = list(dir_p.glob("*.csv"))
+        downloaded_post_cluster_names = [f.stem for f in downloaded_post_cluster]
+        assert set(self._post_clustering_files) == set(downloaded_post_cluster_names)
 
     def _suffix_paths(self, dataset_download: ExampleDataset,
                       parent_dir: pathlib.Path) -> Generator:
