@@ -559,7 +559,7 @@ def compute_kmeans_silhouette(neighbor_mat_data, min_k=2, max_k=10, seed=42, sub
             # Subsample each cluster
             sub_dat = sub_dat.groupby("cluster").apply(
                 lambda x: x.sample(
-                    subsample, replace=len(x) < subsample), random_state=seed
+                    subsample, replace=len(x) < subsample, random_state=seed)
                 ).reset_index(drop=True)
 
         cluster_score = sklearn.metrics.silhouette_score(sub_dat.drop("cluster", axis=1),
