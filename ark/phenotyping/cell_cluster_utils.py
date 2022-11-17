@@ -676,7 +676,7 @@ def cell_consensus_cluster(fovs, channels, base_dir, pixel_cluster_col, max_k=20
     )
 
     # z-score and cap the data
-    cell_cc.scale()
+    cell_cc.scale_data()
 
     # run consensus clustering
     cell_cc.run_consensus_clustering()

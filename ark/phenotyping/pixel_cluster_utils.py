@@ -1129,7 +1129,7 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
     )
 
     # z-score and cap the data
-    pixel_cc.scale()
+    pixel_cc.scale_data()
 
     # run consensus clustering
     pixel_cc.run_consensus_clustering()
