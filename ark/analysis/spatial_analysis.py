@@ -781,13 +781,14 @@ def compute_cell_neighbors(all_data, dist_mat_dir, cell_neighbors_dir, neighbors
 
     # find only close neighboring cells, save to csv file
     for fov in included_fovs:
-        cell_neighbors, _ = create_neighborhood_matrix(all_data, dist_mat_dir, [fov],
-                                                    distlim=neighbors_radius)
+        fov_data = all_data[all_data[fov_col] == fov].reset_index()
+        cell_neighbors, _ = create_neighborhood_matrix(fov_data, dist_mat_dir, [fov],
+                                                       distlim=neighbors_radius)
         save_path = os.path.join(cell_neighbors_dir, f"{fov}_cell_neighbors.csv")
         cell_neighbors.to_csv(save_path, index=False)
 
 
-def compute_mixing_score(cell_neighbors_dir, fov, target_cell, reference_cell):
+def compute_mixing_score(cell_neighbors_dir, fov, target_cell, reference_cell, cold_thresh=250):
     """
     Args:
         cell_neighbors_dir (str):
@@ -808,8 +809,13 @@ def compute_mixing_score(cell_neighbors_dir, fov, target_cell, reference_cell):
     neighbors_mat = pd.read_csv(os.path.join(cell_neighbors_dir, f"{fov}_cell_neighbors.csv"))
     neighbors_mat = neighbors_mat.drop([0, 1])
 
+    # get number of reference cells in sample
+    reference_total = neighbors_mat[neighbors_mat[settings.CELL_TYPE] == reference_cell].shape[0]
+    if reference_total < cold_thresh:
+        return np.nan
+
     # condense to total number of cell type interactions
-    interactions_mat = neighbors_mat.groupby(by=[settings.CELL_TYPE]).sum()
+    interactions_mat = neighbors_mat.groupby(by=[settings.CELL_TYPE]).sum(numeric_only=True)
 
     # example mixing calc based on Leeat's paper
     reference_target = interactions_mat.loc[target_cell, reference_cell]
