@@ -152,10 +152,10 @@ class PixieConsensusCluster:
         self.mapping = None
 
     def scale_data(self):
-        # equivalent to scale in R
+        # z-score the data
         self.input_data[self.columns] = self.input_data[self.columns].apply(zscore)
 
-        # equivalent to pmin and pmax in R
+        # cap the data in the range [-cap, cap]
         self.input_data[self.columns] = self.input_data[self.columns].clip(lower=-self.cap, upper=self.cap)
 
     def run_consensus_clustering(self):
@@ -168,12 +168,15 @@ class PixieConsensusCluster:
         self.mapping.to_csv(save_path)
 
     def assign_consensus_labels(self, cluster_type: str, external_data: pd.DataFrame) -> pd.DataFrame:
+        # validate the cluster_type string provided
         verify_in_list(
             provided_cluster_type=cluster_type,
             supported_cluster_types=['pixel', 'cell']
         )
+
+        # define the som and meta cluster column names
         som_col = '%s_som_cluster' % cluster_type
         meta_col = '%s_meta_cluster' % cluster_type
-        external_data[meta_col] = external_data[som_col].map(self.mapping.set_index(som_col)[meta_col])
 
+        external_data[meta_col] = external_data[som_col].map(self.mapping.set_index(som_col)[meta_col])
         return external_data
