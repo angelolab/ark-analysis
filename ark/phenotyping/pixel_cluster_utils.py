@@ -1137,6 +1137,14 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
     # generate the the som_to_meta_map
     pixel_cc.generate_som_to_meta_map()
 
+    # define the partial function to iterate over
+    fov_data_func = partial(
+        pixel_cc.assign_consensus_labels, 'pixel'
+    )
+
+    # define variable to keep track of number of fovs processed
+    fovs_processed = 0
+
     # use the som to meta mapping to assign meta cluster values to data in data_path
     if multiprocess:
         with multiprocessing.get_context('spawn').Pool(batch_size) as fov_data_pool:
@@ -1146,20 +1154,28 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
                     for fov in fov_batch
                 ]
 
-                fov_meta_assign = fov_data_pool.map(fov_data, pixel_cc.assign_consensus_labels)
+                fov_meta_assign = fov_data_pool.map(fov_data, fov_data_func)
 
                 for data in fov_meta_assign:
                     fov_name = fov_meta_assign['fov'].unique()[0]
                     fov_meta_assign.write_dataframe(
                         os.path.join(data_path + '_temp', fov + '.feather')
                     )
+
+            # update number of fovs processed
+            fovs_processed += len(fov_batch)
+            print("Processed %d fovs" % fovs_processed)
     else:
         for fov in fovs_list:
             fov_data = feather.read_dataframe(os.path.join(data_path, fov + '.feather'))
-            fov_meta_assign = pixel_cc.assign_consensus_labels(fov_data)
+            fov_meta_assign = pixel_cc.assign_consensus_labels('pixel', fov_data)
             fov_meta_assign.write_dataframe(
                 os.path.join(data_path + '_temp', fov + '.feather')
             )
+
+            fovs_processed += 1
+            if fovs_processed % 10 == 0 or fovs_processed == len(fov_list):
+                print("Processed %d fovs" % fovs_processed)
 
     # remove the data directory and rename the temp directory to the data directory
     rmtree(data_path)
