@@ -153,7 +153,7 @@ class PixieConsensusCluster:
 
     def scale_data(self):
         # equivalent to scale in R
-        self.input_data[self.columns] = self.input_data[self.columns].apply(zscore, inplace=True)
+        self.input_data[self.columns] = self.input_data[self.columns].apply(zscore)
 
         # equivalent to pmin and pmax in R
         self.input_data[self.columns] = self.input_data[self.columns].clip(lower=-self.cap, upper=self.cap)
