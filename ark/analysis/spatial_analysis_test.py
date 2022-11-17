@@ -1,3 +1,4 @@
+import math
 import os
 import tempfile
 
@@ -552,3 +553,59 @@ def test_compute_cluster_metrics_silhouette():
     # assert k=3 produces the best silhouette score for both fov1 and fov2
     last_k = neighbor_cluster_stats.loc[3].values
     assert np.all(last_k >= neighbor_cluster_stats.values)
+
+
+def test_compute_cell_neighbors(mocker):
+    mocker.patch('ark.analysis.spatial_analysis.create_neighborhood_matrix',
+                 return_value=(pd.DataFrame({'test': ['counts_mat']}),
+                               pd.DataFrame({'test': ['freq_mat']})))
+
+    # get positive expression and distance matrices
+    all_data_pos, dist_mat_pos = test_utils._make_dist_exp_mats_spatial_test(
+        enrichment_type="positive", dist_lim=51)
+
+    with tempfile.TemporaryDirectory() as dist_mat_dir:
+        for fov in dist_mat_pos:
+            dist_mat_pos[fov].to_netcdf(
+                os.path.join(dist_mat_dir, fov + '_dist_mat.xr'),
+                format='NETCDF3_64BIT'
+            )
+
+        with tempfile.TemporaryDirectory() as cell_neighbors_dir:
+            # test default success
+            spatial_analysis.compute_cell_neighbors(all_data_pos, dist_mat_dir, cell_neighbors_dir)
+
+            for fov in all_data_pos[settings.FOV_ID].unique():
+                assert os.path.exists(
+                    os.path.join(cell_neighbors_dir, f"{fov}_cell_neighbors.csv"))
+
+        with tempfile.TemporaryDirectory() as cell_neighbors_dir:
+            # check for fov subset
+            spatial_analysis.compute_cell_neighbors(all_data_pos, dist_mat_dir, cell_neighbors_dir,
+                                                    included_fovs=['fov8'])
+
+            assert os.path.exists(os.path.join(cell_neighbors_dir, f"fov8_cell_neighbors.csv"))
+            assert not os.path.exists(os.path.join(cell_neighbors_dir, f"fov9_cell_neighbors.csv"))
+
+
+def test_compute_mixing_score():
+    cell_neighbors_mat = pd.DataFrame({
+        settings.FOV_ID: ['fov1', 'fov1', 'fov1', 'fov1', 'fov1', 'fov1'],
+        settings.CELL_LABEL: list(range(1, 7)),
+        settings.CELL_TYPE: ['cell1', 'cell2', 'cell1', 'cell1', 'cell2', 'cell2'],
+        'cell1': [1, 0, 2, 2, 1, 2],
+        'cell2': [1, 2, 1, 1, 2, 1]
+    })
+
+    with tempfile.TemporaryDirectory() as cell_neighbors_dir:
+        save_path = os.path.join(cell_neighbors_dir, f"fov1_cell_neighbors.csv")
+        cell_neighbors_mat.to_csv(save_path, index=False)
+
+        score = spatial_analysis.compute_mixing_score(cell_neighbors_dir, 'fov1', cold_thresh=0,
+                                                      target_cell='cell1', reference_cell='cell2')
+        assert score == 0.6
+
+        # test cold threshold
+        cold_score = spatial_analysis.compute_mixing_score(cell_neighbors_dir, 'fov1', cold_thresh=4,
+                                                      target_cell='cell1', reference_cell='cell2')
+        assert math.isnan(cold_score)
