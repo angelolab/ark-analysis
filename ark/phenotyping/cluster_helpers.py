@@ -168,7 +168,10 @@ class PixieConsensusCluster:
         self.mapping.to_csv(save_path)
 
     def assign_consensus_labels(self, cluster_type: str, external_data: pd.DataFrame) -> pd.DataFrame:
-        verify_in_list(cluster_type, ['pixel', 'cell'])
+        verify_in_list(
+            provided_cluster_type=cluster_type,
+            supported_cluster_types=['pixel', 'cell']
+        )
         som_col = '%s_som_cluster' % cluster_type
         meta_col = '%s_meta_cluster' % cluster_type
         external_data[meta_col] = external_data[som_col].map(self.mapping.set_index(som_col)[meta_col])
