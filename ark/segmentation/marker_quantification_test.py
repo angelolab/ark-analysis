@@ -613,20 +613,20 @@ def test_generate_cell_table_tree_loading():
         for fov in range(cell_masks_40.shape[0]):
             fov_whole_cell = cell_masks_40[fov, :, :, 0]
             fov_nuclear = cell_masks_40[fov, :, :, 1]
-            io.imsave(os.path.join(temp_dir, 'fov%d_feature_0.tiff' % fov),
+            io.imsave(os.path.join(temp_dir, 'fov%d_whole_cell.tiff' % fov),
                       fov_whole_cell,
                       check_contrast=False)
-            io.imsave(os.path.join(temp_dir, 'fov%d_feature_1.tiff' % fov),
+            io.imsave(os.path.join(temp_dir, 'fov%d_nuclear.tiff' % fov),
                       fov_nuclear,
                       check_contrast=False)
 
         for fov in range(cell_masks_20.shape[0]):
             fov_whole_cell = cell_masks_20[fov, :, :, 0]
             fov_nuclear = cell_masks_20[fov, :, :, 1]
-            io.imsave(os.path.join(temp_dir, 'fov%d_feature_0.tiff' % (fov + fov_size_split)),
+            io.imsave(os.path.join(temp_dir, 'fov%d_whole_cell.tiff' % (fov + fov_size_split)),
                       fov_whole_cell,
                       check_contrast=False)
-            io.imsave(os.path.join(temp_dir, 'fov%d_feature_1.tiff' % (fov + fov_size_split)),
+            io.imsave(os.path.join(temp_dir, 'fov%d_nuclear.tiff' % (fov + fov_size_split)),
                       fov_nuclear,
                       check_contrast=False)
 
@@ -682,7 +682,7 @@ def test_generate_cell_table_tree_loading():
 
 
 # TODO: consider removing since MIBItiffs are being phased out
-def test_generate_cell_table_loading():
+def test_generate_cell_table_mibitiff_loading():
     # is_mibitiff True case, load from mibitiff file structure
     with tempfile.TemporaryDirectory() as temp_dir:
         # define 3 fovs and 2 mibitiff_imgs
@@ -718,9 +718,9 @@ def test_generate_cell_table_loading():
         for fov in range(cell_masks.shape[0]):
             fov_whole_cell = cell_masks[fov, :, :, 0]
             fov_nuclear = cell_masks[fov, :, :, 1]
-            io.imsave(os.path.join(temp_dir, 'fov%d_feature_0.tiff' % fov), fov_whole_cell,
+            io.imsave(os.path.join(temp_dir, 'fov%d_whole_cell.tiff' % fov), fov_whole_cell,
                       check_contrast=False)
-            io.imsave(os.path.join(temp_dir, 'fov%d_feature_1.tiff' % fov), fov_nuclear,
+            io.imsave(os.path.join(temp_dir, 'fov%d_nuclear.tiff' % fov), fov_nuclear,
                       check_contrast=False)
 
         # generate sample norm and arcsinh data for all fovs
@@ -797,9 +797,9 @@ def test_generate_cell_table_extractions():
         for fov in range(cell_masks.shape[0]):
             fov_whole_cell = cell_masks[fov, :, :, 0]
             fov_nuclear = cell_masks[fov, :, :, 1]
-            io.imsave(os.path.join(temp_dir, 'fov%d_feature_0.tiff' % fov), fov_whole_cell,
+            io.imsave(os.path.join(temp_dir, 'fov%d_whole_cell.tiff' % fov), fov_whole_cell,
                       check_contrast=False)
-            io.imsave(os.path.join(temp_dir, 'fov%d_feature_1.tiff' % fov), fov_nuclear,
+            io.imsave(os.path.join(temp_dir, 'fov%d_nuclear.tiff' % fov), fov_nuclear,
                       check_contrast=False)
 
         default_norm_data, _ = marker_quantification.generate_cell_table(
