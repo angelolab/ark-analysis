@@ -707,21 +707,17 @@ def cell_consensus_cluster(fovs, channels, base_dir, pixel_cluster_col, max_k=20
         index=False
     )
 
-    # read in the clust_to_meta_name file
     print(
         "Mapping meta cluster values onto average number of pixel SOM/meta cluster counts"
         "across cell SOM clusters"
     )
-    som_to_meta_data = feather.read_dataframe(
-        os.path.join(base_dir, clust_to_meta_name)
-    ).astype(np.int64)
 
     # read in the average number of pixel/SOM clusters across all cell SOM clusters
     cell_som_cluster_avgs_and_counts = pd.read_csv(som_cluster_counts_avg_path)
 
     # merge metacluster assignments in
     cell_som_cluster_avgs_and_counts = pd.merge_asof(
-        cell_som_cluster_avgs_and_counts, som_to_meta_data, on='cell_som_cluster'
+        cell_som_cluster_avgs_and_counts, cell_cc.mapping, on='cell_som_cluster'
     )
 
     # resave average number of pixel/SOM clusters across all cell SOM clusters
@@ -748,7 +744,7 @@ def cell_consensus_cluster(fovs, channels, base_dir, pixel_cluster_col, max_k=20
         "across cell SOM clusters"
     )
     cell_som_cluster_channel_avg = pd.merge_asof(
-        cell_som_cluster_channel_avg, som_to_meta_data, on='cell_som_cluster'
+        cell_som_cluster_channel_avg, cell_cc.mapping, on='cell_som_cluster'
     )
 
     # save the weighted channel average expression per cell cluster
@@ -773,8 +769,6 @@ def cell_consensus_cluster(fovs, channels, base_dir, pixel_cluster_col, max_k=20
         os.path.join(base_dir, cell_meta_cluster_channel_avg_name),
         index=False
     )
-
-    os.remove('Rplots.pdf')
 
 
 # def cell_consensus_cluster(fovs, channels, base_dir, pixel_cluster_col, max_k=20, cap=3,

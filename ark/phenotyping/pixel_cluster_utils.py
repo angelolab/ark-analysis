@@ -1143,7 +1143,8 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
     # use the som to meta mapping to assign meta cluster values to data in data_path
     if multiprocess:
         with multiprocessing.get_context('spawn').Pool(batch_size) as fov_data_pool:
-            for fov_batch in [fovs_list[i:(i + batch_size)]]:
+            for fov_batch in [fovs_list[i:(i + batch_size)]
+                              for i in range(0, len(fovs_list), batch_size)]:
                 fov_data = [
                     feather.read_dataframe(os.path.join(data_path, fov + '.feather'))
                     for fov in fov_batch
@@ -1199,16 +1200,12 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
         index=False
     )
 
-    # read in the clust_to_meta_name file
-    print("Mapping meta cluster values onto average channel expression across pixel SOM clusters")
-    som_to_meta_data = feather.read_dataframe(
-        os.path.join(base_dir, clust_to_meta_name)
-    ).astype(np.int64)
-
     # merge metacluster assignments in
+    print("Mapping meta cluster values onto average channel expression across pixel SOM clusters")
+
     pixel_channel_avg_som_cluster = pd.read_csv(som_cluster_avg_path)
     pixel_channel_avg_som_cluster = pd.merge_asof(
-        pixel_channel_avg_som_cluster, som_to_meta_data, on='pixel_som_cluster'
+        pixel_channel_avg_som_cluster, pixel_cc.mapping, on='pixel_som_cluster'
     )
 
     # resave channel-averaged results across all pixel SOM clusters with metacluster assignments
@@ -1216,8 +1213,6 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
         som_cluster_avg_path,
         index=False
     )
-
-    os.remove('Rplots.pdf')
 
 
 # def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
