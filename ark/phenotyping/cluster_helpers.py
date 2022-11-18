@@ -21,9 +21,9 @@ from ark.utils.misc_utils import verify_in_list
 class ConsensusCluster:
     def __init__(self, cluster: Callable, L: int, K: int, H: int,
                  resample_proportion: float = 0.5):
-        """
-        Implementation of Consensus clustering, following the paper
+        """Implementation of Consensus clustering, following the paper
         https://link.springer.com/content/pdf/10.1023%2FA%3A1023949509487.pdf
+
         Args:
             cluster (Callable):
                 Clustering class.
