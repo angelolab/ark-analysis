@@ -1171,7 +1171,7 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
             )
 
             fovs_processed += 1
-            if fovs_processed % 10 == 0 or fovs_processed == len(fov_list):
+            if fovs_processed % 10 == 0 or fovs_processed == len(fovs_list):
                 print("Processed %d fovs" % fovs_processed)
 
     # save the som to meta cluster map
