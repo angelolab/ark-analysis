@@ -1151,9 +1151,10 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
 
                 fov_meta_assign = fov_data_pool.map(fov_data, pixel_cc.assign_consensus_labels)
 
-                for data in fov_meta_assign:
-                    fov_name = fov_meta_assign['fov'].unique()[0]
-                    fov_meta_assign.write_dataframe(
+                for fma in fov_meta_assign:
+                    fov_name = fma['fov'].unique()[0]
+                    feather.write_dataframe(
+                        fma,
                         os.path.join(data_path + '_temp', fov + '.feather')
                     )
 
@@ -1164,7 +1165,8 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
         for fov in fovs_list:
             fov_data = feather.read_dataframe(os.path.join(data_path, fov + '.feather'))
             fov_meta_assign = pixel_cc.assign_consensus_labels(fov_data)
-            fov_meta_assign.write_dataframe(
+            feather.write_dataframe(
+                fov_meta_assign,
                 os.path.join(data_path + '_temp', fov + '.feather')
             )
 
