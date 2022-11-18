@@ -239,7 +239,7 @@ class PixieConsensusCluster:
             save_path (pathlib.Path):
                 The path to save `self.mapping` to.
         """
-        self.mapping.to_csv(save_path)
+        feather.write_dataframe(self.mapping, save_path)
 
     def assign_consensus_labels(self, external_data: pd.DataFrame) -> pd.DataFrame:
         """Takes an external dataset and applies `ConsensusCluster` mapping to it.
