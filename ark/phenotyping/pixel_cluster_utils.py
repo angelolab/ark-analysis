@@ -1134,13 +1134,8 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
     # run consensus clustering
     pixel_cc.run_consensus_clustering()
 
-    # generate the the som_to_meta_map
+    # generate the the som to meta cluster map
     pixel_cc.generate_som_to_meta_map()
-
-    # define the partial function to iterate over
-    fov_data_func = partial(
-        pixel_cc.assign_consensus_labels, 'pixel'
-    )
 
     # define variable to keep track of number of fovs processed
     fovs_processed = 0
@@ -1154,7 +1149,7 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
                     for fov in fov_batch
                 ]
 
-                fov_meta_assign = fov_data_pool.map(fov_data, fov_data_func)
+                fov_meta_assign = fov_data_pool.map(fov_data, pixel_cc.assign_consensus_labels)
 
                 for data in fov_meta_assign:
                     fov_name = fov_meta_assign['fov'].unique()[0]
@@ -1168,7 +1163,7 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
     else:
         for fov in fovs_list:
             fov_data = feather.read_dataframe(os.path.join(data_path, fov + '.feather'))
-            fov_meta_assign = pixel_cc.assign_consensus_labels('pixel', fov_data)
+            fov_meta_assign = pixel_cc.assign_consensus_labels(fov_data)
             fov_meta_assign.write_dataframe(
                 os.path.join(data_path + '_temp', fov + '.feather')
             )
@@ -1176,6 +1171,9 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
             fovs_processed += 1
             if fovs_processed % 10 == 0 or fovs_processed == len(fov_list):
                 print("Processed %d fovs" % fovs_processed)
+
+    # save the som to meta cluster map
+    pixel_cc.save_som_to_meta_map(clust_to_meta_path)
 
     # remove the data directory and rename the temp directory to the data directory
     rmtree(data_path)

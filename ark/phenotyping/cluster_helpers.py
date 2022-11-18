@@ -6,7 +6,7 @@ import pathlib
 import pandas as pd
 from scipy.stats import zscore
 from sklearn.cluster import AgglomerativeClustering
-from typing import List
+from typing import Any, Callable, List
 
 from ark.utils.misc_utils import verify_in_list
 
@@ -20,27 +20,36 @@ from ark.utils.misc_utils import verify_in_list
 
 
 class ConsensusCluster:
-    """
-      Implementation of Consensus clustering, following the paper
-      https://link.springer.com/content/pdf/10.1023%2FA%3A1023949509487.pdf
-      Args:
-        * cluster -> clustering class
-        * NOTE: the class is to be instantiated with parameter `n_clusters`,
-          and possess a `fit_predict` method, which is invoked on data.
-        * L -> smallest number of clusters to try
-        * K -> biggest number of clusters to try
-        * H -> number of resamplings for each cluster number
-        * resample_proportion -> percentage to sample
-        * Mk -> consensus matrices for each k (shape =(K,data.shape[0],data.shape[0]))
-                (NOTE: every consensus matrix is retained, like specified in the paper)
-        * Ak -> area under CDF for each number of clusters 
-                (see paper: section 3.3.1. Consensus distribution.)
-        * deltaK -> changes in areas under CDF
-                (see paper: section 3.3.1. Consensus distribution.)
-        * self.bestK -> number of clusters that was found to be best
-      """
+    def __init__(self, cluster: Any, L: int, K: int, H: int, resample_proportion: float = 0.5):
+        """
+        Implementation of Consensus clustering, following the paper
+        https://link.springer.com/content/pdf/10.1023%2FA%3A1023949509487.pdf
+        Args:
+            cluster (Any):
+                Clustering class.
 
-    def __init__(self, cluster, L, K, H, resample_proportion=0.5):
+                NOTE: the class is to be instantiated with parameter `n_clusters`,
+                and possess a `fit_predict` method, which is invoked on data.
+            L (int):
+                Smallest number of clusters to try.
+            K (int):
+                Biggest number of clusters to try.
+            H (int):
+                Number of resamplings for each cluster number.
+            resample_proportion (float):
+                Percentage to sample.
+            Mk (numpy.ndarray):
+                Consensus matrices for each k (shape =(K,data.shape[0],data.shape[0])).
+                NOTE: every consensus matrix is retained, like specified in the paper.
+            Ak (numpy.ndarray):
+                Area under CDF for each number of clusters.
+                See paper: section 3.3.1. Consensus distribution.
+            deltaK (numpy.ndarray):
+                Changes in areas under CDF.
+                See paper: section 3.3.1. Consensus distribution.
+            self.bestK (int):
+                Number of clusters that was found to be best.
+        """
         assert 0 <= resample_proportion <= 1, "proportion has to be between 0 and 1"
         self.cluster_ = cluster
         self.resample_proportion_ = resample_proportion
@@ -52,22 +61,27 @@ class ConsensusCluster:
         self.deltaK = None
         self.bestK = None
 
-    def _internal_resample(self, data, proportion):
-        """
+    def _internal_resample(self, data: pd.DataFrame, proportion: float):
+        """Implements resampling procedure.
+
         Args:
-          * data -> (examples,attributes) format
-          * proportion -> percentage to sample
+            data (pandas.DataFrame):
+                The data in `(examples,attributes)` format.
+            proportion (float):
+                The percentage to sample.
         """
         resampled_indices = np.random.choice(
             range(data.shape[0]), size=int(data.shape[0]*proportion), replace=False)
         return resampled_indices, data[resampled_indices, :]
 
-    def fit(self, data, verbose=False):
-        """
-        Fits a consensus matrix for each number of clusters
+    def fit(self, data: pd.DataFrame, verbose: bool = False):
+        """Fits a consensus matrix for each number of clusters
+
         Args:
-          * data -> (examples,attributes) format
-          * verbose -> should print or not
+            data (pd.DataFrame):
+                The data in `(examples,attributes)` format.
+            verbose (bool):
+                Should print or not.
         """
         Mk = np.zeros((self.K_-self.L_, data.shape[0], data.shape[0]))
         Is = np.zeros((data.shape[0],)*2)
@@ -119,18 +133,27 @@ class ConsensusCluster:
             self.L_ if self.deltaK.size > 0 else self.L_
 
     def predict(self):
-        """
-        Predicts on the consensus matrix, for best found cluster number
+        """Predicts on the consensus matrix, for best found cluster number.
+
+        Returns:
+            numpy.ndarray:
+                The consensus matrix prediction for `self.bestK`.
         """
         assert self.Mk is not None, "First run fit"
         return self.cluster_(n_clusters=self.bestK).fit_predict(
             1-self.Mk[self.bestK-self.L_])
 
-    def predict_data(self, data):
+    def predict_data(self, data: pd.DataFrame):
         """
         Predicts on the data, for best found cluster number
+        
         Args:
-          * data -> (examples,attributes) format 
+            data (pandas.DataFrame):
+                `(examples,attributes)` format
+
+        Returns:
+            pandas.DataFrame:
+                The data matrix prediction for `self.bestK`.
         """
         assert self.Mk is not None, "First run fit"
         return self.cluster_(n_clusters=self.bestK).fit_predict(
