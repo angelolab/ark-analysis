@@ -1125,7 +1125,7 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
 
     # consensus clustering setup
     pixel_cc = cluster_helpers.PixieConsensusCluster(
-        som_cluster_avg_path, channels, max_k=max_k, cap=cap
+        'pixel', som_cluster_avg_path, channels, max_k=max_k, cap=cap
     )
 
     # z-score and cap the data
