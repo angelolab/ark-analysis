@@ -673,7 +673,7 @@ def cell_consensus_cluster(fovs, channels, base_dir, pixel_cluster_col, max_k=20
     cluster_count_sub = pd.read_csv(som_cluster_counts_avg_path, nrows=1)
     cluster_count_cols = cluster_count_sub.filter(pixel_cluster_col).columns.to_list()
     cell_cc = cluster_helpers.PixieConsensusCluster(
-        'cell', som_cluster_avg_path, cluster_count_cols, max_k=max_k, cap=cap
+        'cell', som_cluster_counts_avg_path, cluster_count_cols, max_k=max_k, cap=cap
     )
 
     # z-score and cap the data
