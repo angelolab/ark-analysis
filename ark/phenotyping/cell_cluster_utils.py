@@ -676,12 +676,18 @@ def cell_consensus_cluster(fovs, channels, base_dir, pixel_cluster_col, max_k=20
     )
 
     # z-score and cap the data
+    print("z-score scaling and capping data")
     cell_cc.scale_data()
 
+    # set random seed for consensus clustering
+    np.random.seed(seed)
+
     # run consensus clustering
+    print("Running consensus clustering")
     cell_cc.run_consensus_clustering()
 
     # generate the som to meta cluster map
+    print("Mapping cell data to consensus cluster labels")
     cell_cc.generate_som_to_meta_map()
 
     # assign the consensus cluster labels to som_cluster_avg_path and resave
