@@ -1132,6 +1132,9 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
     print("z-score scaling and capping data")
     pixel_cc.scale_data()
 
+    # set random seed for consensus clustering
+    np.random.seed(seed)
+
     # run consensus clustering
     print("Running consensus clustering")
     pixel_cc.run_consensus_clustering()
