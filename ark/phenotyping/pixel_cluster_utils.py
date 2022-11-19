@@ -1059,8 +1059,7 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
                             pc_chan_avg_som_cluster_name='pixel_channel_avg_som_cluster.csv',
                             pc_chan_avg_meta_cluster_name='pixel_channel_avg_meta_cluster.csv',
                             clust_to_meta_name='pixel_clust_to_meta.feather',
-                            multiprocess=False, batch_size=5,
-                            ncores=multiprocessing.cpu_count() - 1, seed=42):
+                            multiprocess=False, batch_size=5, seed=42):
     """Run consensus clustering algorithm on pixel-level summed data across channels
     Saves data with consensus cluster labels to `consensus_dir`. Computes and saves the
     average channel expression across pixel meta clusters. Assigns meta cluster labels
@@ -1090,8 +1089,6 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
             Whether to use multiprocessing or not
         batch_size (int):
             The number of FOVs to process in parallel, ignored if `multiprocess` is `False`
-        ncores (int):
-            The number of cores desired for multiprocessing, ignored if `multiprocess` is `False`
         seed (int):
             The random seed to set for consensus clustering
     """
