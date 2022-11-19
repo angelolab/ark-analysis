@@ -9,6 +9,7 @@ import pandas as pd
 import scipy.stats as stats
 
 from ark.analysis import visualize
+from ark.phenotyping import cluster_helpers
 from ark.utils import misc_utils, io_utils
 
 
