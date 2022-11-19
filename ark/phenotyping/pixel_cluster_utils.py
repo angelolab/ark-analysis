@@ -1140,10 +1140,6 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
     # define variable to keep track of number of fovs processed
     fovs_processed = 0
 
-    # helper function for cluster assignment (the library can't accept class methods directly)
-    def consensus_assignment_helper(fov_data):
-        return pixel_cc.assign_consensus_labels(fov_data)
-
     # use the som to meta mapping to assign meta cluster values to data in data_path
     if multiprocess:
         with multiprocessing.get_context('spawn').Pool(batch_size) as fov_data_pool:
@@ -1154,10 +1150,10 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
                     for fov in fov_batch
                 ]
 
-                fov_meta_assign = fov_data_pool.map(fov_data, consensus_assignment_helper)
+                fov_meta_assign = fov_data_pool.map(pixel_cc.assign_consensus_labels, fov_data)
 
                 for fma in fov_meta_assign:
-                    fov_name = fma['fov'].unique()[0]
+                    fov = fma['fov'].unique()[0]
                     feather.write_dataframe(
                         fma,
                         os.path.join(data_path + '_temp', fov + '.feather')
