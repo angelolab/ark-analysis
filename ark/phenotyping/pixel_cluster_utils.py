@@ -1130,12 +1130,12 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
     """
 
     # define the paths to the data
-    data_path = os.path.join(base_dir, data_dir)
+    pixel_data_path = os.path.join(base_dir, data_dir)
     som_cluster_avg_path = os.path.join(base_dir, pc_chan_avg_som_cluster_name)
     clust_to_meta_path = os.path.join(base_dir, clust_to_meta_name)
 
     # path validation
-    io_utils.validate_paths([data_path, som_cluster_avg_path])
+    io_utils.validate_paths([pixel_data_path, som_cluster_avg_path])
 
     # if the path mapping SOM to meta clusters exists, don't re-run consensus clustering
     if os.path.exists(clust_to_meta_path):
@@ -1221,8 +1221,8 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
     pixel_cc.save_som_to_meta_map(clust_to_meta_path)
 
     # remove the data directory and rename the temp directory to the data directory
-    rmtree(data_path)
-    os.rename(data_path + '_temp', data_path)
+    rmtree(pixel_data_path)
+    os.rename(pixel_data_path + '_temp', pixel_data_path)
 
     # compute average channel expression for each pixel meta cluster
     # and the number of pixels per meta cluster
