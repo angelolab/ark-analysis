@@ -1129,9 +1129,11 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
     )
 
     # z-score and cap the data
+    print("z-score scaling and capping data")
     pixel_cc.scale_data()
 
     # run consensus clustering
+    print("Running consensus clustering")
     pixel_cc.run_consensus_clustering()
 
     # generate the the som to meta cluster map
@@ -1141,6 +1143,7 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
     fovs_processed = 0
 
     # use the som to meta mapping to assign meta cluster values to data in data_path
+    print("Mapping pixel data to consensus cluster labels")
     if multiprocess:
         with multiprocessing.get_context('spawn').Pool(batch_size) as fov_data_pool:
             for fov_batch in [fovs_list[i:(i + batch_size)]
