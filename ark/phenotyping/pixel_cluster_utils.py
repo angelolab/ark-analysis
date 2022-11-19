@@ -1162,9 +1162,9 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
                         os.path.join(data_path + '_temp', fov + '.feather')
                     )
 
-            # update number of fovs processed
-            fovs_processed += len(fov_batch)
-            print("Processed %d fovs" % fovs_processed)
+                # update number of fovs processed
+                fovs_processed += len(fov_batch)
+                print("Processed %d fovs" % fovs_processed)
     else:
         for fov in fovs_list:
             fov_data = feather.read_dataframe(os.path.join(data_path, fov + '.feather'))
