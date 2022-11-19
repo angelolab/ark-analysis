@@ -691,9 +691,9 @@ def cell_consensus_cluster(fovs, channels, base_dir, pixel_cluster_col, max_k=20
     cell_cc.generate_som_to_meta_map()
 
     # assign the consensus cluster labels to som_cluster_avg_path and resave
-    cell_data = pd.read_csv(cell_data_path)
+    cell_data = feather.read_dataframe(cell_data_path)
     cell_meta_assign = cell_cc.assign_consensus_labels(cell_data)
-    cell_meta_assign.to_csv(cell_data_path, index=False)
+    feather.write_dataframe(cell_meta_assign, cell_data_path)
 
     # save the som to meta cluster map
     cell_cc.save_som_to_meta_map(clust_to_meta_path)
