@@ -191,6 +191,7 @@ class PixieConsensusCluster:
         self.cluster_type = cluster_type
         self.som_col = '%s_som_cluster' % cluster_type
         self.meta_col = '%s_meta_cluster' % cluster_type
+        self.input_file = input_file
         self.input_data = pd.read_csv(input_file)
         self.columns = columns
         self.max_k = max_k
