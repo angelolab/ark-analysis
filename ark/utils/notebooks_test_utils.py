@@ -73,19 +73,6 @@ def create_pixel_som_files(base_dir,
         index=False
     )
 
-    # define the average channel expression per pixel meta cluster
-    avg_channels_meta = np.random.rand(20, len(channels) + 2)
-    avg_channels_meta_cols = ['pixel_meta_cluster'] + channels + ['count']
-    avg_channels_meta = pd.DataFrame(
-        avg_channels_meta,
-        columns=avg_channels_meta_cols
-    )
-    avg_channels_meta['pixel_meta_cluster'] = range(1, 21)
-    avg_channels_meta.to_csv(
-        os.path.join(base_dir, pixel_channel_avg_meta_cluster),
-        index=False
-    )
-
 
 def create_pixel_remap_files(base_dir,  pixel_meta_cluster_mapping):
     """
@@ -210,21 +197,6 @@ def create_cell_som_files(base_dir,
         index=False
     )
 
-    # define the average pixel count expresssion per cell meta cluster
-    avg_clusters_meta = np.random.randint(1, 64, (20, 22))
-    avg_clusters_meta_cols = ['cell_meta_cluster'] + \
-        ['%s_' % pixel_cluster_col + str(i) for i in range(1, 21)] + \
-        ['count']
-    avg_clusters_meta = pd.DataFrame(
-        avg_clusters_meta,
-        columns=avg_clusters_meta_cols
-    )
-    avg_clusters_meta['cell_meta_cluster'] = range(1, 21)
-    avg_clusters_meta.to_csv(
-        os.path.join(base_dir, cell_meta_cluster_count_avgs),
-        index=False
-    )
-
     # define the average weighted channel expression per cell SOM cluster
     avg_channels_som = np.random.rand(100, len(channels) + 2)
     avg_channels_som_cols = ['cell_som_cluster'] + channels + ['cell_meta_cluster']
@@ -236,19 +208,6 @@ def create_cell_som_files(base_dir,
     avg_channels_som['cell_meta_cluster'] = np.repeat(range(1, 21), 5)
     avg_channels_som.to_csv(
         os.path.join(base_dir, cell_som_cluster_channel_avg),
-        index=False
-    )
-
-    # define the average weighted channel expression per cell meta cluster
-    avg_channels_meta = np.random.rand(20, len(channels) + 2)
-    avg_channels_meta_cols = ['cell_meta_cluster'] + channels
-    avg_channels_meta = pd.DataFrame(
-        avg_clusters_meta,
-        columns=avg_channels_meta_cols
-    )
-    avg_channels_meta['cell_meta_cluster'] = range(1, 21)
-    avg_channels_meta.to_csv(
-        os.path.join(base_dir, cell_meta_cluster_channel_avg),
         index=False
     )
 

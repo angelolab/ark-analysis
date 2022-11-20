@@ -310,6 +310,8 @@ class Test_2_Pixel_Clustering:
                                                     fovs,
                                                     channels)
 
+        self.tb.execute_cell("pixel_consensus_cluster")
+
     def test_pixel_interactive(self):
         self.tb.execute_cell("pixel_interactive")
 
@@ -422,6 +424,8 @@ class Test_3_Cell_Clustering:
                                                    cell_som_cluster_channel_avg,
                                                    cell_meta_cluster_channel_avg
                                                    )
+
+        self.tb.execute_cell("cell_consensus_cluster")
 
     def test_cell_interactive(self):
         self.tb.execute_cell("cell_interactive")
