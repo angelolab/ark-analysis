@@ -71,39 +71,6 @@ def mocked_cluster_cells(base_dir, cluster_counts_norm_name='cluster_counts_norm
     feather.write_dataframe(cluster_counts, os.path.join(base_dir, cell_cluster_name))
 
 
-def mocked_cell_consensus_cluster(fovs, channels, base_dir, pixel_cluster_col, max_k=20, cap=3,
-                                  cell_data_name='cell_mat.feather',
-                                  cell_som_cluster_avgs_name='cell_som_cluster_avgs.csv',
-                                  cell_meta_cluster_avgs_name='cell_meta_cluster_avgs.csv',
-                                  cell_cluster_col='cell_meta_cluster',
-                                  weighted_cell_channel_name='weighted_cell_channel.csv',
-                                  cell_cluster_channel_avg_name='cell_cluster_channel_avg.csv',
-                                  clust_to_meta_name='cell_clust_to_meta.feather', seed=42):
-    # read in the cluster averages
-    cluster_avg = pd.read_csv(os.path.join(base_dir, cell_som_cluster_avgs_name))
-
-    # dummy scaling using cap
-    cluster_avg_scale = cluster_avg.filter(
-        regex=("pixel_som_cluster_|pixel_meta_cluster_rename_")
-    ) * (cap - 1) / cap
-
-    # get the mean weight for each channel column
-    cluster_means = cluster_avg_scale.mean(axis=1)
-
-    # multiply by 100 and mod by 2 to get dummy cluster ids for consensus clustering
-    cluster_ids = cluster_means * 100
-    cluster_ids = cluster_ids.astype(int) % 2
-
-    # read in the original cell data
-    cell_data = feather.read_dataframe(os.path.join(base_dir, cell_data_name))
-
-    # add hCluster_cap labels
-    cell_data['cell_meta_cluster'] = np.repeat(cluster_ids.values, 10)
-
-    # write cell_data
-    feather.write_dataframe(cell_data, os.path.join(base_dir, cell_data_name))
-
-
 def test_compute_cell_cluster_count_avg():
     # define the cluster columns
     pixel_som_clusters = ['pixel_som_cluster_%d' % i for i in np.arange(3)]
@@ -786,7 +753,8 @@ def test_cluster_cells(mocker):
         assert np.all(cluster_ids < 100)
 
 
-def test_cell_consensus_cluster(mocker):
+@parametrize('pixel_cluster_prefix', ['pixel_som_cluster', 'pixel_meta_cluster_rename'])
+def test_cell_consensus_cluster(pixel_cluster_prefix):
     # basic error check: path to cell data does not exist
     with tempfile.TemporaryDirectory() as temp_dir:
         with pytest.raises(FileNotFoundError):
@@ -825,62 +793,116 @@ def test_cell_consensus_cluster(mocker):
             )
 
     with tempfile.TemporaryDirectory() as temp_dir:
-        # test for both pixel SOM and meta cluster column names
-        for cluster_prefix in ['pixel_som_cluster', 'pixel_meta_cluster_rename']:
-            # create a dummy cluster_data file
-            cluster_data = pd.DataFrame(
-                np.random.randint(0, 100, (100, 3)),
-                columns=['%s_%d' % (cluster_prefix, i) for i in np.arange(3)]
-            )
+        # create a dummy cluster_data file
+        cluster_data = pd.DataFrame(
+            np.random.randint(0, 100, (1000, 3)),
+            columns=['%s_%d' % (pixel_cluster_prefix, i) for i in np.arange(3)]
+        )
 
-            # assign dummy cell cluster labels
-            cluster_data['cell_som_cluster'] = np.repeat(np.arange(10), 10)
+        cluster_data['fov'] = np.repeat(['fov0', 'fov1'], repeats=500)
+        cluster_data['segmentation_label'] = np.tile(np.arange(1, 501), reps=2)
+        cluster_data['cell_som_cluster'] = np.repeat(np.arange(100), 10)
 
-            # write clustered data
-            clustered_path = os.path.join(temp_dir, 'cell_mat.feather')
-            feather.write_dataframe(cluster_data, clustered_path)
+        # write clustered data
+        clustered_path = os.path.join(temp_dir, 'cell_mat.feather')
+        feather.write_dataframe(cluster_data, clustered_path)
 
-            # compute average counts of each pixel SOM/meta cluster across all cell SOM clusters
-            cluster_avg = cell_cluster_utils.compute_cell_cluster_count_avg(
-                clustered_path, pixel_cluster_col_prefix=cluster_prefix,
-                cell_cluster_col='cell_som_cluster'
-            )
+        # compute average counts of each pixel SOM/meta cluster across all cell SOM clusters
+        cluster_avg = cell_cluster_utils.compute_cell_cluster_count_avg(
+            clustered_path, pixel_cluster_col_prefix=pixel_cluster_prefix,
+            cell_cluster_col='cell_som_cluster'
+        )
 
-            # write cluster average
-            cluster_avg_path = os.path.join(temp_dir, 'cell_som_cluster_avgs.csv')
-            cluster_avg.to_csv(cluster_avg_path, index=False)
+        # write cluster average
+        cluster_avg_path = os.path.join(temp_dir, 'cell_som_cluster_avgs.csv')
+        cluster_avg.to_csv(cluster_avg_path, index=False)
 
-            # create a dummy weighted channel average table
-            weighted_cell_table = pd.DataFrame()
+        # create a dummy weighted channel average table
+        weighted_cell_table = pd.DataFrame(
+            np.random.rand(1000, 3), columns=['chan%d' % i for i in np.arange(3)]
+        )
+        weighted_cell_table['fov'] = np.repeat(['fov0', 'fov1'], repeats=500)
+        weighted_cell_table['segmentation_label'] = np.tile(np.arange(1, 501), reps=2)
 
-            # write dummy weighted channel average table
-            weighted_cell_path = os.path.join(temp_dir, 'weighted_cell_table.csv')
-            weighted_cell_table.to_csv(weighted_cell_path, index=False)
+        # write dummy weighted channel average table
+        weighted_cell_path = os.path.join(temp_dir, 'weighted_cell_channel.csv')
+        weighted_cell_table.to_csv(weighted_cell_path, index=False)
 
-            # add mocked function to "consensus cluster" cell average data
-            mocker.patch(
-                'ark.phenotyping.cell_cluster_utils.cell_consensus_cluster',
-                mocked_cell_consensus_cluster
-            )
+        # run consensus clustering
+        cell_cluster_utils.cell_consensus_cluster(
+            fovs=['fov0', 'fov1'],
+            channels=['chan0', 'chan1', 'chan2'],
+            base_dir=temp_dir,
+            pixel_cluster_col=pixel_cluster_prefix
+        )
 
-            # "consensus cluster" the cells
-            cell_cluster_utils.cell_consensus_cluster(
-                fovs=[], channels=[], base_dir=temp_dir, pixel_cluster_col=cluster_prefix
-            )
+        # assert we created the mapping file, then load it in
+        assert os.path.exists(os.path.join(temp_dir, 'cell_clust_to_meta.feather'))
+        sample_mapping = feather.read_dataframe(
+            os.path.join(temp_dir, 'cell_clust_to_meta.feather')
+        ).sort_values(by='cell_som_cluster')
 
-            cell_consensus_data = feather.read_dataframe(
-                os.path.join(temp_dir, 'cell_mat.feather')
-            )
+        cell_consensus_data = feather.read_dataframe(
+            os.path.join(temp_dir, 'cell_mat.feather')
+        )
 
-            # assert the cell_som_cluster labels are intact
-            assert np.all(
-                cluster_data['cell_som_cluster'].values ==
-                cell_consensus_data['cell_som_cluster'].values
-            )
+        # assert the cell_som_cluster labels are intact
+        assert np.all(
+            cluster_data['cell_som_cluster'].values ==
+            cell_consensus_data['cell_som_cluster'].values
+        )
 
-            # assert we idn't assign any cluster 2 or above
-            cluster_ids = cell_consensus_data['cell_meta_cluster']
-            assert np.all(cluster_ids < 2)
+        # assert the correct labels have been assigned
+        cell_mapping = cell_consensus_data[
+            ['cell_som_cluster', 'cell_meta_cluster']
+        ].drop_duplicates().sort_values(by='cell_som_cluster')
+
+        assert np.all(sample_mapping.values == cell_mapping.values)
+
+        # assert we generated a meta cluster average file, then load it in
+        assert os.path.exists(os.path.join(temp_dir, 'cell_meta_cluster_avgs.csv'))
+        meta_cluster_avg = pd.read_csv(
+            os.path.join(temp_dir, 'cell_meta_cluster_avgs.csv')
+        )
+
+        # assert all the consensus labels have been assigned
+        assert np.all(meta_cluster_avg['cell_meta_cluster'] == np.arange(1, 21))
+
+        # load in the SOM cluster average file
+        som_cluster_avg = pd.read_csv(
+            os.path.join(temp_dir, 'cell_som_cluster_avgs.csv')
+        )
+
+        # assert the correct labels have been assigned
+        som_avg_mapping = som_cluster_avg[
+            ['cell_som_cluster', 'cell_meta_cluster']
+        ].drop_duplicates().sort_values(by='cell_som_cluster')
+
+        assert np.all(som_avg_mapping.values == sample_mapping.values)
+
+        # assert we created an average weighted channel expression file for cell SOM clusters
+        # then load it in
+        assert os.path.exists(os.path.join(temp_dir, 'cell_som_cluster_channel_avg.csv'))
+        weighted_cell_som_avgs = pd.read_csv(
+            os.path.join(temp_dir, 'cell_som_cluster_channel_avg.csv')
+        )
+
+        # assert the correct labels have been assigned
+        weighted_som_mapping = weighted_cell_som_avgs[
+            ['cell_som_cluster', 'cell_meta_cluster']
+        ].drop_duplicates().sort_values(by='cell_som_cluster')
+
+        assert np.all(sample_mapping.values == weighted_som_mapping.values)
+
+        # assert we created an average weighted channel expression file for cell meta clusters
+        # then load it in
+        assert os.path.exists(os.path.join(temp_dir, 'cell_meta_cluster_channel_avg.csv'))
+        weighted_cell_som_avgs = pd.read_csv(
+            os.path.join(temp_dir, 'cell_meta_cluster_channel_avg.csv')
+        )
+
+        # assert all the consensus labels have been assigned
+        assert np.all(weighted_cell_som_avgs['cell_meta_cluster'] == np.arange(1, 21))
 
 
 def test_apply_cell_meta_cluster_remapping():
