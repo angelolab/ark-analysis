@@ -327,8 +327,12 @@ def compute_pixel_cluster_channel_avg(fovs, channels, base_dir, pixel_cluster_co
         valid_cluster_cols=['pixel_som_cluster', 'pixel_meta_cluster']
     )
 
+    # verify num_pixel_clusters is valid
+    if num_pixel_clusters <= 0:
+        raise ValueError("Number of pixel clusters desired must be a positive integer")
+
     # verify fovs subset value is valid
-    if len(num_fovs_subset) <= 0:
+    if num_fovs_subset <= 0:
         raise ValueError("Number of fovs to subset must be a positive integer")
 
     # define a list to hold the cluster averages for each FOV
@@ -947,7 +951,7 @@ def cluster_pixels(fovs, channels, base_dir, data_dir='pixel_mat_data',
                    norm_vals_name='post_rowsum_chan_norm.feather',
                    weights_name='pixel_weights.feather',
                    pc_chan_avg_som_cluster_name='pixel_channel_avg_som_cluster.csv',
-                   num_fovs_subset,
+                   num_fovs_subset=100,
                    multiprocess=False, batch_size=5, ncores=multiprocessing.cpu_count() - 1):
     """Uses trained weights to assign cluster labels on full pixel data
     Saves data with cluster labels to `cluster_dir`. Computes and saves the average channel
@@ -1202,7 +1206,7 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
         channels,
         base_dir,
         'pixel_meta_cluster',
-        max_k
+        max_k,
         data_dir,
         num_fovs_subset=num_fovs_subset,
         keep_count=True
@@ -1433,7 +1437,7 @@ def apply_pixel_meta_cluster_remapping(fovs, channels, base_dir,
         channels,
         base_dir,
         'pixel_meta_cluster',
-        max_k
+        len(pixel_remapped_data['pixel_meta_cluster'].unique()),
         pixel_data_dir,
         num_fovs_subset=num_fovs_subset,
         keep_count=True
