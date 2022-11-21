@@ -18,6 +18,7 @@ from ark.utils.misc_utils import verify_in_list
 #                                             #
 ###############################################
 
+
 class ConsensusCluster:
     def __init__(self, cluster: Callable, L: int, K: int, H: int,
                  resample_proportion: float = 0.5):
@@ -123,8 +124,7 @@ class ConsensusCluster:
         self.Ak = np.zeros(self.K_-self.L_)
         for i, m in enumerate(Mk):
             hist, bins = np.histogram(m.ravel(), density=True)
-            self.Ak[i] = np.sum(h*(b-a)
-                             for b, a, h in zip(bins[1:], bins[:-1], np.cumsum(hist)))
+            self.Ak[i] = np.sum(h*(b-a) for b, a, h in zip(bins[1:], bins[:-1], np.cumsum(hist)))
         # fits differences between areas under CDFs
         self.deltaK = np.array([(Ab-Aa)/Aa if i > 2 else Aa
                                 for Ab, Aa, i in zip(self.Ak[1:], self.Ak[:-1],
@@ -144,9 +144,8 @@ class ConsensusCluster:
             1-self.Mk[self.bestK-self.L_])
 
     def predict_data(self, data: pd.DataFrame):
-        """
-        Predicts on the data, for best found cluster number
-        
+        """Predicts on the data, for best found cluster number
+
         Args:
             data (pandas.DataFrame):
                 `(examples,attributes)` format
