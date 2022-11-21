@@ -797,7 +797,8 @@ def compute_cell_neighbors(all_data, dist_mat_dir, cell_neighbors_dir, neighbors
         cell_neighbors.to_csv(save_path, index=False)
 
 
-def compute_mixing_score(cell_neighbors_dir, fov, target_cell, reference_cell, cold_thresh=250):
+def compute_mixing_score(cell_neighbors_dir, fov, target_cell, reference_cell, cold_thresh=250,
+                         normalize=False):
     """
     Args:
         cell_neighbors_dir (str):
@@ -833,5 +834,9 @@ def compute_mixing_score(cell_neighbors_dir, fov, target_cell, reference_cell, c
     reference_reference = interactions_mat.loc[reference_cell, reference_cell]
 
     mixing_score = (reference_target / 2) / (reference_reference / 2)
+
+    if normalize:
+        target_total = neighbors_mat[neighbors_mat[settings.CELL_TYPE] == target_cell].shape[0]
+        mixing_score = mixing_score * (2 * reference_total / target_total)
 
     return mixing_score

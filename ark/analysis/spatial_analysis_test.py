@@ -606,6 +606,12 @@ def test_compute_mixing_score():
         assert score == 0.6
 
         # test cold threshold
-        cold_score = spatial_analysis.compute_mixing_score(cell_neighbors_dir, 'fov1', cold_thresh=4,
-                                                      target_cell='cell1', reference_cell='cell2')
+        cold_score = spatial_analysis.compute_mixing_score(cell_neighbors_dir, 'fov1',
+                                                           cold_thresh=4, target_cell='cell1',
+                                                           reference_cell='cell2')
         assert math.isnan(cold_score)
+
+        score = spatial_analysis.compute_mixing_score(cell_neighbors_dir, 'fov1', cold_thresh=0,
+                                                      target_cell='cell1', reference_cell='cell2',
+                                                      normalize=True)
+        assert score == 1.2
