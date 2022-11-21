@@ -1,16 +1,16 @@
+from functools import partial
 import multiprocessing
 import os
+from shutil import rmtree
 import subprocess
 import warnings
-from functools import partial
-from shutil import rmtree
 
 import feather
 import numpy as np
 import pandas as pd
+from pyarrow.lib import ArrowInvalid
 import random
 import scipy.ndimage as ndimage
-from pyarrow.lib import ArrowInvalid
 from skimage.io import imread, imsave
 
 from ark.utils import io_utils, load_utils, misc_utils
@@ -289,8 +289,9 @@ def filter_with_nuclear_mask(fovs, tiff_dir, seg_dir, channel,
 
 
 def compute_pixel_cluster_channel_avg(fovs, channels, base_dir, pixel_cluster_col,
+                                      num_pixel_clusters,
                                       pixel_data_dir='pixel_mat_data',
-                                      fov_subset_proportion=0.1, keep_count=False):
+                                      num_fovs_subset=100, keep_count=False):
     """Compute the average channel values across each pixel SOM cluster.
 
     To improve performance, number of FOVs is downsampled by `fov_subset_proportion`
@@ -304,10 +305,13 @@ def compute_pixel_cluster_channel_avg(fovs, channels, base_dir, pixel_cluster_co
             The path to the data directories
         pixel_cluster_col (str):
             Name of the column to group by
+        num_pixel_clusters (int):
+            The number of pixel clusters that are desired
         pixel_data_dir (str):
             Name of the directory containing the pixel data with cluster labels
-        fov_subset_proportion (float):
-            The proportion of FOVs to take, truncated to nearest int
+        num_fovs_subset (float):
+            The number of FOVs to subset on. Note that if `len(fovs) < num_fovs_subset`, all of
+            the FOVs will still be selected
         keep_count (bool):
             Whether to keep the count column when aggregating or not
             This should only be set to `True` for visualization purposes
@@ -323,14 +327,23 @@ def compute_pixel_cluster_channel_avg(fovs, channels, base_dir, pixel_cluster_co
         valid_cluster_cols=['pixel_som_cluster', 'pixel_meta_cluster']
     )
 
+    # verify fovs subset value is valid
+    if len(num_fovs_subset) <= 0:
+        raise ValueError("Number of fovs to subset must be a positive integer")
+
     # define a list to hold the cluster averages for each FOV
     fov_cluster_avgs = []
 
-    # subset number of FOVs per fov_subset_proportion
-    fovs_sub = random.sample(fovs, int(len(fovs) * fov_subset_proportion))
+    # warn the user that we can only select so many FOVs if len(fovs) < num_fovs_subset
+    if len(fovs) < num_fovs_subset:
+        warnings.warn(
+            'Provided num_fovs_subset=%d but only %d FOVs in dataset, '
+            'subsetting just the %d FOVs' %
+            (num_fovs_subset, len(fovs), len(fovs))
+        )
 
-    if len(fovs_sub) == 0:
-        raise ValueError("fov_subset_proportion is too low, please increase")
+    # subset number of FOVs based on num_fovs_subset if less than total number of fovs
+    fovs_sub = random.sample(fovs, num_fovs_subset) if num_fovs_subset < len(fovs) else fovs
 
     for fov in fovs_sub:
         # read in the fovs data
@@ -367,6 +380,14 @@ def compute_pixel_cluster_channel_avg(fovs, channels, base_dir, pixel_cluster_co
     sum_count_totals = cluster_avgs.groupby(
         pixel_cluster_col
     )[channels + ['count']].sum().reset_index()
+
+    # warn the user if any clusters were lost during the averaging process
+    if sum_count_totals.shape[0] < num_pixel_clusters:
+        warnings.warn(
+            'Averaged data contains just %d clusters out of %d, '
+            'consider increasing your num_fovs_subset value' %
+            (sum_count_totals.shape[0], num_pixel_clusters)
+        )
 
     # now compute the means using the count column
     sum_count_totals[channels] = sum_count_totals[channels].div(sum_count_totals['count'], axis=0)
@@ -926,7 +947,7 @@ def cluster_pixels(fovs, channels, base_dir, data_dir='pixel_mat_data',
                    norm_vals_name='post_rowsum_chan_norm.feather',
                    weights_name='pixel_weights.feather',
                    pc_chan_avg_som_cluster_name='pixel_channel_avg_som_cluster.csv',
-                   fov_subset_proportion=0.1,
+                   num_fovs_subset,
                    multiprocess=False, batch_size=5, ncores=multiprocessing.cpu_count() - 1):
     """Uses trained weights to assign cluster labels on full pixel data
     Saves data with cluster labels to `cluster_dir`. Computes and saves the average channel
@@ -947,9 +968,8 @@ def cluster_pixels(fovs, channels, base_dir, data_dir='pixel_mat_data',
             The name of the weights file created by `train_pixel_som`
         pc_chan_avg_som_cluster_name (str):
             The name of the file to save the average channel expression across all SOM clusters
-        fov_subset_proportion (float):
-            The proportion of FOVs to take for SOM cluster channel averaging,
-            truncated to nearest int
+        num_fovs_subset (float):
+            The number of FOVs to subset on for SOM cluster channel averaging
         multiprocess (bool):
             Whether to use multiprocessing or not
         batch_size (int):
@@ -1060,8 +1080,9 @@ def cluster_pixels(fovs, channels, base_dir, data_dir='pixel_mat_data',
         channels,
         base_dir,
         'pixel_som_cluster',
+        weights.shape[0],
         data_dir,
-        fov_subset_proportion=fov_subset_proportion,
+        num_fovs_subset=num_fovs_subset,
         keep_count=True
     )
 
@@ -1077,7 +1098,7 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
                             pc_chan_avg_som_cluster_name='pixel_channel_avg_som_cluster.csv',
                             pc_chan_avg_meta_cluster_name='pixel_channel_avg_meta_cluster.csv',
                             clust_to_meta_name='pixel_clust_to_meta.feather',
-                            fov_subset_proportion=0.1,
+                            num_fovs_subset=100,
                             multiprocess=False, batch_size=5,
                             ncores=multiprocessing.cpu_count() - 1, seed=42):
     """Run consensus clustering algorithm on pixel-level summed data across channels
@@ -1105,9 +1126,8 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
             Name of file to save the channel-averaged results across all meta clusters to
         clust_to_meta_name (str):
             Name of file storing the SOM cluster to meta cluster mapping
-        fov_subset_proportion (float):
-            The proportion of FOVs to take for meta cluster channel averaging,
-            truncated to nearest int
+        num_fovs_subset (float):
+            The number of FOVs to subset on for SOM cluster channel averaging
         multiprocess (bool):
             Whether to use multiprocessing or not
         batch_size (int):
@@ -1182,8 +1202,9 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
         channels,
         base_dir,
         'pixel_meta_cluster',
+        max_k
         data_dir,
-        fov_subset_proportion=fov_subset_proportion,
+        num_fovs_subset=num_fovs_subset,
         keep_count=True
     )
 
@@ -1267,7 +1288,7 @@ def apply_pixel_meta_cluster_remapping(fovs, channels, base_dir,
                                        pixel_remapped_name,
                                        pc_chan_avg_som_cluster_name,
                                        pc_chan_avg_meta_cluster_name,
-                                       fov_subset_proportion=0.1,
+                                       num_fovs_subset=100,
                                        multiprocess=False, batch_size=5):
     """Apply the meta cluster remapping to the data in `pixel_consensus_dir`.
 
@@ -1293,9 +1314,8 @@ def apply_pixel_meta_cluster_remapping(fovs, channels, base_dir,
             Name of the file containing the channel-averaged results across all SOM clusters
         pc_chan_avg_meta_cluster_name (str):
             Name of the file containing the channel-averaged results across all meta clusters
-        fov_subset_proportion (float):
-            The proportion of FOVs to take for SOM cluster channel averaging,
-            truncated to nearest int
+        num_fovs_subset (float):
+            The number of FOVs to subset on for SOM cluster channel averaging
         multiprocess (bool):
             Whether to use multiprocessing or not
         batch_size (int):
@@ -1413,8 +1433,9 @@ def apply_pixel_meta_cluster_remapping(fovs, channels, base_dir,
         channels,
         base_dir,
         'pixel_meta_cluster',
+        max_k
         pixel_data_dir,
-        fov_subset_proportion=fov_subset_proportion,
+        num_fovs_subset=num_fovs_subset,
         keep_count=True
     )
     pixel_channel_avg_meta_cluster['pixel_meta_cluster_rename'] = \
