@@ -1591,7 +1591,7 @@ def generate_test_pixel_consensus_cluster_data(temp_dir, fovs, chans,
         )
         fov0_cluster_matrix['pixel_meta_cluster'] = np.repeat(np.arange(10), repeats=100)
         feather.write_dataframe(fov0_cluster_matrix, os.path.join(temp_dir,
-                                                                 'pixel_mat_data_temp',
+                                                                  'pixel_mat_data_temp',
                                                                   'fov0.feather'))
 
     # compute averages by SOM cluster
