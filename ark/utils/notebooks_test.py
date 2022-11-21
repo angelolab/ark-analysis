@@ -328,8 +328,8 @@ class Test_2_Pixel_Clustering:
                 pixel_meta_cluster_remap_name,
                 pc_chan_avg_som_cluster_name,
                 pc_chan_avg_meta_cluster_name,
+                num_fovs_subset=1,
                 multiprocess=multiprocess,
-                fov_subset_proportion=0.5,
                 batch_size=batch_size
             )
         """
