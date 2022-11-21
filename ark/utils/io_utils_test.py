@@ -9,6 +9,7 @@ from ark.utils import io_utils as iou
 
 def test_validate_paths():
     # change cwd to /scripts for more accurate testing
+    pathlib.Path("data").mkdir(parents=True, exist_ok=True)
     os.chdir('templates')
 
     # make a tempdir for testing
