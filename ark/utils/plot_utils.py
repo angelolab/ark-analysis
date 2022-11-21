@@ -394,7 +394,9 @@ def create_mantis_dir(fovs: List[str], mantis_project_path: Union[str, pathlib.P
                       mask_output_dir: Union[str, pathlib.Path],
                       mapping: Union[str, pathlib.Path, pd.DataFrame],
                       seg_dir: Union[str, pathlib.Path],
-                      mask_suffix: str = "_mask", img_sub_folder: str = ""):
+                      mask_suffix: str = "_mask",
+                      seg_suffix_name: str = "_whole_cell",
+                      img_sub_folder: str = ""):
     """Creates a mantis project directory so that it can be opened by the mantis viewer.
     Copies fovs, segmentation files, masks, and mapping csv's into a new directory structure.
     Here is how the contents of the mantis project folder will look like.
@@ -435,6 +437,8 @@ def create_mantis_dir(fovs: List[str], mantis_project_path: Union[str, pathlib.P
             The location of the segmentation directory for the fovs.
         mask_suffix (str, optional):
             The suffix used to find the mask tiffs. Defaults to "_mask".
+        seg_suffix_name (str, optional):
+            The suffix of the segmentation file. Defaults to "_whole_cell".
         img_sub_folder (str, optional):
             The subfolder where the channels exist within the `img_data_path`.
             Defaults to "normalized".
@@ -490,12 +494,12 @@ def create_mantis_dir(fovs: List[str], mantis_project_path: Union[str, pathlib.P
                 shutil.copy(os.path.join(img_source_dir, chan), os.path.join(output_dir, chan))
 
         # copy mask into new folder
-        mask_name = mn + mask_suffix + '.tiff'
+        mask_name: str = mn + mask_suffix + '.tiff'
         shutil.copy(os.path.join(mask_output_dir, mask_name),
                     os.path.join(output_dir, 'population{}.tiff'.format(mask_suffix)))
 
         # copy the segmentation files into the output directory
-        seg_name = fov + '_whole_cell.tiff'
+        seg_name = fov + '_feature_0.tiff'
         shutil.copy(os.path.join(seg_dir, seg_name),
                     os.path.join(output_dir, 'cell_segmentation.tiff'))
 
