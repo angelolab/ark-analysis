@@ -3,7 +3,6 @@ import numpy as np
 import pandas as pd
 import pathlib
 import pytest
-from pytest_lazyfixture import lazy_fixture
 from typing import Iterator, List, Tuple
 
 from ark.phenotyping.cluster_helpers import PixieConsensusCluster
