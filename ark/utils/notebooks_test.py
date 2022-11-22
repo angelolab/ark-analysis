@@ -301,14 +301,12 @@ class Test_2_Pixel_Clustering:
         # Get pixel paths and fovs
         pixel_data_dir = self.tb.ref("pixel_data_dir")
         pixel_channel_avg_som_cluster = self.tb.ref("pc_chan_avg_som_cluster_name")
-        pixel_channel_avg_meta_cluster = self.tb.ref("pc_chan_avg_meta_cluster_name")
         fovs = self.tb.ref("fovs")
         channels = self.tb.ref("channels")
         # Create fake pixel som files
         notebooks_test_utils.create_pixel_som_files(self.base_dir,
                                                     pixel_data_dir,
                                                     pixel_channel_avg_som_cluster,
-                                                    pixel_channel_avg_meta_cluster,
                                                     fovs,
                                                     channels)
 

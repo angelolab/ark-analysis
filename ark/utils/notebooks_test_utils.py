@@ -10,7 +10,6 @@ import skimage.io as io
 def create_pixel_som_files(base_dir,
                            pixel_data_dir,
                            pixel_channel_avg_som_cluster,
-                           pixel_channel_avg_meta_cluster,
                            fovs,
                            channels,
                            create_seg_dir=True) -> None:
@@ -19,15 +18,12 @@ def create_pixel_som_files(base_dir,
 
     * Pixel consensus data
     * Average channel expression per pixel SOM cluster
-    * Average channel expression per pixel meta cluster
 
     Args:
         base_dir (str): The base directory containing all inputs / outputs / data.
         pixel_data_dir (str): The subdirectory (within `base_dir`) which contains the pixel data.
         pixel_channel_avg_som_cluster (str): The subdirectory (within `base_dir`) which contains
             the `pixel_channel_avg_som_cluster` file.
-        pixel_channel_avg_meta_cluster (str): The subdirectory (within `base_dir`) which contains
-            the `pixel_channel_avg_meta_cluster` file.
         fovs (list): The list of fovs to use.
         channels (list): The list of channels to use.
         create_seg_dir (bool): Whether to include segmentation labels or not.
