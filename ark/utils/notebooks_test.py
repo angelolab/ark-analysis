@@ -1,3 +1,5 @@
+import feather
+import os
 import pytest
 from testbook import testbook
 from typing import ContextManager, Iterator

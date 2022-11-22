@@ -51,7 +51,6 @@ def create_pixel_som_files(base_dir,
             fov_data['segmentation_label'] = range(1, 2501)
 
         fov_data['pixel_som_cluster'] = np.repeat(range(1, 101), 25)
-        fov_data['pixel_meta_cluster'] = np.repeat(range(1, 21), 125)
 
         feather.write_dataframe(
             fov_data,
@@ -60,14 +59,13 @@ def create_pixel_som_files(base_dir,
         )
 
     # define the average channel expression per pixel SOM cluster
-    avg_channels_som = np.random.rand(100, len(channels) + 3)
-    avg_channels_som_cols = ['pixel_som_cluster'] + channels + ['count', 'pixel_meta_cluster']
+    avg_channels_som = np.random.rand(100, len(channels) + 2)
+    avg_channels_som_cols = ['pixel_som_cluster'] + channels + ['count']
     avg_channels_som = pd.DataFrame(
         avg_channels_som,
         columns=avg_channels_som_cols
     )
     avg_channels_som['pixel_som_cluster'] = range(1, 101)
-    avg_channels_som['pixel_meta_cluster'] = np.repeat(range(1, 21), 5)
     avg_channels_som.to_csv(
         os.path.join(base_dir, pixel_channel_avg_som_cluster),
         index=False
