@@ -9,7 +9,7 @@ import skimage.io as io
 import xarray as xr
 
 import ark.settings as settings
-from ark.utils import synthetic_spatial_datagen, io_utils
+from ark.utils import io_utils, synthetic_spatial_datagen
 from ark.utils.tiff_utils import write_mibitiff
 
 
@@ -713,7 +713,7 @@ def _make_threshold_mat(in_utils):
             a sample marker threshold matrix for thresholding specifically for channel enrichment
     """
 
-    thresh = pd.DataFrame(np.zeros((20, 2)))
+    thresh = pd.DataFrame(np.zeros((20, 2)), columns=["marker", "threshold"])
     thresh.iloc[:, 1] = .5
 
     if not in_utils:
@@ -1127,7 +1127,7 @@ def generate_sample_fov_tiling_entry(coord, name):
             "aperture": "2",
             "displayName": "Fine",
             "defaults": {
-              "timingChoice": 7
+                "timingChoice": 7
             }
         },
         "sectionId": 8201,
