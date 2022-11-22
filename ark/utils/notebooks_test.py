@@ -420,9 +420,7 @@ class Test_3_Cell_Clustering:
                                                    cell_data,
                                                    weighted_cell_channel,
                                                    cell_som_cluster_count_avgs,
-                                                   cell_meta_cluster_count_avgs,
-                                                   cell_som_cluster_channel_avg,
-                                                   cell_meta_cluster_channel_avg
+                                                   cell_som_cluster_channel_avg
                                                    )
 
         self.tb.execute_cell("cell_consensus_cluster")
