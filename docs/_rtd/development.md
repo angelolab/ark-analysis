@@ -196,9 +196,10 @@ next_release_vX.Y.Z
    1. If, in the release notes draft there are PRs that are not categorized, label them appropriately (usually based on the label of their respective Issue).
 2. Make sure that all tests pass for `Ark` on Travis-CI. 
 3. In the `ark-analysis/start_docker.sh` script, change the `VERSION` variable from `vA.B.C` to `vX.Y.Z`
-4. Modify the `.travis.yml` CI configuration script to allow `test_pypi_deploy` to run (comment the line `if: tag IS present`).
-5. Request a review and merge the `Ark` branch.
-6. Next head to the most recent Drafted Release Notes:
+4. In the [`REAMDME.md`](../../README.md#download-the-repo) adjust the `--branch` part of the `git clone` instruction to the new tag `v.X.Y.Z`.
+5. Modify the `.travis.yml` CI configuration script to allow `test_pypi_deploy` to run (comment the line `if: tag IS present`).
+6. Request a review and merge the `Ark` branch.
+7. Next head to the most recent Drafted Release Notes:
    1. Double check that the tag is the appropriate version name.
    2. Publish the Release.
    3. Next the `Ark` will be pushed to PyPI and the Docker Image will be built on Travis CI. 
