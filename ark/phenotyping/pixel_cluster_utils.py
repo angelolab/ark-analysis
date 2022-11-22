@@ -388,8 +388,8 @@ def compute_pixel_cluster_channel_avg(fovs, channels, base_dir, pixel_cluster_co
     # warn the user if any clusters were lost during the averaging process
     if sum_count_totals.shape[0] < num_pixel_clusters:
         warnings.warn(
-            'Averaged data contains just %d clusters out of %d, '
-            'consider increasing your num_fovs_subset value' %
+            'Averaged data contains just %d clusters out of %d, removing those values. '
+            'Consider increasing your num_fovs_subset value.' %
             (sum_count_totals.shape[0], num_pixel_clusters)
         )
 
@@ -1266,7 +1266,7 @@ def update_pixel_meta_labels(pixel_data_path, pixel_remapped_dict,
 
     # ensure that no SOM clusters are missing from the mapping
     misc_utils.verify_in_list(
-        fov_som_labels=fov_data['pixel_som_cluster'],
+        fov_som_labels=fov_data['pixel_som_cluster'].unique(),
         som_labels_in_mapping=list(pixel_remapped_dict.keys())
     )
 
