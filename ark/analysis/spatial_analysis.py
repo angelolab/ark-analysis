@@ -488,7 +488,9 @@ def create_neighborhood_matrix(all_data, dist_mat_dir, included_fovs=None, distl
                               unique_fovs=all_data[fov_col].unique())
 
     # Subset just the fov, label, and cell phenotype columns
-    all_neighborhood_data = all_data[[fov_col, cell_label_col, cluster_name_col]].reset_index()
+    all_neighborhood_data = all_data[
+        [fov_col, cell_label_col, cluster_name_col]
+    ].reset_index(drop=True)
     # Extract the cell phenotypes
     cluster_names = all_neighborhood_data[cluster_name_col].drop_duplicates()
     # Get the total number of phenotypes
