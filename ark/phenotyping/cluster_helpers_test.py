@@ -123,12 +123,12 @@ class TestPixieConsensusCluster:
     def test_pixel_scale_data(self):
         self.pixel_cc.scale_data()
         assert np.all(self.pixel_cc.input_data[self.pixel_cc.columns].values >= -3)
-        assert np.all(self.pixel_cc.input_data[self.pixel_cc.columns].values <= -3)
+        assert np.all(self.pixel_cc.input_data[self.pixel_cc.columns].values <= 3)
 
     def test_cell_scale_data(self):
         self.cell_cc.scale_data()
         assert np.all(self.cell_cc.input_data[self.cell_cc.columns].values >= -3)
-        assert np.all(self.cell_cc.input_data[self.cell_cc.columns].values <= -3)
+        assert np.all(self.cell_cc.input_data[self.cell_cc.columns].values <= 3)
 
     def test_run_pixel_consensus_clustering(self):
         self.pixel_cc.run_consensus_clustering()
