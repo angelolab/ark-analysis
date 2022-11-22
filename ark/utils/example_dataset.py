@@ -1,7 +1,7 @@
 import pathlib
 import shutil
-from typing import Union
 import warnings
+from typing import Union
 
 import datasets
 
@@ -20,6 +20,11 @@ class ExampleDataset():
                     * `"cluster_pixels"`
                     * `"cluster_cells"`
                     * `"post_clustering"`
+                    * `"fiber_segmentation"`
+                    * `"LDA_preprocessing"`
+                    * `"LDA_training_inference"`
+                    * `"neighborhood_analysis"`
+                    * `"pairwise_spatial_enrichment"`
             overwrite_existing (bool): A flag to overwrite existing data. Defaults to `True`.
             cache_dir (str, optional): The directory to save the cache dir. Defaults to `None`,
                 which internally in Hugging Face defaults to `~/.cache/huggingface/datasets`.
@@ -40,6 +45,8 @@ class ExampleDataset():
             "deepcell_output": "segmentation/deepcell_output",
             "example_pixel_output_dir": "pixie/example_pixel_output_dir",
             "example_cell_output_dir": "pixie/example_cell_output_dir",
+            "spatial_lda": "spatial_analysis/spatial_lda",
+            "post_clustering": "post_clustering",
         }
         """
         Path suffixes for mapping each downloaded dataset partition to it's appropriate
@@ -145,7 +152,15 @@ def get_example_dataset(dataset: str, save_dir: Union[str, pathlib.Path],
             downloaded. Defaults to True.
     """
 
-    valid_datasets = ["segment_image_data", "cluster_pixels", "cluster_cells", "post_clustering"]
+    valid_datasets = ["segment_image_data",
+                      "cluster_pixels",
+                      "cluster_cells",
+                      "post_clustering",
+                      "fiber_segmentation",
+                      "LDA_preprocessing",
+                      "LDA_training_inference",
+                      "neighborhood_analysis",
+                      "pairwise_spatial_enrichment"]
 
     # Check the appropriate dataset name
     if dataset not in valid_datasets:
