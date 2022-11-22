@@ -1,5 +1,5 @@
-from itertools import combinations_with_replacement
 import os
+from itertools import combinations_with_replacement
 
 import numpy as np
 import pandas as pd
@@ -20,7 +20,7 @@ def generate_channel_spatial_enrichment_stats(label_dir, dist_mat_dir, marker_th
             directory containing labeled tiffs
         dist_mat_dir (str | Pathlike):
             directory containing the distance matrices
-        marker_thresholds (numpy.ndarray):
+        marker_thresholds (pd.DataFrame):
             threshold values for positive marker expression
         all_data (pandas.DataFrame):
             data including fovs, cell labels, and cell expression matrix for all markers
@@ -107,7 +107,7 @@ def calculate_channel_spatial_enrichment(fov, dist_matrix, marker_thresholds, al
         dist_matrix (xarray.DataArray):
             a cells x cells matrix with the euclidian distance between centers of
             corresponding cells for the FOV
-        marker_thresholds (numpy.ndarray):
+        marker_thresholds (pd.DataFrame):
             threshold values for positive marker expression
         all_data (pandas.DataFrame):
             data including fovs, cell labels, and cell expression matrix for all markers
@@ -149,8 +149,9 @@ def calculate_channel_spatial_enrichment(fov, dist_matrix, marker_thresholds, al
     all_channel_data = all_data.iloc[:, channel_start:channel_end]
     if excluded_channels is not None:
         all_channel_data = all_channel_data.drop(excluded_channels, axis=1)
+        marker_thresholds = marker_thresholds[~marker_thresholds["marker"].isin(excluded_channels)]
 
-    # check that the markers are the same in marker_thresholdsa and all_channel_data
+    # check that the markers are the same in marker_thresholds and all_channel_data
     misc_utils.verify_same_elements(markers_to_threshold=marker_thresholds.iloc[:, 0].values,
                                     all_markers=all_channel_data.columns.values)
 
