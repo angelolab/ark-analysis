@@ -9,7 +9,7 @@ import pandas as pd
 import scipy.stats as stats
 
 from ark.analysis import visualize
-from ark.utils import misc_utils, io_utils
+from ark.utils import io_utils, misc_utils
 
 
 def compute_cell_cluster_count_avg(cell_cluster_path, pixel_cluster_col_prefix,
@@ -34,15 +34,18 @@ def compute_cell_cluster_count_avg(cell_cluster_path, pixel_cluster_col_prefix,
             Contains the average values for each column across cell SOM clusters
     """
 
+    # Validate paths
+    io_utils.validate_paths(cell_cluster_path)
+
     # verify the pixel cluster col prefix specified is valid
     misc_utils.verify_in_list(
-        provided_cluster_col=[pixel_cluster_col_prefix],
+        provided_cluster_col=pixel_cluster_col_prefix,
         valid_cluster_cols=['pixel_som_cluster', 'pixel_meta_cluster_rename']
     )
 
     # verify the cell cluster col prefix specified is valid
     misc_utils.verify_in_list(
-        provided_cluster_col=[cell_cluster_col],
+        provided_cluster_col=cell_cluster_col,
         valid_cluster_cols=['cell_som_cluster', 'cell_meta_cluster']
     )
 
@@ -94,9 +97,10 @@ def compute_cell_cluster_channel_avg(fovs, channels, base_dir,
         pandas.DataFrame:
             Each cell cluster mapped to the average expression for each marker
     """
+    weighted_cell_channel_name_path: str = os.path.join(base_dir, weighted_cell_channel_name)
 
     # verify the cell table actually exists
-    io_utils.validate_paths(os.path.join(base_dir, weighted_cell_channel_name))
+    io_utils.validate_paths(weighted_cell_channel_name_path)
 
     # verify the cell cluster col specified is valid
     misc_utils.verify_in_list(
@@ -105,7 +109,7 @@ def compute_cell_cluster_channel_avg(fovs, channels, base_dir,
     )
 
     # read the weighted cell channel table in
-    cell_table = pd.read_csv(os.path.join(base_dir, weighted_cell_channel_name))
+    cell_table = pd.read_csv(weighted_cell_channel_name_path)
 
     # subset on only the fovs the user has specified
     cell_table = cell_table[cell_table['fov'].isin(fovs)]
@@ -181,16 +185,16 @@ def compute_p2c_weighted_channel_avg(pixel_channel_avg, channels, cell_counts,
     # if no fovs provided make sure they're all iterated over
     if fovs is None:
         fovs = list(cell_counts['fov'].unique())
-
-    # verify that the fovs provided are valid
-    misc_utils.verify_in_list(
-        provided_fovs=fovs,
-        dataset_fovs=cell_counts['fov'].unique()
-    )
+    else:
+        # verify that the fovs provided are valid
+        misc_utils.verify_in_list(
+            provided_fovs=fovs,
+            dataset_fovs=cell_counts['fov'].unique()
+        )
 
     # verify the pixel_cluster_col provided is valid
     misc_utils.verify_in_list(
-        provided_cluster_col=[pixel_cluster_col],
+        provided_cluster_col=pixel_cluster_col,
         valid_cluster_cols=['pixel_som_cluster', 'pixel_meta_cluster_rename']
     )
 
@@ -210,7 +214,7 @@ def compute_p2c_weighted_channel_avg(pixel_channel_avg, channels, cell_counts,
     # sort the pixel_channel_avg table by pixel_cluster_col in ascending cluster order
     # NOTE: to handle numeric cluster names types, we need to cast the pixel_cluster_col values
     # to str to ensure the same sorting is used
-    if pixel_channel_avg[pixel_cluster_col].dtype == int:
+    if np.issubdtype(pixel_channel_avg[pixel_cluster_col].dtype, np.integer):
         pixel_channel_avg[pixel_cluster_col] = pixel_channel_avg[pixel_cluster_col].astype(str)
 
     pixel_channel_avg_sorted = pixel_channel_avg.sort_values(by=pixel_cluster_col)
@@ -447,7 +451,7 @@ def train_cell_som(fovs, channels, base_dir, pixel_data_dir, cell_table_path,
 
     # verify the cluster_col provided is valid
     misc_utils.verify_in_list(
-        provided_cluster_col=[pixel_cluster_col],
+        provided_cluster_col=pixel_cluster_col,
         valid_cluster_cols=['pixel_som_cluster', 'pixel_meta_cluster_rename']
     )
 

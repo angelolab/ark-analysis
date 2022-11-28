@@ -15,10 +15,10 @@ def test_plot_hist_thresholds():
 
     cell_table = pd.DataFrame({'cell_meta_cluster': pops, 'marker_1': marker_1})
 
-    # populations argument must be a list
-    with pytest.raises(ValueError, match='must be a list'):
-        post_cluster_utils.plot_hist_thresholds(cell_table=cell_table, populations='pop1',
-                                                marker='marker_1')
+    # populations argument must be a list, but`make_iterable` should convert a `str`
+    # argument to `List[str]`
+    post_cluster_utils.plot_hist_thresholds(cell_table=cell_table, populations='pop1',
+                                            marker='marker_1')
 
     # populations argument must contain entries from cell_table
     with pytest.raises(ValueError, match='Invalid population'):

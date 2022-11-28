@@ -2,9 +2,11 @@ import os
 import pathlib
 import warnings
 
+from ark.utils import misc_utils
+
 
 def validate_paths(paths, data_prefix=False):
-    """Verifys that paths exist and don't leave Docker's scope
+    """Verifies that paths exist and don't leave Docker's scope
 
     Args:
         paths (str or list):
@@ -18,8 +20,7 @@ def validate_paths(paths, data_prefix=False):
     """
 
     # if given a single path, convert to list
-    if not isinstance(paths, list):
-        paths = [paths]
+    paths = misc_utils.make_iterable(paths, ignore_str=True)
 
     for path in paths:
         # check data prefix
