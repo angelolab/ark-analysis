@@ -48,13 +48,6 @@ def plot_hist_thresholds(cell_table, populations, marker, pop_col='cell_meta_clu
         if threshold:
             ax.axvline(x=threshold)
 
-    # for i in range(pop_num):
-    #     plot_vals = cell_table.loc[cell_table[pop_col] == populations[i], marker].values
-    #     ax[i].hist(plot_vals, 50, density=True, facecolor='g', alpha=0.75, range=(0, x_max))
-    #     ax[i].set_title("Distribution of {} in {}".format(marker, populations[i]))
-
-        # if threshold is not None:
-        #     ax[i].axvline(x=threshold)
     plt.tight_layout()
 
 
