@@ -230,7 +230,7 @@ def test_calculate_channel_spatial_enrichment():
 
     with pytest.raises(ValueError):
         # attempt to include marker thresholds and marker columns that do not exist
-        bad_marker_thresholds = pd.DataFrame(np.zeros((21, 2)))
+        bad_marker_thresholds = pd.DataFrame(np.zeros((21, 2)), columns=["marker", "threshold"])
         bad_marker_thresholds.iloc[:, 1] = .5
         bad_marker_thresholds.iloc[:, 0] = np.arange(10, 31) + 2
 
@@ -371,6 +371,13 @@ def test_create_neighborhood_matrix():
                 format='NETCDF3_64BIT'
             )
 
+        # error checking
+        with pytest.raises(ValueError):
+            # attempt to include fovs that do not exist
+            counts, freqs = spatial_analysis.create_neighborhood_matrix(
+                all_data_pos, dist_mat_dir, included_fovs=[1, 100000], distlim=51
+            )
+
         # test if self_neighbor is False (default)
         counts, freqs = spatial_analysis.create_neighborhood_matrix(
             all_data_pos, dist_mat_dir, distlim=51
@@ -404,12 +411,29 @@ def test_create_neighborhood_matrix():
         assert (counts[(counts[settings.FOV_ID] == "fov9") &
                        (counts[settings.CELL_LABEL].isin(range(11, 19)))]["Pheno1"] == 1).all()
 
-        # error checking
-        with pytest.raises(ValueError):
-            # attempt to include fovs that do not exist
-            counts, freqs = spatial_analysis.create_neighborhood_matrix(
-                all_data_pos, dist_mat_dir, included_fovs=[1, 100000], distlim=51
+        # test on a non-continuous index
+        all_data_pos_sub = all_data_pos.iloc[np.r_[0:60, 80:140], :]
+        dist_mat_pos_sub = {}
+        dist_mat_pos_sub['fov8'] = dist_mat_pos['fov8'][0:60, 0:60]
+        dist_mat_pos_sub['fov9'] = dist_mat_pos['fov9'][0:60, 0:60]
+
+        for fov in dist_mat_pos:
+            dist_mat_pos[fov].to_netcdf(
+                os.path.join(dist_mat_dir, fov + '_dist_mat.xr'),
+                format='NETCDF3_64BIT'
             )
+
+        counts, freqs = spatial_analysis.create_neighborhood_matrix(
+            all_data_pos, dist_mat_dir
+        )
+
+        # test the counts values
+        assert (counts[(counts[settings.FOV_ID] == "fov8") &
+                       (counts[settings.CELL_LABEL].isin(range(1, 9)))]["Pheno1"] == 0).all()
+        assert (counts[(counts[settings.FOV_ID] == "fov9") &
+                       (counts[settings.CELL_LABEL].isin(range(1, 9)))]["Pheno3"] == 2).all()
+        assert (counts[(counts[settings.FOV_ID] == "fov9") &
+                       (counts[settings.CELL_LABEL].isin(range(11, 19)))]["Pheno1"] == 0).all()
 
 
 def test_generate_cluster_matrix_results():
