@@ -445,7 +445,7 @@ def test_create_neighborhood_matrix():
         )
         # test that cells with only itself as neighbor were kept in the table
         assert not (len(counts[(counts[settings.FOV_ID] == "fov8") &
-                           (counts[settings.CELL_LABEL].isin(range(21, 80)))]) == 0)
+                               (counts[settings.CELL_LABEL].isin(range(21, 80)))]) == 0)
 
 
 def test_generate_cluster_matrix_results():
