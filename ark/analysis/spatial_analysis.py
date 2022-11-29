@@ -797,8 +797,8 @@ def compute_cell_neighbors(all_data, dist_mat_dir, cell_neighbors_dir, neighbors
         cell_neighbors.to_csv(save_path, index=False)
 
 
-def compute_mixing_score(cell_neighbors_dir, fov, target_cell, reference_cell, cold_thresh=250,
-                         normalize=False):
+def compute_mixing_score(cell_neighbors_dir, fov, target_cell, reference_cell, cold_thresh=0,
+                         percent_mix=False):
     """
     Args:
         cell_neighbors_dir (str):
@@ -811,6 +811,9 @@ def compute_mixing_score(cell_neighbors_dir, fov, target_cell, reference_cell, c
             expected cell phenotype
         cold_thresh (int):
             minimum number of cells required to calculate a mixing score, under this labeled "cold"
+        percent_mix (bool):
+            whether to represent mixing score as a percent of combined reference/target and
+            reference/reference interactions
 
     Returns:
         integer indicating the mixing score for the FOV
@@ -833,10 +836,9 @@ def compute_mixing_score(cell_neighbors_dir, fov, target_cell, reference_cell, c
     reference_target = interactions_mat.loc[target_cell, reference_cell]
     reference_reference = interactions_mat.loc[reference_cell, reference_cell]
 
-    mixing_score = (reference_target / 2) / (reference_reference / 2)
-
-    if normalize:
-        target_total = neighbors_mat[neighbors_mat[settings.CELL_TYPE] == target_cell].shape[0]
-        mixing_score = mixing_score * (2 * reference_total / target_total)
+    if percent_mix:
+        mixing_score = reference_target / (reference_target + reference_reference)
+    else:
+        mixing_score = reference_target / reference_reference
 
     return mixing_score
