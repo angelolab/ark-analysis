@@ -450,8 +450,8 @@ def calculate_cluster_spatial_enrichment(fov, all_data, dist_matrix, included_fo
 
 
 def create_neighborhood_matrix(all_data, dist_mat_dir, included_fovs=None, distlim=50,
-                               self_neighbor=False, fov_col=settings.FOV_ID,
-                               cell_label_col=settings.CELL_LABEL,
+                               drop_single_cells=True, self_neighbor=False,
+                               fov_col=settings.FOV_ID, cell_label_col=settings.CELL_LABEL,
                                cluster_name_col=settings.CELL_TYPE):
     """Calculates the number of neighbor phenotypes for each cell.
 
@@ -464,6 +464,8 @@ def create_neighborhood_matrix(all_data, dist_mat_dir, included_fovs=None, distl
             fovs to include in analysis. If argument is none, default is all fovs used.
         distlim (int):
             cell proximity threshold. Default is 50.
+        drop_single_cells (bool):
+            whether to remove cells that have no neighbors within the distlim. Default is True
         self_neighbor (bool):
             If true, cell counts itself as a neighbor in the analysis. Default is False.
         fov_col (str):
@@ -530,9 +532,10 @@ def create_neighborhood_matrix(all_data, dist_mat_dir, included_fovs=None, distl
         cell_neighbor_freqs.loc[current_fov_neighborhood_data.index, fov_cluster_names] = freqs
 
     # Remove cells that have no neighbors within the distlim
-    keep_cells = cell_neighbor_counts.drop([fov_col, cell_label_col], axis=1).sum(axis=1) != 0
-    cell_neighbor_counts = cell_neighbor_counts.loc[keep_cells].reset_index(drop=True)
-    cell_neighbor_freqs = cell_neighbor_freqs.loc[keep_cells].reset_index(drop=True)
+    if drop_single_cells:
+        keep_cells = cell_neighbor_counts.drop([fov_col, cell_label_col], axis=1).sum(axis=1) != 0
+        cell_neighbor_counts = cell_neighbor_counts.loc[keep_cells].reset_index(drop=True)
+        cell_neighbor_freqs = cell_neighbor_freqs.loc[keep_cells].reset_index(drop=True)
 
     return cell_neighbor_counts, cell_neighbor_freqs
 
@@ -792,7 +795,8 @@ def compute_cell_neighbors(all_data, dist_mat_dir, cell_neighbors_dir, neighbors
     for fov in included_fovs:
         fov_data = all_data[all_data[fov_col] == fov].reset_index()
         cell_neighbors, _ = create_neighborhood_matrix(fov_data, dist_mat_dir, [fov],
-                                                       distlim=neighbors_radius)
+                                                       distlim=neighbors_radius,
+                                                       drop_single_cells=False)
         save_path = os.path.join(cell_neighbors_dir, f"{fov}_cell_neighbors.csv")
         cell_neighbors.to_csv(save_path, index=False)
 

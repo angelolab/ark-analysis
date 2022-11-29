@@ -408,6 +408,14 @@ def test_create_neighborhood_matrix():
         assert (counts[(counts[settings.FOV_ID] == "fov9") &
                        (counts[settings.CELL_LABEL].isin(range(11, 19)))]["Pheno1"] == 1).all()
 
+        # test if drop_single_cells is False
+        counts, freqs = spatial_analysis.create_neighborhood_matrix(
+            all_data_pos, dist_mat_dir, distlim=51, drop_single_cells=False
+        )
+        # test that cells with only itself as neighbor were kept in the table
+        assert not (len(counts[(counts[settings.FOV_ID] == "fov8") &
+                           (counts[settings.CELL_LABEL].isin(range(21, 80)))]) == 0)
+
         # error checking
         with pytest.raises(ValueError):
             # attempt to include fovs that do not exist
