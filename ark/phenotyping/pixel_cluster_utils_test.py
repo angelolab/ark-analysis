@@ -694,8 +694,7 @@ def test_compute_pixel_cluster_channel_avg(cluster_col, keep_count, corrupt):
             result = np.repeat(np.array([[0.1, 0.2, 0.3]]), repeats=num_repeats, axis=0)
             assert np.array_equal(result, np.round(cluster_avg[cluster_avg_cols].values, 1))
 
-        with pytest.warns(match='Averaged data contains just'):
-            # NOTE: can't test specific values due to randomness
+        with pytest.raises(ValueError):
             pixel_cluster_utils.compute_pixel_cluster_channel_avg(
                 fovs[1:], chans, temp_dir, cluster_col, 1000,
                 'pixel_mat_consensus', num_fovs_subset=1, keep_count=keep_count
