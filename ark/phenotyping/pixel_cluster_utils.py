@@ -291,7 +291,7 @@ def filter_with_nuclear_mask(fovs, tiff_dir, seg_dir, channel,
 def compute_pixel_cluster_channel_avg(fovs, channels, base_dir, pixel_cluster_col,
                                       num_pixel_clusters,
                                       pixel_data_dir='pixel_mat_data',
-                                      num_fovs_subset=100, keep_count=False):
+                                      num_fovs_subset=100, seed=42, keep_count=False):
     """Compute the average channel values across each pixel SOM cluster.
 
     To improve performance, number of FOVs is downsampled by `fov_subset_proportion`
@@ -312,6 +312,8 @@ def compute_pixel_cluster_channel_avg(fovs, channels, base_dir, pixel_cluster_co
         num_fovs_subset (float):
             The number of FOVs to subset on. Note that if `len(fovs) < num_fovs_subset`, all of
             the FOVs will still be selected
+        seed (int):
+            The random seed to use for subsetting FOVs
         keep_count (bool):
             Whether to keep the count column when aggregating or not
             This should only be set to `True` for visualization purposes
@@ -347,6 +349,7 @@ def compute_pixel_cluster_channel_avg(fovs, channels, base_dir, pixel_cluster_co
         )
 
     # subset number of FOVs based on num_fovs_subset if less than total number of fovs
+    random.seed(seed)
     fovs_sub = random.sample(fovs, num_fovs_subset) if num_fovs_subset < len(fovs) else fovs
 
     for fov in fovs_sub:
@@ -1073,7 +1076,7 @@ def cluster_pixels(fovs, channels, base_dir, data_dir='pixel_mat_data',
 def generate_som_avg_files(fovs, channels, base_dir, data_dir='pixel_data_dir',
                            weights_name='pixel_weights.feather',
                            pc_chan_avg_som_cluster_name='pixel_channel_avg_som_cluster.csv',
-                           num_fovs_subset=100):
+                           num_fovs_subset=100, seed=42):
     """Computes and saves the average channel expression across pixel SOM clusters.
 
     Args:
@@ -1098,12 +1101,15 @@ def generate_som_avg_files(fovs, channels, base_dir, data_dir='pixel_data_dir',
     som_cluster_avg_path = os.path.join(base_dir, pc_chan_avg_som_cluster_name)
 
     # path validation
-    io_utils.validate_paths([data_path, weights_path])
+    io_utils.validate_paths(weights_path)
 
     # if the channel SOM average file already exists, skip
     if os.path.exists(som_cluster_avg_path):
         print("Already generated SOM cluster channel average file, skipping")
         return
+
+    # load weights in
+    weights = feather.read_dataframe(weights_path)
 
     # compute average channel expression for each pixel SOM cluster
     # and the number of pixels per SOM cluster
@@ -1116,6 +1122,7 @@ def generate_som_avg_files(fovs, channels, base_dir, data_dir='pixel_data_dir',
         weights.shape[0],
         data_dir,
         num_fovs_subset=num_fovs_subset,
+        seed=seed,
         keep_count=True
     )
 
@@ -1227,7 +1234,7 @@ def generate_meta_avg_files(fovs, channels, base_dir, max_k=20, data_dir='pixel_
                             pc_chan_avg_som_cluster_name='pixel_channel_avg_som_cluster.csv',
                             pc_chan_avg_meta_cluster_name='pixel_channel_avg_meta_cluster.csv',
                             clust_to_meta_name='pixel_clust_to_meta.feather',
-                            num_fovs_subset=100):
+                            num_fovs_subset=100, seed=42):
     """Computes and saves the average channel expression across pixel meta clusters.
     Assigns meta cluster labels to the data stored in `pc_chan_avg_som_cluster_name`.
 
@@ -1251,6 +1258,8 @@ def generate_meta_avg_files(fovs, channels, base_dir, max_k=20, data_dir='pixel_
             Name of file storing the SOM cluster to meta cluster mapping
         num_fovs_subset (float):
             The number of FOVs to subset on for meta cluster channel averaging
+        seed (int):
+            The random seed to use for subsetting FOVs
     """
 
     # define the paths to the data
@@ -1277,6 +1286,7 @@ def generate_meta_avg_files(fovs, channels, base_dir, max_k=20, data_dir='pixel_
         max_k,
         data_dir,
         num_fovs_subset=num_fovs_subset,
+        seed=seed,
         keep_count=True
     )
 
@@ -1381,8 +1391,7 @@ def apply_pixel_meta_cluster_remapping(fovs, channels, base_dir,
     pixel_remapped_path = os.path.join(base_dir, pixel_remapped_name)
 
     # file path validation
-    io_utils.validate_paths([pixel_data_path, pixel_remapped_path, som_cluster_avg_path,
-                             meta_cluster_avg_path])
+    io_utils.validate_paths([pixel_data_path, pixel_remapped_path])
 
     # read in the remapping
     pixel_remapped_data = pd.read_csv(pixel_remapped_path)
@@ -1480,7 +1489,7 @@ def apply_pixel_meta_cluster_remapping(fovs, channels, base_dir,
 
 def generate_remap_avg_files(fovs, channels, base_dir, pixel_data_dir, pixel_remapped_name,
                              pc_chan_avg_som_cluster_name, pc_chan_avg_meta_cluster_name,
-                             num_fovs_subset=100):
+                             num_fovs_subset=100, seed=42):
     """Resaves the re-mapped consensus data to `pixel_data_dir` and re-runs the
     average channel expression per pixel meta cluster computation.
 
@@ -1505,6 +1514,8 @@ def generate_remap_avg_files(fovs, channels, base_dir, pixel_data_dir, pixel_rem
             Name of the file containing the channel-averaged results across all meta clusters
         num_fovs_subset (float):
             The number of FOVs to subset on for meta cluster channel averaging
+        seed (int):
+            The random seed to use for subsetting FOVs
     """
 
     # define the data paths
@@ -1513,7 +1524,7 @@ def generate_remap_avg_files(fovs, channels, base_dir, pixel_data_dir, pixel_rem
     meta_cluster_avg_path = os.path.join(base_dir, pc_chan_avg_meta_cluster_name)
 
     # file path validation
-    io_utils.validate_paths([pixel_remapped_path, som_cluster_avg_path, meta_cluster_meta_path])
+    io_utils.validate_paths([pixel_remapped_path, som_cluster_avg_path, meta_cluster_avg_path])
 
     # read in the unique meta clusters defined in pixel_remapped_path
     new_meta_clusters = pd.read_csv(pixel_remapped_path)['metacluster'].unique()
@@ -1558,6 +1569,7 @@ def generate_remap_avg_files(fovs, channels, base_dir, pixel_data_dir, pixel_rem
         len(pixel_remapped_data['pixel_meta_cluster'].unique()),
         pixel_data_dir,
         num_fovs_subset=num_fovs_subset,
+        seed=seed,
         keep_count=True
     )
     pixel_channel_avg_meta_cluster['pixel_meta_cluster_rename'] = \
