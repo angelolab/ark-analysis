@@ -830,7 +830,6 @@ def compute_mixing_score(cell_neighbors_dir, fov, target_cell, reference_cell, c
     Returns:
         int:
             the mixing score for the FOV
-
     """
 
     # path validation
