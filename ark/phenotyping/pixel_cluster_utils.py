@@ -1094,6 +1094,8 @@ def generate_som_avg_files(fovs, channels, base_dir, data_dir='pixel_data_dir',
             The name of the file to save the average channel expression across all SOM clusters
         num_fovs_subset (int):
             The number of FOVs to subset on for SOM cluster channel averaging
+        seed (int):
+            The random seed to set for subsetting FOVs
     """
 
     # define the paths to the data
