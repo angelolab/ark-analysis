@@ -205,6 +205,9 @@ class PixieConsensusCluster:
         self.columns = columns
         self.max_k = max_k
         self.cap = cap
+
+        # NOTE: H set to 10 to replicate default 'reps' arg in R ConsensusClusterPlus
+        # resample_proportion set to 0.8 to replicate default 'pItem' arg in ConsensusClusterPlus
         self.cc = ConsensusCluster(
             cluster=AgglomerativeClustering,
             L=max_k,
@@ -212,6 +215,7 @@ class PixieConsensusCluster:
             H=10,
             resample_proportion=0.8
         )
+
         self.mapping = None
 
     def scale_data(self):
