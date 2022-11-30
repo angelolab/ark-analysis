@@ -1587,7 +1587,6 @@ def test_generate_som_avg_files(capsys):
             )
 
 
-
 def test_pixel_consensus_cluster(mocker):
     # basic error check: bad path to data dir
     with tempfile.TemporaryDirectory() as temp_dir:
