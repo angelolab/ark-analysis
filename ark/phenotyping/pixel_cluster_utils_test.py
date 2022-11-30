@@ -1935,26 +1935,6 @@ def test_apply_pixel_meta_cluster_remapping_base(multiprocess):
                 'bad_remapped_name.csv', 'chan_avgs_som.csv', 'chan_avgs_meta.csv'
             )
 
-        # make a dummy remapped file
-        pd.DataFrame().to_csv(os.path.join(temp_dir, 'pixel_remapping.csv'))
-
-        # basic error check: bad path to average channel expression per SOM cluster
-        with pytest.raises(FileNotFoundError):
-            pixel_cluster_utils.apply_pixel_meta_cluster_remapping(
-                ['fov0'], ['chan0'], temp_dir, 'pixel_consensus_dir',
-                'pixel_remapping.csv', 'bad_chan_avgs_som.csv', 'chan_avgs_meta.csv'
-            )
-
-        # make a dummy SOM channel average file
-        pd.DataFrame().to_csv(os.path.join(temp_dir, 'chan_avgs_som.csv'))
-
-        # basic error check: bad path to average channel expression per meta cluster
-        with pytest.raises(FileNotFoundError):
-            pixel_cluster_utils.apply_pixel_meta_cluster_remapping(
-                ['fov0'], ['chan0'], temp_dir, 'pixel_consensus_dir',
-                'pixel_remapping.csv', 'chan_avgs_som.csv', 'bad_chan_avgs_meta.csv'
-            )
-
     with tempfile.TemporaryDirectory() as temp_dir:
         # define fovs and channels
         fovs = ['fov0', 'fov1', 'fov2']
@@ -1983,9 +1963,7 @@ def test_apply_pixel_meta_cluster_remapping_base(multiprocess):
                 chans,
                 temp_dir,
                 'pixel_mat_data',
-                'bad_sample_pixel_remapping.csv',
-                'sample_pixel_som_cluster_chan_avgs.csv',
-                'sample_pixel_meta_cluster_chan_avgs.csv'
+                'bad_sample_pixel_remapping.csv'
             )
 
         # error check: mapping does not contain every SOM label
@@ -2006,9 +1984,7 @@ def test_apply_pixel_meta_cluster_remapping_base(multiprocess):
                 chans,
                 temp_dir,
                 'pixel_mat_data',
-                'bad_sample_pixel_remapping.csv',
-                'sample_pixel_som_cluster_chan_avgs.csv',
-                'sample_pixel_meta_cluster_chan_avgs.csv'
+                'bad_sample_pixel_remapping.csv'
             )
 
         # run the remapping process
@@ -2018,9 +1994,6 @@ def test_apply_pixel_meta_cluster_remapping_base(multiprocess):
             temp_dir,
             'pixel_mat_data',
             'sample_pixel_remapping.csv',
-            'sample_pixel_som_cluster_chan_avgs.csv',
-            'sample_pixel_meta_cluster_chan_avgs.csv',
-            num_fovs_subset=1,
             multiprocess=multiprocess
         )
 
@@ -2070,55 +2043,6 @@ def test_apply_pixel_meta_cluster_remapping_base(multiprocess):
 
             assert np.all(meta_id_to_name.values == actual_meta_id_to_name_subset.values)
 
-        # # read in the meta cluster channel average data
-        # sample_pixel_channel_avg_meta_cluster = pd.read_csv(
-        #     os.path.join(temp_dir, 'sample_pixel_meta_cluster_chan_avgs.csv')
-        # )
-
-        # # assert the markers data has been updated correctly
-        # result = np.repeat(np.array([[0.1, 0.2, 0.3, 0.4]]), repeats=20, axis=0)
-        # assert np.all(
-        #     np.round(sample_pixel_channel_avg_meta_cluster[chans].values, 1) == result
-        # )
-
-        # # assert the total counts add up to 1000 (number in 1 FOV)
-        # # NOTE: we can't test specific count values due to randomization of channel averaging
-        # assert sample_pixel_channel_avg_meta_cluster['count'].sum() == 1000
-
-        # # assert the correct metacluster labels are contained
-        # sample_pixel_channel_avg_meta_cluster = sample_pixel_channel_avg_meta_cluster.sort_values(
-        #     by='pixel_meta_cluster'
-        # )
-        # assert np.all(sample_pixel_channel_avg_meta_cluster[
-        #     'pixel_meta_cluster'
-        # ].values == np.arange(20))
-        # assert np.all(sample_pixel_channel_avg_meta_cluster[
-        #     'pixel_meta_cluster_rename'
-        # ] == np.array(['meta' + str(i) for i in np.arange(20)]))
-
-        # # read in the som cluster channel average data
-        # sample_pixel_channel_avg_som_cluster = pd.read_csv(
-        #     os.path.join(temp_dir, 'sample_pixel_som_cluster_chan_avgs.csv')
-        # )
-
-        # # assert the correct number of meta clusters are in and the correct number of each
-        # assert len(sample_pixel_channel_avg_som_cluster['pixel_meta_cluster'].value_counts()) == 20
-        # assert np.all(
-        #     sample_pixel_channel_avg_som_cluster['pixel_meta_cluster'].value_counts().values == 5
-        # )
-
-        # # assert the correct metacluster labels are contained
-        # sample_pixel_channel_avg_som_cluster = sample_pixel_channel_avg_som_cluster.sort_values(
-        #     by='pixel_meta_cluster'
-        # )
-
-        # assert np.all(sample_pixel_channel_avg_som_cluster[
-        #     'pixel_meta_cluster'
-        # ].values == np.repeat(np.arange(20), repeats=5))
-        # assert np.all(sample_pixel_channel_avg_som_cluster[
-        #     'pixel_meta_cluster_rename'
-        # ].values == np.array(['meta' + str(i) for i in np.repeat(np.arange(20), repeats=5)]))
-
 
 @parametrize('multiprocess', [True, False])
 def test_apply_pixel_meta_cluster_remapping_temp_corrupt(multiprocess, capsys):
@@ -2145,9 +2069,6 @@ def test_apply_pixel_meta_cluster_remapping_temp_corrupt(multiprocess, capsys):
             temp_dir,
             'pixel_mat_data',
             'sample_pixel_remapping.csv',
-            'sample_pixel_som_cluster_chan_avgs.csv',
-            'sample_pixel_meta_cluster_chan_avgs.csv',
-            num_fovs_subset=1,
             multiprocess=multiprocess
         )
 
