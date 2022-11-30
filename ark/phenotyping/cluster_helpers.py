@@ -6,9 +6,19 @@ import pathlib
 import pandas as pd
 from scipy.stats import zscore
 from sklearn.cluster import AgglomerativeClustering
-from typing import Callable, List
+from typing import Callable, List, Protocol, runtime_checkable
 
 from ark.utils.misc_utils import verify_in_list
+
+
+@runtime_checkable
+class ClusterClassTemplate(Protocol):
+    def fit_predict(self) -> None:
+        pass
+
+    @property
+    def n_clusters(self) -> int:
+        pass
 
 ###############################################
 # Copyright Žiga Sajovic, XLAB 2019           #
@@ -20,7 +30,7 @@ from ark.utils.misc_utils import verify_in_list
 
 
 class ConsensusCluster:
-    def __init__(self, cluster: Callable, L: int, K: int, H: int,
+    def __init__(self, cluster: ClusterClassTemplate, L: int, K: int, H: int,
                  resample_proportion: float = 0.5):
         """Implementation of Consensus clustering, following the paper
         https://link.springer.com/content/pdf/10.1023%2FA%3A1023949509487.pdf
