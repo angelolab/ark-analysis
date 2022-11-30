@@ -14,11 +14,11 @@ from ark.utils.misc_utils import verify_in_list
 @runtime_checkable
 class ClusterClassTemplate(Protocol):
     def fit_predict(self) -> None:
-        pass
+        ...
 
     @property
     def n_clusters(self) -> int:
-        pass
+        return n_cluster
 
 ###############################################
 # Copyright Žiga Sajovic, XLAB 2019           #
