@@ -773,26 +773,31 @@ def compute_cluster_metrics_silhouette(neighbor_mat, min_k=2, max_k=10, seed=42,
 
 def compute_cell_neighbors(all_data, dist_mat_dir, cell_neighbors_dir, neighbors_radius=100,
                            included_fovs=None, fov_col=settings.FOV_ID):
-    """
+    """ Create cell neighbors matrix for each FOV, save files to cell_neighbors_dir
     Args:
         all_data (pandas.DataFrame):
-            data for all fovs. Includes the columns for fov, label, and cell phenotype.
+            data for all fovs. Includes the columns for fov, label, and cell phenotype
         dist_mat_dir (str):
             directory containing the distance matrices
         cell_neighbors_dir (str):
             directory to save cell neighbor tables to
         neighbors_radius (int):
-            cell proximity threshold. Default is 100.
+            cell proximity threshold. Default is 100
         included_fovs (list):
-            fovs to include in analysis. If argument is none, default is all fovs used.
+            fovs to include in analysis. If argument is none, default is all fovs used
         fov_col (str):
-            column with the cell fovs.
-
+            column with the cell fovs
     """
 
     # get all fovs
+    all_fovs = all_data[fov_col].unique()
+
+    # validation checks
+    io_utils.validate_paths([dist_mat_dir, cell_neighbors_dir])
     if included_fovs is None:
-        included_fovs = all_data[fov_col].unique()
+        included_fovs = all_fovs
+    else:
+        misc_utils.verify_in_list(provided_fovs=included_fovs, fovs_in_cell_table=all_fovs)
 
     # find only close neighboring cells, save to csv file
     for fov in included_fovs:
@@ -806,7 +811,7 @@ def compute_cell_neighbors(all_data, dist_mat_dir, cell_neighbors_dir, neighbors
 
 def compute_mixing_score(cell_neighbors_dir, fov, target_cell, reference_cell, cold_thresh=0,
                          percent_mix=False):
-    """
+    """ Compute and return the mixing score for the specified target/reference cell types
     Args:
         cell_neighbors_dir (str):
             directory to save cell neighbor tables to
@@ -827,9 +832,18 @@ def compute_mixing_score(cell_neighbors_dir, fov, target_cell, reference_cell, c
 
     """
 
+    # path validation
+    cell_neighbors_path = os.path.join(cell_neighbors_dir, f"{fov}_cell_neighbors.csv")
+    io_utils.validate_paths(cell_neighbors_path)
+
     # read in fov cell neighbors, drop fov and cell label columns
-    neighbors_mat = pd.read_csv(os.path.join(cell_neighbors_dir, f"{fov}_cell_neighbors.csv"))
+    neighbors_mat = pd.read_csv(cell_neighbors_path)
     neighbors_mat = neighbors_mat.drop(columns=[settings.FOV_ID, settings.CELL_LABEL])
+
+    # cell types validation
+    all_cells = neighbors_mat[settings.CELL_TYPE].unique()
+    misc_utils.verify_in_list(provided_cell_populations=[target_cell, reference_cell],
+                              cell_populations_in_fov=all_cells)
 
     # get number of reference cells in sample
     reference_total = neighbors_mat[neighbors_mat[settings.CELL_TYPE] == reference_cell].shape[0]

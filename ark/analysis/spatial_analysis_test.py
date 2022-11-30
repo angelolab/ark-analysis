@@ -604,6 +604,12 @@ def test_compute_cell_neighbors(mocker):
             )
 
         with tempfile.TemporaryDirectory() as cell_neighbors_dir:
+            # check fov validation
+            with pytest.raises(ValueError, match='Not all values given in list provided fovs'):
+                spatial_analysis.compute_cell_neighbors(all_data_pos, dist_mat_dir,
+                                                        cell_neighbors_dir,
+                                                        included_fovs=['fov8', 'not-a-fov'])
+
             # test default success
             spatial_analysis.compute_cell_neighbors(all_data_pos, dist_mat_dir, cell_neighbors_dir)
 
@@ -633,19 +639,24 @@ def test_compute_mixing_score():
         save_path = os.path.join(cell_neighbors_dir, f"fov1_cell_neighbors.csv")
         cell_neighbors_mat.to_csv(save_path, index=False)
 
+        # check cell type validation
+        with pytest.raises(ValueError, match='Not all values given in list provided cell'):
+            spatial_analysis.compute_mixing_score(cell_neighbors_dir, 'fov1', cold_thresh=0,
+                                                  target_cell='not-a-cell', reference_cell='cell2')
+
         # test success
         score = spatial_analysis.compute_mixing_score(cell_neighbors_dir, 'fov1', cold_thresh=0,
                                                       target_cell='cell1', reference_cell='cell2')
         assert score == 3/5
-
-        # test cold threshold
-        cold_score = spatial_analysis.compute_mixing_score(cell_neighbors_dir, 'fov1',
-                                                           cold_thresh=4, target_cell='cell1',
-                                                           reference_cell='cell2')
-        assert math.isnan(cold_score)
 
         # test percent mix
         score = spatial_analysis.compute_mixing_score(cell_neighbors_dir, 'fov1', cold_thresh=0,
                                                       target_cell='cell1', reference_cell='cell2',
                                                       percent_mix=True)
         assert score == 3/8
+
+        # test cold threshold
+        cold_score = spatial_analysis.compute_mixing_score(cell_neighbors_dir, 'fov1',
+                                                           cold_thresh=4, target_cell='cell1',
+                                                           reference_cell='cell2')
+        assert math.isnan(cold_score)
