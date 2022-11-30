@@ -326,11 +326,18 @@ class Test_2_Pixel_Clustering:
                 base_dir,
                 pixel_data_dir,
                 pixel_meta_cluster_remap_name,
-                pc_chan_avg_som_cluster_name,
-                pc_chan_avg_meta_cluster_name,
-                num_fovs_subset=1,
                 multiprocess=multiprocess,
                 batch_size=batch_size
+            )
+
+            pixel_cluster_utils.generate_remap_avg_files(
+                fovs,
+                channels,
+                base_dir,
+                pixel_data_dir,
+                pixel_meta_cluster_remap_name,
+                pc_chan_avg_som_cluster_name,
+                pc_chan_avg_meta_cluster_name
             )
         """
         self.tb.inject(remap_inject, "pixel_apply_remap")
