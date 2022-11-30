@@ -1528,6 +1528,10 @@ def test_cluster_pixels(mocker):
             assert np.all(cluster_ids < 100)
 
 
+def test_generate_som_avg_files():
+    pass
+
+
 def test_pixel_consensus_cluster(mocker):
     # basic error check: bad path to data dir
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -1610,6 +1614,10 @@ def test_pixel_consensus_cluster(mocker):
             # assert we didn't assign any cluster 20 or above
             consensus_cluster_ids = fov_consensus_data['pixel_meta_cluster']
             assert np.all(consensus_cluster_ids <= 20)
+
+
+def test_generate_meta_avg_files():
+    pass
 
 
 def test_update_pixel_meta_labels():
@@ -2026,3 +2034,7 @@ def test_apply_pixel_meta_cluster_remapping_temp_corrupt(multiprocess, capsys):
             data_files=io_utils.list_files(os.path.join(temp_dir, 'pixel_mat_data')),
             written_files=['fov0.feather', 'fov2.feather']
         )
+
+
+def test_generate_remap_avg_files():
+    pass
