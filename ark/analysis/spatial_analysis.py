@@ -828,7 +828,8 @@ def compute_mixing_score(cell_neighbors_dir, fov, target_cell, reference_cell, c
             reference/reference interactions
 
     Returns:
-        integer indicating the mixing score for the FOV
+        int:
+            the mixing score for the FOV
 
     """
 
