@@ -2,16 +2,13 @@ import os
 import pathlib
 import re
 import warnings
-from functools import partial
-from multiprocessing import Pool
-from typing import Callable, List, OrderedDict, Union
+from typing import List, OrderedDict, Union
 
-import natsort as ns
 import numpy as np
 import skimage.io as io
 import xarray as xr
 import xmltodict
-from tifffile import TiffFile, TiffPage, TiffPageSeries, TiffWriter
+from tifffile import TiffFile, TiffPageSeries, TiffWriter
 from tmi import image_utils
 
 from ark.utils import io_utils as iou
