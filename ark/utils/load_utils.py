@@ -2,14 +2,16 @@ import os
 import pathlib
 import re
 import warnings
-from typing import List, OrderedDict, Union
+from functools import partial
+from multiprocessing import Pool
+from typing import Callable, List, OrderedDict, Union
 
 import natsort as ns
 import numpy as np
 import skimage.io as io
 import xarray as xr
 import xmltodict
-from tifffile import TiffFile, TiffWriter
+from tifffile import TiffFile, TiffPage, TiffPageSeries, TiffWriter
 from tmi import image_utils
 
 from ark.utils import io_utils as iou
@@ -485,7 +487,9 @@ def load_tiled_img_data(data_dir, fovs, expected_fovs, channel, single_dir, file
     return img_xr
 
 
-def fov_to_ome(data_dir: Union[str, pathlib.Path], ome_save_dir: Union[str, pathlib.Path],
+def fov_to_ome(data_dir: Union[str, pathlib.Path],
+               ome_save_dir: Union[str, pathlib.Path],
+               img_sub_folder: Union[str, pathlib.Path] = None,
                fovs: List[str] = None, channels: List[str] = None) -> None:
     """
     Converts a folder of FOVs into an OME-TIFF per FOV. This can be filtered out by
@@ -496,6 +500,9 @@ def fov_to_ome(data_dir: Union[str, pathlib.Path], ome_save_dir: Union[str, path
             Directory containing a folder of images for each the FOVs.
         ome_save_dir (Union[str, pathlib.Path]):
             The directory to save the OME-TIFF file to.
+        img_sub_folder (Union[str, pathlib.Path], optional):
+            Optional name of image sub-folder within each FOV / Single Channel TIFF folder.
+            Defaults to None.
         fovs (List[str]):
             A list of FOVs to gather and save as an OME-TIFF file. Defaults to None
             (Converts all FOVs in `data_dir` to OME-TIFFs).
@@ -503,11 +510,13 @@ def fov_to_ome(data_dir: Union[str, pathlib.Path], ome_save_dir: Union[str, path
             A list of channels to convert to an OME-TIFF. Defaults to None (Converts all channels
             as channels in an OME-TIFF.)
     """
+
     iou.validate_paths([data_dir, ome_save_dir], data_prefix=False)
 
     # Reorder the DataArray as OME-TIFFs require [Channel, Y, X]
     fov_xr: xr.DataArray = load_imgs_from_tree(
         data_dir=data_dir,
+        img_sub_folder=img_sub_folder,
         fovs=fovs,
         channels=channels).transpose("fovs", "channels", "cols", "rows")
 
@@ -553,9 +562,19 @@ def ome_to_fov(ome: Union[str, pathlib.Path], data_dir: Union[str, pathlib.Path]
         # String representation of the OME-XML metadata & convert to dictionary
         ome_xml_metadata: OrderedDict = xmltodict.parse(ome_tiff.ome_metadata.encode())
 
-        # Get the OME-XML image name and channel data
-        image_name = ome_xml_metadata["OME"]["Image"]["@Name"]
-        channel_metadata = ome_xml_metadata["OME"]["Image"]["Pixels"]["Channel"]
+        # An OME-TIFF's OME-XML metadata has either a single Image (dict), or a list of Images
+        # (List[dict]). IF it's a list of images, then grab the first image (all images should
+        # be the same, just different resolutions)
+        if isinstance(ome_xml_metadata["OME"]["Image"], dict):
+            image_data = ome_xml_metadata["OME"]["Image"]
+        else:
+            image_data = ome_xml_metadata["OME"]["Image"][0]
+
+        # Get the OME-XML image name
+        image_name: str = ome.stem.split(".")[-2]
+
+        # Get the OME-XML channel metadata
+        channel_metadata: List[OrderedDict] = image_data["Pixels"]["Channel"]
         save_dir: pathlib.Path = pathlib.Path(data_dir) / image_name
 
         # Corner case when only one channel. (OME-XML is a dict instead of a list of dicts)
@@ -566,9 +585,12 @@ def ome_to_fov(ome: Union[str, pathlib.Path], data_dir: Union[str, pathlib.Path]
         # No need to check for ordering, as the OME-TIFF Channel data is ordered.
         channels: List[str] = [c["@Name"] for c in channel_metadata]
 
-        for page, chan in zip(ome_tiff.pages, channels):
-            save_dir.mkdir(parents=True, exist_ok=True)
-            _data: np.ndarray = page.asarray().transpose()
+        # Get the TIFF pages for the current image
+        ome_tiff_img_pages: TiffPageSeries = ome_tiff.series[0].pages
 
-            # Save the image as a TIFF
-            image_utils.save_image(fname=save_dir / f"{chan}.tiff", data=_data)
+        for ome_tiff_page, channel in zip(ome_tiff_img_pages, channels):
+            save_dir.mkdir(parents=True, exist_ok=True)
+
+            image_utils.save_image(
+                fname=save_dir / f"{channel}.tiff", data=ome_tiff_page.asarray().transpose(),
+                compression_level=0)
