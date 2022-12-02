@@ -439,7 +439,8 @@ def create_mantis_dir(fovs: List[str], mantis_project_path: Union[str, pathlib.P
         mask_suffix (str, optional):
             The suffix used to find the mask tiffs. Defaults to "_mask".
         seg_suffix_name (str, optional):
-            The suffix of the segmentation file and it's file extension. Defaults to "_whole_cell.tiff".
+            The suffix of the segmentation file and it's file extension.
+            Defaults to "_whole_cell.tiff".
         img_sub_folder (str, optional):
             The subfolder where the channels exist within the `img_data_path`.
             Defaults to "normalized".

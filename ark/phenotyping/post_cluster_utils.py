@@ -65,7 +65,8 @@ def create_mantis_project(cell_table, fovs, seg_dir, pop_col,
         image_dir (path): path to the directory containing the raw image data
         mantis_dir (path): path to the directory where the mantis project will be created
         seg_suffix_name (str, optional):
-            The suffix of the segmentation file and it's file extension. Defaults to "_whole_cell.tiff".
+            The suffix of the segmentation file and it's file extension.
+            Defaults to "_whole_cell.tiff".
     """
 
     # Validate image extension input.
