@@ -73,7 +73,7 @@ def test_create_mantis_project(tmp_path):
                                              seg_dir=seg_dir, pop_col='cell_meta_cluster',
                                              mask_dir=mask_dir, image_dir=image_dir,
                                              mantis_dir=mantis_dir,
-                                             seg_suffix_name="_whole_cell_test")
+                                             seg_suffix_name="_whole_cell_test.tiff")
 
     # make sure that the mask found in each mantis directory is correct
     for fov in fovs:

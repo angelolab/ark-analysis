@@ -15,6 +15,7 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 from skimage.exposure import rescale_intensity
 from skimage.segmentation import find_boundaries
 
+from ark.settings import EXTENSION_TYPES
 from ark.utils import io_utils, load_utils, misc_utils
 # plotting functions
 from ark.utils.misc_utils import verify_in_list, verify_same_elements
@@ -395,7 +396,7 @@ def create_mantis_dir(fovs: List[str], mantis_project_path: Union[str, pathlib.P
                       mapping: Union[str, pathlib.Path, pd.DataFrame],
                       seg_dir: Union[str, pathlib.Path],
                       mask_suffix: str = "_mask",
-                      seg_suffix_name: str = "_whole_cell",
+                      seg_suffix_name: str = "_whole_cell.tiff",
                       img_sub_folder: str = ""):
     """Creates a mantis project directory so that it can be opened by the mantis viewer.
     Copies fovs, segmentation files, masks, and mapping csv's into a new directory structure.
@@ -438,7 +439,8 @@ def create_mantis_dir(fovs: List[str], mantis_project_path: Union[str, pathlib.P
         mask_suffix (str, optional):
             The suffix used to find the mask tiffs. Defaults to "_mask".
         seg_suffix_name (str, optional):
-            The suffix of the segmentation file. Defaults to "_whole_cell".
+            The suffix of the segmentation file and it's file extension.
+            Defaults to "_whole_cell.tiff".
         img_sub_folder (str, optional):
             The subfolder where the channels exist within the `img_data_path`.
             Defaults to "normalized".
@@ -446,6 +448,11 @@ def create_mantis_dir(fovs: List[str], mantis_project_path: Union[str, pathlib.P
 
     if not os.path.exists(mantis_project_path):
         os.makedirs(mantis_project_path)
+
+    # `seg_suffix` file extension validation
+    seg_suffix_ext = seg_suffix_name.split(".")[-1]
+    misc_utils.verify_in_list(seg_suffix_ext=seg_suffix_ext,
+                              supported_image_extensions=EXTENSION_TYPES["IMAGE"])
 
     # create key from cluster number to cluster name
     if type(mapping) in {pathlib.Path, str}:
@@ -489,17 +496,17 @@ def create_mantis_dir(fovs: List[str], mantis_project_path: Union[str, pathlib.P
             os.makedirs(output_dir)
 
             # copy all channels into new folder
-            chans = io_utils.list_files(img_source_dir, '.tiff')
+            chans = io_utils.list_files(img_source_dir, substrs=f".{seg_suffix_ext}")
             for chan in chans:
                 shutil.copy(os.path.join(img_source_dir, chan), os.path.join(output_dir, chan))
 
         # copy mask into new folder
-        mask_name: str = mn + mask_suffix + '.tiff'
+        mask_name: str = mn + mask_suffix + f".{seg_suffix_ext}"
         shutil.copy(os.path.join(mask_output_dir, mask_name),
                     os.path.join(output_dir, 'population{}.tiff'.format(mask_suffix)))
 
         # copy the segmentation files into the output directory
-        seg_name: str = fov + seg_suffix_name + '.tiff'
+        seg_name: str = fov + seg_suffix_name
         shutil.copy(os.path.join(seg_dir, seg_name),
                     os.path.join(output_dir, 'cell_segmentation.tiff'))
 
