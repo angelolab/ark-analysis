@@ -580,7 +580,10 @@ def ome_to_fov(ome: Union[str, pathlib.Path], data_dir: Union[str, pathlib.Path]
 
         # Get the channel names. Ex: {"DAPI", "CD3", "CD8"}.
         # No need to check for ordering, as the OME-TIFF Channel data is ordered.
-        channels: List[str] = [c["@Name"] for c in channel_metadata]
+        if "@Name" in channel_metadata[0].keys():
+            channels: List[str] = [c["@Name"] for c in channel_metadata]
+        else:
+            channels: List[str] = [f"Channel {c}" for c in range(len(channel_metadata))]
 
         # Get the TIFF pages for the current image
         ome_tiff_img_pages: TiffPageSeries = ome_tiff.series[0].pages
