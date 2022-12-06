@@ -337,7 +337,7 @@ def test_create_mantis_dir():
                 mask_suffix=mask_suffix,
                 mapping=mapping,
                 seg_dir=image_segmentation_full_path,
-                seg_suffix_name="_whole_cell_test",
+                seg_suffix_name="_whole_cell_test.tiff",
                 img_sub_folder=img_sub_folder
             )
 
