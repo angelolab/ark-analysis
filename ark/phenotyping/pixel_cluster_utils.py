@@ -391,7 +391,8 @@ def compute_pixel_cluster_channel_avg(fovs, channels, base_dir, pixel_cluster_co
     # error out if any clusters were lost during the averaging process
     if sum_count_totals.shape[0] < num_pixel_clusters:
         raise ValueError(
-            'Averaged data contains just %d clusters out of %d, removing those values. '
+            'Averaged data contains just %d clusters out of %d. '
+            'Average expression file not written. '
             'Consider increasing your num_fovs_subset value.' %
             (sum_count_totals.shape[0], num_pixel_clusters)
         )

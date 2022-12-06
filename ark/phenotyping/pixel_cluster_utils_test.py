@@ -671,7 +671,7 @@ def test_compute_pixel_cluster_channel_avg(cluster_col, keep_count, corrupt):
         assert np.array_equal(result, np.round(cluster_avg[cluster_avg_cols].values, 1))
 
         # repeat the test but ensure warning for total number of FOVs gets passed properly
-        with pytest.warns(match='Provided num_fovs_subset'):
+        with pytest.warns(UserWarning, match='Provided num_fovs_subset'):
             # compute pixel cluster average matrix
             cluster_avg = pixel_cluster_utils.compute_pixel_cluster_channel_avg(
                 fovs[1:], chans, temp_dir, cluster_col,
@@ -694,7 +694,7 @@ def test_compute_pixel_cluster_channel_avg(cluster_col, keep_count, corrupt):
             result = np.repeat(np.array([[0.1, 0.2, 0.3]]), repeats=num_repeats, axis=0)
             assert np.array_equal(result, np.round(cluster_avg[cluster_avg_cols].values, 1))
 
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match='Average expression file not written'):
             pixel_cluster_utils.compute_pixel_cluster_channel_avg(
                 fovs[1:], chans, temp_dir, cluster_col, 1000,
                 'pixel_mat_consensus', num_fovs_subset=1, keep_count=keep_count
