@@ -586,7 +586,19 @@ def test_compute_pixel_cluster_channel_avg(cluster_col, keep_count, corrupt):
         # error check: bad pixel cluster col passed
         with pytest.raises(ValueError):
             pixel_cluster_utils.compute_pixel_cluster_channel_avg(
-                fovs, chans, 'base_dir', 'bad_cluster_col', temp_dir, False
+                fovs, chans, 'base_dir', 'bad_cluster_col', 100, temp_dir
+            )
+
+        # error check: bad num_pixel_clusters provided
+        with pytest.raises(ValueError):
+            pixel_cluster_utils.compute_pixel_cluster_channel_avg(
+                fovs, chans, 'base_dir', 'bad_cluster_col', 0, temp_dir
+            )
+
+        # error check: bad num_fovs_subset provided
+        with pytest.raises(ValueError):
+            pixel_cluster_utils.compute_pixel_cluster_channel_avg(
+                fovs, chans, 'base_dir', 'bad_cluster_col', 100, temp_dir, num_fovs_subset=0
             )
 
         # create a dummy pixel and meta clustered matrix
@@ -636,10 +648,11 @@ def test_compute_pixel_cluster_channel_avg(cluster_col, keep_count, corrupt):
         # compute pixel cluster average matrix
         cluster_avg = pixel_cluster_utils.compute_pixel_cluster_channel_avg(
             fovs, chans, temp_dir, cluster_col,
-            'pixel_mat_consensus', keep_count=keep_count
+            100 if cluster_col == 'pixel_som_cluster' else 10,
+            'pixel_mat_consensus', num_fovs_subset=1, keep_count=keep_count
         )
 
-        # define the columns to check in cluster_avg, count may also be included
+        # define the columns to check in cluster_avg
         cluster_avg_cols = chans[:]
 
         # verify the provided channels and the channels in cluster_avg are exactly the same
@@ -648,21 +661,44 @@ def test_compute_pixel_cluster_channel_avg(cluster_col, keep_count, corrupt):
             provided_chans=chans
         )
 
-        # if keep_count is true then add the counts
-        # NOTE: subtract out the corrupted counts if specified
+        # assert count column adds up to just one FOV sampled
         if keep_count:
-            if cluster_col == 'pixel_som_cluster':
-                counts = 20 if corrupt else 30
-            else:
-                counts = 200 if corrupt else 300
+            assert cluster_avg['count'].sum() == 1000
 
-            count_col = np.expand_dims(np.repeat(counts, repeats=result.shape[0]), axis=1)
-            result = np.append(result, count_col, 1)
-
-            cluster_avg_cols.append('count')
-
-        # assert all elements of cluster_avg and the actual result are equal
+        # assert all the rows equal [0.1, 0.2, 0.3]
+        num_repeats = cluster_avg.shape[0]
+        result = np.repeat(np.array([[0.1, 0.2, 0.3]]), repeats=num_repeats, axis=0)
         assert np.array_equal(result, np.round(cluster_avg[cluster_avg_cols].values, 1))
+
+        # repeat the test but ensure warning for total number of FOVs gets passed properly
+        with pytest.warns(UserWarning, match='Provided num_fovs_subset'):
+            # compute pixel cluster average matrix
+            cluster_avg = pixel_cluster_utils.compute_pixel_cluster_channel_avg(
+                fovs[1:], chans, temp_dir, cluster_col,
+                100 if cluster_col == 'pixel_som_cluster' else 10,
+                'pixel_mat_consensus', num_fovs_subset=3, keep_count=keep_count
+            )
+
+            # verify the provided channels and the channels in cluster_avg are exactly the same
+            misc_utils.verify_same_elements(
+                cluster_avg_chans=cluster_avg[chans].columns.values,
+                provided_chans=chans
+            )
+
+            # assert count column adds up to just two FOVs sampled
+            if keep_count:
+                assert cluster_avg['count'].sum() == 2000
+
+            # assert all the rows equal [0.1, 0.2, 0.3]
+            num_repeats = cluster_avg.shape[0]
+            result = np.repeat(np.array([[0.1, 0.2, 0.3]]), repeats=num_repeats, axis=0)
+            assert np.array_equal(result, np.round(cluster_avg[cluster_avg_cols].values, 1))
+
+        with pytest.raises(ValueError, match='Average expression file not written'):
+            pixel_cluster_utils.compute_pixel_cluster_channel_avg(
+                fovs[1:], chans, temp_dir, cluster_col, 1000,
+                'pixel_mat_consensus', num_fovs_subset=1, keep_count=keep_count
+            )
 
 
 def test_create_fov_pixel_data():
@@ -1492,6 +1528,65 @@ def test_cluster_pixels(mocker):
             assert np.all(cluster_ids < 100)
 
 
+def test_generate_som_avg_files(capsys):
+    with tempfile.TemporaryDirectory() as temp_dir:
+        # create list of markers and fovs we want to use
+        chan_list = ['Marker1', 'Marker2', 'Marker3', 'Marker4']
+        fovs = ['fov0', 'fov1', 'fov2']
+
+        # make it easy to name columns
+        colnames = chan_list + ['fov', 'row_index', 'column_index', 'segmentation_label']
+
+        # define sample pixel data for each FOV
+        pixel_data_path = os.path.join(temp_dir, 'pixel_data_dir')
+        os.mkdir(pixel_data_path)
+        for i, fov in enumerate(fovs):
+            fov_cluster_data = pd.DataFrame(np.random.rand(100, len(colnames)), columns=colnames)
+            fov_cluster_data['pixel_som_cluster'] = i + 1
+            feather.write_dataframe(
+                fov_cluster_data, os.path.join(pixel_data_path, fov + '.feather')
+            )
+
+        # define a sample weights file
+        weights_path = os.path.join(temp_dir, 'pixel_weights.feather')
+        weights = pd.DataFrame(np.random.rand(3, 3))
+        feather.write_dataframe(weights, weights_path)
+
+        # test base generation with all subsetted FOVs
+        pixel_cluster_utils.generate_som_avg_files(
+            fovs, chan_list, temp_dir, 'pixel_data_dir', num_fovs_subset=3
+        )
+
+        # assert we created SOM avg file
+        pc_som_avg_file = os.path.join(temp_dir, 'pixel_channel_avg_som_cluster.csv')
+        assert os.path.exists(pc_som_avg_file)
+
+        # load in the SOM avg file, assert all clusters and counts are correct
+        # NOTE: more intensive testing done by compute_pixel_cluster_channel_avg
+        pc_som_avg_data = pd.read_csv(pc_som_avg_file)
+        assert list(pc_som_avg_data['pixel_som_cluster']) == [1, 2, 3]
+        assert np.all(pc_som_avg_data['count'] == 100)
+
+        # test that process doesn't run if SOM cluster file already generated
+        capsys.readouterr()
+
+        pixel_cluster_utils.generate_som_avg_files(
+            fovs, chan_list, temp_dir, 'pixel_data_dir', num_fovs_subset=1
+        )
+
+        output = capsys.readouterr().out
+        assert output == "Already generated SOM cluster channel average file, skipping\n"
+
+        # remove average SOM file for final test
+        os.remove(pc_som_avg_file)
+
+        # ensure error gets thrown when not all SOM clusters make it in
+        with pytest.raises(ValueError):
+            pixel_cluster_utils.generate_som_avg_files(
+                fovs, chan_list, temp_dir, 'pixel_data_dir', num_fovs_subset=1
+            )
+
+
 def test_pixel_consensus_cluster(mocker):
     # basic error check: bad path to data dir
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -1541,7 +1636,7 @@ def test_pixel_consensus_cluster(mocker):
 
         # compute averages by cluster, this happens before call to R
         cluster_avg = pixel_cluster_utils.compute_pixel_cluster_channel_avg(
-            fovs, chans, temp_dir, 'pixel_som_cluster'
+            fovs, chans, temp_dir, 'pixel_som_cluster', 100
         )
 
         # save the DataFrame
@@ -1564,15 +1659,96 @@ def test_pixel_consensus_cluster(mocker):
                                                                      'pixel_mat_data',
                                                                      fov + '.feather'))
 
-            # assert we didn't modify the cluster column in the consensus clustered results
-            assert np.all(
-                fov_data[fov]['pixel_som_cluster'].values ==
-                fov_consensus_data['pixel_som_cluster'].values
+            # assert all assigned SOM cluster values contained in original fov-data
+            # NOTE: can't test exact values because of randomization of channel averaging
+            misc_utils.verify_in_list(
+                assigned_som_values=fov_consensus_data['pixel_som_cluster'].unique(),
+                valid_som_values=fov_data[fov]['pixel_som_cluster']
             )
 
             # assert we didn't assign any cluster 20 or above
             consensus_cluster_ids = fov_consensus_data['pixel_meta_cluster']
             assert np.all(consensus_cluster_ids <= 20)
+
+
+def test_generate_meta_avg_files(capsys):
+    with tempfile.TemporaryDirectory() as temp_dir:
+        # create list of markers and fovs we want to use
+        chan_list = ['Marker1', 'Marker2', 'Marker3', 'Marker4']
+        fovs = ['fov0', 'fov1', 'fov2']
+
+        # make it easy to name columns
+        colnames = chan_list + ['fov', 'row_index', 'column_index', 'segmentation_label']
+
+        # define sample pixel data for each FOV
+        pixel_data_path = os.path.join(temp_dir, 'pixel_data_dir')
+        os.mkdir(pixel_data_path)
+        for i, fov in enumerate(fovs):
+            fov_cluster_data = pd.DataFrame(np.random.rand(100, len(colnames)), columns=colnames)
+            fov_cluster_data['pixel_som_cluster'] = i + 1
+            fov_cluster_data['pixel_meta_cluster'] = (i + 1) * 10
+            feather.write_dataframe(
+                fov_cluster_data, os.path.join(pixel_data_path, fov + '.feather')
+            )
+
+        # define a sample pixel channel SOM average file
+        pc_som_avg_file = os.path.join(temp_dir, 'pixel_channel_avg_som_cluster.csv')
+        pc_som_avg_data = pd.DataFrame(
+            np.random.rand(3, len(chan_list) + 2),
+            columns=['pixel_som_cluster'] + chan_list + ['count']
+        )
+        pc_som_avg_data['pixel_som_cluster'] = np.arange(1, 4)
+        pc_som_avg_data['count'] = 100
+        pc_som_avg_data.to_csv(pc_som_avg_file, index=False)
+
+        # define a sample SOM to meta cluster map
+        som_to_meta_file = os.path.join(temp_dir, 'pixel_clust_to_meta.feather')
+        som_to_meta_data = {
+            'pixel_som_cluster': np.arange(1, 4),
+            'pixel_meta_cluster': np.arange(10, 40, 10)
+        }
+        som_to_meta_data = pd.DataFrame.from_dict(som_to_meta_data)
+        feather.write_dataframe(som_to_meta_data, som_to_meta_file)
+
+        # test base generation with all subsetted FOVs
+        pixel_cluster_utils.generate_meta_avg_files(
+            fovs, chan_list, temp_dir, 3, 'pixel_data_dir', num_fovs_subset=3
+        )
+
+        # assert we created meta avg file
+        pc_meta_avg_file = os.path.join(temp_dir, 'pixel_channel_avg_meta_cluster.csv')
+        assert os.path.exists(pc_som_avg_file)
+
+        # load in the meta avg file, assert all clusters and counts are correct
+        # NOTE: more intensive testing done by compute_pixel_cluster_channel_avg
+        pc_meta_avg_data = pd.read_csv(pc_meta_avg_file)
+        assert list(pc_meta_avg_data['pixel_meta_cluster']) == [10, 20, 30]
+        assert np.all(pc_som_avg_data['count'] == 100)
+
+        # ensure that the mapping in the SOM average file is correct
+        pc_som_avg_file = os.path.join(temp_dir, 'pixel_channel_avg_som_cluster.csv')
+        pc_som_avg_data = pd.read_csv(pc_som_avg_file)
+        pc_som_mapping = pc_som_avg_data[['pixel_som_cluster', 'pixel_meta_cluster']]
+        assert np.all(pc_som_mapping.values == som_to_meta_data.values)
+
+        # test that process doesn't run if meta cluster file already generated
+        capsys.readouterr()
+
+        pixel_cluster_utils.generate_meta_avg_files(
+            fovs, chan_list, temp_dir, 3, 'pixel_data_dir', num_fovs_subset=1
+        )
+
+        output = capsys.readouterr().out
+        assert output == "Already generated meta cluster channel average file, skipping\n"
+
+        # remove average meta file for final test
+        os.remove(pc_meta_avg_file)
+
+        # ensure error gets thrown when not all meta clusters make it in
+        with pytest.raises(ValueError):
+            pixel_cluster_utils.generate_meta_avg_files(
+                fovs, chan_list, temp_dir, 3, 'pixel_data_dir', num_fovs_subset=1
+            )
 
 
 def test_update_pixel_meta_labels():
@@ -1758,26 +1934,6 @@ def test_apply_pixel_meta_cluster_remapping_base(multiprocess):
                 'bad_remapped_name.csv', 'chan_avgs_som.csv', 'chan_avgs_meta.csv'
             )
 
-        # make a dummy remapped file
-        pd.DataFrame().to_csv(os.path.join(temp_dir, 'pixel_remapping.csv'))
-
-        # basic error check: bad path to average channel expression per SOM cluster
-        with pytest.raises(FileNotFoundError):
-            pixel_cluster_utils.apply_pixel_meta_cluster_remapping(
-                ['fov0'], ['chan0'], temp_dir, 'pixel_consensus_dir',
-                'pixel_remapping.csv', 'bad_chan_avgs_som.csv', 'chan_avgs_meta.csv'
-            )
-
-        # make a dummy SOM channel average file
-        pd.DataFrame().to_csv(os.path.join(temp_dir, 'chan_avgs_som.csv'))
-
-        # basic error check: bad path to average channel expression per meta cluster
-        with pytest.raises(FileNotFoundError):
-            pixel_cluster_utils.apply_pixel_meta_cluster_remapping(
-                ['fov0'], ['chan0'], temp_dir, 'pixel_consensus_dir',
-                'pixel_remapping.csv', 'chan_avgs_som.csv', 'bad_chan_avgs_meta.csv'
-            )
-
     with tempfile.TemporaryDirectory() as temp_dir:
         # define fovs and channels
         fovs = ['fov0', 'fov1', 'fov2']
@@ -1806,9 +1962,7 @@ def test_apply_pixel_meta_cluster_remapping_base(multiprocess):
                 chans,
                 temp_dir,
                 'pixel_mat_data',
-                'bad_sample_pixel_remapping.csv',
-                'sample_pixel_som_cluster_chan_avgs.csv',
-                'sample_pixel_meta_cluster_chan_avgs.csv'
+                'bad_sample_pixel_remapping.csv'
             )
 
         # error check: mapping does not contain every SOM label
@@ -1829,9 +1983,7 @@ def test_apply_pixel_meta_cluster_remapping_base(multiprocess):
                 chans,
                 temp_dir,
                 'pixel_mat_data',
-                'bad_sample_pixel_remapping.csv',
-                'sample_pixel_som_cluster_chan_avgs.csv',
-                'sample_pixel_meta_cluster_chan_avgs.csv'
+                'bad_sample_pixel_remapping.csv'
             )
 
         # run the remapping process
@@ -1841,8 +1993,6 @@ def test_apply_pixel_meta_cluster_remapping_base(multiprocess):
             temp_dir,
             'pixel_mat_data',
             'sample_pixel_remapping.csv',
-            'sample_pixel_som_cluster_chan_avgs.csv',
-            'sample_pixel_meta_cluster_chan_avgs.csv',
             multiprocess=multiprocess
         )
 
@@ -1892,54 +2042,6 @@ def test_apply_pixel_meta_cluster_remapping_base(multiprocess):
 
             assert np.all(meta_id_to_name.values == actual_meta_id_to_name_subset.values)
 
-        # read in the meta cluster channel average data
-        sample_pixel_channel_avg_meta_cluster = pd.read_csv(
-            os.path.join(temp_dir, 'sample_pixel_meta_cluster_chan_avgs.csv')
-        )
-
-        # assert the markers data has been updated correctly
-        result = np.repeat(np.array([[0.1, 0.2, 0.3, 0.4]]), repeats=20, axis=0)
-        assert np.all(
-            np.round(sample_pixel_channel_avg_meta_cluster[chans].values, 1) == result
-        )
-
-        # assert the counts data has been updated correctly
-        assert np.all(sample_pixel_channel_avg_meta_cluster['count'].values == 150)
-
-        # assert the correct metacluster labels are contained
-        sample_pixel_channel_avg_meta_cluster = sample_pixel_channel_avg_meta_cluster.sort_values(
-            by='pixel_meta_cluster'
-        )
-        assert np.all(sample_pixel_channel_avg_meta_cluster[
-            'pixel_meta_cluster'
-        ].values == np.arange(20))
-        assert np.all(sample_pixel_channel_avg_meta_cluster[
-            'pixel_meta_cluster_rename'
-        ] == np.array(['meta' + str(i) for i in np.arange(20)]))
-
-        # read in the som cluster channel average data
-        sample_pixel_channel_avg_som_cluster = pd.read_csv(
-            os.path.join(temp_dir, 'sample_pixel_som_cluster_chan_avgs.csv')
-        )
-
-        # assert the correct number of meta clusters are in and the correct number of each
-        assert len(sample_pixel_channel_avg_som_cluster['pixel_meta_cluster'].value_counts()) == 20
-        assert np.all(
-            sample_pixel_channel_avg_som_cluster['pixel_meta_cluster'].value_counts().values == 5
-        )
-
-        # assert the correct metacluster labels are contained
-        sample_pixel_channel_avg_som_cluster = sample_pixel_channel_avg_som_cluster.sort_values(
-            by='pixel_meta_cluster'
-        )
-
-        assert np.all(sample_pixel_channel_avg_som_cluster[
-            'pixel_meta_cluster'
-        ].values == np.repeat(np.arange(20), repeats=5))
-        assert np.all(sample_pixel_channel_avg_som_cluster[
-            'pixel_meta_cluster_rename'
-        ].values == np.array(['meta' + str(i) for i in np.repeat(np.arange(20), repeats=5)]))
-
 
 @parametrize('multiprocess', [True, False])
 def test_apply_pixel_meta_cluster_remapping_temp_corrupt(multiprocess, capsys):
@@ -1966,8 +2068,6 @@ def test_apply_pixel_meta_cluster_remapping_temp_corrupt(multiprocess, capsys):
             temp_dir,
             'pixel_mat_data',
             'sample_pixel_remapping.csv',
-            'sample_pixel_som_cluster_chan_avgs.csv',
-            'sample_pixel_meta_cluster_chan_avgs.csv',
             multiprocess=multiprocess
         )
 
@@ -1975,7 +2075,6 @@ def test_apply_pixel_meta_cluster_remapping_temp_corrupt(multiprocess, capsys):
         assert not os.path.exists(os.path.join(temp_dir, 'pixel_mat_data_temp'))
 
         output = capsys.readouterr().out
-        print(output)
         desired_status_updates = "Using re-mapping scheme to re-label pixel meta clusters\n"
         desired_status_updates += "The data for FOV fov1 has been corrupted, skipping\n"
         assert desired_status_updates in output
@@ -1986,3 +2085,88 @@ def test_apply_pixel_meta_cluster_remapping_temp_corrupt(multiprocess, capsys):
             data_files=io_utils.list_files(os.path.join(temp_dir, 'pixel_mat_data')),
             written_files=['fov0.feather', 'fov2.feather']
         )
+
+
+def test_generate_remap_avg_files():
+    with tempfile.TemporaryDirectory() as temp_dir:
+        # create list of markers and fovs we want to use
+        chan_list = ['Marker1', 'Marker2', 'Marker3', 'Marker4']
+        fovs = ['fov0', 'fov1', 'fov2']
+
+        # make it easy to name columns
+        colnames = chan_list + ['fov', 'row_index', 'column_index', 'segmentation_label']
+
+        # define sample pixel data for each FOV
+        pixel_data_path = os.path.join(temp_dir, 'pixel_data_dir')
+        os.mkdir(pixel_data_path)
+        for i, fov in enumerate(fovs):
+            fov_cluster_data = pd.DataFrame(np.random.rand(100, len(colnames)), columns=colnames)
+            fov_cluster_data['pixel_som_cluster'] = i + 1
+            fov_cluster_data['pixel_meta_cluster'] = (i + 1) * 10
+            feather.write_dataframe(
+                fov_cluster_data, os.path.join(pixel_data_path, fov + '.feather')
+            )
+
+        # define a sample pixel channel SOM average file
+        pc_som_avg_file = os.path.join(temp_dir, 'pixel_channel_avg_som_cluster.csv')
+        pc_som_avg_data = pd.DataFrame(
+            np.random.rand(3, len(chan_list) + 2),
+            columns=['pixel_som_cluster'] + chan_list + ['count']
+        )
+        pc_som_avg_data['pixel_som_cluster'] = np.arange(1, 4)
+        pc_som_avg_data['count'] = 100
+        pc_som_avg_data.to_csv(pc_som_avg_file, index=False)
+
+        # define a sample pixel channel meta average file
+        pc_meta_avg_file = os.path.join(temp_dir, 'pixel_channel_avg_meta_cluster.csv')
+        pc_meta_avg_data = pd.DataFrame(
+            np.random.rand(3, len(chan_list) + 3),
+            columns=['pixel_som_cluster', 'pixel_meta_cluster'] + chan_list + ['count']
+        )
+        pc_meta_avg_data['pixel_som_cluster'] = np.arange(1, 4)
+        pc_meta_avg_data['pixel_meta_cluster'] = np.arange(10, 40, 10)
+        pc_meta_avg_data['count'] = 100
+        pc_meta_avg_data.to_csv(pc_meta_avg_file, index=False)
+
+        # define a sample meta remap file
+        meta_remap_path = os.path.join(temp_dir, 'meta_remap.csv')
+        meta_remap_data = {
+            'cluster': np.arange(1, 4),
+            'metacluster': np.arange(10, 40, 10),
+            'mc_name': [f'meta_rename_{i}' for i in np.arange(10, 40, 10)]
+        }
+        meta_remap_data = pd.DataFrame.from_dict(meta_remap_data)
+        meta_remap_data.to_csv(meta_remap_path, index=False)
+
+        # test base generation with all subsetted FOVs
+        pixel_cluster_utils.generate_remap_avg_files(
+            fovs, chan_list, temp_dir, 'pixel_data_dir', 'meta_remap.csv',
+            'pixel_channel_avg_som_cluster.csv', 'pixel_channel_avg_meta_cluster.csv',
+            num_fovs_subset=3
+        )
+
+        # load in the meta average file and assert the mappings are correct
+        pc_meta_remap_data = pd.read_csv(pc_meta_avg_file)
+        pc_meta_mappings = pc_meta_remap_data[
+            ['pixel_meta_cluster', 'pixel_meta_cluster_rename']
+        ]
+        assert np.all(
+            pc_meta_mappings.values == meta_remap_data.drop(columns='cluster').values
+        )
+
+        # load in the som average file and assert the mappings are correct
+        pc_som_remap_data = pd.read_csv(pc_som_avg_file)
+        pc_som_mappings = pc_som_remap_data[
+            ['pixel_som_cluster', 'pixel_meta_cluster', 'pixel_meta_cluster_rename']
+        ]
+        assert np.all(
+            pc_som_mappings.values == meta_remap_data.values
+        )
+
+        # ensure error gets thrown when not all meta clusters make it in
+        with pytest.raises(ValueError):
+            pixel_cluster_utils.generate_remap_avg_files(
+                fovs, chan_list, temp_dir, 'pixel_data_dir', 'meta_remap.csv',
+                'pixel_channel_avg_som_cluster.csv', 'pixel_channel_avg_meta_cluster.csv',
+                num_fovs_subset=1
+            )

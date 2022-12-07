@@ -319,7 +319,28 @@ class Test_2_Pixel_Clustering:
 
         notebooks_test_utils.create_pixel_remap_files(self.base_dir, pixel_meta_cluster_remap)
 
-        self.tb.execute_cell("pixel_apply_remap")
+        remap_inject = """
+            pixel_cluster_utils.apply_pixel_meta_cluster_remapping(
+                fovs,
+                channels,
+                base_dir,
+                pixel_data_dir,
+                pixel_meta_cluster_remap_name,
+                multiprocess=multiprocess,
+                batch_size=batch_size
+            )
+
+            pixel_cluster_utils.generate_remap_avg_files(
+                fovs,
+                channels,
+                base_dir,
+                pixel_data_dir,
+                pixel_meta_cluster_remap_name,
+                pc_chan_avg_som_cluster_name,
+                pc_chan_avg_meta_cluster_name
+            )
+        """
+        self.tb.inject(remap_inject, "pixel_apply_remap")
 
     def test_pixel_cmap_gen(self):
         self.tb.execute_cell("pixel_cmap_gen")
