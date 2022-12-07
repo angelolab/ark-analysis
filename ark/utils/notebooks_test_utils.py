@@ -10,7 +10,6 @@ import skimage.io as io
 def create_pixel_som_files(base_dir,
                            pixel_data_dir,
                            pixel_channel_avg_som_cluster,
-                           pixel_channel_avg_meta_cluster,
                            fovs,
                            channels,
                            create_seg_dir=True) -> None:
@@ -19,15 +18,12 @@ def create_pixel_som_files(base_dir,
 
     * Pixel consensus data
     * Average channel expression per pixel SOM cluster
-    * Average channel expression per pixel meta cluster
 
     Args:
         base_dir (str): The base directory containing all inputs / outputs / data.
         pixel_data_dir (str): The subdirectory (within `base_dir`) which contains the pixel data.
         pixel_channel_avg_som_cluster (str): The subdirectory (within `base_dir`) which contains
             the `pixel_channel_avg_som_cluster` file.
-        pixel_channel_avg_meta_cluster (str): The subdirectory (within `base_dir`) which contains
-            the `pixel_channel_avg_meta_cluster` file.
         fovs (list): The list of fovs to use.
         channels (list): The list of channels to use.
         create_seg_dir (bool): Whether to include segmentation labels or not.
@@ -51,7 +47,6 @@ def create_pixel_som_files(base_dir,
             fov_data['segmentation_label'] = range(1, 2501)
 
         fov_data['pixel_som_cluster'] = np.repeat(range(1, 101), 25)
-        fov_data['pixel_meta_cluster'] = np.repeat(range(1, 21), 125)
 
         feather.write_dataframe(
             fov_data,
@@ -60,29 +55,15 @@ def create_pixel_som_files(base_dir,
         )
 
     # define the average channel expression per pixel SOM cluster
-    avg_channels_som = np.random.rand(100, len(channels) + 3)
-    avg_channels_som_cols = ['pixel_som_cluster'] + channels + ['count', 'pixel_meta_cluster']
+    avg_channels_som = np.random.rand(100, len(channels) + 2)
+    avg_channels_som_cols = ['pixel_som_cluster'] + channels + ['count']
     avg_channels_som = pd.DataFrame(
         avg_channels_som,
         columns=avg_channels_som_cols
     )
     avg_channels_som['pixel_som_cluster'] = range(1, 101)
-    avg_channels_som['pixel_meta_cluster'] = np.repeat(range(1, 21), 5)
     avg_channels_som.to_csv(
         os.path.join(base_dir, pixel_channel_avg_som_cluster),
-        index=False
-    )
-
-    # define the average channel expression per pixel meta cluster
-    avg_channels_meta = np.random.rand(20, len(channels) + 2)
-    avg_channels_meta_cols = ['pixel_meta_cluster'] + channels + ['count']
-    avg_channels_meta = pd.DataFrame(
-        avg_channels_meta,
-        columns=avg_channels_meta_cols
-    )
-    avg_channels_meta['pixel_meta_cluster'] = range(1, 21)
-    avg_channels_meta.to_csv(
-        os.path.join(base_dir, pixel_channel_avg_meta_cluster),
         index=False
     )
 
@@ -113,11 +94,8 @@ def create_cell_som_files(base_dir,
                           cell_data,
                           weighted_cell_channel,
                           cell_som_cluster_count_avgs,
-                          cell_meta_cluster_count_avgs,
                           cell_som_cluster_channel_avg,
-                          cell_meta_cluster_channel_avg,
                           pixel_cluster_col='pixel_meta_cluster_rename',
-                          cell_prefix='test',
                           ):
     """Mock the creation of files needed for cell clustering visualization:
 
@@ -135,11 +113,8 @@ def create_cell_som_files(base_dir,
         cell_data (str): The path to the `cell_data` file.
         weighted_cell_channel (str): The path to the `weighted_cell_channel` file.
         cell_som_cluster_counts_avgs (str): The path to the `cell_som_cluster_count_avgs` file.
-        cell_meta_cluster_count_avgs (str): The path to the `cell_meta_cluster_count_avgs` file.
         cell_som_cluster_channel_avg (str): The path to the `cell_som_cluster_channel_avg` file.
-        cell_meta_cluster_channel_avg (str): The path to the `cell_meta_cluster_channel_avg` file.
         pixel_cluster_col (str): The name of the pixel cluster column to aggregate on.
-        cell_prefix (str): The prefix to place before each cell clustering directory/file.
     """
 
     # define the cell table, cell consensus data, and weighted channel tables
@@ -158,10 +133,10 @@ def create_cell_som_files(base_dir,
         cell_table_fov['fov'] = fov
         cell_table = pd.concat([cell_table, cell_table_fov])
 
-        cell_consensus_fov = np.random.rand(1000, 25)
+        cell_consensus_fov = np.random.rand(1000, 24)
         cell_consensus_fov_cols = ['cell_size', 'fov'] + \
             ['%s_' % pixel_cluster_col + str(i) for i in range(1, 21)] + \
-            ['segmentation_label', 'cell_som_cluster', 'cell_meta_cluster']
+            ['segmentation_label', 'cell_som_cluster']
         cell_consensus_fov = pd.DataFrame(
             cell_consensus_fov,
             columns=cell_consensus_fov_cols
@@ -169,7 +144,6 @@ def create_cell_som_files(base_dir,
         cell_consensus_fov['fov'] = fov
         cell_consensus_fov['segmentation_label'] = range(1, 1001)
         cell_consensus_fov['cell_som_cluster'] = np.repeat(range(1, 101), 10)
-        cell_consensus_fov['cell_meta_cluster'] = np.repeat(range(1, 21), 50)
         cell_consensus_data = pd.concat([cell_consensus_data, cell_consensus_fov])
 
         weighted_channel_fov = np.random.rand(1000, len(channels) + 3)
@@ -195,60 +169,29 @@ def create_cell_som_files(base_dir,
     )
 
     # define the average pixel count expresssion per cell SOM cluster
-    avg_clusters_som = np.random.randint(1, 64, (100, 23))
+    avg_clusters_som = np.random.randint(1, 64, (100, 22))
     avg_clusters_som_cols = ['cell_som_cluster'] + \
-        ['%s_' % pixel_cluster_col + str(i) for i in range(1, 21)] + \
-        ['count', 'cell_meta_cluster']
+        ['%s_' % pixel_cluster_col + str(i) for i in range(1, 21)] + ['count']
     avg_clusters_som = pd.DataFrame(
         avg_clusters_som,
         columns=avg_clusters_som_cols
     )
     avg_clusters_som['cell_som_cluster'] = range(1, 101)
-    avg_clusters_som['cell_meta_cluster'] = np.repeat(range(1, 21), 5)
     avg_clusters_som.to_csv(
         os.path.join(base_dir, cell_som_cluster_count_avgs),
         index=False
     )
 
-    # define the average pixel count expresssion per cell meta cluster
-    avg_clusters_meta = np.random.randint(1, 64, (20, 22))
-    avg_clusters_meta_cols = ['cell_meta_cluster'] + \
-        ['%s_' % pixel_cluster_col + str(i) for i in range(1, 21)] + \
-        ['count']
-    avg_clusters_meta = pd.DataFrame(
-        avg_clusters_meta,
-        columns=avg_clusters_meta_cols
-    )
-    avg_clusters_meta['cell_meta_cluster'] = range(1, 21)
-    avg_clusters_meta.to_csv(
-        os.path.join(base_dir, cell_meta_cluster_count_avgs),
-        index=False
-    )
-
     # define the average weighted channel expression per cell SOM cluster
-    avg_channels_som = np.random.rand(100, len(channels) + 2)
-    avg_channels_som_cols = ['cell_som_cluster'] + channels + ['cell_meta_cluster']
+    avg_channels_som = np.random.rand(100, len(channels) + 1)
+    avg_channels_som_cols = ['cell_som_cluster'] + channels
     avg_channels_som = pd.DataFrame(
         avg_clusters_som,
         columns=avg_channels_som_cols
     )
     avg_channels_som['cell_som_cluster'] = range(1, 101)
-    avg_channels_som['cell_meta_cluster'] = np.repeat(range(1, 21), 5)
     avg_channels_som.to_csv(
         os.path.join(base_dir, cell_som_cluster_channel_avg),
-        index=False
-    )
-
-    # define the average weighted channel expression per cell meta cluster
-    avg_channels_meta = np.random.rand(20, len(channels) + 2)
-    avg_channels_meta_cols = ['cell_meta_cluster'] + channels
-    avg_channels_meta = pd.DataFrame(
-        avg_clusters_meta,
-        columns=avg_channels_meta_cols
-    )
-    avg_channels_meta['cell_meta_cluster'] = range(1, 21)
-    avg_channels_meta.to_csv(
-        os.path.join(base_dir, cell_meta_cluster_channel_avg),
         index=False
     )
 
