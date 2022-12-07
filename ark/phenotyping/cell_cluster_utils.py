@@ -9,6 +9,7 @@ import pandas as pd
 import scipy.stats as stats
 
 from ark.analysis import visualize
+from ark.phenotyping import cluster_helpers
 from ark.utils import misc_utils, io_utils
 
 
@@ -668,28 +669,35 @@ def cell_consensus_cluster(fovs, channels, base_dir, pixel_cluster_col, max_k=20
         valid_cluster_cols=['pixel_som_cluster', 'pixel_meta_cluster_rename']
     )
 
-    # run the consensus clustering process
-    process_args = ['Rscript', '/cell_consensus_cluster.R', pixel_cluster_col,
-                    str(max_k), str(cap), cell_data_path,
-                    som_cluster_counts_avg_path, clust_to_meta_path, str(seed)]
+    # consensus clustering setup
+    cluster_count_sub = pd.read_csv(som_cluster_counts_avg_path, nrows=1)
+    cluster_count_cols = cluster_count_sub.filter(regex=pixel_cluster_col).columns.to_list()
+    cell_cc = cluster_helpers.PixieConsensusCluster(
+        'cell', som_cluster_counts_avg_path, cluster_count_cols, max_k=max_k, cap=cap
+    )
 
-    process = subprocess.Popen(process_args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    # z-score and cap the data
+    print("z-score scaling and capping data")
+    cell_cc.scale_data()
 
-    # continuously poll the process for output/error so it gets displayed in the Jupyter notebook
-    while True:
-        # convert from byte string
-        output = process.stdout.readline().decode('utf-8')
+    # set random seed for consensus clustering
+    np.random.seed(seed)
 
-        # if the output is nothing and the process is done, break
-        if process.poll() is not None:
-            break
-        if output:
-            print(output.strip())
+    # run consensus clustering
+    print("Running consensus clustering")
+    cell_cc.run_consensus_clustering()
 
-    if process.returncode != 0:
-        raise OSError(
-            "Process terminated: please view error messages displayed above for debugging."
-        )
+    # generate the som to meta cluster map
+    print("Mapping cell data to consensus cluster labels")
+    cell_cc.generate_som_to_meta_map()
+
+    # assign the consensus cluster labels to som_cluster_avg_path and resave
+    cell_data = feather.read_dataframe(cell_data_path)
+    cell_meta_assign = cell_cc.assign_consensus_labels(cell_data)
+    feather.write_dataframe(cell_meta_assign, cell_data_path)
+
+    # save the som to meta cluster map
+    cell_cc.save_som_to_meta_map(clust_to_meta_path)
 
     # compute the average pixel SOM/meta counts per cell meta cluster
     print("Compute the average number of pixel SOM/meta cluster counts per cell meta cluster")
@@ -706,21 +714,17 @@ def cell_consensus_cluster(fovs, channels, base_dir, pixel_cluster_col, max_k=20
         index=False
     )
 
-    # read in the clust_to_meta_name file
     print(
         "Mapping meta cluster values onto average number of pixel SOM/meta cluster counts"
         "across cell SOM clusters"
     )
-    som_to_meta_data = feather.read_dataframe(
-        os.path.join(base_dir, clust_to_meta_name)
-    ).astype(np.int64)
 
     # read in the average number of pixel/SOM clusters across all cell SOM clusters
     cell_som_cluster_avgs_and_counts = pd.read_csv(som_cluster_counts_avg_path)
 
     # merge metacluster assignments in
     cell_som_cluster_avgs_and_counts = pd.merge_asof(
-        cell_som_cluster_avgs_and_counts, som_to_meta_data, on='cell_som_cluster'
+        cell_som_cluster_avgs_and_counts, cell_cc.mapping, on='cell_som_cluster'
     )
 
     # resave average number of pixel/SOM clusters across all cell SOM clusters
@@ -747,7 +751,7 @@ def cell_consensus_cluster(fovs, channels, base_dir, pixel_cluster_col, max_k=20
         "across cell SOM clusters"
     )
     cell_som_cluster_channel_avg = pd.merge_asof(
-        cell_som_cluster_channel_avg, som_to_meta_data, on='cell_som_cluster'
+        cell_som_cluster_channel_avg, cell_cc.mapping, on='cell_som_cluster'
     )
 
     # save the weighted channel average expression per cell cluster
@@ -772,8 +776,6 @@ def cell_consensus_cluster(fovs, channels, base_dir, pixel_cluster_col, max_k=20
         os.path.join(base_dir, cell_meta_cluster_channel_avg_name),
         index=False
     )
-
-    os.remove('Rplots.pdf')
 
 
 def apply_cell_meta_cluster_remapping(fovs, channels, base_dir, cell_consensus_name,
