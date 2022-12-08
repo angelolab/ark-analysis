@@ -994,6 +994,9 @@ def test_create_pixel_matrix_base(fovs, chans, sub_dir, seg_dir_include,
                 os.path.join(temp_dir, sample_pixel_output_dir, 'pixel_norm.feather')
             )
 
+        # check that we created a norm vals file
+        assert os.path.exists(os.path.join(temp_dir, 'channel_norm_post_rowsum.feather'))
+
         for fov in fovs:
             fov_data_path = os.path.join(
                 temp_dir, 'pixel_mat_data', fov + '.feather'

@@ -586,7 +586,7 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
                         pixel_output_dir='pixel_output_dir',
                         data_dir='pixel_mat_data',
                         subset_dir='pixel_mat_subsetted',
-                        norm_vals_name='post_rowsum_chan_norm.feather', is_mibitiff=False,
+                        norm_vals_name='channel_norm_post_rowsum.feather', is_mibitiff=False,
                         blur_factor=2, subset_proportion=0.1, seed=42,
                         channel_percentile=0.99, multiprocess=False, batch_size=5):
     """For each fov, add a Gaussian blur to each channel and normalize channel sums for each pixel
