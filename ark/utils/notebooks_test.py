@@ -76,7 +76,7 @@ def nb2_context(templates_dir, base_dir_generator) -> Iterator[ContextManager]:
         Iterator[ContextManager]: The testbook context manager which will get cleaned up
             afterwords.
     """
-    CLUSTER_PIXELS: pathlib.Path = templates_dir / "2_Cluster_Pixels.ipynb"
+    CLUSTER_PIXELS: pathlib.Path = templates_dir / "2_Pixie_Cluster_Pixels.ipynb"
     with testbook(CLUSTER_PIXELS, timeout=6000, execute=False) as nb_context_manager:
         yield nb_context_manager, base_dir_generator / "nb2"
 
@@ -96,7 +96,7 @@ def nb3_context(templates_dir, base_dir_generator) -> Iterator[ContextManager]:
         Iterator[ContextManager]: The testbook context manager which will get cleaned up
             afterwords.
     """
-    CLUSTER_CELLS: pathlib.Path = templates_dir / "3_Cluster_Cells.ipynb"
+    CLUSTER_CELLS: pathlib.Path = templates_dir / "3_Pixie_Cluster_Cells.ipynb"
     with testbook(CLUSTER_CELLS, timeout=6000, execute=False) as nb_context_manager:
         yield nb_context_manager, base_dir_generator / "nb3"
 

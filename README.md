@@ -53,10 +53,10 @@ The [**segmentation notebook**](./templates/1_Segment_Image_Data.ipynb) will wal
   - *Note:* It is assumed that the cell table uses the default column names as in `ark/settings.py`. Refer to the [docs](docs/_rtd/data_types.md) to get descriptions of the cell table columns, and methods to adjust them if necessary.
 
 #### 2. Pixel clustering with Pixie  
-The first step in the [Pixie](https://www.biorxiv.org/content/10.1101/2022.08.16.504171v1) pipeline is to run the [**pixel clustering notebook**](./templates/2_Cluster_Pixels.ipynb). The notebook walks you through the process of generating pixel clusters for your data, and lets you specify what markers to use for the clustering, train a model, use it to classify your entire dataset, and generate pixel cluster overlays. The notebook includes a GUI for manual cluster adjustment and annotation. [Workshop Talk - Session IV - Pixel Level Analysis](https://youtu.be/e7C1NvaPLaY)
+The first step in the [Pixie](https://www.biorxiv.org/content/10.1101/2022.08.16.504171v1) pipeline is to run the [**pixel clustering notebook**](./templates/2_Pixie_Cluster_Pixels.ipynb). The notebook walks you through the process of generating pixel clusters for your data, and lets you specify what markers to use for the clustering, train a model, use it to classify your entire dataset, and generate pixel cluster overlays. The notebook includes a GUI for manual cluster adjustment and annotation. [Workshop Talk - Session IV - Pixel Level Analysis](https://youtu.be/e7C1NvaPLaY)
 
 #### 3. Cell clustering with Pixie  
-The second step in the [Pixie](https://www.biorxiv.org/content/10.1101/2022.08.16.504171v1) pipeline is to run the [**cell clustering notebook**](./templates/3_Cluster_Cells.ipynb). This notebook will use the pixel clusters generated in the first notebook to cluster the cells in your dataset. The notebook walks you through generating cell clusters for your data and generates cell cluster overlays. The notebook includes a GUI for manual cluster adjustment and annotation. [Workshop Talk - Session V - Cell-level Analysis - Part 2: Cell Clustering](https://youtu.be/4_AJxrxPYlk?t=2704)
+The second step in the [Pixie](https://www.biorxiv.org/content/10.1101/2022.08.16.504171v1) pipeline is to run the [**cell clustering notebook**](./templates/3_Pixie_Cluster_Cells.ipynb). This notebook will use the pixel clusters generated in the first notebook to cluster the cells in your dataset. The notebook walks you through generating cell clusters for your data and generates cell cluster overlays. The notebook includes a GUI for manual cluster adjustment and annotation. [Workshop Talk - Session V - Cell-level Analysis - Part 2: Cell Clustering](https://youtu.be/4_AJxrxPYlk?t=2704)
 
 #### 4. Post Clustering Tasks
 After the Pixie Pipeline, the user can inspect and fine tune their results with the [**post clustering notebook**](./templates/4_Post_Clustering.ipynb). This notebook will go over cleaning up artifacts left from clustering, and working with functional markers.
@@ -338,11 +338,11 @@ segmentation/example_cell_output_dir/
 
 * **1 - Segment Image Data:**
   * Image Data
-* **2 - Cluster Pixels:**
+* **2 - Pixie Cluster Pixels:**
   * Image Data
   * Cell Table
   * Deepcell Output
-* **3 - Cluster Cells:**
+* **3 - Pixie Cluster Cells:**
   * Image Data
   * Cell Table
   * Deepcell Output
