@@ -1,4 +1,5 @@
 import os
+from typing import List
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -22,9 +23,8 @@ def plot_hist_thresholds(cell_table, populations, marker, pop_col='cell_meta_clu
     """
     all_populations = cell_table[pop_col].unique()
 
-    # input validation
-    if type(populations) != list:
-        raise ValueError("populations argument must be a list of populations to plot")
+    # Make populations a list if it is a string
+    populations: List[str] = misc_utils.make_iterable(populations, ignore_str=True)
 
     # check that provided populations are present in dataframe
     for pop in populations:
@@ -40,14 +40,15 @@ def plot_hist_thresholds(cell_table, populations, marker, pop_col='cell_meta_clu
 
     # plot each pop histogram
     pop_num = len(populations)
-    fig, ax = plt.subplots(pop_num, 1, figsize=[6.4, 2.2 * pop_num])
-    for i in range(pop_num):
-        plot_vals = cell_table.loc[cell_table[pop_col] == populations[i], marker].values
-        ax[i].hist(plot_vals, 50, density=True, facecolor='g', alpha=0.75, range=(0, x_max))
-        ax[i].set_title("Distribution of {} in {}".format(marker, populations[i]))
+    fig, axes = plt.subplots(pop_num, 1, figsize=[6.4, 2.2 * pop_num], squeeze=False)
+    for ax, pop in zip(axes.flat, populations):
+        plot_vals = cell_table.loc[cell_table[pop_col] == pop, marker].values
+        ax.hist(plot_vals, 50, density=True, facecolor='g', alpha=0.75, range=(0, x_max))
+        ax.set_title("Distribution of {} in {}".format(marker, pop))
 
-        if threshold is not None:
-            ax[i].axvline(x=threshold)
+        if threshold:
+            ax.axvline(x=threshold)
+
     plt.tight_layout()
 
 

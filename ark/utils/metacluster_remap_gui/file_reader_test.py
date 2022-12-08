@@ -29,7 +29,7 @@ def test_can_read_csvs_prefix_trim(simple_full_cluster_data):
 
 def test_requires_valid_path(simple_full_cluster_data):
     with tempfile.TemporaryDirectory() as temp_dir:
-        simple_full_cluster_data.to_csv('sample.csv', index=False)
+        simple_full_cluster_data.to_csv(temp_dir + '/sample.csv', index=False)
 
         with pytest.raises(FileNotFoundError):
             metaclusterdata_from_files(os.path.join(temp_dir, 'bad_sample.csv'))

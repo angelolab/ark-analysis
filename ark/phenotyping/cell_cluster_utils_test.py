@@ -82,7 +82,7 @@ def test_compute_cell_cluster_count_avg():
 
     with tempfile.TemporaryDirectory() as temp_dir:
         # error check: bad pixel_cluster_col_prefix specified
-        with pytest.raises(ValueError):
+        with pytest.raises(FileNotFoundError):
             cell_cluster_utils.compute_cell_cluster_count_avg(
                 'clustered_path', 'bad_cluster_col_prefix', 'cell_cluster_col', False
             )
@@ -90,7 +90,7 @@ def test_compute_cell_cluster_count_avg():
         # error check: bad cell_cluster_col specified
         with pytest.raises(ValueError):
             cell_cluster_utils.compute_cell_cluster_count_avg(
-                'clustered_path', 'pixel_meta_cluster', 'bad_cluster_col', False
+                temp_dir, 'pixel_meta_cluster', 'bad_cluster_col', False
             )
 
         cluster_col_arr = [pixel_som_clusters, pixel_meta_clusters]
