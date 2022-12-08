@@ -16,14 +16,16 @@ parametrize = pytest.mark.parametrize
 
 def mocked_train_cell_som(fovs, channels, base_dir, pixel_data_dir, cell_table_path,
                           cluster_counts_name='cluster_counts.feather',
-                          cluster_counts_norm_name='cluster_counts_norm.feather',
+                          cluster_counts_size_norm_name='cluster_counts_size_norm.feather',
                           pixel_cluster_col='pixel_meta_cluster_rename',
                           pc_chan_avg_name='pc_chan_avg.feather',
                           som_weights_name='cell_som_weights.feather',
                           weighted_cell_channel_name='weighted_cell_channel.csv',
                           xdim=10, ydim=10, lr_start=0.05, lr_end=0.01, num_passes=1, seed=42):
     # read in the cluster counts
-    cluster_counts_data = feather.read_dataframe(os.path.join(base_dir, cluster_counts_norm_name))
+    cluster_counts_data = feather.read_dataframe(
+        os.path.join(base_dir, cluster_counts_size_norm_name)
+    )
 
     # get the cluster columns
     cluster_cols = cluster_counts_data.filter(regex=("cluster_|hCluster_cap_")).columns.values
@@ -47,13 +49,14 @@ def mocked_train_cell_som(fovs, channels, base_dir, pixel_data_dir, cell_table_p
     feather.write_dataframe(som_weights, os.path.join(base_dir, som_weights_name))
 
 
-def mocked_cluster_cells(base_dir, cluster_counts_norm_name='cluster_counts_norm.feather',
+def mocked_cluster_cells(base_dir,
+                         cluster_counts_size_norm_name='cluster_counts_size_norm.feather',
                          som_weights_name='cell_som_weights.feather',
                          cell_cluster_name='cell_mat_clustered.feather',
                          pixel_cluster_col_prefix='pixel_meta_cluster_rename',
                          cell_som_cluster_avgs_name='cell_som_cluster_avgs.feather'):
     # read in the cluster counts data
-    cluster_counts = feather.read_dataframe(os.path.join(base_dir, cluster_counts_norm_name))
+    cluster_counts = feather.read_dataframe(os.path.join(base_dir, cluster_counts_size_norm_name))
 
     # read in the SOM weights matrix
     som_weights = feather.read_dataframe(os.path.join(base_dir, som_weights_name))
@@ -430,13 +433,13 @@ def test_create_c2pc_data():
             bad_cell_table_path = os.path.join(temp_dir, 'bad_cell_table.csv')
             bad_cell_table.to_csv(bad_cell_table_path, index=False)
 
-            cluster_counts, cluster_counts_norm = cell_cluster_utils.create_c2pc_data(
+            cluster_counts, cluster_counts_size_norm = cell_cluster_utils.create_c2pc_data(
                 fovs, pixel_data_path, bad_cell_table_path,
                 pixel_cluster_col='pixel_som_cluster'
             )
 
         # test counts on the pixel cluster column
-        cluster_counts, cluster_counts_norm = cell_cluster_utils.create_c2pc_data(
+        cluster_counts, cluster_counts_size_norm = cell_cluster_utils.create_c2pc_data(
             fovs, pixel_data_path, cell_table_path, pixel_cluster_col='pixel_som_cluster'
         )
 
@@ -464,11 +467,11 @@ def test_create_c2pc_data():
             np.equal(np.array(correct_val), cluster_counts[som_cluster_cols].values)
         )
         assert np.all(
-            np.equal(np.array(correct_val) / 5, cluster_counts_norm[som_cluster_cols].values)
+            np.equal(np.array(correct_val) / 5, cluster_counts_size_norm[som_cluster_cols].values)
         )
 
         # test counts on the consensus cluster column
-        cluster_counts, cluster_counts_norm = cell_cluster_utils.create_c2pc_data(
+        cluster_counts, cluster_counts_size_norm = cell_cluster_utils.create_c2pc_data(
             fovs, pixel_data_path, cell_table_path,
             pixel_cluster_col='pixel_meta_cluster_rename'
         )
@@ -497,7 +500,7 @@ def test_create_c2pc_data():
             np.equal(np.array(correct_val), cluster_counts[meta_cluster_cols].values)
         )
         assert np.all(
-            np.equal(np.array(correct_val) / 5, cluster_counts_norm[meta_cluster_cols].values)
+            np.equal(np.array(correct_val) / 5, cluster_counts_size_norm[meta_cluster_cols].values)
         )
 
 
@@ -584,13 +587,13 @@ def test_train_cell_som(mocker):
 
         # TEST 1: computing SOM weights using pixel clusters
         # compute cluster counts
-        _, cluster_counts_norm = cell_cluster_utils.create_c2pc_data(
+        _, cluster_counts_size_norm = cell_cluster_utils.create_c2pc_data(
             fovs, pixel_data_path, cell_table_path, 'pixel_som_cluster'
         )
 
-        # write cluster count
-        cluster_counts_norm_path = os.path.join(temp_dir, 'cluster_counts_norm.feather')
-        feather.write_dataframe(cluster_counts_norm, cluster_counts_norm_path)
+        # write size normalized cluster counts
+        cluster_counts_size_norm_path = os.path.join(temp_dir, 'cluster_counts_size_norm.feather')
+        feather.write_dataframe(cluster_counts_size_norm, cluster_counts_size_norm_path)
 
         # add mocked function to "train_cell_som"
         mocker.patch(
@@ -627,13 +630,13 @@ def test_train_cell_som(mocker):
         os.remove(os.path.join(temp_dir, 'cell_som_weights.feather'))
 
         # TEST 2: computing SOM weights using hierarchical clusters
-        _, cluster_counts_norm = cell_cluster_utils.create_c2pc_data(
+        _, cluster_counts_size_norm = cell_cluster_utils.create_c2pc_data(
             fovs, pixel_data_path, cell_table_path, 'pixel_meta_cluster_rename'
         )
 
         # write cluster count
-        cluster_counts_norm_path = os.path.join(temp_dir, 'cluster_counts_norm.feather')
-        feather.write_dataframe(cluster_counts_norm, cluster_counts_norm_path)
+        cluster_counts_size_norm_path = os.path.join(temp_dir, 'cluster_counts_size_norm.feather')
+        feather.write_dataframe(cluster_counts_size_norm, cluster_counts_size_norm_path)
 
         # add mocked function to "train" cell SOM
         mocker.patch(
@@ -666,19 +669,19 @@ def test_train_cell_som(mocker):
 
 
 def test_cluster_cells(mocker):
-    # basic error check: path to cell counts norm does not exist
+    # basic error check: path to cell counts size norm does not exist
     with tempfile.TemporaryDirectory() as temp_dir:
         with pytest.raises(FileNotFoundError):
             cell_cluster_utils.cluster_cells(
-                base_dir=temp_dir, cluster_counts_norm_name='bad_path'
+                base_dir=temp_dir, cluster_counts_size_norm_name='bad_path'
             )
 
     # basic error check: path to cell SOM weights does not exist
     with tempfile.TemporaryDirectory() as temp_dir:
-        # create a dummy cluster_counts_norm_name file
-        cluster_counts_norm = pd.DataFrame()
-        cluster_counts_norm.to_csv(
-            os.path.join(temp_dir, 'cluster_counts_norm.feather'),
+        # create a dummy cluster_counts_size_norm_name file
+        cluster_counts_size_norm = pd.DataFrame()
+        cluster_counts_size_norm.to_csv(
+            os.path.join(temp_dir, 'cluster_counts_size_norm.feather'),
             index=False
         )
 
@@ -703,13 +706,13 @@ def test_cluster_cells(mocker):
         cluster_counts_path = os.path.join(temp_dir, 'cluster_counts.feather')
         feather.write_dataframe(cluster_counts, cluster_counts_path)
 
-        # create normalized counts
-        cluster_counts_norm = cluster_counts.copy()
-        cluster_counts_norm[cluster_cols] = cluster_counts_norm[cluster_cols] / 5
+        # create size normalized counts
+        cluster_counts_size_norm = cluster_counts.copy()
+        cluster_counts_size_norm[cluster_cols] = cluster_counts_size_norm[cluster_cols] / 5
 
-        # write normalized counts
-        cluster_counts_norm_path = os.path.join(temp_dir, 'cluster_counts_norm.feather')
-        feather.write_dataframe(cluster_counts_norm, cluster_counts_norm_path)
+        # write size normalized counts
+        cluster_counts_size_norm_path = os.path.join(temp_dir, 'cluster_counts_size_norm.feather')
+        feather.write_dataframe(cluster_counts_size_norm, cluster_counts_size_norm_path)
 
         with pytest.raises(ValueError):
             bad_cluster_cols = cluster_cols[:]

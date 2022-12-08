@@ -384,7 +384,7 @@ def create_c2pc_data(fovs, pixel_data_path,
 
 def train_cell_som(fovs, channels, base_dir, pixel_data_dir, cell_table_path,
                    cluster_counts_name='cluster_counts.feather',
-                   cluster_counts_norm_name='cluster_counts_norm.feather',
+                   cluster_counts_size_norm_name='cluster_counts_size_normalized.feather',
                    pixel_cluster_col='pixel_meta_cluster_rename',
                    pc_chan_avg_name='pc_chan_avg.csv',
                    som_weights_name='cell_som_weights.feather',
@@ -409,7 +409,7 @@ def train_cell_som(fovs, channels, base_dir, pixel_data_dir, cell_table_path,
             Path of the cell table, needs to be created with `Segment_Image_Data.ipynb`
         cluster_counts_name (str):
             Name of the file to save the number of pixel SOM/meta cluster counts for each cell
-        cluster_counts_norm_name (str):
+        cluster_counts_size_norm_name (str):
             Same as `cluster_counts_name`, except the cluster columns are normalized by
             `cell_size`
         pixel_cluster_col (str):
@@ -440,7 +440,7 @@ def train_cell_som(fovs, channels, base_dir, pixel_data_dir, cell_table_path,
     # define the data paths
     pixel_data_path = os.path.join(base_dir, pixel_data_dir)
     cluster_counts_path = os.path.join(base_dir, cluster_counts_name)
-    cluster_counts_norm_path = os.path.join(base_dir, cluster_counts_norm_name)
+    cluster_counts_size_norm_path = os.path.join(base_dir, cluster_counts_size_norm_name)
     som_weights_path = os.path.join(base_dir, som_weights_name)
 
     # check the cell table path and pixel data path exist
@@ -457,7 +457,7 @@ def train_cell_som(fovs, channels, base_dir, pixel_data_dir, cell_table_path,
     # NOTE: we'll need the un-normalized matrix to compute weighted channel average
     # but the normalized matrix will be used to train, SOM cluster, and consensus cluster
     print("Counting the number of pixel SOM/meta cluster counts for each fov/cell pair")
-    cluster_counts, cluster_counts_norm = create_c2pc_data(
+    cluster_counts, cluster_counts_size_norm = create_c2pc_data(
         fovs, pixel_data_path, cell_table_path, pixel_cluster_col
     )
 
@@ -465,13 +465,13 @@ def train_cell_som(fovs, channels, base_dir, pixel_data_dir, cell_table_path,
     feather.write_dataframe(cluster_counts,
                             cluster_counts_path,
                             compression='uncompressed')
-    feather.write_dataframe(cluster_counts_norm,
-                            cluster_counts_norm_path,
+    feather.write_dataframe(cluster_counts_size_norm,
+                            cluster_counts_size_norm_path,
                             compression='uncompressed')
 
     # run the SOM training process
     process_args = ['Rscript', '/create_cell_som.R', ','.join(fovs), str(xdim), str(ydim),
-                    str(lr_start), str(lr_end), str(num_passes), cluster_counts_norm_path,
+                    str(lr_start), str(lr_end), str(num_passes), cluster_counts_size_norm_path,
                     som_weights_path, str(seed)]
 
     process = subprocess.Popen(process_args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
@@ -509,7 +509,7 @@ def train_cell_som(fovs, channels, base_dir, pixel_data_dir, cell_table_path,
     )
 
 
-def cluster_cells(base_dir, cluster_counts_norm_name='cluster_counts_norm.feather',
+def cluster_cells(base_dir, cluster_counts_size_norm_name='cluster_counts_size_norm.feather',
                   som_weights_name='cell_som_weights.feather',
                   cell_data_name='cell_mat.feather',
                   pixel_cluster_col_prefix='pixel_meta_cluster_rename',
@@ -522,7 +522,7 @@ def cluster_cells(base_dir, cluster_counts_norm_name='cluster_counts_norm.feathe
     Args:
         base_dir (str):
             The path to the data directory
-        cluster_counts_norm_name (str):
+        cluster_counts_size_norm_name (str):
             Name of the file with the number of pixel SOM/meta cluster counts of each cell,
             normalized by `cell_size`
         som_weights_name (str):
@@ -537,12 +537,12 @@ def cluster_cells(base_dir, cluster_counts_norm_name='cluster_counts_norm.feathe
     """
 
     # define the paths to the data
-    cluster_counts_norm_path = os.path.join(base_dir, cluster_counts_norm_name)
+    cluster_counts_size_norm_path = os.path.join(base_dir, cluster_counts_size_norm_name)
     som_weights_path = os.path.join(base_dir, som_weights_name)
     cell_data_path = os.path.join(base_dir, cell_data_name)
 
     # check the path to the normalized pixel cluster counts per cell and SOM weights file exists
-    io_utils.validate_paths([cluster_counts_norm_path, som_weights_path])
+    io_utils.validate_paths([cluster_counts_size_norm_path, som_weights_path])
 
     # verify the pixel_cluster_col_prefix provided is valid
     misc_utils.verify_in_list(
@@ -551,22 +551,22 @@ def cluster_cells(base_dir, cluster_counts_norm_name='cluster_counts_norm.feathe
     )
 
     # ensure the SOM weights columns are valid indexes, do so by ensuring
-    # the cluster_counts_norm and SOM weights columns are the same
-    # minus the metadata columns that appear in cluster_counts_norm
-    cluster_counts_norm = feather.read_dataframe(cluster_counts_norm_path)
+    # the cluster_counts_size_norm and SOM weights columns are the same
+    # minus the metadata columns that appear in cluster_counts_size_norm
+    cluster_counts_size_norm = feather.read_dataframe(cluster_counts_size_norm_path)
     som_weights = feather.read_dataframe(os.path.join(base_dir, som_weights_name))
-    cluster_counts_norm = cluster_counts_norm.drop(
+    cluster_counts_size_norm = cluster_counts_size_norm.drop(
         columns=['fov', 'segmentation_label', 'cell_size']
     )
 
     misc_utils.verify_same_elements(
         enforce_order=True,
-        cluster_counts_norm_columns=cluster_counts_norm.columns.values,
+        cluster_counts_size_norm_columns=cluster_counts_size_norm.columns.values,
         cell_som_weights_columns=som_weights.columns.values
     )
 
     # run the trained SOM on the dataset, assigning clusters
-    process_args = ['Rscript', '/run_cell_som.R', cluster_counts_norm_path,
+    process_args = ['Rscript', '/run_cell_som.R', cluster_counts_size_norm_path,
                     som_weights_path, cell_data_path]
 
     process = subprocess.Popen(process_args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
