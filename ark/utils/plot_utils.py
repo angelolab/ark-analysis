@@ -263,13 +263,13 @@ def create_overlay(fov, segmentation_dir, data_dir,
         fov (str):
             The name of the fov to overlay
         segmentation_dir (str):
-            The path to the directory containing the segmentatation data
+            The path to the directory containing the segmentation data
         data_dir (str):
             The path to the directory containing the nuclear and whole cell image data
         img_overlay_chans (list):
             List of channels the user will overlay
         seg_overlay_comp (str):
-            The segmentted compartment the user will overlay
+            The segmented compartment the user will overlay
         alternate_segmentation (numpy.ndarray):
             2D numpy array of labeled cell objects
     Returns:
