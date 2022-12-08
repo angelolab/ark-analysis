@@ -1,3 +1,4 @@
+from copy import deepcopy
 import os
 import tempfile
 
@@ -18,7 +19,7 @@ def mocked_train_cell_som(fovs, channels, base_dir, pixel_data_dir, cell_table_p
                           cluster_counts_norm_name='cluster_counts_norm.feather',
                           pixel_cluster_col='pixel_meta_cluster_rename',
                           pc_chan_avg_name='pc_chan_avg.feather',
-                          weights_name='cell_weights.feather',
+                          som_weights_name='cell_som_weights.feather',
                           weighted_cell_channel_name='weighted_cell_channel.csv',
                           xdim=10, ydim=10, lr_start=0.05, lr_end=0.01, num_passes=1, seed=42):
     # read in the cluster counts
@@ -30,35 +31,35 @@ def mocked_train_cell_som(fovs, channels, base_dir, pixel_data_dir, cell_table_p
     # subset cluster_counts by the cluster columns
     cluster_counts_sub = cluster_counts_data[cluster_cols]
 
-    # FlowSOM flattens the weights dimensions, ex. 10x10x10 becomes 100x10
-    weights = np.random.rand(100, len(cluster_cols))
+    # FlowSOM flattens the SOM weights dimensions, ex. 10x10x10 becomes 100x10
+    som_weights = np.random.rand(100, len(cluster_cols))
 
-    # get the 99.9% normalized values and divide weights by that
-    weights = weights / np.quantile(weights, 0.999, axis=0)
+    # get the 99.9% normalized values and divide SOM weights by that
+    som_weights = som_weights / np.quantile(som_weights, 0.999, axis=0)
 
     # take 100 random rows from cluster_counts_sub
-    # element-wise multiply weights by that and num_passes
+    # element-wise multiply SOM weights by that and num_passes
     multiply_factor = cluster_counts_sub.sample(n=100, replace=True).values
-    weights = weights * multiply_factor * num_passes
+    som_weights = som_weights * multiply_factor * num_passes
 
-    # write weights to feather, the result in R will be more like a DataFrame
-    weights = pd.DataFrame(weights, columns=cluster_cols)
-    feather.write_dataframe(weights, os.path.join(base_dir, weights_name))
+    # write SOM weights to feather, the result in R will be more like a DataFrame
+    som_weights = pd.DataFrame(som_weights, columns=cluster_cols)
+    feather.write_dataframe(som_weights, os.path.join(base_dir, som_weights_name))
 
 
 def mocked_cluster_cells(base_dir, cluster_counts_norm_name='cluster_counts_norm.feather',
-                         weights_name='cell_weights.feather',
+                         som_weights_name='cell_som_weights.feather',
                          cell_cluster_name='cell_mat_clustered.feather',
                          pixel_cluster_col_prefix='pixel_meta_cluster_rename',
                          cell_som_cluster_avgs_name='cell_som_cluster_avgs.feather'):
     # read in the cluster counts data
     cluster_counts = feather.read_dataframe(os.path.join(base_dir, cluster_counts_norm_name))
 
-    # read in the weights matrix
-    weights = feather.read_dataframe(os.path.join(base_dir, weights_name))
+    # read in the SOM weights matrix
+    som_weights = feather.read_dataframe(os.path.join(base_dir, som_weights_name))
 
     # get the mean weight for each channel column
-    sub_means = weights.mean(axis=1)
+    sub_means = som_weights.mean(axis=1)
 
     # multiply by 100 and truncate to int to get an actual cluster id
     cluster_ids = sub_means * 100
@@ -581,7 +582,7 @@ def test_train_cell_som(mocker):
                 pixel_cluster_col='bad_cluster'
             )
 
-        # TEST 1: computing weights using pixel clusters
+        # TEST 1: computing SOM weights using pixel clusters
         # compute cluster counts
         _, cluster_counts_norm = cell_cluster_utils.create_c2pc_data(
             fovs, pixel_data_path, cell_table_path, 'pixel_som_cluster'
@@ -605,25 +606,27 @@ def test_train_cell_som(mocker):
             pixel_cluster_col='pixel_som_cluster'
         )
 
-        # assert cell weights has been created
-        assert os.path.exists(os.path.join(temp_dir, 'cell_weights.feather'))
+        # assert cell SOM weights has been created
+        assert os.path.exists(os.path.join(temp_dir, 'cell_som_weights.feather'))
 
-        # read in the cell weights
-        cell_weights = feather.read_dataframe(os.path.join(temp_dir, 'cell_weights.feather'))
+        # read in the cell SOM weights
+        cell_som_weights = feather.read_dataframe(
+            os.path.join(temp_dir, 'cell_som_weights.feather')
+        )
 
         # assert we created the columns needed
         misc_utils.verify_same_elements(
             cluster_col_labels=['pixel_som_cluster_' + str(i) for i in range(15)],
-            cluster_weights_names=cell_weights.columns.values
+            cluster_som_weights_names=cell_som_weights.columns.values
         )
 
         # assert the shape
-        assert cell_weights.shape == (100, 15)
+        assert cell_som_weights.shape == (100, 15)
 
-        # remove cell weights for next test
-        os.remove(os.path.join(temp_dir, 'cell_weights.feather'))
+        # remove cell SOM weights for next test
+        os.remove(os.path.join(temp_dir, 'cell_som_weights.feather'))
 
-        # TEST 2: computing weights using hierarchical clusters
+        # TEST 2: computing SOM weights using hierarchical clusters
         _, cluster_counts_norm = cell_cluster_utils.create_c2pc_data(
             fovs, pixel_data_path, cell_table_path, 'pixel_meta_cluster_rename'
         )
@@ -646,20 +649,20 @@ def test_train_cell_som(mocker):
             pixel_cluster_col='pixel_meta_cluster_rename'
         )
 
-        # assert cell weights has been created
-        assert os.path.exists(os.path.join(temp_dir, 'cell_weights.feather'))
+        # assert cell SOM weights has been created
+        assert os.path.exists(os.path.join(temp_dir, 'cell_som_weights.feather'))
 
-        # read in the cell weights
-        cell_weights = feather.read_dataframe(os.path.join(temp_dir, 'cell_weights.feather'))
+        # read in the cell SOM weights
+        cell_som_weights = feather.read_dataframe(os.path.join(temp_dir, 'cell_som_weights.feather'))
 
         # assert we created the columns needed
         misc_utils.verify_same_elements(
             cluster_col_labels=['pixel_meta_cluster_rename_' + str(i) for i in range(2)],
-            cluster_weights_names=cell_weights.columns.values
+            cluster_som_weights_names=cell_som_weights.columns.values
         )
 
         # assert the shape
-        assert cell_weights.shape == (100, 2)
+        assert cell_som_weights.shape == (100, 2)
 
 
 def test_cluster_cells(mocker):
@@ -670,7 +673,7 @@ def test_cluster_cells(mocker):
                 base_dir=temp_dir, cluster_counts_norm_name='bad_path'
             )
 
-    # basic error check: path to cell weights does not exist
+    # basic error check: path to cell SOM weights does not exist
     with tempfile.TemporaryDirectory() as temp_dir:
         # create a dummy cluster_counts_norm_name file
         cluster_counts_norm = pd.DataFrame()
@@ -681,7 +684,7 @@ def test_cluster_cells(mocker):
 
         with pytest.raises(FileNotFoundError):
             cell_cluster_utils.cluster_cells(base_dir=temp_dir,
-                                             weights_name='bad_path')
+                                             som_weights_name='bad_path')
 
     with tempfile.TemporaryDirectory() as temp_dir:
         # define the cluster column names
@@ -712,18 +715,20 @@ def test_cluster_cells(mocker):
             bad_cluster_cols = cluster_cols[:]
             bad_cluster_cols[2], bad_cluster_cols[1] = bad_cluster_cols[1], bad_cluster_cols[2]
 
-            weights = pd.DataFrame(np.random.rand(100, 3), columns=bad_cluster_cols)
-            feather.write_dataframe(weights, os.path.join(temp_dir, 'cell_weights.feather'))
+            som_weights = pd.DataFrame(np.random.rand(100, 3), columns=bad_cluster_cols)
+            feather.write_dataframe(
+                som_weights, os.path.join(temp_dir, 'cell_som_weights.feather')
+            )
 
-            # column name mismatch for weights
+            # column name mismatch for SOM weights
             cell_cluster_utils.cluster_cells(base_dir=temp_dir)
 
-        # generate a random weights matrix
-        weights = pd.DataFrame(np.random.rand(100, 3), columns=cluster_cols)
+        # generate a random SOM weights matrix
+        som_weights = pd.DataFrame(np.random.rand(100, 3), columns=cluster_cols)
 
-        # write weights
-        cell_weights_path = os.path.join(temp_dir, 'cell_weights.feather')
-        feather.write_dataframe(weights, cell_weights_path)
+        # write SOM weights
+        cell_som_weights_path = os.path.join(temp_dir, 'cell_som_weights.feather')
+        feather.write_dataframe(som_weights, cell_som_weights_path)
 
         # bad cluster_col provided
         with pytest.raises(ValueError):
@@ -829,18 +834,17 @@ def test_cell_consensus_cluster(pixel_cluster_prefix):
         weighted_cell_table.to_csv(weighted_cell_path, index=False)
 
         # run consensus clustering
-        cell_cluster_utils.cell_consensus_cluster(
+        cell_cc = cell_cluster_utils.cell_consensus_cluster(
             fovs=['fov0', 'fov1'],
             channels=['chan0', 'chan1', 'chan2'],
             base_dir=temp_dir,
             pixel_cluster_col=pixel_cluster_prefix
         )
 
-        # assert we created the mapping file, then load it in
-        assert os.path.exists(os.path.join(temp_dir, 'cell_clust_to_meta.feather'))
-        sample_mapping = feather.read_dataframe(
-            os.path.join(temp_dir, 'cell_clust_to_meta.feather')
-        ).sort_values(by='cell_som_cluster')
+        # assert we assigned a mapping, then sort
+        assert cell_cc.mapping is not None
+        sample_mapping = deepcopy(cell_cc.mapping)
+        sample_mapping = sample_mapping.sort_values(by='cell_som_cluster')
 
         cell_consensus_data = feather.read_dataframe(
             os.path.join(temp_dir, 'cell_mat.feather')
