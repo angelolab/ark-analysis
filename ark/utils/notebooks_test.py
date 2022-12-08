@@ -408,8 +408,8 @@ class Test_3_Cell_Clustering:
         cell_table_path = self.tb.ref("cell_table_path")
         cell_data = self.tb.ref("cell_data_name")
         weighted_cell_channel = self.tb.ref("weighted_cell_channel_name")
-        cell_som_cluster_count_avgs = self.tb.ref("cell_som_cluster_count_avgs_name")
-        cell_meta_cluster_count_avgs = self.tb.ref("cell_meta_cluster_count_avgs_name")
+        cell_som_cluster_count_avgs = self.tb.ref("cell_som_cluster_count_avg_name")
+        cell_meta_cluster_count_avgs = self.tb.ref("cell_meta_cluster_count_avg_name")
         cell_som_cluster_channel_avg = self.tb.ref("cell_som_cluster_channel_avg_name")
         cell_meta_cluster_channel_avg = self.tb.ref("cell_meta_cluster_channel_avg_name")
         # Create fake pixel som files
