@@ -60,7 +60,7 @@ def calculate_channel_percentiles(tiff_dir, fovs, channels, img_sub_folder,
         # save channel-wide average
         percentile_means.append(np.mean(percentile_list))
 
-    percentile_df = pd.DataFrame({'channel': channels, 'norm_val': percentile_means})
+    percentile_df = pd.DataFrame(np.expand_dims(percentile_means, axis=0), columns=channels)
 
     return percentile_df
 
@@ -91,7 +91,7 @@ def calculate_pixel_intensity_percentile(tiff_dir, fovs, channels, img_sub_folde
     """
 
     # create vector of channel percentiles to enable broadcasting
-    norm_vect = channel_percentiles['norm_val'].values
+    norm_vect = channel_percentiles.iloc[0].values
     norm_vect = norm_vect.reshape([1, 1, len(norm_vect)])
 
     intensity_percentile_list = []
@@ -548,7 +548,7 @@ def preprocess_fov(base_dir, tiff_dir, data_dir, subset_dir, seg_dir, seg_suffix
     img_data = img_xr.loc[fov, :, :, channels].values.astype(np.float32)
 
     # create vector for normalizing image data
-    norm_vect = channel_norm_df['norm_val'].values
+    norm_vect = channel_norm_df.iloc[0].values
     norm_vect = np.array(norm_vect).reshape([1, 1, len(norm_vect)])
 
     # normalize image data
@@ -667,7 +667,7 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
     if os.path.exists(channel_norm_path):
         channel_norm_df = feather.read_dataframe(channel_norm_path)
 
-        if set(channel_norm_df['channel']) != set(channels):
+        if set(channel_norm_df.columns.values) != set(channels):
             print("New channels provided: overwriting whole cohort")
 
             # delete the existing data in data_dir and subset_dir

@@ -240,7 +240,7 @@ def test_calculate_channel_percentiles():
 
         # test equality when all channels and all FOVs are included
         for idx, chan in enumerate(chans):
-            assert predicted_percentiles['norm_val'].values[idx] == np.mean(percentile_dict[chan])
+            assert predicted_percentiles[chan].values == np.mean(percentile_dict[chan])
 
         # include only a subset of channels and fovs
         chans = chans[1:]
@@ -252,10 +252,13 @@ def test_calculate_channel_percentiles():
             img_sub_folder='TIFs',
             percentile=percentile
         )
+
+        # assert only the specified channels contained in predicted_percentiles
+        assert list(predicted_percentiles.columns.values) == chans
+
         # test equality for specific chans and FOVs
         for idx, chan in enumerate(chans):
-            assert predicted_percentiles['norm_val'].values[idx] == \
-                   np.mean(percentile_dict[chan][:-1])
+            assert predicted_percentiles[chan].values == np.mean(percentile_dict[chan][:-1])
 
 
 def test_calculate_pixel_intensity_percentile():
@@ -280,8 +283,9 @@ def test_calculate_pixel_intensity_percentile():
                 # saved modified channel
                 io.imsave(chan_path, img / divisor)
 
-        channel_percentiles = pd.DataFrame({'channel': ['chan1', 'chan2', 'chan3'],
-                                            'norm_val': [1, 1, 1]})
+        channel_percentiles = pd.DataFrame(np.array([[1, 1, 1]]),
+                                           columns=['chan1', 'chan2', 'chan3'])
+
         percentile = pixel_cluster_utils.calculate_pixel_intensity_percentile(
             tiff_dir=temp_dir, fovs=fovs, channels=chans,
             img_sub_folder='TIFs', channel_percentiles=channel_percentiles
@@ -784,11 +788,10 @@ def test_preprocess_fov(mocker):
             io.imsave(os.path.join(seg_dir, file_name), rand_img,
                       check_contrast=False)
 
-        # generate sample channel normalization values
-        channel_norm_df = pd.DataFrame.from_dict({
-            'channel': chans,
-            'norm_val': np.repeat(10, repeats=len(chans))
-        })
+        channel_norm_df = pd.DataFrame(
+            np.expand_dims(np.repeat(10, repeats=len(chans)), axis=0),
+            columns=chans
+        )
 
         # run the preprocessing for fov0
         # NOTE: don't test the return value, leave that for test_create_pixel_matrix
@@ -941,8 +944,10 @@ def test_create_pixel_matrix_base(fovs, chans, sub_dir, seg_dir_include,
         if channel_norm_include:
             # helps test if channel_norm.feather contains a different set of channels
             norm_chans = [chans[0]] if norm_diff_chan else chans
-            sample_channel_norm_df = pd.DataFrame({'channel': norm_chans,
-                                                  'norm_val': np.random.rand(len(norm_chans))})
+            sample_channel_norm_df = pd.DataFrame(
+                np.expand_dims(np.random.rand(len(norm_chans)), axis=0),
+                columns=norm_chans
+            )
 
             feather.write_dataframe(
                 sample_channel_norm_df,
@@ -1060,8 +1065,11 @@ def test_create_pixel_matrix_base(fovs, chans, sub_dir, seg_dir_include,
         # generate the data
         mults = [(1 / 2) ** i for i in range(len(chans))]
 
-        sample_channel_norm_df = pd.DataFrame({'channel': chans,
-                                               'norm_val': mults})
+        sample_channel_norm_df = pd.DataFrame(
+            np.expand_dims(mults, axis=0),
+            columns=chans
+        )
+
         feather.write_dataframe(
             sample_channel_norm_df,
             os.path.join(temp_dir, sample_pixel_output_dir, 'channel_norm.feather'),
