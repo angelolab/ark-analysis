@@ -583,7 +583,6 @@ def preprocess_fov(base_dir, tiff_dir, data_dir, subset_dir, seg_dir, seg_suffix
 
 def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
                         img_sub_folder="TIFs", seg_suffix='_whole_cell.tiff',
-                        pixel_cluster_prefix='pixel_cluster_prefix',
                         pixel_output_dir='pixel_output_dir',
                         data_dir='pixel_mat_data',
                         subset_dir='pixel_mat_subsetted',
@@ -612,9 +611,6 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
         seg_suffix (str):
             The suffix that the segmentation images use.
             Ignored if `seg_dir` is `None`.
-        pixel_cluster_prefix (str):
-            The name of the prefix to append before each pixel clustering directory/file,
-            needed to name the channel and pixel norm files
         pixel_output_dir (str):
             The name of the data directory containing the pixel data to use for the
             clustering pipeline. `data_dir` and `subset_dir` should be placed here.
@@ -659,12 +655,12 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
 
     # define path to channel normalization values
     channel_norm_path = os.path.join(
-        base_dir, pixel_output_dir, '%s_channel_norm.feather' % pixel_cluster_prefix
+        base_dir, pixel_output_dir, 'channel_norm.feather'
     )
 
     # define path to pixel normalization values
     pixel_norm_path = os.path.join(
-        base_dir, pixel_output_dir, '%s_pixel_norm.feather' % pixel_cluster_prefix
+        base_dir, pixel_output_dir, 'pixel_norm.feather'
     )
 
     # reset entire cohort if channels provided are different from ones in existing channel_norm

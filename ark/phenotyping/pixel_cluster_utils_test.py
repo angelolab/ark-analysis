@@ -946,7 +946,7 @@ def test_create_pixel_matrix_base(fovs, chans, sub_dir, seg_dir_include,
 
             feather.write_dataframe(
                 sample_channel_norm_df,
-                os.path.join(temp_dir, sample_pixel_output_dir, 'test_channel_norm.feather'),
+                os.path.join(temp_dir, sample_pixel_output_dir, 'channel_norm.feather'),
                 compression='uncompressed'
             )
 
@@ -955,7 +955,7 @@ def test_create_pixel_matrix_base(fovs, chans, sub_dir, seg_dir_include,
             sample_pixel_norm_df = pd.DataFrame({'pixel_norm_val': np.random.rand(1)})
             feather.write_dataframe(
                 sample_pixel_norm_df,
-                os.path.join(temp_dir, sample_pixel_output_dir, 'test_pixel_norm.feather'),
+                os.path.join(temp_dir, sample_pixel_output_dir, 'pixel_norm.feather'),
                 compression='uncompressed'
             )
 
@@ -967,7 +967,6 @@ def test_create_pixel_matrix_base(fovs, chans, sub_dir, seg_dir_include,
             tiff_dir=tiff_dir,
             img_sub_folder=sub_dir,
             seg_dir=seg_dir,
-            pixel_cluster_prefix='test',
             multiprocess=multiprocess
         )
 
@@ -986,13 +985,13 @@ def test_create_pixel_matrix_base(fovs, chans, sub_dir, seg_dir_include,
         # if there wasn't originally a channel_norm.feather or if overwritten, assert one created
         if not channel_norm_include or norm_diff_chan:
             assert os.path.exists(
-                os.path.join(temp_dir, sample_pixel_output_dir, 'test_channel_norm.feather')
+                os.path.join(temp_dir, sample_pixel_output_dir, 'channel_norm.feather')
             )
 
         # if there wasn't originally a pixel_norm.feather or if overwritten, assert one created
         if not pixel_norm_include or norm_diff_chan:
             assert os.path.exists(
-                os.path.join(temp_dir, sample_pixel_output_dir, 'test_pixel_norm.feather')
+                os.path.join(temp_dir, sample_pixel_output_dir, 'pixel_norm.feather')
             )
 
         for fov in fovs:
@@ -1062,7 +1061,7 @@ def test_create_pixel_matrix_base(fovs, chans, sub_dir, seg_dir_include,
                                                'norm_val': mults})
         feather.write_dataframe(
             sample_channel_norm_df,
-            os.path.join(temp_dir, sample_pixel_output_dir, 'test_channel_norm.feather'),
+            os.path.join(temp_dir, sample_pixel_output_dir, 'channel_norm.feather'),
             compression='uncompressed'
         )
 
@@ -1073,7 +1072,6 @@ def test_create_pixel_matrix_base(fovs, chans, sub_dir, seg_dir_include,
             tiff_dir=new_tiff_dir,
             img_sub_folder=sub_dir,
             seg_dir=seg_dir,
-            pixel_cluster_prefix='test',
             multiprocess=multiprocess
         )
 
