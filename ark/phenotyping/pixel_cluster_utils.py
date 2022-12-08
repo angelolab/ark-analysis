@@ -414,7 +414,7 @@ def compute_pixel_cluster_channel_avg(fovs, channels, base_dir, pixel_cluster_co
     return sum_count_totals
 
 
-def create_fov_pixel_data(fov, channels, img_data, seg_labels, pixel_norm_val,
+def create_fov_pixel_data(fov, channels, img_data, seg_labels, pixel_thresh_val,
                           blur_factor=2, subset_proportion=0.1):
     """Preprocess pixel data for one fov
 
@@ -427,7 +427,7 @@ def create_fov_pixel_data(fov, channels, img_data, seg_labels, pixel_norm_val,
             Array representing image data for one fov
         seg_labels (numpy.ndarray):
             Array representing segmentation labels for one fov
-        pixel_norm_val (float):
+        pixel_thresh_val (float):
             value used to determine per-pixel cutoff for total signal inclusion
         blur_factor (int):
             The sigma to set for the Gaussian blur
@@ -465,7 +465,7 @@ def create_fov_pixel_data(fov, channels, img_data, seg_labels, pixel_norm_val,
 
     # remove any rows with channels with a sum below the threshold
     rowsums = pixel_mat[channels].sum(axis=1)
-    pixel_mat = pixel_mat.loc[rowsums > pixel_norm_val, :].reset_index(drop=True)
+    pixel_mat = pixel_mat.loc[rowsums > pixel_thresh_val, :].reset_index(drop=True)
 
     # normalize the row sums of pixel mat
     pixel_mat = normalize_rows(pixel_mat, channels, seg_labels is not None)
@@ -478,7 +478,7 @@ def create_fov_pixel_data(fov, channels, img_data, seg_labels, pixel_norm_val,
 
 def preprocess_fov(base_dir, tiff_dir, data_dir, subset_dir, seg_dir, seg_suffix,
                    img_sub_folder, is_mibitiff, channels, blur_factor,
-                   subset_proportion, pixel_norm_val, seed, channel_norm_df, fov):
+                   subset_proportion, pixel_thresh_val, seed, channel_norm_df, fov):
     """Helper function to read in the FOV-level pixel data, run `create_fov_pixel_data`,
     and save the preprocessed data.
 
@@ -508,7 +508,7 @@ def preprocess_fov(base_dir, tiff_dir, data_dir, subset_dir, seg_dir, seg_suffix
             The sigma to set for the Gaussian blur
         subset_proportion (float):
             The proportion of pixels to take from each fov
-        pixel_norm_val (float):
+        pixel_thresh_val (float):
             The value to normalize the pixels by
         seed (int):
             The random seed to set for subsetting
@@ -560,7 +560,7 @@ def preprocess_fov(base_dir, tiff_dir, data_dir, subset_dir, seg_dir, seg_suffix
     # create the full and subsetted fov matrices
     pixel_mat, pixel_mat_subset = create_fov_pixel_data(
         fov=fov, channels=channels, img_data=img_data, seg_labels=seg_labels,
-        pixel_norm_val=pixel_norm_val, blur_factor=blur_factor,
+        pixel_thresh_val=pixel_thresh_val, blur_factor=blur_factor,
         subset_proportion=subset_proportion
     )
 
@@ -659,8 +659,8 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
     )
 
     # define path to pixel normalization values
-    pixel_norm_path = os.path.join(
-        base_dir, pixel_output_dir, 'pixel_norm.feather'
+    pixel_thresh_path = os.path.join(
+        base_dir, pixel_output_dir, 'pixel_thresh.feather'
     )
 
     # reset entire cohort if channels provided are different from ones in existing channel_norm
@@ -677,9 +677,9 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
             rmtree(os.path.join(base_dir, subset_dir))
             os.mkdir(os.path.join(base_dir, subset_dir))
 
-            # delete the existing channel_norm.feather and pixel_norm.feather
+            # delete the existing channel_norm.feather and pixel_thresh.feather
             os.remove(channel_norm_path)
-            os.remove(pixel_norm_path)
+            os.remove(pixel_thresh_path)
 
     # create variable for storing 99.9% values
     quant_dat = pd.DataFrame()
@@ -723,25 +723,25 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
         # load previously generated output
         channel_norm_df = feather.read_dataframe(channel_norm_path)
 
-    # load existing pixel_norm_path if exists, otherwise generate
-    if not os.path.exists(pixel_norm_path):
+    # load existing pixel_thresh_path if exists, otherwise generate
+    if not os.path.exists(pixel_thresh_path):
         # compute pixel percentiles
-        pixel_norm_val = calculate_pixel_intensity_percentile(
+        pixel_thresh_val = calculate_pixel_intensity_percentile(
             tiff_dir=tiff_dir, fovs=fovs, channels=channels,
             img_sub_folder=img_sub_folder, channel_percentiles=channel_norm_df
         )
 
-        pixel_norm_df = pd.DataFrame({'pixel_norm_val': [pixel_norm_val]})
-        feather.write_dataframe(pixel_norm_df, pixel_norm_path, compression='uncompressed')
+        pixel_thresh_df = pd.DataFrame({'pixel_thresh_val': [pixel_thresh_val]})
+        feather.write_dataframe(pixel_thresh_df, pixel_thresh_path, compression='uncompressed')
     else:
-        pixel_norm_df = feather.read_dataframe(pixel_norm_path)
-        pixel_norm_val = pixel_norm_df['pixel_norm_val'].values[0]
+        pixel_thresh_df = feather.read_dataframe(pixel_thresh_path)
+        pixel_thresh_val = pixel_thresh_df['pixel_thresh_val'].values[0]
 
     # define the partial function to iterate over
     fov_data_func = partial(
         preprocess_fov, base_dir, tiff_dir, data_dir, subset_dir,
         seg_dir, seg_suffix, img_sub_folder, is_mibitiff, channels, blur_factor,
-        subset_proportion, pixel_norm_val, seed, channel_norm_df
+        subset_proportion, pixel_thresh_val, seed, channel_norm_df
     )
 
     # define variable to keep track of number of fovs processed
