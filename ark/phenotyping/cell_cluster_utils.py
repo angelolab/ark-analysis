@@ -106,7 +106,7 @@ def compute_cell_cluster_channel_avg(fovs, channels, base_dir,
     )
 
     # read the weighted cell channel table in
-    cell_table = pd.read_csv(os.path.join(base_dir, weighted_cell_channel_name))
+    cell_table = feather.read_dataframe(os.path.join(base_dir, weighted_cell_channel_name))
 
     # subset on only the fovs the user has specified
     cell_table = cell_table[cell_table['fov'].isin(fovs)]
@@ -388,7 +388,7 @@ def train_cell_som(fovs, channels, base_dir, pixel_data_dir, cell_table_path,
                    pixel_cluster_col='pixel_meta_cluster_rename',
                    pc_chan_avg_name='pc_chan_avg.csv',
                    som_weights_name='cell_som_weights.feather',
-                   weighted_cell_channel_name='weighted_cell_channel.csv',
+                   weighted_cell_channel_name='weighted_cell_channel.feather',
                    xdim=10, ydim=10, lr_start=0.05, lr_end=0.01, num_passes=1, seed=42):
     """Run the SOM training on the number of pixel/meta clusters in each cell of each fov
 
@@ -503,9 +503,9 @@ def train_cell_som(fovs, channels, base_dir, pixel_data_dir, cell_table_path,
     )
 
     # save the weighted channel table
-    weighted_cell_channel.to_csv(
-        os.path.join(base_dir, weighted_cell_channel_name),
-        index=False
+    feather.write_dataframe(
+        weighted_cell_channel, os.path.join(base_dir, weighted_cell_channel_name),
+        compression='uncompressed'
     )
 
 
@@ -607,7 +607,7 @@ def cell_consensus_cluster(fovs, channels, base_dir, pixel_cluster_col, max_k=20
                            cell_data_name='cell_mat.feather',
                            cell_som_cluster_count_avgs_name='cell_som_cluster_avgs.csv',
                            cell_meta_cluster_count_avgs_name='cell_meta_cluster_avgs.csv',
-                           weighted_cell_channel_name='weighted_cell_channel.csv',
+                           weighted_cell_channel_name='weighted_cell_channel.feather',
                            cell_som_cluster_channel_avg_name='cell_som_cluster_channel_avg.csv',
                            cell_meta_cluster_channel_avg_name='cell_meta_cluster_channel_avg.csv',
                            seed=42):

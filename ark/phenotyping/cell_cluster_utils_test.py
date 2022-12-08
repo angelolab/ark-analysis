@@ -20,7 +20,7 @@ def mocked_train_cell_som(fovs, channels, base_dir, pixel_data_dir, cell_table_p
                           pixel_cluster_col='pixel_meta_cluster_rename',
                           pc_chan_avg_name='pc_chan_avg.feather',
                           som_weights_name='cell_som_weights.feather',
-                          weighted_cell_channel_name='weighted_cell_channel.csv',
+                          weighted_cell_channel_name='weighted_cell_channel.feather',
                           xdim=10, ydim=10, lr_start=0.05, lr_end=0.01, num_passes=1, seed=42):
     # read in the cluster counts
     cluster_counts_data = feather.read_dataframe(
@@ -202,16 +202,15 @@ def test_compute_cell_cluster_channel_avg():
         # assign dummy cell sizes, these won't really matter for this test
         weighted_cell_table['cell_size'] = 5
 
-        # write the data to csv
-        weighted_cell_table.to_csv(
-            os.path.join(temp_dir, 'weighted_cell_channel.csv'),
-            index=False
+        # write the data to feather
+        feather.write_dataframe(
+            weighted_cell_table, os.path.join(temp_dir, 'weighted_cell_channel.feather')
         )
 
         # error check: bad cell_cluster_col provided
         with pytest.raises(ValueError):
             cell_cluster_utils.compute_cell_cluster_channel_avg(
-                fovs, chans, temp_dir, 'weighted_cell_channel.csv',
+                fovs, chans, temp_dir, 'weighted_cell_channel.feather',
                 'cell_consensus', cell_cluster_col='bad_cluster_col'
             )
 
@@ -240,7 +239,7 @@ def test_compute_cell_cluster_channel_avg():
         # test averages for cell SOM clusters
         cell_channel_avg = cell_cluster_utils.compute_cell_cluster_channel_avg(
             # fovs, chans, temp_dir, weighted_cell_table,
-            fovs, chans, temp_dir, 'weighted_cell_channel.csv',
+            fovs, chans, temp_dir, 'weighted_cell_channel.feather',
             'cell_mat_consensus.feather', cell_cluster_col='cell_som_cluster'
         )
 
@@ -253,7 +252,7 @@ def test_compute_cell_cluster_channel_avg():
         # test averages for cell meta clusters
         cell_channel_avg = cell_cluster_utils.compute_cell_cluster_channel_avg(
             # fovs, chans, temp_dir, weighted_cell_table,
-            fovs, chans, temp_dir, 'weighted_cell_channel.csv',
+            fovs, chans, temp_dir, 'weighted_cell_channel.feather',
             'cell_mat_consensus.feather', cell_cluster_col='cell_meta_cluster'
         )
 
@@ -833,8 +832,8 @@ def test_cell_consensus_cluster(pixel_cluster_prefix):
         weighted_cell_table['segmentation_label'] = np.tile(np.arange(1, 501), reps=2)
 
         # write dummy weighted channel average table
-        weighted_cell_path = os.path.join(temp_dir, 'weighted_cell_channel.csv')
-        weighted_cell_table.to_csv(weighted_cell_path, index=False)
+        weighted_cell_path = os.path.join(temp_dir, 'weighted_cell_channel.feather')
+        feather.write_dataframe(weighted_cell_table, weighted_cell_path)
 
         # run consensus clustering
         cell_cc = cell_cluster_utils.cell_consensus_cluster(
@@ -979,8 +978,8 @@ def test_apply_cell_meta_cluster_remapping():
             )
 
         # make a dummy weighted cell table
-        pd.DataFrame().to_csv(
-            os.path.join(temp_dir, 'sample_weighted_cell_table.csv'), index=False
+        feather.write_dataframe(
+            pd.DataFrame(), os.path.join(temp_dir, 'sample_weighted_cell_table.csv')
         )
 
         # basic error check: bad path to cell SOM weighted channel avgs
@@ -1088,7 +1087,7 @@ def test_apply_cell_meta_cluster_remapping():
 
         # save weighted cell table
         weighted_cell_table_path = os.path.join(temp_dir, 'weighted_cell_table.csv')
-        weighted_cell_table.to_csv(weighted_cell_table_path, index=False)
+        feather.write_dataframe(weighted_cell_table, weighted_cell_table_path)
 
         # create an example cell SOM weighted channel average table
         som_weighted_chan_avg = pd.DataFrame(
