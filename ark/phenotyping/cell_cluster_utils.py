@@ -388,7 +388,7 @@ def create_c2pc_data(fovs, pixel_data_path,
 
 def train_cell_som(fovs, channels, base_dir, pixel_data_dir, cell_table_path,
                    cluster_counts_name='cluster_counts.feather',
-                   cluster_counts_size_norm_name='cluster_counts_size_normalized.feather',
+                   cluster_counts_size_norm_name='cluster_counts_size_norm.feather',
                    pixel_cluster_col='pixel_meta_cluster_rename',
                    pc_chan_avg_name='pc_chan_avg.csv',
                    som_weights_name='cell_som_weights.feather',
