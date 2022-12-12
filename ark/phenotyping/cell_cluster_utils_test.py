@@ -655,7 +655,9 @@ def test_train_cell_som(mocker):
         assert os.path.exists(os.path.join(temp_dir, 'cell_som_weights.feather'))
 
         # read in the cell SOM weights
-        cell_som_weights = feather.read_dataframe(os.path.join(temp_dir, 'cell_som_weights.feather'))
+        cell_som_weights = feather.read_dataframe(
+            os.path.join(temp_dir, 'cell_som_weights.feather')
+        )
 
         # assert we created the columns needed
         misc_utils.verify_same_elements(
