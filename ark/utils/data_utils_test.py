@@ -3,7 +3,6 @@ import shutil
 import tempfile
 from random import randint
 from shutil import rmtree
-from tabnanny import check
 
 import feather
 import numpy as np

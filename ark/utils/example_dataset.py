@@ -1,6 +1,5 @@
 import pathlib
 import shutil
-import textwrap
 import warnings
 from typing import Union
 
@@ -175,7 +174,6 @@ def get_example_dataset(dataset: str, save_dir: Union[str, pathlib.Path],
                       "LDA_training_inference",
                       "neighborhood_analysis",
                       "pairwise_spatial_enrichment"]
-
 
     # Check the appropriate dataset name
     try:
