@@ -311,8 +311,6 @@ class TestExampleDataset:
             list(dir_p.glob("*feather")) + \
             list(dir_p.glob("*csv"))
         root_file_names = [f.stem for f in root_files]
-        print(root_file_names)
-        print(self._example_pixel_output_dir_names['root_files'])
         assert set(self._example_pixel_output_dir_names["root_files"]) == set(root_file_names)
 
         # Pixel Mat Data
