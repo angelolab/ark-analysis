@@ -7,6 +7,7 @@ from typing import Union
 import datasets
 
 from ark.settings import EXAMPLE_DATASET_REVISION
+from ark.utils.misc_utils import verify_in_list
 
 
 class ExampleDataset():
@@ -175,13 +176,14 @@ def get_example_dataset(dataset: str, save_dir: Union[str, pathlib.Path],
                       "neighborhood_analysis",
                       "pairwise_spatial_enrichment"]
 
-    # Check that the approriate dataset name was passed in.
-    if dataset not in valid_datasets:
+
+    # Check the appropriate dataset name
+    try:
+        verify_in_list(dataset=dataset, valid_datasets=valid_datasets)
+    except ValueError:
         err_str: str = f"""The dataset \"{dataset}\" is not one of the valid datasets available.
         The following are available: {*valid_datasets,}"""
-        raise ValueError(
-            err_str
-        )
+        raise ValueError(err_str) from None
 
     example_dataset = ExampleDataset(dataset=dataset, overwrite_existing=overwrite_existing,
                                      cache_dir=None,
