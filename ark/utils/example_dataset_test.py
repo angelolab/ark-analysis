@@ -32,7 +32,7 @@ def dataset_download(request) -> Iterator[ExampleDataset]:
     example_dataset: ExampleDataset = ExampleDataset(
         dataset=request.param,
         cache_dir=None,
-        revision="e97a768cf2a2ddf680d0aaab07c5e5cf370fdc3e"
+        revision="449889e96ba063e499e802b9e744d56314d6c046"
     )
     # Download example data for a particular notebook
     example_dataset.download_example_dataset()
@@ -58,25 +58,24 @@ class TestExampleDataset:
                                       for j in ['whole_cell', 'nuclear']]
 
         self._example_pixel_output_dir_names = {
-            "root_files": ["cell_clustering_params", "example_channel_norm", "example_pixel_norm",
+            "root_files": ["cell_clustering_params", "channel_norm", "pixel_thresh",
                            "pixel_channel_avg_meta_cluster", "pixel_channel_avg_som_cluster",
-                           "pixel_meta_cluster_mapping", "pixel_som_to_meta", "pixel_weights",
-                           "post_rowsum_chan_norm"],
+                           "pixel_meta_cluster_mapping", "pixel_som_weights",
+                           "channel_norm_post_rowsum"],
             "pixel_mat_data": [f"fov{i}" for i in range(11)],
             "pixel_mat_subset": [f"fov{i}" for i in range(11)],
             "pixel_masks": [f"fov{i}_pixel_mask" for i in range(2)]
         }
 
         self._example_cell_output_dir_names = {
-            "root_files": ["example_cell_clust_to_meta", "example_cell_mat",
-                           "example_cell_meta_cluster_channel_avg",
-                           "example_cell_meta_cluster_count_avgs",
-                           "example_cell_som_cluster_channel_avg",
-                           "example_cell_meta_cluster_mapping",
-                           "example_cell_som_cluster_channel_avg",
-                           "example_cell_som_cluster_count_avgs",
-                           "example_cell_weights", "example_cluster_counts",
-                           "example_cluster_counts_norm", "example_weighted_cell_channel"],
+            "root_files": ["cell_meta_cluster_channel_avg",
+                           "cell_meta_cluster_count_avgs",
+                           "cell_som_cluster_channel_avg",
+                           "cell_meta_cluster_mapping",
+                           "cell_som_cluster_channel_avg",
+                           "cell_som_cluster_count_avgs",
+                           "cell_som_weights", "cluster_counts",
+                           "cluster_counts_size_norm", "weighted_cell_channel"],
             "cell_masks": [f"fov{i}_cell_mask" for i in range(2)]
         }
 
@@ -283,8 +282,8 @@ class TestExampleDataset:
         """
         `example_pixel_output_dir`.
             ├── cell_clustering_params.json
-            ├── example_channel_norm.feather
-            ├── example_pixel_norm.feather
+            ├── channel_norm.feather
+            ├── pixel_thresh.feather
             ├── pixel_channel_avg_meta_cluster.csv
             ├── pixel_channel_avg_som_cluster.csv
             ├── pixel_masks/
@@ -301,9 +300,8 @@ class TestExampleDataset:
             │  ├── ...
             │  └── fov10.feather
             ├── pixel_meta_cluster_mapping.csv
-            ├── pixel_som_to_meta.feather
-            ├── pixel_weights.feather
-            └── post_rowsum_chan_norm.feather
+            ├── pixel_som_weights.feather
+            └── channel_norm_post_rowsum.feather
         ```
         Args:
             dir_p (pathlib.Path): The directory to check.
@@ -313,6 +311,8 @@ class TestExampleDataset:
             list(dir_p.glob("*feather")) + \
             list(dir_p.glob("*csv"))
         root_file_names = [f.stem for f in root_files]
+        print(root_file_names)
+        print(self._example_pixel_output_dir_names['root_files'])
         assert set(self._example_pixel_output_dir_names["root_files"]) == set(root_file_names)
 
         # Pixel Mat Data
@@ -343,17 +343,15 @@ class TestExampleDataset:
         ├── cell_masks/
         │  ├── fov0_cell_mask.tiff
         │  └── fov1_cell_mask.tiff
-        ├── example_cell_clust_to_meta.feather
-        ├── example_cell_mat.feather
-        ├── example_cell_meta_cluster_channel_avg.csv
-        ├── example_cell_meta_cluster_count_avgs.csv
-        ├── example_cell_meta_cluster_mapping.csv
-        ├── example_cell_som_cluster_channel_avg.csv
-        ├── example_cell_som_cluster_count_avgs.csv
-        ├── example_cell_weights.feather
-        ├── example_cluster_counts.feather
-        ├── example_cluster_counts_norm.feather
-        └── example_weighted_cell_channel.csv
+        ├── cell_meta_cluster_channel_avg.csv
+        ├── cell_meta_cluster_count_avgs.csv
+        ├── cell_meta_cluster_mapping.csv
+        ├── cell_som_cluster_channel_avg.csv
+        ├── cell_som_cluster_count_avgs.csv
+        ├── cell_som_weights.feather
+        ├── cluster_counts.feather
+        ├── cluster_counts_size_norm.feather
+        └── weighted_cell_channel.csv
         ```
 
         Args:
