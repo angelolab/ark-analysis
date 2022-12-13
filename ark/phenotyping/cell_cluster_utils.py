@@ -9,7 +9,8 @@ import pandas as pd
 import scipy.stats as stats
 
 from ark.analysis import visualize
-from ark.utils import misc_utils, io_utils
+from ark.utils import io_utils, misc_utils
+from ark.phenotyping import cluster_helpers
 
 
 def compute_cell_cluster_count_avg(cell_cluster_path, pixel_cluster_col_prefix,
@@ -34,15 +35,18 @@ def compute_cell_cluster_count_avg(cell_cluster_path, pixel_cluster_col_prefix,
             Contains the average values for each column across cell SOM clusters
     """
 
+    # Validate paths
+    io_utils.validate_paths(cell_cluster_path)
+
     # verify the pixel cluster col prefix specified is valid
     misc_utils.verify_in_list(
-        provided_cluster_col=[pixel_cluster_col_prefix],
+        provided_cluster_col=pixel_cluster_col_prefix,
         valid_cluster_cols=['pixel_som_cluster', 'pixel_meta_cluster_rename']
     )
 
     # verify the cell cluster col prefix specified is valid
     misc_utils.verify_in_list(
-        provided_cluster_col=[cell_cluster_col],
+        provided_cluster_col=cell_cluster_col,
         valid_cluster_cols=['cell_som_cluster', 'cell_meta_cluster']
     )
 
@@ -94,9 +98,10 @@ def compute_cell_cluster_channel_avg(fovs, channels, base_dir,
         pandas.DataFrame:
             Each cell cluster mapped to the average expression for each marker
     """
+    weighted_cell_channel_name_path: str = os.path.join(base_dir, weighted_cell_channel_name)
 
     # verify the cell table actually exists
-    io_utils.validate_paths(os.path.join(base_dir, weighted_cell_channel_name))
+    io_utils.validate_paths(weighted_cell_channel_name_path)
 
     # verify the cell cluster col specified is valid
     misc_utils.verify_in_list(
@@ -105,7 +110,7 @@ def compute_cell_cluster_channel_avg(fovs, channels, base_dir,
     )
 
     # read the weighted cell channel table in
-    cell_table = pd.read_csv(os.path.join(base_dir, weighted_cell_channel_name))
+    cell_table = pd.read_csv(weighted_cell_channel_name_path)
 
     # subset on only the fovs the user has specified
     cell_table = cell_table[cell_table['fov'].isin(fovs)]
@@ -181,16 +186,16 @@ def compute_p2c_weighted_channel_avg(pixel_channel_avg, channels, cell_counts,
     # if no fovs provided make sure they're all iterated over
     if fovs is None:
         fovs = list(cell_counts['fov'].unique())
-
-    # verify that the fovs provided are valid
-    misc_utils.verify_in_list(
-        provided_fovs=fovs,
-        dataset_fovs=cell_counts['fov'].unique()
-    )
+    else:
+        # verify that the fovs provided are valid
+        misc_utils.verify_in_list(
+            provided_fovs=fovs,
+            dataset_fovs=cell_counts['fov'].unique()
+        )
 
     # verify the pixel_cluster_col provided is valid
     misc_utils.verify_in_list(
-        provided_cluster_col=[pixel_cluster_col],
+        provided_cluster_col=pixel_cluster_col,
         valid_cluster_cols=['pixel_som_cluster', 'pixel_meta_cluster_rename']
     )
 
@@ -210,7 +215,7 @@ def compute_p2c_weighted_channel_avg(pixel_channel_avg, channels, cell_counts,
     # sort the pixel_channel_avg table by pixel_cluster_col in ascending cluster order
     # NOTE: to handle numeric cluster names types, we need to cast the pixel_cluster_col values
     # to str to ensure the same sorting is used
-    if pixel_channel_avg[pixel_cluster_col].dtype == int:
+    if np.issubdtype(pixel_channel_avg[pixel_cluster_col].dtype, np.integer):
         pixel_channel_avg[pixel_cluster_col] = pixel_channel_avg[pixel_cluster_col].astype(str)
 
     pixel_channel_avg_sorted = pixel_channel_avg.sort_values(by=pixel_cluster_col)
@@ -447,7 +452,7 @@ def train_cell_som(fovs, channels, base_dir, pixel_data_dir, cell_table_path,
 
     # verify the cluster_col provided is valid
     misc_utils.verify_in_list(
-        provided_cluster_col=[pixel_cluster_col],
+        provided_cluster_col=pixel_cluster_col,
         valid_cluster_cols=['pixel_som_cluster', 'pixel_meta_cluster_rename']
     )
 
@@ -668,28 +673,35 @@ def cell_consensus_cluster(fovs, channels, base_dir, pixel_cluster_col, max_k=20
         valid_cluster_cols=['pixel_som_cluster', 'pixel_meta_cluster_rename']
     )
 
-    # run the consensus clustering process
-    process_args = ['Rscript', '/cell_consensus_cluster.R', pixel_cluster_col,
-                    str(max_k), str(cap), cell_data_path,
-                    som_cluster_counts_avg_path, clust_to_meta_path, str(seed)]
+    # consensus clustering setup
+    cluster_count_sub = pd.read_csv(som_cluster_counts_avg_path, nrows=1)
+    cluster_count_cols = cluster_count_sub.filter(regex=pixel_cluster_col).columns.to_list()
+    cell_cc = cluster_helpers.PixieConsensusCluster(
+        'cell', som_cluster_counts_avg_path, cluster_count_cols, max_k=max_k, cap=cap
+    )
 
-    process = subprocess.Popen(process_args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    # z-score and cap the data
+    print("z-score scaling and capping data")
+    cell_cc.scale_data()
 
-    # continuously poll the process for output/error so it gets displayed in the Jupyter notebook
-    while True:
-        # convert from byte string
-        output = process.stdout.readline().decode('utf-8')
+    # set random seed for consensus clustering
+    np.random.seed(seed)
 
-        # if the output is nothing and the process is done, break
-        if process.poll() is not None:
-            break
-        if output:
-            print(output.strip())
+    # run consensus clustering
+    print("Running consensus clustering")
+    cell_cc.run_consensus_clustering()
 
-    if process.returncode != 0:
-        raise OSError(
-            "Process terminated: please view error messages displayed above for debugging."
-        )
+    # generate the som to meta cluster map
+    print("Mapping cell data to consensus cluster labels")
+    cell_cc.generate_som_to_meta_map()
+
+    # assign the consensus cluster labels to som_cluster_avg_path and resave
+    cell_data = feather.read_dataframe(cell_data_path)
+    cell_meta_assign = cell_cc.assign_consensus_labels(cell_data)
+    feather.write_dataframe(cell_meta_assign, cell_data_path)
+
+    # save the som to meta cluster map
+    cell_cc.save_som_to_meta_map(clust_to_meta_path)
 
     # compute the average pixel SOM/meta counts per cell meta cluster
     print("Compute the average number of pixel SOM/meta cluster counts per cell meta cluster")
@@ -706,21 +718,17 @@ def cell_consensus_cluster(fovs, channels, base_dir, pixel_cluster_col, max_k=20
         index=False
     )
 
-    # read in the clust_to_meta_name file
     print(
         "Mapping meta cluster values onto average number of pixel SOM/meta cluster counts"
         "across cell SOM clusters"
     )
-    som_to_meta_data = feather.read_dataframe(
-        os.path.join(base_dir, clust_to_meta_name)
-    ).astype(np.int64)
 
     # read in the average number of pixel/SOM clusters across all cell SOM clusters
     cell_som_cluster_avgs_and_counts = pd.read_csv(som_cluster_counts_avg_path)
 
     # merge metacluster assignments in
     cell_som_cluster_avgs_and_counts = pd.merge_asof(
-        cell_som_cluster_avgs_and_counts, som_to_meta_data, on='cell_som_cluster'
+        cell_som_cluster_avgs_and_counts, cell_cc.mapping, on='cell_som_cluster'
     )
 
     # resave average number of pixel/SOM clusters across all cell SOM clusters
@@ -747,7 +755,7 @@ def cell_consensus_cluster(fovs, channels, base_dir, pixel_cluster_col, max_k=20
         "across cell SOM clusters"
     )
     cell_som_cluster_channel_avg = pd.merge_asof(
-        cell_som_cluster_channel_avg, som_to_meta_data, on='cell_som_cluster'
+        cell_som_cluster_channel_avg, cell_cc.mapping, on='cell_som_cluster'
     )
 
     # save the weighted channel average expression per cell cluster
@@ -772,8 +780,6 @@ def cell_consensus_cluster(fovs, channels, base_dir, pixel_cluster_col, max_k=20
         os.path.join(base_dir, cell_meta_cluster_channel_avg_name),
         index=False
     )
-
-    os.remove('Rplots.pdf')
 
 
 def apply_cell_meta_cluster_remapping(fovs, channels, base_dir, cell_consensus_name,

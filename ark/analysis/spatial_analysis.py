@@ -41,6 +41,9 @@ def generate_channel_spatial_enrichment_stats(label_dir, dist_mat_dir, marker_th
           cluster_names
     """
 
+    # Validate paths
+    io_utils.validate_paths([label_dir, dist_mat_dir])
+
     # parse files in label_dir
     all_label_names = io_utils.list_files(label_dir, substrs=[suffix + '.tiff'])
 

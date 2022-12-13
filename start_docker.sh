@@ -65,10 +65,8 @@ run_params=(
   -v "$PWD/data:/data"
   -v "$PWD/ark/phenotyping/create_pixel_som.R:/create_pixel_som.R"
   -v "$PWD/ark/phenotyping/run_pixel_som.R:/run_pixel_som.R"
-  -v "$PWD/ark/phenotyping/pixel_consensus_cluster.R:/pixel_consensus_cluster.R"
   -v "$PWD/ark/phenotyping/create_cell_som.R:/create_cell_som.R"
   -v "$PWD/ark/phenotyping/run_cell_som.R:/run_cell_som.R"
-  -v "$PWD/ark/phenotyping/cell_consensus_cluster.R:/cell_consensus_cluster.R"
   -v "$PWD/.toks:/home/.toks"
 )
 [[ ! -z "$external" ]] && run_params+=(-v "$external:/data/external")
