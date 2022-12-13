@@ -363,7 +363,7 @@ def _write_labels(base_dir, fov_names, comp_names, shape, sub_dir, fills, dtype,
 
     for i, fov in enumerate(fov_names):
         tiffpath = os.path.join(base_dir, f'{fov}{suffix}.tiff')
-        io.imsave(tiffpath, label_data[i, :, :, 0], plugin='tifffile')
+        io.imsave(tiffpath, label_data[i, :, :, 0], plugin='tifffile', check_contrast=False)
         filelocs[fov] = tiffpath
 
     return filelocs, label_data

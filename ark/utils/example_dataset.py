@@ -1,9 +1,12 @@
 import pathlib
 import shutil
+import textwrap
 import warnings
 from typing import Union
 
 import datasets
+
+from ark.settings import EXAMPLE_DATASET_REVISION
 
 
 class ExampleDataset():
@@ -146,7 +149,17 @@ def get_example_dataset(dataset: str, save_dir: Union[str, pathlib.Path],
 
 
     Args:
-        dataset (str): The dataset to download for a particular notebook.
+        dataset (str): The name of the dataset to download. Can be one of
+
+                * `"segment_image_data"`
+                * `"cluster_pixels"`
+                * `"cluster_cells"`
+                * `"post_clustering"`
+                * `"fiber_segmentation"`
+                * `"LDA_preprocessing"`
+                * `"LDA_training_inference"`
+                * `"neighborhood_analysis"`
+                * `"pairwise_spatial_enrichment"`
         save_dir (Union[str, pathlib.Path]): The path to save the dataset files in.
         overwrite_existing (bool): The option to overwrite existing configs of the `dataset`
             downloaded. Defaults to True.
@@ -162,14 +175,17 @@ def get_example_dataset(dataset: str, save_dir: Union[str, pathlib.Path],
                       "neighborhood_analysis",
                       "pairwise_spatial_enrichment"]
 
-    # Check the appropriate dataset name
+    # Check that the approriate dataset name was passed in.
     if dataset not in valid_datasets:
-        ValueError(f"The dataset <{dataset}> is not one of the valid datasets available. \
-                    The following are available: { {*valid_datasets} }")
+        err_str: str = f"""The dataset \"{dataset}\" is not one of the valid datasets available.
+        The following are available: {*valid_datasets,}"""
+        raise ValueError(
+            err_str
+        )
 
     example_dataset = ExampleDataset(dataset=dataset, overwrite_existing=overwrite_existing,
                                      cache_dir=None,
-                                     revision="main")
+                                     revision=EXAMPLE_DATASET_REVISION)
 
     # Download the dataset
     example_dataset.download_example_dataset()

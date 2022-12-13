@@ -1,6 +1,10 @@
 import os
 import shutil
 import tempfile
+from random import randint
+from shutil import rmtree
+from tabnanny import check
+
 import feather
 import numpy as np
 import pandas as pd
@@ -8,14 +12,11 @@ import pytest
 import skimage.io as io
 import xarray as xr
 
-from shutil import rmtree
-from random import randint
-
 from ark import settings
-from ark.utils import data_utils, test_utils, io_utils, load_utils
+from ark.utils import data_utils, io_utils, load_utils, test_utils
 from ark.utils.data_utils import (generate_and_save_cell_cluster_masks,
-                                  generate_and_save_pixel_cluster_masks,
                                   generate_and_save_neighborhood_cluster_masks,
+                                  generate_and_save_pixel_cluster_masks,
                                   label_cells_by_cluster, relabel_segmentation)
 
 parametrize = pytest.mark.parametrize
@@ -484,7 +485,8 @@ def test_generate_and_save_neighborhood_cluster_masks(sub_dir, name_suffix):
         for fov in fovs:
             io.imsave(
                 os.path.join(temp_dir, 'seg_dir', fov + '_whole_cell.tiff'),
-                sample_label_maps.loc[fov, ...].values
+                sample_label_maps.loc[fov, ...].values,
+                check_contrast=False
             )
 
         generate_and_save_neighborhood_cluster_masks(
@@ -755,7 +757,7 @@ def test_stitch_images_by_shape(segmentation, clustering, subdir, fovs):
         data_utils.stitch_images_by_shape(data_dir, stitched_dir, img_sub_folder=subdir,
                                           segmentation=segmentation, clustering=clustering)
         assert sorted(io_utils.list_files(stitched_dir)) == \
-               [chan + '_stitched.tiff' for chan in chans]
+            [chan + '_stitched.tiff' for chan in chans]
 
         # stitched image is 3 x 2 fovs with max_img_size = 10
         stitched_data = load_utils.load_imgs_from_dir(stitched_dir,
