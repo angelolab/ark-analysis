@@ -75,7 +75,7 @@ def compute_cell_cluster_count_avg(cell_cluster_path, pixel_cluster_col_prefix,
 
 def compute_cell_cluster_channel_avg(fovs, channels, base_dir,
                                      weighted_cell_channel_name,
-                                     cell_cluster_name='cell_mat_clustered.feather',
+                                     cell_cluster_name='cluster_counts_size_norm.feather',
                                      cell_cluster_col='cell_meta_cluster'):
     """Computes the average marker expression for each cell cluster
 

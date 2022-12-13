@@ -207,13 +207,6 @@ def test_compute_cell_cluster_channel_avg():
             weighted_cell_table, os.path.join(temp_dir, 'weighted_cell_channel.feather')
         )
 
-        # error check: bad cell_cluster_col provided
-        with pytest.raises(ValueError):
-            cell_cluster_utils.compute_cell_cluster_channel_avg(
-                fovs, chans, temp_dir, 'weighted_cell_channel.feather',
-                'cell_consensus', cell_cluster_col='bad_cluster_col'
-            )
-
         # create a dummy cell consensus data file
         # the actual column prefix won't matter for this test
         consensus_data = pd.DataFrame(
@@ -233,14 +226,21 @@ def test_compute_cell_cluster_channel_avg():
         ].copy()
 
         # write consensus data
-        consensus_path = os.path.join(temp_dir, 'cell_mat_consensus.feather')
-        feather.write_dataframe(consensus_data, consensus_path)
+        cluster_counts_size_norm_path = os.path.join(temp_dir, 'cluster_counts_size_norm.feather')
+        feather.write_dataframe(consensus_data, cluster_counts_size_norm_path)
+
+        # error check: bad cell_cluster_col provided
+        with pytest.raises(ValueError):
+            cell_cluster_utils.compute_cell_cluster_channel_avg(
+                fovs, chans, temp_dir, 'weighted_cell_channel.feather',
+                'cluster_counts_size_norm.feather', cell_cluster_col='bad_cluster_col'
+            )
 
         # test averages for cell SOM clusters
         cell_channel_avg = cell_cluster_utils.compute_cell_cluster_channel_avg(
             # fovs, chans, temp_dir, weighted_cell_table,
             fovs, chans, temp_dir, 'weighted_cell_channel.feather',
-            'cell_mat_consensus.feather', cell_cluster_col='cell_som_cluster'
+            'cluster_counts_size_norm.feather', cell_cluster_col='cell_som_cluster'
         )
 
         # assert the same SOM clusters were assigned
@@ -253,7 +253,7 @@ def test_compute_cell_cluster_channel_avg():
         cell_channel_avg = cell_cluster_utils.compute_cell_cluster_channel_avg(
             # fovs, chans, temp_dir, weighted_cell_table,
             fovs, chans, temp_dir, 'weighted_cell_channel.feather',
-            'cell_mat_consensus.feather', cell_cluster_col='cell_meta_cluster'
+            'cluster_counts_size_norm.feather', cell_cluster_col='cell_meta_cluster'
         )
 
         # assert the same meta clusters were assigned
@@ -764,14 +764,6 @@ def test_cluster_cells(mocker):
 
 @parametrize('pixel_cluster_prefix', ['pixel_som_cluster', 'pixel_meta_cluster_rename'])
 def test_cell_consensus_cluster(pixel_cluster_prefix):
-    # basic error check: path to cell data does not exist
-    with tempfile.TemporaryDirectory() as temp_dir:
-        with pytest.raises(FileNotFoundError):
-            cell_cluster_utils.cell_consensus_cluster(
-                fovs=[], channels=[], base_dir=temp_dir,
-                cell_data_name='bad_path', pixel_cluster_col='blah'
-            )
-
     # basic error check: cell cluster avg table not found
     with tempfile.TemporaryDirectory() as temp_dir:
         with pytest.raises(FileNotFoundError):
@@ -813,12 +805,12 @@ def test_cell_consensus_cluster(pixel_cluster_prefix):
         cluster_data['cell_som_cluster'] = np.repeat(np.arange(100), 10)
 
         # write clustered data
-        clustered_path = os.path.join(temp_dir, 'cell_mat.feather')
-        feather.write_dataframe(cluster_data, clustered_path)
+        cluster_counts_size_norm_path = os.path.join(temp_dir, 'cluster_counts_size_norm.feather')
+        feather.write_dataframe(cluster_data, cluster_counts_size_norm_path)
 
         # compute average counts of each pixel SOM/meta cluster across all cell SOM clusters
         cluster_avg = cell_cluster_utils.compute_cell_cluster_count_avg(
-            clustered_path, pixel_cluster_col_prefix=pixel_cluster_prefix,
+            cluster_counts_size_norm_path, pixel_cluster_col_prefix=pixel_cluster_prefix,
             cell_cluster_col='cell_som_cluster'
         )
 
@@ -851,7 +843,7 @@ def test_cell_consensus_cluster(pixel_cluster_prefix):
         sample_mapping = sample_mapping.sort_values(by='cell_som_cluster')
 
         cell_consensus_data = feather.read_dataframe(
-            os.path.join(temp_dir, 'cell_mat.feather')
+            os.path.join(temp_dir, 'cluster_counts_size_norm.feather')
         )
 
         # assert the cell_som_cluster labels are intact
@@ -932,9 +924,10 @@ def test_apply_cell_meta_cluster_remapping():
         # basic error check: bad path to remapped name
         with pytest.raises(FileNotFoundError):
             cell_cluster_utils.apply_cell_meta_cluster_remapping(
-                ['fov0'], ['chan0'], temp_dir, 'cell_mat_clustered.feather', 'remapped_name.csv',
-                'pixel_som_cluster', 'som_count_avg.csv', 'meta_count_avg.csv',
-                'weighted_cell_table.csv', 'som_chan_avg.csv', 'meta_chan_avg.csv'
+                ['fov0'], ['chan0'], temp_dir, 'cluster_counts_size_norm.feather',
+                'remapped_name.csv', 'pixel_som_cluster', 'som_count_avg.csv',
+                'meta_count_avg.csv', 'weighted_cell_table.csv', 'som_chan_avg.csv',
+                'meta_chan_avg.csv'
             )
 
         # make a dummy remapping
@@ -945,7 +938,7 @@ def test_apply_cell_meta_cluster_remapping():
         # basic error check: bad path to cell SOM cluster pixel counts
         with pytest.raises(FileNotFoundError):
             cell_cluster_utils.apply_cell_meta_cluster_remapping(
-                ['fov0'], ['chan0'], temp_dir, 'cell_mat_clustered.feather',
+                ['fov0'], ['chan0'], temp_dir, 'cluster_counts_size_norm.feather',
                 'sample_cell_remapping.csv', 'pixel_som_cluster', 'som_count_avg.csv',
                 'meta_count_avg.csv', 'weighted_cell_table.csv', 'som_chan_avg.csv',
                 'meta_chan_avg.csv'
@@ -959,7 +952,7 @@ def test_apply_cell_meta_cluster_remapping():
         # basic error check: bad path to cell meta cluster pixel counts
         with pytest.raises(FileNotFoundError):
             cell_cluster_utils.apply_cell_meta_cluster_remapping(
-                ['fov0'], ['chan0'], temp_dir, 'cell_mat_clustered.feather',
+                ['fov0'], ['chan0'], temp_dir, 'cluster_counts_size_norm.feather',
                 'sample_cell_remapping.csv', 'pixel_som_cluster', 'sample_som_count_avg.csv',
                 'meta_count_avg.csv', 'weighted_cell_table.csv', 'som_chan_avg.csv',
                 'meta_chan_avg.csv'
@@ -973,7 +966,7 @@ def test_apply_cell_meta_cluster_remapping():
         # basic error check: bad path to weighted cell table
         with pytest.raises(FileNotFoundError):
             cell_cluster_utils.apply_cell_meta_cluster_remapping(
-                ['fov0'], ['chan0'], temp_dir, 'cell_mat_clustered.feather',
+                ['fov0'], ['chan0'], temp_dir, 'cluster_counts_size_norm.feather',
                 'sample_cell_remapping.csv', 'pixel_som_cluster', 'sample_som_count_avg.csv',
                 'sample_meta_count_avg.csv', 'weighted_cell_table.csv', 'som_chan_avg.csv',
                 'meta_chan_avg.csv'
@@ -987,7 +980,7 @@ def test_apply_cell_meta_cluster_remapping():
         # basic error check: bad path to cell SOM weighted channel avgs
         with pytest.raises(FileNotFoundError):
             cell_cluster_utils.apply_cell_meta_cluster_remapping(
-                ['fov0'], ['chan0'], temp_dir, 'cell_mat_clustered.feather',
+                ['fov0'], ['chan0'], temp_dir, 'cluster_counts_size_norm.feather',
                 'sample_cell_remapping.csv', 'pixel_som_cluster', 'sample_som_count_avg.csv',
                 'sample_meta_count_avg.csv', 'sample_weighted_cell_table.csv',
                 'som_chan_avg.csv', 'meta_chan_avg.csv'
@@ -1001,24 +994,10 @@ def test_apply_cell_meta_cluster_remapping():
         # basic error check: bad path to cell meta weighted channel avgs
         with pytest.raises(FileNotFoundError):
             cell_cluster_utils.apply_cell_meta_cluster_remapping(
-                ['fov0'], ['chan0'], temp_dir, 'cell_mat_clustered.feather',
+                ['fov0'], ['chan0'], temp_dir, 'cluster_counts_size_norm.feather',
                 'sample_cell_remapping.csv', 'pixel_som_cluster', 'sample_som_count_avg.csv',
                 'sample_meta_count_avg.csv', 'sample_weighted_cell_table.csv',
                 'sample_som_chan_avg.csv', 'meta_chan_avg.csv'
-            )
-
-        # make a dummy weighted chan avg per cell meta table
-        pd.DataFrame().to_csv(
-            os.path.join(temp_dir, 'sample_meta_chan_avg.csv'), index=False
-        )
-
-        # basic error check: bad pixel cluster col specified
-        with pytest.raises(ValueError):
-            cell_cluster_utils.apply_cell_meta_cluster_remapping(
-                ['fov0'], ['chan0'], temp_dir, 'cell_mat_clustered.feather',
-                'sample_cell_remapping.csv', 'bad_pixel_cluster', 'sample_som_count_avg.csv',
-                'sample_meta_count_avg.csv', 'sample_weighted_cell_table.csv',
-                'sample_som_chan_avg.csv', 'sample_meta_chan_avg.csv'
             )
 
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -1048,8 +1027,8 @@ def test_apply_cell_meta_cluster_remapping():
         cluster_data.loc[500:999, 'segmentation_label'] = np.arange(500)
 
         # write clustered data
-        clustered_path = os.path.join(temp_dir, 'cell_mat_consensus.feather')
-        feather.write_dataframe(cluster_data, clustered_path)
+        cluster_counts_size_norm_path = os.path.join(temp_dir, 'cluster_counts_size_norm.feather')
+        feather.write_dataframe(cluster_data, cluster_counts_size_norm_path)
 
         # create an example cell SOM pixel counts table
         som_pixel_counts = pd.DataFrame(
@@ -1088,7 +1067,7 @@ def test_apply_cell_meta_cluster_remapping():
         weighted_cell_table['cell_size'] = 5
 
         # save weighted cell table
-        weighted_cell_table_path = os.path.join(temp_dir, 'weighted_cell_table.csv')
+        weighted_cell_table_path = os.path.join(temp_dir, 'sample_weighted_cell_table.csv')
         feather.write_dataframe(weighted_cell_table, weighted_cell_table_path)
 
         # create an example cell SOM weighted channel average table
@@ -1124,6 +1103,16 @@ def test_apply_cell_meta_cluster_remapping():
             index=False
         )
 
+        # basic error check: bad pixel cluster col specified
+        with pytest.raises(ValueError):
+            cell_cluster_utils.apply_cell_meta_cluster_remapping(
+                ['fov0'], ['chan0'], temp_dir, 'cluster_counts_size_norm.feather',
+                'sample_cell_remapping.csv', 'bad_pixel_cluster',
+                'sample_cell_som_cluster_count_avg.csv',
+                'sample_cell_meta_cluster_count_avg.csv', 'sample_weighted_cell_table.csv',
+                'sample_cell_som_cluster_chan_avg.csv', 'sample_cell_meta_cluster_chan_avg.csv'
+            )
+
         # error check: bad columns provided in the SOM to meta cluster map csv input
         with pytest.raises(ValueError):
             bad_sample_cell_remapping = sample_cell_remapping.copy()
@@ -1141,12 +1130,12 @@ def test_apply_cell_meta_cluster_remapping():
                 ['fov1', 'fov2'],
                 chans,
                 temp_dir,
-                'cell_mat_consensus.feather',
+                'cluster_counts_size_norm.feather',
                 'bad_sample_cell_remapping.csv',
                 'pixel_meta_cluster_rename',
                 'sample_cell_som_cluster_count_avg.csv',
                 'sample_cell_meta_cluster_count_avg.csv',
-                'weighted_cell_table.csv',
+                'sample_weighted_cell_table.csv',
                 'sample_cell_som_cluster_chan_avg.csv',
                 'sample_cell_meta_cluster_chan_avg.csv'
             )
@@ -1168,12 +1157,12 @@ def test_apply_cell_meta_cluster_remapping():
                 ['fov1', 'fov2'],
                 chans,
                 temp_dir,
-                'cell_mat_consensus.feather',
+                'cluster_counts_size_norm.feather',
                 'bad_sample_cell_remapping.csv',
                 'pixel_meta_cluster_rename',
                 'sample_cell_som_cluster_count_avg.csv',
                 'sample_cell_meta_cluster_count_avg.csv',
-                'weighted_cell_table.csv',
+                'sample_weighted_cell_table.csv',
                 'sample_cell_som_cluster_chan_avg.csv',
                 'sample_cell_meta_cluster_chan_avg.csv'
             )
@@ -1183,18 +1172,18 @@ def test_apply_cell_meta_cluster_remapping():
             ['fov1', 'fov2'],
             chans,
             temp_dir,
-            'cell_mat_consensus.feather',
+            'cluster_counts_size_norm.feather',
             'sample_cell_remapping.csv',
             'pixel_meta_cluster_rename',
             'sample_cell_som_cluster_count_avg.csv',
             'sample_cell_meta_cluster_count_avg.csv',
-            'weighted_cell_table.csv',
+            'sample_weighted_cell_table.csv',
             'sample_cell_som_cluster_chan_avg.csv',
             'sample_cell_meta_cluster_chan_avg.csv'
         )
 
         # read remapped cell data in
-        remapped_cell_data = feather.read_dataframe(clustered_path)
+        remapped_cell_data = feather.read_dataframe(cluster_counts_size_norm_path)
 
         # assert the counts of each cell cluster is 50
         assert np.all(remapped_cell_data['cell_meta_cluster'].value_counts().values == 50)
