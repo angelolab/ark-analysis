@@ -13,29 +13,46 @@ from ark.utils.misc_utils import verify_same_elements
 
 
 @pytest.fixture(scope="session")
-def som_base_dir_gen(tmp_path_factory) -> Iterator[pathlib.Path]:
-    """Creates the directory to hold all the test data needed for SOM clustering
+def pixel_som_base_dir_gen(tmp_path_factory) -> Iterator[pathlib.Path]:
+    """Creates the directory to hold all the test data needed for pixel SOM clustering
 
     Args:
         tmp_path_factory (pytest.TempPathFactory):
-            Temp dir to place SOM data in
+            Temp dir to place pixel SOM data in
 
     Yields:
         Iterator[pathlib.Path]:
-            The path to place the SOM data in
+            The path to place the pixel SOM data in
     """
 
-    som_output_dir = tmp_path_factory.mktemp("som_data")
+    som_output_dir = tmp_path_factory.mktemp("pixel_som_data")
     yield som_output_dir
 
 
 @pytest.fixture(scope="session")
-def pixel_pyflowsom_object(som_base_dir_gen) -> Iterator[Tuple[PixelSOMCluster, PixelSOMCluster]]:
+def cell_som_base_dir_gen(tmp_path_factory) -> Iterator[pathlib.Path]:
+    """Creates the directory to hold all the test data needed for cell SOM clustering
+
+    Args:
+        tmp_path_factory (pytest.TempPathFactory):
+            Temp dir to place cell SOM data in
+
+    Yields:
+        Iterator[pathlib.Path]:
+            The path to place the cell SOM data in
+    """
+
+    som_output_dir = tmp_path_factory.mktemp("pixel_som_data")
+    yield som_output_dir
+
+
+@pytest.fixture(scope="session")
+def pixel_pyflowsom_object(pixel_som_base_dir_gen) -> Iterator[Tuple[PixelSOMCluster, PixelSOMCluster]]:
     """Generates sample pixel SOM object
 
     Args:
-        som_base_dir_gen (pytest.fixture):
-            The base dir to store the consensus data
+        pixel_som_base_dir_gen (pytest.fixture):
+            The base dir to store the pixel SOM data
 
     Yields:
         Iterator[Tuple[PixelSOMCluster, PixelSOMCluster]]:
@@ -44,9 +61,9 @@ def pixel_pyflowsom_object(som_base_dir_gen) -> Iterator[Tuple[PixelSOMCluster, 
     """
 
     # define the paths, using a temporary directory as the motherbase
-    pixel_sub_path = som_base_dir_gen / "pixel_subset_dir"
-    norm_vals_path = som_base_dir_gen / "norm_vals.feather"
-    weights_path = som_base_dir_gen / "weights_test.feather"
+    pixel_sub_path = pixel_som_base_dir_gen / "pixel_subset_dir"
+    norm_vals_path = pixel_som_base_dir_gen / "norm_vals.feather"
+    weights_path = pixel_som_base_dir_gen / "weights_test.feather"
 
     # define the FOVs and channels to use
     fovs = [f'fov{i}' % i for i in np.arange(1, 5)]
@@ -84,14 +101,14 @@ def pixel_pyflowsom_object(som_base_dir_gen) -> Iterator[Tuple[PixelSOMCluster, 
     # define a PixelSOMCluster object without weights
     pixel_som_sans_weights = PixelSOMCluster(
         pixel_subset_folder=pixel_sub_path, norm_vals_path=norm_vals_path,
-        weights_path=som_base_dir_gen / 'weights_new.feather', columns=channels, xdim=20, ydim=10
+        weights_path=pixel_som_base_dir_gen / 'weights_new.feather', columns=channels, xdim=20, ydim=10
     )
 
     yield pixel_som_with_weights, pixel_som_sans_weights
 
 
 @pytest.fixture(scope="session")
-def cell_pyflowsom_object(som_base_dir_gen) -> Iterator[Tuple[CellSOMCluster, CellSOMCluster]]:
+def cell_pyflowsom_object(cell_som_base_dir_gen) -> Iterator[Tuple[CellSOMCluster, CellSOMCluster]]:
     """Generates sample cell SOM object
 
     Args:
@@ -105,8 +122,8 @@ def cell_pyflowsom_object(som_base_dir_gen) -> Iterator[Tuple[CellSOMCluster, Ce
     """
 
     # define the paths, using a temporary directory as the motherbase
-    cell_data_path = som_base_dir_gen / "cluster_counts_size_norm.feather"
-    weights_path = som_base_dir_gen / "weights_test.feather"
+    cell_data_path = cell_som_base_dir_gen / "cluster_counts_size_norm.feather"
+    weights_path = cell_som_base_dir_gen / "weights_test.feather"
 
     # define the pixel count count expression columns to use
     count_cols = [f'pixel_meta_cluster_{i}' for i in np.arange(1, 7)]
@@ -135,7 +152,7 @@ def cell_pyflowsom_object(som_base_dir_gen) -> Iterator[Tuple[CellSOMCluster, Ce
 
     # define a CellSOMCluster object without weights
     cell_som_sans_weights = CellSOMCluster(
-        cell_data_path=cell_data_path, weights_path=som_base_dir_gen / 'weights_new.feather',
+        cell_data_path=cell_data_path, weights_path=cell_som_base_dir_gen / 'weights_new.feather',
         columns=count_cols, xdim=20, ydim=10
     )
 
