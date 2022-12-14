@@ -243,11 +243,11 @@ class Test_2_Pixel_Clustering:
         """
         self.tb.inject(base_dir_inject, "base_dir")
 
-    def test_file_path(self):
-        self.tb.execute_cell("file_path")
-
     def test_ex_data_download(self):
         self.tb.execute_cell("ex_data_download")
+
+    def test_file_path(self):
+        self.tb.execute_cell("file_path")
 
     def test_load_fovs(self):
         load_fovs_inject = """
@@ -370,11 +370,11 @@ class Test_3_Cell_Clustering:
         """
         self.tb.inject(base_dir_inject, "base_dir")
 
-    def test_dir_set(self):
-        self.tb.execute_cell("dir_set")
-
     def test_ex_data_download(self):
         self.tb.execute_cell("ex_data_download")
+
+    def test_dir_set(self):
+        self.tb.execute_cell("dir_set")
 
     def test_param_load(self):
         self.tb.execute_cell("param_load")
