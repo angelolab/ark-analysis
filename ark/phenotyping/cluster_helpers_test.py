@@ -13,7 +13,7 @@ from ark.utils.misc_utils import verify_same_elements
 
 
 @pytest.fixture(scope="session")
-def pixel_som_base_dir_gen(tmp_path_factory) -> Iterator[pathlib.Path]:
+def pixel_som_base_dir(tmp_path_factory) -> Iterator[pathlib.Path]:
     """Creates the directory to hold all the test data needed for pixel SOM clustering
 
     Args:
@@ -30,7 +30,7 @@ def pixel_som_base_dir_gen(tmp_path_factory) -> Iterator[pathlib.Path]:
 
 
 @pytest.fixture(scope="session")
-def cell_som_base_dir_gen(tmp_path_factory) -> Iterator[pathlib.Path]:
+def cell_som_base_dir(tmp_path_factory) -> Iterator[pathlib.Path]:
     """Creates the directory to hold all the test data needed for cell SOM clustering
 
     Args:
@@ -47,11 +47,11 @@ def cell_som_base_dir_gen(tmp_path_factory) -> Iterator[pathlib.Path]:
 
 
 @pytest.fixture(scope="session")
-def pixel_pyflowsom_object(pixel_som_base_dir_gen) -> Iterator[Tuple[PixelSOMCluster, PixelSOMCluster]]:
+def pixel_pyflowsom_object(pixel_som_base_dir) -> Iterator[Tuple[PixelSOMCluster, PixelSOMCluster]]:
     """Generates sample pixel SOM object
 
     Args:
-        pixel_som_base_dir_gen (pytest.fixture):
+        pixel_som_base_dir (pytest.fixture):
             The base dir to store the pixel SOM data
 
     Yields:
@@ -61,9 +61,9 @@ def pixel_pyflowsom_object(pixel_som_base_dir_gen) -> Iterator[Tuple[PixelSOMClu
     """
 
     # define the paths, using a temporary directory as the motherbase
-    pixel_sub_path = pixel_som_base_dir_gen / "pixel_subset_dir"
-    norm_vals_path = pixel_som_base_dir_gen / "norm_vals.feather"
-    weights_path = pixel_som_base_dir_gen / "weights_test.feather"
+    pixel_sub_path = pixel_som_base_dir / "pixel_subset_dir"
+    norm_vals_path = pixel_som_base_dir / "norm_vals.feather"
+    weights_path = pixel_som_base_dir / "weights_test.feather"
 
     # define the FOVs and channels to use
     fovs = [f'fov{i}' % i for i in np.arange(1, 5)]
@@ -101,18 +101,19 @@ def pixel_pyflowsom_object(pixel_som_base_dir_gen) -> Iterator[Tuple[PixelSOMClu
     # define a PixelSOMCluster object without weights
     pixel_som_sans_weights = PixelSOMCluster(
         pixel_subset_folder=pixel_sub_path, norm_vals_path=norm_vals_path,
-        weights_path=pixel_som_base_dir_gen / 'weights_new.feather', columns=channels, xdim=20, ydim=10
+        weights_path=pixel_som_base_dir / 'weights_new.feather',
+        columns=channels, xdim=20, ydim=10
     )
 
     yield pixel_som_with_weights, pixel_som_sans_weights
 
 
 @pytest.fixture(scope="session")
-def cell_pyflowsom_object(cell_som_base_dir_gen) -> Iterator[Tuple[CellSOMCluster, CellSOMCluster]]:
+def cell_pyflowsom_object(cell_som_base_dir) -> Iterator[Tuple[CellSOMCluster, CellSOMCluster]]:
     """Generates sample cell SOM object
 
     Args:
-        som_base_dir_gen (pytest.fixture):
+        som_base_dir (pytest.fixture):
             The base dir to store the SOM data
 
     Yields:
@@ -122,8 +123,8 @@ def cell_pyflowsom_object(cell_som_base_dir_gen) -> Iterator[Tuple[CellSOMCluste
     """
 
     # define the paths, using a temporary directory as the motherbase
-    cell_data_path = cell_som_base_dir_gen / "cluster_counts_size_norm.feather"
-    weights_path = cell_som_base_dir_gen / "weights_test.feather"
+    cell_data_path = cell_som_base_dir / "cluster_counts_size_norm.feather"
+    weights_path = cell_som_base_dir / "weights_test.feather"
 
     # define the pixel count count expression columns to use
     count_cols = [f'pixel_meta_cluster_{i}' for i in np.arange(1, 7)]
@@ -152,7 +153,7 @@ def cell_pyflowsom_object(cell_som_base_dir_gen) -> Iterator[Tuple[CellSOMCluste
 
     # define a CellSOMCluster object without weights
     cell_som_sans_weights = CellSOMCluster(
-        cell_data_path=cell_data_path, weights_path=cell_som_base_dir_gen / 'weights_new.feather',
+        cell_data_path=cell_data_path, weights_path=cell_som_base_dir / 'weights_new.feather',
         columns=count_cols, xdim=20, ydim=10
     )
 
@@ -160,7 +161,7 @@ def cell_pyflowsom_object(cell_som_base_dir_gen) -> Iterator[Tuple[CellSOMCluste
 
 
 @pytest.fixture(scope="session")
-def consensus_base_dir_gen(tmp_path_factory) -> Iterator[pathlib.Path]:
+def consensus_base_dir(tmp_path_factory) -> Iterator[pathlib.Path]:
     """Creates the directory to hold all the test data needed for consensus clustering
 
     Args:
@@ -177,11 +178,11 @@ def consensus_base_dir_gen(tmp_path_factory) -> Iterator[pathlib.Path]:
 
 
 @pytest.fixture(scope="session")
-def pixel_cc_object(consensus_base_dir_gen) -> PixieConsensusCluster:
+def pixel_cc_object(consensus_base_dir) -> PixieConsensusCluster:
     """Generates sample pixel consensus data and save
 
     Args:
-        consensus_base_dir_gen (pytest.fixture):
+        consensus_base_dir (pytest.fixture):
             The base dir to store the consensus data
 
     Yields:
@@ -190,7 +191,7 @@ def pixel_cc_object(consensus_base_dir_gen) -> PixieConsensusCluster:
     """
 
     # define the paths, using a temporary directory as the motherbase
-    output_file_path = consensus_base_dir_gen / "pixel_channel_avg_som_cluster.csv"
+    output_file_path = consensus_base_dir / "pixel_channel_avg_som_cluster.csv"
 
     # define the channel expression columns
     chan_cols = [f'chan{i}' for i in np.arange(1, 7)]
@@ -214,11 +215,11 @@ def pixel_cc_object(consensus_base_dir_gen) -> PixieConsensusCluster:
 
 
 @pytest.fixture(scope="session")
-def cell_cc_object(consensus_base_dir_gen) -> PixieConsensusCluster:
+def cell_cc_object(consensus_base_dir) -> PixieConsensusCluster:
     """Generates sample cell consensus data and save
 
     Args:
-        consensus_base_dir_gen (pytest.fixture):
+        consensus_base_dir (pytest.fixture):
             The base dir to store the consensus data
 
     Yields:
@@ -227,7 +228,7 @@ def cell_cc_object(consensus_base_dir_gen) -> PixieConsensusCluster:
     """
 
     # define the paths, using a temporary directory as the motherbase
-    output_file_path = consensus_base_dir_gen / "cell_som_cluster_avgs.csv"
+    output_file_path = consensus_base_dir / "cell_som_cluster_avgs.csv"
 
     # define the pixel cluster count expression columns
     count_cols = [f'pixel_meta_cluster_{i}' for i in np.arange(1, 7)]
