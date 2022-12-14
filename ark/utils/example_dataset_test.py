@@ -1,5 +1,5 @@
 import pathlib
-from typing import Callable, Generator, Iterator
+from typing import Callable, Dict, Generator, Iterator, List
 
 import pytest
 
@@ -15,7 +15,8 @@ from ark.utils.example_dataset import ExampleDataset, get_example_dataset
                                          "LDA_preprocessing",
                                          "LDA_training_inference",
                                          "neighborhood_analysis",
-                                         "pairwise_spatial_enrichment"])
+                                         "pairwise_spatial_enrichment",
+                                         "ome_tiff"])
 def dataset_download(request) -> Iterator[ExampleDataset]:
     """
     A Fixture which instantiates and downloads the dataset with respect to each
@@ -32,7 +33,7 @@ def dataset_download(request) -> Iterator[ExampleDataset]:
     example_dataset: ExampleDataset = ExampleDataset(
         dataset=request.param,
         cache_dir=None,
-        revision="main"
+        revision="0b953f29ca3b22880c9c21424cfa4429ad8b2e8f"
     )
     # Download example data for a particular notebook
     example_dataset.download_example_dataset()
@@ -67,7 +68,7 @@ class TestExampleDataset:
             "pixel_masks": [f"fov{i}_pixel_mask" for i in range(2)]
         }
 
-        self._example_cell_output_dir_names = {
+        self._example_cell_output_dir_names: Dict[str, List[str]] = {
             "root_files": ["example_cell_clust_to_meta", "example_cell_mat",
                            "example_cell_meta_cluster_channel_avg",
                            "example_cell_meta_cluster_count_avgs",
@@ -80,7 +81,7 @@ class TestExampleDataset:
             "cell_masks": [f"fov{i}_cell_mask" for i in range(2)]
         }
 
-        self._spatial_analysis_lda_preprocessed_files = [
+        self._spatial_analysis_lda_preprocessed_files: List[str] = [
             "difference_mats",
             "featurized_cell_table",
             "formatted_cell_table",
@@ -90,6 +91,8 @@ class TestExampleDataset:
         self._post_clustering_files = ["cell_table_thresholded",
                                        "marker_thresholds", "updated_cell_table"]
 
+        self._ome_tiff_files: List[str] = ["fov1.ome"]
+
         self.dataset_test_fns: dict[str, Callable] = {
             "image_data": self._image_data_check,
             "cell_table": self._cell_table_check,
@@ -97,7 +100,8 @@ class TestExampleDataset:
             "example_pixel_output_dir": self._example_pixel_output_dir_check,
             "example_cell_output_dir": self._example_cell_output_dir_check,
             "spatial_lda": self._spatial_lda_output_dir_check,
-            "post_clustering": self._post_clustering_output_dir_check
+            "post_clustering": self._post_clustering_output_dir_check,
+            "ome_tiff": self._ome_tiff_check
         }
 
         # Mapping the datasets to their respective test functions.
@@ -110,6 +114,7 @@ class TestExampleDataset:
             "example_cell_output_dir": "pixie/example_cell_output_dir",
             "spatial_lda": "spatial_analysis/spatial_lda",
             "post_clustering": "post_clustering",
+            "ome_tiff": "ome_tiff",
         }
 
     def test_download_example_dataset(self, dataset_download: ExampleDataset):
@@ -394,6 +399,17 @@ class TestExampleDataset:
         downloaded_post_cluster = list(dir_p.glob("*.csv"))
         downloaded_post_cluster_names = [f.stem for f in downloaded_post_cluster]
         assert set(self._post_clustering_files) == set(downloaded_post_cluster_names)
+
+    def _ome_tiff_check(self, dir_p: pathlib.Path):
+        """
+        Checks to make sure that the correct files exist w.r.t the `ome_tiff` output dir
+
+        Args:
+            dir_p (pathlib.Path): The directory to check.
+        """
+        downloaded_ome_tiff = list(dir_p.glob("*.ome.tiff"))
+        downloaded_ome_tiff_names = [f.stem for f in downloaded_ome_tiff]
+        assert set(self._ome_tiff_files) == set(downloaded_ome_tiff_names)
 
     def _suffix_paths(self, dataset_download: ExampleDataset,
                       parent_dir: pathlib.Path) -> Generator:

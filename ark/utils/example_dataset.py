@@ -27,6 +27,7 @@ class ExampleDataset():
                     * `"LDA_training_inference"`
                     * `"neighborhood_analysis"`
                     * `"pairwise_spatial_enrichment"`
+                    * `"ome_tiff"`
             overwrite_existing (bool): A flag to overwrite existing data. Defaults to `True`.
             cache_dir (str, optional): The directory to save the cache dir. Defaults to `None`,
                 which internally in Hugging Face defaults to `~/.cache/huggingface/datasets`.
@@ -49,6 +50,7 @@ class ExampleDataset():
             "example_cell_output_dir": "pixie/example_cell_output_dir",
             "spatial_lda": "spatial_analysis/spatial_lda",
             "post_clustering": "post_clustering",
+            "ome_tiff": "ome_tiff"
         }
         """
         Path suffixes for mapping each downloaded dataset partition to it's appropriate
@@ -162,7 +164,8 @@ def get_example_dataset(dataset: str, save_dir: Union[str, pathlib.Path],
                       "LDA_preprocessing",
                       "LDA_training_inference",
                       "neighborhood_analysis",
-                      "pairwise_spatial_enrichment"]
+                      "pairwise_spatial_enrichment",
+                      "ome_tiff"]
 
     # Check the appropriate dataset name
     try:
@@ -172,7 +175,7 @@ def get_example_dataset(dataset: str, save_dir: Union[str, pathlib.Path],
                     The following are available: { {*valid_datasets} }")
     example_dataset = ExampleDataset(dataset=dataset, overwrite_existing=overwrite_existing,
                                      cache_dir=None,
-                                     revision="main")
+                                     revision="0b953f29ca3b22880c9c21424cfa4429ad8b2e8f")
 
     # Download the dataset
     example_dataset.download_example_dataset()
