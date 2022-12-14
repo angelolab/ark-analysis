@@ -19,7 +19,7 @@ from ark.utils.misc_utils import verify_in_list
 class PixieSOMCluster(ABC):
     @abstractmethod
     def __init__(self, weights_path: pathlib.Path, columns: List[str], num_passes: int = 1,
-                 xdim: int = 10, ydim: int = 10, lr_start: float = 0.05, lr_end: float=0.01):
+                 xdim: int = 10, ydim: int = 10, lr_start: float = 0.05, lr_end: float = 0.01):
         """Generic implementation of a pyFlowSOM runner
 
         Args:
@@ -107,7 +107,7 @@ class PixelSOMCluster(PixieSOMCluster):
     def __init__(self, pixel_subset_folder: pathlib.Path, norm_vals_path: pathlib.Path,
                  weights_path: pathlib.Path, columns: List[str],
                  num_passes: int = 1, xdim: int = 10, ydim: int = 10,
-                 lr_start: float = 0.05, lr_end: float=0.01):
+                 lr_start: float = 0.05, lr_end: float = 0.01):
         """Creates a pixel SOM cluster object derived from the abstract PixieSOMCluster
 
         Args:
@@ -210,7 +210,7 @@ class PixelSOMCluster(PixieSOMCluster):
 class CellSOMCluster(PixieSOMCluster):
     def __init__(self, cell_data_path: pathlib.Path, weights_path: pathlib.Path,
                  columns: List[str], num_passes: int = 1, xdim: int = 10, ydim: int = 10,
-                 lr_start: float = 0.05, lr_end: float=0.01):
+                 lr_start: float = 0.05, lr_end: float = 0.01):
         """Creates a cell SOM cluster object derived from the abstract PixieSOMCluster
 
         Args:

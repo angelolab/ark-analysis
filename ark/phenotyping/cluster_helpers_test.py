@@ -24,7 +24,7 @@ def som_base_dir_gen(tmp_path_factory) -> Iterator[pathlib.Path]:
         Iterator[pathlib.Path]:
             The path to place the SOM data in
     """
-    print("Generating SOM cluster")
+
     som_output_dir = tmp_path_factory.mktemp("som_data")
     yield som_output_dir
 
