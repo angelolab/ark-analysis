@@ -176,7 +176,7 @@ class PixelSOMCluster(PixieSOMCluster):
 
         return external_data_norm
 
-    def train_pixel_som(self):
+    def train_som(self):
         """Trains the SOM using `train_data`
         """
         # do not train SOM if weights already exist
@@ -260,12 +260,12 @@ class CellSOMCluster(PixieSOMCluster):
 
         return self.cell_data
 
-    def train_cell_som(self):
+    def train_som(self):
         """Trains the SOM using `cell_data`
         """
         # do not train SOM if weights already exist
         if self.weights is not None:
-            warnings.warn('Pixel SOM already trained')
+            warnings.warn('Cell SOM already trained')
             return
 
         super().train_som(self.cell_data[self.columns])
@@ -290,6 +290,7 @@ class CellSOMCluster(PixieSOMCluster):
         return self.cell_data
 
 
+# define a template class for type hinting cluster param in ConsensusCluster constructor
 @runtime_checkable
 class ClusterClassTemplate(Protocol):
     def fit_predict(self) -> None:

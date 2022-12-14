@@ -113,13 +113,13 @@ def cell_pyflowsom_object(som_base_dir_gen) -> Iterator[Tuple[CellSOMCluster, Ce
 
     # define dummy cell data
     cluster_counts_size_norm = pd.DataFrame(
-        np.random.rand(100, 10),
+        np.random.randint(1, 10, (500, 9)),
         columns=['cell_size', 'fov'] + count_cols + ['segmentation_label']
     )
     cluster_counts_size_norm['cell_size'] = 150
-    cluster_counts_size_norm.loc['fov', 0:50] = 'fov0'
-    cluster_counts_size_norm.loc['fov', 50:100] = 'fov1'
-    cluster_counts_size_norm['segmentation_label'] = np.arange(1, 101)
+    cluster_counts_size_norm.loc[0:249, 'fov'] = 'fov0'
+    cluster_counts_size_norm.loc[250:499, 'fov'] = 'fov1'
+    cluster_counts_size_norm['segmentation_label'] = np.arange(1, 501)
 
     feather.write_dataframe(cluster_counts_size_norm, cell_data_path)
 
@@ -271,8 +271,8 @@ class TestPixelSOMCluster:
             normalized_data[norm_data_cols].values
         )
 
-    def test_train_pixel_som(self):
-        self.pixel_pysom_nonweights.train_pixel_som()
+    def test_train_som(self):
+        self.pixel_pysom_nonweights.train_som()
 
         # assert the weights path exists
         assert os.path.exists(self.pixel_pysom_nonweights.weights_path)
@@ -286,11 +286,11 @@ class TestPixelSOMCluster:
         # assert the shape is correct
         assert weights.shape == (200, 6)
 
-    def test_train_pixel_som_restart(self):
+    def test_train_som_restart(self):
         with pytest.warns(UserWarning, match='Pixel SOM already trained'):
-            self.pixel_pysom_weights.train_pixel_som()
+            self.pixel_pysom_weights.train_som()
 
-    def test_generate_som_clusters(self):
+    def test_assign_som_clusters(self):
         # generate sample external data
         # NOTE: test on shuffled data to ensure column matching
         col_shuffle = deepcopy(self.pixel_pysom_nonweights.columns)
@@ -307,6 +307,50 @@ class TestPixelSOMCluster:
         # assert the som labels were assigned and they are all in the range 1 to 200
         assert 'pixel_som_cluster' in som_label_data.columns.values
         som_clusters = som_label_data['pixel_som_cluster'].values
+        assert np.all(np.logical_and(som_clusters >= 1, som_clusters <= 200))
+
+
+class TestCellSOMCluster:
+    @pytest.fixture(autouse=True, scope="function")
+    def _setup(self, cell_pyflowsom_object):
+        # NOTE: we'll be working with cell_pysom_nonweights mostly
+        # cell_pysom_weights is to check case where user already loaded data
+        self.cell_pysom_weights = cell_pyflowsom_object[0]
+        self.cell_pysom_nonweights = cell_pyflowsom_object[1]
+
+    def test_normalize_data(self):
+        # normalize cell_table
+        normalized_data = self.cell_pysom_weights.normalize_data()
+
+        # assert all values are <= 1 for 99.9% quantile normalization
+        assert np.all(normalized_data[self.cell_pysom_weights.columns].values <= 1)
+
+    def test_train_som(self):
+        self.cell_pysom_nonweights.train_som()
+
+        # assert the weights path exists
+        assert os.path.exists(self.cell_pysom_nonweights.weights_path)
+
+        # load in the weights
+        weights = feather.read_dataframe(self.cell_pysom_nonweights.weights_path)
+
+        # assert the column names match
+        assert list(weights.columns.values) == self.cell_pysom_nonweights.columns
+
+        # assert the shape is correct
+        assert weights.shape == (200, 6)
+
+    def test_train_cell_som_restart(self):
+        with pytest.warns(UserWarning, match='Cell SOM already trained'):
+            self.cell_pysom_weights.train_som()
+
+    def test_assign_som_clusters(self):
+        # generate SOM cluster values for cell_data
+        som_label_data = self.cell_pysom_nonweights.assign_som_clusters()
+
+        # assert the som labels were assigned and they are all in the range 1 to 200
+        assert 'cell_som_cluster' in som_label_data.columns.values
+        som_clusters = som_label_data['cell_som_cluster'].values
         assert np.all(np.logical_and(som_clusters >= 1, som_clusters <= 200))
 
 
