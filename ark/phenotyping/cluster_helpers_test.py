@@ -47,7 +47,9 @@ def cell_som_base_dir(tmp_path_factory) -> Iterator[pathlib.Path]:
 
 
 @pytest.fixture(scope="session")
-def pixel_pyflowsom_object(pixel_som_base_dir) -> Iterator[Tuple[PixelSOMCluster, PixelSOMCluster]]:
+def pixel_pyflowsom_object(pixel_som_base_dir) -> Iterator[
+    Tuple[PixelSOMCluster, PixelSOMCluster]
+]:
     """Generates sample pixel SOM object
 
     Args:
@@ -109,7 +111,9 @@ def pixel_pyflowsom_object(pixel_som_base_dir) -> Iterator[Tuple[PixelSOMCluster
 
 
 @pytest.fixture(scope="session")
-def cell_pyflowsom_object(cell_som_base_dir) -> Iterator[Tuple[CellSOMCluster, CellSOMCluster]]:
+def cell_pyflowsom_object(cell_som_base_dir) -> Iterator[
+    Tuple[CellSOMCluster, CellSOMCluster]
+]:
     """Generates sample cell SOM object
 
     Args:
