@@ -160,7 +160,7 @@ def consensus_base_dir_gen(tmp_path_factory) -> Iterator[pathlib.Path]:
 
 
 @pytest.fixture(scope="session")
-def pixel_consensus_input_gen(consensus_base_dir_gen) -> Iterator[Tuple[pathlib.Path, List[str]]]:
+def pixel_cc_object(consensus_base_dir_gen) -> PixieConsensusCluster:
     """Generates sample pixel consensus data and save
 
     Args:
@@ -168,9 +168,8 @@ def pixel_consensus_input_gen(consensus_base_dir_gen) -> Iterator[Tuple[pathlib.
             The base dir to store the consensus data
 
     Yields:
-        Iterator[Tuple[pathlib.Path, List[str]]]:
-            Tuple containing path to the input to pixel SOM channel expression averages
-            and expression columns
+        PixieConsensusCluster:
+            The PixieConsensusCluster object for pixel cluster testing
     """
 
     # define the paths, using a temporary directory as the motherbase
@@ -190,11 +189,15 @@ def pixel_consensus_input_gen(consensus_base_dir_gen) -> Iterator[Tuple[pathlib.
     # save the data
     sample_pixel_consensus_data.to_csv(output_file_path)
 
-    yield output_file_path, chan_cols
+    yield PixieConsensusCluster(
+        cluster_type='pixel',
+        input_file=output_file_path,
+        columns=chan_cols
+    )
 
 
 @pytest.fixture(scope="session")
-def cell_consensus_input_gen(consensus_base_dir_gen) -> Iterator[Tuple[pathlib.Path, List[str]]]:
+def cell_cc_object(consensus_base_dir_gen) -> PixieConsensusCluster:
     """Generates sample cell consensus data and save
 
     Args:
@@ -202,9 +205,8 @@ def cell_consensus_input_gen(consensus_base_dir_gen) -> Iterator[Tuple[pathlib.P
             The base dir to store the consensus data
 
     Yields:
-        Iterator[Tuple[pathlib.Path, List[str]]]:
-            Tuple containing path to the input to cell SOM count expression averages
-            and expression columns
+        PixieConsensusCluster:
+            The PixieConsensusCluster object for cell cluster testing
     """
 
     # define the paths, using a temporary directory as the motherbase
@@ -224,24 +226,10 @@ def cell_consensus_input_gen(consensus_base_dir_gen) -> Iterator[Tuple[pathlib.P
     # save the data
     sample_cell_consensus_data.to_csv(output_file_path)
 
-    yield output_file_path, count_cols
-
-
-@pytest.fixture(scope="session")
-def pixel_cc_object(pixel_consensus_input_gen):
-    yield PixieConsensusCluster(
-        cluster_type='pixel',
-        input_file=pixel_consensus_input_gen[0],
-        columns=pixel_consensus_input_gen[1]
-    )
-
-
-@pytest.fixture(scope="session")
-def cell_cc_object(cell_consensus_input_gen):
     yield PixieConsensusCluster(
         cluster_type='cell',
-        input_file=cell_consensus_input_gen[0],
-        columns=cell_consensus_input_gen[1]
+        input_file=output_file_path,
+        columns=count_cols
     )
 
 
