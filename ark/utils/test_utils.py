@@ -680,7 +680,7 @@ def _make_neighborhood_matrix():
             intended to test clustering
     """
     col_names = {0: settings.FOV_ID, 1: settings.CELL_LABEL, 2: 'feature1', 3: 'feature2'}
-    neighbor_counts = pd.DataFrame(np.zeros((200, 5)))
+    neighbor_counts = pd.DataFrame(np.zeros((200, 4)))
     neighbor_counts = neighbor_counts.rename(col_names, axis=1)
 
     neighbor_counts.iloc[0:100, 0] = "fov1"
