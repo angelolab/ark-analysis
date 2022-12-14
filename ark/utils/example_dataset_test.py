@@ -32,7 +32,7 @@ def dataset_download(request) -> Iterator[ExampleDataset]:
     example_dataset: ExampleDataset = ExampleDataset(
         dataset=request.param,
         cache_dir=None,
-        revision="dfb84fd985b0d52ae87e3ed531f5b6e247b9ff1c"
+        revision="main"
     )
     # Download example data for a particular notebook
     example_dataset.download_example_dataset()
