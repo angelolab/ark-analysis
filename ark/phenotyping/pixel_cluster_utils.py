@@ -947,7 +947,7 @@ def run_pixel_som_assignment(pixel_data_path, pixel_pysom_obj, fov):
     Args:
         pixel_data_path (str):
             The path to the pixel data directory
-        pixel_cc_obj (ark.phenotyping.cluster_helpers.PixieConsensusCluster):
+        pixel_pysom_obj (ark.phenotyping.cluster_helpers.PixieConsensusCluster):
             The pixel SOM cluster object
         fov (str):
             The name of the FOV to process
