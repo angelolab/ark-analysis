@@ -406,7 +406,7 @@ class Test_3_Cell_Clustering:
         fovs = self.tb.ref("fovs")
         channels = self.tb.ref("channels")
         cell_table_path = self.tb.ref("cell_table_path")
-        cell_data = self.tb.ref("cell_data_name")
+        cluster_counts_norm = self.tb.ref("cluster_counts_norm_name")
         weighted_cell_channel = self.tb.ref("weighted_cell_channel_name")
         cell_som_cluster_count_avgs = self.tb.ref("cell_som_cluster_count_avgs_name")
         cell_meta_cluster_count_avgs = self.tb.ref("cell_meta_cluster_count_avgs_name")
@@ -417,7 +417,7 @@ class Test_3_Cell_Clustering:
                                                    fovs,
                                                    channels,
                                                    cell_table_path,
-                                                   cell_data,
+                                                   cluster_counts_norm,
                                                    weighted_cell_channel,
                                                    cell_som_cluster_count_avgs,
                                                    cell_som_cluster_channel_avg
