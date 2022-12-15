@@ -501,7 +501,7 @@ def create_mantis_dir(fovs: List[str], mantis_project_path: Union[str, pathlib.P
                 shutil.copy(os.path.join(img_source_dir, chan), os.path.join(output_dir, chan))
 
         # copy mask into new folder
-        mask_name: str = mn + mask_suffix + f".{seg_suffix_ext}"
+        mask_name: str = mn + mask_suffix + ".tiff"
         shutil.copy(os.path.join(mask_output_dir, mask_name),
                     os.path.join(output_dir, 'population{}.tiff'.format(mask_suffix)))
 
