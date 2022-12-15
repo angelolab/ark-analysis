@@ -165,14 +165,14 @@ class Test_1_Segment_Image_Data:
         """
         self.tb.inject(base_dir_inject, "base_dir")
 
+    def test_ex_data_download(self):
+        self.tb.execute_cell("ex_data_download")
+
     def test_file_path(self):
         self.tb.execute_cell("file_path")
 
     def test_create_dirs(self):
         self.tb.execute_cell("create_dirs")
-
-    def test_ex_data_download(self):
-        self.tb.execute_cell("ex_data_download")
 
     def test_validate_path(self):
         self.tb.execute_cell("validate_path")
@@ -489,11 +489,11 @@ class Test_4_Post_Clustering:
         """
         self.tb.inject(base_dir_inject, "base_dir")
 
-    def test_file_path(self):
-        self.tb.execute_cell("file_path")
-
     def test_ex_data_download(self):
         self.tb.execute_cell("ex_data_download")
+
+    def test_file_path(self):
+        self.tb.execute_cell("file_path")
 
     def test_dir_set(self):
         self.tb.execute_cell("dir_set")
@@ -553,11 +553,11 @@ class Test_Fiber_Segmentation():
         """
         self.tb.inject(base_dir_inject, "base_dir")
 
-    def test_file_paths(self):
-        self.tb.execute_cell("file_paths")
-
     def test_ex_data_download(self):
         self.tb.execute_cell("ex_data_download")
+
+    def test_file_paths(self):
+        self.tb.execute_cell("file_paths")
 
     def test_param_set(self):
         self.tb.execute_cell("param_set")
