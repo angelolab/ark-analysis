@@ -871,7 +871,7 @@ def train_pixel_som(fovs, channels, base_dir,
                     subset_dir='pixel_mat_subsetted',
                     norm_vals_name='post_rowsum_chan_norm.feather',
                     weights_name='pixel_weights.feather', xdim=10, ydim=10,
-                    lr_start=0.05, lr_end=0.01, num_passes=1, seed=42):
+                    lr_start=0.05, lr_end=0.01, num_passes=1):
     """Run the SOM training on the subsetted pixel data.
 
     Saves weights to `base_dir/weights_name`.
@@ -899,8 +899,6 @@ def train_pixel_som(fovs, channels, base_dir,
             The end learning rate for the SOM, decays from `lr_start`
         num_passes (int):
             The number of training passes to make through the dataset
-        seed (int):
-            The random seed to set for training
 
     Returns:
         cluster_helpers.PixelSOMCluster:
@@ -932,10 +930,8 @@ def train_pixel_som(fovs, channels, base_dir,
         num_passes=num_passes, xdim=xdim, ydim=ydim, lr_start=lr_start, lr_end=lr_end
     )
 
-    # set random seed for SOM training
-    np.random.seed(seed)
-
     # train the SOM weights
+    # NOTE: seed has to be set in cyFlowSOM.pyx, done by passing flag in PixieSOMCluster
     print("Training SOM")
     pixel_pysom.train_som()
 

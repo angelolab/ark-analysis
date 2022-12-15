@@ -66,9 +66,11 @@ class PixieSOMCluster(ABC):
             data (pandas.DataFrame):
                 The input data to train the SOM on.
         """
+        # make sure to run a deterministic SOM for reproducibility purposes
         som_weights = som(
             data=data.values, xdim=self.xdim, ydim=self.ydim,
-            alpha_range=(self.lr_start, self.lr_end)
+            alpha_range=(self.lr_start, self.lr_end),
+            deterministic=True
         )
 
         # ensure dimensions of weights are flattened

@@ -393,7 +393,7 @@ def train_cell_som(fovs, channels, base_dir, pixel_data_dir, cell_table_path,
                    pc_chan_avg_name='pc_chan_avg.csv',
                    weights_name='cell_weights.feather',
                    weighted_cell_channel_name='weighted_cell_channel.csv',
-                   xdim=10, ydim=10, lr_start=0.05, lr_end=0.01, num_passes=1, seed=42):
+                   xdim=10, ydim=10, lr_start=0.05, lr_end=0.01, num_passes=1):
     """Run the SOM training on the number of pixel/meta clusters in each cell of each fov
 
     Saves the weights to `base_dir/weights_name`. Computes and saves weighted
@@ -437,8 +437,6 @@ def train_cell_som(fovs, channels, base_dir, pixel_data_dir, cell_table_path,
             The end learning rate for the SOM, decays from `lr_start`
         num_passes (int):
             The number of training passes to make through the dataset
-        seed (int):
-            The random seed to set for training
 
     Returns:
         cluster_helpers.CellSOMCluster:
@@ -487,6 +485,7 @@ def train_cell_som(fovs, channels, base_dir, pixel_data_dir, cell_table_path,
     )
 
     # train the SOM weights
+    # NOTE: seed has to be set in cyFlowSOM.pyx, done by passing flag in PixieSOMCluster
     print("Training SOM")
     cell_pysom.train_som()
 
