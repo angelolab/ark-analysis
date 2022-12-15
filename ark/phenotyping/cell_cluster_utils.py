@@ -560,7 +560,7 @@ def cluster_cells(base_dir, cell_pysom, pixel_cluster_col_prefix='pixel_meta_clu
     # compute the average pixel SOM/meta counts per cell SOM cluster
     print("Computing the average number of pixel SOM/meta cluster counts per cell SOM cluster")
     cell_som_cluster_avgs_and_counts = compute_cell_cluster_count_avg(
-        cell_data_path,
+        cell_pysom.cell_data_path,
         pixel_cluster_col_prefix,
         'cell_som_cluster',
         keep_count=True
