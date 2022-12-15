@@ -175,7 +175,7 @@ def get_example_dataset(dataset: str, save_dir: Union[str, pathlib.Path],
                     The following are available: { {*valid_datasets} }")
     example_dataset = ExampleDataset(dataset=dataset, overwrite_existing=overwrite_existing,
                                      cache_dir=None,
-                                     revision="0b953f29ca3b22880c9c21424cfa4429ad8b2e8f")
+                                     revision="b5264333585ea06ec80593a2e1355e439f943dbd")
 
     # Download the dataset
     example_dataset.download_example_dataset()
