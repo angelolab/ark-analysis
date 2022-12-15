@@ -936,6 +936,7 @@ def train_pixel_som(fovs, channels, base_dir,
     np.random.seed(seed)
 
     # train the SOM weights
+    print("Training SOM")
     pixel_pysom.train_som()
 
     return pixel_pysom
@@ -1068,6 +1069,9 @@ def cluster_pixels(fovs, channels, base_dir, pixel_pysom, data_dir='pixel_mat_da
     fov_data_func = partial(
         run_pixel_som_assignment, data_path, pixel_pysom
     )
+
+    # use the som weights to assign SOM cluster values to data in data_dir
+    print("Mapping pixel data to SOM cluster labels")
 
     if multiprocess:
         with multiprocessing.get_context('spawn').Pool(batch_size) as fov_data_pool:

@@ -487,6 +487,7 @@ def train_cell_som(fovs, channels, base_dir, pixel_data_dir, cell_table_path,
     )
 
     # train the SOM weights
+    print("Training SOM")
     cell_pysom.train_som()
 
     # read in the pixel channel averages table
@@ -551,6 +552,7 @@ def cluster_cells(base_dir, cell_pysom, pixel_cluster_col_prefix='pixel_meta_clu
     )
 
     # run the trained SOM on the dataset, assigning clusters
+    print("Mapping cell data to SOM cluster labels")
     cell_data_som_labels = cell_pysom.assign_som_clusters()
 
     # resave cell_data
