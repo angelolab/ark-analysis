@@ -87,7 +87,7 @@ def compute_cell_cluster_channel_avg(fovs, channels, base_dir,
         base_dir (str):
             The path to the data directory
         weighted_cell_channel_name (str):
-            The name of the weighted cell table, created in `example_cell_clustering.ipynb`
+            The name of the weighted cell table, created in `3_Pixie_Cluster_Cells.ipynb`
         cell_cluster_name (str):
             Name of the file containing the cell data with cluster labels
         cell_cluster_col (str):
