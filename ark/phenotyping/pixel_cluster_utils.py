@@ -993,10 +993,6 @@ def cluster_pixels(fovs, channels, base_dir, pixel_pysom, data_dir='pixel_mat_da
             The SOM cluster object containing the pixel SOM weights
         data_dir (str):
             Name of the directory which contains the full preprocessed pixel data
-        norm_vals_name (str):
-            The name of the file with the 99.9% normalized values, created by `train_pixel_som`
-        weights_name (str):
-            The name of the weights file created by `train_pixel_som`
         multiprocess (bool):
             Whether to use multiprocessing or not
         batch_size (int):
