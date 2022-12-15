@@ -439,6 +439,10 @@ def train_cell_som(fovs, channels, base_dir, pixel_data_dir, cell_table_path,
             The number of training passes to make through the dataset
         seed (int):
             The random seed to set for training
+
+    Returns:
+        cluster_helpers.CellSOMCluster:
+            The SOM cluster object containing the cell SOM weights
     """
 
     # define the data paths
@@ -473,28 +477,17 @@ def train_cell_som(fovs, channels, base_dir, pixel_data_dir, cell_table_path,
                             cluster_counts_norm_path,
                             compression='uncompressed')
 
-    # run the SOM training process
-    process_args = ['Rscript', '/create_cell_som.R', ','.join(fovs), str(xdim), str(ydim),
-                    str(lr_start), str(lr_end), str(num_passes), cluster_counts_norm_path,
-                    weights_path, str(seed)]
+    # define the count columns found in cluster_counts_norm
+    cluster_count_cols = cluster_counts_norm.filter(regex=f'{pixel_cluster_col}.*').columns.values
 
-    process = subprocess.Popen(process_args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    # define the cell SOM cluster object
+    cell_pysom = cluster_helpers.CellSOMCluster(
+        cluster_counts_norm_path, weights_path, cluster_count_cols,
+        num_passes=num_passes, xdim=xdim, ydim=ydim, lr_start=lr_start, lr_end=lr_end
+    )
 
-    # continuously poll the process for output/error to display in Jupyter notebook
-    while True:
-        # convert from byte string
-        output = process.stdout.readline().decode('utf-8')
-
-        # if the output is nothing and the process is done, break
-        if process.poll() is not None:
-            break
-        if output:
-            print(output.strip())
-
-    if process.returncode != 0:
-        raise OSError(
-            "Process terminated: please view error messages displayed above for debugging."
-        )
+    # train the SOM weights
+    cell_pysom.train_som()
 
     # read in the pixel channel averages table
     print("Computing the weighted channel expression per cell")
@@ -512,11 +505,10 @@ def train_cell_som(fovs, channels, base_dir, pixel_data_dir, cell_table_path,
         index=False
     )
 
+    return cell_pysom
 
-def cluster_cells(base_dir, cluster_counts_norm_name='cluster_counts_norm.feather',
-                  weights_name='cell_weights.feather',
-                  cell_data_name='cell_mat.feather',
-                  pixel_cluster_col_prefix='pixel_meta_cluster_rename',
+
+def cluster_cells(base_dir, cell_pysom, pixel_cluster_col_prefix='pixel_meta_cluster_rename',
                   cell_som_cluster_count_avgs_name='cell_som_cluster_count_avgs.csv'):
     """Uses trained weights to assign cluster labels on full cell data.
 
@@ -526,13 +518,8 @@ def cluster_cells(base_dir, cluster_counts_norm_name='cluster_counts_norm.feathe
     Args:
         base_dir (str):
             The path to the data directory
-        cluster_counts_norm_name (str):
-            Name of the file with the number of pixel SOM/meta cluster counts of each cell,
-            normalized by `cell_size`
-        weights_name (str):
-            The name of the weights file, created by `train_cell_som`
-        cell_data_name (str):
-            Name of the file to save the cell data with cell SOM cluster labels
+        cell_pysom (cluster_helpers.CellSOMCluster):
+            The SOM cluster object containing the cell SOM weights
         pixel_cluster_col_prefix (str):
             The name of the prefixes of each of the pixel SOM/meta columns
             Should be `'pixel_som_cluster'` or `'pixel_meta_cluster_rename'`.
@@ -540,13 +527,9 @@ def cluster_cells(base_dir, cluster_counts_norm_name='cluster_counts_norm.feathe
             The name of the file to write the clustered data
     """
 
-    # define the paths to the data
-    cluster_counts_norm_path = os.path.join(base_dir, cluster_counts_norm_name)
-    weights_path = os.path.join(base_dir, weights_name)
-    cell_data_path = os.path.join(base_dir, cell_data_name)
-
-    # check the path to the normalized pixel cluster counts per cell and weights file exists
-    io_utils.validate_paths([cluster_counts_norm_path, weights_path])
+    # raise error if weights haven't been assigned to cell_pysom
+    if cell_pysom.weights is None:
+        raise ValueError("Using untrained cell_pysom object, please invoke train_som first")
 
     # verify the pixel_cluster_col_prefix provided is valid
     misc_utils.verify_in_list(
@@ -557,39 +540,22 @@ def cluster_cells(base_dir, cluster_counts_norm_name='cluster_counts_norm.feathe
     # ensure the weights columns are valid indexes, do so by ensuring
     # the cluster_counts_norm and weights columns are the same
     # minus the metadata columns that appear in cluster_counts_norm
-    cluster_counts_norm = feather.read_dataframe(cluster_counts_norm_path)
-    weights = feather.read_dataframe(os.path.join(base_dir, weights_name))
-    cluster_counts_norm = cluster_counts_norm.drop(
+    cluster_counts_norm = cell_pysom.cell_data.drop(
         columns=['fov', 'segmentation_label', 'cell_size']
     )
 
     misc_utils.verify_same_elements(
         enforce_order=True,
         cluster_counts_norm_columns=cluster_counts_norm.columns.values,
-        cell_weights_columns=weights.columns.values
+        cell_weights_columns=cell_pysom.weights.columns.values
     )
 
     # run the trained SOM on the dataset, assigning clusters
-    process_args = ['Rscript', '/run_cell_som.R', cluster_counts_norm_path,
-                    weights_path, cell_data_path]
+    cell_data_som_labels = cell_pysom.assign_som_clusters()
 
-    process = subprocess.Popen(process_args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-
-    # continuously poll the process for output/error so it gets displayed in the Jupyter notebook
-    while True:
-        # convert from byte string
-        output = process.stdout.readline().decode('utf-8')
-
-        # if the output is nothing and the process is done, break
-        if process.poll() is not None:
-            break
-        if output:
-            print(output.strip())
-
-    if process.returncode != 0:
-        raise OSError(
-            "Process terminated: please view error messages displayed above for debugging."
-        )
+    # resave cell_data
+    os.remove(cell_pysom.cell_data_path)
+    feather.write_dataframe(cell_data_som_labels, cell_pysom.cell_data_path)
 
     # compute the average pixel SOM/meta counts per cell SOM cluster
     print("Computing the average number of pixel SOM/meta cluster counts per cell SOM cluster")
@@ -608,7 +574,7 @@ def cluster_cells(base_dir, cluster_counts_norm_name='cluster_counts_norm.feathe
 
 
 def cell_consensus_cluster(fovs, channels, base_dir, pixel_cluster_col, max_k=20, cap=3,
-                           cell_data_name='cell_mat.feather',
+                           cell_data_name='cluster_counts_norm.feather',
                            cell_som_cluster_count_avgs_name='cell_som_cluster_avgs.csv',
                            cell_meta_cluster_count_avgs_name='cell_meta_cluster_avgs.csv',
                            weighted_cell_channel_name='weighted_cell_channel.csv',

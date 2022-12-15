@@ -13,64 +13,6 @@ import ark.utils.misc_utils as misc_utils
 parametrize = pytest.mark.parametrize
 
 
-def mocked_train_cell_som(fovs, channels, base_dir, pixel_data_dir, cell_table_path,
-                          cluster_counts_name='cluster_counts.feather',
-                          cluster_counts_norm_name='cluster_counts_norm.feather',
-                          pixel_cluster_col='pixel_meta_cluster_rename',
-                          pc_chan_avg_name='pc_chan_avg.feather',
-                          weights_name='cell_weights.feather',
-                          weighted_cell_channel_name='weighted_cell_channel.csv',
-                          xdim=10, ydim=10, lr_start=0.05, lr_end=0.01, num_passes=1, seed=42):
-    # read in the cluster counts
-    cluster_counts_data = feather.read_dataframe(os.path.join(base_dir, cluster_counts_norm_name))
-
-    # get the cluster columns
-    cluster_cols = cluster_counts_data.filter(regex=("cluster_|hCluster_cap_")).columns.values
-
-    # subset cluster_counts by the cluster columns
-    cluster_counts_sub = cluster_counts_data[cluster_cols]
-
-    # FlowSOM flattens the weights dimensions, ex. 10x10x10 becomes 100x10
-    weights = np.random.rand(100, len(cluster_cols))
-
-    # get the 99.9% normalized values and divide weights by that
-    weights = weights / np.quantile(weights, 0.999, axis=0)
-
-    # take 100 random rows from cluster_counts_sub
-    # element-wise multiply weights by that and num_passes
-    multiply_factor = cluster_counts_sub.sample(n=100, replace=True).values
-    weights = weights * multiply_factor * num_passes
-
-    # write weights to feather, the result in R will be more like a DataFrame
-    weights = pd.DataFrame(weights, columns=cluster_cols)
-    feather.write_dataframe(weights, os.path.join(base_dir, weights_name))
-
-
-def mocked_cluster_cells(base_dir, cluster_counts_norm_name='cluster_counts_norm.feather',
-                         weights_name='cell_weights.feather',
-                         cell_cluster_name='cell_mat_clustered.feather',
-                         pixel_cluster_col_prefix='pixel_meta_cluster_rename',
-                         cell_som_cluster_avgs_name='cell_som_cluster_avgs.feather'):
-    # read in the cluster counts data
-    cluster_counts = feather.read_dataframe(os.path.join(base_dir, cluster_counts_norm_name))
-
-    # read in the weights matrix
-    weights = feather.read_dataframe(os.path.join(base_dir, weights_name))
-
-    # get the mean weight for each channel column
-    sub_means = weights.mean(axis=1)
-
-    # multiply by 100 and truncate to int to get an actual cluster id
-    cluster_ids = sub_means * 100
-    cluster_ids = cluster_ids.astype(int)
-
-    # assign as cell cluster assignment
-    cluster_counts['cell_som_cluster'] = cluster_ids
-
-    # write clustered data to feather
-    feather.write_dataframe(cluster_counts, os.path.join(base_dir, cell_cluster_name))
-
-
 def test_compute_cell_cluster_count_avg():
     # define the cluster columns
     pixel_som_clusters = ['pixel_som_cluster_%d' % i for i in np.arange(3)]
@@ -500,32 +442,9 @@ def test_create_c2pc_data():
         )
 
 
-def test_train_cell_som(mocker):
-    # basic error check: bad path to cell table path
+def test_train_cell_som():
     with tempfile.TemporaryDirectory() as temp_dir:
-        with pytest.raises(FileNotFoundError):
-            cell_cluster_utils.train_cell_som(
-                fovs=['fov0'], channels=['chan0'], base_dir=temp_dir,
-                pixel_data_dir='data_dir', cell_table_path='bad_cell_table.csv'
-            )
-
-    # basic error check: bad path to pixel data dir
-    with tempfile.TemporaryDirectory() as temp_dir:
-        blank_cell_table = pd.DataFrame()
-        blank_cell_table.to_csv(
-            os.path.join(temp_dir, 'sample_cell_table.csv'),
-            index=False
-        )
-
-        with pytest.raises(FileNotFoundError):
-            cell_cluster_utils.train_cell_som(
-                fovs=['fov0'], channels=['chan0'], base_dir=temp_dir,
-                pixel_data_dir='data_dir',
-                cell_table_path=os.path.join(temp_dir, 'sample_cell_table.csv')
-            )
-
-    with tempfile.TemporaryDirectory() as temp_dir:
-        # create list of markeres and fovs we want to use
+        # create list of markers and fovs we want to use
         chan_list = ['Marker1', 'Marker2', 'Marker3', 'Marker4']
         fovs = ['fov1', 'fov2']
 
@@ -583,22 +502,24 @@ def test_train_cell_som(mocker):
 
         # TEST 1: computing weights using pixel clusters
         # compute cluster counts
-        _, cluster_counts_norm = cell_cluster_utils.create_c2pc_data(
+        cluster_counts, cluster_counts_norm = cell_cluster_utils.create_c2pc_data(
             fovs, pixel_data_path, cell_table_path, 'pixel_som_cluster'
         )
 
-        # write cluster count
+        # write cluster counts files
+        cluster_counts_path = os.path.join(temp_dir, 'cluster_counts.feather')
+        feather.write_dataframe(cluster_counts, cluster_counts_path)
         cluster_counts_norm_path = os.path.join(temp_dir, 'cluster_counts_norm.feather')
         feather.write_dataframe(cluster_counts_norm, cluster_counts_norm_path)
 
-        # add mocked function to "train_cell_som"
-        mocker.patch(
-            'ark.phenotyping.cell_cluster_utils.train_cell_som',
-            mocked_train_cell_som
-        )
+        # generate a random pixel cluster channel average file
+        pc_chan_avg = pd.DataFrame(np.random.rand(15, len(chan_list)), columns=chan_list)
+        pc_chan_avg['pixel_som_cluster'] = np.arange(15)
+        pc_chan_avg_path = os.path.join(temp_dir, 'pc_chan_avg.csv')
+        pc_chan_avg.to_csv(pc_chan_avg_path, index=False)
 
-        # "train" the cell SOM using mocked function
-        cell_cluster_utils.train_cell_som(
+        # train the cell SOM
+        cell_pysom = cell_cluster_utils.train_cell_som(
             fovs=fovs, channels=chan_list, base_dir=temp_dir,
             pixel_data_dir='pixel_data_dir',
             cell_table_path=cell_table_path,
@@ -606,10 +527,10 @@ def test_train_cell_som(mocker):
         )
 
         # assert cell weights has been created
-        assert os.path.exists(os.path.join(temp_dir, 'cell_weights.feather'))
+        assert os.path.exists(cell_pysom.weights_path)
 
         # read in the cell weights
-        cell_weights = feather.read_dataframe(os.path.join(temp_dir, 'cell_weights.feather'))
+        cell_weights = feather.read_dataframe(cell_pysom.weights_path)
 
         # assert we created the columns needed
         misc_utils.verify_same_elements(
@@ -620,26 +541,37 @@ def test_train_cell_som(mocker):
         # assert the shape
         assert cell_weights.shape == (100, 15)
 
-        # remove cell weights for next test
-        os.remove(os.path.join(temp_dir, 'cell_weights.feather'))
+        # assert weighted cell channel average file has been created
+        assert os.path.exists(pc_chan_avg_path)
+
+        # load in weighted cell channel average file and assert columns and clusters are correct
+        weighted_chan_data = pd.read_csv(pc_chan_avg_path)
+        assert list(weighted_chan_data.columns.values) == chan_list + ['pixel_som_cluster']
+        assert np.all(weighted_chan_data['pixel_som_cluster'].values == np.arange(15))
+
+        # remove cell weights and weighted channel average file for next test
+        os.remove(cell_pysom.weights_path)
+        os.remove(pc_chan_avg_path)
 
         # TEST 2: computing weights using hierarchical clusters
-        _, cluster_counts_norm = cell_cluster_utils.create_c2pc_data(
+        cluster_counts, cluster_counts_norm = cell_cluster_utils.create_c2pc_data(
             fovs, pixel_data_path, cell_table_path, 'pixel_meta_cluster_rename'
         )
 
-        # write cluster count
+        # write cluster counts files
+        cluster_counts_path = os.path.join(temp_dir, 'cluster_counts.feather')
+        feather.write_dataframe(cluster_counts, cluster_counts_path)
         cluster_counts_norm_path = os.path.join(temp_dir, 'cluster_counts_norm.feather')
         feather.write_dataframe(cluster_counts_norm, cluster_counts_norm_path)
 
-        # add mocked function to "train" cell SOM
-        mocker.patch(
-            'ark.phenotyping.cell_cluster_utils.train_cell_som',
-            mocked_train_cell_som
-        )
+        # generate a random pixel cluster channel average file
+        pc_chan_avg = pd.DataFrame(np.random.rand(2, len(chan_list)), columns=chan_list)
+        pc_chan_avg['pixel_meta_cluster_rename'] = np.arange(2)
+        pc_chan_avg_path = os.path.join(temp_dir, 'pc_chan_avg.csv')
+        pc_chan_avg.to_csv(pc_chan_avg_path, index=False)
 
-        # "train" the cell SOM using mocked function
-        cell_cluster_utils.train_cell_som(
+        # train the cell SOM
+        cell_pysom = cell_cluster_utils.train_cell_som(
             fovs=fovs, channels=chan_list, base_dir=temp_dir,
             pixel_data_dir='pixel_data_dir',
             cell_table_path=cell_table_path,
@@ -647,10 +579,10 @@ def test_train_cell_som(mocker):
         )
 
         # assert cell weights has been created
-        assert os.path.exists(os.path.join(temp_dir, 'cell_weights.feather'))
+        assert os.path.exists(cell_pysom.weights_path)
 
         # read in the cell weights
-        cell_weights = feather.read_dataframe(os.path.join(temp_dir, 'cell_weights.feather'))
+        cell_weights = feather.read_dataframe(cell_pysom.weights_path)
 
         # assert we created the columns needed
         misc_utils.verify_same_elements(
@@ -661,28 +593,16 @@ def test_train_cell_som(mocker):
         # assert the shape
         assert cell_weights.shape == (100, 2)
 
+        # assert weighted cell channel average file has been created
+        assert os.path.exists(pc_chan_avg_path)
 
-def test_cluster_cells(mocker):
-    # basic error check: path to cell counts norm does not exist
-    with tempfile.TemporaryDirectory() as temp_dir:
-        with pytest.raises(FileNotFoundError):
-            cell_cluster_utils.cluster_cells(
-                base_dir=temp_dir, cluster_counts_norm_name='bad_path'
-            )
+        # load in weighted cell channel average file and assert columns and clusters are correct
+        weighted_chan_data = pd.read_csv(pc_chan_avg_path)
+        assert list(weighted_chan_data.columns.values) == chan_list + ['pixel_meta_cluster_rename']
+        assert np.all(weighted_chan_data['pixel_meta_cluster_rename'].values == np.arange(2))
 
-    # basic error check: path to cell weights does not exist
-    with tempfile.TemporaryDirectory() as temp_dir:
-        # create a dummy cluster_counts_norm_name file
-        cluster_counts_norm = pd.DataFrame()
-        cluster_counts_norm.to_csv(
-            os.path.join(temp_dir, 'cluster_counts_norm.feather'),
-            index=False
-        )
 
-        with pytest.raises(FileNotFoundError):
-            cell_cluster_utils.cluster_cells(base_dir=temp_dir,
-                                             weights_name='bad_path')
-
+def test_cluster_cells():
     with tempfile.TemporaryDirectory() as temp_dir:
         # define the cluster column names
         cluster_cols = ['pixel_som_cluster_' + str(i) for i in range(3)]

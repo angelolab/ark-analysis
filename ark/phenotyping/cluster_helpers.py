@@ -238,6 +238,7 @@ class CellSOMCluster(PixieSOMCluster):
         )
 
         # path validation
+        self.cell_data_path = cell_data_path
         validate_paths([cell_data_path])
 
         # load the cell data in
