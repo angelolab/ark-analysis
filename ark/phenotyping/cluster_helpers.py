@@ -38,14 +38,16 @@ class PixieSOMCluster(ABC):
             lr_end (float):
                 The learning rate to decay to
         """
-        self.weights = None if not weights_path.exists() else feather.read_dataframe(weights_path)
+        self.weights_path = weights_path
+        self.weights = None if not os.path.exists(weights_path) else feather.read_dataframe(
+            weights_path
+        )
         self.columns = columns
         self.num_passes = num_passes
         self.xdim = xdim
         self.ydim = ydim
         self.lr_start = lr_start
         self.lr_end = lr_end
-        self.weights_path = weights_path
 
     @abstractmethod
     def normalize_data(self) -> pd.DataFrame:
