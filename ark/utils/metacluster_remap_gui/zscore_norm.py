@@ -31,7 +31,8 @@ class ZScoreNormalize(Normalize):
         super().__init__(vmin, vmax)
 
     def inverse(self, value):
-        result = np.interp(value,
+        result = np.interp(
+            value,
             [0, 0.5, 1],
             [self.vmin, self.vcenter, self.vmax],
         )
