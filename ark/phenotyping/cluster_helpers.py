@@ -100,11 +100,20 @@ class PixieSOMCluster(ABC):
             external_data_cols=external_data.columns.values
         )
 
-        # NOTE: this also orders the columns of external_data_sub the same as self.weights
-        return map_data_to_nodes(
-            self.weights.values,
-            external_data[weights_cols].values
-        )[0]
+        # define the batches of cluster labels assigned
+        cluster_labels = []
+
+        # work in batches of 100 to account to support large dataframe sizes
+        # TODO: possible dynamic computation in order?
+        for i in np.arange(0, external_data.shape[0], 100):
+            # NOTE: this also orders the columns of external_data_sub the same as self.weights
+            cluster_labels.append(map_data_to_nodes(
+                self.weights.values,
+                external_data.loc[i:min(i + 99, external_data.shape[0]), weights_cols].values
+            )[0])
+
+        # concat all the results together and return
+        return np.concatenate(cluster_labels)
 
 
 class PixelSOMCluster(PixieSOMCluster):
