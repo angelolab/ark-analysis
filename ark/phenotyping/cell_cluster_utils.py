@@ -478,11 +478,13 @@ def train_cell_som(fovs, channels, base_dir, pixel_data_dir, cell_table_path,
                             compression='uncompressed')
 
     # define the count columns found in cluster_counts_norm
-    cluster_count_cols = cluster_counts_norm.filter(regex=f'{pixel_cluster_col}.*').columns.values
+    cluster_count_cols = cluster_counts_size_norm.filter(
+        regex=f'{pixel_cluster_col}.*'
+    ).columns.values
 
     # define the cell SOM cluster object
     cell_pysom = cluster_helpers.CellSOMCluster(
-        cluster_counts_norm_path, weights_path, cluster_count_cols,
+        cluster_counts_size_norm_path, som_weights_path, cluster_count_cols,
         num_passes=num_passes, xdim=xdim, ydim=ydim, lr_start=lr_start, lr_end=lr_end
     )
 
@@ -511,7 +513,7 @@ def train_cell_som(fovs, channels, base_dir, pixel_data_dir, cell_table_path,
 
 
 def cluster_cells(base_dir, cell_pysom, pixel_cluster_col_prefix='pixel_meta_cluster_rename',
-                  cell_som_cluster_count_avgs_name='cell_som_cluster_count_avgs.csv'):
+                  cell_som_cluster_count_avg_name='cell_som_cluster_count_avgs.csv'):
     """Uses trained SOM weights to assign cluster labels on full cell data.
 
     Saves data with cluster labels to `cell_cluster_name`. Computes and saves the average number

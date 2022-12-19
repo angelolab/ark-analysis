@@ -1316,7 +1316,7 @@ def test_train_pixel_som():
         assert weights.shape == (100, 4)
 
         # assert that the SOM weights columns are the same as chan_list
-        misc_utils.verify_same_elements(som_weights_channels=som_weights.columns.values,
+        misc_utils.verify_same_elements(som_weights_channels=weights.columns.values,
                                         provided_channels=chan_list)
 
 
