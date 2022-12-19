@@ -69,11 +69,11 @@ class TestExampleDataset:
 
         self._example_cell_output_dir_names = {
             "root_files": ["cell_meta_cluster_channel_avg",
-                           "cell_meta_cluster_count_avgs",
+                           "cell_meta_cluster_count_avg",
                            "cell_som_cluster_channel_avg",
                            "cell_meta_cluster_mapping",
                            "cell_som_cluster_channel_avg",
-                           "cell_som_cluster_count_avgs",
+                           "cell_som_cluster_count_avg",
                            "cell_som_weights", "cluster_counts",
                            "cluster_counts_size_norm", "weighted_cell_channel"],
             "cell_masks": [f"fov{i}_cell_mask" for i in range(2)]
