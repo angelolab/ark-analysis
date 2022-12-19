@@ -60,7 +60,7 @@ def calculate_channel_percentiles(tiff_dir, fovs, channels, img_sub_folder,
         # save channel-wide average
         percentile_means.append(np.mean(percentile_list))
 
-    percentile_df = pd.DataFrame({'channel': channels, 'norm_val': percentile_means})
+    percentile_df = pd.DataFrame(np.expand_dims(percentile_means, axis=0), columns=channels)
 
     return percentile_df
 
@@ -91,7 +91,7 @@ def calculate_pixel_intensity_percentile(tiff_dir, fovs, channels, img_sub_folde
     """
 
     # create vector of channel percentiles to enable broadcasting
-    norm_vect = channel_percentiles['norm_val'].values
+    norm_vect = channel_percentiles.iloc[0].values
     norm_vect = norm_vect.reshape([1, 1, len(norm_vect)])
 
     intensity_percentile_list = []
@@ -414,7 +414,7 @@ def compute_pixel_cluster_channel_avg(fovs, channels, base_dir, pixel_cluster_co
     return sum_count_totals
 
 
-def create_fov_pixel_data(fov, channels, img_data, seg_labels, pixel_norm_val,
+def create_fov_pixel_data(fov, channels, img_data, seg_labels, pixel_thresh_val,
                           blur_factor=2, subset_proportion=0.1):
     """Preprocess pixel data for one fov
 
@@ -427,7 +427,7 @@ def create_fov_pixel_data(fov, channels, img_data, seg_labels, pixel_norm_val,
             Array representing image data for one fov
         seg_labels (numpy.ndarray):
             Array representing segmentation labels for one fov
-        pixel_norm_val (float):
+        pixel_thresh_val (float):
             value used to determine per-pixel cutoff for total signal inclusion
         blur_factor (int):
             The sigma to set for the Gaussian blur
@@ -465,7 +465,7 @@ def create_fov_pixel_data(fov, channels, img_data, seg_labels, pixel_norm_val,
 
     # remove any rows with channels with a sum below the threshold
     rowsums = pixel_mat[channels].sum(axis=1)
-    pixel_mat = pixel_mat.loc[rowsums > pixel_norm_val, :].reset_index(drop=True)
+    pixel_mat = pixel_mat.loc[rowsums > pixel_thresh_val, :].reset_index(drop=True)
 
     # normalize the row sums of pixel mat
     pixel_mat = normalize_rows(pixel_mat, channels, seg_labels is not None)
@@ -478,7 +478,7 @@ def create_fov_pixel_data(fov, channels, img_data, seg_labels, pixel_norm_val,
 
 def preprocess_fov(base_dir, tiff_dir, data_dir, subset_dir, seg_dir, seg_suffix,
                    img_sub_folder, is_mibitiff, channels, blur_factor,
-                   subset_proportion, pixel_norm_val, seed, channel_norm_df, fov):
+                   subset_proportion, pixel_thresh_val, seed, channel_norm_df, fov):
     """Helper function to read in the FOV-level pixel data, run `create_fov_pixel_data`,
     and save the preprocessed data.
 
@@ -508,7 +508,7 @@ def preprocess_fov(base_dir, tiff_dir, data_dir, subset_dir, seg_dir, seg_suffix
             The sigma to set for the Gaussian blur
         subset_proportion (float):
             The proportion of pixels to take from each fov
-        pixel_norm_val (float):
+        pixel_thresh_val (float):
             The value to normalize the pixels by
         seed (int):
             The random seed to set for subsetting
@@ -548,7 +548,7 @@ def preprocess_fov(base_dir, tiff_dir, data_dir, subset_dir, seg_dir, seg_suffix
     img_data = img_xr.loc[fov, :, :, channels].values.astype(np.float32)
 
     # create vector for normalizing image data
-    norm_vect = channel_norm_df['norm_val'].values
+    norm_vect = channel_norm_df.iloc[0].values
     norm_vect = np.array(norm_vect).reshape([1, 1, len(norm_vect)])
 
     # normalize image data
@@ -560,7 +560,7 @@ def preprocess_fov(base_dir, tiff_dir, data_dir, subset_dir, seg_dir, seg_suffix
     # create the full and subsetted fov matrices
     pixel_mat, pixel_mat_subset = create_fov_pixel_data(
         fov=fov, channels=channels, img_data=img_data, seg_labels=seg_labels,
-        pixel_norm_val=pixel_norm_val, blur_factor=blur_factor,
+        pixel_thresh_val=pixel_thresh_val, blur_factor=blur_factor,
         subset_proportion=subset_proportion
     )
 
@@ -583,11 +583,10 @@ def preprocess_fov(base_dir, tiff_dir, data_dir, subset_dir, seg_dir, seg_suffix
 
 def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
                         img_sub_folder="TIFs", seg_suffix='_whole_cell.tiff',
-                        pixel_cluster_prefix='pixel_cluster_prefix',
                         pixel_output_dir='pixel_output_dir',
                         data_dir='pixel_mat_data',
                         subset_dir='pixel_mat_subsetted',
-                        norm_vals_name='post_rowsum_chan_norm.feather', is_mibitiff=False,
+                        norm_vals_name='channel_norm_post_rowsum.feather', is_mibitiff=False,
                         blur_factor=2, subset_proportion=0.1, seed=42,
                         channel_percentile=0.99, multiprocess=False, batch_size=5):
     """For each fov, add a Gaussian blur to each channel and normalize channel sums for each pixel
@@ -612,9 +611,6 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
         seg_suffix (str):
             The suffix that the segmentation images use.
             Ignored if `seg_dir` is `None`.
-        pixel_cluster_prefix (str):
-            The name of the prefix to append before each pixel clustering directory/file,
-            needed to name the channel and pixel norm files
         pixel_output_dir (str):
             The name of the data directory containing the pixel data to use for the
             clustering pipeline. `data_dir` and `subset_dir` should be placed here.
@@ -659,19 +655,19 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
 
     # define path to channel normalization values
     channel_norm_path = os.path.join(
-        base_dir, pixel_output_dir, '%s_channel_norm.feather' % pixel_cluster_prefix
+        base_dir, pixel_output_dir, 'channel_norm.feather'
     )
 
     # define path to pixel normalization values
-    pixel_norm_path = os.path.join(
-        base_dir, pixel_output_dir, '%s_pixel_norm.feather' % pixel_cluster_prefix
+    pixel_thresh_path = os.path.join(
+        base_dir, pixel_output_dir, 'pixel_thresh.feather'
     )
 
     # reset entire cohort if channels provided are different from ones in existing channel_norm
     if os.path.exists(channel_norm_path):
         channel_norm_df = feather.read_dataframe(channel_norm_path)
 
-        if set(channel_norm_df['channel']) != set(channels):
+        if set(channel_norm_df.columns.values) != set(channels):
             print("New channels provided: overwriting whole cohort")
 
             # delete the existing data in data_dir and subset_dir
@@ -681,9 +677,9 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
             rmtree(os.path.join(base_dir, subset_dir))
             os.mkdir(os.path.join(base_dir, subset_dir))
 
-            # delete the existing channel_norm.feather and pixel_norm.feather
+            # delete the existing channel_norm.feather and pixel_thresh.feather
             os.remove(channel_norm_path)
-            os.remove(pixel_norm_path)
+            os.remove(pixel_thresh_path)
 
     # create variable for storing 99.9% values
     quant_dat = pd.DataFrame()
@@ -727,25 +723,25 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
         # load previously generated output
         channel_norm_df = feather.read_dataframe(channel_norm_path)
 
-    # load existing pixel_norm_path if exists, otherwise generate
-    if not os.path.exists(pixel_norm_path):
+    # load existing pixel_thresh_path if exists, otherwise generate
+    if not os.path.exists(pixel_thresh_path):
         # compute pixel percentiles
-        pixel_norm_val = calculate_pixel_intensity_percentile(
+        pixel_thresh_val = calculate_pixel_intensity_percentile(
             tiff_dir=tiff_dir, fovs=fovs, channels=channels,
             img_sub_folder=img_sub_folder, channel_percentiles=channel_norm_df
         )
 
-        pixel_norm_df = pd.DataFrame({'pixel_norm_val': [pixel_norm_val]})
-        feather.write_dataframe(pixel_norm_df, pixel_norm_path, compression='uncompressed')
+        pixel_thresh_df = pd.DataFrame({'pixel_thresh_val': [pixel_thresh_val]})
+        feather.write_dataframe(pixel_thresh_df, pixel_thresh_path, compression='uncompressed')
     else:
-        pixel_norm_df = feather.read_dataframe(pixel_norm_path)
-        pixel_norm_val = pixel_norm_df['pixel_norm_val'].values[0]
+        pixel_thresh_df = feather.read_dataframe(pixel_thresh_path)
+        pixel_thresh_val = pixel_thresh_df['pixel_thresh_val'].values[0]
 
     # define the partial function to iterate over
     fov_data_func = partial(
         preprocess_fov, base_dir, tiff_dir, data_dir, subset_dir,
         seg_dir, seg_suffix, img_sub_folder, is_mibitiff, channels, blur_factor,
-        subset_proportion, pixel_norm_val, seed, channel_norm_df
+        subset_proportion, pixel_thresh_val, seed, channel_norm_df
     )
 
     # define variable to keep track of number of fovs processed
@@ -870,11 +866,11 @@ def find_fovs_missing_col(base_dir, data_dir, missing_col):
 def train_pixel_som(fovs, channels, base_dir,
                     subset_dir='pixel_mat_subsetted',
                     norm_vals_name='post_rowsum_chan_norm.feather',
-                    weights_name='pixel_weights.feather', xdim=10, ydim=10,
+                    som_weights_name='pixel_som_weights.feather', xdim=10, ydim=10,
                     lr_start=0.05, lr_end=0.01, num_passes=1, seed=42):
     """Run the SOM training on the subsetted pixel data.
 
-    Saves weights to `base_dir/weights_name`.
+    Saves SOM weights to `base_dir/som_weights_name`.
 
     Args:
         fovs (list):
@@ -887,8 +883,8 @@ def train_pixel_som(fovs, channels, base_dir,
             The name of the subsetted data directory
         norm_vals_name (str):
             The name of the file to store the 99.9% normalization values
-        weights_name (str):
-            The name of the file to save the weights to
+        som_weights_name (str):
+            The name of the file to save the SOM weights to
         xdim (int):
             The number of x nodes to use for the SOM
         ydim (int):
@@ -906,12 +902,12 @@ def train_pixel_som(fovs, channels, base_dir,
     # define the paths to the data
     subsetted_path = os.path.join(base_dir, subset_dir)
     norm_vals_path = os.path.join(base_dir, norm_vals_name)
-    weights_path = os.path.join(base_dir, weights_name)
+    som_weights_path = os.path.join(base_dir, som_weights_name)
 
-    # if path to weights file already exists, don't run the process
-    if os.path.exists(weights_path):
-        print("Weights file %s already exists in base_dir %s, skipping SOM training" %
-              (weights_name, base_dir))
+    # if path to SOM weights file already exists, don't run the process
+    if os.path.exists(som_weights_path):
+        print("SOM weights file %s already exists in base_dir %s, skipping SOM training" %
+              (som_weights_name, base_dir))
         return
 
     # if path to the subsetted file does not exist
@@ -930,7 +926,7 @@ def train_pixel_som(fovs, channels, base_dir,
     # run the SOM training process
     process_args = ['Rscript', '/create_pixel_som.R', ','.join(fovs), ','.join(channels),
                     str(xdim), str(ydim), str(lr_start), str(lr_end), str(num_passes),
-                    subsetted_path, norm_vals_path, weights_path, str(seed)]
+                    subsetted_path, norm_vals_path, som_weights_path, str(seed)]
 
     process = subprocess.Popen(process_args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
@@ -954,9 +950,9 @@ def train_pixel_som(fovs, channels, base_dir,
 
 def cluster_pixels(fovs, channels, base_dir, data_dir='pixel_mat_data',
                    norm_vals_name='post_rowsum_chan_norm.feather',
-                   weights_name='pixel_weights.feather',
+                   som_weights_name='pixel_som_weights.feather',
                    multiprocess=False, batch_size=5, ncores=multiprocessing.cpu_count() - 1):
-    """Uses trained weights to assign cluster labels on full pixel data
+    """Uses trained SOM weights to assign cluster labels on full pixel data
     Saves data with cluster labels to `data_dir`.
 
     Args:
@@ -970,8 +966,8 @@ def cluster_pixels(fovs, channels, base_dir, data_dir='pixel_mat_data',
             Name of the directory which contains the full preprocessed pixel data
         norm_vals_name (str):
             The name of the file with the 99.9% normalized values, created by `train_pixel_som`
-        weights_name (str):
-            The name of the weights file created by `train_pixel_som`
+        som_weights_name (str):
+            The name of the SOM weights file created by `train_pixel_som`
         multiprocess (bool):
             Whether to use multiprocessing or not
         batch_size (int):
@@ -983,10 +979,10 @@ def cluster_pixels(fovs, channels, base_dir, data_dir='pixel_mat_data',
     # define the paths to the data
     data_path = os.path.join(base_dir, data_dir)
     norm_vals_path = os.path.join(base_dir, norm_vals_name)
-    weights_path = os.path.join(base_dir, weights_name)
+    som_weights_path = os.path.join(base_dir, som_weights_name)
 
     # path validation
-    io_utils.validate_paths([data_path, norm_vals_path, weights_path])
+    io_utils.validate_paths([data_path, norm_vals_path, som_weights_path])
 
     # verify that all provided fovs exist in the folder
     # NOTE: remove the channel and pixel normalization files as those are not pixel data
@@ -994,7 +990,7 @@ def cluster_pixels(fovs, channels, base_dir, data_dir='pixel_mat_data',
     misc_utils.verify_in_list(provided_fovs=fovs,
                               subsetted_fovs=io_utils.remove_file_extensions(data_files))
 
-    weights = feather.read_dataframe(os.path.join(base_dir, weights_name))
+    som_weights = feather.read_dataframe(os.path.join(base_dir, som_weights_name))
 
     # ensure the norm vals columns and the FOV data contain valid indexes
     # ignoring metadata columns in the FOV data, the columns need to be in exactly
@@ -1027,10 +1023,10 @@ def cluster_pixels(fovs, channels, base_dir, data_dir='pixel_mat_data',
         pixel_data_columns=sample_fov.columns.values
     )
 
-    # ensure the weights columns are valid indexes
+    # ensure the SOM weights columns are valid indexes
     misc_utils.verify_same_elements(
         enforce_order=True,
-        pixel_weights_columns=weights.columns.values,
+        pixel_som_weights_columns=som_weights.columns.values,
         pixel_data_columns=sample_fov.columns.values
     )
 
@@ -1049,7 +1045,7 @@ def cluster_pixels(fovs, channels, base_dir, data_dir='pixel_mat_data',
 
     # run the trained SOM on the dataset, assigning clusters
     process_args = ['Rscript', '/run_pixel_som.R', ','.join(fovs_list),
-                    data_path, norm_vals_path, weights_path, str(multiprocess),
+                    data_path, norm_vals_path, som_weights_path, str(multiprocess),
                     str(batch_size), str(ncores)]
 
     process = subprocess.Popen(process_args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
@@ -1076,7 +1072,7 @@ def cluster_pixels(fovs, channels, base_dir, data_dir='pixel_mat_data',
 
 
 def generate_som_avg_files(fovs, channels, base_dir, data_dir='pixel_data_dir',
-                           weights_name='pixel_weights.feather',
+                           som_weights_name='pixel_som_weights.feather',
                            pc_chan_avg_som_cluster_name='pixel_channel_avg_som_cluster.csv',
                            num_fovs_subset=100, seed=42):
     """Computes and saves the average channel expression across pixel SOM clusters.
@@ -1090,8 +1086,8 @@ def generate_som_avg_files(fovs, channels, base_dir, data_dir='pixel_data_dir',
             The path to the data directory
         data_dir (str):
             Name of the directory which contains the full preprocessed pixel data
-        weights_name (str):
-            The name of the weights file created by `train_pixel_som`
+        som_weights_name (str):
+            The name of the SOM weights file created by `train_pixel_som`
         pc_chan_avg_som_cluster_name (str):
             The name of the file to save the average channel expression across all SOM clusters
         num_fovs_subset (int):
@@ -1101,11 +1097,11 @@ def generate_som_avg_files(fovs, channels, base_dir, data_dir='pixel_data_dir',
     """
 
     # define the paths to the data
-    weights_path = os.path.join(base_dir, weights_name)
+    som_weights_path = os.path.join(base_dir, som_weights_name)
     som_cluster_avg_path = os.path.join(base_dir, pc_chan_avg_som_cluster_name)
 
     # path validation
-    io_utils.validate_paths(weights_path)
+    io_utils.validate_paths(som_weights_path)
 
     # if the channel SOM average file already exists, skip
     if os.path.exists(som_cluster_avg_path):
@@ -1113,7 +1109,7 @@ def generate_som_avg_files(fovs, channels, base_dir, data_dir='pixel_data_dir',
         return
 
     # load weights in
-    weights = feather.read_dataframe(weights_path)
+    som_weights = feather.read_dataframe(som_weights_path)
 
     # compute average channel expression for each pixel SOM cluster
     # and the number of pixels per SOM cluster
@@ -1123,7 +1119,7 @@ def generate_som_avg_files(fovs, channels, base_dir, data_dir='pixel_data_dir',
         channels,
         base_dir,
         'pixel_som_cluster',
-        weights.shape[0],
+        som_weights.shape[0],
         data_dir,
         num_fovs_subset=num_fovs_subset,
         seed=seed,
@@ -1176,7 +1172,6 @@ def run_pixel_consensus_assignment(pixel_data_path, pixel_cc_obj, fov):
 def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
                             data_dir='pixel_mat_data',
                             pc_chan_avg_som_cluster_name='pixel_channel_avg_som_cluster.csv',
-                            clust_to_meta_name='pixel_clust_to_meta.feather',
                             multiprocess=False, batch_size=5, seed=42):
     """Run consensus clustering algorithm on pixel-level summed data across channels
     Saves data with consensus cluster labels to `data_dir`.
@@ -1197,8 +1192,6 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
             This data should also have the SOM cluster labels appended from `cluster_pixels`.
         pc_chan_avg_som_cluster_name (str):
             Name of file to save the channel-averaged results across all SOM clusters to
-        clust_to_meta_name (str):
-            Name of file storing the SOM cluster to meta cluster mapping
         multiprocess (bool):
             Whether to use multiprocessing or not
         batch_size (int):
@@ -1214,16 +1207,9 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
     # define the paths to the data
     pixel_data_path = os.path.join(base_dir, data_dir)
     som_cluster_avg_path = os.path.join(base_dir, pc_chan_avg_som_cluster_name)
-    clust_to_meta_path = os.path.join(base_dir, clust_to_meta_name)
 
     # path validation
     io_utils.validate_paths([pixel_data_path, som_cluster_avg_path])
-
-    # if the path mapping SOM to meta clusters exists, don't re-run consensus clustering
-    if os.path.exists(clust_to_meta_path):
-        print("SOM to consensus cluster mapping exists at %s in base_dir %s, "
-              "skipping consensus clustering" % (clust_to_meta_name, base_dir))
-        return
 
     # only assign meta clusters to FOVs that don't already have them
     fovs_list = find_fovs_missing_col(base_dir, data_dir, 'pixel_meta_cluster')
@@ -1298,9 +1284,6 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
             # update every 10 FOVs, or at the very end
             if fovs_processed % 10 == 0 or fovs_processed == len(fovs_list):
                 print("Processed %d fovs" % fovs_processed)
-
-    # save the som to meta cluster map
-    pixel_cc.save_som_to_meta_map(clust_to_meta_path)
 
     # remove the data directory and rename the temp directory to the data directory
     rmtree(pixel_data_path)
