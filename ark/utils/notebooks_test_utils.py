@@ -163,9 +163,10 @@ def create_cell_som_files(base_dir,
         os.path.join(base_dir, cell_data),
         compression='uncompressed'
     )
-    weighted_channel_exp.to_csv(
+    feather.write_dataframe(
+        weighted_channel_exp,
         os.path.join(base_dir, weighted_cell_channel),
-        index=False
+        compression='uncompressed'
     )
 
     # define the average pixel count expresssion per cell SOM cluster

@@ -1,3 +1,4 @@
+from copy import deepcopy
 import os
 import tempfile
 import warnings
@@ -42,7 +43,7 @@ class CreatePixelMatrixBaseCases:
     def case_existing_channel_norm(self):
         return PIXEL_MATRIX_FOVS, PIXEL_MATRIX_CHANS, 'TIFs', True, True, False, False
 
-    def case_existing_pixel_norm(self):
+    def case_existing_pixel_thresh(self):
         return PIXEL_MATRIX_FOVS, PIXEL_MATRIX_CHANS, 'TIFs', True, False, True, False
 
     def case_existing_pixel_and_channel_norm(self):
@@ -53,7 +54,7 @@ class CreatePixelMatrixBaseCases:
 
 
 def mocked_create_fov_pixel_data(fov, channels, img_data, seg_labels, blur_factor,
-                                 subset_proportion, pixel_norm_val):
+                                 subset_proportion, pixel_thresh_val):
     # create fake data to be compatible with downstream functions
     data = np.random.rand(len(channels) * 5).reshape(5, len(channels))
     df = pd.DataFrame(data, columns=channels)
@@ -74,7 +75,7 @@ def mocked_create_fov_pixel_data(fov, channels, img_data, seg_labels, blur_facto
 
 def mocked_preprocess_fov(base_dir, tiff_dir, data_dir, subset_dir, seg_dir, seg_suffix,
                           img_sub_folder, is_mibitiff, channels, blur_factor,
-                          subset_proportion, pixel_norm_val, seed, channel_norm_df, fov):
+                          subset_proportion, pixel_thresh_val, seed, channel_norm_df, fov):
     # load img_xr from MIBITiff or directory with the fov
     if is_mibitiff:
         img_xr = load_utils.load_imgs_from_mibitiff(
@@ -112,7 +113,7 @@ def mocked_preprocess_fov(base_dir, tiff_dir, data_dir, subset_dir, seg_dir, seg
     # create the full and subsetted fov matrices
     pixel_mat, pixel_mat_subset = mocked_create_fov_pixel_data(
         fov=fov, channels=channels, img_data=img_data, seg_labels=seg_labels,
-        pixel_norm_val=pixel_norm_val, blur_factor=blur_factor,
+        pixel_thresh_val=pixel_thresh_val, blur_factor=blur_factor,
         subset_proportion=subset_proportion
     )
 
@@ -165,7 +166,7 @@ def test_calculate_channel_percentiles():
 
         # test equality when all channels and all FOVs are included
         for idx, chan in enumerate(chans):
-            assert predicted_percentiles['norm_val'].values[idx] == np.mean(percentile_dict[chan])
+            assert predicted_percentiles[chan].values == np.mean(percentile_dict[chan])
 
         # include only a subset of channels and fovs
         chans = chans[1:]
@@ -177,10 +178,13 @@ def test_calculate_channel_percentiles():
             img_sub_folder='TIFs',
             percentile=percentile
         )
+
+        # assert only the specified channels contained in predicted_percentiles
+        assert list(predicted_percentiles.columns.values) == chans
+
         # test equality for specific chans and FOVs
         for idx, chan in enumerate(chans):
-            assert predicted_percentiles['norm_val'].values[idx] == \
-                   np.mean(percentile_dict[chan][:-1])
+            assert predicted_percentiles[chan].values == np.mean(percentile_dict[chan][:-1])
 
 
 def test_calculate_pixel_intensity_percentile():
@@ -205,8 +209,9 @@ def test_calculate_pixel_intensity_percentile():
                 # saved modified channel
                 io.imsave(chan_path, img / divisor)
 
-        channel_percentiles = pd.DataFrame({'channel': ['chan1', 'chan2', 'chan3'],
-                                            'norm_val': [1, 1, 1]})
+        channel_percentiles = pd.DataFrame(np.array([[1, 1, 1]]),
+                                           columns=['chan1', 'chan2', 'chan3'])
+
         percentile = pixel_cluster_utils.calculate_pixel_intensity_percentile(
             tiff_dir=temp_dir, fovs=fovs, channels=chans,
             img_sub_folder='TIFs', channel_percentiles=channel_percentiles
@@ -611,7 +616,7 @@ def test_create_fov_pixel_data():
         # TEST 1: run fov preprocessing for one fov with seg_labels and no blank pixels
         sample_pixel_mat, sample_pixel_mat_subset = pixel_cluster_utils.create_fov_pixel_data(
             fov=fov, channels=chans, img_data=sample_img_data, seg_labels=seg_labels,
-            pixel_norm_val=1
+            pixel_thresh_val=1
         )
 
         # assert the channel names are the same
@@ -632,7 +637,7 @@ def test_create_fov_pixel_data():
 
         # TEST 2: run fov preprocessing for one fov without seg_labels and no blank pixels
         sample_pixel_mat, sample_pixel_mat_subset = pixel_cluster_utils.create_fov_pixel_data(
-            fov=fov, channels=chans, img_data=sample_img_data, seg_labels=None, pixel_norm_val=1
+            fov=fov, channels=chans, img_data=sample_img_data, seg_labels=None, pixel_thresh_val=1
         )
 
         # assert the channel names are the same
@@ -651,10 +656,10 @@ def test_create_fov_pixel_data():
         # NOTE: need to account for rounding if multiplying by 0.1 leads to non-int
         assert round(sample_pixel_mat.shape[0] * 0.1) == sample_pixel_mat_subset.shape[0]
 
-        # TEST 3: run fov preprocessing with a pixel_norm_val to ensure rows get removed
+        # TEST 3: run fov preprocessing with a pixel_thresh_val to ensure rows get removed
         sample_pixel_mat, sample_pixel_mat_subset = pixel_cluster_utils.create_fov_pixel_data(
             fov=fov, channels=chans, img_data=sample_img_data / 1000, seg_labels=seg_labels,
-            pixel_norm_val=0.5
+            pixel_thresh_val=0.5
         )
 
         # assert the channel names are the same
@@ -666,7 +671,7 @@ def test_create_fov_pixel_data():
         # assert all rows sum to 1 (within tolerance because of floating-point errors)
         assert np.all(np.allclose(sample_pixel_mat.loc[:, chans].sum(axis=1).values, 1))
 
-        # for this test, we want to ensure we successfully filtered out pixels below pixel_norm_val
+        # assert we successfully filtered out pixels below pixel_thresh_val
         assert sample_pixel_mat.shape[0] < (sample_img_data.shape[0] * sample_img_data.shape[1])
 
         # assert the size of the subsetted DataFrame is less than 0.1 of the preprocessed DataFrame
@@ -709,11 +714,10 @@ def test_preprocess_fov(mocker):
             io.imsave(os.path.join(seg_dir, file_name), rand_img,
                       check_contrast=False)
 
-        # generate sample channel normalization values
-        channel_norm_df = pd.DataFrame.from_dict({
-            'channel': chans,
-            'norm_val': np.repeat(10, repeats=len(chans))
-        })
+        channel_norm_df = pd.DataFrame(
+            np.expand_dims(np.repeat(10, repeats=len(chans)), axis=0),
+            columns=chans
+        )
 
         # run the preprocessing for fov0
         # NOTE: don't test the return value, leave that for test_create_pixel_matrix
@@ -760,12 +764,12 @@ def test_preprocess_fov(mocker):
 
 # TODO: leaving out MIBItiff testing until someone needs it
 @parametrize_with_cases(
-    'fovs,chans,sub_dir,seg_dir_include,channel_norm_include,pixel_norm_include,norm_diff_chan',
+    'fovs,chans,sub_dir,seg_dir_include,channel_norm_include,pixel_thresh_include,norm_diff_chan',
     cases=CreatePixelMatrixBaseCases
 )
 @parametrize('multiprocess', [True, False])
 def test_create_pixel_matrix_base(fovs, chans, sub_dir, seg_dir_include,
-                                  channel_norm_include, pixel_norm_include,
+                                  channel_norm_include, pixel_thresh_include,
                                   norm_diff_chan, multiprocess, mocker, capsys):
     with tempfile.TemporaryDirectory() as temp_dir:
         # create a directory to store the image data
@@ -866,21 +870,23 @@ def test_create_pixel_matrix_base(fovs, chans, sub_dir, seg_dir_include,
         if channel_norm_include:
             # helps test if channel_norm.feather contains a different set of channels
             norm_chans = [chans[0]] if norm_diff_chan else chans
-            sample_channel_norm_df = pd.DataFrame({'channel': norm_chans,
-                                                  'norm_val': np.random.rand(len(norm_chans))})
+            sample_channel_norm_df = pd.DataFrame(
+                np.expand_dims(np.random.rand(len(norm_chans)), axis=0),
+                columns=norm_chans
+            )
 
             feather.write_dataframe(
                 sample_channel_norm_df,
-                os.path.join(temp_dir, sample_pixel_output_dir, 'test_channel_norm.feather'),
+                os.path.join(temp_dir, sample_pixel_output_dir, 'channel_norm.feather'),
                 compression='uncompressed'
             )
 
-        # make the pixel_norm.feather file if the test requires it
-        if pixel_norm_include:
-            sample_pixel_norm_df = pd.DataFrame({'pixel_norm_val': np.random.rand(1)})
+        # make the pixel_thresh.feather file if the test requires it
+        if pixel_thresh_include:
+            sample_pixel_thresh_df = pd.DataFrame({'pixel_thresh_val': np.random.rand(1)})
             feather.write_dataframe(
-                sample_pixel_norm_df,
-                os.path.join(temp_dir, sample_pixel_output_dir, 'test_pixel_norm.feather'),
+                sample_pixel_thresh_df,
+                os.path.join(temp_dir, sample_pixel_output_dir, 'pixel_thresh.feather'),
                 compression='uncompressed'
             )
 
@@ -892,11 +898,10 @@ def test_create_pixel_matrix_base(fovs, chans, sub_dir, seg_dir_include,
             tiff_dir=tiff_dir,
             img_sub_folder=sub_dir,
             seg_dir=seg_dir,
-            pixel_cluster_prefix='test',
             multiprocess=multiprocess
         )
 
-        # assert we overwrote the original channel_norm and pixel_norm files
+        # assert we overwrote the original channel_norm and pixel_thresh files
         # if new set of channels provided
         if norm_diff_chan:
             output_capture = capsys.readouterr().out
@@ -911,14 +916,17 @@ def test_create_pixel_matrix_base(fovs, chans, sub_dir, seg_dir_include,
         # if there wasn't originally a channel_norm.feather or if overwritten, assert one created
         if not channel_norm_include or norm_diff_chan:
             assert os.path.exists(
-                os.path.join(temp_dir, sample_pixel_output_dir, 'test_channel_norm.feather')
+                os.path.join(temp_dir, sample_pixel_output_dir, 'channel_norm.feather')
             )
 
-        # if there wasn't originally a pixel_norm.feather or if overwritten, assert one created
-        if not pixel_norm_include or norm_diff_chan:
+        # if there wasn't originally a pixel_thresh.feather or if overwritten, assert one created
+        if not pixel_thresh_include or norm_diff_chan:
             assert os.path.exists(
-                os.path.join(temp_dir, sample_pixel_output_dir, 'test_pixel_norm.feather')
+                os.path.join(temp_dir, sample_pixel_output_dir, 'pixel_thresh.feather')
             )
+
+        # check that we created a norm vals file
+        assert os.path.exists(os.path.join(temp_dir, 'channel_norm_post_rowsum.feather'))
 
         for fov in fovs:
             fov_data_path = os.path.join(
@@ -983,11 +991,14 @@ def test_create_pixel_matrix_base(fovs, chans, sub_dir, seg_dir_include,
         # generate the data
         mults = [(1 / 2) ** i for i in range(len(chans))]
 
-        sample_channel_norm_df = pd.DataFrame({'channel': chans,
-                                               'norm_val': mults})
+        sample_channel_norm_df = pd.DataFrame(
+            np.expand_dims(mults, axis=0),
+            columns=chans
+        )
+
         feather.write_dataframe(
             sample_channel_norm_df,
-            os.path.join(temp_dir, sample_pixel_output_dir, 'test_channel_norm.feather'),
+            os.path.join(temp_dir, sample_pixel_output_dir, 'channel_norm.feather'),
             compression='uncompressed'
         )
 
@@ -998,7 +1009,6 @@ def test_create_pixel_matrix_base(fovs, chans, sub_dir, seg_dir_include,
             tiff_dir=new_tiff_dir,
             img_sub_folder=sub_dir,
             seg_dir=seg_dir,
-            pixel_cluster_prefix='test',
             multiprocess=multiprocess
         )
 
@@ -1305,8 +1315,8 @@ def test_train_pixel_som():
         weights = feather.read_dataframe(pixel_pysom.weights_path)
         assert weights.shape == (100, 4)
 
-        # assert that the weights columns are the same as chan_list
-        misc_utils.verify_same_elements(weights_channels=weights.columns.values,
+        # assert that the SOM weights columns are the same as chan_list
+        misc_utils.verify_same_elements(som_weights_channels=som_weights.columns.values,
                                         provided_channels=chan_list)
 
 
@@ -1767,13 +1777,14 @@ def test_pixel_consensus_cluster_base(multiprocess):
         )
 
         # run consensus clustering
-        pixel_cluster_utils.pixel_consensus_cluster(fovs=fovs, channels=chans, base_dir=temp_dir)
+        pixel_cc = pixel_cluster_utils.pixel_consensus_cluster(
+            fovs=fovs, channels=chans, base_dir=temp_dir
+        )
 
-        # assert we created the mapping file, then load it in
-        assert os.path.exists(os.path.join(temp_dir, 'pixel_clust_to_meta.feather'))
-        sample_mapping = feather.read_dataframe(
-            os.path.join(temp_dir, 'pixel_clust_to_meta.feather')
-        ).sort_values(by='pixel_som_cluster')
+        # assert we assigned a mapping, then sort
+        assert pixel_cc.mapping is not None
+        sample_mapping = deepcopy(pixel_cc.mapping)
+        sample_mapping = sample_mapping.sort_values(by='pixel_som_cluster')
 
         for fov in fovs:
             fov_consensus_data = feather.read_dataframe(os.path.join(temp_dir,
