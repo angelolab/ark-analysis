@@ -449,11 +449,6 @@ def create_mantis_dir(fovs: List[str], mantis_project_path: Union[str, pathlib.P
     if not os.path.exists(mantis_project_path):
         os.makedirs(mantis_project_path)
 
-    # `seg_suffix` file extension validation
-    seg_suffix_ext = seg_suffix_name.split(".")[-1]
-    misc_utils.verify_in_list(seg_suffix_ext=seg_suffix_ext,
-                              supported_image_extensions=EXTENSION_TYPES["IMAGE"])
-
     # create key from cluster number to cluster name
     if type(mapping) in {pathlib.Path, str}:
         map_df = pd.read_csv(mapping)
@@ -496,7 +491,7 @@ def create_mantis_dir(fovs: List[str], mantis_project_path: Union[str, pathlib.P
             os.makedirs(output_dir)
 
             # copy all channels into new folder
-            chans = io_utils.list_files(img_source_dir, substrs=f".{seg_suffix_ext}")
+            chans = io_utils.list_files(img_source_dir, substrs=[".tif", ".tiff", ".jpg", ".png"])
             for chan in chans:
                 shutil.copy(os.path.join(img_source_dir, chan), os.path.join(output_dir, chan))
 
