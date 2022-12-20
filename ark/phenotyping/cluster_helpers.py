@@ -68,9 +68,8 @@ class PixieSOMCluster(ABC):
         """
         # make sure to run a deterministic SOM for reproducibility purposes
         som_weights = som(
-            data=data.values, xdim=self.xdim, ydim=self.ydim, rlen=self.num_passes
-            alpha_range=(self.lr_start, self.lr_end),
-            deterministic=True
+            data=data.values, xdim=self.xdim, ydim=self.ydim, rlen=self.num_passes,
+            alpha_range=(self.lr_start, self.lr_end), deterministic=True
         )
 
         # ensure dimensions of weights are flattened
