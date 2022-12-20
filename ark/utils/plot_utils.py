@@ -11,11 +11,13 @@ import natsort
 import numpy as np
 import pandas as pd
 import xarray as xr
+import skimage.io as io
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from skimage.exposure import rescale_intensity
 from skimage.segmentation import find_boundaries
 
 from ark.utils import io_utils, load_utils, misc_utils
+import ark.settings as settings
 # plotting functions
 from ark.utils.misc_utils import verify_in_list, verify_same_elements
 
@@ -506,3 +508,53 @@ def create_mantis_dir(fovs: List[str], mantis_project_path: Union[str, pathlib.P
         # copy mapping into directory
         map_df.to_csv(os.path.join(output_dir, 'population{}.csv'.format(mask_suffix)),
                       index=False)
+
+
+def create_mixing_overlay(cell_data, mask_dir, output_dir, target_cells, reference_cells,
+                          target_color='#0000FF', reference_color='#F97306',
+                          file_suffix="mixing_overlay", fov_col=settings.FOV_ID,
+                          cell_col=settings.CELL_TYPE):
+    """ Generates colored mask overlays for FOVs based on target, reference, and other cell groups.
+    Args:
+        cell_data (pd.DataFrame): data for all fovs. Has columns for fov, label, and cell phenotype
+        mask_dir (str): path to directory containing the segmented fov masks
+        output_dir (str): path to directory where colored overlays will be saved
+        target_cells (list): the names of cell types making up the target population
+        reference_cells (list): the names of cell types making up the reference population
+        target_color (str): color for target cells, defaults to blue
+        reference_color (string): color for reference cells, defaults to orange
+        file_suffix (str): append to fov name to describe image
+        fov_col (str): name of column containing the fov info
+        cell_col (str): name of the column containing the cell cluster ingo
+    """
+
+    # extract fov and cell cluster names
+    all_fovs = cell_data[fov_col].unique()
+    cell_types = cell_data[cell_col].unique()
+
+    # background: white, other cells: grey
+    cols = ['#FFFFFF', target_color, reference_color, '#C0C0C0']
+
+    bounds = [i - 0.5 for i in np.linspace(0, len(cell_types) + 1, len(cell_types) + 2)]
+    colmap = colors.ListedColormap(cols)
+    norm = colors.BoundaryNorm(bounds, colmap.N)
+
+    # generate the mixing overlay for each fov
+    for fov in all_fovs:
+        fov_data = cell_data[cell_data.fov == fov]
+        clust_array = np.array(io.imread(os.path.join(mask_dir, f'{fov}_feature_0.tiff')))
+
+        # relabel values according to cell cluster
+        for label in fov_data.label:
+            cell_type = fov_data.loc[fov_data.label == label].cell_col.values[0]
+            if cell_type in target_cells:
+                color_value = 1
+            elif cell_type in reference_cells:
+                color_value = 2
+            else:
+                color_value = 3
+            clust_array[clust_array == label] = color_value
+
+        clust_array = np.squeeze(clust_array, axis=0)
+        image = colmap(norm(clust_array))
+        plt.imsave(os.path.join(output_dir, f'{fov}_{file_suffix}.tiff'), image)
