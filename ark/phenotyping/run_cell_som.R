@@ -1,10 +1,9 @@
 # Assigns cluster labels to cell data using a trained SOM weights matrix
 
-# Usage: Rscript run_cell_som.R {clusterCountsNormPath} {cellWeightsPath} {cellMatNormPath}
+# Usage: Rscript run_cell_som.R {clusterCountsNormPath} {cellWeightsPath}
 
 # - clusterCountsNormPath: path to file with counts of unique cells (rows) by unique pixel SOM/meta clusters (columns), with counts normalized by cell size
 # - cellWeightsPath: path to the SOM weights file
-# - cellMatNormPath: the path to write the normalized pixel SOM/meta cluster count data (normalized) with cell SOM labelss. This will be used for consensus clustering.
 
 suppressPackageStartupMessages({
     library(arrow)
@@ -20,9 +19,6 @@ clusterCountsPath <- args[1]
 
 # get the weights write path
 cellWeightsPath <- args[2]
-
-# get the data write path (normalized)
-cellMatPathNorm <- args[3]
 
 # read the cluster counts data (norm)
 print("Reading the cluster counts data")
@@ -62,6 +58,9 @@ clusters <- FlowSOM:::MapDataToCodes(somWeights, as.matrix(clusterCountsNorm[,cl
 # assign cluster labels to pixel data
 clusterCountsNorm$cell_som_cluster <- as.integer(clusters[,1])
 
+# delete the original cell counts norm path, done to prevent corruption
+unlink(clusterCountsPath)
+
 # write to feather
 print("Writing clustered data")
-arrow::write_feather(as.data.table(clusterCountsNorm), cellMatPathNorm, compression='uncompressed')
+arrow::write_feather(as.data.table(clusterCountsNorm), clusterCountsPath, compression='uncompressed')
