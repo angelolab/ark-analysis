@@ -593,4 +593,4 @@ def ome_to_fov(ome: Union[str, pathlib.Path], data_dir: Union[str, pathlib.Path]
 
             image_utils.save_image(
                 fname=save_dir / f"{channel}.tiff", data=ome_tiff_page.asarray().transpose(),
-                compression_level=0)
+                compression_level=6)
