@@ -67,4 +67,4 @@ EXTENSION_TYPES: Dict[str, List[str]] = {
 
 
 # Switch it from `main` to the commit ID on HuggingFace to test a specific version of the Example Dataset
-EXAMPLE_DATASET_REVISION: str = "3ce2e0ef9e86e9a2a5778aa78a7c6cd094503f3f"
+EXAMPLE_DATASET_REVISION: str = "8053247fcd144a87aa1fb3eac0691dc186843281"
