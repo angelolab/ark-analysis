@@ -772,7 +772,8 @@ def compute_cluster_metrics_silhouette(neighbor_mat, min_k=2, max_k=10, seed=42,
 
 
 def compute_cell_neighbors(all_data, dist_mat_dir, cell_neighbors_dir, neighbors_radius=100,
-                           included_fovs=None, fov_col=settings.FOV_ID):
+                           included_fovs=None, fov_col=settings.FOV_ID,
+                           cell_col=settings.CELL_TYPE):
     """ Create cell neighbors matrix for each FOV, save files to cell_neighbors_dir
     Args:
         all_data (pandas.DataFrame):
@@ -786,7 +787,9 @@ def compute_cell_neighbors(all_data, dist_mat_dir, cell_neighbors_dir, neighbors
         included_fovs (list):
             fovs to include in analysis. If argument is none, default is all fovs used
         fov_col (str):
-            column with the cell fovs
+            column with the fovs
+        cell_col (str):
+            column with the cell cluster
     """
 
     # get all fovs
@@ -804,32 +807,39 @@ def compute_cell_neighbors(all_data, dist_mat_dir, cell_neighbors_dir, neighbors
         fov_data = all_data[all_data[fov_col] == fov].reset_index()
         cell_neighbors, _ = create_neighborhood_matrix(fov_data, dist_mat_dir, [fov],
                                                        distlim=neighbors_radius,
-                                                       drop_single_cells=False)
+                                                       drop_single_cells=False,
+                                                       cluster_name_col=cell_col)
         save_path = os.path.join(cell_neighbors_dir, f"{fov}_cell_neighbors.csv")
         cell_neighbors.to_csv(save_path, index=False)
 
 
-def compute_mixing_score(cell_neighbors_dir, fov, target_cell, reference_cell, cold_thresh=0,
-                         percent_mix=False):
+def compute_mixing_score(cell_neighbors_dir, fov, target_cells, reference_cells, cold_thresh=0,
+                         cell_col=settings.CELL_TYPE, fov_col=settings.FOV_ID,
+                         label_col=settings.CELL_LABEL):
     """ Compute and return the mixing score for the specified target/reference cell types
     Args:
         cell_neighbors_dir (str):
-            directory to save cell neighbor tables to
+            directory where cell neighbor tables are stored
         fov (str):
             single fov to compute mixing score for
-        target_cell (str):
-            invading cell phenotype
-        reference_cell (str):
-            expected cell phenotype
+        target_cells (list):
+            invading cell phenotypes
+        reference_cells (list):
+            expected cell phenotypes
         cold_thresh (int):
             minimum number of cells required to calculate a mixing score, under this labeled "cold"
-        percent_mix (bool):
-            whether to represent mixing score as a percent of combined reference/target and
-            reference/reference interactions
+        cell_col (str):
+            column with the cell cluster
+        fov_col (str):
+            column with the fovs
+        label_col (str):
+            column with the cell labels
 
     Returns:
-        int:
-            the mixing score for the FOV
+        tuple (float, float):
+            - the mixing score for the FOV
+            - the ratio of target cells to reference cells
+
     """
 
     # path validation
@@ -838,28 +848,39 @@ def compute_mixing_score(cell_neighbors_dir, fov, target_cell, reference_cell, c
 
     # read in fov cell neighbors, drop fov and cell label columns
     neighbors_mat = pd.read_csv(cell_neighbors_path)
-    neighbors_mat = neighbors_mat.drop(columns=[settings.FOV_ID, settings.CELL_LABEL])
+    neighbors_mat = neighbors_mat.drop(columns=[fov_col, label_col])
 
     # cell types validation
-    all_cells = neighbors_mat[settings.CELL_TYPE].unique()
-    misc_utils.verify_in_list(provided_cell_populations=[target_cell, reference_cell],
+    overlap = [cell for cell in target_cells if cell in reference_cells]
+    if overlap:
+        raise ValueError(f"The following cell types were included in both the target and reference"
+                         f" populations: {overlap}")
+    all_cells = neighbors_mat[cell_col].unique()
+    misc_utils.verify_in_list(provided_cell_populations=target_cells+reference_cells,
                               cell_populations_in_fov=all_cells)
 
-    # get number of reference cells in sample
-    reference_total = neighbors_mat[neighbors_mat[settings.CELL_TYPE] == reference_cell].shape[0]
+    # get number of target and reference cells in sample
+    target_total = neighbors_mat[neighbors_mat[cell_col].isin(target_cells)].shape[0]
+    reference_total = neighbors_mat[
+        neighbors_mat[cell_col].isin(reference_cells)].shape[0]
+    # check reference threshold
     if reference_total < cold_thresh:
         return np.nan
 
     # condense to total number of cell type interactions
-    interactions_mat = neighbors_mat.groupby(by=[settings.CELL_TYPE]).sum(numeric_only=True)
+    neighbors_mat[cell_col] = neighbors_mat[cell_col].replace(target_cells, 'target')
+    neighbors_mat[cell_col] = neighbors_mat[cell_col].replace(reference_cells, 'reference')
+    interactions_mat = neighbors_mat.groupby(by=[cell_col]).sum(numeric_only=True)
 
-    # mixing calc based on Leeat's paper
-    reference_target = interactions_mat.loc[target_cell, reference_cell]
-    reference_reference = interactions_mat.loc[reference_cell, reference_cell]
+    reference_target = interactions_mat.loc['target', 'reference']
+    target_target = interactions_mat.loc['target', 'target']
+    reference_reference = interactions_mat.loc['reference', 'reference']
 
-    if percent_mix:
-        mixing_score = reference_target / (reference_target + reference_reference)
-    else:
-        mixing_score = reference_target / reference_reference
+    # mixing score calulcation
+    # mixing_score = reference_target / (reference_target + reference_reference)
+    mixing_score = reference_target / (target_target + reference_reference)
 
-    return mixing_score
+    # ratio of cell populations
+    ratio = target_total/reference_total
+
+    return mixing_score, ratio
