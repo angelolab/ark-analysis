@@ -960,10 +960,10 @@ def run_pixel_som_assignment(pixel_data_path, pixel_pysom_obj, fov):
     except (ArrowInvalid, OSError, IOError):
         return fov, 1
 
-    # assign the consensus labels to fov_data
+    # assign the SOM labels to fov_data
     fov_data = pixel_pysom_obj.assign_som_clusters(fov_data)
 
-    # resave the data with the meta cluster labels assigned
+    # resave the data with the SOM cluster labels assigned
     temp_path = os.path.join(pixel_data_path + '_temp', fov + '.feather')
     feather.write_dataframe(fov_data, temp_path, compression='uncompressed')
 

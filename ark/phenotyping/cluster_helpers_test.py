@@ -330,10 +330,12 @@ class TestCellSOMCluster:
 
     def test_normalize_data(self):
         # normalize cell_table
-        normalized_data = self.cell_pysom_weights.normalize_data()
+        self.cell_pysom_nonweights.normalize_data()
 
         # assert all values are <= 1 for 99.9% quantile normalization
-        assert np.all(normalized_data[self.cell_pysom_weights.columns].values <= 1)
+        assert np.all(
+            self.cell_pysom_weights.cell_data[self.cell_pysom_weights.columns].values <= 1
+        )
 
     def test_train_som(self):
         self.cell_pysom_nonweights.train_som()

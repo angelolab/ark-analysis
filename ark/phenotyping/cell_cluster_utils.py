@@ -394,7 +394,7 @@ def train_cell_som(fovs, channels, base_dir, pixel_data_dir, cell_table_path,
                    pixel_cluster_col='pixel_meta_cluster_rename',
                    pc_chan_avg_name='pc_chan_avg.csv',
                    som_weights_name='cell_som_weights.feather',
-                   weighted_cell_channel_name='weighted_cell_channel.csv',
+                   weighted_cell_channel_name='weighted_cell_channel.feather',
                    xdim=10, ydim=10, lr_start=0.05, lr_end=0.01, num_passes=1):
     """Run the SOM training on the number of pixel/meta clusters in each cell of each fov
 

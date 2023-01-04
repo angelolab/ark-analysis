@@ -9,7 +9,7 @@ import pandas as pd
 from pyFlowSOM import map_data_to_nodes, som
 from scipy.stats import zscore
 from sklearn.cluster import AgglomerativeClustering
-from typing import Callable, List, Protocol, runtime_checkable
+from typing import Callable, Generic, List, Protocol, runtime_checkable
 import warnings
 
 from ark.utils.io_utils import list_files, validate_paths
@@ -255,10 +255,10 @@ class CellSOMCluster(PixieSOMCluster):
         self.cell_data = feather.read_dataframe(cell_data_path)
 
         # since cell_data is the only dataset, we can just normalize it immediately
-        self.cell_data = self.normalize_data()
+        self.normalize_data()
 
-    def normalize_data(self) -> pd.DataFrame:
-        """Uses `norm_data` to normalize `cell_data`
+    def normalize_data(self):
+        """Normalizes `cell_data` by the 99.9% value of each pixel cluster count column
 
         Returns:
             pandas.DataFrame:
@@ -270,8 +270,6 @@ class CellSOMCluster(PixieSOMCluster):
 
         # assign back to cell_data
         self.cell_data[self.columns] = cell_data_sub
-
-        return self.cell_data
 
     def train_som(self):
         """Trains the SOM using `cell_data`
