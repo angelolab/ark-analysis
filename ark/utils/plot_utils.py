@@ -16,6 +16,7 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 from skimage.exposure import rescale_intensity
 from skimage.segmentation import find_boundaries
 
+from ark.settings import EXTENSION_TYPES
 from ark.utils import io_utils, load_utils, misc_utils
 import ark.settings as settings
 # plotting functions
@@ -264,13 +265,13 @@ def create_overlay(fov, segmentation_dir, data_dir,
         fov (str):
             The name of the fov to overlay
         segmentation_dir (str):
-            The path to the directory containing the segmentatation data
+            The path to the directory containing the segmentation data
         data_dir (str):
             The path to the directory containing the nuclear and whole cell image data
         img_overlay_chans (list):
             List of channels the user will overlay
         seg_overlay_comp (str):
-            The segmentted compartment the user will overlay
+            The segmented compartment the user will overlay
         alternate_segmentation (numpy.ndarray):
             2D numpy array of labeled cell objects
     Returns:
@@ -397,7 +398,7 @@ def create_mantis_dir(fovs: List[str], mantis_project_path: Union[str, pathlib.P
                       mapping: Union[str, pathlib.Path, pd.DataFrame],
                       seg_dir: Union[str, pathlib.Path],
                       mask_suffix: str = "_mask",
-                      seg_suffix_name: str = "_whole_cell",
+                      seg_suffix_name: str = "_whole_cell.tiff",
                       img_sub_folder: str = ""):
     """Creates a mantis project directory so that it can be opened by the mantis viewer.
     Copies fovs, segmentation files, masks, and mapping csv's into a new directory structure.
@@ -440,7 +441,8 @@ def create_mantis_dir(fovs: List[str], mantis_project_path: Union[str, pathlib.P
         mask_suffix (str, optional):
             The suffix used to find the mask tiffs. Defaults to "_mask".
         seg_suffix_name (str, optional):
-            The suffix of the segmentation file. Defaults to "_whole_cell".
+            The suffix of the segmentation file and it's file extension.
+            Defaults to "_whole_cell.tiff".
         img_sub_folder (str, optional):
             The subfolder where the channels exist within the `img_data_path`.
             Defaults to "normalized".
@@ -491,17 +493,17 @@ def create_mantis_dir(fovs: List[str], mantis_project_path: Union[str, pathlib.P
             os.makedirs(output_dir)
 
             # copy all channels into new folder
-            chans = io_utils.list_files(img_source_dir, '.tiff')
+            chans = io_utils.list_files(img_source_dir, substrs=[".tif", ".tiff", ".jpg", ".png"])
             for chan in chans:
                 shutil.copy(os.path.join(img_source_dir, chan), os.path.join(output_dir, chan))
 
         # copy mask into new folder
-        mask_name: str = mn + mask_suffix + '.tiff'
+        mask_name: str = mn + mask_suffix + ".tiff"
         shutil.copy(os.path.join(mask_output_dir, mask_name),
                     os.path.join(output_dir, 'population{}.tiff'.format(mask_suffix)))
 
         # copy the segmentation files into the output directory
-        seg_name: str = fov + seg_suffix_name + '.tiff'
+        seg_name: str = fov + seg_suffix_name
         shutil.copy(os.path.join(seg_dir, seg_name),
                     os.path.join(output_dir, 'cell_segmentation.tiff'))
 

@@ -1,3 +1,5 @@
+import feather
+import os
 import pytest
 from testbook import testbook
 from typing import ContextManager, Iterator
@@ -74,7 +76,7 @@ def nb2_context(templates_dir, base_dir_generator) -> Iterator[ContextManager]:
         Iterator[ContextManager]: The testbook context manager which will get cleaned up
             afterwords.
     """
-    CLUSTER_PIXELS: pathlib.Path = templates_dir / "2_Cluster_Pixels.ipynb"
+    CLUSTER_PIXELS: pathlib.Path = templates_dir / "2_Pixie_Cluster_Pixels.ipynb"
     with testbook(CLUSTER_PIXELS, timeout=6000, execute=False) as nb_context_manager:
         yield nb_context_manager, base_dir_generator / "nb2"
 
@@ -94,7 +96,7 @@ def nb3_context(templates_dir, base_dir_generator) -> Iterator[ContextManager]:
         Iterator[ContextManager]: The testbook context manager which will get cleaned up
             afterwords.
     """
-    CLUSTER_CELLS: pathlib.Path = templates_dir / "3_Cluster_Cells.ipynb"
+    CLUSTER_CELLS: pathlib.Path = templates_dir / "3_Pixie_Cluster_Cells.ipynb"
     with testbook(CLUSTER_CELLS, timeout=6000, execute=False) as nb_context_manager:
         yield nb_context_manager, base_dir_generator / "nb3"
 
@@ -163,14 +165,14 @@ class Test_1_Segment_Image_Data:
         """
         self.tb.inject(base_dir_inject, "base_dir")
 
+    def test_ex_data_download(self):
+        self.tb.execute_cell("ex_data_download")
+
     def test_file_path(self):
         self.tb.execute_cell("file_path")
 
     def test_create_dirs(self):
         self.tb.execute_cell("create_dirs")
-
-    def test_ex_data_download(self):
-        self.tb.execute_cell("ex_data_download")
 
     def test_validate_path(self):
         self.tb.execute_cell("validate_path")
@@ -241,11 +243,11 @@ class Test_2_Pixel_Clustering:
         """
         self.tb.inject(base_dir_inject, "base_dir")
 
-    def test_file_path(self):
-        self.tb.execute_cell("file_path")
-
     def test_ex_data_download(self):
         self.tb.execute_cell("ex_data_download")
+
+    def test_file_path(self):
+        self.tb.execute_cell("file_path")
 
     def test_load_fovs(self):
         load_fovs_inject = """
@@ -299,16 +301,16 @@ class Test_2_Pixel_Clustering:
         # Get pixel paths and fovs
         pixel_data_dir = self.tb.ref("pixel_data_dir")
         pixel_channel_avg_som_cluster = self.tb.ref("pc_chan_avg_som_cluster_name")
-        pixel_channel_avg_meta_cluster = self.tb.ref("pc_chan_avg_meta_cluster_name")
         fovs = self.tb.ref("fovs")
         channels = self.tb.ref("channels")
         # Create fake pixel som files
         notebooks_test_utils.create_pixel_som_files(self.base_dir,
                                                     pixel_data_dir,
                                                     pixel_channel_avg_som_cluster,
-                                                    pixel_channel_avg_meta_cluster,
                                                     fovs,
                                                     channels)
+
+        self.tb.execute_cell("pixel_consensus_cluster")
 
     def test_pixel_interactive(self):
         self.tb.execute_cell("pixel_interactive")
@@ -368,11 +370,11 @@ class Test_3_Cell_Clustering:
         """
         self.tb.inject(base_dir_inject, "base_dir")
 
-    def test_dir_set(self):
-        self.tb.execute_cell("dir_set")
-
     def test_ex_data_download(self):
         self.tb.execute_cell("ex_data_download")
+
+    def test_dir_set(self):
+        self.tb.execute_cell("dir_set")
 
     def test_param_load(self):
         self.tb.execute_cell("param_load")
@@ -404,10 +406,10 @@ class Test_3_Cell_Clustering:
         fovs = self.tb.ref("fovs")
         channels = self.tb.ref("channels")
         cell_table_path = self.tb.ref("cell_table_path")
-        cell_data = self.tb.ref("cell_data_name")
+        cluster_counts_size_norm = self.tb.ref("cluster_counts_size_norm_name")
         weighted_cell_channel = self.tb.ref("weighted_cell_channel_name")
-        cell_som_cluster_count_avgs = self.tb.ref("cell_som_cluster_count_avgs_name")
-        cell_meta_cluster_count_avgs = self.tb.ref("cell_meta_cluster_count_avgs_name")
+        cell_som_cluster_count_avgs = self.tb.ref("cell_som_cluster_count_avg_name")
+        cell_meta_cluster_count_avgs = self.tb.ref("cell_meta_cluster_count_avg_name")
         cell_som_cluster_channel_avg = self.tb.ref("cell_som_cluster_channel_avg_name")
         cell_meta_cluster_channel_avg = self.tb.ref("cell_meta_cluster_channel_avg_name")
         # Create fake pixel som files
@@ -415,13 +417,13 @@ class Test_3_Cell_Clustering:
                                                    fovs,
                                                    channels,
                                                    cell_table_path,
-                                                   cell_data,
+                                                   cluster_counts_size_norm,
                                                    weighted_cell_channel,
                                                    cell_som_cluster_count_avgs,
-                                                   cell_meta_cluster_count_avgs,
-                                                   cell_som_cluster_channel_avg,
-                                                   cell_meta_cluster_channel_avg
+                                                   cell_som_cluster_channel_avg
                                                    )
+
+        self.tb.execute_cell("cell_consensus_cluster")
 
     def test_cell_interactive(self):
         self.tb.execute_cell("cell_interactive")
@@ -487,11 +489,11 @@ class Test_4_Post_Clustering:
         """
         self.tb.inject(base_dir_inject, "base_dir")
 
-    def test_file_path(self):
-        self.tb.execute_cell("file_path")
-
     def test_ex_data_download(self):
         self.tb.execute_cell("ex_data_download")
+
+    def test_file_path(self):
+        self.tb.execute_cell("file_path")
 
     def test_dir_set(self):
         self.tb.execute_cell("dir_set")
@@ -551,11 +553,11 @@ class Test_Fiber_Segmentation():
         """
         self.tb.inject(base_dir_inject, "base_dir")
 
-    def test_file_paths(self):
-        self.tb.execute_cell("file_paths")
-
     def test_ex_data_download(self):
         self.tb.execute_cell("ex_data_download")
+
+    def test_file_paths(self):
+        self.tb.execute_cell("file_paths")
 
     def test_param_set(self):
         self.tb.execute_cell("param_set")

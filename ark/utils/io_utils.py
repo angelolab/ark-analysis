@@ -1,10 +1,16 @@
+import itertools
 import os
 import pathlib
 import warnings
+from typing import List
+
+from ark.settings import EXTENSION_TYPES
+
+from ark.utils import misc_utils
 
 
 def validate_paths(paths, data_prefix=False):
-    """Verifys that paths exist and don't leave Docker's scope
+    """Verifies that paths exist and don't leave Docker's scope
 
     Args:
         paths (str or list):
@@ -18,8 +24,7 @@ def validate_paths(paths, data_prefix=False):
     """
 
     # if given a single path, convert to list
-    if not isinstance(paths, list):
-        paths = [paths]
+    paths = misc_utils.make_iterable(paths, ignore_str=True)
 
     for path in paths:
         # check data prefix
@@ -115,8 +120,8 @@ def remove_file_extensions(files):
     # remove the file extension
     names = [os.path.splitext(name) for name in files]
     names_corrected = []
-    extension_types = ["tiff", "tif", "png", "jpg", "jpeg", "tar", "gz", "csv", "feather",
-                       "bin", "json"]
+    extension_types: List[str] = list(itertools.chain(*EXTENSION_TYPES.values()))
+
     for name in names:
         # We want everything after the "." for the extension
         ext = name[-1][1:]
