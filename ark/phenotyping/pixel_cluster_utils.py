@@ -867,7 +867,7 @@ def train_pixel_som(fovs, channels, base_dir,
                     subset_dir='pixel_mat_subsetted',
                     norm_vals_name='post_rowsum_chan_norm.feather',
                     som_weights_name='pixel_som_weights.feather', xdim=10, ydim=10,
-                    lr_start=0.05, lr_end=0.01, num_passes=1, seed=42):
+                    lr_start=0.05, lr_end=0.01, num_passes=1):
     """Run the SOM training on the subsetted pixel data.
 
     Saves SOM weights to `base_dir/som_weights_name`.
@@ -895,8 +895,10 @@ def train_pixel_som(fovs, channels, base_dir,
             The end learning rate for the SOM, decays from `lr_start`
         num_passes (int):
             The number of training passes to make through the dataset
-        seed (int):
-            The random seed to set for training
+
+    Returns:
+        cluster_helpers.PixelSOMCluster:
+            The SOM cluster object containing the pixel SOM weights
     """
 
     # define the paths to the data
@@ -904,14 +906,9 @@ def train_pixel_som(fovs, channels, base_dir,
     norm_vals_path = os.path.join(base_dir, norm_vals_name)
     som_weights_path = os.path.join(base_dir, som_weights_name)
 
-    # if path to SOM weights file already exists, don't run the process
-    if os.path.exists(som_weights_path):
-        print("SOM weights file %s already exists in base_dir %s, skipping SOM training" %
-              (som_weights_name, base_dir))
-        return
-
-    # if path to the subsetted file does not exist
-    io_utils.validate_paths(subsetted_path)
+    # file path validation
+    # NOTE: weights may or may not exist, that logic gets handled by PixelSOMCluster
+    io_utils.validate_paths([subsetted_path, norm_vals_path])
 
     # verify that all provided fovs exist in the folder
     files = io_utils.list_files(subsetted_path, substrs='.feather')
@@ -923,36 +920,60 @@ def train_pixel_som(fovs, channels, base_dir,
     misc_utils.verify_in_list(provided_channels=channels,
                               subsetted_channels=sample_sub.columns.values)
 
-    # run the SOM training process
-    process_args = ['Rscript', '/create_pixel_som.R', ','.join(fovs), ','.join(channels),
-                    str(xdim), str(ydim), str(lr_start), str(lr_end), str(num_passes),
-                    subsetted_path, norm_vals_path, som_weights_path, str(seed)]
+    # define the pixel SOM cluster object
+    pixel_pysom = cluster_helpers.PixelSOMCluster(
+        subsetted_path, norm_vals_path, som_weights_path, channels,
+        num_passes=num_passes, xdim=xdim, ydim=ydim, lr_start=lr_start, lr_end=lr_end
+    )
 
-    process = subprocess.Popen(process_args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    # train the SOM weights
+    # NOTE: seed has to be set in cyFlowSOM.pyx, done by passing flag in PixieSOMCluster
+    print("Training SOM")
+    pixel_pysom.train_som()
 
-    # continuously poll the process for output/error to display in Jupyter notebook
-    while True:
-        # convert from byte string
-        output = process.stdout.readline().decode('utf-8')
-
-        # if the output is nothing and the process is done, break
-        if process.poll() is not None:
-            break
-        if output:
-            print(output.strip())
-
-    if process.returncode != 0:
-        raise OSError(
-            "Process terminated: please view error messages displayed above for debugging. "
-            "For pixel SOM training, you will likely need to decrease the pixel subset proportion."
-        )
+    return pixel_pysom
 
 
-def cluster_pixels(fovs, channels, base_dir, data_dir='pixel_mat_data',
-                   norm_vals_name='post_rowsum_chan_norm.feather',
-                   som_weights_name='pixel_som_weights.feather',
-                   multiprocess=False, batch_size=5, ncores=multiprocessing.cpu_count() - 1):
-    """Uses trained SOM weights to assign cluster labels on full pixel data
+def run_pixel_som_assignment(pixel_data_path, pixel_pysom_obj, fov):
+    """Helper function to assign pixel SOM cluster labels
+
+    Args:
+        pixel_data_path (str):
+            The path to the pixel data directory
+        pixel_pysom_obj (ark.phenotyping.cluster_helpers.PixieConsensusCluster):
+            The pixel SOM cluster object
+        fov (str):
+            The name of the FOV to process
+
+    Returns:
+        tuple (str, int):
+            The name of the FOV as well as the return code
+    """
+
+    # get the path to the fov
+    fov_path = os.path.join(pixel_data_path, fov + '.feather')
+
+    # read in the fov data with SOM labels
+    try:
+        fov_data = feather.read_dataframe(fov_path)
+    # this indicates this fov file is corrupted
+    except (ArrowInvalid, OSError, IOError):
+        return fov, 1
+
+    # assign the SOM labels to fov_data
+    fov_data = pixel_pysom_obj.assign_som_clusters(fov_data)
+
+    # resave the data with the SOM cluster labels assigned
+    temp_path = os.path.join(pixel_data_path + '_temp', fov + '.feather')
+    feather.write_dataframe(fov_data, temp_path, compression='uncompressed')
+
+    return fov, 0
+
+
+def cluster_pixels(fovs, channels, base_dir, pixel_pysom, data_dir='pixel_mat_data',
+                   multiprocess=False, batch_size=5):
+    """Uses trained SOM weights to assign cluster labels on full pixel data.
+
     Saves data with cluster labels to `data_dir`.
 
     Args:
@@ -962,40 +983,31 @@ def cluster_pixels(fovs, channels, base_dir, data_dir='pixel_mat_data',
             The list of channels to subset on
         base_dir (str):
             The path to the data directory
+        pixel_pysom (cluster_helpers.PixelSOMCluster):
+            The SOM cluster object containing the pixel SOM weights
         data_dir (str):
             Name of the directory which contains the full preprocessed pixel data
-        norm_vals_name (str):
-            The name of the file with the 99.9% normalized values, created by `train_pixel_som`
-        som_weights_name (str):
-            The name of the SOM weights file created by `train_pixel_som`
         multiprocess (bool):
             Whether to use multiprocessing or not
         batch_size (int):
             The number of FOVs to process in parallel, ignored if `multiprocess` is `False`
-        ncores (int):
-            The number of cores desired for multiprocessing, ignored if `multiprocess` is `False`
     """
 
     # define the paths to the data
     data_path = os.path.join(base_dir, data_dir)
-    norm_vals_path = os.path.join(base_dir, norm_vals_name)
-    som_weights_path = os.path.join(base_dir, som_weights_name)
 
     # path validation
-    io_utils.validate_paths([data_path, norm_vals_path, som_weights_path])
+    io_utils.validate_paths([data_path])
+
+    # raise error if weights haven't been assigned to pixel_pysom
+    if pixel_pysom.weights is None:
+        raise ValueError("Using untrained pixel_pysom object, please invoke train_som first")
 
     # verify that all provided fovs exist in the folder
     # NOTE: remove the channel and pixel normalization files as those are not pixel data
     data_files = io_utils.list_files(data_path, substrs='.feather')
     misc_utils.verify_in_list(provided_fovs=fovs,
                               subsetted_fovs=io_utils.remove_file_extensions(data_files))
-
-    som_weights = feather.read_dataframe(os.path.join(base_dir, som_weights_name))
-
-    # ensure the norm vals columns and the FOV data contain valid indexes
-    # ignoring metadata columns in the FOV data, the columns need to be in exactly
-    # the same order across both datasets (normalized values and FOV values)
-    norm_vals = feather.read_dataframe(os.path.join(base_dir, norm_vals_name))
 
     # this will prevent reading in a corrupted sample_fov
     i = 0
@@ -1019,14 +1031,14 @@ def cluster_pixels(fovs, channels, base_dir, data_dir='pixel_mat_data',
     )
     misc_utils.verify_same_elements(
         enforce_order=True,
-        norm_vals_columns=norm_vals.columns.values,
+        norm_vals_columns=pixel_pysom.norm_data.columns.values,
         pixel_data_columns=sample_fov.columns.values
     )
 
     # ensure the SOM weights columns are valid indexes
     misc_utils.verify_same_elements(
         enforce_order=True,
-        pixel_som_weights_columns=som_weights.columns.values,
+        pixel_som_weights_columns=pixel_pysom.weights.columns.values,
         pixel_data_columns=sample_fov.columns.values
     )
 
@@ -1043,36 +1055,53 @@ def cluster_pixels(fovs, channels, base_dir, data_dir='pixel_mat_data',
         print("Restarting SOM label assignment from fov %s, "
               "%d fovs left to process" % (fovs_list[0], len(fovs_list)))
 
-    # run the trained SOM on the dataset, assigning clusters
-    process_args = ['Rscript', '/run_pixel_som.R', ','.join(fovs_list),
-                    data_path, norm_vals_path, som_weights_path, str(multiprocess),
-                    str(batch_size), str(ncores)]
+    # define variable to keep track of number of fovs processed
+    fovs_processed = 0
 
-    process = subprocess.Popen(process_args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    # define the partial function to iterate over
+    fov_data_func = partial(
+        run_pixel_som_assignment, data_path, pixel_pysom
+    )
 
-    # continuously poll the process for output/error so it gets displayed in the Jupyter notebook
-    while True:
-        # convert from byte string
-        output = process.stdout.readline().decode('utf-8')
+    # use the som weights to assign SOM cluster values to data in data_dir
+    print("Mapping pixel data to SOM cluster labels")
 
-        # if the output is nothing and the process is done, break
-        if process.poll() is not None:
-            break
-        if output:
-            print(output.strip())
+    if multiprocess:
+        with multiprocessing.get_context('spawn').Pool(batch_size) as fov_data_pool:
+            for fov_batch in [fovs_list[i:(i + batch_size)]
+                              for i in range(0, len(fovs_list), batch_size)]:
+                fov_statuses = fov_data_pool.map(fov_data_func, fov_batch)
 
-    if process.returncode != 0:
-        raise OSError(
-            "Process terminated: please view error messages displayed above for debugging."
-        )
+                for fs in fov_statuses:
+                    if fs[1] == 1:
+                        print("The data for FOV %s has been corrupted, skipping" % fs[0])
+                        fovs_processed -= 1
+
+                # update number of fovs processed
+                fovs_processed += len(fov_batch)
+
+                print("Processed %d fovs" % fovs_processed)
+    else:
+        for fov in fovs_list:
+            fov_status = fov_data_func(fov)
+
+            if fov_status[1] == 1:
+                print("The data for FOV %s has been corrupted, skipping" % fov_status[0])
+                fovs_processed -= 1
+
+            # update number of fovs processed
+            fovs_processed += 1
+
+            # update every 10 FOVs, or at the very end
+            if fovs_processed % 10 == 0 or fovs_processed == len(fovs_list):
+                print("Processed %d fovs" % fovs_processed)
 
     # remove the data directory and rename the temp directory to the data directory
     rmtree(data_path)
     os.rename(data_path + '_temp', data_path)
 
 
-def generate_som_avg_files(fovs, channels, base_dir, data_dir='pixel_data_dir',
-                           som_weights_name='pixel_som_weights.feather',
+def generate_som_avg_files(fovs, channels, base_dir, pixel_pysom, data_dir='pixel_data_dir',
                            pc_chan_avg_som_cluster_name='pixel_channel_avg_som_cluster.csv',
                            num_fovs_subset=100, seed=42):
     """Computes and saves the average channel expression across pixel SOM clusters.
@@ -1084,10 +1113,10 @@ def generate_som_avg_files(fovs, channels, base_dir, data_dir='pixel_data_dir',
             The list of channels to subset on
         base_dir (str):
             The path to the data directory
+        pixel_pysom (cluster_helpers.PixelSOMCluster):
+            The SOM cluster object containing the pixel SOM weights
         data_dir (str):
             Name of the directory which contains the full preprocessed pixel data
-        som_weights_name (str):
-            The name of the SOM weights file created by `train_pixel_som`
         pc_chan_avg_som_cluster_name (str):
             The name of the file to save the average channel expression across all SOM clusters
         num_fovs_subset (int):
@@ -1097,19 +1126,16 @@ def generate_som_avg_files(fovs, channels, base_dir, data_dir='pixel_data_dir',
     """
 
     # define the paths to the data
-    som_weights_path = os.path.join(base_dir, som_weights_name)
     som_cluster_avg_path = os.path.join(base_dir, pc_chan_avg_som_cluster_name)
 
-    # path validation
-    io_utils.validate_paths(som_weights_path)
+    # raise error if weights haven't been assigned to pixel_pysom
+    if pixel_pysom.weights is None:
+        raise ValueError("Using untrained pixel_pysom object, please invoke train_som first")
 
     # if the channel SOM average file already exists, skip
     if os.path.exists(som_cluster_avg_path):
         print("Already generated SOM cluster channel average file, skipping")
         return
-
-    # load weights in
-    som_weights = feather.read_dataframe(som_weights_path)
 
     # compute average channel expression for each pixel SOM cluster
     # and the number of pixels per SOM cluster
@@ -1119,7 +1145,7 @@ def generate_som_avg_files(fovs, channels, base_dir, data_dir='pixel_data_dir',
         channels,
         base_dir,
         'pixel_som_cluster',
-        som_weights.shape[0],
+        pixel_pysom.weights.shape[0],
         data_dir,
         num_fovs_subset=num_fovs_subset,
         seed=seed,

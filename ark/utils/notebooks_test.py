@@ -287,29 +287,13 @@ class Test_2_Pixel_Clustering:
     def test_pixel_som_path_set(self):
         self.tb.execute_cell("pixel_som_path_set")
 
-    @pytest.mark.skip(reason="Do not train the Pixel SOM")
     def test_train_pixel_som(self):
         self.tb.execute_cell("train_pixel_som")
 
-    @pytest.mark.skip(reason="Do not assign Pixel SOM Clusters")
     def test_cluster_pixel_mat(self):
         self.tb.execute_cell("cluster_pixel_mat")
 
     def test_pixel_consensus_cluster(self):
-        # Get Pixel Clustering filenames
-
-        # Get pixel paths and fovs
-        pixel_data_dir = self.tb.ref("pixel_data_dir")
-        pixel_channel_avg_som_cluster = self.tb.ref("pc_chan_avg_som_cluster_name")
-        fovs = self.tb.ref("fovs")
-        channels = self.tb.ref("channels")
-        # Create fake pixel som files
-        notebooks_test_utils.create_pixel_som_files(self.base_dir,
-                                                    pixel_data_dir,
-                                                    pixel_channel_avg_som_cluster,
-                                                    fovs,
-                                                    channels)
-
         self.tb.execute_cell("pixel_consensus_cluster")
 
     def test_pixel_interactive(self):
@@ -391,38 +375,13 @@ class Test_3_Cell_Clustering:
     def test_pixel_cluster_col(self):
         self.tb.execute_cell("pixel_cluster_col")
 
-    @pytest.mark.skip(reason="Do not run the Cell SOM")
     def test_train_cell_com(self):
         self.tb.execute_cell("train_cell_som")
 
-    @pytest.mark.skip(reason="Do not run the Cell SOM")
     def test_cluster_cell_data(self):
         self.tb.execute_cell("cluster_cell_data")
 
     def test_cell_consensus_cluster(self):
-        # Get Cell Clustering filenames
-
-        # Get cell paths and fovs
-        fovs = self.tb.ref("fovs")
-        channels = self.tb.ref("channels")
-        cell_table_path = self.tb.ref("cell_table_path")
-        cluster_counts_size_norm = self.tb.ref("cluster_counts_size_norm_name")
-        weighted_cell_channel = self.tb.ref("weighted_cell_channel_name")
-        cell_som_cluster_count_avgs = self.tb.ref("cell_som_cluster_count_avg_name")
-        cell_meta_cluster_count_avgs = self.tb.ref("cell_meta_cluster_count_avg_name")
-        cell_som_cluster_channel_avg = self.tb.ref("cell_som_cluster_channel_avg_name")
-        cell_meta_cluster_channel_avg = self.tb.ref("cell_meta_cluster_channel_avg_name")
-        # Create fake pixel som files
-        notebooks_test_utils.create_cell_som_files(self.base_dir,
-                                                   fovs,
-                                                   channels,
-                                                   cell_table_path,
-                                                   cluster_counts_size_norm,
-                                                   weighted_cell_channel,
-                                                   cell_som_cluster_count_avgs,
-                                                   cell_som_cluster_channel_avg
-                                                   )
-
         self.tb.execute_cell("cell_consensus_cluster")
 
     def test_cell_interactive(self):
