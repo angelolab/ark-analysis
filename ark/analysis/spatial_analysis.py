@@ -851,6 +851,8 @@ def compute_mixing_score(cell_neighbors_dir, fov, target_cells, reference_cells,
 
     # read in fov cell neighbors, drop fov and cell label columns
     neighbors_mat = pd.read_csv(cell_neighbors_path)
+    misc_utils.verify_in_list(provided_column_names=[cell_col, fov_col, label_col],
+                              cell_neighbors_columns=neighbors_mat.columns)
     neighbors_mat = neighbors_mat.drop(columns=[fov_col, label_col])
 
     # cell types validation
@@ -866,21 +868,30 @@ def compute_mixing_score(cell_neighbors_dir, fov, target_cells, reference_cells,
     target_total = neighbors_mat[neighbors_mat[cell_col].isin(target_cells)].shape[0]
     reference_total = neighbors_mat[
         neighbors_mat[cell_col].isin(reference_cells)].shape[0]
-    # check reference threshold
-    if reference_total < cold_thresh:
-        return np.nan
+    # check threshold
+    if reference_total < cold_thresh or target_total < cold_thresh:
+        return np.nan, (target_total/reference_total)
 
     # condense to total number of cell type interactions
     neighbors_mat[cell_col] = neighbors_mat[cell_col].replace(target_cells, 'target')
     neighbors_mat[cell_col] = neighbors_mat[cell_col].replace(reference_cells, 'reference')
     interactions_mat = neighbors_mat.groupby(by=[cell_col]).sum(numeric_only=True)
+    interactions_mat['target'] = [0] * interactions_mat.shape[0]
+    interactions_mat['reference'] = [0] * interactions_mat.shape[0]
+    for target_cell in target_cells:
+        interactions_mat['target'] = interactions_mat['target'] + interactions_mat[target_cell]
+    for reference_cell in reference_cells:
+        interactions_mat['reference'] = interactions_mat['reference'] + \
+                                        interactions_mat[reference_cell]
 
     reference_target = interactions_mat.loc['target', 'reference']
     target_target = interactions_mat.loc['target', 'target']
     reference_reference = interactions_mat.loc['reference', 'reference']
 
-    # mixing score calulcation
+    # mixing score calculation
+    # percent mixing
     # mixing_score = reference_target / (reference_target + reference_reference)
+    # homogenous mixing
     mixing_score = reference_target / (target_target + reference_reference)
 
     # ratio of cell populations

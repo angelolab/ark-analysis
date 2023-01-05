@@ -628,11 +628,12 @@ def test_compute_cell_neighbors(mocker):
 
 def test_compute_mixing_score():
     cell_neighbors_mat = pd.DataFrame({
-        settings.FOV_ID: ['fov1', 'fov1', 'fov1', 'fov1', 'fov1', 'fov1'],
-        settings.CELL_LABEL: list(range(1, 7)),
-        settings.CELL_TYPE: ['cell1', 'cell2', 'cell1', 'cell1', 'cell2', 'cell2'],
-        'cell1': [1, 0, 2, 2, 1, 2],
-        'cell2': [1, 2, 1, 1, 2, 1]
+        settings.FOV_ID: ['fov1', 'fov1', 'fov1', 'fov1', 'fov1', 'fov1', 'fov1'],
+        settings.CELL_LABEL: list(range(1, 8)),
+        settings.CELL_TYPE: ['cell1', 'cell2', 'cell1', 'cell1', 'cell2', 'cell2', 'cell3'],
+        'cell1': [1, 0, 2, 2, 1, 2, 0],
+        'cell2': [1, 2, 1, 1, 2, 2, 0],
+        'cell3': [0, 0, 0, 0, 0, 0, 1]
     })
 
     with tempfile.TemporaryDirectory() as cell_neighbors_dir:
@@ -642,21 +643,30 @@ def test_compute_mixing_score():
         # check cell type validation
         with pytest.raises(ValueError, match='Not all values given in list provided cell'):
             spatial_analysis.compute_mixing_score(cell_neighbors_dir, 'fov1', cold_thresh=0,
-                                                  target_cell='not-a-cell', reference_cell='cell2')
+                                                  target_cells=['not-a-cell'],
+                                                  reference_cells=['cell2'])
+
+        with pytest.raises(ValueError, match='The following cell types were included in both '
+                                             'the target and reference populations'):
+            spatial_analysis.compute_mixing_score(cell_neighbors_dir, 'fov1', cold_thresh=0,
+                                                  target_cells=['cell1'],
+                                                  reference_cells=['cell1'])
+
+        with pytest.raises(ValueError, match='Not all values given in list provided column'):
+            spatial_analysis.compute_mixing_score(cell_neighbors_dir, 'fov1', cold_thresh=0,
+                                                  target_cells=['cell1'],
+                                                  reference_cells=['cell2'], cell_col='bad_column')
 
         # test success
-        score = spatial_analysis.compute_mixing_score(cell_neighbors_dir, 'fov1', cold_thresh=0,
-                                                      target_cell='cell1', reference_cell='cell2')
-        assert score == 3/5
-
-        # test percent mix
-        score = spatial_analysis.compute_mixing_score(cell_neighbors_dir, 'fov1', cold_thresh=0,
-                                                      target_cell='cell1', reference_cell='cell2',
-                                                      percent_mix=True)
-        assert score == 3/8
+        score, ratio = spatial_analysis.compute_mixing_score(
+            cell_neighbors_dir, 'fov1', target_cells=['cell1', 'cell3'],
+            reference_cells=['cell2'], cold_thresh=0)
+        assert score == 3/12
+        assert ratio == 4/3
 
         # test cold threshold
-        cold_score = spatial_analysis.compute_mixing_score(cell_neighbors_dir, 'fov1',
-                                                           cold_thresh=4, target_cell='cell1',
-                                                           reference_cell='cell2')
+        cold_score, ratio = spatial_analysis.compute_mixing_score(
+            cell_neighbors_dir, 'fov1', target_cells=['cell1'], reference_cells=['cell2'],
+            cold_thresh=4)
         assert math.isnan(cold_score)
+        assert ratio == 3/3
