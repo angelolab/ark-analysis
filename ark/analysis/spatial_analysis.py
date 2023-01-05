@@ -842,7 +842,6 @@ def compute_mixing_score(cell_neighbors_dir, fov, target_cells, reference_cells,
         tuple (float, float):
             - the mixing score for the FOV
             - the ratio of target cells to reference cells
-
     """
 
     # path validation
