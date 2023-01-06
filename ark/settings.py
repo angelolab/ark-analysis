@@ -65,6 +65,6 @@ EXTENSION_TYPES: Dict[str, List[str]] = {
     "DATA": ["csv", "feather", "bin", "json"],
 }
 
-
-# Switch it from `main` to the commit ID on HuggingFace to test a specific version of the Example Dataset
+# Switch it from `main` to the commit ID on HuggingFace to test a
+# specific version of the Example Dataset
 EXAMPLE_DATASET_REVISION: str = "04aa699241b75fb04a0cabeb0e3944659349499c"
