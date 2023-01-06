@@ -68,7 +68,6 @@ class TestExampleDataset:
             "pixel_masks": [f"fov{i}_pixel_mask" for i in range(2)]
         }
 
-
         self._example_cell_output_dir_names = {
             "root_files": ["cell_meta_cluster_channel_avg",
                            "cell_meta_cluster_count_avg",
