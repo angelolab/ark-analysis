@@ -199,7 +199,8 @@ class Test_1_Segment_Image_Data:
         # Generate the sample feature_0, feature_1 tiffs
         # Account for the fact that fov0 is 512 x 512
         for fov, dim in zip(fovs, [512, 1024]):
-            notebooks_test_utils.generate_sample_feature_tifs([fov], deepcell_output_dir=deepcell_output_dir, img_shape=(dim, dim))
+            notebooks_test_utils.generate_sample_feature_tifs(
+                [fov], deepcell_output_dir=deepcell_output_dir, img_shape=(dim, dim))
 
     def test_overlay_mask(self):
         self.tb.execute_cell("overlay_mask")
