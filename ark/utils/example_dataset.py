@@ -5,6 +5,7 @@ from typing import Union
 
 import datasets
 
+from ark.settings import EXAMPLE_DATASET_REVISION
 from ark.utils.misc_utils import verify_in_list
 
 
@@ -129,7 +130,7 @@ class ExampleDataset():
                 [f.unlink() for f in dst_path.glob("*") if f.is_file()]
                 # Fill destination path
                 shutil.copytree(src_path, dst_path, dirs_exist_ok=True,
-                                ignore=shutil.ignore_patterns(r".!*"))
+                                ignore=shutil.ignore_patterns(r"\.\!*"))
             else:
                 if empty_dst_path:
                     warnings.warn(UserWarning(f"Files do not exist in {dst_path}. \
@@ -150,7 +151,17 @@ def get_example_dataset(dataset: str, save_dir: Union[str, pathlib.Path],
 
 
     Args:
-        dataset (str): The dataset to download for a particular notebook.
+        dataset (str): The name of the dataset to download. Can be one of
+
+                * `"segment_image_data"`
+                * `"cluster_pixels"`
+                * `"cluster_cells"`
+                * `"post_clustering"`
+                * `"fiber_segmentation"`
+                * `"LDA_preprocessing"`
+                * `"LDA_training_inference"`
+                * `"neighborhood_analysis"`
+                * `"pairwise_spatial_enrichment"`
         save_dir (Union[str, pathlib.Path]): The path to save the dataset files in.
         overwrite_existing (bool): The option to overwrite existing configs of the `dataset`
             downloaded. Defaults to True.
@@ -171,11 +182,13 @@ def get_example_dataset(dataset: str, save_dir: Union[str, pathlib.Path],
     try:
         verify_in_list(dataset=dataset, valid_datasets=valid_datasets)
     except ValueError:
-        ValueError(f"The dataset <{dataset}> is not one of the valid datasets available. \
-                    The following are available: { {*valid_datasets} }")
+        err_str: str = f"""The dataset \"{dataset}\" is not one of the valid datasets available.
+        The following are available: {*valid_datasets,}"""
+        raise ValueError(err_str) from None
+
     example_dataset = ExampleDataset(dataset=dataset, overwrite_existing=overwrite_existing,
                                      cache_dir=None,
-                                     revision="a436d9b53e736c60066ff260d81a1b52eb079e87")
+                                     revision=EXAMPLE_DATASET_REVISION)
 
     # Download the dataset
     example_dataset.download_example_dataset()

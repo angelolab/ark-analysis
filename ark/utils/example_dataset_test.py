@@ -3,6 +3,7 @@ from typing import Callable, Dict, Generator, Iterator, List
 
 import pytest
 
+from ark.settings import EXAMPLE_DATASET_REVISION
 from ark.utils import test_utils
 from ark.utils.example_dataset import ExampleDataset, get_example_dataset
 
@@ -34,6 +35,7 @@ def dataset_download(request) -> Iterator[ExampleDataset]:
         dataset=request.param,
         cache_dir=None,
         revision="a436d9b53e736c60066ff260d81a1b52eb079e87"
+        revision=EXAMPLE_DATASET_REVISION
     )
     # Download example data for a particular notebook
     example_dataset.download_example_dataset()

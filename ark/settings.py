@@ -64,3 +64,7 @@ EXTENSION_TYPES: Dict[str, List[str]] = {
     "ARCHIVE": ["tar", "gz", "zip"],
     "DATA": ["csv", "feather", "bin", "json"],
 }
+
+# Switch it from `main` to the commit ID on HuggingFace to test a
+# specific version of the Example Dataset
+EXAMPLE_DATASET_REVISION: str = "main"
