@@ -21,7 +21,7 @@ def generate_channel_spatial_enrichment_stats(label_dir, dist_mat_dir, marker_th
             directory containing labeled tiffs
         dist_mat_dir (str | Pathlike):
             directory containing the distance matrices
-        marker_thresholds (numpy.ndarray):
+        marker_thresholds (pd.DataFrame):
             threshold values for positive marker expression
         all_data (pandas.DataFrame):
             data including fovs, cell labels, and cell expression matrix for all markers
@@ -41,6 +41,9 @@ def generate_channel_spatial_enrichment_stats(label_dir, dist_mat_dir, marker_th
           stats variables for each fov are z, muhat, sigmahat, p, h, adj_p, and
           cluster_names
     """
+
+    # Validate paths
+    io_utils.validate_paths([label_dir, dist_mat_dir])
 
     # parse files in label_dir
     all_label_names = io_utils.list_files(label_dir, substrs=[suffix + '.tiff'])
@@ -108,7 +111,7 @@ def calculate_channel_spatial_enrichment(fov, dist_matrix, marker_thresholds, al
         dist_matrix (xarray.DataArray):
             a cells x cells matrix with the euclidian distance between centers of
             corresponding cells for the FOV
-        marker_thresholds (numpy.ndarray):
+        marker_thresholds (pd.DataFrame):
             threshold values for positive marker expression
         all_data (pandas.DataFrame):
             data including fovs, cell labels, and cell expression matrix for all markers
@@ -150,8 +153,9 @@ def calculate_channel_spatial_enrichment(fov, dist_matrix, marker_thresholds, al
     all_channel_data = all_data.iloc[:, channel_start:channel_end]
     if excluded_channels is not None:
         all_channel_data = all_channel_data.drop(excluded_channels, axis=1)
+        marker_thresholds = marker_thresholds[~marker_thresholds["marker"].isin(excluded_channels)]
 
-    # check that the markers are the same in marker_thresholdsa and all_channel_data
+    # check that the markers are the same in marker_thresholds and all_channel_data
     misc_utils.verify_same_elements(markers_to_threshold=marker_thresholds.iloc[:, 0].values,
                                     all_markers=all_channel_data.columns.values)
 
@@ -489,7 +493,9 @@ def create_neighborhood_matrix(all_data, dist_mat_dir, included_fovs=None, distl
                               unique_fovs=all_data[fov_col].unique())
 
     # Subset just the fov, label, and cell phenotype columns
-    all_neighborhood_data = all_data[[fov_col, cell_label_col, cluster_name_col]]
+    all_neighborhood_data = all_data[
+        [fov_col, cell_label_col, cluster_name_col]
+    ].reset_index(drop=True)
     # Extract the cell phenotypes
     cluster_names = all_neighborhood_data[cluster_name_col].drop_duplicates()
     # Get the total number of phenotypes
@@ -537,8 +543,9 @@ def create_neighborhood_matrix(all_data, dist_mat_dir, included_fovs=None, distl
     return cell_neighbor_counts, cell_neighbor_freqs
 
 
-def generate_cluster_matrix_results(all_data, neighbor_mat, cluster_num, excluded_channels=None,
-                                    included_fovs=None, cluster_label_col=settings.KMEANS_CLUSTER,
+def generate_cluster_matrix_results(all_data, neighbor_mat, cluster_num, seed=42,
+                                    excluded_channels=None, included_fovs=None,
+                                    cluster_label_col=settings.KMEANS_CLUSTER,
                                     fov_col=settings.FOV_ID, cell_type_col=settings.CELL_TYPE,
                                     label_col=settings.CELL_LABEL,
                                     pre_channel_col=settings.PRE_CHANNEL_COL,
@@ -555,6 +562,8 @@ def generate_cluster_matrix_results(all_data, neighbor_mat, cluster_num, exclude
         cluster_num (int):
             the optimal k to pass into k-means clustering to generate the final clusters
             and corresponding results
+        seed (int):
+            the random seed to set for k-means clustering
         excluded_channels (list):
             all channel names to be excluded from analysis
         included_fovs (list):
@@ -608,7 +617,7 @@ def generate_cluster_matrix_results(all_data, neighbor_mat, cluster_num, exclude
 
     # generate cluster labels
     cluster_labels = spatial_analysis_utils.generate_cluster_labels(
-        neighbor_mat_data, cluster_num)
+        neighbor_mat_data, cluster_num, seed=seed)
 
     # add labels to neighbor mat
     neighbor_mat_data_all[cluster_label_col] = cluster_labels
@@ -652,8 +661,9 @@ def generate_cluster_matrix_results(all_data, neighbor_mat, cluster_num, exclude
     return all_data_clusters, num_cell_type_per_cluster, mean_marker_exp_per_cluster
 
 
-def compute_cluster_metrics_inertia(neighbor_mat, min_k=2, max_k=10, included_fovs=None,
-                                    fov_col=settings.FOV_ID, label_col=settings.CELL_LABEL):
+def compute_cluster_metrics_inertia(neighbor_mat, min_k=2, max_k=10, seed=42,
+                                    included_fovs=None, fov_col=settings.FOV_ID,
+                                    label_col=settings.CELL_LABEL):
     """Produce k-means clustering metrics to help identify optimal number of clusters using
        inertia
 
@@ -664,6 +674,8 @@ def compute_cluster_metrics_inertia(neighbor_mat, min_k=2, max_k=10, included_fo
             the minimum k we want to generate cluster statistics for, must be at least 2
         max_k (int):
             the maximum k we want to generate cluster statistics for, must be at least 2
+        seed (int):
+            the random seed to set for k-means clustering
         included_fovs (list):
             fovs to include in analysis. If argument is none, default is all fovs used.
         fov_col (str):
@@ -696,14 +708,14 @@ def compute_cluster_metrics_inertia(neighbor_mat, min_k=2, max_k=10, included_fo
 
     # generate the cluster score information
     neighbor_cluster_stats = spatial_analysis_utils.compute_kmeans_inertia(
-        neighbor_mat_data=neighbor_mat_data, min_k=min_k, max_k=max_k)
+        neighbor_mat_data=neighbor_mat_data, min_k=min_k, max_k=max_k, seed=seed)
 
     return neighbor_cluster_stats
 
 
-def compute_cluster_metrics_silhouette(neighbor_mat, min_k=2, max_k=10, included_fovs=None,
-                                       fov_col=settings.FOV_ID, label_col=settings.CELL_LABEL,
-                                       subsample=None):
+def compute_cluster_metrics_silhouette(neighbor_mat, min_k=2, max_k=10, seed=42,
+                                       included_fovs=None, fov_col=settings.FOV_ID,
+                                       label_col=settings.CELL_LABEL, subsample=None):
     """Produce k-means clustering metrics to help identify optimal number of clusters using
        Silhouette score
 
@@ -714,6 +726,8 @@ def compute_cluster_metrics_silhouette(neighbor_mat, min_k=2, max_k=10, included
             the minimum k we want to generate cluster statistics for, must be at least 2
         max_k (int):
             the maximum k we want to generate cluster statistics for, must be at least 2
+        seed (int):
+            the random seed to set for k-means clustering
         included_fovs (list):
             fovs to include in analysis. If argument is none, default is all fovs used.
         fov_col (str):
@@ -750,7 +764,8 @@ def compute_cluster_metrics_silhouette(neighbor_mat, min_k=2, max_k=10, included
 
     # generate the cluster score information
     neighbor_cluster_stats = spatial_analysis_utils.compute_kmeans_silhouette(
-        neighbor_mat_data=neighbor_mat_data, min_k=min_k, max_k=max_k, subsample=subsample
+        neighbor_mat_data=neighbor_mat_data, min_k=min_k, max_k=max_k,
+        seed=seed, subsample=subsample
     )
 
     return neighbor_cluster_stats

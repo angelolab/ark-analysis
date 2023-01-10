@@ -8,6 +8,8 @@ import xarray as xr
 
 import ark.settings as settings
 from ark.utils import synthetic_spatial_datagen
+from tmi import io_utils
+import os
 
 TEST_MARKERS = list('ABCDEFG')
 
@@ -133,7 +135,7 @@ def _make_neighborhood_matrix():
             intended to test clustering
     """
     col_names = {0: settings.FOV_ID, 1: settings.CELL_LABEL, 2: 'feature1', 3: 'feature2'}
-    neighbor_counts = pd.DataFrame(np.zeros((200, 5)))
+    neighbor_counts = pd.DataFrame(np.zeros((200, 4)))
     neighbor_counts = neighbor_counts.rename(col_names, axis=1)
 
     neighbor_counts.iloc[0:100, 0] = "fov1"
@@ -166,7 +168,7 @@ def _make_threshold_mat(in_utils):
             a sample marker threshold matrix for thresholding specifically for channel enrichment
     """
 
-    thresh = pd.DataFrame(np.zeros((20, 2)))
+    thresh = pd.DataFrame(np.zeros((20, 2)), columns=["marker", "threshold"])
     thresh.iloc[:, 1] = .5
 
     if not in_utils:
@@ -580,7 +582,7 @@ def generate_sample_fov_tiling_entry(coord, name):
             "aperture": "2",
             "displayName": "Fine",
             "defaults": {
-              "timingChoice": 7
+                "timingChoice": 7
             }
         },
         "sectionId": 8201,

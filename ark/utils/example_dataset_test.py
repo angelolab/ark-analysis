@@ -1,14 +1,21 @@
 import pathlib
 from typing import Callable, Generator, Iterator
-
 import pytest
-from tmi import test_utils
 
+from ark.settings import EXAMPLE_DATASET_REVISION
+from tmi import test_utils
 from ark.utils.example_dataset import ExampleDataset, get_example_dataset
 
 
-@pytest.fixture(scope="session", params=["segment_image_data", "cluster_pixels",
-                                         "cluster_cells", "post_clustering"])
+@pytest.fixture(scope="session", params=["segment_image_data",
+                                         "cluster_pixels",
+                                         "cluster_cells",
+                                         "post_clustering",
+                                         "fiber_segmentation",
+                                         "LDA_preprocessing",
+                                         "LDA_training_inference",
+                                         "neighborhood_analysis",
+                                         "pairwise_spatial_enrichment"])
 def dataset_download(request) -> Iterator[ExampleDataset]:
     """
     A Fixture which instantiates and downloads the dataset with respect to each
@@ -25,7 +32,7 @@ def dataset_download(request) -> Iterator[ExampleDataset]:
     example_dataset: ExampleDataset = ExampleDataset(
         dataset=request.param,
         cache_dir=None,
-        revision="main"
+        revision=EXAMPLE_DATASET_REVISION
     )
     # Download example data for a particular notebook
     example_dataset.download_example_dataset()
@@ -51,27 +58,36 @@ class TestExampleDataset:
                                       for j in ['whole_cell', 'nuclear']]
 
         self._example_pixel_output_dir_names = {
-            "root_files": ["cell_clustering_params", "example_channel_norm", "example_pixel_norm",
+            "root_files": ["cell_clustering_params", "channel_norm", "pixel_thresh",
                            "pixel_channel_avg_meta_cluster", "pixel_channel_avg_som_cluster",
-                           "pixel_meta_cluster_mapping", "pixel_som_to_meta", "pixel_weights",
-                           "post_rowsum_chan_norm"],
+                           "pixel_meta_cluster_mapping", "pixel_som_weights",
+                           "channel_norm_post_rowsum"],
             "pixel_mat_data": [f"fov{i}" for i in range(11)],
             "pixel_mat_subset": [f"fov{i}" for i in range(11)],
             "pixel_masks": [f"fov{i}_pixel_mask" for i in range(2)]
         }
 
         self._example_cell_output_dir_names = {
-            "root_files": ["example_cell_clust_to_meta", "example_cell_mat",
-                           "example_cell_meta_cluster_channel_avg",
-                           "example_cell_meta_cluster_count_avgs",
-                           "example_cell_som_cluster_channel_avg",
-                           "example_cell_meta_cluster_mapping",
-                           "example_cell_som_cluster_channel_avg",
-                           "example_cell_som_cluster_count_avgs",
-                           "example_cell_weights", "example_cluster_counts",
-                           "example_cluster_counts_norm", "example_weighted_cell_channel"],
+            "root_files": ["cell_meta_cluster_channel_avg",
+                           "cell_meta_cluster_count_avg",
+                           "cell_som_cluster_channel_avg",
+                           "cell_meta_cluster_mapping",
+                           "cell_som_cluster_channel_avg",
+                           "cell_som_cluster_count_avg",
+                           "cell_som_weights", "cluster_counts",
+                           "cluster_counts_size_norm", "weighted_cell_channel"],
             "cell_masks": [f"fov{i}_cell_mask" for i in range(2)]
         }
+
+        self._spatial_analysis_lda_preprocessed_files = [
+            "difference_mats",
+            "featurized_cell_table",
+            "formatted_cell_table",
+            "fov_stats",
+            "topic_eda"]
+
+        self._post_clustering_files = ["cell_table_thresholded",
+                                       "marker_thresholds", "updated_cell_table"]
 
         self.dataset_test_fns: dict[str, Callable] = {
             "image_data": self._image_data_check,
@@ -79,15 +95,20 @@ class TestExampleDataset:
             "deepcell_output": self._deepcell_output_check,
             "example_pixel_output_dir": self._example_pixel_output_dir_check,
             "example_cell_output_dir": self._example_cell_output_dir_check,
+            "spatial_lda": self._spatial_lda_output_dir_check,
+            "post_clustering": self._post_clustering_output_dir_check
         }
 
         # Mapping the datasets to their respective test functions.
+        # Should be the same as `example_dataset.ExampleDataset.path_suffixes`
         self.move_path_suffixes = {
             "image_data": "image_data",
             "cell_table": "segmentation/cell_table",
             "deepcell_output": "segmentation/deepcell_output",
             "example_pixel_output_dir": "pixie/example_pixel_output_dir",
             "example_cell_output_dir": "pixie/example_cell_output_dir",
+            "spatial_lda": "spatial_analysis/spatial_lda",
+            "post_clustering": "post_clustering",
         }
 
     def test_download_example_dataset(self, dataset_download: ExampleDataset):
@@ -261,8 +282,8 @@ class TestExampleDataset:
         """
         `example_pixel_output_dir`.
             ├── cell_clustering_params.json
-            ├── example_channel_norm.feather
-            ├── example_pixel_norm.feather
+            ├── channel_norm.feather
+            ├── pixel_thresh.feather
             ├── pixel_channel_avg_meta_cluster.csv
             ├── pixel_channel_avg_som_cluster.csv
             ├── pixel_masks/
@@ -279,9 +300,8 @@ class TestExampleDataset:
             │  ├── ...
             │  └── fov10.feather
             ├── pixel_meta_cluster_mapping.csv
-            ├── pixel_som_to_meta.feather
-            ├── pixel_weights.feather
-            └── post_rowsum_chan_norm.feather
+            ├── pixel_som_weights.feather
+            └── channel_norm_post_rowsum.feather
         ```
         Args:
             dir_p (pathlib.Path): The directory to check.
@@ -321,17 +341,15 @@ class TestExampleDataset:
         ├── cell_masks/
         │  ├── fov0_cell_mask.tiff
         │  └── fov1_cell_mask.tiff
-        ├── example_cell_clust_to_meta.feather
-        ├── example_cell_mat.feather
-        ├── example_cell_meta_cluster_channel_avg.csv
-        ├── example_cell_meta_cluster_count_avgs.csv
-        ├── example_cell_meta_cluster_mapping.csv
-        ├── example_cell_som_cluster_channel_avg.csv
-        ├── example_cell_som_cluster_count_avgs.csv
-        ├── example_cell_weights.feather
-        ├── example_cluster_counts.feather
-        ├── example_cluster_counts_norm.feather
-        └── example_weighted_cell_channel.csv
+        ├── cell_meta_cluster_channel_avg.csv
+        ├── cell_meta_cluster_count_avgs.csv
+        ├── cell_meta_cluster_mapping.csv
+        ├── cell_som_cluster_channel_avg.csv
+        ├── cell_som_cluster_count_avgs.csv
+        ├── cell_som_weights.feather
+        ├── cluster_counts.feather
+        ├── cluster_counts_size_norm.feather
+        └── weighted_cell_channel.csv
         ```
 
         Args:
@@ -348,6 +366,30 @@ class TestExampleDataset:
         cell_mask_names = [f.stem for f in cell_mask_files]
         assert set(self._example_cell_output_dir_names["cell_masks"]) \
             == set(cell_mask_names)
+
+    def _spatial_lda_output_dir_check(self, dir_p: pathlib.Path):
+        """
+        Checks to make sure that the correct files exist w.r.t the `spatial_lda` output dir
+        `spatial_analysis/spatial_lda/preprocessed`.
+
+        Args:
+            dir_p (pathlib.Path): The directory to check.
+        """
+        downloaded_lda_preprocessed = list((dir_p / "preprocessed").glob("*.pkl"))
+        downloaded_lda_preprocessed_names = [f.stem for f in downloaded_lda_preprocessed]
+        assert set(self._spatial_analysis_lda_preprocessed_files) == set(
+            downloaded_lda_preprocessed_names)
+
+    def _post_clustering_output_dir_check(self, dir_p: pathlib.Path):
+        """
+        Checks to make sure that the correct files exist w.r.t the `post_clustering` output dir
+
+        Args:
+            dir_p (pathlib.Path): The directory to check.
+        """
+        downloaded_post_cluster = list(dir_p.glob("*.csv"))
+        downloaded_post_cluster_names = [f.stem for f in downloaded_post_cluster]
+        assert set(self._post_clustering_files) == set(downloaded_post_cluster_names)
 
     def _suffix_paths(self, dataset_download: ExampleDataset,
                       parent_dir: pathlib.Path) -> Generator:

@@ -15,10 +15,10 @@ def test_plot_hist_thresholds():
 
     cell_table = pd.DataFrame({'cell_meta_cluster': pops, 'marker_1': marker_1})
 
-    # populations argument must be a list
-    with pytest.raises(ValueError, match='must be a list'):
-        post_cluster_utils.plot_hist_thresholds(cell_table=cell_table, populations='pop1',
-                                                marker='marker_1')
+    # populations argument must be a list, but`make_iterable` should convert a `str`
+    # argument to `List[str]`
+    post_cluster_utils.plot_hist_thresholds(cell_table=cell_table, populations='pop1',
+                                            marker='marker_1')
 
     # populations argument must contain entries from cell_table
     with pytest.raises(ValueError, match='Invalid population'):
@@ -72,7 +72,8 @@ def test_create_mantis_project(tmp_path):
     post_cluster_utils.create_mantis_project(cell_table=cell_table, fovs=fovs,
                                              seg_dir=seg_dir, pop_col='cell_meta_cluster',
                                              mask_dir=mask_dir, image_dir=image_dir,
-                                             mantis_dir=mantis_dir)
+                                             mantis_dir=mantis_dir,
+                                             seg_suffix_name="_whole_cell_test.tiff")
 
     # make sure that the mask found in each mantis directory is correct
     for fov in fovs:
@@ -81,5 +82,5 @@ def test_create_mantis_project(tmp_path):
         assert set(np.unique(mask)) == set([0, 1, 2])
 
         # mask should be non-zero in the same places as original
-        seg = io.imread(os.path.join(seg_dir, fov + '_whole_cell.tiff'))
+        seg = io.imread(os.path.join(seg_dir, fov + '_whole_cell_test.tiff'))
         assert np.array_equal(mask > 0, seg > 0)

@@ -480,7 +480,7 @@ def compute_neighbor_counts(current_fov_neighborhood_data, dist_matrix, distlim,
     return counts_pd, freqs_pd
 
 
-def compute_kmeans_inertia(neighbor_mat_data, min_k=2, max_k=10):
+def compute_kmeans_inertia(neighbor_mat_data, min_k=2, max_k=10, seed=42):
     """For a given neighborhood matrix, cluster and compute inertia using k-means clustering
        from the range of k=min_k to max_k
 
@@ -491,6 +491,8 @@ def compute_kmeans_inertia(neighbor_mat_data, min_k=2, max_k=10):
             the minimum k we want to generate cluster statistics for, must be at least 2
         max_k (int):
             the maximum k we want to generate cluster statistics for, must be at least 2
+        seed (int):
+            the random seed to set for k-means clustering
 
     Returns:
         xarray.DataArray:
@@ -507,13 +509,13 @@ def compute_kmeans_inertia(neighbor_mat_data, min_k=2, max_k=10):
     # iterate over each k value
     pb_format = '{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}]'
     for n in tqdm(range(min_k, max_k + 1), bar_format=pb_format):
-        cluster_fit = KMeans(n_clusters=n).fit(neighbor_mat_data)
+        cluster_fit = KMeans(n_clusters=n, random_state=seed).fit(neighbor_mat_data)
         cluster_stats.loc[n] = cluster_fit.inertia_
 
     return cluster_stats
 
 
-def compute_kmeans_silhouette(neighbor_mat_data, min_k=2, max_k=10, subsample=None):
+def compute_kmeans_silhouette(neighbor_mat_data, min_k=2, max_k=10, seed=42, subsample=None):
     """For a given neighborhood matrix, cluster and compute Silhouette score using k-means
        from the range of k=min_k to max_k
 
@@ -524,6 +526,8 @@ def compute_kmeans_silhouette(neighbor_mat_data, min_k=2, max_k=10, subsample=No
             the minimum k we want to generate cluster statistics for, must be at least 2
         max_k (int):
             the maximum k we want to generate cluster statistics for, must be at least 2
+        seed (int):
+            the random seed to set for k-means clustering
         subsample (int):
             the number of cells that will be sampled from each neighborhood cluster for
             calculating Silhouette score
@@ -544,7 +548,7 @@ def compute_kmeans_silhouette(neighbor_mat_data, min_k=2, max_k=10, subsample=No
     # iterate over each k value
     pb_format = '{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}]'
     for n in tqdm(range(min_k, max_k + 1), bar_format=pb_format):
-        cluster_fit = KMeans(n_clusters=n).fit(neighbor_mat_data)
+        cluster_fit = KMeans(n_clusters=n, random_state=seed).fit(neighbor_mat_data)
         cluster_labels = cluster_fit.labels_
 
         sub_dat = neighbor_mat_data.copy()
@@ -553,7 +557,9 @@ def compute_kmeans_silhouette(neighbor_mat_data, min_k=2, max_k=10, subsample=No
         if subsample is not None:
             # Subsample each cluster
             sub_dat = sub_dat.groupby("cluster").apply(
-                lambda x: x.sample(subsample, replace=len(x) < subsample)).reset_index(drop=True)
+                lambda x: x.sample(
+                    subsample, replace=len(x) < subsample, random_state=seed)
+                ).reset_index(drop=True)
 
         cluster_score = sklearn.metrics.silhouette_score(sub_dat.drop("cluster", axis=1),
                                                          sub_dat["cluster"],
@@ -563,7 +569,7 @@ def compute_kmeans_silhouette(neighbor_mat_data, min_k=2, max_k=10, subsample=No
     return cluster_stats
 
 
-def generate_cluster_labels(neighbor_mat_data, cluster_num):
+def generate_cluster_labels(neighbor_mat_data, cluster_num, seed=42):
     """Run k-means clustering with k=cluster_num
 
     Give the same data, given several runs the clusters will always be the same,
@@ -574,13 +580,15 @@ def generate_cluster_labels(neighbor_mat_data, cluster_num):
             neighborhood matrix data with only the desired fovs
         cluster_num (int):
             the k we want to use when running k-means clustering
+        seed (int):
+            the random seed to set for k-means clustering
 
     Returns:
         numpy.ndarray:
             the neighborhood cluster labels assigned to each cell in neighbor_mat_data
     """
 
-    cluster_fit = KMeans(n_clusters=cluster_num).fit(neighbor_mat_data)
+    cluster_fit = KMeans(n_clusters=cluster_num, random_state=seed).fit(neighbor_mat_data)
     # Add 1 to avoid cluster number 0
     cluster_labels = cluster_fit.labels_ + 1
 

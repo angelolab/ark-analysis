@@ -27,7 +27,7 @@ jobs:
     - stage: pytest_run
       script:
         - python -m pip install --editable .
-        - python -m pytest --cov=ark --pycodestyle ark
+        - python -m pytest --cov=ark --pycodestyle ark --randomly-seed=24 --randomly-dont-reorganize
     - stage: test_pypi_deploy
       if: tag IS present
       script:

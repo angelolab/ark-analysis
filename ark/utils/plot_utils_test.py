@@ -297,10 +297,8 @@ def test_create_mantis_dir():
 
         for idx, fov in enumerate(fovs):
             # Save the segmentation label compartments for each fov
-            image_utils.save_image(
-                os.path.join(temp_dir, segmentation_dir, '%s_whole_cell.tiff' % fov),
-                example_labels.loc[idx, ...].values
-            )
+            io.imsave(os.path.join(temp_dir, segmentation_dir, '%s_whole_cell.tiff' % fov),
+                      example_labels.loc[idx, ...].values, check_contrast=False)
 
             # Save the sample masks
             image_utils.save_image(
@@ -341,6 +339,7 @@ def test_create_mantis_dir():
                 mask_suffix=mask_suffix,
                 mapping=mapping,
                 seg_dir=image_segmentation_full_path,
+                seg_suffix_name="_whole_cell_test.tiff",
                 img_sub_folder=img_sub_folder
             )
 
@@ -366,7 +365,7 @@ def test_create_mantis_dir():
                 # 2.a. Assert that the segmentation label compartments exist in the new directory
                 assert os.path.exists(cell_seg_path)
                 original_cell_seg_path = os.path.join(temp_dir, segmentation_dir,
-                                                      '%s_whole_cell.tiff' % fov)
+                                                      '%s_whole_cell_test.tiff' % fov)
                 cell_seg_img = io.imread(cell_seg_path)
                 original_cell_seg_img = io.imread(original_cell_seg_path)
                 # 2.b. Assert that the `cell_segmentation` file is equal to `fov#_whole_cell`

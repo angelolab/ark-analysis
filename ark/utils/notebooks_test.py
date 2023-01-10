@@ -75,7 +75,7 @@ def nb2_context(templates_dir, base_dir_generator) -> Iterator[ContextManager]:
         Iterator[ContextManager]: The testbook context manager which will get cleaned up
             afterwords.
     """
-    CLUSTER_PIXELS: pathlib.Path = templates_dir / "2_Cluster_Pixels.ipynb"
+    CLUSTER_PIXELS: pathlib.Path = templates_dir / "2_Pixie_Cluster_Pixels.ipynb"
     with testbook(CLUSTER_PIXELS, timeout=6000, execute=False) as nb_context_manager:
         yield nb_context_manager, base_dir_generator / "nb2"
 
@@ -95,7 +95,7 @@ def nb3_context(templates_dir, base_dir_generator) -> Iterator[ContextManager]:
         Iterator[ContextManager]: The testbook context manager which will get cleaned up
             afterwords.
     """
-    CLUSTER_CELLS: pathlib.Path = templates_dir / "3_Cluster_Cells.ipynb"
+    CLUSTER_CELLS: pathlib.Path = templates_dir / "3_Pixie_Cluster_Cells.ipynb"
     with testbook(CLUSTER_CELLS, timeout=6000, execute=False) as nb_context_manager:
         yield nb_context_manager, base_dir_generator / "nb3"
 
@@ -164,14 +164,14 @@ class Test_1_Segment_Image_Data:
         """
         self.tb.inject(base_dir_inject, "base_dir")
 
+    def test_ex_data_download(self):
+        self.tb.execute_cell("ex_data_download")
+
     def test_file_path(self):
         self.tb.execute_cell("file_path")
 
     def test_create_dirs(self):
         self.tb.execute_cell("create_dirs")
-
-    def test_ex_data_download(self):
-        self.tb.execute_cell("ex_data_download")
 
     def test_validate_path(self):
         self.tb.execute_cell("validate_path")
@@ -196,7 +196,10 @@ class Test_1_Segment_Image_Data:
         deepcell_output_dir = self.tb.ref("deepcell_output_dir")
         fovs = self.tb.ref("fovs")
         # Generate the sample feature_0, feature_1 tiffs
-        notebooks_test_utils.generate_sample_feature_tifs(fovs, deepcell_output_dir, (1024, 1024))
+        # Account for the fact that fov0 is 512 x 512
+        for fov, dim in zip(fovs, [512, 1024]):
+            notebooks_test_utils.generate_sample_feature_tifs(
+                [fov], deepcell_output_dir=deepcell_output_dir, img_shape=(dim, dim))
 
     def test_overlay_mask(self):
         self.tb.execute_cell("overlay_mask")
@@ -242,11 +245,11 @@ class Test_2_Pixel_Clustering:
         """
         self.tb.inject(base_dir_inject, "base_dir")
 
-    def test_file_path(self):
-        self.tb.execute_cell("file_path")
-
     def test_ex_data_download(self):
         self.tb.execute_cell("ex_data_download")
+
+    def test_file_path(self):
+        self.tb.execute_cell("file_path")
 
     def test_load_fovs(self):
         load_fovs_inject = """
@@ -286,30 +289,14 @@ class Test_2_Pixel_Clustering:
     def test_pixel_som_path_set(self):
         self.tb.execute_cell("pixel_som_path_set")
 
-    @pytest.mark.skip(reason="Do not train the Pixel SOM")
     def test_train_pixel_som(self):
         self.tb.execute_cell("train_pixel_som")
 
-    @pytest.mark.skip(reason="Do not assign Pixel SOM Clusters")
     def test_cluster_pixel_mat(self):
         self.tb.execute_cell("cluster_pixel_mat")
 
     def test_pixel_consensus_cluster(self):
-        # Get Pixel Clustering filenames
-
-        # Get pixel paths and fovs
-        pixel_data_dir = self.tb.ref("pixel_data_dir")
-        pixel_channel_avg_som_cluster = self.tb.ref("pc_chan_avg_som_cluster_name")
-        pixel_channel_avg_meta_cluster = self.tb.ref("pc_chan_avg_meta_cluster_name")
-        fovs = self.tb.ref("fovs")
-        channels = self.tb.ref("channels")
-        # Create fake pixel som files
-        notebooks_test_utils.create_pixel_som_files(self.base_dir,
-                                                    pixel_data_dir,
-                                                    pixel_channel_avg_som_cluster,
-                                                    pixel_channel_avg_meta_cluster,
-                                                    fovs,
-                                                    channels)
+        self.tb.execute_cell("pixel_consensus_cluster")
 
     def test_pixel_interactive(self):
         self.tb.execute_cell("pixel_interactive")
@@ -369,11 +356,11 @@ class Test_3_Cell_Clustering:
         """
         self.tb.inject(base_dir_inject, "base_dir")
 
-    def test_dir_set(self):
-        self.tb.execute_cell("dir_set")
-
     def test_ex_data_download(self):
         self.tb.execute_cell("ex_data_download")
+
+    def test_dir_set(self):
+        self.tb.execute_cell("dir_set")
 
     def test_param_load(self):
         self.tb.execute_cell("param_load")
@@ -390,39 +377,14 @@ class Test_3_Cell_Clustering:
     def test_pixel_cluster_col(self):
         self.tb.execute_cell("pixel_cluster_col")
 
-    @pytest.mark.skip(reason="Do not run the Cell SOM")
     def test_train_cell_com(self):
         self.tb.execute_cell("train_cell_som")
 
-    @pytest.mark.skip(reason="Do not run the Cell SOM")
     def test_cluster_cell_data(self):
         self.tb.execute_cell("cluster_cell_data")
 
     def test_cell_consensus_cluster(self):
-        # Get Cell Clustering filenames
-
-        # Get cell paths and fovs
-        fovs = self.tb.ref("fovs")
-        channels = self.tb.ref("channels")
-        cell_table_path = self.tb.ref("cell_table_path")
-        cell_data = self.tb.ref("cell_data_name")
-        weighted_cell_channel = self.tb.ref("weighted_cell_channel_name")
-        cell_som_cluster_count_avgs = self.tb.ref("cell_som_cluster_count_avgs_name")
-        cell_meta_cluster_count_avgs = self.tb.ref("cell_meta_cluster_count_avgs_name")
-        cell_som_cluster_channel_avg = self.tb.ref("cell_som_cluster_channel_avg_name")
-        cell_meta_cluster_channel_avg = self.tb.ref("cell_meta_cluster_channel_avg_name")
-        # Create fake pixel som files
-        notebooks_test_utils.create_cell_som_files(self.base_dir,
-                                                   fovs,
-                                                   channels,
-                                                   cell_table_path,
-                                                   cell_data,
-                                                   weighted_cell_channel,
-                                                   cell_som_cluster_count_avgs,
-                                                   cell_meta_cluster_count_avgs,
-                                                   cell_som_cluster_channel_avg,
-                                                   cell_meta_cluster_channel_avg
-                                                   )
+        self.tb.execute_cell("cell_consensus_cluster")
 
     def test_cell_interactive(self):
         self.tb.execute_cell("cell_interactive")
@@ -488,11 +450,11 @@ class Test_4_Post_Clustering:
         """
         self.tb.inject(base_dir_inject, "base_dir")
 
-    def test_file_path(self):
-        self.tb.execute_cell("file_path")
-
     def test_ex_data_download(self):
         self.tb.execute_cell("ex_data_download")
+
+    def test_file_path(self):
+        self.tb.execute_cell("file_path")
 
     def test_dir_set(self):
         self.tb.execute_cell("dir_set")
@@ -552,11 +514,11 @@ class Test_Fiber_Segmentation():
         """
         self.tb.inject(base_dir_inject, "base_dir")
 
-    def test_file_paths(self):
-        self.tb.execute_cell("file_paths")
-
     def test_ex_data_download(self):
         self.tb.execute_cell("ex_data_download")
+
+    def test_file_paths(self):
+        self.tb.execute_cell("file_paths")
 
     def test_param_set(self):
         self.tb.execute_cell("param_set")
