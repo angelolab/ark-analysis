@@ -364,7 +364,8 @@ def test_smooth_channels(smooth_vals):
 
 @parametrize('sub_dir', [None, 'TIFs'])
 @parametrize('exclude', [False, True])
-def test_filter_with_nuclear_mask(sub_dir, exclude, capsys):
+@parametrize("_nuc_seg_suffix", ["nuclear", "other_suffix"])
+def test_filter_with_nuclear_mask(sub_dir, exclude, _nuc_seg_suffix, capsys):
     # define the fovs to use
     fovs = ['fov0', 'fov1', 'fov2']
 
@@ -374,7 +375,7 @@ def test_filter_with_nuclear_mask(sub_dir, exclude, capsys):
     with tempfile.TemporaryDirectory() as temp_dir:
         # test seg_dir is None
         pixel_cluster_utils.filter_with_nuclear_mask(
-            fovs, '', None, chans[0], ''
+            fovs=fovs, tiff_dir="", seg_dir=None, channel=chans[0], nuc_seg_suffix=_nuc_seg_suffix
         )
 
         output = capsys.readouterr().out
@@ -383,7 +384,8 @@ def test_filter_with_nuclear_mask(sub_dir, exclude, capsys):
         # test invalid seg_dir
         with pytest.raises(FileNotFoundError):
             pixel_cluster_utils.filter_with_nuclear_mask(
-                fovs, '', 'bad_seg_path', chans[0], ''
+                fovs=fovs, tiff_dir="", seg_dir="bad_seg_path", channel=chans[0],
+                nuc_seg_suffix=_nuc_seg_suffix
             )
 
         # create a directory to store the image data
@@ -413,7 +415,7 @@ def test_filter_with_nuclear_mask(sub_dir, exclude, capsys):
             nuclear_coords[fov] = (nuclear_x, nuclear_y)
 
             # save the nuclear segmetation
-            file_name = fov + "_nuclear.tiff"
+            file_name = f"{fov}_{_nuc_seg_suffix}.tiff"
             io.imsave(os.path.join(seg_dir, file_name), rand_img,
                       check_contrast=False)
 
@@ -425,7 +427,8 @@ def test_filter_with_nuclear_mask(sub_dir, exclude, capsys):
 
         # run filtering on channel 0
         pixel_cluster_utils.filter_with_nuclear_mask(
-            fovs, tiff_dir, seg_dir, 'chan0',
+            fovs=fovs, tiff_dir=tiff_dir, seg_dir=seg_dir, channel="chan0",
+            nuc_seg_suffix=_nuc_seg_suffix,
             img_sub_folder=sub_dir, exclude=exclude
         )
 

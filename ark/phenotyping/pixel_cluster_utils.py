@@ -3,6 +3,7 @@ import multiprocessing
 import os
 from shutil import rmtree
 import subprocess
+from typing import List
 import warnings
 
 import feather
@@ -230,8 +231,9 @@ def smooth_channels(fovs, tiff_dir, img_sub_folder, channels, smooth_vals):
                    chan_out, check_contrast=False)
 
 
-def filter_with_nuclear_mask(fovs, tiff_dir, seg_dir, channel,
-                             img_sub_folder=None, exclude=True):
+def filter_with_nuclear_mask(fovs: List, tiff_dir: str, seg_dir: str, channel: str,
+                             nuc_seg_suffix: str = "nuclear", img_sub_folder: str = None,
+                             exclude: bool = True):
     """Filters out background staining using subcellular marker localization.
 
     Non-nuclear signal is removed from nuclear markers and vice-versa for membrane markers.
@@ -245,6 +247,9 @@ def filter_with_nuclear_mask(fovs, tiff_dir, seg_dir, channel,
             Name of the directory containing the segmented files
         channel (str):
             Channel to apply filtering to
+        nuc_seg_suffix (str):
+            The suffix for the nuclear channel.
+            (i.e. for "fov1", a suffix of "nuclear" would make a file named "fov1_nuclear.tiff")
         img_sub_folder (str):
             Name of the subdirectory inside `tiff_dir` containing the tiff files.
             Set to `None` if there isn't any.
@@ -270,7 +275,8 @@ def filter_with_nuclear_mask(fovs, tiff_dir, seg_dir, channel,
                                              fovs=[fov], channels=[channel]).values[0, :, :, 0]
 
         # load the segmented image in
-        seg_img = imread(os.path.join(seg_dir, fov + '_nuclear.tiff'))[0, ...]
+        seg_img_name: str = f"{fov}_{nuc_seg_suffix}.tiff"
+        seg_img = imread(os.path.join(seg_dir, seg_img_name))[0, ...]
 
         # mask out the nucleus
         if exclude:
