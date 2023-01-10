@@ -1,12 +1,13 @@
 import os
-import warnings
 import re
+import warnings
 
+import natsort as ns
 import numpy as np
 import skimage.io as io
 import xarray as xr
-import natsort as ns
 
+from ark.settings import EXTENSION_TYPES
 from ark.utils import io_utils as iou
 from ark.utils import misc_utils
 from ark.utils.tiff_utils import read_mibitiff
@@ -131,13 +132,13 @@ def load_imgs_from_tree(data_dir, img_sub_folder=None, fovs=None, channels=None,
     if channels is None:
         channels = iou.list_files(
             dir_name=os.path.join(data_dir, fovs[0], img_sub_folder),
-            substrs=['.tiff', '.jpg', '.png']
+            substrs=EXTENSION_TYPES["IMAGE"]
         )
 
         # if taking all channels from directory, sort them alphabetically
         channels.sort()
     # otherwise, fill channel names with correct file extension
-    elif not all([img.endswith(("tiff", "jpg", "png")) for img in channels]):
+    elif not all([img.endswith(tuple(EXTENSION_TYPES["IMAGE"])) for img in channels]):
         # need this to reorder channels back because list_files may mess up the ordering
         channels_no_delim = [img.split('.')[0] for img in channels]
 
@@ -246,7 +247,7 @@ def load_imgs_from_dir(data_dir, files=None, match_substring=None, trim_suffix=N
     iou.validate_paths(data_dir, data_prefix=False)
 
     if files is None:
-        imgs = iou.list_files(data_dir, substrs=['.tiff', '.jpg', '.png'])
+        imgs = iou.list_files(data_dir, substrs=EXTENSION_TYPES["IMAGE"])
         if match_substring is not None:
             filenames = iou.remove_file_extensions(imgs)
             imgs = [imgs[i] for i, name in enumerate(filenames) if match_substring in name]
