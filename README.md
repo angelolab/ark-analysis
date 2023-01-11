@@ -86,11 +86,11 @@ After the Pixie Pipeline, the user can inspect and fine tune their results with 
 We recommend using the latest release of `ark`. You can find all the versions available in the [Releases Section](https://github.com/angelolab/ark-analysis/releases).
 Open terminal and navigate to where you want the code stored. 
 
-Currently, the latest release is `v0.4.4`.
+Currently, the latest release is `v0.5.0`.
 Then install the latest release with:
 
 ```
-git clone https://github.com/angelolab/ark-analysis.git --depth 1 --branch v0.4.4
+git clone https://github.com/angelolab/ark-analysis.git --depth 1 --branch v0.5.0
 ```
 
 You may also install previous releases by simply changing the version after the `--branch`.
