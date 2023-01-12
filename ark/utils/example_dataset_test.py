@@ -1,9 +1,10 @@
 import pathlib
 from typing import Callable, Generator, Iterator
+
 import pytest
+from tmi import test_utils
 
 from ark.settings import EXAMPLE_DATASET_REVISION
-from tmi import test_utils
 from ark.utils.example_dataset import ExampleDataset, get_example_dataset
 
 

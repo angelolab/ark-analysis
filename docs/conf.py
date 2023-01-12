@@ -10,7 +10,6 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 
-from sphinx.builders.html import StandaloneHTMLBuilder
 import inspect  # to help us check the arguments we receive in our docstring check
 import os
 import re  # for regex checking
@@ -19,6 +18,7 @@ import sys
 import warnings  # to throw warnings (not errors) for malformed docstrings
 
 import mock  # if we need to force mock import certain libraries autodoc_mock_imports fails ons
+from sphinx.builders.html import StandaloneHTMLBuilder
 
 # our project officially 'begins' in the parent aka root project directory
 # since we do not separate source from build we can simply go up one directory

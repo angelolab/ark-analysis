@@ -5,7 +5,6 @@ import warnings
 from typing import List
 
 from ark.settings import EXTENSION_TYPES
-
 from ark.utils import misc_utils
 
 

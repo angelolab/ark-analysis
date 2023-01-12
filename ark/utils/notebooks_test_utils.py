@@ -1,6 +1,5 @@
 import os
 
-import feather
 import numpy as np
 import pandas as pd
 from tmi import image_utils

@@ -8,8 +8,6 @@ import xarray as xr
 
 import ark.settings as settings
 from ark.utils import synthetic_spatial_datagen
-from tmi import io_utils
-import os
 
 TEST_MARKERS = list('ABCDEFG')
 

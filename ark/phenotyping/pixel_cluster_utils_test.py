@@ -1,7 +1,7 @@
-from copy import deepcopy
 import os
 import tempfile
 import warnings
+from copy import deepcopy
 from shutil import rmtree
 
 import feather

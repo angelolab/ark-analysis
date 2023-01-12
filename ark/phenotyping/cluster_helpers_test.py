@@ -1,15 +1,17 @@
+import os
+import pathlib
+import random
 from copy import deepcopy
+from typing import Iterator, Tuple
+
 import feather
 import numpy as np
-import os
 import pandas as pd
-import pathlib
 import pytest
-import random
-from typing import Iterator, List, Tuple
 
-from ark.phenotyping.cluster_helpers import PixieConsensusCluster, PixelSOMCluster, CellSOMCluster
-from ark.utils.misc_utils import verify_same_elements
+from ark.phenotyping.cluster_helpers import (CellSOMCluster, PixelSOMCluster,
+                                             PixieConsensusCluster)
+from tmi.misc_utils import verify_same_elements
 
 
 @pytest.fixture(scope="session")

@@ -4,9 +4,6 @@ import tempfile
 from random import randint
 from shutil import rmtree
 
-from random import randint
-from shutil import rmtree
-
 import feather
 import numpy as np
 import pandas as pd

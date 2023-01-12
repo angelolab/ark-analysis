@@ -4,7 +4,6 @@ import tempfile
 
 import numpy as np
 import pytest
-import skimage.io as io
 import xarray as xr
 from skimage.measure import regionprops
 from tmi import image_utils

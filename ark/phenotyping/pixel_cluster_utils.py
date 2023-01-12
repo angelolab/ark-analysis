@@ -1,16 +1,15 @@
-from functools import partial
 import multiprocessing
 import os
-from shutil import rmtree
-import subprocess
 import warnings
+from functools import partial
+from shutil import rmtree
 
 import feather
 import numpy as np
 import pandas as pd
+import scipy.ndimage as ndimage
 from pyarrow.lib import ArrowInvalid
 from skimage.io import imread
-import scipy.ndimage as ndimage
 from tmi import image_utils, io_utils, load_utils, misc_utils
 
 from ark.phenotyping import cluster_helpers

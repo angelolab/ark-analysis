@@ -3,7 +3,6 @@ import os
 
 import numpy as np
 import pandas as pd
-import skimage.io as io
 from skimage.measure import regionprops_table
 from skimage.morphology import remove_small_objects
 from skimage.segmentation import find_boundaries
