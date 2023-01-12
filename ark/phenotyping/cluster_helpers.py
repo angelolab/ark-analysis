@@ -14,7 +14,7 @@ from scipy.stats import zscore
 from sklearn.cluster import AgglomerativeClustering
 from tmi.misc_utils import verify_in_list
 
-from ark.utils.io_utils import list_files, validate_paths
+from tmi.io_utils import list_files, validate_paths
 
 
 class PixieSOMCluster(ABC):
