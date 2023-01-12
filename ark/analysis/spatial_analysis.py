@@ -1,9 +1,11 @@
 import os
+import seaborn as sns
 from itertools import combinations_with_replacement
 
 import numpy as np
 import pandas as pd
 import xarray as xr
+import matplotlib.pylab as plt
 from tqdm.notebook import tqdm
 
 import ark.settings as settings
@@ -816,7 +818,69 @@ def compute_cell_neighbors(all_data, dist_mat_dir, cell_neighbors_dir, neighbors
         cell_neighbors.to_csv(save_path, index=False)
 
 
-def compute_mixing_score(cell_neighbors_dir, fov, target_cells, reference_cells, cold_thresh=0,
+def compute_cell_ratios(cell_neighbors_dir, target_cells, reference_cells, fov_list, bin_number=10,
+                        cell_col=settings.CELL_TYPE, fov_col=settings.FOV_ID,
+                        label_col=settings.CELL_LABEL):
+    """ Computes the target/reference and reference/target ratios for each FOV
+    Args:
+        cell_neighbors_dir (str):
+            directory where cell neighbor tables are stored
+        target_cells (list):
+            invading cell phenotypes
+        reference_cells (list):
+            expected cell phenotypes
+        fov_list (list):
+            names of the fovs to compare
+        cell_col (str):
+            column with the cell cluster
+        fov_col (str):
+            column with the fovs
+        label_col (str):
+            column with the cell labels
+
+    Returns:
+        tuple(list, list):
+            - the target/reference ratios of each FOV
+            - the reference/target ratios of each FOV
+    """
+
+    targ_ref_ratio, ref_targ_ratio = [], []
+    for fov in fov_list:
+        # path validation
+        cell_neighbors_path = os.path.join(cell_neighbors_dir, f"{fov}_cell_neighbors.csv")
+        io_utils.validate_paths(cell_neighbors_path)
+
+        # read in fov cell neighbors, drop fov and cell label columns
+        neighbors_mat = pd.read_csv(cell_neighbors_path)
+        misc_utils.verify_in_list(provided_column_names=[cell_col, fov_col, label_col],
+                                  cell_neighbors_columns=neighbors_mat.columns)
+        neighbors_mat = neighbors_mat.drop(columns=[fov_col, label_col])
+
+        all_cells = neighbors_mat[cell_col].unique()
+
+        # get number of target and reference cells in sample
+        target_total = neighbors_mat[neighbors_mat[cell_col].isin(target_cells)].shape[0]
+        reference_total = neighbors_mat[neighbors_mat[cell_col].isin(reference_cells)].shape[0]
+
+        targ_ref_ratio.append(target_total / reference_total)
+        ref_targ_ratio.append(reference_total / target_total)
+
+    # create ratio plots
+    sns.set(rc={'figure.figsize': (16, 4)})
+    fig, (ax1, ax2) = plt.subplots(1, 2)
+    fig.suptitle("Target-Reference Ratios")
+    ax1.boxplot(targ_ref_ratio, 0, 'c', vert=False)
+    ax2.hist(targ_ref_ratio, bins=bin_number)
+    fig2, (ax3, ax4) = plt.subplots(1, 2)
+    fig2.suptitle("Reference-Target Ratios")
+    ax3.boxplot(ref_targ_ratio, 0, 'c', vert=False)
+    ax4.hist(ref_targ_ratio, bins=bin_number)
+
+    return targ_ref_ratio, ref_targ_ratio
+
+
+def compute_mixing_score(cell_neighbors_dir, fov, target_cells, reference_cells,
+                         target_thresh=10, reference_thresh=10,
                          cell_col=settings.CELL_TYPE, fov_col=settings.FOV_ID,
                          label_col=settings.CELL_LABEL):
     """ Compute and return the mixing score for the specified target/reference cell types
@@ -829,8 +893,12 @@ def compute_mixing_score(cell_neighbors_dir, fov, target_cells, reference_cells,
             invading cell phenotypes
         reference_cells (list):
             expected cell phenotypes
-        cold_thresh (int):
-            minimum number of cells required to calculate a mixing score, under this labeled "cold"
+        target_thresh (int):
+            maximum ratio of target to reference cells required to calculate a mixing score,
+            under this labeled "cold"
+        reference_thresh (int):
+            maximum ratio of reference to target cells required to calculate a mixing score,
+            under this labeled "cold"
         cell_col (str):
             column with the cell cluster
         fov_col (str):
@@ -839,9 +907,8 @@ def compute_mixing_score(cell_neighbors_dir, fov, target_cells, reference_cells,
             column with the cell labels
 
     Returns:
-        tuple (float, float):
+        float:
             - the mixing score for the FOV
-            - the ratio of target cells to reference cells
     """
 
     # path validation
@@ -865,11 +932,11 @@ def compute_mixing_score(cell_neighbors_dir, fov, target_cells, reference_cells,
 
     # get number of target and reference cells in sample
     target_total = neighbors_mat[neighbors_mat[cell_col].isin(target_cells)].shape[0]
-    reference_total = neighbors_mat[
+    ref_total = neighbors_mat[
         neighbors_mat[cell_col].isin(reference_cells)].shape[0]
     # check threshold
-    if reference_total < cold_thresh or target_total < cold_thresh:
-        return np.nan, (target_total/reference_total)
+    if ref_total/target_total > reference_thresh or target_total/ref_total > target_thresh:
+        return np.nan
 
     # condense to total number of cell type interactions
     neighbors_mat[cell_col] = neighbors_mat[cell_col].replace(target_cells, 'target')
@@ -893,7 +960,4 @@ def compute_mixing_score(cell_neighbors_dir, fov, target_cells, reference_cells,
     # homogenous mixing
     mixing_score = reference_target / (target_target + reference_reference)
 
-    # ratio of cell populations
-    ratio = target_total/reference_total
-
-    return mixing_score, ratio
+    return mixing_score
