@@ -364,7 +364,7 @@ def test_smooth_channels(smooth_vals):
 
 @parametrize('sub_dir', [None, 'TIFs'])
 @parametrize('exclude', [False, True])
-@parametrize("_nuc_seg_suffix", ["nuclear.tiff", "other_suffix.tiff"])
+@parametrize("_nuc_seg_suffix", ["_nuclear.tiff", "_other_suffix.tiff"])
 def test_filter_with_nuclear_mask(sub_dir, exclude, _nuc_seg_suffix, capsys):
     # define the fovs to use
     fovs = ['fov0', 'fov1', 'fov2']
@@ -415,7 +415,7 @@ def test_filter_with_nuclear_mask(sub_dir, exclude, _nuc_seg_suffix, capsys):
             nuclear_coords[fov] = (nuclear_x, nuclear_y)
 
             # save the nuclear segmetation
-            file_name = f"{fov}_{_nuc_seg_suffix}"
+            file_name = f"{fov}{_nuc_seg_suffix}"
             io.imsave(os.path.join(seg_dir, file_name), rand_img,
                       check_contrast=False)
 

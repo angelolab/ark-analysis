@@ -232,7 +232,7 @@ def smooth_channels(fovs, tiff_dir, img_sub_folder, channels, smooth_vals):
 
 
 def filter_with_nuclear_mask(fovs: List, tiff_dir: str, seg_dir: str, channel: str,
-                             nuc_seg_suffix: str = "nuclear.tiff", img_sub_folder: str = None,
+                             nuc_seg_suffix: str = "_nuclear.tiff", img_sub_folder: str = None,
                              exclude: bool = True):
     """Filters out background staining using subcellular marker localization.
 
@@ -249,7 +249,7 @@ def filter_with_nuclear_mask(fovs: List, tiff_dir: str, seg_dir: str, channel: s
             Channel to apply filtering to
         nuc_seg_suffix (str):
             The suffix for the nuclear channel.
-            (i.e. for "fov1", a suffix of "nuclear.tiff" would make a file named
+            (i.e. for "fov1", a suffix of "_nuclear.tiff" would make a file named
             "fov1_nuclear.tiff")
         img_sub_folder (str):
             Name of the subdirectory inside `tiff_dir` containing the tiff files.
@@ -276,7 +276,7 @@ def filter_with_nuclear_mask(fovs: List, tiff_dir: str, seg_dir: str, channel: s
                                              fovs=[fov], channels=[channel]).values[0, :, :, 0]
 
         # load the segmented image in
-        seg_img_name: str = f"{fov}_{nuc_seg_suffix}"
+        seg_img_name: str = f"{fov}{nuc_seg_suffix}"
         seg_img = imread(os.path.join(seg_dir, seg_img_name))[0, ...]
 
         # mask out the nucleus
