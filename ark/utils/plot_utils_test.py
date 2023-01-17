@@ -297,8 +297,10 @@ def test_create_mantis_dir():
 
         for idx, fov in enumerate(fovs):
             # Save the segmentation label compartments for each fov
-            io.imsave(os.path.join(temp_dir, segmentation_dir, '%s_whole_cell.tiff' % fov),
-                      example_labels.loc[idx, ...].values, check_contrast=False)
+            image_utils.save_image(
+                os.path.join(temp_dir, segmentation_dir, '%s_whole_cell_test.tiff' % fov),
+                example_labels.loc[idx, ...].values
+            )
 
             # Save the sample masks
             image_utils.save_image(

@@ -15,7 +15,7 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 from skimage.exposure import rescale_intensity
 from skimage.segmentation import find_boundaries
 from tmi import io_utils, load_utils, misc_utils
-
+from tmi.settings import EXTENSION_TYPES
 
 
 def plot_neighborhood_cluster_result(img_xr, fovs, k, save_dir=None, cmap_name='tab20',
@@ -488,7 +488,7 @@ def create_mantis_dir(fovs: List[str], mantis_project_path: Union[str, pathlib.P
             os.makedirs(output_dir)
 
             # copy all channels into new folder
-            chans = io_utils.list_files(img_source_dir, substrs=[".tif", ".tiff", ".jpg", ".png"])
+            chans = io_utils.list_files(img_source_dir, substrs=EXTENSION_TYPES["IMAGE"])
             for chan in chans:
                 shutil.copy(os.path.join(img_source_dir, chan), os.path.join(output_dir, chan))
 
