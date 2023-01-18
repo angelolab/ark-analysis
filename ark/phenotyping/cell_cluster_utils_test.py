@@ -391,22 +391,22 @@ def test_create_c2pc_data():
         )
 
         # assert the values created
-        correct_val = [[10, 0, 0],
-                       [10, 0, 0],
-                       [5, 5, 0],
-                       [0, 10, 0],
-                       [0, 10, 0],
-                       [0, 10, 0],
-                       [0, 10, 0],
-                       [0, 5, 5],
-                       [0, 0, 10],
-                       [0, 0, 10]]
+        correct_val_som = [[10, 0, 0],
+                           [10, 0, 0],
+                           [5, 5, 0],
+                           [0, 10, 0],
+                           [0, 10, 0],
+                           [0, 10, 0],
+                           [0, 10, 0],
+                           [0, 5, 5],
+                           [0, 0, 10],
+                           [0, 0, 10]]
 
         assert np.all(
-            np.equal(np.array(correct_val), cluster_counts[som_cluster_cols].values)
+            np.equal(np.array(correct_val_som), cluster_counts[som_cluster_cols].values)
         )
         assert np.all(
-            np.equal(np.array(correct_val) / 5, cluster_counts_size_norm[som_cluster_cols].values)
+            np.equal(np.array(correct_val_som) / 5, cluster_counts_size_norm[som_cluster_cols].values)
         )
 
         # test counts on the consensus cluster column
@@ -424,23 +424,126 @@ def test_create_c2pc_data():
         )
 
         # assert the values created
-        correct_val = [[10, 0],
-                       [10, 0],
-                       [5, 5],
-                       [0, 10],
-                       [0, 10],
-                       [10, 0],
-                       [10, 0],
-                       [5, 5],
-                       [0, 10],
-                       [0, 10]]
+        correct_val_meta = [[10, 0],
+                            [10, 0],
+                            [5, 5],
+                            [0, 10],
+                            [0, 10],
+                            [10, 0],
+                            [10, 0],
+                            [5, 5],
+                            [0, 10],
+                            [0, 10]]
 
         assert np.all(
-            np.equal(np.array(correct_val), cluster_counts[meta_cluster_cols].values)
+            np.equal(np.array(correct_val_meta), cluster_counts[meta_cluster_cols].values)
         )
         assert np.all(
-            np.equal(np.array(correct_val) / 5, cluster_counts_size_norm[meta_cluster_cols].values)
+            np.equal(np.array(correct_val_meta) / 5, cluster_counts_size_norm[meta_cluster_cols].values)
         )
+
+        # create new FOVs that has some cluster labels that aren't in the cell table
+        for fov in ['fov3', 'fov4']:
+            # assume each label has 10 pixels, create dummy data for each of them
+            fov_table = pd.DataFrame(np.random.rand(50, 3), columns=chans)
+
+            # assign the fovs and labels
+            fov_table['fov'] = fov
+            fov_table['segmentation_label'] = np.repeat(np.arange(10), 5)
+
+            fov_table['pixel_som_cluster'] = np.repeat(np.arange(5), 10)
+            fov_table['pixel_meta_cluster_rename'] = np.repeat(np.arange(5), 10)
+
+            # write fov data to feather
+            feather.write_dataframe(fov_table, os.path.join(pixel_data_path,
+                                                            fov + '.feather'))
+
+        # append fov3 and fov4 to the cell table
+        fovs += ['fov3', 'fov4']
+
+        cell_table_34 = cell_table.copy()
+        cell_table_34.loc[0:4, 'fov'] = 'fov3'
+        cell_table_34.loc[5:9, 'fov'] = 'fov4'
+        cell_table = pd.concat([cell_table, cell_table_34])
+        cell_table.to_csv(cell_table_path, index=False)
+
+        # test NaN counts on the SOM cluster column
+        with pytest.warns(match='Pixel clusters pixel_som_cluster_3'):
+            cluster_counts, cluster_counts_size_norm = cell_cluster_utils.create_c2pc_data(
+                fovs, pixel_data_path, cell_table_path,
+                pixel_cluster_col='pixel_som_cluster'
+            )
+
+            correct_val_som = [[10, 0, 0],
+                               [10, 0, 0],
+                               [5, 5, 0],
+                               [0, 10, 0],
+                               [0, 10, 0],
+                               [0, 10, 0],
+                               [0, 10, 0],
+                               [0, 5, 5],
+                               [0, 0, 10],
+                               [0, 0, 10],
+                               [5, 0, 0],
+                               [5, 0, 0],
+                               [0, 5, 0],
+                               [0, 5, 0],
+                               [0, 0, 5],
+                               [5, 0, 0],
+                               [5, 0, 0],
+                               [0, 5, 0],
+                               [0, 5, 0],
+                               [0, 0, 5]]
+
+            assert np.all(
+                np.equal(np.array(correct_val_som), cluster_counts[som_cluster_cols].values)
+            )
+            assert np.all(
+                np.equal(np.array(correct_val_som) / 5, cluster_counts_size_norm[som_cluster_cols].values)
+            )
+
+        cluster_counts, cluster_counts_size_norm = cell_cluster_utils.create_c2pc_data(
+            fovs, pixel_data_path, cell_table_path,
+            pixel_cluster_col='pixel_meta_cluster_rename'
+        )
+
+        # test NaN counts on the meta cluster column
+        with pytest.warns(match='Pixel clusters pixel_meta_cluster_rename_3'):
+            cluster_counts, cluster_counts_size_norm = cell_cluster_utils.create_c2pc_data(
+                fovs, pixel_data_path, cell_table_path,
+                pixel_cluster_col='pixel_meta_cluster_rename'
+            )
+
+            correct_val_meta = [[10, 0, 0],
+                                [10, 0, 0],
+                                [5, 5, 0],
+                                [0, 10, 0],
+                                [0, 10, 0],
+                                [10, 0, 0],
+                                [10, 0, 0],
+                                [5, 5, 0],
+                                [0, 10, 0],
+                                [0, 10, 0],
+                                [5, 0, 0],
+                                [5, 0, 0],
+                                [0, 5, 0],
+                                [0, 5, 0],
+                                [0, 0, 5],
+                                [5, 0, 0],
+                                [5, 0, 0],
+                                [0, 5, 0],
+                                [0, 5, 0],
+                                [0, 0, 5]]
+
+            # creation of data for this step added another meta clustering column
+            meta_cluster_cols += ['pixel_meta_cluster_rename_2']
+
+            assert np.all(
+                np.equal(np.array(correct_val_meta), cluster_counts[meta_cluster_cols].values)
+            )
+            assert np.all(
+                np.equal(np.array(correct_val_meta) / 5, cluster_counts_size_norm[meta_cluster_cols].values)
+            )
 
 
 def test_train_cell_som():
