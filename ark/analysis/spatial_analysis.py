@@ -880,9 +880,9 @@ def compute_cell_ratios(cell_neighbors_dir, target_cells, reference_cells, fov_l
 
 
 def compute_mixing_score(cell_neighbors_dir, fov, target_cells, reference_cells,
-                         target_thresh=10, reference_thresh=10,
+                         target_ratio=5, reference_ratio=5, cell_count_thresh=0,
                          cell_col=settings.CELL_TYPE, fov_col=settings.FOV_ID,
-                         label_col=settings.CELL_LABEL):
+                         label_col=settings.CELL_LABEL, percent_mixing=False):
     """ Compute and return the mixing score for the specified target/reference cell types
     Args:
         cell_neighbors_dir (str):
@@ -893,11 +893,14 @@ def compute_mixing_score(cell_neighbors_dir, fov, target_cells, reference_cells,
             invading cell phenotypes
         reference_cells (list):
             expected cell phenotypes
-        target_thresh (int):
+        target_ratio (int):
             maximum ratio of target to reference cells required to calculate a mixing score,
             under this labeled "cold"
-        reference_thresh (int):
+        reference_ratio (int):
             maximum ratio of reference to target cells required to calculate a mixing score,
+            under this labeled "cold"
+        cell_count_thresh (int):
+            minimum number of cells in each population to calculate a mixing score,
             under this labeled "cold"
         cell_col (str):
             column with the cell cluster
@@ -927,15 +930,17 @@ def compute_mixing_score(cell_neighbors_dir, fov, target_cells, reference_cells,
         raise ValueError(f"The following cell types were included in both the target and reference"
                          f" populations: {overlap}")
     all_cells = neighbors_mat[cell_col].unique()
-    misc_utils.verify_in_list(provided_cell_populations=target_cells+reference_cells,
-                              cell_populations_in_fov=all_cells)
 
     # get number of target and reference cells in sample
     target_total = neighbors_mat[neighbors_mat[cell_col].isin(target_cells)].shape[0]
     ref_total = neighbors_mat[
         neighbors_mat[cell_col].isin(reference_cells)].shape[0]
+    if ref_total < cell_count_thresh or target_total < cell_count_thresh:
+        return np.nan
     # check threshold
-    if ref_total/target_total > reference_thresh or target_total/ref_total > target_thresh:
+    if ref_total/target_total > reference_ratio:
+        return np.nan
+    if target_total/ref_total > target_ratio:
         return np.nan
 
     # condense to total number of cell type interactions
@@ -945,19 +950,22 @@ def compute_mixing_score(cell_neighbors_dir, fov, target_cells, reference_cells,
     interactions_mat['target'] = [0] * interactions_mat.shape[0]
     interactions_mat['reference'] = [0] * interactions_mat.shape[0]
     for target_cell in target_cells:
-        interactions_mat['target'] = interactions_mat['target'] + interactions_mat[target_cell]
+        if target_cell in all_cells:
+            interactions_mat['target'] = interactions_mat['target'] + interactions_mat[target_cell]
     for reference_cell in reference_cells:
-        interactions_mat['reference'] = interactions_mat['reference'] + \
-                                        interactions_mat[reference_cell]
+        if reference_cell in all_cells:
+            interactions_mat['reference'] = interactions_mat['reference']+ interactions_mat[reference_cell]
 
     reference_target = interactions_mat.loc['target', 'reference']
     target_target = interactions_mat.loc['target', 'target']
     reference_reference = interactions_mat.loc['reference', 'reference']
 
     # mixing score calculation
-    # percent mixing
-    # mixing_score = reference_target / (reference_target + reference_reference)
-    # homogenous mixing
-    mixing_score = reference_target / (target_target + reference_reference)
+    if percent_mixing:
+        # percent mixing
+        mixing_score = reference_target / (reference_target + reference_reference)
+    else:
+        # homogenous mixing
+        mixing_score = reference_target / (target_target + reference_reference)
 
     return mixing_score

@@ -641,11 +641,6 @@ def test_compute_mixing_score():
         cell_neighbors_mat.to_csv(save_path, index=False)
 
         # check cell type validation
-        with pytest.raises(ValueError, match='Not all values given in list provided cell'):
-            spatial_analysis.compute_mixing_score(cell_neighbors_dir, 'fov1',
-                                                  target_cells=['not-a-cell'],
-                                                  reference_cells=['cell2'])
-
         with pytest.raises(ValueError, match='The following cell types were included in both '
                                              'the target and reference populations'):
             spatial_analysis.compute_mixing_score(cell_neighbors_dir, 'fov1',
@@ -657,20 +652,32 @@ def test_compute_mixing_score():
                                                   target_cells=['cell1'],
                                                   reference_cells=['cell2'], cell_col='bad_column')
 
+        # check that extra cell type is ignored
+        score = spatial_analysis.compute_mixing_score(
+            cell_neighbors_dir, 'fov1', target_cells=['cell1', 'cell3', 'cell_not_in_fov'],
+            reference_cells=['cell2'])
+        assert score == 3 / 12
+
         # test success
         score = spatial_analysis.compute_mixing_score(
             cell_neighbors_dir, 'fov1', target_cells=['cell1', 'cell3'],
-            reference_cells=['cell2'], reference_thresh=100)
+            reference_cells=['cell2'])
         assert score == 3/12
 
         # test reference threshold
-        cold_score= spatial_analysis.compute_mixing_score(
+        cold_score = spatial_analysis.compute_mixing_score(
             cell_neighbors_dir, 'fov1', target_cells=['cell1'], reference_cells=['cell2'],
-            reference_thresh=0.5)
+            reference_ratio=0.5)
         assert math.isnan(cold_score)
 
         # test target threshold
         cold_score = spatial_analysis.compute_mixing_score(
             cell_neighbors_dir, 'fov1', target_cells=['cell1'], reference_cells=['cell2'],
-            target_thresh=0.5)
+            target_ratio=0.5)
+        assert math.isnan(cold_score)
+
+        # test cell count threshold
+        cold_score = spatial_analysis.compute_mixing_score(
+            cell_neighbors_dir, 'fov1', target_cells=['cell1'], reference_cells=['cell2'],
+            cell_count_thresh=5)
         assert math.isnan(cold_score)
