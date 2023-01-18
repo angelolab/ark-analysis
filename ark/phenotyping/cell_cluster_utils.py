@@ -385,6 +385,16 @@ def create_c2pc_data(fovs, pixel_data_path,
     cell_table = cell_table.reset_index(drop=True)
     cell_table_norm = cell_table_norm.reset_index(drop=True)
 
+    # filter out all NA columns
+    cell_table_norm = cell_table_norm[cell_table_norm.isnull().sum() == 0]
+    cell_table = cell_table[cell_table_norm.isnull().sum() == 0]
+
+    # inform the user of the columns dropped, if applicable
+    if cell_table_norm.shape < len(count_cols):
+        nan_pixel_cols = set(count_cols).difference(list(cell_table_norm.columns.values))
+        warnings.warn('Pixel clusters %s do not appear in any cells, removed from analysis' %
+                      ','.join(nan_pixel_cols))
+
     return cell_table, cell_table_norm
 
 
