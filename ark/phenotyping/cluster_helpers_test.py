@@ -8,10 +8,10 @@ import feather
 import numpy as np
 import pandas as pd
 import pytest
+from tmi.misc_utils import verify_same_elements
 
 from ark.phenotyping.cluster_helpers import (CellSOMCluster, PixelSOMCluster,
                                              PixieConsensusCluster)
-from tmi.misc_utils import verify_same_elements
 
 
 @pytest.fixture(scope="session")
