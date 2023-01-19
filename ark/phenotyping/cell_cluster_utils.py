@@ -696,8 +696,7 @@ def cell_consensus_cluster(fovs, channels, base_dir, cell_som_cluster_cols, max_
 
 
 def apply_cell_meta_cluster_remapping(fovs, channels, base_dir, cluster_counts_size_norm_name,
-                                      cell_remapped_name,
-                                      cell_som_cluster_cols,
+                                      cell_remapped_name, cell_som_cluster_cols,
                                       cell_som_cluster_count_avg_name,
                                       cell_meta_cluster_count_avg_name,
                                       weighted_cell_channel_name,
