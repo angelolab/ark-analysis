@@ -27,7 +27,7 @@ def compute_cell_cluster_count_avg(cell_cluster_path, cell_som_cluster_cols,
             should be `'cell_som_cluster'` or `'cell_meta_cluster'`
         keep_count (bool):
             Whether to include the cell counts or not,
-            this should only be set to `True` for visualization purposes
+            should only be set to `True` for visualization support
 
     Returns:
         pandas.DataFrame:
