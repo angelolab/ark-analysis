@@ -386,11 +386,12 @@ def create_c2pc_data(fovs, pixel_data_path,
     cell_table = cell_table.reset_index(drop=True)
     cell_table_norm = cell_table_norm.reset_index(drop=True)
 
-    # filter out columns that are all 0 (this will cause normalization to fail)
+    # find columns that are set to all 0
     cell_zero_cols = list(cell_table_norm[count_cols].columns[
         (cell_table_norm[count_cols] == 0).all()
     ].values)
 
+    # filter out these columns (they will cause normalization to fail)
     if len(cell_zero_cols) > 0:
         warnings.warn('Pixel clusters %s do not appear in any cells, removed from analysis' %
                       ','.join(cell_zero_cols))
