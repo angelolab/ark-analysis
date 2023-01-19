@@ -378,6 +378,12 @@ class Test_3_Cell_Clustering:
     def test_pixel_cluster_col(self):
         self.tb.execute_cell("pixel_cluster_col")
 
+    def test_generate_som_input_data(self):
+        self.tb.execute_cell("generate_som_input_data")
+
+    def test_generate_weighted_channel_data(self):
+        self.tb.execute_cell("generate_weighted_channel_data")
+
     def test_train_cell_com(self):
         self.tb.execute_cell("train_cell_som")
 
