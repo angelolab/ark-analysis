@@ -13,6 +13,7 @@ python:
 # We add python path to enable testing jupyter notebooks
 install:
   - pip install -U --no-cache-dir importlib-metadata setuptools
+  - pip install -U --no-cache-dir charset-normalizer==2.1.1
   - travis_retry pip install --no-cache-dir -r requirements.txt
   - travis_retry pip install --no-cache-dir -r requirements-test.txt
   - travis_retry export PYTHONPATH=$PWD
