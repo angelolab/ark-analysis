@@ -59,8 +59,6 @@ LDA_PLOT_TYPES = ["adjacency", "topic_assignment"]
 # mibitracker
 MIBITRACKER_BACKEND = 'https://backend-dot-mibitracker-angelolab.appspot.com'
 
-EXTENSION_TYPES: Dict[str, List[str]] = {
-    "IMAGE": ["tiff", "tif", "png", "jpg", "jpeg", "ome.tiff"],
-    "ARCHIVE": ["tar", "gz", "zip"],
-    "DATA": ["csv", "feather", "bin", "json"],
-}
+# Switch it from `main` to the commit ID on HuggingFace to test a
+# specific version of the Example Dataset
+EXAMPLE_DATASET_REVISION: str = "main"

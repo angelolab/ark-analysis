@@ -13,11 +13,9 @@ import requests
 from requests.adapters import HTTPAdapter
 from requests.exceptions import RetryError
 from requests.packages.urllib3.util import Retry
-from skimage import io
 from tifffile import imread
+from tmi import image_utils, io_utils, misc_utils
 from tqdm.notebook import tqdm
-
-from ark.utils import io_utils, misc_utils
 
 
 def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
@@ -160,8 +158,7 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
                 # read the file from the .zip file and save as segmentation mask
                 byte_repr = zipObj.read(name)
                 ranked_segmentation_mask = _convert_deepcell_seg_masks(byte_repr)
-                io.imsave(mask_path, ranked_segmentation_mask, plugin="tifffile",
-                          check_contrast=False)
+                image_utils.save_image(mask_path, ranked_segmentation_mask)
 
             # verify that all the files were extracted
             for fov in fov_group:

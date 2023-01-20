@@ -9,10 +9,9 @@ import seaborn as sns
 import spatial_lda.online_lda
 from scipy.spatial.distance import pdist
 from spatial_lda.visualization import _standardize_topics, plot_adjacency_graph
+from tmi import io_utils, misc_utils
 
-from ark.settings import BASE_COLS, LDA_PLOT_TYPES, CELL_TYPE
-from ark.utils.misc_utils import verify_in_list
-from ark.utils.io_utils import validate_paths
+from ark.settings import BASE_COLS, CELL_TYPE, LDA_PLOT_TYPES
 
 
 def check_format_cell_table_args(cell_table, markers, clusters):
@@ -28,16 +27,17 @@ def check_format_cell_table_args(cell_table, markers, clusters):
     """
 
     # Check cell table columns
-    verify_in_list(required_columns=BASE_COLS, cell_table_columns=cell_table.columns.to_list())
+    misc_utils.verify_in_list(required_columns=BASE_COLS,
+                              cell_table_columns=cell_table.columns.to_list())
 
     # Check markers/clusters
     if markers is None and clusters is None:
         raise ValueError("markers and clusters cannot both be None")
     if markers is not None:
-        verify_in_list(markers=markers, cell_table_columns=cell_table.columns.to_list())
+        misc_utils.verify_in_list(markers=markers, cell_table_columns=cell_table.columns.to_list())
     if clusters is not None:
         cell_table_clusters = cell_table[CELL_TYPE].unique().tolist()
-        verify_in_list(clusters=clusters, cell_table_clusters=cell_table_clusters)
+        misc_utils.verify_in_list(clusters=clusters, cell_table_clusters=cell_table_clusters)
 
 
 def check_featurize_cell_table_args(cell_table, featurization, radius, cell_index):
@@ -60,8 +60,8 @@ def check_featurize_cell_table_args(cell_table, featurization, radius, cell_inde
     if radius < 25:
         raise ValueError("radius must not be less than 25")
 
-    verify_in_list(featurization=[featurization],
-                   featurization_options=["cluster", "marker", "avg_marker", "count"])
+    misc_utils.verify_in_list(featurization=[featurization],
+                              featurization_options=["cluster", "marker", "avg_marker", "count"])
 
     if featurization in ["cluster"] and "clusters" not in cell_table:
         raise ValueError(
@@ -73,7 +73,8 @@ def check_featurize_cell_table_args(cell_table, featurization, radius, cell_inde
         )
 
     key = list(cell_table.keys())[0]
-    verify_in_list(cell_index=[cell_index], cell_table_columns=cell_table[key].columns.to_list())
+    misc_utils.verify_in_list(cell_index=[cell_index],
+                              cell_table_columns=cell_table[key].columns.to_list())
 
 
 def within_cluster_sums(data, labels):
@@ -184,7 +185,7 @@ def make_plot_fn(plot="adjacency", difference_matrices=None, topic_weights=None,
             A function for plotting spatial-LDA data.
     """
     # check args
-    verify_in_list(plot=[plot], plot_options=LDA_PLOT_TYPES)
+    misc_utils.verify_in_list(plot=[plot], plot_options=LDA_PLOT_TYPES)
 
     if plot == "adjacency":
         if difference_matrices is None:
@@ -251,7 +252,7 @@ def read_spatial_lda_file(dir, file_name, format="pkl"):
     """
     file_name += "." + format
     file_path = os.path.join(dir, file_name)
-    validate_paths(file_path)
+    io_utils.validate_paths(file_path)
 
     if format == "pkl":
         with open(file_path, "rb") as f:
