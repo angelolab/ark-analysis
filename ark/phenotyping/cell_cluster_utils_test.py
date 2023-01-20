@@ -403,10 +403,16 @@ def test_create_c2pc_data():
                            [0, 0, 10]]
 
         assert np.all(
-            np.equal(np.array(correct_val_som), cluster_counts[som_cluster_cols].values)
+            np.equal(
+                np.array(correct_val_som),
+                cluster_counts[som_cluster_cols].values
+            )
         )
         assert np.all(
-            np.equal(np.array(correct_val_som) / 5, cluster_counts_size_norm[som_cluster_cols].values)
+            np.equal(
+                np.array(correct_val_som) / 5,
+                cluster_counts_size_norm[som_cluster_cols].values
+            )
         )
 
         # test counts on the consensus cluster column
@@ -436,10 +442,16 @@ def test_create_c2pc_data():
                             [0, 10]]
 
         assert np.all(
-            np.equal(np.array(correct_val_meta), cluster_counts[meta_cluster_cols].values)
+            np.equal(
+                np.array(correct_val_meta),
+                cluster_counts[meta_cluster_cols].values
+            )
         )
         assert np.all(
-            np.equal(np.array(correct_val_meta) / 5, cluster_counts_size_norm[meta_cluster_cols].values)
+            np.equal(
+                np.array(correct_val_meta) / 5,
+                cluster_counts_size_norm[meta_cluster_cols].values
+            )
         )
 
         # create new FOVs that has some cluster labels that aren't in the cell table
@@ -496,10 +508,16 @@ def test_create_c2pc_data():
                                [0, 0, 5]]
 
             assert np.all(
-                np.equal(np.array(correct_val_som), cluster_counts[som_cluster_cols].values)
+                np.equal(
+                    np.array(correct_val_som),
+                    cluster_counts[som_cluster_cols].values
+                )
             )
             assert np.all(
-                np.equal(np.array(correct_val_som) / 5, cluster_counts_size_norm[som_cluster_cols].values)
+                np.equal(
+                    np.array(correct_val_som) / 5,
+                    cluster_counts_size_norm[som_cluster_cols].values
+                )
             )
 
         cluster_counts, cluster_counts_size_norm = cell_cluster_utils.create_c2pc_data(
@@ -539,10 +557,16 @@ def test_create_c2pc_data():
             meta_cluster_cols += ['pixel_meta_cluster_rename_2']
 
             assert np.all(
-                np.equal(np.array(correct_val_meta), cluster_counts[meta_cluster_cols].values)
+                np.equal(
+                    np.array(correct_val_meta),
+                    cluster_counts[meta_cluster_cols].values
+                )
             )
             assert np.all(
-                np.equal(np.array(correct_val_meta) / 5, cluster_counts_size_norm[meta_cluster_cols].values)
+                np.equal(
+                    np.array(correct_val_meta) / 5,
+                    cluster_counts_size_norm[meta_cluster_cols].values
+                )
             )
 
 
