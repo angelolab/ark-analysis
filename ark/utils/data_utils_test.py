@@ -10,13 +10,10 @@ import pandas as pd
 import pytest
 import skimage.io as io
 import xarray as xr
+from tmi import image_utils, io_utils, load_utils, test_utils
 
 from ark import settings
-from ark.utils import data_utils, io_utils, load_utils, test_utils
-from ark.utils.data_utils import (generate_and_save_cell_cluster_masks,
-                                  generate_and_save_neighborhood_cluster_masks,
-                                  generate_and_save_pixel_cluster_masks,
-                                  label_cells_by_cluster, relabel_segmentation)
+from ark.utils import data_utils
 
 parametrize = pytest.mark.parametrize
 
@@ -62,13 +59,13 @@ def test_relabel_segmentation():
     x = y = 5
     img_arr = np.arange(1, x * y + 1).reshape((x, y))
     d = {i: i + 1 for i in range(1, x * y + 1)}
-    res = relabel_segmentation(img_arr, d)
+    res = data_utils.relabel_segmentation(img_arr, d)
 
     assert np.array_equal(img_arr + 1, res)
 
     # some cells are not mapped to any cluster-label
     d = {i: i + 1 for i in range(1, x * y - 5)}
-    res = relabel_segmentation(img_arr, d)
+    res = data_utils.relabel_segmentation(img_arr, d)
     # these cells should all get a default label
     img_arr[img_arr >= x * y - 5] = x * y - 5
 
@@ -79,7 +76,7 @@ def test_relabel_segmentation():
     data = np.repeat(data, 2)  # ([1, 1, 2, 2, 3, 3, 4, 4])
     img_arr = data.reshape((4, 2))
     d = {i: 10 * i for i in range(5)}
-    res = relabel_segmentation(img_arr, d)
+    res = data_utils.relabel_segmentation(img_arr, d)
 
     assert np.array_equal(img_arr * 10, res)
 
@@ -112,7 +109,7 @@ def test_label_cells_by_cluster(zero_pixels):
     )
 
     # relabel the cells
-    res_data = label_cells_by_cluster(fov, all_data, label_map, fov_col=settings.FOV_ID)
+    res_data = data_utils.label_cells_by_cluster(fov, all_data, label_map, fov_col=settings.FOV_ID)
 
     # assert the shape is the same as the original label_map
     assert res_data.shape == (x, y)
@@ -136,8 +133,7 @@ def test_generate_cell_cluster_mask():
 
         # generate a sample segmentation mask
         cell_mask = np.random.randint(low=0, high=5, size=(40, 40), dtype="int16")
-        io.imsave(os.path.join(temp_dir, '%s_whole_cell.tiff' % fov), cell_mask,
-                  check_contrast=False)
+        image_utils.save_image(os.path.join(temp_dir, '%s_whole_cell.tiff' % fov), cell_mask)
 
         # bad consensus path passed
         with pytest.raises(FileNotFoundError):
@@ -238,8 +234,8 @@ def test_generate_and_save_cell_cluster_masks(sub_dir, name_suffix):
             fov_index = fov if fov < fov_size_split else fov_size_split - fov
             fov_mask = cell_masks_40 if fov < fov_size_split else cell_masks_20
             fov_whole_cell = fov_mask[fov_index, :, :, 0]
-            io.imsave(os.path.join(temp_dir, 'fov%d_whole_cell.tiff' % fov), fov_whole_cell,
-                      check_contrast=False)
+            image_utils.save_image(os.path.join(temp_dir, 'fov%d_whole_cell.tiff' % fov),
+                                   fov_whole_cell)
 
         # create a sample cell consensus file based on SOM cluster assignments
         consensus_data_som = pd.DataFrame()
@@ -281,16 +277,17 @@ def test_generate_and_save_cell_cluster_masks(sub_dir, name_suffix):
         )
 
         # test various batch_sizes, no sub_dir, name_suffix = ''.
-        generate_and_save_cell_cluster_masks(fovs=fovs,
-                                             base_dir=temp_dir,
-                                             save_dir=os.path.join(temp_dir, 'cell_masks'),
-                                             seg_dir=temp_dir,
-                                             cell_data_name='cluster_consensus_som.feather',
-                                             cell_cluster_col='cell_som_cluster',
-                                             seg_suffix='_whole_cell.tiff',
-                                             sub_dir=sub_dir,
-                                             name_suffix=name_suffix
-                                             )
+        data_utils.generate_and_save_cell_cluster_masks(
+            fovs=fovs,
+            base_dir=temp_dir,
+            save_dir=os.path.join(temp_dir, 'cell_masks'),
+            seg_dir=temp_dir,
+            cell_data_name='cluster_consensus_som.feather',
+            cell_cluster_col='cell_som_cluster',
+            seg_suffix='_whole_cell.tiff',
+            sub_dir=sub_dir,
+            name_suffix=name_suffix
+        )
 
         # open each cell mask and make sure the shape and values are valid
         if sub_dir is None:
@@ -324,8 +321,7 @@ def test_generate_pixel_cluster_mask():
         # generate sample fov folder with one channel value, no sub folder
         channel_data = np.random.randint(low=0, high=5, size=(40, 40), dtype="int16")
         os.mkdir(os.path.join(temp_dir, 'fov0'))
-        io.imsave(os.path.join(temp_dir, 'fov0', 'chan0.tiff'), channel_data,
-                  check_contrast=False)
+        image_utils.save_image(os.path.join(temp_dir, 'fov0', 'chan0.tiff'), channel_data)
 
         # bad consensus path passed
         with pytest.raises(FileNotFoundError):
@@ -414,11 +410,7 @@ def test_generate_and_save_pixel_cluster_masks(sub_dir, name_suffix):
             if not os.path.exists(os.path.join(temp_dir, fov)):
                 os.mkdir(os.path.join(temp_dir, fov))
 
-            io.imsave(
-                os.path.join(temp_dir, fov, 'chan0.tiff'),
-                channel_data,
-                check_contrast=False
-            )
+            image_utils.save_image(os.path.join(temp_dir, fov, 'chan0.tiff'), channel_data)
 
             consensus_data = pd.DataFrame(np.random.rand(100, 4), columns=chans)
             consensus_data['pixel_som_cluster'] = np.tile(np.arange(1, 11), 10)
@@ -430,15 +422,17 @@ def test_generate_and_save_pixel_cluster_masks(sub_dir, name_suffix):
                 consensus_data, os.path.join(temp_dir, 'pixel_mat_consensus', fov + '.feather')
             )
 
-        generate_and_save_pixel_cluster_masks(fovs=fovs,
-                                              base_dir=temp_dir,
-                                              save_dir=os.path.join(temp_dir, 'pixel_masks'),
-                                              tiff_dir=temp_dir,
-                                              chan_file='chan0.tiff',
-                                              pixel_data_dir='pixel_mat_consensus',
-                                              pixel_cluster_col='pixel_meta_cluster',
-                                              sub_dir=sub_dir,
-                                              name_suffix=name_suffix)
+        data_utils.generate_and_save_pixel_cluster_masks(
+            fovs=fovs,
+            base_dir=temp_dir,
+            save_dir=os.path.join(temp_dir, 'pixel_masks'),
+            tiff_dir=temp_dir,
+            chan_file='chan0.tiff',
+            pixel_data_dir='pixel_mat_consensus',
+            pixel_cluster_col='pixel_meta_cluster',
+            sub_dir=sub_dir,
+            name_suffix=name_suffix
+        )
 
         # set sub_dir to empty string if None
         if sub_dir is None:
@@ -482,13 +476,12 @@ def test_generate_and_save_neighborhood_cluster_masks(sub_dir, name_suffix):
         )
 
         for fov in fovs:
-            io.imsave(
+            image_utils.save_image(
                 os.path.join(temp_dir, 'seg_dir', fov + '_whole_cell.tiff'),
                 sample_label_maps.loc[fov, ...].values,
-                check_contrast=False
             )
 
-        generate_and_save_neighborhood_cluster_masks(
+        data_utils.generate_and_save_neighborhood_cluster_masks(
             fovs=fovs,
             save_dir=os.path.join(temp_dir, 'neighborhood_masks'),
             neighborhood_data=sample_neighborhood_data,
@@ -619,17 +612,6 @@ def test_generate_deepcell_input():
                 data_utils.generate_deepcell_input(
                     data_xr, temp_dir, None, None, ['fov0'], ['chan0']
                 )
-
-
-def test_stitch_images():
-    fovs, chans = test_utils.gen_fov_chan_names(num_fovs=40, num_chans=4)
-
-    data_xr = test_utils.make_images_xarray(tif_data=None, fov_ids=fovs, channel_names=chans,
-                                            dtype='int16')
-
-    stitched_xr = data_utils.stitch_images(data_xr, 5)
-
-    assert stitched_xr.shape == (1, 80, 50, 4)
 
 
 def test_split_img_stack():

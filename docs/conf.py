@@ -10,13 +10,15 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 
+import inspect  # to help us check the arguments we receive in our docstring check
 import os
+import re  # for regex checking
+import subprocess  # to initiate sphinx-apidoc to build .md files
 import sys
-import mock # if we need to force mock import certain libraries autodoc_mock_imports fails ons
-import subprocess # to initiate sphinx-apidoc to build .md files
-import inspect # to help us check the arguments we receive in our docstring check
-import warnings # to throw warnings (not errors) for malformed docstrings
-import re # for regex checking
+import warnings  # to throw warnings (not errors) for malformed docstrings
+
+import mock  # if we need to force mock import certain libraries autodoc_mock_imports fails ons
+from sphinx.builders.html import StandaloneHTMLBuilder
 
 # our project officially 'begins' in the parent aka root project directory
 # since we do not separate source from build we can simply go up one directory
@@ -24,7 +26,6 @@ sys.path.insert(0, os.path.abspath('..'))
 
 # if we ever have images, we'll be using the supported_image_types
 # argument to set the desired formats we wish to support
-from sphinx.builders.html import StandaloneHTMLBuilder
 
 # -- Project information -----------------------------------------------------
 
@@ -45,17 +46,20 @@ if rtd_version not in ['stable', 'latest']:
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = ['IPython.sphinxext.ipython_console_highlighting', # syntax-highligyting ipython interactive sessions
-              'sphinx.ext.autodoc', # allows you to generate documentation from docstrings (STAR)
-              'sphinx.ext.autosectionlabel', # allows you to refer sections aka link to them (STAR)
-              'sphinx.ext.coverage', # get coverage statistics (STAR)
-              'sphinx.ext.doctest', # provide a test code snippits
-              'sphinx.ext.intersphinx', # link to other project's documentation, needed if a cross-reference has no matching target in current documentation
-              'sphinx.ext.githubpages', # generates a .nojekyll file on generated HTML directory, allows publishing to GitHub pages
-              'sphinx.ext.napoleon', # support for Google style docstrings (STAR)
-              'sphinx.ext.todo', # support fo TODO
-              'sphinx.ext.viewcode', # support for adding links to highlighted source code, looks at Python object descriptions and tries to find source files where objects are contained
-              'm2r2'] # allows you to include Markdown files in .rst, use mdinclude for this, choosing this over m2r because m2r is not supported anymore
+extensions = ['IPython.sphinxext.ipython_console_highlighting',  # syntax-highligyting ipython interactive sessions
+              'sphinx.ext.autodoc',  # allows you to generate documentation from docstrings (STAR)
+              # allows you to refer sections aka link to them (STAR)
+              'sphinx.ext.autosectionlabel',
+              'sphinx.ext.coverage',  # get coverage statistics (STAR)
+              'sphinx.ext.doctest',  # provide a test code snippits
+              # link to other project's documentation, needed if a cross-reference has no matching target in current documentation
+              'sphinx.ext.intersphinx',
+              # generates a .nojekyll file on generated HTML directory, allows publishing to GitHub pages
+              'sphinx.ext.githubpages',
+              'sphinx.ext.napoleon',  # support for Google style docstrings (STAR)
+              'sphinx.ext.todo',  # support fo TODO
+              'sphinx.ext.viewcode',  # support for adding links to highlighted source code, looks at Python object descriptions and tries to find source files where objects are contained
+              'm2r2']  # allows you to include Markdown files in .rst, use mdinclude for this, choosing this over m2r because m2r is not supported anymore
 
 # set parameter to read Google docstring and not NumPy
 # redundant to add since it's default True but good to know
@@ -85,6 +89,7 @@ autodoc_mock_imports = ['cryptography',
                         'spatial_lda',
                         'tables',
                         'tifffile',
+                        'tmi',
                         'umap',
                         'xarray',
                         'twisted',
@@ -124,7 +129,8 @@ nbsphinx_execute = 'never'
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = ['_rtd/landing.md', '_markdown/ark.md',  '_build', 'Thumbs.db', '.DS_Store', '**.ipynb_checkpoints']
+exclude_patterns = ['_rtd/landing.md', '_markdown/ark.md',
+                    '_build', 'Thumbs.db', '.DS_Store', '**.ipynb_checkpoints']
 
 # custom 'stuff' we want to ignore in nitpicky mode
 # currently empty, I don't think we'll ever run in this
@@ -304,12 +310,14 @@ def check_docstring_format(app, what, name, obj, options, lines):
             # and ReadTheDocs gets screwed over when processing so reads something
             # in an argument description as an actual argument
             if sorted(param_args) != sorted(type_args):
-                raise Exception('Parameter list: %s and type list: %s do not match in %s, an Args section formatting error likely caused this' % (','.join(param_args), ','.join(type_args), name))
+                raise Exception('Parameter list: %s and type list: %s do not match in %s, an Args section formatting error likely caused this' % (
+                    ','.join(param_args), ','.join(type_args), name))
 
             # if your parameters are not the same as the arguments in the function
             # that's bad because your docstring args section needs to match up exactly
             if sorted(param_args) != sorted(argnames):
-                raise Exception('Parameter list: %s does not match arglist: %s in %s, check docstring formatting' % (','.join(param_args), ','.join(argnames), name))
+                raise Exception('Parameter list: %s does not match arglist: %s in %s, check docstring formatting' % (
+                    ','.join(param_args), ','.join(argnames), name))
 
             # handle cases where return values are found
             # currently, I can only check if in the case of a proper Return (:return) format (improper ones are usually handled by the above cases)
@@ -350,7 +358,8 @@ def check_docstring_format(app, what, name, obj, options, lines):
             # this is like the returns check for if the function does specify arguments
             if any(re.match(r':returns:', line) for line in lines):
                 if not any(re.match(r':rtype', line) for line in lines):
-                    raise Exception('Return value was provided but no return type specified in %s' % name)
+                    raise Exception(
+                        'Return value was provided but no return type specified in %s' % name)
 
 
 def setup(app):
