@@ -4,6 +4,7 @@ import random
 import warnings
 from functools import partial
 from shutil import rmtree
+from typing import List
 
 import feather
 import numpy as np
@@ -281,11 +282,11 @@ def filter_with_nuclear_mask(fovs: List, tiff_dir: str, seg_dir: str, channel: s
 
         # mask out the nucleus
         if exclude:
-            suffix = '_nuc_exclude.tiff'
+            suffix = "_nuc_exclude.tiff"
             seg_mask = seg_img > 0
         # mask out the membrane
         else:
-            suffix = '_nuc_include.tiff'
+            suffix = "_nuc_include.tiff"
             seg_mask = seg_img == 0
 
         # filter out the nucleus or membrane depending on exclude parameter
