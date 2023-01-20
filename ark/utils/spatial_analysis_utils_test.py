@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 import pytest
 import xarray as xr
+from tmi.test_utils import _write_labels
 
 import ark.settings as settings
 from ark.utils import spatial_analysis_utils, test_utils
@@ -20,10 +21,10 @@ def test_calc_dist_matrix():
 
         # generate sample label data
         # NOTE: this function should support varying FOV sizes
-        test_utils._write_labels(label_dir, ["fov8"], ["segmentation_label"], (10, 10),
-                                 '', True, np.uint8, suffix='_whole_cell')
-        test_utils._write_labels(label_dir, ["fov9"], ["segmentation_label"], (5, 5),
-                                 '', True, np.uint8, suffix='_whole_cell')
+        _write_labels(label_dir, ["fov8"], ["segmentation_label"], (10, 10),
+                      '', True, np.uint8, suffix='_whole_cell')
+        _write_labels(label_dir, ["fov9"], ["segmentation_label"], (5, 5),
+                      '', True, np.uint8, suffix='_whole_cell')
 
         # generate the distance matrices
         spatial_analysis_utils.calc_dist_matrix(label_dir, save_path)

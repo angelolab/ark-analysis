@@ -1,7 +1,7 @@
-from copy import deepcopy
 import os
 import tempfile
 import warnings
+from copy import deepcopy
 from shutil import rmtree
 
 import feather
@@ -12,13 +12,10 @@ import scipy.ndimage as ndimage
 import skimage.io as io
 from pytest_cases import parametrize_with_cases
 from skimage.draw import disk
+from tmi import image_utils, io_utils, load_utils, misc_utils, test_utils
 
 import ark.phenotyping.cluster_helpers as cluster_helpers
 import ark.phenotyping.pixel_cluster_utils as pixel_cluster_utils
-import ark.utils.io_utils as io_utils
-import ark.utils.load_utils as load_utils
-import ark.utils.misc_utils as misc_utils
-import ark.utils.test_utils as test_utils
 
 parametrize = pytest.mark.parametrize
 
@@ -207,7 +204,7 @@ def test_calculate_pixel_intensity_percentile():
                 else:
                     divisor = 100
                 # saved modified channel
-                io.imsave(chan_path, img / divisor)
+                image_utils.save_image(chan_path, img / divisor)
 
         channel_percentiles = pd.DataFrame(np.array([[1, 1, 1]]),
                                            columns=['chan1', 'chan2', 'chan3'])
@@ -714,8 +711,7 @@ def test_preprocess_fov(mocker):
         for fov in ['fov0', 'fov1']:
             rand_img = np.random.randint(0, 16, size=(10, 10))
             file_name = fov + "_whole_cell.tiff"
-            io.imsave(os.path.join(seg_dir, file_name), rand_img,
-                      check_contrast=False)
+            image_utils.save_image(os.path.join(seg_dir, file_name), rand_img)
 
         channel_norm_df = pd.DataFrame(
             np.expand_dims(np.repeat(10, repeats=len(chans)), axis=0),
@@ -834,8 +830,7 @@ def test_create_pixel_matrix_base(fovs, chans, sub_dir, seg_dir_include,
             for fov in fovs:
                 rand_img = np.random.randint(0, 16, size=(10, 10))
                 file_name = fov + "_whole_cell.tiff"
-                io.imsave(os.path.join(seg_dir, file_name), rand_img,
-                          check_contrast=False)
+                image_utils.save_image(os.path.join(seg_dir, file_name), rand_img)
         # otherwise, set seg_dir to None
         else:
             seg_dir = None
@@ -982,7 +977,7 @@ def test_create_pixel_matrix_base(fovs, chans, sub_dir, seg_dir_include,
             fov_dir = os.path.join(new_tiff_dir, fov, sub_dir)
             os.makedirs(fov_dir)
             for chan in chans:
-                io.imsave(os.path.join(fov_dir, chan + '.tiff'), img)
+                image_utils.save_image(os.path.join(fov_dir, chan + '.tiff'), img)
 
         # recreate the output directory
         rmtree(sample_pixel_output_dir)
