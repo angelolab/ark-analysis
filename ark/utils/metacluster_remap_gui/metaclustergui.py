@@ -122,7 +122,7 @@ class MetaClusterGui():
         self.fig.canvas.mpl_connect('pick_event', self.onpick)
 
         # heatmaps
-        self.normalizer = ZScoreNormalize(-1, 0, 1)
+        self.normalizer = ZScoreNormalize(-3, 0, 3)
 
         def _heatmap(ax, column_count):
             data = np.zeros((self.mcd.marker_count, column_count))
@@ -383,8 +383,6 @@ class MetaClusterGui():
 
         def _preplot(df):
             return df.apply(zscore).clip(upper=self.zscore_clamp_slider.value).T
-
-        self.normalizer.calibrate(_preplot(self.mcd.clusters).values)
 
         # clusters heatmap
         self.im_c.set_data(_preplot(self.mcd.clusters))
