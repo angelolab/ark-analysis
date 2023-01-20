@@ -1,10 +1,10 @@
 import numpy as np
 import pytest
 from sklearn.cluster import KMeans
+from tmi import misc_utils
 
 import ark.settings as settings
 import ark.spLDA.processing as pros
-from ark.utils.misc_utils import verify_in_list
 from ark.utils.spatial_lda_utils import within_cluster_sums
 from ark.utils.test_utils import make_cell_table
 
@@ -31,16 +31,16 @@ def test_format_cell_table():
                     x not in ['fovs', 'markers', 'clusters']]
     marker_fovs = [x for x in all_markers_format.keys() if
                    x not in ['fovs', 'markers', 'clusters']]
-    verify_in_list(
+    misc_utils.verify_in_list(
         fovs1=list(np.unique(TEST_CELL_TABLE[settings.FOV_ID])), fovs2=cluster_fovs)
-    verify_in_list(
+    misc_utils.verify_in_list(
         fovs1=list(np.unique(TEST_CELL_TABLE[settings.FOV_ID])), fovs2=marker_fovs)
 
     # Check that columns were retained/renamed
-    verify_in_list(
+    misc_utils.verify_in_list(
         cols1=["x", "y", "cluster", "is_index"],
         cols2=list(all_clusters_format[1].columns))
-    verify_in_list(
+    misc_utils.verify_in_list(
         cols1=["x", "y", "cluster", "is_index"],
         cols2=list(all_markers_format[1].columns))
 
@@ -77,8 +77,10 @@ def test_featurize_cell_table():
     assert all_clusters_50["featurized_fovs"].shape[0] == TEST_CELL_TABLE.shape[0] == N_CELLS
     assert all_clusters_75["train_features"].shape[0] == 0.75 * N_CELLS
     assert all_clusters_50["train_features"].shape[0] == 0.5 * N_CELLS
-    verify_in_list(correct=all_markers, actual=list(all_markers_75["featurized_fovs"].columns))
-    verify_in_list(correct=cluster_names, actual=list(all_clusters_75["featurized_fovs"].columns))
+    misc_utils.verify_in_list(correct=all_markers,
+                              actual=list(all_markers_75["featurized_fovs"].columns))
+    misc_utils.verify_in_list(correct=cluster_names,
+                              actual=list(all_clusters_75["featurized_fovs"].columns))
     # check for correct featurization method
     assert all_clusters_75["featurization"] == "cluster"
     assert all_markers_75["featurization"] == "marker"
@@ -122,7 +124,7 @@ def test_compute_topic_eda():
     # check for correct output
     eda = pros.compute_topic_eda(features=features["featurized_fovs"],
                                  featurization=features["featurization"], topics=[5], num_boots=25)
-    verify_in_list(eda_correct_keys=settings.EDA_KEYS, eda_actual_keys=list(eda.keys()))
+    misc_utils.verify_in_list(eda_correct_keys=settings.EDA_KEYS, eda_actual_keys=list(eda.keys()))
 
 
 def test_create_difference_matrices():
@@ -145,9 +147,10 @@ def test_create_difference_matrices():
                                         training=False, inference=False)
 
     # check output names
-    verify_in_list(correct=['train_diff_mat', 'inference_diff_mat'], actual=list(diff_mat.keys()))
-    verify_in_list(correct=['train_diff_mat', 'inference_diff_mat'], actual=list(
-        diff_mat_train.keys()))
+    misc_utils.verify_in_list(correct=['train_diff_mat', 'inference_diff_mat'],
+                              actual=list(diff_mat.keys()))
+    misc_utils.verify_in_list(correct=['train_diff_mat', 'inference_diff_mat'],
+                              actual=list(diff_mat_train.keys()))
     # check output values
     assert all(list(diff_mat.values()))
     assert diff_mat_train['inference_diff_mat'] is None
@@ -161,7 +164,8 @@ def test_fov_density():
     cell_dens = pros.fov_density(all_clusters_format)
 
     # check for correct names
-    verify_in_list(correct=["average_area", "cellular_density"], actual=list(cell_dens.keys()))
+    misc_utils.verify_in_list(correct=["average_area", "cellular_density"],
+                              actual=list(cell_dens.keys()))
     # check for correct dims
     avg_len = len(cell_dens["average_area"])
     den_len = len(cell_dens["cellular_density"])

@@ -1,24 +1,17 @@
-import math
 import os
 import pathlib
-import shutil
+import re
 from typing import List, Union
 
-import re
-import datasets
 import feather
+import natsort as ns
 import numpy as np
 import pandas as pd
 import skimage.io as io
-from skimage.measure import regionprops_table
-import xarray as xr
-import natsort as ns
+from tmi import data_utils, image_utils, io_utils, load_utils, misc_utils
 from tqdm.notebook import tqdm_notebook as tqdm
 
 from ark import settings
-from ark.utils import load_utils, io_utils
-from ark.utils.load_utils import load_tiled_img_data
-from ark.utils.misc_utils import verify_in_list
 
 
 def save_fov_mask(fov, data_dir, mask_data, sub_dir=None, name_suffix=''):
@@ -56,7 +49,7 @@ def save_fov_mask(fov, data_dir, mask_data, sub_dir=None, name_suffix=''):
     fov_file = fov + name_suffix + '.tiff'
 
     # save the image to data_dir
-    io.imsave(os.path.join(save_dir, fov_file), mask_data, check_contrast=False)
+    image_utils.save_image(os.path.join(save_dir, fov_file), mask_data)
 
 
 def relabel_segmentation(labeled_image, labels_dict):
@@ -118,7 +111,7 @@ def label_cells_by_cluster(fov, all_data, label_map, fov_col=settings.FOV_ID,
 
     # verify that fov found in all_data
     # NOTE: label_map fov validation happens in loading function
-    verify_in_list(fov_name=[fov], all_data_fovs=all_data[fov_col].unique())
+    misc_utils.verify_in_list(fov_name=[fov], all_data_fovs=all_data[fov_col].unique())
 
     # subset all_data on the FOV
     df = all_data[all_data[fov_col] == fov]
@@ -165,7 +158,7 @@ def generate_cell_cluster_mask(fov, base_dir, seg_dir, cell_data_name,
     io_utils.validate_paths([seg_dir, cell_data_path])
 
     # verify the cluster_col provided is valid
-    verify_in_list(
+    misc_utils.verify_in_list(
         provided_cluster_col=cell_cluster_col,
         valid_cluster_cols=['cell_som_cluster', 'cell_meta_cluster']
     )
@@ -277,13 +270,13 @@ def generate_pixel_cluster_mask(fov, base_dir, tiff_dir, chan_file_path,
                              os.path.join(base_dir, pixel_data_dir)])
 
     # verify the pixel_cluster_col provided is valid
-    verify_in_list(
+    misc_utils.verify_in_list(
         provided_cluster_col=[pixel_cluster_col],
         valid_cluster_cols=['pixel_som_cluster', 'pixel_meta_cluster']
     )
 
     # verify the fov is valid
-    verify_in_list(
+    misc_utils.verify_in_list(
         provided_fov_file=[fov + '.feather'],
         consensus_fov_files=os.listdir(os.path.join(base_dir, pixel_data_dir))
     )
@@ -494,48 +487,7 @@ def generate_deepcell_input(data_dir, tiff_dir, nuc_channels, mem_channels, fovs
             out[1] = np.sum(data_xr.loc[fov_name, :, :, mem_channels].values, axis=2)
 
         save_path = os.path.join(data_dir, f"{fov_name}.tiff")
-        io.imsave(save_path, out, plugin='tifffile', check_contrast=False)
-
-
-def stitch_images(data_xr, num_cols):
-    """Stitch together a stack of different channels from different FOVs into a single 2D image
-    for each channel
-
-    Args:
-        data_xr (xarray.DataArray):
-            xarray containing image data from multiple fovs and channels
-        num_cols (int):
-            number of images stitched together horizontally
-
-    Returns:
-        xarray.DataArray:
-            the stitched image data
-    """
-
-    num_imgs = data_xr.shape[0]
-    num_rows = math.ceil(num_imgs / num_cols)
-    row_len = data_xr.shape[1]
-    col_len = data_xr.shape[2]
-
-    total_row_len = num_rows * row_len
-    total_col_len = num_cols * col_len
-
-    stitched_data = np.zeros((1, total_row_len, total_col_len, data_xr.shape[3]),
-                             dtype=data_xr.dtype)
-
-    img_idx = 0
-    for row in range(num_rows):
-        for col in range(num_cols):
-            stitched_data[0, row * row_len:(row + 1) * row_len,
-                          col * col_len:(col + 1) * col_len, :] = data_xr[img_idx, ...]
-            img_idx += 1
-            if img_idx == num_imgs:
-                break
-
-    stitched_xr = xr.DataArray(stitched_data, coords=[['stitched_image'], range(total_row_len),
-                                                      range(total_col_len), data_xr.channels],
-                               dims=['fovs', 'rows', 'cols', 'channels'])
-    return stitched_xr
+        image_utils.save_image(save_path, out)
 
 
 def split_img_stack(stack_dir, output_dir, stack_list, indices, names, channels_first=True):
@@ -570,7 +522,7 @@ def split_img_stack(stack_dir, output_dir, stack_list, indices, names, channels_
                 channel = img_stack[..., indices[i]]
 
             save_path = os.path.join(img_dir, names[i])
-            io.imsave(save_path, channel, plugin='tifffile', check_contrast=False)
+            image_utils.save_image(save_path, channel)
 
 
 def stitch_images_by_shape(data_dir, stitched_dir, img_sub_folder=None, channels=None,
@@ -592,7 +544,7 @@ def stitch_images_by_shape(data_dir, stitched_dir, img_sub_folder=None, channels
             if stitching images from the single pixel or cell mask dir, specify 'pixel' / 'cell'
     """
 
-    io_utils.validate_paths(data_dir, data_prefix=False)
+    io_utils.validate_paths(data_dir)
 
     # no img_sub_folder, change to empty string to read directly from base folder
     if img_sub_folder is None:
@@ -643,8 +595,8 @@ def stitch_images_by_shape(data_dir, stitched_dir, img_sub_folder=None, channels
     if channels is None:
         channels = io_utils.remove_file_extensions(channel_imgs)
     else:
-        verify_in_list(channel_inputs=channels,
-                       valid_channels=io_utils.remove_file_extensions(channel_imgs))
+        misc_utils.verify_in_list(channel_inputs=channels,
+                                  valid_channels=io_utils.remove_file_extensions(channel_imgs))
 
     os.makedirs(stitched_dir)
 
@@ -653,10 +605,11 @@ def stitch_images_by_shape(data_dir, stitched_dir, img_sub_folder=None, channels
 
     # save new images to the stitched_images, one channel at a time
     for chan in channels:
-        image_data = load_tiled_img_data(data_dir, fovs, expected_fovs, chan,
-                                         single_dir=any([segmentation, clustering]),
-                                         file_ext=file_ext, img_sub_folder=img_sub_folder)
-        stitched_data = stitch_images(image_data, num_cols)
+        image_data = load_utils.load_tiled_img_data(data_dir, fovs, expected_fovs, chan,
+                                                    single_dir=any([segmentation, clustering]),
+                                                    file_ext=file_ext,
+                                                    img_sub_folder=img_sub_folder)
+        stitched_data = data_utils.stitch_images(image_data, num_cols)
         current_img = stitched_data.loc['stitched_image', :, :, chan].values
-        io.imsave(os.path.join(stitched_dir, chan + '_stitched.' + file_ext),
-                  current_img, check_contrast=False)
+        image_utils.save_image(os.path.join(stitched_dir, chan + '_stitched.' + file_ext),
+                               current_img)

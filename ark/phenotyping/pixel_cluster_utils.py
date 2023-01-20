@@ -1,20 +1,19 @@
-from functools import partial
 import multiprocessing
 import os
-from shutil import rmtree
-import subprocess
+import random
 import warnings
+from functools import partial
+from shutil import rmtree
 
 import feather
 import numpy as np
 import pandas as pd
-from pyarrow.lib import ArrowInvalid
-import random
 import scipy.ndimage as ndimage
-from skimage.io import imread, imsave
+from pyarrow.lib import ArrowInvalid
+from skimage.io import imread
+from tmi import image_utils, io_utils, load_utils, misc_utils
 
 from ark.phenotyping import cluster_helpers
-from ark.utils import io_utils, load_utils, misc_utils
 
 multiprocessing.set_start_method('spawn', force=True)
 
@@ -226,8 +225,10 @@ def smooth_channels(fovs, tiff_dir, img_sub_folder, channels, smooth_vals):
             img = load_utils.load_imgs_from_tree(data_dir=tiff_dir, img_sub_folder=img_sub_folder,
                                                  fovs=[fov], channels=[chan]).values[0, :, :, 0]
             chan_out = ndimage.gaussian_filter(img, sigma=smooth_vals[idx])
-            imsave(os.path.join(tiff_dir, fov, img_sub_folder, chan + '_smoothed.tiff'),
-                   chan_out, check_contrast=False)
+            image_utils.save_image(
+                os.path.join(tiff_dir, fov, img_sub_folder, chan + '_smoothed.tiff'),
+                chan_out
+            )
 
 
 def filter_with_nuclear_mask(fovs, tiff_dir, seg_dir, channel,
@@ -285,8 +286,7 @@ def filter_with_nuclear_mask(fovs, tiff_dir, seg_dir, channel,
         img[seg_mask] = 0
 
         # save filtered image
-        imsave(os.path.join(tiff_dir, fov, img_sub_folder, channel + suffix), img,
-               check_contrast=False)
+        image_utils.save_image(os.path.join(tiff_dir, fov, img_sub_folder, channel + suffix), img)
 
 
 def compute_pixel_cluster_channel_avg(fovs, channels, base_dir, pixel_cluster_col,

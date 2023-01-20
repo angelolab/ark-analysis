@@ -10,7 +10,6 @@ import ark.settings as settings
 import ark.spLDA.processing as pros
 from ark.analysis import visualize
 from ark.utils import test_utils
-from ark.utils.test_utils import make_cell_table
 
 
 def test_draw_heatmap():
@@ -165,7 +164,7 @@ def test_visualize_neighbor_cluster_metrics():
 
 def test_visualize_topic_eda():
     # Create/format/featurize testing cell table
-    cell_table = make_cell_table(num_cells=1000)
+    cell_table = test_utils.make_cell_table(num_cells=1000)
     all_clusters = list(np.unique(cell_table[settings.CELL_TYPE]))
     cell_table_format = pros.format_cell_table(cell_table, clusters=all_clusters)
     cell_table_features = pros.featurize_cell_table(cell_table_format)
@@ -201,7 +200,7 @@ def test_visualize_topic_eda():
 
 def test_visualize_fov_stats():
     # Create/format/featurize testing cell table
-    cell_table = make_cell_table(num_cells=1000)
+    cell_table = test_utils.make_cell_table(num_cells=1000)
     all_clusters = list(np.unique(cell_table[settings.CELL_TYPE]))
     cell_table_format = pros.format_cell_table(cell_table, clusters=all_clusters)
 
@@ -226,7 +225,7 @@ def test_visualize_fov_stats():
 
 
 def test_visualize_fov_graphs():
-    cell_table = make_cell_table(num_cells=1000)
+    cell_table = test_utils.make_cell_table(num_cells=1000)
     all_clusters = list(np.unique(cell_table[settings.CELL_TYPE]))
     cell_table_format = pros.format_cell_table(cell_table, clusters=all_clusters)
     cell_table_features = pros.featurize_cell_table(cell_table_format)
