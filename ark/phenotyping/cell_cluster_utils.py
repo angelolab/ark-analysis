@@ -1,5 +1,4 @@
 import os
-import subprocess
 
 import feather
 import matplotlib.patches as patches
@@ -7,9 +6,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import scipy.stats as stats
+from tmi import io_utils, misc_utils
 
 from ark.analysis import visualize
-from ark.utils import io_utils, misc_utils
 from ark.phenotyping import cluster_helpers
 
 

@@ -4,9 +4,10 @@ from typing import List
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from tmi import load_utils, misc_utils
+from tmi.settings import EXTENSION_TYPES
 
-from ark.settings import EXTENSION_TYPES
-from ark.utils import data_utils, load_utils, misc_utils, plot_utils
+from ark.utils import data_utils, plot_utils
 
 
 def plot_hist_thresholds(cell_table, populations, marker, pop_col='cell_meta_cluster',

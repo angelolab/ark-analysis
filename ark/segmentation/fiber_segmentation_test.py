@@ -1,11 +1,13 @@
 import os
 import shutil
 import tempfile
+
 import pytest
+from tmi import io_utils
 
 import ark.settings as settings
-from ark.utils import io_utils, example_dataset
 from ark.segmentation import fiber_segmentation
+from ark.utils import example_dataset
 
 
 def test_plot_fiber_segmentation_steps():

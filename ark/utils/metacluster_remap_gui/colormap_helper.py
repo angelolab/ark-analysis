@@ -1,12 +1,10 @@
 import colorsys
 import itertools
-import os
 
 import matplotlib
 import numpy as np
 import pandas as pd
-
-from ark.utils import misc_utils, io_utils
+from tmi import io_utils, misc_utils
 
 
 def distinct_cmap(n=33):

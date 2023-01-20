@@ -1,19 +1,19 @@
-from abc import ABC, abstractmethod
 import bisect
-import feather
-from itertools import combinations
-import numpy as np
 import os
 import pathlib
+import warnings
+from abc import ABC, abstractmethod
+from itertools import combinations
+from typing import List, Protocol, runtime_checkable
+
+import feather
+import numpy as np
 import pandas as pd
 from pyFlowSOM import map_data_to_nodes, som
 from scipy.stats import zscore
 from sklearn.cluster import AgglomerativeClustering
-from typing import Callable, Generic, List, Protocol, runtime_checkable
-import warnings
-
-from ark.utils.io_utils import list_files, validate_paths
-from ark.utils.misc_utils import verify_in_list
+from tmi.io_utils import list_files, validate_paths
+from tmi.misc_utils import verify_in_list
 
 
 class PixieSOMCluster(ABC):
@@ -57,7 +57,6 @@ class PixieSOMCluster(ABC):
             pandas.DataFrame:
                 The data with `columns` normalized by the values in `norm_data`
         """
-        pass
 
     def train_som(self, data: pd.DataFrame):
         """Trains the SOM on the data provided and saves the weights generated
