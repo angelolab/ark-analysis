@@ -1,7 +1,8 @@
-from os import path, pardir
-from setuptools import setup, find_packages, Extension
+from os import pardir, path
+
 import numpy as np
 from Cython.Build import cythonize
+from setuptools import Extension, find_packages, setup
 
 CYTHON_DEBUG = False
 

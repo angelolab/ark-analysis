@@ -4,9 +4,9 @@ import warnings
 from typing import Union
 
 import datasets
+from tmi.misc_utils import verify_in_list
 
 from ark.settings import EXAMPLE_DATASET_REVISION
-from ark.utils.misc_utils import verify_in_list
 
 
 class ExampleDataset():
@@ -28,6 +28,7 @@ class ExampleDataset():
                     * `"LDA_training_inference"`
                     * `"neighborhood_analysis"`
                     * `"pairwise_spatial_enrichment"`
+                    * `"ome_tiff"`
             overwrite_existing (bool): A flag to overwrite existing data. Defaults to `True`.
             cache_dir (str, optional): The directory to save the cache dir. Defaults to `None`,
                 which internally in Hugging Face defaults to `~/.cache/huggingface/datasets`.
@@ -50,6 +51,7 @@ class ExampleDataset():
             "example_cell_output_dir": "pixie/example_cell_output_dir",
             "spatial_lda": "spatial_analysis/spatial_lda",
             "post_clustering": "post_clustering",
+            "ome_tiff": "ome_tiff"
         }
         """
         Path suffixes for mapping each downloaded dataset partition to it's appropriate
@@ -173,7 +175,8 @@ def get_example_dataset(dataset: str, save_dir: Union[str, pathlib.Path],
                       "LDA_preprocessing",
                       "LDA_training_inference",
                       "neighborhood_analysis",
-                      "pairwise_spatial_enrichment"]
+                      "pairwise_spatial_enrichment",
+                      "ome_tiff"]
 
     # Check the appropriate dataset name
     try:
