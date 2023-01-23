@@ -4,6 +4,7 @@ import random
 import warnings
 from functools import partial
 from shutil import rmtree
+from typing import List
 
 import feather
 import numpy as np
@@ -231,8 +232,9 @@ def smooth_channels(fovs, tiff_dir, img_sub_folder, channels, smooth_vals):
             )
 
 
-def filter_with_nuclear_mask(fovs, tiff_dir, seg_dir, channel,
-                             img_sub_folder=None, exclude=True):
+def filter_with_nuclear_mask(fovs: List, tiff_dir: str, seg_dir: str, channel: str,
+                             nuc_seg_suffix: str = "_nuclear.tiff", img_sub_folder: str = None,
+                             exclude: bool = True):
     """Filters out background staining using subcellular marker localization.
 
     Non-nuclear signal is removed from nuclear markers and vice-versa for membrane markers.
@@ -246,6 +248,10 @@ def filter_with_nuclear_mask(fovs, tiff_dir, seg_dir, channel,
             Name of the directory containing the segmented files
         channel (str):
             Channel to apply filtering to
+        nuc_seg_suffix (str):
+            The suffix for the nuclear channel.
+            (i.e. for "fov1", a suffix of "_nuclear.tiff" would make a file named
+            "fov1_nuclear.tiff")
         img_sub_folder (str):
             Name of the subdirectory inside `tiff_dir` containing the tiff files.
             Set to `None` if there isn't any.
@@ -271,15 +277,16 @@ def filter_with_nuclear_mask(fovs, tiff_dir, seg_dir, channel,
                                              fovs=[fov], channels=[channel]).values[0, :, :, 0]
 
         # load the segmented image in
-        seg_img = imread(os.path.join(seg_dir, fov + '_nuclear.tiff'))[0, ...]
+        seg_img_name: str = f"{fov}{nuc_seg_suffix}"
+        seg_img = imread(os.path.join(seg_dir, seg_img_name))[0, ...]
 
         # mask out the nucleus
         if exclude:
-            suffix = '_nuc_exclude.tiff'
+            suffix = "_nuc_exclude.tiff"
             seg_mask = seg_img > 0
         # mask out the membrane
         else:
-            suffix = '_nuc_include.tiff'
+            suffix = "_nuc_include.tiff"
             seg_mask = seg_img == 0
 
         # filter out the nucleus or membrane depending on exclude parameter
