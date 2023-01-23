@@ -14,7 +14,7 @@ class ZScoreNormalize(Normalize):
         [vcenter,vmax] -> [0.5,1.0]
 
     """
-    def __init__(self, vmin=-1, vcenter=0, vmax=1):
+    def __init__(self, vmin=-3, vcenter=0, vmax=3):
         """Initial ZScoreNormalize
 
         vmin < vcenter < vmax
@@ -30,10 +30,13 @@ class ZScoreNormalize(Normalize):
         self.vcenter = vcenter
         super().__init__(vmin, vmax)
 
-    def calibrate(self, values):
-        self.vmin = min([np.min(values), 0])
-        self.vcenter = 0.0
-        self.vmax = np.max(values)
+    def inverse(self, value):
+        result = np.interp(
+            value,
+            [0, 0.5, 1],
+            [self.vmin, self.vcenter, self.vmax],
+        )
+        return result
 
     def __call__(self, value: np.ndarray, clip=None):
         """Map ndarray to the interval [0, 1]. The clip argument is unused."""
@@ -42,6 +45,7 @@ class ZScoreNormalize(Normalize):
         normalized_values = np.interp(
             result,
             [self.vmin, self.vcenter, self.vmax],
-            [0, 0.5, 1.])
+            [0, 0.5, 1.]
+        )
 
         return np.ma.masked_array(normalized_values, mask=np.ma.getmask(result))
