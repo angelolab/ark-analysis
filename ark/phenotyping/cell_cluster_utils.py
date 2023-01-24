@@ -572,6 +572,17 @@ def cell_consensus_cluster(fovs, channels, base_dir, cell_som_cluster_cols, max_
     som_cluster_counts_avg_path = os.path.join(base_dir, cell_som_cluster_count_avg_name)
     weighted_channel_path = os.path.join(base_dir, weighted_cell_channel_name)
 
+    # sanity check to ensure that all these variables are set to None if even one is
+    none_check_vars = (
+        channels,
+        weighted_cell_channel_name,
+        cell_som_cluster_channel_avg_name,
+        cell_meta_cluster_channel_avg_name
+    )
+    if None in (none_check_vars):
+        channels = weighted_cell_channel_name = cell_som_cluster_channel_avg_name = \
+            cell_meta_cluster_channel_avg_name = None
+
     # check paths
     io_utils.validate_paths([cluster_counts_size_norm_path, som_cluster_counts_avg_path,
                              weighted_channel_path])
@@ -648,17 +659,6 @@ def cell_consensus_cluster(fovs, channels, base_dir, cell_som_cluster_cols, max_
         som_cluster_counts_avg_path,
         index=False
     )
-
-    # sanity check to ensure that all these variables are set to None if even one is
-    none_check_vars = (
-        channels,
-        weighted_cell_channel_name,
-        cell_som_cluster_count_avg_name,
-        cell_meta_cluster_count_avg_name
-    )
-    if None not in (none_check_vars):
-        channels = weighted_cell_channel_name = cell_som_cluster_count_avg_name = \
-            cell_meta_cluster_count_avg_name = None
 
     # compute the weighted channel average expression per cell SOM cluster
     # NOTE: this will only be applicable for pixel cluster expression columns
@@ -764,10 +764,24 @@ def apply_cell_meta_cluster_remapping(fovs, channels, base_dir, cluster_counts_s
     meta_cluster_channel_avg_path = os.path.join(base_dir, cell_meta_cluster_channel_avg_name)
 
     # file path validation
-    io_utils.validate_paths([cluster_counts_size_norm_path, cell_remapped_path,
-                             som_cluster_counts_avg_path, meta_cluster_counts_avg_path,
-                             weighted_channel_path, som_cluster_channel_avg_path,
-                             meta_cluster_channel_avg_path])
+    paths_to_validate = [cluster_counts_size_norm_path, cell_remapped_path,
+                         som_cluster_counts_avg_path, meta_cluster_counts_avg_path]
+
+    # sanity check to ensure that all these variables are set to None if even one is
+    none_check_vars = (
+        channels,
+        weighted_cell_channel_name,
+        cell_som_cluster_channel_avg_name,
+        cell_meta_cluster_channel_avg_name
+    )
+    if None in (none_check_vars):
+        channels = weighted_cell_channel_name = cell_som_cluster_channel_avg_name = \
+            cell_meta_cluster_channel_avg_name = None
+
+    if weighted_cell_channel_name is not None:
+        paths_to_validate.extend([weighted_channel_path, som_cluster_channel_avg_path,
+                                  meta_cluster_channel_avg_path])
+    io_utils.validate_paths(paths_to_validate)
 
     # read in the remapping
     cell_remapped_data = pd.read_csv(cell_remapped_path)
@@ -862,17 +876,6 @@ def apply_cell_meta_cluster_remapping(fovs, channels, base_dir, cluster_counts_s
     # re-save the cell SOM cluster average pixel cluster counts table
     cell_som_cluster_avgs_and_counts.to_csv(som_cluster_counts_avg_path, index=False)
 
-    # sanity check to ensure that all these variables are set to None if even one is
-    none_check_vars = (
-        channels,
-        weighted_cell_channel_name,
-        cell_som_cluster_count_avg_name,
-        cell_meta_cluster_count_avg_name
-    )
-    if None not in (none_check_vars):
-        channels = weighted_cell_channel_name = cell_som_cluster_count_avg_name = \
-            cell_meta_cluster_count_avg_name = None
-
     # recompute average weighted channel data only if weighted cell channel file exists
     if weighted_cell_channel_name:
         # re-compute the weighted channel average expression per cell meta cluster
@@ -939,7 +942,7 @@ def generate_weighted_channel_avg_heatmap(cell_cluster_channel_avg_path, cell_cl
     """
 
     # file path validation
-    io_utils.validate_paths(cell_cluster_channel_avg_path)
+    io_utils.validate_paths([cell_cluster_channel_avg_path])
 
     # verify the cell_cluster_col provided is valid
     misc_utils.verify_in_list(
