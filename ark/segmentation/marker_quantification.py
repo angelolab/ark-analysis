@@ -12,6 +12,8 @@ from ark.segmentation.regionprops_extraction import REGIONPROPS_FUNCTION
 from ark.segmentation.signal_extraction import EXTRACTION_FUNCTION
 from ark.utils import segmentation_utils
 
+from timeit import default_timer
+
 
 def get_single_compartment_props(segmentation_labels, regionprops_base,
                                  regionprops_single_comp, **kwargs):
@@ -34,11 +36,11 @@ def get_single_compartment_props(segmentation_labels, regionprops_base,
             Contains the regionprops info (base and derived) for each labeled cell
     """
 
-    # verify that all the regionprops single compartment featues provided actually exist
-    misc_utils.verify_in_list(
-        extras_props=regionprops_single_comp,
-        props_options=list(REGIONPROPS_FUNCTION.keys())
-    )
+    # # verify that all the regionprops single compartment featues provided actually exist
+    # misc_utils.verify_in_list(
+    #     extras_props=regionprops_single_comp,
+    #     props_options=list(REGIONPROPS_FUNCTION.keys())
+    # )
 
     # if image is just background, return empty df
     if len(np.unique(segmentation_labels)) < 2:
@@ -47,25 +49,43 @@ def get_single_compartment_props(segmentation_labels, regionprops_base,
         return blank_df
 
     # get the base features
+    start = default_timer()
     cell_props = pd.DataFrame(regionprops_table(segmentation_labels,
                                                 properties=regionprops_base))
+    end = default_timer()
+    print("Time to generate regionprops table for segmentation: %.2f" % (end - start))
 
     # define an empty list for each regionprop feature
     cell_props_single_comp = {re: [] for re in regionprops_single_comp}
 
     # get regionprop info needed for single compartment computations
+    start = default_timer()
     props = regionprops(segmentation_labels)
+    end = default_timer()
+    print("Time to generate regionprops object for segmentation: %.2f" % (end - start))
 
+    start = default_timer()
     # generate the required data for each cell
     for prop in props:
         for re in regionprops_single_comp:
+            # start = default_timer()
             cell_props_single_comp[re].append(REGIONPROPS_FUNCTION[re](prop, **kwargs))
+            # end = default_timer()
+            # print("Time to run regionprops function %s: %.2f" % (re, end - start))
+    end = default_timer()
+    print("Time to run regionprops extraction: %.2f" % (end - start))
 
     # convert the dictionary to a DataFrame
+    start = default_timer()
     cell_props_single_comp = pd.DataFrame.from_dict(cell_props_single_comp)
+    end = default_timer()
+    print("Time to convert data to dataframe: %.2f" % (end - start))
 
     # append the single compartment derived props info to the cell_props DataFrame
+    start = default_timer()
     cell_props = pd.concat([cell_props, cell_props_single_comp], axis=1)
+    end = default_timer()
+    print("Time to concatenate cell_props_single_comp: %.2f" % (end - start))
 
     return cell_props
 
@@ -109,6 +129,7 @@ def assign_single_compartment_features(marker_counts, compartment, cell_props, c
     )).T
 
     # calculate the total signal intensity within cell
+    
     cell_counts = EXTRACTION_FUNCTION[extraction](cell_coords, input_images, **kwargs)
 
     # get morphology metrics
@@ -123,8 +144,11 @@ def assign_single_compartment_features(marker_counts, compartment, cell_props, c
 
     # add counts of each marker to appropriate column
     # Only include the marker_count features up to the last filtered feature.
+    start = default_timer()
     marker_counts.loc[compartment, cell_id,
                       marker_counts.features[1]:filtered_regionprops_names[-1]] = cell_features
+    end = default_timer()
+    # print("Total time assign cell features: %.2f" % (end - start))
 
     # add cell size to first column
     marker_counts.loc[compartment, cell_id, marker_counts.features[0]] = cell_coords.shape[0]
@@ -262,14 +286,18 @@ def compute_marker_counts(input_images, segmentation_labels, nuclear_counts=Fals
     reg_props = kwargs.get('regionprops_kwargs', {})
 
     # get regionprops for each cell
+    start = default_timer()
     cell_props = get_single_compartment_props(segmentation_labels.loc[:, :, 'whole_cell'].values,
                                               regionprops_base, regionprops_single_comp,
                                               **reg_props)
+    end = default_timer()
+    print("Time to retrieve whole cell compartment props: %.2f" % (end - start))
 
     if len(unique_cell_ids) == 0:
         fov_name = str(segmentation_labels.fovs.values)
         warnings.warn("No cells found in the following image: {}".format(fov_name))
 
+    start = default_timer()
     if nuclear_counts:
         nuc_labels = segmentation_labels.loc[:, :, 'nuclear'].values
 
@@ -286,21 +314,28 @@ def compute_marker_counts(input_images, segmentation_labels, nuclear_counts=Fals
         if len(nuc_props) == 0:
             fov_name = str(segmentation_labels.fovs.values)
             warnings.warn("No nuclei found in the following image: {}".format(fov_name))
+    end = default_timer()
+    print("Time to retrieve nuclear compartment props: %.2f" % (end - start))
 
     # get the signal kwargs
     sig_kwargs = kwargs.get('signal_kwargs', {})
 
     # loop through each cell in mask
+    start_full = default_timer()
     for cell_id in cell_props['label']:
         # get coords corresponding to current cell.
         cell_coords = cell_props.loc[cell_props['label'] == cell_id, 'coords'].values[0]
 
         # assign properties for whole cell compartment
+        start = default_timer()
         marker_counts = assign_single_compartment_features(
             marker_counts, 'whole_cell', cell_props, cell_coords, cell_id, cell_id,
             input_images, regionprops_names, extraction, **sig_kwargs
         )
+        end = default_timer()
+        # print("Time to assign whole cell compartment features for cell: %.2f" % (end - start))
 
+        start = default_timer()
         if nuclear_counts:
             # get id of corresponding nucleus
             nuc_id = segmentation_utils.find_nuclear_label_id(nuc_segmentation_labels=nuc_labels,
@@ -324,6 +359,11 @@ def compute_marker_counts(input_images, segmentation_labels, nuclear_counts=Fals
                 # if regionprops names does not contain multi_comp props then add them
                 if not set(regionprops_multi_comp).issubset(regionprops_names):
                     regionprops_names.extend(regionprops_multi_comp)
+        end = default_timer()
+        # print("Time to assign nuclear compartment features for cell: %.2f" % (end - start))
+
+    end_full = default_timer()
+    print("Time to assign compartment features: %.2f" % (end_full - start_full))
 
     return marker_counts
 
@@ -489,6 +529,7 @@ def generate_cell_table(segmentation_dir, tiff_dir, img_sub_folder="TIFs",
     arcsinh_tables = []
 
     for fov_index, fov_name in enumerate(fovs):
+        start = default_timer()
         if is_mibitiff:
             image_data = load_utils.load_imgs_from_mibitiff(data_dir=tiff_dir,
                                                             mibitiff_files=[filenames[fov_index]])
@@ -496,12 +537,15 @@ def generate_cell_table(segmentation_dir, tiff_dir, img_sub_folder="TIFs",
             image_data = load_utils.load_imgs_from_tree(data_dir=tiff_dir,
                                                         img_sub_folder=img_sub_folder,
                                                         fovs=[fov_name])
+        end = default_timer()
+        print("Time to load image data: %.2f" % (end - start))
 
         # define the files for whole cell and nuclear
         whole_cell_file = fov_name + '_whole_cell.tiff'
         nuclear_file = fov_name + '_nuclear.tiff'
 
         # load the segmentation labels in
+        start = default_timer()
         current_labels_cell = load_utils.load_imgs_from_dir(data_dir=segmentation_dir,
                                                             files=[whole_cell_file],
                                                             xr_dim_name='compartments',
@@ -527,6 +571,8 @@ def generate_cell_table(segmentation_dir, tiff_dir, img_sub_folder="TIFs",
                                               current_labels_cell.cols,
                                               compartments],
                                       dims=current_labels_cell.dims)
+        end = default_timer()
+        print("Time to load and compact segmentation labels: %.2f" % (end - start))
 
         # segment the imaging data
         cell_table_size_normalized, cell_table_arcsinh_transformed = create_marker_count_matrices(
