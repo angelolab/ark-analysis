@@ -502,7 +502,6 @@ def test_train_cell_som():
         cell_pysom = cell_cluster_utils.train_cell_som(
             fovs=fovs,
             base_dir=temp_dir,
-            pixel_data_dir='pixel_data_dir',
             cell_table_path=cell_table_path,
             cell_som_cluster_cols=['pixel_som_cluster_%d' % i for i in np.arange(15)]
         )
@@ -538,7 +537,6 @@ def test_train_cell_som():
         cell_pysom = cell_cluster_utils.train_cell_som(
             fovs=fovs,
             base_dir=temp_dir,
-            pixel_data_dir='pixel_data_dir',
             cell_table_path=cell_table_path,
             cell_som_cluster_cols=['pixel_meta_cluster_rename_%d' % i for i in np.arange(2)]
         )

@@ -383,7 +383,7 @@ def create_c2pc_data(fovs, pixel_data_path, cell_table_path,
     return cell_table, cell_table_norm
 
 
-def train_cell_som(fovs, base_dir, pixel_data_dir, cell_table_path, cell_som_cluster_cols,
+def train_cell_som(fovs, base_dir, cell_table_path, cell_som_cluster_cols,
                    cluster_counts_size_norm_name='cluster_counts_size_norm.feather',
                    som_weights_name='cell_som_weights.feather',
                    xdim=10, ydim=10, lr_start=0.05, lr_end=0.01, num_passes=1):
@@ -397,9 +397,6 @@ def train_cell_som(fovs, base_dir, pixel_data_dir, cell_table_path, cell_som_clu
             The list of fovs to subset on
         base_dir (str):
             The path to the data directories
-        pixel_data_dir (str):
-            Name of directory with the pixel data with SOM and meta cluster labels added.
-            Created by `pixel_consensus_cluster`.
         cell_table_path (str):
             Path of the cell table, needs to be created with `Segment_Image_Data.ipynb`
         cell_som_cluster_cols (list):
@@ -532,9 +529,10 @@ def cell_consensus_cluster(fovs, channels, base_dir, cell_som_cluster_cols, max_
 
     Args:
         fovs (list):
-            The list of fovs to subset on (from pixel clustering)
+            The list of fovs to subset on
         channels (list):
-            The list of channels to subset on (from pixel clustering)
+            The list of channels to subset on.
+            NOTE: only applicable for pixel cluster expression columns, set to `None` otherwise.
         base_dir (str):
             The path to the data directory
         cell_som_cluster_cols (list):
@@ -552,12 +550,15 @@ def cell_consensus_cluster(fovs, channels, base_dir, cell_som_cluster_cols, max_
         cell_meta_cluster_count_avg_name (str):
             Same as above except for cell meta clusters
         weighted_cell_channel_name (str):
-            The name of the file containing the weighted channel expression table
+            The name of the file containing the weighted channel expression table.
+            NOTE: only applicable for pixel cluster expression columns, set to `None` otherwise.
         cell_som_cluster_channel_avg_name (str):
             The name of the file to save the average weighted channel expression
-            per cell SOM cluster
+            per cell SOM cluster.
+            NOTE: only applicable for pixel cluster expression columns, set to `None` otherwise.
         cell_meta_cluster_channel_avg_name (str):
-            Same as above except for cell meta clusters
+            Same as above except for cell meta clusters.
+            NOTE: only applicable for pixel cluster expression columns, set to `None` otherwise.
         seed (int):
             The random seed to set for consensus clustering
 
@@ -648,48 +649,61 @@ def cell_consensus_cluster(fovs, channels, base_dir, cell_som_cluster_cols, max_
         index=False
     )
 
+    # sanity check to ensure that all these variables are set to None if even one is
+    none_check_vars = (
+        channels,
+        weighted_cell_channel_name,
+        cell_som_cluster_count_avg_name,
+        cell_meta_cluster_count_avg_name
+    )
+    if None not in (none_check_vars):
+        channels = weighted_cell_channel_name = cell_som_cluster_count_avg_name = \
+            cell_meta_cluster_count_avg_name = None
+
     # compute the weighted channel average expression per cell SOM cluster
-    print("Compute average weighted channel expression across cell SOM clusters")
-    cell_som_cluster_channel_avg = compute_cell_cluster_channel_avg(
-        fovs,
-        channels,
-        base_dir,
-        weighted_cell_channel_name,
-        cluster_counts_size_norm_name,
-        'cell_som_cluster'
-    )
+    # NOTE: this will only be applicable for pixel cluster expression columns
+    if weighted_cell_channel_name:
+        print("Compute average weighted channel expression across cell SOM clusters")
+        cell_som_cluster_channel_avg = compute_cell_cluster_channel_avg(
+            fovs,
+            channels,
+            base_dir,
+            weighted_cell_channel_name,
+            cluster_counts_size_norm_name,
+            'cell_som_cluster'
+        )
 
-    # merge metacluster assignments into cell_som_cluster_channel_avg
-    print(
-        "Mapping meta cluster values onto average weighted channel expression"
-        "across cell SOM clusters"
-    )
-    cell_som_cluster_channel_avg = pd.merge_asof(
-        cell_som_cluster_channel_avg, cell_cc.mapping, on='cell_som_cluster'
-    )
+        # merge metacluster assignments into cell_som_cluster_channel_avg
+        print(
+            "Mapping meta cluster values onto average weighted channel expression"
+            "across cell SOM clusters"
+        )
+        cell_som_cluster_channel_avg = pd.merge_asof(
+            cell_som_cluster_channel_avg, cell_cc.mapping, on='cell_som_cluster'
+        )
 
-    # save the weighted channel average expression per cell cluster
-    cell_som_cluster_channel_avg.to_csv(
-        os.path.join(base_dir, cell_som_cluster_channel_avg_name),
-        index=False
-    )
+        # save the weighted channel average expression per cell cluster
+        cell_som_cluster_channel_avg.to_csv(
+            os.path.join(base_dir, cell_som_cluster_channel_avg_name),
+            index=False
+        )
 
-    # compute the weighted channel average expression per cell meta cluster
-    print("Compute average weighted channel expression across cell meta clusters")
-    cell_meta_cluster_channel_avg = compute_cell_cluster_channel_avg(
-        fovs,
-        channels,
-        base_dir,
-        weighted_cell_channel_name,
-        cluster_counts_size_norm_name,
-        'cell_meta_cluster'
-    )
+        # compute the weighted channel average expression per cell meta cluster
+        print("Compute average weighted channel expression across cell meta clusters")
+        cell_meta_cluster_channel_avg = compute_cell_cluster_channel_avg(
+            fovs,
+            channels,
+            base_dir,
+            weighted_cell_channel_name,
+            cluster_counts_size_norm_name,
+            'cell_meta_cluster'
+        )
 
-    # save the weighted channel average expression per cell cluster
-    cell_meta_cluster_channel_avg.to_csv(
-        os.path.join(base_dir, cell_meta_cluster_channel_avg_name),
-        index=False
-    )
+        # save the weighted channel average expression per cell cluster
+        cell_meta_cluster_channel_avg.to_csv(
+            os.path.join(base_dir, cell_meta_cluster_channel_avg_name),
+            index=False
+        )
 
     return cell_cc
 
@@ -713,7 +727,8 @@ def apply_cell_meta_cluster_remapping(fovs, channels, base_dir, cluster_counts_s
         fovs (list):
             The list of fovs to subset on
         channels (list):
-            The list of channels to subset on
+            The list of channels to subset on.
+            NOTE: only applicable for pixel cluster expression columns, set to `None` otherwise.
         base_dir (str):
             The path to the data directory
         cluster_counts_size_norm_name (str):
@@ -728,12 +743,15 @@ def apply_cell_meta_cluster_remapping(fovs, channels, base_dir, cluster_counts_s
         cell_meta_cluster_count_avg_name (str):
             Same as above except for cell meta clusters
         weighted_cell_channel_name (str):
-            The name of the file containing the weighted channel expression table
+            The name of the file containing the weighted channel expression table.
+            NOTE: only applicable for pixel cluster expression columns, set to `None` otherwise.
         cell_som_cluster_channel_avg_name (str):
             The name of the file to save the average weighted channel expression
-            per cell SOM cluster
+            per cell SOM cluster.
+            NOTE: only applicable for pixel cluster expression columns, set to `None` otherwise.
         cell_meta_cluster_channel_avg_name (str):
-            Same as above except for cell meta clusters
+            Same as above except for cell meta clusters.
+            NOTE: only applicable for pixel cluster expression columns, set to `None` otherwise.
     """
 
     # define the data paths
@@ -830,27 +848,6 @@ def apply_cell_meta_cluster_remapping(fovs, channels, base_dir, cluster_counts_s
         index=False
     )
 
-    # re-compute the weighted channel average expression per cell meta cluster
-    # add renamed meta cluster in
-    print("Re-compute average weighted channel expression across cell meta clusters")
-    cell_meta_cluster_channel_avg = compute_cell_cluster_channel_avg(
-        fovs,
-        channels,
-        base_dir,
-        weighted_cell_channel_name,
-        cluster_counts_size_norm_name,
-        'cell_meta_cluster'
-    )
-
-    cell_meta_cluster_channel_avg['cell_meta_cluster_rename'] = \
-        cell_meta_cluster_channel_avg['cell_meta_cluster'].map(cell_renamed_meta_dict)
-
-    # re-save the weighted channel average expression per cell cluster
-    cell_meta_cluster_channel_avg.to_csv(
-        meta_cluster_channel_avg_path,
-        index=False
-    )
-
     # re-assign cell meta cluster labels back to the average pixel cluster counts
     # per cell SOM cluster table
     print("Re-assigning meta cluster column in cell SOM cluster average pixel cluster counts data")
@@ -865,19 +862,53 @@ def apply_cell_meta_cluster_remapping(fovs, channels, base_dir, cluster_counts_s
     # re-save the cell SOM cluster average pixel cluster counts table
     cell_som_cluster_avgs_and_counts.to_csv(som_cluster_counts_avg_path, index=False)
 
-    # re-assign cell meta cluster labels back to the average weighted channel expression
-    # per cell SOM cluster table
-    print("Re-assigning meta cluster column in cell SOM cluster average weighted channel data")
-    cell_som_cluster_channel_avg = pd.read_csv(som_cluster_channel_avg_path)
+    # sanity check to ensure that all these variables are set to None if even one is
+    none_check_vars = (
+        channels,
+        weighted_cell_channel_name,
+        cell_som_cluster_count_avg_name,
+        cell_meta_cluster_count_avg_name
+    )
+    if None not in (none_check_vars):
+        channels = weighted_cell_channel_name = cell_som_cluster_count_avg_name = \
+            cell_meta_cluster_count_avg_name = None
 
-    cell_som_cluster_channel_avg['cell_meta_cluster'] = \
-        cell_som_cluster_channel_avg['cell_som_cluster'].map(cell_remapped_dict)
+    # recompute average weighted channel data only if weighted cell channel file exists
+    if weighted_cell_channel_name:
+        # re-compute the weighted channel average expression per cell meta cluster
+        # add renamed meta cluster in
+        print("Re-compute average weighted channel expression across cell meta clusters")
+        cell_meta_cluster_channel_avg = compute_cell_cluster_channel_avg(
+            fovs,
+            channels,
+            base_dir,
+            weighted_cell_channel_name,
+            cluster_counts_size_norm_name,
+            'cell_meta_cluster'
+        )
 
-    cell_som_cluster_channel_avg['cell_meta_cluster_rename'] = \
-        cell_som_cluster_channel_avg['cell_meta_cluster'].map(cell_renamed_meta_dict)
+        cell_meta_cluster_channel_avg['cell_meta_cluster_rename'] = \
+            cell_meta_cluster_channel_avg['cell_meta_cluster'].map(cell_renamed_meta_dict)
 
-    # re-save the cell SOM cluster average pixel cluster counts table
-    cell_som_cluster_channel_avg.to_csv(som_cluster_channel_avg_path, index=False)
+        # re-save the weighted channel average expression per cell cluster
+        cell_meta_cluster_channel_avg.to_csv(
+            meta_cluster_channel_avg_path,
+            index=False
+        )
+
+        # re-assign cell meta cluster labels back to the average weighted channel expression
+        # per cell SOM cluster table
+        print("Re-assigning meta cluster column in cell SOM cluster average weighted channel data")
+        cell_som_cluster_channel_avg = pd.read_csv(som_cluster_channel_avg_path)
+
+        cell_som_cluster_channel_avg['cell_meta_cluster'] = \
+            cell_som_cluster_channel_avg['cell_som_cluster'].map(cell_remapped_dict)
+
+        cell_som_cluster_channel_avg['cell_meta_cluster_rename'] = \
+            cell_som_cluster_channel_avg['cell_meta_cluster'].map(cell_renamed_meta_dict)
+
+        # re-save the cell SOM cluster average pixel cluster counts table
+        cell_som_cluster_channel_avg.to_csv(som_cluster_channel_avg_path, index=False)
 
 
 def generate_weighted_channel_avg_heatmap(cell_cluster_channel_avg_path, cell_cluster_col,
