@@ -220,7 +220,7 @@ def gap_stat(features, k, clust_inertia, num_boots=25):
     # Cluster each bootstrapped sample to get the inertia
     for b in range(num_boots):
         boot_array = np.random.uniform(low=mins, high=maxs, size=(n, p))
-        boot_clust = MiniBatchKMeans(n_clusters=k, batch_size=1024).fit(boot_array)
+        boot_clust = MiniBatchKMeans(n_clusters=k, batch_size=1024, n_init="auto").fit(boot_array)
         within_cluster = spu.within_cluster_sums(data=boot_array, labels=boot_clust.labels_)
         w_kb.append(within_cluster)
     # Gap statistic and standard error
@@ -273,14 +273,14 @@ def compute_topic_eda(features, featurization, topics, silhouette=False, num_boo
     if min(topics) <= 2 or max(topics) >= features.shape[0] - 1:
         raise ValueError("Number of topics must be in [2, %d]" % (features.shape[0] - 1))
 
-    stat_names = ['inertia', 'silhouette', 'gap_stat', 'gap_sds', 'percent_var_exp', "cell_counts"]
+    stat_names = ['inertia', 'silhouette', 'gap_stat', 'gap_sds', "cell_counts"]
     stats = dict(zip(stat_names, [{} for name in stat_names]))
 
     # iterate over topic number candidates
     pb_format = '{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}]'
     for k in tqdm(topics, bar_format=pb_format):
         # cluster with KMeans
-        cluster_fit = KMeans(n_clusters=k).fit(features)
+        cluster_fit = KMeans(n_clusters=k, n_init="auto").fit(features)
 
         # cell feature count per cluster
         cell_count = {}
