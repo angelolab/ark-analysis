@@ -270,7 +270,7 @@ class CellSOMCluster(PixieSOMCluster):
         # NOTE: correct to quantile = 1 if 99.9% value is 0
         cell_norm_vals = [
             cdn if (cdn := cell_data_sub[cdsc].quantile(0.999)) > 0
-            else cdn[cdsc].quantile(1) for cdsc in cell_data_sub.columns.values
+            else cell_data_sub[cdsc].quantile(1) for cdsc in cell_data_sub.columns.values
         ]
 
         cell_data_sub = cell_data_sub.div(cell_norm_vals)
