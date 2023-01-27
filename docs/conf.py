@@ -236,7 +236,7 @@ def trim_rtd():
 # this we'll need to build the documentation from sphinx-apidoc ourselves
 def run_apidoc(_):
     # the parent directory we will begin snaking through to find documentation
-    module = '../ark'
+    module = '../src/ark'
 
     # we want the documents to be markdown files
     output_ext = 'md'
@@ -247,9 +247,6 @@ def run_apidoc(_):
     # the sphinx-apidoc command to run
     cmd_path = 'sphinx-apidoc'
 
-    # do not generate any documentation for test files
-    ignore = '../ark/tests/*'
-
     # should probably remove this
     if hasattr(sys, 'real_prefix'):
         cmd_path = os.path.abspath(os.path.join(sys.prefix, 'bin', 'sphinx-apidoc'))
@@ -259,7 +256,7 @@ def run_apidoc(_):
 
     # run sphinx-apidoc to build documentation from Google docstrings
     subprocess.check_call([cmd_path, '-f', '-T', '-s', output_ext,
-                           '-o', output_path, module, ignore])
+                           '-o', output_path, module])
 
     # remove extraneous text created by sphinx-apidoc
     trim_rtd()

@@ -6,7 +6,7 @@ BUILDDIR      = _build
 SPHINXAPIDOC  = sphinx-apidoc
 MISCDOCFLAGS  = -f -T
 DOCOUTPUT     = md
-SRCPROJECT    = ../ark
+SRCPROJECT    = ../src/ark
 OUTPUTDIR     = _markdown
 IGNORE        = ../ark/tests/*
 
