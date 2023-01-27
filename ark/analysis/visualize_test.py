@@ -10,7 +10,6 @@ import ark.settings as settings
 import ark.spLDA.processing as pros
 from ark.analysis import visualize
 from ark.utils import test_utils
-from ark.utils.test_utils import make_cell_table
 
 
 def test_draw_heatmap():
@@ -165,7 +164,7 @@ def test_visualize_neighbor_cluster_metrics():
 
 def test_visualize_topic_eda():
     # Create/format/featurize testing cell table
-    cell_table = make_cell_table(num_cells=1000)
+    cell_table = test_utils.make_cell_table(num_cells=1000)
     all_clusters = list(np.unique(cell_table[settings.CELL_TYPE]))
     cell_table_format = pros.format_cell_table(cell_table, clusters=all_clusters)
     cell_table_features = pros.featurize_cell_table(cell_table_format)
@@ -173,7 +172,10 @@ def test_visualize_topic_eda():
     # Run topic EDA
     tops = [3, 4, 5, 6, 7]
     eda = pros.compute_topic_eda(cell_table_features["featurized_fovs"],
-                                 featurization=cell_table_features["featurization"], topics=tops)
+                                 featurization=cell_table_features["featurization"],
+                                 topics=tops,
+                                 silhouette=True,
+                                 num_boots=25)
 
     with pytest.raises(FileNotFoundError):
         # trying to save on a non-existant directory
@@ -189,7 +191,7 @@ def test_visualize_topic_eda():
         assert not os.path.exists(os.path.join(temp_dir, "topic_eda_gap_stat.png"))
 
         # test that with save_dir, we do save
-        viz_types = ["gap_stat", "inertia", "silhouette", "percent_var_exp"]
+        viz_types = ["gap_stat", "inertia", "silhouette"]
         for viz in viz_types:
             visualize.visualize_topic_eda(data=eda, metric=viz, save_dir=temp_dir)
             assert os.path.exists(os.path.join(temp_dir, "topic_eda_{}.png".format(viz)))
@@ -201,7 +203,7 @@ def test_visualize_topic_eda():
 
 def test_visualize_fov_stats():
     # Create/format/featurize testing cell table
-    cell_table = make_cell_table(num_cells=1000)
+    cell_table = test_utils.make_cell_table(num_cells=1000)
     all_clusters = list(np.unique(cell_table[settings.CELL_TYPE]))
     cell_table_format = pros.format_cell_table(cell_table, clusters=all_clusters)
 
@@ -226,7 +228,7 @@ def test_visualize_fov_stats():
 
 
 def test_visualize_fov_graphs():
-    cell_table = make_cell_table(num_cells=1000)
+    cell_table = test_utils.make_cell_table(num_cells=1000)
     all_clusters = list(np.unique(cell_table[settings.CELL_TYPE]))
     cell_table_format = pros.format_cell_table(cell_table, clusters=all_clusters)
     cell_table_features = pros.featurize_cell_table(cell_table_format)

@@ -1,16 +1,306 @@
 import bisect
-import feather
-from itertools import combinations
-import numpy as np
+import os
 import pathlib
+import warnings
+from abc import ABC, abstractmethod
+from itertools import combinations
+from typing import List, Protocol, runtime_checkable
+
+import feather
+import numpy as np
 import pandas as pd
+from pyFlowSOM import map_data_to_nodes, som
 from scipy.stats import zscore
 from sklearn.cluster import AgglomerativeClustering
-from typing import Callable, List, Protocol, runtime_checkable
+from tmi.io_utils import list_files, validate_paths
+from tmi.misc_utils import verify_in_list
 
-from ark.utils.misc_utils import verify_in_list
+
+class PixieSOMCluster(ABC):
+    @abstractmethod
+    def __init__(self, weights_path: pathlib.Path, columns: List[str], num_passes: int = 1,
+                 xdim: int = 10, ydim: int = 10, lr_start: float = 0.05, lr_end: float = 0.01):
+        """Generic implementation of a pyFlowSOM runner
+
+        Args:
+            weights_path (pathlib.Path):
+                The path to save the weights to.
+            columns (List[str]):
+                The list of columns to subset the data on.
+            num_passes (int):
+                The number of SOM training passes to use.
+            xdim (int):
+                The number of SOM nodes on the x-axis.
+            ydim (int):
+                The number of SOM nodes on the y-axis.
+            lr_start (float):
+                The initial learning rate.
+            lr_end (float):
+                The learning rate to decay to
+        """
+        self.weights_path = weights_path
+        self.weights = None if not os.path.exists(weights_path) else feather.read_dataframe(
+            weights_path
+        )
+        self.columns = columns
+        self.num_passes = num_passes
+        self.xdim = xdim
+        self.ydim = ydim
+        self.lr_start = lr_start
+        self.lr_end = lr_end
+
+    @abstractmethod
+    def normalize_data(self) -> pd.DataFrame:
+        """Generic implementation of the normalization process to use on the input data
+
+        Returns:
+            pandas.DataFrame:
+                The data with `columns` normalized by the values in `norm_data`
+        """
+
+    def train_som(self, data: pd.DataFrame):
+        """Trains the SOM on the data provided and saves the weights generated
+
+        Args:
+            data (pandas.DataFrame):
+                The input data to train the SOM on.
+        """
+        # make sure to run a deterministic SOM for reproducibility purposes
+        som_weights = som(
+            data=data.values, xdim=self.xdim, ydim=self.ydim, rlen=self.num_passes,
+            alpha_range=(self.lr_start, self.lr_end), deterministic=True
+        )
+
+        # ensure dimensions of weights are flattened
+        som_weights = np.reshape(som_weights, (self.xdim * self.ydim, som_weights.shape[-1]))
+        self.weights = pd.DataFrame(som_weights, columns=data.columns.values)
+
+        # save the weights to weights_path
+        feather.write_dataframe(self.weights, self.weights_path, compression='uncompressed')
+
+    def generate_som_clusters(self, external_data: pd.DataFrame) -> np.ndarray:
+        """Uses the weights to generate SOM clusters for a dataset
+
+        Args:
+            external_data (pandas.DataFrame):
+                The dataset to generate SOM clusters for
+
+        Returns:
+            numpy.ndarray:
+                The SOM clusters generated for each pixel in `external_data`
+        """
+        # subset on just the weights columns prior to SOM cluster mapping
+        weights_cols = self.weights.columns.values
+
+        # ensure the weights cols are actually contained in external_data
+        verify_in_list(
+            weights_cols=weights_cols,
+            external_data_cols=external_data.columns.values
+        )
+
+        # define the batches of cluster labels assigned
+        cluster_labels = []
+
+        # work in batches of 100 to account to support large dataframe sizes
+        # TODO: possible dynamic computation in order?
+        for i in np.arange(0, external_data.shape[0], 100):
+            # NOTE: this also orders the columns of external_data_sub the same as self.weights
+            cluster_labels.append(map_data_to_nodes(
+                self.weights.values,
+                external_data.loc[i:min(i + 99, external_data.shape[0]), weights_cols].values
+            )[0])
+
+        # concat all the results together and return
+        return np.concatenate(cluster_labels)
 
 
+class PixelSOMCluster(PixieSOMCluster):
+    def __init__(self, pixel_subset_folder: pathlib.Path, norm_vals_path: pathlib.Path,
+                 weights_path: pathlib.Path, columns: List[str],
+                 num_passes: int = 1, xdim: int = 10, ydim: int = 10,
+                 lr_start: float = 0.05, lr_end: float = 0.01):
+        """Creates a pixel SOM cluster object derived from the abstract PixieSOMCluster
+
+        Args:
+            pixel_subset_folder (pathlib.Path):
+                The name of the subsetted pixel data directory
+            norm_vals_path (pathlib.Path):
+                The name of the feather file containing the normalization values.
+            weights_path (pathlib.Path):
+                The path to save the weights to.
+            columns (List[str]):
+                The list of columns to subset the data on.
+            num_passes (int):
+                The number of SOM training passes to use.
+            xdim (int):
+                The number of SOM nodes on the x-axis.
+            ydim (int):
+                The number of SOM nodes on the y-axis.
+            lr_start (float):
+                The initial learning rate.
+            lr_end (float):
+                The learning rate to decay to
+        """
+        super().__init__(
+            weights_path, columns, num_passes, xdim, ydim, lr_start, lr_end
+        )
+
+        # path validation
+        validate_paths([norm_vals_path, pixel_subset_folder])
+
+        # load the normalization values in
+        self.norm_data = feather.read_dataframe(norm_vals_path)
+
+        # list all the files in pixel_subset_folder and load them to train_data
+        fov_files = list_files(pixel_subset_folder, substrs='.feather')
+        self.train_data = pd.concat(
+            [feather.read_dataframe(os.path.join(pixel_subset_folder, fov)) for fov in fov_files]
+        )
+
+        # we can just normalize train_data now since that's what we'll be training on
+        self.train_data = self.normalize_data(self.train_data)
+
+    def normalize_data(self, external_data: pd.DataFrame) -> pd.DataFrame:
+        """Uses `norm_data` to normalize a dataset
+
+        Args:
+            external_data (pandas.DataFrame):
+                The data to normalize
+
+        Returns:
+            pandas.DataFrame:
+                The data with `columns` normalized by the values in `norm_data`
+        """
+
+        # verify norm_data_cols actually contained in external_data
+        verify_in_list(
+            norm_data_cols=self.norm_data.columns.values,
+            external_data_cols=external_data.columns.values
+        )
+
+        # ensure columns in norm_data match up with external_data before normalizing
+        norm_data_cols = self.norm_data.columns.values
+        external_data_norm = external_data.copy()
+        external_data_norm[norm_data_cols] = external_data_norm[norm_data_cols].div(
+            self.norm_data.iloc[0], axis=1
+        )
+
+        return external_data_norm
+
+    def train_som(self):
+        """Trains the SOM using `train_data`
+        """
+        # do not train SOM if weights already exist
+        if self.weights is not None:
+            warnings.warn('Pixel SOM already trained')
+            return
+
+        super().train_som(self.train_data[self.columns])
+
+    def assign_som_clusters(self, external_data: pd.DataFrame) -> pd.DataFrame:
+        """Assigns SOM clusters using `weights` to a dataset
+
+        Args:
+            external_data (pandas.DataFrame):
+                The dataset to assign SOM clusters to
+
+        Returns:
+            pandas.DataFrame:
+                The dataset with the SOM clusters assigned.
+        """
+        # normalize external_data prior to assignment
+        external_data_norm = self.normalize_data(external_data)
+        som_labels = super().generate_som_clusters(external_data_norm)
+
+        # assign SOM clusters to external_data
+        external_data_norm['pixel_som_cluster'] = som_labels
+
+        return external_data_norm
+
+
+class CellSOMCluster(PixieSOMCluster):
+    def __init__(self, cell_data_path: pathlib.Path, weights_path: pathlib.Path,
+                 columns: List[str], num_passes: int = 1, xdim: int = 10, ydim: int = 10,
+                 lr_start: float = 0.05, lr_end: float = 0.01):
+        """Creates a cell SOM cluster object derived from the abstract PixieSOMCluster
+
+        Args:
+            cell_data_path (pathlib.Path):
+                The name of the cell dataset to use for training
+            weights_path (pathlib.Path):
+                The path to save the weights to.
+            columns (List[str]):
+                The list of columns to subset the data on.
+            num_passes (int):
+                The number of SOM training passes to use.
+            xdim (int):
+                The number of SOM nodes on the x-axis.
+            ydim (int):
+                The number of SOM nodes on the y-axis.
+            lr_start (float):
+                The initial learning rate.
+            lr_end (float):
+                The learning rate to decay to
+        """
+        super().__init__(
+            weights_path, columns, num_passes, xdim, ydim, lr_start, lr_end
+        )
+
+        # path validation
+        validate_paths([cell_data_path])
+        self.cell_data_path = cell_data_path
+
+        # load the cell data in
+        self.cell_data = feather.read_dataframe(cell_data_path)
+
+        # since cell_data is the only dataset, we can just normalize it immediately
+        self.normalize_data()
+
+    def normalize_data(self):
+        """Normalizes `cell_data` by the 99.9% value of each pixel cluster count column
+
+        Returns:
+            pandas.DataFrame:
+                `cell_data` with `columns` normalized by the values in `norm_data`
+        """
+        # only 99.9% normalize on the columns provided
+        cell_data_sub = self.cell_data[self.columns].copy()
+        cell_data_sub = cell_data_sub.div(cell_data_sub.quantile(0.999))
+
+        # assign back to cell_data
+        self.cell_data[self.columns] = cell_data_sub
+
+    def train_som(self):
+        """Trains the SOM using `cell_data`
+        """
+        # do not train SOM if weights already exist
+        if self.weights is not None:
+            warnings.warn('Cell SOM already trained')
+            return
+
+        super().train_som(self.cell_data[self.columns])
+
+    def assign_som_clusters(self) -> pd.DataFrame:
+        """Assigns SOM clusters using `weights` to `cell_data`
+
+        Args:
+            external_data (pandas.DataFrame):
+                The dataset to assign SOM clusters to
+
+        Returns:
+            pandas.DataFrame:
+                `cell_data` with the SOM clusters assigned.
+        """
+        # cell_data is already normalized, don't repeat
+        som_labels = super().generate_som_clusters(self.cell_data)
+
+        # assign SOM clusters to cell_data
+        self.cell_data['cell_som_cluster'] = som_labels
+
+        return self.cell_data
+
+
+# define a template class for type hinting cluster param in ConsensusCluster constructor
 @runtime_checkable
 class ClusterClassTemplate(Protocol):
     def fit_predict(self) -> None:
@@ -196,6 +486,9 @@ class PixieConsensusCluster:
             provided_cluster_type=cluster_type,
             supported_cluster_types=['pixel', 'cell']
         )
+
+        # path validation
+        validate_paths([input_file])
 
         self.cluster_type = cluster_type
         self.som_col = '%s_som_cluster' % cluster_type

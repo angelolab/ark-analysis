@@ -53,14 +53,11 @@ FIBER_OBJECT_PROPS = (
 BASE_COLS = [FOV_ID, CELL_LABEL, CELL_SIZE, CENTROID_0, CENTROID_1, CELL_TYPE]
 
 # spatial_lda topic EDA key names
-EDA_KEYS = ['inertia', 'silhouette', 'gap_stat', 'gap_sds', 'percent_var_exp', 'cell_counts',
-            "featurization"]
+EDA_KEYS = ['inertia', 'silhouette', 'gap_stat', 'gap_sds', 'cell_counts', "featurization"]
 LDA_PLOT_TYPES = ["adjacency", "topic_assignment"]
 # mibitracker
 MIBITRACKER_BACKEND = 'https://backend-dot-mibitracker-angelolab.appspot.com'
 
-EXTENSION_TYPES: Dict[str, List[str]] = {
-    "IMAGE": ["tiff", "tif", "png", "jpg", "jpeg", "ome.tiff"],
-    "ARCHIVE": ["tar", "gz", "zip"],
-    "DATA": ["csv", "feather", "bin", "json"],
-}
+# Switch it from `main` to the commit ID on HuggingFace to test a
+# specific version of the Example Dataset
+EXAMPLE_DATASET_REVISION: str = "main"

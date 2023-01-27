@@ -1,7 +1,7 @@
-from copy import deepcopy
 import os
 import tempfile
 import warnings
+from copy import deepcopy
 from shutil import rmtree
 
 import feather
@@ -12,13 +12,10 @@ import scipy.ndimage as ndimage
 import skimage.io as io
 from pytest_cases import parametrize_with_cases
 from skimage.draw import disk
+from tmi import image_utils, io_utils, load_utils, misc_utils, test_utils
 
 import ark.phenotyping.cluster_helpers as cluster_helpers
 import ark.phenotyping.pixel_cluster_utils as pixel_cluster_utils
-import ark.utils.io_utils as io_utils
-import ark.utils.load_utils as load_utils
-import ark.utils.misc_utils as misc_utils
-import ark.utils.test_utils as test_utils
 
 parametrize = pytest.mark.parametrize
 
@@ -51,82 +48,6 @@ class CreatePixelMatrixBaseCases:
 
     def case_new_channels_norm(self):
         return PIXEL_MATRIX_FOVS, PIXEL_MATRIX_CHANS, 'TIFs', True, True, True, True
-
-
-def mocked_train_pixel_som(fovs, channels, base_dir,
-                           subset_dir='pixel_mat_subsetted',
-                           norm_vals_name='post_rowsum_chan_norm.feather',
-                           som_weights_name='pixel_som_weights.feather', xdim=10, ydim=10,
-                           lr_start=0.05, lr_end=0.01, num_passes=1, seed=42):
-    # define the matrix we'll be training on
-    pixel_mat_sub = pd.DataFrame(columns=channels)
-
-    for fov in fovs:
-        # read the specific fov from the subsetted HDF5
-        fov_mat_sub = feather.read_dataframe(os.path.join(base_dir, subset_dir, fov + '.feather'))
-
-        # only take the channel columns
-        fov_mat_sub = fov_mat_sub[channels]
-
-        # append to pixel_mat_sub
-        pixel_mat_sub = pd.concat([pixel_mat_sub, fov_mat_sub])
-
-    # FlowSOM flattens the SOM weights dimensions, ex. 10x10x10 becomes 100x10
-    som_weights = np.random.rand(100, len(channels))
-
-    # get the 99.9% normalized values and divide SOM weights by that
-    som_weights = som_weights / np.quantile(som_weights, 0.999, axis=0)
-
-    # save 99.9% normalized values
-    norm_vals = np.expand_dims(np.quantile(som_weights, 0.999, axis=0).T, axis=0)
-    quantiles = pd.DataFrame(norm_vals, columns=channels)
-    feather.write_dataframe(quantiles, os.path.join(base_dir, norm_vals_name))
-
-    # take 100 random rows from pixel_mat_sub
-    # element-wise multiply SOM weights by that and num_passes
-    multiply_factor = pixel_mat_sub.sample(n=100).values
-    som_weights = som_weights * multiply_factor * num_passes
-
-    # write SOM weights to feather, the result in R will be more like a DataFrame
-    som_weights = pd.DataFrame(som_weights, columns=channels)
-    feather.write_dataframe(som_weights, os.path.join(base_dir, som_weights_name))
-
-
-def mocked_cluster_pixels(fovs, channels, base_dir, data_dir='pixel_mat_data',
-                          norm_vals_name='post_rowsum_chan_norm.feather',
-                          som_weights_name='pixel_som_weights.feather',
-                          pc_chan_avg_som_cluster_name='pixel_channel_avg_som_cluster.csv',
-                          batch_size=5):
-    # read in the norm_vals matrix
-    norm_vals = feather.read_dataframe(os.path.join(base_dir, norm_vals_name))
-
-    # read in the SOM weights matrix
-    som_weights = feather.read_dataframe(os.path.join(base_dir, som_weights_name))
-
-    for fov in fovs:
-        # read the specific fov from the preprocessed feather
-        fov_mat_pre = feather.read_dataframe(os.path.join(base_dir, data_dir, fov + '.feather'))
-
-        # only take the specified channel columns
-        fov_mat_channels = fov_mat_pre[som_weights.columns.values].copy()
-
-        # perform 99.9% normalization
-        fov_mat_channels = fov_mat_channels.div(norm_vals, axis=1)
-
-        # get the mean weight for each channel column
-        sub_means = som_weights.mean(axis=1)
-
-        # multiply by 100 and truncate to int to get an actual cluster id
-        cluster_ids = sub_means * 100
-        cluster_ids = cluster_ids.astype(int)
-
-        # now assign the calculated cluster_ids as the pixel cluster assignment
-        fov_mat_pre['pixel_som_cluster'] = cluster_ids
-
-        # write clustered data to feather
-        feather.write_dataframe(fov_mat_pre, os.path.join(base_dir,
-                                                          data_dir,
-                                                          fov + '.feather'))
 
 
 def mocked_create_fov_pixel_data(fov, channels, img_data, seg_labels, blur_factor,
@@ -283,7 +204,7 @@ def test_calculate_pixel_intensity_percentile():
                 else:
                     divisor = 100
                 # saved modified channel
-                io.imsave(chan_path, img / divisor)
+                image_utils.save_image(chan_path, img / divisor)
 
         channel_percentiles = pd.DataFrame(np.array([[1, 1, 1]]),
                                            columns=['chan1', 'chan2', 'chan3'])
@@ -440,7 +361,8 @@ def test_smooth_channels(smooth_vals):
 
 @parametrize('sub_dir', [None, 'TIFs'])
 @parametrize('exclude', [False, True])
-def test_filter_with_nuclear_mask(sub_dir, exclude, capsys):
+@parametrize("_nuc_seg_suffix", ["_nuclear.tiff", "_other_suffix.tiff"])
+def test_filter_with_nuclear_mask(sub_dir, exclude, _nuc_seg_suffix, capsys):
     # define the fovs to use
     fovs = ['fov0', 'fov1', 'fov2']
 
@@ -450,7 +372,7 @@ def test_filter_with_nuclear_mask(sub_dir, exclude, capsys):
     with tempfile.TemporaryDirectory() as temp_dir:
         # test seg_dir is None
         pixel_cluster_utils.filter_with_nuclear_mask(
-            fovs, '', None, chans[0], ''
+            fovs=fovs, tiff_dir="", seg_dir=None, channel=chans[0], nuc_seg_suffix=_nuc_seg_suffix
         )
 
         output = capsys.readouterr().out
@@ -459,7 +381,8 @@ def test_filter_with_nuclear_mask(sub_dir, exclude, capsys):
         # test invalid seg_dir
         with pytest.raises(FileNotFoundError):
             pixel_cluster_utils.filter_with_nuclear_mask(
-                fovs, '', 'bad_seg_path', chans[0], ''
+                fovs=fovs, tiff_dir="", seg_dir="bad_seg_path", channel=chans[0],
+                nuc_seg_suffix=_nuc_seg_suffix
             )
 
         # create a directory to store the image data
@@ -489,7 +412,7 @@ def test_filter_with_nuclear_mask(sub_dir, exclude, capsys):
             nuclear_coords[fov] = (nuclear_x, nuclear_y)
 
             # save the nuclear segmetation
-            file_name = fov + "_nuclear.tiff"
+            file_name = f"{fov}{_nuc_seg_suffix}"
             io.imsave(os.path.join(seg_dir, file_name), rand_img,
                       check_contrast=False)
 
@@ -501,7 +424,8 @@ def test_filter_with_nuclear_mask(sub_dir, exclude, capsys):
 
         # run filtering on channel 0
         pixel_cluster_utils.filter_with_nuclear_mask(
-            fovs, tiff_dir, seg_dir, 'chan0',
+            fovs=fovs, tiff_dir=tiff_dir, seg_dir=seg_dir, channel="chan0",
+            nuc_seg_suffix=_nuc_seg_suffix,
             img_sub_folder=sub_dir, exclude=exclude
         )
 
@@ -787,8 +711,7 @@ def test_preprocess_fov(mocker):
         for fov in ['fov0', 'fov1']:
             rand_img = np.random.randint(0, 16, size=(10, 10))
             file_name = fov + "_whole_cell.tiff"
-            io.imsave(os.path.join(seg_dir, file_name), rand_img,
-                      check_contrast=False)
+            image_utils.save_image(os.path.join(seg_dir, file_name), rand_img)
 
         channel_norm_df = pd.DataFrame(
             np.expand_dims(np.repeat(10, repeats=len(chans)), axis=0),
@@ -907,8 +830,7 @@ def test_create_pixel_matrix_base(fovs, chans, sub_dir, seg_dir_include,
             for fov in fovs:
                 rand_img = np.random.randint(0, 16, size=(10, 10))
                 file_name = fov + "_whole_cell.tiff"
-                io.imsave(os.path.join(seg_dir, file_name), rand_img,
-                          check_contrast=False)
+                image_utils.save_image(os.path.join(seg_dir, file_name), rand_img)
         # otherwise, set seg_dir to None
         else:
             seg_dir = None
@@ -1055,7 +977,7 @@ def test_create_pixel_matrix_base(fovs, chans, sub_dir, seg_dir_include,
             fov_dir = os.path.join(new_tiff_dir, fov, sub_dir)
             os.makedirs(fov_dir)
             for chan in chans:
-                io.imsave(os.path.join(fov_dir, chan + '.tiff'), img)
+                image_utils.save_image(os.path.join(fov_dir, chan + '.tiff'), img)
 
         # recreate the output directory
         rmtree(sample_pixel_output_dir)
@@ -1331,7 +1253,7 @@ def test_find_fovs_missing_col_temp_present():
         )
 
 
-def test_train_pixel_som(mocker):
+def test_train_pixel_som():
     # basic error check: bad path to subsetted matrix
     with tempfile.TemporaryDirectory() as temp_dir:
         with pytest.raises(FileNotFoundError):
@@ -1360,6 +1282,12 @@ def test_train_pixel_som(mocker):
                                                                  'pixel_mat_subsetted',
                                                                  fov + '.feather'))
 
+        # create a dummy normalized file
+        sample_norm_vals = pd.DataFrame(np.random.rand(1, len(chan_list)), columns=chan_list)
+        feather.write_dataframe(
+            sample_norm_vals, os.path.join(temp_dir, 'post_rowsum_chan_norm.feather')
+        )
+
         # not all of the provided fovs exist
         with pytest.raises(ValueError):
             pixel_cluster_utils.train_pixel_som(
@@ -1373,126 +1301,186 @@ def test_train_pixel_som(mocker):
                 base_dir=temp_dir
             )
 
-        # add mocked function to "train" the SOM based on dummy subsetted data
-        mocker.patch('ark.phenotyping.pixel_cluster_utils.train_pixel_som', mocked_train_pixel_som)
+        # train the pixel SOM
+        pixel_pysom = pixel_cluster_utils.train_pixel_som(
+            fovs=fovs, channels=chan_list, base_dir=temp_dir
+        )
 
-        # run "training" using mocked function
-        pixel_cluster_utils.train_pixel_som(fovs=fovs, channels=chan_list, base_dir=temp_dir)
+        # assert the weights file has been created
+        assert os.path.exists(pixel_pysom.weights_path)
 
-        # assert the SOM weights file has been created
-        assert os.path.exists(os.path.join(temp_dir, 'pixel_som_weights.feather'))
-
-        # assert that the dimensions of the SOM weights are correct
-        som_weights = feather.read_dataframe(os.path.join(temp_dir, 'pixel_som_weights.feather'))
-        assert som_weights.shape == (100, 4)
+        # assert that the dimensions of the weights are correct
+        weights = feather.read_dataframe(pixel_pysom.weights_path)
+        assert weights.shape == (100, 4)
 
         # assert that the SOM weights columns are the same as chan_list
-        misc_utils.verify_same_elements(som_weights_channels=som_weights.columns.values,
-                                        provided_channels=chan_list)
-
-        # assert that the normalized file has been created
-        assert os.path.exists(os.path.join(temp_dir, 'post_rowsum_chan_norm.feather'))
-
-        # assert the shape of norm_vals contains 1 row and number of columns = len(chan_list)
-        norm_vals = feather.read_dataframe(os.path.join(temp_dir, 'post_rowsum_chan_norm.feather'))
-        assert norm_vals.shape == (1, 4)
-
-        # assert the the norm_vals columns are the same as chan_list
-        misc_utils.verify_same_elements(norm_vals_channels=norm_vals.columns.values,
+        misc_utils.verify_same_elements(som_weights_channels=weights.columns.values,
                                         provided_channels=chan_list)
 
 
-def test_cluster_pixels(mocker):
-    # basic error checks: bad path to preprocessed data folder
-    # norm vals matrix, and SOM weights matrix
+def test_run_pixel_som_assignment():
     with tempfile.TemporaryDirectory() as temp_dir:
-        # bad path to preprocessed data folder
-        with pytest.raises(FileNotFoundError):
-            pixel_cluster_utils.cluster_pixels(
-                fovs=['fov0'], channels=['chan0'],
-                base_dir=temp_dir, data_dir='bad_path'
+        # define fovs and channels
+        fovs = ['fov0', 'fov1', 'fov2']
+        chans = ['Marker1', 'Marker2', 'Marker3', 'Marker4']
+
+        # make it easy to name metadata columns
+        meta_colnames = ['fov', 'row_index', 'column_index', 'segmentation_label']
+
+        # create a dummy data directory
+        os.mkdir(os.path.join(temp_dir, 'pixel_mat_data'))
+
+        # create a dummy temp directory
+        os.mkdir(os.path.join(temp_dir, 'pixel_mat_data_temp'))
+
+        # write dummy clustered data for two fovs
+        for fov in ['fov0', 'fov1']:
+            # create dummy preprocessed data for each fov
+            fov_cluster_matrix = pd.DataFrame(
+                np.random.rand(1000, 4), columns=chans
             )
 
-        # create a preprocessed directory for the undefined norm file test
-        os.mkdir(os.path.join(temp_dir, 'pixel_mat_preprocessed'))
-
-        # bad path to norm file
-        with pytest.raises(FileNotFoundError):
-            pixel_cluster_utils.cluster_pixels(
-                fovs=['fov0'], channels=['chan0'],
-                base_dir=temp_dir, norm_vals_name='bad_path.feather'
+            # add metadata
+            fov_cluster_matrix = pd.concat(
+                [fov_cluster_matrix, pd.DataFrame(np.random.rand(1000, 4), columns=meta_colnames)],
+                axis=1
             )
 
-        # create a norm file for the undefined weight matrix file test
-        norm_vals = pd.DataFrame(np.random.rand(1, 2), columns=['Marker1', 'Marker2'])
-        feather.write_dataframe(norm_vals, os.path.join(temp_dir, 'post_rowsum_chan_norm.feather'))
+            # write the dummy data to pixel_mat_data
+            feather.write_dataframe(fov_cluster_matrix, os.path.join(temp_dir,
+                                                                     'pixel_mat_data',
+                                                                     fov + '.feather'))
 
-        # bad path to weight matrix file
-        with pytest.raises(FileNotFoundError):
-            pixel_cluster_utils.cluster_pixels(
-                fovs=['fov0'], channels=['chan0'],
-                base_dir=temp_dir, som_weights_name='bad_path.feather'
-            )
+        # define dummy norm_vals and weights files
+        sample_weights = pd.DataFrame(np.random.rand(100, len(chans)), columns=chans)
+        sample_norm_vals = pd.DataFrame(np.random.rand(1, len(chans)), columns=chans)
+        sample_som_weights_path = os.path.join(temp_dir, 'pixel_weights.feather')
+        sample_norm_vals_path = os.path.join(temp_dir, 'norm_vals.feather')
+        feather.write_dataframe(sample_weights, sample_som_weights_path)
+        feather.write_dataframe(sample_norm_vals, sample_norm_vals_path)
 
+        # define example PixelSOMCluster object
+        sample_pixel_cc = cluster_helpers.PixelSOMCluster(
+            os.path.join(temp_dir, 'pixel_mat_data'), sample_norm_vals_path,
+            sample_som_weights_path, chans
+        )
+
+        fov_status = pixel_cluster_utils.run_pixel_som_assignment(
+            os.path.join(temp_dir, 'pixel_mat_data'), sample_pixel_cc, 'fov0'
+        )
+
+        # assert the fov returned is fov0 and the status is 0
+        assert fov_status == ('fov0', 0)
+
+        # read consensus assigned fov0 data in
+        consensus_fov_data = feather.read_dataframe(
+            os.path.join(temp_dir, 'pixel_mat_data_temp', 'fov0.feather')
+        )
+
+        # assert no SOM cluster assigned a value less than 100
+        assert np.all(consensus_fov_data['pixel_som_cluster'].values <= 100)
+
+        # test a corrupted file
+        with open(os.path.join(temp_dir, 'pixel_mat_data', 'fov1.feather'), 'w') as outfile:
+            outfile.write('baddatabaddatabaddata')
+
+        # attempt to run remapping for fov1
+        fov_status = pixel_cluster_utils.run_pixel_consensus_assignment(
+            os.path.join(temp_dir, 'pixel_mat_data'), sample_pixel_cc, 'fov1'
+        )
+
+        # assert the fov returned is fov1 and the status is 1
+        assert fov_status == ('fov1', 1)
+
+
+def generate_test_pixel_som_cluster_data(temp_dir, fovs, chans,
+                                         generate_temp=False):
+    # make it easy to name metadata columns
+    meta_colnames = ['fov', 'row_index', 'column_index', 'segmentation_label']
+
+    # create a dummy clustered matrix
+    os.mkdir(os.path.join(temp_dir, 'pixel_mat_data'))
+
+    # create a dummy temp directory if specified
+    if generate_temp:
+        os.mkdir(os.path.join(temp_dir, 'pixel_mat_data_temp'))
+
+    # store the intermediate FOV data in a dict for future comparison
+    fov_data = {}
+
+    # write dummy clustered data for each fov
+    for fov in fovs:
+        # create dummy preprocessed data for each fov
+        fov_cluster_matrix = pd.DataFrame(
+            np.random.rand(1000, len(chans)),
+            columns=chans
+        )
+
+        # assign dummy metadata labels
+        fov_cluster_matrix['fov'] = fov
+        fov_cluster_matrix['row_index'] = np.repeat(np.arange(1, 101), repeats=10)
+        fov_cluster_matrix['column_index'] = np.tile(np.arange(1, 101), reps=10)
+        fov_cluster_matrix['segmentation_label'] = np.arange(1, 1001)
+
+        # write the dummy data to pixel_mat_data
+        feather.write_dataframe(fov_cluster_matrix, os.path.join(temp_dir,
+                                                                 'pixel_mat_data',
+                                                                 fov + '.feather'))
+
+        fov_data[fov] = fov_cluster_matrix
+
+    # if specified, write fov0 to pixel_mat_data_temp with sample pixel SOM clusters
+    if generate_temp:
+        # append a dummy meta column to fov0
+        fov0_cluster_matrix = feather.read_dataframe(
+            os.path.join(temp_dir, 'pixel_mat_data', 'fov0.feather')
+        )
+        fov0_cluster_matrix['pixel_som_cluster'] = np.repeat(np.arange(10), repeats=100)
+        feather.write_dataframe(fov0_cluster_matrix, os.path.join(temp_dir,
+                                                                  'pixel_mat_data_temp',
+                                                                  'fov0.feather'))
+
+    # generate example norm data
+    norm_vals_path = os.path.join(temp_dir, 'sample_norm.feather')
+    norm_data = pd.DataFrame(np.random.rand(1, len(chans)), columns=chans)
+    feather.write_dataframe(norm_data, norm_vals_path)
+
+    # generate example weights
+    som_weights_path = os.path.join(temp_dir, 'pixel_weights.feather')
+    som_weights_data = pd.DataFrame(np.random.rand(100, len(chans)), columns=chans)
+    feather.write_dataframe(som_weights_data, som_weights_path)
+
+    return fov_data, norm_vals_path, som_weights_path
+
+
+@parametrize('multiprocess', [True, False])
+def test_cluster_pixels_base(multiprocess):
     with tempfile.TemporaryDirectory() as temp_dir:
         # create list of markers and fovs we want to use
         chan_list = ['Marker1', 'Marker2', 'Marker3', 'Marker4']
         fovs = ['fov0', 'fov1', 'fov2']
 
-        # make it easy to name columns
-        colnames = chan_list + ['fov', 'row_index', 'column_index', 'segmentation_label']
+        fov_data, norm_vals_path, som_weights_path = generate_test_pixel_som_cluster_data(
+            temp_dir, fovs, chan_list
+        )
 
-        # make a dummy pre dir
-        os.mkdir(os.path.join(temp_dir, 'pixel_mat_data'))
-
-        for fov in fovs:
-            # create dummy preprocessed data for each fov
-            fov_pre_matrix = pd.DataFrame(np.random.rand(100, 8), columns=colnames)
-
-            # write the dummy data to the preprocessed data dir
-            feather.write_dataframe(fov_pre_matrix, os.path.join(temp_dir,
-                                                                 'pixel_mat_data',
-                                                                 fov + '.feather'))
-
+        # error test: weights not assigned to PixelSOMCluster object
         with pytest.raises(ValueError):
-            norm_vals = pd.DataFrame(
-                np.random.rand(1, 4),
-                columns=['Marker2', 'Marker3', 'Marker4', 'Marker5']
+            pixel_pysom_bad = cluster_helpers.PixelSOMCluster(
+                os.path.join(temp_dir, 'pixel_mat_data'), norm_vals_path,
+                'bad_path.feather', chan_list
             )
-            feather.write_dataframe(norm_vals, os.path.join(temp_dir,
-                                                            'post_rowsum_chan_norm.feather'))
+            pixel_cluster_utils.cluster_pixels(fovs, chan_list, temp_dir, pixel_pysom_bad)
 
-            som_weights = pd.DataFrame(
-                np.random.rand(100, 4), columns=['Marker2', 'Marker3', 'Marker4', 'Marker1']
-            )
-            feather.write_dataframe(
-                som_weights, os.path.join(temp_dir, 'pixel_som_weights.feather')
-            )
+        # create a sample PixelSOMCluster object
+        pixel_pysom = cluster_helpers.PixelSOMCluster(
+            os.path.join(temp_dir, 'pixel_mat_data'), norm_vals_path, som_weights_path, chan_list
+        )
 
-            # bad column name passed for norm_vals
-            pixel_cluster_utils.cluster_pixels(fovs=fovs, channels=chan_list, base_dir=temp_dir)
-
-            # column name ordering mismatch for SOM weights
-            pixel_cluster_utils.cluster_pixels(fovs=fovs, channels=chan_list, base_dir=temp_dir)
-
-            # not all the provided fovs exist
-            pixel_cluster_utils.cluster_pixels(
-                fovs=['fov2', 'fov3'], channels=chan_list, base_dir=temp_dir
-            )
-
-        # create a dummy normalized values matrix and write to feather
-        norm_vals = pd.DataFrame(np.ones((1, 4)), columns=chan_list)
-        feather.write_dataframe(norm_vals, os.path.join(temp_dir, 'post_rowsum_chan_norm.feather'))
-
-        # create a dummy SOM weights matrix and write to feather
-        som_weights = pd.DataFrame(np.random.rand(100, 4), columns=chan_list)
-        feather.write_dataframe(som_weights, os.path.join(temp_dir, 'pixel_som_weights.feather'))
-
-        # add mocked function to "cluster" preprocessed data based on dummy SOM weights
-        mocker.patch('ark.phenotyping.pixel_cluster_utils.cluster_pixels', mocked_cluster_pixels)
-
-        # run "clustering" using mocked function
-        pixel_cluster_utils.cluster_pixels(fovs=fovs, channels=chan_list, base_dir=temp_dir)
+        # run SOM cluster assignment
+        pixel_cluster_utils.cluster_pixels(
+            fovs, chan_list, temp_dir, pixel_pysom, 'pixel_mat_data', multiprocess=multiprocess
+        )
 
         for fov in fovs:
             fov_cluster_data = feather.read_dataframe(os.path.join(temp_dir,
@@ -1501,7 +1489,49 @@ def test_cluster_pixels(mocker):
 
             # assert we didn't assign any cluster 100 or above
             cluster_ids = fov_cluster_data['pixel_som_cluster']
-            assert np.all(cluster_ids < 100)
+            assert np.all(cluster_ids <= 100)
+
+
+@parametrize('multiprocess', [True, False])
+def test_cluster_pixels_corrupt(multiprocess, capsys):
+    with tempfile.TemporaryDirectory() as temp_dir:
+        # define fovs and channels
+        fovs = ['fov0', 'fov1', 'fov2']
+        chans = ['Marker1', 'Marker2', 'Marker3', 'Marker4']
+
+        fov_data, norm_vals_path, som_weights_path = generate_test_pixel_som_cluster_data(
+            temp_dir, fovs, chans
+        )
+
+        # create a sample PixelSOMCluster object
+        pixel_pysom = cluster_helpers.PixelSOMCluster(
+            os.path.join(temp_dir, 'pixel_mat_data'), norm_vals_path, som_weights_path, chans
+        )
+
+        # corrupt a fov for this test
+        with open(os.path.join(temp_dir, 'pixel_mat_data', 'fov1.feather'), 'w') as outfile:
+            outfile.write('baddatabaddatabaddata')
+
+        capsys.readouterr()
+
+        # run SOM cluster assignment
+        pixel_cluster_utils.cluster_pixels(
+            fovs, chans, temp_dir, pixel_pysom, 'pixel_mat_data', multiprocess=multiprocess
+        )
+
+        # assert the _temp folder is now gone
+        assert not os.path.exists(os.path.join(temp_dir, 'pixel_mat_data_temp'))
+
+        output = capsys.readouterr().out
+        desired_status_updates = "The data for FOV fov1 has been corrupted, skipping\n"
+        assert desired_status_updates in output
+
+        # verify that the FOVs in pixel_mat_data are correct
+        # NOTE: fov1 should not be written because it was corrupted
+        misc_utils.verify_same_elements(
+            data_files=io_utils.list_files(os.path.join(temp_dir, 'pixel_mat_data')),
+            written_files=['fov0.feather', 'fov2.feather']
+        )
 
 
 def test_generate_som_avg_files(capsys):
@@ -1523,14 +1553,31 @@ def test_generate_som_avg_files(capsys):
                 fov_cluster_data, os.path.join(pixel_data_path, fov + '.feather')
             )
 
-        # define a sample som_weights file
-        som_weights_path = os.path.join(temp_dir, 'pixel_som_weights.feather')
-        som_weights = pd.DataFrame(np.random.rand(3, 3))
-        feather.write_dataframe(som_weights, som_weights_path)
+        # define a sample norm vals file
+        norm_vals_path = os.path.join(temp_dir, 'norm_vals.feather')
+        norm_vals = pd.DataFrame(np.random.rand(1, 4), columns=chan_list)
+        feather.write_dataframe(norm_vals, norm_vals_path)
+
+        # define a sample weights file
+        weights_path = os.path.join(temp_dir, 'pixel_weights.feather')
+        weights = pd.DataFrame(np.random.rand(3, 4), columns=chan_list)
+        feather.write_dataframe(weights, weights_path)
+
+        # error test: weights not assigned to PixelSOMCluster object
+        with pytest.raises(ValueError):
+            pixel_pysom_bad = cluster_helpers.PixelSOMCluster(
+                pixel_data_path, norm_vals_path, 'bad_path.feather', chan_list
+            )
+            pixel_cluster_utils.generate_som_avg_files(fovs, chan_list, temp_dir, pixel_pysom_bad)
+
+        # define an example PixelSOMCluster object
+        pixel_pysom = cluster_helpers.PixelSOMCluster(
+            pixel_data_path, norm_vals_path, weights_path, chan_list
+        )
 
         # test base generation with all subsetted FOVs
         pixel_cluster_utils.generate_som_avg_files(
-            fovs, chan_list, temp_dir, 'pixel_data_dir', num_fovs_subset=3
+            fovs, chan_list, temp_dir, pixel_pysom, 'pixel_data_dir', num_fovs_subset=3
         )
 
         # assert we created SOM avg file
@@ -1547,7 +1594,7 @@ def test_generate_som_avg_files(capsys):
         capsys.readouterr()
 
         pixel_cluster_utils.generate_som_avg_files(
-            fovs, chan_list, temp_dir, 'pixel_data_dir', num_fovs_subset=1
+            fovs, chan_list, temp_dir, pixel_pysom, 'pixel_data_dir', num_fovs_subset=1
         )
 
         output = capsys.readouterr().out
@@ -1559,7 +1606,7 @@ def test_generate_som_avg_files(capsys):
         # ensure error gets thrown when not all SOM clusters make it in
         with pytest.raises(ValueError):
             pixel_cluster_utils.generate_som_avg_files(
-                fovs, chan_list, temp_dir, 'pixel_data_dir', num_fovs_subset=1
+                fovs, chan_list, temp_dir, pixel_pysom, 'pixel_data_dir', num_fovs_subset=1
             )
 
 
@@ -1678,7 +1725,7 @@ def generate_test_pixel_consensus_cluster_data(temp_dir, fovs, chans,
         # assign dummy metadata labels
         fov_cluster_matrix['fov'] = fov
         fov_cluster_matrix['row_index'] = np.repeat(np.arange(1, 101), repeats=10)
-        fov_cluster_matrix['col_index'] = np.tile(np.arange(1, 101), reps=10)
+        fov_cluster_matrix['column_index'] = np.tile(np.arange(1, 101), reps=10)
         fov_cluster_matrix['segmentation_label'] = np.arange(1, 1001)
 
         # assign dummy cluster labels
@@ -1718,14 +1765,6 @@ def generate_test_pixel_consensus_cluster_data(temp_dir, fovs, chans,
 
 @parametrize('multiprocess', [True, False])
 def test_pixel_consensus_cluster_base(multiprocess):
-    # basic error check: bad path to data dir
-    with tempfile.TemporaryDirectory() as temp_dir:
-        with pytest.raises(FileNotFoundError):
-            pixel_cluster_utils.pixel_consensus_cluster(
-                fovs=['fov0'], channels=['chan0'],
-                base_dir=temp_dir, data_dir='bad_path'
-            )
-
     with tempfile.TemporaryDirectory() as temp_dir:
         # define fovs and channels
         fovs = ['fov0', 'fov1', 'fov2']

@@ -3,8 +3,8 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 import spatial_lda.visualization as sv
+from tmi import misc_utils
 
-from ark.utils import misc_utils
 from ark.utils.spatial_lda_utils import make_plot_fn
 
 
@@ -337,7 +337,7 @@ def visualize_topic_eda(data, metric="gap_stat", gap_sd=True, k=None, transpose=
             The dictionary of exploratory metrics produced by
             :func:`~ark.spLDA.processing.compute_topic_eda`.
         metric (str):
-            One of "gap_stat", "inertia", "silhouette", "percent_var_exp", or "cell_counts".
+            One of "gap_stat", "inertia", "silhouette", or "cell_counts".
         gap_sd (bool):
             If True, the standard error of the gap statistic is included in the plot.
         k (int):
@@ -352,7 +352,7 @@ def visualize_topic_eda(data, metric="gap_stat", gap_sd=True, k=None, transpose=
         save_dir (str):
             Directory to save plots, default is None
     """
-    valid_metrics = ["gap_stat", "inertia", "silhouette", "percent_var_exp", "cell_counts"]
+    valid_metrics = ["gap_stat", "inertia", "silhouette", "cell_counts"]
     misc_utils.verify_in_list(actual=[metric], expected=valid_metrics)
     featurization = data["featurization"]
     data_k = {k: v for k, v in data.items() if k != "featurization"}
@@ -364,15 +364,15 @@ def visualize_topic_eda(data, metric="gap_stat", gap_sd=True, k=None, transpose=
             plt.plot()
             plt.errorbar(x=df["num_clusters"], y=df["gap_stat"], yerr=df["gap_sds"])
         else:
-            sns.relplot(x=df["num_clusters"], y=df["gap_stat"])
+            sns.relplot(data=df, x="num_clusters", y="gap_stat", kind="line")
         plt.xlabel("Number of Clusters")
         plt.ylabel("Gap")
     elif metric == "inertia":
-        sns.relplot(x=df["num_clusters"], y=df["inertia"], kind="line")
+        sns.relplot(data=df, x="num_clusters", y="inertia", kind="line")
         plt.xlabel("Number of Clusters")
         plt.ylabel("Inertia")
     elif metric == "silhouette":
-        sns.relplot(x=df["num_clusters"], y=df["silhouette"], kind="line")
+        sns.relplot(data=df, x="num_clusters", y="silhouette", kind="line")
         plt.xlabel("Number of Clusters")
         plt.ylabel("Silhouette Score")
     elif metric == "cell_counts":
@@ -393,11 +393,6 @@ def visualize_topic_eda(data, metric="gap_stat", gap_sd=True, k=None, transpose=
             plt.ylabel("Channel Marker")
         else:
             plt.ylabel("Cell Counts")
-    else:
-        sns.relplot(x=df["num_clusters"], y=df["percent_var_exp"] * 100, kind="line")
-        plt.xlabel("Number of Clusters")
-        plt.ylabel("% of Total Variance Explained")
-
     if save_dir is not None:
         clust_label = ""
         if metric == "cell_counts":

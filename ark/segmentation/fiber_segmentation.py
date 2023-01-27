@@ -1,25 +1,21 @@
 import os
 from typing import Dict, Optional
 
+import matplotlib.pyplot as plt
+import natsort as ns
 import numpy as np
 import pandas as pd
-import natsort as ns
-import matplotlib.pyplot as plt
 import scipy.ndimage as ndi
 from scipy.ndimage.morphology import distance_transform_edt
-
-from skimage.io import imsave
-from skimage.filters import sobel, threshold_multiotsu, meijering
-from skimage.segmentation import watershed
-from skimage.morphology import remove_small_objects
-from skimage.measure import regionprops_table
 from skimage.exposure import equalize_adapthist
+from skimage.filters import meijering, sobel, threshold_multiotsu
+from skimage.measure import regionprops_table
+from skimage.morphology import remove_small_objects
+from skimage.segmentation import watershed
+from tmi import image_utils, io_utils, load_utils, misc_utils
 
 from ark import settings
-from ark.utils import load_utils
 from ark.utils.plot_utils import set_minimum_color_for_colormap
-from ark.utils.misc_utils import verify_in_list
-from ark.utils.io_utils import list_files, list_folders, validate_paths, remove_file_extensions
 
 
 def plot_fiber_segmentation_steps(data_dir, fov_name, fiber_channel, img_sub_folder=None, blur=2,
@@ -62,10 +58,14 @@ def plot_fiber_segmentation_steps(data_dir, fov_name, fiber_channel, img_sub_fol
     if img_sub_folder is None:
         img_sub_folder = ""
 
-    validate_paths(data_dir)
-    verify_in_list(fiber_channel=[fiber_channel],
-                   all_channels=remove_file_extensions(list_files(os.path.join(
-                       data_dir, fov_name, img_sub_folder))))
+    io_utils.validate_paths(data_dir)
+    misc_utils.verify_in_list(fiber_channel=[fiber_channel],
+                              all_channels=io_utils.remove_file_extensions(
+                                  io_utils.list_files(
+                                      os.path.join(data_dir, fov_name, img_sub_folder)
+                                      )
+                                  )
+                              )
 
     data_xr = load_utils.load_imgs_from_tree(
         data_dir, img_sub_folder, fovs=[fov_name], channels=[fiber_channel]
@@ -159,12 +159,16 @@ def run_fiber_segmentation(data_dir, fiber_channel, out_dir, img_sub_folder=None
     if img_sub_folder is None:
         img_sub_folder = ""
 
-    validate_paths([data_dir, out_dir])
+    io_utils.validate_paths([data_dir, out_dir])
 
-    fovs = ns.natsorted(list_folders(data_dir))
-    verify_in_list(fiber_channel=[fiber_channel],
-                   all_channels=remove_file_extensions(
-                       list_files(os.path.join(data_dir, fovs[0], img_sub_folder))))
+    fovs = ns.natsorted(io_utils.list_folders(data_dir))
+    misc_utils.verify_in_list(fiber_channel=[fiber_channel],
+                              all_channels=io_utils.remove_file_extensions(
+                                  io_utils.list_files(
+                                      os.path.join(data_dir, fovs[0], img_sub_folder)
+                                      )
+                                  )
+                              )
 
     fiber_object_table = []
 
@@ -276,17 +280,16 @@ def segment_fibers(data_xr, fiber_channel, out_dir, fov, blur=2, contrast_scalin
     labeled_filtered = remove_small_objects(labeled, min_size=min_fiber_size) * segmentation
 
     if debug:
-        imsave(os.path.join(debug_path, f'{fov}_thresholded.tiff'), threshed,
-               check_contrast=False)
-        imsave(os.path.join(debug_path, f'{fov}_ridges_thresholded.tiff'),
-               distance_transformed, check_contrast=False)
-        imsave(os.path.join(debug_path, f'{fov}_meijering_filter.tiff'), ridges,
-               check_contrast=False)
-        imsave(os.path.join(debug_path, f'{fov}_contrast_adjusted.tiff'), contrast_adjusted,
-               check_contrast=False)
+        image_utils.save_image(os.path.join(debug_path, f'{fov}_thresholded.tiff'),
+                               threshed)
+        image_utils.save_image(os.path.join(debug_path, f'{fov}_ridges_thresholded.tiff'),
+                               distance_transformed)
+        image_utils.save_image(os.path.join(debug_path, f'{fov}_meijering_filter.tiff'),
+                               ridges)
+        image_utils.save_image(os.path.join(debug_path, f'{fov}_contrast_adjusted.tiff'),
+                               contrast_adjusted)
 
-    imsave(os.path.join(out_dir, f'{fov}_fiber_labels.tiff'), labeled_filtered,
-           check_contrast=False)
+    image_utils.save_image(os.path.join(out_dir, f'{fov}_fiber_labels.tiff'), labeled_filtered)
 
     fiber_object_table = regionprops_table(labeled_filtered, properties=object_properties)
 

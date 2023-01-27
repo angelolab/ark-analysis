@@ -1,7 +1,8 @@
-from os import path, pardir
-from setuptools import setup, find_packages, Extension
+from os import pardir, path
+
 import numpy as np
 from Cython.Build import cythonize
+from setuptools import Extension, find_packages, setup
 
 CYTHON_DEBUG = False
 
@@ -14,7 +15,7 @@ if CYTHON_DEBUG:
 
 CYTHON_MACROS = [('CYTHON_TRACE', '1')] if CYTHON_DEBUG else None
 
-VERSION = '0.4.4'
+VERSION = '0.5.1'
 
 PKG_FOLDER = path.abspath(path.join(__file__, pardir))
 

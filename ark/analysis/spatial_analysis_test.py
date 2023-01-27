@@ -5,10 +5,12 @@ import math
 import numpy as np
 import pandas as pd
 import pytest
+from tmi import load_utils
+from tmi.test_utils import _write_labels
 
 import ark.settings as settings
 from ark.analysis import spatial_analysis
-from ark.utils import load_utils, spatial_analysis_utils, test_utils
+from ark.utils import spatial_analysis_utils, test_utils
 
 EXCLUDE_CHANNELS = [
     "Background",
@@ -39,9 +41,10 @@ def test_generate_channel_spatial_enrichment_stats():
     # only the number of elements returned and the included_fovs argument needs testing
     marker_thresholds = test_utils._make_threshold_mat(in_utils=False)
 
-    with tempfile.TemporaryDirectory() as label_dir, tempfile.TemporaryDirectory() as dist_mat_dir:
-        test_utils._write_labels(label_dir, ["fov8", "fov9"], ["segmentation_label"], (10, 10),
-                                 '', True, np.uint8, suffix='_whole_cell')
+    with tempfile.TemporaryDirectory() as label_dir, \
+         tempfile.TemporaryDirectory() as dist_mat_dir:
+        _write_labels(label_dir, ["fov8", "fov9"], ["segmentation_label"], (10, 10),
+                      '', True, np.uint8, suffix='_whole_cell')
 
         spatial_analysis_utils.calc_dist_matrix(label_dir, dist_mat_dir)
         label_maps = load_utils.load_imgs_from_dir(label_dir, trim_suffix="_whole_cell",
@@ -75,9 +78,10 @@ def test_generate_channel_spatial_enrichment_stats():
 def test_generate_cluster_spatial_enrichment_stats():
     # since the functionality if channel spatial enrichment is tested later,
     # only the number of elements returned and the included_fovs argument needs testing
-    with tempfile.TemporaryDirectory() as label_dir, tempfile.TemporaryDirectory() as dist_mat_dir:
-        test_utils._write_labels(label_dir, ["fov8", "fov9"], ["segmentation_label"], (10, 10),
-                                 '', True, np.uint8, suffix='_whole_cell')
+    with tempfile.TemporaryDirectory() as label_dir, \
+         tempfile.TemporaryDirectory() as dist_mat_dir:
+        _write_labels(label_dir, ["fov8", "fov9"], ["segmentation_label"], (10, 10),
+                      '', True, np.uint8, suffix='_whole_cell')
 
         spatial_analysis_utils.calc_dist_matrix(label_dir, dist_mat_dir)
         label_maps = load_utils.load_imgs_from_dir(label_dir, trim_suffix="_whole_cell",
