@@ -11,7 +11,7 @@ from sklearn.cluster import KMeans
 import ark.settings as settings
 import ark.spLDA.processing as pros
 import ark.utils.spatial_lda_utils as spu
-from ark.utils.test_utils import make_cell_table
+from test_utils import make_cell_table
 
 
 def test_check_format_cell_table_args():

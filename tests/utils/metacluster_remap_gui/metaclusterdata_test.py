@@ -1,6 +1,6 @@
 import numpy as np
 
-from .metaclusterdata import MetaClusterData
+from ark.utils.metacluster_remap_gui.metaclusterdata import MetaClusterData
 
 
 def test_can_get_mapping(simple_metaclusterdata: MetaClusterData,

@@ -8,7 +8,8 @@ import xarray as xr
 from tmi.test_utils import _write_labels
 
 import ark.settings as settings
-from ark.utils import spatial_analysis_utils, test_utils
+from ark.utils import spatial_analysis_utils
+import test_utils
 
 
 def test_calc_dist_matrix():

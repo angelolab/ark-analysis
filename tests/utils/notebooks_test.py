@@ -4,7 +4,7 @@ from typing import ContextManager, Iterator
 import pytest
 from testbook import testbook
 
-from ark.utils import notebooks_test_utils
+from . import notebooks_test_utils
 
 
 # Sets a shared notebook testing temporary directory. Saves all notebook related files in a

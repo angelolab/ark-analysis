@@ -7,8 +7,8 @@ import pytest
 from matplotlib.colors import ListedColormap
 from tmi import misc_utils
 
-from .colormap_helper import (distinct_cmap, distinct_rgbs,
-                              generate_meta_cluster_colormap_dict)
+from ark.utils.metacluster_remap_gui.colormap_helper import (distinct_cmap, distinct_rgbs,
+                                                             generate_meta_cluster_colormap_dict)
 
 
 def test_colormap_is_distinct():

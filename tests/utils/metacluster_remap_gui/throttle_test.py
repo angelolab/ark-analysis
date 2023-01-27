@@ -2,7 +2,7 @@ import asyncio
 
 import pytest
 
-from .throttle import throttle
+from ark.utils.metacluster_remap_gui.throttle import throttle
 
 
 @pytest.mark.asyncio

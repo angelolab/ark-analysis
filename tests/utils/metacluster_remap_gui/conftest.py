@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import pytest
 
-from . import MetaClusterData
+from ark.utils.metacluster_remap_gui import MetaClusterData
 
 
 @pytest.fixture()

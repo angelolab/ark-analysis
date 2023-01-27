@@ -4,7 +4,7 @@ import tempfile
 
 import pytest
 
-from . import metaclusterdata_from_files
+from ark.utils.metacluster_remap_gui import metaclusterdata_from_files
 
 
 def as_csv(df):

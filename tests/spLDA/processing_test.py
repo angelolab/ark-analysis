@@ -6,7 +6,7 @@ from tmi import misc_utils
 import ark.settings as settings
 import ark.spLDA.processing as pros
 from ark.utils.spatial_lda_utils import within_cluster_sums
-from ark.utils.test_utils import make_cell_table
+from test_utils import make_cell_table
 
 # Generate a test cell table
 N_CELLS = 1000

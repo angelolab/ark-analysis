@@ -9,7 +9,7 @@ import xarray as xr
 import ark.settings as settings
 import ark.spLDA.processing as pros
 from ark.analysis import visualize
-from ark.utils import test_utils
+import test_utils
 
 
 def test_draw_heatmap():

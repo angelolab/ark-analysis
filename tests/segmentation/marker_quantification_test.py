@@ -13,7 +13,7 @@ from tmi.test_utils import (create_paired_xarray_fovs, gen_fov_chan_names,
 
 import ark.settings as settings
 from ark.segmentation import marker_quantification
-from ark.utils import test_utils
+import test_utils
 
 
 def test_get_single_compartment_props():

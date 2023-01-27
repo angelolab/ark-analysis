@@ -1,0 +1,141 @@
+name: Wheel Builder
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    types: [labeled, opened, synchronize, reopened]
+  release:
+    types: [published]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read # to fetch code (actions/checkout)
+
+jobs:
+  build_wheels:
+    name: Build  ${{ github.repository }} wheels on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      # Ensure that a wheel builder finishes even if another fails
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-12]
+
+    steps:
+      - name: Checkout ${{ github.repository }}
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Set up QEMU (For Linux ARM)
+        if: runner.os == 'Linux'
+        uses: docker/setup-qemu-action@v2
+        with:
+          platforms: arm64
+
+      - name: Build Wheels
+        uses: pypa/cibuildwheel@v2.11.4
+        with:
+          package-dir: .
+          output-dir: wheelhouse
+          config-file: "{package}/pyproject.toml"
+
+      - name: Store Wheel Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: distributions
+          path: wheelhouse/*.whl
+
+  build_sdist:
+    name: Build ${{ github.repository }} Source Distribution
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout ${{ github.repository }}
+        uses: actions/checkout@v3
+
+      - name: Build sdist
+        run: pipx run build --sdist
+
+      - name: Check sdist Metadata
+        run: pipx run twine check dist/*
+
+      - name: Store sdist Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: distributions
+          path: dist/*.tar.gz
+
+  test_pypi_publish:
+    # Test PyPI publish, requires wheels and source dist (sdist)
+    name: Publish ${{ github.repository }} to TestPyPI
+    if: github.event_name == 'release' && github.event.action == 'published'
+    needs: [build_wheels, build_sdist]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v3
+        with:
+          name: distributions
+          path: dist
+
+      - uses: pypa/gh-action-pypi-publish@release/v1.6
+        with:
+          user: __token__
+          password: ${{ secrets.TEST_PYPI_API_TOKEN }}
+          repository_url: https://test.pypi.org/legacy/
+          packages_dir: dist/
+
+  pypi_publish:
+    name: Publish ${{ github.repository }} to to PyPI
+    needs: [build_wheels, build_sdist, test_pypi_publish]
+
+    runs-on: ubuntu-latest
+    # Publish when a GitHub Release is created, use the following rule:
+    if: github.event_name == 'release' && github.event.action == 'published'
+    steps:
+      - name: Download Artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: distributions
+          path: dist
+
+      - name: PYPI Publish
+        uses: pypa/gh-action-pypi-publish@release/v1.6
+        with:
+          user: __token__
+          password: ${{ secrets.PYPI_API_TOKEN }}
+          packages_dir: dist/
+
+  docker_build:
+    name: Build the Docker Image
+    needs: [build_wheels, build_sdist, test_pypi_publish, pypi_publish]
+    if: github.event_name == 'release' && github.event.action == 'published'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up QEMU (For Linux Arm Containers)
+        uses: docker/setup-qemu-action@v2
+
+      # Uses the latest version of Buildx and Buildkit
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+        with:
+          buildkitd-flags: --debug
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and Push Docker Image
+        uses: docker/build-push-action@v3
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: false
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/${{ github.repository.name }}:${{ github.ref_name }}
+      

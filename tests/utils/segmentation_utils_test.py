@@ -10,7 +10,8 @@ from tmi import image_utils
 from tmi.test_utils import make_images_xarray, make_labels_xarray
 
 import ark.settings as settings
-from ark.utils import segmentation_utils, test_utils
+from ark.utils import segmentation_utils
+import test_utils
 
 
 def test_find_nuclear_mask_id():

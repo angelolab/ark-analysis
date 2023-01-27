@@ -3,8 +3,8 @@ from pathlib import Path
 
 import pytest
 
-from .metaclusterdata import MetaClusterData
-from .metaclustergui import MetaClusterGui
+from ark.utils.metacluster_remap_gui.metaclusterdata import MetaClusterData
+from ark.utils.metacluster_remap_gui.metaclustergui import MetaClusterGui
 
 THIS_DIR = Path(__file__).parent
 

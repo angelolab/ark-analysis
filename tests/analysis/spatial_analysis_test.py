@@ -9,7 +9,9 @@ from tmi.test_utils import _write_labels
 
 import ark.settings as settings
 from ark.analysis import spatial_analysis
-from ark.utils import spatial_analysis_utils, test_utils
+from ark.utils import spatial_analysis_utils
+import test_utils
+
 
 EXCLUDE_CHANNELS = [
     "Background",
