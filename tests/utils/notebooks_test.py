@@ -510,7 +510,7 @@ class Test_Fiber_Segmentation():
 
     def test_base_dir(self):
         base_dir_inject = f"""
-            base_dir = "{self.base_dir}"
+            base_dir = r"{self.base_dir}"
         """
         self.tb.inject(base_dir_inject, "base_dir")
 
