@@ -96,7 +96,6 @@ autodoc_mock_imports = ['cryptography',
                         'kiosk_client',
                         'mpl_toolkits',
                         'tqdm',
-                        'ark',
                         'ark.utils._bootstrapping',
                         'xmltodict']
 
