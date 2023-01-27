@@ -8,7 +8,7 @@ MISCDOCFLAGS  = -f -T
 DOCOUTPUT     = md
 SRCPROJECT    = ../src/ark
 OUTPUTDIR     = _markdown
-IGNORE        = ../ark/tests/*
+IGNORE        = ../tests/*
 
 help:
 	@$(SPHINXBUILD) -M help "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
