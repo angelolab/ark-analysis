@@ -37,13 +37,13 @@ jobs:
         with:
           platforms: arm64
 
-      - name: Build Wheels
+      - name: Build and Test Wheels
         uses: pypa/cibuildwheel@v2.11.4
         with:
           package-dir: .
           output-dir: wheelhouse
           config-file: "{package}/pyproject.toml"
-
+      
       - name: Store Wheel Artifacts
         uses: actions/upload-artifact@v3
         with:
@@ -139,3 +139,8 @@ jobs:
           push: false
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/${{ github.repository.name }}:${{ github.ref_name }}
       
+      # - name: Upload image
+      #   uses: ishworkh/docker-image-artifact-upload@v1
+      #   with:
+      #     artifact_name: 
+      #     image: '${{ github.repository.name }}:${{ github.ref_name }}'

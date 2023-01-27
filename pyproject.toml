@@ -66,7 +66,7 @@ test = [
     "pytest-order",
     "pytest-pycodestyle",
     "pytest-randomly",
-    "pytset-asyncio",
+    "pytest-asyncio",
     "testbook",
 ]
 
@@ -88,20 +88,8 @@ skip = [
 ]
 
 # Run tests
-test-command = "pytest {project}/test"
-test-requires = [
-    "attrs",
-    "coveralls",
-    "pytest",
-    "pytest-cases",
-    "pytest-cov",
-    "pytest-mock",
-    "pytest-order",
-    "pytest-pycodestyle",
-    "pytest-randomly",
-    "pytset-asyncio",
-    "testbook",
-]
+test-extras = ["test"]
+test-command = "pytest {project}/tests"
 build-frontend = "build"
 build-verbosity = 3
 
