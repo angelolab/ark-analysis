@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # define the version number, this needs to be updated every new Docker release
-VERSION='v0.5.0'
+VERSION='v0.5.1'
 
 # check for template developer flag
 JUPYTER_DIR='scripts'
