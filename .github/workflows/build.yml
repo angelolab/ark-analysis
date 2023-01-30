@@ -111,8 +111,8 @@ jobs:
 
   docker_build:
     name: Build the Docker Image
-    needs: [build_wheels, build_sdist, test_pypi_publish, pypi_publish]
-    if: github.event_name == 'release' && github.event.action == 'published'
+    # needs: [build_wheels, build_sdist, test_pypi_publish, pypi_publish]
+    # if: github.event_name == 'release' && github.event.action == 'published'
     runs-on: ubuntu-latest
     steps:
       - name: Set up QEMU (For Linux Arm Containers)
@@ -139,8 +139,7 @@ jobs:
           push: false
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/${{ github.repository.name }}:${{ github.ref_name }}
       
-      # - name: Upload image
-      #   uses: ishworkh/docker-image-artifact-upload@v1
-      #   with:
-      #     artifact_name: 
-      #     image: '${{ github.repository.name }}:${{ github.ref_name }}'
+      - name: Upload Docker Image to Artifact
+        uses: ishworkh/docker-image-artifact-upload@v1
+        with:
+          image: ${{ github.repository.name }}:${{ github.ref_name }}
