@@ -1875,8 +1875,8 @@ def test_generate_meta_avg_files(capsys):
 
         # define a sample SOM to meta cluster map
         som_to_meta_data = {
-            'pixel_som_cluster': np.arange(1, 4),
-            'pixel_meta_cluster': np.arange(10, 40, 10)
+            'pixel_som_cluster': np.arange(1, 4, dtype=np.int64),
+            'pixel_meta_cluster': np.arange(10, 40, 10, dtype=np.int64)
         }
         som_to_meta_data = pd.DataFrame.from_dict(som_to_meta_data)
 
@@ -1924,7 +1924,7 @@ def test_generate_meta_avg_files(capsys):
         os.remove(pc_meta_avg_file)
 
         # ensure error gets thrown when not all meta clusters make it in
-        with pytest.raises((ValueError, pd.errors.MergeError)):
+        with pytest.raises(ValueError):
             pixel_cluster_utils.generate_meta_avg_files(
                 fovs, chan_list, temp_dir, pixel_cc, 'pixel_data_dir', num_fovs_subset=1
             )
