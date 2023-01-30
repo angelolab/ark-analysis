@@ -22,7 +22,7 @@ from sphinx.builders.html import StandaloneHTMLBuilder
 
 # our project officially 'begins' in the parent aka root project directory
 # since we do not separate source from build we can simply go up one directory
-sys.path.insert(0, os.path.abspath('..'))
+sys.path.insert(0, os.path.abspath('../src'))
 
 # if we ever have images, we'll be using the supported_image_types
 # argument to set the desired formats we wish to support
