@@ -130,22 +130,14 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # - name: Build and Push Docker Image
-      #   uses: docker/build-push-action@v4
-      #   with:
-      #     file: Dockerfile
-      #     platforms: linux/amd64,linux/arm64
-      #     push: false
-      #     # tags: ${{ secrets.DOCKERHUB_USERNAME }}/${{ github.event.repository.name }}:${{ github.ref_name }}
-      #     tags: ${{ github.event.repository.name }}:${{ github.ref_name }}
-
       - name: Build and Push Docker Image
-        uses: docker/bake-action@v2
+        uses: docker/build-push-action@v4
         with:
-          files: docker-bake.hcl
+          file: Dockerfile
+          platforms: linux/amd64,linux/arm64
           push: false
-          set: ark-analysis.tags=${{ github.event.repository.name }}:${{ github.ref_name }}
-          targets: build
+          # tags: ${{ secrets.DOCKERHUB_USERNAME }}/${{ github.event.repository.name }}:${{ github.ref_name }}
+          tags: ${{ github.event.repository.name }}:${{ github.ref_name }}
 
       - name: Upload Docker Image to Artifact
         uses: ishworkh/docker-image-artifact-upload@v1
