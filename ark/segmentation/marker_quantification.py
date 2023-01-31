@@ -36,11 +36,11 @@ def get_single_compartment_props(segmentation_labels, regionprops_base,
             Contains the regionprops info (base and derived) for each labeled cell
     """
 
-    # # verify that all the regionprops single compartment featues provided actually exist
-    # misc_utils.verify_in_list(
-    #     extras_props=regionprops_single_comp,
-    #     props_options=list(REGIONPROPS_FUNCTION.keys())
-    # )
+    # verify that all the regionprops single compartment featues provided actually exist
+    misc_utils.verify_in_list(
+        extras_props=regionprops_single_comp,
+        props_options=list(REGIONPROPS_FUNCTION.keys())
+    )
 
     # if image is just background, return empty df
     if len(np.unique(segmentation_labels)) < 2:

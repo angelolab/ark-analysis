@@ -34,12 +34,12 @@ REGIONPROPS_BASE = ['label', 'area', 'eccentricity', 'major_axis_length',
                     'minor_axis_length', 'perimeter', 'centroid', 'convex_area',
                     'equivalent_diameter']
 # REGIONPROPS_BASE = ['label', 'centroid']
-# REGIONPROPS_SINGLE_COMP = ['major_minor_axis_ratio', 'perim_square_over_area',
-#                            'major_axis_equiv_diam_ratio', 'convex_hull_resid',
-#                            'centroid_dif', 'num_concavities']
 REGIONPROPS_SINGLE_COMP = ['major_minor_axis_ratio', 'perim_square_over_area',
                            'major_axis_equiv_diam_ratio', 'convex_hull_resid',
-                           'centroid_dif']
+                           'centroid_dif', 'num_concavities']
+# REGIONPROPS_SINGLE_COMP = ['major_minor_axis_ratio', 'perim_square_over_area',
+#                            'major_axis_equiv_diam_ratio', 'convex_hull_resid',
+#                            'centroid_dif']
 REGIONPROPS_MULTI_COMP = ['nc_ratio']
 # REGIONPROPS_SINGLE_COMP = []
 # REGIONPROPS_MULTI_COMP = []

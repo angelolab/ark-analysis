@@ -1,4 +1,5 @@
 import numpy as np
+import torch
 
 
 def positive_pixels_extraction(cell_coords, image_data, **kwargs):
@@ -18,10 +19,12 @@ def positive_pixels_extraction(cell_coords, image_data, **kwargs):
     """
 
     # index into image_data
-    channel_values = image_data.values[tuple(cell_coords.T)]
+    # channel_values = image_data.values[tuple(cell_coords.T)]
+    channel_values = torch.from_numpy(image_data.values[tuple(cell_coords.T)])
 
     # create binary mask based on threshold
-    channel_counts = np.sum(channel_values > kwargs.get('threshold', 0), axis=0)
+    # channel_counts = np.sum(channel_values > kwargs.get('threshold', 0), axis=0)
+    channel_counts = torch.sum(channel_values > kwargs.get('threshold', 0), axis=0).numpy()
 
     return channel_counts
 
@@ -44,14 +47,18 @@ def center_weighting_extraction(cell_coords, image_data, **kwargs):
     """
 
     # compute the distance box-level from the center outward
-    weights = np.linalg.norm(cell_coords - kwargs.get('centroid'), ord=np.inf, axis=1)
+    # weights = np.linalg.norm(cell_coords - kwargs.get('centroid'), ord=np.inf, axis=1)
+    weights = torch.norm(torch.from_numpy(cell_coords) - kwargs.get('centroid'), p=np.inf, axis=1)
 
     # center the weights around the middle value
-    weights = 1 - (weights / (np.max(weights) + 1))
+    # weights = 1 - (weights / (np.max(weights) + 1))
+    weights = 1 - (weights / (torch.max(weights) + 1))
 
     # retrieve the channel counts
-    channel_values = image_data.values[tuple(cell_coords.T)]
-    channel_counts = weights.dot(channel_values)
+    # channel_values = image_data.values[tuple(cell_coords.T)]
+    # channel_counts = weights.dot(channel_values)
+    channel_values = torch.from_numpy(image_data.values[tuple(cell_coords.T)])
+    channel_counts = torch.mm(weights, channel_values).numpy()
 
     return channel_counts
 
@@ -73,10 +80,12 @@ def total_intensity_extraction(cell_coords, image_data, **kwargs):
     """
 
     # index into image_data to get the channel values we're interested in
-    channel_values = image_data.values[tuple(cell_coords.T)]
+    # channel_values = image_data.values[tuple(cell_coords.T)]
+    channel_values = torch.from_numpy(image_data.values[tuple(cell_coords.T)])
 
     # collapse along channels dimension to get counts per channel
-    channel_counts = np.sum(channel_values, axis=0)
+    # channel_counts = np.sum(channel_values, axis=0)
+    channel_counts = torch.sum(channel_values, dim=0).numpy()
 
     return channel_counts
 
