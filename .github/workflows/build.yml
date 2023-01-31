@@ -137,7 +137,9 @@ jobs:
           file: ./Dockerfile
           platforms: linux/amd64,linux/arm64
           push: false
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/${{ github.repository.name }}:${{ github.ref_name }}
+          # tags: ${{ secrets.DOCKERHUB_USERNAME }}/${{ github.repository.name }}:${{ github.ref_name }}
+          tags: ${{ github.repository.name }}:${{ github.ref_name }}
+
       
       - name: Upload Docker Image to Artifact
         uses: ishworkh/docker-image-artifact-upload@v1
