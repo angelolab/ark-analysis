@@ -1073,12 +1073,15 @@ def test_apply_cell_meta_cluster_remapping(weighted_cell_channel_exists):
 
             # assert the markers data has been updated correctly
             result = np.repeat([[0.1, 0.2, 0.3]], repeats=20, axis=0)
-            assert np.all(np.round(sample_cell_meta_cluster_channel_avg[chans].values, 1) == result)
+            assert np.all(np.round(
+                sample_cell_meta_cluster_channel_avg[chans].values, 1) == result
+            )
 
             # assert the correct metacluster labels are contained
-            sample_cell_meta_cluster_channel_avg = sample_cell_meta_cluster_channel_avg.sort_values(
-                by='cell_meta_cluster'
-            )
+            sample_cell_meta_cluster_channel_avg = \
+                sample_cell_meta_cluster_channel_avg.sort_values(
+                    by='cell_meta_cluster'
+                )
             assert np.all(sample_cell_meta_cluster_channel_avg[
                 'cell_meta_cluster'
             ].values == np.arange(20))
