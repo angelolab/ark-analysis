@@ -133,7 +133,7 @@ jobs:
       - name: Build and Push Docker Image
         uses: docker/build-push-action@v3
         with:
-          context: ark-analysis
+          context: .
           file: Dockerfile
           platforms: linux/amd64,linux/arm64
           push: false
