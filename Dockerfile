@@ -10,7 +10,7 @@ ENV RUNNING_IN_DOCKER true
 RUN apt update && apt -y upgrade
 
 # apt-get install zsh
-RUN apt install zsh
+RUN apt install -y zsh
 RUN chsh /usr/bin/zsh
 
 # install gcc
