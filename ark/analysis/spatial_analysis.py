@@ -506,7 +506,7 @@ def create_neighborhood_matrix(all_data, dist_mat_dir, included_fovs=None, distl
     cluster_num = len(cluster_names)
 
     if mixing:
-        included_columns =[fov_col, cell_label_col, cluster_name_col]
+        included_columns = [fov_col, cell_label_col, cluster_name_col]
     else:
         included_columns = [fov_col, cell_label_col]
 
@@ -623,7 +623,7 @@ def generate_cluster_matrix_results(all_data, neighbor_mat, cluster_num, seed=42
 
     # subset neighbor mat
     neighbor_mat_data_all = neighbor_mat[neighbor_mat[fov_col].isin(included_fovs)]
-    neighbor_mat_data = neighbor_mat_data_all.drop([fov_col, label_col, cell_type_col], axis=1)
+    neighbor_mat_data = neighbor_mat_data_all.drop([fov_col, label_col], axis=1)
 
     # generate cluster labels
     cluster_labels = spatial_analysis_utils.generate_cluster_labels(
