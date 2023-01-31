@@ -10,9 +10,12 @@ ENV RUNNING_IN_DOCKER true
 RUN apt update && apt -y upgrade
 
 # install gcc
-RUN apt-get install -y gcc
+RUN apt install -y gcc
 
-# Install zsh shell, default powerline10k theme, no plugins installed
+# install git, curl
+RUN apt install -y git curl
+
+# Install zsh shell
 RUN sh -c "$(wget -O- https://github.com/deluan/zsh-in-docker/releases/download/v1.1.5/zsh-in-docker.sh)" --\
     -t robbyrussell \
     -p git \
