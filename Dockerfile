@@ -11,7 +11,7 @@ RUN apt update && apt -y upgrade
 
 # apt-get install zsh
 RUN apt install -y zsh
-RUN chsh /usr/bin/zsh
+RUN chsh /bin/zsh
 
 # install gcc
 RUN apt-get install -y gcc
