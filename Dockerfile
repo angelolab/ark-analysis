@@ -22,7 +22,7 @@ FROM move_ark AS move_templates
 
 # copy the scripts over
 # this should catch changes to the scripts from updates
-COPY ark /opt/ark-analysis/ark
+COPY src/ /opt/ark-analysis/ark
 
 # Stage 4: Install Ark Analysis
 FROM move_templates AS install_ark
