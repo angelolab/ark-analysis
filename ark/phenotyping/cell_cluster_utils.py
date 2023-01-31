@@ -475,11 +475,16 @@ def cluster_cells(base_dir, cell_pysom, cell_som_cluster_cols,
     if cell_pysom.weights is None:
         raise ValueError("Using untrained cell_pysom object, please invoke train_cell_som first")
 
+    # non-pixel cluster inputs won't be cell size normalized
+    cols_to_drop = ['fov', 'segmentation_label']
+    if 'cell_size' in cell_pysom.cell_data.columns.values:
+        cols_to_drop.append('cell_size')
+
     # ensure the weights columns are valid indexes, do so by ensuring
     # the cluster_counts_norm and weights columns are the same
     # minus the metadata columns that appear in cluster_counts_norm
     cluster_counts_size_norm = cell_pysom.cell_data.drop(
-        columns=['fov', 'segmentation_label', 'cell_size']
+        columns=cols_to_drop
     )
 
     # handles the case if user specifies a subset of columns for generic cell clustering
@@ -488,12 +493,6 @@ def cluster_cells(base_dir, cell_pysom, cell_som_cluster_cols,
         cell_weights_columns=cell_pysom.weights.columns.values,
         cluster_counts_size_norm_columns=cluster_counts_size_norm.columns.values
     )
-
-    # misc_utils.verify_same_elements(
-    #     enforce_order=True,
-    #     cluster_counts_size_norm_columns=cluster_counts_size_norm.columns.values,
-    #     cell_weights_columns=cell_pysom.weights.columns.values
-    # )
 
     # run the trained SOM on the dataset, assigning clusters
     print("Mapping cell data to SOM cluster labels")
@@ -1061,10 +1060,12 @@ def add_consensus_labels_cell_table(base_dir, cell_table_path, cluster_counts_si
     )
 
     # adjust column names and drop consensus data-specific columns
-    cell_table_merged = cell_table_merged.drop(columns=['cell_size_y'])
-    cell_table_merged = cell_table_merged.rename(
-        {'cell_size_x': 'cell_size'}, axis=1
-    )
+    # NOTE: non-pixel cluster inputs will not have the cell size attribute for normalization
+    if 'cell_size_y' in cell_table_merged.columns.values:
+        cell_table_merged = cell_table_merged.drop(columns=['cell_size_y'])
+        cell_table_merged = cell_table_merged.rename(
+            {'cell_size_x': 'cell_size'}, axis=1
+        )
 
     # subset on just the cell table columns plus the meta cluster rename column
     # NOTE: rename cell_meta_cluster_rename to just cell_meta_cluster for simplicity
