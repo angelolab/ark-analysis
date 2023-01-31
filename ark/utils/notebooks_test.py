@@ -492,7 +492,7 @@ class Test_3b_Generic_Cell_Clustering:
     def test_cell_cluster_files(self):
         self.tb.execute_cell("cell_cluster_files")
 
-    def test_train_cell_com(self):
+    def test_train_cell_som(self):
         self.tb.execute_cell("train_cell_som")
 
     def test_cluster_cell_data(self):

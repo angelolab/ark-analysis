@@ -1,4 +1,5 @@
 import os
+import warnings
 
 import feather
 import matplotlib.patches as patches
@@ -481,11 +482,18 @@ def cluster_cells(base_dir, cell_pysom, cell_som_cluster_cols,
         columns=['fov', 'segmentation_label', 'cell_size']
     )
 
-    misc_utils.verify_same_elements(
-        enforce_order=True,
-        cluster_counts_size_norm_columns=cluster_counts_size_norm.columns.values,
-        cell_weights_columns=cell_pysom.weights.columns.values
+    # handles the case if user specifies a subset of columns for generic cell clustering
+    # NOTE: CellSOMCluster ensures column ordering by using the preset self.columns as an index
+    misc_utils.verify_in_list(
+        cell_weights_columns=cell_pysom.weights.columns.values,
+        cluster_counts_size_norm_columns=cluster_counts_size_norm.columns.values
     )
+
+    # misc_utils.verify_same_elements(
+    #     enforce_order=True,
+    #     cluster_counts_size_norm_columns=cluster_counts_size_norm.columns.values,
+    #     cell_weights_columns=cell_pysom.weights.columns.values
+    # )
 
     # run the trained SOM on the dataset, assigning clusters
     print("Mapping cell data to SOM cluster labels")
@@ -511,6 +519,7 @@ def cluster_cells(base_dir, cell_pysom, cell_som_cluster_cols,
     )
 
 
+# TODO: default to generic cell clustering or Pixie cell clustering params?
 def cell_consensus_cluster(fovs, channels, base_dir, cell_som_cluster_cols, max_k=20, cap=3,
                            cluster_counts_size_norm_name='cluster_counts_size_norm.feather',
                            cell_som_cluster_count_avg_name='cell_som_cluster_avg.csv',
@@ -570,7 +579,9 @@ def cell_consensus_cluster(fovs, channels, base_dir, cell_som_cluster_cols, max_
     # define the paths to the data
     cluster_counts_size_norm_path = os.path.join(base_dir, cluster_counts_size_norm_name)
     som_cluster_counts_avg_path = os.path.join(base_dir, cell_som_cluster_count_avg_name)
-    weighted_channel_path = os.path.join(base_dir, weighted_cell_channel_name)
+    weighted_channel_path = None
+
+    paths_to_validate = [cluster_counts_size_norm_path, som_cluster_counts_avg_path]
 
     # sanity check to ensure that all these variables are set to None if even one is
     none_check_vars = (
@@ -580,12 +591,19 @@ def cell_consensus_cluster(fovs, channels, base_dir, cell_som_cluster_cols, max_
         cell_meta_cluster_channel_avg_name
     )
     if None in (none_check_vars):
+        warnings.warn("One of channels, weighted_cell_channel_name, "
+                      "cell_som_cluster_channel_avg_name, or cell_meta_cluster_channel_avg_name "
+                      "set to None, skipping weighted cell channel average computation")
         channels = weighted_cell_channel_name = cell_som_cluster_channel_avg_name = \
             cell_meta_cluster_channel_avg_name = None
 
+    # assign path names to weighted channel files if specified
+    if weighted_cell_channel_name is not None:
+        weighted_channel_path = os.path.join(base_dir, weighted_cell_channel_name)
+        paths_to_validate.append(weighted_channel_path)
+
     # check paths
-    io_utils.validate_paths([cluster_counts_size_norm_path, som_cluster_counts_avg_path,
-                             weighted_channel_path])
+    io_utils.validate_paths(paths_to_validate)
 
     # load in the cell SOM count data
     cluster_count_sub = pd.read_csv(som_cluster_counts_avg_path, nrows=1)
@@ -759,9 +777,9 @@ def apply_cell_meta_cluster_remapping(fovs, channels, base_dir, cluster_counts_s
     cell_remapped_path = os.path.join(base_dir, cell_remapped_name)
     som_cluster_counts_avg_path = os.path.join(base_dir, cell_som_cluster_count_avg_name)
     meta_cluster_counts_avg_path = os.path.join(base_dir, cell_meta_cluster_count_avg_name)
-    weighted_channel_path = os.path.join(base_dir, weighted_cell_channel_name)
-    som_cluster_channel_avg_path = os.path.join(base_dir, cell_som_cluster_channel_avg_name)
-    meta_cluster_channel_avg_path = os.path.join(base_dir, cell_meta_cluster_channel_avg_name)
+    weighted_channel_path = None
+    som_cluster_channel_avg_path = None
+    meta_cluster_channel_avg_path = None
 
     # file path validation
     paths_to_validate = [cluster_counts_size_norm_path, cell_remapped_path,
@@ -775,10 +793,17 @@ def apply_cell_meta_cluster_remapping(fovs, channels, base_dir, cluster_counts_s
         cell_meta_cluster_channel_avg_name
     )
     if None in (none_check_vars):
+        warnings.warn("One of channels, weighted_cell_channel_name, "
+                      "cell_som_cluster_channel_avg_name, or cell_meta_cluster_channel_avg_name "
+                      "set to None, skipping weighted cell channel average computation")
         channels = weighted_cell_channel_name = cell_som_cluster_channel_avg_name = \
             cell_meta_cluster_channel_avg_name = None
 
+    # assign path names to weighted channel files if specified
     if weighted_cell_channel_name is not None:
+        weighted_channel_path = os.path.join(base_dir, weighted_cell_channel_name)
+        som_cluster_channel_avg_path = os.path.join(base_dir, cell_som_cluster_channel_avg_name)
+        meta_cluster_channel_avg_path = os.path.join(base_dir, cell_meta_cluster_channel_avg_name)
         paths_to_validate.extend([weighted_channel_path, som_cluster_channel_avg_path,
                                   meta_cluster_channel_avg_path])
     io_utils.validate_paths(paths_to_validate)

@@ -292,7 +292,7 @@ class CellSOMCluster(PixieSOMCluster):
                 `cell_data` with the SOM clusters assigned.
         """
         # cell_data is already normalized, don't repeat
-        som_labels = super().generate_som_clusters(self.cell_data)
+        som_labels = super().generate_som_clusters(self.cell_data[self.columns])
 
         # assign SOM clusters to cell_data
         self.cell_data['cell_som_cluster'] = som_labels

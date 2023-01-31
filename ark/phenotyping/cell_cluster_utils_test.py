@@ -656,7 +656,8 @@ def test_cluster_cells(pixel_cluster_prefix):
 
 
 @parametrize('pixel_cluster_prefix', ['pixel_som_cluster', 'pixel_meta_cluster_rename'])
-def test_cell_consensus_cluster(pixel_cluster_prefix):
+@parametrize('weighted_cell_channel_exists', [True, False])
+def test_cell_consensus_cluster(pixel_cluster_prefix, weighted_cell_channel_exists):
     with tempfile.TemporaryDirectory() as temp_dir:
         # define the cluster column names
         cluster_cols = [f'{pixel_cluster_prefix}_' + str(i) for i in range(3)]
@@ -697,12 +698,22 @@ def test_cell_consensus_cluster(pixel_cluster_prefix):
         feather.write_dataframe(weighted_cell_table, weighted_cell_path)
 
         # run consensus clustering
-        cell_cc = cell_cluster_utils.cell_consensus_cluster(
-            fovs=['fov0', 'fov1'],
-            channels=['chan0', 'chan1', 'chan2'],
-            base_dir=temp_dir,
-            cell_som_cluster_cols=cluster_cols
-        )
+        if weighted_cell_channel_exists:
+            cell_cc = cell_cluster_utils.cell_consensus_cluster(
+                fovs=['fov0', 'fov1'],
+                channels=['chan0', 'chan1', 'chan2'],
+                base_dir=temp_dir,
+                cell_som_cluster_cols=cluster_cols
+            )
+        else:
+            with pytest.warns(match='skipping weighted cell channel average computation'):
+                cell_cc = cell_cluster_utils.cell_consensus_cluster(
+                    fovs=['fov0', 'fov1'],
+                    channels=['chan0', 'chan1', 'chan2'],
+                    base_dir=temp_dir,
+                    cell_som_cluster_cols=cluster_cols,
+                    weighted_cell_channel_name=None
+                )
 
         # assert we assigned a mapping, then sort
         assert cell_cc.mapping is not None
@@ -749,30 +760,36 @@ def test_cell_consensus_cluster(pixel_cluster_prefix):
 
         # assert we created an average weighted channel expression file for cell SOM clusters
         # then load it in
-        assert os.path.exists(os.path.join(temp_dir, 'cell_som_cluster_channel_avg.csv'))
-        weighted_cell_som_avgs = pd.read_csv(
-            os.path.join(temp_dir, 'cell_som_cluster_channel_avg.csv')
-        )
+        if weighted_cell_channel_exists:
+            assert os.path.exists(os.path.join(temp_dir, 'cell_som_cluster_channel_avg.csv'))
+            weighted_cell_som_avgs = pd.read_csv(
+                os.path.join(temp_dir, 'cell_som_cluster_channel_avg.csv')
+            )
 
-        # assert the correct labels have been assigned
-        weighted_som_mapping = weighted_cell_som_avgs[
-            ['cell_som_cluster', 'cell_meta_cluster']
-        ].drop_duplicates().sort_values(by='cell_som_cluster')
+            # assert the correct labels have been assigned
+            weighted_som_mapping = weighted_cell_som_avgs[
+                ['cell_som_cluster', 'cell_meta_cluster']
+            ].drop_duplicates().sort_values(by='cell_som_cluster')
 
-        assert np.all(sample_mapping.values == weighted_som_mapping.values)
+            assert np.all(sample_mapping.values == weighted_som_mapping.values)
 
-        # assert we created an average weighted channel expression file for cell meta clusters
-        # then load it in
-        assert os.path.exists(os.path.join(temp_dir, 'cell_meta_cluster_channel_avg.csv'))
-        weighted_cell_som_avgs = pd.read_csv(
-            os.path.join(temp_dir, 'cell_meta_cluster_channel_avg.csv')
-        )
+            # assert we created an average weighted channel expression file for cell meta clusters
+            # then load it in
+            assert os.path.exists(os.path.join(temp_dir, 'cell_meta_cluster_channel_avg.csv'))
+            weighted_cell_som_avgs = pd.read_csv(
+                os.path.join(temp_dir, 'cell_meta_cluster_channel_avg.csv')
+            )
 
-        # assert all the consensus labels have been assigned
-        assert np.all(weighted_cell_som_avgs['cell_meta_cluster'] == np.arange(1, 21))
+            # assert all the consensus labels have been assigned
+            assert np.all(weighted_cell_som_avgs['cell_meta_cluster'] == np.arange(1, 21))
+        else:
+            # these channel average files should not be created without weighted cell channel data
+            assert not os.path.exists(os.path.join(temp_dir, 'cell_som_cluster_channel_avg.csv'))
+            assert not os.path.exists(os.path.join(temp_dir, 'cell_meta_cluster_channel_avg.csv'))
 
 
-def test_apply_cell_meta_cluster_remapping():
+@parametrize('weighted_cell_channel_exists', [True, False])
+def test_apply_cell_meta_cluster_remapping(weighted_cell_channel_exists):
     with tempfile.TemporaryDirectory() as temp_dir:
         # define the pixel cluster cols
         pixel_cluster_cols = ['%s_%s' % ('pixel_meta_cluster_rename', str(i))
@@ -941,19 +958,34 @@ def test_apply_cell_meta_cluster_remapping():
             )
 
         # run the remapping process
-        cell_cluster_utils.apply_cell_meta_cluster_remapping(
-            ['fov1', 'fov2'],
-            chans,
-            temp_dir,
-            'cluster_counts_size_norm.feather',
-            'sample_cell_remapping.csv',
-            pixel_cluster_cols,
-            'sample_cell_som_cluster_count_avg.csv',
-            'sample_cell_meta_cluster_count_avg.csv',
-            'sample_weighted_cell_table.feather',
-            'sample_cell_som_cluster_chan_avg.csv',
-            'sample_cell_meta_cluster_chan_avg.csv'
-        )
+        if weighted_cell_channel_exists:
+            cell_cluster_utils.apply_cell_meta_cluster_remapping(
+                ['fov1', 'fov2'],
+                chans,
+                temp_dir,
+                'cluster_counts_size_norm.feather',
+                'sample_cell_remapping.csv',
+                pixel_cluster_cols,
+                'sample_cell_som_cluster_count_avg.csv',
+                'sample_cell_meta_cluster_count_avg.csv',
+                'sample_weighted_cell_table.feather',
+                'sample_cell_som_cluster_chan_avg.csv',
+                'sample_cell_meta_cluster_chan_avg.csv'
+            )
+        else:
+            cell_cluster_utils.apply_cell_meta_cluster_remapping(
+                ['fov1', 'fov2'],
+                None,
+                temp_dir,
+                'cluster_counts_size_norm.feather',
+                'sample_cell_remapping.csv',
+                pixel_cluster_cols,
+                'sample_cell_som_cluster_count_avg.csv',
+                'sample_cell_meta_cluster_count_avg.csv',
+                None,
+                None,
+                None
+            )
 
         # read remapped cell data in
         remapped_cell_data = feather.read_dataframe(cluster_counts_size_norm_path)
@@ -1009,26 +1041,6 @@ def test_apply_cell_meta_cluster_remapping():
             'cell_meta_cluster_rename'
         ].values == ['meta' + str(i) for i in np.arange(20)])
 
-        # load the re-computed weighted average weighted channel table per cell meta cluster in
-        sample_cell_meta_cluster_channel_avg = pd.read_csv(
-            os.path.join(temp_dir, 'sample_cell_meta_cluster_chan_avg.csv')
-        )
-
-        # assert the markers data has been updated correctly
-        result = np.repeat([[0.1, 0.2, 0.3]], repeats=20, axis=0)
-        assert np.all(np.round(sample_cell_meta_cluster_channel_avg[chans].values, 1) == result)
-
-        # assert the correct metacluster labels are contained
-        sample_cell_meta_cluster_channel_avg = sample_cell_meta_cluster_channel_avg.sort_values(
-            by='cell_meta_cluster'
-        )
-        assert np.all(sample_cell_meta_cluster_channel_avg[
-            'cell_meta_cluster'
-        ].values == np.arange(20))
-        assert np.all(sample_cell_meta_cluster_channel_avg[
-            'cell_meta_cluster_rename'
-        ].values == ['meta' + str(i) for i in np.arange(20)])
-
         # load the average count table per cell SOM cluster in
         sample_cell_som_cluster_count_avg = pd.read_csv(
             os.path.join(temp_dir, 'sample_cell_som_cluster_count_avg.csv')
@@ -1052,28 +1064,50 @@ def test_apply_cell_meta_cluster_remapping():
             'cell_meta_cluster_rename'
         ].values == ['meta' + str(i) for i in np.repeat(np.arange(20), repeats=5)])
 
-        # load the average weighted channel expression per cell SOM cluster in
-        sample_cell_som_cluster_chan_avg = pd.read_csv(
-            os.path.join(temp_dir, 'sample_cell_som_cluster_chan_avg.csv')
-        )
+        # channel average data should only be checked if weighted cell channel data provided
+        if weighted_cell_channel_exists:
+            # load the re-computed weighted average weighted channel table per cell meta cluster in
+            sample_cell_meta_cluster_channel_avg = pd.read_csv(
+                os.path.join(temp_dir, 'sample_cell_meta_cluster_chan_avg.csv')
+            )
 
-        # assert the correct number of meta clusters are in and the correct number of each
-        assert len(sample_cell_som_cluster_chan_avg['cell_meta_cluster'].value_counts()) == 20
-        assert np.all(
-            sample_cell_som_cluster_chan_avg['cell_meta_cluster'].value_counts().values == 5
-        )
+            # assert the markers data has been updated correctly
+            result = np.repeat([[0.1, 0.2, 0.3]], repeats=20, axis=0)
+            assert np.all(np.round(sample_cell_meta_cluster_channel_avg[chans].values, 1) == result)
 
-        # assert the correct metacluster labels are contained
-        sample_cell_som_cluster_chan_avg = sample_cell_som_cluster_chan_avg.sort_values(
-            by='cell_meta_cluster'
-        )
+            # assert the correct metacluster labels are contained
+            sample_cell_meta_cluster_channel_avg = sample_cell_meta_cluster_channel_avg.sort_values(
+                by='cell_meta_cluster'
+            )
+            assert np.all(sample_cell_meta_cluster_channel_avg[
+                'cell_meta_cluster'
+            ].values == np.arange(20))
+            assert np.all(sample_cell_meta_cluster_channel_avg[
+                'cell_meta_cluster_rename'
+            ].values == ['meta' + str(i) for i in np.arange(20)])
 
-        assert np.all(sample_cell_som_cluster_chan_avg[
-            'cell_meta_cluster'
-        ].values == np.repeat(np.arange(20), repeats=5))
-        assert np.all(sample_cell_som_cluster_chan_avg[
-            'cell_meta_cluster_rename'
-        ].values == ['meta' + str(i) for i in np.repeat(np.arange(20), repeats=5)])
+            # load the average weighted channel expression per cell SOM cluster in
+            sample_cell_som_cluster_chan_avg = pd.read_csv(
+                os.path.join(temp_dir, 'sample_cell_som_cluster_chan_avg.csv')
+            )
+
+            # assert the correct number of meta clusters are in and the correct number of each
+            assert len(sample_cell_som_cluster_chan_avg['cell_meta_cluster'].value_counts()) == 20
+            assert np.all(
+                sample_cell_som_cluster_chan_avg['cell_meta_cluster'].value_counts().values == 5
+            )
+
+            # assert the correct metacluster labels are contained
+            sample_cell_som_cluster_chan_avg = sample_cell_som_cluster_chan_avg.sort_values(
+                by='cell_meta_cluster'
+            )
+
+            assert np.all(sample_cell_som_cluster_chan_avg[
+                'cell_meta_cluster'
+            ].values == np.repeat(np.arange(20), repeats=5))
+            assert np.all(sample_cell_som_cluster_chan_avg[
+                'cell_meta_cluster_rename'
+            ].values == ['meta' + str(i) for i in np.repeat(np.arange(20), repeats=5)])
 
 
 def test_generate_weighted_channel_avg_heatmap():
