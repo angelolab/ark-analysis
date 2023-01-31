@@ -58,6 +58,10 @@ The first step in the [Pixie](https://www.biorxiv.org/content/10.1101/2022.08.16
 #### 3. Cell clustering with Pixie  
 The second step in the [Pixie](https://www.biorxiv.org/content/10.1101/2022.08.16.504171v1) pipeline is to run the [**cell clustering notebook**](./templates/3_Pixie_Cluster_Cells.ipynb). This notebook will use the pixel clusters generated in the first notebook to cluster the cells in your dataset. The notebook walks you through generating cell clusters for your data and generates cell cluster overlays. The notebook includes a GUI for manual cluster adjustment and annotation. [Workshop Talk - Session V - Cell-level Analysis - Part 2: Cell Clustering](https://youtu.be/4_AJxrxPYlk?t=2704)
 
+##### 3b. Generic cell clustering with custom inputs
+
+Users may choose to begin the Pixie pipeline directly from the cell clustering step. They should begin the process from the [**generic cell clustering notebook**](./templates/3b_Generic_Cluster_Cells.ipynb). Outside of defining a custom input file and excluding weighted channel averaging, the process runs exactly like the [**base cell clustering notebook**](./templates/3_Pixie_Cluster_Cells.ipynb).
+
 #### 4. Post Clustering Tasks
 After the Pixie Pipeline, the user can inspect and fine tune their results with the [**post clustering notebook**](./templates/4_Post_Clustering.ipynb). This notebook will go over cleaning up artifacts left from clustering, and working with functional markers.
 
