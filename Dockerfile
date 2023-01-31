@@ -13,7 +13,11 @@ RUN apt update && apt -y upgrade
 RUN apt-get install -y gcc
 
 # Install zsh shell, default powerline10k theme, no plugins installed
-RUN sh -c "$(wget -O- https://github.com/deluan/zsh-in-docker/releases/download/v1.1.5/zsh-in-docker.sh)" -t robbyrussell
+RUN sh -c "$(wget -O- https://github.com/deluan/zsh-in-docker/releases/download/v1.1.5/zsh-in-docker.sh)" --\
+    -t robbyrussell \
+    -p git \
+    -p https://github.com/zsh-users/zsh-autosuggestions \
+    -p https://github.com/zsh-users/zsh-completions
 
 # Stage 2: Installing Ark Analysis
 FROM base AS move_ark
