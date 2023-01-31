@@ -9,12 +9,11 @@ ENV RUNNING_IN_DOCKER true
 # system maintenance
 RUN apt update && apt -y upgrade
 
-# apt-get install zsh
-RUN apt install -y zsh
-RUN chsh /bin/zsh
-
 # install gcc
 RUN apt-get install -y gcc
+
+# Install zsh shell, default powerline10k theme, no plugins installed
+RUN sh -c "$(wget -O- https://github.com/deluan/zsh-in-docker/releases/download/v1.1.5/zsh-in-docker.sh)" -t robbyrussell
 
 # Stage 2: Installing Ark Analysis
 FROM base AS move_ark
