@@ -3,6 +3,9 @@
 # Stage 1: Start from the official Python 3.8 Image: https://hub.docker.com/_/python
 FROM python:3.8 AS base
 
+# Set environment variable 
+ENV RUNNING_IN_DOCKER true
+
 # system maintenance
 RUN apt-get update && apt-get -y upgrade
 
@@ -13,7 +16,7 @@ RUN apt-get install -y gcc
 FROM base AS move_ark
 
 # copy over the requirements.txt, install dependencies, and README
-COPY setup.py pyproject.toml src/ README.md start_jupyter.sh /opt/ark-analysis/
+COPY setup.py pyproject.toml README.md start_jupyter.sh /opt/ark-analysis/
 RUN python -m pip install /opt/ark-analysis
 
 
@@ -22,7 +25,7 @@ FROM move_ark AS move_templates
 
 # copy the scripts over
 # this should catch changes to the scripts from updates
-COPY src/ /opt/ark-analysis/ark
+COPY src /opt/ark-analysis/
 
 # Stage 4: Install Ark Analysis
 FROM move_templates AS install_ark
