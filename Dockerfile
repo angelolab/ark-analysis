@@ -13,8 +13,8 @@ RUN apt-get install -y gcc
 FROM base AS move_ark
 
 # copy over the requirements.txt, install dependencies, and README
-COPY setup.py pyproject.toml requirements.txt README.md start_jupyter.sh /opt/ark-analysis/
-RUN python -m pip install -r /opt/ark-analysis/requirements.txt
+COPY setup.py pyproject.toml README.md start_jupyter.sh /opt/ark-analysis/
+RUN python -m pip install /opt/ark-analysis
 
 
 # Stage 3: Copy templates/ to scripts/
