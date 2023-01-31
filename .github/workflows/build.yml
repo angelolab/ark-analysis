@@ -134,10 +134,10 @@ jobs:
         uses: docker/build-push-action@v3
         with:
           context: .
-          file: ./ark-analysis/Dockerfile
+          # file: Dockerfile
           platforms: linux/amd64,linux/arm64
           push: false
-          # tags: ${{ secrets.DOCKERHUB_USERNAME }}/${{ github.repository.name }}:${{ github.ref_name }}
+          # tags: ${{ secrets.DOCKERHUB_USERNAME }}/${{ github.event.repository.name }}:${{ github.ref_name }}
           tags: ${{ github.event.repository.name }}:${{ github.ref_name }}
 
       
