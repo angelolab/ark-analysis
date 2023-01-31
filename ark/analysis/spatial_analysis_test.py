@@ -403,8 +403,8 @@ def test_create_neighborhood_matrix():
         assert (len(counts[(counts[settings.FOV_ID] == "fov8") &
                            (counts[settings.CELL_LABEL].isin(range(21, 80)))]) == 0)
 
-        # check that cell type is in matrix
-        assert settings.CELL_TYPE in counts.columns
+        # check that cell type isn't in matrix for non-mixing
+        assert settings.CELL_TYPE not in counts.columns
 
         # test if self_neighbor is True
         counts, freqs = spatial_analysis.create_neighborhood_matrix(
@@ -443,10 +443,12 @@ def test_create_neighborhood_matrix():
         assert (counts[(counts[settings.FOV_ID] == "fov9") &
                        (counts[settings.CELL_LABEL].isin(range(11, 19)))]["Pheno1"] == 0).all()
 
-        # test if drop_single_cells is False
+        # check for mixing
         counts, freqs = spatial_analysis.create_neighborhood_matrix(
-            all_data_pos, dist_mat_dir, distlim=51, drop_single_cells=False
+            all_data_pos, dist_mat_dir, distlim=51, mixing=True
         )
+        # check cell type is in matrix
+        assert settings.CELL_TYPE in counts.columns
         # test that cells with only itself as neighbor were kept in the table
         assert not (len(counts[(counts[settings.FOV_ID] == "fov8") &
                                (counts[settings.CELL_LABEL].isin(range(21, 80)))]) == 0)

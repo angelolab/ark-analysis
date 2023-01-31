@@ -457,7 +457,7 @@ def calculate_cluster_spatial_enrichment(fov, all_data, dist_matrix, included_fo
 
 
 def create_neighborhood_matrix(all_data, dist_mat_dir, included_fovs=None, distlim=50,
-                               drop_single_cells=True, self_neighbor=False,
+                               self_neighbor=False, mixing=False,
                                fov_col=settings.FOV_ID, cell_label_col=settings.CELL_LABEL,
                                cluster_name_col=settings.CELL_TYPE):
     """Calculates the number of neighbor phenotypes for each cell.
@@ -471,10 +471,10 @@ def create_neighborhood_matrix(all_data, dist_mat_dir, included_fovs=None, distl
             fovs to include in analysis. If argument is none, default is all fovs used.
         distlim (int):
             cell proximity threshold. Default is 50.
-        drop_single_cells (bool):
-            whether to remove cells that have no neighbors within the distlim. Default is True
         self_neighbor (bool):
             If true, cell counts itself as a neighbor in the analysis. Default is False.
+        mixing (bool):
+            if for mixing score, cell types needed and single cells will not be dropped
         fov_col (str):
             column with the cell fovs.
         cell_label_col (str):
@@ -505,17 +505,21 @@ def create_neighborhood_matrix(all_data, dist_mat_dir, included_fovs=None, distl
     # Get the total number of phenotypes
     cluster_num = len(cluster_names)
 
+    if mixing:
+        included_columns =[fov_col, cell_label_col, cluster_name_col]
+    else:
+        included_columns = [fov_col, cell_label_col]
+
     # Initialize empty matrices for cell neighborhood data
     cell_neighbor_counts = pd.DataFrame(
-        np.zeros((all_neighborhood_data.shape[0], cluster_num + 3))
+        np.zeros((all_neighborhood_data.shape[0], cluster_num + len(included_columns)))
     )
-
-    # Replace the first, second columns of cell_neighbor_counts w/ fovs, cell-labels respectively
-    cell_neighbor_counts[[0, 1, 2]] = all_neighborhood_data[[fov_col, cell_label_col,
-                                                             cluster_name_col]]
+    # Replace the first, second (possibly third) columns of cell_neighbor_counts
+    cell_neighbor_counts[list(range(len(included_columns)))] = \
+        all_neighborhood_data[included_columns]
+    cols = included_columns + list(cluster_names)
 
     # Rename the columns to match cell phenotypes
-    cols = [fov_col, cell_label_col, cluster_name_col] + list(cluster_names)
     cell_neighbor_counts.columns = cols
 
     cell_neighbor_freqs = cell_neighbor_counts.copy(deep=True)
@@ -541,7 +545,7 @@ def create_neighborhood_matrix(all_data, dist_mat_dir, included_fovs=None, distl
         cell_neighbor_freqs.loc[current_fov_neighborhood_data.index, fov_cluster_names] = freqs
 
     # Remove cells that have no neighbors within the distlim
-    if drop_single_cells:
+    if not mixing:
         keep_cells = cell_neighbor_counts.drop([fov_col, cell_label_col], axis=1).sum(axis=1) != 0
         cell_neighbor_counts = cell_neighbor_counts.loc[keep_cells].reset_index(drop=True)
         cell_neighbor_freqs = cell_neighbor_freqs.loc[keep_cells].reset_index(drop=True)
@@ -920,7 +924,7 @@ def compute_mixing_score(cell_neighbors_dir, fov, target_cells, reference_cells,
 
     Returns:
         float:
-            - the mixing score for the FOV
+            the mixing score for the FOV
     """
 
     # path validation
