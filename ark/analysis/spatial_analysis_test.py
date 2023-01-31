@@ -630,6 +630,30 @@ def test_compute_cell_neighbors(mocker):
             assert not os.path.exists(os.path.join(cell_neighbors_dir, f"fov9_cell_neighbors.csv"))
 
 
+def test_compute_cell_ratios():
+    cell_neighbors_mat = pd.DataFrame({
+        settings.FOV_ID: ['fov1', 'fov1', 'fov1', 'fov1', 'fov1', 'fov1', 'fov1'],
+        settings.CELL_LABEL: list(range(1, 8)),
+        settings.CELL_TYPE: ['cell1', 'cell2', 'cell1', 'cell1', 'cell2', 'cell2', 'cell1'],
+        'cell1': [1, 0, 2, 2, 1, 2, 0],
+        'cell2': [1, 2, 1, 1, 2, 2, 0]
+    })
+    with tempfile.TemporaryDirectory() as cell_neighbors_dir:
+        save_path = os.path.join(cell_neighbors_dir, f"fov1_cell_neighbors.csv")
+        cell_neighbors_mat.to_csv(save_path, index=False)
+
+        targ_ref_ratio, ref_targ_ratio = spatial_analysis.compute_cell_ratios(
+            cell_neighbors_dir, ['cell1'], ['cell2'], ['fov1'])
+        assert targ_ref_ratio == [4/3]
+        assert ref_targ_ratio == [3/4]
+
+        # check zero denom
+        targ_ref_ratio, ref_targ_ratio = spatial_analysis.compute_cell_ratios(
+            cell_neighbors_dir, ['cell1'], ['cell3'], ['fov1'])
+        assert targ_ref_ratio == [np.nan]
+        assert ref_targ_ratio == [np.nan]
+
+
 def test_compute_mixing_score():
     cell_neighbors_mat = pd.DataFrame({
         settings.FOV_ID: ['fov1', 'fov1', 'fov1', 'fov1', 'fov1', 'fov1', 'fov1'],
@@ -637,7 +661,8 @@ def test_compute_mixing_score():
         settings.CELL_TYPE: ['cell1', 'cell2', 'cell1', 'cell1', 'cell2', 'cell2', 'cell3'],
         'cell1': [1, 0, 2, 2, 1, 2, 0],
         'cell2': [1, 2, 1, 1, 2, 2, 0],
-        'cell3': [0, 0, 0, 0, 0, 0, 1]
+        'cell3': [0, 0, 0, 0, 0, 0, 1],
+        'cell4': [0, 0, 0, 0, 0, 0, 0]
     })
 
     with tempfile.TemporaryDirectory() as cell_neighbors_dir:
@@ -684,4 +709,10 @@ def test_compute_mixing_score():
         cold_score = spatial_analysis.compute_mixing_score(
             cell_neighbors_dir, 'fov1', target_cells=['cell1'], reference_cells=['cell2'],
             cell_count_thresh=5)
+        assert math.isnan(cold_score)
+
+        # check zero cells denominator
+        cold_score = spatial_analysis.compute_mixing_score(
+            cell_neighbors_dir, 'fov1', target_cells=['cell4'], reference_cells=['cell2'],
+            cell_count_thresh=0)
         assert math.isnan(cold_score)

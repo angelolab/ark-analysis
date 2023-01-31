@@ -863,8 +863,12 @@ def compute_cell_ratios(cell_neighbors_dir, target_cells, reference_cells, fov_l
         target_total = neighbors_mat[neighbors_mat[cell_col].isin(target_cells)].shape[0]
         reference_total = neighbors_mat[neighbors_mat[cell_col].isin(reference_cells)].shape[0]
 
-        targ_ref_ratio.append(target_total / reference_total)
-        ref_targ_ratio.append(reference_total / target_total)
+        if target_total == 0 or reference_total == 0:
+            targ_ref_ratio.append(np.nan)
+            ref_targ_ratio.append(np.nan)
+        else:
+            targ_ref_ratio.append(target_total / reference_total)
+            ref_targ_ratio.append(reference_total / target_total)
 
     # create ratio plots
     sns.set(rc={'figure.figsize': (16, 4)})
@@ -909,6 +913,8 @@ def compute_mixing_score(cell_neighbors_dir, fov, target_cells, reference_cells,
             column with the fovs
         label_col (str):
             column with the cell labels
+        percent_mixing (str):
+            whether to use a percent non-symmetrical mixing calculation
 
     Returns:
         float:
@@ -938,6 +944,9 @@ def compute_mixing_score(cell_neighbors_dir, fov, target_cells, reference_cells,
         neighbors_mat[cell_col].isin(reference_cells)].shape[0]
     if ref_total < cell_count_thresh or target_total < cell_count_thresh:
         return np.nan
+    elif ref_total == 0 or target_total == 0:
+        return np.nan
+
     # check threshold
     if ref_total/target_total > reference_ratio:
         return np.nan
@@ -955,7 +964,8 @@ def compute_mixing_score(cell_neighbors_dir, fov, target_cells, reference_cells,
             interactions_mat['target'] = interactions_mat['target'] + interactions_mat[target_cell]
     for reference_cell in reference_cells:
         if reference_cell in all_cells:
-            interactions_mat['reference'] = interactions_mat['reference']+ interactions_mat[reference_cell]
+            interactions_mat['reference'] = interactions_mat['reference'] + \
+                                            interactions_mat[reference_cell]
 
     reference_target = interactions_mat.loc['target', 'reference']
     target_target = interactions_mat.loc['target', 'target']
