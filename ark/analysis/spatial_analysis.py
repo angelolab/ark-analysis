@@ -832,6 +832,8 @@ def compute_cell_ratios(cell_neighbors_dir, target_cells, reference_cells, fov_l
             expected cell phenotypes
         fov_list (list):
             names of the fovs to compare
+        bin_number (int):
+            number of bins to use in histogram
         cell_col (str):
             column with the cell cluster
         fov_col (str):
