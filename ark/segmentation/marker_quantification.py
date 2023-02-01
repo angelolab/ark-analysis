@@ -109,15 +109,16 @@ def assign_single_compartment_features(marker_counts, compartment, cell_props, c
             the updated marker_counts matrix with data for the specified cell_id and compartment
     """
 
-    # get centroid corresponding to current cell
-    kwargs['centroid'] = np.array((
-        cell_props.loc[cell_props['label'] == label_id, 'centroid-0'].values,
-        cell_props.loc[cell_props['label'] == label_id, 'centroid-1'].values
-    )).T
-
     # calculate the total signal intensity within cell, only run if skip_extraction = False
     cell_counts = np.array([])
+
     if not skip_extraction:
+        # get centroid corresponding to current cell
+        kwargs['centroid'] = np.array((
+            cell_props.loc[cell_props['label'] == label_id, 'centroid-0'].values,
+            cell_props.loc[cell_props['label'] == label_id, 'centroid-1'].values
+        )).T
+
         cell_counts = EXTRACTION_FUNCTION[extraction](cell_coords, input_images, **kwargs)
 
     # get morphology metrics
