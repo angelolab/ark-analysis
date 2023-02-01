@@ -1,5 +1,4 @@
 import numpy as np
-import torch
 
 
 def positive_pixels_extraction(cell_coords, image_data, **kwargs):
