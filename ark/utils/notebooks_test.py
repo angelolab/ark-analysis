@@ -572,13 +572,17 @@ class Test_Mixing_Score():
     def test_imports(self):
         self.tb.execute_cell("import")
 
-    def test_file_paths(self):
-        example_dataset.get_example_dataset(dataset="post_clustering", save_dir=self.base_dir,
-                                            overwrite_existing=True)
+    def test_base_dir(self):
         base_dir_inject = f"""
             base_dir = "{self.base_dir}"
         """
-        self.tb.inject(base_dir_inject, "file_paths")
+        self.tb.inject(base_dir_inject, "base_dir")
+
+    def test_ex_data_download(self):
+        self.tb.execute_cell("ex_data_download")
+
+    def test_file_paths(self):
+        self.tb.execute_cell("file_paths")
 
     def test_create_dirs(self):
         self.tb.execute_cell("create_dirs")
