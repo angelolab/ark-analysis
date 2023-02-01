@@ -137,6 +137,10 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: false
           tags: ${{ github.event.repository.name }}:${{ github.ref_name }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+
 
       - name: Upload Docker Image to Artifact
         uses: ishworkh/docker-image-artifact-upload@v1
