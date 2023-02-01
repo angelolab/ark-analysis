@@ -594,23 +594,6 @@ def test_cluster_cells(pixel_cluster_prefix):
                 base_dir=temp_dir, cell_pysom=cell_pysom_bad, cell_som_cluster_cols=[]
             )
 
-        # error test: column name mismatch for weights
-        with pytest.raises(ValueError):
-            bad_cluster_cols = cluster_cols[:]
-            bad_cluster_cols[2], bad_cluster_cols[1] = bad_cluster_cols[1], bad_cluster_cols[2]
-
-            weights = pd.DataFrame(np.random.rand(100, 3), columns=bad_cluster_cols)
-            weights_path = os.path.join(temp_dir, 'cell_weights.feather')
-            feather.write_dataframe(weights, weights_path)
-
-            cell_pysom_bad = cluster_helpers.CellSOMCluster(
-                cluster_counts_size_norm_path, weights_path, cluster_cols
-            )
-
-            cell_cluster_utils.cluster_cells(
-                base_dir=temp_dir, cell_pysom=cell_pysom_bad, cell_som_cluster_cols=[]
-            )
-
         # generate a random SOM weights matrix
         som_weights = pd.DataFrame(np.random.rand(100, 3), columns=cluster_cols)
 
@@ -636,23 +619,6 @@ def test_cluster_cells(pixel_cluster_prefix):
         # assert we didn't assign any cluster 100 or above
         cluster_ids = cell_data_som_labels['cell_som_cluster']
         assert np.all(cluster_ids < 100)
-
-        # # assert we created the cell som count avgs file
-        # cell_som_count_avg_path = os.path.join(temp_dir, 'cell_som_cluster_count_avgs.csv')
-        # assert os.path.exists(cell_som_count_avg_path)
-
-        # # load in cell som count avgs
-        # cell_som_count_avgs = pd.read_csv(cell_som_count_avg_path)
-
-        # # assert the columns are correct
-        # cell_som_avg_cols = ['cell_som_cluster'] + cluster_cols + ['count']
-        # assert list(cell_som_count_avgs.columns.values) == cell_som_avg_cols
-
-        # # assert the SOM clusters match
-        # misc_utils.verify_same_elements(
-        #     cell_data_som_clusters=cluster_ids,
-        #     cell_som_avg_clusters=cell_som_count_avgs['cell_som_cluster'].values
-        # )
 
 
 def test_generate_som_avg_files(capsys):

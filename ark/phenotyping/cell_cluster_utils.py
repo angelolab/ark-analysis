@@ -428,7 +428,7 @@ def train_cell_som(fovs, base_dir, cell_table_path, cell_som_cluster_cols,
     som_weights_path = os.path.join(base_dir, som_weights_name)
 
     # check the cell table path exists
-    io_utils.validate_paths([cell_table_path])
+    io_utils.validate_paths([cluster_counts_size_norm_path, cell_table_path])
 
     # load the normalized pixel count expression data for verification
     cluster_counts_size_norm_data = feather.read_dataframe(cluster_counts_size_norm_path)
