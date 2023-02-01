@@ -4,7 +4,7 @@ from typing import ContextManager, Iterator
 import pytest
 from testbook import testbook
 
-from ark.utils import notebooks_test_utils
+from ark.utils import notebooks_test_utils, example_dataset
 
 
 # Sets a shared notebook testing temporary directory. Saves all notebook related files in a
@@ -573,6 +573,8 @@ class Test_Mixing_Score():
         self.tb.execute_cell("import")
 
     def test_file_paths(self):
+        example_dataset.get_example_dataset(dataset="post_clustering", save_dir=self.base_dir,
+                                            overwrite_existing=True)
         base_dir_inject = f"""
             base_dir = "{self.base_dir}"
         """
