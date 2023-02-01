@@ -251,7 +251,7 @@ def compute_marker_counts(input_images, segmentation_labels, nuclear_counts=Fals
         if settings.POST_CHANNEL_COL in regionprops_base:
             regionprops_base.remove(settings.POST_CHANNEL_COL)
         regionprops_base.insert(0, settings.POST_CHANNEL_COL)
-    
+
     # create variable to hold names of returned columns only
     regionprops_names = copy.copy(regionprops_base)
     regionprops_names.remove('coords')

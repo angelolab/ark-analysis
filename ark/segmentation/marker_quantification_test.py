@@ -246,16 +246,22 @@ def test_compute_marker_counts_base(skip_extraction):
     # the following tests apply only if skip_extraction not set
     if not skip_extraction:
         # check that channel 0 counts are same as cell size
-        assert np.array_equal(segmentation_output.loc['whole_cell', :, settings.CELL_SIZE].values,
-                              segmentation_output.loc['whole_cell', :, 'chan0'].values)
+        assert np.array_equal(
+            segmentation_output.loc['whole_cell', :, settings.CELL_SIZE].values,
+            segmentation_output.loc['whole_cell', :, 'chan0'].values
+        )
 
         # check that channel 1 counts are 5x cell size
-        assert np.array_equal(segmentation_output.loc['whole_cell', :, settings.CELL_SIZE].values * 5,
-                              segmentation_output.loc['whole_cell', :, 'chan1'].values)
+        assert np.array_equal(
+            segmentation_output.loc['whole_cell', :, settings.CELL_SIZE].values * 5,
+            segmentation_output.loc['whole_cell', :, 'chan1'].values
+        )
 
         # check that channel 2 counts are the same as channel 1
-        assert np.array_equal(segmentation_output.loc['whole_cell', :, 'chan2'].values,
-                              segmentation_output.loc['whole_cell', :, 'chan1'].values)
+        assert np.array_equal(
+            segmentation_output.loc['whole_cell', :, 'chan2'].values,
+            segmentation_output.loc['whole_cell', :, 'chan1'].values
+        )
 
         # check that only cell1 is negative for channel 3
         assert segmentation_output.loc['whole_cell', 1, 'chan3'] == 0
@@ -267,8 +273,10 @@ def test_compute_marker_counts_base(skip_extraction):
         assert np.all(segmentation_output.loc['whole_cell', 3:, 'chan4'] == 0)
 
         # check that regionprops size matches with cell size
-        assert np.array_equal(segmentation_output.loc['whole_cell', :, settings.CELL_SIZE],
-                              segmentation_output.loc['whole_cell', :, 'area'])
+        assert np.array_equal(
+            segmentation_output.loc['whole_cell', :, settings.CELL_SIZE],
+            segmentation_output.loc['whole_cell', :, 'area']
+        )
     # otherwise, assert we don't create any channel data in segmentation_output
     else:
         assert len(
@@ -280,15 +288,19 @@ def test_compute_marker_counts_base(skip_extraction):
     if not skip_extraction:
         # bad extraction selection
         with pytest.raises(ValueError):
-            marker_quantification.compute_marker_counts(input_images=input_images,
-                                                        segmentation_labels=segmentation_labels,
-                                                        extraction='bad_extraction')
+            marker_quantification.compute_marker_counts(
+                input_images=input_images,
+                segmentation_labels=segmentation_labels,
+                extraction='bad_extraction'
+            )
 
         # test different extraction selection
         center_extraction = \
-            marker_quantification.compute_marker_counts(input_images=input_images,
-                                                        segmentation_labels=segmentation_labels,
-                                                        extraction='center_weighting')
+            marker_quantification.compute_marker_counts(
+                input_images=input_images,
+                segmentation_labels=segmentation_labels,
+                extraction='center_weighting'
+            )
 
         assert np.all(
             segmentation_output.loc['whole_cell', :, 'chan0'].values
@@ -296,11 +308,15 @@ def test_compute_marker_counts_base(skip_extraction):
         )
 
         # blank segmentation mask results in the cells column of length 0
-        blank_labels = make_labels_xarray(label_data=np.zeros((1, 40, 40, 1), dtype='int'),
-                                          compartment_names=['whole_cell'])
+        blank_labels = make_labels_xarray(
+            label_data=np.zeros((1, 40, 40, 1), dtype='int'),
+            compartment_names=['whole_cell']
+        )
 
-        blank_output = marker_quantification.compute_marker_counts(input_images=input_images,
-                                                                   segmentation_labels=blank_labels[0])
+        blank_output = marker_quantification.compute_marker_counts(
+            input_images=input_images,
+            segmentation_labels=blank_labels[0]
+        )
         assert blank_output.shape[1] == 0
 
 
@@ -355,8 +371,10 @@ def test_compute_marker_counts_nuc_whole_cell_diff(skip_extraction):
         )
 
     # make sure nuclear segmentations are smaller, this applies even if skip_extraction set
-    assert np.all(segmentation_output_unequal.loc['nuclear', :, 'cell_size'].values <
-                  segmentation_output_unequal.loc['whole_cell', :, 'cell_size'].values)
+    assert np.all(
+        segmentation_output_unequal.loc['nuclear', :, 'cell_size'].values <
+        segmentation_output_unequal.loc['whole_cell', :, 'cell_size'].values
+    )
 
     # check that cell sizes are correct, this applies even if skip_extraction set
     sizes = [np.sum(nuc_mask == cell_id) for cell_id in [1, 2, 3, 5]]
@@ -365,16 +383,22 @@ def test_compute_marker_counts_nuc_whole_cell_diff(skip_extraction):
     # the following tests apply only if skip_extraction not set
     if not skip_extraction:
         # check that channel 0 counts are same as cell size
-        assert np.array_equal(segmentation_output_unequal.loc['nuclear', :, 'cell_size'].values,
-                              segmentation_output_unequal.loc['nuclear', :, 'chan0'].values)
+        assert np.array_equal(
+            segmentation_output_unequal.loc['nuclear', :, 'cell_size'].values,
+            segmentation_output_unequal.loc['nuclear', :, 'chan0'].values
+        )
 
         # check that channel 1 counts are 5x cell size
-        assert np.array_equal(segmentation_output_unequal.loc['nuclear', :, 'cell_size'].values * 5,
-                              segmentation_output_unequal.loc['nuclear', :, 'chan1'].values)
+        assert np.array_equal(
+            segmentation_output_unequal.loc['nuclear', :, 'cell_size'].values * 5,
+            segmentation_output_unequal.loc['nuclear', :, 'chan1'].values
+        )
 
         # check that channel 2 counts are the same as channel 1
-        assert np.array_equal(segmentation_output_unequal.loc['nuclear', :, 'chan2'].values,
-                              segmentation_output_unequal.loc['nuclear', :, 'chan1'].values)
+        assert np.array_equal(
+            segmentation_output_unequal.loc['nuclear', :, 'chan2'].values,
+            segmentation_output_unequal.loc['nuclear', :, 'chan1'].values
+        )
 
         # check that only cell1 is negative for channel 3
         assert segmentation_output_unequal.loc['nuclear', 1, 'chan3'] == 0
@@ -385,8 +409,10 @@ def test_compute_marker_counts_nuc_whole_cell_diff(skip_extraction):
         assert np.all(segmentation_output_unequal.loc['nuclear', :1, 'chan4'] == 0)
         assert np.all(segmentation_output_unequal.loc['nuclear', 3:, 'chan4'] == 0)
 
-        assert np.array_equal(segmentation_output_unequal.loc['nuclear', :, 'cell_size'],
-                              segmentation_output_unequal.loc['nuclear', :, 'area'])
+        assert np.array_equal(
+            segmentation_output_unequal.loc['nuclear', :, 'cell_size'],
+            segmentation_output_unequal.loc['nuclear', :, 'area']
+        )
 
     # check that splitting large nuclei works as expected
 
