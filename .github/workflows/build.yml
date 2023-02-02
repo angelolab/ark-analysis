@@ -136,7 +136,7 @@ jobs:
         with:
           github-token: ${{ github.token }}
           images: |
-            angelolab/ark-analysis
+            ${{ secrets.DOCKERHUB_USERNAME }}/ark-analysis
           tags: |
             type=ref,event=branch
             type=ref,event=pr
