@@ -817,7 +817,6 @@ def compute_cell_neighbors(all_data, dist_mat_dir, cell_neighbors_dir, neighbors
         fov_data = all_data[all_data[fov_col] == fov].reset_index()
         cell_neighbors, _ = create_neighborhood_matrix(fov_data, dist_mat_dir, [fov],
                                                        distlim=neighbors_radius,
-                                                       drop_single_cells=False,
                                                        cluster_name_col=cell_col)
         save_path = os.path.join(cell_neighbors_dir, f"{fov}_cell_neighbors.csv")
         cell_neighbors.to_csv(save_path, index=False)
