@@ -219,14 +219,14 @@ class PixelSOMCluster(PixieSOMCluster):
 
 
 class CellSOMCluster(PixieSOMCluster):
-    def __init__(self, cell_data_path: pathlib.Path, weights_path: pathlib.Path,
+    def __init__(self, cell_data: pd.DataFrame, weights_path: pathlib.Path,
                  columns: List[str], num_passes: int = 1, xdim: int = 10, ydim: int = 10,
                  lr_start: float = 0.05, lr_end: float = 0.01):
         """Creates a cell SOM cluster object derived from the abstract PixieSOMCluster
 
         Args:
-            cell_data_path (pathlib.Path):
-                The name of the cell dataset to use for training
+            cell_data (pandas.DataFrame):
+                The dataset to use for training
             weights_path (pathlib.Path):
                 The path to save the weights to.
             columns (List[str]):
@@ -246,12 +246,8 @@ class CellSOMCluster(PixieSOMCluster):
             weights_path, columns, num_passes, xdim, ydim, lr_start, lr_end
         )
 
-        # path validation
-        validate_paths([cell_data_path])
-        self.cell_data_path = cell_data_path
-
-        # load the cell data in
-        self.cell_data = feather.read_dataframe(cell_data_path)
+        # assign the cell data
+        self.cell_data = cell_data
 
         # since cell_data is the only dataset, we can just normalize it immediately
         self.normalize_data()

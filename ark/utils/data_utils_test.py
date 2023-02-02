@@ -128,18 +128,12 @@ def test_generate_cell_cluster_mask():
         # bad segmentation path passed
         with pytest.raises(FileNotFoundError):
             data_utils.generate_cell_cluster_mask(
-                fov, temp_dir, 'bad_seg_dir', 'bad_consensus_path'
+                fov, temp_dir, 'bad_seg_dir', pd.DataFrame()
             )
 
         # generate a sample segmentation mask
         cell_mask = np.random.randint(low=0, high=5, size=(40, 40), dtype="int16")
         image_utils.save_image(os.path.join(temp_dir, '%s_whole_cell.tiff' % fov), cell_mask)
-
-        # bad consensus path passed
-        with pytest.raises(FileNotFoundError):
-            data_utils.generate_cell_cluster_mask(
-                fov, temp_dir, temp_dir, 'bad_consensus_path'
-            )
 
         # create a sample cell consensus file based on SOM cluster assignments
         consensus_data_som = pd.DataFrame(
@@ -161,31 +155,22 @@ def test_generate_cell_cluster_mask():
         consensus_data_meta['cell_som_cluster'] = np.tile(np.arange(1, 6), 4)
         consensus_data_meta['cell_meta_cluster'] = np.tile(np.arange(1, 3), 10)
 
-        # write both som and meta DataFrames
-        feather.write_dataframe(
-            consensus_data_som, os.path.join(temp_dir, 'cluster_consensus_som.feather')
-        )
-
-        feather.write_dataframe(
-            consensus_data_som, os.path.join(temp_dir, 'cluster_consensus_meta.feather')
-        )
-
         # bad cluster column provided
         with pytest.raises(ValueError):
             data_utils.generate_cell_cluster_mask(
-                fov, temp_dir, temp_dir, 'cluster_consensus_som.feather', 'bad_cluster'
+                fov, temp_dir, temp_dir, consensus_data_som, 'bad_cluster'
             )
 
         # bad fov provided
         with pytest.raises(ValueError):
             data_utils.generate_cell_cluster_mask(
                 'fov1', temp_dir, temp_dir,
-                'cluster_consensus_som.feather', 'cell_som_cluster'
+                consensus_data_som, 'cell_som_cluster'
             )
 
         # test on SOM assignments
         cell_masks = data_utils.generate_cell_cluster_mask(
-            fov, temp_dir, temp_dir, 'cluster_consensus_som.feather', 'cell_som_cluster'
+            fov, temp_dir, temp_dir, consensus_data_som, 'cell_som_cluster'
         )
 
         # assert the image size is the same as the mask (40, 40)
@@ -196,7 +181,7 @@ def test_generate_cell_cluster_mask():
 
         # test on meta assignments
         cell_masks = data_utils.generate_cell_cluster_mask(
-            fov, temp_dir, temp_dir, 'cluster_consensus_meta.feather', 'cell_meta_cluster'
+            fov, temp_dir, temp_dir, consensus_data_meta, 'cell_meta_cluster'
         )
 
         # assert the image size is the same as the mask (40, 40)
@@ -267,22 +252,13 @@ def test_generate_and_save_cell_cluster_masks(sub_dir, name_suffix):
 
             consensus_data_meta = pd.concat([consensus_data_meta, meta_data_fov])
 
-        # wrote both consensus DataFrames
-        feather.write_dataframe(
-            consensus_data_som, os.path.join(temp_dir, 'cluster_consensus_som.feather')
-        )
-
-        feather.write_dataframe(
-            consensus_data_som, os.path.join(temp_dir, 'cluster_consensus_meta.feather')
-        )
-
         # test various batch_sizes, no sub_dir, name_suffix = ''.
         data_utils.generate_and_save_cell_cluster_masks(
             fovs=fovs,
             base_dir=temp_dir,
             save_dir=os.path.join(temp_dir, 'cell_masks'),
             seg_dir=temp_dir,
-            cell_data_name='cluster_consensus_som.feather',
+            cell_data=consensus_data_som,
             cell_cluster_col='cell_som_cluster',
             seg_suffix='_whole_cell.tiff',
             sub_dir=sub_dir,
