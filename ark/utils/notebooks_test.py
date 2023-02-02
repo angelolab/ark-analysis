@@ -566,8 +566,8 @@ class Test_Mixing_Score():
         self.base_dir: pathlib.Path = nbmixing_context[1]
 
         # Variables
-        self.targets = ['CD3']
-        self.references = ['CD4']
+        self.targets = ['tumor_ck17', 'tumor_ecad']
+        self.references = ['CD4T', 'CD8T', 'Bcell', 'immune_other']
 
     def test_imports(self):
         self.tb.execute_cell("import")
@@ -595,8 +595,8 @@ class Test_Mixing_Score():
 
     def test_cell_types(self):
         cell_types_inject = f"""
-        target_cell_list  = "{self.targets}"
-        reference_cell_list = "{self.references}"
+        target_cell_list  = {self.targets}
+        reference_cell_list = {self.references}
         """
         self.tb.inject(cell_types_inject, "cell_types")
 
