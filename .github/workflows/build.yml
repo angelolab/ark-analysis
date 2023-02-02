@@ -117,6 +117,9 @@ jobs:
     steps:
       - name: Set up QEMU (For Linux Arm Containers)
         uses: docker/setup-qemu-action@v2
+        with:
+          platforms: arm64
+
 
       # Uses the latest version of Buildx and Buildkit
       - name: Set up Docker Buildx
