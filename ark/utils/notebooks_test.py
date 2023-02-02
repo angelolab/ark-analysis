@@ -582,7 +582,7 @@ class Test_Mixing_Score():
         self.tb.execute_cell("ex_data_download")
 
     def test_file_paths(self):
-        self.tb.execute_cell("file_paths")
+        self.tb.execute_cell("file_path")
 
     def test_create_dirs(self):
         self.tb.execute_cell("create_dirs")
