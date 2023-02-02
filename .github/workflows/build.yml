@@ -148,7 +148,7 @@ jobs:
           file: Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: ${{ steps.docker_metadata.ouputs.tags }}
+          tags: ${{ steps.docker_metadata.outputs.tags }}
           labels: ${{ steps.docker_metadata.outputs.labels }}
           cache-to: type=gha,mode=max
           cache-from: type=gha
