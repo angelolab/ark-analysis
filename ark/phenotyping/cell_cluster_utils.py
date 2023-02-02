@@ -704,7 +704,7 @@ def generate_wc_avg_files(fovs, channels, base_dir, cell_cc,
         cell_cc (cluster_helpers.PixieConsensusCluster):
             The consensus cluster object containing the SOM to meta mapping
         cell_som_input_data_name (str):
-            The input file used for SOM training. For weighted channel averaging, it should 
+            The input file used for SOM training. For weighted channel averaging, it should
             contain the number of pixel SOM/meta cluster counts of each cell,
             normalized by `cell_size`
         weighted_cell_channel_name (str):
