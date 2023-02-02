@@ -902,7 +902,8 @@ def test_generate_wc_avg_files(capsys):
             fovs=['fov0', 'fov1'],
             channels=['chan0', 'chan1', 'chan2'],
             base_dir=temp_dir,
-            cell_cc=cell_cc
+            cell_cc=cell_cc,
+            cell_som_input_data_name='cluster_counts_size_norm.feather'
         )
 
         assert os.path.exists(os.path.join(temp_dir, 'cell_som_cluster_channel_avg.csv'))
@@ -936,7 +937,8 @@ def test_generate_wc_avg_files(capsys):
             fovs=['fov0', 'fov1'],
             channels=['chan0', 'chan1', 'chan2'],
             base_dir=temp_dir,
-            cell_cc=cell_cc
+            cell_cc=cell_cc,
+            cell_som_input_data_name='cluster_counts_size_norm.feather'
         )
 
         output = capsys.readouterr().out
