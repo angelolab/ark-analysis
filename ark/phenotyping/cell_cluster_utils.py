@@ -15,7 +15,7 @@ from ark.phenotyping import cluster_helpers
 
 def compute_cell_cluster_expr_avg(cell_cluster_path, cell_som_cluster_cols,
                                   cell_cluster_col, keep_count=False):
-    """For each cell SOM cluster, compute the average number of associated pixel SOM/meta clusters
+    """For each cell SOM cluster, compute the average expression of all `cell_som_cluster_cols`
 
     Args:
         cell_cluster_path (str):
@@ -71,7 +71,7 @@ def compute_cell_cluster_expr_avg(cell_cluster_path, cell_som_cluster_cols,
 
 def compute_cell_cluster_channel_avg(fovs, channels, base_dir,
                                      weighted_cell_channel_name,
-                                     cell_cluster_name='cluster_counts_size_norm.feather',
+                                     cell_cluster_name='cell_som_input_data.feather',
                                      cell_cluster_col='cell_meta_cluster'):
     """Computes the average marker expression for each cell cluster
 
@@ -399,7 +399,7 @@ def train_cell_som(fovs, base_dir, cell_table_path, cell_som_cluster_cols,
         cell_table_path (str):
             Path of the cell table, needs to be created with `Segment_Image_Data.ipynb`
         cell_som_cluster_cols (list):
-            The list of columns in `cluster_counts_size_norm_name` to use for SOM training
+            The list of columns in `cell_som_input_data_name` to use for SOM training
         cell_som_input_data_name (str):
             The input file to use for SOM training
         som_weights_name (str):
@@ -474,9 +474,9 @@ def cluster_cells(base_dir, cell_pysom, cell_som_cluster_cols):
         cols_to_drop.append('cell_size')
 
     # ensure the weights columns are valid indexes, do so by ensuring
-    # the cluster_counts_norm and weights columns are the same
+    # the cell_som_input_data and weights columns are the same
     # minus the metadata columns that appear in cluster_counts_norm
-    cluster_counts_size_norm = cell_pysom.cell_data.drop(
+    cell_som_input_data = cell_pysom.cell_data.drop(
         columns=cols_to_drop
     )
 
@@ -484,7 +484,7 @@ def cluster_cells(base_dir, cell_pysom, cell_som_cluster_cols):
     # NOTE: CellSOMCluster ensures column ordering by using the preset self.columns as an index
     misc_utils.verify_in_list(
         cell_weights_columns=cell_pysom.weights.columns.values,
-        cluster_counts_size_norm_columns=cluster_counts_size_norm.columns.values
+        cell_som_input_data_columns=cell_som_input_data.columns.values
     )
 
     # run the trained SOM on the dataset, assigning clusters
@@ -688,11 +688,16 @@ def generate_meta_avg_files(base_dir, cell_cc, cell_som_cluster_cols,
 
 
 def generate_wc_avg_files(fovs, channels, base_dir, cell_cc,
-                          cell_som_input_data_name='cluster_counts_size_norm.feather',
+                          cell_som_input_data_name='cell_som_input_data.feather',
                           weighted_cell_channel_name='weighted_cell_channel.feather',
                           cell_som_cluster_channel_avg_name='cell_som_cluster_channel_avg.csv',
                           cell_meta_cluster_channel_avg_name='cell_meta_cluster_channel_avg.csv'):
     """Generate the weighted channel average files per cell SOM and meta clusters.
+
+    When running cell clustering with pixel clusters generated from Pixie, the counts of each
+    pixel cluster per cell is computed. These are multiplied by the average expression profile of
+    each pixel cluster to determine weighted channel average. This computation is averaged by both
+    cell SOM and meta cluster.
 
     Args:
         fovs (list):
