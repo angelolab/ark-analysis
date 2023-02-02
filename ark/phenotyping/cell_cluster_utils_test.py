@@ -15,7 +15,7 @@ import ark.phenotyping.cluster_helpers as cluster_helpers
 parametrize = pytest.mark.parametrize
 
 
-def test_compute_cell_cluster_count_avg():
+def test_compute_cell_cluster_expr_avg():
     # define the cluster columns
     pixel_som_clusters = ['pixel_som_cluster_%d' % i for i in np.arange(3)]
     pixel_meta_clusters = ['pixel_meta_cluster_rename_%s' % str(i) for i in np.arange(3)]
@@ -23,7 +23,7 @@ def test_compute_cell_cluster_count_avg():
     with tempfile.TemporaryDirectory() as temp_dir:
         # error check: bad cell_cluster_col specified
         with pytest.raises(ValueError):
-            cell_cluster_utils.compute_cell_cluster_count_avg(
+            cell_cluster_utils.compute_cell_cluster_expr_avg(
                 temp_dir, 'pixel_meta_cluster', 'bad_cluster_col', False
             )
 
@@ -61,7 +61,7 @@ def test_compute_cell_cluster_count_avg():
                 if keep_count:
                     drop_cols.append('count')
 
-                cell_cluster_avg = cell_cluster_utils.compute_cell_cluster_count_avg(
+                cell_cluster_avg = cell_cluster_utils.compute_cell_cluster_expr_avg(
                     clustered_path, cluster_col_arr[i], 'cell_som_cluster', keep_count=keep_count
                 )
 
@@ -87,7 +87,7 @@ def test_compute_cell_cluster_count_avg():
                 if keep_count:
                     drop_cols.append('count')
 
-                cell_cluster_avg = cell_cluster_utils.compute_cell_cluster_count_avg(
+                cell_cluster_avg = cell_cluster_utils.compute_cell_cluster_expr_avg(
                     clustered_path, cluster_col_arr[i], 'cell_meta_cluster', keep_count=keep_count
                 )
 
@@ -503,7 +503,8 @@ def test_train_cell_som():
             fovs=fovs,
             base_dir=temp_dir,
             cell_table_path=cell_table_path,
-            cell_som_cluster_cols=['pixel_som_cluster_%d' % i for i in np.arange(15)]
+            cell_som_cluster_cols=['pixel_som_cluster_%d' % i for i in np.arange(15)],
+            cell_som_input_data_name='cluster_counts_size_norm.feather'
         )
 
         # assert cell weights has been created
@@ -538,7 +539,8 @@ def test_train_cell_som():
             fovs=fovs,
             base_dir=temp_dir,
             cell_table_path=cell_table_path,
-            cell_som_cluster_cols=['pixel_meta_cluster_rename_%d' % i for i in np.arange(2)]
+            cell_som_cluster_cols=['pixel_meta_cluster_rename_%d' % i for i in np.arange(2)],
+            cell_som_input_data_name='cluster_counts_size_norm.feather'
         )
 
         # assert cell weights has been created
@@ -660,7 +662,9 @@ def test_generate_som_avg_files(capsys):
             cell_pysom_bad = cluster_helpers.CellSOMCluster(
                 cluster_counts_size_norm_path, 'bad_path.feather', cluster_cols
             )
-            cell_cluster_utils.generate_som_avg_files(temp_dir, cell_pysom_bad, cluster_cols)
+            cell_cluster_utils.generate_som_avg_files(
+                temp_dir, cell_pysom_bad, cluster_cols, 'cell_som_cluster_count_avgs.csv'
+            )
 
         # define an example CellSOMCluster object
         cell_pysom = cluster_helpers.CellSOMCluster(
@@ -669,7 +673,7 @@ def test_generate_som_avg_files(capsys):
 
         # generate the average SOM file
         cell_cluster_utils.generate_som_avg_files(
-            temp_dir, cell_pysom, cluster_cols
+            temp_dir, cell_pysom, cluster_cols, 'cell_som_cluster_count_avgs.csv'
         )
 
         # assert we created SOM avg file
@@ -685,7 +689,7 @@ def test_generate_som_avg_files(capsys):
         capsys.readouterr()
 
         cell_cluster_utils.generate_som_avg_files(
-            temp_dir, cell_pysom, cluster_cols
+            temp_dir, cell_pysom, cluster_cols, 'cell_som_cluster_count_avgs.csv'
         )
 
         output = capsys.readouterr().out
@@ -714,7 +718,7 @@ def test_cell_consensus_cluster(pixel_cluster_prefix):
         feather.write_dataframe(cluster_data, cluster_counts_size_norm_path)
 
         # compute average counts of each pixel SOM/meta cluster across all cell SOM clusters
-        cluster_avg = cell_cluster_utils.compute_cell_cluster_count_avg(
+        cluster_avg = cell_cluster_utils.compute_cell_cluster_expr_avg(
             cluster_counts_size_norm_path, cell_som_cluster_cols=cluster_cols,
             cell_cluster_col='cell_som_cluster'
         )
@@ -726,7 +730,9 @@ def test_cell_consensus_cluster(pixel_cluster_prefix):
         # run consensus clustering
         cell_cc = cell_cluster_utils.cell_consensus_cluster(
             base_dir=temp_dir,
-            cell_som_cluster_cols=cluster_cols
+            cell_som_cluster_cols=cluster_cols,
+            cell_som_input_data_name='cluster_counts_size_norm.feather',
+            cell_som_expr_col_avg_name='cell_som_cluster_avg.csv'
         )
 
         # assert we assigned a mapping, then sort
@@ -773,7 +779,7 @@ def test_generate_meta_avg_files(capsys):
         feather.write_dataframe(cluster_data, cluster_counts_size_norm_path)
 
         # compute average counts of each pixel SOM/meta cluster across all cell SOM clusters
-        cluster_avg = cell_cluster_utils.compute_cell_cluster_count_avg(
+        cluster_avg = cell_cluster_utils.compute_cell_cluster_expr_avg(
             cluster_counts_size_norm_path, cell_som_cluster_cols=cluster_cols,
             cell_cluster_col='cell_som_cluster'
         )
@@ -800,7 +806,10 @@ def test_generate_meta_avg_files(capsys):
 
         # generate the cell meta cluster file generation
         cell_cluster_utils.generate_meta_avg_files(
-            temp_dir, cell_cc, cluster_cols
+            temp_dir, cell_cc, cluster_cols,
+            'cluster_counts_size_norm.feather',
+            'cell_som_cluster_avg.csv',
+            'cell_meta_cluster_avg.csv'
         )
 
         # assert we generated a meta cluster average file, then load it in
@@ -830,12 +839,15 @@ def test_generate_meta_avg_files(capsys):
         capsys.readouterr()
 
         cell_cluster_utils.generate_meta_avg_files(
-            temp_dir, cell_cc, cluster_cols
+            temp_dir, cell_cc, cluster_cols,
+            'cluster_counts_size_norm.feather',
+            'cell_som_cluster_avg.csv',
+            'cell_meta_cluster_avg.csv'
         )
 
         output = capsys.readouterr().out
         assert output == \
-            "Already generated average expression file for each cell meta column, skipping\n"
+            "Already generated average expression file for cell meta clusters, skipping\n"
 
 
 def test_generate_wc_avg_files(capsys):
