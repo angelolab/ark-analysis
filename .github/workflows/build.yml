@@ -4,8 +4,6 @@ on:
   push:
     branches: ["main"]
   pull_request:
-    tags:
-      - gha_*
     types: [labeled, opened, synchronize, reopened]
   release:
     types: [published]
@@ -139,6 +137,7 @@ jobs:
           file: Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: ${{ github.event.repository.name }}:${{ github.ref_name }}
+          tags: ${{ github.event.repository.name }}:gha_test
+          # tags: ${{ github.event.repository.name }}:${{ github.ref_name }}
           cache-to: type=gha,mode=max
           cache-from: type=gha
