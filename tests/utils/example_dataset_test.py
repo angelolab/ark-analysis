@@ -32,16 +32,10 @@ def dataset_download(request) -> Iterator[ExampleDataset]:
         Iterator[ExampleDataset]: The iterable Example Dataset.
     """
     
-    # Cache in CI
-    if os.environ["CI"]:
-        _cache_dir: str = "~/.cache/huggingface/datasets"
-    else:
-        _cache_dir = None
-    
     # Set up ExampleDataset class
     example_dataset: ExampleDataset = ExampleDataset(
         dataset=request.param,
-        cache_dir=_cache_dir,
+        cache_dir=None, # Use the default cache
         revision=EXAMPLE_DATASET_REVISION
     )
     # Download example data for a particular notebook
