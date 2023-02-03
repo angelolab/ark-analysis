@@ -934,7 +934,7 @@ def compute_mixing_score(cell_neighbors_dir, fov, target_cells, reference_cells,
     cell_neighbors_path = os.path.join(cell_neighbors_dir, f"{fov}_cell_neighbors.csv")
     io_utils.validate_paths(cell_neighbors_path)
 
-    # read in fov cell neighbors, drop fov and cell label columns
+    # read in fov cell neighbors, drop fov, cell label, and cell type columns
     neighbors_mat = pd.read_csv(cell_neighbors_path)
     misc_utils.verify_in_list(provided_column_names=[cell_col, fov_col, label_col],
                               cell_neighbors_columns=neighbors_mat.columns)
@@ -966,6 +966,8 @@ def compute_mixing_score(cell_neighbors_dir, fov, target_cells, reference_cells,
     neighbors_mat[cell_col] = neighbors_mat[cell_col].replace(target_cells, 'target')
     neighbors_mat[cell_col] = neighbors_mat[cell_col].replace(reference_cells, 'reference')
     interactions_mat = neighbors_mat.groupby(by=[cell_col]).sum(numeric_only=True)
+
+    # combine cell interactions by target and reference populations
     interactions_mat['target'] = [0] * interactions_mat.shape[0]
     interactions_mat['reference'] = [0] * interactions_mat.shape[0]
     for target_cell in target_cells:
@@ -976,6 +978,7 @@ def compute_mixing_score(cell_neighbors_dir, fov, target_cells, reference_cells,
             interactions_mat['reference'] = interactions_mat['reference'] + \
                                             interactions_mat[reference_cell]
 
+    # count interactions
     reference_target = interactions_mat.loc['target', 'reference']
     target_target = interactions_mat.loc['target', 'target']
     reference_reference = interactions_mat.loc['reference', 'reference']

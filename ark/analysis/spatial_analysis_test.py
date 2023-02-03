@@ -653,8 +653,8 @@ def test_compute_cell_ratios():
         with pytest.raises(ValueError):
             targ_ref_ratio, ref_targ_ratio = spatial_analysis.compute_cell_ratios(
                 cell_neighbors_dir, ['cell1'], ['cell3'], ['fov1'])
-            assert targ_ref_ratio == [np.nan]
-            assert ref_targ_ratio == [np.nan]
+            assert targ_ref_ratio == []
+            assert ref_targ_ratio == []
 
 
 def test_compute_mixing_score():
