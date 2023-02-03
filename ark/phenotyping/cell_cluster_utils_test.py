@@ -15,7 +15,7 @@ import ark.phenotyping.cluster_helpers as cluster_helpers
 parametrize = pytest.mark.parametrize
 
 
-def test_compute_cell_cluster_expr_avg():
+def test_compute_cell_som_cluster_cols_avg():
     # define the cluster columns
     pixel_som_clusters = ['pixel_som_cluster_%d' % i for i in np.arange(3)]
     pixel_meta_clusters = ['pixel_meta_cluster_rename_%s' % str(i) for i in np.arange(3)]
@@ -23,7 +23,7 @@ def test_compute_cell_cluster_expr_avg():
     with tempfile.TemporaryDirectory() as temp_dir:
         # error check: bad cell_cluster_col specified
         with pytest.raises(ValueError):
-            cell_cluster_utils.compute_cell_cluster_expr_avg(
+            cell_cluster_utils.compute_cell_som_cluster_cols_avg(
                 pd.DataFrame(), 'pixel_meta_cluster', 'bad_cluster_col', False
             )
 
@@ -57,7 +57,7 @@ def test_compute_cell_cluster_expr_avg():
                 if keep_count:
                     drop_cols.append('count')
 
-                cell_cluster_avg = cell_cluster_utils.compute_cell_cluster_expr_avg(
+                cell_cluster_avg = cell_cluster_utils.compute_cell_som_cluster_cols_avg(
                     cluster_data, cluster_col_arr[i], 'cell_som_cluster', keep_count=keep_count
                 )
 
@@ -83,7 +83,7 @@ def test_compute_cell_cluster_expr_avg():
                 if keep_count:
                     drop_cols.append('count')
 
-                cell_cluster_avg = cell_cluster_utils.compute_cell_cluster_expr_avg(
+                cell_cluster_avg = cell_cluster_utils.compute_cell_som_cluster_cols_avg(
                     cluster_data, cluster_col_arr[i], 'cell_meta_cluster', keep_count=keep_count
                 )
 
@@ -104,14 +104,14 @@ def test_compute_cell_cluster_expr_avg():
                     assert np.all(cell_cluster_avg['count'].values == 200)
 
 
-def test_compute_cell_cluster_channel_avg():
+def test_compute_cell_cluster_weighted_channel_avg():
     fovs = ['fov1', 'fov2']
     chans = ['chan1', 'chan2', 'chan3']
 
     with tempfile.TemporaryDirectory() as temp_dir:
         # error check: no channel average file provided
         with pytest.raises(FileNotFoundError):
-            cell_cluster_utils.compute_cell_cluster_channel_avg(
+            cell_cluster_utils.compute_cell_cluster_weighted_channel_avg(
                 fovs, chans, temp_dir, 'bad_cell_table', pd.DataFrame(), 'bad_cluster_col'
             )
 
@@ -157,13 +157,13 @@ def test_compute_cell_cluster_channel_avg():
 
         # error check: bad cell_cluster_col provided
         with pytest.raises(ValueError):
-            cell_cluster_utils.compute_cell_cluster_channel_avg(
+            cell_cluster_utils.compute_cell_cluster_weighted_channel_avg(
                 fovs, chans, temp_dir, 'weighted_cell_channel.feather',
                 consensus_data, cell_cluster_col='bad_cluster_col'
             )
 
         # test averages for cell SOM clusters
-        cell_channel_avg = cell_cluster_utils.compute_cell_cluster_channel_avg(
+        cell_channel_avg = cell_cluster_utils.compute_cell_cluster_weighted_channel_avg(
             # fovs, chans, temp_dir, weighted_cell_table,
             fovs, chans, temp_dir, 'weighted_cell_channel.feather',
             consensus_data, cell_cluster_col='cell_som_cluster'
@@ -176,7 +176,7 @@ def test_compute_cell_cluster_channel_avg():
         assert cell_channel_avg.drop(columns='cell_som_cluster').shape == (5, 3)
 
         # test averages for cell meta clusters
-        cell_channel_avg = cell_cluster_utils.compute_cell_cluster_channel_avg(
+        cell_channel_avg = cell_cluster_utils.compute_cell_cluster_weighted_channel_avg(
             # fovs, chans, temp_dir, weighted_cell_table,
             fovs, chans, temp_dir, 'weighted_cell_channel.feather',
             consensus_data, cell_cluster_col='cell_meta_cluster'
@@ -680,8 +680,8 @@ def test_cell_consensus_cluster(pixel_cluster_prefix):
         cluster_data['segmentation_label'] = np.tile(np.arange(1, 501), reps=2)
         cluster_data['cell_som_cluster'] = np.repeat(np.arange(100), 10)
 
-        # compute average counts of each pixel SOM/meta cluster across all cell SOM clusters
-        cluster_avg = cell_cluster_utils.compute_cell_cluster_expr_avg(
+        # compute average values of all cluster_cols for cell SOM clusters
+        cluster_avg = cell_cluster_utils.compute_cell_som_cluster_cols_avg(
             cluster_data, cell_som_cluster_cols=cluster_cols,
             cell_cluster_col='cell_som_cluster'
         )
@@ -733,8 +733,8 @@ def test_generate_meta_avg_files(capsys):
         cluster_data['cell_som_cluster'] = np.repeat(np.arange(100), 10)
         cluster_data['cell_meta_cluster'] = np.repeat(np.arange(20), 50)
 
-        # compute average counts of each pixel SOM/meta cluster across all cell SOM clusters
-        cluster_avg = cell_cluster_utils.compute_cell_cluster_expr_avg(
+        # compute average values of all cluster_cols for cell SOM clusters
+        cluster_avg = cell_cluster_utils.compute_cell_som_cluster_cols_avg(
             cluster_data, cell_som_cluster_cols=cluster_cols,
             cell_cluster_col='cell_som_cluster'
         )

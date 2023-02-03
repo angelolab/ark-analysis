@@ -13,8 +13,8 @@ from ark.analysis import visualize
 from ark.phenotyping import cluster_helpers
 
 
-def compute_cell_cluster_expr_avg(cell_cluster_data, cell_som_cluster_cols,
-                                  cell_cluster_col, keep_count=False):
+def compute_cell_som_cluster_cols_avg(cell_cluster_data, cell_som_cluster_cols,
+                                      cell_cluster_col, keep_count=False):
     """For each cell SOM cluster, compute the average expression of all `cell_som_cluster_cols`
 
     Args:
@@ -66,11 +66,11 @@ def compute_cell_cluster_expr_avg(cell_cluster_data, cell_som_cluster_cols,
     return mean_count_totals
 
 
-def compute_cell_cluster_channel_avg(fovs, channels, base_dir,
-                                     weighted_cell_channel_name,
-                                     cell_cluster_data,
-                                     cell_cluster_col='cell_meta_cluster'):
-    """Computes the average marker expression for each cell cluster
+def compute_cell_cluster_weighted_channel_avg(fovs, channels, base_dir,
+                                              weighted_cell_channel_name,
+                                              cell_cluster_data,
+                                              cell_cluster_col='cell_meta_cluster'):
+    """Computes the average weighted marker expression for each cell cluster
 
     Args:
         fovs (list):
@@ -518,14 +518,14 @@ def generate_som_avg_files(base_dir, cell_som_input_data, cell_som_cluster_cols,
 
     # compute the average column expression values per cell SOM cluster
     print("Computing the average value of each training column specified per cell SOM cluster")
-    cell_som_cluster_avgs = compute_cell_cluster_expr_avg(
+    cell_som_cluster_avgs = compute_cell_som_cluster_cols_avg(
         cell_som_input_data,
         cell_som_cluster_cols,
         'cell_som_cluster',
         keep_count=True
     )
 
-    # save the average pixel SOM/meta counts per cell SOM cluster
+    # save the average expression values of cell_som_cluster_cols per cell SOM cluster
     cell_som_cluster_avgs.to_csv(
         som_expr_col_avg_path,
         index=False
@@ -641,16 +641,16 @@ def generate_meta_avg_files(base_dir, cell_cc, cell_som_cluster_cols,
         print("Already generated average expression file for cell meta clusters, skipping")
         return
 
-    # compute the average pixel SOM/meta counts per cell meta cluster
+    # compute the average value of each expression column per cell meta cluster
     print("Computing the average value of each training column specified per cell meta cluster")
-    cell_meta_cluster_avgs = compute_cell_cluster_expr_avg(
+    cell_meta_cluster_avgs = compute_cell_som_cluster_cols_avg(
         cell_som_input_data,
         cell_som_cluster_cols,
         'cell_meta_cluster',
         keep_count=True
     )
 
-    # save the average pixel SOM/meta counts per cell meta cluster
+    # save the average expression values of cell_som_cluster_cols per cell meta cluster
     cell_meta_cluster_avgs.to_csv(
         meta_expr_col_avg_path,
         index=False
@@ -723,7 +723,7 @@ def generate_wc_avg_files(fovs, channels, base_dir, cell_cc, cell_som_input_data
         return
 
     print("Compute average weighted channel expression across cell SOM clusters")
-    cell_som_cluster_channel_avg = compute_cell_cluster_channel_avg(
+    cell_som_cluster_channel_avg = compute_cell_cluster_weighted_channel_avg(
         fovs,
         channels,
         base_dir,
@@ -749,7 +749,7 @@ def generate_wc_avg_files(fovs, channels, base_dir, cell_cc, cell_som_input_data
 
     # compute the weighted channel average expression per cell meta cluster
     print("Compute average weighted channel expression across cell meta clusters")
-    cell_meta_cluster_channel_avg = compute_cell_cluster_channel_avg(
+    cell_meta_cluster_channel_avg = compute_cell_cluster_weighted_channel_avg(
         fovs,
         channels,
         base_dir,
@@ -906,10 +906,10 @@ def generate_remap_avg_count_files(base_dir, cell_som_input_data,
         ].drop_duplicates().values
     )
 
-    # re-compute the average number of pixel SOM/meta clusters per cell meta cluster
+    # re-compute the average value of each expression column per meta cluster
     # add renamed meta cluster in
-    print("Re-compute pixel SOM/meta cluster count per cell meta cluster")
-    cell_meta_cluster_avgs = compute_cell_cluster_expr_avg(
+    print("Re-compute average value of each training column specified per cell meta cluster")
+    cell_meta_cluster_avgs = compute_cell_som_cluster_cols_avg(
         cell_som_input_data,
         cell_som_cluster_cols,
         'cell_meta_cluster',
@@ -919,7 +919,7 @@ def generate_remap_avg_count_files(base_dir, cell_som_input_data,
     cell_meta_cluster_avgs['cell_meta_cluster_rename'] = \
         cell_meta_cluster_avgs['cell_meta_cluster'].map(cell_renamed_meta_dict)
 
-    # re-save the average number of pixel SOM/meta clusters per cell meta cluster
+    # re-save the average expression value of all cell SOM columns specified per cell meta cluster
     cell_meta_cluster_avgs.to_csv(
         meta_expr_col_avg_path,
         index=False
@@ -1016,7 +1016,7 @@ def generate_remap_avg_wc_files(fovs, channels, base_dir, cell_som_input_data,
     # re-compute the weighted channel average expression per cell meta cluster
     # add renamed meta cluster in
     print("Re-compute average weighted channel expression across cell meta clusters")
-    cell_meta_cluster_channel_avg = compute_cell_cluster_channel_avg(
+    cell_meta_cluster_channel_avg = compute_cell_cluster_weighted_channel_avg(
         fovs,
         channels,
         base_dir,
