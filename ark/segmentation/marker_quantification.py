@@ -12,8 +12,6 @@ from ark.segmentation.regionprops_extraction import REGIONPROPS_FUNCTION
 from ark.segmentation.signal_extraction import EXTRACTION_FUNCTION
 from ark.utils import segmentation_utils
 
-from timeit import default_timer
-
 
 def get_single_compartment_props(segmentation_labels, regionprops_base,
                                  regionprops_single_comp, **kwargs):
@@ -60,7 +58,6 @@ def get_single_compartment_props(segmentation_labels, regionprops_base,
     # get regionprop info needed for single compartment computations
     props = regionprops(segmentation_labels)
 
-    start = default_timer()
     # generate the required data for each cell
     for prop in props:
         for re in regionprops_single_comp:
@@ -283,8 +280,6 @@ def compute_marker_counts(input_images, segmentation_labels, nuclear_counts=Fals
     reg_props = kwargs.get('regionprops_kwargs', {})
 
     # get regionprops for each cell
-    from timeit import default_timer
-    start = default_timer()
     cell_props = get_single_compartment_props(segmentation_labels.loc[:, :, 'whole_cell'].values,
                                               regionprops_base, regionprops_single_comp,
                                               **reg_props)
@@ -309,14 +304,11 @@ def compute_marker_counts(input_images, segmentation_labels, nuclear_counts=Fals
         if len(nuc_props) == 0:
             fov_name = str(segmentation_labels.fovs.values)
             warnings.warn("No nuclei found in the following image: {}".format(fov_name))
-    end = default_timer()
-    print("Total time to retrieve single compartment props: %.5f" % (end - start))
 
     # get the signal kwargs
     sig_kwargs = kwargs.get('signal_kwargs', {})
 
     # loop through each cell in mask
-    start = default_timer()
     for cell_id in cell_props['label']:
         # get coords corresponding to current cell.
         cell_coords = cell_props.loc[cell_props['label'] == cell_id, 'coords'].values[0]
@@ -350,8 +342,6 @@ def compute_marker_counts(input_images, segmentation_labels, nuclear_counts=Fals
                 # if regionprops names does not contain multi_comp props then add them
                 if not set(regionprops_multi_comp).issubset(regionprops_names):
                     regionprops_names.extend(regionprops_multi_comp)
-    end = default_timer()
-    print("Total time to assign single compartment props: %.5f" % (end - start))
 
     return marker_counts
 
