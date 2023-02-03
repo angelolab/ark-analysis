@@ -35,7 +35,7 @@ def get_single_compartment_props(segmentation_labels, regionprops_base,
     """
 
     # verify that all the regionprops single compartment featues provided actually exist
-    # NOTE: in case skip_extraction set to False in calling function, bypass
+    # NOTE: in case fast_extraction set to True in calling function, bypass
     if len(regionprops_single_comp) > 0:
         misc_utils.verify_in_list(
             extras_props=regionprops_single_comp,
@@ -151,6 +151,7 @@ def assign_multi_compartment_features(marker_counts, regionprops_multi_comp, **k
     """
 
     # if no multi regionprops features set, just return the marker counts array as is
+    # NOTE: this often happens when fast_extraction set to True in calling function
     if len(regionprops_multi_comp) == 0:
         return marker_counts
 
@@ -183,7 +184,7 @@ def compute_marker_counts(input_images, segmentation_labels, nuclear_counts=Fals
                           regionprops_single_comp=copy.deepcopy(settings.REGIONPROPS_SINGLE_COMP),
                           regionprops_multi_comp=copy.deepcopy(settings.REGIONPROPS_MULTI_COMP),
                           split_large_nuclei=False, extraction='total_intensity',
-                          skip_extraction=False, **kwargs):
+                          fast_extraction=False, **kwargs):
     """Extract single cell protein expression data from channel TIFs for a single fov
 
     Args:
@@ -203,9 +204,9 @@ def compute_marker_counts(input_images, segmentation_labels, nuclear_counts=Fals
             controls whether nuclei which have portions outside of the cell will get relabeled
         extraction (str):
             extraction function used to compute marker counts
-        skip_extraction (bool):
-            if set, skips both the regionprops and the signal extraction steps regardless of
-            params set
+        fast_extraction (bool):
+            if set, skips custom regionprops and expensive base regionprops extraction steps
+            regardless of other params set
         **kwargs:
             arbitrary keyword arguments for get_cell_props
 
@@ -232,7 +233,7 @@ def compute_marker_counts(input_images, segmentation_labels, nuclear_counts=Fals
 
     # set regionprops_base to just POST_CHANNEL_COL, coords, and centroid if skip extraction set
     # no additional base regionprops names or custom regionprops properties will be extracted
-    if skip_extraction:
+    if fast_extraction:
         regionprops_base = [settings.POST_CHANNEL_COL, 'coords', 'centroid']
         regionprops_single_comp = []
         regionprops_multi_comp = []
@@ -348,7 +349,7 @@ def compute_marker_counts(input_images, segmentation_labels, nuclear_counts=Fals
 
 def create_marker_count_matrices(segmentation_labels, image_data, nuclear_counts=False,
                                  split_large_nuclei=False, extraction='total_intensity',
-                                 skip_extraction=False, **kwargs):
+                                 fast_extraction=False, **kwargs):
     """Create a matrix of cells by channels with the total counts of each marker in each cell.
 
     Args:
@@ -365,8 +366,8 @@ def create_marker_count_matrices(segmentation_labels, image_data, nuclear_counts
             will get split into two different nuclear objects
         extraction (str):
             extraction function used to compute marker counts.
-        skip_extraction (bool):
-            if set, skips both the regionprops and the signal extraction steps
+        fast_extraction (bool):
+            if set, skips the custom regionprops and expensive base regionprops extraction steps
         **kwargs:
             arbitrary keyword args for compute_marker_counts
 
@@ -408,7 +409,7 @@ def create_marker_count_matrices(segmentation_labels, image_data, nuclear_counts
                                           nuclear_counts=nuclear_counts,
                                           split_large_nuclei=split_large_nuclei,
                                           extraction=extraction,
-                                          skip_extraction=skip_extraction, **kwargs)
+                                          fast_extraction=fast_extraction, **kwargs)
 
     # normalize counts by cell size
     marker_counts_norm = segmentation_utils.transform_expression_matrix(marker_counts,
@@ -449,7 +450,7 @@ def create_marker_count_matrices(segmentation_labels, image_data, nuclear_counts
 def generate_cell_table(segmentation_dir, tiff_dir, img_sub_folder="TIFs",
                         is_mibitiff=False, fovs=None, dtype="int16",
                         extraction='total_intensity', nuclear_counts=False,
-                        skip_extraction=False, **kwargs):
+                        fast_extraction=False, **kwargs):
     """This function takes the segmented data and computes the expression matrices batch-wise
     while also validating inputs
 
@@ -472,8 +473,8 @@ def generate_cell_table(segmentation_dir, tiff_dir, img_sub_folder="TIFs",
         nuclear_counts (bool):
             boolean flag to determine whether nuclear counts are returned, note that if
             set to True, the compartments coordinate in segmentation_labels must contain 'nuclear'
-        skip_extraction (bool):
-            if set, skips both the regionprops and the signal extraction steps
+        fast_extraction (bool):
+            if set, skips the custom regionprops and expensive base regionprops extraction steps
         **kwargs:
             arbitrary keyword arguments for signal and regionprops extraction
 
@@ -559,7 +560,7 @@ def generate_cell_table(segmentation_dir, tiff_dir, img_sub_folder="TIFs",
             image_data=image_data,
             extraction=extraction,
             nuclear_counts=nuclear_counts,
-            skip_extraction=skip_extraction,
+            fast_extraction=fast_extraction,
             **kwargs
         )
 
