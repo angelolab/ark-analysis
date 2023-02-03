@@ -58,7 +58,7 @@ urls = { repository = "https://github.com/angelolab/ark-analysis" }
 [project.optional-dependencies]
 test = [
     "attrs",
-    "coveralls",
+    "coveralls[toml]",
     "pytest",
     "pytest-cases",
     "pytest-cov",
@@ -140,6 +140,7 @@ addopts = [
     "--randomly-seed=24",
     "--randomly-dont-reorganize",
     "--cov=ark",
+    "--cov-report=lcov",
     "--pycodestyle",
 ]
 console_output_style = "count"

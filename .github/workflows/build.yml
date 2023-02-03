@@ -53,6 +53,13 @@ jobs:
           output-dir: wheelhouse
           config-file: "{package}/pyproject.toml"
 
+      - name: Upload to Coveralls
+        if: runner.os == 'Linux'
+        uses: coverallsapp/github-action@master
+        with:
+          path-to-lcov: coverage.lcov
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Store Wheel Artifacts
         uses: actions/upload-artifact@v3
         with:
