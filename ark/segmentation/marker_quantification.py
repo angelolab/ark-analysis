@@ -77,7 +77,7 @@ def get_single_compartment_props(segmentation_labels, regionprops_base,
 
 def assign_single_compartment_features(marker_counts, compartment, cell_props, cell_coords,
                                        cell_id, label_id, input_images, regionprops_names,
-                                       extraction, skip_extraction=False, **kwargs):
+                                       extraction, **kwargs):
     """Assign computed regionprops features and signal intensity to cell_id in marker_counts
 
     Args:
@@ -99,8 +99,6 @@ def assign_single_compartment_features(marker_counts, compartment, cell_props, c
             all of the regionprops features (including derived, except nuclear-specific)
         extraction (str):
             the extraction method to use for signal intensity calculation
-        skip_extraction (bool):
-            if set, skips the signal extraction step regardless of `extraction` set
         **kwargs:
             arbitrary keyword arguments
 
@@ -109,17 +107,13 @@ def assign_single_compartment_features(marker_counts, compartment, cell_props, c
             the updated marker_counts matrix with data for the specified cell_id and compartment
     """
 
-    # calculate the total signal intensity within cell, only run if skip_extraction = False
-    cell_counts = np.array([])
+    # get centroid corresponding to current cell
+    kwargs['centroid'] = np.array((
+        cell_props.loc[cell_props['label'] == label_id, 'centroid-0'].values,
+        cell_props.loc[cell_props['label'] == label_id, 'centroid-1'].values
+    )).T
 
-    if not skip_extraction:
-        # get centroid corresponding to current cell
-        kwargs['centroid'] = np.array((
-            cell_props.loc[cell_props['label'] == label_id, 'centroid-0'].values,
-            cell_props.loc[cell_props['label'] == label_id, 'centroid-1'].values
-        )).T
-
-        cell_counts = EXTRACTION_FUNCTION[extraction](cell_coords, input_images, **kwargs)
+    cell_counts = EXTRACTION_FUNCTION[extraction](cell_coords, input_images, **kwargs)
 
     # get morphology metrics
     # Filter regionprops_names to only those in cell_props.columns
@@ -240,7 +234,7 @@ def compute_marker_counts(input_images, segmentation_labels, nuclear_counts=Fals
         regionprops_base.append('centroid')
 
     # set regionprops_base to just POST_CHANNEL_COL, coords, and centroid if skip extraction set
-    # no additional regionprops names will be extracted
+    # no additional base regionprops names or custom regionprops properties will be extracted
     if skip_extraction:
         regionprops_base = [settings.POST_CHANNEL_COL, 'coords', 'centroid']
         regionprops_single_comp = []
@@ -268,8 +262,8 @@ def compute_marker_counts(input_images, segmentation_labels, nuclear_counts=Fals
     unique_cell_ids = np.unique(segmentation_labels[..., 0].values)
     unique_cell_ids = unique_cell_ids[np.nonzero(unique_cell_ids)]
 
-    # set the channel features, however if skip_extraction then set to empty list
-    channel_features = [] if skip_extraction else input_images.channels
+    # set the channel features
+    channel_features = input_images.channels
 
     # create labels for array holding channel counts and morphology metrics
     feature_names = np.concatenate((np.array(settings.PRE_CHANNEL_COL), channel_features,
@@ -289,6 +283,8 @@ def compute_marker_counts(input_images, segmentation_labels, nuclear_counts=Fals
     reg_props = kwargs.get('regionprops_kwargs', {})
 
     # get regionprops for each cell
+    from timeit import default_timer
+    start = default_timer()
     cell_props = get_single_compartment_props(segmentation_labels.loc[:, :, 'whole_cell'].values,
                                               regionprops_base, regionprops_single_comp,
                                               **reg_props)
@@ -313,11 +309,14 @@ def compute_marker_counts(input_images, segmentation_labels, nuclear_counts=Fals
         if len(nuc_props) == 0:
             fov_name = str(segmentation_labels.fovs.values)
             warnings.warn("No nuclei found in the following image: {}".format(fov_name))
+    end = default_timer()
+    print("Total time to retrieve single compartment props: %.5f" % (end - start))
 
     # get the signal kwargs
     sig_kwargs = kwargs.get('signal_kwargs', {})
 
     # loop through each cell in mask
+    start = default_timer()
     for cell_id in cell_props['label']:
         # get coords corresponding to current cell.
         cell_coords = cell_props.loc[cell_props['label'] == cell_id, 'coords'].values[0]
@@ -325,7 +324,7 @@ def compute_marker_counts(input_images, segmentation_labels, nuclear_counts=Fals
         # assign properties for whole cell compartment
         marker_counts = assign_single_compartment_features(
             marker_counts, 'whole_cell', cell_props, cell_coords, cell_id, cell_id,
-            input_images, regionprops_names, extraction, skip_extraction, **sig_kwargs
+            input_images, regionprops_names, extraction, **sig_kwargs
         )
 
         if nuclear_counts:
@@ -340,7 +339,7 @@ def compute_marker_counts(input_images, segmentation_labels, nuclear_counts=Fals
                 # assign properties for nuclear compartment
                 marker_counts = assign_single_compartment_features(
                     marker_counts, 'nuclear', nuc_props, nuc_coords, cell_id, nuc_id,
-                    input_images, regionprops_names, extraction, skip_extraction, **sig_kwargs
+                    input_images, regionprops_names, extraction, **sig_kwargs
                 )
 
                 # generate properties which involve multiple compartments
@@ -351,6 +350,8 @@ def compute_marker_counts(input_images, segmentation_labels, nuclear_counts=Fals
                 # if regionprops names does not contain multi_comp props then add them
                 if not set(regionprops_multi_comp).issubset(regionprops_names):
                     regionprops_names.extend(regionprops_multi_comp)
+    end = default_timer()
+    print("Total time to assign single compartment props: %.5f" % (end - start))
 
     return marker_counts
 

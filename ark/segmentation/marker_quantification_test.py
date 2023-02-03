@@ -54,8 +54,7 @@ def test_get_single_compartment_props(regionprops_single_comp):
     )
 
 
-@parametrize('skip_extraction', [False, True])
-def test_assign_single_compartment_props(skip_extraction):
+def test_assign_single_compartment_props():
     cell_mask, channel_data = test_utils.create_test_extraction_data()
 
     segmentation_labels = make_labels_xarray(
@@ -68,13 +67,8 @@ def test_assign_single_compartment_props(skip_extraction):
     # define the names of the base features that can be computed directly from regionprops
     regionprops_base = copy.deepcopy(settings.REGIONPROPS_BASE) + ['coords']
 
-    # override if skip_extraction set
-    if skip_extraction:
-        regionprops_base = [settings.POST_CHANNEL_COL, 'coords', 'centroid']
-
     # define the names of the extras, but override if skip_extraction set
-    regionprops_single_comp = [] if skip_extraction \
-        else copy.deepcopy(settings.REGIONPROPS_SINGLE_COMP)
+    regionprops_single_comp = copy.deepcopy(settings.REGIONPROPS_SINGLE_COMP)
 
     # define the names of everything
     regionprops_names = copy.deepcopy(regionprops_base)
@@ -93,8 +87,8 @@ def test_assign_single_compartment_props(skip_extraction):
         regionprops_base, regionprops_single_comp
     )
 
-    # set channel names for images, but if skip extraction set use empty list
-    channel_features = [] if skip_extraction else input_images.channels
+    # set channel names for images
+    channel_features = input_images.channels.values
 
     # create labels for array holding channel counts and morphology metrics
     feature_names = np.concatenate((np.array(settings.PRE_CHANNEL_COL), channel_features,
@@ -116,26 +110,22 @@ def test_assign_single_compartment_props(skip_extraction):
     # assign the features to that cell id
     marker_counts = marker_quantification.assign_single_compartment_features(
         marker_counts, 'whole_cell', cell_props, cell_coords, cell_ids[0], cell_ids[0],
-        input_images.loc['fov0', ...], regionprops_names, 'total_intensity',
-        skip_extraction=skip_extraction
+        input_images.loc['fov0', ...], regionprops_names, 'total_intensity'
     )
 
-    # the following props apply regardless of skip_extraction
     assert marker_counts.loc[:, cell_ids[0], settings.POST_CHANNEL_COL] == 1
     assert marker_counts.loc[:, cell_ids[0], 'cell_size'] == 36
     assert marker_counts.loc[:, cell_ids[0], 'centroid-0'] == 6.5
     assert marker_counts.loc[:, cell_ids[0], 'centroid-1'] == 6.5
 
-    # the following should only be checked if skip_extraction not set
-    if not skip_extraction:
-        assert marker_counts.loc[:, cell_ids[0], 'area'] == 36
+    assert marker_counts.loc[:, cell_ids[0], 'area'] == 36
 
-        major_axis_length = marker_counts.loc[:, cell_ids[0], 'major_axis_length']
-        minor_axis_length = marker_counts.loc[:, cell_ids[0], 'minor_axis_length']
-        assert major_axis_length == minor_axis_length
+    major_axis_length = marker_counts.loc[:, cell_ids[0], 'major_axis_length']
+    minor_axis_length = marker_counts.loc[:, cell_ids[0], 'minor_axis_length']
+    assert major_axis_length == minor_axis_length
 
-        assert marker_counts.loc[:, cell_ids[0], 'centroid_dif'] == 0
-        assert marker_counts.loc[:, cell_ids[0], 'num_concavities'] == 0
+    assert marker_counts.loc[:, cell_ids[0], 'centroid_dif'] == 0
+    assert marker_counts.loc[:, cell_ids[0], 'num_concavities'] == 0
 
     # get the cell coordinates of the cell_id
     cell_coords = cell_props.loc[cell_props['label'] == cell_ids[1], 'coords'].values[0]
@@ -144,25 +134,21 @@ def test_assign_single_compartment_props(skip_extraction):
     marker_counts = marker_quantification.assign_single_compartment_features(
         marker_counts, 'whole_cell', cell_props, cell_coords, cell_ids[1], cell_ids[1],
         input_images.loc['fov0', ...], regionprops_names, 'total_intensity',
-        skip_extraction=skip_extraction
     )
 
-    # the following props apply regardless of skip_extraction
     assert marker_counts.loc[:, cell_ids[1], settings.POST_CHANNEL_COL] == 2
     assert marker_counts.loc[:, cell_ids[1], 'cell_size'] == 100
     assert marker_counts.loc[:, cell_ids[1], 'centroid-0'] == 19.5
     assert marker_counts.loc[:, cell_ids[1], 'centroid-1'] == 24.5
 
-    # the following should only be checked if skip_extraction not set
-    if not skip_extraction:
-        assert marker_counts.loc[:, cell_ids[1], 'area'] == 100
+    assert marker_counts.loc[:, cell_ids[1], 'area'] == 100
 
-        major_axis_length = marker_counts.loc[:, cell_ids[1], 'major_axis_length']
-        minor_axis_length = marker_counts.loc[:, cell_ids[1], 'minor_axis_length']
-        assert major_axis_length == minor_axis_length
+    major_axis_length = marker_counts.loc[:, cell_ids[1], 'major_axis_length']
+    minor_axis_length = marker_counts.loc[:, cell_ids[1], 'minor_axis_length']
+    assert major_axis_length == minor_axis_length
 
-        assert marker_counts.loc[:, cell_ids[1], 'centroid_dif'] == 0
-        assert marker_counts.loc[:, cell_ids[1], 'num_concavities'] == 0
+    assert marker_counts.loc[:, cell_ids[1], 'centroid_dif'] == 0
+    assert marker_counts.loc[:, cell_ids[1], 'num_concavities'] == 0
 
 
 @parametrize('regionprops_multi_comp',
@@ -243,81 +229,72 @@ def test_compute_marker_counts_base(skip_extraction):
     sizes = [np.sum(cell_mask == cell_id) for cell_id in [1, 2, 3, 5]]
     assert np.array_equal(sizes, segmentation_output.loc['whole_cell', :, settings.CELL_SIZE])
 
-    # the following tests apply only if skip_extraction not set
+    # check that channel 0 counts are same as cell size
+    assert np.array_equal(
+        segmentation_output.loc['whole_cell', :, settings.CELL_SIZE].values,
+        segmentation_output.loc['whole_cell', :, 'chan0'].values
+    )
+
+    # check that channel 1 counts are 5x cell size
+    assert np.array_equal(
+        segmentation_output.loc['whole_cell', :, settings.CELL_SIZE].values * 5,
+        segmentation_output.loc['whole_cell', :, 'chan1'].values
+    )
+
+    # check that channel 2 counts are the same as channel 1
+    assert np.array_equal(
+        segmentation_output.loc['whole_cell', :, 'chan2'].values,
+        segmentation_output.loc['whole_cell', :, 'chan1'].values
+    )
+
+    # check that only cell1 is negative for channel 3
+    assert segmentation_output.loc['whole_cell', 1, 'chan3'] == 0
+    assert np.all(segmentation_output.loc['whole_cell', 2:, 'chan3'] > 0)
+
+    # check that only cell2 is positive for channel 4
+    assert segmentation_output.loc['whole_cell', 2, 'chan4'] > 0
+    assert np.all(segmentation_output.loc['whole_cell', :1, 'chan4'] == 0)
+    assert np.all(segmentation_output.loc['whole_cell', 3:, 'chan4'] == 0)
+
+    # check that regionprops size matches with cell size, only check if skip_extraciton=False
     if not skip_extraction:
-        # check that channel 0 counts are same as cell size
-        assert np.array_equal(
-            segmentation_output.loc['whole_cell', :, settings.CELL_SIZE].values,
-            segmentation_output.loc['whole_cell', :, 'chan0'].values
-        )
-
-        # check that channel 1 counts are 5x cell size
-        assert np.array_equal(
-            segmentation_output.loc['whole_cell', :, settings.CELL_SIZE].values * 5,
-            segmentation_output.loc['whole_cell', :, 'chan1'].values
-        )
-
-        # check that channel 2 counts are the same as channel 1
-        assert np.array_equal(
-            segmentation_output.loc['whole_cell', :, 'chan2'].values,
-            segmentation_output.loc['whole_cell', :, 'chan1'].values
-        )
-
-        # check that only cell1 is negative for channel 3
-        assert segmentation_output.loc['whole_cell', 1, 'chan3'] == 0
-        assert np.all(segmentation_output.loc['whole_cell', 2:, 'chan3'] > 0)
-
-        # check that only cell2 is positive for channel 4
-        assert segmentation_output.loc['whole_cell', 2, 'chan4'] > 0
-        assert np.all(segmentation_output.loc['whole_cell', :1, 'chan4'] == 0)
-        assert np.all(segmentation_output.loc['whole_cell', 3:, 'chan4'] == 0)
-
-        # check that regionprops size matches with cell size
         assert np.array_equal(
             segmentation_output.loc['whole_cell', :, settings.CELL_SIZE],
             segmentation_output.loc['whole_cell', :, 'area']
         )
-    # otherwise, assert we don't create any channel data in segmentation_output
-    else:
-        assert len(
-            np.intersect1d(input_images.channels.values, segmentation_output.features.values)
-        ) == 0
 
-    # only run following tests if skip_extraction False
-    # TODO: this function badly needs a refactor
-    if not skip_extraction:
-        # bad extraction selection
-        with pytest.raises(ValueError):
-            marker_quantification.compute_marker_counts(
-                input_images=input_images,
-                segmentation_labels=segmentation_labels,
-                extraction='bad_extraction'
-            )
-
-        # test different extraction selection
-        center_extraction = \
-            marker_quantification.compute_marker_counts(
-                input_images=input_images,
-                segmentation_labels=segmentation_labels,
-                extraction='center_weighting'
-            )
-
-        assert np.all(
-            segmentation_output.loc['whole_cell', :, 'chan0'].values
-            > center_extraction.loc['whole_cell', :, 'chan0'].values
-        )
-
-        # blank segmentation mask results in the cells column of length 0
-        blank_labels = make_labels_xarray(
-            label_data=np.zeros((1, 40, 40, 1), dtype='int'),
-            compartment_names=['whole_cell']
-        )
-
-        blank_output = marker_quantification.compute_marker_counts(
+    # bad extraction selection
+    with pytest.raises(ValueError):
+        marker_quantification.compute_marker_counts(
             input_images=input_images,
-            segmentation_labels=blank_labels[0]
+            segmentation_labels=segmentation_labels,
+            extraction='bad_extraction'
         )
-        assert blank_output.shape[1] == 0
+
+    # test different extraction selection
+    center_extraction = \
+        marker_quantification.compute_marker_counts(
+            input_images=input_images,
+            segmentation_labels=segmentation_labels,
+            extraction='center_weighting'
+        )
+
+    assert np.all(
+        segmentation_output.loc['whole_cell', :, 'chan0'].values
+        > center_extraction.loc['whole_cell', :, 'chan0'].values
+    )
+
+    # blank segmentation mask results in the cells column of length 0
+    blank_labels = make_labels_xarray(
+        label_data=np.zeros((1, 40, 40, 1), dtype='int'),
+        compartment_names=['whole_cell']
+    )
+
+    blank_output = marker_quantification.compute_marker_counts(
+        input_images=input_images,
+        segmentation_labels=blank_labels[0]
+    )
+    assert blank_output.shape[1] == 0
 
 
 def test_compute_marker_counts_equal_masks():
@@ -540,8 +517,8 @@ def test_create_marker_count_matrices_base(skip_extraction):
     # 4 total cells
     assert normalized.shape[0] == 4
 
-    # exclude expression columns from count if skip_extraction set
-    assert normalized.shape[1] == 5 if skip_extraction else 23
+    # exclude custom regionprops columns from count if skip_extraction set
+    assert normalized.shape[1] == 10 if skip_extraction else 23
 
     # the following tests only apply when skip_extraction not set
     if not skip_extraction:
@@ -619,8 +596,8 @@ def test_create_marker_count_matrices_multiple_compartments(skip_extraction):
     # 4 total cells
     assert normalized.shape[0] == 4
 
-    # exclude expression columns from count if skip_extraction set
-    assert normalized.shape[1] == 9 if skip_extraction else 47
+    # exclude custom regionprops columns from count if skip_extraction set
+    assert normalized.shape[1] == 19 if skip_extraction else 47
 
     # check that cell with missing nucleus has size 0, runs even with skip_extraction
     index = np.logical_and(normalized['label'] == 2, normalized['fov'] == 'fov0')
