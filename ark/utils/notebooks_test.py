@@ -565,10 +565,6 @@ class Test_Mixing_Score():
         self.tb: testbook = nbmixing_context[0]
         self.base_dir: pathlib.Path = nbmixing_context[1]
 
-        # Variables
-        self.targets = ['tumor_ck17', 'tumor_ecad']
-        self.references = ['CD4T', 'CD8T', 'Bcell', 'immune_other']
-
     def test_imports(self):
         self.tb.execute_cell("import")
 
@@ -594,11 +590,7 @@ class Test_Mixing_Score():
         self.tb.execute_cell("cell_neighbors")
 
     def test_cell_types(self):
-        cell_types_inject = f"""
-        target_cell_list  = {self.targets}
-        reference_cell_list = {self.references}
-        """
-        self.tb.inject(cell_types_inject, "cell_types")
+        self.tb.execute_cell("cell_types")
 
     def test_ratio_plots(self):
         self.tb.execute_cell("ratio_plots")
