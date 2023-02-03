@@ -31,11 +31,11 @@ def dataset_download(request) -> Iterator[ExampleDataset]:
     Yields:
         Iterator[ExampleDataset]: The iterable Example Dataset.
     """
-    
+
     # Set up ExampleDataset class
     example_dataset: ExampleDataset = ExampleDataset(
         dataset=request.param,
-        cache_dir=None, # Use the default cache
+        cache_dir=None,  # Use the default cache
         revision=EXAMPLE_DATASET_REVISION
     )
     # Download example data for a particular notebook
