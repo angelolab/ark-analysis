@@ -112,7 +112,7 @@ jobs:
   docker_build:
     name: Build the Docker Image
     # needs: [build_wheels, build_sdist, test_pypi_publish, pypi_publish]
-    # if: github.event_name == 'release' && github.event.action == 'published'
+    if: github.event_name == 'release' && github.event.action == 'published'
     runs-on: ubuntu-latest
     steps:
       - name: Set up QEMU (For Linux Arm Containers)
