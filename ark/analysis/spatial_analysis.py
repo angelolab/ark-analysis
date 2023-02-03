@@ -862,8 +862,6 @@ def compute_cell_ratios(cell_neighbors_dir, target_cells, reference_cells, fov_l
                                   cell_neighbors_columns=neighbors_mat.columns)
         neighbors_mat = neighbors_mat.drop(columns=[fov_col, label_col])
 
-        all_cells = neighbors_mat[cell_col].unique()
-
         # get number of target and reference cells in sample
         target_total = neighbors_mat[neighbors_mat[cell_col].isin(target_cells)].shape[0]
         reference_total = neighbors_mat[neighbors_mat[cell_col].isin(reference_cells)].shape[0]
