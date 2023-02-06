@@ -140,7 +140,8 @@ addopts = [
     "--randomly-seed=24",
     "--randomly-dont-reorganize",
     "--cov=ark",
-    "--cov-report lcov",
+    "--cov-report=lcov",
     "--pycodestyle",
 ]
 console_output_style = "count"
+testpaths = ["tests"]
