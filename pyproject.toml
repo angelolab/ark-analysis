@@ -132,7 +132,7 @@ source = ["src", "*/site-packages"]
 
 [tool.coverage.run]
 branch = true
-source = "ark"
+source = ["ark"]
 
 [tool.coverage.report]
 exclude_lines = [
