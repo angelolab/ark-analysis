@@ -36,6 +36,14 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache-dependency-path: "**/pyproject.toml"
           cache: "pip"
+      
+      - name: Get Example Dataset Cache
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/huggingface/datasets
+          key: huggingface-${{ runner.os }}-${{ hashFiles('*') }}
+          restore-keys: |
+            huggingface-${{ runner.os }}
 
       - name: Install Dependencies and ${{ github.repository }}
         run: |
@@ -71,15 +79,6 @@ jobs:
         uses: docker/setup-qemu-action@v2
         with:
           platforms: arm64
-
-      - name: Get Example Dataset Cache
-        uses: actions/cache@v3
-        with:
-          path: ~/.cache/huggingface/datasets
-          enableCrossOsArchive: true
-          key: huggingface-${{ runner.os }}-${{ hashFiles('*') }}
-          restore-keys: |
-            huggingface-${{ runner.os }}
 
       - name: Build Wheels
         uses: pypa/cibuildwheel@v2.11.4
