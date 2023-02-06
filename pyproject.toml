@@ -140,7 +140,7 @@ addopts = [
     "--randomly-seed=24",
     "--randomly-dont-reorganize",
     "--cov=ark",
-    "--cov-report lcov:wheelhouse/coverage.lcov",
+    "--cov-report lcov:coverage.lcov",
     "--pycodestyle",
 ]
 console_output_style = "count"
