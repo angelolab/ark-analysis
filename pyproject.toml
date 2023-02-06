@@ -88,8 +88,8 @@ skip = [
 ]
 
 # Run tests
-test-extras = ["test"]
-test-command = "pytest {project}/tests"
+# test-extras = ["test"]
+# test-command = "pytest {project}/tests"
 build-frontend = "build"
 build-verbosity = 3
 

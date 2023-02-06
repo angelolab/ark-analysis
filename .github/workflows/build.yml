@@ -16,6 +16,40 @@ permissions:
   contents: read # to fetch code (actions/checkout)
 
 jobs:
+  test:
+    name: Test ${{ github.repository }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: [3.8]
+
+    steps:
+      - name: Checkout ${{ github.repository }}
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: "pipenv"
+
+      - name: Install Dependencies and ${{ github.repository }}
+        run: |
+          pip install .[test]
+
+      - name: Run Tests
+        run: |
+          pytest
+
+      - name: Upload to Coveralls
+        uses: coverallsapp/github-action@master
+        with:
+          path-to-lcov: coverage.lcov
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
   build_wheels:
     name: Build  ${{ github.repository }} wheels on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
@@ -45,20 +79,13 @@ jobs:
           key: huggingface-${{ runner.os }}-${{ hashFiles('*') }}
           restore-keys: |
             huggingface-${{ runner.os }}
- 
-      - name: Build and Test Wheels
+
+      - name: Build Wheels
         uses: pypa/cibuildwheel@v2.11.4
         with:
           package-dir: .
           output-dir: wheelhouse
           config-file: "{package}/pyproject.toml"
-
-      - name: Upload to Coveralls
-        if: runner.os == 'Linux'
-        uses: coverallsapp/github-action@master
-        with:
-          path-to-lcov: wheelhouse/coverage.lcov
-          github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Store Wheel Artifacts
         uses: actions/upload-artifact@v3
@@ -135,7 +162,6 @@ jobs:
         uses: docker/setup-qemu-action@v2
         with:
           platforms: arm64
-
 
       # Uses the latest version of Buildx and Buildkit
       - name: Set up Docker Buildx
