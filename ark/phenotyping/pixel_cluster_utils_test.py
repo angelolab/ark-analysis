@@ -1874,7 +1874,6 @@ def test_generate_meta_avg_files(capsys):
         pc_som_avg_data.to_csv(pc_som_avg_file, index=False)
 
         # define a sample SOM to meta cluster map
-        som_to_meta_file = os.path.join(temp_dir, 'pixel_clust_to_meta.feather')
         som_to_meta_data = {
             'pixel_som_cluster': np.arange(1, 4),
             'pixel_meta_cluster': np.arange(10, 40, 10)

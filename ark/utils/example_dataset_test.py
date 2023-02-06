@@ -54,7 +54,8 @@ class TestExampleDataset:
                               "H3K9ac", "H3K27me3", "HLADR", "IDO", "Ki67", "PD1", "SMA", "Vim"]
 
         self.cell_table_names = ["cell_table_arcsinh_transformed", "cell_table_size_normalized",
-                                 "cell_table_size_normalized_cell_labels"]
+                                 "cell_table_size_normalized_cell_labels",
+                                 "generalized_cell_table_input"]
 
         self.deepcell_output_names = [f"fov{i}_{j}" for i in range(11)
                                       for j in ['whole_cell', 'nuclear']]
