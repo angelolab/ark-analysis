@@ -126,6 +126,21 @@ archs = ["AMD64", "ARM64"]
 # before-build = "pip install delvewheel"                          # Use delvewheel on windows
 # repair-wheel-command = "delvewheel repair -w {dest_dir} {wheel}"
 
+# Coverage
+[tool.coverage.paths]
+source = ["src", "*/site-packages"]
+
+[tool.coverage.run]
+branch = true
+source = "ark"
+
+[tool.coverage.report]
+exclude_lines = [
+    "except ImportError",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "(ArrowInvalid, OSError, IOError)"
+]
 
 # Pytest Options
 [tool.pytest.ini_options]
