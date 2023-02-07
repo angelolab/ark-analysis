@@ -190,10 +190,15 @@ class PixelSOMCluster(PixieSOMCluster):
     def train_som(self):
         """Trains the SOM using `train_data`
         """
-        # do not train SOM if weights already exist
+
         if self.weights is not None:
-            warnings.warn('Pixel SOM already trained')
-            return
+            # do not train SOM if weights already exist and the same markers used to train
+            if set(self.weights.columns.values) == set(self.columns):
+                warnings.warn('Pixel SOM already trained on specified markers')
+                return
+
+            # notify the user that different markers specified
+            warnings.warn('New markers specified, retraining')
 
         super().train_som(self.train_data[self.columns])
 

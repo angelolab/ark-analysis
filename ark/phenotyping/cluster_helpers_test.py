@@ -299,8 +299,45 @@ class TestPixelSOMCluster:
         assert weights.shape == (200, 6)
 
     def test_train_som_restart(self):
-        with pytest.warns(UserWarning, match='Pixel SOM already trained'):
+        with pytest.warns(UserWarning, match='Pixel SOM already trained on specified markers'):
             self.pixel_pysom_weights.train_som()
+
+    def test_train_som_new_cols(self):
+        # store old weights, train data, and columns for safekeeping, need to assign back afterwards
+        old_weights = deepcopy(self.pixel_pysom_nonweights.weights)
+        old_train_data = deepcopy(self.pixel_pysom_nonweights.train_data)
+        old_columns = deepcopy(self.pixel_pysom_nonweights.columns)
+
+        # generate new random channel data
+        self.pixel_pysom_nonweights.train_data['new_channel'] = np.random.rand(
+            self.pixel_pysom_nonweights.train_data.shape[0]
+        )
+
+        # append this channel to the list of columns
+        self.pixel_pysom_nonweights.columns.append('new_channel')
+
+        with pytest.warns(UserWarning, match='New markers specified, retraining'):
+            self.pixel_pysom_nonweights.train_som()
+
+            # assert the weights path exists
+            assert os.path.exists(self.pixel_pysom_nonweights.weights_path)
+
+            # load in the weights
+            weights = feather.read_dataframe(self.pixel_pysom_nonweights.weights_path)
+
+            # assert the column names match and 'new_channel' contained
+            assert list(weights.columns.values) == self.pixel_pysom_nonweights.columns
+            assert 'new_channel' in weights.columns.values
+
+            # assert the shape is correct
+            assert weights.shape == (200, 7)
+
+        # assign the old values back for continuation
+        self.pixel_pysom_nonweights.weights = old_weights
+        feather.write_dataframe(old_weights, self.pixel_pysom_nonweights.weights_path)
+
+        self.pixel_pysom_nonweights.train_data = old_train_data
+        self.pixel_pysom_nonweights.columns = old_columns
 
     def test_assign_som_clusters(self):
         # generate sample external data
