@@ -384,6 +384,8 @@ class MetaClusterGui():
         def _preplot(df):
             return df.apply(zscore).clip(upper=self.zscore_clamp_slider.value).T
 
+        self.normalizer.calibrate(_preplot(self.mcd.clusters).values)
+
         # clusters heatmap
         self.im_c.set_data(_preplot(self.mcd.clusters))
         self.im_c.set_extent((0, self.mcd.cluster_count, 0, self.mcd.marker_count))

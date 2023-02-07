@@ -38,6 +38,11 @@ class ZScoreNormalize(Normalize):
         )
         return result
 
+    def calibrate(self, values):
+        self.vmin = min([-np.max(values), 0])
+        self.vcenter = 0.0
+        self.vmax = np.max(values)
+
     def __call__(self, value: np.ndarray, clip=None):
         """Map ndarray to the interval [0, 1]. The clip argument is unused."""
         result, is_scalar = self.process_value(value)
