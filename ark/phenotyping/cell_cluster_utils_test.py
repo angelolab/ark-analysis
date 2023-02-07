@@ -308,6 +308,28 @@ def test_compute_p2c_weighted_channel_avg():
                 # assert the values are close enough
                 assert np.allclose(channel_avg_markers, actual_markers)
 
+            # test for mismatched pixel cluster columns (happens if zero-columns filtered out)
+            cell_counts_trim = cell_counts.drop(columns=[f'{cluster_col}_1'])
+
+            channel_avg = cell_cluster_utils.compute_p2c_weighted_channel_avg(
+                cluster_avg, chans, cell_counts_trim, fovs=fov_list, pixel_cluster_col=cluster_col
+            )
+
+            # subset over just the marker values
+            channel_avg_markers = channel_avg[chans].values
+
+            actual_markers = np.array(
+                [[0.2, 0.4, 0.8],
+                 [0.2, 0.4, 0.8],
+                 [0.1, 0.2, 0.4],
+                 [0, 0, 0],
+                 [0, 0, 0]]
+            )
+
+            # assert the values are close enough
+            assert np.allclose(channel_avg_markers, actual_markers)
+
+
 
 def test_create_c2pc_data():
     fovs = ['fov1', 'fov2']

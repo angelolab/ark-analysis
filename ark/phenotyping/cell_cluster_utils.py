@@ -222,20 +222,21 @@ def compute_p2c_weighted_channel_avg(pixel_channel_avg, channels, cell_counts,
         pixel_channel_avg[pixel_cluster_col] = pixel_channel_avg[pixel_cluster_col].astype(str)
 
     # sort the pixel channel average by pixel cluster col for standardization
+    # this is needed because the cell_counts_clusters columns are sorted by increasing pixel cluster
     pixel_channel_avg_sorted = pixel_channel_avg.sort_values(by=pixel_cluster_col)
 
-    # retrieve the pixel cluster ids
-    pixel_channel_cluster_ids = pixel_channel_avg_sorted[pixel_cluster_col].values
-
-    # include only cell counts cluster ids that appear in the pixel channel cluster ids
-    # ensures the same clusters are in both cell_count_clusters and pixel_channel_avg_sorted
-    cell_counts_clusters = cell_counts_clusters[
-        [f'{pixel_cluster_col}_{pcci}' for pcci in pixel_channel_cluster_ids]
-    ]
-
+    # retrieve the pixel SOM clusters represented in the cell counts table
     cell_counts_cluster_ids = [
         x.replace(pixel_cluster_col + '_', '') for x in cell_counts_clusters.columns.values
     ]
+
+    # subset pixel channel cluster IDs on just the cell counts cluster IDs contained
+    pixel_channel_avg_sorted = pixel_channel_avg_sorted[
+        pixel_channel_avg_sorted[pixel_cluster_col].isin(cell_counts_cluster_ids)
+    ]
+
+    # retrieve the pixel cluster ids
+    pixel_channel_cluster_ids = pixel_channel_avg_sorted[pixel_cluster_col].values
 
     # extra sanity checking, the matrix multiplication will fail otherwise
     # this should never fail, just as an added protection
