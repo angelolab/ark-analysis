@@ -222,7 +222,7 @@ def compute_p2c_weighted_channel_avg(pixel_channel_avg, channels, cell_counts,
         pixel_channel_avg[pixel_cluster_col] = pixel_channel_avg[pixel_cluster_col].astype(str)
 
     # sort the pixel channel average by pixel cluster col for standardization
-    # this is needed because the cell_counts_clusters columns are sorted by increasing pixel cluster
+    # needed because the cell_counts_clusters columns are sorted by increasing pixel cluster
     pixel_channel_avg_sorted = pixel_channel_avg.sort_values(by=pixel_cluster_col)
 
     # retrieve the pixel SOM clusters represented in the cell counts table

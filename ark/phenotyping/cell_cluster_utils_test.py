@@ -330,7 +330,6 @@ def test_compute_p2c_weighted_channel_avg():
             assert np.allclose(channel_avg_markers, actual_markers)
 
 
-
 def test_create_c2pc_data():
     fovs = ['fov1', 'fov2']
     chans = ['chan1', 'chan2', 'chan3']
