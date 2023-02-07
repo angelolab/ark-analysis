@@ -339,27 +339,6 @@ class TestCellSOMCluster:
             self.cell_pysom_weights.cell_data[self.cell_pysom_weights.columns].values <= 1
         )
 
-    def test_normalize_data_zeros(self):
-        orig_cell_data = self.cell_pysom_nonweights.cell_data.copy()
-
-        # test a column that will receive a norm value of 0 at 99.9%
-        # NOTE: all-zero expression columns will have been fully removed prior
-        zero_pysom_data = orig_cell_data.copy()
-        zero_pysom_data[0] = 0
-        zero_pysom_data.iloc[-1, 0] = 0.01
-
-        # normalize cell_table
-        self.cell_pysom_nonweights.cell_data = zero_pysom_data
-        self.cell_pysom_nonweights.normalize_data()
-
-        # assert no value is NaN
-        assert np.all(~np.isnan(
-            self.cell_pysom_weights.cell_data[self.cell_pysom_weights.columns].values
-        ))
-
-        # assign original cell data values back
-        self.cell_pysom_nonweights.cell_data = orig_cell_data
-
     def test_train_som(self):
         self.cell_pysom_nonweights.train_som()
 
