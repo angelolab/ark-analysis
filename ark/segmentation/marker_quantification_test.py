@@ -15,8 +15,12 @@ import ark.settings as settings
 from ark.segmentation import marker_quantification
 from ark.utils import test_utils
 
+parametrize = pytest.mark.parametrize
 
-def test_get_single_compartment_props():
+
+@parametrize('regionprops_single_comp',
+             [copy.deepcopy(settings.REGIONPROPS_SINGLE_COMP), []])
+def test_get_single_compartment_props(regionprops_single_comp):
     cell_mask, channel_data = test_utils.create_test_extraction_data()
 
     segmentation_labels = make_labels_xarray(label_data=cell_mask,
@@ -27,8 +31,6 @@ def test_get_single_compartment_props():
     regionprops_names = copy.deepcopy(regionprops_base)
     regionprops_names.remove('centroid')
     regionprops_names += ['centroid-0', 'centroid-1']
-
-    regionprops_single_comp = copy.deepcopy(settings.REGIONPROPS_SINGLE_COMP)
 
     cell_props = marker_quantification.get_single_compartment_props(
         segmentation_labels.loc['fov0', :, :, 'whole_cell'].values,
@@ -82,10 +84,14 @@ def test_assign_single_compartment_props():
     # create the cell properties, easier to use get_single_compartment_props and make_labels_xarray
     cell_props = marker_quantification.get_single_compartment_props(
         segmentation_labels.loc['fov0', :, :, 'whole_cell'].values,
-        regionprops_base, regionprops_single_comp)
+        regionprops_base, regionprops_single_comp
+    )
+
+    # set channel names for images
+    channel_features = input_images.channels.values
 
     # create labels for array holding channel counts and morphology metrics
-    feature_names = np.concatenate((np.array(settings.PRE_CHANNEL_COL), input_images.channels,
+    feature_names = np.concatenate((np.array(settings.PRE_CHANNEL_COL), channel_features,
                                     regionprops_names), axis=None)
 
     # create np.array to hold compartment x cell x feature info
@@ -107,6 +113,11 @@ def test_assign_single_compartment_props():
         input_images.loc['fov0', ...], regionprops_names, 'total_intensity'
     )
 
+    assert marker_counts.loc[:, cell_ids[0], settings.POST_CHANNEL_COL] == 1
+    assert marker_counts.loc[:, cell_ids[0], 'cell_size'] == 36
+    assert marker_counts.loc[:, cell_ids[0], 'centroid-0'] == 6.5
+    assert marker_counts.loc[:, cell_ids[0], 'centroid-1'] == 6.5
+
     assert marker_counts.loc[:, cell_ids[0], 'area'] == 36
 
     major_axis_length = marker_counts.loc[:, cell_ids[0], 'major_axis_length']
@@ -122,8 +133,13 @@ def test_assign_single_compartment_props():
     # assign the features to that cell id
     marker_counts = marker_quantification.assign_single_compartment_features(
         marker_counts, 'whole_cell', cell_props, cell_coords, cell_ids[1], cell_ids[1],
-        input_images.loc['fov0', ...], regionprops_names, 'total_intensity'
+        input_images.loc['fov0', ...], regionprops_names, 'total_intensity',
     )
+
+    assert marker_counts.loc[:, cell_ids[1], settings.POST_CHANNEL_COL] == 2
+    assert marker_counts.loc[:, cell_ids[1], 'cell_size'] == 100
+    assert marker_counts.loc[:, cell_ids[1], 'centroid-0'] == 19.5
+    assert marker_counts.loc[:, cell_ids[1], 'centroid-1'] == 24.5
 
     assert marker_counts.loc[:, cell_ids[1], 'area'] == 100
 
@@ -135,7 +151,9 @@ def test_assign_single_compartment_props():
     assert marker_counts.loc[:, cell_ids[1], 'num_concavities'] == 0
 
 
-def test_assign_multi_compartment_features():
+@parametrize('regionprops_multi_comp',
+             [copy.deepcopy(settings.REGIONPROPS_MULTI_COMP), []])
+def test_assign_multi_compartment_features(regionprops_multi_comp):
     cell_mask, channel_data = test_utils.create_test_extraction_data()
 
     # test whole_cell and nuclear compartments with same data
@@ -165,30 +183,33 @@ def test_assign_multi_compartment_features():
                                                 ['feat_1', 'area']],
                                         dims=['compartments', 'cell_id', 'features'])
 
-    # define the nuclear properties
-    regionprops_multi_comp = copy.deepcopy(settings.REGIONPROPS_MULTI_COMP)
-
     sample_marker_counts = marker_quantification.assign_multi_compartment_features(
         sample_marker_counts, regionprops_multi_comp
     )
 
-    # assert we added nc_ratio as a features key
-    assert 'nc_ratio' in sample_marker_counts.features.values
+    # check nc_ratio stats if regionprops_multi_comp set
+    if len(regionprops_multi_comp) > 0:
+        # assert we added nc_ratio as a features key
+        assert 'nc_ratio' in sample_marker_counts.features.values
 
-    # testing cell 0
-    assert sample_marker_counts.loc['whole_cell', 0, 'nc_ratio'] == 0
-    assert sample_marker_counts.loc['nuclear', 0, 'nc_ratio'] == 0
+        # testing cell 0
+        assert sample_marker_counts.loc['whole_cell', 0, 'nc_ratio'] == 0
+        assert sample_marker_counts.loc['nuclear', 0, 'nc_ratio'] == 0
 
-    # testing cell 1
-    assert sample_marker_counts.loc['whole_cell', 1, 'nc_ratio'] == 1
-    assert sample_marker_counts.loc['nuclear', 1, 'nc_ratio'] == 1
+        # testing cell 1
+        assert sample_marker_counts.loc['whole_cell', 1, 'nc_ratio'] == 1
+        assert sample_marker_counts.loc['nuclear', 1, 'nc_ratio'] == 1
 
-    # testing cell 2
-    assert sample_marker_counts.loc['whole_cell', 2, 'nc_ratio'] == 0.5
-    assert sample_marker_counts.loc['nuclear', 2, 'nc_ratio'] == 0.5
+        # testing cell 2
+        assert sample_marker_counts.loc['whole_cell', 2, 'nc_ratio'] == 0.5
+        assert sample_marker_counts.loc['nuclear', 2, 'nc_ratio'] == 0.5
+    # otherwise ensure we didn't add nc_ratio
+    else:
+        assert 'nc_ratio' not in sample_marker_counts.features.values
 
 
-def test_compute_marker_counts_base():
+@parametrize('fast_extraction', [False, True])
+def test_compute_marker_counts_base(fast_extraction):
     cell_mask, channel_data = test_utils.create_test_extraction_data()
 
     segmentation_labels = make_labels_xarray(label_data=cell_mask,
@@ -201,19 +222,30 @@ def test_compute_marker_counts_base():
 
     segmentation_output = \
         marker_quantification.compute_marker_counts(input_images=input_images,
-                                                    segmentation_labels=segmentation_labels)
+                                                    segmentation_labels=segmentation_labels,
+                                                    fast_extraction=fast_extraction)
+
+    # check that cell sizes are correct
+    sizes = [np.sum(cell_mask == cell_id) for cell_id in [1, 2, 3, 5]]
+    assert np.array_equal(sizes, segmentation_output.loc['whole_cell', :, settings.CELL_SIZE])
 
     # check that channel 0 counts are same as cell size
-    assert np.array_equal(segmentation_output.loc['whole_cell', :, settings.CELL_SIZE].values,
-                          segmentation_output.loc['whole_cell', :, 'chan0'].values)
+    assert np.array_equal(
+        segmentation_output.loc['whole_cell', :, settings.CELL_SIZE].values,
+        segmentation_output.loc['whole_cell', :, 'chan0'].values
+    )
 
     # check that channel 1 counts are 5x cell size
-    assert np.array_equal(segmentation_output.loc['whole_cell', :, settings.CELL_SIZE].values * 5,
-                          segmentation_output.loc['whole_cell', :, 'chan1'].values)
+    assert np.array_equal(
+        segmentation_output.loc['whole_cell', :, settings.CELL_SIZE].values * 5,
+        segmentation_output.loc['whole_cell', :, 'chan1'].values
+    )
 
     # check that channel 2 counts are the same as channel 1
-    assert np.array_equal(segmentation_output.loc['whole_cell', :, 'chan2'].values,
-                          segmentation_output.loc['whole_cell', :, 'chan1'].values)
+    assert np.array_equal(
+        segmentation_output.loc['whole_cell', :, 'chan2'].values,
+        segmentation_output.loc['whole_cell', :, 'chan1'].values
+    )
 
     # check that only cell1 is negative for channel 3
     assert segmentation_output.loc['whole_cell', 1, 'chan3'] == 0
@@ -224,25 +256,28 @@ def test_compute_marker_counts_base():
     assert np.all(segmentation_output.loc['whole_cell', :1, 'chan4'] == 0)
     assert np.all(segmentation_output.loc['whole_cell', 3:, 'chan4'] == 0)
 
-    # check that cell sizes are correct
-    sizes = [np.sum(cell_mask == cell_id) for cell_id in [1, 2, 3, 5]]
-    assert np.array_equal(sizes, segmentation_output.loc['whole_cell', :, settings.CELL_SIZE])
-
-    # check that regionprops size matches with cell size
-    assert np.array_equal(segmentation_output.loc['whole_cell', :, settings.CELL_SIZE],
-                          segmentation_output.loc['whole_cell', :, 'area'])
+    # check that regionprops size matches with cell size, only check if fast_extraciton=False
+    if not fast_extraction:
+        assert np.array_equal(
+            segmentation_output.loc['whole_cell', :, settings.CELL_SIZE],
+            segmentation_output.loc['whole_cell', :, 'area']
+        )
 
     # bad extraction selection
     with pytest.raises(ValueError):
-        marker_quantification.compute_marker_counts(input_images=input_images,
-                                                    segmentation_labels=segmentation_labels,
-                                                    extraction='bad_extraction')
+        marker_quantification.compute_marker_counts(
+            input_images=input_images,
+            segmentation_labels=segmentation_labels,
+            extraction='bad_extraction'
+        )
 
     # test different extraction selection
     center_extraction = \
-        marker_quantification.compute_marker_counts(input_images=input_images,
-                                                    segmentation_labels=segmentation_labels,
-                                                    extraction='center_weighting')
+        marker_quantification.compute_marker_counts(
+            input_images=input_images,
+            segmentation_labels=segmentation_labels,
+            extraction='center_weighting'
+        )
 
     assert np.all(
         segmentation_output.loc['whole_cell', :, 'chan0'].values
@@ -250,11 +285,15 @@ def test_compute_marker_counts_base():
     )
 
     # blank segmentation mask results in the cells column of length 0
-    blank_labels = make_labels_xarray(label_data=np.zeros((1, 40, 40, 1), dtype='int'),
-                                      compartment_names=['whole_cell'])
+    blank_labels = make_labels_xarray(
+        label_data=np.zeros((1, 40, 40, 1), dtype='int'),
+        compartment_names=['whole_cell']
+    )
 
-    blank_output = marker_quantification.compute_marker_counts(input_images=input_images,
-                                                               segmentation_labels=blank_labels[0])
+    blank_output = marker_quantification.compute_marker_counts(
+        input_images=input_images,
+        segmentation_labels=blank_labels[0]
+    )
     assert blank_output.shape[1] == 0
 
 
@@ -280,7 +319,8 @@ def test_compute_marker_counts_equal_masks():
     assert np.all(segmentation_output_equal[0].values == segmentation_output_equal[1].values)
 
 
-def test_compute_marker_counts_nuc_whole_cell_diff():
+@parametrize('fast_extraction', [False, True])
+def test_compute_marker_counts_nuc_whole_cell_diff(fast_extraction):
     cell_mask, channel_data = test_utils.create_test_extraction_data()
 
     # nuclear mask is smaller
@@ -303,23 +343,37 @@ def test_compute_marker_counts_nuc_whole_cell_diff():
         marker_quantification.compute_marker_counts(
             input_images=input_images,
             segmentation_labels=segmentation_labels_unequal,
-            nuclear_counts=True)
+            nuclear_counts=True,
+            fast_extraction=fast_extraction
+        )
 
-    # make sure nuclear segmentations are smaller
-    assert np.all(segmentation_output_unequal.loc['nuclear', :, 'cell_size'].values <
-                  segmentation_output_unequal.loc['whole_cell', :, 'cell_size'].values)
+    # make sure nuclear segmentations are smaller, this applies even if fast_extraction set
+    assert np.all(
+        segmentation_output_unequal.loc['nuclear', :, 'cell_size'].values <
+        segmentation_output_unequal.loc['whole_cell', :, 'cell_size'].values
+    )
+
+    # check that cell sizes are correct, this applies even if fast_extraction set
+    sizes = [np.sum(nuc_mask == cell_id) for cell_id in [1, 2, 3, 5]]
+    assert np.array_equal(sizes, segmentation_output_unequal.loc['nuclear', :, 'cell_size'])
 
     # check that channel 0 counts are same as cell size
-    assert np.array_equal(segmentation_output_unequal.loc['nuclear', :, 'cell_size'].values,
-                          segmentation_output_unequal.loc['nuclear', :, 'chan0'].values)
+    assert np.array_equal(
+        segmentation_output_unequal.loc['nuclear', :, 'cell_size'].values,
+        segmentation_output_unequal.loc['nuclear', :, 'chan0'].values
+    )
 
     # check that channel 1 counts are 5x cell size
-    assert np.array_equal(segmentation_output_unequal.loc['nuclear', :, 'cell_size'].values * 5,
-                          segmentation_output_unequal.loc['nuclear', :, 'chan1'].values)
+    assert np.array_equal(
+        segmentation_output_unequal.loc['nuclear', :, 'cell_size'].values * 5,
+        segmentation_output_unequal.loc['nuclear', :, 'chan1'].values
+    )
 
     # check that channel 2 counts are the same as channel 1
-    assert np.array_equal(segmentation_output_unequal.loc['nuclear', :, 'chan2'].values,
-                          segmentation_output_unequal.loc['nuclear', :, 'chan1'].values)
+    assert np.array_equal(
+        segmentation_output_unequal.loc['nuclear', :, 'chan2'].values,
+        segmentation_output_unequal.loc['nuclear', :, 'chan1'].values
+    )
 
     # check that only cell1 is negative for channel 3
     assert segmentation_output_unequal.loc['nuclear', 1, 'chan3'] == 0
@@ -330,12 +384,12 @@ def test_compute_marker_counts_nuc_whole_cell_diff():
     assert np.all(segmentation_output_unequal.loc['nuclear', :1, 'chan4'] == 0)
     assert np.all(segmentation_output_unequal.loc['nuclear', 3:, 'chan4'] == 0)
 
-    # check that cell sizes are correct
-    sizes = [np.sum(nuc_mask == cell_id) for cell_id in [1, 2, 3, 5]]
-    assert np.array_equal(sizes, segmentation_output_unequal.loc['nuclear', :, 'cell_size'])
-
-    assert np.array_equal(segmentation_output_unequal.loc['nuclear', :, 'cell_size'],
-                          segmentation_output_unequal.loc['nuclear', :, 'area'])
+    # the following test applies only if fast_extraction not set
+    if not fast_extraction:
+        assert np.array_equal(
+            segmentation_output_unequal.loc['nuclear', :, 'cell_size'],
+            segmentation_output_unequal.loc['nuclear', :, 'area']
+        )
 
     # check that splitting large nuclei works as expected
 
@@ -433,7 +487,8 @@ def test_compute_marker_counts_no_labels():
     assert np.all(segmentation_output_specified_split == segmentation_output_specified)
 
 
-def test_create_marker_count_matrices_base():
+@parametrize('fast_extraction', [False, True])
+def test_create_marker_count_matrices_base(fast_extraction):
     cell_mask, channel_data = test_utils.create_test_extraction_data()
 
     # generate data for two fovs offset
@@ -455,10 +510,15 @@ def test_create_marker_count_matrices_base():
     # NOTE: use 0:1 instead of 0 to ensure dimension doesn't collapse
     normalized, _ = marker_quantification.create_marker_count_matrices(
         segmentation_labels[0:1, ...],
-        channel_data[0:1, ...]
+        channel_data[0:1, ...],
+        fast_extraction=fast_extraction
     )
 
+    # 4 total cells
     assert normalized.shape[0] == 4
+
+    # exclude custom regionprops columns from count if fast_extraction set
+    assert normalized.shape[1] == 10 if fast_extraction else 23
 
     assert np.array_equal(normalized['chan0'], np.repeat(1, len(normalized)))
     assert np.array_equal(normalized['chan1'], np.repeat(5, len(normalized)))
@@ -467,7 +527,8 @@ def test_create_marker_count_matrices_base():
     segmentation_labels.values[1, ...] = 0
     _ = marker_quantification.create_marker_count_matrices(
         segmentation_labels[1:2, ...],
-        channel_data[1:2, ...]
+        channel_data[1:2, ...],
+        fast_extraction=fast_extraction
     )
 
     # error checking
@@ -489,7 +550,8 @@ def test_create_marker_count_matrices_base():
                                                            channel_data)
 
 
-def test_create_marker_count_matrices_multiple_compartments():
+@parametrize('fast_extraction', [False, True])
+def test_create_marker_count_matrices_multiple_compartments(fast_extraction):
     cell_mask, channel_data = test_utils.create_test_extraction_data()
 
     # generate data for two fovs offset
@@ -525,11 +587,23 @@ def test_create_marker_count_matrices_multiple_compartments():
     normalized, arcsinh = marker_quantification.create_marker_count_matrices(
         segmentation_labels_unequal[0:1, ...],
         channel_data[0:1, ...],
-        nuclear_counts=True
+        nuclear_counts=True,
+        fast_extraction=fast_extraction
     )
 
     # 4 total cells
     assert normalized.shape[0] == 4
+
+    # exclude custom regionprops columns from count if fast_extraction set
+    assert normalized.shape[1] == 19 if fast_extraction else 47
+
+    # check that cell with missing nucleus has size 0, runs even with fast_extraction
+    index = np.logical_and(normalized['label'] == 2, normalized['fov'] == 'fov0')
+    assert normalized.loc[index, 'cell_size_nuclear'].values == 0
+
+    # check that correct nuclear label is assigned to all cells, runs even with fast_extraction
+    normalized_with_nuc = normalized.loc[normalized['label'] != 2, ['label', 'label_nuclear']]
+    assert np.array_equal(normalized_with_nuc['label'] * 2, normalized_with_nuc['label_nuclear'])
 
     # channel 0 has a constant value of 1
     assert np.array_equal(normalized['chan0'], np.repeat(1, len(normalized)))
@@ -540,14 +614,6 @@ def test_create_marker_count_matrices_multiple_compartments():
     # these two channels should be equal for all cells
     assert np.array_equal(normalized['chan1'], normalized['chan2'])
 
-    # check that cell with missing nucleus has size 0
-    index = np.logical_and(normalized['label'] == 2, normalized['fov'] == 'fov0')
-    assert normalized.loc[index, 'cell_size_nuclear'].values == 0
-
-    # check that correct nuclear label is assigned to all cells
-    normalized_with_nuc = normalized.loc[normalized['label'] != 2, ['label', 'label_nuclear']]
-    assert np.array_equal(normalized_with_nuc['label'] * 2, normalized_with_nuc['label_nuclear'])
-
     # blank nuclear segmentation mask doesn't cause any issues
     segmentation_labels_unequal.values[1, ..., 1] = 0
     _ = marker_quantification.create_marker_count_matrices(
@@ -557,6 +623,7 @@ def test_create_marker_count_matrices_multiple_compartments():
     )
 
 
+# NOTE: fast_extraction logic handled by create_marker_count_matrices tests
 def test_generate_cell_table_tree_loading():
     # is_mibitiff False case, load from directory tree
     with tempfile.TemporaryDirectory() as temp_dir:
