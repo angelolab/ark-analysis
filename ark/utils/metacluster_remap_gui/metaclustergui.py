@@ -122,7 +122,7 @@ class MetaClusterGui():
         self.fig.canvas.mpl_connect('pick_event', self.onpick)
 
         # heatmaps
-        self.normalizer = ZScoreNormalize(-3, 0, 3)
+        self.normalizer = ZScoreNormalize(-1, 0, 1)
 
         def _heatmap(ax, column_count):
             data = np.zeros((self.mcd.marker_count, column_count))
