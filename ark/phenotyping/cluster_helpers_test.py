@@ -303,7 +303,7 @@ class TestPixelSOMCluster:
             self.pixel_pysom_weights.train_som()
 
     def test_train_som_new_cols(self):
-        # store old weights, train data, and columns for safekeeping, need to assign back afterwards
+        # store old weights, train data, and columns, need to assign back afterwards
         old_weights = deepcopy(self.pixel_pysom_nonweights.weights)
         old_train_data = deepcopy(self.pixel_pysom_nonweights.train_data)
         old_columns = deepcopy(self.pixel_pysom_nonweights.columns)
