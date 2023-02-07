@@ -43,6 +43,7 @@ jobs:
           path: ~/.cache/huggingface/datasets
           key: huggingface-${{ runner.os }}-${{ hashFiles('*.lock') }}
           restore-keys: |
+            huggingface-${{ runner.os }}-${{ hashFiles('*.lock') }}
             huggingface-${{ runner.os }}
 
       - name: Install Dependencies and ${{ github.repository }}
