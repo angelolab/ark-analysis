@@ -153,6 +153,9 @@ class PixelSOMCluster(PixieSOMCluster):
         # load the normalization values in
         self.norm_data = feather.read_dataframe(norm_vals_path)
 
+        # define the fovs used
+        self.fovs = fovs
+
         # list all the files in pixel_subset_folder and load them to train_data
         fov_files = list_files(pixel_subset_folder, substrs='.feather')
         self.train_data = pd.concat(
