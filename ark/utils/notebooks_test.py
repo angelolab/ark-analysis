@@ -115,7 +115,7 @@ def nb3b_context(templates_dir, base_dir_generator) -> Iterator[ContextManager]:
         Iterator[ContextManager]: The testbook context manager which will get cleaned up
             afterwords.
     """
-    CLUSTER_CELLS: pathlib.Path = templates_dir / "3b_Generic_Cluster_Cells.ipynb"
+    CLUSTER_CELLS: pathlib.Path = templates_dir / "generic_cell_clustering.ipynb"
     with testbook(CLUSTER_CELLS, timeout=6000, execute=False) as nb_context_manager:
         yield nb_context_manager, base_dir_generator / "nb3b"
 
