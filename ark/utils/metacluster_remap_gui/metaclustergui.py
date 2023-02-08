@@ -197,6 +197,8 @@ class MetaClusterGui():
                                fraction=.75, shrink=.95, aspect=15)
         self.cb.ax.xaxis.set_tick_params(which='both', labelsize=7, labelrotation=90)
 
+        print(self.cb.ax.xaxis.get_ticks())
+
         # dendrogram
         self.ddg = dendrogram(
             self.mcd.linkage_matrix,
@@ -395,6 +397,8 @@ class MetaClusterGui():
         self.im_m.set_data(_preplot(self.mcd.metaclusters))
         self.im_m.set_extent((0, self.mcd.metacluster_count, 0, self.mcd.marker_count))
         self.im_m.set_clim(self.normalizer.vmin, self.normalizer.vmax)
+
+        print(self.cb.ax.xaxis.get_ticks())
 
         # xaxis metacluster color labels
         assert len(self.mcd.metaclusters.index) <= self.mcd.cluster_count, \
