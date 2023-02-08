@@ -8,7 +8,7 @@ import numpy as np
 import pytest
 import tifffile
 from pytest_mock import MockerFixture
-from tmi import image_utils
+from alpineer import image_utils
 
 from ark.utils.deepcell_service_utils import (_convert_deepcell_seg_masks,
                                               create_deepcell_output)

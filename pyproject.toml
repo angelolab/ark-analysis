@@ -31,7 +31,7 @@ dependencies = [
     "statsmodels>=0.13.2,<1",
     "tables>=3.7",
     "tifffile>=2022",
-    "tmi @ git+https://github.com/angelolab/tmi.git@v0.1.3",
+    "alpineer>=0.1.4",
     "umap-learn>=0.5,<1.0",
     "xarray>=2022",
     "tqdm>=4,<5",

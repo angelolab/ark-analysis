@@ -4,7 +4,7 @@ import itertools
 import matplotlib
 import numpy as np
 import pandas as pd
-from tmi import io_utils, misc_utils
+from alpineer import io_utils, misc_utils
 
 
 def distinct_cmap(n=33):

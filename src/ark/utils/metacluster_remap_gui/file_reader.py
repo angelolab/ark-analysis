@@ -1,6 +1,6 @@
 
 import pandas as pd
-from tmi import io_utils, misc_utils
+from alpineer import io_utils, misc_utils
 
 from .metaclusterdata import MetaClusterData
 

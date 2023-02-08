@@ -4,8 +4,8 @@ import tempfile
 import numpy as np
 import pandas as pd
 import pytest
-from tmi import load_utils
-from tmi.test_utils import _write_labels
+from alpineer import load_utils
+from alpineer.test_utils import _write_labels
 
 import ark.settings as settings
 from ark.analysis import spatial_analysis

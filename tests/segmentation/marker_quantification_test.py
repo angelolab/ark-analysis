@@ -7,8 +7,8 @@ import pytest
 import skimage.morphology as morph
 import xarray as xr
 from skimage.morphology import erosion
-from tmi import image_utils, misc_utils
-from tmi.test_utils import (create_paired_xarray_fovs, gen_fov_chan_names,
+from alpineer import image_utils, misc_utils
+from alpineer.test_utils import (create_paired_xarray_fovs, gen_fov_chan_names,
                             make_images_xarray, make_labels_xarray)
 
 import ark.settings as settings

@@ -9,7 +9,7 @@ import seaborn as sns
 import spatial_lda.online_lda
 from scipy.spatial.distance import pdist
 from spatial_lda.visualization import _standardize_topics, plot_adjacency_graph
-from tmi import io_utils, misc_utils
+from alpineer import io_utils, misc_utils
 
 from ark.settings import BASE_COLS, CELL_TYPE, LDA_PLOT_TYPES
 

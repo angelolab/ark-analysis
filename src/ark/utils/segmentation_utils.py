@@ -6,7 +6,7 @@ import pandas as pd
 from skimage.measure import regionprops_table
 from skimage.morphology import remove_small_objects
 from skimage.segmentation import find_boundaries
-from tmi import image_utils, io_utils, load_utils, misc_utils
+from alpineer import image_utils, io_utils, load_utils, misc_utils
 
 import ark.settings as settings
 from ark.utils import plot_utils

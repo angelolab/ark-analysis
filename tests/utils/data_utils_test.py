@@ -10,7 +10,7 @@ import pandas as pd
 import pytest
 import skimage.io as io
 import xarray as xr
-from tmi import image_utils, io_utils, load_utils, test_utils
+from alpineer import image_utils, io_utils, load_utils, test_utils
 
 from ark import settings
 from ark.utils import data_utils

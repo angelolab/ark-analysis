@@ -4,7 +4,7 @@ from itertools import combinations_with_replacement
 import numpy as np
 import pandas as pd
 import xarray as xr
-from tmi import io_utils, load_utils, misc_utils
+from alpineer import io_utils, load_utils, misc_utils
 from tqdm.notebook import tqdm
 
 import ark.settings as settings

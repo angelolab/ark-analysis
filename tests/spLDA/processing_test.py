@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 from sklearn.cluster import KMeans
-from tmi import misc_utils
+from alpineer import misc_utils
 
 import ark.settings as settings
 import ark.spLDA.processing as pros

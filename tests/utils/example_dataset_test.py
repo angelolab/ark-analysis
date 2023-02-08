@@ -3,7 +3,7 @@ import pathlib
 from typing import Callable, Dict, Generator, Iterator, List
 
 import pytest
-from tmi import test_utils
+from alpineer import test_utils
 
 from ark.settings import EXAMPLE_DATASET_REVISION
 from ark.utils.example_dataset import ExampleDataset, get_example_dataset

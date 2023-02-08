@@ -12,7 +12,7 @@ import scipy.ndimage as ndimage
 import skimage.io as io
 from pytest_cases import parametrize_with_cases
 from skimage.draw import disk
-from tmi import image_utils, io_utils, load_utils, misc_utils, test_utils
+from alpineer import image_utils, io_utils, load_utils, misc_utils, test_utils
 
 import ark.phenotyping.cluster_helpers as cluster_helpers
 import ark.phenotyping.pixel_cluster_utils as pixel_cluster_utils

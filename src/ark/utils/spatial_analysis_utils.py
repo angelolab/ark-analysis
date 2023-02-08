@@ -9,7 +9,7 @@ import xarray as xr
 from scipy.spatial.distance import cdist
 from sklearn.cluster import KMeans
 from statsmodels.stats.multitest import multipletests
-from tmi import io_utils, load_utils, misc_utils
+from alpineer import io_utils, load_utils, misc_utils
 from tqdm.notebook import tqdm
 
 import ark.settings as settings

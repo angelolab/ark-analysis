@@ -8,7 +8,7 @@ import natsort as ns
 import numpy as np
 import pandas as pd
 import skimage.io as io
-from tmi import data_utils, image_utils, io_utils, load_utils, misc_utils
+from alpineer import data_utils, image_utils, io_utils, load_utils, misc_utils
 from tqdm.notebook import tqdm_notebook as tqdm
 
 from ark import settings

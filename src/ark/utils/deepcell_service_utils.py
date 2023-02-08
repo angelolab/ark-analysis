@@ -14,7 +14,7 @@ from requests.adapters import HTTPAdapter
 from requests.exceptions import RetryError
 from requests.packages.urllib3.util import Retry
 from tifffile import imread
-from tmi import image_utils, io_utils, misc_utils
+from alpineer import image_utils, io_utils, misc_utils
 from tqdm.notebook import tqdm
 
 

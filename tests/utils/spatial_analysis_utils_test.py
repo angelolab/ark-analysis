@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import pytest
 import xarray as xr
-from tmi.test_utils import _write_labels
+from alpineer.test_utils import _write_labels
 
 import ark.settings as settings
 from ark.utils import spatial_analysis_utils

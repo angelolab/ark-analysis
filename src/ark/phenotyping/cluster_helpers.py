@@ -12,8 +12,8 @@ import pandas as pd
 from pyFlowSOM import map_data_to_nodes, som
 from scipy.stats import zscore
 from sklearn.cluster import AgglomerativeClustering
-from tmi.io_utils import list_files, validate_paths
-from tmi.misc_utils import verify_in_list
+from alpineer.io_utils import list_files, validate_paths
+from alpineer.misc_utils import verify_in_list
 
 
 class PixieSOMCluster(ABC):

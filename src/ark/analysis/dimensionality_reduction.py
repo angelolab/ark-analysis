@@ -4,7 +4,7 @@ import umap
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 from sklearn.preprocessing import StandardScaler
-from tmi import misc_utils
+from alpineer import misc_utils
 
 
 def plot_dim_reduced_data(component_one, component_two, fig_id, hue, cell_data,

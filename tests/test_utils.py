@@ -566,7 +566,7 @@ def generate_sample_fov_tiling_entry(coord, name):
 
     sample_fov_tiling_entry = {
         "scanCount": 1,
-        "centerPointMicrons": {
+        "centerPoinalpineercrons": {
             "x": coord[0],
             "y": coord[1]
         },

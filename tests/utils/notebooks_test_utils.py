@@ -2,7 +2,7 @@ import os
 
 import numpy as np
 import pandas as pd
-from tmi import image_utils
+from alpineer import image_utils
 
 
 def create_pixel_remap_files(base_dir,  pixel_meta_cluster_mapping):

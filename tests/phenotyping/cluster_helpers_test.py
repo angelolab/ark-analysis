@@ -8,7 +8,7 @@ import feather
 import numpy as np
 import pandas as pd
 import pytest
-from tmi.misc_utils import verify_same_elements
+from alpineer.misc_utils import verify_same_elements
 
 from ark.phenotyping.cluster_helpers import (CellSOMCluster, PixelSOMCluster,
                                              PixieConsensusCluster)

@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import pytest
 from matplotlib.colors import ListedColormap
-from tmi import misc_utils
+from alpineer import misc_utils
 
 from ark.utils.metacluster_remap_gui.colormap_helper import (distinct_cmap, distinct_rgbs,
                                                              generate_meta_cluster_colormap_dict)

@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import pytest
 import skimage.io as io
-from tmi import image_utils, test_utils
+from alpineer import image_utils, test_utils
 
 from ark.phenotyping import post_cluster_utils
 

@@ -4,7 +4,7 @@ import warnings
 from typing import Union
 
 import datasets
-from tmi.misc_utils import verify_in_list
+from alpineer.misc_utils import verify_in_list
 
 from ark.settings import EXAMPLE_DATASET_REVISION
 

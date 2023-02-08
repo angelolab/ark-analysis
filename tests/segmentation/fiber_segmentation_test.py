@@ -3,7 +3,7 @@ import shutil
 import tempfile
 
 import pytest
-from tmi import io_utils
+from alpineer import io_utils
 
 import ark.settings as settings
 from ark.segmentation import fiber_segmentation

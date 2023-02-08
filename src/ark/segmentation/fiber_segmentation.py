@@ -12,7 +12,7 @@ from skimage.filters import meijering, sobel, threshold_multiotsu
 from skimage.measure import regionprops_table
 from skimage.morphology import remove_small_objects
 from skimage.segmentation import watershed
-from tmi import image_utils, io_utils, load_utils, misc_utils
+from alpineer import image_utils, io_utils, load_utils, misc_utils
 
 from ark import settings
 from ark.utils.plot_utils import set_minimum_color_for_colormap

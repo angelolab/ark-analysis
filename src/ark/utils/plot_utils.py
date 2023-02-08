@@ -14,8 +14,8 @@ import xarray as xr
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from skimage.exposure import rescale_intensity
 from skimage.segmentation import find_boundaries
-from tmi import io_utils, load_utils, misc_utils
-from tmi.settings import EXTENSION_TYPES
+from alpineer import io_utils, load_utils, misc_utils
+from alpineer.settings import EXTENSION_TYPES
 
 
 def plot_neighborhood_cluster_result(img_xr, fovs, k, save_dir=None, cmap_name='tab20',

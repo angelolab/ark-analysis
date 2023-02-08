@@ -12,7 +12,7 @@ import pandas as pd
 import scipy.ndimage as ndimage
 from pyarrow.lib import ArrowInvalid
 from skimage.io import imread
-from tmi import image_utils, io_utils, load_utils, misc_utils
+from alpineer import image_utils, io_utils, load_utils, misc_utils
 
 from ark.phenotyping import cluster_helpers
 

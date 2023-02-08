@@ -10,7 +10,7 @@ import pytest
 import skimage.io as io
 import xarray as xr
 from skimage.draw import disk
-from tmi import image_utils, test_utils
+from alpineer import image_utils, test_utils
 
 from ark.utils import plot_utils
 
