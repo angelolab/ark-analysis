@@ -155,7 +155,7 @@ def nbmixing_context(templates_dir, base_dir_generator) -> Iterator[ContextManag
         Iterator[ContextManager]: The testbook context manager which will get cleaned up
             afterwords.
     """
-    EXAMPLE_MIXING: pathlib.Path = templates_dir / "example_mixing_score.ipynb"
+    EXAMPLE_MIXING: pathlib.Path = templates_dir / "Calculate_Mixing_Scores.ipynb"
     with testbook(EXAMPLE_MIXING, timeout=6000, execute=False) as nb_context_manager:
         yield nb_context_manager, base_dir_generator / "ems"
 

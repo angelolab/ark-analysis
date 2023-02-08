@@ -873,22 +873,28 @@ def compute_cell_ratios(cell_neighbors_dir, target_cells, reference_cells, fov_l
             targ_ref_ratio.append(target_total / reference_total)
             ref_targ_ratio.append(reference_total / target_total)
 
-    # remove nan values
-    targ_ref_ratio = [x for x in targ_ref_ratio if str(x) != 'nan']
-    ref_targ_ratio = [x for x in ref_targ_ratio if str(x) != 'nan']
+    # remove nan values for plotting
+    targ_ref_remove_nan = [x for x in targ_ref_ratio if str(x) != 'nan']
+    ref_targ_remove_nan = [x for x in ref_targ_ratio if str(x) != 'nan']
 
     # create ratio plots
     sns.set(rc={'figure.figsize': (16, 4)})
     fig, (ax1, ax2) = plt.subplots(1, 2)
-    fig.suptitle("Target-Reference Ratios")
-    ax1.boxplot(targ_ref_ratio, 0, 'c', vert=False)
-    ax2.hist(targ_ref_ratio, bins=bin_number)
+    fig.suptitle("Population 1 / Population 2 Ratios")
+    ax1.boxplot(targ_ref_remove_nan, 0, 'c', vert=False)
+    ax1.set(xlabel='Ratio')
+    ax2.hist(targ_ref_remove_nan, bins=bin_number)
+    ax2.set(xlabel='Ratio', ylabel='Count')
     fig2, (ax3, ax4) = plt.subplots(1, 2)
-    fig2.suptitle("Reference-Target Ratios")
-    ax3.boxplot(ref_targ_ratio, 0, 'c', vert=False)
-    ax4.hist(ref_targ_ratio, bins=bin_number)
+    fig2.suptitle("Population 2 / Population 1 Ratios")
+    ax3.boxplot(ref_targ_remove_nan, 0, 'c', vert=False)
+    ax3.set(xlabel='Ratio')
+    ax4.hist(ref_targ_remove_nan, bins=bin_number)
+    ax4.set(xlabel='Ratio', ylabel='Count')
 
-    return targ_ref_ratio, ref_targ_ratio
+    ratio_data = pd.DataFrame(list(zip(fov_list, targ_ref_ratio, ref_targ_ratio)),
+                              columns=['fov', 'target_reference_ratio', 'reference_target_ratio'])
+    return ratio_data
 
 
 def compute_mixing_score(cell_neighbors_dir, fov, target_cells, reference_cells,

@@ -644,16 +644,16 @@ def test_compute_cell_ratios():
         save_path = os.path.join(cell_neighbors_dir, f"fov1_cell_neighbors.csv")
         cell_neighbors_mat.to_csv(save_path, index=False)
 
-        targ_ref_ratio, ref_targ_ratio = spatial_analysis.compute_cell_ratios(
+        ratios = spatial_analysis.compute_cell_ratios(
             cell_neighbors_dir, ['cell1'], ['cell2'], ['fov1'])
-        assert targ_ref_ratio == [4/3]
-        assert ref_targ_ratio == [3/4]
+        assert ratios.equals(pd.DataFrame({'fov': 'fov1', 'target_reference_ratio': [4/3],
+                                           'reference_target_ratio': [3/4]}))
 
         # check zero denom
-        targ_ref_ratio, ref_targ_ratio = spatial_analysis.compute_cell_ratios(
+        ratios = spatial_analysis.compute_cell_ratios(
             cell_neighbors_dir, ['cell1'], ['cell3'], ['fov1'])
-        assert targ_ref_ratio == []
-        assert ref_targ_ratio == []
+        assert ratios.equals(pd.DataFrame({'fov': 'fov1', 'target_reference_ratio': [np.nan],
+                                           'reference_target_ratio': [np.nan]}))
 
 
 def test_compute_mixing_score():
