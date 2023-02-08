@@ -99,14 +99,14 @@ def pixel_pyflowsom_object(pixel_som_base_dir) -> Iterator[
     # define a PixelSOMCluster object with weights
     pixel_som_with_weights = PixelSOMCluster(
         pixel_subset_folder=pixel_sub_path, norm_vals_path=norm_vals_path,
-        weights_path=weights_path, columns=channels, xdim=20, ydim=10
+        weights_path=weights_path, fovs=fovs, columns=channels, xdim=20, ydim=10
     )
 
     # define a PixelSOMCluster object without weights
     pixel_som_sans_weights = PixelSOMCluster(
         pixel_subset_folder=pixel_sub_path, norm_vals_path=norm_vals_path,
         weights_path=pixel_som_base_dir / 'weights_new.feather',
-        columns=channels, xdim=20, ydim=10
+        fovs=fovs, columns=channels, xdim=20, ydim=10
     )
 
     yield pixel_som_with_weights, pixel_som_sans_weights

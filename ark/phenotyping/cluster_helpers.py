@@ -116,7 +116,7 @@ class PixieSOMCluster(ABC):
 
 class PixelSOMCluster(PixieSOMCluster):
     def __init__(self, pixel_subset_folder: pathlib.Path, norm_vals_path: pathlib.Path,
-                 weights_path: pathlib.Path, columns: List[str],
+                 weights_path: pathlib.Path, fovs: List[str], columns: List[str],
                  num_passes: int = 1, xdim: int = 10, ydim: int = 10,
                  lr_start: float = 0.05, lr_end: float = 0.01):
         """Creates a pixel SOM cluster object derived from the abstract PixieSOMCluster
@@ -128,6 +128,8 @@ class PixelSOMCluster(PixieSOMCluster):
                 The name of the feather file containing the normalization values.
             weights_path (pathlib.Path):
                 The path to save the weights to.
+            fovs (List[str]):
+                The list of FOVs to subset the data on.
             columns (List[str]):
                 The list of columns to subset the data on.
             num_passes (int):
@@ -154,7 +156,8 @@ class PixelSOMCluster(PixieSOMCluster):
         # list all the files in pixel_subset_folder and load them to train_data
         fov_files = list_files(pixel_subset_folder, substrs='.feather')
         self.train_data = pd.concat(
-            [feather.read_dataframe(os.path.join(pixel_subset_folder, fov)) for fov in fov_files]
+            [feather.read_dataframe(os.path.join(pixel_subset_folder, fov)) for fov in fov_files
+             if os.path.splitext(fov)[0] in fovs]
         )
 
         # we can just normalize train_data now since that's what we'll be training on

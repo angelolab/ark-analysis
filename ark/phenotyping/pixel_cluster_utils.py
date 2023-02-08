@@ -929,7 +929,7 @@ def train_pixel_som(fovs, channels, base_dir,
 
     # define the pixel SOM cluster object
     pixel_pysom = cluster_helpers.PixelSOMCluster(
-        subsetted_path, norm_vals_path, som_weights_path, channels,
+        subsetted_path, norm_vals_path, som_weights_path, fovs, channels,
         num_passes=num_passes, xdim=xdim, ydim=ydim, lr_start=lr_start, lr_end=lr_end
     )
 
