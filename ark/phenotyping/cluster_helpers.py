@@ -226,8 +226,8 @@ class PixelSOMCluster(PixieSOMCluster):
 
 class CellSOMCluster(PixieSOMCluster):
     def __init__(self, cell_data_path: pathlib.Path, weights_path: pathlib.Path,
-                 columns: List[str], num_passes: int = 1, xdim: int = 10, ydim: int = 10,
-                 lr_start: float = 0.05, lr_end: float = 0.01):
+                 fovs: List[str], columns: List[str], num_passes: int = 1,
+                 xdim: int = 10, ydim: int = 10, lr_start: float = 0.05, lr_end: float = 0.01):
         """Creates a cell SOM cluster object derived from the abstract PixieSOMCluster
 
         Args:
@@ -235,6 +235,8 @@ class CellSOMCluster(PixieSOMCluster):
                 The name of the cell dataset to use for training
             weights_path (pathlib.Path):
                 The path to save the weights to.
+            fovs (List[str]):
+                The list of FOVs to subset the data on.
             columns (List[str]):
                 The list of columns to subset the data on.
             num_passes (int):
@@ -258,6 +260,12 @@ class CellSOMCluster(PixieSOMCluster):
 
         # load the cell data in
         self.cell_data = feather.read_dataframe(cell_data_path)
+
+        # define the fovs used
+        self.fovs = fovs
+
+        # subset cell_data on just the FOVs specified
+        self.cell_data = self.cell_data[self.cell_data['fov'].isin(self.fovs)]
 
         # since cell_data is the only dataset, we can just normalize it immediately
         self.normalize_data()
