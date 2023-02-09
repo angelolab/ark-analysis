@@ -270,7 +270,12 @@ class CellSOMCluster(PixieSOMCluster):
         """
         # only 99.9% normalize on the columns provided
         cell_data_sub = self.cell_data[self.columns].copy()
-        cell_data_sub = cell_data_sub.div(cell_data_sub.quantile(0.999))
+
+        # compute the 99.9% normalization values, ignoring zeros
+        cell_norm_vals = cell_data_sub.replace(0, np.nan).quantile(q=0.999, axis=0)
+
+        # divide cell_data_sub by normalization values
+        cell_data_sub = cell_data_sub.div(cell_norm_vals)
 
         # assign back to cell_data
         self.cell_data[self.columns] = cell_data_sub
