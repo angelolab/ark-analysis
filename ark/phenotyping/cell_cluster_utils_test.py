@@ -633,7 +633,7 @@ def test_cluster_cells(pixel_cluster_prefix):
         # error test: no weights assigned to cell pysom object
         with pytest.raises(ValueError):
             cell_pysom_bad = cluster_helpers.CellSOMCluster(
-                cluster_counts_size_norm_path, 'bad_path.feather', cluster_cols
+                cluster_counts_size_norm_path, 'bad_path.feather', [-1], cluster_cols
             )
 
             cell_cluster_utils.cluster_cells(base_dir=temp_dir, cell_pysom=cell_pysom_bad)
@@ -648,7 +648,7 @@ def test_cluster_cells(pixel_cluster_prefix):
             feather.write_dataframe(weights, weights_path)
 
             cell_pysom_bad = cluster_helpers.CellSOMCluster(
-                cluster_counts_size_norm_path, weights_path, cluster_cols
+                cluster_counts_size_norm_path, weights_path, [-1], cluster_cols
             )
 
             cell_cluster_utils.cluster_cells(base_dir=temp_dir, cell_pysom=cell_pysom_bad)
@@ -662,7 +662,7 @@ def test_cluster_cells(pixel_cluster_prefix):
 
         # define a CellSOMCluster object
         cell_pysom = cluster_helpers.CellSOMCluster(
-            cluster_counts_size_norm_path, cell_som_weights_path, cluster_cols
+            cluster_counts_size_norm_path, cell_som_weights_path, [-1], cluster_cols
         )
 
         # error test: bad cluster_col provided
