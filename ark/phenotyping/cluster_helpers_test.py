@@ -395,6 +395,43 @@ class TestCellSOMCluster:
         with pytest.warns(UserWarning, match='Cell SOM already trained'):
             self.cell_pysom_weights.train_som()
 
+    def test_train_som_new_cols(self):
+        # store old weights, train data, and columns, need to assign back afterwards
+        old_weights = deepcopy(self.cell_pysom_nonweights.weights)
+        old_cell_data = deepcopy(self.cell_pysom_nonweights.cell_data)
+        old_columns = deepcopy(self.cell_pysom_nonweights.columns)
+
+        # generate new random column data
+        self.cell_pysom_nonweights.cell_data['new_column'] = np.random.rand(
+            self.cell_pysom_nonweights.cell_data.shape[0]
+        )
+
+        # append this channel to the list of columns
+        self.cell_pysom_nonweights.columns.append('new_column')
+
+        with pytest.warns(UserWarning, match='New columns specified, retraining'):
+            self.cell_pysom_nonweights.train_som()
+
+            # assert the weights path exists
+            assert os.path.exists(self.cell_pysom_nonweights.weights_path)
+
+            # load in the weights
+            weights = feather.read_dataframe(self.cell_pysom_nonweights.weights_path)
+
+            # assert the column names match and 'new_channel' contained
+            assert list(weights.columns.values) == self.cell_pysom_nonweights.columns
+            assert 'new_column' in weights.columns.values
+
+            # assert the shape is correct
+            assert weights.shape == (200, 7)
+
+        # assign the old values back for continuation
+        self.cell_pysom_nonweights.weights = old_weights
+        feather.write_dataframe(old_weights, self.cell_pysom_nonweights.weights_path)
+
+        self.cell_pysom_nonweights.cell_data = old_cell_data
+        self.cell_pysom_nonweights.columns = old_columns
+
     def test_assign_som_clusters(self):
         # generate SOM cluster values for cell_data
         som_label_data = self.cell_pysom_nonweights.assign_som_clusters()

@@ -278,10 +278,14 @@ class CellSOMCluster(PixieSOMCluster):
     def train_som(self):
         """Trains the SOM using `cell_data`
         """
-        # do not train SOM if weights already exist
         if self.weights is not None:
-            warnings.warn('Cell SOM already trained')
-            return
+            # do not train SOM if weights already exist and the same columns used to train
+            if set(self.weights.columns.values) == set(self.columns):
+                warnings.warn('Cell SOM already trained on specified columns')
+                return
+
+            # notify the user that different columns specified
+            warnings.warn('New columns specified, retraining')
 
         super().train_som(self.cell_data[self.columns])
 
