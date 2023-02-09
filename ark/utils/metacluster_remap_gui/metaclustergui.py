@@ -197,8 +197,6 @@ class MetaClusterGui():
                                fraction=.75, shrink=.95, aspect=15)
         self.cb.ax.xaxis.set_tick_params(which='both', labelsize=7, labelrotation=90)
 
-        print(self.cb.ax.xaxis.get_ticks())
-
         # dendrogram
         self.ddg = dendrogram(
             self.mcd.linkage_matrix,
@@ -398,7 +396,20 @@ class MetaClusterGui():
         self.im_m.set_extent((0, self.mcd.metacluster_count, 0, self.mcd.marker_count))
         self.im_m.set_clim(self.normalizer.vmin, self.normalizer.vmax)
 
-        print(self.cb.ax.xaxis.get_ticks())
+        # retrieve the current value of the zscore sliders
+        zscore_cap = self.zscore_clamp_slider.value
+
+        # due to delays, a zscore_cap modulo of 1 also needs to be considered here
+        # due to floating point error, allclose must be used
+        if np.allclose(zscore_cap % 1, 0) or np.allclose(zscore_cap % 1, 1):
+            new_ticks = np.arange(-zscore_cap, zscore_cap + 1)
+        else:
+            # fractional intervals are always in increments of 1/2
+            new_ticks = np.arange(-zscore_cap + 0.5, zscore_cap - 0.5 + 1)
+            new_ticks = np.insert(new_ticks, 0, -zscore_cap)
+            new_ticks = np.append(new_ticks, zscore_cap)
+
+        self.cb.ax.set_xticks(new_ticks)
 
         # xaxis metacluster color labels
         assert len(self.mcd.metaclusters.index) <= self.mcd.cluster_count, \
