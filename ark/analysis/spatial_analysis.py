@@ -785,6 +785,7 @@ def compute_cell_ratios(neighbors_mat, target_cells, reference_cells, fov_list, 
                         cell_col=settings.CELL_TYPE, fov_col=settings.FOV_ID,
                         label_col=settings.CELL_LABEL):
     """ Computes the target/reference and reference/target ratios for each FOV
+
     Args:
         neighbors_mat (pandas.DataFrame):
             a neighborhood matrix, created from create_neighborhood_matrix
@@ -858,6 +859,7 @@ def compute_mixing_score(fov_neighbors_mat, fov, target_cells, reference_cells, 
                          cell_col=settings.CELL_TYPE, fov_col=settings.FOV_ID,
                          label_col=settings.CELL_LABEL):
     """ Compute and return the mixing score for the specified target/reference cell types
+
     Args:
         fov_neighbors_mat (pandas.DataFrame):
             a neighborhood matrix, created from create_neighborhood_matrix and subsetted for 1 fov
