@@ -190,10 +190,15 @@ class PixelSOMCluster(PixieSOMCluster):
     def train_som(self):
         """Trains the SOM using `train_data`
         """
-        # do not train SOM if weights already exist
+
         if self.weights is not None:
-            warnings.warn('Pixel SOM already trained')
-            return
+            # do not train SOM if weights already exist and the same markers used to train
+            if set(self.weights.columns.values) == set(self.columns):
+                warnings.warn('Pixel SOM already trained on specified markers')
+                return
+
+            # notify the user that different markers specified
+            warnings.warn('New markers specified, retraining')
 
         super().train_som(self.train_data[self.columns])
 
@@ -265,7 +270,12 @@ class CellSOMCluster(PixieSOMCluster):
         """
         # only 99.9% normalize on the columns provided
         cell_data_sub = self.cell_data[self.columns].copy()
-        cell_data_sub = cell_data_sub.div(cell_data_sub.quantile(0.999))
+
+        # compute the 99.9% normalization values, ignoring zeros
+        cell_norm_vals = cell_data_sub.replace(0, np.nan).quantile(q=0.999, axis=0)
+
+        # divide cell_data_sub by normalization values
+        cell_data_sub = cell_data_sub.div(cell_norm_vals)
 
         # assign back to cell_data
         self.cell_data[self.columns] = cell_data_sub
@@ -273,10 +283,14 @@ class CellSOMCluster(PixieSOMCluster):
     def train_som(self):
         """Trains the SOM using `cell_data`
         """
-        # do not train SOM if weights already exist
         if self.weights is not None:
-            warnings.warn('Cell SOM already trained')
-            return
+            # do not train SOM if weights already exist and the same columns used to train
+            if set(self.weights.columns.values) == set(self.columns):
+                warnings.warn('Cell SOM already trained on specified columns')
+                return
+
+            # notify the user that different columns specified
+            warnings.warn('New columns specified, retraining')
 
         super().train_som(self.cell_data[self.columns])
 

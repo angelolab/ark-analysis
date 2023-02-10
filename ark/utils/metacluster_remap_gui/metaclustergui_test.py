@@ -80,6 +80,10 @@ def test_update_zscore(mcg: MetaClusterGui):
     mcg.zscore_clamp_slider.value += 1
 
 
+def test_update_zscore_fractional(mcg: MetaClusterGui):
+    mcg.zscore_clamp_slider.value += 0.5
+
+
 def test_new_metacluster(mcg: MetaClusterGui):
     mcg.selected_clusters.add(1)
     mcg.new_metacluster(None)
