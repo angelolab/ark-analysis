@@ -781,54 +781,13 @@ def compute_cluster_metrics_silhouette(neighbor_mat, min_k=2, max_k=10, seed=42,
     return neighbor_cluster_stats
 
 
-def compute_cell_neighbors(all_data, dist_mat_dir, cell_neighbors_dir, neighbors_radius=100,
-                           included_fovs=None, fov_col=settings.FOV_ID,
-                           cell_col=settings.CELL_TYPE):
-    """ Create cell neighbors matrix for each FOV, save files to cell_neighbors_dir
-    Args:
-        all_data (pandas.DataFrame):
-            data for all fovs. Includes the columns for fov, label, and cell phenotype
-        dist_mat_dir (str):
-            directory containing the distance matrices
-        cell_neighbors_dir (str):
-            directory to save cell neighbor tables to
-        neighbors_radius (int):
-            cell proximity threshold. Default is 100
-        included_fovs (list):
-            fovs to include in analysis. If argument is none, default is all fovs used
-        fov_col (str):
-            column with the fovs
-        cell_col (str):
-            column with the cell cluster
-    """
-
-    # get all fovs
-    all_fovs = all_data[fov_col].unique()
-
-    # validation checks
-    io_utils.validate_paths([dist_mat_dir, cell_neighbors_dir])
-    if included_fovs is None:
-        included_fovs = all_fovs
-    else:
-        misc_utils.verify_in_list(provided_fovs=included_fovs, fovs_in_cell_table=all_fovs)
-
-    # find only close neighboring cells, save to csv file
-    for fov in included_fovs:
-        fov_data = all_data[all_data[fov_col] == fov].reset_index()
-        cell_neighbors, _ = create_neighborhood_matrix(fov_data, dist_mat_dir, [fov],
-                                                       distlim=neighbors_radius,
-                                                       cluster_name_col=cell_col, mixing=True)
-        save_path = os.path.join(cell_neighbors_dir, f"{fov}_cell_neighbors.csv")
-        cell_neighbors.to_csv(save_path, index=False)
-
-
-def compute_cell_ratios(cell_neighbors_dir, target_cells, reference_cells, fov_list, bin_number=10,
+def compute_cell_ratios(neighbors_mat, target_cells, reference_cells, fov_list, bin_number=10,
                         cell_col=settings.CELL_TYPE, fov_col=settings.FOV_ID,
                         label_col=settings.CELL_LABEL):
     """ Computes the target/reference and reference/target ratios for each FOV
     Args:
-        cell_neighbors_dir (str):
-            directory where cell neighbor tables are stored
+        neighbors_mat (pandas.DataFrame):
+            a neighborhood matrix, created from create_neighborhood_matrix
         target_cells (list):
             invading cell phenotypes
         reference_cells (list):
@@ -852,19 +811,16 @@ def compute_cell_ratios(cell_neighbors_dir, target_cells, reference_cells, fov_l
 
     targ_ref_ratio, ref_targ_ratio = [], []
     for fov in fov_list:
-        # path validation
-        cell_neighbors_path = os.path.join(cell_neighbors_dir, f"{fov}_cell_neighbors.csv")
-        io_utils.validate_paths(cell_neighbors_path)
-
-        # read in fov cell neighbors, drop fov and cell label columns
-        neighbors_mat = pd.read_csv(cell_neighbors_path)
+        # subset neighbors mat by fov, drop fov name and labels
+        neighbors_mat_fov = neighbors_mat[neighbors_mat[fov_col] == fov]
         misc_utils.verify_in_list(provided_column_names=[cell_col, fov_col, label_col],
                                   cell_neighbors_columns=neighbors_mat.columns)
-        neighbors_mat = neighbors_mat.drop(columns=[fov_col, label_col])
+        neighbors_mat_fov = neighbors_mat_fov.drop(columns=[fov_col, label_col])
 
         # get number of target and reference cells in sample
-        target_total = neighbors_mat[neighbors_mat[cell_col].isin(target_cells)].shape[0]
-        reference_total = neighbors_mat[neighbors_mat[cell_col].isin(reference_cells)].shape[0]
+        target_total = neighbors_mat_fov[neighbors_mat_fov[cell_col].isin(target_cells)].shape[0]
+        reference_total = neighbors_mat_fov[
+            neighbors_mat_fov[cell_col].isin(reference_cells)].shape[0]
 
         if target_total == 0 or reference_total == 0:
             targ_ref_ratio.append(np.nan)
@@ -897,25 +853,24 @@ def compute_cell_ratios(cell_neighbors_dir, target_cells, reference_cells, fov_l
     return ratio_data
 
 
-def compute_mixing_score(cell_neighbors_dir, fov, target_cells, reference_cells,
-                         target_ratio=5, reference_ratio=5, cell_count_thresh=0,
+def compute_mixing_score(fov_neighbors_mat, fov, target_cells, reference_cells, mixing_type,
+                         ratio_threshold=5, cell_count_thresh=0,
                          cell_col=settings.CELL_TYPE, fov_col=settings.FOV_ID,
-                         label_col=settings.CELL_LABEL, percent_mixing=False):
+                         label_col=settings.CELL_LABEL):
     """ Compute and return the mixing score for the specified target/reference cell types
     Args:
-        cell_neighbors_dir (str):
-            directory where cell neighbor tables are stored
+        fov_neighbors_mat (pandas.DataFrame):
+            a neighborhood matrix, created from create_neighborhood_matrix and subsetted for 1 fov
         fov (str):
             single fov to compute mixing score for
         target_cells (list):
             invading cell phenotypes
         reference_cells (list):
             expected cell phenotypes
-        target_ratio (int):
-            maximum ratio of target to reference cells required to calculate a mixing score,
-            under this labeled "cold"
-        reference_ratio (int):
-            maximum ratio of reference to target cells required to calculate a mixing score,
+        mixing_type (str):
+            "homogeneous" or "percent", homogeneous is a symmetrical calculation
+        ratio_threshold (int):
+            maximum ratio of cell_types required to calculate a mixing score,
             under this labeled "cold"
         cell_count_thresh (int):
             minimum number of cells in each population to calculate a mixing score,
@@ -926,50 +881,44 @@ def compute_mixing_score(cell_neighbors_dir, fov, target_cells, reference_cells,
             column with the fovs
         label_col (str):
             column with the cell labels
-        percent_mixing (str):
-            whether to use a percent non-symmetrical mixing calculation
 
     Returns:
         float:
             the mixing score for the FOV
     """
 
-    # path validation
-    cell_neighbors_path = os.path.join(cell_neighbors_dir, f"{fov}_cell_neighbors.csv")
-    io_utils.validate_paths(cell_neighbors_path)
-
     # read in fov cell neighbors, drop fov, cell label, and cell type columns
-    neighbors_mat = pd.read_csv(cell_neighbors_path)
     misc_utils.verify_in_list(provided_column_names=[cell_col, fov_col, label_col],
-                              cell_neighbors_columns=neighbors_mat.columns)
-    neighbors_mat = neighbors_mat.drop(columns=[fov_col, label_col])
+                              cell_neighbors_columns=fov_neighbors_mat.columns)
+    fov_neighbors_mat = fov_neighbors_mat.drop(columns=[fov_col, label_col])
 
     # cell types validation
     overlap = [cell for cell in target_cells if cell in reference_cells]
     if overlap:
         raise ValueError(f"The following cell types were included in both the target and reference"
                          f" populations: {overlap}")
-    all_cells = neighbors_mat[cell_col].unique()
+    all_cells = fov_neighbors_mat[cell_col].unique()
+
+    # mixing_type validation
+    if mixing_type not in ['percent', 'homogeneous']:
+        raise ValueError(f'Please provide a valid mixing_type: "percent" or "homogeneous".')
 
     # get number of target and reference cells in sample
-    target_total = neighbors_mat[neighbors_mat[cell_col].isin(target_cells)].shape[0]
-    ref_total = neighbors_mat[
-        neighbors_mat[cell_col].isin(reference_cells)].shape[0]
+    target_total = fov_neighbors_mat[fov_neighbors_mat[cell_col].isin(target_cells)].shape[0]
+    ref_total = fov_neighbors_mat[fov_neighbors_mat[cell_col].isin(reference_cells)].shape[0]
     if ref_total < cell_count_thresh or target_total < cell_count_thresh:
         return np.nan
     elif ref_total == 0 or target_total == 0:
         return np.nan
 
     # check threshold
-    if ref_total/target_total > reference_ratio:
-        return np.nan
-    if target_total/ref_total > target_ratio:
+    if ref_total/target_total > ratio_threshold or target_total/ref_total > ratio_threshold:
         return np.nan
 
     # condense to total number of cell type interactions
-    neighbors_mat[cell_col] = neighbors_mat[cell_col].replace(target_cells, 'target')
-    neighbors_mat[cell_col] = neighbors_mat[cell_col].replace(reference_cells, 'reference')
-    interactions_mat = neighbors_mat.groupby(by=[cell_col]).sum(numeric_only=True)
+    fov_neighbors_mat[cell_col] = fov_neighbors_mat[cell_col].replace(target_cells, 'target')
+    fov_neighbors_mat[cell_col] = fov_neighbors_mat[cell_col].replace(reference_cells, 'reference')
+    interactions_mat = fov_neighbors_mat.groupby(by=[cell_col]).sum(numeric_only=True)
 
     # combine cell interactions by target and reference populations
     interactions_mat['target'] = [0] * interactions_mat.shape[0]
@@ -988,10 +937,10 @@ def compute_mixing_score(cell_neighbors_dir, fov, target_cells, reference_cells,
     reference_reference = interactions_mat.loc['reference', 'reference']
 
     # mixing score calculation
-    if percent_mixing:
+    if mixing_type == 'percent':
         # percent mixing
-        mixing_score = reference_target / (reference_target + reference_reference)
-    else:
+        mixing_score = reference_target / (reference_target + target_target)
+    elif mixing_type == 'homogeneous':
         # homogenous mixing
         mixing_score = reference_target / (target_target + reference_reference)
 

@@ -593,45 +593,6 @@ def test_compute_cluster_metrics_silhouette():
     assert np.all(last_k >= neighbor_cluster_stats.values)
 
 
-def test_compute_cell_neighbors(mocker):
-    mocker.patch('ark.analysis.spatial_analysis.create_neighborhood_matrix',
-                 return_value=(pd.DataFrame({'test': ['counts_mat']}),
-                               pd.DataFrame({'test': ['freq_mat']})))
-
-    # get positive expression and distance matrices
-    all_data_pos, dist_mat_pos = test_utils._make_dist_exp_mats_spatial_test(
-        enrichment_type="positive", dist_lim=51)
-
-    with tempfile.TemporaryDirectory() as dist_mat_dir:
-        for fov in dist_mat_pos:
-            dist_mat_pos[fov].to_netcdf(
-                os.path.join(dist_mat_dir, fov + '_dist_mat.xr'),
-                format='NETCDF3_64BIT'
-            )
-
-        with tempfile.TemporaryDirectory() as cell_neighbors_dir:
-            # check fov validation
-            with pytest.raises(ValueError, match='Not all values given in list provided fovs'):
-                spatial_analysis.compute_cell_neighbors(all_data_pos, dist_mat_dir,
-                                                        cell_neighbors_dir,
-                                                        included_fovs=['fov8', 'not-a-fov'])
-
-            # test default success
-            spatial_analysis.compute_cell_neighbors(all_data_pos, dist_mat_dir, cell_neighbors_dir)
-
-            for fov in all_data_pos[settings.FOV_ID].unique():
-                assert os.path.exists(
-                    os.path.join(cell_neighbors_dir, f"{fov}_cell_neighbors.csv"))
-
-        with tempfile.TemporaryDirectory() as cell_neighbors_dir:
-            # check for fov subset
-            spatial_analysis.compute_cell_neighbors(all_data_pos, dist_mat_dir, cell_neighbors_dir,
-                                                    included_fovs=['fov8'])
-
-            assert os.path.exists(os.path.join(cell_neighbors_dir, f"fov8_cell_neighbors.csv"))
-            assert not os.path.exists(os.path.join(cell_neighbors_dir, f"fov9_cell_neighbors.csv"))
-
-
 def test_compute_cell_ratios():
     cell_neighbors_mat = pd.DataFrame({
         settings.FOV_ID: ['fov1', 'fov1', 'fov1', 'fov1', 'fov1', 'fov1', 'fov1'],
@@ -641,17 +602,14 @@ def test_compute_cell_ratios():
         'cell2': [1, 2, 1, 1, 2, 2, 0]
     })
     with tempfile.TemporaryDirectory() as cell_neighbors_dir:
-        save_path = os.path.join(cell_neighbors_dir, f"fov1_cell_neighbors.csv")
-        cell_neighbors_mat.to_csv(save_path, index=False)
-
         ratios = spatial_analysis.compute_cell_ratios(
-            cell_neighbors_dir, ['cell1'], ['cell2'], ['fov1'])
+            cell_neighbors_mat, ['cell1'], ['cell2'], ['fov1'])
         assert ratios.equals(pd.DataFrame({'fov': 'fov1', 'target_reference_ratio': [4/3],
                                            'reference_target_ratio': [3/4]}))
 
         # check zero denom
         ratios = spatial_analysis.compute_cell_ratios(
-            cell_neighbors_dir, ['cell1'], ['cell3'], ['fov1'])
+            cell_neighbors_mat, ['cell1'], ['cell3'], ['fov1'])
         assert ratios.equals(pd.DataFrame({'fov': 'fov1', 'target_reference_ratio': [np.nan],
                                            'reference_target_ratio': [np.nan]}))
 
@@ -668,53 +626,57 @@ def test_compute_mixing_score():
     })
 
     with tempfile.TemporaryDirectory() as cell_neighbors_dir:
-        save_path = os.path.join(cell_neighbors_dir, f"fov1_cell_neighbors.csv")
-        cell_neighbors_mat.to_csv(save_path, index=False)
 
         # check cell type validation
         with pytest.raises(ValueError, match='The following cell types were included in both '
                                              'the target and reference populations'):
-            spatial_analysis.compute_mixing_score(cell_neighbors_dir, 'fov1',
+            spatial_analysis.compute_mixing_score(cell_neighbors_mat, 'fov1',
                                                   target_cells=['cell1'],
-                                                  reference_cells=['cell1'])
+                                                  reference_cells=['cell1']
+                                                  mixing_type='homogeneous')
 
         with pytest.raises(ValueError, match='Not all values given in list provided column'):
-            spatial_analysis.compute_mixing_score(cell_neighbors_dir, 'fov1',
+            spatial_analysis.compute_mixing_score(cell_neighbors_mat, 'fov1',
                                                   target_cells=['cell1'],
-                                                  reference_cells=['cell2'], cell_col='bad_column')
+                                                  reference_cells=['cell2'], 
+                                                  mixing_type='homogeneous',cell_col='bad_column')
+        with pytest.raises(ValueError, match='Please provide a valid mixing_type'):
+            spatial_analysis.compute_mixing_score(cell_neighbors_mat, 'fov1',
+                                                  target_cells=['cell1'],
+                                                  reference_cells=['cell2'], mixing_type='bad')
 
         # check that extra cell type is ignored
         score = spatial_analysis.compute_mixing_score(
-            cell_neighbors_dir, 'fov1', target_cells=['cell1', 'cell3', 'cell_not_in_fov'],
-            reference_cells=['cell2'])
+            cell_neighbors_mat, 'fov1', target_cells=['cell1', 'cell3', 'cell_not_in_fov'],
+            reference_cells=['cell2'], mixing_type='homogeneous')
         assert score == 3 / 12
 
-        # test success
+        # test homogeneous mixing
         score = spatial_analysis.compute_mixing_score(
-            cell_neighbors_dir, 'fov1', target_cells=['cell1', 'cell3'],
-            reference_cells=['cell2'])
+            cell_neighbors_mat, 'fov1', target_cells=['cell1', 'cell3'], reference_cells=['cell2'],
+            mixing_type='homogeneous')
         assert score == 3/12
 
-        # test reference threshold
-        cold_score = spatial_analysis.compute_mixing_score(
-            cell_neighbors_dir, 'fov1', target_cells=['cell1'], reference_cells=['cell2'],
-            reference_ratio=0.5)
-        assert math.isnan(cold_score)
+        # test percent mixing
+        score = spatial_analysis.compute_mixing_score(
+            cell_neighbors_mat, 'fov1', target_cells=['cell1', 'cell3'], reference_cells=['cell2'],
+            mixing_type='percent')
+        assert score == 3 / 9
 
-        # test target threshold
+        # test ratio threshold
         cold_score = spatial_analysis.compute_mixing_score(
-            cell_neighbors_dir, 'fov1', target_cells=['cell1'], reference_cells=['cell2'],
-            target_ratio=0.5)
+            cell_neighbors_mat, 'fov1', target_cells=['cell1'], reference_cells=['cell2'],
+            ratio_threshold=0.5, mixing_type='homogeneous')
         assert math.isnan(cold_score)
 
         # test cell count threshold
         cold_score = spatial_analysis.compute_mixing_score(
-            cell_neighbors_dir, 'fov1', target_cells=['cell1'], reference_cells=['cell2'],
-            cell_count_thresh=5)
+            cell_neighbors_mat, 'fov1', target_cells=['cell1'], reference_cells=['cell2'],
+            cell_count_thresh=5, mixing_type='homogeneous')
         assert math.isnan(cold_score)
 
         # check zero cells denominator
         cold_score = spatial_analysis.compute_mixing_score(
-            cell_neighbors_dir, 'fov1', target_cells=['cell4'], reference_cells=['cell2'],
-            cell_count_thresh=0)
+            cell_neighbors_mat, 'fov1', target_cells=['cell4'], reference_cells=['cell2'],
+            cell_count_thresh=0, mixing_type='homogeneous')
         assert math.isnan(cold_score)
