@@ -632,14 +632,14 @@ def test_compute_mixing_score():
                                              'the target and reference populations'):
             spatial_analysis.compute_mixing_score(cell_neighbors_mat, 'fov1',
                                                   target_cells=['cell1'],
-                                                  reference_cells=['cell1']
+                                                  reference_cells=['cell1'],
                                                   mixing_type='homogeneous')
 
         with pytest.raises(ValueError, match='Not all values given in list provided column'):
             spatial_analysis.compute_mixing_score(cell_neighbors_mat, 'fov1',
                                                   target_cells=['cell1'],
                                                   reference_cells=['cell2'], 
-                                                  mixing_type='homogeneous',cell_col='bad_column')
+                                                  mixing_type='homogeneous', cell_col='bad_column')
         with pytest.raises(ValueError, match='Please provide a valid mixing_type'):
             spatial_analysis.compute_mixing_score(cell_neighbors_mat, 'fov1',
                                                   target_cells=['cell1'],
