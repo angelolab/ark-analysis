@@ -589,6 +589,9 @@ class Test_Mixing_Score():
     def test_cell_neighbors(self):
         self.tb.execute_cell("cell_neighbors")
 
+    def test_mixing_type(self):
+        self.tb.execute_cell("mixing_type")
+
     def test_cell_types(self):
         self.tb.execute_cell("cell_types")
 
