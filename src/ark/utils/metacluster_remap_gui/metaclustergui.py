@@ -122,7 +122,7 @@ class MetaClusterGui():
         self.fig.canvas.mpl_connect('pick_event', self.onpick)
 
         # heatmaps
-        self.normalizer = ZScoreNormalize(-3, 0, 3)
+        self.normalizer = ZScoreNormalize(-1, 0, 1)
 
         def _heatmap(ax, column_count):
             data = np.zeros((self.mcd.marker_count, column_count))
@@ -384,6 +384,8 @@ class MetaClusterGui():
         def _preplot(df):
             return df.apply(zscore).clip(upper=self.zscore_clamp_slider.value).T
 
+        self.normalizer.calibrate(_preplot(self.mcd.clusters).values)
+
         # clusters heatmap
         self.im_c.set_data(_preplot(self.mcd.clusters))
         self.im_c.set_extent((0, self.mcd.cluster_count, 0, self.mcd.marker_count))
@@ -393,6 +395,21 @@ class MetaClusterGui():
         self.im_m.set_data(_preplot(self.mcd.metaclusters))
         self.im_m.set_extent((0, self.mcd.metacluster_count, 0, self.mcd.marker_count))
         self.im_m.set_clim(self.normalizer.vmin, self.normalizer.vmax)
+
+        # retrieve the current value of the zscore sliders
+        zscore_cap = self.zscore_clamp_slider.value
+
+        # due to delays, a zscore_cap modulo of 1 also needs to be considered here
+        # due to floating point error, allclose must be used
+        if np.allclose(zscore_cap % 1, 0) or np.allclose(zscore_cap % 1, 1):
+            new_ticks = np.arange(-zscore_cap, zscore_cap + 1)
+        else:
+            # fractional intervals are always in increments of 1/2
+            new_ticks = np.arange(-zscore_cap + 0.5, zscore_cap - 0.5 + 1)
+            new_ticks = np.insert(new_ticks, 0, -zscore_cap)
+            new_ticks = np.append(new_ticks, zscore_cap)
+
+        self.cb.ax.set_xticks(new_ticks)
 
         # xaxis metacluster color labels
         assert len(self.mcd.metaclusters.index) <= self.mcd.cluster_count, \
