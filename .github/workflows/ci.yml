@@ -1,0 +1,48 @@
+name: Build, Lint and Test
+
+on:
+  push:
+    branches:
+      - "main"
+  pull_request:
+    types: [labeled, opened, synchronize, reopened]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read # to fetch code (actions/checkout)
+
+jobs:
+  build_lint_test:
+    permissions:
+      contents: read
+      pull-requests: write
+    name: Build, Lint and Test
+    secrets: inherit
+    uses: ./.github/workflows/test.yml
+
+
+  upload_coverage:
+    needs: [build_lint_test]
+    name: Upload Coverage
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout ${{github.repository }}
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Download Coverage Artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: coverage
+          path: coverage
+
+      - name: Upload Coverage to Coveralls
+        uses: coverallsapp/github-action@master
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path-to-lcov: ${{ github.workspace }}/coverage/coverage.lcov
