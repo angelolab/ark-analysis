@@ -9,7 +9,7 @@ import xarray as xr
 from skimage.morphology import erosion
 from alpineer import image_utils, misc_utils
 from alpineer.test_utils import (create_paired_xarray_fovs, gen_fov_chan_names,
-                            make_images_xarray, make_labels_xarray)
+                                 make_images_xarray, make_labels_xarray)
 
 import ark.settings as settings
 from ark.segmentation import marker_quantification
