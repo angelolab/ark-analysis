@@ -11,13 +11,11 @@ import natsort
 import numpy as np
 import pandas as pd
 import xarray as xr
-import skimage.io as io
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from skimage.exposure import rescale_intensity
 from skimage.segmentation import find_boundaries
 from tmi import io_utils, load_utils, misc_utils
 from tmi.settings import EXTENSION_TYPES
-import ark.settings as settings
 
 
 def plot_neighborhood_cluster_result(img_xr, fovs, k, save_dir=None, cmap_name='tab20',
@@ -195,7 +193,7 @@ def plot_pixel_cell_cluster_overlay(img_xr, fovs, cluster_id_to_name_path, metac
         plt.axis('off')
 
         # remove the gridlines
-        plt.grid(b=None)
+        plt.grid(visible=False)
 
         # define the colorbar with annotations
         cax = fig.add_axes([0.9, 0.1, 0.01, 0.8])
