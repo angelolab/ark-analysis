@@ -1,4 +1,5 @@
 import os
+import warnings
 import seaborn as sns
 from itertools import combinations_with_replacement
 
@@ -533,7 +534,7 @@ def create_neighborhood_matrix(all_data, dist_mat_dir, included_fovs=None, distl
         fov_cluster_names = current_fov_neighborhood_data[cluster_name_col].drop_duplicates()
 
         # Retrieve fov-specific distance matrix from distance matrix dictionary
-        dist_matrix = xr.load_dataarray(os.path.join(dist_mat_dir, fov + '_dist_mat.xr'))
+        dist_matrix = xr.load_dataarray(os.path.join(dist_mat_dir, str(fov) + '_dist_mat.xr'))
 
         # Get cell_neighbor_counts and cell_neighbor_freqs for fovs
         counts, freqs = spatial_analysis_utils.compute_neighbor_counts(
@@ -546,9 +547,16 @@ def create_neighborhood_matrix(all_data, dist_mat_dir, included_fovs=None, distl
 
     # Remove cells that have no neighbors within the distlim
     if not mixing:
+        total_cell_count = cell_neighbor_counts.shape[0]
         keep_cells = cell_neighbor_counts.drop([fov_col, cell_label_col], axis=1).sum(axis=1) != 0
         cell_neighbor_counts = cell_neighbor_counts.loc[keep_cells].reset_index(drop=True)
         cell_neighbor_freqs = cell_neighbor_freqs.loc[keep_cells].reset_index(drop=True)
+        # issue warning if more than 5% of cells are dropped
+        if (cell_neighbor_counts.shape[0] / total_cell_count) < 0.95:
+            warnings.warn(UserWarning("More than 5% of cells have no neighbor within the provided "
+                                      "radius and have been omitted. We suggest increasing the "
+                                      "distlim value to reduce the number of cells excluded from "
+                                      "analysis."))
 
     return cell_neighbor_counts, cell_neighbor_freqs
 

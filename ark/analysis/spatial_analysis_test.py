@@ -453,6 +453,12 @@ def test_create_neighborhood_matrix():
         assert not (len(counts[(counts[settings.FOV_ID] == "fov8") &
                                (counts[settings.CELL_LABEL].isin(range(21, 80)))]) == 0)
 
+        # check too many cells dropped issues warning
+        with pytest.warns(UserWarning, match="More than 5% of cells"):
+            counts, freqs = spatial_analysis.create_neighborhood_matrix(
+                all_data_pos, dist_mat_dir, distlim=52
+            )
+
 
 def test_generate_cluster_matrix_results():
     excluded_channels = ["Background", "HH3", "summed_channel"]
