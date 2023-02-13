@@ -1,0 +1,48 @@
+name: Test
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read # to fetch code (actions/checkout)
+jobs:
+  test:
+    name: Test ${{ github.repository }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout ${{ github.repository }}
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.8
+          cache-dependency-path: "**/pyproject.toml"
+          cache: "pip"
+      
+      - name: Get Example Dataset Cache
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/huggingface/datasets
+          key: huggingface-${{ runner.os }}-${{ hashFiles('*.lock') }}
+          restore-keys: |
+            huggingface-${{ runner.os }}-${{ hashFiles('*.lock') }}
+            huggingface-${{ runner.os }}
+
+      - name: Install Dependencies and ${{ github.repository }}
+        run: |
+          pip install .[test]
+
+      - name: Run Tests
+        run: |
+          pytest
+
+      - name: Archive Coverage
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage
+          path: |
+            coverage.lcov

@@ -16,17 +16,16 @@ permissions:
   contents: read # to fetch code (actions/checkout)
 
 jobs:
-  build_lint_test:
+  test:
     permissions:
       contents: read
       pull-requests: write
-    name: Build, Lint and Test
+    name: Test
     secrets: inherit
     uses: ./.github/workflows/test.yml
 
-
   upload_coverage:
-    needs: [build_lint_test]
+    needs: [test]
     name: Upload Coverage
     runs-on: ubuntu-latest
     steps:

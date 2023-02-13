@@ -1,5 +1,11 @@
 [build-system]
-requires = ["setuptools", "wheel", "Cython>=0.29.24,<1", "numpy>=1.16.3,<2"]
+requires = [
+    "setuptools",
+    "wheel",
+    "Cython>=0.29.24,<1",
+    "numpy>=1.16.3,<2",
+    "setuptools_scm[toml]>=6.2",
+]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -52,7 +58,7 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Bio-Informatics",
 
 ]
-version = "0.5.1"
+dynamic = ["version"]
 urls = { repository = "https://github.com/angelolab/ark-analysis" }
 
 [project.optional-dependencies]
@@ -69,6 +75,8 @@ test = [
     "pytest-asyncio",
     "testbook",
 ]
+
+[tool.setuptools_scm]
 
 
 [tool.cibuildwheel]
@@ -139,7 +147,7 @@ exclude_lines = [
     "except ImportError",
     "raise AssertionError",
     "raise NotImplementedError",
-    "(ArrowInvalid, OSError, IOError)"
+    "(ArrowInvalid, OSError, IOError)",
 ]
 
 # Pytest Options
