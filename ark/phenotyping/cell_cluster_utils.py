@@ -1,4 +1,6 @@
 import os
+import subprocess
+import warnings
 
 import feather
 import matplotlib.patches as patches
@@ -219,16 +221,25 @@ def compute_p2c_weighted_channel_avg(pixel_channel_avg, channels, cell_counts,
     if np.issubdtype(pixel_channel_avg[pixel_cluster_col].dtype, np.integer):
         pixel_channel_avg[pixel_cluster_col] = pixel_channel_avg[pixel_cluster_col].astype(str)
 
+    # sort the pixel channel average by pixel cluster col for standardization
+    # needed because the cell_counts_clusters columns are sorted by increasing pixel cluster
     pixel_channel_avg_sorted = pixel_channel_avg.sort_values(by=pixel_cluster_col)
 
-    # check that the same clusters are in both cell_counts_clusters and pixel_channel_avg_sorted
-    # the matrix multiplication will fail if this is not caught
+    # retrieve the pixel SOM clusters represented in the cell counts table
     cell_counts_cluster_ids = [
         x.replace(pixel_cluster_col + '_', '') for x in cell_counts_clusters.columns.values
     ]
 
+    # subset pixel channel cluster IDs on just the cell counts cluster IDs contained
+    pixel_channel_avg_sorted = pixel_channel_avg_sorted[
+        pixel_channel_avg_sorted[pixel_cluster_col].isin(cell_counts_cluster_ids)
+    ]
+
+    # retrieve the pixel cluster ids
     pixel_channel_cluster_ids = pixel_channel_avg_sorted[pixel_cluster_col].values
 
+    # extra sanity checking, the matrix multiplication will fail otherwise
+    # this should never fail, just as an added protection
     misc_utils.verify_same_elements(
         enforce_order=True,
         cell_counts_cluster_ids=cell_counts_cluster_ids,
@@ -383,6 +394,18 @@ def create_c2pc_data(fovs, pixel_data_path,
     # reset the indices of cell_table and cell_table_norm to make things consistent
     cell_table = cell_table.reset_index(drop=True)
     cell_table_norm = cell_table_norm.reset_index(drop=True)
+
+    # find columns that are set to all 0
+    cell_zero_cols = list(cell_table_norm[count_cols].columns[
+        (cell_table_norm[count_cols] == 0).all()
+    ].values)
+
+    # filter out these columns (they will cause normalization to fail)
+    if len(cell_zero_cols) > 0:
+        warnings.warn('Pixel clusters %s do not appear in any cells, removed from analysis' %
+                      ','.join(cell_zero_cols))
+        cell_table = cell_table.drop(columns=cell_zero_cols)
+        cell_table_norm = cell_table_norm.drop(columns=cell_zero_cols)
 
     return cell_table, cell_table_norm
 
