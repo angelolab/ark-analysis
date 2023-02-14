@@ -833,7 +833,6 @@ def test_cluster_cells(pixel_cluster_prefix):
 
         # assert we didn't assign any cluster 100 or above
         cluster_ids = cell_data_som_labels['cell_som_cluster']
-        print(cluster_ids)
         assert np.all(cluster_ids < 100)
 
         # assert we created the cell som count avgs file
