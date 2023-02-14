@@ -492,8 +492,8 @@ def create_neighborhood_matrix(all_data, dist_mat_dir, included_fovs=None, distl
         included_fovs = all_data[fov_col].unique()
 
     # Check if included fovs found in fov_col
-    '''misc_utils.verify_in_list(fov_names=included_fovs,
-                              unique_fovs=all_data[fov_col].unique())'''
+    misc_utils.verify_in_list(fov_names=included_fovs,
+                              unique_fovs=all_data[fov_col].unique())
 
     # Subset just the fov, label, and cell phenotype columns
     all_neighborhood_data = all_data[
