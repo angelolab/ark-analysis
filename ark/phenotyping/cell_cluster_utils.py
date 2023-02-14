@@ -417,7 +417,7 @@ def train_cell_som(fovs, channels, base_dir, pixel_data_dir, cell_table_path,
                    pc_chan_avg_name='pc_chan_avg.csv',
                    som_weights_name='cell_som_weights.feather',
                    weighted_cell_channel_name='weighted_cell_channel.feather',
-                   xdim=10, ydim=10, lr_start=0.05, lr_end=0.01, num_passes=1):
+                   xdim=10, ydim=10, lr_start=0.05, lr_end=0.01, num_passes=1, seed=42):
     """Run the SOM training on the number of pixel/meta clusters in each cell of each fov
 
     Saves the SOM weights to `base_dir/som_weights_name`. Computes and saves weighted
@@ -461,6 +461,8 @@ def train_cell_som(fovs, channels, base_dir, pixel_data_dir, cell_table_path,
             The end learning rate for the SOM, decays from `lr_start`
         num_passes (int):
             The number of training passes to make through the dataset
+        seed (int):
+            The random seed to use for training the SOM
 
     Returns:
         cluster_helpers.CellSOMCluster:
@@ -507,7 +509,8 @@ def train_cell_som(fovs, channels, base_dir, pixel_data_dir, cell_table_path,
     # define the cell SOM cluster object
     cell_pysom = cluster_helpers.CellSOMCluster(
         cluster_counts_size_norm_path, som_weights_path, fovs, cluster_count_cols,
-        num_passes=num_passes, xdim=xdim, ydim=ydim, lr_start=lr_start, lr_end=lr_end
+        num_passes=num_passes, xdim=xdim, ydim=ydim, lr_start=lr_start, lr_end=lr_end,
+        seed=seed
     )
 
     # train the SOM weights

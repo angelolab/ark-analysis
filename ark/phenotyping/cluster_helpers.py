@@ -58,12 +58,14 @@ class PixieSOMCluster(ABC):
                 The data with `columns` normalized by the values in `norm_data`
         """
 
-    def train_som(self, data: pd.DataFrame):
+    def train_som(self, data: pd.DataFrame, seed=42):
         """Trains the SOM on the data provided and saves the weights generated
 
         Args:
             data (pandas.DataFrame):
                 The input data to train the SOM on.
+            seed (int):
+                The random seed to use.
         """
 
         som_weights = som(
@@ -118,7 +120,7 @@ class PixelSOMCluster(PixieSOMCluster):
     def __init__(self, pixel_subset_folder: pathlib.Path, norm_vals_path: pathlib.Path,
                  weights_path: pathlib.Path, fovs: List[str], columns: List[str],
                  num_passes: int = 1, xdim: int = 10, ydim: int = 10,
-                 lr_start: float = 0.05, lr_end: float = 0.01):
+                 lr_start: float = 0.05, lr_end: float = 0.01, seed=42):
         """Creates a pixel SOM cluster object derived from the abstract PixieSOMCluster
 
         Args:
@@ -141,7 +143,9 @@ class PixelSOMCluster(PixieSOMCluster):
             lr_start (float):
                 The initial learning rate.
             lr_end (float):
-                The learning rate to decay to
+                The learning rate to decay to.
+            seed (int):
+                The random seed to use.
         """
         super().__init__(
             weights_path, columns, num_passes, xdim, ydim, lr_start, lr_end
@@ -155,6 +159,9 @@ class PixelSOMCluster(PixieSOMCluster):
 
         # define the fovs used
         self.fovs = fovs
+
+        # define the seed
+        self.seed = seed
 
         # list all the files in pixel_subset_folder and load them to train_data
         fov_files = list_files(pixel_subset_folder, substrs='.feather')
@@ -206,7 +213,7 @@ class PixelSOMCluster(PixieSOMCluster):
             # notify the user that different markers specified
             warnings.warn('New markers specified, retraining')
 
-        super().train_som(self.train_data[self.columns])
+        super().train_som(self.train_data[self.columns], self.seed)
 
     def assign_som_clusters(self, external_data: pd.DataFrame) -> pd.DataFrame:
         """Assigns SOM clusters using `weights` to a dataset
@@ -232,7 +239,8 @@ class PixelSOMCluster(PixieSOMCluster):
 class CellSOMCluster(PixieSOMCluster):
     def __init__(self, cell_data_path: pathlib.Path, weights_path: pathlib.Path,
                  fovs: List[str], columns: List[str], num_passes: int = 1,
-                 xdim: int = 10, ydim: int = 10, lr_start: float = 0.05, lr_end: float = 0.01):
+                 xdim: int = 10, ydim: int = 10, lr_start: float = 0.05, lr_end: float = 0.01,
+                 seed=42):
         """Creates a cell SOM cluster object derived from the abstract PixieSOMCluster
 
         Args:
@@ -253,7 +261,9 @@ class CellSOMCluster(PixieSOMCluster):
             lr_start (float):
                 The initial learning rate.
             lr_end (float):
-                The learning rate to decay to
+                The learning rate to decay to.
+            seed (int):
+                The random seed to use.
         """
         super().__init__(
             weights_path, columns, num_passes, xdim, ydim, lr_start, lr_end
@@ -268,6 +278,9 @@ class CellSOMCluster(PixieSOMCluster):
 
         # define the fovs used
         self.fovs = fovs
+
+        # define the random seed
+        self.seed = seed
 
         # subset cell_data on just the FOVs specified
         self.cell_data = self.cell_data[self.cell_data['fov'].isin(self.fovs)]
@@ -306,7 +319,7 @@ class CellSOMCluster(PixieSOMCluster):
             # notify the user that different columns specified
             warnings.warn('New columns specified, retraining')
 
-        super().train_som(self.cell_data[self.columns])
+        super().train_som(self.cell_data[self.columns], self.seed)
 
     def assign_som_clusters(self) -> pd.DataFrame:
         """Assigns SOM clusters using `weights` to `cell_data`
