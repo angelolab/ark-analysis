@@ -929,7 +929,7 @@ def train_pixel_som(fovs, channels, base_dir,
 
     # define the pixel SOM cluster object
     pixel_pysom = cluster_helpers.PixelSOMCluster(
-        subsetted_path, norm_vals_path, som_weights_path, channels,
+        subsetted_path, norm_vals_path, som_weights_path, fovs, channels,
         num_passes=num_passes, xdim=xdim, ydim=ydim, lr_start=lr_start, lr_end=lr_end
     )
 
@@ -1051,6 +1051,9 @@ def cluster_pixels(fovs, channels, base_dir, pixel_pysom, data_dir='pixel_mat_da
 
     # only assign SOM clusters to FOVs that don't already have them
     fovs_list = find_fovs_missing_col(base_dir, data_dir, 'pixel_som_cluster')
+
+    # make sure fovs_list only contain fovs that exist in the master fovs list specified
+    fovs_list = list(set(fovs_list).intersection(fovs))
 
     # if there are no FOVs left without SOM labels don't run function
     if len(fovs_list) == 0:
@@ -1246,6 +1249,9 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
 
     # only assign meta clusters to FOVs that don't already have them
     fovs_list = find_fovs_missing_col(base_dir, data_dir, 'pixel_meta_cluster')
+
+    # make sure fovs_list only contain fovs that exist in the master fovs list specified
+    fovs_list = list(set(fovs_list).intersection(fovs))
 
     # if there are no FOVs left without meta labels don't run function
     if len(fovs_list) == 0:

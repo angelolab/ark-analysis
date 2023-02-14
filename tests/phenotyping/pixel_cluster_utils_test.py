@@ -1362,7 +1362,7 @@ def test_run_pixel_som_assignment():
         # define example PixelSOMCluster object
         sample_pixel_cc = cluster_helpers.PixelSOMCluster(
             os.path.join(temp_dir, 'pixel_mat_data'), sample_norm_vals_path,
-            sample_som_weights_path, chans
+            sample_som_weights_path, fovs, chans
         )
 
         fov_status = pixel_cluster_utils.run_pixel_som_assignment(
@@ -1468,13 +1468,14 @@ def test_cluster_pixels_base(multiprocess):
         with pytest.raises(ValueError):
             pixel_pysom_bad = cluster_helpers.PixelSOMCluster(
                 os.path.join(temp_dir, 'pixel_mat_data'), norm_vals_path,
-                'bad_path.feather', chan_list
+                'bad_path.feather', fovs, chan_list
             )
             pixel_cluster_utils.cluster_pixels(fovs, chan_list, temp_dir, pixel_pysom_bad)
 
         # create a sample PixelSOMCluster object
         pixel_pysom = cluster_helpers.PixelSOMCluster(
-            os.path.join(temp_dir, 'pixel_mat_data'), norm_vals_path, som_weights_path, chan_list
+            os.path.join(temp_dir, 'pixel_mat_data'), norm_vals_path, som_weights_path,
+            fovs, chan_list
         )
 
         # run SOM cluster assignment
@@ -1505,7 +1506,7 @@ def test_cluster_pixels_corrupt(multiprocess, capsys):
 
         # create a sample PixelSOMCluster object
         pixel_pysom = cluster_helpers.PixelSOMCluster(
-            os.path.join(temp_dir, 'pixel_mat_data'), norm_vals_path, som_weights_path, chans
+            os.path.join(temp_dir, 'pixel_mat_data'), norm_vals_path, som_weights_path, fovs, chans
         )
 
         # corrupt a fov for this test
@@ -1566,13 +1567,13 @@ def test_generate_som_avg_files(capsys):
         # error test: weights not assigned to PixelSOMCluster object
         with pytest.raises(ValueError):
             pixel_pysom_bad = cluster_helpers.PixelSOMCluster(
-                pixel_data_path, norm_vals_path, 'bad_path.feather', chan_list
+                pixel_data_path, norm_vals_path, 'bad_path.feather', fovs, chan_list
             )
             pixel_cluster_utils.generate_som_avg_files(fovs, chan_list, temp_dir, pixel_pysom_bad)
 
         # define an example PixelSOMCluster object
         pixel_pysom = cluster_helpers.PixelSOMCluster(
-            pixel_data_path, norm_vals_path, weights_path, chan_list
+            pixel_data_path, norm_vals_path, weights_path, fovs, chan_list
         )
 
         # test base generation with all subsetted FOVs

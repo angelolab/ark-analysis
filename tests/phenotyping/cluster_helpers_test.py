@@ -99,14 +99,14 @@ def pixel_pyflowsom_object(pixel_som_base_dir) -> Iterator[
     # define a PixelSOMCluster object with weights
     pixel_som_with_weights = PixelSOMCluster(
         pixel_subset_folder=pixel_sub_path, norm_vals_path=norm_vals_path,
-        weights_path=weights_path, columns=channels, xdim=20, ydim=10
+        weights_path=weights_path, fovs=fovs, columns=channels, xdim=20, ydim=10
     )
 
     # define a PixelSOMCluster object without weights
     pixel_som_sans_weights = PixelSOMCluster(
         pixel_subset_folder=pixel_sub_path, norm_vals_path=norm_vals_path,
         weights_path=pixel_som_base_dir / 'weights_new.feather',
-        columns=channels, xdim=20, ydim=10
+        fovs=fovs[:2], columns=channels, xdim=20, ydim=10
     )
 
     yield pixel_som_with_weights, pixel_som_sans_weights
@@ -154,13 +154,13 @@ def cell_pyflowsom_object(cell_som_base_dir) -> Iterator[
     # define a CellSOMCluster object with weights
     cell_som_with_weights = CellSOMCluster(
         cell_data_path=cell_data_path, weights_path=weights_path,
-        columns=count_cols, xdim=20, ydim=10
+        fovs=['fov0', 'fov1'], columns=count_cols, xdim=20, ydim=10
     )
 
     # define a CellSOMCluster object without weights
     cell_som_sans_weights = CellSOMCluster(
         cell_data_path=cell_data_path, weights_path=cell_som_base_dir / 'weights_new.feather',
-        columns=count_cols, xdim=20, ydim=10
+        fovs=['fov0'], columns=count_cols, xdim=20, ydim=10
     )
 
     yield cell_som_with_weights, cell_som_sans_weights
