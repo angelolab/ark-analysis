@@ -77,7 +77,7 @@ test = [
 ]
 
 [tool.setuptools_scm]
-
+version_scheme = "release-branch-semver"
 
 [tool.cibuildwheel]
 build = ["cp38-*"]
