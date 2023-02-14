@@ -506,7 +506,7 @@ def train_cell_som(fovs, channels, base_dir, pixel_data_dir, cell_table_path,
 
     # define the cell SOM cluster object
     cell_pysom = cluster_helpers.CellSOMCluster(
-        cluster_counts_size_norm_path, som_weights_path, cluster_count_cols,
+        cluster_counts_size_norm_path, som_weights_path, fovs, cluster_count_cols,
         num_passes=num_passes, xdim=xdim, ydim=ydim, lr_start=lr_start, lr_end=lr_end
     )
 
