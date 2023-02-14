@@ -458,8 +458,8 @@ def calculate_cluster_spatial_enrichment(fov, all_data, dist_matrix, included_fo
 
 
 def create_neighborhood_matrix(all_data, dist_mat_dir, included_fovs=None, distlim=50,
-                               self_neighbor=False, mixing=False,
-                               fov_col=settings.FOV_ID, cell_label_col=settings.CELL_LABEL,
+                               self_neighbor=False, fov_col=settings.FOV_ID,
+                               cell_label_col=settings.CELL_LABEL,
                                cluster_name_col=settings.CELL_TYPE):
     """Calculates the number of neighbor phenotypes for each cell.
 
@@ -474,8 +474,6 @@ def create_neighborhood_matrix(all_data, dist_mat_dir, included_fovs=None, distl
             cell proximity threshold. Default is 50.
         self_neighbor (bool):
             If true, cell counts itself as a neighbor in the analysis. Default is False.
-        mixing (bool):
-            if for mixing score, cell types needed and single cells will not be dropped
         fov_col (str):
             column with the cell fovs.
         cell_label_col (str):
@@ -494,8 +492,8 @@ def create_neighborhood_matrix(all_data, dist_mat_dir, included_fovs=None, distl
         included_fovs = all_data[fov_col].unique()
 
     # Check if included fovs found in fov_col
-    misc_utils.verify_in_list(fov_names=included_fovs,
-                              unique_fovs=all_data[fov_col].unique())
+    '''misc_utils.verify_in_list(fov_names=included_fovs,
+                              unique_fovs=all_data[fov_col].unique())'''
 
     # Subset just the fov, label, and cell phenotype columns
     all_neighborhood_data = all_data[
@@ -506,10 +504,7 @@ def create_neighborhood_matrix(all_data, dist_mat_dir, included_fovs=None, distl
     # Get the total number of phenotypes
     cluster_num = len(cluster_names)
 
-    if mixing:
-        included_columns = [fov_col, cell_label_col, cluster_name_col]
-    else:
-        included_columns = [fov_col, cell_label_col]
+    included_columns = [fov_col, cell_label_col, cluster_name_col]
 
     # Initialize empty matrices for cell neighborhood data
     cell_neighbor_counts = pd.DataFrame(
@@ -546,17 +541,16 @@ def create_neighborhood_matrix(all_data, dist_mat_dir, included_fovs=None, distl
         cell_neighbor_freqs.loc[current_fov_neighborhood_data.index, fov_cluster_names] = freqs
 
     # Remove cells that have no neighbors within the distlim
-    if not mixing:
-        total_cell_count = cell_neighbor_counts.shape[0]
-        keep_cells = cell_neighbor_counts.drop([fov_col, cell_label_col], axis=1).sum(axis=1) != 0
-        cell_neighbor_counts = cell_neighbor_counts.loc[keep_cells].reset_index(drop=True)
-        cell_neighbor_freqs = cell_neighbor_freqs.loc[keep_cells].reset_index(drop=True)
-        # issue warning if more than 5% of cells are dropped
-        if (cell_neighbor_counts.shape[0] / total_cell_count) < 0.95:
-            warnings.warn(UserWarning("More than 5% of cells have no neighbor within the provided "
-                                      "radius and have been omitted. We suggest increasing the "
-                                      "distlim value to reduce the number of cells excluded from "
-                                      "analysis."))
+    total_cell_count = cell_neighbor_counts.shape[0]
+    keep_cells = cell_neighbor_counts.drop([fov_col, cell_label_col], axis=1).sum(axis=1) != 0
+    cell_neighbor_counts = cell_neighbor_counts.loc[keep_cells].reset_index(drop=True)
+    cell_neighbor_freqs = cell_neighbor_freqs.loc[keep_cells].reset_index(drop=True)
+    # issue warning if more than 5% of cells are dropped
+    if (cell_neighbor_counts.shape[0] / total_cell_count) < 0.95:
+        warnings.warn(UserWarning("More than 5% of cells have no neighbor within the provided "
+                                  "radius and have been omitted. We suggest increasing the "
+                                  "distlim value to reduce the number of cells excluded from "
+                                  "analysis."))
 
     return cell_neighbor_counts, cell_neighbor_freqs
 
@@ -631,7 +625,7 @@ def generate_cluster_matrix_results(all_data, neighbor_mat, cluster_num, seed=42
 
     # subset neighbor mat
     neighbor_mat_data_all = neighbor_mat[neighbor_mat[fov_col].isin(included_fovs)]
-    neighbor_mat_data = neighbor_mat_data_all.drop([fov_col, label_col], axis=1)
+    neighbor_mat_data = neighbor_mat_data_all.drop([fov_col, label_col, cell_type_col], axis=1)
 
     # generate cluster labels
     cluster_labels = spatial_analysis_utils.generate_cluster_labels(
@@ -681,7 +675,7 @@ def generate_cluster_matrix_results(all_data, neighbor_mat, cluster_num, seed=42
 
 def compute_cluster_metrics_inertia(neighbor_mat, min_k=2, max_k=10, seed=42,
                                     included_fovs=None, fov_col=settings.FOV_ID,
-                                    label_col=settings.CELL_LABEL):
+                                    label_col=settings.CELL_LABEL, cell_col=settings.CELL_TYPE):
     """Produce k-means clustering metrics to help identify optimal number of clusters using
        inertia
 
@@ -700,6 +694,8 @@ def compute_cluster_metrics_inertia(neighbor_mat, min_k=2, max_k=10, seed=42,
             the name of the column in neighbor_mat indicating the fov
         label_col (str):
             the name of the column in neighbor_mat indicating the label
+        cell_col (str):
+            column with the cell phenotpype
 
     Returns:
         xarray.DataArray:
@@ -722,7 +718,7 @@ def compute_cluster_metrics_inertia(neighbor_mat, min_k=2, max_k=10, seed=42,
 
     # subset neighbor_mat accordingly, and drop the columns we don't need
     neighbor_mat_data = neighbor_mat[neighbor_mat[fov_col].isin(included_fovs)]
-    neighbor_mat_data = neighbor_mat_data.drop([fov_col, label_col], axis=1)
+    neighbor_mat_data = neighbor_mat_data.drop([fov_col, label_col, cell_col], axis=1)
 
     # generate the cluster score information
     neighbor_cluster_stats = spatial_analysis_utils.compute_kmeans_inertia(
@@ -733,7 +729,8 @@ def compute_cluster_metrics_inertia(neighbor_mat, min_k=2, max_k=10, seed=42,
 
 def compute_cluster_metrics_silhouette(neighbor_mat, min_k=2, max_k=10, seed=42,
                                        included_fovs=None, fov_col=settings.FOV_ID,
-                                       label_col=settings.CELL_LABEL, subsample=None):
+                                       label_col=settings.CELL_LABEL, cell_col=settings.CELL_TYPE,
+                                       subsample=None):
     """Produce k-means clustering metrics to help identify optimal number of clusters using
        Silhouette score
 
@@ -752,6 +749,8 @@ def compute_cluster_metrics_silhouette(neighbor_mat, min_k=2, max_k=10, seed=42,
             the name of the column in neighbor_mat indicating the fov
         label_col (str):
             the name of the column in neighbor_mat indicating the label
+        cell_col (str):
+            column with the cell phenotype
         subsample (int):
             the number of cells that will be sampled from each neighborhood cluster for
             calculating Silhouette score
@@ -778,7 +777,7 @@ def compute_cluster_metrics_silhouette(neighbor_mat, min_k=2, max_k=10, seed=42,
 
     # subset neighbor_mat accordingly, and drop the columns we don't need
     neighbor_mat_data = neighbor_mat[neighbor_mat[fov_col].isin(included_fovs)]
-    neighbor_mat_data = neighbor_mat_data.drop([fov_col, label_col], axis=1)
+    neighbor_mat_data = neighbor_mat_data.drop([fov_col, label_col, cell_col], axis=1)
 
     # generate the cluster score information
     neighbor_cluster_stats = spatial_analysis_utils.compute_kmeans_silhouette(
@@ -806,7 +805,7 @@ def compute_cell_ratios(neighbors_mat, target_cells, reference_cells, fov_list, 
         bin_number (int):
             number of bins to use in histogram
         cell_col (str):
-            column with the cell cluster
+            column with the cell phenotype
         fov_col (str):
             column with the fovs
         label_col (str):
@@ -886,7 +885,7 @@ def compute_mixing_score(fov_neighbors_mat, fov, target_cells, reference_cells, 
             minimum number of cells in each population to calculate a mixing score,
             under this labeled "cold"
         cell_col (str):
-            column with the cell cluster
+            column with the cell phenotype
         fov_col (str):
             column with the fovs
         label_col (str):
