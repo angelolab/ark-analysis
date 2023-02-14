@@ -671,9 +671,6 @@ def test_create_fov_pixel_data():
         # assert all rows sum to 1 (within tolerance because of floating-point errors)
         assert np.all(np.allclose(sample_pixel_mat.loc[:, chans].sum(axis=1).values, 1))
 
-        # assert we successfully filtered out pixels below pixel_thresh_val
-        assert sample_pixel_mat.shape[0] < (sample_img_data.shape[0] * sample_img_data.shape[1])
-
         # assert the size of the subsetted DataFrame is less than 0.1 of the preprocessed DataFrame
         # NOTE: need to account for rounding if multiplying by 0.1 leads to non-int
         assert round(sample_pixel_mat.shape[0] * 0.1) == sample_pixel_mat_subset.shape[0]

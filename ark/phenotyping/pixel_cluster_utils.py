@@ -470,10 +470,6 @@ def create_fov_pixel_data(fov, channels, img_data, seg_labels, pixel_thresh_val,
         seg_labels_flat = seg_labels.flatten()
         pixel_mat['segmentation_label'] = seg_labels_flat
 
-    # remove any rows with channels with a sum below the threshold
-    rowsums = pixel_mat[channels].sum(axis=1)
-    pixel_mat = pixel_mat.loc[rowsums > pixel_thresh_val, :].reset_index(drop=True)
-
     # normalize the row sums of pixel mat
     pixel_mat = normalize_rows(pixel_mat, channels, seg_labels is not None)
 
@@ -553,13 +549,6 @@ def preprocess_fov(base_dir, tiff_dir, data_dir, subset_dir, seg_dir, seg_suffix
 
     # subset for the channel data
     img_data = img_xr.loc[fov, :, :, channels].values.astype(np.float32)
-
-    # create vector for normalizing image data
-    norm_vect = channel_norm_df.iloc[0].values
-    norm_vect = np.array(norm_vect).reshape([1, 1, len(norm_vect)])
-
-    # normalize image data
-    img_data = img_data / norm_vect
 
     # set seed for subsetting
     np.random.seed(seed)
