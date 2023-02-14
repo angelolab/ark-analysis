@@ -193,7 +193,7 @@ def plot_pixel_cell_cluster_overlay(img_xr, fovs, cluster_id_to_name_path, metac
         plt.axis('off')
 
         # remove the gridlines
-        plt.grid(b=None)
+        plt.grid(visible=False)
 
         # define the colorbar with annotations
         cax = fig.add_axes([0.9, 0.1, 0.01, 0.8])
