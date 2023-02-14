@@ -116,7 +116,7 @@ class PixieSOMCluster(ABC):
 
 class PixelSOMCluster(PixieSOMCluster):
     def __init__(self, pixel_subset_folder: pathlib.Path, norm_vals_path: pathlib.Path,
-                 weights_path: pathlib.Path, columns: List[str],
+                 weights_path: pathlib.Path, fovs: List[str], columns: List[str],
                  num_passes: int = 1, xdim: int = 10, ydim: int = 10,
                  lr_start: float = 0.05, lr_end: float = 0.01):
         """Creates a pixel SOM cluster object derived from the abstract PixieSOMCluster
@@ -128,6 +128,8 @@ class PixelSOMCluster(PixieSOMCluster):
                 The name of the feather file containing the normalization values.
             weights_path (pathlib.Path):
                 The path to save the weights to.
+            fovs (List[str]):
+                The list of FOVs to subset the data on.
             columns (List[str]):
                 The list of columns to subset the data on.
             num_passes (int):
@@ -151,10 +153,14 @@ class PixelSOMCluster(PixieSOMCluster):
         # load the normalization values in
         self.norm_data = feather.read_dataframe(norm_vals_path)
 
+        # define the fovs used
+        self.fovs = fovs
+
         # list all the files in pixel_subset_folder and load them to train_data
         fov_files = list_files(pixel_subset_folder, substrs='.feather')
         self.train_data = pd.concat(
-            [feather.read_dataframe(os.path.join(pixel_subset_folder, fov)) for fov in fov_files]
+            [feather.read_dataframe(os.path.join(pixel_subset_folder, fov)) for fov in fov_files
+             if os.path.splitext(fov)[0] in fovs]
         )
 
         # we can just normalize train_data now since that's what we'll be training on
@@ -190,10 +196,15 @@ class PixelSOMCluster(PixieSOMCluster):
     def train_som(self):
         """Trains the SOM using `train_data`
         """
-        # do not train SOM if weights already exist
+
         if self.weights is not None:
-            warnings.warn('Pixel SOM already trained')
-            return
+            # do not train SOM if weights already exist and the same markers used to train
+            if set(self.weights.columns.values) == set(self.columns):
+                warnings.warn('Pixel SOM already trained on specified markers')
+                return
+
+            # notify the user that different markers specified
+            warnings.warn('New markers specified, retraining')
 
         super().train_som(self.train_data[self.columns])
 
@@ -220,8 +231,8 @@ class PixelSOMCluster(PixieSOMCluster):
 
 class CellSOMCluster(PixieSOMCluster):
     def __init__(self, cell_data_path: pathlib.Path, weights_path: pathlib.Path,
-                 columns: List[str], num_passes: int = 1, xdim: int = 10, ydim: int = 10,
-                 lr_start: float = 0.05, lr_end: float = 0.01):
+                 fovs: List[str], columns: List[str], num_passes: int = 1,
+                 xdim: int = 10, ydim: int = 10, lr_start: float = 0.05, lr_end: float = 0.01):
         """Creates a cell SOM cluster object derived from the abstract PixieSOMCluster
 
         Args:
@@ -229,6 +240,8 @@ class CellSOMCluster(PixieSOMCluster):
                 The name of the cell dataset to use for training
             weights_path (pathlib.Path):
                 The path to save the weights to.
+            fovs (List[str]):
+                The list of FOVs to subset the data on.
             columns (List[str]):
                 The list of columns to subset the data on.
             num_passes (int):
@@ -253,6 +266,12 @@ class CellSOMCluster(PixieSOMCluster):
         # load the cell data in
         self.cell_data = feather.read_dataframe(cell_data_path)
 
+        # define the fovs used
+        self.fovs = fovs
+
+        # subset cell_data on just the FOVs specified
+        self.cell_data = self.cell_data[self.cell_data['fov'].isin(self.fovs)]
+
         # since cell_data is the only dataset, we can just normalize it immediately
         self.normalize_data()
 
@@ -265,7 +284,12 @@ class CellSOMCluster(PixieSOMCluster):
         """
         # only 99.9% normalize on the columns provided
         cell_data_sub = self.cell_data[self.columns].copy()
-        cell_data_sub = cell_data_sub.div(cell_data_sub.quantile(0.999))
+
+        # compute the 99.9% normalization values, ignoring zeros
+        cell_norm_vals = cell_data_sub.replace(0, np.nan).quantile(q=0.999, axis=0)
+
+        # divide cell_data_sub by normalization values
+        cell_data_sub = cell_data_sub.div(cell_norm_vals)
 
         # assign back to cell_data
         self.cell_data[self.columns] = cell_data_sub
@@ -273,10 +297,14 @@ class CellSOMCluster(PixieSOMCluster):
     def train_som(self):
         """Trains the SOM using `cell_data`
         """
-        # do not train SOM if weights already exist
         if self.weights is not None:
-            warnings.warn('Cell SOM already trained')
-            return
+            # do not train SOM if weights already exist and the same columns used to train
+            if set(self.weights.columns.values) == set(self.columns):
+                warnings.warn('Cell SOM already trained on specified columns')
+                return
+
+            # notify the user that different columns specified
+            warnings.warn('New columns specified, retraining')
 
         super().train_som(self.cell_data[self.columns])
 
