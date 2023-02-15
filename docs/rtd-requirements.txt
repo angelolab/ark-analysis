@@ -5,7 +5,7 @@ ipywidgets==7.7.2
 m2r2==0.3.3
 mistune==0.8.4
 mock==4.0.3
-nbsphinx==0.8.9
+nbsphinx==0.8.12
 nbsphinx-link==1.3.0
 recommonmark==0.7.1
 sphinx==5.1.1
