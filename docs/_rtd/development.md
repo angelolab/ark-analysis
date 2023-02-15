@@ -50,31 +50,6 @@ Say yes to any prompts and your `conda` environment will be created!
  
 To verify installation, activate your `conda` environment with `conda activate <my_env>`. If you see `(<my_env>)` on the far left of the command prompt, you have successfully created and activated your environment. Type `conda deactivate` to exit at any time.
 
-**Apple Silicon Installation**
-
-`Ark` now supports development with Apple Silicon.
-
-Currently there is not a native M1 implementation of ark-analysis for development, so it will need to go through Rosetta 2 (the Intel to Arm transition layer). Luckily, this isn't something you'll have to deal with, as `conda` makes it straightforward.
-
-1. Create a Python 3.8 `conda` environment called `my_env`.
-    ```sh
-    conda create -n <my_env> python=3.8
-    ```
-
-2. Test to make sure the `platform.machine()` function reports `arm64` in the terminal.
-    ```sh
-    conda activate <my_env>
-    python -c "import platform;print(platform.machine())"
-    ```
-
-3. Force `conda` commands to use Intel Mac packages.
-    ```
-    conda config --env --set subdir osx-64
-    ```
-4. The prompt may ask you to deactivate and reactivate the environment as well.
-
-Now any package that is installed in `my_env` will targeted for `arm64`.
-
 ### Setting up ark-analysis for development
 
 `ark` relies on several other Python packages. Inside the `ark-analysis` repo (if you don't have it, first run `git clone https://github.com/angelolab/ark-analysis.git`), and with your virtual environment activated, you will need to install these other dependencies as well. Run `pip install -r requirements.txt` to do so. 
@@ -115,8 +90,7 @@ Now notebooks can be `git diff`ed and `git commit`ed without having to copy chan
 
 ### Building Docker Images Locally
 
-It may be useful to be able to manually build a new Docker Image as features get added, changes made and libraries updated. This
-will allow you to test and experience bleeding edge changes, as they can't necessarily be adjusted in the `requirements.txt` file.
+It may be useful to be able to manually build a new Docker Image as features get added, changes made and libraries updated.
 Specifically, updating Python libraries requires building a new docker image from scratch. 
 
 
@@ -125,8 +99,7 @@ Once you are in `ark-analysis`, the Docker Image can be built with the following
 docker build -t ark-analysis .
 ``` 
 
-The docker image will now build and this process can take some time.
-
+The docker image will now build, and this process can take some time.
 
 ### More on xarrays
 
@@ -172,55 +145,3 @@ Finally, to save an `xarray` to a file, use:
 You can load the `xarray` back in using:
 
 `arr = xr.load_dataarray(path)`
-
-
-### Creating a New Release:
-
-There are several steps for creating a new Release of `Ark`. 
-The versioning format is:
-
-```
-MAJOR.MINOR.PATCH
-```
-
-For example, suppose that the current version is `A.B.C`, and we need to create a new release `X.Y.Z`. The following instructions describe this procedure.
-
-**Create a new PR with the following format as the branch name:**
-
-```
-next_release_vX.Y.Z
-```
-**In that branch:**
-1. Set the label for the PR to `dependencies`.
-1. Bump the `VERSION` Variable in `setup.py` to `X.Y.Z`. View the [draft release notes](https://github.com/angelolab/ark-analysis/releases) to read the current bugfixes, enhancements and more.
-   1. If, in the release notes draft there are PRs that are not categorized, label them appropriately (usually based on the label of their respective Issue).
-2. Make sure that all tests pass for `Ark` on Travis-CI. 
-3. In the `ark-analysis/start_docker.sh` script, change the `VERSION` variable from `vA.B.C` to `vX.Y.Z`
-4. In the [`REAMDME.md`](../../README.md#download-the-repo) adjust the `--branch` part of the `git clone` instruction to the new tag `v.X.Y.Z`.
-5. Modify the `.travis.yml` CI configuration script to allow `test_pypi_deploy` to run (comment the line `if: tag IS present`).
-6. Request a review and merge the `Ark` branch.
-7. Next head to the most recent Drafted Release Notes:
-   1. Double check that the tag is the appropriate version name.
-   2. Publish the Release.
-   3. Next the `Ark` will be pushed to PyPI and the Docker Image will be built on Travis CI. 
-
-**Test Changes on Toffy**
-1. Test the effects that changes in `Ark` have on `toffy` locally.
-   1. Install the new branch of `Ark` in your Python environment with 
-       ```
-       pip install -e <location/to/ark>
-       ```
-   2. **As needed**, sync with `toffy` and `mibi-bin-tools`
-      1. Update relevant packages in these repos, such as `scikit-image` or `xarray`.
-      2. Locally, test that the new version works with `toffy`
-      3. If there are errors in `toffy` fix them in a separate branch named:
-         ```
-         ark_vX.Y.Z_compatibility
-         ```
-   3. If necessary, change the version of ark-analysis in `toffy/requirements.txt`:
-      ```
-      git+https://github.com/angelolab/ark-analysis.git@vA.B.C -> git+https://github.com/angelolab/ark-analysis.git@vX.Y.Z
-      ```
-
-2. Once all errors have been ironed out create PRs for the respective changes in the effected repositories, and label them as `dependencies`.
-3. Merge the compatibility PRs.
