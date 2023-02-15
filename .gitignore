@@ -35,5 +35,5 @@ Pipfile.lock
 .python-version
 .coverage.*
 .DS_Store
-
+coverage.lcov
 data/*
