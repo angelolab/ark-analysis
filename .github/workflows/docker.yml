@@ -11,6 +11,7 @@ on:
     workflows: [Build Wheels and upload to PyPI]
     types:
       - completed
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -22,8 +23,17 @@ permissions:
 jobs:
   docker_build:
     name: Build the Docker Image
-    if: ${{ github.event.workflow_run.conclusion == 'success'}} &&
-      github.event_name == 'release' && github.event.action == 'published'
+    if: |
+      (
+        ${{ github.event.workflow_run.conclusion == 'success'}}
+        &&
+        ${{ github.event_name == 'release' && github.event.action == 'published' }}
+      )
+      ||
+      (
+        ${{ github.event_name == 'workflow_dispatch' }}
+      )
+      
     runs-on: ubuntu-latest
     steps:
       - name: Checkout ${{ github.repository }}
