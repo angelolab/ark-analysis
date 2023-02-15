@@ -140,7 +140,6 @@ def nbfib_seg_context(templates_dir, base_dir_generator) -> Iterator[ContextMana
         yield nb_context_manager, base_dir_generator / "efs"
 
 
-@pytest.mark.order(0)
 class Test_1_Segment_Image_Data:
     """
     Tests Notebook 1 - Segment Image Data for completion.
@@ -217,7 +216,6 @@ class Test_1_Segment_Image_Data:
         self.tb.execute_cell("save_exp_mat")
 
 
-@pytest.mark.order(1)
 class Test_2_Pixel_Clustering:
     """
     Tests Notebook 2 - Cluster Pixels for completion.
@@ -328,7 +326,6 @@ class Test_2_Pixel_Clustering:
         self.tb.execute_cell("pixel_mantis_project")
 
 
-@pytest.mark.order(2)
 class Test_3_Cell_Clustering:
     """
     Tests Notebook 3 - Cluster Cells for completion.
@@ -422,7 +419,6 @@ class Test_3_Cell_Clustering:
         self.tb.execute_cell("cell_mantis_project")
 
 
-@pytest.mark.order(3)
 class Test_4_Post_Clustering:
     """
     Tests Notebook 4 - Post Clustering for completion.
@@ -490,7 +486,6 @@ class Test_4_Post_Clustering:
         self.tb.execute_cell("cell_table_threshold")
 
 
-@pytest.mark.order(4)
 class Test_Fiber_Segmentation():
     """
     Tests Example Fiber Segmentation for completion.
