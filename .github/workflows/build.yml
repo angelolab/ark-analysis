@@ -1,0 +1,61 @@
+name: Wheel Builder
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read # to fetch code (actions/checkout)
+
+jobs:
+  build_wheels:
+    name: Build  ${{ github.repository }} wheels on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      # Ensure that a wheel builder finishes even if another fails
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-12]
+
+    steps:
+      - name: Checkout ${{ github.repository }}
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Set up QEMU (For Linux ARM)
+        if: runner.os == 'Linux'
+        uses: docker/setup-qemu-action@v2
+        with:
+          platforms: arm64
+
+      - name: Build Wheels
+        uses: pypa/cibuildwheel@v2.11.4
+        with:
+          package-dir: .
+          output-dir: wheelhouse
+          config-file: "{package}/pyproject.toml"
+
+      - name: Store Wheel Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: distributions
+          path: wheelhouse/*.whl
+
+  build_sdist:
+    name: Build ${{ github.repository }} Source Distribution
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout ${{ github.repository }}
+        uses: actions/checkout@v3
+
+      - name: Build sdist
+        run: pipx run build --sdist
+
+      - name: Check sdist Metadata
+        run: pipx run twine check dist/*
+
+      - name: Store sdist Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: distributions
+          path: dist/*.tar.gz
