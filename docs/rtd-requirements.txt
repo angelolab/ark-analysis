@@ -1,7 +1,7 @@
 commonmark==0.9.1
 docutils==0.19
 ipython==8.10.0
-ipywidgets==7.7.2
+ipywidgets==8.0.4
 m2r2==0.3.3
 mistune==0.8.4
 mock==4.0.3
