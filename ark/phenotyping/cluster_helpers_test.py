@@ -302,6 +302,17 @@ class TestPixelSOMCluster:
         with pytest.warns(UserWarning, match='Pixel SOM already trained on specified markers'):
             self.pixel_pysom_weights.train_som()
 
+    def test_train_som_overwrite(self):
+        with pytest.warns(UserWarning, match='Overwrite flag set, retraining SOM'):
+            weights_benchmark = deepcopy(self.pixel_pysom_nonweights.weights)
+
+            # overwrite the existing weights
+            self.pixel_pysom_nonweights.train_som(overwrite=True)
+
+            # load in the weights, and ensure the data matches
+            weights = feather.read_dataframe(self.pixel_pysom_nonweights.weights_path)
+            assert np.allclose(weights, weights_benchmark)
+
     def test_train_som_new_cols(self):
         # store old weights, train data, and columns, need to assign back afterwards
         old_weights = deepcopy(self.pixel_pysom_nonweights.weights)
@@ -394,6 +405,17 @@ class TestCellSOMCluster:
     def test_train_cell_som_restart(self):
         with pytest.warns(UserWarning, match='Cell SOM already trained'):
             self.cell_pysom_weights.train_som()
+
+    def test_train_som_overwrite(self):
+        with pytest.warns(UserWarning, match='Overwrite flag set, retraining SOM'):
+            weights_benchmark = deepcopy(self.cell_pysom_nonweights.weights)
+
+            # overwrite the existing weights
+            self.cell_pysom_nonweights.train_som(overwrite=True)
+
+            # load in the weights, and ensure the data matches
+            weights = feather.read_dataframe(self.cell_pysom_nonweights.weights_path)
+            assert np.allclose(weights, weights_benchmark)
 
     def test_train_som_new_cols(self):
         # store old weights, train data, and columns, need to assign back afterwards

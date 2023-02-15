@@ -417,7 +417,7 @@ def train_cell_som(fovs, channels, base_dir, pixel_data_dir, cell_table_path,
                    pc_chan_avg_name='pc_chan_avg.csv',
                    som_weights_name='cell_som_weights.feather',
                    weighted_cell_channel_name='weighted_cell_channel.feather',
-                   xdim=10, ydim=10, lr_start=0.05, lr_end=0.01, num_passes=1):
+                   xdim=10, ydim=10, lr_start=0.05, lr_end=0.01, num_passes=1, overwrite=False):
     """Run the SOM training on the number of pixel/meta clusters in each cell of each fov
 
     Saves the SOM weights to `base_dir/som_weights_name`. Computes and saves weighted
@@ -461,6 +461,8 @@ def train_cell_som(fovs, channels, base_dir, pixel_data_dir, cell_table_path,
             The end learning rate for the SOM, decays from `lr_start`
         num_passes (int):
             The number of training passes to make through the dataset
+        overwrite (bool):
+            If set, force retrains the SOM and overwrites the weights
 
     Returns:
         cluster_helpers.CellSOMCluster:
@@ -513,7 +515,7 @@ def train_cell_som(fovs, channels, base_dir, pixel_data_dir, cell_table_path,
     # train the SOM weights
     # NOTE: seed has to be set in cyFlowSOM.pyx, done by passing flag in PixieSOMCluster
     print("Training SOM")
-    cell_pysom.train_som()
+    cell_pysom.train_som(overwrite=overwrite)
 
     # read in the pixel channel averages table
     print("Computing the weighted channel expression per cell")
@@ -535,7 +537,8 @@ def train_cell_som(fovs, channels, base_dir, pixel_data_dir, cell_table_path,
 
 
 def cluster_cells(base_dir, cell_pysom, pixel_cluster_col_prefix='pixel_meta_cluster_rename',
-                  cell_som_cluster_count_avg_name='cell_som_cluster_count_avgs.csv'):
+                  cell_som_cluster_count_avg_name='cell_som_cluster_count_avgs.csv',
+                  overwrite=False):
     """Uses trained SOM weights to assign cluster labels on full cell data.
 
     Saves data with cluster labels to `cell_cluster_name`. Computes and saves the average number
@@ -551,6 +554,8 @@ def cluster_cells(base_dir, cell_pysom, pixel_cluster_col_prefix='pixel_meta_clu
             Should be `'pixel_som_cluster'` or `'pixel_meta_cluster_rename'`.
         cell_som_cluster_count_avg_name (str):
             The name of the file to write the clustered data
+        overwrite (bool):
+            If set, force overwrites the SOM labels in the whole cell table
     """
 
     # raise error if weights haven't been assigned to cell_pysom

@@ -193,12 +193,17 @@ class PixelSOMCluster(PixieSOMCluster):
 
         return external_data_norm
 
-    def train_som(self):
+    def train_som(self, overwrite=False):
         """Trains the SOM using `train_data`
-        """
 
-        if self.weights is not None:
-            # do not train SOM if weights already exist and the same markers used to train
+        overwrite (bool):
+            If set, force retrains the SOM and overwrites the weights
+        """
+        # if overwrite flag set, retrain SOM regardless of state
+        if overwrite:
+            warnings.warn('Overwrite flag set, retraining SOM')
+        # otherwise, do not train SOM if weights already exist and the same markers used to train
+        elif self.weights is not None:
             if set(self.weights.columns.values) == set(self.columns):
                 warnings.warn('Pixel SOM already trained on specified markers')
                 return
@@ -294,11 +299,18 @@ class CellSOMCluster(PixieSOMCluster):
         # assign back to cell_data
         self.cell_data[self.columns] = cell_data_sub
 
-    def train_som(self):
+    def train_som(self, overwrite=False):
         """Trains the SOM using `cell_data`
+
+        overwrite (bool):
+            If set, force retrains the SOM and overwrites the weights
         """
-        if self.weights is not None:
-            # do not train SOM if weights already exist and the same columns used to train
+        # if overwrite flag set, retrain SOM regardless of state
+        if overwrite:
+            warnings.warn('Overwrite flag set, retraining SOM')
+
+        # otherwise, do not train SOM if weights already exist and the same columns used to train
+        elif self.weights is not None:
             if set(self.weights.columns.values) == set(self.columns):
                 warnings.warn('Cell SOM already trained on specified columns')
                 return

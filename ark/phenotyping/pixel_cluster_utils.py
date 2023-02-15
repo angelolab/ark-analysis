@@ -874,7 +874,7 @@ def train_pixel_som(fovs, channels, base_dir,
                     subset_dir='pixel_mat_subsetted',
                     norm_vals_name='post_rowsum_chan_norm.feather',
                     som_weights_name='pixel_som_weights.feather', xdim=10, ydim=10,
-                    lr_start=0.05, lr_end=0.01, num_passes=1):
+                    lr_start=0.05, lr_end=0.01, num_passes=1, overwrite=False):
     """Run the SOM training on the subsetted pixel data.
 
     Saves SOM weights to `base_dir/som_weights_name`.
@@ -902,6 +902,8 @@ def train_pixel_som(fovs, channels, base_dir,
             The end learning rate for the SOM, decays from `lr_start`
         num_passes (int):
             The number of training passes to make through the dataset
+        overwrite (bool):
+            If set, force retrains the SOM and overwrites the weights
 
     Returns:
         cluster_helpers.PixelSOMCluster:
@@ -936,7 +938,7 @@ def train_pixel_som(fovs, channels, base_dir,
     # train the SOM weights
     # NOTE: seed has to be set in cyFlowSOM.pyx, done by passing flag in PixieSOMCluster
     print("Training SOM")
-    pixel_pysom.train_som()
+    pixel_pysom.train_som(overwrite=overwrite)
 
     return pixel_pysom
 
@@ -978,7 +980,7 @@ def run_pixel_som_assignment(pixel_data_path, pixel_pysom_obj, fov):
 
 
 def cluster_pixels(fovs, channels, base_dir, pixel_pysom, data_dir='pixel_mat_data',
-                   multiprocess=False, batch_size=5):
+                   multiprocess=False, batch_size=5, overwrite=False):
     """Uses trained SOM weights to assign cluster labels on full pixel data.
 
     Saves data with cluster labels to `data_dir`.
@@ -998,6 +1000,8 @@ def cluster_pixels(fovs, channels, base_dir, pixel_pysom, data_dir='pixel_mat_da
             Whether to use multiprocessing or not
         batch_size (int):
             The number of FOVs to process in parallel, ignored if `multiprocess` is `False`
+        overwrite (bool):
+            If set, force overwrites the SOM labels in all the FOVs
     """
 
     # define the paths to the data
@@ -1049,8 +1053,16 @@ def cluster_pixels(fovs, channels, base_dir, pixel_pysom, data_dir='pixel_mat_da
         pixel_data_columns=sample_fov.columns.values
     )
 
-    # only assign SOM clusters to FOVs that don't already have them
-    fovs_list = find_fovs_missing_col(base_dir, data_dir, 'pixel_som_cluster')
+    # if overwrite flag set, run on all FOVs in data_dir
+    if overwrite:
+        print('Overwrite flag set, reassigning SOM cluster labels to all FOVs')
+        os.mkdir(data_path + '_temp')
+        fovs_list = io_utils.remove_file_extensions(
+            io_utils.list_files(data_path, substrs='.feather')
+        )
+    # otherwise, only assign SOM clusters to FOVs that don't already have them
+    else:
+        fovs_list = find_fovs_missing_col(base_dir, data_dir, 'pixel_som_cluster')
 
     # make sure fovs_list only contain fovs that exist in the master fovs list specified
     fovs_list = list(set(fovs_list).intersection(fovs))
@@ -1208,7 +1220,7 @@ def run_pixel_consensus_assignment(pixel_data_path, pixel_cc_obj, fov):
 def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
                             data_dir='pixel_mat_data',
                             pc_chan_avg_som_cluster_name='pixel_channel_avg_som_cluster.csv',
-                            multiprocess=False, batch_size=5, seed=42):
+                            multiprocess=False, batch_size=5, seed=42, overwrite=False):
     """Run consensus clustering algorithm on pixel-level summed data across channels
     Saves data with consensus cluster labels to `data_dir`.
 
@@ -1234,6 +1246,8 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
             The number of FOVs to process in parallel, ignored if `multiprocess` is `False`
         seed (int):
             The random seed to set for consensus clustering
+        overwrite (bool):
+            If set, force overwrites the meta labels in all the FOVs
 
     Returns:
         cluster_helpers.PixieConsensusCluster:
@@ -1247,8 +1261,16 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
     # path validation
     io_utils.validate_paths([pixel_data_path, som_cluster_avg_path])
 
-    # only assign meta clusters to FOVs that don't already have them
-    fovs_list = find_fovs_missing_col(base_dir, data_dir, 'pixel_meta_cluster')
+    # if overwrite flag set, run on all FOVs in data_dir
+    if overwrite:
+        print('Overwrite flag set, reassigning meta cluster labels to all FOVs')
+        os.mkdir(pixel_data_path + '_temp')
+        fovs_list = io_utils.remove_file_extensions(
+            io_utils.list_files(pixel_data_path, substrs='.feather')
+        )
+    # otherwise, only assign meta clusters to FOVs that don't already have them
+    else:
+        fovs_list = find_fovs_missing_col(base_dir, data_dir, 'pixel_meta_cluster')
 
     # make sure fovs_list only contain fovs that exist in the master fovs list specified
     fovs_list = list(set(fovs_list).intersection(fovs))
