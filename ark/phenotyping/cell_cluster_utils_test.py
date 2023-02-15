@@ -751,8 +751,10 @@ def test_train_cell_som():
         assert np.all(weighted_chan_data['pixel_meta_cluster_rename'].values == np.arange(2))
 
 
+# NOTE: overwrite functionality tested in cluster_helpers_test.py
 @parametrize('pixel_cluster_prefix', ['pixel_som_cluster', 'pixel_meta_cluster_rename'])
-def test_cluster_cells(pixel_cluster_prefix):
+@parametrize('existing_som_col', [False, True])
+def test_cluster_cells(pixel_cluster_prefix, existing_som_col):
     with tempfile.TemporaryDirectory() as temp_dir:
         # define the cluster column names
         cluster_cols = [f'{pixel_cluster_prefix}_' + str(i) for i in range(3)]
@@ -765,6 +767,9 @@ def test_cluster_cells(pixel_cluster_prefix):
         cluster_counts['fov'] = -1
         cluster_counts['cell_size'] = -1
         cluster_counts['segmentation_label'] = -1
+
+        if existing_som_col:
+            cluster_counts['cell_som_cluster'] = -1
 
         # write cluster counts
         cluster_counts_path = os.path.join(temp_dir, 'cluster_counts.feather')
