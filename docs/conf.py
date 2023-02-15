@@ -22,7 +22,7 @@ from sphinx.builders.html import StandaloneHTMLBuilder
 
 # our project officially 'begins' in the parent aka root project directory
 # since we do not separate source from build we can simply go up one directory
-sys.path.insert(0, os.path.abspath('..'))
+sys.path.insert(0, os.path.abspath('../src'))
 
 # if we ever have images, we'll be using the supported_image_types
 # argument to set the desired formats we wish to support
@@ -89,7 +89,7 @@ autodoc_mock_imports = ['cryptography',
                         'spatial_lda',
                         'tables',
                         'tifffile',
-                        'tmi',
+                        'alpineer',
                         'umap',
                         'xarray',
                         'twisted',
@@ -158,7 +158,7 @@ intersphinx_mapping = {
     'python': ('https://docs.python.org/3.8', None),
     'numpy': ('https://numpy.org/doc/stable', None),
     'matplotlib': ('https://matplotlib.org/3.4.3', None),
-    'xarray': ('https://xarray.pydata.org/en/stable', None),
+    'xarray': ('https://docs.xarray.dev/en/stable/', None),
     'pandas': ('https://pandas.pydata.org/docs/', None)
 }
 
@@ -236,7 +236,7 @@ def trim_rtd():
 # this we'll need to build the documentation from sphinx-apidoc ourselves
 def run_apidoc(_):
     # the parent directory we will begin snaking through to find documentation
-    module = '../ark'
+    module = '../src/ark'
 
     # we want the documents to be markdown files
     output_ext = 'md'
@@ -247,9 +247,6 @@ def run_apidoc(_):
     # the sphinx-apidoc command to run
     cmd_path = 'sphinx-apidoc'
 
-    # do not generate any documentation for test files
-    ignore = '../ark/*/*test*.py'
-
     # should probably remove this
     if hasattr(sys, 'real_prefix'):
         cmd_path = os.path.abspath(os.path.join(sys.prefix, 'bin', 'sphinx-apidoc'))
@@ -259,7 +256,7 @@ def run_apidoc(_):
 
     # run sphinx-apidoc to build documentation from Google docstrings
     subprocess.check_call([cmd_path, '-f', '-T', '-s', output_ext,
-                           '-o', output_path, module, ignore])
+                           '-o', output_path, module])
 
     # remove extraneous text created by sphinx-apidoc
     trim_rtd()
