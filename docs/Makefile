@@ -6,9 +6,9 @@ BUILDDIR      = _build
 SPHINXAPIDOC  = sphinx-apidoc
 MISCDOCFLAGS  = -f -T
 DOCOUTPUT     = md
-SRCPROJECT    = ../ark
+SRCPROJECT    = ../src/ark
 OUTPUTDIR     = _markdown
-IGNORE        = ../ark/*/*_test.py
+IGNORE        = ../tests/*
 
 help:
 	@$(SPHINXBUILD) -M help "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
