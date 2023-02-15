@@ -17,12 +17,20 @@ permissions:
 
 jobs:
   test:
+    name: Test
     permissions:
       contents: read
       pull-requests: write
-    name: Test
     secrets: inherit
     uses: ./.github/workflows/test.yml
+  
+  build:
+    name: Build
+    permissions:
+      contents: read
+      pull-requests: write
+    secrets: inherit
+    uses: ./.github/workflows/build.yml
 
   upload_coverage:
     needs: [test]
