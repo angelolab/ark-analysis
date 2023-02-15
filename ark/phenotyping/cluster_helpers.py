@@ -65,10 +65,10 @@ class PixieSOMCluster(ABC):
             data (pandas.DataFrame):
                 The input data to train the SOM on.
         """
-        # make sure to run a deterministic SOM for reproducibility purposes
+        # pyFlowSOM.som requires data in np.float64, add type cast for safety purposes
         som_weights = som(
-            data=data.values, xdim=self.xdim, ydim=self.ydim, rlen=self.num_passes,
-            alpha_range=(self.lr_start, self.lr_end)
+            data=data.values.astype(np.float64), xdim=self.xdim, ydim=self.ydim,
+            rlen=self.num_passes, alpha_range=(self.lr_start, self.lr_end)
         )
 
         # ensure dimensions of weights are flattened
