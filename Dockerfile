@@ -28,7 +28,7 @@ FROM base AS move_ark
 # copy over: setup.py, pyproject.toml, README and start_jupyter.sh script
 COPY setup.py pyproject.toml README.md start_jupyter.sh /opt/ark-analysis/
 
-# Copy over .git for commit history
+# Copy over .git for commit history (dynamic versioning requires this in order to build ark)
 COPY .git /opt/ark-analysis/.git
 
 # Stage 3: Copy templates/ to scripts/
