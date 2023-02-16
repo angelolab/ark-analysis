@@ -69,6 +69,7 @@ jobs:
           flavor: |
             latest=auto
           tags: |
+            type=ref,event=push
             type=ref,event=pr
             type=semver,pattern={{raw}}
 
