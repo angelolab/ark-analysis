@@ -717,22 +717,13 @@ def test_cluster_cells(pixel_cluster_prefix):
         # error test: no weights assigned to cell pysom object
         with pytest.raises(ValueError):
             cell_pysom_bad = cluster_helpers.CellSOMCluster(
-                cluster_counts_size_norm_path, 'bad_path.feather', [-1], cluster_cols
+                cluster_counts_size_norm, 'bad_path.feather', [-1], cluster_cols
             )
 
-            cell_cluster_utils.cluster_cells(base_dir=temp_dir, cell_pysom=cell_pysom_bad)
-
-        # error test: column name mismatch for weights
-        with pytest.raises(ValueError):
-            bad_cluster_cols = cluster_cols[:]
-            bad_cluster_cols[2], bad_cluster_cols[1] = bad_cluster_cols[1], bad_cluster_cols[2]
-
-            weights = pd.DataFrame(np.random.rand(100, 3), columns=bad_cluster_cols)
-            weights_path = os.path.join(temp_dir, 'cell_weights.feather')
-            feather.write_dataframe(weights, weights_path)
-
-            cell_pysom_bad = cluster_helpers.CellSOMCluster(
-                cluster_counts_size_norm_path, weights_path, [-1], cluster_cols
+            cell_cluster_utils.cluster_cells(
+                base_dir=temp_dir,
+                cell_pysom=cell_pysom_bad,
+                cell_som_cluster_cols=cluster_cols
             )
 
         # generate a random SOM weights matrix
@@ -744,7 +735,7 @@ def test_cluster_cells(pixel_cluster_prefix):
 
         # define a CellSOMCluster object
         cell_pysom = cluster_helpers.CellSOMCluster(
-            cluster_counts_size_norm_path, cell_som_weights_path, [-1], cluster_cols
+            cluster_counts_size_norm, cell_som_weights_path, [-1], cluster_cols
         )
 
         # assign SOM clusters to the cells

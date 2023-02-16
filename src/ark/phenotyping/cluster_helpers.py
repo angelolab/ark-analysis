@@ -230,7 +230,7 @@ class PixelSOMCluster(PixieSOMCluster):
 
 
 class CellSOMCluster(PixieSOMCluster):
-    def __init__(self, cell_data_path: pathlib.Path, weights_path: pathlib.Path,
+    def __init__(self, cell_data: pd.DataFrame, weights_path: pathlib.Path,
                  fovs: List[str], columns: List[str], num_passes: int = 1,
                  xdim: int = 10, ydim: int = 10, lr_start: float = 0.05, lr_end: float = 0.01):
         """Creates a cell SOM cluster object derived from the abstract PixieSOMCluster
