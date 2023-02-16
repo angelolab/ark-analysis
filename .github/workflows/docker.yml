@@ -69,8 +69,8 @@ jobs:
           flavor: |
             latest=auto
           tags: |
-            type=ref,event=branch
-            type=ref,event=pr
+            type=ref,event=branch,pattern={{raw}}
+            type=ref,event=pr,pattern={{raw}}
             type=semver,pattern={{raw}}
 
       - name: Build and Push Docker Image
