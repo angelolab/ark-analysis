@@ -874,7 +874,6 @@ def train_pixel_som(fovs, channels, base_dir,
                     subset_dir='pixel_mat_subsetted',
                     norm_vals_name='post_rowsum_chan_norm.feather',
                     som_weights_name='pixel_som_weights.feather', xdim=10, ydim=10,
-                    lr_start=0.05, lr_end=0.01, num_passes=1, overwrite=False):
                     lr_start=0.05, lr_end=0.01, num_passes=1, seed=42,
                     overwrite=False):
     """Run the SOM training on the subsetted pixel data.
