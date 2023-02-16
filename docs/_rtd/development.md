@@ -52,9 +52,8 @@ To verify installation, activate your `conda` environment with `conda activate <
 
 ### Setting up ark-analysis for development
 
-`ark` relies on several other Python packages. Inside the `ark-analysis` repo (if you don't have it, first run `git clone https://github.com/angelolab/ark-analysis.git`), and with your virtual environment activated, you will need to install these other dependencies as well. Run `pip install -r requirements.txt` to do so. 
+`ark` relies on several other Python packages. Inside the `ark-analysis` repo (if you don't have it, first run `git clone https://github.com/angelolab/ark-analysis.git`), and with your virtual environment activated, you will need to install these other dependencies as well. Run `pip install -e ".[test]"` to install `ark` and it's dependencies and testing dependencies.
  
-Note that you will not have access to `ark` or the other libraries inside `requirements.txt` outside of this virtual environment. 
  
 You're now set to start working with `ark-analysis`! Please look at [our contributing guidelines](contributing.html) for more information about development. For detailed explanations of the functions available to you in `ark`, please consult the Libraries section of this documentation. 
 
