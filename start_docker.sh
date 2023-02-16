@@ -57,17 +57,12 @@ run_params=(
   -e UPDATE_ARK=$update
   -v "$PWD/README.md:/opt/ark-analysis/README.md"
   -v "$PWD/setup.py:/opt/ark-analysis/setup.py"
-  -v "$PWD/requirements.txt:/opt/ark-analysis/requirements.txt"
   -v "$PWD/pyproject.toml:/opt/ark-analysis/pyproject.toml"
   -v "$PWD/start_jupyter.sh:/opt/ark-analysis/start_jupyter.sh"
-  -v "$PWD/ark:/opt/ark-analysis/ark"
+  -v "$PWD/src:/opt/ark-analysis/src"
   -v "$PWD/scripts:/scripts"
   -v "$PWD/data:/data"
-  -v "$PWD/ark/phenotyping/create_pixel_som.R:/create_pixel_som.R"
-  -v "$PWD/ark/phenotyping/run_pixel_som.R:/run_pixel_som.R"
-  -v "$PWD/ark/phenotyping/create_cell_som.R:/create_cell_som.R"
-  -v "$PWD/ark/phenotyping/run_cell_som.R:/run_cell_som.R"
-  -v "$PWD/.toks:/home/.toks"
+  -v "$PWD/.git:/opt/ark-analysis/.git"
 )
 [[ ! -z "$external" ]] && run_params+=(-v "$external:/data/external")
 
