@@ -106,8 +106,10 @@ class PixieSOMCluster(ABC):
         for i in np.arange(0, external_data.shape[0], 100):
             # NOTE: this also orders the columns of external_data_sub the same as self.weights
             cluster_labels.append(map_data_to_nodes(
-                self.weights.values,
-                external_data.loc[i:min(i + 99, external_data.shape[0]), weights_cols].values
+                self.weights.values.astype(np.float64),
+                external_data.loc[
+                    i:min(i + 99, external_data.shape[0]), weights_cols
+                ].values.astype(np.float64)
             )[0])
 
         # concat all the results together and return
