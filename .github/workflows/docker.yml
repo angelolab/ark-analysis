@@ -11,6 +11,7 @@ on:
     workflows: [Build Wheels and upload to PyPI]
     types:
       - completed
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -22,14 +23,23 @@ permissions:
 jobs:
   docker_build:
     name: Build the Docker Image
-    if: ${{ github.event.workflow_run.conclusion == 'success'}} &&
-      github.event_name == 'release' && github.event.action == 'published'
+    if: |
+      (
+        ${{ github.event.workflow_run.conclusion == 'success'}}
+        &&
+        ${{ github.event_name == 'release' && github.event.action == 'published' }}
+      )
+      ||
+      (
+        ${{ github.event_name == 'workflow_dispatch' }}
+      )
+
     runs-on: ubuntu-latest
     steps:
       - name: Checkout ${{ github.repository }}
         uses: actions/checkout@v3
         with:
-          ref: ${{ github.event.workflow_run.head_branch }}
+          # ref: ${{ github.event.workflow_run.head_branch }}
           fetch-depth: 0
 
       - name: Set up QEMU (For Linux Arm Containers)
@@ -56,10 +66,11 @@ jobs:
           github-token: ${{ github.token }}
           images: |
             ${{ secrets.DOCKERHUB_USERNAME }}/ark-analysis
+          flavor: |
+            latest=auto
           tags: |
-            type=ref,event=branch
             type=ref,event=pr
-            type=semver,pattern={{raw}}
+            type=semver,pattern=v{{version}}
 
       - name: Build and Push Docker Image
         uses: docker/build-push-action@v4

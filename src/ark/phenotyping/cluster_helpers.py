@@ -19,7 +19,8 @@ from alpineer.misc_utils import verify_in_list
 class PixieSOMCluster(ABC):
     @abstractmethod
     def __init__(self, weights_path: pathlib.Path, columns: List[str], num_passes: int = 1,
-                 xdim: int = 10, ydim: int = 10, lr_start: float = 0.05, lr_end: float = 0.01):
+                 xdim: int = 10, ydim: int = 10, lr_start: float = 0.05, lr_end: float = 0.01,
+                 seed=42):
         """Generic implementation of a pyFlowSOM runner
 
         Args:
@@ -37,6 +38,8 @@ class PixieSOMCluster(ABC):
                 The initial learning rate.
             lr_end (float):
                 The learning rate to decay to
+            seed (int):
+                The random seed to use for training.
         """
         self.weights_path = weights_path
         self.weights = None if not os.path.exists(weights_path) else feather.read_dataframe(
@@ -48,6 +51,7 @@ class PixieSOMCluster(ABC):
         self.ydim = ydim
         self.lr_start = lr_start
         self.lr_end = lr_end
+        self.seed = seed
 
     @abstractmethod
     def normalize_data(self) -> pd.DataFrame:
@@ -65,10 +69,10 @@ class PixieSOMCluster(ABC):
             data (pandas.DataFrame):
                 The input data to train the SOM on.
         """
-        # make sure to run a deterministic SOM for reproducibility purposes
+
         som_weights = som(
             data=data.values, xdim=self.xdim, ydim=self.ydim, rlen=self.num_passes,
-            alpha_range=(self.lr_start, self.lr_end), deterministic=True
+            alpha_range=(self.lr_start, self.lr_end), seed=self.seed
         )
 
         # ensure dimensions of weights are flattened
@@ -118,7 +122,7 @@ class PixelSOMCluster(PixieSOMCluster):
     def __init__(self, pixel_subset_folder: pathlib.Path, norm_vals_path: pathlib.Path,
                  weights_path: pathlib.Path, fovs: List[str], columns: List[str],
                  num_passes: int = 1, xdim: int = 10, ydim: int = 10,
-                 lr_start: float = 0.05, lr_end: float = 0.01):
+                 lr_start: float = 0.05, lr_end: float = 0.01, seed=42):
         """Creates a pixel SOM cluster object derived from the abstract PixieSOMCluster
 
         Args:
@@ -141,10 +145,12 @@ class PixelSOMCluster(PixieSOMCluster):
             lr_start (float):
                 The initial learning rate.
             lr_end (float):
-                The learning rate to decay to
+                The learning rate to decay to.
+            seed (int):
+                The random seed to use.
         """
         super().__init__(
-            weights_path, columns, num_passes, xdim, ydim, lr_start, lr_end
+            weights_path, columns, num_passes, xdim, ydim, lr_start, lr_end, seed
         )
 
         # path validation
@@ -232,7 +238,8 @@ class PixelSOMCluster(PixieSOMCluster):
 class CellSOMCluster(PixieSOMCluster):
     def __init__(self, cell_data: pd.DataFrame, weights_path: pathlib.Path,
                  fovs: List[str], columns: List[str], num_passes: int = 1,
-                 xdim: int = 10, ydim: int = 10, lr_start: float = 0.05, lr_end: float = 0.01):
+                 xdim: int = 10, ydim: int = 10, lr_start: float = 0.05, lr_end: float = 0.01,
+                 seed=42):
         """Creates a cell SOM cluster object derived from the abstract PixieSOMCluster
 
         Args:
@@ -253,10 +260,12 @@ class CellSOMCluster(PixieSOMCluster):
             lr_start (float):
                 The initial learning rate.
             lr_end (float):
-                The learning rate to decay to
+                The learning rate to decay to.
+            seed (int):
+                The random seed to use.
         """
         super().__init__(
-            weights_path, columns, num_passes, xdim, ydim, lr_start, lr_end
+            weights_path, columns, num_passes, xdim, ydim, lr_start, lr_end, seed
         )
 
         # assign the cell data

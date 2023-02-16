@@ -429,6 +429,8 @@ def train_cell_som(fovs, base_dir, cell_table_path, cell_som_cluster_cols,
             The end learning rate for the SOM, decays from `lr_start`
         num_passes (int):
             The number of training passes to make through the dataset
+        seed (int):
+            The random seed to use for training the SOM
 
     Returns:
         cluster_helpers.CellSOMCluster:
