@@ -69,8 +69,8 @@ jobs:
           flavor: |
             latest=auto
           tags: |
-            type=semver,pattern={{version}}
             type=ref,event=pr
+            type=semver,pattern=v{{version}}
 
       - name: Build and Push Docker Image
         uses: docker/build-push-action@v4
