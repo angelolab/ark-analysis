@@ -69,7 +69,6 @@ jobs:
           flavor: |
             latest=auto
           tags: |
-            type=ref,event=push
             type=ref,event=pr
             type=semver,pattern={{raw}}
 
@@ -78,7 +77,7 @@ jobs:
         with:
           file: Dockerfile
           platforms: linux/amd64,linux/arm64
-          push: true
+          push: ${{ github.event_name == 'release' && github.event.action == 'published' }}
           tags: ${{ steps.docker_metadata.outputs.tags }}
           labels: ${{ steps.docker_metadata.outputs.labels }}
           cache-to: type=gha,mode=max
