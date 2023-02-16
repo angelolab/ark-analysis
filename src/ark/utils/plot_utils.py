@@ -205,6 +205,10 @@ def plot_pixel_cell_cluster_overlay(img_xr, fovs, cluster_id_to_name_path, metac
         )
         cbar.ax.set_yticklabels(['Empty'] + list(metacluster_id_to_name['mc_name'].values))
 
+        # explicitly turn off intermediate minor ticks
+        for mt in cbar.ax.yaxis.get_minor_ticks():
+            mt.set_visible(False)
+
         # save if specified
         if save_dir:
             misc_utils.save_figure(save_dir, f'{fov}.png')
