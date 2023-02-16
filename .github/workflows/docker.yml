@@ -69,7 +69,7 @@ jobs:
           flavor: |
             latest=auto
           tags: |
-            type=raw
+            type=ref,event=branch
             type=ref,event=pr
             type=semver,pattern={{raw}}
 
