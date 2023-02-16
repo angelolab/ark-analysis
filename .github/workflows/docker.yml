@@ -70,7 +70,7 @@ jobs:
             latest=auto
           tags: |
             type=ref,event=pr
-            type=semver,pattern=v{{version}}
+            type=semver,pattern={{raw}}
 
       - name: Build and Push Docker Image
         uses: docker/build-push-action@v4
