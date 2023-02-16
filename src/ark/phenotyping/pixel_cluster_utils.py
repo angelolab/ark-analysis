@@ -713,8 +713,6 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
                                                         channels=channels,
                                                         img_sub_folder=img_sub_folder,
                                                         percentile=channel_percentile)
-        # save output
-        feather.write_dataframe(channel_norm_df, channel_norm_path, compression='uncompressed')
     else:
         # load previously generated output
         channel_norm_df = feather.read_dataframe(channel_norm_path)
@@ -728,7 +726,6 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
         )
 
         pixel_thresh_df = pd.DataFrame({'pixel_thresh_val': [pixel_thresh_val]})
-        feather.write_dataframe(pixel_thresh_df, pixel_thresh_path, compression='uncompressed')
     else:
         pixel_thresh_df = feather.read_dataframe(pixel_thresh_path)
         pixel_thresh_val = pixel_thresh_df['pixel_thresh_val'].values[0]
