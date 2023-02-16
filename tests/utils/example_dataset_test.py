@@ -1,6 +1,5 @@
 import os
 import pathlib
-from shutil import rmtree
 from typing import Callable, Dict, Generator, Iterator, List
 
 import pytest
@@ -130,9 +129,6 @@ class TestExampleDataset:
             partition (`segment_image_data`, `cluster_pixels`, `cluster_cells`,
             `post_clustering`).
         """
-        # need to purge old references in case the HuggingFace version changed
-        rmtree('~/.cache/huggingface')
-
         dataset_names = list(
             dataset_download.dataset_paths[dataset_download.dataset].features.keys())
 
