@@ -860,7 +860,7 @@ def train_pixel_som(fovs, channels, base_dir,
                     subset_dir='pixel_mat_subsetted',
                     norm_vals_name='post_rowsum_chan_norm.feather',
                     som_weights_name='pixel_som_weights.feather', xdim=10, ydim=10,
-                    lr_start=0.05, lr_end=0.01, num_passes=1):
+                    lr_start=0.05, lr_end=0.01, num_passes=1, seed=42):
     """Run the SOM training on the subsetted pixel data.
 
     Saves SOM weights to `base_dir/som_weights_name`.
@@ -888,6 +888,8 @@ def train_pixel_som(fovs, channels, base_dir,
             The end learning rate for the SOM, decays from `lr_start`
         num_passes (int):
             The number of training passes to make through the dataset
+        seed (int):
+            The random seed to use for training the SOM
 
     Returns:
         cluster_helpers.PixelSOMCluster:
@@ -916,7 +918,8 @@ def train_pixel_som(fovs, channels, base_dir,
     # define the pixel SOM cluster object
     pixel_pysom = cluster_helpers.PixelSOMCluster(
         subsetted_path, norm_vals_path, som_weights_path, fovs, channels,
-        num_passes=num_passes, xdim=xdim, ydim=ydim, lr_start=lr_start, lr_end=lr_end
+        num_passes=num_passes, xdim=xdim, ydim=ydim, lr_start=lr_start, lr_end=lr_end,
+        seed=seed
     )
 
     # train the SOM weights
