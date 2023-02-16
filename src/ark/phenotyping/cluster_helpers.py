@@ -19,7 +19,8 @@ from alpineer.misc_utils import verify_in_list
 class PixieSOMCluster(ABC):
     @abstractmethod
     def __init__(self, weights_path: pathlib.Path, columns: List[str], num_passes: int = 1,
-                 xdim: int = 10, ydim: int = 10, lr_start: float = 0.05, lr_end: float = 0.01):
+                 xdim: int = 10, ydim: int = 10, lr_start: float = 0.05, lr_end: float = 0.01,
+                 seed=42):
         """Generic implementation of a pyFlowSOM runner
 
         Args:
@@ -37,6 +38,8 @@ class PixieSOMCluster(ABC):
                 The initial learning rate.
             lr_end (float):
                 The learning rate to decay to
+            seed (int):
+                The random seed to use for training.
         """
         self.weights_path = weights_path
         self.weights = None if not os.path.exists(weights_path) else feather.read_dataframe(
@@ -48,6 +51,7 @@ class PixieSOMCluster(ABC):
         self.ydim = ydim
         self.lr_start = lr_start
         self.lr_end = lr_end
+        self.seed = seed
 
     @abstractmethod
     def normalize_data(self) -> pd.DataFrame:
@@ -58,19 +62,17 @@ class PixieSOMCluster(ABC):
                 The data with `columns` normalized by the values in `norm_data`
         """
 
-    def train_som(self, data: pd.DataFrame, seed=42):
+    def train_som(self, data: pd.DataFrame):
         """Trains the SOM on the data provided and saves the weights generated
 
         Args:
             data (pandas.DataFrame):
                 The input data to train the SOM on.
-            seed (int):
-                The random seed to use.
         """
 
         som_weights = som(
             data=data.values, xdim=self.xdim, ydim=self.ydim, rlen=self.num_passes,
-            alpha_range=(self.lr_start, self.lr_end)
+            alpha_range=(self.lr_start, self.lr_end), seed=self.seed
         )
 
         # ensure dimensions of weights are flattened
@@ -148,7 +150,7 @@ class PixelSOMCluster(PixieSOMCluster):
                 The random seed to use.
         """
         super().__init__(
-            weights_path, columns, num_passes, xdim, ydim, lr_start, lr_end
+            weights_path, columns, num_passes, xdim, ydim, lr_start, lr_end, seed
         )
 
         # path validation
@@ -159,9 +161,6 @@ class PixelSOMCluster(PixieSOMCluster):
 
         # define the fovs used
         self.fovs = fovs
-
-        # define the seed
-        self.seed = seed
 
         # list all the files in pixel_subset_folder and load them to train_data
         fov_files = list_files(pixel_subset_folder, substrs='.feather')
@@ -213,7 +212,7 @@ class PixelSOMCluster(PixieSOMCluster):
             # notify the user that different markers specified
             warnings.warn('New markers specified, retraining')
 
-        super().train_som(self.train_data[self.columns], self.seed)
+        super().train_som(self.train_data[self.columns])
 
     def assign_som_clusters(self, external_data: pd.DataFrame) -> pd.DataFrame:
         """Assigns SOM clusters using `weights` to a dataset
@@ -266,7 +265,7 @@ class CellSOMCluster(PixieSOMCluster):
                 The random seed to use.
         """
         super().__init__(
-            weights_path, columns, num_passes, xdim, ydim, lr_start, lr_end
+            weights_path, columns, num_passes, xdim, ydim, lr_start, lr_end, seed
         )
 
         # path validation
@@ -278,9 +277,6 @@ class CellSOMCluster(PixieSOMCluster):
 
         # define the fovs used
         self.fovs = fovs
-
-        # define the random seed
-        self.seed = seed
 
         # subset cell_data on just the FOVs specified
         self.cell_data = self.cell_data[self.cell_data['fov'].isin(self.fovs)]
@@ -319,7 +315,7 @@ class CellSOMCluster(PixieSOMCluster):
             # notify the user that different columns specified
             warnings.warn('New columns specified, retraining')
 
-        super().train_som(self.cell_data[self.columns], self.seed)
+        super().train_som(self.cell_data[self.columns])
 
     def assign_som_clusters(self) -> pd.DataFrame:
         """Assigns SOM clusters using `weights` to `cell_data`
