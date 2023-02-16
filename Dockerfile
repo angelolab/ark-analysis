@@ -26,7 +26,7 @@ RUN sh -c "$(wget -O- https://github.com/deluan/zsh-in-docker/releases/download/
 FROM base AS move_ark
 
 # copy over: setup.py, pyproject.toml, README and start_jupyter.sh script
-COPY setup.py pyproject.toml README.md start_jupyter.sh .git /opt/ark-analysis/
+COPY setup.py pyproject.toml README.md start_jupyter.sh .git/ /opt/ark-analysis/
 
 # Stage 3: Copy templates/ to scripts/
 FROM move_ark AS move_templates
