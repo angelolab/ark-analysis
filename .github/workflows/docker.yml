@@ -39,7 +39,6 @@ jobs:
       - name: Checkout ${{ github.repository }}
         uses: actions/checkout@v3
         with:
-          # ref: ${{ github.event.workflow_run.head_branch }}
           fetch-depth: 0
 
       - name: Set up QEMU (For Linux Arm Containers)
@@ -69,12 +68,14 @@ jobs:
           flavor: |
             latest=auto
           tags: |
-            type=ref,event=pr
-            type=semver,pattern=v{{version}}
+            type=ref,event=branch,pattern={{raw}}
+            type=ref,event=pr,pattern={{raw}}
+            type=semver,pattern={{raw}}
 
       - name: Build and Push Docker Image
         uses: docker/build-push-action@v4
         with:
+          context: .
           file: Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true

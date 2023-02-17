@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.com/angelolab/ark-analysis.svg?branch=main)](https://travis-ci.com/angelolab/ark-analysis)
+[![CI](https://github.com/angelolab/ark-analysis/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/angelolab/ark-analysis/actions/workflows/ci.yml)
 [![Coverage Status](https://coveralls.io/repos/github/angelolab/ark-analysis/badge.svg?branch=main)](https://coveralls.io/github/angelolab/ark-analysis?branch=main)
 ![Docker Image Version (latest by date)](https://img.shields.io/docker/v/angelolab/ark-analysis?arch=amd64&color=%23469ae5&label=Docker%20Version&sort=date)
 [![Read the Docs](https://readthedocs.org/projects/ark-analysis/badge/?version=latest)](https://ark-analysis.readthedocs.io/en/latest/)
@@ -86,11 +86,11 @@ After the Pixie Pipeline, the user can inspect and fine tune their results with 
 We recommend using the latest release of `ark`. You can find all the versions available in the [Releases Section](https://github.com/angelolab/ark-analysis/releases).
 Open terminal and navigate to where you want the code stored. 
 
-Currently, the latest release is `v0.5.1`.
+Currently, the latest release is `v0.5.2`.
 Then install the latest release with:
 
 ```
-git clone -b v0.5.1 https://github.com/angelolab/ark-analysis.git
+git clone -b v0.5.2 https://github.com/angelolab/ark-analysis.git
 ```
 
 Or head to [Releases]https://github.com/angelolab/ark-analysis/releases) and download the source code under the Assets' subsection of the latest release.
