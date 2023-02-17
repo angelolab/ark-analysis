@@ -101,6 +101,26 @@ def nb3_context(templates_dir, base_dir_generator) -> Iterator[ContextManager]:
 
 
 @pytest.fixture(scope="class")
+def nb3b_context(templates_dir, base_dir_generator) -> Iterator[ContextManager]:
+    """
+    Creates a testbook context manager for notebook 3.
+
+    Args:
+        templates_dir (pytest.Fixture): The fixture which yields the directory of the notebook
+            templates
+        base_dir_generator (pytest.Fixture): The fixture which yields the temporary directory
+            to store all notebook input / output.
+
+    Yields:
+        Iterator[ContextManager]: The testbook context manager which will get cleaned up
+            afterwords.
+    """
+    CLUSTER_CELLS: pathlib.Path = templates_dir / "generic_cell_clustering.ipynb"
+    with testbook(CLUSTER_CELLS, timeout=6000, execute=False) as nb_context_manager:
+        yield nb_context_manager, base_dir_generator / "nb3b"
+
+
+@pytest.fixture(scope="class")
 def nb4_context(templates_dir, base_dir_generator) -> Iterator[ContextManager]:
     """
     Creates a testbook context manager for notebook 4.
@@ -342,7 +362,6 @@ class Test_3_Cell_Clustering:
 
         # Variables
         self.cell_prefix = "test"
-        self.channels = ["CD3", "CD4", "CD163_nuc_exclude", "ECAD_smoothed"]
 
     def test_imports(self):
         self.tb.execute_cell("import")
@@ -373,6 +392,12 @@ class Test_3_Cell_Clustering:
 
     def test_pixel_cluster_col(self):
         self.tb.execute_cell("pixel_cluster_col")
+
+    def test_generate_som_input_data(self):
+        self.tb.execute_cell("generate_som_input_data")
+
+    def test_generate_weighted_channel_data(self):
+        self.tb.execute_cell("generate_weighted_channel_data")
 
     def test_train_cell_com(self):
         self.tb.execute_cell("train_cell_som")
@@ -415,6 +440,95 @@ class Test_3_Cell_Clustering:
     def test_cell_append_meta(self):
         self.tb.execute_cell("cell_append_meta")
 
+    def test_pixie_cell_save(self):
+        self.tb.execute_cell("pixie_cell_save")
+
+    def test_cell_mantis_project(self):
+        self.tb.execute_cell("cell_mantis_project")
+
+
+class Test_3b_Generic_Cell_Clustering:
+    """
+    Tests Notebook 3 - Cluster Cells for completion.
+    NOTE: When modifying the tests, make sure the test are in the
+    same order as the tagged cells in the notebook.
+    """
+    @pytest.fixture(autouse=True, scope="function")
+    def _setup(self, nb3b_context):
+        """
+        Sets up necessary data and paths to run the notebooks.
+        """
+        self.tb: testbook = nb3b_context[0]
+        self.base_dir: pathlib.Path = nb3b_context[1]
+
+        # Variables
+        self.cell_prefix = "test"
+
+    def test_imports(self):
+        self.tb.execute_cell("import")
+
+    def test_base_dir(self):
+        base_dir_inject = f"""
+            base_dir = "{self.base_dir}"
+        """
+        self.tb.inject(base_dir_inject, "base_dir")
+
+    def test_ex_data_download(self):
+        self.tb.execute_cell("ex_data_download")
+
+    def test_input_set(self):
+        self.tb.execute_cell("input_set")
+
+    def test_param_load(self):
+        self.tb.execute_cell("param_set")
+
+    def test_cluster_prefix(self):
+        cell_prefix_inject = f"""
+        cell_cluster_prefix = "{self.cell_prefix}"
+        """
+        self.tb.inject(cell_prefix_inject, "cluster_prefix")
+
+    def test_cell_cluster_files(self):
+        self.tb.execute_cell("cell_cluster_files")
+
+    def test_train_cell_som(self):
+        self.tb.execute_cell("train_cell_som")
+
+    def test_cluster_cell_data(self):
+        self.tb.execute_cell("cluster_cell_data")
+
+    def test_cell_consensus_cluster(self):
+        self.tb.execute_cell("cell_consensus_cluster")
+
+    def test_cell_interactive(self):
+        self.tb.execute_cell("cell_interactive")
+
+    def test_cell_apply_remap(self):
+        # Get cell paths
+        cell_meta_cluster_remap = self.tb.ref("cell_meta_cluster_remap_name")
+
+        notebooks_test_utils.create_cell_remap_files(self.base_dir, cell_meta_cluster_remap)
+
+        self.tb.execute_cell("cell_apply_remap")
+
+    def test_cell_cmap_gen(self):
+        self.tb.execute_cell("cell_cmap_gen")
+
+    def test_cell_overlay_fovs(self):
+        self.tb.execute_cell("cell_overlay_fovs")
+
+    def test_cell_mask_gen_save(self):
+        self.tb.execute_cell("cell_mask_gen_save")
+
+    def test_cell_overlay_gen(self):
+        self.tb.execute_cell("cell_overlay_gen")
+
+    def test_cell_append_meta(self):
+        self.tb.execute_cell("cell_append_meta")
+
+    def test_pixie_cell_save(self):
+        self.tb.execute_cell("pixie_cell_save")
+
     def test_cell_mantis_project(self):
         self.tb.execute_cell("cell_mantis_project")
 
@@ -435,7 +549,6 @@ class Test_4_Post_Clustering:
 
         # Variables
         self.cell_prefix = "test"
-        self.channels = ["CD3", "CD4", "CD163_nuc_exclude", "ECAD_smoothed"]
 
     def test_imports(self):
         self.tb.execute_cell("import")

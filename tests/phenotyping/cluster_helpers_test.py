@@ -129,7 +129,6 @@ def cell_pyflowsom_object(cell_som_base_dir) -> Iterator[
     """
 
     # define the paths, using a temporary directory as the motherbase
-    cell_data_path = cell_som_base_dir / "cluster_counts_size_norm.feather"
     weights_path = cell_som_base_dir / "weights_test.feather"
 
     # define the pixel count count expression columns to use
@@ -145,21 +144,19 @@ def cell_pyflowsom_object(cell_som_base_dir) -> Iterator[
     cluster_counts_size_norm.loc[250:499, 'fov'] = 'fov1'
     cluster_counts_size_norm['segmentation_label'] = np.arange(1, 501)
 
-    feather.write_dataframe(cluster_counts_size_norm, cell_data_path)
-
     # generate dummy weights data, this will be used to test loading in an existing weights file
     weights_vals = pd.DataFrame(np.random.rand(200, 6), columns=count_cols)
     feather.write_dataframe(weights_vals, weights_path)
 
     # define a CellSOMCluster object with weights
     cell_som_with_weights = CellSOMCluster(
-        cell_data_path=cell_data_path, weights_path=weights_path,
+        cell_data=cluster_counts_size_norm, weights_path=weights_path,
         fovs=['fov0', 'fov1'], columns=count_cols, xdim=20, ydim=10
     )
 
     # define a CellSOMCluster object without weights
     cell_som_sans_weights = CellSOMCluster(
-        cell_data_path=cell_data_path, weights_path=cell_som_base_dir / 'weights_new.feather',
+        cell_data=cluster_counts_size_norm, weights_path=cell_som_base_dir / 'weights_new.feather',
         fovs=['fov0'], columns=count_cols, xdim=20, ydim=10
     )
 

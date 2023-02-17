@@ -73,3 +73,20 @@ Shape: 2D matrix of num_cells x num_cells
 Description: Many of the spatial analysis functions in the `analysis` module use distances between cells to compute interesting spatial properties. The distance matrix holds that information. Each matrix is a square array, where the value of cell (**i**, **j**) in the matrix represents the distance between cell **i** and cell **j**.  
 
 Note: `calc_dist_matrix` produces a dictionary of distancs matrixes; each distance matrix takes the form described above
+
+---
+
+Name: generalized cell clustering inputs
+Type: pandas.DataFrame
+Created by: user
+Used by: [3b_Generic_Cluster_Cells.ipynb](https://github.com/angelolab/ark-analysis/blob/main/templates/3b_Generic_Cluster_Cells.ipynb)
+
+Shape: 2D matrix of num_cells x num_expression_columns
+
+Description: users may want to run cell clustering on custom expression inputs outside of pixel cluster counts. The input data will need to be defined as a CSV to support DataFrame operations.
+
+The CSV should contain the following columns
+
+* `fov`: name of the FOV the cell comes from
+* `segmentation_label`: the name of the segmentation label
+* A set of expression columns defining the properties of each cell desired for clustering
