@@ -236,15 +236,15 @@ class PixelSOMCluster(PixieSOMCluster):
 
 
 class CellSOMCluster(PixieSOMCluster):
-    def __init__(self, cell_data_path: pathlib.Path, weights_path: pathlib.Path,
+    def __init__(self, cell_data: pd.DataFrame, weights_path: pathlib.Path,
                  fovs: List[str], columns: List[str], num_passes: int = 1,
                  xdim: int = 10, ydim: int = 10, lr_start: float = 0.05, lr_end: float = 0.01,
                  seed=42):
         """Creates a cell SOM cluster object derived from the abstract PixieSOMCluster
 
         Args:
-            cell_data_path (pathlib.Path):
-                The name of the cell dataset to use for training
+            cell_data (pandas.DataFrame):
+                The dataset to use for training
             weights_path (pathlib.Path):
                 The path to save the weights to.
             fovs (List[str]):
@@ -268,12 +268,8 @@ class CellSOMCluster(PixieSOMCluster):
             weights_path, columns, num_passes, xdim, ydim, lr_start, lr_end, seed
         )
 
-        # path validation
-        validate_paths([cell_data_path])
-        self.cell_data_path = cell_data_path
-
-        # load the cell data in
-        self.cell_data = feather.read_dataframe(cell_data_path)
+        # assign the cell data
+        self.cell_data = cell_data
 
         # define the fovs used
         self.fovs = fovs
@@ -329,7 +325,7 @@ class CellSOMCluster(PixieSOMCluster):
                 `cell_data` with the SOM clusters assigned.
         """
         # cell_data is already normalized, don't repeat
-        som_labels = super().generate_som_clusters(self.cell_data)
+        som_labels = super().generate_som_clusters(self.cell_data[self.columns])
 
         # assign SOM clusters to cell_data
         self.cell_data['cell_som_cluster'] = som_labels

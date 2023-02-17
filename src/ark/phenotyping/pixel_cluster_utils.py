@@ -1011,7 +1011,7 @@ def cluster_pixels(fovs, channels, base_dir, pixel_pysom, data_dir='pixel_mat_da
 
     # raise error if weights haven't been assigned to pixel_pysom
     if pixel_pysom.weights is None:
-        raise ValueError("Using untrained pixel_pysom object, please invoke train_som first")
+        raise ValueError("Using untrained pixel_pysom object, please invoke train_pixel_som first")
 
     # verify that all provided fovs exist in the folder
     # NOTE: remove the channel and pixel normalization files as those are not pixel data
