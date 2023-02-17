@@ -497,8 +497,7 @@ def cluster_cells(base_dir, cell_pysom, cell_som_cluster_cols):
     # ensure the weights columns are valid indexes, do so by ensuring
     # the cluster_counts_norm and weights columns are the same
     # minus the metadata columns (and possibly cluster col) that appear in cluster_counts_norm
-    cols_to_drop = ['fov', 'segmentation_label', 'cell_size']
-    if 'cell_som_cluster' in cell_pysom.cell_data:
+    if 'cell_som_cluster' in cell_pysom.cell_data.columns.values:
         cols_to_drop.append('cell_som_cluster')
 
     # the cell_som_input_data and weights columns are the same
