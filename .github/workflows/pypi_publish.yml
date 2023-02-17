@@ -1,0 +1,64 @@
+name: Build Wheels and upload to PyPI
+
+on:
+  pull_request:
+    branches:
+      - "releases/**"
+    types: [labeled, opened, synchronize, reopened]
+  release:
+    types: [published]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read # to fetch code (actions/checkout)
+
+jobs:
+  build_wheels_sdist:
+    name: Build
+    uses: ./.github/workflows/build.yml
+    secrets: inherit
+
+  test_pypi_publish:
+    # Test PyPI publish, requires wheels and source dist (sdist)
+    name: Publish ${{ github.repository }} to TestPyPI
+    needs: [build_wheels_sdist]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v3
+        with:
+          name: distributions
+          path: dist
+
+      - uses: pypa/gh-action-pypi-publish@release/v1.6
+        with:
+          user: __token__
+          password: ${{ secrets.TEST_PYPI_API_TOKEN }}
+          repository_url: https://test.pypi.org/legacy/
+          packages_dir: dist/
+          verbose: true
+
+  pypi_publish:
+    name: Publish ${{ github.repository }} to to PyPI
+    needs: [build_wheels_sdist, test_pypi_publish]
+
+    runs-on: ubuntu-latest
+    # Publish when a GitHub Release is created, use the following rule:
+    if: github.event_name == 'release' && github.event.action == 'published'
+    steps:
+      - name: Download Artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: distributions
+          path: dist
+
+      - name: PYPI Publish
+        uses: pypa/gh-action-pypi-publish@release/v1.6
+        with:
+          user: __token__
+          password: ${{ secrets.PYPI_API_TOKEN }}
+          packages_dir: dist/
+          verbose: true
