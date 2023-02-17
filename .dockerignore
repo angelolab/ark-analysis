@@ -11,8 +11,8 @@ Dockerfile
 .dockerignore
 
 ### Git ###
-.git
-.gitigore
+# .git
+# .gitigore
 
 
 ## data files## 
