@@ -76,12 +76,12 @@ Note: `calc_dist_matrix` produces a dictionary of distancs matrixes; each distan
 
 ---
 
-Name: generalized cell clustering inputs
-Type: pandas.DataFrame
-Created by: user
-Used by: [3b_Generic_Cluster_Cells.ipynb](https://github.com/angelolab/ark-analysis/blob/main/templates/3b_Generic_Cluster_Cells.ipynb)
+Name: generalized cell clustering inputs  
+Type: pandas.DataFrame  
+Created by: user  
+Used by: [generic_cell_clustering.ipynb](https://github.com/angelolab/ark-analysis/blob/main/templates/generic_cell_clustering.ipynb)  
 
-Shape: 2D matrix of num_cells x num_expression_columns
+Shape: 2D matrix of num_cells x num_expression_columns  
 
 Description: users may want to run cell clustering on custom expression inputs outside of pixel cluster counts. The input data will need to be defined as a CSV to support DataFrame operations.
 
