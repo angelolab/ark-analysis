@@ -128,7 +128,7 @@ def label_cells_by_cluster(fov, all_data, label_map, fov_col=settings.FOV_ID,
     return relabeled_img_array
 
 
-def generate_cell_cluster_mask(fov, base_dir, seg_dir, cell_data_name,
+def generate_cell_cluster_mask(fov, base_dir, seg_dir, cell_data,
                                cell_cluster_col='cell_meta_cluster',
                                seg_suffix='_whole_cell.tiff'):
     """For a fov, create a mask labeling each cell with their SOM or meta cluster label
@@ -140,8 +140,8 @@ def generate_cell_cluster_mask(fov, base_dir, seg_dir, cell_data_name,
             The path to the data directory
         seg_dir (str):
             The path to the segmentation data
-        cell_data_name (str):
-            The path to the cell data with both cell SOM and meta cluster assignments
+        cell_data (pandas.DataFrame):
+            The cell data with both cell SOM and meta cluster assignments
         cell_cluster_col (str):
             Whether to assign SOM or meta clusters.
             Needs to be `'cell_som_cluster'` or `'cell_meta_cluster'`
@@ -154,8 +154,7 @@ def generate_cell_cluster_mask(fov, base_dir, seg_dir, cell_data_name,
     """
 
     # path checking
-    cell_data_path = os.path.join(os.path.join(base_dir, cell_data_name))
-    io_utils.validate_paths([seg_dir, cell_data_path])
+    io_utils.validate_paths([seg_dir])
 
     # verify the cluster_col provided is valid
     misc_utils.verify_in_list(
@@ -163,11 +162,8 @@ def generate_cell_cluster_mask(fov, base_dir, seg_dir, cell_data_name,
         valid_cluster_cols=['cell_som_cluster', 'cell_meta_cluster']
     )
 
-    # load the consensus data in
-    cell_consensus_data = feather.read_dataframe(os.path.join(base_dir, cell_data_name))
-
     # ensure the cluster col will be displayed as an integer and not a float
-    cell_consensus_data[cell_cluster_col] = cell_consensus_data[cell_cluster_col].astype(int)
+    cell_data[cell_cluster_col] = cell_data[cell_cluster_col].astype(int)
 
     # define the file for whole cell
     whole_cell_files = [fov + seg_suffix]
@@ -180,7 +176,7 @@ def generate_cell_cluster_mask(fov, base_dir, seg_dir, cell_data_name,
 
     # use label_cells_by_cluster to create cell masks
     img_data = label_cells_by_cluster(
-        fov, cell_consensus_data, label_map, fov_col='fov',
+        fov, cell_data, label_map, fov_col='fov',
         cell_label_column='segmentation_label', cluster_column=cell_cluster_col
     )
 
@@ -191,7 +187,7 @@ def generate_and_save_cell_cluster_masks(fovs: List[str],
                                          base_dir: Union[pathlib.Path, str],
                                          save_dir: Union[pathlib.Path, str],
                                          seg_dir: Union[pathlib.Path, str],
-                                         cell_data_name: Union[pathlib.Path, str],
+                                         cell_data: pd.DataFrame,
                                          cell_cluster_col: str = 'cell_meta_cluster',
                                          seg_suffix: str = '_whole_cell.tiff',
                                          sub_dir: str = None,
@@ -207,8 +203,8 @@ def generate_and_save_cell_cluster_masks(fovs: List[str],
             The directory to save the generated cell cluster masks.
         seg_dir (Union[pathlib.Path, str]):
             The path to the segmentation data.
-        cell_data_name (Union[pathlib.Path, str]):
-            The path to the cell data with both cell SOM and meta cluster assignments
+        cell_data (pandas.DataFrame):
+            The cell data with both cell SOM and meta cluster assignments
         cell_cluster_col (str, optional):
             Whether to assign SOM or meta clusters. Needs to be `'cell_som_cluster'` or
             `'cell_meta_cluster'`. Defaults to `'cell_meta_cluster'`.
@@ -228,7 +224,7 @@ def generate_and_save_cell_cluster_masks(fovs: List[str],
             # generate the cell mask for the FOV
             cell_mask: np.ndarray =\
                 generate_cell_cluster_mask(fov=fov, base_dir=base_dir, seg_dir=seg_dir,
-                                           cell_data_name=cell_data_name,
+                                           cell_data=cell_data,
                                            cell_cluster_col=cell_cluster_col,
                                            seg_suffix=seg_suffix)
 
