@@ -2,8 +2,7 @@ name: Build Wheels and upload to PyPI
 
 on:
   pull_request:
-    branches:
-      - "releases/**"
+    branches: ["releases/**"]
     types: [labeled, opened, synchronize, reopened]
   release:
     types: [published]

@@ -2,13 +2,11 @@ name: Build and upload Docker Image
 
 on:
   pull_request:
-    branches:
-      - "releases/**"
+    branches: ["releases/**"]
     types: [labeled, opened, synchronize, reopened]
   workflow_run:
     workflows: [Build Wheels and upload to PyPI]
-    types:
-      - completed
+    types: [completed]
   workflow_dispatch:
 
 concurrency:
