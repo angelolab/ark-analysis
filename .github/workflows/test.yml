@@ -11,6 +11,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Check disk usage
+        run: |
+          df -h
+
       - name: Checkout ${{ github.repository }}
         uses: actions/checkout@v3
         with:

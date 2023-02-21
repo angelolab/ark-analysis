@@ -7,7 +7,7 @@ import pandas as pd
 import xarray as xr
 
 import ark.settings as settings
-from ark.utils import synthetic_spatial_datagen
+import synthetic_spatial_datagen
 
 TEST_MARKERS = list('ABCDEFG')
 

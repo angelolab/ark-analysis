@@ -11,7 +11,7 @@ from alpineer import io_utils, load_utils, misc_utils
 from tqdm.notebook import tqdm
 
 import ark.settings as settings
-from ark.utils import spatial_analysis_utils
+from ark.analysis import spatial_analysis_utils
 
 
 def generate_channel_spatial_enrichment_stats(label_dir, dist_mat_dir, marker_thresholds, all_data,

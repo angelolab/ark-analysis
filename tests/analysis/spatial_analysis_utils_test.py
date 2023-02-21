@@ -8,7 +8,7 @@ import xarray as xr
 from alpineer.test_utils import _write_labels
 
 import ark.settings as settings
-from ark.utils import spatial_analysis_utils
+from ark.analysis import spatial_analysis_utils
 import test_utils
 
 

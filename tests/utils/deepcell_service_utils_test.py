@@ -8,7 +8,10 @@ import numpy as np
 import pytest
 import tifffile
 from pytest_mock import MockerFixture
-from alpineer import image_utils
+from alpineer import image_utils, test_utils
+from ark.utils import deepcell_service_utils
+from skimage import io
+# import test_utils
 
 from ark.utils.deepcell_service_utils import (_convert_deepcell_seg_masks,
                                               create_deepcell_output)
@@ -158,6 +161,117 @@ def test_create_deepcell_output(mocker: MockerFixture):
             with pytest.raises(ValueError):
                 create_deepcell_output(deepcell_input_dir=input_dir,
                                        deepcell_output_dir=output_dir, fovs=['fov1', 'fov5'])
+
+
+def test_generate_deepcell_input():
+    for is_mibitiff in [False, True]:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            fovs = ['fov1', 'fov2', 'fov3']
+            chans = ['nuc1', 'nuc2', 'mem1', 'mem2']
+
+            tiff_dir = os.path.join(temp_dir, 'tiff_dir')
+            os.mkdir(tiff_dir)
+
+            if is_mibitiff:
+                fov_paths, data_xr = test_utils.create_paired_xarray_fovs(
+                    tiff_dir, fov_names=fovs, channel_names=chans, mode='mibitiff', dtype='int16'
+                )
+
+                # because we're matching files and not directories for mibitiffs
+                fovs = [fov + '.tiff' for fov in fovs]
+            else:
+                fov_paths, data_xr = test_utils.create_paired_xarray_fovs(
+                    tiff_dir, fov_names=fovs, channel_names=chans, dtype='int16', sub_dir='TIFs'
+                )
+
+            # test 1 nuc, 1 mem (no summing)
+            nucs = ['nuc2']
+            mems = ['mem2']
+
+            fov1path = os.path.join(temp_dir, 'fov1.tiff')
+            fov2path = os.path.join(temp_dir, 'fov2.tiff')
+            fov3path = os.path.join(temp_dir, 'fov3.tiff')
+
+            deepcell_service_utils.generate_deepcell_input(
+                data_dir=temp_dir, tiff_dir=tiff_dir, nuc_channels=nucs, mem_channels=mems,
+                fovs=fovs, is_mibitiff=is_mibitiff, img_sub_folder='TIFs'
+            )
+
+            fov1 = np.moveaxis(io.imread(fov1path), 0, -1)
+            fov2 = np.moveaxis(io.imread(fov2path), 0, -1)
+            fov3 = np.moveaxis(io.imread(fov3path), 0, -1)
+
+            assert np.array_equal(fov1, data_xr.loc['fov1', :, :, ['nuc2', 'mem2']].values)
+            assert np.array_equal(fov2, data_xr.loc['fov2', :, :, ['nuc2', 'mem2']].values)
+            assert np.array_equal(fov3, data_xr.loc['fov3', :, :, ['nuc2', 'mem2']].values)
+
+            # test 2 nuc, 2 mem (summing)
+            nucs = ['nuc1', 'nuc2']
+            mems = ['mem1', 'mem2']
+
+            deepcell_service_utils.generate_deepcell_input(
+                data_dir=temp_dir, tiff_dir=tiff_dir, nuc_channels=nucs, mem_channels=mems,
+                fovs=fovs, is_mibitiff=is_mibitiff, img_sub_folder='TIFs'
+            )
+
+            nuc_sums = data_xr.loc[:, :, :, nucs].sum(dim='channels').values
+            mem_sums = data_xr.loc[:, :, :, mems].sum(dim='channels').values
+
+            fov1 = np.moveaxis(io.imread(fov1path), 0, -1)
+            fov2 = np.moveaxis(io.imread(fov2path), 0, -1)
+            fov3 = np.moveaxis(io.imread(fov3path), 0, -1)
+
+            assert np.array_equal(fov1[:, :, 0], nuc_sums[0, :, :])
+            assert np.array_equal(fov1[:, :, 1], mem_sums[0, :, :])
+            assert np.array_equal(fov2[:, :, 0], nuc_sums[1, :, :])
+            assert np.array_equal(fov2[:, :, 1], mem_sums[1, :, :])
+            assert np.array_equal(fov3[:, :, 0], nuc_sums[2, :, :])
+            assert np.array_equal(fov3[:, :, 1], mem_sums[2, :, :])
+
+            # test nuc None
+            nucs = None
+
+            deepcell_service_utils.generate_deepcell_input(
+                data_dir=temp_dir, tiff_dir=tiff_dir, nuc_channels=nucs, mem_channels=mems,
+                fovs=fovs, is_mibitiff=is_mibitiff, img_sub_folder='TIFs'
+            )
+
+            fov1 = np.moveaxis(io.imread(fov1path), 0, -1)
+            fov2 = np.moveaxis(io.imread(fov2path), 0, -1)
+            fov3 = np.moveaxis(io.imread(fov3path), 0, -1)
+
+            assert np.all(fov1[:, :, 0] == 0)
+            assert np.array_equal(fov1[:, :, 1], mem_sums[0, :, :])
+            assert np.all(fov2[:, :, 0] == 0)
+            assert np.array_equal(fov2[:, :, 1], mem_sums[1, :, :])
+            assert np.all(fov3[:, :, 0] == 0)
+            assert np.array_equal(fov3[:, :, 1], mem_sums[2, :, :])
+
+            # test mem None
+            nucs = ['nuc2']
+            mems = None
+
+            deepcell_service_utils.generate_deepcell_input(
+                data_dir=temp_dir, tiff_dir=tiff_dir, nuc_channels=nucs, mem_channels=mems,
+                fovs=fovs, is_mibitiff=is_mibitiff, img_sub_folder='TIFs'
+            )
+
+            fov1 = np.moveaxis(io.imread(fov1path), 0, -1)
+            fov2 = np.moveaxis(io.imread(fov2path), 0, -1)
+            fov3 = np.moveaxis(io.imread(fov3path), 0, -1)
+
+            assert np.all(fov1[:, :, 1] == 0)
+            assert np.array_equal(fov1[:, :, 0], data_xr.loc['fov1', :, :, 'nuc2'].values)
+            assert np.all(fov2[:, :, 1] == 0)
+            assert np.array_equal(fov2[:, :, 0], data_xr.loc['fov2', :, :, 'nuc2'].values)
+            assert np.all(fov3[:, :, 1] == 0)
+            assert np.array_equal(fov3[:, :, 0], data_xr.loc['fov3', :, :, 'nuc2'].values)
+
+            # test nuc None and mem None
+            with pytest.raises(ValueError):
+                deepcell_service_utils.generate_deepcell_input(
+                    data_xr, temp_dir, None, None, ['fov0'], ['chan0']
+                )
 
 
 def test_convert_deepcell_seg_masks():
