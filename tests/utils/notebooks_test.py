@@ -177,7 +177,7 @@ def nbmixing_context(templates_dir, base_dir_generator) -> Iterator[ContextManag
     """
     EXAMPLE_MIXING: pathlib.Path = templates_dir / "Calculate_Mixing_Scores.ipynb"
     with testbook(EXAMPLE_MIXING, timeout=6000, execute=False) as nb_context_manager:
-        yield nb_context_manager, base_dir_generator / "ems"
+        yield nb_context_manager, base_dir_generator / "cms"
 
 
 class Test_1_Segment_Image_Data:
