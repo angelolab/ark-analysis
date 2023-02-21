@@ -2,8 +2,7 @@ name: Build Wheels and upload to PyPI
 
 on:
   pull_request:
-    branches:
-      - "releases/**"
+    branches: ["releases/**"]
     types: [labeled, opened, synchronize, reopened]
   release:
     types: [published]
@@ -17,7 +16,15 @@ permissions:
   contents: read # to fetch code (actions/checkout)
 
 jobs:
+  test:
+    name: Test
+    permissions:
+      contents: read
+    secrets: inherit
+    uses: ./.github/workflows/test.yml
+
   build_wheels_sdist:
+    needs: [test]
     name: Build
     uses: ./.github/workflows/build.yml
     secrets: inherit
@@ -25,7 +32,7 @@ jobs:
   test_pypi_publish:
     # Test PyPI publish, requires wheels and source dist (sdist)
     name: Publish ${{ github.repository }} to TestPyPI
-    needs: [build_wheels_sdist]
+    needs: [test, build_wheels_sdist]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v3
@@ -43,7 +50,7 @@ jobs:
 
   pypi_publish:
     name: Publish ${{ github.repository }} to to PyPI
-    needs: [build_wheels_sdist, test_pypi_publish]
+    needs: [test, build_wheels_sdist, test_pypi_publish]
 
     runs-on: ubuntu-latest
     # Publish when a GitHub Release is created, use the following rule:
