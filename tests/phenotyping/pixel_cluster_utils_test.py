@@ -1620,6 +1620,21 @@ def test_generate_som_avg_files(capsys):
         output = capsys.readouterr().out
         assert output == "Already generated SOM cluster channel average file, skipping\n"
 
+        # test overwrite functionality
+        capsys.readouterr()
+
+        # run SOM averaging with overwrite flg
+        pixel_cluster_utils.generate_som_avg_files(
+            fovs, chan_list, temp_dir, pixel_pysom, 'pixel_data_dir', num_fovs_subset=3,
+            overwrite=True
+        )
+
+        # ensure we reach the overwrite functionality logic
+        output = capsys.readouterr().out
+        desired_status_updates = \
+            "Overwrite flag set, regenerating SOM cluster channel average file\n"
+        assert desired_status_updates in output
+
         # remove average SOM file for final test
         os.remove(pc_som_avg_file)
 
@@ -1953,6 +1968,21 @@ def test_generate_meta_avg_files(capsys):
 
         output = capsys.readouterr().out
         assert output == "Already generated meta cluster channel average file, skipping\n"
+
+        # test overwrite functionality
+        capsys.readouterr()
+
+        # run SOM averaging with overwrite flg
+        pixel_cluster_utils.generate_meta_avg_files(
+            fovs, chan_list, temp_dir, pixel_cc, 'pixel_data_dir', num_fovs_subset=3,
+            overwrite=True
+        )
+
+        # ensure we reach the overwrite functionality logic
+        output = capsys.readouterr().out
+        desired_status_updates = \
+            "Overwrite flag set, regenerating meta cluster channel average file\n"
+        assert desired_status_updates in output
 
         # remove average meta file for final test
         os.remove(pc_meta_avg_file)

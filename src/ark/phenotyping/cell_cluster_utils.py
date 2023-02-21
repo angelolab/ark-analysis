@@ -521,7 +521,7 @@ def cluster_cells(base_dir, cell_pysom, cell_som_cluster_cols):
 
 
 def generate_som_avg_files(base_dir, cell_som_input_data, cell_som_cluster_cols,
-                           cell_som_expr_col_avg_name):
+                           cell_som_expr_col_avg_name, overwrite=False):
     """Computes and saves the average expression of all `cell_som_cluster_cols`
     across cell SOM clusters.
 
@@ -535,6 +535,8 @@ def generate_som_avg_files(base_dir, cell_som_input_data, cell_som_cluster_cols,
         cell_som_expr_col_avg_name (str):
             The name of the file to write the average expression per column
             across cell SOM clusters
+        overwrite (bool):
+            If set, regenerates the averages of `cell_som_cluster_columns` for SOM clusters
     """
 
     # define the paths to the data
@@ -544,10 +546,15 @@ def generate_som_avg_files(base_dir, cell_som_input_data, cell_som_cluster_cols,
     if 'cell_som_cluster' not in cell_som_input_data.columns.values:
         raise ValueError('cell_som_input_data does not have SOM labels assigned')
 
-    # if the channel SOM average file already exists, skip
+    # if the channel SOM average file already exists and the overwrite flag isn't set, skip
     if os.path.exists(som_expr_col_avg_path):
-        print("Already generated average expression file for each cell SOM column, skipping")
-        return
+        if not overwrite:
+            print("Already generated average expression file for each cell SOM column, skipping")
+            return
+
+        print(
+            "Overwrite flag set, regenerating average expression file for cell SOM clusters"
+        )
 
     # compute the average column expression values per cell SOM cluster
     print("Computing the average value of each training column specified per cell SOM cluster")
@@ -638,7 +645,7 @@ def cell_consensus_cluster(base_dir, cell_som_cluster_cols, cell_som_input_data,
 def generate_meta_avg_files(base_dir, cell_cc, cell_som_cluster_cols,
                             cell_som_input_data,
                             cell_som_expr_col_avg_name,
-                            cell_meta_expr_col_avg_name):
+                            cell_meta_expr_col_avg_name, overwrite=False):
     """Computes and saves the average cluster column expression across pixel meta clusters.
     Assigns meta cluster labels to the data stored in `cell_som_expr_col_avg_name`.
 
@@ -657,6 +664,8 @@ def generate_meta_avg_files(base_dir, cell_cc, cell_som_cluster_cols,
             Used to run consensus clustering on.
         cell_meta_expr_col_avg_name (str):
             Same as above except for cell meta clusters
+        overwrite (bool):
+            If set, regenerates the averages of `cell_som_cluster_cols` per meta cluster
     """
     # define the paths to the data
     som_expr_col_avg_path = os.path.join(base_dir, cell_som_expr_col_avg_name)
@@ -671,8 +680,13 @@ def generate_meta_avg_files(base_dir, cell_cc, cell_som_cluster_cols,
 
     # if the column average file for cell meta clusters already exists, skip
     if os.path.exists(meta_expr_col_avg_path):
-        print("Already generated average expression file for cell meta clusters, skipping")
-        return
+        if not overwrite:
+            print("Already generated average expression file for cell meta clusters, skipping")
+            return
+
+        print(
+            "Overwrite flag set, regenerating average expression file for cell meta clusters"
+        )
 
     # compute the average value of each expression column per cell meta cluster
     print("Computing the average value of each training column specified per cell meta cluster")
@@ -712,7 +726,8 @@ def generate_meta_avg_files(base_dir, cell_cc, cell_som_cluster_cols,
 def generate_wc_avg_files(fovs, channels, base_dir, cell_cc, cell_som_input_data,
                           weighted_cell_channel_name='weighted_cell_channel.feather',
                           cell_som_cluster_channel_avg_name='cell_som_cluster_channel_avg.csv',
-                          cell_meta_cluster_channel_avg_name='cell_meta_cluster_channel_avg.csv'):
+                          cell_meta_cluster_channel_avg_name='cell_meta_cluster_channel_avg.csv',
+                          overwrite=False):
     """Generate the weighted channel average files per cell SOM and meta clusters.
 
     When running cell clustering with pixel clusters generated from Pixie, the counts of each
@@ -740,6 +755,8 @@ def generate_wc_avg_files(fovs, channels, base_dir, cell_cc, cell_som_input_data
             per cell SOM cluster
         cell_meta_cluster_channel_avg_name (str):
             Same as above except for cell meta clusters
+        overwrite (bool):
+            If set, regenerates average weighted channel expression for SOM and meta clusters
     """
     # define the paths to the data
     weighted_channel_path = os.path.join(base_dir, weighted_cell_channel_name)
@@ -752,8 +769,11 @@ def generate_wc_avg_files(fovs, channels, base_dir, cell_cc, cell_som_input_data
     # if the weighted channel average files exist, skip
     if os.path.exists(som_cluster_channel_avg_path) and \
        os.path.exists(meta_cluster_channel_avg_path):
-        print("Already generated average weighted channel expression files, skipping")
-        return
+        if not overwrite:
+            print("Already generated average weighted channel expression files, skipping")
+            return
+
+        print("Overwrite flag set, regenerating average weighted channel expression files")
 
     print("Compute average weighted channel expression across cell SOM clusters")
     cell_som_cluster_channel_avg = compute_cell_cluster_weighted_channel_avg(

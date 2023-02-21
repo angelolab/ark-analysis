@@ -1129,7 +1129,7 @@ def cluster_pixels(fovs, channels, base_dir, pixel_pysom, data_dir='pixel_mat_da
 
 def generate_som_avg_files(fovs, channels, base_dir, pixel_pysom, data_dir='pixel_data_dir',
                            pc_chan_avg_som_cluster_name='pixel_channel_avg_som_cluster.csv',
-                           num_fovs_subset=100, seed=42):
+                           num_fovs_subset=100, seed=42, overwrite=False):
     """Computes and saves the average channel expression across pixel SOM clusters.
 
     Args:
@@ -1149,6 +1149,8 @@ def generate_som_avg_files(fovs, channels, base_dir, pixel_pysom, data_dir='pixe
             The number of FOVs to subset on for SOM cluster channel averaging
         seed (int):
             The random seed to set for subsetting FOVs
+        overwrite (bool):
+            If set, force overwrites the existing average channel expression file if it exists
     """
 
     # define the paths to the data
@@ -1158,10 +1160,13 @@ def generate_som_avg_files(fovs, channels, base_dir, pixel_pysom, data_dir='pixe
     if pixel_pysom.weights is None:
         raise ValueError("Using untrained pixel_pysom object, please invoke train_som first")
 
-    # if the channel SOM average file already exists, skip
+    # if the channel SOM average file already exists and the overwrite flag isn't set, skip
     if os.path.exists(som_cluster_avg_path):
-        print("Already generated SOM cluster channel average file, skipping")
-        return
+        if not overwrite:
+            print("Already generated SOM cluster channel average file, skipping")
+            return
+
+        print("Overwrite flag set, regenerating SOM cluster channel average file")
 
     # compute average channel expression for each pixel SOM cluster
     # and the number of pixels per SOM cluster
@@ -1360,7 +1365,7 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
 def generate_meta_avg_files(fovs, channels, base_dir, pixel_cc, data_dir='pixel_mat_data',
                             pc_chan_avg_som_cluster_name='pixel_channel_avg_som_cluster.csv',
                             pc_chan_avg_meta_cluster_name='pixel_channel_avg_meta_cluster.csv',
-                            num_fovs_subset=100, seed=42):
+                            num_fovs_subset=100, seed=42, overwrite=False):
     """Computes and saves the average channel expression across pixel meta clusters.
     Assigns meta cluster labels to the data stored in `pc_chan_avg_som_cluster_name`.
 
@@ -1384,6 +1389,8 @@ def generate_meta_avg_files(fovs, channels, base_dir, pixel_cc, data_dir='pixel_
             The number of FOVs to subset on for meta cluster channel averaging
         seed (int):
             The random seed to use for subsetting FOVs
+        overwrite (bool):
+            If set, force overwrites the existing average channel expression file if it exists
     """
 
     # define the paths to the data
@@ -1393,10 +1400,13 @@ def generate_meta_avg_files(fovs, channels, base_dir, pixel_cc, data_dir='pixel_
     # path validation
     io_utils.validate_paths([som_cluster_avg_path])
 
-    # if the channel meta average file already exists, skip
+    # if the channel meta average file already exists and the overwrite flag isn't set, skip
     if os.path.exists(meta_cluster_avg_path):
-        print("Already generated meta cluster channel average file, skipping")
-        return
+        if not overwrite:
+            print("Already generated meta cluster channel average file, skipping")
+            return
+
+        print("Overwrite flag set, regenerating meta cluster channel average file")
 
     # compute average channel expression for each pixel meta cluster
     # and the number of pixels per meta cluster

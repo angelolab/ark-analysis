@@ -818,6 +818,21 @@ def test_generate_som_avg_files(capsys):
         assert output == \
             "Already generated average expression file for each cell SOM column, skipping\n"
 
+        # test overwrite functionality
+        capsys.readouterr()
+
+        # run SOM averaging with overwrite flag
+        cell_cluster_utils.generate_som_avg_files(
+            temp_dir, cluster_counts_size_norm, cluster_cols, 'cell_som_cluster_count_avgs.csv',
+            overwrite=True
+        )
+
+        # ensure we reach the overwrite functionality logic
+        output = capsys.readouterr().out
+        desired_status_updates = \
+            "Overwrite flag set, regenerating average expression file for cell SOM clusters\n"
+        assert desired_status_updates in output
+
 
 @parametrize('pixel_cluster_prefix', ['pixel_som_cluster', 'pixel_meta_cluster_rename'])
 def test_cell_consensus_cluster(pixel_cluster_prefix):
@@ -970,6 +985,24 @@ def test_generate_meta_avg_files(capsys):
         assert output == \
             "Already generated average expression file for cell meta clusters, skipping\n"
 
+        # test overwrite functionality
+        capsys.readouterr()
+
+        # run meta averaging with overwrite flag
+        cell_cluster_utils.generate_meta_avg_files(
+            temp_dir, cell_cc, cluster_cols,
+            cluster_data,
+            'cell_som_cluster_avg.csv',
+            'cell_meta_cluster_avg.csv',
+            overwrite=True
+        )
+
+        # ensure we reach the overwrite functionality logic
+        output = capsys.readouterr().out
+        desired_status_updates = \
+            "Overwrite flag set, regenerating average expression file for cell meta clusters\n"
+        assert desired_status_updates in output
+
 
 def test_generate_wc_avg_files(capsys):
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -1061,6 +1094,25 @@ def test_generate_wc_avg_files(capsys):
         output = capsys.readouterr().out
         assert output == \
             "Already generated average weighted channel expression files, skipping\n"
+
+        # test overwrite functionality
+        capsys.readouterr()
+
+        # run weighted channel averaging with overwrite flag
+        cell_cluster_utils.generate_wc_avg_files(
+            fovs=['fov0', 'fov1'],
+            channels=['chan0', 'chan1', 'chan2'],
+            base_dir=temp_dir,
+            cell_cc=cell_cc,
+            cell_som_input_data=cluster_data,
+            overwrite=True
+        )
+
+        # ensure we reach the overwrite functionality logic
+        output = capsys.readouterr().out
+        desired_status_updates = \
+            "Overwrite flag set, regenerating average weighted channel expression files\n"
+        assert desired_status_updates in output
 
 
 @parametrize('weighted_cell_channel_exists', [True, False])
