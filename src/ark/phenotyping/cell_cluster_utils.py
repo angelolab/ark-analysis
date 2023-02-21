@@ -536,7 +536,7 @@ def generate_som_avg_files(base_dir, cell_som_input_data, cell_som_cluster_cols,
             The name of the file to write the average expression per column
             across cell SOM clusters
         overwrite (bool):
-            If set, regenerates the averages of `cell_som_cluster_columns` for SOM clusters
+            If set, regenerate the averages of `cell_som_cluster_columns` for SOM clusters
     """
 
     # define the paths to the data
@@ -665,7 +665,7 @@ def generate_meta_avg_files(base_dir, cell_cc, cell_som_cluster_cols,
         cell_meta_expr_col_avg_name (str):
             Same as above except for cell meta clusters
         overwrite (bool):
-            If set, regenerates the averages of `cell_som_cluster_cols` per meta cluster
+            If set, regenerate the averages of `cell_som_cluster_cols` per meta cluster
     """
     # define the paths to the data
     som_expr_col_avg_path = os.path.join(base_dir, cell_som_expr_col_avg_name)
@@ -756,7 +756,7 @@ def generate_wc_avg_files(fovs, channels, base_dir, cell_cc, cell_som_input_data
         cell_meta_cluster_channel_avg_name (str):
             Same as above except for cell meta clusters
         overwrite (bool):
-            If set, regenerates average weighted channel expression for SOM and meta clusters
+            If set, regenerate average weighted channel expression for SOM and meta clusters
     """
     # define the paths to the data
     weighted_channel_path = os.path.join(base_dir, weighted_cell_channel_name)

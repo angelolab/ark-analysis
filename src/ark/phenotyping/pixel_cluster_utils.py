@@ -1005,7 +1005,7 @@ def cluster_pixels(fovs, channels, base_dir, pixel_pysom, data_dir='pixel_mat_da
         batch_size (int):
             The number of FOVs to process in parallel, ignored if `multiprocess` is `False`
         overwrite (bool):
-            If set, force overwrites the SOM labels in all the FOVs
+            If set, force overwrite the SOM labels in all the FOVs
     """
 
     # define the paths to the data
@@ -1150,7 +1150,7 @@ def generate_som_avg_files(fovs, channels, base_dir, pixel_pysom, data_dir='pixe
         seed (int):
             The random seed to set for subsetting FOVs
         overwrite (bool):
-            If set, force overwrites the existing average channel expression file if it exists
+            If set, force overwrite the existing average channel expression file if it exists
     """
 
     # define the paths to the data
