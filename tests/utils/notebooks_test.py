@@ -1,10 +1,8 @@
-from email.mime import base
 import pathlib
 from typing import ContextManager, Iterator
 import shutil
 import pytest
 from testbook import testbook
-import subprocess
 
 from . import notebooks_test_utils
 

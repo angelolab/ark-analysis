@@ -11,7 +11,6 @@ from pytest_mock import MockerFixture
 from alpineer import image_utils, test_utils
 from ark.utils import deepcell_service_utils
 from skimage import io
-# import test_utils
 
 from ark.utils.deepcell_service_utils import (_convert_deepcell_seg_masks,
                                               create_deepcell_output)
