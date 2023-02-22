@@ -11,10 +11,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Check disk usage -- clean runner
-        run: |
-          df -h
-
       - name: Checkout ${{ github.repository }}
         uses: actions/checkout@v3
         with:
@@ -27,10 +23,6 @@ jobs:
           cache-dependency-path: "**/pyproject.toml"
           cache: "pip"
 
-      - name: Check disk usage -- post python setup
-        run: |
-          df -h
-      
       - name: Get Example Dataset Cache
         uses: actions/cache@v3
         with:
@@ -43,17 +35,10 @@ jobs:
       - name: Install Dependencies and ${{ github.repository }}
         run: |
           pip install .[test]
-      
-      - name: Check disk usage -- post install deps and ark install
-        run: |
-          df -h
 
       - name: Run Tests
         run: |
           pytest
-      - name: Check disk usage -- post tests
-        run: |
-          df -h
 
       - name: Archive Coverage
         uses: actions/upload-artifact@v3

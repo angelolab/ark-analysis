@@ -205,8 +205,6 @@ class Test_1_Segment_Image_Data:
 
     def test_imports(self):
         self.tb.execute_cell("import")
-        f = subprocess.run(["df", "-h"], stdout=subprocess.PIPE).stdout.decode('utf-8')
-        print(f)
 
     def test_base_dir(self):
         base_dir_inject = f"""
@@ -287,8 +285,6 @@ class Test_2_Pixel_Clustering:
 
     def test_imports(self):
         self.tb.execute_cell("import")
-        f = subprocess.run(["df", "-h"], stdout=subprocess.PIPE).stdout.decode('utf-8')
-        print(f)
 
     def test_base_dir(self):
         base_dir_inject = f"""
@@ -398,8 +394,6 @@ class Test_3_Cell_Clustering:
 
     def test_imports(self):
         self.tb.execute_cell("import")
-        f = subprocess.run(["df", "-h"], stdout=subprocess.PIPE).stdout.decode('utf-8')
-        print(f)
 
     def test_base_dir(self):
         base_dir_inject = f"""
@@ -501,8 +495,6 @@ class Test_3b_Generic_Cell_Clustering:
 
     def test_imports(self):
         self.tb.execute_cell("import")
-        f = subprocess.run(["df", "-h"], stdout=subprocess.PIPE).stdout.decode('utf-8')
-        print(f)
 
     def test_base_dir(self):
         base_dir_inject = f"""
@@ -589,8 +581,6 @@ class Test_4_Post_Clustering:
 
     def test_imports(self):
         self.tb.execute_cell("import")
-        f = subprocess.run(["df", "-h"], stdout=subprocess.PIPE).stdout.decode('utf-8')
-        print(f)
 
     def test_base_dir(self):
         base_dir_inject = f"""
@@ -654,8 +644,6 @@ class Test_Fiber_Segmentation():
 
     def test_imports(self):
         self.tb.execute_cell("import")
-        f = subprocess.run(["df", "-h"], stdout=subprocess.PIPE).stdout.decode('utf-8')
-        print(f)
 
     def test_base_dir(self):
         base_dir_inject = f"""
@@ -695,8 +683,6 @@ class Test_Mixing_Score():
 
     def test_imports(self):
         self.tb.execute_cell("import")
-        f = subprocess.run(["df", "-h"], stdout=subprocess.PIPE).stdout.decode('utf-8')
-        print(f)
 
     def test_base_dir(self):
         base_dir_inject = f"""
