@@ -1,6 +1,6 @@
 import numpy as np
 
-from ark.utils import synthetic_spatial_datagen
+import synthetic_spatial_datagen
 
 
 def test_generate_test_dist_matrix():
