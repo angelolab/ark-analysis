@@ -1,6 +1,6 @@
 import pathlib
 from typing import ContextManager, Iterator
-
+import shutil
 import pytest
 from testbook import testbook
 
@@ -58,6 +58,7 @@ def nb1_context(templates_dir, base_dir_generator) -> Iterator[ContextManager]:
     SEGMENT_IMAGE_DATA_PATH: pathlib.Path = templates_dir / "1_Segment_Image_Data.ipynb"
     with testbook(SEGMENT_IMAGE_DATA_PATH, timeout=6000, execute=False) as nb_context_manager:
         yield nb_context_manager, base_dir_generator / "nb1"
+    shutil.rmtree(base_dir_generator / "nb1")
 
 
 @pytest.fixture(scope="class")
@@ -78,6 +79,7 @@ def nb2_context(templates_dir, base_dir_generator) -> Iterator[ContextManager]:
     CLUSTER_PIXELS: pathlib.Path = templates_dir / "2_Pixie_Cluster_Pixels.ipynb"
     with testbook(CLUSTER_PIXELS, timeout=6000, execute=False) as nb_context_manager:
         yield nb_context_manager, base_dir_generator / "nb2"
+    shutil.rmtree(base_dir_generator / "nb2")
 
 
 @pytest.fixture(scope="class")
@@ -98,6 +100,7 @@ def nb3_context(templates_dir, base_dir_generator) -> Iterator[ContextManager]:
     CLUSTER_CELLS: pathlib.Path = templates_dir / "3_Pixie_Cluster_Cells.ipynb"
     with testbook(CLUSTER_CELLS, timeout=6000, execute=False) as nb_context_manager:
         yield nb_context_manager, base_dir_generator / "nb3"
+    shutil.rmtree(base_dir_generator / "nb3")
 
 
 @pytest.fixture(scope="class")
@@ -118,6 +121,7 @@ def nb3b_context(templates_dir, base_dir_generator) -> Iterator[ContextManager]:
     CLUSTER_CELLS: pathlib.Path = templates_dir / "generic_cell_clustering.ipynb"
     with testbook(CLUSTER_CELLS, timeout=6000, execute=False) as nb_context_manager:
         yield nb_context_manager, base_dir_generator / "nb3b"
+    shutil.rmtree(base_dir_generator / "nb3b")
 
 
 @pytest.fixture(scope="class")
@@ -138,6 +142,7 @@ def nb4_context(templates_dir, base_dir_generator) -> Iterator[ContextManager]:
     POST_CLUSTERING: pathlib.Path = templates_dir / "4_Post_Clustering.ipynb"
     with testbook(POST_CLUSTERING, timeout=6000, execute=False) as nb_context_manager:
         yield nb_context_manager, base_dir_generator / "nb4"
+    shutil.rmtree(base_dir_generator / "nb4")
 
 
 @pytest.fixture(scope="class")
@@ -158,6 +163,28 @@ def nbfib_seg_context(templates_dir, base_dir_generator) -> Iterator[ContextMana
     EXAMPLE_FIBER_SEGMENTATION: pathlib.Path = templates_dir / "example_fiber_segmentation.ipynb"
     with testbook(EXAMPLE_FIBER_SEGMENTATION, timeout=6000, execute=False) as nb_context_manager:
         yield nb_context_manager, base_dir_generator / "efs"
+    shutil.rmtree(base_dir_generator / "efs")
+
+
+@pytest.fixture(scope="class")
+def nbmixing_context(templates_dir, base_dir_generator) -> Iterator[ContextManager]:
+    """
+    Creates a testbook context manager for the mixing score notebook.
+
+    Args:
+        templates_dir (pytest.Fixture): The fixture which yields the directory of the notebook
+            templates
+        base_dir_generator (pytest.Fixture): The fixture which yields the temporary directory
+            to store all notebook input / output.
+
+    Yields:
+        Iterator[ContextManager]: The testbook context manager which will get cleaned up
+            afterwords.
+    """
+    EXAMPLE_MIXING: pathlib.Path = templates_dir / "Calculate_Mixing_Scores.ipynb"
+    with testbook(EXAMPLE_MIXING, timeout=6000, execute=False) as nb_context_manager:
+        yield nb_context_manager, base_dir_generator / "cms"
+    shutil.rmtree(base_dir_generator / "cms")
 
 
 class Test_1_Segment_Image_Data:
@@ -636,3 +663,57 @@ class Test_Fiber_Segmentation():
 
     def test_run_fiber_segmentation(self):
         self.tb.execute_cell("run_fiber_segmentation")
+
+
+class Test_Mixing_Score():
+    """
+    Tests Example Mixing Score for completion.
+    NOTE: When modifying the tests, make sure the test are in the
+    same order as the tagged cells in the notebook.
+    """
+    @pytest.fixture(autouse=True, scope="function")
+    def _setup(self, nbmixing_context):
+        """
+        Sets up necessary data and paths to run the notebooks.
+        """
+        self.tb: testbook = nbmixing_context[0]
+        self.base_dir: pathlib.Path = nbmixing_context[1]
+
+    def test_imports(self):
+        self.tb.execute_cell("import")
+
+    def test_base_dir(self):
+        base_dir_inject = f"""
+            base_dir = r"{self.base_dir}"
+        """
+        self.tb.inject(base_dir_inject, "base_dir")
+
+    def test_ex_data_download(self):
+        self.tb.execute_cell("ex_data_download")
+
+    def test_file_paths(self):
+        self.tb.execute_cell("file_path")
+
+    def test_create_dirs(self):
+        self.tb.execute_cell("create_dirs")
+
+    def test_cell_table(self):
+        self.tb.execute_cell("cell_table")
+
+    def test_cell_neighbors(self):
+        self.tb.execute_cell("cell_neighbors")
+
+    def test_mixing_type(self):
+        self.tb.execute_cell("mixing_type")
+
+    def test_cell_types(self):
+        self.tb.execute_cell("cell_types")
+
+    def test_ratio_plots(self):
+        self.tb.execute_cell("ratio_plots")
+
+    def test_mixing_args(self):
+        self.tb.execute_cell("mixing_args")
+
+    def test_mixing_score(self):
+        self.tb.execute_cell("mixing_score")

@@ -2,15 +2,11 @@ name: Build and upload Docker Image
 
 on:
   pull_request:
-    branches:
-      - "releases/**"
+    branches: ["releases/**"]
     types: [labeled, opened, synchronize, reopened]
-  release:
-    types: [published]
   workflow_run:
     workflows: [Build Wheels and upload to PyPI]
-    types:
-      - completed
+    types: [completed]
   workflow_dispatch:
 
 concurrency:
@@ -23,6 +19,9 @@ permissions:
 jobs:
   docker_build:
     name: Build the Docker Image
+    # Build docker image on one of two conditions:
+    # 1. `pypi_publish` workflow runs to completion and succeeds, and the job was triggered by a new release.
+    # 2. A dev manually dispatched the Build workflow for testing in a releases/X.Y.Z pull request.
     if: |
       (
         ${{ github.event.workflow_run.conclusion == 'success'}}
