@@ -199,11 +199,13 @@ def test_compute_cluster_metrics_silhouette():
     # error checking
     with pytest.raises(ValueError):
         # pass an invalid k
-        neighborhood_analysis.compute_cluster_metrics_silhouette(neighbor_mat=neighbor_mat, min_k=1)
+        neighborhood_analysis.compute_cluster_metrics_silhouette(
+            neighbor_mat=neighbor_mat, min_k=1)
 
     with pytest.raises(ValueError):
         # pass an invalid k
-        neighborhood_analysis.compute_cluster_metrics_silhouette(neighbor_mat=neighbor_mat, max_k=1)
+        neighborhood_analysis.compute_cluster_metrics_silhouette(
+            neighbor_mat=neighbor_mat, max_k=1)
 
     with pytest.raises(ValueError):
         # pass invalid fovs
@@ -240,14 +242,14 @@ def test_compute_cell_ratios():
     })
     ratios = neighborhood_analysis.compute_cell_ratios(
         cell_neighbors_mat, ['cell1'], ['cell2'], ['fov1'])
-    assert ratios.equals(pd.DataFrame({'fov': 'fov1', 'target_reference_ratio': [4/3],
-                                       'reference_target_ratio': [3/4]}))
+    assert ratios.equals(pd.DataFrame({'fov': 'fov1', 'pop1_pop2_ratio': [4/3],
+                                       'pop2_pop1_ratio': [3/4]}))
 
     # check zero denom
     ratios = neighborhood_analysis.compute_cell_ratios(
         cell_neighbors_mat, ['cell1'], ['cell3'], ['fov1'])
-    assert ratios.equals(pd.DataFrame({'fov': 'fov1', 'target_reference_ratio': [np.nan],
-                                       'reference_target_ratio': [np.nan]}))
+    assert ratios.equals(pd.DataFrame({'fov': 'fov1', 'pop1_pop2_ratio': [np.nan],
+                                       'pop2_pop1_ratio': [np.nan]}))
 
 
 def test_compute_mixing_score():
@@ -264,16 +266,18 @@ def test_compute_mixing_score():
     # check cell type validation
     with pytest.raises(ValueError, match='The following cell types were included in both '
                                          'the target and reference populations'):
-        neighborhood_analysis.compute_mixing_score(cell_neighbors_mat, 'fov1', target_cells=['cell1'],
-                                              reference_cells=['cell1'], mixing_type='homogeneous')
+        neighborhood_analysis.compute_mixing_score(
+            cell_neighbors_mat, 'fov1', target_cells=['cell1'], reference_cells=['cell1'],
+            mixing_type='homogeneous')
 
     with pytest.raises(ValueError, match='Not all values given in list provided column'):
-        neighborhood_analysis.compute_mixing_score(cell_neighbors_mat, 'fov1', target_cells=['cell1'],
-                                              reference_cells=['cell2'], mixing_type='homogeneous',
-                                              cell_col='bad_column')
+        neighborhood_analysis.compute_mixing_score(
+            cell_neighbors_mat, 'fov1', target_cells=['cell1'], reference_cells=['cell2'],
+            mixing_type='homogeneous', cell_col='bad_column')
     with pytest.raises(ValueError, match='Please provide a valid mixing_type'):
-        neighborhood_analysis.compute_mixing_score(cell_neighbors_mat, 'fov1', target_cells=['cell1'],
-                                              reference_cells=['cell2'], mixing_type='bad')
+        neighborhood_analysis.compute_mixing_score(
+            cell_neighbors_mat, 'fov1', target_cells=['cell1'], reference_cells=['cell2'],
+            mixing_type='bad')
 
     # check that extra cell type is ignored
     score = neighborhood_analysis.compute_mixing_score(
