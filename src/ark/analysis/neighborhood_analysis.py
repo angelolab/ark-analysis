@@ -9,7 +9,7 @@ import xarray as xr
 from alpineer import misc_utils
 
 import ark.settings as settings
-from ark.utils import spatial_analysis_utils
+from ark.analysis import spatial_analysis_utils
 
 
 def create_neighborhood_matrix(all_data, dist_mat_dir, included_fovs=None, distlim=50,

@@ -1,6 +1,6 @@
 import pathlib
 from typing import ContextManager, Iterator
-
+import shutil
 import pytest
 from testbook import testbook
 
@@ -58,6 +58,7 @@ def nb1_context(templates_dir, base_dir_generator) -> Iterator[ContextManager]:
     SEGMENT_IMAGE_DATA_PATH: pathlib.Path = templates_dir / "1_Segment_Image_Data.ipynb"
     with testbook(SEGMENT_IMAGE_DATA_PATH, timeout=6000, execute=False) as nb_context_manager:
         yield nb_context_manager, base_dir_generator / "nb1"
+    shutil.rmtree(base_dir_generator / "nb1")
 
 
 @pytest.fixture(scope="class")
@@ -78,6 +79,7 @@ def nb2_context(templates_dir, base_dir_generator) -> Iterator[ContextManager]:
     CLUSTER_PIXELS: pathlib.Path = templates_dir / "2_Pixie_Cluster_Pixels.ipynb"
     with testbook(CLUSTER_PIXELS, timeout=6000, execute=False) as nb_context_manager:
         yield nb_context_manager, base_dir_generator / "nb2"
+    shutil.rmtree(base_dir_generator / "nb2")
 
 
 @pytest.fixture(scope="class")
@@ -98,6 +100,7 @@ def nb3_context(templates_dir, base_dir_generator) -> Iterator[ContextManager]:
     CLUSTER_CELLS: pathlib.Path = templates_dir / "3_Pixie_Cluster_Cells.ipynb"
     with testbook(CLUSTER_CELLS, timeout=6000, execute=False) as nb_context_manager:
         yield nb_context_manager, base_dir_generator / "nb3"
+    shutil.rmtree(base_dir_generator / "nb3")
 
 
 @pytest.fixture(scope="class")
@@ -118,6 +121,7 @@ def nb3b_context(templates_dir, base_dir_generator) -> Iterator[ContextManager]:
     CLUSTER_CELLS: pathlib.Path = templates_dir / "generic_cell_clustering.ipynb"
     with testbook(CLUSTER_CELLS, timeout=6000, execute=False) as nb_context_manager:
         yield nb_context_manager, base_dir_generator / "nb3b"
+    shutil.rmtree(base_dir_generator / "nb3b")
 
 
 @pytest.fixture(scope="class")
@@ -138,6 +142,7 @@ def nb4_context(templates_dir, base_dir_generator) -> Iterator[ContextManager]:
     POST_CLUSTERING: pathlib.Path = templates_dir / "4_Post_Clustering.ipynb"
     with testbook(POST_CLUSTERING, timeout=6000, execute=False) as nb_context_manager:
         yield nb_context_manager, base_dir_generator / "nb4"
+    shutil.rmtree(base_dir_generator / "nb4")
 
 
 @pytest.fixture(scope="class")
@@ -158,6 +163,7 @@ def nbfib_seg_context(templates_dir, base_dir_generator) -> Iterator[ContextMana
     EXAMPLE_FIBER_SEGMENTATION: pathlib.Path = templates_dir / "example_fiber_segmentation.ipynb"
     with testbook(EXAMPLE_FIBER_SEGMENTATION, timeout=6000, execute=False) as nb_context_manager:
         yield nb_context_manager, base_dir_generator / "efs"
+    shutil.rmtree(base_dir_generator / "efs")
 
 
 @pytest.fixture(scope="class")
@@ -177,7 +183,8 @@ def nbmixing_context(templates_dir, base_dir_generator) -> Iterator[ContextManag
     """
     EXAMPLE_MIXING: pathlib.Path = templates_dir / "Calculate_Mixing_Scores.ipynb"
     with testbook(EXAMPLE_MIXING, timeout=6000, execute=False) as nb_context_manager:
-        yield nb_context_manager, base_dir_generator / "ems"
+        yield nb_context_manager, base_dir_generator / "cms"
+    shutil.rmtree(base_dir_generator / "cms")
 
 
 class Test_1_Segment_Image_Data:
