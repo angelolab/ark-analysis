@@ -412,7 +412,7 @@ def compute_cell_ratios(neighbors_mat, target_cells, reference_cells, fov_list, 
     ax4.set(xlabel='Ratio', ylabel='Count')
 
     ratio_data = pd.DataFrame(list(zip(fov_list, targ_ref_ratio, ref_targ_ratio)),
-                              columns=['fov', 'target_reference_ratio', 'reference_target_ratio'])
+                              columns=['fov', 'pop1_pop2_ratio', 'pop2_pop1_ratio'])
     return ratio_data
 
 
