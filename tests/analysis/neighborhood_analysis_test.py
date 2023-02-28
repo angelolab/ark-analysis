@@ -174,7 +174,7 @@ def test_compute_cluster_metrics_inertia():
     with pytest.raises(ValueError):
         # pass invalid fovs
         neighborhood_analysis.compute_cluster_metrics_inertia(neighbor_mat=neighbor_mat,
-                                                         included_fovs=["fov3"])
+                                                              included_fovs=["fov3"])
 
     # explicitly include fovs
     neighbor_cluster_stats = neighborhood_analysis.compute_cluster_metrics_inertia(
@@ -210,7 +210,7 @@ def test_compute_cluster_metrics_silhouette():
     with pytest.raises(ValueError):
         # pass invalid fovs
         neighborhood_analysis.compute_cluster_metrics_silhouette(neighbor_mat=neighbor_mat,
-                                                            included_fovs=["fov3"])
+                                                                 included_fovs=["fov3"])
 
     # explicitly include fovs
     neighbor_cluster_stats = neighborhood_analysis.compute_cluster_metrics_silhouette(
