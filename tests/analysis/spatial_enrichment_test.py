@@ -7,8 +7,7 @@ from alpineer import load_utils
 from alpineer.test_utils import _write_labels
 
 import ark.settings as settings
-from ark.analysis import spatial_enrichment
-from ark.utils import spatial_analysis_utils
+from ark.analysis import spatial_enrichment, spatial_analysis_utils
 from tests.utils import test_utils
 
 
