@@ -691,16 +691,20 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
     # create variable for storing 99.9% values
     quant_dat = pd.DataFrame()
 
-    # find all the FOV files in the subsetted directory
+    # find all the FOV files in the full data and subsetted directories
     # NOTE: this handles the case where the data file was written, but not the subset file
     fovs_sub = io_utils.list_files(os.path.join(base_dir, subset_dir), substrs='.feather')
+    fovs_data = io_utils.list_files(os.path.join(base_dir, data_dir), substrs='.feather')
+
+    # union the two fovs lists together
+    fovs_full = list(set(fovs_sub).union(fovs_data))
 
     # trim the .feather suffix from the fovs in the subsetted directory
-    fovs_sub = io_utils.remove_file_extensions(fovs_sub)
+    fovs_full = io_utils.remove_file_extensions(fovs_full)
 
     # define the list of FOVs for preprocessing
     # NOTE: if an existing FOV is already corrupted, future steps will discard it
-    fovs_list = list(set(fovs).difference(set(fovs_sub)))
+    fovs_list = list(set(fovs).difference(set(fovs_full)))
 
     # if there are no FOVs left to preprocess don't run function
     if len(fovs_list) == 0:
