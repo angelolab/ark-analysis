@@ -280,7 +280,9 @@ class CellSOMCluster(PixieSOMCluster):
         self.fovs = fovs
 
         # subset cell_data on just the FOVs specified
-        self.cell_data = self.cell_data[self.cell_data['fov'].isin(self.fovs)]
+        self.cell_data = self.cell_data[
+            self.cell_data['fov'].isin(self.fovs)
+        ].reset_index(drop=True)
 
         # since cell_data is the only dataset, we can just normalize it immediately
         self.normalize_data()
