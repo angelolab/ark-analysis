@@ -696,8 +696,8 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
     fovs_sub = io_utils.list_files(os.path.join(base_dir, subset_dir), substrs='.feather')
     fovs_data = io_utils.list_files(os.path.join(base_dir, data_dir), substrs='.feather')
 
-    # union the two fovs lists together
-    fovs_full = list(set(fovs_sub).union(fovs_data))
+    # intersect the two fovs lists together (if a FOV appears in one but not the other, regenerate)
+    fovs_full = list(set(fovs_sub).intersection(fovs_data))
 
     # trim the .feather suffix from the fovs in the subsetted directory
     fovs_full = io_utils.remove_file_extensions(fovs_full)

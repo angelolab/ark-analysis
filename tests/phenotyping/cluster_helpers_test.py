@@ -151,7 +151,7 @@ def cell_pyflowsom_object(cell_som_base_dir) -> Iterator[
     # define a CellSOMCluster object with weights
     cell_som_with_weights = CellSOMCluster(
         cell_data=cluster_counts_size_norm, weights_path=weights_path,
-        fovs=['fov0', 'fov1'], columns=count_cols, xdim=20, ydim=10
+        fovs=['fov1'], columns=count_cols, xdim=20, ydim=10
     )
 
     # define a CellSOMCluster object without weights

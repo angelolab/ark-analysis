@@ -1118,6 +1118,38 @@ def test_create_pixel_matrix_missing_fov(multiprocess, capsys):
             written_files=fov_files
         )
 
+        # test the case where we've written a FOV to subset but not data (very rare)
+        # NOTE: in this case, the value in quant_dat will also not have been written
+        os.remove(os.path.join(temp_dir, 'pixel_mat_data', 'fov1.feather'))
+        feather.write_dataframe(
+            sample_quant_data,
+            os.path.join(temp_dir, 'pixel_output_dir', 'quant_dat.feather')
+        )
+
+        pixel_cluster_utils.create_pixel_matrix(
+            fovs=PIXEL_MATRIX_FOVS,
+            channels=PIXEL_MATRIX_CHANS,
+            base_dir=temp_dir,
+            tiff_dir=tiff_dir,
+            img_sub_folder=None,
+            seg_dir=None,
+            multiprocess=multiprocess
+        )
+
+        output_capture = capsys.readouterr().out
+        assert output_capture == (
+            "Restarting preprocessing from FOV fov1, 1 fovs left to process\n"
+            "Processed 1 fovs\n"
+        )
+        misc_utils.verify_same_elements(
+            data_files=io_utils.list_files(os.path.join(temp_dir, 'pixel_mat_data')),
+            written_files=fov_files
+        )
+        misc_utils.verify_same_elements(
+            data_files=io_utils.list_files(os.path.join(temp_dir, 'pixel_mat_subsetted')),
+            written_files=fov_files
+        )
+
 
 def test_create_pixel_matrix_all_fovs(capsys):
     fov_files = [fov + '.feather' for fov in PIXEL_MATRIX_FOVS]
