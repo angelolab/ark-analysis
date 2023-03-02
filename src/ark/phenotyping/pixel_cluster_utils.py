@@ -691,16 +691,20 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
     # create variable for storing 99.9% values
     quant_dat = pd.DataFrame()
 
-    # find all the FOV files in the subsetted directory
+    # find all the FOV files in the full data and subsetted directories
     # NOTE: this handles the case where the data file was written, but not the subset file
     fovs_sub = io_utils.list_files(os.path.join(base_dir, subset_dir), substrs='.feather')
+    fovs_data = io_utils.list_files(os.path.join(base_dir, data_dir), substrs='.feather')
+
+    # intersect the two fovs lists together (if a FOV appears in one but not the other, regenerate)
+    fovs_full = list(set(fovs_sub).intersection(fovs_data))
 
     # trim the .feather suffix from the fovs in the subsetted directory
-    fovs_sub = io_utils.remove_file_extensions(fovs_sub)
+    fovs_full = io_utils.remove_file_extensions(fovs_full)
 
     # define the list of FOVs for preprocessing
     # NOTE: if an existing FOV is already corrupted, future steps will discard it
-    fovs_list = list(set(fovs).difference(set(fovs_sub)))
+    fovs_list = list(set(fovs).difference(set(fovs_full)))
 
     # if there are no FOVs left to preprocess don't run function
     if len(fovs_list) == 0:
@@ -874,7 +878,8 @@ def train_pixel_som(fovs, channels, base_dir,
                     subset_dir='pixel_mat_subsetted',
                     norm_vals_name='post_rowsum_chan_norm.feather',
                     som_weights_name='pixel_som_weights.feather', xdim=10, ydim=10,
-                    lr_start=0.05, lr_end=0.01, num_passes=1, seed=42):
+                    lr_start=0.05, lr_end=0.01, num_passes=1, seed=42,
+                    overwrite=False):
     """Run the SOM training on the subsetted pixel data.
 
     Saves SOM weights to `base_dir/som_weights_name`.
@@ -904,6 +909,8 @@ def train_pixel_som(fovs, channels, base_dir,
             The number of training passes to make through the dataset
         seed (int):
             The random seed to use for training the SOM
+        overwrite (bool):
+            If set, force retrains the SOM and overwrites the weights
 
     Returns:
         cluster_helpers.PixelSOMCluster:
@@ -939,7 +946,7 @@ def train_pixel_som(fovs, channels, base_dir,
     # train the SOM weights
     # NOTE: seed has to be set in cyFlowSOM.pyx, done by passing flag in PixieSOMCluster
     print("Training SOM")
-    pixel_pysom.train_som()
+    pixel_pysom.train_som(overwrite=overwrite)
 
     return pixel_pysom
 
@@ -981,7 +988,7 @@ def run_pixel_som_assignment(pixel_data_path, pixel_pysom_obj, fov):
 
 
 def cluster_pixels(fovs, channels, base_dir, pixel_pysom, data_dir='pixel_mat_data',
-                   multiprocess=False, batch_size=5):
+                   multiprocess=False, batch_size=5, overwrite=False):
     """Uses trained SOM weights to assign cluster labels on full pixel data.
 
     Saves data with cluster labels to `data_dir`.
@@ -1001,6 +1008,8 @@ def cluster_pixels(fovs, channels, base_dir, pixel_pysom, data_dir='pixel_mat_da
             Whether to use multiprocessing or not
         batch_size (int):
             The number of FOVs to process in parallel, ignored if `multiprocess` is `False`
+        overwrite (bool):
+            If set, force overwrite the SOM labels in all the FOVs
     """
 
     # define the paths to the data
@@ -1052,8 +1061,16 @@ def cluster_pixels(fovs, channels, base_dir, pixel_pysom, data_dir='pixel_mat_da
         pixel_data_columns=sample_fov.columns.values
     )
 
-    # only assign SOM clusters to FOVs that don't already have them
-    fovs_list = find_fovs_missing_col(base_dir, data_dir, 'pixel_som_cluster')
+    # if overwrite flag set, run on all FOVs in data_dir
+    if overwrite:
+        print('Overwrite flag set, reassigning SOM cluster labels to all FOVs')
+        os.mkdir(data_path + '_temp')
+        fovs_list = io_utils.remove_file_extensions(
+            io_utils.list_files(data_path, substrs='.feather')
+        )
+    # otherwise, only assign SOM clusters to FOVs that don't already have them
+    else:
+        fovs_list = find_fovs_missing_col(base_dir, data_dir, 'pixel_som_cluster')
 
     # make sure fovs_list only contain fovs that exist in the master fovs list specified
     fovs_list = list(set(fovs_list).intersection(fovs))
@@ -1116,7 +1133,7 @@ def cluster_pixels(fovs, channels, base_dir, pixel_pysom, data_dir='pixel_mat_da
 
 def generate_som_avg_files(fovs, channels, base_dir, pixel_pysom, data_dir='pixel_data_dir',
                            pc_chan_avg_som_cluster_name='pixel_channel_avg_som_cluster.csv',
-                           num_fovs_subset=100, seed=42):
+                           num_fovs_subset=100, seed=42, overwrite=False):
     """Computes and saves the average channel expression across pixel SOM clusters.
 
     Args:
@@ -1136,6 +1153,8 @@ def generate_som_avg_files(fovs, channels, base_dir, pixel_pysom, data_dir='pixe
             The number of FOVs to subset on for SOM cluster channel averaging
         seed (int):
             The random seed to set for subsetting FOVs
+        overwrite (bool):
+            If set, force overwrite the existing average channel expression file if it exists
     """
 
     # define the paths to the data
@@ -1145,10 +1164,13 @@ def generate_som_avg_files(fovs, channels, base_dir, pixel_pysom, data_dir='pixe
     if pixel_pysom.weights is None:
         raise ValueError("Using untrained pixel_pysom object, please invoke train_som first")
 
-    # if the channel SOM average file already exists, skip
+    # if the channel SOM average file already exists and the overwrite flag isn't set, skip
     if os.path.exists(som_cluster_avg_path):
-        print("Already generated SOM cluster channel average file, skipping")
-        return
+        if not overwrite:
+            print("Already generated SOM cluster channel average file, skipping")
+            return
+
+        print("Overwrite flag set, regenerating SOM cluster channel average file")
 
     # compute average channel expression for each pixel SOM cluster
     # and the number of pixels per SOM cluster
@@ -1211,7 +1233,7 @@ def run_pixel_consensus_assignment(pixel_data_path, pixel_cc_obj, fov):
 def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
                             data_dir='pixel_mat_data',
                             pc_chan_avg_som_cluster_name='pixel_channel_avg_som_cluster.csv',
-                            multiprocess=False, batch_size=5, seed=42):
+                            multiprocess=False, batch_size=5, seed=42, overwrite=False):
     """Run consensus clustering algorithm on pixel-level summed data across channels
     Saves data with consensus cluster labels to `data_dir`.
 
@@ -1237,6 +1259,8 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
             The number of FOVs to process in parallel, ignored if `multiprocess` is `False`
         seed (int):
             The random seed to set for consensus clustering
+        overwrite (bool):
+            If set, force overwrites the meta labels in all the FOVs
 
     Returns:
         cluster_helpers.PixieConsensusCluster:
@@ -1250,8 +1274,16 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
     # path validation
     io_utils.validate_paths([pixel_data_path, som_cluster_avg_path])
 
-    # only assign meta clusters to FOVs that don't already have them
-    fovs_list = find_fovs_missing_col(base_dir, data_dir, 'pixel_meta_cluster')
+    # if overwrite flag set, run on all FOVs in data_dir
+    if overwrite:
+        print('Overwrite flag set, reassigning meta cluster labels to all FOVs')
+        os.mkdir(pixel_data_path + '_temp')
+        fovs_list = io_utils.remove_file_extensions(
+            io_utils.list_files(pixel_data_path, substrs='.feather')
+        )
+    # otherwise, only assign meta clusters to FOVs that don't already have them
+    else:
+        fovs_list = find_fovs_missing_col(base_dir, data_dir, 'pixel_meta_cluster')
 
     # make sure fovs_list only contain fovs that exist in the master fovs list specified
     fovs_list = list(set(fovs_list).intersection(fovs))
@@ -1337,7 +1369,7 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
 def generate_meta_avg_files(fovs, channels, base_dir, pixel_cc, data_dir='pixel_mat_data',
                             pc_chan_avg_som_cluster_name='pixel_channel_avg_som_cluster.csv',
                             pc_chan_avg_meta_cluster_name='pixel_channel_avg_meta_cluster.csv',
-                            num_fovs_subset=100, seed=42):
+                            num_fovs_subset=100, seed=42, overwrite=False):
     """Computes and saves the average channel expression across pixel meta clusters.
     Assigns meta cluster labels to the data stored in `pc_chan_avg_som_cluster_name`.
 
@@ -1361,6 +1393,8 @@ def generate_meta_avg_files(fovs, channels, base_dir, pixel_cc, data_dir='pixel_
             The number of FOVs to subset on for meta cluster channel averaging
         seed (int):
             The random seed to use for subsetting FOVs
+        overwrite (bool):
+            If set, force overwrites the existing average channel expression file if it exists
     """
 
     # define the paths to the data
@@ -1370,10 +1404,13 @@ def generate_meta_avg_files(fovs, channels, base_dir, pixel_cc, data_dir='pixel_
     # path validation
     io_utils.validate_paths([som_cluster_avg_path])
 
-    # if the channel meta average file already exists, skip
+    # if the channel meta average file already exists and the overwrite flag isn't set, skip
     if os.path.exists(meta_cluster_avg_path):
-        print("Already generated meta cluster channel average file, skipping")
-        return
+        if not overwrite:
+            print("Already generated meta cluster channel average file, skipping")
+            return
+
+        print("Overwrite flag set, regenerating meta cluster channel average file")
 
     # compute average channel expression for each pixel meta cluster
     # and the number of pixels per meta cluster

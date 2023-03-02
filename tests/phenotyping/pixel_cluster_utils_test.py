@@ -1118,6 +1118,38 @@ def test_create_pixel_matrix_missing_fov(multiprocess, capsys):
             written_files=fov_files
         )
 
+        # test the case where we've written a FOV to subset but not data (very rare)
+        # NOTE: in this case, the value in quant_dat will also not have been written
+        os.remove(os.path.join(temp_dir, 'pixel_mat_data', 'fov1.feather'))
+        feather.write_dataframe(
+            sample_quant_data,
+            os.path.join(temp_dir, 'pixel_output_dir', 'quant_dat.feather')
+        )
+
+        pixel_cluster_utils.create_pixel_matrix(
+            fovs=PIXEL_MATRIX_FOVS,
+            channels=PIXEL_MATRIX_CHANS,
+            base_dir=temp_dir,
+            tiff_dir=tiff_dir,
+            img_sub_folder=None,
+            seg_dir=None,
+            multiprocess=multiprocess
+        )
+
+        output_capture = capsys.readouterr().out
+        assert output_capture == (
+            "Restarting preprocessing from FOV fov1, 1 fovs left to process\n"
+            "Processed 1 fovs\n"
+        )
+        misc_utils.verify_same_elements(
+            data_files=io_utils.list_files(os.path.join(temp_dir, 'pixel_mat_data')),
+            written_files=fov_files
+        )
+        misc_utils.verify_same_elements(
+            data_files=io_utils.list_files(os.path.join(temp_dir, 'pixel_mat_subsetted')),
+            written_files=fov_files
+        )
+
 
 def test_create_pixel_matrix_all_fovs(capsys):
     fov_files = [fov + '.feather' for fov in PIXEL_MATRIX_FOVS]
@@ -1253,6 +1285,7 @@ def test_find_fovs_missing_col_temp_present():
         )
 
 
+# NOTE: overwrite functionality tested in cluster_helpers_test.py
 def test_train_pixel_som():
     # basic error check: bad path to subsetted matrix
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -1454,7 +1487,7 @@ def generate_test_pixel_som_cluster_data(temp_dir, fovs, chans,
 
 
 @parametrize('multiprocess', [True, False])
-def test_cluster_pixels_base(multiprocess):
+def test_cluster_pixels_base(multiprocess, capsys):
     with tempfile.TemporaryDirectory() as temp_dir:
         # create list of markers and fovs we want to use
         chan_list = ['Marker1', 'Marker2', 'Marker3', 'Marker4']
@@ -1491,6 +1524,24 @@ def test_cluster_pixels_base(multiprocess):
             # assert we didn't assign any cluster 100 or above
             cluster_ids = fov_cluster_data['pixel_som_cluster']
             assert np.all(cluster_ids <= 100)
+
+        # test overwrite functionality
+        capsys.readouterr()
+
+        # run SOM cluster assignment with overwrite flag
+        pixel_cluster_utils.cluster_pixels(
+            fovs, chan_list, temp_dir, pixel_pysom, 'pixel_mat_data', multiprocess=multiprocess,
+            overwrite=True
+        )
+
+        # ensure we reach the overwrite functionality logic
+        output = capsys.readouterr().out
+        desired_status_updates = \
+            "Overwrite flag set, reassigning SOM cluster labels to all FOVs\n"
+        assert desired_status_updates in output
+
+        # further ensures that all FOVs were overwritten
+        assert "There are no more FOVs to assign SOM labels to" not in output
 
 
 @parametrize('multiprocess', [True, False])
@@ -1600,6 +1651,21 @@ def test_generate_som_avg_files(capsys):
 
         output = capsys.readouterr().out
         assert output == "Already generated SOM cluster channel average file, skipping\n"
+
+        # test overwrite functionality
+        capsys.readouterr()
+
+        # run SOM averaging with overwrite flg
+        pixel_cluster_utils.generate_som_avg_files(
+            fovs, chan_list, temp_dir, pixel_pysom, 'pixel_data_dir', num_fovs_subset=3,
+            overwrite=True
+        )
+
+        # ensure we reach the overwrite functionality logic
+        output = capsys.readouterr().out
+        desired_status_updates = \
+            "Overwrite flag set, regenerating SOM cluster channel average file\n"
+        assert desired_status_updates in output
 
         # remove average SOM file for final test
         os.remove(pc_som_avg_file)
@@ -1765,7 +1831,7 @@ def generate_test_pixel_consensus_cluster_data(temp_dir, fovs, chans,
 
 
 @parametrize('multiprocess', [True, False])
-def test_pixel_consensus_cluster_base(multiprocess):
+def test_pixel_consensus_cluster_base(multiprocess, capsys):
     with tempfile.TemporaryDirectory() as temp_dir:
         # define fovs and channels
         fovs = ['fov0', 'fov1', 'fov2']
@@ -1807,6 +1873,20 @@ def test_pixel_consensus_cluster_base(multiprocess):
             ].drop_duplicates().sort_values(by='pixel_som_cluster')
 
             assert np.all(sample_mapping.values == fov_mapping.values)
+
+        # run consensus clustering with the overwrite flag
+        pixel_cc = pixel_cluster_utils.pixel_consensus_cluster(
+            fovs=fovs, channels=chans, base_dir=temp_dir, overwrite=True
+        )
+
+        # ensure we reach the overwrite functionality logic
+        output = capsys.readouterr().out
+        desired_status_updates = \
+            "Overwrite flag set, reassigning meta cluster labels to all FOVs\n"
+        assert desired_status_updates in output
+
+        # further ensures that all FOVs were overwritten
+        assert "There are no more FOVs to assign meta labels to" not in output
 
 
 @parametrize('multiprocess', [True, False])
@@ -1920,6 +2000,21 @@ def test_generate_meta_avg_files(capsys):
 
         output = capsys.readouterr().out
         assert output == "Already generated meta cluster channel average file, skipping\n"
+
+        # test overwrite functionality
+        capsys.readouterr()
+
+        # run SOM averaging with overwrite flg
+        pixel_cluster_utils.generate_meta_avg_files(
+            fovs, chan_list, temp_dir, pixel_cc, 'pixel_data_dir', num_fovs_subset=3,
+            overwrite=True
+        )
+
+        # ensure we reach the overwrite functionality logic
+        output = capsys.readouterr().out
+        desired_status_updates = \
+            "Overwrite flag set, regenerating meta cluster channel average file\n"
+        assert desired_status_updates in output
 
         # remove average meta file for final test
         os.remove(pc_meta_avg_file)
