@@ -1,12 +1,8 @@
 import os
 import random
-import random
 import shutil
-from sys import prefix
 import tempfile
-from random import randint
 from shutil import rmtree
-from typing import Iterator, List
 from typing import Iterator, List
 
 import feather
@@ -539,8 +535,9 @@ def stitching_fovs(request: str) -> Iterator[List[str]]:
     A Fixture which yields a list of FOVs.
 
     Args:
-        request (str): Either `no_prefix` or `run_prefix`. If it is `run_prefix` then the run will be prefixed
-        with a random integer, `"run_i_RnCm"`. If it is `no_prefix`, then the FOV will be of the form `"RnCm"`
+        request (str): Either `no_prefix` or `run_prefix`. If it is `run_prefix` then the run
+        will be prefixed with a random integer, `"run_i_RnCm"`. If it is `no_prefix`,
+        then the FOV will be of the form `"RnCm"`
 
     Yields:
         Iterator[List[str]]: Returns a list of FOVs
@@ -639,7 +636,7 @@ def test_stitch_images_by_shape(segmentation, clustering, subdir, fovs):
         shutil.rmtree(stitched_dir)
 
         # test successful stitching for select channels
-        random_channel = chans[randint(0, len(chans)-1)]
+        random_channel = chans[random.randint(0, len(chans)-1)]
         data_utils.stitch_images_by_shape(data_dir, stitched_dir, img_sub_folder=subdir,
                                           channels=[random_channel], segmentation=segmentation,
                                           clustering=clustering)
