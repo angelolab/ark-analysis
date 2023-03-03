@@ -37,3 +37,4 @@ Pipfile.lock
 .DS_Store
 coverage.lcov
 data/*
+.venv

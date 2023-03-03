@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 import skimage.io as io
 from alpineer import data_utils, image_utils, io_utils, load_utils, misc_utils
+from alpineer.settings import EXTENSION_TYPES
 from tqdm.notebook import tqdm_notebook as tqdm
 
 from ark import settings
@@ -478,7 +479,7 @@ def stitch_images_by_shape(data_dir, stitched_dir, img_sub_folder=None, channels
     io_utils.validate_paths(data_dir)
 
     # no img_sub_folder, change to empty string to read directly from base folder
-    if img_sub_folder is None:
+    if img_sub_folder in [None, '', ""]:
         img_sub_folder = ""
 
     if clustering and clustering not in ['pixel', 'cell']:
@@ -505,11 +506,14 @@ def stitch_images_by_shape(data_dir, stitched_dir, img_sub_folder=None, channels
     if os.path.exists(stitched_dir):
         raise ValueError(f"The {stitched_dir} directory already exists.")
 
+    search_term: str = re.compile(r"(R\+?\d+)(C\+?\d+)")
+
     bad_fov_names = []
     for fov in fovs:
-        r = re.compile('.*R.*C.*')
-        if r.match(fov) is None:
+        res = re.search(search_term, fov)
+        if res is None:
             bad_fov_names.append(fov)
+
     if len(bad_fov_names) > 0:
         raise ValueError(f"Invalid FOVs found in directory, {data_dir}. FOV names "
                          f"{bad_fov_names} should have the form RnCm.")
@@ -518,7 +522,7 @@ def stitch_images_by_shape(data_dir, stitched_dir, img_sub_folder=None, channels
     if not segmentation and not clustering:
         channel_imgs = io_utils.list_files(
             dir_name=os.path.join(data_dir, fovs[0], img_sub_folder),
-            substrs=['.tiff', '.jpg', '.png'])
+            substrs=EXTENSION_TYPES["IMAGE"])
     else:
         channel_imgs = io_utils.list_files(data_dir, substrs=fovs[0])
         channel_imgs = [chan.split(fovs[0] + '_')[1] for chan in channel_imgs]
@@ -529,12 +533,11 @@ def stitch_images_by_shape(data_dir, stitched_dir, img_sub_folder=None, channels
         misc_utils.verify_in_list(channel_inputs=channels,
                                   valid_channels=io_utils.remove_file_extensions(channel_imgs))
 
-    os.makedirs(stitched_dir)
-
     file_ext = channel_imgs[0].split('.')[1]
     expected_fovs, num_rows, num_cols = load_utils.get_tiled_fov_names(fovs, return_dims=True)
 
     # save new images to the stitched_images, one channel at a time
+    os.makedirs(stitched_dir)
     for chan in channels:
         image_data = load_utils.load_tiled_img_data(data_dir, fovs, expected_fovs, chan,
                                                     single_dir=any([segmentation, clustering]),
