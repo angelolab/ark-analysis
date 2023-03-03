@@ -585,7 +585,6 @@ def test_stitch_images_by_shape(segmentation, clustering, subdir, fovs):
 
             # one valid fov name but not all should raise error
             os.makedirs(os.path.join(temp_dir, 'R13C1'))
-            os.makedirs(os.path.join(temp_dir, 'R13C1'))
             with pytest.raises(ValueError, match="Invalid FOVs found in directory"):
                 data_utils.stitch_images_by_shape(data_dir, stitched_dir)
 
@@ -611,13 +610,10 @@ def test_stitch_images_by_shape(segmentation, clustering, subdir, fovs):
             chans = [clustering + '_mask']
         else:
             chans = [f"chan{i}" for i in range(5)]
-            chans = [f"chan{i}" for i in range(5)]
             # check that ignores toffy stitching in fov level dir
-            stitching_fovs.append('stitched_images')
             stitching_fovs.append('stitched_images')
 
         filelocs, data_xr = test_utils.create_paired_xarray_fovs(
-            data_dir, stitching_fovs, chans,
             data_dir, stitching_fovs, chans,
             img_shape=(10, 10), fills=True, sub_dir=subdir, dtype=np.float32,
             single_dir=any([segmentation, clustering])
@@ -640,7 +636,6 @@ def test_stitch_images_by_shape(segmentation, clustering, subdir, fovs):
         stitched_data = load_utils.load_imgs_from_dir(stitched_dir,
                                                       files=[chans[0] + '_stitched.tiff'])
         assert stitched_data.shape == (1, 120, 120, 1)
-        assert stitched_data.shape == (1, 120, 120, 1)
         shutil.rmtree(stitched_dir)
 
         # test successful stitching for select channels
@@ -652,5 +647,4 @@ def test_stitch_images_by_shape(segmentation, clustering, subdir, fovs):
 
         # remove stitched_images from fov list
         if not segmentation and not clustering:
-            stitching_fovs.pop()
             stitching_fovs.pop()
