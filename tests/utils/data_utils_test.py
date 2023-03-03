@@ -617,7 +617,7 @@ def test_stitch_images_by_shape(segmentation, clustering, subdir, stitching_fovs
         assert sorted(io_utils.list_files(stitched_dir)) == \
             [chan + '_stitched.tiff' for chan in chans]
 
-        # stitched image is 100 x 200 fovs with max_img_size = 10
+        # stitched image is 12 x 12 fovs with max_img_size = 10, so the image is 120 x 120 pixels
         stitched_data = load_utils.load_imgs_from_dir(stitched_dir,
                                                       files=[chans[0] + '_stitched.tiff'])
         assert stitched_data.shape == (1, 120, 120, 1)
