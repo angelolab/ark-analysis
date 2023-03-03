@@ -1,10 +1,12 @@
 import os
 import random
+import random
 import shutil
 from sys import prefix
 import tempfile
 from random import randint
 from shutil import rmtree
+from typing import Iterator, List
 from typing import Iterator, List
 
 import feather
@@ -532,7 +534,17 @@ def test_split_img_stack():
 
 
 @pytest.fixture(scope="function", params=["no_prefix", "run_prefix"])
-def stitching_fovs(request) -> Iterator[List[str]]:
+def stitching_fovs(request: str) -> Iterator[List[str]]:
+    """
+    A Fixture which yields a list of FOVs.
+
+    Args:
+        request (str): Either `no_prefix` or `run_prefix`. If it is `run_prefix` then the run will be prefixed
+        with a random integer, `"run_i_RnCm"`. If it is `no_prefix`, then the FOV will be of the form `"RnCm"`
+
+    Yields:
+        Iterator[List[str]]: Returns a list of FOVs
+    """
     param = request.param
 
     if param == "no_prefix":
@@ -545,7 +557,9 @@ def stitching_fovs(request) -> Iterator[List[str]]:
 @pytest.mark.parametrize('segmentation, clustering, subdir',
                          [(False, False, 'TIFs'), (True, False, ''), (False, 'cell', ''),
                           (False, 'pixel', '')])
-def test_stitch_images_by_shape(segmentation, clustering, subdir, stitching_fovs):
+@pytest.mark.parametrize('fovs', [['R1C1', 'R2C2', 'R3C1'],
+                         ['run_1_R1C1', 'run_1_R2C2', 'run_2_R3C1']])
+def test_stitch_images_by_shape(segmentation, clustering, subdir, fovs):
 
     # validation checks (only once)
     if clustering == 'pixel':
@@ -570,6 +584,7 @@ def test_stitch_images_by_shape(segmentation, clustering, subdir, stitching_fovs
                 data_utils.stitch_images_by_shape(data_dir, stitched_dir)
 
             # one valid fov name but not all should raise error
+            os.makedirs(os.path.join(temp_dir, 'R13C1'))
             os.makedirs(os.path.join(temp_dir, 'R13C1'))
             with pytest.raises(ValueError, match="Invalid FOVs found in directory"):
                 data_utils.stitch_images_by_shape(data_dir, stitched_dir)
@@ -596,10 +611,13 @@ def test_stitch_images_by_shape(segmentation, clustering, subdir, stitching_fovs
             chans = [clustering + '_mask']
         else:
             chans = [f"chan{i}" for i in range(5)]
+            chans = [f"chan{i}" for i in range(5)]
             # check that ignores toffy stitching in fov level dir
+            stitching_fovs.append('stitched_images')
             stitching_fovs.append('stitched_images')
 
         filelocs, data_xr = test_utils.create_paired_xarray_fovs(
+            data_dir, stitching_fovs, chans,
             data_dir, stitching_fovs, chans,
             img_shape=(10, 10), fills=True, sub_dir=subdir, dtype=np.float32,
             single_dir=any([segmentation, clustering])
@@ -618,8 +636,10 @@ def test_stitch_images_by_shape(segmentation, clustering, subdir, stitching_fovs
             [chan + '_stitched.tiff' for chan in chans]
 
         # stitched image is 12 x 12 fovs with max_img_size = 10, so the image is 120 x 120 pixels
+        # stitched image is 12 x 12 fovs with max_img_size = 10, so the image is 120 x 120 pixels
         stitched_data = load_utils.load_imgs_from_dir(stitched_dir,
                                                       files=[chans[0] + '_stitched.tiff'])
+        assert stitched_data.shape == (1, 120, 120, 1)
         assert stitched_data.shape == (1, 120, 120, 1)
         shutil.rmtree(stitched_dir)
 
@@ -632,4 +652,5 @@ def test_stitch_images_by_shape(segmentation, clustering, subdir, stitching_fovs
 
         # remove stitched_images from fov list
         if not segmentation and not clustering:
+            stitching_fovs.pop()
             stitching_fovs.pop()
