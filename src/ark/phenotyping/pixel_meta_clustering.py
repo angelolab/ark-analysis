@@ -4,14 +4,52 @@ import random
 from functools import partial
 from shutil import rmtree
 
+import feather
 import numpy as np
 import pandas as pd
+from pyarrow.lib import ArrowInvalid
 from alpineer import io_utils, misc_utils
 
 from ark.phenotyping import cluster_helpers
 from ark.phenotyping import pixel_cluster_utils
 
 multiprocessing.set_start_method('spawn', force=True)
+
+
+def run_pixel_consensus_assignment(pixel_data_path, pixel_cc_obj, fov):
+    """Helper function to assign pixel consensus clusters
+
+    Args:
+        pixel_data_path (str):
+            The path to the pixel data directory
+        pixel_cc_obj (ark.phenotyping.cluster_helpers.PixieConsensusCluster):
+            The pixel consensus cluster object
+        fov (str):
+            The name of the FOV to process
+
+    Returns:
+        tuple (str, int):
+            The name of the FOV as well as the return code
+    """
+
+    # get the path to the fov
+    fov_path = os.path.join(pixel_data_path, fov + '.feather')
+
+    # read in the fov data with SOM labels
+    try:
+        fov_data = feather.read_dataframe(fov_path)
+    # this indicates this fov file is corrupted
+    except (ArrowInvalid, OSError, IOError):
+        return fov, 1
+
+    # assign the consensus labels to fov_data
+    fov_data = pixel_cc_obj.assign_consensus_labels(fov_data)
+
+    # resave the data with the meta cluster labels assigned
+    temp_path = os.path.join(pixel_data_path + '_temp', fov + '.feather')
+    feather.write_dataframe(fov_data, temp_path, compression='uncompressed')
+
+    return fov, 0
 
 
 def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
@@ -108,7 +146,7 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
 
     # define the partial function to iterate over
     fov_data_func = partial(
-        pixel_cluster_utils.run_pixel_consensus_assignment, pixel_data_path, pixel_cc
+        run_pixel_consensus_assignment, pixel_data_path, pixel_cc
     )
 
     # use the som to meta mapping to assign meta cluster values to data in data_path
@@ -233,6 +271,58 @@ def generate_meta_avg_files(fovs, channels, base_dir, pixel_cc, data_dir='pixel_
     )
 
 
+def update_pixel_meta_labels(pixel_data_path, pixel_remapped_dict,
+                             pixel_renamed_meta_dict, fov):
+    """Helper function to reassign meta cluster names based on remapping scheme to a FOV
+
+    Args:
+        pixel_data_path (str):
+            The path to the pixel data drectory
+        pixel_remapped_dict (dict):
+            The mapping from pixel SOM cluster to pixel meta cluster label (not renamed)
+        pixel_renamed_meta_dict (dict):
+            The mapping from pixel meta cluster label to renamed pixel meta cluster name
+        fov (str):
+            The name of the FOV to process
+
+    Returns:
+        tuple (str, int):
+            The name of the FOV as well as the return code
+    """
+
+    # get the path to the fov
+    fov_path = os.path.join(pixel_data_path, fov + '.feather')
+
+    # read in the fov data with SOM and meta cluster labels
+    try:
+        fov_data = feather.read_dataframe(fov_path)
+    # this indicates this fov file is corrupted
+    except (ArrowInvalid, OSError, IOError):
+        return fov, 1
+
+    # ensure that no SOM clusters are missing from the mapping
+    misc_utils.verify_in_list(
+        fov_som_labels=fov_data['pixel_som_cluster'].unique(),
+        som_labels_in_mapping=list(pixel_remapped_dict.keys())
+    )
+
+    # assign the new meta cluster labels
+    fov_data['pixel_meta_cluster'] = fov_data['pixel_som_cluster'].map(
+        pixel_remapped_dict
+    )
+
+    # assign the renamed meta cluster names
+    fov_data['pixel_meta_cluster_rename'] = fov_data['pixel_meta_cluster'].map(
+        pixel_renamed_meta_dict
+    )
+
+    # resave the data with the new meta cluster labels
+    temp_path = os.path.join(pixel_data_path + '_temp', fov + '.feather')
+    feather.write_dataframe(fov_data, temp_path, compression='uncompressed')
+
+    return fov, 0
+
+
 def apply_pixel_meta_cluster_remapping(fovs, channels, base_dir,
                                        pixel_data_dir,
                                        pixel_remapped_name,
@@ -301,7 +391,7 @@ def apply_pixel_meta_cluster_remapping(fovs, channels, base_dir,
 
     # define the partial function to iterate over
     fov_data_func = partial(
-        pixel_cluster_utils.update_pixel_meta_labels, pixel_data_path,
+        update_pixel_meta_labels, pixel_data_path,
         pixel_remapped_dict, pixel_renamed_meta_dict
     )
 

@@ -15,6 +15,95 @@ import ark.phenotyping.pixel_meta_clustering as pixel_meta_clustering
 parametrize = pytest.mark.parametrize
 
 
+def test_run_pixel_consensus_assignment():
+    with tempfile.TemporaryDirectory() as temp_dir:
+        # define fovs and channels
+        fovs = ['fov0', 'fov1', 'fov2']
+        chans = ['Marker1', 'Marker2', 'Marker3', 'Marker4']
+
+        # make it easy to name metadata columns
+        meta_colnames = ['fov', 'row_index', 'column_index', 'segmentation_label']
+
+        # create a dummy data directory
+        os.mkdir(os.path.join(temp_dir, 'pixel_mat_data'))
+
+        # create a dummy temp directory
+        os.mkdir(os.path.join(temp_dir, 'pixel_mat_data_temp'))
+
+        # write dummy clustered data for two fovs
+        for fov in ['fov0', 'fov1']:
+            # create dummy preprocessed data for each fov
+            fov_cluster_matrix = pd.DataFrame(
+                np.repeat(np.array([[0.1, 0.2, 0.3, 0.4]]), repeats=1000, axis=0),
+                columns=chans
+            )
+
+            # add metadata
+            fov_cluster_matrix = pd.concat(
+                [fov_cluster_matrix, pd.DataFrame(np.random.rand(1000, 4), columns=meta_colnames)],
+                axis=1
+            )
+
+            # assign dummy SOM cluster labels
+            fov_cluster_matrix['pixel_som_cluster'] = np.repeat(np.arange(1, 101), repeats=10)
+
+            # write the dummy data to pixel_mat_data
+            feather.write_dataframe(fov_cluster_matrix, os.path.join(temp_dir,
+                                                                     'pixel_mat_data',
+                                                                     fov + '.feather'))
+
+        # write a sample averaged SOM file per pixel cluster
+        sample_pixel_som_avg = pd.DataFrame(
+            np.random.rand(100, len(chans)), columns=chans
+        )
+        sample_pixel_som_avg_path = os.path.join(temp_dir, 'pixel_channel_avg_som_cluster.csv')
+        sample_pixel_som_avg.to_csv(sample_pixel_som_avg_path)
+
+        # define example PixelConsensusCluster object
+        sample_pixel_cc = cluster_helpers.PixieConsensusCluster(
+            'pixel', sample_pixel_som_avg_path, chans
+        )
+
+        # force a sample mapping onto sample_pixel_cc
+        sample_pixel_cc.mapping = pd.DataFrame.from_dict({
+            'pixel_som_cluster': np.arange(1, 101),
+            'pixel_meta_cluster': np.repeat(np.arange(1, 21), repeats=5)
+        })
+
+        fov_status = pixel_meta_clustering.run_pixel_consensus_assignment(
+            os.path.join(temp_dir, 'pixel_mat_data'), sample_pixel_cc, 'fov0'
+        )
+
+        # assert the fov returned is fov0 and the status is 0
+        assert fov_status == ('fov0', 0)
+
+        # read consensus assigned fov0 data in
+        consensus_fov_data = feather.read_dataframe(
+            os.path.join(temp_dir, 'pixel_mat_data_temp', 'fov0.feather')
+        )
+
+        # assert the value counts of all renamed meta labels is 50
+        assert np.all(consensus_fov_data['pixel_meta_cluster'].value_counts().values == 50)
+
+        # assert each som cluster maps to the right meta cluster
+        som_to_meta_gen = consensus_fov_data[
+            ['pixel_som_cluster', 'pixel_meta_cluster']
+        ].drop_duplicates().sort_values(by='pixel_som_cluster')
+        assert np.all(som_to_meta_gen.values == sample_pixel_cc.mapping.values)
+
+        # test a corrupted file
+        with open(os.path.join(temp_dir, 'pixel_mat_data', 'fov1.feather'), 'w') as outfile:
+            outfile.write('baddatabaddatabaddata')
+
+        # attempt to run remapping for fov1
+        fov_status = pixel_meta_clustering.run_pixel_consensus_assignment(
+            os.path.join(temp_dir, 'pixel_mat_data'), sample_pixel_cc, 'fov1'
+        )
+
+        # assert the fov returned is fov1 and the status is 1
+        assert fov_status == ('fov1', 1)
+
+
 def generate_test_pixel_consensus_cluster_data(temp_dir, fovs, chans,
                                                generate_temp=False):
     # make it easy to name metadata columns
@@ -273,6 +362,90 @@ def test_generate_meta_avg_files(capsys):
             pixel_meta_clustering.generate_meta_avg_files(
                 fovs, chan_list, temp_dir, pixel_cc, 'pixel_data_dir', num_fovs_subset=1
             )
+
+
+def test_update_pixel_meta_labels():
+    with tempfile.TemporaryDirectory() as temp_dir:
+        # define fovs and channels
+        fovs = ['fov0', 'fov1', 'fov2']
+        chans = ['Marker1', 'Marker2', 'Marker3', 'Marker4']
+
+        # make it easy to name metadata columns
+        meta_colnames = ['fov', 'row_index', 'column_index', 'segmentation_label']
+
+        # create a dummy data directory
+        os.mkdir(os.path.join(temp_dir, 'pixel_mat_data'))
+
+        # create a dummy temp directory
+        os.mkdir(os.path.join(temp_dir, 'pixel_mat_data_temp'))
+
+        # write dummy clustered data for two fovs
+        for fov in ['fov0', 'fov1']:
+            # create dummy preprocessed data for each fov
+            fov_cluster_matrix = pd.DataFrame(
+                np.repeat(np.array([[0.1, 0.2, 0.3, 0.4]]), repeats=1000, axis=0),
+                columns=chans
+            )
+
+            # add metadata
+            fov_cluster_matrix = pd.concat(
+                [fov_cluster_matrix, pd.DataFrame(np.random.rand(1000, 4), columns=meta_colnames)],
+                axis=1
+            )
+
+            # assign dummy SOM cluster labels
+            fov_cluster_matrix['pixel_som_cluster'] = np.repeat(np.arange(100), repeats=10)
+
+            # assign dummy meta cluster labels
+            fov_cluster_matrix['pixel_meta_cluster'] = np.repeat(np.arange(10), repeats=100)
+
+            # write the dummy data to pixel_mat_data
+            feather.write_dataframe(fov_cluster_matrix, os.path.join(temp_dir,
+                                                                     'pixel_mat_data',
+                                                                     fov + '.feather'))
+
+        # define dummy remap schemes
+        sample_pixel_remapped_dict = {i: int(i / 5) for i in np.arange(100)}
+        sample_pixel_renamed_meta_dict = {i: 'meta_' + str(i) for i in sample_pixel_remapped_dict}
+
+        # run remapping for fov0
+        fov_status = pixel_meta_clustering.update_pixel_meta_labels(
+            os.path.join(temp_dir, 'pixel_mat_data'), sample_pixel_remapped_dict,
+            sample_pixel_renamed_meta_dict, 'fov0'
+        )
+
+        # assert the fov returned is fov0 and the status is 0
+        assert fov_status == ('fov0', 0)
+
+        # read remapped fov0 data in
+        remapped_fov_data = feather.read_dataframe(
+            os.path.join(temp_dir, 'pixel_mat_data_temp', 'fov0.feather')
+        )
+
+        # assert the value counts of all renamed meta labels is 50
+        assert np.all(remapped_fov_data['pixel_meta_cluster_rename'].value_counts().values == 50)
+
+        # assert each meta cluster label maps to the right renamed cluster
+        remapped_meta_info = dict(
+            remapped_fov_data[
+                ['pixel_meta_cluster', 'pixel_meta_cluster_rename']
+            ].drop_duplicates().values
+        )
+        for meta_cluster in remapped_meta_info:
+            assert remapped_meta_info[meta_cluster] == sample_pixel_renamed_meta_dict[meta_cluster]
+
+        # test a corrupted file
+        with open(os.path.join(temp_dir, 'pixel_mat_data', 'fov1.feather'), 'w') as outfile:
+            outfile.write('baddatabaddatabaddata')
+
+        # attempt to run remapping for fov1
+        fov_status = pixel_meta_clustering.update_pixel_meta_labels(
+            os.path.join(temp_dir, 'pixel_mat_data'), sample_pixel_remapped_dict,
+            sample_pixel_renamed_meta_dict, 'fov1'
+        )
+
+        # assert the fov returned is fov1 and the status is 1
+        assert fov_status == ('fov1', 1)
 
 
 def generate_test_apply_pixel_meta_cluster_remapping_data(temp_dir, fovs, chans,
