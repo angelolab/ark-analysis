@@ -554,9 +554,7 @@ def stitching_fovs(request: str) -> Iterator[List[str]]:
 @pytest.mark.parametrize('segmentation, clustering, subdir',
                          [(False, False, 'TIFs'), (True, False, ''), (False, 'cell', ''),
                           (False, 'pixel', '')])
-@pytest.mark.parametrize('fovs', [['R1C1', 'R2C2', 'R3C1'],
-                         ['run_1_R1C1', 'run_1_R2C2', 'run_2_R3C1']])
-def test_stitch_images_by_shape(segmentation, clustering, subdir, fovs):
+def test_stitch_images_by_shape(segmentation, clustering, subdir, stitching_fovs):
 
     # validation checks (only once)
     if clustering == 'pixel':
