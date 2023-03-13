@@ -394,31 +394,6 @@ def test_create_pixel_matrix_base(fovs, chans, sub_dir, seg_dir_include,
                 seg_dir=seg_dir
             )
 
-        # make the channel_norm.feather file if the test requires it
-        # NOTE: pixel_mat_data already created in the previous validation tests
-        if channel_norm_include:
-            # helps test if channel_norm.feather contains a different set of channels
-            norm_chans = [chans[0]] if norm_diff_chan else chans
-            sample_channel_norm_df = pd.DataFrame(
-                np.expand_dims(np.random.rand(len(norm_chans)), axis=0),
-                columns=norm_chans
-            )
-
-            feather.write_dataframe(
-                sample_channel_norm_df,
-                os.path.join(temp_dir, sample_pixel_output_dir, 'channel_norm.feather'),
-                compression='uncompressed'
-            )
-
-        # make the pixel_thresh.feather file if the test requires it
-        if pixel_thresh_include:
-            sample_pixel_thresh_df = pd.DataFrame({'pixel_thresh_val': np.random.rand(1)})
-            feather.write_dataframe(
-                sample_pixel_thresh_df,
-                os.path.join(temp_dir, sample_pixel_output_dir, 'pixel_thresh.feather'),
-                compression='uncompressed'
-            )
-
         # create the pixel matrices
         pixie_preprocessing.create_pixel_matrix(
             fovs=fovs,
@@ -430,29 +405,11 @@ def test_create_pixel_matrix_base(fovs, chans, sub_dir, seg_dir_include,
             multiprocess=multiprocess
         )
 
-        # assert we overwrote the original channel_norm and pixel_thresh files
-        # if new set of channels provided
-        if norm_diff_chan:
-            output_capture = capsys.readouterr().out
-            assert 'New channels provided: overwriting whole cohort' in output_capture
-
         # check that we actually created a data directory
         assert os.path.exists(os.path.join(temp_dir, 'pixel_mat_data'))
 
         # check that we actually created a subsetted directory
         assert os.path.exists(os.path.join(temp_dir, 'pixel_mat_subsetted'))
-
-        # if there wasn't originally a channel_norm.feather or if overwritten, assert one created
-        if not channel_norm_include or norm_diff_chan:
-            assert os.path.exists(
-                os.path.join(temp_dir, sample_pixel_output_dir, 'channel_norm.feather')
-            )
-
-        # if there wasn't originally a pixel_thresh.feather or if overwritten, assert one created
-        if not pixel_thresh_include or norm_diff_chan:
-            assert os.path.exists(
-                os.path.join(temp_dir, sample_pixel_output_dir, 'pixel_thresh.feather')
-            )
 
         # check that we created a norm vals file
         assert os.path.exists(os.path.join(temp_dir, 'channel_norm_post_rowsum.feather'))
