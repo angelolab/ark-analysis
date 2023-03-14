@@ -184,7 +184,7 @@ def test_preprocess_fov(mocker):
 
 
 def mocked_create_fov_pixel_data(fov, channels, img_data, seg_labels, blur_factor,
-                                 subset_proportion, pixel_thresh_val):
+                                 subset_proportion):
     # create fake data to be compatible with downstream functions
     data = np.random.rand(len(channels) * 5).reshape(5, len(channels))
     df = pd.DataFrame(data, columns=channels)
@@ -205,7 +205,7 @@ def mocked_create_fov_pixel_data(fov, channels, img_data, seg_labels, blur_facto
 
 def mocked_preprocess_fov(base_dir, tiff_dir, data_dir, subset_dir, seg_dir, seg_suffix,
                           img_sub_folder, is_mibitiff, channels, blur_factor,
-                          subset_proportion, pixel_thresh_val, seed, channel_norm_df, fov):
+                          subset_proportion, seed, fov):
     # load img_xr from MIBITiff or directory with the fov
     if is_mibitiff:
         img_xr = load_utils.load_imgs_from_mibitiff(
@@ -230,20 +230,13 @@ def mocked_preprocess_fov(base_dir, tiff_dir, data_dir, subset_dir, seg_dir, seg
     # subset for the channel data
     img_data = img_xr.loc[fov, :, :, channels].values.astype(np.float32)
 
-    # create vector for normalizing image data
-    norm_vect = channel_norm_df['norm_val'].values
-    norm_vect = np.array(norm_vect).reshape([1, 1, len(norm_vect)])
-
-    # normalize image data
-    img_data = img_data / norm_vect
-
     # set seed for subsetting
     np.random.seed(seed)
 
     # create the full and subsetted fov matrices
     pixel_mat, pixel_mat_subset = mocked_create_fov_pixel_data(
         fov=fov, channels=channels, img_data=img_data, seg_labels=seg_labels,
-        pixel_thresh_val=pixel_thresh_val, blur_factor=blur_factor,
+        blur_factor=blur_factor,
         subset_proportion=subset_proportion
     )
 
@@ -448,17 +441,6 @@ def test_create_pixel_matrix_base(fovs, chans, sub_dir, seg_dir_include,
 
         # generate the data
         mults = [(1 / 2) ** i for i in range(len(chans))]
-
-        sample_channel_norm_df = pd.DataFrame(
-            np.expand_dims(mults, axis=0),
-            columns=chans
-        )
-
-        feather.write_dataframe(
-            sample_channel_norm_df,
-            os.path.join(temp_dir, sample_pixel_output_dir, 'channel_norm.feather'),
-            compression='uncompressed'
-        )
 
         pixie_preprocessing.create_pixel_matrix(
             fovs=fovs,
