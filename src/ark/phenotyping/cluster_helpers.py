@@ -69,10 +69,10 @@ class PixieSOMCluster(ABC):
             data (pandas.DataFrame):
                 The input data to train the SOM on.
         """
-
+        # pyFlowSOM.som requires data in np.float64, add type cast for safety purposes
         som_weights = som(
-            data=data.values, xdim=self.xdim, ydim=self.ydim, rlen=self.num_passes,
-            alpha_range=(self.lr_start, self.lr_end), seed=self.seed
+            data=data.values.astype(np.float64), xdim=self.xdim, ydim=self.ydim,
+            rlen=self.num_passes, alpha_range=(self.lr_start, self.lr_end), seed=self.seed
         )
 
         # ensure dimensions of weights are flattened
@@ -110,8 +110,10 @@ class PixieSOMCluster(ABC):
         for i in np.arange(0, external_data.shape[0], 100):
             # NOTE: this also orders the columns of external_data_sub the same as self.weights
             cluster_labels.append(map_data_to_nodes(
-                self.weights.values,
-                external_data.loc[i:min(i + 99, external_data.shape[0]), weights_cols].values
+                self.weights.values.astype(np.float64),
+                external_data.loc[
+                    i:min(i + 99, external_data.shape[0]), weights_cols
+                ].values.astype(np.float64)
             )[0])
 
         # concat all the results together and return
@@ -199,12 +201,17 @@ class PixelSOMCluster(PixieSOMCluster):
 
         return external_data_norm
 
-    def train_som(self):
+    def train_som(self, overwrite=False):
         """Trains the SOM using `train_data`
-        """
 
-        if self.weights is not None:
-            # do not train SOM if weights already exist and the same markers used to train
+        overwrite (bool):
+            If set, force retrains the SOM and overwrites the weights
+        """
+        # if overwrite flag set, retrain SOM regardless of state
+        if overwrite:
+            warnings.warn('Overwrite flag set, retraining SOM')
+        # otherwise, do not train SOM if weights already exist and the same markers used to train
+        elif self.weights is not None:
             if set(self.weights.columns.values) == set(self.columns):
                 warnings.warn('Pixel SOM already trained on specified markers')
                 return
@@ -275,7 +282,9 @@ class CellSOMCluster(PixieSOMCluster):
         self.fovs = fovs
 
         # subset cell_data on just the FOVs specified
-        self.cell_data = self.cell_data[self.cell_data['fov'].isin(self.fovs)]
+        self.cell_data = self.cell_data[
+            self.cell_data['fov'].isin(self.fovs)
+        ].reset_index(drop=True)
 
         # since cell_data is the only dataset, we can just normalize it immediately
         self.normalize_data()
@@ -299,11 +308,18 @@ class CellSOMCluster(PixieSOMCluster):
         # assign back to cell_data
         self.cell_data[self.columns] = cell_data_sub
 
-    def train_som(self):
+    def train_som(self, overwrite=False):
         """Trains the SOM using `cell_data`
+
+        overwrite (bool):
+            If set, force retrains the SOM and overwrites the weights
         """
-        if self.weights is not None:
-            # do not train SOM if weights already exist and the same columns used to train
+        # if overwrite flag set, retrain SOM regardless of state
+        if overwrite:
+            warnings.warn('Overwrite flag set, retraining SOM')
+
+        # otherwise, do not train SOM if weights already exist and the same columns used to train
+        elif self.weights is not None:
             if set(self.weights.columns.values) == set(self.columns):
                 warnings.warn('Cell SOM already trained on specified columns')
                 return
