@@ -79,6 +79,12 @@ def generate_meta_cluster_colormap_dict(meta_cluster_remap_path, cmap, cluster_t
         - A `dict` containing the renamed meta cluster labels mapped to their respective colors
     """
 
+    # verify the type of clustering provided is valid
+    misc_utils.verify_in_list(
+        provided_cluster_type=[cluster_type],
+        valid_cluster_types=['pixel', 'cell']
+    )
+
     # file path validation
     io_utils.validate_paths(meta_cluster_remap_path)
 
