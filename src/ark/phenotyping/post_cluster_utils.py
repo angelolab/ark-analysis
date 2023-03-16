@@ -70,6 +70,8 @@ def create_mantis_project(cell_table, fovs, seg_dir, pop_col,
         seg_suffix_name (str, optional):
             The suffix of the segmentation file and it's file extension.
             Defaults to "_whole_cell.tiff".
+        cluster_type (str):
+            the type of clustering being done
     """
 
     # verify the type of clustering provided is valid
