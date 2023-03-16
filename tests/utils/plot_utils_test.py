@@ -382,7 +382,7 @@ def test_create_mantis_dir():
                     os.path.join(output_path, "population{}.csv".format(mask_suffix)))
 
                 # 3.a. Assert that metacluster col equals the region_id col
-                metacluster_col = original_mapping_df[["metacluster"]]
+                metacluster_col = original_mapping_df[["pixel_meta_cluster"]]
                 region_id_col = new_mapping_df[["region_id"]]
                 metacluster_col.eq(region_id_col)
 
