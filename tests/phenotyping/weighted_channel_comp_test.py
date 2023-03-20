@@ -407,9 +407,9 @@ def test_generate_remap_avg_wc_files():
         # than there are in the cell table there is only one cell table (as opposed to
         # multiple pixel tabels per FOV)
         sample_cell_remapping = {
-            'cluster': [i for i in np.arange(100)],
-            'metacluster': [int(i / 5) for i in np.arange(100)],
-            'mc_name': ['meta' + str(int(i / 5)) for i in np.arange(100)]
+            'cell_som_cluster': [i for i in np.arange(100)],
+            'cell_meta_cluster': [int(i / 5) for i in np.arange(100)],
+            'cell_meta_cluster_rename': ['meta' + str(int(i / 5)) for i in np.arange(100)]
         }
         sample_cell_remapping = pd.DataFrame.from_dict(sample_cell_remapping)
         sample_cell_remapping.to_csv(

@@ -216,9 +216,9 @@ def test_apply_cell_meta_cluster_remapping(weighted_cell_channel_exists):
         # than there are in the cell table there is only one cell table (as opposed to
         # multiple pixel tabels per FOV)
         sample_cell_remapping = {
-            'cluster': [i for i in np.arange(100)],
-            'metacluster': [int(i / 5) for i in np.arange(100)],
-            'mc_name': ['meta' + str(int(i / 5)) for i in np.arange(100)]
+            'cell_som_cluster': [i for i in np.arange(100)],
+            'cell_meta_cluster': [int(i / 5) for i in np.arange(100)],
+            'cell_meta_cluster_rename': ['meta' + str(int(i / 5)) for i in np.arange(100)]
         }
         sample_cell_remapping = pd.DataFrame.from_dict(sample_cell_remapping)
         sample_cell_remapping.to_csv(
@@ -230,7 +230,7 @@ def test_apply_cell_meta_cluster_remapping(weighted_cell_channel_exists):
         with pytest.raises(ValueError):
             bad_sample_cell_remapping = sample_cell_remapping.copy()
             bad_sample_cell_remapping = bad_sample_cell_remapping.rename(
-                {'mc_name': 'bad_col'},
+                {'cell_meta_cluster_rename': 'bad_col'},
                 axis=1
             )
             bad_sample_cell_remapping.to_csv(
@@ -247,9 +247,9 @@ def test_apply_cell_meta_cluster_remapping(weighted_cell_channel_exists):
         # error check: mapping does not contain every SOM label
         with pytest.raises(ValueError):
             bad_sample_cell_remapping = {
-                'cluster': [1, 2],
-                'metacluster': [1, 2],
-                'mc_name': ['m1', 'm2']
+                'cell_som_cluster': [1, 2],
+                'cell_meta_cluster': [1, 2],
+                'cell_meta_cluster_rename': ['m1', 'm2']
             }
             bad_sample_cell_remapping = pd.DataFrame.from_dict(bad_sample_cell_remapping)
             bad_sample_cell_remapping.to_csv(
@@ -275,11 +275,11 @@ def test_apply_cell_meta_cluster_remapping(weighted_cell_channel_exists):
 
         # used for mapping verification
         actual_som_to_meta = sample_cell_remapping[
-            ['cluster', 'metacluster']
-        ].drop_duplicates().sort_values(by='cluster')
+            ['cell_som_cluster', 'cell_meta_cluster']
+        ].drop_duplicates().sort_values(by='cell_som_cluster')
         actual_meta_id_to_name = sample_cell_remapping[
-            ['metacluster', 'mc_name']
-        ].drop_duplicates().sort_values(by='metacluster')
+            ['cell_meta_cluster', 'cell_meta_cluster_rename']
+        ].drop_duplicates().sort_values(by='cell_meta_cluster')
 
         # assert the mapping is the same for cell SOM to meta cluster
         som_to_meta = remapped_cell_data[
@@ -349,9 +349,9 @@ def test_generate_remap_avg_count_files():
         # than there are in the cell table there is only one cell table (as opposed to
         # multiple pixel tabels per FOV)
         sample_cell_remapping = {
-            'cluster': [i for i in np.arange(100)],
-            'metacluster': [int(i / 5) for i in np.arange(100)],
-            'mc_name': ['meta' + str(int(i / 5)) for i in np.arange(100)]
+            'cell_som_cluster': [i for i in np.arange(100)],
+            'cell_meta_cluster': [int(i / 5) for i in np.arange(100)],
+            'cell_meta_cluster_rename': ['meta' + str(int(i / 5)) for i in np.arange(100)]
         }
         sample_cell_remapping = pd.DataFrame.from_dict(sample_cell_remapping)
         sample_cell_remapping.to_csv(

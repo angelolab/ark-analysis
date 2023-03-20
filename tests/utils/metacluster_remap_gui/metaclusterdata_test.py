@@ -44,7 +44,7 @@ def test_can_save_mapping(simple_metaclusterdata: MetaClusterData,
     with open(tmp_path / 'output_mapping.csv', 'r') as f:
         output = [ll.strip() for ll in f.readlines()]
     assert output == [
-        "cluster,metacluster,mc_name",
+        "pixel_som_cluster,pixel_meta_cluster,pixel_meta_cluster_rename",
         "1,1,1",
         "2,2,2",
         "3,3,3",
@@ -56,7 +56,7 @@ def test_can_save_mapping(simple_metaclusterdata: MetaClusterData,
     with open(tmp_path / 'output_mapping.csv', 'r') as f:
         output = [ll.strip() for ll in f.readlines()]
     assert output == [
-        "cluster,metacluster,mc_name",
+        "cell_som_cluster,cell_meta_cluster,cell_meta_cluster_rename",
         "1,1,cluster_1",
         "2,2,cluster_2",
         "3,3,cluster_3",

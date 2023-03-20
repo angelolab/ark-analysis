@@ -63,8 +63,8 @@ def test_plot_pixel_cell_cluster_overlay():
         # invalid columns provided in mapping
         df = pd.DataFrame.from_dict({
             'bad_cluster_col': np.arange(20),
-            'metacluster': np.repeat(np.arange(5), 4),
-            'mc_name': ['meta' + str(i) for i in np.repeat(np.arange(5), 4)]
+            'pixel_meta_cluster': np.repeat(np.arange(5), 4),
+            'pixel_meta_cluster_rename': ['meta' + str(i) for i in np.repeat(np.arange(5), 4)]
         })
         df.to_csv(mapping_path, index=False)
 
@@ -74,7 +74,7 @@ def test_plot_pixel_cell_cluster_overlay():
             )
 
         # rename bad_cluster_col to cluster so it passes that test
-        df = df.rename({'bad_cluster_col': 'cluster'}, axis=1)
+        df = df.rename({'bad_cluster_col': 'pixel_som_cluster'}, axis=1)
         df.to_csv(mapping_path, index=False)
 
         # invalid sample_mapping dict provided, metaclusters do not match
@@ -319,9 +319,9 @@ def test_create_mantis_dir():
         mapping_path = os.path.join(temp_dir, cell_output_dir, 'sample_mapping_path.csv')
 
         df = pd.DataFrame.from_dict({
-            'cluster': np.arange(20),
-            'metacluster': np.repeat(np.arange(5), 4),
-            'mc_name': ['meta' + str(i) for i in np.repeat(np.arange(5), 4)]
+            'pixel_som_cluster': np.arange(20),
+            'pixel_meta_cluster': np.repeat(np.arange(5), 4),
+            'pixel_meta_cluster_rename': ['meta' + str(i) for i in np.repeat(np.arange(5), 4)]
         })
         df.to_csv(mapping_path, index=False)
 
@@ -382,12 +382,12 @@ def test_create_mantis_dir():
                     os.path.join(output_path, "population{}.csv".format(mask_suffix)))
 
                 # 3.a. Assert that metacluster col equals the region_id col
-                metacluster_col = original_mapping_df[["metacluster"]]
+                metacluster_col = original_mapping_df[["pixel_meta_cluster"]]
                 region_id_col = new_mapping_df[["region_id"]]
                 metacluster_col.eq(region_id_col)
 
                 # 3.b. Assert that mc_name col equals the region_name col
-                mc_name_col = original_mapping_df[["mc_name"]]
+                mc_name_col = original_mapping_df[["pixel_meta_cluster_rename"]]
                 region_name = new_mapping_df[["region_name"]]
                 mc_name_col.eq(region_name)
 
