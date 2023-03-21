@@ -2,7 +2,7 @@ import multiprocessing
 import os
 import random
 from functools import partial
-from shutil import rmtree
+from shutil import rmtree, move
 
 import feather
 import numpy as np
@@ -185,7 +185,7 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
 
     # remove the data directory and rename the temp directory to the data directory
     rmtree(pixel_data_path)
-    os.rename(pixel_data_path + '_temp', pixel_data_path)
+    move(pixel_data_path + '_temp', pixel_data_path)
 
     return pixel_cc
 
@@ -435,7 +435,7 @@ def apply_pixel_meta_cluster_remapping(fovs, channels, base_dir,
 
     # remove the data directory and rename the temp directory to the data directory
     rmtree(pixel_data_path)
-    os.rename(pixel_data_path + '_temp', pixel_data_path)
+    move(pixel_data_path + '_temp', pixel_data_path)
 
 
 def generate_remap_avg_files(fovs, channels, base_dir, pixel_data_dir, pixel_remapped_name,
