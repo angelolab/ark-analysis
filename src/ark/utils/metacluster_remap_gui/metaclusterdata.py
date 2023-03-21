@@ -8,12 +8,15 @@ class MetaClusterData():
     """Store the state of the clusters and metaclusters
 
     Args:
+        cluster_type (str):
+            the type of clustering being done
         raw_clusters_df (pd.Dataframe):
             validated and initialized clusters dataframe.
         raw_pixelcounts_df (pd.Dataframe):
             validated and initialized pixelcounts dataframe.
     """
-    def __init__(self, raw_clusters_df, raw_pixelcounts_df):
+    def __init__(self, cluster_type, raw_clusters_df, raw_pixelcounts_df):
+        self.cluster_type = cluster_type
         self.cluster_pixelcounts = raw_pixelcounts_df.sort_values('cluster').set_index('cluster')
 
         sorted_clusters_df = raw_clusters_df.sort_values('cluster')
@@ -115,7 +118,11 @@ class MetaClusterData():
 
     def save_output_mapping(self):
         out_df = self.mapping.copy()
-        out_df['mc_name'] = [self.get_metacluster_displayname(mc) for mc in out_df['metacluster']]
+        out_df.index.names = [f'{self.cluster_type}_som_cluster']
+        out_df[f'{self.cluster_type}_meta_cluster_rename'] = [
+            self.get_metacluster_displayname(mc) for mc in out_df['metacluster']
+        ]
+        out_df = out_df.rename(columns={'metacluster': f'{self.cluster_type}_meta_cluster'})
         out_df.to_csv(self.output_mapping_filename)
 
     def set_marker_order(self, new_indexes):

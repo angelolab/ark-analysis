@@ -16,11 +16,13 @@ def create_pixel_remap_files(base_dir,  pixel_meta_cluster_mapping):
     # define the remapping file
     remap_data = pd.DataFrame(
         np.random.rand(100, 3),
-        columns=['cluster', 'metacluster', 'mc_name']
+        columns=['pixel_som_cluster', 'pixel_meta_cluster', 'pixel_meta_cluster_rename']
     )
-    remap_data['cluster'] = range(1, 101)
-    remap_data['metacluster'] = np.repeat(range(1, 11), 10)
-    remap_data['mc_name'] = np.repeat(['meta_' + str(i) for i in range(1, 11)], 10)
+    remap_data['pixel_som_cluster'] = range(1, 101)
+    remap_data['pixel_meta_cluster'] = np.repeat(range(1, 11), 10)
+    remap_data['pixel_meta_cluster_rename'] = np.repeat(
+        ['meta_' + str(i) for i in range(1, 11)], 10
+    )
     remap_data.to_csv(os.path.join(base_dir, pixel_meta_cluster_mapping), index=False)
 
 
@@ -35,11 +37,13 @@ def create_cell_remap_files(base_dir,  cell_meta_cluster_remap):
     # define the remapping file
     remap_data = pd.DataFrame(
         np.random.rand(100, 3),
-        columns=['cluster', 'metacluster', 'mc_name']
+        columns=['cell_som_cluster', 'cell_meta_cluster', 'cell_meta_cluster_rename']
     )
-    remap_data['cluster'] = range(1, 101)
-    remap_data['metacluster'] = np.repeat(range(1, 11), 10)
-    remap_data['mc_name'] = np.repeat(['meta_' + str(i) for i in range(1, 11)], 10)
+    remap_data['cell_som_cluster'] = range(1, 101)
+    remap_data['cell_meta_cluster'] = np.repeat(range(1, 11), 10)
+    remap_data['cell_meta_cluster_rename'] = np.repeat(
+        ['meta_' + str(i) for i in range(1, 11)], 10
+    )
     remap_data.to_csv(os.path.join(base_dir, cell_meta_cluster_remap), index=False)
 
 

@@ -47,9 +47,9 @@ def test_generate_meta_cluster_colormap_dict():
 
         # define a dummy remapping
         sample_remapping = {
-            'cluster': [i for i in np.arange(100)],
-            'metacluster': [int(i / 50) + 1 for i in np.arange(100)],
-            'mc_name': ['meta' + str(int(i / 50) + 1) for i in np.arange(100)]
+            'pixel_som_cluster': [i for i in np.arange(100)],
+            'pixel_meta_cluster': [int(i / 50) + 1 for i in np.arange(100)],
+            'pixel_meta_cluster_rename': ['meta' + str(int(i / 50) + 1) for i in np.arange(100)]
         }
 
         sample_remapping = pd.DataFrame.from_dict(sample_remapping)
@@ -68,11 +68,11 @@ def test_generate_meta_cluster_colormap_dict():
         # assert the correct meta cluster labels are contained in both dicts
         misc_utils.verify_same_elements(
             raw_cmap_keys=list(raw_cmap.keys()),
-            raw_meta_clusters=sample_remapping['metacluster'].values
+            raw_meta_clusters=sample_remapping['pixel_meta_cluster'].values
         )
         misc_utils.verify_same_elements(
             renamed_cmap_keys=list(renamed_cmap.keys()),
-            renamed_meta_clusters=sample_remapping['mc_name'].values
+            renamed_meta_clusters=sample_remapping['pixel_meta_cluster_rename'].values
         )
 
         # assert the colors match up
