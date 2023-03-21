@@ -72,4 +72,4 @@ def metaclusterdata_from_files(cluster_path, cluster_type='pixel', prefix_trim=N
     # NOTE: channel avg for pixel clusters, pixel count avg for cell clusters
     som_expression = cluster_data.drop(columns='count')
 
-    return MetaClusterData(som_expression, som_counts)
+    return MetaClusterData(cluster_type, som_expression, som_counts)

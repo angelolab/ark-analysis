@@ -500,9 +500,9 @@ def generate_test_apply_pixel_meta_cluster_remapping_data(temp_dir, fovs, chans,
     # NOTE: we intentionally add more SOM cluster keys than necessary to show
     # that certain FOVs don't need to contain every SOM cluster available
     sample_pixel_remapping = {
-        'cluster': [i for i in np.arange(105)],
-        'metacluster': [int(i / 5) for i in np.arange(105)],
-        'mc_name': ['meta' + str(int(i / 5)) for i in np.arange(105)]
+        'pixel_som_cluster': [i for i in np.arange(105)],
+        'pixel_meta_cluster': [int(i / 5) for i in np.arange(105)],
+        'pixel_meta_cluster_rename': ['meta' + str(int(i / 5)) for i in np.arange(105)]
     }
     sample_pixel_remapping = pd.DataFrame.from_dict(sample_pixel_remapping)
     sample_pixel_remapping.to_csv(
@@ -565,7 +565,7 @@ def test_apply_pixel_meta_cluster_remapping_base(multiprocess):
             )
             bad_sample_pixel_remapping = sample_pixel_remapping.copy()
             bad_sample_pixel_remapping = bad_sample_pixel_remapping.rename(
-                {'mc_name': 'bad_col'},
+                {'pixel_meta_cluster_rename': 'bad_col'},
                 axis=1
             )
             bad_sample_pixel_remapping.to_csv(
@@ -584,9 +584,9 @@ def test_apply_pixel_meta_cluster_remapping_base(multiprocess):
         # error check: mapping does not contain every SOM label
         with pytest.raises(ValueError):
             bad_sample_pixel_remapping = {
-                'cluster': [1, 2],
-                'metacluster': [1, 2],
-                'mc_name': ['m1', 'm2']
+                'pixel_som_cluster': [1, 2],
+                'pixel_meta_cluster': [1, 2],
+                'pixel_meta_cluster_rename': ['m1', 'm2']
             }
             bad_sample_pixel_remapping = pd.DataFrame.from_dict(bad_sample_pixel_remapping)
             bad_sample_pixel_remapping.to_csv(
@@ -617,11 +617,11 @@ def test_apply_pixel_meta_cluster_remapping_base(multiprocess):
 
         # used for mapping verification
         actual_som_to_meta = sample_pixel_remapping[
-            ['cluster', 'metacluster']
-        ].drop_duplicates().sort_values(by='cluster')
+            ['pixel_som_cluster', 'pixel_meta_cluster']
+        ].drop_duplicates().sort_values(by='pixel_som_cluster')
         actual_meta_id_to_name = sample_pixel_remapping[
-            ['metacluster', 'mc_name']
-        ].drop_duplicates().sort_values(by='metacluster')
+            ['pixel_meta_cluster', 'pixel_meta_cluster_rename']
+        ].drop_duplicates().sort_values(by='pixel_meta_cluster')
 
         for fov in fovs:
             # read remapped fov data in
@@ -640,7 +640,9 @@ def test_apply_pixel_meta_cluster_remapping_base(multiprocess):
             # this tests the case where a FOV doesn't necessarily need to have all the possible
             # SOM clusters in it
             actual_som_to_meta_subset = actual_som_to_meta[
-                actual_som_to_meta['cluster'].isin(som_to_meta['pixel_som_cluster'])
+                actual_som_to_meta['pixel_som_cluster'].isin(
+                    som_to_meta['pixel_som_cluster']
+                )
             ]
 
             assert np.all(som_to_meta.values == actual_som_to_meta_subset.values)
@@ -653,7 +655,9 @@ def test_apply_pixel_meta_cluster_remapping_base(multiprocess):
             # this tests the case where a FOV doesn't necessarily need to have all the possible
             # meta clusters in it
             actual_meta_id_to_name_subset = actual_meta_id_to_name[
-                actual_meta_id_to_name['metacluster'].isin(meta_id_to_name['pixel_meta_cluster'])
+                actual_meta_id_to_name['pixel_meta_cluster'].isin(
+                    meta_id_to_name['pixel_meta_cluster']
+                )
             ]
 
             assert np.all(meta_id_to_name.values == actual_meta_id_to_name_subset.values)
@@ -747,9 +751,9 @@ def test_generate_remap_avg_files():
         # define a sample meta remap file
         meta_remap_path = os.path.join(temp_dir, 'meta_remap.csv')
         meta_remap_data = {
-            'cluster': np.arange(1, 4),
-            'metacluster': np.arange(10, 40, 10),
-            'mc_name': [f'meta_rename_{i}' for i in np.arange(10, 40, 10)]
+            'pixel_som_cluster': np.arange(1, 4),
+            'pixel_meta_cluster': np.arange(10, 40, 10),
+            'pixel_meta_cluster_rename': [f'meta_rename_{i}' for i in np.arange(10, 40, 10)]
         }
         meta_remap_data = pd.DataFrame.from_dict(meta_remap_data)
         meta_remap_data.to_csv(meta_remap_path, index=False)
@@ -767,7 +771,7 @@ def test_generate_remap_avg_files():
             ['pixel_meta_cluster', 'pixel_meta_cluster_rename']
         ]
         assert np.all(
-            pc_meta_mappings.values == meta_remap_data.drop(columns='cluster').values
+            pc_meta_mappings.values == meta_remap_data.drop(columns='pixel_som_cluster').values
         )
 
         # load in the som average file and assert the mappings are correct

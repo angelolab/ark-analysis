@@ -61,12 +61,12 @@ def simple_full_cluster_data():
 
 @pytest.fixture()
 def simple_metaclusterdata(simple_clusters_df, simple_pixelcount_df):
-    return MetaClusterData(simple_clusters_df, simple_pixelcount_df)
+    return MetaClusterData('pixel', simple_clusters_df, simple_pixelcount_df)
 
 
 @pytest.fixture()
 def simple_metaclusterdata_rename(simple_clusters_meta_rename_df, simple_pixelcount_df):
-    return MetaClusterData(simple_clusters_meta_rename_df, simple_pixelcount_df)
+    return MetaClusterData('cell', simple_clusters_meta_rename_df, simple_pixelcount_df)
 
 
 @pytest.fixture(autouse=True)

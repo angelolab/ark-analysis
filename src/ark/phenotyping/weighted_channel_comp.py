@@ -352,18 +352,7 @@ def generate_remap_avg_wc_files(fovs, channels, base_dir, cell_som_input_data,
     # assert the correct columns are contained
     misc_utils.verify_same_elements(
         remapped_data_cols=cell_remapped_data.columns.values,
-        required_cols=['cluster', 'metacluster', 'mc_name']
-    )
-
-    # rename columns in pixel_remapped_data so it plays better with the existing
-    # cell_som_cluster and cell_meta_cluster
-    cell_remapped_data = cell_remapped_data.rename(
-        {
-            'cluster': 'cell_som_cluster',
-            'metacluster': 'cell_meta_cluster',
-            'mc_name': 'cell_meta_cluster_rename'
-        },
-        axis=1
+        required_cols=['cell_som_cluster', 'cell_meta_cluster', 'cell_meta_cluster_rename']
     )
 
     # create the mapping from cell SOM to cell meta cluster
