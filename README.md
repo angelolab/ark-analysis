@@ -81,19 +81,28 @@ After the Pixie Pipeline, the user can inspect and fine tune their results with 
 
 ### Installation Steps
 
+
+#### Pip Installation
+
+You can install the latest version of `ark` with:
+
+```sh
+pip install ark-analysis
+```
+
+However, the repository will still need to be cloned if you wish to use the Jupyter Notebooks.
+
 #### Download the Repo
 
 We recommend using the latest release of `ark`. You can find all the versions available in the [Releases Section](https://github.com/angelolab/ark-analysis/releases).
 Open terminal and navigate to where you want the code stored. 
 
-Currently, the latest release is `v0.6.1`.
+Currently, the latest release is `v0.6.2`.
 Then install the latest release with:
 
+```sh
+git clone -b v0.6.2 https://github.com/angelolab/ark-analysis.git
 ```
-git clone -b v0.6.1 https://github.com/angelolab/ark-analysis.git
-```
-
-Or head to [Releases]https://github.com/angelolab/ark-analysis/releases) and download the source code under the Assets' subsection of the latest release.
 
 You may also install previous releases by simply changing the version after the `-b`.
 
