@@ -97,11 +97,11 @@ However, the repository will still need to be cloned if you wish to use the Jupy
 We recommend using the latest release of `ark`. You can find all the versions available in the [Releases Section](https://github.com/angelolab/ark-analysis/releases).
 Open terminal and navigate to where you want the code stored. 
 
-Currently, the latest release is `v0.6.2`.
+Currently, the latest release is `v0.6.3`.
 Then install the latest release with:
 
 ```sh
-git clone -b v0.6.2 https://github.com/angelolab/ark-analysis.git
+git clone -b v0.6.3 https://github.com/angelolab/ark-analysis.git
 ```
 
 You may also install previous releases by simply changing the version after the `-b`.
@@ -145,7 +145,7 @@ You can shut down the notebooks and close docker by entering `control-c` in the 
 
 **REMEMBER TO DUPLICATE AND RENAME NOTEBOOKS**
 
-If you didn't change the name of any of the notebooks within the `templates` folder, they will be overwritten when you decide to update the repo. Read about updating Ark [here](#updating-the-repository)
+If you didn't change the name of the notebooks within the `templates` folder, they will be overwritten when you decide to update the repo. Read about updating Ark [here](#updating-the-repository)
 
 ## External Tools
 
