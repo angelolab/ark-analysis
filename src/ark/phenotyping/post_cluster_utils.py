@@ -55,7 +55,8 @@ def plot_hist_thresholds(cell_table, populations, marker, pop_col='cell_meta_clu
 
 def create_mantis_project(cell_table, fovs, seg_dir, pop_col,
                           mask_dir, image_dir, mantis_dir,
-                          seg_suffix_name: str = "_whole_cell.tiff") -> None:
+                          seg_suffix_name: str = "_whole_cell.tiff",
+                          cluster_type='pixel') -> None:
     """Create a complete Mantis project for viewing cell labels
 
     Args:
@@ -69,7 +70,15 @@ def create_mantis_project(cell_table, fovs, seg_dir, pop_col,
         seg_suffix_name (str, optional):
             The suffix of the segmentation file and it's file extension.
             Defaults to "_whole_cell.tiff".
+        cluster_type (str):
+            the type of clustering being done
     """
+
+    # verify the type of clustering provided is valid
+    misc_utils.verify_in_list(
+        provided_cluster_type=[cluster_type],
+        valid_cluster_types=['pixel', 'cell']
+    )
 
     # Validate image extension input.
     seg_suffix_ext: str = seg_suffix_name.split(".")[-1]
@@ -114,11 +123,17 @@ def create_mantis_project(cell_table, fovs, seg_dir, pop_col,
         )
 
     # rename the columns of small_table
-    mantis_df = small_table.rename({'pop_vals': 'metacluster', pop_col: 'mc_name'}, axis=1)
+    mantis_df = small_table.rename(
+        {
+            'pop_vals': f'{cluster_type}_meta_cluster',
+            pop_col: f'{cluster_type}_meta_cluster_rename'
+        },
+        axis=1
+    )
 
     # create the mantis project
     plot_utils.create_mantis_dir(fovs=fovs, mantis_project_path=mantis_dir,
                                  img_data_path=image_dir, mask_output_dir=mask_dir,
                                  mask_suffix='_cell_mask', mapping=mantis_df,
-                                 seg_dir=seg_dir, img_sub_folder='',
-                                 seg_suffix_name=seg_suffix_name)
+                                 seg_dir=seg_dir, cluster_type=cluster_type,
+                                 img_sub_folder='', seg_suffix_name=seg_suffix_name)

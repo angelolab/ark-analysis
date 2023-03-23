@@ -1,7 +1,7 @@
 import multiprocessing
 import os
 from functools import partial
-from shutil import rmtree
+from shutil import rmtree, move
 
 import feather
 from pyarrow.lib import ArrowInvalid
@@ -269,7 +269,7 @@ def cluster_pixels(fovs, channels, base_dir, pixel_pysom, data_dir='pixel_mat_da
 
     # remove the data directory and rename the temp directory to the data directory
     rmtree(data_path)
-    os.rename(data_path + '_temp', data_path)
+    move(data_path + '_temp', data_path)
 
 
 def generate_som_avg_files(fovs, channels, base_dir, pixel_pysom, data_dir='pixel_data_dir',

@@ -2,7 +2,7 @@ import multiprocessing
 import os
 import random
 from functools import partial
-from shutil import rmtree
+from shutil import rmtree, move
 
 import feather
 import numpy as np
@@ -185,7 +185,7 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
 
     # remove the data directory and rename the temp directory to the data directory
     rmtree(pixel_data_path)
-    os.rename(pixel_data_path + '_temp', pixel_data_path)
+    move(pixel_data_path + '_temp', pixel_data_path)
 
     return pixel_cc
 
@@ -361,18 +361,7 @@ def apply_pixel_meta_cluster_remapping(fovs, channels, base_dir,
     # assert the correct columns are contained
     misc_utils.verify_same_elements(
         remapped_data_cols=pixel_remapped_data.columns.values,
-        required_cols=['cluster', 'metacluster', 'mc_name']
-    )
-
-    # rename columns in pixel_remapped_data so it plays better with the existing
-    # pixel_som_cluster and pixel_meta_cluster
-    pixel_remapped_data = pixel_remapped_data.rename(
-        {
-            'cluster': 'pixel_som_cluster',
-            'metacluster': 'pixel_meta_cluster',
-            'mc_name': 'pixel_meta_cluster_rename'
-        },
-        axis=1
+        required_cols=['pixel_som_cluster', 'pixel_meta_cluster', 'pixel_meta_cluster_rename']
     )
 
     # create the mapping from pixel SOM to pixel meta cluster
@@ -446,7 +435,7 @@ def apply_pixel_meta_cluster_remapping(fovs, channels, base_dir,
 
     # remove the data directory and rename the temp directory to the data directory
     rmtree(pixel_data_path)
-    os.rename(pixel_data_path + '_temp', pixel_data_path)
+    move(pixel_data_path + '_temp', pixel_data_path)
 
 
 def generate_remap_avg_files(fovs, channels, base_dir, pixel_data_dir, pixel_remapped_name,
@@ -489,22 +478,11 @@ def generate_remap_avg_files(fovs, channels, base_dir, pixel_data_dir, pixel_rem
     io_utils.validate_paths([pixel_remapped_path, som_cluster_avg_path, meta_cluster_avg_path])
 
     # read in the unique meta clusters defined in pixel_remapped_path
-    new_meta_clusters = pd.read_csv(pixel_remapped_path)['metacluster'].unique()
+    new_meta_clusters = pd.read_csv(pixel_remapped_path)['pixel_meta_cluster'].unique()
 
     # read in the remapping
     # TODO: define a separate function for this duplicated logic, OOP will help greatly (soon...)
     pixel_remapped_data = pd.read_csv(pixel_remapped_path)
-
-    # rename columns in pixel_remapped_data so it plays better with the existing
-    # pixel_som_cluster and pixel_meta_cluster
-    pixel_remapped_data = pixel_remapped_data.rename(
-        {
-            'cluster': 'pixel_som_cluster',
-            'metacluster': 'pixel_meta_cluster',
-            'mc_name': 'pixel_meta_cluster_rename'
-        },
-        axis=1
-    )
 
     # create the mapping from pixel SOM to pixel meta cluster
     pixel_remapped_dict = dict(
