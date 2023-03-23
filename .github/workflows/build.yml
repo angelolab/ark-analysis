@@ -8,7 +8,7 @@ permissions:
 
 jobs:
   build_wheels:
-    name: Build  ${{ github.repository }} wheels on ${{ matrix.os }}
+    name: ${{ matrix.os }} Wheels
     runs-on: ${{ matrix.os }}
     strategy:
       # Ensure that a wheel builder finishes even if another fails
@@ -42,7 +42,7 @@ jobs:
           path: wheelhouse/*.whl
 
   build_sdist:
-    name: Build ${{ github.repository }} Source Distribution
+    name:  Source Distribution
     runs-on: ubuntu-latest
     steps:
       - name: Checkout ${{ github.repository }}
