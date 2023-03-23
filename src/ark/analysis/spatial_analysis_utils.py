@@ -509,7 +509,7 @@ def compute_kmeans_inertia(neighbor_mat_data, min_k=2, max_k=10, seed=42):
     # iterate over each k value
     pb_format = '{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}]'
     for n in tqdm(range(min_k, max_k + 1), bar_format=pb_format):
-        cluster_fit = KMeans(n_clusters=n, random_state=seed).fit(neighbor_mat_data)
+        cluster_fit = KMeans(n_clusters=n, random_state=seed, n_init='auto').fit(neighbor_mat_data)
         cluster_stats.loc[n] = cluster_fit.inertia_
 
     return cluster_stats
@@ -548,7 +548,7 @@ def compute_kmeans_silhouette(neighbor_mat_data, min_k=2, max_k=10, seed=42, sub
     # iterate over each k value
     pb_format = '{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}]'
     for n in tqdm(range(min_k, max_k + 1), bar_format=pb_format):
-        cluster_fit = KMeans(n_clusters=n, random_state=seed).fit(neighbor_mat_data)
+        cluster_fit = KMeans(n_clusters=n, random_state=seed, n_init='auto').fit(neighbor_mat_data)
         cluster_labels = cluster_fit.labels_
 
         sub_dat = neighbor_mat_data.copy()
@@ -588,7 +588,8 @@ def generate_cluster_labels(neighbor_mat_data, cluster_num, seed=42):
             the neighborhood cluster labels assigned to each cell in neighbor_mat_data
     """
 
-    cluster_fit = KMeans(n_clusters=cluster_num, random_state=seed).fit(neighbor_mat_data)
+    cluster_fit = KMeans(n_clusters=cluster_num, random_state=seed, n_init='auto').\
+        fit(neighbor_mat_data)
     # Add 1 to avoid cluster number 0
     cluster_labels = cluster_fit.labels_ + 1
 
