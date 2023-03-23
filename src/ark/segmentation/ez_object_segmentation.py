@@ -56,10 +56,10 @@ def create_object_masks(input_image: np.ndarray,
         img2mask_thresh = img2mask_blur > thresh
     else:
         local_thresh_block_size: int = get_block_size(block_type="local_thresh",
-                                                      for_dim=fov_dim,
+                                                      fov_dim=fov_dim,
                                                       img_shape=img2mask_shape[0])
-        img2mask_thresh: np.ndarray = filters.threshold_local(img2mask_blur,
-                                                              block_size=local_thresh_block_size)
+        img2mask_thresh: np.ndarray = img2mask_blur > filters.threshold_local(
+            img2mask_blur, block_size=local_thresh_block_size)
 
     # Remove small holes within the objects
     if hole_size is not None:

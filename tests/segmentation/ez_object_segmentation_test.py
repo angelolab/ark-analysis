@@ -60,19 +60,19 @@ _fov_dim = param_fixture(
 
 
 @pytest.mark.parametrize(
-    "_min_object_area, _max_object_area, _object_shape_type",
-    [(100, 100000, "blob"),
-     (200, 2000, "projection")]
+    "_min_object_area, _max_object_area, _object_shape_type, _thresh",
+    [(100, 100000, "blob", None),
+     (200, 2000, "projection", 0.1)]
 )
 def test_create_object_masks(
         input_image: Iterator[np.ndarray],
         _object_shape_type: str,
+        _thresh: float,
         _fov_dim: int,
         _min_object_area: int,
         _max_object_area: int,
 ) -> None:
     _sigma = 1
-    _thresh = 0.1
     _hole_size = 10
     # Test valid inputs
     output_object_mask: np.ndarray = ezseg.create_object_masks(
