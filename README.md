@@ -371,7 +371,7 @@ If you have a general question or are having trouble with part of the repo, you 
 If you would like to help make `ark` better, please take a look at our [contributing guidelines](https://ark-analysis.readthedocs.io/en/latest/_rtd/contributing.html). 
 
 ## How to Cite
-Please cite the following papers if you found our repo useful!
+Please directly cite the `ark` repo (https://github.com/angelolab/ark-analysis) if it was a part of your analysis. In addition, please cite the relevant paper(s) below where applicable to your study. 
 
 1. [Greenwald, Miller et al. Whole-cell segmentation of tissue images with human-level performance using large-scale data annotation and deep learning [2021]](https://www.nature.com/articles/s41587-021-01094-0)
 2. [Liu et al. Robust phenotyping of highly multiplexed tissue imaging data using pixel-level clustering [2022]](https://www.biorxiv.org/content/10.1101/2022.08.16.504171v1)
