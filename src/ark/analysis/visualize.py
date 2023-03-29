@@ -147,6 +147,8 @@ def draw_heatmap(data, x_labels, y_labels, dpi=None, center_val=None, min_val=No
     # ensure the y-axis labels are horizontal, will be misaligned if vertical
     _ = plt.setp(heatmap.ax_heatmap.get_yticklabels(), rotation=0)
 
+    plt.tight_layout()
+
     if save_dir is not None:
         misc_utils.save_figure(save_dir, save_file, dpi=dpi)
 
