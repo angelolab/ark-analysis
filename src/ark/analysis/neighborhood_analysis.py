@@ -15,7 +15,7 @@ from ark.analysis import spatial_analysis_utils
 def create_neighborhood_matrix(all_data, dist_mat_dir, included_fovs=None, distlim=50,
                                self_neighbor=False, fov_col=settings.FOV_ID,
                                cell_label_col=settings.CELL_LABEL,
-                               cluster_name_col=settings.CELL_TYPE):
+                               cell_type_col=settings.CELL_TYPE):
     """Calculates the number of neighbor phenotypes for each cell.
 
     Args:
@@ -33,7 +33,7 @@ def create_neighborhood_matrix(all_data, dist_mat_dir, included_fovs=None, distl
             column with the cell fovs.
         cell_label_col (str):
             column with the cell labels.
-        cluster_name_col (str):
+        cell_type_col (str):
             column with the cell types.
 
     Returns:
@@ -52,14 +52,14 @@ def create_neighborhood_matrix(all_data, dist_mat_dir, included_fovs=None, distl
 
     # Subset just the fov, label, and cell phenotype columns
     all_neighborhood_data = all_data[
-        [fov_col, cell_label_col, cluster_name_col]
+        [fov_col, cell_label_col, cell_type_col]
     ].reset_index(drop=True)
     # Extract the cell phenotypes
-    cluster_names = all_neighborhood_data[cluster_name_col].drop_duplicates()
+    cluster_names = all_neighborhood_data[cell_type_col].drop_duplicates()
     # Get the total number of phenotypes
     cluster_num = len(cluster_names)
 
-    included_columns = [fov_col, cell_label_col, cluster_name_col]
+    included_columns = [fov_col, cell_label_col, cell_type_col]
 
     # Initialize empty matrices for cell neighborhood data
     cell_neighbor_counts = pd.DataFrame(
@@ -81,7 +81,7 @@ def create_neighborhood_matrix(all_data, dist_mat_dir, included_fovs=None, distl
         current_fov_neighborhood_data = all_neighborhood_data[current_fov_idx]
 
         # Get the subset of phenotypes included in the current fov
-        fov_cluster_names = current_fov_neighborhood_data[cluster_name_col].drop_duplicates()
+        fov_cluster_names = current_fov_neighborhood_data[cell_type_col].drop_duplicates()
 
         # Retrieve fov-specific distance matrix from distance matrix dictionary
         dist_matrix = xr.load_dataarray(os.path.join(dist_mat_dir, str(fov) + '_dist_mat.xr'))
@@ -89,7 +89,7 @@ def create_neighborhood_matrix(all_data, dist_mat_dir, included_fovs=None, distl
         # Get cell_neighbor_counts and cell_neighbor_freqs for fovs
         counts, freqs = spatial_analysis_utils.compute_neighbor_counts(
             current_fov_neighborhood_data, dist_matrix, distlim, self_neighbor,
-            cell_label_col=cell_label_col, cluster_name_col=cluster_name_col)
+            cell_label_col=cell_label_col, cluster_name_col=cell_type_col)
 
         # Add to neighbor counts + freqs for only the matching phenos between fov and whole dataset
         cell_neighbor_counts.loc[current_fov_neighborhood_data.index, fov_cluster_names] = counts
