@@ -271,7 +271,7 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
 
     # check to make sure correct channels were specified
     pixel_cluster_utils.check_for_modified_channels(
-        tiff_dir=tiff_dir, 
+        tiff_dir=tiff_dir,
         test_fov=fovs[0],
         img_sub_folder=img_sub_folder,
         channels=channels
