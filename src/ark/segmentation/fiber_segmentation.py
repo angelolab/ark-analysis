@@ -8,7 +8,7 @@ import pandas as pd
 import scipy.ndimage as ndi
 from scipy.ndimage.morphology import distance_transform_edt
 from skimage.exposure import equalize_adapthist
-from skimage.filters import meijering, sobel, threshold_multiotsu
+from skimage.filters import frangi, sobel, threshold_multiotsu
 from skimage.measure import regionprops_table
 from skimage.morphology import remove_small_objects
 from skimage.segmentation import watershed
@@ -19,7 +19,7 @@ from ark.utils.plot_utils import set_minimum_color_for_colormap
 
 
 def plot_fiber_segmentation_steps(data_dir, fov_name, fiber_channel, img_sub_folder=None, blur=2,
-                                  contrast_scaling_divisor=128, fiber_widths=(2, 4),
+                                  contrast_scaling_divisor=128, fiber_widths=range(1, 10, 2),
                                   ridge_cutoff=0.1, sobel_blur=1, min_fiber_size=15,
                                   img_cmap=plt.cm.bone, labels_cmap=plt.cm.cool):
     """Plots output from each fiber segmentation step for single FoV
@@ -43,7 +43,7 @@ def plot_fiber_segmentation_steps(data_dir, fov_name, fiber_channel, img_sub_fol
             Widths of fibers to filter for.  Be aware that adding larger fiber widths can join
             close, narrow branches into one thicker fiber.
         ridge_cutoff (float):
-            Threshold for ridge inclusion post-meijering filtering.
+            Threshold for ridge inclusion post-frangi filtering.
         sobel_blur (float):
             Gaussian blur radius for sobel driven elevation map creation
         min_fiber_size (int):
@@ -89,9 +89,10 @@ def plot_fiber_segmentation_steps(data_dir, fov_name, fiber_channel, img_sub_fol
     axes[0, 2].imshow(contrast_adjusted, cmap=img_cmap)
     axes[0, 2].set_title(f"Contrast Adjuisted, CSD={contrast_scaling_divisor}")
 
-    ridges = meijering(contrast_adjusted, sigmas=fiber_widths, black_ridges=False)
+    ridges = frangi(contrast_adjusted, sigmas=fiber_widths, black_ridges=False)*10000
+
     axes[1, 0].imshow(ridges, cmap=img_cmap)
-    axes[1, 0].set_title(f"Meijering Filter, fiber_widths={fiber_widths}")
+    axes[1, 0].set_title("Frangi Filter")
 
     distance_transformed = ndi.gaussian_filter(
         distance_transform_edt(ridges > ridge_cutoff),
@@ -189,7 +190,7 @@ def run_fiber_segmentation(data_dir, fiber_channel, out_dir, img_sub_folder=None
 
 
 def segment_fibers(data_xr, fiber_channel, out_dir, fov, blur=2, contrast_scaling_divisor=128,
-                   fiber_widths=(2, 4), ridge_cutoff=0.1, sobel_blur=1, min_fiber_size=15,
+                   fiber_widths=range(1, 10, 2), ridge_cutoff=0.1, sobel_blur=1, min_fiber_size=15,
                    object_properties=settings.FIBER_OBJECT_PROPS, save_csv=True, debug=False):
     """ Segments fiber objects from image data
 
@@ -212,7 +213,7 @@ def segment_fibers(data_xr, fiber_channel, out_dir, fov, blur=2, contrast_scalin
             Widths of fibers to filter for.  Be aware that adding larger fiber widths can join
             close, narrow branches into one thicker fiber.
         ridge_cutoff (float):
-            Threshold for ridge inclusion post-meijering filtering.
+            Threshold for ridge inclusion post-frangi filtering.
         sobel_blur (float):
             Gaussian blur radius for sobel driven elevation map creation
         min_fiber_size (int):
@@ -253,8 +254,8 @@ def segment_fibers(data_xr, fiber_channel, out_dir, fov, blur=2, contrast_scalin
         kernel_size=fov_len / contrast_scaling_divisor
     )
 
-    # meijering filtering
-    ridges = meijering(contrast_adjusted, sigmas=fiber_widths, black_ridges=False)
+    # frangi filtering
+    ridges = frangi(contrast_adjusted, sigmas=fiber_widths, black_ridges=False)*10000
 
     # remove image intensity influence for watershed setup
     distance_transformed = ndi.gaussian_filter(
@@ -284,7 +285,7 @@ def segment_fibers(data_xr, fiber_channel, out_dir, fov, blur=2, contrast_scalin
                                threshed)
         image_utils.save_image(os.path.join(debug_path, f'{fov}_ridges_thresholded.tiff'),
                                distance_transformed)
-        image_utils.save_image(os.path.join(debug_path, f'{fov}_meijering_filter.tiff'),
+        image_utils.save_image(os.path.join(debug_path, f'{fov}_frangi_filter.tiff'),
                                ridges)
         image_utils.save_image(os.path.join(debug_path, f'{fov}_contrast_adjusted.tiff'),
                                contrast_adjusted)
