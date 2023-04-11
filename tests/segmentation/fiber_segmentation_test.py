@@ -1,7 +1,10 @@
 import os
 import shutil
 import tempfile
+import math
 
+import numpy as np
+import pandas as pd
 import pytest
 from alpineer import io_utils
 
@@ -86,3 +89,38 @@ def test_run_fiber_segmentation():
         for img in intermediate_imgs:
             img_path = os.path.join(out_dir, '_debug', img)
             assert os.path.exists(img_path)
+
+
+@pytest.mark.parametrize("neighbors", [1, 2])
+def test_calculate_fiber_alignment(neighbors):
+    ex_fiber_table = pd.DataFrame({
+        'fov': ['fov1', 'fov1', 'fov1', 'fov1'],
+        'label': [1, 2, 3, 4],
+        'orientation': [-30, -15, 15, 0],
+        'centroid-0': [0, 3, 1, 2],
+        'centroid-1': [0, 3, 3, 2],
+        'major_axis_length': [2, 2, 2, 1.5],
+        'minor_axis_length': [1, 1, 1, 1]
+    })
+    closest_fibers = {
+        1: [3, 2],
+        2: [3, 1],
+        3: [2, 1]
+    }
+
+    # calculate alignment scores with k=1
+    align_table = fiber_segmentation.calculate_fiber_alignment(ex_fiber_table, k=neighbors)
+
+    # check that fiber 4 was excluded
+    short_fiber = align_table[align_table.label == 4]
+    assert math.isnan(short_fiber.alignment_score)
+
+    # check that alignments are calculated correctly, ignoring fiber 4 when it is closest
+    for fiber in [1, 2, 3]:
+        angle = int(ex_fiber_table[ex_fiber_table.label == fiber].orientation)
+        neighbor_fibers = closest_fibers[fiber][:neighbors]
+        neighbor_orientations = np.array(ex_fiber_table[ex_fiber_table.label.isin(neighbor_fibers)]
+                                         .orientation.values)
+        alignment_score = np.sqrt(np.sum((neighbor_orientations - angle) ** 2)) / neighbors
+
+        assert alignment_score == align_table[align_table.label == fiber].alignment_score

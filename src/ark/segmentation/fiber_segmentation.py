@@ -1,6 +1,7 @@
 import os
 from typing import Dict, Optional
 
+import statistics as stats
 import matplotlib.pyplot as plt
 import natsort as ns
 import numpy as np
@@ -13,6 +14,7 @@ from skimage.measure import regionprops_table
 from skimage.morphology import remove_small_objects
 from skimage.segmentation import watershed
 from alpineer import image_utils, io_utils, load_utils, misc_utils
+from scipy.spatial.distance import cdist
 
 from ark import settings
 from ark.utils.plot_utils import set_minimum_color_for_colormap
@@ -189,6 +191,63 @@ def run_fiber_segmentation(data_dir, fiber_channel, out_dir, img_sub_folder=None
     return fiber_object_table
 
 
+def calculate_fiber_alignment(fiber_object_table, k=4, axis_thresh=2):
+    """ Calculates an alignment score for each fiber in an image. Based on the angle difference of
+    the fiber compared to it's k nearest neighbors.
+
+     Args:
+        fiber_object_table (pd.DataFrame):
+            dataframe containing the fiber objects and their properties (fov, label, alignment,
+             centroid-0, centroid-1, major_axis_length, minor_axis_length)
+        k (int):
+            number of neighbors to check alignment difference for
+        axis_thresh (int):
+            threshold for how much longer the length of the fiber must be compared to the width
+
+    Returns:
+        pd.DataFrame:
+         - Dataframe with the alignment scores appended
+    """
+
+    fovs = np.unique(fiber_object_table.fov)
+    fov_data = []
+
+    # process one fov at a time
+    for fov in fovs:
+        fov_fiber_table = fiber_object_table[fiber_object_table.fov == fov]
+
+        # only grab fibers of specified length to width ratio
+        filtered_lengths = fov_fiber_table[(fov_fiber_table['major_axis_length'].values /
+                                            fov_fiber_table['minor_axis_length'].values)
+                                           >= axis_thresh]
+        filtered_lengths = filtered_lengths.reset_index()
+
+        # create a distance matrix between fiber centroids
+        centroids = np.vstack((filtered_lengths['centroid-0'].values,
+                               filtered_lengths['centroid-1'].values)).T
+        fiber_dist_mat = cdist(centroids, centroids)
+
+        # compute alignment scores for each individual fiber
+        fiber_scores = []
+        for indx, angle in enumerate(filtered_lengths.orientation):
+            # find index for smallest distances, excluding itself
+            indy = fiber_dist_mat[indx, :].argsort()[1:1+k]
+            neighbor_angles = filtered_lengths.orientation[indy]
+            fiber_scores.append(
+                np.sqrt(np.sum((neighbor_angles - angle) ** 2)) / k)
+
+        fov_alignments = pd.DataFrame(
+            zip([fov] * len(fiber_scores), filtered_lengths.label, fiber_scores),
+            columns=['fov', 'label', 'alignment_score'])
+        fov_data.append(fov_alignments)
+
+    # append alignment score to fiber object table
+    alignment_data = pd.concat(fov_data)
+    fiber_object_table_adj = fiber_object_table.merge(alignment_data, 'left')
+
+    return fiber_object_table_adj
+
+
 def segment_fibers(data_xr, fiber_channel, out_dir, fov, blur=2, contrast_scaling_divisor=128,
                    fiber_widths=range(1, 10, 2), ridge_cutoff=0.1, sobel_blur=1, min_fiber_size=15,
                    object_properties=settings.FIBER_OBJECT_PROPS, save_csv=True, debug=False):
@@ -296,6 +355,9 @@ def segment_fibers(data_xr, fiber_channel, out_dir, fov, blur=2, contrast_scalin
 
     fiber_object_table = pd.DataFrame(fiber_object_table)
     fiber_object_table[settings.FOV_ID] = fov
+
+    # append fiber knn alignment
+    fiber_object_table = calculate_fiber_alignment(fiber_object_table)
 
     if save_csv:
         fiber_object_table.to_csv(os.path.join(out_dir, 'fiber_object_table.csv'))
