@@ -73,6 +73,8 @@ def test_run_fiber_segmentation():
         # check all fovs are processed
         assert fiber_object_table[settings.FOV_ID].unique().sort() == \
                io_utils.list_folders(img_dir).sort()
+        # check for fiber alignment column
+        assert 'alignment_score' in fiber_object_table.columns
 
         # check output files
         for fov in io_utils.list_files(img_dir):
