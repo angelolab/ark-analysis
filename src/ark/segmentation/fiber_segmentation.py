@@ -1,7 +1,6 @@
 import os
 from typing import Dict, Optional
 
-import statistics as stats
 import matplotlib.pyplot as plt
 import natsort as ns
 import numpy as np
@@ -196,12 +195,12 @@ def calculate_fiber_alignment(fiber_object_table, k=4, axis_thresh=2):
     the fiber compared to it's k nearest neighbors.
 
      Args:
-        fiber_object_table (pd.DataFrame):
+         fiber_object_table (pd.DataFrame):
             dataframe containing the fiber objects and their properties (fov, label, alignment,
              centroid-0, centroid-1, major_axis_length, minor_axis_length)
-        k (int):
+         k (int):
             number of neighbors to check alignment difference for
-        axis_thresh (int):
+         axis_thresh (int):
             threshold for how much longer the length of the fiber must be compared to the width
 
     Returns:
