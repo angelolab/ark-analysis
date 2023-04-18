@@ -87,7 +87,7 @@ def test_run_fiber_segmentation():
 
         # check debug output files
         intermediate_imgs = ['fov1_thresholded.tiff', 'fov1_ridges_thresholded.tiff',
-                             'fov1_meijering_filter.tiff', 'fov1_contrast_adjusted.tiff']
+                             'fov1_frangi_filter.tiff', 'fov1_contrast_adjusted.tiff']
         for img in intermediate_imgs:
             img_path = os.path.join(out_dir, '_debug', img)
             assert os.path.exists(img_path)
@@ -125,4 +125,4 @@ def test_calculate_fiber_alignment(neighbors):
                                          .orientation.values)
         alignment_score = np.sqrt(np.sum((neighbor_orientations - angle) ** 2)) / neighbors
 
-        assert alignment_score == align_table[align_table.label == fiber].alignment_score
+        assert (alignment_score == align_table[align_table.label == fiber].alignment_score).all()
