@@ -10,7 +10,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 dependencies = [
-    "alpineer>=0.1.5",
+    "alpineer==0.1.5",
     "Cython>=0.29,<1",
     "datasets>=2.6,<3.0",
     "dill>=0.3.5,<0.4",
