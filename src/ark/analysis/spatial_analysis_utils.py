@@ -588,7 +588,7 @@ def generate_cluster_labels(neighbor_mat_data, cluster_num, seed=42):
             the neighborhood cluster labels assigned to each cell in neighbor_mat_data
     """
 
-    cluster_fit = KMeans(n_clusters=cluster_num, random_state=seed, n_init='auto').\
+    cluster_fit = KMeans(n_clusters=cluster_num, random_state=seed, n_init=10).\
         fit(neighbor_mat_data)
     # Add 1 to avoid cluster number 0
     cluster_labels = cluster_fit.labels_ + 1
